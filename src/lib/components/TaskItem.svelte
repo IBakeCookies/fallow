@@ -36,14 +36,14 @@
 
 	const badges = $derived([
 		{ label: 'Diff', value: difficulty },
-		{ label: 'Engagement', value: enjoyment },
-		{ label: 'Priority', value: priorityScore },
+		{ label: 'Enj', value: enjoyment },
+		{ label: 'Prio', value: priorityScore },
 		{ label: null, value: decimalHourToMinutes(suggestedHours) }
 	]);
 </script>
 
 <div
-	class="group flex items-center justify-between rounded-lg border border-transparent bg-transparent p-3 transition hover:border-white/5 hover:bg-white/[0.02]"
+	class="group flex items-center justify-between rounded-lg border border-transparent bg-transparent p-3 transition hover:border-white/5 hover:bg-white/3"
 >
 	<div class="flex items-center gap-4">
 		<input

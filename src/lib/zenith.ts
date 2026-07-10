@@ -81,31 +81,37 @@ export function calculatePeakScaling(E: number, beta: number): number {
 
 /**
  * Productivity function at time t
- * p(t) = (a + p₀) × t × e^(-kt) where k = 1/ϕ
+ * p(t) = (a + p₀) × k × t × e^(-kt) where k = 1/ϕ
+ *
+ * The k factor normalizes across different flow state times, ensuring tasks
+ * with different ϕ values are comparable in the Lagrange optimization.
  *
  * Note: This form ensures the maximum occurs exactly at t = 1/k = ϕ (flow state time).
  * Taking dp/dt = 0 gives (1 - kt) = 0, so t_max = 1/k = ϕ.
+ * Peak productivity at t = ϕ: p(ϕ) = (a + p₀) × k × ϕ × e^(-1) = (a + p₀)/e
  */
 export function productivity(t: number, a: number, p0: number, k: number): number {
 	if (t <= 0) return 0;
-	return (a + p0) * t * Math.exp(-k * t);
+	return (a + p0) * k * t * Math.exp(-k * t);
 }
 
 /**
  * Average productivity over interval [0, T]
  * P̄(T) = (1/T) ∫₀ᵀ p(t) dt
  *
- * Analytical solution:
- * ∫₀ᵀ t × e^(-kt) dt = (1/k²)[1 - e^(-kT)(kT + 1)]
+ * With p(t) = (a + p₀) × k × t × e^(-kt):
  *
- * So: P̄(T) = (a + p₀) × [1 - e^(-kT)(kT + 1)] / (T × k²)
+ * Analytical solution:
+ * ∫₀ᵀ k × t × e^(-kt) dt = (1/k)[1 - e^(-kT)(kT + 1)]
+ *
+ * So: P̄(T) = (a + p₀) × [1 - e^(-kT)(kT + 1)] / (T × k)
  */
 export function averageProductivity(T: number, a: number, p0: number, k: number): number {
 	if (T <= 0) return 0;
 
 	const kT = k * T;
 	const expTerm = Math.exp(-kT);
-	const integral = (1 / (k * k)) * (1 - expTerm * (kT + 1));
+	const integral = (1 / k) * (1 - expTerm * (kT + 1));
 
 	return ((a + p0) * integral) / T;
 }
@@ -114,14 +120,13 @@ export function averageProductivity(T: number, a: number, p0: number, k: number)
  * Derivative of average productivity with respect to T
  * Used for Lagrange multiplier optimization
  *
- * d/dT[P̄(T)] = d/dT[(a + p₀) × (1 - e^(-kT)(kT + 1)) / (T × k²)]
+ * P̄(T) = (a + p₀)/k × [1 - e^(-kT)(kT + 1)] / T
  *
  * Let f(T) = 1 - e^(-kT)(kT + 1)
  * f'(T) = k²T × e^(-kT)
  *
- * P̄(T) = (a + p₀)/(k²) × f(T)/T
- * d/dT[P̄(T)] = (a + p₀)/(k²) × [f'(T)×T - f(T)] / T²
- *            = (a + p₀)/(k²) × [k²T² × e^(-kT) - (1 - e^(-kT)(kT + 1))] / T²
+ * d/dT[P̄(T)] = (a + p₀)/k × [f'(T)×T - f(T)] / T²
+ *            = (a + p₀)/k × [k²T² × e^(-kT) - (1 - e^(-kT)(kT + 1))] / T²
  */
 export function avgProductivityDerivative(T: number, a: number, p0: number, k: number): number {
 	if (T <= 0.01) return 1000; // Large positive derivative at start
@@ -131,7 +136,7 @@ export function avgProductivityDerivative(T: number, a: number, p0: number, k: n
 	const f = 1 - expTerm * (kT + 1);
 	const fPrime = k * k * T * expTerm;
 
-	return ((a + p0) / (k * k)) * ((fPrime * T - f) / (T * T));
+	return ((a + p0) / k) * ((fPrime * T - f) / (T * T));
 }
 
 /**

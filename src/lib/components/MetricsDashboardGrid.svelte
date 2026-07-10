@@ -51,10 +51,40 @@
 
 	<div class="border-t border-zinc-800 my-3"></div>
 
-	<!-- All Metrics flat list with separators -->
+	<!-- Top 4 Metrics in 2x2 grid -->
+	<div class="grid grid-cols-2 gap-2 mb-3">
+		{#each metrics.slice(0, 4) as item}
+			<div class="px-2 py-1 rounded-lg bg-white/2 border border-white/5">
+				<Tooltip.Provider>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<span
+								class="text-xs text-zinc-400 cursor-help underline decoration-dotted underline-offset-2"
+							>
+								{item.label}
+							</span>
+						</Tooltip.Trigger>
+						<Tooltip.Content
+							side="right"
+							class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200"
+						>
+							<p>{item.description}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				</Tooltip.Provider>
+				<div class="text-sm font-semibold capitalize {item.valStyle} mt-1">
+					{item.value}
+				</div>
+			</div>
+		{/each}
+	</div>
+
+	<div class="border-t border-zinc-800 my-3"></div>
+
+	<!-- Remaining Metrics flat list with separators -->
 	<div>
-		{#each metrics as item, i}
-			{#if i === 4 || i === 7 || i === 11 || i === 13 || i === 16}
+		{#each metrics.slice(4) as item, i}
+			{#if i === 3 || i === 7 || i === 9 || i === 12}
 				<div class="border-t border-zinc-800 my-3"></div>
 			{/if}
 			<div

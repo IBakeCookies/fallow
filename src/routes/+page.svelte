@@ -229,7 +229,7 @@
 			label: 'Burnout Risk',
 			value: `${burnoutRisk}%`,
 			description:
-				'Based on Zenith strain ratio (E/β). Only above-average strain (E/β > 2) accumulates. 3 strain-hours = 100% risk.',
+				'Based on difficulty/enjoyment ratio. Strain accumulates when difficulty > enjoyment. Cognitive tasks drain 1.5×, Hybrid 1.25×. 4 strain-hours = 100% risk.',
 			valStyle: getStatusSmallerBetter(burnoutRisk).color
 		},
 		{
@@ -296,11 +296,11 @@
 			valStyle: getStatusSmallerBetter(grindDensity).color
 		},
 		{
-			label: 'Reward Density',
+			label: 'Sustainable Work',
 			value: `${rewardDensity}%`,
 			description:
-				'Percentage of time on enjoyable tasks (≥6). Sustainable productivity needs 40-60% rewarding work.',
-			valStyle: getStatusInRange(rewardDensity, 40, 60).color
+				'Percentage of time on tasks where enjoyment ≥ difficulty. Higher = more energizing workday.',
+			valStyle: getStatusBiggerBetter(rewardDensity).color
 		},
 		{
 			label: 'Recovery Ratio',
@@ -407,7 +407,7 @@
 		if (browser && !isLoading && selectedDate === today) {
 			saveSession({
 				date: today,
-				tasks,
+				tasks: $state.snapshot(tasks),
 				availableHours,
 				switchCost,
 				updatedAt: Date.now()

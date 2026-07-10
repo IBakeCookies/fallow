@@ -49,7 +49,8 @@
 			<input
 				type="text"
 				bind:value={draft.title}
-				placeholder="Enter task parameters..."
+				placeholder="e.g., Reading a book"
+				required
 				class="mt-2 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
 			/>
 		</label>
@@ -99,7 +100,7 @@
 
 		<div class="space-y-2">
 			<div class="flex justify-between text-xs font-medium">
-				<span class="text-zinc-400">Engagement / Enjoyment</span>
+				<span class="text-zinc-400">Enjoyment</span>
 				<span class="text-zinc-100">
 					{draft.enjoyment}
 				</span>
