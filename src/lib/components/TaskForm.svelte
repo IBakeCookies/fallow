@@ -40,7 +40,7 @@
 </script>
 
 <form
-	class="rounded-2xl border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl shadow-2xl"
+	class="rounded-2xl border border-white/10 bg-white/3 p-6 backdrop-blur-xl shadow-2xl"
 	onsubmit={handleSubmit}
 >
 	<div class="flex gap-3 items-end">

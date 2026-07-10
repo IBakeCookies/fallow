@@ -53,7 +53,7 @@
 	const canSave = $derived(currentTasks.length > 0);
 </script>
 
-<Card.Root class="border-white/10 bg-white/[0.02] backdrop-blur-xl">
+<Card.Root class="border-white/10 bg-white/3 backdrop-blur-xl">
 	<Card.Header class="pb-2">
 		<Card.Title class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
 			Quick Import

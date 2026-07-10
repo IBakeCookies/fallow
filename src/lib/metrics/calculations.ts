@@ -121,7 +121,10 @@ export function calculateFlowCoverage(activeTasks: SuggestedTask[]): {
 	total: number;
 } {
 	if (!activeTasks.length) return { reached: 0, total: 0 };
-	const reached = activeTasks.filter((t) => t.suggestedHours >= t.flowStateTime).length;
+	// Task must have allocated time AND reach flow state time
+	const reached = activeTasks.filter(
+		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.flowStateTime
+	).length;
 	return { reached, total: activeTasks.length };
 }
 

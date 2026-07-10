@@ -17,7 +17,7 @@
 	let { metrics, momentum }: Props = $props();
 </script>
 
-<div class="rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+<div class="rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
 	<!-- Momentum -->
 	<div class="flex items-center justify-between mb-4">
 		<Tooltip.Provider>

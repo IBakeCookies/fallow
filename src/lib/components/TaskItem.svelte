@@ -33,6 +33,13 @@
 		const minutes = Math.round((decimalHour - hours) * 60);
 		return `${hours}h ${minutes}m`;
 	}
+
+	const badges = $derived([
+		{ label: 'Diff', value: difficulty },
+		{ label: 'Engagement', value: enjoyment },
+		{ label: 'Priority', value: priorityScore },
+		{ label: null, value: decimalHourToMinutes(suggestedHours) }
+	]);
 </script>
 
 <div
@@ -68,23 +75,14 @@
 	</div>
 
 	<div class="flex items-center gap-2">
-		<span
-			class="rounded border border-zinc-800 bg-zinc-900/50 px-2 py-0.5 text-xs font-medium text-zinc-400"
-			>Diff: {difficulty}</span
-		>
-		<span
-			class="rounded border border-zinc-800 bg-zinc-900/50 px-2 py-0.5 text-xs font-medium text-zinc-400"
-			>Engagement: {enjoyment}</span
-		>
-		<span
-			class="rounded border border-zinc-800 bg-zinc-900/50 px-2 py-0.5 text-xs font-medium text-zinc-400"
-		>
-			Priority: {priorityScore}
-		</span>
-		<span
-			class="rounded border border-zinc-800 bg-zinc-900/50 px-2 py-0.5 text-xs font-medium text-zinc-400"
-			>{decimalHourToMinutes(suggestedHours)}</span
-		>
+		{#each badges as badge}
+			<span
+				class="rounded border border-zinc-800 bg-white/3 px-2 py-0.5 text-xs font-medium text-zinc-400"
+			>
+				{#if badge.label}{badge.label}:
+				{/if}{badge.value}
+			</span>
+		{/each}
 
 		<Button
 			variant="ghost"

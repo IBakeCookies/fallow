@@ -356,7 +356,7 @@
 				<div class="space-y-6 lg:col-span-2 order-1">
 					<!-- Input Form: Sleek and Minimal -->
 					<form
-						class="rounded-2xl border border-white/10 bg-white/[0.02] p-6 backdrop-blur-xl shadow-2xl"
+						class="rounded-2xl border border-white/10 bg-white/3 p-6 backdrop-blur-xl shadow-2xl"
 						onsubmit={(e) => {
 							e.preventDefault();
 							addTask();
@@ -413,7 +413,7 @@
 
 					<!-- Task List: Professional Data Rows -->
 					<div
-						class="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-sm"
+						class="space-y-2 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl shadow-sm"
 					>
 						<h1 class="text-lg font-bold text-zinc-200">Tasks</h1>
 						{#if suggestedTasks.length === 0}
@@ -499,7 +499,7 @@
 
 				<!-- Right Sidebar Analytics -->
 				<div class="space-y-4 lg:col-span-1 order-2 lg:sticky lg:top-8">
-					<div class="rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+					<div class="rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
 						<div class="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
 							<h3 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
 								Allocation
@@ -520,7 +520,7 @@
 						</div>
 					</div>
 
-					<div class="rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+					<div class="rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
 						<div class="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
 							<h4 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
 								Momentum Vector

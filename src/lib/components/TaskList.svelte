@@ -11,9 +11,7 @@
 	let { suggestedTasks, ontoggle, onremove }: Props = $props();
 </script>
 
-<div
-	class="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-sm"
->
+<div class="space-y-2 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl shadow-sm">
 	<h2 class="text-lg font-bold text-zinc-200">Tasks</h2>
 	{#if suggestedTasks.length === 0}
 		<div class="flex flex-col items-center justify-center py-12 text-center">
@@ -31,7 +29,10 @@
 			<p class="text-xs text-zinc-500 mt-1">Add a task above to begin tracking</p>
 		</div>
 	{/if}
-	{#each suggestedTasks as task (task.id)}
+	{#each suggestedTasks as task, i (task.id)}
+		{#if i > 0}
+			<hr class="border-white/5" />
+		{/if}
 		<TaskItem
 			id={task.id}
 			title={task.title}

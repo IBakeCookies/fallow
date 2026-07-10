@@ -876,7 +876,7 @@
 
 					<!-- Task List -->
 					<div
-						class="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl shadow-sm"
+						class="space-y-2 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl shadow-sm"
 					>
 						<h2 class="text-lg font-bold text-zinc-200">Tasks</h2>
 						{#if suggestedTasks.length === 0}
@@ -920,7 +920,7 @@
 				<!-- Right: Time Budget + Metrics -->
 				<div class="space-y-4 lg:sticky lg:top-8">
 					<!-- Time Budget -->
-					<Card.Root class="border-white/10 bg-white/[0.02] backdrop-blur-xl">
+					<Card.Root class="border-white/10 bg-white/3 backdrop-blur-xl">
 						<Card.Header class="pb-2">
 							<Card.Title class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
 								Time Budget
@@ -942,7 +942,7 @@
 					</Card.Root>
 
 					<!-- Metrics -->
-					<div class="rounded-xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+					<div class="rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
 						<!-- Momentum -->
 						<div class="flex items-center justify-between mb-4">
 							<Tooltip.Provider>

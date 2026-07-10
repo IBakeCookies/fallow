@@ -92,6 +92,17 @@ export async function getYesterdaySession(): Promise<DailySession | null> {
 	return getSession(dateStr);
 }
 
+export async function getAllSessionDates(): Promise<string[]> {
+	const db = await getDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction('sessions', 'readonly');
+		const store = tx.objectStore('sessions');
+		const request = store.getAllKeys();
+		request.onsuccess = () => resolve(request.result as string[]);
+		request.onerror = () => reject(request.error);
+	});
+}
+
 export async function getRecentSessions(days: number = 7): Promise<DailySession[]> {
 	const db = await getDB();
 	const sessions: DailySession[] = [];

@@ -6,7 +6,6 @@
 	import TaskList from '$lib/components/TaskList.svelte';
 	import TimeBudgetCard from '$lib/components/TimeBudgetCard.svelte';
 	import MetricsDashboard from '$lib/components/MetricsDashboard.svelte';
-	import ImportPanel from '$lib/components/ImportPanel.svelte';
 	import {
 		STATUS,
 		getStatusBiggerBetter,
@@ -61,6 +60,10 @@
 	let isLoading = $state(true);
 	let yesterdaySession = $state<DailySession | null>(null);
 	let routines = $state<SavedRoutine[]>([]);
+	let selectedDate = $state(today);
+
+	// Derived: are we viewing historical data?
+	const isViewingHistory = $derived(selectedDate !== today);
 
 	// Initialize from IndexedDB
 	onMount(async () => {
@@ -88,6 +91,29 @@
 			isLoading = false;
 		}
 	});
+
+	// Handle date change for history navigation
+	async function handleDateChange(newDate: string) {
+		if (!browser) return;
+
+		selectedDate = newDate;
+
+		try {
+			const session = await getSession(newDate);
+			if (session) {
+				tasks = session.tasks;
+				availableHours = session.availableHours;
+				switchCost = session.switchCost;
+			} else {
+				// No data for this date
+				tasks = [];
+				availableHours = 0;
+				switchCost = DEFAULT_SWITCH_COST;
+			}
+		} catch (e) {
+			console.error('Failed to load session for date', newDate, e);
+		}
+	}
 
 	// Core derived values
 	const totalTasks = $derived(tasks.length);
@@ -376,9 +402,9 @@
 		routines = await getAllRoutines();
 	}
 
-	// Auto-save to IndexedDB
+	// Auto-save to IndexedDB (only for today)
 	$effect(() => {
-		if (browser && !isLoading) {
+		if (browser && !isLoading && selectedDate === today) {
 			saveSession({
 				date: today,
 				tasks,
@@ -403,26 +429,41 @@
 		class="min-h-screen bg-black/70 text-zinc-300 antialiased selection:bg-indigo-500/30 selection:text-indigo-200 font-sans"
 	>
 		<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<PageHeader completedTasks={completedTasksCount} {totalTasks} />
+			<PageHeader
+				completedTasks={completedTasksCount}
+				{totalTasks}
+				{selectedDate}
+				{today}
+				ondatechange={handleDateChange}
+				{yesterdaySession}
+				{routines}
+				currentTasks={tasks}
+				onimport={importTasks}
+				onsaveroutine={handleSaveRoutine}
+				ondeleteroutine={handleDeleteRoutine}
+			/>
 
 			<div class="grid gap-6 lg:grid-cols-3 items-start">
 				<div class="space-y-6 lg:col-span-2">
-					<TaskForm onsubmit={addTask} />
-					<TaskList {suggestedTasks} ontoggle={toggleTask} onremove={removeTask} />
+					{#if !isViewingHistory}
+						<TimeBudgetCard bind:availableHours bind:switchCost {remainingSuggestedHours} />
+						<TaskForm onsubmit={addTask} />
+					{:else}
+						<div
+							class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
+						>
+							<span class="font-medium">Read-only mode:</span> You're viewing historical data. Return
+							to today to add or modify tasks.
+						</div>
+					{/if}
+					<TaskList
+						{suggestedTasks}
+						ontoggle={isViewingHistory ? () => {} : toggleTask}
+						onremove={isViewingHistory ? () => {} : removeTask}
+					/>
 				</div>
 
 				<div class="space-y-4 lg:sticky lg:top-8">
-					<TimeBudgetCard bind:availableHours bind:switchCost {remainingSuggestedHours} />
-
-					<ImportPanel
-						{yesterdaySession}
-						{routines}
-						currentTasks={tasks}
-						onimport={importTasks}
-						onsaveroutine={handleSaveRoutine}
-						ondeleteroutine={handleDeleteRoutine}
-					/>
-
 					<MetricsDashboard {metrics} {momentum} />
 				</div>
 			</div>
