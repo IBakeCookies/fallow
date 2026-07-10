@@ -4,17 +4,39 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_SWITCH_COST
 } from '$lib/zenith';
-import type { TaskType } from '$lib/types/business/taskType';
 
 export type Task = {
 	id: number;
 	title: string;
-	difficulty: number;
+	physicalDifficulty: number;
+	mentalDifficulty: number;
 	enjoyment: number;
-	taskType: TaskType;
 	createdAt: string;
 	completed: boolean;
 };
+
+/**
+ * Derive effective difficulty for Zenith algorithm.
+ * Uses the dominant difficulty dimension since that's what limits you.
+ */
+export function getEffectiveDifficulty(
+	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>
+): number {
+	return Math.max(task.physicalDifficulty, task.mentalDifficulty);
+}
+
+/**
+ * Determine if a task is primarily cognitive, physical, or balanced.
+ * Used for display badges only - not for calculations.
+ */
+export function getTaskNature(
+	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>
+): 'cognitive' | 'physical' | 'balanced' {
+	const diff = task.mentalDifficulty - task.physicalDifficulty;
+	if (diff >= 3) return 'cognitive';
+	if (diff <= -3) return 'physical';
+	return 'balanced';
+}
 
 export type SuggestedTask = Task & {
 	suggestedHours: number;
@@ -42,7 +64,7 @@ export function calculateSuggestedTasks(
 
 	const taskInputs = tasks.map((task) => ({
 		title: task.title,
-		difficulty: task.difficulty,
+		difficulty: getEffectiveDifficulty(task),
 		enjoyment: task.enjoyment
 	}));
 
@@ -80,7 +102,7 @@ export function calculateZenithGain(
 
 	const taskInputs = tasks.map((task) => ({
 		title: task.title,
-		difficulty: task.difficulty,
+		difficulty: getEffectiveDifficulty(task),
 		enjoyment: task.enjoyment
 	}));
 
@@ -154,19 +176,17 @@ export function calculateHumanCapacity(activeTasks: SuggestedTask[]): {
 } {
 	if (!activeTasks.length) return { percent: 0, limitType: 'none' };
 
-	const cognitiveHours = activeTasks
-		.filter((t) => t.taskType === 'Cognitive')
-		.reduce((sum, t) => sum + t.suggestedHours, 0);
-	const hybridHours = activeTasks
-		.filter((t) => t.taskType === 'Hybrid')
-		.reduce((sum, t) => sum + t.suggestedHours, 0);
-	const physicalHours = activeTasks
-		.filter((t) => t.taskType === 'Physical')
-		.reduce((sum, t) => sum + t.suggestedHours, 0);
+	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight)
+	const cogDemand = activeTasks.reduce(
+		(sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours,
+		0
+	);
+	const physDemand = activeTasks.reduce(
+		(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
+		0
+	);
 
-	const cogDemand = cognitiveHours + hybridHours * 0.5;
-	const physDemand = physicalHours + hybridHours * 0.5;
-
+	// Cognitive limit ~4h/day of intense mental work, physical ~6h/day
 	const cogSaturation = Math.round((cogDemand / 4) * 100);
 	const physSaturation = Math.round((physDemand / 6) * 100);
 
@@ -222,7 +242,8 @@ export function calculateTimeScarcity(
 
 	// Calculate total flow state time demand (Σϕ)
 	const totalFlowDemand = tasks.reduce((sum, t) => {
-		const E = (4 / 9) * t.difficulty + 5 / 9; // mapEffort
+		const difficulty = getEffectiveDifficulty(t);
+		const E = (4 / 9) * difficulty + 5 / 9; // mapEffort
 		const beta = (1 / 9) * t.enjoyment + 8 / 9; // mapEnjoyability
 		const phi = Math.max(0.1, c1 * E + c2 * beta + c3);
 		return sum + phi;
@@ -294,13 +315,13 @@ export function calculateBurnoutRisk(activeTasks: SuggestedTask[]): number {
 			// Overwork strain: diminishing returns zone accelerates burnout
 			const taskOverworkStrain = overworkRatio * strainFactor * hours;
 
-			// Task type modifier: cognitive tasks are more draining
-			const typeMultiplier =
-				t.taskType === 'Cognitive' ? 1.3 : t.taskType === 'Hybrid' ? 1.15 : 1.0;
+			// Multiplier based on cognitive intensity: mental work is more draining
+			// mentalDifficulty 10 → 1.3x, mentalDifficulty 1 → 1.0x
+			const cognitiveIntensity = 1.0 + (t.mentalDifficulty / 10) * 0.3;
 
 			return {
-				baseStrain: acc.baseStrain + taskBaseStrain * typeMultiplier,
-				overworkStrain: acc.overworkStrain + taskOverworkStrain * typeMultiplier
+				baseStrain: acc.baseStrain + taskBaseStrain * cognitiveIntensity,
+				overworkStrain: acc.overworkStrain + taskOverworkStrain * cognitiveIntensity
 			};
 		},
 		{ baseStrain: 0, overworkStrain: 0 }
@@ -319,7 +340,7 @@ export function calculateBurnoutRisk(activeTasks: SuggestedTask[]): number {
  * (a form of mental break/transition), so more tasks = more switching =
  * lower cognitive load per unit time. This is intentional.
  *
- * Cognitive tasks count fully, Hybrid tasks count as 50% cognitive.
+ * Weight by mentalDifficulty: high mental difficulty = more cognitive load.
  */
 export function calculateCognitiveLoad(
 	activeTasks: SuggestedTask[],
@@ -328,9 +349,11 @@ export function calculateCognitiveLoad(
 	const budget = Number(availableHours) || 0;
 	if (!activeTasks.length || !budget) return 0;
 
-	const mentalHours = activeTasks
-		.filter((t) => t.taskType === 'Cognitive' || t.taskType === 'Hybrid')
-		.reduce((sum, t) => sum + t.suggestedHours * (t.taskType === 'Cognitive' ? 1 : 0.5), 0);
+	// Weight hours by mental difficulty (0-10 → 0-1)
+	const mentalHours = activeTasks.reduce(
+		(sum, t) => sum + t.suggestedHours * (t.mentalDifficulty / 10),
+		0
+	);
 
 	return Math.min(100, Math.round((mentalHours / budget) * 100));
 }
@@ -339,7 +362,7 @@ export function calculateCognitiveLoad(
  * Calculate physical load: what % of your time budget is physical work?
  *
  * Uses budget as denominator (same rationale as cognitive load).
- * Physical tasks count fully, Hybrid tasks count as 50% physical.
+ * Weight by physicalDifficulty: high physical difficulty = more physical load.
  */
 export function calculatePhysicalLoad(
 	activeTasks: SuggestedTask[],
@@ -348,9 +371,11 @@ export function calculatePhysicalLoad(
 	const budget = Number(availableHours) || 0;
 	if (!activeTasks.length || !budget) return 0;
 
-	const physicalHours = activeTasks
-		.filter((t) => t.taskType === 'Physical' || t.taskType === 'Hybrid')
-		.reduce((sum, t) => sum + t.suggestedHours * (t.taskType === 'Physical' ? 1 : 0.5), 0);
+	// Weight hours by physical difficulty (0-10 → 0-1)
+	const physicalHours = activeTasks.reduce(
+		(sum, t) => sum + t.suggestedHours * (t.physicalDifficulty / 10),
+		0
+	);
 
 	return Math.min(100, Math.round((physicalHours / budget) * 100));
 }
@@ -391,7 +416,7 @@ export function calculateFrictionIndex(
 export function calculateDailyQuadrant(tasks: Task[]): number {
 	if (!tasks.length) return 0;
 
-	const diff = tasks.reduce((sum, t) => sum + t.difficulty, 0) / tasks.length;
+	const diff = tasks.reduce((sum, t) => sum + getEffectiveDifficulty(t), 0) / tasks.length;
 	const enj = tasks.reduce((sum, t) => sum + t.enjoyment, 0) / tasks.length;
 
 	if (diff >= 5.5 && enj >= 5.5) return 75;
@@ -416,7 +441,7 @@ export function calculateBudgetConvergence(
 /**
  * Calculate momentum: average net enjoyment across tasks
  *
- * Uses RAW user values (enjoyment - difficulty) because the Zenith mapped
+ * Uses RAW user values (enjoyment - effective difficulty) because the Zenith mapped
  * ranges are asymmetric (E ∈ [1,5], β ∈ [1,2]) and would almost always
  * show negative momentum even for enjoyable tasks.
  *
@@ -430,7 +455,7 @@ export function calculateMomentum(tasks: Task[]): number {
 
 	// Use raw values for intuitive user-facing metric
 	const totalNetEnjoyment = tasks.reduce((sum, task) => {
-		return sum + (task.enjoyment - task.difficulty);
+		return sum + (task.enjoyment - getEffectiveDifficulty(task));
 	}, 0);
 
 	return Math.round(totalNetEnjoyment / tasks.length);
@@ -443,26 +468,37 @@ export function calculateDeepWorkRatio(
 	const budget = Number(availableHours) || 0;
 	if (!budget || !activeTasks.length) return 0;
 
+	// Deep work: high mental difficulty tasks (cognitive intensity ≥ 7)
 	const deepHours = activeTasks
-		.filter((t) => t.difficulty >= 7 && t.taskType === 'Cognitive')
+		.filter((t) => t.mentalDifficulty >= 7)
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
 	return Math.round((deepHours / budget) * 100);
 }
 
 export function calculateQuickWins(activeTasks: SuggestedTask[]): number {
-	return activeTasks.filter((t) => t.difficulty <= 3 && t.enjoyment >= 5).length;
+	// Quick wins: low effective difficulty, decent enjoyment
+	return activeTasks.filter((t) => getEffectiveDifficulty(t) <= 3 && t.enjoyment >= 5).length;
 }
 
+/**
+ * Calculate task variety: diversity of task characteristics
+ *
+ * Measures spread across cognitive/physical spectrum.
+ * High variety = mix of mental and physical tasks (better for sustained energy).
+ */
 export function calculateTaskVariety(activeTasks: SuggestedTask[]): number {
 	if (!activeTasks.length) return 100;
-	const types = new Set(activeTasks.map((t) => t.taskType));
-	return Math.round((types.size / 3) * 100);
+
+	// Count tasks by their dominant characteristic
+	const natures = activeTasks.map((t) => getTaskNature(t));
+	const uniqueNatures = new Set(natures);
+	return Math.round((uniqueNatures.size / 3) * 100);
 }
 
 /**
  * Calculate grind density: percentage of tasks where difficulty exceeds enjoyment
  *
- * Uses RAW user values (difficulty > enjoyment) because the Zenith mapped
+ * Uses RAW user values (effective difficulty > enjoyment) because the Zenith mapped
  * ranges are asymmetric (E ∈ [1,5], β ∈ [1,2]) and would incorrectly flag
  * most tasks as "grinds" even when enjoyment > difficulty.
  *
@@ -471,7 +507,7 @@ export function calculateTaskVariety(activeTasks: SuggestedTask[]): number {
 export function calculateGrindDensity(activeTasks: SuggestedTask[]): number {
 	if (!activeTasks.length) return 0;
 	// Use raw values for intuitive user-facing metric
-	const grindTasks = activeTasks.filter((t) => t.difficulty > t.enjoyment);
+	const grindTasks = activeTasks.filter((t) => getEffectiveDifficulty(t) > t.enjoyment);
 	return Math.round((grindTasks.length / activeTasks.length) * 100);
 }
 
@@ -495,7 +531,7 @@ export function calculateRewardDensity(
 	if (!budget || !activeTasks.length) return 0;
 
 	const sustainableHours = activeTasks
-		.filter((t) => t.enjoyment >= t.difficulty)
+		.filter((t) => t.enjoyment >= getEffectiveDifficulty(t))
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
 	return Math.round((sustainableHours / budget) * 100);
 }
@@ -503,17 +539,22 @@ export function calculateRewardDensity(
 export function calculateRecoveryRatio(activeTasks: SuggestedTask[]): string {
 	if (!activeTasks.length) return 'N/A';
 
-	const hardTasks = activeTasks.filter((t) => t.difficulty >= 7).length;
-	const easyTasks = activeTasks.filter((t) => t.difficulty <= 4).length;
+	const hardTasks = activeTasks.filter((t) => getEffectiveDifficulty(t) >= 7).length;
+	const easyTasks = activeTasks.filter((t) => getEffectiveDifficulty(t) <= 4).length;
 
 	if (hardTasks === 0) return 'No strain';
 	if (easyTasks === 0 && hardTasks > 0) return '0:' + hardTasks;
 	return easyTasks + ':' + hardTasks;
 }
 
-export function calculateAverageDifficulty(tasks: Task[]): number {
+export function calculateAveragePhysicalDifficulty(tasks: Task[]): number {
 	if (!tasks.length) return 0;
-	return Math.round(tasks.reduce((sum, task) => sum + task.difficulty, 0) / tasks.length);
+	return Math.round(tasks.reduce((sum, task) => sum + task.physicalDifficulty, 0) / tasks.length);
+}
+
+export function calculateAverageMentalDifficulty(tasks: Task[]): number {
+	if (!tasks.length) return 0;
+	return Math.round(tasks.reduce((sum, task) => sum + task.mentalDifficulty, 0) / tasks.length);
 }
 
 export function calculateAverageEnjoyment(tasks: Task[]): number {

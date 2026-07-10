@@ -30,9 +30,9 @@
 		if (!yesterdaySession?.tasks.length) return;
 		const tasksToImport = yesterdaySession.tasks.map((t) => ({
 			title: t.title,
-			difficulty: t.difficulty,
-			enjoyment: t.enjoyment,
-			taskType: t.taskType
+			physicalDifficulty: t.physicalDifficulty,
+			mentalDifficulty: t.mentalDifficulty,
+			enjoyment: t.enjoyment
 		}));
 		onimport(tasksToImport);
 	}

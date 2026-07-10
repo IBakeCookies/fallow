@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import type { TaskType } from '$lib/types/business/taskType';
+	import { getTaskNature } from '$lib/metrics/calculations';
 
 	interface Props {
 		id: number;
 		title: string;
-		difficulty: number;
+		physicalDifficulty: number;
+		mentalDifficulty: number;
 		enjoyment: number;
-		taskType: TaskType;
 		completed: boolean;
 		priorityScore: number;
 		suggestedHours: number;
@@ -18,9 +18,9 @@
 	let {
 		id,
 		title,
-		difficulty,
+		physicalDifficulty,
+		mentalDifficulty,
 		enjoyment,
-		taskType,
 		completed,
 		priorityScore,
 		suggestedHours,
@@ -34,11 +34,24 @@
 		return `${hours}h ${minutes}m`;
 	}
 
+	const nature = $derived(getTaskNature({ physicalDifficulty, mentalDifficulty }));
+	const natureLabel = $derived(
+		nature === 'cognitive' ? 'COG' : nature === 'physical' ? 'PHY' : 'HYB'
+	);
+	const natureClass = $derived(
+		nature === 'cognitive'
+			? 'bg-blue-500/20 text-blue-400'
+			: nature === 'physical'
+				? 'bg-emerald-500/20 text-emerald-400'
+				: 'bg-violet-500/20 text-violet-400'
+	);
+
 	const badges = $derived([
-		{ label: 'Diff', value: difficulty },
-		{ label: 'Enj', value: enjoyment },
-		{ label: 'Prio', value: priorityScore },
-		{ label: null, value: decimalHourToMinutes(suggestedHours) }
+		{ label: 'P', value: physicalDifficulty, color: 'text-emerald-400' },
+		{ label: 'M', value: mentalDifficulty, color: 'text-blue-400' },
+		{ label: 'E', value: enjoyment, color: 'text-indigo-400' },
+		{ label: 'Prio', value: priorityScore, color: null },
+		{ label: null, value: decimalHourToMinutes(suggestedHours), color: null }
 	]);
 </script>
 
@@ -54,15 +67,10 @@
 		/>
 		<div class="flex items-center gap-2">
 			<span
-				class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded {taskType ===
-				'Cognitive'
-					? 'bg-blue-500/20 text-blue-400'
-					: taskType === 'Physical'
-						? 'bg-emerald-500/20 text-emerald-400'
-						: 'bg-violet-500/20 text-violet-400'}"
-				title={taskType || 'Cognitive'}
+				class="text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded {natureClass}"
+				title={nature}
 			>
-				{taskType === 'Cognitive' ? 'COG' : taskType === 'Physical' ? 'PHY' : 'HYB'}
+				{natureLabel}
 			</span>
 			<h3
 				class:text-zinc-500={completed}
@@ -77,7 +85,8 @@
 	<div class="flex items-center gap-2">
 		{#each badges as badge}
 			<span
-				class="rounded border border-zinc-800 bg-white/3 px-2 py-0.5 text-xs font-medium text-zinc-400"
+				class="rounded border border-zinc-800 bg-white/3 px-2 py-0.5 text-xs font-medium {badge.color ||
+					'text-zinc-400'}"
 			>
 				{#if badge.label}{badge.label}:
 				{/if}{badge.value}

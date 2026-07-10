@@ -35,7 +35,10 @@
 		calculateTaskVariety,
 		calculateGrindDensity,
 		calculateRewardDensity,
-		calculateRecoveryRatio
+		calculateRecoveryRatio,
+		calculateAveragePhysicalDifficulty,
+		calculateAverageMentalDifficulty,
+		calculateAverageEnjoyment
 	} from '$lib/metrics/calculations';
 	import { DEFAULT_SWITCH_COST } from '$lib/zenith';
 	import {
@@ -49,7 +52,6 @@
 		type DailySession,
 		type SavedRoutine
 	} from '$lib/storage/db';
-	import type { TaskType } from '$lib/types/business/taskType';
 
 	const today = new Date().toISOString().slice(0, 10);
 
@@ -151,12 +153,9 @@
 	const recoveryRatio = $derived(calculateRecoveryRatio(activeTasks));
 
 	// Averages
-	const averageDifficulty = $derived(
-		totalTasks ? Math.round(tasks.reduce((sum, task) => sum + task.difficulty, 0) / totalTasks) : 0
-	);
-	const averageEnjoyment = $derived(
-		totalTasks ? Math.round(tasks.reduce((sum, task) => sum + task.enjoyment, 0) / totalTasks) : 0
-	);
+	const averagePhysicalDifficulty = $derived(calculateAveragePhysicalDifficulty(tasks));
+	const averageMentalDifficulty = $derived(calculateAverageMentalDifficulty(tasks));
+	const averageEnjoyment = $derived(calculateAverageEnjoyment(tasks));
 
 	// Metrics array for dashboard
 	const metrics = $derived([
@@ -222,14 +221,14 @@
 			label: 'Primary Bottleneck',
 			value: bottleneckTask,
 			description:
-				'The active task displaying the worst friction (highest difficulty relative to enjoyment).',
+				'The task requiring the most energy to reach flow state (highest effort-to-enjoyability ratio in Zenith terms).',
 			valStyle: bottleneckTask !== 'None Detected' ? STATUS.WARNING.color : STATUS.NEUTRAL.color
 		},
 		{
 			label: 'Burnout Risk',
 			value: `${burnoutRisk}%`,
 			description:
-				'Based on difficulty/enjoyment ratio. Strain accumulates when difficulty > enjoyment. Cognitive tasks drain 1.5×, Hybrid 1.25×. 4 strain-hours = 100% risk.',
+				'Based on difficulty/enjoyment ratio. Strain accumulates when difficulty > enjoyment. Higher mental difficulty = more draining. 5 strain-hours = 100% risk.',
 			valStyle: getStatusSmallerBetter(burnoutRisk).color
 		},
 		{
@@ -271,7 +270,7 @@
 			label: 'Deep Work',
 			value: `${deepWorkRatio}%`,
 			description:
-				'Percentage of time allocated to high-difficulty cognitive tasks requiring sustained focus.',
+				'Percentage of time allocated to high mental difficulty (≥7) tasks requiring sustained focus.',
 			valStyle: getStatusBiggerBetter(deepWorkRatio).color
 		},
 		{
@@ -285,7 +284,7 @@
 			label: 'Task Variety',
 			value: `${taskVariety}%`,
 			description:
-				'Diversity of task types (Cognitive/Physical/Hybrid). Mixing types prevents fatigue.',
+				'Diversity across mental/physical spectrum. Mixing cognitive, physical, and balanced tasks prevents fatigue.',
 			valStyle: getStatusBiggerBetter(taskVariety).color
 		},
 		{
@@ -329,10 +328,15 @@
 			valStyle: STATUS.NEUTRAL.color
 		},
 		{
-			label: 'Avg Difficulty',
-			value: `${averageDifficulty}/10`,
-			description:
-				'Average difficulty across all tasks. Higher values indicate more challenging workload.',
+			label: 'Avg Physical Diff',
+			value: `${averagePhysicalDifficulty}/10`,
+			description: 'Average physical difficulty across all tasks.',
+			valStyle: STATUS.NEUTRAL.color
+		},
+		{
+			label: 'Avg Mental Diff',
+			value: `${averageMentalDifficulty}/10`,
+			description: 'Average mental/cognitive difficulty across all tasks.',
 			valStyle: STATUS.NEUTRAL.color
 		},
 		{
@@ -345,17 +349,17 @@
 
 	function addTask(taskData: {
 		title: string;
-		difficulty: number;
+		physicalDifficulty: number;
+		mentalDifficulty: number;
 		enjoyment: number;
-		taskType: TaskType;
 	}) {
 		tasks = [
 			{
 				id: Date.now(),
 				title: taskData.title,
-				difficulty: taskData.difficulty,
+				physicalDifficulty: taskData.physicalDifficulty,
+				mentalDifficulty: taskData.mentalDifficulty,
 				enjoyment: taskData.enjoyment,
-				taskType: taskData.taskType,
 				createdAt: today,
 				completed: false
 			},
@@ -387,9 +391,9 @@
 			name,
 			tasks: tasks.map((t) => ({
 				title: t.title,
-				difficulty: t.difficulty,
-				enjoyment: t.enjoyment,
-				taskType: t.taskType
+				physicalDifficulty: t.physicalDifficulty,
+				mentalDifficulty: t.mentalDifficulty,
+				enjoyment: t.enjoyment
 			})),
 			createdAt: Date.now()
 		};

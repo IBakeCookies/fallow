@@ -36,9 +36,9 @@
 		<TaskItem
 			id={task.id}
 			title={task.title}
-			difficulty={task.difficulty}
+			physicalDifficulty={task.physicalDifficulty}
+			mentalDifficulty={task.mentalDifficulty}
 			enjoyment={task.enjoyment}
-			taskType={task.taskType}
 			completed={task.completed}
 			priorityScore={task.priorityScore}
 			suggestedHours={task.suggestedHours}

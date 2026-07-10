@@ -16,7 +16,7 @@ export interface TaskAllocation extends TaskInput {
 	E: number; // True effort (mapped to 1-5)
 	beta: number; // True enjoyability (mapped to 1-2)
 	phi: number; // Time to flow state (hours)
-	peakProductivity: number; // a + p₀
+	peakProductivity: number; // (a + p₀)/e - actual peak at t=ϕ
 	avgProductivity: number; // Average productivity over allocated time
 }
 
@@ -249,7 +249,7 @@ export function calculateTaskAllocations(
 				E,
 				beta,
 				phi,
-				peakProductivity: a + p0,
+				peakProductivity: (a + p0) / Math.E,
 				avgProductivity: averageProductivity(allocatedHours, a, p0, k)
 			}
 		];
@@ -384,7 +384,7 @@ export function calculateTaskAllocations(
 		E: a.E,
 		beta: a.beta,
 		phi: a.phi,
-		peakProductivity: a.a + a.p0,
+		peakProductivity: (a.a + a.p0) / Math.E,
 		avgProductivity: averageProductivity(a.currentAlloc, a.a, a.p0, a.k)
 	}));
 }
