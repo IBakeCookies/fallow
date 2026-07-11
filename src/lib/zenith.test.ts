@@ -12,7 +12,6 @@ import {
 	pooledProductivityGain,
 	fitUserConstants,
 	findOptimalSingleTaskTime,
-	MIN_FLOW_OBSERVATIONS,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_CAPACITY_POOLS,
 	type PooledTaskInput,
@@ -273,6 +272,53 @@ describe('Zenith Gradient Algorithm', () => {
 			// And the plan respects the binding pool
 			expect(hours[0] * 1.0 + hours[1] * 0.3).toBeLessThanOrEqual(2 + 0.02);
 		});
+
+		// Real-world scenario that exposed the pairwise-swap heuristic's local
+		// optimum: boxing drains the whole physical pool, guitar/piano compete for
+		// the remainder at weight 0.1, and reading is the only zero-physical task.
+		const mixedDay: PooledTaskInput[] = [
+			{ title: 'boxing', difficulty: 10, enjoyment: 10, cognitiveWeight: 0.4, physicalWeight: 1.0 },
+			{ title: 'guitar', difficulty: 4.3, enjoyment: 9, cognitiveWeight: 0.4, physicalWeight: 0.1 },
+			{ title: 'piano', difficulty: 6.3, enjoyment: 4, cognitiveWeight: 0.6, physicalWeight: 0.1 },
+			{ title: 'reading', difficulty: 4, enjoyment: 3, cognitiveWeight: 0.4, physicalWeight: 0 }
+		];
+
+		it('escapes the 3-way exchange trap when time and a pool bind together (regression)', () => {
+			const pools = { cognitiveHours: 8, physicalHours: 1 };
+			const allocations = calculatePooledAllocations(mixedDay, 4, pools, DEFAULT_USER_CONSTANTS, 0.25);
+			const hours = allocations.map((a) => a.allocatedHours);
+			const achieved = calculateTotalProductivity(mixedDay, hours, DEFAULT_USER_CONSTANTS);
+
+			// Feasibility: time budget incl. switches, and the binding physical pool
+			const active = hours.filter((h) => h > 0.005).length;
+			const timeUsed = hours.reduce((s, h) => s + h, 0) + Math.max(0, active - 1) * 0.25;
+			expect(timeUsed).toBeLessThanOrEqual(4 + 0.02);
+			expect(hours.reduce((s, h, i) => s + h * mixedDay[i].physicalWeight, 0)).toBeLessThanOrEqual(
+				1.01
+			);
+
+			// Brute-force optimum ≈ 3.725 (0.05h grid + local exchange search). The
+			// old heuristic stalled at 3.19: it dumped 1h43m on reading and left piano
+			// 4 minutes, because escaping required a boxing→physical→piano exchange
+			// that pairwise time-swaps cannot express.
+			expect(achieved).toBeGreaterThan(3.72);
+			expect(hours[2]).toBeGreaterThan(0.5); // piano gets a real session, not 4m
+			expect(hours[3]).toBeLessThan(1.0); // reading stays modest, not 1h43m
+		});
+
+		it('drops a task whose value is below its switch cost', () => {
+			const pools = { cognitiveHours: 8, physicalHours: 2 };
+			const allocations = calculatePooledAllocations(mixedDay, 4, pools, DEFAULT_USER_CONSTANTS, 0.25);
+			const hours = allocations.map((a) => a.allocatedHours);
+
+			// Funding reading (~20m of low-marginal work) costs a 15m switch that is
+			// worth more than the work: the optimum drops it entirely and spends the
+			// day on the other three (total P̄ 4.07 vs 3.94 when funding all four).
+			expect(hours[3]).toBe(0);
+			expect(hours.filter((h) => h > 0).length).toBe(3);
+			const achieved = calculateTotalProductivity(mixedDay, hours, DEFAULT_USER_CONSTANTS);
+			expect(achieved).toBeGreaterThan(4.0);
+		});
 	});
 
 	describe('Switch Overhead', () => {
@@ -314,65 +360,124 @@ describe('Zenith Gradient Algorithm', () => {
 	});
 
 	describe('User Constants Fitting', () => {
-		it('recovers the exact plane from noise-free observations', () => {
-			const truth = { c1: 0.4, c2: -0.3, c3: 0.9 };
-			const observations: FlowObservation[] = [];
-			for (const E of [1, 2, 3, 4, 5]) {
-				for (const beta of [1, 1.5, 2]) {
-					observations.push({ E, beta, phi: truth.c1 * E + truth.c2 * beta + truth.c3 });
-				}
-			}
+		const predict = (c: { c1: number; c2: number; c3: number }, E: number, beta: number) =>
+			c.c1 * E + c.c2 * beta + c.c3;
 
-			const { constants, fitted } = fitUserConstants(observations);
-			expect(fitted).toBe(true);
-			expect(constants.c1).toBeCloseTo(truth.c1, 6);
-			expect(constants.c2).toBeCloseTo(truth.c2, 6);
-			expect(constants.c3).toBeCloseTo(truth.c3, 6);
-		});
-
-		it('falls back with too few observations', () => {
-			const observations: FlowObservation[] = Array.from(
-				{ length: MIN_FLOW_OBSERVATIONS - 1 },
-				(_, i) => ({ E: 1 + i, beta: 1 + i * 0.2, phi: 1 + i * 0.3 })
-			);
-			const { constants, fitted } = fitUserConstants(observations);
+		it('returns the prior untouched with no observations', () => {
+			const { constants, fitted } = fitUserConstants([]);
 			expect(fitted).toBe(false);
 			expect(constants).toEqual(DEFAULT_USER_CONSTANTS);
 		});
 
-		it('falls back on degenerate observations (all tasks identical)', () => {
-			// Every point at the same (E, β): the plane is underdetermined
-			const observations: FlowObservation[] = Array.from({ length: 10 }, () => ({
-				E: 3,
-				beta: 1.5,
-				phi: 2
-			}));
-			const { fitted } = fitUserConstants(observations);
-			expect(fitted).toBe(false);
+		it('predictions converge to a noise-free plane as data accumulates', () => {
+			// Ridge shrinks toward the prior, so with little data predictions are
+			// biased; the bias must vanish as observations accumulate. We test
+			// PREDICTIONS (which the allocator consumes), not raw coefficients.
+			const truth = { c1: 0.4, c2: -0.3, c3: 0.9 };
+			const grid: FlowObservation[] = [];
+			for (const E of [1, 2, 3, 4, 5]) {
+				for (const beta of [1, 1.33, 1.66, 2]) {
+					grid.push({ E, beta, phi: predict(truth, E, beta) });
+				}
+			}
+			const replicate = (n: number) => Array.from({ length: n }, () => grid).flat();
+
+			const maxError = (obs: FlowObservation[]) => {
+				const { constants, fitted } = fitUserConstants(obs);
+				expect(fitted).toBe(true);
+				return Math.max(...grid.map((o) => Math.abs(predict(constants, o.E, o.beta) - o.phi)));
+			};
+
+			const errSmall = maxError(replicate(1)); // 20 observations
+			const errLarge = maxError(replicate(10)); // 200 observations
+			expect(errLarge).toBeLessThan(errSmall); // bias shrinks with data
+			// β spans only [1,2], so the c₂ direction is weakly excited and
+			// converges slowly: ~6 minutes of residual prior-shrinkage at n=200.
+			expect(errLarge).toBeLessThan(0.1);
 		});
 
-		it('falls back when the fit predicts implausible flow times', () => {
-			// Wildly inconsistent measurements produce a plane that goes negative
-			// somewhere on the domain → reject rather than plan with nonsense
-			const observations: FlowObservation[] = [
-				{ E: 1, beta: 1, phi: 15 },
-				{ E: 2, beta: 1.2, phi: 0.1 },
-				{ E: 3, beta: 1.5, phi: 14 },
-				{ E: 4, beta: 1.8, phi: 0.1 },
-				{ E: 5, beta: 2, phi: 15 },
-				{ E: 1.5, beta: 2, phi: 0.05 }
-			];
+		it('learns gracefully from degenerate observations (all tasks identical)', () => {
+			// Every point at the same (E, β) leaves an unregularized plane
+			// underdetermined; the ridge prior keeps the fit well-posed. The
+			// prediction at the logged point must move from the prior (≈1.82)
+			// toward the measured 3h, while staying anchored (plausible)
+			// elsewhere on the domain.
+			const observations: FlowObservation[] = Array.from({ length: 5 }, () => ({
+				E: 3,
+				beta: 1.5,
+				phi: 3
+			}));
+			const { constants, fitted } = fitUserConstants(observations);
+			expect(fitted).toBe(true);
+
+			const priorAtPoint = predict(DEFAULT_USER_CONSTANTS, 3, 1.5);
+			const fitAtPoint = predict(constants, 3, 1.5);
+			expect(fitAtPoint).toBeGreaterThan(priorAtPoint + 0.5); // moved toward 3h
+			expect(fitAtPoint).toBeLessThanOrEqual(3.05); // without overshooting
+			for (const E of [1, 5]) {
+				for (const beta of [1, 2]) {
+					expect(predict(constants, E, beta)).toBeGreaterThan(0);
+				}
+			}
+		});
+
+		it('a single log nudges the model without overwhelming the prior', () => {
+			const { constants, fitted } = fitUserConstants([{ E: 3, beta: 1.5, phi: 3 }]);
+			expect(fitted).toBe(true);
+
+			const priorAtPoint = predict(DEFAULT_USER_CONSTANTS, 3, 1.5);
+			const fitAtPoint = predict(constants, 3, 1.5);
+			expect(fitAtPoint).toBeGreaterThan(priorAtPoint); // moved toward the log...
+			expect(fitAtPoint).toBeLessThan(3); // ...but the prior still holds it back
+		});
+
+		it('falls back when the fit predicts absurdly large flow times', () => {
+			// Consistently absurd measurements (30h to reach flow) push the plane
+			// past any plausible ϕ → reject rather than plan with nonsense
+			const observations: FlowObservation[] = Array.from({ length: 8 }, () => ({
+				E: 5,
+				beta: 1,
+				phi: 30
+			}));
 			const { fitted, constants } = fitUserConstants(observations);
-			if (!fitted) {
-				expect(constants).toEqual(DEFAULT_USER_CONSTANTS);
-			} else {
-				// If the fit survives, every domain corner must still be plausible
-				for (const E of [1, 5]) {
-					for (const beta of [1, 2]) {
-						const phi = constants.c1 * E + constants.c2 * beta + constants.c3;
-						expect(phi).toBeGreaterThan(0);
-						expect(phi).toBeLessThanOrEqual(16);
-					}
+			expect(fitted).toBe(false);
+			expect(constants).toEqual(DEFAULT_USER_CONSTANTS);
+		});
+
+		it('accepts uniformly short logs even when the plane dips negative at far corners (regression)', () => {
+			// A fast-flow user logging ~20m on every task tilts the fitted plane
+			// slightly below zero at unobserved corners (e.g. E=1, β=2). The old
+			// guard rejected this outright, making it impossible for such users to
+			// personalize at all — now the fit is accepted and the 0.1h floor in
+			// calculateFlowStateTime handles the far corners.
+			const taskPoints = [
+				{ Eu: 10, betaU: 10 }, // boxing
+				{ Eu: 10, betaU: 7 }, // hybrid work
+				{ Eu: 10, betaU: 2 }, // hard grind
+				{ Eu: 4.3, betaU: 9 }, // guitar
+				{ Eu: 6.3, betaU: 4 }, // piano
+				{ Eu: 4, betaU: 3 } // reading
+			];
+			const observations: FlowObservation[] = taskPoints.map((p) => ({
+				E: mapEffort(p.Eu),
+				beta: mapEnjoyability(p.betaU),
+				phi: 20 / 60
+			}));
+			const { fitted, constants } = fitUserConstants(observations);
+			expect(fitted).toBe(true);
+
+			// Predictions at the LOGGED tasks land near the measured ~20m (ridge
+			// blending keeps them within a sane band, not at the defaults' 1.5-3h)
+			for (const o of observations) {
+				const phi = calculateFlowStateTime(o.E, o.beta, constants);
+				expect(phi).toBeGreaterThanOrEqual(0.1);
+				expect(phi).toBeLessThan(1);
+			}
+
+			// And the floor keeps every corner of the domain usable by the model
+			for (const E of [1, 5]) {
+				for (const beta of [1, 2]) {
+					expect(calculateFlowStateTime(E, beta, constants)).toBeGreaterThanOrEqual(0.1);
 				}
 			}
 		});

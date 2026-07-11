@@ -70,13 +70,20 @@
 	}
 </script>
 
-<div class="flex items-center justify-between mb-6">
-	<div class="flex items-center gap-4">
-		<h1 class="text-2xl font-bold text-zinc-100">Zenith</h1>
-		<div class="flex items-center gap-2 text-sm text-zinc-400">
-			<span class="font-medium text-zinc-200">{completedTasks}</span>/<span>{totalTasks}</span>
-			tasks
+<div class="flex items-start justify-between mb-6">
+	<div>
+		<div class="flex items-center gap-4">
+			<h1 class="text-2xl font-bold text-zinc-100">Zenith</h1>
+			<div class="flex items-center gap-2 text-sm text-zinc-400">
+				<span class="font-medium text-zinc-200">{completedTasks}</span>/<span>{totalTasks}</span>
+				tasks
+			</div>
 		</div>
+		<p class="mt-1 text-sm text-zinc-500 max-w-2xl">
+			Splits your daily time budget so each extra minute goes to the task where it counts most —
+			accounting for flow ramp-up, context-switch costs, and your cognitive and physical
+			capacity, and never pushing a task past its point of diminishing returns.
+		</p>
 	</div>
 
 	<div class="flex items-center gap-3">
@@ -113,7 +120,7 @@
 							Load
 						</Button>
 					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="end">
+					<DropdownMenu.Content align="end" class="w-64">
 						{#if hasYesterday}
 							<DropdownMenu.Item onclick={importYesterday}>
 								<svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

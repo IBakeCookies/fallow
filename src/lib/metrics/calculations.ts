@@ -204,9 +204,15 @@ export function calculateFlowCoverage(activeTasks: SuggestedTask[]): {
 		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.flowStateTime
 	).length;
 
-	// Task has optimal allocation if allocated time ≥ (OPTIMAL_PHI_MULTIPLIER) × ϕ
+	// Task has optimal allocation if allocated time ≥ (OPTIMAL_PHI_MULTIPLIER) × ϕ.
+	// Tolerance of half the 0.01h rounding quantum: a fully-funded task gets
+	// exactly 1.79ϕ allocated, and display rounding must not flip it to "not
+	// optimal" when it lands a hair below the threshold.
+	const ROUNDING_EPS = 0.005;
 	const optimal = activeTasks.filter(
-		(t) => t.suggestedHours > 0 && t.suggestedHours >= OPTIMAL_PHI_MULTIPLIER * t.flowStateTime
+		(t) =>
+			t.suggestedHours > 0 &&
+			t.suggestedHours >= OPTIMAL_PHI_MULTIPLIER * t.flowStateTime - ROUNDING_EPS
 	).length;
 
 	return { reached, total: activeTasks.length, optimal };
@@ -475,28 +481,36 @@ export function calculateFrictionIndex(activeTasks: SuggestedTask[]): number {
 	return Math.min(100, Math.max(0, Math.round((totalFriction / MAX_EXPECTED_FRICTION) * 100)));
 }
 
-export function calculateDailyQuadrant(tasks: Task[]): number {
-	if (!tasks.length) return 0;
+export type DailyQuadrant = 'flow' | 'grind' | 'cruise' | 'routine';
+
+/**
+ * Classify the day by average difficulty × enjoyment:
+ * flow = challenging and engaging, grind = demanding but unenjoyable,
+ * cruise = light and enjoyable, routine = low-key tasks.
+ */
+export function calculateDailyQuadrant(tasks: Task[]): DailyQuadrant {
+	if (!tasks.length) return 'routine';
 
 	const diff = tasks.reduce((sum, t) => sum + getEffectiveDifficulty(t), 0) / tasks.length;
 	const enj = tasks.reduce((sum, t) => sum + t.enjoyment, 0) / tasks.length;
 
-	if (diff >= 5.5 && enj >= 5.5) return 75;
-	if (diff >= 5.5 && enj < 5.5) return 50;
-	if (diff < 5.5 && enj >= 5.5) return 25;
-	return 0;
+	if (diff >= 5.5 && enj >= 5.5) return 'flow';
+	if (diff >= 5.5) return 'grind';
+	if (enj >= 5.5) return 'cruise';
+	return 'routine';
 }
 
 export function calculateBudgetConvergence(
 	activeTasks: SuggestedTask[],
-	availableHours: number
+	availableHours: number,
+	switchCost: number = DEFAULT_SWITCH_COST
 ): number {
 	const budget = Number(availableHours) || 0;
 	if (!activeTasks.length) return 100;
 	if (budget === 0) return 0;
 
 	// Tasks with less time than a context switch are too fragmented
-	const fragmentedTasks = activeTasks.filter((t) => t.suggestedHours < DEFAULT_SWITCH_COST).length;
+	const fragmentedTasks = activeTasks.filter((t) => t.suggestedHours < switchCost).length;
 	return Math.max(0, 100 - Math.round((fragmentedTasks / activeTasks.length) * 100));
 }
 

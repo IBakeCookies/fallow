@@ -81,7 +81,10 @@ export function mapEnjoyability(betaU: number): number {
  */
 export function calculateFlowStateTime(E: number, beta: number, constants: UserConstants): number {
 	const phi = constants.c1 * E + constants.c2 * beta + constants.c3;
-	return Math.max(0.1, phi); // Ensure positive
+	// Floor at 6 minutes: a fitted plane may extrapolate to ≈0 (or below) far
+	// from the measured tasks. A strictly positive ϕ keeps k = 1/ϕ finite and
+	// the productivity curve well-defined everywhere.
+	return Math.max(0.1, phi);
 }
 
 /**
@@ -245,31 +248,105 @@ function zeroAllocations(tasks: TaskInput[]): TaskAllocation[] {
 const ACTIVE_EPS = 0.005;
 
 /**
+ * Invert the marginal-productivity curve: the t ∈ [0, cap] where dP̄/dt equals
+ * `price`. The marginal decreases monotonically from (a+p₀)k/2 at t→0⁺ to 0 at
+ * the single-task optimum (cap), so an unattainably high price maps to 0 and a
+ * non-positive price maps to the cap.
+ */
+function timeAtMarginal(price: number, a: number, p0: number, k: number, cap: number): number {
+	if (price >= avgProductivityDerivative(0, a, p0, k)) return 0;
+	if (price <= Math.max(0, avgProductivityDerivative(cap, a, p0, k))) return cap;
+
+	let lo = 0;
+	let hi = cap;
+	for (let i = 0; i < 50; i++) {
+		const mid = (lo + hi) / 2;
+		const deriv = avgProductivityDerivative(mid, a, p0, k);
+		if (Math.abs(deriv - price) < 1e-4) return mid;
+		if (deriv > price) {
+			lo = mid; // marginal still above the price → more time
+		} else {
+			hi = mid;
+		}
+	}
+	return (lo + hi) / 2;
+}
+
+/**
  * Resolve the chicken-and-egg between switch overhead and allocations:
  * switches only happen between tasks that actually receive time, but which
  * tasks receive time depends on the budget left after switch overhead.
  *
- * Iterate: assume all tasks are active, allocate, recount the funded tasks,
- * and re-allocate with the smaller overhead until the count is stable. The
- * `seen` guard breaks the rare oscillation where a lower overhead re-funds a
- * previously dropped task (keeping the last, most-generous allocation).
+ * Two phases:
+ * 1. Count resolution — assume all (non-excluded) tasks are active, allocate,
+ *    recount the funded tasks, and re-allocate with the smaller overhead until
+ *    the count is stable. The `seen` guard breaks the rare oscillation where a
+ *    lower overhead re-funds a previously dropped task.
+ * 2. Drop search — the allocator funds any task whose marginal beats λ, but a
+ *    weak task can be worth less than the switch cost it incurs. Greedily try
+ *    force-dropping each funded task (freeing its time AND one switch) and
+ *    keep the drop whenever total productivity strictly improves. Each drop is
+ *    also tried with the currently-unfunded tasks pinned out: freeing a task's
+ *    budget can re-admit a weak task the allocator had starved (its marginal
+ *    beats λ, but not the switch it would cost), masking the drop's benefit.
  */
 function resolveWithSwitchOverhead(
 	taskCount: number,
 	totalBudget: number,
 	switchCost: number,
-	allocate: (effectiveBudget: number) => number[]
+	allocate: (effectiveBudget: number, excluded: ReadonlySet<number>) => number[],
+	totalValue: (hours: number[]) => number
 ): number[] {
-	let assumedActive = taskCount;
-	const seen = new Set<number>();
+	const solveWith = (excluded: ReadonlySet<number>): number[] => {
+		let assumedActive = taskCount - excluded.size;
+		const seen = new Set<number>();
+		for (;;) {
+			seen.add(assumedActive);
+			const overhead = assumedActive > 1 ? (assumedActive - 1) * switchCost : 0;
+			const hours = allocate(Math.max(0, totalBudget - overhead), excluded);
+			const active = hours.filter((h) => h > ACTIVE_EPS).length;
+			if (active === assumedActive || active === 0 || seen.has(active)) return hours;
+			assumedActive = active;
+		}
+	};
+
+	let excluded = new Set<number>();
+	let hours = solveWith(excluded);
+	// With no switch cost there is no overhead to save, and dropping a task can
+	// never improve a concave objective — skip the search.
+	if (switchCost <= 0) return hours;
+
+	let value = totalValue(hours);
 	for (;;) {
-		seen.add(assumedActive);
-		const overhead = assumedActive > 1 ? (assumedActive - 1) * switchCost : 0;
-		const hours = allocate(Math.max(0, totalBudget - overhead));
-		const active = hours.filter((h) => h > ACTIVE_EPS).length;
-		if (active === assumedActive || active === 0 || seen.has(active)) return hours;
-		assumedActive = active;
+		const funded = hours.map((_, i) => i).filter((i) => hours[i] > ACTIVE_EPS);
+		if (funded.length <= 1) break;
+		const unfunded = hours
+			.map((_, i) => i)
+			.filter((i) => hours[i] <= ACTIVE_EPS && !excluded.has(i));
+
+		let bestSet: Set<number> | null = null;
+		let bestHours = hours;
+		let bestValue = value;
+		const tryCandidate = (candidate: Set<number>): void => {
+			const trialHours = solveWith(candidate);
+			const trialValue = totalValue(trialHours);
+			// Require a real improvement so ties keep the more inclusive plan.
+			if (trialValue > bestValue + 1e-6) {
+				bestSet = candidate;
+				bestHours = trialHours;
+				bestValue = trialValue;
+			}
+		};
+		for (const i of funded) {
+			tryCandidate(new Set([...excluded, i]));
+			if (unfunded.length > 0) tryCandidate(new Set([...excluded, i, ...unfunded]));
+		}
+		if (bestSet === null) break;
+		excluded = bestSet;
+		hours = bestHours;
+		value = bestValue;
 	}
+	return hours;
 }
 
 /**
@@ -323,65 +400,32 @@ export function calculateTaskAllocations(
 	// Calculate optimal single-task times. These are hard upper bounds: beyond
 	// t = optimal, average productivity DECLINES, so we never allocate past them.
 	const optimalTimes = taskParams.map((tp) => findOptimalSingleTaskTime(tp.task, constants));
-	const sumOptimal = optimalTimes.reduce((sum, t) => sum + t, 0);
 
-	const allocate = (effectiveBudget: number): number[] => {
+	const allocate = (effectiveBudget: number, excluded: ReadonlySet<number>): number[] => {
 		if (effectiveBudget <= 0) return tasks.map(() => 0);
+		const included = (i: number): boolean => !excluded.has(i);
 
 		// Never spend more than the sum of the per-task optima: extra time past a
 		// task's optimum only lowers its average productivity, so an abundant budget
 		// leaves slack rather than being forced onto tasks.
-		const allocationTarget = Math.min(effectiveBudget, sumOptimal);
+		const sumOpt = optimalTimes.reduce((sum, t, i) => sum + (included(i) ? t : 0), 0);
+		const allocationTarget = Math.min(effectiveBudget, sumOpt);
 
-		if (effectiveBudget >= sumOptimal) {
+		if (effectiveBudget >= sumOpt) {
 			// Budget covers every optimum: give each task its optimum, leave the rest.
-			return optimalTimes.slice();
+			return optimalTimes.map((t, i) => (included(i) ? t : 0));
 		}
 
 		// Scarce budget: distribute via the Lagrange multiplier λ.
 		// At optimum: ∂P̄ᵢ/∂tᵢ = λ for all tasks with tᵢ > 0.
 		// Find λ such that Σᵢ tᵢ(λ) = allocationTarget.
-
-		// For a given marginal value λ, find t ∈ (0, optTime] with ∂P̄/∂t = λ.
-		const findTimeForLambda = (
-			lambda: number,
-			tp: (typeof taskParams)[number],
-			optTime: number
-		): number => {
-			const { a, p0, k } = tp;
-
-			// Binary search for t where derivative equals lambda. Capped at optTime
-			// because the marginal is ≤ 0 beyond the single-task optimum.
-			let lo = 0.001;
-			let hi = optTime;
-
-			const derivAtLo = avgProductivityDerivative(lo, a, p0, k);
-			const derivAtHi = avgProductivityDerivative(hi, a, p0, k);
-
-			// Derivative decreases as t increases (diminishing returns)
-			// If lambda > derivAtLo, the marginal is unattainable → no time
-			if (lambda >= derivAtLo) return 0;
-			// If lambda < derivAtHi, the marginal always exceeds λ → full optimum
-			if (lambda <= derivAtHi) return hi;
-
-			for (let i = 0; i < 50; i++) {
-				const mid = (lo + hi) / 2;
-				const derivAtMid = avgProductivityDerivative(mid, a, p0, k);
-
-				if (Math.abs(derivAtMid - lambda) < 0.0001) return mid;
-
-				if (derivAtMid > lambda) {
-					lo = mid; // Need more time to reduce derivative
-				} else {
-					hi = mid; // Need less time to increase derivative
-				}
-			}
-
-			return (lo + hi) / 2;
-		};
+		const timesForLambda = (lambda: number): number[] =>
+			taskParams.map((tp, i) =>
+				included(i) ? timeAtMarginal(lambda, tp.a, tp.p0, tp.k, optimalTimes[i]) : 0
+			);
 
 		const calcTotalTime = (lambda: number): number =>
-			taskParams.reduce((sum, tp, i) => sum + findTimeForLambda(lambda, tp, optimalTimes[i]), 0);
+			timesForLambda(lambda).reduce((sum, t) => sum + t, 0);
 
 		// Bracket λ: higher λ → less total time, lower λ → more total time.
 		let lambdaLo = -10;
@@ -404,9 +448,7 @@ export function calculateTaskAllocations(
 			}
 		}
 
-		let currentAllocs = taskParams.map((tp, i) =>
-			findTimeForLambda(optimalLambda, tp, optimalTimes[i])
-		);
+		let currentAllocs = timesForLambda(optimalLambda);
 
 		// Normalize to exactly match the allocation target (handle numerical error).
 		const currentTotal = currentAllocs.reduce((sum, t) => sum + t, 0);
@@ -418,8 +460,17 @@ export function calculateTaskAllocations(
 		return currentAllocs;
 	};
 
+	const totalValue = (hours: number[]): number =>
+		hours.reduce((sum, h, i) => sum + averageProductivity(h, taskParams[i].a, taskParams[i].p0, taskParams[i].k), 0);
+
 	// Switch overhead is charged only for tasks that actually receive time.
-	const hours = resolveWithSwitchOverhead(tasks.length, totalBudget, switchCost, allocate);
+	const hours = resolveWithSwitchOverhead(
+		tasks.length,
+		totalBudget,
+		switchCost,
+		allocate,
+		totalValue
+	);
 
 	// Round each allocation, then adjust the largest to absorb the rounding
 	// residual so the rounded sum matches the achieved total exactly.
@@ -482,12 +533,20 @@ export interface PooledTaskInput extends TaskInput {
  * systems. "6h of coding" saturates at the ~4h cognitive pool, but "4h coding
  * + 2h gym" fits — the physical hours draw on a different pool.
  *
- * With three multipliers, the single-λ bisection of calculateTaskAllocations
- * no longer applies. Instead: steepest-ascent water-filling (repeatedly give
- * the next time increment to the feasible task with the highest marginal
- * productivity — optimal in the Δ→0 limit for concave P̄ᵢ with a single
- * binding constraint), followed by resource-aware transfer refinement to
- * restore KKT stationarity when pool constraints bind with unequal weights.
+ * Solved exactly via Lagrangian duality. Each constraint gets a shadow price
+ * (λ for time, μc for the cognitive pool, μp for the physical pool), and at
+ * the optimum every funded task sits where its marginal equals its total
+ * resource price:
+ *
+ *   ∂P̄ᵢ/∂tᵢ = λ + μc×wcᵢ + μp×wpᵢ   (clamped to tᵢ ∈ [0, optᵢ])
+ *
+ * The dual is convex and smooth (each P̄ᵢ is strictly concave), so cyclic
+ * coordinate descent on (λ, μc, μp) — bisecting one multiplier at a time to
+ * its own constraint while holding the others — converges to the global
+ * optimum. This replaces an earlier greedy water-filling + pairwise-transfer
+ * heuristic, which got stuck in local optima whenever the time budget and a
+ * pool bound simultaneously (escaping required 3-task exchanges that pairwise
+ * swaps cannot express).
  */
 export function calculatePooledAllocations(
 	tasks: PooledTaskInput[],
@@ -506,118 +565,74 @@ export function calculatePooledAllocations(
 	}));
 	const optimalTimes = tasks.map((task) => findOptimalSingleTaskTime(task, constants));
 
-	const STEP = 0.01; // hours; matches the display rounding granularity
+	const allocate = (effectiveBudget: number, excluded: ReadonlySet<number>): number[] => {
+		if (effectiveBudget <= 0) return new Array(tasks.length).fill(0);
 
-	const allocate = (effectiveBudget: number): number[] => {
-		const t = new Array(tasks.length).fill(0);
-		if (effectiveBudget <= 0) return t;
+		// Primal allocation implied by a set of multipliers: each task works until
+		// its marginal productivity drops to its total resource price.
+		const timesFor = (lambda: number, muCog: number, muPhys: number): number[] =>
+			tasks.map((task, i) => {
+				if (excluded.has(i)) return 0;
+				const price = lambda + muCog * task.cognitiveWeight + muPhys * task.physicalWeight;
+				const { a, p0, k } = taskParams[i];
+				return timeAtMarginal(price, a, p0, k, optimalTimes[i]);
+			});
 
-		let budgetLeft = effectiveBudget;
-		let cogLeft = pools.cognitiveHours;
-		let physLeft = pools.physicalHours;
+		const timeUse = (t: number[]): number => t.reduce((sum, x) => sum + x, 0);
+		const cogUse = (t: number[]): number =>
+			t.reduce((sum, x, i) => sum + x * tasks[i].cognitiveWeight, 0);
+		const physUse = (t: number[]): number =>
+			t.reduce((sum, x, i) => sum + x * tasks[i].physicalWeight, 0);
 
-		const isFeasible = (i: number, delta: number): boolean =>
-			t[i] + delta <= optimalTimes[i] + 1e-9 &&
-			delta <= budgetLeft + 1e-9 &&
-			tasks[i].cognitiveWeight * delta <= cogLeft + 1e-9 &&
-			tasks[i].physicalWeight * delta <= physLeft + 1e-9;
-
-		const spend = (i: number, delta: number): void => {
-			t[i] += delta;
-			budgetLeft -= delta;
-			cogLeft -= tasks[i].cognitiveWeight * delta;
-			physLeft -= tasks[i].physicalWeight * delta;
-		};
-
-		// Greedy water-filling: each increment goes to the feasible task with the
-		// highest marginal productivity. Marginals decrease in t, so this equalizes
-		// them across tasks exactly like the Lagrange condition requires.
-		const greedyFill = (): void => {
-			for (;;) {
-				let best = -1;
-				let bestMarginal = 0; // only allocate while the marginal is positive
-				for (let i = 0; i < tasks.length; i++) {
-					if (!isFeasible(i, STEP)) continue;
-					const { a, p0, k } = taskParams[i];
-					const marginal = avgProductivityDerivative(t[i] + STEP / 2, a, p0, k);
-					if (marginal > bestMarginal) {
-						bestMarginal = marginal;
-						best = i;
-					}
-				}
-				if (best === -1) break;
-				spend(best, STEP);
+		// Smallest multiplier m ≥ 0 whose implied usage fits the limit (usage is
+		// monotonically decreasing in m). Returning the feasible-side endpoint of
+		// the bracket keeps the constraint satisfied, not just approximated.
+		const bisectMultiplier = (usage: (m: number) => number, limit: number): number => {
+			if (usage(0) <= limit + 1e-9) return 0;
+			let lo = 0;
+			let hi = 1;
+			while (usage(hi) > limit + 1e-9) {
+				hi *= 2;
+				if (hi > 1e12) return hi; // unreachable for positive limits; guards limit ≈ 0
 			}
-		};
-
-		// Resource-aware transfer refinement: when a pool binds, tasks draw on it
-		// at different rates, so an hour given up by donor i can fund MORE than an
-		// hour on recipient j — e.g. with the cognitive pool binding, an hour off
-		// weight-1.0 work funds 1/0.3 ≈ 3.3h of weight-0.3 work. The donor always
-		// gives up STEP; the recipient gains as much as the freed resources plus
-		// existing slack allow (candidates: the 1:1 swap and the maximum gain).
-		const refineSweep = (): boolean => {
-			let improved = false;
-			for (let i = 0; i < tasks.length; i++) {
-				for (let j = 0; j < tasks.length; j++) {
-					if (i === j) continue;
-					const { a: ai, p0: p0i, k: ki } = taskParams[i];
-					const { a: aj, p0: p0j, k: kj } = taskParams[j];
-					// Keep transferring between this pair while it improves total P.
-					for (;;) {
-						if (t[i] < STEP) break;
-						const maxGain = Math.min(
-							optimalTimes[j] - t[j],
-							budgetLeft + STEP,
-							tasks[j].cognitiveWeight > 0
-								? (cogLeft + tasks[i].cognitiveWeight * STEP) / tasks[j].cognitiveWeight
-								: Infinity,
-							tasks[j].physicalWeight > 0
-								? (physLeft + tasks[i].physicalWeight * STEP) / tasks[j].physicalWeight
-								: Infinity
-						);
-						if (maxGain <= 1e-9) break;
-
-						const donorLoss =
-							averageProductivity(t[i], ai, p0i, ki) -
-							averageProductivity(t[i] - STEP, ai, p0i, ki);
-						let bestDelta = 0;
-						let bestGain = 1e-9; // require a real improvement, not float noise
-						for (const delta of maxGain > STEP ? [maxGain, STEP] : [maxGain]) {
-							const gain =
-								averageProductivity(t[j] + delta, aj, p0j, kj) -
-								averageProductivity(t[j], aj, p0j, kj) -
-								donorLoss;
-							if (gain > bestGain) {
-								bestGain = gain;
-								bestDelta = delta;
-							}
-						}
-						if (bestDelta === 0) break;
-
-						t[i] -= STEP;
-						t[j] += bestDelta;
-						budgetLeft += STEP - bestDelta;
-						cogLeft += tasks[i].cognitiveWeight * STEP - tasks[j].cognitiveWeight * bestDelta;
-						physLeft += tasks[i].physicalWeight * STEP - tasks[j].physicalWeight * bestDelta;
-						improved = true;
-					}
+			for (let i = 0; i < 60; i++) {
+				const mid = (lo + hi) / 2;
+				if (usage(mid) > limit + 1e-9) {
+					lo = mid;
+				} else {
+					hi = mid;
 				}
 			}
-			return improved;
+			return hi;
 		};
 
-		greedyFill();
-		for (let round = 0; round < 100; round++) {
-			if (!refineSweep()) break;
-			greedyFill(); // spend any budget/pool slack the transfers freed up
+		// Cyclic coordinate descent on the dual: re-bisect each multiplier to its
+		// own constraint holding the others fixed. Within a round, later steps only
+		// raise prices, so every round ends with all three constraints satisfied;
+		// across rounds the multipliers settle at the global dual optimum.
+		let lambda = 0;
+		let muCog = 0;
+		let muPhys = 0;
+		for (let round = 0; round < 60; round++) {
+			const prevLambda = lambda;
+			const prevMuCog = muCog;
+			const prevMuPhys = muPhys;
+			lambda = bisectMultiplier((m) => timeUse(timesFor(m, muCog, muPhys)), effectiveBudget);
+			muCog = bisectMultiplier((m) => cogUse(timesFor(lambda, m, muPhys)), pools.cognitiveHours);
+			muPhys = bisectMultiplier((m) => physUse(timesFor(lambda, muCog, m)), pools.physicalHours);
+			const shift =
+				Math.abs(lambda - prevLambda) + Math.abs(muCog - prevMuCog) + Math.abs(muPhys - prevMuPhys);
+			if (shift < 1e-7) break;
 		}
 
-		return t;
+		return timesFor(lambda, muCog, muPhys);
 	};
 
+	const totalValue = (hours: number[]): number =>
+		hours.reduce((sum, h, i) => sum + averageProductivity(h, taskParams[i].a, taskParams[i].p0, taskParams[i].k), 0);
+
 	// Switch overhead is charged only for tasks that actually receive time.
-	const t = resolveWithSwitchOverhead(tasks.length, totalBudget, switchCost, allocate);
+	const t = resolveWithSwitchOverhead(tasks.length, totalBudget, switchCost, allocate, totalValue);
 
 	// Round to 0.01h and absorb the residual in the largest allocation so the
 	// rounded sum matches the achieved total (pools may leave budget unspent).
@@ -717,8 +732,14 @@ export interface FlowObservation {
 	phi: number; // measured time to reach flow state, in hours
 }
 
-// Below this many data points a 3-parameter plane fit is mostly noise.
-export const MIN_FLOW_OBSERVATIONS = 5;
+/**
+ * Prior strength for the ridge-regularized constants fit: the article-default
+ * constants act as if they were this many pseudo-observations. Early ⚡ logs
+ * nudge the model smoothly away from the defaults instead of a hard
+ * defaults→fitted cliff, and the fit stays well-posed even when every logged
+ * task is identical (which would leave an unregularized plane underdetermined).
+ */
+export const RIDGE_PRIOR_STRENGTH = 4;
 
 /**
  * Solve a 3×3 linear system via Gaussian elimination with partial pivoting.
@@ -752,26 +773,38 @@ function solve3x3(A: number[][], y: number[]): number[] | null {
 }
 
 /**
- * Personalize the user constants from measured time-to-flow data: linear
+ * Personalize the user constants from measured time-to-flow data: RIDGE
  * least squares fit of the plane ϕ = c₁E + c₂β + c₃ over the observations
- * (the article's "User Dependent Constants" section), via normal equations.
+ * (the article's "User Dependent Constants" section), regularized toward the
+ * fallback constants:
  *
- * Falls back (fitted: false) when:
- * - there are fewer than MIN_FLOW_OBSERVATIONS data points,
- * - the observations are degenerate (e.g. every logged task has the same E
- *   and β, leaving the plane underdetermined), or
- * - the fitted plane predicts an implausible ϕ (≤ 0 or > 16h) somewhere on
- *   the E×β domain, which happens with wildly noisy measurements.
+ *   minimize Σᵢ(ϕᵢ − c·xᵢ)² + λ‖c − c₀‖²  →  (XᵀX + λI)c = Xᵀϕ + λc₀
+ *
+ * with design-matrix rows [E, β, 1], prior c₀ = fallback, λ = RIDGE_PRIOR_STRENGTH.
+ *
+ * The prior makes the fit graceful everywhere batch least squares is brittle:
+ * a single observation nudges the model instead of being ignored; degenerate
+ * data (every logged task identical) shifts predictions near the logged point
+ * while staying anchored to the prior elsewhere; and the system matrix is
+ * always positive definite, so there is no singular case.
+ *
+ * Falls back (fitted: false) only with zero observations, or if the fitted
+ * plane predicts an absurdly large ϕ (> 16h) somewhere on the E×β domain
+ * (possible with wildly inconsistent measurements). Negative predictions at
+ * unobserved corners are deliberately ALLOWED: uniformly short measured flow
+ * times (a fast-flow user logging 15–30m everywhere) legitimately tilt the
+ * plane slightly below zero far from their tasks, and rejecting that made
+ * such users unable to personalize at all. calculateFlowStateTime floors
+ * every prediction at 0.1h, so a negative corner never reaches the model.
  */
 export function fitUserConstants(
 	observations: FlowObservation[],
 	fallback: UserConstants = DEFAULT_USER_CONSTANTS
 ): { constants: UserConstants; fitted: boolean } {
-	if (observations.length < MIN_FLOW_OBSERVATIONS) {
+	if (observations.length === 0) {
 		return { constants: fallback, fitted: false };
 	}
 
-	// Normal equations (XᵀX)c = Xᵀϕ with design-matrix rows [E, β, 1]
 	let sEE = 0;
 	let sEb = 0;
 	let sE = 0;
@@ -790,21 +823,24 @@ export function fitUserConstants(
 		sbp += o.beta * o.phi;
 		sp += o.phi;
 	}
+	const lambda = RIDGE_PRIOR_STRENGTH;
 	const solution = solve3x3(
 		[
-			[sEE, sEb, sE],
-			[sEb, sbb, sb],
-			[sE, sb, observations.length]
+			[sEE + lambda, sEb, sE],
+			[sEb, sbb + lambda, sb],
+			[sE, sb, observations.length + lambda]
 		],
-		[sEp, sbp, sp]
+		[sEp + lambda * fallback.c1, sbp + lambda * fallback.c2, sp + lambda * fallback.c3]
 	);
+	// The ridge matrix is positive definite, so solve3x3 cannot hit a singular
+	// pivot — the guard stays purely as defense in depth.
 	if (!solution) return { constants: fallback, fitted: false };
 
 	const [c1, c2, c3] = solution;
 	for (const E of [1, 5]) {
 		for (const beta of [1, 2]) {
 			const phi = c1 * E + c2 * beta + c3;
-			if (phi <= 0 || phi > 16) return { constants: fallback, fitted: false };
+			if (!Number.isFinite(phi) || phi > 16) return { constants: fallback, fitted: false };
 		}
 	}
 	return { constants: { c1, c2, c3 }, fitted: true };

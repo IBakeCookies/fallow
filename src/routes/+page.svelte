@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -40,7 +41,6 @@
 	import {
 		DEFAULT_SWITCH_COST,
 		DEFAULT_CAPACITY_POOLS,
-		MIN_FLOW_OBSERVATIONS,
 		fitUserConstants,
 		mapEffort,
 		mapEnjoyability
@@ -55,6 +55,8 @@
 		deleteRoutine,
 		saveFlowObservation,
 		getAllFlowObservations,
+		deleteFlowObservation,
+		clearFlowObservations,
 		type DailySession,
 		type SavedRoutine,
 		type FlowObservationRecord
@@ -146,9 +148,9 @@
 		physicalHours: Math.max(0, Number(physicalPool) || 0)
 	});
 
-	// Personalized model constants: least-squares fit of ϕ = c₁E + c₂β + c₃
-	// over the logged time-to-flow measurements (falls back to the article's
-	// defaults until there are enough well-spread data points).
+	// Personalized model constants: ridge least-squares fit of ϕ = c₁E + c₂β + c₃
+	// over the logged time-to-flow measurements, anchored to the article's
+	// defaults. Every ⚡ log nudges the model; more logs = less anchor.
 	const constantsFit = $derived(
 		fitUserConstants(
 			flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
@@ -157,11 +159,14 @@
 	const userConstants = $derived(constantsFit.constants);
 	const modelStatus = $derived(
 		constantsFit.fitted
-			? `Model personalized from ${flowObservations.length} measured time-to-flow logs (⚡)`
-			: `Model uses default constants — log time-to-flow (⚡) on ${Math.max(
-					0,
-					MIN_FLOW_OBSERVATIONS - flowObservations.length
-				)} more tasks to personalize`
+			? `Model personalized from ${flowObservations.length} time-to-flow log${
+					flowObservations.length === 1 ? '' : 's'
+				} (⚡) — blended with the defaults, sharpens as you log more`
+			: flowObservations.length > 0
+				? `Your ${flowObservations.length} flow log${
+						flowObservations.length === 1 ? '' : 's'
+					} produced an implausible fit (predicted flow times over 16h) — using default constants. Check the logs below for mistakes.`
+				: 'Model uses default constants — log time-to-flow (⚡) on tasks to start personalizing'
 	);
 
 	const suggestedTasks = $derived(
@@ -211,7 +216,9 @@
 	const energyBalance = $derived(calculateEnergyBalance(cognitiveLoad, physicalLoad));
 	const frictionIndex = $derived(calculateFrictionIndex(activeTasks));
 	const dailyQuadrant = $derived(calculateDailyQuadrant(tasks));
-	const budgetConvergence = $derived(calculateBudgetConvergence(activeTasks, availableHours));
+	const budgetConvergence = $derived(
+		calculateBudgetConvergence(activeTasks, availableHours, switchCost)
+	);
 	const momentum = $derived(calculateMomentum(tasks));
 	const deepWorkRatio = $derived(calculateDeepWorkRatio(activeTasks, availableHours));
 	const quickWins = $derived(calculateQuickWins(activeTasks));
@@ -438,14 +445,12 @@
 				"Your day's character based on average difficulty and enjoyment. Flow Zone = challenging and engaging, Grind Mode = demanding work, Cruise = light and enjoyable, Routine = low-key tasks.",
 			...(hasTasks
 				? {
-						value:
-							dailyQuadrant >= 75
-								? 'Flow Zone'
-								: dailyQuadrant >= 50
-									? 'Grind Mode'
-									: dailyQuadrant >= 25
-										? 'Cruise'
-										: 'Routine',
+						value: {
+							flow: 'Flow Zone',
+							grind: 'Grind Mode',
+							cruise: 'Cruise',
+							routine: 'Routine'
+						}[dailyQuadrant],
 						valStyle: STATUS.NEUTRAL.color
 					}
 				: NA)
@@ -499,9 +504,22 @@
 		tasks = tasks.filter((task) => task.id !== id);
 	}
 
+	function updateTask(
+		id: number,
+		changes: {
+			title: string;
+			physicalDifficulty: number;
+			mentalDifficulty: number;
+			enjoyment: number;
+		}
+	) {
+		tasks = tasks.map((task) => (task.id === id ? { ...task, ...changes } : task));
+	}
+
 	// Log a measured "minutes until flow" for a task: stamps it on the task
-	// (shown as the ⚡ badge, persisted with the session) and appends an
-	// (E, β, ϕ) data point that personalizes the model constants.
+	// (shown as the ⚡ badge, persisted with the session) and upserts an
+	// (E, β, ϕ) data point that personalizes the model constants — re-logging
+	// the same task today REPLACES the earlier measurement (typo correction).
 	async function logFlow(id: number, minutes: number) {
 		const task = tasks.find((t) => t.id === id);
 		if (!task) return;
@@ -523,6 +541,35 @@
 			flowObservations = await getAllFlowObservations();
 		} catch (e) {
 			console.error('Failed to save flow observation', e);
+		}
+	}
+
+	// Remove one measured data point; the constants refit automatically since
+	// they are derived from the observations. Clears today's ⚡ badge if the
+	// deleted log belonged to a task in today's session.
+	async function deleteFlowLog(id: number) {
+		const record = flowObservations.find((o) => o.id === id);
+		try {
+			await deleteFlowObservation(id);
+			flowObservations = await getAllFlowObservations();
+			if (record && record.date === today) {
+				tasks = tasks.map((t) =>
+					t.id === record.taskId ? { ...t, flowMinutes: undefined } : t
+				);
+			}
+		} catch (e) {
+			console.error('Failed to delete flow observation', e);
+		}
+	}
+
+	// Delete all measured data points → model reverts to the article defaults.
+	async function resetFlowLogs() {
+		try {
+			await clearFlowObservations();
+			flowObservations = [];
+			tasks = tasks.map((t) => (t.flowMinutes ? { ...t, flowMinutes: undefined } : t));
+		} catch (e) {
+			console.error('Failed to reset flow observations', e);
 		}
 	}
 
@@ -574,10 +621,36 @@
 </script>
 
 <svelte:head>
-	<title>Zenith Daily Tracker</title>
+	<title>Zenith — Smart Daily Time Allocation</title>
 	<meta
 		name="description"
-		content="Track your daily tasks with difficulty and enjoyment scores inspired by the Zenith Gradient idea."
+		content="Zenith allocates your daily time budget across tasks using the Zenith Gradient algorithm — balancing effort, enjoyment, and flow state to maximize productivity."
+	/>
+	<link rel="canonical" href={page.url.origin + page.url.pathname} />
+	<meta name="theme-color" content="#000000" />
+
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="Zenith" />
+	<meta property="og:title" content="Zenith — Smart Daily Time Allocation" />
+	<meta
+		property="og:description"
+		content="Allocate your daily time budget across tasks with the Zenith Gradient algorithm — balancing effort, enjoyment, and flow state to maximize productivity."
+	/>
+	<meta property="og:url" content={page.url.origin + page.url.pathname} />
+	<meta
+		property="og:image"
+		content={page.url.origin + '/dark-textured-black-background-red-purple.jpg'}
+	/>
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="Zenith — Smart Daily Time Allocation" />
+	<meta
+		name="twitter:description"
+		content="Allocate your daily time budget across tasks with the Zenith Gradient algorithm."
+	/>
+	<meta
+		name="twitter:image"
+		content={page.url.origin + '/dark-textured-black-background-red-purple.jpg'}
 	/>
 </svelte:head>
 
@@ -611,6 +684,9 @@
 							{remainingSuggestedHours}
 							{planSlackHours}
 							{modelStatus}
+							flowLogs={flowObservations}
+							ondeletelog={deleteFlowLog}
+							onresetlogs={resetFlowLogs}
 						/>
 						<TaskForm onsubmit={addTask} />
 					{:else}
@@ -627,6 +703,7 @@
 						ontoggle={isViewingHistory ? () => {} : toggleTask}
 						onremove={isViewingHistory ? () => {} : removeTask}
 						onlogflow={isViewingHistory ? undefined : logFlow}
+						onupdate={isViewingHistory ? undefined : updateTask}
 					/>
 				</div>
 

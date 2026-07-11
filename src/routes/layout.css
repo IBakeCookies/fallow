@@ -133,3 +133,17 @@
 		@apply font-sans;
 	}
 }
+
+@layer base {
+	/* Number inputs: hide the native spinner arrows everywhere — stepping is
+	   provided by the NumberInput component's custom −/+ buttons instead. */
+	input[type='number']::-webkit-outer-spin-button,
+	input[type='number']::-webkit-inner-spin-button {
+		appearance: none;
+		margin: 0;
+	}
+	input[type='number'] {
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+}

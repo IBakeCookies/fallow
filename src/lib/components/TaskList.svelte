@@ -8,9 +8,18 @@
 		ontoggle: (id: number) => void;
 		onremove: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
+		onupdate?: (
+			id: number,
+			changes: {
+				title: string;
+				physicalDifficulty: number;
+				mentalDifficulty: number;
+				enjoyment: number;
+			}
+		) => void;
 	}
 
-	let { suggestedTasks, runOrder, ontoggle, onremove, onlogflow }: Props = $props();
+	let { suggestedTasks, runOrder, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
 </script>
 
 <div class="space-y-2 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl shadow-sm">
@@ -51,6 +60,7 @@
 			{ontoggle}
 			{onremove}
 			{onlogflow}
+			{onupdate}
 		/>
 	{/each}
 </div>
