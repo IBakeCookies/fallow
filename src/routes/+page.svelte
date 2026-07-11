@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import Nav from '$lib/components/Nav.svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TaskList from '$lib/components/TaskList.svelte';
@@ -104,6 +106,12 @@
 
 			// Load measured time-to-flow data (personalizes c₁,c₂,c₃)
 			flowObservations = await getAllFlowObservations();
+
+			// Deep link from the calendar: /?date=YYYY-MM-DD opens that day
+			const dateParam = page.url.searchParams.get('date');
+			if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today) {
+				await handleDateChange(dateParam);
+			}
 		} catch (e) {
 			console.error('Failed to load from IndexedDB', e);
 		} finally {
@@ -116,6 +124,12 @@
 		if (!browser) return;
 
 		selectedDate = newDate;
+
+		// Keep the URL shareable/refreshable: /?date=... for history, / for today
+		const url = newDate === today ? '/' : `/?date=${newDate}`;
+		if (page.url.pathname + page.url.search !== url) {
+			replaceState(url, {});
+		}
 
 		try {
 			const session = await getSession(newDate);
@@ -492,8 +506,29 @@
 		];
 	}
 
-	function toggleTask(id: number) {
+	// Completion can be toggled on ANY day — forgetting to check a task off
+	// before midnight shouldn't falsify history. Structural edits (add/edit/
+	// remove) stay today-only: those rewrite the plan, this records the truth.
+	async function toggleTask(id: number) {
 		tasks = tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task));
+
+		// The auto-save $effect only persists today's session, so historical
+		// toggles are saved explicitly under the viewed date.
+		if (isViewingHistory) {
+			try {
+				await saveSession({
+					date: selectedDate,
+					tasks: $state.snapshot(tasks),
+					availableHours,
+					switchCost,
+					cognitivePool,
+					physicalPool,
+					updatedAt: Date.now()
+				});
+			} catch (e) {
+				console.error('Failed to save completion change for', selectedDate, e);
+			}
+		}
 	}
 
 	function removeTask(id: number) {
@@ -653,6 +688,7 @@
 		class="min-h-screen bg-black/70 text-zinc-300 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 font-sans"
 	>
 		<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+			<Nav />
 			<PageHeader
 				completedTasks={completedTasksCount}
 				{totalTasks}
@@ -687,14 +723,15 @@
 						<div
 							class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
 						>
-							<span class="font-medium">Read-only mode:</span> You're viewing historical data. Return
-							to today to add or modify tasks.
+							<span class="font-medium">Viewing a past day:</span> you can still check tasks on or
+							off (forgot one before midnight? fix it here — changes are saved), but adding or
+							editing tasks is only possible on today.
 						</div>
 					{/if}
 					<TaskList
 						{suggestedTasks}
 						{runOrder}
-						ontoggle={isViewingHistory ? () => {} : toggleTask}
+						ontoggle={toggleTask}
 						onremove={isViewingHistory ? () => {} : removeTask}
 						onlogflow={isViewingHistory ? undefined : logFlow}
 						onupdate={isViewingHistory ? undefined : updateTask}

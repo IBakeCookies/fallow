@@ -158,6 +158,25 @@ export async function getRecentSessions(days: number = 7): Promise<DailySession[
 	});
 }
 
+/**
+ * All sessions with startDate ≤ date ≤ endDate (inclusive), sorted ascending.
+ * Dates are YYYY-MM-DD strings (the store's keyPath), so lexicographic key
+ * order IS chronological order.
+ */
+export async function getSessionsInRange(
+	startDate: string,
+	endDate: string
+): Promise<DailySession[]> {
+	const db = await getDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction('sessions', 'readonly');
+		const store = tx.objectStore('sessions');
+		const request = store.getAll(IDBKeyRange.bound(startDate, endDate));
+		request.onsuccess = () => resolve(request.result || []);
+		request.onerror = () => reject(request.error);
+	});
+}
+
 export async function cleanupOldSessions(): Promise<number> {
 	const db = await getDB();
 	const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
