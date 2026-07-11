@@ -6,15 +6,12 @@
 	import TaskList from '$lib/components/TaskList.svelte';
 	import TimeBudgetCard from '$lib/components/TimeBudgetCard.svelte';
 	import MetricsDashboard from '$lib/components/MetricsDashboard.svelte';
-	import {
-		STATUS,
-		getStatusBiggerBetter,
-		getStatusSmallerBetter,
-		getStatusInRange
-	} from '$lib/metrics/status';
+	import { STATUS, getStatusBiggerBetter, getStatusSmallerBetter } from '$lib/metrics/status';
 	import {
 		type Task,
+		getEffectiveDifficulty,
 		calculateSuggestedTasks,
+		calculateInterleavedOrder,
 		calculateZenithGain,
 		calculateCompletionRate,
 		calculateYieldIndex,
@@ -40,7 +37,14 @@
 		calculateAverageMentalDifficulty,
 		calculateAverageEnjoyment
 	} from '$lib/metrics/calculations';
-	import { DEFAULT_SWITCH_COST } from '$lib/zenith';
+	import {
+		DEFAULT_SWITCH_COST,
+		DEFAULT_CAPACITY_POOLS,
+		MIN_FLOW_OBSERVATIONS,
+		fitUserConstants,
+		mapEffort,
+		mapEnjoyability
+	} from '$lib/zenith';
 	import {
 		initDB,
 		saveSession,
@@ -49,8 +53,11 @@
 		getAllRoutines,
 		saveRoutine,
 		deleteRoutine,
+		saveFlowObservation,
+		getAllFlowObservations,
 		type DailySession,
-		type SavedRoutine
+		type SavedRoutine,
+		type FlowObservationRecord
 	} from '$lib/storage/db';
 
 	const today = new Date().toISOString().slice(0, 10);
@@ -59,10 +66,13 @@
 	let tasks = $state<Task[]>([]);
 	let availableHours = $state<number>(0);
 	let switchCost = $state<number>(DEFAULT_SWITCH_COST);
+	let cognitivePool = $state<number>(DEFAULT_CAPACITY_POOLS.cognitiveHours);
+	let physicalPool = $state<number>(DEFAULT_CAPACITY_POOLS.physicalHours);
 	let isLoading = $state(true);
 	let yesterdaySession = $state<DailySession | null>(null);
 	let routines = $state<SavedRoutine[]>([]);
 	let selectedDate = $state(today);
+	let flowObservations = $state<FlowObservationRecord[]>([]);
 
 	// Derived: are we viewing historical data?
 	const isViewingHistory = $derived(selectedDate !== today);
@@ -80,6 +90,8 @@
 				tasks = todaySession.tasks;
 				availableHours = todaySession.availableHours;
 				switchCost = todaySession.switchCost;
+				cognitivePool = todaySession.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
+				physicalPool = todaySession.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
 			}
 
 			// Load yesterday for import option
@@ -87,6 +99,9 @@
 
 			// Load saved routines
 			routines = await getAllRoutines();
+
+			// Load measured time-to-flow data (personalizes c₁,c₂,c₃)
+			flowObservations = await getAllFlowObservations();
 		} catch (e) {
 			console.error('Failed to load from IndexedDB', e);
 		} finally {
@@ -106,11 +121,15 @@
 				tasks = session.tasks;
 				availableHours = session.availableHours;
 				switchCost = session.switchCost;
+				cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
+				physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
 			} else {
 				// No data for this date
 				tasks = [];
 				availableHours = 0;
 				switchCost = DEFAULT_SWITCH_COST;
+				cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
+				physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
 			}
 		} catch (e) {
 			console.error('Failed to load session for date', newDate, e);
@@ -120,8 +139,53 @@
 	// Core derived values
 	const totalTasks = $derived(tasks.length);
 	const completedTasksCount = $derived(tasks.filter((task) => task.completed).length);
-	const suggestedTasks = $derived(calculateSuggestedTasks(tasks, availableHours, switchCost));
+
+	// Capacity pools, sanitized (empty/invalid inputs → 0, i.e. no capacity)
+	const pools = $derived({
+		cognitiveHours: Math.max(0, Number(cognitivePool) || 0),
+		physicalHours: Math.max(0, Number(physicalPool) || 0)
+	});
+
+	// Personalized model constants: least-squares fit of ϕ = c₁E + c₂β + c₃
+	// over the logged time-to-flow measurements (falls back to the article's
+	// defaults until there are enough well-spread data points).
+	const constantsFit = $derived(
+		fitUserConstants(
+			flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
+		)
+	);
+	const userConstants = $derived(constantsFit.constants);
+	const modelStatus = $derived(
+		constantsFit.fitted
+			? `Model personalized from ${flowObservations.length} measured time-to-flow logs (⚡)`
+			: `Model uses default constants — log time-to-flow (⚡) on ${Math.max(
+					0,
+					MIN_FLOW_OBSERVATIONS - flowObservations.length
+				)} more tasks to personalize`
+	);
+
+	const suggestedTasks = $derived(
+		calculateSuggestedTasks(tasks, availableHours, switchCost, pools, userConstants)
+	);
 	const activeTasks = $derived(suggestedTasks.filter((t) => !t.completed));
+
+	// Hours the plan deliberately leaves unspent (optimal stopping + pool caps).
+	// Switch overhead counts only tasks that actually received time, matching
+	// the allocator.
+	const planSlackHours = $derived.by(() => {
+		const budget = Number(availableHours) || 0;
+		const fundedCount = suggestedTasks.filter((t) => t.suggestedHours > 0).length;
+		const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
+		const effectiveBudget = Math.max(0, budget - overhead);
+		const allocated = suggestedTasks.reduce((sum, t) => sum + t.suggestedHours, 0);
+		return Math.max(0, effectiveBudget - allocated);
+	});
+
+	// Suggested run order: alternates cognitive/physical tasks so the resting
+	// energy system recovers (dual-pool model). Map of task id → 1-based position.
+	const runOrder = $derived(
+		new Map(calculateInterleavedOrder(activeTasks).map((t, i) => [t.id, i + 1]))
+	);
 
 	const remainingSuggestedHours = $derived(
 		(
@@ -130,18 +194,22 @@
 	);
 
 	// Metric calculations
-	const zenithGain = $derived(calculateZenithGain(tasks, availableHours, switchCost));
+	const zenithGain = $derived(
+		calculateZenithGain(tasks, availableHours, switchCost, pools, userConstants)
+	);
 	const completionRate = $derived(calculateCompletionRate(suggestedTasks));
 	const yieldIndex = $derived(calculateYieldIndex(suggestedTasks));
 	const flowCoverage = $derived(calculateFlowCoverage(activeTasks));
-	const humanCapacity = $derived(calculateHumanCapacity(activeTasks));
+	const humanCapacity = $derived(calculateHumanCapacity(activeTasks, pools));
 	const bottleneckTask = $derived(calculateBottleneckTask(activeTasks));
-	const timeScarcity = $derived(calculateTimeScarcity(tasks, availableHours));
-	const burnoutRisk = $derived(calculateBurnoutRisk(activeTasks));
+	const timeScarcity = $derived(
+		calculateTimeScarcity(tasks, availableHours, switchCost, userConstants)
+	);
+	const burnoutRisk = $derived(calculateBurnoutRisk(activeTasks, availableHours, switchCost));
 	const cognitiveLoad = $derived(calculateCognitiveLoad(activeTasks, availableHours));
 	const physicalLoad = $derived(calculatePhysicalLoad(activeTasks, availableHours));
 	const energyBalance = $derived(calculateEnergyBalance(cognitiveLoad, physicalLoad));
-	const frictionIndex = $derived(calculateFrictionIndex(activeTasks, availableHours));
+	const frictionIndex = $derived(calculateFrictionIndex(activeTasks));
 	const dailyQuadrant = $derived(calculateDailyQuadrant(tasks));
 	const budgetConvergence = $derived(calculateBudgetConvergence(activeTasks, availableHours));
 	const momentum = $derived(calculateMomentum(tasks));
@@ -157,65 +225,84 @@
 	const averageMentalDifficulty = $derived(calculateAverageMentalDifficulty(tasks));
 	const averageEnjoyment = $derived(calculateAverageEnjoyment(tasks));
 
+	// Empty-state guards: metrics that are undefined without tasks/budget show N/A
+	const hasTasks = $derived(tasks.length > 0);
+	const hasActive = $derived(activeTasks.length > 0);
+	const hasBudget = $derived(availableHours > 0);
+	const NA = { value: 'N/A', valStyle: STATUS.NEUTRAL.color };
+
 	// Metrics array for dashboard
 	const metrics = $derived([
 		{
 			label: 'Zenith Gain',
-			value: `+${zenithGain.gainPercent}%`,
 			description:
 				'Productivity improvement from Zenith optimization vs. naive equal time split. Based on the Lagrange multiplier solution.',
-			valStyle:
-				zenithGain.gainPercent >= 15
-					? STATUS.SUCCESS.color
-					: zenithGain.gainPercent >= 5
-						? STATUS.NEUTRAL.color
-						: STATUS.WARNING.color
+			...(hasTasks && hasBudget
+				? {
+						value: `+${zenithGain.gainPercent}%`,
+						valStyle:
+							zenithGain.gainPercent >= 15
+								? STATUS.SUCCESS.color
+								: zenithGain.gainPercent >= 5
+									? STATUS.NEUTRAL.color
+									: STATUS.WARNING.color
+					}
+				: NA)
 		},
 		{
 			label: 'Yield Index',
-			value: `${yieldIndex}%`,
 			description:
 				'Did you complete the highest-priority tasks? Compares your completed work against the optimal selection.',
-			valStyle: getStatusBiggerBetter(yieldIndex).color
+			...(completedTasksCount > 0
+				? { value: `${yieldIndex}%`, valStyle: getStatusBiggerBetter(yieldIndex).color }
+				: NA)
 		},
 		{
 			label: 'Completion Rate',
-			value: `${completionRate}%`,
 			description:
 				'Priority-weighted progress. High-value tasks contribute more to this percentage than low-priority ones.',
-			valStyle: getStatusBiggerBetter(completionRate).color
+			...(hasTasks
+				? { value: `${completionRate}%`, valStyle: getStatusBiggerBetter(completionRate).color }
+				: NA)
 		},
 		{
 			label: 'Flow Coverage',
-			value: `${flowCoverage.reached}/${flowCoverage.total}`,
 			description:
 				'Tasks that reach flow state (allocated time ≥ ϕ). Low coverage means too many tasks for budget — drop tasks or add hours.',
-			valStyle:
-				flowCoverage.total === 0
-					? STATUS.NEUTRAL.color
-					: flowCoverage.reached === flowCoverage.total
-						? STATUS.SUCCESS.color
-						: flowCoverage.reached >= flowCoverage.total / 2
-							? STATUS.NEUTRAL.color
-							: STATUS.WARNING.color
+			...(hasActive && hasBudget
+				? {
+						value: `${flowCoverage.reached}/${flowCoverage.total}`,
+						valStyle:
+							flowCoverage.reached === flowCoverage.total
+								? STATUS.SUCCESS.color
+								: flowCoverage.reached >= flowCoverage.total / 2
+									? STATUS.NEUTRAL.color
+									: STATUS.WARNING.color
+					}
+				: NA)
 		},
 		{
 			label: 'Human Capacity',
-			value: `${humanCapacity.percent}%`,
-			description: `${humanCapacity.limitType === 'cognitive' ? 'Cognitive' : 'Physical'} limit (${humanCapacity.limitType === 'cognitive' ? '4h' : '6h'}/day). >100% exceeds sustainable human performance.`,
-			valStyle:
-				humanCapacity.percent <= 75
-					? STATUS.SUCCESS.color
-					: humanCapacity.percent <= 100
-						? STATUS.NEUTRAL.color
-						: STATUS.CRITICAL.color
+			description: `${humanCapacity.limitType === 'cognitive' ? 'Cognitive' : 'Physical'} limit (${humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours}h/day, configurable in Time Budget). The allocator enforces these pools, so suggested plans stay ≤100% — this shows how much of your sustainable capacity the plan uses.`,
+			...(hasActive && hasBudget
+				? {
+						value: `${humanCapacity.percent}%`,
+						valStyle:
+							humanCapacity.percent <= 75
+								? STATUS.SUCCESS.color
+								: humanCapacity.percent <= 100
+									? STATUS.NEUTRAL.color
+									: STATUS.CRITICAL.color
+					}
+				: NA)
 		},
 		{
 			label: 'Time Scarcity',
-			value: `${timeScarcity}%`,
 			description:
 				'How stretched is your time budget? Higher values mean too many tasks for the hours available.',
-			valStyle: getStatusSmallerBetter(timeScarcity).color
+			...(hasTasks
+				? { value: `${timeScarcity}%`, valStyle: getStatusSmallerBetter(timeScarcity).color }
+				: NA)
 		},
 		{
 			label: 'Primary Bottleneck',
@@ -226,80 +313,112 @@
 		},
 		{
 			label: 'Burnout Risk',
-			value: `${burnoutRisk}%`,
 			description:
-				'Based on difficulty/enjoyment ratio. Strain accumulates when difficulty > enjoyment. Higher mental difficulty = more draining. 5 strain-hours = 100% risk.',
-			valStyle: getStatusSmallerBetter(burnoutRisk).color
+				'Strain accumulates when difficulty > enjoyment (weighted by mental intensity), plus budget overhang: hours you plan beyond the optimal workload (1.79×ϕ per task) land in the diminishing-returns zone and count double. 5 strain-hours = 100% risk.',
+			...(hasActive && hasBudget
+				? { value: `${burnoutRisk}%`, valStyle: getStatusSmallerBetter(burnoutRisk).color }
+				: NA)
 		},
 		{
 			label: 'Cognitive Load',
-			value: `${cognitiveLoad}%`,
 			description: 'Percentage of your day allocated to mental/cognitive tasks.',
-			valStyle: getStatusSmallerBetter(cognitiveLoad > 70 ? cognitiveLoad : 0).color
+			...(hasActive && hasBudget
+				? {
+						value: `${cognitiveLoad}%`,
+						valStyle: getStatusSmallerBetter(cognitiveLoad > 70 ? cognitiveLoad : 0).color
+					}
+				: NA)
 		},
 		{
 			label: 'Physical Load',
-			value: `${physicalLoad}%`,
 			description: 'Percentage of your day allocated to physical tasks.',
-			valStyle: getStatusSmallerBetter(physicalLoad > 70 ? physicalLoad : 0).color
+			...(hasActive && hasBudget
+				? {
+						value: `${physicalLoad}%`,
+						valStyle: getStatusSmallerBetter(physicalLoad > 70 ? physicalLoad : 0).color
+					}
+				: NA)
 		},
 		{
 			label: 'Energy Balance',
-			value:
-				energyBalance > 60 ? 'Cognitive Heavy' : energyBalance < 40 ? 'Physical Heavy' : 'Balanced',
 			description:
 				'Distribution of Cognitive vs physical work. Alternating types extends total productive hours.',
-			valStyle:
-				energyBalance > 60 || energyBalance < 40 ? STATUS.WARNING.color : STATUS.SUCCESS.color
+			...(hasActive && hasBudget
+				? {
+						value:
+							energyBalance > 60
+								? 'Cognitive Heavy'
+								: energyBalance < 40
+									? 'Physical Heavy'
+									: 'Balanced',
+						valStyle:
+							energyBalance > 60 || energyBalance < 40
+								? STATUS.WARNING.color
+								: STATUS.SUCCESS.color
+					}
+				: NA)
 		},
 		{
 			label: 'Schedule Integrity',
-			value: `${budgetConvergence}%`,
 			description:
 				'Detects fragmentation. Drops if tasks get less than 15 minutes, or if no time budget is set.',
-			valStyle: getStatusBiggerBetter(budgetConvergence).color
+			...(hasActive
+				? {
+						value: `${budgetConvergence}%`,
+						valStyle: getStatusBiggerBetter(budgetConvergence).color
+					}
+				: NA)
 		},
 		{
 			label: 'Friction Index',
-			value: `${frictionIndex}%`,
 			description:
-				'Measures structural day resistance based on tasks with high difficulty but low enjoyment.',
-			valStyle: getStatusSmallerBetter(frictionIndex).color
+				'Share of your allocated time spent on high-difficulty, low-enjoyment work (time-weighted average of E−β). 100% = every planned hour is maximum-friction work.',
+			...(hasActive && hasBudget
+				? { value: `${frictionIndex}%`, valStyle: getStatusSmallerBetter(frictionIndex).color }
+				: NA)
 		},
 		{
 			label: 'Deep Work',
-			value: `${deepWorkRatio}%`,
 			description:
 				'Percentage of time allocated to high mental difficulty (≥7) tasks requiring sustained focus.',
-			valStyle: getStatusBiggerBetter(deepWorkRatio).color
+			...(hasActive && hasBudget
+				? { value: `${deepWorkRatio}%`, valStyle: getStatusBiggerBetter(deepWorkRatio).color }
+				: NA)
 		},
 		{
 			label: 'Quick Wins',
-			value: `${quickWins}`,
 			description:
 				'Count of easy, enjoyable tasks available for momentum building and motivation boosts.',
-			valStyle: quickWins > 0 ? STATUS.SUCCESS.color : STATUS.NEUTRAL.color
+			...(hasActive
+				? {
+						value: `${quickWins}`,
+						valStyle: quickWins > 0 ? STATUS.SUCCESS.color : STATUS.NEUTRAL.color
+					}
+				: NA)
 		},
 		{
 			label: 'Task Variety',
-			value: `${taskVariety}%`,
 			description:
 				'Diversity across mental/physical spectrum. Mixing cognitive, physical, and balanced tasks prevents fatigue.',
-			valStyle: getStatusBiggerBetter(taskVariety).color
+			...(hasActive
+				? { value: `${taskVariety}%`, valStyle: getStatusBiggerBetter(taskVariety).color }
+				: NA)
 		},
 		{
 			label: 'Grind Density',
-			value: `${grindDensity}%`,
 			description:
 				'Percentage of tasks where difficulty exceeds enjoyment. High values signal willpower drain.',
-			valStyle: getStatusSmallerBetter(grindDensity).color
+			...(hasActive
+				? { value: `${grindDensity}%`, valStyle: getStatusSmallerBetter(grindDensity).color }
+				: NA)
 		},
 		{
 			label: 'Sustainable Work',
-			value: `${rewardDensity}%`,
 			description:
 				'Percentage of time on tasks where enjoyment ≥ difficulty. Higher = more energizing workday.',
-			valStyle: getStatusBiggerBetter(rewardDensity).color
+			...(hasActive && hasBudget
+				? { value: `${rewardDensity}%`, valStyle: getStatusBiggerBetter(rewardDensity).color }
+				: NA)
 		},
 		{
 			label: 'Recovery Ratio',
@@ -315,35 +434,40 @@
 		},
 		{
 			label: 'Day Profile',
-			value:
-				dailyQuadrant >= 75
-					? 'Flow Zone'
-					: dailyQuadrant >= 50
-						? 'Grind Mode'
-						: dailyQuadrant >= 25
-							? 'Cruise'
-							: 'Routine',
 			description:
 				"Your day's character based on average difficulty and enjoyment. Flow Zone = challenging and engaging, Grind Mode = demanding work, Cruise = light and enjoyable, Routine = low-key tasks.",
-			valStyle: STATUS.NEUTRAL.color
+			...(hasTasks
+				? {
+						value:
+							dailyQuadrant >= 75
+								? 'Flow Zone'
+								: dailyQuadrant >= 50
+									? 'Grind Mode'
+									: dailyQuadrant >= 25
+										? 'Cruise'
+										: 'Routine',
+						valStyle: STATUS.NEUTRAL.color
+					}
+				: NA)
 		},
 		{
 			label: 'Avg Physical Diff',
-			value: `${averagePhysicalDifficulty}/10`,
 			description: 'Average physical difficulty across all tasks.',
-			valStyle: STATUS.NEUTRAL.color
+			...(hasTasks
+				? { value: `${averagePhysicalDifficulty}/10`, valStyle: STATUS.NEUTRAL.color }
+				: NA)
 		},
 		{
 			label: 'Avg Mental Diff',
-			value: `${averageMentalDifficulty}/10`,
 			description: 'Average mental/cognitive difficulty across all tasks.',
-			valStyle: STATUS.NEUTRAL.color
+			...(hasTasks
+				? { value: `${averageMentalDifficulty}/10`, valStyle: STATUS.NEUTRAL.color }
+				: NA)
 		},
 		{
 			label: 'Avg Enjoyment',
-			value: `${averageEnjoyment}/10`,
 			description: 'Average enjoyment across all tasks. Higher values indicate more engaging work.',
-			valStyle: STATUS.NEUTRAL.color
+			...(hasTasks ? { value: `${averageEnjoyment}/10`, valStyle: STATUS.NEUTRAL.color } : NA)
 		}
 	]);
 
@@ -373,6 +497,33 @@
 
 	function removeTask(id: number) {
 		tasks = tasks.filter((task) => task.id !== id);
+	}
+
+	// Log a measured "minutes until flow" for a task: stamps it on the task
+	// (shown as the ⚡ badge, persisted with the session) and appends an
+	// (E, β, ϕ) data point that personalizes the model constants.
+	async function logFlow(id: number, minutes: number) {
+		const task = tasks.find((t) => t.id === id);
+		if (!task) return;
+
+		tasks = tasks.map((t) => (t.id === id ? { ...t, flowMinutes: minutes } : t));
+
+		const difficulty = getEffectiveDifficulty(task);
+		try {
+			await saveFlowObservation({
+				date: today,
+				taskId: id,
+				taskTitle: task.title,
+				difficulty,
+				enjoyment: task.enjoyment,
+				E: mapEffort(difficulty),
+				beta: mapEnjoyability(task.enjoyment),
+				phiHours: minutes / 60
+			});
+			flowObservations = await getAllFlowObservations();
+		} catch (e) {
+			console.error('Failed to save flow observation', e);
+		}
 	}
 
 	function importTasks(importedTasks: Omit<Task, 'id' | 'createdAt' | 'completed'>[]) {
@@ -414,6 +565,8 @@
 				tasks: $state.snapshot(tasks),
 				availableHours,
 				switchCost,
+				cognitivePool,
+				physicalPool,
 				updatedAt: Date.now()
 			}).catch((e) => console.error('Failed to save session', e));
 		}
@@ -450,7 +603,15 @@
 			<div class="grid gap-6 lg:grid-cols-3 items-start">
 				<div class="space-y-6 lg:col-span-2">
 					{#if !isViewingHistory}
-						<TimeBudgetCard bind:availableHours bind:switchCost {remainingSuggestedHours} />
+						<TimeBudgetCard
+							bind:availableHours
+							bind:switchCost
+							bind:cognitivePool
+							bind:physicalPool
+							{remainingSuggestedHours}
+							{planSlackHours}
+							{modelStatus}
+						/>
 						<TaskForm onsubmit={addTask} />
 					{:else}
 						<div
@@ -462,13 +623,15 @@
 					{/if}
 					<TaskList
 						{suggestedTasks}
+						{runOrder}
 						ontoggle={isViewingHistory ? () => {} : toggleTask}
 						onremove={isViewingHistory ? () => {} : removeTask}
+						onlogflow={isViewingHistory ? undefined : logFlow}
 					/>
 				</div>
 
 				<div class="space-y-4 lg:sticky lg:top-8">
-					<MetricsDashboard {metrics} {momentum} />
+					<MetricsDashboard {metrics} momentum={hasTasks ? momentum : null} />
 				</div>
 			</div>
 		</div>

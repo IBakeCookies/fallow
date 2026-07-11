@@ -4,6 +4,8 @@
  * Stores:
  * - Daily sessions (tasks, settings for each day)
  * - Saved routines (task templates)
+ * - Flow observations (measured time-to-flow data points that personalize
+ *   the model's c₁,c₂,c₃ constants via least squares)
  *
  * Auto-cleanup: Sessions older than 1 year are deleted on init
  */
@@ -12,13 +14,17 @@ import type { Task } from '$lib/metrics/calculations';
 import { DEFAULT_SWITCH_COST } from '$lib/zenith';
 
 const DB_NAME = 'zenith-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export interface DailySession {
 	date: string; // YYYY-MM-DD
 	tasks: Task[];
 	availableHours: number;
 	switchCost: number;
+	// Capacity pools (optional: sessions saved before pools were configurable
+	// fall back to DEFAULT_CAPACITY_POOLS on load)
+	cognitivePool?: number;
+	physicalPool?: number;
 	updatedAt: number; // timestamp
 }
 
@@ -26,6 +32,24 @@ export interface SavedRoutine {
 	id: string;
 	name: string;
 	tasks: Omit<Task, 'id' | 'createdAt' | 'completed'>[];
+	createdAt: number;
+}
+
+/**
+ * One measured (E, β, ϕ) data point: how long a task actually took to reach
+ * flow state. E/β are the MAPPED Zenith values at logging time (what the
+ * regression needs); the raw slider values are kept for provenance.
+ */
+export interface FlowObservationRecord {
+	id?: number; // autoIncrement key
+	date: string; // YYYY-MM-DD
+	taskId: number;
+	taskTitle: string;
+	difficulty: number; // effective Eᵤ (1-10) when logged
+	enjoyment: number; // βᵤ (1-10) when logged
+	E: number; // mapped effort (1-5)
+	beta: number; // mapped enjoyability (1-2)
+	phiHours: number; // measured time to flow, in hours
 	createdAt: number;
 }
 
@@ -56,6 +80,15 @@ function getDB(): Promise<IDBDatabase> {
 			// Saved routines store
 			if (!db.objectStoreNames.contains('routines')) {
 				db.createObjectStore('routines', { keyPath: 'id' });
+			}
+
+			// Flow observations store (v2) - measured time-to-flow data points
+			if (!db.objectStoreNames.contains('flowObservations')) {
+				const flowStore = db.createObjectStore('flowObservations', {
+					keyPath: 'id',
+					autoIncrement: true
+				});
+				flowStore.createIndex('date', 'date');
 			}
 		};
 	});
@@ -193,6 +226,32 @@ export async function deleteRoutine(id: string): Promise<void> {
 		const store = tx.objectStore('routines');
 		const request = store.delete(id);
 		request.onsuccess = () => resolve();
+		request.onerror = () => reject(request.error);
+	});
+}
+
+// ================== Flow Observations ==================
+
+export async function saveFlowObservation(
+	observation: Omit<FlowObservationRecord, 'id' | 'createdAt'>
+): Promise<void> {
+	const db = await getDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction('flowObservations', 'readwrite');
+		const store = tx.objectStore('flowObservations');
+		const request = store.add({ ...observation, createdAt: Date.now() });
+		request.onsuccess = () => resolve();
+		request.onerror = () => reject(request.error);
+	});
+}
+
+export async function getAllFlowObservations(): Promise<FlowObservationRecord[]> {
+	const db = await getDB();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction('flowObservations', 'readonly');
+		const store = tx.objectStore('flowObservations');
+		const request = store.getAll();
+		request.onsuccess = () => resolve(request.result || []);
 		request.onerror = () => reject(request.error);
 	});
 }

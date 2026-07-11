@@ -4,11 +4,13 @@
 
 	interface Props {
 		suggestedTasks: SuggestedTask[];
+		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
 		ontoggle: (id: number) => void;
 		onremove: (id: number) => void;
+		onlogflow?: (id: number, minutes: number) => void;
 	}
 
-	let { suggestedTasks, ontoggle, onremove }: Props = $props();
+	let { suggestedTasks, runOrder, ontoggle, onremove, onlogflow }: Props = $props();
 </script>
 
 <div class="space-y-2 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl shadow-sm">
@@ -42,8 +44,13 @@
 			completed={task.completed}
 			priorityScore={task.priorityScore}
 			suggestedHours={task.suggestedHours}
+			trueEffort={task.trueEffort}
+			flowStateTime={task.flowStateTime}
+			runOrder={runOrder.get(task.id)}
+			flowMinutes={task.flowMinutes}
 			{ontoggle}
 			{onremove}
+			{onlogflow}
 		/>
 	{/each}
 </div>

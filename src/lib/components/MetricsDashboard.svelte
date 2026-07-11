@@ -11,7 +11,7 @@
 
 	interface Props {
 		metrics: Metric[];
-		momentum: number;
+		momentum: number | null;
 	}
 
 	let { metrics, momentum }: Props = $props();
@@ -38,14 +38,18 @@
 			</Tooltip.Root>
 		</Tooltip.Provider>
 		<Badge
-			variant={momentum > 0 ? 'default' : momentum < 0 ? 'destructive' : 'secondary'}
-			class={momentum > 0
+			variant={momentum !== null && momentum > 0
+				? 'default'
+				: momentum !== null && momentum < 0
+					? 'destructive'
+					: 'secondary'}
+			class={momentum !== null && momentum > 0
 				? 'bg-indigo-500/20 text-indigo-300'
-				: momentum < 0
+				: momentum !== null && momentum < 0
 					? 'bg-amber-500/20 text-amber-300'
 					: ''}
 		>
-			{momentum > 0 ? 'Upward' : momentum < 0 ? 'Reset Reqd' : 'Stable'}
+			{momentum === null ? 'N/A' : momentum > 0 ? 'Upward' : momentum < 0 ? 'Reset Reqd' : 'Stable'}
 		</Badge>
 	</div>
 
