@@ -17,7 +17,7 @@
 </script>
 
 <nav
-	class="mb-6 inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/3 p-1 backdrop-blur-xl"
+	class="mb-6 inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/3 p-1 backdrop-blur-xl w-max"
 >
 	{#each links as link (link.href)}
 		<a

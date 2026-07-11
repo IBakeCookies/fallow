@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import { replaceState } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import Nav from '$lib/components/Nav.svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TaskList from '$lib/components/TaskList.svelte';
@@ -684,64 +683,57 @@
 </svelte:head>
 
 {#if !isLoading}
-	<main
-		class="min-h-screen bg-black/70 text-zinc-300 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 font-sans"
-	>
-		<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-			<Nav />
-			<PageHeader
-				completedTasks={completedTasksCount}
-				{totalTasks}
-				{selectedDate}
-				{today}
-				ondatechange={handleDateChange}
-				{yesterdaySession}
-				{routines}
-				currentTasks={tasks}
-				onimport={importTasks}
-				onsaveroutine={handleSaveRoutine}
-				ondeleteroutine={handleDeleteRoutine}
+	<PageHeader
+		completedTasks={completedTasksCount}
+		{totalTasks}
+		{selectedDate}
+		{today}
+		ondatechange={handleDateChange}
+		{yesterdaySession}
+		{routines}
+		currentTasks={tasks}
+		onimport={importTasks}
+		onsaveroutine={handleSaveRoutine}
+		ondeleteroutine={handleDeleteRoutine}
+	/>
+
+	<div class="grid gap-6 lg:grid-cols-3 items-start">
+		<div class="space-y-6 lg:col-span-2">
+			{#if !isViewingHistory}
+				<TimeBudgetCard
+					bind:availableHours
+					bind:switchCost
+					bind:cognitivePool
+					bind:physicalPool
+					{remainingSuggestedHours}
+					{planSlackHours}
+					{modelStatus}
+					flowLogs={flowObservations}
+					ondeletelog={deleteFlowLog}
+					onresetlogs={resetFlowLogs}
+				/>
+				<TaskForm onsubmit={addTask} />
+			{:else}
+				<div
+					class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
+				>
+					<span class="font-medium">Viewing a past day:</span> you can still check tasks on or
+					off (forgot one before midnight? fix it here — changes are saved), but adding or
+					editing tasks is only possible on today.
+				</div>
+			{/if}
+			<TaskList
+				{suggestedTasks}
+				{runOrder}
+				ontoggle={toggleTask}
+				onremove={isViewingHistory ? () => {} : removeTask}
+				onlogflow={isViewingHistory ? undefined : logFlow}
+				onupdate={isViewingHistory ? undefined : updateTask}
 			/>
-
-			<div class="grid gap-6 lg:grid-cols-3 items-start">
-				<div class="space-y-6 lg:col-span-2">
-					{#if !isViewingHistory}
-						<TimeBudgetCard
-							bind:availableHours
-							bind:switchCost
-							bind:cognitivePool
-							bind:physicalPool
-							{remainingSuggestedHours}
-							{planSlackHours}
-							{modelStatus}
-							flowLogs={flowObservations}
-							ondeletelog={deleteFlowLog}
-							onresetlogs={resetFlowLogs}
-						/>
-						<TaskForm onsubmit={addTask} />
-					{:else}
-						<div
-							class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
-						>
-							<span class="font-medium">Viewing a past day:</span> you can still check tasks on or
-							off (forgot one before midnight? fix it here — changes are saved), but adding or
-							editing tasks is only possible on today.
-						</div>
-					{/if}
-					<TaskList
-						{suggestedTasks}
-						{runOrder}
-						ontoggle={toggleTask}
-						onremove={isViewingHistory ? () => {} : removeTask}
-						onlogflow={isViewingHistory ? undefined : logFlow}
-						onupdate={isViewingHistory ? undefined : updateTask}
-					/>
-				</div>
-
-				<div class="space-y-4 lg:sticky lg:top-8">
-					<MetricsDashboard {metrics} momentum={hasTasks ? momentum : null} />
-				</div>
-			</div>
 		</div>
-	</main>
+
+		<div class="space-y-4 lg:sticky lg:top-8">
+			<MetricsDashboard {metrics} momentum={hasTasks ? momentum : null} />
+		</div>
+	</div>
 {/if}

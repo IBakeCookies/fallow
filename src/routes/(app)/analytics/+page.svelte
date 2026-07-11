@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
-	import Nav from '$lib/components/Nav.svelte';
 	import type { DailyQuadrant } from '$lib/metrics/calculations';
 	import {
 		type DaySummary,
@@ -207,208 +206,200 @@
 	<meta name="description" content="Completion trends and task stats across your Zenith days." />
 </svelte:head>
 
-<main
-	class="min-h-screen bg-black/70 text-zinc-300 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 font-sans"
->
-	<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-		<Nav />
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+	<div>
+		<h1 class="text-2xl font-bold text-zinc-100">Analytics</h1>
+		<p class="mt-1 text-sm text-zinc-500">
+			How your days have gone — completion, streaks, and day profiles over time.
+		</p>
+	</div>
 
-		<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-			<div>
-				<h1 class="text-2xl font-bold text-zinc-100">Analytics</h1>
-				<p class="mt-1 text-sm text-zinc-500">
-					How your days have gone — completion, streaks, and day profiles over time.
-				</p>
-			</div>
+	<div class="inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
+		{#each Object.entries(RANGES) as [key, r] (key)}
+			<button
+				onclick={() => (range = key as RangeKey)}
+				class="rounded-md px-3 py-1 text-sm transition-colors
+				       {range === key ? 'bg-white/10 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}"
+			>
+				{r.label}
+			</button>
+		{/each}
+	</div>
+</div>
 
-			<div class="inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
-				{#each Object.entries(RANGES) as [key, r] (key)}
-					<button
-						onclick={() => (range = key as RangeKey)}
-						class="rounded-md px-3 py-1 text-sm transition-colors
-						       {range === key ? 'bg-white/10 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}"
-					>
-						{r.label}
-					</button>
-				{/each}
-			</div>
+{#if isLoading}
+	<p class="text-sm text-zinc-500">Loading…</p>
+{:else if !hasData}
+	<div class="rounded-xl border border-white/10 bg-white/3 p-8 text-center backdrop-blur-xl">
+		<p class="text-zinc-300">Nothing to analyze in this range yet.</p>
+		<p class="mt-1 text-sm text-zinc-500">
+			Plan a day on the <a href="/" class="text-zinc-300 underline hover:text-zinc-100">Today</a>
+			page and it will show up here.
+		</p>
+	</div>
+{:else}
+	<!-- KPI tiles -->
+	<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
+			<p class="text-xs text-zinc-500">Tasks completed</p>
+			<p class="mt-1 text-2xl font-semibold text-zinc-100">
+				{completedTasks} <span class="text-base font-normal text-zinc-500">/ {totalTasks}</span>
+			</p>
+			<p class="mt-0.5 text-xs text-zinc-500">{completedShare}% of planned tasks</p>
 		</div>
 
-		{#if isLoading}
-			<p class="text-sm text-zinc-500">Loading…</p>
-		{:else if !hasData}
-			<div class="rounded-xl border border-white/10 bg-white/3 p-8 text-center backdrop-blur-xl">
-				<p class="text-zinc-300">Nothing to analyze in this range yet.</p>
-				<p class="mt-1 text-sm text-zinc-500">
-					Plan a day on the <a href="/" class="text-zinc-300 underline hover:text-zinc-100">Today</a>
-					page and it will show up here.
-				</p>
-			</div>
-		{:else}
-			<!-- KPI tiles -->
-			<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-				<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-					<p class="text-xs text-zinc-500">Tasks completed</p>
-					<p class="mt-1 text-2xl font-semibold text-zinc-100">
-						{completedTasks} <span class="text-base font-normal text-zinc-500">/ {totalTasks}</span>
-					</p>
-					<p class="mt-0.5 text-xs text-zinc-500">{completedShare}% of planned tasks</p>
-				</div>
+		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
+			<p class="text-xs text-zinc-500">Avg completion rate</p>
+			<p class="mt-1 text-2xl font-semibold text-zinc-100">{avgRate}%</p>
+			<p class="mt-0.5 text-xs text-zinc-500">
+				{#if rateDelta !== null}
+					<span class={rateDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
+					</span>
+					vs {RANGES[range].prevLabel}
+				{:else}
+					priority-weighted, per active day
+				{/if}
+			</p>
+		</div>
 
-				<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-					<p class="text-xs text-zinc-500">Avg completion rate</p>
-					<p class="mt-1 text-2xl font-semibold text-zinc-100">{avgRate}%</p>
-					<p class="mt-0.5 text-xs text-zinc-500">
-						{#if rateDelta !== null}
-							<span class={rateDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-								{rateDelta >= 0 ? '+' : ''}{rateDelta}%
-							</span>
-							vs {RANGES[range].prevLabel}
-						{:else}
-							priority-weighted, per active day
-						{/if}
-					</p>
-				</div>
+		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
+			<p class="text-xs text-zinc-500">Active days</p>
+			<p class="mt-1 text-2xl font-semibold text-zinc-100">
+				{inRange.length} <span class="text-base font-normal text-zinc-500">/ {days}</span>
+			</p>
+			<p class="mt-0.5 text-xs text-zinc-500">
+				{activeDaysWithCompletion} with at least one task done
+			</p>
+		</div>
 
-				<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-					<p class="text-xs text-zinc-500">Active days</p>
-					<p class="mt-1 text-2xl font-semibold text-zinc-100">
-						{inRange.length} <span class="text-base font-normal text-zinc-500">/ {days}</span>
-					</p>
-					<p class="mt-0.5 text-xs text-zinc-500">
-						{activeDaysWithCompletion} with at least one task done
-					</p>
-				</div>
+		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
+			<p class="text-xs text-zinc-500">Current streak</p>
+			<p class="mt-1 text-2xl font-semibold text-zinc-100">
+				{streak} <span class="text-base font-normal text-zinc-500">day{streak === 1 ? '' : 's'}</span>
+			</p>
+			<p class="mt-0.5 text-xs text-zinc-500">consecutive days with a completed task</p>
+		</div>
 
-				<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-					<p class="text-xs text-zinc-500">Current streak</p>
-					<p class="mt-1 text-2xl font-semibold text-zinc-100">
-						{streak} <span class="text-base font-normal text-zinc-500">day{streak === 1 ? '' : 's'}</span>
-					</p>
-					<p class="mt-0.5 text-xs text-zinc-500">consecutive days with a completed task</p>
-				</div>
+		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
+			<p class="text-xs text-zinc-500">Planned hours</p>
+			<p class="mt-1 text-2xl font-semibold text-zinc-100">{plannedHours}h</p>
+			<p class="mt-0.5 text-xs text-zinc-500">time budget across active days</p>
+		</div>
 
-				<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-					<p class="text-xs text-zinc-500">Planned hours</p>
-					<p class="mt-1 text-2xl font-semibold text-zinc-100">{plannedHours}h</p>
-					<p class="mt-0.5 text-xs text-zinc-500">time budget across active days</p>
-				</div>
-
-				<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-					<p class="text-xs text-zinc-500">Best day</p>
-					{#if bestDay}
-						<p class="mt-1 text-2xl font-semibold text-zinc-100">{formatDay(bestDay.date)}</p>
-						<p class="mt-0.5 text-xs text-zinc-500">
-							{bestDay.completionRate}% rate · {bestDay.completedTasks} task{bestDay.completedTasks ===
-							1
-								? ''
-								: 's'} done
-						</p>
-					{:else}
-						<p class="mt-1 text-2xl font-semibold text-zinc-500">—</p>
-						<p class="mt-0.5 text-xs text-zinc-500">no completed tasks yet</p>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Completion trend -->
-			<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
-				<h2 class="text-sm font-medium text-zinc-200">Completion rate</h2>
+		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
+			<p class="text-xs text-zinc-500">Best day</p>
+			{#if bestDay}
+				<p class="mt-1 text-2xl font-semibold text-zinc-100">{formatDay(bestDay.date)}</p>
 				<p class="mt-0.5 text-xs text-zinc-500">
-					{range === 'year'
-						? 'Monthly average of the priority-weighted daily completion rate'
-						: 'Priority-weighted completion rate per day — hover a bar for details'}
+					{bestDay.completionRate}% rate · {bestDay.completedTasks} task{bestDay.completedTasks ===
+					1
+						? ''
+						: 's'} done
 				</p>
-
-				<svg
-					viewBox="0 0 {CHART.w} {CHART.h}"
-					class="mt-4 w-full"
-					role="img"
-					aria-label="Bar chart of completion rate over the {RANGES[range].label.toLowerCase()}"
-				>
-					{#each yTicks as tick (tick)}
-						<line
-							x1={CHART.left}
-							x2={CHART.w - CHART.right}
-							y1={yPos(tick)}
-							y2={yPos(tick)}
-							stroke="rgba(255,255,255,0.08)"
-							stroke-width="1"
-						/>
-						<text
-							x={CHART.left - 8}
-							y={yPos(tick) + 3}
-							text-anchor="end"
-							class="fill-zinc-500"
-							font-size="10"
-							style="font-variant-numeric: tabular-nums"
-						>
-							{tick}
-						</text>
-					{/each}
-
-					{#each bars as bar, i (i)}
-						{#if bar.value !== null}
-							<path d={barPath(bar.x, bar.y, bar.w, bar.h)} fill="#818cf8">
-								<title>{bar.full} — {bar.value}% · {bar.sub}</title>
-							</path>
-						{/if}
-						{#if bar.showLabel}
-							<text
-								x={bar.slotX + bar.slotW / 2}
-								y={CHART.h - 8}
-								text-anchor="middle"
-								class="fill-zinc-500"
-								font-size="10"
-							>
-								{bar.label}
-							</text>
-						{/if}
-						<!-- full-slot hover target so tooltips don't require pixel-perfect aim -->
-						<rect
-							x={bar.slotX}
-							y={CHART.top}
-							width={bar.slotW}
-							height={innerH}
-							fill="transparent"
-						>
-							<title>{bar.full} — {bar.value === null ? 'no data' : `${bar.value}% · ${bar.sub}`}</title>
-						</rect>
-					{/each}
-				</svg>
-			</div>
-
-			<!-- Day profiles -->
-			<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
-				<h2 class="text-sm font-medium text-zinc-200">Day profiles</h2>
-				<p class="mt-0.5 text-xs text-zinc-500">
-					Character of your active days: challenging &amp; engaging (Flow), demanding (Grind), light
-					&amp; fun (Cruise), or low-key (Routine)
-				</p>
-
-				<div class="mt-4 flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
-					{#each QUADRANTS as q (q.key)}
-						{#if quadrantCounts[q.key] > 0}
-							<div
-								style="width: {(quadrantCounts[q.key] / inRange.length) * 100}%; background: {q.color}"
-								title="{q.label}: {quadrantCounts[q.key]} day{quadrantCounts[q.key] === 1 ? '' : 's'}"
-							></div>
-						{/if}
-					{/each}
-				</div>
-
-				<div class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
-					{#each QUADRANTS as q (q.key)}
-						<div class="flex items-center gap-1.5 text-xs">
-							<span class="h-2 w-2 rounded-full" style="background: {q.color}"></span>
-							<span class="text-zinc-400">{q.label}</span>
-							<span class="font-medium text-zinc-200" style="font-variant-numeric: tabular-nums">
-								{quadrantCounts[q.key]}
-							</span>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
+			{:else}
+				<p class="mt-1 text-2xl font-semibold text-zinc-500">—</p>
+				<p class="mt-0.5 text-xs text-zinc-500">no completed tasks yet</p>
+			{/if}
+		</div>
 	</div>
-</main>
+
+	<!-- Completion trend -->
+	<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
+		<h2 class="text-sm font-medium text-zinc-200">Completion rate</h2>
+		<p class="mt-0.5 text-xs text-zinc-500">
+			{range === 'year'
+				? 'Monthly average of the priority-weighted daily completion rate'
+				: 'Priority-weighted completion rate per day — hover a bar for details'}
+		</p>
+
+		<svg
+			viewBox="0 0 {CHART.w} {CHART.h}"
+			class="mt-4 w-full"
+			role="img"
+			aria-label="Bar chart of completion rate over the {RANGES[range].label.toLowerCase()}"
+		>
+			{#each yTicks as tick (tick)}
+				<line
+					x1={CHART.left}
+					x2={CHART.w - CHART.right}
+					y1={yPos(tick)}
+					y2={yPos(tick)}
+					stroke="rgba(255,255,255,0.08)"
+					stroke-width="1"
+				/>
+				<text
+					x={CHART.left - 8}
+					y={yPos(tick) + 3}
+					text-anchor="end"
+					class="fill-zinc-500"
+					font-size="10"
+					style="font-variant-numeric: tabular-nums"
+				>
+					{tick}
+				</text>
+			{/each}
+
+			{#each bars as bar, i (i)}
+				{#if bar.value !== null}
+					<path d={barPath(bar.x, bar.y, bar.w, bar.h)} fill="#818cf8">
+						<title>{bar.full} — {bar.value}% · {bar.sub}</title>
+					</path>
+				{/if}
+				{#if bar.showLabel}
+					<text
+						x={bar.slotX + bar.slotW / 2}
+						y={CHART.h - 8}
+						text-anchor="middle"
+						class="fill-zinc-500"
+						font-size="10"
+					>
+						{bar.label}
+					</text>
+				{/if}
+				<!-- full-slot hover target so tooltips don't require pixel-perfect aim -->
+				<rect
+					x={bar.slotX}
+					y={CHART.top}
+					width={bar.slotW}
+					height={innerH}
+					fill="transparent"
+				>
+					<title>{bar.full} — {bar.value === null ? 'no data' : `${bar.value}% · ${bar.sub}`}</title>
+				</rect>
+			{/each}
+		</svg>
+	</div>
+
+	<!-- Day profiles -->
+	<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
+		<h2 class="text-sm font-medium text-zinc-200">Day profiles</h2>
+		<p class="mt-0.5 text-xs text-zinc-500">
+			Character of your active days: challenging &amp; engaging (Flow), demanding (Grind), light
+			&amp; fun (Cruise), or low-key (Routine)
+		</p>
+
+		<div class="mt-4 flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
+			{#each QUADRANTS as q (q.key)}
+				{#if quadrantCounts[q.key] > 0}
+					<div
+						style="width: {(quadrantCounts[q.key] / inRange.length) * 100}%; background: {q.color}"
+						title="{q.label}: {quadrantCounts[q.key]} day{quadrantCounts[q.key] === 1 ? '' : 's'}"
+					></div>
+				{/if}
+			{/each}
+		</div>
+
+		<div class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+			{#each QUADRANTS as q (q.key)}
+				<div class="flex items-center gap-1.5 text-xs">
+					<span class="h-2 w-2 rounded-full" style="background: {q.color}"></span>
+					<span class="text-zinc-400">{q.label}</span>
+					<span class="font-medium text-zinc-200" style="font-variant-numeric: tabular-nums">
+						{quadrantCounts[q.key]}
+					</span>
+				</div>
+			{/each}
+		</div>
+	</div>
+{/if}
