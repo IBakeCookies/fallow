@@ -139,7 +139,7 @@
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
-				class="mt-0.5 h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500/20"
+				class="mt-0.5 h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-indigo-500/20"
 			/>
 
 			<div class="min-w-0 flex-1" class:opacity-60={completed}>
@@ -304,7 +304,7 @@
 							<Tooltip.Trigger
 								class={cn(
 									buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-									editing ? 'text-indigo-400' : 'text-zinc-600 hover:text-indigo-400'
+									editing ? 'text-emerald-400' : 'text-zinc-600 hover:text-emerald-400'
 								)}
 								onclick={() => (editing ? (editing = false) : openEdit())}
 								aria-label="Edit task"

@@ -29,7 +29,7 @@
 						Momentum
 					</span>
 				</Tooltip.Trigger>
-				<Tooltip.Content side="right" class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+				<Tooltip.Content side="left" class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
 					<p>
 						Average enjoyment minus difficulty. Upward = sustainable pace, Reset Reqd = burnout
 						risk.
@@ -44,7 +44,7 @@
 					? 'destructive'
 					: 'secondary'}
 			class={momentum !== null && momentum > 0
-				? 'bg-indigo-500/20 text-indigo-300'
+				? 'bg-emerald-500/20 text-emerald-300'
 				: momentum !== null && momentum < 0
 					? 'bg-amber-500/20 text-amber-300'
 					: ''}
@@ -73,10 +73,7 @@
 								{item.label}
 							</span>
 						</Tooltip.Trigger>
-						<Tooltip.Content
-							side="right"
-							class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200"
-						>
+						<Tooltip.Content side="left" class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
 							<p>{item.description}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>

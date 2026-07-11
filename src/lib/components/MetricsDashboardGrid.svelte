@@ -40,7 +40,7 @@
 		<Badge
 			variant={momentum > 0 ? 'default' : momentum < 0 ? 'destructive' : 'secondary'}
 			class={momentum > 0
-				? 'bg-indigo-500/20 text-indigo-300'
+				? 'bg-emerald-500/20 text-emerald-300'
 				: momentum < 0
 					? 'bg-amber-500/20 text-amber-300'
 					: ''}

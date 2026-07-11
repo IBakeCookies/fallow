@@ -1,5 +1,5 @@
 export const STATUS = {
-	SUCCESS: { label: 'Optimal', color: 'text-indigo-400' },
+	SUCCESS: { label: 'Optimal', color: 'text-emerald-400' },
 	NEUTRAL: { label: 'Nominal', color: 'text-zinc-200' },
 	WARNING: { label: 'Caution', color: 'text-amber-400' },
 	CRITICAL: { label: 'Critical', color: 'text-red-400' }

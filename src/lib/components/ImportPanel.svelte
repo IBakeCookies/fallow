@@ -105,7 +105,7 @@
 						<DropdownMenu.Group>
 							<div class="flex items-center justify-between px-2 py-1.5">
 								<button
-									class="flex-1 text-left text-sm hover:text-indigo-400 transition-colors"
+									class="flex-1 text-left text-sm hover:text-emerald-400 transition-colors"
 									onclick={() => importRoutine(routine)}
 								>
 									{routine.name}

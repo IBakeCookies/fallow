@@ -152,9 +152,7 @@
 	// over the logged time-to-flow measurements, anchored to the article's
 	// defaults. Every ⚡ log nudges the model; more logs = less anchor.
 	const constantsFit = $derived(
-		fitUserConstants(
-			flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
-		)
+		fitUserConstants(flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours })))
 	);
 	const userConstants = $derived(constantsFit.constants);
 	const modelStatus = $derived(
@@ -359,9 +357,7 @@
 									? 'Physical Heavy'
 									: 'Balanced',
 						valStyle:
-							energyBalance > 60 || energyBalance < 40
-								? STATUS.WARNING.color
-								: STATUS.SUCCESS.color
+							energyBalance > 60 || energyBalance < 40 ? STATUS.WARNING.color : STATUS.SUCCESS.color
 					}
 				: NA)
 		},
@@ -553,9 +549,7 @@
 			await deleteFlowObservation(id);
 			flowObservations = await getAllFlowObservations();
 			if (record && record.date === today) {
-				tasks = tasks.map((t) =>
-					t.id === record.taskId ? { ...t, flowMinutes: undefined } : t
-				);
+				tasks = tasks.map((t) => (t.id === record.taskId ? { ...t, flowMinutes: undefined } : t));
 			}
 		} catch (e) {
 			console.error('Failed to delete flow observation', e);
@@ -656,7 +650,7 @@
 
 {#if !isLoading}
 	<main
-		class="min-h-screen bg-black/70 text-zinc-300 antialiased selection:bg-indigo-500/30 selection:text-indigo-200 font-sans"
+		class="min-h-screen bg-black/70 text-zinc-300 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 font-sans"
 	>
 		<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 			<PageHeader
