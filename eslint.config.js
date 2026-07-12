@@ -40,5 +40,56 @@ export default defineConfig(
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {}
+	},
+
+	// ---- Layer boundaries (presentation → business → data, one direction) ----
+	{
+		files: ['src/lib/data/**'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['$lib/business/*', '$lib/business/**', '$lib/presentation/*', '$lib/presentation/**'],
+							message: 'The data layer must not import from the business or presentation layers.'
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		files: ['src/lib/business/**'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['$lib/presentation/*', '$lib/presentation/**'],
+							message: 'The business layer must not import from the presentation layer.'
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		files: ['src/lib/presentation/**', 'src/routes/**'],
+		rules: {
+			'no-restricted-imports': [
+				'error',
+				{
+					patterns: [
+						{
+							group: ['$lib/data/*', '$lib/data/**'],
+							message:
+								'Presentation code must go through the business layer (stores in $lib/business/store, types via $lib/business/type).'
+						}
+					]
+				}
+			]
+		}
 	}
 );

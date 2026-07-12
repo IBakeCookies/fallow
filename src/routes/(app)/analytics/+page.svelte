@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
-	import type { DailyQuadrant } from '$lib/metrics/calculations';
+	import * as m from '$lib/paraglide/messages.js';
+	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
+	import { type DaySummary, summarizeSession, currentStreak } from '$lib/business/model/metric/history';
+	import { addDays, fromISO } from '$lib/business/utils/date';
 	import {
-		type DaySummary,
-		summarizeSession,
-		addDays,
-		fromISO,
-		currentStreak
-	} from '$lib/metrics/history';
-	import { initDB, getSessionsInRange, getAllFlowObservations } from '$lib/storage/db';
-	import { fitUserConstants } from '$lib/zenith';
-	import { liveToday } from '$lib/today.svelte';
+		initializeStorage,
+		readSessionsByDateRange,
+		readUserConstants
+	} from '$lib/business/store/session-history';
+	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
 
 	const RANGES = {
-		week: { days: 7, label: 'Last 7 days', prevLabel: 'previous 7 days' },
-		month: { days: 30, label: 'Last 30 days', prevLabel: 'previous 30 days' },
-		year: { days: 365, label: 'Last 12 months', prevLabel: '' }
+		week: { days: 7, label: () => m.ana_range_week(), prevLabel: () => m.ana_prev_week() },
+		month: { days: 30, label: () => m.ana_range_month(), prevLabel: () => m.ana_prev_month() },
+		year: { days: 365, label: () => m.ana_range_year(), prevLabel: () => '' }
 	} as const;
 	type RangeKey = keyof typeof RANGES;
 
@@ -30,12 +30,9 @@
 	onMount(async () => {
 		if (!browser) return;
 		try {
-			await initDB();
-			const obs = await getAllFlowObservations();
-			const constants = fitUserConstants(
-				obs.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
-			).constants;
-			const sessions = await getSessionsInRange(addDays(today, -364), today);
+			await initializeStorage();
+			const constants = await readUserConstants();
+			const sessions = await readSessionsByDateRange(addDays(today, -364), today);
 			all = sessions.filter((s) => s.tasks.length > 0).map((s) => summarizeSession(s, constants));
 		} catch (e) {
 			console.error('Failed to load analytics data', e);
@@ -93,15 +90,15 @@
 	});
 
 	function formatDay(iso: string): string {
-		return fromISO(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+		return fromISO(iso).toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
 	}
 
 	// ---------- Day profile distribution ----------
 	const QUADRANTS: { key: DailyQuadrant; label: string; color: string }[] = [
-		{ key: 'flow', label: 'Flow Zone', color: '#a78bfa' },
-		{ key: 'cruise', label: 'Cruise', color: '#38bdf8' },
-		{ key: 'grind', label: 'Grind Mode', color: '#fb923c' },
-		{ key: 'routine', label: 'Routine', color: '#a1a1aa' }
+		{ key: 'flow', label: m.quadrant_flow(), color: '#a78bfa' },
+		{ key: 'cruise', label: m.quadrant_cruise(), color: '#38bdf8' },
+		{ key: 'grind', label: m.quadrant_grind(), color: '#fb923c' },
+		{ key: 'routine', label: m.quadrant_routine(), color: '#a1a1aa' }
 	];
 	const quadrantCounts = $derived.by(() => {
 		const counts: Record<DailyQuadrant, number> = { flow: 0, cruise: 0, grind: 0, routine: 0 };
@@ -133,14 +130,21 @@
 			while (cursor.slice(0, 7) <= today.slice(0, 7)) {
 				const key = cursor.slice(0, 7);
 				const daysIn = buckets.get(key) ?? [];
-				const monthLabel = fromISO(cursor).toLocaleDateString('en-US', { month: 'short' });
+				const monthLabel = fromISO(cursor).toLocaleDateString(getDateLocale(), { month: 'short' });
 				points.push({
 					label: monthLabel,
-					full: fromISO(cursor).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+					full: fromISO(cursor).toLocaleDateString(getDateLocale(), {
+						month: 'long',
+						year: 'numeric'
+					}),
 					value: daysIn.length
 						? Math.round(daysIn.reduce((sum, s) => sum + s.completionRate, 0) / daysIn.length)
 						: null,
-					sub: daysIn.length ? `${daysIn.length} active day${daysIn.length === 1 ? '' : 's'}` : 'no data',
+					sub: daysIn.length
+						? daysIn.length === 1
+							? m.ana_active_day_one()
+							: m.ana_active_day_other({ count: daysIn.length })
+						: m.ana_no_data(),
 					showLabel: true
 				});
 				const d = fromISO(cursor);
@@ -159,13 +163,25 @@
 			return {
 				label:
 					range === 'week'
-						? d.toLocaleDateString('en-US', { weekday: 'short' })
-						: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-				full: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+						? d.toLocaleDateString(getDateLocale(), { weekday: 'short' })
+						: d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' }),
+				full: d.toLocaleDateString(getDateLocale(), {
+					weekday: 'short',
+					month: 'short',
+					day: 'numeric'
+				}),
 				value: s ? s.completionRate : null,
-				sub: s ? `${s.completedTasks}/${s.totalTasks} tasks done` : 'no data',
+				sub: s
+					? m.ana_tasks_done_sub({ completed: s.completedTasks, total: s.totalTasks })
+					: m.ana_no_data(),
 				showLabel: range === 'week' || i % 5 === 0,
-				...(date === today ? { full: `Today, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` } : {})
+				...(date === today
+					? {
+							full: m.ana_today_label({
+								date: d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' })
+							})
+						}
+					: {})
 			};
 		});
 	});
@@ -203,15 +219,15 @@
 </script>
 
 <svelte:head>
-	<title>Zenith — Analytics</title>
-	<meta name="description" content="Completion trends and task stats across your Zenith days." />
+	<title>{m.ana_title_head()}</title>
+	<meta name="description" content={m.ana_meta_description()} />
 </svelte:head>
 
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
 	<div>
-		<h1 class="text-2xl font-bold text-zinc-100">Analytics</h1>
+		<h1 class="text-2xl font-bold text-zinc-100">{m.ana_heading()}</h1>
 		<p class="mt-1 text-sm text-zinc-500">
-			How your days have gone — completion, streaks, and day profiles over time.
+			{m.ana_subtitle()}
 		</p>
 	</div>
 
@@ -222,103 +238,107 @@
 				class="rounded-md px-3 py-1 text-sm transition-colors
 				       {range === key ? 'bg-white/10 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}"
 			>
-				{r.label}
+				{r.label()}
 			</button>
 		{/each}
 	</div>
 </div>
 
 {#if isLoading}
-	<p class="text-sm text-zinc-500">Loading…</p>
+	<p class="text-sm text-zinc-500">{m.ana_loading()}</p>
 {:else if !hasData}
 	<div class="rounded-xl border border-white/10 bg-white/3 p-8 text-center backdrop-blur-xl">
-		<p class="text-zinc-300">Nothing to analyze in this range yet.</p>
+		<p class="text-zinc-300">{m.ana_empty()}</p>
 		<p class="mt-1 text-sm text-zinc-500">
-			Plan a day on the <a href="/" class="text-zinc-300 underline hover:text-zinc-100">Today</a>
-			page and it will show up here.
+			{m.ana_empty_hint_1()}
+			<a href="/" class="text-zinc-300 underline hover:text-zinc-100">{m.link_today()}</a>
+			{m.ana_empty_hint_2()}
 		</p>
 	</div>
 {:else}
 	<!-- KPI tiles -->
 	<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">Tasks completed</p>
+			<p class="text-xs text-zinc-500">{m.ana_tasks_completed()}</p>
 			<p class="mt-1 text-2xl font-semibold text-zinc-100">
 				{completedTasks} <span class="text-base font-normal text-zinc-500">/ {totalTasks}</span>
 			</p>
-			<p class="mt-0.5 text-xs text-zinc-500">{completedShare}% of planned tasks</p>
+			<p class="mt-0.5 text-xs text-zinc-500">{m.ana_of_planned({ percent: completedShare })}</p>
 		</div>
 
 		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">Avg completion rate</p>
+			<p class="text-xs text-zinc-500">{m.ana_avg_rate()}</p>
 			<p class="mt-1 text-2xl font-semibold text-zinc-100">{avgRate}%</p>
 			<p class="mt-0.5 text-xs text-zinc-500">
 				{#if rateDelta !== null}
 					<span class={rateDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
 						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
 					</span>
-					vs {RANGES[range].prevLabel}
+					{m.ana_vs_prev({ period: RANGES[range].prevLabel() })}
 				{:else}
-					priority-weighted, per active day
+					{m.ana_rate_note()}
 				{/if}
 			</p>
 		</div>
 
 		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">Active days</p>
+			<p class="text-xs text-zinc-500">{m.ana_active_days()}</p>
 			<p class="mt-1 text-2xl font-semibold text-zinc-100">
 				{inRange.length} <span class="text-base font-normal text-zinc-500">/ {days}</span>
 			</p>
 			<p class="mt-0.5 text-xs text-zinc-500">
-				{activeDaysWithCompletion} with at least one task done
+				{m.ana_with_completion({ count: activeDaysWithCompletion })}
 			</p>
 		</div>
 
 		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">Current streak</p>
+			<p class="text-xs text-zinc-500">{m.ana_current_streak()}</p>
 			<p class="mt-1 text-2xl font-semibold text-zinc-100">
-				{streak} <span class="text-base font-normal text-zinc-500">day{streak === 1 ? '' : 's'}</span>
+				{streak}
+				<span class="text-base font-normal text-zinc-500">
+					{streak === 1 ? m.ana_day_one() : m.ana_day_other()}
+				</span>
 			</p>
-			<p class="mt-0.5 text-xs text-zinc-500">consecutive days with a completed task</p>
+			<p class="mt-0.5 text-xs text-zinc-500">{m.ana_streak_note()}</p>
 		</div>
 
 		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">Planned hours</p>
+			<p class="text-xs text-zinc-500">{m.ana_planned_hours()}</p>
 			<p class="mt-1 text-2xl font-semibold text-zinc-100">{plannedHours}h</p>
-			<p class="mt-0.5 text-xs text-zinc-500">time budget across active days</p>
+			<p class="mt-0.5 text-xs text-zinc-500">{m.ana_planned_hours_note()}</p>
 		</div>
 
 		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">Best day</p>
+			<p class="text-xs text-zinc-500">{m.ana_best_day()}</p>
 			{#if bestDay}
 				<p class="mt-1 text-2xl font-semibold text-zinc-100">{formatDay(bestDay.date)}</p>
 				<p class="mt-0.5 text-xs text-zinc-500">
-					{bestDay.completionRate}% rate · {bestDay.completedTasks} task{bestDay.completedTasks ===
-					1
-						? ''
-						: 's'} done
+					{bestDay.completedTasks === 1
+						? m.ana_best_day_note_one({ rate: bestDay.completionRate })
+						: m.ana_best_day_note({
+								rate: bestDay.completionRate,
+								count: bestDay.completedTasks
+							})}
 				</p>
 			{:else}
 				<p class="mt-1 text-2xl font-semibold text-zinc-500">—</p>
-				<p class="mt-0.5 text-xs text-zinc-500">no completed tasks yet</p>
+				<p class="mt-0.5 text-xs text-zinc-500">{m.ana_no_completed()}</p>
 			{/if}
 		</div>
 	</div>
 
 	<!-- Completion trend -->
 	<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
-		<h2 class="text-sm font-medium text-zinc-200">Completion rate</h2>
+		<h2 class="text-sm font-medium text-zinc-200">{m.ana_completion_rate()}</h2>
 		<p class="mt-0.5 text-xs text-zinc-500">
-			{range === 'year'
-				? 'Monthly average of the priority-weighted daily completion rate'
-				: 'Priority-weighted completion rate per day — hover a bar for details'}
+			{range === 'year' ? m.ana_chart_hint_year() : m.ana_chart_hint_day()}
 		</p>
 
 		<svg
 			viewBox="0 0 {CHART.w} {CHART.h}"
 			class="mt-4 w-full"
 			role="img"
-			aria-label="Bar chart of completion rate over the {RANGES[range].label.toLowerCase()}"
+			aria-label={m.ana_chart_aria({ range: RANGES[range].label().toLowerCase() })}
 		>
 			{#each yTicks as tick (tick)}
 				<line
@@ -366,7 +386,7 @@
 					height={innerH}
 					fill="transparent"
 				>
-					<title>{bar.full} — {bar.value === null ? 'no data' : `${bar.value}% · ${bar.sub}`}</title>
+					<title>{bar.full} — {bar.value === null ? m.ana_no_data() : `${bar.value}% · ${bar.sub}`}</title>
 				</rect>
 			{/each}
 		</svg>
@@ -374,10 +394,9 @@
 
 	<!-- Day profiles -->
 	<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
-		<h2 class="text-sm font-medium text-zinc-200">Day profiles</h2>
+		<h2 class="text-sm font-medium text-zinc-200">{m.ana_day_profiles()}</h2>
 		<p class="mt-0.5 text-xs text-zinc-500">
-			Character of your active days: challenging &amp; engaging (Flow), demanding (Grind), light
-			&amp; fun (Cruise), or low-key (Routine)
+			{m.ana_day_profiles_hint()}
 		</p>
 
 		<div class="mt-4 flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
@@ -385,7 +404,9 @@
 				{#if quadrantCounts[q.key] > 0}
 					<div
 						style="width: {(quadrantCounts[q.key] / inRange.length) * 100}%; background: {q.color}"
-						title="{q.label}: {quadrantCounts[q.key]} day{quadrantCounts[q.key] === 1 ? '' : 's'}"
+						title={quadrantCounts[q.key] === 1
+							? m.ana_quadrant_count_one({ label: q.label })
+							: m.ana_quadrant_count_other({ label: q.label, count: quadrantCounts[q.key] })}
 					></div>
 				{/if}
 			{/each}

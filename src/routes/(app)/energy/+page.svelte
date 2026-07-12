@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
-	import { NumberInput } from '$lib/components/ui/number-input';
-	import TaskForm from '$lib/components/TaskForm.svelte';
+	import * as m from '$lib/paraglide/messages.js';
+	import { NumberInput } from '$lib/presentation/component/ui/number-input';
+	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import {
 		DEFAULT_ENERGY_PARAMS,
 		optimizeSchedule,
@@ -11,14 +12,14 @@
 		type EnergyParams,
 		type EnergyTaskInput,
 		type ScheduleBlock
-	} from '$lib/zenith-energy';
+	} from '$lib/business/model/zenith-energy';
 	import {
 		type Task,
 		getEffectiveDifficulty,
 		calculateSuggestedTasks,
 		calculateInterleavedOrder
-	} from '$lib/metrics/calculations';
-	import { getSessionStore } from '$lib/store/session-store.svelte';
+	} from '$lib/business/model/metric/calculation';
+	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 
 	const PARAMS_KEY = 'zenith-energy-params';
 
@@ -107,7 +108,7 @@
 		{
 			key: 'physicalDifficulty',
 			label: 'P',
-			title: 'Physical difficulty',
+			title: m.energy_slider_physical(),
 			min: 0,
 			accent: 'accent-emerald-400',
 			color: 'text-emerald-400/80'
@@ -115,7 +116,7 @@
 		{
 			key: 'mentalDifficulty',
 			label: 'M',
-			title: 'Mental difficulty',
+			title: m.energy_slider_mental(),
 			min: 0,
 			accent: 'accent-blue-400',
 			color: 'text-blue-400/80'
@@ -123,7 +124,7 @@
 		{
 			key: 'enjoyment',
 			label: 'E',
-			title: 'Enjoyment',
+			title: m.energy_slider_enjoyment(),
 			min: 1,
 			accent: 'accent-indigo-400',
 			color: 'text-indigo-400/80'
@@ -210,39 +211,35 @@
 </script>
 
 <svelte:head>
-	<title>Zenith — Energy Lab</title>
-	<meta
-		name="description"
-		content="Experimental total-output scheduler: energy reservoirs drain as you work and recover as you rest; breaks and quitting time emerge from the math."
-	/>
+	<title>{m.energy_title_head()}</title>
+	<meta name="description" content={m.energy_meta_description()} />
 </svelte:head>
 
 {#if !session.isLoading && paramsLoaded}
 	<div class="mb-6">
 		<div class="flex items-center gap-4">
-			<h1 class="text-2xl font-bold text-zinc-100">Energy Lab</h1>
+			<h1 class="text-2xl font-bold text-zinc-100">{m.energy_heading()}</h1>
 			<span
 				class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-300"
 			>
-				Experimental
+				{m.energy_experimental()}
 			</span>
 		</div>
 		<p class="mt-1 max-w-3xl text-sm text-zinc-500">
-			A different engine than the main page: instead of maximizing average productivity, this
-			scheduler maximizes <span class="text-zinc-400">total output</span> across your day. Two
-			energy reservoirs (cognitive and physical) drain while you work and recover while you
-			rest, and warm-up restarts every time you switch — so rest breaks, task order, and your
-			quitting time all <span class="text-zinc-400">emerge from the math</span> instead of being rules.
-			It shares the task list with the main page — edits here save to today's session.
+			{m.energy_intro_1()}
+			<span class="text-zinc-400">{m.energy_intro_highlight_1()}</span>
+			{m.energy_intro_2()}
+			<span class="text-zinc-400">{m.energy_intro_highlight_2()}</span>
+			{m.energy_intro_3()}
 		</p>
 	</div>
 
 	{#if activeTasks.length === 0}
 		<div class="space-y-6">
 			<div class="rounded-2xl border border-white/10 bg-white/3 p-8 text-center">
-				<p class="text-zinc-400">No open tasks for today.</p>
+				<p class="text-zinc-400">{m.energy_no_open_tasks()}</p>
 				<p class="mt-1 text-sm text-zinc-600">
-					Add one below — the Energy Lab schedules the same task list as the main page.
+					{m.energy_no_open_tasks_hint()}
 				</p>
 			</div>
 			<TaskForm onsubmit={(t) => session.addTask(t)} />
@@ -255,11 +252,13 @@
 			>
 				<div class="mb-3 flex items-baseline justify-between">
 					<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">
-						Optimized Day
+						{m.energy_optimized_day()}
 					</h3>
 					<span class="text-xs text-zinc-500">
-						{formatDuration(plan.evaluation.workHours)} work ·
-						{formatDuration(plan.evaluation.leisureHours)} free
+						{m.energy_work_free_summary({
+							work: formatDuration(plan.evaluation.workHours),
+							free: formatDuration(plan.evaluation.leisureHours)
+						})}
 					</span>
 				</div>
 				{#if windowHours > 0}
@@ -270,9 +269,12 @@
 								style="width: {(block.hours / windowHours) * 100}%; background-color: {colorOf(
 									block.taskId
 								)}{block.taskId === null ? '66' : 'B3'}"
-								title="{block.title} — {formatClock(block.start)}–{formatClock(
-									block.start + block.hours
-								)} ({formatDuration(block.hours)})"
+								title={m.energy_block_tooltip({
+									title: block.title,
+									start: formatClock(block.start),
+									end: formatClock(block.start + block.hours),
+									duration: formatDuration(block.hours)
+								})}
 							>
 								{#if block.hours / windowHours > 0.07}
 									<span class="truncate px-1.5 text-xs font-medium text-zinc-100">
@@ -285,10 +287,10 @@
 							<div
 								class="flex min-w-0 items-center justify-center bg-transparent"
 								style="width: {(trailingFreeHours / windowHours) * 100}%"
-								title="Free time — {formatDuration(trailingFreeHours)}"
+								title={m.energy_free_time_tooltip({ duration: formatDuration(trailingFreeHours) })}
 							>
 								{#if trailingFreeHours / windowHours > 0.07}
-									<span class="truncate px-1.5 text-xs text-zinc-600">free</span>
+									<span class="truncate px-1.5 text-xs text-zinc-600">{m.energy_free()}</span>
 								{/if}
 							</div>
 						{/if}
@@ -298,7 +300,7 @@
 						<span>{formatClock(windowHours)}</span>
 					</div>
 				{:else}
-					<p class="text-sm text-zinc-500">Set a day window above 0 hours.</p>
+					<p class="text-sm text-zinc-500">{m.energy_set_window()}</p>
 				{/if}
 
 				<!-- Energy & output chart -->
@@ -307,7 +309,7 @@
 						viewBox="0 0 {CHART_W} {CHART_H}"
 						class="mt-4 w-full"
 						role="img"
-						aria-label="Energy levels and output rate over the day"
+						aria-label={m.energy_chart_aria()}
 					>
 						<path d={ratePath} fill="#818cf8" opacity="0.18" />
 						{#each hourTicks as h (h)}
@@ -342,13 +344,16 @@
 					</svg>
 					<div class="mt-1 flex gap-4 text-xs text-zinc-500">
 						<span class="flex items-center gap-1.5">
-							<span class="h-0.5 w-4 rounded bg-blue-400"></span> Cognitive energy
+							<span class="h-0.5 w-4 rounded bg-blue-400"></span>
+							{m.energy_legend_cognitive()}
 						</span>
 						<span class="flex items-center gap-1.5">
-							<span class="h-0.5 w-4 rounded bg-emerald-400"></span> Physical energy
+							<span class="h-0.5 w-4 rounded bg-emerald-400"></span>
+							{m.energy_legend_physical()}
 						</span>
 						<span class="flex items-center gap-1.5">
-							<span class="h-2 w-4 rounded bg-indigo-400/30"></span> Output rate
+							<span class="h-2 w-4 rounded bg-indigo-400/30"></span>
+							{m.energy_legend_output()}
 						</span>
 					</div>
 				{/if}
@@ -361,12 +366,13 @@
 						class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
 					>
 						<div class="mb-1 flex items-baseline justify-between gap-3">
-							<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Tasks</h3>
-							<span class="text-xs text-zinc-600">Shared with the main page</span>
+							<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">
+								{m.energy_tasks()}
+							</h3>
+							<span class="text-xs text-zinc-600">{m.energy_shared_note()}</span>
 						</div>
 						<p class="mb-3 text-xs text-zinc-600">
-							Drag a slider and watch the schedule above re-optimize. Edits save to today's
-							session.
+							{m.energy_drag_hint()}
 						</p>
 						<ul class="space-y-1">
 							{#each tasks as task (task.id)}
@@ -394,8 +400,8 @@
 										</span>
 										<button
 											type="button"
-											aria-label="Remove task"
-											title="Remove task"
+											aria-label={m.task_remove_aria()}
+											title={m.task_remove_tooltip()}
 											class="shrink-0 text-zinc-600 opacity-0 transition hover:text-red-400 focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
 											onclick={() => session.removeTask(task.id)}
 										>
@@ -439,12 +445,11 @@
 						class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
 					>
 						<h3 class="mb-4 text-xs font-semibold tracking-wider text-zinc-300 uppercase">
-							Schedule
+							{m.energy_schedule()}
 						</h3>
 						{#if plan.evaluation.blocks.length === 0}
 							<p class="text-sm text-zinc-500">
-								Nothing scheduled — with the current parameters, free time is worth more than any
-								task's output. Lower the free-time value or check your day window.
+								{m.energy_nothing_scheduled()}
 							</p>
 						{:else}
 							<ul class="space-y-2">
@@ -471,10 +476,12 @@
 											<span
 												class="w-20 shrink-0 text-right text-xs tabular-nums text-indigo-300/80"
 											>
-												{block.output.toFixed(2)} out
+												{m.energy_output_suffix({ output: block.output.toFixed(2) })}
 											</span>
 										{:else}
-											<span class="w-20 shrink-0 text-right text-xs text-zinc-600">recovery</span>
+											<span class="w-20 shrink-0 text-right text-xs text-zinc-600">
+												{m.energy_recovery()}
+											</span>
 										{/if}
 									</li>
 								{/each}
@@ -484,7 +491,7 @@
 										<span class="w-24 shrink-0 tabular-nums text-zinc-600">
 											{formatClock(plannedHours)}–{formatClock(windowHours)}
 										</span>
-										<span class="flex-1 text-zinc-600 italic">Free time</span>
+										<span class="flex-1 text-zinc-600 italic">{m.energy_free_time()}</span>
 										<span class="shrink-0 text-xs text-zinc-600">
 											{formatDuration(trailingFreeHours)}
 										</span>
@@ -500,20 +507,20 @@
 								<p class="text-lg font-semibold text-zinc-100">
 									{plan.evaluation.totalOutput.toFixed(1)}
 								</p>
-								<p class="text-xs text-zinc-500">Total output (productivity units)</p>
+								<p class="text-xs text-zinc-500">{m.energy_total_output()}</p>
 							</div>
 							<div>
 								<p class="text-lg font-semibold text-zinc-100">
 									{Math.round(plan.evaluation.endCog * 100)}% /
 									{Math.round(plan.evaluation.endPhys * 100)}%
 								</p>
-								<p class="text-xs text-zinc-500">End-of-day energy (cog / phys)</p>
+								<p class="text-xs text-zinc-500">{m.energy_end_energy()}</p>
 							</div>
 							<div>
 								<p class="text-lg font-semibold text-zinc-100">
 									{formatDuration(plan.evaluation.workHours)}
 								</p>
-								<p class="text-xs text-zinc-500">Planned work</p>
+								<p class="text-xs text-zinc-500">{m.energy_planned_work()}</p>
 							</div>
 							<div>
 								{#if outputVsClassic !== null}
@@ -525,11 +532,11 @@
 										{outputVsClassic >= 0 ? '+' : ''}{outputVsClassic}%
 									</p>
 									<p class="text-xs text-zinc-500">
-										Output vs the classic plan, judged by this model
+										{m.energy_vs_classic()}
 									</p>
 								{:else}
 									<p class="text-lg font-semibold text-zinc-500">—</p>
-									<p class="text-xs text-zinc-600">No classic plan to compare</p>
+									<p class="text-xs text-zinc-600">{m.energy_no_classic()}</p>
 								{/if}
 							</div>
 						</div>
@@ -542,21 +549,21 @@
 				>
 					<div class="mb-4 flex items-baseline justify-between">
 						<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">
-							Model Parameters
+							{m.energy_model_parameters()}
 						</h3>
 						<button
 							type="button"
 							class="text-xs text-zinc-600 transition hover:text-zinc-300"
-							title="Restore all model parameters to their defaults"
+							title={m.energy_reset_defaults_title()}
 							onclick={() => (params = { ...DEFAULT_ENERGY_PARAMS })}
 						>
-							Reset to defaults
+							{m.energy_reset_defaults()}
 						</button>
 					</div>
 					<div class="space-y-4">
 						<div>
 							<label for="window-hours" class="mb-1 block text-xs text-zinc-500">
-								Day window
+								{m.energy_day_window()}
 							</label>
 							<NumberInput
 								id="window-hours"
@@ -565,15 +572,15 @@
 								min={0}
 								max={24}
 								step={0.5}
-								unit="hrs"
+								unit={m.unit_hours()}
 							/>
 							<p class="mt-1 text-xs text-zinc-600">
-								Follows today's budget until you change it; changes stay in the lab
+								{m.energy_day_window_hint()}
 							</p>
 						</div>
 						<div>
 							<label for="alpha-cog" class="mb-1 block text-xs text-zinc-500">
-								Cognitive drain
+								{m.energy_cognitive_drain()}
 							</label>
 							<NumberInput
 								id="alpha-cog"
@@ -586,12 +593,12 @@
 								accent="focus-within:border-blue-500/50"
 							/>
 							<p class="mt-1 text-xs text-zinc-600">
-								How fast deep mental work empties the tank
+								{m.energy_cognitive_drain_hint()}
 							</p>
 						</div>
 						<div>
 							<label for="alpha-phys" class="mb-1 block text-xs text-zinc-500">
-								Physical drain
+								{m.energy_physical_drain()}
 							</label>
 							<NumberInput
 								id="alpha-phys"
@@ -603,11 +610,11 @@
 								unit="/h"
 								accent="focus-within:border-emerald-500/50"
 							/>
-							<p class="mt-1 text-xs text-zinc-600">Same, for physically hard work</p>
+							<p class="mt-1 text-xs text-zinc-600">{m.energy_physical_drain_hint()}</p>
 						</div>
 						<div>
 							<label for="recovery-rate" class="mb-1 block text-xs text-zinc-500">
-								Recovery rate
+								{m.energy_recovery_rate()}
 							</label>
 							<NumberInput
 								id="recovery-rate"
@@ -618,11 +625,11 @@
 								step={0.1}
 								unit="/h"
 							/>
-							<p class="mt-1 text-xs text-zinc-600">How fast rest refills the reservoirs</p>
+							<p class="mt-1 text-xs text-zinc-600">{m.energy_recovery_rate_hint()}</p>
 						</div>
 						<div>
 							<label for="free-time-value" class="mb-1 block text-xs text-zinc-500">
-								Free-time value
+								{m.energy_free_time_value()}
 							</label>
 							<NumberInput
 								id="free-time-value"
@@ -634,13 +641,12 @@
 								unit="/h"
 							/>
 							<p class="mt-1 text-xs text-zinc-600">
-								What an hour NOT worked is worth to you, in output units — this is what makes
-								the plan stop instead of filling the whole day
+								{m.energy_free_time_value_hint()}
 							</p>
 						</div>
 						<div>
 							<label for="terminal-value" class="mb-1 block text-xs text-zinc-500">
-								Evening energy value
+								{m.energy_evening_energy()}
 							</label>
 							<NumberInput
 								id="terminal-value"
@@ -652,7 +658,7 @@
 								unit="out"
 							/>
 							<p class="mt-1 text-xs text-zinc-600">
-								How much ending the day fresh (vs wrecked) is worth
+								{m.energy_evening_energy_hint()}
 							</p>
 						</div>
 					</div>

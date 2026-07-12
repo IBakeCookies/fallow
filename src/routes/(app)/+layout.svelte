@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Nav from '$lib/components/Nav.svelte';
-	import { setSessionStore } from '$lib/store/session-store.svelte';
+	import Nav from '$lib/presentation/component/nav.svelte';
+	import { setSessionStore } from '$lib/business/store/session-store.svelte';
 
 	let { children } = $props();
 

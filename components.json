@@ -5,10 +5,10 @@
 		"baseColor": "neutral"
 	},
 	"aliases": {
-		"components": "$lib/components",
-		"utils": "$lib/utils",
-		"ui": "$lib/components/ui",
-		"hooks": "$lib/hooks",
+		"components": "$lib/presentation/component",
+		"utils": "$lib/presentation/utils",
+		"ui": "$lib/presentation/component/ui",
+		"hooks": "$lib/presentation/hooks",
 		"lib": "$lib"
 	},
 	"typescript": true,

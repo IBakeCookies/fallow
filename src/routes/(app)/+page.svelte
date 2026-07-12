@@ -2,12 +2,18 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import TaskForm from '$lib/components/TaskForm.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
-	import TaskList from '$lib/components/TaskList.svelte';
-	import TimeBudgetCard from '$lib/components/TimeBudgetCard.svelte';
-	import MetricsDashboard from '$lib/components/MetricsDashboard.svelte';
-	import { STATUS, getStatusBiggerBetter, getStatusSmallerBetter } from '$lib/metrics/status';
+	import * as m from '$lib/paraglide/messages.js';
+	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import TaskForm from '$lib/presentation/component/task-form.svelte';
+	import PageHeader from '$lib/presentation/component/page-header.svelte';
+	import TaskList from '$lib/presentation/component/task-list.svelte';
+	import TimeBudgetCard from '$lib/presentation/component/time-budget-card.svelte';
+	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
+	import {
+		STATUS,
+		getStatusBiggerBetter,
+		getStatusSmallerBetter
+	} from '$lib/presentation/utils/status';
 	import {
 		calculateSuggestedTasks,
 		calculateInterleavedOrder,
@@ -35,8 +41,8 @@
 		calculateAveragePhysicalDifficulty,
 		calculateAverageMentalDifficulty,
 		calculateAverageEnjoyment
-	} from '$lib/metrics/calculations';
-	import { getSessionStore } from '$lib/store/session-store.svelte';
+	} from '$lib/business/model/metric/calculation';
+	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 
 	// Shared daily session (tasks, budget, pools + persistence) — set in the
 	// (app) layout, also consumed live by the Energy Lab.
@@ -69,7 +75,7 @@
 	}
 
 	function formatDisplayDate(dateStr: string): string {
-		return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+		return new Date(dateStr + 'T12:00:00').toLocaleDateString(getDateLocale(), {
 			weekday: 'short',
 			month: 'short',
 			day: 'numeric'
@@ -82,14 +88,14 @@
 
 	const modelStatus = $derived(
 		session.constantsFit.fitted
-			? `Model personalized from ${flowObservations.length} time-to-flow log${
-					flowObservations.length === 1 ? '' : 's'
-				} (⚡) — blended with the defaults, sharpens as you log more`
+			? flowObservations.length === 1
+				? m.model_status_personalized_one()
+				: m.model_status_personalized({ count: flowObservations.length })
 			: flowObservations.length > 0
-				? `Your ${flowObservations.length} flow log${
-						flowObservations.length === 1 ? '' : 's'
-					} produced an implausible fit (predicted flow times over 16h) — using default constants. Check the logs below for mistakes.`
-				: 'Model uses default constants — log time-to-flow (⚡) on tasks to start personalizing'
+				? flowObservations.length === 1
+					? m.model_status_implausible_one()
+					: m.model_status_implausible({ count: flowObservations.length })
+				: m.model_status_default()
 	);
 
 	const suggestedTasks = $derived(
@@ -159,14 +165,13 @@
 	const hasTasks = $derived(tasks.length > 0);
 	const hasActive = $derived(activeTasks.length > 0);
 	const hasBudget = $derived(availableHours > 0);
-	const NA = { value: 'N/A', valStyle: STATUS.NEUTRAL.color };
+	const NA = { value: m.na_value(), valStyle: STATUS.NEUTRAL.color };
 
 	// Metrics array for dashboard
 	const metrics = $derived([
 		{
-			label: 'Zenith Gain',
-			description:
-				'Productivity improvement from Zenith optimization vs. naive equal time split. Based on the Lagrange multiplier solution.',
+			label: m.metric_zenith_gain(),
+			description: m.metric_zenith_gain_desc(),
 			...(hasTasks && hasBudget
 				? {
 						value: `+${zenithGain.gainPercent}%`,
@@ -180,25 +185,22 @@
 				: NA)
 		},
 		{
-			label: 'Yield Index',
-			description:
-				'Did you complete the highest-priority tasks? Compares your completed work against the optimal selection.',
+			label: m.metric_yield_index(),
+			description: m.metric_yield_index_desc(),
 			...(completedTasksCount > 0
 				? { value: `${yieldIndex}%`, valStyle: getStatusBiggerBetter(yieldIndex).color }
 				: NA)
 		},
 		{
-			label: 'Completion Rate',
-			description:
-				'Priority-weighted progress. High-value tasks contribute more to this percentage than low-priority ones.',
+			label: m.metric_completion_rate(),
+			description: m.metric_completion_rate_desc(),
 			...(hasTasks
 				? { value: `${completionRate}%`, valStyle: getStatusBiggerBetter(completionRate).color }
 				: NA)
 		},
 		{
-			label: 'Flow Coverage',
-			description:
-				'Tasks that reach flow state (allocated time ≥ ϕ). Low coverage means too many tasks for budget — drop tasks or add hours.',
+			label: m.metric_flow_coverage(),
+			description: m.metric_flow_coverage_desc(),
 			...(hasActive && hasBudget
 				? {
 						value: `${flowCoverage.reached}/${flowCoverage.total}`,
@@ -212,8 +214,15 @@
 				: NA)
 		},
 		{
-			label: 'Human Capacity',
-			description: `${humanCapacity.limitType === 'cognitive' ? 'Cognitive' : 'Physical'} limit (${humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours}h/day, configurable in Time Budget). The allocator enforces these pools, so suggested plans stay ≤100% — this shows how much of your sustainable capacity the plan uses.`,
+			label: m.metric_human_capacity(),
+			description: m.metric_human_capacity_desc({
+				type:
+					humanCapacity.limitType === 'cognitive'
+						? m.metric_type_cognitive()
+						: m.metric_type_physical(),
+				hours:
+					humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours
+			}),
 			...(hasActive && hasBudget
 				? {
 						value: `${humanCapacity.percent}%`,
@@ -227,31 +236,28 @@
 				: NA)
 		},
 		{
-			label: 'Time Scarcity',
-			description:
-				'How stretched is your time budget? Higher values mean too many tasks for the hours available.',
+			label: m.metric_time_scarcity(),
+			description: m.metric_time_scarcity_desc(),
 			...(hasTasks
 				? { value: `${timeScarcity}%`, valStyle: getStatusSmallerBetter(timeScarcity).color }
 				: NA)
 		},
 		{
-			label: 'Primary Bottleneck',
-			value: bottleneckTask,
-			description:
-				'The task requiring the most energy to reach flow state (highest effort-to-enjoyability ratio in Zenith terms).',
+			label: m.metric_bottleneck(),
+			value: bottleneckTask === 'None Detected' ? m.metric_none_detected() : bottleneckTask,
+			description: m.metric_bottleneck_desc(),
 			valStyle: bottleneckTask !== 'None Detected' ? STATUS.WARNING.color : STATUS.NEUTRAL.color
 		},
 		{
-			label: 'Burnout Risk',
-			description:
-				'Strain accumulates when difficulty > enjoyment (weighted by mental intensity), plus budget overhang: hours you plan beyond the optimal workload (1.79×ϕ per task) land in the diminishing-returns zone and count double. 5 strain-hours = 100% risk.',
+			label: m.metric_burnout_risk(),
+			description: m.metric_burnout_risk_desc(),
 			...(hasActive && hasBudget
 				? { value: `${burnoutRisk}%`, valStyle: getStatusSmallerBetter(burnoutRisk).color }
 				: NA)
 		},
 		{
-			label: 'Cognitive Load',
-			description: 'Percentage of your day allocated to mental/cognitive tasks.',
+			label: m.metric_cognitive_load(),
+			description: m.metric_cognitive_load_desc(),
 			...(hasActive && hasBudget
 				? {
 						value: `${cognitiveLoad}%`,
@@ -260,8 +266,8 @@
 				: NA)
 		},
 		{
-			label: 'Physical Load',
-			description: 'Percentage of your day allocated to physical tasks.',
+			label: m.metric_physical_load(),
+			description: m.metric_physical_load_desc(),
 			...(hasActive && hasBudget
 				? {
 						value: `${physicalLoad}%`,
@@ -270,26 +276,24 @@
 				: NA)
 		},
 		{
-			label: 'Energy Balance',
-			description:
-				'Distribution of Cognitive vs physical work. Alternating types extends total productive hours.',
+			label: m.metric_energy_balance(),
+			description: m.metric_energy_balance_desc(),
 			...(hasActive && hasBudget
 				? {
 						value:
 							energyBalance > 60
-								? 'Cognitive Heavy'
+								? m.metric_cognitive_heavy()
 								: energyBalance < 40
-									? 'Physical Heavy'
-									: 'Balanced',
+									? m.metric_physical_heavy()
+									: m.metric_balanced(),
 						valStyle:
 							energyBalance > 60 || energyBalance < 40 ? STATUS.WARNING.color : STATUS.SUCCESS.color
 					}
 				: NA)
 		},
 		{
-			label: 'Schedule Integrity',
-			description:
-				'Detects fragmentation. Drops if tasks get less than 15 minutes, or if no time budget is set.',
+			label: m.metric_schedule_integrity(),
+			description: m.metric_schedule_integrity_desc(),
 			...(hasActive
 				? {
 						value: `${budgetConvergence}%`,
@@ -298,25 +302,22 @@
 				: NA)
 		},
 		{
-			label: 'Friction Index',
-			description:
-				'Share of your allocated time spent on high-difficulty, low-enjoyment work (time-weighted average of E−β). 100% = every planned hour is maximum-friction work.',
+			label: m.metric_friction_index(),
+			description: m.metric_friction_index_desc(),
 			...(hasActive && hasBudget
 				? { value: `${frictionIndex}%`, valStyle: getStatusSmallerBetter(frictionIndex).color }
 				: NA)
 		},
 		{
-			label: 'Deep Work',
-			description:
-				'Percentage of time allocated to high mental difficulty (≥7) tasks requiring sustained focus.',
+			label: m.metric_deep_work(),
+			description: m.metric_deep_work_desc(),
 			...(hasActive && hasBudget
 				? { value: `${deepWorkRatio}%`, valStyle: getStatusBiggerBetter(deepWorkRatio).color }
 				: NA)
 		},
 		{
-			label: 'Quick Wins',
-			description:
-				'Count of easy, enjoyable tasks available for momentum building and motivation boosts.',
+			label: m.metric_quick_wins(),
+			description: m.metric_quick_wins_desc(),
 			...(hasActive
 				? {
 						value: `${quickWins}`,
@@ -325,34 +326,35 @@
 				: NA)
 		},
 		{
-			label: 'Task Variety',
-			description:
-				'Diversity across mental/physical spectrum. Mixing cognitive, physical, and balanced tasks prevents fatigue.',
+			label: m.metric_task_variety(),
+			description: m.metric_task_variety_desc(),
 			...(hasActive
 				? { value: `${taskVariety}%`, valStyle: getStatusBiggerBetter(taskVariety).color }
 				: NA)
 		},
 		{
-			label: 'Grind Density',
-			description:
-				'Percentage of tasks where difficulty exceeds enjoyment. High values signal willpower drain.',
+			label: m.metric_grind_density(),
+			description: m.metric_grind_density_desc(),
 			...(hasActive
 				? { value: `${grindDensity}%`, valStyle: getStatusSmallerBetter(grindDensity).color }
 				: NA)
 		},
 		{
-			label: 'Sustainable Work',
-			description:
-				'Percentage of time on tasks where enjoyment ≥ difficulty. Higher = more energizing workday.',
+			label: m.metric_sustainable_work(),
+			description: m.metric_sustainable_work_desc(),
 			...(hasActive && hasBudget
 				? { value: `${rewardDensity}%`, valStyle: getStatusBiggerBetter(rewardDensity).color }
 				: NA)
 		},
 		{
-			label: 'Recovery Ratio',
-			value: recoveryRatio,
-			description:
-				'Easy tasks (≤4) per hard tasks (≥7). Aim for 1:2 or 1:3 ratio for ultradian rhythm recovery.',
+			label: m.metric_recovery_ratio(),
+			value:
+				recoveryRatio === 'No strain'
+					? m.metric_no_strain()
+					: recoveryRatio === 'N/A'
+						? m.na_value()
+						: recoveryRatio,
+			description: m.metric_recovery_ratio_desc(),
 			valStyle:
 				recoveryRatio === 'No strain' || recoveryRatio === 'N/A'
 					? STATUS.NEUTRAL.color
@@ -361,59 +363,52 @@
 						: STATUS.SUCCESS.color
 		},
 		{
-			label: 'Day Profile',
-			description:
-				"Your day's character based on average difficulty and enjoyment. Flow Zone = challenging and engaging, Grind Mode = demanding work, Cruise = light and enjoyable, Routine = low-key tasks.",
+			label: m.metric_day_profile(),
+			description: m.metric_day_profile_desc(),
 			...(hasTasks
 				? {
 						value: {
-							flow: 'Flow Zone',
-							grind: 'Grind Mode',
-							cruise: 'Cruise',
-							routine: 'Routine'
+							flow: m.quadrant_flow(),
+							grind: m.quadrant_grind(),
+							cruise: m.quadrant_cruise(),
+							routine: m.quadrant_routine()
 						}[dailyQuadrant],
 						valStyle: STATUS.NEUTRAL.color
 					}
 				: NA)
 		},
 		{
-			label: 'Avg Physical Diff',
-			description: 'Average physical difficulty across all tasks.',
+			label: m.metric_avg_physical(),
+			description: m.metric_avg_physical_desc(),
 			...(hasTasks
 				? { value: `${averagePhysicalDifficulty}/10`, valStyle: STATUS.NEUTRAL.color }
 				: NA)
 		},
 		{
-			label: 'Avg Mental Diff',
-			description: 'Average mental/cognitive difficulty across all tasks.',
+			label: m.metric_avg_mental(),
+			description: m.metric_avg_mental_desc(),
 			...(hasTasks
 				? { value: `${averageMentalDifficulty}/10`, valStyle: STATUS.NEUTRAL.color }
 				: NA)
 		},
 		{
-			label: 'Avg Enjoyment',
-			description: 'Average enjoyment across all tasks. Higher values indicate more engaging work.',
+			label: m.metric_avg_enjoyment(),
+			description: m.metric_avg_enjoyment_desc(),
 			...(hasTasks ? { value: `${averageEnjoyment}/10`, valStyle: STATUS.NEUTRAL.color } : NA)
 		}
 	]);
 </script>
 
 <svelte:head>
-	<title>Zenith — Smart Daily Time Allocation</title>
-	<meta
-		name="description"
-		content="Zenith allocates your daily time budget across tasks using the Zenith Gradient algorithm — balancing effort, enjoyment, and flow state to maximize productivity."
-	/>
+	<title>{m.page_title()}</title>
+	<meta name="description" content={m.page_meta_description()} />
 	<link rel="canonical" href={page.url.origin + page.url.pathname} />
 	<meta name="theme-color" content="#000000" />
 
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content="Zenith" />
-	<meta property="og:title" content="Zenith — Smart Daily Time Allocation" />
-	<meta
-		property="og:description"
-		content="Allocate your daily time budget across tasks with the Zenith Gradient algorithm — balancing effort, enjoyment, and flow state to maximize productivity."
-	/>
+	<meta property="og:site_name" content={m.app_name()} />
+	<meta property="og:title" content={m.page_title()} />
+	<meta property="og:description" content={m.page_meta_description()} />
 	<meta property="og:url" content={page.url.origin + page.url.pathname} />
 	<meta
 		property="og:image"
@@ -421,11 +416,8 @@
 	/>
 
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="Zenith — Smart Daily Time Allocation" />
-	<meta
-		name="twitter:description"
-		content="Allocate your daily time budget across tasks with the Zenith Gradient algorithm."
-	/>
+	<meta name="twitter:title" content={m.page_title()} />
+	<meta name="twitter:description" content={m.page_meta_description()} />
 	<meta
 		name="twitter:image"
 		content={page.url.origin + '/dark-textured-black-background-red-purple.jpg'}
@@ -454,8 +446,8 @@
 					<div
 						class="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 text-sky-300/80 text-sm"
 					>
-						<span class="font-medium">Planning ahead:</span> tasks and budget you set here are
-						saved to {formatDisplayDate(selectedDate)} — open it on that day to work the plan.
+						<span class="font-medium">{m.banner_future_title()}</span>
+						{m.banner_future_body({ date: formatDisplayDate(selectedDate) })}
 					</div>
 				{/if}
 				<TimeBudgetCard
@@ -476,9 +468,8 @@
 				<div
 					class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
 				>
-					<span class="font-medium">Viewing a past day:</span> you can still check tasks on or
-					off (forgot one before midnight? fix it here — changes are saved), but adding or
-					editing tasks is only possible on today.
+					<span class="font-medium">{m.banner_past_title()}</span>
+					{m.banner_past_body()}
 				</div>
 			{/if}
 			<TaskList

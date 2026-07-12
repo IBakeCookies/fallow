@@ -3,28 +3,35 @@
 	import { onMount } from 'svelte';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { Button } from '$lib/components/ui/button';
-	import { getStatusBiggerBetter } from '$lib/metrics/status';
+	import * as m from '$lib/paraglide/messages.js';
+	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { Button } from '$lib/presentation/component/ui/button';
+	import { getStatusBiggerBetter, getCompletionBarClass } from '$lib/presentation/utils/status';
+	import { type DaySummary, summarizeSession } from '$lib/business/model/metric/history';
+	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
 	import {
-		type DaySummary,
-		summarizeSession,
-		monthGrid,
-		startOfWeek,
-		addDays,
-		fromISO,
-		toISODate,
-		completionBarClass
-	} from '$lib/metrics/history';
-	import { initDB, getSessionsInRange, getAllFlowObservations } from '$lib/storage/db';
-	import { fitUserConstants, DEFAULT_USER_CONSTANTS, type UserConstants } from '$lib/zenith';
-	import { liveToday, localISODate } from '$lib/today.svelte';
+		initializeStorage,
+		readSessionsByDateRange,
+		readUserConstants
+	} from '$lib/business/store/session-history';
+	import { DEFAULT_USER_CONSTANTS, type UserConstants } from '$lib/business/model/zenith';
+	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
-	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+	const WEEKDAYS = [
+		m.weekday_mon(),
+		m.weekday_tue(),
+		m.weekday_wed(),
+		m.weekday_thu(),
+		m.weekday_fri(),
+		m.weekday_sat(),
+		m.weekday_sun()
+	];
 	const VIEWS = ['month', 'week'] as const;
 
 	let view = $state<'month' | 'week'>('month');
-	let anchor = $state(localISODate()); // any date inside the visible month/week
+	let anchor = $state(toISODate()); // any date inside the visible month/week
+	const viewLabel = $derived(view === 'month' ? m.cal_view_month() : m.cal_view_week());
 	let summaries = $state<Map<string, DaySummary>>(new Map());
 	let constants = $state<UserConstants>(DEFAULT_USER_CONSTANTS);
 	let ready = $state(false);
@@ -33,13 +40,10 @@
 	onMount(async () => {
 		if (!browser) return;
 		try {
-			await initDB();
+			await initializeStorage();
 			// Same personalized constants as the dashboard, so per-day completion
 			// rates match what the main page showed that day
-			const obs = await getAllFlowObservations();
-			constants = fitUserConstants(
-				obs.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
-			).constants;
+			constants = await readUserConstants();
 		} catch (e) {
 			console.error('Failed to initialize calendar', e);
 		} finally {
@@ -58,12 +62,12 @@
 
 	const rangeLabel = $derived.by(() => {
 		if (view === 'month') {
-			return anchorDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+			return anchorDate.toLocaleDateString(getDateLocale(), { month: 'long', year: 'numeric' });
 		}
 		const start = fromISO(rangeStart);
 		const end = fromISO(rangeEnd);
-		const startFmt = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-		const endFmt = end.toLocaleDateString('en-US', {
+		const startFmt = start.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
+		const endFmt = end.toLocaleDateString(getDateLocale(), {
 			month: 'short',
 			day: 'numeric',
 			year: 'numeric'
@@ -78,7 +82,7 @@
 		if (!ready) return;
 		const [start, end, consts] = [rangeStart, rangeEnd, constants];
 		const version = ++loadVersion;
-		getSessionsInRange(start, end)
+		readSessionsByDateRange(start, end)
 			.then((sessions) => {
 				if (version !== loadVersion) return;
 				const map = new Map<string, DaySummary>();
@@ -108,50 +112,46 @@
 </script>
 
 <svelte:head>
-	<title>Zenith — Calendar</title>
-	<meta name="description" content="Month and week overview of your Zenith days." />
+	<title>{m.cal_title_head()}</title>
+	<meta name="description" content={m.cal_meta_description()} />
 </svelte:head>
 
 <!-- Proton-calendar-style: the layout puts this page in a no-scroll full-viewport
      flex column — the grid's rows split the leftover height and cell content
      clips instead of growing -->
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-	<div>
-		<h1 class="text-2xl font-bold text-zinc-100">Calendar</h1>
-		<p class="mt-1 text-sm text-zinc-500">
-			Each day shows tasks done, completion rate, and what you worked on. Click a day to open
-			it — future days too, to plan ahead.
-		</p>
-	</div>
+	<h1 class="text-2xl font-bold text-zinc-100">{m.cal_heading()}</h1>
 
 	<div class="flex flex-wrap items-center gap-2 sm:gap-3">
-		<div class="inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
+		{#if anchor !== today}
+			<Button variant="outline" size="sm" class="ml-1" onclick={() => (anchor = today)}>
+				{m.link_today()}
+			</Button>
+		{/if}
+		<div
+			class="ml-auto inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5"
+		>
 			{#each VIEWS as v (v)}
 				<button
 					onclick={() => (view = v)}
 					class="rounded-md px-3 py-1 text-sm capitalize transition-colors
 					       {view === v ? 'bg-white/10 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}"
 				>
-					{v}
+					{v === 'month' ? m.cal_view_month() : m.cal_view_week()}
 				</button>
 			{/each}
 		</div>
 
 		<div class="flex items-center gap-1">
-			<Button variant="outline" size="sm" onclick={goPrev} aria-label="Previous {view}">
+			<Button variant="outline" size="sm" onclick={goPrev} aria-label={m.cal_previous({ view: viewLabel })}>
 				<ChevronLeft class="h-4 w-4" />
 			</Button>
 			<span class="min-w-28 sm:min-w-36 px-1 text-center text-sm font-medium text-zinc-200">
 				{rangeLabel}
 			</span>
-			<Button variant="outline" size="sm" onclick={goNext} aria-label="Next {view}">
+			<Button variant="outline" size="sm" onclick={goNext} aria-label={m.cal_next({ view: viewLabel })}>
 				<ChevronRight class="h-4 w-4" />
 			</Button>
-			{#if anchor !== today}
-				<Button variant="outline" size="sm" class="ml-1" onclick={() => (anchor = today)}>
-					Today
-				</Button>
-			{/if}
 		</div>
 	</div>
 </div>
@@ -188,13 +188,17 @@
 								: 'text-zinc-500'}"
 					>
 						{view === 'week'
-							? fromISO(date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })
+							? fromISO(date).toLocaleDateString(getDateLocale(), {
+									weekday: 'short',
+									day: 'numeric'
+								})
 							: dayNum}
 					</span>
 					{#if s}
 						<span class="text-xs text-zinc-400">
 							{#if isFuture}
-								<span class="font-medium text-sky-300">{s.totalTasks}</span> planned
+								<span class="font-medium text-sky-300">{s.totalTasks}</span>
+								{m.cal_planned()}
 							{:else}
 								<span class="font-medium text-zinc-200">{s.completedTasks}</span>/{s.totalTasks}
 							{/if}
@@ -207,10 +211,10 @@
 					{#if !isFuture}
 						<div
 							class="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10"
-							title="Completion rate {s.completionRate}%"
+							title={m.cal_completion_title({ rate: s.completionRate })}
 						>
 							<div
-								class="h-full rounded-full {completionBarClass(s.completionRate)}"
+								class="h-full rounded-full {getCompletionBarClass(s.completionRate)}"
 								style="width: {s.completionRate}%"
 							></div>
 						</div>
@@ -228,7 +232,7 @@
 								</li>
 							{/each}
 							{#if s.totalTasks > 3}
-								<li class="text-[11px] text-zinc-600">+{s.totalTasks - 3} more</li>
+								<li class="text-[11px] text-zinc-600">{m.cal_more({ count: s.totalTasks - 3 })}</li>
 							{/if}
 						</ul>
 					{:else}
@@ -238,10 +242,10 @@
 									{s.completionRate}%
 								</span>
 							{:else}
-								<span class="font-medium text-sky-300">Planned</span>
+								<span class="font-medium text-sky-300">{m.cal_planned_label()}</span>
 							{/if}
 							{#if s.availableHours > 0}
-								<span class="text-zinc-500">{s.availableHours}h budget</span>
+								<span class="text-zinc-500">{m.cal_budget({ hours: s.availableHours })}</span>
 							{/if}
 						</div>
 						<ul class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto">
@@ -264,7 +268,9 @@
 						</ul>
 					{/if}
 				{:else if view === 'week'}
-					<p class="mt-2 text-xs text-zinc-600">{isFuture ? 'Nothing planned' : 'No tasks'}</p>
+					<p class="mt-2 text-xs text-zinc-600">
+						{isFuture ? m.cal_nothing_planned() : m.cal_no_tasks()}
+					</p>
 				{/if}
 			</a>
 		{/each}
@@ -273,7 +279,8 @@
 
 {#if !isLoading && !hasAnyData}
 	<p class="mt-2 text-center text-xs text-zinc-500">
-		No data in this {view} yet — days you plan on the
-		<a href="/" class="text-zinc-300 underline hover:text-zinc-100">Today</a> page will show up here.
+		{m.cal_empty_1({ view: viewLabel })}
+		<a href="/" class="text-zinc-300 underline hover:text-zinc-100">{m.link_today()}</a>
+		{m.cal_empty_2()}
 	</p>
 {/if}
