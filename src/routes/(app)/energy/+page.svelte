@@ -19,8 +19,9 @@
 	} from '$lib/metrics/calculations';
 	import { DEFAULT_SWITCH_COST, DEFAULT_CAPACITY_POOLS, fitUserConstants } from '$lib/zenith';
 	import { initDB, getSession, getAllFlowObservations } from '$lib/storage/db';
+	import { liveToday } from '$lib/today.svelte';
 
-	const today = new Date().toISOString().slice(0, 10);
+	const today = $derived(liveToday.value);
 	const PARAMS_KEY = 'zenith-energy-params';
 
 	// State — tasks come from the same daily session as the main page (read-only
@@ -223,7 +224,7 @@
 		<div class="space-y-6">
 			<!-- Timeline -->
 			<div
-				class="rounded-2xl border border-white/10 bg-white/3 p-6 shadow-2xl backdrop-blur-xl"
+				class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
 			>
 				<div class="mb-3 flex items-baseline justify-between">
 					<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">
@@ -329,7 +330,7 @@
 			<div class="grid gap-6 lg:grid-cols-3 items-start">
 				<!-- Schedule detail -->
 				<div
-					class="rounded-2xl border border-white/10 bg-white/3 p-6 shadow-2xl backdrop-blur-xl lg:col-span-2"
+					class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl lg:col-span-2"
 				>
 					<h3 class="mb-4 text-xs font-semibold tracking-wider text-zinc-300 uppercase">
 						Schedule
@@ -430,7 +431,7 @@
 
 				<!-- Parameters -->
 				<div
-					class="rounded-2xl border border-white/10 bg-white/3 p-6 shadow-2xl backdrop-blur-xl"
+					class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
 				>
 					<div class="mb-4 flex items-baseline justify-between">
 						<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">

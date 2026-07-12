@@ -17,13 +17,14 @@
 	} from '$lib/metrics/history';
 	import { initDB, getSessionsInRange, getAllFlowObservations } from '$lib/storage/db';
 	import { fitUserConstants, DEFAULT_USER_CONSTANTS, type UserConstants } from '$lib/zenith';
+	import { liveToday, localISODate } from '$lib/today.svelte';
 
-	const today = new Date().toISOString().slice(0, 10);
+	const today = $derived(liveToday.value);
 	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 	const VIEWS = ['month', 'week'] as const;
 
 	let view = $state<'month' | 'week'>('month');
-	let anchor = $state(today); // any date inside the visible month/week
+	let anchor = $state(localISODate()); // any date inside the visible month/week
 	let summaries = $state<Map<string, DaySummary>>(new Map());
 	let constants = $state<UserConstants>(DEFAULT_USER_CONSTANTS);
 	let ready = $state(false);
@@ -119,11 +120,11 @@
 		<h1 class="text-2xl font-bold text-zinc-100">Calendar</h1>
 		<p class="mt-1 text-sm text-zinc-500">
 			Each day shows tasks done, completion rate, and what you worked on. Click a day to open
-			it.
+			it — future days too, to plan ahead.
 		</p>
 	</div>
 
-	<div class="flex items-center gap-3">
+	<div class="flex flex-wrap items-center gap-2 sm:gap-3">
 		<div class="inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
 			{#each VIEWS as v (v)}
 				<button
@@ -140,7 +141,7 @@
 			<Button variant="outline" size="sm" onclick={goPrev} aria-label="Previous {view}">
 				<ChevronLeft class="h-4 w-4" />
 			</Button>
-			<span class="min-w-36 px-1 text-center text-sm font-medium text-zinc-200">
+			<span class="min-w-28 sm:min-w-36 px-1 text-center text-sm font-medium text-zinc-200">
 				{rangeLabel}
 			</span>
 			<Button variant="outline" size="sm" onclick={goNext} aria-label="Next {view}">
@@ -170,14 +171,13 @@
 			{@const isFuture = date > today}
 			{@const isToday = date === today}
 			{@const dayNum = fromISO(date).getDate()}
-			<svelte:element
-				this={isFuture ? 'div' : 'a'}
-				href={isFuture ? undefined : `/?date=${date}`}
-				class="group flex min-h-0 flex-col overflow-hidden rounded-xl border p-2 transition-colors
+			<a
+				href={date === today ? '/' : `/?date=${date}`}
+				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-1 sm:p-2 transition-colors
 				       {isToday ? 'border-emerald-500/40' : s ? 'border-white/10' : 'border-white/5'}
 				       {s ? 'bg-white/3' : 'bg-transparent'}
 				       {inMonth ? '' : 'opacity-40'}
-				       {isFuture ? '' : 'cursor-pointer hover:border-white/25 hover:bg-white/5'}"
+				       cursor-pointer hover:border-white/25 hover:bg-white/5"
 			>
 				<div class="flex items-baseline justify-between gap-1">
 					<span
@@ -193,21 +193,28 @@
 					</span>
 					{#if s}
 						<span class="text-xs text-zinc-400">
-							<span class="font-medium text-zinc-200">{s.completedTasks}</span>/{s.totalTasks}
+							{#if isFuture}
+								<span class="font-medium text-sky-300">{s.totalTasks}</span> planned
+							{:else}
+								<span class="font-medium text-zinc-200">{s.completedTasks}</span>/{s.totalTasks}
+							{/if}
 						</span>
 					{/if}
 				</div>
 
 				{#if s}
-					<div
-						class="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10"
-						title="Completion rate {s.completionRate}%"
-					>
+					<!-- Future days are plans: nothing is completable yet, so no bar -->
+					{#if !isFuture}
 						<div
-							class="h-full rounded-full {completionBarClass(s.completionRate)}"
-							style="width: {s.completionRate}%"
-						></div>
-					</div>
+							class="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10"
+							title="Completion rate {s.completionRate}%"
+						>
+							<div
+								class="h-full rounded-full {completionBarClass(s.completionRate)}"
+								style="width: {s.completionRate}%"
+							></div>
+						</div>
+					{/if}
 
 					{#if view === 'month'}
 						<ul class="mt-1.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
@@ -226,9 +233,13 @@
 						</ul>
 					{:else}
 						<div class="mt-2 flex items-baseline justify-between text-xs">
-							<span class="font-medium {getStatusBiggerBetter(s.completionRate).color}">
-								{s.completionRate}%
-							</span>
+							{#if !isFuture}
+								<span class="font-medium {getStatusBiggerBetter(s.completionRate).color}">
+									{s.completionRate}%
+								</span>
+							{:else}
+								<span class="font-medium text-sky-300">Planned</span>
+							{/if}
 							{#if s.availableHours > 0}
 								<span class="text-zinc-500">{s.availableHours}h budget</span>
 							{/if}
@@ -252,10 +263,10 @@
 							{/each}
 						</ul>
 					{/if}
-				{:else if !isFuture && view === 'week'}
-					<p class="mt-2 text-xs text-zinc-600">No tasks</p>
+				{:else if view === 'week'}
+					<p class="mt-2 text-xs text-zinc-600">{isFuture ? 'Nothing planned' : 'No tasks'}</p>
 				{/if}
-			</svelte:element>
+			</a>
 		{/each}
 	{/each}
 </div>

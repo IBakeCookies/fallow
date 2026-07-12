@@ -11,8 +11,9 @@
 	} from '$lib/metrics/history';
 	import { initDB, getSessionsInRange, getAllFlowObservations } from '$lib/storage/db';
 	import { fitUserConstants } from '$lib/zenith';
+	import { liveToday } from '$lib/today.svelte';
 
-	const today = new Date().toISOString().slice(0, 10);
+	const today = $derived(liveToday.value);
 
 	const RANGES = {
 		week: { days: 7, label: 'Last 7 days', prevLabel: 'previous 7 days' },

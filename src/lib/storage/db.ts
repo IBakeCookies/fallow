@@ -12,6 +12,7 @@
 
 import type { Task } from '$lib/metrics/calculations';
 import { DEFAULT_SWITCH_COST } from '$lib/zenith';
+import { localISODate } from '$lib/today.svelte';
 
 const DB_NAME = 'zenith-db';
 const DB_VERSION = 2;
@@ -121,8 +122,7 @@ export async function getSession(date: string): Promise<DailySession | null> {
 export async function getYesterdaySession(): Promise<DailySession | null> {
 	const yesterday = new Date();
 	yesterday.setDate(yesterday.getDate() - 1);
-	const dateStr = yesterday.toISOString().slice(0, 10);
-	return getSession(dateStr);
+	return getSession(localISODate(yesterday));
 }
 
 export async function getAllSessionDates(): Promise<string[]> {
@@ -342,7 +342,7 @@ export async function migrateFromLocalStorage(): Promise<boolean> {
 
 	try {
 		const parsed = JSON.parse(oldData);
-		const today = new Date().toISOString().slice(0, 10);
+		const today = localISODate();
 
 		await saveSession({
 			date: today,

@@ -42,10 +42,10 @@
 	const logsNewestFirst = $derived([...flowLogs].reverse());
 </script>
 
-<div class="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl shadow-2xl p-6">
+<div class="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl shadow-2xl p-4 sm:p-6">
 	<h3 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">Time Budget</h3>
-	<div class="flex gap-0">
-		<div class="flex-1 pr-4">
+	<div class="flex flex-col sm:flex-row">
+		<div class="flex-1 sm:pr-4">
 			<label for="available-hours" class="text-xs text-zinc-500 mb-1 block">Available Hours</label>
 			<NumberInput
 				id="available-hours"
@@ -68,8 +68,10 @@
 				</p>
 			{/if}
 		</div>
-		<div class="w-px bg-white/10 self-stretch mx-4"></div>
-		<div class="flex-1 pl-4">
+		<div
+			class="my-4 h-px w-full bg-white/10 sm:my-0 sm:mx-4 sm:h-auto sm:w-px sm:self-stretch"
+		></div>
+		<div class="flex-1 sm:pl-4">
 			<label for="switch-cost" class="text-xs text-zinc-500 mb-1 block">
 				Switch Cost (per task change)
 			</label>
@@ -87,8 +89,8 @@
 		</div>
 	</div>
 
-	<div class="mt-5 pt-4 border-t border-white/10 flex gap-0">
-		<div class="flex-1 pr-4">
+	<div class="mt-5 pt-4 border-t border-white/10 flex flex-col sm:flex-row">
+		<div class="flex-1 sm:pr-4">
 			<label for="cognitive-pool" class="text-xs text-zinc-500 mb-1 block">Cognitive Capacity</label
 			>
 			<NumberInput
@@ -103,8 +105,10 @@
 			/>
 			<p class="text-xs text-zinc-600 mt-2">Intense mental work you sustain per day (~4h)</p>
 		</div>
-		<div class="w-px bg-white/10 self-stretch mx-4"></div>
-		<div class="flex-1 pl-4">
+		<div
+			class="my-4 h-px w-full bg-white/10 sm:my-0 sm:mx-4 sm:h-auto sm:w-px sm:self-stretch"
+		></div>
+		<div class="flex-1 sm:pl-4">
 			<label for="physical-pool" class="text-xs text-zinc-500 mb-1 block">Physical Capacity</label>
 			<NumberInput
 				id="physical-pool"

@@ -33,7 +33,8 @@
 		ondeleteroutine
 	}: Props = $props();
 
-	const isViewingHistory = $derived(selectedDate !== today);
+	const isToday = $derived(selectedDate === today);
+	const isViewingPast = $derived(selectedDate < today);
 	const hasYesterday = $derived(!!yesterdaySession?.tasks.length);
 	const hasRoutines = $derived(routines.length > 0);
 	const canSave = $derived(currentTasks.length > 0);
@@ -41,11 +42,6 @@
 
 	let showSaveInput = $state(false);
 	let routineName = $state('');
-
-	function formatDisplayDate(dateStr: string): string {
-		const date = new Date(dateStr + 'T12:00:00');
-		return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-	}
 
 	function importYesterday() {
 		if (!yesterdaySession?.tasks.length) return;
@@ -70,7 +66,7 @@
 	}
 </script>
 
-<div class="flex items-start justify-between mb-6">
+<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
 	<div>
 		<div class="flex items-center gap-4">
 			<h1 class="text-2xl font-bold text-zinc-100">Zenith</h1>
@@ -81,30 +77,18 @@
 		</div>
 		<p class="mt-1 text-sm text-zinc-500 max-w-2xl">
 			Splits your daily time budget so each extra minute goes to the task where it counts most —
-			accounting for flow ramp-up, context-switch costs, and your cognitive and physical
-			capacity, and never pushing a task past its point of diminishing returns.
+			accounting for flow ramp-up, context-switch costs, and your cognitive and physical capacity,
+			and never pushing a task past its point of diminishing returns.
 		</p>
 	</div>
 
-	<div class="flex items-center gap-3">
-		{#if isViewingHistory}
-			<div
-				class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30"
-			>
-				<svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-					/>
-				</svg>
-				<span class="text-sm text-amber-300">Viewing {formatDisplayDate(selectedDate)}</span>
-			</div>
+	<div class="flex flex-wrap items-center gap-2 sm:gap-3 sm:shrink-0">
+		{#if !isToday}
 			<Button variant="outline" size="sm" onclick={() => ondatechange(today)}>
 				Return to Today
 			</Button>
-		{:else}
+		{/if}
+		{#if !isViewingPast}
 			{#if hasLoadOptions}
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger>
@@ -148,7 +132,7 @@
 											e.stopPropagation();
 											ondeleteroutine(routine.id);
 										}}
-										class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 ml-2"
+										class="opacity-0 [@media(hover:none)]:opacity-100 group-hover:opacity-100 text-red-400 hover:text-red-300 ml-2"
 									>
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path
@@ -204,18 +188,5 @@
 				</DropdownMenu.Root>
 			{/if}
 		{/if}
-
-		<div class="relative">
-			<input
-				type="date"
-				value={selectedDate}
-				max={today}
-				onchange={(e) => ondatechange(e.currentTarget.value)}
-				style="color-scheme: dark;"
-				class="px-3 py-1.5 text-sm rounded-lg bg-white/5 border border-white/10 text-zinc-300
-				       hover:bg-white/10 hover:border-white/20 transition-colors cursor-pointer
-				       focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-			/>
-		</div>
 	</div>
 </div>

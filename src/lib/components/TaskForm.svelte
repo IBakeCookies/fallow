@@ -36,7 +36,7 @@
 </script>
 
 <form
-	class="rounded-2xl border border-white/10 bg-white/3 p-6 backdrop-blur-xl shadow-2xl"
+	class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 backdrop-blur-xl shadow-2xl"
 	onsubmit={handleSubmit}
 >
 	<label class="text-xs font-medium text-zinc-400">

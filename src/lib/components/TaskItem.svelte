@@ -246,7 +246,7 @@
 				<div
 					class="flex items-center gap-1 transition-opacity {editing || loggingFlow
 						? 'opacity-100'
-						: 'opacity-0 focus-within:opacity-100 group-hover:opacity-100'}"
+						: 'opacity-0 [@media(hover:none)]:opacity-100 focus-within:opacity-100 group-hover:opacity-100'}"
 				>
 					{#if onlogflow}
 						{#if loggingFlow}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
-	import { replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
@@ -62,8 +62,9 @@
 		type SavedRoutine,
 		type FlowObservationRecord
 	} from '$lib/storage/db';
+	import { liveToday } from '$lib/today.svelte';
 
-	const today = new Date().toISOString().slice(0, 10);
+	const today = $derived(liveToday.value);
 
 	// State
 	let tasks = $state<Task[]>([]);
@@ -74,11 +75,32 @@
 	let isLoading = $state(true);
 	let yesterdaySession = $state<DailySession | null>(null);
 	let routines = $state<SavedRoutine[]>([]);
-	let selectedDate = $state(today);
 	let flowObservations = $state<FlowObservationRecord[]>([]);
 
-	// Derived: are we viewing historical data?
-	const isViewingHistory = $derived(selectedDate !== today);
+	// The URL is the single source of truth for the viewed day: /?date=YYYY-MM-DD
+	// for any other day, plain / for today. Nav links, calendar deep-links, and
+	// the browser back button all resolve through this — invalid dates fall
+	// back to today.
+	const dateParam = $derived(page.url.searchParams.get('date'));
+	const selectedDate = $derived(
+		dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today
+	);
+
+	// Day modes: past is read-only history (completion toggles only), future
+	// is a plan you can edit freely; flow logging — an actual measurement —
+	// stays today-only.
+	const isViewingPast = $derived(selectedDate < today);
+	const isViewingFuture = $derived(selectedDate > today);
+
+	// Which date the in-memory session state belongs to. Loads are async, so
+	// this lags selectedDate during navigation — the auto-save guard below uses
+	// it to avoid persisting one day's tasks under another day's key.
+	let loadedDate = $state<string | null>(null);
+
+	// Whether the loaded date already has a persisted session. Auto-save skips
+	// pristine days (so merely browsing future dates creates no records) but
+	// keeps saving once a session exists (so deleting the last task persists).
+	let loadedHadSession = $state(false);
 
 	// Initialize from IndexedDB
 	onMount(async () => {
@@ -86,16 +108,6 @@
 
 		try {
 			await initDB();
-
-			// Load today's session (if exists) or start fresh
-			const todaySession = await getSession(today);
-			if (todaySession) {
-				tasks = todaySession.tasks;
-				availableHours = todaySession.availableHours;
-				switchCost = todaySession.switchCost;
-				cognitivePool = todaySession.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
-				physicalPool = todaySession.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
-			}
 
 			// Load yesterday for import option
 			yesterdaySession = await getYesterdaySession();
@@ -106,11 +118,7 @@
 			// Load measured time-to-flow data (personalizes c₁,c₂,c₃)
 			flowObservations = await getAllFlowObservations();
 
-			// Deep link from the calendar: /?date=YYYY-MM-DD opens that day
-			const dateParam = page.url.searchParams.get('date');
-			if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today) {
-				await handleDateChange(dateParam);
-			}
+			await loadSession(selectedDate);
 		} catch (e) {
 			console.error('Failed to load from IndexedDB', e);
 		} finally {
@@ -118,20 +126,27 @@
 		}
 	});
 
-	// Handle date change for history navigation
-	async function handleDateChange(newDate: string) {
-		if (!browser) return;
-
-		selectedDate = newDate;
-
-		// Keep the URL shareable/refreshable: /?date=... for history, / for today
-		const url = newDate === today ? '/' : `/?date=${newDate}`;
-		if (page.url.pathname + page.url.search !== url) {
-			replaceState(url, {});
+	// /?date=<today> renders the same view as / — collapse to the canonical
+	// URL. Also fires when a viewed date BECOMES today at midnight rollover.
+	$effect(() => {
+		if (browser && dateParam === today) {
+			goto('/', { replaceState: true, noScroll: true, keepFocus: true });
 		}
+	});
 
+	// Reload whenever the viewed date changes, whatever triggered the
+	// navigation (nav "Today" link, calendar deep-link, back/forward button).
+	$effect(() => {
+		if (browser && !isLoading && selectedDate !== loadedDate) {
+			loadSession(selectedDate);
+		}
+	});
+
+	async function loadSession(date: string) {
 		try {
-			const session = await getSession(newDate);
+			const session = await getSession(date);
+			if (date !== selectedDate) return; // navigated again mid-load
+
 			if (session) {
 				tasks = session.tasks;
 				availableHours = session.availableHours;
@@ -146,9 +161,24 @@
 				cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
 			}
+			loadedHadSession = !!session;
+			loadedDate = date;
 		} catch (e) {
-			console.error('Failed to load session for date', newDate, e);
+			console.error('Failed to load session for date', date, e);
 		}
+	}
+
+	// Navigate to a day; the $effect above picks up the URL change and loads it.
+	function gotoDate(newDate: string) {
+		goto(newDate === today ? '/' : `/?date=${newDate}`, { noScroll: true, keepFocus: true });
+	}
+
+	function formatDisplayDate(dateStr: string): string {
+		return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric'
+		});
 	}
 
 	// Core derived values
@@ -498,7 +528,7 @@
 				physicalDifficulty: taskData.physicalDifficulty,
 				mentalDifficulty: taskData.mentalDifficulty,
 				enjoyment: taskData.enjoyment,
-				createdAt: today,
+				createdAt: selectedDate,
 				completed: false
 			},
 			...tasks
@@ -507,13 +537,14 @@
 
 	// Completion can be toggled on ANY day — forgetting to check a task off
 	// before midnight shouldn't falsify history. Structural edits (add/edit/
-	// remove) stay today-only: those rewrite the plan, this records the truth.
+	// remove) work on today and future plans; past days stay read-only:
+	// those rewrite the plan, this records the truth.
 	async function toggleTask(id: number) {
 		tasks = tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task));
 
-		// The auto-save $effect only persists today's session, so historical
+		// The auto-save $effect doesn't persist past sessions, so historical
 		// toggles are saved explicitly under the viewed date.
-		if (isViewingHistory) {
+		if (isViewingPast) {
 			try {
 				await saveSession({
 					date: selectedDate,
@@ -605,7 +636,7 @@
 		const newTasks = importedTasks.map((t) => ({
 			...t,
 			id: Date.now() + Math.random(),
-			createdAt: today,
+			createdAt: selectedDate,
 			completed: false
 		}));
 		tasks = [...newTasks, ...tasks];
@@ -632,18 +663,31 @@
 		routines = await getAllRoutines();
 	}
 
-	// Auto-save to IndexedDB (only for today)
+	// Auto-save to IndexedDB for today and future plans (past days save
+	// explicitly on toggle). Guards: the in-memory state must actually belong
+	// to the viewed date (loads are async), and pristine never-saved days are
+	// skipped so browsing ahead creates no empty records.
 	$effect(() => {
-		if (browser && !isLoading && selectedDate === today) {
+		if (browser && !isLoading && !isViewingPast && loadedDate === selectedDate) {
+			const dirty =
+				loadedHadSession ||
+				tasks.length > 0 ||
+				availableHours > 0 ||
+				switchCost !== DEFAULT_SWITCH_COST ||
+				cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
+				physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
+			if (!dirty) return;
 			saveSession({
-				date: today,
+				date: selectedDate,
 				tasks: $state.snapshot(tasks),
 				availableHours,
 				switchCost,
 				cognitivePool,
 				physicalPool,
 				updatedAt: Date.now()
-			}).catch((e) => console.error('Failed to save session', e));
+			})
+				.then(() => (loadedHadSession = true))
+				.catch((e) => console.error('Failed to save session', e));
 		}
 	});
 </script>
@@ -688,7 +732,7 @@
 		{totalTasks}
 		{selectedDate}
 		{today}
-		ondatechange={handleDateChange}
+		ondatechange={gotoDate}
 		{yesterdaySession}
 		{routines}
 		currentTasks={tasks}
@@ -699,7 +743,15 @@
 
 	<div class="grid gap-6 lg:grid-cols-3 items-start">
 		<div class="space-y-6 lg:col-span-2">
-			{#if !isViewingHistory}
+			{#if !isViewingPast}
+				{#if isViewingFuture}
+					<div
+						class="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 text-sky-300/80 text-sm"
+					>
+						<span class="font-medium">Planning ahead:</span> tasks and budget you set here are
+						saved to {formatDisplayDate(selectedDate)} — open it on that day to work the plan.
+					</div>
+				{/if}
 				<TimeBudgetCard
 					bind:availableHours
 					bind:switchCost
@@ -726,9 +778,9 @@
 				{suggestedTasks}
 				{runOrder}
 				ontoggle={toggleTask}
-				onremove={isViewingHistory ? () => {} : removeTask}
-				onlogflow={isViewingHistory ? undefined : logFlow}
-				onupdate={isViewingHistory ? undefined : updateTask}
+				onremove={isViewingPast ? () => {} : removeTask}
+				onlogflow={selectedDate === today ? logFlow : undefined}
+				onupdate={isViewingPast ? undefined : updateTask}
 			/>
 		</div>
 
