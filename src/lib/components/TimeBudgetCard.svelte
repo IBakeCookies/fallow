@@ -13,6 +13,9 @@
 		flowLogs?: FlowObservationRecord[];
 		ondeletelog?: (id: number) => void;
 		onresetlogs?: () => void;
+		// Collapsed, the card is a one-line summary (budget · planned · slack)
+		// so the task list stays above the fold. Inputs are occasional-use.
+		startOpen?: boolean;
 	}
 
 	let {
@@ -25,8 +28,12 @@
 		modelStatus,
 		flowLogs = [],
 		ondeletelog,
-		onresetlogs
+		onresetlogs,
+		startOpen = true
 	}: Props = $props();
+
+	// svelte-ignore state_referenced_locally -- deliberately initial-value only
+	let open = $state(startOpen);
 
 	// Display switch cost in minutes but store in hours
 	let switchCostMinutes = $derived(Math.round(switchCost * 60));
@@ -43,8 +50,26 @@
 </script>
 
 <div class="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl shadow-2xl p-4 sm:p-6">
-	<h3 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-4">Time Budget</h3>
-	<div class="flex flex-col sm:flex-row">
+	<button
+		type="button"
+		aria-expanded={open}
+		onclick={() => (open = !open)}
+		class="flex w-full items-center justify-between gap-3 text-left"
+	>
+		<h3 class="text-xs font-semibold text-zinc-300 uppercase tracking-wider">Time Budget</h3>
+		<span class="flex min-w-0 items-center gap-3 text-xs text-zinc-500">
+			{#if !open}
+				<span class="truncate">
+					{availableHours}h budget · {remainingSuggestedHours}h planned{planSlackHours > 0.05
+						? ` · ${planSlackHours.toFixed(2)}h free`
+						: ''}
+				</span>
+			{/if}
+			<span class="shrink-0 text-zinc-600">{open ? '▴' : '▾'}</span>
+		</span>
+	</button>
+	{#if open}
+	<div class="flex flex-col sm:flex-row mt-4">
 		<div class="flex-1 sm:pr-4">
 			<label for="available-hours" class="text-xs text-zinc-500 mb-1 block">Available Hours</label>
 			<NumberInput
@@ -211,5 +236,6 @@
 				{/if}
 			{/if}
 		</div>
+	{/if}
 	{/if}
 </div>

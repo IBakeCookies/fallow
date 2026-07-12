@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Nav from '$lib/components/Nav.svelte';
+	import { setSessionStore } from '$lib/store/session-store.svelte';
 
 	let { children } = $props();
+
+	// The shared daily session (tasks, budget, pools + persistence) lives in
+	// context, created per component tree — never at module scope, so nothing
+	// can leak across SSR requests. Pages grab it with getSessionStore().
+	setSessionStore();
 
 	// Calendar is the one full-viewport page: it must never scroll, so its grid
 	// rows split the leftover height instead of growing the page.

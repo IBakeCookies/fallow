@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import { NumberInput } from '$lib/components/ui/number-input';
+	import TaskForm from '$lib/components/TaskForm.svelte';
 	import {
 		DEFAULT_ENERGY_PARAMS,
 		optimizeSchedule,
@@ -17,59 +18,46 @@
 		calculateSuggestedTasks,
 		calculateInterleavedOrder
 	} from '$lib/metrics/calculations';
-	import { DEFAULT_SWITCH_COST, DEFAULT_CAPACITY_POOLS, fitUserConstants } from '$lib/zenith';
-	import { initDB, getSession, getAllFlowObservations } from '$lib/storage/db';
-	import { liveToday } from '$lib/today.svelte';
+	import { getSessionStore } from '$lib/store/session-store.svelte';
 
-	const today = $derived(liveToday.value);
 	const PARAMS_KEY = 'zenith-energy-params';
 
-	// State — tasks come from the same daily session as the main page (read-only
-	// here; edit them on the main page). Model parameters are local to the lab.
-	let tasks = $state<Task[]>([]);
-	let windowHours = $state<number>(8);
-	let switchCost = $state<number>(DEFAULT_SWITCH_COST);
-	let pools = $state({ ...DEFAULT_CAPACITY_POOLS });
-	let params = $state<EnergyParams>({ ...DEFAULT_ENERGY_PARAMS });
-	let userConstants = $state(fitUserConstants([]).constants);
-	let isLoading = $state(true);
+	// Tasks, budget, pools and personalized constants come live from the shared
+	// session store — edits here save to the same daily session as the main
+	// page, and the schedule re-optimizes as you drag a slider.
+	const session = getSessionStore();
+	const tasks = $derived(session.tasks);
+	const activeTasks = $derived(session.activeTasks);
+	const switchCost = $derived(session.switchCost);
+	const pools = $derived(session.pools);
+	const userConstants = $derived(session.userConstants);
 
-	onMount(async () => {
-		if (!browser) return;
+	// Day window follows today's budget until overridden — the override is
+	// lab-local and never written back to the session.
+	let windowOverride = $state<number | null>(null);
+	const windowHours = $derived(windowOverride ?? (session.availableHours || 8));
+
+	// Model parameters are local to the lab (localStorage, not the session —
+	// the lab never writes them to the main app's data)
+	let params = $state<EnergyParams>({ ...DEFAULT_ENERGY_PARAMS });
+	let paramsLoaded = $state(false);
+
+	onMount(() => {
 		try {
-			await initDB();
-			const session = await getSession(today);
-			if (session) {
-				tasks = session.tasks;
-				windowHours = session.availableHours || 8;
-				switchCost = session.switchCost;
-				pools = {
-					cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
-					physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours
-				};
-			}
-			const observations = await getAllFlowObservations();
-			userConstants = fitUserConstants(
-				observations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
-			).constants;
 			const saved = localStorage.getItem(PARAMS_KEY);
 			if (saved) params = { ...DEFAULT_ENERGY_PARAMS, ...JSON.parse(saved) };
 		} catch (e) {
-			console.error('Failed to load energy lab data', e);
-		} finally {
-			isLoading = false;
+			console.error('Failed to load energy lab params', e);
 		}
+		paramsLoaded = true;
 	});
 
-	// Persist tuned parameters (localStorage, not the session — the lab never
-	// writes back to the main app's data)
 	$effect(() => {
-		if (browser && !isLoading) {
+		if (browser && paramsLoaded) {
 			localStorage.setItem(PARAMS_KEY, JSON.stringify(params));
 		}
 	});
 
-	const activeTasks = $derived(tasks.filter((t) => !t.completed));
 	const energyTasks = $derived<EnergyTaskInput[]>(
 		activeTasks.map((t) => ({
 			id: t.id,
@@ -110,6 +98,43 @@
 				)
 			: null
 	);
+
+	// ---------- Live task editing ----------
+
+	type SliderKey = 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment';
+
+	const sliders = [
+		{
+			key: 'physicalDifficulty',
+			label: 'P',
+			title: 'Physical difficulty',
+			min: 0,
+			accent: 'accent-emerald-400',
+			color: 'text-emerald-400/80'
+		},
+		{
+			key: 'mentalDifficulty',
+			label: 'M',
+			title: 'Mental difficulty',
+			min: 0,
+			accent: 'accent-blue-400',
+			color: 'text-blue-400/80'
+		},
+		{
+			key: 'enjoyment',
+			label: 'E',
+			title: 'Enjoyment',
+			min: 1,
+			accent: 'accent-indigo-400',
+			color: 'text-indigo-400/80'
+		}
+	] as const;
+
+	function setTaskValue(id: number, key: SliderKey, value: number) {
+		const changes: Partial<Pick<Task, SliderKey>> = {};
+		changes[key] = value;
+		session.updateTask(id, changes);
+	}
 
 	// ---------- Presentation helpers ----------
 
@@ -192,7 +217,7 @@
 	/>
 </svelte:head>
 
-{#if !isLoading}
+{#if !session.isLoading && paramsLoaded}
 	<div class="mb-6">
 		<div class="flex items-center gap-4">
 			<h1 class="text-2xl font-bold text-zinc-100">Energy Lab</h1>
@@ -208,17 +233,19 @@
 			energy reservoirs (cognitive and physical) drain while you work and recover while you
 			rest, and warm-up restarts every time you switch — so rest breaks, task order, and your
 			quitting time all <span class="text-zinc-400">emerge from the math</span> instead of being rules.
-			It reads the same task list as the main page.
+			It shares the task list with the main page — edits here save to today's session.
 		</p>
 	</div>
 
 	{#if activeTasks.length === 0}
-		<div class="rounded-2xl border border-white/10 bg-white/3 p-8 text-center">
-			<p class="text-zinc-400">No open tasks for today.</p>
-			<p class="mt-1 text-sm text-zinc-600">
-				Add tasks on the <a href="/" class="text-indigo-400 hover:text-indigo-300">main page</a> —
-				the Energy Lab schedules the same list.
-			</p>
+		<div class="space-y-6">
+			<div class="rounded-2xl border border-white/10 bg-white/3 p-8 text-center">
+				<p class="text-zinc-400">No open tasks for today.</p>
+				<p class="mt-1 text-sm text-zinc-600">
+					Add one below — the Energy Lab schedules the same task list as the main page.
+				</p>
+			</div>
+			<TaskForm onsubmit={(t) => session.addTask(t)} />
 		</div>
 	{:else}
 		<div class="space-y-6">
@@ -328,103 +355,183 @@
 			</div>
 
 			<div class="grid gap-6 lg:grid-cols-3 items-start">
-				<!-- Schedule detail -->
-				<div
-					class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl lg:col-span-2"
-				>
-					<h3 class="mb-4 text-xs font-semibold tracking-wider text-zinc-300 uppercase">
-						Schedule
-					</h3>
-					{#if plan.evaluation.blocks.length === 0}
-						<p class="text-sm text-zinc-500">
-							Nothing scheduled — with the current parameters, free time is worth more than any
-							task's output. Lower the free-time value or check your day window.
+				<div class="space-y-6 lg:col-span-2">
+					<!-- Tasks: shared with the main page, edited live -->
+					<div
+						class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
+					>
+						<div class="mb-1 flex items-baseline justify-between gap-3">
+							<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">Tasks</h3>
+							<span class="text-xs text-zinc-600">Shared with the main page</span>
+						</div>
+						<p class="mb-3 text-xs text-zinc-600">
+							Drag a slider and watch the schedule above re-optimize. Edits save to today's
+							session.
 						</p>
-					{:else}
-						<ul class="space-y-2">
-							{#each plan.evaluation.blocks as block (block.start)}
-								<li class="flex items-center gap-3 text-sm">
-									<span
-										class="h-2.5 w-2.5 shrink-0 rounded-full"
-										style="background-color: {colorOf(block.taskId)}"
-									></span>
-									<span class="w-24 shrink-0 tabular-nums text-zinc-500">
-										{formatClock(block.start)}–{formatClock(block.start + block.hours)}
-									</span>
-									<span
-										class="min-w-0 flex-1 truncate {block.taskId === null
-											? 'text-zinc-500 italic'
-											: 'text-zinc-200'}"
-									>
-										{block.title}
-									</span>
-									<span class="shrink-0 text-xs text-zinc-500">
-										{formatDuration(block.hours)}
-									</span>
-									{#if block.taskId !== null}
+						<ul class="space-y-1">
+							{#each tasks as task (task.id)}
+								<li
+									class="group rounded-lg p-2 transition hover:bg-white/3"
+									class:opacity-50={task.completed}
+								>
+									<div class="flex items-center gap-3">
+										<input
+											type="checkbox"
+											checked={task.completed}
+											onchange={() => session.toggleTask(task.id)}
+											class="h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-indigo-500/20"
+										/>
 										<span
-											class="w-20 shrink-0 text-right text-xs tabular-nums text-indigo-300/80"
+											class="h-2.5 w-2.5 shrink-0 rounded-full"
+											style="background-color: {colorOf(task.id)}"
+										></span>
+										<span
+											class="min-w-0 flex-1 truncate text-sm font-medium capitalize {task.completed
+												? 'text-zinc-500 line-through'
+												: 'text-zinc-100'}"
 										>
-											{block.output.toFixed(2)} out
+											{task.title}
 										</span>
-									{:else}
-										<span class="w-20 shrink-0 text-right text-xs text-zinc-600">recovery</span>
+										<button
+											type="button"
+											aria-label="Remove task"
+											title="Remove task"
+											class="shrink-0 text-zinc-600 opacity-0 transition hover:text-red-400 focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+											onclick={() => session.removeTask(task.id)}
+										>
+											✕
+										</button>
+									</div>
+									{#if !task.completed}
+										<div class="mt-2 ml-7 grid gap-x-5 gap-y-1.5 sm:grid-cols-3">
+											{#each sliders as s (s.key)}
+												<label
+													class="flex items-center gap-2 text-[11px] text-zinc-500"
+													title={s.title}
+												>
+													<span class="w-3 font-medium {s.color}">{s.label}</span>
+													<input
+														type="range"
+														min={s.min}
+														max="10"
+														value={task[s.key]}
+														oninput={(e) =>
+															setTaskValue(task.id, s.key, Number(e.currentTarget.value))}
+														class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-zinc-800 {s.accent}"
+													/>
+													<span class="w-4 text-right tabular-nums text-zinc-300">
+														{task[s.key]}
+													</span>
+												</label>
+											{/each}
+										</div>
 									{/if}
 								</li>
 							{/each}
-							{#if trailingFreeHours > 1e-6}
-								<li class="flex items-center gap-3 text-sm">
-									<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-zinc-700"></span>
-									<span class="w-24 shrink-0 tabular-nums text-zinc-600">
-										{formatClock(plannedHours)}–{formatClock(windowHours)}
-									</span>
-									<span class="flex-1 text-zinc-600 italic">Free time</span>
-									<span class="shrink-0 text-xs text-zinc-600">
-										{formatDuration(trailingFreeHours)}
-									</span>
-									<span class="w-20"></span>
-								</li>
-							{/if}
 						</ul>
-					{/if}
+						<div class="mt-3">
+							<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={false} />
+						</div>
+					</div>
 
-					<!-- Summary -->
-					<div class="mt-5 grid grid-cols-2 gap-4 border-t border-white/10 pt-4 sm:grid-cols-4">
-						<div>
-							<p class="text-lg font-semibold text-zinc-100">
-								{plan.evaluation.totalOutput.toFixed(1)}
+					<!-- Schedule detail -->
+					<div
+						class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
+					>
+						<h3 class="mb-4 text-xs font-semibold tracking-wider text-zinc-300 uppercase">
+							Schedule
+						</h3>
+						{#if plan.evaluation.blocks.length === 0}
+							<p class="text-sm text-zinc-500">
+								Nothing scheduled — with the current parameters, free time is worth more than any
+								task's output. Lower the free-time value or check your day window.
 							</p>
-							<p class="text-xs text-zinc-500">Total output (productivity units)</p>
-						</div>
-						<div>
-							<p class="text-lg font-semibold text-zinc-100">
-								{Math.round(plan.evaluation.endCog * 100)}% /
-								{Math.round(plan.evaluation.endPhys * 100)}%
-							</p>
-							<p class="text-xs text-zinc-500">End-of-day energy (cog / phys)</p>
-						</div>
-						<div>
-							<p class="text-lg font-semibold text-zinc-100">
-								{formatDuration(plan.evaluation.workHours)}
-							</p>
-							<p class="text-xs text-zinc-500">Planned work</p>
-						</div>
-						<div>
-							{#if outputVsClassic !== null}
-								<p
-									class="text-lg font-semibold {outputVsClassic >= 0
-										? 'text-emerald-400'
-										: 'text-amber-400'}"
-								>
-									{outputVsClassic >= 0 ? '+' : ''}{outputVsClassic}%
+						{:else}
+							<ul class="space-y-2">
+								{#each plan.evaluation.blocks as block (block.start)}
+									<li class="flex items-center gap-3 text-sm">
+										<span
+											class="h-2.5 w-2.5 shrink-0 rounded-full"
+											style="background-color: {colorOf(block.taskId)}"
+										></span>
+										<span class="w-24 shrink-0 tabular-nums text-zinc-500">
+											{formatClock(block.start)}–{formatClock(block.start + block.hours)}
+										</span>
+										<span
+											class="min-w-0 flex-1 truncate {block.taskId === null
+												? 'text-zinc-500 italic'
+												: 'text-zinc-200'}"
+										>
+											{block.title}
+										</span>
+										<span class="shrink-0 text-xs text-zinc-500">
+											{formatDuration(block.hours)}
+										</span>
+										{#if block.taskId !== null}
+											<span
+												class="w-20 shrink-0 text-right text-xs tabular-nums text-indigo-300/80"
+											>
+												{block.output.toFixed(2)} out
+											</span>
+										{:else}
+											<span class="w-20 shrink-0 text-right text-xs text-zinc-600">recovery</span>
+										{/if}
+									</li>
+								{/each}
+								{#if trailingFreeHours > 1e-6}
+									<li class="flex items-center gap-3 text-sm">
+										<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-zinc-700"></span>
+										<span class="w-24 shrink-0 tabular-nums text-zinc-600">
+											{formatClock(plannedHours)}–{formatClock(windowHours)}
+										</span>
+										<span class="flex-1 text-zinc-600 italic">Free time</span>
+										<span class="shrink-0 text-xs text-zinc-600">
+											{formatDuration(trailingFreeHours)}
+										</span>
+										<span class="w-20"></span>
+									</li>
+								{/if}
+							</ul>
+						{/if}
+
+						<!-- Summary -->
+						<div class="mt-5 grid grid-cols-2 gap-4 border-t border-white/10 pt-4 sm:grid-cols-4">
+							<div>
+								<p class="text-lg font-semibold text-zinc-100">
+									{plan.evaluation.totalOutput.toFixed(1)}
 								</p>
-								<p class="text-xs text-zinc-500">
-									Output vs the classic plan, judged by this model
+								<p class="text-xs text-zinc-500">Total output (productivity units)</p>
+							</div>
+							<div>
+								<p class="text-lg font-semibold text-zinc-100">
+									{Math.round(plan.evaluation.endCog * 100)}% /
+									{Math.round(plan.evaluation.endPhys * 100)}%
 								</p>
-							{:else}
-								<p class="text-lg font-semibold text-zinc-500">—</p>
-								<p class="text-xs text-zinc-600">No classic plan to compare</p>
-							{/if}
+								<p class="text-xs text-zinc-500">End-of-day energy (cog / phys)</p>
+							</div>
+							<div>
+								<p class="text-lg font-semibold text-zinc-100">
+									{formatDuration(plan.evaluation.workHours)}
+								</p>
+								<p class="text-xs text-zinc-500">Planned work</p>
+							</div>
+							<div>
+								{#if outputVsClassic !== null}
+									<p
+										class="text-lg font-semibold {outputVsClassic >= 0
+											? 'text-emerald-400'
+											: 'text-amber-400'}"
+									>
+										{outputVsClassic >= 0 ? '+' : ''}{outputVsClassic}%
+									</p>
+									<p class="text-xs text-zinc-500">
+										Output vs the classic plan, judged by this model
+									</p>
+								{:else}
+									<p class="text-lg font-semibold text-zinc-500">—</p>
+									<p class="text-xs text-zinc-600">No classic plan to compare</p>
+								{/if}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -454,14 +561,14 @@
 							<NumberInput
 								id="window-hours"
 								value={windowHours}
-								onchange={(v) => (windowHours = v)}
+								onchange={(v) => (windowOverride = v)}
 								min={0}
 								max={24}
 								step={0.5}
 								unit="hrs"
 							/>
 							<p class="mt-1 text-xs text-zinc-600">
-								Loaded from today's budget; changes here stay in the lab
+								Follows today's budget until you change it; changes stay in the lab
 							</p>
 						</div>
 						<div>

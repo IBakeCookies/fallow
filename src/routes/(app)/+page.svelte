@@ -2,7 +2,6 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
 	import TaskForm from '$lib/components/TaskForm.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import TaskList from '$lib/components/TaskList.svelte';
@@ -10,8 +9,6 @@
 	import MetricsDashboard from '$lib/components/MetricsDashboard.svelte';
 	import { STATUS, getStatusBiggerBetter, getStatusSmallerBetter } from '$lib/metrics/status';
 	import {
-		type Task,
-		getEffectiveDifficulty,
 		calculateSuggestedTasks,
 		calculateInterleavedOrder,
 		calculateZenithGain,
@@ -39,136 +36,34 @@
 		calculateAverageMentalDifficulty,
 		calculateAverageEnjoyment
 	} from '$lib/metrics/calculations';
-	import {
-		DEFAULT_SWITCH_COST,
-		DEFAULT_CAPACITY_POOLS,
-		fitUserConstants,
-		mapEffort,
-		mapEnjoyability
-	} from '$lib/zenith';
-	import {
-		initDB,
-		saveSession,
-		getSession,
-		getYesterdaySession,
-		getAllRoutines,
-		saveRoutine,
-		deleteRoutine,
-		saveFlowObservation,
-		getAllFlowObservations,
-		deleteFlowObservation,
-		clearFlowObservations,
-		type DailySession,
-		type SavedRoutine,
-		type FlowObservationRecord
-	} from '$lib/storage/db';
-	import { liveToday } from '$lib/today.svelte';
+	import { getSessionStore } from '$lib/store/session-store.svelte';
 
-	const today = $derived(liveToday.value);
+	// Shared daily session (tasks, budget, pools + persistence) — set in the
+	// (app) layout, also consumed live by the Energy Lab.
+	const session = getSessionStore();
 
-	// State
-	let tasks = $state<Task[]>([]);
-	let availableHours = $state<number>(0);
-	let switchCost = $state<number>(DEFAULT_SWITCH_COST);
-	let cognitivePool = $state<number>(DEFAULT_CAPACITY_POOLS.cognitiveHours);
-	let physicalPool = $state<number>(DEFAULT_CAPACITY_POOLS.physicalHours);
-	let isLoading = $state(true);
-	let yesterdaySession = $state<DailySession | null>(null);
-	let routines = $state<SavedRoutine[]>([]);
-	let flowObservations = $state<FlowObservationRecord[]>([]);
-
-	// The URL is the single source of truth for the viewed day: /?date=YYYY-MM-DD
-	// for any other day, plain / for today. Nav links, calendar deep-links, and
-	// the browser back button all resolve through this — invalid dates fall
-	// back to today.
-	const dateParam = $derived(page.url.searchParams.get('date'));
-	const selectedDate = $derived(
-		dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today
-	);
-
-	// Day modes: past is read-only history (completion toggles only), future
-	// is a plan you can edit freely; flow logging — an actual measurement —
-	// stays today-only.
-	const isViewingPast = $derived(selectedDate < today);
-	const isViewingFuture = $derived(selectedDate > today);
-
-	// Which date the in-memory session state belongs to. Loads are async, so
-	// this lags selectedDate during navigation — the auto-save guard below uses
-	// it to avoid persisting one day's tasks under another day's key.
-	let loadedDate = $state<string | null>(null);
-
-	// Whether the loaded date already has a persisted session. Auto-save skips
-	// pristine days (so merely browsing future dates creates no records) but
-	// keeps saving once a session exists (so deleting the last task persists).
-	let loadedHadSession = $state(false);
-
-	// Initialize from IndexedDB
-	onMount(async () => {
-		if (!browser) return;
-
-		try {
-			await initDB();
-
-			// Load yesterday for import option
-			yesterdaySession = await getYesterdaySession();
-
-			// Load saved routines
-			routines = await getAllRoutines();
-
-			// Load measured time-to-flow data (personalizes c₁,c₂,c₃)
-			flowObservations = await getAllFlowObservations();
-
-			await loadSession(selectedDate);
-		} catch (e) {
-			console.error('Failed to load from IndexedDB', e);
-		} finally {
-			isLoading = false;
-		}
-	});
+	// Local aliases so the metric formulas below read like the math they encode
+	const today = $derived(session.today);
+	const selectedDate = $derived(session.selectedDate);
+	const isViewingPast = $derived(session.isViewingPast);
+	const isViewingFuture = $derived(session.isViewingFuture);
+	const tasks = $derived(session.tasks);
+	const availableHours = $derived(session.availableHours);
+	const switchCost = $derived(session.switchCost);
+	const pools = $derived(session.pools);
+	const flowObservations = $derived(session.flowObservations);
+	const userConstants = $derived(session.userConstants);
 
 	// /?date=<today> renders the same view as / — collapse to the canonical
 	// URL. Also fires when a viewed date BECOMES today at midnight rollover.
+	const dateParam = $derived(page.url.searchParams.get('date'));
 	$effect(() => {
 		if (browser && dateParam === today) {
 			goto('/', { replaceState: true, noScroll: true, keepFocus: true });
 		}
 	});
 
-	// Reload whenever the viewed date changes, whatever triggered the
-	// navigation (nav "Today" link, calendar deep-link, back/forward button).
-	$effect(() => {
-		if (browser && !isLoading && selectedDate !== loadedDate) {
-			loadSession(selectedDate);
-		}
-	});
-
-	async function loadSession(date: string) {
-		try {
-			const session = await getSession(date);
-			if (date !== selectedDate) return; // navigated again mid-load
-
-			if (session) {
-				tasks = session.tasks;
-				availableHours = session.availableHours;
-				switchCost = session.switchCost;
-				cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
-				physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
-			} else {
-				// No data for this date
-				tasks = [];
-				availableHours = 0;
-				switchCost = DEFAULT_SWITCH_COST;
-				cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
-				physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
-			}
-			loadedHadSession = !!session;
-			loadedDate = date;
-		} catch (e) {
-			console.error('Failed to load session for date', date, e);
-		}
-	}
-
-	// Navigate to a day; the $effect above picks up the URL change and loads it.
+	// Navigate to a day; the store follows the URL and loads it.
 	function gotoDate(newDate: string) {
 		goto(newDate === today ? '/' : `/?date=${newDate}`, { noScroll: true, keepFocus: true });
 	}
@@ -185,21 +80,8 @@
 	const totalTasks = $derived(tasks.length);
 	const completedTasksCount = $derived(tasks.filter((task) => task.completed).length);
 
-	// Capacity pools, sanitized (empty/invalid inputs → 0, i.e. no capacity)
-	const pools = $derived({
-		cognitiveHours: Math.max(0, Number(cognitivePool) || 0),
-		physicalHours: Math.max(0, Number(physicalPool) || 0)
-	});
-
-	// Personalized model constants: ridge least-squares fit of ϕ = c₁E + c₂β + c₃
-	// over the logged time-to-flow measurements, anchored to the article's
-	// defaults. Every ⚡ log nudges the model; more logs = less anchor.
-	const constantsFit = $derived(
-		fitUserConstants(flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours })))
-	);
-	const userConstants = $derived(constantsFit.constants);
 	const modelStatus = $derived(
-		constantsFit.fitted
+		session.constantsFit.fitted
 			? `Model personalized from ${flowObservations.length} time-to-flow log${
 					flowObservations.length === 1 ? '' : 's'
 				} (⚡) — blended with the defaults, sharpens as you log more`
@@ -514,182 +396,6 @@
 			...(hasTasks ? { value: `${averageEnjoyment}/10`, valStyle: STATUS.NEUTRAL.color } : NA)
 		}
 	]);
-
-	function addTask(taskData: {
-		title: string;
-		physicalDifficulty: number;
-		mentalDifficulty: number;
-		enjoyment: number;
-	}) {
-		tasks = [
-			{
-				id: Date.now(),
-				title: taskData.title,
-				physicalDifficulty: taskData.physicalDifficulty,
-				mentalDifficulty: taskData.mentalDifficulty,
-				enjoyment: taskData.enjoyment,
-				createdAt: selectedDate,
-				completed: false
-			},
-			...tasks
-		];
-	}
-
-	// Completion can be toggled on ANY day — forgetting to check a task off
-	// before midnight shouldn't falsify history. Structural edits (add/edit/
-	// remove) work on today and future plans; past days stay read-only:
-	// those rewrite the plan, this records the truth.
-	async function toggleTask(id: number) {
-		tasks = tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task));
-
-		// The auto-save $effect doesn't persist past sessions, so historical
-		// toggles are saved explicitly under the viewed date.
-		if (isViewingPast) {
-			try {
-				await saveSession({
-					date: selectedDate,
-					tasks: $state.snapshot(tasks),
-					availableHours,
-					switchCost,
-					cognitivePool,
-					physicalPool,
-					updatedAt: Date.now()
-				});
-			} catch (e) {
-				console.error('Failed to save completion change for', selectedDate, e);
-			}
-		}
-	}
-
-	function removeTask(id: number) {
-		tasks = tasks.filter((task) => task.id !== id);
-	}
-
-	function updateTask(
-		id: number,
-		changes: {
-			title: string;
-			physicalDifficulty: number;
-			mentalDifficulty: number;
-			enjoyment: number;
-		}
-	) {
-		tasks = tasks.map((task) => (task.id === id ? { ...task, ...changes } : task));
-	}
-
-	// Log a measured "minutes until flow" for a task: stamps it on the task
-	// (shown as the ⚡ badge, persisted with the session) and upserts an
-	// (E, β, ϕ) data point that personalizes the model constants — re-logging
-	// the same task today REPLACES the earlier measurement (typo correction).
-	async function logFlow(id: number, minutes: number) {
-		const task = tasks.find((t) => t.id === id);
-		if (!task) return;
-
-		tasks = tasks.map((t) => (t.id === id ? { ...t, flowMinutes: minutes } : t));
-
-		const difficulty = getEffectiveDifficulty(task);
-		try {
-			await saveFlowObservation({
-				date: today,
-				taskId: id,
-				taskTitle: task.title,
-				difficulty,
-				enjoyment: task.enjoyment,
-				E: mapEffort(difficulty),
-				beta: mapEnjoyability(task.enjoyment),
-				phiHours: minutes / 60
-			});
-			flowObservations = await getAllFlowObservations();
-		} catch (e) {
-			console.error('Failed to save flow observation', e);
-		}
-	}
-
-	// Remove one measured data point; the constants refit automatically since
-	// they are derived from the observations. Clears today's ⚡ badge if the
-	// deleted log belonged to a task in today's session.
-	async function deleteFlowLog(id: number) {
-		const record = flowObservations.find((o) => o.id === id);
-		try {
-			await deleteFlowObservation(id);
-			flowObservations = await getAllFlowObservations();
-			if (record && record.date === today) {
-				tasks = tasks.map((t) => (t.id === record.taskId ? { ...t, flowMinutes: undefined } : t));
-			}
-		} catch (e) {
-			console.error('Failed to delete flow observation', e);
-		}
-	}
-
-	// Delete all measured data points → model reverts to the article defaults.
-	async function resetFlowLogs() {
-		try {
-			await clearFlowObservations();
-			flowObservations = [];
-			tasks = tasks.map((t) => (t.flowMinutes ? { ...t, flowMinutes: undefined } : t));
-		} catch (e) {
-			console.error('Failed to reset flow observations', e);
-		}
-	}
-
-	function importTasks(importedTasks: Omit<Task, 'id' | 'createdAt' | 'completed'>[]) {
-		const newTasks = importedTasks.map((t) => ({
-			...t,
-			id: Date.now() + Math.random(),
-			createdAt: selectedDate,
-			completed: false
-		}));
-		tasks = [...newTasks, ...tasks];
-	}
-
-	async function handleSaveRoutine(name: string) {
-		const routine: SavedRoutine = {
-			id: `routine-${Date.now()}`,
-			name,
-			tasks: tasks.map((t) => ({
-				title: t.title,
-				physicalDifficulty: t.physicalDifficulty,
-				mentalDifficulty: t.mentalDifficulty,
-				enjoyment: t.enjoyment
-			})),
-			createdAt: Date.now()
-		};
-		await saveRoutine(routine);
-		routines = await getAllRoutines();
-	}
-
-	async function handleDeleteRoutine(id: string) {
-		await deleteRoutine(id);
-		routines = await getAllRoutines();
-	}
-
-	// Auto-save to IndexedDB for today and future plans (past days save
-	// explicitly on toggle). Guards: the in-memory state must actually belong
-	// to the viewed date (loads are async), and pristine never-saved days are
-	// skipped so browsing ahead creates no empty records.
-	$effect(() => {
-		if (browser && !isLoading && !isViewingPast && loadedDate === selectedDate) {
-			const dirty =
-				loadedHadSession ||
-				tasks.length > 0 ||
-				availableHours > 0 ||
-				switchCost !== DEFAULT_SWITCH_COST ||
-				cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
-				physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
-			if (!dirty) return;
-			saveSession({
-				date: selectedDate,
-				tasks: $state.snapshot(tasks),
-				availableHours,
-				switchCost,
-				cognitivePool,
-				physicalPool,
-				updatedAt: Date.now()
-			})
-				.then(() => (loadedHadSession = true))
-				.catch((e) => console.error('Failed to save session', e));
-		}
-	});
 </script>
 
 <svelte:head>
@@ -726,19 +432,19 @@
 	/>
 </svelte:head>
 
-{#if !isLoading}
+{#if !session.isLoading}
 	<PageHeader
 		completedTasks={completedTasksCount}
 		{totalTasks}
 		{selectedDate}
 		{today}
 		ondatechange={gotoDate}
-		{yesterdaySession}
-		{routines}
+		yesterdaySession={session.yesterdaySession}
+		routines={session.routines}
 		currentTasks={tasks}
-		onimport={importTasks}
-		onsaveroutine={handleSaveRoutine}
-		ondeleteroutine={handleDeleteRoutine}
+		onimport={(t) => session.importTasks(t)}
+		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+		ondeleteroutine={(id) => session.deleteRoutine(id)}
 	/>
 
 	<div class="grid gap-6 lg:grid-cols-3 items-start">
@@ -753,18 +459,19 @@
 					</div>
 				{/if}
 				<TimeBudgetCard
-					bind:availableHours
-					bind:switchCost
-					bind:cognitivePool
-					bind:physicalPool
+					bind:availableHours={session.availableHours}
+					bind:switchCost={session.switchCost}
+					bind:cognitivePool={session.cognitivePool}
+					bind:physicalPool={session.physicalPool}
 					{remainingSuggestedHours}
 					{planSlackHours}
 					{modelStatus}
 					flowLogs={flowObservations}
-					ondeletelog={deleteFlowLog}
-					onresetlogs={resetFlowLogs}
+					ondeletelog={(id) => session.deleteFlowLog(id)}
+					onresetlogs={() => session.resetFlowLogs()}
+					startOpen={availableHours <= 0}
 				/>
-				<TaskForm onsubmit={addTask} />
+				<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
 			{:else}
 				<div
 					class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
@@ -777,10 +484,10 @@
 			<TaskList
 				{suggestedTasks}
 				{runOrder}
-				ontoggle={toggleTask}
-				onremove={isViewingPast ? () => {} : removeTask}
-				onlogflow={selectedDate === today ? logFlow : undefined}
-				onupdate={isViewingPast ? undefined : updateTask}
+				ontoggle={(id) => session.toggleTask(id)}
+				onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
+				onlogflow={selectedDate === today ? (id, minutes) => session.logFlow(id, minutes) : undefined}
+				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
 			/>
 		</div>
 
