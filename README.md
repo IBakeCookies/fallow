@@ -9,20 +9,24 @@ productivity curve and solves for the time allocation that maximizes your total
 output, subject to your real limits: the hours in your day and how much
 mental and physical energy you can actually sustain.
 
-It's a faithful, over-engineered implementation of the
-[Zenith Gradient Algorithm](https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e),
+It started as a faithful, over-engineered implementation of the
+[Zenith Gradient Algorithm](https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e)
+and has since revised the article's math where it didn't hold up (model v2),
 extended with a dual energy-pool model, context-switching costs, and a
 personalization loop that learns your constants from measured data.
+**[MATH.md](MATH.md) is the authoritative record of the implemented math** —
+every formula, derivation, and deviation from the article, with rationale.
 
 ---
 
 ## The idea in one picture
 
-For any task, productivity over time isn't flat — it ramps up as you get into
-the zone, peaks at **flow state**, then decays as you tire:
+For any task, productivity over time isn't flat — it starts at some initial
+level, ramps up as you get into the zone, peaks at **flow state**, then decays
+as you tire:
 
 ```text
-p(t) = (a + p₀) · k · t · e^(−kt)      k = 1/ϕ
+p(t) = (a·k·t + p₀) · e^(−kt)      k = (1 − p₀/a)/ϕ
 ```
 
 Each task is described by three things you feel intuitively:
@@ -31,30 +35,41 @@ Each task is described by three things you feel intuitively:
 - **Enjoyment** (`β`) — how much you like doing it
 - **Time to flow** (`ϕ`) — how long before you hit the zone
 
-These shape the curve: enjoyable, low-effort tasks start productive and rise
-fast; hard, unpleasant ones start slow but peak higher. There's a mathematically
-optimal point to stop each task (≈ 1.79 × ϕ) — work past it and your _average_
-productivity for that task actually falls.
+These shape the curve: enjoyable, low-effort tasks start productive (`p(0) = p₀`
+really holds — a v2 fix over the article's curve); hard, unpleasant ones start
+slow but peak higher. There's a mathematically optimal point to stop each task —
+between 1.5×ϕ and 1.79×ϕ depending on the task — because working past it makes
+your _average_ productivity for that task fall.
 
 Zenith takes your whole task list and finds the allocation `⟨t₁, t₂, … tₙ⟩` that
-maximizes the sum of average productivities, using **Lagrange multipliers** under
-your time budget — then reports how much better that is than an equal split.
+maximizes the sum of average productivities. Plans are built in **15-minute
+blocks** and solved exactly: greedy marginal analysis over block values, with an
+exhaustive search over which tasks deserve funding at all once context-switch
+costs are charged — then Zenith reports how much better that is than an equal
+split. (Full derivations: [MATH.md](MATH.md).)
 
 ## What Zenith adds on top of the article
 
+- **A revised curve and per-task stopping times (model v2).** The article's
+  curve forced `p(0) = 0`, contradicting its own "initial productivity" story;
+  v2 uses a curve where `p(0) = p₀` truly holds, which makes the optimal
+  stopping point task-dependent (1.5–1.79 × ϕ) instead of a universal
+  constant. See [MATH.md](MATH.md) §2–3.
 - **Dual energy pools.** Cognitive and physical fatigue are separate systems.
   "6h of coding" saturates your ~4h/day of intense mental work, but "4h coding +
   2h gym" fits — the physical hours draw on a different pool. The allocator
-  solves a three-constraint problem (time + cognitive pool + physical pool) via
-  Lagrangian duality with cyclic coordinate descent, so plans never schedule an
-  unsustainable day.
+  solves a three-constraint problem (time + cognitive pool + physical pool),
+  so plans never schedule an unsustainable day.
 - **Context-switching costs.** Every task you juggle costs ~15 minutes of
-  overhead. Zenith charges switches only between tasks that actually get time,
-  and will _drop_ a weak task when the switch it costs outweighs its value.
+  overhead (grounded in attention-residue research). Zenith charges switches
+  only between tasks that actually get time, and will _drop_ a weak task when
+  the switch it costs outweighs its value — decided by exhaustively comparing
+  every funded-task subset.
 - **Personalization from your own data.** Log how long a task really took to
   reach flow (the ⚡ button, stopwatch-style) and Zenith refits your personal
-  constants (`c₁, c₂, c₃`) with a ridge-regularized least-squares fit — anchored
-  to the article's defaults, sharpening as you log more.
+  constants (`c₁, c₂, c₃`) with a Bayesian linear regression — anchored to the
+  article's defaults, sharpening as you log more, and aware of how uncertain
+  its own predictions still are.
 - **A dashboard of derived metrics.** Zenith Gain, Burnout Risk, Flow Coverage,
   Cognitive/Physical Load, Energy Balance, Friction Index, Recovery Ratio, and
   more — each computed from the same underlying model.
@@ -83,9 +98,12 @@ your time budget — then reports how much better that is than an equal split.
 - [Vitest](https://vitest.dev/) (unit) + [Playwright](https://playwright.dev/) (e2e), [Storybook](https://storybook.js.org/) for components
 - Deployed on Vercel (`@sveltejs/adapter-vercel`)
 
-The productivity math lives in [`src/lib/zenith.ts`](src/lib/zenith.ts) (pure,
-dependency-free functions) and the task/dashboard logic in
-[`src/lib/metrics/calculations.ts`](src/lib/metrics/calculations.ts).
+The productivity math lives in
+[`src/lib/business/model/zenith.ts`](src/lib/business/model/zenith.ts) (pure,
+dependency-free functions — derivations in [MATH.md](MATH.md)) and the
+task/dashboard logic in
+[`src/lib/business/model/metric/calculation.ts`](src/lib/business/model/metric/calculation.ts).
+Architecture and conventions: [docs/code-conventions.md](docs/code-conventions.md).
 
 ## Getting started
 

@@ -56,6 +56,7 @@
 			suggestedHours={task.suggestedHours}
 			trueEffort={task.trueEffort}
 			flowStateTime={task.flowStateTime}
+			optimalStopHours={task.optimalHours}
 			runOrder={runOrder.get(task.id)}
 			flowMinutes={task.flowMinutes}
 			{ontoggle}

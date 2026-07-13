@@ -111,6 +111,66 @@ describe('Zenith Energy Model', () => {
 			expect(pair.totalOutput).toBeCloseTo(single.totalOutput, 12);
 		});
 
+		it('rest-recovery multiplier speeds recovery of an idle reservoir (Xia & Frey Law)', () => {
+			const deep = [makeTask(1, 'deep', 8, 5, 0.9, 0.1)];
+			// interior rest bracketed by a marker so it is not trailing-dropped
+			const sched = [
+				{ taskId: 1, hours: 3 },
+				{ taskId: null, hours: 1 },
+				{ taskId: 1, hours: 0.01 }
+			];
+			const base = evaluateSchedule(sched, deep, 12, {
+				...DEFAULT_ENERGY_PARAMS,
+				restRecoveryMultiplier: 1
+			});
+			const boosted = evaluateSchedule(sched, deep, 12, {
+				...DEFAULT_ENERGY_PARAMS,
+				restRecoveryMultiplier: 2
+			});
+			expect(boosted.blocks[1].cogAfter).toBeGreaterThan(base.blocks[1].cogAfter);
+		});
+
+		it('warm-up carries over across a gap: resuming beats a hard reset (Monk/Trafton)', () => {
+			const tasks = [makeTask(1, 'A', 6, 6, 0.7, 0.1), makeTask(2, 'B', 5, 5, 0.3, 0.3)];
+			const sched = [
+				{ taskId: 1, hours: 1.5 },
+				{ taskId: 2, hours: 0.25 },
+				{ taskId: 1, hours: 1.5 }
+			];
+			const reset = evaluateSchedule(sched, tasks, 8, {
+				...DEFAULT_ENERGY_PARAMS,
+				resumptionTimeConstant: 0
+			});
+			const carry = evaluateSchedule(sched, tasks, 8, {
+				...DEFAULT_ENERGY_PARAMS,
+				resumptionTimeConstant: 0.5
+			});
+			expect(carry.blocks[2].output).toBeGreaterThan(reset.blocks[2].output);
+		});
+
+		it('warm-up carryover decays with gap length: short break keeps more than long', () => {
+			const deep = [makeTask(1, 'A', 6, 6, 0.7, 0.1)];
+			const shortGap = evaluateSchedule(
+				[
+					{ taskId: 1, hours: 1.5 },
+					{ taskId: null, hours: 0.25 },
+					{ taskId: 1, hours: 1.5 }
+				],
+				deep,
+				8
+			);
+			const longGap = evaluateSchedule(
+				[
+					{ taskId: 1, hours: 1.5 },
+					{ taskId: null, hours: 2 },
+					{ taskId: 1, hours: 1.5 }
+				],
+				deep,
+				8
+			);
+			expect(shortGap.blocks[2].output).toBeGreaterThan(longGap.blocks[2].output);
+		});
+
 		it('an empty schedule earns only leisure + terminal value', () => {
 			const ev = evaluateSchedule([], tasks, 8);
 			expect(ev.totalOutput).toBe(0);
@@ -140,8 +200,16 @@ describe('Zenith Energy Model', () => {
 				freeTimeValue: 0,
 				terminalEnergyValue: 0
 			});
+			// With efficient recovery and warm-up carryover, sustained work is
+			// attractive, so the default values trim work only at the margin — but a
+			// stronger leisure price stops it outright (the mechanism, not a fixed gap).
 			const withValues = optimizeSchedule(tasks, 12);
-			expect(withValues.evaluation.workHours).toBeLessThan(noValues.evaluation.workHours - 1);
+			expect(withValues.evaluation.workHours).toBeLessThan(noValues.evaluation.workHours);
+			const highLeisure = optimizeSchedule(tasks, 12, {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: 2
+			});
+			expect(highLeisure.evaluation.workHours).toBe(0);
 		});
 
 		it('concentrates a scarce hour on ONE of two identical tasks (no spreading)', () => {
@@ -168,6 +236,15 @@ describe('Zenith Energy Model', () => {
 			const empty = evaluateSchedule([], tasks, 8);
 			expect(a.evaluation.objective).toBeGreaterThanOrEqual(empty.objective - 1e-9);
 			expect(a.blocks).toEqual(b.blocks);
+		});
+
+		it('schedules restorative interior rest on a long demanding window', () => {
+			// Pre-fix this returned one continuous block and never rested; with the
+			// recovery correction + warm-up carryover, interspersed breaks now pay.
+			const deep = [makeTask(1, 'deep', 8, 5, 0.9, 0.1)];
+			const result = optimizeSchedule(deep, 10);
+			const restBlocks = result.blocks.filter((b) => b.taskId === null).length;
+			expect(restBlocks).toBeGreaterThan(0);
 		});
 
 		it('handles no tasks and zero window gracefully', () => {

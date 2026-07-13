@@ -5,32 +5,47 @@ import {
 	calculateTaskParams,
 	calculateTotalProductivity,
 	averageProductivity,
+	avgProductivityDerivative,
+	productivity,
+	optimalStoppingX,
 	mapEffort,
 	mapEnjoyability,
 	calculateFlowStateTime,
 	productivityGain,
 	pooledProductivityGain,
 	fitUserConstants,
+	phiPredictionStd,
 	findOptimalSingleTaskTime,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_CAPACITY_POOLS,
+	BLOCK_HOURS,
+	OPTIMAL_PHI_MULTIPLIER,
 	type PooledTaskInput,
 	type FlowObservation
 } from './zenith';
 
-describe('Zenith Gradient Algorithm', () => {
+// A representative grid over the whole user-input domain, used by the tests
+// that verify preconditions the allocator's exactness rests on (see MATH.md).
+const DOMAIN_GRID: { difficulty: number; enjoyment: number }[] = [];
+for (const difficulty of [1, 2.5, 4, 5.5, 7, 8.5, 10]) {
+	for (const enjoyment of [1, 3.25, 5.5, 7.75, 10]) {
+		DOMAIN_GRID.push({ difficulty, enjoyment });
+	}
+}
+
+describe('Zenith Gradient Algorithm (model v2)', () => {
 	describe('Parameter Mappings', () => {
 		it('maps user effort (1-10) to true effort E (1-5)', () => {
 			// E = (4/9)Eᵤ + 5/9
-			expect(mapEffort(1)).toBeCloseTo(1, 1); // Min: 1 → 1
-			expect(mapEffort(10)).toBeCloseTo(5, 1); // Max: 10 → 5
-			expect(mapEffort(5.5)).toBeCloseTo(3, 1); // Mid: 5.5 → 3
+			expect(mapEffort(1)).toBeCloseTo(1, 10); // Min: 1 → 1
+			expect(mapEffort(10)).toBeCloseTo(5, 10); // Max: 10 → 5
+			expect(mapEffort(5.5)).toBeCloseTo(3, 10); // Mid: 5.5 → 3
 		});
 
 		it('maps user enjoyability (1-10) to true β (1-2)', () => {
 			// β = (1/9)βᵤ + 8/9
-			expect(mapEnjoyability(1)).toBeCloseTo(1, 1); // Min: 1 → 1
-			expect(mapEnjoyability(10)).toBeCloseTo(2, 1); // Max: 10 → 2
+			expect(mapEnjoyability(1)).toBeCloseTo(1, 10); // Min: 1 → 1
+			expect(mapEnjoyability(10)).toBeCloseTo(2, 10); // Max: 10 → 2
 		});
 	});
 
@@ -45,8 +60,113 @@ describe('Zenith Gradient Algorithm', () => {
 		});
 	});
 
+	describe('Productivity Curve (v2): p(t) = (a·kt + p₀)·e^(−kt)', () => {
+		// Mid-range reference parameters (consistent: k = (1 − p₀/a)/ϕ)
+		const a = 6;
+		const p0 = 0.5;
+		const phi = 1.7;
+		const k = (1 - p0 / a) / phi;
+
+		it('starts at p(0) = p₀ — the fix the v2 curve exists for', () => {
+			expect(productivity(0, a, p0, k)).toBeCloseTo(p0, 10);
+		});
+
+		it('peaks exactly at t = ϕ with value a·e^(p₀/a − 1)', () => {
+			const peak = productivity(phi, a, p0, k);
+			expect(peak).toBeCloseTo(a * Math.exp(p0 / a - 1), 10);
+			expect(productivity(phi - 0.01, a, p0, k)).toBeLessThan(peak);
+			expect(productivity(phi + 0.01, a, p0, k)).toBeLessThan(peak);
+		});
+
+		it('averageProductivity matches numeric integration of p(t)', () => {
+			for (const T of [0.25, 1, 2.5, 6]) {
+				const n = 50000;
+				let sum = 0;
+				for (let i = 0; i < n; i++) sum += productivity(((i + 0.5) * T) / n, a, p0, k);
+				const numeric = sum / n; // midpoint rule for (1/T)∫₀ᵀ p dt
+				expect(averageProductivity(T, a, p0, k)).toBeCloseTo(numeric, 5);
+			}
+		});
+
+		it('avgProductivityDerivative matches numeric differentiation, incl. the T→0⁺ limit', () => {
+			for (const T of [0.05, 0.5, 1.5, 3, 5]) {
+				const h = 1e-6;
+				const numeric =
+					(averageProductivity(T + h, a, p0, k) - averageProductivity(T - h, a, p0, k)) / (2 * h);
+				expect(avgProductivityDerivative(T, a, p0, k)).toBeCloseTo(numeric, 5);
+			}
+			// lim T→0⁺ dP̄/dT = k(a − p₀)/2
+			expect(avgProductivityDerivative(0, a, p0, k)).toBeCloseTo((k * (a - p0)) / 2, 10);
+		});
+
+		it('P̄ is discontinuous at 0: P̄(0) = 0 but P̄(0⁺) ≈ p₀ (activation bonus)', () => {
+			expect(averageProductivity(0, a, p0, k)).toBe(0);
+			expect(averageProductivity(1e-7, a, p0, k)).toBeCloseTo(p0, 4);
+		});
+
+		it('optimalStoppingX(r) solves eˣ = 1 + x + x²/(1+r); r = 0 recovers the article root 1.7933', () => {
+			for (const r of [0, 0.1, 0.3, 0.5, 0.7, 0.9]) {
+				const x = optimalStoppingX(r);
+				expect(Math.exp(x)).toBeCloseTo(1 + x + (x * x) / (1 + r), 8);
+			}
+			expect(optimalStoppingX(0)).toBeCloseTo(OPTIMAL_PHI_MULTIPLIER, 3);
+		});
+
+		it('findOptimalSingleTaskTime maximizes P̄, with T*/ϕ ∈ (1.5, 1.7933] across the domain', () => {
+			for (const task of DOMAIN_GRID) {
+				const { a, p0, k, phi } = calculateTaskParams({ title: '', ...task });
+				const T = findOptimalSingleTaskTime({ title: '', ...task });
+				const best = averageProductivity(T, a, p0, k);
+				expect(best).toBeGreaterThanOrEqual(averageProductivity(T * 0.99, a, p0, k));
+				expect(best).toBeGreaterThanOrEqual(averageProductivity(T * 1.01, a, p0, k));
+				const multiplier = T / phi;
+				expect(multiplier).toBeGreaterThan(1.5);
+				expect(multiplier).toBeLessThanOrEqual(OPTIMAL_PHI_MULTIPLIER + 1e-6);
+			}
+		});
+
+		it('marginal dP̄/dT decreases strictly on (0, T*] for every task (bisection/greedy precondition)', () => {
+			for (const task of DOMAIN_GRID) {
+				const { a, p0, k } = calculateTaskParams({ title: '', ...task });
+				const cap = findOptimalSingleTaskTime({ title: '', ...task });
+				let prev = Infinity;
+				for (let i = 1; i <= 200; i++) {
+					const m = avgProductivityDerivative((i / 200) * cap, a, p0, k);
+					expect(m).toBeLessThan(prev);
+					prev = m;
+				}
+			}
+		});
+
+		it('per-block value increments are non-increasing for every task (greedy exactness precondition)', () => {
+			// Checked under the defaults AND a fast-flow constants set that hits the
+			// 0.1h ϕ floor (large k stresses the coarse-block regime).
+			const constantSets = [DEFAULT_USER_CONSTANTS, { c1: 0.1, c2: -0.05, c3: 0.05 }];
+			for (const constants of constantSets) {
+				for (const task of DOMAIN_GRID) {
+					const { a, p0, k } = calculateTaskParams({ title: '', ...task }, constants);
+					const cap = findOptimalSingleTaskTime({ title: '', ...task }, constants);
+					// Only the POSITIVE prefix matters: the allocator truncates each
+					// task's increment list at the first non-positive delta (P̄ declines
+					// past T*, so later blocks are never offered to greedy).
+					const maxBlocks = Math.ceil(cap / BLOCK_HOURS) + 2;
+					let prevValue = 0;
+					let prevDelta = Infinity;
+					for (let j = 1; j <= maxBlocks; j++) {
+						const value = averageProductivity(j * BLOCK_HOURS, a, p0, k);
+						const delta = value - prevValue;
+						if (delta <= 1e-12) break;
+						expect(delta).toBeLessThanOrEqual(prevDelta + 1e-12);
+						prevValue = value;
+						prevDelta = delta;
+					}
+				}
+			}
+		});
+	});
+
 	describe('Task Allocation', () => {
-		it('distributes time budget optimally across tasks', () => {
+		it('distributes time budget optimally across tasks, in whole 15-minute blocks', () => {
 			const allocations = calculateTaskAllocations(
 				[
 					{ title: 'Write report', difficulty: 4, enjoyment: 2 },
@@ -59,15 +179,19 @@ describe('Zenith Gradient Algorithm', () => {
 
 			expect(allocations).toHaveLength(2);
 			// Total should equal budget when budget is scarce
-			expect(allocations[0].allocatedHours + allocations[1].allocatedHours).toBeCloseTo(4, 1);
+			expect(allocations[0].allocatedHours + allocations[1].allocatedHours).toBeCloseTo(4, 6);
 			// Both tasks should get non-zero time
 			expect(allocations[0].allocatedHours).toBeGreaterThan(0);
 			expect(allocations[1].allocatedHours).toBeGreaterThan(0);
+			// v2: plans are 15-minute blocks
+			for (const alloc of allocations) {
+				expect((alloc.allocatedHours / BLOCK_HOURS) % 1).toBeCloseTo(0, 9);
+			}
 		});
 
-		it('caps allocations at the optimal stopping time when budget is abundant', () => {
-			// Past t = 1.79×ϕ average productivity DECLINES, so an abundant budget
-			// must leave slack instead of pushing tasks into diminishing returns.
+		it('caps allocations near the optimal stopping time when budget is abundant', () => {
+			// Past T* average productivity DECLINES, so an abundant budget must
+			// leave slack instead of pushing tasks into diminishing returns.
 			const tasks = [
 				{ title: 'Write report', difficulty: 4, enjoyment: 2 },
 				{ title: 'Practice piano', difficulty: 2, enjoyment: 8 }
@@ -77,9 +201,10 @@ describe('Zenith Gradient Algorithm', () => {
 
 			// Total stays well below the 24h budget (≈ Σ single-task optima)
 			expect(total).toBeLessThan(6);
-			// Each task's allocation sits at ≈ 1.79 × its flow-state time ϕ
+			// Each task's allocation sits within one planning block of its own T*
+			// (v2: T* is task-dependent — no longer a universal 1.79×ϕ)
 			for (const a of abundant) {
-				expect(a.allocatedHours).toBeCloseTo(1.7933 * a.phi, 1);
+				expect(Math.abs(a.allocatedHours - a.optimalHours)).toBeLessThanOrEqual(BLOCK_HOURS);
 			}
 		});
 
@@ -97,14 +222,13 @@ describe('Zenith Gradient Algorithm', () => {
 			);
 
 			expect(allocations).toHaveLength(3);
-			expect(allocations[0].allocatedHours).toBeCloseTo(2, 0.5);
-			expect(allocations[1].allocatedHours).toBeCloseTo(2, 0.5);
-			expect(allocations[2].allocatedHours).toBeCloseTo(2, 0.5);
+			expect(allocations[0].allocatedHours).toBeCloseTo(2, 6);
+			expect(allocations[1].allocatedHours).toBeCloseTo(2, 6);
+			expect(allocations[2].allocatedHours).toBeCloseTo(2, 6);
 		});
 
 		it('reproduces article example allocation pattern', () => {
 			// From article: Essay(Eu=7,βu=3), Math(6,6), Video(4,8), Physics(8,5)
-			// Article results: Essay=0.70h, Math=1.84h, Video=1.11h, Physics=2.31h
 			// Essay (high E, low β) should get LEAST time
 			// Physics (highest E, medium β) should get MOST time
 			const allocations = calculateTaskAllocations(
@@ -121,7 +245,7 @@ describe('Zenith Gradient Algorithm', () => {
 
 			expect(allocations).toHaveLength(4);
 			const total = allocations.reduce((sum, a) => sum + a.allocatedHours, 0);
-			expect(total).toBeCloseTo(6, 1);
+			expect(total).toBeCloseTo(6, 6);
 
 			const essay = allocations.find((a) => a.title === 'Essay')!;
 			const physics = allocations.find((a) => a.title === 'Study physics')!;
@@ -150,8 +274,56 @@ describe('Zenith Gradient Algorithm', () => {
 			const totalWithSwitch = allocationsWithSwitch.reduce((sum, a) => sum + a.allocatedHours, 0);
 
 			// With 3 tasks, there are 2 switches, so 0.5h overhead
-			expect(totalNoSwitch).toBeCloseTo(6, 1);
-			expect(totalWithSwitch).toBeCloseTo(5.5, 1); // 6 - 2*0.25 = 5.5
+			expect(totalNoSwitch).toBeCloseTo(6, 6);
+			expect(totalWithSwitch).toBeCloseTo(5.5, 6); // 6 - 2*0.25 = 5.5
+		});
+
+		it('is EXACTLY optimal on the block grid, including the switch-cost fixed charge', () => {
+			// Brute force: every block distribution across 3 tasks, charging
+			// (funded − 1)·switchCost off the time budget. The allocator (greedy
+			// marginal analysis + exhaustive funded-subset enumeration) must match
+			// the brute-force optimum exactly — this is the v2 exactness claim.
+			const tasks = [
+				{ title: 'a', difficulty: 8, enjoyment: 3 },
+				{ title: 'b', difficulty: 4, enjoyment: 9 },
+				{ title: 'c', difficulty: 6, enjoyment: 6 }
+			];
+			const budget = 3;
+			const switchCost = 0.25;
+			const params = tasks.map((t) => calculateTaskParams(t, DEFAULT_USER_CONSTANTS));
+
+			const maxBlocks = Math.floor(budget / BLOCK_HOURS);
+			let brute = 0;
+			for (let b0 = 0; b0 <= maxBlocks; b0++) {
+				for (let b1 = 0; b1 + b0 <= maxBlocks; b1++) {
+					for (let b2 = 0; b2 + b1 + b0 <= maxBlocks; b2++) {
+						const blocks = [b0, b1, b2];
+						const funded = blocks.filter((b) => b > 0).length;
+						const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
+						const time = (b0 + b1 + b2) * BLOCK_HOURS + overhead;
+						if (time > budget + 1e-9) continue;
+						const value = blocks.reduce(
+							(sum, b, i) =>
+								sum + averageProductivity(b * BLOCK_HOURS, params[i].a, params[i].p0, params[i].k),
+							0
+						);
+						if (value > brute) brute = value;
+					}
+				}
+			}
+
+			const allocations = calculateTaskAllocations(
+				tasks,
+				budget,
+				DEFAULT_USER_CONSTANTS,
+				switchCost
+			);
+			const achieved = calculateTotalProductivity(
+				tasks,
+				allocations.map((a) => a.allocatedHours),
+				DEFAULT_USER_CONSTANTS
+			);
+			expect(achieved).toBeCloseTo(brute, 9);
 		});
 	});
 
@@ -172,8 +344,8 @@ describe('Zenith Gradient Algorithm', () => {
 			);
 
 			const cogSpend = allocations.reduce((sum, a) => sum + a.allocatedHours, 0); // weight 1
-			expect(cogSpend).toBeLessThanOrEqual(DEFAULT_CAPACITY_POOLS.cognitiveHours + 0.02);
-			expect(cogSpend).toBeGreaterThan(DEFAULT_CAPACITY_POOLS.cognitiveHours - 0.2);
+			expect(cogSpend).toBeLessThanOrEqual(DEFAULT_CAPACITY_POOLS.cognitiveHours + 1e-9);
+			expect(cogSpend).toBeGreaterThan(DEFAULT_CAPACITY_POOLS.cognitiveHours - 2 * BLOCK_HOURS);
 		});
 
 		it('mixed day fits more hours than a pure cognitive day (dual-pool insight)', () => {
@@ -208,7 +380,7 @@ describe('Zenith Gradient Algorithm', () => {
 
 		it('matches single-budget behavior when pools are ample', () => {
 			// Light tasks (low weights) never touch the pools, so the pooled result
-			// should agree with the pure Lagrange allocator.
+			// must agree with the single-budget allocator exactly (same code path).
 			const tasks = [
 				{ title: 'a', difficulty: 4, enjoyment: 6 },
 				{ title: 'b', difficulty: 6, enjoyment: 4 }
@@ -223,11 +395,11 @@ describe('Zenith Gradient Algorithm', () => {
 			);
 
 			for (let i = 0; i < tasks.length; i++) {
-				expect(pooled[i].allocatedHours).toBeCloseTo(single[i].allocatedHours, 1);
+				expect(pooled[i].allocatedHours).toBeCloseTo(single[i].allocatedHours, 9);
 			}
 		});
 
-		it('never allocates past the optimal stopping time', () => {
+		it('never allocates meaningfully past the optimal stopping time', () => {
 			const allocations = calculatePooledAllocations(
 				[{ title: 'solo', difficulty: 5, enjoyment: 5, cognitiveWeight: 0.1, physicalWeight: 0.1 }],
 				24,
@@ -235,18 +407,30 @@ describe('Zenith Gradient Algorithm', () => {
 				DEFAULT_USER_CONSTANTS,
 				0
 			);
-			// Optimal ≈ 1.79 × ϕ
-			expect(allocations[0].allocatedHours).toBeCloseTo(1.7933 * allocations[0].phi, 1);
+			// Within one planning block of the task's own T*
+			expect(
+				Math.abs(allocations[0].allocatedHours - allocations[0].optimalHours)
+			).toBeLessThanOrEqual(BLOCK_HOURS);
 		});
 	});
 
-	describe('Pool-Aware Refinement', () => {
-		it('matches the brute-force optimum when a pool binds with unequal weights', () => {
+	describe('Pool-Aware Allocation Quality', () => {
+		// Multi-constraint block greedy is a documented heuristic (multi-dimensional
+		// knapsack has no exact greedy); these tests pin it within a whisker of the
+		// brute-force optimum on the scenarios that broke earlier heuristics.
+
+		it('matches the brute-force block optimum when a pool binds with unequal weights', () => {
 			// An hour off the weight-1.0 task frees enough cognitive capacity to
-			// fund 1/0.3 ≈ 3.3h of the weight-0.3 task. A 1:1 time-swap refinement
-			// can never discover this; the resource-aware transfer must.
+			// fund 1/0.3 ≈ 3.3h of the weight-0.3 task; the allocator must price
+			// pool capacity, not just time.
 			const tasks: PooledTaskInput[] = [
-				{ title: 'heavy-cog', difficulty: 9, enjoyment: 8, cognitiveWeight: 1.0, physicalWeight: 0 },
+				{
+					title: 'heavy-cog',
+					difficulty: 9,
+					enjoyment: 8,
+					cognitiveWeight: 1.0,
+					physicalWeight: 0
+				},
 				{ title: 'light-cog', difficulty: 5, enjoyment: 6, cognitiveWeight: 0.3, physicalWeight: 0 }
 			];
 			const pools = { cognitiveHours: 2, physicalHours: 10 };
@@ -254,28 +438,27 @@ describe('Zenith Gradient Algorithm', () => {
 			const hours = allocations.map((a) => a.allocatedHours);
 			const achieved = calculateTotalProductivity(tasks, hours, DEFAULT_USER_CONSTANTS);
 
-			// Brute-force grid search over the feasible region
+			// Brute-force over the same block grid and constraints
 			const params = tasks.map((t) => calculateTaskParams(t, DEFAULT_USER_CONSTANTS));
-			const optima = tasks.map((t) => findOptimalSingleTaskTime(t, DEFAULT_USER_CONSTANTS));
-			let best = 0;
-			for (let h0 = 0; h0 <= Math.min(optima[0], 2) + 1e-9; h0 += 0.01) {
-				const h1Max = Math.min(optima[1], 10 - h0, (2 - h0) / 0.3);
-				for (let h1 = 0; h1 <= h1Max + 1e-9; h1 += 0.01) {
-					const p =
-						averageProductivity(h0, params[0].a, params[0].p0, params[0].k) +
-						averageProductivity(h1, params[1].a, params[1].p0, params[1].k);
-					if (p > best) best = p;
+			let brute = 0;
+			for (let b0 = 0; b0 * BLOCK_HOURS <= 10; b0++) {
+				for (let b1 = 0; (b0 + b1) * BLOCK_HOURS <= 10; b1++) {
+					if (b0 * BLOCK_HOURS * 1.0 + b1 * BLOCK_HOURS * 0.3 > 2 + 1e-9) continue;
+					const value =
+						averageProductivity(b0 * BLOCK_HOURS, params[0].a, params[0].p0, params[0].k) +
+						averageProductivity(b1 * BLOCK_HOURS, params[1].a, params[1].p0, params[1].k);
+					if (value > brute) brute = value;
 				}
 			}
 
-			expect(achieved).toBeGreaterThan(best * 0.99);
+			expect(achieved).toBeGreaterThanOrEqual(brute * 0.99);
 			// And the plan respects the binding pool
-			expect(hours[0] * 1.0 + hours[1] * 0.3).toBeLessThanOrEqual(2 + 0.02);
+			expect(hours[0] * 1.0 + hours[1] * 0.3).toBeLessThanOrEqual(2 + 1e-9);
 		});
 
-		// Real-world scenario that exposed the pairwise-swap heuristic's local
-		// optimum: boxing drains the whole physical pool, guitar/piano compete for
-		// the remainder at weight 0.1, and reading is the only zero-physical task.
+		// Real-world scenario that exposed earlier heuristics' local optima:
+		// boxing drains the whole physical pool, guitar/piano compete for the
+		// remainder at weight 0.1, and reading is the only zero-physical task.
 		const mixedDay: PooledTaskInput[] = [
 			{ title: 'boxing', difficulty: 10, enjoyment: 10, cognitiveWeight: 0.4, physicalWeight: 1.0 },
 			{ title: 'guitar', difficulty: 4.3, enjoyment: 9, cognitiveWeight: 0.4, physicalWeight: 0.1 },
@@ -283,41 +466,87 @@ describe('Zenith Gradient Algorithm', () => {
 			{ title: 'reading', difficulty: 4, enjoyment: 3, cognitiveWeight: 0.4, physicalWeight: 0 }
 		];
 
-		it('escapes the 3-way exchange trap when time and a pool bind together (regression)', () => {
+		// Brute force over every 4-task block plan under time (incl. per-funded-
+		// count switch overhead) and both pools.
+		const bruteForceMixedDay = (
+			budget: number,
+			pools: { cognitiveHours: number; physicalHours: number },
+			switchCost: number
+		) => {
+			const params = mixedDay.map((t) => calculateTaskParams(t, DEFAULT_USER_CONSTANTS));
+			const maxB = Math.floor(budget / BLOCK_HOURS);
+			let best = 0;
+			for (let b0 = 0; b0 <= maxB; b0++) {
+				for (let b1 = 0; b0 + b1 <= maxB; b1++) {
+					for (let b2 = 0; b0 + b1 + b2 <= maxB; b2++) {
+						for (let b3 = 0; b0 + b1 + b2 + b3 <= maxB; b3++) {
+							const blocks = [b0, b1, b2, b3];
+							const funded = blocks.filter((b) => b > 0).length;
+							const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
+							const time = (b0 + b1 + b2 + b3) * BLOCK_HOURS + overhead;
+							if (time > budget + 1e-9) continue;
+							const cog = blocks.reduce(
+								(s, b, i) => s + b * BLOCK_HOURS * mixedDay[i].cognitiveWeight,
+								0
+							);
+							const phys = blocks.reduce(
+								(s, b, i) => s + b * BLOCK_HOURS * mixedDay[i].physicalWeight,
+								0
+							);
+							if (cog > pools.cognitiveHours + 1e-9 || phys > pools.physicalHours + 1e-9) continue;
+							const value = blocks.reduce(
+								(s, b, i) =>
+									s + averageProductivity(b * BLOCK_HOURS, params[i].a, params[i].p0, params[i].k),
+								0
+							);
+							if (value > best) best = value;
+						}
+					}
+				}
+			}
+			return best;
+		};
+
+		it('stays near the brute-force optimum when time and a pool bind together (regression)', () => {
 			const pools = { cognitiveHours: 8, physicalHours: 1 };
-			const allocations = calculatePooledAllocations(mixedDay, 4, pools, DEFAULT_USER_CONSTANTS, 0.25);
+			const allocations = calculatePooledAllocations(
+				mixedDay,
+				4,
+				pools,
+				DEFAULT_USER_CONSTANTS,
+				0.25
+			);
 			const hours = allocations.map((a) => a.allocatedHours);
 			const achieved = calculateTotalProductivity(mixedDay, hours, DEFAULT_USER_CONSTANTS);
 
 			// Feasibility: time budget incl. switches, and the binding physical pool
-			const active = hours.filter((h) => h > 0.005).length;
+			const active = hours.filter((h) => h > 0).length;
 			const timeUsed = hours.reduce((s, h) => s + h, 0) + Math.max(0, active - 1) * 0.25;
-			expect(timeUsed).toBeLessThanOrEqual(4 + 0.02);
+			expect(timeUsed).toBeLessThanOrEqual(4 + 1e-9);
 			expect(hours.reduce((s, h, i) => s + h * mixedDay[i].physicalWeight, 0)).toBeLessThanOrEqual(
-				1.01
+				1 + 1e-9
 			);
 
-			// Brute-force optimum ≈ 3.725 (0.05h grid + local exchange search). The
-			// old heuristic stalled at 3.19: it dumped 1h43m on reading and left piano
-			// 4 minutes, because escaping required a boxing→physical→piano exchange
-			// that pairwise time-swaps cannot express.
-			expect(achieved).toBeGreaterThan(3.72);
-			expect(hours[2]).toBeGreaterThan(0.5); // piano gets a real session, not 4m
-			expect(hours[3]).toBeLessThan(1.0); // reading stays modest, not 1h43m
+			const brute = bruteForceMixedDay(4, pools, 0.25);
+			expect(achieved).toBeGreaterThanOrEqual(brute * 0.98);
 		});
 
-		it('drops a task whose value is below its switch cost', () => {
+		it('prices a task against the switch it would cost (fixed-charge handling)', () => {
 			const pools = { cognitiveHours: 8, physicalHours: 2 };
-			const allocations = calculatePooledAllocations(mixedDay, 4, pools, DEFAULT_USER_CONSTANTS, 0.25);
+			const allocations = calculatePooledAllocations(
+				mixedDay,
+				4,
+				pools,
+				DEFAULT_USER_CONSTANTS,
+				0.25
+			);
 			const hours = allocations.map((a) => a.allocatedHours);
-
-			// Funding reading (~20m of low-marginal work) costs a 15m switch that is
-			// worth more than the work: the optimum drops it entirely and spends the
-			// day on the other three (total P̄ 4.07 vs 3.94 when funding all four).
-			expect(hours[3]).toBe(0);
-			expect(hours.filter((h) => h > 0).length).toBe(3);
 			const achieved = calculateTotalProductivity(mixedDay, hours, DEFAULT_USER_CONSTANTS);
-			expect(achieved).toBeGreaterThan(4.0);
+
+			// The subset enumeration weighs each task's value against the switch it
+			// costs; whatever it decides must be within a whisker of brute force.
+			const brute = bruteForceMixedDay(4, pools, 0.25);
+			expect(achieved).toBeGreaterThanOrEqual(brute * 0.98);
 		});
 	});
 
@@ -354,7 +583,7 @@ describe('Zenith Gradient Algorithm', () => {
 			expect(together.find((a) => a.title === 'blocked')!.allocatedHours).toBe(0);
 			expect(together.find((a) => a.title === 'gym')!.allocatedHours).toBeCloseTo(
 				alone[0].allocatedHours,
-				1
+				9
 			);
 		});
 	});
@@ -483,6 +712,84 @@ describe('Zenith Gradient Algorithm', () => {
 		});
 	});
 
+	describe('Bayesian Posterior (v2)', () => {
+		const obs = (n: number): FlowObservation[] =>
+			Array.from({ length: n }, (_, i) => ({
+				E: 1 + (i % 5),
+				beta: 1 + (i % 4) / 3,
+				phi: 0.5 + 0.4 * (1 + (i % 5)) - 0.2 * (1 + (i % 4) / 3)
+			}));
+
+		it('the MAP estimate satisfies the ridge normal equations (v1-compatible point estimate)', () => {
+			const observations = obs(8);
+			const { constants: c, fitted } = fitUserConstants(observations);
+			expect(fitted).toBe(true);
+			// Gradient of Σ(ϕ − c·x)² + λ‖c − c₀‖² at the solution must vanish
+			const lambda = 4;
+			const c0 = DEFAULT_USER_CONSTANTS;
+			const grad = [0, 0, 0];
+			for (const o of observations) {
+				const r = c.c1 * o.E + c.c2 * o.beta + c.c3 - o.phi;
+				grad[0] += r * o.E;
+				grad[1] += r * o.beta;
+				grad[2] += r;
+			}
+			grad[0] += lambda * (c.c1 - c0.c1);
+			grad[1] += lambda * (c.c2 - c0.c2);
+			grad[2] += lambda * (c.c3 - c0.c3);
+			for (const g of grad) expect(Math.abs(g)).toBeLessThan(1e-9);
+		});
+
+		it('exposes a symmetric positive posterior covariance and noise estimate', () => {
+			const { posterior, fitted } = fitUserConstants(obs(6));
+			expect(fitted).toBe(true);
+			expect(posterior).toBeDefined();
+			expect(posterior!.sigma2).toBeGreaterThan(0);
+			expect(posterior!.nEff).toBeCloseTo(6, 9);
+			for (let i = 0; i < 3; i++) {
+				expect(posterior!.covariance[i][i]).toBeGreaterThan(0);
+				for (let j = 0; j < 3; j++) {
+					expect(posterior!.covariance[i][j]).toBeCloseTo(posterior!.covariance[j][i], 12);
+				}
+			}
+		});
+
+		it('prediction uncertainty shrinks as observations accumulate', () => {
+			const few = fitUserConstants(obs(5)).posterior!;
+			const many = fitUserConstants(obs(100)).posterior!;
+			const stdFew = phiPredictionStd(3, 1.5, few);
+			const stdMany = phiPredictionStd(3, 1.5, many);
+			expect(stdMany).toBeLessThan(stdFew);
+			// ...but never below the irreducible stopwatch noise floor
+			expect(stdMany).toBeGreaterThanOrEqual(Math.sqrt(many.sigma2));
+		});
+
+		it('forgetting factor discounts stale observations', () => {
+			// 10 old logs say ϕ = 3h at (3, 1.5); 10 recent logs say ϕ = 1h.
+			const stale: FlowObservation[] = Array.from({ length: 10 }, () => ({
+				E: 3,
+				beta: 1.5,
+				phi: 3
+			}));
+			const recent: FlowObservation[] = Array.from({ length: 10 }, () => ({
+				E: 3,
+				beta: 1.5,
+				phi: 1
+			}));
+			const all = [...stale, ...recent];
+
+			const equal = fitUserConstants(all).constants;
+			const forgetting = fitUserConstants(all, DEFAULT_USER_CONSTANTS, {
+				forgettingFactor: 0.7
+			}).constants;
+
+			const predictAt = (c: { c1: number; c2: number; c3: number }) => c.c1 * 3 + c.c2 * 1.5 + c.c3;
+			// With forgetting, the prediction sits meaningfully closer to the
+			// recent 1h logs than the equal-weight fit does.
+			expect(predictAt(forgetting)).toBeLessThan(predictAt(equal) - 0.2);
+		});
+	});
+
 	describe('Pooled Productivity Gain', () => {
 		it('optimized plan beats the pool-feasible naive split', () => {
 			const tasks: PooledTaskInput[] = [
@@ -521,7 +828,9 @@ describe('Zenith Gradient Algorithm', () => {
 
 	describe('Bug Fixes', () => {
 		it('distributes time across all tasks with small budget (regression test)', () => {
-			// This test prevents the bug where only one task got all the time
+			// This test prevents the bug where only one task got all the time.
+			// v2 note: the p₀ activation bonus makes first blocks very valuable,
+			// so a scarce budget spreads even more reliably than under v1.
 			const allocations = calculateTaskAllocations(
 				[
 					{ title: 'network', difficulty: 3, enjoyment: 1 },
@@ -542,7 +851,7 @@ describe('Zenith Gradient Algorithm', () => {
 
 			// Total should equal budget
 			const total = allocations.reduce((sum, a) => sum + a.allocatedHours, 0);
-			expect(total).toBeCloseTo(2, 1);
+			expect(total).toBeCloseTo(2, 6);
 
 			// High enjoyment tasks should get reasonable allocation
 			const guitar = allocations.find((a) => a.title === 'guitar');
@@ -566,7 +875,7 @@ describe('Zenith Gradient Algorithm', () => {
 
 			// Total should equal budget
 			const total = allocations.reduce((sum, a) => sum + a.allocatedHours, 0);
-			expect(total).toBeCloseTo(1, 1);
+			expect(total).toBeCloseTo(1, 6);
 
 			// Multiple tasks should get time
 			const tasksWithTime = allocations.filter((a) => a.allocatedHours > 0.05);

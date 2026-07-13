@@ -1,8 +1,42 @@
 /**
- * Zenith Gradient Algorithm
- * Based on: https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e
+ * Zenith Gradient Algorithm — model v2
  *
- * Mathematical model for optimizing time allocation across tasks to maximize productivity.
+ * Originally based on:
+ * https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e
+ * (a copy lives in /zenith.md)
+ *
+ * The mathematical model optimizes time allocation across tasks to maximize
+ * the sum of per-task AVERAGE productivities. This file deviates from the
+ * article in several deliberate, documented ways; the full derivations and
+ * the reasoning behind every deviation live in /MATH.md. Summary of v2:
+ *
+ * 1. NEW PRODUCTIVITY CURVE  p(t) = (a·k·t + p₀)·e^(−kt), k = (1 − p₀/a)/ϕ.
+ *    The article's curve p(t) = (a+p₀)·k·t·e^(−kt) had p(0) = 0, so its
+ *    "initial productivity" p₀ was really just an amplitude term. The v2
+ *    curve actually starts at p(0) = p₀, still peaks exactly at t = ϕ
+ *    (with value a·e^(p₀/a − 1)), and still has closed-form integrals.
+ *
+ * 2. PER-TASK OPTIMAL STOPPING. The optimal-stopping equation becomes
+ *    eˣ = 1 + x + x²/(1+r) with r = p₀/a and x = k·t — the article's
+ *    eˣ = 1 + x + x² is the r → 0 special case (root 1.7933). The stopping
+ *    time in units of ϕ now depends on the task: T* = ϕ·x*(r)/(1−r), which
+ *    ranges over (1.5, 1.7933].
+ *
+ * 3. DISCRETE EXACT ALLOCATOR. Time is planned in 15-minute blocks
+ *    (BLOCK_HOURS) and distributed by greedy marginal analysis, which is
+ *    provably optimal for separable concave objectives over a shared budget
+ *    (Fox 1966; Ibaraki & Katoh, "Resource Allocation Problems", MIT Press).
+ *    Context-switch cost is handled by exact enumeration of funded-task
+ *    subsets (the fixed-charge part of the problem). This replaced the v1
+ *    Lagrange-multiplier bisection + iterative drop-search: the v2 curve's
+ *    value jump at t = 0⁺ (a task you start at all immediately yields ≈ p₀
+ *    average productivity) breaks the concavity that the Lagrange/KKT
+ *    machinery required, while the discrete greedy handles it naturally.
+ *
+ * 4. BAYESIAN PERSONALIZATION. fitUserConstants still returns the same MAP
+ *    (ridge) point estimate, but now also the full posterior — covariance and
+ *    noise estimate — so callers can quantify how certain a ϕ prediction is,
+ *    plus an optional forgetting factor for users whose flow behavior drifts.
  */
 
 export interface TaskInput {
@@ -12,12 +46,14 @@ export interface TaskInput {
 }
 
 export interface TaskAllocation extends TaskInput {
-	allocatedHours: number;
+	allocatedHours: number; // Always a multiple of BLOCK_HOURS
 	E: number; // True effort (mapped to 1-5)
 	beta: number; // True enjoyability (mapped to 1-2)
 	phi: number; // Time to flow state (hours)
-	peakProductivity: number; // (a + p₀)/e - actual peak at t=ϕ
+	peakProductivity: number; // p(ϕ) = a·e^(p₀/a − 1), the curve's actual maximum
 	avgProductivity: number; // Average productivity over allocated time
+	optimalHours: number; // Single-task optimal stopping time T* = x*(r)/k
+	optimalAvgProductivity: number; // P̄(T*): best achievable average — allocation-independent task value
 }
 
 export interface UserConstants {
@@ -26,38 +62,64 @@ export interface UserConstants {
 	c3: number; // Constant offset for flow state time
 }
 
-// Default constants (can be personalized via linear regression on user data)
+// Default constants (personalized via fitUserConstants on measured ⚡ logs)
 export const DEFAULT_USER_CONSTANTS: UserConstants = {
 	c1: 0.56, // Higher effort → longer time to flow
 	c2: -0.24, // Higher enjoyability → shorter time to flow
 	c3: 0.5 // Base offset to keep ϕ positive
 };
 
-// Default context-switching cost in hours (15 minutes)
+// Default context-switching cost in hours (15 minutes). Empirically defensible:
+// Mark, Gudith & Klocke (CHI 2008) measured ~23 minutes to regain focus after an
+// interruption; 15 minutes is a conservative per-planned-switch estimate since a
+// planned switch is gentler than an interruption. Interpreted as ATTENTION
+// RESIDUE (Leroy 2009, OBHDP) — the cost of disengaging from the previous task —
+// NOT as ramp-up time on the next task: ramp-up is already priced into the
+// productivity curve through ϕ.
 export const DEFAULT_SWITCH_COST = 0.25;
 
 /**
- * Optimal-stopping multiplier: single-task average productivity P̄(t) is
- * maximized at t = OPTIMAL_PHI_MULTIPLIER × ϕ.
+ * Planning granularity: allocations are whole 15-minute blocks.
  *
- * Derivation: setting dP̄/dt = 0 for p(t) = (a + p₀)·k·t·e^(−kt) reduces to
- * x² + x + 1 = eˣ, where x = t/ϕ. The non-trivial root is x ≈ 1.7933.
+ * WHY (v2 change): v1 solved the continuous problem and emitted plans like
+ * "1.84h". Nobody executes 1.84 hours; blocks are how humans actually plan.
+ * The discretization also makes the optimizer EXACT: with diminishing
+ * per-block value increments, greedy marginal analysis provably maximizes the
+ * objective (see MATH.md §4), replacing v1's numerically-tolerant λ-bisection
+ * and its rescaling/rounding-residual patch-ups. Budget below one block is
+ * left unplanned — a sub-15-minute sliver is not a real work session.
+ */
+export const BLOCK_HOURS = 0.25;
+
+/**
+ * v1 optimal-stopping multiplier: under the OLD curve p(t) = (a+p₀)·k·t·e^(−kt),
+ * average productivity peaked at t = 1.7933ϕ for every task (root of
+ * eˣ = x² + x + 1).
  *
- * NOTE: The article's worked example of "≈3.16 hours" is NOT this multiplier.
- * That example had ϕ ≈ 1.762 h, and 1.762 × 1.7933 ≈ 3.16 h — an absolute
- * time for that one task, not a dimensionless multiple of ϕ.
+ * v2 NOTE: with the new curve the multiplier is task-dependent —
+ * T* = ϕ·x*(r)/(1−r) with multiplier in (1.5, 1.7933], r = p₀/a — so this is now only
+ * (a) the exact r → 0 limit, (b) a strict UPPER BOUND on every task's
+ * multiplier, and (c) the seed/bracket for the per-task root solve. Use
+ * findOptimalSingleTaskTime (or TaskAllocation.optimalHours) for real values.
+ * Still consumed by the experimental zenith-energy model, which intentionally
+ * remains on the v1 curve (see MATH.md §7).
  */
 export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
 
 /**
- * Average productivity at the optimal stopping time, as a fraction of (a + p₀):
- * P̄(x·ϕ) = (a + p₀)·[1 − e^(−x)(x + 1)]/x with x = OPTIMAL_PHI_MULTIPLIER.
- * Because x is a fixed dimensionless constant, this makes a task's best
- * achievable average productivity a pure function of its parameters — useful
- * as an allocation-independent measure of task value.
+ * Cap on r = p₀/a, the ratio of initial to peak-scale productivity.
+ *
+ * WHY: the v2 curve needs p₀ < a for k = (1 − p₀/a)/ϕ to stay positive. With
+ * the article's parameter maps, p₀/a = (β/E)/(E·β) = 1/E², which hits exactly
+ * 1 at E = 1 (user difficulty 1) — a degenerate flat curve with no flow
+ * dynamics and no optimal stopping. Capping r at 0.9 only affects E < 1.054
+ * (user difficulty below ≈1.12) and keeps every task's curve well-defined.
  */
-export const OPTIMAL_AVG_FRACTION =
-	(1 - Math.exp(-OPTIMAL_PHI_MULTIPLIER) * (OPTIMAL_PHI_MULTIPLIER + 1)) / OPTIMAL_PHI_MULTIPLIER;
+export const AMPLITUDE_RATIO_CAP = 0.9;
+
+// Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
+// tasks (4096 subsets — instant), greedy forward-selection beyond it.
+const EXACT_SUBSET_LIMIT = 12;
 
 /**
  * Map user effort (1-10) to true effort E (1-5)
@@ -82,99 +144,166 @@ export function mapEnjoyability(betaU: number): number {
 export function calculateFlowStateTime(E: number, beta: number, constants: UserConstants): number {
 	const phi = constants.c1 * E + constants.c2 * beta + constants.c3;
 	// Floor at 6 minutes: a fitted plane may extrapolate to ≈0 (or below) far
-	// from the measured tasks. A strictly positive ϕ keeps k = 1/ϕ finite and
-	// the productivity curve well-defined everywhere.
+	// from the measured tasks. A strictly positive ϕ keeps k finite and the
+	// productivity curve well-defined everywhere.
 	return Math.max(0.1, phi);
 }
 
 /**
- * Calculate the p₀ amplitude term.
- * p₀ = β/E
+ * Initial productivity p₀ = β/E.
  *
- * NOTE: despite the name "initial productivity", in the implemented curve
- * p(t) = (a + p₀)·k·t·e^(−kt) this term is a scaling factor on the amplitude,
- * not the literal value at t = 0 (which is 0). It raises the whole curve for
- * enjoyable, low-effort tasks and does not affect where the peak occurs.
+ * v2: with the new curve this genuinely IS the productivity at t = 0
+ * (p(0) = p₀), fixing the v1 mismatch where the curve forced p(0) = 0 and p₀
+ * was silently just an amplitude term. Enjoyable, low-effort tasks start
+ * productive immediately; hard, unenjoyable ones start near zero.
+ *
+ * NOTE: calculateTaskParams caps the EFFECTIVE p₀ at AMPLITUDE_RATIO_CAP × a.
  */
 export function calculateInitialProductivity(E: number, beta: number): number {
 	return beta / E;
 }
 
 /**
- * Calculate peak productivity scaling factor
- * a = E × β
+ * Peak productivity scaling factor a = E × β.
  *
- * Higher effort tasks that we really enjoy correspond to higher peak productivity.
+ * Higher effort tasks that we really enjoy correspond to higher peak
+ * productivity. v2: the actual curve maximum is p(ϕ) = a·e^(p₀/a − 1), whose
+ * first-order expansion in p₀/a is (a + p₀)/e — exactly the v1 peak. So v1's
+ * peak was the small-p₀ approximation of the v2 peak.
  */
 export function calculatePeakScaling(E: number, beta: number): number {
 	return E * beta;
 }
 
-/**
- * Productivity function at time t
- * p(t) = (a + p₀) × k × t × e^(-kt) where k = 1/ϕ
- *
- * The k factor normalizes across different flow state times, ensuring tasks
- * with different ϕ values are comparable in the Lagrange optimization.
- *
- * Note: This form ensures the maximum occurs exactly at t = 1/k = ϕ (flow state time).
- * Taking dp/dt = 0 gives (1 - kt) = 0, so t_max = 1/k = ϕ.
- * Peak productivity at t = ϕ: p(ϕ) = (a + p₀) × k × ϕ × e^(-1) = (a + p₀)/e
- */
-export function productivity(t: number, a: number, p0: number, k: number): number {
-	if (t <= 0) return 0;
-	return (a + p0) * k * t * Math.exp(-k * t);
+// r = p₀/a clamped to [0, AMPLITUDE_RATIO_CAP]. Defensive: calculateTaskParams
+// already caps p₀, but the curve helpers accept raw (a, p₀) from tests/callers.
+function amplitudeRatio(a: number, p0: number): number {
+	if (a <= 0) return 0;
+	return Math.min(Math.max(p0, 0) / a, AMPLITUDE_RATIO_CAP);
 }
 
 /**
- * Average productivity over interval [0, T]
- * P̄(T) = (1/T) ∫₀ᵀ p(t) dt
+ * Productivity at time t into a task (v2 curve):
  *
- * With p(t) = (a + p₀) × k × t × e^(-kt):
+ *   p(t) = (a·k·t + p₀)·e^(−kt),   k = (1 − p₀/a)/ϕ
  *
- * Analytical solution:
- * ∫₀ᵀ k × t × e^(-kt) dt = (1/k)[1 - e^(-kT)(kT + 1)]
+ * Properties (derivations in MATH.md §2):
+ * - p(0) = p₀ — the task starts at its initial productivity (v1 started at 0)
+ * - dp/dt = k·e^(−kt)·(a − p₀ − a·k·t) = 0  ⇒  peak exactly at t = ϕ
+ * - p(ϕ) = a·e^(p₀/a − 1)  (≈ (a+p₀)/e for small p₀/a, the v1 value)
+ * - p is concave on the whole working range [0, T*] (inflection at
+ *   k·t = 2 − p₀/a, which always lies beyond the optimal stopping point)
+ */
+export function productivity(t: number, a: number, p0: number, k: number): number {
+	if (t < 0) return 0;
+	const r = amplitudeRatio(a, p0);
+	return (a * k * t + r * a) * Math.exp(-k * t);
+}
+
+// Shared kernels of the average-productivity integral, in x = kT units:
+//   f(x) = 1 − e^(−x)(x + 1)   from ∫ k·t·e^(−kt) dt
+//   g(x) = 1 − e^(−x)          from ∫ k·e^(−kt) dt
+// Series fallbacks avoid catastrophic cancellation at tiny x (both kernels are
+// differences of nearly-equal quantities ~O(x²) and ~O(x)).
+function kernelF(x: number): number {
+	if (x < 1e-4) return (x * x) / 2 - (x * x * x) / 3;
+	return 1 - Math.exp(-x) * (x + 1);
+}
+function kernelG(x: number): number {
+	if (x < 1e-4) return x - (x * x) / 2 + (x * x * x) / 6;
+	return 1 - Math.exp(-x);
+}
+
+/**
+ * Average productivity over (0, T]:  P̄(T) = (1/T) ∫₀ᵀ p(t) dt
  *
- * So: P̄(T) = (a + p₀) × [1 - e^(-kT)(kT + 1)] / (T × k)
+ * With the v2 curve (x = kT, r = p₀/a):
+ *
+ *   ∫₀ᵀ a·k·t·e^(−kt) dt = (a/k)·[1 − e^(−kT)(kT + 1)]        = (a/k)·f(x)
+ *   ∫₀ᵀ p₀·e^(−kt)   dt = (p₀/k)·(1 − e^(−kT))                = (a·r/k)·g(x)
+ *
+ *   P̄(T) = a·[f(x) + r·g(x)] / x
+ *
+ * IMPORTANT DISCONTINUITY (v2): lim T→0⁺ P̄(T) = p₀ > 0, but P̄(0) := 0 — a
+ * task you never start contributes nothing. Working a task AT ALL immediately
+ * yields ≈ p₀ of average productivity ("activation bonus"). This jump is what
+ * makes the objective non-concave and motivated the discrete allocator; see
+ * MATH.md §3–4.
  */
 export function averageProductivity(T: number, a: number, p0: number, k: number): number {
 	if (T <= 0) return 0;
-
-	const kT = k * T;
-	const expTerm = Math.exp(-kT);
-	const integral = (1 / k) * (1 - expTerm * (kT + 1));
-
-	return ((a + p0) * integral) / T;
+	const r = amplitudeRatio(a, p0);
+	const x = k * T;
+	return (a * (kernelF(x) + r * kernelG(x))) / x;
 }
 
 /**
- * Derivative of average productivity with respect to T
- * Used for Lagrange multiplier optimization
+ * Derivative of average productivity with respect to T.
  *
- * P̄(T) = (a + p₀)/k × [1 - e^(-kT)(kT + 1)] / T
+ * d/dx[(f + r·g)/x] = [(f' + r·g')·x − (f + r·g)] / x²  with f' = x·e^(−x),
+ * g' = e^(−x), collapses to N(x)/x² where
  *
- * Let f(T) = 1 - e^(-kT)(kT + 1)
- * f'(T) = k²T × e^(-kT)
+ *   N(x) = e^(−x)·(x² + (1+r)x + (1+r)) − (1+r)
  *
- * d/dT[P̄(T)] = (a + p₀)/k × [f'(T)×T - f(T)] / T²
- *            = (a + p₀)/k × [k²T² × e^(-kT) - (1 - e^(-kT)(kT + 1))] / T²
+ * so  dP̄/dT = a·k·N(x)/x².  Limit T → 0⁺:  a·k·(1−r)/2  (= k(a−p₀)/2).
+ *
+ * The marginal decreases strictly and monotonically from that limit to 0 at
+ * the optimal stopping point x*(r) — verified numerically across the full
+ * parameter domain in zenith.test.ts, since the block allocator's exactness
+ * rests on the resulting diminishing per-block increments.
  */
 export function avgProductivityDerivative(T: number, a: number, p0: number, k: number): number {
-	// Only guard the true singularity at T = 0; the closed form below is
-	// numerically stable for any T > 0, so evaluating it directly gives the
-	// real marginal value (≈ (a + p₀)·k / 2 as T → 0⁺) instead of a placeholder.
-	if (T <= 1e-9) return (a + p0) * k * 0.5;
+	const r = amplitudeRatio(a, p0);
+	if (T <= 1e-9) return a * k * ((1 - r) / 2);
 
-	const kT = k * T;
-	const expTerm = Math.exp(-kT);
-	const f = 1 - expTerm * (kT + 1);
-	const fPrime = k * k * T * expTerm;
-
-	return ((a + p0) / k) * ((fPrime * T - f) / (T * T));
+	const x = k * T;
+	if (x < 1e-4) {
+		// Series: N/x² = (1 − (1+r)/2) + ((1+r)/3 − 1)·x + O(x²)
+		return a * k * ((1 - r) / 2 + ((1 + r) / 3 - 1) * x);
+	}
+	const N = Math.exp(-x) * (x * x + (1 + r) * x + (1 + r)) - (1 + r);
+	return (a * k * N) / (x * x);
 }
 
 /**
- * Calculate task parameters from user input
+ * Optimal-stopping root x*(r): the dimensionless time x = kT at which dP̄/dT = 0.
+ *
+ * Setting N(x) = 0 and rearranging:   eˣ = 1 + x + x²/(1 + r)
+ *
+ * - r = 0 recovers the article's equation eˣ = x² + x + 1 with root 1.7933
+ *   (OPTIMAL_PHI_MULTIPLIER — under v1's curve the multiplier for EVERY task).
+ * - x*(r) is strictly decreasing in r; the stopping time in units of ϕ is
+ *   T* = ϕ·x*(r)/(1−r), whose multiplier decreases from 1.7933 (r→0) toward 3/(1+r) → 1.5
+ *   (r→1, by series expansion — MATH.md §3). So under v2 every task still
+ *   stops between 1.5ϕ and 1.79ϕ, but tasks that start productive (high p₀
+ *   relative to peak) stop earlier: their early hours were already good, so
+ *   the tail drags the average down sooner.
+ *
+ * Solved by bisection on q(x) = eˣ − 1 − x − x²/(1+r): q < 0 on (0, x*) and
+ * q > 0 beyond, with x* ≤ 1.7933 < 1.80 for every r ≥ 0.
+ */
+export function optimalStoppingX(r: number): number {
+	let lo = 1e-6;
+	let hi = 1.8;
+	for (let i = 0; i < 60; i++) {
+		const mid = (lo + hi) / 2;
+		const q = Math.exp(mid) - 1 - mid - (mid * mid) / (1 + r);
+		if (q < 0) {
+			lo = mid;
+		} else {
+			hi = mid;
+		}
+	}
+	return (lo + hi) / 2;
+}
+
+/**
+ * Calculate task parameters from user input.
+ *
+ * v2: the effective p₀ is capped at AMPLITUDE_RATIO_CAP × a (only binds for
+ * user difficulty below ≈1.12, where the article's maps give p₀ = a and the
+ * curve degenerates), and k = (1 − p₀/a)/ϕ replaces v1's k = 1/ϕ so the peak
+ * stays exactly at t = ϕ under the new curve.
  */
 export function calculateTaskParams(
 	task: TaskInput,
@@ -190,45 +319,26 @@ export function calculateTaskParams(
 	const E = mapEffort(task.difficulty);
 	const beta = mapEnjoyability(task.enjoyment);
 	const phi = calculateFlowStateTime(E, beta, constants);
-	const k = 1 / phi;
-	const p0 = calculateInitialProductivity(E, beta);
 	const a = calculatePeakScaling(E, beta);
+	const p0 = Math.min(calculateInitialProductivity(E, beta), AMPLITUDE_RATIO_CAP * a);
+	const k = (1 - p0 / a) / phi;
 
 	return { E, beta, phi, k, a, p0 };
 }
 
 /**
- * Find optimal time for a single task (when there's no constraint)
- * Maximize P̄(T) by setting dP̄/dT = 0
+ * Optimal time for a single task: T* = x*(r)/k, the unique maximizer of P̄(T).
  *
- * This requires numerical solving. The optimum is at t = OPTIMAL_PHI_MULTIPLIER × ϕ
- * (≈ 1.79 × ϕ); Newton-Raphson refines from there.
+ * v2: closed-form via the optimal-stopping root — no Newton-Raphson iteration
+ * needed anymore (v1 seeded Newton at the fixed 1.7933ϕ; v2's root solve IS
+ * the answer).
  */
 export function findOptimalSingleTaskTime(
 	task: TaskInput,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS
 ): number {
-	const { a, p0, k, phi } = calculateTaskParams(task, constants);
-
-	// Newton-Raphson to find where derivative = 0, seeded at the analytic optimum
-	let T = phi * OPTIMAL_PHI_MULTIPLIER;
-	const tolerance = 0.001;
-	const maxIterations = 50;
-
-	for (let i = 0; i < maxIterations; i++) {
-		const deriv = avgProductivityDerivative(T, a, p0, k);
-		if (Math.abs(deriv) < tolerance) break;
-
-		// Numerical derivative of the derivative (for Newton step)
-		const h = 0.001;
-		const deriv2 = (avgProductivityDerivative(T + h, a, p0, k) - deriv) / h;
-
-		if (Math.abs(deriv2) < 0.0001) break;
-		T = T - deriv / deriv2;
-		T = Math.max(0.1, T); // Keep positive
-	}
-
-	return T;
+	const { a, p0, k } = calculateTaskParams(task, constants);
+	return optimalStoppingX(amplitudeRatio(a, p0)) / k;
 }
 
 function zeroAllocations(tasks: TaskInput[]): TaskAllocation[] {
@@ -239,128 +349,315 @@ function zeroAllocations(tasks: TaskInput[]): TaskAllocation[] {
 		beta: mapEnjoyability(task.enjoyment),
 		phi: 0,
 		peakProductivity: 0,
-		avgProductivity: 0
+		avgProductivity: 0,
+		optimalHours: 0,
+		optimalAvgProductivity: 0
 	}));
 }
 
-// Allocations below this are display-rounded to 0h, so a task under it is not
-// a real work session and should not be charged a context switch.
-const ACTIVE_EPS = 0.005;
+// ==================== Discrete allocator (v2) ====================
+//
+// The objective Σᵢ P̄ᵢ(tᵢ) is maximized over 15-minute blocks by greedy
+// marginal analysis. Correctness rests on two facts (both verified in tests):
+//
+// 1. DIMINISHING INCREMENTS: each task's value of its j-th block,
+//    Δᵢ(j) = P̄ᵢ(j·δ) − P̄ᵢ((j−1)·δ), is non-increasing in j. The first block
+//    carries the p₀ activation bonus (largest by far); subsequent blocks
+//    follow the strictly-decreasing marginal of the concave region.
+// 2. GREEDY EXACTNESS: with diminishing increments and a single shared block
+//    budget, repeatedly funding the highest remaining increment is exactly
+//    optimal (Fox 1966 "Discrete optimization via marginal analysis";
+//    Ibaraki & Katoh 1988). Equivalently: the optimal plan is the top-B
+//    increments of the merged, sorted increment lists.
+//
+// Switch cost makes "which tasks get funded at all" a fixed-charge decision
+// that greedy can't price (an (m)-task plan pays (m−1)·switchCost off the
+// budget). It is solved EXACTLY by enumerating funded subsets for n ≤ 12 —
+// v1's iterative count-resolution + greedy drop-search heuristic is gone.
+//
+// With capacity pools (calculatePooledAllocations) a block is only eligible
+// while both pools can absorb its weights. Multi-constraint greedy is no
+// longer provably exact (that is a multi-dimensional knapsack), but it is
+// feasible by construction, handles the p₀ jump correctly, and lands within
+// a block or two of the brute-force optimum on the regression scenarios in
+// zenith.test.ts. The v1 Lagrangian-dual coordinate descent it replaces was
+// only "exact" for a concave objective — a premise the v2 curve's activation
+// bonus breaks — so its guarantee was already gone; see MATH.md §4.
 
-/**
- * Invert the marginal-productivity curve: the t ∈ [0, cap] where dP̄/dt equals
- * `price`. The marginal decreases monotonically from (a+p₀)k/2 at t→0⁺ to 0 at
- * the single-task optimum (cap), so an unattainably high price maps to 0 and a
- * non-positive price maps to the cap.
- */
-function timeAtMarginal(price: number, a: number, p0: number, k: number, cap: number): number {
-	if (price >= avgProductivityDerivative(0, a, p0, k)) return 0;
-	if (price <= Math.max(0, avgProductivityDerivative(cap, a, p0, k))) return cap;
-
-	let lo = 0;
-	let hi = cap;
-	for (let i = 0; i < 50; i++) {
-		const mid = (lo + hi) / 2;
-		const deriv = avgProductivityDerivative(mid, a, p0, k);
-		if (Math.abs(deriv - price) < 1e-4) return mid;
-		if (deriv > price) {
-			lo = mid; // marginal still above the price → more time
-		} else {
-			hi = mid;
-		}
-	}
-	return (lo + hi) / 2;
+interface AllocTask {
+	increments: number[]; // Δ(j) for j = 1..len: positive, non-increasing, truncated at the optimum
+	cognitiveWeight: number;
+	physicalWeight: number;
 }
 
 /**
- * Resolve the chicken-and-egg between switch overhead and allocations:
- * switches only happen between tasks that actually receive time, but which
- * tasks receive time depends on the budget left after switch overhead.
- *
- * Two phases:
- * 1. Count resolution — assume all (non-excluded) tasks are active, allocate,
- *    recount the funded tasks, and re-allocate with the smaller overhead until
- *    the count is stable. The `seen` guard breaks the rare oscillation where a
- *    lower overhead re-funds a previously dropped task.
- * 2. Drop search — the allocator funds any task whose marginal beats λ, but a
- *    weak task can be worth less than the switch cost it incurs. Greedily try
- *    force-dropping each funded task (freeing its time AND one switch) and
- *    keep the drop whenever total productivity strictly improves. Each drop is
- *    also tried with the currently-unfunded tasks pinned out: freeing a task's
- *    budget can re-admit a weak task the allocator had starved (its marginal
- *    beats λ, but not the switch it would cost), masking the drop's benefit.
+ * Per-block value increments for one task, truncated at the first non-positive
+ * increment (the discrete optimal stopping point — greedy must never be
+ * offered a block that lowers the objective, and blocks past T* do).
  */
-function resolveWithSwitchOverhead(
-	taskCount: number,
+function buildBlockIncrements(a: number, p0: number, k: number, optimalTime: number): number[] {
+	const maxBlocks = Math.ceil(optimalTime / BLOCK_HOURS) + 1;
+	const increments: number[] = [];
+	let prev = 0;
+	for (let j = 1; j <= maxBlocks; j++) {
+		const value = averageProductivity(j * BLOCK_HOURS, a, p0, k);
+		const delta = value - prev;
+		if (delta <= 1e-12) break;
+		increments.push(delta);
+		prev = value;
+	}
+	return increments;
+}
+
+/**
+ * Greedy marginal analysis over a task subset: fund the highest remaining
+ * increment until the block budget, the increment lists, or the pools run out.
+ * Ties break toward the lower task index, which round-robins identical tasks
+ * into equal splits (the article's sanity check). Starts from an existing
+ * partial plan when given one (used by the transfer improvement pass).
+ */
+function greedyAllocateBlocks(
+	tasks: AllocTask[],
+	subset: number[],
+	budgetBlocks: number,
+	poolCog: number,
+	poolPhys: number,
+	startBlocks?: number[]
+): { blocks: number[]; poolBlocked: boolean } {
+	const blocks = startBlocks ? [...startBlocks] : new Array<number>(tasks.length).fill(0);
+	let used = 0;
+	let remCog = poolCog;
+	let remPhys = poolPhys;
+	for (let i = 0; i < tasks.length; i++) {
+		used += blocks[i];
+		remCog -= blocks[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
+		remPhys -= blocks[i] * BLOCK_HOURS * tasks[i].physicalWeight;
+	}
+
+	let poolBlocked = false;
+	for (let b = used; b < budgetBlocks; b++) {
+		let best = -1;
+		let bestInc = 0;
+		for (const i of subset) {
+			const j = blocks[i];
+			if (j >= tasks[i].increments.length) continue;
+			if (
+				BLOCK_HOURS * tasks[i].cognitiveWeight > remCog + 1e-9 ||
+				BLOCK_HOURS * tasks[i].physicalWeight > remPhys + 1e-9
+			) {
+				poolBlocked = true;
+				continue;
+			}
+			const inc = tasks[i].increments[j];
+			if (inc > bestInc + 1e-12) {
+				best = i;
+				bestInc = inc;
+			}
+		}
+		if (best === -1) break;
+		blocks[best]++;
+		remCog -= BLOCK_HOURS * tasks[best].cognitiveWeight;
+		remPhys -= BLOCK_HOURS * tasks[best].physicalWeight;
+	}
+	return { blocks, poolBlocked };
+}
+
+/**
+ * Resource-aware transfer pass for pool-bound plans.
+ *
+ * WHY: plain block greedy ranks by increment VALUE and is blind to how much
+ * scarce pool capacity a block consumes. When a pool binds, an hour off a
+ * weight-1.0 task frees enough capacity to fund ~3.3h of a weight-0.3 task —
+ * a trade greedy can never see (this is the multi-dimensional-knapsack gap;
+ * v1's dual coordinate descent priced pools but relied on a concavity premise
+ * the v2 curve breaks — MATH.md §4).
+ *
+ * Move: give back the donor task's most recent block, then greedily refill
+ * the freed time + pool capacity across the OTHER tasks; keep the move only
+ * if total value strictly improves. Strict improvement makes cycling
+ * impossible, and each pass runs only when greedy actually hit a pool wall,
+ * so the single-constraint path (pools = ∞) keeps its exactness untouched.
+ */
+function improveWithTransfers(
+	tasks: AllocTask[],
+	subset: number[],
+	startBlocks: number[],
+	budgetBlocks: number,
+	poolCog: number,
+	poolPhys: number
+): number[] {
+	let blocks = startBlocks;
+	let value = planValue(tasks, blocks);
+	const maxIterations = 4 * budgetBlocks + 16;
+
+	for (let iter = 0; iter < maxIterations; iter++) {
+		let bestBlocks: number[] | null = null;
+		let bestValue = value;
+		for (const donor of subset) {
+			if (blocks[donor] <= 0) continue;
+			const trial = [...blocks];
+			trial[donor]--;
+			const others = subset.filter((i) => i !== donor);
+			const refilled = greedyAllocateBlocks(
+				tasks,
+				others,
+				budgetBlocks,
+				poolCog,
+				poolPhys,
+				trial
+			).blocks;
+			const refillValue = planValue(tasks, refilled);
+			if (refillValue > bestValue + 1e-12) {
+				bestBlocks = refilled;
+				bestValue = refillValue;
+			}
+		}
+		if (bestBlocks === null) break;
+		blocks = bestBlocks;
+		value = bestValue;
+	}
+	return blocks;
+}
+
+function planValue(tasks: AllocTask[], blocks: number[]): number {
+	let value = 0;
+	for (let i = 0; i < tasks.length; i++) {
+		for (let j = 0; j < blocks[i]; j++) value += tasks[i].increments[j];
+	}
+	return value;
+}
+
+/**
+ * Best block plan accounting for switch cost: a plan funding m tasks pays
+ * (m−1)·switchCost out of the time budget before any block is placed.
+ *
+ * n ≤ EXACT_SUBSET_LIMIT: enumerate every funded subset (exact — this is the
+ * fixed-charge dimension of the problem and n is small in a daily planner).
+ * A subset where greedy leaves a member at 0 blocks is never strictly best
+ * (the same plan under the smaller subset has more budget), so enumeration
+ * remains exact without special-casing. Ties prefer the plan funding more
+ * tasks, preserving v1's "keep the more inclusive plan" behavior.
+ *
+ * n > EXACT_SUBSET_LIMIT: greedy forward selection on the funded set (add the
+ * task whose admission most improves the total, stop when none improves) —
+ * documented heuristic for a regime a daily todo list rarely reaches.
+ */
+function bestPlanWithSwitchCost(
+	tasks: AllocTask[],
 	totalBudget: number,
 	switchCost: number,
-	allocate: (effectiveBudget: number, excluded: ReadonlySet<number>) => number[],
-	totalValue: (hours: number[]) => number
+	poolCog: number,
+	poolPhys: number
 ): number[] {
-	const solveWith = (excluded: ReadonlySet<number>): number[] => {
-		let assumedActive = taskCount - excluded.size;
-		const seen = new Set<number>();
-		for (;;) {
-			seen.add(assumedActive);
-			const overhead = assumedActive > 1 ? (assumedActive - 1) * switchCost : 0;
-			const hours = allocate(Math.max(0, totalBudget - overhead), excluded);
-			const active = hours.filter((h) => h > ACTIVE_EPS).length;
-			if (active === assumedActive || active === 0 || seen.has(active)) return hours;
-			assumedActive = active;
+	const n = tasks.length;
+	const budgetBlocksFor = (fundedCount: number): number => {
+		const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
+		return Math.floor((totalBudget - overhead) / BLOCK_HOURS + 1e-9);
+	};
+
+	// Greedy + (only when a pool actually blocked a funding step) the
+	// resource-aware transfer pass. Pool-less plans skip the pass entirely,
+	// preserving plain greedy's exact-optimality on the single constraint.
+	const allocate = (subset: number[], budgetBlocks: number): number[] => {
+		const { blocks, poolBlocked } = greedyAllocateBlocks(
+			tasks,
+			subset,
+			budgetBlocks,
+			poolCog,
+			poolPhys
+		);
+		if (!poolBlocked) return blocks;
+		return improveWithTransfers(tasks, subset, blocks, budgetBlocks, poolCog, poolPhys);
+	};
+
+	const allTasks = tasks.map((_, i) => i);
+	if (switchCost <= 0 || n === 1) {
+		return allocate(allTasks, budgetBlocksFor(1));
+	}
+
+	let bestBlocks = new Array<number>(n).fill(0);
+	let bestValue = 0;
+	let bestFunded = 0;
+	const consider = (blocks: number[]): void => {
+		const value = planValue(tasks, blocks);
+		const funded = blocks.filter((b) => b > 0).length;
+		if (value > bestValue + 1e-9 || (value > bestValue - 1e-9 && funded > bestFunded)) {
+			bestBlocks = blocks;
+			bestValue = value;
+			bestFunded = funded;
 		}
 	};
 
-	let excluded = new Set<number>();
-	let hours = solveWith(excluded);
-	// With no switch cost there is no overhead to save, and dropping a task can
-	// never improve a concave objective — skip the search.
-	if (switchCost <= 0) return hours;
-
-	let value = totalValue(hours);
-	for (;;) {
-		const funded = hours.map((_, i) => i).filter((i) => hours[i] > ACTIVE_EPS);
-		if (funded.length <= 1) break;
-		const unfunded = hours
-			.map((_, i) => i)
-			.filter((i) => hours[i] <= ACTIVE_EPS && !excluded.has(i));
-
-		let bestSet: Set<number> | null = null;
-		let bestHours = hours;
-		let bestValue = value;
-		const tryCandidate = (candidate: Set<number>): void => {
-			const trialHours = solveWith(candidate);
-			const trialValue = totalValue(trialHours);
-			// Require a real improvement so ties keep the more inclusive plan.
-			if (trialValue > bestValue + 1e-6) {
-				bestSet = candidate;
-				bestHours = trialHours;
-				bestValue = trialValue;
-			}
-		};
-		for (const i of funded) {
-			tryCandidate(new Set([...excluded, i]));
-			if (unfunded.length > 0) tryCandidate(new Set([...excluded, i, ...unfunded]));
+	if (n <= EXACT_SUBSET_LIMIT) {
+		for (let mask = 1; mask < 1 << n; mask++) {
+			const subset: number[] = [];
+			for (let i = 0; i < n; i++) if (mask & (1 << i)) subset.push(i);
+			const budgetBlocks = budgetBlocksFor(subset.length);
+			if (budgetBlocks <= 0) continue;
+			consider(allocate(subset, budgetBlocks));
 		}
-		if (bestSet === null) break;
-		excluded = bestSet;
-		hours = bestHours;
-		value = bestValue;
+		return bestBlocks;
 	}
-	return hours;
+
+	const funded: number[] = [];
+	for (;;) {
+		let bestAdd = -1;
+		let bestAddBlocks: number[] | null = null;
+		let bestAddValue = bestValue;
+		for (let i = 0; i < n; i++) {
+			if (funded.includes(i)) continue;
+			const trial = [...funded, i];
+			const budgetBlocks = budgetBlocksFor(trial.length);
+			if (budgetBlocks <= 0) continue;
+			const blocks = allocate(trial, budgetBlocks);
+			const value = planValue(tasks, blocks);
+			if (value > bestAddValue + 1e-9) {
+				bestAdd = i;
+				bestAddBlocks = blocks;
+				bestAddValue = value;
+			}
+		}
+		if (bestAdd === -1 || bestAddBlocks === null) break;
+		funded.push(bestAdd);
+		bestBlocks = bestAddBlocks;
+		bestValue = bestAddValue;
+		bestFunded = funded.length;
+	}
+	return bestBlocks;
+}
+
+function toAllocations(
+	tasks: TaskInput[],
+	params: ReturnType<typeof calculateTaskParams>[],
+	optimalTimes: number[],
+	blocks: number[]
+): TaskAllocation[] {
+	return tasks.map((task, i) => {
+		const { E, beta, phi, k, a, p0 } = params[i];
+		const hours = blocks[i] * BLOCK_HOURS;
+		return {
+			...task,
+			allocatedHours: hours,
+			E,
+			beta,
+			phi,
+			peakProductivity: a * Math.exp(p0 / a - 1),
+			avgProductivity: averageProductivity(hours, a, p0, k),
+			optimalHours: optimalTimes[i],
+			optimalAvgProductivity: averageProductivity(optimalTimes[i], a, p0, k)
+		};
+	});
 }
 
 /**
- * Main optimization: Allocate time budget across multiple tasks
- * Uses Lagrange multipliers to maximize total productivity
+ * Main optimization: allocate the time budget across tasks in 15-minute
+ * blocks to maximize  Σᵢ P̄ᵢ(tᵢ)  subject to  Σᵢ tᵢ + (m−1)·switchCost ≤ T,
+ * where m is the number of tasks that actually receive time.
  *
- * Maximize: P(t₁, t₂, ..., tₙ) = Σᵢ P̄ᵢ(tᵢ)
- * Subject to: Σᵢ tᵢ = T (total budget minus context-switching overhead)
- *
- * Context-switching penalty: Each task switch costs `switchCost` hours.
- * Only tasks that actually receive time count as switches (resolved
- * iteratively via resolveWithSwitchOverhead).
- *
- * Solution: Find λ such that ∂P̄ᵢ/∂tᵢ = λ for all i
+ * v2: exact on the block grid (greedy marginal analysis per funded subset +
+ * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12).
+ * An abundant budget still leaves slack: blocks past a task's optimal
+ * stopping time have negative increments and are never offered to greedy.
  */
 export function calculateTaskAllocations(
 	tasks: TaskInput[],
@@ -372,130 +669,16 @@ export function calculateTaskAllocations(
 		return zeroAllocations(tasks);
 	}
 
-	// Calculate parameters for each task
-	const taskParams = tasks.map((task) => ({
-		task,
-		...calculateTaskParams(task, constants)
+	const params = tasks.map((task) => calculateTaskParams(task, constants));
+	const optimalTimes = params.map(({ a, p0, k }) => optimalStoppingX(amplitudeRatio(a, p0)) / k);
+	const allocTasks: AllocTask[] = params.map(({ a, p0, k }, i) => ({
+		increments: buildBlockIncrements(a, p0, k, optimalTimes[i]),
+		cognitiveWeight: 0,
+		physicalWeight: 0
 	}));
 
-	// If only one task, give it all the time (up to optimal) — no switches
-	if (tasks.length === 1) {
-		const { E, beta, phi, k, a, p0 } = taskParams[0];
-		const optimalTime = findOptimalSingleTaskTime(tasks[0], constants);
-		const allocatedHours = Math.min(totalBudget, optimalTime);
-
-		return [
-			{
-				...tasks[0],
-				allocatedHours,
-				E,
-				beta,
-				phi,
-				peakProductivity: (a + p0) / Math.E,
-				avgProductivity: averageProductivity(allocatedHours, a, p0, k)
-			}
-		];
-	}
-
-	// Calculate optimal single-task times. These are hard upper bounds: beyond
-	// t = optimal, average productivity DECLINES, so we never allocate past them.
-	const optimalTimes = taskParams.map((tp) => findOptimalSingleTaskTime(tp.task, constants));
-
-	const allocate = (effectiveBudget: number, excluded: ReadonlySet<number>): number[] => {
-		if (effectiveBudget <= 0) return tasks.map(() => 0);
-		const included = (i: number): boolean => !excluded.has(i);
-
-		// Never spend more than the sum of the per-task optima: extra time past a
-		// task's optimum only lowers its average productivity, so an abundant budget
-		// leaves slack rather than being forced onto tasks.
-		const sumOpt = optimalTimes.reduce((sum, t, i) => sum + (included(i) ? t : 0), 0);
-		const allocationTarget = Math.min(effectiveBudget, sumOpt);
-
-		if (effectiveBudget >= sumOpt) {
-			// Budget covers every optimum: give each task its optimum, leave the rest.
-			return optimalTimes.map((t, i) => (included(i) ? t : 0));
-		}
-
-		// Scarce budget: distribute via the Lagrange multiplier λ.
-		// At optimum: ∂P̄ᵢ/∂tᵢ = λ for all tasks with tᵢ > 0.
-		// Find λ such that Σᵢ tᵢ(λ) = allocationTarget.
-		const timesForLambda = (lambda: number): number[] =>
-			taskParams.map((tp, i) =>
-				included(i) ? timeAtMarginal(lambda, tp.a, tp.p0, tp.k, optimalTimes[i]) : 0
-			);
-
-		const calcTotalTime = (lambda: number): number =>
-			timesForLambda(lambda).reduce((sum, t) => sum + t, 0);
-
-		// Bracket λ: higher λ → less total time, lower λ → more total time.
-		let lambdaLo = -10;
-		let lambdaHi = 100;
-		while (calcTotalTime(lambdaLo) < allocationTarget && lambdaLo > -1000) lambdaLo *= 2;
-		while (calcTotalTime(lambdaHi) > allocationTarget && lambdaHi < 10000) lambdaHi *= 2;
-
-		let optimalLambda = (lambdaLo + lambdaHi) / 2;
-		for (let i = 0; i < 100; i++) {
-			const mid = (lambdaLo + lambdaHi) / 2;
-			const totalTime = calcTotalTime(mid);
-			optimalLambda = mid;
-
-			if (Math.abs(totalTime - allocationTarget) < 0.001) break;
-
-			if (totalTime > allocationTarget) {
-				lambdaLo = mid; // Increase lambda to reduce total time
-			} else {
-				lambdaHi = mid; // Decrease lambda to increase total time
-			}
-		}
-
-		let currentAllocs = timesForLambda(optimalLambda);
-
-		// Normalize to exactly match the allocation target (handle numerical error).
-		const currentTotal = currentAllocs.reduce((sum, t) => sum + t, 0);
-		if (currentTotal > 0) {
-			const scale = allocationTarget / currentTotal;
-			currentAllocs = currentAllocs.map((t) => t * scale);
-		}
-
-		return currentAllocs;
-	};
-
-	const totalValue = (hours: number[]): number =>
-		hours.reduce((sum, h, i) => sum + averageProductivity(h, taskParams[i].a, taskParams[i].p0, taskParams[i].k), 0);
-
-	// Switch overhead is charged only for tasks that actually receive time.
-	const hours = resolveWithSwitchOverhead(
-		tasks.length,
-		totalBudget,
-		switchCost,
-		allocate,
-		totalValue
-	);
-
-	// Round each allocation, then adjust the largest to absorb the rounding
-	// residual so the rounded sum matches the achieved total exactly.
-	const achievedTotal = Math.round(hours.reduce((sum, t) => sum + t, 0) * 100) / 100;
-	const roundedHours = hours.map((t) => Math.round(t * 100) / 100);
-	const roundedSum = roundedHours.reduce((sum, t) => sum + t, 0);
-	const roundingError = Math.round((achievedTotal - roundedSum) * 100) / 100;
-
-	if (roundingError !== 0 && roundedHours.length > 0) {
-		let largestIdx = 0;
-		for (let i = 1; i < roundedHours.length; i++) {
-			if (roundedHours[i] > roundedHours[largestIdx]) largestIdx = i;
-		}
-		roundedHours[largestIdx] = Math.round((roundedHours[largestIdx] + roundingError) * 100) / 100;
-	}
-
-	return taskParams.map((tp, i) => ({
-		...tp.task,
-		allocatedHours: roundedHours[i],
-		E: tp.E,
-		beta: tp.beta,
-		phi: tp.phi,
-		peakProductivity: (tp.a + tp.p0) / Math.E,
-		avgProductivity: averageProductivity(roundedHours[i], tp.a, tp.p0, tp.k)
-	}));
+	const blocks = bestPlanWithSwitchCost(allocTasks, totalBudget, switchCost, Infinity, Infinity);
+	return toAllocations(tasks, params, optimalTimes, blocks);
 }
 
 /**
@@ -524,29 +707,23 @@ export interface PooledTaskInput extends TaskInput {
  * resource constraints instead of one:
  *
  *   Maximize  Σᵢ P̄ᵢ(tᵢ)
- *   s.t.      Σᵢ tᵢ           ≤ effective budget (time)
- *             Σᵢ wcᵢ × tᵢ     ≤ cognitive pool
- *             Σᵢ wpᵢ × tᵢ     ≤ physical pool
- *             0 ≤ tᵢ ≤ optᵢ   (never past the optimal stopping time)
+ *   s.t.      Σᵢ tᵢ + (m−1)·switchCost ≤ time budget
+ *             Σᵢ wcᵢ × tᵢ  ≤ cognitive pool
+ *             Σᵢ wpᵢ × tᵢ  ≤ physical pool
  *
  * The insight this captures: cognitive and physical fatigue are separate
- * systems. "6h of coding" saturates at the ~4h cognitive pool, but "4h coding
- * + 2h gym" fits — the physical hours draw on a different pool.
+ * systems (Boksem & Tops 2008). "6h of coding" saturates at the ~4h cognitive
+ * pool, but "4h coding + 2h gym" fits — the physical hours draw on a
+ * different pool.
  *
- * Solved exactly via Lagrangian duality. Each constraint gets a shadow price
- * (λ for time, μc for the cognitive pool, μp for the physical pool), and at
- * the optimum every funded task sits where its marginal equals its total
- * resource price:
- *
- *   ∂P̄ᵢ/∂tᵢ = λ + μc×wcᵢ + μp×wpᵢ   (clamped to tᵢ ∈ [0, optᵢ])
- *
- * The dual is convex and smooth (each P̄ᵢ is strictly concave), so cyclic
- * coordinate descent on (λ, μc, μp) — bisecting one multiplier at a time to
- * its own constraint while holding the others — converges to the global
- * optimum. This replaces an earlier greedy water-filling + pairwise-transfer
- * heuristic, which got stuck in local optima whenever the time budget and a
- * pool bound simultaneously (escaping required 3-task exchanges that pairwise
- * swaps cannot express).
+ * v2 solver: the same block-greedy as the single-budget allocator, with a
+ * block only eligible while both pools can absorb its weights. This replaced
+ * the v1 Lagrangian-dual coordinate descent, whose global-optimality argument
+ * required a concave objective — the v2 curve's activation bonus at t = 0⁺
+ * (see averageProductivity) breaks exactly that premise. The greedy is not
+ * provably exact under multiple constraints (multi-dimensional knapsack), but
+ * every plan it emits is feasible by construction, and the brute-force
+ * regression tests hold it within a block of optimal; see MATH.md §4.
  */
 export function calculatePooledAllocations(
 	tasks: PooledTaskInput[],
@@ -559,104 +736,22 @@ export function calculatePooledAllocations(
 		return zeroAllocations(tasks);
 	}
 
-	const taskParams = tasks.map((task) => ({
-		task,
-		...calculateTaskParams(task, constants)
+	const params = tasks.map((task) => calculateTaskParams(task, constants));
+	const optimalTimes = params.map(({ a, p0, k }) => optimalStoppingX(amplitudeRatio(a, p0)) / k);
+	const allocTasks: AllocTask[] = params.map(({ a, p0, k }, i) => ({
+		increments: buildBlockIncrements(a, p0, k, optimalTimes[i]),
+		cognitiveWeight: tasks[i].cognitiveWeight,
+		physicalWeight: tasks[i].physicalWeight
 	}));
-	const optimalTimes = tasks.map((task) => findOptimalSingleTaskTime(task, constants));
 
-	const allocate = (effectiveBudget: number, excluded: ReadonlySet<number>): number[] => {
-		if (effectiveBudget <= 0) return new Array(tasks.length).fill(0);
-
-		// Primal allocation implied by a set of multipliers: each task works until
-		// its marginal productivity drops to its total resource price.
-		const timesFor = (lambda: number, muCog: number, muPhys: number): number[] =>
-			tasks.map((task, i) => {
-				if (excluded.has(i)) return 0;
-				const price = lambda + muCog * task.cognitiveWeight + muPhys * task.physicalWeight;
-				const { a, p0, k } = taskParams[i];
-				return timeAtMarginal(price, a, p0, k, optimalTimes[i]);
-			});
-
-		const timeUse = (t: number[]): number => t.reduce((sum, x) => sum + x, 0);
-		const cogUse = (t: number[]): number =>
-			t.reduce((sum, x, i) => sum + x * tasks[i].cognitiveWeight, 0);
-		const physUse = (t: number[]): number =>
-			t.reduce((sum, x, i) => sum + x * tasks[i].physicalWeight, 0);
-
-		// Smallest multiplier m ≥ 0 whose implied usage fits the limit (usage is
-		// monotonically decreasing in m). Returning the feasible-side endpoint of
-		// the bracket keeps the constraint satisfied, not just approximated.
-		const bisectMultiplier = (usage: (m: number) => number, limit: number): number => {
-			if (usage(0) <= limit + 1e-9) return 0;
-			let lo = 0;
-			let hi = 1;
-			while (usage(hi) > limit + 1e-9) {
-				hi *= 2;
-				if (hi > 1e12) return hi; // unreachable for positive limits; guards limit ≈ 0
-			}
-			for (let i = 0; i < 60; i++) {
-				const mid = (lo + hi) / 2;
-				if (usage(mid) > limit + 1e-9) {
-					lo = mid;
-				} else {
-					hi = mid;
-				}
-			}
-			return hi;
-		};
-
-		// Cyclic coordinate descent on the dual: re-bisect each multiplier to its
-		// own constraint holding the others fixed. Within a round, later steps only
-		// raise prices, so every round ends with all three constraints satisfied;
-		// across rounds the multipliers settle at the global dual optimum.
-		let lambda = 0;
-		let muCog = 0;
-		let muPhys = 0;
-		for (let round = 0; round < 60; round++) {
-			const prevLambda = lambda;
-			const prevMuCog = muCog;
-			const prevMuPhys = muPhys;
-			lambda = bisectMultiplier((m) => timeUse(timesFor(m, muCog, muPhys)), effectiveBudget);
-			muCog = bisectMultiplier((m) => cogUse(timesFor(lambda, m, muPhys)), pools.cognitiveHours);
-			muPhys = bisectMultiplier((m) => physUse(timesFor(lambda, muCog, m)), pools.physicalHours);
-			const shift =
-				Math.abs(lambda - prevLambda) + Math.abs(muCog - prevMuCog) + Math.abs(muPhys - prevMuPhys);
-			if (shift < 1e-7) break;
-		}
-
-		return timesFor(lambda, muCog, muPhys);
-	};
-
-	const totalValue = (hours: number[]): number =>
-		hours.reduce((sum, h, i) => sum + averageProductivity(h, taskParams[i].a, taskParams[i].p0, taskParams[i].k), 0);
-
-	// Switch overhead is charged only for tasks that actually receive time.
-	const t = resolveWithSwitchOverhead(tasks.length, totalBudget, switchCost, allocate, totalValue);
-
-	// Round to 0.01h and absorb the residual in the largest allocation so the
-	// rounded sum matches the achieved total (pools may leave budget unspent).
-	const achievedTotal = Math.round(t.reduce((sum, x) => sum + x, 0) * 100) / 100;
-	const roundedHours = t.map((x) => Math.round(x * 100) / 100);
-	const roundedSum = roundedHours.reduce((sum, x) => sum + x, 0);
-	const roundingError = Math.round((achievedTotal - roundedSum) * 100) / 100;
-	if (roundingError !== 0 && roundedHours.length > 0) {
-		let largestIdx = 0;
-		for (let i = 1; i < roundedHours.length; i++) {
-			if (roundedHours[i] > roundedHours[largestIdx]) largestIdx = i;
-		}
-		roundedHours[largestIdx] = Math.round((roundedHours[largestIdx] + roundingError) * 100) / 100;
-	}
-
-	return taskParams.map((tp, i) => ({
-		...tp.task,
-		allocatedHours: roundedHours[i],
-		E: tp.E,
-		beta: tp.beta,
-		phi: tp.phi,
-		peakProductivity: (tp.a + tp.p0) / Math.E,
-		avgProductivity: averageProductivity(roundedHours[i], tp.a, tp.p0, tp.k)
-	}));
+	const blocks = bestPlanWithSwitchCost(
+		allocTasks,
+		totalBudget,
+		switchCost,
+		pools.cognitiveHours,
+		pools.physicalHours
+	);
+	return toAllocations(tasks, params, optimalTimes, blocks);
 }
 
 /**
@@ -702,6 +797,8 @@ export function pooledProductivityGain(
 
 	// Naive: equal split across ALL tasks (a naive planner attempts every task,
 	// so it pays n-1 switches), scaled down to stay within the capacity pools.
+	// The naive plan stays continuous (not block-quantized): quantization is
+	// part of what Zenith imposes, not part of what a naive planner does.
 	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
 	const effectiveBudget = Math.max(0, totalBudget - switchOverhead);
 	const equalShare = effectiveBudget / tasks.length;
@@ -720,130 +817,6 @@ export function pooledProductivityGain(
 
 	const gainPercent = naive > 0 ? ((optimized - naive) / naive) * 100 : 0;
 	return { optimized, naive, gainPercent: Number(gainPercent.toFixed(1)) };
-}
-
-/**
- * A measured "time until flow state" data point, as the article prescribes:
- * for each task, a stopwatch measures how long it took to get in the zone.
- */
-export interface FlowObservation {
-	E: number; // mapped effort (1-5) of the task when the observation was taken
-	beta: number; // mapped enjoyability (1-2)
-	phi: number; // measured time to reach flow state, in hours
-}
-
-/**
- * Prior strength for the ridge-regularized constants fit: the article-default
- * constants act as if they were this many pseudo-observations. Early ⚡ logs
- * nudge the model smoothly away from the defaults instead of a hard
- * defaults→fitted cliff, and the fit stays well-posed even when every logged
- * task is identical (which would leave an unregularized plane underdetermined).
- */
-export const RIDGE_PRIOR_STRENGTH = 4;
-
-/**
- * Solve a 3×3 linear system via Gaussian elimination with partial pivoting.
- * Returns null when the system is (near-)singular.
- */
-function solve3x3(A: number[][], y: number[]): number[] | null {
-	const m = A.map((row, i) => [...row, y[i]]);
-	const scale = Math.max(1, ...A.flat().map(Math.abs));
-
-	for (let col = 0; col < 3; col++) {
-		let pivot = col;
-		for (let row = col + 1; row < 3; row++) {
-			if (Math.abs(m[row][col]) > Math.abs(m[pivot][col])) pivot = row;
-		}
-		if (Math.abs(m[pivot][col]) < 1e-9 * scale) return null;
-		[m[col], m[pivot]] = [m[pivot], m[col]];
-
-		for (let row = col + 1; row < 3; row++) {
-			const factor = m[row][col] / m[col][col];
-			for (let k = col; k < 4; k++) m[row][k] -= factor * m[col][k];
-		}
-	}
-
-	const x = [0, 0, 0];
-	for (let row = 2; row >= 0; row--) {
-		let sum = m[row][3];
-		for (let k = row + 1; k < 3; k++) sum -= m[row][k] * x[k];
-		x[row] = sum / m[row][row];
-	}
-	return x;
-}
-
-/**
- * Personalize the user constants from measured time-to-flow data: RIDGE
- * least squares fit of the plane ϕ = c₁E + c₂β + c₃ over the observations
- * (the article's "User Dependent Constants" section), regularized toward the
- * fallback constants:
- *
- *   minimize Σᵢ(ϕᵢ − c·xᵢ)² + λ‖c − c₀‖²  →  (XᵀX + λI)c = Xᵀϕ + λc₀
- *
- * with design-matrix rows [E, β, 1], prior c₀ = fallback, λ = RIDGE_PRIOR_STRENGTH.
- *
- * The prior makes the fit graceful everywhere batch least squares is brittle:
- * a single observation nudges the model instead of being ignored; degenerate
- * data (every logged task identical) shifts predictions near the logged point
- * while staying anchored to the prior elsewhere; and the system matrix is
- * always positive definite, so there is no singular case.
- *
- * Falls back (fitted: false) only with zero observations, or if the fitted
- * plane predicts an absurdly large ϕ (> 16h) somewhere on the E×β domain
- * (possible with wildly inconsistent measurements). Negative predictions at
- * unobserved corners are deliberately ALLOWED: uniformly short measured flow
- * times (a fast-flow user logging 15–30m everywhere) legitimately tilt the
- * plane slightly below zero far from their tasks, and rejecting that made
- * such users unable to personalize at all. calculateFlowStateTime floors
- * every prediction at 0.1h, so a negative corner never reaches the model.
- */
-export function fitUserConstants(
-	observations: FlowObservation[],
-	fallback: UserConstants = DEFAULT_USER_CONSTANTS
-): { constants: UserConstants; fitted: boolean } {
-	if (observations.length === 0) {
-		return { constants: fallback, fitted: false };
-	}
-
-	let sEE = 0;
-	let sEb = 0;
-	let sE = 0;
-	let sbb = 0;
-	let sb = 0;
-	let sEp = 0;
-	let sbp = 0;
-	let sp = 0;
-	for (const o of observations) {
-		sEE += o.E * o.E;
-		sEb += o.E * o.beta;
-		sE += o.E;
-		sbb += o.beta * o.beta;
-		sb += o.beta;
-		sEp += o.E * o.phi;
-		sbp += o.beta * o.phi;
-		sp += o.phi;
-	}
-	const lambda = RIDGE_PRIOR_STRENGTH;
-	const solution = solve3x3(
-		[
-			[sEE + lambda, sEb, sE],
-			[sEb, sbb + lambda, sb],
-			[sE, sb, observations.length + lambda]
-		],
-		[sEp + lambda * fallback.c1, sbp + lambda * fallback.c2, sp + lambda * fallback.c3]
-	);
-	// The ridge matrix is positive definite, so solve3x3 cannot hit a singular
-	// pivot — the guard stays purely as defense in depth.
-	if (!solution) return { constants: fallback, fitted: false };
-
-	const [c1, c2, c3] = solution;
-	for (const E of [1, 5]) {
-		for (const beta of [1, 2]) {
-			const phi = c1 * E + c2 * beta + c3;
-			if (!Number.isFinite(phi) || phi > 16) return { constants: fallback, fitted: false };
-		}
-	}
-	return { constants: { c1, c2, c3 }, fitted: true };
 }
 
 /**
@@ -882,4 +855,251 @@ export function productivityGain(
 	const gainPercent = naive > 0 ? ((optimized - naive) / naive) * 100 : 0;
 
 	return { optimized, naive, gainPercent: Number(gainPercent.toFixed(1)) };
+}
+
+// ==================== Personalization (Bayesian, v2) ====================
+
+/**
+ * A measured "time until flow state" data point, as the article prescribes:
+ * for each task, a stopwatch measures how long it took to get in the zone.
+ */
+export interface FlowObservation {
+	E: number; // mapped effort (1-5) of the task when the observation was taken
+	beta: number; // mapped enjoyability (1-2)
+	phi: number; // measured time to reach flow state, in hours
+}
+
+/**
+ * Prior strength for the regularized constants fit. Bayesian reading (v2):
+ * with observation noise σ and coefficient prior c ~ N(c₀, (σ²/λ)·I), the
+ * posterior mean is EXACTLY the ridge solution with this λ — i.e. v1's ridge
+ * fit was already the MAP estimate of this model; v2 just surfaces the rest
+ * of the posterior. λ = 4 ⇒ prior std per coefficient = σ/2 (≈ 7–8 minutes
+ * with the default noise scale), and the defaults act like 4
+ * pseudo-observations: early ⚡ logs nudge the model smoothly away from the
+ * defaults, and the fit stays well-posed even when every logged task is
+ * identical.
+ */
+export const RIDGE_PRIOR_STRENGTH = 4;
+
+/**
+ * Prior scale for the stopwatch measurement noise: σ₀ = 15 minutes (0.25h),
+ * with weight ν₀ = RIDGE_PRIOR_STRENGTH pseudo-observations. "Time until I
+ * was in the zone" is self-reported and fuzzy; a quarter-hour standard
+ * deviation is an honest floor that keeps σ̂ from collapsing to 0 when the
+ * first few logs happen to agree.
+ */
+export const FLOW_NOISE_PRIOR_STD = 0.25;
+
+/**
+ * Posterior of the fitted plane, exposed so callers can quantify uncertainty
+ * instead of treating a 2-observation fit like a 200-observation one.
+ */
+export interface FitPosterior {
+	/** 3×3 posterior covariance of (c₁, c₂, c₃): σ̂²·(XᵀWX + λI)⁻¹ */
+	covariance: number[][];
+	/** Estimated observation noise variance σ̂² (hours²) */
+	sigma2: number;
+	/** Effective number of observations Σwᵢ (= n when no forgetting) */
+	nEff: number;
+}
+
+/**
+ * Solve a 3×3 linear system via Gaussian elimination with partial pivoting.
+ * Returns null when the system is (near-)singular.
+ */
+function solve3x3(A: number[][], y: number[]): number[] | null {
+	const m = A.map((row, i) => [...row, y[i]]);
+	const scale = Math.max(1, ...A.flat().map(Math.abs));
+
+	for (let col = 0; col < 3; col++) {
+		let pivot = col;
+		for (let row = col + 1; row < 3; row++) {
+			if (Math.abs(m[row][col]) > Math.abs(m[pivot][col])) pivot = row;
+		}
+		if (Math.abs(m[pivot][col]) < 1e-9 * scale) return null;
+		[m[col], m[pivot]] = [m[pivot], m[col]];
+
+		for (let row = col + 1; row < 3; row++) {
+			const factor = m[row][col] / m[col][col];
+			for (let k = col; k < 4; k++) m[row][k] -= factor * m[col][k];
+		}
+	}
+
+	const x = [0, 0, 0];
+	for (let row = 2; row >= 0; row--) {
+		let sum = m[row][3];
+		for (let k = row + 1; k < 3; k++) sum -= m[row][k] * x[k];
+		x[row] = sum / m[row][row];
+	}
+	return x;
+}
+
+// Inverse of a symmetric positive-definite 3×3 via three solves against the
+// identity columns; symmetrized to scrub floating-point asymmetry.
+function invert3x3(A: number[][]): number[][] | null {
+	const cols: number[][] = [];
+	for (let i = 0; i < 3; i++) {
+		const e = [0, 0, 0];
+		e[i] = 1;
+		const col = solve3x3(A, e);
+		if (!col) return null;
+		cols.push(col);
+	}
+	const inv = [
+		[cols[0][0], cols[1][0], cols[2][0]],
+		[cols[0][1], cols[1][1], cols[2][1]],
+		[cols[0][2], cols[1][2], cols[2][2]]
+	];
+	for (let i = 0; i < 3; i++) {
+		for (let j = i + 1; j < 3; j++) {
+			const s = (inv[i][j] + inv[j][i]) / 2;
+			inv[i][j] = s;
+			inv[j][i] = s;
+		}
+	}
+	return inv;
+}
+
+/**
+ * Personalize the user constants from measured time-to-flow data.
+ *
+ * MODEL (v2 — full Bayesian linear regression; v1 computed only the MAP):
+ *
+ *   ϕᵢ = c·xᵢ + εᵢ,  εᵢ ~ N(0, σ²/wᵢ),  prior c ~ N(c₀, (σ²/λ)·I)
+ *
+ * with design rows xᵢ = [Eᵢ, βᵢ, 1], prior mean c₀ = fallback constants,
+ * λ = RIDGE_PRIOR_STRENGTH, and observation weights wᵢ = γ^(n−1−i) from the
+ * optional forgetting factor γ (γ = 1 ⇒ all observations equal; γ < 1 lets a
+ * user whose flow behavior drifts shed stale logs — recursive-least-squares
+ * style, γ ≈ 0.98 forgets with a ~50-log half-life).
+ *
+ * Posterior (all closed-form):
+ *   mean        ĉ = (XᵀWX + λI)⁻¹ (XᵀWϕ + λc₀)     ← identical to v1's ridge
+ *   covariance  Σ = σ̂²·(XᵀWX + λI)⁻¹
+ *   noise       σ̂² = (ν₀σ₀² + Σwᵢ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + Σwᵢ)
+ *
+ * The point estimate the allocator consumes is unchanged from v1 (the ridge
+ * MAP); `posterior` is additional information for callers — see
+ * phiPredictionStd for turning it into an uncertainty band on ϕ. WHY: a plan
+ * built from 2 logs and a plan built from 200 logs used to look identically
+ * confident; downstream UI/logic can now tell them apart (and future work can
+ * allocate conservatively when the posterior is wide).
+ *
+ * The prior keeps the fit graceful everywhere batch least squares is brittle:
+ * a single observation nudges the model instead of being ignored; degenerate
+ * data (every logged task identical) shifts predictions near the logged point
+ * while staying anchored to the prior elsewhere; and the system matrix is
+ * always positive definite, so there is no singular case.
+ *
+ * Falls back (fitted: false) only with zero observations, or if the fitted
+ * plane predicts an absurdly large ϕ (> 16h) somewhere on the E×β domain
+ * (possible with wildly inconsistent measurements). Negative predictions at
+ * unobserved corners are deliberately ALLOWED: uniformly short measured flow
+ * times (a fast-flow user logging 15–30m everywhere) legitimately tilt the
+ * plane slightly below zero far from their tasks, and rejecting that made
+ * such users unable to personalize at all. calculateFlowStateTime floors
+ * every prediction at 0.1h, so a negative corner never reaches the model.
+ */
+export function fitUserConstants(
+	observations: FlowObservation[],
+	fallback: UserConstants = DEFAULT_USER_CONSTANTS,
+	options?: { forgettingFactor?: number }
+): { constants: UserConstants; fitted: boolean; posterior?: FitPosterior } {
+	if (observations.length === 0) {
+		return { constants: fallback, fitted: false };
+	}
+	const gamma = Math.min(1, Math.max(1e-3, options?.forgettingFactor ?? 1));
+
+	let sEE = 0;
+	let sEb = 0;
+	let sE = 0;
+	let sbb = 0;
+	let sb = 0;
+	let sEp = 0;
+	let sbp = 0;
+	let sp = 0;
+	let sw = 0;
+	const n = observations.length;
+	for (let i = 0; i < n; i++) {
+		const o = observations[i];
+		const w = Math.pow(gamma, n - 1 - i); // newest observation has weight 1
+		sEE += w * o.E * o.E;
+		sEb += w * o.E * o.beta;
+		sE += w * o.E;
+		sbb += w * o.beta * o.beta;
+		sb += w * o.beta;
+		sEp += w * o.E * o.phi;
+		sbp += w * o.beta * o.phi;
+		sp += w * o.phi;
+		sw += w;
+	}
+	const lambda = RIDGE_PRIOR_STRENGTH;
+	const A = [
+		[sEE + lambda, sEb, sE],
+		[sEb, sbb + lambda, sb],
+		[sE, sb, sw + lambda]
+	];
+	const solution = solve3x3(A, [
+		sEp + lambda * fallback.c1,
+		sbp + lambda * fallback.c2,
+		sp + lambda * fallback.c3
+	]);
+	// The ridge matrix is positive definite, so solve3x3 cannot hit a singular
+	// pivot — the guard stays purely as defense in depth.
+	if (!solution) return { constants: fallback, fitted: false };
+
+	const [c1, c2, c3] = solution;
+	for (const E of [1, 5]) {
+		for (const beta of [1, 2]) {
+			const phi = c1 * E + c2 * beta + c3;
+			if (!Number.isFinite(phi) || phi > 16) return { constants: fallback, fitted: false };
+		}
+	}
+
+	// Noise estimate: weighted residual sum of squares blended with the prior
+	// scale (inverse-gamma-style pseudo-observations), so σ̂ neither collapses
+	// to 0 on a couple of lucky logs nor ignores genuinely noisy users.
+	let ssr = 0;
+	for (let i = 0; i < n; i++) {
+		const o = observations[i];
+		const w = Math.pow(gamma, n - 1 - i);
+		const resid = o.phi - (c1 * o.E + c2 * o.beta + c3);
+		ssr += w * resid * resid;
+	}
+	const nu0 = RIDGE_PRIOR_STRENGTH;
+	const sigma2 = (nu0 * FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD + ssr) / (nu0 + sw);
+
+	const Ainv = invert3x3(A);
+	const posterior: FitPosterior | undefined = Ainv
+		? {
+				covariance: Ainv.map((row) => row.map((v) => v * sigma2)),
+				sigma2,
+				nEff: sw
+			}
+		: undefined;
+
+	return { constants: { c1, c2, c3 }, fitted: true, posterior };
+}
+
+/**
+ * Predictive standard deviation of a NEW time-to-flow measurement at (E, β):
+ *
+ *   std = √( σ̂² + xᵀΣx ),   x = [E, β, 1]
+ *
+ * σ̂² is irreducible stopwatch noise; xᵀΣx is parameter uncertainty, which
+ * shrinks as observations accumulate (and grows with distance from the logged
+ * region of the E×β plane). Intended for UI ("ϕ ≈ 1.4h ± 0.4h") and for
+ * future robust-allocation work; the allocator itself currently consumes only
+ * the posterior mean.
+ */
+export function phiPredictionStd(E: number, beta: number, posterior: FitPosterior): number {
+	const x = [E, beta, 1];
+	let quad = 0;
+	for (let i = 0; i < 3; i++) {
+		for (let j = 0; j < 3; j++) {
+			quad += x[i] * posterior.covariance[i][j] * x[j];
+		}
+	}
+	return Math.sqrt(Math.max(0, posterior.sigma2 + quad));
 }

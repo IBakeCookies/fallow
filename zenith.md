@@ -1,6 +1,18 @@
-# URL
+# Zenith Gradient Algorithm — source article (historical reference)
 
-https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e
+> **STATUS: historical reference — do not implement from this file.**
+> This is a frozen copy of the source article the project began from, kept so
+> the original math survives even if the article goes offline (its figures were
+> images and are missing here anyway). The implemented model has since deviated
+> from it deliberately — new productivity curve, per-task optimal stopping,
+> discrete allocator, Bayesian fit. **[MATH.md](MATH.md) is the authoritative
+> description of what the code does**, including a table of every deviation
+> from this article and why (MATH.md §6). If code disagrees with this article,
+> that is intentional.
+
+## URL
+
+<https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e>
 
 ## Motivation
 

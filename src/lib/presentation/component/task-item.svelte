@@ -5,7 +5,6 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { cn } from '$lib/presentation/utils';
 	import { getTaskNature } from '$lib/business/model/metric/calculation';
-	import { OPTIMAL_PHI_MULTIPLIER } from '$lib/business/model/zenith';
 
 	interface Props {
 		id: number;
@@ -18,6 +17,9 @@
 		suggestedHours: number;
 		trueEffort: number;
 		flowStateTime: number;
+		// Per-task optimal stopping time T* from the allocator (model v2:
+		// task-dependent — no longer reconstructable as a fixed 1.79 × ϕ)
+		optimalStopHours: number;
 		runOrder?: number;
 		flowMinutes?: number;
 		ontoggle: (id: number) => void;
@@ -45,6 +47,7 @@
 		suggestedHours,
 		trueEffort,
 		flowStateTime,
+		optimalStopHours,
 		runOrder,
 		flowMinutes,
 		ontoggle,
@@ -73,7 +76,12 @@
 			min: 0,
 			accent: 'accent-emerald-400'
 		},
-		{ key: 'mentalDifficulty', label: m.form_mental_difficulty(), min: 0, accent: 'accent-blue-400' },
+		{
+			key: 'mentalDifficulty',
+			label: m.form_mental_difficulty(),
+			min: 0,
+			accent: 'accent-blue-400'
+		},
 		{ key: 'enjoyment', label: m.form_enjoyment(), min: 1, accent: 'accent-indigo-400' }
 	] as const;
 
@@ -114,7 +122,7 @@
 		return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 	}
 
-	const optimalStopTime = $derived(OPTIMAL_PHI_MULTIPLIER * flowStateTime);
+	const optimalStopTime = $derived(optimalStopHours);
 
 	const nature = $derived(getTaskNature({ physicalDifficulty, mentalDifficulty }));
 	const natureLabel = $derived(

@@ -12,10 +12,14 @@
  *   r the recovery rate. Piecewise-constant coefficients per block give a
  *   closed-form exponential trajectory — no ODE solver.
  *
- * - Warm-up is PER SESSION: productivity p(s) = (a+p₀)·k·s·e^(−ks) uses time
- *   since the current contiguous block started. Switching tasks (or resting)
- *   resets s to 0. This is what makes fragmentation genuinely costly — without
- *   the reset, slicing work into confetti would be optimal under total output.
+ * - Warm-up is PER TASK with decaying carryover: productivity p(s) uses a
+ *   session phase s = (a+p₀)·k·s·e^(−ks). Leaving a task for a gap g and
+ *   returning resumes at s·e^(−g/τ) rather than 0 (Monk/Trafton memory-for-
+ *   goals) — a brief switch costs little warm-up, a long gap approaches a cold
+ *   restart. Because p(s) is hump-shaped, this one decay does double duty:
+ *   below the peak it models lost warm-up (breaks hurt), above it models
+ *   boredom relief (a break moves you back toward peak). Fragmentation is still
+ *   costly, just no longer catastrophic the way a hard reset made it.
  *
  * - Instantaneous output = p(s) · C_cog^wc · C_phys^wp (Cobb-Douglas gate):
  *   a drained reservoir throttles exactly the tasks that demand it.
@@ -71,6 +75,23 @@ export interface EnergyParams {
 	freeTimeValue: number;
 	/** Output-value of ending the window at full vs empty energy (both reservoirs averaged) */
 	terminalEnergyValue: number;
+	/**
+	 * Intermittent-task recovery correction (Xia & Frey Law 2008; Looft, Herkert
+	 * & Frey Law 2018). The base drain/recovery law over-predicts fatigue when
+	 * rest is interspersed with work, because recovery of an idle reservoir is
+	 * empirically faster than a single fixed rate predicts. This multiplies the
+	 * recovery coefficient; the (1−demand) gate concentrates the boost where the
+	 * reservoir is actually idle (full at rest, none at full demand). 1 disables it.
+	 */
+	restRecoveryMultiplier: number;
+	/**
+	 * Warm-up / task-state retention time constant, hours (Monk, Trafton &
+	 * Boehm-Davis 2008 memory-for-goals). Resuming a task after being away for a
+	 * gap g keeps a fraction e^(−g/resumptionTimeConstant) of the session phase
+	 * built up before — so a brief switch costs little warm-up while a long gap
+	 * approaches a cold restart. ≤0 reproduces the old binary reset.
+	 */
+	resumptionTimeConstant: number;
 	/** Starting energy levels, 0–1 */
 	initialCog: number;
 	initialPhys: number;
@@ -80,8 +101,14 @@ export const DEFAULT_ENERGY_PARAMS: EnergyParams = {
 	// e^(−0.35·2) ≈ 0.5: two hours of full-demand deep work halves the reservoir.
 	alphaCog: 0.35,
 	alphaPhys: 0.3,
-	// From half energy, one hour of rest recovers to 1 − 0.5e^(−0.7) ≈ 0.75.
+	// Base recovery coefficient. With restRecoveryMultiplier below, an idle
+	// reservoir refills at 0.7·1.5 = 1.05/h: one hour of rest from half energy
+	// recovers to 1 − 0.5·e^(−1.05) ≈ 0.825.
 	recoveryRate: 0.7,
+	restRecoveryMultiplier: 1.5,
+	// After 30 min away e^(−0.5/0.5) ≈ 0.37 of warm-up survives; after 5 min,
+	// ≈ 0.85. Coffee-break-scale gaps cost little; a lunch-scale gap resets you.
+	resumptionTimeConstant: 0.5,
 	freeTimeValue: 0.5,
 	terminalEnergyValue: 1.5,
 	initialCog: 1,
@@ -166,19 +193,26 @@ function clamp01(x: number): number {
 // ================== Reservoir dynamics (closed form) ==================
 
 /**
- * dC/dτ = −α·w·C + r·(1−w)·(1−C) is linear with constant coefficients:
- * C(τ) = C_eq + (C₀ − C_eq)·e^(−ρτ), ρ = α·w + r·(1−w), C_eq = r·(1−w)/ρ.
+ * dC/dτ = −α·w·C + r'·(1−w)·(1−C) is linear with constant coefficients:
+ * C(τ) = C_eq + (C₀ − C_eq)·e^(−ρτ), ρ = α·w + r'·(1−w), C_eq = r'·(1−w)/ρ,
+ * where r' = r·restMultiplier is the intermittent-task-corrected recovery rate.
  */
 interface ReservoirLaw {
 	rho: number;
 	eq: number;
 }
 
-function reservoirLaw(demand: number, alpha: number, recovery: number): ReservoirLaw {
-	const rho = alpha * demand + recovery * (1 - demand);
+function reservoirLaw(
+	demand: number,
+	alpha: number,
+	recovery: number,
+	restMultiplier = 1
+): ReservoirLaw {
+	const rec = recovery * restMultiplier;
+	const rho = alpha * demand + rec * (1 - demand);
 	// ρ = 0 only when both terms vanish; the reservoir then holds its level and
 	// eq is never used (reservoirAt short-circuits).
-	return { rho, eq: rho > 0 ? (recovery * (1 - demand)) / rho : 0 };
+	return { rho, eq: rho > 0 ? (rec * (1 - demand)) / rho : 0 };
 }
 
 function reservoirAt(c0: number, law: ReservoirLaw, t: number): number {
@@ -186,13 +220,31 @@ function reservoirAt(c0: number, law: ReservoirLaw, t: number): number {
 	return law.eq + (c0 - law.eq) * Math.exp(-law.rho * t);
 }
 
+/**
+ * Session phase to resume a task at, given its last-seen memory and the current
+ * clock time (Monk/Trafton): sEnd·e^(−gap/τ). No prior memory, or τ ≤ 0, means
+ * a cold start at 0 (the old binary reset). Adjacent same-task blocks are merged
+ * before this runs, so the gap here is always strictly positive.
+ */
+function resumePhase(
+	last: { sEnd: number; tEnd: number } | undefined,
+	now: number,
+	tau: number
+): number {
+	if (!last || tau <= 0) return 0;
+	return last.sEnd * Math.exp(-(now - last.tEnd) / tau);
+}
+
 // ================== Block output ==================
 
 /**
- * ∫₀ᴰ p(s)·C_cog(s)^wc·C_phys(s)^wp ds via composite Simpson. The reservoir
- * factors are closed-form, so only the quadrature is numeric. The node count
- * scales with the fastest timescale in the integrand (ϕ or 1/ρ) so short-flow
- * tasks inside long blocks are still resolved.
+ * ∫₀ᴰ p(sStart+u)·C_cog(u)^wc·C_phys(u)^wp du via composite Simpson. Warm-up is
+ * indexed by session phase (sStart + block-local time u), so a resumed task
+ * starts partway up its productivity curve; the reservoirs are indexed by u
+ * because they carry their own level across blocks. The reservoir factors are
+ * closed-form, so only the quadrature is numeric. The node count scales with
+ * the fastest timescale in the integrand (ϕ or 1/ρ) so short-flow tasks inside
+ * long blocks are still resolved.
  */
 function blockOutput(
 	curve: TaskCurve,
@@ -200,7 +252,8 @@ function blockOutput(
 	phys0: number,
 	lawC: ReservoirLaw,
 	lawP: ReservoirLaw,
-	hours: number
+	hours: number,
+	sStart = 0
 ): number {
 	if (hours <= 0) return 0;
 	const fastest = Math.min(
@@ -218,11 +271,12 @@ function blockOutput(
 	const h = hours / n;
 	let sum = 0;
 	for (let j = 0; j <= n; j++) {
-		const s = j * h;
+		const u = j * h;
+		const s = sStart + u;
 		const p = curve.amp * curve.k * s * Math.exp(-curve.k * s);
 		const gate =
-			Math.pow(reservoirAt(cog0, lawC, s), curve.wc) *
-			Math.pow(reservoirAt(phys0, lawP, s), curve.wp);
+			Math.pow(reservoirAt(cog0, lawC, u), curve.wc) *
+			Math.pow(reservoirAt(phys0, lawP, u), curve.wp);
 		const w = j === 0 || j === n ? 1 : j % 2 === 1 ? 4 : 2;
 		sum += w * p * gate;
 	}
@@ -266,8 +320,9 @@ export function evaluateSchedule(
 		(b) => b.taskId === null || curves.has(b.taskId)
 	);
 
-	const restLawC = reservoirLaw(0, params.alphaCog, params.recoveryRate);
-	const restLawP = reservoirLaw(0, params.alphaPhys, params.recoveryRate);
+	const m = params.restRecoveryMultiplier;
+	const restLawC = reservoirLaw(0, params.alphaCog, params.recoveryRate, m);
+	const restLawP = reservoirLaw(0, params.alphaPhys, params.recoveryRate, m);
 
 	let cog = clamp01(params.initialCog);
 	let phys = clamp01(params.initialPhys);
@@ -275,6 +330,9 @@ export function evaluateSchedule(
 	let totalOutput = 0;
 	let workHours = 0;
 	const evaluated: EvaluatedBlock[] = [];
+	// Per-task warm-up memory: session phase reached and the clock time it ended,
+	// so a later block on the same task can resume with decayed carryover.
+	const phase = new Map<number, { sEnd: number; tEnd: number }>();
 
 	for (const b of blocks) {
 		if (b.taskId === null) {
@@ -291,9 +349,11 @@ export function evaluateSchedule(
 			});
 		} else {
 			const curve = curves.get(b.taskId)!;
-			const lawC = reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate);
-			const lawP = reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate);
-			const output = blockOutput(curve, cog, phys, lawC, lawP, b.hours);
+			const lawC = reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m);
+			const lawP = reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m);
+			const sStart = resumePhase(phase.get(b.taskId), t, params.resumptionTimeConstant);
+			const output = blockOutput(curve, cog, phys, lawC, lawP, b.hours, sStart);
+			phase.set(b.taskId, { sEnd: sStart + b.hours, tEnd: t + b.hours });
 			totalOutput += output;
 			workHours += b.hours;
 			cog = reservoirAt(cog, lawC, b.hours);
@@ -350,25 +410,29 @@ export function sampleTrajectory(
 	const blocks = normalizeSchedule(blocksIn, windowHours).filter(
 		(b) => b.taskId === null || curves.has(b.taskId)
 	);
-	const restLawC = reservoirLaw(0, params.alphaCog, params.recoveryRate);
-	const restLawP = reservoirLaw(0, params.alphaPhys, params.recoveryRate);
+	const m = params.restRecoveryMultiplier;
+	const restLawC = reservoirLaw(0, params.alphaCog, params.recoveryRate, m);
+	const restLawP = reservoirLaw(0, params.alphaPhys, params.recoveryRate, m);
 
 	const points: TrajectoryPoint[] = [];
 	let cog = clamp01(params.initialCog);
 	let phys = clamp01(params.initialPhys);
 	let t = 0;
+	const phase = new Map<number, { sEnd: number; tEnd: number }>();
 
 	const sampleSegment = (
 		hours: number,
 		curve: TaskCurve | null,
 		lawC: ReservoirLaw,
-		lawP: ReservoirLaw
+		lawP: ReservoirLaw,
+		sStart = 0
 	) => {
 		const steps = Math.max(1, Math.ceil(hours / dtHours));
 		for (let j = 0; j < steps; j++) {
-			const s = (j * hours) / steps;
-			const c = reservoirAt(cog, lawC, s);
-			const p = reservoirAt(phys, lawP, s);
+			const u = (j * hours) / steps;
+			const c = reservoirAt(cog, lawC, u);
+			const p = reservoirAt(phys, lawP, u);
+			const s = sStart + u;
 			const rate = curve
 				? curve.amp *
 					curve.k *
@@ -377,7 +441,7 @@ export function sampleTrajectory(
 					Math.pow(c, curve.wc) *
 					Math.pow(p, curve.wp)
 				: 0;
-			points.push({ t: t + s, cog: c, phys: p, rate, taskId: curve?.id ?? null });
+			points.push({ t: t + u, cog: c, phys: p, rate, taskId: curve?.id ?? null });
 		}
 		cog = reservoirAt(cog, lawC, hours);
 		phys = reservoirAt(phys, lawP, hours);
@@ -389,11 +453,14 @@ export function sampleTrajectory(
 			sampleSegment(b.hours, null, restLawC, restLawP);
 		} else {
 			const curve = curves.get(b.taskId)!;
+			const sStart = resumePhase(phase.get(b.taskId), t, params.resumptionTimeConstant);
+			phase.set(b.taskId, { sEnd: sStart + b.hours, tEnd: t + b.hours });
 			sampleSegment(
 				b.hours,
 				curve,
-				reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate),
-				reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate)
+				reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m),
+				reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m),
+				sStart
 			);
 		}
 	}
