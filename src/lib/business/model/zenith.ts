@@ -192,7 +192,8 @@ function amplitudeRatio(a: number, p0: number): number {
  * - dp/dt = k·e^(−kt)·(a − p₀ − a·k·t) = 0  ⇒  peak exactly at t = ϕ
  * - p(ϕ) = a·e^(p₀/a − 1)  (≈ (a+p₀)/e for small p₀/a, the v1 value)
  * - p is concave on the whole working range [0, T*] (inflection at
- *   k·t = 2 − p₀/a, which always lies beyond the optimal stopping point)
+ *   k·t = 2 − p₀/a, which always lies beyond the optimal stopping point —
+ *   proved in MATH.md §2, marginal fact 3)
  */
 export function productivity(t: number, a: number, p0: number, k: number): number {
 	if (t < 0) return 0;
@@ -247,10 +248,14 @@ export function averageProductivity(T: number, a: number, p0: number, k: number)
  *
  * so  dP̄/dT = a·k·N(x)/x².  Limit T → 0⁺:  a·k·(1−r)/2  (= k(a−p₀)/2).
  *
- * The marginal decreases strictly and monotonically from that limit to 0 at
- * the optimal stopping point x*(r) — verified numerically across the full
- * parameter domain in zenith.test.ts, since the block allocator's exactness
- * rests on the resulting diminishing per-block increments.
+ * The marginal decreases strictly from that limit, crosses 0 at the optimal
+ * stopping point x*(r), and stays negative beyond it. Both facts are PROVED
+ * in MATH.md §2 (marginal facts 1–2; before 2026-07-14 they were only
+ * checked numerically): d/dx[N/x²] = D/x³ with D(0) = 0 and
+ * D' = e^(−x)·x²·(x + r − 2) < 0 below x = 2 − r, a range containing the
+ * whole working range (0, x*]. The block allocator's exactness rests on the
+ * resulting diminishing per-block increments; the numeric sweep in
+ * zenith.test.ts remains as a regression check.
  */
 export function avgProductivityDerivative(T: number, a: number, p0: number, k: number): number {
 	const r = amplitudeRatio(a, p0);
@@ -358,7 +363,9 @@ function zeroAllocations(tasks: TaskInput[]): TaskAllocation[] {
 // ==================== Discrete allocator (v2) ====================
 //
 // The objective Σᵢ P̄ᵢ(tᵢ) is maximized over 15-minute blocks by greedy
-// marginal analysis. Correctness rests on two facts (both verified in tests):
+// marginal analysis. Correctness rests on two facts (fact 1 is proved in
+// MATH.md §2 and regression-checked in tests; fact 2 is the classical
+// marginal-analysis theorem):
 //
 // 1. DIMINISHING INCREMENTS: each task's value of its j-th block,
 //    Δᵢ(j) = P̄ᵢ(j·δ) − P̄ᵢ((j−1)·δ), is non-increasing in j. The first block
@@ -972,7 +979,8 @@ function invert3x3(A: number[][]): number[][] | null {
  * λ = RIDGE_PRIOR_STRENGTH, and observation weights wᵢ = γ^(n−1−i) from the
  * optional forgetting factor γ (γ = 1 ⇒ all observations equal; γ < 1 lets a
  * user whose flow behavior drifts shed stale logs — recursive-least-squares
- * style, γ ≈ 0.98 forgets with a ~50-log half-life).
+ * style, γ ≈ 0.98 forgets with a ~34-log half-life: 0.98³⁴ ≈ 0.5, while ~50
+ * logs is the 1/e time constant — MATH.md §10).
  *
  * Posterior (all closed-form):
  *   mean        ĉ = (XᵀWX + λI)⁻¹ (XᵀWϕ + λc₀)     ← identical to v1's ridge

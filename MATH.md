@@ -98,9 +98,13 @@ v2:  p(t) = (a·k·t + p₀)·e^(−kt),   k = (1 − r)/ϕ,   r = p₀/a
 - **Peak value:** `p(ϕ) = a·e^(r−1)`. First-order in `r` this is
   `(a/e)(1+r) ≈ (a+p₀)/e` — the v1 peak was the small-p₀ approximation of the
   v2 peak, so peak-productivity displays change only slightly.
-- **Concave on the working range:** `p'' = 0` at `x = kt = 2 − r`, which is
-  always beyond the optimal stopping point `x* ≤ 1.7933` (§3), so the curve
-  has no convex kink before you'd stop anyway.
+- **Concave on the working range:** `p'' = a·k²·e^(−kt)·(kt − (2 − r))`, so
+  the only inflection sits at `x = kt = 2 − r` — and `x* < 2 − r` holds for
+  every r (fact 3 under "Marginal of the average" below), so the curve has
+  no convex kink before you'd stop anyway. (An earlier revision argued
+  `x* ≤ 1.7933 < 2 − r`, which only covers `r ≤ 0.207` since `2 − r` drops
+  to 1.1 at the r-cap; the claim was always true, but that wasn't a proof —
+  see §10.)
 - **Decays to 0** as `t → ∞` — the burnout tail is preserved.
 
 (Pedantic note: the article calls the v1 shape "a Poisson distribution"; it is
@@ -141,10 +145,34 @@ dP̄/dT = a·k·N(x)/x²,   N(x) = e^(−x)·(x² + (1+r)x + (1+r)) − (1+r)
 lim T→0⁺ dP̄/dT = a·k·(1−r)/2 = k(a−p₀)/2
 ```
 
-The marginal decreases strictly from that limit to 0 at the optimum
-(verified across the whole E×β domain) — this monotonicity is what makes the
-per-block increments diminishing, which the greedy allocator's exactness
-rests on.
+Three structural facts about N, all provable on paper — so the allocator's
+exactness does not hang on a numeric sweep (these were stated as "verified
+numerically" before 2026-07-14, see §10; the sweeps in `zenith.test.ts`
+remain as regression checks):
+
+1. **Sign structure.** `N(0) = 0` and `N'(x) = e^(−x)·x·(1 − r − x)`: N
+   rises on `(0, 1−r)`, peaks at `x = 1−r`, then decreases strictly toward
+   `−(1+r)`. So N has exactly one positive root `x*` (with `x* > 1−r`),
+   `N > 0` on `(0, x*)`, and `N < 0` on `(x*, ∞)`. The marginal stays
+   negative FOREVER past the optimum — a later block can never turn
+   positive again, which is what makes §4's
+   truncate-at-first-non-positive-increment rule sound.
+
+2. **Strictly decreasing marginal.** Writing the marginal shape as
+   `M(x) = N(x)/x²`, we get `M'(x) = D(x)/x³` with `D(x) = x·N'(x) − 2·N(x)`.
+   Then `D(0) = 0` and `D'(x) = e^(−x)·x²·(x + r − 2) < 0` for `x < 2 − r`,
+   so `D < 0` and M strictly decreases on all of `(0, 2 − r)` — a range that
+   strictly contains the whole working range `(0, x*]` by fact 3. This
+   monotonicity is what makes the per-block increments diminishing, which
+   the greedy allocator's exactness (§4) rests on.
+
+3. **Stopping happens before the inflection:** `x* < 2 − r`. Substituting
+   `x = 2 − r` into N gives `u(r) := N(2−r) = e^(r−2)·(7 − 2r) − (1+r)`,
+   which is convex in r (`u'' = e^(r−2)·(3 − 2r) > 0` on `[0, 1]`) with
+   negative endpoints (`u(0) = 7e⁻² − 1 ≈ −0.053`,
+   `u(1) = 5e⁻¹ − 2 ≈ −0.161`), hence negative on the whole range. By fact
+   1's sign structure the root must lie earlier: `x* < 2 − r`. This is the
+   missing piece behind §2's concavity-on-the-working-range property.
 
 ## 3. Optimal stopping — **v2 change: per-task, no longer a universal 1.79ϕ**
 
@@ -265,7 +293,9 @@ indistinguishable — `phiPredictionStd` quantifies it (parameter uncertainty
 shrinks with data and grows with distance from the logged region). Intended
 uses: UI bands ("ϕ ≈ 1.4h ± 0.4h") and future robust allocation. The
 forgetting factor is for users whose flow behavior drifts (recursive-least-
-squares style; γ ≈ 0.98 ≙ ~50-log half-life).
+squares style; γ ≈ 0.98 ≙ ~34-log half-life, since 0.98³⁴ ≈ 0.5 — the
+"~50-log" figure in an earlier revision was the 1/e time constant,
+0.98⁵⁰ ≈ 0.37; see §10).
 
 Unchanged v1 safeguards: fallback to defaults on zero observations or when
 the fitted plane predicts ϕ > 16h anywhere on the domain; negative
@@ -414,3 +444,36 @@ retuned constant. Defaults were deliberately left alone pending that decision.
 - Bechtold, S. E., Janaro, R. E. & Sumners, D. L. (1984). _Maximization of
   labor productivity through optimal rest-break schedules._ Management
   Science 30(12) — the original optimal rest-break scheduling formulation.
+
+## 10. Revision log (doc-only corrections)
+
+Changes to this document and to code comments that did **not** change any
+formula, constant, or runtime behavior — recorded so future readers can tell
+a corrected explanation apart from a model change. If an entry here seems to
+contradict older commit messages or comments, this log is the current truth.
+
+### 2026-07-14 — math review of the v2 revision
+
+1. **Forgetting-factor half-life corrected** (§5 and the `fitUserConstants`
+   comment in `zenith.ts`). γ = 0.98 has a half-life of
+   ln 0.5 / ln 0.98 ≈ **34 logs**; the previous "~50-log half-life" figure
+   was actually the 1/e time constant (0.98⁵⁰ ≈ 0.37). Wording only — no
+   code ever consumed the number.
+2. **Inflection-beyond-stopping justification replaced** (§2 properties).
+   The old argument "`x* ≤ 1.7933 < 2 − r`" only covers `r ≤ 0.207`, since
+   `2 − r` drops to 1.1 at the r-cap. The claim itself was always true and
+   now has a real proof: `N(2−r) = e^(r−2)·(7−2r) − (1+r)` is convex in r
+   with negative endpoints, hence negative everywhere, so `x* < 2 − r`
+   (§2 marginal fact 3).
+3. **Marginal monotonicity upgraded from "verified numerically" to proved**
+   (§2 marginal facts 1–2): the D-function argument
+   (`D = x·N' − 2N`, `D(0) = 0`, `D' = e^(−x)·x²·(x + r − 2) < 0` below
+   `2 − r`) proves the strictly decreasing marginal on the whole working
+   range, and the sign structure of N (`N < 0` for all `x > x*`) proves the
+   soundness of §4's truncate-at-first-non-positive block increment. The
+   numeric sweeps in `zenith.test.ts` were kept as regression checks.
+4. **Garbled formula sentence fixed** in the `zenith-energy.ts` header,
+   which accidentally equated the session phase `s` with the curve formula
+   ("p(s) uses a session phase s = (a+p₀)·k·s·e^(−ks)"); it now reads
+   `p(s) = (a+p₀)·k·s·e^(−ks)` with `s` the session phase (task time, not
+   clock time).

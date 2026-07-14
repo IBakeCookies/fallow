@@ -12,8 +12,9 @@
  *   r the recovery rate. Piecewise-constant coefficients per block give a
  *   closed-form exponential trajectory — no ODE solver.
  *
- * - Warm-up is PER TASK with decaying carryover: productivity p(s) uses a
- *   session phase s = (a+p₀)·k·s·e^(−ks). Leaving a task for a gap g and
+ * - Warm-up is PER TASK with decaying carryover: productivity is
+ *   p(s) = (a+p₀)·k·s·e^(−ks), where s is the SESSION PHASE — time
+ *   accumulated on that task, not clock time. Leaving a task for a gap g and
  *   returning resumes at s·e^(−g/τ) rather than 0 (Monk/Trafton memory-for-
  *   goals) — a brief switch costs little warm-up, a long gap approaches a cold
  *   restart. Because p(s) is hump-shaped, this one decay does double duty:
@@ -164,10 +165,7 @@ interface TaskCurve {
 	wp: number;
 }
 
-function buildCurves(
-	tasks: EnergyTaskInput[],
-	constants: UserConstants
-): Map<number, TaskCurve> {
+function buildCurves(tasks: EnergyTaskInput[], constants: UserConstants): Map<number, TaskCurve> {
 	const curves = new Map<number, TaskCurve>();
 	for (const task of tasks) {
 		const E = mapEffort(task.difficulty);
@@ -290,10 +288,7 @@ function blockOutput(
  * on the same task (a merged run is ONE session — the merge is what preserves
  * warm-up), and drop trailing rest (the tail of the window is implicit rest).
  */
-export function normalizeSchedule(
-	blocks: ScheduleBlock[],
-	windowHours: number
-): ScheduleBlock[] {
+export function normalizeSchedule(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
 	const out: ScheduleBlock[] = [];
 	let used = 0;
 	for (const b of blocks) {
@@ -605,7 +600,8 @@ function* neighbors(
 			yield swapped;
 		}
 		for (const task of tasks) {
-			if (task.id !== blocks[i].taskId) yield replaceAt(blocks, i, { ...blocks[i], taskId: task.id });
+			if (task.id !== blocks[i].taskId)
+				yield replaceAt(blocks, i, { ...blocks[i], taskId: task.id });
 		}
 		if (blocks[i].taskId !== null) yield replaceAt(blocks, i, { ...blocks[i], taskId: null });
 		// Split around a rest break: tests whether a mid-session recovery pays
@@ -631,11 +627,7 @@ function* neighbors(
 	}
 }
 
-function replaceAt(
-	blocks: ScheduleBlock[],
-	index: number,
-	block: ScheduleBlock
-): ScheduleBlock[] {
+function replaceAt(blocks: ScheduleBlock[], index: number, block: ScheduleBlock): ScheduleBlock[] {
 	const next = [...blocks];
 	next[index] = block;
 	return next;
