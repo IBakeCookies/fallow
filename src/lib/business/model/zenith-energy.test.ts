@@ -52,7 +52,7 @@ describe('Zenith Energy Model', () => {
 	describe('evaluateSchedule', () => {
 		const tasks = [makeTask(1, 'A', 7, 4, 0.8, 0.1), makeTask(2, 'B', 3, 8, 0.2, 0.7)];
 
-		it('objective decomposes into output + free-time bonus + terminal bonus', () => {
+		it('objective decomposes into satiated output + free-time bonus + terminal bonus', () => {
 			const ev = evaluateSchedule(
 				[
 					{ taskId: 1, hours: 1.5 },
@@ -64,11 +64,14 @@ describe('Zenith Energy Model', () => {
 			);
 			expect(ev.workHours).toBeCloseTo(3.5, 10);
 			expect(ev.leisureHours).toBeCloseTo(4.5, 10);
-			expect(ev.objective).toBeCloseTo(ev.totalOutput + ev.freeTimeBonus + ev.terminalBonus, 12);
+			expect(ev.objective).toBeCloseTo(ev.satiatedOutput + ev.freeTimeBonus + ev.terminalBonus, 12);
 			expect(ev.totalOutput).toBeCloseTo(
 				ev.blocks.reduce((sum, b) => sum + b.output, 0),
 				12
 			);
+			// V(O) ≤ O with equality only at O = 0
+			expect(ev.satiatedOutput).toBeLessThan(ev.totalOutput);
+			expect(ev.satiatedOutput).toBeGreaterThan(0);
 		});
 
 		it('energy reservoirs drain while working and recover while resting', () => {
@@ -180,7 +183,110 @@ describe('Zenith Energy Model', () => {
 		});
 	});
 
+	describe('satiety (per-task diminishing daily returns)', () => {
+		// The winner-take-all probe scenario (2026-07-11/14): one dominant
+		// high-amplitude task plus two weaker ones.
+		const day = [
+			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
+			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+		];
+		const sched = [
+			{ taskId: 2, hours: 2 },
+			{ taskId: null, hours: 1 },
+			{ taskId: 2, hours: 2 }
+		];
+
+		it('satietyScale ≤ 0 recovers the pure total-output objective exactly', () => {
+			const off = evaluateSchedule(sched, day, 8, {
+				...DEFAULT_ENERGY_PARAMS,
+				satietyScale: 0
+			});
+			expect(off.satiatedOutput).toBeCloseTo(off.totalOutput, 12);
+			expect(off.objective).toBeCloseTo(off.totalOutput + off.freeTimeBonus + off.terminalBonus, 12);
+		});
+
+		it('satiety does not touch the dynamics: raw block outputs are identical on/off', () => {
+			const on = evaluateSchedule(sched, day, 8);
+			const off = evaluateSchedule(sched, day, 8, { ...DEFAULT_ENERGY_PARAMS, satietyScale: 0 });
+			on.blocks.forEach((b, i) => expect(b.output).toBeCloseTo(off.blocks[i].output, 12));
+			expect(on.totalOutput).toBeCloseTo(off.totalOutput, 12);
+		});
+
+		it('discounts later output on the same task more than earlier output (concavity)', () => {
+			const first = evaluateSchedule([{ taskId: 2, hours: 2 }], day, 8);
+			const both = evaluateSchedule([{ taskId: 2, hours: 4 }], day, 8);
+			const rawGain = both.totalOutput - first.totalOutput;
+			const satiatedGain = both.satiatedOutput - first.satiatedOutput;
+			// still worth something (V is strictly increasing)…
+			expect(satiatedGain).toBeGreaterThan(0);
+			// …but the marginal value ratio fell below the first session's
+			expect(satiatedGain / rawGain).toBeLessThan(first.satiatedOutput / first.totalOutput);
+		});
+
+		it('breaks winner-take-all: default optimizer funds all three tasks, satiety-off does not', () => {
+			const fundedTasks = (blocks: { taskId: number | null }[]) =>
+				new Set(blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
+			const withSatiety = optimizeSchedule(day, 8);
+			const without = optimizeSchedule(day, 8, { ...DEFAULT_ENERGY_PARAMS, satietyScale: 0 });
+			expect(fundedTasks(withSatiety.blocks).size).toBe(3);
+			expect(fundedTasks(without.blocks).size).toBeLessThan(3);
+		});
+	});
+
+	describe('micro-recovery gate (w = 1 reservoir floor)', () => {
+		const day = [
+			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
+			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+		];
+
+		it('a full-demand task drains toward a positive floor, not zero', () => {
+			// eq = b·r′/(α + b·r′) ≈ 0.149 with the defaults; the zero-floor law
+			// would be at 0.091 after 8 hours.
+			const ev = evaluateSchedule([{ taskId: 1, hours: 8 }], day, 8);
+			expect(ev.blocks[0].physAfter).toBeGreaterThan(0.15);
+		});
+
+		it('microRecoveryFraction 0 recovers the pure (1−w) gate: drains toward zero', () => {
+			const ev = evaluateSchedule([{ taskId: 1, hours: 8 }], day, 8, {
+				...DEFAULT_ENERGY_PARAMS,
+				microRecoveryFraction: 0
+			});
+			expect(ev.blocks[0].physAfter).toBeLessThan(0.1);
+		});
+
+		it('does not touch rest recovery (the gate is 1 at zero demand regardless of b)', () => {
+			const half = { ...DEFAULT_ENERGY_PARAMS, initialCog: 0.5, initialPhys: 0.5 };
+			const on = evaluateSchedule([], day, 8, half);
+			const off = evaluateSchedule([], day, 8, { ...half, microRecoveryFraction: 0 });
+			expect(on.endCog).toBeCloseTo(off.endCog, 12);
+			expect(on.endPhys).toBeCloseTo(off.endPhys, 12);
+		});
+	});
+
 	describe('optimizeSchedule', () => {
+		it('beats the hand-built plan that exposed a local-search failure (probe 2026-07-14)', () => {
+			// The pre-fix search dropped reading entirely on this day and scored
+			// below this plan; the compound moves + drop-one seeds must dominate it.
+			const day = [
+				makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
+				makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
+				makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+			];
+			const handBuilt = evaluateSchedule(
+				[
+					{ taskId: 1, hours: 3.5 },
+					{ taskId: 3, hours: 1.5 },
+					{ taskId: 2, hours: 3 }
+				],
+				day,
+				8
+			);
+			const result = optimizeSchedule(day, 8);
+			expect(result.evaluation.objective).toBeGreaterThanOrEqual(handBuilt.objective - 1e-9);
+		});
+
 		it('with zero leisure/terminal value it never leaves the window end idle', () => {
 			const tasks = [makeTask(1, 'grind', 6, 5, 0.8, 0.2)];
 			const result = optimizeSchedule(tasks, 12, {

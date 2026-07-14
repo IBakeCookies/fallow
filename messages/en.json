@@ -282,5 +282,9 @@
 	"energy_free_time_value": "Free-time value",
 	"energy_free_time_value_hint": "What an hour NOT worked is worth to you, in output units — this is what makes the plan stop instead of filling the whole day",
 	"energy_evening_energy": "Evening energy value",
-	"energy_evening_energy_hint": "How much ending the day fresh (vs wrecked) is worth"
+	"energy_evening_energy_hint": "How much ending the day fresh (vs wrecked) is worth",
+	"energy_satiety": "Task satiety",
+	"energy_satiety_hint": "Diminishing returns for piling more of the day onto the same task — after this many good sessions' worth of output, extra output on it counts half. 0 turns it off (one task can then win the whole day)",
+	"energy_micro_recovery": "Micro-recovery",
+	"energy_micro_recovery_hint": "Share of recovery that stays active even while working flat out (micro-pauses between efforts) — keeps a maximum-demand task above a small energy floor instead of draining toward zero. 0 turns it off"
 }

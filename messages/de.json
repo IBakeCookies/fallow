@@ -282,5 +282,9 @@
 	"energy_free_time_value": "Freizeitwert",
 	"energy_free_time_value_hint": "Was dir eine NICHT gearbeitete Stunde wert ist, in Leistungseinheiten — das lässt den Plan aufhören, statt den ganzen Tag zu füllen",
 	"energy_evening_energy": "Abendenergie-Wert",
-	"energy_evening_energy_hint": "Wie viel es wert ist, den Tag frisch (statt erschöpft) zu beenden"
+	"energy_evening_energy_hint": "Wie viel es wert ist, den Tag frisch (statt erschöpft) zu beenden",
+	"energy_satiety": "Aufgaben-Sättigung",
+	"energy_satiety_hint": "Abnehmender Ertrag, wenn immer mehr des Tages in dieselbe Aufgabe fließt — nach so vielen guten Sitzungen an Leistung zählt weitere Leistung darauf nur noch halb. 0 schaltet es ab (eine Aufgabe kann dann den ganzen Tag gewinnen)",
+	"energy_micro_recovery": "Mikro-Erholung",
+	"energy_micro_recovery_hint": "Anteil der Erholung, der auch bei voller Auslastung aktiv bleibt (Mikropausen zwischen den Anstrengungen) — hält eine Aufgabe mit Maximalanforderung über einem kleinen Energie-Sockel, statt sie gegen null laufen zu lassen. 0 schaltet es ab"
 }

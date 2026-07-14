@@ -661,6 +661,40 @@
 								{m.energy_evening_energy_hint()}
 							</p>
 						</div>
+						<div>
+							<label for="satiety-scale" class="mb-1 block text-xs text-zinc-500">
+								{m.energy_satiety()}
+							</label>
+							<NumberInput
+								id="satiety-scale"
+								value={params.satietyScale}
+								onchange={(v) => (params.satietyScale = v)}
+								min={0}
+								max={5}
+								step={0.25}
+								unit="×"
+							/>
+							<p class="mt-1 text-xs text-zinc-600">
+								{m.energy_satiety_hint()}
+							</p>
+						</div>
+						<div>
+							<label for="micro-recovery" class="mb-1 block text-xs text-zinc-500">
+								{m.energy_micro_recovery()}
+							</label>
+							<NumberInput
+								id="micro-recovery"
+								value={params.microRecoveryFraction}
+								onchange={(v) => (params.microRecoveryFraction = v)}
+								min={0}
+								max={0.3}
+								step={0.01}
+								unit="×"
+							/>
+							<p class="mt-1 text-xs text-zinc-600">
+								{m.energy_micro_recovery_hint()}
+							</p>
+						</div>
 					</div>
 				</div>
 			</div>

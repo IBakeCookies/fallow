@@ -340,7 +340,10 @@ tilt the plane) and absorbed by the 0.1h floor.
 ## 8. Energy model (`zenith-energy.ts`) — fatigue-recovery extensions
 
 The experimental total-output model keeps the v1 curve (see §7) but got two
-literature-grounded corrections on 2026-07-13. Both were driven by an
+literature-grounded corrections on 2026-07-13 (§8.1–8.2), a per-task
+satiety term on 2026-07-14 (§8.4), and a micro-recovery floor for
+full-demand tasks plus optimizer-reliability fixes on 2026-07-14
+(§8.5–8.6). The corrections were driven by an
 empirical probe of the old behavior: on a 10-hour window with a demanding
 task the optimizer scheduled **zero** interior rest, and micro-breaks always
 _reduced_ output at equal work-hours — contradicting the well-replicated
@@ -363,7 +366,8 @@ r' = r · restRecoveryMultiplier          (default 1.5)
 The existing `(1−w)` gate concentrates the boost exactly where the reservoir
 is idle — full effect at rest, none at full demand — so the closed-form
 solution and Simpson quadrature are unchanged. `restRecoveryMultiplier = 1`
-reproduces the old dynamics.
+reproduces the old dynamics. (§8.5 later generalizes the recovery gate
+`(1−w)` to `1−(1−b)·w`.)
 
 ### 8.2 Warm-up carryover instead of binary reset
 
@@ -403,6 +407,156 @@ response to `freeTimeValue` is bang-bang: ≈ 1.0 still yields ≈ 9.5 h, ≈ 1.
 collapses to all-leisure. A humane default day needs a structural change — a
 concave (diminishing-returns) leisure value or a soft work-hour cap — not a
 retuned constant. Defaults were deliberately left alone pending that decision.
+
+### 8.4 Per-task satiety — concave daily value (added 2026-07-14)
+
+**The pathology.** The pure total-output objective is winner-take-all
+(probe-verified 2026-07-11 on a real 3-task day, reproduced 2026-07-14):
+the optimal plan put 7 h in **two sessions** on one task plus a 1-hour token
+block, because a second session on the best task restarts its hump-shaped
+`p(s)` near the peak at zero cost — re-running the winner always beats
+switching to a weaker task. Two mechanisms were identified; this section
+fixes the missing-satiety one. (The other — a full-demand task has reservoir
+equilibrium `r′·(1−w)/ρ = 0` because the recovery gate `(1−w)` vanishes at
+`w = 1` — is fixed in §8.5; a sublinear _drain_ mapping `w^q` was probed and
+does **not** fix it, since the zero floor comes from the recovery gate, not
+the drain.)
+
+**The form.** Each task's raw daily output `O_i` (the sum of its block
+outputs) enters the objective through a concave wrapper:
+
+```text
+V(O) = κ_i · ln(1 + O/κ_i),      κ_i = satietyScale · O_ref,i
+```
+
+where `O_ref,i` is task i's **reference single-session output** — one
+contiguous `T* = 1.7933·ϕ_i` run from full reservoirs — so κ auto-scales with
+how much a good session on that task yields. Properties: `V(0) = 0`,
+`V′(O) = 1/(1 + O/κ)` so `V′(0) = 1` (early output counts at face value) and
+`V′(κ) = ½` — at the default `satietyScale = 1`, output beyond one good
+session is worth half at the margin. V is strictly increasing (work never
+becomes worthless) and concave (diminishing marginal daily value — Gossen's
+first law applied per task). `satietyScale ≤ 0` disables the wrapper exactly,
+recovering the old objective; the objective is now
+
+```text
+Σ_i V(O_i) + freeTimeValue·(idle hours) + terminalEnergyValue·(C̄(T)).
+```
+
+**The one hard design constraint.** Satiety must key on a **monotone**
+per-task accumulator. The session phase `s` decays over gaps
+(`s·e^(−g/τ)`, §8.2), so anything keyed to it could be laundered away by
+taking breaks — and the re-run-the-winner exploit would return. Keying on
+cumulative output satisfies this (output only accumulates), and has the side
+benefit that a drained, low-output session barely satiates.
+
+**Why this form and not the alternatives** (all probed 2026-07-14 against a
+validated replica of this module, same multi-seed local search):
+
+- **Chosen — concave value on cumulative output.** Lives entirely outside the
+  dynamics: warm-up, reservoirs, and the Simpson quadrature are untouched, so
+  ϕ keeps its exact meaning (time-to-peak) and §8.2's calibration story is
+  unaffected. Probe: turns the 7h/1h winner-take-all plan into one session
+  per task near each task's T*-scale; contiguous-vs-confetti ratio stays
+  ≈ 1.4 (baseline 1.5), so fragmentation stays priced; the plan responds
+  _smoothly_ to a demand sweep that flips the unsatiated plan violently
+  between opposite winner-take-all corners; introduces no new
+  break-then-resume gaming incentive.
+- **Rejected — multiplicative decay on cumulative task time,
+  `p·e^(−S/κ)`.** Also breaks winner-take-all, and is analytically tidy (for
+  contiguous work it stays in the curve family with `k′ = k + 1/κ`), but that
+  is exactly the problem: the effective peak moves to `ϕκ/(ϕ+κ)`, so a fitted
+  ϕ would no longer mean "time to peak", silently corrupting the shared
+  semantics with the classic model. κ is also knife-edgy (2ϕ strong, 4ϕ
+  nearly inert on the probe).
+- **Rejected — a third per-task "boredom" reservoir with within-day
+  recovery.** Double-counts boredom relief (§8.2 already prices it via the
+  above-peak region of the hump) and its recovery knob reintroduces the
+  laundering exploit; its safe limit (no within-day recovery) is just the
+  multiplicative form above.
+
+**Implementation.** `TaskCurve.refOutput` is computed once in `buildCurves`
+(full reservoirs by design — a standardized yardstick independent of
+`initialCog/initialPhys`); `evaluateSchedule` accumulates `outputByTask` and
+reports both `totalOutput` (raw, still what the UI charts) and
+`satiatedOutput` (what the optimizer maximizes, plus the two value terms).
+
+### 8.5 Micro-recovery gate — a positive floor for full-demand tasks (added 2026-07-14)
+
+**The residual pathology.** Satiety (§8.4) fixed the winner-take-all task
+mix, but a knife-edge remained **exactly at w = 1**: under the pure `(1−w)`
+recovery gate a full-demand task has equilibrium `C_eq = r′·(1−w)/ρ = 0`, so
+it drains toward literally zero energy with no basal floor. Probe: lowering
+the probe day's boxing demand from 1.0 to just 0.95 jumped its optimal
+allocation from 2.65 h to 4.56 h — a plan cliff from a 5% demand change.
+
+**The fix.** A fraction `b` of recovery capacity stays active even while
+working flat out (micro-pauses between efforts — the same intermittent-effort
+regime that motivates `restRecoveryMultiplier`, §8.1):
+
+```text
+g  = 1 − (1−b)·w          (recovery gate; b = microRecoveryFraction)
+ρ  = α·w + r′·g,   C_eq = r′·g/ρ
+C_eq(w=1) = b·r′/(α + b·r′) > 0
+```
+
+`b = 0` recovers the pure `(1−w)` gate exactly. The law stays linear with
+constant coefficients, so the closed form and quadrature are untouched. At
+rest (`w = 0`) the gate is 1 regardless of b — recovery behavior is
+unchanged.
+
+**Calibration anchor.** Default `b = 0.05` puts the w = 1 floor at ≈ 0.15
+(phys) / 0.13 (cog) with the default rates — matching Rohmert's (1960)
+finding that static effort below ~15% of maximum voluntary contraction is
+sustainable indefinitely. The floor is where output stabilizes, not zero.
+
+**Why this form and not the alternatives** (probed 2026-07-14,
+`gate-floor-probe`):
+
+- **Rejected — gate `(1−w^q)`.** Still exactly 0 at `w = 1` for every q: the
+  within-session decay of a full-demand task is bit-identical to the current
+  law. Its only effect is inflating mid-range equilibria — a side effect, not
+  a fix. (This was the earlier roadmap suggestion; the probe killed it.)
+- **Rejected — clamp `C_eq = max(C_eq, F)`.** Produces the right floor but is
+  non-smooth in w (the clamp binds only above w ≈ 0.95 at F = 0.15), is
+  purely phenomenological, and decouples C_eq from ρ.
+- **Chosen — `1−(1−b)·w`.** Smooth and monotone in w, one parameter with a
+  physical reading and a literature-anchored default, targeted where the
+  problem is (eq at w = 0.5 moves ~1% at b = 0.05), exact opt-out at b = 0.
+  Probe: the demand sweep wp 1.0 → 0.7 becomes smooth and monotone
+  (3.0 → 4.5 → 5.2 h, objectives in even ~0.4 increments) instead of
+  cliffed, and long full-demand sessions stabilize near the floor instead of
+  grinding to zero.
+
+### 8.6 Optimizer reliability — compound moves and drop-one seeds (added 2026-07-14)
+
+While probing §8.5 the multi-seed steepest-ascent search was caught leaving
+~0.5–1% of objective on the table, and worse, returning the wrong plan
+_structure_ (dropping a task that the true optimum funds, and vice versa).
+Root cause, both times, is that steepest ascent only takes single moves that
+are uphill on their own:
+
+- **Reallocation plateaus:** moving time from task A to task B requires a
+  shrink and a grow, each downhill alone. Fix: a **transfer move** (shrink
+  block i, grow block j, one candidate).
+- **Cold-start slivers:** inserting an unfunded task at step size (0.25 h)
+  never pays because of warm-up, even when a full session would. Fixes: a
+  **half-block reassign** (hand the second half of a block to another task)
+  and a **T\*-session insert** (insert a new task at its full single-task
+  optimum length).
+- **Unreachable "fund all but X" optima:** dropping a funded task is downhill
+  until its hours are redistributed, so those basins need their own starting
+  points. Fix: **drop-one classic seeds** (classic seed built without task X,
+  for each X).
+- The T\*-insert puts totals off the step lattice, so the grow move also
+  learned to grow by the sub-step window remainder (with worthless leisure,
+  a stranded idle sliver is pure loss).
+
+All fixes are deterministic (the search stays reproducible; a test asserts
+this). Verification: both previously-failed probe cases now beat their
+hand-built witnesses, and the b = 0 legacy world's optimum improved too
+(10.70 vs 10.65) — meaning even pre-§8.5 results had mild search slack.
+Cost: ~60 ms for 3 tasks / 8 h (was ~40 ms), still interactive.
 
 ## 9. References
 
@@ -444,6 +598,10 @@ retuned constant. Defaults were deliberately left alone pending that decision.
 - Bechtold, S. E., Janaro, R. E. & Sumners, D. L. (1984). _Maximization of
   labor productivity through optimal rest-break schedules._ Management
   Science 30(12) — the original optimal rest-break scheduling formulation.
+- Rohmert, W. (1960). _Ermittlung von Erholungspausen für statische Arbeit
+  des Menschen._ Internationale Zeitschrift für angewandte Physiologie 18 —
+  static effort below ~15% MVC is sustainable indefinitely; anchors §8.5's
+  default micro-recovery floor.
 
 ## 10. Revision log (doc-only corrections)
 
