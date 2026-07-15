@@ -55,3 +55,23 @@ export interface FlowObservationRecord {
 	phiHours: number; // measured time to flow, in hours
 	createdAt: number;
 }
+
+/**
+ * One end-of-session drain rating: after `hours` on a task, how drained the
+ * user rated each energy system (0 = fresh, 10 = completely spent). The
+ * reservoir demands are captured AT LOGGING TIME (like E/β on flow logs), so
+ * later slider edits don't silently rewrite past measurements. Feeds the
+ * energy model's per-reservoir α drain-rate calibration.
+ */
+export interface DrainObservationRecord {
+	id?: number; // autoIncrement key
+	date: string; // YYYY-MM-DD
+	taskId: number;
+	taskTitle: string;
+	hours: number; // session length worked before the rating
+	cognitiveDemand: number; // wc = mentalDifficulty/10 when logged (0-1)
+	physicalDemand: number; // wp = physicalDifficulty/10 when logged (0-1)
+	mindDrain: number; // 0-10 rating of cognitive drain after the session
+	bodyDrain: number; // 0-10 rating of physical drain after the session
+	createdAt: number;
+}

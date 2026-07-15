@@ -1,10 +1,8 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-
 	"app_name": "Zenith",
 	"page_title": "Zenith — Intelligente tägliche Zeitplanung",
 	"page_meta_description": "Zenith verteilt dein tägliches Zeitbudget mit dem Zenith-Gradient-Algorithmus auf deine Aufgaben — und balanciert dabei Aufwand, Freude und Flow-Zustand für maximale Produktivität.",
-
 	"common_save": "Speichern",
 	"common_cancel": "Abbrechen",
 	"common_tasks": "Aufgaben",
@@ -13,7 +11,6 @@
 	"na_value": "N/V",
 	"unit_hours": "Std",
 	"unit_minutes": "Min",
-
 	"nav_today": "Heute",
 	"nav_calendar": "Kalender",
 	"nav_analytics": "Analysen",
@@ -21,7 +18,6 @@
 	"nav_return_to_today": "Zurück zu heute",
 	"nav_viewing_return": "{label} wird angezeigt — zurück zu heute",
 	"nav_switch_language": "Sprache wechseln",
-
 	"header_tagline": "Verteilt dein tägliches Zeitbudget so, dass jede zusätzliche Minute in die Aufgabe fließt, in der sie am meisten zählt — unter Berücksichtigung von Flow-Anlaufzeit, Kontextwechselkosten und deiner kognitiven und körperlichen Kapazität, ohne eine Aufgabe je über den Punkt sinkender Erträge hinauszutreiben.",
 	"header_return_to_today": "Zurück zu heute",
 	"header_load": "Laden",
@@ -30,7 +26,6 @@
 	"header_save_as_routine": "Aktuelle Aufgaben als Routine speichern",
 	"header_routine_name_placeholder": "Name der Routine...",
 	"header_delete_routine": "Routine {name} löschen",
-
 	"form_add_task": "+ Aufgabe hinzufügen",
 	"form_task_definition": "Aufgabenbeschreibung",
 	"form_task_placeholder": "z. B. Boxtraining",
@@ -40,11 +35,9 @@
 	"form_mental_difficulty": "Mentale Schwierigkeit",
 	"form_enjoyment": "Freude",
 	"form_deploy_task": "Aufgabe anlegen",
-
 	"list_title": "Aufgaben",
 	"list_empty": "Noch keine Aufgaben angelegt",
 	"list_empty_hint": "Füge oben eine Aufgabe hinzu, um zu starten",
-
 	"task_run_order_tooltip": "Empfohlene Reihenfolge — wechselt zwischen kognitiver und körperlicher Arbeit, damit sich das ruhende Energiesystem erholt",
 	"task_nature_cognitive_label": "KOG",
 	"task_nature_physical_label": "KÖR",
@@ -66,7 +59,6 @@
 	"task_remove_aria": "Aufgabe löschen",
 	"task_remove_tooltip": "Aufgabe entfernen",
 	"task_title_label": "Titel",
-
 	"budget_title": "Zeitbudget",
 	"budget_summary": "{hours}h Budget · {planned}h geplant",
 	"budget_summary_free": "{slack}h frei",
@@ -86,24 +78,20 @@
 	"budget_reset_confirm": "Alle {count} Einträge löschen und auf Standardwerte zurücksetzen?",
 	"budget_reset_personalization": "Personalisierung zurücksetzen",
 	"budget_reset_title": "Alle Flow-Einträge löschen — die Konstanten werden immer aus den Einträgen abgeleitet (nie gespeichert), das Modell kehrt also zu den Standardwerten des Artikels zurück",
-
 	"momentum_label": "Momentum",
 	"momentum_tooltip": "Durchschnittliche Freude minus Schwierigkeit. Aufwärts = nachhaltiges Tempo, Reset nötig = Burnout-Risiko.",
 	"momentum_upward": "Aufwärts",
 	"momentum_reset_required": "Reset nötig",
 	"momentum_stable": "Stabil",
-
 	"model_status_personalized": "Modell personalisiert aus {count} Flow-Zeit-Einträgen (⚡) — mit den Standardwerten gemischt, wird mit jedem Eintrag schärfer",
 	"model_status_personalized_one": "Modell personalisiert aus 1 Flow-Zeit-Eintrag (⚡) — mit den Standardwerten gemischt, wird mit jedem Eintrag schärfer",
 	"model_status_implausible": "Deine {count} Flow-Einträge ergaben einen unplausiblen Fit (vorhergesagte Flow-Zeiten über 16h) — Standardkonstanten werden verwendet. Prüfe die Einträge unten auf Fehler.",
 	"model_status_implausible_one": "Dein 1 Flow-Eintrag ergab einen unplausiblen Fit (vorhergesagte Flow-Zeiten über 16h) — Standardkonstanten werden verwendet. Prüfe die Einträge unten auf Fehler.",
 	"model_status_default": "Modell nutzt Standardkonstanten — protokolliere Flow-Zeiten (⚡) an Aufgaben, um die Personalisierung zu starten",
-
 	"banner_future_title": "Vorausplanung:",
 	"banner_future_body": "Aufgaben und Budget, die du hier festlegst, werden für den {date} gespeichert — öffne den Tag dann, um den Plan abzuarbeiten.",
 	"banner_past_title": "Vergangener Tag:",
 	"banner_past_body": "du kannst Aufgaben weiterhin abhaken (eine vor Mitternacht vergessen? Hier korrigieren — Änderungen werden gespeichert), aber Hinzufügen oder Bearbeiten ist nur am heutigen Tag möglich.",
-
 	"metric_zenith_gain": "Zenith-Gewinn",
 	"metric_zenith_gain_desc": "Produktivitätsverbesserung durch Zenith-Optimierung gegenüber naiver Gleichverteilung der Zeit. Basiert auf der Lagrange-Multiplikator-Lösung.",
 	"metric_yield_index": "Ertragsindex",
@@ -157,12 +145,10 @@
 	"metric_avg_mental_desc": "Durchschnittliche mentale/kognitive Schwierigkeit über alle Aufgaben.",
 	"metric_avg_enjoyment": "Ø Freude",
 	"metric_avg_enjoyment_desc": "Durchschnittliche Freude über alle Aufgaben. Höhere Werte bedeuten fesselndere Arbeit.",
-
 	"quadrant_flow": "Flow-Zone",
 	"quadrant_grind": "Mühsal-Modus",
 	"quadrant_cruise": "Gleiten",
 	"quadrant_routine": "Routine",
-
 	"cal_title_head": "Zenith — Kalender",
 	"cal_meta_description": "Monats- und Wochenübersicht deiner Zenith-Tage.",
 	"cal_heading": "Kalender",
@@ -186,7 +172,6 @@
 	"cal_no_tasks": "Keine Aufgaben",
 	"cal_empty_1": "Noch keine Daten in diesem Zeitraum — Tage, die du auf der Seite",
 	"cal_empty_2": "planst, erscheinen hier.",
-
 	"ana_title_head": "Zenith — Analysen",
 	"ana_meta_description": "Abschlusstrends und Aufgabenstatistiken über deine Zenith-Tage.",
 	"ana_heading": "Analysen",
@@ -230,7 +215,6 @@
 	"ana_day_profiles_hint": "Charakter deiner aktiven Tage: fordernd & fesselnd (Flow), anstrengend (Mühsal), leicht & angenehm (Gleiten) oder unaufgeregt (Routine)",
 	"ana_quadrant_count_one": "{label}: 1 Tag",
 	"ana_quadrant_count_other": "{label}: {count} Tage",
-
 	"energy_title_head": "Zenith — Energie-Labor",
 	"energy_meta_description": "Experimenteller Gesamtleistungs-Planer: Energiereservoirs leeren sich beim Arbeiten und füllen sich in Pausen; Pausen und Feierabend ergeben sich aus der Mathematik.",
 	"energy_heading": "Energie-Labor",
@@ -260,6 +244,7 @@
 	"energy_slider_mental": "Mentale Schwierigkeit",
 	"energy_slider_enjoyment": "Freude",
 	"energy_schedule": "Zeitplan",
+	"energy_view_chart": "Diagramm",
 	"energy_nothing_scheduled": "Nichts geplant — mit den aktuellen Parametern ist Freizeit mehr wert als die Leistung jeder Aufgabe. Senke den Freizeitwert oder prüfe dein Tagesfenster.",
 	"energy_output_suffix": "{output} Out",
 	"energy_recovery": "Erholung",
@@ -286,5 +271,27 @@
 	"energy_satiety": "Aufgaben-Sättigung",
 	"energy_satiety_hint": "Abnehmender Ertrag, wenn immer mehr des Tages in dieselbe Aufgabe fließt — nach so vielen guten Sitzungen an Leistung zählt weitere Leistung darauf nur noch halb. 0 schaltet es ab (eine Aufgabe kann dann den ganzen Tag gewinnen)",
 	"energy_micro_recovery": "Mikro-Erholung",
-	"energy_micro_recovery_hint": "Anteil der Erholung, der auch bei voller Auslastung aktiv bleibt (Mikropausen zwischen den Anstrengungen) — hält eine Aufgabe mit Maximalanforderung über einem kleinen Energie-Sockel, statt sie gegen null laufen zu lassen. 0 schaltet es ab"
+	"energy_micro_recovery_hint": "Anteil der Erholung, der auch bei voller Auslastung aktiv bleibt (Mikropausen zwischen den Anstrengungen) — hält eine Aufgabe mit Maximalanforderung über einem kleinen Energie-Sockel, statt sie gegen null laufen zu lassen. 0 schaltet es ab",
+	"energy_log_drain_aria": "Erschöpfung nach der Sitzung erfassen",
+	"energy_log_drain_tooltip": "Nach der Arbeit an dieser Aufgabe bewerten, wie erschöpft du dich fühlst (Kopf und Körper, 0–10) — die Bewertungen kalibrieren die Erschöpfungsraten auf dich",
+	"energy_drain_form_title": "🪫 Nach der Sitzung:",
+	"energy_drain_worked_label": "gearbeitet",
+	"energy_drain_mind_label": "Kopf",
+	"energy_drain_mind_title": "Wie mental erschöpft du dich jetzt fühlst: 0 = frisch, 10 = völlig verausgabt",
+	"energy_drain_body_label": "Körper",
+	"energy_drain_body_title": "Wie körperlich erschöpft du dich jetzt fühlst: 0 = frisch, 10 = völlig verausgabt",
+	"energy_calibration": "Erschöpfungs-Kalibrierung",
+	"energy_calibration_hint": "Passt die beiden Erschöpfungsraten an deine 🪫-Bewertungen nach Sitzungen an (verankert an den Standardwerten — jede Bewertung verschiebt sie weiter). Die Erholung kommt weiter aus den Reglern: nur wie schnell Arbeit dich erschöpft, lässt sich aus Bewertungen nach Sitzungsende messen.",
+	"energy_calibration_empty": "Noch keine Bewertungen. Nach einer Sitzung an einer Aufgabe auf 🪫 tippen und bewerten, wie erschöpft sich Kopf und Körper anfühlen — wenige Bewertungen personalisieren die Erschöpfungsraten.",
+	"energy_fit_value": "≈ {alpha} ± {std} /h · {count} Bewertungen",
+	"energy_fit_no_signal": "keine aussagekräftigen Bewertungen",
+	"energy_apply_fit": "Gefittete Raten übernehmen",
+	"energy_apply_fit_title": "Die beiden Erschöpfungsraten-Parameter auf die gefitteten Werte setzen",
+	"energy_fit_applied": "Gefittete Raten übernommen",
+	"energy_drain_log_count": "{count} Erschöpfungs-Bewertungen erfasst",
+	"energy_delete_drain_log_aria": "Diese Bewertung löschen",
+	"energy_delete_drain_log_title": "Diese Bewertung aus der Kalibrierung entfernen",
+	"energy_reset_drain_logs": "Alle Bewertungen löschen",
+	"energy_reset_drain_title": "Alle Erschöpfungs-Bewertungen löschen — die Kalibrierung fällt auf die Standardwerte zurück",
+	"energy_reset_drain_confirm": "Alle {count} Bewertungen löschen?"
 }

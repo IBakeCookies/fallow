@@ -6,10 +6,12 @@
  * - routines:         saved task templates, keyed by id
  * - flowObservations: measured time-to-flow data points (autoIncrement),
  *                     indexed by date
+ * - drainObservations: end-of-session drain ratings (autoIncrement),
+ *                     indexed by date
  */
 
 const DB_NAME = 'zenith-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let databaseInstance: IDBDatabase | null = null;
 
@@ -47,6 +49,16 @@ export function openDatabase(): Promise<IDBDatabase> {
 					autoIncrement: true
 				});
 				flowStore.createIndex('date', 'date');
+			}
+
+			// Drain observations store (v3) - end-of-session drain ratings that
+			// calibrate the energy model's α drain rates
+			if (!database.objectStoreNames.contains('drainObservations')) {
+				const drainStore = database.createObjectStore('drainObservations', {
+					keyPath: 'id',
+					autoIncrement: true
+				});
+				drainStore.createIndex('date', 'date');
 			}
 		};
 	});

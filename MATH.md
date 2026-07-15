@@ -558,6 +558,108 @@ hand-built witnesses, and the b = 0 legacy world's optimum improved too
 (10.70 vs 10.65) — meaning even pre-§8.5 results had mild search slack.
 Cost: ~60 ms for 3 tasks / 8 h (was ~40 ms), still interactive.
 
+### 8.7 Drain-rate calibration from end-of-session ratings (added 2026-07-15)
+
+**The data signal.** Every other energy parameter was hand-tuned; this adds
+the first _measured_ personalization. After working a session on a task, the
+user logs a 🪫 rating: session length `H` plus "how drained do you feel now"
+for mind and body on a 0–10 scale (a Borg CR10-style category-ratio
+instrument). The task's reservoir demands `wc, wp` are captured at logging
+time, like E/β on ⚡ flow logs, so later slider edits don't rewrite past
+measurements. Ratings are stored per task per day with upsert-on-re-log
+(typo-correction semantics), in a new IndexedDB store (`drainObservations`,
+DB v3).
+
+**The model.** A rating is read as the drained fraction of one reservoir,
+`d/10 = 1 − C(H)`, where C follows the §8.1/§8.5 law from a full reservoir:
+
+```text
+D(w, H; α) = 1 − C(H),   C(H) = C_eq + (1 − C_eq)·e^(−ρH)
+ρ = α·w + r′·g,   C_eq = r′·g/ρ,   g = 1 − (1−b)·w
+```
+
+Two independent 1-D fits share each observation: the mind rating with
+`w = wc` calibrates `alphaCog`, the body rating with `w = wp` calibrates
+`alphaPhys`.
+
+**What is (not) identifiable.** Only **α** is fit. The fit _conditions on_
+the current `recoveryRate`, `restRecoveryMultiplier` and
+`microRecoveryFraction` — that conditioning is what makes α identifiable at
+all. `recoveryRate` itself cannot be recovered from end-of-session ratings:
+it enters the observable D only jointly with α through ρ and C_eq, and its
+own signature (how fast a _rest_ refills the tank) never appears in a rating
+taken at the end of _work_. Separating it needs pre/post-REST rating pairs —
+a different instrument, deliberately out of scope. Observations with
+`w = 0` (or `H = 0`) are dropped entirely: D is then constant in α, so the
+rating says nothing about this reservoir's drain rate, and keeping it would
+only pollute the noise estimate. This was also deliberately sequenced AFTER
+the §8.5 gate fix, so α doesn't absorb gate mis-specification.
+
+**The fit** (`fitDrainRate`, the `fitUserConstants` pattern in 1-D):
+
+```text
+minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α ∈ [0.05, 2]
+```
+
+- **Prior.** α₀ = the model default; λ = `DRAIN_PRIOR_STRENGTH` = 0.25 is
+  the Bayesian ridge weight (prior α ~ N(α₀, σ_d²/λ)). Unlike the ϕ fit's
+  λ = 4, the effective "design" here is the sensitivity dD/dα (≈ 0.3–0.9 for
+  typical 1–3 h full-demand sessions, vanishing as w → 0), so λ was tuned by
+  probe in those units (λ sweep, 2026-07-15): one consistent full-demand log
+  moves α ~50% of the way to what it implies, three ~70%, ten ~85%; λ = 0.5
+  left three logs at only 57% while buying almost no extra outlier
+  resistance (a wild outlier among 4 on-default logs lands within 0.01 of
+  the λ = 0.25 result — robustness comes from the other logs, not the
+  prior).
+- **Solver.** D has no closed-form minimizer, so: deterministic 128-point
+  grid to bracket the global minimum, then golden-section refinement. The
+  bounds equal the Energy Lab's α input range, so a fitted value is always
+  representable in the UI; they also play the role of the ϕ fit's absurdity
+  guard — wildly inconsistent ratings can at worst pin α to an
+  extreme-but-valid drain rate (probe: six "10/10 drained after 15 min"
+  ratings pin α = 2).
+- **Posterior.** Noise σ̂² = (ν₀σ₀² + SSR)/(ν₀ + n) with σ₀ = 0.15 (1.5
+  notches — self-reported drain is fuzzier than a stopwatch) and ν₀ = λ;
+  posterior std via the Gauss–Newton/Laplace curvature
+  √(σ̂²/(Σ(dD/dα)² + λ)). Probe: std shrinks with consistent data
+  (0.036 → 0.010 from 2 → 8 logs) and grows with scatter (0.10 for the same
+  8-log mean with ±3-notch noise).
+
+**Known approximations (deliberate).**
+
+- **Fresh-start assumption.** D assumes the session began at C = 1, like
+  `refOutput`'s standardized yardstick — the rating carries no information
+  about the pre-session level. A mid-day session that starts drained rates
+  higher than the model predicts and biases α upward. Accepted as noise
+  (σ₀ is wide); the honest fix — chaining the whole day's reservoir
+  trajectory through every rating — needs a complete work log, not a
+  per-session rating.
+- **Linear rating map.** d/10 ↔ drained fraction assumes the subjective
+  scale is linear in reservoir depletion with fixed anchors (0 = fresh,
+  10 = spent). Borg's psychophysical work supports ratio-scale behavior for
+  CR10-style instruments; any per-user nonlinearity is absorbed by α to
+  first order.
+- **Saturation shrinkage.** For large true α, D saturates near 1 and dD/dα
+  vanishes, so the data genuinely cannot distinguish α = 1.0 from 1.4; the
+  prior then wins and the fit under-reports extreme drain rates (probe: 8
+  clean logs from α* = 1.2 fit to 0.96 — but the _predictions_ differ by
+  under one rating notch, which is all the ratings can see).
+
+**Probe results** (2026-07-15, locked in as unit tests): exact recovery of
+α* at the prior mean from 8 clean synthetic logs; monotone in the reported
+rating; w = 0 logs have zero influence; deterministic.
+
+**UI.** The Energy Lab's task list gets the 🪫 inline editor (today-only by
+construction — the lab always views today); a "Drain Calibration" card shows
+each reservoir's fitted α ± std with its informative-log count and an
+**Apply fitted rates** button that writes the fits into the manual α inputs.
+Unlike the classic model's fit (which the allocator consumes directly), the
+energy lab's parameters stay user-owned sliders — the fit is applied
+explicitly, so slider experiments and the calibration never silently fight
+over the same knob. The fit itself re-derives live from the observations
+(delete/reset a rating and it refits), and re-fits under the _current_
+recovery sliders, since it conditions on them.
+
 ## 9. References
 
 - Fox, B. L. (1966). _Discrete optimization via marginal analysis._
@@ -602,6 +704,10 @@ Cost: ~60 ms for 3 tasks / 8 h (was ~40 ms), still interactive.
   des Menschen._ Internationale Zeitschrift für angewandte Physiologie 18 —
   static effort below ~15% MVC is sustainable indefinitely; anchors §8.5's
   default micro-recovery floor.
+- Borg, G. A. V. (1982). _Psychophysical bases of perceived exertion._
+  Medicine & Science in Sports & Exercise 14(5) — the category-ratio (CR10)
+  0–10 perceived-exertion scale behind §8.7's drain-rating instrument and
+  its (approximately ratio-scale) linear reading.
 
 ## 10. Revision log (doc-only corrections)
 

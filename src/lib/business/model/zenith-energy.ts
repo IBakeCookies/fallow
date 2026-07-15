@@ -803,3 +803,176 @@ function replaceAt(blocks: ScheduleBlock[], index: number, block: ScheduleBlock)
 	next[index] = block;
 	return next;
 }
+
+// ================== Drain-rate calibration (α fit) ==================
+
+/**
+ * One end-of-session drain rating, reduced to what the fit needs for ONE
+ * reservoir: after `hours` on a task demanding `demand` of this reservoir,
+ * the user rated it `drainedFraction` empty (rating/10 — 0 = fresh, 1 = spent).
+ */
+export interface DrainObservation {
+	/** Demand w on this reservoir (0–1) during the rated session */
+	demand: number;
+	/** Session length in hours */
+	hours: number;
+	/** Reported drain, mapped to [0,1] (a 0–10 rating divided by 10) */
+	drainedFraction: number;
+}
+
+export interface DrainRateFit {
+	/** MAP drain rate α for this reservoir (the fallback when not fitted) */
+	alpha: number;
+	fitted: boolean;
+	/** Approximate posterior std of α (Gauss–Newton/Laplace); only when fitted */
+	alphaStd?: number;
+	/** Informative observations used (demand > 0 and hours > 0) */
+	usedCount: number;
+}
+
+/**
+ * Prior strength for the drain-rate fit — the λ in the ridge penalty
+ * λ·(α − α₀)². Bayesian reading (same construction as RIDGE_PRIOR_STRENGTH):
+ * with rating noise σ_d and prior α ~ N(α₀, σ_d²/λ), the MAP of
+ *
+ *   Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²
+ *
+ * is exactly this penalized fit. Unlike the ϕ fit, the "design" here is the
+ * SENSITIVITY dD/dα (≈ 0.3–0.9 per unit α for typical 1–3h full-demand
+ * sessions, vanishing as w → 0), so λ is calibrated in those units, by probe
+ * (λ sweep, 2026-07-15): one consistent full-demand log moves α ~50% of the
+ * way to what it implies, three ~70%, ten ~85%; a clean 8-log set recovers a
+ * true α of 1.2 as 0.96 (the shortfall is drain saturation — the data barely
+ * distinguishes large αs — not the prior). Stronger λ=0.5 left 3 logs at only
+ * 57% while buying almost no extra outlier resistance (that comes from the
+ * other logs, not the prior).
+ */
+export const DRAIN_PRIOR_STRENGTH = 0.25;
+
+/**
+ * Prior scale for drain-rating noise: 1.5 notches on the 0–10 scale (0.15 of
+ * the drained fraction), blended with the residuals as ν₀ pseudo-observations
+ * exactly like FLOW_NOISE_PRIOR_STD — "how drained do you feel" is far fuzzier
+ * than a stopwatch, so the floor is wider than the ϕ fit's 0.25h.
+ */
+export const DRAIN_NOISE_PRIOR_STD = 0.15;
+
+/**
+ * Fit bounds = the Energy Lab's α input range, so a fitted value is always
+ * representable (and appliable) in the UI. The bounds also play the role of
+ * fitUserConstants' absurdity guard: wildly inconsistent ratings can at worst
+ * pin α to an extreme-but-valid drain rate, never break the dynamics.
+ */
+export const ALPHA_FIT_MIN = 0.05;
+export const ALPHA_FIT_MAX = 2;
+
+/**
+ * Calibrate ONE reservoir's drain rate α from end-of-session drain ratings.
+ *
+ * MODEL: the session is assumed to start from a full reservoir (a
+ * standardized yardstick, like refOutput — MATH.md §8.7 discusses the
+ * approximation), so the reservoir law predicts a drained fraction
+ *
+ *   D(w, H; α) = 1 − C(H),  C(H) = C_eq + (1 − C_eq)·e^(−ρH)
+ *
+ * with ρ, C_eq from the §8.1/§8.5 law at the CURRENT recovery parameters —
+ * the fit conditions on them, which is what makes α identifiable at all
+ * (recoveryRate itself cannot be recovered from end-of-session ratings; it
+ * would need pre/post-REST rating pairs). A 0–10 rating maps linearly to
+ * D ∈ [0, 1]: 0 = fresh, 10 = completely drained.
+ *
+ * FIT: 1-D ridge toward the default (the fitUserConstants pattern):
+ * minimize Σ(dᵢ − Dᵢ(α))² + λ(α − α₀)² over [ALPHA_FIT_MIN, ALPHA_FIT_MAX]
+ * by deterministic coarse grid + golden-section refinement (D is smooth and
+ * monotone in α but the objective has no closed-form minimizer). Observations
+ * with demand = 0 or hours = 0 are dropped: D is then constant in α — the
+ * rating says nothing about THIS reservoir's drain rate (whatever tired it
+ * was not this session's doing), and keeping it would only pollute σ̂².
+ *
+ * Returns the fallback with fitted: false when nothing informative remains.
+ */
+export function fitDrainRate(
+	observations: DrainObservation[],
+	fallbackAlpha: number,
+	params: Pick<EnergyParams, 'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'>
+): DrainRateFit {
+	const used = observations.filter((o) => o.demand > 0 && o.hours > 0);
+	if (used.length === 0) {
+		return { alpha: fallbackAlpha, fitted: false, usedCount: 0 };
+	}
+
+	const alpha0 = Math.min(Math.max(fallbackAlpha, ALPHA_FIT_MIN), ALPHA_FIT_MAX);
+	const predicted = (alpha: number, o: DrainObservation): number => {
+		const law = reservoirLaw(
+			clamp01(o.demand),
+			alpha,
+			params.recoveryRate,
+			params.restRecoveryMultiplier,
+			params.microRecoveryFraction
+		);
+		return 1 - reservoirAt(1, law, o.hours);
+	};
+	const ssr = (alpha: number): number => {
+		let sum = 0;
+		for (const o of used) {
+			const resid = clamp01(o.drainedFraction) - predicted(alpha, o);
+			sum += resid * resid;
+		}
+		return sum;
+	};
+	const objective = (alpha: number): number =>
+		ssr(alpha) + DRAIN_PRIOR_STRENGTH * (alpha - alpha0) * (alpha - alpha0);
+
+	// Coarse grid to bracket the global minimum (the objective is smooth but
+	// not provably unimodal for adversarial data), then golden-section refine.
+	const GRID = 128;
+	let bestIdx = 0;
+	let bestVal = Infinity;
+	for (let i = 0; i <= GRID; i++) {
+		const alpha = ALPHA_FIT_MIN + ((ALPHA_FIT_MAX - ALPHA_FIT_MIN) * i) / GRID;
+		const val = objective(alpha);
+		if (val < bestVal) {
+			bestVal = val;
+			bestIdx = i;
+		}
+	}
+	const cell = (ALPHA_FIT_MAX - ALPHA_FIT_MIN) / GRID;
+	let lo = Math.max(ALPHA_FIT_MIN, ALPHA_FIT_MIN + (bestIdx - 1) * cell);
+	let hi = Math.min(ALPHA_FIT_MAX, ALPHA_FIT_MIN + (bestIdx + 1) * cell);
+	const INV_PHI = (Math.sqrt(5) - 1) / 2;
+	let x1 = hi - INV_PHI * (hi - lo);
+	let x2 = lo + INV_PHI * (hi - lo);
+	let f1 = objective(x1);
+	let f2 = objective(x2);
+	for (let i = 0; i < 48; i++) {
+		if (f1 < f2) {
+			hi = x2;
+			x2 = x1;
+			f2 = f1;
+			x1 = hi - INV_PHI * (hi - lo);
+			f1 = objective(x1);
+		} else {
+			lo = x1;
+			x1 = x2;
+			f1 = f2;
+			x2 = lo + INV_PHI * (hi - lo);
+			f2 = objective(x2);
+		}
+	}
+	const alpha = (lo + hi) / 2;
+
+	// Noise estimate (inverse-gamma-style blend, as in fitUserConstants) and
+	// Laplace posterior std via the Gauss–Newton curvature Σ(dD/dα)² + λ.
+	const nu0 = DRAIN_PRIOR_STRENGTH;
+	const sigma2 =
+		(nu0 * DRAIN_NOISE_PRIOR_STD * DRAIN_NOISE_PRIOR_STD + ssr(alpha)) / (nu0 + used.length);
+	const h = 1e-4;
+	let sensitivity = 0;
+	for (const o of used) {
+		const dD = (predicted(alpha + h, o) - predicted(alpha - h, o)) / (2 * h);
+		sensitivity += dD * dD;
+	}
+	const alphaStd = Math.sqrt(sigma2 / (sensitivity + DRAIN_PRIOR_STRENGTH));
+
+	return { alpha, fitted: true, alphaStd, usedCount: used.length };
+}

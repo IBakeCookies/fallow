@@ -5,4 +5,10 @@
  * types are re-exported here so components depend on the business layer only.
  */
 
-export type { Task, DailySession, SavedRoutine, FlowObservationRecord } from '$lib/data/type';
+export type {
+	Task,
+	DailySession,
+	SavedRoutine,
+	FlowObservationRecord,
+	DrainObservationRecord
+} from '$lib/data/type';
