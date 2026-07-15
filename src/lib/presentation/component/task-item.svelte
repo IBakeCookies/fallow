@@ -278,7 +278,7 @@
 									size="icon-xs"
 									type="button"
 									onclick={() => (loggingFlow = false)}
-									class="text-zinc-600"
+									class="text-zinc-500"
 								>
 									✕
 								</Button>
@@ -288,7 +288,7 @@
 								<Tooltip.Trigger
 									class={cn(
 										buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-										flowMinutes ? 'text-amber-400' : 'text-zinc-600 hover:text-amber-400'
+										flowMinutes ? 'text-amber-400' : 'text-zinc-500 hover:text-amber-400'
 									)}
 									onclick={openFlowLog}
 									aria-label={m.task_log_flow_aria()}
@@ -307,7 +307,7 @@
 							<Tooltip.Trigger
 								class={cn(
 									buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-									editing ? 'text-emerald-400' : 'text-zinc-600 hover:text-emerald-400'
+									editing ? 'text-emerald-400' : 'text-zinc-500 hover:text-emerald-400'
 								)}
 								onclick={() => (editing ? (editing = false) : openEdit())}
 								aria-label={m.task_edit_aria()}
@@ -331,7 +331,7 @@
 						<Tooltip.Trigger
 							class={cn(
 								buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-								'text-zinc-600 hover:text-red-400'
+								'text-zinc-500 hover:text-red-400'
 							)}
 							onclick={() => onremove(id)}
 							aria-label={m.task_remove_aria()}
@@ -364,7 +364,7 @@
 						type="text"
 						bind:value={editDraft.title}
 						required
-						class="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
+						class="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
 					/>
 				</label>
 

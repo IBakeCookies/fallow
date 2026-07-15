@@ -366,7 +366,7 @@
 		<div class="space-y-6">
 			<div class="rounded-2xl border border-white/10 bg-white/3 p-8 text-center">
 				<p class="text-zinc-400">{m.energy_no_open_tasks()}</p>
-				<p class="mt-1 text-sm text-zinc-600">
+				<p class="mt-1 text-sm text-zinc-500">
 					{m.energy_no_open_tasks_hint()}
 				</p>
 			</div>
@@ -442,12 +442,12 @@
 								title={m.energy_free_time_tooltip({ duration: formatDuration(trailingFreeHours) })}
 							>
 								{#if trailingFreeHours / windowHours > 0.07}
-									<span class="truncate px-1.5 text-xs text-zinc-600">{m.energy_free()}</span>
+									<span class="truncate px-1.5 text-xs text-zinc-500">{m.energy_free()}</span>
 								{/if}
 							</div>
 						{/if}
 					</div>
-					<div class="mt-1 flex justify-between text-[10px] text-zinc-600">
+					<div class="mt-1 flex justify-between text-[10px] text-zinc-500">
 						<span>0:00</span>
 						<span>{formatClock(windowHours)}</span>
 					</div>
@@ -534,7 +534,7 @@
 											{m.energy_output_suffix({ output: block.output.toFixed(2) })}
 										</span>
 									{:else}
-										<span class="w-20 shrink-0 text-right text-xs text-zinc-600">
+										<span class="w-20 shrink-0 text-right text-xs text-zinc-500">
 											{m.energy_recovery()}
 										</span>
 									{/if}
@@ -543,11 +543,11 @@
 							{#if trailingFreeHours > 1e-6}
 								<li class="flex items-center gap-3 text-sm">
 									<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-zinc-700"></span>
-									<span class="w-24 shrink-0 tabular-nums text-zinc-600">
+									<span class="w-24 shrink-0 tabular-nums text-zinc-500">
 										{formatClock(plannedHours)}–{formatClock(windowHours)}
 									</span>
-									<span class="flex-1 text-zinc-600 italic">{m.energy_free_time()}</span>
-									<span class="shrink-0 text-xs text-zinc-600">
+									<span class="flex-1 text-zinc-500 italic">{m.energy_free_time()}</span>
+									<span class="shrink-0 text-xs text-zinc-500">
 										{formatDuration(trailingFreeHours)}
 									</span>
 									<span class="w-20"></span>
@@ -591,7 +591,7 @@
 								</p>
 							{:else}
 								<p class="text-lg font-semibold text-zinc-500">—</p>
-								<p class="text-xs text-zinc-600">{m.energy_no_classic()}</p>
+								<p class="text-xs text-zinc-500">{m.energy_no_classic()}</p>
 							{/if}
 						</div>
 					</div>
@@ -608,9 +608,9 @@
 							<h3 class="text-xs font-semibold tracking-wider text-zinc-300 uppercase">
 								{m.energy_tasks()}
 							</h3>
-							<span class="text-xs text-zinc-600">{m.energy_shared_note()}</span>
+							<span class="text-xs text-zinc-500">{m.energy_shared_note()}</span>
 						</div>
-						<p class="mb-3 text-xs text-zinc-600">
+						<p class="mb-3 text-xs text-zinc-500">
 							{m.energy_drag_hint()}
 						</p>
 						<ul class="space-y-1">
@@ -644,7 +644,7 @@
 												title={m.energy_log_drain_tooltip()}
 												class="shrink-0 transition {todaysDrainLog(task.id)
 													? 'text-amber-400'
-													: 'text-zinc-600 opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-amber-400'}"
+													: 'text-zinc-500 opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-amber-400'}"
 												onclick={() =>
 													drainDraft?.taskId === task.id
 														? (drainDraft = null)
@@ -657,7 +657,7 @@
 											type="button"
 											aria-label={m.task_remove_aria()}
 											title={m.task_remove_tooltip()}
-											class="shrink-0 text-zinc-600 opacity-0 transition hover:text-red-400 focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+											class="shrink-0 text-zinc-500 opacity-0 transition hover:text-red-400 focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
 											onclick={() => session.removeTask(task.id)}
 										>
 											✕
@@ -743,7 +743,7 @@
 													</button>
 													<button
 														type="button"
-														class="px-1 text-zinc-600 hover:text-zinc-300"
+														class="px-1 text-zinc-500 hover:text-zinc-300"
 														onclick={() => (drainDraft = null)}
 													>
 														✕
@@ -759,7 +759,6 @@
 							<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={false} />
 						</div>
 					</div>
-
 				</div>
 
 				<!-- Parameters + calibration -->
@@ -774,7 +773,7 @@
 								</h3>
 								<button
 									type="button"
-									class="text-xs text-zinc-600 transition hover:text-zinc-300"
+									class="text-xs text-zinc-500 transition hover:text-zinc-300"
 									title={m.energy_reset_defaults_title()}
 									onclick={() => (params = { ...DEFAULT_ENERGY_PARAMS })}
 								>
@@ -1065,7 +1064,7 @@
 												})}
 											</span>
 										{:else}
-											<span class="text-zinc-600">{m.energy_fit_no_signal()}</span>
+											<span class="text-zinc-500">{m.energy_fit_no_signal()}</span>
 										{/if}
 									</div>
 									<div class="flex items-baseline justify-between gap-2 text-xs">
@@ -1079,7 +1078,7 @@
 												})}
 											</span>
 										{:else}
-											<span class="text-zinc-600">{m.energy_fit_no_signal()}</span>
+											<span class="text-zinc-500">{m.energy_fit_no_signal()}</span>
 										{/if}
 									</div>
 								</div>
@@ -1087,7 +1086,7 @@
 								{#if cogDrainFit.fitted || physDrainFit.fitted}
 									<button
 										type="button"
-										class="mt-3 w-full rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:cursor-default disabled:border-white/10 disabled:bg-transparent disabled:text-zinc-600"
+										class="mt-3 w-full rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:cursor-default disabled:border-white/10 disabled:bg-transparent disabled:text-zinc-500"
 										disabled={fitApplied}
 										title={m.energy_apply_fit_title()}
 										onclick={applyDrainFit}
@@ -1106,7 +1105,7 @@
 										}}
 									>
 										<span>{m.energy_drain_log_count({ count: drainObservations.length })}</span>
-										<span class="shrink-0 text-zinc-600">{drainLogsOpen ? '▴' : '▾'}</span>
+										<span class="shrink-0 text-zinc-500">{drainLogsOpen ? '▴' : '▾'}</span>
 									</button>
 
 									{#if drainLogsOpen}
@@ -1116,7 +1115,7 @@
 													class="flex items-center justify-between gap-2 rounded bg-white/3 px-2 py-1 text-xs text-zinc-400"
 												>
 													<span class="truncate">
-														<span class="text-zinc-600">{log.date}</span>
+														<span class="text-zinc-500">{log.date}</span>
 														<span class="capitalize"> · {log.taskTitle}</span>
 													</span>
 													<span class="flex shrink-0 items-center gap-2 tabular-nums">
@@ -1127,7 +1126,7 @@
 															type="button"
 															aria-label={m.energy_delete_drain_log_aria()}
 															title={m.energy_delete_drain_log_title()}
-															class="text-zinc-600 transition hover:text-red-400"
+															class="text-zinc-500 transition hover:text-red-400"
 															onclick={() => session.deleteDrainLog(log.id!)}
 														>
 															✕
@@ -1164,7 +1163,7 @@
 											{:else}
 												<button
 													type="button"
-													class="text-xs text-zinc-600 transition hover:text-red-400"
+													class="text-xs text-zinc-500 transition hover:text-red-400"
 													title={m.energy_reset_drain_title()}
 													onclick={() => (confirmingDrainReset = true)}
 												>

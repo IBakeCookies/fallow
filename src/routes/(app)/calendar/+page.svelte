@@ -143,13 +143,23 @@
 		</div>
 
 		<div class="flex items-center gap-1">
-			<Button variant="outline" size="sm" onclick={goPrev} aria-label={m.cal_previous({ view: viewLabel })}>
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={goPrev}
+				aria-label={m.cal_previous({ view: viewLabel })}
+			>
 				<ChevronLeft class="h-4 w-4" />
 			</Button>
 			<span class="min-w-28 sm:min-w-36 px-1 text-center text-sm font-medium text-zinc-200">
 				{rangeLabel}
 			</span>
-			<Button variant="outline" size="sm" onclick={goNext} aria-label={m.cal_next({ view: viewLabel })}>
+			<Button
+				variant="outline"
+				size="sm"
+				onclick={goNext}
+				aria-label={m.cal_next({ view: viewLabel })}
+			>
 				<ChevronRight class="h-4 w-4" />
 			</Button>
 		</div>
@@ -232,7 +242,7 @@
 								</li>
 							{/each}
 							{#if s.totalTasks > 3}
-								<li class="text-[11px] text-zinc-600">{m.cal_more({ count: s.totalTasks - 3 })}</li>
+								<li class="text-[11px] text-zinc-500">{m.cal_more({ count: s.totalTasks - 3 })}</li>
 							{/if}
 						</ul>
 					{:else}
@@ -268,7 +278,7 @@
 						</ul>
 					{/if}
 				{:else if view === 'week'}
-					<p class="mt-2 text-xs text-zinc-600">
+					<p class="mt-2 text-xs text-zinc-500">
 						{isFuture ? m.cal_nothing_planned() : m.cal_no_tasks()}
 					</p>
 				{/if}
