@@ -2,6 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
+	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import type { Task, DailySession, SavedRoutine } from '$lib/business/type';
 
 	interface Props {
@@ -69,15 +70,34 @@
 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
 	<div>
 		<div class="flex items-center gap-4">
-			<h1 class="text-2xl font-bold text-zinc-100">{m.app_name()}</h1>
+			<!-- The old under-title tagline lives in the title's tooltip now — the
+			     header stays one line so the content above the fold is the plan. -->
+			<Tooltip.Provider delayDuration={150}>
+				<Tooltip.Root>
+					<Tooltip.Trigger>
+						{#snippet child({ props })}
+							<h1
+								{...props}
+								class="cursor-help text-2xl font-bold text-zinc-100 underline decoration-zinc-700 decoration-dotted underline-offset-4"
+							>
+								{m.app_name()}
+							</h1>
+						{/snippet}
+					</Tooltip.Trigger>
+					<Tooltip.Content
+						side="bottom"
+						align="start"
+						class="max-w-md bg-zinc-900 border-zinc-700 text-zinc-200"
+					>
+						<p>{m.header_tagline()}</p>
+					</Tooltip.Content>
+				</Tooltip.Root>
+			</Tooltip.Provider>
 			<div class="flex items-center gap-2 text-sm text-zinc-400">
 				<span class="font-medium text-zinc-200">{completedTasks}</span>/<span>{totalTasks}</span>
 				{m.common_tasks()}
 			</div>
 		</div>
-		<p class="mt-1 text-sm text-zinc-500 max-w-2xl">
-			{m.header_tagline()}
-		</p>
 	</div>
 
 	<div class="flex flex-wrap items-center gap-2 sm:gap-3 sm:shrink-0">
@@ -120,7 +140,7 @@
 						{#if hasRoutines}
 							{#if hasYesterday}<DropdownMenu.Separator />{/if}
 							<DropdownMenu.Label>{m.header_saved_routines()}</DropdownMenu.Label>
-							{#each routines as routine}
+							{#each routines as routine (routine.id)}
 								<DropdownMenu.Item class="flex justify-between group">
 									<button onclick={() => importRoutine(routine)} class="flex-1 text-left">
 										{routine.name} ({routine.tasks.length})

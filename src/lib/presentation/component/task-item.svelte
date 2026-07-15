@@ -5,7 +5,6 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { cn } from '$lib/presentation/utils';
 	import { getTaskNature } from '$lib/business/model/metric/calculation';
-	import { OPTIMAL_PHI_MULTIPLIER } from '$lib/business/model/zenith';
 
 	interface Props {
 		id: number;
@@ -18,6 +17,9 @@
 		suggestedHours: number;
 		trueEffort: number;
 		flowStateTime: number;
+		// Per-task optimal stopping time T* from the allocator (model v2:
+		// task-dependent — no longer reconstructable as a fixed 1.79 × ϕ)
+		optimalStopHours: number;
 		runOrder?: number;
 		flowMinutes?: number;
 		ontoggle: (id: number) => void;
@@ -45,6 +47,7 @@
 		suggestedHours,
 		trueEffort,
 		flowStateTime,
+		optimalStopHours,
 		runOrder,
 		flowMinutes,
 		ontoggle,
@@ -73,7 +76,12 @@
 			min: 0,
 			accent: 'accent-emerald-400'
 		},
-		{ key: 'mentalDifficulty', label: m.form_mental_difficulty(), min: 0, accent: 'accent-blue-400' },
+		{
+			key: 'mentalDifficulty',
+			label: m.form_mental_difficulty(),
+			min: 0,
+			accent: 'accent-blue-400'
+		},
 		{ key: 'enjoyment', label: m.form_enjoyment(), min: 1, accent: 'accent-indigo-400' }
 	] as const;
 
@@ -114,7 +122,7 @@
 		return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 	}
 
-	const optimalStopTime = $derived(OPTIMAL_PHI_MULTIPLIER * flowStateTime);
+	const optimalStopTime = $derived(optimalStopHours);
 
 	const nature = $derived(getTaskNature({ physicalDifficulty, mentalDifficulty }));
 	const natureLabel = $derived(
@@ -270,7 +278,7 @@
 									size="icon-xs"
 									type="button"
 									onclick={() => (loggingFlow = false)}
-									class="text-zinc-600"
+									class="text-zinc-500"
 								>
 									✕
 								</Button>
@@ -280,7 +288,7 @@
 								<Tooltip.Trigger
 									class={cn(
 										buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-										flowMinutes ? 'text-amber-400' : 'text-zinc-600 hover:text-amber-400'
+										flowMinutes ? 'text-amber-400' : 'text-zinc-500 hover:text-amber-400'
 									)}
 									onclick={openFlowLog}
 									aria-label={m.task_log_flow_aria()}
@@ -299,7 +307,7 @@
 							<Tooltip.Trigger
 								class={cn(
 									buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-									editing ? 'text-emerald-400' : 'text-zinc-600 hover:text-emerald-400'
+									editing ? 'text-emerald-400' : 'text-zinc-500 hover:text-emerald-400'
 								)}
 								onclick={() => (editing ? (editing = false) : openEdit())}
 								aria-label={m.task_edit_aria()}
@@ -323,7 +331,7 @@
 						<Tooltip.Trigger
 							class={cn(
 								buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-								'text-zinc-600 hover:text-red-400'
+								'text-zinc-500 hover:text-red-400'
 							)}
 							onclick={() => onremove(id)}
 							aria-label={m.task_remove_aria()}
@@ -356,7 +364,7 @@
 						type="text"
 						bind:value={editDraft.title}
 						required
-						class="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none transition focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
+						class="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
 					/>
 				</label>
 

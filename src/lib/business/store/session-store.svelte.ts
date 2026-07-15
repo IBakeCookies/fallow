@@ -1,13 +1,20 @@
 import { getContext, setContext, onMount } from 'svelte';
 import { browser } from '$app/environment';
 import { page } from '$app/state';
-import type { Task, DailySession, SavedRoutine, FlowObservationRecord } from '$lib/data/type';
+import type {
+	Task,
+	DailySession,
+	SavedRoutine,
+	FlowObservationRecord,
+	DrainObservationRecord
+} from '$lib/data/type';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
 // on a namespace is fine.
 import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
+import * as drainObservationRepository from '$lib/data/repository/drain-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
 import { addDays } from '$lib/business/utils/date';
 import { initializeStorage } from '$lib/business/store/session-history';
@@ -40,6 +47,7 @@ export class SessionStore {
 	#yesterdaySession = $state<DailySession | null>(null);
 	#routines = $state<SavedRoutine[]>([]);
 	#flowObservations = $state<FlowObservationRecord[]>([]);
+	#drainObservations = $state<DrainObservationRecord[]>([]);
 
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
@@ -88,6 +96,7 @@ export class SessionStore {
 				this.#yesterdaySession = await sessionRepository.$readSessionByDate(addDays(this.#today, -1));
 				this.#routines = await routineRepository.$readAllRoutines();
 				this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+				this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 				await this.#loadSession(this.#selectedDate);
 			} catch (e) {
 				console.error('Failed to load from IndexedDB', e);
@@ -196,6 +205,9 @@ export class SessionStore {
 	}
 	get flowObservations() {
 		return this.#flowObservations;
+	}
+	get drainObservations() {
+		return this.#drainObservations;
 	}
 	get pools() {
 		return this.#pools;
@@ -360,6 +372,56 @@ export class SessionStore {
 			);
 		} catch (e) {
 			console.error('Failed to reset flow observations', e);
+		}
+	}
+
+	// ----- Drain observations (energy-model α calibration) -----
+
+	// Log an end-of-session drain rating for a task: after `hours` of work,
+	// how drained body and mind feel (0–10). Captures the task's reservoir
+	// demands at logging time; re-rating the same task today REPLACES the
+	// earlier record (typo correction), mirroring logFlow. Today-only by the
+	// same logic as flow logs — it is a measurement, not a plan.
+	async logDrain(id: number, hours: number, mindDrain: number, bodyDrain: number) {
+		const task = this.#tasks.find((t) => t.id === id);
+		if (!task) return;
+
+		try {
+			await drainObservationRepository.$updateDrainObservation({
+				date: this.#today,
+				taskId: id,
+				taskTitle: task.title,
+				hours,
+				cognitiveDemand: task.mentalDifficulty / 10,
+				physicalDemand: task.physicalDifficulty / 10,
+				mindDrain,
+				bodyDrain
+			});
+			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
+		} catch (e) {
+			console.error('Failed to save drain observation', e);
+		}
+	}
+
+	// Remove one drain rating; any fitted α values are derived from the
+	// observations, so consumers refit automatically.
+	async deleteDrainLog(id: number) {
+		try {
+			await drainObservationRepository.$deleteDrainObservation(id);
+			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
+		} catch (e) {
+			console.error('Failed to delete drain observation', e);
+		}
+	}
+
+	// Delete all drain ratings → the energy model's drain calibration reverts
+	// to whatever the lab parameters say.
+	async resetDrainLogs() {
+		try {
+			await drainObservationRepository.$deleteAllDrainObservations();
+			this.#drainObservations = [];
+		} catch (e) {
+			console.error('Failed to reset drain observations', e);
 		}
 	}
 

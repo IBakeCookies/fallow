@@ -27,7 +27,7 @@
 	<h2 class="text-lg font-bold text-zinc-200">{m.list_title()}</h2>
 	{#if suggestedTasks.length === 0}
 		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="text-zinc-600 mb-2">
+			<div class="text-zinc-500 mb-2">
 				<svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
 						stroke-linecap="round"
@@ -56,6 +56,7 @@
 			suggestedHours={task.suggestedHours}
 			trueEffort={task.trueEffort}
 			flowStateTime={task.flowStateTime}
+			optimalStopHours={task.optimalHours}
 			runOrder={runOrder.get(task.id)}
 			flowMinutes={task.flowMinutes}
 			{ontoggle}

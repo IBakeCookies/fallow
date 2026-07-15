@@ -4,8 +4,7 @@ import {
 	mapEffort,
 	mapEnjoyability,
 	calculateFlowStateTime,
-	OPTIMAL_PHI_MULTIPLIER,
-	OPTIMAL_AVG_FRACTION,
+	BLOCK_HOURS,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
@@ -64,6 +63,7 @@ export type SuggestedTask = Task & {
 	trueEnjoyability: number;
 	peakProductivity: number;
 	avgProductivity: number;
+	optimalHours: number; // Per-task optimal stopping time T* (model v2: task-dependent, no longer a fixed 1.79×ϕ)
 };
 
 export type ZenithGain = {
@@ -108,11 +108,12 @@ export function calculateSuggestedTasks(
 		.map((task, index) => {
 			const alloc = allocations[index];
 			// Priority is the task's INTRINSIC value: its average productivity at
-			// its own optimal stopping time, P̄(1.79ϕ) = (a+p₀)×OPTIMAL_AVG_FRACTION.
-			// Allocation-independent, so a great task the pools zeroed out still
-			// ranks by what it's worth, not by what this plan could give it.
-			// (peakProductivity = (a+p₀)/e, so ×e recovers a+p₀.)
-			const intrinsicValue = alloc.peakProductivity * Math.E * OPTIMAL_AVG_FRACTION;
+			// its own optimal stopping time, P̄(T*). Allocation-independent, so a
+			// great task the pools zeroed out still ranks by what it's worth, not
+			// by what this plan could give it. (Model v2: T* and P̄(T*) are
+			// task-dependent, so the allocator computes them per task — the old
+			// (a+p₀)×OPTIMAL_AVG_FRACTION reconstruction no longer applies.)
+			const intrinsicValue = alloc.optimalAvgProductivity;
 			return {
 				...task,
 				suggestedHours: alloc.allocatedHours,
@@ -121,7 +122,8 @@ export function calculateSuggestedTasks(
 				trueEffort: alloc.E,
 				trueEnjoyability: alloc.beta,
 				peakProductivity: alloc.peakProductivity,
-				avgProductivity: alloc.avgProductivity
+				avgProductivity: alloc.avgProductivity,
+				optimalHours: alloc.optimalHours
 			};
 		})
 		.sort((a, b) => b.priorityScore - a.priorityScore);
@@ -177,12 +179,13 @@ export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
 /**
  * Calculate flow coverage: tasks that receive enough time for optimal productivity
  *
- * From the Zenith model, optimal stopping time is ≈1.79 × ϕ (flow state time).
- * However, for "flow coverage" we check if tasks reach flow state (ϕ),
- * meaning you at least hit peak productivity before the allocation ends.
+ * From the Zenith model (v2), each task has its own optimal stopping time
+ * T* = x*(r)/k ∈ [1.5ϕ, 1.79ϕ]. However, for "flow coverage" we check if
+ * tasks reach flow state (ϕ), meaning you at least hit peak productivity
+ * before the allocation ends.
  *
  * A task "reaches flow" if allocatedTime ≥ ϕ (you get to experience flow state).
- * For optimal productivity, you'd want allocatedTime ≈ 1.79 × ϕ.
+ * For optimal productivity, you'd want allocatedTime ≈ T* (per-task optimalHours).
  */
 export function calculateFlowCoverage(activeTasks: SuggestedTask[]): {
 	reached: number;
@@ -196,15 +199,12 @@ export function calculateFlowCoverage(activeTasks: SuggestedTask[]): {
 		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.flowStateTime
 	).length;
 
-	// Task has optimal allocation if allocated time ≥ (OPTIMAL_PHI_MULTIPLIER) × ϕ.
-	// Tolerance of half the 0.01h rounding quantum: a fully-funded task gets
-	// exactly 1.79ϕ allocated, and display rounding must not flip it to "not
-	// optimal" when it lands a hair below the threshold.
-	const ROUNDING_EPS = 0.005;
+	// Task has optimal allocation if allocated time ≥ its own optimal stopping
+	// time T* (model v2: task-dependent, provided by the allocator). Tolerance
+	// of one planning block: allocations are quantized to 15-minute blocks, so
+	// a fully-funded task can land up to one block below the continuous T*.
 	const optimal = activeTasks.filter(
-		(t) =>
-			t.suggestedHours > 0 &&
-			t.suggestedHours >= OPTIMAL_PHI_MULTIPLIER * t.flowStateTime - ROUNDING_EPS
+		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.optimalHours - BLOCK_HOURS
 	).length;
 
 	return { reached, total: activeTasks.length, optimal };
@@ -267,9 +267,9 @@ export function calculateBottleneckTask(activeTasks: SuggestedTask[]): string {
  *
  * Question: "Can you reach flow state (ϕ) on each task?"
  *
- * Uses ϕ (flow state time) as the baseline demand per task, NOT 3.16×ϕ (optimal).
+ * Uses ϕ (flow state time) as the baseline demand per task, NOT T* ≈ 1.5–1.8×ϕ (optimal).
  * This is more realistic because:
- * - 3.16×ϕ would mean ~4-5 hours per task (humans only have ~4 productive hours/day)
+ * - T* would mean several hours per task (humans only have ~4 productive hours/day)
  * - ϕ represents the minimum meaningful engagement (reaching flow state)
  *
  * Scarcity = max(0, (total ϕ demand + switch overhead - budget) / total ϕ demand) × 100
@@ -309,24 +309,24 @@ export function calculateTimeScarcity(
  * Calculate burnout risk using the Zenith productivity model
  *
  * Based on the mathematical model where:
- * - Optimal stopping time ≈ 1.79 × ϕ (flow state time)
+ * - Optimal stopping time T* is per-task (model v2: T* ∈ [1.5ϕ, 1.79ϕ])
  * - Strain factor = E/β (inverse of initial productivity p₀ = β/E)
  * - Working past optimal time leads to diminishing returns and burnout
  *
  * Burnout risk combines two factors:
  * 1. **Base strain**: High E/β tasks inherently drain more energy
  * 2. **Overwork (budget overhang)**: The allocator caps every suggestion at the
- *    optimal stopping time (≈1.79×ϕ), so suggested hours themselves never
+ *    optimal stopping time T*, so suggested hours themselves never
  *    overwork you. The overwork risk instead comes from the PLANNED budget:
  *    hours the user intends to work beyond the model's total optimal workload
- *    (Σ 1.79×ϕᵢ) would be spent in the diminishing-returns zone.
+ *    (Σ T*ᵢ) would be spent in the diminishing-returns zone.
  *
  * Formula:
  *   For each task:
  *     strainFactor = E/β (using mapped Zenith values)
  *     baseStrain = max(0, strainFactor - 1) × hours  (drain above neutral)
  *
- *   overhang = max(0, effectiveBudget - Σᵢ 1.79×ϕᵢ)
+ *   overhang = max(0, effectiveBudget - Σᵢ T*ᵢ)
  *   overworkStrain = overhang × (plan-weighted average strainFactor)
  *
  *   totalRisk = (baseStrain + overworkStrain × 2) / CAPACITY × 100
@@ -346,7 +346,7 @@ export function calculateBurnoutRisk(
 	const STRAIN_CAPACITY = 5;
 
 	let baseStrain = 0;
-	let totalOptimal = 0; // Σ optimal stopping times (1.79×ϕ per task)
+	let totalOptimal = 0; // Σ per-task optimal stopping times T*
 	let weightedStrainSum = 0; // strain × cogIntensity, weighted by plan share
 	let totalPlannedHours = 0;
 
@@ -366,7 +366,7 @@ export function calculateBurnoutRisk(
 		// Base strain: energy drain from high-effort/low-enjoyment tasks
 		baseStrain += Math.max(0, strainFactor - 1) * hours * cognitiveIntensity;
 
-		totalOptimal += OPTIMAL_PHI_MULTIPLIER * t.flowStateTime;
+		totalOptimal += t.optimalHours;
 		weightedStrainSum += strainFactor * cognitiveIntensity * hours;
 		totalPlannedHours += hours;
 	}

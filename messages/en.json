@@ -1,10 +1,8 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-
 	"app_name": "Zenith",
 	"page_title": "Zenith — Smart Daily Time Allocation",
 	"page_meta_description": "Zenith allocates your daily time budget across tasks using the Zenith Gradient algorithm — balancing effort, enjoyment, and flow state to maximize productivity.",
-
 	"common_save": "Save",
 	"common_cancel": "Cancel",
 	"common_tasks": "tasks",
@@ -13,7 +11,6 @@
 	"na_value": "N/A",
 	"unit_hours": "hrs",
 	"unit_minutes": "min",
-
 	"nav_today": "Today",
 	"nav_calendar": "Calendar",
 	"nav_analytics": "Analytics",
@@ -21,7 +18,6 @@
 	"nav_return_to_today": "Return to today",
 	"nav_viewing_return": "Viewing {label} — return to today",
 	"nav_switch_language": "Switch language",
-
 	"header_tagline": "Splits your daily time budget so each extra minute goes to the task where it counts most — accounting for flow ramp-up, context-switch costs, and your cognitive and physical capacity, and never pushing a task past its point of diminishing returns.",
 	"header_return_to_today": "Return to Today",
 	"header_load": "Load",
@@ -30,7 +26,6 @@
 	"header_save_as_routine": "Save current tasks as routine",
 	"header_routine_name_placeholder": "Routine name...",
 	"header_delete_routine": "Delete routine {name}",
-
 	"form_add_task": "+ Add Task",
 	"form_task_definition": "Task Definition",
 	"form_task_placeholder": "e.g., Boxing training",
@@ -40,11 +35,9 @@
 	"form_mental_difficulty": "Mental Diff",
 	"form_enjoyment": "Enjoyment",
 	"form_deploy_task": "Deploy Task",
-
 	"list_title": "Tasks",
 	"list_empty": "No tasks deployed yet",
 	"list_empty_hint": "Add a task above to begin tracking",
-
 	"task_run_order_tooltip": "Suggested run order — alternates cognitive and physical work so the resting energy system recovers",
 	"task_nature_cognitive_label": "COG",
 	"task_nature_physical_label": "PHY",
@@ -66,7 +59,6 @@
 	"task_remove_aria": "Delete task",
 	"task_remove_tooltip": "Remove task",
 	"task_title_label": "Title",
-
 	"budget_title": "Time Budget",
 	"budget_summary": "{hours}h budget · {planned}h planned",
 	"budget_summary_free": "{slack}h free",
@@ -86,24 +78,20 @@
 	"budget_reset_confirm": "Delete all {count} logs and revert to defaults?",
 	"budget_reset_personalization": "Reset personalization",
 	"budget_reset_title": "Delete all flow logs — the constants are always derived from the logs (never stored), so the model reverts to the article defaults",
-
 	"momentum_label": "Momentum",
 	"momentum_tooltip": "Average enjoyment minus difficulty. Upward = sustainable pace, Reset Reqd = burnout risk.",
 	"momentum_upward": "Upward",
 	"momentum_reset_required": "Reset Reqd",
 	"momentum_stable": "Stable",
-
 	"model_status_personalized": "Model personalized from {count} time-to-flow logs (⚡) — blended with the defaults, sharpens as you log more",
 	"model_status_personalized_one": "Model personalized from 1 time-to-flow log (⚡) — blended with the defaults, sharpens as you log more",
 	"model_status_implausible": "Your {count} flow logs produced an implausible fit (predicted flow times over 16h) — using default constants. Check the logs below for mistakes.",
 	"model_status_implausible_one": "Your 1 flow log produced an implausible fit (predicted flow times over 16h) — using default constants. Check the logs below for mistakes.",
 	"model_status_default": "Model uses default constants — log time-to-flow (⚡) on tasks to start personalizing",
-
 	"banner_future_title": "Planning ahead:",
 	"banner_future_body": "tasks and budget you set here are saved to {date} — open it on that day to work the plan.",
 	"banner_past_title": "Viewing a past day:",
 	"banner_past_body": "you can still check tasks on or off (forgot one before midnight? fix it here — changes are saved), but adding or editing tasks is only possible on today.",
-
 	"metric_zenith_gain": "Zenith Gain",
 	"metric_zenith_gain_desc": "Productivity improvement from Zenith optimization vs. naive equal time split. Based on the Lagrange multiplier solution.",
 	"metric_yield_index": "Yield Index",
@@ -157,12 +145,10 @@
 	"metric_avg_mental_desc": "Average mental/cognitive difficulty across all tasks.",
 	"metric_avg_enjoyment": "Avg Enjoyment",
 	"metric_avg_enjoyment_desc": "Average enjoyment across all tasks. Higher values indicate more engaging work.",
-
 	"quadrant_flow": "Flow Zone",
 	"quadrant_grind": "Grind Mode",
 	"quadrant_cruise": "Cruise",
 	"quadrant_routine": "Routine",
-
 	"cal_title_head": "Zenith — Calendar",
 	"cal_meta_description": "Month and week overview of your Zenith days.",
 	"cal_heading": "Calendar",
@@ -186,7 +172,6 @@
 	"cal_no_tasks": "No tasks",
 	"cal_empty_1": "No data in this {view} yet — days you plan on the",
 	"cal_empty_2": "page will show up here.",
-
 	"ana_title_head": "Zenith — Analytics",
 	"ana_meta_description": "Completion trends and task stats across your Zenith days.",
 	"ana_heading": "Analytics",
@@ -230,7 +215,6 @@
 	"ana_day_profiles_hint": "Character of your active days: challenging & engaging (Flow), demanding (Grind), light & fun (Cruise), or low-key (Routine)",
 	"ana_quadrant_count_one": "{label}: 1 day",
 	"ana_quadrant_count_other": "{label}: {count} days",
-
 	"energy_title_head": "Zenith — Energy Lab",
 	"energy_meta_description": "Experimental total-output scheduler: energy reservoirs drain as you work and recover as you rest; breaks and quitting time emerge from the math.",
 	"energy_heading": "Energy Lab",
@@ -260,6 +244,7 @@
 	"energy_slider_mental": "Mental difficulty",
 	"energy_slider_enjoyment": "Enjoyment",
 	"energy_schedule": "Schedule",
+	"energy_view_chart": "Chart",
 	"energy_nothing_scheduled": "Nothing scheduled — with the current parameters, free time is worth more than any task's output. Lower the free-time value or check your day window.",
 	"energy_output_suffix": "{output} out",
 	"energy_recovery": "recovery",
@@ -282,5 +267,31 @@
 	"energy_free_time_value": "Free-time value",
 	"energy_free_time_value_hint": "What an hour NOT worked is worth to you, in output units — this is what makes the plan stop instead of filling the whole day",
 	"energy_evening_energy": "Evening energy value",
-	"energy_evening_energy_hint": "How much ending the day fresh (vs wrecked) is worth"
+	"energy_evening_energy_hint": "How much ending the day fresh (vs wrecked) is worth",
+	"energy_satiety": "Task satiety",
+	"energy_satiety_hint": "Diminishing returns for piling more of the day onto the same task — after this many good sessions' worth of output, extra output on it counts half. 0 turns it off (one task can then win the whole day)",
+	"energy_micro_recovery": "Micro-recovery",
+	"energy_micro_recovery_hint": "Share of recovery that stays active even while working flat out (micro-pauses between efforts) — keeps a maximum-demand task above a small energy floor instead of draining toward zero. 0 turns it off",
+	"energy_log_drain_aria": "Log end-of-session drain",
+	"energy_log_drain_tooltip": "After working on this task, rate how drained you feel (mind and body, 0–10) — the ratings calibrate the drain rates to you",
+	"energy_drain_form_title": "🪫 After the session:",
+	"energy_drain_worked_label": "worked",
+	"energy_drain_mind_label": "Mind",
+	"energy_drain_mind_title": "How mentally drained you feel now: 0 = fresh, 10 = completely spent",
+	"energy_drain_body_label": "Body",
+	"energy_drain_body_title": "How physically drained you feel now: 0 = fresh, 10 = completely spent",
+	"energy_calibration": "Drain Calibration",
+	"energy_calibration_hint": "Fits the two drain rates to your 🪫 end-of-session ratings (anchored to the defaults — every rating nudges them further). Recovery still comes from the sliders: only how fast work drains you is measurable from end-of-session ratings.",
+	"energy_calibration_empty": "No ratings yet. After a session on a task, hit 🪫 on it and rate how drained your mind and body feel — a few ratings personalize the drain rates.",
+	"energy_fit_value": "≈ {alpha} ± {std} /h · {count} ratings",
+	"energy_fit_no_signal": "no informative ratings",
+	"energy_apply_fit": "Apply fitted rates",
+	"energy_apply_fit_title": "Set the two drain-rate parameters to the fitted values",
+	"energy_fit_applied": "Fitted rates applied",
+	"energy_drain_log_count": "{count} drain ratings recorded",
+	"energy_delete_drain_log_aria": "Delete this drain rating",
+	"energy_delete_drain_log_title": "Remove this rating from the calibration",
+	"energy_reset_drain_logs": "Delete all ratings",
+	"energy_reset_drain_title": "Delete every drain rating — the calibration reverts to the defaults",
+	"energy_reset_drain_confirm": "Delete all {count} ratings?"
 }
