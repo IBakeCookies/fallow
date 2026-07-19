@@ -8,10 +8,12 @@
  *                     indexed by date
  * - drainObservations: end-of-session drain ratings (autoIncrement),
  *                     indexed by date
+ * - restObservations: pre/post-rest drain rating pairs (autoIncrement),
+ *                     indexed by date
  */
 
 const DB_NAME = 'zenith-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let databaseInstance: IDBDatabase | null = null;
 
@@ -59,6 +61,16 @@ export function openDatabase(): Promise<IDBDatabase> {
 					autoIncrement: true
 				});
 				drainStore.createIndex('date', 'date');
+			}
+
+			// Rest observations store (v4) - pre/post-rest drain rating pairs that
+			// calibrate the energy model's recovery rate
+			if (!database.objectStoreNames.contains('restObservations')) {
+				const restStore = database.createObjectStore('restObservations', {
+					keyPath: 'id',
+					autoIncrement: true
+				});
+				restStore.createIndex('date', 'date');
 			}
 		};
 	});

@@ -75,3 +75,22 @@ export interface DrainObservationRecord {
 	bodyDrain: number; // 0-10 rating of physical drain after the session
 	createdAt: number;
 }
+
+/**
+ * One pre/post-rest rating pair: the user took a break of `hours` and rated
+ * both energy systems going in and coming out (0 = fresh, 10 = completely
+ * spent). Feeds the energy model's recovery-rate calibration — during pure
+ * rest the drain decays as e^(−r·m·g), so the pair identifies r without
+ * involving the α drain rates. Unlike drain ratings there is no task and no
+ * per-day upsert key: several breaks a day are normal, so records append.
+ */
+export interface RestObservationRecord {
+	id?: number; // autoIncrement key
+	date: string; // YYYY-MM-DD
+	hours: number; // break length
+	mindBefore: number; // 0-10 cognitive drain going into the break
+	mindAfter: number; // 0-10 cognitive drain coming out
+	bodyBefore: number; // 0-10 physical drain going into the break
+	bodyAfter: number; // 0-10 physical drain coming out
+	createdAt: number;
+}

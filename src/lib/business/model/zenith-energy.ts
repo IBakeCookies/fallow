@@ -216,6 +216,13 @@ interface TaskCurve {
 	refOutput: number;
 }
 
+/**
+ * Pure in (tasks, constants, params), but rebuilt on every evaluateSchedule
+ * call — including the refOutput quadrature per task — and the optimizer
+ * evaluates thousands of candidates per search. Caching curves across a search
+ * is the known ~2× perf win if optimize time ever matters (param sweeps,
+ * longer windows); at ~55ms for 3 tasks/8h it deliberately hasn't been taken.
+ */
 function buildCurves(
 	tasks: EnergyTaskInput[],
 	constants: UserConstants,
@@ -563,8 +570,20 @@ export function sampleTrajectory(
 
 // ================== Optimizer: multi-seed local search ==================
 
+/**
+ * Planning granularity of the optimizer: every block in a returned plan is a
+ * whole number of 45-minute units. The model's precision (± minutes) far
+ * exceeds what 0–10 sliders justify, and sub-quarter-hour blocks aren't
+ * schedulable by a human anyway (MATH.md §8.8).
+ */
+export const DEFAULT_STEP_HOURS = 0.75;
+
 export interface OptimizeOptions {
-	/** Duration granularity of search moves (hours). Default 0.25. */
+	/**
+	 * Duration granularity of the plan (hours): every block is a multiple of
+	 * this, and any sub-step remainder of the window is left as free time.
+	 * Default DEFAULT_STEP_HOURS (45 min).
+	 */
 	stepHours?: number;
 	/** Safety cap on hill-climb iterations per seed. Default 300. */
 	maxIterations?: number;
@@ -585,6 +604,10 @@ export interface OptimizeResult {
  * half-reassign, T*-insert) exist because single-step paths to those states
  * pass through downhill intermediates — without them the search provably
  * strands ~1% of objective and can drop a fundable task (probe 2026-07-14).
+ *
+ * Every candidate the search visits stays on the step lattice: seeds, T*
+ * sessions, and block halves are snapped to the step, and moves only add or
+ * remove whole steps, so the invariant holds inductively (MATH.md §8.8).
  */
 export function optimizeSchedule(
 	tasks: EnergyTaskInput[],
@@ -593,7 +616,7 @@ export function optimizeSchedule(
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	options: OptimizeOptions = {}
 ): OptimizeResult {
-	const step = options.stepHours ?? 0.25;
+	const step = options.stepHours ?? DEFAULT_STEP_HOURS;
 	const maxIterations = options.maxIterations ?? 300;
 
 	const emptyEval = evaluateSchedule([], tasks, windowHours, params, constants);
@@ -601,7 +624,7 @@ export function optimizeSchedule(
 		return { blocks: [], evaluation: emptyEval };
 	}
 
-	// T* per task, for the full-session insert move.
+	// T* per task, snapped to the lattice, for the full-session insert move.
 	const sessionHours = new Map<number, number>();
 	for (const task of tasks) {
 		const phi = calculateFlowStateTime(
@@ -609,12 +632,12 @@ export function optimizeSchedule(
 			mapEnjoyability(task.enjoyment),
 			constants
 		);
-		sessionHours.set(task.id, OPTIMAL_PHI_MULTIPLIER * phi);
+		sessionHours.set(task.id, snapToStep(OPTIMAL_PHI_MULTIPLIER * phi, step));
 	}
 
 	let best: ScheduleBlock[] = [];
 	let bestEval = emptyEval;
-	for (const seed of buildSeeds(tasks, windowHours, constants)) {
+	for (const seed of buildSeeds(tasks, windowHours, constants, step)) {
 		const result = localSearch(
 			seed,
 			tasks,
@@ -633,28 +656,44 @@ export function optimizeSchedule(
 	return { blocks: best, evaluation: bestEval };
 }
 
+/** Nearest multiple of the step, floored at one step (a zero block is no block). */
+function snapToStep(hours: number, step: number): number {
+	return Math.max(step, Math.round(hours / step) * step);
+}
+
+/** Largest multiple of the step that fits in `hours` (0 if none does). */
+function floorToStep(hours: number, step: number): number {
+	return Math.floor(hours / step + 1e-9) * step;
+}
+
+/** Peak + start amplitude a + p₀ = E·β + β/E — the seed/canonical task ordering. */
+function taskAmplitude(task: EnergyTaskInput): number {
+	const E = mapEffort(task.difficulty);
+	const beta = mapEnjoyability(task.enjoyment);
+	return E * beta + beta / E;
+}
+
 function buildSeeds(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
-	constants: UserConstants
+	constants: UserConstants,
+	step: number
 ): ScheduleBlock[][] {
 	const phiOf = (task: EnergyTaskInput) =>
 		calculateFlowStateTime(mapEffort(task.difficulty), mapEnjoyability(task.enjoyment), constants);
-	const ampOf = (task: EnergyTaskInput) => {
-		const E = mapEffort(task.difficulty);
-		const beta = mapEnjoyability(task.enjoyment);
-		return E * beta + beta / E;
-	};
-	const byValue = [...tasks].sort((x, y) => ampOf(y) - ampOf(x));
+	const byValue = [...tasks].sort((x, y) => taskAmplitude(y) - taskAmplitude(x));
+	// Seeds start on the lattice and moves only add/remove whole steps, so the
+	// search never leaves it; the sub-step window tail stays free time.
+	const usable = floorToStep(windowHours, step);
 
 	// Classic-flavored seed — each task once at its single-task optimum, best
 	// tasks first, until the window is spent.
 	const classicOver = (list: EnergyTaskInput[]): ScheduleBlock[] => {
 		const seed: ScheduleBlock[] = [];
-		let left = windowHours;
+		let left = usable;
 		for (const task of list) {
-			if (left <= 0) break;
-			const hours = Math.min(OPTIMAL_PHI_MULTIPLIER * phiOf(task), left);
+			if (left < step - 1e-9) break;
+			const hours = Math.min(snapToStep(OPTIMAL_PHI_MULTIPLIER * phiOf(task), step), left);
 			seed.push({ taskId: task.id, hours });
 			left -= hours;
 		}
@@ -662,17 +701,16 @@ function buildSeeds(
 	};
 
 	// Seed 2: all-in on the single best task.
-	const allIn: ScheduleBlock[] = [{ taskId: byValue[0].id, hours: windowHours }];
+	const allIn: ScheduleBlock[] = [{ taskId: byValue[0].id, hours: usable }];
 
-	// Seed 3: round-robin hour blocks (a deliberately fragmented start so the
+	// Seed 3: round-robin step blocks (a deliberately fragmented start so the
 	// search also explores from the interleaved side).
 	const roundRobin: ScheduleBlock[] = [];
-	let left = windowHours;
-	for (let i = 0; left > 1e-9 && i < 24; i++) {
+	let left = usable;
+	for (let i = 0; left > step - 1e-9 && i < 24; i++) {
 		const task = byValue[i % byValue.length];
-		const hours = Math.min(1, left);
-		roundRobin.push({ taskId: task.id, hours });
-		left -= hours;
+		roundRobin.push({ taskId: task.id, hours: step });
+		left -= step;
 	}
 
 	// Seed 4: empty (all leisure) — lets the search justify every worked hour.
@@ -725,16 +763,13 @@ function* neighbors(
 	sessionHours: Map<number, number>
 ): Generator<ScheduleBlock[]> {
 	const total = blocks.reduce((sum, b) => sum + b.hours, 0);
-	const avail = windowHours - total;
+	// Whole steps of remaining room — the sub-step window tail is not
+	// schedulable at this granularity and stays free time by design.
+	const avail = floorToStep(windowHours - total, step);
 	const room = avail > step - 1e-9;
 
 	for (let i = 0; i < blocks.length; i++) {
-		// Grow by a step, or by the sub-step remainder of the window — the
-		// T*-session insert puts totals off the step lattice, and a tail sliver
-		// must stay fillable (with worthless leisure, idle time is pure loss).
-		const growBy = room ? step : avail;
-		if (growBy > 1e-9)
-			yield replaceAt(blocks, i, { ...blocks[i], hours: blocks[i].hours + growBy });
+		if (room) yield replaceAt(blocks, i, { ...blocks[i], hours: blocks[i].hours + step });
 		yield replaceAt(blocks, i, { ...blocks[i], hours: blocks[i].hours - step });
 		yield [...blocks.slice(0, i), ...blocks.slice(i + 1)];
 		if (i + 1 < blocks.length) {
@@ -747,15 +782,18 @@ function* neighbors(
 				yield replaceAt(blocks, i, { ...blocks[i], taskId: task.id });
 		}
 		if (blocks[i].taskId !== null) yield replaceAt(blocks, i, { ...blocks[i], taskId: null });
+		// Lattice-safe halves: for an odd number of steps the "half" is the
+		// larger share, so both parts stay whole steps ≥ one step.
+		const firstHalf = snapToStep(blocks[i].hours / 2, step);
+		const secondHalf = blocks[i].hours - firstHalf;
 		// Split around a rest break: tests whether a mid-session recovery pays
 		// for the warm-up it destroys.
 		if (blocks[i].taskId !== null && blocks[i].hours >= 2 * step && room) {
-			const half = blocks[i].hours / 2;
 			yield [
 				...blocks.slice(0, i),
-				{ taskId: blocks[i].taskId, hours: half },
+				{ taskId: blocks[i].taskId, hours: firstHalf },
 				{ taskId: null, hours: step },
-				{ taskId: blocks[i].taskId, hours: half },
+				{ taskId: blocks[i].taskId, hours: secondHalf },
 				...blocks.slice(i + 1)
 			];
 		}
@@ -763,13 +801,12 @@ function* neighbors(
 		// useful session length, where the one-step path (shrink, then insert)
 		// dies at a sub-warm-up sliver.
 		if (blocks[i].taskId !== null && blocks[i].hours >= 2 * step) {
-			const half = blocks[i].hours / 2;
 			for (const task of tasks) {
 				if (task.id === blocks[i].taskId) continue;
 				yield [
 					...blocks.slice(0, i),
-					{ taskId: blocks[i].taskId, hours: half },
-					{ taskId: task.id, hours: half },
+					{ taskId: blocks[i].taskId, hours: firstHalf },
+					{ taskId: task.id, hours: secondHalf },
 					...blocks.slice(i + 1)
 				];
 			}
@@ -788,7 +825,8 @@ function* neighbors(
 		for (const task of tasks) {
 			yield [...blocks.slice(0, pos), { taskId: task.id, hours: step }, ...blocks.slice(pos)];
 			// Full-T*-session insert: a step-sized sliver of a cold task rarely
-			// pays (warm-up), but a whole session might.
+			// pays (warm-up), but a whole session might. Both terms are lattice
+			// multiples (sessionHours is snapped, avail is floored).
 			const session = Math.min(sessionHours.get(task.id) ?? step, avail);
 			if (session > step + 1e-9) {
 				yield [...blocks.slice(0, pos), { taskId: task.id, hours: session }, ...blocks.slice(pos)];
@@ -858,6 +896,24 @@ export const DRAIN_PRIOR_STRENGTH = 0.25;
 export const DRAIN_NOISE_PRIOR_STD = 0.15;
 
 /**
+ * Weight ν₀ (pseudo-observations) of the noise floor in every calibration
+ * fit's σ̂² blend: σ̂² = (ν₀σ₀² + SSR)/(ν₀ + n).
+ *
+ * WHY a separate constant (2026-07-19 math-review fix): the fits previously
+ * reused their ridge strength λ as ν₀ ("like the ϕ fit", where λ = ν₀ = 4 by
+ * coincidence). But λ here was probe-tuned for MAP responsiveness in each
+ * fit's sensitivity units (0.25 / 0.05 / 1) — and as ν₀ those small values
+ * erase the noise floors σ₀ at small n: a couple of lucky logs collapsed σ̂
+ * far below the floor, and the reported ±std came out 2–10× tighter than a
+ * floor-honest posterior (probe: 6 clean rest pairs reported r ± 0.036 —
+ * 4% precision on recovery rate from six fuzzy self-ratings). The two roles
+ * are unrelated: λ prices how far data moves the MAP; ν₀ says how much prior
+ * evidence backs "ratings are at least this noisy". ν₀ = 4 matches the ϕ
+ * fit's convention. MAP estimates are unchanged — only the reported stds.
+ */
+export const CALIBRATION_NOISE_PRIOR_WEIGHT = 4;
+
+/**
  * Fit bounds = the Energy Lab's α input range, so a fitted value is always
  * representable (and appliable) in the UI. The bounds also play the role of
  * fitUserConstants' absurdity guard: wildly inconsistent ratings can at worst
@@ -923,47 +979,12 @@ export function fitDrainRate(
 	const objective = (alpha: number): number =>
 		ssr(alpha) + DRAIN_PRIOR_STRENGTH * (alpha - alpha0) * (alpha - alpha0);
 
-	// Coarse grid to bracket the global minimum (the objective is smooth but
-	// not provably unimodal for adversarial data), then golden-section refine.
-	const GRID = 128;
-	let bestIdx = 0;
-	let bestVal = Infinity;
-	for (let i = 0; i <= GRID; i++) {
-		const alpha = ALPHA_FIT_MIN + ((ALPHA_FIT_MAX - ALPHA_FIT_MIN) * i) / GRID;
-		const val = objective(alpha);
-		if (val < bestVal) {
-			bestVal = val;
-			bestIdx = i;
-		}
-	}
-	const cell = (ALPHA_FIT_MAX - ALPHA_FIT_MIN) / GRID;
-	let lo = Math.max(ALPHA_FIT_MIN, ALPHA_FIT_MIN + (bestIdx - 1) * cell);
-	let hi = Math.min(ALPHA_FIT_MAX, ALPHA_FIT_MIN + (bestIdx + 1) * cell);
-	const INV_PHI = (Math.sqrt(5) - 1) / 2;
-	let x1 = hi - INV_PHI * (hi - lo);
-	let x2 = lo + INV_PHI * (hi - lo);
-	let f1 = objective(x1);
-	let f2 = objective(x2);
-	for (let i = 0; i < 48; i++) {
-		if (f1 < f2) {
-			hi = x2;
-			x2 = x1;
-			f2 = f1;
-			x1 = hi - INV_PHI * (hi - lo);
-			f1 = objective(x1);
-		} else {
-			lo = x1;
-			x1 = x2;
-			f1 = f2;
-			x2 = lo + INV_PHI * (hi - lo);
-			f2 = objective(x2);
-		}
-	}
-	const alpha = (lo + hi) / 2;
+	const alpha = minimizeSmooth1D(objective, ALPHA_FIT_MIN, ALPHA_FIT_MAX);
 
 	// Noise estimate (inverse-gamma-style blend, as in fitUserConstants) and
 	// Laplace posterior std via the Gauss–Newton curvature Σ(dD/dα)² + λ.
-	const nu0 = DRAIN_PRIOR_STRENGTH;
+	// ν₀ is deliberately NOT the ridge λ — see CALIBRATION_NOISE_PRIOR_WEIGHT.
+	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
 	const sigma2 =
 		(nu0 * DRAIN_NOISE_PRIOR_STD * DRAIN_NOISE_PRIOR_STD + ssr(alpha)) / (nu0 + used.length);
 	const h = 1e-4;
@@ -975,4 +996,387 @@ export function fitDrainRate(
 	const alphaStd = Math.sqrt(sigma2 / (sensitivity + DRAIN_PRIOR_STRENGTH));
 
 	return { alpha, fitted: true, alphaStd, usedCount: used.length };
+}
+
+/**
+ * Deterministic 1-D minimizer for the calibration fits: coarse grid to bracket
+ * the global minimum (the ridge objectives are smooth but not provably
+ * unimodal for adversarial data), then golden-section refinement.
+ */
+function minimizeSmooth1D(f: (x: number) => number, min: number, max: number): number {
+	const GRID = 128;
+	let bestIdx = 0;
+	let bestVal = Infinity;
+	for (let i = 0; i <= GRID; i++) {
+		const x = min + ((max - min) * i) / GRID;
+		const val = f(x);
+		if (val < bestVal) {
+			bestVal = val;
+			bestIdx = i;
+		}
+	}
+	const cell = (max - min) / GRID;
+	let lo = Math.max(min, min + (bestIdx - 1) * cell);
+	let hi = Math.min(max, min + (bestIdx + 1) * cell);
+	const INV_PHI = (Math.sqrt(5) - 1) / 2;
+	let x1 = hi - INV_PHI * (hi - lo);
+	let x2 = lo + INV_PHI * (hi - lo);
+	let f1 = f(x1);
+	let f2 = f(x2);
+	for (let i = 0; i < 48; i++) {
+		if (f1 < f2) {
+			hi = x2;
+			x2 = x1;
+			f2 = f1;
+			x1 = hi - INV_PHI * (hi - lo);
+			f1 = f(x1);
+		} else {
+			lo = x1;
+			x1 = x2;
+			f1 = f2;
+			x2 = lo + INV_PHI * (hi - lo);
+			f2 = f(x2);
+		}
+	}
+	return (lo + hi) / 2;
+}
+
+// ================== Recovery-rate calibration (r fit) ==================
+
+/**
+ * One pre/post-rest rating pair, reduced to what the fit needs for ONE
+ * reservoir: the user rested for `hours`, rating this reservoir
+ * `drainedBefore` empty going into the break and `drainedAfter` coming out
+ * (0–10 ratings divided by 10). Both reservoirs' pairs feed the SAME fit —
+ * the model has a single shared recoveryRate, and at rest the law is
+ * reservoir-independent.
+ */
+export interface RestObservation {
+	/** Reported drain going into the rest, mapped to [0,1] */
+	drainedBefore: number;
+	/** Reported drain coming out of the rest, mapped to [0,1] */
+	drainedAfter: number;
+	/** Rest duration in hours */
+	hours: number;
+}
+
+export interface RecoveryRateFit {
+	/** MAP recovery rate r (the fallback when not fitted) */
+	rate: number;
+	fitted: boolean;
+	/** Approximate posterior std of r (Gauss–Newton/Laplace); only when fitted */
+	rateStd?: number;
+	/** Informative observations used (drainedBefore > 0 and hours > 0) */
+	usedCount: number;
+}
+
+/**
+ * Prior strength λ for the recovery-rate ridge — same construction as
+ * DRAIN_PRIOR_STRENGTH but calibrated to THIS fit's sensitivity units
+ * (dD/dr = m·g·d_pre·e^(−r·m·g) ≈ 0.2–0.4 for typical 30–60 min breaks from
+ * half drain, roughly half the drain fit's lever arm; and one logged rest
+ * contributes TWO observations, mind + body). Probe-tuned 2026-07-18 to match
+ * the α fit's behavior: one consistent logged rest moves r 51% of the way to
+ * what it implies, three 72%, ten 88% (λ = 0.1 was too anchored at 37% for
+ * the first log). MATH.md §8.9.
+ */
+export const RECOVERY_PRIOR_STRENGTH = 0.05;
+
+/**
+ * Prior scale for rest-rating noise. A residual here compares TWO fuzzy
+ * ratings (before and after), so its noise is wider than a single drain
+ * rating's by about √2: 0.15·√2 ≈ 0.21 of the drained fraction.
+ */
+export const RECOVERY_NOISE_PRIOR_STD = 0.21;
+
+/**
+ * Fit bounds = the Energy Lab's recovery-rate input range, so a fitted value
+ * is always representable (and appliable) in the UI; doubles as the absurdity
+ * guard, exactly like the α fit's bounds.
+ */
+export const RECOVERY_FIT_MIN = 0.1;
+export const RECOVERY_FIT_MAX = 3;
+
+/**
+ * Calibrate the shared recovery rate r from pre/post-rest rating pairs.
+ *
+ * MODEL: during pure rest the reservoir law loses α entirely — demand 0 gives
+ * ρ = r·m (m = restRecoveryMultiplier), C_eq = 1 — so the drained fraction
+ * decays exponentially over a break of g hours:
+ *
+ *   d_after = d_before · e^(−r·m·g)
+ *
+ * This is why end-of-session ratings cannot identify r (MATH.md §8.7) but
+ * pre/post-rest pairs can, and why this fit needs no α at all. It conditions
+ * only on the CURRENT restRecoveryMultiplier — rest data identifies the
+ * product r·m, so m stays user-owned and r absorbs the data, mirroring how
+ * the α fit conditions on r. Together the two fits are well-founded rather
+ * than circular: fit r first (α-free), then α conditions on it.
+ *
+ * FIT: 1-D ridge toward the default, same machinery as fitDrainRate.
+ * Observations with drainedBefore = 0 or hours = 0 are dropped — the
+ * prediction is then constant in r (nothing to recover / no time to recover
+ * in), so the pair says nothing about r and would only pollute σ̂². A pair
+ * with d_after > d_before (MORE drained after resting) is kept: no r can fit
+ * it, so it pushes r toward the lower bound and widens σ̂ — noise handling is
+ * the ridge's job and the bounds guard absurdity.
+ */
+export function fitRecoveryRate(
+	observations: RestObservation[],
+	fallbackRate: number,
+	params: Pick<EnergyParams, 'restRecoveryMultiplier'>
+): RecoveryRateFit {
+	const used = observations.filter((o) => o.drainedBefore > 0 && o.hours > 0);
+	if (used.length === 0) {
+		return { rate: fallbackRate, fitted: false, usedCount: 0 };
+	}
+
+	const rate0 = Math.min(Math.max(fallbackRate, RECOVERY_FIT_MIN), RECOVERY_FIT_MAX);
+	const m = params.restRecoveryMultiplier;
+	const predicted = (rate: number, o: RestObservation): number =>
+		clamp01(o.drainedBefore) * Math.exp(-rate * m * o.hours);
+	const ssr = (rate: number): number => {
+		let sum = 0;
+		for (const o of used) {
+			const resid = clamp01(o.drainedAfter) - predicted(rate, o);
+			sum += resid * resid;
+		}
+		return sum;
+	};
+	const objective = (rate: number): number =>
+		ssr(rate) + RECOVERY_PRIOR_STRENGTH * (rate - rate0) * (rate - rate0);
+
+	const rate = minimizeSmooth1D(objective, RECOVERY_FIT_MIN, RECOVERY_FIT_MAX);
+
+	// Noise estimate and Laplace posterior std, exactly the fitDrainRate
+	// construction. dD/dr is closed-form (−m·g·d_pre·e^(−r·m·g)) but the
+	// central difference keeps the two fits structurally identical.
+	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
+	const sigma2 =
+		(nu0 * RECOVERY_NOISE_PRIOR_STD * RECOVERY_NOISE_PRIOR_STD + ssr(rate)) / (nu0 + used.length);
+	const h = 1e-4;
+	let sensitivity = 0;
+	for (const o of used) {
+		const dD = (predicted(rate + h, o) - predicted(rate - h, o)) / (2 * h);
+		sensitivity += dD * dD;
+	}
+	const rateStd = Math.sqrt(sigma2 / (sensitivity + RECOVERY_PRIOR_STRENGTH));
+
+	return { rate, fitted: true, rateStd, usedCount: used.length };
+}
+
+// ================== Stopping-value calibration (λ₀ fit) ==================
+
+/**
+ * One finished day, reduced to what the stopping fit needs: the day's task
+ * list (that day's stored sliders), its declared window, and the hours
+ * actually worked per task (from the 🪫 drain logs' worked-minutes field —
+ * no new instrument). The fit reads the STOP decision out of this: the user
+ * worked those hours and then chose leisure over every possible next block.
+ */
+export interface StopObservation {
+	tasks: EnergyTaskInput[];
+	/** The day's declared window (availableHours) */
+	windowHours: number;
+	/** Observed worked hours per task (one entry per logged task) */
+	workedHours: { taskId: number; hours: number }[];
+}
+
+export interface StoppingValueFit {
+	/** MAP freeTimeValue λ₀ (the fallback when not fitted) */
+	value: number;
+	fitted: boolean;
+	/** Approximate posterior std of λ₀; only when fitted */
+	valueStd?: number;
+	/** Days that yielded a two-sided indifference point */
+	usedCount: number;
+}
+
+/**
+ * Prior strength for the stopping-value ridge. Here the "prediction" of a
+ * day's indifference point by λ₀ is the IDENTITY (sensitivity exactly 1 per
+ * observation), so the posterior mean has the closed form
+ * (Σ midᵢ + λ·λ₀_default)/(n + λ) and the move-fraction profile is exact
+ * arithmetic, no probe sweep needed: one day moves λ₀ 50% of the way to what
+ * it implies, three 75%, ten 91% — matching the α/r fits' probe-tuned
+ * profiles (§8.7/§8.9).
+ */
+export const STOP_PRIOR_STRENGTH = 1;
+
+/**
+ * Prior scale for indifference-point noise, in λ₀ units (output per hour).
+ * Two sources add up: lattice quantization (the day's bracket is one 45-min
+ * step wide — half-width ≈ 0.15 on the probe day) and day-to-day mood in the
+ * stop decision itself, which no instrument separates. 0.25 ≈ a quarter of
+ * the informative λ₀ band ([0.4, 1.5] on the probe day).
+ */
+export const STOP_NOISE_PRIOR_STD = 0.25;
+
+/**
+ * Fit bounds = the Energy Lab's freeTimeValue input range (same
+ * representability + absurdity-guard role as the α and r fit bounds).
+ */
+export const STOP_FIT_MIN = 0;
+export const STOP_FIT_MAX = 3;
+
+/**
+ * Inversion margin for the stop bracket: a day with
+ * max(0, lo) > hi + margin is censored as an interruption rather than kept.
+ *
+ * WHY (2026-07-19 math-review fix): lo > hi means the day's own data
+ * contradicts the "stopped ⇒ λ₀ ≥ lo" reading — extending was worth MORE
+ * than the best step actually worked, so the stop was not a leisure choice
+ * (meeting, sickness, deadline elsewhere). Such a day degrades to the
+ * one-sided reading λ₀ ≤ hi, i.e. exactly the censored category §8.10
+ * already drops: keeping its midpoint as a point estimate pulls the fit
+ * toward the task curves' characteristic marginal INDEPENDENT of the user's
+ * true λ₀ (probe: a true λ₀ = 0.3 user's fit went 0.47 → 0.64 from two
+ * interrupted days in five). The margin keeps near-boundary days: rational
+ * days and rational-±1-step "mood" days never invert at all (probe
+ * 2026-07-19), and small inversions are within the instrument's own slack —
+ * the loose-max hi bias (~+0.1) plus a lattice bracket half-width (~0.15),
+ * which is also STOP_NOISE_PRIOR_STD. Probe on the standard day: interruption
+ * slivers gap 0.33–0.65 (censored), a mildly-off 2.25h reading day gaps 0.07
+ * (kept).
+ */
+export const STOP_INVERSION_MARGIN = 0.25;
+
+/**
+ * A day's revealed indifference price of leisure, from discrete stationarity
+ * of the user's OWN day (MATH.md §8.10). With the work-side value
+ * V = satiatedOutput + terminalBonus (freeTimeValue never enters V — the
+ * extraction is λ₀-free, no circularity):
+ *
+ *   stopped   ⇒  λ₀ ≥ max over tasks of Δ(one more step on t)/step
+ *   worked    ⇒  λ₀ ≤ max over tasks of Δ(last step of t)/step
+ *
+ * The first max is over ALL of the day's tasks (declining to extend AND
+ * declining to start any unlogged task are both part of the stop decision);
+ * the second over tasks with at least one whole step logged (SOME worked
+ * step was worth ≥ λ₀ — with unknown work order, the loose max is the honest
+ * bound). Returns the bracket midpoint, or null when the day is censored:
+ * no room to extend (worked to the window edge — reveals only an
+ * inequality), or nothing worked / all sessions shorter than one step.
+ *
+ * The day is reconstructed as one session per logged task at its observed
+ * hours, in canonical amplitude order, breaks unknown and omitted (probe
+ * 2026-07-19: brackets from this reconstruction contain the true λ₀ across
+ * the probe grid; midpoints track it within ~0.13). The negative side of the
+ * stop bound is floored at 0 — λ₀ ≥ (negative marginal) is vacuous.
+ *
+ * An IRRATIONAL day can invert the bracket (lo > hi: extending some task was
+ * worth more per step than the best step actually worked — e.g. a session cut
+ * short mid-warm-up, or a long grind on a weak, satiating task while a
+ * high-amplitude task sat unstarted). No λ₀ rationalizes such a day.
+ * Inversions beyond STOP_INVERSION_MARGIN are censored (returned as null):
+ * the contradiction is evidence the stop was not a leisure choice, so only
+ * the one-sided λ₀ ≤ hi reading survives — the same reason worked-to-the-edge
+ * days are dropped. Small inversions (within the margin, i.e. within the
+ * instrument's own slack) keep the bracket midpoint as the compromise between
+ * the two bounds. Rational and near-rational days (±1 step of "mood") never
+ * inverted on the probe grid.
+ */
+export function stopIndifferencePoint(
+	observation: StopObservation,
+	params: EnergyParams,
+	constants: UserConstants = DEFAULT_USER_CONSTANTS
+): number | null {
+	const { tasks, windowHours } = observation;
+	if (windowHours <= 0 || tasks.length === 0) return null;
+	const step = DEFAULT_STEP_HOURS;
+
+	const byTask = new Map<number, number>();
+	for (const { taskId, hours } of observation.workedHours) {
+		if (hours > 0 && tasks.some((t) => t.id === taskId)) {
+			byTask.set(taskId, (byTask.get(taskId) ?? 0) + hours);
+		}
+	}
+	if (byTask.size === 0) return null;
+
+	const order = [...tasks]
+		.sort((x, y) => taskAmplitude(y) - taskAmplitude(x))
+		.filter((t) => byTask.has(t.id));
+	const sched: ScheduleBlock[] = order.map((t) => ({ taskId: t.id, hours: byTask.get(t.id)! }));
+	const total = sched.reduce((sum, b) => sum + b.hours, 0);
+
+	const workValue = (blocks: ScheduleBlock[]): number => {
+		const ev = evaluateSchedule(blocks, tasks, windowHours, params, constants);
+		return ev.satiatedOutput + ev.terminalBonus;
+	};
+	const base = workValue(sched);
+
+	let lo: number | null = null;
+	let hi: number | null = null;
+	for (const t of tasks) {
+		if (total + step <= windowHours + 1e-9) {
+			const grown = byTask.has(t.id)
+				? sched.map((b) => (b.taskId === t.id ? { ...b, hours: b.hours + step } : b))
+				: [...sched, { taskId: t.id, hours: step }];
+			const dNext = (workValue(grown) - base) / step;
+			lo = lo === null ? dNext : Math.max(lo, dNext);
+		}
+		if ((byTask.get(t.id) ?? 0) >= step - 1e-9) {
+			const shrunk = sched
+				.map((b) => (b.taskId === t.id ? { ...b, hours: b.hours - step } : b))
+				.filter((b) => b.hours > 1e-9);
+			const dLast = (base - workValue(shrunk)) / step;
+			hi = hi === null ? dLast : Math.max(hi, dLast);
+		}
+	}
+	if (lo === null || hi === null) return null;
+	const stopBound = Math.max(0, lo);
+	// Interruption-censored: the day's data contradicts a rational stop by more
+	// than the instrument's slack — see STOP_INVERSION_MARGIN.
+	if (stopBound > hi + STOP_INVERSION_MARGIN) return null;
+	return (stopBound + hi) / 2;
+}
+
+/**
+ * Calibrate freeTimeValue λ₀ from finished days' stop decisions.
+ *
+ * MODEL: each two-sided day yields an indifference point mᵢ (above); treat
+ * mᵢ = λ₀ + noise. The prediction is the identity, so the ridge MAP
+ *
+ *   minimize Σᵢ (mᵢ − λ₀)² + λ·(λ₀ − λ₀_default)²
+ *
+ * has the exact closed form below — same machinery as §8.7/§8.9 with
+ * dD/dλ₀ = 1 (no numeric minimizer needed). Censored days (null point) are
+ * dropped, like demand-0 drain logs: they reveal an inequality, not an
+ * indifference, and keeping a one-sided reading as a point would bias the
+ * mean.
+ *
+ * CONDITIONING: the extraction runs under the CURRENT dynamics
+ * (α, r, m, b, satietyScale) and terminalEnergyValue — λ₀ absorbs the stop
+ * data given everything else, mirroring how α conditions on r (§8.7). V_T is
+ * deliberately NOT fit: stop times carry almost no signal about it (probe
+ * 2026-07-19: a 12× V_T sweep moved the optimal stop across two lattice
+ * levels). Calibrate r and α first; this fit inherits their quality.
+ */
+export function fitStoppingValue(
+	observations: StopObservation[],
+	fallbackValue: number,
+	params: EnergyParams,
+	constants: UserConstants = DEFAULT_USER_CONSTANTS
+): StoppingValueFit {
+	const points = observations
+		.map((o) => stopIndifferencePoint(o, params, constants))
+		.filter((p): p is number => p !== null);
+	if (points.length === 0) {
+		return { value: fallbackValue, fitted: false, usedCount: 0 };
+	}
+
+	const value0 = Math.min(Math.max(fallbackValue, STOP_FIT_MIN), STOP_FIT_MAX);
+	const n = points.length;
+	const mean = (points.reduce((s, p) => s + p, 0) + STOP_PRIOR_STRENGTH * value0) /
+		(n + STOP_PRIOR_STRENGTH);
+	const value = Math.min(Math.max(mean, STOP_FIT_MIN), STOP_FIT_MAX);
+
+	// Noise estimate and Laplace posterior std, the §8.7/§8.9 construction
+	// with sensitivity Σ(dpred/dλ₀)² = n exactly.
+	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
+	const ssr = points.reduce((s, p) => s + (p - value) * (p - value), 0);
+	const sigma2 = (nu0 * STOP_NOISE_PRIOR_STD * STOP_NOISE_PRIOR_STD + ssr) / (nu0 + n);
+	const valueStd = Math.sqrt(sigma2 / (n + STOP_PRIOR_STRENGTH));
+
+	return { value, fitted: true, valueStd, usedCount: n };
 }

@@ -2,6 +2,8 @@
 
 **A to-do app that does calculus so you don't have to.**
 
+![Zenith — task list with optimal per-task time allocations, priorities, and flow-based stopping times](static/zenith-daily-time-allocation.jpg)
+
 Zenith answers a question every productive day poses: _you have N tasks and only
 so many hours — how should you split your time to get the most out of the day?_
 Instead of guessing (or splitting time equally), Zenith models each task's

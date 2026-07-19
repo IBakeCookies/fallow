@@ -37,6 +37,14 @@
  *    (ridge) point estimate, but now also the full posterior — covariance and
  *    noise estimate — so callers can quantify how certain a ϕ prediction is,
  *    plus an optional forgetting factor for users whose flow behavior drifts.
+ *
+ * 5. POSTERIOR-AWARE ALLOCATION (2026-07-18, MATH.md §5.1). Given the fit
+ *    posterior, the allocator maximizes the EXPECTED average productivity
+ *    under each task's ϕ parameter-uncertainty (5-node Gauss–Hermite mixture
+ *    over ϕ). Uncertain tasks are worth strictly less at their optimum, so
+ *    plans hedge toward well-measured tasks; as logs accumulate the
+ *    uncertainty vanishes and the plan converges to the certainty model,
+ *    which remains the exact σ = 0 special case.
  */
 
 export interface TaskInput {
@@ -138,15 +146,20 @@ export function mapEnjoyability(betaU: number): number {
 }
 
 /**
+ * Floor on ϕ (6 minutes): a fitted plane may extrapolate to ≈0 (or below) far
+ * from the measured tasks. A strictly positive ϕ keeps k finite and the
+ * productivity curve well-defined everywhere. Also clamps the ϕ-quadrature
+ * nodes of the posterior-aware allocator (see expectedAverageProductivity).
+ */
+export const PHI_FLOOR_HOURS = 0.1;
+
+/**
  * Calculate time to reach flow state
  * ϕ = c₁E + c₂β + c₃
  */
 export function calculateFlowStateTime(E: number, beta: number, constants: UserConstants): number {
 	const phi = constants.c1 * E + constants.c2 * beta + constants.c3;
-	// Floor at 6 minutes: a fitted plane may extrapolate to ≈0 (or below) far
-	// from the measured tasks. A strictly positive ϕ keeps k finite and the
-	// productivity curve well-defined everywhere.
-	return Math.max(0.1, phi);
+	return Math.max(PHI_FLOOR_HOURS, phi);
 }
 
 /**
@@ -302,6 +315,154 @@ export function optimalStoppingX(r: number): number {
 	return (lo + hi) / 2;
 }
 
+// ==================== ϕ-uncertainty (posterior-aware) kernel ====================
+//
+// MATH.md §5.1. When a task's time-to-flow is uncertain (ϕ ~ N(ϕ̂, σ_ϕ²) from
+// the fit posterior), the honest objective is the EXPECTED average
+// productivity E[P̄(T; ϕ)] rather than P̄(T; ϕ̂) — P̄ is nonlinear in ϕ, so the
+// two differ. Only k = (1−r)/ϕ depends on ϕ (a, p₀, r do not), and every
+// component curve has the same peak height, so uncertainty strictly lowers
+// the best achievable average: you cannot stop at the optimum of every
+// possible ϕ simultaneously. Consequences (probe-verified 2026-07-18, locked
+// in as tests): uncertain tasks are worth less at their optimum, their
+// increments flatten, and the allocator shifts hours toward well-measured
+// tasks — a 2-log task and a 200-log task finally plan differently.
+//
+// The expectation is a 5-node Gauss–Hermite quadrature over ϕ, exact for
+// polynomial integrands to degree 9 and error ~O(σ⁶) here; nodes are clamped
+// to the ϕ floor.
+
+// Gauss–Hermite (n=5) abscissae ξ and probabilist weights w/√π: for
+// ϕ = ϕ̂ + √2·σ·ξ these integrate a N(ϕ̂, σ²) density exactly through the
+// 9th moment. Symmetric pairs share a weight.
+const GH_NODES = [
+	{ xi: 0, w: 0.5333333333333333 },
+	{ xi: 0.9585724646138185, w: 0.2220759220056126 },
+	{ xi: -0.9585724646138185, w: 0.2220759220056126 },
+	{ xi: 2.0201828704560856, w: 0.011257411327720688 },
+	{ xi: -2.0201828704560856, w: 0.011257411327720688 }
+];
+
+/**
+ * Cap on σ_ϕ relative to ϕ̂ inside the quadrature: σ_eff = min(σ_ϕ, 0.5·ϕ̂).
+ *
+ * WHY (probed 2026-07-18, MATH.md §5.1): with σ comparable to ϕ̂ the outer
+ * quadrature node collapses onto the ϕ floor and behaves like a fast "spike"
+ * curve mixed with slow ones — the mixture turns bimodal in T, which breaks
+ * both properties the greedy allocator's exactness rests on (non-increasing
+ * block increments, single sign crossing). At σ ≤ 0.5·ϕ̂ the probe grid shows
+ * zero bimodal cases and zero truncation loss. A σ beyond this cap also means
+ * the Gaussian posterior is a poor description of a positive quantity anyway
+ * (mass at ϕ < 0), so clamping is a graceful degradation, not a distortion.
+ */
+export const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
+
+// Quadrature nodes over ϕ for a task with posterior mean phi and std sigmaPhi.
+// σ ≤ ~0 collapses to the single point mass — the classic, certainty path.
+function phiQuadratureNodes(phi: number, sigmaPhi: number): { phi: number; w: number }[] {
+	const sigma = Math.min(Math.max(0, sigmaPhi), PHI_UNCERTAINTY_RELATIVE_CAP * phi);
+	if (sigma <= 1e-9) return [{ phi: Math.max(PHI_FLOOR_HOURS, phi), w: 1 }];
+	return GH_NODES.map(({ xi, w }) => ({
+		phi: Math.max(PHI_FLOOR_HOURS, phi + Math.SQRT2 * sigma * xi),
+		w
+	}));
+}
+
+/**
+ * Expected average productivity under ϕ-uncertainty:
+ *
+ *   E[P̄(T; ϕ)],  ϕ ~ N(ϕ̂, σ_ϕ²)  (clamped: σ_eff ≤ 0.5·ϕ̂, nodes ≥ ϕ floor)
+ *
+ * With σ_ϕ = 0 this IS averageProductivity(T, a, p0, (1−r)/ϕ̂) — the classic
+ * model is the exact zero-uncertainty special case, so call sites without a
+ * posterior are bit-identical to v2 behavior.
+ */
+export function expectedAverageProductivity(
+	T: number,
+	a: number,
+	p0: number,
+	phi: number,
+	sigmaPhi: number
+): number {
+	const r = amplitudeRatio(a, p0);
+	let sum = 0;
+	for (const node of phiQuadratureNodes(phi, sigmaPhi)) {
+		sum += node.w * averageProductivity(T, a, p0, (1 - r) / node.phi);
+	}
+	return sum;
+}
+
+// d/dT of the expected average — the mixture marginal Σ wₙ·dP̄/dT(T; ϕₙ).
+function expectedAvgProductivityDerivative(
+	T: number,
+	a: number,
+	p0: number,
+	phi: number,
+	sigmaPhi: number
+): number {
+	const r = amplitudeRatio(a, p0);
+	let sum = 0;
+	for (const node of phiQuadratureNodes(phi, sigmaPhi)) {
+		sum += node.w * avgProductivityDerivative(T, a, p0, (1 - r) / node.phi);
+	}
+	return sum;
+}
+
+/**
+ * Optimal stopping time under ϕ-uncertainty: the maximizer of E[P̄(T; ϕ)].
+ *
+ * The mixture marginal is positive below every component's own optimum and
+ * negative above all of them, so the root is bracketed by
+ * [T*(ϕ_min), T*(ϕ_max)] with T*(ϕ) = x*(r)·ϕ/(1−r), and inside the σ-cap
+ * regime it crosses zero exactly once (probe 2026-07-18). 60-step bisection,
+ * matching optimalStoppingX's tolerance. σ_ϕ = 0 reduces to the closed-form
+ * classic T*.
+ */
+export function expectedOptimalTime(a: number, p0: number, phi: number, sigmaPhi: number): number {
+	const r = amplitudeRatio(a, p0);
+	const xStar = optimalStoppingX(r);
+	const nodes = phiQuadratureNodes(phi, sigmaPhi);
+	if (nodes.length === 1) return (xStar * nodes[0].phi) / (1 - r);
+
+	let lo = (xStar * Math.min(...nodes.map((n) => n.phi))) / (1 - r);
+	let hi = (xStar * Math.max(...nodes.map((n) => n.phi))) / (1 - r);
+	// Defensive: if the bracket doesn't straddle (only possible at floor-clamped
+	// extremes), fall back to the boundary the marginal points at.
+	if (expectedAvgProductivityDerivative(lo, a, p0, phi, sigmaPhi) <= 0) return lo;
+	if (expectedAvgProductivityDerivative(hi, a, p0, phi, sigmaPhi) >= 0) return hi;
+	for (let i = 0; i < 60; i++) {
+		const mid = (lo + hi) / 2;
+		if (expectedAvgProductivityDerivative(mid, a, p0, phi, sigmaPhi) > 0) {
+			lo = mid;
+		} else {
+			hi = mid;
+		}
+	}
+	return (lo + hi) / 2;
+}
+
+/**
+ * Parameter-uncertainty std of ϕ at (E, β):  √(xᵀΣx),  x = [E, β, 1].
+ *
+ * This is deliberately NOT phiPredictionStd: the predictive std adds the
+ * irreducible observation noise σ̂², which describes stopwatch error and
+ * day-to-day scatter around the plane — it never shrinks below the 15-minute
+ * noise floor, so using it would make the allocator hedge forever even for a
+ * user with hundreds of consistent logs. Parameter uncertainty is the part
+ * the data can actually remove; it vanishes as logs accumulate, and with it
+ * the hedging — a well-measured user gets exactly the classic plan.
+ */
+export function phiParameterStd(E: number, beta: number, posterior: FitPosterior): number {
+	const x = [E, beta, 1];
+	let quad = 0;
+	for (let i = 0; i < 3; i++) {
+		for (let j = 0; j < 3; j++) {
+			quad += x[i] * posterior.covariance[i][j] * x[j];
+		}
+	}
+	return Math.sqrt(Math.max(0, quad));
+}
+
 /**
  * Calculate task parameters from user input.
  *
@@ -401,17 +562,33 @@ interface AllocTask {
  * Per-block value increments for one task, truncated at the first non-positive
  * increment (the discrete optimal stopping point — greedy must never be
  * offered a block that lowers the objective, and blocks past T* do).
+ *
+ * Posterior-aware (σ_ϕ > 0): increments come from the EXPECTED average
+ * E[P̄(T; ϕ)] (MATH.md §5.1), and the menu is additionally truncated at the
+ * first non-DECREASING increment. Under the σ-cap the mixture's increments
+ * are non-increasing everywhere the probe grid reaches, but at floor-clamped
+ * extremes (ϕ̂ ≈ hours with σ̂ ≈ half of it) tiny convex wiggles of order
+ * 10⁻⁴ appear; cutting the menu there guarantees the diminishing-increments
+ * premise of greedy exactness BY CONSTRUCTION instead of by sweep, at the
+ * cost of a few low-value blocks in a corner where the fit is dubious anyway.
+ * σ_ϕ = 0 never triggers the monotonicity cut (proved in MATH.md §2).
  */
-function buildBlockIncrements(a: number, p0: number, k: number, optimalTime: number): number[] {
-	const maxBlocks = Math.ceil(optimalTime / BLOCK_HOURS) + 1;
+function buildBlockIncrements(a: number, p0: number, phi: number, sigmaPhi: number): number[] {
+	const r = amplitudeRatio(a, p0);
+	const phiMax = Math.max(...phiQuadratureNodes(phi, sigmaPhi).map((n) => n.phi));
+	// No component has positive marginal past its own T*, so the mixture's
+	// stopping point is at most T*(ϕ_max).
+	const maxBlocks = Math.ceil((optimalStoppingX(r) * phiMax) / (1 - r) / BLOCK_HOURS) + 1;
 	const increments: number[] = [];
 	let prev = 0;
+	let prevDelta = Infinity;
 	for (let j = 1; j <= maxBlocks; j++) {
-		const value = averageProductivity(j * BLOCK_HOURS, a, p0, k);
+		const value = expectedAverageProductivity(j * BLOCK_HOURS, a, p0, phi, sigmaPhi);
 		const delta = value - prev;
-		if (delta <= 1e-12) break;
+		if (delta <= 1e-12 || delta > prevDelta + 1e-12) break;
 		increments.push(delta);
 		prev = value;
+		prevDelta = delta;
 	}
 	return increments;
 }
@@ -633,14 +810,25 @@ function bestPlanWithSwitchCost(
 	return bestBlocks;
 }
 
+// Per-task ϕ parameter-uncertainty stds; zeros (classic behavior) without a
+// posterior. The stds feed the expected-productivity kernel (MATH.md §5.1).
+function phiStdsFor(
+	params: ReturnType<typeof calculateTaskParams>[],
+	posterior?: FitPosterior
+): number[] {
+	if (!posterior) return params.map(() => 0);
+	return params.map(({ E, beta }) => phiParameterStd(E, beta, posterior));
+}
+
 function toAllocations(
 	tasks: TaskInput[],
 	params: ReturnType<typeof calculateTaskParams>[],
+	phiStds: number[],
 	optimalTimes: number[],
 	blocks: number[]
 ): TaskAllocation[] {
 	return tasks.map((task, i) => {
-		const { E, beta, phi, k, a, p0 } = params[i];
+		const { E, beta, phi, a, p0 } = params[i];
 		const hours = blocks[i] * BLOCK_HOURS;
 		return {
 			...task,
@@ -648,10 +836,18 @@ function toAllocations(
 			E,
 			beta,
 			phi,
+			// The peak height a·e^(r−1) does not depend on ϕ — uncertainty moves
+			// WHEN the peak happens, not how high it is — so no expectation needed.
 			peakProductivity: a * Math.exp(p0 / a - 1),
-			avgProductivity: averageProductivity(hours, a, p0, k),
+			avgProductivity: expectedAverageProductivity(hours, a, p0, phi, phiStds[i]),
 			optimalHours: optimalTimes[i],
-			optimalAvgProductivity: averageProductivity(optimalTimes[i], a, p0, k)
+			optimalAvgProductivity: expectedAverageProductivity(
+				optimalTimes[i],
+				a,
+				p0,
+				phi,
+				phiStds[i]
+			)
 		};
 	});
 }
@@ -665,27 +861,35 @@ function toAllocations(
  * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12).
  * An abundant budget still leaves slack: blocks past a task's optimal
  * stopping time have negative increments and are never offered to greedy.
+ *
+ * With a fit `posterior` the objective becomes the EXPECTED average
+ * productivity under each task's ϕ-uncertainty (MATH.md §5.1); without one,
+ * behavior is bit-identical to the certainty model.
  */
 export function calculateTaskAllocations(
 	tasks: TaskInput[],
 	totalBudget: number,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	switchCost: number = DEFAULT_SWITCH_COST
+	switchCost: number = DEFAULT_SWITCH_COST,
+	posterior?: FitPosterior
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return zeroAllocations(tasks);
 	}
 
 	const params = tasks.map((task) => calculateTaskParams(task, constants));
-	const optimalTimes = params.map(({ a, p0, k }) => optimalStoppingX(amplitudeRatio(a, p0)) / k);
-	const allocTasks: AllocTask[] = params.map(({ a, p0, k }, i) => ({
-		increments: buildBlockIncrements(a, p0, k, optimalTimes[i]),
+	const phiStds = phiStdsFor(params, posterior);
+	const optimalTimes = params.map(({ a, p0, phi }, i) =>
+		expectedOptimalTime(a, p0, phi, phiStds[i])
+	);
+	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
+		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
 		cognitiveWeight: 0,
 		physicalWeight: 0
 	}));
 
 	const blocks = bestPlanWithSwitchCost(allocTasks, totalBudget, switchCost, Infinity, Infinity);
-	return toAllocations(tasks, params, optimalTimes, blocks);
+	return toAllocations(tasks, params, phiStds, optimalTimes, blocks);
 }
 
 /**
@@ -737,16 +941,20 @@ export function calculatePooledAllocations(
 	totalBudget: number,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	switchCost: number = DEFAULT_SWITCH_COST
+	switchCost: number = DEFAULT_SWITCH_COST,
+	posterior?: FitPosterior
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return zeroAllocations(tasks);
 	}
 
 	const params = tasks.map((task) => calculateTaskParams(task, constants));
-	const optimalTimes = params.map(({ a, p0, k }) => optimalStoppingX(amplitudeRatio(a, p0)) / k);
-	const allocTasks: AllocTask[] = params.map(({ a, p0, k }, i) => ({
-		increments: buildBlockIncrements(a, p0, k, optimalTimes[i]),
+	const phiStds = phiStdsFor(params, posterior);
+	const optimalTimes = params.map(({ a, p0, phi }, i) =>
+		expectedOptimalTime(a, p0, phi, phiStds[i])
+	);
+	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
+		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
 		cognitiveWeight: tasks[i].cognitiveWeight,
 		physicalWeight: tasks[i].physicalWeight
 	}));
@@ -758,22 +966,48 @@ export function calculatePooledAllocations(
 		pools.cognitiveHours,
 		pools.physicalHours
 	);
-	return toAllocations(tasks, params, optimalTimes, blocks);
+	return toAllocations(tasks, params, phiStds, optimalTimes, blocks);
 }
 
 /**
  * Calculate total productivity for a given allocation
  * P(t₁, t₂, ..., tₙ) = Σᵢ P̄ᵢ(tᵢ)
+ *
+ * With a `posterior`, each term is the expected average under that task's
+ * ϕ-uncertainty — the same objective the posterior-aware allocator maximizes,
+ * so plan values and gain comparisons stay in one currency.
  */
 export function calculateTotalProductivity(
 	tasks: TaskInput[],
 	allocations: number[],
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	posterior?: FitPosterior
 ): number {
 	return tasks.reduce((total, task, i) => {
-		const { a, p0, k } = calculateTaskParams(task, constants);
-		return total + averageProductivity(allocations[i], a, p0, k);
+		const { E, beta, a, p0, phi } = calculateTaskParams(task, constants);
+		const sigma = posterior ? phiParameterStd(E, beta, posterior) : 0;
+		return total + expectedAverageProductivity(allocations[i], a, p0, phi, sigma);
 	}, 0);
+}
+
+/**
+ * Display cap for the relative gain vs the naive baseline, in percent.
+ *
+ * WHY (2026-07-18 metric fix, MATH.md §11.2): the naive planner attempts all
+ * n tasks and pays (n−1)·switchCost; with many tasks and a small budget its
+ * effective budget hits 0, its productivity is 0, and the true relative gain
+ * is unbounded. The old guard quietly reported 0% in exactly the scenario
+ * where Zenith helps most (it funds fewer tasks and pays fewer switches).
+ * Ratios above ~10× carry no extra decision value, so the gain saturates at
+ * this cap; a capped value reads as "≥ 10× the naive plan".
+ */
+export const GAIN_PERCENT_CAP = 999;
+
+function gainPercentOf(optimized: number, naive: number): number {
+	if (naive > 0) {
+		return Number(Math.min(GAIN_PERCENT_CAP, ((optimized - naive) / naive) * 100).toFixed(1));
+	}
+	return optimized > 0 ? GAIN_PERCENT_CAP : 0;
 }
 
 /**
@@ -789,17 +1023,26 @@ export function pooledProductivityGain(
 	totalBudget: number,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	switchCost: number = DEFAULT_SWITCH_COST
+	switchCost: number = DEFAULT_SWITCH_COST,
+	posterior?: FitPosterior
 ): { optimized: number; naive: number; gainPercent: number } {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return { optimized: 0, naive: 0, gainPercent: 0 };
 	}
 
-	const allocations = calculatePooledAllocations(tasks, totalBudget, pools, constants, switchCost);
+	const allocations = calculatePooledAllocations(
+		tasks,
+		totalBudget,
+		pools,
+		constants,
+		switchCost,
+		posterior
+	);
 	const optimized = calculateTotalProductivity(
 		tasks,
 		allocations.map((a) => a.allocatedHours),
-		constants
+		constants,
+		posterior
 	);
 
 	// Naive: equal split across ALL tasks (a naive planner attempts every task,
@@ -819,11 +1062,11 @@ export function pooledProductivityGain(
 	const naive = calculateTotalProductivity(
 		tasks,
 		tasks.map(() => equalShare * scale),
-		constants
+		constants,
+		posterior
 	);
 
-	const gainPercent = naive > 0 ? ((optimized - naive) / naive) * 100 : 0;
-	return { optimized, naive, gainPercent: Number(gainPercent.toFixed(1)) };
+	return { optimized, naive, gainPercent: gainPercentOf(optimized, naive) };
 }
 
 /**
@@ -834,7 +1077,8 @@ export function productivityGain(
 	tasks: TaskInput[],
 	totalBudget: number,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	switchCost: number = DEFAULT_SWITCH_COST
+	switchCost: number = DEFAULT_SWITCH_COST,
+	posterior?: FitPosterior
 ): { optimized: number; naive: number; gainPercent: number } {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return { optimized: 0, naive: 0, gainPercent: 0 };
@@ -844,11 +1088,18 @@ export function productivityGain(
 	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
 	const effectiveBudget = Math.max(0, totalBudget - switchOverhead);
 
-	const optimizedAllocs = calculateTaskAllocations(tasks, totalBudget, constants, switchCost);
+	const optimizedAllocs = calculateTaskAllocations(
+		tasks,
+		totalBudget,
+		constants,
+		switchCost,
+		posterior
+	);
 	const optimized = calculateTotalProductivity(
 		tasks,
 		optimizedAllocs.map((a) => a.allocatedHours),
-		constants
+		constants,
+		posterior
 	);
 
 	// Naive: equal split of effective budget
@@ -856,12 +1107,11 @@ export function productivityGain(
 	const naive = calculateTotalProductivity(
 		tasks,
 		tasks.map(() => naiveAlloc),
-		constants
+		constants,
+		posterior
 	);
 
-	const gainPercent = naive > 0 ? ((optimized - naive) / naive) * 100 : 0;
-
-	return { optimized, naive, gainPercent: Number(gainPercent.toFixed(1)) };
+	return { optimized, naive, gainPercent: gainPercentOf(optimized, naive) };
 }
 
 // ==================== Personalization (Bayesian, v2) ====================

@@ -14,7 +14,12 @@ import {
 	calculateCompletionRate,
 	calculateDailyQuadrant
 } from './calculation';
-import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS, type UserConstants } from '../zenith';
+import {
+	DEFAULT_CAPACITY_POOLS,
+	DEFAULT_USER_CONSTANTS,
+	type FitPosterior,
+	type UserConstants
+} from '../zenith';
 
 export type DaySummary = {
 	date: string;
@@ -29,7 +34,8 @@ export type DaySummary = {
 
 export function summarizeSession(
 	session: DailySession,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	posterior?: FitPosterior
 ): DaySummary {
 	const pools = {
 		cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
@@ -40,7 +46,8 @@ export function summarizeSession(
 		session.availableHours,
 		session.switchCost,
 		pools,
-		constants
+		constants,
+		posterior
 	);
 	return {
 		date: session.date,
