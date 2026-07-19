@@ -4,11 +4,14 @@
 	import { goto } from '$app/navigation';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
 	import TimeBudgetCard from '$lib/presentation/component/time-budget-card.svelte';
+	import PersonalizationCard from '$lib/presentation/component/personalization-card.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
+	import ZenithExplainer from '$lib/presentation/component/zenith-explainer.svelte';
 	import {
 		STATUS,
 		getStatusBiggerBetter,
@@ -30,7 +33,7 @@
 		calculateEnergyBalance,
 		calculateFrictionIndex,
 		calculateDailyQuadrant,
-		calculateBudgetConvergence,
+		calculateScheduleIntegrity,
 		calculateMomentum,
 		calculateDeepWorkRatio,
 		calculateQuickWins,
@@ -98,8 +101,11 @@
 				: m.model_status_default()
 	);
 
+	// The fit posterior makes the allocator hedge ϕ-uncertainty (MATH.md §5.1):
+	// barely-measured tasks plan slightly shorter/lower than well-measured ones.
+	const phiPosterior = $derived(session.constantsFit.posterior);
 	const suggestedTasks = $derived(
-		calculateSuggestedTasks(tasks, availableHours, switchCost, pools, userConstants)
+		calculateSuggestedTasks(tasks, availableHours, switchCost, pools, userConstants, phiPosterior)
 	);
 	const activeTasks = $derived(suggestedTasks.filter((t) => !t.completed));
 
@@ -129,7 +135,7 @@
 
 	// Metric calculations
 	const zenithGain = $derived(
-		calculateZenithGain(tasks, availableHours, switchCost, pools, userConstants)
+		calculateZenithGain(tasks, availableHours, switchCost, pools, userConstants, phiPosterior)
 	);
 	const completionRate = $derived(calculateCompletionRate(suggestedTasks));
 	const yieldIndex = $derived(calculateYieldIndex(suggestedTasks));
@@ -145,8 +151,8 @@
 	const energyBalance = $derived(calculateEnergyBalance(cognitiveLoad, physicalLoad));
 	const frictionIndex = $derived(calculateFrictionIndex(activeTasks));
 	const dailyQuadrant = $derived(calculateDailyQuadrant(tasks));
-	const budgetConvergence = $derived(
-		calculateBudgetConvergence(activeTasks, availableHours, switchCost)
+	const scheduleIntegrity = $derived(
+		calculateScheduleIntegrity(activeTasks, availableHours, switchCost)
 	);
 	const momentum = $derived(calculateMomentum(tasks));
 	const deepWorkRatio = $derived(calculateDeepWorkRatio(activeTasks, availableHours));
@@ -220,8 +226,7 @@
 					humanCapacity.limitType === 'cognitive'
 						? m.metric_type_cognitive()
 						: m.metric_type_physical(),
-				hours:
-					humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours
+				hours: humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours
 			}),
 			...(hasActive && hasBudget
 				? {
@@ -296,8 +301,8 @@
 			description: m.metric_schedule_integrity_desc(),
 			...(hasActive
 				? {
-						value: `${budgetConvergence}%`,
-						valStyle: getStatusBiggerBetter(budgetConvergence).color
+						value: `${scheduleIntegrity}%`,
+						valStyle: getStatusBiggerBetter(scheduleIntegrity).color
 					}
 				: NA)
 		},
@@ -399,91 +404,83 @@
 	]);
 </script>
 
-<svelte:head>
-	<title>{m.page_title()}</title>
-	<meta name="description" content={m.page_meta_description()} />
-	<link rel="canonical" href={page.url.origin + page.url.pathname} />
-	<meta name="theme-color" content="#000000" />
+<SeoHead
+	title={m.page_title()}
+	description={m.page_meta_description()}
+	jsonLd={{
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: m.app_name(),
+		description: m.page_meta_description(),
+		applicationCategory: 'ProductivityApplication',
+		operatingSystem: 'Any',
+		browserRequirements: 'Requires JavaScript',
+		inLanguage: ['en', 'de'],
+		offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+	}}
+/>
 
-	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content={m.app_name()} />
-	<meta property="og:title" content={m.page_title()} />
-	<meta property="og:description" content={m.page_meta_description()} />
-	<meta property="og:url" content={page.url.origin + page.url.pathname} />
-	<meta
-		property="og:image"
-		content={page.url.origin + '/dark-textured-black-background-red-purple.jpg'}
-	/>
+<PageHeader
+	completedTasks={completedTasksCount}
+	{totalTasks}
+	{selectedDate}
+	{today}
+	ondatechange={gotoDate}
+	yesterdaySession={session.yesterdaySession}
+	routines={session.routines}
+	currentTasks={tasks}
+	onimport={(t) => session.importTasks(t)}
+	onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+	ondeleteroutine={(id) => session.deleteRoutine(id)}
+/>
 
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content={m.page_title()} />
-	<meta name="twitter:description" content={m.page_meta_description()} />
-	<meta
-		name="twitter:image"
-		content={page.url.origin + '/dark-textured-black-background-red-purple.jpg'}
-	/>
-</svelte:head>
-
-{#if !session.isLoading}
-	<PageHeader
-		completedTasks={completedTasksCount}
-		{totalTasks}
-		{selectedDate}
-		{today}
-		ondatechange={gotoDate}
-		yesterdaySession={session.yesterdaySession}
-		routines={session.routines}
-		currentTasks={tasks}
-		onimport={(t) => session.importTasks(t)}
-		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
-		ondeleteroutine={(id) => session.deleteRoutine(id)}
-	/>
-
-	<div class="grid gap-6 lg:grid-cols-3 items-start">
-		<div class="space-y-6 lg:col-span-2">
-			{#if !isViewingPast}
-				{#if isViewingFuture}
-					<div
-						class="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 text-sky-300/80 text-sm"
-					>
-						<span class="font-medium">{m.banner_future_title()}</span>
-						{m.banner_future_body({ date: formatDisplayDate(selectedDate) })}
-					</div>
-				{/if}
-				<TimeBudgetCard
-					bind:availableHours={session.availableHours}
-					bind:switchCost={session.switchCost}
-					bind:cognitivePool={session.cognitivePool}
-					bind:physicalPool={session.physicalPool}
-					{remainingSuggestedHours}
-					{planSlackHours}
-					{modelStatus}
-					flowLogs={flowObservations}
-					ondeletelog={(id) => session.deleteFlowLog(id)}
-					onresetlogs={() => session.resetFlowLogs()}
-					startOpen={availableHours <= 0}
-				/>
-				<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
-			{:else}
-				<div
-					class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
-				>
-					<span class="font-medium">{m.banner_past_title()}</span>
-					{m.banner_past_body()}
+<div class="grid gap-6 lg:grid-cols-3 items-start">
+	<div class="space-y-6 lg:col-span-2">
+		{#if !isViewingPast}
+			{#if isViewingFuture}
+				<div class="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 text-sky-300/80 text-sm">
+					<span class="font-medium">{m.banner_future_title()}</span>
+					{m.banner_future_body({ date: formatDisplayDate(selectedDate) })}
 				</div>
 			{/if}
-			<TaskList
-				{suggestedTasks}
-				{runOrder}
-				ontoggle={(id) => session.toggleTask(id)}
-				onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
-				onlogflow={selectedDate === today ? (id, minutes) => session.logFlow(id, minutes) : undefined}
-				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
+			<TimeBudgetCard
+				bind:availableHours={session.availableHours}
+				bind:switchCost={session.switchCost}
+				bind:cognitivePool={session.cognitivePool}
+				bind:physicalPool={session.physicalPool}
+				{remainingSuggestedHours}
+				{planSlackHours}
+				startOpen={availableHours <= 0}
 			/>
-		</div>
+			<PersonalizationCard
+				{modelStatus}
+				flowLogs={flowObservations}
+				ondeletelog={(id) => session.deleteFlowLog(id)}
+				onresetlogs={() => session.resetFlowLogs()}
+			/>
+			<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
+		{:else}
+			<div
+				class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
+			>
+				<span class="font-medium">{m.banner_past_title()}</span>
+				{m.banner_past_body()}
+			</div>
+		{/if}
 
-		<div class="space-y-4 lg:sticky lg:top-8">
-			<MetricsDashboard {metrics} momentum={hasTasks ? momentum : null} />
-		</div>
+		<TaskList
+			{suggestedTasks}
+			{runOrder}
+			ontoggle={(id) => session.toggleTask(id)}
+			onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
+			onlogflow={selectedDate === today ? (id, minutes) => session.logFlow(id, minutes) : undefined}
+			onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
+		/>
 	</div>
-{/if}
+
+	<div class="space-y-4 lg:sticky lg:top-8">
+		<MetricsDashboard {metrics} momentum={hasTasks ? momentum : null} />
+	</div>
+</div>
+
+<ZenithExplainer />

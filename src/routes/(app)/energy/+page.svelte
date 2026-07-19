@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
@@ -11,10 +12,14 @@
 		evaluateSchedule,
 		sampleTrajectory,
 		fitDrainRate,
+		fitRecoveryRate,
+		fitStoppingValue,
 		type EnergyParams,
 		type EnergyTaskInput,
-		type ScheduleBlock
+		type ScheduleBlock,
+		type StopObservation
 	} from '$lib/business/model/zenith-energy';
+	import { readStopObservations } from '$lib/business/store/session-history';
 	import {
 		type Task,
 		getEffectiveDifficulty,
@@ -97,7 +102,14 @@
 	// THIS model: interleaved run order, switch costs as rest gaps.
 	const classicEval = $derived.by(() => {
 		if (windowHours <= 0 || energyTasks.length === 0) return null;
-		const suggested = calculateSuggestedTasks(tasks, windowHours, switchCost, pools, userConstants);
+		const suggested = calculateSuggestedTasks(
+			tasks,
+			windowHours,
+			switchCost,
+			pools,
+			userConstants,
+			session.constantsFit.posterior
+		);
 		const funded = calculateInterleavedOrder(
 			suggested.filter((t) => !t.completed && t.suggestedHours > 0)
 		);
@@ -244,6 +256,100 @@
 	let confirmingDrainReset = $state(false);
 	const drainLogsNewestFirst = $derived([...drainObservations].reverse());
 
+	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
+
+	const restObservations = $derived(session.restObservations);
+
+	// During pure rest the reservoir law loses α entirely (drain decays as
+	// d_before·e^(−r·m·g) — MATH.md §8.9), so this fit needs no drain
+	// parameters: it conditions only on the rest multiplier (rest data
+	// identifies the product r·m). Both reservoirs' ratings feed the ONE
+	// shared recovery rate, and the α fit above then conditions on it —
+	// fitting r first makes that conditioning well-founded, not circular.
+	const recoveryFit = $derived(
+		fitRecoveryRate(
+			restObservations.flatMap((o) => [
+				{ drainedBefore: o.mindBefore / 10, drainedAfter: o.mindAfter / 10, hours: o.hours },
+				{ drainedBefore: o.bodyBefore / 10, drainedAfter: o.bodyAfter / 10, hours: o.hours }
+			]),
+			DEFAULT_ENERGY_PARAMS.recoveryRate,
+			{ restRecoveryMultiplier: params.restRecoveryMultiplier }
+		)
+	);
+
+	const recoveryFitApplied = $derived(
+		!recoveryFit.fitted || Math.abs(params.recoveryRate - round2(recoveryFit.rate)) < 1e-9
+	);
+
+	function applyRecoveryFit() {
+		if (recoveryFit.fitted) params.recoveryRate = round2(recoveryFit.rate);
+	}
+
+	// Inline rest-pair editor (☕): lives in the calibration card — a break
+	// has no task row to hang off.
+	let restDraft = $state<{
+		minutes: number | null;
+		mindBefore: number | null;
+		mindAfter: number | null;
+		bodyBefore: number | null;
+		bodyAfter: number | null;
+	} | null>(null);
+
+	function saveRestLog() {
+		if (!restDraft) return;
+		const minutes = Number(restDraft.minutes);
+		if (!minutes || minutes <= 0) return;
+		const rating = (value: number | null) =>
+			Math.min(10, Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0));
+		session.logRest(
+			minutes / 60,
+			rating(restDraft.mindBefore),
+			rating(restDraft.mindAfter),
+			rating(restDraft.bodyBefore),
+			rating(restDraft.bodyAfter)
+		);
+		restDraft = null;
+	}
+
+	let restLogsOpen = $state(false);
+	let confirmingRestReset = $state(false);
+	const restLogsNewestFirst = $derived([...restObservations].reverse());
+
+	// ---------- Stopping calibration (λ₀ fit from finished days) ----------
+
+	// Past days' stop decisions: each day's 🪫 worked minutes joined with that
+	// day's stored session (MATH.md §8.10). Re-derived when the drain logs
+	// change (deleting a past rating must refit); today's logs never enter —
+	// an unfinished day has not revealed its stop yet.
+	let stopObservations = $state<StopObservation[]>([]);
+	// Version guard against out-of-order async completions (same pattern as
+	// the calendar page's loadVersion): only the latest read may land.
+	let stopLoadVersion = 0;
+	$effect(() => {
+		void drainObservations;
+		const version = ++stopLoadVersion;
+		readStopObservations(session.today).then((obs) => {
+			if (version === stopLoadVersion) stopObservations = obs;
+		});
+	});
+
+	// Conditions on ALL current dynamics params (α, r, m, b, satiety) and the
+	// user-owned terminal energy value — so a conditioning-slider change
+	// legitimately re-fits, like the drain fit re-fitting under new recovery
+	// sliders. The extraction itself is λ₀-free (no circularity with the
+	// current free-time slider). Prior anchors to the model DEFAULT.
+	const stopFit = $derived(
+		fitStoppingValue(stopObservations, DEFAULT_ENERGY_PARAMS.freeTimeValue, params, userConstants)
+	);
+
+	const stopFitApplied = $derived(
+		!stopFit.fitted || Math.abs(params.freeTimeValue - round2(stopFit.value)) < 1e-9
+	);
+
+	function applyStopFit() {
+		if (stopFit.fitted) params.freeTimeValue = round2(stopFit.value);
+	}
+
 	// ---------- Presentation helpers ----------
 
 	const PALETTE = [
@@ -317,10 +423,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{m.energy_title_head()}</title>
-	<meta name="description" content={m.energy_meta_description()} />
-</svelte:head>
+<SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
 {#if !session.isLoading && paramsLoaded}
 	<div class="mb-6">
@@ -930,7 +1033,7 @@
 										min={0}
 										max={3}
 										step={0.1}
-										unit="/h"
+										unit="out/h"
 									/>
 								</div>
 								<div>
@@ -1015,12 +1118,12 @@
 									</Tooltip.Root>
 									<NumberInput
 										id="micro-recovery"
-										value={params.microRecoveryFraction}
-										onchange={(v) => (params.microRecoveryFraction = v)}
+										value={Number((params.microRecoveryFraction * 100).toFixed(1))}
+										onchange={(v) => (params.microRecoveryFraction = v / 100)}
 										min={0}
-										max={0.3}
-										step={0.01}
-										unit="×"
+										max={30}
+										step={1}
+										unit="%"
 									/>
 								</div>
 							</div>
@@ -1173,6 +1276,303 @@
 										</div>
 									{/if}
 								</div>
+							{/if}
+						</div>
+
+						<!-- Recovery calibration: fitted r from pre/post-rest rating pairs -->
+						<div
+							class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
+						>
+							<div class="flex items-baseline justify-between gap-2">
+								<Tooltip.Root>
+									<Tooltip.Trigger>
+										{#snippet child({ props })}
+											<h3
+												{...props}
+												class="w-fit cursor-help text-xs font-semibold tracking-wider text-zinc-300 uppercase underline decoration-zinc-700 decoration-dotted underline-offset-4"
+											>
+												{m.energy_recovery_calibration()}
+											</h3>
+										{/snippet}
+									</Tooltip.Trigger>
+									<Tooltip.Content
+										side="left"
+										class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200"
+									>
+										<p>{m.energy_recovery_calibration_hint()}</p>
+									</Tooltip.Content>
+								</Tooltip.Root>
+								<button
+									type="button"
+									class="shrink-0 text-xs transition {restDraft
+										? 'text-zinc-500 hover:text-zinc-300'
+										: 'text-sky-400/90 hover:text-sky-300'}"
+									onclick={() =>
+										(restDraft = restDraft
+											? null
+											: {
+													minutes: null,
+													mindBefore: null,
+													mindAfter: null,
+													bodyBefore: null,
+													bodyAfter: null
+												})}
+								>
+									{restDraft ? m.common_cancel() : `☕ ${m.energy_log_rest()}`}
+								</button>
+							</div>
+
+							{#if restDraft}
+								<form
+									class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg border border-sky-500/20 bg-zinc-900/40 px-2.5 py-2 text-[11px] text-zinc-500"
+									onsubmit={(e) => (e.preventDefault(), saveRestLog())}
+								>
+									<label class="flex items-center gap-1.5">
+										{m.energy_rest_rested_label()}
+										<!-- svelte-ignore a11y_autofocus -->
+										<input
+											type="number"
+											min="1"
+											max="480"
+											placeholder={m.task_minutes_placeholder()}
+											autofocus
+											bind:value={restDraft.minutes}
+											class="w-14 rounded border border-sky-500/30 bg-zinc-900/80 px-1.5 py-0.5 text-xs text-zinc-100 outline-none focus:border-sky-500/60"
+										/>
+									</label>
+									<span class="flex items-center gap-1.5">
+										{m.energy_rest_before_label()}
+										<label class="flex items-center gap-1" title={m.energy_rest_mind_title()}>
+											<span class="font-medium text-blue-400/80">
+												{m.energy_drain_mind_label()}
+											</span>
+											<input
+												type="number"
+												min="0"
+												max="10"
+												step="1"
+												bind:value={restDraft.mindBefore}
+												class="w-12 rounded border border-blue-500/30 bg-zinc-900/80 px-1.5 py-0.5 text-xs text-zinc-100 outline-none focus:border-blue-500/60"
+											/>
+										</label>
+										<label class="flex items-center gap-1" title={m.energy_rest_body_title()}>
+											<span class="font-medium text-emerald-400/80">
+												{m.energy_drain_body_label()}
+											</span>
+											<input
+												type="number"
+												min="0"
+												max="10"
+												step="1"
+												bind:value={restDraft.bodyBefore}
+												class="w-12 rounded border border-emerald-500/30 bg-zinc-900/80 px-1.5 py-0.5 text-xs text-zinc-100 outline-none focus:border-emerald-500/60"
+											/>
+										</label>
+									</span>
+									<span class="flex items-center gap-1.5">
+										{m.energy_rest_after_label()}
+										<label class="flex items-center gap-1" title={m.energy_rest_mind_title()}>
+											<span class="font-medium text-blue-400/80">
+												{m.energy_drain_mind_label()}
+											</span>
+											<input
+												type="number"
+												min="0"
+												max="10"
+												step="1"
+												bind:value={restDraft.mindAfter}
+												class="w-12 rounded border border-blue-500/30 bg-zinc-900/80 px-1.5 py-0.5 text-xs text-zinc-100 outline-none focus:border-blue-500/60"
+											/>
+										</label>
+										<label class="flex items-center gap-1" title={m.energy_rest_body_title()}>
+											<span class="font-medium text-emerald-400/80">
+												{m.energy_drain_body_label()}
+											</span>
+											<input
+												type="number"
+												min="0"
+												max="10"
+												step="1"
+												bind:value={restDraft.bodyAfter}
+												class="w-12 rounded border border-emerald-500/30 bg-zinc-900/80 px-1.5 py-0.5 text-xs text-zinc-100 outline-none focus:border-emerald-500/60"
+											/>
+										</label>
+									</span>
+									<span class="ml-auto flex items-center gap-1">
+										<button type="submit" class="px-1 text-sky-400 hover:text-sky-300">✓</button>
+										<button
+											type="button"
+											class="px-1 text-zinc-500 hover:text-zinc-300"
+											onclick={() => (restDraft = null)}
+										>
+											✕
+										</button>
+									</span>
+								</form>
+							{/if}
+
+							{#if restObservations.length === 0}
+								<p class="mt-3 text-xs text-zinc-500">{m.energy_recovery_calibration_empty()}</p>
+							{:else}
+								<div class="mt-3 flex items-baseline justify-between gap-2 text-xs">
+									<span class="text-zinc-500">{m.energy_recovery_rate()}</span>
+									{#if recoveryFit.fitted}
+										<span class="tabular-nums text-sky-300/90">
+											{m.energy_recovery_fit_value({
+												rate: recoveryFit.rate.toFixed(2),
+												std: (recoveryFit.rateStd ?? 0).toFixed(2),
+												count: recoveryFit.usedCount
+											})}
+										</span>
+									{:else}
+										<span class="text-zinc-500">{m.energy_fit_no_signal()}</span>
+									{/if}
+								</div>
+
+								{#if recoveryFit.fitted}
+									<button
+										type="button"
+										class="mt-3 w-full rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:cursor-default disabled:border-white/10 disabled:bg-transparent disabled:text-zinc-500"
+										disabled={recoveryFitApplied}
+										title={m.energy_apply_recovery_fit_title()}
+										onclick={applyRecoveryFit}
+									>
+										{recoveryFitApplied
+											? m.energy_recovery_fit_applied()
+											: m.energy_apply_recovery_fit()}
+									</button>
+								{/if}
+
+								<div class="mt-3 border-t border-white/10 pt-3">
+									<button
+										type="button"
+										class="flex w-full items-center justify-between gap-2 text-left text-xs text-zinc-500 transition hover:text-zinc-300"
+										onclick={() => {
+											restLogsOpen = !restLogsOpen;
+											confirmingRestReset = false;
+										}}
+									>
+										<span>{m.energy_rest_log_count({ count: restObservations.length })}</span>
+										<span class="shrink-0 text-zinc-500">{restLogsOpen ? '▴' : '▾'}</span>
+									</button>
+
+									{#if restLogsOpen}
+										<ul class="mt-2 space-y-1">
+											{#each restLogsNewestFirst as log (log.id)}
+												<li
+													class="flex items-center justify-between gap-2 rounded bg-white/3 px-2 py-1 text-xs text-zinc-400"
+												>
+													<span class="truncate text-zinc-500">{log.date}</span>
+													<span class="flex shrink-0 items-center gap-2 tabular-nums">
+														<span class="text-zinc-500">{formatDuration(log.hours)}</span>
+														<span class="font-medium text-blue-400/90">
+															M{log.mindBefore}→{log.mindAfter}
+														</span>
+														<span class="font-medium text-emerald-400/90">
+															B{log.bodyBefore}→{log.bodyAfter}
+														</span>
+														<button
+															type="button"
+															aria-label={m.energy_delete_rest_log_aria()}
+															title={m.energy_delete_rest_log_title()}
+															class="text-zinc-500 transition hover:text-red-400"
+															onclick={() => session.deleteRestLog(log.id!)}
+														>
+															✕
+														</button>
+													</span>
+												</li>
+											{/each}
+										</ul>
+										<div class="mt-2 flex justify-end">
+											{#if confirmingRestReset}
+												<span class="flex items-center gap-2 text-xs">
+													<span class="text-zinc-500">
+														{m.energy_reset_rest_confirm({ count: restObservations.length })}
+													</span>
+													<button
+														type="button"
+														class="font-medium text-red-400 hover:text-red-300"
+														onclick={() => {
+															session.resetRestLogs();
+															confirmingRestReset = false;
+															restLogsOpen = false;
+														}}
+													>
+														{m.common_reset()}
+													</button>
+													<button
+														type="button"
+														class="text-zinc-500 hover:text-zinc-300"
+														onclick={() => (confirmingRestReset = false)}
+													>
+														{m.common_cancel()}
+													</button>
+												</span>
+											{:else}
+												<button
+													type="button"
+													class="text-xs text-zinc-500 transition hover:text-red-400"
+													title={m.energy_reset_rest_title()}
+													onclick={() => (confirmingRestReset = true)}
+												>
+													{m.energy_reset_rest_logs()}
+												</button>
+											{/if}
+										</div>
+									{/if}
+								</div>
+							{/if}
+						</div>
+
+						<!-- Stopping calibration: fitted λ₀ from finished days' stop decisions -->
+						<div
+							class="rounded-2xl border border-white/10 bg-white/3 p-4 sm:p-6 shadow-2xl backdrop-blur-xl"
+						>
+							<Tooltip.Root>
+								<Tooltip.Trigger>
+									{#snippet child({ props })}
+										<h3
+											{...props}
+											class="w-fit cursor-help text-xs font-semibold tracking-wider text-zinc-300 uppercase underline decoration-zinc-700 decoration-dotted underline-offset-4"
+										>
+											{m.energy_stop_calibration()}
+										</h3>
+									{/snippet}
+								</Tooltip.Trigger>
+								<Tooltip.Content
+									side="left"
+									class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200"
+								>
+									<p>{m.energy_stop_calibration_hint()}</p>
+								</Tooltip.Content>
+							</Tooltip.Root>
+
+							{#if stopObservations.length === 0}
+								<p class="mt-3 text-xs text-zinc-500">{m.energy_stop_calibration_empty()}</p>
+							{:else if !stopFit.fitted}
+								<p class="mt-3 text-xs text-zinc-500">{m.energy_stop_calibration_censored()}</p>
+							{:else}
+								<div class="mt-3 flex items-baseline justify-between gap-2 text-xs">
+									<span class="text-zinc-500">{m.energy_free_time_value()}</span>
+									<span class="tabular-nums text-sky-300/90">
+										{m.energy_stop_fit_value({
+											value: stopFit.value.toFixed(2),
+											std: (stopFit.valueStd ?? 0).toFixed(2),
+											count: stopFit.usedCount
+										})}
+									</span>
+								</div>
+
+								<button
+									type="button"
+									class="mt-3 w-full rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-500/20 disabled:cursor-default disabled:border-white/10 disabled:bg-transparent disabled:text-zinc-500"
+									disabled={stopFitApplied}
+									title={m.energy_apply_stop_fit_title()}
+									onclick={applyStopFit}
+								>
+									{stopFitApplied ? m.energy_stop_fit_applied() : m.energy_apply_stop_fit()}
+								</button>
 							{/if}
 						</div>
 					</Tooltip.Provider>

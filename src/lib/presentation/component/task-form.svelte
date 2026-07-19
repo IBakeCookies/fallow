@@ -72,7 +72,7 @@
 				aria-label={m.form_collapse()}
 				title={m.form_collapse_title()}
 				onclick={() => (open = false)}
-				class="shrink-0 text-xs text-zinc-500 transition hover:text-zinc-300"
+				class="shrink-0 text-lg leading-none text-zinc-500 transition hover:text-zinc-300"
 			>
 				▴
 			</button>

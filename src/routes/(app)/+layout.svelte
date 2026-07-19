@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Nav from '$lib/presentation/component/nav.svelte';
+	import Footer from '$lib/presentation/component/footer.svelte';
 	import { setSessionStore } from '$lib/business/store/session-store.svelte';
 
 	let { children } = $props();
@@ -16,11 +17,12 @@
 </script>
 
 <main
-	class="bg-black/70 text-zinc-300 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 font-sans
-	       {fullViewport ? 'flex h-dvh flex-col overflow-hidden' : 'min-h-screen'}"
+	class="bg-black/70 text-zinc-300 antialiased selection:bg-emerald-500/30 selection:text-emerald-200 font-sans flex flex-col
+	       {fullViewport ? 'h-dvh overflow-hidden' : 'min-h-screen'}"
 >
 	<div class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex min-h-0 flex-1 flex-col">
 		<Nav />
 		{@render children()}
+		<Footer />
 	</div>
 </main>

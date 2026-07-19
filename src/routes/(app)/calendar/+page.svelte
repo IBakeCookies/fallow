@@ -4,6 +4,7 @@
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import * as m from '$lib/paraglide/messages.js';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import { getStatusBiggerBetter, getCompletionBarClass } from '$lib/presentation/utils/status';
@@ -12,9 +13,13 @@
 	import {
 		initializeStorage,
 		readSessionsByDateRange,
-		readUserConstants
+		readUserFit
 	} from '$lib/business/store/session-history';
-	import { DEFAULT_USER_CONSTANTS, type UserConstants } from '$lib/business/model/zenith';
+	import {
+		DEFAULT_USER_CONSTANTS,
+		type FitPosterior,
+		type UserConstants
+	} from '$lib/business/model/zenith';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
@@ -34,6 +39,7 @@
 	const viewLabel = $derived(view === 'month' ? m.cal_view_month() : m.cal_view_week());
 	let summaries = $state<Map<string, DaySummary>>(new Map());
 	let constants = $state<UserConstants>(DEFAULT_USER_CONSTANTS);
+	let posterior = $state<FitPosterior | undefined>(undefined);
 	let ready = $state(false);
 	let isLoading = $state(true);
 
@@ -41,9 +47,11 @@
 		if (!browser) return;
 		try {
 			await initializeStorage();
-			// Same personalized constants as the dashboard, so per-day completion
-			// rates match what the main page showed that day
-			constants = await readUserConstants();
+			// Same personalized fit (constants + posterior) as the dashboard, so
+			// per-day completion rates match what the main page showed that day
+			const fit = await readUserFit();
+			constants = fit.constants;
+			posterior = fit.posterior;
 		} catch (e) {
 			console.error('Failed to initialize calendar', e);
 		} finally {
@@ -80,14 +88,14 @@
 	let loadVersion = 0;
 	$effect(() => {
 		if (!ready) return;
-		const [start, end, consts] = [rangeStart, rangeEnd, constants];
+		const [start, end, consts, post] = [rangeStart, rangeEnd, constants, posterior];
 		const version = ++loadVersion;
 		readSessionsByDateRange(start, end)
 			.then((sessions) => {
 				if (version !== loadVersion) return;
 				const map = new Map<string, DaySummary>();
 				for (const s of sessions) {
-					if (s.tasks.length > 0) map.set(s.date, summarizeSession(s, consts));
+					if (s.tasks.length > 0) map.set(s.date, summarizeSession(s, consts, post));
 				}
 				summaries = map;
 				isLoading = false;
@@ -111,10 +119,7 @@
 	const hasAnyData = $derived(summaries.size > 0);
 </script>
 
-<svelte:head>
-	<title>{m.cal_title_head()}</title>
-	<meta name="description" content={m.cal_meta_description()} />
-</svelte:head>
+<SeoHead title={m.cal_title_head()} description={m.cal_meta_description()} />
 
 <!-- Proton-calendar-style: the layout puts this page in a no-scroll full-viewport
      flex column — the grid's rows split the leftover height and cell content

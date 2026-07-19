@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type { Pathname } from '$app/types';
-	import { browser } from '$app/environment';
+	import { dev, browser } from '$app/environment';
 	import { resolve } from '$app/paths';
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 	import { page } from '$app/state';
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import { activeLocale } from '$lib/presentation/utils/locale.svelte';
@@ -9,6 +11,9 @@
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
+
+	injectAnalytics({ mode: dev ? 'development' : 'production' });
+	injectSpeedInsights();
 
 	// Reload-free language switching: setLocale() runs with reload:false, so
 	// keep <html lang> in sync ourselves.

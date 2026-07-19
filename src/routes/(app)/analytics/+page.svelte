@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 	import { type DaySummary, summarizeSession, currentStreak } from '$lib/business/model/metric/history';
@@ -9,7 +10,7 @@
 	import {
 		initializeStorage,
 		readSessionsByDateRange,
-		readUserConstants
+		readUserFit
 	} from '$lib/business/store/session-history';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
@@ -31,9 +32,11 @@
 		if (!browser) return;
 		try {
 			await initializeStorage();
-			const constants = await readUserConstants();
+			const fit = await readUserFit();
 			const sessions = await readSessionsByDateRange(addDays(today, -364), today);
-			all = sessions.filter((s) => s.tasks.length > 0).map((s) => summarizeSession(s, constants));
+			all = sessions
+				.filter((s) => s.tasks.length > 0)
+				.map((s) => summarizeSession(s, fit.constants, fit.posterior));
 		} catch (e) {
 			console.error('Failed to load analytics data', e);
 		} finally {
@@ -56,8 +59,8 @@
 			: 0
 	);
 
-	// Delta vs the previous period of the same length (year has no prior data:
-	// sessions older than a year are cleaned up)
+	// Delta vs the previous period of the same length (year has none: this
+	// page only loads the last 365 days)
 	const prevRange = $derived.by(() => {
 		if (range === 'year') return [];
 		const start = addDays(today, -(2 * days - 1));
@@ -218,10 +221,7 @@
 	const activeDaysWithCompletion = $derived(inRange.filter((s) => s.completedTasks > 0).length);
 </script>
 
-<svelte:head>
-	<title>{m.ana_title_head()}</title>
-	<meta name="description" content={m.ana_meta_description()} />
-</svelte:head>
+<SeoHead title={m.ana_title_head()} description={m.ana_meta_description()} />
 
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
 	<div>
