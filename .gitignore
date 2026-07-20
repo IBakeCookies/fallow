@@ -30,3 +30,6 @@ project.inlang/cache/
 *storybook.log
 storybook-static
 screenshots/
+
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json

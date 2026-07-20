@@ -44,12 +44,12 @@ severity. Check items off (or delete them) as they're resolved.
 - [x] **Dead Postgres backend shipping.** Removed `postgres.ts`,
       `docker-compose.yml`, `init.sql`, and the `pg` / `@types/pg` deps
       (2026-07-20).
-- [ ] **Demo/boilerplate routes deploy as live pages.** `src/routes/demo/*`
+- [x] **Demo/boilerplate routes deploy as live pages.** `src/routes/demo/*`
       (SvelteKit demo + Playwright example), plus committed scaffolding in
       `src/lib/vitest-examples/*` and default `src/stories/*` (Button/Header/Page).
 - [ ] **No CI.** `lint`, `check`, and `test` scripts exist in `package.json`
       but nothing runs them automatically.
-- [ ] **Test coverage is math-only.** Business/model logic is well tested;
+- [x] **Test coverage is math-only.** Business/model logic is well tested;
       the data layer (`src/lib/data/`), the store
       (`session-store.svelte.ts`), all routes, and all real UI components have
       zero tests.
