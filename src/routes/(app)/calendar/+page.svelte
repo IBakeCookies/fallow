@@ -272,7 +272,7 @@
 											: 'bg-surface-inset'}"
 									></span>
 									<span
-										class="min-w-0 break-words {task.completed
+										class="min-w-0 wrap-break-word {task.completed
 											? 'text-ty-silent line-through'
 											: 'text-ty-secondary'}"
 									>
