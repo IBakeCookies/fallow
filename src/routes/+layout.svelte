@@ -23,9 +23,6 @@
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 	injectSpeedInsights();
 
-	injectAnalytics({ mode: dev ? 'development' : 'production' });
-	injectSpeedInsights();
-
 	// Reload-free language switching: setLocale() runs with reload:false, so
 	// keep <html lang> in sync ourselves.
 	$effect(() => {
