@@ -150,18 +150,18 @@
 
 <Tooltip.Provider delayDuration={150}>
 	<div
-		class="group rounded-lg border border-transparent bg-transparent p-3 transition hover:border-line-soft hover:bg-surface-card"
+		class="group rounded-lg border border-transparent bg-transparent p-box-sm transition hover:border-line-soft hover:bg-surface-card"
 	>
 		<div class="flex items-start gap-grid-xs">
 			<input
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
-				class="mt-0.5 h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
+				class="mt-text-3xs h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
 			/>
 
 			<div class="min-w-0 flex-1" class:opacity-60={completed}>
-				<div class="flex flex-wrap items-center gap-2">
+				<div class="flex flex-wrap items-center gap-text-xs">
 					{#if runOrder !== undefined && !completed}
 						<Tooltip.Root>
 							<Tooltip.Trigger
@@ -169,7 +169,7 @@
 							>
 								#{runOrder}
 							</Tooltip.Trigger>
-							<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+							<Tooltip.Content>
 								<p>{m.task_run_order_tooltip()}</p>
 							</Tooltip.Content>
 						</Tooltip.Root>
@@ -180,7 +180,7 @@
 								{natureLabel}
 							</Badge>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+						<Tooltip.Content>
 							<p>{natureDescription}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
@@ -193,7 +193,9 @@
 					</h3>
 				</div>
 
-				<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs text-ty-silent">
+				<div
+					class="mt-text-2xs flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent"
+				>
 					<Tooltip.Root>
 						<Tooltip.Trigger class="cursor-help">
 							<span class="font-medium text-body/80">P {physicalDifficulty}</span>
@@ -202,7 +204,7 @@
 							<span class="text-ty-ghost">·</span>
 							<span class="font-medium text-brand/80">E {enjoyment}</span>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+						<Tooltip.Content>
 							<p>{m.task_inputs_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
@@ -215,7 +217,7 @@
 								stop: formatHours(optimalStopTime)
 							})}
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+						<Tooltip.Content>
 							<p>{m.task_derived_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
@@ -224,7 +226,7 @@
 							<Tooltip.Trigger class="cursor-help font-medium text-flow">
 								⚡ {flowMinutes}m
 							</Tooltip.Trigger>
-							<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+							<Tooltip.Content>
 								<p>{m.task_flow_badge_tooltip()}</p>
 							</Tooltip.Content>
 						</Tooltip.Root>
@@ -243,21 +245,21 @@
 								{m.task_priority({ score: priorityScore })}
 							</div>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+						<Tooltip.Content>
 							<p>{m.task_allocation_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
 				{/if}
 
 				<div
-					class="flex items-center gap-1 transition-opacity {editing || loggingFlow
+					class="flex items-center gap-grid-2xs transition-opacity {editing || loggingFlow
 						? 'opacity-100'
 						: 'opacity-0 [@media(hover:none)]:opacity-100 focus-within:opacity-100 group-hover:opacity-100'}"
 				>
 					{#if onlogflow}
 						{#if loggingFlow}
 							<form
-								class="flex items-center gap-1"
+								class="flex items-center gap-grid-2xs"
 								onsubmit={(e) => (e.preventDefault(), saveFlowLog())}
 							>
 								<!-- svelte-ignore a11y_autofocus -->
@@ -293,9 +295,7 @@
 								>
 									⚡
 								</Tooltip.Trigger>
-								<Tooltip.Content
-									class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-								>
+								<Tooltip.Content>
 									<p>{m.task_log_flow_tooltip()}</p>
 								</Tooltip.Content>
 							</Tooltip.Root>
@@ -321,7 +321,7 @@
 									/>
 								</svg>
 							</Tooltip.Trigger>
-							<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+							<Tooltip.Content>
 								<p>{m.task_edit_tooltip()}</p>
 							</Tooltip.Content>
 						</Tooltip.Root>
@@ -345,7 +345,7 @@
 								/>
 							</svg>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+						<Tooltip.Content>
 							<p>{m.task_remove_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
@@ -355,7 +355,7 @@
 
 		{#if editing}
 			<form
-				class="mt-3 ml-7 space-y-grid-md rounded-lg border bg-surface-page/40 p-box-md"
+				class="mt-text-sm ml-7 space-y-grid-md rounded-lg border bg-surface-page/40 p-box-md"
 				onsubmit={(e) => (e.preventDefault(), saveEdit())}
 			>
 				<label class="block text-xs font-medium text-ty-secondary">
@@ -364,13 +364,13 @@
 						type="text"
 						bind:value={editDraft.title}
 						required
-						class="mt-1.5 w-full rounded-lg border border-line-strong bg-input px-3 py-2 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+						class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-3 py-2 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 					/>
 				</label>
 
 				<div class="grid gap-grid-md sm:grid-cols-3">
 					{#each editSliders as slider (slider.key)}
-						<div class="space-y-2">
+						<div class="space-y-text-xs">
 							<div class="flex justify-between text-xs font-medium">
 								<span class="text-ty-secondary">{slider.label}</span>
 								<span class="text-ty-primary">{editDraft[slider.key]}</span>
@@ -386,7 +386,7 @@
 					{/each}
 				</div>
 
-				<div class="flex justify-end gap-2">
+				<div class="flex justify-end gap-grid-xs">
 					<Button variant="ghost" size="xs" type="button" onclick={() => (editing = false)}>
 						{m.common_cancel()}
 					</Button>

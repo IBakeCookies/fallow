@@ -22,7 +22,11 @@ export type ThemeName =
 	| 'ember'
 	| 'glacier'
 	| 'zenith'
-	| 'nadir';
+	| 'nadir'
+	| 'eclipse'
+	| 'cathedral'
+	| 'orbit'
+	| 'tempest';
 
 interface ThemeItem {
 	name: ThemeName;
@@ -35,27 +39,27 @@ export const themes: ThemeItem[] = [
 	{
 		name: 'fallow',
 		label: 'Fallow',
-		css: ['glass', 'fallow']
+		css: ['fallow']
 	},
 	{
 		name: 'solid-light',
 		label: 'Classic Light',
-		css: ['solid', 'solid-light']
+		css: ['solid-light']
 	},
 	{
 		name: 'solid-dark',
 		label: 'Classic Dark',
-		css: ['solid', 'solid-dark', 'dark']
+		css: ['dark']
 	},
 	{
 		name: 'glass-light',
 		label: 'Morning Glass',
-		css: ['glass', 'glass-light']
+		css: ['glass-light']
 	},
 	{
 		name: 'glass-dark',
 		label: 'Night Glass',
-		css: ['glass', 'glass-dark', 'dark']
+		css: ['glass-dark', 'dark']
 	},
 	{
 		name: 'cyber-punk',
@@ -65,17 +69,17 @@ export const themes: ThemeItem[] = [
 	{
 		name: 'aurora',
 		label: 'Aurora',
-		css: ['glass', 'aurora', 'dark']
+		css: ['aurora', 'dark']
 	},
 	{
 		name: 'daybreak',
 		label: 'Daybreak',
-		css: ['glass', 'daybreak']
+		css: ['daybreak']
 	},
 	{
 		name: 'royal',
 		label: 'Royal Velvet',
-		css: ['glass', 'royal', 'dark']
+		css: ['royal', 'dark']
 	},
 	{
 		name: 'terminal',
@@ -85,52 +89,72 @@ export const themes: ThemeItem[] = [
 	{
 		name: 'blueprint',
 		label: 'Blueprint',
-		css: ['glass', 'blueprint', 'dark']
+		css: ['blueprint', 'dark']
 	},
 	{
 		name: 'bubblegum',
 		label: 'Bubblegum',
-		css: ['glass', 'bubblegum']
+		css: ['bubblegum']
 	},
 	{
 		name: 'ukiyo',
 		label: 'Ukiyo-e',
-		css: ['glass', 'ukiyo']
+		css: ['ukiyo']
 	},
 	{
 		name: 'abyss',
 		label: 'Abyss',
-		css: ['glass', 'abyss', 'dark']
+		css: ['abyss', 'dark']
 	},
 	{
 		name: 'parchment',
 		label: 'Parchment',
-		css: ['glass', 'parchment']
+		css: ['parchment']
 	},
 	{
 		name: 'noir',
 		label: 'Noir',
-		css: ['glass', 'noir', 'dark']
+		css: ['noir', 'dark']
 	},
 	{
 		name: 'ember',
 		label: 'Ember',
-		css: ['glass', 'ember', 'dark']
+		css: ['ember', 'dark']
 	},
 	{
 		name: 'glacier',
 		label: 'Glacier',
-		css: ['glass', 'glacier']
+		css: ['glacier']
 	},
 	{
 		name: 'zenith',
 		label: 'Zenith',
-		css: ['glass', 'zenith']
+		css: ['zenith']
 	},
 	{
 		name: 'nadir',
 		label: 'Nadir',
-		css: ['glass', 'nadir', 'dark']
+		css: ['nadir', 'dark']
+	},
+	{
+		name: 'eclipse',
+		label: 'Eclipse',
+		css: ['eclipse', 'dark']
+	},
+	{
+		name: 'cathedral',
+		label: 'Cathedral',
+		css: ['cathedral', 'dark']
+	},
+	{
+		name: 'orbit',
+		label: 'Orbit',
+		css: ['orbit', 'dark']
+	},
+	{
+		name: 'tempest',
+		label: 'Tempest',
+		css: ['tempest', 'dark']
 	}
 ] as const;
 

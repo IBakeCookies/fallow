@@ -32,6 +32,14 @@
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
+<!-- Theme scenery: fixed decorative layers behind the app. display:none by
+     default; a theme opts in by styling the helpers in layout.css. -->
+<div class="theme-scenery" aria-hidden="true">
+	<div class="theme-helper-1"></div>
+	<div class="theme-helper-2"></div>
+	<div class="theme-helper-3"></div>
+</div>
+
 <!-- Keyed on the locale so a language switch re-renders the app in place
      (m.*() messages resolve at render time) instead of reloading the page -->
 {#key activeLocale.value}

@@ -25,7 +25,12 @@ const themes = [
 	'noir',
 	'ember',
 	'glacier',
-	'zenith'
+	'zenith',
+	'nadir',
+	'eclipse',
+	'cathedral',
+	'orbit',
+	'tempest'
 ];
 
 const outDir = process.argv[2] ?? 'screenshots';

@@ -9,13 +9,13 @@
 >
 	<h1 class="text-2xl font-semibold text-ty-primary">{m.imprint_title()}</h1>
 
-	<section class="mt-8">
-		<h2 class="mb-2 text-base font-semibold text-ty-primary">{m.imprint_ddg_heading()}</h2>
+	<section class="mt-text-2xl">
+		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">{m.imprint_ddg_heading()}</h2>
 		<p class="text-ty-secondary">Shadi Muma</p>
 	</section>
 
-	<section class="mt-8">
-		<h2 class="mb-2 text-base font-semibold text-ty-primary">{m.imprint_contact_heading()}</h2>
+	<section class="mt-text-2xl">
+		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">{m.imprint_contact_heading()}</h2>
 		<p class="text-ty-secondary">
 			<a
 				href="mailto:muma.shadi@gmail.com"

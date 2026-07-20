@@ -35,7 +35,7 @@
 	}
 </script>
 
-<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-6">
+<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-box-xl">
 	<button
 		type="button"
 		aria-expanded={open}
@@ -60,9 +60,9 @@
 		</span>
 	</button>
 	{#if open}
-		<div class="flex flex-col sm:flex-row mt-4">
-			<div class="flex-1 sm:pr-4">
-				<label for="available-hours" class="text-xs text-ty-silent mb-1 block">
+		<div class="flex flex-col sm:flex-row mt-text-md">
+			<div class="flex-1 sm:pr-box-md">
+				<label for="available-hours" class="text-xs text-ty-silent mb-text-2xs block">
 					{m.budget_available_hours()}
 				</label>
 				<NumberInput
@@ -75,20 +75,20 @@
 					unit={m.unit_hours()}
 					accent="focus-within:border-brand/50"
 				/>
-				<p class="text-xs text-ty-silent mt-2">
+				<p class="text-xs text-ty-silent mt-text-xs">
 					{m.budget_allocated({ hours: remainingSuggestedHours })}
 				</p>
 				{#if planSlackHours > 0.05}
-					<p class="text-xs text-warning/80 mt-1" title={m.budget_unplanned_title()}>
+					<p class="text-xs text-warning/80 mt-text-2xs" title={m.budget_unplanned_title()}>
 						{m.budget_unplanned({ hours: planSlackHours.toFixed(2) })}
 					</p>
 				{/if}
 			</div>
 			<div
-				class="my-4 h-px w-full bg-border sm:my-0 sm:mx-4 sm:h-auto sm:w-px sm:self-stretch"
+				class="my-grid-md h-px w-full bg-border sm:my-0 sm:mx-grid-md sm:h-auto sm:w-px sm:self-stretch"
 			></div>
-			<div class="flex-1 sm:pl-4">
-				<label for="switch-cost" class="text-xs text-ty-silent mb-1 block">
+			<div class="flex-1 sm:pl-box-md">
+				<label for="switch-cost" class="text-xs text-ty-silent mb-text-2xs block">
 					{m.budget_switch_cost()}
 				</label>
 				<NumberInput
@@ -101,13 +101,13 @@
 					unit={m.unit_minutes()}
 					accent="focus-within:border-brand/50"
 				/>
-				<p class="text-xs text-ty-silent mt-2">{m.budget_switch_cost_hint()}</p>
+				<p class="text-xs text-ty-silent mt-text-xs">{m.budget_switch_cost_hint()}</p>
 			</div>
 		</div>
 
-		<div class="mt-5 pt-4 border-t flex flex-col sm:flex-row">
-			<div class="flex-1 sm:pr-4">
-				<label for="cognitive-pool" class="text-xs text-ty-silent mb-1 block">
+		<div class="mt-text-lg pt-box-md border-t flex flex-col sm:flex-row">
+			<div class="flex-1 sm:pr-box-md">
+				<label for="cognitive-pool" class="text-xs text-ty-silent mb-text-2xs block">
 					{m.budget_cognitive_capacity()}
 				</label>
 				<NumberInput
@@ -120,13 +120,13 @@
 					unit={m.unit_hours()}
 					accent="focus-within:border-mind/50"
 				/>
-				<p class="text-xs text-ty-silent mt-2">{m.budget_cognitive_hint()}</p>
+				<p class="text-xs text-ty-silent mt-text-xs">{m.budget_cognitive_hint()}</p>
 			</div>
 			<div
-				class="my-4 h-px w-full bg-border sm:my-0 sm:mx-4 sm:h-auto sm:w-px sm:self-stretch"
+				class="my-grid-md h-px w-full bg-border sm:my-0 sm:mx-grid-md sm:h-auto sm:w-px sm:self-stretch"
 			></div>
-			<div class="flex-1 sm:pl-4">
-				<label for="physical-pool" class="text-xs text-ty-silent mb-1 block">
+			<div class="flex-1 sm:pl-box-md">
+				<label for="physical-pool" class="text-xs text-ty-silent mb-text-2xs block">
 					{m.budget_physical_capacity()}
 				</label>
 				<NumberInput
@@ -139,7 +139,7 @@
 					unit={m.unit_hours()}
 					accent="focus-within:border-body/50"
 				/>
-				<p class="text-xs text-ty-silent mt-2">{m.budget_physical_hint()}</p>
+				<p class="text-xs text-ty-silent mt-text-xs">{m.budget_physical_hint()}</p>
 			</div>
 		</div>
 	{/if}

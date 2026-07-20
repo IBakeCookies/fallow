@@ -18,11 +18,11 @@
 	const logsNewestFirst = $derived([...flowLogs].reverse());
 </script>
 
-<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-6">
+<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-box-xl">
 	<button
 		type="button"
 		aria-expanded={open}
-		class="flex w-full items-center justify-between gap-2 text-left text-xs text-ty-silent transition hover:text-ty-secondary disabled:cursor-default disabled:hover:text-ty-silent"
+		class="flex w-full items-center justify-between gap-grid-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary disabled:cursor-default disabled:hover:text-ty-silent"
 		disabled={flowLogs.length === 0}
 		title={m.budget_model_tooltip()}
 		onclick={() => {
@@ -37,16 +37,16 @@
 	</button>
 
 	{#if open && flowLogs.length > 0}
-		<ul class="mt-2 max-h-64 space-y-1 overflow-y-auto">
+		<ul class="mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
 			{#each logsNewestFirst as log (log.id)}
 				<li
-					class="flex items-center justify-between gap-2 rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
+					class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
 				>
 					<span class="truncate">
 						<span class="text-ty-silent">{log.date}</span>
 						<span class="capitalize"> · {log.taskTitle}</span>
 					</span>
-					<span class="flex shrink-0 items-center gap-2">
+					<span class="flex shrink-0 items-center gap-text-xs">
 						<span class="font-medium text-flow/90">⚡ {Math.round(log.phiHours * 60)}m</span>
 						{#if ondeletelog}
 							<button
@@ -64,9 +64,9 @@
 			{/each}
 		</ul>
 		{#if onresetlogs}
-			<div class="mt-2 flex justify-end">
+			<div class="mt-text-xs flex justify-end">
 				{#if confirmingReset}
-					<span class="flex items-center gap-2 text-xs">
+					<span class="flex items-center gap-text-xs text-xs">
 						<span class="text-ty-silent">
 							{m.budget_reset_confirm({ count: flowLogs.length })}
 						</span>

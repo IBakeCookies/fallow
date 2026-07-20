@@ -50,24 +50,24 @@
 </svelte:head>
 
 <section
-	class="mt-16 space-y-10 rounded-2xl border bg-surface-card p-box-md text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
+	class="mt-section-lg space-y-section rounded-2xl border bg-surface-card p-box-md text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
 >
-	<div class="max-w-3xl space-y-3">
+	<div class="max-w-3xl space-y-text-sm">
 		<h2 class="text-xl font-bold text-ty-primary">{m.about_hook_title()}</h2>
 		<p class="text-sm leading-relaxed">{m.about_hook_body()}</p>
 	</div>
 
-	<div class="grid gap-8 md:grid-cols-2">
-		<div class="space-y-3">
+	<div class="grid gap-grid-xl md:grid-cols-2">
+		<div class="space-y-text-sm">
 			<h3 class="text-lg font-semibold text-ty-primary">{m.about_how_title()}</h3>
 			<p class="text-sm leading-relaxed">{m.about_how_body_1()}</p>
-			<p class="rounded-lg border bg-surface-card px-4 py-3 font-mono text-sm text-ty-secondary">
+			<p class="rounded-lg border bg-surface-card px-box-md py-box-sm font-mono text-sm text-ty-secondary">
 				p(t) = (a·k·t + p₀) · e^(−kt)
 			</p>
 			<p class="text-sm leading-relaxed">{m.about_how_body_2()}</p>
 		</div>
 
-		<div class="space-y-3">
+		<div class="space-y-text-sm">
 			<h3 class="text-lg font-semibold text-ty-primary">{m.about_different_title()}</h3>
 			<p class="text-sm leading-relaxed">{m.about_different_body_1()}</p>
 			<p class="text-sm leading-relaxed">
@@ -78,10 +78,10 @@
 		</div>
 	</div>
 
-	<div class="max-w-3xl space-y-grid-md">
+	<div class="max-w-3xl space-y-text-md">
 		<h3 class="text-lg font-semibold text-ty-primary">{m.about_faq_title()}</h3>
 		{#each faqs as faq (faq.q)}
-			<div class="space-y-1">
+			<div class="space-y-text-2xs">
 				<h4 class="text-sm font-semibold text-ty-secondary">{faq.q}</h4>
 				<p class="text-sm leading-relaxed">
 					{faq.a}

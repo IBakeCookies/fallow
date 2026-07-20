@@ -1,0 +1,43 @@
+/* Abyss: marine snow sinking past pulsing bioluminescent drifters. */
+.abyss .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1px 1px at 12% 18%, oklch(0.9 0.02 210 / 0.5), transparent),
+			radial-gradient(1.5px 1.5px at 58% 46%, oklch(0.85 0.04 200 / 0.4), transparent),
+			radial-gradient(1px 1px at 81% 72%, oklch(0.9 0.02 220 / 0.45), transparent),
+			radial-gradient(1px 1px at 34% 85%, oklch(0.85 0.03 210 / 0.35), transparent);
+		background-size: 19rem 23rem;
+		animation: abyss-snow 60s linear infinite;
+	}
+
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		filter: blur(30px);
+		background:
+			radial-gradient(ellipse 18% 12% at 70% 30%, oklch(0.7 0.14 205 / 0.14), transparent 70%),
+			radial-gradient(ellipse 14% 10% at 25% 65%, oklch(0.65 0.17 330 / 0.11), transparent 70%);
+		animation: abyss-pulse 11s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes abyss-snow {
+	to {
+		background-position: 0 23rem;
+	}
+}
+
+@keyframes abyss-pulse {
+	from {
+		opacity: 0.4;
+		transform: translateY(0);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(-2rem);
+	}
+}

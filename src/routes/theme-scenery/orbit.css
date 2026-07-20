@@ -1,0 +1,112 @@
+/* Orbit: the planet turns beneath the station. City lights and clouds slide
+   west across the night side, stars keep watch, aurora breathes on the limb.
+   Geometry must match layout.css's .orbit disc: circle at 50% 178vh, limb
+   at 99–101vh from center (disc crest ≈ 78vh at center-x). */
+.orbit .theme-scenery {
+	display: block;
+
+	/* stars above the limb */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1px 1px at 12% 18%, oklch(0.97 0.005 230 / 0.9), transparent),
+			radial-gradient(1.5px 1.5px at 28% 8%, oklch(0.95 0.01 230 / 0.8), transparent),
+			radial-gradient(1px 1px at 44% 26%, oklch(0.97 0.005 230 / 0.65), transparent),
+			radial-gradient(1px 1px at 61% 12%, oklch(0.95 0.02 85 / 0.85), transparent),
+			radial-gradient(1.5px 1.5px at 79% 22%, oklch(0.97 0.005 230 / 0.85), transparent),
+			radial-gradient(1px 1px at 91% 6%, oklch(0.95 0.01 230 / 0.7), transparent);
+		background-size: 28rem 22rem;
+		mask-image: linear-gradient(to bottom, black 58%, transparent 76%);
+		animation: orbit-twinkle 7s ease-in-out infinite alternate;
+	}
+
+	/* a satellite crossing the field of view, catching the coming sun */
+	.theme-helper-1::after {
+		content: '';
+		position: absolute;
+		top: 22%;
+		left: 0;
+		width: 2px;
+		height: 2px;
+		border-radius: 50%;
+		background: oklch(0.97 0.005 230);
+		box-shadow: 0 0 4px 1px oklch(0.97 0.005 230 / 0.6);
+		animation: orbit-satellite 75s linear infinite;
+	}
+
+	/* the night side sliding beneath: city lights and moonlit clouds,
+	   clipped to the planet's disc */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(ellipse 9rem 2.5rem at 30% 88%, oklch(0.92 0.01 240 / 0.1), transparent 70%),
+			radial-gradient(ellipse 7rem 2rem at 75% 94%, oklch(0.92 0.01 240 / 0.08), transparent 70%),
+			radial-gradient(1.5px 1.5px at 18% 96%, oklch(0.85 0.12 75 / 0.9), transparent),
+			radial-gradient(2px 2px at 52% 91%, oklch(0.82 0.13 70 / 0.8), transparent),
+			radial-gradient(1px 1px at 64% 97%, oklch(0.85 0.12 75 / 0.7), transparent),
+			radial-gradient(1.5px 1.5px at 86% 89%, oklch(0.8 0.13 65 / 0.75), transparent),
+			radial-gradient(1px 1px at 8% 90%, oklch(0.85 0.12 75 / 0.6), transparent);
+		background-repeat: repeat-x;
+		background-size: 40rem 100%;
+		mask-image: radial-gradient(circle at 50% 178vh, black 0 97vh, transparent 99vh);
+		animation: orbit-glide 140s linear infinite;
+	}
+
+	/* aurora hugging the limb's western arc */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			circle at 50% 178vh,
+			transparent 0 99.5vh,
+			oklch(0.75 0.16 150 / 0.3) 101vh,
+			oklch(0.7 0.15 160 / 0.12) 104vh,
+			transparent 108vh
+		);
+		mask-image: linear-gradient(to right, transparent 2%, black 12% 34%, transparent 48%);
+		animation: orbit-aurora 9s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes orbit-twinkle {
+	from {
+		opacity: 0.5;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes orbit-glide {
+	to {
+		background-position-x: -40rem;
+	}
+}
+
+@keyframes orbit-aurora {
+	from {
+		opacity: 0.35;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes orbit-satellite {
+	from {
+		translate: -3vw 0;
+		opacity: 0;
+	}
+	4% {
+		opacity: 0.9;
+	}
+	96% {
+		opacity: 0.9;
+	}
+	to {
+		translate: 103vw 9vh;
+		opacity: 0;
+	}
+}

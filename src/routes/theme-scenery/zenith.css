@@ -1,0 +1,41 @@
+/* Zenith: fair-weather clouds drifting across the noon sky. */
+.zenith .theme-scenery {
+	display: block;
+
+	.theme-helper-1,
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background-repeat: repeat-x;
+		filter: blur(10px);
+	}
+
+	.theme-helper-1 {
+		background-image:
+			radial-gradient(ellipse 11rem 3rem at 24% 18%, oklch(1 0 0 / 0.5), transparent 70%),
+			radial-gradient(ellipse 7rem 2.2rem at 30% 15%, oklch(1 0 0 / 0.45), transparent 70%),
+			radial-gradient(ellipse 9rem 2.6rem at 72% 30%, oklch(1 0 0 / 0.4), transparent 70%);
+		background-size: 110rem 100%;
+		animation: zenith-drift 150s linear infinite;
+	}
+
+	.theme-helper-2 {
+		background-image:
+			radial-gradient(ellipse 8rem 2rem at 50% 12%, oklch(1 0 0 / 0.35), transparent 70%),
+			radial-gradient(ellipse 6rem 1.8rem at 90% 24%, oklch(1 0 0 / 0.3), transparent 70%);
+		background-size: 90rem 100%;
+		animation: zenith-drift-far 240s linear infinite;
+	}
+}
+
+@keyframes zenith-drift {
+	to {
+		background-position-x: 110rem;
+	}
+}
+
+@keyframes zenith-drift-far {
+	to {
+		background-position-x: 90rem;
+	}
+}

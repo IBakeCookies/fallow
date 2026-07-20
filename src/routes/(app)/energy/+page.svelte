@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
+	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
@@ -427,8 +428,20 @@
 
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
+{#snippet applyFitButton(label: string, disabled: boolean, title: string, onclick: () => void)}
+	<button
+		type="button"
+		class="mt-text-sm w-full rounded-lg border border-brand/30 bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand-strong transition hover:bg-brand/20 disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ty-silent"
+		{disabled}
+		{title}
+		{onclick}
+	>
+		{label}
+	</button>
+{/snippet}
+
 {#if !session.isLoading && paramsLoaded}
-	<div class="mb-6">
+	<div class="mb-text-xl">
 		<div class="flex items-center gap-grid-md">
 			<!-- The intro paragraph lives in the title's tooltip now — the header
 			     stays one line so the plan is what fills the fold. -->
@@ -444,11 +457,7 @@
 							</h1>
 						{/snippet}
 					</Tooltip.Trigger>
-					<Tooltip.Content
-						side="bottom"
-						align="start"
-						class="max-w-md bg-surface-page border-line-strong text-ty-primary"
-					>
+					<Tooltip.Content side="bottom" align="start" class="max-w-md">
 						<p>
 							{m.energy_intro_1()}
 							<span class="font-medium text-ty-primary">{m.energy_intro_highlight_1()}</span>
@@ -468,30 +477,30 @@
 	</div>
 
 	{#if tasks.length === 0}
-		<div class="space-y-6">
-			<div class="rounded-2xl border bg-surface-card p-8 text-center">
+		<div class="space-y-grid-xl">
+			<div class="rounded-2xl border bg-surface-card p-box-2xl text-center">
 				<p class="text-ty-secondary">{m.energy_no_open_tasks()}</p>
-				<p class="mt-1 text-sm text-ty-silent">
+				<p class="mt-text-2xs text-sm text-ty-silent">
 					{m.energy_no_open_tasks_hint()}
 				</p>
 			</div>
 			<TaskForm onsubmit={(t) => session.addTask(t)} />
 		</div>
 	{:else}
-		<div class="space-y-6">
+		<div class="space-y-grid-xl">
 			{#if activeTasks.length === 0}
 				<!-- All done: the optimizer needs an open task, but the list below
 				     stays visible so a task can be un-checked or added -->
-				<div class="rounded-2xl border bg-surface-card p-8 text-center">
+				<div class="rounded-2xl border bg-surface-card p-box-2xl text-center">
 					<p class="text-ty-secondary">{m.energy_all_done()}</p>
-					<p class="mt-1 text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
+					<p class="mt-text-2xs text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
 				</div>
 			{:else}
 				<!-- Timeline -->
 				<div
 					class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
 				>
-					<div class="mb-3 flex flex-wrap items-center justify-between gap-x-grid-xs gap-y-2">
+					<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
 						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 							{m.energy_optimized_day()}
 						</h3>
@@ -506,9 +515,7 @@
 								<button
 									type="button"
 									aria-pressed={planView === 'chart'}
-									class="rounded-md px-2.5 py-1 transition {planView === 'chart'
-										? 'bg-surface-hover text-ty-primary'
-										: 'text-ty-silent hover:text-ty-secondary'}"
+									class={segmentedToggleVariants({ tone: 'plan', active: planView === 'chart' })}
 									onclick={() => setPlanView('chart')}
 								>
 									{m.energy_view_chart()}
@@ -516,9 +523,7 @@
 								<button
 									type="button"
 									aria-pressed={planView === 'schedule'}
-									class="rounded-md px-2.5 py-1 transition {planView === 'schedule'
-										? 'bg-surface-hover text-ty-primary'
-										: 'text-ty-silent hover:text-ty-secondary'}"
+									class={segmentedToggleVariants({ tone: 'plan', active: planView === 'schedule' })}
 									onclick={() => setPlanView('schedule')}
 								>
 									{m.energy_schedule()}
@@ -562,7 +567,7 @@
 								</div>
 							{/if}
 						</div>
-						<div class="mt-1 flex justify-between text-2xs text-ty-silent">
+						<div class="mt-text-2xs flex justify-between text-2xs text-ty-silent">
 							<span>0:00</span>
 							<span>{formatClock(windowHours)}</span>
 						</div>
@@ -576,7 +581,7 @@
 						{#if planView === 'chart'}
 							<svg
 								viewBox="0 0 {CHART_W} {CHART_H}"
-								class="mt-4 w-full"
+								class="mt-text-md w-full"
 								role="img"
 								aria-label={m.energy_chart_aria()}
 							>
@@ -611,7 +616,7 @@
 								<path d={cogPath} fill="none" stroke="#60a5fa" stroke-width="1.8" />
 								<path d={physPath} fill="none" stroke="#34d399" stroke-width="1.8" />
 							</svg>
-							<div class="mt-1 flex gap-grid-md text-xs text-ty-silent">
+							<div class="mt-text-2xs flex gap-grid-md text-xs text-ty-silent">
 								<span class="flex items-center gap-grid-2xs">
 									<span class="h-0.5 w-4 rounded bg-mind"></span>
 									{m.energy_legend_cognitive()}
@@ -626,11 +631,11 @@
 								</span>
 							</div>
 						{:else if plan.evaluation.blocks.length === 0}
-							<p class="mt-4 text-sm text-ty-silent">
+							<p class="mt-text-md text-sm text-ty-silent">
 								{m.energy_nothing_scheduled()}
 							</p>
 						{:else}
-							<ul class="mt-4 space-y-2">
+							<ul class="mt-text-md space-y-text-xs">
 								{#each plan.evaluation.blocks as block (block.start)}
 									<li class="flex items-center gap-grid-xs text-sm">
 										<span
@@ -681,7 +686,7 @@
 						{/if}
 
 						<!-- Summary: the objective readout, visible in both views -->
-						<div class="mt-5 grid grid-cols-2 gap-grid-md border-t pt-4 sm:grid-cols-4">
+						<div class="mt-text-lg grid grid-cols-2 gap-grid-md border-t pt-box-md sm:grid-cols-4">
 							<div>
 								<p class="text-lg font-semibold text-ty-primary">
 									{plan.evaluation.totalOutput.toFixed(1)}
@@ -723,23 +728,23 @@
 				</div>
 			{/if}
 
-			<div class="grid gap-6 lg:grid-cols-3 items-start">
-				<div class="space-y-6 lg:col-span-2">
+			<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
+				<div class="space-y-grid-xl lg:col-span-2">
 					<!-- Tasks: shared with the main page, edited live -->
 					<div
 						class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
 					>
-						<div class="mb-1 flex items-baseline justify-between gap-grid-xs">
+						<div class="mb-text-2xs flex items-baseline justify-between gap-grid-xs">
 							<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 								{m.energy_tasks()}
 							</h3>
 							<span class="text-xs text-ty-silent">{m.energy_shared_note()}</span>
 						</div>
-						<p class="mb-3 text-xs text-ty-silent">
+						<p class="mb-text-sm text-xs text-ty-silent">
 							{m.energy_drag_hint()}
 						</p>
 						<Tooltip.Provider delayDuration={150}>
-							<ul class="space-y-1">
+							<ul class="space-y-text-2xs">
 								{#each tasks as task (task.id)}
 									<li
 										class="group rounded-lg p-2 transition hover:bg-surface-card"
@@ -783,10 +788,7 @@
 															</button>
 														{/snippet}
 													</Tooltip.Trigger>
-													<Tooltip.Content
-														side="top"
-														class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-													>
+													<Tooltip.Content side="top">
 														<p>{m.energy_log_drain_tooltip()}</p>
 													</Tooltip.Content>
 												</Tooltip.Root>
@@ -802,7 +804,7 @@
 											</button>
 										</div>
 										{#if !task.completed}
-											<div class="mt-2 ml-7 grid gap-x-5 gap-y-grid-2xs sm:grid-cols-3">
+											<div class="mt-text-xs ml-7 grid gap-x-grid-lg gap-y-grid-2xs sm:grid-cols-3">
 												{#each sliders as s (s.key)}
 													<label
 														class="flex items-center gap-2 text-2xs text-ty-silent"
@@ -827,7 +829,7 @@
 											{#if drainDraft?.taskId === task.id}
 												{@const draft = drainDraft}
 												<form
-													class="mt-2 ml-7 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-2.5 py-2 text-2xs text-ty-silent"
+													class="mt-text-xs ml-7 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-2.5 py-2 text-2xs text-ty-silent"
 													onsubmit={(e) => (e.preventDefault(), saveDrainLog())}
 												>
 													<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>
@@ -862,10 +864,7 @@
 																</label>
 															{/snippet}
 														</Tooltip.Trigger>
-														<Tooltip.Content
-															side="top"
-															class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-														>
+														<Tooltip.Content side="top">
 															<p>{m.energy_drain_mind_title()}</p>
 														</Tooltip.Content>
 													</Tooltip.Root>
@@ -887,14 +886,11 @@
 																</label>
 															{/snippet}
 														</Tooltip.Trigger>
-														<Tooltip.Content
-															side="top"
-															class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-														>
+														<Tooltip.Content side="top">
 															<p>{m.energy_drain_body_title()}</p>
 														</Tooltip.Content>
 													</Tooltip.Root>
-													<span class="ml-auto flex items-center gap-1">
+													<span class="ml-auto flex items-center gap-grid-2xs">
 														<button type="submit" class="px-1 text-flow hover:text-flow">
 															✓
 														</button>
@@ -913,19 +909,19 @@
 								{/each}
 							</ul>
 						</Tooltip.Provider>
-						<div class="mt-3">
+						<div class="mt-text-sm">
 							<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={false} />
 						</div>
 					</div>
 				</div>
 
 				<!-- Parameters + calibration -->
-				<div class="space-y-6">
+				<div class="space-y-grid-lg">
 					<Tooltip.Provider delayDuration={150}>
 						<div
 							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
 						>
-							<div class="mb-4 flex items-baseline justify-between">
+							<div class="mb-text-md flex items-baseline justify-between">
 								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 									{m.energy_model_parameters()}
 								</h3>
@@ -946,16 +942,13 @@
 												<label
 													{...props}
 													for="window-hours"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_day_window()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_day_window_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -976,16 +969,13 @@
 												<label
 													{...props}
 													for="alpha-cog"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_cognitive_drain()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_cognitive_drain_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1007,16 +997,13 @@
 												<label
 													{...props}
 													for="alpha-phys"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_physical_drain()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_physical_drain_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1038,16 +1025,13 @@
 												<label
 													{...props}
 													for="recovery-rate"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_recovery_rate()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_recovery_rate_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1068,16 +1052,13 @@
 												<label
 													{...props}
 													for="free-time-value"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_free_time_value()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_free_time_value_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1098,16 +1079,13 @@
 												<label
 													{...props}
 													for="terminal-value"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_evening_energy()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_evening_energy_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1128,16 +1106,13 @@
 												<label
 													{...props}
 													for="satiety-scale"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_satiety()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_satiety_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1158,16 +1133,13 @@
 												<label
 													{...props}
 													for="micro-recovery"
-													class="mb-1 block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
 												>
 													{m.energy_micro_recovery()}
 												</label>
 											{/snippet}
 										</Tooltip.Trigger>
-										<Tooltip.Content
-											side="left"
-											class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-										>
+										<Tooltip.Content side="left">
 											<p>{m.energy_micro_recovery_hint()}</p>
 										</Tooltip.Content>
 									</Tooltip.Root>
@@ -1199,19 +1171,16 @@
 										</h3>
 									{/snippet}
 								</Tooltip.Trigger>
-								<Tooltip.Content
-									side="left"
-									class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-								>
+								<Tooltip.Content side="left">
 									<p>{m.energy_calibration_hint()}</p>
 								</Tooltip.Content>
 							</Tooltip.Root>
 
 							{#if drainObservations.length === 0}
-								<p class="mt-3 text-xs text-ty-silent">{m.energy_calibration_empty()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_calibration_empty()}</p>
 							{:else}
-								<div class="mt-3 space-y-2">
-									<div class="flex items-baseline justify-between gap-2 text-xs">
+								<div class="mt-text-sm space-y-text-xs">
+									<div class="flex items-baseline justify-between gap-text-xs text-xs">
 										<span class="text-ty-silent">{m.energy_cognitive_drain()}</span>
 										{#if cogDrainFit.fitted}
 											<span class="tabular-nums text-mind-strong/90">
@@ -1225,7 +1194,7 @@
 											<span class="text-ty-silent">{m.energy_fit_no_signal()}</span>
 										{/if}
 									</div>
-									<div class="flex items-baseline justify-between gap-2 text-xs">
+									<div class="flex items-baseline justify-between gap-text-xs text-xs">
 										<span class="text-ty-silent">{m.energy_physical_drain()}</span>
 										{#if physDrainFit.fitted}
 											<span class="tabular-nums text-body/90">
@@ -1242,21 +1211,18 @@
 								</div>
 
 								{#if cogDrainFit.fitted || physDrainFit.fitted}
-									<button
-										type="button"
-										class="mt-3 w-full rounded-lg border border-brand/30 bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand-strong transition hover:bg-brand/20 disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ty-silent"
-										disabled={fitApplied}
-										title={m.energy_apply_fit_title()}
-										onclick={applyDrainFit}
-									>
-										{fitApplied ? m.energy_fit_applied() : m.energy_apply_fit()}
-									</button>
+									{@render applyFitButton(
+										fitApplied ? m.energy_fit_applied() : m.energy_apply_fit(),
+										fitApplied,
+										m.energy_apply_fit_title(),
+										applyDrainFit
+									)}
 								{/if}
 
-								<div class="mt-3 border-t pt-3">
+								<div class="mt-text-sm border-t pt-box-sm">
 									<button
 										type="button"
-										class="flex w-full items-center justify-between gap-2 text-left text-xs text-ty-silent transition hover:text-ty-secondary"
+										class="flex w-full items-center justify-between gap-text-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary"
 										onclick={() => {
 											drainLogsOpen = !drainLogsOpen;
 											confirmingDrainReset = false;
@@ -1267,16 +1233,16 @@
 									</button>
 
 									{#if drainLogsOpen}
-										<ul class="mt-2 space-y-1">
+										<ul class="mt-text-xs space-y-text-2xs">
 											{#each drainLogsNewestFirst as log (log.id)}
 												<li
-													class="flex items-center justify-between gap-2 rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
+													class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
 												>
 													<span class="truncate">
 														<span class="text-ty-silent">{log.date}</span>
 														<span class="capitalize"> · {log.taskTitle}</span>
 													</span>
-													<span class="flex shrink-0 items-center gap-2 tabular-nums">
+													<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
 														<span class="text-ty-silent">{formatDuration(log.hours)}</span>
 														<span class="font-medium text-mind/90">M{log.mindDrain}</span>
 														<span class="font-medium text-body/90">B{log.bodyDrain}</span>
@@ -1293,9 +1259,9 @@
 												</li>
 											{/each}
 										</ul>
-										<div class="mt-2 flex justify-end">
+										<div class="mt-text-xs flex justify-end">
 											{#if confirmingDrainReset}
-												<span class="flex items-center gap-2 text-xs">
+												<span class="flex items-center gap-text-xs text-xs">
 													<span class="text-ty-silent">
 														{m.energy_reset_drain_confirm({ count: drainObservations.length })}
 													</span>
@@ -1338,7 +1304,7 @@
 						<div
 							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
 						>
-							<div class="flex items-baseline justify-between gap-2">
+							<div class="flex items-baseline justify-between gap-grid-xs">
 								<Tooltip.Root>
 									<Tooltip.Trigger>
 										{#snippet child({ props })}
@@ -1350,10 +1316,7 @@
 											</h3>
 										{/snippet}
 									</Tooltip.Trigger>
-									<Tooltip.Content
-										side="left"
-										class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-									>
+									<Tooltip.Content side="left">
 										<p>{m.energy_recovery_calibration_hint()}</p>
 									</Tooltip.Content>
 								</Tooltip.Root>
@@ -1379,7 +1342,7 @@
 
 							{#if restDraft}
 								<form
-									class="mt-3 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-info/20 bg-surface-page/40 px-2.5 py-2 text-2xs text-ty-silent"
+									class="mt-text-sm flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-info/20 bg-surface-page/40 px-2.5 py-2 text-2xs text-ty-silent"
 									onsubmit={(e) => (e.preventDefault(), saveRestLog())}
 								>
 									<label class="flex items-center gap-grid-2xs">
@@ -1397,7 +1360,7 @@
 									</label>
 									<span class="flex items-center gap-grid-2xs">
 										{m.energy_rest_before_label()}
-										<label class="flex items-center gap-1" title={m.energy_rest_mind_title()}>
+										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_mind_title()}>
 											<span class="font-medium text-mind/80">
 												{m.energy_drain_mind_label()}
 											</span>
@@ -1410,7 +1373,7 @@
 												class="w-12 rounded border border-mind/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-mind/60"
 											/>
 										</label>
-										<label class="flex items-center gap-1" title={m.energy_rest_body_title()}>
+										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_body_title()}>
 											<span class="font-medium text-body/80">
 												{m.energy_drain_body_label()}
 											</span>
@@ -1426,7 +1389,7 @@
 									</span>
 									<span class="flex items-center gap-grid-2xs">
 										{m.energy_rest_after_label()}
-										<label class="flex items-center gap-1" title={m.energy_rest_mind_title()}>
+										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_mind_title()}>
 											<span class="font-medium text-mind/80">
 												{m.energy_drain_mind_label()}
 											</span>
@@ -1439,7 +1402,7 @@
 												class="w-12 rounded border border-mind/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-mind/60"
 											/>
 										</label>
-										<label class="flex items-center gap-1" title={m.energy_rest_body_title()}>
+										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_body_title()}>
 											<span class="font-medium text-body/80">
 												{m.energy_drain_body_label()}
 											</span>
@@ -1453,7 +1416,7 @@
 											/>
 										</label>
 									</span>
-									<span class="ml-auto flex items-center gap-1">
+									<span class="ml-auto flex items-center gap-grid-2xs">
 										<button type="submit" class="px-1 text-info hover:text-info-strong">✓</button>
 										<button
 											type="button"
@@ -1467,9 +1430,9 @@
 							{/if}
 
 							{#if restObservations.length === 0}
-								<p class="mt-3 text-xs text-ty-silent">{m.energy_recovery_calibration_empty()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_recovery_calibration_empty()}</p>
 							{:else}
-								<div class="mt-3 flex items-baseline justify-between gap-2 text-xs">
+								<div class="mt-text-sm flex items-baseline justify-between gap-text-xs text-xs">
 									<span class="text-ty-silent">{m.energy_recovery_rate()}</span>
 									{#if recoveryFit.fitted}
 										<span class="tabular-nums text-info-strong/90">
@@ -1485,23 +1448,20 @@
 								</div>
 
 								{#if recoveryFit.fitted}
-									<button
-										type="button"
-										class="mt-3 w-full rounded-lg border border-brand/30 bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand-strong transition hover:bg-brand/20 disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ty-silent"
-										disabled={recoveryFitApplied}
-										title={m.energy_apply_recovery_fit_title()}
-										onclick={applyRecoveryFit}
-									>
-										{recoveryFitApplied
+									{@render applyFitButton(
+										recoveryFitApplied
 											? m.energy_recovery_fit_applied()
-											: m.energy_apply_recovery_fit()}
-									</button>
+											: m.energy_apply_recovery_fit(),
+										recoveryFitApplied,
+										m.energy_apply_recovery_fit_title(),
+										applyRecoveryFit
+									)}
 								{/if}
 
-								<div class="mt-3 border-t pt-3">
+								<div class="mt-text-sm border-t pt-box-sm">
 									<button
 										type="button"
-										class="flex w-full items-center justify-between gap-2 text-left text-xs text-ty-silent transition hover:text-ty-secondary"
+										class="flex w-full items-center justify-between gap-text-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary"
 										onclick={() => {
 											restLogsOpen = !restLogsOpen;
 											confirmingRestReset = false;
@@ -1512,13 +1472,13 @@
 									</button>
 
 									{#if restLogsOpen}
-										<ul class="mt-2 space-y-1">
+										<ul class="mt-text-xs space-y-text-2xs">
 											{#each restLogsNewestFirst as log (log.id)}
 												<li
-													class="flex items-center justify-between gap-2 rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
+													class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
 												>
 													<span class="truncate text-ty-silent">{log.date}</span>
-													<span class="flex shrink-0 items-center gap-2 tabular-nums">
+													<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
 														<span class="text-ty-silent">{formatDuration(log.hours)}</span>
 														<span class="font-medium text-mind/90">
 															M{log.mindBefore}→{log.mindAfter}
@@ -1539,9 +1499,9 @@
 												</li>
 											{/each}
 										</ul>
-										<div class="mt-2 flex justify-end">
+										<div class="mt-text-xs flex justify-end">
 											{#if confirmingRestReset}
-												<span class="flex items-center gap-2 text-xs">
+												<span class="flex items-center gap-text-xs text-xs">
 													<span class="text-ty-silent">
 														{m.energy_reset_rest_confirm({ count: restObservations.length })}
 													</span>
@@ -1595,20 +1555,17 @@
 										</h3>
 									{/snippet}
 								</Tooltip.Trigger>
-								<Tooltip.Content
-									side="left"
-									class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-								>
+								<Tooltip.Content side="left">
 									<p>{m.energy_stop_calibration_hint()}</p>
 								</Tooltip.Content>
 							</Tooltip.Root>
 
 							{#if stopObservations.length === 0}
-								<p class="mt-3 text-xs text-ty-silent">{m.energy_stop_calibration_empty()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_stop_calibration_empty()}</p>
 							{:else if !stopFit.fitted}
-								<p class="mt-3 text-xs text-ty-silent">{m.energy_stop_calibration_censored()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_stop_calibration_censored()}</p>
 							{:else}
-								<div class="mt-3 flex items-baseline justify-between gap-2 text-xs">
+								<div class="mt-text-sm flex items-baseline justify-between gap-text-xs text-xs">
 									<span class="text-ty-silent">{m.energy_free_time_value()}</span>
 									<span class="tabular-nums text-info-strong/90">
 										{m.energy_stop_fit_value({
@@ -1619,15 +1576,12 @@
 									</span>
 								</div>
 
-								<button
-									type="button"
-									class="mt-3 w-full rounded-lg border border-brand/30 bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand-strong transition hover:bg-brand/20 disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ty-silent"
-									disabled={stopFitApplied}
-									title={m.energy_apply_stop_fit_title()}
-									onclick={applyStopFit}
-								>
-									{stopFitApplied ? m.energy_stop_fit_applied() : m.energy_apply_stop_fit()}
-								</button>
+								{@render applyFitButton(
+									stopFitApplied ? m.energy_stop_fit_applied() : m.energy_apply_stop_fit(),
+									stopFitApplied,
+									m.energy_apply_stop_fit_title(),
+									applyStopFit
+								)}
 							{/if}
 						</div>
 					</Tooltip.Provider>

@@ -494,8 +494,8 @@
 	ondeleteroutine={(id) => session.deleteRoutine(id)}
 />
 
-<div class="grid gap-6 lg:grid-cols-3 items-start">
-	<div class="space-y-6 lg:col-span-2">
+<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
+	<div class="space-y-grid-lg lg:col-span-2">
 		{#if !isViewingPast}
 			{#if isViewingFuture}
 				<div
@@ -540,7 +540,7 @@
 		/>
 	</div>
 
-	<div class="space-y-4 lg:sticky lg:top-8">
+	<div class="space-y-grid-md lg:sticky lg:top-page">
 		<MetricsDashboard {metrics} momentum={hasTasks ? momentum : null} />
 	</div>
 </div>

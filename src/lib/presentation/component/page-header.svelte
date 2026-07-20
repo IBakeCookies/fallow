@@ -67,7 +67,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-grid-md sm:flex-row sm:items-start sm:justify-between mb-6">
+<div class="flex flex-col gap-grid-md sm:flex-row sm:items-start sm:justify-between mb-text-xl">
 	<div>
 		<div class="flex items-center gap-grid-md">
 			<!-- The old under-title tagline lives in the title's tooltip now — the
@@ -84,23 +84,19 @@
 							</h1>
 						{/snippet}
 					</Tooltip.Trigger>
-					<Tooltip.Content
-						side="bottom"
-						align="start"
-						class="max-w-md bg-surface-page border-line-strong text-ty-primary"
-					>
+					<Tooltip.Content side="bottom" align="start" class="max-w-md">
 						<p>{m.header_tagline()}</p>
 					</Tooltip.Content>
 				</Tooltip.Root>
 			</Tooltip.Provider>
-			<div class="flex items-center gap-2 text-sm text-ty-secondary">
+			<div class="flex items-center gap-text-xs text-sm text-ty-secondary">
 				<span class="font-medium text-ty-primary">{completedTasks}</span>/<span>{totalTasks}</span>
 				{m.common_tasks()}
 			</div>
 		</div>
 	</div>
 
-	<div class="flex flex-wrap items-center gap-2 sm:gap-grid-xs sm:shrink-0">
+	<div class="flex flex-wrap items-center gap-grid-xs sm:shrink-0">
 		{#if !isToday}
 			<Button variant="outline" size="sm" onclick={() => ondatechange(today)}>
 				{m.header_return_to_today()}
@@ -186,13 +182,13 @@
 					</DropdownMenu.Trigger>
 					<DropdownMenu.Content align="end" class="w-full">
 						<div class="p-2">
-							<p class="text-xs text-ty-secondary mb-2">{m.header_save_as_routine()}</p>
+							<p class="text-xs text-ty-secondary mb-text-xs">{m.header_save_as_routine()}</p>
 							<form
 								onsubmit={(e) => {
 									e.preventDefault();
 									saveCurrentAsRoutine();
 								}}
-								class="flex gap-2"
+								class="flex gap-grid-xs"
 							>
 								<input
 									type="text"

@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
+	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 	import {
@@ -230,10 +231,10 @@
 
 <SeoHead title={m.ana_title_head()} description={m.ana_meta_description()} />
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-grid-xs">
+<div class="mb-text-xl flex flex-wrap items-center justify-between gap-grid-xs">
 	<div>
 		<h1 class="text-2xl font-bold text-ty-primary">{m.ana_heading()}</h1>
-		<p class="mt-1 text-sm text-ty-silent">
+		<p class="mt-text-2xs text-sm text-ty-silent">
 			{m.ana_subtitle()}
 		</p>
 	</div>
@@ -242,10 +243,7 @@
 		{#each Object.entries(RANGES) as [key, r] (key)}
 			<button
 				onclick={() => (range = key as RangeKey)}
-				class="rounded-md px-3 py-1 text-sm transition-colors
-				       {range === key
-					? 'bg-surface-hover text-ty-primary'
-					: 'text-ty-secondary hover:text-ty-primary'}"
+				class={segmentedToggleVariants({ active: range === key })}
 			>
 				{r.label()}
 			</button>
@@ -256,9 +254,9 @@
 {#if isLoading}
 	<p class="text-sm text-ty-silent">{m.ana_loading()}</p>
 {:else if !hasData}
-	<div class="rounded-xl border bg-surface-card p-8 text-center backdrop-blur shadow-card">
+	<div class="rounded-xl border bg-surface-card p-box-2xl text-center backdrop-blur shadow-card">
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
-		<p class="mt-1 text-sm text-ty-silent">
+		<p class="mt-text-2xs text-sm text-ty-silent">
 			{m.ana_empty_hint_1()}
 			<a href={resolve('/')} class="text-ty-secondary underline hover:text-ty-primary"
 				>{m.link_today()}</a
@@ -271,16 +269,16 @@
 	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3">
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_tasks_completed()}</p>
-			<p class="mt-1 text-2xl font-semibold text-ty-primary">
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
 				{completedTasks} <span class="text-base font-normal text-ty-silent">/ {totalTasks}</span>
 			</p>
-			<p class="mt-0.5 text-xs text-ty-silent">{m.ana_of_planned({ percent: completedShare })}</p>
+			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_of_planned({ percent: completedShare })}</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_avg_rate()}</p>
-			<p class="mt-1 text-2xl font-semibold text-ty-primary">{avgRate}%</p>
-			<p class="mt-0.5 text-xs text-ty-silent">
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">{avgRate}%</p>
+			<p class="mt-text-3xs text-xs text-ty-silent">
 				{#if rateDelta !== null}
 					<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
 						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
@@ -294,36 +292,36 @@
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_active_days()}</p>
-			<p class="mt-1 text-2xl font-semibold text-ty-primary">
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
 				{inRange.length} <span class="text-base font-normal text-ty-silent">/ {days}</span>
 			</p>
-			<p class="mt-0.5 text-xs text-ty-silent">
+			<p class="mt-text-3xs text-xs text-ty-silent">
 				{m.ana_with_completion({ count: activeDaysWithCompletion })}
 			</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_current_streak()}</p>
-			<p class="mt-1 text-2xl font-semibold text-ty-primary">
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
 				{streak}
 				<span class="text-base font-normal text-ty-silent">
 					{streak === 1 ? m.ana_day_one() : m.ana_day_other()}
 				</span>
 			</p>
-			<p class="mt-0.5 text-xs text-ty-silent">{m.ana_streak_note()}</p>
+			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_streak_note()}</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_planned_hours()}</p>
-			<p class="mt-1 text-2xl font-semibold text-ty-primary">{plannedHours}h</p>
-			<p class="mt-0.5 text-xs text-ty-silent">{m.ana_planned_hours_note()}</p>
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">{plannedHours}h</p>
+			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_planned_hours_note()}</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_best_day()}</p>
 			{#if bestDay}
-				<p class="mt-1 text-2xl font-semibold text-ty-primary">{formatDay(bestDay.date)}</p>
-				<p class="mt-0.5 text-xs text-ty-silent">
+				<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">{formatDay(bestDay.date)}</p>
+				<p class="mt-text-3xs text-xs text-ty-silent">
 					{bestDay.completedTasks === 1
 						? m.ana_best_day_note_one({ rate: bestDay.completionRate })
 						: m.ana_best_day_note({
@@ -332,22 +330,22 @@
 							})}
 				</p>
 			{:else}
-				<p class="mt-1 text-2xl font-semibold text-ty-silent">—</p>
-				<p class="mt-0.5 text-xs text-ty-silent">{m.ana_no_completed()}</p>
+				<p class="mt-text-2xs text-2xl font-semibold text-ty-silent">—</p>
+				<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_no_completed()}</p>
 			{/if}
 		</div>
 	</div>
 
 	<!-- Completion trend -->
-	<div class="mt-6 rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
-		<p class="mt-0.5 text-xs text-ty-silent">
+		<p class="mt-text-3xs text-xs text-ty-silent">
 			{range === 'year' ? m.ana_chart_hint_year() : m.ana_chart_hint_day()}
 		</p>
 
 		<svg
 			viewBox="0 0 {CHART.w} {CHART.h}"
-			class="mt-4 w-full"
+			class="mt-text-md w-full"
 			role="img"
 			aria-label={m.ana_chart_aria({ range: RANGES[range].label().toLowerCase() })}
 		>
@@ -402,13 +400,13 @@
 	</div>
 
 	<!-- Day profiles -->
-	<div class="mt-6 rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_day_profiles()}</h2>
-		<p class="mt-0.5 text-xs text-ty-silent">
+		<p class="mt-text-3xs text-xs text-ty-silent">
 			{m.ana_day_profiles_hint()}
 		</p>
 
-		<div class="mt-4 flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
+		<div class="mt-text-md flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
 			{#each QUADRANTS as q (q.key)}
 				{#if quadrantCounts[q.key] > 0}
 					<div
@@ -421,9 +419,9 @@
 			{/each}
 		</div>
 
-		<div class="mt-3 flex flex-wrap gap-x-grid-lg gap-y-grid-2xs">
+		<div class="mt-text-sm flex flex-wrap gap-x-grid-lg gap-y-grid-2xs">
 			{#each QUADRANTS as q (q.key)}
-				<div class="flex items-center gap-1.5 text-xs">
+				<div class="flex items-center gap-grid-2xs text-xs">
 					<span class="h-2 w-2 rounded-full" style="background: {q.color}"></span>
 					<span class="text-ty-secondary">{q.label}</span>
 					<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums">

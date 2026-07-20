@@ -1,0 +1,57 @@
+/* Eclipse: the corona breathes; its streamers wheel around the black moon.
+   Both helpers center on the background's moon (50%, -3rem). */
+.eclipse .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		top: -3rem;
+		left: 50%;
+		width: 13.5rem;
+		aspect-ratio: 1;
+		translate: -50% -50%;
+		border-radius: 50%;
+		box-shadow: 0 0 3.5rem 1.25rem oklch(0.95 0.07 88 / 0.28);
+		animation: eclipse-breathe 7s ease-in-out infinite alternate;
+	}
+
+	.theme-helper-2 {
+		position: absolute;
+		top: -3rem;
+		left: 50%;
+		width: 42rem;
+		aspect-ratio: 1;
+		translate: -50% -50%;
+		background: conic-gradient(
+			from 0deg,
+			transparent 0deg 20deg,
+			oklch(0.95 0.06 88 / 0.06) 28deg,
+			transparent 40deg 95deg,
+			oklch(0.95 0.06 88 / 0.05) 104deg,
+			transparent 115deg 170deg,
+			oklch(0.95 0.06 88 / 0.07) 180deg,
+			transparent 192deg 250deg,
+			oklch(0.95 0.06 88 / 0.05) 260deg,
+			transparent 272deg 322deg,
+			oklch(0.95 0.06 88 / 0.06) 331deg,
+			transparent 342deg 360deg
+		);
+		mask-image: radial-gradient(circle, transparent 7rem, black 8.5rem 12rem, transparent 20rem);
+		animation: eclipse-wheel 90s linear infinite;
+	}
+}
+
+@keyframes eclipse-breathe {
+	from {
+		opacity: 0.55;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes eclipse-wheel {
+	to {
+		rotate: 360deg;
+	}
+}

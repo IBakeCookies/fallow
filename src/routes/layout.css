@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn-svelte/tailwind.css';
 @import '@fontsource-variable/inter';
+@import './theme-scenery/index.css';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
@@ -9,11 +10,6 @@
 /* mode class — set alongside the theme class on <html>; drives shadcn dark: styles too */
 @custom-variant dark (&:is(.dark *));
 
-@custom-variant solid (&:is(.solid *));
-@custom-variant solid-light (&:is(.solid-light *));
-@custom-variant solid-dark (&:is(.solid-dark *));
-
-@custom-variant glass (&:is(.glass *));
 @custom-variant glass-dark (&:is(.glass-dark *));
 @custom-variant glass-light (&:is(.glass-light *));
 
@@ -32,6 +28,10 @@
 @custom-variant glacier (&:is(.glacier *));
 @custom-variant zenith (&:is(.zenith *));
 @custom-variant nadir (&:is(.nadir *));
+@custom-variant eclipse (&:is(.eclipse *));
+@custom-variant cathedral (&:is(.cathedral *));
+@custom-variant orbit (&:is(.orbit *));
+@custom-variant tempest (&:is(.tempest *));
 @custom-variant fallow (&:is(.fallow *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
@@ -41,17 +41,44 @@
 
 	--text-2xs: 0.6875rem; /* 11px */
 
+	/* page paddings (-sm/-md: the responsive ramp on narrow viewports) */
+	--spacing-page-sm: var(--spacer-page-sm);
+	--spacing-page-md: var(--spacer-page-md);
 	--spacing-page: var(--spacer-page);
 
+	/* rhythm between major page sections (-lg: app UI ↔ below-the-fold content) */
+	--spacing-section: var(--spacer-section);
+	--spacing-section-lg: var(--spacer-section-lg);
+
+	/* vertical padding of empty-state placeholder blocks */
+	--spacing-empty-state: var(--spacer-empty-state);
+
+	/* for cards, boxes paddings */
 	--spacing-box-xs: var(--spacer-box-xs);
+	--spacing-box-sm: var(--spacer-box-sm);
 	--spacing-box-md: var(--spacer-box-md);
 	--spacing-box-lg: var(--spacer-box-lg);
 	--spacing-box-xl: var(--spacer-box-xl);
+	--spacing-box-2xl: var(--spacer-box-2xl);
 
+	/* for layout gaps between blocks (grid/flex gaps, divider margins) */
 	--spacing-grid-2xs: var(--spacer-grid-2xs);
 	--spacing-grid-xs: var(--spacer-grid-xs);
+	--spacing-grid-sm: var(--spacer-grid-sm);
 	--spacing-grid-md: var(--spacer-grid-md);
 	--spacing-grid-lg: var(--spacer-grid-lg);
+	--spacing-grid-xl: var(--spacer-grid-xl);
+
+	/* for text/content rhythm: margins between headings, paragraphs, labels,
+	   sections and gaps in flex rows of inline text */
+	--spacing-text-3xs: var(--spacer-text-3xs);
+	--spacing-text-2xs: var(--spacer-text-2xs);
+	--spacing-text-xs: var(--spacer-text-xs);
+	--spacing-text-sm: var(--spacer-text-sm);
+	--spacing-text-md: var(--spacer-text-md);
+	--spacing-text-lg: var(--spacer-text-lg);
+	--spacing-text-xl: var(--spacer-text-xl);
+	--spacing-text-2xl: var(--spacer-text-2xl);
 
 	--blur: var(--blur);
 
@@ -136,7 +163,10 @@
    image); everything else derives via color-mix and only needs
    overriding for a deliberate effect.
    ============================================================ */
-:root {
+/* .solid-light re-applies the defaults so a theme swatch can opt back
+   into them from inside a themed subtree (theme-selector previews) */
+:root,
+.solid-light {
 	--spacer-2xs: 0.375rem; /* 6px */
 	--spacer-xs: 0.625rem; /* 10px */
 	--spacer-sm: 0.75rem; /* 12px */
@@ -146,16 +176,38 @@
 	--spacer-2xl: 2rem; /* 32px */
 
 	--spacer-box-xs: var(--spacer-xs);
+	--spacer-box-sm: var(--spacer-sm);
 	--spacer-box-md: var(--spacer-md);
 	--spacer-box-lg: var(--spacer-lg);
 	--spacer-box-xl: var(--spacer-xl);
+	--spacer-box-2xl: var(--spacer-2xl);
 
+	--spacer-page-sm: var(--spacer-md);
+	--spacer-page-md: var(--spacer-xl);
 	--spacer-page: var(--spacer-2xl);
+
+	--spacer-section: 2.5rem; /* 40px */
+	--spacer-section-lg: 4rem; /* 64px */
+
+	--spacer-empty-state: 3rem; /* 48px */
 
 	--spacer-grid-2xs: var(--spacer-2xs);
 	--spacer-grid-xs: var(--spacer-xs);
+	--spacer-grid-sm: var(--spacer-sm);
 	--spacer-grid-md: var(--spacer-md);
 	--spacer-grid-lg: var(--spacer-lg);
+	--spacer-grid-xl: var(--spacer-2xl);
+
+	/* text rhythm runs a finer ladder than boxes — line-height already
+	   provides breathing room, so the steps start hairline-small */
+	--spacer-text-3xs: 0.125rem; /* 2px */
+	--spacer-text-2xs: 0.25rem; /* 4px */
+	--spacer-text-xs: 0.5rem; /* 8px */
+	--spacer-text-sm: var(--spacer-sm);
+	--spacer-text-md: var(--spacer-md);
+	--spacer-text-lg: var(--spacer-lg);
+	--spacer-text-xl: var(--spacer-xl);
+	--spacer-text-2xl: var(--spacer-2xl);
 
 	--radius: 0.625rem;
 	--blur: 2rem;
@@ -208,6 +260,32 @@
 	--color-brand-strong: var(--color-indigo-700);
 }
 
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-surface-page bg-cover bg-fixed bg-center bg-no-repeat text-ty-primary;
+
+		background-image: var(--background-image);
+	}
+	html {
+		@apply font-sans;
+	}
+
+	/* Number inputs: hide the native spinner arrows everywhere — stepping is
+	   provided by the NumberInput component's custom −/+ buttons instead. */
+	input[type='number']::-webkit-outer-spin-button,
+	input[type='number']::-webkit-inner-spin-button {
+		appearance: none;
+		margin: 0;
+	}
+	input[type='number'] {
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+}
+
 /* Dark mode defaults (= solid-dark). Cascade order is load-bearing and must
    mirror this file's structure: :root < .dark < theme classes — all equal
    specificity, so the later block wins. Keep .dark above the theme blocks
@@ -242,7 +320,7 @@
 }
 
 /* ---- themes --------------------------------------------------
-   solid-light = :root, solid-dark = .dark; neither needs a block. */
+   solid-light shares the :root block above, solid-dark = .dark. */
 
 .glass-light {
 	--background-image: url('/themes/glass-light.jpg');
@@ -774,6 +852,194 @@
 	--color-mixed: oklch(0.75 0.1 300);
 }
 
+.eclipse {
+	/* totality — where zenith meets nadir: the black moon crowned by a blazing
+	   corona, and the 360° sunset that rings the horizon only during an eclipse */
+	--background-image:
+		radial-gradient(
+			circle at 50% -3rem,
+			oklch(0.08 0.015 285) 0 6.55rem,
+			oklch(0.99 0.04 90) 6.85rem 7.1rem,
+			oklch(0.92 0.08 85 / 0.55) 7.5rem,
+			oklch(0.85 0.06 70 / 0.18) 10rem,
+			transparent 17rem
+		),
+		radial-gradient(ellipse 60% 34% at 50% -6%, oklch(0.85 0.05 80 / 0.22), transparent 70%),
+		radial-gradient(ellipse 34% 22% at 30% 4%, oklch(0.6 0.16 330 / 0.14), transparent 60%),
+		radial-gradient(ellipse 120% 30% at 50% 108%, oklch(0.68 0.13 45 / 0.35), transparent 70%),
+		radial-gradient(ellipse 70% 24% at 8% 102%, oklch(0.6 0.14 330 / 0.22), transparent 65%),
+		radial-gradient(ellipse 70% 24% at 92% 102%, oklch(0.6 0.14 330 / 0.22), transparent 65%),
+		linear-gradient(oklch(0.1 0.022 285), oklch(0.16 0.035 300));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.12 0.025 290);
+	/* shadow-side glass, warmed a breath by corona light */
+	--surface-card: oklch(0.98 0.02 85 / 0.055);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.97 0.008 85);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.9 0.05 85 / 0.2);
+
+	/* the corona itself */
+	--primary: oklch(0.92 0.08 88);
+	--primary-foreground: oklch(0.18 0.03 290);
+	--ring: oklch(0.92 0.08 88 / 0.5);
+
+	--color-brand: oklch(0.88 0.08 85);
+	--color-brand-strong: oklch(0.94 0.06 88);
+	/* corona gold */
+	--color-flow: oklch(0.87 0.11 85);
+	/* chromosphere magenta */
+	--color-mixed: oklch(0.74 0.14 330);
+	/* Baily's-beads pale blue */
+	--color-mind: oklch(0.8 0.08 260);
+	--color-mind-strong: oklch(0.87 0.07 260);
+	/* shadow-band jade */
+	--color-body: oklch(0.8 0.11 165);
+}
+
+.cathedral {
+	/* gothic nave at vespers: a stained-glass rose window burning above the door.
+	   The window itself is theme scenery (SVG tracery + god rays + jewel light
+	   pooling on the floor) — see theme-scenery/cathedral.css. */
+	--background-image:
+		/* candle glow rising from the nave floor */
+		radial-gradient(ellipse 90% 35% at 50% 112%, oklch(0.7 0.12 65 / 0.22), transparent 70%),
+		/* halo blooming over the stone around the window */
+		radial-gradient(ellipse 55% 30% at 50% 2%, oklch(0.85 0.09 85 / 0.16), transparent 70%),
+		linear-gradient(oklch(0.16 0.016 300), oklch(0.12 0.012 290));
+
+	--radius: 0.75rem;
+
+	--surface-page: oklch(0.14 0.014 300);
+	/* candlelit stone glass */
+	--surface-card: oklch(0.96 0.03 85 / 0.05);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.96 0.012 85);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.07 85 / 0.22);
+
+	/* candle gold */
+	--primary: oklch(0.8 0.12 80);
+	--primary-foreground: oklch(0.22 0.04 75);
+	--ring: oklch(0.8 0.12 80 / 0.5);
+
+	--color-brand: oklch(0.84 0.1 82);
+	--color-brand-strong: oklch(0.9 0.08 85);
+	/* the window's jewels */
+	--color-danger: oklch(0.68 0.19 20);
+	--color-danger-strong: oklch(0.76 0.16 20);
+	--color-flow: oklch(0.82 0.13 80);
+	--color-mind: oklch(0.72 0.12 265);
+	--color-mind-strong: oklch(0.8 0.1 265);
+	--color-body: oklch(0.78 0.13 160);
+	--color-mixed: oklch(0.74 0.14 310);
+}
+
+.orbit {
+	/* the overview effect — dawn breaking over the limb of the Earth from low
+	   orbit. The planet is the bottom quarter of the viewport: night side dark,
+	   a thin electric-blue atmosphere ring, first sunlight blooming on the limb.
+	   City lights, clouds, stars and aurora are theme scenery — see
+	   theme-scenery/orbit.css. */
+	--background-image:
+		/* sunrise blooming where the limb meets the coming day */
+		radial-gradient(
+			circle 24vh at 65% 80vh,
+			oklch(0.96 0.09 80 / 0.5),
+			oklch(0.85 0.14 60 / 0.16) 55%,
+			transparent 100%
+		),
+		/* the planet and its atmosphere ring */
+		radial-gradient(
+			circle at 50% 178vh,
+			oklch(0.1 0.02 255) 0 99vh,
+			oklch(0.3 0.06 245) 100.2vh,
+			oklch(0.78 0.1 230 / 0.9) 100.9vh,
+			oklch(0.6 0.12 225 / 0.35) 102.5vh,
+			oklch(0.5 0.1 220 / 0.12) 105vh,
+			transparent 109vh
+		),
+		/* deep space, faintly violet toward the horizon */
+		linear-gradient(oklch(0.07 0.012 275), oklch(0.11 0.03 265));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.13 0.02 265);
+	/* station-window glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.28);
+	--color-ty-primary: oklch(0.96 0.008 230);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.05 230 / 0.22);
+
+	/* first light over the limb */
+	--primary: oklch(0.87 0.1 80);
+	--primary-foreground: oklch(0.2 0.03 270);
+	--ring: oklch(0.87 0.1 80 / 0.5);
+
+	--color-brand: oklch(0.82 0.09 225);
+	--color-brand-strong: oklch(0.9 0.07 225);
+	/* sunrise gold */
+	--color-flow: oklch(0.85 0.12 80);
+	/* limb blue */
+	--color-mind: oklch(0.78 0.1 235);
+	--color-mind-strong: oklch(0.86 0.08 235);
+	/* aurora green */
+	--color-body: oklch(0.78 0.14 155);
+	/* airglow violet */
+	--color-mixed: oklch(0.72 0.12 310);
+}
+
+.tempest {
+	/* a supercell at dusk: towering cloud masses overhead, that eerie storm-green
+	   light on the horizon, and the air holding its breath between strikes.
+	   Rain, racing scud and the lightning itself are theme scenery — see
+	   theme-scenery/tempest.css. */
+	--background-image:
+		/* storm-green light where the rain meets the horizon */
+		radial-gradient(ellipse 90% 32% at 50% 105%, oklch(0.52 0.08 165 / 0.32), transparent 70%),
+		/* pale break in the overcast between the towers */
+		radial-gradient(ellipse 24% 16% at 52% -3%, oklch(0.42 0.03 245 / 0.5), transparent 70%),
+		/* towering cumulonimbus */
+		radial-gradient(ellipse 55% 35% at 18% -8%, oklch(0.08 0.015 265 / 0.85), transparent 70%),
+		radial-gradient(ellipse 60% 40% at 78% -12%, oklch(0.09 0.02 255 / 0.8), transparent 70%),
+		radial-gradient(ellipse 40% 25% at 45% 6%, oklch(0.12 0.02 260 / 0.65), transparent 65%),
+		linear-gradient(oklch(0.18 0.025 265), oklch(0.23 0.035 220));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.15 0.02 255);
+	/* rain-streaked glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.28);
+	--color-ty-primary: oklch(0.96 0.005 240);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.04 250 / 0.22);
+
+	/* charged air */
+	--primary: oklch(0.85 0.08 290);
+	--primary-foreground: oklch(0.2 0.03 265);
+	--ring: oklch(0.85 0.08 290 / 0.5);
+
+	--color-brand: oklch(0.78 0.06 240);
+	--color-brand-strong: oklch(0.86 0.05 240);
+	/* lantern amber through the rain */
+	--color-flow: oklch(0.8 0.11 75);
+	/* electric blue */
+	--color-mind: oklch(0.78 0.1 250);
+	--color-mind-strong: oklch(0.86 0.08 250);
+	/* storm-light green */
+	--color-body: oklch(0.75 0.12 165);
+	/* lightning violet */
+	--color-mixed: oklch(0.76 0.11 300);
+}
+
 .fallow {
 	/* the namesake: a field at rest — straw-gold stubble, quiet green regrowth,
 	   a wide pale sky. Rest is not idleness; it is how the ground yields again. */
@@ -804,30 +1070,4 @@
 	/* spruce teal — keeps body distinct from the field-green primary */
 	--color-body: oklch(0.5 0.12 175);
 	--color-mixed: oklch(0.55 0.11 310);
-}
-
-@layer base {
-	* {
-		@apply border-border outline-ring/50;
-	}
-	body {
-		@apply bg-surface-page bg-cover bg-fixed bg-center bg-no-repeat text-ty-primary;
-
-		background-image: var(--background-image);
-	}
-	html {
-		@apply font-sans;
-	}
-
-	/* Number inputs: hide the native spinner arrows everywhere — stepping is
-	   provided by the NumberInput component's custom −/+ buttons instead. */
-	input[type='number']::-webkit-outer-spin-button,
-	input[type='number']::-webkit-inner-spin-button {
-		appearance: none;
-		margin: 0;
-	}
-	input[type='number'] {
-		-moz-appearance: textfield;
-		appearance: textfield;
-	}
 }

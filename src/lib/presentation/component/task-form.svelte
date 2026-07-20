@@ -56,7 +56,7 @@
 		class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur"
 		onsubmit={handleSubmit}
 	>
-		<div class="flex items-start justify-between gap-3">
+		<div class="flex items-start justify-between gap-grid-sm">
 			<label class="min-w-0 flex-1 text-xs font-medium text-ty-secondary">
 				{m.form_task_definition()}
 				<input
@@ -64,7 +64,7 @@
 					bind:value={draft.title}
 					placeholder={m.form_task_placeholder()}
 					required
-					class="mt-2 w-full rounded-lg border border-line-strong bg-input px-4 py-2.5 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-4 py-2.5 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 				/>
 			</label>
 			<button
@@ -78,8 +78,8 @@
 			</button>
 		</div>
 
-		<div class="text-sm mt-5 grid gap-grid-lg sm:grid-cols-3">
-			<div class="space-y-2">
+		<div class="text-sm mt-text-lg grid gap-grid-lg sm:grid-cols-3">
+			<div class="space-y-text-xs">
 				<div class="flex justify-between text-xs font-medium">
 					<span class="text-ty-secondary">{m.form_physical_difficulty()}</span>
 					<span class="text-ty-primary">{draft.physicalDifficulty}</span>
@@ -93,7 +93,7 @@
 				/>
 			</div>
 
-			<div class="space-y-2">
+			<div class="space-y-text-xs">
 				<div class="flex justify-between text-xs font-medium">
 					<span class="text-ty-secondary">{m.form_mental_difficulty()}</span>
 					<span class="text-ty-primary">{draft.mentalDifficulty}</span>
@@ -107,7 +107,7 @@
 				/>
 			</div>
 
-			<div class="space-y-2">
+			<div class="space-y-text-xs">
 				<div class="flex justify-between text-xs font-medium">
 					<span class="text-ty-secondary">{m.form_enjoyment()}</span>
 					<span class="text-ty-primary">{draft.enjoyment}</span>
@@ -122,7 +122,7 @@
 			</div>
 		</div>
 
-		<div class="mt-6 flex justify-end">
+		<div class="mt-text-xl flex justify-end">
 			<Button type="submit">{m.form_deploy_task()}</Button>
 		</div>
 	</form>

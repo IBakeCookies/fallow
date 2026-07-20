@@ -62,15 +62,12 @@
 	class="text-ty-secondary antialiased selection:bg-success/30 selection:text-success-strong font-sans flex flex-col
 	       {fullViewport ? 'h-dvh overflow-hidden' : 'min-h-screen'}"
 >
-	<div class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 flex min-h-0 flex-1 flex-col">
+	<div class=" mx-auto w-full max-w-7xl px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col">
 		<Nav>
 			{#snippet actions()}
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-grid-xs">
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger
-							aria-label={m.nav_switch_theme()}
-							class="inline-flex items-center gap-2 rounded-xl border bg-surface-card px-3 py-2 text-sm text-ty-secondary backdrop-blur transition-colors hover:bg-surface-hover hover:text-ty-primary"
-						>
+						<DropdownMenu.Trigger variant="pill" aria-label={m.nav_switch_theme()}>
 							<Palette class="h-4 w-4 shrink-0" />
 							<span class="hidden sm:inline">{themeStore.label}</span>
 						</DropdownMenu.Trigger>
@@ -80,7 +77,16 @@
 								onValueChange={(v) => themeStore.switchTheme(v as ThemeName)}
 							>
 								{#each themeStore.themes as theme (theme.name)}
-									<DropdownMenu.RadioItem value={theme.name} class="cursor-pointer">
+									<DropdownMenu.RadioItem value={theme.name} class="cursor-pointer gap-grid-xs">
+										<!-- theme classes scope that theme's CSS vars to the swatch,
+										     so the slices always match layout.css -->
+										<span
+											class="{theme.css.join(' ')} border-line-strong flex h-3.5 w-3.5 shrink-0 overflow-hidden rounded-full border"
+											aria-hidden="true"
+										>
+											<span class="h-full w-1/2" style="background: var(--surface-page)"></span>
+											<span class="h-full w-1/2" style="background: var(--primary)"></span>
+										</span>
 										{theme.label}
 									</DropdownMenu.RadioItem>
 								{/each}
@@ -88,10 +94,7 @@
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger
-							aria-label={m.header_data_menu()}
-							class="inline-flex items-center rounded-xl border bg-surface-card px-3 py-2 text-sm text-ty-secondary backdrop-blur transition-colors hover:bg-surface-hover hover:text-ty-primary"
-						>
+						<DropdownMenu.Trigger variant="pill" aria-label={m.header_data_menu()}>
 							<Menu class="h-4 w-4 shrink-0" />
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content align="end" class="w-48">

@@ -1,0 +1,123 @@
+/* Tempest: two depths of wind-tilted rain, scud racing beneath the storm
+   base, and two lightning cells flashing on 13s / 21s periods — the beat
+   patterns only realign every 273s, so the storm never feels looped. */
+.tempest .theme-scenery {
+	display: block;
+
+	/* rain layers: dashes fall straight down in layer space; the layer
+	   itself is rotated so the wind leans them. Oversized inset keeps the
+	   rotated layer covering the viewport corners. */
+	.theme-helper-1,
+	.theme-helper-2 {
+		position: absolute;
+		inset: -15%;
+		rotate: 7deg;
+	}
+
+	/* near rain — heavy and fast */
+	.theme-helper-1 {
+		background-image:
+			radial-gradient(1px 11px at 20% 30%, oklch(0.9 0.01 240 / 0.38), transparent),
+			radial-gradient(1px 14px at 55% 65%, oklch(0.9 0.01 240 / 0.32), transparent),
+			radial-gradient(1px 9px at 80% 15%, oklch(0.9 0.01 240 / 0.35), transparent),
+			radial-gradient(1px 12px at 38% 85%, oklch(0.9 0.01 240 / 0.28), transparent);
+		background-size: 13rem 17rem;
+		animation: tempest-rain 0.8s linear infinite;
+	}
+
+	/* far rain — thinner, slower, fainter */
+	.theme-helper-2 {
+		background-image:
+			radial-gradient(1px 7px at 12% 45%, oklch(0.9 0.01 240 / 0.16), transparent),
+			radial-gradient(1px 8px at 48% 12%, oklch(0.9 0.01 240 / 0.14), transparent),
+			radial-gradient(1px 6px at 71% 74%, oklch(0.9 0.01 240 / 0.15), transparent),
+			radial-gradient(1px 7px at 92% 38%, oklch(0.9 0.01 240 / 0.12), transparent);
+		background-size: 17rem 23rem;
+		animation: tempest-rain-far 1.5s linear infinite;
+	}
+
+	/* ragged scud racing beneath the storm base */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(ellipse 14rem 3rem at 25% 20%, oklch(0.3 0.02 255 / 0.5), transparent 70%),
+			radial-gradient(ellipse 10rem 2.4rem at 70% 12%, oklch(0.28 0.02 255 / 0.45), transparent 70%);
+		background-repeat: repeat-x;
+		background-size: 70rem 100%;
+		animation: tempest-scud 45s linear infinite;
+	}
+
+	/* two lightning cells: each lights its own cloud tower plus a faint
+	   full-scene veil, mostly dormant, double-strike flicker */
+	.theme-helper-3::before,
+	.theme-helper-3::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		opacity: 0;
+	}
+
+	.theme-helper-3::before {
+		background:
+			radial-gradient(
+				ellipse 45% 30% at 28% 0%,
+				oklch(0.98 0.02 290 / 0.9),
+				oklch(0.9 0.05 290 / 0.3) 45%,
+				transparent 75%
+			),
+			linear-gradient(oklch(0.95 0.03 290 / 0.14), transparent 60%);
+		animation: tempest-flash 13s linear infinite;
+	}
+
+	.theme-helper-3::after {
+		background:
+			radial-gradient(
+				ellipse 40% 26% at 76% -2%,
+				oklch(0.98 0.02 270 / 0.85),
+				oklch(0.9 0.05 270 / 0.28) 45%,
+				transparent 75%
+			),
+			linear-gradient(oklch(0.95 0.03 270 / 0.12), transparent 60%);
+		animation: tempest-flash 21s linear infinite;
+		animation-delay: -7s;
+	}
+}
+
+@keyframes tempest-rain {
+	to {
+		background-position: 0 17rem;
+	}
+}
+
+@keyframes tempest-rain-far {
+	to {
+		background-position: 0 23rem;
+	}
+}
+
+@keyframes tempest-scud {
+	to {
+		background-position-x: -70rem;
+	}
+}
+
+@keyframes tempest-flash {
+	0%,
+	91% {
+		opacity: 0;
+	}
+	91.5% {
+		opacity: 1;
+	}
+	92.5% {
+		opacity: 0.15;
+	}
+	93.5% {
+		opacity: 0.8;
+	}
+	95.5%,
+	100% {
+		opacity: 0;
+	}
+}

@@ -29,21 +29,21 @@
 >
 	<header>
 		<h1 class="text-2xl font-semibold text-ty-primary">{m.privacy_title()}</h1>
-		<p class="mt-1 text-xs text-ty-silent">{m.privacy_updated({ date: updated })}</p>
+		<p class="mt-text-2xs text-xs text-ty-silent">{m.privacy_updated({ date: updated })}</p>
 	</header>
 
-	<section class="mt-8">
-		<h2 class="mb-2 text-base font-semibold text-ty-primary">{m.privacy_controller_heading()}</h2>
+	<section class="mt-text-2xl">
+		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">{m.privacy_controller_heading()}</h2>
 		<p>{m.privacy_controller_body()}</p>
-		<p class="mt-2 text-ty-secondary">
+		<p class="mt-text-xs text-ty-secondary">
 			Shadi Muma<br />
 			muma.shadi@gmail.com
 		</p>
 	</section>
 
 	{#each sections as section (section.heading)}
-		<section class="mt-8">
-			<h2 class="mb-2 text-base font-semibold text-ty-primary">{section.heading()}</h2>
+		<section class="mt-text-2xl">
+			<h2 class="mb-text-xs text-base font-semibold text-ty-primary">{section.heading()}</h2>
 			<p>{section.body()}</p>
 		</section>
 	{/each}

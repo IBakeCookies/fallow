@@ -6,7 +6,9 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
+	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { cn } from '$lib/presentation/utils';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import { getStatusBiggerBetter, getCompletionBarClass } from '$lib/presentation/utils/status';
 	import { type DaySummary, summarizeSession } from '$lib/business/model/metric/history';
@@ -125,10 +127,10 @@
 <!-- Proton-calendar-style: the layout puts this page in a no-scroll full-viewport
      flex column — the grid's rows split the leftover height and cell content
      clips instead of growing -->
-<div class="mb-4 flex flex-wrap items-center justify-between gap-grid-xs">
+<div class="mb-text-md flex flex-wrap items-center justify-between gap-grid-xs">
 	<h1 class="text-2xl font-bold text-ty-primary">{m.cal_heading()}</h1>
 
-	<div class="flex flex-wrap items-center gap-2 sm:gap-grid-xs">
+	<div class="flex flex-wrap items-center gap-grid-xs">
 		{#if anchor !== today}
 			<Button variant="outline" size="sm" class="ml-1" onclick={() => (anchor = today)}>
 				{m.link_today()}
@@ -138,17 +140,14 @@
 			{#each VIEWS as v (v)}
 				<button
 					onclick={() => (view = v)}
-					class="rounded-md px-3 py-1 text-sm capitalize transition-colors
-					       {view === v
-						? 'bg-surface-hover text-ty-primary'
-						: 'text-ty-secondary hover:text-ty-primary'}"
+					class={cn(segmentedToggleVariants({ active: view === v }), 'capitalize')}
 				>
 					{v === 'month' ? m.cal_view_month() : m.cal_view_week()}
 				</button>
 			{/each}
 		</div>
 
-		<div class="flex items-center gap-1">
+		<div class="flex items-center gap-grid-2xs">
 			<Button
 				variant="outline"
 				size="sm"
@@ -295,7 +294,7 @@
 </div>
 
 {#if !isLoading && !hasAnyData}
-	<p class="mt-2 text-center text-xs text-ty-silent">
+	<p class="mt-text-xs text-center text-xs text-ty-silent">
 		{m.cal_empty_1({ view: viewLabel })}
 		<a href={resolve('/')} class="text-ty-secondary underline hover:text-ty-primary"
 			>{m.link_today()}</a

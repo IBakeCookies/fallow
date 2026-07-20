@@ -1,0 +1,42 @@
+/* Nadir: the stars come out — two layers twinkling out of phase,
+   one starlight-gold point per layer echoing --color-flow. */
+.nadir .theme-scenery {
+	display: block;
+
+	.theme-helper-1,
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		mask-image: linear-gradient(to bottom, black 45%, transparent 80%);
+	}
+
+	.theme-helper-1 {
+		background-image:
+			radial-gradient(1px 1px at 9% 11%, oklch(0.97 0.005 230 / 0.9), transparent),
+			radial-gradient(1.5px 1.5px at 31% 34%, oklch(0.95 0.01 230 / 0.8), transparent),
+			radial-gradient(1px 1px at 52% 8%, oklch(0.97 0.005 230 / 0.7), transparent),
+			radial-gradient(1px 1px at 74% 27%, oklch(0.95 0.02 85 / 0.8), transparent),
+			radial-gradient(1.5px 1.5px at 88% 15%, oklch(0.97 0.005 230 / 0.85), transparent);
+		background-size: 26rem 21rem;
+		animation: nadir-twinkle 6s ease-in-out infinite alternate;
+	}
+
+	.theme-helper-2 {
+		background-image:
+			radial-gradient(1px 1px at 18% 22%, oklch(0.95 0.01 230 / 0.7), transparent),
+			radial-gradient(1px 1px at 45% 41%, oklch(0.97 0.005 230 / 0.6), transparent),
+			radial-gradient(1.5px 1.5px at 67% 9%, oklch(0.95 0.02 85 / 0.7), transparent),
+			radial-gradient(1px 1px at 92% 33%, oklch(0.95 0.01 230 / 0.65), transparent);
+		background-size: 31rem 25rem;
+		animation: nadir-twinkle 9s ease-in-out infinite alternate-reverse;
+	}
+}
+
+@keyframes nadir-twinkle {
+	from {
+		opacity: 0.45;
+	}
+	to {
+		opacity: 1;
+	}
+}

@@ -1,0 +1,60 @@
+/* Cathedral: SVG rose window with real tracery — twelve lancet petals,
+   a roundel ring and a gold hub — plus god rays and jewel light pools. */
+.cathedral .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		top: -3rem;
+		left: 50%;
+		width: 20rem;
+		aspect-ratio: 1;
+		translate: -50% 0;
+		filter: drop-shadow(0 0 2.5rem oklch(0.85 0.1 85 / 0.4));
+		background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><defs><radialGradient id='g' cx='50%25' cy='50%25' r='50%25'><stop offset='0' stop-color='%23fff6dd' stop-opacity='.75'/><stop offset='.4' stop-color='%23ffd98a' stop-opacity='.2'/><stop offset='1' stop-color='%23ffffff' stop-opacity='0'/></radialGradient><path id='p' d='M200 22C232 52 238 92 200 116C162 92 168 52 200 22Z'/></defs><circle cx='200' cy='200' r='190' fill='%2317121f'/><circle cx='200' cy='200' r='84' fill='none' stroke='%23c9a256' stroke-width='4'/><g stroke='%23c9a256' stroke-width='5'><use href='%23p' fill='%23b32441'/><use href='%23p' fill='%23d9992e' transform='rotate(30 200 200)'/><use href='%23p' fill='%231f8f5f' transform='rotate(60 200 200)'/><use href='%23p' fill='%233a58c9' transform='rotate(90 200 200)'/><use href='%23p' fill='%238446b8' transform='rotate(120 200 200)'/><use href='%23p' fill='%232794a6' transform='rotate(150 200 200)'/><use href='%23p' fill='%23b32441' transform='rotate(180 200 200)'/><use href='%23p' fill='%23d9992e' transform='rotate(210 200 200)'/><use href='%23p' fill='%231f8f5f' transform='rotate(240 200 200)'/><use href='%23p' fill='%233a58c9' transform='rotate(270 200 200)'/><use href='%23p' fill='%238446b8' transform='rotate(300 200 200)'/><use href='%23p' fill='%232794a6' transform='rotate(330 200 200)'/></g><g stroke='%23c9a256' stroke-width='4'><circle cx='262' cy='200' r='15' fill='%23b32441'/><circle cx='244' cy='244' r='15' fill='%233a58c9'/><circle cx='200' cy='262' r='15' fill='%23d9992e'/><circle cx='156' cy='244' r='15' fill='%231f8f5f'/><circle cx='138' cy='200' r='15' fill='%238446b8'/><circle cx='156' cy='156' r='15' fill='%232794a6'/><circle cx='200' cy='138' r='15' fill='%23b32441'/><circle cx='244' cy='156' r='15' fill='%233a58c9'/></g><circle cx='200' cy='200' r='30' fill='%23e8b64a' stroke='%23c9a256' stroke-width='5'/><circle cx='200' cy='200' r='12' fill='%23fff1cf'/><circle cx='200' cy='200' r='186' fill='none' stroke='%23c9a256' stroke-width='9'/><circle cx='200' cy='200' r='186' fill='url(%23g)'/></svg>")
+			center / contain no-repeat;
+	}
+
+	/* god rays falling from the window into the nave */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background: conic-gradient(
+			from 143deg at 50% 7rem,
+			transparent 0deg,
+			oklch(0.92 0.08 85 / 0.09) 6deg,
+			transparent 12deg,
+			oklch(0.92 0.08 85 / 0.06) 20deg,
+			transparent 27deg,
+			oklch(0.95 0.06 85 / 0.11) 35deg 39deg,
+			transparent 46deg,
+			oklch(0.92 0.08 85 / 0.06) 54deg,
+			transparent 61deg,
+			oklch(0.92 0.08 85 / 0.09) 68deg,
+			transparent 74deg
+		);
+		mask-image: linear-gradient(to bottom, transparent 5rem, black 16rem 55%, transparent 85%);
+		animation: cathedral-rays 9s ease-in-out infinite alternate;
+	}
+
+	/* the window's colors pooling on the nave floor */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		filter: blur(28px);
+		background:
+			radial-gradient(ellipse 30% 18% at 22% 97%, oklch(0.6 0.19 20 / 0.16), transparent 70%),
+			radial-gradient(ellipse 26% 16% at 42% 100%, oklch(0.62 0.15 265 / 0.14), transparent 70%),
+			radial-gradient(ellipse 30% 18% at 62% 97%, oklch(0.7 0.14 85 / 0.15), transparent 70%),
+			radial-gradient(ellipse 26% 16% at 81% 100%, oklch(0.65 0.15 160 / 0.13), transparent 70%);
+	}
+}
+
+@keyframes cathedral-rays {
+	from {
+		opacity: 0.55;
+	}
+	to {
+		opacity: 1;
+	}
+}

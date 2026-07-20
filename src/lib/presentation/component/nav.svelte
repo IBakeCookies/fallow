@@ -8,6 +8,7 @@
 	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { locales } from '$lib/paraglide/runtime';
+	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { activeLocale, switchLocale, getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
@@ -55,7 +56,7 @@
 		href === home ? page.url.pathname === home : page.url.pathname.startsWith(href);
 </script>
 
-<div class="sticky top-4 z-20 mb-6 flex items-start justify-between gap-2">
+<div class="sticky top-4 z-20 mb-text-xl flex items-start justify-between gap-grid-xs">
 	<nav
 		class="inline-flex items-center gap-1 rounded-xl border bg-surface-card p-1 backdrop-blur w-max"
 	>
@@ -88,10 +89,7 @@
 				aria-label="{m.nav_switch_language()}: {locale.toUpperCase()}"
 				aria-current={activeLocale.value === locale ? 'true' : undefined}
 				onclick={() => switchLocale(locale)}
-				class="rounded-lg px-2 py-1.5 text-xs font-medium uppercase transition-colors
-			       {activeLocale.value === locale
-					? 'bg-surface-hover text-ty-primary'
-					: 'text-ty-silent hover:bg-surface-card hover:text-ty-secondary'}"
+				class={segmentedToggleVariants({ tone: 'nav', active: activeLocale.value === locale })}
 			>
 				{locale}
 			</button>

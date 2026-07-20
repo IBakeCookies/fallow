@@ -14,7 +14,7 @@
 
 <div class="rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
 	<!-- Momentum -->
-	<div class="flex items-center justify-between mb-4">
+	<div class="flex items-center justify-between mb-text-md">
 		<Tooltip.Provider>
 			<Tooltip.Root>
 				<Tooltip.Trigger>
@@ -24,10 +24,7 @@
 						{m.momentum_label()}
 					</span>
 				</Tooltip.Trigger>
-				<Tooltip.Content
-					side="left"
-					class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-				>
+				<Tooltip.Content side="left">
 					<p>{m.momentum_tooltip()}</p>
 				</Tooltip.Content>
 			</Tooltip.Root>
@@ -54,13 +51,13 @@
 		</Badge>
 	</div>
 
-	<div class="border-t border-line-strong my-3"></div>
+	<div class="border-t border-line-strong my-grid-sm"></div>
 
 	<!-- All Metrics flat list with separators -->
 	<div>
 		{#each metrics as item, i}
 			{#if i === 4 || i === 7 || i === 11 || i === 13 || i === 16}
-				<div class="border-t border-line-strong my-3"></div>
+				<div class="border-t border-line-strong my-grid-sm"></div>
 			{/if}
 			<div
 				class="px-3 py-2 flex justify-between items-baseline rounded-lg transition hover:bg-surface-card"
@@ -74,10 +71,7 @@
 								{item.label}
 							</span>
 						</Tooltip.Trigger>
-						<Tooltip.Content
-							side="left"
-							class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
-						>
+						<Tooltip.Content side="left">
 							<p>{item.description}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>

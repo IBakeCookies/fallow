@@ -1,0 +1,27 @@
+/* Terminal: the CRT refresh line sweeping down the phosphor. */
+.terminal .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		top: -30%;
+		left: 0;
+		right: 0;
+		height: 25%;
+		background: linear-gradient(
+			to bottom,
+			transparent,
+			oklch(0.85 0.2 145 / 0.04) 45%,
+			oklch(0.9 0.2 145 / 0.08) 65%,
+			oklch(0.9 0.18 145 / 0.03) 72%,
+			transparent
+		);
+		animation: terminal-sweep 9s linear infinite;
+	}
+}
+
+@keyframes terminal-sweep {
+	to {
+		transform: translateY(520%);
+	}
+}
