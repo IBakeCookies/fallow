@@ -1,5 +1,6 @@
 import { getContext, setContext } from 'svelte';
 import { onMount } from 'svelte';
+import { browser } from '$app/environment';
 
 export type ThemeName =
 	| 'fallow'
@@ -20,7 +21,8 @@ export type ThemeName =
 	| 'noir'
 	| 'ember'
 	| 'glacier'
-	| 'zenith';
+	| 'zenith'
+	| 'nadir';
 
 interface ThemeItem {
 	name: ThemeName;
@@ -124,6 +126,11 @@ export const themes: ThemeItem[] = [
 		name: 'zenith',
 		label: 'Zenith',
 		css: ['glass', 'zenith']
+	},
+	{
+		name: 'nadir',
+		label: 'Nadir',
+		css: ['glass', 'nadir', 'dark']
 	}
 ] as const;
 
@@ -156,6 +163,19 @@ export class ThemeStore {
 			document.documentElement.classList.remove(...this.#classesToRemove);
 			document.documentElement.classList.add(...this.#classesToAdd);
 		});
+
+		// offline, the SW serves cached HTML whose serialized theme may be stale —
+		// the cookie is the source of truth, so it wins over initialTheme
+		if (browser) {
+			const cookieTheme = document.cookie.match(/(?:^|; )theme=([^;]+)/)?.[1];
+			const known = themes.find((t) => t.name === cookieTheme);
+
+			if (known) {
+				this.#theme = known.name;
+
+				return;
+			}
+		}
 
 		if (initialTheme) {
 			this.#theme = initialTheme;

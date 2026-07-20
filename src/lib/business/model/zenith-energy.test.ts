@@ -215,7 +215,10 @@ describe('Zenith Energy Model', () => {
 				satietyScale: 0
 			});
 			expect(off.satiatedOutput).toBeCloseTo(off.totalOutput, 12);
-			expect(off.objective).toBeCloseTo(off.totalOutput + off.freeTimeBonus + off.terminalBonus, 12);
+			expect(off.objective).toBeCloseTo(
+				off.totalOutput + off.freeTimeBonus + off.terminalBonus,
+				12
+			);
 		});
 
 		it('satiety does not touch the dynamics: raw block outputs are identical on/off', () => {
@@ -341,9 +344,7 @@ describe('Zenith Energy Model', () => {
 				...DEFAULT_ENERGY_PARAMS,
 				freeTimeValue: 0.1
 			});
-			const funded = new Set(
-				result.blocks.filter((b) => b.taskId !== null).map((b) => b.taskId)
-			);
+			const funded = new Set(result.blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
 			expect(funded.size).toBe(1);
 		});
 
@@ -374,10 +375,7 @@ describe('Zenith Energy Model', () => {
 			expect(optimizeSchedule([], 8).blocks).toEqual([]);
 			const zero = optimizeSchedule([makeTask(1, 'A', 5, 5, 0.5, 0.1)], 0);
 			expect(zero.blocks).toEqual([]);
-			expect(zero.evaluation.objective).toBeCloseTo(
-				DEFAULT_ENERGY_PARAMS.terminalEnergyValue,
-				9
-			);
+			expect(zero.evaluation.objective).toBeCloseTo(DEFAULT_ENERGY_PARAMS.terminalEnergyValue, 9);
 		});
 	});
 
@@ -832,8 +830,18 @@ describe('Zenith Energy Model', () => {
 			const base = workValue([{ taskId: 3, hours: 2.25 }]);
 			const lo = Math.max(
 				(workValue([{ taskId: 3, hours: 2.25 + step }]) - base) / step,
-				(workValue([{ taskId: 3, hours: 2.25 }, { taskId: 1, hours: step }]) - base) / step,
-				(workValue([{ taskId: 3, hours: 2.25 }, { taskId: 2, hours: step }]) - base) / step
+				(workValue([
+					{ taskId: 3, hours: 2.25 },
+					{ taskId: 1, hours: step }
+				]) -
+					base) /
+					step,
+				(workValue([
+					{ taskId: 3, hours: 2.25 },
+					{ taskId: 2, hours: step }
+				]) -
+					base) /
+					step
 			);
 			const hi = (base - workValue([{ taskId: 3, hours: 2.25 - step }])) / step;
 			expect(lo).toBeGreaterThan(hi); // inverted...
@@ -855,7 +863,11 @@ describe('Zenith Energy Model', () => {
 		it('posterior std shrinks with consistent data', () => {
 			const obs = dayFromPlan(0.9, 10);
 			const two = fitStoppingValue([obs, obs], prior, DEFAULT_ENERGY_PARAMS);
-			const eight = fitStoppingValue(Array.from({ length: 8 }, () => obs), prior, DEFAULT_ENERGY_PARAMS);
+			const eight = fitStoppingValue(
+				Array.from({ length: 8 }, () => obs),
+				prior,
+				DEFAULT_ENERGY_PARAMS
+			);
 			expect(eight.valueStd!).toBeLessThan(two.valueStd!);
 		});
 

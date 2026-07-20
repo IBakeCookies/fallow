@@ -270,9 +270,7 @@
 									bind:value={flowMinutesInput}
 									class="w-14 rounded border border-flow/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-flow/60"
 								/>
-								<Button variant="ghost" size="icon-xs" type="submit" class="text-flow">
-									✓
-								</Button>
+								<Button variant="ghost" size="icon-xs" type="submit" class="text-flow">✓</Button>
 								<Button
 									variant="ghost"
 									size="icon-xs"
@@ -295,7 +293,9 @@
 								>
 									⚡
 								</Tooltip.Trigger>
-								<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
+								<Tooltip.Content
+									class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
+								>
 									<p>{m.task_log_flow_tooltip()}</p>
 								</Tooltip.Content>
 							</Tooltip.Root>

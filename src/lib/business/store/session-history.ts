@@ -43,7 +43,9 @@ export async function readUserFit(): Promise<{
 	posterior?: FitPosterior;
 }> {
 	const observations = await $readAllFlowObservations();
-	const fit = fitUserConstants(observations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours })));
+	const fit = fitUserConstants(
+		observations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
+	);
 	return { constants: fit.constants, posterior: fit.posterior };
 }
 

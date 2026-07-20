@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -186,8 +187,9 @@
 			{@const isFuture = date > today}
 			{@const isToday = date === today}
 			{@const dayNum = fromISO(date).getDate()}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve (no allowed shape for resolve() + query string) -->
 			<a
-				href={date === today ? '/' : `/?date=${date}`}
+				href={date === today ? resolve('/') : `${resolve('/')}?date=${date}`}
 				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-1 sm:p-2 transition-colors
 				       {isToday ? 'border-success/40' : s ? '' : 'border-line-soft'}
 				       {s ? 'backdrop-blur bg-surface-card' : 'bg-transparent'}
@@ -295,7 +297,9 @@
 {#if !isLoading && !hasAnyData}
 	<p class="mt-2 text-center text-xs text-ty-silent">
 		{m.cal_empty_1({ view: viewLabel })}
-		<a href="/" class="text-ty-secondary underline hover:text-ty-primary">{m.link_today()}</a>
+		<a href={resolve('/')} class="text-ty-secondary underline hover:text-ty-primary"
+			>{m.link_today()}</a
+		>
 		{m.cal_empty_2()}
 	</p>
 {/if}

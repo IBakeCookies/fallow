@@ -4,7 +4,6 @@ import {
 	mapEffort,
 	mapEnjoyability,
 	calculateFlowStateTime,
-	BLOCK_HOURS,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
@@ -12,6 +11,13 @@ import {
 	type UserConstants,
 	type FitPosterior
 } from '../zenith';
+import {
+	simulateReservoirs,
+	DEFAULT_ENERGY_PARAMS,
+	type EnergyParams,
+	type ReservoirDemand,
+	type ScheduleBlock
+} from '../zenith-energy';
 import type { Task } from '$lib/data/type';
 
 // Re-exported so callers of the metric functions get the entity type from the
@@ -199,46 +205,36 @@ export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
  * before the allocation ends.
  *
  * A task "reaches flow" if allocatedTime ≥ ϕ (you get to experience flow state).
- * For optimal productivity, you'd want allocatedTime ≈ T* (per-task optimalHours).
  */
-export function calculateFlowCoverage(activeTasks: SuggestedTask[]): {
+export function calculateFlowCoverage(tasks: SuggestedTask[]): {
 	reached: number;
 	total: number;
-	optimal: number; // Tasks with enough time for optimal stopping
 } {
-	if (!activeTasks.length) return { reached: 0, total: 0, optimal: 0 };
+	if (!tasks.length) return { reached: 0, total: 0 };
 
 	// Task reaches flow state if allocated time ≥ ϕ
-	const reached = activeTasks.filter(
+	const reached = tasks.filter(
 		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.flowStateTime
 	).length;
 
-	// Task has optimal allocation if allocated time ≥ its own optimal stopping
-	// time T* (model v2: task-dependent, provided by the allocator). Tolerance
-	// of one planning block: allocations are quantized to 15-minute blocks, so
-	// a fully-funded task can land up to one block below the continuous T*.
-	const optimal = activeTasks.filter(
-		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.optimalHours - BLOCK_HOURS
-	).length;
-
-	return { reached, total: activeTasks.length, optimal };
+	return { reached, total: tasks.length };
 }
 
 export function calculateHumanCapacity(
-	activeTasks: SuggestedTask[],
+	tasks: SuggestedTask[],
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS
 ): {
 	percent: number;
 	limitType: string;
 } {
-	if (!activeTasks.length) return { percent: 0, limitType: 'none' };
+	if (!tasks.length) return { percent: 0, limitType: 'none' };
 
 	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight)
-	const cogDemand = activeTasks.reduce(
+	const cogDemand = tasks.reduce(
 		(sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours,
 		0
 	);
-	const physDemand = activeTasks.reduce(
+	const physDemand = tasks.reduce(
 		(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
 		0
 	);
@@ -266,9 +262,9 @@ export function calculateHumanCapacity(
  * Uses mapped Zenith values for consistency with the productivity model.
  * Higher E/β means lower initial productivity (p₀ = β/E) and more draining.
  */
-export function calculateBottleneckTask(activeTasks: SuggestedTask[]): string {
-	if (!activeTasks.length) return 'None Detected';
-	return activeTasks.reduce((worst, current) => {
+export function calculateBottleneckTask(tasks: SuggestedTask[]): string {
+	if (!tasks.length) return 'None Detected';
+	return tasks.reduce((worst, current) => {
 		// Use Zenith mapped values (E/β) for consistency
 		const worstRatio = worst.trueEffort / worst.trueEnjoyability;
 		const currentRatio = current.trueEffort / current.trueEnjoyability;
@@ -320,104 +316,85 @@ export function calculateTimeScarcity(
 }
 
 /**
- * Calculate burnout risk using the Zenith productivity model
+ * Burnout risk, derived from the energy model (2026-07-20, MATH.md §11.6).
  *
- * Based on the mathematical model where:
- * - Optimal stopping time T* is per-task (model v2: T* ∈ [1.5ϕ, 1.79ϕ])
- * - Strain factor = E/β (inverse of initial productivity p₀ = β/E)
- * - Working past optimal time leads to diminishing returns and burnout
+ * The metric simulates the day the user actually intends: the funded tasks in
+ * their interleaved run order, switch costs as rest gaps, evolved through the
+ * §8.1/§8.5 reservoir law (dC/dτ = −α·w·C + r′·(1−(1−b)·w)·(1−C)). Risk is
+ * the depletion of the MOST-DRAINED reservoir at the end of that day:
  *
- * Burnout risk combines two factors:
- * 1. **Base strain**: High E/β tasks inherently drain more energy
- * 2. **Overwork (budget overhang)**: The allocator caps every suggestion at the
- *    optimal stopping time T*, so suggested hours themselves never
- *    overwork you. The overwork risk instead comes from the PLANNED budget:
- *    hours the user intends to work beyond the model's total optimal workload
- *    (Σ T*ᵢ) would be spent in the diminishing-returns zone.
+ *   risk = 100 × (1 − min(C_cog(T), C_phys(T)))
  *
- *    Σ T*ᵢ runs over FUNDED tasks only (2026-07-18 fix, MATH.md §11.3). It
- *    used to include tasks the plan gives 0 hours — but a task the allocator
- *    dropped (zeroed pool, switch cost not worth paying) is one the user
- *    won't work, and its T* was absorbing budget hours that will actually
- *    land on the funded tasks' diminishing-returns zones. Probe: with an
- *    injured user (physical pool 0) the dropped gym task's T* = 4.4h
- *    suppressed the overhang from 6.2h to 1.8h. Treating the whole budget
- *    as intended work is the documented reading of availableHours here.
+ * min, not a blend: burnout follows the exhausted system — a full physical
+ * reservoir does not compensate for a spent cognitive one.
  *
- * Formula:
- *   For each task:
- *     strainFactor = E/β (using mapped Zenith values)
- *     baseStrain = max(0, strainFactor - 1) × hours  (drain above neutral)
+ * This retires the standalone strain-hours heuristic (E/β strain against a
+ * fixed 5 strain-hour capacity), which saturated at 100% after ~1.4h of
+ * worst-case work and was connected to no calibrated quantity. What the user
+ * gets instead:
+ * - Personalization: drain (α) and recovery (r) rates fitted from the user's
+ *   own 🪫/☕ logs enter via `params` — the capacity connection the heuristic
+ *   never had.
+ * - Overwork without a magic 2× weight: budget hours beyond the funded plan
+ *   (availableHours = hours the user INTENDS to work — the documented §11.3
+ *   reading) stretch the funded blocks pro-rata and drain the reservoirs by
+ *   simulation.
+ * - SEMANTIC CHANGE: enjoyment no longer enters. In the energy model drain is
+ *   f(demand, duration); enjoyment shapes output value (warm-up, satiety),
+ *   not depletion. Loved-hard and hated-hard days now read the same risk —
+ *   the §11.4 "difficulty you love is not friction" boundary, applied here.
+ * - 100% is unreachable by design: micro-recovery (§8.5) floors each
+ *   reservoir at eq > 0 (defaults: ≈ 87% max for a full cognitive day), and a
+ *   0-demand plan reads ~0. The dashboard thresholds are unchanged; readings
+ *   simply live on an honest scale now.
  *
- *   overhang = max(0, effectiveBudget - Σ_{funded} T*ᵢ)
- *   overworkStrain = overhang × (plan-weighted average strainFactor)
- *
- *   totalRisk = (baseStrain + overworkStrain × 2) / CAPACITY × 100
- *
- * The overwork component is weighted 2× because working in the diminishing
- * returns zone accelerates burnout faster than baseline strain.
+ * Funded tasks only, as before: a dropped task is one the user won't work
+ * (§11.3). If NOTHING is funded but a budget is declared, the intended hours
+ * are simulated at the task list's average demands, preserving the old
+ * "budget with no plan still warns" behavior.
  */
 export function calculateBurnoutRisk(
-	activeTasks: SuggestedTask[],
+	suggestedTasks: SuggestedTask[],
 	availableHours: number,
-	switchCost: number = DEFAULT_SWITCH_COST
+	switchCost: number = DEFAULT_SWITCH_COST,
+	params: EnergyParams = DEFAULT_ENERGY_PARAMS
 ): number {
-	if (!activeTasks.length) return 0;
+	if (!suggestedTasks.length) return 0;
 
-	// Strain-hours capacity until 100% burnout risk
-	// Calibrated so a full day of high-strain overworked tasks = 100%
-	const STRAIN_CAPACITY = 5;
+	const budget = Number(availableHours) || 0;
+	const funded = calculateInterleavedOrder(suggestedTasks);
+	const overhead = funded.length > 1 ? (funded.length - 1) * switchCost : 0;
+	const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
+	const overhang = Math.max(0, budget - overhead - allocated);
 
-	let baseStrain = 0;
-	let totalOptimal = 0; // Σ T* over FUNDED tasks — the workload the plan actually schedules
-	let weightedStrainSum = 0; // strain × cogIntensity, weighted by plan share
-	let totalPlannedHours = 0;
+	const blocks: ScheduleBlock[] = [];
+	let demands: ReservoirDemand[];
 
-	for (const t of activeTasks) {
-		const E = t.trueEffort; // Mapped effort (1-5)
-		const beta = t.trueEnjoyability; // Mapped enjoyability (1-2)
-		const hours = t.suggestedHours;
-
-		// Strain factor: E/β = 1/p₀ (inverse of initial productivity)
-		// When E/β > 1, task drains more than baseline
-		const strainFactor = E / beta;
-
-		// Multiplier based on cognitive intensity: mental work is more draining
-		// mentalDifficulty 10 → 1.3x, mentalDifficulty 1 → 1.0x
-		const cognitiveIntensity = 1.0 + (t.mentalDifficulty / 10) * 0.3;
-
-		// Base strain: energy drain from high-effort/low-enjoyment tasks
-		baseStrain += Math.max(0, strainFactor - 1) * hours * cognitiveIntensity;
-
-		// A dropped task (0 hours) is one the user won't work; counting its T*
-		// here would let it absorb overhang hours that really land on the
-		// funded tasks (see the WHY above).
-		if (hours > 0) totalOptimal += t.optimalHours;
-		weightedStrainSum += strainFactor * cognitiveIntensity * hours;
-		totalPlannedHours += hours;
+	if (allocated > 0) {
+		// Intended overwork lands on the funded tasks in proportion to their
+		// share of the plan — the same assumption the heuristic documented.
+		const stretch = 1 + overhang / allocated;
+		funded.forEach((t, i) => {
+			if (i > 0 && switchCost > 0) blocks.push({ taskId: null, hours: switchCost });
+			blocks.push({ taskId: t.id, hours: t.suggestedHours * stretch });
+		});
+		demands = funded.map((t) => ({
+			id: t.id,
+			cognitiveDemand: t.mentalDifficulty / 10,
+			physicalDemand: t.physicalDifficulty / 10
+		}));
+	} else if (budget > 0) {
+		const n = suggestedTasks.length;
+		const avgCog = suggestedTasks.reduce((sum, t) => sum + t.mentalDifficulty, 0) / (10 * n);
+		const avgPhys = suggestedTasks.reduce((sum, t) => sum + t.physicalDifficulty, 0) / (10 * n);
+		blocks.push({ taskId: -1, hours: budget });
+		demands = [{ id: -1, cognitiveDemand: avgCog, physicalDemand: avgPhys }];
+	} else {
+		return 0;
 	}
 
-	// Overwork: planned budget beyond the total optimal workload. Overhang hours
-	// are assumed to land on tasks in proportion to their share of the plan.
-	// Switches only happen between tasks that actually receive time.
-	const budget = Number(availableHours) || 0;
-	const fundedCount = activeTasks.filter((t) => t.suggestedHours > 0).length;
-	const switchOverhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
-	const effectiveBudget = Math.max(0, budget - switchOverhead);
-	const overhang = Math.max(0, effectiveBudget - totalOptimal);
-
-	// Plan-weighted average strain (falls back to simple average for empty plans)
-	const avgStrain =
-		totalPlannedHours > 0
-			? weightedStrainSum / totalPlannedHours
-			: activeTasks.reduce((s, t) => s + t.trueEffort / t.trueEnjoyability, 0) / activeTasks.length;
-
-	const overworkStrain = overhang * avgStrain;
-
-	// Overwork strain weighted 2× (diminishing returns zone is worse)
-	const totalStrain = baseStrain + overworkStrain * 2;
-
-	return Math.min(100, Math.round((totalStrain / STRAIN_CAPACITY) * 100));
+	const { endCog, endPhys } = simulateReservoirs(blocks, demands, params);
+	return Math.round(100 * (1 - Math.min(endCog, endPhys)));
 }
 
 /**
@@ -430,14 +407,14 @@ export function calculateBurnoutRisk(
  * Weight by mentalDifficulty: high mental difficulty = more cognitive load.
  */
 export function calculateCognitiveLoad(
-	activeTasks: SuggestedTask[],
+	tasks: SuggestedTask[],
 	availableHours: number
 ): number {
 	const budget = Number(availableHours) || 0;
-	if (!activeTasks.length || !budget) return 0;
+	if (!tasks.length || !budget) return 0;
 
 	// Weight hours by mental difficulty (0-10 → 0-1)
-	const mentalHours = activeTasks.reduce(
+	const mentalHours = tasks.reduce(
 		(sum, t) => sum + t.suggestedHours * (t.mentalDifficulty / 10),
 		0
 	);
@@ -452,14 +429,14 @@ export function calculateCognitiveLoad(
  * Weight by physicalDifficulty: high physical difficulty = more physical load.
  */
 export function calculatePhysicalLoad(
-	activeTasks: SuggestedTask[],
+	tasks: SuggestedTask[],
 	availableHours: number
 ): number {
 	const budget = Number(availableHours) || 0;
-	if (!activeTasks.length || !budget) return 0;
+	if (!tasks.length || !budget) return 0;
 
 	// Weight hours by physical difficulty (0-10 → 0-1)
-	const physicalHours = activeTasks.reduce(
+	const physicalHours = tasks.reduce(
 		(sum, t) => sum + t.suggestedHours * (t.physicalDifficulty / 10),
 		0
 	);
@@ -488,13 +465,13 @@ export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: numb
  * actually do, so 100% is reachable — it means every allocated hour is
  * max-friction (difficulty 10, enjoyment 1 → gap 9) work.
  */
-export function calculateFrictionIndex(activeTasks: SuggestedTask[]): number {
-	if (!activeTasks.length) return 0;
+export function calculateFrictionIndex(tasks: SuggestedTask[]): number {
+	if (!tasks.length) return 0;
 
-	const totalAllocated = activeTasks.reduce((sum, t) => sum + t.suggestedHours, 0);
+	const totalAllocated = tasks.reduce((sum, t) => sum + t.suggestedHours, 0);
 	if (totalAllocated <= 0) return 0;
 
-	const totalFriction = activeTasks.reduce((sum, t) => {
+	const totalFriction = tasks.reduce((sum, t) => {
 		const gap = getEffectiveDifficulty(t) - t.enjoyment;
 		return sum + (gap > 0 ? gap * t.suggestedHours : 0);
 	}, 0);
@@ -539,31 +516,36 @@ export function calculateDailyQuadrant(tasks: Task[]): DailyQuadrant {
  * down (more switches per worked hour), one long session pushes it to 100.
  */
 export function calculateScheduleIntegrity(
-	activeTasks: SuggestedTask[],
+	tasks: SuggestedTask[],
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST
 ): number {
 	const budget = Number(availableHours) || 0;
-	if (!activeTasks.length) return 100;
+	if (!tasks.length) return 100;
 	if (budget === 0) return 0;
 
-	const worked = activeTasks.reduce((sum, t) => sum + t.suggestedHours, 0);
+	const worked = tasks.reduce((sum, t) => sum + t.suggestedHours, 0);
 	if (worked <= 0) return 0; // budget set, but the plan funds nothing
 
-	const fundedCount = activeTasks.filter((t) => t.suggestedHours > 0).length;
+	const fundedCount = tasks.filter((t) => t.suggestedHours > 0).length;
 	const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
 	return Math.round((worked / (worked + overhead)) * 100);
 }
 
 /**
- * Calculate momentum: average net enjoyment across tasks
+ * Calculate momentum: average net enjoyment across the remaining tasks
+ *
+ * Callers pass ACTIVE (uncompleted) tasks, so the metric responds as the day
+ * progresses: finish the draining tasks and momentum ticks upward. It is pure
+ * affect — no hours, no demand-over-time. Physiological depletion is Burnout
+ * Risk's job (§11.6); this measures whether the work ahead motivates.
  *
  * Uses RAW user values (enjoyment - effective difficulty) because the Zenith mapped
  * ranges are asymmetric (E ∈ [1,5], β ∈ [1,2]) and would almost always
  * show negative momentum even for enjoyable tasks.
  *
- * Positive = tasks are more enjoyable than difficult (sustainable)
- * Negative = tasks are more difficult than enjoyable (draining)
+ * Positive = remaining tasks are more enjoyable than difficult (motivating)
+ * Negative = remaining tasks are more difficult than enjoyable (draining)
  *
  * Range: [-9, +9] based on raw 1-10 inputs
  */
@@ -579,22 +561,22 @@ export function calculateMomentum(tasks: Task[]): number {
 }
 
 export function calculateDeepWorkRatio(
-	activeTasks: SuggestedTask[],
+	tasks: SuggestedTask[],
 	availableHours: number
 ): number {
 	const budget = Number(availableHours) || 0;
-	if (!budget || !activeTasks.length) return 0;
+	if (!budget || !tasks.length) return 0;
 
 	// Deep work: high mental difficulty tasks (cognitive intensity ≥ 7)
-	const deepHours = activeTasks
+	const deepHours = tasks
 		.filter((t) => t.mentalDifficulty >= 7)
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
 	return Math.round((deepHours / budget) * 100);
 }
 
-export function calculateQuickWins(activeTasks: SuggestedTask[]): number {
+export function calculateQuickWins(tasks: SuggestedTask[]): number {
 	// Quick wins: low effective difficulty, decent enjoyment
-	return activeTasks.filter((t) => getEffectiveDifficulty(t) <= 3 && t.enjoyment >= 5).length;
+	return tasks.filter((t) => getEffectiveDifficulty(t) <= 3 && t.enjoyment >= 5).length;
 }
 
 /**
@@ -603,11 +585,11 @@ export function calculateQuickWins(activeTasks: SuggestedTask[]): number {
  * Measures spread across cognitive/physical spectrum.
  * High variety = mix of mental and physical tasks (better for sustained energy).
  */
-export function calculateTaskVariety(activeTasks: SuggestedTask[]): number {
-	if (!activeTasks.length) return 0;
+export function calculateTaskVariety(tasks: SuggestedTask[]): number {
+	if (!tasks.length) return 0;
 
 	// Count tasks by their dominant characteristic
-	const natures = activeTasks.map((t) => getTaskNature(t));
+	const natures = tasks.map((t) => getTaskNature(t));
 	const uniqueNatures = new Set(natures);
 	return Math.round((uniqueNatures.size / 3) * 100);
 }
@@ -628,8 +610,8 @@ export function calculateTaskVariety(activeTasks: SuggestedTask[]): number {
  * Only tasks with allocated time are sequenced — a 0h task has no session
  * to schedule.
  */
-export function calculateInterleavedOrder(activeTasks: SuggestedTask[]): SuggestedTask[] {
-	const remaining = activeTasks
+export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask[] {
+	const remaining = tasks
 		.filter((t) => t.suggestedHours > 0)
 		.sort((a, b) => b.priorityScore - a.priorityScore);
 	if (remaining.length <= 2) return remaining;
@@ -664,11 +646,11 @@ export function calculateInterleavedOrder(activeTasks: SuggestedTask[]): Suggest
  *
  * A "grind" task is one where difficulty > enjoyment (feels like a chore).
  */
-export function calculateGrindDensity(activeTasks: SuggestedTask[]): number {
-	if (!activeTasks.length) return 0;
+export function calculateGrindDensity(tasks: SuggestedTask[]): number {
+	if (!tasks.length) return 0;
 	// Use raw values for intuitive user-facing metric
-	const grindTasks = activeTasks.filter((t) => getEffectiveDifficulty(t) > t.enjoyment);
-	return Math.round((grindTasks.length / activeTasks.length) * 100);
+	const grindTasks = tasks.filter((t) => getEffectiveDifficulty(t) > t.enjoyment);
+	return Math.round((grindTasks.length / tasks.length) * 100);
 }
 
 /**
@@ -684,23 +666,23 @@ export function calculateGrindDensity(activeTasks: SuggestedTask[]): number {
  * - This: % of TIME that is sustainable
  */
 export function calculateRewardDensity(
-	activeTasks: SuggestedTask[],
+	tasks: SuggestedTask[],
 	availableHours: number
 ): number {
 	const budget = Number(availableHours) || 0;
-	if (!budget || !activeTasks.length) return 0;
+	if (!budget || !tasks.length) return 0;
 
-	const sustainableHours = activeTasks
+	const sustainableHours = tasks
 		.filter((t) => t.enjoyment >= getEffectiveDifficulty(t))
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
 	return Math.round((sustainableHours / budget) * 100);
 }
 
-export function calculateRecoveryRatio(activeTasks: SuggestedTask[]): string {
-	if (!activeTasks.length) return 'N/A';
+export function calculateRecoveryRatio(tasks: SuggestedTask[]): string {
+	if (!tasks.length) return 'N/A';
 
-	const hardTasks = activeTasks.filter((t) => getEffectiveDifficulty(t) >= 7).length;
-	const easyTasks = activeTasks.filter((t) => getEffectiveDifficulty(t) <= 4).length;
+	const hardTasks = tasks.filter((t) => getEffectiveDifficulty(t) >= 7).length;
+	const easyTasks = tasks.filter((t) => getEffectiveDifficulty(t) <= 4).length;
 
 	if (hardTasks === 0) return 'No strain';
 	if (easyTasks === 0 && hardTasks > 0) return '0:' + hardTasks;

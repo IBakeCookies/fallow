@@ -82,8 +82,10 @@
 		}
 	});
 
+	// Optimize over ALL tasks (completed included), matching the main page's
+	// allocator: checking a task done must not reshuffle the day's plan.
 	const energyTasks = $derived<EnergyTaskInput[]>(
-		activeTasks.map((t) => ({
+		tasks.map((t) => ({
 			id: t.id,
 			title: t.title,
 			difficulty: getEffectiveDifficulty(t),
@@ -110,9 +112,9 @@
 			userConstants,
 			session.constantsFit.posterior
 		);
-		const funded = calculateInterleavedOrder(
-			suggested.filter((t) => !t.completed && t.suggestedHours > 0)
-		);
+		// Completed tasks stay in: both plans simulate the full intended day,
+		// otherwise the comparison strips work from the classic side only.
+		const funded = calculateInterleavedOrder(suggested);
 		if (funded.length === 0) return null;
 		const blocks: ScheduleBlock[] = [];
 		funded.forEach((t, i) => {
@@ -465,7 +467,7 @@
 		</div>
 	</div>
 
-	{#if activeTasks.length === 0}
+	{#if tasks.length === 0}
 		<div class="space-y-6">
 			<div class="rounded-2xl border bg-surface-card p-8 text-center">
 				<p class="text-ty-secondary">{m.energy_no_open_tasks()}</p>
@@ -477,229 +479,249 @@
 		</div>
 	{:else}
 		<div class="space-y-6">
-			<!-- Timeline -->
-			<div
-				class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
-			>
-				<div class="mb-3 flex flex-wrap items-center justify-between gap-x-grid-xs gap-y-2">
-					<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-						{m.energy_optimized_day()}
-					</h3>
-					<div class="flex items-center gap-grid-xs">
-						<span class="text-xs text-ty-silent">
-							{m.energy_work_free_summary({
-								work: formatDuration(plan.evaluation.workHours),
-								free: formatDuration(plan.evaluation.leisureHours)
-							})}
-						</span>
-						<div class="flex rounded-lg border bg-surface-page/40 p-0.5 text-xs">
-							<button
-								type="button"
-								aria-pressed={planView === 'chart'}
-								class="rounded-md px-2.5 py-1 transition {planView === 'chart'
-									? 'bg-surface-hover text-ty-primary'
-									: 'text-ty-silent hover:text-ty-secondary'}"
-								onclick={() => setPlanView('chart')}
-							>
-								{m.energy_view_chart()}
-							</button>
-							<button
-								type="button"
-								aria-pressed={planView === 'schedule'}
-								class="rounded-md px-2.5 py-1 transition {planView === 'schedule'
-									? 'bg-surface-hover text-ty-primary'
-									: 'text-ty-silent hover:text-ty-secondary'}"
-								onclick={() => setPlanView('schedule')}
-							>
-								{m.energy_schedule()}
-							</button>
-						</div>
-					</div>
+			{#if activeTasks.length === 0}
+				<!-- All done: the optimizer needs an open task, but the list below
+				     stays visible so a task can be un-checked or added -->
+				<div class="rounded-2xl border bg-surface-card p-8 text-center">
+					<p class="text-ty-secondary">{m.energy_all_done()}</p>
+					<p class="mt-1 text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
 				</div>
-				{#if windowHours > 0}
-					<div class="flex h-12 w-full overflow-hidden rounded-lg border">
-						{#each plan.evaluation.blocks as block (block.start)}
-							<div
-								class="flex min-w-0 items-center justify-center border-r border-black/40 last:border-r-0"
-								style="width: {(block.hours / windowHours) * 100}%; background-color: {colorOf(
-									block.taskId
-								)}{block.taskId === null ? '66' : 'B3'}"
-								title={m.energy_block_tooltip({
-									title: block.title,
-									start: formatClock(block.start),
-									end: formatClock(block.start + block.hours),
-									duration: formatDuration(block.hours)
+			{:else}
+				<!-- Timeline -->
+				<div
+					class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
+				>
+					<div class="mb-3 flex flex-wrap items-center justify-between gap-x-grid-xs gap-y-2">
+						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+							{m.energy_optimized_day()}
+						</h3>
+						<div class="flex items-center gap-grid-xs">
+							<span class="text-xs text-ty-silent">
+								{m.energy_work_free_summary({
+									work: formatDuration(plan.evaluation.workHours),
+									free: formatDuration(plan.evaluation.leisureHours)
 								})}
-							>
-								{#if block.hours / windowHours > 0.07}
-									<span class="truncate px-1.5 text-xs font-medium text-ty-primary">
-										{block.title}
-									</span>
-								{/if}
+							</span>
+							<div class="flex rounded-lg border bg-surface-page/40 p-0.5 text-xs">
+								<button
+									type="button"
+									aria-pressed={planView === 'chart'}
+									class="rounded-md px-2.5 py-1 transition {planView === 'chart'
+										? 'bg-surface-hover text-ty-primary'
+										: 'text-ty-silent hover:text-ty-secondary'}"
+									onclick={() => setPlanView('chart')}
+								>
+									{m.energy_view_chart()}
+								</button>
+								<button
+									type="button"
+									aria-pressed={planView === 'schedule'}
+									class="rounded-md px-2.5 py-1 transition {planView === 'schedule'
+										? 'bg-surface-hover text-ty-primary'
+										: 'text-ty-silent hover:text-ty-secondary'}"
+									onclick={() => setPlanView('schedule')}
+								>
+									{m.energy_schedule()}
+								</button>
 							</div>
-						{/each}
-						{#if trailingFreeHours > 1e-6}
-							<div
-								class="flex min-w-0 items-center justify-center bg-transparent"
-								style="width: {(trailingFreeHours / windowHours) * 100}%"
-								title={m.energy_free_time_tooltip({ duration: formatDuration(trailingFreeHours) })}
-							>
-								{#if trailingFreeHours / windowHours > 0.07}
-									<span class="truncate px-1.5 text-xs text-ty-silent">{m.energy_free()}</span>
-								{/if}
-							</div>
-						{/if}
-					</div>
-					<div class="mt-1 flex justify-between text-2xs text-ty-silent">
-						<span>0:00</span>
-						<span>{formatClock(windowHours)}</span>
-					</div>
-				{:else}
-					<p class="text-sm text-ty-silent">{m.energy_set_window()}</p>
-				{/if}
-
-				<!-- Toggled region: energy chart ↔ schedule detail. The timeline bar
-				     above and the summary stats below stay put in both views. -->
-				{#if windowHours > 0}
-					{#if planView === 'chart'}
-						<svg
-							viewBox="0 0 {CHART_W} {CHART_H}"
-							class="mt-4 w-full"
-							role="img"
-							aria-label={m.energy_chart_aria()}
-						>
-							<path d={ratePath} fill="#818cf8" opacity="0.18" />
-							{#each hourTicks as h (h)}
-								<line
-									x1={xAt(h)}
-									y1={PAD_T}
-									x2={xAt(h)}
-									y2={PAD_T + plotH}
-									stroke="#ffffff"
-									opacity="0.05"
-								/>
-								<text x={xAt(h)} y={CHART_H - 6} fill="#71717a" font-size="9" text-anchor="middle">
-									{h}h
-								</text>
-							{/each}
-							<line
-								x1={PAD_L}
-								y1={yAt(0)}
-								x2={PAD_L + plotW}
-								y2={yAt(0)}
-								stroke="#ffffff"
-								opacity="0.15"
-							/>
-							<path d={cogPath} fill="none" stroke="#60a5fa" stroke-width="1.8" />
-							<path d={physPath} fill="none" stroke="#34d399" stroke-width="1.8" />
-						</svg>
-						<div class="mt-1 flex gap-grid-md text-xs text-ty-silent">
-							<span class="flex items-center gap-grid-2xs">
-								<span class="h-0.5 w-4 rounded bg-mind"></span>
-								{m.energy_legend_cognitive()}
-							</span>
-							<span class="flex items-center gap-grid-2xs">
-								<span class="h-0.5 w-4 rounded bg-body"></span>
-								{m.energy_legend_physical()}
-							</span>
-							<span class="flex items-center gap-grid-2xs">
-								<span class="h-2 w-4 rounded bg-brand/30"></span>
-								{m.energy_legend_output()}
-							</span>
 						</div>
-					{:else if plan.evaluation.blocks.length === 0}
-						<p class="mt-4 text-sm text-ty-silent">
-							{m.energy_nothing_scheduled()}
-						</p>
-					{:else}
-						<ul class="mt-4 space-y-2">
+					</div>
+					{#if windowHours > 0}
+						<div class="flex h-12 w-full overflow-hidden rounded-lg border">
 							{#each plan.evaluation.blocks as block (block.start)}
-								<li class="flex items-center gap-grid-xs text-sm">
-									<span
-										class="h-2.5 w-2.5 shrink-0 rounded-full"
-										style="background-color: {colorOf(block.taskId)}"
-									></span>
-									<span class="w-24 shrink-0 tabular-nums text-ty-silent">
-										{formatClock(block.start)}–{formatClock(block.start + block.hours)}
-									</span>
-									<span
-										class="min-w-0 flex-1 truncate {block.taskId === null
-											? 'text-ty-silent italic'
-											: 'text-ty-primary'}"
-									>
-										{block.title}
-									</span>
-									<span class="shrink-0 text-xs text-ty-silent">
-										{formatDuration(block.hours)}
-									</span>
-									{#if block.taskId !== null}
-										<span class="w-20 shrink-0 text-right text-xs tabular-nums text-brand-strong/80">
-											{m.energy_output_suffix({ output: block.output.toFixed(2) })}
-										</span>
-									{:else}
-										<span class="w-20 shrink-0 text-right text-xs text-ty-silent">
-											{m.energy_recovery()}
+								<div
+									class="flex min-w-0 items-center justify-center border-r border-black/40 last:border-r-0"
+									style="width: {(block.hours / windowHours) * 100}%; background-color: {colorOf(
+										block.taskId
+									)}{block.taskId === null ? '66' : 'B3'}"
+									title={m.energy_block_tooltip({
+										title: block.title,
+										start: formatClock(block.start),
+										end: formatClock(block.start + block.hours),
+										duration: formatDuration(block.hours)
+									})}
+								>
+									{#if block.hours / windowHours > 0.07}
+										<span class="truncate px-1.5 text-xs font-medium text-ty-primary">
+											{block.title}
 										</span>
 									{/if}
-								</li>
+								</div>
 							{/each}
 							{#if trailingFreeHours > 1e-6}
-								<li class="flex items-center gap-grid-xs text-sm">
-									<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-line-strong"></span>
-									<span class="w-24 shrink-0 tabular-nums text-ty-silent">
-										{formatClock(plannedHours)}–{formatClock(windowHours)}
-									</span>
-									<span class="flex-1 text-ty-silent italic">{m.energy_free_time()}</span>
-									<span class="shrink-0 text-xs text-ty-silent">
-										{formatDuration(trailingFreeHours)}
-									</span>
-									<span class="w-20"></span>
-								</li>
+								<div
+									class="flex min-w-0 items-center justify-center bg-transparent"
+									style="width: {(trailingFreeHours / windowHours) * 100}%"
+									title={m.energy_free_time_tooltip({
+										duration: formatDuration(trailingFreeHours)
+									})}
+								>
+									{#if trailingFreeHours / windowHours > 0.07}
+										<span class="truncate px-1.5 text-xs text-ty-silent">{m.energy_free()}</span>
+									{/if}
+								</div>
 							{/if}
-						</ul>
+						</div>
+						<div class="mt-1 flex justify-between text-2xs text-ty-silent">
+							<span>0:00</span>
+							<span>{formatClock(windowHours)}</span>
+						</div>
+					{:else}
+						<p class="text-sm text-ty-silent">{m.energy_set_window()}</p>
 					{/if}
 
-					<!-- Summary: the objective readout, visible in both views -->
-					<div class="mt-5 grid grid-cols-2 gap-grid-md border-t pt-4 sm:grid-cols-4">
-						<div>
-							<p class="text-lg font-semibold text-ty-primary">
-								{plan.evaluation.totalOutput.toFixed(1)}
+					<!-- Toggled region: energy chart ↔ schedule detail. The timeline bar
+					     above and the summary stats below stay put in both views. -->
+					{#if windowHours > 0}
+						{#if planView === 'chart'}
+							<svg
+								viewBox="0 0 {CHART_W} {CHART_H}"
+								class="mt-4 w-full"
+								role="img"
+								aria-label={m.energy_chart_aria()}
+							>
+								<path d={ratePath} fill="#818cf8" opacity="0.18" />
+								{#each hourTicks as h (h)}
+									<line
+										x1={xAt(h)}
+										y1={PAD_T}
+										x2={xAt(h)}
+										y2={PAD_T + plotH}
+										stroke="#ffffff"
+										opacity="0.05"
+									/>
+									<text
+										x={xAt(h)}
+										y={CHART_H - 6}
+										fill="#71717a"
+										font-size="9"
+										text-anchor="middle"
+									>
+										{h}h
+									</text>
+								{/each}
+								<line
+									x1={PAD_L}
+									y1={yAt(0)}
+									x2={PAD_L + plotW}
+									y2={yAt(0)}
+									stroke="#ffffff"
+									opacity="0.15"
+								/>
+								<path d={cogPath} fill="none" stroke="#60a5fa" stroke-width="1.8" />
+								<path d={physPath} fill="none" stroke="#34d399" stroke-width="1.8" />
+							</svg>
+							<div class="mt-1 flex gap-grid-md text-xs text-ty-silent">
+								<span class="flex items-center gap-grid-2xs">
+									<span class="h-0.5 w-4 rounded bg-mind"></span>
+									{m.energy_legend_cognitive()}
+								</span>
+								<span class="flex items-center gap-grid-2xs">
+									<span class="h-0.5 w-4 rounded bg-body"></span>
+									{m.energy_legend_physical()}
+								</span>
+								<span class="flex items-center gap-grid-2xs">
+									<span class="h-2 w-4 rounded bg-brand/30"></span>
+									{m.energy_legend_output()}
+								</span>
+							</div>
+						{:else if plan.evaluation.blocks.length === 0}
+							<p class="mt-4 text-sm text-ty-silent">
+								{m.energy_nothing_scheduled()}
 							</p>
-							<p class="text-xs text-ty-silent">{m.energy_total_output()}</p>
-						</div>
-						<div>
-							<p class="text-lg font-semibold text-ty-primary">
-								{Math.round(plan.evaluation.endCog * 100)}% /
-								{Math.round(plan.evaluation.endPhys * 100)}%
-							</p>
-							<p class="text-xs text-ty-silent">{m.energy_end_energy()}</p>
-						</div>
-						<div>
-							<p class="text-lg font-semibold text-ty-primary">
-								{formatDuration(plan.evaluation.workHours)}
-							</p>
-							<p class="text-xs text-ty-silent">{m.energy_planned_work()}</p>
-						</div>
-						<div>
-							{#if outputVsClassic !== null}
-								<p
-									class="text-lg font-semibold {outputVsClassic >= 0
-										? 'text-success'
-										: 'text-warning'}"
-								>
-									{outputVsClassic >= 0 ? '+' : ''}{outputVsClassic}%
+						{:else}
+							<ul class="mt-4 space-y-2">
+								{#each plan.evaluation.blocks as block (block.start)}
+									<li class="flex items-center gap-grid-xs text-sm">
+										<span
+											class="h-2.5 w-2.5 shrink-0 rounded-full"
+											style="background-color: {colorOf(block.taskId)}"
+										></span>
+										<span class="w-24 shrink-0 tabular-nums text-ty-silent">
+											{formatClock(block.start)}–{formatClock(block.start + block.hours)}
+										</span>
+										<span
+											class="min-w-0 flex-1 truncate {block.taskId === null
+												? 'text-ty-silent italic'
+												: 'text-ty-primary'}"
+										>
+											{block.title}
+										</span>
+										<span class="shrink-0 text-xs text-ty-silent">
+											{formatDuration(block.hours)}
+										</span>
+										{#if block.taskId !== null}
+											<span
+												class="w-20 shrink-0 text-right text-xs tabular-nums text-brand-strong/80"
+											>
+												{m.energy_output_suffix({ output: block.output.toFixed(2) })}
+											</span>
+										{:else}
+											<span class="w-20 shrink-0 text-right text-xs text-ty-silent">
+												{m.energy_recovery()}
+											</span>
+										{/if}
+									</li>
+								{/each}
+								{#if trailingFreeHours > 1e-6}
+									<li class="flex items-center gap-grid-xs text-sm">
+										<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-line-strong"
+										></span>
+										<span class="w-24 shrink-0 tabular-nums text-ty-silent">
+											{formatClock(plannedHours)}–{formatClock(windowHours)}
+										</span>
+										<span class="flex-1 text-ty-silent italic">{m.energy_free_time()}</span>
+										<span class="shrink-0 text-xs text-ty-silent">
+											{formatDuration(trailingFreeHours)}
+										</span>
+										<span class="w-20"></span>
+									</li>
+								{/if}
+							</ul>
+						{/if}
+
+						<!-- Summary: the objective readout, visible in both views -->
+						<div class="mt-5 grid grid-cols-2 gap-grid-md border-t pt-4 sm:grid-cols-4">
+							<div>
+								<p class="text-lg font-semibold text-ty-primary">
+									{plan.evaluation.totalOutput.toFixed(1)}
 								</p>
-								<p class="text-xs text-ty-silent">
-									{m.energy_vs_classic()}
+								<p class="text-xs text-ty-silent">{m.energy_total_output()}</p>
+							</div>
+							<div>
+								<p class="text-lg font-semibold text-ty-primary">
+									{Math.round(plan.evaluation.endCog * 100)}% /
+									{Math.round(plan.evaluation.endPhys * 100)}%
 								</p>
-							{:else}
-								<p class="text-lg font-semibold text-ty-silent">—</p>
-								<p class="text-xs text-ty-silent">{m.energy_no_classic()}</p>
-							{/if}
+								<p class="text-xs text-ty-silent">{m.energy_end_energy()}</p>
+							</div>
+							<div>
+								<p class="text-lg font-semibold text-ty-primary">
+									{formatDuration(plan.evaluation.workHours)}
+								</p>
+								<p class="text-xs text-ty-silent">{m.energy_planned_work()}</p>
+							</div>
+							<div>
+								{#if outputVsClassic !== null}
+									<p
+										class="text-lg font-semibold {outputVsClassic >= 0
+											? 'text-success'
+											: 'text-warning'}"
+									>
+										{outputVsClassic >= 0 ? '+' : ''}{outputVsClassic}%
+									</p>
+									<p class="text-xs text-ty-silent">
+										{m.energy_vs_classic()}
+									</p>
+								{:else}
+									<p class="text-lg font-semibold text-ty-silent">—</p>
+									<p class="text-xs text-ty-silent">{m.energy_no_classic()}</p>
+								{/if}
+							</div>
 						</div>
-					</div>
-				{/if}
-			</div>
+					{/if}
+				</div>
+			{/if}
 
 			<div class="grid gap-6 lg:grid-cols-3 items-start">
 				<div class="space-y-6 lg:col-span-2">
@@ -716,148 +738,181 @@
 						<p class="mb-3 text-xs text-ty-silent">
 							{m.energy_drag_hint()}
 						</p>
-						<ul class="space-y-1">
-							{#each tasks as task (task.id)}
-								<li
-									class="group rounded-lg p-2 transition hover:bg-surface-card"
-									class:opacity-50={task.completed}
-								>
-									<div class="flex items-center gap-grid-xs">
-										<input
-											type="checkbox"
-											checked={task.completed}
-											onchange={() => session.toggleTask(task.id)}
-											class="h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
-										/>
-										<span
-											class="h-2.5 w-2.5 shrink-0 rounded-full"
-											style="background-color: {colorOf(task.id)}"
-										></span>
-										<span
-											class="min-w-0 flex-1 truncate text-sm font-medium capitalize {task.completed
-												? 'text-ty-silent line-through'
-												: 'text-ty-primary'}"
-										>
-											{task.title}
-										</span>
-										{#if !task.completed}
+						<Tooltip.Provider delayDuration={150}>
+							<ul class="space-y-1">
+								{#each tasks as task (task.id)}
+									<li
+										class="group rounded-lg p-2 transition hover:bg-surface-card"
+										class:opacity-50={task.completed}
+									>
+										<div class="flex items-center gap-grid-xs">
+											<input
+												type="checkbox"
+												checked={task.completed}
+												onchange={() => session.toggleTask(task.id)}
+												class="h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
+											/>
+											<span
+												class="h-2.5 w-2.5 shrink-0 rounded-full"
+												style="background-color: {colorOf(task.id)}"
+											></span>
+											<span
+												class="min-w-0 flex-1 truncate text-sm font-medium capitalize {task.completed
+													? 'text-ty-silent line-through'
+													: 'text-ty-primary'}"
+											>
+												{task.title}
+											</span>
+											{#if !task.completed}
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														{#snippet child({ props })}
+															<button
+																{...props}
+																type="button"
+																aria-label={m.energy_log_drain_aria()}
+																class="shrink-0 transition {todaysDrainLog(task.id)
+																	? 'text-flow'
+																	: 'text-ty-silent opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-flow'}"
+																onclick={() =>
+																	drainDraft?.taskId === task.id
+																		? (drainDraft = null)
+																		: openDrainLog(task.id)}
+															>
+																🪫
+															</button>
+														{/snippet}
+													</Tooltip.Trigger>
+													<Tooltip.Content
+														side="top"
+														class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
+													>
+														<p>{m.energy_log_drain_tooltip()}</p>
+													</Tooltip.Content>
+												</Tooltip.Root>
+											{/if}
 											<button
 												type="button"
-												aria-label={m.energy_log_drain_aria()}
-												title={m.energy_log_drain_tooltip()}
-												class="shrink-0 transition {todaysDrainLog(task.id)
-													? 'text-flow'
-													: 'text-ty-silent opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-flow'}"
-												onclick={() =>
-													drainDraft?.taskId === task.id
-														? (drainDraft = null)
-														: openDrainLog(task.id)}
+												aria-label={m.task_remove_aria()}
+												title={m.task_remove_tooltip()}
+												class="shrink-0 text-ty-silent opacity-0 transition hover:text-danger focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+												onclick={() => session.removeTask(task.id)}
 											>
-												🪫
+												✕
 											</button>
-										{/if}
-										<button
-											type="button"
-											aria-label={m.task_remove_aria()}
-											title={m.task_remove_tooltip()}
-											class="shrink-0 text-ty-silent opacity-0 transition hover:text-danger focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-											onclick={() => session.removeTask(task.id)}
-										>
-											✕
-										</button>
-									</div>
-									{#if !task.completed}
-										<div class="mt-2 ml-7 grid gap-x-5 gap-y-grid-2xs sm:grid-cols-3">
-											{#each sliders as s (s.key)}
-												<label
-													class="flex items-center gap-2 text-2xs text-ty-silent"
-													title={s.title}
-												>
-													<span class="w-3 font-medium {s.color}">{s.label}</span>
-													<input
-														type="range"
-														min={s.min}
-														max="10"
-														value={task[s.key]}
-														oninput={(e) =>
-															setTaskValue(task.id, s.key, Number(e.currentTarget.value))}
-														class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-line-strong {s.accent}"
-													/>
-													<span class="w-4 text-right tabular-nums text-ty-secondary">
-														{task[s.key]}
-													</span>
-												</label>
-											{/each}
 										</div>
-										{#if drainDraft?.taskId === task.id}
-											<form
-												class="mt-2 ml-7 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-2.5 py-2 text-2xs text-ty-silent"
-												onsubmit={(e) => (e.preventDefault(), saveDrainLog())}
-											>
-												<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>
-												<label class="flex items-center gap-grid-2xs">
-													{m.energy_drain_worked_label()}
-													<!-- svelte-ignore a11y_autofocus -->
-													<input
-														type="number"
-														min="1"
-														max="960"
-														placeholder={m.task_minutes_placeholder()}
-														autofocus
-														bind:value={drainDraft.minutes}
-														class="w-14 rounded border border-flow/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-flow/60"
-													/>
-												</label>
-												<label
-													class="flex items-center gap-grid-2xs"
-													title={m.energy_drain_mind_title()}
-												>
-													<span class="font-medium text-mind/80">
-														{m.energy_drain_mind_label()}
-													</span>
-													<input
-														type="number"
-														min="0"
-														max="10"
-														step="1"
-														bind:value={drainDraft.mind}
-														class="w-12 rounded border border-mind/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-mind/60"
-													/>
-												</label>
-												<label
-													class="flex items-center gap-grid-2xs"
-													title={m.energy_drain_body_title()}
-												>
-													<span class="font-medium text-body/80">
-														{m.energy_drain_body_label()}
-													</span>
-													<input
-														type="number"
-														min="0"
-														max="10"
-														step="1"
-														bind:value={drainDraft.body}
-														class="w-12 rounded border border-body/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-body/60"
-													/>
-												</label>
-												<span class="ml-auto flex items-center gap-1">
-													<button type="submit" class="px-1 text-flow hover:text-flow">
-														✓
-													</button>
-													<button
-														type="button"
-														class="px-1 text-ty-silent hover:text-ty-secondary"
-														onclick={() => (drainDraft = null)}
+										{#if !task.completed}
+											<div class="mt-2 ml-7 grid gap-x-5 gap-y-grid-2xs sm:grid-cols-3">
+												{#each sliders as s (s.key)}
+													<label
+														class="flex items-center gap-2 text-2xs text-ty-silent"
+														title={s.title}
 													>
-														✕
-													</button>
-												</span>
-											</form>
+														<span class="w-3 font-medium {s.color}">{s.label}</span>
+														<input
+															type="range"
+															min={s.min}
+															max="10"
+															value={task[s.key]}
+															oninput={(e) =>
+																setTaskValue(task.id, s.key, Number(e.currentTarget.value))}
+															class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-line-strong {s.accent}"
+														/>
+														<span class="w-4 text-right tabular-nums text-ty-secondary">
+															{task[s.key]}
+														</span>
+													</label>
+												{/each}
+											</div>
+											{#if drainDraft?.taskId === task.id}
+												{@const draft = drainDraft}
+												<form
+													class="mt-2 ml-7 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-2.5 py-2 text-2xs text-ty-silent"
+													onsubmit={(e) => (e.preventDefault(), saveDrainLog())}
+												>
+													<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>
+													<label class="flex items-center gap-grid-2xs">
+														{m.energy_drain_worked_label()}
+														<!-- svelte-ignore a11y_autofocus -->
+														<input
+															type="number"
+															min="1"
+															max="960"
+															placeholder={m.task_minutes_placeholder()}
+															autofocus
+															bind:value={draft.minutes}
+															class="w-14 rounded border border-flow/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-flow/60"
+														/>
+													</label>
+													<Tooltip.Root>
+														<Tooltip.Trigger>
+															{#snippet child({ props })}
+																<label {...props} class="flex items-center gap-grid-2xs">
+																	<span class="font-medium text-mind/80">
+																		{m.energy_drain_mind_label()}
+																	</span>
+																	<input
+																		type="number"
+																		min="0"
+																		max="10"
+																		step="1"
+																		bind:value={draft.mind}
+																		class="w-12 rounded border border-mind/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-mind/60"
+																	/>
+																</label>
+															{/snippet}
+														</Tooltip.Trigger>
+														<Tooltip.Content
+															side="top"
+															class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
+														>
+															<p>{m.energy_drain_mind_title()}</p>
+														</Tooltip.Content>
+													</Tooltip.Root>
+													<Tooltip.Root>
+														<Tooltip.Trigger>
+															{#snippet child({ props })}
+																<label {...props} class="flex items-center gap-grid-2xs">
+																	<span class="font-medium text-body/80">
+																		{m.energy_drain_body_label()}
+																	</span>
+																	<input
+																		type="number"
+																		min="0"
+																		max="10"
+																		step="1"
+																		bind:value={draft.body}
+																		class="w-12 rounded border border-body/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-body/60"
+																	/>
+																</label>
+															{/snippet}
+														</Tooltip.Trigger>
+														<Tooltip.Content
+															side="top"
+															class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
+														>
+															<p>{m.energy_drain_body_title()}</p>
+														</Tooltip.Content>
+													</Tooltip.Root>
+													<span class="ml-auto flex items-center gap-1">
+														<button type="submit" class="px-1 text-flow hover:text-flow">
+															✓
+														</button>
+														<button
+															type="button"
+															class="px-1 text-ty-silent hover:text-ty-secondary"
+															onclick={() => (drainDraft = null)}
+														>
+															✕
+														</button>
+													</span>
+												</form>
+											{/if}
 										{/if}
-									{/if}
-								</li>
-							{/each}
-						</ul>
+									</li>
+								{/each}
+							</ul>
+						</Tooltip.Provider>
 						<div class="mt-3">
 							<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={false} />
 						</div>

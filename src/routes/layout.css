@@ -31,6 +31,7 @@
 @custom-variant ember (&:is(.ember *));
 @custom-variant glacier (&:is(.glacier *));
 @custom-variant zenith (&:is(.zenith *));
+@custom-variant nadir (&:is(.nadir *));
 @custom-variant fallow (&:is(.fallow *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
@@ -253,8 +254,8 @@
 
 	--input: oklch(1 0 0 / 0.55);
 
-	/* harmonize with the green-yellow gouache backdrop */
-	--primary: oklch(0.62 0.15 155 / 0.9);
+	/* harmonize with the green-yellow gouache backdrop; dark enough for white label text */
+	--primary: oklch(0.55 0.15 155 / 0.95);
 	--primary-foreground: var(--color-white);
 }
 
@@ -284,19 +285,21 @@
 	/* flat neon panels — no floating layers */
 	--card-shadow: 0 0 #0000;
 
-	--border: oklch(96.489% 0.11619 118.762);
+	/* neon wireframe, but dimmer than content */
+	--border: oklch(0.85 0.18 122 / 0.4);
 
-	--color-ty-primary: oklch(100% 0.00011 271.152);
-	--color-ty-secondary: oklch(0.93 0.21 122);
+	--color-ty-primary: oklch(1 0 0);
+	/* lime, but receding below the white primary text */
+	--color-ty-secondary: oklch(0.8 0.15 122);
 
-	--surface-page: oklch(25.819% 0.01365 304.767);
-	--surface-card: oklch(31.859% 0.01131 307.961);
-	--surface-inset: oklch(25.912% 0.01719 300.378);
+	--surface-page: oklch(0.26 0.014 305);
+	--surface-card: oklch(0.32 0.011 308);
+	--surface-inset: oklch(0.26 0.017 300);
 
 	--input: oklch(0.38 0.02 305);
 
 	--primary: oklch(0.67 0.26 345);
-	--primary-foreground: oklch(100% 0.00011 271.152);
+	--primary-foreground: oklch(1 0 0);
 
 	/* neon accents — pink/cyan/green */
 	--color-danger: oklch(0.68 0.26 15);
@@ -356,8 +359,8 @@
 
 	--input: oklch(1 0 0 / 0.6);
 
-	/* sunrise coral */
-	--primary: oklch(0.6 0.19 25);
+	/* sunrise coral, deep enough for white label text */
+	--primary: oklch(0.55 0.19 25);
 	--primary-foreground: var(--color-white);
 
 	--color-brand: oklch(0.55 0.17 35);
@@ -418,9 +421,9 @@
 	--primary: oklch(0.85 0.21 145);
 	--primary-foreground: oklch(0.15 0.03 150);
 
-	/* everything glows green or amber — it's 1982 */
-	--color-danger: oklch(0.75 0.19 60);
-	--color-danger-strong: oklch(0.82 0.16 60);
+	/* everything glows green or amber — it's 1982; danger runs hot orange so errors still scan */
+	--color-danger: oklch(0.7 0.21 40);
+	--color-danger-strong: oklch(0.78 0.18 40);
 	--color-warning: oklch(0.85 0.17 95);
 	--color-warning-strong: oklch(0.9 0.14 95);
 	--color-success: oklch(0.87 0.21 145);
@@ -499,8 +502,8 @@
 	--input: oklch(1 0 0 / 0.65);
 	--border: oklch(0.6 0.16 350 / 0.25);
 
-	/* hot bubblegum pink */
-	--primary: oklch(0.68 0.21 350);
+	/* hot bubblegum pink, deep enough for white label text */
+	--primary: oklch(0.58 0.21 350);
 	--primary-foreground: var(--color-white);
 
 	--color-brand: oklch(0.62 0.21 350);
@@ -630,6 +633,15 @@
 
 	--color-brand: oklch(0.62 0.19 20);
 	--color-brand-strong: oklch(0.7 0.17 20);
+	/* states stay smoky too — only crimson gets to be a color */
+	--color-danger: oklch(0.68 0.19 20);
+	--color-danger-strong: oklch(0.76 0.17 20);
+	--color-warning: oklch(0.8 0.05 90);
+	--color-warning-strong: oklch(0.87 0.04 90);
+	--color-success: oklch(0.78 0.04 160);
+	--color-success-strong: oklch(0.85 0.03 160);
+	--color-info: oklch(0.78 0.03 250);
+	--color-info-strong: oklch(0.85 0.03 250);
 	/* domain accents stay smoky so the crimson pops */
 	--color-mind: oklch(0.78 0.03 250);
 	--color-mind-strong: oklch(0.85 0.03 250);
@@ -728,6 +740,40 @@
 	--color-mixed: oklch(0.52 0.13 300);
 }
 
+.nadir {
+	/* zenith's opposite: midnight — the sun at its lowest, a full moon overhead,
+	   the sky deepest straight up and paling toward the horizon */
+	--background-image:
+		radial-gradient(circle at 50% -10rem, oklch(0.98 0.005 220 / 0.9) 0 6.5rem, transparent 17rem),
+		radial-gradient(ellipse 55% 32% at 50% -6%, oklch(0.75 0.04 230 / 0.35), transparent 70%),
+		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.38 0.06 260 / 0.55), transparent 70%),
+		linear-gradient(oklch(0.13 0.03 265), oklch(0.22 0.045 260));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.16 0.03 262);
+	/* moonlit glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.25);
+	--color-ty-primary: oklch(0.96 0.01 230);
+
+	--input: oklch(1 0 0 / 0.1);
+	--border: oklch(0.85 0.04 230 / 0.22);
+
+	/* the moon itself */
+	--primary: oklch(0.88 0.04 230);
+	--primary-foreground: oklch(0.2 0.04 260);
+	--ring: oklch(0.88 0.04 230 / 0.5);
+
+	--color-brand: oklch(0.82 0.06 235);
+	--color-brand-strong: oklch(0.9 0.05 235);
+	/* starlight gold */
+	--color-flow: oklch(0.85 0.09 85);
+	--color-mind: oklch(0.78 0.09 250);
+	--color-mind-strong: oklch(0.86 0.08 250);
+	--color-mixed: oklch(0.75 0.1 300);
+}
+
 .fallow {
 	/* the namesake: a field at rest — straw-gold stubble, quiet green regrowth,
 	   a wide pale sky. Rest is not idleness; it is how the ground yields again. */
@@ -755,7 +801,8 @@
 	--color-brand-strong: oklch(0.44 0.1 128);
 	/* straw gold */
 	--color-flow: oklch(0.65 0.13 85);
-	--color-body: oklch(0.55 0.12 145);
+	/* spruce teal — keeps body distinct from the field-green primary */
+	--color-body: oklch(0.5 0.12 175);
 	--color-mixed: oklch(0.55 0.11 310);
 }
 

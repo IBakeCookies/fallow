@@ -1183,7 +1183,7 @@ since v2, §3).
   beat the block-quantized plan under the sum-of-averages objective — a
   consequence of the §0 objective choice, not a bug in the comparison.
 
-### 11.3 Burnout Risk: overhang counts funded tasks' T* only
+### 11.3 Burnout Risk: overhang counts funded tasks' T* only (formula since superseded by §11.6; the `availableHours` = intended-work reading survives)
 
 - **Before:** `overhang = max(0, effectiveBudget − Σ T*ᵢ)` with the sum over
   ALL active tasks, funded or not.
@@ -1235,3 +1235,122 @@ since v2, §3).
   integrity. The new ratio measures fragmentation directly: the same 4
   worked hours read 100% as one session, 94% across two tasks, 70% across
   eight.
+
+### 11.6 Burnout Risk v2: re-derived from the energy model (2026-07-20)
+
+- **Retired:** the standalone strain-hours heuristic
+
+  `risk = min(100, (Σ max(0, E/β − 1)·h·cogIntensity + overhang·avgStrain·2) / 5 · 100)`
+
+  with `STRAIN_CAPACITY = 5`, `cogIntensity = 1 + 0.3·mentalDifficulty/10`,
+  and the overwork term weighted 2×.
+
+- **Replaced by:** a reservoir simulation of the day the user actually
+  intends. Build the plan's schedule — funded tasks in the interleaved run
+  order, switch costs as rest gaps (`taskId = null`), budget hours beyond the
+  funded plan stretching the funded blocks pro-rata — and evolve both
+  reservoirs through the §8.1/§8.5 law
+  (`dC/dτ = −α·w·C + r′·(1−(1−b)·w)·(1−C)`, closed-form per block). Then
+
+  `risk = 100 · (1 − min(C_cog(T), C_phys(T)))`
+
+  — the depletion of the MOST-DRAINED reservoir at the end of the intended
+  workday (min, not a blend: burnout follows the exhausted system).
+
+- **Why retired.** The heuristic borrowed the model's symbols but derived
+  from nothing: 5 strain-hours, the 2× overwork weight, and the 1.3×
+  cognitive multiplier were invented constants beside a calibrated model.
+  Probes (2026-07-20): worst-case work saturated the scale after ~1.4h — 4h
+  of high-demand work read 100%, as did any day from 1.5h up, so the metric
+  was in practice a binary "planned any hard work" flag. It double-counted
+  difficulty (in E and again in `cogIntensity`, which correlate) and was
+  connected to NO user-capacity quantity — the complaint that triggered the
+  rework.
+- **What the derivation buys.**
+  - _Personalization:_ the main page seeds `DEFAULT_ENERGY_PARAMS` and
+    applies the user's own calibration fits — recovery `r` first (§8.9), the
+    two `α` fits conditioned on it (§8.7) — so the same plan reads differently
+    for a fast- vs slow-draining user. This is the capacity connection the
+    heuristic lacked (declared pools additionally enter via allocation, as
+    before).
+  - _Overwork without a magic weight:_ intended hours beyond the plan
+    (§11.3's documented `availableHours` reading, unchanged) simply drain the
+    reservoirs longer in simulation.
+  - _Resolution:_ defaults give 25/41/57/63/66% for 1/2/4/6/8h of
+    demand-0.9 cognitive work — monotone and discriminating where the old
+    scale was pinned at 100.
+- **Deliberate semantic changes.**
+  - _Enjoyment no longer enters._ In the energy model drain is
+    f(demand, duration); enjoyment shapes output value (warm-up amplitude,
+    satiety), not depletion. Loved-hard = hated-hard in risk — the §11.4
+    boundary ("difficulty you love is not friction") applied to burnout.
+    Locked by test.
+  - _100% is unreachable._ Micro-recovery (§8.5) floors each reservoir at
+    `eq > 0`; a full-demand cognitive day tops out near 87% at defaults, and
+    sustained moderate work plateaus at its equilibrium depletion (an 8h and
+    a 16h demand-0.5 day read alike — the model's statement that such load is
+    sustainable, per the Rohmert threshold behind §8.5).
+  - _Properties preserved:_ dropped tasks (0h) leave the risk unchanged
+    (§11.3, now by construction — they contribute no block); a declared
+    budget with nothing funded still warns (simulated at the task list's
+    average demands); no tasks or no intended hours → 0.
+- **Rejected alternative:** scaling the heuristic's `STRAIN_CAPACITY` with
+  the declared cognitive pool. It fixes the reported symptom (capacity
+  disconnect) but keeps the invented constants, the double-counting, and the
+  saturation cliff — patching a formula the model can simply replace.
+
+### 11.7 Momentum: burnout claim removed, fed active tasks (2026-07-20)
+
+- **Before:** computed over ALL session tasks (completed included), with a
+  tooltip claiming "Reset Reqd = burnout risk".
+- **After:** same formula — `round(avg(enjoyment − effectiveDifficulty))`,
+  raw 1–10 values — but over ACTIVE (uncompleted) tasks, tooltip reworded to
+  motivation drain.
+- **Why, twofold.** (1) After §11.6, Burnout Risk is demand × duration
+  through the reservoirs with enjoyment deliberately excluded; Momentum is
+  pure affect with no time dimension. The old tooltip made the two
+  contradict on the dashboard: a loved-hard 12h day read "Upward /
+  sustainable" next to ~85% burnout risk, a hated-trivial half hour read
+  "Reset Reqd = burnout risk" next to ~5%. Both numbers were right; the
+  label merged two orthogonal concepts. Burnout Risk now owns depletion;
+  Momentum owns motivation. (2) Over the full backlog the metric was static
+  as you worked — completed tasks kept counting, so only editing the list
+  moved it, and it disagreed with its affect siblings (Grind Density, Quick
+  Wins, Recovery Ratio), which already read active tasks. Over active tasks
+  it responds as the day progresses: finishing the draining tasks makes the
+  remaining-day outlook tick upward — which is what "momentum" should mean.
+- **Deliberate non-change:** still unweighted by hours. Hour-weighting over
+  `suggestedHours` would silently erase unfunded (0h) tasks from the
+  average; the metric reads the whole remaining backlog, funded or not.
+  (The "affect siblings" clause in (2) is superseded by §11.8: Grind Density
+  and Recovery Ratio moved to plan scope; Momentum stays active-scoped.)
+
+### 11.8 Metric scope families: plan / progress / next-up (2026-07-20)
+
+Every dashboard metric now answers exactly one of three questions, and its
+task set follows from the question — the test being "should this move when I
+check a task done?":
+
+- **Plan** ("what does today look like as designed?") — all `suggestedTasks`,
+  completed included; completing a task must NOT move them, since its hours
+  stay allocated. Fallow Gain, Human Capacity, Time Scarcity, Burnout Risk,
+  Cognitive/Physical Load, Energy Balance, Schedule Integrity, Friction,
+  Deep Work, Sustainable Work, Day Profile, averages — and, rescoped from
+  active in this change: **Flow Coverage, Task Variety, Grind Density,
+  Recovery Ratio**. (Variety previously flashed a red 0 as the last tasks
+  completed; coverage read the plan as "worse" when a flow-reaching task was
+  checked off.)
+- **Progress** ("how well am I executing the plan?") — all tasks by
+  construction; completed tasks are the numerator, so these MUST move on
+  completion. Completion Rate, Yield Index.
+- **Next-up** ("what should I grab / watch out for next?") — active
+  (uncompleted) tasks; these SHOULD deplete as the day progresses. Momentum
+  (§11.7 reading kept; over all tasks it would duplicate Day Profile, which
+  classifies the same two averages), Quick Wins, Bottleneck (tooltip now
+  states it may name an unfunded task), suggested run order.
+
+Also in this change: `flowCoverage.optimal` dropped (computed, never
+displayed), and the Energy Lab's classic-plan comparison no longer strips
+completed tasks from the classic side only — both plans simulate the full
+intended day, so `outputVsClassic` is no longer biased toward the energy
+plan once anything is checked off.

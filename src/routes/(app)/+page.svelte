@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
@@ -45,6 +46,11 @@
 		calculateAverageMentalDifficulty,
 		calculateAverageEnjoyment
 	} from '$lib/business/model/metric/calculation';
+	import {
+		DEFAULT_ENERGY_PARAMS,
+		fitDrainRate,
+		fitRecoveryRate
+	} from '$lib/business/model/zenith-energy';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 
 	// Shared daily session (tasks, budget, pools + persistence) — set in the
@@ -68,13 +74,17 @@
 	const dateParam = $derived(page.url.searchParams.get('date'));
 	$effect(() => {
 		if (browser && dateParam === today) {
-			goto('/', { replaceState: true, noScroll: true, keepFocus: true });
+			goto(resolve('/'), { replaceState: true, noScroll: true, keepFocus: true });
 		}
 	});
 
 	// Navigate to a day; the store follows the URL and loads it.
 	function gotoDate(newDate: string) {
-		goto(newDate === today ? '/' : `/?date=${newDate}`, { noScroll: true, keepFocus: true });
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- the rule has no allowed shape for resolve() + query string
+		goto(newDate === today ? resolve('/') : `${resolve('/')}?date=${newDate}`, {
+			noScroll: true,
+			keepFocus: true
+		});
 	}
 
 	function formatDisplayDate(dateStr: string): string {
@@ -139,28 +149,78 @@
 	);
 	const completionRate = $derived(calculateCompletionRate(suggestedTasks));
 	const yieldIndex = $derived(calculateYieldIndex(suggestedTasks));
-	const flowCoverage = $derived(calculateFlowCoverage(activeTasks));
-	const humanCapacity = $derived(calculateHumanCapacity(activeTasks, pools));
+	// Task-set split: metrics describing the DAY'S PLAN take suggestedTasks
+	// (all tasks — completing one must not move them, since its hours stay
+	// allocated), while remaining-work metrics take activeTasks. Feeding
+	// activeTasks against the full budget/pools mixed scopes: e.g. burnout
+	// risk ROSE when a task was checked done (its T* left the overhang sum
+	// but the budget didn't shrink).
+	const flowCoverage = $derived(calculateFlowCoverage(suggestedTasks));
+	const humanCapacity = $derived(calculateHumanCapacity(suggestedTasks, pools));
 	const bottleneckTask = $derived(calculateBottleneckTask(activeTasks));
 	const timeScarcity = $derived(
 		calculateTimeScarcity(tasks, availableHours, switchCost, userConstants)
 	);
-	const burnoutRisk = $derived(calculateBurnoutRisk(activeTasks, availableHours, switchCost));
-	const cognitiveLoad = $derived(calculateCognitiveLoad(activeTasks, availableHours));
-	const physicalLoad = $derived(calculatePhysicalLoad(activeTasks, availableHours));
+	// Burnout risk simulates the planned day through the energy model's
+	// reservoir law (MATH.md §11.6). Its parameters are the model DEFAULTS
+	// refined by the user's own calibration logs (🪫 drain, ☕ rest) — the same
+	// fits the Energy Lab offers, but anchored to defaults rather than the
+	// lab's local sliders (the lab deliberately never writes to the session).
+	// Recovery is fitted first; the α fits condition on it (§8.7/§8.9).
+	const burnoutParams = $derived.by(() => {
+		const p = { ...DEFAULT_ENERGY_PARAMS };
+		const recoveryFit = fitRecoveryRate(
+			session.restObservations.flatMap((o) => [
+				{ drainedBefore: o.mindBefore / 10, drainedAfter: o.mindAfter / 10, hours: o.hours },
+				{ drainedBefore: o.bodyBefore / 10, drainedAfter: o.bodyAfter / 10, hours: o.hours }
+			]),
+			p.recoveryRate,
+			p
+		);
+		if (recoveryFit.fitted) p.recoveryRate = recoveryFit.rate;
+		const cogFit = fitDrainRate(
+			session.drainObservations.map((o) => ({
+				demand: o.cognitiveDemand,
+				hours: o.hours,
+				drainedFraction: o.mindDrain / 10
+			})),
+			p.alphaCog,
+			p
+		);
+		if (cogFit.fitted) p.alphaCog = cogFit.alpha;
+		const physFit = fitDrainRate(
+			session.drainObservations.map((o) => ({
+				demand: o.physicalDemand,
+				hours: o.hours,
+				drainedFraction: o.bodyDrain / 10
+			})),
+			p.alphaPhys,
+			p
+		);
+		if (physFit.fitted) p.alphaPhys = physFit.alpha;
+		return p;
+	});
+	const burnoutRisk = $derived(
+		calculateBurnoutRisk(suggestedTasks, availableHours, switchCost, burnoutParams)
+	);
+	const cognitiveLoad = $derived(calculateCognitiveLoad(suggestedTasks, availableHours));
+	const physicalLoad = $derived(calculatePhysicalLoad(suggestedTasks, availableHours));
 	const energyBalance = $derived(calculateEnergyBalance(cognitiveLoad, physicalLoad));
-	const frictionIndex = $derived(calculateFrictionIndex(activeTasks));
+	const frictionIndex = $derived(calculateFrictionIndex(suggestedTasks));
 	const dailyQuadrant = $derived(calculateDailyQuadrant(tasks));
 	const scheduleIntegrity = $derived(
-		calculateScheduleIntegrity(activeTasks, availableHours, switchCost)
+		calculateScheduleIntegrity(suggestedTasks, availableHours, switchCost)
 	);
-	const momentum = $derived(calculateMomentum(tasks));
-	const deepWorkRatio = $derived(calculateDeepWorkRatio(activeTasks, availableHours));
+	// Momentum and quick wins are deliberately active-scoped ("what's ahead"):
+	// completing a task removes it, so they respond as the day progresses
+	// (2026-07-20, MATH.md §11.7).
+	const momentum = $derived(calculateMomentum(activeTasks));
+	const deepWorkRatio = $derived(calculateDeepWorkRatio(suggestedTasks, availableHours));
 	const quickWins = $derived(calculateQuickWins(activeTasks));
-	const taskVariety = $derived(calculateTaskVariety(activeTasks));
-	const grindDensity = $derived(calculateGrindDensity(activeTasks));
-	const rewardDensity = $derived(calculateRewardDensity(activeTasks, availableHours));
-	const recoveryRatio = $derived(calculateRecoveryRatio(activeTasks));
+	const taskVariety = $derived(calculateTaskVariety(suggestedTasks));
+	const grindDensity = $derived(calculateGrindDensity(suggestedTasks));
+	const rewardDensity = $derived(calculateRewardDensity(suggestedTasks, availableHours));
+	const recoveryRatio = $derived(calculateRecoveryRatio(suggestedTasks));
 
 	// Averages
 	const averagePhysicalDifficulty = $derived(calculateAveragePhysicalDifficulty(tasks));
@@ -228,7 +288,7 @@
 						: m.metric_type_physical(),
 				hours: humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours
 			}),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? {
 						value: `${humanCapacity.percent}%`,
 						valStyle:
@@ -256,14 +316,14 @@
 		{
 			label: m.metric_burnout_risk(),
 			description: m.metric_burnout_risk_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? { value: `${burnoutRisk}%`, valStyle: getStatusSmallerBetter(burnoutRisk).color }
 				: NA)
 		},
 		{
 			label: m.metric_cognitive_load(),
 			description: m.metric_cognitive_load_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? {
 						value: `${cognitiveLoad}%`,
 						valStyle: getStatusSmallerBetter(cognitiveLoad > 70 ? cognitiveLoad : 0).color
@@ -273,7 +333,7 @@
 		{
 			label: m.metric_physical_load(),
 			description: m.metric_physical_load_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? {
 						value: `${physicalLoad}%`,
 						valStyle: getStatusSmallerBetter(physicalLoad > 70 ? physicalLoad : 0).color
@@ -283,7 +343,7 @@
 		{
 			label: m.metric_energy_balance(),
 			description: m.metric_energy_balance_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? {
 						value:
 							energyBalance > 60
@@ -299,7 +359,7 @@
 		{
 			label: m.metric_schedule_integrity(),
 			description: m.metric_schedule_integrity_desc(),
-			...(hasActive
+			...(hasTasks
 				? {
 						value: `${scheduleIntegrity}%`,
 						valStyle: getStatusBiggerBetter(scheduleIntegrity).color
@@ -309,14 +369,14 @@
 		{
 			label: m.metric_friction_index(),
 			description: m.metric_friction_index_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? { value: `${frictionIndex}%`, valStyle: getStatusSmallerBetter(frictionIndex).color }
 				: NA)
 		},
 		{
 			label: m.metric_deep_work(),
 			description: m.metric_deep_work_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? { value: `${deepWorkRatio}%`, valStyle: getStatusBiggerBetter(deepWorkRatio).color }
 				: NA)
 		},
@@ -347,7 +407,7 @@
 		{
 			label: m.metric_sustainable_work(),
 			description: m.metric_sustainable_work_desc(),
-			...(hasActive && hasBudget
+			...(hasTasks && hasBudget
 				? { value: `${rewardDensity}%`, valStyle: getStatusBiggerBetter(rewardDensity).color }
 				: NA)
 		},
@@ -438,7 +498,9 @@
 	<div class="space-y-6 lg:col-span-2">
 		{#if !isViewingPast}
 			{#if isViewingFuture}
-				<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong/80 text-sm">
+				<div
+					class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong/80 text-sm"
+				>
 					<span class="font-medium">{m.banner_future_title()}</span>
 					{m.banner_future_body({ date: formatDisplayDate(selectedDate) })}
 				</div>

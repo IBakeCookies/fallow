@@ -37,7 +37,7 @@
 	</button>
 
 	{#if open && flowLogs.length > 0}
-		<ul class="mt-2 space-y-1">
+		<ul class="mt-2 max-h-64 space-y-1 overflow-y-auto">
 			{#each logsNewestFirst as log (log.id)}
 				<li
 					class="flex items-center justify-between gap-2 rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"

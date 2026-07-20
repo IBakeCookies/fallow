@@ -6,7 +6,9 @@ import { expect, test } from '@playwright/test';
    owned by the keyed subtree, a language switch rebuilt it from the
    load-time cookie snapshot and reset any theme picked since page load. */
 test('theme picked at runtime survives a language switch', async ({ page }) => {
-	await page.context().addCookies([{ name: 'theme', value: 'glass-dark', url: 'http://localhost:4173' }]);
+	await page
+		.context()
+		.addCookies([{ name: 'theme', value: 'glass-dark', url: 'http://localhost:4173' }]);
 	await page.goto('/');
 
 	const html = page.locator('html');

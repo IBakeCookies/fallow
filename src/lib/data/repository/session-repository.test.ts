@@ -1,10 +1,6 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
-import {
-	$updateSession,
-	$readSessionByDate,
-	$readSessionsByDateRange
-} from './session-repository';
+import { $updateSession, $readSessionByDate, $readSessionsByDateRange } from './session-repository';
 import type { DailySession } from '$lib/data/type';
 
 function session(date: string, overrides: Partial<DailySession> = {}): DailySession {

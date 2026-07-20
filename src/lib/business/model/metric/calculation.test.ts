@@ -7,6 +7,7 @@ import {
 	type SuggestedTask,
 	type Task
 } from './calculation';
+import { DEFAULT_ENERGY_PARAMS } from '../zenith-energy';
 
 function makeTask(overrides: Partial<Task> & { id: number; title: string }): Task {
 	return {
@@ -132,59 +133,84 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 	});
 });
 
-describe('calculateBurnoutRisk (2026-07-18 fix: overhang over funded tasks only)', () => {
-	it('a dropped task (0 hours) does not change the risk', () => {
-		// Before the fix a dropped task's T* still counted toward the "optimal
-		// workload", absorbing overhang hours the user will actually spend on
-		// the funded tasks' diminishing-returns zones (probe: an injured
-		// user's dropped gym task suppressed overhang 6.2h → 1.8h).
-		const funded = makeSuggested({
+describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation, MATH.md §11.6)', () => {
+	const work = (overrides: Partial<SuggestedTask> = {}) =>
+		makeSuggested({
 			id: 1,
 			title: 'work',
 			mentalDifficulty: 6,
 			physicalDifficulty: 0,
 			enjoyment: 4,
 			suggestedHours: 3,
-			optimalHours: 3.5,
-			trueEffort: 3.2,
-			trueEnjoyability: 1.3
+			...overrides
 		});
+
+	it('a dropped task (0 hours) does not change the risk', () => {
+		// §11.3 property, preserved by construction in v2: a dropped task
+		// contributes no schedule block, and the overhang it used to absorb
+		// stretches the funded blocks instead.
 		const dropped = makeSuggested({
 			id: 2,
 			title: 'gym (pool zeroed)',
 			mentalDifficulty: 1,
 			physicalDifficulty: 8,
 			enjoyment: 7,
-			suggestedHours: 0,
-			optimalHours: 4.4,
-			trueEffort: 4,
-			trueEnjoyability: 1.7
+			suggestedHours: 0
 		});
-		const budget = 10;
-		expect(calculateBurnoutRisk([funded, dropped], budget, 0.25)).toBe(
-			calculateBurnoutRisk([funded], budget, 0.25)
+		expect(calculateBurnoutRisk([work(), dropped], 10, 0.25)).toBe(
+			calculateBurnoutRisk([work()], 10, 0.25)
 		);
 	});
 
-	it('overhang beyond the funded workload raises the risk', () => {
-		// Mild strain so neither side saturates at 100
-		const funded = makeSuggested({
-			id: 1,
-			title: 'work',
-			mentalDifficulty: 6,
-			physicalDifficulty: 0,
-			enjoyment: 4,
-			suggestedHours: 3,
-			optimalHours: 3.5,
-			trueEffort: 2,
-			trueEnjoyability: 1.6
-		});
-		// Same plan, bigger declared budget → more diminishing-returns hours
-		const low = calculateBurnoutRisk([funded], 4, 0.25);
-		const high = calculateBurnoutRisk([funded], 4.5, 0.25);
-		expect(low).toBeLessThan(100);
-		expect(high).toBeLessThan(100);
+	it('budget beyond the funded plan (intended overwork) raises the risk', () => {
+		// availableHours = hours the user INTENDS to work (§11.3 reading):
+		// the same plan under a bigger declared budget simulates more drain.
+		const low = calculateBurnoutRisk([work()], 3, 0.25);
+		const high = calculateBurnoutRisk([work()], 6, 0.25);
 		expect(high).toBeGreaterThan(low);
+	});
+
+	it('risk is monotone in reservoir demand and discriminates across a full day', () => {
+		// The retired heuristic clamped at 100% after ~1.4h of hard work;
+		// the reservoir law keeps resolution over the whole range.
+		const risks = [1, 2, 4, 8].map((h) =>
+			calculateBurnoutRisk([work({ mentalDifficulty: 9, suggestedHours: h })], h, 0.25)
+		);
+		expect([...risks]).toEqual([...risks].sort((a, b) => a - b));
+		expect(new Set(risks).size).toBe(risks.length);
+		expect(risks[risks.length - 1]).toBeLessThan(100); // micro-recovery floor: 100% unreachable
+
+		const mild = calculateBurnoutRisk([work({ mentalDifficulty: 3, suggestedHours: 4 })], 4, 0.25);
+		const hard = calculateBurnoutRisk([work({ mentalDifficulty: 9, suggestedHours: 4 })], 4, 0.25);
+		expect(hard).toBeGreaterThan(mild);
+	});
+
+	it('enjoyment does not enter: drain is f(demand, duration) in the energy model', () => {
+		// Deliberate v2 semantic change (the §11.4 boundary applied here):
+		// loved-hard and hated-hard days drain the reservoirs identically.
+		const loved = work({ enjoyment: 10, trueEnjoyability: 2, suggestedHours: 4 });
+		const hated = work({ enjoyment: 1, trueEnjoyability: 1, suggestedHours: 4 });
+		expect(calculateBurnoutRisk([loved], 4, 0.25)).toBe(calculateBurnoutRisk([hated], 4, 0.25));
+	});
+
+	it('calibrated drain rates personalize the metric', () => {
+		// The connection to the user's capacity the heuristic never had: a
+		// faster-draining user (higher fitted α) sees higher risk on the same plan.
+		const base = calculateBurnoutRisk([work()], 3, 0.25);
+		const fast = calculateBurnoutRisk([work()], 3, 0.25, {
+			...DEFAULT_ENERGY_PARAMS,
+			alphaCog: 0.9
+		});
+		expect(fast).toBeGreaterThan(base);
+	});
+
+	it('a declared budget with nothing funded still warns', () => {
+		// Old guard preserved: the intended hours are simulated at the task
+		// list's average demands.
+		const unfunded = work({ suggestedHours: 0, mentalDifficulty: 8 });
+		expect(calculateBurnoutRisk([unfunded], 6, 0.25)).toBeGreaterThan(0);
+		expect(calculateBurnoutRisk([unfunded], 0, 0.25)).toBe(0);
+		expect(calculateBurnoutRisk([], 6, 0.25)).toBe(0);
 	});
 });
 

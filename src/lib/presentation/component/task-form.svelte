@@ -53,7 +53,7 @@
 	</button>
 {:else}
 	<form
-		class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur "
+		class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur"
 		onsubmit={handleSubmit}
 	>
 		<div class="flex items-start justify-between gap-3">

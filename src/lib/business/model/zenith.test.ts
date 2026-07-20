@@ -919,10 +919,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			for (const { difficulty, enjoyment } of DOMAIN_GRID) {
 				const task = { title: '', difficulty, enjoyment };
 				const { a, p0, phi } = calculateTaskParams(task);
-				expect(expectedOptimalTime(a, p0, phi, 0)).toBeCloseTo(
-					findOptimalSingleTaskTime(task),
-					10
-				);
+				expect(expectedOptimalTime(a, p0, phi, 0)).toBeCloseTo(findOptimalSingleTaskTime(task), 10);
 
 				const sigma = 0.3 * phi;
 				const tStar = expectedOptimalTime(a, p0, phi, sigma);

@@ -7,10 +7,9 @@ describe('footer.svelte', () => {
 	it('links to imprint and privacy from every page', async () => {
 		render(Footer);
 
-		await expect.element(page.getByRole('link', { name: 'Imprint' })).toHaveAttribute(
-			'href',
-			'/imprint'
-		);
+		await expect
+			.element(page.getByRole('link', { name: 'Imprint' }))
+			.toHaveAttribute('href', '/imprint');
 		await expect
 			.element(page.getByRole('link', { name: 'Privacy Policy' }))
 			.toHaveAttribute('href', '/privacy');

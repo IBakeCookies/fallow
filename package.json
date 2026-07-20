@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright install && playwright test",
+		"test:e2e": "playwright test",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build",
 		"depgraph": "depcruise src --output-type dot | dot -T svg > dependency-graph.svg",
@@ -40,7 +40,6 @@
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.3.0",
 		"@types/node": "^22",
-		"@types/pg": "^8.20.0",
 		"@vitest/browser-playwright": "^4.1.8",
 		"@vitest/coverage-v8": "^4.1.8",
 		"bits-ui": "^2.18.1",
@@ -72,7 +71,6 @@
 	},
 	"dependencies": {
 		"@vercel/analytics": "^2.0.1",
-		"@vercel/speed-insights": "^2.0.0",
-		"pg": "^8.22.0"
+		"@vercel/speed-insights": "^2.0.0"
 	}
 }

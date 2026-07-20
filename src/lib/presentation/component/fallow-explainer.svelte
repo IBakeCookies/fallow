@@ -10,9 +10,18 @@
 	const ARTICLE_URL =
 		'https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e';
 	const REPO_URL = 'https://github.com/IBakeCookies/fallow';
+	const KOFI_URL = 'https://ko-fi.com/ibakecookies';
 
-	const faqs = [
-		{ q: m.about_faq_q1(), a: m.about_faq_a1() },
+	const faqs: { q: string; a: string; tail?: { pre: string; label: string; href: string } }[] = [
+		{
+			q: m.about_faq_q1(),
+			a: m.about_faq_a1(),
+			tail: {
+				pre: m.about_faq_a1_support(),
+				label: m.about_faq_a1_support_link(),
+				href: KOFI_URL
+			}
+		},
 		{ q: m.about_faq_q2(), a: m.about_faq_a2() },
 		{ q: m.about_faq_q3(), a: m.about_faq_a3() }
 	];
@@ -25,7 +34,10 @@
 		mainEntity: faqs.map((f) => ({
 			'@type': 'Question',
 			name: f.q,
-			acceptedAnswer: { '@type': 'Answer', text: f.a }
+			acceptedAnswer: {
+				'@type': 'Answer',
+				text: f.tail ? `${f.a} ${f.tail.pre}${f.tail.label}.` : f.a
+			}
 		}))
 	};
 
@@ -71,7 +83,17 @@
 		{#each faqs as faq (faq.q)}
 			<div class="space-y-1">
 				<h4 class="text-sm font-semibold text-ty-secondary">{faq.q}</h4>
-				<p class="text-sm leading-relaxed">{faq.a}</p>
+				<p class="text-sm leading-relaxed">
+					{faq.a}
+					<!-- the only tail href is the external KOFI_URL constant; resolve() is for internal routes -->
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+					{#if faq.tail}{faq.tail.pre}<a
+							href={faq.tail.href}
+							class={linkClass}
+							target="_blank"
+							rel="noopener">{faq.tail.label}</a
+						>.{/if}
+				</p>
 			</div>
 		{/each}
 

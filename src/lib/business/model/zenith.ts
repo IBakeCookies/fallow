@@ -841,13 +841,7 @@ function toAllocations(
 			peakProductivity: a * Math.exp(p0 / a - 1),
 			avgProductivity: expectedAverageProductivity(hours, a, p0, phi, phiStds[i]),
 			optimalHours: optimalTimes[i],
-			optimalAvgProductivity: expectedAverageProductivity(
-				optimalTimes[i],
-				a,
-				p0,
-				phi,
-				phiStds[i]
-			)
+			optimalAvgProductivity: expectedAverageProductivity(optimalTimes[i], a, p0, phi, phiStds[i])
 		};
 	});
 }

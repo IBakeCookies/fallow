@@ -51,7 +51,12 @@ export default defineConfig(
 				{
 					patterns: [
 						{
-							group: ['$lib/business/*', '$lib/business/**', '$lib/presentation/*', '$lib/presentation/**'],
+							group: [
+								'$lib/business/*',
+								'$lib/business/**',
+								'$lib/presentation/*',
+								'$lib/presentation/**'
+							],
 							message: 'The data layer must not import from the business or presentation layers.'
 						}
 					]

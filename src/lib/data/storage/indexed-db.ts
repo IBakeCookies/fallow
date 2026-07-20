@@ -13,21 +13,56 @@
  */
 
 const DB_NAME = 'zenith-db';
-const DB_VERSION = 4;
+export const DB_VERSION = 4;
 
-let databaseInstance: IDBDatabase | null = null;
+let databasePromise: Promise<IDBDatabase> | null = null;
 
 export function openDatabase(): Promise<IDBDatabase> {
-	if (databaseInstance) return Promise.resolve(databaseInstance);
+	if (!databasePromise) {
+		databasePromise = open(DB_VERSION)
+			.catch((error) => {
+				// On-disk version is newer than the code (user opened an older build
+				// after a newer one upgraded the schema): open at the existing version.
+				// All stores this build knows about already exist in newer versions.
+				if (error instanceof DOMException && error.name === 'VersionError') return open();
+				throw error;
+			})
+			.catch((error) => {
+				databasePromise = null;
+				throw error;
+			});
+	}
+	return databasePromise;
+}
 
+function open(version?: number): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
-		const request = indexedDB.open(DB_NAME, DB_VERSION);
+		const request = indexedDB.open(DB_NAME, version);
 
 		request.onerror = () => reject(request.error);
 
+		request.onblocked = () => {
+			// A tab with pre-versionchange-handling code holds an old connection;
+			// the open stays pending until that tab closes.
+			console.warn('zenith-db upgrade blocked by another open tab');
+		};
+
 		request.onsuccess = () => {
-			databaseInstance = request.result;
-			resolve(databaseInstance);
+			const database = request.result;
+
+			// Another tab is upgrading the schema: release our handle so its
+			// upgrade proceeds, and reopen lazily on next access.
+			database.onversionchange = () => {
+				database.close();
+				databasePromise = null;
+			};
+
+			// Browser force-closed the connection (e.g. storage cleared).
+			database.onclose = () => {
+				databasePromise = null;
+			};
+
+			resolve(database);
 		};
 
 		request.onupgradeneeded = (event) => {

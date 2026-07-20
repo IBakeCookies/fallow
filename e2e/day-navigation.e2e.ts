@@ -14,7 +14,9 @@ test('future day shows the planning-ahead banner', async ({ page }) => {
 	await page.goto(`/?date=${isoDate(3)}`);
 	await expect(page.getByText('Planning ahead:')).toBeVisible();
 	// planning is allowed: form stays available
-	await expect(page.getByText('+ Add Task').or(page.getByPlaceholder('e.g., Boxing training'))).toBeVisible();
+	await expect(
+		page.getByText('+ Add Task').or(page.getByPlaceholder('e.g., Boxing training'))
+	).toBeVisible();
 });
 
 test('invalid date param falls back to today', async ({ page }) => {
@@ -23,7 +25,7 @@ test('invalid date param falls back to today', async ({ page }) => {
 	await expect(page.getByText('Viewing a past day:')).not.toBeVisible();
 });
 
-test("date param equal to today collapses to /", async ({ page }) => {
+test('date param equal to today collapses to /', async ({ page }) => {
 	await page.goto(`/?date=${isoDate(0)}`);
 	await expect(page).toHaveURL('http://localhost:4173/');
 });

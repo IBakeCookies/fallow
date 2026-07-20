@@ -19,10 +19,9 @@ describe('time-budget-card.svelte', () => {
 		await expect
 			.element(page.getByText('6h budget · 3.50h planned · 1.25h free'))
 			.toBeInTheDocument();
-		await expect.element(page.getByRole('button', { name: /Time Budget/ })).toHaveAttribute(
-			'aria-expanded',
-			'false'
-		);
+		await expect
+			.element(page.getByRole('button', { name: /Time Budget/ }))
+			.toHaveAttribute('aria-expanded', 'false');
 	});
 
 	it('omits the slack summary when the plan fills the budget', async () => {
@@ -35,9 +34,7 @@ describe('time-budget-card.svelte', () => {
 		render(TimeBudgetCard, props);
 
 		await expect.element(page.getByLabelText('Available Hours')).toHaveValue(6);
-		await expect
-			.element(page.getByLabelText('Switch Cost (per task change)'))
-			.toHaveValue(15);
+		await expect.element(page.getByLabelText('Switch Cost (per task change)')).toHaveValue(15);
 		await expect.element(page.getByLabelText('Cognitive Capacity')).toHaveValue(4);
 		await expect.element(page.getByLabelText('Physical Capacity')).toHaveValue(3);
 		await expect.element(page.getByText('Allocated: 3.50h')).toBeInTheDocument();
@@ -49,8 +46,6 @@ describe('time-budget-card.svelte', () => {
 		// second "Increase" stepper belongs to switch cost: 15 min → 20 min = 1/3 h
 		await page.getByRole('button', { name: 'Increase' }).nth(1).click();
 
-		await expect
-			.element(page.getByLabelText('Switch Cost (per task change)'))
-			.toHaveValue(20);
+		await expect.element(page.getByLabelText('Switch Cost (per task change)')).toHaveValue(20);
 	});
 });

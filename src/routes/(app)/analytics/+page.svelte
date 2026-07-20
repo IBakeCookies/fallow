@@ -1,11 +1,16 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
-	import { type DaySummary, summarizeSession, currentStreak } from '$lib/business/model/metric/history';
+	import {
+		type DaySummary,
+		summarizeSession,
+		currentStreak
+	} from '$lib/business/model/metric/history';
 	import { addDays, fromISO } from '$lib/business/utils/date';
 	import {
 		initializeStorage,
@@ -51,7 +56,9 @@
 	// ---------- Headline stats ----------
 	const totalTasks = $derived(inRange.reduce((sum, s) => sum + s.totalTasks, 0));
 	const completedTasks = $derived(inRange.reduce((sum, s) => sum + s.completedTasks, 0));
-	const completedShare = $derived(totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0);
+	const completedShare = $derived(
+		totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+	);
 
 	const avgRate = $derived(
 		inRange.length > 0
@@ -236,7 +243,9 @@
 			<button
 				onclick={() => (range = key as RangeKey)}
 				class="rounded-md px-3 py-1 text-sm transition-colors
-				       {range === key ? 'bg-surface-hover text-ty-primary' : 'text-ty-secondary hover:text-ty-primary'}"
+				       {range === key
+					? 'bg-surface-hover text-ty-primary'
+					: 'text-ty-secondary hover:text-ty-primary'}"
 			>
 				{r.label()}
 			</button>
@@ -251,7 +260,9 @@
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
 		<p class="mt-1 text-sm text-ty-silent">
 			{m.ana_empty_hint_1()}
-			<a href="/" class="text-ty-secondary underline hover:text-ty-primary">{m.link_today()}</a>
+			<a href={resolve('/')} class="text-ty-secondary underline hover:text-ty-primary"
+				>{m.link_today()}</a
+			>
 			{m.ana_empty_hint_2()}
 		</p>
 	</div>
@@ -379,14 +390,12 @@
 					</text>
 				{/if}
 				<!-- full-slot hover target so tooltips don't require pixel-perfect aim -->
-				<rect
-					x={bar.slotX}
-					y={CHART.top}
-					width={bar.slotW}
-					height={innerH}
-					fill="transparent"
-				>
-					<title>{bar.full} — {bar.value === null ? m.ana_no_data() : `${bar.value}% · ${bar.sub}`}</title>
+				<rect x={bar.slotX} y={CHART.top} width={bar.slotW} height={innerH} fill="transparent">
+					<title
+						>{bar.full} — {bar.value === null
+							? m.ana_no_data()
+							: `${bar.value}% · ${bar.sub}`}</title
+					>
 				</rect>
 			{/each}
 		</svg>

@@ -96,7 +96,9 @@ export class SessionStore {
 		onMount(async () => {
 			try {
 				await initializeStorage();
-				this.#yesterdaySession = await sessionRepository.$readSessionByDate(addDays(this.#today, -1));
+				this.#yesterdaySession = await sessionRepository.$readSessionByDate(
+					addDays(this.#today, -1)
+				);
 				this.#routines = await routineRepository.$readAllRoutines();
 				this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
 				this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
@@ -137,15 +139,16 @@ export class SessionStore {
 					this.#cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
 					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
 				if (!dirty) return;
-				sessionRepository.$updateSession({
-					date: this.#selectedDate,
-					tasks: $state.snapshot(this.#tasks),
-					availableHours: this.#availableHours,
-					switchCost: this.#switchCost,
-					cognitivePool: this.#cognitivePool,
-					physicalPool: this.#physicalPool,
-					updatedAt: Date.now()
-				})
+				sessionRepository
+					.$updateSession({
+						date: this.#selectedDate,
+						tasks: $state.snapshot(this.#tasks),
+						availableHours: this.#availableHours,
+						switchCost: this.#switchCost,
+						cognitivePool: this.#cognitivePool,
+						physicalPool: this.#physicalPool,
+						updatedAt: Date.now()
+					})
 					.then(() => (this.#loadedHadSession = true))
 					.catch((e) => console.error('Failed to save session', e));
 			}
@@ -304,9 +307,7 @@ export class SessionStore {
 
 	updateTask(
 		id: number,
-		changes: Partial<
-			Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'>
-		>
+		changes: Partial<Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'>>
 	) {
 		this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, ...changes } : t));
 	}
@@ -374,9 +375,7 @@ export class SessionStore {
 		try {
 			await flowObservationRepository.$deleteAllFlowObservations();
 			this.#flowObservations = [];
-			this.#tasks = this.#tasks.map((t) =>
-				t.flowMinutes ? { ...t, flowMinutes: undefined } : t
-			);
+			this.#tasks = this.#tasks.map((t) => (t.flowMinutes ? { ...t, flowMinutes: undefined } : t));
 		} catch (e) {
 			console.error('Failed to reset flow observations', e);
 		}

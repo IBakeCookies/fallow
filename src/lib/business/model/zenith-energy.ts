@@ -310,6 +310,41 @@ function reservoirAt(c0: number, law: ReservoirLaw, t: number): number {
 	return law.eq + (c0 - law.eq) * Math.exp(-law.rho * t);
 }
 
+/** What a task contributes to reservoir drain — the warm-up/output fields are irrelevant. */
+export type ReservoirDemand = Pick<EnergyTaskInput, 'id' | 'cognitiveDemand' | 'physicalDemand'>;
+
+/**
+ * Evolve both reservoirs over a block schedule and return the end levels.
+ * Drain-law only — no warm-up curves, no output quadrature — so it needs
+ * neither UserConstants nor the tasks' difficulty/enjoyment. This is the
+ * energy-model core behind the main page's Burnout Risk metric (MATH.md
+ * §11.6), which has no use for the output side of evaluateSchedule.
+ */
+export function simulateReservoirs(
+	blocks: ScheduleBlock[],
+	tasks: ReservoirDemand[],
+	params: EnergyParams
+): { endCog: number; endPhys: number } {
+	const byId = new Map(tasks.map((t) => [t.id, t]));
+	let cog = clamp01(params.initialCog);
+	let phys = clamp01(params.initialPhys);
+	for (const b of blocks) {
+		if (b.hours <= 0) continue;
+		const task = b.taskId === null ? undefined : byId.get(b.taskId);
+		const lawFor = (demand: number, alpha: number) =>
+			reservoirLaw(
+				clamp01(demand),
+				alpha,
+				params.recoveryRate,
+				params.restRecoveryMultiplier,
+				params.microRecoveryFraction
+			);
+		cog = reservoirAt(cog, lawFor(task?.cognitiveDemand ?? 0, params.alphaCog), b.hours);
+		phys = reservoirAt(phys, lawFor(task?.physicalDemand ?? 0, params.alphaPhys), b.hours);
+	}
+	return { endCog: cog, endPhys: phys };
+}
+
 /**
  * Session phase to resume a task at, given its last-seen memory and the current
  * clock time (Monk/Trafton): sEnd·e^(−gap/τ). No prior memory, or τ ≤ 0, means
@@ -1367,8 +1402,8 @@ export function fitStoppingValue(
 
 	const value0 = Math.min(Math.max(fallbackValue, STOP_FIT_MIN), STOP_FIT_MAX);
 	const n = points.length;
-	const mean = (points.reduce((s, p) => s + p, 0) + STOP_PRIOR_STRENGTH * value0) /
-		(n + STOP_PRIOR_STRENGTH);
+	const mean =
+		(points.reduce((s, p) => s + p, 0) + STOP_PRIOR_STRENGTH * value0) / (n + STOP_PRIOR_STRENGTH);
 	const value = Math.min(Math.max(mean, STOP_FIT_MIN), STOP_FIT_MAX);
 
 	// Noise estimate and Laplace posterior std, the §8.7/§8.9 construction

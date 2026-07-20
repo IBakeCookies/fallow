@@ -10,8 +10,7 @@ vi.mock('$app/state', () => ({
 // exist under vitest; empty env falls back to page.url.origin.
 vi.mock('$env/dynamic/public', () => ({ env: {} }));
 
-const meta = (selector: string) =>
-	document.head.querySelector(selector)?.getAttribute('content');
+const meta = (selector: string) => document.head.querySelector(selector)?.getAttribute('content');
 
 describe('seo-head.svelte', () => {
 	it('sets title, description, canonical, and social tags', async () => {
