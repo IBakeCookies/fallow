@@ -9,7 +9,7 @@
 
 	const ARTICLE_URL =
 		'https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e';
-	const REPO_URL = 'https://github.com/IBakeCookies/Zenith';
+	const REPO_URL = 'https://github.com/IBakeCookies/fallow';
 
 	const faqs = [
 		{ q: m.about_faq_q1(), a: m.about_faq_a1() },
@@ -29,7 +29,7 @@
 		}))
 	};
 
-	const linkClass = 'underline decoration-white/30 underline-offset-2 hover:text-zinc-200';
+	const linkClass = 'underline decoration-ty-ghost underline-offset-2 hover:text-ty-primary';
 </script>
 
 <svelte:head>
@@ -37,46 +37,45 @@
 	{@html jsonLdScript(faqSchema)}
 </svelte:head>
 
-<section class="mt-16 space-y-10 border-t border-white/10 pt-12 text-zinc-400">
+<section
+	class="mt-16 space-y-10 rounded-2xl border bg-surface-card p-box-md text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
+>
 	<div class="max-w-3xl space-y-3">
-		<h2 class="text-xl font-bold text-zinc-100">{m.about_hook_title()}</h2>
+		<h2 class="text-xl font-bold text-ty-primary">{m.about_hook_title()}</h2>
 		<p class="text-sm leading-relaxed">{m.about_hook_body()}</p>
 	</div>
 
 	<div class="grid gap-8 md:grid-cols-2">
 		<div class="space-y-3">
-			<h3 class="text-lg font-semibold text-zinc-200">{m.about_how_title()}</h3>
+			<h3 class="text-lg font-semibold text-ty-primary">{m.about_how_title()}</h3>
 			<p class="text-sm leading-relaxed">{m.about_how_body_1()}</p>
-			<p
-				class="rounded-lg border border-white/10 bg-white/5 px-4 py-3 font-mono text-sm text-zinc-300"
-			>
+			<p class="rounded-lg border bg-surface-card px-4 py-3 font-mono text-sm text-ty-secondary">
 				p(t) = (a·k·t + p₀) · e^(−kt)
 			</p>
 			<p class="text-sm leading-relaxed">{m.about_how_body_2()}</p>
 		</div>
 
 		<div class="space-y-3">
-			<h3 class="text-lg font-semibold text-zinc-200">{m.about_different_title()}</h3>
+			<h3 class="text-lg font-semibold text-ty-primary">{m.about_different_title()}</h3>
 			<p class="text-sm leading-relaxed">{m.about_different_body_1()}</p>
 			<p class="text-sm leading-relaxed">
 				{m.about_different_body_2()}
-				{m.about_energy_pre()}<a class={linkClass} href={resolve('/energy')}
-					>{m.nav_energy_lab()}</a
+				{m.about_energy_pre()}<a class={linkClass} href={resolve('/energy')}>{m.nav_energy_lab()}</a
 				>{m.about_energy_post()}
 			</p>
 		</div>
 	</div>
 
-	<div class="max-w-3xl space-y-4">
-		<h3 class="text-lg font-semibold text-zinc-200">{m.about_faq_title()}</h3>
+	<div class="max-w-3xl space-y-grid-md">
+		<h3 class="text-lg font-semibold text-ty-primary">{m.about_faq_title()}</h3>
 		{#each faqs as faq (faq.q)}
 			<div class="space-y-1">
-				<h4 class="text-sm font-semibold text-zinc-300">{faq.q}</h4>
+				<h4 class="text-sm font-semibold text-ty-secondary">{faq.q}</h4>
 				<p class="text-sm leading-relaxed">{faq.a}</p>
 			</div>
 		{/each}
 
-		<p class="text-xs text-zinc-500">
+		<p class="text-xs text-ty-silent">
 			<a class={linkClass} href={ARTICLE_URL} target="_blank" rel="noopener"
 				>{m.about_link_article()}</a
 			>

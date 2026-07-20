@@ -18,11 +18,11 @@
 	const logsNewestFirst = $derived([...flowLogs].reverse());
 </script>
 
-<div class="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl shadow-2xl p-4 sm:p-6">
+<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-6">
 	<button
 		type="button"
 		aria-expanded={open}
-		class="flex w-full items-center justify-between gap-2 text-left text-xs text-zinc-500 transition hover:text-zinc-300 disabled:cursor-default disabled:hover:text-zinc-500"
+		class="flex w-full items-center justify-between gap-2 text-left text-xs text-ty-silent transition hover:text-ty-secondary disabled:cursor-default disabled:hover:text-ty-silent"
 		disabled={flowLogs.length === 0}
 		title={m.budget_model_tooltip()}
 		onclick={() => {
@@ -32,7 +32,7 @@
 	>
 		<span>{modelStatus}</span>
 		{#if flowLogs.length > 0}
-			<span class="shrink-0 text-lg leading-none text-zinc-500">{open ? '▴' : '▾'}</span>
+			<span class="shrink-0 text-lg leading-none text-ty-silent">{open ? '▴' : '▾'}</span>
 		{/if}
 	</button>
 
@@ -40,20 +40,20 @@
 		<ul class="mt-2 space-y-1">
 			{#each logsNewestFirst as log (log.id)}
 				<li
-					class="flex items-center justify-between gap-2 rounded bg-white/3 px-2 py-1 text-xs text-zinc-400"
+					class="flex items-center justify-between gap-2 rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
 				>
 					<span class="truncate">
-						<span class="text-zinc-500">{log.date}</span>
+						<span class="text-ty-silent">{log.date}</span>
 						<span class="capitalize"> · {log.taskTitle}</span>
 					</span>
 					<span class="flex shrink-0 items-center gap-2">
-						<span class="font-medium text-amber-400/90">⚡ {Math.round(log.phiHours * 60)}m</span>
+						<span class="font-medium text-flow/90">⚡ {Math.round(log.phiHours * 60)}m</span>
 						{#if ondeletelog}
 							<button
 								type="button"
 								aria-label={m.budget_delete_log_aria()}
 								title={m.budget_delete_log_title()}
-								class="text-zinc-500 transition hover:text-red-400"
+								class="text-ty-silent transition hover:text-danger"
 								onclick={() => ondeletelog?.(log.id!)}
 							>
 								✕
@@ -67,12 +67,12 @@
 			<div class="mt-2 flex justify-end">
 				{#if confirmingReset}
 					<span class="flex items-center gap-2 text-xs">
-						<span class="text-zinc-500">
+						<span class="text-ty-silent">
 							{m.budget_reset_confirm({ count: flowLogs.length })}
 						</span>
 						<button
 							type="button"
-							class="font-medium text-red-400 hover:text-red-300"
+							class="font-medium text-danger hover:text-danger-strong"
 							onclick={() => {
 								onresetlogs?.();
 								confirmingReset = false;
@@ -83,7 +83,7 @@
 						</button>
 						<button
 							type="button"
-							class="text-zinc-500 hover:text-zinc-300"
+							class="text-ty-silent hover:text-ty-secondary"
 							onclick={() => (confirmingReset = false)}
 						>
 							{m.common_cancel()}
@@ -92,7 +92,7 @@
 				{:else}
 					<button
 						type="button"
-						class="text-xs text-zinc-500 transition hover:text-red-400"
+						class="text-xs text-ty-silent transition hover:text-danger"
 						title={m.budget_reset_title()}
 						onclick={() => (confirmingReset = true)}
 					>

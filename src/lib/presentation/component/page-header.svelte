@@ -67,9 +67,9 @@
 	}
 </script>
 
-<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+<div class="flex flex-col gap-grid-md sm:flex-row sm:items-start sm:justify-between mb-6">
 	<div>
-		<div class="flex items-center gap-4">
+		<div class="flex items-center gap-grid-md">
 			<!-- The old under-title tagline lives in the title's tooltip now — the
 			     header stays one line so the content above the fold is the plan. -->
 			<Tooltip.Provider delayDuration={150}>
@@ -78,7 +78,7 @@
 						{#snippet child({ props })}
 							<h1
 								{...props}
-								class="cursor-help text-2xl font-bold text-zinc-100 underline decoration-zinc-700 decoration-dotted underline-offset-4"
+								class="cursor-help text-2xl font-bold text-ty-primary underline decoration-ty-ghost decoration-dotted underline-offset-4"
 							>
 								{m.app_name()}
 							</h1>
@@ -87,20 +87,20 @@
 					<Tooltip.Content
 						side="bottom"
 						align="start"
-						class="max-w-md bg-zinc-900 border-zinc-700 text-zinc-200"
+						class="max-w-md bg-surface-page border-line-strong text-ty-primary"
 					>
 						<p>{m.header_tagline()}</p>
 					</Tooltip.Content>
 				</Tooltip.Root>
 			</Tooltip.Provider>
-			<div class="flex items-center gap-2 text-sm text-zinc-400">
-				<span class="font-medium text-zinc-200">{completedTasks}</span>/<span>{totalTasks}</span>
+			<div class="flex items-center gap-2 text-sm text-ty-secondary">
+				<span class="font-medium text-ty-primary">{completedTasks}</span>/<span>{totalTasks}</span>
 				{m.common_tasks()}
 			</div>
 		</div>
 	</div>
 
-	<div class="flex flex-wrap items-center gap-2 sm:gap-3 sm:shrink-0">
+	<div class="flex flex-wrap items-center gap-2 sm:gap-grid-xs sm:shrink-0">
 		{#if !isToday}
 			<Button variant="outline" size="sm" onclick={() => ondatechange(today)}>
 				{m.header_return_to_today()}
@@ -151,7 +151,7 @@
 											e.stopPropagation();
 											ondeleteroutine(routine.id);
 										}}
-										class="opacity-0 [@media(hover:none)]:opacity-100 group-hover:opacity-100 text-red-400 hover:text-red-300 ml-2"
+										class="opacity-0 [@media(hover:none)]:opacity-100 group-hover:opacity-100 text-danger hover:text-danger-strong ml-2"
 									>
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path
@@ -186,7 +186,7 @@
 					</DropdownMenu.Trigger>
 					<DropdownMenu.Content align="end" class="w-full">
 						<div class="p-2">
-							<p class="text-xs text-zinc-400 mb-2">{m.header_save_as_routine()}</p>
+							<p class="text-xs text-ty-secondary mb-2">{m.header_save_as_routine()}</p>
 							<form
 								onsubmit={(e) => {
 									e.preventDefault();
@@ -198,7 +198,7 @@
 									type="text"
 									bind:value={routineName}
 									placeholder={m.header_routine_name_placeholder()}
-									class="flex-1 px-2 py-1 text-sm rounded bg-white/5 border border-white/10 text-zinc-300 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+									class="flex-1 px-2 py-1 text-sm rounded bg-surface-card border text-ty-secondary placeholder:text-ty-silent focus:outline-none focus:ring-1 focus:ring-brand"
 								/>
 								<Button type="submit" size="sm" variant="outline">{m.common_save()}</Button>
 							</form>

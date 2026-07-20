@@ -74,15 +74,15 @@
 			key: 'physicalDifficulty',
 			label: m.form_physical_difficulty(),
 			min: 0,
-			accent: 'accent-emerald-400'
+			accent: 'accent-body'
 		},
 		{
 			key: 'mentalDifficulty',
 			label: m.form_mental_difficulty(),
 			min: 0,
-			accent: 'accent-blue-400'
+			accent: 'accent-mind'
 		},
-		{ key: 'enjoyment', label: m.form_enjoyment(), min: 1, accent: 'accent-indigo-400' }
+		{ key: 'enjoyment', label: m.form_enjoyment(), min: 1, accent: 'accent-brand' }
 	] as const;
 
 	function openEdit() {
@@ -134,10 +134,10 @@
 	);
 	const natureClass = $derived(
 		nature === 'cognitive'
-			? 'bg-blue-500/20 text-blue-400'
+			? 'bg-mind/20 text-mind'
 			: nature === 'physical'
-				? 'bg-emerald-500/20 text-emerald-400'
-				: 'bg-violet-500/20 text-violet-400'
+				? 'bg-body/20 text-body'
+				: 'bg-mixed/20 text-mixed'
 	);
 	const natureDescription = $derived(
 		nature === 'cognitive'
@@ -150,14 +150,14 @@
 
 <Tooltip.Provider delayDuration={150}>
 	<div
-		class="group rounded-lg border border-transparent bg-transparent p-3 transition hover:border-white/5 hover:bg-white/3"
+		class="group rounded-lg border border-transparent bg-transparent p-3 transition hover:border-line-soft hover:bg-surface-card"
 	>
-		<div class="flex items-start gap-3">
+		<div class="flex items-start gap-grid-xs">
 			<input
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
-				class="mt-0.5 h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-indigo-500/20"
+				class="mt-0.5 h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
 			/>
 
 			<div class="min-w-0 flex-1" class:opacity-60={completed}>
@@ -165,11 +165,11 @@
 					{#if runOrder !== undefined && !completed}
 						<Tooltip.Root>
 							<Tooltip.Trigger
-								class="cursor-help rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-semibold text-amber-400"
+								class="cursor-help rounded bg-flow/15 px-1.5 py-0.5 text-xs font-semibold text-flow"
 							>
 								#{runOrder}
 							</Tooltip.Trigger>
-							<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+							<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 								<p>{m.task_run_order_tooltip()}</p>
 							</Tooltip.Content>
 						</Tooltip.Root>
@@ -180,33 +180,33 @@
 								{natureLabel}
 							</Badge>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 							<p>{natureDescription}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
 					<h3
-						class:text-zinc-500={completed}
+						class:text-ty-silent={completed}
 						class:line-through={completed}
-						class="truncate text-sm font-medium text-zinc-100 capitalize"
+						class="truncate text-sm font-medium text-ty-primary capitalize"
 					>
 						{title}
 					</h3>
 				</div>
 
-				<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-zinc-500">
+				<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-2xs text-ty-silent">
 					<Tooltip.Root>
 						<Tooltip.Trigger class="cursor-help">
-							<span class="font-medium text-emerald-400/80">P {physicalDifficulty}</span>
-							<span class="text-zinc-700">·</span>
-							<span class="font-medium text-blue-400/80">M {mentalDifficulty}</span>
-							<span class="text-zinc-700">·</span>
-							<span class="font-medium text-indigo-400/80">E {enjoyment}</span>
+							<span class="font-medium text-body/80">P {physicalDifficulty}</span>
+							<span class="text-ty-ghost">·</span>
+							<span class="font-medium text-mind/80">M {mentalDifficulty}</span>
+							<span class="text-ty-ghost">·</span>
+							<span class="font-medium text-brand/80">E {enjoyment}</span>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 							<p>{m.task_inputs_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
-					<span class="text-zinc-700">|</span>
+					<span class="text-ty-ghost">|</span>
 					<Tooltip.Root>
 						<Tooltip.Trigger class="cursor-help">
 							{m.task_derived_values({
@@ -215,16 +215,16 @@
 								stop: formatHours(optimalStopTime)
 							})}
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 							<p>{m.task_derived_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
 					{#if flowMinutes}
 						<Tooltip.Root>
-							<Tooltip.Trigger class="cursor-help font-medium text-amber-400">
+							<Tooltip.Trigger class="cursor-help font-medium text-flow">
 								⚡ {flowMinutes}m
 							</Tooltip.Trigger>
-							<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+							<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 								<p>{m.task_flow_badge_tooltip()}</p>
 							</Tooltip.Content>
 						</Tooltip.Root>
@@ -232,18 +232,18 @@
 				</div>
 			</div>
 
-			<div class="flex shrink-0 items-center gap-3">
+			<div class="flex shrink-0 items-center gap-grid-xs">
 				{#if !completed}
 					<Tooltip.Root>
 						<Tooltip.Trigger class="cursor-help text-right">
-							<div class="text-sm font-semibold text-zinc-100">
+							<div class="text-sm font-semibold text-ty-primary">
 								{formatHours(suggestedHours)}
 							</div>
-							<div class="text-[10px] text-zinc-500">
+							<div class="text-2xs text-ty-silent">
 								{m.task_priority({ score: priorityScore })}
 							</div>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 							<p>{m.task_allocation_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
@@ -268,9 +268,9 @@
 									placeholder={m.task_minutes_placeholder()}
 									autofocus
 									bind:value={flowMinutesInput}
-									class="w-14 rounded border border-amber-500/30 bg-zinc-900/80 px-1.5 py-0.5 text-xs text-zinc-100 outline-none focus:border-amber-500/60"
+									class="w-14 rounded border border-flow/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-flow/60"
 								/>
-								<Button variant="ghost" size="icon-xs" type="submit" class="text-amber-400">
+								<Button variant="ghost" size="icon-xs" type="submit" class="text-flow">
 									✓
 								</Button>
 								<Button
@@ -278,7 +278,7 @@
 									size="icon-xs"
 									type="button"
 									onclick={() => (loggingFlow = false)}
-									class="text-zinc-500"
+									class="text-ty-silent"
 								>
 									✕
 								</Button>
@@ -288,14 +288,14 @@
 								<Tooltip.Trigger
 									class={cn(
 										buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-										flowMinutes ? 'text-amber-400' : 'text-zinc-500 hover:text-amber-400'
+										flowMinutes ? 'text-flow' : 'text-ty-silent hover:text-flow'
 									)}
 									onclick={openFlowLog}
 									aria-label={m.task_log_flow_aria()}
 								>
 									⚡
 								</Tooltip.Trigger>
-								<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+								<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 									<p>{m.task_log_flow_tooltip()}</p>
 								</Tooltip.Content>
 							</Tooltip.Root>
@@ -307,7 +307,7 @@
 							<Tooltip.Trigger
 								class={cn(
 									buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-									editing ? 'text-emerald-400' : 'text-zinc-500 hover:text-emerald-400'
+									editing ? 'text-success' : 'text-ty-silent hover:text-success'
 								)}
 								onclick={() => (editing ? (editing = false) : openEdit())}
 								aria-label={m.task_edit_aria()}
@@ -321,7 +321,7 @@
 									/>
 								</svg>
 							</Tooltip.Trigger>
-							<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+							<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 								<p>{m.task_edit_tooltip()}</p>
 							</Tooltip.Content>
 						</Tooltip.Root>
@@ -331,7 +331,7 @@
 						<Tooltip.Trigger
 							class={cn(
 								buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-								'text-zinc-500 hover:text-red-400'
+								'text-ty-silent hover:text-danger'
 							)}
 							onclick={() => onremove(id)}
 							aria-label={m.task_remove_aria()}
@@ -345,7 +345,7 @@
 								/>
 							</svg>
 						</Tooltip.Trigger>
-						<Tooltip.Content class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+						<Tooltip.Content class="max-w-xs bg-surface-page border-line-strong text-ty-primary">
 							<p>{m.task_remove_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
@@ -355,32 +355,32 @@
 
 		{#if editing}
 			<form
-				class="mt-3 ml-7 space-y-4 rounded-lg border border-white/10 bg-zinc-900/40 p-4"
+				class="mt-3 ml-7 space-y-grid-md rounded-lg border bg-surface-page/40 p-box-md"
 				onsubmit={(e) => (e.preventDefault(), saveEdit())}
 			>
-				<label class="block text-xs font-medium text-zinc-400">
+				<label class="block text-xs font-medium text-ty-secondary">
 					{m.task_title_label()}
 					<input
 						type="text"
 						bind:value={editDraft.title}
 						required
-						class="mt-1.5 w-full rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
+						class="mt-1.5 w-full rounded-lg border border-line-strong bg-input px-3 py-2 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 					/>
 				</label>
 
-				<div class="grid gap-4 sm:grid-cols-3">
+				<div class="grid gap-grid-md sm:grid-cols-3">
 					{#each editSliders as slider (slider.key)}
 						<div class="space-y-2">
 							<div class="flex justify-between text-xs font-medium">
-								<span class="text-zinc-400">{slider.label}</span>
-								<span class="text-zinc-100">{editDraft[slider.key]}</span>
+								<span class="text-ty-secondary">{slider.label}</span>
+								<span class="text-ty-primary">{editDraft[slider.key]}</span>
 							</div>
 							<input
 								type="range"
 								min={slider.min}
 								max="10"
 								bind:value={editDraft[slider.key]}
-								class="h-1 w-full cursor-pointer appearance-none rounded-full bg-zinc-800 {slider.accent}"
+								class="h-1 w-full cursor-pointer appearance-none rounded-full bg-line-strong {slider.accent}"
 							/>
 						</div>
 					{/each}

@@ -8,7 +8,7 @@
 		unit?: string; // small suffix label inside the field, e.g. "hrs"
 		id?: string;
 		// Focus accent, passed as a literal class so Tailwind can see it,
-		// e.g. "focus-within:border-indigo-500/50"
+		// e.g. "focus-within:border-brand/50"
 		accent?: string;
 	}
 
@@ -20,7 +20,7 @@
 		step = 1,
 		unit,
 		id,
-		accent = 'focus-within:border-indigo-500/50'
+		accent = 'focus-within:border-brand/50'
 	}: Props = $props();
 
 	// Decimal places of the step, so 0.25-stepping never shows 0.35000000000000003
@@ -53,7 +53,7 @@
 </script>
 
 <div
-	class="flex items-stretch rounded-lg border border-zinc-800 bg-zinc-900/50 transition-colors {accent}"
+	class="flex items-stretch rounded-lg border border-line-strong bg-input transition-colors {accent}"
 >
 	<button
 		type="button"
@@ -61,7 +61,7 @@
 		aria-label="Decrease"
 		disabled={atMin}
 		onclick={() => stepBy(-1)}
-		class="rounded-l-lg px-2.5 text-sm text-zinc-500 transition select-none hover:bg-white/5 hover:text-zinc-200 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+		class="rounded-l-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-card hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
 	>
 		−
 	</button>
@@ -75,11 +75,11 @@
 			{value}
 			oninput={handleInput}
 			onblur={handleBlur}
-			class="w-full border-0 bg-transparent py-2 pr-9 pl-1 text-center text-sm text-zinc-100 outline-none focus:ring-0"
+			class="w-full border-0 bg-transparent py-2 pr-9 pl-1 text-center text-sm text-ty-primary outline-none focus:ring-0"
 		/>
 		{#if unit}
 			<span
-				class="pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 text-[10px] font-medium tracking-wide text-zinc-500 uppercase"
+				class="pointer-events-none absolute top-1/2 right-1.5 -translate-y-1/2 text-2xs font-medium tracking-wide text-ty-silent uppercase"
 			>
 				{unit}
 			</span>
@@ -91,7 +91,7 @@
 		aria-label="Increase"
 		disabled={atMax}
 		onclick={() => stepBy(1)}
-		class="rounded-r-lg px-2.5 text-sm text-zinc-500 transition select-none hover:bg-white/5 hover:text-zinc-200 disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+		class="rounded-r-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-card hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
 	>
 		+
 	</button>

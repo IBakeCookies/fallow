@@ -21,7 +21,7 @@
 
 	const origin = $derived((env.PUBLIC_SITE_URL ?? page.url.origin).replace(/\/$/, ''));
 	const canonical = $derived(origin + page.url.pathname);
-	const ogImage = $derived(origin + '/zenith-daily-time-allocation.jpg');
+	const ogImage = $derived(origin + '/fallow-daily-time-allocation.png');
 	const ogLocale = $derived(OG_LOCALES[getLocale()] ?? 'en_US');
 
 	const jsonLdTag = $derived(jsonLd ? jsonLdScript(jsonLd) : null);

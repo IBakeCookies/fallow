@@ -11,7 +11,7 @@
 	import TimeBudgetCard from '$lib/presentation/component/time-budget-card.svelte';
 	import PersonalizationCard from '$lib/presentation/component/personalization-card.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
-	import ZenithExplainer from '$lib/presentation/component/zenith-explainer.svelte';
+	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
 	import {
 		STATUS,
 		getStatusBiggerBetter,
@@ -438,7 +438,7 @@
 	<div class="space-y-6 lg:col-span-2">
 		{#if !isViewingPast}
 			{#if isViewingFuture}
-				<div class="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 text-sky-300/80 text-sm">
+				<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong/80 text-sm">
 					<span class="font-medium">{m.banner_future_title()}</span>
 					{m.banner_future_body({ date: formatDisplayDate(selectedDate) })}
 				</div>
@@ -461,7 +461,7 @@
 			<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
 		{:else}
 			<div
-				class="p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-300/80 text-sm"
+				class="p-box-md rounded-xl border border-warning/20 bg-warning/5 text-warning-strong/80 text-sm"
 			>
 				<span class="font-medium">{m.banner_past_title()}</span>
 				{m.banner_past_body()}
@@ -483,4 +483,4 @@
 	</div>
 </div>
 
-<ZenithExplainer />
+<FallowExplainer />

@@ -22,20 +22,22 @@
 	];
 </script>
 
-<svelte:head><title>{m.privacy_title()} — Zenith</title></svelte:head>
+<svelte:head><title>{m.privacy_title()} — Fallow</title></svelte:head>
 
-<article class="max-w-2xl text-sm leading-relaxed text-zinc-400">
+<article
+	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl"
+>
 	<header>
-		<h1 class="text-2xl font-semibold text-zinc-100">{m.privacy_title()}</h1>
-		<p class="mt-1 text-xs text-zinc-500">{m.privacy_updated({ date: updated })}</p>
+		<h1 class="text-2xl font-semibold text-ty-primary">{m.privacy_title()}</h1>
+		<p class="mt-1 text-xs text-ty-silent">{m.privacy_updated({ date: updated })}</p>
 	</header>
 
 	<section class="mt-8">
-		<h2 class="mb-2 text-base font-semibold text-zinc-200">{m.privacy_controller_heading()}</h2>
+		<h2 class="mb-2 text-base font-semibold text-ty-primary">{m.privacy_controller_heading()}</h2>
 		<p>{m.privacy_controller_body()}</p>
 		<!-- TODO: replace the placeholders below with your real name and address
 		     before going live (must match the imprint). -->
-		<p class="mt-2 text-zinc-300">
+		<p class="mt-2 text-ty-secondary">
 			Shadi Muma<br />
 			
 			
@@ -45,7 +47,7 @@
 
 	{#each sections as section (section.heading)}
 		<section class="mt-8">
-			<h2 class="mb-2 text-base font-semibold text-zinc-200">{section.heading()}</h2>
+			<h2 class="mb-2 text-base font-semibold text-ty-primary">{section.heading()}</h2>
 			<p>{section.body()}</p>
 		</section>
 	{/each}

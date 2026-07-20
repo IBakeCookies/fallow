@@ -4,10 +4,10 @@
  */
 
 export const STATUS = {
-	SUCCESS: { label: 'Optimal', color: 'text-emerald-400' },
-	NEUTRAL: { label: 'Nominal', color: 'text-zinc-200' },
-	WARNING: { label: 'Caution', color: 'text-amber-400' },
-	CRITICAL: { label: 'Critical', color: 'text-red-400' }
+	SUCCESS: { label: 'Optimal', color: 'text-success' },
+	NEUTRAL: { label: 'Nominal', color: 'text-ty-primary' },
+	WARNING: { label: 'Caution', color: 'text-warning' },
+	CRITICAL: { label: 'Critical', color: 'text-danger' }
 } as const;
 
 export type StatusType = (typeof STATUS)[keyof typeof STATUS];
@@ -31,8 +31,8 @@ export function getStatusSmallerBetter(val: number): StatusType {
  * getStatusBiggerBetter (which only provides text-* classes).
  */
 export function getCompletionBarClass(rate: number): string {
-	if (rate >= 75) return 'bg-emerald-400';
-	if (rate >= 50) return 'bg-zinc-300';
-	if (rate >= 25) return 'bg-amber-400';
-	return 'bg-red-400';
+	if (rate >= 75) return 'bg-success';
+	if (rate >= 50) return 'bg-ty-secondary';
+	if (rate >= 25) return 'bg-warning';
+	return 'bg-danger';
 }

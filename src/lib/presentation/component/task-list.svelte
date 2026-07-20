@@ -23,11 +23,11 @@
 	let { suggestedTasks, runOrder, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
 </script>
 
-<div class="space-y-2 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl shadow-sm">
-	<h2 class="text-lg font-bold text-zinc-200">{m.list_title()}</h2>
+<div class="space-y-2 rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<h2 class="text-lg font-bold text-ty-primary">{m.list_title()}</h2>
 	{#if suggestedTasks.length === 0}
 		<div class="flex flex-col items-center justify-center py-12 text-center">
-			<div class="text-zinc-500 mb-2">
+			<div class="text-ty-silent mb-2">
 				<svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
 						stroke-linecap="round"
@@ -37,13 +37,13 @@
 					/>
 				</svg>
 			</div>
-			<p class="text-sm text-zinc-400">{m.list_empty()}</p>
-			<p class="text-xs text-zinc-500 mt-1">{m.list_empty_hint()}</p>
+			<p class="text-sm text-ty-secondary">{m.list_empty()}</p>
+			<p class="text-xs text-ty-silent mt-1">{m.list_empty_hint()}</p>
 		</div>
 	{/if}
 	{#each suggestedTasks as task, i (task.id)}
 		{#if i > 0}
-			<hr class="border-white/5" />
+			<hr class="border-line-soft" />
 		{/if}
 		<TaskItem
 			id={task.id}

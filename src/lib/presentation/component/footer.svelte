@@ -10,8 +10,10 @@
 	];
 </script>
 
-<footer class="mt-auto flex items-center gap-4 pt-8 pb-1 text-xs text-zinc-600">
-	{#each links as link (link.href)}
-		<a href={link.href} class="transition-colors hover:text-zinc-400">{link.label()}</a>
-	{/each}
+<footer class="mt-auto pt-8 pb-1 text-xs text-ty-silent">
+	<div class="flex w-max items-center gap-4 rounded-xl border bg-surface-card px-3 py-1.5 backdrop-blur">
+		{#each links as link (link.href)}
+			<a href={link.href} class="transition-colors hover:text-ty-secondary">{link.label()}</a>
+		{/each}
+	</div>
 </footer>
