@@ -10,6 +10,12 @@ description: How to build, launch, and drive the Zenith app to verify changes en
 Dev server: `npm run dev` (Vite, http://localhost:5173). Often already
 running — check first: `curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/`.
 
+## Theme sweep
+
+After any theme/token change, run the committed sweep (needs the lib fix
+below): `node scripts/theme-screenshots.mjs` — screenshots every theme
+plus its open theme-dropdown into `screenshots/`, then Read them.
+
 ## Drive (Playwright)
 
 Playwright is a devDependency; chromium is installed under

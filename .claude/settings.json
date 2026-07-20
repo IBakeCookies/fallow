@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(SCRATCH=\"/tmp/claude-1000/-home-shadi-hobby-zenith/cb719e58-1a83-45a7-a8ce-2b66374a671a/scratchpad\"; LD_LIBRARY_PATH=\"$SCRATCH/libs/extracted/usr/lib/x86_64-linux-gnu\" node scripts/theme-screenshots.mjs 2>&1 | tail -2 && rm -f screenshots/elf-magic*.png)",
+      "Bash(sed -i 's/Zenith/Fallow/g; s/Fallow Gradient/Zenith Gradient/g' README.md .agents.md)",
+      "Bash(sed -i 's/— Zenith</— Fallow</' 'src/routes/\\(app\\)/imprint/+page.svelte' 'src/routes/\\(app\\)/privacy/+page.svelte')",
+      "Bash(sed -i 's|static/zenith-daily-time-allocation.jpg|static/fallow-daily-time-allocation.png|; s|Fallow — task list|Fallow — task list|' README.md)",
+      "Bash(LD_LIBRARY_PATH=/tmp/claude-1000/-home-shadi-hobby-zenith/cb719e58-1a83-45a7-a8ce-2b66374a671a/scratchpad/libs/extracted/usr/lib/x86_64-linux-gnu node /tmp/claude-1000/-home-shadi-hobby-zenith/cb719e58-1a83-45a7-a8ce-2b66374a671a/scratchpad/og-shot.mjs)"
+    ],
+    "additionalDirectories": [
+      "/home/shadi/hobby/zenith/screenshots"
+    ]
+  }
+}

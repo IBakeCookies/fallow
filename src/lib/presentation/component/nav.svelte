@@ -4,6 +4,7 @@
 	import CalendarDays from '@lucide/svelte/icons/calendar-days';
 	import ChartColumn from '@lucide/svelte/icons/chart-column';
 	import Zap from '@lucide/svelte/icons/zap';
+	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import { locales } from '$lib/paraglide/runtime';
 	import {
@@ -12,6 +13,12 @@
 		getDateLocale
 	} from '$lib/presentation/utils/locale.svelte';
 	import { liveToday } from '$lib/business/state/today.svelte';
+
+	interface Props {
+		themeSwitcher?: Snippet;
+	}
+
+	let { themeSwitcher }: Props = $props();
 
 	const today = $derived(liveToday.value);
 
@@ -49,8 +56,9 @@
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 </script>
 
+<div class="mb-6 flex items-start justify-between gap-2">
 <nav
-	class="mb-6 inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/3 p-1 backdrop-blur-xl w-max"
+	class="inline-flex items-center gap-1 rounded-xl border bg-surface-card p-1 backdrop-blur w-max"
 >
 	{#each links as link (link.href)}
 		<a
@@ -61,18 +69,18 @@
 			class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors
 			       {isActive(link.href)
 				? link.mode === 'past'
-					? 'bg-amber-500/10 text-amber-300'
+					? 'bg-warning/10 text-warning-strong'
 					: link.mode === 'future'
-						? 'bg-sky-500/10 text-sky-300'
-						: 'bg-white/10 text-zinc-100'
-				: 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}"
+						? 'bg-info/10 text-info-strong'
+						: 'bg-surface-hover text-ty-primary'
+				: 'text-ty-secondary hover:bg-surface-card hover:text-ty-primary'}"
 		>
 			<link.icon class="h-4 w-4 shrink-0" />
 			<span class="hidden sm:inline">{link.label}</span>
 		</a>
 	{/each}
 
-	<div class="mx-1 h-4 w-px bg-white/10"></div>
+	<div class="mx-1 h-4 w-px bg-border"></div>
 	{#each locales as locale (locale)}
 		<button
 			type="button"
@@ -81,10 +89,13 @@
 			onclick={() => switchLocale(locale)}
 			class="rounded-lg px-2 py-1.5 text-xs font-medium uppercase transition-colors
 			       {activeLocale.value === locale
-				? 'bg-white/10 text-zinc-100'
-				: 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300'}"
+				? 'bg-surface-hover text-ty-primary'
+				: 'text-ty-silent hover:bg-surface-card hover:text-ty-secondary'}"
 		>
 			{locale}
 		</button>
 	{/each}
 </nav>
+
+{@render themeSwitcher?.()}
+</div>

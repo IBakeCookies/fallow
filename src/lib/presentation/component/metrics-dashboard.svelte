@@ -12,19 +12,22 @@
 	let { metrics, momentum }: Props = $props();
 </script>
 
-<div class="rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
+<div class="rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
 	<!-- Momentum -->
 	<div class="flex items-center justify-between mb-4">
 		<Tooltip.Provider>
 			<Tooltip.Root>
 				<Tooltip.Trigger>
 					<span
-						class="text-xs text-zinc-400 cursor-help underline decoration-dotted underline-offset-2"
+						class="text-xs text-ty-secondary cursor-help underline decoration-dotted underline-offset-2"
 					>
 						{m.momentum_label()}
 					</span>
 				</Tooltip.Trigger>
-				<Tooltip.Content side="left" class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+				<Tooltip.Content
+					side="left"
+					class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
+				>
 					<p>{m.momentum_tooltip()}</p>
 				</Tooltip.Content>
 			</Tooltip.Root>
@@ -36,9 +39,9 @@
 					? 'destructive'
 					: 'secondary'}
 			class={momentum !== null && momentum > 0
-				? 'bg-emerald-500/20 text-emerald-300'
+				? 'bg-success/20 text-success-strong'
 				: momentum !== null && momentum < 0
-					? 'bg-amber-500/20 text-amber-300'
+					? 'bg-warning/20 text-warning-strong'
 					: ''}
 		>
 			{momentum === null
@@ -51,27 +54,30 @@
 		</Badge>
 	</div>
 
-	<div class="border-t border-zinc-800 my-3"></div>
+	<div class="border-t border-line-strong my-3"></div>
 
 	<!-- All Metrics flat list with separators -->
 	<div>
 		{#each metrics as item, i}
 			{#if i === 4 || i === 7 || i === 11 || i === 13 || i === 16}
-				<div class="border-t border-zinc-800 my-3"></div>
+				<div class="border-t border-line-strong my-3"></div>
 			{/if}
 			<div
-				class="px-3 py-2 flex justify-between items-baseline rounded-lg transition hover:bg-white/4"
+				class="px-3 py-2 flex justify-between items-baseline rounded-lg transition hover:bg-surface-card"
 			>
 				<Tooltip.Provider>
 					<Tooltip.Root>
 						<Tooltip.Trigger>
 							<span
-								class="text-xs text-zinc-400 cursor-help underline decoration-dotted underline-offset-2"
+								class="text-xs text-ty-secondary cursor-help underline decoration-dotted underline-offset-2"
 							>
 								{item.label}
 							</span>
 						</Tooltip.Trigger>
-						<Tooltip.Content side="left" class="max-w-xs bg-zinc-900 border-zinc-700 text-zinc-200">
+						<Tooltip.Content
+							side="left"
+							class="max-w-xs bg-surface-page border-line-strong text-ty-primary"
+						>
 							<p>{item.description}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>

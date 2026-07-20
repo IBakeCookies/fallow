@@ -1,10 +1,12 @@
-# Zenith
+# Fallow
 
 **A to-do app that does calculus so you don't have to.**
 
-Zenith answers a question every productive day poses: _you have N tasks and only
+![Fallow — task list with optimal per-task time allocations, priorities, and flow-based stopping times](static/fallow-daily-time-allocation.png)
+
+Fallow answers a question every productive day poses: _you have N tasks and only
 so many hours — how should you split your time to get the most out of the day?_
-Instead of guessing (or splitting time equally), Zenith models each task's
+Instead of guessing (or splitting time equally), Fallow models each task's
 productivity curve and solves for the time allocation that maximizes your total
 output, subject to your real limits: the hours in your day and how much
 mental and physical energy you can actually sustain.
@@ -41,14 +43,14 @@ slow but peak higher. There's a mathematically optimal point to stop each task �
 between 1.5×ϕ and 1.79×ϕ depending on the task — because working past it makes
 your _average_ productivity for that task fall.
 
-Zenith takes your whole task list and finds the allocation `⟨t₁, t₂, … tₙ⟩` that
+Fallow takes your whole task list and finds the allocation `⟨t₁, t₂, … tₙ⟩` that
 maximizes the sum of average productivities. Plans are built in **15-minute
 blocks** and solved exactly: greedy marginal analysis over block values, with an
 exhaustive search over which tasks deserve funding at all once context-switch
-costs are charged — then Zenith reports how much better that is than an equal
+costs are charged — then Fallow reports how much better that is than an equal
 split. (Full derivations: [MATH.md](MATH.md).)
 
-## What Zenith adds on top of the article
+## What Fallow adds on top of the article
 
 - **A revised curve and per-task stopping times (model v2).** The article's
   curve forced `p(0) = 0`, contradicting its own "initial productivity" story;
@@ -61,16 +63,16 @@ split. (Full derivations: [MATH.md](MATH.md).)
   solves a three-constraint problem (time + cognitive pool + physical pool),
   so plans never schedule an unsustainable day.
 - **Context-switching costs.** Every task you juggle costs ~15 minutes of
-  overhead (grounded in attention-residue research). Zenith charges switches
+  overhead (grounded in attention-residue research). Fallow charges switches
   only between tasks that actually get time, and will _drop_ a weak task when
   the switch it costs outweighs its value — decided by exhaustively comparing
   every funded-task subset.
 - **Personalization from your own data.** Log how long a task really took to
-  reach flow (the ⚡ button, stopwatch-style) and Zenith refits your personal
+  reach flow (the ⚡ button, stopwatch-style) and Fallow refits your personal
   constants (`c₁, c₂, c₃`) with a Bayesian linear regression — anchored to the
   article's defaults, sharpening as you log more, and aware of how uncertain
   its own predictions still are.
-- **A dashboard of derived metrics.** Zenith Gain, Burnout Risk, Flow Coverage,
+- **A dashboard of derived metrics.** Fallow Gain, Burnout Risk, Flow Coverage,
   Cognitive/Physical Load, Energy Balance, Friction Index, Recovery Ratio, and
   more — each computed from the same underlying model.
 - **Suggested run order.** Alternates cognitive and physical tasks so the
@@ -85,7 +87,7 @@ split. (Full derivations: [MATH.md](MATH.md).)
    **enjoyment** on 1–10 sliders.
 2. Set your **available hours** for the day, and optionally tune your
    cognitive/physical capacity pools and switch cost.
-3. Zenith suggests how many hours to give each task, what order to do them in,
+3. Fallow suggests how many hours to give each task, what order to do them in,
    and surfaces a live dashboard of what your day looks like.
 4. Optionally log your actual time-to-flow on tasks to personalize the model.
 

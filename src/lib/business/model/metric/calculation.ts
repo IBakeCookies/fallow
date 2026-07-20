@@ -9,7 +9,8 @@ import {
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
 	type CapacityPools,
-	type UserConstants
+	type UserConstants,
+	type FitPosterior
 } from '../zenith';
 import type { Task } from '$lib/data/type';
 
@@ -88,20 +89,25 @@ export function calculateSuggestedTasks(
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	posterior?: FitPosterior
 ): SuggestedTask[] {
 	const budget = Number(availableHours) || 0;
 	if (tasks.length === 0) return [];
 
 	// Dual-pool allocation: respects the time budget AND the separate
 	// cognitive/physical daily capacity pools, so the plan never schedules an
-	// unsustainable day (e.g. 8h of max-intensity mental work).
+	// unsustainable day (e.g. 8h of max-intensity mental work). With a fit
+	// posterior the allocator maximizes EXPECTED productivity under each
+	// task's ϕ-uncertainty (MATH.md §5.1), so a barely-measured model plans
+	// more cautiously than a well-measured one.
 	const allocations = calculatePooledAllocations(
 		toPooledInputs(tasks),
 		budget,
 		pools,
 		constants,
-		switchCost
+		switchCost,
+		posterior
 	);
 
 	return tasks
@@ -134,14 +140,22 @@ export function calculateZenithGain(
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	posterior?: FitPosterior
 ): ZenithGain {
 	const budget = Number(availableHours) || 0;
 	if (tasks.length === 0 || budget <= 0) return { optimized: 0, naive: 0, gainPercent: 0 };
 
 	// Same dual-pool optimizer that produces the suggested plan, so the gain
 	// shown describes the plan shown (not a separate single-constraint solve).
-	return pooledProductivityGain(toPooledInputs(tasks), budget, pools, constants, switchCost);
+	return pooledProductivityGain(
+		toPooledInputs(tasks),
+		budget,
+		pools,
+		constants,
+		switchCost,
+		posterior
+	);
 }
 
 export function calculateCompletionRate(suggestedTasks: SuggestedTask[]): number {
@@ -321,12 +335,21 @@ export function calculateTimeScarcity(
  *    hours the user intends to work beyond the model's total optimal workload
  *    (Σ T*ᵢ) would be spent in the diminishing-returns zone.
  *
+ *    Σ T*ᵢ runs over FUNDED tasks only (2026-07-18 fix, MATH.md §11.3). It
+ *    used to include tasks the plan gives 0 hours — but a task the allocator
+ *    dropped (zeroed pool, switch cost not worth paying) is one the user
+ *    won't work, and its T* was absorbing budget hours that will actually
+ *    land on the funded tasks' diminishing-returns zones. Probe: with an
+ *    injured user (physical pool 0) the dropped gym task's T* = 4.4h
+ *    suppressed the overhang from 6.2h to 1.8h. Treating the whole budget
+ *    as intended work is the documented reading of availableHours here.
+ *
  * Formula:
  *   For each task:
  *     strainFactor = E/β (using mapped Zenith values)
  *     baseStrain = max(0, strainFactor - 1) × hours  (drain above neutral)
  *
- *   overhang = max(0, effectiveBudget - Σᵢ T*ᵢ)
+ *   overhang = max(0, effectiveBudget - Σ_{funded} T*ᵢ)
  *   overworkStrain = overhang × (plan-weighted average strainFactor)
  *
  *   totalRisk = (baseStrain + overworkStrain × 2) / CAPACITY × 100
@@ -346,7 +369,7 @@ export function calculateBurnoutRisk(
 	const STRAIN_CAPACITY = 5;
 
 	let baseStrain = 0;
-	let totalOptimal = 0; // Σ per-task optimal stopping times T*
+	let totalOptimal = 0; // Σ T* over FUNDED tasks — the workload the plan actually schedules
 	let weightedStrainSum = 0; // strain × cogIntensity, weighted by plan share
 	let totalPlannedHours = 0;
 
@@ -366,7 +389,10 @@ export function calculateBurnoutRisk(
 		// Base strain: energy drain from high-effort/low-enjoyment tasks
 		baseStrain += Math.max(0, strainFactor - 1) * hours * cognitiveIntensity;
 
-		totalOptimal += t.optimalHours;
+		// A dropped task (0 hours) is one the user won't work; counting its T*
+		// here would let it absorb overhang hours that really land on the
+		// funded tasks (see the WHY above).
+		if (hours > 0) totalOptimal += t.optimalHours;
 		weightedStrainSum += strainFactor * cognitiveIntensity * hours;
 		totalPlannedHours += hours;
 	}
@@ -450,11 +476,17 @@ export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: numb
 /**
  * Calculate friction index: resistance from unenjoyable high-effort tasks
  *
- * Uses mapped Zenith values (E, β) for consistency with the productivity model.
- * Friction = Σ max(0, E - β) × hours, normalized by ALLOCATED time (not budget):
- * the index is the time-weighted average friction of the work you'll actually
- * do, so 100% is reachable — it means every allocated hour is max-friction
- * (E=5, β=1 → gap=4) work.
+ * Uses RAW user scales (effective difficulty vs enjoyment, both 1-10), like
+ * Momentum and Grind Density — and for the same reason (2026-07-18 fix,
+ * MATH.md §11.4): the mapped Zenith ranges are asymmetric (E ∈ [1,5],
+ * β ∈ [1,2]), so the old mapped gap E − β read a maximum-difficulty task at
+ * MAXIMUM enjoyment as 75% friction (E=5, β=2 → gap 3 of 4). Difficulty you
+ * love isn't friction; on raw scales that task has gap 0.
+ *
+ * Friction = Σ max(0, diffᵤ - βᵤ) × hours, normalized by ALLOCATED time (not
+ * budget): the index is the time-weighted average friction of the work you'll
+ * actually do, so 100% is reachable — it means every allocated hour is
+ * max-friction (difficulty 10, enjoyment 1 → gap 9) work.
  */
 export function calculateFrictionIndex(activeTasks: SuggestedTask[]): number {
 	if (!activeTasks.length) return 0;
@@ -463,13 +495,12 @@ export function calculateFrictionIndex(activeTasks: SuggestedTask[]): number {
 	if (totalAllocated <= 0) return 0;
 
 	const totalFriction = activeTasks.reduce((sum, t) => {
-		// Use mapped Zenith values for consistency
-		const gap = t.trueEffort - t.trueEnjoyability; // E - β
+		const gap = getEffectiveDifficulty(t) - t.enjoyment;
 		return sum + (gap > 0 ? gap * t.suggestedHours : 0);
 	}, 0);
 
-	// Max gap: E=5, β=1 → 4 per allocated hour
-	const MAX_EXPECTED_FRICTION = totalAllocated * 4;
+	// Max gap: difficulty 10, enjoyment 1 → 9 per allocated hour
+	const MAX_EXPECTED_FRICTION = totalAllocated * 9;
 	return Math.min(100, Math.max(0, Math.round((totalFriction / MAX_EXPECTED_FRICTION) * 100)));
 }
 
@@ -492,7 +523,22 @@ export function calculateDailyQuadrant(tasks: Task[]): DailyQuadrant {
 	return 'routine';
 }
 
-export function calculateBudgetConvergence(
+/**
+ * Schedule integrity: the share of the plan's committed time that is
+ * productive work rather than context-switch overhead.
+ *
+ *   convergence = worked / (worked + (m−1)·switchCost) × 100,  m = funded tasks
+ *
+ * 2026-07-18 redefinition (MATH.md §11.5). The old rule counted tasks with
+ * suggestedHours < switchCost as "fragmented" — but the minimum funded
+ * allocation is one 15-minute block, which equals the default switch cost, so
+ * at default settings the only tasks it could ever flag were DROPPED ones
+ * (0 hours). A drop is the opposite of fragmentation: the allocator
+ * consolidated the day because that task's switch wasn't worth paying. The
+ * ratio above measures fragmentation directly: many small sessions push it
+ * down (more switches per worked hour), one long session pushes it to 100.
+ */
+export function calculateScheduleIntegrity(
 	activeTasks: SuggestedTask[],
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST
@@ -501,9 +547,12 @@ export function calculateBudgetConvergence(
 	if (!activeTasks.length) return 100;
 	if (budget === 0) return 0;
 
-	// Tasks with less time than a context switch are too fragmented
-	const fragmentedTasks = activeTasks.filter((t) => t.suggestedHours < switchCost).length;
-	return Math.max(0, 100 - Math.round((fragmentedTasks / activeTasks.length) * 100));
+	const worked = activeTasks.reduce((sum, t) => sum + t.suggestedHours, 0);
+	if (worked <= 0) return 0; // budget set, but the plan funds nothing
+
+	const fundedCount = activeTasks.filter((t) => t.suggestedHours > 0).length;
+	const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
+	return Math.round((worked / (worked + overhead)) * 100);
 }
 
 /**

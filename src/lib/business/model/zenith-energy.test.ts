@@ -3,13 +3,21 @@ import {
 	ALPHA_FIT_MAX,
 	ALPHA_FIT_MIN,
 	DEFAULT_ENERGY_PARAMS,
+	DEFAULT_STEP_HOURS,
 	evaluateSchedule,
 	fitDrainRate,
+	fitRecoveryRate,
+	fitStoppingValue,
 	normalizeSchedule,
 	optimizeSchedule,
+	RECOVERY_FIT_MIN,
 	sampleTrajectory,
+	STOP_INVERSION_MARGIN,
+	stopIndifferencePoint,
 	type DrainObservation,
-	type EnergyTaskInput
+	type EnergyTaskInput,
+	type RestObservation,
+	type StopObservation
 } from './zenith-energy';
 
 function makeTask(
@@ -273,6 +281,9 @@ describe('Zenith Energy Model', () => {
 		it('beats the hand-built plan that exposed a local-search failure (probe 2026-07-14)', () => {
 			// The pre-fix search dropped reading entirely on this day and scored
 			// below this plan; the compound moves + drop-one seeds must dominate it.
+			// The witness is off the 45-min lattice, so this guards SEARCH
+			// reliability at the fine step it was written for; quantization loss
+			// has its own tests below.
 			const day = [
 				makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
 				makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
@@ -287,7 +298,9 @@ describe('Zenith Energy Model', () => {
 				day,
 				8
 			);
-			const result = optimizeSchedule(day, 8);
+			const result = optimizeSchedule(day, 8, DEFAULT_ENERGY_PARAMS, undefined, {
+				stepHours: 0.25
+			});
 			expect(result.evaluation.objective).toBeGreaterThanOrEqual(handBuilt.objective - 1e-9);
 		});
 
@@ -365,6 +378,63 @@ describe('Zenith Energy Model', () => {
 				DEFAULT_ENERGY_PARAMS.terminalEnergyValue,
 				9
 			);
+		});
+	});
+
+	describe('45-min block granularity (MATH.md §8.8)', () => {
+		const probeDay = [
+			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
+			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+		];
+		const mixedDay = [
+			makeTask(1, 'write spec', 8, 6, 0.9, 0.1),
+			makeTask(2, 'gym', 4, 7, 0.1, 0.9),
+			makeTask(3, 'email', 3, 3, 0.4, 0.1),
+			makeTask(4, 'refactor', 7, 5, 0.8, 0.1)
+		];
+		const funded = (blocks: { taskId: number | null }[]) =>
+			new Set(blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
+
+		it('every block is a whole number of 45-min units, even for off-lattice windows', () => {
+			for (const windowHours of [1, 4.5, 7.9, 8, 10.1, 12]) {
+				for (const tasks of [probeDay, mixedDay]) {
+					const { blocks } = optimizeSchedule(tasks, windowHours);
+					const total = blocks.reduce((sum, b) => sum + b.hours, 0);
+					expect(total).toBeLessThanOrEqual(windowHours + 1e-9);
+					for (const b of blocks) {
+						const units = b.hours / DEFAULT_STEP_HOURS;
+						expect(Math.abs(units - Math.round(units))).toBeLessThan(1e-9);
+					}
+				}
+			}
+		});
+
+		it('quantization keeps the funded-task structure and ≥97% of the fine-step objective', () => {
+			// Probe 2026-07-18: observed ratios 0.9865 (probeDay) and 0.9979
+			// (mixedDay); funded sets identical. The bound leaves slack for param
+			// drift but catches a structural regression outright.
+			for (const tasks of [probeDay, mixedDay]) {
+				const coarse = optimizeSchedule(tasks, 8);
+				const fine = optimizeSchedule(tasks, 8, DEFAULT_ENERGY_PARAMS, undefined, {
+					stepHours: 0.25
+				});
+				expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
+				expect(coarse.evaluation.objective).toBeGreaterThanOrEqual(
+					0.97 * fine.evaluation.objective
+				);
+			}
+		});
+
+		it('honors a stepHours override (blocks land on that lattice instead)', () => {
+			const { blocks } = optimizeSchedule(probeDay, 8, DEFAULT_ENERGY_PARAMS, undefined, {
+				stepHours: 0.5
+			});
+			expect(blocks.length).toBeGreaterThan(0);
+			for (const b of blocks) {
+				const units = b.hours / 0.5;
+				expect(Math.abs(units - Math.round(units))).toBeLessThan(1e-9);
+			}
 		});
 	});
 
@@ -492,6 +562,321 @@ describe('Zenith Energy Model', () => {
 			const obs = cleanObs(0.9);
 			const a = fitDrainRate(obs, 0.35, lawParams);
 			const b = fitDrainRate(obs, 0.35, lawParams);
+			expect(a).toEqual(b);
+		});
+	});
+
+	describe('recovery-rate calibration (fitRecoveryRate, MATH.md §8.9)', () => {
+		const m = DEFAULT_ENERGY_PARAMS.restRecoveryMultiplier;
+		const restParams = { restRecoveryMultiplier: m };
+		const prior = DEFAULT_ENERGY_PARAMS.recoveryRate;
+
+		// Independent forward model: during pure rest the drained fraction
+		// decays exponentially at the corrected recovery rate r·m.
+		const pair = (rate: number, before: number, hours: number): RestObservation => ({
+			drainedBefore: before,
+			drainedAfter: before * Math.exp(-rate * m * hours),
+			hours
+		});
+		// One logged rest = mind + body, two observations of the same break.
+		const loggedRests = (rate: number, count: number): RestObservation[] =>
+			Array.from({ length: count }, (_, i) => {
+				const hours = [0.5, 0.75, 1, 0.5, 0.75, 0.5, 1, 0.75][i % 8];
+				return [pair(rate, 0.6, hours), pair(rate, 0.45, hours)];
+			}).flat();
+
+		it('recovers the prior mean exactly and a nearby true rate closely from clean data', () => {
+			const atPrior = fitRecoveryRate(loggedRests(prior, 8), prior, restParams);
+			expect(atPrior.fitted).toBe(true);
+			expect(atPrior.usedCount).toBe(16);
+			expect(atPrior.rate).toBeCloseTo(prior, 3);
+			// Away from the prior the ridge shrinks a little; λ was tuned so 8
+			// clean logged rests land within ~10% (probe 2026-07-18: 1.4 → 1.31).
+			const away = fitRecoveryRate(loggedRests(1.4, 8), prior, restParams);
+			expect(away.rate).toBeGreaterThan(1.25);
+			expect(away.rate).toBeLessThan(1.4);
+		});
+
+		it('falls back with fitted: false on empty or uninformative observations', () => {
+			expect(fitRecoveryRate([], prior, restParams)).toEqual({
+				rate: prior,
+				fitted: false,
+				usedCount: 0
+			});
+			// Fresh going in (nothing to recover) or a zero-length break (no time
+			// to recover in): the prediction is constant in r — no signal.
+			const uninformative = fitRecoveryRate(
+				[
+					{ drainedBefore: 0, drainedAfter: 0, hours: 1 },
+					{ drainedBefore: 0.5, drainedAfter: 0.5, hours: 0 }
+				],
+				prior,
+				restParams
+			);
+			expect(uninformative.fitted).toBe(false);
+			expect(uninformative.rate).toBe(prior);
+		});
+
+		it('a single logged rest moves r about halfway; more logs move further and tighten the std', () => {
+			// Probe-tuned λ (2026-07-18): 1 rest → 51% of the way, 3 → 72%, 10 → 88%.
+			const one = fitRecoveryRate(loggedRests(1.4, 1), prior, restParams);
+			expect(one.rate).toBeGreaterThan(prior + 0.4 * (1.4 - prior));
+			expect(one.rate).toBeLessThan(prior + 0.65 * (1.4 - prior));
+			const ten = fitRecoveryRate(loggedRests(1.4, 10), prior, restParams);
+			expect(ten.rate).toBeGreaterThan(one.rate);
+			expect(ten.rateStd!).toBeLessThan(one.rateStd!);
+		});
+
+		it('identifies the product r·m: refitting under a different multiplier rescales r', () => {
+			// Rest data cannot separate r from the rest multiplier — the fit
+			// conditions on m exactly like the α fit conditions on r. Generate at
+			// (r=1.2, m=1.5) and fit under m=1.0: the data now implies r ≈ 1.8
+			// (the product), so the fitted rate must land well above 1.2 and head
+			// toward 1.8 — short of it only by the ridge shrinkage, which is
+			// larger here because the implied rate sits further from the prior.
+			const data = loggedRests(1.2, 8);
+			const underUnitMultiplier = fitRecoveryRate(data, prior, { restRecoveryMultiplier: 1 });
+			expect(underUnitMultiplier.rate).toBeGreaterThan(1.45);
+			expect(underUnitMultiplier.rate).toBeLessThan(1.2 * m);
+		});
+
+		it('adversarial pairs (more drained after resting) pin to the lower bound with a wide std', () => {
+			const fit = fitRecoveryRate(
+				[
+					{ drainedBefore: 0.3, drainedAfter: 0.6, hours: 0.5 },
+					{ drainedBefore: 0.4, drainedAfter: 0.7, hours: 0.5 }
+				],
+				prior,
+				restParams
+			);
+			expect(fit.fitted).toBe(true);
+			expect(fit.rate).toBeGreaterThanOrEqual(RECOVERY_FIT_MIN);
+			expect(fit.rate).toBeLessThan(prior);
+			// The residuals are large, so the noise blend must report low confidence.
+			expect(fit.rateStd!).toBeGreaterThan(0.3);
+		});
+
+		it('fitting r first reduces the alpha fit bias it was built to remove (probe 2026-07-18)', () => {
+			// True world: fast recoverer (r = 1.4) with true αcog = 0.5. Drain
+			// ratings fitted at the default r must bend α down to compensate;
+			// conditioning on the r fitted from rest pairs recovers most of it.
+			const TRUE_R = 1.4;
+			const TRUE_ALPHA = 0.5;
+			const drainAt = (recovery: number, w: number, hours: number) => {
+				const rec = recovery * m;
+				const gate = 1 - (1 - DEFAULT_ENERGY_PARAMS.microRecoveryFraction) * w;
+				const rho = TRUE_ALPHA * w + rec * gate;
+				const eq = (rec * gate) / rho;
+				return 1 - (eq + (1 - eq) * Math.exp(-rho * hours));
+			};
+			const drainObs = [1.5, 2, 2.5, 2, 1.5].map((hours) => ({
+				demand: 0.9,
+				hours,
+				drainedFraction: drainAt(TRUE_R, 0.9, hours)
+			}));
+			const lawParams = (recovery: number) => ({
+				recoveryRate: recovery,
+				restRecoveryMultiplier: m,
+				microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction
+			});
+			const biased = fitDrainRate(drainObs, DEFAULT_ENERGY_PARAMS.alphaCog, lawParams(prior));
+			const rFit = fitRecoveryRate(loggedRests(TRUE_R, 5), prior, restParams);
+			const conditioned = fitDrainRate(
+				drainObs,
+				DEFAULT_ENERGY_PARAMS.alphaCog,
+				lawParams(rFit.rate)
+			);
+			expect(Math.abs(conditioned.alpha - TRUE_ALPHA)).toBeLessThan(
+				Math.abs(biased.alpha - TRUE_ALPHA)
+			);
+		});
+
+		it('is deterministic', () => {
+			const obs = loggedRests(1.1, 4);
+			const a = fitRecoveryRate(obs, prior, restParams);
+			const b = fitRecoveryRate(obs, prior, restParams);
+			expect(a).toEqual(b);
+		});
+	});
+
+	describe('stopping-value calibration (fitStoppingValue, MATH.md §8.10)', () => {
+		const day = [
+			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
+			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+		];
+		const prior = DEFAULT_ENERGY_PARAMS.freeTimeValue;
+
+		// Synthetic user: work the plan the optimizer builds at the TRUE λ₀,
+		// then log the per-task hours — what drain logs would record.
+		const dayFromPlan = (trueLambda: number, windowHours: number): StopObservation => {
+			const { blocks } = optimizeSchedule(day, windowHours, {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: trueLambda
+			});
+			const byTask = new Map<number, number>();
+			for (const b of blocks) {
+				if (b.taskId !== null) byTask.set(b.taskId, (byTask.get(b.taskId) ?? 0) + b.hours);
+			}
+			return {
+				tasks: day,
+				windowHours,
+				workedHours: [...byTask].map(([taskId, hours]) => ({ taskId, hours }))
+			};
+		};
+
+		it('recovers the generating λ₀ from synthetic days across windows', () => {
+			// Probe 2026-07-19: per-day brackets contain the true λ₀ = 0.9 and
+			// midpoints sit at ≈ 1.0; three days ridge-blended with the 0.5 prior
+			// land near the truth.
+			const days = [8, 10, 12].map((T) => dayFromPlan(0.9, T));
+			const fit = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
+			expect(fit.fitted).toBe(true);
+			expect(fit.usedCount).toBe(3);
+			expect(fit.value).toBeGreaterThan(0.75);
+			expect(fit.value).toBeLessThan(1.05);
+		});
+
+		it('extraction is λ₀-free: the current freeTimeValue slider cannot bias it', () => {
+			const obs = dayFromPlan(0.9, 10);
+			const at0 = stopIndifferencePoint(obs, { ...DEFAULT_ENERGY_PARAMS, freeTimeValue: 0 });
+			const at3 = stopIndifferencePoint(obs, { ...DEFAULT_ENERGY_PARAMS, freeTimeValue: 3 });
+			expect(at0).not.toBeNull();
+			expect(at0).toBe(at3);
+		});
+
+		it('stopping earlier reveals a higher indifference price (diminishing marginals)', () => {
+			const early: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [{ taskId: 1, hours: 2.25 }]
+			};
+			const late: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [
+					{ taskId: 1, hours: 3 },
+					{ taskId: 2, hours: 3 },
+					{ taskId: 3, hours: 1.5 }
+				]
+			};
+			expect(stopIndifferencePoint(early, DEFAULT_ENERGY_PARAMS)!).toBeGreaterThan(
+				stopIndifferencePoint(late, DEFAULT_ENERGY_PARAMS)!
+			);
+		});
+
+		it('drops censored and uninformative days; all-dropped falls back', () => {
+			// Worked to the window edge: stopping reveals only an inequality.
+			const edge: StopObservation = {
+				tasks: day,
+				windowHours: 6,
+				workedHours: [{ taskId: 2, hours: 6 }]
+			};
+			// Nothing worked, and sessions shorter than one 45-min step.
+			const empty: StopObservation = { tasks: day, windowHours: 8, workedHours: [] };
+			const sliver: StopObservation = {
+				tasks: day,
+				windowHours: 8,
+				workedHours: [{ taskId: 2, hours: 0.5 }]
+			};
+			expect(stopIndifferencePoint(edge, DEFAULT_ENERGY_PARAMS)).toBeNull();
+			expect(stopIndifferencePoint(empty, DEFAULT_ENERGY_PARAMS)).toBeNull();
+			expect(stopIndifferencePoint(sliver, DEFAULT_ENERGY_PARAMS)).toBeNull();
+			expect(fitStoppingValue([edge, empty, sliver], prior, DEFAULT_ENERGY_PARAMS)).toEqual({
+				value: prior,
+				fitted: false,
+				usedCount: 0
+			});
+		});
+
+		it('censors a strongly inverted day (interruption) but keeps a mild inversion at its midpoint', () => {
+			// Strong inversion — a long grind on the weakest task while
+			// boxing/guitar sat unstarted: the marginal of STARTING a strong task
+			// exceeds what the last reading step was worth by far more than
+			// STOP_INVERSION_MARGIN (probe: lo ≈ 0.91, hi ≈ 0.26, gap ≈ 0.65).
+			// The day's own data contradicts a rational stop, so only the
+			// one-sided λ₀ ≤ hi reading survives — censored like a
+			// worked-to-the-edge day, NOT averaged into the fit: its midpoint sits
+			// at the task curves' characteristic marginal regardless of the user's
+			// true λ₀ (MATH.md §8.10, probes 2026-07-19).
+			const grind: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [{ taskId: 3, hours: 4.5 }]
+			};
+			expect(stopIndifferencePoint(grind, DEFAULT_ENERGY_PARAMS)).toBeNull();
+			expect(fitStoppingValue([grind], prior, DEFAULT_ENERGY_PARAMS).fitted).toBe(false);
+
+			// A 1-step interrupted sliver is the practical contamination case
+			// (probe: gap ≈ 0.34) — also censored.
+			const sliver: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [{ taskId: 3, hours: DEFAULT_STEP_HOURS }]
+			};
+			expect(stopIndifferencePoint(sliver, DEFAULT_ENERGY_PARAMS)).toBeNull();
+
+			// Mild inversion — 2.25h of reading only (probe: gap ≈ 0.07, within
+			// the margin = the instrument's own slack): kept at the bracket
+			// midpoint and used by the fit.
+			const mild: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [{ taskId: 3, hours: 2.25 }]
+			};
+			const step = DEFAULT_STEP_HOURS;
+			const workValue = (blocks: { taskId: number | null; hours: number }[]) => {
+				const ev = evaluateSchedule(blocks, day, 12, DEFAULT_ENERGY_PARAMS);
+				return ev.satiatedOutput + ev.terminalBonus;
+			};
+			const base = workValue([{ taskId: 3, hours: 2.25 }]);
+			const lo = Math.max(
+				(workValue([{ taskId: 3, hours: 2.25 + step }]) - base) / step,
+				(workValue([{ taskId: 3, hours: 2.25 }, { taskId: 1, hours: step }]) - base) / step,
+				(workValue([{ taskId: 3, hours: 2.25 }, { taskId: 2, hours: step }]) - base) / step
+			);
+			const hi = (base - workValue([{ taskId: 3, hours: 2.25 - step }])) / step;
+			expect(lo).toBeGreaterThan(hi); // inverted...
+			expect(lo).toBeLessThanOrEqual(hi + STOP_INVERSION_MARGIN); // ...but within the margin
+			expect(stopIndifferencePoint(mild, DEFAULT_ENERGY_PARAMS)).toBeCloseTo(
+				(Math.max(0, lo) + hi) / 2,
+				10
+			);
+			expect(fitStoppingValue([mild], prior, DEFAULT_ENERGY_PARAMS).usedCount).toBe(1);
+		});
+
+		it('prior profile is exact arithmetic: one day moves λ₀ halfway to its point', () => {
+			const obs = dayFromPlan(1.3, 10);
+			const point = stopIndifferencePoint(obs, DEFAULT_ENERGY_PARAMS)!;
+			const fit = fitStoppingValue([obs], prior, DEFAULT_ENERGY_PARAMS);
+			expect(fit.value).toBeCloseTo((point + prior) / 2, 10);
+		});
+
+		it('posterior std shrinks with consistent data', () => {
+			const obs = dayFromPlan(0.9, 10);
+			const two = fitStoppingValue([obs, obs], prior, DEFAULT_ENERGY_PARAMS);
+			const eight = fitStoppingValue(Array.from({ length: 8 }, () => obs), prior, DEFAULT_ENERGY_PARAMS);
+			expect(eight.valueStd!).toBeLessThan(two.valueStd!);
+		});
+
+		it('W*(λ₀) is monotone with a graded response — §8.3’s bang-bang is gone (satiety fixed it)', () => {
+			const worked = [0.4, 0.8, 1.2, 1.5].map((l) => {
+				const { blocks } = optimizeSchedule(day, 12, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: l
+				});
+				return blocks.reduce((s, b) => s + (b.taskId !== null ? b.hours : 0), 0);
+			});
+			for (let i = 1; i < worked.length; i++) {
+				expect(worked[i]).toBeLessThanOrEqual(worked[i - 1] + 1e-9);
+			}
+			expect(new Set(worked.map((w) => w.toFixed(2))).size).toBeGreaterThanOrEqual(3);
+		});
+
+		it('is deterministic', () => {
+			const days = [dayFromPlan(0.9, 8), dayFromPlan(0.9, 12)];
+			const a = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
+			const b = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
 			expect(a).toEqual(b);
 		});
 	});

@@ -6,7 +6,8 @@ import type {
 	DailySession,
 	SavedRoutine,
 	FlowObservationRecord,
-	DrainObservationRecord
+	DrainObservationRecord,
+	RestObservationRecord
 } from '$lib/data/type';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
@@ -15,6 +16,7 @@ import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import * as drainObservationRepository from '$lib/data/repository/drain-observation-repository';
+import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
 import { addDays } from '$lib/business/utils/date';
 import { initializeStorage } from '$lib/business/store/session-history';
@@ -48,6 +50,7 @@ export class SessionStore {
 	#routines = $state<SavedRoutine[]>([]);
 	#flowObservations = $state<FlowObservationRecord[]>([]);
 	#drainObservations = $state<DrainObservationRecord[]>([]);
+	#restObservations = $state<RestObservationRecord[]>([]);
 
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
@@ -97,6 +100,7 @@ export class SessionStore {
 				this.#routines = await routineRepository.$readAllRoutines();
 				this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
 				this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
+				this.#restObservations = await restObservationRepository.$readAllRestObservations();
 				await this.#loadSession(this.#selectedDate);
 			} catch (e) {
 				console.error('Failed to load from IndexedDB', e);
@@ -208,6 +212,9 @@ export class SessionStore {
 	}
 	get drainObservations() {
 		return this.#drainObservations;
+	}
+	get restObservations() {
+		return this.#restObservations;
 	}
 	get pools() {
 		return this.#pools;
@@ -422,6 +429,54 @@ export class SessionStore {
 			this.#drainObservations = [];
 		} catch (e) {
 			console.error('Failed to reset drain observations', e);
+		}
+	}
+
+	// Log a pre/post-rest rating pair: a break of `hours`, with both energy
+	// systems rated going in and coming out (0–10). Not tied to a task, and
+	// appended rather than upserted — several breaks a day are normal.
+	// Today-only like the other measurements.
+	async logRest(
+		hours: number,
+		mindBefore: number,
+		mindAfter: number,
+		bodyBefore: number,
+		bodyAfter: number
+	) {
+		try {
+			await restObservationRepository.$createRestObservation({
+				date: this.#today,
+				hours,
+				mindBefore,
+				mindAfter,
+				bodyBefore,
+				bodyAfter
+			});
+			this.#restObservations = await restObservationRepository.$readAllRestObservations();
+		} catch (e) {
+			console.error('Failed to save rest observation', e);
+		}
+	}
+
+	// Remove one rest pair; the fitted recovery rate is derived from the
+	// observations, so consumers refit automatically.
+	async deleteRestLog(id: number) {
+		try {
+			await restObservationRepository.$deleteRestObservation(id);
+			this.#restObservations = await restObservationRepository.$readAllRestObservations();
+		} catch (e) {
+			console.error('Failed to delete rest observation', e);
+		}
+	}
+
+	// Delete all rest pairs → the energy model's recovery calibration reverts
+	// to whatever the lab parameters say.
+	async resetRestLogs() {
+		try {
+			await restObservationRepository.$deleteAllRestObservations();
+			this.#restObservations = [];
+		} catch (e) {
+			console.error('Failed to reset rest observations', e);
 		}
 	}
 

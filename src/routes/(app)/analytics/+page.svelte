@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 	import { type DaySummary, summarizeSession, currentStreak } from '$lib/business/model/metric/history';
@@ -9,7 +10,7 @@
 	import {
 		initializeStorage,
 		readSessionsByDateRange,
-		readUserConstants
+		readUserFit
 	} from '$lib/business/store/session-history';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
@@ -31,9 +32,11 @@
 		if (!browser) return;
 		try {
 			await initializeStorage();
-			const constants = await readUserConstants();
+			const fit = await readUserFit();
 			const sessions = await readSessionsByDateRange(addDays(today, -364), today);
-			all = sessions.filter((s) => s.tasks.length > 0).map((s) => summarizeSession(s, constants));
+			all = sessions
+				.filter((s) => s.tasks.length > 0)
+				.map((s) => summarizeSession(s, fit.constants, fit.posterior));
 		} catch (e) {
 			console.error('Failed to load analytics data', e);
 		} finally {
@@ -56,8 +59,8 @@
 			: 0
 	);
 
-	// Delta vs the previous period of the same length (year has no prior data:
-	// sessions older than a year are cleaned up)
+	// Delta vs the previous period of the same length (year has none: this
+	// page only loads the last 365 days)
 	const prevRange = $derived.by(() => {
 		if (range === 'year') return [];
 		const start = addDays(today, -(2 * days - 1));
@@ -218,25 +221,22 @@
 	const activeDaysWithCompletion = $derived(inRange.filter((s) => s.completedTasks > 0).length);
 </script>
 
-<svelte:head>
-	<title>{m.ana_title_head()}</title>
-	<meta name="description" content={m.ana_meta_description()} />
-</svelte:head>
+<SeoHead title={m.ana_title_head()} description={m.ana_meta_description()} />
 
-<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+<div class="mb-6 flex flex-wrap items-center justify-between gap-grid-xs">
 	<div>
-		<h1 class="text-2xl font-bold text-zinc-100">{m.ana_heading()}</h1>
-		<p class="mt-1 text-sm text-zinc-500">
+		<h1 class="text-2xl font-bold text-ty-primary">{m.ana_heading()}</h1>
+		<p class="mt-1 text-sm text-ty-silent">
 			{m.ana_subtitle()}
 		</p>
 	</div>
 
-	<div class="inline-flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
+	<div class="inline-flex items-center rounded-lg border bg-surface-card p-0.5">
 		{#each Object.entries(RANGES) as [key, r] (key)}
 			<button
 				onclick={() => (range = key as RangeKey)}
 				class="rounded-md px-3 py-1 text-sm transition-colors
-				       {range === key ? 'bg-white/10 text-zinc-100' : 'text-zinc-400 hover:text-zinc-200'}"
+				       {range === key ? 'bg-surface-hover text-ty-primary' : 'text-ty-secondary hover:text-ty-primary'}"
 			>
 				{r.label()}
 			</button>
@@ -245,33 +245,33 @@
 </div>
 
 {#if isLoading}
-	<p class="text-sm text-zinc-500">{m.ana_loading()}</p>
+	<p class="text-sm text-ty-silent">{m.ana_loading()}</p>
 {:else if !hasData}
-	<div class="rounded-xl border border-white/10 bg-white/3 p-8 text-center backdrop-blur-xl">
-		<p class="text-zinc-300">{m.ana_empty()}</p>
-		<p class="mt-1 text-sm text-zinc-500">
+	<div class="rounded-xl border bg-surface-card p-8 text-center backdrop-blur shadow-card">
+		<p class="text-ty-secondary">{m.ana_empty()}</p>
+		<p class="mt-1 text-sm text-ty-silent">
 			{m.ana_empty_hint_1()}
-			<a href="/" class="text-zinc-300 underline hover:text-zinc-100">{m.link_today()}</a>
+			<a href="/" class="text-ty-secondary underline hover:text-ty-primary">{m.link_today()}</a>
 			{m.ana_empty_hint_2()}
 		</p>
 	</div>
 {:else}
 	<!-- KPI tiles -->
-	<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">{m.ana_tasks_completed()}</p>
-			<p class="mt-1 text-2xl font-semibold text-zinc-100">
-				{completedTasks} <span class="text-base font-normal text-zinc-500">/ {totalTasks}</span>
+	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3">
+		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+			<p class="text-xs text-ty-silent">{m.ana_tasks_completed()}</p>
+			<p class="mt-1 text-2xl font-semibold text-ty-primary">
+				{completedTasks} <span class="text-base font-normal text-ty-silent">/ {totalTasks}</span>
 			</p>
-			<p class="mt-0.5 text-xs text-zinc-500">{m.ana_of_planned({ percent: completedShare })}</p>
+			<p class="mt-0.5 text-xs text-ty-silent">{m.ana_of_planned({ percent: completedShare })}</p>
 		</div>
 
-		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">{m.ana_avg_rate()}</p>
-			<p class="mt-1 text-2xl font-semibold text-zinc-100">{avgRate}%</p>
-			<p class="mt-0.5 text-xs text-zinc-500">
+		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+			<p class="text-xs text-ty-silent">{m.ana_avg_rate()}</p>
+			<p class="mt-1 text-2xl font-semibold text-ty-primary">{avgRate}%</p>
+			<p class="mt-0.5 text-xs text-ty-silent">
 				{#if rateDelta !== null}
-					<span class={rateDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+					<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
 						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
 					</span>
 					{m.ana_vs_prev({ period: RANGES[range].prevLabel() })}
@@ -281,38 +281,38 @@
 			</p>
 		</div>
 
-		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">{m.ana_active_days()}</p>
-			<p class="mt-1 text-2xl font-semibold text-zinc-100">
-				{inRange.length} <span class="text-base font-normal text-zinc-500">/ {days}</span>
+		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+			<p class="text-xs text-ty-silent">{m.ana_active_days()}</p>
+			<p class="mt-1 text-2xl font-semibold text-ty-primary">
+				{inRange.length} <span class="text-base font-normal text-ty-silent">/ {days}</span>
 			</p>
-			<p class="mt-0.5 text-xs text-zinc-500">
+			<p class="mt-0.5 text-xs text-ty-silent">
 				{m.ana_with_completion({ count: activeDaysWithCompletion })}
 			</p>
 		</div>
 
-		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">{m.ana_current_streak()}</p>
-			<p class="mt-1 text-2xl font-semibold text-zinc-100">
+		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+			<p class="text-xs text-ty-silent">{m.ana_current_streak()}</p>
+			<p class="mt-1 text-2xl font-semibold text-ty-primary">
 				{streak}
-				<span class="text-base font-normal text-zinc-500">
+				<span class="text-base font-normal text-ty-silent">
 					{streak === 1 ? m.ana_day_one() : m.ana_day_other()}
 				</span>
 			</p>
-			<p class="mt-0.5 text-xs text-zinc-500">{m.ana_streak_note()}</p>
+			<p class="mt-0.5 text-xs text-ty-silent">{m.ana_streak_note()}</p>
 		</div>
 
-		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">{m.ana_planned_hours()}</p>
-			<p class="mt-1 text-2xl font-semibold text-zinc-100">{plannedHours}h</p>
-			<p class="mt-0.5 text-xs text-zinc-500">{m.ana_planned_hours_note()}</p>
+		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+			<p class="text-xs text-ty-silent">{m.ana_planned_hours()}</p>
+			<p class="mt-1 text-2xl font-semibold text-ty-primary">{plannedHours}h</p>
+			<p class="mt-0.5 text-xs text-ty-silent">{m.ana_planned_hours_note()}</p>
 		</div>
 
-		<div class="rounded-xl border border-white/10 bg-white/3 p-4 backdrop-blur-xl">
-			<p class="text-xs text-zinc-500">{m.ana_best_day()}</p>
+		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+			<p class="text-xs text-ty-silent">{m.ana_best_day()}</p>
 			{#if bestDay}
-				<p class="mt-1 text-2xl font-semibold text-zinc-100">{formatDay(bestDay.date)}</p>
-				<p class="mt-0.5 text-xs text-zinc-500">
+				<p class="mt-1 text-2xl font-semibold text-ty-primary">{formatDay(bestDay.date)}</p>
+				<p class="mt-0.5 text-xs text-ty-silent">
 					{bestDay.completedTasks === 1
 						? m.ana_best_day_note_one({ rate: bestDay.completionRate })
 						: m.ana_best_day_note({
@@ -321,16 +321,16 @@
 							})}
 				</p>
 			{:else}
-				<p class="mt-1 text-2xl font-semibold text-zinc-500">—</p>
-				<p class="mt-0.5 text-xs text-zinc-500">{m.ana_no_completed()}</p>
+				<p class="mt-1 text-2xl font-semibold text-ty-silent">—</p>
+				<p class="mt-0.5 text-xs text-ty-silent">{m.ana_no_completed()}</p>
 			{/if}
 		</div>
 	</div>
 
 	<!-- Completion trend -->
-	<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
-		<h2 class="text-sm font-medium text-zinc-200">{m.ana_completion_rate()}</h2>
-		<p class="mt-0.5 text-xs text-zinc-500">
+	<div class="mt-6 rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
+		<p class="mt-0.5 text-xs text-ty-silent">
 			{range === 'year' ? m.ana_chart_hint_year() : m.ana_chart_hint_day()}
 		</p>
 
@@ -353,7 +353,7 @@
 					x={CHART.left - 8}
 					y={yPos(tick) + 3}
 					text-anchor="end"
-					class="fill-zinc-500"
+					class="fill-ty-silent"
 					font-size="10"
 					style="font-variant-numeric: tabular-nums"
 				>
@@ -372,7 +372,7 @@
 						x={bar.slotX + bar.slotW / 2}
 						y={CHART.h - 8}
 						text-anchor="middle"
-						class="fill-zinc-500"
+						class="fill-ty-silent"
 						font-size="10"
 					>
 						{bar.label}
@@ -393,9 +393,9 @@
 	</div>
 
 	<!-- Day profiles -->
-	<div class="mt-6 rounded-xl border border-white/10 bg-white/3 p-5 backdrop-blur-xl">
-		<h2 class="text-sm font-medium text-zinc-200">{m.ana_day_profiles()}</h2>
-		<p class="mt-0.5 text-xs text-zinc-500">
+	<div class="mt-6 rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_day_profiles()}</h2>
+		<p class="mt-0.5 text-xs text-ty-silent">
 			{m.ana_day_profiles_hint()}
 		</p>
 
@@ -412,12 +412,12 @@
 			{/each}
 		</div>
 
-		<div class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+		<div class="mt-3 flex flex-wrap gap-x-grid-lg gap-y-grid-2xs">
 			{#each QUADRANTS as q (q.key)}
 				<div class="flex items-center gap-1.5 text-xs">
 					<span class="h-2 w-2 rounded-full" style="background: {q.color}"></span>
-					<span class="text-zinc-400">{q.label}</span>
-					<span class="font-medium text-zinc-200" style="font-variant-numeric: tabular-nums">
+					<span class="text-ty-secondary">{q.label}</span>
+					<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums">
 						{quadrantCounts[q.key]}
 					</span>
 				</div>

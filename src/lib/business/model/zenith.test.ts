@@ -15,11 +15,16 @@ import {
 	pooledProductivityGain,
 	fitUserConstants,
 	phiPredictionStd,
+	phiParameterStd,
+	expectedAverageProductivity,
+	expectedOptimalTime,
 	findOptimalSingleTaskTime,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_CAPACITY_POOLS,
 	BLOCK_HOURS,
 	OPTIMAL_PHI_MULTIPLIER,
+	GAIN_PERCENT_CAP,
+	type FitPosterior,
 	type PooledTaskInput,
 	type FlowObservation
 } from './zenith';
@@ -823,6 +828,221 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 			expect(gain.optimized).toBeGreaterThan(gain.naive);
 			expect(gain.gainPercent).toBeGreaterThan(0);
+		});
+
+		it('caps the gain instead of reporting 0% when the naive plan achieves nothing (2026-07-18 fix)', () => {
+			// 10 tasks × 0.25h switch cost = 2.25h of naive overhead > the 2h
+			// budget: the naive planner's effective budget is 0 and its
+			// productivity 0. The old guard returned gainPercent 0 — hiding
+			// Zenith's advantage in exactly the scenario where dropping weak
+			// tasks helps most. Now the gain saturates at GAIN_PERCENT_CAP.
+			const tasks = Array.from({ length: 10 }, (_, i) => ({
+				title: `t${i}`,
+				difficulty: 5,
+				enjoyment: 3 + (i % 5)
+			}));
+			const gain = productivityGain(tasks, 2, DEFAULT_USER_CONSTANTS, 0.25);
+			expect(gain.naive).toBe(0);
+			expect(gain.optimized).toBeGreaterThan(0);
+			expect(gain.gainPercent).toBe(GAIN_PERCENT_CAP);
+
+			// Same guard on the pooled variant (what the dashboard shows)
+			const pooled = pooledProductivityGain(
+				tasks.map((t) => ({ ...t, cognitiveWeight: 0.5, physicalWeight: 0.2 })),
+				2,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				0.25
+			);
+			expect(pooled.naive).toBe(0);
+			expect(pooled.gainPercent).toBe(GAIN_PERCENT_CAP);
+		});
+
+		it('never reports above the cap', () => {
+			// (A tiny-but-positive naive value cannot produce a huge FINITE ratio
+			// under the v2 curve: continuous slivers still collect ≈ p₀ per task
+			// via the activation bonus, so naive is either 0 or substantial —
+			// see MATH.md §11.2. The cap therefore mainly guards the naive = 0
+			// jump; this sweep just pins the invariant.)
+			for (const budget of [0.5, 2, 2.5, 6, 12]) {
+				const tasks = Array.from({ length: 9 }, (_, i) => ({
+					title: `t${i}`,
+					difficulty: 4,
+					enjoyment: 3 + (i % 6)
+				}));
+				const gain = productivityGain(tasks, budget, DEFAULT_USER_CONSTANTS, 0.25);
+				expect(gain.gainPercent).toBeLessThanOrEqual(GAIN_PERCENT_CAP);
+			}
+		});
+	});
+
+	describe('ϕ-Uncertainty (posterior-aware allocation, MATH.md §5.1)', () => {
+		// Hand-built posteriors: diagonal covariance in (c₁, c₂, c₃) space.
+		const widePosterior: FitPosterior = {
+			covariance: [
+				[0.04, 0, 0],
+				[0, 0.04, 0],
+				[0, 0, 0.04]
+			],
+			sigma2: 0.0625,
+			nEff: 2
+		};
+
+		it('expectedAverageProductivity collapses exactly to averageProductivity at σ = 0', () => {
+			for (const { difficulty, enjoyment } of DOMAIN_GRID) {
+				const { a, p0, phi, k } = calculateTaskParams({ title: '', difficulty, enjoyment });
+				for (const T of [0.25, 1, 2.5, 5]) {
+					expect(expectedAverageProductivity(T, a, p0, phi, 0)).toBe(
+						averageProductivity(T, a, p0, k)
+					);
+				}
+			}
+		});
+
+		it('uncertainty strictly lowers the best achievable average (no free lunch)', () => {
+			// Every ϕ-component has the same peak height, so no single T can sit
+			// at the optimum of all of them at once.
+			const { a, p0, phi } = calculateTaskParams({ title: '', difficulty: 7, enjoyment: 4 });
+			const classicBest = averageProductivity(
+				findOptimalSingleTaskTime({ title: '', difficulty: 7, enjoyment: 4 }),
+				a,
+				p0,
+				(1 - p0 / a) / phi
+			);
+			for (const sigma of [0.1, 0.25, 0.5]) {
+				const tStar = expectedOptimalTime(a, p0, phi, sigma);
+				expect(expectedAverageProductivity(tStar, a, p0, phi, sigma)).toBeLessThan(classicBest);
+			}
+		});
+
+		it('expectedOptimalTime: reduces to the classic T* at σ = 0 and maximizes E[P̄] at σ > 0', () => {
+			for (const { difficulty, enjoyment } of DOMAIN_GRID) {
+				const task = { title: '', difficulty, enjoyment };
+				const { a, p0, phi } = calculateTaskParams(task);
+				expect(expectedOptimalTime(a, p0, phi, 0)).toBeCloseTo(
+					findOptimalSingleTaskTime(task),
+					10
+				);
+
+				const sigma = 0.3 * phi;
+				const tStar = expectedOptimalTime(a, p0, phi, sigma);
+				const best = expectedAverageProductivity(tStar, a, p0, phi, sigma);
+				for (const dt of [-0.05, 0.05]) {
+					expect(expectedAverageProductivity(tStar + dt, a, p0, phi, sigma)).toBeLessThanOrEqual(
+						best + 1e-12
+					);
+				}
+			}
+		});
+
+		it('mixture block increments stay positive and non-increasing across the domain (greedy precondition)', () => {
+			// Regression sweep for the probe result behind the σ-cap: within
+			// σ ≤ 0.5ϕ̂ the expected average keeps diminishing increments up to
+			// its stopping point (the builder additionally enforces this by
+			// construction — this checks the enforcement is a no-op here).
+			for (const { difficulty, enjoyment } of DOMAIN_GRID) {
+				const { a, p0, phi } = calculateTaskParams({ title: '', difficulty, enjoyment });
+				for (const sigmaFrac of [0.1, 0.3, 0.5]) {
+					const sigma = sigmaFrac * phi;
+					let prevVal = 0;
+					let prevInc = Infinity;
+					for (let j = 1; j <= 80; j++) {
+						const val = expectedAverageProductivity(j * BLOCK_HOURS, a, p0, phi, sigma);
+						const inc = val - prevVal;
+						if (inc <= 1e-12) break;
+						expect(inc).toBeLessThanOrEqual(prevInc + 1e-12);
+						prevVal = val;
+						prevInc = inc;
+					}
+				}
+			}
+		});
+
+		it('phiParameterStd grows with distance from the logged region and shrinks with data', () => {
+			const near: FlowObservation[] = Array.from({ length: 4 }, (_, i) => ({
+				E: 2 + 0.1 * i,
+				beta: 1.5,
+				phi: 1.2 + 0.05 * i
+			}));
+			const many: FlowObservation[] = Array.from({ length: 40 }, (_, i) => ({
+				E: 2 + 0.1 * (i % 4),
+				beta: 1.5,
+				phi: 1.2 + 0.05 * (i % 4)
+			}));
+			const fitFew = fitUserConstants(near);
+			const fitMany = fitUserConstants(many);
+			expect(fitFew.posterior).toBeDefined();
+			expect(fitMany.posterior).toBeDefined();
+
+			// Far from the cluster (E=5, β=1) the parameter band is wider than at it
+			expect(phiParameterStd(5, 1, fitFew.posterior!)).toBeGreaterThan(
+				phiParameterStd(2.2, 1.5, fitFew.posterior!)
+			);
+			// More data shrinks the band everywhere
+			expect(phiParameterStd(5, 1, fitMany.posterior!)).toBeLessThan(
+				phiParameterStd(5, 1, fitFew.posterior!)
+			);
+			// And it is parameter-only: strictly below the predictive std, which
+			// adds the irreducible noise floor
+			expect(phiParameterStd(3, 1.5, fitFew.posterior!)).toBeLessThan(
+				phiPredictionStd(3, 1.5, fitFew.posterior!)
+			);
+		});
+
+		it('allocating with a posterior hedges: uncertain tasks are worth less at their optimum', () => {
+			const tasks = [
+				{ title: 'a', difficulty: 7, enjoyment: 4 },
+				{ title: 'b', difficulty: 3, enjoyment: 8 }
+			];
+			const classic = calculateTaskAllocations(tasks, 6, DEFAULT_USER_CONSTANTS, 0);
+			const hedged = calculateTaskAllocations(tasks, 6, DEFAULT_USER_CONSTANTS, 0, widePosterior);
+			for (let i = 0; i < tasks.length; i++) {
+				expect(hedged[i].optimalAvgProductivity).toBeLessThan(classic[i].optimalAvgProductivity);
+				// ϕ (the posterior MEAN) is untouched — only confidence changed
+				expect(hedged[i].phi).toBe(classic[i].phi);
+				// Peak height is ϕ-independent, so it must not move either
+				expect(hedged[i].peakProductivity).toBe(classic[i].peakProductivity);
+			}
+			// Plans stay valid: whole blocks, within budget
+			const total = hedged.reduce((s, t) => s + t.allocatedHours, 0);
+			expect(total).toBeLessThanOrEqual(6 + 1e-9);
+			for (const t of hedged) {
+				expect(Math.round(t.allocatedHours / BLOCK_HOURS)).toBeCloseTo(
+					t.allocatedHours / BLOCK_HOURS,
+					9
+				);
+			}
+		});
+
+		it('an end-to-end 2-log fit plans differently from a 200-log fit (the point of §5.1)', () => {
+			const logs = (n: number): FlowObservation[] =>
+				Array.from({ length: n }, (_, i) => ({
+					E: 2 + (i % 3) * 0.8,
+					beta: 1.2 + (i % 2) * 0.4,
+					phi: 0.9 + (i % 3) * 0.35
+				}));
+			const few = fitUserConstants(logs(2));
+			const lots = fitUserConstants(logs(200));
+			const tasks = [
+				{ title: 'deep work', difficulty: 9, enjoyment: 5 },
+				{ title: 'email', difficulty: 2, enjoyment: 4 }
+			];
+			const planFew = calculateTaskAllocations(tasks, 8, few.constants, 0.25, few.posterior);
+			const planLots = calculateTaskAllocations(tasks, 8, lots.constants, 0.25, lots.posterior);
+			// The 200-log plan should be (weakly) more confident about every
+			// task's achievable average than a 2-log plan of the same user —
+			// compare against each fit's own zero-posterior twin to isolate the
+			// uncertainty effect from the constants shift.
+			const certainFew = calculateTaskAllocations(tasks, 8, few.constants, 0.25);
+			const certainLots = calculateTaskAllocations(tasks, 8, lots.constants, 0.25);
+			for (let i = 0; i < tasks.length; i++) {
+				const hedgeFew = certainFew[i].optimalAvgProductivity - planFew[i].optimalAvgProductivity;
+				const hedgeLots =
+					certainLots[i].optimalAvgProductivity - planLots[i].optimalAvgProductivity;
+				expect(hedgeFew).toBeGreaterThan(0);
+				expect(hedgeLots).toBeGreaterThan(0);
+				expect(hedgeLots).toBeLessThan(hedgeFew);
+			}
 		});
 	});
 
