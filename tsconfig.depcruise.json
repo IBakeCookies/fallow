@@ -1,0 +1,13 @@
+{
+	// Used only by dependency-cruiser (.dependency-cruiser.cjs). The real
+	// tsconfig.json extends the SvelteKit-generated config, whose $lib paths
+	// dependency-cruiser can't pick up (no baseUrl, includes relative to .svelte-kit).
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"$lib": ["src/lib"],
+			"$lib/*": ["src/lib/*"]
+		}
+	},
+	"include": ["src/**/*"]
+}
