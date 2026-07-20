@@ -6,7 +6,8 @@
 	// footer in the shared layout rather than links on individual pages.
 	const links = [
 		{ href: '/imprint', label: () => m.footer_imprint() },
-		{ href: '/privacy', label: () => m.footer_privacy() }
+		{ href: '/privacy', label: () => m.footer_privacy() },
+		{ href: 'https://ko-fi.com/ibakecookies', label: () => m.footer_coffee(), external: true }
 	];
 </script>
 
@@ -15,7 +16,12 @@
 		class="flex w-max items-center gap-4 rounded-xl border bg-surface-card px-3 py-1.5 backdrop-blur"
 	>
 		{#each links as link (link.href)}
-			<a href={link.href} class="transition-colors hover:text-ty-secondary">{link.label()}</a>
+			<a
+				href={link.href}
+				target={link.external ? '_blank' : undefined}
+				rel={link.external ? 'noopener' : undefined}
+				class="transition-colors hover:text-ty-secondary">{link.label()}</a
+			>
 		{/each}
 	</div>
 </footer>

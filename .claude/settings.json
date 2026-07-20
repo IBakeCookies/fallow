@@ -10,7 +10,18 @@
       "Bash(grep -rl 'from '\\\\''$lib' src/lib/business)",
       "Bash(npx depcruise *)",
       "Bash(grep -iA20 'extensions\\\\|svelte')",
-      "Bash(dot -T svg)"
+      "Bash(dot -T svg)",
+      "Bash(node -e ' *)",
+      "Bash(npm i *)",
+      "Bash(grep -nE 'availableHours|DEFAULT|= \\\\$state' src/lib/business/store/session-store.svelte.ts)",
+      "Bash(xargs -I{} sh -c 'echo ==={}; sed -n 1,50p {}')",
+      "Bash(LD_LIBRARY_PATH=/tmp/claude-1000/-home-shadi-hobby-zenith/7cf32a98-f42b-4f8e-ab53-7484ffcf3540/scratchpad/libs/extracted/usr/lib/x86_64-linux-gnu npx playwright test e2e/app.e2e.ts)",
+      "Bash(LD_LIBRARY_PATH=/tmp/claude-1000/-home-shadi-hobby-zenith/7cf32a98-f42b-4f8e-ab53-7484ffcf3540/scratchpad/libs/extracted/usr/lib/x86_64-linux-gnu npx playwright test)",
+      "Bash(npx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide)",
+      "Bash(LD_LIBRARY_PATH=/tmp/claude-1000/-home-shadi-hobby-zenith/7cf32a98-f42b-4f8e-ab53-7484ffcf3540/scratchpad/libs/extracted/usr/lib/x86_64-linux-gnu npx playwright test --list)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -L \"https://ko-fi.com/ibakecookies\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -L -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/126.0 Safari/537.36\" \"https://ko-fi.com/ibakecookies\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -L -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/126.0 Safari/537.36\" \"https://ko-fi.com/this-handle-should-not-exist-xyz123\")"
     ],
     "additionalDirectories": [
       "/home/shadi/hobby/zenith/screenshots"
