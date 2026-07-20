@@ -27,6 +27,6 @@
 	.theme-scenery > *,
 	.theme-scenery > *::before,
 	.theme-scenery > *::after {
-		animation: none !important;
+		/* animation: none !important; */
 	}
 }
