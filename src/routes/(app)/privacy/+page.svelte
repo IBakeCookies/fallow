@@ -35,12 +35,8 @@
 	<section class="mt-8">
 		<h2 class="mb-2 text-base font-semibold text-ty-primary">{m.privacy_controller_heading()}</h2>
 		<p>{m.privacy_controller_body()}</p>
-		<!-- TODO: replace the placeholders below with your real name and address
-		     before going live (must match the imprint). -->
 		<p class="mt-2 text-ty-secondary">
 			Shadi Muma<br />
-			
-			
 			muma.shadi@gmail.com
 		</p>
 	</section>

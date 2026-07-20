@@ -11,15 +11,7 @@
 
 	<section class="mt-8">
 		<h2 class="mb-2 text-base font-semibold text-ty-primary">{m.imprint_ddg_heading()}</h2>
-		<!-- TODO: replace the placeholders below with your real name and address
-		     before going live — an imprint with placeholders does not satisfy
-		     § 5 DDG. -->
-		<p class="text-ty-secondary">
-			Shadi Muma<br />
-			
-			
-			Deutschland
-		</p>
+		<p class="text-ty-secondary">Shadi Muma</p>
 	</section>
 
 	<section class="mt-8">
