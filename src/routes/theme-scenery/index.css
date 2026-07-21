@@ -24,6 +24,7 @@
 @import './dunes.css';
 @import './synthwave.css';
 @import './firefly.css';
+@import './milkyway.css';
 
 .theme-scenery {
 	display: none;
@@ -38,7 +39,7 @@
 	.theme-scenery > *,
 	.theme-scenery > *::before,
 	.theme-scenery > *::after {
-		/* animation-play-state: paused !important; */
+		animation-play-state: paused !important;
 	}
 }
 

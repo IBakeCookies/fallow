@@ -41,6 +41,7 @@
 @custom-variant dunes (&:is(.dunes *));
 @custom-variant synthwave (&:is(.synthwave *));
 @custom-variant firefly (&:is(.firefly *));
+@custom-variant milkyway (&:is(.milkyway *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes. */
@@ -1482,4 +1483,70 @@
 	--color-body: oklch(0.65 0.1 150);
 	/* wildflower violet — the rare bloom color in the dark grass */
 	--color-mixed: oklch(0.72 0.14 310);
+}
+.milkyway {
+	/* a moonless night at a true dark-sky site: the galactic band climbing
+	   from its core bulge low in the lower-left to the upper-right corner,
+	   over a black conifer ridge. Only the broad light lives here — the sky
+	   holds its shape even with scenery paused. Star fields, dust rifts,
+	   nebulae, meteors and the satellite are theme scenery — see
+	   theme-scenery/milkyway.css (band geometry must stay in sync). */
+	--background-image:
+		/* the ridge, occluding everything rising behind it */
+		radial-gradient(ellipse 70% 0vh at 22% 102%, oklch(0.05 0.012 150) 0 62%, transparent 100%),
+		radial-gradient(ellipse 80% 10vh at 74% 103%, oklch(0.04 0.01 150) 0 60%, transparent 100%),
+		/* the core bulge, warm and low where the band meets the ground */
+		radial-gradient(
+			ellipse 34rem 20rem at 16% 92%,
+			oklch(0.87 0.07 80 / 0.32),
+			oklch(0.75 0.06 70 / 0.12) 55%,
+			transparent 75%
+		),
+		/* the band itself — silver-blue starlight; the core radial above is
+		   the only warmth, so the river stays cool where it climbs */
+		linear-gradient(
+			150deg,
+			transparent 31%,
+			oklch(0.8 0.02 255 / 0.08) 39%,
+			oklch(0.88 0.015 250 / 0.17) 47%,
+			oklch(0.92 0.01 245 / 0.23) 50%,
+			oklch(0.88 0.015 250 / 0.17) 53%,
+			oklch(0.8 0.02 255 / 0.08) 61%,
+			transparent 69%
+		),
+		/* green airglow pooling on the horizon */
+		linear-gradient(to top, oklch(0.55 0.09 150 / 0.1), transparent 16%),
+		/* the dark itself, violet-black overhead easing toward the horizon */
+		linear-gradient(oklch(0.06 0.012 275), oklch(0.09 0.02 255));
+
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.09 0.015 265);
+	/* observatory-dome glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	/* starlight white, barely cool */
+	--color-ty-primary: oklch(0.95 0.01 250);
+
+	--input: oklch(1 0 0 / 0.08);
+	--border: oklch(0.8 0.04 250 / 0.2);
+
+	/* the core's warm gold */
+	--primary: oklch(0.86 0.09 85);
+	--primary-foreground: oklch(0.18 0.02 270);
+	--ring: oklch(0.86 0.09 85 / 0.5);
+
+	/* blue-white starlight */
+	--color-brand: oklch(0.8 0.07 245);
+	--color-brand-strong: oklch(0.88 0.05 245);
+	/* core amber — the river of old stars */
+	--color-flow: oklch(0.84 0.11 80);
+	/* nebula cyan */
+	--color-mind: oklch(0.78 0.1 210);
+	--color-mind-strong: oklch(0.86 0.08 210);
+	/* airglow green */
+	--color-body: oklch(0.75 0.12 150);
+	/* nebula magenta — the Lagoon's blush */
+	--color-mixed: oklch(0.7 0.15 330);
 }

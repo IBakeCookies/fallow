@@ -34,7 +34,8 @@ export type ThemeName =
 	| 'meridian'
 	| 'dunes'
 	| 'synthwave'
-	| 'firefly';
+	| 'firefly'
+	| 'milkyway';
 
 interface ThemeItem {
 	name: ThemeName;
@@ -203,6 +204,11 @@ export const themes: ThemeItem[] = [
 		name: 'firefly',
 		label: 'Fireflies',
 		css: ['firefly', 'dark']
+	},
+	{
+		name: 'milkyway',
+		label: 'Milky Way',
+		css: ['milkyway', 'dark']
 	}
 ] as const;
 

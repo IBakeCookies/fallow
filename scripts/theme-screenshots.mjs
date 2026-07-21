@@ -38,7 +38,8 @@ const themes = [
 	'meridian',
 	'dunes',
 	'synthwave',
-	'firefly'
+	'firefly',
+	'milkyway'
 ];
 
 const outDir = process.argv[2] ?? 'screenshots';

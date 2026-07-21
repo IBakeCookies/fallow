@@ -134,8 +134,18 @@ function meridianRibbonsUrl(between: (min: number, max: number) => number): stri
 /* dunes ridge silhouettes — three filled bezier hills (far/mid/near), tuned
    fill/opacity per depth; only the crest/trough y's jitter (x lanes and
    period stay put, so the layers keep reading as distinct depths). Anchors
-   at (0, 300) and viewBox bottom close the shape into solid ground. */
-const DUNES_LAYERS: { points: [number, number][]; jitter: number; fill: string; opacity: number }[] = [
+   at (0, 300) and viewBox bottom close the shape into solid ground. Each
+   layer also carries a sunlit crest stroke retraced along its open top
+   curve (never the closing edges), brighter and wider the nearer the layer. */
+const DUNES_LAYERS: {
+	points: [number, number][];
+	jitter: number;
+	fill: string;
+	opacity: number;
+	crest: string;
+	crestWidth: number;
+	crestOpacity: number;
+}[] = [
 	{
 		points: [
 			[0, 175],
@@ -150,7 +160,10 @@ const DUNES_LAYERS: { points: [number, number][]; jitter: number; fill: string; 
 		],
 		jitter: 12,
 		fill: '%23e7c79c',
-		opacity: 0.55
+		opacity: 0.55,
+		crest: '%23fff1d6',
+		crestWidth: 1.6,
+		crestOpacity: 0.3
 	},
 	{
 		points: [
@@ -165,7 +178,10 @@ const DUNES_LAYERS: { points: [number, number][]; jitter: number; fill: string; 
 		],
 		jitter: 16,
 		fill: '%23d59a5c',
-		opacity: 0.78
+		opacity: 0.78,
+		crest: '%23ffe9c2',
+		crestWidth: 2,
+		crestOpacity: 0.42
 	},
 	{
 		points: [
@@ -179,26 +195,34 @@ const DUNES_LAYERS: { points: [number, number][]; jitter: number; fill: string; 
 		],
 		jitter: 20,
 		fill: '%23a85a2c',
-		opacity: 0.95
+		opacity: 0.95,
+		crest: '%23ffd9a3',
+		crestWidth: 2.4,
+		crestOpacity: 0.55
 	}
 ];
 
-/* flattened-S bezier through anchors: control points sit at the thirds of
-   each span, at the SAME y as the point they leave/arrive from — that's what
-   gives each crest/trough a smooth, rounded (not pointy) dune-like landing */
-function dunePathD(points: [number, number][]): string {
-	const [x0, y0] = points[0];
-	let d = `M0 300 L${x0} ${y0}`;
+/* flattened-S bezier through anchors: control points sit inside each span at
+   the SAME y as the point they leave/arrive from, so every crest/trough gets
+   a smooth horizontal-tangent landing. The control x's are skewed off the
+   thirds (0.45/0.85 of the span, or the mirror) so each transition happens
+   late in the span — a long gentle windward slope into a short steep leeward
+   face, which is how wind actually shapes dunes. `lean` picks the wind
+   direction; symmetric thirds would read as waves, not dunes. Returns just
+   the ` C…` segment chain so callers can close it (fill) or not (crest). */
+function duneCurveSegments(points: [number, number][], lean: 1 | -1): string {
+	const [ca, cb] = lean === 1 ? [0.45, 0.85] : [0.15, 0.55];
+	let d = '';
 
 	for (let i = 0; i < points.length - 1; i++) {
 		const [xa, ya] = points[i];
 		const [xb, yb] = points[i + 1];
 		const w = xb - xa;
 
-		d += ` C${xa + w / 3} ${ya} ${xa + (2 * w) / 3} ${yb} ${xb} ${yb}`;
+		d += ` C${Math.round(xa + w * ca)} ${ya} ${Math.round(xa + w * cb)} ${yb} ${xb} ${yb}`;
 	}
 
-	return `${d} L${points[points.length - 1][0]} 300 Z`;
+	return d;
 }
 
 /* seeded dune geometry: an independent PRNG (harvested from two `between2`
@@ -208,12 +232,20 @@ function dunePathD(points: [number, number][]): string {
 function dunesRidgesUrl(between2: (min: number, max: number) => number): string {
 	const localSeed = (Math.round(between2(0, 1e9)) ^ (Math.round(between2(0, 1e9)) << 16)) >>> 0;
 	const rnd = mulberry32(localSeed);
+	/* one wind direction for the whole scene — all three layers lean together */
+	const lean = rnd() < 0.5 ? 1 : -1;
 	const jitter = (v: number, range: number) => Math.round(v + (rnd() * 2 - 1) * range);
 
 	const paths = DUNES_LAYERS.map((layer) => {
 		const pts = layer.points.map(([x, y]) => [x, jitter(y, layer.jitter)] as [number, number]);
+		const segs = duneCurveSegments(pts, lean);
+		const [x0, y0] = pts[0];
+		const xn = pts[pts.length - 1][0];
 
-		return `<path d='${dunePathD(pts)}' fill='${layer.fill}' fill-opacity='${layer.opacity}'/>`;
+		return (
+			`<path d='M0 300 L${x0} ${y0}${segs} L${xn} 300 Z' fill='${layer.fill}' fill-opacity='${layer.opacity}'/>` +
+			`<path d='M${x0} ${y0}${segs}' fill='none' stroke='${layer.crest}' stroke-width='${layer.crestWidth}' stroke-opacity='${layer.crestOpacity}'/>`
+		);
 	}).join('');
 
 	return `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='xMidYMid slice'>${paths}</svg>")`;
@@ -408,7 +440,32 @@ export function sceneryStyle(seed: number): string {
 		'--ff-fly-twinkle-1': sec2(-5, 0),
 		'--ff-fly-x-2': rem2(0, 20),
 		'--ff-fly-phase-2': sec2(-26, 0),
-		'--ff-fly-twinkle-2': sec2(-3.6, 0)
+		'--ff-fly-twinkle-2': sec2(-3.6, 0),
+
+		/* dunes bird — added after firefly, so it lives here at the end of
+		   stream 2 (append-only), not with the other --dunes-* vars above.
+		   The glide is a fixed left-to-right sweep; only its phase varies */
+		'--dunes-bird-phase': sec2(-75, 0),
+
+		/* milkyway: all three star tiles are static (no keyframe touches
+		   position — both axes free; band 32×26rem, twinkle subsets 26×21rem
+		   and 22×18rem, wide sky 42×32rem); every glow loop only re-phases;
+		   meteors and the satellite re-phase so each user meets a different
+		   sky mid-pass */
+		'--mw-stars-band': tile2(32, 26),
+		'--mw-twinkle-1-pos': tile2(26, 21),
+		'--mw-twinkle-1': sec2(-7, 0),
+		'--mw-twinkle-2-pos': tile2(22, 18),
+		'--mw-twinkle-2': sec2(-10.5, 0),
+		'--mw-stars-sky': tile2(42, 32),
+		'--mw-hero-phase': sec2(-11, 0),
+		'--mw-sat-phase': sec2(-260, 0),
+		'--mw-nebula-phase': sec2(-15, 0),
+		'--mw-core-phase': sec2(-19, 0),
+		'--mw-airglow-phase': sec2(-23, 0),
+		'--mw-zodiacal-phase': sec2(-27, 0),
+		'--mw-meteor-1': sec2(-21, 0),
+		'--mw-meteor-2': sec2(-34, 0)
 	};
 
 	return Object.entries({ ...vars, ...vars2 })
