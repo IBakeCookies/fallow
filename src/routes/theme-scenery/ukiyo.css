@@ -1,0 +1,155 @@
+/* Ukiyo: cherry blossoms drifting over a woodblock-print harbor. Small pale
+   petals fall far off and large warm-pink petals fall near, each swaying
+   sideways on its own breeze (a transform, so the fall's background-position
+   axis stays untouched); a soft Prussian-blue swell rolls low on the page
+   like a distant Great Wave, foam riding its crest; and the vermilion sun
+   from the .ukiyo background breathes softly behind its own halo. */
+.ukiyo .theme-scenery {
+	display: block;
+
+	/* the vermilion sun, breathing behind a soft halo (echoes the sun baked
+	   into the .ukiyo --background-image, same corner) */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(circle at 74% 13.5rem, oklch(0.68 0.15 35 / 0.32) 0 5.5rem, transparent 12rem),
+			radial-gradient(
+				circle at 74% 13.5rem,
+				oklch(0.63 0.17 35 / 0.4) 0 3.2rem,
+				transparent calc(3.2rem + 1px)
+			);
+		background-repeat: no-repeat;
+		/* seed lever: static tile, only opacity breathes — both axes free.
+		   no-repeat is required here: the halo above is now length-bounded
+		   (was transparent 70%, i.e. 70% of farthest-corner — a viewport-wide
+		   wash) so a seeded offset just nudges one sun instead of tiling
+		   hard seams at the repeat edges. */
+		background-position: var(--ukiyo-sun-pos, 0 0);
+		animation: ukiyo-sun-breathe 15s ease-in-out infinite alternate;
+		animation-delay: var(--ukiyo-sun-phase, 0s);
+	}
+
+	/* the indigo swell — a low band of wave crests drifting sideways */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(ellipse 55% 16% at 15% 102%, oklch(0.36 0.08 255 / 0.4), transparent 70%),
+			radial-gradient(ellipse 50% 14% at 50% 106%, oklch(0.46 0.09 250 / 0.32), transparent 70%),
+			radial-gradient(ellipse 58% 18% at 85% 100%, oklch(0.36 0.08 255 / 0.38), transparent 70%);
+		background-repeat: repeat-x;
+		background-size: 56rem 100%;
+		/* seed lever: seamless one-tile drift — phase only */
+		animation: ukiyo-wave-drift 68s linear infinite;
+		animation-delay: var(--ukiyo-wave-phase, 0s);
+	}
+	/* foam crests riding the swell, breathing brighter and dimmer */
+	.theme-helper-2::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image: repeating-linear-gradient(
+			100deg,
+			transparent 0 3rem,
+			oklch(0.9 0.02 85 / 0.12) 3rem 3.6rem,
+			transparent 3.6rem 7rem
+		);
+		mask-image: linear-gradient(to top, black, transparent 22%);
+		animation: ukiyo-foam 11s ease-in-out infinite alternate;
+	}
+
+	/* far petals — small and pale, falling slowly on a gentle sway */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(3px 2px at 18% 12%, oklch(0.92 0.05 350 / 0.7), transparent),
+			radial-gradient(2.5px 2px at 52% 40%, oklch(0.9 0.06 355 / 0.65), transparent),
+			radial-gradient(3px 2.5px at 80% 65%, oklch(0.92 0.05 350 / 0.6), transparent),
+			radial-gradient(2.5px 2px at 32% 85%, oklch(0.9 0.06 355 / 0.55), transparent);
+		background-size: 20rem 34rem;
+		/* seed lever: fall animates background-position-y, so x is free */
+		background-position-x: var(--ukiyo-petal-x-far, 0rem);
+		animation:
+			ukiyo-petal-fall-far 32s linear infinite,
+			ukiyo-sway-far 7s ease-in-out infinite alternate;
+		/* seed lever: fall re-phases independently of the sway beat */
+		animation-delay: var(--ukiyo-petal-phase-far, 0s), var(--ukiyo-sway-phase-far, 0s);
+	}
+
+	/* near petals — larger and warmer, falling faster on a wider sway */
+	.theme-helper-4 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(4.5px 3px at 22% 18%, oklch(0.8 0.14 355 / 0.85), transparent),
+			radial-gradient(4px 3px at 60% 48%, oklch(0.78 0.15 10 / 0.8), transparent),
+			radial-gradient(5px 3.5px at 85% 30%, oklch(0.8 0.13 350 / 0.75), transparent),
+			radial-gradient(4px 3px at 40% 75%, oklch(0.78 0.15 10 / 0.7), transparent),
+			radial-gradient(4.5px 3px at 10% 90%, oklch(0.8 0.14 355 / 0.65), transparent);
+		background-size: 26rem 42rem;
+		/* seed lever: fall animates background-position-y, so x is free */
+		background-position-x: var(--ukiyo-petal-x-near, 0rem);
+		animation:
+			ukiyo-petal-fall-near 24s linear infinite,
+			ukiyo-sway-near 5s ease-in-out infinite alternate;
+		/* seed lever: fall re-phases independently of the sway beat */
+		animation-delay: var(--ukiyo-petal-phase-near, 0s), var(--ukiyo-sway-phase-near, 0s);
+	}
+}
+
+@keyframes ukiyo-sun-breathe {
+	from {
+		opacity: 0.75;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes ukiyo-wave-drift {
+	to {
+		background-position-x: -56rem;
+	}
+}
+
+@keyframes ukiyo-foam {
+	from {
+		opacity: 0.5;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* y-only so the seeded x offset survives (the shorthand would reset it) */
+@keyframes ukiyo-petal-fall-far {
+	to {
+		background-position-y: 34rem;
+	}
+}
+
+@keyframes ukiyo-sway-far {
+	from {
+		translate: -0.5rem 0;
+	}
+	to {
+		translate: 0.5rem 0;
+	}
+}
+
+@keyframes ukiyo-petal-fall-near {
+	to {
+		background-position-y: 42rem;
+	}
+}
+
+@keyframes ukiyo-sway-near {
+	from {
+		translate: -0.8rem 0;
+	}
+	to {
+		translate: 0.8rem 0;
+	}
+}

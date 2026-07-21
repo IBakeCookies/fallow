@@ -30,7 +30,15 @@ const themes = [
 	'eclipse',
 	'cathedral',
 	'orbit',
-	'tempest'
+	'tempest',
+	'lantern-drift',
+	'nacre',
+	'pinwheel',
+	'canopy',
+	'meridian',
+	'dunes',
+	'synthwave',
+	'firefly'
 ];
 
 const outDir = process.argv[2] ?? 'screenshots';

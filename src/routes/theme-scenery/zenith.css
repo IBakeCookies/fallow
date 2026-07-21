@@ -16,7 +16,10 @@
 			radial-gradient(ellipse 7rem 2.2rem at 30% 15%, oklch(1 0 0 / 0.45), transparent 70%),
 			radial-gradient(ellipse 9rem 2.6rem at 72% 30%, oklch(1 0 0 / 0.4), transparent 70%);
 		background-size: 110rem 100%;
+		/* seed lever: seamless one-tile drift — phase only, never position
+		   (a base offset would break the wrap) */
 		animation: zenith-drift 150s linear infinite;
+		animation-delay: var(--zenith-phase-1, 0s);
 	}
 
 	.theme-helper-2 {
@@ -25,6 +28,7 @@
 			radial-gradient(ellipse 6rem 1.8rem at 90% 24%, oklch(1 0 0 / 0.3), transparent 70%);
 		background-size: 90rem 100%;
 		animation: zenith-drift-far 240s linear infinite;
+		animation-delay: var(--zenith-phase-2, 0s);
 	}
 }
 

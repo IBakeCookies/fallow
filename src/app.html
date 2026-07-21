@@ -1,6 +1,6 @@
 <!doctype html>
 
-<html lang="%paraglide.lang%" dir="%paraglide.dir%" class="%theme%">
+<html lang="%paraglide.lang%" dir="%paraglide.dir%" class="%theme% %scenery-paused%">
 	<head>
 		<meta charset="utf-8" />
 
@@ -16,13 +16,22 @@
 		<meta name="theme-color" content="#15151d" media="(prefers-color-scheme: dark)" />
 
 		<!-- no-FOUC: first visit (no theme cookie) on a dark-preferring OS gets
-		     the dark default before first paint instead of a light flash -->
+		     the dark default before first paint instead of a light flash; first
+		     visit (no sceneryMotion cookie) on a reduced-motion OS gets scenery
+		     paused before first paint instead of a flash of motion -->
 		<script>
 			if (
 				!document.cookie.includes('theme=') &&
 				matchMedia('(prefers-color-scheme: dark)').matches
 			) {
 				document.documentElement.className = 'dark';
+			}
+
+			if (
+				!document.cookie.includes('sceneryMotion=') &&
+				matchMedia('(prefers-reduced-motion: reduce)').matches
+			) {
+				document.documentElement.classList.add('scenery-paused');
 			}
 		</script>
 		%sveltekit.head%

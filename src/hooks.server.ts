@@ -31,4 +31,17 @@ const handleTheme: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
-export const handle: Handle = sequence(handleParaglide, handleTheme);
+// no cookie yet leaves the placeholder empty — app.html's inline script then
+// decides from prefers-reduced-motion before first paint
+const handleSceneryMotion: Handle = async ({ event, resolve }) => {
+	const sceneryMotion = event.cookies.get('sceneryMotion');
+	const sceneryPausedClass = sceneryMotion === 'paused' ? 'scenery-paused' : '';
+
+	const response = await resolve(event, {
+		transformPageChunk: ({ html }) => html.replace('%scenery-paused%', sceneryPausedClass)
+	});
+
+	return response;
+};
+
+export const handle: Handle = sequence(handleParaglide, handleTheme, handleSceneryMotion);

@@ -1,0 +1,160 @@
+/* Synthwave: a retro sunset burns low on the horizon, sliced into bands like
+   an 80s poster print, while a magenta-and-cyan grid races beneath it toward
+   the viewer. Sparse stars hold the upper sky above the horizon line, and a
+   warm haze band shimmers where sky meets grid. Sun and grid both anchor to
+   the horizon at 60% viewport height. */
+.synthwave .theme-scenery {
+	display: block;
+
+	/* stars above the horizon — static tile, twinkling subset on ::before */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1px 1px at 8% 15%, oklch(0.95 0.02 280 / 0.6), transparent),
+			radial-gradient(1.5px 1.5px at 22% 30%, oklch(0.95 0.02 280 / 0.55), transparent),
+			radial-gradient(1px 1px at 35% 10%, oklch(0.9 0.03 300 / 0.5), transparent),
+			radial-gradient(1px 1px at 48% 22%, oklch(0.95 0.02 280 / 0.6), transparent),
+			radial-gradient(1.5px 1.5px at 63% 12%, oklch(0.9 0.03 300 / 0.55), transparent),
+			radial-gradient(1px 1px at 74% 28%, oklch(0.95 0.02 280 / 0.5), transparent),
+			radial-gradient(1px 1px at 88% 8%, oklch(0.9 0.03 300 / 0.55), transparent),
+			radial-gradient(1.5px 1.5px at 95% 33%, oklch(0.95 0.02 280 / 0.5), transparent);
+		background-size: 30rem 24rem;
+		/* seed lever: static star tile — both axes free to offset per user */
+		background-position: var(--sw-stars, 0 0);
+		mask-image: linear-gradient(to bottom, black 0%, black 52%, transparent 60%);
+	}
+
+	.theme-helper-1::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1.5px 1.5px at 14% 20%, oklch(0.97 0.01 280 / 0.9), transparent),
+			radial-gradient(1px 1px at 40% 16%, oklch(0.95 0.03 300 / 0.8), transparent),
+			radial-gradient(1.5px 1.5px at 68% 24%, oklch(0.97 0.01 280 / 0.85), transparent),
+			radial-gradient(1px 1px at 91% 18%, oklch(0.95 0.03 300 / 0.75), transparent);
+		background-size: 30rem 24rem;
+		background-position: var(--sw-stars, 0 0);
+		mask-image: linear-gradient(to bottom, black 0%, black 52%, transparent 60%);
+		animation: sw-twinkle 6s ease-in-out infinite alternate;
+		animation-delay: var(--sw-twinkle-phase, 0s);
+	}
+
+	/* atmospheric glow + disc, clipped as one group at the horizon (60% of this
+	   box, matching the "at 50% 60%" gradient centers below) so only the top
+	   half of the sun ever shows — fixed here on the parent, not on the
+	   sinking ::before, so the sink animation settles the disc into the
+	   horizon instead of popping its clip edge below the line. */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background-image: radial-gradient(circle 32vh at 50% 60%, oklch(0.78 0.17 30 / 0.4), transparent 70%);
+		mask-image: linear-gradient(to bottom, black 0%, black 60%, transparent 60%);
+		animation: sw-sun-breathe 11s ease-in-out infinite alternate;
+		animation-delay: var(--sw-breathe-phase, 0s);
+	}
+
+	/* the sun itself: warm core to magenta rim, sliced into retro horizontal
+	   bands by the mask, slowly sinking behind the grid */
+	.theme-helper-2::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image: radial-gradient(
+			circle 22vh at 50% 60%,
+			oklch(0.93 0.13 85) 0%,
+			oklch(0.85 0.19 55) 30%,
+			oklch(0.72 0.2 15) 55%,
+			oklch(0.6 0.22 335) 78%,
+			transparent 100%
+		);
+		mask-image: repeating-linear-gradient(to bottom, black 0 0.5rem, transparent 0.5rem 1.7rem);
+		animation: sw-sun-sink 17s ease-in-out infinite alternate;
+		animation-delay: var(--sw-sink-phase, 0s);
+	}
+
+	/* perspective floor grid: flat repeating-linear-gradient rungs and rails,
+	   tipped back with a perspective rotation so they converge toward the
+	   horizon. Rows scroll toward the viewer; rails are a static tile. */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 58% -20% -10% -20%;
+		overflow: hidden;
+		background-image:
+			/* rungs: magenta, one tile = 2.4rem */
+			repeating-linear-gradient(to bottom, oklch(0.75 0.22 335 / 0.55) 0 2px, transparent 2px 2.4rem),
+			/* rails: cyan, one tile = 3rem, never animated so x is free */
+			repeating-linear-gradient(to right, oklch(0.78 0.16 200 / 0.4) 0 2px, transparent 2px 3rem);
+		/* seed lever: rails are a static tile — x is free to offset per user */
+		background-position:
+			0 0,
+			var(--sw-grid-x, 0) 0;
+		transform: perspective(60vh) rotateX(68deg);
+		transform-origin: 50% 0%;
+		mask-image: linear-gradient(to bottom, transparent 0%, black 12%, black 85%, transparent 100%);
+		/* seamless one-tile loop (exactly one rung pitch) — phase via delay only */
+		animation: sw-grid-scroll 2.6s linear infinite;
+		animation-delay: var(--sw-grid-phase, 0s);
+	}
+
+	/* horizon haze — warm band where sky meets grid, shimmering gently */
+	.theme-helper-4 {
+		position: absolute;
+		inset: 0;
+		background-image: linear-gradient(
+			to bottom,
+			transparent 0%,
+			oklch(0.8 0.14 25 / 0.35) 58%,
+			oklch(0.7 0.18 335 / 0.3) 63%,
+			transparent 70%
+		);
+		animation: sw-haze-shimmer 8s ease-in-out infinite alternate;
+		animation-delay: var(--sw-haze-phase, 0s);
+	}
+}
+
+@keyframes sw-twinkle {
+	from {
+		opacity: 0.4;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes sw-sun-breathe {
+	from {
+		opacity: 0.7;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes sw-sun-sink {
+	from {
+		transform: translateY(0);
+	}
+	to {
+		transform: translateY(1.4vh);
+	}
+}
+
+/* rungs scroll down by exactly one tile (2.4rem) — the wrap is seamless
+   because repeating-linear-gradient is mathematically periodic, so this
+   reads as an unbroken stream of rungs racing toward the viewer */
+@keyframes sw-grid-scroll {
+	to {
+		background-position-y: 2.4rem, 0;
+	}
+}
+
+@keyframes sw-haze-shimmer {
+	from {
+		opacity: 0.4;
+	}
+	to {
+		opacity: 1;
+	}
+}

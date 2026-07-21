@@ -1,0 +1,175 @@
+/* Pinwheel: a spiral galaxy turning. Three nested conic-gradient annuli,
+   each offset ~35deg from the last, wind into two trailing arms; the whole
+   wheel rotates once every 220s. Two star depths twinkle out of phase, the
+   core breathes, and a comet crosses on a 19s beat. Center matches the
+   background core at 50% 24%. */
+.pinwheel .theme-scenery {
+	display: block;
+
+	/* far starfield — fades out where the core glare burns */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1px 1px at 8% 12%, oklch(0.97 0.005 280 / 0.9), transparent),
+			radial-gradient(1px 1px at 23% 71%, oklch(0.95 0.01 280 / 0.7), transparent),
+			radial-gradient(1.5px 1.5px at 41% 34%, oklch(0.97 0.005 280 / 0.8), transparent),
+			radial-gradient(1px 1px at 58% 82%, oklch(0.95 0.01 280 / 0.65), transparent),
+			radial-gradient(1px 1px at 72% 19%, oklch(0.9 0.03 350 / 0.8), transparent),
+			radial-gradient(1.5px 1.5px at 88% 61%, oklch(0.97 0.005 280 / 0.75), transparent),
+			radial-gradient(1px 1px at 94% 8%, oklch(0.9 0.04 205 / 0.7), transparent);
+		background-size: 30rem 24rem;
+		/* seed lever: static star tile, only opacity animates — both axes free */
+		background-position: var(--pinwheel-stars-1, 0 0);
+		mask-image: radial-gradient(circle at 50% 24%, transparent 5rem, black 15rem);
+		animation: pinwheel-twinkle 7s ease-in-out infinite alternate;
+		animation-delay: var(--pinwheel-twinkle-1, 0s);
+	}
+
+	/* spiral arms — outer annulus, rose + cyan */
+	.theme-helper-2 {
+		position: absolute;
+		top: 24%;
+		left: 50%;
+		width: 150vmax;
+		aspect-ratio: 1;
+		translate: -50% -50%;
+		background: conic-gradient(
+			from 20deg,
+			transparent 0deg,
+			oklch(0.6 0.17 350 / 0.16) 40deg,
+			transparent 82deg 200deg,
+			oklch(0.62 0.103 205 / 0.14) 222deg,
+			transparent 264deg 360deg
+		);
+		mask-image: radial-gradient(circle, transparent 30%, black 40%, black 54%, transparent 66%);
+		/* seed lever: re-phase the turn so each user meets the galaxy at a
+		   different angle (annuli are children — the whole wheel stays rigid) */
+		animation: pinwheel-rotate 220s linear infinite;
+		animation-delay: var(--pinwheel-rot-phase, 0s);
+	}
+	.theme-helper-2::before,
+	.theme-helper-2::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	/* mid annulus — violet + rose, twisted +35deg */
+	.theme-helper-2::before {
+		background: conic-gradient(
+			from 55deg,
+			transparent 0deg,
+			oklch(0.58 0.18 300 / 0.2) 40deg,
+			transparent 82deg 200deg,
+			oklch(0.6 0.17 350 / 0.18) 222deg,
+			transparent 264deg 360deg
+		);
+		mask-image: radial-gradient(circle, transparent 18%, black 26%, black 38%, transparent 48%);
+	}
+	/* inner annulus — gold + cyan, twisted a further +35deg, brightest near core */
+	.theme-helper-2::after {
+		background: conic-gradient(
+			from 90deg,
+			transparent 0deg,
+			oklch(0.82 0.12 85 / 0.24) 40deg,
+			transparent 82deg 200deg,
+			oklch(0.66 0.109 205 / 0.2) 222deg,
+			transparent 264deg 360deg
+		);
+		mask-image: radial-gradient(circle, transparent 8%, black 14%, black 24%, transparent 32%);
+	}
+
+	/* nearer, brighter stars on a slower, opposed blink */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1.5px 1.5px at 15% 44%, oklch(0.98 0.005 280 / 0.95), transparent),
+			radial-gradient(2px 2px at 34% 88%, oklch(0.92 0.03 85 / 0.9), transparent),
+			radial-gradient(1.5px 1.5px at 63% 27%, oklch(0.98 0.005 280 / 0.9), transparent),
+			radial-gradient(2px 2px at 83% 73%, oklch(0.9 0.04 345 / 0.85), transparent),
+			radial-gradient(1.5px 1.5px at 91% 37%, oklch(0.98 0.005 280 / 0.9), transparent);
+		background-size: 24rem 27rem;
+		background-position: var(--pinwheel-stars-2, 0 0);
+		mask-image: radial-gradient(circle at 50% 24%, transparent 6rem, black 16rem);
+		animation: pinwheel-twinkle 11s ease-in-out infinite alternate-reverse;
+		animation-delay: var(--pinwheel-twinkle-2, 0s);
+	}
+	/* the core breathes */
+	.theme-helper-3::before {
+		content: '';
+		position: absolute;
+		top: 24%;
+		left: 50%;
+		width: 17rem;
+		aspect-ratio: 1;
+		translate: -50% -50%;
+		border-radius: 50%;
+		background: radial-gradient(
+			circle,
+			oklch(0.96 0.039 85 / 0.32),
+			oklch(0.85 0.1 60 / 0.1) 45%,
+			transparent 65%
+		);
+		animation: pinwheel-corepulse 9s ease-in-out infinite alternate;
+		animation-delay: var(--pinwheel-core-phase, 0s);
+	}
+	/* a comet crosses the upper field on a 19s beat */
+	.theme-helper-3::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 13rem;
+		height: 2px;
+		border-radius: 2px;
+		background: linear-gradient(90deg, transparent, oklch(0.97 0.02 90 / 0.9));
+		box-shadow: 0 0 6px 1px oklch(0.95 0.03 90 / 0.5);
+		rotate: 24deg;
+		opacity: 0;
+		animation: pinwheel-comet 19s linear infinite;
+		animation-delay: var(--pinwheel-comet-phase, 0s);
+	}
+}
+
+@keyframes pinwheel-rotate {
+	to {
+		rotate: 360deg;
+	}
+}
+@keyframes pinwheel-twinkle {
+	from {
+		opacity: 0.4;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes pinwheel-corepulse {
+	from {
+		opacity: 0.55;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes pinwheel-comet {
+	0%,
+	88% {
+		opacity: 0;
+		translate: -8vw 12vh;
+	}
+	89% {
+		opacity: 0;
+	}
+	90% {
+		opacity: 0.9;
+	}
+	97% {
+		opacity: 0.9;
+	}
+	100% {
+		opacity: 0;
+		translate: 82vw 60vh;
+	}
+}

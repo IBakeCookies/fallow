@@ -33,6 +33,14 @@
 @custom-variant orbit (&:is(.orbit *));
 @custom-variant tempest (&:is(.tempest *));
 @custom-variant fallow (&:is(.fallow *));
+@custom-variant lantern-drift (&:is(.lantern-drift *));
+@custom-variant nacre (&:is(.nacre *));
+@custom-variant pinwheel (&:is(.pinwheel *));
+@custom-variant canopy (&:is(.canopy *));
+@custom-variant meridian (&:is(.meridian *));
+@custom-variant dunes (&:is(.dunes *));
+@custom-variant synthwave (&:is(.synthwave *));
+@custom-variant firefly (&:is(.firefly *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes. */
@@ -210,7 +218,7 @@
 	--spacer-text-2xl: var(--spacer-2xl);
 
 	--radius: 0.625rem;
-	--blur: 2rem;
+	--blur: 1.5rem;
 	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.2);
 
 	/* seeds */
@@ -946,14 +954,16 @@
 	   City lights, clouds, stars and aurora are theme scenery — see
 	   theme-scenery/orbit.css. */
 	--background-image:
-		/* sunrise blooming where the limb meets the coming day */
+		/* haze in front of the limb where the rising light scatters forward —
+		   the only sunrise layer painted over the planet, and it's faint */
 		radial-gradient(
-			circle 24vh at 65% 80vh,
-			oklch(0.96 0.09 80 / 0.5),
-			oklch(0.85 0.14 60 / 0.16) 55%,
-			transparent 100%
+			ellipse 16vh 5vh at 58% 77.5vh,
+			oklch(0.95 0.09 75 / 0.2),
+			transparent 70%
 		),
-		/* the planet and its atmosphere ring */
+		/* the planet and its atmosphere ring. The night side is opaque, so it
+		   genuinely occludes the sun layers below; the ring's outer stops are
+		   semi-transparent, so the hidden sun shines through them. */
 		radial-gradient(
 			circle at 50% 178vh,
 			oklch(0.1 0.02 255) 0 99vh,
@@ -962,6 +972,23 @@
 			oklch(0.6 0.12 225 / 0.35) 102.5vh,
 			oklch(0.5 0.1 220 / 0.12) 105vh,
 			transparent 109vh
+		),
+		/* the sun itself, BEHIND the planet — center a couple vh below the
+		   limb (edge ≈78–80vh at x=58% on any aspect ratio), so the disc is
+		   swallowed and only its corona crests the edge through the ring */
+		radial-gradient(
+			circle at 58% 81.5vh,
+			oklch(1 0.02 95) 0 2.5vh,
+			oklch(0.97 0.08 85 / 0.95) 5vh,
+			oklch(0.92 0.13 70 / 0.45) 10vh,
+			oklch(0.87 0.13 65 / 0.12) 17vh,
+			transparent 24vh
+		),
+		/* a single soft sun pillar rising from behind the arc */
+		radial-gradient(
+			ellipse 5vh 15vh at 58% 69vh,
+			oklch(0.96 0.08 82 / 0.1),
+			transparent 70%
 		),
 		/* deep space, faintly violet toward the horizon */
 		linear-gradient(oklch(0.07 0.012 275), oklch(0.11 0.03 265));
@@ -1070,4 +1097,389 @@
 	/* spruce teal — keeps body distinct from the field-green primary */
 	--color-body: oklch(0.5 0.12 175);
 	--color-mixed: oklch(0.55 0.11 310);
+}
+
+.lantern-drift {
+	/* toro nagashi — paper lanterns set adrift on black river water at night.
+	   A high, hard horizon splits a deep moonless sky from a still black river;
+	   the lanterns you release are the only light, doubled as wavering warm
+	   reflections on the water below. Lanterns, reflections, reeds, fireflies,
+	   a ripple sheen and low mist are theme scenery — see
+	   theme-scenery/lantern-drift.css. The day is released downstream; the mind
+	   quiets, the ground rests. */
+	--background-image:
+		/* far-shore lantern light gathered to a thin bright line at the water */
+		radial-gradient(ellipse 44% 1.6% at 50% 42%, oklch(0.85 0.085 74 / 0.32), transparent 72%),
+		/* the warm lantern-lit air above the far shore */
+		radial-gradient(ellipse 70% 7% at 50% 41%, oklch(0.66 0.12 58 / 0.24), transparent 72%),
+		/* that warmth reflected down onto the near water */
+		radial-gradient(ellipse 58% 12% at 50% 52%, oklch(0.48 0.11 52 / 0.2), transparent 74%),
+		/* cool depth pooling in the foreground water */
+		radial-gradient(ellipse 120% 42% at 50% 114%, oklch(0.12 0.045 225 / 0.5), transparent 70%),
+		/* a breath of cool night in the upper sky */
+		radial-gradient(ellipse 66% 44% at 16% 6%, oklch(0.24 0.05 262 / 0.38), transparent 70%),
+		/* deep moonless sky above, black river below — split hard at the horizon */
+		linear-gradient(
+			to bottom,
+			oklch(0.15 0.034 258) 0%,
+			oklch(0.17 0.032 252) 34%,
+			oklch(0.185 0.03 246) 41%,
+			oklch(0.1 0.03 236) 43%,
+			oklch(0.075 0.025 228) 74%,
+			oklch(0.055 0.02 222) 100%
+		);
+
+	--radius: 1rem;
+	--blur: 2rem;
+	--card-shadow: 0 20px 48px -14px oklch(0 0 0 / 0.6);
+
+	--surface-page: oklch(0.12 0.03 240);
+	/* lantern-lit river glass — translucent so the water glows through */
+	--surface-card: oklch(1 0 0 / 0.07);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.97 0.014 82);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.08 70 / 0.22);
+
+	/* paper-lantern amber */
+	--primary: oklch(0.8 0.14 66);
+	--primary-foreground: oklch(0.24 0.05 58);
+	--ring: oklch(0.8 0.14 66 / 0.5);
+
+	--color-brand: oklch(0.82 0.115 64);
+	--color-brand-strong: oklch(0.88 0.085 70);
+	/* candle-gold flow */
+	--color-flow: oklch(0.86 0.125 88);
+	/* moonless-water blue */
+	--color-mind: oklch(0.78 0.1 248);
+	--color-mind-strong: oklch(0.85 0.065 250);
+	/* river-reed green — kept clear of the amber primary */
+	--color-body: oklch(0.8 0.125 162);
+	/* dusk-magenta, the rarer reflection on the water */
+	--color-mixed: oklch(0.75 0.12 322);
+
+	/* states — hues held well apart so status stays legible on the warm field */
+	--color-warning: oklch(0.84 0.125 80);
+	--color-warning-strong: oklch(0.89 0.09 82);
+	--color-danger: oklch(0.7 0.18 28);
+	--color-danger-strong: oklch(0.76 0.14 28);
+	--color-success: oklch(0.81 0.13 150);
+	--color-success-strong: oklch(0.87 0.1 150);
+	--color-info: oklch(0.78 0.1 236);
+	--color-info-strong: oklch(0.86 0.075 238);
+}
+.nacre {
+	/* the inside of a shell: dark ceramic glaze pooled with mother-of-pearl —
+	   an oil-on-water conic sheen up top, four nacre pools in the corners,
+	   a deep glaze bloom in the middle, over cool near-black porcelain */
+	--background-image:
+		conic-gradient(
+			from 210deg at 34% 24%,
+			oklch(0.74 0.123 195 / 0.13),
+			oklch(0.74 0.14 240 / 0.1),
+			oklch(0.72 0.14 300 / 0.13),
+			oklch(0.74 0.14 350 / 0.1),
+			oklch(0.8 0.12 90 / 0.11),
+			oklch(0.78 0.13 155 / 0.11),
+			oklch(0.74 0.123 195 / 0.13)
+		),
+		radial-gradient(ellipse 60% 45% at 10% 6%, oklch(0.78 0.13 195 / 0.18), transparent 60%),
+		radial-gradient(ellipse 55% 45% at 90% 12%, oklch(0.74 0.13 300 / 0.16), transparent 62%),
+		radial-gradient(ellipse 72% 50% at 82% 98%, oklch(0.78 0.13 350 / 0.14), transparent 60%),
+		radial-gradient(ellipse 66% 46% at 16% 94%, oklch(0.8 0.12 155 / 0.14), transparent 62%),
+		radial-gradient(ellipse 120% 92% at 50% 42%, oklch(0.2 0.03 250), transparent 82%),
+		linear-gradient(158deg, oklch(0.15 0.025 262), oklch(0.12 0.02 288));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.16 0.022 268);
+	/* pearl-glass: a breath of cool tint so the sheen glows through */
+	--surface-card: oklch(0.98 0.015 205 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.28);
+	--color-ty-primary: oklch(0.96 0.01 220);
+
+	--input: oklch(1 0 0 / 0.08);
+	--border: oklch(0.85 0.08 220 / 0.22);
+
+	/* the peacock heart of the shell */
+	--primary: oklch(0.82 0.13 195);
+	--primary-foreground: oklch(0.16 0.03 250);
+	--ring: oklch(0.82 0.13 195 / 0.5);
+
+	/* accents fanned across the nacre spectrum for cohesion */
+	--color-brand: oklch(0.82 0.12 195);
+	--color-brand-strong: oklch(0.88 0.11 195);
+	/* green-gold luster */
+	--color-flow: oklch(0.85 0.13 155);
+	/* violet fire */
+	--color-mind: oklch(0.78 0.13 300);
+	--color-mind-strong: oklch(0.84 0.09 300);
+	/* rose sheen */
+	--color-body: oklch(0.8 0.13 350);
+	/* kintsugi gold */
+	--color-mixed: oklch(0.85 0.11 90);
+	--color-danger: oklch(0.65 0.2 25);
+	--color-danger-strong: oklch(0.72 0.171 25);
+	--color-warning: oklch(0.82 0.13 80);
+	--color-warning-strong: oklch(0.87 0.12 82);
+	--color-success: oklch(0.8 0.13 160);
+	--color-success-strong: oklch(0.85 0.12 160);
+	--color-info: oklch(0.8 0.12 230);
+	--color-info-strong: oklch(0.85 0.089 230);
+
+	--blur: 14px;
+	/* pearl luster: an inner top highlight over a deep set shadow */
+	--card-shadow: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 10px 34px oklch(0 0 0 / 0.38);
+}
+.pinwheel {
+	/* a face-on spiral galaxy: hot core, three nebula-arm blooms, deep-space halo */
+	--background-image:
+		radial-gradient(
+			circle at 60% 10%,
+			oklch(0.98 0.029 95 / 0.95) 0 1rem,
+			oklch(0.92 0.075 82 / 0.6) 2.4rem,
+			oklch(0.82 0.12 60 / 0.28) 5rem,
+			transparent 9.5rem
+		),
+		radial-gradient(ellipse 30% 24% at 50% 24%, oklch(0.72 0.12 70 / 0.32), transparent 70%),
+		radial-gradient(ellipse 34% 26% at 29% 13%, oklch(0.6 0.18 350 / 0.28), transparent 66%),
+		radial-gradient(ellipse 42% 30% at 75% 33%, oklch(0.64 0.106 205 / 0.24), transparent 66%),
+		radial-gradient(ellipse 48% 34% at 43% 62%, oklch(0.55 0.18 300 / 0.22), transparent 68%),
+		radial-gradient(ellipse 95% 75% at 50% 30%, oklch(0.4 0.09 292 / 0.28), transparent 76%),
+		linear-gradient(oklch(0.11 0.022 290), oklch(0.07 0.02 265));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.1 0.02 285);
+	/* observatory-glass, faintly warmed by the core */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.96 0.012 280);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.8 0.06 285 / 0.2);
+
+	/* starlight cyan */
+	--primary: oklch(0.82 0.13 205);
+	--primary-foreground: oklch(0.16 0.03 285);
+	--ring: oklch(0.82 0.13 205 / 0.5);
+
+	--color-brand: oklch(0.78 0.12 210);
+	--color-brand-strong: oklch(0.86 0.1 210);
+	/* core gold */
+	--color-flow: oklch(0.85 0.12 85);
+	/* arm violet */
+	--color-mind: oklch(0.76 0.125 285);
+	--color-mind-strong: oklch(0.84 0.079 285);
+	/* nebula jade */
+	--color-body: oklch(0.78 0.13 175);
+	/* H-alpha rose */
+	--color-mixed: oklch(0.72 0.16 345);
+}
+.canopy {
+	/* under a sunlit forest canopy: warm gold sunlight breaking through the
+	   leaves from above, a soft green ambience, deepening to moss at the
+	   forest floor. Dappled shade, god-rays and drifting pollen are theme
+	   scenery — see theme-scenery/canopy.css. */
+	--background-image:
+		radial-gradient(ellipse 60% 45% at 70% 0%, oklch(0.97 0.05 95 / 0.6), transparent 70%),
+		radial-gradient(ellipse 90% 55% at 50% 100%, oklch(0.85 0.06 145 / 0.35), transparent 65%),
+		linear-gradient(oklch(0.95 0.035 130), oklch(0.89 0.05 140));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.92 0.035 135);
+	/* sun-warmed leaf glass */
+	--surface-card: oklch(1 0 0 / 0.55);
+	--surface-inset: oklch(0.35 0.06 145 / 0.08);
+	--color-ty-primary: oklch(0.28 0.04 145);
+
+	--input: oklch(1 0 0 / 0.6);
+	--border: oklch(0.45 0.07 145 / 0.25);
+
+	/* leaf green */
+	--primary: oklch(0.52 0.13 150);
+	--primary-foreground: var(--color-white);
+	--ring: oklch(0.52 0.13 150 / 0.5);
+
+	--color-brand: oklch(0.5 0.12 148);
+	--color-brand-strong: oklch(0.42 0.12 150);
+	/* sun gold breaking through the leaves */
+	--color-flow: oklch(0.6 0.14 95);
+	/* fern teal in the undergrowth shade */
+	--color-mind: oklch(0.48 0.11 180);
+	--color-mind-strong: oklch(0.4 0.11 182);
+	/* bark amber */
+	--color-body: oklch(0.48 0.13 60);
+	/* blossom rose */
+	--color-mixed: oklch(0.55 0.15 20);
+}
+.meridian {
+	/* deep-space ink: indigo shading to teal-black, lit only by quiet distant
+	   glows — the flow-lines and their traveling light are the real subject,
+	   see theme-scenery/meridian.css. */
+	--background-image:
+		radial-gradient(ellipse 55% 40% at 15% 10%, oklch(0.32 0.08 230 / 0.16), transparent 70%),
+		radial-gradient(ellipse 60% 45% at 88% 85%, oklch(0.28 0.09 195 / 0.14), transparent 72%),
+		radial-gradient(ellipse 45% 38% at 55% 45%, oklch(0.3 0.1 280 / 0.08), transparent 70%),
+		linear-gradient(oklch(0.15 0.032 245), oklch(0.05 0.016 240));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.09 0.025 245);
+	/* deep-space glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.95 0.015 240);
+
+	--input: oklch(1 0 0 / 0.08);
+	--border: oklch(0.75 0.05 230 / 0.18);
+
+	/* luminous cyan */
+	--primary: oklch(0.8 0.14 195);
+	--primary-foreground: oklch(0.14 0.03 250);
+	--ring: oklch(0.8 0.14 195 / 0.5);
+
+	--color-brand: oklch(0.76 0.13 200);
+	--color-brand-strong: oklch(0.85 0.11 200);
+	/* ribbon gold */
+	--color-flow: oklch(0.83 0.13 85);
+	/* ribbon violet */
+	--color-mind: oklch(0.74 0.15 300);
+	--color-mind-strong: oklch(0.82 0.11 300);
+	/* indigo depths */
+	--color-body: oklch(0.55 0.09 250);
+	/* ribbon rose */
+	--color-mixed: oklch(0.7 0.17 345);
+}
+.dunes {
+	/* midday desert: bottom-to-top the page itself carries pale warm sky
+	   sinking through sun-gold haze into deep terracotta sand, so the rounded
+	   dune silhouettes (theme-scenery/dunes.css) land on matching ground
+	   instead of a flat wash. One soft sun glow sits high above the dune line;
+	   heat shimmer, dune ridges and drifting sand grains are theme scenery. */
+	--background-image:
+		radial-gradient(ellipse 45% 30% at 76% 12%, oklch(0.96 0.05 85 / 0.55), transparent 70%),
+		linear-gradient(
+			to bottom,
+			oklch(0.87 0.035 235) 0%,
+			oklch(0.9 0.05 82) 42%,
+			oklch(0.8 0.08 58) 65%,
+			oklch(0.6 0.11 42) 100%
+		);
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.9 0.035 70);
+	/* sun-bleached canvas glass */
+	--surface-card: oklch(1 0 0 / 0.6);
+	--surface-inset: oklch(0.4 0.06 50 / 0.08);
+	--color-ty-primary: oklch(0.28 0.045 45);
+
+	--input: oklch(1 0 0 / 0.62);
+	--border: oklch(0.45 0.07 50 / 0.25);
+
+	/* terracotta */
+	--primary: oklch(0.58 0.16 42);
+	--primary-foreground: var(--color-white);
+	--ring: oklch(0.58 0.16 42 / 0.5);
+
+	--color-brand: oklch(0.56 0.15 42);
+	--color-brand-strong: oklch(0.46 0.15 40);
+	/* sun gold */
+	--color-flow: oklch(0.72 0.14 85);
+	/* oasis teal */
+	--color-mind: oklch(0.55 0.09 195);
+	--color-mind-strong: oklch(0.45 0.09 195);
+	/* baked clay */
+	--color-body: oklch(0.45 0.1 55);
+	/* cactus-flower rose */
+	--color-mixed: oklch(0.62 0.17 15);
+}
+.synthwave {
+	/* neon dusk: deep violet sky sinking to near-black, a sunset glow low at
+	   center — the banded sun and perspective grid are theme scenery, see
+	   theme-scenery/synthwave.css. */
+	--background-image:
+		radial-gradient(ellipse 65% 40% at 50% 88%, oklch(0.6 0.2 45 / 0.4), transparent 65%),
+		radial-gradient(ellipse 80% 55% at 50% 100%, oklch(0.45 0.18 340 / 0.25), transparent 60%),
+		linear-gradient(oklch(0.22 0.09 300), oklch(0.07 0.03 310));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.1 0.05 320);
+	/* dusk glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.96 0.02 40);
+
+	--input: oklch(1 0 0 / 0.08);
+	--border: oklch(0.78 0.12 330 / 0.2);
+
+	/* hot magenta */
+	--primary: oklch(0.72 0.22 335);
+	--primary-foreground: oklch(0.12 0.02 320);
+	--ring: oklch(0.72 0.22 335 / 0.5);
+
+	--color-brand: oklch(0.72 0.2 330);
+	--color-brand-strong: oklch(0.82 0.16 330);
+	/* sun orange */
+	--color-flow: oklch(0.78 0.17 55);
+	/* electric cyan */
+	--color-mind: oklch(0.82 0.14 200);
+	--color-mind-strong: oklch(0.9 0.1 200);
+	/* deep violet */
+	--color-body: oklch(0.55 0.16 295);
+	/* hot pink */
+	--color-mixed: oklch(0.72 0.19 5);
+}
+.firefly {
+	/* a summer meadow just after dusk, free of light pollution: a deep
+	   green-blue night sky sinking into near-black meadow ground, with a
+	   faint moon glow riding high in one corner. Grass, fireflies, mist and
+	   the breathing sky glow are theme scenery — see
+	   theme-scenery/firefly.css. */
+	--background-image:
+		/* faint moon glow, high and off-center */
+		radial-gradient(ellipse 46% 30% at 82% 8%, oklch(0.9 0.02 95 / 0.14), transparent 70%),
+		/* a breath of meadow green rising from the ground */
+		radial-gradient(ellipse 60% 40% at 50% 100%, oklch(0.3 0.05 150 / 0.14), transparent 70%),
+		/* dusk sky sinking into near-black meadow-green at the ground */
+		linear-gradient(
+			to bottom,
+			oklch(0.14 0.03 250) 0%,
+			oklch(0.1 0.035 220) 45%,
+			oklch(0.06 0.03 160) 100%
+		);
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.08 0.03 200);
+	/* dusk-air glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	/* soft warm-white, like skin caught in firefly light */
+	--color-ty-primary: oklch(0.95 0.02 90);
+
+	--input: oklch(1 0 0 / 0.08);
+	--border: oklch(0.75 0.08 140 / 0.2);
+
+	/* firefly glow: warm yellow-green */
+	--primary: oklch(0.84 0.17 124);
+	--primary-foreground: oklch(0.16 0.03 150);
+	--ring: oklch(0.84 0.17 124 / 0.5);
+
+	/* glow chartreuse — same family as primary, the firefly spark itself */
+	--color-brand: oklch(0.82 0.16 122);
+	--color-brand-strong: oklch(0.9 0.14 120);
+	/* warm amber — the last dusk light on the horizon */
+	--color-flow: oklch(0.82 0.13 70);
+	/* moon teal — cool moonlit mist and sky */
+	--color-mind: oklch(0.78 0.1 200);
+	--color-mind-strong: oklch(0.86 0.08 200);
+	/* moss — muted meadow green, kept clear of the brighter primary */
+	--color-body: oklch(0.65 0.1 150);
+	/* wildflower violet — the rare bloom color in the dark grass */
+	--color-mixed: oklch(0.72 0.14 310);
 }

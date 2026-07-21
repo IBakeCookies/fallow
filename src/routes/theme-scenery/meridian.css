@@ -1,0 +1,100 @@
+/* Meridian: smooth cubic-Bézier ribbons trace across a deep indigo-teal void
+   like silk contour lines or topographic strata. Faint far contours breathe
+   in the depths, sparse glow-nodes twinkle between them, and a traveling
+   light pulses along the hero ribbons — cyan sheen sweeping over violet,
+   gold and rose strokes. Ribbon geometry is seeded — see --meridian-ribbons
+   in utils/scenery-seed.ts. */
+.meridian .theme-scenery {
+	display: block;
+
+	/* far contours — static tile, only opacity breathes; strokes stay clear
+	   of the tile edges so the repeat can't show a seam */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 400'><g fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M40 120 C160 60 260 180 380 110 C460 65 520 140 560 100' stroke='%2367e8f9' stroke-width='1.2' opacity='0.1'/><path d='M40 220 C150 260 250 160 370 230 C450 280 510 200 560 240' stroke='%23c084fc' stroke-width='1' opacity='0.08'/><path d='M40 300 C170 340 270 260 390 320 C470 355 520 300 560 330' stroke='%23fbbf24' stroke-width='1.3' opacity='0.07'/></g></svg>");
+		background-size: 38rem 26rem;
+		/* seed lever: static contour tile, only opacity animates — both axes free */
+		background-position: var(--meridian-lines-1, 0 0);
+		animation: meridian-breathe 13s ease-in-out infinite alternate;
+		animation-delay: var(--meridian-breathe-phase, 0s);
+	}
+
+	/* hero ribbons — bold sweeping strokes across the whole field */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		/* seed lever: whole-SVG var — jittered lanes, same tuned hues/widths */
+		background: var(
+				--meridian-ribbons,
+				url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'><g fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M-50 120 C200 40 380 260 620 140 C820 50 980 200 1080 120' stroke='%2322d3ee' stroke-width='3' opacity='0.55'/><path d='M-50 320 C180 480 380 220 600 380 C800 520 980 300 1080 380' stroke='%23a78bfa' stroke-width='2.5' opacity='0.42'/><path d='M-50 520 C220 380 420 620 660 460 C860 340 980 520 1080 440' stroke='%23fbbf24' stroke-width='2' opacity='0.4'/><path d='M-50 60 C240 260 440 -60 680 140 C880 300 980 60 1080 180' stroke='%2367e8f9' stroke-width='4' opacity='0.5'/><path d='M-50 700 C200 560 460 800 700 640 C880 520 980 700 1080 620' stroke='%23fb7185' stroke-width='2' opacity='0.32'/><path d='M-50 260 C180 100 420 400 660 240 C840 120 980 300 1080 220' stroke='%23c4b5fd' stroke-width='3' opacity='0.4'/></g></svg>")
+			)
+			center / cover no-repeat;
+	}
+	/* traveling light — the same ribbons used as a mask, so the sheen only
+	   shows where the strokes are */
+	.theme-helper-2::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			115deg,
+			transparent 0%,
+			transparent 40%,
+			oklch(0.96 0.04 195) 50%,
+			transparent 60%,
+			transparent 100%
+		);
+		background-size: 250% 250%;
+		/* same var as .theme-helper-2 background — the sheen must stay locked to the lines */
+		mask: var(
+				--meridian-ribbons,
+				url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 1000' preserveAspectRatio='xMidYMid slice'><g fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M-50 120 C200 40 380 260 620 140 C820 50 980 200 1080 120' stroke='%2322d3ee' stroke-width='3' opacity='0.55'/><path d='M-50 320 C180 480 380 220 600 380 C800 520 980 300 1080 380' stroke='%23a78bfa' stroke-width='2.5' opacity='0.42'/><path d='M-50 520 C220 380 420 620 660 460 C860 340 980 520 1080 440' stroke='%23fbbf24' stroke-width='2' opacity='0.4'/><path d='M-50 60 C240 260 440 -60 680 140 C880 300 980 60 1080 180' stroke='%2367e8f9' stroke-width='4' opacity='0.5'/><path d='M-50 700 C200 560 460 800 700 640 C880 520 980 700 1080 620' stroke='%23fb7185' stroke-width='2' opacity='0.32'/><path d='M-50 260 C180 100 420 400 660 240 C840 120 980 300 1080 220' stroke='%23c4b5fd' stroke-width='3' opacity='0.4'/></g></svg>")
+			)
+			center / cover no-repeat;
+		animation: meridian-sheen 17s linear infinite;
+		animation-delay: var(--meridian-sheen-phase, 0s);
+	}
+
+	/* sparse glow-nodes between the ribbons — static tile, only opacity twinkles */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(2px 2px at 12% 20%, oklch(0.85 0.13 195 / 0.8), transparent),
+			radial-gradient(1.5px 1.5px at 45% 65%, oklch(0.8 0.13 85 / 0.7), transparent),
+			radial-gradient(2.5px 2.5px at 70% 15%, oklch(0.78 0.14 300 / 0.75), transparent),
+			radial-gradient(1.5px 1.5px at 85% 55%, oklch(0.85 0.13 195 / 0.65), transparent),
+			radial-gradient(2px 2px at 30% 85%, oklch(0.75 0.16 345 / 0.6), transparent);
+		background-size: 28rem 23rem;
+		/* seed lever: static node tile, only opacity animates — both axes free */
+		background-position: var(--meridian-nodes, 0 0);
+		animation: meridian-twinkle 9s ease-in-out infinite alternate;
+		animation-delay: var(--meridian-twinkle-phase, 0s);
+	}
+}
+
+@keyframes meridian-breathe {
+	from {
+		opacity: 0.5;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes meridian-sheen {
+	from {
+		background-position: -50% -50%;
+	}
+	to {
+		background-position: 150% 150%;
+	}
+}
+@keyframes meridian-twinkle {
+	from {
+		opacity: 0.4;
+	}
+	to {
+		opacity: 1;
+	}
+}

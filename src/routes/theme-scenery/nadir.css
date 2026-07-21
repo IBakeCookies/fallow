@@ -18,7 +18,11 @@
 			radial-gradient(1px 1px at 74% 27%, oklch(0.95 0.02 85 / 0.8), transparent),
 			radial-gradient(1.5px 1.5px at 88% 15%, oklch(0.97 0.005 230 / 0.85), transparent);
 		background-size: 26rem 21rem;
-		animation: nadir-twinkle 6s ease-in-out infinite alternate;
+		/* seed lever: JS may override these on .theme-scenery to vary the sky
+		   per load. Fallbacks reproduce the hand-tuned static look exactly. */
+		background-position: var(--nadir-pos-1, 0 0);
+		animation: nadir-twinkle var(--nadir-dur-1, 6s) ease-in-out infinite alternate;
+		animation-delay: var(--nadir-phase-1, 0s);
 	}
 
 	.theme-helper-2 {
@@ -28,7 +32,9 @@
 			radial-gradient(1.5px 1.5px at 67% 9%, oklch(0.95 0.02 85 / 0.7), transparent),
 			radial-gradient(1px 1px at 92% 33%, oklch(0.95 0.01 230 / 0.65), transparent);
 		background-size: 31rem 25rem;
-		animation: nadir-twinkle 9s ease-in-out infinite alternate-reverse;
+		background-position: var(--nadir-pos-2, 0 0);
+		animation: nadir-twinkle var(--nadir-dur-2, 9s) ease-in-out infinite alternate-reverse;
+		animation-delay: var(--nadir-phase-2, 0s);
 	}
 }
 

@@ -26,7 +26,15 @@ export type ThemeName =
 	| 'eclipse'
 	| 'cathedral'
 	| 'orbit'
-	| 'tempest';
+	| 'tempest'
+	| 'lantern-drift'
+	| 'nacre'
+	| 'pinwheel'
+	| 'canopy'
+	| 'meridian'
+	| 'dunes'
+	| 'synthwave'
+	| 'firefly';
 
 interface ThemeItem {
 	name: ThemeName;
@@ -155,6 +163,46 @@ export const themes: ThemeItem[] = [
 		name: 'tempest',
 		label: 'Tempest',
 		css: ['tempest', 'dark']
+	},
+	{
+		name: 'lantern-drift',
+		label: 'Lantern Drift',
+		css: ['lantern-drift', 'dark']
+	},
+	{
+		name: 'nacre',
+		label: 'Nacre',
+		css: ['nacre', 'dark']
+	},
+	{
+		name: 'pinwheel',
+		label: 'Pinwheel',
+		css: ['pinwheel', 'dark']
+	},
+	{
+		name: 'canopy',
+		label: 'Canopy',
+		css: ['canopy']
+	},
+	{
+		name: 'meridian',
+		label: 'Meridian',
+		css: ['meridian', 'dark']
+	},
+	{
+		name: 'dunes',
+		label: 'Dunes',
+		css: ['dunes']
+	},
+	{
+		name: 'synthwave',
+		label: 'Synthwave',
+		css: ['synthwave', 'dark']
+	},
+	{
+		name: 'firefly',
+		label: 'Fireflies',
+		css: ['firefly', 'dark']
 	}
 ] as const;
 
@@ -165,6 +213,14 @@ export const DEFAULT_DARK_THEME: ThemeName = 'solid-dark';
 
 const CONTEXT_KEY = Symbol();
 const themeStorageKey = 'theme';
+const sceneryStorageKey = 'scenerySeed';
+const sceneryMotionStorageKey = 'sceneryMotion';
+
+/* 32-bit scenery seed. The store only mints and persists the number;
+   mapping it to CSS vars is presentation's job (utils/scenery-seed.ts). */
+export function randomScenerySeed(): number {
+	return Math.floor(Math.random() * 0x100000000);
+}
 
 export function getClassesToAdd(themeName: ThemeName): string[] {
 	return themes.find((t) => t.name === themeName)?.css ?? [];
@@ -174,6 +230,14 @@ export class ThemeStore {
 	#theme = $state<ThemeName>(DEFAULT_THEME);
 	#themes: ThemeItem[] = themes;
 
+	// per-user scenery seed: minted server-side (+layout.server.ts cookie),
+	// identical on both ends so the SSR-inlined style never shifts
+	#scenerySeed = $state<number>(0);
+
+	// whether animated scenery motion is paused; cookie-backed like theme,
+	// defaults to prefers-reduced-motion when no cookie says otherwise
+	#sceneryPaused = $state<boolean>(false);
+
 	#classesToAdd = $derived.by<string[]>(() => {
 		return getClassesToAdd(this.#theme);
 	});
@@ -182,11 +246,35 @@ export class ThemeStore {
 		return themes.map((t) => t.css).flat();
 	});
 
-	constructor(initialTheme?: ThemeName) {
+	constructor(
+		initialTheme?: ThemeName,
+		initialScenerySeed?: number,
+		initialSceneryPaused?: boolean
+	) {
+		this.#scenerySeed = initialScenerySeed ?? 0;
+		this.#sceneryPaused = initialSceneryPaused ?? false;
+
 		$effect(() => {
 			document.documentElement.classList.remove(...this.#classesToRemove);
 			document.documentElement.classList.add(...this.#classesToAdd);
 		});
+
+		$effect(() => {
+			document.documentElement.classList.toggle('scenery-paused', this.#sceneryPaused);
+		});
+
+		// no cookie means no explicit preference yet — honor the OS setting,
+		// same onMount/matchMedia approach as the dark-theme default below
+		if (initialSceneryPaused === undefined) {
+			onMount(() => {
+				const prefersReducedMotion =
+					window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+				if (!prefersReducedMotion) return;
+
+				this.#sceneryPaused = true;
+			});
+		}
 
 		// offline, the SW serves cached HTML whose serialized theme may be stale —
 		// the cookie is the source of truth, so it wins over initialTheme
@@ -231,15 +319,42 @@ export class ThemeStore {
 		return this.#themes;
 	}
 
+	get scenerySeed() {
+		return this.#scenerySeed;
+	}
+
+	get sceneryPaused() {
+		return this.#sceneryPaused;
+	}
+
 	switchTheme(newTheme: ThemeName): void {
 		this.#theme = newTheme;
 
 		document.cookie = `${themeStorageKey}=${newTheme}; path=/; max-age=31536000; SameSite=Lax`;
 	}
+
+	rerollScenery(): void {
+		this.#scenerySeed = randomScenerySeed();
+
+		document.cookie = `${sceneryStorageKey}=${this.#scenerySeed}; path=/; max-age=31536000; SameSite=Lax`;
+	}
+
+	toggleSceneryMotion(): void {
+		this.#sceneryPaused = !this.#sceneryPaused;
+
+		document.cookie = `${sceneryMotionStorageKey}=${this.#sceneryPaused ? 'paused' : 'on'}; path=/; max-age=31536000; SameSite=Lax`;
+	}
 }
 
-export function setThemeStore(initialTheme?: ThemeName): ThemeStore {
-	return setContext<ThemeStore>(CONTEXT_KEY, new ThemeStore(initialTheme));
+export function setThemeStore(
+	initialTheme?: ThemeName,
+	initialScenerySeed?: number,
+	initialSceneryPaused?: boolean
+): ThemeStore {
+	return setContext<ThemeStore>(
+		CONTEXT_KEY,
+		new ThemeStore(initialTheme, initialScenerySeed, initialSceneryPaused)
+	);
 }
 
 export function getThemeStore(): ThemeStore {

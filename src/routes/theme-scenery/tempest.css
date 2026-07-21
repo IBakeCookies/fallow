@@ -22,6 +22,8 @@
 			radial-gradient(1px 9px at 80% 15%, oklch(0.9 0.01 240 / 0.35), transparent),
 			radial-gradient(1px 12px at 38% 85%, oklch(0.9 0.01 240 / 0.28), transparent);
 		background-size: 13rem 17rem;
+		/* seed lever: rain falls on y, so x is free to offset per user */
+		background-position-x: var(--tempest-x-1, 0);
 		animation: tempest-rain 0.8s linear infinite;
 	}
 
@@ -33,6 +35,7 @@
 			radial-gradient(1px 6px at 71% 74%, oklch(0.9 0.01 240 / 0.15), transparent),
 			radial-gradient(1px 7px at 92% 38%, oklch(0.9 0.01 240 / 0.12), transparent);
 		background-size: 17rem 23rem;
+		background-position-x: var(--tempest-x-2, 0);
 		animation: tempest-rain-far 1.5s linear infinite;
 	}
 
@@ -45,7 +48,9 @@
 			radial-gradient(ellipse 10rem 2.4rem at 70% 12%, oklch(0.28 0.02 255 / 0.45), transparent 70%);
 		background-repeat: repeat-x;
 		background-size: 70rem 100%;
+		/* seamless one-tile loop — seed the phase, never the base position */
 		animation: tempest-scud 45s linear infinite;
+		animation-delay: var(--tempest-scud-phase, 0s);
 	}
 
 	/* two lightning cells: each lights its own cloud tower plus a faint
@@ -68,6 +73,7 @@
 			),
 			linear-gradient(oklch(0.95 0.03 290 / 0.14), transparent 60%);
 		animation: tempest-flash 13s linear infinite;
+		animation-delay: var(--tempest-flash-1, 0s);
 	}
 
 	.theme-helper-3::after {
@@ -80,19 +86,20 @@
 			),
 			linear-gradient(oklch(0.95 0.03 270 / 0.12), transparent 60%);
 		animation: tempest-flash 21s linear infinite;
-		animation-delay: -7s;
+		animation-delay: var(--tempest-flash-2, -7s);
 	}
 }
 
+/* y-only so the seeded x offset survives (the shorthand would reset it) */
 @keyframes tempest-rain {
 	to {
-		background-position: 0 17rem;
+		background-position-y: 17rem;
 	}
 }
 
 @keyframes tempest-rain-far {
 	to {
-		background-position: 0 23rem;
+		background-position-y: 23rem;
 	}
 }
 

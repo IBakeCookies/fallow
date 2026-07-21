@@ -3,6 +3,9 @@
 	import { page } from '$app/state';
 	import Nav from '$lib/presentation/component/nav.svelte';
 	import Palette from '@lucide/svelte/icons/palette';
+	import Dices from '@lucide/svelte/icons/dices';
+	import Pause from '@lucide/svelte/icons/pause';
+	import Play from '@lucide/svelte/icons/play';
 	import Menu from '@lucide/svelte/icons/menu';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
 	import * as m from '$lib/paraglide/messages.js';
@@ -71,7 +74,7 @@
 							<Palette class="h-4 w-4 shrink-0" />
 							<span class="hidden sm:inline">{themeStore.label}</span>
 						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="end" class="w-max min-w-40">
+						<DropdownMenu.Content align="end" class="w-max min-w-40 max-h-[min(80vh,40rem)] overflow-y-auto">
 							<DropdownMenu.RadioGroup
 								value={themeStore.theme}
 								onValueChange={(v) => themeStore.switchTheme(v as ThemeName)}
@@ -91,6 +94,29 @@
 									</DropdownMenu.RadioItem>
 								{/each}
 							</DropdownMenu.RadioGroup>
+							<DropdownMenu.Separator />
+							<!-- stays open so the new arrangement can be judged and rerolled -->
+							<DropdownMenu.Item
+								class="cursor-pointer gap-grid-xs"
+								closeOnSelect={false}
+								onclick={() => themeStore.rerollScenery()}
+							>
+								<Dices class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+								{m.theme_reroll_scenery()}
+							</DropdownMenu.Item>
+							<DropdownMenu.Item
+								class="cursor-pointer gap-grid-xs"
+								closeOnSelect={false}
+								onclick={() => themeStore.toggleSceneryMotion()}
+							>
+								{#if themeStore.sceneryPaused}
+									<Play class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+									{m.theme_resume_animations()}
+								{:else}
+									<Pause class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+									{m.theme_pause_animations()}
+								{/if}
+							</DropdownMenu.Item>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 					<DropdownMenu.Root>

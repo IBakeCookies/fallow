@@ -1,0 +1,114 @@
+/* Canopy: sunlight breaking through a forest canopy. Leaf shadows dapple the
+   ground and breathe with the shifting boughs, god-rays slant down through
+   the branches and fade before they reach the floor, and pollen motes drift
+   upward through the shafts of light on two depths. */
+.canopy .theme-scenery {
+	display: block;
+
+	/* dappled leaf shadows — static tile, only opacity breathes */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(ellipse 40% 30% at 15% 20%, oklch(0.35 0.06 145 / 0.1), transparent 70%),
+			radial-gradient(ellipse 35% 25% at 55% 10%, oklch(0.35 0.06 145 / 0.08), transparent 70%),
+			radial-gradient(ellipse 45% 32% at 80% 35%, oklch(0.35 0.06 145 / 0.12), transparent 70%),
+			radial-gradient(ellipse 38% 28% at 25% 65%, oklch(0.35 0.06 145 / 0.07), transparent 70%),
+			radial-gradient(ellipse 42% 30% at 70% 78%, oklch(0.35 0.06 145 / 0.1), transparent 70%),
+			radial-gradient(ellipse 32% 24% at 10% 90%, oklch(0.35 0.06 145 / 0.06), transparent 70%);
+		background-size: 34rem 28rem;
+		/* seed lever: static leaf tile, only opacity animates — both axes free */
+		background-position: var(--canopy-dapple, 0 0);
+		animation: canopy-dapple 13s ease-in-out infinite alternate;
+		animation-delay: var(--canopy-dapple-phase, 0s);
+	}
+
+	/* god-rays slanting down through the branches */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background-image: repeating-linear-gradient(
+			105deg,
+			transparent 0 2rem,
+			oklch(0.95 0.07 95 / 0.12) 2rem 3.2rem,
+			transparent 3.2rem 6rem
+		);
+		mask-image: linear-gradient(black, transparent 70%);
+		animation: canopy-ray 17s ease-in-out infinite alternate;
+		animation-delay: var(--canopy-ray-1, 0s);
+	}
+	/* second ray layer, slightly different angle/width for parallax */
+	.theme-helper-2::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image: repeating-linear-gradient(
+			112deg,
+			transparent 0 2.6rem,
+			oklch(0.95 0.07 95 / 0.1) 2.6rem 3.8rem,
+			transparent 3.8rem 7rem
+		);
+		mask-image: linear-gradient(black, transparent 70%);
+		animation: canopy-ray 23s ease-in-out infinite alternate;
+		animation-delay: var(--canopy-ray-2, 0s);
+	}
+
+	/* pollen motes rising through the light shafts, two depths */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1px 1px at 20% 15%, oklch(0.95 0.06 90 / 0.8), transparent),
+			radial-gradient(1.5px 1.5px at 55% 45%, oklch(0.97 0.03 85 / 0.7), transparent),
+			radial-gradient(1px 1px at 80% 70%, oklch(0.95 0.06 90 / 0.75), transparent),
+			radial-gradient(1px 1px at 35% 88%, oklch(0.97 0.03 85 / 0.6), transparent);
+		background-size: 18rem 30rem;
+		/* seed lever: rise animates y only, so x is free to offset per user */
+		background-position-x: var(--canopy-pollen-x-1, 0rem);
+		animation: canopy-pollen 26s linear infinite;
+		animation-delay: var(--canopy-pollen-phase-1, 0s);
+	}
+	/* nearer, larger motes on a different tile and beat */
+	.theme-helper-3::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(2px 2px at 12% 25%, oklch(0.96 0.05 88 / 0.85), transparent),
+			radial-gradient(1.5px 1.5px at 48% 60%, oklch(0.95 0.06 90 / 0.7), transparent),
+			radial-gradient(2px 2px at 72% 20%, oklch(0.97 0.03 85 / 0.8), transparent),
+			radial-gradient(1.5px 1.5px at 90% 82%, oklch(0.96 0.05 88 / 0.65), transparent);
+		background-size: 24rem 36rem;
+		background-position-x: var(--canopy-pollen-x-2, 0rem);
+		animation: canopy-pollen-near 19s linear infinite;
+		animation-delay: var(--canopy-pollen-phase-2, 0s);
+	}
+}
+
+@keyframes canopy-dapple {
+	from {
+		opacity: 0.55;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes canopy-ray {
+	from {
+		opacity: 0.5;
+	}
+	to {
+		opacity: 1;
+	}
+}
+/* y-only so the seeded x offset survives (the shorthand would reset it) */
+@keyframes canopy-pollen {
+	to {
+		background-position-y: -30rem;
+	}
+}
+@keyframes canopy-pollen-near {
+	to {
+		background-position-y: -36rem;
+	}
+}

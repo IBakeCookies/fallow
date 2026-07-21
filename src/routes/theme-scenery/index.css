@@ -13,6 +13,17 @@
 @import './eclipse.css';
 @import './orbit.css';
 @import './tempest.css';
+@import './lantern-drift.css';
+@import './nacre.css';
+@import './pinwheel.css';
+@import './canopy.css';
+@import './meridian.css';
+@import './glacier.css';
+@import './ukiyo.css';
+@import './cyber-punk.css';
+@import './dunes.css';
+@import './synthwave.css';
+@import './firefly.css';
 
 .theme-scenery {
 	display: none;
@@ -27,6 +38,13 @@
 	.theme-scenery > *,
 	.theme-scenery > *::before,
 	.theme-scenery > *::after {
-		/* animation: none !important; */
+		/* animation-play-state: paused !important; */
 	}
+}
+
+/* toggled by ThemeStore#toggleSceneryMotion(); see theme-store.svelte.ts */
+.scenery-paused .theme-scenery *,
+.scenery-paused .theme-scenery *::before,
+.scenery-paused .theme-scenery *::after {
+	animation-play-state: paused !important;
 }

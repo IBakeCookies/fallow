@@ -1,0 +1,169 @@
+/* Firefly: a summer meadow just after dusk, free of light pollution. Grass-
+   blade silhouettes rim the bottom edge — a static, near-black green texture,
+   never animated. Above it fireflies rise and twinkle across two depths:
+   small dim sparks further back, larger brighter ones close in, each a core
+   dot plus a soft baked-in glow halo (no filter, so the scene stays
+   compositor-cheap). A faint moonlit mist banks low across the meadow,
+   drifting sideways on a slow seamless loop, and a deep-blue night-sky glow
+   breathes gently over the horizon. Frozen under prefers-reduced-motion it
+   reads as a long-exposure photograph of the meadow at dusk. */
+.firefly .theme-scenery {
+	display: block;
+
+	/* grass-blade silhouettes along the bottom edge — two blade layers at
+	   different angles/spacing so the tree-line reads uneven, plus a dark
+	   ground mass so the blades look rooted, not floating. Static: no
+	   animation at all, so both position axes are free to seed. */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			repeating-linear-gradient(
+				96deg,
+				transparent 0 0.4rem,
+				oklch(0.06 0.03 150) 0.4rem 0.55rem,
+				transparent 0.55rem 1.5rem
+			),
+			repeating-linear-gradient(
+				84deg,
+				transparent 0 0.5rem,
+				oklch(0.05 0.025 145) 0.5rem 0.62rem,
+				transparent 0.62rem 1.8rem
+			),
+			radial-gradient(ellipse 90% 40% at 50% 100%, oklch(0.04 0.02 150 / 0.92), transparent 70%);
+		mask-image: linear-gradient(to top, black 0 14%, transparent 26%);
+		/* seed lever: fully static (no keyframe touches this layer) — both
+		   axes free, a small jitter so the blade phase varies per user */
+		background-position: var(--ff-grass-pos, 0 0);
+	}
+
+	/* deep-blue night-sky glow low over the horizon, breathing gently */
+	.theme-helper-1::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image: radial-gradient(
+			ellipse 70% 30% at 50% 78%,
+			oklch(0.26 0.05 258 / 0.32),
+			transparent 72%
+		);
+		animation: ff-sky-breathe 11s ease-in-out infinite alternate;
+		/* seed lever: only the breathe phase re-times, position is fixed art */
+		animation-delay: var(--ff-sky-phase, 0s);
+	}
+
+	/* faint moonlit mist banked low across the meadow, drifting sideways on a
+	   slow seamless loop (background-size tile == the animated travel
+	   distance, so the wrap is invisible) */
+	.theme-helper-1::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(ellipse 40% 16% at 20% 82%, oklch(0.58 0.025 240 / 0.22), transparent 72%),
+			radial-gradient(ellipse 46% 14% at 66% 85%, oklch(0.55 0.02 235 / 0.18), transparent 72%);
+		background-repeat: repeat-x;
+		background-size: 64rem 100%;
+		mask-image: linear-gradient(to top, black 0 20%, transparent 40%);
+		animation: ff-mist 91s linear infinite;
+		/* seed lever: seamless one-tile loop — phase only, never position-offset */
+		animation-delay: var(--ff-mist-phase, 0s);
+	}
+
+	/* far fireflies — small, dim sparks rising slowly through the meadow air,
+	   twinkling as they go. Each point is a tight bright core radial-gradient
+	   followed by a larger, softer halo radial-gradient at the same position
+	   (gradients later in the list paint behind earlier ones), so the glow is
+	   baked in without a filter. */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1.4px 1.4px at 15% 80%, oklch(0.93 0.17 124 / 0.97), transparent),
+			radial-gradient(5rem 5rem at 15% 80%, oklch(0.82 0.15 122 / 0.26), transparent 70%),
+			radial-gradient(1.2px 1.2px at 55% 55%, oklch(0.9 0.16 128 / 0.95), transparent),
+			radial-gradient(4rem 4rem at 55% 55%, oklch(0.8 0.14 126 / 0.24), transparent 70%),
+			radial-gradient(1.3px 1.3px at 80% 70%, oklch(0.92 0.17 122 / 0.97), transparent),
+			radial-gradient(4.6rem 4.6rem at 80% 70%, oklch(0.82 0.15 120 / 0.25), transparent 70%),
+			radial-gradient(1px 1px at 35% 30%, oklch(0.89 0.15 130 / 0.95), transparent),
+			radial-gradient(3.6rem 3.6rem at 35% 30%, oklch(0.79 0.13 128 / 0.22), transparent 70%);
+		background-repeat: repeat;
+		background-size: 26rem 30rem;
+		/* seed lever: rise animates y only, so x is free */
+		background-position-x: var(--ff-fly-x-1, 0);
+		mask-image: linear-gradient(to top, transparent 4%, black 20%, black 82%, transparent 96%);
+		animation:
+			ff-rise-1 37s linear infinite,
+			ff-twinkle-1 5s ease-in-out infinite alternate;
+		animation-delay: var(--ff-fly-phase-1, 0s), var(--ff-fly-twinkle-1, 0s);
+	}
+
+	/* near fireflies — fewer per tile, larger and brighter, the closer depth */
+	.theme-helper-2::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(2.2px 2.2px at 24% 78%, oklch(0.95 0.18 122 / 1), transparent),
+			radial-gradient(7rem 7rem at 24% 78%, oklch(0.85 0.16 120 / 0.32), transparent 70%),
+			radial-gradient(2px 2px at 66% 42%, oklch(0.95 0.17 126 / 0.97), transparent),
+			radial-gradient(6rem 6rem at 66% 42%, oklch(0.83 0.15 124 / 0.28), transparent 70%),
+			radial-gradient(1.8px 1.8px at 88% 66%, oklch(0.94 0.17 120 / 0.96), transparent),
+			radial-gradient(5.4rem 5.4rem at 88% 66%, oklch(0.82 0.14 118 / 0.26), transparent 70%);
+		background-repeat: repeat;
+		background-size: 20rem 24rem;
+		/* seed lever: rise animates y only, so x is free */
+		background-position-x: var(--ff-fly-x-2, 0);
+		mask-image: linear-gradient(to top, transparent 4%, black 22%, black 80%, transparent 96%);
+		animation:
+			ff-rise-2 26s linear infinite,
+			ff-twinkle-2 3.6s ease-in-out infinite alternate;
+		animation-delay: var(--ff-fly-phase-2, 0s), var(--ff-fly-twinkle-2, 0s);
+	}
+}
+
+@keyframes ff-sky-breathe {
+	from {
+		opacity: 0.6;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes ff-mist {
+	to {
+		background-position-x: -64rem;
+	}
+}
+
+/* y-only so the seeded x offset survives (the shorthand would reset it) */
+@keyframes ff-rise-1 {
+	to {
+		background-position-y: -30rem;
+	}
+}
+
+@keyframes ff-rise-2 {
+	to {
+		background-position-y: -24rem;
+	}
+}
+
+@keyframes ff-twinkle-1 {
+	from {
+		opacity: 0.45;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes ff-twinkle-2 {
+	from {
+		opacity: 0.55;
+	}
+	to {
+		opacity: 1;
+	}
+}
