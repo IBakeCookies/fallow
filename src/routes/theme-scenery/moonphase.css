@@ -3,6 +3,8 @@
    0 = new, ±2 = full — set from the clock in utils/scenery-time.ts). Changes
    night to night; nothing animates. */
 .moonphase .theme-scenery {
+	--moon-size: 7rem;
+
 	display: block;
 
 	/* static star field */
@@ -27,8 +29,8 @@
 		left: 50%;
 		transform: translateX(-50%);
 		top: 1.5rem;
-		width: 6.8rem;
-		height: 6.8rem;
+		width: var(--moon-size);
+		height: var(--moon-size);
 		border-radius: 50%;
 		overflow: hidden;
 		background:
@@ -51,6 +53,6 @@
 		inset: -6%;
 		border-radius: 50%;
 		background: oklch(0.14 0.03 265);
-		translate: calc(var(--moon-shadow, -2) * 3.4rem) 0;
+		translate: calc(var(--moon-shadow, -2) * var(--moon-size) / 2) 0;
 	}
 }
