@@ -19,6 +19,7 @@ export type ThemeName =
 	| 'abyss'
 	| 'parchment'
 	| 'noir'
+	| 'ink'
 	| 'ember'
 	| 'glacier'
 	| 'zenith'
@@ -26,16 +27,13 @@ export type ThemeName =
 	| 'eclipse'
 	| 'cathedral'
 	| 'orbit'
-	| 'tempest'
 	| 'lantern-drift'
-	| 'nacre'
 	| 'pinwheel'
 	| 'canopy'
 	| 'meridian'
 	| 'dunes'
 	| 'synthwave'
-	| 'firefly'
-	| 'milkyway';
+	| 'firefly';
 
 interface ThemeItem {
 	name: ThemeName;
@@ -126,6 +124,11 @@ export const themes: ThemeItem[] = [
 		css: ['noir', 'dark']
 	},
 	{
+		name: 'ink',
+		label: 'Ink',
+		css: ['ink']
+	},
+	{
 		name: 'ember',
 		label: 'Ember',
 		css: ['ember', 'dark']
@@ -161,19 +164,9 @@ export const themes: ThemeItem[] = [
 		css: ['orbit', 'dark']
 	},
 	{
-		name: 'tempest',
-		label: 'Tempest',
-		css: ['tempest', 'dark']
-	},
-	{
 		name: 'lantern-drift',
 		label: 'Lantern Drift',
 		css: ['lantern-drift', 'dark']
-	},
-	{
-		name: 'nacre',
-		label: 'Nacre',
-		css: ['nacre', 'dark']
 	},
 	{
 		name: 'pinwheel',
@@ -204,11 +197,6 @@ export const themes: ThemeItem[] = [
 		name: 'firefly',
 		label: 'Fireflies',
 		css: ['firefly', 'dark']
-	},
-	{
-		name: 'milkyway',
-		label: 'Milky Way',
-		css: ['milkyway', 'dark']
 	}
 ] as const;
 

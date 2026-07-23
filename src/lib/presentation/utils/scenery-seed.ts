@@ -6,7 +6,7 @@
 
    Rules (see theme-scenery/*.css comments):
    - offset background-position only on axes no keyframe animates
-   - seamless one-tile drifts (zenith clouds, orbit-glide, tempest-scud) are
+   - seamless one-tile drifts (zenith clouds, orbit-glide) are
      phased via animation-delay, never position-offset (breaks the wrap)
    - CSS vars can only move/retime existing gradients, never add stops */
 
@@ -291,14 +291,6 @@ export function sceneryStyle(seed: number): string {
 		'--zenith-phase-1': sec(-150, 0),
 		'--zenith-phase-2': sec(-240, 0),
 
-		/* tempest: rain falls on y, x is free (tiles 13rem / 17rem wide);
-		   scud is a seamless loop, lightning cells re-phase independently */
-		'--tempest-x-1': rem(0, 13),
-		'--tempest-x-2': rem(0, 17),
-		'--tempest-scud-phase': sec(-45, 0),
-		'--tempest-flash-1': sec(-13, 0),
-		'--tempest-flash-2': sec(-21, 0),
-
 		/* orbit: star fields are static (both axes free, tiles 34×27rem and
 		   28×22rem); glide/satellite are loops — phase only */
 		'--orbit-stars-1': tile(34, 27),
@@ -324,15 +316,6 @@ export function sceneryStyle(seed: number): string {
 		'--ld-fly-phase': sec(-29, 0),
 		'--ld-twinkle-phase': sec(-4.5, 0),
 		'--ld-hero-phase': sec(-53, 0),
-
-		/* nacre: pearl dust is static (both axes free, 26×26rem tile);
-		   sheets/bloom/veins only re-phase — their geometry is tuned art */
-		'--nacre-dust': tile(26, 26),
-		'--nacre-drift-1': sec(-34, 0),
-		'--nacre-drift-2': sec(-46, 0),
-		'--nacre-bloom-phase': sec(-18, 0),
-		'--nacre-shimmer-phase': sec(-6.5, 0),
-		'--nacre-vein-phase': sec(-12, 0),
 
 		/* pinwheel: star tiles offset freely (30×24rem, 24×27rem); the wheel's
 		   220s rotation re-phases so each user meets the galaxy mid-turn */
@@ -445,27 +428,7 @@ export function sceneryStyle(seed: number): string {
 		/* dunes bird — added after firefly, so it lives here at the end of
 		   stream 2 (append-only), not with the other --dunes-* vars above.
 		   The glide is a fixed left-to-right sweep; only its phase varies */
-		'--dunes-bird-phase': sec2(-75, 0),
-
-		/* milkyway: all three star tiles are static (no keyframe touches
-		   position — both axes free; band 32×26rem, twinkle subsets 26×21rem
-		   and 22×18rem, wide sky 42×32rem); every glow loop only re-phases;
-		   meteors and the satellite re-phase so each user meets a different
-		   sky mid-pass */
-		'--mw-stars-band': tile2(32, 26),
-		'--mw-twinkle-1-pos': tile2(26, 21),
-		'--mw-twinkle-1': sec2(-7, 0),
-		'--mw-twinkle-2-pos': tile2(22, 18),
-		'--mw-twinkle-2': sec2(-10.5, 0),
-		'--mw-stars-sky': tile2(42, 32),
-		'--mw-hero-phase': sec2(-11, 0),
-		'--mw-sat-phase': sec2(-260, 0),
-		'--mw-nebula-phase': sec2(-15, 0),
-		'--mw-core-phase': sec2(-19, 0),
-		'--mw-airglow-phase': sec2(-23, 0),
-		'--mw-zodiacal-phase': sec2(-27, 0),
-		'--mw-meteor-1': sec2(-21, 0),
-		'--mw-meteor-2': sec2(-34, 0)
+		'--dunes-bird-phase': sec2(-75, 0)
 	};
 
 	return Object.entries({ ...vars, ...vars2 })

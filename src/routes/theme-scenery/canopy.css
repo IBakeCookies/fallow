@@ -10,12 +10,12 @@
 		position: absolute;
 		inset: 0;
 		background-image:
-			radial-gradient(ellipse 40% 30% at 15% 20%, oklch(0.35 0.06 145 / 0.1), transparent 70%),
-			radial-gradient(ellipse 35% 25% at 55% 10%, oklch(0.35 0.06 145 / 0.08), transparent 70%),
-			radial-gradient(ellipse 45% 32% at 80% 35%, oklch(0.35 0.06 145 / 0.12), transparent 70%),
-			radial-gradient(ellipse 38% 28% at 25% 65%, oklch(0.35 0.06 145 / 0.07), transparent 70%),
+			radial-gradient(ellipse 40% 30% at 29% 22%, oklch(0.35 0.06 145 / 0.1), transparent 70%),
+			radial-gradient(ellipse 35% 25% at 55% 18%, oklch(0.35 0.06 145 / 0.08), transparent 70%),
+			radial-gradient(ellipse 45% 32% at 68% 35%, oklch(0.35 0.06 145 / 0.12), transparent 70%),
+			radial-gradient(ellipse 38% 28% at 27% 65%, oklch(0.35 0.06 145 / 0.07), transparent 70%),
 			radial-gradient(ellipse 42% 30% at 70% 78%, oklch(0.35 0.06 145 / 0.1), transparent 70%),
-			radial-gradient(ellipse 32% 24% at 10% 90%, oklch(0.35 0.06 145 / 0.06), transparent 70%);
+			radial-gradient(ellipse 32% 24% at 24% 82%, oklch(0.35 0.06 145 / 0.06), transparent 70%);
 		background-size: 34rem 28rem;
 		/* seed lever: static leaf tile, only opacity animates — both axes free */
 		background-position: var(--canopy-dapple, 0 0);

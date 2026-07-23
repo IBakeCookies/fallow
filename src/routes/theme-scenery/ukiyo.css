@@ -7,15 +7,20 @@
 .ukiyo .theme-scenery {
 	display: block;
 
-	/* the vermilion sun, breathing behind a soft halo (echoes the sun baked
-	   into the .ukiyo --background-image, same corner) */
+	/* the vermilion sun, breathing behind a soft halo — sits up-left of the
+	   big sun baked into the .ukiyo --background-image (at 74% 9%); the rem
+	   offset keeps the gap constant across viewport widths */
 	.theme-helper-1 {
 		position: absolute;
-		inset: 0;
+		/* 12rem top bleed: the seeded position shift (up to 3rem down) would
+		   otherwise expose the layer's unpainted top edge as a horizontal seam
+		   through the halo — so the halo (12rem) must fit inside the bleed.
+		   Gradient y = 5.5rem viewport + 12rem bleed. */
+		inset: -12rem 0 0 0;
 		background-image:
-			radial-gradient(circle at 74% 13.5rem, oklch(0.68 0.15 35 / 0.32) 0 5.5rem, transparent 12rem),
+			radial-gradient(circle at calc(74% - 11rem) 17.5rem, oklch(0.68 0.15 35 / 0.32) 0 5.5rem, transparent 12rem),
 			radial-gradient(
-				circle at 74% 13.5rem,
+				circle at calc(74% - 11rem) 17.5rem,
 				oklch(0.63 0.17 35 / 0.4) 0 3.2rem,
 				transparent calc(3.2rem + 1px)
 			);
@@ -34,10 +39,15 @@
 	.theme-helper-2 {
 		position: absolute;
 		inset: 0;
+		/* the 15% and 85% ellipses spill past the tile edges, so each carries a
+		   wrap copy shifted ±100% — otherwise the repeat clips them into hard
+		   vertical seams at every 56rem tile boundary */
 		background-image:
 			radial-gradient(ellipse 55% 16% at 15% 102%, oklch(0.36 0.08 255 / 0.4), transparent 70%),
+			radial-gradient(ellipse 55% 16% at 115% 102%, oklch(0.36 0.08 255 / 0.4), transparent 70%),
 			radial-gradient(ellipse 50% 14% at 50% 106%, oklch(0.46 0.09 250 / 0.32), transparent 70%),
-			radial-gradient(ellipse 58% 18% at 85% 100%, oklch(0.36 0.08 255 / 0.38), transparent 70%);
+			radial-gradient(ellipse 58% 18% at 85% 100%, oklch(0.36 0.08 255 / 0.38), transparent 70%),
+			radial-gradient(ellipse 58% 18% at -15% 100%, oklch(0.36 0.08 255 / 0.38), transparent 70%);
 		background-repeat: repeat-x;
 		background-size: 56rem 100%;
 		/* seed lever: seamless one-tile drift — phase only */

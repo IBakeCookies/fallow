@@ -88,7 +88,7 @@
 			transparent 75%
 		);
 		animation: cp-flicker 19s linear infinite;
-		/* seed lever: dormant-cell phase, mirrors tempest's flash re-phasing */
+		/* seed lever: dormant-cell phase re-phasing */
 		animation-delay: var(--cp-flicker-phase, 0s);
 	}
 

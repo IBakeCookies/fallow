@@ -74,7 +74,7 @@
 							<Palette class="h-4 w-4 shrink-0" />
 							<span class="hidden sm:inline">{themeStore.label}</span>
 						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="end" class="w-max min-w-40 max-h-[min(80vh,40rem)] overflow-y-auto">
+						<DropdownMenu.Content align="end" class="nice-scrollbar w-max min-w-40 max-h-[min(80vh,40rem)] overflow-y-auto">
 							<DropdownMenu.RadioGroup
 								value={themeStore.theme}
 								onValueChange={(v) => themeStore.switchTheme(v as ThemeName)}

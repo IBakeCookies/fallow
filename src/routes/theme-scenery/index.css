@@ -12,9 +12,7 @@
 @import './nadir.css';
 @import './eclipse.css';
 @import './orbit.css';
-@import './tempest.css';
 @import './lantern-drift.css';
-@import './nacre.css';
 @import './pinwheel.css';
 @import './canopy.css';
 @import './meridian.css';
@@ -24,7 +22,6 @@
 @import './dunes.css';
 @import './synthwave.css';
 @import './firefly.css';
-@import './milkyway.css';
 
 .theme-scenery {
 	display: none;

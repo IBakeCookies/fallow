@@ -31,17 +31,14 @@
 @custom-variant eclipse (&:is(.eclipse *));
 @custom-variant cathedral (&:is(.cathedral *));
 @custom-variant orbit (&:is(.orbit *));
-@custom-variant tempest (&:is(.tempest *));
 @custom-variant fallow (&:is(.fallow *));
 @custom-variant lantern-drift (&:is(.lantern-drift *));
-@custom-variant nacre (&:is(.nacre *));
 @custom-variant pinwheel (&:is(.pinwheel *));
 @custom-variant canopy (&:is(.canopy *));
 @custom-variant meridian (&:is(.meridian *));
 @custom-variant dunes (&:is(.dunes *));
 @custom-variant synthwave (&:is(.synthwave *));
 @custom-variant firefly (&:is(.firefly *));
-@custom-variant milkyway (&:is(.milkyway *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes. */
@@ -292,6 +289,35 @@
 	input[type='number'] {
 		-moz-appearance: textfield;
 		appearance: textfield;
+	}
+
+	/* Slim, theme-aware scrollbar for scrollable menus/panels (e.g. the theme
+	   dropdown). Thumb uses the semantic line color and only appears on hover. */
+	.nice-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+	}
+	.nice-scrollbar:hover {
+		scrollbar-color: var(--color-line-strong) transparent;
+	}
+	.nice-scrollbar::-webkit-scrollbar {
+		width: 0.5rem;
+		height: 0.5rem;
+	}
+	.nice-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	.nice-scrollbar::-webkit-scrollbar-thumb {
+		border: 2px solid transparent;
+		background-clip: padding-box;
+		border-radius: 9999px;
+		background-color: transparent;
+	}
+	.nice-scrollbar:hover::-webkit-scrollbar-thumb {
+		background-color: var(--color-line-strong);
+	}
+	.nice-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: var(--color-ty-secondary, var(--color-line-strong));
 	}
 }
 
@@ -610,13 +636,15 @@
 			oklch(0.63 0.17 35 / 0.55) 0 4.5rem,
 			transparent calc(4.5rem + 1px)
 		),
+		radial-gradient(ellipse 80% 45% at 74% 0%, oklch(0.78 0.09 45 / 0.18), transparent 70%),
+		radial-gradient(ellipse 70% 40% at 12% 35%, oklch(0.8 0.11 355 / 0.1), transparent 70%),
 		radial-gradient(ellipse 90% 40% at 18% 112%, oklch(0.36 0.08 255 / 0.45), transparent 65%),
 		radial-gradient(ellipse 70% 32% at 78% 106%, oklch(0.46 0.09 250 / 0.3), transparent 65%),
-		linear-gradient(oklch(0.95 0.015 85), oklch(0.92 0.02 80));
+		linear-gradient(oklch(0.95 0.02 72), oklch(0.92 0.026 58));
 
 	--radius: 0.375rem;
 
-	--surface-page: oklch(0.94 0.018 85);
+	--surface-page: oklch(0.94 0.02 72);
 	--surface-card: oklch(0.98 0.012 90 / 0.6);
 	--surface-inset: oklch(0.35 0.06 255 / 0.07);
 	--color-ty-primary: oklch(0.28 0.045 255);
@@ -737,6 +765,31 @@
 	--color-mixed: oklch(0.75 0.04 320);
 }
 
+.ink {
+	/* ruled notebook: blue-black ink on cream paper, one red-pen accent.
+	   Faint horizontal rule lines every 1.75rem, no scenery layer. */
+	--background-image:
+		repeating-linear-gradient(oklch(0.55 0.07 255 / 0.13) 0 1px, transparent 1px 1.75rem),
+		linear-gradient(oklch(0.96 0.02 90), oklch(0.935 0.025 88));
+
+	--radius: 0.125rem;
+
+	--surface-page: oklch(0.95 0.02 89);
+	--surface-card: oklch(0.99 0.008 90 / 0.72);
+	--surface-inset: oklch(0.3 0.03 260 / 0.06);
+	--color-ty-primary: oklch(0.27 0.035 264);
+
+	--input: oklch(1 0.004 90 / 0.7);
+	--border: oklch(0.3 0.035 264 / 0.22);
+
+	/* red pen — the one chrome accent; state + domain colors stay inherited
+	   so overdue/done and the energy domains keep their meaning */
+	--primary: oklch(0.53 0.2 25);
+	--primary-foreground: oklch(0.97 0.01 90);
+	--color-brand: oklch(0.53 0.19 25);
+	--color-brand-strong: oklch(0.46 0.19 25);
+}
+
 .ember {
 	/* blacksmith's forge at night: molten glow rising through charcoal */
 	--background-image:
@@ -794,280 +847,6 @@
 	--color-mixed: oklch(0.55 0.12 290);
 }
 
-.zenith {
-	/* the namesake: high noon — the sun cresting the top of a cloudless sky,
-	   azure deepest at the zenith, paling toward the horizon */
-	--background-image:
-		radial-gradient(circle at 50% -10rem, oklch(1 0 0 / 0.95) 0 7rem, transparent 18rem),
-		radial-gradient(ellipse 55% 32% at 50% -6%, oklch(0.95 0.11 90 / 0.55), transparent 70%),
-		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.97 0.02 220 / 0.75), transparent 70%),
-		linear-gradient(oklch(0.72 0.12 245), oklch(0.88 0.05 230));
-
-	--radius: 0.875rem;
-
-	--surface-page: oklch(0.8 0.08 240);
-	/* cloud-white */
-	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.3 0.08 250 / 0.08);
-	--color-ty-primary: oklch(0.24 0.05 250);
-
-	--input: oklch(1 0 0 / 0.65);
-	--border: oklch(0.3 0.08 250 / 0.22);
-
-	/* the sun itself */
-	--primary: oklch(0.78 0.14 80);
-	--primary-foreground: oklch(0.28 0.07 65);
-	--ring: oklch(0.78 0.14 80 / 0.55);
-
-	--color-brand: oklch(0.45 0.11 245);
-	--color-brand-strong: oklch(0.38 0.11 248);
-	--color-flow: oklch(0.62 0.14 70);
-	--color-mind: oklch(0.48 0.11 255);
-	--color-mind-strong: oklch(0.41 0.11 255);
-	--color-mixed: oklch(0.52 0.13 300);
-}
-
-.nadir {
-	/* zenith's opposite: midnight — the sun at its lowest, a full moon overhead,
-	   the sky deepest straight up and paling toward the horizon */
-	--background-image:
-		radial-gradient(circle at 50% -10rem, oklch(0.98 0.005 220 / 0.9) 0 6.5rem, transparent 17rem),
-		radial-gradient(ellipse 55% 32% at 50% -6%, oklch(0.75 0.04 230 / 0.35), transparent 70%),
-		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.38 0.06 260 / 0.55), transparent 70%),
-		linear-gradient(oklch(0.13 0.03 265), oklch(0.22 0.045 260));
-
-	--radius: 0.875rem;
-
-	--surface-page: oklch(0.16 0.03 262);
-	/* moonlit glass */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.25);
-	--color-ty-primary: oklch(0.96 0.01 230);
-
-	--input: oklch(1 0 0 / 0.1);
-	--border: oklch(0.85 0.04 230 / 0.22);
-
-	/* the moon itself */
-	--primary: oklch(0.88 0.04 230);
-	--primary-foreground: oklch(0.2 0.04 260);
-	--ring: oklch(0.88 0.04 230 / 0.5);
-
-	--color-brand: oklch(0.82 0.06 235);
-	--color-brand-strong: oklch(0.9 0.05 235);
-	/* starlight gold */
-	--color-flow: oklch(0.85 0.09 85);
-	--color-mind: oklch(0.78 0.09 250);
-	--color-mind-strong: oklch(0.86 0.08 250);
-	--color-mixed: oklch(0.75 0.1 300);
-}
-
-.eclipse {
-	/* totality — where zenith meets nadir: the black moon crowned by a blazing
-	   corona, and the 360° sunset that rings the horizon only during an eclipse */
-	--background-image:
-		radial-gradient(
-			circle at 50% -3rem,
-			oklch(0.08 0.015 285) 0 6.55rem,
-			oklch(0.99 0.04 90) 6.85rem 7.1rem,
-			oklch(0.92 0.08 85 / 0.55) 7.5rem,
-			oklch(0.85 0.06 70 / 0.18) 10rem,
-			transparent 17rem
-		),
-		radial-gradient(ellipse 60% 34% at 50% -6%, oklch(0.85 0.05 80 / 0.22), transparent 70%),
-		radial-gradient(ellipse 34% 22% at 30% 4%, oklch(0.6 0.16 330 / 0.14), transparent 60%),
-		radial-gradient(ellipse 120% 30% at 50% 108%, oklch(0.68 0.13 45 / 0.35), transparent 70%),
-		radial-gradient(ellipse 70% 24% at 8% 102%, oklch(0.6 0.14 330 / 0.22), transparent 65%),
-		radial-gradient(ellipse 70% 24% at 92% 102%, oklch(0.6 0.14 330 / 0.22), transparent 65%),
-		linear-gradient(oklch(0.1 0.022 285), oklch(0.16 0.035 300));
-
-	--radius: 0.875rem;
-
-	--surface-page: oklch(0.12 0.025 290);
-	/* shadow-side glass, warmed a breath by corona light */
-	--surface-card: oklch(0.98 0.02 85 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.97 0.008 85);
-
-	--input: oklch(1 0 0 / 0.09);
-	--border: oklch(0.9 0.05 85 / 0.2);
-
-	/* the corona itself */
-	--primary: oklch(0.92 0.08 88);
-	--primary-foreground: oklch(0.18 0.03 290);
-	--ring: oklch(0.92 0.08 88 / 0.5);
-
-	--color-brand: oklch(0.88 0.08 85);
-	--color-brand-strong: oklch(0.94 0.06 88);
-	/* corona gold */
-	--color-flow: oklch(0.87 0.11 85);
-	/* chromosphere magenta */
-	--color-mixed: oklch(0.74 0.14 330);
-	/* Baily's-beads pale blue */
-	--color-mind: oklch(0.8 0.08 260);
-	--color-mind-strong: oklch(0.87 0.07 260);
-	/* shadow-band jade */
-	--color-body: oklch(0.8 0.11 165);
-}
-
-.cathedral {
-	/* gothic nave at vespers: a stained-glass rose window burning above the door.
-	   The window itself is theme scenery (SVG tracery + god rays + jewel light
-	   pooling on the floor) — see theme-scenery/cathedral.css. */
-	--background-image:
-		/* candle glow rising from the nave floor */
-		radial-gradient(ellipse 90% 35% at 50% 112%, oklch(0.7 0.12 65 / 0.22), transparent 70%),
-		/* halo blooming over the stone around the window */
-		radial-gradient(ellipse 55% 30% at 50% 2%, oklch(0.85 0.09 85 / 0.16), transparent 70%),
-		linear-gradient(oklch(0.16 0.016 300), oklch(0.12 0.012 290));
-
-	--radius: 0.75rem;
-
-	--surface-page: oklch(0.14 0.014 300);
-	/* candlelit stone glass */
-	--surface-card: oklch(0.96 0.03 85 / 0.05);
-	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.96 0.012 85);
-
-	--input: oklch(1 0 0 / 0.09);
-	--border: oklch(0.85 0.07 85 / 0.22);
-
-	/* candle gold */
-	--primary: oklch(0.8 0.12 80);
-	--primary-foreground: oklch(0.22 0.04 75);
-	--ring: oklch(0.8 0.12 80 / 0.5);
-
-	--color-brand: oklch(0.84 0.1 82);
-	--color-brand-strong: oklch(0.9 0.08 85);
-	/* the window's jewels */
-	--color-danger: oklch(0.68 0.19 20);
-	--color-danger-strong: oklch(0.76 0.16 20);
-	--color-flow: oklch(0.82 0.13 80);
-	--color-mind: oklch(0.72 0.12 265);
-	--color-mind-strong: oklch(0.8 0.1 265);
-	--color-body: oklch(0.78 0.13 160);
-	--color-mixed: oklch(0.74 0.14 310);
-}
-
-.orbit {
-	/* the overview effect — dawn breaking over the limb of the Earth from low
-	   orbit. The planet is the bottom quarter of the viewport: night side dark,
-	   a thin electric-blue atmosphere ring, first sunlight blooming on the limb.
-	   City lights, clouds, stars and aurora are theme scenery — see
-	   theme-scenery/orbit.css. */
-	--background-image:
-		/* haze in front of the limb where the rising light scatters forward —
-		   the only sunrise layer painted over the planet, and it's faint */
-		radial-gradient(
-			ellipse 16vh 5vh at 58% 77.5vh,
-			oklch(0.95 0.09 75 / 0.2),
-			transparent 70%
-		),
-		/* the planet and its atmosphere ring. The night side is opaque, so it
-		   genuinely occludes the sun layers below; the ring's outer stops are
-		   semi-transparent, so the hidden sun shines through them. */
-		radial-gradient(
-			circle at 50% 178vh,
-			oklch(0.1 0.02 255) 0 99vh,
-			oklch(0.3 0.06 245) 100.2vh,
-			oklch(0.78 0.1 230 / 0.9) 100.9vh,
-			oklch(0.6 0.12 225 / 0.35) 102.5vh,
-			oklch(0.5 0.1 220 / 0.12) 105vh,
-			transparent 109vh
-		),
-		/* the sun itself, BEHIND the planet — center a couple vh below the
-		   limb (edge ≈78–80vh at x=58% on any aspect ratio), so the disc is
-		   swallowed and only its corona crests the edge through the ring */
-		radial-gradient(
-			circle at 58% 81.5vh,
-			oklch(1 0.02 95) 0 2.5vh,
-			oklch(0.97 0.08 85 / 0.95) 5vh,
-			oklch(0.92 0.13 70 / 0.45) 10vh,
-			oklch(0.87 0.13 65 / 0.12) 17vh,
-			transparent 24vh
-		),
-		/* a single soft sun pillar rising from behind the arc */
-		radial-gradient(
-			ellipse 5vh 15vh at 58% 69vh,
-			oklch(0.96 0.08 82 / 0.1),
-			transparent 70%
-		),
-		/* deep space, faintly violet toward the horizon */
-		linear-gradient(oklch(0.07 0.012 275), oklch(0.11 0.03 265));
-
-	--radius: 0.875rem;
-
-	--surface-page: oklch(0.13 0.02 265);
-	/* station-window glass */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.28);
-	--color-ty-primary: oklch(0.96 0.008 230);
-
-	--input: oklch(1 0 0 / 0.09);
-	--border: oklch(0.85 0.05 230 / 0.22);
-
-	/* first light over the limb */
-	--primary: oklch(0.87 0.1 80);
-	--primary-foreground: oklch(0.2 0.03 270);
-	--ring: oklch(0.87 0.1 80 / 0.5);
-
-	--color-brand: oklch(0.82 0.09 225);
-	--color-brand-strong: oklch(0.9 0.07 225);
-	/* sunrise gold */
-	--color-flow: oklch(0.85 0.12 80);
-	/* limb blue */
-	--color-mind: oklch(0.78 0.1 235);
-	--color-mind-strong: oklch(0.86 0.08 235);
-	/* aurora green */
-	--color-body: oklch(0.78 0.14 155);
-	/* airglow violet */
-	--color-mixed: oklch(0.72 0.12 310);
-}
-
-.tempest {
-	/* a supercell at dusk: towering cloud masses overhead, that eerie storm-green
-	   light on the horizon, and the air holding its breath between strikes.
-	   Rain, racing scud and the lightning itself are theme scenery — see
-	   theme-scenery/tempest.css. */
-	--background-image:
-		/* storm-green light where the rain meets the horizon */
-		radial-gradient(ellipse 90% 32% at 50% 105%, oklch(0.52 0.08 165 / 0.32), transparent 70%),
-		/* pale break in the overcast between the towers */
-		radial-gradient(ellipse 24% 16% at 52% -3%, oklch(0.42 0.03 245 / 0.5), transparent 70%),
-		/* towering cumulonimbus */
-		radial-gradient(ellipse 55% 35% at 18% -8%, oklch(0.08 0.015 265 / 0.85), transparent 70%),
-		radial-gradient(ellipse 60% 40% at 78% -12%, oklch(0.09 0.02 255 / 0.8), transparent 70%),
-		radial-gradient(ellipse 40% 25% at 45% 6%, oklch(0.12 0.02 260 / 0.65), transparent 65%),
-		linear-gradient(oklch(0.18 0.025 265), oklch(0.23 0.035 220));
-
-	--radius: 0.875rem;
-
-	--surface-page: oklch(0.15 0.02 255);
-	/* rain-streaked glass */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.28);
-	--color-ty-primary: oklch(0.96 0.005 240);
-
-	--input: oklch(1 0 0 / 0.09);
-	--border: oklch(0.85 0.04 250 / 0.22);
-
-	/* charged air */
-	--primary: oklch(0.85 0.08 290);
-	--primary-foreground: oklch(0.2 0.03 265);
-	--ring: oklch(0.85 0.08 290 / 0.5);
-
-	--color-brand: oklch(0.78 0.06 240);
-	--color-brand-strong: oklch(0.86 0.05 240);
-	/* lantern amber through the rain */
-	--color-flow: oklch(0.8 0.11 75);
-	/* electric blue */
-	--color-mind: oklch(0.78 0.1 250);
-	--color-mind-strong: oklch(0.86 0.08 250);
-	/* storm-light green */
-	--color-body: oklch(0.75 0.12 165);
-	/* lightning violet */
-	--color-mixed: oklch(0.76 0.11 300);
-}
-
 .fallow {
 	/* the namesake: a field at rest — straw-gold stubble, quiet green regrowth,
 	   a wide pale sky. Rest is not idleness; it is how the ground yields again. */
@@ -1121,14 +900,14 @@
 		radial-gradient(ellipse 66% 44% at 16% 6%, oklch(0.24 0.05 262 / 0.38), transparent 70%),
 		/* deep moonless sky above, black river below — split hard at the horizon */
 		linear-gradient(
-			to bottom,
-			oklch(0.15 0.034 258) 0%,
-			oklch(0.17 0.032 252) 34%,
-			oklch(0.185 0.03 246) 41%,
-			oklch(0.1 0.03 236) 43%,
-			oklch(0.075 0.025 228) 74%,
-			oklch(0.055 0.02 222) 100%
-		);
+				to bottom,
+				oklch(0.15 0.034 258) 0%,
+				oklch(0.17 0.032 252) 34%,
+				oklch(0.185 0.03 246) 41%,
+				oklch(0.1 0.03 236) 43%,
+				oklch(0.075 0.025 228) 74%,
+				oklch(0.055 0.02 222) 100%
+			);
 
 	--radius: 1rem;
 	--blur: 2rem;
@@ -1169,69 +948,6 @@
 	--color-success-strong: oklch(0.87 0.1 150);
 	--color-info: oklch(0.78 0.1 236);
 	--color-info-strong: oklch(0.86 0.075 238);
-}
-.nacre {
-	/* the inside of a shell: dark ceramic glaze pooled with mother-of-pearl —
-	   an oil-on-water conic sheen up top, four nacre pools in the corners,
-	   a deep glaze bloom in the middle, over cool near-black porcelain */
-	--background-image:
-		conic-gradient(
-			from 210deg at 34% 24%,
-			oklch(0.74 0.123 195 / 0.13),
-			oklch(0.74 0.14 240 / 0.1),
-			oklch(0.72 0.14 300 / 0.13),
-			oklch(0.74 0.14 350 / 0.1),
-			oklch(0.8 0.12 90 / 0.11),
-			oklch(0.78 0.13 155 / 0.11),
-			oklch(0.74 0.123 195 / 0.13)
-		),
-		radial-gradient(ellipse 60% 45% at 10% 6%, oklch(0.78 0.13 195 / 0.18), transparent 60%),
-		radial-gradient(ellipse 55% 45% at 90% 12%, oklch(0.74 0.13 300 / 0.16), transparent 62%),
-		radial-gradient(ellipse 72% 50% at 82% 98%, oklch(0.78 0.13 350 / 0.14), transparent 60%),
-		radial-gradient(ellipse 66% 46% at 16% 94%, oklch(0.8 0.12 155 / 0.14), transparent 62%),
-		radial-gradient(ellipse 120% 92% at 50% 42%, oklch(0.2 0.03 250), transparent 82%),
-		linear-gradient(158deg, oklch(0.15 0.025 262), oklch(0.12 0.02 288));
-
-	--radius: 1rem;
-
-	--surface-page: oklch(0.16 0.022 268);
-	/* pearl-glass: a breath of cool tint so the sheen glows through */
-	--surface-card: oklch(0.98 0.015 205 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.28);
-	--color-ty-primary: oklch(0.96 0.01 220);
-
-	--input: oklch(1 0 0 / 0.08);
-	--border: oklch(0.85 0.08 220 / 0.22);
-
-	/* the peacock heart of the shell */
-	--primary: oklch(0.82 0.13 195);
-	--primary-foreground: oklch(0.16 0.03 250);
-	--ring: oklch(0.82 0.13 195 / 0.5);
-
-	/* accents fanned across the nacre spectrum for cohesion */
-	--color-brand: oklch(0.82 0.12 195);
-	--color-brand-strong: oklch(0.88 0.11 195);
-	/* green-gold luster */
-	--color-flow: oklch(0.85 0.13 155);
-	/* violet fire */
-	--color-mind: oklch(0.78 0.13 300);
-	--color-mind-strong: oklch(0.84 0.09 300);
-	/* rose sheen */
-	--color-body: oklch(0.8 0.13 350);
-	/* kintsugi gold */
-	--color-mixed: oklch(0.85 0.11 90);
-	--color-danger: oklch(0.65 0.2 25);
-	--color-danger-strong: oklch(0.72 0.171 25);
-	--color-warning: oklch(0.82 0.13 80);
-	--color-warning-strong: oklch(0.87 0.12 82);
-	--color-success: oklch(0.8 0.13 160);
-	--color-success-strong: oklch(0.85 0.12 160);
-	--color-info: oklch(0.8 0.12 230);
-	--color-info-strong: oklch(0.85 0.089 230);
-
-	--blur: 14px;
-	/* pearl luster: an inner top highlight over a deep set shadow */
-	--card-shadow: inset 0 1px 0 oklch(1 0 0 / 0.07), 0 10px 34px oklch(0 0 0 / 0.38);
 }
 .pinwheel {
 	/* a face-on spiral galaxy: hot core, three nebula-arm blooms, deep-space halo */
@@ -1278,6 +994,7 @@
 	/* H-alpha rose */
 	--color-mixed: oklch(0.72 0.16 345);
 }
+
 .canopy {
 	/* under a sunlit forest canopy: warm gold sunlight breaking through the
 	   leaves from above, a soft green ambience, deepening to moss at the
@@ -1448,11 +1165,11 @@
 		radial-gradient(ellipse 60% 40% at 50% 100%, oklch(0.3 0.05 150 / 0.14), transparent 70%),
 		/* dusk sky sinking into near-black meadow-green at the ground */
 		linear-gradient(
-			to bottom,
-			oklch(0.14 0.03 250) 0%,
-			oklch(0.1 0.035 220) 45%,
-			oklch(0.06 0.03 160) 100%
-		);
+				to bottom,
+				oklch(0.14 0.03 250) 0%,
+				oklch(0.1 0.035 220) 45%,
+				oklch(0.06 0.03 160) 100%
+			);
 
 	--radius: 1rem;
 
@@ -1484,69 +1201,224 @@
 	/* wildflower violet — the rare bloom color in the dark grass */
 	--color-mixed: oklch(0.72 0.14 310);
 }
-.milkyway {
-	/* a moonless night at a true dark-sky site: the galactic band climbing
-	   from its core bulge low in the lower-left to the upper-right corner,
-	   over a black conifer ridge. Only the broad light lives here — the sky
-	   holds its shape even with scenery paused. Star fields, dust rifts,
-	   nebulae, meteors and the satellite are theme scenery — see
-	   theme-scenery/milkyway.css (band geometry must stay in sync). */
+
+.zenith {
+	/* the namesake: high noon — the sun cresting the top of a cloudless sky,
+	   azure deepest at the zenith, paling toward the horizon */
 	--background-image:
-		/* the ridge, occluding everything rising behind it */
-		radial-gradient(ellipse 70% 0vh at 22% 102%, oklch(0.05 0.012 150) 0 62%, transparent 100%),
-		radial-gradient(ellipse 80% 10vh at 74% 103%, oklch(0.04 0.01 150) 0 60%, transparent 100%),
-		/* the core bulge, warm and low where the band meets the ground */
-		radial-gradient(
-			ellipse 34rem 20rem at 16% 92%,
-			oklch(0.87 0.07 80 / 0.32),
-			oklch(0.75 0.06 70 / 0.12) 55%,
-			transparent 75%
-		),
-		/* the band itself — silver-blue starlight; the core radial above is
-		   the only warmth, so the river stays cool where it climbs */
-		linear-gradient(
-			150deg,
-			transparent 31%,
-			oklch(0.8 0.02 255 / 0.08) 39%,
-			oklch(0.88 0.015 250 / 0.17) 47%,
-			oklch(0.92 0.01 245 / 0.23) 50%,
-			oklch(0.88 0.015 250 / 0.17) 53%,
-			oklch(0.8 0.02 255 / 0.08) 61%,
-			transparent 69%
-		),
-		/* green airglow pooling on the horizon */
-		linear-gradient(to top, oklch(0.55 0.09 150 / 0.1), transparent 16%),
-		/* the dark itself, violet-black overhead easing toward the horizon */
-		linear-gradient(oklch(0.06 0.012 275), oklch(0.09 0.02 255));
+		radial-gradient(circle at 50% -10rem, oklch(1 0 0 / 0.95) 0 7rem, transparent 18rem),
+		radial-gradient(ellipse 55% 32% at 50% -6%, oklch(0.95 0.11 90 / 0.55), transparent 70%),
+		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.97 0.02 220 / 0.75), transparent 70%),
+		linear-gradient(oklch(0.72 0.12 245), oklch(0.88 0.05 230));
 
+	--radius: 0.875rem;
 
-	--radius: 1rem;
+	--surface-page: oklch(0.8 0.08 240);
+	/* cloud-white */
+	--surface-card: oklch(1 0 0 / 0.55);
+	--surface-inset: oklch(0.3 0.08 250 / 0.08);
+	--color-ty-primary: oklch(0.24 0.05 250);
 
-	--surface-page: oklch(0.09 0.015 265);
-	/* observatory-dome glass */
+	--input: oklch(1 0 0 / 0.65);
+	--border: oklch(0.3 0.08 250 / 0.22);
+
+	/* the sun itself */
+	--primary: oklch(0.78 0.14 80);
+	--primary-foreground: oklch(0.28 0.07 65);
+	--ring: oklch(0.78 0.14 80 / 0.55);
+
+	--color-brand: oklch(0.45 0.11 245);
+	--color-brand-strong: oklch(0.38 0.11 248);
+	--color-flow: oklch(0.62 0.14 70);
+	--color-mind: oklch(0.48 0.11 255);
+	--color-mind-strong: oklch(0.41 0.11 255);
+	--color-mixed: oklch(0.52 0.13 300);
+}
+
+.nadir {
+	/* zenith's opposite: midnight — the sun at its lowest, a full moon overhead,
+	   the sky deepest straight up and paling toward the horizon */
+	--background-image:
+		radial-gradient(circle at 50% -10rem, oklch(0.98 0.005 220 / 0.9) 0 6.5rem, transparent 17rem),
+		radial-gradient(ellipse 55% 32% at 50% -6%, oklch(0.75 0.04 230 / 0.35), transparent 70%),
+		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.38 0.06 260 / 0.55), transparent 70%),
+		linear-gradient(oklch(0.13 0.03 265), oklch(0.22 0.045 260));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.16 0.03 262);
+	/* moonlit glass */
 	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.25);
+	--color-ty-primary: oklch(0.96 0.01 230);
+
+	--input: oklch(1 0 0 / 0.1);
+	--border: oklch(0.85 0.04 230 / 0.22);
+
+	/* the moon itself */
+	--primary: oklch(0.88 0.04 230);
+	--primary-foreground: oklch(0.2 0.04 260);
+	--ring: oklch(0.88 0.04 230 / 0.5);
+
+	--color-brand: oklch(0.82 0.06 235);
+	--color-brand-strong: oklch(0.9 0.05 235);
+	/* starlight gold */
+	--color-flow: oklch(0.85 0.09 85);
+	--color-mind: oklch(0.78 0.09 250);
+	--color-mind-strong: oklch(0.86 0.08 250);
+	--color-mixed: oklch(0.75 0.1 300);
+}
+
+.eclipse {
+	/* totality — where zenith meets nadir: the black moon crowned by a blazing
+	   corona, and the 360° sunset that rings the horizon only during an eclipse */
+	--background-image:
+		radial-gradient(
+			circle at 50% -3rem,
+			oklch(0.08 0.015 285) 0 6.55rem,
+			oklch(0.99 0.04 90) 6.85rem 7.1rem,
+			oklch(0.92 0.08 85 / 0.55) 7.5rem,
+			oklch(0.85 0.06 70 / 0.18) 10rem,
+			transparent 17rem
+		),
+		radial-gradient(ellipse 60% 34% at 50% -6%, oklch(0.85 0.05 80 / 0.22), transparent 70%),
+		radial-gradient(ellipse 34% 22% at 30% 4%, oklch(0.6 0.16 330 / 0.14), transparent 60%),
+		radial-gradient(ellipse 120% 30% at 50% 108%, oklch(0.68 0.13 45 / 0.35), transparent 70%),
+		radial-gradient(ellipse 70% 24% at 8% 102%, oklch(0.6 0.14 330 / 0.22), transparent 65%),
+		radial-gradient(ellipse 70% 24% at 92% 102%, oklch(0.6 0.14 330 / 0.22), transparent 65%),
+		linear-gradient(oklch(0.1 0.022 285), oklch(0.16 0.035 300));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.12 0.025 290);
+	/* shadow-side glass, warmed a breath by corona light */
+	--surface-card: oklch(0.98 0.02 85 / 0.055);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	/* starlight white, barely cool */
-	--color-ty-primary: oklch(0.95 0.01 250);
+	--color-ty-primary: oklch(0.97 0.008 85);
 
-	--input: oklch(1 0 0 / 0.08);
-	--border: oklch(0.8 0.04 250 / 0.2);
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.9 0.05 85 / 0.2);
 
-	/* the core's warm gold */
-	--primary: oklch(0.86 0.09 85);
-	--primary-foreground: oklch(0.18 0.02 270);
-	--ring: oklch(0.86 0.09 85 / 0.5);
+	/* the corona itself */
+	--primary: oklch(0.92 0.08 88);
+	--primary-foreground: oklch(0.18 0.03 290);
+	--ring: oklch(0.92 0.08 88 / 0.5);
 
-	/* blue-white starlight */
-	--color-brand: oklch(0.8 0.07 245);
-	--color-brand-strong: oklch(0.88 0.05 245);
-	/* core amber — the river of old stars */
-	--color-flow: oklch(0.84 0.11 80);
-	/* nebula cyan */
-	--color-mind: oklch(0.78 0.1 210);
-	--color-mind-strong: oklch(0.86 0.08 210);
-	/* airglow green */
-	--color-body: oklch(0.75 0.12 150);
-	/* nebula magenta — the Lagoon's blush */
-	--color-mixed: oklch(0.7 0.15 330);
+	--color-brand: oklch(0.88 0.08 85);
+	--color-brand-strong: oklch(0.94 0.06 88);
+	/* corona gold */
+	--color-flow: oklch(0.87 0.11 85);
+	/* chromosphere magenta */
+	--color-mixed: oklch(0.74 0.14 330);
+	/* Baily's-beads pale blue */
+	--color-mind: oklch(0.8 0.08 260);
+	--color-mind-strong: oklch(0.87 0.07 260);
+	/* shadow-band jade */
+	--color-body: oklch(0.8 0.11 165);
+}
+
+.cathedral {
+	/* gothic nave at vespers: a stained-glass rose window burning above the door.
+	   The window itself is theme scenery (SVG tracery + god rays + jewel light
+	   pooling on the floor) — see theme-scenery/cathedral.css. */
+	--background-image:
+		/* candle glow rising from the nave floor */
+		radial-gradient(ellipse 90% 35% at 50% 112%, oklch(0.7 0.12 65 / 0.22), transparent 70%),
+		/* halo blooming over the stone around the window */
+		radial-gradient(ellipse 55% 30% at 50% 2%, oklch(0.85 0.09 85 / 0.16), transparent 70%),
+		linear-gradient(oklch(0.16 0.016 300), oklch(0.12 0.012 290));
+
+	--radius: 0.75rem;
+
+	--surface-page: oklch(0.14 0.014 300);
+	/* candlelit stone glass */
+	--surface-card: oklch(0.96 0.03 85 / 0.05);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--color-ty-primary: oklch(0.96 0.012 85);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.07 85 / 0.22);
+
+	/* candle gold */
+	--primary: oklch(0.8 0.12 80);
+	--primary-foreground: oklch(0.22 0.04 75);
+	--ring: oklch(0.8 0.12 80 / 0.5);
+
+	--color-brand: oklch(0.84 0.1 82);
+	--color-brand-strong: oklch(0.9 0.08 85);
+	/* the window's jewels */
+	--color-danger: oklch(0.68 0.19 20);
+	--color-danger-strong: oklch(0.76 0.16 20);
+	--color-flow: oklch(0.82 0.13 80);
+	--color-mind: oklch(0.72 0.12 265);
+	--color-mind-strong: oklch(0.8 0.1 265);
+	--color-body: oklch(0.78 0.13 160);
+	--color-mixed: oklch(0.74 0.14 310);
+}
+
+.orbit {
+	/* the overview effect — dawn breaking over the limb of the Earth from low
+	   orbit. The planet is the bottom quarter of the viewport: night side dark,
+	   a thin electric-blue atmosphere ring, first sunlight blooming on the limb.
+	   City lights, clouds, stars and aurora are theme scenery — see
+	   theme-scenery/orbit.css. */
+	--background-image:
+		/* haze in front of the limb where the rising light scatters forward —
+		   the only sunrise layer painted over the planet, and it's faint */
+		radial-gradient(ellipse 16vh 5vh at 58% 77.5vh, oklch(0.95 0.09 75 / 0.2), transparent 70%),
+		/* the planet and its atmosphere ring. The night side is opaque, so it
+		   genuinely occludes the sun layers below; the ring's outer stops are
+		   semi-transparent, so the hidden sun shines through them. */
+		radial-gradient(
+				circle at 50% 178vh,
+				oklch(0.1 0.02 255) 0 99vh,
+				oklch(0.3 0.06 245) 100.2vh,
+				oklch(0.78 0.1 230 / 0.9) 100.9vh,
+				oklch(0.6 0.12 225 / 0.35) 102.5vh,
+				oklch(0.5 0.1 220 / 0.12) 105vh,
+				transparent 109vh
+			),
+		/* the sun itself, BEHIND the planet — center a couple vh below the
+		   limb (edge ≈78–80vh at x=58% on any aspect ratio), so the disc is
+		   swallowed and only its corona crests the edge through the ring */
+		radial-gradient(
+				circle at 58% 81.5vh,
+				oklch(1 0.02 95) 0 2.5vh,
+				oklch(0.97 0.08 85 / 0.95) 5vh,
+				oklch(0.92 0.13 70 / 0.45) 10vh,
+				oklch(0.87 0.13 65 / 0.12) 17vh,
+				transparent 24vh
+			),
+		/* a single soft sun pillar rising from behind the arc */
+		radial-gradient(ellipse 5vh 15vh at 58% 69vh, oklch(0.96 0.08 82 / 0.1), transparent 70%),
+		/* deep space, faintly violet toward the horizon */
+		linear-gradient(oklch(0.07 0.012 275), oklch(0.11 0.03 265));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.13 0.02 265);
+	/* station-window glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.28);
+	--color-ty-primary: oklch(0.96 0.008 230);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.05 230 / 0.22);
+
+	/* first light over the limb */
+	--primary: oklch(0.87 0.1 80);
+	--primary-foreground: oklch(0.2 0.03 270);
+	--ring: oklch(0.87 0.1 80 / 0.5);
+
+	--color-brand: oklch(0.82 0.09 225);
+	--color-brand-strong: oklch(0.9 0.07 225);
+	/* sunrise gold */
+	--color-flow: oklch(0.85 0.12 80);
+	/* limb blue */
+	--color-mind: oklch(0.78 0.1 235);
+	--color-mind-strong: oklch(0.86 0.08 235);
+	/* aurora green */
+	--color-body: oklch(0.78 0.14 155);
+	/* airglow violet */
+	--color-mixed: oklch(0.72 0.12 310);
 }

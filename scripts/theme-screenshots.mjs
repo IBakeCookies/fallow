@@ -23,6 +23,7 @@ const themes = [
 	'abyss',
 	'parchment',
 	'noir',
+	'ink',
 	'ember',
 	'glacier',
 	'zenith',
@@ -30,16 +31,13 @@ const themes = [
 	'eclipse',
 	'cathedral',
 	'orbit',
-	'tempest',
 	'lantern-drift',
-	'nacre',
 	'pinwheel',
 	'canopy',
 	'meridian',
 	'dunes',
 	'synthwave',
-	'firefly',
-	'milkyway'
+	'firefly'
 ];
 
 const outDir = process.argv[2] ?? 'screenshots';
