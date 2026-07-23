@@ -18,8 +18,7 @@
 	.theme-helper-1 {
 		position: absolute;
 		inset: 0;
-		background:
-			var(
+		background: var(
 				--dunes-ridges,
 				url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 300' preserveAspectRatio='xMidYMid slice'><path d='M0 300 L0 175 C68 175 128 110 150 110 C218 110 278 175 300 175 C368 175 428 110 450 110 C518 110 578 175 600 175 C668 175 728 110 750 110 C818 110 878 175 900 175 C968 175 1028 110 1050 110 C1118 110 1178 175 1200 175 L1200 300 Z' fill='%23e7c79c' fill-opacity='0.55'/><path d='M0 175 C68 175 128 110 150 110 C218 110 278 175 300 175 C368 175 428 110 450 110 C518 110 578 175 600 175 C668 175 728 110 750 110 C818 110 878 175 900 175 C968 175 1028 110 1050 110 C1118 110 1178 175 1200 175' fill='none' stroke='%23fff1d6' stroke-width='1.6' stroke-opacity='0.3'/><path d='M0 300 L0 140 C81 140 153 230 180 230 C261 230 333 140 360 140 C441 140 513 230 540 230 C621 230 693 140 720 140 C801 140 873 230 900 230 C981 230 1053 140 1080 140 C1134 140 1182 230 1200 230 L1200 300 Z' fill='%23d59a5c' fill-opacity='0.78'/><path d='M0 140 C81 140 153 230 180 230 C261 230 333 140 360 140 C441 140 513 230 540 230 C621 230 693 140 720 140 C801 140 873 230 900 230 C981 230 1053 140 1080 140 C1134 140 1182 230 1200 230' fill='none' stroke='%23ffe9c2' stroke-width='2' stroke-opacity='0.42'/><path d='M0 300 L0 295 C95 295 179 170 210 170 C305 170 389 295 420 295 C515 295 599 170 630 170 C725 170 809 295 840 295 C935 295 1019 170 1050 170 C1118 170 1178 295 1200 295 L1200 300 Z' fill='%23a85a2c' fill-opacity='0.95'/><path d='M0 295 C95 295 179 170 210 170 C305 170 389 295 420 295 C515 295 599 170 630 170 C725 170 809 295 840 295 C935 295 1019 170 1050 170 C1118 170 1178 295 1200 295' fill='none' stroke='%23ffd9a3' stroke-width='2.4' stroke-opacity='0.55'/></svg>")
 			)
@@ -129,8 +128,7 @@
 		position: absolute;
 		inset: 0;
 		top: 20%;
-		background:
-			url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 18'><path d='M2 13 Q11 4 20 12 Q29 4 38 13' fill='none' stroke='%236b4226' stroke-width='2.8' stroke-linecap='round' opacity='0.7'/></svg>")
+		background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 18'><path d='M2 13 Q11 4 20 12 Q29 4 38 13' fill='none' stroke='%236b4226' stroke-width='2.8' stroke-linecap='round' opacity='0.7'/></svg>")
 			left 0 top 9% / 3rem no-repeat;
 		animation: dunes-bird 75s linear infinite;
 		animation-delay: var(--dunes-bird-phase, 0s);

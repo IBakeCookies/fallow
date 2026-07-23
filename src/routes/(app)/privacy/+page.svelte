@@ -33,7 +33,9 @@
 	</header>
 
 	<section class="mt-text-2xl">
-		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">{m.privacy_controller_heading()}</h2>
+		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">
+			{m.privacy_controller_heading()}
+		</h2>
 		<p>{m.privacy_controller_body()}</p>
 		<p class="mt-text-xs text-ty-secondary">
 			Shadi Muma<br />

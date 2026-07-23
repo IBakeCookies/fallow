@@ -49,7 +49,11 @@
 	.theme-helper-2 {
 		position: absolute;
 		inset: 0;
-		background-image: radial-gradient(circle 32vh at 50% 60%, oklch(0.78 0.17 30 / 0.4), transparent 70%);
+		background-image: radial-gradient(
+			circle 32vh at 50% 60%,
+			oklch(0.78 0.17 30 / 0.4),
+			transparent 70%
+		);
 		mask-image: linear-gradient(to bottom, black 0%, black 60%, transparent 60%);
 		animation: sw-sun-breathe 11s ease-in-out infinite alternate;
 		animation-delay: var(--sw-breathe-phase, 0s);
@@ -83,7 +87,11 @@
 		overflow: hidden;
 		background-image:
 			/* rungs: magenta, one tile = 2.4rem */
-			repeating-linear-gradient(to bottom, oklch(0.75 0.22 335 / 0.55) 0 2px, transparent 2px 2.4rem),
+			repeating-linear-gradient(
+				to bottom,
+				oklch(0.75 0.22 335 / 0.55) 0 2px,
+				transparent 2px 2.4rem
+			),
 			/* rails: cyan, one tile = 3rem, never animated so x is free */
 			repeating-linear-gradient(to right, oklch(0.78 0.16 200 / 0.4) 0 2px, transparent 2px 3rem);
 		/* seed lever: rails are a static tile — x is free to offset per user */

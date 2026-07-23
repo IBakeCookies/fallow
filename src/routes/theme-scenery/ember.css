@@ -28,8 +28,7 @@
 				ember-sway 6.5s ease-in-out infinite alternate,
 				ember-flicker 3.2s ease-in-out infinite;
 			animation-delay:
-				calc(var(--ember-phase-1, 0s) - 2.3s),
-				calc(var(--ember-phase-1, 0s) - 1.7s),
+				calc(var(--ember-phase-1, 0s) - 2.3s), calc(var(--ember-phase-1, 0s) - 1.7s),
 				calc(var(--ember-phase-1, 0s) - 0.9s);
 		}
 
@@ -48,8 +47,7 @@
 				ember-sway 5s ease-in-out infinite alternate,
 				ember-flicker 2.5s ease-in-out infinite;
 			animation-delay:
-				var(--ember-phase-1, 0s),
-				calc(var(--ember-phase-1, 0s) - 1.1s),
+				var(--ember-phase-1, 0s), calc(var(--ember-phase-1, 0s) - 1.1s),
 				calc(var(--ember-phase-1, 0s) - 0.6s);
 		}
 	}
@@ -59,11 +57,7 @@
 			content: '';
 			position: absolute;
 			inset: 0;
-			background-image: radial-gradient(
-				1px 1px at 78% 66%,
-				oklch(0.8 0.15 50 / 0.45),
-				transparent
-			);
+			background-image: radial-gradient(1px 1px at 78% 66%, oklch(0.8 0.15 50 / 0.45), transparent);
 			background-size: 23rem 29rem;
 			background-position-x: calc(var(--ember-x-2, 0rem) + 4rem);
 			animation:
@@ -71,8 +65,7 @@
 				ember-sway-far 9s ease-in-out infinite alternate,
 				ember-flicker-far 4.5s ease-in-out infinite;
 			animation-delay:
-				calc(var(--ember-phase-2, 0s) - 3.1s),
-				calc(var(--ember-phase-2, 0s) - 2.2s),
+				calc(var(--ember-phase-2, 0s) - 3.1s), calc(var(--ember-phase-2, 0s) - 2.2s),
 				calc(var(--ember-phase-2, 0s) - 1.3s);
 		}
 
@@ -90,8 +83,7 @@
 				ember-sway-far 8s ease-in-out infinite alternate,
 				ember-flicker-far 4s ease-in-out infinite;
 			animation-delay:
-				var(--ember-phase-2, 0s),
-				calc(var(--ember-phase-2, 0s) - 1.4s),
+				var(--ember-phase-2, 0s), calc(var(--ember-phase-2, 0s) - 1.4s),
 				calc(var(--ember-phase-2, 0s) - 0.8s);
 		}
 	}
@@ -114,13 +106,17 @@
    an integer multiple of that layer's tile height (background-size) or the loop jumps. */
 @keyframes ember-rise-a {
 	to {
-		background-position-y: -21rem, -42rem;
+		background-position-y:
+			-21rem,
+			-42rem;
 	}
 }
 
 @keyframes ember-rise-b {
 	to {
-		background-position-y: -42rem, -21rem;
+		background-position-y:
+			-42rem,
+			-21rem;
 	}
 }
 
@@ -132,7 +128,9 @@
 
 @keyframes ember-rise-far-a {
 	to {
-		background-position-y: -29rem, -58rem;
+		background-position-y:
+			-29rem,
+			-58rem;
 	}
 }
 

@@ -15,7 +15,9 @@
 	</section>
 
 	<section class="mt-text-2xl">
-		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">{m.imprint_contact_heading()}</h2>
+		<h2 class="mb-text-xs text-base font-semibold text-ty-primary">
+			{m.imprint_contact_heading()}
+		</h2>
 		<p class="text-ty-secondary">
 			<a
 				href="mailto:muma.shadi@gmail.com"

@@ -17,8 +17,7 @@
 		onreset?: () => void;
 	}
 
-	let { label, title, items, row, confirmLabel, resetLabel, resetTitle, onreset }: Props =
-		$props();
+	let { label, title, items, row, confirmLabel, resetLabel, resetTitle, onreset }: Props = $props();
 
 	// Expandable list of logged data points with per-row actions supplied by
 	// the caller and a two-step reset.

@@ -230,10 +230,7 @@ export function calculateHumanCapacity(
 	if (!tasks.length) return { percent: 0, limitType: 'none' };
 
 	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight)
-	const cogDemand = tasks.reduce(
-		(sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours,
-		0
-	);
+	const cogDemand = tasks.reduce((sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours, 0);
 	const physDemand = tasks.reduce(
 		(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
 		0
@@ -406,10 +403,7 @@ export function calculateBurnoutRisk(
  *
  * Weight by mentalDifficulty: high mental difficulty = more cognitive load.
  */
-export function calculateCognitiveLoad(
-	tasks: SuggestedTask[],
-	availableHours: number
-): number {
+export function calculateCognitiveLoad(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
 	if (!tasks.length || !budget) return 0;
 
@@ -428,10 +422,7 @@ export function calculateCognitiveLoad(
  * Uses budget as denominator (same rationale as cognitive load).
  * Weight by physicalDifficulty: high physical difficulty = more physical load.
  */
-export function calculatePhysicalLoad(
-	tasks: SuggestedTask[],
-	availableHours: number
-): number {
+export function calculatePhysicalLoad(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
 	if (!tasks.length || !budget) return 0;
 
@@ -560,10 +551,7 @@ export function calculateMomentum(tasks: Task[]): number {
 	return Math.round(totalNetEnjoyment / tasks.length);
 }
 
-export function calculateDeepWorkRatio(
-	tasks: SuggestedTask[],
-	availableHours: number
-): number {
+export function calculateDeepWorkRatio(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
 	if (!budget || !tasks.length) return 0;
 
@@ -665,10 +653,7 @@ export function calculateGrindDensity(tasks: SuggestedTask[]): number {
  * - Grind Density: % of tasks that are grinds
  * - This: % of TIME that is sustainable
  */
-export function calculateRewardDensity(
-	tasks: SuggestedTask[],
-	availableHours: number
-): number {
+export function calculateRewardDensity(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
 	if (!budget || !tasks.length) return 0;
 

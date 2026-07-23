@@ -588,11 +588,7 @@
 .ukiyo {
 	/* woodblock print: hard-edged vermilion sun over washi paper, indigo swell below */
 	--background-image:
-		radial-gradient(
-			circle at 50% 0%,
-			oklch(0.63 0.17 35 / 0.55) 0 30rem,
-			transparent calc(30rem)
-		),
+		radial-gradient(circle at 50% 0%, oklch(0.63 0.17 35 / 0.55) 0 30rem, transparent calc(30rem)),
 		radial-gradient(ellipse 80% 45% at 74% 0%, oklch(0.78 0.09 45 / 0.18), transparent 70%),
 		radial-gradient(ellipse 70% 40% at 12% 35%, oklch(0.8 0.11 355 / 0.1), transparent 70%),
 		radial-gradient(ellipse 90% 40% at 18% 112%, oklch(0.36 0.08 255 / 0.45), transparent 65%),

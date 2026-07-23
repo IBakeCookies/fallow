@@ -10,9 +10,7 @@
 
 <svelte:head><title>{page.status} — Fallow</title></svelte:head>
 
-<main
-	class="flex min-h-screen items-center justify-center px-4 text-ty-secondary antialiased"
->
+<main class="flex min-h-screen items-center justify-center px-4 text-ty-secondary antialiased">
 	<div
 		class="w-full max-w-md rounded-2xl border bg-surface-card p-box-md text-center backdrop-blur sm:p-box-xl"
 	>

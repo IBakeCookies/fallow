@@ -273,7 +273,9 @@
 			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
 				{completedTasks} <span class="text-base font-normal text-ty-silent">/ {totalTasks}</span>
 			</p>
-			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_of_planned({ percent: completedShare })}</p>
+			<p class="mt-text-3xs text-xs text-ty-silent">
+				{m.ana_of_planned({ percent: completedShare })}
+			</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">

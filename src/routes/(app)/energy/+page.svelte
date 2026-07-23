@@ -1148,7 +1148,10 @@
 									</label>
 									<span class="flex items-center gap-grid-2xs">
 										{m.energy_rest_before_label()}
-										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_mind_title()}>
+										<label
+											class="flex items-center gap-grid-2xs"
+											title={m.energy_rest_mind_title()}
+										>
 											<span class="font-medium text-mind/80">
 												{m.energy_drain_mind_label()}
 											</span>
@@ -1161,7 +1164,10 @@
 												class="w-12 rounded border border-mind/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-mind/60"
 											/>
 										</label>
-										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_body_title()}>
+										<label
+											class="flex items-center gap-grid-2xs"
+											title={m.energy_rest_body_title()}
+										>
 											<span class="font-medium text-body/80">
 												{m.energy_drain_body_label()}
 											</span>
@@ -1177,7 +1183,10 @@
 									</span>
 									<span class="flex items-center gap-grid-2xs">
 										{m.energy_rest_after_label()}
-										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_mind_title()}>
+										<label
+											class="flex items-center gap-grid-2xs"
+											title={m.energy_rest_mind_title()}
+										>
 											<span class="font-medium text-mind/80">
 												{m.energy_drain_mind_label()}
 											</span>
@@ -1190,7 +1199,10 @@
 												class="w-12 rounded border border-mind/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-mind/60"
 											/>
 										</label>
-										<label class="flex items-center gap-grid-2xs" title={m.energy_rest_body_title()}>
+										<label
+											class="flex items-center gap-grid-2xs"
+											title={m.energy_rest_body_title()}
+										>
 											<span class="font-medium text-body/80">
 												{m.energy_drain_body_label()}
 											</span>
@@ -1218,7 +1230,9 @@
 							{/if}
 
 							{#if restObservations.length === 0}
-								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_recovery_calibration_empty()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">
+									{m.energy_recovery_calibration_empty()}
+								</p>
 							{:else}
 								<div class="mt-text-sm flex items-baseline justify-between gap-text-xs text-xs">
 									<span class="text-ty-silent">{m.energy_recovery_rate()}</span>
@@ -1304,7 +1318,9 @@
 							{#if stopObservations.length === 0}
 								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_stop_calibration_empty()}</p>
 							{:else if !stopFit.fitted}
-								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_stop_calibration_censored()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">
+									{m.energy_stop_calibration_censored()}
+								</p>
 							{:else}
 								<div class="mt-text-sm flex items-baseline justify-between gap-text-xs text-xs">
 									<span class="text-ty-silent">{m.energy_free_time_value()}</span>

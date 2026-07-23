@@ -57,13 +57,7 @@
 			{h}h
 		</text>
 	{/each}
-	<line
-		x1={PAD_L}
-		y1={yAt(0)}
-		x2={PAD_L + plotW}
-		y2={yAt(0)}
-		stroke="var(--color-line-strong)"
-	/>
+	<line x1={PAD_L} y1={yAt(0)} x2={PAD_L + plotW} y2={yAt(0)} stroke="var(--color-line-strong)" />
 	<path d={cogPath} fill="none" stroke="var(--color-mind)" stroke-width="1.8" />
 	<path d={physPath} fill="none" stroke="var(--color-body)" stroke-width="1.8" />
 </svg>

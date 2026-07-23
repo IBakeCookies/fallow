@@ -377,7 +377,12 @@ describe('calculateTimeScarcity', () => {
 
 describe('calculateFlowCoverage', () => {
 	it('counts funded tasks whose allocation reaches ϕ; unfunded never count', () => {
-		const reaches = makeSuggested({ id: 1, title: 'reaches', suggestedHours: 2, flowStateTime: 1.5 });
+		const reaches = makeSuggested({
+			id: 1,
+			title: 'reaches',
+			suggestedHours: 2,
+			flowStateTime: 1.5
+		});
 		const short = makeSuggested({ id: 2, title: 'short', suggestedHours: 1, flowStateTime: 1.5 });
 		// suggestedHours 0 ≥ flowStateTime 0 — must still NOT count as reached
 		const dropped = makeSuggested({ id: 3, title: 'dropped', suggestedHours: 0, flowStateTime: 0 });

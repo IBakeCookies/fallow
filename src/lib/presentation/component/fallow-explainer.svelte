@@ -61,7 +61,9 @@
 		<div class="space-y-text-sm">
 			<h3 class="text-lg font-semibold text-ty-primary">{m.about_how_title()}</h3>
 			<p class="text-sm leading-relaxed">{m.about_how_body_1()}</p>
-			<p class="rounded-lg border bg-surface-card px-box-md py-box-sm font-mono text-sm text-ty-secondary">
+			<p
+				class="rounded-lg border bg-surface-card px-box-md py-box-sm font-mono text-sm text-ty-secondary"
+			>
 				p(t) = (a·k·t + p₀) · e^(−kt)
 			</p>
 			<p class="text-sm leading-relaxed">{m.about_how_body_2()}</p>
