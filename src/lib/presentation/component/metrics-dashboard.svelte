@@ -53,10 +53,10 @@
 
 	<div class="border-t border-line-strong my-grid-sm"></div>
 
-	<!-- All Metrics flat list with separators -->
+	<!-- All Metrics flat list with separators between sections -->
 	<div>
-		{#each metrics as item, i}
-			{#if i === 4 || i === 7 || i === 11 || i === 13 || i === 16}
+		{#each metrics as item, i (item.label)}
+			{#if i > 0 && item.section}
 				<div class="border-t border-line-strong my-grid-sm"></div>
 			{/if}
 			<div

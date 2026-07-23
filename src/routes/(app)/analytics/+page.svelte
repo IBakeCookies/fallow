@@ -106,10 +106,10 @@
 
 	// ---------- Day profile distribution ----------
 	const QUADRANTS: { key: DailyQuadrant; label: string; color: string }[] = [
-		{ key: 'flow', label: m.quadrant_flow(), color: '#a78bfa' },
-		{ key: 'cruise', label: m.quadrant_cruise(), color: '#38bdf8' },
-		{ key: 'grind', label: m.quadrant_grind(), color: '#fb923c' },
-		{ key: 'routine', label: m.quadrant_routine(), color: '#a1a1aa' }
+		{ key: 'flow', label: m.quadrant_flow(), color: 'var(--color-flow)' },
+		{ key: 'cruise', label: m.quadrant_cruise(), color: '#0ea5e9' },
+		{ key: 'grind', label: m.quadrant_grind(), color: '#f97316' },
+		{ key: 'routine', label: m.quadrant_routine(), color: '#71717a' }
 	];
 	const quadrantCounts = $derived.by(() => {
 		const counts: Record<DailyQuadrant, number> = { flow: 0, cruise: 0, grind: 0, routine: 0 };
@@ -129,6 +129,7 @@
 	const chartPoints = $derived.by((): ChartPoint[] => {
 		if (range === 'year') {
 			// Bucket by calendar month, newest 12 months (oldest may be partial)
+			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local bucket, replaced wholesale
 			const buckets = new Map<string, DaySummary[]>();
 			for (const s of inRange) {
 				const key = s.date.slice(0, 7);
@@ -355,7 +356,7 @@
 					x2={CHART.w - CHART.right}
 					y1={yPos(tick)}
 					y2={yPos(tick)}
-					stroke="rgba(255,255,255,0.08)"
+					stroke="var(--color-line-soft)"
 					stroke-width="1"
 				/>
 				<text
@@ -372,7 +373,7 @@
 
 			{#each bars as bar, i (i)}
 				{#if bar.value !== null}
-					<path d={barPath(bar.x, bar.y, bar.w, bar.h)} fill="#818cf8">
+					<path d={barPath(bar.x, bar.y, bar.w, bar.h)} fill="var(--color-brand)">
 						<title>{bar.full} — {bar.value}% · {bar.sub}</title>
 					</path>
 				{/if}

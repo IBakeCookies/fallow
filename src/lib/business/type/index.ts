@@ -10,5 +10,6 @@ export type {
 	DailySession,
 	SavedRoutine,
 	FlowObservationRecord,
-	DrainObservationRecord
+	DrainObservationRecord,
+	RestObservationRecord
 } from '$lib/data/type';

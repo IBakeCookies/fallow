@@ -47,13 +47,15 @@
  *    which remains the exact σ = 0 special case.
  */
 
-export interface TaskInput {
+import { solve3x3, invert3x3 } from './linalg';
+
+interface TaskInput {
 	title: string;
 	difficulty: number; // Eᵤ: 1-10 user input
 	enjoyment: number; // βᵤ: 1-10 user input
 }
 
-export interface TaskAllocation extends TaskInput {
+interface TaskAllocation extends TaskInput {
 	allocatedHours: number; // Always a multiple of BLOCK_HOURS
 	E: number; // True effort (mapped to 1-5)
 	beta: number; // True enjoyability (mapped to 1-2)
@@ -123,7 +125,7 @@ export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
  * dynamics and no optimal stopping. Capping r at 0.9 only affects E < 1.054
  * (user difficulty below ≈1.12) and keeps every task's curve well-defined.
  */
-export const AMPLITUDE_RATIO_CAP = 0.9;
+const AMPLITUDE_RATIO_CAP = 0.9;
 
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
 // tasks (4096 subsets — instant), greedy forward-selection beyond it.
@@ -151,7 +153,7 @@ export function mapEnjoyability(betaU: number): number {
  * productivity curve well-defined everywhere. Also clamps the ϕ-quadrature
  * nodes of the posterior-aware allocator (see expectedAverageProductivity).
  */
-export const PHI_FLOOR_HOURS = 0.1;
+const PHI_FLOOR_HOURS = 0.1;
 
 /**
  * Calculate time to reach flow state
@@ -172,7 +174,7 @@ export function calculateFlowStateTime(E: number, beta: number, constants: UserC
  *
  * NOTE: calculateTaskParams caps the EFFECTIVE p₀ at AMPLITUDE_RATIO_CAP × a.
  */
-export function calculateInitialProductivity(E: number, beta: number): number {
+function calculateInitialProductivity(E: number, beta: number): number {
 	return beta / E;
 }
 
@@ -184,7 +186,7 @@ export function calculateInitialProductivity(E: number, beta: number): number {
  * first-order expansion in p₀/a is (a + p₀)/e — exactly the v1 peak. So v1's
  * peak was the small-p₀ approximation of the v2 peak.
  */
-export function calculatePeakScaling(E: number, beta: number): number {
+function calculatePeakScaling(E: number, beta: number): number {
 	return E * beta;
 }
 
@@ -355,7 +357,7 @@ const GH_NODES = [
  * the Gaussian posterior is a poor description of a positive quantity anyway
  * (mass at ϕ < 0), so clamping is a graceful degradation, not a distortion.
  */
-export const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
+const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
 
 // Quadrature nodes over ϕ for a task with posterior mean phi and std sigmaPhi.
 // σ ≤ ~0 collapses to the single point mass — the classic, certainty path.
@@ -1131,7 +1133,7 @@ export interface FlowObservation {
  * defaults, and the fit stays well-posed even when every logged task is
  * identical.
  */
-export const RIDGE_PRIOR_STRENGTH = 4;
+const RIDGE_PRIOR_STRENGTH = 4;
 
 /**
  * Prior scale for the stopwatch measurement noise: σ₀ = 15 minutes (0.25h),
@@ -1140,7 +1142,7 @@ export const RIDGE_PRIOR_STRENGTH = 4;
  * deviation is an honest floor that keeps σ̂ from collapsing to 0 when the
  * first few logs happen to agree.
  */
-export const FLOW_NOISE_PRIOR_STD = 0.25;
+const FLOW_NOISE_PRIOR_STD = 0.25;
 
 /**
  * Posterior of the fitted plane, exposed so callers can quantify uncertainty
@@ -1153,63 +1155,6 @@ export interface FitPosterior {
 	sigma2: number;
 	/** Effective number of observations Σwᵢ (= n when no forgetting) */
 	nEff: number;
-}
-
-/**
- * Solve a 3×3 linear system via Gaussian elimination with partial pivoting.
- * Returns null when the system is (near-)singular.
- */
-function solve3x3(A: number[][], y: number[]): number[] | null {
-	const m = A.map((row, i) => [...row, y[i]]);
-	const scale = Math.max(1, ...A.flat().map(Math.abs));
-
-	for (let col = 0; col < 3; col++) {
-		let pivot = col;
-		for (let row = col + 1; row < 3; row++) {
-			if (Math.abs(m[row][col]) > Math.abs(m[pivot][col])) pivot = row;
-		}
-		if (Math.abs(m[pivot][col]) < 1e-9 * scale) return null;
-		[m[col], m[pivot]] = [m[pivot], m[col]];
-
-		for (let row = col + 1; row < 3; row++) {
-			const factor = m[row][col] / m[col][col];
-			for (let k = col; k < 4; k++) m[row][k] -= factor * m[col][k];
-		}
-	}
-
-	const x = [0, 0, 0];
-	for (let row = 2; row >= 0; row--) {
-		let sum = m[row][3];
-		for (let k = row + 1; k < 3; k++) sum -= m[row][k] * x[k];
-		x[row] = sum / m[row][row];
-	}
-	return x;
-}
-
-// Inverse of a symmetric positive-definite 3×3 via three solves against the
-// identity columns; symmetrized to scrub floating-point asymmetry.
-function invert3x3(A: number[][]): number[][] | null {
-	const cols: number[][] = [];
-	for (let i = 0; i < 3; i++) {
-		const e = [0, 0, 0];
-		e[i] = 1;
-		const col = solve3x3(A, e);
-		if (!col) return null;
-		cols.push(col);
-	}
-	const inv = [
-		[cols[0][0], cols[1][0], cols[2][0]],
-		[cols[0][1], cols[1][1], cols[2][1]],
-		[cols[0][2], cols[1][2], cols[2][2]]
-	];
-	for (let i = 0; i < 3; i++) {
-		for (let j = i + 1; j < 3; j++) {
-			const s = (inv[i][j] + inv[j][i]) / 2;
-			inv[i][j] = s;
-			inv[j][i] = s;
-		}
-	}
-	return inv;
 }
 
 /**

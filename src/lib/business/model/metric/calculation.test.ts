@@ -4,6 +4,12 @@ import {
 	calculateFrictionIndex,
 	calculateBurnoutRisk,
 	calculateScheduleIntegrity,
+	calculateYieldIndex,
+	calculateInterleavedOrder,
+	calculateHumanCapacity,
+	calculateTimeScarcity,
+	calculateFlowCoverage,
+	calculateZenithGain,
 	type SuggestedTask,
 	type Task
 } from './calculation';
@@ -243,5 +249,160 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 		const t = makeSuggested({ id: 1, title: 't', suggestedHours: 0 });
 		expect(calculateScheduleIntegrity([t], 0, 0.25)).toBe(0); // no budget set
 		expect(calculateScheduleIntegrity([t], 6, 0.25)).toBe(0); // budget set, nothing funded
+	});
+});
+
+describe('calculateYieldIndex', () => {
+	const t = (id: number, priorityScore: number, completed: boolean) =>
+		makeSuggested({ id, title: `t${id}`, priorityScore, completed });
+
+	it('returns 0 with no completions', () => {
+		expect(calculateYieldIndex([t(1, 9, false), t(2, 6, false)])).toBe(0);
+	});
+
+	it('is 100 when the completed tasks are the top-priority ones', () => {
+		expect(calculateYieldIndex([t(1, 9, true), t(2, 6, false), t(3, 3, false)])).toBe(100);
+		expect(calculateYieldIndex([t(1, 9, true), t(2, 6, true), t(3, 3, false)])).toBe(100);
+	});
+
+	it('normalizes against the best same-count choice, regardless of input order', () => {
+		// Completed the weakest of priorities {9, 6, 3}: 3/9 ≈ 33%
+		expect(calculateYieldIndex([t(3, 3, true), t(1, 9, false), t(2, 6, false)])).toBe(33);
+	});
+});
+
+describe('calculateInterleavedOrder', () => {
+	// This order is not display-only: it sets the block sequence Burnout Risk simulates.
+	const cognitive = (id: number, priorityScore: number, suggestedHours = 1) =>
+		makeSuggested({
+			id,
+			title: `cog${id}`,
+			mentalDifficulty: 8,
+			physicalDifficulty: 0,
+			priorityScore,
+			suggestedHours
+		});
+	const physical = (id: number, priorityScore: number) =>
+		makeSuggested({
+			id,
+			title: `phys${id}`,
+			mentalDifficulty: 0,
+			physicalDifficulty: 8,
+			priorityScore
+		});
+
+	it('only sequences funded tasks (a 0h task has no session)', () => {
+		const order = calculateInterleavedOrder([cognitive(1, 9), cognitive(2, 8, 0)]);
+		expect(order.map((t) => t.id)).toEqual([1]);
+	});
+
+	it('alternates natures, highest priority first', () => {
+		const order = calculateInterleavedOrder([cognitive(1, 9), cognitive(2, 8), physical(3, 7)]);
+		expect(order.map((t) => t.id)).toEqual([1, 3, 2]);
+	});
+
+	it('falls back to plain priority order when no contrast exists', () => {
+		const order = calculateInterleavedOrder([cognitive(2, 8), cognitive(1, 9), cognitive(3, 7)]);
+		expect(order.map((t) => t.id)).toEqual([1, 2, 3]);
+	});
+});
+
+describe('calculateHumanCapacity', () => {
+	it('reports the more saturated pool', () => {
+		// 5h at mental 8 → 4 cognitive-hours on a 4h pool: 100%, cognitive-limited
+		const deep = makeSuggested({
+			id: 1,
+			title: 'deep',
+			mentalDifficulty: 8,
+			physicalDifficulty: 2,
+			suggestedHours: 5
+		});
+		const { percent, limitType } = calculateHumanCapacity([deep], {
+			cognitiveHours: 4,
+			physicalHours: 6
+		});
+		expect(percent).toBe(100);
+		expect(limitType).toBe('cognitive');
+	});
+
+	it('a zeroed pool reads Infinity with demand (deliberately unclamped), 0 without', () => {
+		const gym = makeSuggested({
+			id: 1,
+			title: 'gym',
+			mentalDifficulty: 0,
+			physicalDifficulty: 8,
+			suggestedHours: 1
+		});
+		expect(calculateHumanCapacity([gym], { cognitiveHours: 4, physicalHours: 0 }).percent).toBe(
+			Infinity
+		);
+		const read = makeSuggested({
+			id: 2,
+			title: 'read',
+			mentalDifficulty: 6,
+			physicalDifficulty: 0,
+			suggestedHours: 1
+		});
+		expect(
+			calculateHumanCapacity([read], { cognitiveHours: 4, physicalHours: 0 }).percent
+		).toBeLessThan(Infinity);
+	});
+
+	it('empty task list reads none', () => {
+		expect(calculateHumanCapacity([], { cognitiveHours: 4, physicalHours: 6 })).toEqual({
+			percent: 0,
+			limitType: 'none'
+		});
+	});
+});
+
+describe('calculateTimeScarcity', () => {
+	const tasks = [makeTask({ id: 1, title: 'a' }), makeTask({ id: 2, title: 'b' })];
+
+	it('is 0 when the budget covers flow time for every task and 100 with no budget', () => {
+		expect(calculateTimeScarcity(tasks, 24)).toBe(0);
+		expect(calculateTimeScarcity(tasks, 0)).toBe(100);
+	});
+
+	it('grows as the budget shrinks and stays in [0, 100]', () => {
+		let prev = 0;
+		for (const budget of [10, 4, 2, 1, 0.5]) {
+			const s = calculateTimeScarcity(tasks, budget);
+			expect(s).toBeGreaterThanOrEqual(prev);
+			expect(s).toBeLessThanOrEqual(100);
+			prev = s;
+		}
+	});
+});
+
+describe('calculateFlowCoverage', () => {
+	it('counts funded tasks whose allocation reaches ϕ; unfunded never count', () => {
+		const reaches = makeSuggested({ id: 1, title: 'reaches', suggestedHours: 2, flowStateTime: 1.5 });
+		const short = makeSuggested({ id: 2, title: 'short', suggestedHours: 1, flowStateTime: 1.5 });
+		// suggestedHours 0 ≥ flowStateTime 0 — must still NOT count as reached
+		const dropped = makeSuggested({ id: 3, title: 'dropped', suggestedHours: 0, flowStateTime: 0 });
+		expect(calculateFlowCoverage([reaches, short, dropped])).toEqual({ reached: 1, total: 3 });
+		expect(calculateFlowCoverage([])).toEqual({ reached: 0, total: 0 });
+	});
+});
+
+describe('calculateZenithGain', () => {
+	it('guards empty inputs and reports a real gain otherwise', () => {
+		expect(calculateZenithGain([], 8)).toEqual({ optimized: 0, naive: 0, gainPercent: 0 });
+		expect(calculateZenithGain([makeTask({ id: 1, title: 'a' })], 0)).toEqual({
+			optimized: 0,
+			naive: 0,
+			gainPercent: 0
+		});
+		const gain = calculateZenithGain(
+			[
+				makeTask({ id: 1, title: 'hard boring', mentalDifficulty: 9, enjoyment: 2 }),
+				makeTask({ id: 2, title: 'easy fun', mentalDifficulty: 2, enjoyment: 9 })
+			],
+			4,
+			0.25
+		);
+		expect(gain.optimized).toBeGreaterThan(0);
+		expect(gain.optimized).toBeGreaterThanOrEqual(gain.naive);
 	});
 });

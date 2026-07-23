@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import type { FlowObservationRecord } from '$lib/business/type';
+	import LogList from './log-list.svelte';
 
 	interface Props {
 		modelStatus: string; // e.g. "Personalized from 7 flow logs"
@@ -10,96 +11,37 @@
 	}
 
 	let { modelStatus, flowLogs = [], ondeletelog, onresetlogs }: Props = $props();
-
-	// Expandable list of the measured data points behind the personalized
-	// constants, with per-log delete and a two-step reset.
-	let open = $state(false);
-	let confirmingReset = $state(false);
-	const logsNewestFirst = $derived([...flowLogs].reverse());
 </script>
 
 <div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-box-xl">
-	<button
-		type="button"
-		aria-expanded={open}
-		class="flex w-full items-center justify-between gap-grid-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary disabled:cursor-default disabled:hover:text-ty-silent"
-		disabled={flowLogs.length === 0}
+	<LogList
+		label={modelStatus}
 		title={m.budget_model_tooltip()}
-		onclick={() => {
-			open = !open;
-			confirmingReset = false;
-		}}
+		items={flowLogs}
+		confirmLabel={m.budget_reset_confirm({ count: flowLogs.length })}
+		resetLabel={m.budget_reset_personalization()}
+		resetTitle={m.budget_reset_title()}
+		onreset={onresetlogs}
 	>
-		<span>{modelStatus}</span>
-		{#if flowLogs.length > 0}
-			<span class="shrink-0 text-lg leading-none text-ty-silent">{open ? '▴' : '▾'}</span>
-		{/if}
-	</button>
-
-	{#if open && flowLogs.length > 0}
-		<ul class="mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
-			{#each logsNewestFirst as log (log.id)}
-				<li
-					class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
-				>
-					<span class="truncate">
-						<span class="text-ty-silent">{log.date}</span>
-						<span class="capitalize"> · {log.taskTitle}</span>
-					</span>
-					<span class="flex shrink-0 items-center gap-text-xs">
-						<span class="font-medium text-flow/90">⚡ {Math.round(log.phiHours * 60)}m</span>
-						{#if ondeletelog}
-							<button
-								type="button"
-								aria-label={m.budget_delete_log_aria()}
-								title={m.budget_delete_log_title()}
-								class="text-ty-silent transition hover:text-danger"
-								onclick={() => ondeletelog?.(log.id!)}
-							>
-								✕
-							</button>
-						{/if}
-					</span>
-				</li>
-			{/each}
-		</ul>
-		{#if onresetlogs}
-			<div class="mt-text-xs flex justify-end">
-				{#if confirmingReset}
-					<span class="flex items-center gap-text-xs text-xs">
-						<span class="text-ty-silent">
-							{m.budget_reset_confirm({ count: flowLogs.length })}
-						</span>
-						<button
-							type="button"
-							class="font-medium text-danger hover:text-danger-strong"
-							onclick={() => {
-								onresetlogs?.();
-								confirmingReset = false;
-								open = false;
-							}}
-						>
-							{m.common_reset()}
-						</button>
-						<button
-							type="button"
-							class="text-ty-silent hover:text-ty-secondary"
-							onclick={() => (confirmingReset = false)}
-						>
-							{m.common_cancel()}
-						</button>
-					</span>
-				{:else}
+		{#snippet row(log)}
+			<span class="truncate">
+				<span class="text-ty-silent">{log.date}</span>
+				<span class="capitalize"> · {log.taskTitle}</span>
+			</span>
+			<span class="flex shrink-0 items-center gap-text-xs">
+				<span class="font-medium text-flow/90">⚡ {Math.round(log.phiHours * 60)}m</span>
+				{#if ondeletelog}
 					<button
 						type="button"
-						class="text-xs text-ty-silent transition hover:text-danger"
-						title={m.budget_reset_title()}
-						onclick={() => (confirmingReset = true)}
+						aria-label={m.budget_delete_log_aria()}
+						title={m.budget_delete_log_title()}
+						class="text-ty-silent transition hover:text-danger"
+						onclick={() => ondeletelog?.(log.id!)}
 					>
-						{m.budget_reset_personalization()}
+						✕
 					</button>
 				{/if}
-			</div>
-		{/if}
-	{/if}
+			</span>
+		{/snippet}
+	</LogList>
 </div>

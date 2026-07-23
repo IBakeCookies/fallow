@@ -3,29 +3,18 @@
  */
 
 import type { DailySession } from '$lib/data/type';
-import { openDatabase } from '$lib/data/storage/indexed-db';
+import { withStore } from '$lib/data/storage/indexed-db';
 
 /** Upsert: put() replaces the record for the same date, creating it if absent. */
 export async function $updateSession(session: DailySession): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('sessions', 'readwrite');
-		const store = transaction.objectStore('sessions');
-		const request = store.put({ ...session, updatedAt: Date.now() });
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('sessions', 'readwrite', (store) => {
+		store.put({ ...session, updatedAt: Date.now() });
 	});
 }
 
 export async function $readSessionByDate(date: string): Promise<DailySession | null> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('sessions', 'readonly');
-		const store = transaction.objectStore('sessions');
-		const request = store.get(date);
-		request.onsuccess = () => resolve(request.result || null);
-		request.onerror = () => reject(request.error);
-	});
+	const result = await withStore('sessions', 'readonly', (store) => store.get(date));
+	return result || null;
 }
 
 /**
@@ -37,12 +26,8 @@ export async function $readSessionsByDateRange(
 	startDate: string,
 	endDate: string
 ): Promise<DailySession[]> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('sessions', 'readonly');
-		const store = transaction.objectStore('sessions');
-		const request = store.getAll(IDBKeyRange.bound(startDate, endDate));
-		request.onsuccess = () => resolve(request.result || []);
-		request.onerror = () => reject(request.error);
-	});
+	const result = await withStore('sessions', 'readonly', (store) =>
+		store.getAll(IDBKeyRange.bound(startDate, endDate))
+	);
+	return result || [];
 }

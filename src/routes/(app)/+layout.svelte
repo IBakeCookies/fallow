@@ -7,6 +7,7 @@
 	import Pause from '@lucide/svelte/icons/pause';
 	import Play from '@lucide/svelte/icons/play';
 	import Menu from '@lucide/svelte/icons/menu';
+	import X from '@lucide/svelte/icons/x';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { ThemeName } from '$lib/business/store/theme-store.svelte';
@@ -53,8 +54,9 @@
 
 	// The shared daily session (tasks, budget, pools + persistence) lives in
 	// context, created per component tree — never at module scope, so nothing
-	// can leak across SSR requests. Pages grab it with getSessionStore().
-	setSessionStore();
+	// can leak across SSR requests. Pages grab it with getSessionStore(); the
+	// layout keeps the reference to surface its persistence errors.
+	const session = setSessionStore();
 
 	// Calendar is the one full-viewport page: it must never scroll, so its grid
 	// rows split the leftover height instead of growing the page.
@@ -62,10 +64,12 @@
 </script>
 
 <main
-	class="text-ty-secondary antialiased selection:bg-success/30 selection:text-success-strong font-sans flex flex-col
+	class="text-ty-secondary antialiased selection:bg-success/30 selection:text-success-strong flex flex-col
 	       {fullViewport ? 'h-dvh overflow-hidden' : 'min-h-screen'}"
 >
-	<div class=" mx-auto w-full max-w-7xl px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col">
+	<div
+		class=" mx-auto w-full max-w-7xl px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col"
+	>
 		<Nav>
 			{#snippet actions()}
 				<div class="flex items-center gap-grid-xs">
@@ -74,7 +78,10 @@
 							<Palette class="h-4 w-4 shrink-0" />
 							<span class="hidden sm:inline">{themeStore.label}</span>
 						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="end" class="nice-scrollbar w-max min-w-40 max-h-[min(80vh,40rem)] overflow-y-auto">
+						<DropdownMenu.Content
+							align="end"
+							class="nice-scrollbar w-max min-w-40 max-h-[min(80vh,40rem)] overflow-y-auto"
+						>
 							<DropdownMenu.RadioGroup
 								value={themeStore.theme}
 								onValueChange={(v) => themeStore.switchTheme(v as ThemeName)}
@@ -84,7 +91,9 @@
 										<!-- theme classes scope that theme's CSS vars to the swatch,
 										     so the slices always match layout.css -->
 										<span
-											class="{theme.css.join(' ')} border-line-strong flex h-3.5 w-3.5 shrink-0 overflow-hidden rounded-full border"
+											class="{theme.css.join(
+												' '
+											)} border-line-strong flex h-3.5 w-3.5 shrink-0 overflow-hidden rounded-full border"
 											aria-hidden="true"
 										>
 											<span class="h-full w-1/2" style="background: var(--surface-page)"></span>
@@ -148,6 +157,22 @@
 				</div>
 			{/snippet}
 		</Nav>
+		{#if session.storageError}
+			<div
+				role="alert"
+				class="border-danger/20 bg-danger/5 text-danger-strong/90 mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
+			>
+				<span class="flex-1">{m.storage_error()}</span>
+				<button
+					type="button"
+					aria-label={m.storage_error()}
+					onclick={() => session.clearStorageError()}
+					class="hover:text-danger-strong shrink-0 rounded-md p-1"
+				>
+					<X class="h-4 w-4" />
+				</button>
+			</div>
+		{/if}
 		{@render children()}
 		<Footer />
 	</div>

@@ -12,6 +12,7 @@ import {
 	optimizeSchedule,
 	RECOVERY_FIT_MIN,
 	sampleTrajectory,
+	simulateReservoirs,
 	STOP_INVERSION_MARGIN,
 	stopIndifferencePoint,
 	type DrainObservation,
@@ -19,6 +20,7 @@ import {
 	type RestObservation,
 	type StopObservation
 } from './zenith-energy';
+import { calculateFlowStateTime, mapEffort, mapEnjoyability } from './zenith';
 
 function makeTask(
 	id: number,
@@ -101,7 +103,7 @@ describe('Zenith Energy Model', () => {
 			expect(rest.cogAfter).toBeGreaterThan(work.cogAfter);
 		});
 
-		it('warm-up resets on switch: contiguous work far outproduces confetti slicing', () => {
+		it('fragmentation is costly: contiguous work far outproduces confetti slicing', () => {
 			const deep = [makeTask(1, 'deep', 6, 6, 0.7, 0.1)];
 			const contiguous = evaluateSchedule([{ taskId: 1, hours: 2 }], deep, 8);
 			const confetti: { taskId: number | null; hours: number }[] = [];
@@ -890,6 +892,76 @@ describe('Zenith Energy Model', () => {
 			const a = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
 			const b = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
 			expect(a).toEqual(b);
+		});
+	});
+
+	describe('numeric verification (closed forms vs independent integration)', () => {
+		const p = DEFAULT_ENERGY_PARAMS;
+
+		it('reservoir closed form matches Euler integration of dC/dτ = −αwC + r·m·(1−(1−b)w)(1−C)', () => {
+			const task = makeTask(1, 'x', 7, 4, 0.8, 0.3);
+			const hours = 2.5;
+			const ev = evaluateSchedule([{ taskId: 1, hours }], [task], 8, p);
+			const euler = (w: number, alpha: number) => {
+				let C = 1;
+				const n = 400000;
+				const dt = hours / n;
+				const rec = p.recoveryRate * p.restRecoveryMultiplier;
+				const gate = 1 - (1 - p.microRecoveryFraction) * w;
+				for (let i = 0; i < n; i++) C += dt * (-alpha * w * C + rec * gate * (1 - C));
+				return C;
+			};
+			expect(ev.blocks[0].cogAfter).toBeCloseTo(euler(0.8, p.alphaCog), 5);
+			expect(ev.blocks[0].physAfter).toBeCloseTo(euler(0.3, p.alphaPhys), 5);
+		});
+
+		it('simulateReservoirs agrees with evaluateSchedule end levels (the Burnout Risk core)', () => {
+			const tasks = [makeTask(1, 'A', 7, 4, 0.8, 0.1), makeTask(2, 'B', 3, 8, 0.2, 0.7)];
+			const blocks = [
+				{ taskId: 1, hours: 1.5 },
+				{ taskId: null, hours: 0.5 },
+				{ taskId: 2, hours: 2 }
+			];
+			// Window = span, so evaluateSchedule appends no tail rest.
+			const ev = evaluateSchedule(blocks, tasks, 4, p);
+			const sim = simulateReservoirs(blocks, tasks, p);
+			expect(sim.endCog).toBeCloseTo(ev.endCog, 12);
+			expect(sim.endPhys).toBeCloseTo(ev.endPhys, 12);
+		});
+
+		it('Simpson block output matches an independent fine midpoint integration at the ϕ floor', () => {
+			// Near-floor ϕ inside a long block is the worst case for the quadrature's
+			// 1024-node cap (probe 2026-07-23: rel. error 6.9e-7; headroom kept here).
+			const fast = makeTask(1, 'fast', 1, 10, 0.9, 0.1);
+			const constants = { c1: 0.1, c2: -0.05, c3: 0.05 }; // ϕ hits the 0.1h floor
+			const hours = 8;
+			const ev = evaluateSchedule([{ taskId: 1, hours }], [fast], 12, p, constants);
+
+			// Independent replica of the integrand p(s)·C_cog^wc·C_phys^wp.
+			const E = mapEffort(1);
+			const beta = mapEnjoyability(10);
+			const phi = calculateFlowStateTime(E, beta, constants);
+			const amp = E * beta + beta / E;
+			const k = 1 / phi;
+			const rec = p.recoveryRate * p.restRecoveryMultiplier;
+			const law = (w: number, alpha: number) => {
+				const gate = 1 - (1 - p.microRecoveryFraction) * w;
+				const rho = alpha * w + rec * gate;
+				return { rho, eq: (rec * gate) / rho };
+			};
+			const lc = law(0.9, p.alphaCog);
+			const lp = law(0.1, p.alphaPhys);
+			const cAt = (l: { rho: number; eq: number }, t: number) =>
+				l.eq + (1 - l.eq) * Math.exp(-l.rho * t);
+			const n = 500000;
+			let sum = 0;
+			for (let i = 0; i < n; i++) {
+				const u = ((i + 0.5) * hours) / n;
+				sum +=
+					amp * k * u * Math.exp(-k * u) * Math.pow(cAt(lc, u), 0.9) * Math.pow(cAt(lp, u), 0.1);
+			}
+			const numeric = (sum * hours) / n;
+			expect(Math.abs(ev.blocks[0].output - numeric) / numeric).toBeLessThan(1e-4);
 		});
 	});
 

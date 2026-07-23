@@ -46,11 +46,7 @@
 		calculateAverageMentalDifficulty,
 		calculateAverageEnjoyment
 	} from '$lib/business/model/metric/calculation';
-	import {
-		DEFAULT_ENERGY_PARAMS,
-		fitDrainRate,
-		fitRecoveryRate
-	} from '$lib/business/model/zenith-energy';
+	import { fitEnergyParams } from '$lib/business/model/energy-calibration';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 
 	// Shared daily session (tasks, budget, pools + persistence) — set in the
@@ -80,7 +76,6 @@
 
 	// Navigate to a day; the store follows the URL and loads it.
 	function gotoDate(newDate: string) {
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- the rule has no allowed shape for resolve() + query string
 		goto(newDate === today ? resolve('/') : `${resolve('/')}?date=${newDate}`, {
 			noScroll: true,
 			keepFocus: true
@@ -166,40 +161,9 @@
 	// refined by the user's own calibration logs (🪫 drain, ☕ rest) — the same
 	// fits the Energy Lab offers, but anchored to defaults rather than the
 	// lab's local sliders (the lab deliberately never writes to the session).
-	// Recovery is fitted first; the α fits condition on it (§8.7/§8.9).
-	const burnoutParams = $derived.by(() => {
-		const p = { ...DEFAULT_ENERGY_PARAMS };
-		const recoveryFit = fitRecoveryRate(
-			session.restObservations.flatMap((o) => [
-				{ drainedBefore: o.mindBefore / 10, drainedAfter: o.mindAfter / 10, hours: o.hours },
-				{ drainedBefore: o.bodyBefore / 10, drainedAfter: o.bodyAfter / 10, hours: o.hours }
-			]),
-			p.recoveryRate,
-			p
-		);
-		if (recoveryFit.fitted) p.recoveryRate = recoveryFit.rate;
-		const cogFit = fitDrainRate(
-			session.drainObservations.map((o) => ({
-				demand: o.cognitiveDemand,
-				hours: o.hours,
-				drainedFraction: o.mindDrain / 10
-			})),
-			p.alphaCog,
-			p
-		);
-		if (cogFit.fitted) p.alphaCog = cogFit.alpha;
-		const physFit = fitDrainRate(
-			session.drainObservations.map((o) => ({
-				demand: o.physicalDemand,
-				hours: o.hours,
-				drainedFraction: o.bodyDrain / 10
-			})),
-			p.alphaPhys,
-			p
-		);
-		if (physFit.fitted) p.alphaPhys = physFit.alpha;
-		return p;
-	});
+	const burnoutParams = $derived(
+		fitEnergyParams(session.restObservations, session.drainObservations)
+	);
 	const burnoutRisk = $derived(
 		calculateBurnoutRisk(suggestedTasks, availableHours, switchCost, burnoutParams)
 	);
@@ -280,6 +244,7 @@
 				: NA)
 		},
 		{
+			section: true,
 			label: m.metric_human_capacity(),
 			description: m.metric_human_capacity_desc({
 				type:
@@ -314,6 +279,7 @@
 			valStyle: bottleneckTask !== 'None Detected' ? STATUS.WARNING.color : STATUS.NEUTRAL.color
 		},
 		{
+			section: true,
 			label: m.metric_burnout_risk(),
 			description: m.metric_burnout_risk_desc(),
 			...(hasTasks && hasBudget
@@ -357,6 +323,7 @@
 				: NA)
 		},
 		{
+			section: true,
 			label: m.metric_schedule_integrity(),
 			description: m.metric_schedule_integrity_desc(),
 			...(hasTasks
@@ -374,6 +341,7 @@
 				: NA)
 		},
 		{
+			section: true,
 			label: m.metric_deep_work(),
 			description: m.metric_deep_work_desc(),
 			...(hasTasks && hasBudget
@@ -398,6 +366,7 @@
 				: NA)
 		},
 		{
+			section: true,
 			label: m.metric_grind_density(),
 			description: m.metric_grind_density_desc(),
 			...(hasActive
@@ -490,6 +459,7 @@
 	routines={session.routines}
 	currentTasks={tasks}
 	onimport={(t) => session.importTasks(t)}
+	onimportdate={(d) => session.importFromDate(d)}
 	onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
 	ondeleteroutine={(id) => session.deleteRoutine(id)}
 />

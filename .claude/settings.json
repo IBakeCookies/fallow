@@ -1,13 +1,12 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(npm i *)",
-      "Bash(npm uninstall *)",
-      "Bash(npm ls *)",
-      "Bash(npx prettier *)",
-      "Bash(npx depcruise *)",
-      "Bash(git stash *)",
-      "Bash(LD_LIBRARY_PATH=/tmp/claude-1000/-home-shadi-hobby-zenith/0699cb8b-8da3-4bdb-b94c-e51e03f16839/scratchpad/libs/extracted/usr/lib/x86_64-linux-gnu node /tmp/claude-1000/-home-shadi-hobby-zenith/0699cb8b-8da3-4bdb-b94c-e51e03f16839/scratchpad/sat-verify.mjs)"
-    ]
-  }
+	"permissions": {
+		"allow": [
+			"Bash(npm i *)",
+			"Bash(npm uninstall *)",
+			"Bash(npm ls *)",
+			"Bash(npx prettier *)",
+			"Bash(npx depcruise *)",
+			"Bash(git stash *)"
+		]
+	}
 }

@@ -7,9 +7,9 @@
 Fallow answers a question every productive day poses: _you have N tasks and only
 so many hours — how should you split your time to get the most out of the day?_
 Instead of guessing (or splitting time equally), Fallow models each task's
-productivity curve and solves for the time allocation that maximizes your total
-output, subject to your real limits: the hours in your day and how much
-mental and physical energy you can actually sustain.
+productivity curve and solves for the time allocation that maximizes the
+quality of your worked hours, subject to your real limits: the hours in your
+day and how much mental and physical energy you can actually sustain.
 
 It started as a faithful, over-engineered implementation of the
 [Zenith Gradient Algorithm](https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e)

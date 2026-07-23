@@ -42,9 +42,9 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 		expect((await $readSessionByDate('2026-01-04'))?.switchCost).toBe(0);
 	});
 
-	it('returns false on corrupt JSON without marking migrated', async () => {
+	it('marks migrated on corrupt JSON so it does not retry forever', async () => {
 		backing.set(STORAGE_KEY, '{not json');
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-05', 0.5)).toBe(false);
-		expect(backing.get(MIGRATION_KEY)).toBeUndefined();
+		expect(backing.get(MIGRATION_KEY)).toBe('true');
 	});
 });

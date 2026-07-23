@@ -4,7 +4,7 @@
  */
 
 import type { FlowObservationRecord } from '$lib/data/type';
-import { openDatabase } from '$lib/data/storage/indexed-db';
+import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
  * Upsert: re-logging the same task on the same day REPLACES the earlier
@@ -15,10 +15,7 @@ import { openDatabase } from '$lib/data/storage/indexed-db';
 export async function $updateFlowObservation(
 	observation: Omit<FlowObservationRecord, 'id' | 'createdAt'>
 ): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('flowObservations', 'readwrite');
-		const store = transaction.objectStore('flowObservations');
+	await withStore('flowObservations', 'readwrite', (store) => {
 		// The store is small (one record per task per day), so a scan for the
 		// existing record beats maintaining a compound index + schema migration.
 		const getAll = store.getAll();
@@ -29,35 +26,20 @@ export async function $updateFlowObservation(
 			const record = existing
 				? { ...existing, ...observation, createdAt: Date.now() }
 				: { ...observation, createdAt: Date.now() };
-			const put = store.put(record);
-			put.onerror = () => reject(put.error);
+			store.put(record);
 		};
-		getAll.onerror = () => reject(getAll.error);
-		transaction.oncomplete = () => resolve();
-		transaction.onerror = () => reject(transaction.error);
 	});
 }
 
 export async function $readAllFlowObservations(): Promise<FlowObservationRecord[]> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('flowObservations', 'readonly');
-		const store = transaction.objectStore('flowObservations');
-		const request = store.getAll();
-		request.onsuccess = () => resolve(request.result || []);
-		request.onerror = () => reject(request.error);
-	});
+	const result = await withStore('flowObservations', 'readonly', (store) => store.getAll());
+	return result || [];
 }
 
 /** Remove a single measured data point from the personalization fit. */
 export async function $deleteFlowObservation(id: number): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('flowObservations', 'readwrite');
-		const store = transaction.objectStore('flowObservations');
-		const request = store.delete(id);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('flowObservations', 'readwrite', (store) => {
+		store.delete(id);
 	});
 }
 
@@ -67,12 +49,7 @@ export async function $deleteFlowObservation(id: number): Promise<void> {
  * article defaults with nothing else to reset.
  */
 export async function $deleteAllFlowObservations(): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('flowObservations', 'readwrite');
-		const store = transaction.objectStore('flowObservations');
-		const request = store.clear();
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('flowObservations', 'readwrite', (store) => {
+		store.clear();
 	});
 }

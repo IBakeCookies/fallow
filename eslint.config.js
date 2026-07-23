@@ -1,6 +1,3 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-import storybook from 'eslint-plugin-storybook';
-
 import prettier from 'eslint-config-prettier';
 import path from 'node:path';
 import js from '@eslint/js';
@@ -39,7 +36,15 @@ export default defineConfig(
 	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// Every hit is a false positive the code had annotated (external-URL
+			// constants, caller-supplied hrefs, resolve()+query string): off.
+			'svelte/no-navigation-without-resolve': 'off',
+			// The plugin's compiler pass misses warnings svelte-check does emit
+			// (e.g. state_referenced_locally), so it flags ignores that are in
+			// fact load-bearing: off.
+			'svelte/no-unused-svelte-ignore': 'off'
+		}
 	},
 
 	// ---- Layer boundaries (presentation → business → data, one direction) ----

@@ -13,7 +13,6 @@
 @custom-variant glass-dark (&:is(.glass-dark *));
 @custom-variant glass-light (&:is(.glass-light *));
 
-@custom-variant cyber-punk (&:is(.cyber-punk *));
 @custom-variant aurora (&:is(.aurora *));
 @custom-variant daybreak (&:is(.daybreak *));
 @custom-variant royal (&:is(.royal *));
@@ -33,7 +32,6 @@
 @custom-variant orbit (&:is(.orbit *));
 @custom-variant fallow (&:is(.fallow *));
 @custom-variant lantern-drift (&:is(.lantern-drift *));
-@custom-variant pinwheel (&:is(.pinwheel *));
 @custom-variant canopy (&:is(.canopy *));
 @custom-variant meridian (&:is(.meridian *));
 @custom-variant dunes (&:is(.dunes *));
@@ -392,47 +390,6 @@
 	--primary-foreground: var(--color-white);
 }
 
-.cyber-punk {
-	--radius: 0;
-	--blur: 0;
-	/* flat neon panels — no floating layers */
-	--card-shadow: 0 0 #0000;
-
-	/* neon wireframe, but dimmer than content */
-	--border: oklch(0.85 0.18 122 / 0.4);
-
-	--color-ty-primary: oklch(1 0 0);
-	/* lime, but receding below the white primary text */
-	--color-ty-secondary: oklch(0.8 0.15 122);
-
-	--surface-page: oklch(0.26 0.014 305);
-	--surface-card: oklch(0.32 0.011 308);
-	--surface-inset: oklch(0.26 0.017 300);
-
-	--input: oklch(0.38 0.02 305);
-
-	--primary: oklch(0.67 0.26 345);
-	--primary-foreground: oklch(1 0 0);
-
-	/* neon accents — pink/cyan/green */
-	--color-danger: oklch(0.68 0.26 15);
-	--color-danger-strong: oklch(0.78 0.2 15);
-	--color-warning: oklch(0.9 0.19 100);
-	--color-warning-strong: oklch(0.95 0.15 100);
-	--color-success: oklch(0.87 0.24 145);
-	--color-success-strong: oklch(0.92 0.2 145);
-	--color-info: oklch(0.85 0.15 195);
-	--color-info-strong: oklch(0.9 0.12 195);
-
-	--color-mind: oklch(0.85 0.15 195);
-	--color-mind-strong: oklch(0.9 0.12 195);
-	--color-body: oklch(0.87 0.24 145);
-	--color-flow: oklch(0.9 0.19 100);
-	--color-mixed: oklch(0.72 0.28 320);
-	--color-brand: oklch(0.72 0.28 340);
-	--color-brand-strong: oklch(0.8 0.22 340);
-}
-
 .aurora {
 	/* northern lights, no image dependency: teal + violet + green glows over deep navy */
 	--background-image:
@@ -632,9 +589,9 @@
 	/* woodblock print: hard-edged vermilion sun over washi paper, indigo swell below */
 	--background-image:
 		radial-gradient(
-			circle at 74% 9%,
-			oklch(0.63 0.17 35 / 0.55) 0 4.5rem,
-			transparent calc(4.5rem + 1px)
+			circle at 50% 0%,
+			oklch(0.63 0.17 35 / 0.55) 0 30rem,
+			transparent calc(30rem)
 		),
 		radial-gradient(ellipse 80% 45% at 74% 0%, oklch(0.78 0.09 45 / 0.18), transparent 70%),
 		radial-gradient(ellipse 70% 40% at 12% 35%, oklch(0.8 0.11 355 / 0.1), transparent 70%),
@@ -763,31 +720,6 @@
 	--color-body: oklch(0.78 0.04 160);
 	--color-flow: oklch(0.8 0.05 90);
 	--color-mixed: oklch(0.75 0.04 320);
-}
-
-.ink {
-	/* ruled notebook: blue-black ink on cream paper, one red-pen accent.
-	   Faint horizontal rule lines every 1.75rem, no scenery layer. */
-	--background-image:
-		repeating-linear-gradient(oklch(0.55 0.07 255 / 0.13) 0 1px, transparent 1px 1.75rem),
-		linear-gradient(oklch(0.96 0.02 90), oklch(0.935 0.025 88));
-
-	--radius: 0.125rem;
-
-	--surface-page: oklch(0.95 0.02 89);
-	--surface-card: oklch(0.99 0.008 90 / 0.72);
-	--surface-inset: oklch(0.3 0.03 260 / 0.06);
-	--color-ty-primary: oklch(0.27 0.035 264);
-
-	--input: oklch(1 0.004 90 / 0.7);
-	--border: oklch(0.3 0.035 264 / 0.22);
-
-	/* red pen — the one chrome accent; state + domain colors stay inherited
-	   so overdue/done and the energy domains keep their meaning */
-	--primary: oklch(0.53 0.2 25);
-	--primary-foreground: oklch(0.97 0.01 90);
-	--color-brand: oklch(0.53 0.19 25);
-	--color-brand-strong: oklch(0.46 0.19 25);
 }
 
 .ember {
@@ -949,52 +881,6 @@
 	--color-info: oklch(0.78 0.1 236);
 	--color-info-strong: oklch(0.86 0.075 238);
 }
-.pinwheel {
-	/* a face-on spiral galaxy: hot core, three nebula-arm blooms, deep-space halo */
-	--background-image:
-		radial-gradient(
-			circle at 60% 10%,
-			oklch(0.98 0.029 95 / 0.95) 0 1rem,
-			oklch(0.92 0.075 82 / 0.6) 2.4rem,
-			oklch(0.82 0.12 60 / 0.28) 5rem,
-			transparent 9.5rem
-		),
-		radial-gradient(ellipse 30% 24% at 50% 24%, oklch(0.72 0.12 70 / 0.32), transparent 70%),
-		radial-gradient(ellipse 34% 26% at 29% 13%, oklch(0.6 0.18 350 / 0.28), transparent 66%),
-		radial-gradient(ellipse 42% 30% at 75% 33%, oklch(0.64 0.106 205 / 0.24), transparent 66%),
-		radial-gradient(ellipse 48% 34% at 43% 62%, oklch(0.55 0.18 300 / 0.22), transparent 68%),
-		radial-gradient(ellipse 95% 75% at 50% 30%, oklch(0.4 0.09 292 / 0.28), transparent 76%),
-		linear-gradient(oklch(0.11 0.022 290), oklch(0.07 0.02 265));
-
-	--radius: 1rem;
-
-	--surface-page: oklch(0.1 0.02 285);
-	/* observatory-glass, faintly warmed by the core */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.96 0.012 280);
-
-	--input: oklch(1 0 0 / 0.09);
-	--border: oklch(0.8 0.06 285 / 0.2);
-
-	/* starlight cyan */
-	--primary: oklch(0.82 0.13 205);
-	--primary-foreground: oklch(0.16 0.03 285);
-	--ring: oklch(0.82 0.13 205 / 0.5);
-
-	--color-brand: oklch(0.78 0.12 210);
-	--color-brand-strong: oklch(0.86 0.1 210);
-	/* core gold */
-	--color-flow: oklch(0.85 0.12 85);
-	/* arm violet */
-	--color-mind: oklch(0.76 0.125 285);
-	--color-mind-strong: oklch(0.84 0.079 285);
-	/* nebula jade */
-	--color-body: oklch(0.78 0.13 175);
-	/* H-alpha rose */
-	--color-mixed: oklch(0.72 0.16 345);
-}
-
 .canopy {
 	/* under a sunlit forest canopy: warm gold sunlight breaking through the
 	   leaves from above, a soft green ambience, deepening to moss at the

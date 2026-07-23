@@ -23,7 +23,7 @@ Presentation ──▶ Business ──▶ Data
   shared helpers (`utils/`), and the type surface re-exported for the
   presentation layer (`type/`).
 - `src/lib/data` — the frontend's "backend": storage models (`type/`),
-  storage connections (`storage/` IndexedDB, `database/` Postgres),
+  storage connections (`storage/` IndexedDB),
   repositories with CRUD controllers (`repository/`), and migrations
   (`migration/`).
 

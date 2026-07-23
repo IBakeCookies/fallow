@@ -4,7 +4,7 @@
  */
 
 import type { DrainObservationRecord } from '$lib/data/type';
-import { openDatabase } from '$lib/data/storage/indexed-db';
+import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
  * Upsert: re-rating the same task on the same day REPLACES the earlier
@@ -14,10 +14,7 @@ import { openDatabase } from '$lib/data/storage/indexed-db';
 export async function $updateDrainObservation(
 	observation: Omit<DrainObservationRecord, 'id' | 'createdAt'>
 ): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('drainObservations', 'readwrite');
-		const store = transaction.objectStore('drainObservations');
+	await withStore('drainObservations', 'readwrite', (store) => {
 		// The store is small (one record per task per day), so a scan for the
 		// existing record beats maintaining a compound index + schema migration.
 		const getAll = store.getAll();
@@ -28,35 +25,20 @@ export async function $updateDrainObservation(
 			const record = existing
 				? { ...existing, ...observation, createdAt: Date.now() }
 				: { ...observation, createdAt: Date.now() };
-			const put = store.put(record);
-			put.onerror = () => reject(put.error);
+			store.put(record);
 		};
-		getAll.onerror = () => reject(getAll.error);
-		transaction.oncomplete = () => resolve();
-		transaction.onerror = () => reject(transaction.error);
 	});
 }
 
 export async function $readAllDrainObservations(): Promise<DrainObservationRecord[]> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('drainObservations', 'readonly');
-		const store = transaction.objectStore('drainObservations');
-		const request = store.getAll();
-		request.onsuccess = () => resolve(request.result || []);
-		request.onerror = () => reject(request.error);
-	});
+	const result = await withStore('drainObservations', 'readonly', (store) => store.getAll());
+	return result || [];
 }
 
 /** Remove a single drain rating from the calibration. */
 export async function $deleteDrainObservation(id: number): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('drainObservations', 'readwrite');
-		const store = transaction.objectStore('drainObservations');
-		const request = store.delete(id);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('drainObservations', 'readwrite', (store) => {
+		store.delete(id);
 	});
 }
 
@@ -66,12 +48,7 @@ export async function $deleteDrainObservation(id: number): Promise<void> {
  * calibration to the defaults with nothing else to reset.
  */
 export async function $deleteAllDrainObservations(): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('drainObservations', 'readwrite');
-		const store = transaction.objectStore('drainObservations');
-		const request = store.clear();
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('drainObservations', 'readwrite', (store) => {
+		store.clear();
 	});
 }

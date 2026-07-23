@@ -110,3 +110,26 @@ function open(version?: number): Promise<IDBDatabase> {
 		};
 	});
 }
+
+/**
+ * Run `work` against one object store in a single transaction and resolve when
+ * the transaction COMMITS — not on request success, which fires before the
+ * commit and would hide a later abort (e.g. quota). Resolves with the returned
+ * request's result, or undefined when `work` returns nothing. A failing request
+ * aborts the transaction, so per-request onerror handlers are unnecessary.
+ */
+export async function withStore<T>(
+	storeName: string,
+	mode: IDBTransactionMode,
+	work: (store: IDBObjectStore) => IDBRequest<T> | void
+): Promise<T> {
+	const database = await openDatabase();
+	return new Promise<T>((resolve, reject) => {
+		const transaction = database.transaction(storeName, mode);
+		const request = work(transaction.objectStore(storeName));
+		transaction.oncomplete = () => resolve(request ? request.result : (undefined as T));
+		const fail = () => reject(transaction.error ?? new Error('Transaction aborted'));
+		transaction.onerror = fail;
+		transaction.onabort = fail;
+	});
+}

@@ -96,6 +96,7 @@
 		readSessionsByDateRange(start, end)
 			.then((sessions) => {
 				if (version !== loadVersion) return;
+				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local accumulator, assigned once
 				const map = new Map<string, DaySummary>();
 				for (const s of sessions) {
 					if (s.tasks.length > 0) map.set(s.date, summarizeSession(s, consts, post));
@@ -186,7 +187,6 @@
 			{@const isFuture = date > today}
 			{@const isToday = date === today}
 			{@const dayNum = fromISO(date).getDate()}
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve (no allowed shape for resolve() + query string) -->
 			<a
 				href={date === today ? resolve('/') : `${resolve('/')}?date=${date}`}
 				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-1 sm:p-2 transition-colors

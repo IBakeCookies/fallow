@@ -86,7 +86,6 @@
 				<p class="text-sm leading-relaxed">
 					{faq.a}
 					<!-- the only tail href is the external KOFI_URL constant; resolve() is for internal routes -->
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 					{#if faq.tail}{faq.tail.pre}<a
 							href={faq.tail.href}
 							class={linkClass}

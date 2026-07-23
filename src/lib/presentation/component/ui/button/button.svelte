@@ -64,7 +64,6 @@
 
 {#if href}
 	<!-- generic wrapper: href is caller-supplied, so callers are responsible for resolve() -->
-	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 	<a
 		href={disabled ? undefined : href}
 		bind:this={ref}

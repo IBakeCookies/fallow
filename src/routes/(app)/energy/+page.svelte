@@ -7,6 +7,8 @@
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
+	import EnergyChart from '$lib/presentation/component/energy-chart.svelte';
+	import LogList from '$lib/presentation/component/log-list.svelte';
 	import {
 		DEFAULT_ENERGY_PARAMS,
 		optimizeSchedule,
@@ -65,10 +67,24 @@
 		}
 	}
 
+	// Persisted params are user-reachable JSON: accept only finite numbers for
+	// known keys, so corrupt-but-parseable data (e.g. {"recoveryRate":"abc"})
+	// can't reach the model.
+	function sanitizeParams(raw: unknown): EnergyParams {
+		const p: EnergyParams = { ...DEFAULT_ENERGY_PARAMS };
+		if (raw && typeof raw === 'object') {
+			for (const key of Object.keys(p) as (keyof EnergyParams)[]) {
+				const v = (raw as Record<string, unknown>)[key];
+				if (typeof v === 'number' && Number.isFinite(v)) p[key] = v;
+			}
+		}
+		return p;
+	}
+
 	onMount(() => {
 		try {
 			const saved = localStorage.getItem(PARAMS_KEY);
-			if (saved) params = { ...DEFAULT_ENERGY_PARAMS, ...JSON.parse(saved) };
+			if (saved) params = sanitizeParams(JSON.parse(saved));
 			const savedView = localStorage.getItem(VIEW_KEY);
 			if (savedView === 'chart' || savedView === 'schedule') planView = savedView;
 		} catch (e) {
@@ -254,11 +270,6 @@
 		drainDraft = null;
 	}
 
-	// Ratings manager (list + two-step reset), same pattern as the flow-log list
-	let drainLogsOpen = $state(false);
-	let confirmingDrainReset = $state(false);
-	const drainLogsNewestFirst = $derived([...drainObservations].reverse());
-
 	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
 
 	const restObservations = $derived(session.restObservations);
@@ -313,10 +324,6 @@
 		);
 		restDraft = null;
 	}
-
-	let restLogsOpen = $state(false);
-	let confirmingRestReset = $state(false);
-	const restLogsNewestFirst = $derived([...restObservations].reverse());
 
 	// ---------- Stopping calibration (λ₀ fit from finished days) ----------
 
@@ -388,45 +395,51 @@
 
 	const plannedHours = $derived(plan.blocks.reduce((sum, b) => sum + b.hours, 0));
 	const trailingFreeHours = $derived(Math.max(0, windowHours - plannedHours));
-
-	// ---------- Chart geometry ----------
-
-	const CHART_W = 720;
-	const CHART_H = 190;
-	const PAD_L = 10;
-	const PAD_R = 10;
-	const PAD_T = 12;
-	const PAD_B = 22;
-	const plotW = CHART_W - PAD_L - PAD_R;
-	const plotH = CHART_H - PAD_T - PAD_B;
-
-	const xAt = (t: number) => PAD_L + (windowHours > 0 ? (t / windowHours) * plotW : 0);
-	const yAt = (v: number) => PAD_T + (1 - v) * plotH;
-
-	function linePath(points: { x: number; y: number }[]): string {
-		return points
-			.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-			.join('');
-	}
-
-	const cogPath = $derived(linePath(trajectory.map((p) => ({ x: xAt(p.t), y: yAt(p.cog) }))));
-	const physPath = $derived(linePath(trajectory.map((p) => ({ x: xAt(p.t), y: yAt(p.phys) }))));
-	const maxRate = $derived(Math.max(...trajectory.map((p) => p.rate), 1e-9));
-	const ratePath = $derived.by(() => {
-		if (trajectory.length === 0) return '';
-		const line = linePath(trajectory.map((p) => ({ x: xAt(p.t), y: yAt(p.rate / maxRate) })));
-		const last = trajectory[trajectory.length - 1];
-		return `${line}L${xAt(last.t).toFixed(1)},${yAt(0).toFixed(1)}L${xAt(0).toFixed(1)},${yAt(0).toFixed(1)}Z`;
-	});
-	const hourTicks = $derived.by(() => {
-		const stepH = windowHours > 14 ? 2 : 1;
-		const ticks = [];
-		for (let h = 0; h <= windowHours; h += stepH) ticks.push(h);
-		return ticks;
-	});
 </script>
 
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
+
+{#snippet paramRow(p: {
+	id: string;
+	label: string;
+	hint: string;
+	value: number;
+	onchange: (v: number) => void;
+	min: number;
+	max: number;
+	step: number;
+	unit: string;
+	accent?: string;
+})}
+	<div>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<label
+						{...props}
+						for={p.id}
+						class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
+					>
+						{p.label}
+					</label>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content side="left">
+				<p>{p.hint}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+		<NumberInput
+			id={p.id}
+			value={p.value}
+			onchange={p.onchange}
+			min={p.min}
+			max={p.max}
+			step={p.step}
+			unit={p.unit}
+			accent={p.accent}
+		/>
+	</div>
+{/snippet}
 
 {#snippet applyFitButton(label: string, disabled: boolean, title: string, onclick: () => void)}
 	<button
@@ -579,57 +592,7 @@
 					     above and the summary stats below stay put in both views. -->
 					{#if windowHours > 0}
 						{#if planView === 'chart'}
-							<svg
-								viewBox="0 0 {CHART_W} {CHART_H}"
-								class="mt-text-md w-full"
-								role="img"
-								aria-label={m.energy_chart_aria()}
-							>
-								<path d={ratePath} fill="#818cf8" opacity="0.18" />
-								{#each hourTicks as h (h)}
-									<line
-										x1={xAt(h)}
-										y1={PAD_T}
-										x2={xAt(h)}
-										y2={PAD_T + plotH}
-										stroke="#ffffff"
-										opacity="0.05"
-									/>
-									<text
-										x={xAt(h)}
-										y={CHART_H - 6}
-										fill="#71717a"
-										font-size="9"
-										text-anchor="middle"
-									>
-										{h}h
-									</text>
-								{/each}
-								<line
-									x1={PAD_L}
-									y1={yAt(0)}
-									x2={PAD_L + plotW}
-									y2={yAt(0)}
-									stroke="#ffffff"
-									opacity="0.15"
-								/>
-								<path d={cogPath} fill="none" stroke="#60a5fa" stroke-width="1.8" />
-								<path d={physPath} fill="none" stroke="#34d399" stroke-width="1.8" />
-							</svg>
-							<div class="mt-text-2xs flex gap-grid-md text-xs text-ty-silent">
-								<span class="flex items-center gap-grid-2xs">
-									<span class="h-0.5 w-4 rounded bg-mind"></span>
-									{m.energy_legend_cognitive()}
-								</span>
-								<span class="flex items-center gap-grid-2xs">
-									<span class="h-0.5 w-4 rounded bg-body"></span>
-									{m.energy_legend_physical()}
-								</span>
-								<span class="flex items-center gap-grid-2xs">
-									<span class="h-2 w-4 rounded bg-brand/30"></span>
-									{m.energy_legend_output()}
-								</span>
-							</div>
+							<EnergyChart {trajectory} {windowHours} />
 						{:else if plan.evaluation.blocks.length === 0}
 							<p class="mt-text-md text-sm text-ty-silent">
 								{m.energy_nothing_scheduled()}
@@ -935,224 +898,96 @@
 								</button>
 							</div>
 							<div class="space-y-grid-md">
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="window-hours"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_day_window()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_day_window_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="window-hours"
-										value={windowHours}
-										onchange={(v) => (windowOverride = v)}
-										min={0}
-										max={24}
-										step={0.5}
-										unit={m.unit_hours()}
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="alpha-cog"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_cognitive_drain()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_cognitive_drain_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="alpha-cog"
-										value={params.alphaCog}
-										onchange={(v) => (params.alphaCog = v)}
-										min={0.05}
-										max={2}
-										step={0.05}
-										unit="/h"
-										accent="focus-within:border-mind/50"
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="alpha-phys"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_physical_drain()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_physical_drain_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="alpha-phys"
-										value={params.alphaPhys}
-										onchange={(v) => (params.alphaPhys = v)}
-										min={0.05}
-										max={2}
-										step={0.05}
-										unit="/h"
-										accent="focus-within:border-body/50"
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="recovery-rate"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_recovery_rate()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_recovery_rate_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="recovery-rate"
-										value={params.recoveryRate}
-										onchange={(v) => (params.recoveryRate = v)}
-										min={0.1}
-										max={3}
-										step={0.1}
-										unit="/h"
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="free-time-value"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_free_time_value()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_free_time_value_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="free-time-value"
-										value={params.freeTimeValue}
-										onchange={(v) => (params.freeTimeValue = v)}
-										min={0}
-										max={3}
-										step={0.1}
-										unit="out/h"
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="terminal-value"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_evening_energy()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_evening_energy_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="terminal-value"
-										value={params.terminalEnergyValue}
-										onchange={(v) => (params.terminalEnergyValue = v)}
-										min={0}
-										max={5}
-										step={0.25}
-										unit="out"
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="satiety-scale"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_satiety()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_satiety_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="satiety-scale"
-										value={params.satietyScale}
-										onchange={(v) => (params.satietyScale = v)}
-										min={0}
-										max={5}
-										step={0.25}
-										unit="×"
-									/>
-								</div>
-								<div>
-									<Tooltip.Root>
-										<Tooltip.Trigger>
-											{#snippet child({ props })}
-												<label
-													{...props}
-													for="micro-recovery"
-													class="mb-text-2xs block w-fit cursor-help text-xs text-ty-secondary underline decoration-dotted underline-offset-2"
-												>
-													{m.energy_micro_recovery()}
-												</label>
-											{/snippet}
-										</Tooltip.Trigger>
-										<Tooltip.Content side="left">
-											<p>{m.energy_micro_recovery_hint()}</p>
-										</Tooltip.Content>
-									</Tooltip.Root>
-									<NumberInput
-										id="micro-recovery"
-										value={Number((params.microRecoveryFraction * 100).toFixed(1))}
-										onchange={(v) => (params.microRecoveryFraction = v / 100)}
-										min={0}
-										max={30}
-										step={1}
-										unit="%"
-									/>
-								</div>
+								{@render paramRow({
+									id: 'window-hours',
+									label: m.energy_day_window(),
+									hint: m.energy_day_window_hint(),
+									value: windowHours,
+									onchange: (v) => (windowOverride = v),
+									min: 0,
+									max: 24,
+									step: 0.5,
+									unit: m.unit_hours()
+								})}
+								{@render paramRow({
+									id: 'alpha-cog',
+									label: m.energy_cognitive_drain(),
+									hint: m.energy_cognitive_drain_hint(),
+									value: params.alphaCog,
+									onchange: (v) => (params.alphaCog = v),
+									min: 0.05,
+									max: 2,
+									step: 0.05,
+									unit: '/h',
+									accent: 'focus-within:border-mind/50'
+								})}
+								{@render paramRow({
+									id: 'alpha-phys',
+									label: m.energy_physical_drain(),
+									hint: m.energy_physical_drain_hint(),
+									value: params.alphaPhys,
+									onchange: (v) => (params.alphaPhys = v),
+									min: 0.05,
+									max: 2,
+									step: 0.05,
+									unit: '/h',
+									accent: 'focus-within:border-body/50'
+								})}
+								{@render paramRow({
+									id: 'recovery-rate',
+									label: m.energy_recovery_rate(),
+									hint: m.energy_recovery_rate_hint(),
+									value: params.recoveryRate,
+									onchange: (v) => (params.recoveryRate = v),
+									min: 0.1,
+									max: 3,
+									step: 0.1,
+									unit: '/h'
+								})}
+								{@render paramRow({
+									id: 'free-time-value',
+									label: m.energy_free_time_value(),
+									hint: m.energy_free_time_value_hint(),
+									value: params.freeTimeValue,
+									onchange: (v) => (params.freeTimeValue = v),
+									min: 0,
+									max: 3,
+									step: 0.1,
+									unit: 'out/h'
+								})}
+								{@render paramRow({
+									id: 'terminal-value',
+									label: m.energy_evening_energy(),
+									hint: m.energy_evening_energy_hint(),
+									value: params.terminalEnergyValue,
+									onchange: (v) => (params.terminalEnergyValue = v),
+									min: 0,
+									max: 5,
+									step: 0.25,
+									unit: 'out'
+								})}
+								{@render paramRow({
+									id: 'satiety-scale',
+									label: m.energy_satiety(),
+									hint: m.energy_satiety_hint(),
+									value: params.satietyScale,
+									onchange: (v) => (params.satietyScale = v),
+									min: 0,
+									max: 5,
+									step: 0.25,
+									unit: '×'
+								})}
+								{@render paramRow({
+									id: 'micro-recovery',
+									label: m.energy_micro_recovery(),
+									hint: m.energy_micro_recovery_hint(),
+									value: Number((params.microRecoveryFraction * 100).toFixed(1)),
+									onchange: (v) => (params.microRecoveryFraction = v / 100),
+									min: 0,
+									max: 30,
+									step: 1,
+									unit: '%'
+								})}
 							</div>
 						</div>
 
@@ -1220,82 +1055,35 @@
 								{/if}
 
 								<div class="mt-text-sm border-t pt-box-sm">
-									<button
-										type="button"
-										class="flex w-full items-center justify-between gap-text-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary"
-										onclick={() => {
-											drainLogsOpen = !drainLogsOpen;
-											confirmingDrainReset = false;
-										}}
+									<LogList
+										label={m.energy_drain_log_count({ count: drainObservations.length })}
+										items={drainObservations}
+										confirmLabel={m.energy_reset_drain_confirm({ count: drainObservations.length })}
+										resetLabel={m.energy_reset_drain_logs()}
+										resetTitle={m.energy_reset_drain_title()}
+										onreset={() => session.resetDrainLogs()}
 									>
-										<span>{m.energy_drain_log_count({ count: drainObservations.length })}</span>
-										<span class="shrink-0 text-ty-silent">{drainLogsOpen ? '▴' : '▾'}</span>
-									</button>
-
-									{#if drainLogsOpen}
-										<ul class="mt-text-xs space-y-text-2xs">
-											{#each drainLogsNewestFirst as log (log.id)}
-												<li
-													class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
-												>
-													<span class="truncate">
-														<span class="text-ty-silent">{log.date}</span>
-														<span class="capitalize"> · {log.taskTitle}</span>
-													</span>
-													<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
-														<span class="text-ty-silent">{formatDuration(log.hours)}</span>
-														<span class="font-medium text-mind/90">M{log.mindDrain}</span>
-														<span class="font-medium text-body/90">B{log.bodyDrain}</span>
-														<button
-															type="button"
-															aria-label={m.energy_delete_drain_log_aria()}
-															title={m.energy_delete_drain_log_title()}
-															class="text-ty-silent transition hover:text-danger"
-															onclick={() => session.deleteDrainLog(log.id!)}
-														>
-															✕
-														</button>
-													</span>
-												</li>
-											{/each}
-										</ul>
-										<div class="mt-text-xs flex justify-end">
-											{#if confirmingDrainReset}
-												<span class="flex items-center gap-text-xs text-xs">
-													<span class="text-ty-silent">
-														{m.energy_reset_drain_confirm({ count: drainObservations.length })}
-													</span>
-													<button
-														type="button"
-														class="font-medium text-danger hover:text-danger-strong"
-														onclick={() => {
-															session.resetDrainLogs();
-															confirmingDrainReset = false;
-															drainLogsOpen = false;
-														}}
-													>
-														{m.common_reset()}
-													</button>
-													<button
-														type="button"
-														class="text-ty-silent hover:text-ty-secondary"
-														onclick={() => (confirmingDrainReset = false)}
-													>
-														{m.common_cancel()}
-													</button>
-												</span>
-											{:else}
+										{#snippet row(log)}
+											<span class="truncate">
+												<span class="text-ty-silent">{log.date}</span>
+												<span class="capitalize"> · {log.taskTitle}</span>
+											</span>
+											<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
+												<span class="text-ty-silent">{formatDuration(log.hours)}</span>
+												<span class="font-medium text-mind/90">M{log.mindDrain}</span>
+												<span class="font-medium text-body/90">B{log.bodyDrain}</span>
 												<button
 													type="button"
-													class="text-xs text-ty-silent transition hover:text-danger"
-													title={m.energy_reset_drain_title()}
-													onclick={() => (confirmingDrainReset = true)}
+													aria-label={m.energy_delete_drain_log_aria()}
+													title={m.energy_delete_drain_log_title()}
+													class="text-ty-silent transition hover:text-danger"
+													onclick={() => session.deleteDrainLog(log.id!)}
 												>
-													{m.energy_reset_drain_logs()}
+													✕
 												</button>
-											{/if}
-										</div>
-									{/if}
+											</span>
+										{/snippet}
+									</LogList>
 								</div>
 							{/if}
 						</div>
@@ -1459,83 +1247,36 @@
 								{/if}
 
 								<div class="mt-text-sm border-t pt-box-sm">
-									<button
-										type="button"
-										class="flex w-full items-center justify-between gap-text-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary"
-										onclick={() => {
-											restLogsOpen = !restLogsOpen;
-											confirmingRestReset = false;
-										}}
+									<LogList
+										label={m.energy_rest_log_count({ count: restObservations.length })}
+										items={restObservations}
+										confirmLabel={m.energy_reset_rest_confirm({ count: restObservations.length })}
+										resetLabel={m.energy_reset_rest_logs()}
+										resetTitle={m.energy_reset_rest_title()}
+										onreset={() => session.resetRestLogs()}
 									>
-										<span>{m.energy_rest_log_count({ count: restObservations.length })}</span>
-										<span class="shrink-0 text-ty-silent">{restLogsOpen ? '▴' : '▾'}</span>
-									</button>
-
-									{#if restLogsOpen}
-										<ul class="mt-text-xs space-y-text-2xs">
-											{#each restLogsNewestFirst as log (log.id)}
-												<li
-													class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
-												>
-													<span class="truncate text-ty-silent">{log.date}</span>
-													<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
-														<span class="text-ty-silent">{formatDuration(log.hours)}</span>
-														<span class="font-medium text-mind/90">
-															M{log.mindBefore}→{log.mindAfter}
-														</span>
-														<span class="font-medium text-body/90">
-															B{log.bodyBefore}→{log.bodyAfter}
-														</span>
-														<button
-															type="button"
-															aria-label={m.energy_delete_rest_log_aria()}
-															title={m.energy_delete_rest_log_title()}
-															class="text-ty-silent transition hover:text-danger"
-															onclick={() => session.deleteRestLog(log.id!)}
-														>
-															✕
-														</button>
-													</span>
-												</li>
-											{/each}
-										</ul>
-										<div class="mt-text-xs flex justify-end">
-											{#if confirmingRestReset}
-												<span class="flex items-center gap-text-xs text-xs">
-													<span class="text-ty-silent">
-														{m.energy_reset_rest_confirm({ count: restObservations.length })}
-													</span>
-													<button
-														type="button"
-														class="font-medium text-danger hover:text-danger-strong"
-														onclick={() => {
-															session.resetRestLogs();
-															confirmingRestReset = false;
-															restLogsOpen = false;
-														}}
-													>
-														{m.common_reset()}
-													</button>
-													<button
-														type="button"
-														class="text-ty-silent hover:text-ty-secondary"
-														onclick={() => (confirmingRestReset = false)}
-													>
-														{m.common_cancel()}
-													</button>
+										{#snippet row(log)}
+											<span class="truncate text-ty-silent">{log.date}</span>
+											<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
+												<span class="text-ty-silent">{formatDuration(log.hours)}</span>
+												<span class="font-medium text-mind/90">
+													M{log.mindBefore}→{log.mindAfter}
 												</span>
-											{:else}
+												<span class="font-medium text-body/90">
+													B{log.bodyBefore}→{log.bodyAfter}
+												</span>
 												<button
 													type="button"
-													class="text-xs text-ty-silent transition hover:text-danger"
-													title={m.energy_reset_rest_title()}
-													onclick={() => (confirmingRestReset = true)}
+													aria-label={m.energy_delete_rest_log_aria()}
+													title={m.energy_delete_rest_log_title()}
+													class="text-ty-silent transition hover:text-danger"
+													onclick={() => session.deleteRestLog(log.id!)}
 												>
-													{m.energy_reset_rest_logs()}
+													✕
 												</button>
-											{/if}
-										</div>
-									{/if}
+											</span>
+										{/snippet}
+									</LogList>
 								</div>
 							{/if}
 						</div>

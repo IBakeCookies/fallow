@@ -6,35 +6,6 @@
    from the .ukiyo background breathes softly behind its own halo. */
 .ukiyo .theme-scenery {
 	display: block;
-
-	/* the vermilion sun, breathing behind a soft halo — sits up-left of the
-	   big sun baked into the .ukiyo --background-image (at 74% 9%); the rem
-	   offset keeps the gap constant across viewport widths */
-	.theme-helper-1 {
-		position: absolute;
-		/* 12rem top bleed: the seeded position shift (up to 3rem down) would
-		   otherwise expose the layer's unpainted top edge as a horizontal seam
-		   through the halo — so the halo (12rem) must fit inside the bleed.
-		   Gradient y = 5.5rem viewport + 12rem bleed. */
-		inset: -12rem 0 0 0;
-		background-image:
-			radial-gradient(circle at calc(74% - 11rem) 17.5rem, oklch(0.68 0.15 35 / 0.32) 0 5.5rem, transparent 12rem),
-			radial-gradient(
-				circle at calc(74% - 11rem) 17.5rem,
-				oklch(0.63 0.17 35 / 0.4) 0 3.2rem,
-				transparent calc(3.2rem + 1px)
-			);
-		background-repeat: no-repeat;
-		/* seed lever: static tile, only opacity breathes — both axes free.
-		   no-repeat is required here: the halo above is now length-bounded
-		   (was transparent 70%, i.e. 70% of farthest-corner — a viewport-wide
-		   wash) so a seeded offset just nudges one sun instead of tiling
-		   hard seams at the repeat edges. */
-		background-position: var(--ukiyo-sun-pos, 0 0);
-		animation: ukiyo-sun-breathe 15s ease-in-out infinite alternate;
-		animation-delay: var(--ukiyo-sun-phase, 0s);
-	}
-
 	/* the indigo swell — a low band of wave crests drifting sideways */
 	.theme-helper-2 {
 		position: absolute;

@@ -5,6 +5,7 @@
  * data layer must not reach up into the business layer for model defaults.
  */
 
+import type { DailySession } from '$lib/data/type';
 import { $updateSession } from '$lib/data/repository/session-repository';
 
 const STORAGE_KEY = 'zenith-daily-tasks';
@@ -23,21 +24,32 @@ export async function migrateFromLocalStorageToIndexedDB(
 		return false;
 	}
 
+	let session: DailySession;
 	try {
 		const parsed = JSON.parse(oldData);
-
-		await $updateSession({
+		session = {
 			date: today,
 			tasks: parsed.tasks || [],
 			availableHours: parsed.availableHours || 0,
 			switchCost: parsed.switchCost ?? defaultSwitchCost,
 			updatedAt: Date.now()
-		});
-
-		localStorage.setItem(MIGRATION_KEY, 'true');
-		// Keep old data for safety, can be cleaned up later
-		return true;
+		};
 	} catch {
+		// Unparseable/malformed legacy JSON will never parse — a permanent
+		// failure. Mark migrated so we stop retrying it on every load.
+		localStorage.setItem(MIGRATION_KEY, 'true');
 		return false;
 	}
+
+	try {
+		await $updateSession(session);
+	} catch {
+		// An IndexedDB write can fail transiently (e.g. quota): leave the flag
+		// unset so a later load retries the migration.
+		return false;
+	}
+
+	localStorage.setItem(MIGRATION_KEY, 'true');
+	// Keep old data for safety, can be cleaned up later
+	return true;
 }

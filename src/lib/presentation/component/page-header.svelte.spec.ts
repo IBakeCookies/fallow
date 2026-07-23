@@ -39,19 +39,42 @@ const baseProps = {
 	routines: [] as SavedRoutine[],
 	currentTasks: [] as Task[],
 	onimport: vi.fn(),
+	onimportdate: vi.fn(() => Promise.resolve(0)),
 	onsaveroutine: vi.fn(),
 	ondeleteroutine: vi.fn()
 };
 
 describe('page-header.svelte', () => {
-	it('shows the completed/total count and no actions when empty on today', async () => {
+	it('shows the completed/total count and no save action when empty on today', async () => {
 		render(PageHeader, baseProps);
 
 		await expect.element(page.getByRole('heading', { name: 'Fallow' })).toBeInTheDocument();
 		await expect.element(page.getByText('tasks')).toBeInTheDocument();
 		await expect.element(page.getByText('1', { exact: true })).toBeInTheDocument();
-		expect(page.getByRole('button', { name: 'Load' }).elements()).toHaveLength(0);
+		// Load stays available even with nothing saved — any past day can be imported by date.
+		await expect.element(page.getByRole('button', { name: 'Load' }).first()).toBeInTheDocument();
 		expect(page.getByRole('button', { name: 'Save' }).elements()).toHaveLength(0);
+	});
+
+	it('imports tasks from a picked date and closes the menu', async () => {
+		const onimportdate = vi.fn(() => Promise.resolve(2));
+		render(PageHeader, { ...baseProps, onimportdate });
+
+		await page.getByRole('button', { name: 'Load' }).first().click();
+		await page.getByLabelText('Load from a day').fill('2026-07-15');
+
+		expect(onimportdate).toHaveBeenCalledExactlyOnceWith('2026-07-15');
+		await expect.element(page.getByLabelText('Load from a day')).not.toBeInTheDocument();
+	});
+
+	it('shows a hint when the picked date has no tasks', async () => {
+		const onimportdate = vi.fn(() => Promise.resolve(0));
+		render(PageHeader, { ...baseProps, onimportdate });
+
+		await page.getByRole('button', { name: 'Load' }).first().click();
+		await page.getByLabelText('Load from a day').fill('2026-07-15');
+
+		await expect.element(page.getByText('No tasks on that day')).toBeInTheDocument();
 	});
 
 	it('offers "Return to Today" when viewing another date', async () => {

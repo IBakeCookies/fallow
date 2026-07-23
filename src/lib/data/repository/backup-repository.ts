@@ -58,6 +58,14 @@ export async function $importAllStores(backup: unknown): Promise<void> {
 	if (!parsed || parsed.app !== 'fallow' || typeof parsed.stores !== 'object' || !parsed.stores) {
 		throw new Error('Not a Fallow backup file');
 	}
+	// A newer schema may carry records this build can't interpret; refuse rather
+	// than blind-merge them. Missing/older versions still import — readers
+	// tolerate absent fields by design.
+	if (typeof parsed.schemaVersion === 'number' && parsed.schemaVersion > DB_VERSION) {
+		throw new Error(
+			`Backup schema v${parsed.schemaVersion} is newer than this app (v${DB_VERSION})`
+		);
+	}
 
 	const database = await openDatabase();
 	return new Promise((resolve, reject) => {

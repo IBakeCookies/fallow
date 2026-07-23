@@ -18,7 +18,6 @@
 	>
 		{#each links as link (link.href)}
 			<!-- internal hrefs are resolve()d in the links array; the rule can't trace through it -->
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a
 				href={link.href}
 				target={link.external ? '_blank' : undefined}

@@ -5,6 +5,8 @@
 
 /** One row/tile in the metrics dashboard. */
 export interface Metric {
+	/** starts a new visual section (rendered with a separator above) */
+	section?: boolean;
 	label: string;
 	value: string;
 	description: string;

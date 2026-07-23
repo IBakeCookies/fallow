@@ -38,32 +38,55 @@ severity. Check items off (or delete them) as they're resolved.
       another tab's upgrade proceeds, warns on `request.onblocked`, and retries
       without a version on `VersionError` so a downgraded build opens the newer
       on-disk schema. Covered by `indexed-db.test.ts`.
-- [ ] **No quota handling.** No `QuotaExceededError` handling anywhere; a
-      write failing on storage pressure rejects into a `console.error` the user
-      never sees.
+- [x] **No quota handling.** _Fixed 2026-07-23:_ repository writes resolve on
+      `transaction.oncomplete` (not pre-commit `request.onsuccess`) and reject
+      on `onabort` via the shared `withStore()` helper, so quota aborts surface
+      with their `DOMException` intact; every session-store persistence failure
+      now sets `storageError`, rendered as a dismissible localized banner in the
+      app layout. Autosave is debounced (500ms trailing, flushed on tab-hide and
+      before date-switch loads) so typing no longer writes per keystroke, and
+      the ⚡ flow badge is stamped only after its write commits.
+- [x] **Backup import ignored `schemaVersion`.** _Fixed 2026-07-23:_
+      `$importAllStores` rejects backups whose `schemaVersion` is newer than
+      `DB_VERSION`; older/missing versions still import (readers tolerate
+      absent fields).
+- [x] **Second tab silently clobbered the day's session** (whole-session
+      last-write-wins put on the date key). _Mitigated 2026-07-23:_ pending
+      saves flush when a tab hides; on becoming visible a tab re-reads the
+      selected date, so tab-switching picks up the other tab's writes.
+- [x] **Charts were theme-blind** (hardcoded hexes; white-alpha gridlines
+      invisible on light themes — including the default `fallow`). _Fixed
+      2026-07-23:_ analytics + energy charts use theme tokens
+      (`--color-line-soft/strong`, `--color-brand`, `--color-mind/body`,
+      `--color-flow`); residual categorical palettes are mid-tone and legible
+      on both light and dark.
+- [x] **Corrupt legacy localStorage retried migration forever.** _Fixed
+      2026-07-23:_ parse failures mark the migration done and stop; only
+      transient IndexedDB failures retry.
 - [x] **Dead Postgres backend shipping.** Removed `postgres.ts`,
       `docker-compose.yml`, `init.sql`, and the `pg` / `@types/pg` deps
       (2026-07-20).
 - [x] **Demo/boilerplate routes deploy as live pages.** `src/routes/demo/*`
       (SvelteKit demo + Playwright example), plus committed scaffolding in
       `src/lib/vitest-examples/*` and default `src/stories/*` (Button/Header/Page).
-- [ ] **No CI.** `lint`, `check`, and `test` scripts exist in `package.json`
-      but nothing runs them automatically.
-- [x] **Test coverage is math-only.** Business/model logic is well tested;
-      the data layer (`src/lib/data/`), the store
-      (`session-store.svelte.ts`), all routes, and all real UI components have
-      zero tests.
+- [x] **No CI.** _Fixed 2026-07-23:_ `.github/workflows/ci.yml` runs
+      `svelte-check`, eslint, the vitest projects (browser mode included), and
+      the Playwright e2e suite on every push/PR to `main`. (`prettier --check`
+      is deliberately not in CI.)
+- [x] **Test coverage is math-only.** _Fixed piecemeal by 2026-07-23:_ the
+      data layer (all repositories, `indexed-db.ts`, the localStorage
+      migration), the session store, and the real UI components now have
+      specs; business/model keeps its numeric suite (135 tests as of
+      2026-07-23). Routes are exercised only via the Playwright e2e suite.
 
 ## Nice to have
 
-- [ ] `saveRoutine`/`deleteRoutine` are the only store mutations without
-      try/catch (`src/lib/business/session-store.svelte.ts:442-449`).
+- [x] `saveRoutine`/`deleteRoutine` were the only store mutations without
+      try/catch. _Fixed 2026-07-23:_ same try/catch + `storageError` treatment
+      as every sibling mutation.
 - [ ] Persisted energy params are merged without validation
       (`src/routes/(app)/energy/+page.svelte:65`): corrupt-but-valid JSON like
       `{"recoveryRate":"abc"}` is spread straight into the params object.
-- [ ] `console.log` on startup prune (`src/lib/business/session-history.ts:30`).
-- [ ] `debug-storybook.log` is ignored-but-tracked (committed before the
-      ignore rule).
 - [ ] No `.env.example` despite `.gitignore` whitelisting one.
 - [ ] **Set `PUBLIC_SITE_URL` on Vercel** (e.g. `https://<prod-domain>`). SEO
       tags, `sitemap.xml`, and `robots.txt` (2026-07-19) fall back to the request
@@ -84,3 +107,12 @@ severity. Check items off (or delete them) as they're resolved.
 - Known model-code perf headroom (buildCurves caching) is documented in
   `src/lib/business/model/zenith-energy.ts` and the roadmap — a deliberate
   non-fix at current plan sizes, not an oversight.
+- `zenith.ts`, `zenith-energy.ts`, and `session-store.svelte.ts` are
+  **deliberately deep modules** (large implementations behind tiny interfaces:
+  the store is 500+ lines behind 3 exports). A 2026-07-23 interface analysis
+  confirmed every proposed split would force currently-private helpers
+  (`amplitudeRatio`, `phiQuadratureNodes`, `reservoirLaw`, date-routing state)
+  into cross-module exports — more surface, not less. Don't split on line
+  count; the one seam worth cutting (generic 3×3 linalg → `linalg.ts`) is cut.
+- Metric color-band thresholds live in the presentation layer **by explicit
+  decision** (`status.ts` header): banding is display policy, not domain math.

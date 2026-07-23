@@ -987,50 +987,27 @@ export function fitDrainRate(
 	fallbackAlpha: number,
 	params: Pick<EnergyParams, 'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'>
 ): DrainRateFit {
-	const used = observations.filter((o) => o.demand > 0 && o.hours > 0);
-	if (used.length === 0) {
-		return { alpha: fallbackAlpha, fitted: false, usedCount: 0 };
-	}
-
-	const alpha0 = Math.min(Math.max(fallbackAlpha, ALPHA_FIT_MIN), ALPHA_FIT_MAX);
-	const predicted = (alpha: number, o: DrainObservation): number => {
-		const law = reservoirLaw(
-			clamp01(o.demand),
-			alpha,
-			params.recoveryRate,
-			params.restRecoveryMultiplier,
-			params.microRecoveryFraction
-		);
-		return 1 - reservoirAt(1, law, o.hours);
-	};
-	const ssr = (alpha: number): number => {
-		let sum = 0;
-		for (const o of used) {
-			const resid = clamp01(o.drainedFraction) - predicted(alpha, o);
-			sum += resid * resid;
+	const fit = fitRidge1D(
+		observations,
+		(o) => o.demand > 0 && o.hours > 0,
+		fallbackAlpha,
+		ALPHA_FIT_MIN,
+		ALPHA_FIT_MAX,
+		DRAIN_PRIOR_STRENGTH,
+		DRAIN_NOISE_PRIOR_STD,
+		(o) => clamp01(o.drainedFraction),
+		(alpha, o) => {
+			const law = reservoirLaw(
+				clamp01(o.demand),
+				alpha,
+				params.recoveryRate,
+				params.restRecoveryMultiplier,
+				params.microRecoveryFraction
+			);
+			return 1 - reservoirAt(1, law, o.hours);
 		}
-		return sum;
-	};
-	const objective = (alpha: number): number =>
-		ssr(alpha) + DRAIN_PRIOR_STRENGTH * (alpha - alpha0) * (alpha - alpha0);
-
-	const alpha = minimizeSmooth1D(objective, ALPHA_FIT_MIN, ALPHA_FIT_MAX);
-
-	// Noise estimate (inverse-gamma-style blend, as in fitUserConstants) and
-	// Laplace posterior std via the Gauss–Newton curvature Σ(dD/dα)² + λ.
-	// ν₀ is deliberately NOT the ridge λ — see CALIBRATION_NOISE_PRIOR_WEIGHT.
-	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
-	const sigma2 =
-		(nu0 * DRAIN_NOISE_PRIOR_STD * DRAIN_NOISE_PRIOR_STD + ssr(alpha)) / (nu0 + used.length);
-	const h = 1e-4;
-	let sensitivity = 0;
-	for (const o of used) {
-		const dD = (predicted(alpha + h, o) - predicted(alpha - h, o)) / (2 * h);
-		sensitivity += dD * dD;
-	}
-	const alphaStd = Math.sqrt(sigma2 / (sensitivity + DRAIN_PRIOR_STRENGTH));
-
-	return { alpha, fitted: true, alphaStd, usedCount: used.length };
+	);
+	return { alpha: fit.value, fitted: fit.fitted, alphaStd: fit.std, usedCount: fit.usedCount };
 }
 
 /**
@@ -1074,6 +1051,70 @@ function minimizeSmooth1D(f: (x: number) => number, min: number, max: number): n
 		}
 	}
 	return (lo + hi) / 2;
+}
+
+/** Generic result of a 1-D ridge-to-prior calibration fit. */
+interface Ridge1DFit {
+	value: number;
+	fitted: boolean;
+	std?: number;
+	usedCount: number;
+}
+
+/**
+ * Shared skeleton of the α (fitDrainRate) and r (fitRecoveryRate) calibrations,
+ * which are line-for-line structurally identical: filter to the informative
+ * observations → 1-D ridge-to-prior minimized by minimizeSmooth1D →
+ * inverse-gamma-style σ̂² blended with the noise floor as ν₀ pseudo-observations
+ * → numeric-difference Laplace posterior std via the Gauss–Newton curvature
+ * Σ(dD/dparam)² + λ. The fits differ only in the informative predicate, the
+ * observed target, the prediction closure, the prior mean/strength (λ), the
+ * noise prior, and the bounds — all parameters here.
+ *
+ * ν₀ stays CALIBRATION_NOISE_PRIOR_WEIGHT, deliberately decoupled from the ridge
+ * λ (priorStrength) — the two roles are unrelated; see that constant's doc.
+ */
+function fitRidge1D<O>(
+	observations: O[],
+	informative: (o: O) => boolean,
+	fallback: number,
+	min: number,
+	max: number,
+	priorStrength: number,
+	noisePriorStd: number,
+	observed: (o: O) => number,
+	predict: (param: number, o: O) => number
+): Ridge1DFit {
+	const used = observations.filter(informative);
+	if (used.length === 0) {
+		return { value: fallback, fitted: false, usedCount: 0 };
+	}
+
+	const param0 = Math.min(Math.max(fallback, min), max);
+	const ssr = (param: number): number => {
+		let sum = 0;
+		for (const o of used) {
+			const resid = observed(o) - predict(param, o);
+			sum += resid * resid;
+		}
+		return sum;
+	};
+	const objective = (param: number): number =>
+		ssr(param) + priorStrength * (param - param0) * (param - param0);
+
+	const value = minimizeSmooth1D(objective, min, max);
+
+	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
+	const sigma2 = (nu0 * noisePriorStd * noisePriorStd + ssr(value)) / (nu0 + used.length);
+	const h = 1e-4;
+	let sensitivity = 0;
+	for (const o of used) {
+		const dD = (predict(value + h, o) - predict(value - h, o)) / (2 * h);
+		sensitivity += dD * dD;
+	}
+	const std = Math.sqrt(sigma2 / (sensitivity + priorStrength));
+
+	return { value, fitted: true, std, usedCount: used.length };
 }
 
 // ================== Recovery-rate calibration (r fit) ==================
@@ -1161,43 +1202,19 @@ export function fitRecoveryRate(
 	fallbackRate: number,
 	params: Pick<EnergyParams, 'restRecoveryMultiplier'>
 ): RecoveryRateFit {
-	const used = observations.filter((o) => o.drainedBefore > 0 && o.hours > 0);
-	if (used.length === 0) {
-		return { rate: fallbackRate, fitted: false, usedCount: 0 };
-	}
-
-	const rate0 = Math.min(Math.max(fallbackRate, RECOVERY_FIT_MIN), RECOVERY_FIT_MAX);
 	const m = params.restRecoveryMultiplier;
-	const predicted = (rate: number, o: RestObservation): number =>
-		clamp01(o.drainedBefore) * Math.exp(-rate * m * o.hours);
-	const ssr = (rate: number): number => {
-		let sum = 0;
-		for (const o of used) {
-			const resid = clamp01(o.drainedAfter) - predicted(rate, o);
-			sum += resid * resid;
-		}
-		return sum;
-	};
-	const objective = (rate: number): number =>
-		ssr(rate) + RECOVERY_PRIOR_STRENGTH * (rate - rate0) * (rate - rate0);
-
-	const rate = minimizeSmooth1D(objective, RECOVERY_FIT_MIN, RECOVERY_FIT_MAX);
-
-	// Noise estimate and Laplace posterior std, exactly the fitDrainRate
-	// construction. dD/dr is closed-form (−m·g·d_pre·e^(−r·m·g)) but the
-	// central difference keeps the two fits structurally identical.
-	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
-	const sigma2 =
-		(nu0 * RECOVERY_NOISE_PRIOR_STD * RECOVERY_NOISE_PRIOR_STD + ssr(rate)) / (nu0 + used.length);
-	const h = 1e-4;
-	let sensitivity = 0;
-	for (const o of used) {
-		const dD = (predicted(rate + h, o) - predicted(rate - h, o)) / (2 * h);
-		sensitivity += dD * dD;
-	}
-	const rateStd = Math.sqrt(sigma2 / (sensitivity + RECOVERY_PRIOR_STRENGTH));
-
-	return { rate, fitted: true, rateStd, usedCount: used.length };
+	const fit = fitRidge1D(
+		observations,
+		(o) => o.drainedBefore > 0 && o.hours > 0,
+		fallbackRate,
+		RECOVERY_FIT_MIN,
+		RECOVERY_FIT_MAX,
+		RECOVERY_PRIOR_STRENGTH,
+		RECOVERY_NOISE_PRIOR_STD,
+		(o) => clamp01(o.drainedAfter),
+		(rate, o) => clamp01(o.drainedBefore) * Math.exp(-rate * m * o.hours)
+	);
+	return { rate: fit.value, fitted: fit.fitted, rateStd: fit.std, usedCount: fit.usedCount };
 }
 
 // ================== Stopping-value calibration (λ₀ fit) ==================

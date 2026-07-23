@@ -62,6 +62,16 @@ export class SessionStore {
 	// keeps saving once a session exists (so deleting the last task persists).
 	#loadedHadSession = $state(false);
 
+	// A persistence failure the UI should surface. Machine value ('save-failed');
+	// the layout resolves it to a localized banner. Cleared by clearStorageError.
+	#storageError = $state<string | null>(null);
+
+	// Trailing-debounced auto-save: the effect captures a snapshot into
+	// #pendingSave and (re)arms #saveTimer, so a burst of edits collapses to one
+	// IndexedDB put; the write is flushed early when the tab is hidden.
+	#pendingSave: DailySession | null = null;
+	#saveTimer: ReturnType<typeof setTimeout> | undefined;
+
 	// The URL is the single source of truth for the viewed day: /?date=YYYY-MM-DD
 	// for any other day, plain / for today. Routes without a date param (Energy
 	// Lab, calendar, …) always view today. Invalid dates fall back to today.
@@ -123,7 +133,8 @@ export class SessionStore {
 		// Auto-save to IndexedDB for today and future plans (past days save
 		// explicitly on toggle). Guards: the in-memory state must actually belong
 		// to the viewed date (loads are async), and pristine never-saved days are
-		// skipped so browsing ahead creates no empty records.
+		// skipped so browsing ahead creates no empty records. The put is debounced
+		// (trailing 500ms) so typing a budget doesn't fire a put per keystroke.
 		$effect(() => {
 			if (
 				browser &&
@@ -139,23 +150,62 @@ export class SessionStore {
 					this.#cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
 					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
 				if (!dirty) return;
-				sessionRepository
-					.$updateSession({
-						date: this.#selectedDate,
-						tasks: $state.snapshot(this.#tasks),
-						availableHours: this.#availableHours,
-						switchCost: this.#switchCost,
-						cognitivePool: this.#cognitivePool,
-						physicalPool: this.#physicalPool,
-						updatedAt: Date.now()
-					})
-					.then(() => (this.#loadedHadSession = true))
-					.catch((e) => console.error('Failed to save session', e));
+				// Snapshot inside the tracked effect (so deep task edits are seen),
+				// then persist on a trailing debounce.
+				this.#pendingSave = {
+					date: this.#selectedDate,
+					tasks: $state.snapshot(this.#tasks),
+					availableHours: this.#availableHours,
+					switchCost: this.#switchCost,
+					cognitivePool: this.#cognitivePool,
+					physicalPool: this.#physicalPool,
+					updatedAt: Date.now()
+				};
+				clearTimeout(this.#saveTimer);
+				this.#saveTimer = setTimeout(() => this.#flushSave(), 500);
+				return () => clearTimeout(this.#saveTimer);
 			}
+		});
+
+		// Flush the pending write the instant the tab is hidden (the debounce may
+		// not fire before a discard), and on returning re-read the selected date
+		// so another tab's writes are picked up. Re-reading only when nothing is
+		// pending is safe: a hidden tab can't be mid-edit, so no ping-pong.
+		$effect(() => {
+			if (!browser) return;
+			const onVisibility = () => {
+				if (document.hidden) this.#flushSave();
+				else if (!this.#pendingSave) this.#loadSession(this.#selectedDate);
+			};
+			document.addEventListener('visibilitychange', onVisibility);
+			return () => document.removeEventListener('visibilitychange', onVisibility);
 		});
 	}
 
+	// Persist the pending snapshot now, cancelling any scheduled debounce.
+	#flushSave() {
+		if (!this.#pendingSave) return;
+		clearTimeout(this.#saveTimer);
+		const payload = this.#pendingSave;
+		this.#pendingSave = null;
+		sessionRepository
+			.$updateSession(payload)
+			// guard: a late flush of a previous date must not mark the currently
+			// loaded (possibly pristine) day as having a session
+			.then(() => {
+				if (payload.date === this.#loadedDate) this.#loadedHadSession = true;
+			})
+			.catch((e) => {
+				console.error('Failed to save session', e);
+				this.#storageError = 'save-failed';
+			});
+	}
+
 	async #loadSession(date: string) {
+		// A pending debounced save may belong to the previous date — flush before
+		// loading so a quick date switch can't drop the edit (the payload carries
+		// its own date, so a late flush is always safe).
+		this.#flushSave();
 		try {
 			const session = await sessionRepository.$readSessionByDate(date);
 			if (date !== this.#selectedDate) return; // navigated again mid-load
@@ -191,6 +241,12 @@ export class SessionStore {
 	}
 	get isLoading() {
 		return this.#isLoading;
+	}
+	get storageError() {
+		return this.#storageError;
+	}
+	clearStorageError() {
+		this.#storageError = null;
 	}
 	get today() {
 		return this.#today;
@@ -297,6 +353,7 @@ export class SessionStore {
 				});
 			} catch (e) {
 				console.error('Failed to save completion change for', this.#selectedDate, e);
+				this.#storageError = 'save-failed';
 			}
 		}
 	}
@@ -310,6 +367,29 @@ export class SessionStore {
 		changes: Partial<Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'>>
 	) {
 		this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, ...changes } : t));
+	}
+
+	// Import a specific day's tasks (stripped to their definition) into the
+	// viewed day. Returns the imported count so the UI can react to empty days.
+	async importFromDate(date: string): Promise<number> {
+		try {
+			const session = await sessionRepository.$readSessionByDate(date);
+			const tasks = session?.tasks ?? [];
+			if (tasks.length) {
+				this.importTasks(
+					tasks.map((t) => ({
+						title: t.title,
+						physicalDifficulty: t.physicalDifficulty,
+						mentalDifficulty: t.mentalDifficulty,
+						enjoyment: t.enjoyment
+					}))
+				);
+			}
+			return tasks.length;
+		} catch (e) {
+			console.error('Failed to load session for import', date, e);
+			return 0;
+		}
 	}
 
 	importTasks(imported: Omit<Task, 'id' | 'createdAt' | 'completed'>[]) {
@@ -332,8 +412,6 @@ export class SessionStore {
 		const task = this.#tasks.find((t) => t.id === id);
 		if (!task) return;
 
-		this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, flowMinutes: minutes } : t));
-
 		const difficulty = getEffectiveDifficulty(task);
 		try {
 			await flowObservationRepository.$updateFlowObservation({
@@ -347,8 +425,12 @@ export class SessionStore {
 				phiHours: minutes / 60
 			});
 			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+			// Stamp the ⚡ badge only once the write lands, so the UI never shows
+			// success for a failed persist.
+			this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, flowMinutes: minutes } : t));
 		} catch (e) {
 			console.error('Failed to save flow observation', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -367,6 +449,7 @@ export class SessionStore {
 			}
 		} catch (e) {
 			console.error('Failed to delete flow observation', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -378,6 +461,7 @@ export class SessionStore {
 			this.#tasks = this.#tasks.map((t) => (t.flowMinutes ? { ...t, flowMinutes: undefined } : t));
 		} catch (e) {
 			console.error('Failed to reset flow observations', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -406,6 +490,7 @@ export class SessionStore {
 			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 		} catch (e) {
 			console.error('Failed to save drain observation', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -417,6 +502,7 @@ export class SessionStore {
 			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 		} catch (e) {
 			console.error('Failed to delete drain observation', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -428,6 +514,7 @@ export class SessionStore {
 			this.#drainObservations = [];
 		} catch (e) {
 			console.error('Failed to reset drain observations', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -454,6 +541,7 @@ export class SessionStore {
 			this.#restObservations = await restObservationRepository.$readAllRestObservations();
 		} catch (e) {
 			console.error('Failed to save rest observation', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -465,6 +553,7 @@ export class SessionStore {
 			this.#restObservations = await restObservationRepository.$readAllRestObservations();
 		} catch (e) {
 			console.error('Failed to delete rest observation', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -476,6 +565,7 @@ export class SessionStore {
 			this.#restObservations = [];
 		} catch (e) {
 			console.error('Failed to reset rest observations', e);
+			this.#storageError = 'save-failed';
 		}
 	}
 
@@ -493,13 +583,23 @@ export class SessionStore {
 			})),
 			createdAt: Date.now()
 		};
-		await routineRepository.$updateRoutine(routine);
-		this.#routines = await routineRepository.$readAllRoutines();
+		try {
+			await routineRepository.$updateRoutine(routine);
+			this.#routines = await routineRepository.$readAllRoutines();
+		} catch (e) {
+			console.error('Failed to save routine', e);
+			this.#storageError = 'save-failed';
+		}
 	}
 
 	async deleteRoutine(id: string) {
-		await routineRepository.$deleteRoutine(id);
-		this.#routines = await routineRepository.$readAllRoutines();
+		try {
+			await routineRepository.$deleteRoutine(id);
+			this.#routines = await routineRepository.$readAllRoutines();
+		} catch (e) {
+			console.error('Failed to delete routine', e);
+			this.#storageError = 'save-failed';
+		}
 	}
 }
 

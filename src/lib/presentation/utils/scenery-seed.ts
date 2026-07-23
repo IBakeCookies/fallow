@@ -317,16 +317,6 @@ export function sceneryStyle(seed: number): string {
 		'--ld-twinkle-phase': sec(-4.5, 0),
 		'--ld-hero-phase': sec(-53, 0),
 
-		/* pinwheel: star tiles offset freely (30×24rem, 24×27rem); the wheel's
-		   220s rotation re-phases so each user meets the galaxy mid-turn */
-		'--pinwheel-stars-1': tile(30, 24),
-		'--pinwheel-stars-2': tile(24, 27),
-		'--pinwheel-twinkle-1': sec(-7, 0),
-		'--pinwheel-twinkle-2': sec(-11, 0),
-		'--pinwheel-rot-phase': sec(-220, 0),
-		'--pinwheel-core-phase': sec(-9, 0),
-		'--pinwheel-comet-phase': sec(-19, 0),
-
 		/* canopy: leaf dapple is static (both axes free, 34×28rem tile); rays
 		   only re-phase; pollen rises on y so its x is free (18rem / 24rem tiles) */
 		'--canopy-dapple': tile(34, 28),
@@ -372,8 +362,6 @@ export function sceneryStyle(seed: number): string {
 		'--glacier-glow-phase': sec2(-11, 0),
 
 		/* ukiyo: sun wobbles on a small static tile; wave/fall loops re-phase; petal fall is on y so x is free (20rem/26rem tiles); sway is a transform, phased independently */
-		'--ukiyo-sun-pos': tile2(4, 3),
-		'--ukiyo-sun-phase': sec2(-15, 0),
 		'--ukiyo-wave-phase': sec2(-68, 0),
 		'--ukiyo-petal-x-far': rem2(0, 20),
 		'--ukiyo-petal-phase-far': sec2(-32, 0),
@@ -381,13 +369,6 @@ export function sceneryStyle(seed: number): string {
 		'--ukiyo-petal-x-near': rem2(0, 26),
 		'--ukiyo-petal-phase-near': sec2(-24, 0),
 		'--ukiyo-sway-phase-near': sec2(-5, 0),
-
-		/* cyber-punk: haze/flicker/scan and the neon tracer only re-phase — no rain layers left to offset */
-		'--cp-haze-phase-1': sec2(-9, 0),
-		'--cp-haze-phase-2': sec2(-11, 0),
-		'--cp-flicker-phase': sec2(-19, 0),
-		'--cp-scan-phase': sec2(-7, 0),
-		'--cp-tracer-phase': sec2(-11, 0),
 
 		/* dunes: ridges are a whole-SVG var, same technique as --meridian-ribbons —
 		   see dunesRidgesUrl (consumes exactly 2 rnd2() calls, matching the old

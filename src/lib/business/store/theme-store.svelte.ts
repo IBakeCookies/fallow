@@ -8,7 +8,6 @@ export type ThemeName =
 	| 'solid-dark'
 	| 'glass-light'
 	| 'glass-dark'
-	| 'cyber-punk'
 	| 'aurora'
 	| 'daybreak'
 	| 'royal'
@@ -19,7 +18,6 @@ export type ThemeName =
 	| 'abyss'
 	| 'parchment'
 	| 'noir'
-	| 'ink'
 	| 'ember'
 	| 'glacier'
 	| 'zenith'
@@ -28,7 +26,6 @@ export type ThemeName =
 	| 'cathedral'
 	| 'orbit'
 	| 'lantern-drift'
-	| 'pinwheel'
 	| 'canopy'
 	| 'meridian'
 	| 'dunes'
@@ -67,11 +64,6 @@ export const themes: ThemeItem[] = [
 		name: 'glass-dark',
 		label: 'Night Glass',
 		css: ['glass-dark', 'dark']
-	},
-	{
-		name: 'cyber-punk',
-		label: 'Cyberpunk',
-		css: ['cyber-punk', 'dark']
 	},
 	{
 		name: 'aurora',
@@ -124,11 +116,6 @@ export const themes: ThemeItem[] = [
 		css: ['noir', 'dark']
 	},
 	{
-		name: 'ink',
-		label: 'Ink',
-		css: ['ink']
-	},
-	{
 		name: 'ember',
 		label: 'Ember',
 		css: ['ember', 'dark']
@@ -167,11 +154,6 @@ export const themes: ThemeItem[] = [
 		name: 'lantern-drift',
 		label: 'Lantern Drift',
 		css: ['lantern-drift', 'dark']
-	},
-	{
-		name: 'pinwheel',
-		label: 'Pinwheel',
-		css: ['pinwheel', 'dark']
 	},
 	{
 		name: 'canopy',

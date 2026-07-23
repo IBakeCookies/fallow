@@ -28,6 +28,9 @@ if (browser) {
 // $derived/$effect to track rollovers, or anywhere for the value right now.
 export const liveToday = {
 	get value() {
-		return current;
+		// On the server this module is a cross-request singleton, so `current`
+		// would go stale on a warm instance — always read fresh there. In the
+		// browser `current` is reactive and tracks midnight/wake rollovers.
+		return browser ? current : toISODate();
 	}
 };

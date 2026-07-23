@@ -424,7 +424,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		// knapsack has no exact greedy); these tests pin it within a whisker of the
 		// brute-force optimum on the scenarios that broke earlier heuristics.
 
-		it('matches the brute-force block optimum when a pool binds with unequal weights', () => {
+		it('stays within 1% of the brute-force block optimum when a pool binds with unequal weights', () => {
 			// An hour off the weight-1.0 task frees enough cognitive capacity to
 			// fund 1/0.3 ≈ 3.3h of the weight-0.3 task; the allocator must price
 			// pool capacity, not just time.

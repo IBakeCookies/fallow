@@ -4,7 +4,7 @@
  */
 
 import type { RestObservationRecord } from '$lib/data/type';
-import { openDatabase } from '$lib/data/storage/indexed-db';
+import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
  * Append-only create: unlike drain ratings (one per task per day, upserted)
@@ -14,37 +14,20 @@ import { openDatabase } from '$lib/data/storage/indexed-db';
 export async function $createRestObservation(
 	observation: Omit<RestObservationRecord, 'id' | 'createdAt'>
 ): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('restObservations', 'readwrite');
-		const store = transaction.objectStore('restObservations');
-		const put = store.put({ ...observation, createdAt: Date.now() });
-		put.onerror = () => reject(put.error);
-		transaction.oncomplete = () => resolve();
-		transaction.onerror = () => reject(transaction.error);
+	await withStore('restObservations', 'readwrite', (store) => {
+		store.put({ ...observation, createdAt: Date.now() });
 	});
 }
 
 export async function $readAllRestObservations(): Promise<RestObservationRecord[]> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('restObservations', 'readonly');
-		const store = transaction.objectStore('restObservations');
-		const request = store.getAll();
-		request.onsuccess = () => resolve(request.result || []);
-		request.onerror = () => reject(request.error);
-	});
+	const result = await withStore('restObservations', 'readonly', (store) => store.getAll());
+	return result || [];
 }
 
 /** Remove a single rest pair from the calibration. */
 export async function $deleteRestObservation(id: number): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('restObservations', 'readwrite');
-		const store = transaction.objectStore('restObservations');
-		const request = store.delete(id);
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('restObservations', 'readwrite', (store) => {
+		store.delete(id);
 	});
 }
 
@@ -54,12 +37,7 @@ export async function $deleteRestObservation(id: number): Promise<void> {
  * calibration to the defaults with nothing else to reset.
  */
 export async function $deleteAllRestObservations(): Promise<void> {
-	const database = await openDatabase();
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction('restObservations', 'readwrite');
-		const store = transaction.objectStore('restObservations');
-		const request = store.clear();
-		request.onsuccess = () => resolve();
-		request.onerror = () => reject(request.error);
+	await withStore('restObservations', 'readwrite', (store) => {
+		store.clear();
 	});
 }

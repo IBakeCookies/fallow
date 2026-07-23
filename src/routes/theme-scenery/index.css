@@ -13,12 +13,10 @@
 @import './eclipse.css';
 @import './orbit.css';
 @import './lantern-drift.css';
-@import './pinwheel.css';
 @import './canopy.css';
 @import './meridian.css';
 @import './glacier.css';
 @import './ukiyo.css';
-@import './cyber-punk.css';
 @import './dunes.css';
 @import './synthwave.css';
 @import './firefly.css';
@@ -32,10 +30,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-	/* !important outranks the per-theme helper selectors */
-	.theme-scenery > *,
-	.theme-scenery > *::before,
-	.theme-scenery > *::after {
+	/* !important outranks the per-theme helper selectors; descendant selector
+	   matches the .scenery-paused rule below so nested animations pause too */
+	.theme-scenery *,
+	.theme-scenery *::before,
+	.theme-scenery *::after {
 		animation-play-state: paused !important;
 	}
 }
