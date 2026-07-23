@@ -1068,6 +1068,16 @@ already-logged 🪫 drain ratings joined with each day's stored session
 (tasks + window), excluding today (an unfinished day has not revealed its
 stop yet).
 
+**Visibility (2026-07-23).** All fitted values also surface read-only on the
+Analytics page ("Your model" card): each parameter next to its default and
+the fit's own used-observation count — ϕ for a mid-scale reference task
+(difficulty 5, enjoyment 5, so the fitted c-plane reads as one number),
+r ± std, α_cog/α_phys ± std, λ₀ ± std. The snapshot runs the full
+conditioning chain on ALL logs (ϕ from ⚡, r from ☕, α given r from 🪫,
+λ₀ given everything from finished days) — the same fits the planners and
+Burnout Risk consume; the card changes no state, calibration stays in the
+Energy Lab (α, r, λ₀) and ⚡ logging (ϕ).
+
 ## 9. References
 
 - Fox, B. L. (1966). _Discrete optimization via marginal analysis._
@@ -1354,3 +1364,51 @@ displayed), and the Energy Lab's classic-plan comparison no longer strips
 completed tasks from the classic side only — both plans simulate the full
 intended day, so `outputVsClassic` is no longer biased toward the energy
 plan once anything is checked off.
+
+## 12. Plan-adherence audit (2026-07-23)
+
+**The question.** The two planners disagree structurally: the classic Σ P̄
+objective spreads (every touched task collects its ≈ p₀ activation bonus —
+§0/§2; probe 2026-07-11: two identical tasks on 1h score 1.955 split vs 1.58
+concentrated under Σ P̄, while total output prefers concentrating), the
+energy model concentrates (satiety-tempered total output, §8.4). Which
+composition does the user's REAL behavior track? The 🪫 drain logs already
+record worked hours per task per day, and §8.10 already joins them with the
+stored sessions — so the audit is a revealed-preference measurement with no
+new instrument, pointed at the planner itself this time. Its answer is the
+evidence gate for promoting the energy plan out of the lab.
+
+**Per finished day** (`auditPlanAdherence` in `plan-audit.ts`; days from the
+§8.10 join plus that day's stored switch cost and pools):
+
+- Three allocation vectors over the day's task list: **actual** (logged
+  hours), **classic** (`calculatePooledAllocations` under that day's pools
+  and switch cost, with the live fit posterior — the plan the user would
+  actually have seen), **energy** (`optimizeSchedule` under the calibrated
+  §8.7/§8.9 params).
+- Compared as **shares** of worked time, not absolute hours: how much total
+  to work is the stop decision, priced separately by §8.10 — the audit asks
+  only "which tasks got the day".
+- **Composition overlap** `Σᵢ min(actualShareᵢ, planShareᵢ) ∈ [0,1]` — the
+  total-variation complement; 1 = identical composition, 0 = disjoint task
+  sets.
+- **Task spread** = inverse Herfindahl `1/Σᵢ shareᵢ²` — the effective number
+  of tasks funded (1 = all time on one task, n = equal split over n). Reads
+  the §0 spreading question directly: actual vs classic vs energy.
+
+Days with no logged work on the day's task list are skipped (nothing to
+compare); a plan that allocates nothing scores overlap 0 against any worked
+day. The audit is descriptive — means over days, no noise model — because
+its job is a model-selection signal, not a parameter estimate.
+
+**Known approximations (deliberate).** Partial logging under-counts a
+task's true share exactly as it under-counts W in §8.10 — the audit is for
+users who log consistently. And the classic comparison uses the CURRENT fit
+posterior rather than the fit as of the audited day (per-day fit snapshots
+are not stored); early days are therefore compared against slightly
+better-informed plans than the user saw.
+
+**UI.** Analytics page, "Plan adherence" card: mean overlap per planner,
+the three spreads, and a verdict line (energy vs classic vs tie at a ±0.05
+overlap margin), over the last ≤ 30 finished logged days (one optimizer run
+per day, ~60 ms each, loaded after the main view paints).

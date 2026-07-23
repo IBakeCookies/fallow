@@ -1,20 +1,13 @@
-/* Lantern Drift — toro nagashi on black river water at night. A hard horizon
-   high on the screen splits a deep moonless sky from a still black river; the
-   lanterns you set adrift are the only light. Paper chochin (real SVG body,
-   caps, ribs, drop-cord) float downstream at two depths, each near lantern
-   doubled as a wavering warm reflection that tracks it in horizontal lockstep
-   (same 60rem tile, same drift) while the water shimmers it sideways on its
-   own slower period. A reed bank silhouettes the far shore, fireflies rise off
-   the reeds, a lone hero firefly wanders the whole meadow of water, a faint
-   ripple sheen crosses the surface and low mist banks at the shore. Every
-   period is prime-ish (137/173/6.5/8.5/9.5/19/29/53/83s) so the scene never
-   visibly loops; no layer is filtered, so it stays compositor-cheap. Frozen
-   under prefers-reduced-motion it reads as a long-exposure night photograph. */
+/* Lantern Drift — toro nagashi on black river water at night. A reed bank
+   silhouettes the far shore; paper chochin drift downstream, each doubled as
+   a wavering warm reflection that tracks it in horizontal lockstep (same
+   60rem tile, same drift) while the water shimmers it sideways on its own
+   slower period. Frozen under prefers-reduced-motion it reads as a
+   long-exposure night photograph. */
 .lantern-drift .theme-scenery {
 	display: block;
 
-	/* the far-shore reed bank — a near-black silhouette against the warm
-	   horizon glow, growing at the waterline (behind the lanterns) */
+	/* the far-shore reed bank — a near-black silhouette at the waterline */
 	.theme-helper-1 {
 		position: absolute;
 		inset: 0;
@@ -25,25 +18,8 @@
 		background-position: var(--ld-reeds-x, 0) 40%;
 	}
 
-	/* far lanterns — small, dim, drifting slowly near the far bank (parallax
-	   against the near band so the float never reads as a repeating strip) */
-	.theme-helper-1::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 440 220'> <defs> <radialGradient id='p' cx='50%25' cy='38%25' r='60%25'> <stop offset='0' stop-color='%23f2d9a6'/> <stop offset='.45' stop-color='%23f2ab52'/> <stop offset='1' stop-color='%23c85c1e'/> </radialGradient> <radialGradient id='h' cx='50%25' cy='42%25' r='58%25'> <stop offset='0' stop-color='%23f3a642' stop-opacity='.42'/> <stop offset='1' stop-color='%23f3a642' stop-opacity='0'/> </radialGradient> <g id='k'> <ellipse cx='0' cy='-20' rx='34' ry='44' fill='url(%23h)'/> <rect x='-3' y='-44' width='6' height='4' rx='1' fill='%2333261b'/> <ellipse cx='0' cy='-20' rx='14' ry='23' fill='url(%23p)'/> <rect x='-3' y='-1' width='6' height='4' rx='1' fill='%2333261b'/> </g> </defs> <use href='%23k' transform='translate(80 132) scale(.52)'/> <use href='%23k' transform='translate(236 127) scale(.62)'/> <use href='%23k' transform='translate(372 133) scale(.44)'/> </svg>");
-		background-repeat: repeat-x;
-		background-size: 44rem 22rem;
-		background-position: 0 36%;
-		opacity: 0.72;
-		animation:
-			ld-drift-far 173s linear infinite,
-			ld-bob-far 8.5s ease-in-out infinite alternate;
-		animation-delay: var(--ld-far-phase, 0s), var(--ld-bob-far-phase, 0s);
-	}
-
-	/* near lanterns — the hero float, drifting downstream and bobbing on the
-	   swell. Glow is baked into the SVG (no filter) so the drift stays cheap. */
+	/* the lanterns — paper chochin drifting downstream. Glow is baked into
+	   the SVG (no filter) so the drift stays compositor-cheap. */
 	.theme-helper-1::after {
 		content: '';
 		position: absolute;
@@ -52,19 +28,17 @@
 		background-repeat: repeat-x;
 		background-size: 60rem 26rem;
 		background-position: 0 42%;
-		animation:
-			ld-drift 137s linear infinite,
-			ld-bob 6.5s ease-in-out infinite alternate;
+		animation: ld-drift 137s linear infinite;
 		/* --ld-drift-phase is shared with the reflections below — the seeded
 		   phase must never break their horizontal lockstep */
-		animation-delay: var(--ld-drift-phase, 0s), var(--ld-bob-phase, 0s);
+		animation-delay: var(--ld-drift-phase, 0s);
 	}
 
 	/* the reflections — warm streaks smeared into the black water directly
-	   beneath each near lantern. Same 60rem tile + same ld-drift as the near
-	   band → perfect horizontal lockstep; ld-shimmer wavers them sideways on a
-	   slower period than the bob. Streak x-fractions match the five lantern
-	   positions (60/175/300/430/540 of 600 = 10 / 29.17 / 50 / 71.67 / 90%). */
+	   beneath each lantern. Same 60rem tile + same ld-drift as the lantern
+	   band → perfect horizontal lockstep; ld-shimmer wavers them sideways.
+	   Streak x-fractions match the five lantern positions
+	   (60/175/300/430/540 of 600 = 10 / 29.17 / 50 / 71.67 / 90%). */
 	.theme-helper-2 {
 		position: absolute;
 		inset: 0;
@@ -83,117 +57,11 @@
 			ld-shimmer 9.5s ease-in-out infinite alternate;
 		animation-delay: var(--ld-drift-phase, 0s), var(--ld-shimmer-phase, 0s);
 	}
-
-	/* a faint ripple sheen crossing the water (shares the water mask + the
-	   sideways shimmer of the reflections above) */
-	.theme-helper-2::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image: repeating-linear-gradient(
-			to bottom,
-			transparent 0 0.85rem,
-			oklch(0.72 0.06 82 / 0.05) 0.85rem 1rem
-		);
-		animation: ld-ripple 19s linear infinite;
-	}
-
-	/* low mist banked on the water at the far shore, drifting sideways */
-	.theme-helper-2::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image:
-			radial-gradient(ellipse 42% 22% at 22% 46%, oklch(0.56 0.03 240 / 0.26), transparent 72%),
-			radial-gradient(ellipse 46% 20% at 68% 45%, oklch(0.52 0.03 232 / 0.22), transparent 72%);
-		background-repeat: repeat-x;
-		background-size: 52rem 100%;
-		animation: ld-mist 83s linear infinite;
-		animation-delay: var(--ld-mist-phase, 0s);
-	}
-
-	/* helper-3 is an unmasked container so the hero firefly can roam freely */
-	.theme-helper-3 {
-		position: absolute;
-		inset: 0;
-	}
-
-	/* fireflies rising off the reed line into the low sky (masked to the band
-	   just above the horizon); a soft collective glimmer, not a strobe */
-	.theme-helper-3::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image:
-			radial-gradient(1.6px 1.6px at 20% 82%, oklch(0.86 0.12 78 / 0.9), transparent),
-			radial-gradient(1.1px 1.1px at 62% 60%, oklch(0.83 0.1 72 / 0.8), transparent),
-			radial-gradient(1.6px 1.6px at 82% 90%, oklch(0.87 0.1 80 / 0.85), transparent),
-			radial-gradient(1.1px 1.1px at 40% 70%, oklch(0.81 0.1 74 / 0.7), transparent),
-			radial-gradient(1.3px 1.3px at 8% 54%, oklch(0.84 0.11 76 / 0.75), transparent),
-			radial-gradient(1.2px 1.2px at 92% 66%, oklch(0.85 0.1 78 / 0.8), transparent),
-			radial-gradient(1px 1px at 50% 40%, oklch(0.82 0.1 74 / 0.65), transparent),
-			radial-gradient(1.3px 1.3px at 30% 30%, oklch(0.85 0.11 76 / 0.7), transparent);
-		background-repeat: repeat;
-		background-size: 28rem 30rem;
-		/* seed lever: rise animates y only, so x is free */
-		background-position-x: var(--ld-fly-x, 0);
-		mask-image: linear-gradient(to bottom, transparent 12%, black 26%, black 43%, transparent 47%);
-		animation:
-			ld-firefly-rise 29s linear infinite,
-			ld-twinkle 4.5s ease-in-out infinite alternate;
-		animation-delay: var(--ld-fly-phase, 0s), var(--ld-twinkle-phase, 0s);
-	}
-
-	/* the lone hero firefly — a single warm point with a static double halo
-	   that meanders up across the water, dimming to a near-blink mid-flight.
-	   Its base translate/opacity is a good lit mid-scene pose, so with
-	   animations frozen (reduced motion) it still rests visibly in the scene. */
-	.theme-helper-3::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 3px;
-		height: 3px;
-		border-radius: 50%;
-		background: oklch(0.88 0.11 82);
-		box-shadow:
-			0 0 5px 1px oklch(0.86 0.12 80 / 0.85),
-			0 0 15px 5px oklch(0.8 0.12 74 / 0.35);
-		translate: 44vw 40vh;
-		opacity: 0.9;
-		animation: ld-hero 53s ease-in-out infinite;
-		animation-delay: var(--ld-hero-phase, 0s);
-	}
 }
 
 @keyframes ld-drift {
 	to {
 		background-position-x: -60rem;
-	}
-}
-
-@keyframes ld-drift-far {
-	to {
-		background-position-x: -44rem;
-	}
-}
-
-@keyframes ld-bob {
-	from {
-		translate: 0 0;
-	}
-	to {
-		translate: 0 -0.5rem;
-	}
-}
-
-@keyframes ld-bob-far {
-	from {
-		translate: 0 0;
-	}
-	to {
-		translate: 0 -0.32rem;
 	}
 }
 
@@ -203,65 +71,5 @@
 	}
 	to {
 		translate: 0.5rem 0;
-	}
-}
-
-@keyframes ld-ripple {
-	to {
-		background-position-y: 1rem;
-	}
-}
-
-@keyframes ld-mist {
-	to {
-		background-position-x: -52rem;
-	}
-}
-
-@keyframes ld-firefly-rise {
-	to {
-		background-position-y: -30rem;
-	}
-}
-
-@keyframes ld-twinkle {
-	from {
-		opacity: 0.55;
-	}
-	to {
-		opacity: 0.95;
-	}
-}
-
-@keyframes ld-hero {
-	0% {
-		translate: 6vw 54vh;
-		opacity: 0;
-	}
-	8% {
-		opacity: 0.9;
-	}
-	26% {
-		translate: 28vw 38vh;
-		opacity: 0.7;
-	}
-	40% {
-		translate: 40vw 46vh;
-		opacity: 1;
-	}
-	58% {
-		translate: 60vw 33vh;
-		opacity: 0.55;
-	}
-	74% {
-		translate: 78vw 42vh;
-		opacity: 0.95;
-	}
-	92% {
-		opacity: 0.8;
-	}
-	100% {
-		translate: 96vw 30vh;
-		opacity: 0;
 	}
 }

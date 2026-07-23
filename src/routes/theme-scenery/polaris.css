@@ -1,0 +1,82 @@
+/* Polaris: the night sky as a clock. The circumpolar starfield — Big Dipper
+   on one side of the pole, Cassiopeia opposite — stands at its real rotation
+   around a fixed pole star: --polaris-angle (utils/scenery-time.ts) advances
+   15°/h through the night plus ~1°/day of seasonal drift, so December's
+   evening sky is June's turned half around. By day the stars wash out
+   (--polaris-vis) — this dial wakes when the sundial sleeps. Nothing
+   animates; time moves it between visits. */
+.polaris .theme-scenery {
+	display: block;
+	opacity: calc(0.3 + 0.7 * var(--polaris-vis, 1));
+
+	/* the pole point both rotating sheets are centered on — high in the sky,
+	   above the content column, so the star clock stays visible */
+	--pole-x: 50%;
+	--pole-y: 9%;
+
+	/* rotating field stars: a square sheet big enough that its corners never
+	   leave the viewport at any angle (pole-to-corner < 1.42 * vmax) */
+	.theme-helper-1,
+	.theme-helper-2 {
+		position: absolute;
+		left: var(--pole-x);
+		top: var(--pole-y);
+		width: 290vmax;
+		height: 290vmax;
+		margin: -145vmax;
+		transform: rotate(calc(var(--polaris-angle, 0) * 1deg));
+	}
+
+	.theme-helper-1 {
+		background-image:
+			radial-gradient(1px 1px at 9% 31%, oklch(0.95 0.005 240 / 0.5), transparent),
+			radial-gradient(1.5px 1.5px at 24% 9%, oklch(0.95 0.005 240 / 0.55), transparent),
+			radial-gradient(1px 1px at 36% 54%, oklch(0.95 0.01 240 / 0.45), transparent),
+			radial-gradient(1px 1px at 51% 27%, oklch(0.95 0.005 240 / 0.5), transparent),
+			radial-gradient(1.5px 1.5px at 61% 71%, oklch(0.94 0.02 85 / 0.45), transparent),
+			radial-gradient(1px 1px at 73% 41%, oklch(0.95 0.005 240 / 0.55), transparent),
+			radial-gradient(1px 1px at 86% 59%, oklch(0.95 0.01 240 / 0.45), transparent),
+			radial-gradient(1px 1px at 94% 15%, oklch(0.95 0.005 240 / 0.5), transparent);
+		background-size: 30rem 24rem;
+		background-position: var(--polaris-stars, 0 0);
+	}
+
+	/* constellations + star-trail rings, kept near the pole by the mask */
+	.theme-helper-2 {
+		background-image:
+			/* Big Dipper — bowl of four, handle of three */
+			radial-gradient(3.5px 3.5px at 55.3% 47.8%, oklch(0.97 0.02 85 / 0.95), transparent),
+			radial-gradient(3px 3px at 55.5% 49.6%, oklch(0.96 0.01 240 / 0.9), transparent),
+			radial-gradient(3px 3px at 57.1% 49.9%, oklch(0.96 0.01 240 / 0.9), transparent),
+			radial-gradient(3px 3px at 56.9% 48.3%, oklch(0.96 0.01 240 / 0.85), transparent),
+			radial-gradient(3px 3px at 58.3% 47.8%, oklch(0.96 0.01 240 / 0.9), transparent),
+			radial-gradient(3.5px 3.5px at 59.4% 47%, oklch(0.97 0.01 240 / 0.95), transparent),
+			radial-gradient(3px 3px at 60.5% 45.9%, oklch(0.96 0.01 240 / 0.9), transparent),
+			/* Cassiopeia — the W, roughly opposite the Dipper */
+			radial-gradient(3px 3px at 41.8% 52.2%, oklch(0.96 0.01 240 / 0.9), transparent),
+			radial-gradient(3.5px 3.5px at 42.8% 53.5%, oklch(0.97 0.02 85 / 0.95), transparent),
+			radial-gradient(3px 3px at 43.7% 52.4%, oklch(0.96 0.01 240 / 0.9), transparent),
+			radial-gradient(3px 3px at 44.6% 53.8%, oklch(0.96 0.01 240 / 0.85), transparent),
+			radial-gradient(3px 3px at 45.6% 52.9%, oklch(0.96 0.01 240 / 0.9), transparent),
+			/* star-trail hints — long-exposure rings around the pole */
+			repeating-radial-gradient(
+				circle at 50% 50%,
+				transparent 0 3.9rem,
+				oklch(0.9 0.02 240 / 0.1) 3.9rem 4rem
+			);
+		mask-image: radial-gradient(circle at 50% 50%, oklch(0 0 0) 16%, transparent 30%);
+	}
+
+	/* Polaris itself — fixed at the pole while everything turns around it */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			circle 1.5rem at var(--pole-x) var(--pole-y),
+			oklch(0.99 0.005 240) 0 1.5px,
+			oklch(0.95 0.02 240 / 0.45) 4px,
+			oklch(0.9 0.03 245 / 0.12) 45%,
+			transparent 72%
+		);
+	}
+}

@@ -21,7 +21,6 @@ export type ThemeName =
 	| 'ember'
 	| 'glacier'
 	| 'zenith'
-	| 'nadir'
 	| 'eclipse'
 	| 'cathedral'
 	| 'orbit'
@@ -30,7 +29,11 @@ export type ThemeName =
 	| 'meridian'
 	| 'dunes'
 	| 'synthwave'
-	| 'firefly';
+	| 'sundial'
+	| 'moonphase'
+	| 'tide'
+	| 'breath'
+	| 'polaris';
 
 interface ThemeItem {
 	name: ThemeName;
@@ -131,11 +134,6 @@ export const themes: ThemeItem[] = [
 		css: ['zenith']
 	},
 	{
-		name: 'nadir',
-		label: 'Nadir',
-		css: ['nadir', 'dark']
-	},
-	{
 		name: 'eclipse',
 		label: 'Eclipse',
 		css: ['eclipse', 'dark']
@@ -176,9 +174,29 @@ export const themes: ThemeItem[] = [
 		css: ['synthwave', 'dark']
 	},
 	{
-		name: 'firefly',
-		label: 'Fireflies',
-		css: ['firefly', 'dark']
+		name: 'sundial',
+		label: 'Sundial',
+		css: ['sundial']
+	},
+	{
+		name: 'moonphase',
+		label: 'Moonphase',
+		css: ['moonphase', 'dark']
+	},
+	{
+		name: 'tide',
+		label: 'Tide',
+		css: ['tide']
+	},
+	{
+		name: 'breath',
+		label: 'Breath',
+		css: ['breath', 'dark']
+	},
+	{
+		name: 'polaris',
+		label: 'Polaris',
+		css: ['polaris', 'dark']
 	}
 ] as const;
 
@@ -265,7 +283,8 @@ export class ThemeStore {
 			}
 		}
 
-		if (initialTheme) {
+		// a stale cookie may still name a deleted theme — fall through to defaults
+		if (initialTheme && themes.some((t) => t.name === initialTheme)) {
 			this.#theme = initialTheme;
 
 			return;

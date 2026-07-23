@@ -68,7 +68,7 @@
 	       {fullViewport ? 'h-dvh overflow-hidden' : 'min-h-screen'}"
 >
 	<div
-		class=" mx-auto w-full max-w-7xl px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col"
+		class="mx-auto w-full max-w-7xl px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col"
 	>
 		<Nav>
 			{#snippet actions()}

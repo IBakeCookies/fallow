@@ -23,7 +23,7 @@
 	/* jellyfish cyan, upper right */
 	.theme-helper-1 {
 		background-image: radial-gradient(
-			ellipse 50% 35% at 75% 15%,
+			ellipse 50% 35% at 55% 30%,
 			oklch(0.6 0.14 220 / 0.22),
 			transparent 60%
 		);

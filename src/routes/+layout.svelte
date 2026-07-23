@@ -12,6 +12,7 @@
 	import { activeLocale } from '$lib/presentation/utils/locale.svelte';
 	import { setThemeStore } from '$lib/business/store/theme-store.svelte';
 	import { sceneryStyle } from '$lib/presentation/utils/scenery-seed';
+	import { dataSceneryStyle } from '$lib/presentation/utils/scenery-time';
 
 	let { children, data }: LayoutProps = $props();
 
@@ -35,8 +36,13 @@
 
 <!-- Theme scenery: fixed decorative layers behind the app. display:none by
      default; a theme opts in by styling the helpers in layout.css. The seeded
-     vars vary each theme's arrangement per user (see utils/scenery-seed.ts). -->
-<div class="theme-scenery" aria-hidden="true" style={sceneryStyle(themeStore.scenerySeed)}>
+     vars vary each theme's arrangement per user (see utils/scenery-seed.ts);
+     the data vars set the clock-driven themes' state (utils/scenery-time.ts). -->
+<div
+	class="theme-scenery"
+	aria-hidden="true"
+	style="{sceneryStyle(themeStore.scenerySeed)}; {dataSceneryStyle(new Date())}"
+>
 	<div class="theme-helper-1"></div>
 	<div class="theme-helper-2"></div>
 	<div class="theme-helper-3"></div>

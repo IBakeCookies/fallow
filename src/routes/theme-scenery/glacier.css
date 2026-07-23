@@ -1,12 +1,10 @@
-/* Glacier: quiet winter snowfall over an icy landscape. Two depths of
-   flakes fall — far ones small and slow, near ones larger, faster and
-   swaying slightly side to side — a frost-haze shimmers along the ground,
-   and a faint cold sky glow breathes above it all. */
+/* Glacier: quiet winter snowfall, two depths — far flakes small and slow,
+   near ones larger, faster, swaying gently. Each dot is a bright core with a
+   cool halo ring so it reads against the pale ~0.94L sky. */
 .glacier .theme-scenery {
 	display: block;
 
-	/* far snow — small, slow; bright core + cool halo ring so each dot reads
-	   against the pale ~0.94L sky instead of washing out white-on-white */
+	/* far snow */
 	.theme-helper-1 {
 		position: absolute;
 		inset: 0;
@@ -66,8 +64,7 @@
 		animation-delay: var(--glacier-far-phase, 0s);
 	}
 
-	/* near snow — larger, faster, brighter, with a gentle sideways sway;
-	   same bright-core + cool-halo treatment, sized up for the near plane */
+	/* near snow — larger, faster, brighter, gently swaying */
 	.theme-helper-2 {
 		position: absolute;
 		inset: 0;
@@ -122,33 +119,6 @@
 			glacier-sway 4.5s ease-in-out infinite alternate;
 		animation-delay: var(--glacier-near-phase, 0s), var(--glacier-sway-phase, 0s);
 	}
-
-	/* frost-haze / ice-sparkle shimmer near the ground */
-	.theme-helper-3 {
-		position: absolute;
-		inset: 0;
-		background-image:
-			radial-gradient(1px 1px at 22% 92%, oklch(0.99 0.015 190 / 0.7), transparent),
-			radial-gradient(1px 1px at 48% 96%, oklch(0.99 0.015 190 / 0.6), transparent),
-			radial-gradient(1px 1px at 74% 90%, oklch(0.99 0.015 190 / 0.65), transparent),
-			linear-gradient(oklch(0.95 0.02 230 / 0.16), transparent 22%);
-		mask-image: linear-gradient(transparent, black 78%);
-		animation: glacier-haze 9s ease-in-out infinite alternate;
-		animation-delay: var(--glacier-haze-phase, 0s);
-	}
-
-	/* faint cold sky glow, breathing */
-	.theme-helper-4 {
-		position: absolute;
-		inset: 0;
-		background-image: radial-gradient(
-			ellipse 70% 40% at 50% -10%,
-			oklch(0.95 0.03 240 / 0.35),
-			transparent 70%
-		);
-		animation: glacier-glow 11s ease-in-out infinite alternate;
-		animation-delay: var(--glacier-glow-phase, 0s);
-	}
 }
 
 /* y-only so the seeded x offset survives (the shorthand would reset it) */
@@ -169,21 +139,5 @@
 	}
 	to {
 		transform: translateX(0.4rem);
-	}
-}
-@keyframes glacier-haze {
-	from {
-		opacity: 0.6;
-	}
-	to {
-		opacity: 1;
-	}
-}
-@keyframes glacier-glow {
-	from {
-		opacity: 0.5;
-	}
-	to {
-		opacity: 1;
 	}
 }

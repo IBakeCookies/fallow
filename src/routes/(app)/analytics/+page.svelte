@@ -15,9 +15,14 @@
 	import { addDays, fromISO } from '$lib/business/utils/date';
 	import {
 		initializeStorage,
+		readCalibrationSnapshot,
+		readPlanAuditDays,
 		readSessionsByDateRange,
-		readUserFit
+		readUserFit,
+		type CalibrationSnapshot
 	} from '$lib/business/store/session-history';
+	import { auditPlanAdherence, type PlanAudit } from '$lib/business/model/plan-audit';
+	import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
@@ -33,6 +38,12 @@
 	// Every stored day with tasks in the last year, ascending by date
 	let all = $state<DaySummary[]>([]);
 	let isLoading = $state(true);
+	// Plan-adherence audit (MATH.md §12); null while loading
+	let audit = $state<PlanAudit | null>(null);
+	// Calibration snapshot ("Your model" card); null while loading
+	let calibration = $state<CalibrationSnapshot | null>(null);
+	// One optimizer run per audited day (~60ms each) — cap the lookback
+	const AUDIT_DAY_CAP = 30;
 
 	onMount(async () => {
 		if (!browser) return;
@@ -43,11 +54,101 @@
 			all = sessions
 				.filter((s) => s.tasks.length > 0)
 				.map((s) => summarizeSession(s, fit.constants, fit.posterior));
+			// Main view can paint before the audit's optimizer runs finish.
+			isLoading = false;
+			const [auditDays, snapshot] = await Promise.all([
+				readPlanAuditDays(today),
+				readCalibrationSnapshot(today)
+			]);
+			calibration = snapshot;
+			audit = auditPlanAdherence(
+				auditDays.slice(-AUDIT_DAY_CAP),
+				snapshot.energy.params,
+				fit.constants,
+				fit.posterior
+			);
 		} catch (e) {
 			console.error('Failed to load analytics data', e);
+			audit ??= auditPlanAdherence([], DEFAULT_ENERGY_PARAMS);
 		} finally {
 			isLoading = false;
 		}
+	});
+
+	// "Your model" rows: fitted value (± std) next to its default and log count.
+	// ≈/±/units match the Energy Lab's fit lines; counts are the fits' OWN
+	// usedCounts (informative observations, not raw log rows).
+	const modelRows = $derived.by(() => {
+		if (!calibration) return [];
+		const f2 = (x: number) => x.toFixed(2);
+		const minutes = (h: number) => `${Math.round(h * 60)}m`;
+		const rate = (
+			fit: { fitted: boolean },
+			value: number,
+			std: number | undefined,
+			unit: string
+		) => (fit.fitted ? `≈ ${f2(value)} ± ${f2(std ?? 0)} ${unit}` : `${f2(value)} ${unit}`);
+		const { flow, energy, stopping } = calibration;
+		return [
+			{
+				label: m.ana_model_flow(),
+				value: flow.fitted ? `≈ ${minutes(flow.phiHours)}` : minutes(flow.phiHours),
+				note: m.ana_model_note_flow({
+					value: minutes(flow.defaultPhiHours),
+					count: flow.usedCount
+				})
+			},
+			{
+				label: m.ana_model_recovery(),
+				value: rate(energy.recovery, energy.recovery.rate, energy.recovery.rateStd, '/h'),
+				note: m.ana_model_note_ratings({
+					value: f2(DEFAULT_ENERGY_PARAMS.recoveryRate),
+					count: energy.recovery.usedCount
+				})
+			},
+			{
+				label: m.ana_model_drain_cog(),
+				value: rate(
+					energy.cognitiveDrain,
+					energy.cognitiveDrain.alpha,
+					energy.cognitiveDrain.alphaStd,
+					'/h'
+				),
+				note: m.ana_model_note_ratings({
+					value: f2(DEFAULT_ENERGY_PARAMS.alphaCog),
+					count: energy.cognitiveDrain.usedCount
+				})
+			},
+			{
+				label: m.ana_model_drain_phys(),
+				value: rate(
+					energy.physicalDrain,
+					energy.physicalDrain.alpha,
+					energy.physicalDrain.alphaStd,
+					'/h'
+				),
+				note: m.ana_model_note_ratings({
+					value: f2(DEFAULT_ENERGY_PARAMS.alphaPhys),
+					count: energy.physicalDrain.usedCount
+				})
+			},
+			{
+				label: m.ana_model_stop(),
+				value: rate(stopping, stopping.value, stopping.valueStd, 'out/h'),
+				note: m.ana_model_note_days({
+					value: f2(DEFAULT_ENERGY_PARAMS.freeTimeValue),
+					count: stopping.usedCount
+				})
+			}
+		];
+	});
+
+	const auditVerdict = $derived.by(() => {
+		if (!audit || audit.usedCount === 0) return null;
+		const diff = audit.energyOverlap - audit.classicOverlap;
+		if (diff > 0.05) return m.ana_adherence_verdict_energy();
+		if (diff < -0.05) return m.ana_adherence_verdict_classic();
+		return m.ana_adherence_verdict_tie();
 	});
 
 	const days = $derived(RANGES[range].days);
@@ -433,5 +534,74 @@
 				</div>
 			{/each}
 		</div>
+	</div>
+
+	<!-- Plan adherence (MATH.md §12) -->
+	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
+
+		{#if audit === null}
+			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+		{:else if audit.usedCount === 0}
+			<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
+		{:else}
+			<div class="mt-text-md grid gap-grid-xs sm:grid-cols-3">
+				<div>
+					<p class="text-xs text-ty-silent">{m.ana_adherence_classic()}</p>
+					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+						{Math.round(audit.classicOverlap * 100)}%
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-ty-silent">{m.ana_adherence_energy()}</p>
+					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+						{Math.round(audit.energyOverlap * 100)}%
+					</p>
+				</div>
+				<div>
+					<p class="text-xs text-ty-silent">{m.ana_adherence_spread()}</p>
+					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+						{audit.actualTaskSpread.toFixed(1)}
+					</p>
+					<p class="mt-text-3xs text-xs text-ty-silent">
+						{m.ana_adherence_spread_note({
+							actual: audit.actualTaskSpread.toFixed(1),
+							classic: audit.classicTaskSpread.toFixed(1),
+							energy: audit.energyTaskSpread.toFixed(1)
+						})}
+					</p>
+				</div>
+			</div>
+			<p class="mt-text-sm text-xs text-ty-secondary">
+				{auditVerdict} · {audit.usedCount === 1
+					? m.ana_adherence_days_one()
+					: m.ana_adherence_days_other({ count: audit.usedCount })}
+			</p>
+		{/if}
+	</div>
+
+	<!-- Your model (calibration visibility) -->
+	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
+
+		{#if calibration === null}
+			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+		{:else}
+			<div class="mt-text-md grid gap-text-xs">
+				{#each modelRows as row (row.label)}
+					<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
+						<span class="text-xs text-ty-silent">{row.label}</span>
+						<span class="text-sm">
+							<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums"
+								>{row.value}</span
+							>
+							<span class="text-xs text-ty-silent"> · {row.note}</span>
+						</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/if}

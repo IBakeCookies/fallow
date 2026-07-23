@@ -1,0 +1,56 @@
+/* Moonphase: tonight's actual moon. A lit disc with a sky-colored shadow
+   disc slid across it by the real lunar phase (--moon-shadow, in moon radii:
+   0 = new, ±2 = full — set from the clock in utils/scenery-time.ts). Changes
+   night to night; nothing animates. */
+.moonphase .theme-scenery {
+	display: block;
+
+	/* static star field */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(1px 1px at 7% 34%, oklch(0.96 0.005 230 / 0.55), transparent),
+			radial-gradient(1.5px 1.5px at 22% 12%, oklch(0.96 0.005 230 / 0.6), transparent),
+			radial-gradient(1px 1px at 37% 52%, oklch(0.96 0.01 230 / 0.5), transparent),
+			radial-gradient(1px 1px at 49% 24%, oklch(0.96 0.005 230 / 0.55), transparent),
+			radial-gradient(1.5px 1.5px at 58% 68%, oklch(0.95 0.02 85 / 0.5), transparent),
+			radial-gradient(1px 1px at 71% 38%, oklch(0.96 0.005 230 / 0.6), transparent),
+			radial-gradient(1px 1px at 84% 56%, oklch(0.96 0.01 230 / 0.5), transparent),
+			radial-gradient(1px 1px at 93% 18%, oklch(0.96 0.005 230 / 0.55), transparent);
+		background-size: 30rem 24rem;
+	}
+
+	/* the moon: lit disc with faint maria; overflow clips the shadow disc */
+	.theme-helper-2 {
+		position: absolute;
+		left: 50%;
+		transform: translateX(-50%);
+		top: 1.5rem;
+		width: 6.8rem;
+		height: 6.8rem;
+		border-radius: 50%;
+		overflow: hidden;
+		background:
+			radial-gradient(circle 1.1rem at 36% 30%, oklch(0.82 0.02 240 / 0.5), transparent 70%),
+			radial-gradient(circle 0.8rem at 62% 58%, oklch(0.82 0.02 240 / 0.4), transparent 70%),
+			radial-gradient(circle 0.6rem at 44% 72%, oklch(0.82 0.02 240 / 0.35), transparent 70%),
+			radial-gradient(
+				circle at 42% 38%,
+				oklch(0.97 0.01 95),
+				oklch(0.87 0.02 240) 75%,
+				oklch(0.82 0.03 250)
+			);
+	}
+
+	/* the shadow disc — must stay the exact color of the sky's flat top band
+	   (layout.css .moonphase --background-image first stop) */
+	.theme-helper-2::before {
+		content: '';
+		position: absolute;
+		inset: -6%;
+		border-radius: 50%;
+		background: oklch(0.14 0.03 265);
+		translate: calc(var(--moon-shadow, -2) * 3.4rem) 0;
+	}
+}

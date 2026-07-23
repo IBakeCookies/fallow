@@ -8,15 +8,32 @@ import type { DailySession, Task } from '$lib/data/type';
 import { $readSessionsByDateRange } from '$lib/data/repository/session-repository';
 import { $readAllFlowObservations } from '$lib/data/repository/flow-observation-repository';
 import { $readAllDrainObservations } from '$lib/data/repository/drain-observation-repository';
+import { $readAllRestObservations } from '$lib/data/repository/rest-observation-repository';
 import { migrateFromLocalStorageToIndexedDB } from '$lib/data/migration/local-storage-migration';
 import { addDays, toISODate } from '$lib/business/utils/date';
 import {
+	calculateFlowStateTime,
+	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
+	DEFAULT_USER_CONSTANTS,
 	fitUserConstants,
+	mapEffort,
+	mapEnjoyability,
 	type FitPosterior,
 	type UserConstants
 } from '$lib/business/model/zenith';
-import type { EnergyTaskInput, StopObservation } from '$lib/business/model/zenith-energy';
+import {
+	DEFAULT_ENERGY_PARAMS,
+	fitStoppingValue,
+	type EnergyTaskInput,
+	type StoppingValueFit,
+	type StopObservation
+} from '$lib/business/model/zenith-energy';
+import {
+	calibrateEnergyParams,
+	type EnergyCalibration
+} from '$lib/business/model/energy-calibration';
+import type { PlanAuditDay } from '$lib/business/model/plan-audit';
 import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 
 /**
@@ -41,12 +58,19 @@ export async function initializeStorage(): Promise<void> {
 export async function readUserFit(): Promise<{
 	constants: UserConstants;
 	posterior?: FitPosterior;
+	fitted: boolean;
+	usedCount: number;
 }> {
 	const observations = await $readAllFlowObservations();
 	const fit = fitUserConstants(
 		observations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
 	);
-	return { constants: fit.constants, posterior: fit.posterior };
+	return {
+		constants: fit.constants,
+		posterior: fit.posterior,
+		fitted: fit.fitted,
+		usedCount: observations.length
+	};
 }
 
 export async function readSessionsByDateRange(
@@ -70,13 +94,14 @@ function toEnergyTask(task: Task): EnergyTaskInput {
 }
 
 /**
- * Finished days for the stopping-value calibration (MATH.md §8.10): each day
- * with at least one 🪫 drain log is joined with its stored session (that
- * day's tasks + declared window) into a StopObservation. Today is excluded —
- * an unfinished day has not revealed its stop yet. The fit itself decides
- * which days are informative (censored days are dropped there, not here).
+ * Finished days: each day before `today` with at least one 🪫 drain log,
+ * joined with its stored session, chronologically ascending. Shared by the
+ * stopping-value calibration (§8.10) and the plan-adherence audit (§12) —
+ * both read "what was actually worked" out of the same join.
  */
-export async function readStopObservations(today: string): Promise<StopObservation[]> {
+async function readFinishedDays(
+	today: string
+): Promise<{ session: DailySession; workedHours: { taskId: number; hours: number }[] }[]> {
 	const drainLogs = await $readAllDrainObservations();
 	const byDate = new Map<string, Map<number, number>>();
 	for (const log of drainLogs) {
@@ -91,15 +116,90 @@ export async function readStopObservations(today: string): Promise<StopObservati
 	const sessions = await $readSessionsByDateRange(dates[0], addDays(today, -1));
 	const sessionByDate = new Map(sessions.map((s) => [s.date, s]));
 
-	const observations: StopObservation[] = [];
-	for (const [date, hoursByTask] of byDate) {
+	const days: { session: DailySession; workedHours: { taskId: number; hours: number }[] }[] = [];
+	for (const date of dates) {
 		const session = sessionByDate.get(date);
 		if (!session || session.tasks.length === 0 || session.availableHours <= 0) continue;
-		observations.push({
-			tasks: session.tasks.map(toEnergyTask),
-			windowHours: session.availableHours,
-			workedHours: [...hoursByTask].map(([taskId, hours]) => ({ taskId, hours }))
+		days.push({
+			session,
+			workedHours: [...byDate.get(date)!].map(([taskId, hours]) => ({ taskId, hours }))
 		});
 	}
-	return observations;
+	return days;
+}
+
+/**
+ * Finished days for the stopping-value calibration (MATH.md §8.10). Today is
+ * excluded — an unfinished day has not revealed its stop yet. The fit itself
+ * decides which days are informative (censored days are dropped there, not here).
+ */
+export async function readStopObservations(today: string): Promise<StopObservation[]> {
+	return (await readFinishedDays(today)).map(({ session, workedHours }) => ({
+		tasks: session.tasks.map(toEnergyTask),
+		windowHours: session.availableHours,
+		workedHours
+	}));
+}
+
+/**
+ * Finished days for the plan-adherence audit (MATH.md §12): the §8.10 join
+ * plus each day's stored classic-planner inputs (switch cost, pools), so the
+ * audit compares against the plan the user would actually have seen that day.
+ * Chronologically ascending — cap cost with `.slice(-n)` at the call site.
+ */
+export async function readPlanAuditDays(today: string): Promise<PlanAuditDay[]> {
+	return (await readFinishedDays(today)).map(({ session, workedHours }) => ({
+		tasks: session.tasks.map(toEnergyTask),
+		windowHours: session.availableHours,
+		workedHours,
+		switchCost: session.switchCost,
+		pools: {
+			cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
+			physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours
+		}
+	}));
+}
+
+/**
+ * Everything the user's logs currently say about their model, in one read —
+ * the calibration-visibility snapshot (analytics "Your model" card). Runs the
+ * full conditioning chain on ALL logs: ϕ constants from ⚡ flow logs, then
+ * r from ☕ rest pairs, α given r from 🪫 drain ratings (§8.7/§8.9 — the same
+ * fit the main page's Burnout Risk uses), then λ₀ given everything from
+ * finished days' stop decisions (§8.10). `flow` reports ϕ for a mid-scale
+ * reference task (difficulty 5, enjoyment 5) so the fitted plane reads as one
+ * legible number next to its default.
+ */
+export interface CalibrationSnapshot {
+	flow: { fitted: boolean; usedCount: number; phiHours: number; defaultPhiHours: number };
+	energy: EnergyCalibration;
+	stopping: StoppingValueFit;
+}
+
+export async function readCalibrationSnapshot(today: string): Promise<CalibrationSnapshot> {
+	const [fit, rest, drain, stops] = await Promise.all([
+		readUserFit(),
+		$readAllRestObservations(),
+		$readAllDrainObservations(),
+		readStopObservations(today)
+	]);
+	const energy = calibrateEnergyParams(rest, drain);
+	const stopping = fitStoppingValue(
+		stops,
+		DEFAULT_ENERGY_PARAMS.freeTimeValue,
+		energy.params,
+		fit.constants
+	);
+	const E = mapEffort(5);
+	const beta = mapEnjoyability(5);
+	return {
+		flow: {
+			fitted: fit.fitted,
+			usedCount: fit.usedCount,
+			phiHours: calculateFlowStateTime(E, beta, fit.constants),
+			defaultPhiHours: calculateFlowStateTime(E, beta, DEFAULT_USER_CONSTANTS)
+		},
+		energy,
+		stopping
+	};
 }

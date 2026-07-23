@@ -157,7 +157,7 @@
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
-				class="mt-text-3xs h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
+				class="mt-text-3xs h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-brand checked:bg-brand-strong dark:checked:bg-brand focus:ring-brand/20"
 			/>
 
 			<div class="min-w-0 flex-1" class:opacity-60={completed}>

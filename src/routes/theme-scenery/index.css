@@ -9,7 +9,6 @@
 @import './abyss.css';
 @import './ember.css';
 @import './zenith.css';
-@import './nadir.css';
 @import './eclipse.css';
 @import './orbit.css';
 @import './lantern-drift.css';
@@ -19,7 +18,11 @@
 @import './ukiyo.css';
 @import './dunes.css';
 @import './synthwave.css';
-@import './firefly.css';
+@import './sundial.css';
+@import './moonphase.css';
+@import './tide.css';
+@import './breath.css';
+@import './polaris.css';
 
 .theme-scenery {
 	display: none;

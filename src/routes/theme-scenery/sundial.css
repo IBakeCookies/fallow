@@ -1,0 +1,60 @@
+/* Sundial: the light itself tells the time. A half sun disc rides the top
+   edge — left at dawn, right at dusk — wrapped in a layered glow, pale gold
+   at noon deepening to amber as it sinks, the bloom smearing wider along
+   the horizon as the sun drops. No drawn rays: position, color and spread
+   carry the clock. A faint page-wide shading swings opposite the sun — the
+   gnomon's shadow. Driven by --sundial-t / --sundial-alt from the real
+   clock (utils/scenery-time.ts); fully static, time moves it between
+   visits. At night (--sundial-vis 0) the whole scenery fades out — a
+   sundial sleeps in the dark. */
+.sundial .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		--sun-x: calc(10% + var(--sundial-t, 0.5) * 80%);
+		/* pale gold (90) at noon deepening to rich amber (45) at the horizon */
+		--sun-hue: calc(45 + var(--sundial-alt, 1) * 45);
+		--sun-c: calc(0.09 + (1 - var(--sundial-alt, 1)) * 0.09);
+		/* near-white at noon, dimming as it sinks */
+		--sun-l: calc(0.88 + var(--sundial-alt, 1) * 0.1);
+		background:
+			/* the sun, half set behind the top edge */
+			radial-gradient(
+				circle 28rem at var(--sun-x) -2rem,
+				oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.95 * var(--sundial-vis, 1))),
+				oklch(
+						calc(var(--sun-l) - 0.05) var(--sun-c) var(--sun-hue) /
+						calc(0.5 * var(--sundial-vis, 1))
+					)
+					62%,
+				transparent 80%
+			),
+			/* tight halo around the disc */
+			radial-gradient(
+				circle 14rem at var(--sun-x) -2rem,
+				oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.3 * var(--sundial-vis, 1))),
+				transparent 70%
+			),
+			/* atmospheric bloom, smearing along the horizon as the sun sinks */
+			radial-gradient(
+				ellipse calc(30rem + (1 - var(--sundial-alt, 1)) * 14rem) 18rem at var(--sun-x) -2rem,
+				oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.3 * var(--sundial-vis, 1))),
+				transparent 70%
+			);
+		mask-image: linear-gradient(oklch(0 0 0), transparent 75%);
+	}
+
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		/* the gnomon's shadow: faint shading swinging opposite the sun —
+		   east at dawn (90deg), pooled under at noon (180deg), west at dusk */
+		background: linear-gradient(
+			calc(90deg + var(--sundial-t, 0.5) * 180deg),
+			transparent 55%,
+			oklch(0.35 0.04 70 / calc(0.06 * var(--sundial-vis, 1)))
+		);
+	}
+}

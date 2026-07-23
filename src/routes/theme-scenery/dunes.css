@@ -1,9 +1,7 @@
-/* Dunes: sun-baked desert at midday. Bottom-to-top: wind-leaned overlapping
-   dune silhouettes hug the bottom of the viewport (far hazy, near deep
-   terracotta — aerial perspective), each ridge carrying a sunlit crest line,
-   heat shimmers wander in wavering bands just above the dune line, fine
-   grains drift sideways near the ground, a pale sun breathes high in the sky
-   and a lone bird glides slowly across it. Ridge geometry (crest heights and
+/* Dunes: sun-baked desert at midday — wind-leaned overlapping dune
+   silhouettes hug the bottom of the viewport (far hazy, near deep terracotta
+   — aerial perspective), each ridge carrying a sunlit crest line, and heat
+   shimmer wavers just above the dune line. Ridge geometry (crest heights and
    which way the dunes lean) is seeded — see --dunes-ridges in
    utils/scenery-seed.ts (same whole-SVG-var technique as --meridian-ribbons:
    gradients can't draw a rounded dune curve convincingly, so it's a filled
@@ -48,91 +46,6 @@
 		animation: dunes-shimmer 4.5s ease-in-out infinite alternate;
 		animation-delay: var(--dunes-shimmer-phase-1, 0s);
 	}
-	/* second, finer shimmer layer for parallax */
-	.theme-helper-2::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image: repeating-linear-gradient(
-			to bottom,
-			transparent 0 1.6rem,
-			oklch(1 0.02 80 / 0.08) 1.6rem 2.1rem,
-			transparent 2.1rem 3.4rem
-		);
-		mask-image: linear-gradient(
-			to top,
-			transparent 0%,
-			transparent 20%,
-			black 32%,
-			black 50%,
-			transparent 72%
-		);
-		transform-origin: bottom;
-		animation: dunes-shimmer-far 6s ease-in-out infinite alternate;
-		animation-delay: var(--dunes-shimmer-phase-2, 0s);
-	}
-
-	/* fine sand grains drifting sideways on the wind, two depths, kept low
-	   near the ground so they don't float up past the shimmer into clear sky */
-	.theme-helper-3 {
-		position: absolute;
-		inset: 0;
-		background-image:
-			radial-gradient(1px 1px at 20% 30%, oklch(0.97 0.02 85 / 0.8), transparent),
-			radial-gradient(1px 1px at 55% 60%, oklch(0.92 0.03 70 / 0.7), transparent),
-			radial-gradient(1px 1px at 80% 20%, oklch(0.97 0.02 85 / 0.65), transparent),
-			radial-gradient(1px 1px at 35% 85%, oklch(0.92 0.03 70 / 0.6), transparent);
-		background-size: 22rem 16rem;
-		mask-image: linear-gradient(to top, black 0%, black 46%, transparent 72%);
-		/* seed lever: drift animates x only, so y is free to offset per user */
-		background-position-y: var(--dunes-sand-y-1, 0rem);
-		animation: dunes-drift 22s linear infinite;
-		animation-delay: var(--dunes-sand-phase-1, 0s);
-	}
-	/* nearer, larger grains on a different tile and beat */
-	.theme-helper-3::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image:
-			radial-gradient(1.5px 1.5px at 12% 45%, oklch(0.95 0.025 75 / 0.85), transparent),
-			radial-gradient(1.5px 1.5px at 48% 15%, oklch(0.97 0.02 85 / 0.75), transparent),
-			radial-gradient(1.5px 1.5px at 72% 68%, oklch(0.92 0.03 70 / 0.7), transparent),
-			radial-gradient(1.5px 1.5px at 90% 90%, oklch(0.95 0.025 75 / 0.65), transparent);
-		background-size: 28rem 20rem;
-		mask-image: linear-gradient(to top, black 0%, black 42%, transparent 68%);
-		background-position-y: var(--dunes-sand-y-2, 0rem);
-		animation: dunes-drift-near 16s linear infinite;
-		animation-delay: var(--dunes-sand-phase-2, 0s);
-	}
-
-	/* pale sun disc high in the haze, slowly breathing */
-	.theme-helper-4 {
-		position: absolute;
-		inset: 0;
-		background-image: radial-gradient(
-			circle 6rem at 78% 14%,
-			oklch(0.96 0.05 85 / 0.55),
-			transparent 70%
-		);
-		/* seed lever: the sun stays fixed in the sky, only its phase varies */
-		animation: dunes-sun-breathe 9s ease-in-out infinite alternate;
-		animation-delay: var(--dunes-sun-phase, 0s);
-	}
-	/* lone bird gliding left-to-right high in the haze — one living accent,
-	   same trick as orbit's satellite. The glyph sits at the box's left edge
-	   (backgrounds clip to the box, so it can't be position-offset outside
-	   it); the translate keyframes start the whole box off-screen instead. */
-	.theme-helper-4::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		top: 20%;
-		background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 18'><path d='M2 13 Q11 4 20 12 Q29 4 38 13' fill='none' stroke='%236b4226' stroke-width='2.8' stroke-linecap='round' opacity='0.7'/></svg>")
-			left 0 top 9% / 3rem no-repeat;
-		animation: dunes-bird 75s linear infinite;
-		animation-delay: var(--dunes-bird-phase, 0s);
-	}
 }
 
 @keyframes dunes-shimmer {
@@ -143,47 +56,5 @@
 	to {
 		opacity: 0.9;
 		transform: scaleY(1.06);
-	}
-}
-@keyframes dunes-shimmer-far {
-	from {
-		opacity: 0.4;
-		transform: scaleY(1);
-	}
-	to {
-		opacity: 0.8;
-		transform: scaleY(1.04);
-	}
-}
-/* x-only so the seeded y offset survives (the shorthand would reset it) */
-@keyframes dunes-drift {
-	to {
-		background-position-x: 22rem;
-	}
-}
-@keyframes dunes-drift-near {
-	to {
-		background-position-x: -28rem;
-	}
-}
-@keyframes dunes-sun-breathe {
-	from {
-		opacity: 0.6;
-	}
-	to {
-		opacity: 1;
-	}
-}
-/* the 3rem glyph rides the box's left edge, so -4rem/+1rem keeps it fully
-   off-screen at both ends; the mid-keyframe lifts it into a shallow arc */
-@keyframes dunes-bird {
-	from {
-		transform: translateX(-4rem);
-	}
-	50% {
-		transform: translateX(calc(50vw - 1.5rem)) translateY(-1.2rem);
-	}
-	to {
-		transform: translateX(calc(100vw + 1rem)) translateY(0);
 	}
 }

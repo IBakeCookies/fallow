@@ -1,0 +1,27 @@
+/* Breath: one glow breathing at a calm-exercise cadence — 5.5s in, 5.5s out,
+   ~5.5 breaths a minute. The slowness is the point; nothing else moves. */
+.breath .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			ellipse 55% 45% at 50% 62%,
+			oklch(0.7 0.09 200 / 0.22),
+			transparent 70%
+		);
+		animation: breath-cycle 5.5s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes breath-cycle {
+	from {
+		opacity: 0.45;
+		transform: scale(0.92);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1.05);
+	}
+}

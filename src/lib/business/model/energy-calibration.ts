@@ -8,9 +8,20 @@ import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
-	type EnergyParams
+	type DrainRateFit,
+	type EnergyParams,
+	type RecoveryRateFit
 } from './zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
+
+/** The composed params plus the per-fit details (± std, used counts) behind them. */
+export interface EnergyCalibration {
+	/** `seed` with every successful fit applied — what the planners consume */
+	params: EnergyParams;
+	recovery: RecoveryRateFit;
+	cognitiveDrain: DrainRateFit;
+	physicalDrain: DrainRateFit;
+}
 
 /**
  * Calibrate energy-model parameters from a user's rest (☕) and drain (🪫) logs.
@@ -23,13 +34,13 @@ import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/ty
  * uses) and overwrites only the parameters whose fit succeeded — everything
  * else is carried through untouched.
  */
-export function fitEnergyParams(
+export function calibrateEnergyParams(
 	rest: RestObservationRecord[],
 	drain: DrainObservationRecord[],
 	seed: EnergyParams = DEFAULT_ENERGY_PARAMS
-): EnergyParams {
+): EnergyCalibration {
 	const p = { ...seed };
-	const recoveryFit = fitRecoveryRate(
+	const recovery = fitRecoveryRate(
 		rest.flatMap((o) => [
 			{ drainedBefore: o.mindBefore / 10, drainedAfter: o.mindAfter / 10, hours: o.hours },
 			{ drainedBefore: o.bodyBefore / 10, drainedAfter: o.bodyAfter / 10, hours: o.hours }
@@ -37,8 +48,8 @@ export function fitEnergyParams(
 		p.recoveryRate,
 		p
 	);
-	if (recoveryFit.fitted) p.recoveryRate = recoveryFit.rate;
-	const cogFit = fitDrainRate(
+	if (recovery.fitted) p.recoveryRate = recovery.rate;
+	const cognitiveDrain = fitDrainRate(
 		drain.map((o) => ({
 			demand: o.cognitiveDemand,
 			hours: o.hours,
@@ -47,8 +58,8 @@ export function fitEnergyParams(
 		p.alphaCog,
 		p
 	);
-	if (cogFit.fitted) p.alphaCog = cogFit.alpha;
-	const physFit = fitDrainRate(
+	if (cognitiveDrain.fitted) p.alphaCog = cognitiveDrain.alpha;
+	const physicalDrain = fitDrainRate(
 		drain.map((o) => ({
 			demand: o.physicalDemand,
 			hours: o.hours,
@@ -57,6 +68,15 @@ export function fitEnergyParams(
 		p.alphaPhys,
 		p
 	);
-	if (physFit.fitted) p.alphaPhys = physFit.alpha;
-	return p;
+	if (physicalDrain.fitted) p.alphaPhys = physicalDrain.alpha;
+	return { params: p, recovery, cognitiveDrain, physicalDrain };
+}
+
+/** The composed params alone — see calibrateEnergyParams for the fit details. */
+export function fitEnergyParams(
+	rest: RestObservationRecord[],
+	drain: DrainObservationRecord[],
+	seed: EnergyParams = DEFAULT_ENERGY_PARAMS
+): EnergyParams {
+	return calibrateEnergyParams(rest, drain, seed).params;
 }

@@ -26,7 +26,6 @@
 @custom-variant ember (&:is(.ember *));
 @custom-variant glacier (&:is(.glacier *));
 @custom-variant zenith (&:is(.zenith *));
-@custom-variant nadir (&:is(.nadir *));
 @custom-variant eclipse (&:is(.eclipse *));
 @custom-variant cathedral (&:is(.cathedral *));
 @custom-variant orbit (&:is(.orbit *));
@@ -36,7 +35,11 @@
 @custom-variant meridian (&:is(.meridian *));
 @custom-variant dunes (&:is(.dunes *));
 @custom-variant synthwave (&:is(.synthwave *));
-@custom-variant firefly (&:is(.firefly *));
+@custom-variant sundial (&:is(.sundial *));
+@custom-variant moonphase (&:is(.moonphase *));
+@custom-variant tide (&:is(.tide *));
+@custom-variant breath (&:is(.breath *));
+@custom-variant polaris (&:is(.polaris *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes. */
@@ -619,14 +622,6 @@
 }
 
 .abyss {
-	/* hadal zone: bioluminescent glows drifting in near-black water */
-	--background-image:
-		radial-gradient(ellipse 50% 35% at 75% 15%, oklch(0.6 0.14 220 / 0.18), transparent 60%),
-		radial-gradient(ellipse 40% 30% at 15% 55%, oklch(0.62 0.19 330 / 0.13), transparent 60%),
-		radial-gradient(ellipse 45% 30% at 85% 75%, oklch(0.7 0.15 165 / 0.1), transparent 60%),
-		radial-gradient(ellipse 70% 50% at 50% 115%, oklch(0.45 0.12 200 / 0.25), transparent 65%),
-		linear-gradient(oklch(0.14 0.025 240), oklch(0.09 0.02 250));
-
 	--surface-page: oklch(0.11 0.022 245);
 	--surface-card: oklch(0.75 0.1 210 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.3);
@@ -1034,55 +1029,6 @@
 	/* hot pink */
 	--color-mixed: oklch(0.72 0.19 5);
 }
-.firefly {
-	/* a summer meadow just after dusk, free of light pollution: a deep
-	   green-blue night sky sinking into near-black meadow ground, with a
-	   faint moon glow riding high in one corner. Grass, fireflies, mist and
-	   the breathing sky glow are theme scenery — see
-	   theme-scenery/firefly.css. */
-	--background-image:
-		/* faint moon glow, high and off-center */
-		radial-gradient(ellipse 46% 30% at 82% 8%, oklch(0.9 0.02 95 / 0.14), transparent 70%),
-		/* a breath of meadow green rising from the ground */
-		radial-gradient(ellipse 60% 40% at 50% 100%, oklch(0.3 0.05 150 / 0.14), transparent 70%),
-		/* dusk sky sinking into near-black meadow-green at the ground */
-		linear-gradient(
-				to bottom,
-				oklch(0.14 0.03 250) 0%,
-				oklch(0.1 0.035 220) 45%,
-				oklch(0.06 0.03 160) 100%
-			);
-
-	--radius: 1rem;
-
-	--surface-page: oklch(0.08 0.03 200);
-	/* dusk-air glass */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
-	/* soft warm-white, like skin caught in firefly light */
-	--color-ty-primary: oklch(0.95 0.02 90);
-
-	--input: oklch(1 0 0 / 0.08);
-	--border: oklch(0.75 0.08 140 / 0.2);
-
-	/* firefly glow: warm yellow-green */
-	--primary: oklch(0.84 0.17 124);
-	--primary-foreground: oklch(0.16 0.03 150);
-	--ring: oklch(0.84 0.17 124 / 0.5);
-
-	/* glow chartreuse — same family as primary, the firefly spark itself */
-	--color-brand: oklch(0.82 0.16 122);
-	--color-brand-strong: oklch(0.9 0.14 120);
-	/* warm amber — the last dusk light on the horizon */
-	--color-flow: oklch(0.82 0.13 70);
-	/* moon teal — cool moonlit mist and sky */
-	--color-mind: oklch(0.78 0.1 200);
-	--color-mind-strong: oklch(0.86 0.08 200);
-	/* moss — muted meadow green, kept clear of the brighter primary */
-	--color-body: oklch(0.65 0.1 150);
-	/* wildflower violet — the rare bloom color in the dark grass */
-	--color-mixed: oklch(0.72 0.14 310);
-}
 
 .zenith {
 	/* the namesake: high noon — the sun cresting the top of a cloudless sky,
@@ -1115,40 +1061,6 @@
 	--color-mind: oklch(0.48 0.11 255);
 	--color-mind-strong: oklch(0.41 0.11 255);
 	--color-mixed: oklch(0.52 0.13 300);
-}
-
-.nadir {
-	/* zenith's opposite: midnight — the sun at its lowest, a full moon overhead,
-	   the sky deepest straight up and paling toward the horizon */
-	--background-image:
-		radial-gradient(circle at 50% -10rem, oklch(0.98 0.005 220 / 0.9) 0 6.5rem, transparent 17rem),
-		radial-gradient(ellipse 55% 32% at 50% -6%, oklch(0.75 0.04 230 / 0.35), transparent 70%),
-		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.38 0.06 260 / 0.55), transparent 70%),
-		linear-gradient(oklch(0.13 0.03 265), oklch(0.22 0.045 260));
-
-	--radius: 0.875rem;
-
-	--surface-page: oklch(0.16 0.03 262);
-	/* moonlit glass */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.25);
-	--color-ty-primary: oklch(0.96 0.01 230);
-
-	--input: oklch(1 0 0 / 0.1);
-	--border: oklch(0.85 0.04 230 / 0.22);
-
-	/* the moon itself */
-	--primary: oklch(0.88 0.04 230);
-	--primary-foreground: oklch(0.2 0.04 260);
-	--ring: oklch(0.88 0.04 230 / 0.5);
-
-	--color-brand: oklch(0.82 0.06 235);
-	--color-brand-strong: oklch(0.9 0.05 235);
-	/* starlight gold */
-	--color-flow: oklch(0.85 0.09 85);
-	--color-mind: oklch(0.78 0.09 250);
-	--color-mind-strong: oklch(0.86 0.08 250);
-	--color-mixed: oklch(0.75 0.1 300);
 }
 
 .eclipse {
@@ -1303,4 +1215,171 @@
 	--color-body: oklch(0.78 0.14 155);
 	/* airglow violet */
 	--color-mixed: oklch(0.72 0.12 310);
+}
+
+.sundial {
+	/* a limestone terrace at whatever hour it is — the scenery's sun and
+	   light gradient stand where the real sun stands (see
+	   theme-scenery/sundial.css); the palette stays warm neutral stone */
+	--background-image:
+		radial-gradient(ellipse 80% 50% at 50% 115%, oklch(88.04% 0.02988 80.62 / 0.5), transparent 70%),
+		linear-gradient(oklch(0.94 0.015 90), oklch(0.9 0.025 85));
+
+	--radius: 0.75rem;
+
+	--surface-page: oklch(0.92 0.02 88);
+	/* sun-bleached plaster */
+	--surface-card: oklch(1 0 0 / 0.6);
+	--surface-inset: oklch(0.35 0.04 70 / 0.07);
+	--color-ty-primary: oklch(0.3 0.03 60);
+
+	--input: oklch(1 0 0 / 0.7);
+	--border: oklch(0.35 0.04 70 / 0.2);
+
+	/* the bronze gnomon */
+	--primary: oklch(0.55 0.1 65);
+	--primary-foreground: oklch(0.97 0.01 85);
+	--ring: oklch(0.55 0.1 65 / 0.5);
+
+	--color-brand: oklch(0.5 0.09 60);
+	--color-brand-strong: oklch(0.42 0.09 55);
+	/* late-afternoon terracotta */
+	--color-flow: oklch(0.6 0.13 50);
+	/* shadow slate */
+	--color-mind: oklch(0.48 0.07 250);
+	--color-mind-strong: oklch(0.4 0.07 252);
+	/* courtyard cypress */
+	--color-body: oklch(0.52 0.09 145);
+	--color-mixed: oklch(0.52 0.11 310);
+}
+
+.moonphase {
+	/* tonight's actual moon, rendered at its real phase in the scenery (see
+	   theme-scenery/moonphase.css). The sky's top band is flat so the
+	   scenery's shadow disc can match it exactly. */
+	--background-image:
+		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.38 0.06 260 / 0.55), transparent 70%),
+		linear-gradient(oklch(0.14 0.03 265) 0 28%, oklch(0.22 0.045 260));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.16 0.03 262);
+	/* moonlit glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.25);
+	--color-ty-primary: oklch(0.96 0.01 230);
+
+	--input: oklch(1 0 0 / 0.1);
+	--border: oklch(0.85 0.04 230 / 0.22);
+
+	/* the moon itself */
+	--primary: oklch(0.88 0.04 230);
+	--primary-foreground: oklch(0.2 0.04 260);
+	--ring: oklch(0.88 0.04 230 / 0.5);
+
+	--color-brand: oklch(0.82 0.06 235);
+	--color-brand-strong: oklch(0.9 0.05 235);
+	/* starlight gold */
+	--color-flow: oklch(0.85 0.09 85);
+	--color-mind: oklch(0.78 0.09 250);
+	--color-mind-strong: oklch(0.86 0.08 250);
+	--color-mixed: oklch(0.75 0.1 300);
+}
+
+.tide {
+	/* a pale coastal morning; the sea below is scenery whose waterline
+	   stands at the day's remaining hours (see theme-scenery/tide.css) */
+	--background-image:
+		radial-gradient(ellipse 70% 40% at 50% -8%, oklch(0.97 0.02 90 / 0.7), transparent 70%),
+		linear-gradient(oklch(0.93 0.02 220), oklch(0.88 0.03 210));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.9 0.025 215);
+	/* sea-mist glass */
+	--surface-card: oklch(1 0 0 / 0.55);
+	--surface-inset: oklch(0.3 0.06 230 / 0.08);
+	--color-ty-primary: oklch(0.26 0.04 240);
+
+	--input: oklch(1 0 0 / 0.65);
+	--border: oklch(0.3 0.06 230 / 0.2);
+
+	/* sea teal */
+	--primary: oklch(0.55 0.1 220);
+	--primary-foreground: oklch(0.97 0.01 210);
+	--ring: oklch(0.55 0.1 220 / 0.5);
+
+	--color-brand: oklch(0.5 0.09 225);
+	--color-brand-strong: oklch(0.42 0.09 230);
+	/* wet-sand amber */
+	--color-flow: oklch(0.62 0.11 75);
+	--color-mind: oklch(0.5 0.09 250);
+	--color-mind-strong: oklch(0.42 0.09 252);
+	/* sea-grass */
+	--color-body: oklch(0.55 0.09 165);
+	--color-mixed: oklch(0.55 0.11 310);
+}
+
+.breath {
+	/* a dark, still room; one glow breathing at a calm-exercise cadence is
+	   the only motion (see theme-scenery/breath.css) */
+	--background-image: linear-gradient(oklch(0.16 0.03 280), oklch(0.12 0.025 270));
+
+	--radius: 1.25rem;
+
+	--surface-page: oklch(0.14 0.028 275);
+	/* held-breath glass */
+	--surface-card: oklch(1 0 0 / 0.055);
+	--surface-inset: oklch(0 0 0 / 0.28);
+	--color-ty-primary: oklch(0.94 0.01 220);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.8 0.05 210 / 0.2);
+
+	/* the exhale glow */
+	--primary: oklch(0.8 0.08 200);
+	--primary-foreground: oklch(0.18 0.03 270);
+	--ring: oklch(0.8 0.08 200 / 0.5);
+
+	--color-brand: oklch(0.78 0.07 205);
+	--color-brand-strong: oklch(0.86 0.06 205);
+	--color-flow: oklch(0.8 0.1 80);
+	--color-mind: oklch(0.75 0.09 250);
+	--color-mind-strong: oklch(0.83 0.08 250);
+	--color-body: oklch(0.72 0.1 165);
+	--color-mixed: oklch(0.72 0.11 300);
+}
+
+.polaris {
+	/* the northern sky as a clock — the scenery's circumpolar starfield stands
+	   at its real rotation around the pole star (see theme-scenery/polaris.css);
+	   the palette is polar-night steel with star-white accents */
+	--background-image:
+		radial-gradient(ellipse 90% 45% at 50% 118%, oklch(0.32 0.05 250 / 0.5), transparent 70%),
+		linear-gradient(oklch(0.13 0.025 255), oklch(0.18 0.035 252));
+
+	--radius: 0.875rem;
+
+	--surface-page: oklch(0.15 0.025 255);
+	/* frost glass */
+	--surface-card: oklch(1 0 0 / 0.055);
+	--surface-inset: oklch(0 0 0 / 0.26);
+	--color-ty-primary: oklch(0.95 0.01 240);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.03 240 / 0.2);
+
+	/* the pole star */
+	--primary: oklch(0.9 0.03 240);
+	--primary-foreground: oklch(0.18 0.03 255);
+	--ring: oklch(0.9 0.03 240 / 0.5);
+
+	--color-brand: oklch(0.84 0.05 245);
+	--color-brand-strong: oklch(0.9 0.045 245);
+	/* Dipper gold */
+	--color-flow: oklch(0.84 0.09 85);
+	--color-mind: oklch(0.76 0.09 255);
+	--color-mind-strong: oklch(0.84 0.08 255);
+	--color-body: oklch(0.74 0.09 165);
+	--color-mixed: oklch(0.74 0.1 300);
 }

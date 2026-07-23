@@ -260,16 +260,9 @@ export function sceneryStyle(seed: number): string {
 	const tile = (w: number, h: number) => `${rem(0, w)} ${rem(0, h)}`;
 
 	/* Var order is the rnd() call order — append only, or every user's
-	   scenery reshuffles on deploy. */
+	   scenery reshuffles on deploy. (The 2026-07 theme curation pruned vars
+	   mid-stream — a deliberate one-time reshuffle.) */
 	const vars: Record<string, string> = {
-		/* nadir: static star fields, tiles 26×21rem and 31×25rem */
-		'--nadir-pos-1': tile(26, 21),
-		'--nadir-dur-1': sec(5, 8),
-		'--nadir-phase-1': sec(-6, 0),
-		'--nadir-pos-2': tile(31, 25),
-		'--nadir-dur-2': sec(7.5, 11),
-		'--nadir-phase-2': sec(-9, 0),
-
 		/* abyss: glows wander via transform, so both position axes are free;
 		   drift/breathe are desynced per layer by negative delays */
 		'--abyss-pos': `${rem(-8, 8)} ${rem(-6, 6)}`,
@@ -280,11 +273,9 @@ export function sceneryStyle(seed: number): string {
 		'--abyss-drift-3': sec(-48, 0),
 		'--abyss-breathe-3': sec(-11, 0),
 
-		/* ember: rise animates y only, so x is free; tiles 16rem / 23rem wide */
+		/* ember: rise animates y only, so x is free; 16rem-wide tile */
 		'--ember-x-1': rem(0, 16),
 		'--ember-phase-1': sec(-13, 0),
-		'--ember-x-2': rem(0, 23),
-		'--ember-phase-2': sec(-23, 0),
 		'--ember-phase-3': sec(-5, 0),
 
 		/* zenith: seamless one-tile drifts — phase only */
@@ -301,21 +292,12 @@ export function sceneryStyle(seed: number): string {
 		'--orbit-shimmer-phase': sec(-5, 0),
 		'--orbit-lightning-phase': sec(-23, 0),
 
-		/* lantern-drift: reed bank x is static-free (60rem tile), fireflies
-		   rise on y so their x is free (28rem tile); every loop re-phases.
-		   Near lanterns and their reflections share --ld-drift-phase — their
-		   horizontal lockstep is the effect, never split them. */
+		/* lantern-drift: reed bank x is static-free (60rem tile). Lanterns and
+		   their reflections share --ld-drift-phase — their horizontal lockstep
+		   is the effect, never split them. */
 		'--ld-reeds-x': rem(0, 60),
 		'--ld-drift-phase': sec(-137, 0),
-		'--ld-far-phase': sec(-173, 0),
-		'--ld-bob-phase': sec(-6.5, 0),
-		'--ld-bob-far-phase': sec(-8.5, 0),
 		'--ld-shimmer-phase': sec(-9.5, 0),
-		'--ld-mist-phase': sec(-83, 0),
-		'--ld-fly-x': rem(0, 28),
-		'--ld-fly-phase': sec(-29, 0),
-		'--ld-twinkle-phase': sec(-4.5, 0),
-		'--ld-hero-phase': sec(-53, 0),
 
 		/* canopy: leaf dapple is static (both axes free, 34×28rem tile); rays
 		   only re-phase; pollen rises on y so its x is free (18rem / 24rem tiles) */
@@ -352,14 +334,12 @@ export function sceneryStyle(seed: number): string {
 	const tile2 = (w: number, h: number) => `${rem2(0, w)} ${rem2(0, h)}`;
 
 	const vars2: Record<string, string> = {
-		/* glacier: snowfall falls on y so x is free (tiles 20×26rem far, 16×22rem near); sway/haze/glow only re-phase */
+		/* glacier: snowfall falls on y so x is free (tiles 20×26rem far, 16×22rem near); sway only re-phases */
 		'--glacier-far-x': rem2(0, 20),
 		'--glacier-far-phase': sec2(-15, 0),
 		'--glacier-near-x': rem2(0, 16),
 		'--glacier-near-phase': sec2(-8, 0),
 		'--glacier-sway-phase': sec2(-4.5, 0),
-		'--glacier-haze-phase': sec2(-9, 0),
-		'--glacier-glow-phase': sec2(-11, 0),
 
 		/* ukiyo: sun wobbles on a small static tile; wave/fall loops re-phase; petal fall is on y so x is free (20rem/26rem tiles); sway is a transform, phased independently */
 		'--ukiyo-wave-phase': sec2(-68, 0),
@@ -371,17 +351,9 @@ export function sceneryStyle(seed: number): string {
 		'--ukiyo-sway-phase-near': sec2(-5, 0),
 
 		/* dunes: ridges are a whole-SVG var, same technique as --meridian-ribbons —
-		   see dunesRidgesUrl (consumes exactly 2 rnd2() calls, matching the old
-		   tile2(46, 30) it replaced, so nothing after it reshuffles); shimmer/sun
-		   only re-phase; sand drifts on x, so y is free (tiles 22rem / 28rem tall) */
+		   see dunesRidgesUrl; the shimmer only re-phases */
 		'--dunes-ridges': dunesRidgesUrl(between2),
 		'--dunes-shimmer-phase-1': sec2(-4.5, 0),
-		'--dunes-shimmer-phase-2': sec2(-6, 0),
-		'--dunes-sand-y-1': rem2(0, 16),
-		'--dunes-sand-phase-1': sec2(-22, 0),
-		'--dunes-sand-y-2': rem2(0, 20),
-		'--dunes-sand-phase-2': sec2(-16, 0),
-		'--dunes-sun-phase': sec2(-9, 0),
 
 		/* synthwave: stars are a static tile (both axes free); breathe/sink/twinkle/haze only re-phase; grid rails are a static tile (x free); the grid's scroll is a seamless one-tile loop, phased via delay only */
 		'--sw-stars': tile2(30, 24),
@@ -392,24 +364,9 @@ export function sceneryStyle(seed: number): string {
 		'--sw-grid-phase': sec2(-2.6, 0),
 		'--sw-haze-phase': sec2(-8, 0),
 
-		/* firefly: grass is fully static (no keyframe touches it) — both axes free,
-		   small jitter only; sky glow and mist only re-phase (mist is a seamless
-		   one-tile x-loop, so no position offset); both firefly depths rise on y so
-		   only x is free, each with its own rise-phase and twinkle-phase */
-		'--ff-grass-pos': `${rem2(-4, 4)} ${rem2(-2, 2)}`,
-		'--ff-sky-phase': sec2(-11, 0),
-		'--ff-mist-phase': sec2(-91, 0),
-		'--ff-fly-x-1': rem2(0, 26),
-		'--ff-fly-phase-1': sec2(-37, 0),
-		'--ff-fly-twinkle-1': sec2(-5, 0),
-		'--ff-fly-x-2': rem2(0, 20),
-		'--ff-fly-phase-2': sec2(-26, 0),
-		'--ff-fly-twinkle-2': sec2(-3.6, 0),
-
-		/* dunes bird — added after firefly, so it lives here at the end of
-		   stream 2 (append-only), not with the other --dunes-* vars above.
-		   The glide is a fixed left-to-right sweep; only its phase varies */
-		'--dunes-bird-phase': sec2(-75, 0)
+		/* polaris: the field-star tile is static (both axes free, 30×24rem);
+		   constellations and trails are fixed geometry, never offset */
+		'--polaris-stars': tile2(30, 24)
 	};
 
 	return Object.entries({ ...vars, ...vars2 })

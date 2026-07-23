@@ -1,0 +1,33 @@
+/* Tide: the sea stands at the day's remaining water — high in the morning,
+   ebbing as the hours drain toward 23:00. --tide-level (1 = full, 0 = empty)
+   is set from the real clock (utils/scenery-time.ts); a slow swell is the
+   only motion. */
+.tide .theme-scenery {
+	display: block;
+
+	.theme-helper-1 {
+		position: absolute;
+		left: 0;
+		right: 0;
+		/* sunk 0.6rem so the swell's lift never exposes the page below */
+		bottom: -0.6rem;
+		height: calc(8% + var(--tide-level, 0.5) * 40%);
+		border-top: 2px solid oklch(0.98 0.01 210 / 0.7);
+		background: linear-gradient(
+			to bottom,
+			oklch(0.85 0.05 210 / 0.9),
+			oklch(0.62 0.09 230) 55%,
+			oklch(0.5 0.1 240)
+		);
+		animation: tide-swell 9s ease-in-out infinite alternate;
+	}
+}
+
+@keyframes tide-swell {
+	from {
+		transform: translateY(0);
+	}
+	to {
+		transform: translateY(-0.5rem);
+	}
+}

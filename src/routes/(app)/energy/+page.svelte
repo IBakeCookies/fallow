@@ -718,7 +718,7 @@
 												type="checkbox"
 												checked={task.completed}
 												onchange={() => session.toggleTask(task.id)}
-												class="h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-success focus:ring-brand/20"
+												class="h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-brand checked:bg-brand-strong dark:checked:bg-brand focus:ring-brand/20"
 											/>
 											<span
 												class="h-2.5 w-2.5 shrink-0 rounded-full"
