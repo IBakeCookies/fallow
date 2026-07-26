@@ -10,7 +10,7 @@
 	import X from '@lucide/svelte/icons/x';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
 	import * as m from '$lib/paraglide/messages.js';
-	import type { ThemeName } from '$lib/business/store/theme-store.svelte';
+	import type { ThemeName } from '$lib/business/model/theme';
 	import Footer from '$lib/presentation/component/footer.svelte';
 	import { setSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
@@ -56,7 +56,9 @@
 	// context, created per component tree — never at module scope, so nothing
 	// can leak across SSR requests. Pages grab it with getSessionStore(); the
 	// layout keeps the reference to surface its persistence errors.
-	const session = setSessionStore();
+	// The routing dependency is the layout's, not the store's: the store is
+	// handed a reader for the viewed day instead of importing $app/state.
+	const session = setSessionStore(() => page.url.searchParams.get('date'));
 
 	// Calendar is the one full-viewport page: it must never scroll, so its grid
 	// rows split the leftover height instead of growing the page.
@@ -89,7 +91,7 @@
 								{#each themeStore.themes as theme (theme.name)}
 									<DropdownMenu.RadioItem value={theme.name} class="cursor-pointer gap-grid-xs">
 										<!-- theme classes scope that theme's CSS vars to the swatch,
-										     so the slices always match layout.css -->
+										     so the slices always match themes.css -->
 										<span
 											class="{theme.css.join(
 												' '
@@ -160,14 +162,14 @@
 		{#if session.storageError}
 			<div
 				role="alert"
-				class="border-danger/20 bg-danger/5 text-danger-strong/90 mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
+				class="border-danger/20 bg-danger/5 text-danger-strong mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
 			>
 				<span class="flex-1">{m.storage_error()}</span>
 				<button
 					type="button"
 					aria-label={m.storage_error()}
 					onclick={() => session.clearStorageError()}
-					class="hover:text-danger-strong shrink-0 rounded-md p-1"
+					class="hover:text-danger-strong shrink-0 rounded-md p-text-2xs"
 				>
 					<X class="h-4 w-4" />
 				</button>

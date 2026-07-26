@@ -3,42 +3,13 @@
 // if chromium fails with `libnspr4.so`, see .claude/skills/verify/SKILL.md
 // (download libnspr4/libnss3 debs and set LD_LIBRARY_PATH to the extracted libs).
 import { chromium } from 'playwright';
-import { mkdirSync } from 'fs';
+import { mkdirSync, readFileSync } from 'fs';
 
-// keep in sync with src/lib/business/store/theme-store.svelte.ts
-const themes = [
-	'fallow',
-	'solid-light',
-	'solid-dark',
-	'glass-light',
-	'glass-dark',
-	'aurora',
-	'daybreak',
-	'royal',
-	'terminal',
-	'blueprint',
-	'bubblegum',
-	'ukiyo',
-	'abyss',
-	'parchment',
-	'noir',
-	'ember',
-	'glacier',
-	'zenith',
-	'eclipse',
-	'cathedral',
-	'orbit',
-	'lantern-drift',
-	'canopy',
-	'meridian',
-	'dunes',
-	'synthwave',
-	'sundial',
-	'moonphase',
-	'tide',
-	'breath',
-	'polaris'
-];
+// Read the catalogue instead of duplicating it — a hand-copied list silently
+// stops covering new themes, which is the one thing this script is for.
+const catalogue = readFileSync('src/lib/business/model/theme.ts', 'utf8');
+const themes = [...catalogue.matchAll(/^\t\tname: '([^']+)'/gm)].map((m) => m[1]);
+if (themes.length === 0) throw new Error('no themes parsed from business/model/theme.ts');
 
 const outDir = process.argv[2] ?? 'screenshots';
 mkdirSync(outDir, { recursive: true });

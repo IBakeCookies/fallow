@@ -8,17 +8,6 @@ import * as flowObservationRepository from '$lib/data/repository/flow-observatio
 import type { SessionStore } from './session-store.svelte';
 import type { DailySession } from '$lib/business/type';
 
-vi.mock('$app/state', async () => {
-	const { mockPage } = await import('./session-store.test-utils.svelte');
-	return {
-		page: {
-			get url() {
-				return mockPage.url;
-			}
-		}
-	};
-});
-
 vi.mock('$lib/business/store/session-history', () => ({
 	initializeStorage: vi.fn(async () => {})
 }));

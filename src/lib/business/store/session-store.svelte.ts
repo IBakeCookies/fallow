@@ -1,6 +1,5 @@
 import { getContext, setContext, onMount } from 'svelte';
 import { browser } from '$app/environment';
-import { page } from '$app/state';
 import type {
 	Task,
 	DailySession,
@@ -32,6 +31,14 @@ import {
 const CONTEXT_KEY = Symbol();
 
 /**
+ * Reads the viewed day out of wherever the app keeps it (the URL, in this app).
+ * Injected rather than imported so the store stays free of SvelteKit routing:
+ * the caller owns the routing dependency, the store just observes a string.
+ * Called inside a `$derived`, so any reactive source it reads is tracked.
+ */
+export type ReadDateParam = () => string | null;
+
+/**
  * The daily session as a shared reactive store: tasks, time budget, capacity
  * pools, flow observations, and their IndexedDB persistence. Created once in
  * the (app) layout via context — never at module level, so no state can leak
@@ -39,6 +46,12 @@ const CONTEXT_KEY = Symbol();
  * (main page, Energy Lab).
  */
 export class SessionStore {
+	// Assigned first thing in the constructor. The `!` is load-bearing: the
+	// $derived fields below reference it in their initializers, and those are
+	// lazy (never evaluated before the constructor body runs) — but TypeScript
+	// checks declaration order, not laziness.
+	#readDateParam!: ReadDateParam;
+
 	// ----- Daily session state -----
 	#tasks = $state<Task[]>([]);
 	#availableHours = $state<number>(0);
@@ -76,7 +89,7 @@ export class SessionStore {
 	// for any other day, plain / for today. Routes without a date param (Energy
 	// Lab, calendar, …) always view today. Invalid dates fall back to today.
 	#today = $derived(liveToday.value);
-	#dateParam = $derived(page.url.searchParams.get('date'));
+	#dateParam = $derived(this.#readDateParam());
 	#selectedDate = $derived(
 		this.#dateParam && /^\d{4}-\d{2}-\d{2}$/.test(this.#dateParam) ? this.#dateParam : this.#today
 	);
@@ -102,7 +115,9 @@ export class SessionStore {
 		fitUserConstants(this.#flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours })))
 	);
 
-	constructor() {
+	constructor(readDateParam: ReadDateParam) {
+		this.#readDateParam = readDateParam;
+
 		onMount(async () => {
 			try {
 				await initializeStorage();
@@ -244,6 +259,14 @@ export class SessionStore {
 	}
 	get storageError() {
 		return this.#storageError;
+	}
+	/**
+	 * Raise the app-wide persistence banner from another store (the Energy Lab
+	 * writes its own setting), so there is one place a failed write shows up
+	 * rather than one banner per store.
+	 */
+	reportStorageError() {
+		this.#storageError = 'save-failed';
 	}
 	clearStorageError() {
 		this.#storageError = null;
@@ -603,8 +626,8 @@ export class SessionStore {
 	}
 }
 
-export function setSessionStore(): SessionStore {
-	return setContext<SessionStore>(CONTEXT_KEY, new SessionStore());
+export function setSessionStore(readDateParam: ReadDateParam): SessionStore {
+	return setContext<SessionStore>(CONTEXT_KEY, new SessionStore(readDateParam));
 }
 
 export function getSessionStore(): SessionStore {

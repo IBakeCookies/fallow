@@ -86,7 +86,9 @@ export default defineConfig(
 		}
 	},
 	{
-		files: ['src/lib/presentation/**', 'src/routes/**'],
+		// hooks/service-worker are app-shell code, not domain code: they render
+		// and cache, so they go through the business layer like any route would.
+		files: ['src/lib/presentation/**', 'src/routes/**', 'src/hooks.*.ts', 'src/service-worker.ts'],
 		rules: {
 			'no-restricted-imports': [
 				'error',

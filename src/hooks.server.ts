@@ -1,9 +1,8 @@
 import type { Handle } from '@sveltejs/kit';
-import type { ThemeName } from '$lib/business/store/theme-store.svelte';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { sequence } from '@sveltejs/kit/hooks';
-import { DEFAULT_THEME, getClassesToAdd, themes } from '$lib/business/store/theme-store.svelte';
+import { readRequestAppearance } from '$lib/business/appearance';
 
 const handleParaglide: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -18,11 +17,7 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 	});
 
 const handleTheme: Handle = async ({ event, resolve }) => {
-	const { cookies } = event;
-	const cookieTheme = cookies.get('theme') as ThemeName;
-	const theme = themes.find((t) => t.name === cookieTheme) ? cookieTheme : DEFAULT_THEME;
-
-	const themeClass = getClassesToAdd(theme).join(' ');
+	const { themeClass } = readRequestAppearance(event.cookies);
 
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%theme%', themeClass)
@@ -34,8 +29,9 @@ const handleTheme: Handle = async ({ event, resolve }) => {
 // no cookie yet leaves the placeholder empty — app.html's inline script then
 // decides from prefers-reduced-motion before first paint
 const handleSceneryMotion: Handle = async ({ event, resolve }) => {
-	const sceneryMotion = event.cookies.get('sceneryMotion');
-	const sceneryPausedClass = sceneryMotion === 'paused' ? 'scenery-paused' : '';
+	const sceneryPausedClass = readRequestAppearance(event.cookies).sceneryPaused
+		? 'scenery-paused'
+		: '';
 
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%scenery-paused%', sceneryPausedClass)

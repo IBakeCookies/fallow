@@ -1,225 +1,31 @@
-import { getContext, setContext } from 'svelte';
-import { onMount } from 'svelte';
+import { getContext, setContext, onMount } from 'svelte';
 import { browser } from '$app/environment';
-
-export type ThemeName =
-	| 'fallow'
-	| 'solid-light'
-	| 'solid-dark'
-	| 'glass-light'
-	| 'glass-dark'
-	| 'aurora'
-	| 'daybreak'
-	| 'royal'
-	| 'terminal'
-	| 'blueprint'
-	| 'bubblegum'
-	| 'ukiyo'
-	| 'abyss'
-	| 'parchment'
-	| 'noir'
-	| 'ember'
-	| 'glacier'
-	| 'zenith'
-	| 'eclipse'
-	| 'cathedral'
-	| 'orbit'
-	| 'lantern-drift'
-	| 'canopy'
-	| 'meridian'
-	| 'dunes'
-	| 'synthwave'
-	| 'sundial'
-	| 'moonphase'
-	| 'tide'
-	| 'breath'
-	| 'polaris';
-
-interface ThemeItem {
-	name: ThemeName;
-	/* display name for the UI; name stays the cookie/CSS identifier */
-	label: string;
-	css: string[];
-}
-
-export const themes: ThemeItem[] = [
-	{
-		name: 'fallow',
-		label: 'Fallow',
-		css: ['fallow']
-	},
-	{
-		name: 'solid-light',
-		label: 'Classic Light',
-		css: ['solid-light']
-	},
-	{
-		name: 'solid-dark',
-		label: 'Classic Dark',
-		css: ['dark']
-	},
-	{
-		name: 'glass-light',
-		label: 'Morning Glass',
-		css: ['glass-light']
-	},
-	{
-		name: 'glass-dark',
-		label: 'Night Glass',
-		css: ['glass-dark', 'dark']
-	},
-	{
-		name: 'aurora',
-		label: 'Aurora',
-		css: ['aurora', 'dark']
-	},
-	{
-		name: 'daybreak',
-		label: 'Daybreak',
-		css: ['daybreak']
-	},
-	{
-		name: 'royal',
-		label: 'Royal Velvet',
-		css: ['royal', 'dark']
-	},
-	{
-		name: 'terminal',
-		label: 'Terminal',
-		css: ['terminal', 'dark']
-	},
-	{
-		name: 'blueprint',
-		label: 'Blueprint',
-		css: ['blueprint', 'dark']
-	},
-	{
-		name: 'bubblegum',
-		label: 'Bubblegum',
-		css: ['bubblegum']
-	},
-	{
-		name: 'ukiyo',
-		label: 'Ukiyo-e',
-		css: ['ukiyo']
-	},
-	{
-		name: 'abyss',
-		label: 'Abyss',
-		css: ['abyss', 'dark']
-	},
-	{
-		name: 'parchment',
-		label: 'Parchment',
-		css: ['parchment']
-	},
-	{
-		name: 'noir',
-		label: 'Noir',
-		css: ['noir', 'dark']
-	},
-	{
-		name: 'ember',
-		label: 'Ember',
-		css: ['ember', 'dark']
-	},
-	{
-		name: 'glacier',
-		label: 'Glacier',
-		css: ['glacier']
-	},
-	{
-		name: 'zenith',
-		label: 'Zenith',
-		css: ['zenith']
-	},
-	{
-		name: 'eclipse',
-		label: 'Eclipse',
-		css: ['eclipse', 'dark']
-	},
-	{
-		name: 'cathedral',
-		label: 'Cathedral',
-		css: ['cathedral', 'dark']
-	},
-	{
-		name: 'orbit',
-		label: 'Orbit',
-		css: ['orbit', 'dark']
-	},
-	{
-		name: 'lantern-drift',
-		label: 'Lantern Drift',
-		css: ['lantern-drift', 'dark']
-	},
-	{
-		name: 'canopy',
-		label: 'Canopy',
-		css: ['canopy']
-	},
-	{
-		name: 'meridian',
-		label: 'Meridian',
-		css: ['meridian', 'dark']
-	},
-	{
-		name: 'dunes',
-		label: 'Dunes',
-		css: ['dunes']
-	},
-	{
-		name: 'synthwave',
-		label: 'Synthwave',
-		css: ['synthwave', 'dark']
-	},
-	{
-		name: 'sundial',
-		label: 'Sundial',
-		css: ['sundial']
-	},
-	{
-		name: 'moonphase',
-		label: 'Moonphase',
-		css: ['moonphase', 'dark']
-	},
-	{
-		name: 'tide',
-		label: 'Tide',
-		css: ['tide']
-	},
-	{
-		name: 'breath',
-		label: 'Breath',
-		css: ['breath', 'dark']
-	},
-	{
-		name: 'polaris',
-		label: 'Polaris',
-		css: ['polaris', 'dark']
-	}
-] as const;
-
-/* Defaults for first visit (no cookie). The pre-paint fallback in app.html's
-   inline script hardcodes the dark default's classes — keep it in sync. */
-export const DEFAULT_THEME: ThemeName = 'fallow';
-export const DEFAULT_DARK_THEME: ThemeName = 'solid-dark';
+// Namespace import: the $-prefixed controller methods can't be imported by
+// name inside .svelte.ts files ($ is reserved for runes).
+import * as appearanceRepository from '$lib/data/repository/appearance-repository';
+import {
+	DEFAULT_DARK_THEME,
+	DEFAULT_THEME,
+	getClassesToAdd,
+	resolveThemeName,
+	randomScenerySeed,
+	themes,
+	type ThemeItem,
+	type ThemeName
+} from '$lib/business/model/theme';
 
 const CONTEXT_KEY = Symbol();
-const themeStorageKey = 'theme';
-const sceneryStorageKey = 'scenerySeed';
-const sceneryMotionStorageKey = 'sceneryMotion';
 
-/* 32-bit scenery seed. The store only mints and persists the number;
-   mapping it to CSS vars is presentation's job (utils/scenery-seed.ts). */
-export function randomScenerySeed(): number {
-	return Math.floor(Math.random() * 0x100000000);
-}
-
-export function getClassesToAdd(themeName: ThemeName): string[] {
-	return themes.find((t) => t.name === themeName)?.css ?? [];
-}
-
+/**
+ * Appearance as shared reactive state: the active theme, the per-user scenery
+ * seed, and whether scenery motion is paused — each mirrored into a cookie so
+ * the SERVER can stamp the right classes into the HTML before first paint.
+ *
+ * The catalogue lives in `business/model/theme.ts` and the cookies in
+ * `data/repository/appearance-repository.ts`; this class owns only the
+ * reactive state and the initial-value reconciliation, which is the subtle
+ * part (three sources: SSR payload, cookie, OS preference).
+ */
 export class ThemeStore {
 	#theme = $state<ThemeName>(DEFAULT_THEME);
 	#themes: ThemeItem[] = themes;
@@ -273,19 +79,20 @@ export class ThemeStore {
 		// offline, the SW serves cached HTML whose serialized theme may be stale —
 		// the cookie is the source of truth, so it wins over initialTheme
 		if (browser) {
-			const cookieTheme = document.cookie.match(/(?:^|; )theme=([^;]+)/)?.[1];
-			const known = themes.find((t) => t.name === cookieTheme);
+			const cookieTheme = resolveThemeName(appearanceRepository.$readAppearance().theme);
 
-			if (known) {
-				this.#theme = known.name;
+			if (cookieTheme) {
+				this.#theme = cookieTheme;
 
 				return;
 			}
 		}
 
 		// a stale cookie may still name a deleted theme — fall through to defaults
-		if (initialTheme && themes.some((t) => t.name === initialTheme)) {
-			this.#theme = initialTheme;
+		const seededTheme = resolveThemeName(initialTheme);
+
+		if (seededTheme) {
+			this.#theme = seededTheme;
 
 			return;
 		}
@@ -325,19 +132,19 @@ export class ThemeStore {
 	switchTheme(newTheme: ThemeName): void {
 		this.#theme = newTheme;
 
-		document.cookie = `${themeStorageKey}=${newTheme}; path=/; max-age=31536000; SameSite=Lax`;
+		appearanceRepository.$updateTheme(newTheme);
 	}
 
 	rerollScenery(): void {
 		this.#scenerySeed = randomScenerySeed();
 
-		document.cookie = `${sceneryStorageKey}=${this.#scenerySeed}; path=/; max-age=31536000; SameSite=Lax`;
+		appearanceRepository.$updateScenerySeed(this.#scenerySeed);
 	}
 
 	toggleSceneryMotion(): void {
 		this.#sceneryPaused = !this.#sceneryPaused;
 
-		document.cookie = `${sceneryMotionStorageKey}=${this.#sceneryPaused ? 'paused' : 'on'}; path=/; max-age=31536000; SameSite=Lax`;
+		appearanceRepository.$updateSceneryMotion(this.#sceneryPaused);
 	}
 }
 
