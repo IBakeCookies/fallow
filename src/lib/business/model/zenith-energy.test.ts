@@ -830,17 +830,20 @@ describe('Zenith Energy Model', () => {
 				return ev.satiatedOutput + ev.terminalBonus;
 			};
 			const base = workValue([{ taskId: 3, hours: 2.25 }]);
+			// Unlogged tasks are probed at their CANONICAL amplitude position
+			// (MATH.md §13.4). Boxing (10.4) and guitar (6.67) both outrank
+			// reading (4.60), so their probe block goes BEFORE it, not appended.
 			const lo = Math.max(
 				(workValue([{ taskId: 3, hours: 2.25 + step }]) - base) / step,
 				(workValue([
-					{ taskId: 3, hours: 2.25 },
-					{ taskId: 1, hours: step }
+					{ taskId: 1, hours: step },
+					{ taskId: 3, hours: 2.25 }
 				]) -
 					base) /
 					step,
 				(workValue([
-					{ taskId: 3, hours: 2.25 },
-					{ taskId: 2, hours: step }
+					{ taskId: 2, hours: step },
+					{ taskId: 3, hours: 2.25 }
 				]) -
 					base) /
 					step

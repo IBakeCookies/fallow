@@ -117,7 +117,9 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(optimalStoppingX(0)).toBeCloseTo(OPTIMAL_PHI_MULTIPLIER, 3);
 		});
 
-		it('findOptimalSingleTaskTime maximizes P̄, with T*/ϕ ∈ (1.5, 1.7933] across the domain', () => {
+		it('findOptimalSingleTaskTime maximizes P̄, with T*/ϕ ∈ [1.5194, 1.7933] across the domain', () => {
+			// The lower end is 1.5194, not 1.5: 1.5 is the r → 1 asymptote and
+			// AMPLITUDE_RATIO_CAP stops r at 0.9 (MATH.md §3, §13.5).
 			for (const task of DOMAIN_GRID) {
 				const { a, p0, k, phi } = calculateTaskParams({ title: '', ...task });
 				const T = findOptimalSingleTaskTime({ title: '', ...task });
@@ -125,7 +127,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 				expect(best).toBeGreaterThanOrEqual(averageProductivity(T * 0.99, a, p0, k));
 				expect(best).toBeGreaterThanOrEqual(averageProductivity(T * 1.01, a, p0, k));
 				const multiplier = T / phi;
-				expect(multiplier).toBeGreaterThan(1.5);
+				expect(multiplier).toBeGreaterThanOrEqual(1.5194);
 				expect(multiplier).toBeLessThanOrEqual(OPTIMAL_PHI_MULTIPLIER + 1e-6);
 			}
 		});
@@ -423,6 +425,89 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		// Multi-constraint block greedy is a documented heuristic (multi-dimensional
 		// knapsack has no exact greedy); these tests pin it within a whisker of the
 		// brute-force optimum on the scenarios that broke earlier heuristics.
+
+		it('holds an envelope over RANDOM pool-bound days, not just the hand-picked ones (2026-07-26, §13.3)', () => {
+			// The "within 1–2%" claim used to rest on a handful of curated
+			// scenarios. A 400-day randomized sweep found the real tail was 5.5%
+			// worst-case, which motivated the ratio-ranked second candidate plan.
+			// This pins the post-fix envelope so a future ranking change cannot
+			// quietly regress it. Deterministic LCG — no flake.
+			let seed = 2024;
+			const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+			let compared = 0;
+			let exact = 0;
+			let worst = 0;
+
+			for (let trial = 0; trial < 400; trial++) {
+				const n = 2 + Math.floor(rnd() * 3);
+				const tasks: PooledTaskInput[] = Array.from({ length: n }, (_, i) => ({
+					title: `t${i}`,
+					difficulty: 1 + Math.floor(rnd() * 10),
+					enjoyment: 1 + Math.floor(rnd() * 10),
+					cognitiveWeight: Math.round(rnd() * 10) / 10,
+					physicalWeight: Math.round(rnd() * 10) / 10
+				}));
+				const budget = 1 + Math.floor(rnd() * 12) / 2;
+				const pools = {
+					cognitiveHours: Math.round(rnd() * 80) / 10,
+					physicalHours: Math.round(rnd() * 80) / 10
+				};
+				const switchCost = [0, 0.25, 0.5][Math.floor(rnd() * 3)];
+
+				const achieved = calculateTotalProductivity(
+					tasks,
+					calculatePooledAllocations(tasks, budget, pools, DEFAULT_USER_CONSTANTS, switchCost).map(
+						(a) => a.allocatedHours
+					)
+				);
+
+				// Brute force over every block distribution, both pools and the
+				// funded-count switch overhead enforced.
+				const maxBlocks = Math.floor(budget / BLOCK_HOURS + 1e-9);
+				const vec = new Array<number>(n).fill(0);
+				let brute = 0;
+				const search = (i: number, left: number): void => {
+					if (i === n) {
+						const funded = vec.filter((b) => b > 0).length;
+						const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
+						const used = vec.reduce((sum, b) => sum + b, 0) * BLOCK_HOURS;
+						if (used + overhead > budget + 1e-9) return;
+						let cog = 0;
+						let phys = 0;
+						for (let j = 0; j < n; j++) {
+							cog += vec[j] * BLOCK_HOURS * tasks[j].cognitiveWeight;
+							phys += vec[j] * BLOCK_HOURS * tasks[j].physicalWeight;
+						}
+						if (cog > pools.cognitiveHours + 1e-9 || phys > pools.physicalHours + 1e-9) return;
+						const value = calculateTotalProductivity(
+							tasks,
+							vec.map((b) => b * BLOCK_HOURS)
+						);
+						if (value > brute) brute = value;
+						return;
+					}
+					for (let b = 0; b <= left; b++) {
+						vec[i] = b;
+						search(i + 1, left - b);
+					}
+					vec[i] = 0;
+				};
+				search(0, maxBlocks);
+
+				if (brute <= 1e-9) continue;
+				compared++;
+				const shortfall = (brute - achieved) / brute;
+				if (shortfall < 1e-9) exact++;
+				if (shortfall > worst) worst = shortfall;
+			}
+
+			expect(compared).toBeGreaterThan(300);
+			// Measured 2026-07-26: 99.5% exact, worst 0.09%. Bounds are loose
+			// enough not to flake on arithmetic reordering, tight enough that the
+			// pre-fix behaviour (97.4% exact, worst 5.5%) would fail both.
+			expect(exact / compared).toBeGreaterThan(0.98);
+			expect(worst).toBeLessThan(0.005);
+		});
 
 		it('stays within 1% of the brute-force block optimum when a pool binds with unequal weights', () => {
 			// An hour off the weight-1.0 task frees enough cognitive capacity to
@@ -750,7 +835,6 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(fitted).toBe(true);
 			expect(posterior).toBeDefined();
 			expect(posterior!.sigma2).toBeGreaterThan(0);
-			expect(posterior!.nEff).toBeCloseTo(6, 9);
 			for (let i = 0; i < 3; i++) {
 				expect(posterior!.covariance[i][i]).toBeGreaterThan(0);
 				for (let j = 0; j < 3; j++) {
@@ -769,29 +853,38 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(stdMany).toBeGreaterThanOrEqual(Math.sqrt(many.sigma2));
 		});
 
-		it('forgetting factor discounts stale observations', () => {
-			// 10 old logs say ϕ = 3h at (3, 1.5); 10 recent logs say ϕ = 1h.
-			const stale: FlowObservation[] = Array.from({ length: 10 }, () => ({
-				E: 3,
-				beta: 1.5,
-				phi: 3
-			}));
-			const recent: FlowObservation[] = Array.from({ length: 10 }, () => ({
-				E: 3,
-				beta: 1.5,
-				phi: 1
-			}));
-			const all = [...stale, ...recent];
+		it('no observations returns the PRIOR as a posterior, not none (2026-07-26, §13.1)', () => {
+			// The fallback used to return no posterior, which downstream reads as
+			// σ_ϕ = 0 — a user with zero ⚡ logs was treated as perfectly certain
+			// and then started hedging on their first log. Uncertainty must be
+			// monotone DECREASING in data.
+			const none = fitUserConstants([]);
+			expect(none.fitted).toBe(false);
+			expect(none.constants).toEqual(DEFAULT_USER_CONSTANTS);
 
-			const equal = fitUserConstants(all).constants;
-			const forgetting = fitUserConstants(all, DEFAULT_USER_CONSTANTS, {
-				forgettingFactor: 0.7
-			}).constants;
+			const at = (p: FitPosterior) => phiParameterStd(mapEffort(5), mapEnjoyability(5), p);
+			const sigmas = [none, fitUserConstants(obs(1)), fitUserConstants(obs(5))].map((f) =>
+				at(f.posterior)
+			);
+			expect(sigmas[0]).toBeGreaterThan(sigmas[1]);
+			expect(sigmas[1]).toBeGreaterThan(sigmas[2]);
+			// It is exactly the n = 0 limit of the fitted formulas: Σ = (σ₀²/λ)·I
+			expect(none.posterior.sigma2).toBeCloseTo(0.25 * 0.25, 12);
+			expect(none.posterior.covariance[0][0]).toBeCloseTo((0.25 * 0.25) / 4, 12);
+			expect(none.posterior.covariance[0][1]).toBe(0);
+		});
 
-			const predictAt = (c: { c1: number; c2: number; c3: number }) => c.c1 * 3 + c.c2 * 1.5 + c.c3;
-			// With forgetting, the prediction sits meaningfully closer to the
-			// recent 1h logs than the equal-weight fit does.
-			expect(predictAt(forgetting)).toBeLessThan(predictAt(equal) - 0.2);
+		it('the absurd-ϕ fallback also carries the prior posterior', () => {
+			// Wildly inconsistent logs → plane predicts ϕ > 16h → fall back to the
+			// defaults. Falling back means "the prior is all we know", so the
+			// prior's uncertainty is what the allocator must see.
+			const absurd = fitUserConstants([
+				{ E: 1, beta: 1, phi: 40 },
+				{ E: 1.01, beta: 1, phi: 0.1 }
+			]);
+			expect(absurd.fitted).toBe(false);
+			expect(absurd.constants).toEqual(DEFAULT_USER_CONSTANTS);
+			expect(absurd.posterior.covariance[0][0]).toBeCloseTo((0.25 * 0.25) / 4, 12);
 		});
 	});
 
@@ -858,6 +951,67 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(pooled.gainPercent).toBe(GAIN_PERCENT_CAP);
 		});
 
+		it('is never negative now that the naive baseline shares the block lattice (2026-07-26, §13.2)', () => {
+			// The continuous baseline could hand every task a sub-block sliver and
+			// collect its ≈ p₀ activation bonus — something Zenith structurally
+			// cannot do — so the metric read NEGATIVE on 4% (n = 2) to 19%
+			// (n = 6) of random days. Quantized, the naive plan is one of the
+			// block distributions the exact greedy maximizes over (§4), so the
+			// single-budget gain is provably ≥ 0; the pooled path has no proof,
+			// but the sweep must not find a counterexample either.
+			let seed = 12345;
+			const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+
+			for (let trial = 0; trial < 250; trial++) {
+				const n = 2 + Math.floor(rnd() * 7);
+				const base = Array.from({ length: n }, (_, i) => ({
+					title: `t${i}`,
+					difficulty: 1 + Math.floor(rnd() * 10),
+					enjoyment: 1 + Math.floor(rnd() * 10)
+				}));
+				const budget = 1 + Math.floor(rnd() * 16) / 2;
+
+				expect(productivityGain(base, budget).gainPercent).toBeGreaterThanOrEqual(0);
+
+				const pooled: PooledTaskInput[] = base.map((t) => ({
+					...t,
+					cognitiveWeight: Math.round(rnd() * 10) / 10,
+					physicalWeight: Math.round(rnd() * 10) / 10
+				}));
+				expect(
+					pooledProductivityGain(pooled, budget, DEFAULT_CAPACITY_POOLS).gainPercent
+				).toBeGreaterThanOrEqual(0);
+			}
+		});
+
+		it('the naive baseline is a whole-block equal split inside the pools', () => {
+			// Two identical tasks, 2h budget, no switch cost: 8 blocks split 4/4,
+			// so the naive value is exactly what an equal block split scores —
+			// not a continuous 1h/1h split, which would score higher.
+			const tasks: PooledTaskInput[] = [
+				{ title: 'a', difficulty: 6, enjoyment: 6, cognitiveWeight: 0.5, physicalWeight: 0 },
+				{ title: 'b', difficulty: 6, enjoyment: 6, cognitiveWeight: 0.5, physicalWeight: 0 }
+			];
+			const { naive } = pooledProductivityGain(
+				tasks,
+				2,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				0
+			);
+			expect(naive).toBeCloseTo(calculateTotalProductivity(tasks, [1, 1]), 12);
+
+			// Odd block counts round-robin: 5 blocks over 2 tasks → 0.75h / 0.5h.
+			const odd = pooledProductivityGain(
+				tasks,
+				1.25,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				0
+			);
+			expect(odd.naive).toBeCloseTo(calculateTotalProductivity(tasks, [0.75, 0.5]), 12);
+		});
+
 		it('never reports above the cap', () => {
 			// (A tiny-but-positive naive value cannot produce a huge FINITE ratio
 			// under the v2 curve: continuous slivers still collect ≈ p₀ per task
@@ -884,8 +1038,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 				[0, 0.04, 0],
 				[0, 0, 0.04]
 			],
-			sigma2: 0.0625,
-			nEff: 2
+			sigma2: 0.0625
 		};
 
 		it('expectedAverageProductivity collapses exactly to averageProductivity at σ = 0', () => {

@@ -192,8 +192,11 @@ eˣ = 1 + x + x²/(1+r)
   ```
 
 - **Multiplier range:** expanding `eˣ` to third order at small x gives
-  `x*(r) → 3(1−r)/(1+r)` as r → 1, hence `T*/ϕ → 3/(1+r) → 1.5`. So every
-  task stops between **1.5ϕ and 1.7933ϕ**. Interpretation: tasks that start
+  `x*(r) → 3(1−r)/(1+r)` as r → 1, hence `T*/ϕ → 3/(1+r) → 1.5`. That 1.5 is
+  an ASYMPTOTE, not a reachable value: `AMPLITUDE_RATIO_CAP` bounds r at 0.9,
+  where the multiplier is **1.5194**. So every task stops between
+  **1.5194ϕ and 1.7933ϕ**, approaching 1.5ϕ only as r → 1 (which the cap
+  forbids — §1). Interpretation: tasks that start
   productive (high p₀ relative to peak) stop _earlier_ — their early hours
   were already good, so the declining tail drags the average down sooner.
 - Solved by 60-step bisection of `q(x) = eˣ − 1 − x − x²/(1+r)` on
@@ -275,14 +278,12 @@ toward the defaults; v2 recognizes that ridge as the MAP of a Bayesian model
 and exposes the whole posterior:
 
 ```
-Model:      ϕᵢ = c·xᵢ + εᵢ,   εᵢ ~ N(0, σ²/wᵢ),   xᵢ = [Eᵢ, βᵢ, 1]
+Model:      ϕᵢ = c·xᵢ + εᵢ,   εᵢ ~ N(0, σ²),   xᵢ = [Eᵢ, βᵢ, 1]
 Prior:      c ~ N(c₀, (σ²/λ)·I),   c₀ = defaults,   λ = 4
-Weights:    wᵢ = γ^(n−1−i)   (optional forgetting factor γ ≤ 1;
-            γ = 1 → all equal, v1 behavior)
 
-Posterior:  mean  ĉ = (XᵀWX + λI)⁻¹(XᵀWϕ + λc₀)     ← identical to v1's ridge
-            cov   Σ = σ̂²·(XᵀWX + λI)⁻¹
-Noise:      σ̂² = (ν₀σ₀² + Σwᵢ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + Σwᵢ),
+Posterior:  mean  ĉ = (XᵀX + λI)⁻¹(Xᵀϕ + λc₀)       ← identical to v1's ridge
+            cov   Σ = σ̂²·(XᵀX + λI)⁻¹
+Noise:      σ̂² = (ν₀σ₀² + Σ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + n),
             σ₀ = 0.25h (15-minute stopwatch noise floor), ν₀ = 4
 Predictive: std of a new measurement at (E, β):  √(σ̂² + xᵀΣx)
 ```
@@ -292,16 +293,29 @@ but a 2-log fit and a 200-log fit are no longer indistinguishable —
 `phiPredictionStd` quantifies it (parameter uncertainty shrinks with data and
 grows with distance from the logged region). Intended uses: UI bands
 ("ϕ ≈ 1.4h ± 0.4h") and robust allocation — the latter is now implemented:
-since 2026-07-18 the allocator consumes the posterior directly (§5.1). The
-forgetting factor is for users whose flow behavior drifts (recursive-least-
-squares style; γ ≈ 0.98 ≙ ~34-log half-life, since 0.98³⁴ ≈ 0.5 — the
-"~50-log" figure in an earlier revision was the 1/e time constant,
-0.98⁵⁰ ≈ 0.37; see §10).
+since 2026-07-18 the allocator consumes the posterior directly (§5.1).
 
 Unchanged v1 safeguards: fallback to defaults on zero observations or when
 the fitted plane predicts ϕ > 16h anywhere on the domain; negative
 predictions at unobserved corners are allowed (fast-flow users legitimately
-tilt the plane) and absorbed by the 0.1h floor.
+tilt the plane) and absorbed by the 0.1h floor. **Every return carries a
+posterior, including those fallbacks** — falling back means "the prior is all
+we know", and at n = 0 the formulas above give exactly Σ = (σ₀²/λ)·I and
+σ̂² = σ₀² (§13.1). `fitted` still reports whether the DATA moved the
+constants; that is what the UI keys on.
+
+**Removed 2026-07-26 — the optional forgetting factor.** Observation weights
+wᵢ = γ^(n−1−i) let a user whose flow behavior drifts shed stale logs
+(recursive-least-squares style; γ ≈ 0.98 ≙ ~34-log half-life). It was never
+passed by any caller, never reached the UI, and was not on the roadmap, while
+carrying a paragraph of doc and a silent ordering contract (observations had
+to arrive oldest-first, which nothing enforced). With it gone `Σwᵢ` collapses
+to `n` everywhere, and `FitPosterior.nEff` — which existed only to report the
+weighted count — went with it; callers that want a count already have
+`observations.length` (`readUserFit` returns it as `usedCount`). §10's
+half-life correction is kept below as history. If drift-forgetting is ever
+wanted again, the right instrument is probably a timestamp on each ⚡ log,
+not a decay over arrival index.
 
 ### 5.1 Posterior-aware allocation (added 2026-07-18)
 
@@ -331,7 +345,13 @@ E[P̄](T) = Σₙ wₙ · P̄(T; kₙ),   kₙ = (1−r)/ϕₙ,   ϕₙ = max(0.
 ```
 
 with (ξₙ, wₙ) the 5-node Gauss–Hermite rule (exact for polynomial integrands
-through degree 9; moment checks to 4·10⁻¹⁶ in the probe). Structural facts
+through degree 9, so its own leading error rides on the 10th ϕ-derivative of
+P̄ and is negligible; moment checks to 4·10⁻¹⁶ in the probe). **The accuracy
+floor is not the rule's order** — it is the ϕ-floor clamping of the outer
+nodes (weight 0.0113 each), which narrows the effective mixture below
+N(ϕ̂, σ²) once `ϕ̂ − √2·σ·2.0202 < 0.1h`. Inside the σ-cap that is a sub-1%
+shift of the mean ϕ, and it is the same graceful degradation the cap exists
+to bound. Structural facts
 that survive the mixture untouched:
 
 - **Activation bonus unchanged:** `lim T→0⁺ P̄(T; kₙ) = p₀` for every node, so
@@ -407,27 +427,29 @@ negligible next to the subset enumeration.
 
 ## 6. Summary of v1 → v2 changes
 
-| #   | What                   | v1                                                                     | v2                                                                                          | Why                                                                                                                                    |
-| --- | ---------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Curve                  | `(a+p₀)·k·t·e^(−kt)`, `p(0) = 0`                                       | `(a·kt+p₀)·e^(−kt)`, `p(0) = p₀`                                                            | Make "initial productivity" actually true; article's own story about p₀ wasn't in its math                                             |
-| 2   | `k`                    | `1/ϕ`                                                                  | `(1−r)/ϕ`                                                                                   | Keep the peak exactly at t = ϕ under the new curve                                                                                     |
-| 3   | Peak value             | `(a+p₀)/e`                                                             | `a·e^(r−1)`                                                                                 | Exact peak of new curve; v1 value is its small-r approximation                                                                         |
-| 4   | Optimal stopping       | universal `1.7933·ϕ`                                                   | per-task `ϕ·x*(r)/(1−r) ∈ (1.5ϕ, 1.7933ϕ]`                                                  | Follows from the new curve; root of `eˣ = 1+x+x²/(1+r)`                                                                                |
-| 5   | `OPTIMAL_AVG_FRACTION` | constant 0.2984                                                        | removed → per-task `optimalAvgProductivity`                                                 | Only valid when the multiplier was universal                                                                                           |
-| 6   | Allocator              | continuous λ-bisection + dual descent + drop-search + rounding patches | 15-min blocks, greedy marginal analysis, exact subset enumeration, pool transfer pass       | Activation bonus breaks concavity (v1 guarantees void); discrete greedy is provably exact for the single budget; humans plan in blocks |
-| 7   | Allocation output      | arbitrary 0.01h values                                                 | multiples of 0.25h; `optimalHours` + `optimalAvgProductivity` fields added                  | Executable plans; downstream metrics need per-task T*                                                                                  |
-| 8   | Constants fit          | ridge point estimate                                                   | same MAP + posterior covariance, noise estimate, predictive std, optional forgetting factor | Quantify uncertainty; the ridge already _was_ the MAP of this Bayesian model                                                           |
-| 9   | Switch-cost meaning    | unspecified                                                            | documented as attention residue (Leroy 2009), distinct from ramp-up (already in ϕ)          | Prevents future double-counting "fixes"; 0.25h grounded in Mark et al. 2008                                                            |
+| #   | What                   | v1                                                                     | v2                                                                                    | Why                                                                                                                                    |
+| --- | ---------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Curve                  | `(a+p₀)·k·t·e^(−kt)`, `p(0) = 0`                                       | `(a·kt+p₀)·e^(−kt)`, `p(0) = p₀`                                                      | Make "initial productivity" actually true; article's own story about p₀ wasn't in its math                                             |
+| 2   | `k`                    | `1/ϕ`                                                                  | `(1−r)/ϕ`                                                                             | Keep the peak exactly at t = ϕ under the new curve                                                                                     |
+| 3   | Peak value             | `(a+p₀)/e`                                                             | `a·e^(r−1)`                                                                           | Exact peak of new curve; v1 value is its small-r approximation                                                                         |
+| 4   | Optimal stopping       | universal `1.7933·ϕ`                                                   | per-task `ϕ·x*(r)/(1−r) ∈ [1.5194ϕ, 1.7933ϕ]`                                         | Follows from the new curve; root of `eˣ = 1+x+x²/(1+r)`                                                                                |
+| 5   | `OPTIMAL_AVG_FRACTION` | constant 0.2984                                                        | removed → per-task `optimalAvgProductivity`                                           | Only valid when the multiplier was universal                                                                                           |
+| 6   | Allocator              | continuous λ-bisection + dual descent + drop-search + rounding patches | 15-min blocks, greedy marginal analysis, exact subset enumeration, pool transfer pass | Activation bonus breaks concavity (v1 guarantees void); discrete greedy is provably exact for the single budget; humans plan in blocks |
+| 7   | Allocation output      | arbitrary 0.01h values                                                 | multiples of 0.25h; `optimalHours` + `optimalAvgProductivity` fields added            | Executable plans; downstream metrics need per-task T*                                                                                  |
+| 8   | Constants fit          | ridge point estimate                                                   | same MAP + posterior covariance, noise estimate, predictive std                       | Quantify uncertainty; the ridge already _was_ the MAP of this Bayesian model (v2's forgetting factor was removed 2026-07-26, §5)       |
+| 9   | Switch-cost meaning    | unspecified                                                            | documented as attention residue (Leroy 2009), distinct from ramp-up (already in ϕ)    | Prevents future double-counting "fixes"; 0.25h grounded in Mark et al. 2008                                                            |
 
 ## 7. Known approximations and deliberate non-changes
 
-- **Naive baselines stay continuous.** `productivityGain` /
-  `pooledProductivityGain` compare against an equal split that is _not_
-  block-quantized: quantization is part of what Zenith imposes, not part of
-  what a naive planner does.
-- **Pooled greedy + transfer pass is a heuristic** (multi-dimensional
-  knapsack is NP-hard); tested to within 1–2% of brute force on the
-  regression scenarios. Single-budget remains exact.
+- ~~**Naive baselines stay continuous.**~~ **REVERSED 2026-07-26 (§13.2):**
+  the naive split is now block-quantized like the optimized plan. The old
+  reading ("quantization is part of what Zenith imposes") charged the lattice
+  to one side of the comparison and made the reported gain negative on
+  4–19% of random days.
+- **Pooled greedy + ratio candidate + transfer pass is a heuristic**
+  (multi-dimensional knapsack is NP-hard). Randomized envelope measured
+  2026-07-26 (§13.3): exact on **99.5%** of 1471 random pool-bound days,
+  worst observed shortfall **0.09%**. Single-budget remains exact.
 - **Forward selection for n > 12 funded-subset search** is a heuristic for a
   regime a daily planner rarely reaches.
 - **Budgets below 0.25h are left unplanned** (v1 would allocate slivers).
@@ -971,7 +993,9 @@ optimizer's own plan at the true λ₀ as gold standard:
 - **Chosen — one session per logged task at its observed hours,** canonical
   amplitude order (`a + p₀` descending, the seed ordering), breaks omitted.
   The composition is REAL (drain logs record it), only the order is
-  canonical. Probe: brackets contain the true λ₀ across the whole grid
+  canonical. An UNLOGGED task probed on the `lo` side is inserted at its own
+  canonical rank, not appended last (§13.4). Probe: brackets contain the true
+  λ₀ across the whole grid
   (true 0.5 → [0.49, 0.78], 0.9 → [0.85, 1.18], 1.3 → [1.16, 1.48]);
   midpoints track truth within ~0.13.
 - **Rejected — classic seed truncated to W** (each task at snapped T\*,
@@ -1022,6 +1046,12 @@ machinery collapses to an exact closed form — no numeric minimizer:
 - **The loose max on the `hi` side** biases midpoints up by ~+0.1 on the
   probe grid — inside one lattice bracket's half-width, i.e. below the
   instrument's resolution.
+- **Block ORDER is a modeling choice on both sides of the bracket.** The
+  reconstruction fixes it canonically, but the marginals genuinely depend on
+  it through the reservoirs — the same probe step scored 0.65 appended last
+  vs 0.37 inserted first. Canonical placement (§13.4) makes the estimator a
+  function of the day rather than of an implementation convention; it does
+  not make the marginal order-free, which only knowing the real order would.
 - **Inverted brackets beyond a margin are censored; small inversions keep
   their midpoint** (probed and revised 2026-07-19). The two revealed
   inequalities can contradict: `lo > hi` means extending some task was worth
@@ -1187,11 +1217,12 @@ since v2, §3).
   exactly the scenario its drop-weak-tasks logic wins hardest. A capped value
   reads as "≥ 10× the naive plan"; beyond that the ratio carries no decision
   value.
-- **Noted, unchanged:** negative gains remain possible and honest. The
-  continuous naive split (deliberately unquantized, §7) collects the ≈ p₀
-  activation bonus on every sliver, so with many tasks and little time it can
-  beat the block-quantized plan under the sum-of-averages objective — a
-  consequence of the §0 objective choice, not a bug in the comparison.
+- ~~**Noted, unchanged:** negative gains remain possible and honest.~~
+  **SUPERSEDED 2026-07-26 (§13.2).** This entry called the negative readings a
+  consequence of the §0 objective. They were mostly a consequence of the
+  BASELINE having a finer grid than the optimizer: measured, the gain was
+  negative on 4–19% of random days. The naive split is now block-quantized
+  too, and the single-budget gain is provably ≥ 0.
 
 ### 11.3 Burnout Risk: overhang counts funded tasks' T* only (formula since superseded by §11.6; the `availableHours` = intended-work reading survives)
 
@@ -1412,3 +1443,237 @@ better-informed plans than the user saw.
 the three spreads, and a verdict line (energy vs classic vs tie at a ±0.05
 overlap margin), over the last ≤ 30 finished logged days (one optimizer run
 per day, ~60 ms each, loaded after the main view paints).
+
+## 13. Math review, 2026-07-26
+
+A full re-review of `business/model` against this document. **No derivation
+was wrong** — the §2 proofs were re-derived symbolically (N′ = e^(−x)·x(1−r−x),
+D′ = e^(−x)·x²(x+r−2), u(r) = e^(r−2)(7−2r) − (1+r) with u″ = e^(r−2)(3−2r))
+and every closed form re-checked numerically: peak identity to 2.6·10⁻¹⁶,
+P̄(T) vs Simpson to 2.6·10⁻¹³, stopping-root residual < 10⁻⁹ over all r,
+P̄(T\*) ϕ-independent to 12 decimals, GH-5 nodes/weights correct, σ = 0
+collapse to 2·10⁻¹⁵, reservoir closed form vs RK4 to 2.2·10⁻¹⁴, §11.6 burnout
+figures reproduced exactly.
+
+What the review DID find was four places where the model's behavior or this
+document's claims did not match what the code does. All four are fixed below.
+The through-line: **each was a case where a property held on the curated
+scenarios that were tested, and failed on a randomized sweep of the same
+space.** That is the method to reach for first next time.
+
+### 13.1 Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+
+- **Before:** `fitUserConstants` returned no `posterior` on any fallback path
+  (zero observations, absurd-ϕ guard, singular solve). Downstream, "no
+  posterior" means σ_ϕ = 0, which is the CERTAINTY model.
+- **The defect.** §5.1's entire premise is that hedging should track how much
+  the user has measured. It did the opposite at the low end. Measured σ_ϕ at
+  a mid-scale task (E = 2.78, β = 1.44):
+
+  | ⚡ logs         | 0         | 1     | 5     | 20    | 200   |
+  | --------------- | --------- | ----- | ----- | ----- | ----- |
+  | σ_ϕ (h), before | **0.000** | 0.194 | 0.072 | 0.023 | 0.003 |
+  | σ_ϕ (h), after  | **0.411** | 0.194 | 0.072 | 0.023 | 0.003 |
+
+  So logging your FIRST flow time made the model less confident than logging
+  nothing — the priority score visibly dropped (17.90 → 17.80 on the probe
+  day), and the plan changed on 21.7% of random days at n = 1 versus 0% at
+  n = 0. Uncertainty must be monotone decreasing in data; it wasn't.
+
+- **After:** every return carries a posterior. `priorPosterior()` is not a new
+  model — it is literally the n = 0 limit of the fitted formulas (XᵀX = 0 ⇒
+  Σ = σ̂²(λI)⁻¹ = (σ₀²/λ)·I, no residuals ⇒ σ̂² = σ₀²), so there is no second
+  code path to keep in sync. `fitted` is unchanged and still means "the data
+  moved the constants", which is what the UI keys on.
+- **Consequence worth knowing:** a brand-new user now gets a hedged plan
+  (σ_ϕ ≈ 0.41h, ≈ 29% of a typical ϕ̂, capped at 0.5·ϕ̂ for short-ϕ tasks).
+  That is the intended reading of "we know nothing about you yet", but it IS
+  a behavior change for the zero-log case, not just a bookkeeping fix.
+
+### 13.2 Zenith Gain measured the block lattice, not allocation quality (§7, §11.2)
+
+- **Before:** the naive baseline was deliberately continuous (§7: "quantization
+  is part of what Zenith imposes"), so it could hand every task a 0.373h
+  sliver and collect the ≈ p₀ activation bonus (§2) on each — a plan Zenith
+  structurally cannot produce.
+- **The defect.** The metric was therefore measuring two things at once, and
+  the handicap dominated the signal. Over 400 random days per task count:
+
+  | tasks                | 2   | 3   | 4   | 5   | 6   | 8   |
+  | -------------------- | --- | --- | --- | --- | --- | --- |
+  | gain < 0, before     | 4%  | 4%  | 10% | 11% | 19% | 17% |
+  | gain < 0, after      | 0%  | 0%  | 0%  | 0%  | 0%  | 0%  |
+  | naive = 0 (999% cap) | 0%  | 0%  | 0%  | 7%  | 7%  | 14% |
+
+  §11.2 had recorded negative gains as "possible and honest, a consequence of
+  the §0 objective". The sweep says otherwise: they were routine, and the
+  cause was the comparison, not the objective.
+
+- **After:** `naiveBlockPlan` hands out whole blocks round-robin over all
+  tasks (equal to within one block, ties toward the lower index like greedy),
+  skipping any task whose next block would overdraw a pool. Both planners now
+  face the same feasible set.
+- **Why this reverses §7's decision.** The lattice is an accounting choice,
+  not a cost Zenith imposes on the user — nobody executes 0.373h either way.
+  Charging it to one side made the number unusable as a quality measure.
+- **New guarantee:** on the single-budget path the gain is provably ≥ 0,
+  because the naive plan is one of the block distributions the exact greedy
+  maximizes over (Fox 1966, §4). The pooled path has no proof (its greedy is
+  a heuristic, §13.3) but found no counterexample in the sweep. Both are
+  test-locked.
+- **Unchanged:** the `naive = 0 → GAIN_PERCENT_CAP` case. That is a real
+  scenario — the naive planner attempts all n tasks and its switch overhead
+  eats the whole budget — and the cap is the honest display for it. It still
+  dominates the MEAN gain at n ≥ 5, so read the mean with that in mind; the
+  typical non-capped day gains ~4–6%.
+
+### 13.3 The pooled allocator's "within 1–2%" was a curated-scenario claim (§4, §7)
+
+- **Before:** §4/§7 claimed the pooled heuristic lands "within 1–2% of
+  brute-force block optima on the regression scenarios" — true as written, but
+  read as a bound. The 2026-07-23 review had checked 40 random instances
+  (worst ratio 0.9955).
+- **What a wider sweep found.** 1471 random pool-bound days against exhaustive
+  brute force: exact on 97.4%, p99 1.44% short, **worst 5.46%** — and the
+  worst case was structural, not noise. Greedy ranks blocks by VALUE, so a
+  task whose blocks are pool-expensive never gets admitted; the transfer pass
+  could not repair it because its refill is also value-ranked and immediately
+  re-buys the cheap blocks it just freed. This is exactly the blind spot §4
+  already named in prose ("ranks blocks by value, not value per unit of
+  scarce resource") — the transfer pass had been the earlier, insufficient
+  attempt at it.
+- **After — three changes, all confined to the pool-bound path:**
+  1. **A ratio-ranked second candidate plan.** `greedyAllocateBlocks` gained a
+     `byPoolRatio` mode ranking by increment ÷ fraction-of-the-scarcer-pool
+     consumed. Both candidates are improved by the transfer pass and the
+     better END STATE wins — comparing them before the pass is not enough,
+     since the ratio plan can start higher and finish lower.
+  2. **Multi-block donation** in the transfer pass (1, 2, or all of a donor's
+     blocks): freeing enough pool for a cheap task can need several hours off
+     an expensive one, and every intermediate single-block state is downhill.
+  3. **An admission move:** force one block into an unfunded task, evicting
+     the lowest-value funded blocks until budget and pools allow, then refill.
+- **Measured after (same 1471 days): exact on 99.5%, p99 0.00%, worst 0.09%.**
+  Cost 0.32 ms → 0.6 ms per pooled solve (n = 5–7, tight pools) — irrelevant.
+- **The single-constraint path is untouched:** with infinite pools nothing
+  ever reports `poolBlocked`, so none of the three run and plain greedy's
+  exactness (§4) stands. Test-locked by the randomized envelope test, which
+  the pre-fix behavior fails on both bounds.
+
+### 13.4 The stopping fit probed unlogged tasks at an arbitrary position (§8.10)
+
+- **Before:** `stopIndifferencePoint` reconstructs the day in canonical
+  amplitude order, but when probing the `lo` side for a task with NO logged
+  hours it appended the candidate block at the END of the day.
+- **The defect.** Block order changes a marginal through the reservoirs — not
+  mainly via the new block's own output, but via what it does to everything
+  after it. The same probe step scored **0.65 appended last vs 0.37 inserted
+  first**, moving the day's indifference point by up to 0.087 in λ₀ units
+  (comparable to the documented +0.1 hi-side bias, and 35% of
+  `STOP_INVERSION_MARGIN`). Since `lo` is a max over all tasks, appending
+  systematically inflated it, biasing λ̂₀ up. None of this was in §8.10's
+  approximation list — the estimator depended on an implementation convention.
+- **After:** the canonical amplitude order is computed over ALL of the day's
+  tasks and the candidate is inserted at its own rank. The estimator is now a
+  function of the day, not of insertion convention. λ₀-invariance of the
+  extraction and the synthetic round-trip recovery are both unchanged
+  (true 0.3 → 0.297, 0.5 → 0.407, 0.9 → 0.966).
+- **Still an approximation, now documented as one:** this does not make the
+  marginal order-free. Only knowing the real work order would, and the drain
+  logs do not record it.
+
+### 13.5 Also in this change
+
+- **`forgettingFactor` deleted** (§5) — dead parameter, no caller, not on the
+  roadmap; `FitPosterior.nEff` went with it.
+- **Two stated-range/comment corrections (no behavior change):**
+  - **The stopping multiplier's lower end is 1.5194ϕ, not 1.5ϕ** (§3, §6
+    row 4, and three code comments). 1.5 is the r → 1 asymptote, and
+    `AMPLITUDE_RATIO_CAP = 0.9` forbids r → 1, so 1.5 was a bound the text
+    invited you to read as attained. Nothing consumed the number.
+  - **The GH-5 error claim pointed at the wrong term** (§5.1). "Error
+    ~O(σ⁶)" understated a rule that is exact through degree 9 — its own
+    leading error sits at the 10th ϕ-derivative. The actual accuracy floor is
+    the ϕ-floor node clamp, which §5.1 named but never connected to the error
+    statement; it now does.
+- **Reviewed and left alone, with reasons:**
+  - `OPTIMAL_PHI_MULTIPLIER = 1.7933` vs the true root 1.79328 — a 1.8·10⁻⁵
+    literal used by the energy model's T\* and `refOutput` (and NOT by
+    `optimalStoppingX`, which brackets at a separately-hardcoded 1.8). Below
+    every tolerance in the model; not worth the churn of a computed constant.
+  - `terminalBonus` averages the two reservoirs while Burnout Risk (§11.6)
+    takes the min — see §13.6.
+- **Energy-model properties confirmed sound** (no change needed): break
+  "gaming" is bounded — at fixed 6h of work in a 12h window, raw output peaks
+  at 2 chunks (+17%, the intended Jaber–Neumann effect, §8.3) and falls
+  monotonically to 24 chunks; the optimizer matches exhaustive enumeration on
+  a small day; the calibration fits recover synthetic truth with the
+  documented shrinkage.
+
+### 13.6 The two end-of-day energy readings: a timing difference, not an aggregator one
+
+**The observation that started this.** `evaluateSchedule`'s
+`terminalBonus = V_T·(C_cog + C_phys)/2` averages the reservoirs, while
+Burnout Risk (§11.6) is `100·(1 − min(C_cog, C_phys))`. The app therefore
+carries two non-identical "how spent are you at the end of the day" numbers.
+
+**The aggregator is second-order — do NOT "fix" it.** Re-scoring plans with
+`min` in place of `avg` moves the objective by ≤ 0.08 and reorders nothing
+(probe 2026-07-26, 10h window, one pure-cognitive and one pure-physical task
+at matched difficulty/enjoyment):
+
+| plan            | objective (avg) | objective (min) |
+| --------------- | --------------- | --------------- |
+| lopsided 6h cog | 6.8197          | 6.8107          |
+| balanced 3+3    | 8.6160          | 8.6100          |
+| lopsided 8h cog | 5.9377          | 5.8610          |
+| balanced 4+4    | 8.4885          | 8.4304          |
+
+Switching would buy no measurable behavior change while perturbing a
+calibrated chain (§8.10 conditions λ₀ on V_T and would need re-probing).
+
+**What actually differs is WHEN each is measured.**
+
+- `terminalBonus` reads the reservoirs at the end of the **window**, after
+  the trailing implicit rest. This is deliberate and load-bearing: "stopping
+  early both earns leisure AND recovers energy" is the stopping mechanism
+  (§8 header).
+- Burnout Risk reads at the end of the intended **workday** — its simulated
+  blocks total exactly the budget, with no tail (§11.3's `availableHours` =
+  intended-work reading).
+
+Same day, 6h of full-demand cognitive work in a 10h window: work ENDS at
+C_cog = 0.21 (risk 79%), then 4h of implicit rest refills to 0.988, so
+`terminalBonus` = 1.491 of a 1.5 maximum. Both numbers are right for their
+own question. Neither is a defect.
+
+**The consequence worth knowing: V_T barely discriminates.** Because it is
+read after recovery, the terminal term is near-saturated — 1.4911 at 6h of
+work vs 1.4233 at 8h, i.e. **0.034 of stopping pressure per hour against
+`freeTimeValue`'s 0.5**, about 7% of the total. That is almost certainly the
+mechanism behind §8.10's independently-observed finding that **V_T is not
+identifiable from stop times** (a 12× V_T sweep moved the optimal stop by
+only two lattice levels). Two facts recorded separately are the same fact.
+
+**Why nothing is being changed now.** The two never meet today: the main
+page's plan comes from the classic allocator, which has no terminal term at
+all, and Burnout Risk only SCORES that plan. The collision is latent.
+
+**Gated on the roadmap's "energy-plan promotion" (same gate as §12's
+audit evidence).** If the energy plan ever drives the main page, two things
+must be settled FIRST:
+
+1. **The objective lacks a peak-depletion term.** Promoted, the optimizer
+   would be choosing plans while Burnout Risk grades them — and its
+   near-saturated V_T makes it nearly blind to exactly the quantity the
+   dashboard warns about. The right shape is a term on the day's MINIMUM
+   reservoir level, not on a level at one instant. Moving `terminalBonus`
+   itself to end-of-work is the wrong fix: it would double-count against λ₀,
+   which already prices not-working.
+2. **`availableHours` means different things to the two.** Burnout Risk
+   reads it as hours the user WILL work and stretches the plan pro-rata to
+   fill it; the energy model reads the same number as a WINDOW and
+   deliberately leaves slack priced at λ₀. Share that input between them
+   unchanged and Burnout Risk would inflate the energy plan's intentional
+   slack back to a full workday — warning about a day the plan explicitly
+   declined to schedule.

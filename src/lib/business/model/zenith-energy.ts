@@ -1345,10 +1345,14 @@ export function stopIndifferencePoint(
 	}
 	if (byTask.size === 0) return null;
 
-	const order = [...tasks]
-		.sort((x, y) => taskAmplitude(y) - taskAmplitude(x))
-		.filter((t) => byTask.has(t.id));
-	const sched: ScheduleBlock[] = order.map((t) => ({ taskId: t.id, hours: byTask.get(t.id)! }));
+	// Canonical amplitude order over ALL of the day's tasks: the worked ones
+	// become the reconstructed schedule, and the rank doubles as the insertion
+	// point when an UNLOGGED task is probed below.
+	const canonical = [...tasks].sort((x, y) => taskAmplitude(y) - taskAmplitude(x));
+	const rank = new Map(canonical.map((t, i) => [t.id, i]));
+	const sched: ScheduleBlock[] = canonical
+		.filter((t) => byTask.has(t.id))
+		.map((t) => ({ taskId: t.id, hours: byTask.get(t.id)! }));
 	const total = sched.reduce((sum, b) => sum + b.hours, 0);
 
 	const workValue = (blocks: ScheduleBlock[]): number => {
@@ -1361,9 +1365,15 @@ export function stopIndifferencePoint(
 	let hi: number | null = null;
 	for (const t of tasks) {
 		if (total + step <= windowHours + 1e-9) {
+			// An unlogged task is probed at ITS canonical position, not appended
+			// last. Block order changes the marginal through the reservoirs — the
+			// same step measured 0.65 appended-last vs 0.37 inserted-first on the
+			// probe day — so appending made `lo` (and hence λ̂₀) depend on an
+			// arbitrary convention rather than on the day (MATH.md §13.4).
+			const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
 			const grown = byTask.has(t.id)
 				? sched.map((b) => (b.taskId === t.id ? { ...b, hours: b.hours + step } : b))
-				: [...sched, { taskId: t.id, hours: step }];
+				: [...sched.slice(0, at), { taskId: t.id, hours: step }, ...sched.slice(at)];
 			const dNext = (workValue(grown) - base) / step;
 			lo = lo === null ? dNext : Math.max(lo, dNext);
 		}

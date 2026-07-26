@@ -20,7 +20,8 @@
  *    eˣ = 1 + x + x²/(1+r) with r = p₀/a and x = k·t — the article's
  *    eˣ = 1 + x + x² is the r → 0 special case (root 1.7933). The stopping
  *    time in units of ϕ now depends on the task: T* = ϕ·x*(r)/(1−r), which
- *    ranges over (1.5, 1.7933].
+ *    ranges over [1.5194, 1.7933] (1.5 is the r → 1 asymptote, unreachable
+ *    because AMPLITUDE_RATIO_CAP bounds r at 0.9).
  *
  * 3. DISCRETE EXACT ALLOCATOR. Time is planned in 15-minute blocks
  *    (BLOCK_HOURS) and distributed by greedy marginal analysis, which is
@@ -35,8 +36,10 @@
  *
  * 4. BAYESIAN PERSONALIZATION. fitUserConstants still returns the same MAP
  *    (ridge) point estimate, but now also the full posterior — covariance and
- *    noise estimate — so callers can quantify how certain a ϕ prediction is,
- *    plus an optional forgetting factor for users whose flow behavior drifts.
+ *    noise estimate — so callers can quantify how certain a ϕ prediction is.
+ *    The fallback paths return the PRIOR as a posterior rather than none, so
+ *    "no data" reads as maximally uncertain instead of maximally confident
+ *    (2026-07-26 fix, MATH.md §13.1).
  *
  * 5. POSTERIOR-AWARE ALLOCATION (2026-07-18, MATH.md §5.1). Given the fit
  *    posterior, the allocator maximizes the EXPECTED average productivity
@@ -107,7 +110,7 @@ export const BLOCK_HOURS = 0.25;
  * eˣ = x² + x + 1).
  *
  * v2 NOTE: with the new curve the multiplier is task-dependent —
- * T* = ϕ·x*(r)/(1−r) with multiplier in (1.5, 1.7933], r = p₀/a — so this is now only
+ * T* = ϕ·x*(r)/(1−r) with multiplier in [1.5194, 1.7933], r = p₀/a — so this is now only
  * (a) the exact r → 0 limit, (b) a strict UPPER BOUND on every task's
  * multiplier, and (c) the seed/bracket for the per-task root solve. Use
  * findOptimalSingleTaskTime (or TaskAllocation.optimalHours) for real values.
@@ -294,10 +297,11 @@ export function avgProductivityDerivative(T: number, a: number, p0: number, k: n
  *   (OPTIMAL_PHI_MULTIPLIER — under v1's curve the multiplier for EVERY task).
  * - x*(r) is strictly decreasing in r; the stopping time in units of ϕ is
  *   T* = ϕ·x*(r)/(1−r), whose multiplier decreases from 1.7933 (r→0) toward 3/(1+r) → 1.5
- *   (r→1, by series expansion — MATH.md §3). So under v2 every task still
- *   stops between 1.5ϕ and 1.79ϕ, but tasks that start productive (high p₀
- *   relative to peak) stop earlier: their early hours were already good, so
- *   the tail drags the average down sooner.
+ *   (r→1, by series expansion — MATH.md §3). The r→1 end is an ASYMPTOTE:
+ *   AMPLITUDE_RATIO_CAP stops r at 0.9, where the multiplier is 1.5194, so
+ *   under v2 every task stops between 1.5194ϕ and 1.7933ϕ. Tasks that start
+ *   productive (high p₀ relative to peak) stop earlier: their early hours
+ *   were already good, so the tail drags the average down sooner.
  *
  * Solved by bisection on q(x) = eˣ − 1 − x − x²/(1+r): q < 0 on (0, x*) and
  * q > 0 beyond, with x* ≤ 1.7933 < 1.80 for every r ≥ 0.
@@ -331,8 +335,16 @@ export function optimalStoppingX(r: number): number {
 // tasks — a 2-log task and a 200-log task finally plan differently.
 //
 // The expectation is a 5-node Gauss–Hermite quadrature over ϕ, exact for
-// polynomial integrands to degree 9 and error ~O(σ⁶) here; nodes are clamped
-// to the ϕ floor.
+// polynomial integrands through degree 9 — so the quadrature's own leading
+// error rides on the 10th ϕ-derivative of P̄ and is negligible here. The
+// accuracy floor is NOT the rule's order: it is the ϕ-floor clamping of the
+// outer nodes (weight 0.0113 each), which makes the effective mixture
+// slightly narrower than N(ϕ̂, σ²) once ϕ̂ − √2σ·2.0202 drops below 0.1h.
+// Inside PHI_UNCERTAINTY_RELATIVE_CAP that is a sub-1% shift of the mean ϕ,
+// and it is exactly the graceful degradation the cap exists to bound — a
+// Gaussian is the wrong posterior for a positive quantity out there anyway.
+// (An earlier comment called the error "~O(σ⁶)", which understated the rule
+// and pointed at the wrong term entirely — MATH.md §13.5.)
 
 // Gauss–Hermite (n=5) abscissae ξ and probabilist weights w/√π: for
 // ϕ = ϕ̂ + √2·σ·ξ these integrate a N(ϕ̂, σ²) density exactly through the
@@ -601,6 +613,12 @@ function buildBlockIncrements(a: number, p0: number, phi: number, sigmaPhi: numb
  * Ties break toward the lower task index, which round-robins identical tasks
  * into equal splits (the article's sanity check). Starts from an existing
  * partial plan when given one (used by the transfer improvement pass).
+ *
+ * `byPoolRatio` switches the ranking from raw increment to increment per unit
+ * of SCARCE pool consumed — the multi-dimensional-knapsack ranking. It exists
+ * only as a second candidate plan for pool-bound subsets (MATH.md §13.3); the
+ * single-constraint path never sets it, so plain greedy's exactness (Fox 1966)
+ * is untouched.
  */
 function greedyAllocateBlocks(
 	tasks: AllocTask[],
@@ -608,7 +626,8 @@ function greedyAllocateBlocks(
 	budgetBlocks: number,
 	poolCog: number,
 	poolPhys: number,
-	startBlocks?: number[]
+	startBlocks?: number[],
+	byPoolRatio = false
 ): { blocks: number[]; poolBlocked: boolean } {
 	const blocks = startBlocks ? [...startBlocks] : new Array<number>(tasks.length).fill(0);
 	let used = 0;
@@ -619,6 +638,15 @@ function greedyAllocateBlocks(
 		remCog -= blocks[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
 		remPhys -= blocks[i] * BLOCK_HOURS * tasks[i].physicalWeight;
 	}
+
+	// Fraction of the scarcer pool one block of task i eats. Zero-demand blocks
+	// score infinitely well (they cost no pool at all), and the +1e-9 keeps them
+	// ordered among themselves by plain increment.
+	const poolShare = (i: number): number =>
+		Math.max(
+			poolCog === Infinity ? 0 : (BLOCK_HOURS * tasks[i].cognitiveWeight) / poolCog,
+			poolPhys === Infinity ? 0 : (BLOCK_HOURS * tasks[i].physicalWeight) / poolPhys
+		);
 
 	let poolBlocked = false;
 	for (let b = used; b < budgetBlocks; b++) {
@@ -634,7 +662,9 @@ function greedyAllocateBlocks(
 				poolBlocked = true;
 				continue;
 			}
-			const inc = tasks[i].increments[j];
+			const inc = byPoolRatio
+				? tasks[i].increments[j] / (poolShare(i) + 1e-9)
+				: tasks[i].increments[j];
 			if (inc > bestInc + 1e-12) {
 				best = i;
 				bestInc = inc;
@@ -681,19 +711,78 @@ function improveWithTransfers(
 		let bestValue = value;
 		for (const donor of subset) {
 			if (blocks[donor] <= 0) continue;
-			const trial = [...blocks];
-			trial[donor]--;
 			const others = subset.filter((i) => i !== donor);
+			// Donate 1, 2, or ALL of the donor's blocks. One block is often too
+			// little to unlock the trade: freeing enough pool for a cheap task can
+			// need several hours off an expensive one, and every intermediate
+			// single-block state is downhill, so a one-block-at-a-time pass stalls
+			// (MATH.md §13.3). The all-blocks variant is the "wrong task got the
+			// scarce pool" case in a single move.
+			for (const give of new Set([1, 2, blocks[donor]])) {
+				if (give > blocks[donor]) continue;
+				const trial = [...blocks];
+				trial[donor] -= give;
+				const refilled = greedyAllocateBlocks(
+					tasks,
+					others,
+					budgetBlocks,
+					poolCog,
+					poolPhys,
+					trial
+				).blocks;
+				const refillValue = planValue(tasks, refilled);
+				if (refillValue > bestValue + 1e-12) {
+					bestBlocks = refilled;
+					bestValue = refillValue;
+				}
+			}
+		}
+		// Admission move: greedy ranks by VALUE, so a task whose blocks are
+		// pool-expensive can stay unfunded even when admitting it dominates —
+		// and no sequence of single-donor transfers reaches that plan, because
+		// the refill immediately re-buys the cheap blocks it just freed. Force
+		// one block in, evicting the lowest-value funded blocks until the budget
+		// and both pools allow, then refill around it (MATH.md §13.3).
+		for (const newcomer of subset) {
+			if (blocks[newcomer] > 0 || tasks[newcomer].increments.length === 0) continue;
+			const trial = [...blocks];
+			trial[newcomer] = 1;
+			for (;;) {
+				let used = 0;
+				let cog = 0;
+				let phys = 0;
+				for (let i = 0; i < tasks.length; i++) {
+					used += trial[i];
+					cog += trial[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
+					phys += trial[i] * BLOCK_HOURS * tasks[i].physicalWeight;
+				}
+				if (used <= budgetBlocks && cog <= poolCog + 1e-9 && phys <= poolPhys + 1e-9) break;
+				let victim = -1;
+				let cheapest = Infinity;
+				for (const i of subset) {
+					if (i === newcomer || trial[i] <= 0) continue;
+					const inc = tasks[i].increments[trial[i] - 1];
+					if (inc < cheapest) {
+						cheapest = inc;
+						victim = i;
+					}
+				}
+				if (victim === -1) break;
+				trial[victim]--;
+			}
 			const refilled = greedyAllocateBlocks(
 				tasks,
-				others,
+				subset,
 				budgetBlocks,
 				poolCog,
 				poolPhys,
 				trial
 			).blocks;
 			const refillValue = planValue(tasks, refilled);
-			if (refillValue > bestValue + 1e-12) {
+			if (
+				refillValue > bestValue + 1e-12 &&
+				feasible(tasks, refilled, budgetBlocks, poolCog, poolPhys)
+			) {
 				bestBlocks = refilled;
 				bestValue = refillValue;
 			}
@@ -703,6 +792,27 @@ function improveWithTransfers(
 		value = bestValue;
 	}
 	return blocks;
+}
+
+// The admission move can leave an infeasible plan when the newcomer alone
+// overdraws a pool, so its result is checked before being accepted. Every
+// other move is feasible by construction.
+function feasible(
+	tasks: AllocTask[],
+	blocks: number[],
+	budgetBlocks: number,
+	poolCog: number,
+	poolPhys: number
+): boolean {
+	let used = 0;
+	let cog = 0;
+	let phys = 0;
+	for (let i = 0; i < tasks.length; i++) {
+		used += blocks[i];
+		cog += blocks[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
+		phys += blocks[i] * BLOCK_HOURS * tasks[i].physicalWeight;
+	}
+	return used <= budgetBlocks && cog <= poolCog + 1e-9 && phys <= poolPhys + 1e-9;
 }
 
 function planValue(tasks: AllocTask[], blocks: number[]): number {
@@ -741,8 +851,9 @@ function bestPlanWithSwitchCost(
 		return Math.floor((totalBudget - overhead) / BLOCK_HOURS + 1e-9);
 	};
 
-	// Greedy + (only when a pool actually blocked a funding step) the
-	// resource-aware transfer pass. Pool-less plans skip the pass entirely,
+	// Greedy + (only when a pool actually blocked a funding step) a second,
+	// ratio-ranked candidate plan and the resource-aware transfer pass on
+	// whichever candidate started higher. Pool-less plans skip both entirely,
 	// preserving plain greedy's exact-optimality on the single constraint.
 	const allocate = (subset: number[], budgetBlocks: number): number[] => {
 		const { blocks, poolBlocked } = greedyAllocateBlocks(
@@ -753,7 +864,25 @@ function bestPlanWithSwitchCost(
 			poolPhys
 		);
 		if (!poolBlocked) return blocks;
-		return improveWithTransfers(tasks, subset, blocks, budgetBlocks, poolCog, poolPhys);
+		const byRatio = greedyAllocateBlocks(
+			tasks,
+			subset,
+			budgetBlocks,
+			poolCog,
+			poolPhys,
+			undefined,
+			true
+		).blocks;
+		// Improve BOTH candidates and keep the better end state. Comparing the
+		// two before the pass is not enough: the ratio plan can start higher and
+		// finish lower (or vice versa), so picking a start would make this path
+		// occasionally worse than plain greedy alone.
+		const improved = [blocks, byRatio].map((start) =>
+			improveWithTransfers(tasks, subset, start, budgetBlocks, poolCog, poolPhys)
+		);
+		return planValue(tasks, improved[1]) > planValue(tasks, improved[0])
+			? improved[1]
+			: improved[0];
 	};
 
 	const allTasks = tasks.map((_, i) => i);
@@ -999,6 +1128,59 @@ export function calculateTotalProductivity(
  */
 export const GAIN_PERCENT_CAP = 999;
 
+/**
+ * The naive planner's plan: an equal split of the effective budget across ALL
+ * tasks, on the SAME 15-minute lattice the optimizer is held to. Blocks are
+ * handed out round-robin (so the split is equal to within one block, ties
+ * toward the lower index like greedy), skipping any task whose next block
+ * would overdraw a capacity pool. Pools of Infinity give the single-budget
+ * baseline.
+ *
+ * WHY quantized (2026-07-26, MATH.md §13.2 — this REVERSES the §7 "naive
+ * baselines stay continuous" decision). A continuous baseline can hand every
+ * task a 0.373h sliver and collect its ≈ p₀ activation bonus (§2), something
+ * Zenith structurally cannot do. The gain metric was therefore measuring two
+ * things at once — allocation quality AND a lattice handicap charged to one
+ * side only — and the handicap dominated: measured over random days the
+ * reported gain was NEGATIVE on 4% (n = 2) to 19% (n = 6) of them. Since the
+ * lattice is an accounting choice rather than a cost Zenith imposes on the
+ * user (nobody executes 0.373h either way), both planners now face the same
+ * feasible set and the number isolates allocation quality.
+ *
+ * Consequence worth knowing: on the single-budget path the gain is now
+ * provably ≥ 0, because this plan is one of the block distributions the
+ * exact greedy maximizes over (Fox 1966, §4). The pooled path keeps no such
+ * guarantee — its greedy is a heuristic (§13.3) — but negative readings there
+ * are rare and small rather than routine.
+ */
+function naiveBlockPlan(
+	weights: { cognitiveWeight: number; physicalWeight: number }[],
+	effectiveBudget: number,
+	poolCog: number,
+	poolPhys: number
+): number[] {
+	const blocks = new Array<number>(weights.length).fill(0);
+	const target = Math.floor(effectiveBudget / BLOCK_HOURS + 1e-9);
+	let remCog = poolCog;
+	let remPhys = poolPhys;
+	let placed = 0;
+	while (placed < target) {
+		let any = false;
+		for (let i = 0; i < weights.length && placed < target; i++) {
+			const cog = BLOCK_HOURS * weights[i].cognitiveWeight;
+			const phys = BLOCK_HOURS * weights[i].physicalWeight;
+			if (cog > remCog + 1e-9 || phys > remPhys + 1e-9) continue;
+			blocks[i]++;
+			remCog -= cog;
+			remPhys -= phys;
+			placed++;
+			any = true;
+		}
+		if (!any) break;
+	}
+	return blocks.map((b) => b * BLOCK_HOURS);
+}
+
 function gainPercentOf(optimized: number, naive: number): number {
 	if (naive > 0) {
 		return Number(Math.min(GAIN_PERCENT_CAP, ((optimized - naive) / naive) * 100).toFixed(1));
@@ -1042,22 +1224,14 @@ export function pooledProductivityGain(
 	);
 
 	// Naive: equal split across ALL tasks (a naive planner attempts every task,
-	// so it pays n-1 switches), scaled down to stay within the capacity pools.
-	// The naive plan stays continuous (not block-quantized): quantization is
-	// part of what Zenith imposes, not part of what a naive planner does.
+	// so it pays n-1 switches), on the same block lattice and inside the same
+	// pools as the optimized plan — see naiveBlockPlan for why the baseline is
+	// no longer continuous.
 	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
 	const effectiveBudget = Math.max(0, totalBudget - switchOverhead);
-	const equalShare = effectiveBudget / tasks.length;
-	const cogUse = tasks.reduce((sum, t) => sum + t.cognitiveWeight * equalShare, 0);
-	const physUse = tasks.reduce((sum, t) => sum + t.physicalWeight * equalShare, 0);
-	const scale = Math.min(
-		1,
-		cogUse > 0 ? pools.cognitiveHours / cogUse : 1,
-		physUse > 0 ? pools.physicalHours / physUse : 1
-	);
 	const naive = calculateTotalProductivity(
 		tasks,
-		tasks.map(() => equalShare * scale),
+		naiveBlockPlan(tasks, effectiveBudget, pools.cognitiveHours, pools.physicalHours),
 		constants,
 		posterior
 	);
@@ -1098,11 +1272,16 @@ export function productivityGain(
 		posterior
 	);
 
-	// Naive: equal split of effective budget
-	const naiveAlloc = effectiveBudget / tasks.length;
+	// Naive: equal split of the effective budget, block-quantized like the
+	// optimized plan (naiveBlockPlan explains why).
 	const naive = calculateTotalProductivity(
 		tasks,
-		tasks.map(() => naiveAlloc),
+		naiveBlockPlan(
+			tasks.map(() => ({ cognitiveWeight: 0, physicalWeight: 0 })),
+			effectiveBudget,
+			Infinity,
+			Infinity
+		),
 		constants,
 		posterior
 	);
@@ -1149,12 +1328,37 @@ const FLOW_NOISE_PRIOR_STD = 0.25;
  * instead of treating a 2-observation fit like a 200-observation one.
  */
 export interface FitPosterior {
-	/** 3×3 posterior covariance of (c₁, c₂, c₃): σ̂²·(XᵀWX + λI)⁻¹ */
+	/** 3×3 posterior covariance of (c₁, c₂, c₃): σ̂²·(XᵀX + λI)⁻¹ */
 	covariance: number[][];
 	/** Estimated observation noise variance σ̂² (hours²) */
 	sigma2: number;
-	/** Effective number of observations Σwᵢ (= n when no forgetting) */
-	nEff: number;
+}
+
+/**
+ * The PRIOR as a posterior: what the model believes before (or instead of) any
+ * data. It is literally the n = 0 limit of the fitted formulas — with no
+ * observations XᵀX = 0, so Σ = σ̂²·(λI)⁻¹ = (σ₀²/λ)·I and σ̂² = σ₀².
+ *
+ * WHY this exists (2026-07-26 math-review fix, MATH.md §13.1): every fallback
+ * path used to return NO posterior, and a missing posterior means σ_ϕ = 0
+ * downstream — i.e. the allocator treated a user with ZERO ⚡ logs as
+ * PERFECTLY certain, then started hedging the moment they logged their first
+ * one. Measured at (E, β) = (2.78, 1.44): σ_ϕ was 0 at n = 0, 0.194h at n = 1,
+ * 0.003h at n = 200. The honest sequence is 0.411 → 0.194 → 0.003, monotone
+ * decreasing in data — which is exactly what §5.1's whole premise claims.
+ * Returning the prior posterior restores that ordering; `fitted` still reports
+ * whether the DATA moved the constants, which is what the UI keys on.
+ */
+function priorPosterior(): FitPosterior {
+	const variance = (FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD) / RIDGE_PRIOR_STRENGTH;
+	return {
+		covariance: [
+			[variance, 0, 0],
+			[0, variance, 0],
+			[0, 0, variance]
+		],
+		sigma2: FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD
+	};
 }
 
 /**
@@ -1162,26 +1366,20 @@ export interface FitPosterior {
  *
  * MODEL (v2 — full Bayesian linear regression; v1 computed only the MAP):
  *
- *   ϕᵢ = c·xᵢ + εᵢ,  εᵢ ~ N(0, σ²/wᵢ),  prior c ~ N(c₀, (σ²/λ)·I)
+ *   ϕᵢ = c·xᵢ + εᵢ,  εᵢ ~ N(0, σ²),  prior c ~ N(c₀, (σ²/λ)·I)
  *
- * with design rows xᵢ = [Eᵢ, βᵢ, 1], prior mean c₀ = fallback constants,
- * λ = RIDGE_PRIOR_STRENGTH, and observation weights wᵢ = γ^(n−1−i) from the
- * optional forgetting factor γ (γ = 1 ⇒ all observations equal; γ < 1 lets a
- * user whose flow behavior drifts shed stale logs — recursive-least-squares
- * style, γ ≈ 0.98 forgets with a ~34-log half-life: 0.98³⁴ ≈ 0.5, while ~50
- * logs is the 1/e time constant — MATH.md §10).
+ * with design rows xᵢ = [Eᵢ, βᵢ, 1], prior mean c₀ = fallback constants and
+ * λ = RIDGE_PRIOR_STRENGTH.
  *
  * Posterior (all closed-form):
- *   mean        ĉ = (XᵀWX + λI)⁻¹ (XᵀWϕ + λc₀)     ← identical to v1's ridge
- *   covariance  Σ = σ̂²·(XᵀWX + λI)⁻¹
- *   noise       σ̂² = (ν₀σ₀² + Σwᵢ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + Σwᵢ)
+ *   mean        ĉ = (XᵀX + λI)⁻¹ (Xᵀϕ + λc₀)       ← identical to v1's ridge
+ *   covariance  Σ = σ̂²·(XᵀX + λI)⁻¹
+ *   noise       σ̂² = (ν₀σ₀² + Σ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + n)
  *
  * The point estimate the allocator consumes is unchanged from v1 (the ridge
- * MAP); `posterior` is additional information for callers — see
- * phiPredictionStd for turning it into an uncertainty band on ϕ. WHY: a plan
- * built from 2 logs and a plan built from 200 logs used to look identically
- * confident; downstream UI/logic can now tell them apart (and future work can
- * allocate conservatively when the posterior is wide).
+ * MAP); `posterior` is what makes a 2-log plan differ from a 200-log plan
+ * (MATH.md §5.1) — see phiPredictionStd for turning it into an uncertainty
+ * band on ϕ.
  *
  * The prior keeps the fit graceful everywhere batch least squares is brittle:
  * a single observation nudges the model instead of being ignored; degenerate
@@ -1197,16 +1395,19 @@ export interface FitPosterior {
  * plane slightly below zero far from their tasks, and rejecting that made
  * such users unable to personalize at all. calculateFlowStateTime floors
  * every prediction at 0.1h, so a negative corner never reaches the model.
+ *
+ * EVERY return carries a posterior, including the fallbacks: falling back
+ * means "the prior is all we know", and the prior's own uncertainty is real
+ * information the allocator must see (priorPosterior, MATH.md §13.1). Before
+ * 2026-07-26 the fallbacks returned none, which downstream read as certainty.
  */
 export function fitUserConstants(
 	observations: FlowObservation[],
-	fallback: UserConstants = DEFAULT_USER_CONSTANTS,
-	options?: { forgettingFactor?: number }
-): { constants: UserConstants; fitted: boolean; posterior?: FitPosterior } {
+	fallback: UserConstants = DEFAULT_USER_CONSTANTS
+): { constants: UserConstants; fitted: boolean; posterior: FitPosterior } {
 	if (observations.length === 0) {
-		return { constants: fallback, fitted: false };
+		return { constants: fallback, fitted: false, posterior: priorPosterior() };
 	}
-	const gamma = Math.min(1, Math.max(1e-3, options?.forgettingFactor ?? 1));
 
 	let sEE = 0;
 	let sEb = 0;
@@ -1216,26 +1417,22 @@ export function fitUserConstants(
 	let sEp = 0;
 	let sbp = 0;
 	let sp = 0;
-	let sw = 0;
 	const n = observations.length;
-	for (let i = 0; i < n; i++) {
-		const o = observations[i];
-		const w = Math.pow(gamma, n - 1 - i); // newest observation has weight 1
-		sEE += w * o.E * o.E;
-		sEb += w * o.E * o.beta;
-		sE += w * o.E;
-		sbb += w * o.beta * o.beta;
-		sb += w * o.beta;
-		sEp += w * o.E * o.phi;
-		sbp += w * o.beta * o.phi;
-		sp += w * o.phi;
-		sw += w;
+	for (const o of observations) {
+		sEE += o.E * o.E;
+		sEb += o.E * o.beta;
+		sE += o.E;
+		sbb += o.beta * o.beta;
+		sb += o.beta;
+		sEp += o.E * o.phi;
+		sbp += o.beta * o.phi;
+		sp += o.phi;
 	}
 	const lambda = RIDGE_PRIOR_STRENGTH;
 	const A = [
 		[sEE + lambda, sEb, sE],
 		[sEb, sbb + lambda, sb],
-		[sE, sb, sw + lambda]
+		[sE, sb, n + lambda]
 	];
 	const solution = solve3x3(A, [
 		sEp + lambda * fallback.c1,
@@ -1244,39 +1441,37 @@ export function fitUserConstants(
 	]);
 	// The ridge matrix is positive definite, so solve3x3 cannot hit a singular
 	// pivot — the guard stays purely as defense in depth.
-	if (!solution) return { constants: fallback, fitted: false };
+	if (!solution) return { constants: fallback, fitted: false, posterior: priorPosterior() };
 
 	const [c1, c2, c3] = solution;
 	for (const E of [1, 5]) {
 		for (const beta of [1, 2]) {
 			const phi = c1 * E + c2 * beta + c3;
-			if (!Number.isFinite(phi) || phi > 16) return { constants: fallback, fitted: false };
+			if (!Number.isFinite(phi) || phi > 16) {
+				return { constants: fallback, fitted: false, posterior: priorPosterior() };
+			}
 		}
 	}
 
-	// Noise estimate: weighted residual sum of squares blended with the prior
-	// scale (inverse-gamma-style pseudo-observations), so σ̂ neither collapses
-	// to 0 on a couple of lucky logs nor ignores genuinely noisy users.
+	// Noise estimate: residual sum of squares blended with the prior scale
+	// (inverse-gamma-style pseudo-observations), so σ̂ neither collapses to 0 on
+	// a couple of lucky logs nor ignores genuinely noisy users.
 	let ssr = 0;
-	for (let i = 0; i < n; i++) {
-		const o = observations[i];
-		const w = Math.pow(gamma, n - 1 - i);
+	for (const o of observations) {
 		const resid = o.phi - (c1 * o.E + c2 * o.beta + c3);
-		ssr += w * resid * resid;
+		ssr += resid * resid;
 	}
 	const nu0 = RIDGE_PRIOR_STRENGTH;
-	const sigma2 = (nu0 * FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD + ssr) / (nu0 + sw);
+	const sigma2 = (nu0 * FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD + ssr) / (nu0 + n);
 
 	const Ainv = invert3x3(A);
-	const posterior: FitPosterior | undefined = Ainv
-		? {
-				covariance: Ainv.map((row) => row.map((v) => v * sigma2)),
-				sigma2,
-				nEff: sw
-			}
-		: undefined;
+	if (!Ainv) return { constants: { c1, c2, c3 }, fitted: true, posterior: priorPosterior() };
 
-	return { constants: { c1, c2, c3 }, fitted: true, posterior };
+	return {
+		constants: { c1, c2, c3 },
+		fitted: true,
+		posterior: { covariance: Ainv.map((row) => row.map((v) => v * sigma2)), sigma2 }
+	};
 }
 
 /**

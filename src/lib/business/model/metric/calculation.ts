@@ -15,6 +15,7 @@ import {
 	simulateReservoirs,
 	DEFAULT_ENERGY_PARAMS,
 	type EnergyParams,
+	type EnergyTaskInput,
 	type ReservoirDemand,
 	type ScheduleBlock
 } from '../zenith-energy';
@@ -60,6 +61,25 @@ export function getTaskNature(
 	if (diff >= 3) return 'cognitive';
 	if (diff <= -3) return 'physical';
 	return 'balanced';
+}
+
+/**
+ * The energy model's view of a task: effective difficulty plus the per-hour
+ * reservoir demands (sliders are 1–10, the reservoir law wants [0,1]).
+ *
+ * ONE definition on purpose — the Energy Lab, the stopping-value calibration
+ * and the plan-adherence audit must all describe a task identically, or their
+ * fits silently disagree with the plan they are calibrating.
+ */
+export function toEnergyTask(task: Task): EnergyTaskInput {
+	return {
+		id: task.id,
+		title: task.title,
+		difficulty: getEffectiveDifficulty(task),
+		enjoyment: task.enjoyment,
+		cognitiveDemand: task.mentalDifficulty / 10,
+		physicalDemand: task.physicalDifficulty / 10
+	};
 }
 
 export type SuggestedTask = Task & {
@@ -200,7 +220,7 @@ export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
  * Calculate flow coverage: tasks that receive enough time for optimal productivity
  *
  * From the Zenith model (v2), each task has its own optimal stopping time
- * T* = x*(r)/k ∈ [1.5ϕ, 1.79ϕ]. However, for "flow coverage" we check if
+ * T* = x*(r)/k ∈ [1.5194ϕ, 1.7933ϕ]. However, for "flow coverage" we check if
  * tasks reach flow state (ϕ), meaning you at least hit peak productivity
  * before the allocation ends.
  *
@@ -274,7 +294,7 @@ export function calculateBottleneckTask(tasks: SuggestedTask[]): string {
  *
  * Question: "Can you reach flow state (ϕ) on each task?"
  *
- * Uses ϕ (flow state time) as the baseline demand per task, NOT T* ≈ 1.5–1.8×ϕ (optimal).
+ * Uses ϕ (flow state time) as the baseline demand per task, NOT T* ≈ 1.52–1.79×ϕ (optimal).
  * This is more realistic because:
  * - T* would mean several hours per task (humans only have ~4 productive hours/day)
  * - ϕ represents the minimum meaningful engagement (reaching flow state)
