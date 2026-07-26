@@ -77,6 +77,19 @@ export interface DrainObservationRecord {
 }
 
 /**
+ * A named singleton setting. `value` is opaque here on purpose: the data layer
+ * stores it, the business layer that owns the setting validates it on read
+ * (persisted JSON is user-reachable and can be edited or restored from an old
+ * backup). Kept in IndexedDB rather than localStorage so settings that are
+ * really model inputs — the Energy Lab's parameters — are covered by backup.
+ */
+export interface SettingRecord {
+	key: string;
+	value: unknown;
+	updatedAt: number;
+}
+
+/**
  * One pre/post-rest rating pair: the user took a break of `hours` and rated
  * both energy systems going in and coming out (0 = fresh, 10 = completely
  * spent). Feeds the energy model's recovery-rate calibration — during pure

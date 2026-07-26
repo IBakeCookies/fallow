@@ -1,15 +1,25 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { migrateFromLocalStorageToIndexedDB } from './local-storage-migration';
+import {
+	migrateFromLocalStorageToIndexedDB,
+	migrateEnergyParamsFromLocalStorage
+} from './local-storage-migration';
 import { $readSessionByDate } from '$lib/data/repository/session-repository';
+import {
+	ENERGY_PARAMS_SETTING,
+	$readSetting,
+	$updateSetting
+} from '$lib/data/repository/settings-repository';
 
 const STORAGE_KEY = 'zenith-daily-tasks';
 const MIGRATION_KEY = 'zenith-migrated-to-idb';
+const ENERGY_PARAMS_STORAGE_KEY = 'zenith-energy-params';
 
 const backing = new Map<string, string>();
 vi.stubGlobal('localStorage', {
 	getItem: (key: string) => backing.get(key) ?? null,
-	setItem: (key: string, value: string) => void backing.set(key, value)
+	setItem: (key: string, value: string) => void backing.set(key, value),
+	removeItem: (key: string) => void backing.delete(key)
 });
 
 describe('migrateFromLocalStorageToIndexedDB', () => {
@@ -46,5 +56,46 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 		backing.set(STORAGE_KEY, '{not json');
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-05', 0.5)).toBe(false);
 		expect(backing.get(MIGRATION_KEY)).toBe('true');
+	});
+});
+
+describe('migrateEnergyParamsFromLocalStorage', () => {
+	beforeEach(async () => {
+		backing.clear();
+		// fake-indexeddb is shared across this file; storing `undefined` reads
+		// back as "nothing stored", which is exactly the pre-migration state.
+		await $updateSetting(ENERGY_PARAMS_SETTING, undefined);
+	});
+
+	it('does nothing when there is no legacy copy', async () => {
+		expect(await migrateEnergyParamsFromLocalStorage()).toBe(false);
+	});
+
+	it('moves the params into the settings store and drops the legacy key', async () => {
+		backing.set(ENERGY_PARAMS_STORAGE_KEY, JSON.stringify({ alphaCog: 0.7 }));
+
+		expect(await migrateEnergyParamsFromLocalStorage()).toBe(true);
+
+		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toEqual({ alphaCog: 0.7 });
+		expect(backing.has(ENERGY_PARAMS_STORAGE_KEY)).toBe(false);
+	});
+
+	it('never lets a stale legacy copy overwrite what IndexedDB already owns', async () => {
+		await $updateSetting(ENERGY_PARAMS_SETTING, { alphaCog: 0.9 });
+		backing.set(ENERGY_PARAMS_STORAGE_KEY, JSON.stringify({ alphaCog: 0.1 }));
+
+		expect(await migrateEnergyParamsFromLocalStorage()).toBe(true);
+
+		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toEqual({ alphaCog: 0.9 });
+		expect(backing.has(ENERGY_PARAMS_STORAGE_KEY)).toBe(false);
+	});
+
+	it('drops corrupt legacy JSON instead of retrying it forever', async () => {
+		backing.set(ENERGY_PARAMS_STORAGE_KEY, '{not json');
+
+		expect(await migrateEnergyParamsFromLocalStorage()).toBe(false);
+
+		expect(backing.has(ENERGY_PARAMS_STORAGE_KEY)).toBe(false);
+		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toBeUndefined();
 	});
 });

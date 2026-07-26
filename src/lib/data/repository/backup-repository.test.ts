@@ -38,7 +38,8 @@ describe('backup-repository', () => {
 			'flowObservations',
 			'restObservations',
 			'routines',
-			'sessions'
+			'sessions',
+			'settings'
 		]);
 		expect(backup.stores.sessions).toHaveLength(1);
 		expect(backup.stores.flowObservations).toHaveLength(1);

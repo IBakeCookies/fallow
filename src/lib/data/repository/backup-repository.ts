@@ -5,15 +5,7 @@
  * overwritten and everything else is kept.
  */
 
-import { openDatabase, DB_VERSION } from '$lib/data/storage/indexed-db';
-
-const STORE_NAMES = [
-	'sessions',
-	'routines',
-	'flowObservations',
-	'drainObservations',
-	'restObservations'
-] as const;
+import { openDatabase, DB_VERSION, STORE_NAMES } from '$lib/data/storage/indexed-db';
 
 type StoreName = (typeof STORE_NAMES)[number];
 

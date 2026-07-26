@@ -6,10 +6,13 @@ async function importFresh() {
 	return import('./indexed-db');
 }
 
-function openRaw(version?: number): Promise<IDBDatabase> {
+function openRaw(version?: number, stores: readonly string[] = []): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open('zenith-db', version);
 		request.onerror = () => reject(request.error);
+		request.onupgradeneeded = () => {
+			for (const name of stores) request.result.createObjectStore(name, { keyPath: 'key' });
+		};
 		request.onsuccess = () => resolve(request.result);
 	});
 }
@@ -28,7 +31,8 @@ describe('indexed-db', () => {
 			'flowObservations',
 			'restObservations',
 			'routines',
-			'sessions'
+			'sessions',
+			'settings'
 		]);
 	});
 
@@ -40,12 +44,26 @@ describe('indexed-db', () => {
 	});
 
 	it('falls back to the on-disk version when it is newer than the code version', async () => {
-		(await openRaw(99)).close();
+		const { STORE_NAMES } = await importFresh();
+		(await openRaw(99, STORE_NAMES)).close();
 
 		const { openDatabase } = await importFresh();
 		const database = await openDatabase();
 
 		expect(database.version).toBe(99);
+	});
+
+	// A build that bumped DB_VERSION before creating a store leaves the on-disk
+	// schema at our version but incomplete, so onupgradeneeded never fires again.
+	it('upgrades past the on-disk version when a store is missing', async () => {
+		const { DB_VERSION } = await importFresh();
+		(await openRaw(DB_VERSION, ['sessions'])).close();
+
+		const { openDatabase } = await importFresh();
+		const database = await openDatabase();
+
+		expect(database.version).toBe(DB_VERSION + 1);
+		expect(database.objectStoreNames.contains('settings')).toBe(true);
 	});
 
 	it('releases its connection when another tab upgrades, then reopens', async () => {

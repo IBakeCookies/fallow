@@ -10,29 +10,53 @@
  *                     indexed by date
  * - restObservations: pre/post-rest drain rating pairs (autoIncrement),
  *                     indexed by date
+ * - settings:         singleton records keyed by name (e.g. the Energy Lab's
+ *                     model parameters), so they are backed up with everything
+ *                     else instead of living loose in localStorage
  */
 
 const DB_NAME = 'zenith-db';
-export const DB_VERSION = 4;
+export const DB_VERSION = 5;
+
+export const STORE_NAMES = [
+	'sessions',
+	'routines',
+	'flowObservations',
+	'drainObservations',
+	'restObservations',
+	'settings'
+] as const;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
 export function openDatabase(): Promise<IDBDatabase> {
 	if (!databasePromise) {
-		databasePromise = open(DB_VERSION)
-			.catch((error) => {
-				// On-disk version is newer than the code (user opened an older build
-				// after a newer one upgraded the schema): open at the existing version.
-				// All stores this build knows about already exist in newer versions.
-				if (error instanceof DOMException && error.name === 'VersionError') return open();
-				throw error;
-			})
-			.catch((error) => {
-				databasePromise = null;
-				throw error;
-			});
+		databasePromise = openAndHeal().catch((error) => {
+			databasePromise = null;
+			throw error;
+		});
 	}
 	return databasePromise;
+}
+
+async function openAndHeal(): Promise<IDBDatabase> {
+	const database = await open(DB_VERSION).catch((error) => {
+		// On-disk version is newer than the code (user opened an older build after
+		// a newer one upgraded the schema): open at the existing version.
+		if (error instanceof DOMException && error.name === 'VersionError') return open();
+		throw error;
+	});
+
+	// A store this build needs is missing even though the on-disk version is at
+	// or above ours — an earlier build bumped the version before creating it, so
+	// onupgradeneeded will never fire again at that version. Force one upgrade.
+	if (STORE_NAMES.some((name) => !database.objectStoreNames.contains(name))) {
+		const version = database.version + 1;
+		database.close();
+		return open(version);
+	}
+
+	return database;
 }
 
 function open(version?: number): Promise<IDBDatabase> {
@@ -106,6 +130,11 @@ function open(version?: number): Promise<IDBDatabase> {
 					autoIncrement: true
 				});
 				restStore.createIndex('date', 'date');
+			}
+
+			// Settings store (v5) - one record per named singleton setting
+			if (!database.objectStoreNames.contains('settings')) {
+				database.createObjectStore('settings', { keyPath: 'key' });
 			}
 		};
 	});

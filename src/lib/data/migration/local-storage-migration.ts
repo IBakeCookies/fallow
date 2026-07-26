@@ -7,9 +7,52 @@
 
 import type { DailySession } from '$lib/data/type';
 import { $updateSession } from '$lib/data/repository/session-repository';
+import {
+	ENERGY_PARAMS_SETTING,
+	$readSetting,
+	$updateSetting
+} from '$lib/data/repository/settings-repository';
 
 const STORAGE_KEY = 'zenith-daily-tasks';
 const MIGRATION_KEY = 'zenith-migrated-to-idb';
+const ENERGY_PARAMS_STORAGE_KEY = 'zenith-energy-params';
+
+/**
+ * Move the Energy Lab's parameters out of localStorage into the `settings`
+ * store (v5), where backup/export covers them. The blob is moved verbatim —
+ * validating it is the business layer's job, and it has to validate restored
+ * backups anyway, so a second copy of that logic down here would buy nothing.
+ *
+ * Only runs when nothing is stored yet: once IndexedDB owns the setting, a
+ * stale localStorage copy must never win.
+ */
+export async function migrateEnergyParamsFromLocalStorage(): Promise<boolean> {
+	if (typeof localStorage === 'undefined') return false;
+	const raw = localStorage.getItem(ENERGY_PARAMS_STORAGE_KEY);
+	if (!raw) return false;
+
+	let value: unknown;
+	try {
+		value = JSON.parse(raw);
+	} catch {
+		// Unparseable legacy JSON never will parse: drop it rather than retry.
+		localStorage.removeItem(ENERGY_PARAMS_STORAGE_KEY);
+		return false;
+	}
+
+	try {
+		if ((await $readSetting(ENERGY_PARAMS_SETTING)) === undefined) {
+			await $updateSetting(ENERGY_PARAMS_SETTING, value);
+		}
+	} catch {
+		// Transient IndexedDB failure (e.g. quota): keep the localStorage copy
+		// so a later load retries.
+		return false;
+	}
+
+	localStorage.removeItem(ENERGY_PARAMS_STORAGE_KEY);
+	return true;
+}
 
 export async function migrateFromLocalStorageToIndexedDB(
 	today: string,
