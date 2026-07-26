@@ -190,6 +190,14 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   TypeScript checks declaration order.
 - Components take snippets/props from the layout; they do not reach into
   stores themselves.
+- Storybook stories live **beside their component** (`*.stories.svelte`), one
+  file per component or primitive group, and are rendered as smoke tests by the
+  `storybook` vitest project. `.storybook/preview.ts` builds the theme toolbar
+  from the catalogue in `business/model/theme.ts` and stamps the theme classes
+  onto `<html>` the way `hooks.server.ts` does, so a story is reviewable on any
+  of the 33 themes. `presentation/theme.stories.svelte` is the componentless
+  one: a tall page for judging a theme's background, scenery and token
+  swatches. It sits outside `style/` on purpose — see the scanner note below.
 
 ### Style
 
@@ -214,6 +222,23 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   _more contrast against this theme's own background_, so it is lighter on every
   dark theme and darker on every light one. Never use it as a fill sitting under
   light-coloured content.
+- **A state or domain colour has three roles; picking the wrong one is the usual
+  contrast bug.** Bare (`bg-danger`, `border-danger`) is the fill. `-strong`
+  (`text-danger-strong`) is text on a _tinted_ background — the `bg-danger/5` +
+  `text-danger-strong` + `border-danger/20` recipe every callout in the app
+  uses, and the right choice for anything longer than a label. `-ink`
+  (`text-danger-ink`) is text on the _solid_ fill, and only exists for short
+  bold labels: chips, badges, chart annotations. `-strong` on a solid fill is
+  the same hue twice and reads as mush.
+  `-ink` is derived in `base.css` from the fill's own lightness — not the
+  theme's, because the two diverge (on a light theme white reads on `danger`
+  but fails on `warning`). So a theme that overrides a fill silently changes
+  its ink, and `themes.css` overrides them 200+ times: after touching a state
+  or domain fill, run `node scripts/ink-contrast.mjs` (dev server on :5173),
+  which checks all 33 themes × 9 fills. Worst case across the catalogue is
+  4.28:1, and 15 of the 297 pairs cannot reach 4.5:1 with _any_ ink because a
+  mid-luminance chromatic fill caps out — one more reason solid fills are for
+  labels and the tinted recipe is for prose.
 - A hover/active surface is `surface-hover`. `hover:bg-surface-card` on an
   element already sitting on a card is a no-op, which is easy to miss.
 - **A translucent surface sitting on the page needs `backdrop-blur`.** Both
@@ -236,6 +261,22 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `:root` declarations in `base.css` are never tree-shaken, so build a dynamic
   `var()` name over those (`--series-N`), never over a `@theme` alias
   (`--color-series-N`). See `energy/+page.svelte`'s `PALETTE`.
+- **Two namespaces, and only one of them is yours to declare.** `base.css` and
+  `themes.css` own the _unprefixed_ names (`--danger`, `--ty-primary`,
+  `--surface-page`, `--series-1`); `tokens.css` maps each to a `--color-*` entry
+  purely to generate the utility. So `bg-danger` is the normal way to reach it,
+  and any raw `var()` — JS, inline styles, SVG `fill`/`stroke` — names the
+  unprefixed one. Never declare a `--color-*` yourself.
+  `--color-danger: var(--color-danger)` used to be the idiom here and is now
+  gone on purpose: it only worked because `app.css` imports `tokens.css` before
+  `base.css`, so the real value won on source order. Flip that import order and
+  every such token silently becomes a self-referential cycle resolving to
+  invalid — no error, just transparent. `--radius` and `--blur` are the two
+  deliberate exceptions (see the next entry); leave them alone.
+- The scanner also **skips the directory holding the CSS entry point**, so a
+  class whose only occurrence is inside `presentation/style/` is never emitted —
+  markup belongs anywhere else. (Cost an hour: a `h-[100rem]` in a story file
+  parked in `style/` silently had no height.)
 - Bare `rounded` and `blur` are declared in a _deprecated_ block in Tailwind's
   own `theme.css` marked `@theme default inline reference`, and `reference`
   inlines the value at build time — so both need re-declaring in `tokens.css`

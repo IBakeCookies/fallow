@@ -209,9 +209,9 @@
 	// Every colour is a token: these reference the plain `:root` custom properties
 	// (base.css), which resolve regardless of Tailwind's @theme tree-shaking.
 	const QUADRANTS: { key: DailyQuadrant; label: string; color: string }[] = [
-		{ key: 'flow', label: m.quadrant_flow(), color: 'var(--color-flow)' },
-		{ key: 'cruise', label: m.quadrant_cruise(), color: 'var(--color-info)' },
-		{ key: 'grind', label: m.quadrant_grind(), color: 'var(--color-warning)' },
+		{ key: 'flow', label: m.quadrant_flow(), color: 'var(--flow)' },
+		{ key: 'cruise', label: m.quadrant_cruise(), color: 'var(--info)' },
+		{ key: 'grind', label: m.quadrant_grind(), color: 'var(--warning)' },
 		{ key: 'routine', label: m.quadrant_routine(), color: 'var(--series-rest)' }
 	];
 	const quadrantCounts = $derived.by(() => {
@@ -463,7 +463,7 @@
 					x2={CHART.w - CHART.right}
 					y1={yPos(tick)}
 					y2={yPos(tick)}
-					stroke="var(--color-line-soft)"
+					stroke="var(--line-soft)"
 					stroke-width="1"
 				/>
 				<text
@@ -480,7 +480,7 @@
 
 			{#each bars as bar, i (i)}
 				{#if bar.value !== null}
-					<path d={barPath(bar.x, bar.y, bar.w, bar.h)} fill="var(--color-brand)">
+					<path d={barPath(bar.x, bar.y, bar.w, bar.h)} fill="var(--brand)">
 						<title>{bar.full} — {bar.value}% · {bar.sub}</title>
 					</path>
 				{/if}

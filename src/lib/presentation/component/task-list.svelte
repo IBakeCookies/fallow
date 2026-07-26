@@ -24,7 +24,7 @@
 </script>
 
 <div
-	class="space-y-text-xs rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card"
+	class="bg-surface-card space-y-text-xs rounded-2xl border p-box-md sm:p-box-xl backdrop-blur shadow-card"
 >
 	<h2 class="text-lg font-bold text-ty-primary">{m.list_title()}</h2>
 	{#if suggestedTasks.length === 0}

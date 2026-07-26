@@ -42,7 +42,14 @@
 @custom-variant orrery (&:is(.orrery *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
-   Themes swap the variables, not the classes. */
+   Themes swap the variables, not the classes.
+
+   Every entry aliases an UNPREFIXED name that base.css/themes.css own
+   (`--color-danger: var(--danger)`). Never `--color-x: var(--color-x)`: that
+   only resolves because app.css imports this file before base.css, so the real
+   declaration wins on source order — flip the import order and the token
+   becomes a silent self-referential cycle. `--radius`/`--blur` below are the two
+   exceptions and have their own reason. */
 @theme inline {
 	--font-sans: 'Inter Variable', sans-serif;
 
@@ -101,10 +108,10 @@
 	--radius: var(--radius);
 
 	/* typography */
-	--color-ty-primary: var(--color-ty-primary);
-	--color-ty-secondary: var(--color-ty-secondary);
-	--color-ty-silent: var(--color-ty-silent);
-	--color-ty-ghost: var(--color-ty-ghost);
+	--color-ty-primary: var(--ty-primary);
+	--color-ty-secondary: var(--ty-secondary);
+	--color-ty-silent: var(--ty-silent);
+	--color-ty-ghost: var(--ty-ghost);
 
 	/* surfaces */
 	--color-surface-page: var(--surface-page);
@@ -114,29 +121,41 @@
 
 	/* borders */
 	--color-line-strong: var(--border);
-	--color-line-soft: var(--color-line-soft);
+	--color-line-soft: var(--line-soft);
 
 	/* elevation — one shadow for all top-level cards; flat themes zero it */
 	--shadow-card: var(--card-shadow);
 
-	/* states; -strong = emphasized shade for hover / text on tinted bg */
-	--color-danger: var(--color-danger);
-	--color-danger-strong: var(--color-danger-strong);
-	--color-warning: var(--color-warning);
-	--color-warning-strong: var(--color-warning-strong);
-	--color-success: var(--color-success);
-	--color-success-strong: var(--color-success-strong);
-	--color-info: var(--color-info);
-	--color-info-strong: var(--color-info-strong);
+	/* states. Three roles, do not mix them up: bare = the fill or border,
+	   -strong = text on a *tinted* bg (bg-danger/5) or hover, -ink = text on the
+	   *solid* fill (bg-danger). -strong on a solid fill is the same hue twice
+	   over and reads as mush. */
+	--color-danger: var(--danger);
+	--color-danger-strong: var(--danger-strong);
+	--color-danger-ink: var(--danger-ink);
+	--color-warning: var(--warning);
+	--color-warning-strong: var(--warning-strong);
+	--color-warning-ink: var(--warning-ink);
+	--color-success: var(--success);
+	--color-success-strong: var(--success-strong);
+	--color-success-ink: var(--success-ink);
+	--color-info: var(--info);
+	--color-info-strong: var(--info-strong);
+	--color-info-ink: var(--info-ink);
 
 	/* domain: Zenith concepts */
-	--color-mind: var(--color-mind);
-	--color-mind-strong: var(--color-mind-strong);
-	--color-body: var(--color-body);
-	--color-flow: var(--color-flow);
-	--color-mixed: var(--color-mixed);
-	--color-brand: var(--color-brand);
-	--color-brand-strong: var(--color-brand-strong);
+	--color-mind: var(--mind);
+	--color-mind-strong: var(--mind-strong);
+	--color-mind-ink: var(--mind-ink);
+	--color-body: var(--body);
+	--color-body-ink: var(--body-ink);
+	--color-flow: var(--flow);
+	--color-flow-ink: var(--flow-ink);
+	--color-mixed: var(--mixed);
+	--color-mixed-ink: var(--mixed-ink);
+	--color-brand: var(--brand);
+	--color-brand-strong: var(--brand-strong);
+	--color-brand-ink: var(--brand-ink);
 
 	/* categorical scale — one hue per task in the energy plan, where the series
 	   must stay mutually distinguishable rather than carry domain meaning.
@@ -155,12 +174,12 @@
 
 	/* shadcn start */
 	--color-background: var(--surface-page);
-	--color-foreground: var(--color-ty-primary);
+	--color-foreground: var(--ty-primary);
 	--color-card: var(--surface-card);
-	--color-card-foreground: var(--color-ty-primary);
+	--color-card-foreground: var(--ty-primary);
 	/* popovers float over arbitrary content — opaque page surface, not translucent card */
 	--color-popover: var(--surface-page);
-	--color-popover-foreground: var(--color-ty-primary);
+	--color-popover-foreground: var(--ty-primary);
 
 	--color-primary: var(--primary);
 	--color-primary-foreground: var(--primary-foreground);

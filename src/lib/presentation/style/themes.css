@@ -52,16 +52,16 @@
 	--surface-page: oklch(0.15 0.03 255);
 	--surface-card: oklch(1 0 0 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.2);
-	--color-ty-primary: oklch(0.97 0.01 190);
+	--ty-primary: oklch(0.97 0.01 190);
 
 	--input: oklch(1 0 0 / 0.12);
 
 	--primary: oklch(0.78 0.15 175);
 	--primary-foreground: oklch(0.17 0.05 250);
 
-	--color-brand: oklch(0.78 0.13 180);
-	--color-brand-strong: oklch(0.86 0.11 180);
-	--color-mixed: oklch(0.72 0.17 305);
+	--brand: oklch(0.78 0.13 180);
+	--brand-strong: oklch(0.86 0.11 180);
+	--mixed: oklch(0.72 0.17 305);
 }
 
 .daybreak {
@@ -75,7 +75,7 @@
 	--surface-page: oklch(0.97 0.01 80);
 	--surface-card: oklch(1 0 0 / 0.5);
 	--surface-inset: oklch(0 0 0 / 0.05);
-	--color-ty-primary: oklch(0.22 0.02 320);
+	--ty-primary: oklch(0.22 0.02 320);
 
 	--input: oklch(1 0 0 / 0.6);
 
@@ -83,9 +83,9 @@
 	--primary: oklch(0.55 0.19 25);
 	--primary-foreground: var(--color-white);
 
-	--color-brand: oklch(0.55 0.17 35);
-	--color-brand-strong: oklch(0.47 0.16 35);
-	--color-mixed: oklch(0.55 0.2 350);
+	--brand: oklch(0.55 0.17 35);
+	--brand-strong: oklch(0.47 0.16 35);
+	--mixed: oklch(0.55 0.2 350);
 }
 
 .royal {
@@ -101,7 +101,7 @@
 	--surface-page: oklch(0.18 0.045 315);
 	--surface-card: oklch(1 0.02 85 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.22);
-	--color-ty-primary: oklch(0.96 0.02 85);
+	--ty-primary: oklch(0.96 0.02 85);
 
 	--input: oklch(1 0 0 / 0.1);
 	--border: oklch(0.75 0.1 85 / 0.28);
@@ -111,10 +111,10 @@
 	--primary: oklch(0.78 0.13 85);
 	--primary-foreground: oklch(0.24 0.06 80);
 
-	--color-brand: oklch(0.8 0.13 85);
-	--color-brand-strong: oklch(0.88 0.11 88);
-	--color-mixed: oklch(0.72 0.15 330);
-	--color-flow: oklch(0.82 0.13 75);
+	--brand: oklch(0.8 0.13 85);
+	--brand-strong: oklch(0.88 0.11 88);
+	--mixed: oklch(0.72 0.15 330);
+	--flow: oklch(0.82 0.13 75);
 }
 
 .terminal {
@@ -133,7 +133,7 @@
 	--surface-page: oklch(0.12 0.014 155);
 	--surface-card: oklch(0.85 0.2 145 / 0.05);
 	--surface-inset: oklch(0 0 0 / 0.35);
-	--color-ty-primary: oklch(0.87 0.19 145);
+	--ty-primary: oklch(0.87 0.19 145);
 
 	--input: oklch(0.85 0.2 145 / 0.08);
 	--border: oklch(0.85 0.2 145 / 0.3);
@@ -142,22 +142,22 @@
 	--primary-foreground: oklch(0.15 0.03 150);
 
 	/* everything glows green or amber — it's 1982; danger runs hot orange so errors still scan */
-	--color-danger: oklch(0.7 0.21 40);
-	--color-danger-strong: oklch(0.78 0.18 40);
-	--color-warning: oklch(0.85 0.17 95);
-	--color-warning-strong: oklch(0.9 0.14 95);
-	--color-success: oklch(0.87 0.21 145);
-	--color-success-strong: oklch(0.92 0.17 145);
-	--color-info: oklch(0.88 0.14 165);
-	--color-info-strong: oklch(0.92 0.11 165);
+	--danger: oklch(0.7 0.21 40);
+	--danger-strong: oklch(0.78 0.18 40);
+	--warning: oklch(0.85 0.17 95);
+	--warning-strong: oklch(0.9 0.14 95);
+	--success: oklch(0.87 0.21 145);
+	--success-strong: oklch(0.92 0.17 145);
+	--info: oklch(0.88 0.14 165);
+	--info-strong: oklch(0.92 0.11 165);
 
-	--color-mind: oklch(0.88 0.14 165);
-	--color-mind-strong: oklch(0.92 0.11 165);
-	--color-body: oklch(0.87 0.21 145);
-	--color-flow: oklch(0.85 0.17 95);
-	--color-mixed: oklch(0.8 0.15 120);
-	--color-brand: oklch(0.87 0.21 145);
-	--color-brand-strong: oklch(0.93 0.16 145);
+	--mind: oklch(0.88 0.14 165);
+	--mind-strong: oklch(0.92 0.11 165);
+	--body: oklch(0.87 0.21 145);
+	--flow: oklch(0.85 0.17 95);
+	--mixed: oklch(0.8 0.15 120);
+	--brand: oklch(0.87 0.21 145);
+	--brand-strong: oklch(0.93 0.16 145);
 }
 
 .blueprint {
@@ -176,7 +176,7 @@
 	--surface-page: oklch(0.4 0.09 256);
 	--surface-card: oklch(1 0 0 / 0.07);
 	--surface-inset: oklch(0 0 0 / 0.16);
-	--color-ty-primary: oklch(0.98 0.008 240);
+	--ty-primary: oklch(0.98 0.008 240);
 
 	--input: oklch(1 0 0 / 0.12);
 	--border: oklch(1 0 0 / 0.3);
@@ -185,22 +185,22 @@
 	--primary: oklch(0.97 0.01 240);
 	--primary-foreground: oklch(0.35 0.09 256);
 
-	--color-danger: var(--color-red-300);
-	--color-danger-strong: var(--color-red-200);
-	--color-warning: var(--color-amber-300);
-	--color-warning-strong: var(--color-amber-200);
-	--color-success: var(--color-emerald-300);
-	--color-success-strong: var(--color-emerald-200);
-	--color-info: var(--color-sky-300);
-	--color-info-strong: var(--color-sky-200);
+	--danger: var(--color-red-300);
+	--danger-strong: var(--color-red-200);
+	--warning: var(--color-amber-300);
+	--warning-strong: var(--color-amber-200);
+	--success: var(--color-emerald-300);
+	--success-strong: var(--color-emerald-200);
+	--info: var(--color-sky-300);
+	--info-strong: var(--color-sky-200);
 
-	--color-mind: var(--color-sky-300);
-	--color-mind-strong: var(--color-sky-200);
-	--color-body: var(--color-emerald-300);
-	--color-flow: var(--color-amber-300);
-	--color-mixed: var(--color-violet-300);
-	--color-brand: oklch(0.85 0.08 230);
-	--color-brand-strong: oklch(0.92 0.06 230);
+	--mind: var(--color-sky-300);
+	--mind-strong: var(--color-sky-200);
+	--body: var(--color-emerald-300);
+	--flow: var(--color-amber-300);
+	--mixed: var(--color-violet-300);
+	--brand: oklch(0.85 0.08 230);
+	--brand-strong: oklch(0.92 0.06 230);
 }
 
 .bubblegum {
@@ -217,7 +217,7 @@
 	--surface-page: oklch(0.96 0.025 340);
 	--surface-card: oklch(1 0 0 / 0.55);
 	--surface-inset: oklch(0.7 0.12 350 / 0.1);
-	--color-ty-primary: oklch(0.35 0.09 340);
+	--ty-primary: oklch(0.35 0.09 340);
 
 	--input: oklch(1 0 0 / 0.65);
 	--border: oklch(0.6 0.16 350 / 0.25);
@@ -226,13 +226,13 @@
 	--primary: oklch(0.58 0.21 350);
 	--primary-foreground: var(--color-white);
 
-	--color-brand: oklch(0.62 0.21 350);
-	--color-brand-strong: oklch(0.54 0.2 350);
-	--color-mixed: oklch(0.6 0.18 310);
-	--color-flow: oklch(0.72 0.15 65);
-	--color-body: oklch(0.65 0.14 165);
-	--color-mind: oklch(0.6 0.15 260);
-	--color-mind-strong: oklch(0.52 0.15 260);
+	--brand: oklch(0.62 0.21 350);
+	--brand-strong: oklch(0.54 0.2 350);
+	--mixed: oklch(0.6 0.18 310);
+	--flow: oklch(0.72 0.15 65);
+	--body: oklch(0.65 0.14 165);
+	--mind: oklch(0.6 0.15 260);
+	--mind-strong: oklch(0.52 0.15 260);
 }
 
 .ukiyo {
@@ -250,7 +250,7 @@
 	--surface-page: oklch(0.94 0.02 72);
 	--surface-card: oklch(0.98 0.012 90 / 0.6);
 	--surface-inset: oklch(0.35 0.06 255 / 0.07);
-	--color-ty-primary: oklch(0.28 0.045 255);
+	--ty-primary: oklch(0.28 0.045 255);
 
 	--input: oklch(1 0 0 / 0.55);
 	--border: oklch(0.35 0.06 255 / 0.25);
@@ -259,20 +259,20 @@
 	--primary: oklch(0.42 0.09 255);
 	--primary-foreground: oklch(0.97 0.01 90);
 
-	--color-brand: oklch(0.45 0.09 255);
-	--color-brand-strong: oklch(0.38 0.09 255);
+	--brand: oklch(0.45 0.09 255);
+	--brand-strong: oklch(0.38 0.09 255);
 	/* vermilion, like the sun */
-	--color-danger: oklch(0.55 0.19 30);
-	--color-danger-strong: oklch(0.48 0.18 30);
-	--color-flow: oklch(0.62 0.13 60);
-	--color-mixed: oklch(0.5 0.12 300);
+	--danger: oklch(0.55 0.19 30);
+	--danger-strong: oklch(0.48 0.18 30);
+	--flow: oklch(0.62 0.13 60);
+	--mixed: oklch(0.5 0.12 300);
 }
 
 .abyss {
 	--surface-page: oklch(0.11 0.022 245);
 	--surface-card: oklch(0.75 0.1 210 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.95 0.015 210);
+	--ty-primary: oklch(0.95 0.015 210);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.75 0.12 210 / 0.22);
@@ -281,10 +281,10 @@
 	--primary: oklch(0.8 0.14 205);
 	--primary-foreground: oklch(0.15 0.04 240);
 
-	--color-brand: oklch(0.78 0.13 205);
-	--color-brand-strong: oklch(0.86 0.11 205);
-	--color-mixed: oklch(0.7 0.17 330);
-	--color-body: oklch(0.8 0.15 170);
+	--brand: oklch(0.78 0.13 205);
+	--brand-strong: oklch(0.86 0.11 205);
+	--mixed: oklch(0.7 0.17 330);
+	--body: oklch(0.8 0.15 170);
 }
 
 .parchment {
@@ -299,7 +299,7 @@
 	--surface-page: oklch(0.92 0.03 83);
 	--surface-card: oklch(0.97 0.02 88 / 0.55);
 	--surface-inset: oklch(0.45 0.06 70 / 0.08);
-	--color-ty-primary: oklch(0.3 0.04 60);
+	--ty-primary: oklch(0.3 0.04 60);
 
 	--input: oklch(1 0.01 90 / 0.6);
 	--border: oklch(0.45 0.07 70 / 0.3);
@@ -309,12 +309,12 @@
 	--primary-foreground: oklch(0.96 0.02 85);
 
 	/* gold-leaf ochre */
-	--color-brand: oklch(0.55 0.12 75);
-	--color-brand-strong: oklch(0.47 0.12 72);
-	--color-flow: oklch(0.6 0.12 80);
-	--color-mixed: oklch(0.48 0.1 320);
-	--color-mind: oklch(0.45 0.09 255);
-	--color-mind-strong: oklch(0.38 0.09 255);
+	--brand: oklch(0.55 0.12 75);
+	--brand-strong: oklch(0.47 0.12 72);
+	--flow: oklch(0.6 0.12 80);
+	--mixed: oklch(0.48 0.1 320);
+	--mind: oklch(0.45 0.09 255);
+	--mind-strong: oklch(0.38 0.09 255);
 }
 
 .noir {
@@ -332,7 +332,7 @@
 	--surface-page: oklch(0.16 0 0);
 	--surface-card: oklch(1 0 0 / 0.05);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.97 0 0);
+	--ty-primary: oklch(0.97 0 0);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(1 0 0 / 0.18);
@@ -341,23 +341,23 @@
 	--primary: oklch(0.55 0.21 20);
 	--primary-foreground: oklch(0.97 0 0);
 
-	--color-brand: oklch(0.62 0.19 20);
-	--color-brand-strong: oklch(0.7 0.17 20);
+	--brand: oklch(0.62 0.19 20);
+	--brand-strong: oklch(0.7 0.17 20);
 	/* states stay smoky too — only crimson gets to be a color */
-	--color-danger: oklch(0.68 0.19 20);
-	--color-danger-strong: oklch(0.76 0.17 20);
-	--color-warning: oklch(0.8 0.05 90);
-	--color-warning-strong: oklch(0.87 0.04 90);
-	--color-success: oklch(0.78 0.04 160);
-	--color-success-strong: oklch(0.85 0.03 160);
-	--color-info: oklch(0.78 0.03 250);
-	--color-info-strong: oklch(0.85 0.03 250);
+	--danger: oklch(0.68 0.19 20);
+	--danger-strong: oklch(0.76 0.17 20);
+	--warning: oklch(0.8 0.05 90);
+	--warning-strong: oklch(0.87 0.04 90);
+	--success: oklch(0.78 0.04 160);
+	--success-strong: oklch(0.85 0.03 160);
+	--info: oklch(0.78 0.03 250);
+	--info-strong: oklch(0.85 0.03 250);
 	/* domain accents stay smoky so the crimson pops */
-	--color-mind: oklch(0.78 0.03 250);
-	--color-mind-strong: oklch(0.85 0.03 250);
-	--color-body: oklch(0.78 0.04 160);
-	--color-flow: oklch(0.8 0.05 90);
-	--color-mixed: oklch(0.75 0.04 320);
+	--mind: oklch(0.78 0.03 250);
+	--mind-strong: oklch(0.85 0.03 250);
+	--body: oklch(0.78 0.04 160);
+	--flow: oklch(0.8 0.05 90);
+	--mixed: oklch(0.75 0.04 320);
 }
 
 .ember {
@@ -373,7 +373,7 @@
 	--surface-page: oklch(0.17 0.012 45);
 	--surface-card: oklch(0.85 0.08 55 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.96 0.012 60);
+	--ty-primary: oklch(0.96 0.012 60);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.75 0.12 50 / 0.25);
@@ -382,10 +382,10 @@
 	--primary: oklch(0.7 0.19 45);
 	--primary-foreground: oklch(0.18 0.04 40);
 
-	--color-brand: oklch(0.74 0.16 50);
-	--color-brand-strong: oklch(0.82 0.13 55);
-	--color-flow: oklch(0.8 0.15 75);
-	--color-mixed: oklch(0.7 0.14 25);
+	--brand: oklch(0.74 0.16 50);
+	--brand-strong: oklch(0.82 0.13 55);
+	--flow: oklch(0.8 0.15 75);
+	--mixed: oklch(0.7 0.14 25);
 }
 
 .glacier {
@@ -401,7 +401,7 @@
 	--surface-page: oklch(0.96 0.015 220);
 	--surface-card: oklch(1 0 0 / 0.55);
 	--surface-inset: oklch(0.55 0.08 240 / 0.08);
-	--color-ty-primary: oklch(0.25 0.045 245);
+	--ty-primary: oklch(0.25 0.045 245);
 
 	--input: oklch(1 0 0 / 0.65);
 	--border: oklch(0.45 0.08 240 / 0.25);
@@ -410,11 +410,11 @@
 	--primary: oklch(0.55 0.12 230);
 	--primary-foreground: var(--color-white);
 
-	--color-brand: oklch(0.52 0.11 230);
-	--color-brand-strong: oklch(0.44 0.11 235);
-	--color-mind: oklch(0.5 0.11 250);
-	--color-mind-strong: oklch(0.43 0.11 250);
-	--color-mixed: oklch(0.55 0.12 290);
+	--brand: oklch(0.52 0.11 230);
+	--brand-strong: oklch(0.44 0.11 235);
+	--mind: oklch(0.5 0.11 250);
+	--mind-strong: oklch(0.43 0.11 250);
+	--mixed: oklch(0.55 0.12 290);
 }
 
 .fallow {
@@ -431,7 +431,7 @@
 	--surface-page: oklch(0.95 0.02 105);
 	--surface-card: oklch(1 0 0 / 0.55);
 	--surface-inset: oklch(0.45 0.06 110 / 0.08);
-	--color-ty-primary: oklch(0.31 0.045 130);
+	--ty-primary: oklch(0.31 0.045 130);
 
 	--input: oklch(1 0 0 / 0.6);
 	--border: oklch(0.45 0.07 115 / 0.25);
@@ -440,13 +440,13 @@
 	--primary: oklch(0.55 0.11 130);
 	--primary-foreground: var(--color-white);
 
-	--color-brand: oklch(0.52 0.1 125);
-	--color-brand-strong: oklch(0.44 0.1 128);
+	--brand: oklch(0.52 0.1 125);
+	--brand-strong: oklch(0.44 0.1 128);
 	/* straw gold */
-	--color-flow: oklch(0.65 0.13 85);
+	--flow: oklch(0.65 0.13 85);
 	/* spruce teal — keeps body distinct from the field-green primary */
-	--color-body: oklch(0.5 0.12 175);
-	--color-mixed: oklch(0.55 0.11 310);
+	--body: oklch(0.5 0.12 175);
+	--mixed: oklch(0.55 0.11 310);
 }
 
 .lantern-drift {
@@ -487,7 +487,7 @@
 	/* lantern-lit river glass — translucent so the water glows through */
 	--surface-card: oklch(1 0 0 / 0.07);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.97 0.014 82);
+	--ty-primary: oklch(0.97 0.014 82);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.08 70 / 0.22);
@@ -497,27 +497,27 @@
 	--primary-foreground: oklch(0.24 0.05 58);
 	--ring: oklch(0.8 0.14 66 / 0.5);
 
-	--color-brand: oklch(0.82 0.115 64);
-	--color-brand-strong: oklch(0.88 0.085 70);
+	--brand: oklch(0.82 0.115 64);
+	--brand-strong: oklch(0.88 0.085 70);
 	/* candle-gold flow */
-	--color-flow: oklch(0.86 0.125 88);
+	--flow: oklch(0.86 0.125 88);
 	/* moonless-water blue */
-	--color-mind: oklch(0.78 0.1 248);
-	--color-mind-strong: oklch(0.85 0.065 250);
+	--mind: oklch(0.78 0.1 248);
+	--mind-strong: oklch(0.85 0.065 250);
 	/* river-reed green — kept clear of the amber primary */
-	--color-body: oklch(0.8 0.125 162);
+	--body: oklch(0.8 0.125 162);
 	/* dusk-magenta, the rarer reflection on the water */
-	--color-mixed: oklch(0.75 0.12 322);
+	--mixed: oklch(0.75 0.12 322);
 
 	/* states — hues held well apart so status stays legible on the warm field */
-	--color-warning: oklch(0.84 0.125 80);
-	--color-warning-strong: oklch(0.89 0.09 82);
-	--color-danger: oklch(0.7 0.18 28);
-	--color-danger-strong: oklch(0.76 0.14 28);
-	--color-success: oklch(0.81 0.13 150);
-	--color-success-strong: oklch(0.87 0.1 150);
-	--color-info: oklch(0.78 0.1 236);
-	--color-info-strong: oklch(0.86 0.075 238);
+	--warning: oklch(0.84 0.125 80);
+	--warning-strong: oklch(0.89 0.09 82);
+	--danger: oklch(0.7 0.18 28);
+	--danger-strong: oklch(0.76 0.14 28);
+	--success: oklch(0.81 0.13 150);
+	--success-strong: oklch(0.87 0.1 150);
+	--info: oklch(0.78 0.1 236);
+	--info-strong: oklch(0.86 0.075 238);
 }
 .canopy {
 	/* under a sunlit forest canopy: warm gold sunlight breaking through the
@@ -535,7 +535,7 @@
 	/* sun-warmed leaf glass */
 	--surface-card: oklch(1 0 0 / 0.55);
 	--surface-inset: oklch(0.35 0.06 145 / 0.08);
-	--color-ty-primary: oklch(0.28 0.04 145);
+	--ty-primary: oklch(0.28 0.04 145);
 
 	--input: oklch(1 0 0 / 0.6);
 	--border: oklch(0.45 0.07 145 / 0.25);
@@ -545,17 +545,17 @@
 	--primary-foreground: var(--color-white);
 	--ring: oklch(0.52 0.13 150 / 0.5);
 
-	--color-brand: oklch(0.5 0.12 148);
-	--color-brand-strong: oklch(0.42 0.12 150);
+	--brand: oklch(0.5 0.12 148);
+	--brand-strong: oklch(0.42 0.12 150);
 	/* sun gold breaking through the leaves */
-	--color-flow: oklch(0.6 0.14 95);
+	--flow: oklch(0.6 0.14 95);
 	/* fern teal in the undergrowth shade */
-	--color-mind: oklch(0.48 0.11 180);
-	--color-mind-strong: oklch(0.4 0.11 182);
+	--mind: oklch(0.48 0.11 180);
+	--mind-strong: oklch(0.4 0.11 182);
 	/* bark amber */
-	--color-body: oklch(0.48 0.13 60);
+	--body: oklch(0.48 0.13 60);
 	/* blossom rose */
-	--color-mixed: oklch(0.55 0.15 20);
+	--mixed: oklch(0.55 0.15 20);
 }
 .meridian {
 	/* deep-space ink: indigo shading to teal-black, lit only by quiet distant
@@ -573,7 +573,7 @@
 	/* deep-space glass */
 	--surface-card: oklch(1 0 0 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.95 0.015 240);
+	--ty-primary: oklch(0.95 0.015 240);
 
 	--input: oklch(1 0 0 / 0.08);
 	--border: oklch(0.75 0.05 230 / 0.18);
@@ -583,17 +583,17 @@
 	--primary-foreground: oklch(0.14 0.03 250);
 	--ring: oklch(0.8 0.14 195 / 0.5);
 
-	--color-brand: oklch(0.76 0.13 200);
-	--color-brand-strong: oklch(0.85 0.11 200);
+	--brand: oklch(0.76 0.13 200);
+	--brand-strong: oklch(0.85 0.11 200);
 	/* ribbon gold */
-	--color-flow: oklch(0.83 0.13 85);
+	--flow: oklch(0.83 0.13 85);
 	/* ribbon violet */
-	--color-mind: oklch(0.74 0.15 300);
-	--color-mind-strong: oklch(0.82 0.11 300);
+	--mind: oklch(0.74 0.15 300);
+	--mind-strong: oklch(0.82 0.11 300);
 	/* indigo depths */
-	--color-body: oklch(0.55 0.09 250);
+	--body: oklch(0.55 0.09 250);
 	/* ribbon rose */
-	--color-mixed: oklch(0.7 0.17 345);
+	--mixed: oklch(0.7 0.17 345);
 }
 .dunes {
 	/* midday desert: bottom-to-top the page itself carries pale warm sky
@@ -617,7 +617,7 @@
 	/* sun-bleached canvas glass */
 	--surface-card: oklch(1 0 0 / 0.6);
 	--surface-inset: oklch(0.4 0.06 50 / 0.08);
-	--color-ty-primary: oklch(0.28 0.045 45);
+	--ty-primary: oklch(0.28 0.045 45);
 
 	--input: oklch(1 0 0 / 0.62);
 	--border: oklch(0.45 0.07 50 / 0.25);
@@ -627,17 +627,17 @@
 	--primary-foreground: var(--color-white);
 	--ring: oklch(0.58 0.16 42 / 0.5);
 
-	--color-brand: oklch(0.56 0.15 42);
-	--color-brand-strong: oklch(0.46 0.15 40);
+	--brand: oklch(0.56 0.15 42);
+	--brand-strong: oklch(0.46 0.15 40);
 	/* sun gold */
-	--color-flow: oklch(0.72 0.14 85);
+	--flow: oklch(0.72 0.14 85);
 	/* oasis teal */
-	--color-mind: oklch(0.55 0.09 195);
-	--color-mind-strong: oklch(0.45 0.09 195);
+	--mind: oklch(0.55 0.09 195);
+	--mind-strong: oklch(0.45 0.09 195);
 	/* baked clay */
-	--color-body: oklch(0.45 0.1 55);
+	--body: oklch(0.45 0.1 55);
 	/* cactus-flower rose */
-	--color-mixed: oklch(0.62 0.17 15);
+	--mixed: oklch(0.62 0.17 15);
 }
 .synthwave {
 	/* neon dusk: deep violet sky sinking to near-black, a sunset glow low at
@@ -654,7 +654,7 @@
 	/* dusk glass */
 	--surface-card: oklch(1 0 0 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.96 0.02 40);
+	--ty-primary: oklch(0.96 0.02 40);
 
 	--input: oklch(1 0 0 / 0.08);
 	--border: oklch(0.78 0.12 330 / 0.2);
@@ -664,17 +664,17 @@
 	--primary-foreground: oklch(0.12 0.02 320);
 	--ring: oklch(0.72 0.22 335 / 0.5);
 
-	--color-brand: oklch(0.72 0.2 330);
-	--color-brand-strong: oklch(0.82 0.16 330);
+	--brand: oklch(0.72 0.2 330);
+	--brand-strong: oklch(0.82 0.16 330);
 	/* sun orange */
-	--color-flow: oklch(0.78 0.17 55);
+	--flow: oklch(0.78 0.17 55);
 	/* electric cyan */
-	--color-mind: oklch(0.82 0.14 200);
-	--color-mind-strong: oklch(0.9 0.1 200);
+	--mind: oklch(0.82 0.14 200);
+	--mind-strong: oklch(0.9 0.1 200);
 	/* deep violet */
-	--color-body: oklch(0.55 0.16 295);
+	--body: oklch(0.55 0.16 295);
 	/* hot pink */
-	--color-mixed: oklch(0.72 0.19 5);
+	--mixed: oklch(0.72 0.19 5);
 }
 
 .zenith {
@@ -692,7 +692,7 @@
 	/* cloud-white */
 	--surface-card: oklch(1 0 0 / 0.55);
 	--surface-inset: oklch(0.3 0.08 250 / 0.08);
-	--color-ty-primary: oklch(0.24 0.05 250);
+	--ty-primary: oklch(0.24 0.05 250);
 
 	--input: oklch(1 0 0 / 0.65);
 	--border: oklch(0.3 0.08 250 / 0.22);
@@ -702,12 +702,12 @@
 	--primary-foreground: oklch(0.28 0.07 65);
 	--ring: oklch(0.78 0.14 80 / 0.55);
 
-	--color-brand: oklch(0.45 0.11 245);
-	--color-brand-strong: oklch(0.38 0.11 248);
-	--color-flow: oklch(0.62 0.14 70);
-	--color-mind: oklch(0.48 0.11 255);
-	--color-mind-strong: oklch(0.41 0.11 255);
-	--color-mixed: oklch(0.52 0.13 300);
+	--brand: oklch(0.45 0.11 245);
+	--brand-strong: oklch(0.38 0.11 248);
+	--flow: oklch(0.62 0.14 70);
+	--mind: oklch(0.48 0.11 255);
+	--mind-strong: oklch(0.41 0.11 255);
+	--mixed: oklch(0.52 0.13 300);
 }
 
 .eclipse {
@@ -735,7 +735,7 @@
 	/* shadow-side glass, warmed a breath by corona light */
 	--surface-card: oklch(0.98 0.02 85 / 0.055);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.97 0.008 85);
+	--ty-primary: oklch(0.97 0.008 85);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.9 0.05 85 / 0.2);
@@ -745,17 +745,17 @@
 	--primary-foreground: oklch(0.18 0.03 290);
 	--ring: oklch(0.92 0.08 88 / 0.5);
 
-	--color-brand: oklch(0.88 0.08 85);
-	--color-brand-strong: oklch(0.94 0.06 88);
+	--brand: oklch(0.88 0.08 85);
+	--brand-strong: oklch(0.94 0.06 88);
 	/* corona gold */
-	--color-flow: oklch(0.87 0.11 85);
+	--flow: oklch(0.87 0.11 85);
 	/* chromosphere magenta */
-	--color-mixed: oklch(0.74 0.14 330);
+	--mixed: oklch(0.74 0.14 330);
 	/* Baily's-beads pale blue */
-	--color-mind: oklch(0.8 0.08 260);
-	--color-mind-strong: oklch(0.87 0.07 260);
+	--mind: oklch(0.8 0.08 260);
+	--mind-strong: oklch(0.87 0.07 260);
 	/* shadow-band jade */
-	--color-body: oklch(0.8 0.11 165);
+	--body: oklch(0.8 0.11 165);
 }
 
 .cathedral {
@@ -775,7 +775,7 @@
 	/* candlelit stone glass */
 	--surface-card: oklch(0.96 0.03 85 / 0.05);
 	--surface-inset: oklch(0 0 0 / 0.3);
-	--color-ty-primary: oklch(0.96 0.012 85);
+	--ty-primary: oklch(0.96 0.012 85);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.07 85 / 0.22);
@@ -785,16 +785,16 @@
 	--primary-foreground: oklch(0.22 0.04 75);
 	--ring: oklch(0.8 0.12 80 / 0.5);
 
-	--color-brand: oklch(0.84 0.1 82);
-	--color-brand-strong: oklch(0.9 0.08 85);
+	--brand: oklch(0.84 0.1 82);
+	--brand-strong: oklch(0.9 0.08 85);
 	/* the window's jewels */
-	--color-danger: oklch(0.68 0.19 20);
-	--color-danger-strong: oklch(0.76 0.16 20);
-	--color-flow: oklch(0.82 0.13 80);
-	--color-mind: oklch(0.72 0.12 265);
-	--color-mind-strong: oklch(0.8 0.1 265);
-	--color-body: oklch(0.78 0.13 160);
-	--color-mixed: oklch(0.74 0.14 310);
+	--danger: oklch(0.68 0.19 20);
+	--danger-strong: oklch(0.76 0.16 20);
+	--flow: oklch(0.82 0.13 80);
+	--mind: oklch(0.72 0.12 265);
+	--mind-strong: oklch(0.8 0.1 265);
+	--body: oklch(0.78 0.13 160);
+	--mixed: oklch(0.74 0.14 310);
 }
 
 .orbit {
@@ -841,7 +841,7 @@
 	/* station-window glass */
 	--surface-card: oklch(1 0 0 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.28);
-	--color-ty-primary: oklch(0.96 0.008 230);
+	--ty-primary: oklch(0.96 0.008 230);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.05 230 / 0.22);
@@ -851,17 +851,17 @@
 	--primary-foreground: oklch(0.2 0.03 270);
 	--ring: oklch(0.87 0.1 80 / 0.5);
 
-	--color-brand: oklch(0.82 0.09 225);
-	--color-brand-strong: oklch(0.9 0.07 225);
+	--brand: oklch(0.82 0.09 225);
+	--brand-strong: oklch(0.9 0.07 225);
 	/* sunrise gold */
-	--color-flow: oklch(0.85 0.12 80);
+	--flow: oklch(0.85 0.12 80);
 	/* limb blue */
-	--color-mind: oklch(0.78 0.1 235);
-	--color-mind-strong: oklch(0.86 0.08 235);
+	--mind: oklch(0.78 0.1 235);
+	--mind-strong: oklch(0.86 0.08 235);
 	/* aurora green */
-	--color-body: oklch(0.78 0.14 155);
+	--body: oklch(0.78 0.14 155);
 	/* airglow violet */
-	--color-mixed: oklch(0.72 0.12 310);
+	--mixed: oklch(0.72 0.12 310);
 }
 
 .sundial {
@@ -882,7 +882,7 @@
 	/* sun-bleached plaster */
 	--surface-card: oklch(1 0 0 / 0.6);
 	--surface-inset: oklch(0.35 0.04 70 / 0.07);
-	--color-ty-primary: oklch(0.3 0.03 60);
+	--ty-primary: oklch(0.3 0.03 60);
 
 	--input: oklch(1 0 0 / 0.7);
 	--border: oklch(0.35 0.04 70 / 0.2);
@@ -892,16 +892,16 @@
 	--primary-foreground: oklch(0.97 0.01 85);
 	--ring: oklch(0.55 0.1 65 / 0.5);
 
-	--color-brand: oklch(0.5 0.09 60);
-	--color-brand-strong: oklch(0.42 0.09 55);
+	--brand: oklch(0.5 0.09 60);
+	--brand-strong: oklch(0.42 0.09 55);
 	/* late-afternoon terracotta */
-	--color-flow: oklch(0.6 0.13 50);
+	--flow: oklch(0.6 0.13 50);
 	/* shadow slate */
-	--color-mind: oklch(0.48 0.07 250);
-	--color-mind-strong: oklch(0.4 0.07 252);
+	--mind: oklch(0.48 0.07 250);
+	--mind-strong: oklch(0.4 0.07 252);
 	/* courtyard cypress */
-	--color-body: oklch(0.52 0.09 145);
-	--color-mixed: oklch(0.52 0.11 310);
+	--body: oklch(0.52 0.09 145);
+	--mixed: oklch(0.52 0.11 310);
 }
 
 .moonphase {
@@ -918,7 +918,7 @@
 	/* moonlit glass */
 	--surface-card: oklch(1 0 0 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.25);
-	--color-ty-primary: oklch(0.96 0.01 230);
+	--ty-primary: oklch(0.96 0.01 230);
 
 	--input: oklch(1 0 0 / 0.1);
 	--border: oklch(0.85 0.04 230 / 0.22);
@@ -928,13 +928,13 @@
 	--primary-foreground: oklch(0.2 0.04 260);
 	--ring: oklch(0.88 0.04 230 / 0.5);
 
-	--color-brand: oklch(0.82 0.06 235);
-	--color-brand-strong: oklch(0.9 0.05 235);
+	--brand: oklch(0.82 0.06 235);
+	--brand-strong: oklch(0.9 0.05 235);
 	/* starlight gold */
-	--color-flow: oklch(0.85 0.09 85);
-	--color-mind: oklch(0.78 0.09 250);
-	--color-mind-strong: oklch(0.86 0.08 250);
-	--color-mixed: oklch(0.75 0.1 300);
+	--flow: oklch(0.85 0.09 85);
+	--mind: oklch(0.78 0.09 250);
+	--mind-strong: oklch(0.86 0.08 250);
+	--mixed: oklch(0.75 0.1 300);
 }
 
 .tide {
@@ -950,7 +950,7 @@
 	/* sea-mist glass */
 	--surface-card: oklch(1 0 0 / 0.55);
 	--surface-inset: oklch(0.3 0.06 230 / 0.08);
-	--color-ty-primary: oklch(0.26 0.04 240);
+	--ty-primary: oklch(0.26 0.04 240);
 
 	--input: oklch(1 0 0 / 0.65);
 	--border: oklch(0.3 0.06 230 / 0.2);
@@ -960,15 +960,15 @@
 	--primary-foreground: oklch(0.97 0.01 210);
 	--ring: oklch(0.55 0.1 220 / 0.5);
 
-	--color-brand: oklch(0.5 0.09 225);
-	--color-brand-strong: oklch(0.42 0.09 230);
+	--brand: oklch(0.5 0.09 225);
+	--brand-strong: oklch(0.42 0.09 230);
 	/* wet-sand amber */
-	--color-flow: oklch(0.62 0.11 75);
-	--color-mind: oklch(0.5 0.09 250);
-	--color-mind-strong: oklch(0.42 0.09 252);
+	--flow: oklch(0.62 0.11 75);
+	--mind: oklch(0.5 0.09 250);
+	--mind-strong: oklch(0.42 0.09 252);
 	/* sea-grass */
-	--color-body: oklch(0.55 0.09 165);
-	--color-mixed: oklch(0.55 0.11 310);
+	--body: oklch(0.55 0.09 165);
+	--mixed: oklch(0.55 0.11 310);
 }
 
 .breath {
@@ -982,7 +982,7 @@
 	/* held-breath glass */
 	--surface-card: oklch(1 0 0 / 0.055);
 	--surface-inset: oklch(0 0 0 / 0.28);
-	--color-ty-primary: oklch(0.94 0.01 220);
+	--ty-primary: oklch(0.94 0.01 220);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.8 0.05 210 / 0.2);
@@ -992,13 +992,13 @@
 	--primary-foreground: oklch(0.18 0.03 270);
 	--ring: oklch(0.8 0.08 200 / 0.5);
 
-	--color-brand: oklch(0.78 0.07 205);
-	--color-brand-strong: oklch(0.86 0.06 205);
-	--color-flow: oklch(0.8 0.1 80);
-	--color-mind: oklch(0.75 0.09 250);
-	--color-mind-strong: oklch(0.83 0.08 250);
-	--color-body: oklch(0.72 0.1 165);
-	--color-mixed: oklch(0.72 0.11 300);
+	--brand: oklch(0.78 0.07 205);
+	--brand-strong: oklch(0.86 0.06 205);
+	--flow: oklch(0.8 0.1 80);
+	--mind: oklch(0.75 0.09 250);
+	--mind-strong: oklch(0.83 0.08 250);
+	--body: oklch(0.72 0.1 165);
+	--mixed: oklch(0.72 0.11 300);
 }
 
 .polaris {
@@ -1015,7 +1015,7 @@
 	/* frost glass */
 	--surface-card: oklch(1 0 0 / 0.055);
 	--surface-inset: oklch(0 0 0 / 0.26);
-	--color-ty-primary: oklch(0.95 0.01 240);
+	--ty-primary: oklch(0.95 0.01 240);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.03 240 / 0.2);
@@ -1025,14 +1025,14 @@
 	--primary-foreground: oklch(0.18 0.03 255);
 	--ring: oklch(0.9 0.03 240 / 0.5);
 
-	--color-brand: oklch(0.84 0.05 245);
-	--color-brand-strong: oklch(0.9 0.045 245);
+	--brand: oklch(0.84 0.05 245);
+	--brand-strong: oklch(0.9 0.045 245);
 	/* Dipper gold */
-	--color-flow: oklch(0.84 0.09 85);
-	--color-mind: oklch(0.76 0.09 255);
-	--color-mind-strong: oklch(0.84 0.08 255);
-	--color-body: oklch(0.74 0.09 165);
-	--color-mixed: oklch(0.74 0.1 300);
+	--flow: oklch(0.84 0.09 85);
+	--mind: oklch(0.76 0.09 255);
+	--mind-strong: oklch(0.84 0.08 255);
+	--body: oklch(0.74 0.09 165);
+	--mixed: oklch(0.74 0.1 300);
 }
 
 .city-windows {
@@ -1048,7 +1048,7 @@
 	/* high-rise glass */
 	--surface-card: oklch(1 0 0 / 0.06);
 	--surface-inset: oklch(0 0 0 / 0.26);
-	--color-ty-primary: oklch(0.95 0.01 85);
+	--ty-primary: oklch(0.95 0.01 85);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.05 85 / 0.2);
@@ -1058,13 +1058,13 @@
 	--primary-foreground: oklch(0.2 0.04 270);
 	--ring: oklch(0.84 0.11 80 / 0.5);
 
-	--color-brand: oklch(0.8 0.09 80);
-	--color-brand-strong: oklch(0.88 0.08 80);
-	--color-flow: oklch(0.82 0.11 60);
-	--color-mind: oklch(0.75 0.09 255);
-	--color-mind-strong: oklch(0.83 0.08 255);
-	--color-body: oklch(0.72 0.1 165);
-	--color-mixed: oklch(0.73 0.11 310);
+	--brand: oklch(0.8 0.09 80);
+	--brand-strong: oklch(0.88 0.08 80);
+	--flow: oklch(0.82 0.11 60);
+	--mind: oklch(0.75 0.09 255);
+	--mind-strong: oklch(0.83 0.08 255);
+	--body: oklch(0.72 0.1 165);
+	--mixed: oklch(0.73 0.11 310);
 }
 
 .orrery {
@@ -1080,7 +1080,7 @@
 	/* observatory glass */
 	--surface-card: oklch(1 0 0 / 0.055);
 	--surface-inset: oklch(0 0 0 / 0.26);
-	--color-ty-primary: oklch(0.95 0.01 90);
+	--ty-primary: oklch(0.95 0.01 90);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.04 90 / 0.2);
@@ -1090,13 +1090,13 @@
 	--primary-foreground: oklch(0.2 0.03 262);
 	--ring: oklch(0.86 0.09 85 / 0.5);
 
-	--color-brand: oklch(0.82 0.08 85);
-	--color-brand-strong: oklch(0.9 0.07 85);
+	--brand: oklch(0.82 0.08 85);
+	--brand-strong: oklch(0.9 0.07 85);
 	/* day-planet rose */
-	--color-flow: oklch(0.74 0.12 20);
+	--flow: oklch(0.74 0.12 20);
 	/* week-planet steel */
-	--color-mind: oklch(0.74 0.09 250);
-	--color-mind-strong: oklch(0.82 0.08 250);
-	--color-body: oklch(0.72 0.1 165);
-	--color-mixed: oklch(0.73 0.11 300);
+	--mind: oklch(0.74 0.09 250);
+	--mind-strong: oklch(0.82 0.08 250);
+	--body: oklch(0.72 0.1 165);
+	--mixed: oklch(0.73 0.11 300);
 }
