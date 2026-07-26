@@ -1,5 +1,29 @@
 import { expect, test } from '@playwright/test';
 
+test('theme switch applies the chosen theme to <html>', async ({ page }) => {
+	await page.goto('/');
+	const html = page.locator('html');
+
+	await page.getByRole('button', { name: 'Switch theme' }).click();
+	await page.getByRole('menuitemradio', { name: 'Terminal' }).click();
+	await expect(html).toHaveClass(/terminal/);
+});
+
+test('language switch updates <html lang> and nav labels in place', async ({ page }) => {
+	await page.goto('/');
+	const html = page.locator('html');
+	await expect(html).toHaveAttribute('lang', 'en');
+
+	await page.getByRole('button', { name: 'Switch language: DE' }).click();
+	await expect(html).toHaveAttribute('lang', 'de');
+	await expect(page.getByRole('link', { name: 'Kalender' })).toBeVisible();
+
+	// switch back — the label is German now ("Sprache wechseln: EN")
+	await page.getByRole('button', { name: 'Sprache wechseln: EN' }).click();
+	await expect(html).toHaveAttribute('lang', 'en');
+	await expect(page.getByRole('link', { name: 'Calendar' })).toBeVisible();
+});
+
 /* Regression: the root layout keys the app subtree on the locale, so a
    language switch destroys and recreates everything inside it. The theme
    store must live OUTSIDE that boundary (root +layout.svelte) — when it was
