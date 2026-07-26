@@ -4,12 +4,15 @@
  * the data layer — presentation code calls these instead of the repositories.
  */
 
-import type { DailySession, Task } from '$lib/data/type';
+import type { DailySession } from '$lib/data/type';
 import { $readSessionsByDateRange } from '$lib/data/repository/session-repository';
 import { $readAllFlowObservations } from '$lib/data/repository/flow-observation-repository';
 import { $readAllDrainObservations } from '$lib/data/repository/drain-observation-repository';
 import { $readAllRestObservations } from '$lib/data/repository/rest-observation-repository';
-import { migrateFromLocalStorageToIndexedDB } from '$lib/data/migration/local-storage-migration';
+import {
+	migrateFromLocalStorageToIndexedDB,
+	migrateEnergyParamsFromLocalStorage
+} from '$lib/data/migration/local-storage-migration';
 import { addDays, toISODate } from '$lib/business/utils/date';
 import {
 	calculateFlowStateTime,
@@ -25,7 +28,6 @@ import {
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitStoppingValue,
-	type EnergyTaskInput,
 	type StoppingValueFit,
 	type StopObservation
 } from '$lib/business/model/zenith-energy';
@@ -34,7 +36,7 @@ import {
 	type EnergyCalibration
 } from '$lib/business/model/energy-calibration';
 import type { PlanAuditDay } from '$lib/business/model/plan-audit';
-import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
 
 /**
  * Run once per page that touches persistence: migrates any legacy
@@ -43,6 +45,7 @@ import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
  */
 export async function initializeStorage(): Promise<void> {
 	await migrateFromLocalStorageToIndexedDB(toISODate(), DEFAULT_SWITCH_COST);
+	await migrateEnergyParamsFromLocalStorage();
 	if (navigator.storage?.persist) {
 		await navigator.storage.persist();
 	}
@@ -78,19 +81,6 @@ export async function readSessionsByDateRange(
 	endDate: string
 ): Promise<DailySession[]> {
 	return $readSessionsByDateRange(startDate, endDate);
-}
-
-// Mirrors the Energy Lab's task mapping (effective difficulty combines the
-// mental/physical sliders the same way the classic model does).
-function toEnergyTask(task: Task): EnergyTaskInput {
-	return {
-		id: task.id,
-		title: task.title,
-		difficulty: getEffectiveDifficulty(task),
-		enjoyment: task.enjoyment,
-		cognitiveDemand: task.mentalDifficulty / 10,
-		physicalDemand: task.physicalDifficulty / 10
-	};
 }
 
 /**
