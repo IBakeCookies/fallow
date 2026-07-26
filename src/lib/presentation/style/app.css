@@ -1,0 +1,21 @@
+/* The app stylesheet — the single entry the root layout imports.
+   Split by concern; the import order below is the cascade order and is
+   load-bearing (see base.css):
+
+     scenery/  decorative fixed layers, one file per animated theme
+     tokens    @custom-variant + @theme inline (what utilities exist)
+     base      :root defaults, @layer base, .dark
+     themes    one palette class per theme, overriding base */
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/inter';
+@import './scenery/index.css';
+
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@import './tokens.css';
+@import './base.css';
+@import './themes.css';

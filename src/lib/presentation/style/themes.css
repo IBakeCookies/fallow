@@ -1,359 +1,6 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn-svelte/tailwind.css';
-@import '@fontsource-variable/inter';
-@import './theme-scenery/index.css';
-
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
-
-/* mode class — set alongside the theme class on <html>; drives shadcn dark: styles too */
-@custom-variant dark (&:is(.dark *));
-
-@custom-variant glass-dark (&:is(.glass-dark *));
-@custom-variant glass-light (&:is(.glass-light *));
-
-@custom-variant aurora (&:is(.aurora *));
-@custom-variant daybreak (&:is(.daybreak *));
-@custom-variant royal (&:is(.royal *));
-@custom-variant terminal (&:is(.terminal *));
-@custom-variant blueprint (&:is(.blueprint *));
-@custom-variant bubblegum (&:is(.bubblegum *));
-@custom-variant ukiyo (&:is(.ukiyo *));
-@custom-variant abyss (&:is(.abyss *));
-@custom-variant parchment (&:is(.parchment *));
-@custom-variant noir (&:is(.noir *));
-@custom-variant ember (&:is(.ember *));
-@custom-variant glacier (&:is(.glacier *));
-@custom-variant zenith (&:is(.zenith *));
-@custom-variant eclipse (&:is(.eclipse *));
-@custom-variant cathedral (&:is(.cathedral *));
-@custom-variant orbit (&:is(.orbit *));
-@custom-variant fallow (&:is(.fallow *));
-@custom-variant lantern-drift (&:is(.lantern-drift *));
-@custom-variant canopy (&:is(.canopy *));
-@custom-variant meridian (&:is(.meridian *));
-@custom-variant dunes (&:is(.dunes *));
-@custom-variant synthwave (&:is(.synthwave *));
-@custom-variant sundial (&:is(.sundial *));
-@custom-variant moonphase (&:is(.moonphase *));
-@custom-variant tide (&:is(.tide *));
-@custom-variant breath (&:is(.breath *));
-@custom-variant polaris (&:is(.polaris *));
-
-/* Tailwind utility generation — maps semantic tokens to theme variables.
-   Themes swap the variables, not the classes. */
-@theme inline {
-	--font-sans: 'Inter Variable', sans-serif;
-
-	--text-2xs: 0.6875rem; /* 11px */
-
-	/* page paddings (-sm/-md: the responsive ramp on narrow viewports) */
-	--spacing-page-sm: var(--spacer-page-sm);
-	--spacing-page-md: var(--spacer-page-md);
-	--spacing-page: var(--spacer-page);
-
-	/* rhythm between major page sections (-lg: app UI ↔ below-the-fold content) */
-	--spacing-section: var(--spacer-section);
-	--spacing-section-lg: var(--spacer-section-lg);
-
-	/* vertical padding of empty-state placeholder blocks */
-	--spacing-empty-state: var(--spacer-empty-state);
-
-	/* for cards, boxes paddings */
-	--spacing-box-xs: var(--spacer-box-xs);
-	--spacing-box-sm: var(--spacer-box-sm);
-	--spacing-box-md: var(--spacer-box-md);
-	--spacing-box-lg: var(--spacer-box-lg);
-	--spacing-box-xl: var(--spacer-box-xl);
-	--spacing-box-2xl: var(--spacer-box-2xl);
-
-	/* for layout gaps between blocks (grid/flex gaps, divider margins) */
-	--spacing-grid-2xs: var(--spacer-grid-2xs);
-	--spacing-grid-xs: var(--spacer-grid-xs);
-	--spacing-grid-sm: var(--spacer-grid-sm);
-	--spacing-grid-md: var(--spacer-grid-md);
-	--spacing-grid-lg: var(--spacer-grid-lg);
-	--spacing-grid-xl: var(--spacer-grid-xl);
-
-	/* for text/content rhythm: margins between headings, paragraphs, labels,
-	   sections and gaps in flex rows of inline text */
-	--spacing-text-3xs: var(--spacer-text-3xs);
-	--spacing-text-2xs: var(--spacer-text-2xs);
-	--spacing-text-xs: var(--spacer-text-xs);
-	--spacing-text-sm: var(--spacer-text-sm);
-	--spacing-text-md: var(--spacer-text-md);
-	--spacing-text-lg: var(--spacer-text-lg);
-	--spacing-text-xl: var(--spacer-text-xl);
-	--spacing-text-2xl: var(--spacer-text-2xl);
-
-	--blur: var(--blur);
-
-	/* typography */
-	--color-ty-primary: var(--color-ty-primary);
-	--color-ty-secondary: var(--color-ty-secondary);
-	--color-ty-silent: var(--color-ty-silent);
-	--color-ty-ghost: var(--color-ty-ghost);
-
-	/* surfaces */
-	--color-surface-page: var(--surface-page);
-	--color-surface-card: var(--surface-card);
-	--color-surface-inset: var(--surface-inset);
-	--color-surface-hover: var(--surface-hover);
-
-	/* borders */
-	--color-line-strong: var(--border);
-	--color-line-soft: var(--color-line-soft);
-
-	/* elevation — one shadow for all top-level cards; flat themes zero it */
-	--shadow-card: var(--card-shadow);
-
-	/* states; -strong = emphasized shade for hover / text on tinted bg */
-	--color-danger: var(--color-danger);
-	--color-danger-strong: var(--color-danger-strong);
-	--color-warning: var(--color-warning);
-	--color-warning-strong: var(--color-warning-strong);
-	--color-success: var(--color-success);
-	--color-success-strong: var(--color-success-strong);
-	--color-info: var(--color-info);
-	--color-info-strong: var(--color-info-strong);
-
-	/* domain: Zenith concepts */
-	--color-mind: var(--color-mind);
-	--color-mind-strong: var(--color-mind-strong);
-	--color-body: var(--color-body);
-	--color-flow: var(--color-flow);
-	--color-mixed: var(--color-mixed);
-	--color-brand: var(--color-brand);
-	--color-brand-strong: var(--color-brand-strong);
-
-	/* shadcn start */
-	--color-background: var(--surface-page);
-	--color-foreground: var(--color-ty-primary);
-	--color-card: var(--surface-card);
-	--color-card-foreground: var(--color-ty-primary);
-	/* popovers float over arbitrary content — opaque page surface, not translucent card */
-	--color-popover: var(--surface-page);
-	--color-popover-foreground: var(--color-ty-primary);
-
-	--color-primary: var(--primary);
-	--color-primary-foreground: var(--primary-foreground);
-	--color-secondary: var(--secondary);
-	--color-secondary-foreground: var(--secondary-foreground);
-	--color-muted: var(--muted);
-	--color-muted-foreground: var(--muted-foreground);
-	--color-accent: var(--accent);
-	--color-accent-foreground: var(--accent-foreground);
-	--color-destructive: var(--destructive);
-	--color-destructive-foreground: var(--destructive-foreground);
-
-	--color-border: var(--border);
-	--color-input: var(--input);
-	--color-ring: var(--ring);
-
-	--radius-sm: calc(var(--radius) * 0.6);
-	--radius-md: calc(var(--radius) * 0.8);
-	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) * 1.4);
-	--radius-2xl: calc(var(--radius) * 1.8);
-	--radius-3xl: calc(var(--radius) * 2.2);
-	--radius-4xl: calc(var(--radius) * 2.6);
-	/* shadcn end */
-}
-
-/* ============================================================
-   :root is a COMPLETE light theme (solid-light). Every token a
-   component can use resolves here, so a theme class is purely an
-   override and can never leave a token undefined.
-
-   A theme provides SEEDS (surfaces, text, primary, background
-   image); everything else derives via color-mix and only needs
-   overriding for a deliberate effect.
-   ============================================================ */
-/* .solid-light re-applies the defaults so a theme swatch can opt back
-   into them from inside a themed subtree (theme-selector previews) */
-:root,
-.solid-light {
-	--spacer-2xs: 0.375rem; /* 6px */
-	--spacer-xs: 0.625rem; /* 10px */
-	--spacer-sm: 0.75rem; /* 12px */
-	--spacer-md: 1rem; /* 16px */
-	--spacer-lg: 1.25rem; /* 20px */
-	--spacer-xl: 1.5rem; /* 24px */
-	--spacer-2xl: 2rem; /* 32px */
-
-	--spacer-box-xs: var(--spacer-xs);
-	--spacer-box-sm: var(--spacer-sm);
-	--spacer-box-md: var(--spacer-md);
-	--spacer-box-lg: var(--spacer-lg);
-	--spacer-box-xl: var(--spacer-xl);
-	--spacer-box-2xl: var(--spacer-2xl);
-
-	--spacer-page-sm: var(--spacer-md);
-	--spacer-page-md: var(--spacer-xl);
-	--spacer-page: var(--spacer-2xl);
-
-	--spacer-section: 2.5rem; /* 40px */
-	--spacer-section-lg: 4rem; /* 64px */
-
-	--spacer-empty-state: 3rem; /* 48px */
-
-	--spacer-grid-2xs: var(--spacer-2xs);
-	--spacer-grid-xs: var(--spacer-xs);
-	--spacer-grid-sm: var(--spacer-sm);
-	--spacer-grid-md: var(--spacer-md);
-	--spacer-grid-lg: var(--spacer-lg);
-	--spacer-grid-xl: var(--spacer-2xl);
-
-	/* text rhythm runs a finer ladder than boxes — line-height already
-	   provides breathing room, so the steps start hairline-small */
-	--spacer-text-3xs: 0.125rem; /* 2px */
-	--spacer-text-2xs: 0.25rem; /* 4px */
-	--spacer-text-xs: 0.5rem; /* 8px */
-	--spacer-text-sm: var(--spacer-sm);
-	--spacer-text-md: var(--spacer-md);
-	--spacer-text-lg: var(--spacer-lg);
-	--spacer-text-xl: var(--spacer-xl);
-	--spacer-text-2xl: var(--spacer-2xl);
-
-	--radius: 0.625rem;
-	--blur: 1.5rem;
-	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.2);
-
-	/* seeds */
-	--surface-page: oklch(0.96 0.005 260);
-	--surface-card: oklch(0.995 0.002 260);
-	--surface-inset: oklch(0.91 0.008 260);
-	--color-ty-primary: oklch(0 0 0);
-	--primary: oklch(0.72 0.17 150);
-	--primary-foreground: oklch(0.18 0.03 155);
-
-	/* derived from seeds */
-	--color-ty-secondary: color-mix(in oklch, var(--color-ty-primary) 70%, transparent);
-	--color-ty-silent: color-mix(in oklch, var(--color-ty-primary) 55%, transparent);
-	--color-ty-ghost: color-mix(in oklch, var(--color-ty-primary) 40%, transparent);
-
-	--surface-hover: color-mix(in oklch, var(--color-ty-primary) 8%, transparent);
-	--border: color-mix(in oklch, var(--color-ty-primary) 15%, transparent);
-	--color-line-soft: color-mix(in oklch, var(--color-ty-primary) 8%, transparent);
-	--input: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
-
-	--secondary: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
-	--secondary-foreground: var(--color-ty-primary);
-	--muted: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
-	--muted-foreground: var(--color-ty-secondary);
-	--accent: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
-	--accent-foreground: var(--color-ty-primary);
-	--ring: color-mix(in oklch, var(--primary) 50%, transparent);
-	--destructive: var(--color-danger);
-	--destructive-foreground: var(--color-danger-strong);
-
-	/* states + domain accents (light shades; .dark swaps them) */
-	--color-danger: var(--color-red-600);
-	--color-danger-strong: var(--color-red-700);
-	--color-warning: var(--color-amber-600);
-	--color-warning-strong: var(--color-amber-700);
-	--color-success: var(--color-emerald-600);
-	--color-success-strong: var(--color-emerald-700);
-	--color-info: var(--color-sky-600);
-	--color-info-strong: var(--color-sky-700);
-
-	--color-mind: var(--color-blue-600);
-	--color-mind-strong: var(--color-blue-700);
-	--color-body: var(--color-emerald-600);
-	--color-flow: var(--color-amber-600);
-	--color-mixed: var(--color-violet-600);
-	--color-brand: var(--color-indigo-600);
-	--color-brand-strong: var(--color-indigo-700);
-}
-
-@layer base {
-	* {
-		@apply border-border outline-ring/50;
-	}
-	body {
-		@apply bg-surface-page bg-cover bg-fixed bg-center bg-no-repeat text-ty-primary;
-
-		background-image: var(--background-image);
-	}
-	html {
-		@apply font-sans;
-	}
-
-	/* Number inputs: hide the native spinner arrows everywhere — stepping is
-	   provided by the NumberInput component's custom −/+ buttons instead. */
-	input[type='number']::-webkit-outer-spin-button,
-	input[type='number']::-webkit-inner-spin-button {
-		appearance: none;
-		margin: 0;
-	}
-	input[type='number'] {
-		-moz-appearance: textfield;
-		appearance: textfield;
-	}
-
-	/* Slim, theme-aware scrollbar for scrollable menus/panels (e.g. the theme
-	   dropdown). Thumb uses the semantic line color and only appears on hover. */
-	.nice-scrollbar {
-		scrollbar-width: thin;
-		scrollbar-color: transparent transparent;
-	}
-	.nice-scrollbar:hover {
-		scrollbar-color: var(--color-line-strong) transparent;
-	}
-	.nice-scrollbar::-webkit-scrollbar {
-		width: 0.5rem;
-		height: 0.5rem;
-	}
-	.nice-scrollbar::-webkit-scrollbar-track {
-		background: transparent;
-	}
-	.nice-scrollbar::-webkit-scrollbar-thumb {
-		border: 2px solid transparent;
-		background-clip: padding-box;
-		border-radius: 9999px;
-		background-color: transparent;
-	}
-	.nice-scrollbar:hover::-webkit-scrollbar-thumb {
-		background-color: var(--color-line-strong);
-	}
-	.nice-scrollbar::-webkit-scrollbar-thumb:hover {
-		background-color: var(--color-ty-secondary, var(--color-line-strong));
-	}
-}
-
-/* Dark mode defaults (= solid-dark). Cascade order is load-bearing and must
-   mirror this file's structure: :root < .dark < theme classes — all equal
-   specificity, so the later block wins. Keep .dark above the theme blocks
-   (and never use a higher-specificity selector here). */
-.dark {
-	/* black-on-dark needs more weight to read as depth */
-	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.5);
-
-	--surface-page: oklch(0.2 0.015 285);
-	--surface-card: oklch(0.26 0.018 285);
-	--surface-inset: oklch(0.32 0.02 285);
-	--color-ty-primary: oklch(1 0 0);
-	--primary: oklch(0.55 0.2 285);
-	--primary-foreground: var(--color-white);
-
-	--color-danger: var(--color-red-400);
-	--color-danger-strong: var(--color-red-300);
-	--color-warning: var(--color-amber-400);
-	--color-warning-strong: var(--color-amber-300);
-	--color-success: var(--color-emerald-400);
-	--color-success-strong: var(--color-emerald-300);
-	--color-info: var(--color-sky-400);
-	--color-info-strong: var(--color-sky-300);
-
-	--color-mind: var(--color-blue-400);
-	--color-mind-strong: var(--color-blue-300);
-	--color-body: var(--color-emerald-400);
-	--color-flow: var(--color-amber-400);
-	--color-mixed: var(--color-violet-400);
-	--color-brand: var(--color-indigo-400);
-	--color-brand-strong: var(--color-indigo-300);
-}
+/* The theme palettes — one class per theme in the catalogue
+   (business/model/theme.ts), each overriding the seeds set in base.css.
+   Loaded last: themes win over :root and .dark at equal specificity. */
 
 /* ---- themes --------------------------------------------------
    solid-light shares the :root block above, solid-dark = .dark. */
@@ -1222,7 +869,11 @@
 	   light gradient stand where the real sun stands (see
 	   theme-scenery/sundial.css); the palette stays warm neutral stone */
 	--background-image:
-		radial-gradient(ellipse 80% 50% at 50% 115%, oklch(88.04% 0.02988 80.62 / 0.5), transparent 70%),
+		radial-gradient(
+			ellipse 80% 50% at 50% 115%,
+			oklch(88.04% 0.02988 80.62 / 0.5),
+			transparent 70%
+		),
 		linear-gradient(oklch(0.94 0.015 90), oklch(0.9 0.025 85));
 
 	--radius: 0.75rem;
@@ -1382,4 +1033,70 @@
 	--color-mind-strong: oklch(0.84 0.08 255);
 	--color-body: oklch(0.74 0.09 165);
 	--color-mixed: oklch(0.74 0.1 300);
+}
+
+.city-windows {
+	/* dusk over a skyline whose windows light with the sky's darkness
+	   (see theme-scenery/city-windows.css) */
+	--background-image:
+		radial-gradient(ellipse 100% 45% at 50% 118%, oklch(0.4 0.07 55 / 0.35), transparent 70%),
+		linear-gradient(oklch(0.13 0.03 265), oklch(0.2 0.05 275));
+
+	--radius: 0.75rem;
+
+	--surface-page: oklch(0.15 0.03 268);
+	/* high-rise glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.26);
+	--color-ty-primary: oklch(0.95 0.01 85);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.05 85 / 0.2);
+
+	/* lit-window amber */
+	--primary: oklch(0.84 0.11 80);
+	--primary-foreground: oklch(0.2 0.04 270);
+	--ring: oklch(0.84 0.11 80 / 0.5);
+
+	--color-brand: oklch(0.8 0.09 80);
+	--color-brand-strong: oklch(0.88 0.08 80);
+	--color-flow: oklch(0.82 0.11 60);
+	--color-mind: oklch(0.75 0.09 255);
+	--color-mind-strong: oklch(0.83 0.08 255);
+	--color-body: oklch(0.72 0.1 165);
+	--color-mixed: oklch(0.73 0.11 310);
+}
+
+.orrery {
+	/* a clockwork sky — the scenery's planets stand at their real day/week
+	   angles around a brass sun (see theme-scenery/orrery.css) */
+	--background-image:
+		radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.3 0.05 265 / 0.5), transparent 70%),
+		linear-gradient(oklch(0.14 0.025 260), oklch(0.19 0.035 265));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.16 0.025 262);
+	/* observatory glass */
+	--surface-card: oklch(1 0 0 / 0.055);
+	--surface-inset: oklch(0 0 0 / 0.26);
+	--color-ty-primary: oklch(0.95 0.01 90);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.04 90 / 0.2);
+
+	/* the brass sun */
+	--primary: oklch(0.86 0.09 85);
+	--primary-foreground: oklch(0.2 0.03 262);
+	--ring: oklch(0.86 0.09 85 / 0.5);
+
+	--color-brand: oklch(0.82 0.08 85);
+	--color-brand-strong: oklch(0.9 0.07 85);
+	/* day-planet rose */
+	--color-flow: oklch(0.74 0.12 20);
+	/* week-planet steel */
+	--color-mind: oklch(0.74 0.09 250);
+	--color-mind-strong: oklch(0.82 0.08 250);
+	--color-body: oklch(0.72 0.1 165);
+	--color-mixed: oklch(0.73 0.11 300);
 }

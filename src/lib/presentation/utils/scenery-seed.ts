@@ -1,10 +1,10 @@
 /* Per-user scenery variety: one persisted 32-bit seed → deterministic CSS
-   vars consumed by theme-scenery/*.css. Every var has a CSS fallback equal to
+   vars consumed by style/scenery/*.css. Every var has a CSS fallback equal to
    the hand-tuned look, so no-JS and un-seeded themes are unaffected. Server
    and client derive identical values from the same seed, so the style is
    SSR-inlined with no FOUC or hydration shift.
 
-   Rules (see theme-scenery/*.css comments):
+   Rules (see style/scenery/*.css comments):
    - offset background-position only on axes no keyframe animates
    - seamless one-tile drifts (zenith clouds, orbit-glide) are
      phased via animation-delay, never position-offset (breaks the wrap)

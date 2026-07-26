@@ -1,0 +1,89 @@
+/* Orrery: the day and week as clockwork. Two planets circle a brass sun —
+   the inner laps once per day (midnight at the top), the outer once per ISO
+   week (Monday 00:00 at the tick). Their angles (--orrery-day/--orrery-week,
+   utils/scenery-time.ts) are set from the real clock; nothing animates —
+   time moves the planets between visits. */
+.orrery .theme-scenery {
+	display: block;
+
+	/* sized and raised to sit in the clear strip above the content cards —
+	   larger rings put half the orbit behind the page */
+	--sun-x: 50%;
+	--sun-y: 8%;
+	--r-day: 3.2rem;
+	--r-week: 5.5rem;
+
+	/* orbit rings + the week-start tick at the top of the outer ring */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(
+				circle at var(--sun-x) var(--sun-y),
+				transparent 0 calc(var(--r-day) - 1px),
+				oklch(0.85 0.05 85 / 0.22) calc(var(--r-day) - 1px) calc(var(--r-day) + 1px),
+				transparent calc(var(--r-day) + 1px)
+			),
+			radial-gradient(
+				circle at var(--sun-x) var(--sun-y),
+				transparent 0 calc(var(--r-week) - 1px),
+				oklch(0.85 0.05 85 / 0.22) calc(var(--r-week) - 1px) calc(var(--r-week) + 1px),
+				transparent calc(var(--r-week) + 1px)
+			),
+			radial-gradient(
+				circle 0.18rem at var(--sun-x) calc(var(--sun-y) - var(--r-week)),
+				oklch(0.9 0.06 85 / 0.8) 60%,
+				transparent
+			);
+	}
+
+	/* rotating planet arms: squares centered on the sun, 1rem oversize so the
+	   planet disc at the top edge never clips; rotation = the real angle */
+	.theme-helper-2,
+	.theme-helper-3 {
+		position: absolute;
+		left: var(--sun-x);
+		top: var(--sun-y);
+	}
+
+	/* week planet — steel-blue */
+	.theme-helper-2 {
+		width: calc(var(--r-week) * 2 + 2rem);
+		height: calc(var(--r-week) * 2 + 2rem);
+		margin: calc(-1 * var(--r-week) - 1rem);
+		transform: rotate(calc(var(--orrery-week, 0) * 1deg));
+		background: radial-gradient(
+			circle 0.42rem at 50% 1rem,
+			oklch(0.76 0.09 250) 55%,
+			oklch(0.76 0.09 250 / 0.25) 75%,
+			transparent
+		);
+	}
+
+	/* day planet — rose */
+	.theme-helper-3 {
+		width: calc(var(--r-day) * 2 + 2rem);
+		height: calc(var(--r-day) * 2 + 2rem);
+		margin: calc(-1 * var(--r-day) - 1rem);
+		transform: rotate(calc(var(--orrery-day, 0) * 1deg));
+		background: radial-gradient(
+			circle 0.3rem at 50% 1rem,
+			oklch(0.74 0.12 20) 55%,
+			oklch(0.74 0.12 20 / 0.25) 75%,
+			transparent
+		);
+	}
+
+	/* the sun */
+	.theme-helper-4 {
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			circle at var(--sun-x) var(--sun-y),
+			oklch(0.92 0.09 85) 0 0.4rem,
+			oklch(0.88 0.1 85 / 0.35) 0.85rem,
+			oklch(0.85 0.1 85 / 0.08) 2.4rem,
+			transparent 4.5rem
+		);
+	}
+}

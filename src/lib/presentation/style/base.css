@@ -1,0 +1,222 @@
+/* The default palette every theme overrides: :root (a complete light theme),
+   the element defaults in @layer base, and .dark.
+
+   Loaded between tokens.css and themes.css because the cascade order
+   :root < .dark < theme class is load-bearing — see the .dark comment. */
+
+/* ============================================================
+   :root is a COMPLETE light theme (solid-light). Every token a
+   component can use resolves here, so a theme class is purely an
+   override and can never leave a token undefined.
+
+   A theme provides SEEDS (surfaces, text, primary, background
+   image); everything else derives via color-mix and only needs
+   overriding for a deliberate effect.
+   ============================================================ */
+/* .solid-light re-applies the defaults so a theme swatch can opt back
+   into them from inside a themed subtree (theme-selector previews) */
+:root,
+.solid-light {
+	--spacer-2xs: 0.375rem; /* 6px */
+	--spacer-xs: 0.625rem; /* 10px */
+	--spacer-sm: 0.75rem; /* 12px */
+	--spacer-md: 1rem; /* 16px */
+	--spacer-lg: 1.25rem; /* 20px */
+	--spacer-xl: 1.5rem; /* 24px */
+	--spacer-2xl: 2rem; /* 32px */
+
+	/* Below -xs the ladder used to stop, so chips and dense controls fell back to
+	   raw px-1.5 / p-2. These two rungs close that gap and keep it monotonic:
+	   3xs 6px < 2xs 8px < xs 10px. Tighter insets than 6px are text rhythm
+	   (--spacer-text-3xs/2xs), not box padding. */
+	--spacer-box-3xs: var(--spacer-2xs); /* 6px */
+	--spacer-box-2xs: 0.5rem; /* 8px */
+	--spacer-box-xs: var(--spacer-xs);
+	--spacer-box-sm: var(--spacer-sm);
+	--spacer-box-md: var(--spacer-md);
+	--spacer-box-lg: var(--spacer-lg);
+	--spacer-box-xl: var(--spacer-xl);
+	--spacer-box-2xl: var(--spacer-2xl);
+
+	--spacer-page-sm: var(--spacer-md);
+	--spacer-page-md: var(--spacer-xl);
+	--spacer-page: var(--spacer-2xl);
+
+	--spacer-section: 2.5rem; /* 40px */
+	--spacer-section-lg: 4rem; /* 64px */
+
+	--spacer-empty-state: 3rem; /* 48px */
+
+	--spacer-grid-2xs: var(--spacer-2xs);
+	--spacer-grid-xs: var(--spacer-xs);
+	--spacer-grid-sm: var(--spacer-sm);
+	--spacer-grid-md: var(--spacer-md);
+	--spacer-grid-lg: var(--spacer-lg);
+	--spacer-grid-xl: var(--spacer-2xl);
+
+	/* text rhythm runs a finer ladder than boxes — line-height already
+	   provides breathing room, so the steps start hairline-small */
+	--spacer-text-3xs: 0.125rem; /* 2px */
+	--spacer-text-2xs: 0.25rem; /* 4px */
+	--spacer-text-xs: 0.5rem; /* 8px */
+	--spacer-text-sm: var(--spacer-sm);
+	--spacer-text-md: var(--spacer-md);
+	--spacer-text-lg: var(--spacer-lg);
+	--spacer-text-xl: var(--spacer-xl);
+	--spacer-text-2xl: var(--spacer-2xl);
+
+	--radius: 0.625rem;
+	--blur: 1.5rem;
+	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.2);
+
+	/* seeds */
+	--surface-page: oklch(0.96 0.005 260);
+	--surface-card: oklch(0.995 0.002 260);
+	--surface-inset: oklch(0.91 0.008 260);
+	--color-ty-primary: oklch(0 0 0);
+	--primary: oklch(0.72 0.17 150);
+	--primary-foreground: oklch(0.18 0.03 155);
+
+	/* derived from seeds */
+	--color-ty-secondary: color-mix(in oklch, var(--color-ty-primary) 70%, transparent);
+	--color-ty-silent: color-mix(in oklch, var(--color-ty-primary) 55%, transparent);
+	--color-ty-ghost: color-mix(in oklch, var(--color-ty-primary) 40%, transparent);
+
+	--surface-hover: color-mix(in oklch, var(--color-ty-primary) 8%, transparent);
+	--border: color-mix(in oklch, var(--color-ty-primary) 15%, transparent);
+	--color-line-soft: color-mix(in oklch, var(--color-ty-primary) 8%, transparent);
+	--input: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
+
+	--secondary: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
+	--secondary-foreground: var(--color-ty-primary);
+	--muted: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
+	--muted-foreground: var(--color-ty-secondary);
+	--accent: color-mix(in oklch, var(--color-ty-primary) 10%, transparent);
+	--accent-foreground: var(--color-ty-primary);
+	--ring: color-mix(in oklch, var(--primary) 50%, transparent);
+	--destructive: var(--color-danger);
+	--destructive-foreground: var(--color-danger-strong);
+
+	/* states + domain accents (light shades; .dark swaps them) */
+	--color-danger: var(--color-red-600);
+	--color-danger-strong: var(--color-red-700);
+	--color-warning: var(--color-amber-600);
+	--color-warning-strong: var(--color-amber-700);
+	--color-success: var(--color-emerald-600);
+	--color-success-strong: var(--color-emerald-700);
+	--color-info: var(--color-sky-600);
+	--color-info-strong: var(--color-sky-700);
+
+	--color-mind: var(--color-blue-600);
+	--color-mind-strong: var(--color-blue-700);
+	--color-body: var(--color-emerald-600);
+	--color-flow: var(--color-amber-600);
+	--color-mixed: var(--color-violet-600);
+	--color-brand: var(--color-indigo-600);
+	--color-brand-strong: var(--color-indigo-700);
+
+	/* Categorical scale for the energy plan's per-task series. Unlike every
+	   other colour here, these are NOT re-declared by .dark or by a theme:
+	   the eight hues only stay mutually distinguishable if they keep their
+	   spacing, and `series-ink` (the label colour drawn on top of them) is
+	   only legible because their lightness never changes. Using `ty-primary`
+	   here instead would flip to white on dark themes and vanish. */
+	--series-1: var(--color-indigo-400);
+	--series-2: var(--color-emerald-400);
+	--series-3: var(--color-amber-400);
+	--series-4: var(--color-rose-400);
+	--series-5: var(--color-sky-400);
+	--series-6: var(--color-fuchsia-400);
+	--series-7: var(--color-lime-400);
+	--series-8: var(--color-orange-400);
+	--series-rest: var(--color-zinc-500);
+	--series-ink: oklch(0.22 0.01 260);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-surface-page bg-cover bg-fixed bg-center bg-no-repeat text-ty-primary;
+
+		background-image: var(--background-image);
+	}
+	html {
+		@apply font-sans;
+	}
+
+	/* Number inputs: hide the native spinner arrows everywhere — stepping is
+	   provided by the NumberInput component's custom −/+ buttons instead. */
+	input[type='number']::-webkit-outer-spin-button,
+	input[type='number']::-webkit-inner-spin-button {
+		appearance: none;
+		margin: 0;
+	}
+	input[type='number'] {
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+
+	/* Slim, theme-aware scrollbar for scrollable menus/panels (e.g. the theme
+	   dropdown). Thumb uses the semantic line color and only appears on hover. */
+	.nice-scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+	}
+	.nice-scrollbar:hover {
+		scrollbar-color: var(--color-line-strong) transparent;
+	}
+	.nice-scrollbar::-webkit-scrollbar {
+		width: 0.5rem;
+		height: 0.5rem;
+	}
+	.nice-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	.nice-scrollbar::-webkit-scrollbar-thumb {
+		border: 2px solid transparent;
+		background-clip: padding-box;
+		border-radius: 9999px;
+		background-color: transparent;
+	}
+	.nice-scrollbar:hover::-webkit-scrollbar-thumb {
+		background-color: var(--color-line-strong);
+	}
+	.nice-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: var(--color-ty-secondary, var(--color-line-strong));
+	}
+}
+
+/* Dark mode defaults (= solid-dark). Cascade order is load-bearing and must
+   mirror this file's structure: :root < .dark < theme classes — all equal
+   specificity, so the later block wins. Keep .dark above the theme blocks
+   (and never use a higher-specificity selector here). */
+.dark {
+	/* black-on-dark needs more weight to read as depth */
+	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.5);
+
+	--surface-page: oklch(0.2 0.015 285);
+	--surface-card: oklch(0.26 0.018 285);
+	--surface-inset: oklch(0.32 0.02 285);
+	--color-ty-primary: oklch(1 0 0);
+	--primary: oklch(0.55 0.2 285);
+	--primary-foreground: var(--color-white);
+
+	--color-danger: var(--color-red-400);
+	--color-danger-strong: var(--color-red-300);
+	--color-warning: var(--color-amber-400);
+	--color-warning-strong: var(--color-amber-300);
+	--color-success: var(--color-emerald-400);
+	--color-success-strong: var(--color-emerald-300);
+	--color-info: var(--color-sky-400);
+	--color-info-strong: var(--color-sky-300);
+
+	--color-mind: var(--color-blue-400);
+	--color-mind-strong: var(--color-blue-300);
+	--color-body: var(--color-emerald-400);
+	--color-flow: var(--color-amber-400);
+	--color-mixed: var(--color-violet-400);
+	--color-brand: var(--color-indigo-400);
+	--color-brand-strong: var(--color-indigo-300);
+}

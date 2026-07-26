@@ -1,0 +1,188 @@
+/* Tailwind's utility contract: the theme variants and the semantic token →
+   utility mapping. Components only ever name what is generated here, so a
+   token added below is the one place a new semantic class comes from.
+
+   Adding a theme touches two files: the @custom-variant here and the palette
+   block in themes.css. */
+
+/* mode class — set alongside the theme class on <html>; drives shadcn dark: styles too */
+@custom-variant dark (&:is(.dark *));
+
+@custom-variant glass-dark (&:is(.glass-dark *));
+@custom-variant glass-light (&:is(.glass-light *));
+
+@custom-variant aurora (&:is(.aurora *));
+@custom-variant daybreak (&:is(.daybreak *));
+@custom-variant royal (&:is(.royal *));
+@custom-variant terminal (&:is(.terminal *));
+@custom-variant blueprint (&:is(.blueprint *));
+@custom-variant bubblegum (&:is(.bubblegum *));
+@custom-variant ukiyo (&:is(.ukiyo *));
+@custom-variant abyss (&:is(.abyss *));
+@custom-variant parchment (&:is(.parchment *));
+@custom-variant noir (&:is(.noir *));
+@custom-variant ember (&:is(.ember *));
+@custom-variant glacier (&:is(.glacier *));
+@custom-variant zenith (&:is(.zenith *));
+@custom-variant eclipse (&:is(.eclipse *));
+@custom-variant cathedral (&:is(.cathedral *));
+@custom-variant orbit (&:is(.orbit *));
+@custom-variant fallow (&:is(.fallow *));
+@custom-variant lantern-drift (&:is(.lantern-drift *));
+@custom-variant canopy (&:is(.canopy *));
+@custom-variant meridian (&:is(.meridian *));
+@custom-variant dunes (&:is(.dunes *));
+@custom-variant synthwave (&:is(.synthwave *));
+@custom-variant sundial (&:is(.sundial *));
+@custom-variant moonphase (&:is(.moonphase *));
+@custom-variant tide (&:is(.tide *));
+@custom-variant breath (&:is(.breath *));
+@custom-variant polaris (&:is(.polaris *));
+@custom-variant city-windows (&:is(.city-windows *));
+@custom-variant orrery (&:is(.orrery *));
+
+/* Tailwind utility generation — maps semantic tokens to theme variables.
+   Themes swap the variables, not the classes. */
+@theme inline {
+	--font-sans: 'Inter Variable', sans-serif;
+
+	--text-2xs: 0.6875rem; /* 11px */
+
+	/* page paddings (-sm/-md: the responsive ramp on narrow viewports) */
+	--spacing-page-sm: var(--spacer-page-sm);
+	--spacing-page-md: var(--spacer-page-md);
+	--spacing-page: var(--spacer-page);
+
+	/* rhythm between major page sections (-lg: app UI ↔ below-the-fold content) */
+	--spacing-section: var(--spacer-section);
+	--spacing-section-lg: var(--spacer-section-lg);
+
+	/* vertical padding of empty-state placeholder blocks */
+	--spacing-empty-state: var(--spacer-empty-state);
+
+	/* for cards, boxes paddings (-3xs/-2xs are the chip/pill insets below
+	   -xs, where the ladder used to run out and callers fell back to raw
+	   numbers like px-1.5) */
+	--spacing-box-3xs: var(--spacer-box-3xs);
+	--spacing-box-2xs: var(--spacer-box-2xs);
+	--spacing-box-xs: var(--spacer-box-xs);
+	--spacing-box-sm: var(--spacer-box-sm);
+	--spacing-box-md: var(--spacer-box-md);
+	--spacing-box-lg: var(--spacer-box-lg);
+	--spacing-box-xl: var(--spacer-box-xl);
+	--spacing-box-2xl: var(--spacer-box-2xl);
+
+	/* for layout gaps between blocks (grid/flex gaps, divider margins) */
+	--spacing-grid-2xs: var(--spacer-grid-2xs);
+	--spacing-grid-xs: var(--spacer-grid-xs);
+	--spacing-grid-sm: var(--spacer-grid-sm);
+	--spacing-grid-md: var(--spacer-grid-md);
+	--spacing-grid-lg: var(--spacer-grid-lg);
+	--spacing-grid-xl: var(--spacer-grid-xl);
+
+	/* for text/content rhythm: margins between headings, paragraphs, labels,
+	   sections and gaps in flex rows of inline text */
+	--spacing-text-3xs: var(--spacer-text-3xs);
+	--spacing-text-2xs: var(--spacer-text-2xs);
+	--spacing-text-xs: var(--spacer-text-xs);
+	--spacing-text-sm: var(--spacer-text-sm);
+	--spacing-text-md: var(--spacer-text-md);
+	--spacing-text-lg: var(--spacer-text-lg);
+	--spacing-text-xl: var(--spacer-text-xl);
+	--spacing-text-2xl: var(--spacer-text-2xl);
+
+	--blur: var(--blur);
+
+	/* Bare `rounded` / `blur` come from a DEPRECATED `@theme default inline
+	   reference` block in Tailwind's own theme.css, and `reference` inlines the
+	   value at build time — so without re-declaring them here they bake in
+	   Tailwind's v3-compat literals (0.25rem / 8px) and no theme can reach
+	   them. Re-declaring keeps them live as var(), like every other token. */
+	--radius: var(--radius);
+
+	/* typography */
+	--color-ty-primary: var(--color-ty-primary);
+	--color-ty-secondary: var(--color-ty-secondary);
+	--color-ty-silent: var(--color-ty-silent);
+	--color-ty-ghost: var(--color-ty-ghost);
+
+	/* surfaces */
+	--color-surface-page: var(--surface-page);
+	--color-surface-card: var(--surface-card);
+	--color-surface-inset: var(--surface-inset);
+	--color-surface-hover: var(--surface-hover);
+
+	/* borders */
+	--color-line-strong: var(--border);
+	--color-line-soft: var(--color-line-soft);
+
+	/* elevation — one shadow for all top-level cards; flat themes zero it */
+	--shadow-card: var(--card-shadow);
+
+	/* states; -strong = emphasized shade for hover / text on tinted bg */
+	--color-danger: var(--color-danger);
+	--color-danger-strong: var(--color-danger-strong);
+	--color-warning: var(--color-warning);
+	--color-warning-strong: var(--color-warning-strong);
+	--color-success: var(--color-success);
+	--color-success-strong: var(--color-success-strong);
+	--color-info: var(--color-info);
+	--color-info-strong: var(--color-info-strong);
+
+	/* domain: Zenith concepts */
+	--color-mind: var(--color-mind);
+	--color-mind-strong: var(--color-mind-strong);
+	--color-body: var(--color-body);
+	--color-flow: var(--color-flow);
+	--color-mixed: var(--color-mixed);
+	--color-brand: var(--color-brand);
+	--color-brand-strong: var(--color-brand-strong);
+
+	/* categorical scale — one hue per task in the energy plan, where the series
+	   must stay mutually distinguishable rather than carry domain meaning.
+	   Deliberately NOT swapped per theme: `series-ink` is the paired foreground
+	   and only stays legible because the fills keep a fixed lightness. */
+	--color-series-1: var(--series-1);
+	--color-series-2: var(--series-2);
+	--color-series-3: var(--series-3);
+	--color-series-4: var(--series-4);
+	--color-series-5: var(--series-5);
+	--color-series-6: var(--series-6);
+	--color-series-7: var(--series-7);
+	--color-series-8: var(--series-8);
+	--color-series-rest: var(--series-rest);
+	--color-series-ink: var(--series-ink);
+
+	/* shadcn start */
+	--color-background: var(--surface-page);
+	--color-foreground: var(--color-ty-primary);
+	--color-card: var(--surface-card);
+	--color-card-foreground: var(--color-ty-primary);
+	/* popovers float over arbitrary content — opaque page surface, not translucent card */
+	--color-popover: var(--surface-page);
+	--color-popover-foreground: var(--color-ty-primary);
+
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+	/* shadcn end */
+}

@@ -23,6 +23,8 @@
 @import './tide.css';
 @import './breath.css';
 @import './polaris.css';
+@import './city-windows.css';
+@import './orrery.css';
 
 .theme-scenery {
 	display: none;

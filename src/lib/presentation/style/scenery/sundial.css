@@ -26,23 +26,23 @@
 				oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.95 * var(--sundial-vis, 1))),
 				oklch(
 						calc(var(--sun-l) - 0.05) var(--sun-c) var(--sun-hue) /
-						calc(0.5 * var(--sundial-vis, 1))
+							calc(0.5 * var(--sundial-vis, 1))
 					)
 					62%,
 				transparent 80%
 			),
 			/* tight halo around the disc */
 			radial-gradient(
-				circle 14rem at var(--sun-x) -2rem,
-				oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.3 * var(--sundial-vis, 1))),
-				transparent 70%
-			),
+					circle 14rem at var(--sun-x) -2rem,
+					oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.3 * var(--sundial-vis, 1))),
+					transparent 70%
+				),
 			/* atmospheric bloom, smearing along the horizon as the sun sinks */
 			radial-gradient(
-				ellipse calc(30rem + (1 - var(--sundial-alt, 1)) * 14rem) 18rem at var(--sun-x) -2rem,
-				oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.3 * var(--sundial-vis, 1))),
-				transparent 70%
-			);
+					ellipse calc(30rem + (1 - var(--sundial-alt, 1)) * 14rem) 18rem at var(--sun-x) -2rem,
+					oklch(var(--sun-l) var(--sun-c) var(--sun-hue) / calc(0.3 * var(--sundial-vis, 1))),
+					transparent 70%
+				);
 		mask-image: linear-gradient(oklch(0 0 0), transparent 75%);
 	}
 

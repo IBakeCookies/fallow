@@ -1,0 +1,79 @@
+/* City Windows: a skyline whose windows light with the sky's darkness —
+   none by day, all by night. --city-dark (0 = day, 1 = night, from
+   utils/scenery-time.ts) fades three window waves in at staggered
+   thresholds through dusk and back out at dawn. The only motion is the
+   antenna beacon on the tallest tower.
+
+   All four layers share one 1200×400 viewBox anchored to the bottom edge
+   at 100% width, so the window rects stay registered on their buildings
+   at any aspect ratio. */
+.city-windows .theme-scenery {
+	display: block;
+
+	.theme-helper-1,
+	.theme-helper-2,
+	.theme-helper-3,
+	.theme-helper-4 {
+		position: absolute;
+		inset: 0;
+		background-repeat: no-repeat;
+		background-position: bottom;
+		background-size: 100% auto;
+	}
+
+	/* the skyline silhouette + antenna mast, over a warm horizon glow that
+	   gives the near-black towers an edge to read against */
+	.theme-helper-1 {
+		background-image:
+			url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'><path d='M460 90 V56' stroke='%23141a2e' stroke-width='3'/><rect x='20' y='210' width='110' height='190' fill='%230c101f'/><rect x='150' y='140' width='90' height='260' fill='%23090d1a'/><rect x='260' y='250' width='130' height='150' fill='%230e1324'/><rect x='410' y='90' width='100' height='310' fill='%23070a15'/><rect x='530' y='190' width='140' height='210' fill='%230c101f'/><rect x='690' y='120' width='90' height='280' fill='%23090d1a'/><rect x='800' y='230' width='120' height='170' fill='%230e1324'/><rect x='940' y='150' width='100' height='250' fill='%230a0e1c'/><rect x='1060' y='270' width='120' height='130' fill='%230c101f'/></svg>"),
+			linear-gradient(
+				to top,
+				oklch(0.42 0.08 55 / 0.45),
+				oklch(0.32 0.06 60 / 0.2) 55%,
+				transparent
+			);
+		background-size:
+			100% auto,
+			100% 38vw;
+	}
+
+	/* the antenna's beacon — skyline coords scale with viewport width
+	   (skyline height = 400/1200 of it), so vw units track the mast tip */
+	.theme-helper-1::after {
+		content: '';
+		position: absolute;
+		left: calc(38.33% - 0.15rem);
+		bottom: 28.6vw;
+		width: 0.3rem;
+		height: 0.3rem;
+		border-radius: 50%;
+		background: oklch(0.62 0.19 25);
+		animation: city-beacon 2.6s ease-in-out infinite alternate;
+	}
+
+	/* three window waves — each fades in over its own slice of --city-dark,
+	   so dusk lights the city block by block, not all at once */
+	.theme-helper-2 {
+		opacity: clamp(0, calc((var(--city-dark, 1) - 0.05) * 2), 1);
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'><g fill='%23ffd28a' fill-opacity='0.9'><rect x='60' y='258' width='10' height='13' rx='1'/><rect x='188' y='190' width='10' height='13' rx='1'/><rect x='213' y='280' width='10' height='13' rx='1'/><rect x='303' y='298' width='10' height='13' rx='1'/><rect x='450' y='140' width='10' height='13' rx='1'/><rect x='424' y='230' width='10' height='13' rx='1'/><rect x='545' y='300' width='10' height='13' rx='1'/><rect x='605' y='240' width='10' height='13' rx='1'/><rect x='728' y='170' width='10' height='13' rx='1'/><rect x='843' y='280' width='10' height='13' rx='1'/><rect x='980' y='200' width='10' height='13' rx='1'/><rect x='1103' y='318' width='10' height='13' rx='1'/></g></svg>");
+	}
+
+	.theme-helper-3 {
+		opacity: clamp(0, calc((var(--city-dark, 1) - 0.4) * 2.5), 1);
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'><g fill='%23ffc46b' fill-opacity='0.85'><rect x='35' y='230' width='10' height='13' rx='1'/><rect x='85' y='314' width='10' height='13' rx='1'/><rect x='163' y='160' width='10' height='13' rx='1'/><rect x='275' y='326' width='10' height='13' rx='1'/><rect x='359' y='270' width='10' height='13' rx='1'/><rect x='476' y='110' width='10' height='13' rx='1'/><rect x='450' y='260' width='10' height='13' rx='1'/><rect x='635' y='210' width='10' height='13' rx='1'/><rect x='703' y='230' width='10' height='13' rx='1'/><rect x='753' y='140' width='10' height='13' rx='1'/><rect x='815' y='250' width='10' height='13' rx='1'/><rect x='954' y='260' width='10' height='13' rx='1'/><rect x='1075' y='290' width='10' height='13' rx='1'/></g></svg>");
+	}
+
+	.theme-helper-4 {
+		opacity: clamp(0, calc((var(--city-dark, 1) - 0.7) * 3.5), 1);
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'><g fill='%23ffdfa8' fill-opacity='0.8'><rect x='60' y='286' width='10' height='13' rx='1'/><rect x='188' y='250' width='10' height='13' rx='1'/><rect x='331' y='298' width='10' height='13' rx='1'/><rect x='424' y='170' width='10' height='13' rx='1'/><rect x='476' y='200' width='10' height='13' rx='1'/><rect x='575' y='270' width='10' height='13' rx='1'/><rect x='635' y='300' width='10' height='13' rx='1'/><rect x='728' y='260' width='10' height='13' rx='1'/><rect x='871' y='310' width='10' height='13' rx='1'/><rect x='1006' y='170' width='10' height='13' rx='1'/><rect x='980' y='230' width='10' height='13' rx='1'/><rect x='1131' y='290' width='10' height='13' rx='1'/></g></svg>");
+	}
+}
+
+@keyframes city-beacon {
+	from {
+		opacity: 0.25;
+	}
+	to {
+		opacity: 0.85;
+	}
+}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { LayoutProps } from './$types';
 	import type { Pathname } from '$app/types';
-	import './layout.css';
+	import '$lib/presentation/style/app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { dev, browser } from '$app/environment';
 	import { resolve } from '$app/paths';
@@ -11,8 +11,9 @@
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import { activeLocale } from '$lib/presentation/utils/locale.svelte';
 	import { setThemeStore } from '$lib/business/store/theme-store.svelte';
+	import { onMount } from 'svelte';
 	import { sceneryStyle } from '$lib/presentation/utils/scenery-seed';
-	import { dataSceneryStyle } from '$lib/presentation/utils/scenery-time';
+	import { dataSceneryStyle, nowInTimeZone } from '$lib/presentation/utils/scenery-time';
 
 	let { children, data }: LayoutProps = $props();
 
@@ -25,6 +26,21 @@
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 	injectSpeedInsights();
 
+	// Clock-driven scenery state. SSR renders the request's IP-derived
+	// timezone; hydration never re-patches the SSR'd style attribute, so
+	// re-derive from the client's real clock once mounted (a state change
+	// after hydration does update the DOM), then keep it ticking — the
+	// scenery positions drift with the real clock, and a planner tab can
+	// stay open all day. A minute is finer than any var's visible rate.
+	// svelte-ignore state_referenced_locally
+	let sceneryNow = $state(nowInTimeZone(data.timezone));
+
+	onMount(() => {
+		sceneryNow = new Date();
+		const id = setInterval(() => (sceneryNow = new Date()), 60_000);
+		return () => clearInterval(id);
+	});
+
 	// Reload-free language switching: setLocale() runs with reload:false, so
 	// keep <html lang> in sync ourselves.
 	$effect(() => {
@@ -35,13 +51,13 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <!-- Theme scenery: fixed decorative layers behind the app. display:none by
-     default; a theme opts in by styling the helpers in layout.css. The seeded
+     default; a theme opts in by styling the helpers in style/scenery/. The seeded
      vars vary each theme's arrangement per user (see utils/scenery-seed.ts);
      the data vars set the clock-driven themes' state (utils/scenery-time.ts). -->
 <div
 	class="theme-scenery"
 	aria-hidden="true"
-	style="{sceneryStyle(themeStore.scenerySeed)}; {dataSceneryStyle(new Date())}"
+	style="{sceneryStyle(themeStore.scenerySeed)}; {dataSceneryStyle(sceneryNow)}"
 >
 	<div class="theme-helper-1"></div>
 	<div class="theme-helper-2"></div>
