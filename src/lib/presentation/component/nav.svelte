@@ -58,7 +58,7 @@
 
 <div class="sticky top-4 z-20 mb-text-xl flex items-start justify-between gap-grid-xs">
 	<nav
-		class="inline-flex items-center gap-1 rounded-xl border bg-surface-card p-1 backdrop-blur w-max"
+		class="inline-flex items-center gap-text-2xs rounded-xl border bg-surface-card p-text-2xs backdrop-blur w-max"
 	>
 		{#each links as link (link.href)}
 			<!-- hrefs are resolve()d in the links array; the rule can't trace through it -->
@@ -68,21 +68,21 @@
 				aria-current={isActive(link.href) ? 'page' : undefined}
 				aria-label={link.mode ? m.nav_viewing_return({ label: link.label }) : link.label}
 				title={link.mode ? m.nav_return_to_today() : undefined}
-				class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors
+				class="flex items-center gap-text-xs rounded-lg px-box-sm py-box-3xs text-sm transition-colors
 			       {isActive(link.href)
 					? link.mode === 'past'
 						? 'bg-warning/10 text-warning-strong'
 						: link.mode === 'future'
 							? 'bg-info/10 text-info-strong'
 							: 'bg-surface-hover text-ty-primary'
-					: 'text-ty-secondary hover:bg-surface-card hover:text-ty-primary'}"
+					: 'text-ty-secondary hover:bg-surface-hover hover:text-ty-primary'}"
 			>
 				<link.icon class="h-4 w-4 shrink-0" />
 				<span class="hidden sm:inline">{link.label}</span>
 			</a>
 		{/each}
 
-		<div class="mx-1 h-4 w-px bg-border"></div>
+		<div class="mx-text-2xs h-4 w-px bg-line-soft"></div>
 		{#each locales as locale (locale)}
 			<button
 				type="button"

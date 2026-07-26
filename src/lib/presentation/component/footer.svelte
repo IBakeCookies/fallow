@@ -12,9 +12,9 @@
 	];
 </script>
 
-<footer class="mt-auto pt-page pb-1 text-xs text-ty-silent">
+<footer class="mt-auto pt-page pb-text-2xs text-xs text-ty-silent">
 	<div
-		class="flex w-max items-center gap-text-md rounded-xl border bg-surface-card px-3 py-1.5 backdrop-blur"
+		class="flex w-max items-center gap-text-md rounded-xl border bg-surface-card px-box-sm py-box-3xs backdrop-blur"
 	>
 		{#each links as link (link.href)}
 			<!-- internal hrefs are resolve()d in the links array; the rule can't trace through it -->

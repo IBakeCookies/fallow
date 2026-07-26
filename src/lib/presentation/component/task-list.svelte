@@ -23,7 +23,9 @@
 	let { suggestedTasks, runOrder, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
 </script>
 
-<div class="space-y-text-xs rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+<div
+	class="space-y-text-xs rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card"
+>
 	<h2 class="text-lg font-bold text-ty-primary">{m.list_title()}</h2>
 	{#if suggestedTasks.length === 0}
 		<div class="flex flex-col items-center justify-center py-empty-state text-center">

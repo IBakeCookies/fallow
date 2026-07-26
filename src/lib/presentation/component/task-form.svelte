@@ -53,7 +53,7 @@
 	</button>
 {:else}
 	<form
-		class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur"
+		class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card"
 		onsubmit={handleSubmit}
 	>
 		<div class="flex items-start justify-between gap-grid-sm">
@@ -64,7 +64,7 @@
 					bind:value={draft.title}
 					placeholder={m.form_task_placeholder()}
 					required
-					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-4 py-2.5 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 				/>
 			</label>
 			<button
@@ -89,7 +89,7 @@
 					min="0"
 					max="10"
 					bind:value={draft.physicalDifficulty}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-line-strong accent-body"
+					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-body"
 				/>
 			</div>
 
@@ -103,7 +103,7 @@
 					min="0"
 					max="10"
 					bind:value={draft.mentalDifficulty}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-line-strong accent-mind"
+					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-mind"
 				/>
 			</div>
 
@@ -117,7 +117,7 @@
 					min="1"
 					max="10"
 					bind:value={draft.enjoyment}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-line-strong accent-brand"
+					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-brand"
 				/>
 			</div>
 		</div>

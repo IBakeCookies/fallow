@@ -50,28 +50,30 @@
 	role="img"
 	aria-label={m.energy_chart_aria()}
 >
-	<path d={ratePath} fill="var(--color-brand)" opacity="0.18" />
+	<!-- Tokens as utility classes, not inline var(): one mechanism per job, and
+	     the fill opacity here must stay in step with the legend swatch below. -->
+	<path d={ratePath} class="fill-brand/20" />
 	{#each hourTicks as h (h)}
-		<line x1={xAt(h)} y1={PAD_T} x2={xAt(h)} y2={PAD_T + plotH} stroke="var(--color-line-soft)" />
+		<line x1={xAt(h)} y1={PAD_T} x2={xAt(h)} y2={PAD_T + plotH} class="stroke-line-soft" />
 		<text x={xAt(h)} y={CHART_H - 6} class="fill-ty-silent" font-size="9" text-anchor="middle">
 			{h}h
 		</text>
 	{/each}
-	<line x1={PAD_L} y1={yAt(0)} x2={PAD_L + plotW} y2={yAt(0)} stroke="var(--color-line-strong)" />
-	<path d={cogPath} fill="none" stroke="var(--color-mind)" stroke-width="1.8" />
-	<path d={physPath} fill="none" stroke="var(--color-body)" stroke-width="1.8" />
+	<line x1={PAD_L} y1={yAt(0)} x2={PAD_L + plotW} y2={yAt(0)} class="stroke-line-strong" />
+	<path d={cogPath} fill="none" stroke-width="1.8" class="stroke-mind" />
+	<path d={physPath} fill="none" stroke-width="1.8" class="stroke-body" />
 </svg>
 <div class="mt-text-2xs flex gap-grid-md text-xs text-ty-silent">
 	<span class="flex items-center gap-grid-2xs">
-		<span class="h-0.5 w-4 rounded bg-mind"></span>
+		<span class="h-0.5 w-4 rounded-full bg-mind"></span>
 		{m.energy_legend_cognitive()}
 	</span>
 	<span class="flex items-center gap-grid-2xs">
-		<span class="h-0.5 w-4 rounded bg-body"></span>
+		<span class="h-0.5 w-4 rounded-full bg-body"></span>
 		{m.energy_legend_physical()}
 	</span>
 	<span class="flex items-center gap-grid-2xs">
-		<span class="h-2 w-4 rounded bg-brand/30"></span>
+		<span class="h-2 w-4 rounded-full bg-brand/20"></span>
 		{m.energy_legend_output()}
 	</span>
 </div>

@@ -5,7 +5,7 @@
 <svelte:head><title>{m.imprint_title()} — Fallow</title></svelte:head>
 
 <article
-	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl"
+	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
 >
 	<h1 class="text-2xl font-semibold text-ty-primary">{m.imprint_title()}</h1>
 

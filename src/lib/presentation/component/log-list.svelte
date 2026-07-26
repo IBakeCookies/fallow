@@ -47,7 +47,7 @@
 	<ul class="mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
 		{#each newestFirst as item (item.id)}
 			<li
-				class="flex items-center justify-between gap-text-xs rounded bg-surface-card px-2 py-1 text-xs text-ty-secondary"
+				class="flex items-center justify-between gap-text-xs rounded-sm bg-surface-card px-box-2xs py-text-2xs text-xs text-ty-secondary"
 			>
 				{@render row(item)}
 			</li>

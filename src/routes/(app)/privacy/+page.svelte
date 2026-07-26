@@ -25,7 +25,7 @@
 <svelte:head><title>{m.privacy_title()} — Fallow</title></svelte:head>
 
 <article
-	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl"
+	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
 >
 	<header>
 		<h1 class="text-2xl font-semibold text-ty-primary">{m.privacy_title()}</h1>

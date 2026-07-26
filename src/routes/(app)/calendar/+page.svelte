@@ -133,11 +133,13 @@
 
 	<div class="flex flex-wrap items-center gap-grid-xs">
 		{#if anchor !== today}
-			<Button variant="outline" size="sm" class="ml-1" onclick={() => (anchor = today)}>
+			<Button variant="outline" size="sm" class="ml-text-2xs" onclick={() => (anchor = today)}>
 				{m.link_today()}
 			</Button>
 		{/if}
-		<div class="ml-auto inline-flex items-center rounded-lg border bg-surface-card p-0.5">
+		<div
+			class="ml-auto inline-flex items-center rounded-lg border bg-surface-card p-text-3xs backdrop-blur"
+		>
 			{#each VIEWS as v (v)}
 				<button
 					onclick={() => (view = v)}
@@ -157,7 +159,9 @@
 			>
 				<ChevronLeft class="h-4 w-4" />
 			</Button>
-			<span class="min-w-28 sm:min-w-36 px-1 text-center text-sm font-medium text-ty-primary">
+			<span
+				class="min-w-28 sm:min-w-36 px-text-2xs text-center text-sm font-medium text-ty-primary"
+			>
 				{rangeLabel}
 			</span>
 			<Button
@@ -177,7 +181,7 @@
 	style="grid-template-rows: auto repeat({weeks.length}, minmax(0, 1fr));"
 >
 	{#each WEEKDAYS as day (day)}
-		<div class="px-2 pb-1 text-xs font-medium tracking-wide text-ty-silent">{day}</div>
+		<div class="px-box-2xs pb-text-2xs text-xs font-medium tracking-wide text-ty-silent">{day}</div>
 	{/each}
 
 	{#each weeks as week (week[0])}
@@ -189,13 +193,13 @@
 			{@const dayNum = fromISO(date).getDate()}
 			<a
 				href={date === today ? resolve('/') : `${resolve('/')}?date=${date}`}
-				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-1 sm:p-2 transition-colors
+				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-text-2xs sm:p-box-2xs transition-colors
 				       {isToday ? 'border-success/40' : s ? '' : 'border-line-soft'}
 				       {s ? 'backdrop-blur bg-surface-card' : 'bg-transparent'}
 				       {inMonth ? '' : 'opacity-40'}
-				       cursor-pointer hover:border-line-strong hover:bg-surface-card"
+				       cursor-pointer hover:border-line-strong hover:bg-surface-hover"
 			>
-				<div class="flex items-baseline justify-between gap-1">
+				<div class="flex items-baseline justify-between gap-text-2xs">
 					<span
 						class="text-sm font-medium {isToday
 							? 'text-success'
@@ -226,7 +230,7 @@
 					<!-- Future days are plans: nothing is completable yet, so no bar -->
 					{#if !isFuture}
 						<div
-							class="mt-1.5 h-1 overflow-hidden rounded-full bg-border"
+							class="mt-grid-2xs h-1 overflow-hidden rounded-full bg-surface-inset"
 							title={m.cal_completion_title({ rate: s.completionRate })}
 						>
 							<div
@@ -237,7 +241,7 @@
 					{/if}
 
 					{#if view === 'month'}
-						<ul class="mt-1.5 min-h-0 flex-1 space-y-0.5 overflow-hidden">
+						<ul class="mt-grid-2xs min-h-0 flex-1 space-y-text-3xs overflow-hidden">
 							{#each s.tasks.slice(0, 3) as task (task.id)}
 								<li
 									class="truncate text-2xs leading-tight {task.completed
@@ -252,7 +256,7 @@
 							{/if}
 						</ul>
 					{:else}
-						<div class="mt-2 flex items-baseline justify-between text-xs">
+						<div class="mt-text-xs flex items-baseline justify-between text-xs">
 							{#if !isFuture}
 								<span class="font-medium {getStatusBiggerBetter(s.completionRate).color}">
 									{s.completionRate}%
@@ -264,11 +268,11 @@
 								<span class="text-ty-silent">{m.cal_budget({ hours: s.availableHours })}</span>
 							{/if}
 						</div>
-						<ul class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto">
+						<ul class="mt-text-xs min-h-0 flex-1 space-y-text-2xs overflow-y-auto">
 							{#each s.tasks as task (task.id)}
-								<li class="flex items-start gap-1.5 text-xs leading-snug">
+								<li class="flex items-start gap-grid-2xs text-xs leading-snug">
 									<span
-										class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full {task.completed
+										class="mt-text-2xs h-1.5 w-1.5 shrink-0 rounded-full {task.completed
 											? 'bg-success'
 											: 'bg-surface-inset'}"
 									></span>
@@ -284,7 +288,7 @@
 						</ul>
 					{/if}
 				{:else if view === 'week'}
-					<p class="mt-2 text-xs text-ty-silent">
+					<p class="mt-text-xs text-xs text-ty-silent">
 						{isFuture ? m.cal_nothing_planned() : m.cal_no_tasks()}
 					</p>
 				{/if}
@@ -296,7 +300,9 @@
 {#if !isLoading && !hasAnyData}
 	<p class="mt-text-xs text-center text-xs text-ty-silent">
 		{m.cal_empty_1({ view: viewLabel })}
-		<a href={resolve('/')} class="text-ty-secondary underline hover:text-ty-primary"
+		<a
+			href={resolve('/')}
+			class="text-ty-secondary underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary"
 			>{m.link_today()}</a
 		>
 		{m.cal_empty_2()}

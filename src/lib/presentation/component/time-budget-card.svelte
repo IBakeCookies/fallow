@@ -79,13 +79,13 @@
 					{m.budget_allocated({ hours: remainingSuggestedHours })}
 				</p>
 				{#if planSlackHours > 0.05}
-					<p class="text-xs text-warning/80 mt-text-2xs" title={m.budget_unplanned_title()}>
+					<p class="text-xs text-warning mt-text-2xs" title={m.budget_unplanned_title()}>
 						{m.budget_unplanned({ hours: planSlackHours.toFixed(2) })}
 					</p>
 				{/if}
 			</div>
 			<div
-				class="my-grid-md h-px w-full bg-border sm:my-0 sm:mx-grid-md sm:h-auto sm:w-px sm:self-stretch"
+				class="my-grid-md h-px w-full bg-line-soft sm:my-0 sm:mx-grid-md sm:h-auto sm:w-px sm:self-stretch"
 			></div>
 			<div class="flex-1 sm:pl-box-md">
 				<label for="switch-cost" class="text-xs text-ty-silent mb-text-2xs block">
@@ -105,7 +105,7 @@
 			</div>
 		</div>
 
-		<div class="mt-text-lg pt-box-md border-t flex flex-col sm:flex-row">
+		<div class="mt-text-lg pt-box-md border-t border-line-soft flex flex-col sm:flex-row">
 			<div class="flex-1 sm:pr-box-md">
 				<label for="cognitive-pool" class="text-xs text-ty-silent mb-text-2xs block">
 					{m.budget_cognitive_capacity()}
@@ -123,7 +123,7 @@
 				<p class="text-xs text-ty-silent mt-text-xs">{m.budget_cognitive_hint()}</p>
 			</div>
 			<div
-				class="my-grid-md h-px w-full bg-border sm:my-0 sm:mx-grid-md sm:h-auto sm:w-px sm:self-stretch"
+				class="my-grid-md h-px w-full bg-line-soft sm:my-0 sm:mx-grid-md sm:h-auto sm:w-px sm:self-stretch"
 			></div>
 			<div class="flex-1 sm:pl-box-md">
 				<label for="physical-pool" class="text-xs text-ty-silent mb-text-2xs block">

@@ -121,22 +121,24 @@
 		{#if !isViewingPast}
 			<DropdownMenu.Root bind:open={showLoadMenu}>
 				<DropdownMenu.Trigger>
-					<Button variant="outline" size="sm" class="gap-2">
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-							/>
-						</svg>
-						{m.header_load()}
-					</Button>
+					{#snippet child({ props })}
+						<Button {...props} variant="outline" size="sm" class="gap-text-xs">
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+								/>
+							</svg>
+							{m.header_load()}
+						</Button>
+					{/snippet}
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end" class="w-64">
 					{#if hasYesterday}
 						<DropdownMenu.Item onclick={importYesterday}>
-							<svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<svg class="w-4 h-4 mr-text-xs" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -162,7 +164,7 @@
 										e.stopPropagation();
 										ondeleteroutine(routine.id);
 									}}
-									class="opacity-0 [@media(hover:none)]:opacity-100 group-hover:opacity-100 text-danger hover:text-danger-strong ml-2"
+									class="opacity-0 [@media(hover:none)]:opacity-100 group-hover:opacity-100 text-danger hover:text-danger-strong ml-text-xs"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
@@ -177,18 +179,22 @@
 						{/each}
 					{/if}
 
-					{#if hasYesterday || hasRoutines}<DropdownMenu.Separator />{/if}
-					<DropdownMenu.Label>{m.header_from_date()}</DropdownMenu.Label>
-					<div class="px-2 pb-2">
+					{#if hasYesterday || hasRoutines}
+						<DropdownMenu.Separator />
+					{/if}
+					<DropdownMenu.Label>
+						{m.header_from_date()}
+					</DropdownMenu.Label>
+					<div class="px-box-2xs pb-box-2xs">
 						<input
 							type="date"
 							bind:value={importDate}
 							onchange={importFromDate}
 							aria-label={m.header_from_date()}
-							class="w-full px-2 py-1 text-sm rounded bg-surface-card border text-ty-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+							class="w-full px-box-2xs py-text-2xs text-sm rounded-sm bg-surface-card border text-ty-secondary focus:outline-none focus:ring-1 focus:ring-brand"
 						/>
 						{#if importDateEmpty}
-							<p class="mt-1 text-xs text-danger">{m.header_no_tasks_on_date()}</p>
+							<p class="mt-text-2xs text-xs text-danger">{m.header_no_tasks_on_date()}</p>
 						{/if}
 					</div>
 				</DropdownMenu.Content>
@@ -197,20 +203,22 @@
 			{#if canSave}
 				<DropdownMenu.Root bind:open={showSaveInput}>
 					<DropdownMenu.Trigger>
-						<Button variant="outline" size="sm" class="gap-2">
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-								/>
-							</svg>
-							{m.common_save()}
-						</Button>
+						{#snippet child({ props })}
+							<Button {...props} variant="outline" size="sm" class="gap-text-xs">
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+									/>
+								</svg>
+								{m.common_save()}
+							</Button>
+						{/snippet}
 					</DropdownMenu.Trigger>
 					<DropdownMenu.Content align="end" class="w-full">
-						<div class="p-2">
+						<div class="p-box-2xs">
 							<p class="text-xs text-ty-secondary mb-text-xs">{m.header_save_as_routine()}</p>
 							<form
 								onsubmit={(e) => {
@@ -223,7 +231,7 @@
 									type="text"
 									bind:value={routineName}
 									placeholder={m.header_routine_name_placeholder()}
-									class="flex-1 px-2 py-1 text-sm rounded bg-surface-card border text-ty-secondary placeholder:text-ty-silent focus:outline-none focus:ring-1 focus:ring-brand"
+									class="flex-1 px-box-2xs py-text-2xs text-sm rounded-sm bg-surface-card border text-ty-secondary placeholder:text-ty-silent focus:outline-none focus:ring-1 focus:ring-brand"
 								/>
 								<Button type="submit" size="sm" variant="outline">{m.common_save()}</Button>
 							</form>

@@ -41,7 +41,7 @@
 		}))
 	};
 
-	const linkClass = 'underline decoration-ty-ghost underline-offset-2 hover:text-ty-primary';
+	const linkClass = 'underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary';
 </script>
 
 <svelte:head>

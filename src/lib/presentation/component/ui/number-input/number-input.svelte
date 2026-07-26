@@ -61,7 +61,7 @@
 		aria-label="Decrease"
 		disabled={atMin}
 		onclick={() => stepBy(-1)}
-		class="rounded-l-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-card hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
+		class="rounded-l-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-hover hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
 	>
 		−
 	</button>
@@ -91,7 +91,7 @@
 		aria-label="Increase"
 		disabled={atMax}
 		onclick={() => stepBy(1)}
-		class="rounded-r-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-card hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
+		class="rounded-r-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-hover hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
 	>
 		+
 	</button>

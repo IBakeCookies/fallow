@@ -150,14 +150,14 @@
 
 <Tooltip.Provider delayDuration={150}>
 	<div
-		class="group rounded-lg border border-transparent bg-transparent p-box-sm transition hover:border-line-soft hover:bg-surface-card"
+		class="group rounded-lg border border-transparent bg-transparent p-box-sm transition hover:border-line-soft hover:bg-surface-hover"
 	>
 		<div class="flex items-start gap-grid-xs">
 			<input
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
-				class="mt-text-3xs h-4 w-4 cursor-pointer rounded border-line-strong bg-input text-brand checked:bg-brand-strong dark:checked:bg-brand focus:ring-brand/20"
+				class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
 			/>
 
 			<div class="min-w-0 flex-1" class:opacity-60={completed}>
@@ -165,7 +165,7 @@
 					{#if runOrder !== undefined && !completed}
 						<Tooltip.Root>
 							<Tooltip.Trigger
-								class="cursor-help rounded bg-flow/15 px-1.5 py-0.5 text-xs font-semibold text-flow"
+								class="cursor-help rounded-sm bg-flow/15 px-box-3xs py-text-3xs text-xs font-semibold text-flow"
 							>
 								#{runOrder}
 							</Tooltip.Trigger>
@@ -270,7 +270,7 @@
 									placeholder={m.task_minutes_placeholder()}
 									autofocus
 									bind:value={flowMinutesInput}
-									class="w-14 rounded border border-flow/30 bg-input px-1.5 py-0.5 text-xs text-ty-primary outline-none focus:border-flow/60"
+									class="w-14 rounded-sm border border-flow/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-flow/60"
 								/>
 								<Button variant="ghost" size="icon-xs" type="submit" class="text-flow">✓</Button>
 								<Button
@@ -364,7 +364,7 @@
 						type="text"
 						bind:value={editDraft.title}
 						required
-						class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-3 py-2 text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+						class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-sm py-box-2xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 					/>
 				</label>
 
@@ -380,7 +380,7 @@
 								min={slider.min}
 								max="10"
 								bind:value={editDraft[slider.key]}
-								class="h-1 w-full cursor-pointer appearance-none rounded-full bg-line-strong {slider.accent}"
+								class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset {slider.accent}"
 							/>
 						</div>
 					{/each}

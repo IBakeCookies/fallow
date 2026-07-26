@@ -206,11 +206,13 @@
 	}
 
 	// ---------- Day profile distribution ----------
+	// Every colour is a token: these reference the plain `:root` custom properties
+	// (base.css), which resolve regardless of Tailwind's @theme tree-shaking.
 	const QUADRANTS: { key: DailyQuadrant; label: string; color: string }[] = [
 		{ key: 'flow', label: m.quadrant_flow(), color: 'var(--color-flow)' },
-		{ key: 'cruise', label: m.quadrant_cruise(), color: '#0ea5e9' },
-		{ key: 'grind', label: m.quadrant_grind(), color: '#f97316' },
-		{ key: 'routine', label: m.quadrant_routine(), color: '#71717a' }
+		{ key: 'cruise', label: m.quadrant_cruise(), color: 'var(--color-info)' },
+		{ key: 'grind', label: m.quadrant_grind(), color: 'var(--color-warning)' },
+		{ key: 'routine', label: m.quadrant_routine(), color: 'var(--series-rest)' }
 	];
 	const quadrantCounts = $derived.by(() => {
 		const counts: Record<DailyQuadrant, number> = { flow: 0, cruise: 0, grind: 0, routine: 0 };
@@ -341,7 +343,7 @@
 		</p>
 	</div>
 
-	<div class="inline-flex items-center rounded-lg border bg-surface-card p-0.5">
+	<div class="inline-flex items-center rounded-lg border bg-surface-card p-text-3xs backdrop-blur">
 		{#each Object.entries(RANGES) as [key, r] (key)}
 			<button
 				onclick={() => (range = key as RangeKey)}
@@ -360,7 +362,9 @@
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
 		<p class="mt-text-2xs text-sm text-ty-silent">
 			{m.ana_empty_hint_1()}
-			<a href={resolve('/')} class="text-ty-secondary underline hover:text-ty-primary"
+			<a
+				href={resolve('/')}
+				class="text-ty-secondary underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary"
 				>{m.link_today()}</a
 			>
 			{m.ana_empty_hint_2()}
@@ -510,7 +514,7 @@
 			{m.ana_day_profiles_hint()}
 		</p>
 
-		<div class="mt-text-md flex h-3 w-full gap-0.5 overflow-hidden rounded-full">
+		<div class="mt-text-md flex h-3 w-full gap-text-3xs overflow-hidden rounded-full">
 			{#each QUADRANTS as q (q.key)}
 				{#if quadrantCounts[q.key] > 0}
 					<div

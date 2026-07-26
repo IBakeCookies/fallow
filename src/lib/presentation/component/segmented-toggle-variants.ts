@@ -21,7 +21,7 @@ export const segmentedToggleVariants = tv({
 		{
 			tone: 'nav',
 			active: false,
-			class: 'text-ty-silent hover:bg-surface-card hover:text-ty-secondary'
+			class: 'text-ty-silent hover:bg-surface-hover hover:text-ty-secondary'
 		},
 		{ tone: 'plan', active: false, class: 'text-ty-silent hover:text-ty-secondary' }
 	],
