@@ -16,3 +16,8 @@ Sitemap: ${origin}/sitemap.xml
 		}
 	});
 };
+
+// Same build-time-origin condition as sitemap.xml — the `Sitemap:` line has
+// to be absolute, so a prerender without PUBLIC_SITE_URL would point crawlers
+// at `http://sveltekit-prerender/sitemap.xml`.
+export const prerender = Boolean(env.PUBLIC_SITE_URL);
