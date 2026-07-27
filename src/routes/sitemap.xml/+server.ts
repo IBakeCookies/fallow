@@ -1,14 +1,38 @@
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/public';
+import { baseLocale, type Locale, locales, localizeUrl } from '$lib/paraglide/runtime';
 
-// Indexable app pages. /demo is deliberately absent (robots.txt disallows it).
-const PATHS = ['/', '/analytics', '/calendar', '/energy'];
+// Indexable app pages, de-localized. Every one exists in both locales.
+const PATHS = ['/', '/analytics', '/calendar', '/energy', '/imprint', '/privacy'];
 
 export const GET: RequestHandler = ({ url }) => {
 	const origin = (env.PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, '');
+	// A URL object, not a string: localizeUrl() only consults getUrlOrigin() for
+	// string input, and this endpoint runs outside any request-scoped origin.
+	const localized = (path: string, locale: Locale) =>
+		localizeUrl(new URL(origin + path), { locale }).href;
+
+	// Each locale's URL is listed as its own <url>, and every entry repeats the
+	// full alternate set including itself — that is what Google's spec asks for.
+	const entries = PATHS.flatMap((path) => {
+		const alternates = locales
+			.map(
+				(locale) =>
+					`\t\t<xhtml:link rel="alternate" hreflang="${locale}" href="${localized(path, locale)}" />`
+			)
+			.concat(
+				`\t\t<xhtml:link rel="alternate" hreflang="x-default" href="${localized(path, baseLocale)}" />`
+			)
+			.join('\n');
+
+		return locales.map(
+			(locale) => `\t<url>\n\t\t<loc>${localized(path, locale)}</loc>\n${alternates}\n\t</url>`
+		);
+	});
+
 	const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${PATHS.map((path) => `\t<url>\n\t\t<loc>${origin}${path}</loc>\n\t</url>`).join('\n')}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${entries.join('\n')}
 </urlset>
 `;
 

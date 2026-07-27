@@ -31,6 +31,12 @@ describe('seo-head.svelte', () => {
 		expect(meta('meta[name="twitter:card"]')).toBe('summary_large_image');
 	});
 
+	it('declares no theme-color — app.html owns it, per colour scheme', async () => {
+		render(SeoHead, { title: 't', description: 'd' });
+
+		expect(document.head.querySelector('meta[name="theme-color"]')).toBeNull();
+	});
+
 	it('injects JSON-LD only when provided', async () => {
 		const { unmount } = render(SeoHead, { title: 't', description: 'd' });
 		expect(document.head.querySelector('script[type="application/ld+json"]')).toBeNull();

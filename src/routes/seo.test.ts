@@ -34,6 +34,12 @@ describe('robots.txt', () => {
 		// trailing slash stripped — `https://fallow.app//sitemap.xml` is a 404
 		expect(body).toContain('Sitemap: https://fallow.app/sitemap.xml');
 	});
+
+	it('disallows nothing — every route in the sitemap must stay crawlable', async () => {
+		const body = await (await robots(request('https://preview.vercel.app'))).text();
+
+		expect(body).not.toContain('Disallow');
+	});
 });
 
 describe('sitemap.xml', () => {
@@ -44,8 +50,35 @@ describe('sitemap.xml', () => {
 
 		expect(body).toContain('<loc>https://fallow.app/</loc>');
 		expect(body).toContain('<loc>https://fallow.app/energy</loc>');
-		// /demo is disallowed in robots.txt, so it must not be advertised here
-		expect(body).not.toContain('/demo');
+		// the two pages that exist for cold arrivals from search
+		expect(body).toContain('<loc>https://fallow.app/imprint</loc>');
+		expect(body).toContain('<loc>https://fallow.app/privacy</loc>');
+	});
+
+	it('lists the German URLs too — /de/* is what makes them indexable', async () => {
+		env.PUBLIC_SITE_URL = 'https://fallow.app';
+
+		const body = await (await sitemap(request('https://preview.vercel.app'))).text();
+
+		expect(body).toContain('<loc>https://fallow.app/de/</loc>');
+		expect(body).toContain('<loc>https://fallow.app/de/privacy</loc>');
+	});
+
+	it('pairs every entry with the full hreflang alternate set', async () => {
+		env.PUBLIC_SITE_URL = 'https://fallow.app';
+
+		const body = await (await sitemap(request('https://preview.vercel.app'))).text();
+		const entries = body.match(/<url>[\s\S]*?<\/url>/g) ?? [];
+
+		expect(entries).toHaveLength(12);
+		for (const entry of entries) {
+			const href = (hreflang: string) =>
+				entry.match(new RegExp(`hreflang="${hreflang}" href="([^"]+)"`))?.[1];
+
+			expect(href('de')).toBe(href('en')?.replace('fallow.app/', 'fallow.app/de/'));
+			// x-default is the unprefixed base locale, never the German URL
+			expect(href('x-default')).toBe(href('en'));
+		}
 	});
 
 	it('never emits a relative loc, even with no canonical origin configured', async () => {

@@ -1,12 +1,18 @@
 <!-- Central <head> block for every page: title, description, canonical,
-     Open Graph, Twitter card, and optional JSON-LD structured data.
+     hreflang alternates, Open Graph, Twitter card, and optional JSON-LD.
      Canonical/og URLs prefer PUBLIC_SITE_URL so preview deployments and
      *.vercel.app aliases point Google at the production domain. -->
 <script lang="ts">
 	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
 	import * as m from '$lib/paraglide/messages.js';
-	import { getLocale, locales } from '$lib/paraglide/runtime';
+	import {
+		baseLocale,
+		deLocalizeHref,
+		getLocale,
+		locales,
+		localizeHref
+	} from '$lib/paraglide/runtime';
 	import { jsonLdScript } from '$lib/presentation/utils/json-ld';
 
 	interface Props {
@@ -20,7 +26,17 @@
 	const OG_LOCALES: Record<string, string> = { en: 'en_US', de: 'de_DE' };
 
 	const origin = $derived((env.PUBLIC_SITE_URL ?? page.url.origin).replace(/\/$/, ''));
-	const canonical = $derived(origin + page.url.pathname);
+
+	// Both locales are indexable (`/…` English, `/de/…` German), so each page
+	// declares its own URL as canonical and every sibling as an alternate.
+	// Without the pair they compete as duplicate content.
+	const basePath = $derived(deLocalizeHref(page.url.pathname));
+	const alternates = $derived(
+		Object.fromEntries(
+			locales.map((locale) => [locale, origin + localizeHref(basePath, { locale })])
+		)
+	);
+	const canonical = $derived(alternates[getLocale()]);
 	const ogImage = $derived(origin + '/fallow-daily-time-allocation.png');
 	const ogLocale = $derived(OG_LOCALES[getLocale()] ?? 'en_US');
 
@@ -31,7 +47,11 @@
 	<title>{title}</title>
 	<meta name="description" content={description} />
 	<link rel="canonical" href={canonical} />
-	<meta name="theme-color" content="#000000" />
+	{#each locales as locale (locale)}
+		<link rel="alternate" hreflang={locale} href={alternates[locale]} />
+	{/each}
+	<!-- the base locale is the unprefixed URL, so it is also the fallback -->
+	<link rel="alternate" hreflang="x-default" href={alternates[baseLocale]} />
 
 	<meta property="og:type" content="website" />
 	<meta property="og:site_name" content={m.app_name()} />

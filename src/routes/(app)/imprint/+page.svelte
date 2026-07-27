@@ -1,8 +1,9 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 </script>
 
-<svelte:head><title>{m.imprint_title()} — Fallow</title></svelte:head>
+<SeoHead title="{m.imprint_title()} — Fallow" description={m.imprint_ddg_heading()} />
 
 <article
 	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"

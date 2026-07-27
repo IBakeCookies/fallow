@@ -7,7 +7,7 @@
 	import Zap from '@lucide/svelte/icons/zap';
 	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
-	import { locales } from '$lib/paraglide/runtime';
+	import { locales, localizeHref, deLocalizeHref } from '$lib/paraglide/runtime';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { activeLocale, switchLocale, getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { liveToday } from '$lib/business/state/today.svelte';
@@ -44,6 +44,10 @@
 			: m.nav_today()
 	);
 
+	// Links carry the locale: on /de/* an unprefixed href would silently drop the
+	// visitor back to English. Matching goes the other way — de-localize the
+	// current path and compare against the canonical one, so `aria-current` is
+	// right in both locales.
 	const home = resolve('/');
 	const links = $derived([
 		{ href: home, label: dayLabel, icon: ListTodo, mode: dayMode },
@@ -52,8 +56,9 @@
 		{ href: resolve('/energy'), label: m.nav_energy_lab(), icon: Zap }
 	]);
 
+	const currentPath = $derived(deLocalizeHref(page.url.pathname));
 	const isActive = (href: string) =>
-		href === home ? page.url.pathname === home : page.url.pathname.startsWith(href);
+		href === home ? currentPath === home : currentPath.startsWith(href);
 </script>
 
 <div class="sticky top-4 z-20 mb-text-xl flex items-start justify-between gap-grid-xs">
@@ -64,7 +69,7 @@
 			<!-- hrefs are resolve()d in the links array; the rule can't trace through it -->
 			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a
-				href={link.href}
+				href={localizeHref(link.href)}
 				aria-current={isActive(link.href) ? 'page' : undefined}
 				aria-label={link.mode ? m.nav_viewing_return({ label: link.label }) : link.label}
 				title={link.mode ? m.nav_return_to_today() : undefined}

@@ -4,6 +4,7 @@
      structured data) live here, always server-rendered. -->
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { jsonLdScript } from '$lib/presentation/utils/json-ld';
 
@@ -74,7 +75,8 @@
 			<p class="text-sm leading-relaxed">{m.about_different_body_1()}</p>
 			<p class="text-sm leading-relaxed">
 				{m.about_different_body_2()}
-				{m.about_energy_pre()}<a class={linkClass} href={resolve('/energy')}>{m.nav_energy_lab()}</a
+				{m.about_energy_pre()}<a class={linkClass} href={localizeHref(resolve('/energy'))}
+					>{m.nav_energy_lab()}</a
 				>{m.about_energy_post()}
 			</p>
 		</div>

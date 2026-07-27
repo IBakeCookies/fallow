@@ -1,34 +1,32 @@
 /**
  * Reload-free locale switching.
  *
- * Paraglide's setLocale() reloads the page by default, which blanks the app
- * for seconds. Instead we set the cookie/global without reloading and track
- * the active locale as reactive state — the root layout keys the app subtree
- * on it, so every component re-renders and re-evaluates its m.*() messages.
+ * German is a real route now (`url` strategy → `/de/*`), so switching language
+ * is a navigation, not a cookie write. goto() keeps it client-side and the root
+ * layout keys the app subtree on the locale, so every m.*() message re-resolves
+ * without blanking the app.
  *
- * SSR note: the $state below is module-level, but it is only ever written in
- * the browser (switchLocale). On the server it stays null and reads fall
- * through to getLocale(), which is request-scoped via the paraglide
- * middleware — so no locale can leak between SSR requests.
+ * The active locale is read back off `page.url` rather than tracked in module
+ * state: the URL is the only thing that survives back/forward, a shared link and
+ * SSR, and reading it keeps this reactive on both. `$app/navigation` is fine
+ * here — R5 forbids routing imports in `business`, not in `presentation`.
  */
 
-import { browser } from '$app/environment';
-import { getLocale, setLocale, type Locale } from '$lib/paraglide/runtime';
-
-let current = $state<Locale | null>(null);
+import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import { extractLocaleFromUrl, getLocale, localizeHref, type Locale } from '$lib/paraglide/runtime';
 
 /** The active locale as a reactive source (read `.value` in $derived/$effect). */
 export const activeLocale = {
 	get value(): Locale {
-		return (browser && current) || getLocale();
+		return extractLocaleFromUrl(page.url) ?? getLocale();
 	}
 };
 
 /** Switch the UI language in place — no page reload. */
 export function switchLocale(locale: Locale) {
 	if (locale === activeLocale.value) return;
-	setLocale(locale, { reload: false });
-	current = locale;
+	goto(localizeHref(page.url.pathname + page.url.search, { locale }));
 }
 
 /** BCP-47 tag for Intl date formatting, tracking the active locale. */

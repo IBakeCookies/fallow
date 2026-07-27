@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 
 	// § 5 DDG requires the imprint (and by extension the privacy policy) to be
@@ -19,7 +20,7 @@
 		{#each links as link (link.href)}
 			<!-- internal hrefs are resolve()d in the links array; the rule can't trace through it -->
 			<a
-				href={link.href}
+				href={link.external ? link.href : localizeHref(link.href)}
 				target={link.external ? '_blank' : undefined}
 				rel={link.external ? 'noopener' : undefined}
 				class="transition-colors hover:text-ty-secondary">{link.label()}</a

@@ -24,7 +24,12 @@ export default defineConfig({
 		}),
 		paraglideVitePlugin({
 			project: './project.inlang',
-			outdir: './src/lib/paraglide'
+			outdir: './src/lib/paraglide',
+			// `url` first: German needs its own indexable `/de/*` URLs, and the URL
+			// has to outrank the cookie or two visitors get different copy at the
+			// same address. The base locale stays unprefixed, so every existing
+			// English URL is unchanged.
+			strategy: ['url', 'cookie', 'baseLocale']
 		})
 	],
 	test: {

@@ -4,7 +4,7 @@ import { env } from '$env/dynamic/public';
 export const GET: RequestHandler = ({ url }) => {
 	const origin = (env.PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, '');
 	const body = `User-agent: *
-Disallow: /demo
+Allow: /
 
 Sitemap: ${origin}/sitemap.xml
 `;
