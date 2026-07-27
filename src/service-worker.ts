@@ -49,13 +49,26 @@ sw.addEventListener('fetch', (event) => {
 				if (cached) return cached;
 			}
 
-			// pages: network first, fall back to last cached copy when offline
+			// pages: network first, fall back to last cached copy when offline.
+			// Keyed on the pathname alone: the viewed day rides in a query param,
+			// so keying on the full URL would add a permanent entry per day ever
+			// visited — the cache has to stay bounded by the number of routes.
+			const cacheKey = url.pathname;
+
 			try {
 				const response = await fetch(event.request);
-				if (response.ok) cache.put(event.request, response.clone());
+				// awaited: an unhandled rejection here (quota) would be silent.
+				// Storing the fallback is best-effort — the live response still wins.
+				if (response.ok) {
+					try {
+						await cache.put(cacheKey, response.clone());
+					} catch {
+						/* storage full or response not storable */
+					}
+				}
 				return response;
 			} catch (error) {
-				const cached = await cache.match(event.request);
+				const cached = await cache.match(cacheKey);
 				if (cached) return cached;
 				if (event.request.mode === 'navigate') {
 					const shell = await cache.match('/');

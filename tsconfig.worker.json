@@ -1,0 +1,16 @@
+{
+	// SvelteKit's generated tsconfig excludes src/service-worker.ts, so `npm run
+	// check` would never type-check the file that intercepts every GET. It needs
+	// its own program: worker globals instead of DOM, and no @types/node.
+	"compilerOptions": {
+		"lib": ["esnext", "WebWorker"],
+		"types": [],
+		"target": "esnext",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true
+	},
+	"include": ["src/service-worker.ts"]
+}
