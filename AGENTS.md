@@ -31,9 +31,19 @@ These are the ones that get broken. Each exists because it was broken before.
   (`storage/`), repositories with `$`-prefixed CRUD controllers
   (`repository/`), migrations (`migration/`). Never imports upward. Model
   defaults a migration needs are **passed in as parameters**.
-- Enforced by `no-restricted-imports` in `eslint.config.js` and by
-  `.dependency-cruiser.cjs` (`npm run depcheck`). `src/lib/paraglide` is
-  generated and exempt.
+- Enforced twice, and the two catch different things. `no-restricted-imports`
+  in `eslint.config.js` matches the `$lib/...` **specifier string**, so a
+  relative (`../../data/...`) or dynamic (`import('$lib/data/...')`) crossing
+  is invisible to it. `.dependency-cruiser.cjs` resolves modules to disk, so
+  its three directional rules — `data-not-to-upper-layers`,
+  `business-not-to-presentation`, `presentation-not-to-data`, all
+  `severity: 'error'` — catch those. Run with `npm run depcheck`; it is in CI.
+  `src/lib/paraglide` is generated and exempt.
+- One gap worth knowing: the Svelte compiler strips `import type` before
+  dependency-cruiser parses a `.svelte` file, so a type-only crossing from a
+  component produces no edge for it to flag. Inside components that boundary is
+  eslint's alone (it does flag `import type`) — which is why the rule is an
+  error there and why persisted types come from `$lib/business/type`.
 
 ### R2 — Routes and components hold no logic
 
@@ -41,6 +51,12 @@ The lint rules enforce dependency _direction_, not code _placement_: a route
 importing business code is legal, so logic drifts into `+page.svelte` where
 nothing can unit-test it. It has happened twice (a 518-line main page, a
 1349-line Energy Lab) and both had to be pulled back out.
+
+Reads end at a store, so `presentation-not-to-business-model` in
+`.dependency-cruiser.cjs` is an **error** when a route or component
+value-imports `$lib/business/model/*` (stores, state, `utils`, and `import
+type` are fine). Adding one is not a judgement call any more: put the
+orchestration in a store and give the page the result.
 
 A `+page.svelte` may contain: markup, local UI-only state (draft editors, open
 /closed toggles, view preferences), formatters, and thin `$derived` aliases of
@@ -72,8 +88,9 @@ a comment, export the thing instead.
 
 Anything the model reads must survive a backup/restore round trip.
 
-- **IndexedDB** (via a repository, listed in `backup-repository.ts`
-  `STORE_NAMES`): sessions, routines, observations, and any setting that feeds
+- **IndexedDB** (via a repository, listed in `indexed-db.ts` `STORE_NAMES`,
+  which `backup-repository.ts` imports): sessions, routines, observations, and
+  any setting that feeds
   a calculation — e.g. the Energy Lab's params (`settings` store, key
   `energyParams`).
 - **localStorage**: only preferences whose loss costs nothing and that have no
@@ -114,6 +131,28 @@ No exceptions for "small". Pick the level:
 | Component                         | `*.svelte.spec.ts` (browser project)                   |
 | A user-visible flow               | `e2e/*.e2e.ts`                                         |
 
+**Check for existing coverage first, and add it when there is none.** Before
+touching anything, find the test that covers it. If none exists, writing one is
+part of the change, not a follow-up:
+
+- **Fixing a bug** — write the failing test _first_, from the reproduction.
+  Watch it fail for the stated reason, then fix the code and watch it pass. A
+  fix that never had a red test does not prove the bug is gone, and nothing
+  stops it coming back.
+- **Adding a feature** — it ships with tests for its own behaviour, including
+  the empty, failed and boundary cases, not only the happy path.
+- **Refactoring** — the behaviour must already be pinned before you move it. If
+  it is not, add the test against the OLD code, confirm it passes, then
+  refactor: that is what makes it a safety net rather than a description of
+  whatever the new code happens to do.
+- **Moving logic between layers** — coverage moves with it. When a component
+  stops computing something, the assertion that _used_ to prove it (a rendered
+  label, say) no longer does; re-assert it wherever the logic landed.
+
+"There was no test for this before" is a reason to write one, never a reason to
+skip it. If a change genuinely cannot be tested, say so explicitly and why —
+that is usually a sign it is in the wrong file (see R2).
+
 Test the invariant, not the implementation. The valuable tests here assert
 things like "completing a task must not move plan-scoped metrics" — a rule
 that has actually been violated — not that a function returns what it returns.
@@ -142,10 +181,15 @@ Missing any one of these ships a broken upgrade or a lossy backup:
 2. Add the store inside `onupgradeneeded`, guarded by
    `if (!database.objectStoreNames.contains(...))` — upgrades are additive and
    idempotent, never destructive.
-3. Add the store name to `STORE_NAMES` in `backup-repository.ts`, or it is
-   silently excluded from export/import/wipe.
+3. Add the store name to `STORE_NAMES` in `indexed-db.ts` (that is where the
+   list lives; `backup-repository.ts` imports it), or it is silently excluded
+   from export/import/wipe.
 4. Update the two hardcoded store-name lists in `indexed-db.test.ts` and
-   `backup-repository.test.ts`.
+   `backup-repository.test.ts`. Keep them literal — they are an independent
+   oracle, which a list derived from `STORE_NAMES` would not be. A separate
+   test in `indexed-db.test.ts` asserts the created stores equal
+   `STORE_NAMES`, so schema/`STORE_NAMES` drift fails on its own even if you
+   update the literals wrongly.
 5. If data is moving from somewhere else, write a migration in
    `data/migration/` that never lets the stale source win over what IndexedDB
    already owns, and drops unparseable input instead of retrying forever.
@@ -190,6 +234,12 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   TypeScript checks declaration order.
 - Components take snippets/props from the layout; they do not reach into
   stores themselves.
+- **A debounce flush belongs in `onDestroy`, never in an `$effect` teardown.**
+  An effect's cleanup runs before _every_ re-run, not only on destroy, so
+  flushing there fires on each keystroke and defeats the debounce. Both stores
+  arm their timer in an `$effect` and flush from `onDestroy` plus a
+  `visibilitychange` listener — cancelling on teardown instead (the old bug)
+  silently drops the last edit when the user navigates away.
 - Storybook stories live **beside their component** (`*.stories.svelte`), one
   file per component or primitive group, and are rendered as smoke tests by the
   `storybook` vitest project. `.storybook/preview.ts` builds the theme toolbar
@@ -198,6 +248,12 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   of the 33 themes. `presentation/theme.stories.svelte` is the componentless
   one: a tall page for judging a theme's background, scenery and token
   swatches. It sits outside `style/` on purpose — see the scanner note below.
+  `@storybook/addon-a11y` runs axe on every story with `test: 'error'`, so an
+  a11y violation **fails CI**. `theme.stories.svelte` opts out of
+  `color-contrast` only: it is a token swatch sheet that renders every
+  fill/ink pair on purpose, including the 15 of 297 that cannot reach 4.5:1
+  (see the ink note below). That budget is measured by
+  `scripts/ink-contrast.mjs`; contrast stays enforced on every real component.
 
 ### Style
 
@@ -215,9 +271,13 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 - Semantic Tailwind tokens from `tokens.css` only — no raw palette classes
   (`text-zinc-400`) in components. This also applies to class strings built in
   `.ts` helpers.
-- **Never `dark:` in a component.** It matches `.dark` only — 1 of the 31 dark
-  themes in the catalogue — so it silently does nothing under `abyss`, `noir`,
-  `meridian`, `terminal` and the rest. Any light/dark difference must come from a
+- **Never `dark:` in a component.** Not because it fails to match — it does
+  match: `@custom-variant dark (&:is(.dark *))` in `tokens.css`, and 20 of the
+  33 themes stamp `.dark`, `abyss`, `noir`, `meridian` and `terminal` among
+  them. That is the problem. `dark:` is a **binary** over a catalogue of 33
+  distinct palettes: it bakes one hardcoded dark look across all 20 (which
+  `themes.css` then contradicts per theme) and does nothing at all on the
+  other 13. Any light/dark difference must come from a
   token the themes already swap. Note `-strong` is not "darker" — it means
   _more contrast against this theme's own background_, so it is lighter on every
   dark theme and darker on every light one. Never use it as a fill sitting under
@@ -253,7 +313,10 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `background-color: currentColor`, so the fill has to be dark — impossible here,
   because on a dark theme every accent token is light by design. `accent-color`
   hands checkmark contrast to the browser, which is the only thing that holds
-  across all 33 themes.
+  across all 33 themes. The plugin is nonetheless still loaded in `app.css` and
+  **cannot just be dropped**: the two bare-`border` inputs in
+  `page-header.svelte` inherit their border colour from its base layer. Give
+  them explicit token borders first, then remove it.
 - Tailwind's scanner is **textual and runs at build time**, so a name assembled
   at runtime does not exist. This bites twice: class names (`bg-{x}-500`) and
   `@theme` custom properties, which are tree-shaken to the ones the scanner
@@ -394,16 +457,30 @@ of its allocation code, so the main page is unaffected by changes here.
 Before claiming a change works:
 
 ```sh
-npm run check      # svelte-check — must be 0 errors
+npm run check      # svelte-check + tsc on the service worker — must be 0 errors
 npx eslint .       # includes the layer-boundary rules
+npm run depcheck   # dependency-cruiser: layer direction, no cycles, no orphans
 npm run test:unit -- --run
 npm run test:e2e
 ```
 
-`npm run depcheck` for the dependency-cruiser rules (no cycles, no orphans).
-CI (`.github/workflows/ci.yml`) runs svelte-check, eslint, the vitest projects
-and Playwright on every push/PR to `main`. `prettier --check` is deliberately
-**not** in CI, and this repo does not run prettier over the tree.
+All five run in CI (`.github/workflows/ci.yml`) on every push/PR to `main`.
+Two notes on `check`: it also type-checks `src/service-worker.ts` through
+`tsconfig.worker.json`, because SvelteKit's generated tsconfig `exclude`s that
+file and it would otherwise never be checked. And `svelte.config.js` exists
+only so svelte-check and eslint compile in the same runes mode the build
+forces — `sveltekit()` takes its options inline in `vite.config.ts`, so the
+build ignores the file and says so. Keep `runes` in step across the two.
+
+`prettier --check` is not in CI, but it does pass and `npm run lint` runs it —
+so keep it passing (`npx prettier --write` the files you touched, never the
+tree).
+
+`npm run depgraph` renders the module graph to `dependency-graph.svg` (needs
+graphviz). It is **gitignored, not committed**: CI regenerates it every run and
+publishes it as the `dependency-graph` artifact, so the current graph is a
+download away from any run instead of a 500 KB file that was stale between the
+commits someone remembered to regenerate it in.
 
 Vitest has three projects: `server` (node, `*.test.ts`), `client` (real
 chromium, `*.svelte.{test,spec}.ts`), `storybook`.
@@ -416,7 +493,9 @@ you an hour otherwise:
   reproduce. Verify against `npm run build && npx vite preview`, or a
   freshly-started dev server.
 - All data is client-side IndexedDB, so a headless profile starts empty. Seed
-  through the UI and wait ~600ms for the debounced autosave.
+  through the UI and wait for the debounced autosave: it is 500ms in both
+  stores, and `e2e/helpers.ts` exports `AUTOSAVE_MS = 1000` to wait on — use
+  that rather than a literal, so the margin moves with the constant.
 
 ---
 
@@ -429,8 +508,40 @@ Each of these was considered and decided. Re-deciding them is churn.
   A 2026-07-23 interface analysis found every proposed split would force
   currently-private helpers (`amplitudeRatio`, `phiQuadratureNodes`,
   `reservoirLaw`, date-routing state) into cross-module exports: more surface,
-  not less. Don't split on line count. The one seam worth cutting (generic 3×3
-  linalg → `linalg.ts`) is cut.
+  not less. Don't split on line count. Two seams were worth cutting and are
+  cut: generic 3×3 linalg → `linalg.ts`, and the drain/rest measurements →
+  `energy-observation-store.svelte.ts` (below).
+
+  **The test is interface arithmetic, not size.** A split pays only if it
+  removes more public surface than it adds. Measure before proposing one:
+  `session-store.svelte.ts` was 675 lines behind **39 public members** (~1 per
+  17 lines, vs. 1 per 50 in `zenith.ts`), with 34 of the 39 called from exactly
+  one place — a wide facade, not a deep module. So the store's size was never
+  the argument for or against.
+
+- **Drain and rest observations live in `EnergyObservationStore`**, not the
+  session store (extracted 2026-07-27). They were the one cluster whose
+  extraction cost **zero** new cross-module exports: a measurement is stamped
+  with the live clock's today, never the viewed day, so it needs none of the
+  date-routing, load or auto-save state — only a task lookup and somewhere to
+  report a failed write, both of which were already public (`tasks`,
+  `reportStorageError`, and `liveToday` needs no store at all). It also needs no
+  `initializeStorage()` ordering: the localStorage migration writes only
+  sessions and `energyParams`, never these two object stores.
+
+  What deliberately did **not** move, and why re-proposing it is churn:
+
+  | Stayed                        | Because                                                                     |
+  | ----------------------------- | --------------------------------------------------------------------------- |
+  | Day routing + load + autosave | One concern; task mutations work _because_ the autosave effect watches them |
+  | Flow observations             | `logFlow` stamps `flowMinutes` onto the task, persisted with the session    |
+  | Routines                      | 3 members, needs a `tasks` thunk — not worth a file                         |
+  | The `storageError` banner     | One banner app-wide; every store reports into it via `reportStorageError`   |
+
+  Both stores can raise `'load-failed'` and neither knows about the other, so
+  the layout's retry action re-runs **both** `retryLoad()`s. A new store that
+  can fail a read belongs in that handler too.
+
 - **Metric color-band thresholds live in the presentation layer** (`status.ts`,
   `metric-descriptor.ts`). Banding a reading as good/bad is display policy,
   not domain math.
@@ -441,8 +552,8 @@ Each of these was considered and decided. Re-deciding them is churn.
 - **No page is prerendered, including `imprint` and `privacy`.** Every page
   goes through a root layout that personalises the response per-cookie, so a
   build-time render bakes the defaults in. Measured on a real build served by
-  `vite preview` with `theme=abyss; PARAGLIDE_LOCALE=de; scenerySeed=42`
-  (2026-07-26):
+  `vite preview` with `theme=abyss; scenerySeed=42`, comparing `/imprint`
+  against `/de/imprint` (2026-07-26):
 
   |                              | prerendered                   | today                            |
   | ---------------------------- | ----------------------------- | -------------------------------- |
@@ -450,24 +561,43 @@ Each of these was considered and decided. Re-deciding them is churn.
   | served `<h1>`                | `Imprint`                     | `Impressum`                      |
   | `scenerySeed` on a cold load | the one baked at build        | the visitor's cookie             |
 
+  Locale now comes from the URL rather than a cookie, which makes the case
+  stronger, not weaker: there are 12 indexable URLs and every one of them is
+  still cookie-personalised for theme and seed.
+
   Hydration repairs the class and the copy, so theme and locale cost a FOUC
   rather than a wrong page — but avoiding exactly that FOUC is the entire
   reason the theme is stamped server-side, and it would hit precisely the
   cold arrivals (search results, shared links) that these pages exist for.
-  The seed is not repaired: `ThemeStore` reconciles the theme against the
-  cookie in the browser but not the seed, so a cold-loaded prerendered page
+  The seed is not repaired: `ThemeStore` reconciles the theme and the scenery
+  motion preference against the cookie in the browser, but not the seed, so a
+  cold-loaded prerendered page
   renders different scenery from the rest of the session. The gain — two
   trivial renders moved to the CDN — does not pay for that.
 
 - **`sitemap.xml` and `robots.txt` prerender only when `PUBLIC_SITE_URL` is
   set** (`export const prerender = Boolean(env.PUBLIC_SITE_URL)`). Both must
   emit absolute URLs; an unconditional prerender bakes in SvelteKit's
-  `http://sveltekit-prerender` placeholder.
+  `http://sveltekit-prerender` placeholder. The sitemap lists every route in
+  **both** locales with `xhtml:link` alternates, `/imprint` and `/privacy`
+  included.
+
+- **`/de/*` is a real, indexable URL, not a cookie state.** The paraglide
+  strategy is `['url', 'cookie', 'baseLocale']`; `en` stays unprefixed. Two
+  consequences that are easy to get wrong:
+  - Every internal `href` goes through `localizeHref`, and every comparison
+    against a pathname goes through `deLocalizeHref`. A raw `===` on
+    `page.url.pathname` is wrong on half the site.
+  - The strategy is declared **twice** — in `vite.config.ts` for
+    build/dev/vitest, and in the `paraglide` npm script for `check`/`prepare`.
+    paraglide 2.x has no config file for it, so this is a deliberate,
+    documented exception to R3; change one and you must change the other.
 
 ## 6. Known open items
 
-- Persisted energy params are validated (`sanitizeEnergyParams`), but no other
-  persisted setting has a validator yet — add one with each new setting.
+- Persisted **settings** are validated (`sanitizeEnergyParams`) and so is the
+  session shape read from IndexedDB (`sanitizeSession`), but nothing else is —
+  add a validator with each new persisted shape.
 - **`PUBLIC_SITE_URL` is unset on Vercel** (see `.env.example`). It is the only
   environment variable the app reads. Production origin:
   `https://zenith-drab-psi.vercel.app` — no trailing slash, **Production scope
@@ -476,6 +606,14 @@ Each of these was considered and decided. Re-deciding them is churn.
   `robots.txt` fall back to the request origin (splitting indexing between the
   production domain and every `*.vercel.app` alias), and the two crawler files
   stay dynamic instead of prerendering.
-- `app.html`'s inline pre-paint script hardcodes the dark default's classes;
-  it is the one place the catalogue in `business/model/theme.ts` cannot reach,
-  so it must be updated by hand if `DEFAULT_DARK_THEME` changes.
+- `app.html`'s inline pre-paint script hardcodes **two** theme names: it
+  removes `DEFAULT_THEME`'s class and adds `DEFAULT_DARK_THEME`'s (it no
+  longer assigns `className`, which used to wipe the server-stamped
+  scenery-paused class). It is the one place the catalogue in
+  `business/model/theme.ts` cannot reach, so both must be updated by hand if
+  either default changes.
+- The service worker caches page HTML that is **per-cookie personalised**.
+  It is bounded and its failures are no longer silent, and `ThemeStore`
+  repairs theme and scenery motion at hydration — but the locale and the
+  SSR'd seed style are not repaired, so a served-from-cache page can briefly
+  show the wrong one.
