@@ -1,9 +1,62 @@
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
 	forbidden: [
+		// ---- Layer boundaries (presentation → business → data, one direction) ----
+		// eslint's no-restricted-imports only matches the `$lib/...` specifier
+		// strings; these also catch relative imports and dynamic `import()`.
+		{
+			name: 'data-not-to-upper-layers',
+			severity: 'error',
+			comment:
+				'The data layer must not import from the business or presentation layers. Model ' +
+				'defaults a migration needs are passed in as parameters (AGENTS.md R1).',
+			from: { path: '^src/lib/data' },
+			to: { path: '^src/lib/(business|presentation)' }
+		},
+		{
+			name: 'business-not-to-presentation',
+			severity: 'error',
+			comment: 'The business layer must not import from the presentation layer (AGENTS.md R1).',
+			from: { path: '^src/lib/business' },
+			to: { path: '^src/lib/presentation' }
+		},
+		{
+			name: 'presentation-not-to-data',
+			severity: 'error',
+			comment:
+				'Presentation code (and the app shell: routes, hooks, service worker) must go through ' +
+				'the business layer — stores in $lib/business/store, types via $lib/business/type ' +
+				'(AGENTS.md R1).',
+			from: { path: '^src/(lib/presentation|routes|hooks|service-worker)' },
+			to: { path: '^src/lib/data' }
+		},
+		{
+			name: 'presentation-not-to-business-model',
+			severity: 'error',
+			comment:
+				'Reads end at a store. A route or component may use $lib/business/store and ' +
+				'$lib/business/state; calling a model directly puts orchestration in a file no ' +
+				'*.test.ts can reach (AGENTS.md R2). `import type` is fine — it is how a component ' +
+				'types its props — and so are the pure helpers in $lib/business/utils.',
+			from: {
+				// Server files are the composition root; specs and stories build their own
+				// fixtures and are not the drift this rule is about.
+				path: '^src/(lib/presentation/|routes/)',
+				pathNot: [
+					'[.]server[.]ts$',
+					'(^|/)\\+server[.]ts$',
+					'[.](?:spec|test)[.](?:js|ts)$',
+					'[.]stories[.]svelte$'
+				]
+			},
+			to: {
+				path: '^src/lib/business/model/',
+				dependencyTypesNot: ['type-only']
+			}
+		},
 		{
 			name: 'no-circular',
-			severity: 'warn',
+			severity: 'error',
 			comment:
 				'This dependency is part of a circular relationship. You might want to revise ' +
 				'your solution (i.e. use dependency inversion, make sure the modules have a single responsibility) ',
@@ -20,7 +73,7 @@ module.exports = {
 				'add an exception for it in your dependency-cruiser configuration. By default ' +
 				'this rule does not scrutinize dot-files (e.g. .eslintrc.js), TypeScript declaration ' +
 				'files (.d.ts), tsconfig.json and some of the babel and webpack configs.',
-			severity: 'warn',
+			severity: 'error',
 			from: {
 				orphan: true,
 				pathNot: [
@@ -304,7 +357,9 @@ module.exports = {
 
 			// List of conditions to check for in the exports field.
 			// Only works when the 'exportsFields' array is non-empty.
-			conditionNames: ['import', 'require', 'node', 'default', 'types'],
+			// 'svelte' and 'browser' are on top of the defaults so imports of svelte
+			// itself resolve to real files instead of showing up unresolvable.
+			conditionNames: ['import', 'require', 'node', 'default', 'types', 'svelte', 'browser'],
 
 			// The extensions, by default are the same as the ones dependency-cruiser
 			// can access (run `npx depcruise --info` to see which ones that are in

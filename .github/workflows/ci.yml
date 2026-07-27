@@ -19,5 +19,16 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run check
       - run: npx eslint .
+      - run: npm run depcheck
       - run: npm run test:unit -- --run
       - run: npm run test:e2e
+
+      # The dependency graph is generated, never committed — download it from
+      # this run's artifacts. `dot` is not on the runner by default.
+      - name: Render the dependency graph
+        run: sudo apt-get install -y --no-install-recommends graphviz && npm run depgraph
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependency-graph
+          path: dependency-graph.svg
+          if-no-files-found: error

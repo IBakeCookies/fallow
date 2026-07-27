@@ -4,6 +4,7 @@ import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
 import { defineConfig, includeIgnoreFile } from 'eslint/config';
 import globals from 'globals';
+import storybook from 'eslint-plugin-storybook';
 import ts from 'typescript-eslint';
 
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
@@ -13,6 +14,7 @@ export default defineConfig(
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,
+	storybook.configs['flat/recommended'],
 	prettier,
 	svelte.configs.prettier,
 	{
@@ -88,7 +90,8 @@ export default defineConfig(
 	{
 		// hooks/service-worker are app-shell code, not domain code: they render
 		// and cache, so they go through the business layer like any route would.
-		files: ['src/lib/presentation/**', 'src/routes/**', 'src/hooks.*.ts', 'src/service-worker.ts'],
+		// 'src/hooks*.ts' covers both src/hooks.ts (reroute) and src/hooks.server.ts
+		files: ['src/lib/presentation/**', 'src/routes/**', 'src/hooks*.ts', 'src/service-worker.ts'],
 		rules: {
 			'no-restricted-imports': [
 				'error',
