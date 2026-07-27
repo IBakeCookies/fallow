@@ -10,6 +10,7 @@ import {
 	calculateTimeScarcity,
 	calculateFlowCoverage,
 	calculateZenithGain,
+	getTaskNature,
 	type SuggestedTask,
 	type Task
 } from './calculation';
@@ -33,6 +34,7 @@ function makeSuggested(
 ): SuggestedTask {
 	return {
 		...makeTask(overrides),
+		nature: getTaskNature(makeTask(overrides)),
 		suggestedHours: 1,
 		priorityScore: 5,
 		flowStateTime: 1,
@@ -44,6 +46,21 @@ function makeSuggested(
 		...overrides
 	};
 }
+
+describe('getTaskNature', () => {
+	// ±3 is the threshold; the boundary belongs to the dominant side.
+	it.each([
+		[9, 2, 'cognitive'],
+		[8, 5, 'cognitive'],
+		[2, 9, 'physical'],
+		[5, 8, 'physical'],
+		[5, 5, 'balanced'],
+		[7, 5, 'balanced'],
+		[5, 7, 'balanced']
+	] as const)('mental %s / physical %s is %s', (mentalDifficulty, physicalDifficulty, nature) => {
+		expect(getTaskNature({ mentalDifficulty, physicalDifficulty })).toBe(nature);
+	});
+});
 
 describe('calculateSuggestedTasks', () => {
 	it('priorityScore is intrinsic: independent of the allocation outcome', () => {
@@ -71,6 +88,27 @@ describe('calculateSuggestedTasks', () => {
 		expect(physicalOut.suggestedHours).toBeGreaterThan(0);
 		expect(mentalOut.priorityScore).toBe(physicalOut.priorityScore);
 		expect(mentalOut.priorityScore).toBeGreaterThan(0);
+	});
+
+	// The task badge reads `nature` off the plan instead of re-classifying in the
+	// component, so the threshold has one definition (AGENTS.md R2/R3).
+	it('stamps each task with its nature', () => {
+		const suggested = calculateSuggestedTasks(
+			[
+				makeTask({ id: 1, title: 'deep work', mentalDifficulty: 9, physicalDifficulty: 2 }),
+				makeTask({ id: 2, title: 'boxing', mentalDifficulty: 2, physicalDifficulty: 9 }),
+				makeTask({ id: 3, title: 'errands', mentalDifficulty: 5, physicalDifficulty: 5 })
+			],
+			8
+		);
+
+		expect(new Map(suggested.map((t) => [t.id, t.nature]))).toEqual(
+			new Map([
+				[1, 'cognitive'],
+				[2, 'physical'],
+				[3, 'balanced']
+			])
+		);
 	});
 
 	it('honors custom user constants', () => {

@@ -10,6 +10,7 @@ const task = (id: number, title: string): SuggestedTask => ({
 	physicalDifficulty: 5,
 	mentalDifficulty: 5,
 	enjoyment: 5,
+	nature: 'balanced',
 	createdAt: '2026-07-20',
 	completed: false,
 	suggestedHours: 1,

@@ -51,8 +51,9 @@ export function getEffectiveDifficulty(
 }
 
 /**
- * Determine if a task is primarily cognitive, physical, or balanced.
- * Used for display badges only - not for calculations.
+ * Determine if a task is primarily cognitive, physical, or balanced. Feeds the
+ * interleaving metrics below and the task badge, which reads it off
+ * `SuggestedTask.nature` — one definition of the ±3 threshold (AGENTS.md R3).
  */
 export function getTaskNature(
 	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>
@@ -91,6 +92,7 @@ export type SuggestedTask = Task & {
 	peakProductivity: number;
 	avgProductivity: number;
 	optimalHours: number; // Per-task optimal stopping time T* (model v2: task-dependent, no longer a fixed 1.79×ϕ)
+	nature: ReturnType<typeof getTaskNature>;
 };
 
 export type ZenithGain = {
@@ -155,7 +157,8 @@ export function calculateSuggestedTasks(
 				trueEnjoyability: alloc.beta,
 				peakProductivity: alloc.peakProductivity,
 				avgProductivity: alloc.avgProductivity,
-				optimalHours: alloc.optimalHours
+				optimalHours: alloc.optimalHours,
+				nature: getTaskNature(task)
 			};
 		})
 		.sort((a, b) => b.priorityScore - a.priorityScore);

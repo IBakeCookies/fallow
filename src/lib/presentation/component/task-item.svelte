@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/presentation/component/ui/badge';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { cn } from '$lib/presentation/utils';
-	import { getTaskNature } from '$lib/business/model/metric/calculation';
+	import { natureBadge, type TaskNature } from '$lib/presentation/utils/task-nature';
 
 	interface Props {
 		id: number;
@@ -12,6 +12,8 @@
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
+		/** Which system the task leans on — classified by the model, badged here. */
+		nature: TaskNature;
 		completed: boolean;
 		priorityScore: number;
 		suggestedHours: number;
@@ -42,6 +44,7 @@
 		physicalDifficulty,
 		mentalDifficulty,
 		enjoyment,
+		nature,
 		completed,
 		priorityScore,
 		suggestedHours,
@@ -124,28 +127,7 @@
 
 	const optimalStopTime = $derived(optimalStopHours);
 
-	const nature = $derived(getTaskNature({ physicalDifficulty, mentalDifficulty }));
-	const natureLabel = $derived(
-		nature === 'cognitive'
-			? m.task_nature_cognitive_label()
-			: nature === 'physical'
-				? m.task_nature_physical_label()
-				: m.task_nature_hybrid_label()
-	);
-	const natureClass = $derived(
-		nature === 'cognitive'
-			? 'bg-mind/20 text-mind'
-			: nature === 'physical'
-				? 'bg-body/20 text-body'
-				: 'bg-mixed/20 text-mixed'
-	);
-	const natureDescription = $derived(
-		nature === 'cognitive'
-			? m.task_nature_cognitive_description()
-			: nature === 'physical'
-				? m.task_nature_physical_description()
-				: m.task_nature_hybrid_description()
-	);
+	const badge = $derived(natureBadge(nature));
 </script>
 
 <Tooltip.Provider delayDuration={150}>
@@ -177,12 +159,12 @@
 					{/if}
 					<Tooltip.Root>
 						<Tooltip.Trigger class="cursor-help">
-							<Badge class="border-transparent uppercase tracking-wide {natureClass}">
-								{natureLabel}
+							<Badge class="border-transparent uppercase tracking-wide {badge.class}">
+								{badge.label}
 							</Badge>
 						</Tooltip.Trigger>
 						<Tooltip.Content>
-							<p>{natureDescription}</p>
+							<p>{badge.description}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
 					<h3

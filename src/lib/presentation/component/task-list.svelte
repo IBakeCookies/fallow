@@ -53,6 +53,7 @@
 			physicalDifficulty={task.physicalDifficulty}
 			mentalDifficulty={task.mentalDifficulty}
 			enjoyment={task.enjoyment}
+			nature={task.nature}
 			completed={task.completed}
 			priorityScore={task.priorityScore}
 			suggestedHours={task.suggestedHours}

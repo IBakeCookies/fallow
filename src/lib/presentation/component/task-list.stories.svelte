@@ -1,11 +1,11 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { fn } from 'storybook/test';
-	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
+	import { getTaskNature, type SuggestedTask } from '$lib/business/model/metric/calculation';
 	import TaskList from './task-list.svelte';
 
-	const task = (id: number, title: string, overrides: Partial<SuggestedTask> = {}) =>
-		({
+	const task = (id: number, title: string, overrides: Partial<SuggestedTask> = {}) => {
+		const base = {
 			id,
 			title,
 			physicalDifficulty: 3,
@@ -22,7 +22,10 @@
 			avgProductivity: 0.8,
 			optimalHours: 2,
 			...overrides
-		}) satisfies SuggestedTask;
+		};
+		// Badge follows the story's difficulties instead of a hardcoded default
+		return { nature: getTaskNature(base), ...base } satisfies SuggestedTask;
+	};
 
 	const tasks: SuggestedTask[] = [
 		task(1, 'write the calibration section', { suggestedHours: 1.75, priorityScore: 12.4 }),

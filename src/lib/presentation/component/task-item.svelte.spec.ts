@@ -9,6 +9,7 @@ const baseProps = {
 	physicalDifficulty: 5,
 	mentalDifficulty: 5,
 	enjoyment: 7,
+	nature: 'balanced' as const,
 	completed: false,
 	priorityScore: 42,
 	suggestedHours: 1.5,
@@ -35,14 +36,34 @@ describe('task-item.svelte', () => {
 			.toBeInTheDocument();
 	});
 
+	// The classification itself is the model's (getTaskNature); the badge only
+	// has to label whichever nature it was handed.
 	it.each([
-		[9, 2, 'COG'],
-		[2, 9, 'PHY'],
-		[5, 5, 'HYB']
-	])('mental %s / physical %s shows nature badge %s', async (mental, physical, label) => {
-		render(TaskItem, { ...baseProps, mentalDifficulty: mental, physicalDifficulty: physical });
+		['cognitive', 'COG'],
+		['physical', 'PHY'],
+		['balanced', 'HYB']
+	] as const)('nature %s shows badge %s', async (nature, label) => {
+		render(TaskItem, { ...baseProps, nature });
 
 		await expect.element(page.getByText(label, { exact: true })).toBeInTheDocument();
+	});
+
+	it('names the completion checkbox after the task', async () => {
+		render(TaskItem, baseProps);
+
+		await expect
+			.element(page.getByRole('checkbox', { name: 'Mark boxing complete' }))
+			.toBeInTheDocument();
+	});
+
+	it('names every editor slider', async () => {
+		render(TaskItem, { ...baseProps, onupdate: vi.fn() });
+
+		await page.getByRole('button', { name: 'Edit task' }).click();
+
+		await expect.element(page.getByRole('slider', { name: /Physical Diff/ })).toBeInTheDocument();
+		await expect.element(page.getByRole('slider', { name: /Mental Diff/ })).toBeInTheDocument();
+		await expect.element(page.getByRole('slider', { name: /Enjoyment/ })).toBeInTheDocument();
 	});
 
 	it('completed tasks strike through and hide allocation and run order', async () => {
