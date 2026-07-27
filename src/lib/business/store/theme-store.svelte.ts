@@ -38,6 +38,10 @@ export class ThemeStore {
 	// defaults to prefers-reduced-motion when no cookie says otherwise
 	#sceneryPaused = $state<boolean>(false);
 
+	// the OS setting, tracked live: `scenery/index.css` pauses motion under it
+	// with !important, so nothing the pause/resume control does can be honored
+	#prefersReducedMotion = $state<boolean>(false);
+
 	#classesToAdd = $derived.by<string[]>(() => {
 		return getClassesToAdd(this.#theme);
 	});
@@ -51,8 +55,15 @@ export class ThemeStore {
 		initialScenerySeed?: number,
 		initialSceneryPaused?: boolean
 	) {
+		// offline, the SW serves cached HTML whose serialized appearance may be
+		// stale — the cookies are the source of truth, so they win over the SSR
+		// payload for both theme and motion. (The seed deliberately isn't
+		// reconciled: re-seeding mid-session would shift the scenery.)
+		const stored = browser ? appearanceRepository.$readAppearance() : undefined;
+		const sceneryPaused = stored?.sceneryPaused ?? initialSceneryPaused;
+
 		this.#scenerySeed = initialScenerySeed ?? 0;
-		this.#sceneryPaused = initialSceneryPaused ?? false;
+		this.#sceneryPaused = sceneryPaused ?? false;
 
 		$effect(() => {
 			document.documentElement.classList.remove(...this.#classesToRemove);
@@ -63,29 +74,35 @@ export class ThemeStore {
 			document.documentElement.classList.toggle('scenery-paused', this.#sceneryPaused);
 		});
 
-		// no cookie means no explicit preference yet — honor the OS setting,
-		// same onMount/matchMedia approach as the dark-theme default below
-		if (initialSceneryPaused === undefined) {
-			onMount(() => {
-				const prefersReducedMotion =
-					window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		// Tracked rather than read once: the OS setting can flip mid-session and
+		// the CSS honors it immediately, so the control has to appear/disappear
+		// with it. No cookie also means no explicit preference yet, in which
+		// case the same query seeds the initial pause state.
+		onMount(() => {
+			if (!window.matchMedia) return;
 
-				if (!prefersReducedMotion) return;
+			const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+			const sync = () => {
+				this.#prefersReducedMotion = query.matches;
+			};
 
+			sync();
+
+			if (sceneryPaused === undefined && query.matches) {
 				this.#sceneryPaused = true;
-			});
-		}
-
-		// offline, the SW serves cached HTML whose serialized theme may be stale —
-		// the cookie is the source of truth, so it wins over initialTheme
-		if (browser) {
-			const cookieTheme = resolveThemeName(appearanceRepository.$readAppearance().theme);
-
-			if (cookieTheme) {
-				this.#theme = cookieTheme;
-
-				return;
 			}
+
+			query.addEventListener('change', sync);
+
+			return () => query.removeEventListener('change', sync);
+		});
+
+		const cookieTheme = resolveThemeName(stored?.theme);
+
+		if (cookieTheme) {
+			this.#theme = cookieTheme;
+
+			return;
 		}
 
 		// a stale cookie may still name a deleted theme — fall through to defaults
@@ -127,6 +144,11 @@ export class ThemeStore {
 
 	get sceneryPaused() {
 		return this.#sceneryPaused;
+	}
+
+	/** False while the OS asks for reduced motion — see `#prefersReducedMotion`. */
+	get sceneryMotionToggleable() {
+		return !this.#prefersReducedMotion;
 	}
 
 	switchTheme(newTheme: ThemeName): void {

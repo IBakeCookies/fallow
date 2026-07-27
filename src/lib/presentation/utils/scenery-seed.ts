@@ -23,6 +23,34 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
+/* FNV-1a — theme name → PRNG stream key */
+function hashName(name: string): number {
+	let h = 0x811c9dc5;
+
+	for (let i = 0; i < name.length; i++) {
+		h = Math.imul(h ^ name.charCodeAt(i), 0x01000193);
+	}
+
+	return h >>> 0;
+}
+
+/* One PRNG per theme, keyed by its name. Draw order only has to stay stable
+   WITHIN a theme, so adding, reordering or retuning one theme can never
+   reshuffle another one's arrangement. */
+function themeRandom(seed: number, name: string) {
+	const rnd = mulberry32(seed ^ hashName(name));
+	const between = (min: number, max: number) => min + rnd() * (max - min);
+	const rem = (min: number, max: number) => `${between(min, max).toFixed(1)}rem`;
+
+	return {
+		between,
+		rem,
+		sec: (min: number, max: number) => `${between(min, max).toFixed(1)}s`,
+		/* offset within one background tile — both axes must be non-animated */
+		tile: (w: number, h: number) => `${rem(0, w)} ${rem(0, h)}`
+	};
+}
+
 /* meridian hero ribbons — tuned lane/hue/width/opacity per stroke; only the
    anchor and control-point coordinates jitter (see meridianRibbonsUrl) */
 const MERIDIAN_RIBBONS = [
@@ -225,16 +253,12 @@ function duneCurveSegments(points: [number, number][], lean: 1 | -1): string {
 	return d;
 }
 
-/* seeded dune geometry: an independent PRNG (harvested from two `between2`
-   draws — the same call count the old tile2(46, 30) offset used) so this
-   var's much larger jitter budget can never shift where every later vars2
-   entry (sw-*, ff-*) lands in the shared stream2 sequence. */
-function dunesRidgesUrl(between2: (min: number, max: number) => number): string {
-	const localSeed = (Math.round(between2(0, 1e9)) ^ (Math.round(between2(0, 1e9)) << 16)) >>> 0;
-	const rnd = mulberry32(localSeed);
+/* seeded dune geometry: draws from the dunes stream, so its much larger jitter
+   budget stays local to this theme. */
+function dunesRidgesUrl(between: (min: number, max: number) => number): string {
 	/* one wind direction for the whole scene — all three layers lean together */
-	const lean = rnd() < 0.5 ? 1 : -1;
-	const jitter = (v: number, range: number) => Math.round(v + (rnd() * 2 - 1) * range);
+	const lean = between(0, 1) < 0.5 ? 1 : -1;
+	const jitter = (v: number, range: number) => Math.round(v + between(-range, range));
 
 	const paths = DUNES_LAYERS.map((layer) => {
 		const pts = layer.points.map(([x, y]) => [x, jitter(y, layer.jitter)] as [number, number]);
@@ -252,124 +276,114 @@ function dunesRidgesUrl(between2: (min: number, max: number) => number): string 
 }
 
 export function sceneryStyle(seed: number): string {
-	const rnd = mulberry32(seed);
-	const between = (min: number, max: number) => min + rnd() * (max - min);
-	const rem = (min: number, max: number) => `${between(min, max).toFixed(1)}rem`;
-	const sec = (min: number, max: number) => `${between(min, max).toFixed(1)}s`;
-	/* offset within one background tile — both axes must be non-animated */
-	const tile = (w: number, h: number) => `${rem(0, w)} ${rem(0, h)}`;
+	const abyss = themeRandom(seed, 'abyss');
+	const ember = themeRandom(seed, 'ember');
+	const zenith = themeRandom(seed, 'zenith');
+	const orbit = themeRandom(seed, 'orbit');
+	const ld = themeRandom(seed, 'lantern-drift');
+	const canopy = themeRandom(seed, 'canopy');
+	const meridian = themeRandom(seed, 'meridian');
+	const glacier = themeRandom(seed, 'glacier');
+	const ukiyo = themeRandom(seed, 'ukiyo');
+	const dunes = themeRandom(seed, 'dunes');
+	const sw = themeRandom(seed, 'synthwave');
+	const polaris = themeRandom(seed, 'polaris');
 
-	/* Var order is the rnd() call order — append only, or every user's
-	   scenery reshuffles on deploy. (The 2026-07 theme curation pruned vars
-	   mid-stream — a deliberate one-time reshuffle.) */
 	const vars: Record<string, string> = {
 		/* abyss: glows wander via transform, so both position axes are free;
 		   drift/breathe are desynced per layer by negative delays */
-		'--abyss-pos': `${rem(-8, 8)} ${rem(-6, 6)}`,
-		'--abyss-drift-1': sec(-44, 0),
-		'--abyss-breathe-1': sec(-10, 0),
-		'--abyss-drift-2': sec(-52, 0),
-		'--abyss-breathe-2': sec(-13, 0),
-		'--abyss-drift-3': sec(-48, 0),
-		'--abyss-breathe-3': sec(-11, 0),
+		'--abyss-pos': `${abyss.rem(-8, 8)} ${abyss.rem(-6, 6)}`,
+		'--abyss-drift-1': abyss.sec(-44, 0),
+		'--abyss-breathe-1': abyss.sec(-10, 0),
+		'--abyss-drift-2': abyss.sec(-52, 0),
+		'--abyss-breathe-2': abyss.sec(-13, 0),
+		'--abyss-drift-3': abyss.sec(-48, 0),
+		'--abyss-breathe-3': abyss.sec(-11, 0),
 
 		/* ember: rise animates y only, so x is free; 16rem-wide tile */
-		'--ember-x-1': rem(0, 16),
-		'--ember-phase-1': sec(-13, 0),
-		'--ember-phase-3': sec(-5, 0),
+		'--ember-x-1': ember.rem(0, 16),
+		'--ember-phase-1': ember.sec(-13, 0),
+		'--ember-phase-3': ember.sec(-5, 0),
 
 		/* zenith: seamless one-tile drifts — phase only */
-		'--zenith-phase-1': sec(-150, 0),
-		'--zenith-phase-2': sec(-240, 0),
+		'--zenith-phase-1': zenith.sec(-150, 0),
+		'--zenith-phase-2': zenith.sec(-240, 0),
 
 		/* orbit: star fields are static (both axes free, tiles 34×27rem and
 		   28×22rem); glide/satellite are loops — phase only */
-		'--orbit-stars-1': tile(34, 27),
-		'--orbit-stars-2': tile(28, 22),
-		'--orbit-twinkle-phase': sec(-7, 0),
-		'--orbit-glide-phase': sec(-140, 0),
-		'--orbit-sat-phase': sec(-180, 0),
-		'--orbit-shimmer-phase': sec(-5, 0),
-		'--orbit-lightning-phase': sec(-23, 0),
+		'--orbit-stars-1': orbit.tile(34, 27),
+		'--orbit-stars-2': orbit.tile(28, 22),
+		'--orbit-twinkle-phase': orbit.sec(-7, 0),
+		'--orbit-glide-phase': orbit.sec(-140, 0),
+		'--orbit-sat-phase': orbit.sec(-180, 0),
+		'--orbit-shimmer-phase': orbit.sec(-5, 0),
+		'--orbit-lightning-phase': orbit.sec(-23, 0),
 
 		/* lantern-drift: reed bank x is static-free (60rem tile). Lanterns and
 		   their reflections share --ld-drift-phase — their horizontal lockstep
 		   is the effect, never split them. */
-		'--ld-reeds-x': rem(0, 60),
-		'--ld-drift-phase': sec(-137, 0),
-		'--ld-shimmer-phase': sec(-9.5, 0),
+		'--ld-reeds-x': ld.rem(0, 60),
+		'--ld-drift-phase': ld.sec(-137, 0),
+		'--ld-shimmer-phase': ld.sec(-9.5, 0),
 
 		/* canopy: leaf dapple is static (both axes free, 34×28rem tile); rays
 		   only re-phase; pollen rises on y so its x is free (18rem / 24rem tiles) */
-		'--canopy-dapple': tile(34, 28),
-		'--canopy-dapple-phase': sec(-13, 0),
-		'--canopy-ray-1': sec(-17, 0),
-		'--canopy-ray-2': sec(-23, 0),
-		'--canopy-pollen-x-1': rem(0, 18),
-		'--canopy-pollen-phase-1': sec(-26, 0),
-		'--canopy-pollen-x-2': rem(0, 24),
-		'--canopy-pollen-phase-2': sec(-19, 0),
+		'--canopy-dapple': canopy.tile(34, 28),
+		'--canopy-dapple-phase': canopy.sec(-13, 0),
+		'--canopy-ray-1': canopy.sec(-17, 0),
+		'--canopy-ray-2': canopy.sec(-23, 0),
+		'--canopy-pollen-x-1': canopy.rem(0, 18),
+		'--canopy-pollen-phase-1': canopy.sec(-26, 0),
+		'--canopy-pollen-x-2': canopy.rem(0, 24),
+		'--canopy-pollen-phase-2': canopy.sec(-19, 0),
 
 		/* meridian: far contours and glow-nodes are static (both axes free,
 		   38×26rem and 28×23rem tiles); breathe/sheen/twinkle only re-phase.
 		   The hero ribbons are the one place seed drives geometry, not just
 		   timing — a whole-SVG var, jitter constrained to the tuned lanes */
-		'--meridian-lines-1': tile(38, 26),
-		'--meridian-breathe-phase': sec(-13, 0),
-		'--meridian-sheen-phase': sec(-17, 0),
-		'--meridian-nodes': tile(28, 23),
-		'--meridian-twinkle-phase': sec(-9, 0),
-		/* must stay last: its internal rnd() call count can change independently
-		   of this list (e.g. the c3-reflection fix), so nothing after it is safe */
-		'--meridian-ribbons': meridianRibbonsUrl(between)
-	};
+		'--meridian-lines-1': meridian.tile(38, 26),
+		'--meridian-breathe-phase': meridian.sec(-13, 0),
+		'--meridian-sheen-phase': meridian.sec(-17, 0),
+		'--meridian-nodes': meridian.tile(28, 23),
+		'--meridian-twinkle-phase': meridian.sec(-9, 0),
+		'--meridian-ribbons': meridianRibbonsUrl(meridian.between),
 
-	/* stream 2 — themes added after --meridian-ribbons. Independent PRNG so
-	   stream 1 (incl. ribbons' variable rnd() call count) can never reshuffle
-	   these. Same append-only rule applies within this stream. */
-	const rnd2 = mulberry32(seed ^ 0x9e3779b9);
-	const between2 = (min: number, max: number) => min + rnd2() * (max - min);
-	const rem2 = (min: number, max: number) => `${between2(min, max).toFixed(1)}rem`;
-	const sec2 = (min: number, max: number) => `${between2(min, max).toFixed(1)}s`;
-	const tile2 = (w: number, h: number) => `${rem2(0, w)} ${rem2(0, h)}`;
-
-	const vars2: Record<string, string> = {
 		/* glacier: snowfall falls on y so x is free (tiles 20×26rem far, 16×22rem near); sway only re-phases */
-		'--glacier-far-x': rem2(0, 20),
-		'--glacier-far-phase': sec2(-15, 0),
-		'--glacier-near-x': rem2(0, 16),
-		'--glacier-near-phase': sec2(-8, 0),
-		'--glacier-sway-phase': sec2(-4.5, 0),
+		'--glacier-far-x': glacier.rem(0, 20),
+		'--glacier-far-phase': glacier.sec(-15, 0),
+		'--glacier-near-x': glacier.rem(0, 16),
+		'--glacier-near-phase': glacier.sec(-8, 0),
+		'--glacier-sway-phase': glacier.sec(-4.5, 0),
 
 		/* ukiyo: sun wobbles on a small static tile; wave/fall loops re-phase; petal fall is on y so x is free (20rem/26rem tiles); sway is a transform, phased independently */
-		'--ukiyo-wave-phase': sec2(-68, 0),
-		'--ukiyo-petal-x-far': rem2(0, 20),
-		'--ukiyo-petal-phase-far': sec2(-32, 0),
-		'--ukiyo-sway-phase-far': sec2(-7, 0),
-		'--ukiyo-petal-x-near': rem2(0, 26),
-		'--ukiyo-petal-phase-near': sec2(-24, 0),
-		'--ukiyo-sway-phase-near': sec2(-5, 0),
+		'--ukiyo-wave-phase': ukiyo.sec(-68, 0),
+		'--ukiyo-petal-x-far': ukiyo.rem(0, 20),
+		'--ukiyo-petal-phase-far': ukiyo.sec(-32, 0),
+		'--ukiyo-sway-phase-far': ukiyo.sec(-7, 0),
+		'--ukiyo-petal-x-near': ukiyo.rem(0, 26),
+		'--ukiyo-petal-phase-near': ukiyo.sec(-24, 0),
+		'--ukiyo-sway-phase-near': ukiyo.sec(-5, 0),
 
 		/* dunes: ridges are a whole-SVG var, same technique as --meridian-ribbons —
 		   see dunesRidgesUrl; the shimmer only re-phases */
-		'--dunes-ridges': dunesRidgesUrl(between2),
-		'--dunes-shimmer-phase-1': sec2(-4.5, 0),
+		'--dunes-shimmer-phase-1': dunes.sec(-4.5, 0),
+		'--dunes-ridges': dunesRidgesUrl(dunes.between),
 
 		/* synthwave: stars are a static tile (both axes free); breathe/sink/twinkle/haze only re-phase; grid rails are a static tile (x free); the grid's scroll is a seamless one-tile loop, phased via delay only */
-		'--sw-stars': tile2(30, 24),
-		'--sw-twinkle-phase': sec2(-6, 0),
-		'--sw-breathe-phase': sec2(-11, 0),
-		'--sw-sink-phase': sec2(-17, 0),
-		'--sw-grid-x': rem2(0, 3),
-		'--sw-grid-phase': sec2(-2.6, 0),
-		'--sw-haze-phase': sec2(-8, 0),
+		'--sw-stars': sw.tile(30, 24),
+		'--sw-twinkle-phase': sw.sec(-6, 0),
+		'--sw-breathe-phase': sw.sec(-11, 0),
+		'--sw-sink-phase': sw.sec(-17, 0),
+		'--sw-grid-x': sw.rem(0, 3),
+		'--sw-grid-phase': sw.sec(-2.6, 0),
+		'--sw-haze-phase': sw.sec(-8, 0),
 
 		/* polaris: the field-star tile is static (both axes free, 30×24rem);
 		   constellations and trails are fixed geometry, never offset */
-		'--polaris-stars': tile2(30, 24)
+		'--polaris-stars': polaris.tile(30, 24)
 	};
 
-	return Object.entries({ ...vars, ...vars2 })
+	return Object.entries(vars)
 		.map(([k, v]) => `${k}: ${v}`)
 		.join('; ');
 }

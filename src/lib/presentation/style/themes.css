@@ -92,8 +92,8 @@
 	/* candlelit palace: gold chandelier glow over deep aubergine velvet */
 	--background-image:
 		radial-gradient(ellipse 70% 45% at 50% -10%, oklch(0.65 0.13 85 / 0.28), transparent 65%),
-		radial-gradient(ellipse 55% 40% at 12% 30%, oklch(0.45 0.14 330 / 0.3), transparent 65%),
-		radial-gradient(ellipse 55% 40% at 88% 70%, oklch(0.4 0.12 300 / 0.3), transparent 65%),
+		radial-gradient(ellipse 55% 40% at 25% 30%, oklch(0.45 0.14 330 / 0.3), transparent 65%),
+		radial-gradient(ellipse 55% 40% at 78% 70%, oklch(0.4 0.12 300 / 0.3), transparent 65%),
 		linear-gradient(oklch(0.21 0.05 320), oklch(0.15 0.04 310));
 
 	--radius: 1rem;

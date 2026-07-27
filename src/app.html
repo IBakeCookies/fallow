@@ -24,7 +24,10 @@
 				!document.cookie.includes('theme=') &&
 				matchMedia('(prefers-color-scheme: dark)').matches
 			) {
-				document.documentElement.className = 'dark';
+				// swap only the classes this script owns: assigning className would
+				// wipe the scenery-paused class hooks.server.ts already stamped
+				document.documentElement.classList.remove('fallow');
+				document.documentElement.classList.add('dark');
 			}
 
 			if (

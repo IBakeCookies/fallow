@@ -1,0 +1,18 @@
+<script lang="ts">
+	// Test-only host: the store needs a component context (onMount, $effect).
+	import { ThemeStore } from './theme-store.svelte';
+	import type { ThemeName } from '$lib/business/model/theme';
+
+	let {
+		onstore,
+		initialTheme,
+		initialSceneryPaused
+	}: {
+		onstore: (store: ThemeStore) => void;
+		initialTheme?: ThemeName;
+		initialSceneryPaused?: boolean;
+	} = $props();
+
+	// svelte-ignore state_referenced_locally -- deliberate one-shot handoff
+	onstore(new ThemeStore(initialTheme, 0, initialSceneryPaused));
+</script>
