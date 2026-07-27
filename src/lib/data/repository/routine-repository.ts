@@ -14,11 +14,12 @@ export async function $updateRoutine(routine: SavedRoutine): Promise<void> {
 
 export async function $readAllRoutines(): Promise<SavedRoutine[]> {
 	const result = await withStore('routines', 'readonly', (store) => store.getAll());
+
 	return result || [];
 }
 
 export async function $deleteRoutine(id: string): Promise<void> {
-	await withStore('routines', 'readwrite', (store) => {
+	return withStore('routines', 'readwrite', (store) => {
 		store.delete(id);
 	});
 }

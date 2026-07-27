@@ -5,6 +5,7 @@ import {
 	migrateEnergyParamsFromLocalStorage
 } from './local-storage-migration';
 import { $readSessionByDate } from '$lib/data/repository/session-repository';
+import { $deleteAllStores } from '$lib/data/repository/backup-repository';
 import {
 	ENERGY_PARAMS_SETTING,
 	$readSetting,
@@ -29,6 +30,19 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 		backing.set(MIGRATION_KEY, 'true');
 		backing.set(STORAGE_KEY, JSON.stringify({ tasks: [] }));
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-01', 0.5)).toBe(false);
+	});
+
+	// "Delete all data" wipes IndexedDB only, and the legacy blob is kept on
+	// purpose (see the migration's comment). The one-way flag is what stops it
+	// resurrecting the wiped tasks on the next load — R8 step 5.
+	it('never resurrects the legacy blob after a wipe', async () => {
+		backing.set(STORAGE_KEY, JSON.stringify({ tasks: [{ id: 1, title: 'Wiped task' }] }));
+		expect(await migrateFromLocalStorageToIndexedDB('2026-01-06', 0.5)).toBe(true);
+
+		await $deleteAllStores();
+
+		expect(await migrateFromLocalStorageToIndexedDB('2026-01-06', 0.5)).toBe(false);
+		expect(await $readSessionByDate('2026-01-06')).toBeNull();
 	});
 
 	it('marks migrated and returns false when there is no old data', async () => {

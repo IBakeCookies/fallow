@@ -36,6 +36,16 @@ describe('indexed-db', () => {
 		]);
 	});
 
+	// The literal above is an independent oracle; this catches the other half of
+	// the drift — a store added to onupgradeneeded but not to STORE_NAMES (or the
+	// reverse), which would silently skip it in export/import/wipe.
+	it('creates exactly the stores STORE_NAMES declares', async () => {
+		const { openDatabase, STORE_NAMES } = await importFresh();
+		const database = await openDatabase();
+
+		expect([...database.objectStoreNames].sort()).toEqual([...STORE_NAMES].sort());
+	});
+
 	it('returns the same connection on repeated calls', async () => {
 		const { openDatabase } = await importFresh();
 		const [first, second] = await Promise.all([openDatabase(), openDatabase()]);

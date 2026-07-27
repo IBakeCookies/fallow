@@ -14,6 +14,7 @@ export const ENERGY_PARAMS_SETTING = 'energyParams';
 
 export async function $readSetting(key: string): Promise<unknown> {
 	const record = await withStore('settings', 'readonly', (store) => store.get(key));
+
 	return (record as SettingRecord | undefined)?.value;
 }
 

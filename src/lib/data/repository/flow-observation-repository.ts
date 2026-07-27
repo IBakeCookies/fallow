@@ -33,12 +33,13 @@ export async function $updateFlowObservation(
 
 export async function $readAllFlowObservations(): Promise<FlowObservationRecord[]> {
 	const result = await withStore('flowObservations', 'readonly', (store) => store.getAll());
+
 	return result || [];
 }
 
 /** Remove a single measured data point from the personalization fit. */
 export async function $deleteFlowObservation(id: number): Promise<void> {
-	await withStore('flowObservations', 'readwrite', (store) => {
+	return withStore('flowObservations', 'readwrite', (store) => {
 		store.delete(id);
 	});
 }
@@ -49,7 +50,7 @@ export async function $deleteFlowObservation(id: number): Promise<void> {
  * article defaults with nothing else to reset.
  */
 export async function $deleteAllFlowObservations(): Promise<void> {
-	await withStore('flowObservations', 'readwrite', (store) => {
+	return withStore('flowObservations', 'readwrite', (store) => {
 		store.clear();
 	});
 }

@@ -32,6 +32,7 @@ export async function $exportAllStores(): Promise<BackupFile> {
 				})
 		)
 	);
+
 	return {
 		app: 'fallow',
 		schemaVersion: DB_VERSION,
@@ -60,17 +61,26 @@ export async function $importAllStores(backup: unknown): Promise<void> {
 	}
 
 	const database = await openDatabase();
+
 	return new Promise((resolve, reject) => {
 		const transaction = database.transaction(STORE_NAMES as unknown as string[], 'readwrite');
 		transaction.oncomplete = () => resolve();
 		transaction.onerror = () => reject(transaction.error);
 		transaction.onabort = () => reject(transaction.error ?? new Error('Import aborted'));
 
-		for (const name of STORE_NAMES) {
-			const records = parsed.stores?.[name];
-			if (!Array.isArray(records)) continue;
-			const store = transaction.objectStore(name);
-			for (const record of records) store.put(record);
+		// put() throws SYNCHRONOUSLY on a bad record (DataError, DataCloneError).
+		// Without the abort the puts queued before it still commit, so the caller
+		// sees a rejection over a half-restored database.
+		try {
+			for (const name of STORE_NAMES) {
+				const records = parsed.stores?.[name];
+				if (!Array.isArray(records)) continue;
+				const store = transaction.objectStore(name);
+				for (const record of records) store.put(record);
+			}
+		} catch (error) {
+			transaction.abort();
+			reject(error);
 		}
 	});
 }
@@ -78,11 +88,17 @@ export async function $importAllStores(backup: unknown): Promise<void> {
 /** Wipe every object store in one transaction — all data or none. */
 export async function $deleteAllStores(): Promise<void> {
 	const database = await openDatabase();
+
 	return new Promise((resolve, reject) => {
 		const transaction = database.transaction(STORE_NAMES as unknown as string[], 'readwrite');
 		transaction.oncomplete = () => resolve();
 		transaction.onerror = () => reject(transaction.error);
 		transaction.onabort = () => reject(transaction.error ?? new Error('Wipe aborted'));
-		for (const name of STORE_NAMES) transaction.objectStore(name).clear();
+		try {
+			for (const name of STORE_NAMES) transaction.objectStore(name).clear();
+		} catch (error) {
+			transaction.abort();
+			reject(error);
+		}
 	});
 }

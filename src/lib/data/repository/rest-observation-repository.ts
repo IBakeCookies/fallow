@@ -21,12 +21,13 @@ export async function $createRestObservation(
 
 export async function $readAllRestObservations(): Promise<RestObservationRecord[]> {
 	const result = await withStore('restObservations', 'readonly', (store) => store.getAll());
+
 	return result || [];
 }
 
 /** Remove a single rest pair from the calibration. */
 export async function $deleteRestObservation(id: number): Promise<void> {
-	await withStore('restObservations', 'readwrite', (store) => {
+	return withStore('restObservations', 'readwrite', (store) => {
 		store.delete(id);
 	});
 }
@@ -37,7 +38,7 @@ export async function $deleteRestObservation(id: number): Promise<void> {
  * calibration to the defaults with nothing else to reset.
  */
 export async function $deleteAllRestObservations(): Promise<void> {
-	await withStore('restObservations', 'readwrite', (store) => {
+	return withStore('restObservations', 'readwrite', (store) => {
 		store.clear();
 	});
 }

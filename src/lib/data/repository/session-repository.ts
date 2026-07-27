@@ -14,6 +14,7 @@ export async function $updateSession(session: DailySession): Promise<void> {
 
 export async function $readSessionByDate(date: string): Promise<DailySession | null> {
 	const result = await withStore('sessions', 'readonly', (store) => store.get(date));
+
 	return result || null;
 }
 
@@ -29,5 +30,6 @@ export async function $readSessionsByDateRange(
 	const result = await withStore('sessions', 'readonly', (store) =>
 		store.getAll(IDBKeyRange.bound(startDate, endDate))
 	);
+
 	return result || [];
 }

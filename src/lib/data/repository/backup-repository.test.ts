@@ -8,7 +8,7 @@ import {
 } from './backup-repository';
 import { $updateSession, $readSessionByDate } from './session-repository';
 import { $updateFlowObservation, $readAllFlowObservations } from './flow-observation-repository';
-import { DB_VERSION } from '$lib/data/storage/indexed-db';
+import { DB_VERSION, STORE_NAMES } from '$lib/data/storage/indexed-db';
 import type { DailySession } from '$lib/data/type';
 
 function session(date: string, overrides: Partial<DailySession> = {}): DailySession {
@@ -89,5 +89,43 @@ describe('backup-repository', () => {
 		};
 		backup.stores.futureStore = [{ id: 1 }];
 		await expect($importAllStores(backup)).resolves.toBeUndefined();
+	});
+
+	it('writes nothing at all when a later record is malformed', async () => {
+		await $deleteAllStores();
+		await $updateSession(session('2026-02-01'));
+		const seeded = await $readSessionByDate('2026-02-01');
+
+		const backup = await $exportAllStores();
+		(backup.stores.sessions[0] as DailySession).updatedAt = 999;
+		// valid record, then one with no `date` — put() throws on the missing keyPath
+		backup.stores.sessions.push(session('2026-02-02'), { updatedAt: 3 });
+
+		await expect($importAllStores(backup)).rejects.toThrow();
+
+		// the puts queued before the throw must have been rolled back with it
+		expect((await $readSessionByDate('2026-02-01'))?.updatedAt).toBe(seeded?.updatedAt);
+		expect(await $readSessionByDate('2026-02-02')).toBeNull();
+	});
+
+	it('imports every store from a wholly valid backup', async () => {
+		await $deleteAllStores();
+
+		await $importAllStores({
+			app: 'fallow',
+			schemaVersion: DB_VERSION,
+			exportedAt: new Date().toISOString(),
+			stores: {
+				sessions: [session('2026-03-01')],
+				routines: [{ id: 'routine-1', name: 'morning', tasks: [] }],
+				flowObservations: [{ id: 1, date: '2026-03-01' }],
+				drainObservations: [{ id: 1, date: '2026-03-01' }],
+				restObservations: [{ id: 1, date: '2026-03-01' }],
+				settings: [{ key: 'energyParams', value: {} }]
+			}
+		} satisfies BackupFile);
+
+		const exported = await $exportAllStores();
+		for (const name of STORE_NAMES) expect(exported.stores[name]).toHaveLength(1);
 	});
 });
