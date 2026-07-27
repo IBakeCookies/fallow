@@ -28,6 +28,7 @@ import {
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitStoppingValue,
+	type EnergyParams,
 	type StoppingValueFit,
 	type StopObservation
 } from '$lib/business/model/zenith-energy';
@@ -35,7 +36,12 @@ import {
 	calibrateEnergyParams,
 	type EnergyCalibration
 } from '$lib/business/model/energy-calibration';
-import type { PlanAuditDay } from '$lib/business/model/plan-audit';
+import {
+	auditPlanAdherence,
+	type PlanAudit,
+	type PlanAuditDay
+} from '$lib/business/model/plan-audit';
+import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
 
 /**
@@ -58,7 +64,7 @@ export async function initializeStorage(): Promise<void> {
  * so per-day completion rates match what the main dashboard showed that day —
  * which requires passing the posterior too, not just the point estimate.
  */
-export async function readUserFit(): Promise<{
+async function readUserFit(): Promise<{
 	constants: UserConstants;
 	posterior?: FitPosterior;
 	fitted: boolean;
@@ -76,11 +82,21 @@ export async function readUserFit(): Promise<{
 	};
 }
 
-export async function readSessionsByDateRange(
-	startDate: string,
-	endDate: string
-): Promise<DailySession[]> {
-	return $readSessionsByDateRange(startDate, endDate);
+/**
+ * Every stored day that has tasks in the range, summarized with the user's own
+ * fit, ascending by date. The calendar and the analytics screen must read a day
+ * identically, so the fit read and the summarize call are composed here instead
+ * of in each page (AGENTS.md R2). The fit is re-read per call — one small store
+ * read — so no caller has to hold model state across a range change.
+ */
+export async function readDaySummaries(startDate: string, endDate: string): Promise<DaySummary[]> {
+	const [fit, sessions] = await Promise.all([
+		readUserFit(),
+		$readSessionsByDateRange(startDate, endDate)
+	]);
+	return sessions
+		.filter((session) => session.tasks.length > 0)
+		.map((session) => summarizeSession(session, fit.constants, fit.posterior));
 }
 
 /**
@@ -135,9 +151,9 @@ export async function readStopObservations(today: string): Promise<StopObservati
  * Finished days for the plan-adherence audit (MATH.md §12): the §8.10 join
  * plus each day's stored classic-planner inputs (switch cost, pools), so the
  * audit compares against the plan the user would actually have seen that day.
- * Chronologically ascending — cap cost with `.slice(-n)` at the call site.
+ * Chronologically ascending — `readModelReport` caps the lookback.
  */
-export async function readPlanAuditDays(today: string): Promise<PlanAuditDay[]> {
+async function readPlanAuditDays(today: string): Promise<PlanAuditDay[]> {
 	return (await readFinishedDays(today)).map(({ session, workedHours }) => ({
 		tasks: session.tasks.map(toEnergyTask),
 		windowHours: session.availableHours,
@@ -164,9 +180,11 @@ export interface CalibrationSnapshot {
 	flow: { fitted: boolean; usedCount: number; phiHours: number; defaultPhiHours: number };
 	energy: EnergyCalibration;
 	stopping: StoppingValueFit;
+	/** The defaults each fit is anchored to — every row shows one next to its fit. */
+	defaults: EnergyParams;
 }
 
-export async function readCalibrationSnapshot(today: string): Promise<CalibrationSnapshot> {
+async function readCalibrationSnapshot(today: string): Promise<CalibrationSnapshot> {
 	const [fit, rest, drain, stops] = await Promise.all([
 		readUserFit(),
 		$readAllRestObservations(),
@@ -190,6 +208,37 @@ export async function readCalibrationSnapshot(today: string): Promise<Calibratio
 			defaultPhiHours: calculateFlowStateTime(E, beta, DEFAULT_USER_CONSTANTS)
 		},
 		energy,
-		stopping
+		stopping,
+		defaults: DEFAULT_ENERGY_PARAMS
+	};
+}
+
+/** An audit of no days — what the analytics screen shows when the read failed. */
+export const EMPTY_PLAN_AUDIT: PlanAudit = auditPlanAdherence([], DEFAULT_ENERGY_PARAMS);
+
+export interface ModelReport {
+	calibration: CalibrationSnapshot;
+	audit: PlanAudit;
+}
+
+/**
+ * Everything the analytics screen's two model cards need, in one read: they
+ * share the calibration snapshot, and the audit runs one optimizer pass per
+ * audited day (~60ms), so `auditDayCap` bounds the lookback.
+ */
+export async function readModelReport(today: string, auditDayCap: number): Promise<ModelReport> {
+	const [fit, days, calibration] = await Promise.all([
+		readUserFit(),
+		readPlanAuditDays(today),
+		readCalibrationSnapshot(today)
+	]);
+	return {
+		calibration,
+		audit: auditPlanAdherence(
+			days.slice(-auditDayCap),
+			calibration.energy.params,
+			fit.constants,
+			fit.posterior
+		)
 	};
 }

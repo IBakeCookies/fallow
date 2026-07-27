@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import { onMount } from 'svelte';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -11,18 +12,9 @@
 	import { cn } from '$lib/presentation/utils';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import { getStatusBiggerBetter, getCompletionBarClass } from '$lib/presentation/utils/status';
-	import { type DaySummary, summarizeSession } from '$lib/business/model/metric/history';
+	import type { DaySummary } from '$lib/business/model/metric/history';
 	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
-	import {
-		initializeStorage,
-		readSessionsByDateRange,
-		readUserFit
-	} from '$lib/business/store/session-history';
-	import {
-		DEFAULT_USER_CONSTANTS,
-		type FitPosterior,
-		type UserConstants
-	} from '$lib/business/model/zenith';
+	import { initializeStorage, readDaySummaries } from '$lib/business/store/session-history';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
@@ -41,8 +33,6 @@
 	let anchor = $state(toISODate()); // any date inside the visible month/week
 	const viewLabel = $derived(view === 'month' ? m.cal_view_month() : m.cal_view_week());
 	let summaries = $state<Map<string, DaySummary>>(new Map());
-	let constants = $state<UserConstants>(DEFAULT_USER_CONSTANTS);
-	let posterior = $state<FitPosterior | undefined>(undefined);
 	let ready = $state(false);
 	let isLoading = $state(true);
 
@@ -50,11 +40,6 @@
 		if (!browser) return;
 		try {
 			await initializeStorage();
-			// Same personalized fit (constants + posterior) as the dashboard, so
-			// per-day completion rates match what the main page showed that day
-			const fit = await readUserFit();
-			constants = fit.constants;
-			posterior = fit.posterior;
 		} catch (e) {
 			console.error('Failed to initialize calendar', e);
 		} finally {
@@ -86,21 +71,19 @@
 		return `${startFmt} – ${endFmt}`;
 	});
 
-	// Reload whenever the visible range (or fitted constants) changes; the
-	// version guard drops stale responses from rapid prev/next clicks.
+	// Reload whenever the visible range changes; the version guard drops stale
+	// responses from rapid prev/next clicks.
 	let loadVersion = 0;
 	$effect(() => {
 		if (!ready) return;
-		const [start, end, consts, post] = [rangeStart, rangeEnd, constants, posterior];
+		const [start, end] = [rangeStart, rangeEnd];
 		const version = ++loadVersion;
-		readSessionsByDateRange(start, end)
-			.then((sessions) => {
+		readDaySummaries(start, end)
+			.then((days) => {
 				if (version !== loadVersion) return;
 				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local accumulator, assigned once
 				const map = new Map<string, DaySummary>();
-				for (const s of sessions) {
-					if (s.tasks.length > 0) map.set(s.date, summarizeSession(s, consts, post));
-				}
+				for (const day of days) map.set(day.date, day);
 				summaries = map;
 				isLoading = false;
 			})
@@ -192,7 +175,7 @@
 			{@const isToday = date === today}
 			{@const dayNum = fromISO(date).getDate()}
 			<a
-				href={date === today ? resolve('/') : `${resolve('/')}?date=${date}`}
+				href={localizeHref(date === today ? resolve('/') : `${resolve('/')}?date=${date}`)}
 				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-text-2xs sm:p-box-2xs transition-colors
 				       {isToday ? 'border-success/40' : s ? '' : 'border-line-soft'}
 				       {s ? 'backdrop-blur bg-surface-card' : 'bg-transparent'}
@@ -301,7 +284,7 @@
 	<p class="mt-text-xs text-center text-xs text-ty-silent">
 		{m.cal_empty_1({ view: viewLabel })}
 		<a
-			href={resolve('/')}
+			href={localizeHref(resolve('/'))}
 			class="text-ty-secondary underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary"
 			>{m.link_today()}</a
 		>

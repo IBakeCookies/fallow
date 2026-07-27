@@ -1,94 +1,59 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
-	import { onMount } from 'svelte';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
-	import {
-		type DaySummary,
-		summarizeSession,
-		currentStreak
-	} from '$lib/business/model/metric/history';
 	import { addDays, fromISO } from '$lib/business/utils/date';
 	import {
-		initializeStorage,
-		readCalibrationSnapshot,
-		readPlanAuditDays,
-		readSessionsByDateRange,
-		readUserFit,
-		type CalibrationSnapshot
-	} from '$lib/business/store/session-history';
-	import { auditPlanAdherence, type PlanAudit } from '$lib/business/model/plan-audit';
-	import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
-	import { liveToday } from '$lib/business/state/today.svelte';
+		ANALYTICS_RANGES,
+		AnalyticsStore,
+		type AnalyticsRange
+	} from '$lib/business/store/analytics-store.svelte';
 
-	const today = $derived(liveToday.value);
+	// Everything on this page comes off the store — the folds and the load live
+	// there; this file is labels, colors, locale formatting and SVG geometry.
+	const analytics = new AnalyticsStore();
 
-	const RANGES = {
-		week: { days: 7, label: () => m.ana_range_week(), prevLabel: () => m.ana_prev_week() },
-		month: { days: 30, label: () => m.ana_range_month(), prevLabel: () => m.ana_prev_month() },
-		year: { days: 365, label: () => m.ana_range_year(), prevLabel: () => '' }
-	} as const;
-	type RangeKey = keyof typeof RANGES;
+	// Decimals follow the active locale, like every date on this page does —
+	// otherwise a German reader gets "1.5" between two German dates.
+	function formatDecimals(value: number, digits: number): string {
+		return value.toLocaleString(getDateLocale(), {
+			minimumFractionDigits: digits,
+			maximumFractionDigits: digits
+		});
+	}
 
-	let range = $state<RangeKey>('week');
-	// Every stored day with tasks in the last year, ascending by date
-	let all = $state<DaySummary[]>([]);
-	let isLoading = $state(true);
-	// Plan-adherence audit (MATH.md §12); null while loading
-	let audit = $state<PlanAudit | null>(null);
-	// Calibration snapshot ("Your model" card); null while loading
-	let calibration = $state<CalibrationSnapshot | null>(null);
-	// One optimizer run per audited day (~60ms each) — cap the lookback
-	const AUDIT_DAY_CAP = 30;
+	// Copy for the range toggle; the day counts themselves are the store's.
+	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
+		week: { label: () => m.ana_range_week(), prevLabel: () => m.ana_prev_week() },
+		month: { label: () => m.ana_range_month(), prevLabel: () => m.ana_prev_month() },
+		year: { label: () => m.ana_range_year(), prevLabel: () => '' }
+	};
 
-	onMount(async () => {
-		if (!browser) return;
-		try {
-			await initializeStorage();
-			const fit = await readUserFit();
-			const sessions = await readSessionsByDateRange(addDays(today, -364), today);
-			all = sessions
-				.filter((s) => s.tasks.length > 0)
-				.map((s) => summarizeSession(s, fit.constants, fit.posterior));
-			// Main view can paint before the audit's optimizer runs finish.
-			isLoading = false;
-			const [auditDays, snapshot] = await Promise.all([
-				readPlanAuditDays(today),
-				readCalibrationSnapshot(today)
-			]);
-			calibration = snapshot;
-			audit = auditPlanAdherence(
-				auditDays.slice(-AUDIT_DAY_CAP),
-				snapshot.energy.params,
-				fit.constants,
-				fit.posterior
-			);
-		} catch (e) {
-			console.error('Failed to load analytics data', e);
-			audit ??= auditPlanAdherence([], DEFAULT_ENERGY_PARAMS);
-		} finally {
-			isLoading = false;
-		}
-	});
+	// Thin aliases for the values the markup reads more than once
+	const calibration = $derived(analytics.calibration);
+	const audit = $derived(analytics.audit);
+	const rateDelta = $derived(analytics.completionRateDelta);
+	const bestDay = $derived(analytics.bestDay);
+	const quadrantCounts = $derived(analytics.quadrantCounts);
 
 	// "Your model" rows: fitted value (± std) next to its default and log count.
 	// ≈/±/units match the Energy Lab's fit lines; counts are the fits' OWN
 	// usedCounts (informative observations, not raw log rows).
 	const modelRows = $derived.by(() => {
 		if (!calibration) return [];
-		const f2 = (x: number) => x.toFixed(2);
-		const minutes = (h: number) => `${Math.round(h * 60)}m`;
+		const f2 = (x: number) => formatDecimals(x, 2);
+		const minutes = (h: number) => `${Math.round(h * 60)} ${m.unit_minutes()}`;
 		const rate = (
 			fit: { fitted: boolean },
 			value: number,
 			std: number | undefined,
 			unit: string
 		) => (fit.fitted ? `≈ ${f2(value)} ± ${f2(std ?? 0)} ${unit}` : `${f2(value)} ${unit}`);
-		const { flow, energy, stopping } = calibration;
+		const { flow, energy, stopping, defaults } = calibration;
 		return [
 			{
 				label: m.ana_model_flow(),
@@ -100,9 +65,14 @@
 			},
 			{
 				label: m.ana_model_recovery(),
-				value: rate(energy.recovery, energy.recovery.rate, energy.recovery.rateStd, '/h'),
+				value: rate(
+					energy.recovery,
+					energy.recovery.rate,
+					energy.recovery.rateStd,
+					m.unit_per_hour()
+				),
 				note: m.ana_model_note_ratings({
-					value: f2(DEFAULT_ENERGY_PARAMS.recoveryRate),
+					value: f2(defaults.recoveryRate),
 					count: energy.recovery.usedCount
 				})
 			},
@@ -112,10 +82,10 @@
 					energy.cognitiveDrain,
 					energy.cognitiveDrain.alpha,
 					energy.cognitiveDrain.alphaStd,
-					'/h'
+					m.unit_per_hour()
 				),
 				note: m.ana_model_note_ratings({
-					value: f2(DEFAULT_ENERGY_PARAMS.alphaCog),
+					value: f2(defaults.alphaCog),
 					count: energy.cognitiveDrain.usedCount
 				})
 			},
@@ -125,18 +95,18 @@
 					energy.physicalDrain,
 					energy.physicalDrain.alpha,
 					energy.physicalDrain.alphaStd,
-					'/h'
+					m.unit_per_hour()
 				),
 				note: m.ana_model_note_ratings({
-					value: f2(DEFAULT_ENERGY_PARAMS.alphaPhys),
+					value: f2(defaults.alphaPhys),
 					count: energy.physicalDrain.usedCount
 				})
 			},
 			{
 				label: m.ana_model_stop(),
-				value: rate(stopping, stopping.value, stopping.valueStd, 'out/h'),
+				value: rate(stopping, stopping.value, stopping.valueStd, m.unit_output_per_hour()),
 				note: m.ana_model_note_days({
-					value: f2(DEFAULT_ENERGY_PARAMS.freeTimeValue),
+					value: f2(defaults.freeTimeValue),
 					count: stopping.usedCount
 				})
 			}
@@ -149,56 +119,6 @@
 		if (diff > 0.05) return m.ana_adherence_verdict_energy();
 		if (diff < -0.05) return m.ana_adherence_verdict_classic();
 		return m.ana_adherence_verdict_tie();
-	});
-
-	const days = $derived(RANGES[range].days);
-	const rangeStart = $derived(addDays(today, -(days - 1)));
-	const inRange = $derived(all.filter((s) => s.date >= rangeStart));
-
-	// ---------- Headline stats ----------
-	const totalTasks = $derived(inRange.reduce((sum, s) => sum + s.totalTasks, 0));
-	const completedTasks = $derived(inRange.reduce((sum, s) => sum + s.completedTasks, 0));
-	const completedShare = $derived(
-		totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-	);
-
-	const avgRate = $derived(
-		inRange.length > 0
-			? Math.round(inRange.reduce((sum, s) => sum + s.completionRate, 0) / inRange.length)
-			: 0
-	);
-
-	// Delta vs the previous period of the same length (year has none: this
-	// page only loads the last 365 days)
-	const prevRange = $derived.by(() => {
-		if (range === 'year') return [];
-		const start = addDays(today, -(2 * days - 1));
-		const end = addDays(today, -days);
-		return all.filter((s) => s.date >= start && s.date <= end);
-	});
-	const rateDelta = $derived.by(() => {
-		if (prevRange.length === 0) return null;
-		const prevAvg = prevRange.reduce((sum, s) => sum + s.completionRate, 0) / prevRange.length;
-		return avgRate - Math.round(prevAvg);
-	});
-
-	const plannedHours = $derived(
-		Math.round(inRange.reduce((sum, s) => sum + (Number(s.availableHours) || 0), 0) * 10) / 10
-	);
-
-	const streak = $derived(
-		currentStreak(new Set(all.filter((s) => s.completedTasks > 0).map((s) => s.date)), today)
-	);
-
-	const bestDay = $derived.by(() => {
-		const withDone = inRange.filter((s) => s.completedTasks > 0);
-		if (withDone.length === 0) return null;
-		return withDone.reduce((best, s) =>
-			s.completionRate > best.completionRate ||
-			(s.completionRate === best.completionRate && s.completedTasks > best.completedTasks)
-				? s
-				: best
-		);
 	});
 
 	function formatDay(iso: string): string {
@@ -214,11 +134,6 @@
 		{ key: 'grind', label: m.quadrant_grind(), color: 'var(--warning)' },
 		{ key: 'routine', label: m.quadrant_routine(), color: 'var(--series-rest)' }
 	];
-	const quadrantCounts = $derived.by(() => {
-		const counts: Record<DailyQuadrant, number> = { flow: 0, cruise: 0, grind: 0, routine: 0 };
-		for (const s of inRange) counts[s.quadrant]++;
-		return counts;
-	});
 
 	// ---------- Chart: completion rate per day (per month for the year view) ----------
 	type ChartPoint = {
@@ -230,54 +145,32 @@
 	};
 
 	const chartPoints = $derived.by((): ChartPoint[] => {
-		if (range === 'year') {
-			// Bucket by calendar month, newest 12 months (oldest may be partial)
-			// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local bucket, replaced wholesale
-			const buckets = new Map<string, DaySummary[]>();
-			for (const s of inRange) {
-				const key = s.date.slice(0, 7);
-				if (!buckets.has(key)) buckets.set(key, []);
-				buckets.get(key)!.push(s);
-			}
-			const points: ChartPoint[] = [];
-			// Walk month by month so empty months still occupy a slot
-			let cursor = rangeStart.slice(0, 7) + '-01';
-			while (cursor.slice(0, 7) <= today.slice(0, 7)) {
-				const key = cursor.slice(0, 7);
-				const daysIn = buckets.get(key) ?? [];
-				const monthLabel = fromISO(cursor).toLocaleDateString(getDateLocale(), { month: 'short' });
-				points.push({
-					label: monthLabel,
-					full: fromISO(cursor).toLocaleDateString(getDateLocale(), {
-						month: 'long',
-						year: 'numeric'
-					}),
-					value: daysIn.length
-						? Math.round(daysIn.reduce((sum, s) => sum + s.completionRate, 0) / daysIn.length)
-						: null,
-					sub: daysIn.length
-						? daysIn.length === 1
-							? m.ana_active_day_one()
-							: m.ana_active_day_other({ count: daysIn.length })
-						: m.ana_no_data(),
+		if (analytics.range === 'year') {
+			return analytics.monthlyRates.map((month) => {
+				const first = fromISO(`${month.month}-01`);
+				return {
+					label: first.toLocaleDateString(getDateLocale(), { month: 'short' }),
+					full: first.toLocaleDateString(getDateLocale(), { month: 'long', year: 'numeric' }),
+					value: month.average,
+					sub:
+						month.dayCount === 0
+							? m.ana_no_data()
+							: month.dayCount === 1
+								? m.ana_active_day_one()
+								: m.ana_active_day_other({ count: month.dayCount }),
 					showLabel: true
-				});
-				const d = fromISO(cursor);
-				cursor = `${d.getFullYear()}-${String(d.getMonth() + 2).padStart(2, '0')}-01`;
-				if (d.getMonth() === 11) cursor = `${d.getFullYear() + 1}-01-01`;
-				if (points.length > 13) break; // safety
-			}
-			return points;
+				};
+			});
 		}
 
-		const byDate = new Map(inRange.map((s) => [s.date, s]));
-		return Array.from({ length: days }, (_, i) => {
-			const date = addDays(rangeStart, i);
+		const byDate = new Map(analytics.summaries.map((s) => [s.date, s]));
+		return Array.from({ length: analytics.rangeDays }, (_, i) => {
+			const date = addDays(analytics.rangeStart, i);
 			const s = byDate.get(date);
 			const d = fromISO(date);
 			return {
 				label:
-					range === 'week'
+					analytics.range === 'week'
 						? d.toLocaleDateString(getDateLocale(), { weekday: 'short' })
 						: d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' }),
 				full: d.toLocaleDateString(getDateLocale(), {
@@ -289,8 +182,8 @@
 				sub: s
 					? m.ana_tasks_done_sub({ completed: s.completedTasks, total: s.totalTasks })
 					: m.ana_no_data(),
-				showLabel: range === 'week' || i % 5 === 0,
-				...(date === today
+				showLabel: analytics.range === 'week' || i % 5 === 0,
+				...(date === analytics.today
 					? {
 							full: m.ana_today_label({
 								date: d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' })
@@ -328,9 +221,6 @@
 		const bottom = y + h;
 		return `M${x},${bottom} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${bottom} Z`;
 	}
-
-	const hasData = $derived(inRange.length > 0);
-	const activeDaysWithCompletion = $derived(inRange.filter((s) => s.completedTasks > 0).length);
 </script>
 
 <SeoHead title={m.ana_title_head()} description={m.ana_meta_description()} />
@@ -344,26 +234,27 @@
 	</div>
 
 	<div class="inline-flex items-center rounded-lg border bg-surface-card p-text-3xs backdrop-blur">
-		{#each Object.entries(RANGES) as [key, r] (key)}
+		{#each Object.keys(ANALYTICS_RANGES) as AnalyticsRange[] as key (key)}
 			<button
-				onclick={() => (range = key as RangeKey)}
-				class={segmentedToggleVariants({ active: range === key })}
+				onclick={() => (analytics.range = key)}
+				aria-pressed={analytics.range === key}
+				class={segmentedToggleVariants({ active: analytics.range === key })}
 			>
-				{r.label()}
+				{RANGE_LABELS[key].label()}
 			</button>
 		{/each}
 	</div>
 </div>
 
-{#if isLoading}
+{#if analytics.isLoading}
 	<p class="text-sm text-ty-silent">{m.ana_loading()}</p>
-{:else if !hasData}
+{:else if !analytics.hasData}
 	<div class="rounded-xl border bg-surface-card p-box-2xl text-center backdrop-blur shadow-card">
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
 		<p class="mt-text-2xs text-sm text-ty-silent">
 			{m.ana_empty_hint_1()}
 			<a
-				href={resolve('/')}
+				href={localizeHref(resolve('/'))}
 				class="text-ty-secondary underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary"
 				>{m.link_today()}</a
 			>
@@ -376,22 +267,25 @@
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_tasks_completed()}</p>
 			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-				{completedTasks} <span class="text-base font-normal text-ty-silent">/ {totalTasks}</span>
+				{analytics.completedTasks}
+				<span class="text-base font-normal text-ty-silent">/ {analytics.totalTasks}</span>
 			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">
-				{m.ana_of_planned({ percent: completedShare })}
+				{m.ana_of_planned({ percent: analytics.completedShare })}
 			</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_avg_rate()}</p>
-			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">{avgRate}%</p>
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+				{analytics.averageCompletionRate}%
+			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">
 				{#if rateDelta !== null}
 					<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
 						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
 					</span>
-					{m.ana_vs_prev({ period: RANGES[range].prevLabel() })}
+					{m.ana_vs_prev({ period: RANGE_LABELS[analytics.range].prevLabel() })}
 				{:else}
 					{m.ana_rate_note()}
 				{/if}
@@ -401,19 +295,20 @@
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_active_days()}</p>
 			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-				{inRange.length} <span class="text-base font-normal text-ty-silent">/ {days}</span>
+				{analytics.summaries.length}
+				<span class="text-base font-normal text-ty-silent">/ {analytics.rangeDays}</span>
 			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">
-				{m.ana_with_completion({ count: activeDaysWithCompletion })}
+				{m.ana_with_completion({ count: analytics.activeDaysWithCompletion })}
 			</p>
 		</div>
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_current_streak()}</p>
 			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-				{streak}
+				{analytics.streak}
 				<span class="text-base font-normal text-ty-silent">
-					{streak === 1 ? m.ana_day_one() : m.ana_day_other()}
+					{analytics.streak === 1 ? m.ana_day_one() : m.ana_day_other()}
 				</span>
 			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_streak_note()}</p>
@@ -421,7 +316,10 @@
 
 		<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
 			<p class="text-xs text-ty-silent">{m.ana_planned_hours()}</p>
-			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">{plannedHours}h</p>
+			<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+				{analytics.plannedHours.toLocaleString(getDateLocale())}
+				<span class="text-base font-normal text-ty-silent">{m.unit_hours()}</span>
+			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_planned_hours_note()}</p>
 		</div>
 
@@ -448,14 +346,16 @@
 	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">
-			{range === 'year' ? m.ana_chart_hint_year() : m.ana_chart_hint_day()}
+			{analytics.range === 'year' ? m.ana_chart_hint_year() : m.ana_chart_hint_day()}
 		</p>
 
 		<svg
 			viewBox="0 0 {CHART.w} {CHART.h}"
 			class="mt-text-md w-full"
 			role="img"
-			aria-label={m.ana_chart_aria({ range: RANGES[range].label().toLowerCase() })}
+			aria-label={m.ana_chart_aria({
+				range: RANGE_LABELS[analytics.range].label().toLowerCase()
+			})}
 		>
 			{#each yTicks as tick (tick)}
 				<line
@@ -518,7 +418,8 @@
 			{#each QUADRANTS as q (q.key)}
 				{#if quadrantCounts[q.key] > 0}
 					<div
-						style="width: {(quadrantCounts[q.key] / inRange.length) * 100}%; background: {q.color}"
+						style="width: {(quadrantCounts[q.key] / analytics.summaries.length) *
+							100}%; background: {q.color}"
 						title={quadrantCounts[q.key] === 1
 							? m.ana_quadrant_count_one({ label: q.label })
 							: m.ana_quadrant_count_other({ label: q.label, count: quadrantCounts[q.key] })}
@@ -566,13 +467,13 @@
 				<div>
 					<p class="text-xs text-ty-silent">{m.ana_adherence_spread()}</p>
 					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-						{audit.actualTaskSpread.toFixed(1)}
+						{formatDecimals(audit.actualTaskSpread, 1)}
 					</p>
 					<p class="mt-text-3xs text-xs text-ty-silent">
 						{m.ana_adherence_spread_note({
-							actual: audit.actualTaskSpread.toFixed(1),
-							classic: audit.classicTaskSpread.toFixed(1),
-							energy: audit.energyTaskSpread.toFixed(1)
+							actual: formatDecimals(audit.actualTaskSpread, 1),
+							classic: formatDecimals(audit.classicTaskSpread, 1),
+							energy: formatDecimals(audit.energyTaskSpread, 1)
 						})}
 					</p>
 				</div>
@@ -590,7 +491,9 @@
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
 
-		{#if calibration === null}
+		{#if analytics.calibrationFailed}
+			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+		{:else if calibration === null}
 			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
 		{:else}
 			<div class="mt-text-md grid gap-text-xs">
