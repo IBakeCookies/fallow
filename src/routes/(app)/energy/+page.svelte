@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
@@ -10,9 +11,19 @@
 	import LogList from '$lib/presentation/component/log-list.svelte';
 	import type { Task } from '$lib/business/model/metric/calculation';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
+	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 
 	const VIEW_KEY = 'zenith-energy-view';
+
+	// Decimals follow the active locale, like the clock labels do — otherwise a
+	// German reader gets "1.5" where the rest of the page says "1,5".
+	function formatDecimals(value: number, digits: number): string {
+		return value.toLocaleString(getDateLocale(), {
+			minimumFractionDigits: digits,
+			maximumFractionDigits: digits
+		});
+	}
 
 	// Tasks, budget, pools and personalized constants come live from the shared
 	// session store — edits here save to the same daily session as the main
@@ -21,12 +32,16 @@
 	const tasks = $derived(session.tasks);
 	const activeTasks = $derived(session.activeTasks);
 
+	// The 🪫/☕ measurements that calibrate α and r — their own store, since they
+	// are stamped with today rather than the viewed day.
+	const observations = getEnergyObservationStore();
+
 	// Model parameters, the optimized plan and the three calibration fits are
 	// model orchestration, so they live in the lab store — this page renders
 	// them and edits them, nothing more. Params are the lab's own and never
 	// written back to the session, but they ARE persisted (IndexedDB, so backup
 	// covers them).
-	const lab = new EnergyLabStore(session);
+	const lab = new EnergyLabStore(session, observations);
 
 	// Aliases so the markup reads in the model's vocabulary
 	const params = $derived(lab.params);
@@ -103,7 +118,7 @@
 
 	// ---------- Drain calibration (α fit from end-of-session ratings) ----------
 
-	const drainObservations = $derived(session.drainObservations);
+	const drainObservations = $derived(observations.drainObservations);
 
 	// Inline per-task rating editor (🪫): mirrors the main page's ⚡ editor,
 	// including its minutes-based duration input (the record stores hours).
@@ -133,7 +148,7 @@
 		const mind = Number(drainDraft.mind);
 		const body = Number(drainDraft.body);
 		if (!minutes || minutes <= 0 || !Number.isFinite(mind) || !Number.isFinite(body)) return;
-		session.logDrain(
+		observations.logDrain(
 			drainDraft.taskId,
 			minutes / 60,
 			Math.min(10, Math.max(0, mind)),
@@ -144,7 +159,7 @@
 
 	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
 
-	const restObservations = $derived(session.restObservations);
+	const restObservations = $derived(observations.restObservations);
 
 	// Inline rest-pair editor (☕): lives in the calibration card — a break
 	// has no task row to hang off.
@@ -162,7 +177,7 @@
 		if (!minutes || minutes <= 0) return;
 		const rating = (value: number | null) =>
 			Math.min(10, Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0));
-		session.logRest(
+		observations.logRest(
 			minutes / 60,
 			rating(restDraft.mindBefore),
 			rating(restDraft.mindAfter),
@@ -441,7 +456,7 @@
 										</span>
 										{#if block.taskId !== null}
 											<span class="w-20 shrink-0 text-right text-xs tabular-nums text-brand-strong">
-												{m.energy_output_suffix({ output: block.output.toFixed(2) })}
+												{m.energy_output_suffix({ output: formatDecimals(block.output, 2) })}
 											</span>
 										{:else}
 											<span class="w-20 shrink-0 text-right text-xs text-ty-silent">
@@ -473,7 +488,7 @@
 						>
 							<div>
 								<p class="text-lg font-semibold text-ty-primary">
-									{plan.evaluation.totalOutput.toFixed(1)}
+									{formatDecimals(plan.evaluation.totalOutput, 1)}
 								</p>
 								<p class="text-xs text-ty-silent">{m.energy_total_output()}</p>
 							</div>
@@ -539,6 +554,7 @@
 												type="checkbox"
 												checked={task.completed}
 												onchange={() => session.toggleTask(task.id)}
+												aria-label={m.task_toggle_aria({ title: task.title })}
 												class="h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
 											/>
 											<span
@@ -739,7 +755,7 @@
 									min: 0.05,
 									max: 2,
 									step: 0.05,
-									unit: '/h',
+									unit: m.unit_per_hour(),
 									accent: 'focus-within:border-mind/50'
 								})}
 								{@render paramRow({
@@ -751,7 +767,7 @@
 									min: 0.05,
 									max: 2,
 									step: 0.05,
-									unit: '/h',
+									unit: m.unit_per_hour(),
 									accent: 'focus-within:border-body/50'
 								})}
 								{@render paramRow({
@@ -763,7 +779,7 @@
 									min: 0.1,
 									max: 3,
 									step: 0.1,
-									unit: '/h'
+									unit: m.unit_per_hour()
 								})}
 								{@render paramRow({
 									id: 'free-time-value',
@@ -774,7 +790,7 @@
 									min: 0,
 									max: 3,
 									step: 0.1,
-									unit: 'out/h'
+									unit: m.unit_output_per_hour()
 								})}
 								{@render paramRow({
 									id: 'terminal-value',
@@ -785,7 +801,7 @@
 									min: 0,
 									max: 5,
 									step: 0.25,
-									unit: 'out'
+									unit: m.unit_output()
 								})}
 								{@render paramRow({
 									id: 'satiety-scale',
@@ -841,8 +857,8 @@
 										{#if cogDrainFit.fitted}
 											<span class="tabular-nums text-mind-strong">
 												{m.energy_fit_value({
-													alpha: cogDrainFit.alpha.toFixed(2),
-													std: (cogDrainFit.alphaStd ?? 0).toFixed(2),
+													alpha: formatDecimals(cogDrainFit.alpha, 2),
+													std: formatDecimals(cogDrainFit.alphaStd ?? 0, 2),
 													count: cogDrainFit.usedCount
 												})}
 											</span>
@@ -855,8 +871,8 @@
 										{#if physDrainFit.fitted}
 											<span class="tabular-nums text-body/90">
 												{m.energy_fit_value({
-													alpha: physDrainFit.alpha.toFixed(2),
-													std: (physDrainFit.alphaStd ?? 0).toFixed(2),
+													alpha: formatDecimals(physDrainFit.alpha, 2),
+													std: formatDecimals(physDrainFit.alphaStd ?? 0, 2),
 													count: physDrainFit.usedCount
 												})}
 											</span>
@@ -882,7 +898,7 @@
 										confirmLabel={m.energy_reset_drain_confirm({ count: drainObservations.length })}
 										resetLabel={m.energy_reset_drain_logs()}
 										resetTitle={m.energy_reset_drain_title()}
-										onreset={() => session.resetDrainLogs()}
+										onreset={() => observations.resetDrainLogs()}
 									>
 										{#snippet row(log)}
 											<span class="truncate">
@@ -898,7 +914,7 @@
 													aria-label={m.energy_delete_drain_log_aria()}
 													title={m.energy_delete_drain_log_title()}
 													class="text-ty-silent transition hover:text-danger"
-													onclick={() => session.deleteDrainLog(log.id!)}
+													onclick={() => observations.deleteDrainLog(log.id!)}
 												>
 													✕
 												</button>
@@ -1062,8 +1078,8 @@
 									{#if recoveryFit.fitted}
 										<span class="tabular-nums text-info-strong">
 											{m.energy_recovery_fit_value({
-												rate: recoveryFit.rate.toFixed(2),
-												std: (recoveryFit.rateStd ?? 0).toFixed(2),
+												rate: formatDecimals(recoveryFit.rate, 2),
+												std: formatDecimals(recoveryFit.rateStd ?? 0, 2),
 												count: recoveryFit.usedCount
 											})}
 										</span>
@@ -1090,7 +1106,7 @@
 										confirmLabel={m.energy_reset_rest_confirm({ count: restObservations.length })}
 										resetLabel={m.energy_reset_rest_logs()}
 										resetTitle={m.energy_reset_rest_title()}
-										onreset={() => session.resetRestLogs()}
+										onreset={() => observations.resetRestLogs()}
 									>
 										{#snippet row(log)}
 											<span class="truncate text-ty-silent">{log.date}</span>
@@ -1107,7 +1123,7 @@
 													aria-label={m.energy_delete_rest_log_aria()}
 													title={m.energy_delete_rest_log_title()}
 													class="text-ty-silent transition hover:text-danger"
-													onclick={() => session.deleteRestLog(log.id!)}
+													onclick={() => observations.deleteRestLog(log.id!)}
 												>
 													✕
 												</button>
@@ -1149,8 +1165,8 @@
 									<span class="text-ty-silent">{m.energy_free_time_value()}</span>
 									<span class="tabular-nums text-info-strong">
 										{m.energy_stop_fit_value({
-											value: stopFit.value.toFixed(2),
-											std: (stopFit.valueStd ?? 0).toFixed(2),
+											value: formatDecimals(stopFit.value, 2),
+											std: formatDecimals(stopFit.valueStd ?? 0, 2),
 											count: stopFit.usedCount
 										})}
 									</span>

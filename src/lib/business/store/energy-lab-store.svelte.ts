@@ -1,4 +1,4 @@
-import { onMount } from 'svelte';
+import { onDestroy, onMount } from 'svelte';
 import { browser } from '$app/environment';
 import type { StopObservation } from '$lib/business/model/zenith-energy';
 // Namespace import: the $-prefixed controller methods can't be imported by
@@ -6,6 +6,7 @@ import type { StopObservation } from '$lib/business/model/zenith-energy';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import { ENERGY_PARAMS_SETTING } from '$lib/data/repository/settings-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
+import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 import { readStopObservations } from '$lib/business/store/session-history';
 import {
 	DEFAULT_ENERGY_PARAMS,
@@ -23,6 +24,11 @@ import {
 	calculateSuggestedTasks,
 	toEnergyTask
 } from '$lib/business/model/metric/calculation';
+import {
+	toCognitiveDrainObservations,
+	toPhysicalDrainObservations,
+	toRestObservations
+} from '$lib/business/model/energy-calibration';
 
 /** Fitted values are surfaced (and applied) at 2dp — the sliders' precision. */
 const round2 = (x: number) => Math.round(x * 100) / 100;
@@ -65,6 +71,7 @@ export class EnergyLabStore {
 	// lazy (never evaluated before the constructor body runs) — but TypeScript
 	// checks declaration order, not laziness.
 	#session!: SessionStore;
+	#observations!: EnergyObservationStore;
 
 	#params = $state<EnergyParams>({ ...DEFAULT_ENERGY_PARAMS });
 	#loaded = $state(false);
@@ -72,6 +79,7 @@ export class EnergyLabStore {
 	// Trailing-debounced persistence, same reasoning as the session store's:
 	// dragging a slider must not fire a put per intermediate value.
 	#saveTimer: ReturnType<typeof setTimeout> | undefined;
+	#pendingSave: EnergyParams | null = null;
 
 	// Day window follows today's budget until overridden — the override is
 	// lab-local and never written back to the session.
@@ -83,8 +91,9 @@ export class EnergyLabStore {
 	#stopObservations = $state<StopObservation[]>([]);
 	#stopLoadVersion = 0;
 
-	constructor(session: SessionStore) {
+	constructor(session: SessionStore, observations: EnergyObservationStore) {
 		this.#session = session;
+		this.#observations = observations;
 
 		onMount(async () => {
 			try {
@@ -99,23 +108,46 @@ export class EnergyLabStore {
 
 		$effect(() => {
 			if (!browser || !this.#loaded) return;
-			const snapshot = $state.snapshot(this.#params);
+			this.#pendingSave = $state.snapshot(this.#params);
 			clearTimeout(this.#saveTimer);
-			this.#saveTimer = setTimeout(() => {
-				settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, snapshot).catch((e) => {
-					console.error('Failed to save energy lab params', e);
-					this.#session.reportStorageError();
-				});
-			}, SAVE_DEBOUNCE_MS);
-			return () => clearTimeout(this.#saveTimer);
+			this.#saveTimer = setTimeout(() => this.#flushSave(), SAVE_DEBOUNCE_MS);
+		});
+
+		// The effect's own teardown can't do this: it also runs before every
+		// re-run, so flushing there would defeat the debounce. Destroy is the
+		// common case here — this store is per-page, so navigating off /energy
+		// within the debounce used to discard the edit outright.
+		onDestroy(() => this.#flushSave());
+
+		// Same safety net as the session store's: the debounce may never fire if
+		// the tab is discarded while hidden.
+		$effect(() => {
+			if (!browser) return;
+			const onVisibility = () => {
+				if (document.hidden) this.#flushSave();
+			};
+			document.addEventListener('visibilitychange', onVisibility);
+			return () => document.removeEventListener('visibilitychange', onVisibility);
 		});
 
 		$effect(() => {
-			void this.#session.drainObservations;
+			void this.#observations.drainObservations;
 			const version = ++this.#stopLoadVersion;
 			readStopObservations(this.#session.today).then((observations) => {
 				if (version === this.#stopLoadVersion) this.#stopObservations = observations;
 			});
+		});
+	}
+
+	// Persist the pending snapshot now, cancelling any scheduled debounce.
+	#flushSave() {
+		if (!this.#pendingSave) return;
+		clearTimeout(this.#saveTimer);
+		const payload = this.#pendingSave;
+		this.#pendingSave = null;
+		settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, payload).catch((e) => {
+			console.error('Failed to save energy lab params', e);
+			this.#session.reportStorageError('save-failed');
 		});
 	}
 
@@ -244,11 +276,7 @@ export class EnergyLabStore {
 
 	#cognitiveDrainFit = $derived(
 		fitDrainRate(
-			this.#session.drainObservations.map((o) => ({
-				demand: o.cognitiveDemand,
-				hours: o.hours,
-				drainedFraction: o.mindDrain / 10
-			})),
+			toCognitiveDrainObservations(this.#observations.drainObservations),
 			DEFAULT_ENERGY_PARAMS.alphaCog,
 			this.#drainLawParams
 		)
@@ -259,11 +287,7 @@ export class EnergyLabStore {
 
 	#physicalDrainFit = $derived(
 		fitDrainRate(
-			this.#session.drainObservations.map((o) => ({
-				demand: o.physicalDemand,
-				hours: o.hours,
-				drainedFraction: o.bodyDrain / 10
-			})),
+			toPhysicalDrainObservations(this.#observations.drainObservations),
 			DEFAULT_ENERGY_PARAMS.alphaPhys,
 			this.#drainLawParams
 		)
@@ -296,15 +320,11 @@ export class EnergyLabStore {
 	// During pure rest the reservoir law loses α entirely (drain decays as
 	// d_before·e^(−r·m·g) — MATH.md §8.9), so this fit needs no drain
 	// parameters: it conditions only on the rest multiplier (rest data
-	// identifies the product r·m). Both reservoirs' ratings feed the ONE
-	// shared recovery rate, and the α fit above then conditions on it —
+	// identifies the product r·m). The α fit above then conditions on this one —
 	// fitting r first makes that conditioning well-founded, not circular.
 	#recoveryFit = $derived(
 		fitRecoveryRate(
-			this.#session.restObservations.flatMap((o) => [
-				{ drainedBefore: o.mindBefore / 10, drainedAfter: o.mindAfter / 10, hours: o.hours },
-				{ drainedBefore: o.bodyBefore / 10, drainedAfter: o.bodyAfter / 10, hours: o.hours }
-			]),
+			toRestObservations(this.#observations.restObservations),
 			DEFAULT_ENERGY_PARAMS.recoveryRate,
 			{ restRecoveryMultiplier: this.#params.restRecoveryMultiplier }
 		)

@@ -13,6 +13,7 @@
 	import type { ThemeName } from '$lib/business/model/theme';
 	import Footer from '$lib/presentation/component/footer.svelte';
 	import { setSessionStore } from '$lib/business/store/session-store.svelte';
+	import { setEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
 	import * as backup from '$lib/business/backup';
 
@@ -59,6 +60,27 @@
 	// The routing dependency is the layout's, not the store's: the store is
 	// handed a reader for the viewed day instead of importing $app/state.
 	const session = setSessionStore(() => page.url.searchParams.get('date'));
+
+	// Drain/rest measurements key on the live clock, not the viewed day, so they
+	// are their own store — wired here because the layout owns what each store
+	// gets: a task lookup, and the one banner both report into.
+	const observations = setEnergyObservationStore(
+		() => session.tasks,
+		(kind) => session.reportStorageError(kind)
+	);
+
+	// A failed read and a failed write need different copy and different actions:
+	// a read is retryable, a write has already lost the edit.
+	const storageErrorMessage = $derived(
+		session.storageError === 'load-failed' ? m.error_body() : m.storage_error()
+	);
+
+	// Either store can have been the one that failed to read, and neither knows
+	// about the other's failure, so the retry re-runs both.
+	function onRetryClick() {
+		session.retryLoad();
+		observations.retryLoad();
+	}
 
 	// Calendar is the one full-viewport page: it must never scroll, so its grid
 	// rows split the leftover height instead of growing the page.
@@ -115,19 +137,24 @@
 								<Dices class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 								{m.theme_reroll_scenery()}
 							</DropdownMenu.Item>
-							<DropdownMenu.Item
-								class="cursor-pointer gap-grid-xs"
-								closeOnSelect={false}
-								onclick={() => themeStore.toggleSceneryMotion()}
-							>
-								{#if themeStore.sceneryPaused}
-									<Play class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-									{m.theme_resume_animations()}
-								{:else}
-									<Pause class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-									{m.theme_pause_animations()}
-								{/if}
-							</DropdownMenu.Item>
+							<!-- absent under prefers-reduced-motion: the CSS pauses scenery
+							     there no matter what the cookie says, so the control would
+							     only mislabel a state it cannot change -->
+							{#if themeStore.sceneryMotionToggleable}
+								<DropdownMenu.Item
+									class="cursor-pointer gap-grid-xs"
+									closeOnSelect={false}
+									onclick={() => themeStore.toggleSceneryMotion()}
+								>
+									{#if themeStore.sceneryPaused}
+										<Play class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+										{m.theme_resume_animations()}
+									{:else}
+										<Pause class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+										{m.theme_pause_animations()}
+									{/if}
+								</DropdownMenu.Item>
+							{/if}
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 					<DropdownMenu.Root>
@@ -164,10 +191,19 @@
 				role="alert"
 				class="border-danger/20 bg-danger/5 text-danger-strong mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
 			>
-				<span class="flex-1">{m.storage_error()}</span>
+				<span class="flex-1">{storageErrorMessage}</span>
+				{#if session.storageError === 'load-failed'}
+					<button
+						type="button"
+						onclick={onRetryClick}
+						class="border-danger/20 hover:bg-danger/10 shrink-0 rounded-md border px-text-xs py-text-3xs"
+					>
+						{m.error_reload()}
+					</button>
+				{/if}
 				<button
 					type="button"
-					aria-label={m.storage_error()}
+					aria-label={storageErrorMessage}
 					onclick={() => session.clearStorageError()}
 					class="hover:text-danger-strong shrink-0 rounded-md p-text-2xs"
 				>

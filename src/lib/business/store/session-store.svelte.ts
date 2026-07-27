@@ -1,21 +1,12 @@
-import { getContext, setContext, onMount } from 'svelte';
+import { getContext, setContext, onMount, onDestroy } from 'svelte';
 import { browser } from '$app/environment';
-import type {
-	Task,
-	DailySession,
-	SavedRoutine,
-	FlowObservationRecord,
-	DrainObservationRecord,
-	RestObservationRecord
-} from '$lib/data/type';
+import type { Task, DailySession, SavedRoutine, FlowObservationRecord } from '$lib/data/type';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
 // on a namespace is fine.
 import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
-import * as drainObservationRepository from '$lib/data/repository/drain-observation-repository';
-import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
 import { addDays } from '$lib/business/utils/date';
 import { initializeStorage } from '$lib/business/store/session-history';
@@ -39,11 +30,21 @@ const CONTEXT_KEY = Symbol();
 export type ReadDateParam = () => string | null;
 
 /**
+ * A storage failure the app-wide banner can show. 'load-failed' is the
+ * recoverable one; 'save-failed' has already lost the edit.
+ */
+export type StorageErrorKind = 'save-failed' | 'load-failed';
+
+/**
  * The daily session as a shared reactive store: tasks, time budget, capacity
  * pools, flow observations, and their IndexedDB persistence. Created once in
  * the (app) layout via context — never at module level, so no state can leak
  * between SSR requests — and consumed by any page that needs live tasks
  * (main page, Energy Lab).
+ *
+ * Drain and rest measurements live in `EnergyObservationStore`: they key on the
+ * live clock rather than the viewed day, so none of the date-routing or
+ * auto-save machinery here applies to them.
  */
 export class SessionStore {
 	// Assigned first thing in the constructor. The `!` is load-bearing: the
@@ -62,8 +63,6 @@ export class SessionStore {
 	#yesterdaySession = $state<DailySession | null>(null);
 	#routines = $state<SavedRoutine[]>([]);
 	#flowObservations = $state<FlowObservationRecord[]>([]);
-	#drainObservations = $state<DrainObservationRecord[]>([]);
-	#restObservations = $state<RestObservationRecord[]>([]);
 
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
@@ -75,9 +74,11 @@ export class SessionStore {
 	// keeps saving once a session exists (so deleting the last task persists).
 	#loadedHadSession = $state(false);
 
-	// A persistence failure the UI should surface. Machine value ('save-failed');
-	// the layout resolves it to a localized banner. Cleared by clearStorageError.
-	#storageError = $state<string | null>(null);
+	// A storage failure the UI should surface. Machine value; the layout resolves
+	// it to a localized banner. 'load-failed' is the recoverable one — a failed
+	// read leaves #loadedDate null, which blocks the auto-save guard forever, so
+	// the banner offers retryLoad(). Cleared by clearStorageError.
+	#storageError = $state<StorageErrorKind | null>(null);
 
 	// Trailing-debounced auto-save: the effect captures a snapshot into
 	// #pendingSave and (re)arms #saveTimer, so a burst of edits collapses to one
@@ -118,22 +119,22 @@ export class SessionStore {
 	constructor(readDateParam: ReadDateParam) {
 		this.#readDateParam = readDateParam;
 
-		onMount(async () => {
-			try {
-				await initializeStorage();
-				this.#yesterdaySession = await sessionRepository.$readSessionByDate(
-					addDays(this.#today, -1)
-				);
-				this.#routines = await routineRepository.$readAllRoutines();
-				this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
-				this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
-				this.#restObservations = await restObservationRepository.$readAllRestObservations();
-				await this.#loadSession(this.#selectedDate);
-			} catch (e) {
-				console.error('Failed to load from IndexedDB', e);
-			} finally {
-				this.#isLoading = false;
-			}
+		onMount(() => {
+			this.#boot();
+		});
+
+		// Yesterday is relative to the live clock and a tab can stay open across
+		// midnight, so re-read it on every rollover rather than caching whichever
+		// day the mount happened to see (the "import yesterday" action reads it).
+		$effect(() => {
+			const yesterday = addDays(this.#today, -1);
+			if (!browser || this.#isLoading) return;
+			sessionRepository
+				.$readSessionByDate(yesterday)
+				.then((session) => (this.#yesterdaySession = session))
+				// Decoration, not the viewed day: log it rather than raising the
+				// banner, whose retry does not cover this read.
+				.catch((e) => console.error('Failed to load yesterday’s session', e));
 		});
 
 		// Reload whenever the viewed date changes, whatever triggered the
@@ -178,9 +179,13 @@ export class SessionStore {
 				};
 				clearTimeout(this.#saveTimer);
 				this.#saveTimer = setTimeout(() => this.#flushSave(), 500);
-				return () => clearTimeout(this.#saveTimer);
 			}
 		});
+
+		// The effect's own teardown can't do this: it also runs before every
+		// re-run, so flushing there would defeat the debounce. Destroy is not
+		// rare — the (app) layout re-keys its subtree on a locale switch.
+		onDestroy(() => this.#flushSave());
 
 		// Flush the pending write the instant the tab is hidden (the debounce may
 		// not fire before a discard), and on returning re-read the selected date
@@ -195,6 +200,29 @@ export class SessionStore {
 			document.addEventListener('visibilitychange', onVisibility);
 			return () => document.removeEventListener('visibilitychange', onVisibility);
 		});
+	}
+
+	// Everything the app needs before it can show a day. Separate from onMount
+	// because it is also the retry path: a boot that fails leaves the store
+	// unable to load or save anything until it is run again.
+	async #boot() {
+		try {
+			await initializeStorage();
+			this.#routines = await routineRepository.$readAllRoutines();
+			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+			await this.#loadSession(this.#selectedDate);
+		} catch (e) {
+			console.error('Failed to load from IndexedDB', e);
+			this.#storageError = 'load-failed';
+		} finally {
+			this.#isLoading = false;
+		}
+	}
+
+	/** Re-run the initial read — the banner's action after a failed load. */
+	retryLoad() {
+		this.#storageError = null;
+		this.#boot();
 	}
 
 	// Persist the pending snapshot now, cancelling any scheduled debounce.
@@ -241,8 +269,12 @@ export class SessionStore {
 			}
 			this.#loadedHadSession = !!session;
 			this.#loadedDate = date;
+			// Reading again worked, so the day is no longer unreachable — this is
+			// what makes a load failure recover on the next date change too.
+			if (this.#storageError === 'load-failed') this.#storageError = null;
 		} catch (e) {
 			console.error('Failed to load session for date', date, e);
+			this.#storageError = 'load-failed';
 		}
 	}
 
@@ -262,11 +294,13 @@ export class SessionStore {
 	}
 	/**
 	 * Raise the app-wide persistence banner from another store (the Energy Lab
-	 * writes its own setting), so there is one place a failed write shows up
-	 * rather than one banner per store.
+	 * writes its own setting; the measurement store its own observations), so
+	 * there is one place a storage failure shows up rather than one banner per
+	 * store. The layout's retry action covers every store that can raise
+	 * 'load-failed'.
 	 */
-	reportStorageError() {
-		this.#storageError = 'save-failed';
+	reportStorageError(kind: StorageErrorKind) {
+		this.#storageError = kind;
 	}
 	clearStorageError() {
 		this.#storageError = null;
@@ -291,12 +325,6 @@ export class SessionStore {
 	}
 	get flowObservations() {
 		return this.#flowObservations;
-	}
-	get drainObservations() {
-		return this.#drainObservations;
-	}
-	get restObservations() {
-		return this.#restObservations;
 	}
 	get pools() {
 		return this.#pools;
@@ -359,6 +387,11 @@ export class SessionStore {
 	// remove) work on today and future plans; past days stay read-only:
 	// those rewrite the plan, this records the truth.
 	async toggleTask(id: number) {
+		// Same guard as the auto-save effect: loads are async, so mid-navigation
+		// the in-memory tasks still belong to the previous day and writing them
+		// under #selectedDate would overwrite the incoming day with them.
+		if (this.#loadedDate !== this.#selectedDate) return;
+
 		this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
 
 		// The auto-save $effect doesn't persist past sessions, so historical
@@ -484,110 +517,6 @@ export class SessionStore {
 			this.#tasks = this.#tasks.map((t) => (t.flowMinutes ? { ...t, flowMinutes: undefined } : t));
 		} catch (e) {
 			console.error('Failed to reset flow observations', e);
-			this.#storageError = 'save-failed';
-		}
-	}
-
-	// ----- Drain observations (energy-model α calibration) -----
-
-	// Log an end-of-session drain rating for a task: after `hours` of work,
-	// how drained body and mind feel (0–10). Captures the task's reservoir
-	// demands at logging time; re-rating the same task today REPLACES the
-	// earlier record (typo correction), mirroring logFlow. Today-only by the
-	// same logic as flow logs — it is a measurement, not a plan.
-	async logDrain(id: number, hours: number, mindDrain: number, bodyDrain: number) {
-		const task = this.#tasks.find((t) => t.id === id);
-		if (!task) return;
-
-		try {
-			await drainObservationRepository.$updateDrainObservation({
-				date: this.#today,
-				taskId: id,
-				taskTitle: task.title,
-				hours,
-				cognitiveDemand: task.mentalDifficulty / 10,
-				physicalDemand: task.physicalDifficulty / 10,
-				mindDrain,
-				bodyDrain
-			});
-			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
-		} catch (e) {
-			console.error('Failed to save drain observation', e);
-			this.#storageError = 'save-failed';
-		}
-	}
-
-	// Remove one drain rating; any fitted α values are derived from the
-	// observations, so consumers refit automatically.
-	async deleteDrainLog(id: number) {
-		try {
-			await drainObservationRepository.$deleteDrainObservation(id);
-			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
-		} catch (e) {
-			console.error('Failed to delete drain observation', e);
-			this.#storageError = 'save-failed';
-		}
-	}
-
-	// Delete all drain ratings → the energy model's drain calibration reverts
-	// to whatever the lab parameters say.
-	async resetDrainLogs() {
-		try {
-			await drainObservationRepository.$deleteAllDrainObservations();
-			this.#drainObservations = [];
-		} catch (e) {
-			console.error('Failed to reset drain observations', e);
-			this.#storageError = 'save-failed';
-		}
-	}
-
-	// Log a pre/post-rest rating pair: a break of `hours`, with both energy
-	// systems rated going in and coming out (0–10). Not tied to a task, and
-	// appended rather than upserted — several breaks a day are normal.
-	// Today-only like the other measurements.
-	async logRest(
-		hours: number,
-		mindBefore: number,
-		mindAfter: number,
-		bodyBefore: number,
-		bodyAfter: number
-	) {
-		try {
-			await restObservationRepository.$createRestObservation({
-				date: this.#today,
-				hours,
-				mindBefore,
-				mindAfter,
-				bodyBefore,
-				bodyAfter
-			});
-			this.#restObservations = await restObservationRepository.$readAllRestObservations();
-		} catch (e) {
-			console.error('Failed to save rest observation', e);
-			this.#storageError = 'save-failed';
-		}
-	}
-
-	// Remove one rest pair; the fitted recovery rate is derived from the
-	// observations, so consumers refit automatically.
-	async deleteRestLog(id: number) {
-		try {
-			await restObservationRepository.$deleteRestObservation(id);
-			this.#restObservations = await restObservationRepository.$readAllRestObservations();
-		} catch (e) {
-			console.error('Failed to delete rest observation', e);
-			this.#storageError = 'save-failed';
-		}
-	}
-
-	// Delete all rest pairs → the energy model's recovery calibration reverts
-	// to whatever the lab parameters say.
-	async resetRestLogs() {
-		try {
-			await restObservationRepository.$deleteAllRestObservations();
-			this.#restObservations = [];
-		} catch (e) {
-			console.error('Failed to reset rest observations', e);
 			this.#storageError = 'save-failed';
 		}
 	}

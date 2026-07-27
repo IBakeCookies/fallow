@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render } from 'vitest-browser-svelte';
+import { render, cleanup } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
 import Harness from './session-store.test-harness.svelte';
 import { mockPage } from './session-store.test-utils.svelte';
@@ -28,19 +28,6 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$deleteAllFlowObservations: vi.fn(async () => {}),
 	$readAllFlowObservations: vi.fn(async () => [])
 }));
-vi.mock('$lib/data/repository/drain-observation-repository', () => ({
-	$updateDrainObservation: vi.fn(async () => {}),
-	$deleteDrainObservation: vi.fn(async () => {}),
-	$deleteAllDrainObservations: vi.fn(async () => {}),
-	$readAllDrainObservations: vi.fn(async () => [])
-}));
-vi.mock('$lib/data/repository/rest-observation-repository', () => ({
-	$createRestObservation: vi.fn(async () => {}),
-	$deleteRestObservation: vi.fn(async () => {}),
-	$deleteAllRestObservations: vi.fn(async () => {}),
-	$readAllRestObservations: vi.fn(async () => [])
-}));
-
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
@@ -71,6 +58,9 @@ describe('SessionStore persistence', () => {
 	afterEach(() => {
 		vi.useRealTimers();
 		delete (document as { hidden?: boolean }).hidden; // restore prototype getter
+		// clearAllMocks keeps implementations, so tests that install a failing or
+		// canned read must not leak it into the next one.
+		readSessionByDateMock.mockImplementation(async () => null);
 	});
 
 	it('debounces autosave: a burst of edits collapses to one put with the last value', async () => {
@@ -171,5 +161,87 @@ describe('SessionStore persistence', () => {
 		await store.logFlow(id, 25);
 		expect(store.tasks[0].flowMinutes).toBe(25);
 		expect(store.storageError).toBeNull();
+	});
+
+	it('surfaces a failed load instead of silently never saving again', async () => {
+		readSessionByDateMock.mockRejectedValue(new Error('IndexedDB unavailable'));
+		let store!: SessionStore;
+		render(Harness, { onstore: (s: SessionStore) => (store = s) });
+
+		await vi.waitFor(() => expect(store.storageError).toBe('load-failed'));
+
+		// …and the failure is recoverable: retrying re-reads the day, which both
+		// clears the banner and unblocks the auto-save guard.
+		readSessionByDateMock.mockImplementation(async () => ({
+			date: store.today,
+			tasks: [],
+			availableHours: 7,
+			switchCost: 0.25,
+			updatedAt: Date.now()
+		}));
+		store.retryLoad();
+
+		await vi.waitFor(() => {
+			expect(store.storageError).toBeNull();
+			expect(store.availableHours).toBe(7);
+		});
+	});
+
+	it('ignores a task toggle while a date change is still loading', async () => {
+		const store = await setup();
+		store.addTask({ title: 'ship it', physicalDifficulty: 3, mentalDifficulty: 5, enjoyment: 5 });
+		flushSync();
+		const id = store.tasks[0].id;
+
+		// A read that never settles: the viewed date is already the past day while
+		// the in-memory tasks still belong to today.
+		readSessionByDateMock.mockImplementationOnce(() => new Promise(() => {}));
+		mockPage.url = new URL('http://localhost/?date=2000-01-01');
+		flushSync();
+		expect(store.isViewingPast).toBe(true);
+
+		await store.toggleTask(id);
+
+		expect(store.tasks[0].completed).toBe(false);
+		expect(updateSessionMock).not.toHaveBeenCalledWith(
+			expect.objectContaining({ date: '2000-01-01' })
+		);
+	});
+
+	it('flushes the pending save when the component is destroyed', async () => {
+		const store = await setup();
+		useFakeTimers();
+
+		store.availableHours = 8;
+		flushSync();
+		expect(updateSessionMock).not.toHaveBeenCalled();
+
+		cleanup(); // what a locale switch does: the layout re-keys its subtree
+
+		expect(updateSessionMock).toHaveBeenCalledTimes(1);
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({ availableHours: 8 });
+	});
+
+	it('re-reads yesterday after a midnight rollover', async () => {
+		const store = await setup();
+		const dayBeforeRollover = store.today;
+		const realNow = Date.now();
+
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(realNow + 24 * 60 * 60 * 1000);
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === dayBeforeRollover
+				? { date, tasks: [], availableHours: 5, switchCost: 0.25, updatedAt: 0 }
+				: null
+		);
+		window.dispatchEvent(new Event('focus')); // liveToday refreshes on wake
+		flushSync();
+		vi.useRealTimers(); // the rollover has landed; poll on the real clock
+
+		// Yesterday must follow the clock, or "import yesterday" imports two days ago.
+		await vi.waitFor(() => expect(store.yesterdaySession?.date).toBe(dayBeforeRollover));
+
+		window.dispatchEvent(new Event('focus')); // roll the shared clock back
+		flushSync();
 	});
 });

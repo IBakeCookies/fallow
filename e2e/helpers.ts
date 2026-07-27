@@ -3,7 +3,9 @@ import type { Page } from '@playwright/test';
 /* All data lives in client-side IndexedDB; each test gets a fresh browser
    context, so every test starts on an empty profile. */
 
-export const AUTOSAVE_MS = 600; // auto-save $effect debounce is ~400ms — overshoot
+// SessionStore's trailing autosave debounce is 500ms; overshoot so a slow CI
+// worker still flushes the IndexedDB write before the assertion.
+export const AUTOSAVE_MS = 1000;
 
 // local date, matching the app's toISODate (toISOString would drift near midnight)
 export function isoDate(offsetDays: number): string {

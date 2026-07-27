@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
@@ -14,13 +15,19 @@
 	import PersonalizationCard from '$lib/presentation/component/personalization-card.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
-	import { calculateDailyMetrics } from '$lib/business/model/metric/daily-metrics';
-	import { fitEnergyParams } from '$lib/business/model/energy-calibration';
+	import { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
+	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
 	// Shared daily session (tasks, budget, pools + persistence) — set in the
 	// (app) layout, also consumed live by the Energy Lab.
 	const session = getSessionStore();
+	const observations = getEnergyObservationStore();
+
+	// The whole dashboard — plan and metrics — from the business layer. The
+	// per-metric task scoping and thresholds live there and in
+	// metric-descriptor; this page only renders what comes back.
+	const plan = new DailyPlanStore(session, observations);
 
 	const today = $derived(session.today);
 	const selectedDate = $derived(session.selectedDate);
@@ -29,31 +36,7 @@
 	const tasks = $derived(session.tasks);
 	const availableHours = $derived(session.availableHours);
 
-	// Burnout Risk's parameters are the model DEFAULTS refined by the user's own
-	// calibration logs (🪫 drain, ☕ rest) — the same fits the Energy Lab offers,
-	// but anchored to defaults rather than the lab's local sliders (the lab
-	// deliberately never writes to the session). Kept separate from the metric
-	// call below so it only refits when the logs change, not on every keystroke.
-	const energyParams = $derived(
-		fitEnergyParams(session.restObservations, session.drainObservations)
-	);
-
-	// The whole dashboard — plan and metrics — in one business-layer call. The
-	// per-metric task scoping and thresholds live there and in
-	// metric-descriptor; this page only renders what comes back.
-	const daily = $derived(
-		calculateDailyMetrics({
-			tasks,
-			availableHours,
-			switchCost: session.switchCost,
-			pools: session.pools,
-			constants: session.userConstants,
-			// The fit posterior makes the allocator hedge ϕ-uncertainty (MATH.md
-			// §5.1): barely-measured tasks plan slightly shorter/lower.
-			posterior: session.constantsFit.posterior,
-			energyParams
-		})
-	);
+	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
 
@@ -62,13 +45,13 @@
 	const dateParam = $derived(page.url.searchParams.get('date'));
 	$effect(() => {
 		if (browser && dateParam === today) {
-			goto(resolve('/'), { replaceState: true, noScroll: true, keepFocus: true });
+			goto(localizeHref(resolve('/')), { replaceState: true, noScroll: true, keepFocus: true });
 		}
 	});
 
 	// Navigate to a day; the store follows the URL and loads it.
 	function gotoDate(newDate: string) {
-		goto(newDate === today ? resolve('/') : `${resolve('/')}?date=${newDate}`, {
+		goto(localizeHref(newDate === today ? resolve('/') : `${resolve('/')}?date=${newDate}`), {
 			noScroll: true,
 			keepFocus: true
 		});
