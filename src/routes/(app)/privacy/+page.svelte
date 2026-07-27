@@ -1,9 +1,10 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 
 	// Bump this date whenever the policy's content changes.
-	const updated = new Date('2026-07-19T12:00:00').toLocaleDateString(getDateLocale(), {
+	const updated = new Date('2026-07-26T12:00:00').toLocaleDateString(getDateLocale(), {
 		year: 'numeric',
 		month: 'long',
 		day: 'numeric'
@@ -11,9 +12,11 @@
 
 	// One entry per processing activity. The order is deliberate: the
 	// local-first story leads (it is the app's actual privacy posture), then
-	// the three server-side processings, then transfers and rights.
+	// the cookies that qualify it, then the three server-side processings,
+	// then transfers and rights.
 	const sections = [
 		{ heading: m.privacy_local_heading, body: m.privacy_local_body },
+		{ heading: m.privacy_cookies_heading, body: m.privacy_cookies_body },
 		{ heading: m.privacy_hosting_heading, body: m.privacy_hosting_body },
 		{ heading: m.privacy_analytics_heading, body: m.privacy_analytics_body },
 		{ heading: m.privacy_speed_heading, body: m.privacy_speed_body },
@@ -22,7 +25,7 @@
 	];
 </script>
 
-<svelte:head><title>{m.privacy_title()} — Fallow</title></svelte:head>
+<SeoHead title="{m.privacy_title()} — Fallow" description={m.privacy_local_heading()} />
 
 <article
 	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
