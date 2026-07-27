@@ -2,6 +2,7 @@ import { page } from 'vitest/browser';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { Metric } from '$lib/presentation/type';
+import { STATUS } from '$lib/presentation/utils/status';
 import MetricsDashboard from './metrics-dashboard.svelte';
 
 const metric = (label: string, value: string): Metric => ({
@@ -22,6 +23,20 @@ describe('metrics-dashboard.svelte', () => {
 		await expect.element(page.getByText('82%')).toBeInTheDocument();
 		await expect.element(page.getByText('Flow Coverage')).toBeInTheDocument();
 		await expect.element(page.getByText('3/4')).toBeInTheDocument();
+	});
+
+	it('carries a judged band in text as well as colour', async () => {
+		render(MetricsDashboard, {
+			metrics: [
+				{ ...metric('Burnout Risk', '80%'), valStyle: STATUS.CRITICAL.color },
+				{ ...metric('Yield Index', '60%'), valStyle: STATUS.NEUTRAL.color }
+			],
+			momentum: null
+		});
+
+		await expect.element(page.getByText('(Critical)')).toBeInTheDocument();
+		// The neutral band is the default value colour and carries no judgement
+		expect(page.getByText('(Nominal)').elements()).toHaveLength(0);
 	});
 
 	it.each([

@@ -39,6 +39,14 @@ describe('task-form.svelte', () => {
 		await expect.element(title).toHaveValue('');
 	});
 
+	it('names every slider by its label', async () => {
+		render(TaskForm, { onsubmit: vi.fn() });
+
+		await expect.element(page.getByRole('slider', { name: /Physical Diff/ })).toBeInTheDocument();
+		await expect.element(page.getByRole('slider', { name: /Mental Diff/ })).toBeInTheDocument();
+		await expect.element(page.getByRole('slider', { name: /Enjoyment/ })).toBeInTheDocument();
+	});
+
 	it('does not submit an empty title', async () => {
 		const onsubmit = vi.fn();
 		render(TaskForm, { onsubmit });

@@ -79,11 +79,12 @@
 		</div>
 
 		<div class="text-sm mt-text-lg grid gap-grid-lg sm:grid-cols-3">
-			<div class="space-y-text-xs">
-				<div class="flex justify-between text-xs font-medium">
+			<!-- The wrapping label is what names each range input -->
+			<label class="block space-y-text-xs">
+				<span class="flex justify-between text-xs font-medium">
 					<span class="text-ty-secondary">{m.form_physical_difficulty()}</span>
 					<span class="text-ty-primary">{draft.physicalDifficulty}</span>
-				</div>
+				</span>
 				<input
 					type="range"
 					min="0"
@@ -91,13 +92,13 @@
 					bind:value={draft.physicalDifficulty}
 					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-body"
 				/>
-			</div>
+			</label>
 
-			<div class="space-y-text-xs">
-				<div class="flex justify-between text-xs font-medium">
+			<label class="block space-y-text-xs">
+				<span class="flex justify-between text-xs font-medium">
 					<span class="text-ty-secondary">{m.form_mental_difficulty()}</span>
 					<span class="text-ty-primary">{draft.mentalDifficulty}</span>
-				</div>
+				</span>
 				<input
 					type="range"
 					min="0"
@@ -105,13 +106,13 @@
 					bind:value={draft.mentalDifficulty}
 					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-mind"
 				/>
-			</div>
+			</label>
 
-			<div class="space-y-text-xs">
-				<div class="flex justify-between text-xs font-medium">
+			<label class="block space-y-text-xs">
+				<span class="flex justify-between text-xs font-medium">
 					<span class="text-ty-secondary">{m.form_enjoyment()}</span>
 					<span class="text-ty-primary">{draft.enjoyment}</span>
-				</div>
+				</span>
 				<input
 					type="range"
 					min="1"
@@ -119,7 +120,7 @@
 					bind:value={draft.enjoyment}
 					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-brand"
 				/>
-			</div>
+			</label>
 		</div>
 
 		<div class="mt-text-xl flex justify-end">

@@ -157,6 +157,7 @@
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
+				aria-label={m.task_toggle_aria({ title })}
 				class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
 			/>
 
@@ -370,11 +371,12 @@
 
 				<div class="grid gap-grid-md sm:grid-cols-3">
 					{#each editSliders as slider (slider.key)}
-						<div class="space-y-text-xs">
-							<div class="flex justify-between text-xs font-medium">
+						<!-- The wrapping label is what names the range input -->
+						<label class="block space-y-text-xs">
+							<span class="flex justify-between text-xs font-medium">
 								<span class="text-ty-secondary">{slider.label}</span>
 								<span class="text-ty-primary">{editDraft[slider.key]}</span>
-							</div>
+							</span>
 							<input
 								type="range"
 								min={slider.min}
@@ -382,7 +384,7 @@
 								bind:value={editDraft[slider.key]}
 								class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset {slider.accent}"
 							/>
-						</div>
+						</label>
 					{/each}
 				</div>
 

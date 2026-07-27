@@ -11,7 +11,17 @@
 	   fixed height below) is never generated. */
 	const { Story } = defineMeta({
 		title: 'Theme',
-		parameters: { layout: 'fullscreen' }
+		parameters: {
+			layout: 'fullscreen',
+			/* This is a token swatch sheet, not a UI surface: it renders every
+			   fill/ink pair on purpose, including the 15 of 297 that AGENTS.md §2
+			   records as unable to reach 4.5:1 with any ink (a mid-luminance
+			   chromatic fill caps out; worst case 4.28:1). That budget is measured
+			   by scripts/ink-contrast.mjs, not by axe — which would otherwise fail
+			   this page for the exact tradeoff the tokens document. Contrast stays
+			   enforced on every real component story. */
+			a11y: { config: { rules: [{ id: 'color-contrast', enabled: false }] } }
+		}
 	});
 
 	/* Literal class strings — Tailwind's scanner is textual, so anything

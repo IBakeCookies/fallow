@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
+
 	interface Props {
 		value: number;
 		onchange: (value: number) => void;
@@ -7,6 +9,9 @@
 		step?: number;
 		unit?: string; // small suffix label inside the field, e.g. "hrs"
 		id?: string;
+		// Only for a field with no visible <label for={id}> — otherwise the label
+		// already names it and this would override it with a second name.
+		ariaLabel?: string;
 		// Focus accent, passed as a literal class so Tailwind can see it,
 		// e.g. "focus-within:border-brand/50"
 		accent?: string;
@@ -20,6 +25,7 @@
 		step = 1,
 		unit,
 		id,
+		ariaLabel,
 		accent = 'focus-within:border-brand/50'
 	}: Props = $props();
 
@@ -58,7 +64,7 @@
 	<button
 		type="button"
 		tabindex={-1}
-		aria-label="Decrease"
+		aria-label={m.number_input_decrease()}
 		disabled={atMin}
 		onclick={() => stepBy(-1)}
 		class="rounded-l-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-hover hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
@@ -69,6 +75,7 @@
 		<input
 			{id}
 			type="number"
+			aria-label={ariaLabel}
 			{min}
 			{max}
 			{step}
@@ -88,7 +95,7 @@
 	<button
 		type="button"
 		tabindex={-1}
-		aria-label="Increase"
+		aria-label={m.number_input_increase()}
 		disabled={atMax}
 		onclick={() => stepBy(1)}
 		class="rounded-r-lg px-2.5 text-sm text-ty-silent transition select-none hover:bg-surface-hover hover:text-ty-primary disabled:cursor-default disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ty-silent"
