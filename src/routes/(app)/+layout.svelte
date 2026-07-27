@@ -25,9 +25,13 @@
 
 	async function exportData() {
 		const file = await backup.$exportAllStores();
+
 		const url = URL.createObjectURL(
-			new Blob([JSON.stringify(file, null, '\t')], { type: 'application/json' })
+			new Blob([JSON.stringify(file, null, '\t')], {
+				type: 'application/json',
+			}),
 		);
+
 		const anchor = document.createElement('a');
 		anchor.href = url;
 		anchor.download = `fallow-backup-${file.exportedAt.slice(0, 10)}.json`;
@@ -39,16 +43,23 @@
 		try {
 			await backup.$importAllStores(JSON.parse(await file.text()));
 		} catch {
-			alert(m.backup_import_failed());
+			// The import failure has no other surface yet; replacing this means a
+			// dialog component of its own.
+			alert(m.backup_import_failed()); // eslint-disable-line no-alert
+
 			return;
 		}
+
 		// Stores read IndexedDB once on mount — reload so they pick up the
 		// imported records.
 		location.reload();
 	}
 
 	async function deleteData() {
-		if (!confirm(m.data_delete_confirm())) return;
+		// This guards an irreversible delete of every store; it stays until an
+		// AlertDialog replaces it like-for-like.
+		if (!confirm(m.data_delete_confirm())) return; // eslint-disable-line no-alert
+
 		await backup.$deleteAllStores();
 		location.reload();
 	}
@@ -66,13 +77,13 @@
 	// gets: a task lookup, and the one banner both report into.
 	const observations = setEnergyObservationStore(
 		() => session.tasks,
-		(kind) => session.reportStorageError(kind)
+		(kind) => session.reportStorageError(kind),
 	);
 
 	// A failed read and a failed write need different copy and different actions:
 	// a read is retryable, a write has already lost the edit.
 	const storageErrorMessage = $derived(
-		session.storageError === 'load-failed' ? m.error_body() : m.storage_error()
+		session.storageError === 'load-failed' ? m.error_body() : m.storage_error(),
 	);
 
 	// Either store can have been the one that failed to read, and neither knows
@@ -116,7 +127,7 @@
 										     so the slices always match themes.css -->
 										<span
 											class="{theme.css.join(
-												' '
+												' ',
 											)} border-line-strong flex h-3.5 w-3.5 shrink-0 overflow-hidden rounded-full border"
 											aria-hidden="true"
 										>
@@ -179,7 +190,9 @@
 						class="hidden"
 						onchange={(event) => {
 							const file = event.currentTarget.files?.[0];
+
 							if (file) importData(file);
+
 							event.currentTarget.value = '';
 						}}
 					/>

@@ -8,7 +8,7 @@
 		'secondary',
 		'ghost',
 		'destructive',
-		'link'
+		'link',
 	];
 	const sizes: ButtonSize[] = ['xs', 'sm', 'default', 'lg'];
 	const iconSizes: ButtonSize[] = ['icon-xs', 'icon-sm', 'icon', 'icon-lg'];
@@ -17,13 +17,27 @@
 		title: 'UI/Button',
 		component: Button,
 		tags: ['autodocs'],
-		args: { variant: 'default', size: 'default', disabled: false },
+		args: {
+			variant: 'default',
+			size: 'default',
+			disabled: false,
+		},
 		argTypes: {
-			variant: { control: 'select', options: variants },
-			size: { control: 'select', options: [...sizes, ...iconSizes] },
-			disabled: { control: 'boolean' },
-			href: { control: 'text' }
-		}
+			variant: {
+				control: 'select',
+				options: variants,
+			},
+			size: {
+				control: 'select',
+				options: [...sizes, ...iconSizes],
+			},
+			disabled: {
+				control: 'boolean',
+			},
+			href: {
+				control: 'text',
+			},
+		},
 	});
 </script>
 
@@ -48,7 +62,18 @@
 	</div>
 </Story>
 
-<Story name="Disabled" args={{ disabled: true }}>Deploy task</Story>
+<Story
+	name="Disabled"
+	args={{
+		disabled: true,
+	}}>Deploy task</Story
+>
 
 <!-- href renders an <a>; disabled then only marks it, it cannot swallow clicks -->
-<Story name="As link" args={{ href: '/energy', variant: 'link' }}>Energy Lab</Story>
+<Story
+	name="As link"
+	args={{
+		href: '/energy',
+		variant: 'link',
+	}}>Energy Lab</Story
+>

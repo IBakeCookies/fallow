@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { fn } from 'storybook/test';
-	import TaskItem from './task-item.svelte';
+	import TaskItem from '$lib/presentation/component/task-item.svelte';
 
 	const { Story } = defineMeta({
 		title: 'Component/Task Item',
@@ -23,22 +23,44 @@
 			ontoggle: fn(),
 			onremove: fn(),
 			onlogflow: fn(),
-			onupdate: fn()
-		}
+			onupdate: fn(),
+		},
 	});
 </script>
 
 <Story name="Default" />
 
 <!-- #1 in the suggested sequence -->
-<Story name="First in run order" args={{ runOrder: 1 }} />
+<Story
+	name="First in run order"
+	args={{
+		runOrder: 1,
+	}}
+/>
 
-<Story name="With a logged time-to-flow" args={{ runOrder: 2, flowMinutes: 40 }} />
+<Story
+	name="With a logged time-to-flow"
+	args={{
+		runOrder: 2,
+		flowMinutes: 40,
+	}}
+/>
 
-<Story name="Completed" args={{ completed: true }} />
+<Story
+	name="Completed"
+	args={{
+		completed: true,
+	}}
+/>
 
 <!-- No onlogflow/onupdate: the ⚡ and ✎ editors are hidden -->
-<Story name="Read only" args={{ onlogflow: undefined, onupdate: undefined }} />
+<Story
+	name="Read only"
+	args={{
+		onlogflow: undefined,
+		onupdate: undefined,
+	}}
+/>
 
 <Story
 	name="Unallocated"
@@ -52,6 +74,6 @@
 		suggestedHours: 0,
 		trueEffort: 4.5,
 		flowStateTime: 1.1,
-		optimalStopHours: 1.9
+		optimalStopHours: 1.9,
 	}}
 />

@@ -12,10 +12,13 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * Typo correction happens by deleting the entry from the calibration list.
  */
 export async function $createRestObservation(
-	observation: Omit<RestObservationRecord, 'id' | 'createdAt'>
+	observation: Omit<RestObservationRecord, 'id' | 'createdAt'>,
 ): Promise<void> {
 	await withStore('restObservations', 'readwrite', (store) => {
-		store.put({ ...observation, createdAt: Date.now() });
+		store.put({
+			...observation,
+			createdAt: Date.now(),
+		});
 	});
 }
 

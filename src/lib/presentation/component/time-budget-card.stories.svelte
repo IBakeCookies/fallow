@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import TimeBudgetCard from './time-budget-card.svelte';
+	import TimeBudgetCard from '$lib/presentation/component/time-budget-card.svelte';
 
 	const { Story } = defineMeta({
 		title: 'Component/Time Budget Card',
@@ -13,18 +13,28 @@
 			physicalPool: 4,
 			remainingSuggestedHours: '5.25',
 			planSlackHours: 0,
-			startOpen: true
-		}
+			startOpen: true,
+		},
 	});
 </script>
 
 <Story name="Open" />
 
 <!-- Slack above 0.05 h adds the unplanned-time warning line -->
-<Story name="With unplanned time" args={{ remainingSuggestedHours: '4.00', planSlackHours: 2 }} />
+<Story
+	name="With unplanned time"
+	args={{
+		remainingSuggestedHours: '4.00',
+		planSlackHours: 2,
+	}}
+/>
 
 <!-- Collapsed it is one summary line: budget · planned · slack -->
 <Story
 	name="Collapsed"
-	args={{ startOpen: false, remainingSuggestedHours: '4.00', planSlackHours: 2 }}
+	args={{
+		startOpen: false,
+		remainingSuggestedHours: '4.00',
+		planSlackHours: 2,
+	}}
 />

@@ -1,12 +1,12 @@
 <script lang="ts">
 	// Test-only host: the store needs a component context (onMount, $effect).
-	import { ThemeStore } from './theme-store.svelte';
+	import { ThemeStore } from '$lib/business/store/theme-store.svelte';
 	import type { ThemeName } from '$lib/business/model/theme';
 
 	let {
 		onstore,
 		initialTheme,
-		initialSceneryPaused
+		initialSceneryPaused,
 	}: {
 		onstore: (store: ThemeStore) => void;
 		initialTheme?: ThemeName;

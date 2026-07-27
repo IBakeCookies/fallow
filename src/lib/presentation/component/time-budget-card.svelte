@@ -21,7 +21,7 @@
 		physicalPool = $bindable(),
 		remainingSuggestedHours,
 		planSlackHours,
-		startOpen = true
+		startOpen = true,
 	}: Props = $props();
 
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
@@ -50,9 +50,11 @@
 				<span class="truncate">
 					{m.budget_summary({
 						hours: availableHours,
-						planned: remainingSuggestedHours
+						planned: remainingSuggestedHours,
 					})}{planSlackHours > 0.05
-						? ` · ${m.budget_summary_free({ slack: planSlackHours.toFixed(2) })}`
+						? ` · ${m.budget_summary_free({
+								slack: planSlackHours.toFixed(2),
+							})}`
 						: ''}
 				</span>
 			{/if}
@@ -76,11 +78,15 @@
 					accent="focus-within:border-brand/50"
 				/>
 				<p class="text-xs text-ty-silent mt-text-xs">
-					{m.budget_allocated({ hours: remainingSuggestedHours })}
+					{m.budget_allocated({
+						hours: remainingSuggestedHours,
+					})}
 				</p>
 				{#if planSlackHours > 0.05}
 					<p class="text-xs text-warning mt-text-2xs" title={m.budget_unplanned_title()}>
-						{m.budget_unplanned({ hours: planSlackHours.toFixed(2) })}
+						{m.budget_unplanned({
+							hours: planSlackHours.toFixed(2),
+						})}
 					</p>
 				{/if}
 			</div>

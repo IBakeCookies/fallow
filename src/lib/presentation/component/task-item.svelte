@@ -34,7 +34,7 @@
 				physicalDifficulty: number;
 				mentalDifficulty: number;
 				enjoyment: number;
-			}
+			},
 		) => void;
 	}
 
@@ -56,7 +56,7 @@
 		ontoggle,
 		onremove,
 		onlogflow,
-		onupdate
+		onupdate,
 	}: Props = $props();
 
 	// Inline "log time-to-flow" editor (⚡): feeds the c₁,c₂,c₃ personalization
@@ -69,7 +69,7 @@
 		title: '',
 		physicalDifficulty: 5,
 		mentalDifficulty: 5,
-		enjoyment: 5
+		enjoyment: 5,
 	});
 
 	const editSliders = [
@@ -77,27 +77,44 @@
 			key: 'physicalDifficulty',
 			label: m.form_physical_difficulty(),
 			min: 0,
-			accent: 'accent-body'
+			accent: 'accent-body',
 		},
 		{
 			key: 'mentalDifficulty',
 			label: m.form_mental_difficulty(),
 			min: 0,
-			accent: 'accent-mind'
+			accent: 'accent-mind',
 		},
-		{ key: 'enjoyment', label: m.form_enjoyment(), min: 1, accent: 'accent-brand' }
+		{
+			key: 'enjoyment',
+			label: m.form_enjoyment(),
+			min: 1,
+			accent: 'accent-brand',
+		},
 	] as const;
 
 	function openEdit() {
-		editDraft = { title, physicalDifficulty, mentalDifficulty, enjoyment };
+		editDraft = {
+			title,
+			physicalDifficulty,
+			mentalDifficulty,
+			enjoyment,
+		};
+
 		loggingFlow = false;
 		editing = true;
 	}
 
 	function saveEdit() {
 		const nextTitle = editDraft.title.trim();
+
 		if (!nextTitle || !onupdate) return;
-		onupdate(id, { ...editDraft, title: nextTitle });
+
+		onupdate(id, {
+			...editDraft,
+			title: nextTitle,
+		});
+
 		editing = false;
 	}
 
@@ -109,7 +126,9 @@
 
 	function saveFlowLog() {
 		const minutes = Number(flowMinutesInput);
+
 		if (!minutes || minutes <= 0 || !onlogflow) return;
+
 		onlogflow(id, minutes);
 		loggingFlow = false;
 	}
@@ -117,11 +136,14 @@
 	function formatHours(decimalHour: number): string {
 		let hours = Math.floor(decimalHour);
 		let minutes = Math.round((decimalHour - hours) * 60);
+
 		if (minutes === 60) {
 			hours += 1;
 			minutes = 0;
 		}
+
 		if (hours === 0) return `${minutes}m`;
+
 		return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 	}
 
@@ -139,7 +161,9 @@
 				type="checkbox"
 				checked={completed}
 				onchange={() => ontoggle(id)}
-				aria-label={m.task_toggle_aria({ title })}
+				aria-label={m.task_toggle_aria({
+					title,
+				})}
 				class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
 			/>
 
@@ -197,7 +221,7 @@
 							{m.task_derived_values({
 								effort: trueEffort.toFixed(1),
 								flow: formatHours(flowStateTime),
-								stop: formatHours(optimalStopTime)
+								stop: formatHours(optimalStopTime),
 							})}
 						</Tooltip.Trigger>
 						<Tooltip.Content>
@@ -225,7 +249,9 @@
 								{formatHours(suggestedHours)}
 							</div>
 							<div class="text-2xs text-ty-silent">
-								{m.task_priority({ score: priorityScore })}
+								{m.task_priority({
+									score: priorityScore,
+								})}
 							</div>
 						</Tooltip.Trigger>
 						<Tooltip.Content>
@@ -270,8 +296,11 @@
 							<Tooltip.Root>
 								<Tooltip.Trigger
 									class={cn(
-										buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-										flowMinutes ? 'text-flow' : 'text-ty-silent hover:text-flow'
+										buttonVariants({
+											variant: 'ghost',
+											size: 'icon-xs',
+										}),
+										flowMinutes ? 'text-flow' : 'text-ty-silent hover:text-flow',
 									)}
 									onclick={openFlowLog}
 									aria-label={m.task_log_flow_aria()}
@@ -289,8 +318,11 @@
 						<Tooltip.Root>
 							<Tooltip.Trigger
 								class={cn(
-									buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-									editing ? 'text-success' : 'text-ty-silent hover:text-success'
+									buttonVariants({
+										variant: 'ghost',
+										size: 'icon-xs',
+									}),
+									editing ? 'text-success' : 'text-ty-silent hover:text-success',
 								)}
 								onclick={() => (editing ? (editing = false) : openEdit())}
 								aria-label={m.task_edit_aria()}
@@ -313,8 +345,11 @@
 					<Tooltip.Root>
 						<Tooltip.Trigger
 							class={cn(
-								buttonVariants({ variant: 'ghost', size: 'icon-xs' }),
-								'text-ty-silent hover:text-danger'
+								buttonVariants({
+									variant: 'ghost',
+									size: 'icon-xs',
+								}),
+								'text-ty-silent hover:text-danger',
 							)}
 							onclick={() => onremove(id)}
 							aria-label={m.task_remove_aria()}

@@ -12,9 +12,9 @@ import {
 	calculateZenithGain,
 	getTaskNature,
 	type SuggestedTask,
-	type Task
-} from './calculation';
-import { DEFAULT_ENERGY_PARAMS } from '../zenith-energy';
+	type Task,
+} from '$lib/business/model/metric/calculation';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 
 function makeTask(overrides: Partial<Task> & { id: number; title: string }): Task {
 	return {
@@ -23,14 +23,14 @@ function makeTask(overrides: Partial<Task> & { id: number; title: string }): Tas
 		enjoyment: 5,
 		createdAt: '2026-07-11',
 		completed: false,
-		...overrides
+		...overrides,
 	};
 }
 
 // Hand-built SuggestedTask for metrics that only read a few fields — lets a
 // test pin hours/T* exactly instead of routing through the allocator.
 function makeSuggested(
-	overrides: Partial<SuggestedTask> & { id: number; title: string }
+	overrides: Partial<SuggestedTask> & { id: number; title: string },
 ): SuggestedTask {
 	return {
 		...makeTask(overrides),
@@ -43,7 +43,7 @@ function makeSuggested(
 		peakProductivity: 2,
 		avgProductivity: 1,
 		optimalHours: 2,
-		...overrides
+		...overrides,
 	};
 }
 
@@ -56,9 +56,14 @@ describe('getTaskNature', () => {
 		[5, 8, 'physical'],
 		[5, 5, 'balanced'],
 		[7, 5, 'balanced'],
-		[5, 7, 'balanced']
+		[5, 7, 'balanced'],
 	] as const)('mental %s / physical %s is %s', (mentalDifficulty, physicalDifficulty, nature) => {
-		expect(getTaskNature({ mentalDifficulty, physicalDifficulty })).toBe(nature);
+		expect(
+			getTaskNature({
+				mentalDifficulty,
+				physicalDifficulty,
+			}),
+		).toBe(nature);
 	});
 });
 
@@ -68,17 +73,23 @@ describe('calculateSuggestedTasks', () => {
 		// but one is purely cognitive and gets ZERO hours because the cognitive
 		// pool is empty. Its priority must still equal its twin's — priority
 		// measures what a task is worth, not what this plan could give it.
-		const mental = makeTask({ id: 1, title: 'mental', mentalDifficulty: 8, physicalDifficulty: 0 });
+		const mental = makeTask({
+			id: 1,
+			title: 'mental',
+			mentalDifficulty: 8,
+			physicalDifficulty: 0,
+		});
+
 		const physical = makeTask({
 			id: 2,
 			title: 'physical',
 			mentalDifficulty: 0,
-			physicalDifficulty: 8
+			physicalDifficulty: 8,
 		});
 
 		const suggested = calculateSuggestedTasks([mental, physical], 4, 0, {
 			cognitiveHours: 0,
-			physicalHours: 6
+			physicalHours: 6,
 		});
 
 		const mentalOut = suggested.find((t) => t.id === 1)!;
@@ -95,28 +106,62 @@ describe('calculateSuggestedTasks', () => {
 	it('stamps each task with its nature', () => {
 		const suggested = calculateSuggestedTasks(
 			[
-				makeTask({ id: 1, title: 'deep work', mentalDifficulty: 9, physicalDifficulty: 2 }),
-				makeTask({ id: 2, title: 'boxing', mentalDifficulty: 2, physicalDifficulty: 9 }),
-				makeTask({ id: 3, title: 'errands', mentalDifficulty: 5, physicalDifficulty: 5 })
+				makeTask({
+					id: 1,
+					title: 'deep work',
+					mentalDifficulty: 9,
+					physicalDifficulty: 2,
+				}),
+				makeTask({
+					id: 2,
+					title: 'boxing',
+					mentalDifficulty: 2,
+					physicalDifficulty: 9,
+				}),
+				makeTask({
+					id: 3,
+					title: 'errands',
+					mentalDifficulty: 5,
+					physicalDifficulty: 5,
+				}),
 			],
-			8
+			8,
 		);
 
 		expect(new Map(suggested.map((t) => [t.id, t.nature]))).toEqual(
 			new Map([
 				[1, 'cognitive'],
 				[2, 'physical'],
-				[3, 'balanced']
-			])
+				[3, 'balanced'],
+			]),
 		);
 	});
 
 	it('honors custom user constants', () => {
-		const task = makeTask({ id: 1, title: 'a', mentalDifficulty: 7, physicalDifficulty: 2 });
-		const slowToFlow = { c1: 1.2, c2: -0.1, c3: 1.0 };
-		const fastToFlow = { c1: 0.2, c2: -0.1, c3: 0.3 };
+		const task = makeTask({
+			id: 1,
+			title: 'a',
+			mentalDifficulty: 7,
+			physicalDifficulty: 2,
+		});
 
-		const pools = { cognitiveHours: 10, physicalHours: 10 };
+		const slowToFlow = {
+			c1: 1.2,
+			c2: -0.1,
+			c3: 1.0,
+		};
+
+		const fastToFlow = {
+			c1: 0.2,
+			c2: -0.1,
+			c3: 0.3,
+		};
+
+		const pools = {
+			cognitiveHours: 10,
+			physicalHours: 10,
+		};
+
 		const slow = calculateSuggestedTasks([task], 12, 0, pools, slowToFlow)[0];
 		const fast = calculateSuggestedTasks([task], 12, 0, pools, fastToFlow)[0];
 
@@ -136,8 +181,9 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 			mentalDifficulty: 10,
 			physicalDifficulty: 0,
 			enjoyment: 10,
-			suggestedHours: 4
+			suggestedHours: 4,
 		});
+
 		expect(calculateFrictionIndex([lovedHard])).toBe(0);
 	});
 
@@ -148,8 +194,9 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 			mentalDifficulty: 10,
 			physicalDifficulty: 0,
 			enjoyment: 1,
-			suggestedHours: 3
+			suggestedHours: 3,
 		});
+
 		expect(calculateFrictionIndex([grind])).toBe(100);
 	});
 
@@ -161,9 +208,11 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 			mentalDifficulty: 7,
 			physicalDifficulty: 0,
 			enjoyment: 3,
-			suggestedHours: 2
+			suggestedHours: 2,
 		});
+
 		expect(calculateFrictionIndex([mixed])).toBe(44);
+
 		// Adding an equal-hours zero-gap task halves the index
 		const easy = makeSuggested({
 			id: 2,
@@ -171,8 +220,9 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 			mentalDifficulty: 3,
 			physicalDifficulty: 0,
 			enjoyment: 8,
-			suggestedHours: 2
+			suggestedHours: 2,
 		});
+
 		expect(calculateFrictionIndex([mixed, easy])).toBe(22);
 	});
 });
@@ -186,7 +236,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 			physicalDifficulty: 0,
 			enjoyment: 4,
 			suggestedHours: 3,
-			...overrides
+			...overrides,
 		});
 
 	it('a dropped task (0 hours) does not change the risk', () => {
@@ -199,10 +249,11 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 			mentalDifficulty: 1,
 			physicalDifficulty: 8,
 			enjoyment: 7,
-			suggestedHours: 0
+			suggestedHours: 0,
 		});
+
 		expect(calculateBurnoutRisk([work(), dropped], 10, 0.25)).toBe(
-			calculateBurnoutRisk([work()], 10, 0.25)
+			calculateBurnoutRisk([work()], 10, 0.25),
 		);
 	});
 
@@ -218,22 +269,62 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		// The retired heuristic clamped at 100% after ~1.4h of hard work;
 		// the reservoir law keeps resolution over the whole range.
 		const risks = [1, 2, 4, 8].map((h) =>
-			calculateBurnoutRisk([work({ mentalDifficulty: 9, suggestedHours: h })], h, 0.25)
+			calculateBurnoutRisk(
+				[
+					work({
+						mentalDifficulty: 9,
+						suggestedHours: h,
+					}),
+				],
+				h,
+				0.25,
+			),
 		);
+
 		expect([...risks]).toEqual([...risks].sort((a, b) => a - b));
 		expect(new Set(risks).size).toBe(risks.length);
 		expect(risks[risks.length - 1]).toBeLessThan(100); // micro-recovery floor: 100% unreachable
 
-		const mild = calculateBurnoutRisk([work({ mentalDifficulty: 3, suggestedHours: 4 })], 4, 0.25);
-		const hard = calculateBurnoutRisk([work({ mentalDifficulty: 9, suggestedHours: 4 })], 4, 0.25);
+		const mild = calculateBurnoutRisk(
+			[
+				work({
+					mentalDifficulty: 3,
+					suggestedHours: 4,
+				}),
+			],
+			4,
+			0.25,
+		);
+
+		const hard = calculateBurnoutRisk(
+			[
+				work({
+					mentalDifficulty: 9,
+					suggestedHours: 4,
+				}),
+			],
+			4,
+			0.25,
+		);
+
 		expect(hard).toBeGreaterThan(mild);
 	});
 
 	it('enjoyment does not enter: drain is f(demand, duration) in the energy model', () => {
 		// Deliberate v2 semantic change (the §11.4 boundary applied here):
 		// loved-hard and hated-hard days drain the reservoirs identically.
-		const loved = work({ enjoyment: 10, trueEnjoyability: 2, suggestedHours: 4 });
-		const hated = work({ enjoyment: 1, trueEnjoyability: 1, suggestedHours: 4 });
+		const loved = work({
+			enjoyment: 10,
+			trueEnjoyability: 2,
+			suggestedHours: 4,
+		});
+
+		const hated = work({
+			enjoyment: 1,
+			trueEnjoyability: 1,
+			suggestedHours: 4,
+		});
+
 		expect(calculateBurnoutRisk([loved], 4, 0.25)).toBe(calculateBurnoutRisk([hated], 4, 0.25));
 	});
 
@@ -241,17 +332,23 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		// The connection to the user's capacity the heuristic never had: a
 		// faster-draining user (higher fitted α) sees higher risk on the same plan.
 		const base = calculateBurnoutRisk([work()], 3, 0.25);
+
 		const fast = calculateBurnoutRisk([work()], 3, 0.25, {
 			...DEFAULT_ENERGY_PARAMS,
-			alphaCog: 0.9
+			alphaCog: 0.9,
 		});
+
 		expect(fast).toBeGreaterThan(base);
 	});
 
 	it('a declared budget with nothing funded still warns', () => {
 		// Old guard preserved: the intended hours are simulated at the task
 		// list's average demands.
-		const unfunded = work({ suggestedHours: 0, mentalDifficulty: 8 });
+		const unfunded = work({
+			suggestedHours: 0,
+			mentalDifficulty: 8,
+		});
+
 		expect(calculateBurnoutRisk([unfunded], 6, 0.25)).toBeGreaterThan(0);
 		expect(calculateBurnoutRisk([unfunded], 0, 0.25)).toBe(0);
 		expect(calculateBurnoutRisk([], 6, 0.25)).toBe(0);
@@ -260,31 +357,64 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 
 describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)', () => {
 	it('a single funded session is 100% integral', () => {
-		const solo = makeSuggested({ id: 1, title: 'solo', suggestedHours: 4 });
+		const solo = makeSuggested({
+			id: 1,
+			title: 'solo',
+			suggestedHours: 4,
+		});
+
 		expect(calculateScheduleIntegrity([solo], 6, 0.25)).toBe(100);
 	});
 
 	it('more funded tasks per worked hour means more switching overhead', () => {
 		const t = (id: number, hours: number) =>
-			makeSuggested({ id, title: `t${id}`, suggestedHours: hours });
+			makeSuggested({
+				id,
+				title: `t${id}`,
+				suggestedHours: hours,
+			});
+
 		// 4h over two tasks: 4/(4+0.25) ≈ 94%
 		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6, 0.25)).toBe(94);
+
 		// The same 4h over eight tasks: 4/(4+1.75) ≈ 70%
-		const eight = Array.from({ length: 8 }, (_, i) => t(i + 1, 0.5));
+		const eight = Array.from(
+			{
+				length: 8,
+			},
+			(_, i) => t(i + 1, 0.5),
+		);
+
 		expect(calculateScheduleIntegrity(eight, 6, 0.25)).toBe(70);
 	});
 
 	it('dropped tasks are consolidation, not fragmentation', () => {
 		// Old rule: a 0-hour task counted as "fragmented" and pushed the metric
 		// down, although dropping is exactly how the allocator UN-fragments a day.
-		const funded = makeSuggested({ id: 1, title: 'funded', suggestedHours: 4 });
-		const dropped = makeSuggested({ id: 2, title: 'dropped', suggestedHours: 0 });
+		const funded = makeSuggested({
+			id: 1,
+			title: 'funded',
+			suggestedHours: 4,
+		});
+
+		const dropped = makeSuggested({
+			id: 2,
+			title: 'dropped',
+			suggestedHours: 0,
+		});
+
 		expect(calculateScheduleIntegrity([funded, dropped], 6, 0.25)).toBe(100);
 	});
 
 	it('keeps its empty-state guards', () => {
 		expect(calculateScheduleIntegrity([], 6, 0.25)).toBe(100);
-		const t = makeSuggested({ id: 1, title: 't', suggestedHours: 0 });
+
+		const t = makeSuggested({
+			id: 1,
+			title: 't',
+			suggestedHours: 0,
+		});
+
 		expect(calculateScheduleIntegrity([t], 0, 0.25)).toBe(0); // no budget set
 		expect(calculateScheduleIntegrity([t], 6, 0.25)).toBe(0); // budget set, nothing funded
 	});
@@ -292,7 +422,12 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 
 describe('calculateYieldIndex', () => {
 	const t = (id: number, priorityScore: number, completed: boolean) =>
-		makeSuggested({ id, title: `t${id}`, priorityScore, completed });
+		makeSuggested({
+			id,
+			title: `t${id}`,
+			priorityScore,
+			completed,
+		});
 
 	it('returns 0 with no completions', () => {
 		expect(calculateYieldIndex([t(1, 9, false), t(2, 6, false)])).toBe(0);
@@ -318,15 +453,16 @@ describe('calculateInterleavedOrder', () => {
 			mentalDifficulty: 8,
 			physicalDifficulty: 0,
 			priorityScore,
-			suggestedHours
+			suggestedHours,
 		});
+
 	const physical = (id: number, priorityScore: number) =>
 		makeSuggested({
 			id,
 			title: `phys${id}`,
 			mentalDifficulty: 0,
 			physicalDifficulty: 8,
-			priorityScore
+			priorityScore,
 		});
 
 	it('only sequences funded tasks (a 0h task has no session)', () => {
@@ -353,12 +489,14 @@ describe('calculateHumanCapacity', () => {
 			title: 'deep',
 			mentalDifficulty: 8,
 			physicalDifficulty: 2,
-			suggestedHours: 5
+			suggestedHours: 5,
 		});
+
 		const { percent, limitType } = calculateHumanCapacity([deep], {
 			cognitiveHours: 4,
-			physicalHours: 6
+			physicalHours: 6,
 		});
+
 		expect(percent).toBe(100);
 		expect(limitType).toBe('cognitive');
 	});
@@ -369,33 +507,56 @@ describe('calculateHumanCapacity', () => {
 			title: 'gym',
 			mentalDifficulty: 0,
 			physicalDifficulty: 8,
-			suggestedHours: 1
+			suggestedHours: 1,
 		});
-		expect(calculateHumanCapacity([gym], { cognitiveHours: 4, physicalHours: 0 }).percent).toBe(
-			Infinity
-		);
+
+		expect(
+			calculateHumanCapacity([gym], {
+				cognitiveHours: 4,
+				physicalHours: 0,
+			}).percent,
+		).toBe(Infinity);
+
 		const read = makeSuggested({
 			id: 2,
 			title: 'read',
 			mentalDifficulty: 6,
 			physicalDifficulty: 0,
-			suggestedHours: 1
+			suggestedHours: 1,
 		});
+
 		expect(
-			calculateHumanCapacity([read], { cognitiveHours: 4, physicalHours: 0 }).percent
+			calculateHumanCapacity([read], {
+				cognitiveHours: 4,
+				physicalHours: 0,
+			}).percent,
 		).toBeLessThan(Infinity);
 	});
 
 	it('empty task list reads none', () => {
-		expect(calculateHumanCapacity([], { cognitiveHours: 4, physicalHours: 6 })).toEqual({
+		expect(
+			calculateHumanCapacity([], {
+				cognitiveHours: 4,
+				physicalHours: 6,
+			}),
+		).toEqual({
 			percent: 0,
-			limitType: 'none'
+			limitType: 'none',
 		});
 	});
 });
 
 describe('calculateTimeScarcity', () => {
-	const tasks = [makeTask({ id: 1, title: 'a' }), makeTask({ id: 2, title: 'b' })];
+	const tasks = [
+		makeTask({
+			id: 1,
+			title: 'a',
+		}),
+		makeTask({
+			id: 2,
+			title: 'b',
+		}),
+	];
 
 	it('is 0 when the budget covers flow time for every task and 100 with no budget', () => {
 		expect(calculateTimeScarcity(tasks, 24)).toBe(0);
@@ -404,6 +565,7 @@ describe('calculateTimeScarcity', () => {
 
 	it('grows as the budget shrinks and stays in [0, 100]', () => {
 		let prev = 0;
+
 		for (const budget of [10, 4, 2, 1, 0.5]) {
 			const s = calculateTimeScarcity(tasks, budget);
 			expect(s).toBeGreaterThanOrEqual(prev);
@@ -419,32 +581,79 @@ describe('calculateFlowCoverage', () => {
 			id: 1,
 			title: 'reaches',
 			suggestedHours: 2,
-			flowStateTime: 1.5
+			flowStateTime: 1.5,
 		});
-		const short = makeSuggested({ id: 2, title: 'short', suggestedHours: 1, flowStateTime: 1.5 });
+
+		const short = makeSuggested({
+			id: 2,
+			title: 'short',
+			suggestedHours: 1,
+			flowStateTime: 1.5,
+		});
+
 		// suggestedHours 0 ≥ flowStateTime 0 — must still NOT count as reached
-		const dropped = makeSuggested({ id: 3, title: 'dropped', suggestedHours: 0, flowStateTime: 0 });
-		expect(calculateFlowCoverage([reaches, short, dropped])).toEqual({ reached: 1, total: 3 });
-		expect(calculateFlowCoverage([])).toEqual({ reached: 0, total: 0 });
+		const dropped = makeSuggested({
+			id: 3,
+			title: 'dropped',
+			suggestedHours: 0,
+			flowStateTime: 0,
+		});
+
+		expect(calculateFlowCoverage([reaches, short, dropped])).toEqual({
+			reached: 1,
+			total: 3,
+		});
+
+		expect(calculateFlowCoverage([])).toEqual({
+			reached: 0,
+			total: 0,
+		});
 	});
 });
 
 describe('calculateZenithGain', () => {
 	it('guards empty inputs and reports a real gain otherwise', () => {
-		expect(calculateZenithGain([], 8)).toEqual({ optimized: 0, naive: 0, gainPercent: 0 });
-		expect(calculateZenithGain([makeTask({ id: 1, title: 'a' })], 0)).toEqual({
+		expect(calculateZenithGain([], 8)).toEqual({
 			optimized: 0,
 			naive: 0,
-			gainPercent: 0
+			gainPercent: 0,
 		});
+
+		expect(
+			calculateZenithGain(
+				[
+					makeTask({
+						id: 1,
+						title: 'a',
+					}),
+				],
+				0,
+			),
+		).toEqual({
+			optimized: 0,
+			naive: 0,
+			gainPercent: 0,
+		});
+
 		const gain = calculateZenithGain(
 			[
-				makeTask({ id: 1, title: 'hard boring', mentalDifficulty: 9, enjoyment: 2 }),
-				makeTask({ id: 2, title: 'easy fun', mentalDifficulty: 2, enjoyment: 9 })
+				makeTask({
+					id: 1,
+					title: 'hard boring',
+					mentalDifficulty: 9,
+					enjoyment: 2,
+				}),
+				makeTask({
+					id: 2,
+					title: 'easy fun',
+					mentalDifficulty: 2,
+					enjoyment: 9,
+				}),
 			],
 			4,
-			0.25
+			0.25,
 		);
+
 		expect(gain.optimized).toBeGreaterThan(0);
 		expect(gain.optimized).toBeGreaterThanOrEqual(gain.naive);
 	});

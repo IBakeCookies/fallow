@@ -19,7 +19,9 @@
 	// svelte-ignore state_referenced_locally
 	const themeStore = setThemeStore(data.theme, data.scenerySeed, data.sceneryPaused);
 
-	injectAnalytics({ mode: dev ? 'development' : 'production' });
+	injectAnalytics({
+		mode: dev ? 'development' : 'production',
+	});
 	injectSpeedInsights();
 
 	// Clock-driven scenery state. SSR renders the request's IP-derived
@@ -34,6 +36,7 @@
 	onMount(() => {
 		sceneryNow = new Date();
 		const id = setInterval(() => (sceneryNow = new Date()), 60_000);
+
 		return () => clearInterval(id);
 	});
 

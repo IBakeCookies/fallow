@@ -19,7 +19,7 @@ import {
 	findBestDay,
 	monthlyCompletionRates,
 	type DaySummary,
-	type MonthlyCompletion
+	type MonthlyCompletion,
 } from '$lib/business/model/metric/history';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
@@ -30,11 +30,15 @@ import {
 	initializeStorage,
 	readDaySummaries,
 	readModelReport,
-	type CalibrationSnapshot
-} from './session-history';
+	type CalibrationSnapshot,
+} from '$lib/business/store/session-history';
 
 /** Each range's length in days. The year view is the whole loaded history. */
-export const ANALYTICS_RANGES = { week: 7, month: 30, year: 365 } as const;
+export const ANALYTICS_RANGES = {
+	week: 7,
+	month: 30,
+	year: 365,
+} as const;
 
 export type AnalyticsRange = keyof typeof ANALYTICS_RANGES;
 
@@ -62,8 +66,10 @@ export class AnalyticsStore {
 	// last 365 days are ever loaded.
 	#previous = $derived.by(() => {
 		if (this.#range === 'year') return [];
+
 		const start = addDays(this.#today, -(2 * this.#rangeDays - 1));
 		const end = addDays(this.#today, -this.#rangeDays);
+
 		return this.#all.filter((s) => s.date >= start && s.date <= end);
 	});
 
@@ -71,20 +77,23 @@ export class AnalyticsStore {
 	#completedTasks = $derived(this.#summaries.reduce((sum, s) => sum + s.completedTasks, 0));
 	#plannedHours = $derived(
 		Math.round(this.#summaries.reduce((sum, s) => sum + (Number(s.availableHours) || 0), 0) * 10) /
-			10
+			10,
 	);
 	// Reads the whole loaded year, not the viewed range — a streak is not a
 	// property of whichever window happens to be open.
 	#streak = $derived.by(() => {
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, never mutated after
 		const active = new Set(this.#all.filter((s) => s.completedTasks > 0).map((s) => s.date));
+
 		return currentStreak(active, this.#today);
 	});
 
 	constructor() {
 		onMount(async () => {
 			if (!browser) return;
+
 			const today = this.#today;
+
 			try {
 				await initializeStorage();
 				this.#all = await readDaySummaries(addDays(today, -(ANALYTICS_RANGES.year - 1)), today);

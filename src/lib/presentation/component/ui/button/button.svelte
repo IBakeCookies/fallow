@@ -25,7 +25,7 @@
 					'hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-hover aria-expanded:text-foreground',
 				destructive:
 					'bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 text-destructive focus-visible:border-destructive/40',
-				link: 'text-primary underline-offset-4 hover:underline'
+				link: 'text-primary underline-offset-4 hover:underline',
 			},
 			size: {
 				default:
@@ -38,13 +38,13 @@
 					"size-6 rounded-[min(var(--radius-md),8px)] in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
 				'icon-sm':
 					'size-8 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-md',
-				'icon-lg': 'size-10'
-			}
+				'icon-lg': 'size-10',
+			},
 		},
 		defaultVariants: {
 			variant: 'default',
-			size: 'default'
-		}
+			size: 'default',
+		},
 	});
 
 	export type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
@@ -77,7 +77,13 @@
 		href={disabled ? undefined : href}
 		bind:this={ref}
 		data-slot="button"
-		class={cn(buttonVariants({ variant, size }), className)}
+		class={cn(
+			buttonVariants({
+				variant,
+				size,
+			}),
+			className,
+		)}
 		aria-disabled={disabled}
 		role={disabled ? 'link' : undefined}
 		tabindex={disabled ? -1 : undefined}
@@ -89,7 +95,13 @@
 	<button
 		bind:this={ref}
 		data-slot="button"
-		class={cn(buttonVariants({ variant, size }), className)}
+		class={cn(
+			buttonVariants({
+				variant,
+				size,
+			}),
+			className,
+		)}
 		{type}
 		{disabled}
 		{...restProps}

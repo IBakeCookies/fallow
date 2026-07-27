@@ -7,10 +7,13 @@ const PATHS = ['/', '/analytics', '/calendar', '/energy', '/imprint', '/privacy'
 
 export const GET: RequestHandler = ({ url }) => {
 	const origin = (env.PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, '');
+
 	// A URL object, not a string: localizeUrl() only consults getUrlOrigin() for
 	// string input, and this endpoint runs outside any request-scoped origin.
 	const localized = (path: string, locale: Locale) =>
-		localizeUrl(new URL(origin + path), { locale }).href;
+		localizeUrl(new URL(origin + path), {
+			locale,
+		}).href;
 
 	// Each locale's URL is listed as its own <url>, and every entry repeats the
 	// full alternate set including itself — that is what Google's spec asks for.
@@ -18,15 +21,15 @@ export const GET: RequestHandler = ({ url }) => {
 		const alternates = locales
 			.map(
 				(locale) =>
-					`\t\t<xhtml:link rel="alternate" hreflang="${locale}" href="${localized(path, locale)}" />`
+					`\t\t<xhtml:link rel="alternate" hreflang="${locale}" href="${localized(path, locale)}" />`,
 			)
 			.concat(
-				`\t\t<xhtml:link rel="alternate" hreflang="x-default" href="${localized(path, baseLocale)}" />`
+				`\t\t<xhtml:link rel="alternate" hreflang="x-default" href="${localized(path, baseLocale)}" />`,
 			)
 			.join('\n');
 
 		return locales.map(
-			(locale) => `\t<url>\n\t\t<loc>${localized(path, locale)}</loc>\n${alternates}\n\t</url>`
+			(locale) => `\t<url>\n\t\t<loc>${localized(path, locale)}</loc>\n${alternates}\n\t</url>`,
 		);
 	});
 
@@ -39,8 +42,8 @@ ${entries.join('\n')}
 	return new Response(body, {
 		headers: {
 			'Content-Type': 'application/xml',
-			'Cache-Control': 'public, max-age=3600'
-		}
+			'Cache-Control': 'public, max-age=3600',
+		},
 	});
 };
 

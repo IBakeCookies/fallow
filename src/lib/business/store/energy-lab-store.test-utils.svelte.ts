@@ -10,7 +10,7 @@ import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/ty
 import {
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
-	fitUserConstants
+	fitUserConstants,
 } from '$lib/business/model/zenith';
 
 class MockSession {
@@ -51,7 +51,7 @@ export const mockSession = new MockSession();
 export const mockObservations = new MockObservations();
 
 export const drainRecord = (
-	over: Partial<DrainObservationRecord> = {}
+	over: Partial<DrainObservationRecord> = {},
 ): DrainObservationRecord => ({
 	date: '2026-07-19',
 	taskId: 1,
@@ -62,7 +62,7 @@ export const drainRecord = (
 	mindDrain: 9,
 	bodyDrain: 9,
 	createdAt: 0,
-	...over
+	...over,
 });
 
 export const restRecord = (over: Partial<RestObservationRecord> = {}): RestObservationRecord => ({
@@ -73,5 +73,5 @@ export const restRecord = (over: Partial<RestObservationRecord> = {}): RestObser
 	bodyBefore: 8,
 	bodyAfter: 1,
 	createdAt: 0,
-	...over
+	...over,
 });

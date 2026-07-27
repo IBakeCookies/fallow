@@ -33,7 +33,7 @@
 		onimport,
 		onimportdate,
 		onsaveroutine,
-		ondeleteroutine
+		ondeleteroutine,
 	}: Props = $props();
 
 	const isToday = $derived(selectedDate === today);
@@ -50,8 +50,10 @@
 
 	async function importFromDate() {
 		if (!importDate) return;
+
 		importDateEmpty = false;
 		const count = await onimportdate(importDate);
+
 		if (count > 0) {
 			showLoadMenu = false;
 			importDate = '';
@@ -62,12 +64,14 @@
 
 	function importYesterday() {
 		if (!yesterdaySession?.tasks.length) return;
+
 		const tasksToImport = yesterdaySession.tasks.map((t) => ({
 			title: t.title,
 			physicalDifficulty: t.physicalDifficulty,
 			mentalDifficulty: t.mentalDifficulty,
-			enjoyment: t.enjoyment
+			enjoyment: t.enjoyment,
 		}));
+
 		onimport(tasksToImport);
 	}
 
@@ -77,6 +81,7 @@
 
 	function saveCurrentAsRoutine() {
 		if (!routineName.trim() || !currentTasks.length) return;
+
 		onsaveroutine(routineName.trim());
 		routineName = '';
 		showSaveInput = false;
@@ -146,7 +151,9 @@
 									d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
 								/>
 							</svg>
-							{m.header_yesterday({ count: yesterdaySession?.tasks.length ?? 0 })}
+							{m.header_yesterday({
+								count: yesterdaySession?.tasks.length ?? 0,
+							})}
 						</DropdownMenu.Item>
 					{/if}
 
@@ -159,7 +166,9 @@
 									{routine.name} ({routine.tasks.length})
 								</button>
 								<button
-									aria-label={m.header_delete_routine({ name: routine.name })}
+									aria-label={m.header_delete_routine({
+										name: routine.name,
+									})}
 									onclick={(e) => {
 										e.stopPropagation();
 										ondeleteroutine(routine.id);

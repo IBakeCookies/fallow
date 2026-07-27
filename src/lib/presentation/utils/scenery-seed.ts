@@ -47,7 +47,7 @@ function themeRandom(seed: number, name: string) {
 		rem,
 		sec: (min: number, max: number) => `${between(min, max).toFixed(1)}s`,
 		/* offset within one background tile — both axes must be non-animated */
-		tile: (w: number, h: number) => `${rem(0, w)} ${rem(0, h)}`
+		tile: (w: number, h: number) => `${rem(0, w)} ${rem(0, h)}`,
 	};
 }
 
@@ -64,7 +64,7 @@ const MERIDIAN_RIBBONS = [
 		midX: 620,
 		midY: 140,
 		c4: [980, 200],
-		endY: 120
+		endY: 120,
 	},
 	{
 		stroke: '%23a78bfa',
@@ -76,7 +76,7 @@ const MERIDIAN_RIBBONS = [
 		midX: 600,
 		midY: 380,
 		c4: [980, 300],
-		endY: 380
+		endY: 380,
 	},
 	{
 		stroke: '%23fbbf24',
@@ -88,7 +88,7 @@ const MERIDIAN_RIBBONS = [
 		midX: 660,
 		midY: 460,
 		c4: [980, 520],
-		endY: 440
+		endY: 440,
 	},
 	{
 		stroke: '%2367e8f9',
@@ -100,7 +100,7 @@ const MERIDIAN_RIBBONS = [
 		midX: 680,
 		midY: 140,
 		c4: [980, 60],
-		endY: 180
+		endY: 180,
 	},
 	{
 		stroke: '%23fb7185',
@@ -112,7 +112,7 @@ const MERIDIAN_RIBBONS = [
 		midX: 700,
 		midY: 640,
 		c4: [980, 700],
-		endY: 620
+		endY: 620,
 	},
 	{
 		stroke: '%23c4b5fd',
@@ -124,8 +124,8 @@ const MERIDIAN_RIBBONS = [
 		midX: 660,
 		midY: 240,
 		c4: [980, 300],
-		endY: 220
-	}
+		endY: 220,
+	},
 ];
 
 /* seeded ribbon geometry: anchors (start/mid/end y) jitter ±80, control
@@ -184,14 +184,14 @@ const DUNES_LAYERS: {
 			[750, 110],
 			[900, 175],
 			[1050, 110],
-			[1200, 175]
+			[1200, 175],
 		],
 		jitter: 12,
 		fill: '%23e7c79c',
 		opacity: 0.55,
 		crest: '%23fff1d6',
 		crestWidth: 1.6,
-		crestOpacity: 0.3
+		crestOpacity: 0.3,
 	},
 	{
 		points: [
@@ -202,14 +202,14 @@ const DUNES_LAYERS: {
 			[720, 140],
 			[900, 230],
 			[1080, 140],
-			[1200, 230]
+			[1200, 230],
 		],
 		jitter: 16,
 		fill: '%23d59a5c',
 		opacity: 0.78,
 		crest: '%23ffe9c2',
 		crestWidth: 2,
-		crestOpacity: 0.42
+		crestOpacity: 0.42,
 	},
 	{
 		points: [
@@ -219,15 +219,15 @@ const DUNES_LAYERS: {
 			[630, 170],
 			[840, 295],
 			[1050, 170],
-			[1200, 295]
+			[1200, 295],
 		],
 		jitter: 20,
 		fill: '%23a85a2c',
 		opacity: 0.95,
 		crest: '%23ffd9a3',
 		crestWidth: 2.4,
-		crestOpacity: 0.55
-	}
+		crestOpacity: 0.55,
+	},
 ];
 
 /* flattened-S bezier through anchors: control points sit inside each span at
@@ -380,7 +380,7 @@ export function sceneryStyle(seed: number): string {
 
 		/* polaris: the field-star tile is static (both axes free, 30×24rem);
 		   constellations and trails are fixed geometry, never offset */
-		'--polaris-stars': polaris.tile(30, 24)
+		'--polaris-stars': polaris.tile(30, 24),
 	};
 
 	return Object.entries(vars)

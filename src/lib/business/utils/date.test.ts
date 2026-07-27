@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toISODate, fromISO, addDays, startOfWeek, monthGrid } from './date';
+import { toISODate, fromISO, addDays, startOfWeek, monthGrid } from '$lib/business/utils/date';
 
 describe('date utilities', () => {
 	it('round-trips ISO dates through Date', () => {
@@ -26,6 +26,7 @@ describe('date utilities', () => {
 		for (let i = 0; i < 7; i++) {
 			expect(startOfWeek(addDays('2026-07-06', i))).toBe('2026-07-06');
 		}
+
 		expect(startOfWeek('2026-07-05')).toBe('2026-06-29'); // Sunday → previous Monday
 	});
 
@@ -39,10 +40,12 @@ describe('date utilities', () => {
 			expect(fromISO(week[0]).getDay()).toBe(1); // Monday
 			expect(fromISO(week[6]).getDay()).toBe(0); // Sunday
 		}
+
 		// contiguous run of days
 		for (let i = 1; i < flat.length; i++) {
 			expect(flat[i]).toBe(addDays(flat[i - 1], 1));
 		}
+
 		expect(flat).toContain('2026-07-01');
 		expect(flat).toContain('2026-07-31');
 		expect(flat[0]).toBe('2026-06-29'); // leading days from June

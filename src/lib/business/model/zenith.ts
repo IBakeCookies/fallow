@@ -50,7 +50,7 @@
  *    which remains the exact σ = 0 special case.
  */
 
-import { solve3x3, invert3x3 } from './linalg';
+import { solve3x3, invert3x3 } from '$lib/business/model/linalg';
 
 interface TaskInput {
 	title: string;
@@ -79,7 +79,7 @@ export interface UserConstants {
 export const DEFAULT_USER_CONSTANTS: UserConstants = {
 	c1: 0.56, // Higher effort → longer time to flow
 	c2: -0.24, // Higher enjoyability → shorter time to flow
-	c3: 0.5 // Base offset to keep ϕ positive
+	c3: 0.5, // Base offset to keep ϕ positive
 };
 
 // Default context-switching cost in hours (15 minutes). Empirically defensible:
@@ -129,7 +129,6 @@ export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
  * (user difficulty below ≈1.12) and keeps every task's curve well-defined.
  */
 const AMPLITUDE_RATIO_CAP = 0.9;
-
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
 // tasks (4096 subsets — instant), greedy forward-selection beyond it.
 const EXACT_SUBSET_LIMIT = 12;
@@ -164,6 +163,7 @@ const PHI_FLOOR_HOURS = 0.1;
  */
 export function calculateFlowStateTime(E: number, beta: number, constants: UserConstants): number {
 	const phi = constants.c1 * E + constants.c2 * beta + constants.c3;
+
 	return Math.max(PHI_FLOOR_HOURS, phi);
 }
 
@@ -197,6 +197,7 @@ function calculatePeakScaling(E: number, beta: number): number {
 // already caps p₀, but the curve helpers accept raw (a, p₀) from tests/callers.
 function amplitudeRatio(a: number, p0: number): number {
 	if (a <= 0) return 0;
+
 	return Math.min(Math.max(p0, 0) / a, AMPLITUDE_RATIO_CAP);
 }
 
@@ -215,7 +216,9 @@ function amplitudeRatio(a: number, p0: number): number {
  */
 export function productivity(t: number, a: number, p0: number, k: number): number {
 	if (t < 0) return 0;
+
 	const r = amplitudeRatio(a, p0);
+
 	return (a * k * t + r * a) * Math.exp(-k * t);
 }
 
@@ -226,10 +229,13 @@ export function productivity(t: number, a: number, p0: number, k: number): numbe
 // differences of nearly-equal quantities ~O(x²) and ~O(x)).
 function kernelF(x: number): number {
 	if (x < 1e-4) return (x * x) / 2 - (x * x * x) / 3;
+
 	return 1 - Math.exp(-x) * (x + 1);
 }
+
 function kernelG(x: number): number {
 	if (x < 1e-4) return x - (x * x) / 2 + (x * x * x) / 6;
+
 	return 1 - Math.exp(-x);
 }
 
@@ -251,8 +257,10 @@ function kernelG(x: number): number {
  */
 export function averageProductivity(T: number, a: number, p0: number, k: number): number {
 	if (T <= 0) return 0;
+
 	const r = amplitudeRatio(a, p0);
 	const x = k * T;
+
 	return (a * (kernelF(x) + r * kernelG(x))) / x;
 }
 
@@ -277,14 +285,18 @@ export function averageProductivity(T: number, a: number, p0: number, k: number)
  */
 export function avgProductivityDerivative(T: number, a: number, p0: number, k: number): number {
 	const r = amplitudeRatio(a, p0);
+
 	if (T <= 1e-9) return a * k * ((1 - r) / 2);
 
 	const x = k * T;
+
 	if (x < 1e-4) {
 		// Series: N/x² = (1 − (1+r)/2) + ((1+r)/3 − 1)·x + O(x²)
 		return a * k * ((1 - r) / 2 + ((1 + r) / 3 - 1) * x);
 	}
+
 	const N = Math.exp(-x) * (x * x + (1 + r) * x + (1 + r)) - (1 + r);
+
 	return (a * k * N) / (x * x);
 }
 
@@ -309,15 +321,18 @@ export function avgProductivityDerivative(T: number, a: number, p0: number, k: n
 export function optimalStoppingX(r: number): number {
 	let lo = 1e-6;
 	let hi = 1.8;
+
 	for (let i = 0; i < 60; i++) {
 		const mid = (lo + hi) / 2;
 		const q = Math.exp(mid) - 1 - mid - (mid * mid) / (1 + r);
+
 		if (q < 0) {
 			lo = mid;
 		} else {
 			hi = mid;
 		}
 	}
+
 	return (lo + hi) / 2;
 }
 
@@ -350,11 +365,26 @@ export function optimalStoppingX(r: number): number {
 // ϕ = ϕ̂ + √2·σ·ξ these integrate a N(ϕ̂, σ²) density exactly through the
 // 9th moment. Symmetric pairs share a weight.
 const GH_NODES = [
-	{ xi: 0, w: 0.5333333333333333 },
-	{ xi: 0.9585724646138185, w: 0.2220759220056126 },
-	{ xi: -0.9585724646138185, w: 0.2220759220056126 },
-	{ xi: 2.0201828704560856, w: 0.011257411327720688 },
-	{ xi: -2.0201828704560856, w: 0.011257411327720688 }
+	{
+		xi: 0,
+		w: 0.5333333333333333,
+	},
+	{
+		xi: 0.9585724646138185,
+		w: 0.2220759220056126,
+	},
+	{
+		xi: -0.9585724646138185,
+		w: 0.2220759220056126,
+	},
+	{
+		xi: 2.0201828704560856,
+		w: 0.011257411327720688,
+	},
+	{
+		xi: -2.0201828704560856,
+		w: 0.011257411327720688,
+	},
 ];
 
 /**
@@ -375,10 +405,18 @@ const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
 // σ ≤ ~0 collapses to the single point mass — the classic, certainty path.
 function phiQuadratureNodes(phi: number, sigmaPhi: number): { phi: number; w: number }[] {
 	const sigma = Math.min(Math.max(0, sigmaPhi), PHI_UNCERTAINTY_RELATIVE_CAP * phi);
-	if (sigma <= 1e-9) return [{ phi: Math.max(PHI_FLOOR_HOURS, phi), w: 1 }];
+
+	if (sigma <= 1e-9)
+		return [
+			{
+				phi: Math.max(PHI_FLOOR_HOURS, phi),
+				w: 1,
+			},
+		];
+
 	return GH_NODES.map(({ xi, w }) => ({
 		phi: Math.max(PHI_FLOOR_HOURS, phi + Math.SQRT2 * sigma * xi),
-		w
+		w,
 	}));
 }
 
@@ -396,13 +434,15 @@ export function expectedAverageProductivity(
 	a: number,
 	p0: number,
 	phi: number,
-	sigmaPhi: number
+	sigmaPhi: number,
 ): number {
 	const r = amplitudeRatio(a, p0);
 	let sum = 0;
+
 	for (const node of phiQuadratureNodes(phi, sigmaPhi)) {
 		sum += node.w * averageProductivity(T, a, p0, (1 - r) / node.phi);
 	}
+
 	return sum;
 }
 
@@ -412,13 +452,15 @@ function expectedAvgProductivityDerivative(
 	a: number,
 	p0: number,
 	phi: number,
-	sigmaPhi: number
+	sigmaPhi: number,
 ): number {
 	const r = amplitudeRatio(a, p0);
 	let sum = 0;
+
 	for (const node of phiQuadratureNodes(phi, sigmaPhi)) {
 		sum += node.w * avgProductivityDerivative(T, a, p0, (1 - r) / node.phi);
 	}
+
 	return sum;
 }
 
@@ -436,22 +478,28 @@ export function expectedOptimalTime(a: number, p0: number, phi: number, sigmaPhi
 	const r = amplitudeRatio(a, p0);
 	const xStar = optimalStoppingX(r);
 	const nodes = phiQuadratureNodes(phi, sigmaPhi);
+
 	if (nodes.length === 1) return (xStar * nodes[0].phi) / (1 - r);
 
 	let lo = (xStar * Math.min(...nodes.map((n) => n.phi))) / (1 - r);
 	let hi = (xStar * Math.max(...nodes.map((n) => n.phi))) / (1 - r);
+
 	// Defensive: if the bracket doesn't straddle (only possible at floor-clamped
 	// extremes), fall back to the boundary the marginal points at.
 	if (expectedAvgProductivityDerivative(lo, a, p0, phi, sigmaPhi) <= 0) return lo;
+
 	if (expectedAvgProductivityDerivative(hi, a, p0, phi, sigmaPhi) >= 0) return hi;
+
 	for (let i = 0; i < 60; i++) {
 		const mid = (lo + hi) / 2;
+
 		if (expectedAvgProductivityDerivative(mid, a, p0, phi, sigmaPhi) > 0) {
 			lo = mid;
 		} else {
 			hi = mid;
 		}
 	}
+
 	return (lo + hi) / 2;
 }
 
@@ -469,11 +517,13 @@ export function expectedOptimalTime(a: number, p0: number, phi: number, sigmaPhi
 export function phiParameterStd(E: number, beta: number, posterior: FitPosterior): number {
 	const x = [E, beta, 1];
 	let quad = 0;
+
 	for (let i = 0; i < 3; i++) {
 		for (let j = 0; j < 3; j++) {
 			quad += x[i] * posterior.covariance[i][j] * x[j];
 		}
 	}
+
 	return Math.sqrt(Math.max(0, quad));
 }
 
@@ -487,7 +537,7 @@ export function phiParameterStd(E: number, beta: number, posterior: FitPosterior
  */
 export function calculateTaskParams(
 	task: TaskInput,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): {
 	E: number;
 	beta: number;
@@ -503,7 +553,14 @@ export function calculateTaskParams(
 	const p0 = Math.min(calculateInitialProductivity(E, beta), AMPLITUDE_RATIO_CAP * a);
 	const k = (1 - p0 / a) / phi;
 
-	return { E, beta, phi, k, a, p0 };
+	return {
+		E,
+		beta,
+		phi,
+		k,
+		a,
+		p0,
+	};
 }
 
 /**
@@ -515,9 +572,10 @@ export function calculateTaskParams(
  */
 export function findOptimalSingleTaskTime(
 	task: TaskInput,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): number {
 	const { a, p0, k } = calculateTaskParams(task, constants);
+
 	return optimalStoppingX(amplitudeRatio(a, p0)) / k;
 }
 
@@ -531,7 +589,7 @@ function zeroAllocations(tasks: TaskInput[]): TaskAllocation[] {
 		peakProductivity: 0,
 		avgProductivity: 0,
 		optimalHours: 0,
-		optimalAvgProductivity: 0
+		optimalAvgProductivity: 0,
 	}));
 }
 
@@ -596,14 +654,18 @@ function buildBlockIncrements(a: number, p0: number, phi: number, sigmaPhi: numb
 	const increments: number[] = [];
 	let prev = 0;
 	let prevDelta = Infinity;
+
 	for (let j = 1; j <= maxBlocks; j++) {
 		const value = expectedAverageProductivity(j * BLOCK_HOURS, a, p0, phi, sigmaPhi);
 		const delta = value - prev;
+
 		if (delta <= 1e-12 || delta > prevDelta + 1e-12) break;
+
 		increments.push(delta);
 		prev = value;
 		prevDelta = delta;
 	}
+
 	return increments;
 }
 
@@ -627,12 +689,13 @@ function greedyAllocateBlocks(
 	poolCog: number,
 	poolPhys: number,
 	startBlocks?: number[],
-	byPoolRatio = false
+	byPoolRatio = false,
 ): { blocks: number[]; poolBlocked: boolean } {
 	const blocks = startBlocks ? [...startBlocks] : new Array<number>(tasks.length).fill(0);
 	let used = 0;
 	let remCog = poolCog;
 	let remPhys = poolPhys;
+
 	for (let i = 0; i < tasks.length; i++) {
 		used += blocks[i];
 		remCog -= blocks[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
@@ -645,16 +708,20 @@ function greedyAllocateBlocks(
 	const poolShare = (i: number): number =>
 		Math.max(
 			poolCog === Infinity ? 0 : (BLOCK_HOURS * tasks[i].cognitiveWeight) / poolCog,
-			poolPhys === Infinity ? 0 : (BLOCK_HOURS * tasks[i].physicalWeight) / poolPhys
+			poolPhys === Infinity ? 0 : (BLOCK_HOURS * tasks[i].physicalWeight) / poolPhys,
 		);
 
 	let poolBlocked = false;
+
 	for (let b = used; b < budgetBlocks; b++) {
 		let best = -1;
 		let bestInc = 0;
+
 		for (const i of subset) {
 			const j = blocks[i];
+
 			if (j >= tasks[i].increments.length) continue;
+
 			if (
 				BLOCK_HOURS * tasks[i].cognitiveWeight > remCog + 1e-9 ||
 				BLOCK_HOURS * tasks[i].physicalWeight > remPhys + 1e-9
@@ -662,20 +729,28 @@ function greedyAllocateBlocks(
 				poolBlocked = true;
 				continue;
 			}
+
 			const inc = byPoolRatio
 				? tasks[i].increments[j] / (poolShare(i) + 1e-9)
 				: tasks[i].increments[j];
+
 			if (inc > bestInc + 1e-12) {
 				best = i;
 				bestInc = inc;
 			}
 		}
+
 		if (best === -1) break;
+
 		blocks[best]++;
 		remCog -= BLOCK_HOURS * tasks[best].cognitiveWeight;
 		remPhys -= BLOCK_HOURS * tasks[best].physicalWeight;
 	}
-	return { blocks, poolBlocked };
+
+	return {
+		blocks,
+		poolBlocked,
+	};
 }
 
 /**
@@ -700,7 +775,7 @@ function improveWithTransfers(
 	startBlocks: number[],
 	budgetBlocks: number,
 	poolCog: number,
-	poolPhys: number
+	poolPhys: number,
 ): number[] {
 	let blocks = startBlocks;
 	let value = planValue(tasks, blocks);
@@ -709,9 +784,12 @@ function improveWithTransfers(
 	for (let iter = 0; iter < maxIterations; iter++) {
 		let bestBlocks: number[] | null = null;
 		let bestValue = value;
+
 		for (const donor of subset) {
 			if (blocks[donor] <= 0) continue;
+
 			const others = subset.filter((i) => i !== donor);
+
 			// Donate 1, 2, or ALL of the donor's blocks. One block is often too
 			// little to unlock the trade: freeing enough pool for a cheap task can
 			// need several hours off an expensive one, and every intermediate
@@ -720,23 +798,28 @@ function improveWithTransfers(
 			// scarce pool" case in a single move.
 			for (const give of new Set([1, 2, blocks[donor]])) {
 				if (give > blocks[donor]) continue;
+
 				const trial = [...blocks];
 				trial[donor] -= give;
+
 				const refilled = greedyAllocateBlocks(
 					tasks,
 					others,
 					budgetBlocks,
 					poolCog,
 					poolPhys,
-					trial
+					trial,
 				).blocks;
+
 				const refillValue = planValue(tasks, refilled);
+
 				if (refillValue > bestValue + 1e-12) {
 					bestBlocks = refilled;
 					bestValue = refillValue;
 				}
 			}
 		}
+
 		// Admission move: greedy ranks by VALUE, so a task whose blocks are
 		// pool-expensive can stay unfunded even when admitting it dominates —
 		// and no sequence of single-donor transfers reaches that plan, because
@@ -745,40 +828,53 @@ function improveWithTransfers(
 		// and both pools allow, then refill around it (MATH.md §13.3).
 		for (const newcomer of subset) {
 			if (blocks[newcomer] > 0 || tasks[newcomer].increments.length === 0) continue;
+
 			const trial = [...blocks];
 			trial[newcomer] = 1;
+
 			for (;;) {
 				let used = 0;
 				let cog = 0;
 				let phys = 0;
+
 				for (let i = 0; i < tasks.length; i++) {
 					used += trial[i];
 					cog += trial[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
 					phys += trial[i] * BLOCK_HOURS * tasks[i].physicalWeight;
 				}
+
 				if (used <= budgetBlocks && cog <= poolCog + 1e-9 && phys <= poolPhys + 1e-9) break;
+
 				let victim = -1;
 				let cheapest = Infinity;
+
 				for (const i of subset) {
 					if (i === newcomer || trial[i] <= 0) continue;
+
 					const inc = tasks[i].increments[trial[i] - 1];
+
 					if (inc < cheapest) {
 						cheapest = inc;
 						victim = i;
 					}
 				}
+
 				if (victim === -1) break;
+
 				trial[victim]--;
 			}
+
 			const refilled = greedyAllocateBlocks(
 				tasks,
 				subset,
 				budgetBlocks,
 				poolCog,
 				poolPhys,
-				trial
+				trial,
 			).blocks;
+
 			const refillValue = planValue(tasks, refilled);
+
 			if (
 				refillValue > bestValue + 1e-12 &&
 				feasible(tasks, refilled, budgetBlocks, poolCog, poolPhys)
@@ -787,10 +883,13 @@ function improveWithTransfers(
 				bestValue = refillValue;
 			}
 		}
+
 		if (bestBlocks === null) break;
+
 		blocks = bestBlocks;
 		value = bestValue;
 	}
+
 	return blocks;
 }
 
@@ -802,24 +901,28 @@ function feasible(
 	blocks: number[],
 	budgetBlocks: number,
 	poolCog: number,
-	poolPhys: number
+	poolPhys: number,
 ): boolean {
 	let used = 0;
 	let cog = 0;
 	let phys = 0;
+
 	for (let i = 0; i < tasks.length; i++) {
 		used += blocks[i];
 		cog += blocks[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
 		phys += blocks[i] * BLOCK_HOURS * tasks[i].physicalWeight;
 	}
+
 	return used <= budgetBlocks && cog <= poolCog + 1e-9 && phys <= poolPhys + 1e-9;
 }
 
 function planValue(tasks: AllocTask[], blocks: number[]): number {
 	let value = 0;
+
 	for (let i = 0; i < tasks.length; i++) {
 		for (let j = 0; j < blocks[i]; j++) value += tasks[i].increments[j];
 	}
+
 	return value;
 }
 
@@ -843,11 +946,13 @@ function bestPlanWithSwitchCost(
 	totalBudget: number,
 	switchCost: number,
 	poolCog: number,
-	poolPhys: number
+	poolPhys: number,
 ): number[] {
 	const n = tasks.length;
+
 	const budgetBlocksFor = (fundedCount: number): number => {
 		const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
+
 		return Math.floor((totalBudget - overhead) / BLOCK_HOURS + 1e-9);
 	};
 
@@ -861,9 +966,11 @@ function bestPlanWithSwitchCost(
 			subset,
 			budgetBlocks,
 			poolCog,
-			poolPhys
+			poolPhys,
 		);
+
 		if (!poolBlocked) return blocks;
+
 		const byRatio = greedyAllocateBlocks(
 			tasks,
 			subset,
@@ -871,21 +978,24 @@ function bestPlanWithSwitchCost(
 			poolCog,
 			poolPhys,
 			undefined,
-			true
+			true,
 		).blocks;
+
 		// Improve BOTH candidates and keep the better end state. Comparing the
 		// two before the pass is not enough: the ratio plan can start higher and
 		// finish lower (or vice versa), so picking a start would make this path
 		// occasionally worse than plain greedy alone.
 		const improved = [blocks, byRatio].map((start) =>
-			improveWithTransfers(tasks, subset, start, budgetBlocks, poolCog, poolPhys)
+			improveWithTransfers(tasks, subset, start, budgetBlocks, poolCog, poolPhys),
 		);
+
 		return planValue(tasks, improved[1]) > planValue(tasks, improved[0])
 			? improved[1]
 			: improved[0];
 	};
 
 	const allTasks = tasks.map((_, i) => i);
+
 	if (switchCost <= 0 || n === 1) {
 		return allocate(allTasks, budgetBlocksFor(1));
 	}
@@ -893,9 +1003,11 @@ function bestPlanWithSwitchCost(
 	let bestBlocks = new Array<number>(n).fill(0);
 	let bestValue = 0;
 	let bestFunded = 0;
+
 	const consider = (blocks: number[]): void => {
 		const value = planValue(tasks, blocks);
 		const funded = blocks.filter((b) => b > 0).length;
+
 		if (value > bestValue + 1e-9 || (value > bestValue - 1e-9 && funded > bestFunded)) {
 			bestBlocks = blocks;
 			bestValue = value;
@@ -908,36 +1020,48 @@ function bestPlanWithSwitchCost(
 			const subset: number[] = [];
 			for (let i = 0; i < n; i++) if (mask & (1 << i)) subset.push(i);
 			const budgetBlocks = budgetBlocksFor(subset.length);
+
 			if (budgetBlocks <= 0) continue;
+
 			consider(allocate(subset, budgetBlocks));
 		}
+
 		return bestBlocks;
 	}
 
 	const funded: number[] = [];
+
 	for (;;) {
 		let bestAdd = -1;
 		let bestAddBlocks: number[] | null = null;
 		let bestAddValue = bestValue;
+
 		for (let i = 0; i < n; i++) {
 			if (funded.includes(i)) continue;
+
 			const trial = [...funded, i];
 			const budgetBlocks = budgetBlocksFor(trial.length);
+
 			if (budgetBlocks <= 0) continue;
+
 			const blocks = allocate(trial, budgetBlocks);
 			const value = planValue(tasks, blocks);
+
 			if (value > bestAddValue + 1e-9) {
 				bestAdd = i;
 				bestAddBlocks = blocks;
 				bestAddValue = value;
 			}
 		}
+
 		if (bestAdd === -1 || bestAddBlocks === null) break;
+
 		funded.push(bestAdd);
 		bestBlocks = bestAddBlocks;
 		bestValue = bestAddValue;
 		bestFunded = funded.length;
 	}
+
 	return bestBlocks;
 }
 
@@ -945,9 +1069,10 @@ function bestPlanWithSwitchCost(
 // posterior. The stds feed the expected-productivity kernel (MATH.md §5.1).
 function phiStdsFor(
 	params: ReturnType<typeof calculateTaskParams>[],
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): number[] {
 	if (!posterior) return params.map(() => 0);
+
 	return params.map(({ E, beta }) => phiParameterStd(E, beta, posterior));
 }
 
@@ -956,11 +1081,12 @@ function toAllocations(
 	params: ReturnType<typeof calculateTaskParams>[],
 	phiStds: number[],
 	optimalTimes: number[],
-	blocks: number[]
+	blocks: number[],
 ): TaskAllocation[] {
 	return tasks.map((task, i) => {
 		const { E, beta, phi, a, p0 } = params[i];
 		const hours = blocks[i] * BLOCK_HOURS;
+
 		return {
 			...task,
 			allocatedHours: hours,
@@ -972,7 +1098,7 @@ function toAllocations(
 			peakProductivity: a * Math.exp(p0 / a - 1),
 			avgProductivity: expectedAverageProductivity(hours, a, p0, phi, phiStds[i]),
 			optimalHours: optimalTimes[i],
-			optimalAvgProductivity: expectedAverageProductivity(optimalTimes[i], a, p0, phi, phiStds[i])
+			optimalAvgProductivity: expectedAverageProductivity(optimalTimes[i], a, p0, phi, phiStds[i]),
 		};
 	});
 }
@@ -996,7 +1122,7 @@ export function calculateTaskAllocations(
 	totalBudget: number,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return zeroAllocations(tasks);
@@ -1004,16 +1130,19 @@ export function calculateTaskAllocations(
 
 	const params = tasks.map((task) => calculateTaskParams(task, constants));
 	const phiStds = phiStdsFor(params, posterior);
+
 	const optimalTimes = params.map(({ a, p0, phi }, i) =>
-		expectedOptimalTime(a, p0, phi, phiStds[i])
+		expectedOptimalTime(a, p0, phi, phiStds[i]),
 	);
+
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
 		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
 		cognitiveWeight: 0,
-		physicalWeight: 0
+		physicalWeight: 0,
 	}));
 
 	const blocks = bestPlanWithSwitchCost(allocTasks, totalBudget, switchCost, Infinity, Infinity);
+
 	return toAllocations(tasks, params, phiStds, optimalTimes, blocks);
 }
 
@@ -1030,7 +1159,7 @@ export interface CapacityPools {
 
 export const DEFAULT_CAPACITY_POOLS: CapacityPools = {
 	cognitiveHours: 4, // ~4h/day of intense mental work
-	physicalHours: 6 // ~6h/day of intense physical work
+	physicalHours: 6, // ~6h/day of intense physical work
 };
 
 export interface PooledTaskInput extends TaskInput {
@@ -1067,7 +1196,7 @@ export function calculatePooledAllocations(
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return zeroAllocations(tasks);
@@ -1075,13 +1204,15 @@ export function calculatePooledAllocations(
 
 	const params = tasks.map((task) => calculateTaskParams(task, constants));
 	const phiStds = phiStdsFor(params, posterior);
+
 	const optimalTimes = params.map(({ a, p0, phi }, i) =>
-		expectedOptimalTime(a, p0, phi, phiStds[i])
+		expectedOptimalTime(a, p0, phi, phiStds[i]),
 	);
+
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
 		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
 		cognitiveWeight: tasks[i].cognitiveWeight,
-		physicalWeight: tasks[i].physicalWeight
+		physicalWeight: tasks[i].physicalWeight,
 	}));
 
 	const blocks = bestPlanWithSwitchCost(
@@ -1089,8 +1220,9 @@ export function calculatePooledAllocations(
 		totalBudget,
 		switchCost,
 		pools.cognitiveHours,
-		pools.physicalHours
+		pools.physicalHours,
 	);
+
 	return toAllocations(tasks, params, phiStds, optimalTimes, blocks);
 }
 
@@ -1106,11 +1238,12 @@ export function calculateTotalProductivity(
 	tasks: TaskInput[],
 	allocations: number[],
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): number {
 	return tasks.reduce((total, task, i) => {
 		const { E, beta, a, p0, phi } = calculateTaskParams(task, constants);
 		const sigma = posterior ? phiParameterStd(E, beta, posterior) : 0;
+
 		return total + expectedAverageProductivity(allocations[i], a, p0, phi, sigma);
 	}, 0);
 }
@@ -1157,27 +1290,33 @@ function naiveBlockPlan(
 	weights: { cognitiveWeight: number; physicalWeight: number }[],
 	effectiveBudget: number,
 	poolCog: number,
-	poolPhys: number
+	poolPhys: number,
 ): number[] {
 	const blocks = new Array<number>(weights.length).fill(0);
 	const target = Math.floor(effectiveBudget / BLOCK_HOURS + 1e-9);
 	let remCog = poolCog;
 	let remPhys = poolPhys;
 	let placed = 0;
+
 	while (placed < target) {
 		let any = false;
+
 		for (let i = 0; i < weights.length && placed < target; i++) {
 			const cog = BLOCK_HOURS * weights[i].cognitiveWeight;
 			const phys = BLOCK_HOURS * weights[i].physicalWeight;
+
 			if (cog > remCog + 1e-9 || phys > remPhys + 1e-9) continue;
+
 			blocks[i]++;
 			remCog -= cog;
 			remPhys -= phys;
 			placed++;
 			any = true;
 		}
+
 		if (!any) break;
 	}
+
 	return blocks.map((b) => b * BLOCK_HOURS);
 }
 
@@ -1185,6 +1324,7 @@ function gainPercentOf(optimized: number, naive: number): number {
 	if (naive > 0) {
 		return Number(Math.min(GAIN_PERCENT_CAP, ((optimized - naive) / naive) * 100).toFixed(1));
 	}
+
 	return optimized > 0 ? GAIN_PERCENT_CAP : 0;
 }
 
@@ -1202,10 +1342,14 @@ export function pooledProductivityGain(
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): { optimized: number; naive: number; gainPercent: number } {
 	if (tasks.length === 0 || totalBudget <= 0) {
-		return { optimized: 0, naive: 0, gainPercent: 0 };
+		return {
+			optimized: 0,
+			naive: 0,
+			gainPercent: 0,
+		};
 	}
 
 	const allocations = calculatePooledAllocations(
@@ -1214,13 +1358,14 @@ export function pooledProductivityGain(
 		pools,
 		constants,
 		switchCost,
-		posterior
+		posterior,
 	);
+
 	const optimized = calculateTotalProductivity(
 		tasks,
 		allocations.map((a) => a.allocatedHours),
 		constants,
-		posterior
+		posterior,
 	);
 
 	// Naive: equal split across ALL tasks (a naive planner attempts every task,
@@ -1229,14 +1374,19 @@ export function pooledProductivityGain(
 	// no longer continuous.
 	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
 	const effectiveBudget = Math.max(0, totalBudget - switchOverhead);
+
 	const naive = calculateTotalProductivity(
 		tasks,
 		naiveBlockPlan(tasks, effectiveBudget, pools.cognitiveHours, pools.physicalHours),
 		constants,
-		posterior
+		posterior,
 	);
 
-	return { optimized, naive, gainPercent: gainPercentOf(optimized, naive) };
+	return {
+		optimized,
+		naive,
+		gainPercent: gainPercentOf(optimized, naive),
+	};
 }
 
 /**
@@ -1248,10 +1398,14 @@ export function productivityGain(
 	totalBudget: number,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): { optimized: number; naive: number; gainPercent: number } {
 	if (tasks.length === 0 || totalBudget <= 0) {
-		return { optimized: 0, naive: 0, gainPercent: 0 };
+		return {
+			optimized: 0,
+			naive: 0,
+			gainPercent: 0,
+		};
 	}
 
 	// Calculate effective budget after context-switching
@@ -1263,13 +1417,14 @@ export function productivityGain(
 		totalBudget,
 		constants,
 		switchCost,
-		posterior
+		posterior,
 	);
+
 	const optimized = calculateTotalProductivity(
 		tasks,
 		optimizedAllocs.map((a) => a.allocatedHours),
 		constants,
-		posterior
+		posterior,
 	);
 
 	// Naive: equal split of the effective budget, block-quantized like the
@@ -1277,16 +1432,23 @@ export function productivityGain(
 	const naive = calculateTotalProductivity(
 		tasks,
 		naiveBlockPlan(
-			tasks.map(() => ({ cognitiveWeight: 0, physicalWeight: 0 })),
+			tasks.map(() => ({
+				cognitiveWeight: 0,
+				physicalWeight: 0,
+			})),
 			effectiveBudget,
 			Infinity,
-			Infinity
+			Infinity,
 		),
 		constants,
-		posterior
+		posterior,
 	);
 
-	return { optimized, naive, gainPercent: gainPercentOf(optimized, naive) };
+	return {
+		optimized,
+		naive,
+		gainPercent: gainPercentOf(optimized, naive),
+	};
 }
 
 // ==================== Personalization (Bayesian, v2) ====================
@@ -1313,7 +1475,6 @@ export interface FlowObservation {
  * identical.
  */
 const RIDGE_PRIOR_STRENGTH = 4;
-
 /**
  * Prior scale for the stopwatch measurement noise: σ₀ = 15 minutes (0.25h),
  * with weight ν₀ = RIDGE_PRIOR_STRENGTH pseudo-observations. "Time until I
@@ -1351,13 +1512,14 @@ export interface FitPosterior {
  */
 function priorPosterior(): FitPosterior {
 	const variance = (FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD) / RIDGE_PRIOR_STRENGTH;
+
 	return {
 		covariance: [
 			[variance, 0, 0],
 			[0, variance, 0],
-			[0, 0, variance]
+			[0, 0, variance],
 		],
-		sigma2: FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD
+		sigma2: FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD,
 	};
 }
 
@@ -1403,10 +1565,14 @@ function priorPosterior(): FitPosterior {
  */
 export function fitUserConstants(
 	observations: FlowObservation[],
-	fallback: UserConstants = DEFAULT_USER_CONSTANTS
+	fallback: UserConstants = DEFAULT_USER_CONSTANTS,
 ): { constants: UserConstants; fitted: boolean; posterior: FitPosterior } {
 	if (observations.length === 0) {
-		return { constants: fallback, fitted: false, posterior: priorPosterior() };
+		return {
+			constants: fallback,
+			fitted: false,
+			posterior: priorPosterior(),
+		};
 	}
 
 	let sEE = 0;
@@ -1418,6 +1584,7 @@ export function fitUserConstants(
 	let sbp = 0;
 	let sp = 0;
 	const n = observations.length;
+
 	for (const o of observations) {
 		sEE += o.E * o.E;
 		sEb += o.E * o.beta;
@@ -1428,27 +1595,42 @@ export function fitUserConstants(
 		sbp += o.beta * o.phi;
 		sp += o.phi;
 	}
+
 	const lambda = RIDGE_PRIOR_STRENGTH;
+
 	const A = [
 		[sEE + lambda, sEb, sE],
 		[sEb, sbb + lambda, sb],
-		[sE, sb, n + lambda]
+		[sE, sb, n + lambda],
 	];
+
 	const solution = solve3x3(A, [
 		sEp + lambda * fallback.c1,
 		sbp + lambda * fallback.c2,
-		sp + lambda * fallback.c3
+		sp + lambda * fallback.c3,
 	]);
+
 	// The ridge matrix is positive definite, so solve3x3 cannot hit a singular
 	// pivot — the guard stays purely as defense in depth.
-	if (!solution) return { constants: fallback, fitted: false, posterior: priorPosterior() };
+	if (!solution)
+		return {
+			constants: fallback,
+			fitted: false,
+			posterior: priorPosterior(),
+		};
 
 	const [c1, c2, c3] = solution;
+
 	for (const E of [1, 5]) {
 		for (const beta of [1, 2]) {
 			const phi = c1 * E + c2 * beta + c3;
+
 			if (!Number.isFinite(phi) || phi > 16) {
-				return { constants: fallback, fitted: false, posterior: priorPosterior() };
+				return {
+					constants: fallback,
+					fitted: false,
+					posterior: priorPosterior(),
+				};
 			}
 		}
 	}
@@ -1457,20 +1639,38 @@ export function fitUserConstants(
 	// (inverse-gamma-style pseudo-observations), so σ̂ neither collapses to 0 on
 	// a couple of lucky logs nor ignores genuinely noisy users.
 	let ssr = 0;
+
 	for (const o of observations) {
 		const resid = o.phi - (c1 * o.E + c2 * o.beta + c3);
 		ssr += resid * resid;
 	}
+
 	const nu0 = RIDGE_PRIOR_STRENGTH;
 	const sigma2 = (nu0 * FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD + ssr) / (nu0 + n);
-
 	const Ainv = invert3x3(A);
-	if (!Ainv) return { constants: { c1, c2, c3 }, fitted: true, posterior: priorPosterior() };
+
+	if (!Ainv)
+		return {
+			constants: {
+				c1,
+				c2,
+				c3,
+			},
+			fitted: true,
+			posterior: priorPosterior(),
+		};
 
 	return {
-		constants: { c1, c2, c3 },
+		constants: {
+			c1,
+			c2,
+			c3,
+		},
 		fitted: true,
-		posterior: { covariance: Ainv.map((row) => row.map((v) => v * sigma2)), sigma2 }
+		posterior: {
+			covariance: Ainv.map((row) => row.map((v) => v * sigma2)),
+			sigma2,
+		},
 	};
 }
 
@@ -1488,10 +1688,12 @@ export function fitUserConstants(
 export function phiPredictionStd(E: number, beta: number, posterior: FitPosterior): number {
 	const x = [E, beta, 1];
 	let quad = 0;
+
 	for (let i = 0; i < 3; i++) {
 		for (let j = 0; j < 3; j++) {
 			quad += x[i] * posterior.covariance[i][j] * x[j];
 		}
 	}
+
 	return Math.sqrt(Math.max(0, posterior.sigma2 + quad));
 }

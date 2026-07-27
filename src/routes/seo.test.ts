@@ -6,16 +6,22 @@
 
 import { describe, expect, it, vi, afterEach } from 'vitest';
 
-const { env } = vi.hoisted(() => ({ env: {} as Record<string, string | undefined> }));
-vi.mock('$env/dynamic/public', () => ({ env }));
+const { env } = vi.hoisted(() => ({
+	env: {} as Record<string, string | undefined>,
+}));
+
+vi.mock('$env/dynamic/public', () => ({
+	env,
+}));
 
 const { GET: robots } = await import('./robots.txt/+server');
 const { GET: sitemap } = await import('./sitemap.xml/+server');
 
 /** Only `url` is read; the rest of RequestEvent never gets touched. */
 const request = (origin: string) =>
-	({ url: new URL(origin) }) as unknown as Parameters<typeof robots>[0] &
-		Parameters<typeof sitemap>[0];
+	({
+		url: new URL(origin),
+	}) as unknown as Parameters<typeof robots>[0] & Parameters<typeof sitemap>[0];
 
 afterEach(() => delete env.PUBLIC_SITE_URL);
 
@@ -71,6 +77,7 @@ describe('sitemap.xml', () => {
 		const entries = body.match(/<url>[\s\S]*?<\/url>/g) ?? [];
 
 		expect(entries).toHaveLength(12);
+
 		for (const entry of entries) {
 			const href = (hreflang: string) =>
 				entry.match(new RegExp(`hreflang="${hreflang}" href="([^"]+)"`))?.[1];

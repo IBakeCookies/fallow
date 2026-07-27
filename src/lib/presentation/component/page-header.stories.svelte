@@ -2,7 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { fn } from 'storybook/test';
 	import type { DailySession, SavedRoutine, Task } from '$lib/business/type';
-	import PageHeader from './page-header.svelte';
+	import PageHeader from '$lib/presentation/component/page-header.svelte';
 
 	const task = (id: number, title: string): Task => ({
 		id,
@@ -11,7 +11,7 @@
 		mentalDifficulty: 7,
 		enjoyment: 6,
 		createdAt: '2026-07-19',
-		completed: false
+		completed: false,
 	});
 
 	const yesterdaySession: DailySession = {
@@ -19,16 +19,23 @@
 		tasks: [task(1, 'boxing'), task(2, 'writing')],
 		availableHours: 6,
 		switchCost: 0.25,
-		updatedAt: 1
+		updatedAt: 1,
 	};
 
 	const routines: SavedRoutine[] = [
 		{
 			id: 'r1',
 			name: 'Morning',
-			tasks: [{ title: 'stretch', physicalDifficulty: 4, mentalDifficulty: 1, enjoyment: 8 }],
-			createdAt: 1
-		}
+			tasks: [
+				{
+					title: 'stretch',
+					physicalDifficulty: 4,
+					mentalDifficulty: 1,
+					enjoyment: 8,
+				},
+			],
+			createdAt: 1,
+		},
 	];
 
 	const { Story } = defineMeta({
@@ -47,8 +54,8 @@
 			onimport: fn(),
 			onimportdate: fn(() => Promise.resolve(0)),
 			onsaveroutine: fn(),
-			ondeleteroutine: fn()
-		}
+			ondeleteroutine: fn(),
+		},
 	});
 </script>
 
@@ -60,9 +67,15 @@
 	args={{
 		yesterdaySession,
 		routines,
-		currentTasks: [task(1, 'boxing'), task(2, 'writing')]
+		currentTasks: [task(1, 'boxing'), task(2, 'writing')],
 	}}
 />
 
 <!-- A past day hides both import menus and offers the return-to-today button -->
-<Story name="Viewing a past day" args={{ selectedDate: '2026-07-14', completedTasks: 3 }} />
+<Story
+	name="Viewing a past day"
+	args={{
+		selectedDate: '2026-07-14',
+		completedTasks: 3,
+	}}
+/>

@@ -11,7 +11,7 @@ import { $readAllDrainObservations } from '$lib/data/repository/drain-observatio
 import { $readAllRestObservations } from '$lib/data/repository/rest-observation-repository';
 import {
 	migrateFromLocalStorageToIndexedDB,
-	migrateEnergyParamsFromLocalStorage
+	migrateEnergyParamsFromLocalStorage,
 } from '$lib/data/migration/local-storage-migration';
 import { addDays, toISODate } from '$lib/business/utils/date';
 import {
@@ -23,23 +23,23 @@ import {
 	mapEffort,
 	mapEnjoyability,
 	type FitPosterior,
-	type UserConstants
+	type UserConstants,
 } from '$lib/business/model/zenith';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitStoppingValue,
 	type EnergyParams,
 	type StoppingValueFit,
-	type StopObservation
+	type StopObservation,
 } from '$lib/business/model/zenith-energy';
 import {
 	calibrateEnergyParams,
-	type EnergyCalibration
+	type EnergyCalibration,
 } from '$lib/business/model/energy-calibration';
 import {
 	auditPlanAdherence,
 	type PlanAudit,
-	type PlanAuditDay
+	type PlanAuditDay,
 } from '$lib/business/model/plan-audit';
 import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
@@ -52,6 +52,7 @@ import { toEnergyTask } from '$lib/business/model/metric/calculation';
 export async function initializeStorage(): Promise<void> {
 	await migrateFromLocalStorageToIndexedDB(toISODate(), DEFAULT_SWITCH_COST);
 	await migrateEnergyParamsFromLocalStorage();
+
 	if (navigator.storage?.persist) {
 		await navigator.storage.persist();
 	}
@@ -71,14 +72,20 @@ async function readUserFit(): Promise<{
 	usedCount: number;
 }> {
 	const observations = await $readAllFlowObservations();
+
 	const fit = fitUserConstants(
-		observations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours }))
+		observations.map((o) => ({
+			E: o.E,
+			beta: o.beta,
+			phi: o.phiHours,
+		})),
 	);
+
 	return {
 		constants: fit.constants,
 		posterior: fit.posterior,
 		fitted: fit.fitted,
-		usedCount: observations.length
+		usedCount: observations.length,
 	};
 }
 
@@ -92,8 +99,9 @@ async function readUserFit(): Promise<{
 export async function readDaySummaries(startDate: string, endDate: string): Promise<DaySummary[]> {
 	const [fit, sessions] = await Promise.all([
 		readUserFit(),
-		$readSessionsByDateRange(startDate, endDate)
+		$readSessionsByDateRange(startDate, endDate),
 	]);
+
 	return sessions
 		.filter((session) => session.tasks.length > 0)
 		.map((session) => summarizeSession(session, fit.constants, fit.posterior));
@@ -106,31 +114,40 @@ export async function readDaySummaries(startDate: string, endDate: string): Prom
  * both read "what was actually worked" out of the same join.
  */
 async function readFinishedDays(
-	today: string
+	today: string,
 ): Promise<{ session: DailySession; workedHours: { taskId: number; hours: number }[] }[]> {
 	const drainLogs = await $readAllDrainObservations();
 	const byDate = new Map<string, Map<number, number>>();
+
 	for (const log of drainLogs) {
 		if (log.date >= today || log.hours <= 0) continue;
+
 		const day = byDate.get(log.date) ?? new Map<number, number>();
 		day.set(log.taskId, (day.get(log.taskId) ?? 0) + log.hours);
 		byDate.set(log.date, day);
 	}
+
 	if (byDate.size === 0) return [];
 
 	const dates = [...byDate.keys()].sort();
 	const sessions = await $readSessionsByDateRange(dates[0], addDays(today, -1));
 	const sessionByDate = new Map(sessions.map((s) => [s.date, s]));
-
 	const days: { session: DailySession; workedHours: { taskId: number; hours: number }[] }[] = [];
+
 	for (const date of dates) {
 		const session = sessionByDate.get(date);
+
 		if (!session || session.tasks.length === 0 || session.availableHours <= 0) continue;
+
 		days.push({
 			session,
-			workedHours: [...byDate.get(date)!].map(([taskId, hours]) => ({ taskId, hours }))
+			workedHours: [...byDate.get(date)!].map(([taskId, hours]) => ({
+				taskId,
+				hours,
+			})),
 		});
 	}
+
 	return days;
 }
 
@@ -143,7 +160,7 @@ export async function readStopObservations(today: string): Promise<StopObservati
 	return (await readFinishedDays(today)).map(({ session, workedHours }) => ({
 		tasks: session.tasks.map(toEnergyTask),
 		windowHours: session.availableHours,
-		workedHours
+		workedHours,
 	}));
 }
 
@@ -161,8 +178,8 @@ async function readPlanAuditDays(today: string): Promise<PlanAuditDay[]> {
 		switchCost: session.switchCost,
 		pools: {
 			cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
-			physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours
-		}
+			physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+		},
 	}));
 }
 
@@ -189,27 +206,31 @@ async function readCalibrationSnapshot(today: string): Promise<CalibrationSnapsh
 		readUserFit(),
 		$readAllRestObservations(),
 		$readAllDrainObservations(),
-		readStopObservations(today)
+		readStopObservations(today),
 	]);
+
 	const energy = calibrateEnergyParams(rest, drain);
+
 	const stopping = fitStoppingValue(
 		stops,
 		DEFAULT_ENERGY_PARAMS.freeTimeValue,
 		energy.params,
-		fit.constants
+		fit.constants,
 	);
+
 	const E = mapEffort(5);
 	const beta = mapEnjoyability(5);
+
 	return {
 		flow: {
 			fitted: fit.fitted,
 			usedCount: fit.usedCount,
 			phiHours: calculateFlowStateTime(E, beta, fit.constants),
-			defaultPhiHours: calculateFlowStateTime(E, beta, DEFAULT_USER_CONSTANTS)
+			defaultPhiHours: calculateFlowStateTime(E, beta, DEFAULT_USER_CONSTANTS),
 		},
 		energy,
 		stopping,
-		defaults: DEFAULT_ENERGY_PARAMS
+		defaults: DEFAULT_ENERGY_PARAMS,
 	};
 }
 
@@ -230,15 +251,16 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 	const [fit, days, calibration] = await Promise.all([
 		readUserFit(),
 		readPlanAuditDays(today),
-		readCalibrationSnapshot(today)
+		readCalibrationSnapshot(today),
 	]);
+
 	return {
 		calibration,
 		audit: auditPlanAdherence(
 			days.slice(-auditDayCap),
 			calibration.energy.params,
 			fit.constants,
-			fit.posterior
-		)
+			fit.posterior,
+		),
 	};
 }

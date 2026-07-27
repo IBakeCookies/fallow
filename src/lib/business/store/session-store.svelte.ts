@@ -16,7 +16,7 @@ import {
 	DEFAULT_CAPACITY_POOLS,
 	fitUserConstants,
 	mapEffort,
-	mapEnjoyability
+	mapEnjoyability,
 } from '$lib/business/model/zenith';
 
 const CONTEXT_KEY = Symbol();
@@ -92,7 +92,7 @@ export class SessionStore {
 	#today = $derived(liveToday.value);
 	#dateParam = $derived(this.#readDateParam());
 	#selectedDate = $derived(
-		this.#dateParam && /^\d{4}-\d{2}-\d{2}$/.test(this.#dateParam) ? this.#dateParam : this.#today
+		this.#dateParam && /^\d{4}-\d{2}-\d{2}$/.test(this.#dateParam) ? this.#dateParam : this.#today,
 	);
 
 	// Day modes: past is read-only history (completion toggles only), future
@@ -106,14 +106,20 @@ export class SessionStore {
 	// Capacity pools, sanitized (empty/invalid inputs → 0, i.e. no capacity)
 	#pools = $derived({
 		cognitiveHours: Math.max(0, Number(this.#cognitivePool) || 0),
-		physicalHours: Math.max(0, Number(this.#physicalPool) || 0)
+		physicalHours: Math.max(0, Number(this.#physicalPool) || 0),
 	});
 
 	// Personalized model constants: ridge least-squares fit of ϕ = c₁E + c₂β + c₃
 	// over the logged time-to-flow measurements, anchored to the article's
 	// defaults. Every ⚡ log nudges the model; more logs = less anchor.
 	#constantsFit = $derived(
-		fitUserConstants(this.#flowObservations.map((o) => ({ E: o.E, beta: o.beta, phi: o.phiHours })))
+		fitUserConstants(
+			this.#flowObservations.map((o) => ({
+				E: o.E,
+				beta: o.beta,
+				phi: o.phiHours,
+			})),
+		),
 	);
 
 	constructor(readDateParam: ReadDateParam) {
@@ -128,7 +134,9 @@ export class SessionStore {
 		// day the mount happened to see (the "import yesterday" action reads it).
 		$effect(() => {
 			const yesterday = addDays(this.#today, -1);
+
 			if (!browser || this.#isLoading) return;
+
 			sessionRepository
 				.$readSessionByDate(yesterday)
 				.then((session) => (this.#yesterdaySession = session))
@@ -165,7 +173,9 @@ export class SessionStore {
 					this.#switchCost !== DEFAULT_SWITCH_COST ||
 					this.#cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
 					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
+
 				if (!dirty) return;
+
 				// Snapshot inside the tracked effect (so deep task edits are seen),
 				// then persist on a trailing debounce.
 				this.#pendingSave = {
@@ -175,8 +185,9 @@ export class SessionStore {
 					switchCost: this.#switchCost,
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
-					updatedAt: Date.now()
+					updatedAt: Date.now(),
 				};
+
 				clearTimeout(this.#saveTimer);
 				this.#saveTimer = setTimeout(() => this.#flushSave(), 500);
 			}
@@ -193,11 +204,14 @@ export class SessionStore {
 		// pending is safe: a hidden tab can't be mid-edit, so no ping-pong.
 		$effect(() => {
 			if (!browser) return;
+
 			const onVisibility = () => {
 				if (document.hidden) this.#flushSave();
 				else if (!this.#pendingSave) this.#loadSession(this.#selectedDate);
 			};
+
 			document.addEventListener('visibilitychange', onVisibility);
+
 			return () => document.removeEventListener('visibilitychange', onVisibility);
 		});
 	}
@@ -228,9 +242,11 @@ export class SessionStore {
 	// Persist the pending snapshot now, cancelling any scheduled debounce.
 	#flushSave() {
 		if (!this.#pendingSave) return;
+
 		clearTimeout(this.#saveTimer);
 		const payload = this.#pendingSave;
 		this.#pendingSave = null;
+
 		sessionRepository
 			.$updateSession(payload)
 			// guard: a late flush of a previous date must not mark the currently
@@ -249,8 +265,10 @@ export class SessionStore {
 		// loading so a quick date switch can't drop the edit (the payload carries
 		// its own date, so a late flush is always safe).
 		this.#flushSave();
+
 		try {
 			const session = await sessionRepository.$readSessionByDate(date);
+
 			if (date !== this.#selectedDate) return; // navigated again mid-load
 
 			if (session) {
@@ -267,8 +285,10 @@ export class SessionStore {
 				this.#cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
 			}
+
 			this.#loadedHadSession = !!session;
 			this.#loadedDate = date;
+
 			// Reading again worked, so the day is no longer unreachable — this is
 			// what makes a load failure recover on the next date change too.
 			if (this.#storageError === 'load-failed') this.#storageError = null;
@@ -376,9 +396,9 @@ export class SessionStore {
 				id: Date.now(),
 				...taskData,
 				createdAt: this.#selectedDate,
-				completed: false
+				completed: false,
 			},
-			...this.#tasks
+			...this.#tasks,
 		];
 	}
 
@@ -392,7 +412,14 @@ export class SessionStore {
 		// under #selectedDate would overwrite the incoming day with them.
 		if (this.#loadedDate !== this.#selectedDate) return;
 
-		this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
+		this.#tasks = this.#tasks.map((t) =>
+			t.id === id
+				? {
+						...t,
+						completed: !t.completed,
+					}
+				: t,
+		);
 
 		// The auto-save $effect doesn't persist past sessions, so historical
 		// toggles are saved explicitly under the viewed date.
@@ -405,7 +432,7 @@ export class SessionStore {
 					switchCost: this.#switchCost,
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
-					updatedAt: Date.now()
+					updatedAt: Date.now(),
 				});
 			} catch (e) {
 				console.error('Failed to save completion change for', this.#selectedDate, e);
@@ -420,9 +447,16 @@ export class SessionStore {
 
 	updateTask(
 		id: number,
-		changes: Partial<Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'>>
+		changes: Partial<Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'>>,
 	) {
-		this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, ...changes } : t));
+		this.#tasks = this.#tasks.map((t) =>
+			t.id === id
+				? {
+						...t,
+						...changes,
+					}
+				: t,
+		);
 	}
 
 	// Import a specific day's tasks (stripped to their definition) into the
@@ -431,19 +465,22 @@ export class SessionStore {
 		try {
 			const session = await sessionRepository.$readSessionByDate(date);
 			const tasks = session?.tasks ?? [];
+
 			if (tasks.length) {
 				this.importTasks(
 					tasks.map((t) => ({
 						title: t.title,
 						physicalDifficulty: t.physicalDifficulty,
 						mentalDifficulty: t.mentalDifficulty,
-						enjoyment: t.enjoyment
-					}))
+						enjoyment: t.enjoyment,
+					})),
 				);
 			}
+
 			return tasks.length;
 		} catch (e) {
 			console.error('Failed to load session for import', date, e);
+
 			return 0;
 		}
 	}
@@ -453,8 +490,9 @@ export class SessionStore {
 			...t,
 			id: Date.now() + Math.random(),
 			createdAt: this.#selectedDate,
-			completed: false
+			completed: false,
 		}));
+
 		this.#tasks = [...newTasks, ...this.#tasks];
 	}
 
@@ -466,9 +504,11 @@ export class SessionStore {
 	// the same task today REPLACES the earlier measurement (typo correction).
 	async logFlow(id: number, minutes: number) {
 		const task = this.#tasks.find((t) => t.id === id);
+
 		if (!task) return;
 
 		const difficulty = getEffectiveDifficulty(task);
+
 		try {
 			await flowObservationRepository.$updateFlowObservation({
 				date: this.#today,
@@ -478,12 +518,21 @@ export class SessionStore {
 				enjoyment: task.enjoyment,
 				E: mapEffort(difficulty),
 				beta: mapEnjoyability(task.enjoyment),
-				phiHours: minutes / 60
+				phiHours: minutes / 60,
 			});
+
 			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+
 			// Stamp the ⚡ badge only once the write lands, so the UI never shows
 			// success for a failed persist.
-			this.#tasks = this.#tasks.map((t) => (t.id === id ? { ...t, flowMinutes: minutes } : t));
+			this.#tasks = this.#tasks.map((t) =>
+				t.id === id
+					? {
+							...t,
+							flowMinutes: minutes,
+						}
+					: t,
+			);
 		} catch (e) {
 			console.error('Failed to save flow observation', e);
 			this.#storageError = 'save-failed';
@@ -495,12 +544,19 @@ export class SessionStore {
 	// deleted log belonged to a task in today's session.
 	async deleteFlowLog(id: number) {
 		const record = this.#flowObservations.find((o) => o.id === id);
+
 		try {
 			await flowObservationRepository.$deleteFlowObservation(id);
 			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+
 			if (record && record.date === this.#today) {
 				this.#tasks = this.#tasks.map((t) =>
-					t.id === record.taskId ? { ...t, flowMinutes: undefined } : t
+					t.id === record.taskId
+						? {
+								...t,
+								flowMinutes: undefined,
+							}
+						: t,
 				);
 			}
 		} catch (e) {
@@ -514,7 +570,15 @@ export class SessionStore {
 		try {
 			await flowObservationRepository.$deleteAllFlowObservations();
 			this.#flowObservations = [];
-			this.#tasks = this.#tasks.map((t) => (t.flowMinutes ? { ...t, flowMinutes: undefined } : t));
+
+			this.#tasks = this.#tasks.map((t) =>
+				t.flowMinutes
+					? {
+							...t,
+							flowMinutes: undefined,
+						}
+					: t,
+			);
 		} catch (e) {
 			console.error('Failed to reset flow observations', e);
 			this.#storageError = 'save-failed';
@@ -531,10 +595,11 @@ export class SessionStore {
 				title: t.title,
 				physicalDifficulty: t.physicalDifficulty,
 				mentalDifficulty: t.mentalDifficulty,
-				enjoyment: t.enjoyment
+				enjoyment: t.enjoyment,
 			})),
-			createdAt: Date.now()
+			createdAt: Date.now(),
 		};
+
 		try {
 			await routineRepository.$updateRoutine(routine);
 			this.#routines = await routineRepository.$readAllRoutines();

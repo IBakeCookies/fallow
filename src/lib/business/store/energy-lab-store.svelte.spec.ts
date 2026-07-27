@@ -1,30 +1,31 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
-import Harness from './energy-lab-store.test-harness.svelte';
+import Harness from '$lib/business/store/energy-lab-store.test-harness.svelte';
 import {
 	drainRecord,
 	mockObservations,
 	mockSession,
-	restRecord
-} from './energy-lab-store.test-utils.svelte';
+	restRecord,
+} from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import * as sessionHistory from '$lib/business/store/session-history';
-import type { EnergyLabStore } from './energy-lab-store.svelte';
+import type { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
-	type StopObservation
+	type StopObservation,
 } from '$lib/business/model/zenith-energy';
 import { toCognitiveDrainObservations } from '$lib/business/model/energy-calibration';
 
 vi.mock('$lib/data/repository/settings-repository', () => ({
 	ENERGY_PARAMS_SETTING: 'energyParams',
 	$readSetting: vi.fn(async () => undefined),
-	$updateSetting: vi.fn(async () => {})
+	$updateSetting: vi.fn(async () => {}),
 }));
+
 vi.mock('$lib/business/store/session-history', () => ({
-	readStopObservations: vi.fn(async () => [])
+	readStopObservations: vi.fn(async () => []),
 }));
 
 const readSettingMock = vi.mocked(settingsRepository.$readSetting);
@@ -34,7 +35,7 @@ const readStopObservationsMock = vi.mocked(sessionHistory.readStopObservations);
 const stopObservation = (windowHours: number): StopObservation => ({
 	tasks: [],
 	windowHours,
-	workedHours: []
+	workedHours: [],
 });
 
 /**
@@ -44,15 +45,26 @@ const stopObservation = (windowHours: number): StopObservation => ({
  */
 async function setup(): Promise<EnergyLabStore> {
 	let store!: EnergyLabStore;
-	render(Harness, { onstore: (s: EnergyLabStore) => (store = s) });
+
+	render(Harness, {
+		onstore: (s: EnergyLabStore) => (store = s),
+	});
+
 	await vi.waitFor(() => expect(store.isLoaded).toBe(true));
-	await vi.waitFor(() => expect(updateSettingMock).toHaveBeenCalled(), { timeout: 3000 });
+
+	await vi.waitFor(() => expect(updateSettingMock).toHaveBeenCalled(), {
+		timeout: 3000,
+	});
+
 	updateSettingMock.mockClear();
+
 	return store;
 }
 
 function useFakeTimers() {
-	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	vi.useFakeTimers({
+		toFake: ['setTimeout', 'clearTimeout'],
+	});
 }
 
 describe('EnergyLabStore', () => {
@@ -70,7 +82,11 @@ describe('EnergyLabStore', () => {
 	});
 
 	it('loads the persisted params through the sanitizer', async () => {
-		readSettingMock.mockResolvedValue({ alphaCog: 0.9, recoveryRate: 'abc' });
+		readSettingMock.mockResolvedValue({
+			alphaCog: 0.9,
+			recoveryRate: 'abc',
+		});
+
 		const store = await setup();
 
 		expect(store.params.alphaCog).toBe(0.9);
@@ -81,7 +97,15 @@ describe('EnergyLabStore', () => {
 	// Apply buttons is that the sliders stay the user's.
 	it('computes the fits without touching the params', async () => {
 		const store = await setup();
-		mockObservations.drainObservations = [drainRecord(), drainRecord({ hours: 2, mindDrain: 8 })];
+
+		mockObservations.drainObservations = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
 		mockObservations.restObservations = [restRecord()];
 		flushSync();
 
@@ -100,7 +124,15 @@ describe('EnergyLabStore', () => {
 
 	it('copies a fit into the manual inputs only when its Apply is pressed', async () => {
 		const store = await setup();
-		mockObservations.drainObservations = [drainRecord(), drainRecord({ hours: 2, mindDrain: 8 })];
+
+		mockObservations.drainObservations = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
 		mockObservations.restObservations = [restRecord()];
 		readStopObservationsMock.mockResolvedValue([stopObservation(8), stopObservation(6)]);
 		flushSync();
@@ -122,6 +154,7 @@ describe('EnergyLabStore', () => {
 		store.applyStoppingFit();
 		flushSync();
 		expect(store.stoppingFitApplied).toBe(true);
+
 		if (store.stoppingFit.fitted) {
 			expect(store.params.freeTimeValue).toBe(round2(store.stoppingFit.value));
 		}
@@ -131,7 +164,16 @@ describe('EnergyLabStore', () => {
 	// way — only their fit SEQUENCE differs.
 	it('maps drain records through the shared calibration mapping', async () => {
 		const store = await setup();
-		const records = [drainRecord(), drainRecord({ hours: 2, cognitiveDemand: 0.6, mindDrain: 7 })];
+
+		const records = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				cognitiveDemand: 0.6,
+				mindDrain: 7,
+			}),
+		];
+
 		mockObservations.drainObservations = records;
 		flushSync();
 
@@ -139,8 +181,8 @@ describe('EnergyLabStore', () => {
 			fitDrainRate(
 				toCognitiveDrainObservations(records),
 				DEFAULT_ENERGY_PARAMS.alphaCog,
-				store.params
-			)
+				store.params,
+			),
 		);
 	});
 
@@ -158,7 +200,10 @@ describe('EnergyLabStore', () => {
 		expect(updateSettingMock).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(1);
 		expect(updateSettingMock).toHaveBeenCalledTimes(1);
-		expect(updateSettingMock.mock.calls[0][1]).toMatchObject({ alphaCog: 0.6 });
+
+		expect(updateSettingMock.mock.calls[0][1]).toMatchObject({
+			alphaCog: 0.6,
+		});
 	});
 
 	// The regression: /energy builds its own store, so leaving the page inside
@@ -174,7 +219,10 @@ describe('EnergyLabStore', () => {
 		cleanup();
 
 		expect(updateSettingMock).toHaveBeenCalledTimes(1);
-		expect(updateSettingMock.mock.calls[0][1]).toMatchObject({ satietyScale: 0.9 });
+
+		expect(updateSettingMock.mock.calls[0][1]).toMatchObject({
+			satietyScale: 0.9,
+		});
 
 		// …and the flushed write is not repeated by the timer that was pending.
 		vi.advanceTimersByTime(1000);
@@ -192,11 +240,18 @@ describe('EnergyLabStore', () => {
 		flushSync();
 		expect(updateSettingMock).not.toHaveBeenCalled();
 
-		Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+		Object.defineProperty(document, 'hidden', {
+			value: true,
+			configurable: true,
+		});
+
 		document.dispatchEvent(new Event('visibilitychange'));
 
 		expect(updateSettingMock).toHaveBeenCalledTimes(1);
-		expect(updateSettingMock.mock.calls[0][1]).toMatchObject({ terminalEnergyValue: 2.5 });
+
+		expect(updateSettingMock.mock.calls[0][1]).toMatchObject({
+			terminalEnergyValue: 2.5,
+		});
 	});
 
 	it('surfaces a failed param write on the session store', async () => {
@@ -213,9 +268,11 @@ describe('EnergyLabStore', () => {
 	// change, so completions can land out of order.
 	it('drops a stale stop-observation load that resolves after a newer one', async () => {
 		let resolveStale!: (value: StopObservation[]) => void;
+
 		readStopObservationsMock.mockReturnValueOnce(
-			new Promise<StopObservation[]>((resolve) => (resolveStale = resolve))
+			new Promise<StopObservation[]>((resolve) => (resolveStale = resolve)),
 		);
+
 		const store = await setup();
 
 		readStopObservationsMock.mockResolvedValue([stopObservation(8), stopObservation(6)]);

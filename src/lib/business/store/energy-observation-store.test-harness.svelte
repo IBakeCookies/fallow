@@ -3,13 +3,13 @@
 	import {
 		EnergyObservationStore,
 		type ReadTasks,
-		type ReportStorageError
-	} from './energy-observation-store.svelte';
+		type ReportStorageError,
+	} from '$lib/business/store/energy-observation-store.svelte';
 
 	let {
 		onstore,
 		readTasks,
-		reportStorageError
+		reportStorageError,
 	}: {
 		onstore: (s: EnergyObservationStore) => void;
 		readTasks: ReadTasks;

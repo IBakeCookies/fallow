@@ -19,7 +19,7 @@
 	const bandLabel: Record<string, () => string> = {
 		[STATUS.SUCCESS.color]: m.metric_band_optimal,
 		[STATUS.WARNING.color]: m.metric_band_caution,
-		[STATUS.CRITICAL.color]: m.metric_band_critical
+		[STATUS.CRITICAL.color]: m.metric_band_critical,
 	};
 </script>
 

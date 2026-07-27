@@ -1,33 +1,36 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
-import Harness from './session-store.test-harness.svelte';
-import { mockPage } from './session-store.test-utils.svelte';
+import Harness from '$lib/business/store/session-store.test-harness.svelte';
+import { mockPage } from '$lib/business/store/session-store.test-utils.svelte';
 import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
-import type { SessionStore } from './session-store.svelte';
+import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { DailySession } from '$lib/business/type';
 
 vi.mock('$lib/business/store/session-history', () => ({
-	initializeStorage: vi.fn(async () => {})
+	initializeStorage: vi.fn(async () => {}),
 }));
 
 vi.mock('$lib/data/repository/session-repository', () => ({
 	$updateSession: vi.fn(async () => {}),
 	$readSessionByDate: vi.fn(async () => null),
-	$readSessionsByDateRange: vi.fn(async () => [])
+	$readSessionsByDateRange: vi.fn(async () => []),
 }));
+
 vi.mock('$lib/data/repository/routine-repository', () => ({
 	$updateRoutine: vi.fn(async () => {}),
 	$deleteRoutine: vi.fn(async () => {}),
-	$readAllRoutines: vi.fn(async () => [])
+	$readAllRoutines: vi.fn(async () => []),
 }));
+
 vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$updateFlowObservation: vi.fn(async () => {}),
 	$deleteFlowObservation: vi.fn(async () => {}),
 	$deleteAllFlowObservations: vi.fn(async () => {}),
-	$readAllFlowObservations: vi.fn(async () => [])
+	$readAllFlowObservations: vi.fn(async () => []),
 }));
+
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
@@ -35,19 +38,30 @@ const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlo
 /** Mount the store in a component context and wait for the initial load. */
 async function setup(): Promise<SessionStore> {
 	let store!: SessionStore;
-	render(Harness, { onstore: (s: SessionStore) => (store = s) });
+
+	render(Harness, {
+		onstore: (s: SessionStore) => (store = s),
+	});
+
 	await vi.waitFor(() => expect(store.isLoading).toBe(false));
 	vi.clearAllMocks(); // drop the initial-load calls; tests assert deltas
+
 	return store;
 }
 
 function setHidden(hidden: boolean) {
-	Object.defineProperty(document, 'hidden', { value: hidden, configurable: true });
+	Object.defineProperty(document, 'hidden', {
+		value: hidden,
+		configurable: true,
+	});
+
 	document.dispatchEvent(new Event('visibilitychange'));
 }
 
 function useFakeTimers() {
-	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+	vi.useFakeTimers({
+		toFake: ['setTimeout', 'clearTimeout', 'Date'],
+	});
 }
 
 describe('SessionStore persistence', () => {
@@ -77,9 +91,10 @@ describe('SessionStore persistence', () => {
 		expect(updateSessionMock).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(1);
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
+
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			date: store.today,
-			availableHours: 6
+			availableHours: 6,
 		});
 	});
 
@@ -93,18 +108,23 @@ describe('SessionStore persistence', () => {
 
 		setHidden(true);
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
-		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({ availableHours: 3 });
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			availableHours: 3,
+		});
 	});
 
 	it('re-reads the selected date on becoming visible, picking up another tab’s write', async () => {
 		const store = await setup();
+
 		const otherTabSession: DailySession = {
 			date: store.today,
 			tasks: [],
 			availableHours: 9,
 			switchCost: 0.25,
-			updatedAt: Date.now()
+			updatedAt: Date.now(),
 		};
+
 		readSessionByDateMock.mockResolvedValueOnce(otherTabSession);
 
 		setHidden(true); // nothing pending: no write
@@ -128,7 +148,11 @@ describe('SessionStore persistence', () => {
 		flushSync(); // date-change reload flushes the pending edit first
 
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
-		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({ date: today, availableHours: 5 });
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: today,
+			availableHours: 5,
+		});
 	});
 
 	it('surfaces a failed save as storageError and clears it on demand', async () => {
@@ -148,7 +172,14 @@ describe('SessionStore persistence', () => {
 
 	it('stamps the ⚡ badge only when the flow write succeeds', async () => {
 		const store = await setup();
-		store.addTask({ title: 'deep work', physicalDifficulty: 2, mentalDifficulty: 8, enjoyment: 6 });
+
+		store.addTask({
+			title: 'deep work',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 6,
+		});
+
 		flushSync();
 		const id = store.tasks[0].id;
 
@@ -166,7 +197,10 @@ describe('SessionStore persistence', () => {
 	it('surfaces a failed load instead of silently never saving again', async () => {
 		readSessionByDateMock.mockRejectedValue(new Error('IndexedDB unavailable'));
 		let store!: SessionStore;
-		render(Harness, { onstore: (s: SessionStore) => (store = s) });
+
+		render(Harness, {
+			onstore: (s: SessionStore) => (store = s),
+		});
 
 		await vi.waitFor(() => expect(store.storageError).toBe('load-failed'));
 
@@ -177,8 +211,9 @@ describe('SessionStore persistence', () => {
 			tasks: [],
 			availableHours: 7,
 			switchCost: 0.25,
-			updatedAt: Date.now()
+			updatedAt: Date.now(),
 		}));
+
 		store.retryLoad();
 
 		await vi.waitFor(() => {
@@ -189,7 +224,14 @@ describe('SessionStore persistence', () => {
 
 	it('ignores a task toggle while a date change is still loading', async () => {
 		const store = await setup();
-		store.addTask({ title: 'ship it', physicalDifficulty: 3, mentalDifficulty: 5, enjoyment: 5 });
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
 		flushSync();
 		const id = store.tasks[0].id;
 
@@ -203,8 +245,11 @@ describe('SessionStore persistence', () => {
 		await store.toggleTask(id);
 
 		expect(store.tasks[0].completed).toBe(false);
+
 		expect(updateSessionMock).not.toHaveBeenCalledWith(
-			expect.objectContaining({ date: '2000-01-01' })
+			expect.objectContaining({
+				date: '2000-01-01',
+			}),
 		);
 	});
 
@@ -219,7 +264,10 @@ describe('SessionStore persistence', () => {
 		cleanup(); // what a locale switch does: the layout re-keys its subtree
 
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
-		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({ availableHours: 8 });
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			availableHours: 8,
+		});
 	});
 
 	it('re-reads yesterday after a midnight rollover', async () => {
@@ -227,13 +275,24 @@ describe('SessionStore persistence', () => {
 		const dayBeforeRollover = store.today;
 		const realNow = Date.now();
 
-		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.useFakeTimers({
+			toFake: ['Date'],
+		});
+
 		vi.setSystemTime(realNow + 24 * 60 * 60 * 1000);
+
 		readSessionByDateMock.mockImplementation(async (date: string) =>
 			date === dayBeforeRollover
-				? { date, tasks: [], availableHours: 5, switchCost: 0.25, updatedAt: 0 }
-				: null
+				? {
+						date,
+						tasks: [],
+						availableHours: 5,
+						switchCost: 0.25,
+						updatedAt: 0,
+					}
+				: null,
 		);
+
 		window.dispatchEvent(new Event('focus')); // liveToday refreshes on wake
 		flushSync();
 		vi.useRealTimers(); // the rollover has landed; poll on the real clock

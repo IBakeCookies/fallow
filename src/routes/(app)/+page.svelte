@@ -45,7 +45,11 @@
 	const dateParam = $derived(page.url.searchParams.get('date'));
 	$effect(() => {
 		if (browser && dateParam === today) {
-			goto(localizeHref(resolve('/')), { replaceState: true, noScroll: true, keepFocus: true });
+			goto(localizeHref(resolve('/')), {
+				replaceState: true,
+				noScroll: true,
+				keepFocus: true,
+			});
 		}
 	});
 
@@ -53,15 +57,15 @@
 	function gotoDate(newDate: string) {
 		goto(localizeHref(newDate === today ? resolve('/') : `${resolve('/')}?date=${newDate}`), {
 			noScroll: true,
-			keepFocus: true
+			keepFocus: true,
 		});
 	}
 
 	function formatDisplayDate(dateStr: string): string {
-		return new Date(dateStr + 'T12:00:00').toLocaleDateString(getDateLocale(), {
+		return new Date(`${dateStr}T12:00:00`).toLocaleDateString(getDateLocale(), {
 			weekday: 'short',
 			month: 'short',
-			day: 'numeric'
+			day: 'numeric',
 		});
 	}
 
@@ -69,12 +73,16 @@
 		session.constantsFit.fitted
 			? session.flowObservations.length === 1
 				? m.model_status_personalized_one()
-				: m.model_status_personalized({ count: session.flowObservations.length })
+				: m.model_status_personalized({
+						count: session.flowObservations.length,
+					})
 			: session.flowObservations.length > 0
 				? session.flowObservations.length === 1
 					? m.model_status_implausible_one()
-					: m.model_status_implausible({ count: session.flowObservations.length })
-				: m.model_status_default()
+					: m.model_status_implausible({
+							count: session.flowObservations.length,
+						})
+				: m.model_status_default(),
 	);
 </script>
 
@@ -90,7 +98,11 @@
 		operatingSystem: 'Any',
 		browserRequirements: 'Requires JavaScript',
 		inLanguage: ['en', 'de'],
-		offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+		offers: {
+			'@type': 'Offer',
+			price: '0',
+			priceCurrency: 'USD',
+		},
 	}}
 />
 
@@ -115,7 +127,9 @@
 			{#if isViewingFuture}
 				<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong text-sm">
 					<span class="font-medium">{m.banner_future_title()}</span>
-					{m.banner_future_body({ date: formatDisplayDate(selectedDate) })}
+					{m.banner_future_body({
+						date: formatDisplayDate(selectedDate),
+					})}
 				</div>
 			{/if}
 			<TimeBudgetCard

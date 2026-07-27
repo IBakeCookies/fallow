@@ -21,9 +21,13 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	type CapacityPools,
 	type FitPosterior,
-	type UserConstants
-} from './zenith';
-import { optimizeSchedule, type EnergyParams, type EnergyTaskInput } from './zenith-energy';
+	type UserConstants,
+} from '$lib/business/model/zenith';
+import {
+	optimizeSchedule,
+	type EnergyParams,
+	type EnergyTaskInput,
+} from '$lib/business/model/zenith-energy';
 
 /** One finished day: the stored session's plan inputs plus the logged hours. */
 export interface PlanAuditDay {
@@ -69,13 +73,14 @@ const EMPTY_AUDIT: PlanAudit = {
 	energyOverlap: 0,
 	actualTaskSpread: 0,
 	classicTaskSpread: 0,
-	energyTaskSpread: 0
+	energyTaskSpread: 0,
 };
 
 // Shares of a nonnegative vector; an all-zero vector stays all-zero, so a
 // plan that allocates nothing scores overlap 0 against any worked day.
 function sharesOf(hours: number[]): number[] {
 	const total = hours.reduce((sum, h) => sum + h, 0);
+
 	return total > 0 ? hours.map((h) => h / total) : hours.map(() => 0);
 }
 
@@ -88,6 +93,7 @@ function overlapOf(a: number[], b: number[]): number {
 // Inverse Herfindahl 1/Σ s²: 1 = all time on one task, n = equal split over n.
 function taskSpreadOf(shares: number[]): number {
 	const concentration = shares.reduce((sum, s) => sum + s * s, 0);
+
 	return concentration > 0 ? 1 / concentration : 0;
 }
 
@@ -105,20 +111,23 @@ export function auditPlanAdherence(
 	days: PlanAuditDay[],
 	params: EnergyParams,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): PlanAudit {
 	const results: PlanAuditDayResult[] = [];
 
 	for (const day of days) {
 		const { tasks, windowHours } = day;
+
 		if (tasks.length === 0 || windowHours <= 0) continue;
 
 		const hoursByTask = new Map<number, number>();
+
 		for (const { taskId, hours } of day.workedHours) {
 			if (hours > 0 && tasks.some((t) => t.id === taskId)) {
 				hoursByTask.set(taskId, (hoursByTask.get(taskId) ?? 0) + hours);
 			}
 		}
+
 		if (hoursByTask.size === 0) continue;
 
 		const actual = tasks.map((t) => hoursByTask.get(t.id) ?? 0);
@@ -129,41 +138,45 @@ export function auditPlanAdherence(
 				difficulty: t.difficulty,
 				enjoyment: t.enjoyment,
 				cognitiveWeight: t.cognitiveDemand,
-				physicalWeight: t.physicalDemand
+				physicalWeight: t.physicalDemand,
 			})),
 			windowHours,
 			day.pools,
 			constants,
 			day.switchCost,
-			posterior
+			posterior,
 		);
-		const classic = classicAllocations.map((a) => a.allocatedHours);
 
+		const classic = classicAllocations.map((a) => a.allocatedHours);
 		const energyPlan = optimizeSchedule(tasks, windowHours, params, constants);
 		const energyByTask = new Map<number, number>();
+
 		for (const block of energyPlan.blocks) {
 			if (block.taskId !== null) {
 				energyByTask.set(block.taskId, (energyByTask.get(block.taskId) ?? 0) + block.hours);
 			}
 		}
-		const energy = tasks.map((t) => energyByTask.get(t.id) ?? 0);
 
+		const energy = tasks.map((t) => energyByTask.get(t.id) ?? 0);
 		const actualShares = sharesOf(actual);
 		const classicShares = sharesOf(classic);
 		const energyShares = sharesOf(energy);
+
 		results.push({
 			workedHours: actual.reduce((sum, h) => sum + h, 0),
 			classicOverlap: overlapOf(actualShares, classicShares),
 			energyOverlap: overlapOf(actualShares, energyShares),
 			actualTaskSpread: taskSpreadOf(actualShares),
 			classicTaskSpread: taskSpreadOf(classicShares),
-			energyTaskSpread: taskSpreadOf(energyShares)
+			energyTaskSpread: taskSpreadOf(energyShares),
 		});
 	}
 
 	if (results.length === 0) return EMPTY_AUDIT;
+
 	const mean = (pick: (r: PlanAuditDayResult) => number): number =>
 		results.reduce((sum, r) => sum + pick(r), 0) / results.length;
+
 	return {
 		usedCount: results.length,
 		days: results,
@@ -171,6 +184,6 @@ export function auditPlanAdherence(
 		energyOverlap: mean((r) => r.energyOverlap),
 		actualTaskSpread: mean((r) => r.actualTaskSpread),
 		classicTaskSpread: mean((r) => r.classicTaskSpread),
-		energyTaskSpread: mean((r) => r.energyTaskSpread)
+		energyTaskSpread: mean((r) => r.energyTaskSpread),
 	};
 }

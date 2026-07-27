@@ -1,16 +1,18 @@
 import { page } from 'vitest/browser';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import Nav from './nav.svelte';
+import Nav from '$lib/presentation/component/nav.svelte';
 
-const mock = vi.hoisted(() => ({ url: new URL('http://localhost/') }));
+const mock = vi.hoisted(() => ({
+	url: new URL('http://localhost/'),
+}));
 
 vi.mock('$app/state', () => ({
 	page: {
 		get url() {
 			return mock.url;
-		}
-	}
+		},
+	},
 }));
 
 describe('nav.svelte', () => {
@@ -23,20 +25,46 @@ describe('nav.svelte', () => {
 		render(Nav);
 
 		await expect
-			.element(page.getByRole('link', { name: 'Calendar' }))
+			.element(
+				page.getByRole('link', {
+					name: 'Calendar',
+				}),
+			)
 			.toHaveAttribute('aria-current', 'page');
+
 		await expect
-			.element(page.getByRole('link', { name: 'Today' }))
+			.element(
+				page.getByRole('link', {
+					name: 'Today',
+				}),
+			)
 			.not.toHaveAttribute('aria-current');
-		await expect.element(page.getByRole('link', { name: 'Analytics' })).toBeInTheDocument();
-		await expect.element(page.getByRole('link', { name: 'Energy Lab' })).toBeInTheDocument();
+
+		await expect
+			.element(
+				page.getByRole('link', {
+					name: 'Analytics',
+				}),
+			)
+			.toBeInTheDocument();
+
+		await expect
+			.element(
+				page.getByRole('link', {
+					name: 'Energy Lab',
+				}),
+			)
+			.toBeInTheDocument();
 	});
 
 	it('shows the viewed date instead of "Today" when browsing another day', async () => {
 		mock.url = new URL('http://localhost/?date=2020-01-01');
 		render(Nav);
 
-		const link = page.getByRole('link', { name: 'Viewing Jan 1 — return to today' });
+		const link = page.getByRole('link', {
+			name: 'Viewing Jan 1 — return to today',
+		});
+
 		await expect.element(link).toHaveAttribute('href', '/');
 		await expect.element(link).toHaveAttribute('title', 'Return to today');
 	});
@@ -45,10 +73,19 @@ describe('nav.svelte', () => {
 		render(Nav);
 
 		await expect
-			.element(page.getByRole('button', { name: 'Switch language: EN' }))
+			.element(
+				page.getByRole('button', {
+					name: 'Switch language: EN',
+				}),
+			)
 			.toHaveAttribute('aria-current', 'true');
+
 		await expect
-			.element(page.getByRole('button', { name: 'Switch language: DE' }))
+			.element(
+				page.getByRole('button', {
+					name: 'Switch language: DE',
+				}),
+			)
 			.not.toHaveAttribute('aria-current');
 	});
 });

@@ -21,6 +21,10 @@ export async function $readSetting(key: string): Promise<unknown> {
 /** Upsert: put() replaces the record for the same key, creating it if absent. */
 export async function $updateSetting(key: string, value: unknown): Promise<void> {
 	await withStore('settings', 'readwrite', (store) => {
-		store.put({ key, value, updatedAt: Date.now() } satisfies SettingRecord);
+		store.put({
+			key,
+			value,
+			updatedAt: Date.now(),
+		} satisfies SettingRecord);
 	});
 }

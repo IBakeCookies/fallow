@@ -18,9 +18,9 @@ import {
 	type DrainObservation,
 	type EnergyTaskInput,
 	type RestObservation,
-	type StopObservation
-} from './zenith-energy';
-import { calculateFlowStateTime, mapEffort, mapEnjoyability } from './zenith';
+	type StopObservation,
+} from '$lib/business/model/zenith-energy';
+import { calculateFlowStateTime, mapEffort, mapEnjoyability } from '$lib/business/model/zenith';
 
 function makeTask(
 	id: number,
@@ -28,9 +28,16 @@ function makeTask(
 	difficulty: number,
 	enjoyment: number,
 	cognitiveDemand: number,
-	physicalDemand: number
+	physicalDemand: number,
 ): EnergyTaskInput {
-	return { id, title, difficulty, enjoyment, cognitiveDemand, physicalDemand };
+	return {
+		id,
+		title,
+		difficulty,
+		enjoyment,
+		cognitiveDemand,
+		physicalDemand,
+	};
 }
 
 describe('Zenith Energy Model', () => {
@@ -38,27 +45,58 @@ describe('Zenith Energy Model', () => {
 		it('merges adjacent same-task blocks into one session', () => {
 			const merged = normalizeSchedule(
 				[
-					{ taskId: 1, hours: 1 },
-					{ taskId: 1, hours: 1 }
+					{
+						taskId: 1,
+						hours: 1,
+					},
+					{
+						taskId: 1,
+						hours: 1,
+					},
 				],
-				8
+				8,
 			);
-			expect(merged).toEqual([{ taskId: 1, hours: 2 }]);
+
+			expect(merged).toEqual([
+				{
+					taskId: 1,
+					hours: 2,
+				},
+			]);
 		});
 
 		it('clips to the window, drops empty blocks and trailing rest', () => {
 			const blocks = normalizeSchedule(
 				[
-					{ taskId: 1, hours: 3 },
-					{ taskId: null, hours: 0 },
-					{ taskId: 2, hours: 10 },
-					{ taskId: null, hours: 2 }
+					{
+						taskId: 1,
+						hours: 3,
+					},
+					{
+						taskId: null,
+						hours: 0,
+					},
+					{
+						taskId: 2,
+						hours: 10,
+					},
+					{
+						taskId: null,
+						hours: 2,
+					},
 				],
-				4
+				4,
 			);
+
 			expect(blocks).toEqual([
-				{ taskId: 1, hours: 3 },
-				{ taskId: 2, hours: 1 }
+				{
+					taskId: 1,
+					hours: 3,
+				},
+				{
+					taskId: 2,
+					hours: 1,
+				},
 			]);
 		});
 	});
@@ -69,20 +107,32 @@ describe('Zenith Energy Model', () => {
 		it('objective decomposes into satiated output + free-time bonus + terminal bonus', () => {
 			const ev = evaluateSchedule(
 				[
-					{ taskId: 1, hours: 1.5 },
-					{ taskId: null, hours: 0.5 },
-					{ taskId: 2, hours: 2 }
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+					{
+						taskId: null,
+						hours: 0.5,
+					},
+					{
+						taskId: 2,
+						hours: 2,
+					},
 				],
 				tasks,
-				8
+				8,
 			);
+
 			expect(ev.workHours).toBeCloseTo(3.5, 10);
 			expect(ev.leisureHours).toBeCloseTo(4.5, 10);
 			expect(ev.objective).toBeCloseTo(ev.satiatedOutput + ev.freeTimeBonus + ev.terminalBonus, 12);
+
 			expect(ev.totalOutput).toBeCloseTo(
 				ev.blocks.reduce((sum, b) => sum + b.output, 0),
-				12
+				12,
 			);
+
 			// V(O) ≤ O with equality only at O = 0
 			expect(ev.satiatedOutput).toBeLessThan(ev.totalOutput);
 			expect(ev.satiatedOutput).toBeGreaterThan(0);
@@ -91,13 +141,23 @@ describe('Zenith Energy Model', () => {
 		it('energy reservoirs drain while working and recover while resting', () => {
 			const ev = evaluateSchedule(
 				[
-					{ taskId: 1, hours: 2 },
-					{ taskId: null, hours: 1 },
-					{ taskId: 1, hours: 0.5 }
+					{
+						taskId: 1,
+						hours: 2,
+					},
+					{
+						taskId: null,
+						hours: 1,
+					},
+					{
+						taskId: 1,
+						hours: 0.5,
+					},
 				],
 				tasks,
-				8
+				8,
 			);
+
 			const [work, rest] = ev.blocks;
 			expect(work.cogAfter).toBeLessThan(DEFAULT_ENERGY_PARAMS.initialCog);
 			expect(rest.cogAfter).toBeGreaterThan(work.cogAfter);
@@ -105,86 +165,173 @@ describe('Zenith Energy Model', () => {
 
 		it('fragmentation is costly: contiguous work far outproduces confetti slicing', () => {
 			const deep = [makeTask(1, 'deep', 6, 6, 0.7, 0.1)];
-			const contiguous = evaluateSchedule([{ taskId: 1, hours: 2 }], deep, 8);
+
+			const contiguous = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 2,
+					},
+				],
+				deep,
+				8,
+			);
+
 			const confetti: { taskId: number | null; hours: number }[] = [];
+
 			for (let i = 0; i < 8; i++) {
-				confetti.push({ taskId: 1, hours: 0.25 }, { taskId: null, hours: 0.25 });
+				confetti.push(
+					{
+						taskId: 1,
+						hours: 0.25,
+					},
+					{
+						taskId: null,
+						hours: 0.25,
+					},
+				);
 			}
+
 			const sliced = evaluateSchedule(confetti, deep, 8);
 			expect(contiguous.totalOutput).toBeGreaterThan(1.5 * sliced.totalOutput);
 		});
 
 		it('a merged same-task pair scores exactly like one block (one session)', () => {
 			const deep = [makeTask(1, 'deep', 6, 6, 0.7, 0.1)];
-			const single = evaluateSchedule([{ taskId: 1, hours: 2 }], deep, 8);
-			const pair = evaluateSchedule(
+
+			const single = evaluateSchedule(
 				[
-					{ taskId: 1, hours: 1 },
-					{ taskId: 1, hours: 1 }
+					{
+						taskId: 1,
+						hours: 2,
+					},
 				],
 				deep,
-				8
+				8,
 			);
+
+			const pair = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 1,
+					},
+					{
+						taskId: 1,
+						hours: 1,
+					},
+				],
+				deep,
+				8,
+			);
+
 			expect(pair.totalOutput).toBeCloseTo(single.totalOutput, 12);
 		});
 
 		it('rest-recovery multiplier speeds recovery of an idle reservoir (Xia & Frey Law)', () => {
 			const deep = [makeTask(1, 'deep', 8, 5, 0.9, 0.1)];
+
 			// interior rest bracketed by a marker so it is not trailing-dropped
 			const sched = [
-				{ taskId: 1, hours: 3 },
-				{ taskId: null, hours: 1 },
-				{ taskId: 1, hours: 0.01 }
+				{
+					taskId: 1,
+					hours: 3,
+				},
+				{
+					taskId: null,
+					hours: 1,
+				},
+				{
+					taskId: 1,
+					hours: 0.01,
+				},
 			];
+
 			const base = evaluateSchedule(sched, deep, 12, {
 				...DEFAULT_ENERGY_PARAMS,
-				restRecoveryMultiplier: 1
+				restRecoveryMultiplier: 1,
 			});
+
 			const boosted = evaluateSchedule(sched, deep, 12, {
 				...DEFAULT_ENERGY_PARAMS,
-				restRecoveryMultiplier: 2
+				restRecoveryMultiplier: 2,
 			});
+
 			expect(boosted.blocks[1].cogAfter).toBeGreaterThan(base.blocks[1].cogAfter);
 		});
 
 		it('warm-up carries over across a gap: resuming beats a hard reset (Monk/Trafton)', () => {
 			const tasks = [makeTask(1, 'A', 6, 6, 0.7, 0.1), makeTask(2, 'B', 5, 5, 0.3, 0.3)];
+
 			const sched = [
-				{ taskId: 1, hours: 1.5 },
-				{ taskId: 2, hours: 0.25 },
-				{ taskId: 1, hours: 1.5 }
+				{
+					taskId: 1,
+					hours: 1.5,
+				},
+				{
+					taskId: 2,
+					hours: 0.25,
+				},
+				{
+					taskId: 1,
+					hours: 1.5,
+				},
 			];
+
 			const reset = evaluateSchedule(sched, tasks, 8, {
 				...DEFAULT_ENERGY_PARAMS,
-				resumptionTimeConstant: 0
+				resumptionTimeConstant: 0,
 			});
+
 			const carry = evaluateSchedule(sched, tasks, 8, {
 				...DEFAULT_ENERGY_PARAMS,
-				resumptionTimeConstant: 0.5
+				resumptionTimeConstant: 0.5,
 			});
+
 			expect(carry.blocks[2].output).toBeGreaterThan(reset.blocks[2].output);
 		});
 
 		it('warm-up carryover decays with gap length: short break keeps more than long', () => {
 			const deep = [makeTask(1, 'A', 6, 6, 0.7, 0.1)];
+
 			const shortGap = evaluateSchedule(
 				[
-					{ taskId: 1, hours: 1.5 },
-					{ taskId: null, hours: 0.25 },
-					{ taskId: 1, hours: 1.5 }
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+					{
+						taskId: null,
+						hours: 0.25,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
 				],
 				deep,
-				8
+				8,
 			);
+
 			const longGap = evaluateSchedule(
 				[
-					{ taskId: 1, hours: 1.5 },
-					{ taskId: null, hours: 2 },
-					{ taskId: 1, hours: 1.5 }
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+					{
+						taskId: null,
+						hours: 2,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
 				],
 				deep,
-				8
+				8,
 			);
+
 			expect(shortGap.blocks[2].output).toBeGreaterThan(longGap.blocks[2].output);
 		});
 
@@ -203,36 +350,73 @@ describe('Zenith Energy Model', () => {
 		const day = [
 			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
 			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
 		];
+
 		const sched = [
-			{ taskId: 2, hours: 2 },
-			{ taskId: null, hours: 1 },
-			{ taskId: 2, hours: 2 }
+			{
+				taskId: 2,
+				hours: 2,
+			},
+			{
+				taskId: null,
+				hours: 1,
+			},
+			{
+				taskId: 2,
+				hours: 2,
+			},
 		];
 
 		it('satietyScale ≤ 0 recovers the pure total-output objective exactly', () => {
 			const off = evaluateSchedule(sched, day, 8, {
 				...DEFAULT_ENERGY_PARAMS,
-				satietyScale: 0
+				satietyScale: 0,
 			});
+
 			expect(off.satiatedOutput).toBeCloseTo(off.totalOutput, 12);
+
 			expect(off.objective).toBeCloseTo(
 				off.totalOutput + off.freeTimeBonus + off.terminalBonus,
-				12
+				12,
 			);
 		});
 
 		it('satiety does not touch the dynamics: raw block outputs are identical on/off', () => {
 			const on = evaluateSchedule(sched, day, 8);
-			const off = evaluateSchedule(sched, day, 8, { ...DEFAULT_ENERGY_PARAMS, satietyScale: 0 });
+
+			const off = evaluateSchedule(sched, day, 8, {
+				...DEFAULT_ENERGY_PARAMS,
+				satietyScale: 0,
+			});
+
 			on.blocks.forEach((b, i) => expect(b.output).toBeCloseTo(off.blocks[i].output, 12));
 			expect(on.totalOutput).toBeCloseTo(off.totalOutput, 12);
 		});
 
 		it('discounts later output on the same task more than earlier output (concavity)', () => {
-			const first = evaluateSchedule([{ taskId: 2, hours: 2 }], day, 8);
-			const both = evaluateSchedule([{ taskId: 2, hours: 4 }], day, 8);
+			const first = evaluateSchedule(
+				[
+					{
+						taskId: 2,
+						hours: 2,
+					},
+				],
+				day,
+				8,
+			);
+
+			const both = evaluateSchedule(
+				[
+					{
+						taskId: 2,
+						hours: 4,
+					},
+				],
+				day,
+				8,
+			);
+
 			const rawGain = both.totalOutput - first.totalOutput;
 			const satiatedGain = both.satiatedOutput - first.satiatedOutput;
 			// still worth something (V is strictly increasing)…
@@ -244,8 +428,14 @@ describe('Zenith Energy Model', () => {
 		it('breaks winner-take-all: default optimizer funds all three tasks, satiety-off does not', () => {
 			const fundedTasks = (blocks: { taskId: number | null }[]) =>
 				new Set(blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
+
 			const withSatiety = optimizeSchedule(day, 8);
-			const without = optimizeSchedule(day, 8, { ...DEFAULT_ENERGY_PARAMS, satietyScale: 0 });
+
+			const without = optimizeSchedule(day, 8, {
+				...DEFAULT_ENERGY_PARAMS,
+				satietyScale: 0,
+			});
+
 			expect(fundedTasks(withSatiety.blocks).size).toBe(3);
 			expect(fundedTasks(without.blocks).size).toBeLessThan(3);
 		});
@@ -255,28 +445,59 @@ describe('Zenith Energy Model', () => {
 		const day = [
 			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
 			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
 		];
 
 		it('a full-demand task drains toward a positive floor, not zero', () => {
 			// eq = b·r′/(α + b·r′) ≈ 0.149 with the defaults; the zero-floor law
 			// would be at 0.091 after 8 hours.
-			const ev = evaluateSchedule([{ taskId: 1, hours: 8 }], day, 8);
+			const ev = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 8,
+					},
+				],
+				day,
+				8,
+			);
+
 			expect(ev.blocks[0].physAfter).toBeGreaterThan(0.15);
 		});
 
 		it('microRecoveryFraction 0 recovers the pure (1−w) gate: drains toward zero', () => {
-			const ev = evaluateSchedule([{ taskId: 1, hours: 8 }], day, 8, {
-				...DEFAULT_ENERGY_PARAMS,
-				microRecoveryFraction: 0
-			});
+			const ev = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 8,
+					},
+				],
+				day,
+				8,
+				{
+					...DEFAULT_ENERGY_PARAMS,
+					microRecoveryFraction: 0,
+				},
+			);
+
 			expect(ev.blocks[0].physAfter).toBeLessThan(0.1);
 		});
 
 		it('does not touch rest recovery (the gate is 1 at zero demand regardless of b)', () => {
-			const half = { ...DEFAULT_ENERGY_PARAMS, initialCog: 0.5, initialPhys: 0.5 };
+			const half = {
+				...DEFAULT_ENERGY_PARAMS,
+				initialCog: 0.5,
+				initialPhys: 0.5,
+			};
+
 			const on = evaluateSchedule([], day, 8, half);
-			const off = evaluateSchedule([], day, 8, { ...half, microRecoveryFraction: 0 });
+
+			const off = evaluateSchedule([], day, 8, {
+				...half,
+				microRecoveryFraction: 0,
+			});
+
 			expect(on.endCog).toBeCloseTo(off.endCog, 12);
 			expect(on.endPhys).toBeCloseTo(off.endPhys, 12);
 		});
@@ -292,30 +513,44 @@ describe('Zenith Energy Model', () => {
 			const day = [
 				makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
 				makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-				makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+				makeTask(3, 'reading', 4, 7, 0.5, 0.05),
 			];
+
 			const handBuilt = evaluateSchedule(
 				[
-					{ taskId: 1, hours: 3.5 },
-					{ taskId: 3, hours: 1.5 },
-					{ taskId: 2, hours: 3 }
+					{
+						taskId: 1,
+						hours: 3.5,
+					},
+					{
+						taskId: 3,
+						hours: 1.5,
+					},
+					{
+						taskId: 2,
+						hours: 3,
+					},
 				],
 				day,
-				8
+				8,
 			);
+
 			const result = optimizeSchedule(day, 8, DEFAULT_ENERGY_PARAMS, undefined, {
-				stepHours: 0.25
+				stepHours: 0.25,
 			});
+
 			expect(result.evaluation.objective).toBeGreaterThanOrEqual(handBuilt.objective - 1e-9);
 		});
 
 		it('with zero leisure/terminal value it never leaves the window end idle', () => {
 			const tasks = [makeTask(1, 'grind', 6, 5, 0.8, 0.2)];
+
 			const result = optimizeSchedule(tasks, 12, {
 				...DEFAULT_ENERGY_PARAMS,
 				freeTimeValue: 0,
-				terminalEnergyValue: 0
+				terminalEnergyValue: 0,
 			});
+
 			const span = result.blocks.reduce((sum, b) => sum + b.hours, 0);
 			expect(span).toBeCloseTo(12, 9);
 			expect(result.blocks[result.blocks.length - 1].taskId).not.toBeNull();
@@ -323,29 +558,35 @@ describe('Zenith Energy Model', () => {
 
 		it('leisure + terminal value produce genuine early stopping', () => {
 			const tasks = [makeTask(1, 'grind', 6, 5, 0.8, 0.2)];
+
 			const noValues = optimizeSchedule(tasks, 12, {
 				...DEFAULT_ENERGY_PARAMS,
 				freeTimeValue: 0,
-				terminalEnergyValue: 0
+				terminalEnergyValue: 0,
 			});
+
 			// With efficient recovery and warm-up carryover, sustained work is
 			// attractive, so the default values trim work only at the margin — but a
 			// stronger leisure price stops it outright (the mechanism, not a fixed gap).
 			const withValues = optimizeSchedule(tasks, 12);
 			expect(withValues.evaluation.workHours).toBeLessThan(noValues.evaluation.workHours);
+
 			const highLeisure = optimizeSchedule(tasks, 12, {
 				...DEFAULT_ENERGY_PARAMS,
-				freeTimeValue: 2
+				freeTimeValue: 2,
 			});
+
 			expect(highLeisure.evaluation.workHours).toBe(0);
 		});
 
 		it('concentrates a scarce hour on ONE of two identical tasks (no spreading)', () => {
 			const twins = [makeTask(1, 'A', 5, 5, 0.5, 0.1), makeTask(2, 'B', 5, 5, 0.5, 0.1)];
+
 			const result = optimizeSchedule(twins, 1, {
 				...DEFAULT_ENERGY_PARAMS,
-				freeTimeValue: 0.1
+				freeTimeValue: 0.1,
 			});
+
 			const funded = new Set(result.blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
 			expect(funded.size).toBe(1);
 		});
@@ -355,8 +596,9 @@ describe('Zenith Energy Model', () => {
 				makeTask(1, 'write spec', 8, 6, 0.9, 0.1),
 				makeTask(2, 'gym', 4, 7, 0.1, 0.9),
 				makeTask(3, 'email', 3, 3, 0.4, 0.1),
-				makeTask(4, 'refactor', 7, 5, 0.8, 0.1)
+				makeTask(4, 'refactor', 7, 5, 0.8, 0.1),
 			];
+
 			const a = optimizeSchedule(tasks, 8);
 			const b = optimizeSchedule(tasks, 8);
 			const empty = evaluateSchedule([], tasks, 8);
@@ -385,14 +627,16 @@ describe('Zenith Energy Model', () => {
 		const probeDay = [
 			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
 			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
 		];
+
 		const mixedDay = [
 			makeTask(1, 'write spec', 8, 6, 0.9, 0.1),
 			makeTask(2, 'gym', 4, 7, 0.1, 0.9),
 			makeTask(3, 'email', 3, 3, 0.4, 0.1),
-			makeTask(4, 'refactor', 7, 5, 0.8, 0.1)
+			makeTask(4, 'refactor', 7, 5, 0.8, 0.1),
 		];
+
 		const funded = (blocks: { taskId: number | null }[]) =>
 			new Set(blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
 
@@ -402,6 +646,7 @@ describe('Zenith Energy Model', () => {
 					const { blocks } = optimizeSchedule(tasks, windowHours);
 					const total = blocks.reduce((sum, b) => sum + b.hours, 0);
 					expect(total).toBeLessThanOrEqual(windowHours + 1e-9);
+
 					for (const b of blocks) {
 						const units = b.hours / DEFAULT_STEP_HOURS;
 						expect(Math.abs(units - Math.round(units))).toBeLessThan(1e-9);
@@ -416,21 +661,26 @@ describe('Zenith Energy Model', () => {
 			// drift but catches a structural regression outright.
 			for (const tasks of [probeDay, mixedDay]) {
 				const coarse = optimizeSchedule(tasks, 8);
+
 				const fine = optimizeSchedule(tasks, 8, DEFAULT_ENERGY_PARAMS, undefined, {
-					stepHours: 0.25
+					stepHours: 0.25,
 				});
+
 				expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
+
 				expect(coarse.evaluation.objective).toBeGreaterThanOrEqual(
-					0.97 * fine.evaluation.objective
+					0.97 * fine.evaluation.objective,
 				);
 			}
 		});
 
 		it('honors a stepHours override (blocks land on that lattice instead)', () => {
 			const { blocks } = optimizeSchedule(probeDay, 8, DEFAULT_ENERGY_PARAMS, undefined, {
-				stepHours: 0.5
+				stepHours: 0.5,
 			});
+
 			expect(blocks.length).toBeGreaterThan(0);
+
 			for (const b of blocks) {
 				const units = b.hours / 0.5;
 				expect(Math.abs(units - Math.round(units))).toBeLessThan(1e-9);
@@ -442,7 +692,7 @@ describe('Zenith Energy Model', () => {
 		const lawParams = {
 			recoveryRate: DEFAULT_ENERGY_PARAMS.recoveryRate,
 			restRecoveryMultiplier: DEFAULT_ENERGY_PARAMS.restRecoveryMultiplier,
-			microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction
+			microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction,
 		};
 
 		// Independent forward model (mirrors MATH.md §8.7): drained fraction
@@ -452,6 +702,7 @@ describe('Zenith Energy Model', () => {
 			const gate = 1 - (1 - lawParams.microRecoveryFraction) * w;
 			const rho = alpha * w + rec * gate;
 			const eq = (rec * gate) / rho;
+
 			return 1 - (eq + (1 - eq) * Math.exp(-rho * H));
 		}
 
@@ -463,10 +714,15 @@ describe('Zenith Energy Model', () => {
 			[0.9, 0.75],
 			[0.5, 2],
 			[1, 4],
-			[0.7, 2.5]
+			[0.7, 2.5],
 		];
+
 		const cleanObs = (alphaStar: number): DrainObservation[] =>
-			grid.map(([w, H]) => ({ demand: w, hours: H, drainedFraction: drained(w, H, alphaStar) }));
+			grid.map(([w, H]) => ({
+				demand: w,
+				hours: H,
+				drainedFraction: drained(w, H, alphaStar),
+			}));
 
 		it('recovers the prior mean exactly and a nearby true α closely from clean data', () => {
 			const atPrior = fitDrainRate(cleanObs(0.35), 0.35, lawParams);
@@ -484,22 +740,48 @@ describe('Zenith Energy Model', () => {
 			expect(fitDrainRate([], 0.35, lawParams)).toEqual({
 				alpha: 0.35,
 				fitted: false,
-				usedCount: 0
+				usedCount: 0,
 			});
+
 			// demand 0: the rated reservoir was never touched by this session
-			const idle = fitDrainRate([{ demand: 0, hours: 2, drainedFraction: 0.9 }], 0.35, lawParams);
+			const idle = fitDrainRate(
+				[
+					{
+						demand: 0,
+						hours: 2,
+						drainedFraction: 0.9,
+					},
+				],
+				0.35,
+				lawParams,
+			);
+
 			expect(idle.fitted).toBe(false);
 			expect(idle.alpha).toBe(0.35);
 		});
 
 		it('demand-0 observations carry no signal even when mixed with real ones', () => {
-			const real: DrainObservation = { demand: 1, hours: 2, drainedFraction: drained(1, 2, 0.35) };
+			const real: DrainObservation = {
+				demand: 1,
+				hours: 2,
+				drainedFraction: drained(1, 2, 0.35),
+			};
+
 			const alone = fitDrainRate([real], 0.35, lawParams);
+
 			const mixed = fitDrainRate(
-				[{ demand: 0, hours: 2, drainedFraction: 1 }, real],
+				[
+					{
+						demand: 0,
+						hours: 2,
+						drainedFraction: 1,
+					},
+					real,
+				],
 				0.35,
-				lawParams
+				lawParams,
 			);
+
 			expect(mixed.alpha).toBeCloseTo(alone.alpha, 6);
 			expect(mixed.usedCount).toBe(1);
 		});
@@ -507,50 +789,98 @@ describe('Zenith Energy Model', () => {
 		it('a single rating moves α partway toward its implication; more logs move further', () => {
 			// 8/10 drained after 2h at full demand — the defaults predict ≈ 4.8/10,
 			// and the rating alone implies α ≈ 0.89.
-			const one = fitDrainRate([{ demand: 1, hours: 2, drainedFraction: 0.8 }], 0.35, lawParams);
+			const one = fitDrainRate(
+				[
+					{
+						demand: 1,
+						hours: 2,
+						drainedFraction: 0.8,
+					},
+				],
+				0.35,
+				lawParams,
+			);
+
 			expect(one.alpha).toBeGreaterThan(0.5); // moved substantially…
 			expect(one.alpha).toBeLessThan(0.75); // …but the prior still holds part back
+
 			const five = fitDrainRate(
-				Array.from({ length: 5 }, () => ({ demand: 1, hours: 2, drainedFraction: 0.8 })),
+				Array.from(
+					{
+						length: 5,
+					},
+					() => ({
+						demand: 1,
+						hours: 2,
+						drainedFraction: 0.8,
+					}),
+				),
 				0.35,
-				lawParams
+				lawParams,
 			);
+
 			expect(five.alpha).toBeGreaterThan(one.alpha);
 		});
 
 		it('is monotone in the reported drain and stays inside the fit bounds', () => {
 			let prev = -Infinity;
+
 			for (let rating = 0; rating <= 10; rating++) {
 				const fit = fitDrainRate(
-					[{ demand: 1, hours: 2, drainedFraction: rating / 10 }],
+					[
+						{
+							demand: 1,
+							hours: 2,
+							drainedFraction: rating / 10,
+						},
+					],
 					0.35,
-					lawParams
+					lawParams,
 				);
+
 				expect(fit.alpha).toBeGreaterThanOrEqual(prev - 1e-9);
 				expect(fit.alpha).toBeGreaterThanOrEqual(ALPHA_FIT_MIN);
 				expect(fit.alpha).toBeLessThanOrEqual(ALPHA_FIT_MAX);
 				prev = fit.alpha;
 			}
+
 			// Absurd data pins to a bound instead of breaking anything
 			const absurd = fitDrainRate(
-				Array.from({ length: 6 }, () => ({ demand: 1, hours: 0.25, drainedFraction: 1 })),
+				Array.from(
+					{
+						length: 6,
+					},
+					() => ({
+						demand: 1,
+						hours: 0.25,
+						drainedFraction: 1,
+					}),
+				),
 				0.35,
-				lawParams
+				lawParams,
 			);
+
 			expect(absurd.alpha).toBeCloseTo(ALPHA_FIT_MAX, 6);
 		});
 
 		it('posterior std shrinks with data and grows with inconsistency', () => {
-			const consistent = Array.from({ length: 8 }, () => ({
-				demand: 1,
-				hours: 2,
-				drainedFraction: 0.5
-			}));
+			const consistent = Array.from(
+				{
+					length: 8,
+				},
+				() => ({
+					demand: 1,
+					hours: 2,
+					drainedFraction: 0.5,
+				}),
+			);
+
 			const noisy = [0.2, 0.8, 0.3, 0.7, 0.4, 0.9, 0.1, 0.6].map((d) => ({
 				demand: 1,
 				hours: 2,
-				drainedFraction: d
+				drainedFraction: d,
 			}));
+
 			const few = fitDrainRate(consistent.slice(0, 2), 0.35, lawParams);
 			const many = fitDrainRate(consistent, 0.35, lawParams);
 			const scattered = fitDrainRate(noisy, 0.35, lawParams);
@@ -568,7 +898,11 @@ describe('Zenith Energy Model', () => {
 
 	describe('recovery-rate calibration (fitRecoveryRate, MATH.md §8.9)', () => {
 		const m = DEFAULT_ENERGY_PARAMS.restRecoveryMultiplier;
-		const restParams = { restRecoveryMultiplier: m };
+
+		const restParams = {
+			restRecoveryMultiplier: m,
+		};
+
 		const prior = DEFAULT_ENERGY_PARAMS.recoveryRate;
 
 		// Independent forward model: during pure rest the drained fraction
@@ -576,14 +910,21 @@ describe('Zenith Energy Model', () => {
 		const pair = (rate: number, before: number, hours: number): RestObservation => ({
 			drainedBefore: before,
 			drainedAfter: before * Math.exp(-rate * m * hours),
-			hours
+			hours,
 		});
+
 		// One logged rest = mind + body, two observations of the same break.
 		const loggedRests = (rate: number, count: number): RestObservation[] =>
-			Array.from({ length: count }, (_, i) => {
-				const hours = [0.5, 0.75, 1, 0.5, 0.75, 0.5, 1, 0.75][i % 8];
-				return [pair(rate, 0.6, hours), pair(rate, 0.45, hours)];
-			}).flat();
+			Array.from(
+				{
+					length: count,
+				},
+				(_, i) => {
+					const hours = [0.5, 0.75, 1, 0.5, 0.75, 0.5, 1, 0.75][i % 8];
+
+					return [pair(rate, 0.6, hours), pair(rate, 0.45, hours)];
+				},
+			).flat();
 
 		it('recovers the prior mean exactly and a nearby true rate closely from clean data', () => {
 			const atPrior = fitRecoveryRate(loggedRests(prior, 8), prior, restParams);
@@ -601,18 +942,28 @@ describe('Zenith Energy Model', () => {
 			expect(fitRecoveryRate([], prior, restParams)).toEqual({
 				rate: prior,
 				fitted: false,
-				usedCount: 0
+				usedCount: 0,
 			});
+
 			// Fresh going in (nothing to recover) or a zero-length break (no time
 			// to recover in): the prediction is constant in r — no signal.
 			const uninformative = fitRecoveryRate(
 				[
-					{ drainedBefore: 0, drainedAfter: 0, hours: 1 },
-					{ drainedBefore: 0.5, drainedAfter: 0.5, hours: 0 }
+					{
+						drainedBefore: 0,
+						drainedAfter: 0,
+						hours: 1,
+					},
+					{
+						drainedBefore: 0.5,
+						drainedAfter: 0.5,
+						hours: 0,
+					},
 				],
 				prior,
-				restParams
+				restParams,
 			);
+
 			expect(uninformative.fitted).toBe(false);
 			expect(uninformative.rate).toBe(prior);
 		});
@@ -635,7 +986,11 @@ describe('Zenith Energy Model', () => {
 			// toward 1.8 — short of it only by the ridge shrinkage, which is
 			// larger here because the implied rate sits further from the prior.
 			const data = loggedRests(1.2, 8);
-			const underUnitMultiplier = fitRecoveryRate(data, prior, { restRecoveryMultiplier: 1 });
+
+			const underUnitMultiplier = fitRecoveryRate(data, prior, {
+				restRecoveryMultiplier: 1,
+			});
+
 			expect(underUnitMultiplier.rate).toBeGreaterThan(1.45);
 			expect(underUnitMultiplier.rate).toBeLessThan(1.2 * m);
 		});
@@ -643,12 +998,21 @@ describe('Zenith Energy Model', () => {
 		it('adversarial pairs (more drained after resting) pin to the lower bound with a wide std', () => {
 			const fit = fitRecoveryRate(
 				[
-					{ drainedBefore: 0.3, drainedAfter: 0.6, hours: 0.5 },
-					{ drainedBefore: 0.4, drainedAfter: 0.7, hours: 0.5 }
+					{
+						drainedBefore: 0.3,
+						drainedAfter: 0.6,
+						hours: 0.5,
+					},
+					{
+						drainedBefore: 0.4,
+						drainedAfter: 0.7,
+						hours: 0.5,
+					},
 				],
 				prior,
-				restParams
+				restParams,
 			);
+
 			expect(fit.fitted).toBe(true);
 			expect(fit.rate).toBeGreaterThanOrEqual(RECOVERY_FIT_MIN);
 			expect(fit.rate).toBeLessThan(prior);
@@ -662,32 +1026,39 @@ describe('Zenith Energy Model', () => {
 			// conditioning on the r fitted from rest pairs recovers most of it.
 			const TRUE_R = 1.4;
 			const TRUE_ALPHA = 0.5;
+
 			const drainAt = (recovery: number, w: number, hours: number) => {
 				const rec = recovery * m;
 				const gate = 1 - (1 - DEFAULT_ENERGY_PARAMS.microRecoveryFraction) * w;
 				const rho = TRUE_ALPHA * w + rec * gate;
 				const eq = (rec * gate) / rho;
+
 				return 1 - (eq + (1 - eq) * Math.exp(-rho * hours));
 			};
+
 			const drainObs = [1.5, 2, 2.5, 2, 1.5].map((hours) => ({
 				demand: 0.9,
 				hours,
-				drainedFraction: drainAt(TRUE_R, 0.9, hours)
+				drainedFraction: drainAt(TRUE_R, 0.9, hours),
 			}));
+
 			const lawParams = (recovery: number) => ({
 				recoveryRate: recovery,
 				restRecoveryMultiplier: m,
-				microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction
+				microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction,
 			});
+
 			const biased = fitDrainRate(drainObs, DEFAULT_ENERGY_PARAMS.alphaCog, lawParams(prior));
 			const rFit = fitRecoveryRate(loggedRests(TRUE_R, 5), prior, restParams);
+
 			const conditioned = fitDrainRate(
 				drainObs,
 				DEFAULT_ENERGY_PARAMS.alphaCog,
-				lawParams(rFit.rate)
+				lawParams(rFit.rate),
 			);
+
 			expect(Math.abs(conditioned.alpha - TRUE_ALPHA)).toBeLessThan(
-				Math.abs(biased.alpha - TRUE_ALPHA)
+				Math.abs(biased.alpha - TRUE_ALPHA),
 			);
 		});
 
@@ -703,8 +1074,9 @@ describe('Zenith Energy Model', () => {
 		const day = [
 			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
 			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05)
+			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
 		];
+
 		const prior = DEFAULT_ENERGY_PARAMS.freeTimeValue;
 
 		// Synthetic user: work the plan the optimizer builds at the TRUE λ₀,
@@ -712,16 +1084,22 @@ describe('Zenith Energy Model', () => {
 		const dayFromPlan = (trueLambda: number, windowHours: number): StopObservation => {
 			const { blocks } = optimizeSchedule(day, windowHours, {
 				...DEFAULT_ENERGY_PARAMS,
-				freeTimeValue: trueLambda
+				freeTimeValue: trueLambda,
 			});
+
 			const byTask = new Map<number, number>();
+
 			for (const b of blocks) {
 				if (b.taskId !== null) byTask.set(b.taskId, (byTask.get(b.taskId) ?? 0) + b.hours);
 			}
+
 			return {
 				tasks: day,
 				windowHours,
-				workedHours: [...byTask].map(([taskId, hours]) => ({ taskId, hours }))
+				workedHours: [...byTask].map(([taskId, hours]) => ({
+					taskId,
+					hours,
+				})),
 			};
 		};
 
@@ -739,8 +1117,17 @@ describe('Zenith Energy Model', () => {
 
 		it('extraction is λ₀-free: the current freeTimeValue slider cannot bias it', () => {
 			const obs = dayFromPlan(0.9, 10);
-			const at0 = stopIndifferencePoint(obs, { ...DEFAULT_ENERGY_PARAMS, freeTimeValue: 0 });
-			const at3 = stopIndifferencePoint(obs, { ...DEFAULT_ENERGY_PARAMS, freeTimeValue: 3 });
+
+			const at0 = stopIndifferencePoint(obs, {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: 0,
+			});
+
+			const at3 = stopIndifferencePoint(obs, {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: 3,
+			});
+
 			expect(at0).not.toBeNull();
 			expect(at0).toBe(at3);
 		});
@@ -749,19 +1136,35 @@ describe('Zenith Energy Model', () => {
 			const early: StopObservation = {
 				tasks: day,
 				windowHours: 12,
-				workedHours: [{ taskId: 1, hours: 2.25 }]
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 2.25,
+					},
+				],
 			};
+
 			const late: StopObservation = {
 				tasks: day,
 				windowHours: 12,
 				workedHours: [
-					{ taskId: 1, hours: 3 },
-					{ taskId: 2, hours: 3 },
-					{ taskId: 3, hours: 1.5 }
-				]
+					{
+						taskId: 1,
+						hours: 3,
+					},
+					{
+						taskId: 2,
+						hours: 3,
+					},
+					{
+						taskId: 3,
+						hours: 1.5,
+					},
+				],
 			};
+
 			expect(stopIndifferencePoint(early, DEFAULT_ENERGY_PARAMS)!).toBeGreaterThan(
-				stopIndifferencePoint(late, DEFAULT_ENERGY_PARAMS)!
+				stopIndifferencePoint(late, DEFAULT_ENERGY_PARAMS)!,
 			);
 		});
 
@@ -770,22 +1173,40 @@ describe('Zenith Energy Model', () => {
 			const edge: StopObservation = {
 				tasks: day,
 				windowHours: 6,
-				workedHours: [{ taskId: 2, hours: 6 }]
+				workedHours: [
+					{
+						taskId: 2,
+						hours: 6,
+					},
+				],
 			};
+
 			// Nothing worked, and sessions shorter than one 45-min step.
-			const empty: StopObservation = { tasks: day, windowHours: 8, workedHours: [] };
+			const empty: StopObservation = {
+				tasks: day,
+				windowHours: 8,
+				workedHours: [],
+			};
+
 			const sliver: StopObservation = {
 				tasks: day,
 				windowHours: 8,
-				workedHours: [{ taskId: 2, hours: 0.5 }]
+				workedHours: [
+					{
+						taskId: 2,
+						hours: 0.5,
+					},
+				],
 			};
+
 			expect(stopIndifferencePoint(edge, DEFAULT_ENERGY_PARAMS)).toBeNull();
 			expect(stopIndifferencePoint(empty, DEFAULT_ENERGY_PARAMS)).toBeNull();
 			expect(stopIndifferencePoint(sliver, DEFAULT_ENERGY_PARAMS)).toBeNull();
+
 			expect(fitStoppingValue([edge, empty, sliver], prior, DEFAULT_ENERGY_PARAMS)).toEqual({
 				value: prior,
 				fitted: false,
-				usedCount: 0
+				usedCount: 0,
 			});
 		});
 
@@ -802,8 +1223,14 @@ describe('Zenith Energy Model', () => {
 			const grind: StopObservation = {
 				tasks: day,
 				windowHours: 12,
-				workedHours: [{ taskId: 3, hours: 4.5 }]
+				workedHours: [
+					{
+						taskId: 3,
+						hours: 4.5,
+					},
+				],
 			};
+
 			expect(stopIndifferencePoint(grind, DEFAULT_ENERGY_PARAMS)).toBeNull();
 			expect(fitStoppingValue([grind], prior, DEFAULT_ENERGY_PARAMS).fitted).toBe(false);
 
@@ -812,8 +1239,14 @@ describe('Zenith Energy Model', () => {
 			const sliver: StopObservation = {
 				tasks: day,
 				windowHours: 12,
-				workedHours: [{ taskId: 3, hours: DEFAULT_STEP_HOURS }]
+				workedHours: [
+					{
+						taskId: 3,
+						hours: DEFAULT_STEP_HOURS,
+					},
+				],
 			};
+
 			expect(stopIndifferencePoint(sliver, DEFAULT_ENERGY_PARAMS)).toBeNull();
 
 			// Mild inversion — 2.25h of reading only (probe: gap ≈ 0.07, within
@@ -822,39 +1255,85 @@ describe('Zenith Energy Model', () => {
 			const mild: StopObservation = {
 				tasks: day,
 				windowHours: 12,
-				workedHours: [{ taskId: 3, hours: 2.25 }]
+				workedHours: [
+					{
+						taskId: 3,
+						hours: 2.25,
+					},
+				],
 			};
+
 			const step = DEFAULT_STEP_HOURS;
+
 			const workValue = (blocks: { taskId: number | null; hours: number }[]) => {
 				const ev = evaluateSchedule(blocks, day, 12, DEFAULT_ENERGY_PARAMS);
+
 				return ev.satiatedOutput + ev.terminalBonus;
 			};
-			const base = workValue([{ taskId: 3, hours: 2.25 }]);
+
+			const base = workValue([
+				{
+					taskId: 3,
+					hours: 2.25,
+				},
+			]);
+
 			// Unlogged tasks are probed at their CANONICAL amplitude position
 			// (MATH.md §13.4). Boxing (10.4) and guitar (6.67) both outrank
 			// reading (4.60), so their probe block goes BEFORE it, not appended.
 			const lo = Math.max(
-				(workValue([{ taskId: 3, hours: 2.25 + step }]) - base) / step,
 				(workValue([
-					{ taskId: 1, hours: step },
-					{ taskId: 3, hours: 2.25 }
+					{
+						taskId: 3,
+						hours: 2.25 + step,
+					},
 				]) -
 					base) /
 					step,
 				(workValue([
-					{ taskId: 2, hours: step },
-					{ taskId: 3, hours: 2.25 }
+					{
+						taskId: 1,
+						hours: step,
+					},
+					{
+						taskId: 3,
+						hours: 2.25,
+					},
 				]) -
 					base) /
-					step
+					step,
+				(workValue([
+					{
+						taskId: 2,
+						hours: step,
+					},
+					{
+						taskId: 3,
+						hours: 2.25,
+					},
+				]) -
+					base) /
+					step,
 			);
-			const hi = (base - workValue([{ taskId: 3, hours: 2.25 - step }])) / step;
+
+			const hi =
+				(base -
+					workValue([
+						{
+							taskId: 3,
+							hours: 2.25 - step,
+						},
+					])) /
+				step;
+
 			expect(lo).toBeGreaterThan(hi); // inverted...
 			expect(lo).toBeLessThanOrEqual(hi + STOP_INVERSION_MARGIN); // ...but within the margin
+
 			expect(stopIndifferencePoint(mild, DEFAULT_ENERGY_PARAMS)).toBeCloseTo(
 				(Math.max(0, lo) + hi) / 2,
-				10
+				10,
 			);
+
 			expect(fitStoppingValue([mild], prior, DEFAULT_ENERGY_PARAMS).usedCount).toBe(1);
 		});
 
@@ -868,11 +1347,18 @@ describe('Zenith Energy Model', () => {
 		it('posterior std shrinks with consistent data', () => {
 			const obs = dayFromPlan(0.9, 10);
 			const two = fitStoppingValue([obs, obs], prior, DEFAULT_ENERGY_PARAMS);
+
 			const eight = fitStoppingValue(
-				Array.from({ length: 8 }, () => obs),
+				Array.from(
+					{
+						length: 8,
+					},
+					() => obs,
+				),
 				prior,
-				DEFAULT_ENERGY_PARAMS
+				DEFAULT_ENERGY_PARAMS,
 			);
+
 			expect(eight.valueStd!).toBeLessThan(two.valueStd!);
 		});
 
@@ -880,13 +1366,16 @@ describe('Zenith Energy Model', () => {
 			const worked = [0.4, 0.8, 1.2, 1.5].map((l) => {
 				const { blocks } = optimizeSchedule(day, 12, {
 					...DEFAULT_ENERGY_PARAMS,
-					freeTimeValue: l
+					freeTimeValue: l,
 				});
+
 				return blocks.reduce((s, b) => s + (b.taskId !== null ? b.hours : 0), 0);
 			});
+
 			for (let i = 1; i < worked.length; i++) {
 				expect(worked[i]).toBeLessThanOrEqual(worked[i - 1] + 1e-9);
 			}
+
 			expect(new Set(worked.map((w) => w.toFixed(2))).size).toBeGreaterThanOrEqual(3);
 		});
 
@@ -904,7 +1393,19 @@ describe('Zenith Energy Model', () => {
 		it('reservoir closed form matches Euler integration of dC/dτ = −αwC + r·m·(1−(1−b)w)(1−C)', () => {
 			const task = makeTask(1, 'x', 7, 4, 0.8, 0.3);
 			const hours = 2.5;
-			const ev = evaluateSchedule([{ taskId: 1, hours }], [task], 8, p);
+
+			const ev = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours,
+					},
+				],
+				[task],
+				8,
+				p,
+			);
+
 			const euler = (w: number, alpha: number) => {
 				let C = 1;
 				const n = 400000;
@@ -912,19 +1413,32 @@ describe('Zenith Energy Model', () => {
 				const rec = p.recoveryRate * p.restRecoveryMultiplier;
 				const gate = 1 - (1 - p.microRecoveryFraction) * w;
 				for (let i = 0; i < n; i++) C += dt * (-alpha * w * C + rec * gate * (1 - C));
+
 				return C;
 			};
+
 			expect(ev.blocks[0].cogAfter).toBeCloseTo(euler(0.8, p.alphaCog), 5);
 			expect(ev.blocks[0].physAfter).toBeCloseTo(euler(0.3, p.alphaPhys), 5);
 		});
 
 		it('simulateReservoirs agrees with evaluateSchedule end levels (the Burnout Risk core)', () => {
 			const tasks = [makeTask(1, 'A', 7, 4, 0.8, 0.1), makeTask(2, 'B', 3, 8, 0.2, 0.7)];
+
 			const blocks = [
-				{ taskId: 1, hours: 1.5 },
-				{ taskId: null, hours: 0.5 },
-				{ taskId: 2, hours: 2 }
+				{
+					taskId: 1,
+					hours: 1.5,
+				},
+				{
+					taskId: null,
+					hours: 0.5,
+				},
+				{
+					taskId: 2,
+					hours: 2,
+				},
 			];
+
 			// Window = span, so evaluateSchedule appends no tail rest.
 			const ev = evaluateSchedule(blocks, tasks, 4, p);
 			const sim = simulateReservoirs(blocks, tasks, p);
@@ -936,9 +1450,27 @@ describe('Zenith Energy Model', () => {
 			// Near-floor ϕ inside a long block is the worst case for the quadrature's
 			// 1024-node cap (probe 2026-07-23: rel. error 6.9e-7; headroom kept here).
 			const fast = makeTask(1, 'fast', 1, 10, 0.9, 0.1);
-			const constants = { c1: 0.1, c2: -0.05, c3: 0.05 }; // ϕ hits the 0.1h floor
+
+			const constants = {
+				c1: 0.1,
+				c2: -0.05,
+				c3: 0.05,
+			}; // ϕ hits the 0.1h floor
+
 			const hours = 8;
-			const ev = evaluateSchedule([{ taskId: 1, hours }], [fast], 12, p, constants);
+
+			const ev = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours,
+					},
+				],
+				[fast],
+				12,
+				p,
+				constants,
+			);
 
 			// Independent replica of the integrand p(s)·C_cog^wc·C_phys^wp.
 			const E = mapEffort(1);
@@ -947,22 +1479,33 @@ describe('Zenith Energy Model', () => {
 			const amp = E * beta + beta / E;
 			const k = 1 / phi;
 			const rec = p.recoveryRate * p.restRecoveryMultiplier;
+
 			const law = (w: number, alpha: number) => {
 				const gate = 1 - (1 - p.microRecoveryFraction) * w;
 				const rho = alpha * w + rec * gate;
-				return { rho, eq: (rec * gate) / rho };
+
+				return {
+					rho,
+					eq: (rec * gate) / rho,
+				};
 			};
+
 			const lc = law(0.9, p.alphaCog);
 			const lp = law(0.1, p.alphaPhys);
+
 			const cAt = (l: { rho: number; eq: number }, t: number) =>
 				l.eq + (1 - l.eq) * Math.exp(-l.rho * t);
+
 			const n = 500000;
 			let sum = 0;
+
 			for (let i = 0; i < n; i++) {
 				const u = ((i + 0.5) * hours) / n;
+
 				sum +=
 					amp * k * u * Math.exp(-k * u) * Math.pow(cAt(lc, u), 0.9) * Math.pow(cAt(lp, u), 0.1);
 			}
+
 			const numeric = (sum * hours) / n;
 			expect(Math.abs(ev.blocks[0].output - numeric) / numeric).toBeLessThan(1e-4);
 		});
@@ -975,12 +1518,14 @@ describe('Zenith Energy Model', () => {
 			const traj = sampleTrajectory(blocks, tasks, 8);
 			expect(traj[0].t).toBe(0);
 			expect(traj[traj.length - 1].t).toBeCloseTo(8, 9);
+
 			for (let i = 0; i < traj.length; i++) {
 				expect(traj[i].cog).toBeGreaterThanOrEqual(0);
 				expect(traj[i].cog).toBeLessThanOrEqual(1);
 				expect(traj[i].phys).toBeGreaterThanOrEqual(0);
 				expect(traj[i].phys).toBeLessThanOrEqual(1);
 				expect(traj[i].rate).toBeGreaterThanOrEqual(0);
+
 				if (i > 0) expect(traj[i].t).toBeGreaterThanOrEqual(traj[i - 1].t - 1e-12);
 			}
 		});

@@ -13,19 +13,29 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * doesn't silently pollute the fit.
  */
 export async function $updateFlowObservation(
-	observation: Omit<FlowObservationRecord, 'id' | 'createdAt'>
+	observation: Omit<FlowObservationRecord, 'id' | 'createdAt'>,
 ): Promise<void> {
 	await withStore('flowObservations', 'readwrite', (store) => {
 		// The store is small (one record per task per day), so a scan for the
 		// existing record beats maintaining a compound index + schema migration.
 		const getAll = store.getAll();
+
 		getAll.onsuccess = () => {
 			const existing = (getAll.result as FlowObservationRecord[]).find(
-				(record) => record.taskId === observation.taskId && record.date === observation.date
+				(record) => record.taskId === observation.taskId && record.date === observation.date,
 			);
+
 			const record = existing
-				? { ...existing, ...observation, createdAt: Date.now() }
-				: { ...observation, createdAt: Date.now() };
+				? {
+						...existing,
+						...observation,
+						createdAt: Date.now(),
+					}
+				: {
+						...observation,
+						createdAt: Date.now(),
+					};
+
 			store.put(record);
 		};
 	});

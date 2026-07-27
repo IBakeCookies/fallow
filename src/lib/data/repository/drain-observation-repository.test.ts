@@ -4,12 +4,12 @@ import {
 	$updateDrainObservation,
 	$readAllDrainObservations,
 	$deleteDrainObservation,
-	$deleteAllDrainObservations
-} from './drain-observation-repository';
+	$deleteAllDrainObservations,
+} from '$lib/data/repository/drain-observation-repository';
 import type { DrainObservationRecord } from '$lib/data/type';
 
 function observation(
-	overrides: Partial<DrainObservationRecord> = {}
+	overrides: Partial<DrainObservationRecord> = {},
 ): Omit<DrainObservationRecord, 'id' | 'createdAt'> {
 	return {
 		date: '2026-01-01',
@@ -20,22 +20,42 @@ function observation(
 		physicalDemand: 0.1,
 		mindDrain: 6,
 		bodyDrain: 2,
-		...overrides
+		...overrides,
 	};
 }
 
 describe('drain-observation-repository', () => {
 	it('upserts: same taskId + date replaces instead of appending', async () => {
-		await $updateDrainObservation(observation({ mindDrain: 4 }));
-		await $updateDrainObservation(observation({ mindDrain: 8 }));
+		await $updateDrainObservation(
+			observation({
+				mindDrain: 4,
+			}),
+		);
+
+		await $updateDrainObservation(
+			observation({
+				mindDrain: 8,
+			}),
+		);
+
 		const all = await $readAllDrainObservations();
 		expect(all).toHaveLength(1);
 		expect(all[0].mindDrain).toBe(8);
 	});
 
 	it('different taskId or date appends', async () => {
-		await $updateDrainObservation(observation({ taskId: 2 }));
-		await $updateDrainObservation(observation({ date: '2026-01-02' }));
+		await $updateDrainObservation(
+			observation({
+				taskId: 2,
+			}),
+		);
+
+		await $updateDrainObservation(
+			observation({
+				date: '2026-01-02',
+			}),
+		);
+
 		expect(await $readAllDrainObservations()).toHaveLength(3);
 	});
 

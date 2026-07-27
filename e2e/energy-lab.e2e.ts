@@ -9,17 +9,35 @@ import { AUTOSAVE_MS, addTask } from './helpers';
 // A stat tile renders as <p>value</p><p>label</p>, so the value is the label's
 // preceding sibling — the only way to read one without a test id.
 const statValue = (page: Page, label: string) =>
-	page.getByText(label, { exact: true }).locator('xpath=preceding-sibling::p[1]');
+	page
+		.getByText(label, {
+			exact: true,
+		})
+		.locator('xpath=preceding-sibling::p[1]');
 
 // Log an end-of-session drain rating (🪫) against the first task.
 async function logDrain(page: Page, minutes: number, mind: number, body: number) {
-	await page.getByRole('button', { name: 'Log end-of-session drain' }).first().click();
-	const form = page.locator('form').filter({ hasText: 'After the session' });
+	await page
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.first()
+		.click();
+
+	const form = page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
 	const fields = form.locator('input[type="number"]');
 	await fields.nth(0).fill(String(minutes));
 	await fields.nth(1).fill(String(mind));
 	await fields.nth(2).fill(String(body));
-	await form.getByRole('button', { name: '✓' }).click();
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
 }
 
 // Log a pre/post-rest pair (☕). Field order follows the form: duration, then
@@ -30,15 +48,29 @@ async function logRest(
 	mindBefore: number,
 	bodyBefore: number,
 	mindAfter: number,
-	bodyAfter: number
+	bodyAfter: number,
 ) {
-	await page.getByRole('button', { name: 'Log a rest' }).click();
-	const form = page.locator('form').filter({ hasText: 'rested' });
+	await page
+		.getByRole('button', {
+			name: 'Log a rest',
+		})
+		.click();
+
+	const form = page.locator('form').filter({
+		hasText: 'rested',
+	});
+
 	const fields = form.locator('input[type="number"]');
+
 	for (const [index, value] of [minutes, mindBefore, bodyBefore, mindAfter, bodyAfter].entries()) {
 		await fields.nth(index).fill(String(value));
 	}
-	await form.getByRole('button', { name: '✓' }).click();
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
 }
 
 // The plan, the params and both calibration cards all sit behind a task, so an
@@ -105,7 +137,10 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
 
 	// The fit ran — but the parameter is untouched.
-	const apply = page.getByRole('button', { name: 'Apply fitted rates' });
+	const apply = page.getByRole('button', {
+		name: 'Apply fitted rates',
+	});
+
 	await expect(apply).toBeEnabled();
 	await expect(cognitiveDrain).toHaveValue(defaultDrain);
 
@@ -132,9 +167,15 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 
 	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
 	await expect(page.getByText('1 rest pairs recorded')).toBeVisible();
+
 	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), so its
 	// own Apply appears alongside the drain one.
-	await expect(page.getByRole('button', { name: 'Apply fitted rate', exact: true })).toBeEnabled();
+	await expect(
+		page.getByRole('button', {
+			name: 'Apply fitted rate',
+			exact: true,
+		}),
+	).toBeEnabled();
 });
 
 // The params are model inputs, so R4 puts them in IndexedDB rather than
@@ -165,11 +206,25 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 	await logDrain(page, 120, 9, 5);
 
 	// The log list is collapsed until its count is clicked.
-	await page.getByRole('button', { name: '1 drain ratings recorded' }).click();
-	await page.getByRole('button', { name: 'Delete this drain rating' }).click();
+	await page
+		.getByRole('button', {
+			name: '1 drain ratings recorded',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Delete this drain rating',
+		})
+		.click();
 
 	// The card falls back to its empty state, and with nothing left to fit the
 	// Apply button is gone rather than disabled.
 	await expect(page.getByText(/No ratings yet\./)).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Apply fitted rates' })).toHaveCount(0);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Apply fitted rates',
+		}),
+	).toHaveCount(0);
 });

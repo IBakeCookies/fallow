@@ -1,24 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import Harness from './energy-observation-store.test-harness.svelte';
+import Harness from '$lib/business/store/energy-observation-store.test-harness.svelte';
 import * as drainObservationRepository from '$lib/data/repository/drain-observation-repository';
 import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { toISODate } from '$lib/business/utils/date';
-import type { EnergyObservationStore } from './energy-observation-store.svelte';
-import type { StorageErrorKind } from './session-store.svelte';
+import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
+import type { StorageErrorKind } from '$lib/business/store/session-store.svelte';
 import type { Task, DrainObservationRecord } from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
 	$updateDrainObservation: vi.fn(async () => {}),
 	$deleteDrainObservation: vi.fn(async () => {}),
 	$deleteAllDrainObservations: vi.fn(async () => {}),
-	$readAllDrainObservations: vi.fn(async () => [])
+	$readAllDrainObservations: vi.fn(async () => []),
 }));
+
 vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 	$createRestObservation: vi.fn(async () => {}),
 	$deleteRestObservation: vi.fn(async () => {}),
 	$deleteAllRestObservations: vi.fn(async () => {}),
-	$readAllRestObservations: vi.fn(async () => [])
+	$readAllRestObservations: vi.fn(async () => []),
 }));
 
 const updateDrainMock = vi.mocked(drainObservationRepository.$updateDrainObservation);
@@ -34,7 +35,7 @@ const task = (over: Partial<Task> = {}): Task => ({
 	enjoyment: 6,
 	createdAt: '2026-07-19',
 	completed: false,
-	...over
+	...over,
 });
 
 const drainRecord = (over: Partial<DrainObservationRecord> = {}): DrainObservationRecord => ({
@@ -48,20 +49,26 @@ const drainRecord = (over: Partial<DrainObservationRecord> = {}): DrainObservati
 	mindDrain: 9,
 	bodyDrain: 4,
 	createdAt: 0,
-	...over
+	...over,
 });
 
 /** Mount the store and settle the initial read. */
 async function setup(tasks: Task[] = [task()]) {
 	const reported: StorageErrorKind[] = [];
 	let store!: EnergyObservationStore;
+
 	render(Harness, {
 		onstore: (s: EnergyObservationStore) => (store = s),
 		readTasks: () => tasks,
-		reportStorageError: (kind: StorageErrorKind) => reported.push(kind)
+		reportStorageError: (kind: StorageErrorKind) => reported.push(kind),
 	});
+
 	await vi.waitFor(() => expect(readAllDrainMock).toHaveBeenCalled());
-	return { store, reported };
+
+	return {
+		store,
+		reported,
+	};
 }
 
 describe('EnergyObservationStore', () => {
@@ -84,13 +91,20 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 3, 9, 4);
 
-		expect(updateDrainMock.mock.calls[0][0]).toMatchObject({ date: toISODate() });
+		expect(updateDrainMock.mock.calls[0][0]).toMatchObject({
+			date: toISODate(),
+		});
 	});
 
 	// MATH.md §8.7: the α fit reads the demands off the record, so they have to be
 	// the rated task's demands at logging time — not whatever the task says later.
 	it('captures the rated task’s demands on the record', async () => {
-		const { store } = await setup([task({ mentalDifficulty: 8, physicalDifficulty: 3 })]);
+		const { store } = await setup([
+			task({
+				mentalDifficulty: 8,
+				physicalDifficulty: 3,
+			}),
+		]);
 
 		await store.logDrain(1, 2.5, 9, 4);
 
@@ -101,7 +115,7 @@ describe('EnergyObservationStore', () => {
 			cognitiveDemand: 0.8,
 			physicalDemand: 0.3,
 			mindDrain: 9,
-			bodyDrain: 4
+			bodyDrain: 4,
 		});
 	});
 

@@ -12,19 +12,29 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * semantics as flow logs (the editor prefills the previous values).
  */
 export async function $updateDrainObservation(
-	observation: Omit<DrainObservationRecord, 'id' | 'createdAt'>
+	observation: Omit<DrainObservationRecord, 'id' | 'createdAt'>,
 ): Promise<void> {
 	await withStore('drainObservations', 'readwrite', (store) => {
 		// The store is small (one record per task per day), so a scan for the
 		// existing record beats maintaining a compound index + schema migration.
 		const getAll = store.getAll();
+
 		getAll.onsuccess = () => {
 			const existing = (getAll.result as DrainObservationRecord[]).find(
-				(record) => record.taskId === observation.taskId && record.date === observation.date
+				(record) => record.taskId === observation.taskId && record.date === observation.date,
 			);
+
 			const record = existing
-				? { ...existing, ...observation, createdAt: Date.now() }
-				: { ...observation, createdAt: Date.now() };
+				? {
+						...existing,
+						...observation,
+						createdAt: Date.now(),
+					}
+				: {
+						...observation,
+						createdAt: Date.now(),
+					};
+
 			store.put(record);
 		};
 	});
@@ -32,6 +42,7 @@ export async function $updateDrainObservation(
 
 export async function $readAllDrainObservations(): Promise<DrainObservationRecord[]> {
 	const result = await withStore('drainObservations', 'readonly', (store) => store.getAll());
+
 	return result || [];
 }
 

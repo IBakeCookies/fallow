@@ -16,7 +16,7 @@ import {
 	getClassesToAdd,
 	randomScenerySeed,
 	resolveThemeName,
-	type ThemeName
+	type ThemeName,
 } from '$lib/business/model/theme';
 
 export interface RequestAppearance {
@@ -36,7 +36,7 @@ export function readRequestAppearance(cookies: CookieSource): RequestAppearance 
 	return {
 		theme,
 		themeClass: getClassesToAdd(theme ?? DEFAULT_THEME).join(' '),
-		sceneryPaused: stored.sceneryPaused
+		sceneryPaused: stored.sceneryPaused,
 	};
 }
 
@@ -48,12 +48,14 @@ export function readRequestAppearance(cookies: CookieSource): RequestAppearance 
  * between server and client.
  */
 export function readOrMintScenerySeed(
-	cookies: CookieSource & Parameters<typeof appearanceRepository.$createScenerySeedCookie>[0]
+	cookies: CookieSource & Parameters<typeof appearanceRepository.$createScenerySeedCookie>[0],
 ): number {
 	const stored = appearanceRepository.$readAppearance(cookies).scenerySeed;
+
 	if (stored !== undefined) return stored;
 
 	const seed = randomScenerySeed();
 	appearanceRepository.$createScenerySeedCookie(cookies, seed);
+
 	return seed;
 }

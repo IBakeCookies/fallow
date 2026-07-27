@@ -12,8 +12,8 @@ import {
 	type DrainRateFit,
 	type EnergyParams,
 	type RecoveryRateFit,
-	type RestObservation
-} from './zenith-energy';
+	type RestObservation,
+} from '$lib/business/model/zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 
 // The stored 0–10 ratings → the fits' [0,1] fractions. Exported because the
@@ -21,12 +21,12 @@ import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/ty
 // sequence (R3: one definition per concept) — only the sequence differs.
 
 export function toCognitiveDrainObservations(
-	records: DrainObservationRecord[]
+	records: DrainObservationRecord[],
 ): DrainObservation[] {
 	return records.map((o) => ({
 		demand: o.cognitiveDemand,
 		hours: o.hours,
-		drainedFraction: o.mindDrain / 10
+		drainedFraction: o.mindDrain / 10,
 	}));
 }
 
@@ -34,15 +34,23 @@ export function toPhysicalDrainObservations(records: DrainObservationRecord[]): 
 	return records.map((o) => ({
 		demand: o.physicalDemand,
 		hours: o.hours,
-		drainedFraction: o.bodyDrain / 10
+		drainedFraction: o.bodyDrain / 10,
 	}));
 }
 
 /** Both reservoirs' pairs feed the ONE shared recovery rate, so this flattens. */
 export function toRestObservations(records: RestObservationRecord[]): RestObservation[] {
 	return records.flatMap((o) => [
-		{ drainedBefore: o.mindBefore / 10, drainedAfter: o.mindAfter / 10, hours: o.hours },
-		{ drainedBefore: o.bodyBefore / 10, drainedAfter: o.bodyAfter / 10, hours: o.hours }
+		{
+			drainedBefore: o.mindBefore / 10,
+			drainedAfter: o.mindAfter / 10,
+			hours: o.hours,
+		},
+		{
+			drainedBefore: o.bodyBefore / 10,
+			drainedAfter: o.bodyAfter / 10,
+			hours: o.hours,
+		},
 	]);
 }
 
@@ -69,23 +77,37 @@ export interface EnergyCalibration {
 export function calibrateEnergyParams(
 	rest: RestObservationRecord[],
 	drain: DrainObservationRecord[],
-	seed: EnergyParams = DEFAULT_ENERGY_PARAMS
+	seed: EnergyParams = DEFAULT_ENERGY_PARAMS,
 ): EnergyCalibration {
-	const p = { ...seed };
+	const p = {
+		...seed,
+	};
+
 	const recovery = fitRecoveryRate(toRestObservations(rest), p.recoveryRate, p);
+
 	if (recovery.fitted) p.recoveryRate = recovery.rate;
+
 	const cognitiveDrain = fitDrainRate(toCognitiveDrainObservations(drain), p.alphaCog, p);
+
 	if (cognitiveDrain.fitted) p.alphaCog = cognitiveDrain.alpha;
+
 	const physicalDrain = fitDrainRate(toPhysicalDrainObservations(drain), p.alphaPhys, p);
+
 	if (physicalDrain.fitted) p.alphaPhys = physicalDrain.alpha;
-	return { params: p, recovery, cognitiveDrain, physicalDrain };
+
+	return {
+		params: p,
+		recovery,
+		cognitiveDrain,
+		physicalDrain,
+	};
 }
 
 /** The composed params alone — see calibrateEnergyParams for the fit details. */
 export function fitEnergyParams(
 	rest: RestObservationRecord[],
 	drain: DrainObservationRecord[],
-	seed: EnergyParams = DEFAULT_ENERGY_PARAMS
+	seed: EnergyParams = DEFAULT_ENERGY_PARAMS,
 ): EnergyParams {
 	return calibrateEnergyParams(rest, drain, seed).params;
 }

@@ -6,13 +6,30 @@ import NumberInput from './number-input.svelte';
 describe('number-input.svelte', () => {
 	it('steps the value through named stepper buttons', async () => {
 		const onchange = vi.fn();
-		render(NumberInput, { value: 6, onchange, min: 0, max: 24, step: 0.5 });
+
+		render(NumberInput, {
+			value: 6,
+			onchange,
+			min: 0,
+			max: 24,
+			step: 0.5,
+		});
 
 		// The component is controlled, so both steps start from the same value
-		await page.getByRole('button', { name: 'Increase' }).click();
+		await page
+			.getByRole('button', {
+				name: 'Increase',
+			})
+			.click();
+
 		expect(onchange).toHaveBeenCalledExactlyOnceWith(6.5);
 
-		await page.getByRole('button', { name: 'Decrease' }).click();
+		await page
+			.getByRole('button', {
+				name: 'Decrease',
+			})
+			.click();
+
 		expect(onchange).toHaveBeenLastCalledWith(5.5);
 	});
 });

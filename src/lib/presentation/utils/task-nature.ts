@@ -26,19 +26,19 @@ export function natureBadge(nature: TaskNature): NatureBadge {
 			return {
 				label: m.task_nature_cognitive_label(),
 				description: m.task_nature_cognitive_description(),
-				class: 'bg-mind/20 text-mind'
+				class: 'bg-mind/20 text-mind',
 			};
 		case 'physical':
 			return {
 				label: m.task_nature_physical_label(),
 				description: m.task_nature_physical_description(),
-				class: 'bg-body/20 text-body'
+				class: 'bg-body/20 text-body',
 			};
 		case 'balanced':
 			return {
 				label: m.task_nature_hybrid_label(),
 				description: m.task_nature_hybrid_description(),
-				class: 'bg-mixed/20 text-mixed'
+				class: 'bg-mixed/20 text-mixed',
 			};
 	}
 }

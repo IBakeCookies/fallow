@@ -53,173 +53,174 @@ export const themes: ThemeItem[] = [
 	{
 		name: 'fallow',
 		label: 'Fallow',
-		css: ['fallow']
+		css: ['fallow'],
 	},
 	{
 		name: 'solid-light',
 		label: 'Classic Light',
-		css: ['solid-light']
+		css: ['solid-light'],
 	},
 	{
 		name: 'solid-dark',
 		label: 'Classic Dark',
-		css: ['dark']
+		css: ['dark'],
 	},
 	{
 		name: 'glass-light',
 		label: 'Morning Glass',
-		css: ['glass-light']
+		css: ['glass-light'],
 	},
 	{
 		name: 'glass-dark',
 		label: 'Night Glass',
-		css: ['glass-dark', 'dark']
+		css: ['glass-dark', 'dark'],
 	},
 	{
 		name: 'aurora',
 		label: 'Aurora',
-		css: ['aurora', 'dark']
+		css: ['aurora', 'dark'],
 	},
 	{
 		name: 'daybreak',
 		label: 'Daybreak',
-		css: ['daybreak']
+		css: ['daybreak'],
 	},
 	{
 		name: 'royal',
 		label: 'Royal Velvet',
-		css: ['royal', 'dark']
+		css: ['royal', 'dark'],
 	},
 	{
 		name: 'terminal',
 		label: 'Terminal',
-		css: ['terminal', 'dark']
+		css: ['terminal', 'dark'],
 	},
 	{
 		name: 'blueprint',
 		label: 'Blueprint',
-		css: ['blueprint', 'dark']
+		css: ['blueprint', 'dark'],
 	},
 	{
 		name: 'bubblegum',
 		label: 'Bubblegum',
-		css: ['bubblegum']
+		css: ['bubblegum'],
 	},
 	{
 		name: 'ukiyo',
 		label: 'Ukiyo-e',
-		css: ['ukiyo']
+		css: ['ukiyo'],
 	},
 	{
 		name: 'abyss',
 		label: 'Abyss',
-		css: ['abyss', 'dark']
+		css: ['abyss', 'dark'],
 	},
 	{
 		name: 'parchment',
 		label: 'Parchment',
-		css: ['parchment']
+		css: ['parchment'],
 	},
 	{
 		name: 'noir',
 		label: 'Noir',
-		css: ['noir', 'dark']
+		css: ['noir', 'dark'],
 	},
 	{
 		name: 'ember',
 		label: 'Ember',
-		css: ['ember', 'dark']
+		css: ['ember', 'dark'],
 	},
 	{
 		name: 'glacier',
 		label: 'Glacier',
-		css: ['glacier']
+		css: ['glacier'],
 	},
 	{
 		name: 'zenith',
 		label: 'Zenith',
-		css: ['zenith']
+		css: ['zenith'],
 	},
 	{
 		name: 'eclipse',
 		label: 'Eclipse',
-		css: ['eclipse', 'dark']
+		css: ['eclipse', 'dark'],
 	},
 	{
 		name: 'cathedral',
 		label: 'Cathedral',
-		css: ['cathedral', 'dark']
+		css: ['cathedral', 'dark'],
 	},
 	{
 		name: 'orbit',
 		label: 'Orbit',
-		css: ['orbit', 'dark']
+		css: ['orbit', 'dark'],
 	},
 	{
 		name: 'lantern-drift',
 		label: 'Lantern Drift',
-		css: ['lantern-drift', 'dark']
+		css: ['lantern-drift', 'dark'],
 	},
 	{
 		name: 'canopy',
 		label: 'Canopy',
-		css: ['canopy']
+		css: ['canopy'],
 	},
 	{
 		name: 'meridian',
 		label: 'Meridian',
-		css: ['meridian', 'dark']
+		css: ['meridian', 'dark'],
 	},
 	{
 		name: 'dunes',
 		label: 'Dunes',
-		css: ['dunes']
+		css: ['dunes'],
 	},
 	{
 		name: 'synthwave',
 		label: 'Synthwave',
-		css: ['synthwave', 'dark']
+		css: ['synthwave', 'dark'],
 	},
 	{
 		name: 'sundial',
 		label: 'Sundial',
-		css: ['sundial']
+		css: ['sundial'],
 	},
 	{
 		name: 'moonphase',
 		label: 'Moonphase',
-		css: ['moonphase', 'dark']
+		css: ['moonphase', 'dark'],
 	},
 	{
 		name: 'tide',
 		label: 'Tide',
-		css: ['tide']
+		css: ['tide'],
 	},
 	{
 		name: 'breath',
 		label: 'Breath',
-		css: ['breath', 'dark']
+		css: ['breath', 'dark'],
 	},
 	{
 		name: 'polaris',
 		label: 'Polaris',
-		css: ['polaris', 'dark']
+		css: ['polaris', 'dark'],
 	},
 	{
 		name: 'city-windows',
 		label: 'City Windows',
-		css: ['city-windows', 'dark']
+		css: ['city-windows', 'dark'],
 	},
 	{
 		name: 'orrery',
 		label: 'Orrery',
-		css: ['orrery', 'dark']
-	}
+		css: ['orrery', 'dark'],
+	},
 ] as const;
 
 /* Defaults for first visit (no cookie). The pre-paint fallback in app.html's
    inline script hardcodes the dark default's classes — keep it in sync. */
 export const DEFAULT_THEME: ThemeName = 'fallow';
+
 export const DEFAULT_DARK_THEME: ThemeName = 'solid-dark';
 
 /* 32-bit scenery seed. The store only mints and persists the number;

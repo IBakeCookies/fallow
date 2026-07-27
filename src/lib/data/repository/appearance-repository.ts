@@ -13,7 +13,7 @@ import {
 	COOKIE_WRITE_OPTIONS,
 	documentCookies,
 	writeCookie,
-	type CookieSource
+	type CookieSource,
 } from '$lib/data/storage/cookie';
 
 const THEME_COOKIE = 'theme';
@@ -44,7 +44,7 @@ export function $readAppearance(source: CookieSource = documentCookies()): Store
 	return {
 		theme: source.get(THEME_COOKIE),
 		scenerySeed: Number.isInteger(seed) && seed >= 0 ? seed : undefined,
-		sceneryPaused: motion === 'paused' ? true : motion === 'on' ? false : undefined
+		sceneryPaused: motion === 'paused' ? true : motion === 'on' ? false : undefined,
 	};
 }
 
@@ -67,7 +67,7 @@ export function $updateSceneryMotion(paused: boolean): void {
  */
 export function $createScenerySeedCookie(
 	sink: { set(name: string, value: string, options: typeof COOKIE_WRITE_OPTIONS): void },
-	seed: number
+	seed: number,
 ): void {
 	sink.set(SCENERY_SEED_COOKIE, String(seed), COOKIE_WRITE_OPTIONS);
 }

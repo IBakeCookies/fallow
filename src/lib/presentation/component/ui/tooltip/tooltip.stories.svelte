@@ -6,7 +6,7 @@
 	const { Story } = defineMeta({
 		title: 'UI/Tooltip',
 		component: TooltipRoot,
-		tags: ['autodocs']
+		tags: ['autodocs'],
 	});
 </script>
 

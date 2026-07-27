@@ -9,16 +9,16 @@ import {
 	DEFAULT_CAPACITY_POOLS,
 	type CapacityPools,
 	type UserConstants,
-	type FitPosterior
-} from '../zenith';
+	type FitPosterior,
+} from '$lib/business/model/zenith';
 import {
 	simulateReservoirs,
 	DEFAULT_ENERGY_PARAMS,
 	type EnergyParams,
 	type EnergyTaskInput,
 	type ReservoirDemand,
-	type ScheduleBlock
-} from '../zenith-energy';
+	type ScheduleBlock,
+} from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
 // Re-exported so callers of the metric functions get the entity type from the
@@ -43,10 +43,11 @@ const DIFFICULTY_SPILLOVER = 0.3;
  * otherwise produce E≈0.56, outside the model's defined range.
  */
 export function getEffectiveDifficulty(
-	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>
+	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>,
 ): number {
 	const dominant = Math.max(task.physicalDifficulty, task.mentalDifficulty);
 	const secondary = Math.min(task.physicalDifficulty, task.mentalDifficulty);
+
 	return Math.min(10, Math.max(1, dominant + DIFFICULTY_SPILLOVER * secondary));
 }
 
@@ -56,11 +57,14 @@ export function getEffectiveDifficulty(
  * `SuggestedTask.nature` — one definition of the ±3 threshold (AGENTS.md R3).
  */
 export function getTaskNature(
-	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>
+	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>,
 ): 'cognitive' | 'physical' | 'balanced' {
 	const diff = task.mentalDifficulty - task.physicalDifficulty;
+
 	if (diff >= 3) return 'cognitive';
+
 	if (diff <= -3) return 'physical';
+
 	return 'balanced';
 }
 
@@ -79,7 +83,7 @@ export function toEnergyTask(task: Task): EnergyTaskInput {
 		difficulty: getEffectiveDifficulty(task),
 		enjoyment: task.enjoyment,
 		cognitiveDemand: task.mentalDifficulty / 10,
-		physicalDemand: task.physicalDifficulty / 10
+		physicalDemand: task.physicalDifficulty / 10,
 	};
 }
 
@@ -108,7 +112,7 @@ function toPooledInputs(tasks: Task[]) {
 		difficulty: getEffectiveDifficulty(task),
 		enjoyment: task.enjoyment,
 		cognitiveWeight: task.mentalDifficulty / 10,
-		physicalWeight: task.physicalDifficulty / 10
+		physicalWeight: task.physicalDifficulty / 10,
 	}));
 }
 
@@ -118,9 +122,10 @@ export function calculateSuggestedTasks(
 	switchCost: number = DEFAULT_SWITCH_COST,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): SuggestedTask[] {
 	const budget = Number(availableHours) || 0;
+
 	if (tasks.length === 0) return [];
 
 	// Dual-pool allocation: respects the time budget AND the separate
@@ -135,7 +140,7 @@ export function calculateSuggestedTasks(
 		pools,
 		constants,
 		switchCost,
-		posterior
+		posterior,
 	);
 
 	return tasks
@@ -148,6 +153,7 @@ export function calculateSuggestedTasks(
 			// task-dependent, so the allocator computes them per task — the old
 			// (a+p₀)×OPTIMAL_AVG_FRACTION reconstruction no longer applies.)
 			const intrinsicValue = alloc.optimalAvgProductivity;
+
 			return {
 				...task,
 				suggestedHours: alloc.allocatedHours,
@@ -158,7 +164,7 @@ export function calculateSuggestedTasks(
 				peakProductivity: alloc.peakProductivity,
 				avgProductivity: alloc.avgProductivity,
 				optimalHours: alloc.optimalHours,
-				nature: getTaskNature(task)
+				nature: getTaskNature(task),
 			};
 		})
 		.sort((a, b) => b.priorityScore - a.priorityScore);
@@ -170,10 +176,16 @@ export function calculateZenithGain(
 	switchCost: number = DEFAULT_SWITCH_COST,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): ZenithGain {
 	const budget = Number(availableHours) || 0;
-	if (tasks.length === 0 || budget <= 0) return { optimized: 0, naive: 0, gainPercent: 0 };
+
+	if (tasks.length === 0 || budget <= 0)
+		return {
+			optimized: 0,
+			naive: 0,
+			gainPercent: 0,
+		};
 
 	// Same dual-pool optimizer that produces the suggested plan, so the gain
 	// shown describes the plan shown (not a separate single-constraint solve).
@@ -183,30 +195,35 @@ export function calculateZenithGain(
 		pools,
 		constants,
 		switchCost,
-		posterior
+		posterior,
 	);
 }
 
 export function calculateCompletionRate(suggestedTasks: SuggestedTask[]): number {
 	const completedTasks = suggestedTasks.filter((t) => t.completed).length;
+
 	if (!completedTasks || !suggestedTasks.length) return 0;
 
 	const totalPossiblePriority = suggestedTasks.reduce((sum, t) => sum + t.priorityScore, 0);
+
 	const actualCompletedPriority = suggestedTasks
 		.filter((t) => t.completed)
 		.reduce((sum, t) => sum + t.priorityScore, 0);
 
 	if (!totalPossiblePriority) return 0;
+
 	return Math.round((actualCompletedPriority / totalPossiblePriority) * 100);
 }
 
 export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
 	const completedTasks = suggestedTasks.filter((t) => t.completed).length;
+
 	if (!completedTasks) return 0;
 
 	// Sort by priority locally: "best possible" is the top-N tasks by priority,
 	// regardless of the order the caller passes tasks in.
 	const byPriority = [...suggestedTasks].sort((a, b) => b.priorityScore - a.priorityScore);
+
 	const maxPossiblePriority = byPriority
 		.slice(0, Math.max(1, completedTasks))
 		.reduce((sum, t) => sum + t.priorityScore, 0);
@@ -216,6 +233,7 @@ export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
 		.reduce((sum, t) => sum + t.priorityScore, 0);
 
 	if (!maxPossiblePriority) return 0;
+
 	return Math.min(100, Math.round((actualCompletedPriority / maxPossiblePriority) * 100));
 }
 
@@ -233,30 +251,42 @@ export function calculateFlowCoverage(tasks: SuggestedTask[]): {
 	reached: number;
 	total: number;
 } {
-	if (!tasks.length) return { reached: 0, total: 0 };
+	if (!tasks.length)
+		return {
+			reached: 0,
+			total: 0,
+		};
 
 	// Task reaches flow state if allocated time ≥ ϕ
 	const reached = tasks.filter(
-		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.flowStateTime
+		(t) => t.suggestedHours > 0 && t.suggestedHours >= t.flowStateTime,
 	).length;
 
-	return { reached, total: tasks.length };
+	return {
+		reached,
+		total: tasks.length,
+	};
 }
 
 export function calculateHumanCapacity(
 	tasks: SuggestedTask[],
-	pools: CapacityPools = DEFAULT_CAPACITY_POOLS
+	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 ): {
 	percent: number;
 	limitType: string;
 } {
-	if (!tasks.length) return { percent: 0, limitType: 'none' };
+	if (!tasks.length)
+		return {
+			percent: 0,
+			limitType: 'none',
+		};
 
 	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight)
 	const cogDemand = tasks.reduce((sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours, 0);
+
 	const physDemand = tasks.reduce(
 		(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
-		0
+		0,
 	);
 
 	// Pools are user-configurable (defaults: cognitive ~4h/day, physical ~6h/day).
@@ -267,13 +297,21 @@ export function calculateHumanCapacity(
 	// keeps demand at 0, so saturation reads 0 rather than dividing by zero.
 	const saturation = (demand: number, pool: number): number =>
 		pool > 0 ? Math.round((demand / pool) * 100) : demand > 0.001 ? Infinity : 0;
+
 	const cogSaturation = saturation(cogDemand, pools.cognitiveHours);
 	const physSaturation = saturation(physDemand, pools.physicalHours);
 
 	if (cogSaturation >= physSaturation) {
-		return { percent: cogSaturation, limitType: 'cognitive' };
+		return {
+			percent: cogSaturation,
+			limitType: 'cognitive',
+		};
 	}
-	return { percent: physSaturation, limitType: 'physical' };
+
+	return {
+		percent: physSaturation,
+		limitType: 'physical',
+	};
 }
 
 /**
@@ -284,10 +322,12 @@ export function calculateHumanCapacity(
  */
 export function calculateBottleneckTask(tasks: SuggestedTask[]): string {
 	if (!tasks.length) return 'None Detected';
+
 	return tasks.reduce((worst, current) => {
 		// Use Zenith mapped values (E/β) for consistency
 		const worstRatio = worst.trueEffort / worst.trueEnjoyability;
 		const currentRatio = current.trueEffort / current.trueEnjoyability;
+
 		return currentRatio > worstRatio ? current : worst;
 	}).title;
 }
@@ -310,10 +350,12 @@ export function calculateTimeScarcity(
 	tasks: Task[],
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): number {
 	const budget = Number(availableHours) || 0;
+
 	if (!tasks.length) return 0;
+
 	if (budget === 0) return 100;
 
 	// Calculate total flow state time demand (Σϕ) using the shared Zenith model
@@ -321,13 +363,13 @@ export function calculateTimeScarcity(
 		const E = mapEffort(getEffectiveDifficulty(t));
 		const beta = mapEnjoyability(t.enjoyment);
 		const phi = calculateFlowStateTime(E, beta, constants);
+
 		return sum + phi;
 	}, 0);
 
 	// Context-switching overhead (uses passed parameter, not hardcoded!)
 	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
 	const effectiveBudget = Math.max(0, budget - switchOverhead);
-
 	// Scarcity: how much demand exceeds budget
 	const deficit = totalFlowDemand - effectiveBudget;
 	const scarcity = deficit > 0 ? (deficit / totalFlowDemand) * 100 : 0;
@@ -377,7 +419,7 @@ export function calculateBurnoutRisk(
 	suggestedTasks: SuggestedTask[],
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	params: EnergyParams = DEFAULT_ENERGY_PARAMS
+	params: EnergyParams = DEFAULT_ENERGY_PARAMS,
 ): number {
 	if (!suggestedTasks.length) return 0;
 
@@ -386,7 +428,6 @@ export function calculateBurnoutRisk(
 	const overhead = funded.length > 1 ? (funded.length - 1) * switchCost : 0;
 	const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 	const overhang = Math.max(0, budget - overhead - allocated);
-
 	const blocks: ScheduleBlock[] = [];
 	let demands: ReservoirDemand[];
 
@@ -394,26 +435,48 @@ export function calculateBurnoutRisk(
 		// Intended overwork lands on the funded tasks in proportion to their
 		// share of the plan — the same assumption the heuristic documented.
 		const stretch = 1 + overhang / allocated;
+
 		funded.forEach((t, i) => {
-			if (i > 0 && switchCost > 0) blocks.push({ taskId: null, hours: switchCost });
-			blocks.push({ taskId: t.id, hours: t.suggestedHours * stretch });
+			if (i > 0 && switchCost > 0)
+				blocks.push({
+					taskId: null,
+					hours: switchCost,
+				});
+
+			blocks.push({
+				taskId: t.id,
+				hours: t.suggestedHours * stretch,
+			});
 		});
+
 		demands = funded.map((t) => ({
 			id: t.id,
 			cognitiveDemand: t.mentalDifficulty / 10,
-			physicalDemand: t.physicalDifficulty / 10
+			physicalDemand: t.physicalDifficulty / 10,
 		}));
 	} else if (budget > 0) {
 		const n = suggestedTasks.length;
 		const avgCog = suggestedTasks.reduce((sum, t) => sum + t.mentalDifficulty, 0) / (10 * n);
 		const avgPhys = suggestedTasks.reduce((sum, t) => sum + t.physicalDifficulty, 0) / (10 * n);
-		blocks.push({ taskId: -1, hours: budget });
-		demands = [{ id: -1, cognitiveDemand: avgCog, physicalDemand: avgPhys }];
+
+		blocks.push({
+			taskId: -1,
+			hours: budget,
+		});
+
+		demands = [
+			{
+				id: -1,
+				cognitiveDemand: avgCog,
+				physicalDemand: avgPhys,
+			},
+		];
 	} else {
 		return 0;
 	}
 
 	const { endCog, endPhys } = simulateReservoirs(blocks, demands, params);
+
 	return Math.round(100 * (1 - Math.min(endCog, endPhys)));
 }
 
@@ -428,12 +491,13 @@ export function calculateBurnoutRisk(
  */
 export function calculateCognitiveLoad(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
+
 	if (!tasks.length || !budget) return 0;
 
 	// Weight hours by mental difficulty (0-10 → 0-1)
 	const mentalHours = tasks.reduce(
 		(sum, t) => sum + t.suggestedHours * (t.mentalDifficulty / 10),
-		0
+		0,
 	);
 
 	return Math.min(100, Math.round((mentalHours / budget) * 100));
@@ -447,12 +511,13 @@ export function calculateCognitiveLoad(tasks: SuggestedTask[], availableHours: n
  */
 export function calculatePhysicalLoad(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
+
 	if (!tasks.length || !budget) return 0;
 
 	// Weight hours by physical difficulty (0-10 → 0-1)
 	const physicalHours = tasks.reduce(
 		(sum, t) => sum + t.suggestedHours * (t.physicalDifficulty / 10),
-		0
+		0,
 	);
 
 	return Math.min(100, Math.round((physicalHours / budget) * 100));
@@ -460,7 +525,9 @@ export function calculatePhysicalLoad(tasks: SuggestedTask[], availableHours: nu
 
 export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: number): number {
 	const total = cognitiveLoad + physicalLoad;
+
 	if (!total) return 50;
+
 	return Math.round((cognitiveLoad / total) * 100);
 }
 
@@ -483,15 +550,18 @@ export function calculateFrictionIndex(tasks: SuggestedTask[]): number {
 	if (!tasks.length) return 0;
 
 	const totalAllocated = tasks.reduce((sum, t) => sum + t.suggestedHours, 0);
+
 	if (totalAllocated <= 0) return 0;
 
 	const totalFriction = tasks.reduce((sum, t) => {
 		const gap = getEffectiveDifficulty(t) - t.enjoyment;
+
 		return sum + (gap > 0 ? gap * t.suggestedHours : 0);
 	}, 0);
 
 	// Max gap: difficulty 10, enjoyment 1 → 9 per allocated hour
 	const MAX_EXPECTED_FRICTION = totalAllocated * 9;
+
 	return Math.min(100, Math.max(0, Math.round((totalFriction / MAX_EXPECTED_FRICTION) * 100)));
 }
 
@@ -509,8 +579,11 @@ export function calculateDailyQuadrant(tasks: Task[]): DailyQuadrant {
 	const enj = tasks.reduce((sum, t) => sum + t.enjoyment, 0) / tasks.length;
 
 	if (diff >= 5.5 && enj >= 5.5) return 'flow';
+
 	if (diff >= 5.5) return 'grind';
+
 	if (enj >= 5.5) return 'cruise';
+
 	return 'routine';
 }
 
@@ -532,17 +605,21 @@ export function calculateDailyQuadrant(tasks: Task[]): DailyQuadrant {
 export function calculateScheduleIntegrity(
 	tasks: SuggestedTask[],
 	availableHours: number,
-	switchCost: number = DEFAULT_SWITCH_COST
+	switchCost: number = DEFAULT_SWITCH_COST,
 ): number {
 	const budget = Number(availableHours) || 0;
+
 	if (!tasks.length) return 100;
+
 	if (budget === 0) return 0;
 
 	const worked = tasks.reduce((sum, t) => sum + t.suggestedHours, 0);
+
 	if (worked <= 0) return 0; // budget set, but the plan funds nothing
 
 	const fundedCount = tasks.filter((t) => t.suggestedHours > 0).length;
 	const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
+
 	return Math.round((worked / (worked + overhead)) * 100);
 }
 
@@ -576,12 +653,14 @@ export function calculateMomentum(tasks: Task[]): number {
 
 export function calculateDeepWorkRatio(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
+
 	if (!budget || !tasks.length) return 0;
 
 	// Deep work: high mental difficulty tasks (cognitive intensity ≥ 7)
 	const deepHours = tasks
 		.filter((t) => t.mentalDifficulty >= 7)
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
+
 	return Math.round((deepHours / budget) * 100);
 }
 
@@ -602,6 +681,7 @@ export function calculateTaskVariety(tasks: SuggestedTask[]): number {
 	// Count tasks by their dominant characteristic
 	const natures = tasks.map((t) => getTaskNature(t));
 	const uniqueNatures = new Set(natures);
+
 	return Math.round((uniqueNatures.size / 3) * 100);
 }
 
@@ -625,6 +705,7 @@ export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask
 	const remaining = tasks
 		.filter((t) => t.suggestedHours > 0)
 		.sort((a, b) => b.priorityScore - a.priorityScore);
+
 	if (remaining.length <= 2) return remaining;
 
 	const order: SuggestedTask[] = [];
@@ -635,9 +716,12 @@ export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask
 		// 'balanced' contrasts with everything, and anything follows 'balanced'.
 		let pick = remaining.findIndex((t) => {
 			if (prevNature === null || prevNature === 'balanced') return true;
+
 			const nature = getTaskNature(t);
+
 			return nature !== prevNature;
 		});
+
 		if (pick === -1) pick = 0; // no contrast available: plain priority order
 
 		const task = remaining.splice(pick, 1)[0];
@@ -659,8 +743,10 @@ export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask
  */
 export function calculateGrindDensity(tasks: SuggestedTask[]): number {
 	if (!tasks.length) return 0;
+
 	// Use raw values for intuitive user-facing metric
 	const grindTasks = tasks.filter((t) => getEffectiveDifficulty(t) > t.enjoyment);
+
 	return Math.round((grindTasks.length / tasks.length) * 100);
 }
 
@@ -678,11 +764,13 @@ export function calculateGrindDensity(tasks: SuggestedTask[]): number {
  */
 export function calculateRewardDensity(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
+
 	if (!budget || !tasks.length) return 0;
 
 	const sustainableHours = tasks
 		.filter((t) => t.enjoyment >= getEffectiveDifficulty(t))
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
+
 	return Math.round((sustainableHours / budget) * 100);
 }
 
@@ -693,21 +781,26 @@ export function calculateRecoveryRatio(tasks: SuggestedTask[]): string {
 	const easyTasks = tasks.filter((t) => getEffectiveDifficulty(t) <= 4).length;
 
 	if (hardTasks === 0) return 'No strain';
-	if (easyTasks === 0 && hardTasks > 0) return '0:' + hardTasks;
-	return easyTasks + ':' + hardTasks;
+
+	if (easyTasks === 0 && hardTasks > 0) return `0:${hardTasks}`;
+
+	return `${easyTasks}:${hardTasks}`;
 }
 
 export function calculateAveragePhysicalDifficulty(tasks: Task[]): number {
 	if (!tasks.length) return 0;
+
 	return Math.round(tasks.reduce((sum, task) => sum + task.physicalDifficulty, 0) / tasks.length);
 }
 
 export function calculateAverageMentalDifficulty(tasks: Task[]): number {
 	if (!tasks.length) return 0;
+
 	return Math.round(tasks.reduce((sum, task) => sum + task.mentalDifficulty, 0) / tasks.length);
 }
 
 export function calculateAverageEnjoyment(tasks: Task[]): number {
 	if (!tasks.length) return 0;
+
 	return Math.round(tasks.reduce((sum, task) => sum + task.enjoyment, 0) / tasks.length);
 }

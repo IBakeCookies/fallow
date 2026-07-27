@@ -20,11 +20,17 @@
 			tail: {
 				pre: m.about_faq_a1_support(),
 				label: m.about_faq_a1_support_link(),
-				href: KOFI_URL
-			}
+				href: KOFI_URL,
+			},
 		},
-		{ q: m.about_faq_q2(), a: m.about_faq_a2() },
-		{ q: m.about_faq_q3(), a: m.about_faq_a3() }
+		{
+			q: m.about_faq_q2(),
+			a: m.about_faq_a2(),
+		},
+		{
+			q: m.about_faq_q3(),
+			a: m.about_faq_a3(),
+		},
 	];
 
 	// Must mirror the visible FAQ text 1:1 — Google cross-checks the schema
@@ -37,9 +43,9 @@
 			name: f.q,
 			acceptedAnswer: {
 				'@type': 'Answer',
-				text: f.tail ? `${f.a} ${f.tail.pre}${f.tail.label}.` : f.a
-			}
-		}))
+				text: f.tail ? `${f.a} ${f.tail.pre}${f.tail.label}.` : f.a,
+			},
+		})),
 	};
 
 	const linkClass = 'underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary';

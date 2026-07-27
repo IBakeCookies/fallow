@@ -1,6 +1,10 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
-import { EMPTY_PLAN_AUDIT, readDaySummaries, readModelReport } from './session-history';
+import {
+	EMPTY_PLAN_AUDIT,
+	readDaySummaries,
+	readModelReport,
+} from '$lib/business/store/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $updateDrainObservation } from '$lib/data/repository/drain-observation-repository';
 import type { DailySession, Task } from '$lib/data/type';
@@ -13,22 +17,33 @@ const task = (id: number, over: Partial<Task> = {}): Task => ({
 	enjoyment: 5,
 	createdAt: '2026-07-20',
 	completed: false,
-	...over
+	...over,
 });
 
 const session = (date: string, over: Partial<DailySession> = {}): DailySession => ({
 	date,
-	tasks: [task(1), task(2, { completed: true })],
+	tasks: [
+		task(1),
+		task(2, {
+			completed: true,
+		}),
+	],
 	availableHours: 8,
 	switchCost: 0.5,
 	updatedAt: 0,
-	...over
+	...over,
 });
 
 describe('readDaySummaries', () => {
 	it('summarizes the stored days in the range, skipping days with no tasks', async () => {
 		await $updateSession(session('2026-06-01'));
-		await $updateSession(session('2026-06-02', { tasks: [] }));
+
+		await $updateSession(
+			session('2026-06-02', {
+				tasks: [],
+			}),
+		);
+
 		await $updateSession(session('2026-06-03'));
 		await $updateSession(session('2026-06-09')); // outside the range
 
@@ -60,6 +75,7 @@ describe('readModelReport', () => {
 
 	it('audits a finished day once its worked hours are logged', async () => {
 		await $updateSession(session('2026-07-01'));
+
 		await $updateDrainObservation({
 			date: '2026-07-01',
 			taskId: 1,
@@ -68,7 +84,7 @@ describe('readModelReport', () => {
 			cognitiveDemand: 0.8,
 			physicalDemand: 0.3,
 			mindDrain: 8,
-			bodyDrain: 4
+			bodyDrain: 4,
 		});
 
 		const report = await readModelReport('2026-07-02', 30);
@@ -81,6 +97,7 @@ describe('readModelReport', () => {
 	it('caps the audit lookback', async () => {
 		for (const day of ['2026-08-01', '2026-08-02', '2026-08-03']) {
 			await $updateSession(session(day));
+
 			await $updateDrainObservation({
 				date: day,
 				taskId: 1,
@@ -89,7 +106,7 @@ describe('readModelReport', () => {
 				cognitiveDemand: 0.8,
 				physicalDemand: 0.3,
 				mindDrain: 8,
-				bodyDrain: 4
+				bodyDrain: 4,
 			});
 		}
 

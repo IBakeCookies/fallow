@@ -4,17 +4,29 @@ import {
 	$readAppearance,
 	$updateSceneryMotion,
 	$updateScenerySeed,
-	$updateTheme
-} from './appearance-repository';
+	$updateTheme,
+} from '$lib/data/repository/appearance-repository';
 
 /** Stands in for `event.cookies` (server) — the read path's whole contract. */
-const from = (jar: Record<string, string>) => ({ get: (name: string) => jar[name] });
+const from = (jar: Record<string, string>) => ({
+	get: (name: string) => jar[name],
+});
 
 describe('$readAppearance', () => {
 	it('reads all three cookies out of a source', () => {
 		expect(
-			$readAppearance(from({ theme: 'abyss', scenerySeed: '42', sceneryMotion: 'paused' }))
-		).toEqual({ theme: 'abyss', scenerySeed: 42, sceneryPaused: true });
+			$readAppearance(
+				from({
+					theme: 'abyss',
+					scenerySeed: '42',
+					sceneryMotion: 'paused',
+				}),
+			),
+		).toEqual({
+			theme: 'abyss',
+			scenerySeed: 42,
+			sceneryPaused: true,
+		});
 	});
 
 	it('reports an empty jar as "nothing recorded" rather than defaults', () => {
@@ -23,23 +35,48 @@ describe('$readAppearance', () => {
 		expect($readAppearance(from({}))).toEqual({
 			theme: undefined,
 			scenerySeed: undefined,
-			sceneryPaused: undefined
+			sceneryPaused: undefined,
 		});
 	});
 
 	it('maps only the two known motion values, not any truthy string', () => {
-		expect($readAppearance(from({ sceneryMotion: 'on' })).sceneryPaused).toBe(false);
-		expect($readAppearance(from({ sceneryMotion: 'yes' })).sceneryPaused).toBeUndefined();
+		expect(
+			$readAppearance(
+				from({
+					sceneryMotion: 'on',
+				}),
+			).sceneryPaused,
+		).toBe(false);
+
+		expect(
+			$readAppearance(
+				from({
+					sceneryMotion: 'yes',
+				}),
+			).sceneryPaused,
+		).toBeUndefined();
 	});
 
 	it('rejects a malformed seed so the caller mints a fresh one', () => {
 		for (const seed of ['abc', '-1', '1.5', '']) {
-			expect($readAppearance(from({ scenerySeed: seed })).scenerySeed).toBeUndefined();
+			expect(
+				$readAppearance(
+					from({
+						scenerySeed: seed,
+					}),
+				).scenerySeed,
+			).toBeUndefined();
 		}
 	});
 
 	it('passes an unknown theme through — validating it is the model’s job', () => {
-		expect($readAppearance(from({ theme: 'deleted-theme' })).theme).toBe('deleted-theme');
+		expect(
+			$readAppearance(
+				from({
+					theme: 'deleted-theme',
+				}),
+			).theme,
+		).toBe('deleted-theme');
 	});
 });
 
@@ -48,13 +85,14 @@ describe('appearance writes', () => {
 
 	beforeEach(() => {
 		written = [];
+
 		vi.stubGlobal('document', {
 			set cookie(value: string) {
 				written.push(value);
 			},
 			get cookie() {
 				return written.join('; ');
-			}
+			},
 		});
 	});
 
@@ -80,11 +118,16 @@ describe('appearance writes', () => {
 		$updateTheme('city-windows');
 		$updateScenerySeed(7);
 
-		expect($readAppearance()).toMatchObject({ theme: 'city-windows', scenerySeed: 7 });
+		expect($readAppearance()).toMatchObject({
+			theme: 'city-windows',
+			scenerySeed: 7,
+		});
 	});
 
 	it('mints the seed server-side with the same attributes', () => {
-		const sink = { set: vi.fn() };
+		const sink = {
+			set: vi.fn(),
+		};
 
 		$createScenerySeedCookie(sink, 99);
 
@@ -92,7 +135,7 @@ describe('appearance writes', () => {
 			path: '/',
 			maxAge: 31536000,
 			sameSite: 'lax',
-			httpOnly: false
+			httpOnly: false,
 		});
 	});
 });

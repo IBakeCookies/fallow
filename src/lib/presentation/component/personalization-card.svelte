@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import type { FlowObservationRecord } from '$lib/business/type';
-	import LogList from './log-list.svelte';
+	import LogList from '$lib/presentation/component/log-list.svelte';
 
 	interface Props {
 		modelStatus: string; // e.g. "Personalized from 7 flow logs"
@@ -18,7 +18,9 @@
 		label={modelStatus}
 		title={m.budget_model_tooltip()}
 		items={flowLogs}
-		confirmLabel={m.budget_reset_confirm({ count: flowLogs.length })}
+		confirmLabel={m.budget_reset_confirm({
+			count: flowLogs.length,
+		})}
 		resetLabel={m.budget_reset_personalization()}
 		resetTitle={m.budget_reset_title()}
 		onreset={onresetlogs}

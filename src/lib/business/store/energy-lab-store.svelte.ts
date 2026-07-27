@@ -17,22 +17,21 @@ import {
 	optimizeSchedule,
 	sampleTrajectory,
 	type EnergyParams,
-	type ScheduleBlock
+	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
 import {
 	calculateInterleavedOrder,
 	calculateSuggestedTasks,
-	toEnergyTask
+	toEnergyTask,
 } from '$lib/business/model/metric/calculation';
 import {
 	toCognitiveDrainObservations,
 	toPhysicalDrainObservations,
-	toRestObservations
+	toRestObservations,
 } from '$lib/business/model/energy-calibration';
 
 /** Fitted values are surfaced (and applied) at 2dp — the sliders' precision. */
 const round2 = (x: number) => Math.round(x * 100) / 100;
-
 const SAVE_DEBOUNCE_MS = 500;
 
 /**
@@ -41,13 +40,18 @@ const SAVE_DEBOUNCE_MS = 500;
  * parseable data (e.g. `{"recoveryRate":"abc"}`) can never reach the model.
  */
 export function sanitizeEnergyParams(raw: unknown): EnergyParams {
-	const params: EnergyParams = { ...DEFAULT_ENERGY_PARAMS };
+	const params: EnergyParams = {
+		...DEFAULT_ENERGY_PARAMS,
+	};
+
 	if (raw && typeof raw === 'object') {
 		for (const key of Object.keys(params) as (keyof EnergyParams)[]) {
 			const value = (raw as Record<string, unknown>)[key];
+
 			if (typeof value === 'number' && Number.isFinite(value)) params[key] = value;
 		}
 	}
+
 	return params;
 }
 
@@ -73,7 +77,9 @@ export class EnergyLabStore {
 	#session!: SessionStore;
 	#observations!: EnergyObservationStore;
 
-	#params = $state<EnergyParams>({ ...DEFAULT_ENERGY_PARAMS });
+	#params = $state<EnergyParams>({
+		...DEFAULT_ENERGY_PARAMS,
+	});
 	#loaded = $state(false);
 
 	// Trailing-debounced persistence, same reasoning as the session store's:
@@ -98,16 +104,18 @@ export class EnergyLabStore {
 		onMount(async () => {
 			try {
 				this.#params = sanitizeEnergyParams(
-					await settingsRepository.$readSetting(ENERGY_PARAMS_SETTING)
+					await settingsRepository.$readSetting(ENERGY_PARAMS_SETTING),
 				);
 			} catch (e) {
 				console.error('Failed to load energy lab params', e);
 			}
+
 			this.#loaded = true;
 		});
 
 		$effect(() => {
 			if (!browser || !this.#loaded) return;
+
 			this.#pendingSave = $state.snapshot(this.#params);
 			clearTimeout(this.#saveTimer);
 			this.#saveTimer = setTimeout(() => this.#flushSave(), SAVE_DEBOUNCE_MS);
@@ -123,16 +131,20 @@ export class EnergyLabStore {
 		// the tab is discarded while hidden.
 		$effect(() => {
 			if (!browser) return;
+
 			const onVisibility = () => {
 				if (document.hidden) this.#flushSave();
 			};
+
 			document.addEventListener('visibilitychange', onVisibility);
+
 			return () => document.removeEventListener('visibilitychange', onVisibility);
 		});
 
 		$effect(() => {
 			void this.#observations.drainObservations;
 			const version = ++this.#stopLoadVersion;
+
 			readStopObservations(this.#session.today).then((observations) => {
 				if (version === this.#stopLoadVersion) this.#stopObservations = observations;
 			});
@@ -142,9 +154,11 @@ export class EnergyLabStore {
 	// Persist the pending snapshot now, cancelling any scheduled debounce.
 	#flushSave() {
 		if (!this.#pendingSave) return;
+
 		clearTimeout(this.#saveTimer);
 		const payload = this.#pendingSave;
 		this.#pendingSave = null;
+
 		settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, payload).catch((e) => {
 			console.error('Failed to save energy lab params', e);
 			this.#session.reportStorageError('save-failed');
@@ -160,7 +174,9 @@ export class EnergyLabStore {
 		this.#params[key] = value;
 	}
 	resetParams() {
-		this.#params = { ...DEFAULT_ENERGY_PARAMS };
+		this.#params = {
+			...DEFAULT_ENERGY_PARAMS,
+		};
 	}
 	/** False until the persisted params have been read — the page waits on it. */
 	get isLoaded() {
@@ -189,8 +205,8 @@ export class EnergyLabStore {
 			this.#energyTasks,
 			this.#windowHours,
 			this.#params,
-			this.#session.userConstants
-		)
+			this.#session.userConstants,
+		),
 	);
 	get plan() {
 		return this.#plan;
@@ -202,8 +218,8 @@ export class EnergyLabStore {
 			this.#energyTasks,
 			this.#windowHours,
 			this.#params,
-			this.#session.userConstants
-		)
+			this.#session.userConstants,
+		),
 	);
 	get trajectory() {
 		return this.#trajectory;
@@ -222,40 +238,55 @@ export class EnergyLabStore {
 	// THIS model: interleaved run order, switch costs as rest gaps.
 	#classicEvaluation = $derived.by(() => {
 		if (this.#windowHours <= 0 || this.#energyTasks.length === 0) return null;
+
 		const suggested = calculateSuggestedTasks(
 			this.#session.tasks,
 			this.#windowHours,
 			this.#session.switchCost,
 			this.#session.pools,
 			this.#session.userConstants,
-			this.#session.constantsFit.posterior
+			this.#session.constantsFit.posterior,
 		);
+
 		// Completed tasks stay in: both plans simulate the full intended day,
 		// otherwise the comparison strips work from the classic side only.
 		const funded = calculateInterleavedOrder(suggested);
+
 		if (funded.length === 0) return null;
+
 		const blocks: ScheduleBlock[] = [];
+
 		funded.forEach((task, index) => {
 			if (index > 0 && this.#session.switchCost > 0) {
-				blocks.push({ taskId: null, hours: this.#session.switchCost });
+				blocks.push({
+					taskId: null,
+					hours: this.#session.switchCost,
+				});
 			}
-			blocks.push({ taskId: task.id, hours: task.suggestedHours });
+
+			blocks.push({
+				taskId: task.id,
+				hours: task.suggestedHours,
+			});
 		});
+
 		return evaluateSchedule(
 			blocks,
 			this.#energyTasks,
 			this.#windowHours,
 			this.#params,
-			this.#session.userConstants
+			this.#session.userConstants,
 		);
 	});
 
 	/** Percent more output than the classic plan, or null when incomparable. */
 	#outputVsClassic = $derived.by(() => {
 		const classic = this.#classicEvaluation;
+
 		if (!classic || classic.totalOutput <= 0) return null;
+
 		return Math.round(
-			((this.#plan.evaluation.totalOutput - classic.totalOutput) / classic.totalOutput) * 100
+			((this.#plan.evaluation.totalOutput - classic.totalOutput) / classic.totalOutput) * 100,
 		);
 	});
 	get outputVsClassic() {
@@ -271,15 +302,15 @@ export class EnergyLabStore {
 	#drainLawParams = $derived({
 		recoveryRate: this.#params.recoveryRate,
 		restRecoveryMultiplier: this.#params.restRecoveryMultiplier,
-		microRecoveryFraction: this.#params.microRecoveryFraction
+		microRecoveryFraction: this.#params.microRecoveryFraction,
 	});
 
 	#cognitiveDrainFit = $derived(
 		fitDrainRate(
 			toCognitiveDrainObservations(this.#observations.drainObservations),
 			DEFAULT_ENERGY_PARAMS.alphaCog,
-			this.#drainLawParams
-		)
+			this.#drainLawParams,
+		),
 	);
 	get cognitiveDrainFit() {
 		return this.#cognitiveDrainFit;
@@ -289,8 +320,8 @@ export class EnergyLabStore {
 		fitDrainRate(
 			toPhysicalDrainObservations(this.#observations.drainObservations),
 			DEFAULT_ENERGY_PARAMS.alphaPhys,
-			this.#drainLawParams
-		)
+			this.#drainLawParams,
+		),
 	);
 	get physicalDrainFit() {
 		return this.#physicalDrainFit;
@@ -300,7 +331,7 @@ export class EnergyLabStore {
 		(!this.#cognitiveDrainFit.fitted ||
 			Math.abs(this.#params.alphaCog - round2(this.#cognitiveDrainFit.alpha)) < 1e-9) &&
 			(!this.#physicalDrainFit.fitted ||
-				Math.abs(this.#params.alphaPhys - round2(this.#physicalDrainFit.alpha)) < 1e-9)
+				Math.abs(this.#params.alphaPhys - round2(this.#physicalDrainFit.alpha)) < 1e-9),
 	);
 	get drainFitApplied() {
 		return this.#drainFitApplied;
@@ -310,6 +341,7 @@ export class EnergyLabStore {
 		if (this.#cognitiveDrainFit.fitted) {
 			this.#params.alphaCog = round2(this.#cognitiveDrainFit.alpha);
 		}
+
 		if (this.#physicalDrainFit.fitted) {
 			this.#params.alphaPhys = round2(this.#physicalDrainFit.alpha);
 		}
@@ -326,8 +358,10 @@ export class EnergyLabStore {
 		fitRecoveryRate(
 			toRestObservations(this.#observations.restObservations),
 			DEFAULT_ENERGY_PARAMS.recoveryRate,
-			{ restRecoveryMultiplier: this.#params.restRecoveryMultiplier }
-		)
+			{
+				restRecoveryMultiplier: this.#params.restRecoveryMultiplier,
+			},
+		),
 	);
 	get recoveryFit() {
 		return this.#recoveryFit;
@@ -335,7 +369,7 @@ export class EnergyLabStore {
 
 	#recoveryFitApplied = $derived(
 		!this.#recoveryFit.fitted ||
-			Math.abs(this.#params.recoveryRate - round2(this.#recoveryFit.rate)) < 1e-9
+			Math.abs(this.#params.recoveryRate - round2(this.#recoveryFit.rate)) < 1e-9,
 	);
 	get recoveryFitApplied() {
 		return this.#recoveryFitApplied;
@@ -357,8 +391,8 @@ export class EnergyLabStore {
 			this.#stopObservations,
 			DEFAULT_ENERGY_PARAMS.freeTimeValue,
 			this.#params,
-			this.#session.userConstants
-		)
+			this.#session.userConstants,
+		),
 	);
 	get stoppingFit() {
 		return this.#stoppingFit;
@@ -370,7 +404,7 @@ export class EnergyLabStore {
 
 	#stoppingFitApplied = $derived(
 		!this.#stoppingFit.fitted ||
-			Math.abs(this.#params.freeTimeValue - round2(this.#stoppingFit.value)) < 1e-9
+			Math.abs(this.#params.freeTimeValue - round2(this.#stoppingFit.value)) < 1e-9,
 	);
 	get stoppingFitApplied() {
 		return this.#stoppingFitApplied;

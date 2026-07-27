@@ -1,6 +1,6 @@
 <script lang="ts">
 	// Test-only host: the store needs a component context (onMount, $derived).
-	import { AnalyticsStore } from './analytics-store.svelte';
+	import { AnalyticsStore } from '$lib/business/store/analytics-store.svelte';
 
 	let { onstore }: { onstore: (s: AnalyticsStore) => void } = $props();
 

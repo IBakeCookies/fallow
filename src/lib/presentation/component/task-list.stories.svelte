@@ -2,7 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { fn } from 'storybook/test';
 	import { getTaskNature, type SuggestedTask } from '$lib/business/model/metric/calculation';
-	import TaskList from './task-list.svelte';
+	import TaskList from '$lib/presentation/component/task-list.svelte';
 
 	const task = (id: number, title: string, overrides: Partial<SuggestedTask> = {}) => {
 		const base = {
@@ -21,16 +21,31 @@
 			peakProductivity: 1,
 			avgProductivity: 0.8,
 			optimalHours: 2,
-			...overrides
+			...overrides,
 		};
+
 		// Badge follows the story's difficulties instead of a hardcoded default
-		return { nature: getTaskNature(base), ...base } satisfies SuggestedTask;
+		return {
+			nature: getTaskNature(base),
+			...base,
+		} satisfies SuggestedTask;
 	};
 
 	const tasks: SuggestedTask[] = [
-		task(1, 'write the calibration section', { suggestedHours: 1.75, priorityScore: 12.4 }),
-		task(2, 'boxing', { physicalDifficulty: 8, mentalDifficulty: 2, enjoyment: 9 }),
-		task(3, 'inbox', { suggestedHours: 0, priorityScore: 1.2, completed: true })
+		task(1, 'write the calibration section', {
+			suggestedHours: 1.75,
+			priorityScore: 12.4,
+		}),
+		task(2, 'boxing', {
+			physicalDifficulty: 8,
+			mentalDifficulty: 2,
+			enjoyment: 9,
+		}),
+		task(3, 'inbox', {
+			suggestedHours: 0,
+			priorityScore: 1.2,
+			completed: true,
+		}),
 	];
 
 	const { Story } = defineMeta({
@@ -41,16 +56,22 @@
 			suggestedTasks: tasks,
 			runOrder: new Map([
 				[1, 1],
-				[2, 2]
+				[2, 2],
 			]),
 			ontoggle: fn(),
 			onremove: fn(),
 			onlogflow: fn(),
-			onupdate: fn()
-		}
+			onupdate: fn(),
+		},
 	});
 </script>
 
 <Story name="Default" />
 
-<Story name="Empty" args={{ suggestedTasks: [], runOrder: new Map() }} />
+<Story
+	name="Empty"
+	args={{
+		suggestedTasks: [],
+		runOrder: new Map(),
+	}}
+/>

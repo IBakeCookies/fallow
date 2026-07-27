@@ -27,19 +27,42 @@
 			.join('');
 	}
 
-	const cogPath = $derived(linePath(trajectory.map((p) => ({ x: xAt(p.t), y: yAt(p.cog) }))));
-	const physPath = $derived(linePath(trajectory.map((p) => ({ x: xAt(p.t), y: yAt(p.phys) }))));
+	const cogPath = $derived(
+		linePath(
+			trajectory.map((p) => ({
+				x: xAt(p.t),
+				y: yAt(p.cog),
+			})),
+		),
+	);
+	const physPath = $derived(
+		linePath(
+			trajectory.map((p) => ({
+				x: xAt(p.t),
+				y: yAt(p.phys),
+			})),
+		),
+	);
 	const maxRate = $derived(Math.max(...trajectory.map((p) => p.rate), 1e-9));
 	const ratePath = $derived.by(() => {
 		if (trajectory.length === 0) return '';
-		const line = linePath(trajectory.map((p) => ({ x: xAt(p.t), y: yAt(p.rate / maxRate) })));
+
+		const line = linePath(
+			trajectory.map((p) => ({
+				x: xAt(p.t),
+				y: yAt(p.rate / maxRate),
+			})),
+		);
+
 		const last = trajectory[trajectory.length - 1];
+
 		return `${line}L${xAt(last.t).toFixed(1)},${yAt(0).toFixed(1)}L${xAt(0).toFixed(1)},${yAt(0).toFixed(1)}Z`;
 	});
 	const hourTicks = $derived.by(() => {
 		const stepH = windowHours > 14 ? 2 : 1;
 		const ticks = [];
 		for (let h = 0; h <= windowHours; h += stepH) ticks.push(h);
+
 		return ticks;
 	});
 </script>

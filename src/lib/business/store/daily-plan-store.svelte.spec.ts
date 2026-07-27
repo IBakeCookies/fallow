@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
-import Harness from './daily-plan-store.test-harness.svelte';
+import Harness from '$lib/business/store/daily-plan-store.test-harness.svelte';
 import {
 	drainRecord,
 	mockObservations,
 	mockSession,
-	restRecord
-} from './energy-lab-store.test-utils.svelte';
-import type { DailyPlanStore } from './daily-plan-store.svelte';
+	restRecord,
+} from '$lib/business/store/energy-lab-store.test-utils.svelte';
+import type { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 import type { Task } from '$lib/business/type';
 
 const task = (id: number, title: string, over: Partial<Task> = {}): Task => ({
@@ -19,12 +19,16 @@ const task = (id: number, title: string, over: Partial<Task> = {}): Task => ({
 	enjoyment: 5,
 	createdAt: '2026-07-20',
 	completed: false,
-	...over
+	...over,
 });
 
 function setup(): DailyPlanStore {
 	let store!: DailyPlanStore;
-	render(Harness, { onstore: (s: DailyPlanStore) => (store = s) });
+
+	render(Harness, {
+		onstore: (s: DailyPlanStore) => (store = s),
+	});
+
 	return store;
 }
 
@@ -40,8 +44,12 @@ describe('DailyPlanStore', () => {
 
 		mockSession.tasks = [
 			task(1, 'deep work'),
-			task(2, 'boxing', { physicalDifficulty: 9, mentalDifficulty: 2 })
+			task(2, 'boxing', {
+				physicalDifficulty: 9,
+				mentalDifficulty: 2,
+			}),
 		];
+
 		flushSync();
 
 		expect(store.daily.totalTasks).toBe(2);
@@ -62,7 +70,14 @@ describe('DailyPlanStore', () => {
 		expect(onDefaults).toBeGreaterThan(0);
 
 		// Same records the Energy Lab's spec uses to move the α and r fits
-		mockObservations.drainObservations = [drainRecord(), drainRecord({ hours: 2, mindDrain: 8 })];
+		mockObservations.drainObservations = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
 		mockObservations.restObservations = [restRecord()];
 		flushSync();
 

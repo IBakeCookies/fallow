@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Test-only host: the store needs a component context (onMount, $effect).
-	import { setSessionStore, type SessionStore } from './session-store.svelte';
-	import { mockPage } from './session-store.test-utils.svelte';
+	import { setSessionStore, type SessionStore } from '$lib/business/store/session-store.svelte';
+	import { mockPage } from '$lib/business/store/session-store.test-utils.svelte';
 
 	let { onstore }: { onstore: (s: SessionStore) => void } = $props();
 

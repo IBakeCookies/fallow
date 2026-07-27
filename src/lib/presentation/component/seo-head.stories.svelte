@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import SeoHead from './seo-head.svelte';
+	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 
 	const { Story } = defineMeta({
 		title: 'Component/SEO Head',
@@ -8,11 +8,17 @@
 		tags: ['autodocs'],
 		args: {
 			title: 'Fallow — plan the day around your energy',
-			description: 'A planner that allocates your hours with the Zenith Gradient algorithm.'
+			description: 'A planner that allocates your hours with the Zenith Gradient algorithm.',
 		},
 		parameters: {
-			sveltekit_experimental: { state: { page: { url: new URL('http://localhost/') } } }
-		}
+			sveltekit_experimental: {
+				state: {
+					page: {
+						url: new URL('http://localhost/'),
+					},
+				},
+			},
+		},
 	});
 </script>
 
@@ -33,8 +39,8 @@
 			'@context': 'https://schema.org',
 			'@type': 'WebApplication',
 			name: 'Fallow',
-			applicationCategory: 'BusinessApplication'
-		}
+			applicationCategory: 'BusinessApplication',
+		},
 	}}
 >
 	{#snippet template(args)}

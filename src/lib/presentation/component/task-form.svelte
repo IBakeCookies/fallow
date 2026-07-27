@@ -24,22 +24,28 @@
 		title: '',
 		physicalDifficulty: 5,
 		mentalDifficulty: 5,
-		enjoyment: 5
+		enjoyment: 5,
 	});
 
 	function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		const title = draft.title.trim();
+
 		if (!title) return;
 
 		onsubmit({
 			title,
 			physicalDifficulty: draft.physicalDifficulty,
 			mentalDifficulty: draft.mentalDifficulty,
-			enjoyment: draft.enjoyment
+			enjoyment: draft.enjoyment,
 		});
 
-		draft = { title: '', physicalDifficulty: 5, mentalDifficulty: 5, enjoyment: 5 };
+		draft = {
+			title: '',
+			physicalDifficulty: 5,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		};
 	}
 </script>
 

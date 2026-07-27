@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import TaskItem from './task-item.svelte';
+	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 
 	interface Props {
@@ -16,7 +16,7 @@
 				physicalDifficulty: number;
 				mentalDifficulty: number;
 				enjoyment: number;
-			}
+			},
 		) => void;
 	}
 

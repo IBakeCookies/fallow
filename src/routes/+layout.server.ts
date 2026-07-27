@@ -14,6 +14,6 @@ export const load: LayoutServerLoad = async (event) => {
 		scenerySeed: readOrMintScenerySeed(event.cookies),
 		// IP-derived visitor timezone (set by Vercel) so the SSR-inlined
 		// scenery clock state is the visitor's local time, not the server's
-		timezone: event.request.headers.get('x-vercel-ip-timezone') ?? undefined
+		timezone: event.request.headers.get('x-vercel-ip-timezone') ?? undefined,
 	};
 };

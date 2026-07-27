@@ -10,7 +10,7 @@
 	import {
 		ANALYTICS_RANGES,
 		AnalyticsStore,
-		type AnalyticsRange
+		type AnalyticsRange,
 	} from '$lib/business/store/analytics-store.svelte';
 
 	// Everything on this page comes off the store — the folds and the load live
@@ -22,15 +22,24 @@
 	function formatDecimals(value: number, digits: number): string {
 		return value.toLocaleString(getDateLocale(), {
 			minimumFractionDigits: digits,
-			maximumFractionDigits: digits
+			maximumFractionDigits: digits,
 		});
 	}
 
 	// Copy for the range toggle; the day counts themselves are the store's.
 	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
-		week: { label: () => m.ana_range_week(), prevLabel: () => m.ana_prev_week() },
-		month: { label: () => m.ana_range_month(), prevLabel: () => m.ana_prev_month() },
-		year: { label: () => m.ana_range_year(), prevLabel: () => '' }
+		week: {
+			label: () => m.ana_range_week(),
+			prevLabel: () => m.ana_prev_week(),
+		},
+		month: {
+			label: () => m.ana_range_month(),
+			prevLabel: () => m.ana_prev_month(),
+		},
+		year: {
+			label: () => m.ana_range_year(),
+			prevLabel: () => '',
+		},
 	};
 
 	// Thin aliases for the values the markup reads more than once
@@ -45,23 +54,27 @@
 	// usedCounts (informative observations, not raw log rows).
 	const modelRows = $derived.by(() => {
 		if (!calibration) return [];
+
 		const f2 = (x: number) => formatDecimals(x, 2);
 		const minutes = (h: number) => `${Math.round(h * 60)} ${m.unit_minutes()}`;
+
 		const rate = (
 			fit: { fitted: boolean },
 			value: number,
 			std: number | undefined,
-			unit: string
+			unit: string,
 		) => (fit.fitted ? `≈ ${f2(value)} ± ${f2(std ?? 0)} ${unit}` : `${f2(value)} ${unit}`);
+
 		const { flow, energy, stopping, defaults } = calibration;
+
 		return [
 			{
 				label: m.ana_model_flow(),
 				value: flow.fitted ? `≈ ${minutes(flow.phiHours)}` : minutes(flow.phiHours),
 				note: m.ana_model_note_flow({
 					value: minutes(flow.defaultPhiHours),
-					count: flow.usedCount
-				})
+					count: flow.usedCount,
+				}),
 			},
 			{
 				label: m.ana_model_recovery(),
@@ -69,12 +82,12 @@
 					energy.recovery,
 					energy.recovery.rate,
 					energy.recovery.rateStd,
-					m.unit_per_hour()
+					m.unit_per_hour(),
 				),
 				note: m.ana_model_note_ratings({
 					value: f2(defaults.recoveryRate),
-					count: energy.recovery.usedCount
-				})
+					count: energy.recovery.usedCount,
+				}),
 			},
 			{
 				label: m.ana_model_drain_cog(),
@@ -82,12 +95,12 @@
 					energy.cognitiveDrain,
 					energy.cognitiveDrain.alpha,
 					energy.cognitiveDrain.alphaStd,
-					m.unit_per_hour()
+					m.unit_per_hour(),
 				),
 				note: m.ana_model_note_ratings({
 					value: f2(defaults.alphaCog),
-					count: energy.cognitiveDrain.usedCount
-				})
+					count: energy.cognitiveDrain.usedCount,
+				}),
 			},
 			{
 				label: m.ana_model_drain_phys(),
@@ -95,44 +108,67 @@
 					energy.physicalDrain,
 					energy.physicalDrain.alpha,
 					energy.physicalDrain.alphaStd,
-					m.unit_per_hour()
+					m.unit_per_hour(),
 				),
 				note: m.ana_model_note_ratings({
 					value: f2(defaults.alphaPhys),
-					count: energy.physicalDrain.usedCount
-				})
+					count: energy.physicalDrain.usedCount,
+				}),
 			},
 			{
 				label: m.ana_model_stop(),
 				value: rate(stopping, stopping.value, stopping.valueStd, m.unit_output_per_hour()),
 				note: m.ana_model_note_days({
 					value: f2(defaults.freeTimeValue),
-					count: stopping.usedCount
-				})
-			}
+					count: stopping.usedCount,
+				}),
+			},
 		];
 	});
 
 	const auditVerdict = $derived.by(() => {
 		if (!audit || audit.usedCount === 0) return null;
+
 		const diff = audit.energyOverlap - audit.classicOverlap;
+
 		if (diff > 0.05) return m.ana_adherence_verdict_energy();
+
 		if (diff < -0.05) return m.ana_adherence_verdict_classic();
+
 		return m.ana_adherence_verdict_tie();
 	});
 
 	function formatDay(iso: string): string {
-		return fromISO(iso).toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
+		return fromISO(iso).toLocaleDateString(getDateLocale(), {
+			month: 'short',
+			day: 'numeric',
+		});
 	}
 
 	// ---------- Day profile distribution ----------
 	// Every colour is a token: these reference the plain `:root` custom properties
 	// (base.css), which resolve regardless of Tailwind's @theme tree-shaking.
 	const QUADRANTS: { key: DailyQuadrant; label: string; color: string }[] = [
-		{ key: 'flow', label: m.quadrant_flow(), color: 'var(--flow)' },
-		{ key: 'cruise', label: m.quadrant_cruise(), color: 'var(--info)' },
-		{ key: 'grind', label: m.quadrant_grind(), color: 'var(--warning)' },
-		{ key: 'routine', label: m.quadrant_routine(), color: 'var(--series-rest)' }
+		{
+			key: 'flow',
+			label: m.quadrant_flow(),
+			color: 'var(--flow)',
+		},
+		{
+			key: 'cruise',
+			label: m.quadrant_cruise(),
+			color: 'var(--info)',
+		},
+		{
+			key: 'grind',
+			label: m.quadrant_grind(),
+			color: 'var(--warning)',
+		},
+		{
+			key: 'routine',
+			label: m.quadrant_routine(),
+			color: 'var(--series-rest)',
+		},
 	];
 
 	// ---------- Chart: completion rate per day (per month for the year view) ----------
@@ -148,54 +184,87 @@
 		if (analytics.range === 'year') {
 			return analytics.monthlyRates.map((month) => {
 				const first = fromISO(`${month.month}-01`);
+
 				return {
-					label: first.toLocaleDateString(getDateLocale(), { month: 'short' }),
-					full: first.toLocaleDateString(getDateLocale(), { month: 'long', year: 'numeric' }),
+					label: first.toLocaleDateString(getDateLocale(), {
+						month: 'short',
+					}),
+					full: first.toLocaleDateString(getDateLocale(), {
+						month: 'long',
+						year: 'numeric',
+					}),
 					value: month.average,
 					sub:
 						month.dayCount === 0
 							? m.ana_no_data()
 							: month.dayCount === 1
 								? m.ana_active_day_one()
-								: m.ana_active_day_other({ count: month.dayCount }),
-					showLabel: true
+								: m.ana_active_day_other({
+										count: month.dayCount,
+									}),
+					showLabel: true,
 				};
 			});
 		}
 
 		const byDate = new Map(analytics.summaries.map((s) => [s.date, s]));
-		return Array.from({ length: analytics.rangeDays }, (_, i) => {
-			const date = addDays(analytics.rangeStart, i);
-			const s = byDate.get(date);
-			const d = fromISO(date);
-			return {
-				label:
-					analytics.range === 'week'
-						? d.toLocaleDateString(getDateLocale(), { weekday: 'short' })
-						: d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' }),
-				full: d.toLocaleDateString(getDateLocale(), {
-					weekday: 'short',
-					month: 'short',
-					day: 'numeric'
-				}),
-				value: s ? s.completionRate : null,
-				sub: s
-					? m.ana_tasks_done_sub({ completed: s.completedTasks, total: s.totalTasks })
-					: m.ana_no_data(),
-				showLabel: analytics.range === 'week' || i % 5 === 0,
-				...(date === analytics.today
-					? {
-							full: m.ana_today_label({
-								date: d.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' })
+
+		return Array.from(
+			{
+				length: analytics.rangeDays,
+			},
+			(_, i) => {
+				const date = addDays(analytics.rangeStart, i);
+				const s = byDate.get(date);
+				const d = fromISO(date);
+
+				return {
+					label:
+						analytics.range === 'week'
+							? d.toLocaleDateString(getDateLocale(), {
+									weekday: 'short',
+								})
+							: d.toLocaleDateString(getDateLocale(), {
+									month: 'short',
+									day: 'numeric',
+								}),
+					full: d.toLocaleDateString(getDateLocale(), {
+						weekday: 'short',
+						month: 'short',
+						day: 'numeric',
+					}),
+					value: s ? s.completionRate : null,
+					sub: s
+						? m.ana_tasks_done_sub({
+								completed: s.completedTasks,
+								total: s.totalTasks,
 							})
-						}
-					: {})
-			};
-		});
+						: m.ana_no_data(),
+					showLabel: analytics.range === 'week' || i % 5 === 0,
+					...(date === analytics.today
+						? {
+								full: m.ana_today_label({
+									date: d.toLocaleDateString(getDateLocale(), {
+										month: 'short',
+										day: 'numeric',
+									}),
+								}),
+							}
+						: {}),
+				};
+			},
+		);
 	});
 
 	// SVG geometry (fixed viewBox, responsive via width: 100%)
-	const CHART = { w: 800, h: 240, top: 12, right: 8, bottom: 26, left: 34 };
+	const CHART = {
+		w: 800,
+		h: 240,
+		top: 12,
+		right: 8,
+		bottom: 26,
+		left: 34,
+	};
 	const innerW = CHART.w - CHART.left - CHART.right;
 	const innerH = CHART.h - CHART.top - CHART.bottom;
 	const yTicks = [0, 25, 50, 75, 100];
@@ -203,15 +272,27 @@
 
 	const bars = $derived.by(() => {
 		const n = chartPoints.length;
+
 		if (n === 0) return [];
+
 		const slot = innerW / n;
 		const barW = Math.min(24, slot * 0.65);
+
 		return chartPoints.map((p, i) => {
 			const slotX = CHART.left + i * slot;
 			const x = slotX + (slot - barW) / 2;
 			// A 0% day still gets a 2px stub so "0%" and "no data" read differently
 			const h = p.value === null ? 0 : Math.max(2, (p.value / 100) * innerH);
-			return { ...p, slotX, slotW: slot, x, w: barW, y: CHART.top + innerH - h, h };
+
+			return {
+				...p,
+				slotX,
+				slotW: slot,
+				x,
+				w: barW,
+				y: CHART.top + innerH - h,
+				h,
+			};
 		});
 	});
 
@@ -219,6 +300,7 @@
 		// Rounded at the data end, square at the baseline
 		const r = Math.min(4, h, w / 2);
 		const bottom = y + h;
+
 		return `M${x},${bottom} L${x},${y + r} Q${x},${y} ${x + r},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${bottom} Z`;
 	}
 </script>
@@ -238,7 +320,9 @@
 			<button
 				onclick={() => (analytics.range = key)}
 				aria-pressed={analytics.range === key}
-				class={segmentedToggleVariants({ active: analytics.range === key })}
+				class={segmentedToggleVariants({
+					active: analytics.range === key,
+				})}
 			>
 				{RANGE_LABELS[key].label()}
 			</button>
@@ -271,7 +355,9 @@
 				<span class="text-base font-normal text-ty-silent">/ {analytics.totalTasks}</span>
 			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">
-				{m.ana_of_planned({ percent: analytics.completedShare })}
+				{m.ana_of_planned({
+					percent: analytics.completedShare,
+				})}
 			</p>
 		</div>
 
@@ -285,7 +371,9 @@
 					<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
 						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
 					</span>
-					{m.ana_vs_prev({ period: RANGE_LABELS[analytics.range].prevLabel() })}
+					{m.ana_vs_prev({
+						period: RANGE_LABELS[analytics.range].prevLabel(),
+					})}
 				{:else}
 					{m.ana_rate_note()}
 				{/if}
@@ -299,7 +387,9 @@
 				<span class="text-base font-normal text-ty-silent">/ {analytics.rangeDays}</span>
 			</p>
 			<p class="mt-text-3xs text-xs text-ty-silent">
-				{m.ana_with_completion({ count: analytics.activeDaysWithCompletion })}
+				{m.ana_with_completion({
+					count: analytics.activeDaysWithCompletion,
+				})}
 			</p>
 		</div>
 
@@ -329,10 +419,12 @@
 				<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">{formatDay(bestDay.date)}</p>
 				<p class="mt-text-3xs text-xs text-ty-silent">
 					{bestDay.completedTasks === 1
-						? m.ana_best_day_note_one({ rate: bestDay.completionRate })
+						? m.ana_best_day_note_one({
+								rate: bestDay.completionRate,
+							})
 						: m.ana_best_day_note({
 								rate: bestDay.completionRate,
-								count: bestDay.completedTasks
+								count: bestDay.completedTasks,
 							})}
 				</p>
 			{:else}
@@ -354,7 +446,7 @@
 			class="mt-text-md w-full"
 			role="img"
 			aria-label={m.ana_chart_aria({
-				range: RANGE_LABELS[analytics.range].label().toLowerCase()
+				range: RANGE_LABELS[analytics.range].label().toLowerCase(),
 			})}
 		>
 			{#each yTicks as tick (tick)}
@@ -421,8 +513,13 @@
 						style="width: {(quadrantCounts[q.key] / analytics.summaries.length) *
 							100}%; background: {q.color}"
 						title={quadrantCounts[q.key] === 1
-							? m.ana_quadrant_count_one({ label: q.label })
-							: m.ana_quadrant_count_other({ label: q.label, count: quadrantCounts[q.key] })}
+							? m.ana_quadrant_count_one({
+									label: q.label,
+								})
+							: m.ana_quadrant_count_other({
+									label: q.label,
+									count: quadrantCounts[q.key],
+								})}
 					></div>
 				{/if}
 			{/each}
@@ -473,7 +570,7 @@
 						{m.ana_adherence_spread_note({
 							actual: formatDecimals(audit.actualTaskSpread, 1),
 							classic: formatDecimals(audit.classicTaskSpread, 1),
-							energy: formatDecimals(audit.energyTaskSpread, 1)
+							energy: formatDecimals(audit.energyTaskSpread, 1),
 						})}
 					</p>
 				</div>
@@ -481,7 +578,9 @@
 			<p class="mt-text-sm text-xs text-ty-secondary">
 				{auditVerdict} · {audit.usedCount === 1
 					? m.ana_adherence_days_one()
-					: m.ana_adherence_days_other({ count: audit.usedCount })}
+					: m.ana_adherence_days_other({
+							count: audit.usedCount,
+						})}
 			</p>
 		{/if}
 	</div>

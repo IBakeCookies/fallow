@@ -2,7 +2,7 @@ import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { SuggestedTask } from '$lib/business/model/metric/calculation';
-import TaskList from './task-list.svelte';
+import TaskList from '$lib/presentation/component/task-list.svelte';
 
 const task = (id: number, title: string): SuggestedTask => ({
 	id,
@@ -20,14 +20,21 @@ const task = (id: number, title: string): SuggestedTask => ({
 	trueEnjoyability: 1.5,
 	peakProductivity: 1,
 	avgProductivity: 0.8,
-	optimalHours: 2
+	optimalHours: 2,
 });
 
-const noop = { ontoggle: vi.fn(), onremove: vi.fn() };
+const noop = {
+	ontoggle: vi.fn(),
+	onremove: vi.fn(),
+};
 
 describe('task-list.svelte', () => {
 	it('shows the empty state when there are no tasks', async () => {
-		render(TaskList, { suggestedTasks: [], runOrder: new Map(), ...noop });
+		render(TaskList, {
+			suggestedTasks: [],
+			runOrder: new Map(),
+			...noop,
+		});
 
 		await expect.element(page.getByText('No tasks deployed yet')).toBeInTheDocument();
 		await expect.element(page.getByText('Add a task above to begin tracking')).toBeInTheDocument();
@@ -38,12 +45,19 @@ describe('task-list.svelte', () => {
 			suggestedTasks: [task(1, 'boxing'), task(2, 'writing')],
 			runOrder: new Map([
 				[1, 1],
-				[2, 2]
+				[2, 2],
 			]),
-			...noop
+			...noop,
 		});
 
-		await expect.element(page.getByRole('heading', { name: 'Tasks' })).toBeInTheDocument();
+		await expect
+			.element(
+				page.getByRole('heading', {
+					name: 'Tasks',
+				}),
+			)
+			.toBeInTheDocument();
+
 		await expect.element(page.getByText('boxing')).toBeInTheDocument();
 		await expect.element(page.getByText('writing')).toBeInTheDocument();
 		await expect.element(page.getByText('#1')).toBeInTheDocument();

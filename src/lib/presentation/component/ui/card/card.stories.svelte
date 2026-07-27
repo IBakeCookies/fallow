@@ -8,8 +8,15 @@
 		title: 'UI/Card',
 		component: CardRoot,
 		tags: ['autodocs'],
-		args: { size: 'default' },
-		argTypes: { size: { control: 'inline-radio', options: ['default', 'sm'] } }
+		args: {
+			size: 'default',
+		},
+		argTypes: {
+			size: {
+				control: 'inline-radio',
+				options: ['default', 'sm'],
+			},
+		},
 	});
 </script>
 

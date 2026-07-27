@@ -7,9 +7,19 @@
 	// easily recognizable and directly reachable from every page — hence a
 	// footer in the shared layout rather than links on individual pages.
 	const links = [
-		{ href: resolve('/imprint'), label: () => m.footer_imprint() },
-		{ href: resolve('/privacy'), label: () => m.footer_privacy() },
-		{ href: 'https://ko-fi.com/ibakecookies', label: () => m.footer_coffee(), external: true }
+		{
+			href: resolve('/imprint'),
+			label: () => m.footer_imprint(),
+		},
+		{
+			href: resolve('/privacy'),
+			label: () => m.footer_privacy(),
+		},
+		{
+			href: 'https://ko-fi.com/ibakecookies',
+			label: () => m.footer_coffee(),
+			external: true,
+		},
 	];
 </script>
 

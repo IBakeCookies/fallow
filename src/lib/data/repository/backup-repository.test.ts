@@ -4,20 +4,29 @@ import {
 	$exportAllStores,
 	$importAllStores,
 	$deleteAllStores,
-	type BackupFile
-} from './backup-repository';
-import { $updateSession, $readSessionByDate } from './session-repository';
-import { $updateFlowObservation, $readAllFlowObservations } from './flow-observation-repository';
+	type BackupFile,
+} from '$lib/data/repository/backup-repository';
+import { $updateSession, $readSessionByDate } from '$lib/data/repository/session-repository';
+import {
+	$updateFlowObservation,
+	$readAllFlowObservations,
+} from '$lib/data/repository/flow-observation-repository';
 import { DB_VERSION, STORE_NAMES } from '$lib/data/storage/indexed-db';
 import type { DailySession } from '$lib/data/type';
 
 function session(date: string, overrides: Partial<DailySession> = {}): DailySession {
-	return { date, tasks: [], updatedAt: 0, ...overrides } as DailySession;
+	return {
+		date,
+		tasks: [],
+		updatedAt: 0,
+		...overrides,
+	} as DailySession;
 }
 
 describe('backup-repository', () => {
 	it('exports every store with the schema version', async () => {
 		await $updateSession(session('2026-01-01'));
+
 		await $updateFlowObservation({
 			date: '2026-01-01',
 			taskId: 1,
@@ -26,21 +35,23 @@ describe('backup-repository', () => {
 			enjoyment: 5,
 			E: 3,
 			beta: 1.5,
-			phiHours: 0.5
+			phiHours: 0.5,
 		});
 
 		const backup = await $exportAllStores();
 
 		expect(backup.app).toBe('fallow');
 		expect(backup.schemaVersion).toBe(DB_VERSION);
+
 		expect(Object.keys(backup.stores).sort()).toEqual([
 			'drainObservations',
 			'flowObservations',
 			'restObservations',
 			'routines',
 			'sessions',
-			'settings'
+			'settings',
 		]);
+
 		expect(backup.stores.sessions).toHaveLength(1);
 		expect(backup.stores.flowObservations).toHaveLength(1);
 	});
@@ -70,8 +81,18 @@ describe('backup-repository', () => {
 
 	it('rejects files that are not a Fallow backup', async () => {
 		await expect($importAllStores(null)).rejects.toThrow('Not a Fallow backup file');
-		await expect($importAllStores({ foo: 1 })).rejects.toThrow('Not a Fallow backup file');
-		await expect($importAllStores({ app: 'fallow' })).rejects.toThrow('Not a Fallow backup file');
+
+		await expect(
+			$importAllStores({
+				foo: 1,
+			}),
+		).rejects.toThrow('Not a Fallow backup file');
+
+		await expect(
+			$importAllStores({
+				app: 'fallow',
+			}),
+		).rejects.toThrow('Not a Fallow backup file');
 	});
 
 	it('wipes every store', async () => {
@@ -87,7 +108,13 @@ describe('backup-repository', () => {
 		const backup = (await $exportAllStores()) as BackupFile & {
 			stores: Record<string, unknown[]>;
 		};
-		backup.stores.futureStore = [{ id: 1 }];
+
+		backup.stores.futureStore = [
+			{
+				id: 1,
+			},
+		];
+
 		await expect($importAllStores(backup)).resolves.toBeUndefined();
 	});
 
@@ -95,11 +122,13 @@ describe('backup-repository', () => {
 		await $deleteAllStores();
 		await $updateSession(session('2026-02-01'));
 		const seeded = await $readSessionByDate('2026-02-01');
-
 		const backup = await $exportAllStores();
 		(backup.stores.sessions[0] as DailySession).updatedAt = 999;
+
 		// valid record, then one with no `date` — put() throws on the missing keyPath
-		backup.stores.sessions.push(session('2026-02-02'), { updatedAt: 3 });
+		backup.stores.sessions.push(session('2026-02-02'), {
+			updatedAt: 3,
+		});
 
 		await expect($importAllStores(backup)).rejects.toThrow();
 
@@ -117,12 +146,38 @@ describe('backup-repository', () => {
 			exportedAt: new Date().toISOString(),
 			stores: {
 				sessions: [session('2026-03-01')],
-				routines: [{ id: 'routine-1', name: 'morning', tasks: [] }],
-				flowObservations: [{ id: 1, date: '2026-03-01' }],
-				drainObservations: [{ id: 1, date: '2026-03-01' }],
-				restObservations: [{ id: 1, date: '2026-03-01' }],
-				settings: [{ key: 'energyParams', value: {} }]
-			}
+				routines: [
+					{
+						id: 'routine-1',
+						name: 'morning',
+						tasks: [],
+					},
+				],
+				flowObservations: [
+					{
+						id: 1,
+						date: '2026-03-01',
+					},
+				],
+				drainObservations: [
+					{
+						id: 1,
+						date: '2026-03-01',
+					},
+				],
+				restObservations: [
+					{
+						id: 1,
+						date: '2026-03-01',
+					},
+				],
+				settings: [
+					{
+						key: 'energyParams',
+						value: {},
+					},
+				],
+			},
 		} satisfies BackupFile);
 
 		const exported = await $exportAllStores();

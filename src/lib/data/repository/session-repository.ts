@@ -8,7 +8,10 @@ import { withStore } from '$lib/data/storage/indexed-db';
 /** Upsert: put() replaces the record for the same date, creating it if absent. */
 export async function $updateSession(session: DailySession): Promise<void> {
 	await withStore('sessions', 'readwrite', (store) => {
-		store.put({ ...session, updatedAt: Date.now() });
+		store.put({
+			...session,
+			updatedAt: Date.now(),
+		});
 	});
 }
 
@@ -25,10 +28,10 @@ export async function $readSessionByDate(date: string): Promise<DailySession | n
  */
 export async function $readSessionsByDateRange(
 	startDate: string,
-	endDate: string
+	endDate: string,
 ): Promise<DailySession[]> {
 	const result = await withStore('sessions', 'readonly', (store) =>
-		store.getAll(IDBKeyRange.bound(startDate, endDate))
+		store.getAll(IDBKeyRange.bound(startDate, endDate)),
 	);
 
 	return result || [];

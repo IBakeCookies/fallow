@@ -10,7 +10,7 @@ import { $updateSession } from '$lib/data/repository/session-repository';
 import {
 	ENERGY_PARAMS_SETTING,
 	$readSetting,
-	$updateSetting
+	$updateSetting,
 } from '$lib/data/repository/settings-repository';
 
 const STORAGE_KEY = 'zenith-daily-tasks';
@@ -28,15 +28,19 @@ const ENERGY_PARAMS_STORAGE_KEY = 'zenith-energy-params';
  */
 export async function migrateEnergyParamsFromLocalStorage(): Promise<boolean> {
 	if (typeof localStorage === 'undefined') return false;
+
 	const raw = localStorage.getItem(ENERGY_PARAMS_STORAGE_KEY);
+
 	if (!raw) return false;
 
 	let value: unknown;
+
 	try {
 		value = JSON.parse(raw);
 	} catch {
 		// Unparseable legacy JSON never will parse: drop it rather than retry.
 		localStorage.removeItem(ENERGY_PARAMS_STORAGE_KEY);
+
 		return false;
 	}
 
@@ -51,36 +55,43 @@ export async function migrateEnergyParamsFromLocalStorage(): Promise<boolean> {
 	}
 
 	localStorage.removeItem(ENERGY_PARAMS_STORAGE_KEY);
+
 	return true;
 }
 
 export async function migrateFromLocalStorageToIndexedDB(
 	today: string,
-	defaultSwitchCost: number
+	defaultSwitchCost: number,
 ): Promise<boolean> {
 	if (typeof localStorage === 'undefined') return false;
+
 	if (localStorage.getItem(MIGRATION_KEY)) return false;
 
 	const oldData = localStorage.getItem(STORAGE_KEY);
+
 	if (!oldData) {
 		localStorage.setItem(MIGRATION_KEY, 'true');
+
 		return false;
 	}
 
 	let session: DailySession;
+
 	try {
 		const parsed = JSON.parse(oldData);
+
 		session = {
 			date: today,
 			tasks: parsed.tasks || [],
 			availableHours: parsed.availableHours || 0,
 			switchCost: parsed.switchCost ?? defaultSwitchCost,
-			updatedAt: Date.now()
+			updatedAt: Date.now(),
 		};
 	} catch {
 		// Unparseable/malformed legacy JSON will never parse — a permanent
 		// failure. Mark migrated so we stop retrying it on every load.
 		localStorage.setItem(MIGRATION_KEY, 'true');
+
 		return false;
 	}
 
@@ -93,6 +104,7 @@ export async function migrateFromLocalStorageToIndexedDB(
 	}
 
 	localStorage.setItem(MIGRATION_KEY, 'true');
+
 	// Keep old data for safety, can be cleaned up later
 	return true;
 }

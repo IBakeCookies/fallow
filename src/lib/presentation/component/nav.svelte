@@ -32,16 +32,16 @@
 			/^\d{4}-\d{2}-\d{2}$/.test(dateParam) &&
 			dateParam !== today
 			? dateParam
-			: null
+			: null,
 	);
 	const dayMode = $derived(viewedDate ? (viewedDate < today ? 'past' : 'future') : null);
 	const dayLabel = $derived(
 		viewedDate
-			? new Date(viewedDate + 'T12:00:00').toLocaleDateString(getDateLocale(), {
+			? new Date(`${viewedDate}T12:00:00`).toLocaleDateString(getDateLocale(), {
 					month: 'short',
-					day: 'numeric'
+					day: 'numeric',
 				})
-			: m.nav_today()
+			: m.nav_today(),
 	);
 
 	// Links carry the locale: on /de/* an unprefixed href would silently drop the
@@ -50,10 +50,27 @@
 	// right in both locales.
 	const home = resolve('/');
 	const links = $derived([
-		{ href: home, label: dayLabel, icon: ListTodo, mode: dayMode },
-		{ href: resolve('/calendar'), label: m.nav_calendar(), icon: CalendarDays },
-		{ href: resolve('/analytics'), label: m.nav_analytics(), icon: ChartColumn },
-		{ href: resolve('/energy'), label: m.nav_energy_lab(), icon: Zap }
+		{
+			href: home,
+			label: dayLabel,
+			icon: ListTodo,
+			mode: dayMode,
+		},
+		{
+			href: resolve('/calendar'),
+			label: m.nav_calendar(),
+			icon: CalendarDays,
+		},
+		{
+			href: resolve('/analytics'),
+			label: m.nav_analytics(),
+			icon: ChartColumn,
+		},
+		{
+			href: resolve('/energy'),
+			label: m.nav_energy_lab(),
+			icon: Zap,
+		},
 	]);
 
 	const currentPath = $derived(deLocalizeHref(page.url.pathname));
@@ -71,7 +88,11 @@
 			<a
 				href={localizeHref(link.href)}
 				aria-current={isActive(link.href) ? 'page' : undefined}
-				aria-label={link.mode ? m.nav_viewing_return({ label: link.label }) : link.label}
+				aria-label={link.mode
+					? m.nav_viewing_return({
+							label: link.label,
+						})
+					: link.label}
 				title={link.mode ? m.nav_return_to_today() : undefined}
 				class="flex items-center gap-text-xs rounded-lg px-box-sm py-box-3xs text-sm transition-colors
 			       {isActive(link.href)
@@ -94,7 +115,10 @@
 				aria-label="{m.nav_switch_language()}: {locale.toUpperCase()}"
 				aria-current={activeLocale.value === locale ? 'true' : undefined}
 				onclick={() => switchLocale(locale)}
-				class={segmentedToggleVariants({ tone: 'nav', active: activeLocale.value === locale })}
+				class={segmentedToggleVariants({
+					tone: 'nav',
+					active: activeLocale.value === locale,
+				})}
 			>
 				{locale}
 			</button>

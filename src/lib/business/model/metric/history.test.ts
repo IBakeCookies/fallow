@@ -8,10 +8,17 @@ import {
 	findBestDay,
 	monthlyCompletionRates,
 	summarizeSession,
-	type DaySummary
-} from './history';
-import { calculateCompletionRate, calculateSuggestedTasks } from './calculation';
-import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS, type FitPosterior } from '../zenith';
+	type DaySummary,
+} from '$lib/business/model/metric/history';
+import {
+	calculateCompletionRate,
+	calculateSuggestedTasks,
+} from '$lib/business/model/metric/calculation';
+import {
+	DEFAULT_CAPACITY_POOLS,
+	DEFAULT_USER_CONSTANTS,
+	type FitPosterior,
+} from '$lib/business/model/zenith';
 
 function makeTask(index: number, completed: boolean): Task {
 	return {
@@ -21,17 +28,22 @@ function makeTask(index: number, completed: boolean): Task {
 		mentalDifficulty: (index * 5 + 2) % 11,
 		enjoyment: 1 + ((index * 7) % 10),
 		createdAt: '2026-01-01',
-		completed
+		completed,
 	};
 }
 
 function makeSession(taskCount: number, availableHours = 8): DailySession {
 	return {
 		date: '2026-07-11',
-		tasks: Array.from({ length: taskCount }, (_, i) => makeTask(i, i % 3 === 0)),
+		tasks: Array.from(
+			{
+				length: taskCount,
+			},
+			(_, i) => makeTask(i, i % 3 === 0),
+		),
 		availableHours,
 		switchCost: 0.25,
-		updatedAt: 0
+		updatedAt: 0,
 	};
 }
 
@@ -39,9 +51,9 @@ const POSTERIOR: FitPosterior = {
 	covariance: [
 		[0.004, 0.001, -0.002],
 		[0.001, 0.006, -0.001],
-		[-0.002, -0.001, 0.01]
+		[-0.002, -0.001, 0.01],
 	],
-	sigma2: 0.02
+	sigma2: 0.02,
 };
 
 /** The pre-refactor path: solve the whole day's plan, then weight by priority. */
@@ -53,8 +65,8 @@ function completionRateViaFullPlan(session: DailySession, posterior?: FitPosteri
 			session.switchCost,
 			DEFAULT_CAPACITY_POOLS,
 			DEFAULT_USER_CONSTANTS,
-			posterior
-		)
+			posterior,
+		),
 	);
 }
 
@@ -64,8 +76,9 @@ describe('summarizeSession', () => {
 			for (const hours of [0, 2, 8, 24]) {
 				const session = makeSession(taskCount, hours);
 				expect(summarizeSession(session).completionRate).toBe(completionRateViaFullPlan(session));
+
 				expect(summarizeSession(session, DEFAULT_USER_CONSTANTS, POSTERIOR).completionRate).toBe(
-					completionRateViaFullPlan(session, POSTERIOR)
+					completionRateViaFullPlan(session, POSTERIOR),
 				);
 			}
 		}
@@ -75,7 +88,13 @@ describe('summarizeSession', () => {
 		// The 2ⁿ funded-subset enumeration costs ~55ms per 12-task day, so the old
 		// path needed ~20s here and blocked first paint. Bound is deliberately
 		// loose — it only has to fail if the subset search comes back.
-		const sessions = Array.from({ length: 365 }, () => makeSession(12));
+		const sessions = Array.from(
+			{
+				length: 365,
+			},
+			() => makeSession(12),
+		);
+
 		const started = performance.now();
 		const summaries = sessions.map((s) => summarizeSession(s));
 		expect(performance.now() - started).toBeLessThan(3000);
@@ -115,7 +134,7 @@ function day(date: string, completionRate: number, completedTasks = 1): DaySumma
 		completedTasks,
 		completionRate,
 		quadrant: 'flow',
-		availableHours: 4
+		availableHours: 4,
 	};
 }
 
@@ -152,7 +171,7 @@ describe('findBestDay', () => {
 
 	it('prefers the higher rate over the busier day', () => {
 		expect(findBestDay([day('2026-07-01', 90, 9), day('2026-07-02', 95, 2)])?.date).toBe(
-			'2026-07-02'
+			'2026-07-02',
 		);
 	});
 
@@ -164,8 +183,20 @@ describe('findBestDay', () => {
 
 describe('countQuadrants', () => {
 	it('counts every profile, including the ones with no days', () => {
-		const days = [day('2026-07-01', 10), { ...day('2026-07-02', 10), quadrant: 'grind' as const }];
-		expect(countQuadrants(days)).toEqual({ flow: 1, cruise: 0, grind: 1, routine: 0 });
+		const days = [
+			day('2026-07-01', 10),
+			{
+				...day('2026-07-02', 10),
+				quadrant: 'grind' as const,
+			},
+		];
+
+		expect(countQuadrants(days)).toEqual({
+			flow: 1,
+			cruise: 0,
+			grind: 1,
+			routine: 0,
+		});
 	});
 });
 
@@ -174,19 +205,32 @@ describe('monthlyCompletionRates', () => {
 		const months = monthlyCompletionRates(
 			[day('2026-05-04', 40), day('2026-07-02', 80)],
 			'2026-05-01',
-			'2026-07-26'
+			'2026-07-26',
 		);
+
 		expect(months.map((month) => month.month)).toEqual(['2026-05', '2026-06', '2026-07']);
-		expect(months[1]).toEqual({ month: '2026-06', average: null, dayCount: 0 });
+
+		expect(months[1]).toEqual({
+			month: '2026-06',
+			average: null,
+			dayCount: 0,
+		});
 	});
 
 	it('averages only the days recorded in each month', () => {
 		const months = monthlyCompletionRates(
 			[day('2026-07-02', 80), day('2026-07-03', 50), day('2026-07-04', 20)],
 			'2026-07-01',
-			'2026-07-26'
+			'2026-07-26',
 		);
-		expect(months).toEqual([{ month: '2026-07', average: 50, dayCount: 3 }]);
+
+		expect(months).toEqual([
+			{
+				month: '2026-07',
+				average: 50,
+				dayCount: 3,
+			},
+		]);
 	});
 
 	it('crosses the year boundary', () => {

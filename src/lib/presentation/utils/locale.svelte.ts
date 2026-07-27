@@ -20,13 +20,18 @@ import { extractLocaleFromUrl, getLocale, localizeHref, type Locale } from '$lib
 export const activeLocale = {
 	get value(): Locale {
 		return extractLocaleFromUrl(page.url) ?? getLocale();
-	}
+	},
 };
 
 /** Switch the UI language in place — no page reload. */
 export function switchLocale(locale: Locale) {
 	if (locale === activeLocale.value) return;
-	goto(localizeHref(page.url.pathname + page.url.search, { locale }));
+
+	goto(
+		localizeHref(page.url.pathname + page.url.search, {
+			locale,
+		}),
+	);
 }
 
 /** BCP-47 tag for Intl date formatting, tracking the active locale. */

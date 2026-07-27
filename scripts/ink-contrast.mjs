@@ -20,22 +20,28 @@ import { readFileSync } from 'fs';
 const SWEEP = process.argv.includes('--sweep');
 const DARK = 0.16;
 const LIGHT = 0.97;
-
 // Read the catalogue instead of duplicating it — a hand-copied list silently
 // stops covering new themes, which is the one thing this script is for.
 const catalogue = readFileSync('src/lib/business/model/theme.ts', 'utf8');
+
 const themes = [
-	...catalogue.matchAll(/name: '([^']+)',\s*\n\s*label: '[^']*',\s*\n\s*css: \[([^\]]+)\]/g)
-].map((m) => ({ name: m[1], css: [...m[2].matchAll(/'([^']+)'/g)].map((c) => c[1]) }));
+	...catalogue.matchAll(/name: '([^']+)',\s*\n\s*label: '[^']*',\s*\n\s*css: \[([^\]]+)\]/g),
+].map((m) => ({
+	name: m[1],
+	css: [...m[2].matchAll(/'([^']+)'/g)].map((c) => c[1]),
+}));
+
 if (themes.length === 0) throw new Error('no themes parsed from business/model/theme.ts');
 
 // Literal names: the utility classes below must exist in the built CSS, and
 // Tailwind's scanner is textual — theme.stories.svelte is what emits them.
 const STATES = ['danger', 'warning', 'success', 'info', 'mind', 'body', 'flow', 'mixed', 'brand'];
-
 const browser = await chromium.launch();
 const page = await browser.newPage();
-await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded' });
+
+await page.goto('http://localhost:5173/', {
+	waitUntil: 'domcontentloaded',
+});
 
 const results = await page.evaluate(
 	({ themes, STATES, DARK, LIGHT }) => {
@@ -43,23 +49,33 @@ const results = await page.evaluate(
 		// does the oklch→sRGB conversion rather than a hand-rolled copy of it.
 		const cv = document.createElement('canvas');
 		cv.width = cv.height = 1;
-		const ctx = cv.getContext('2d', { willReadFrequently: true });
+
+		const ctx = cv.getContext('2d', {
+			willReadFrequently: true,
+		});
+
 		const srgb = (css) => {
 			ctx.fillStyle = '#000';
 			ctx.fillRect(0, 0, 1, 1);
 			ctx.fillStyle = css;
 			ctx.fillRect(0, 0, 1, 1);
+
 			return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
 		};
+
 		const lum = (rgb) => {
 			const [r, g, b] = rgb.map((v) => {
 				const c = v / 255;
+
 				return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 			});
+
 			return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 		};
+
 		const ratio = (a, b) => {
 			const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+
 			return (x + 0.05) / (y + 0.05);
 		};
 
@@ -71,21 +87,26 @@ const results = await page.evaluate(
 		// which reads as a plausible result. Hence the pole assertion below.)
 		const holder = document.createElement('div');
 		holder.style.cssText = 'position:fixed;left:-9999px;top:0';
+
 		holder.innerHTML = STATES.map(
-			(s) => `<span id="ink-${s}" class="bg-${s} text-${s}-ink">Aa</span>`
+			(s) => `<span id="ink-${s}" class="bg-${s} text-${s}-ink">Aa</span>`,
 		).join('');
+
 		document.body.appendChild(holder);
 
 		const out = [];
 		const original = document.documentElement.className;
+
 		for (const t of themes) {
 			document.documentElement.className = t.css.join(' ');
+
 			for (const s of STATES) {
 				const cs = getComputedStyle(document.getElementById(`ink-${s}`));
 				const ink = cs.color;
 				const fill = cs.backgroundColor;
 				const inkL = +ink.match(/oklch\(([\d.]+)/)?.[1];
 				const hue = ink.match(/oklch\([\d.]+ [\d.]+ ([\d.]+)/)?.[1] ?? 0;
+
 				out.push({
 					theme: t.name,
 					state: s,
@@ -97,22 +118,31 @@ const results = await page.evaluate(
 					// both poles scored on the same fill, so the threshold can be
 					// re-derived from measurements rather than assumed
 					dark: +ratio(srgb(`oklch(${DARK} 0.02 ${hue})`), srgb(fill)).toFixed(2),
-					light: +ratio(srgb(`oklch(${LIGHT} 0.02 ${hue})`), srgb(fill)).toFixed(2)
+					light: +ratio(srgb(`oklch(${LIGHT} 0.02 ${hue})`), srgb(fill)).toFixed(2),
 				});
 			}
 		}
+
 		document.documentElement.className = original;
 		holder.remove();
+
 		return out;
 	},
-	{ themes, STATES, DARK, LIGHT }
+	{
+		themes,
+		STATES,
+		DARK,
+		LIGHT,
+	},
 );
+
 await browser.close();
 
 for (const r of results) r.best = Math.max(r.dark, r.light);
 console.log(`${themes.length} themes × ${STATES.length} fills = ${results.length} pairs`);
 
 const unresolved = results.filter((r) => !r.atPole);
+
 if (unresolved.length) {
 	console.error(`\nFAIL — ink did not resolve to a pole (${unresolved.length}):`);
 	for (const r of unresolved.slice(0, 10)) console.error(`   ${r.theme}/${r.state} ink=${r.ink}`);
@@ -131,11 +161,13 @@ console.log(`capped below 4.5:1 by the fill itself, no ink can fix: ${capped.len
 
 if (SWEEP) {
 	console.log(`\nthreshold sweep — dark ink when fill l > T:`);
+
 	for (let T = 0.5; T <= 0.72; T += 0.02) {
 		const got = results.map((r) => (r.fillL > T ? r.dark : r.light));
 		const missed = results.filter((r, i) => got[i] < r.best - 0.01).length;
+
 		console.log(
-			`   T=${T.toFixed(2)}  worst=${Math.min(...got).toFixed(2)}  <3: ${String(got.filter((v) => v < 3).length).padStart(3)}  <4.5: ${String(got.filter((v) => v < 4.5).length).padStart(3)}  worse-pole: ${missed}`
+			`   T=${T.toFixed(2)}  worst=${Math.min(...got).toFixed(2)}  <3: ${String(got.filter((v) => v < 3).length).padStart(3)}  <4.5: ${String(got.filter((v) => v < 4.5).length).padStart(3)}  worse-pole: ${missed}`,
 		);
 	}
 }
@@ -146,4 +178,5 @@ if (worse.length) {
 	console.error(`\nFAIL — the threshold in base.css is no longer optimal; re-run with --sweep.`);
 	process.exit(1);
 }
+
 console.log(`\nOK`);

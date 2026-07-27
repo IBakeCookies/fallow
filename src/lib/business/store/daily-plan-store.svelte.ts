@@ -10,8 +10,8 @@
 
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { fitEnergyParams } from '$lib/business/model/energy-calibration';
-import type { SessionStore } from './session-store.svelte';
-import type { EnergyObservationStore } from './energy-observation-store.svelte';
+import type { SessionStore } from '$lib/business/store/session-store.svelte';
+import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
 export class DailyPlanStore {
 	// Assigned first thing in the constructor. The `!` is load-bearing: the
@@ -28,7 +28,7 @@ export class DailyPlanStore {
 	// derivation below so it only refits when the logs change, not on every
 	// keystroke.
 	#energyParams = $derived(
-		fitEnergyParams(this.#observations.restObservations, this.#observations.drainObservations)
+		fitEnergyParams(this.#observations.restObservations, this.#observations.drainObservations),
 	);
 
 	#daily = $derived(
@@ -41,8 +41,8 @@ export class DailyPlanStore {
 			// The fit posterior makes the allocator hedge ϕ-uncertainty (MATH.md
 			// §5.1): barely-measured tasks plan slightly shorter/lower.
 			posterior: this.#session.constantsFit.posterior,
-			energyParams: this.#energyParams
-		})
+			energyParams: this.#energyParams,
+		}),
 	);
 
 	constructor(session: SessionStore, observations: EnergyObservationStore) {

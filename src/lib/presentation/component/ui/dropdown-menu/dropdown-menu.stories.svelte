@@ -7,7 +7,7 @@
 	const { Story } = defineMeta({
 		title: 'UI/Dropdown Menu',
 		component: DropdownMenuRoot,
-		tags: ['autodocs']
+		tags: ['autodocs'],
 	});
 </script>
 

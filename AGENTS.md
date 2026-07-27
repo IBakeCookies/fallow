@@ -33,8 +33,10 @@ These are the ones that get broken. Each exists because it was broken before.
   defaults a migration needs are **passed in as parameters**.
 - Enforced twice, and the two catch different things. `no-restricted-imports`
   in `eslint.config.js` matches the `$lib/...` **specifier string**, so a
-  relative (`../../data/...`) or dynamic (`import('$lib/data/...')`) crossing
-  is invisible to it. `.dependency-cruiser.cjs` resolves modules to disk, so
+  dynamic (`import('$lib/data/...')`) crossing is invisible to it. A relative
+  one cannot hide there either, but only because the same rule bans relative
+  specifiers outright (see R-Code); it is not read as a layer violation.
+  `.dependency-cruiser.cjs` resolves modules to disk, so
   its three directional rules — `data-not-to-upper-layers`,
   `business-not-to-presentation`, `presentation-not-to-data`, all
   `severity: 'error'` — catch those. Run with `npm run depcheck`; it is in CI.
@@ -215,7 +217,14 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 
 ### Code
 
-- Named exports only; default exports are for Svelte components.
+- Named exports only; default exports are for Svelte components. Enforced by
+  `no-restricted-syntax` on `ExportDefaultDeclaration`; root `*.config.*` and
+  `.storybook/` are exempt because their tool dictates the default export.
+- Import through `$lib`, never a relative path — including a sibling. Three
+  exemptions, each because the alias genuinely does not resolve: `./$types`
+  (generated per route by `svelte-kit sync`), `e2e/` (Playwright has no Vite
+  aliases), and `.storybook/` (outside `src`). `component/ui/` is exempt too,
+  for a different reason: `shadcn add` rewrites those barrels relative.
 - `const` over `let`. Early returns over nested `if`.
 - One responsibility per function. A function that _does_ something is an
   **action**; one that _reacts_ is a **handler**, named `onClick`,
@@ -458,7 +467,7 @@ Before claiming a change works:
 
 ```sh
 npm run check      # svelte-check + tsc on the service worker — must be 0 errors
-npx eslint .       # includes the layer-boundary rules
+npx eslint .       # includes the layer-boundary rules — 0 errors, warnings are a baseline
 npm run depcheck   # dependency-cruiser: layer direction, no cycles, no orphans
 npm run test:unit -- --run
 npm run test:e2e
@@ -475,6 +484,12 @@ build ignores the file and says so. Keep `runes` in step across the two.
 `prettier --check` is not in CI, but it does pass and `npm run lint` runs it —
 so keep it passing (`npx prettier --write` the files you touched, never the
 tree).
+
+Warnings are a known baseline, not a to-do list: 39 `no-console` (deliberate
+diagnostics) and 18 `max-depth` (the scheduler loops in
+`business/model/zenith*.ts`, which `eslint.config.js` downgrades to `warn`
+because unnesting them is a test-covered refactor, not a lint fixup). Errors
+are always zero — do not add to the warning count.
 
 `npm run depgraph` renders the module graph to `dependency-graph.svg` (needs
 graphviz). It is **gitignored, not committed**: CI regenerates it every run and

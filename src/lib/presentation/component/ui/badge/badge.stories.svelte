@@ -8,18 +8,25 @@
 		'destructive',
 		'outline',
 		'ghost',
-		'link'
+		'link',
 	];
 
 	const { Story } = defineMeta({
 		title: 'UI/Badge',
 		component: Badge,
 		tags: ['autodocs'],
-		args: { variant: 'default' },
+		args: {
+			variant: 'default',
+		},
 		argTypes: {
-			variant: { control: 'select', options: variants },
-			href: { control: 'text' }
-		}
+			variant: {
+				control: 'select',
+				options: variants,
+			},
+			href: {
+				control: 'text',
+			},
+		},
 	});
 </script>
 
@@ -42,4 +49,10 @@
 	</div>
 </Story>
 
-<Story name="As link" args={{ href: '/analytics', variant: 'outline' }}>Analytics</Story>
+<Story
+	name="As link"
+	args={{
+		href: '/analytics',
+		variant: 'outline',
+	}}>Analytics</Story
+>

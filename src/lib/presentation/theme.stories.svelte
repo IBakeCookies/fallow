@@ -20,8 +20,17 @@
 			   by scripts/ink-contrast.mjs, not by axe — which would otherwise fail
 			   this page for the exact tradeoff the tokens document. Contrast stays
 			   enforced on every real component story. */
-			a11y: { config: { rules: [{ id: 'color-contrast', enabled: false }] } }
-		}
+			a11y: {
+				config: {
+					rules: [
+						{
+							id: 'color-contrast',
+							enabled: false,
+						},
+					],
+				},
+			},
+		},
 	});
 
 	/* Literal class strings — Tailwind's scanner is textual, so anything
@@ -31,7 +40,7 @@
 		'bg-surface-card',
 		'bg-surface-inset',
 		'bg-surface-hover',
-		'bg-input'
+		'bg-input',
 	];
 	/* Each fill with its paired ink, so the "Aa" doubles as the legibility check
 	   the ink tokens exist for — they are derived from the fill, so a theme that
@@ -45,7 +54,7 @@
 		['bg-mind', 'text-mind-ink'],
 		['bg-body', 'text-body-ink'],
 		['bg-flow', 'text-flow-ink'],
-		['bg-mixed', 'text-mixed-ink']
+		['bg-mixed', 'text-mixed-ink'],
 	];
 	const textTones = ['text-ty-primary', 'text-ty-secondary', 'text-ty-silent', 'text-ty-ghost'];
 	const series = [
@@ -57,7 +66,7 @@
 		'bg-series-6',
 		'bg-series-7',
 		'bg-series-8',
-		'bg-series-rest'
+		'bg-series-rest',
 	];
 </script>
 

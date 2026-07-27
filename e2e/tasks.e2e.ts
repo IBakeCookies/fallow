@@ -4,7 +4,12 @@ import { AUTOSAVE_MS, addTask } from './helpers';
 test('fresh profile shows the empty state', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
-	await expect(page.getByRole('link', { name: 'Today' })).toBeVisible();
+
+	await expect(
+		page.getByRole('link', {
+			name: 'Today',
+		}),
+	).toBeVisible();
 });
 
 test('added task appears and survives a reload', async ({ page }) => {
@@ -38,6 +43,11 @@ test('removing a task restores the empty state', async ({ page }) => {
 	await addTask(page, 'Throwaway');
 	await expect(page.getByText('Throwaway').first()).toBeVisible();
 
-	await page.getByRole('button', { name: 'Delete task' }).click();
+	await page
+		.getByRole('button', {
+			name: 'Delete task',
+		})
+		.click();
+
 	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
 });

@@ -9,7 +9,7 @@ const config: StorybookConfig = {
 		'@chromatic-com/storybook',
 		'@storybook/addon-vitest',
 		'@storybook/addon-a11y',
-		'@storybook/addon-docs'
+		'@storybook/addon-docs',
 	],
 	framework: '@storybook/sveltekit',
 
@@ -22,9 +22,10 @@ const config: StorybookConfig = {
 			...config.resolve,
 			alias: {
 				...config.resolve?.alias,
-				'$env/dynamic/public': fileURLToPath(new URL('./env-dynamic-public.ts', import.meta.url))
-			}
-		}
-	})
+				'$env/dynamic/public': fileURLToPath(new URL('./env-dynamic-public.ts', import.meta.url)),
+			},
+		},
+	}),
 };
+
 export default config;

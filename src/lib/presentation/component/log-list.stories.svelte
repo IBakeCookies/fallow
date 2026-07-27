@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { fn } from 'storybook/test';
-	import LogList from './log-list.svelte';
+	import LogList from '$lib/presentation/component/log-list.svelte';
 
 	/* The component is generic over the row shape; this is the flow-log one. */
 	interface FlowRow {
@@ -12,9 +12,24 @@
 	}
 
 	const items: FlowRow[] = [
-		{ id: 1, date: '2026-07-18', taskTitle: 'boxing', phiHours: 0.5 },
-		{ id: 2, date: '2026-07-19', taskTitle: 'writing', phiHours: 0.75 },
-		{ id: 3, date: '2026-07-20', taskTitle: 'inbox', phiHours: 0.25 }
+		{
+			id: 1,
+			date: '2026-07-18',
+			taskTitle: 'boxing',
+			phiHours: 0.5,
+		},
+		{
+			id: 2,
+			date: '2026-07-19',
+			taskTitle: 'writing',
+			phiHours: 0.75,
+		},
+		{
+			id: 3,
+			date: '2026-07-20',
+			taskTitle: 'inbox',
+			phiHours: 0.25,
+		},
 	];
 
 	const onreset = fn();
@@ -22,7 +37,7 @@
 	const { Story } = defineMeta({
 		title: 'Component/Log List',
 		component: LogList,
-		tags: ['autodocs']
+		tags: ['autodocs'],
 	});
 </script>
 

@@ -60,8 +60,8 @@ import {
 	mapEnjoyability,
 	OPTIMAL_PHI_MULTIPLIER,
 	DEFAULT_USER_CONSTANTS,
-	type UserConstants
-} from './zenith';
+	type UserConstants,
+} from '$lib/business/model/zenith';
 
 // ================== Types & defaults ==================
 
@@ -154,7 +154,7 @@ export const DEFAULT_ENERGY_PARAMS: EnergyParams = {
 	freeTimeValue: 0.5,
 	terminalEnergyValue: 1.5,
 	initialCog: 1,
-	initialPhys: 1
+	initialPhys: 1,
 };
 
 /** One schedule entry: a contiguous run on a task, or rest (taskId = null). */
@@ -226,13 +226,15 @@ interface TaskCurve {
 function buildCurves(
 	tasks: EnergyTaskInput[],
 	constants: UserConstants,
-	params: EnergyParams
+	params: EnergyParams,
 ): Map<number, TaskCurve> {
 	const curves = new Map<number, TaskCurve>();
+
 	for (const task of tasks) {
 		const E = mapEffort(task.difficulty);
 		const beta = mapEnjoyability(task.enjoyment);
 		const phi = calculateFlowStateTime(E, beta, constants);
+
 		const curve: TaskCurve = {
 			id: task.id,
 			title: task.title,
@@ -241,20 +243,24 @@ function buildCurves(
 			phi,
 			wc: clamp01(task.cognitiveDemand),
 			wp: clamp01(task.physicalDemand),
-			refOutput: 0
+			refOutput: 0,
 		};
+
 		const m = params.restRecoveryMultiplier;
 		const b = params.microRecoveryFraction;
+
 		curve.refOutput = blockOutput(
 			curve,
 			1,
 			1,
 			reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m, b),
 			reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m, b),
-			OPTIMAL_PHI_MULTIPLIER * phi
+			OPTIMAL_PHI_MULTIPLIER * phi,
 		);
+
 		curves.set(task.id, curve);
 	}
+
 	return curves;
 }
 
@@ -267,7 +273,9 @@ function buildCurves(
  */
 function satietyValue(rawOutput: number, refOutput: number, scale: number): number {
 	if (scale <= 0 || refOutput <= 0) return rawOutput;
+
 	const kappa = scale * refOutput;
+
 	return kappa * Math.log(1 + rawOutput / kappa);
 }
 
@@ -295,18 +303,23 @@ function reservoirLaw(
 	alpha: number,
 	recovery: number,
 	restMultiplier = 1,
-	microRecovery = 0
+	microRecovery = 0,
 ): ReservoirLaw {
 	const rec = recovery * restMultiplier;
 	const gate = 1 - (1 - microRecovery) * demand;
 	const rho = alpha * demand + rec * gate;
+
 	// ρ = 0 only when both terms vanish; the reservoir then holds its level and
 	// eq is never used (reservoirAt short-circuits).
-	return { rho, eq: rho > 0 ? (rec * gate) / rho : 0 };
+	return {
+		rho,
+		eq: rho > 0 ? (rec * gate) / rho : 0,
+	};
 }
 
 function reservoirAt(c0: number, law: ReservoirLaw, t: number): number {
 	if (law.rho <= 0 || t <= 0) return c0;
+
 	return law.eq + (c0 - law.eq) * Math.exp(-law.rho * t);
 }
 
@@ -323,26 +336,34 @@ export type ReservoirDemand = Pick<EnergyTaskInput, 'id' | 'cognitiveDemand' | '
 export function simulateReservoirs(
 	blocks: ScheduleBlock[],
 	tasks: ReservoirDemand[],
-	params: EnergyParams
+	params: EnergyParams,
 ): { endCog: number; endPhys: number } {
 	const byId = new Map(tasks.map((t) => [t.id, t]));
 	let cog = clamp01(params.initialCog);
 	let phys = clamp01(params.initialPhys);
+
 	for (const b of blocks) {
 		if (b.hours <= 0) continue;
+
 		const task = b.taskId === null ? undefined : byId.get(b.taskId);
+
 		const lawFor = (demand: number, alpha: number) =>
 			reservoirLaw(
 				clamp01(demand),
 				alpha,
 				params.recoveryRate,
 				params.restRecoveryMultiplier,
-				params.microRecoveryFraction
+				params.microRecoveryFraction,
 			);
+
 		cog = reservoirAt(cog, lawFor(task?.cognitiveDemand ?? 0, params.alphaCog), b.hours);
 		phys = reservoirAt(phys, lawFor(task?.physicalDemand ?? 0, params.alphaPhys), b.hours);
 	}
-	return { endCog: cog, endPhys: phys };
+
+	return {
+		endCog: cog,
+		endPhys: phys,
+	};
 }
 
 /**
@@ -354,9 +375,10 @@ export function simulateReservoirs(
 function resumePhase(
 	last: { sEnd: number; tEnd: number } | undefined,
 	now: number,
-	tau: number
+	tau: number,
 ): number {
 	if (!last || tau <= 0) return 0;
+
 	return last.sEnd * Math.exp(-(now - last.tEnd) / tau);
 }
 
@@ -378,33 +400,40 @@ function blockOutput(
 	lawC: ReservoirLaw,
 	lawP: ReservoirLaw,
 	hours: number,
-	sStart = 0
+	sStart = 0,
 ): number {
 	if (hours <= 0) return 0;
+
 	const fastest = Math.min(
 		curve.phi,
 		lawC.rho > 0 ? 1 / lawC.rho : Infinity,
 		lawP.rho > 0 ? 1 / lawP.rho : Infinity,
-		hours
+		hours,
 	);
+
 	// Simpson error ~ h⁴: 16 nodes per fastest timescale keeps relative error
 	// below ~1e-6 even for near-floor ϕ tasks inside long blocks (probe-verified).
 	let n = Math.ceil(hours / (fastest / 16));
 	n = Math.min(Math.max(n, 16), 1024);
+
 	if (n % 2 === 1) n++;
 
 	const h = hours / n;
 	let sum = 0;
+
 	for (let j = 0; j <= n; j++) {
 		const u = j * h;
 		const s = sStart + u;
 		const p = curve.amp * curve.k * s * Math.exp(-curve.k * s);
+
 		const gate =
 			Math.pow(reservoirAt(cog0, lawC, u), curve.wc) *
 			Math.pow(reservoirAt(phys0, lawP, u), curve.wp);
+
 		const w = j === 0 || j === n ? 1 : j % 2 === 1 ? 4 : 2;
 		sum += w * p * gate;
 	}
+
 	return (sum * h) / 3;
 }
 
@@ -418,15 +447,26 @@ function blockOutput(
 export function normalizeSchedule(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
 	const out: ScheduleBlock[] = [];
 	let used = 0;
+
 	for (const b of blocks) {
 		const hours = Math.min(b.hours, windowHours - used);
+
 		if (hours <= 1e-9) continue;
+
 		const prev = out[out.length - 1];
+
 		if (prev && prev.taskId === b.taskId) prev.hours += hours;
-		else out.push({ taskId: b.taskId, hours });
+		else
+			out.push({
+				taskId: b.taskId,
+				hours,
+			});
+
 		used += hours;
 	}
+
 	while (out.length > 0 && out[out.length - 1].taskId === null) out.pop();
+
 	return out;
 }
 
@@ -435,18 +475,18 @@ export function evaluateSchedule(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
 	params: EnergyParams = DEFAULT_ENERGY_PARAMS,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): ScheduleEvaluation {
 	const curves = buildCurves(tasks, constants, params);
+
 	const blocks = normalizeSchedule(blocksIn, windowHours).filter(
-		(b) => b.taskId === null || curves.has(b.taskId)
+		(b) => b.taskId === null || curves.has(b.taskId),
 	);
 
 	const m = params.restRecoveryMultiplier;
 	const bMicro = params.microRecoveryFraction;
 	const restLawC = reservoirLaw(0, params.alphaCog, params.recoveryRate, m, bMicro);
 	const restLawP = reservoirLaw(0, params.alphaPhys, params.recoveryRate, m, bMicro);
-
 	let cog = clamp01(params.initialCog);
 	let phys = clamp01(params.initialPhys);
 	let t = 0;
@@ -464,6 +504,7 @@ export function evaluateSchedule(
 		if (b.taskId === null) {
 			cog = reservoirAt(cog, restLawC, b.hours);
 			phys = reservoirAt(phys, restLawP, b.hours);
+
 			evaluated.push({
 				taskId: null,
 				title: 'Rest',
@@ -471,7 +512,7 @@ export function evaluateSchedule(
 				hours: b.hours,
 				output: 0,
 				cogAfter: cog,
-				physAfter: phys
+				physAfter: phys,
 			});
 		} else {
 			const curve = curves.get(b.taskId)!;
@@ -479,12 +520,18 @@ export function evaluateSchedule(
 			const lawP = reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m, bMicro);
 			const sStart = resumePhase(phase.get(b.taskId), t, params.resumptionTimeConstant);
 			const output = blockOutput(curve, cog, phys, lawC, lawP, b.hours, sStart);
-			phase.set(b.taskId, { sEnd: sStart + b.hours, tEnd: t + b.hours });
+
+			phase.set(b.taskId, {
+				sEnd: sStart + b.hours,
+				tEnd: t + b.hours,
+			});
+
 			outputByTask.set(b.taskId, (outputByTask.get(b.taskId) ?? 0) + output);
 			totalOutput += output;
 			workHours += b.hours;
 			cog = reservoirAt(cog, lawC, b.hours);
 			phys = reservoirAt(phys, lawP, b.hours);
+
 			evaluated.push({
 				taskId: b.taskId,
 				title: curve.title,
@@ -492,15 +539,17 @@ export function evaluateSchedule(
 				hours: b.hours,
 				output,
 				cogAfter: cog,
-				physAfter: phys
+				physAfter: phys,
 			});
 		}
+
 		t += b.hours;
 	}
 
 	// Whatever remains of the window is implicit rest before the terminal
 	// valuation — stopping early both earns leisure and recovers energy.
 	const tail = windowHours - t;
+
 	if (tail > 0) {
 		cog = reservoirAt(cog, restLawC, tail);
 		phys = reservoirAt(phys, restLawP, tail);
@@ -509,8 +558,8 @@ export function evaluateSchedule(
 	const leisureHours = Math.max(0, windowHours - workHours);
 	const freeTimeBonus = params.freeTimeValue * leisureHours;
 	const terminalBonus = (params.terminalEnergyValue * (cog + phys)) / 2;
-
 	let satiatedOutput = 0;
+
 	for (const [taskId, raw] of outputByTask) {
 		satiatedOutput += satietyValue(raw, curves.get(taskId)!.refOutput, params.satietyScale);
 	}
@@ -525,7 +574,7 @@ export function evaluateSchedule(
 		terminalBonus,
 		objective: satiatedOutput + freeTimeBonus + terminalBonus,
 		endCog: cog,
-		endPhys: phys
+		endPhys: phys,
 	};
 }
 
@@ -537,17 +586,18 @@ export function sampleTrajectory(
 	windowHours: number,
 	params: EnergyParams = DEFAULT_ENERGY_PARAMS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	dtHours: number = 0.05
+	dtHours: number = 0.05,
 ): TrajectoryPoint[] {
 	const curves = buildCurves(tasks, constants, params);
+
 	const blocks = normalizeSchedule(blocksIn, windowHours).filter(
-		(b) => b.taskId === null || curves.has(b.taskId)
+		(b) => b.taskId === null || curves.has(b.taskId),
 	);
+
 	const m = params.restRecoveryMultiplier;
 	const bMicro = params.microRecoveryFraction;
 	const restLawC = reservoirLaw(0, params.alphaCog, params.recoveryRate, m, bMicro);
 	const restLawP = reservoirLaw(0, params.alphaPhys, params.recoveryRate, m, bMicro);
-
 	const points: TrajectoryPoint[] = [];
 	let cog = clamp01(params.initialCog);
 	let phys = clamp01(params.initialPhys);
@@ -559,14 +609,16 @@ export function sampleTrajectory(
 		curve: TaskCurve | null,
 		lawC: ReservoirLaw,
 		lawP: ReservoirLaw,
-		sStart = 0
+		sStart = 0,
 	) => {
 		const steps = Math.max(1, Math.ceil(hours / dtHours));
+
 		for (let j = 0; j < steps; j++) {
 			const u = (j * hours) / steps;
 			const c = reservoirAt(cog, lawC, u);
 			const p = reservoirAt(phys, lawP, u);
 			const s = sStart + u;
+
 			const rate = curve
 				? curve.amp *
 					curve.k *
@@ -575,8 +627,16 @@ export function sampleTrajectory(
 					Math.pow(c, curve.wc) *
 					Math.pow(p, curve.wp)
 				: 0;
-			points.push({ t: t + u, cog: c, phys: p, rate, taskId: curve?.id ?? null });
+
+			points.push({
+				t: t + u,
+				cog: c,
+				phys: p,
+				rate,
+				taskId: curve?.id ?? null,
+			});
 		}
+
 		cog = reservoirAt(cog, lawC, hours);
 		phys = reservoirAt(phys, lawP, hours);
 		t += hours;
@@ -588,18 +648,32 @@ export function sampleTrajectory(
 		} else {
 			const curve = curves.get(b.taskId)!;
 			const sStart = resumePhase(phase.get(b.taskId), t, params.resumptionTimeConstant);
-			phase.set(b.taskId, { sEnd: sStart + b.hours, tEnd: t + b.hours });
+
+			phase.set(b.taskId, {
+				sEnd: sStart + b.hours,
+				tEnd: t + b.hours,
+			});
+
 			sampleSegment(
 				b.hours,
 				curve,
 				reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m, bMicro),
 				reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m, bMicro),
-				sStart
+				sStart,
 			);
 		}
 	}
+
 	if (windowHours - t > 0) sampleSegment(windowHours - t, null, restLawC, restLawP);
-	points.push({ t: windowHours, cog, phys, rate: 0, taskId: null });
+
+	points.push({
+		t: windowHours,
+		cog,
+		phys,
+		rate: 0,
+		taskId: null,
+	});
+
 	return points;
 }
 
@@ -649,29 +723,35 @@ export function optimizeSchedule(
 	windowHours: number,
 	params: EnergyParams = DEFAULT_ENERGY_PARAMS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	options: OptimizeOptions = {}
+	options: OptimizeOptions = {},
 ): OptimizeResult {
 	const step = options.stepHours ?? DEFAULT_STEP_HOURS;
 	const maxIterations = options.maxIterations ?? 300;
-
 	const emptyEval = evaluateSchedule([], tasks, windowHours, params, constants);
+
 	if (windowHours <= 0 || tasks.length === 0) {
-		return { blocks: [], evaluation: emptyEval };
+		return {
+			blocks: [],
+			evaluation: emptyEval,
+		};
 	}
 
 	// T* per task, snapped to the lattice, for the full-session insert move.
 	const sessionHours = new Map<number, number>();
+
 	for (const task of tasks) {
 		const phi = calculateFlowStateTime(
 			mapEffort(task.difficulty),
 			mapEnjoyability(task.enjoyment),
-			constants
+			constants,
 		);
+
 		sessionHours.set(task.id, snapToStep(OPTIMAL_PHI_MULTIPLIER * phi, step));
 	}
 
 	let best: ScheduleBlock[] = [];
 	let bestEval = emptyEval;
+
 	for (const seed of buildSeeds(tasks, windowHours, constants, step)) {
 		const result = localSearch(
 			seed,
@@ -681,14 +761,19 @@ export function optimizeSchedule(
 			constants,
 			step,
 			maxIterations,
-			sessionHours
+			sessionHours,
 		);
+
 		if (result.evaluation.objective > bestEval.objective + 1e-9) {
 			best = result.blocks;
 			bestEval = result.evaluation;
 		}
 	}
-	return { blocks: best, evaluation: bestEval };
+
+	return {
+		blocks: best,
+		evaluation: bestEval,
+	};
 }
 
 /** Nearest multiple of the step, floored at one step (a zero block is no block). */
@@ -705,6 +790,7 @@ function floorToStep(hours: number, step: number): number {
 function taskAmplitude(task: EnergyTaskInput): number {
 	const E = mapEffort(task.difficulty);
 	const beta = mapEnjoyability(task.enjoyment);
+
 	return E * beta + beta / E;
 }
 
@@ -712,10 +798,11 @@ function buildSeeds(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
 	constants: UserConstants,
-	step: number
+	step: number,
 ): ScheduleBlock[][] {
 	const phiOf = (task: EnergyTaskInput) =>
 		calculateFlowStateTime(mapEffort(task.difficulty), mapEnjoyability(task.enjoyment), constants);
+
 	const byValue = [...tasks].sort((x, y) => taskAmplitude(y) - taskAmplitude(x));
 	// Seeds start on the lattice and moves only add/remove whole steps, so the
 	// search never leaves it; the sub-step window tail stays free time.
@@ -726,25 +813,44 @@ function buildSeeds(
 	const classicOver = (list: EnergyTaskInput[]): ScheduleBlock[] => {
 		const seed: ScheduleBlock[] = [];
 		let left = usable;
+
 		for (const task of list) {
 			if (left < step - 1e-9) break;
+
 			const hours = Math.min(snapToStep(OPTIMAL_PHI_MULTIPLIER * phiOf(task), step), left);
-			seed.push({ taskId: task.id, hours });
+
+			seed.push({
+				taskId: task.id,
+				hours,
+			});
+
 			left -= hours;
 		}
+
 		return seed;
 	};
 
 	// Seed 2: all-in on the single best task.
-	const allIn: ScheduleBlock[] = [{ taskId: byValue[0].id, hours: usable }];
+	const allIn: ScheduleBlock[] = [
+		{
+			taskId: byValue[0].id,
+			hours: usable,
+		},
+	];
 
 	// Seed 3: round-robin step blocks (a deliberately fragmented start so the
 	// search also explores from the interleaved side).
 	const roundRobin: ScheduleBlock[] = [];
 	let left = usable;
+
 	for (let i = 0; left > step - 1e-9 && i < 24; i++) {
 		const task = byValue[i % byValue.length];
-		roundRobin.push({ taskId: task.id, hours: step });
+
+		roundRobin.push({
+			taskId: task.id,
+			hours: step,
+		});
+
 		left -= step;
 	}
 
@@ -754,11 +860,13 @@ function buildSeeds(
 	// funded task is downhill until its hours are redistributed), so each needs
 	// its own starting point (probe 2026-07-14).
 	const seeds: ScheduleBlock[][] = [classicOver(byValue), allIn, roundRobin, []];
+
 	if (byValue.length >= 2) {
 		for (const dropped of byValue) {
 			seeds.push(classicOver(byValue.filter((task) => task.id !== dropped.id)));
 		}
 	}
+
 	return seeds;
 }
 
@@ -770,24 +878,35 @@ function localSearch(
 	constants: UserConstants,
 	step: number,
 	maxIterations: number,
-	sessionHours: Map<number, number>
+	sessionHours: Map<number, number>,
 ): OptimizeResult {
 	let current = normalizeSchedule(seed, windowHours);
 	let currentEval = evaluateSchedule(current, tasks, windowHours, params, constants);
 
 	for (let iter = 0; iter < maxIterations; iter++) {
 		let improved: { blocks: ScheduleBlock[]; evaluation: ScheduleEvaluation } | null = null;
+
 		for (const candidate of neighbors(current, tasks, windowHours, step, sessionHours)) {
 			const evaluation = evaluateSchedule(candidate, tasks, windowHours, params, constants);
+
 			if (evaluation.objective > (improved?.evaluation.objective ?? currentEval.objective) + 1e-9) {
-				improved = { blocks: candidate, evaluation };
+				improved = {
+					blocks: candidate,
+					evaluation,
+				};
 			}
 		}
+
 		if (!improved) break;
+
 		current = normalizeSchedule(improved.blocks, windowHours);
 		currentEval = improved.evaluation;
 	}
-	return { blocks: current, evaluation: currentEval };
+
+	return {
+		blocks: current,
+		evaluation: currentEval,
+	};
 }
 
 function* neighbors(
@@ -795,7 +914,7 @@ function* neighbors(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
 	step: number,
-	sessionHours: Map<number, number>
+	sessionHours: Map<number, number>,
 ): Generator<ScheduleBlock[]> {
 	const total = blocks.reduce((sum, b) => sum + b.hours, 0);
 	// Whole steps of remaining room — the sub-step window tail is not
@@ -804,76 +923,149 @@ function* neighbors(
 	const room = avail > step - 1e-9;
 
 	for (let i = 0; i < blocks.length; i++) {
-		if (room) yield replaceAt(blocks, i, { ...blocks[i], hours: blocks[i].hours + step });
-		yield replaceAt(blocks, i, { ...blocks[i], hours: blocks[i].hours - step });
+		if (room)
+			yield replaceAt(blocks, i, {
+				...blocks[i],
+				hours: blocks[i].hours + step,
+			});
+
+		yield replaceAt(blocks, i, {
+			...blocks[i],
+			hours: blocks[i].hours - step,
+		});
+
 		yield [...blocks.slice(0, i), ...blocks.slice(i + 1)];
+
 		if (i + 1 < blocks.length) {
 			const swapped = [...blocks];
 			[swapped[i], swapped[i + 1]] = [swapped[i + 1], swapped[i]];
 			yield swapped;
 		}
+
 		for (const task of tasks) {
 			if (task.id !== blocks[i].taskId)
-				yield replaceAt(blocks, i, { ...blocks[i], taskId: task.id });
+				yield replaceAt(blocks, i, {
+					...blocks[i],
+					taskId: task.id,
+				});
 		}
-		if (blocks[i].taskId !== null) yield replaceAt(blocks, i, { ...blocks[i], taskId: null });
+
+		if (blocks[i].taskId !== null)
+			yield replaceAt(blocks, i, {
+				...blocks[i],
+				taskId: null,
+			});
+
 		// Lattice-safe halves: for an odd number of steps the "half" is the
 		// larger share, so both parts stay whole steps ≥ one step.
 		const firstHalf = snapToStep(blocks[i].hours / 2, step);
 		const secondHalf = blocks[i].hours - firstHalf;
+
 		// Split around a rest break: tests whether a mid-session recovery pays
 		// for the warm-up it destroys.
 		if (blocks[i].taskId !== null && blocks[i].hours >= 2 * step && room) {
 			yield [
 				...blocks.slice(0, i),
-				{ taskId: blocks[i].taskId, hours: firstHalf },
-				{ taskId: null, hours: step },
-				{ taskId: blocks[i].taskId, hours: secondHalf },
-				...blocks.slice(i + 1)
+				{
+					taskId: blocks[i].taskId,
+					hours: firstHalf,
+				},
+				{
+					taskId: null,
+					hours: step,
+				},
+				{
+					taskId: blocks[i].taskId,
+					hours: secondHalf,
+				},
+				...blocks.slice(i + 1),
 			];
 		}
+
 		// Hand the second half of a block to another task: swaps time in at a
 		// useful session length, where the one-step path (shrink, then insert)
 		// dies at a sub-warm-up sliver.
 		if (blocks[i].taskId !== null && blocks[i].hours >= 2 * step) {
 			for (const task of tasks) {
 				if (task.id === blocks[i].taskId) continue;
+
 				yield [
 					...blocks.slice(0, i),
-					{ taskId: blocks[i].taskId, hours: firstHalf },
-					{ taskId: task.id, hours: secondHalf },
-					...blocks.slice(i + 1)
+					{
+						taskId: blocks[i].taskId,
+						hours: firstHalf,
+					},
+					{
+						taskId: task.id,
+						hours: secondHalf,
+					},
+					...blocks.slice(i + 1),
 				];
 			}
 		}
+
 		// Transfer a step from block i to block j: reallocation in one move,
 		// for plateaus where the shrink and the grow are each downhill alone.
 		for (let j = 0; j < blocks.length; j++) {
 			if (j === i) continue;
-			const shrunk = replaceAt(blocks, i, { ...blocks[i], hours: blocks[i].hours - step });
-			yield replaceAt(shrunk, j, { ...shrunk[j], hours: shrunk[j].hours + step });
+
+			const shrunk = replaceAt(blocks, i, {
+				...blocks[i],
+				hours: blocks[i].hours - step,
+			});
+
+			yield replaceAt(shrunk, j, {
+				...shrunk[j],
+				hours: shrunk[j].hours + step,
+			});
 		}
 	}
 
 	for (let pos = 0; pos <= blocks.length; pos++) {
 		if (!room) break;
+
 		for (const task of tasks) {
-			yield [...blocks.slice(0, pos), { taskId: task.id, hours: step }, ...blocks.slice(pos)];
+			yield [
+				...blocks.slice(0, pos),
+				{
+					taskId: task.id,
+					hours: step,
+				},
+				...blocks.slice(pos),
+			];
+
 			// Full-T*-session insert: a step-sized sliver of a cold task rarely
 			// pays (warm-up), but a whole session might. Both terms are lattice
 			// multiples (sessionHours is snapped, avail is floored).
 			const session = Math.min(sessionHours.get(task.id) ?? step, avail);
+
 			if (session > step + 1e-9) {
-				yield [...blocks.slice(0, pos), { taskId: task.id, hours: session }, ...blocks.slice(pos)];
+				yield [
+					...blocks.slice(0, pos),
+					{
+						taskId: task.id,
+						hours: session,
+					},
+					...blocks.slice(pos),
+				];
 			}
 		}
-		yield [...blocks.slice(0, pos), { taskId: null, hours: step }, ...blocks.slice(pos)];
+
+		yield [
+			...blocks.slice(0, pos),
+			{
+				taskId: null,
+				hours: step,
+			},
+			...blocks.slice(pos),
+		];
 	}
 }
 
 function replaceAt(blocks: ScheduleBlock[], index: number, block: ScheduleBlock): ScheduleBlock[] {
 	const next = [...blocks];
 	next[index] = block;
+
 	return next;
 }
 
@@ -955,6 +1147,7 @@ export const CALIBRATION_NOISE_PRIOR_WEIGHT = 4;
  * pin α to an extreme-but-valid drain rate, never break the dynamics.
  */
 export const ALPHA_FIT_MIN = 0.05;
+
 export const ALPHA_FIT_MAX = 2;
 
 /**
@@ -985,7 +1178,7 @@ export const ALPHA_FIT_MAX = 2;
 export function fitDrainRate(
 	observations: DrainObservation[],
 	fallbackAlpha: number,
-	params: Pick<EnergyParams, 'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'>
+	params: Pick<EnergyParams, 'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'>,
 ): DrainRateFit {
 	const fit = fitRidge1D(
 		observations,
@@ -1002,12 +1195,19 @@ export function fitDrainRate(
 				alpha,
 				params.recoveryRate,
 				params.restRecoveryMultiplier,
-				params.microRecoveryFraction
+				params.microRecoveryFraction,
 			);
+
 			return 1 - reservoirAt(1, law, o.hours);
-		}
+		},
 	);
-	return { alpha: fit.value, fitted: fit.fitted, alphaStd: fit.std, usedCount: fit.usedCount };
+
+	return {
+		alpha: fit.value,
+		fitted: fit.fitted,
+		alphaStd: fit.std,
+		usedCount: fit.usedCount,
+	};
 }
 
 /**
@@ -1019,14 +1219,17 @@ function minimizeSmooth1D(f: (x: number) => number, min: number, max: number): n
 	const GRID = 128;
 	let bestIdx = 0;
 	let bestVal = Infinity;
+
 	for (let i = 0; i <= GRID; i++) {
 		const x = min + ((max - min) * i) / GRID;
 		const val = f(x);
+
 		if (val < bestVal) {
 			bestVal = val;
 			bestIdx = i;
 		}
 	}
+
 	const cell = (max - min) / GRID;
 	let lo = Math.max(min, min + (bestIdx - 1) * cell);
 	let hi = Math.min(max, min + (bestIdx + 1) * cell);
@@ -1035,6 +1238,7 @@ function minimizeSmooth1D(f: (x: number) => number, min: number, max: number): n
 	let x2 = lo + INV_PHI * (hi - lo);
 	let f1 = f(x1);
 	let f2 = f(x2);
+
 	for (let i = 0; i < 48; i++) {
 		if (f1 < f2) {
 			hi = x2;
@@ -1050,6 +1254,7 @@ function minimizeSmooth1D(f: (x: number) => number, min: number, max: number): n
 			f2 = f(x2);
 		}
 	}
+
 	return (lo + hi) / 2;
 }
 
@@ -1083,38 +1288,53 @@ function fitRidge1D<O>(
 	priorStrength: number,
 	noisePriorStd: number,
 	observed: (o: O) => number,
-	predict: (param: number, o: O) => number
+	predict: (param: number, o: O) => number,
 ): Ridge1DFit {
 	const used = observations.filter(informative);
+
 	if (used.length === 0) {
-		return { value: fallback, fitted: false, usedCount: 0 };
+		return {
+			value: fallback,
+			fitted: false,
+			usedCount: 0,
+		};
 	}
 
 	const param0 = Math.min(Math.max(fallback, min), max);
+
 	const ssr = (param: number): number => {
 		let sum = 0;
+
 		for (const o of used) {
 			const resid = observed(o) - predict(param, o);
 			sum += resid * resid;
 		}
+
 		return sum;
 	};
+
 	const objective = (param: number): number =>
 		ssr(param) + priorStrength * (param - param0) * (param - param0);
 
 	const value = minimizeSmooth1D(objective, min, max);
-
 	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
 	const sigma2 = (nu0 * noisePriorStd * noisePriorStd + ssr(value)) / (nu0 + used.length);
 	const h = 1e-4;
 	let sensitivity = 0;
+
 	for (const o of used) {
 		const dD = (predict(value + h, o) - predict(value - h, o)) / (2 * h);
 		sensitivity += dD * dD;
 	}
+
 	const std = Math.sqrt(sigma2 / (sensitivity + priorStrength));
 
-	return { value, fitted: true, std, usedCount: used.length };
+	return {
+		value,
+		fitted: true,
+		std,
+		usedCount: used.length,
+	};
 }
 
 // ================== Recovery-rate calibration (r fit) ==================
@@ -1171,6 +1391,7 @@ export const RECOVERY_NOISE_PRIOR_STD = 0.21;
  * guard, exactly like the α fit's bounds.
  */
 export const RECOVERY_FIT_MIN = 0.1;
+
 export const RECOVERY_FIT_MAX = 3;
 
 /**
@@ -1200,9 +1421,10 @@ export const RECOVERY_FIT_MAX = 3;
 export function fitRecoveryRate(
 	observations: RestObservation[],
 	fallbackRate: number,
-	params: Pick<EnergyParams, 'restRecoveryMultiplier'>
+	params: Pick<EnergyParams, 'restRecoveryMultiplier'>,
 ): RecoveryRateFit {
 	const m = params.restRecoveryMultiplier;
+
 	const fit = fitRidge1D(
 		observations,
 		(o) => o.drainedBefore > 0 && o.hours > 0,
@@ -1212,9 +1434,15 @@ export function fitRecoveryRate(
 		RECOVERY_PRIOR_STRENGTH,
 		RECOVERY_NOISE_PRIOR_STD,
 		(o) => clamp01(o.drainedAfter),
-		(rate, o) => clamp01(o.drainedBefore) * Math.exp(-rate * m * o.hours)
+		(rate, o) => clamp01(o.drainedBefore) * Math.exp(-rate * m * o.hours),
 	);
-	return { rate: fit.value, fitted: fit.fitted, rateStd: fit.std, usedCount: fit.usedCount };
+
+	return {
+		rate: fit.value,
+		fitted: fit.fitted,
+		rateStd: fit.std,
+		usedCount: fit.usedCount,
+	};
 }
 
 // ================== Stopping-value calibration (λ₀ fit) ==================
@@ -1269,6 +1497,7 @@ export const STOP_NOISE_PRIOR_STD = 0.25;
  * representability + absurdity-guard role as the α and r fit bounds).
  */
 export const STOP_FIT_MIN = 0;
+
 export const STOP_FIT_MAX = 3;
 
 /**
@@ -1331,18 +1560,21 @@ export const STOP_INVERSION_MARGIN = 0.25;
 export function stopIndifferencePoint(
 	observation: StopObservation,
 	params: EnergyParams,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): number | null {
 	const { tasks, windowHours } = observation;
-	if (windowHours <= 0 || tasks.length === 0) return null;
-	const step = DEFAULT_STEP_HOURS;
 
+	if (windowHours <= 0 || tasks.length === 0) return null;
+
+	const step = DEFAULT_STEP_HOURS;
 	const byTask = new Map<number, number>();
+
 	for (const { taskId, hours } of observation.workedHours) {
 		if (hours > 0 && tasks.some((t) => t.id === taskId)) {
 			byTask.set(taskId, (byTask.get(taskId) ?? 0) + hours);
 		}
 	}
+
 	if (byTask.size === 0) return null;
 
 	// Canonical amplitude order over ALL of the day's tasks: the worked ones
@@ -1350,19 +1582,26 @@ export function stopIndifferencePoint(
 	// point when an UNLOGGED task is probed below.
 	const canonical = [...tasks].sort((x, y) => taskAmplitude(y) - taskAmplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
+
 	const sched: ScheduleBlock[] = canonical
 		.filter((t) => byTask.has(t.id))
-		.map((t) => ({ taskId: t.id, hours: byTask.get(t.id)! }));
+		.map((t) => ({
+			taskId: t.id,
+			hours: byTask.get(t.id)!,
+		}));
+
 	const total = sched.reduce((sum, b) => sum + b.hours, 0);
 
 	const workValue = (blocks: ScheduleBlock[]): number => {
 		const ev = evaluateSchedule(blocks, tasks, windowHours, params, constants);
+
 		return ev.satiatedOutput + ev.terminalBonus;
 	};
-	const base = workValue(sched);
 
+	const base = workValue(sched);
 	let lo: number | null = null;
 	let hi: number | null = null;
+
 	for (const t of tasks) {
 		if (total + step <= windowHours + 1e-9) {
 			// An unlogged task is probed at ITS canonical position, not appended
@@ -1371,25 +1610,54 @@ export function stopIndifferencePoint(
 			// probe day — so appending made `lo` (and hence λ̂₀) depend on an
 			// arbitrary convention rather than on the day (MATH.md §13.4).
 			const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
+
 			const grown = byTask.has(t.id)
-				? sched.map((b) => (b.taskId === t.id ? { ...b, hours: b.hours + step } : b))
-				: [...sched.slice(0, at), { taskId: t.id, hours: step }, ...sched.slice(at)];
+				? sched.map((b) =>
+						b.taskId === t.id
+							? {
+									...b,
+									hours: b.hours + step,
+								}
+							: b,
+					)
+				: [
+						...sched.slice(0, at),
+						{
+							taskId: t.id,
+							hours: step,
+						},
+						...sched.slice(at),
+					];
+
 			const dNext = (workValue(grown) - base) / step;
 			lo = lo === null ? dNext : Math.max(lo, dNext);
 		}
+
 		if ((byTask.get(t.id) ?? 0) >= step - 1e-9) {
 			const shrunk = sched
-				.map((b) => (b.taskId === t.id ? { ...b, hours: b.hours - step } : b))
+				.map((b) =>
+					b.taskId === t.id
+						? {
+								...b,
+								hours: b.hours - step,
+							}
+						: b,
+				)
 				.filter((b) => b.hours > 1e-9);
+
 			const dLast = (base - workValue(shrunk)) / step;
 			hi = hi === null ? dLast : Math.max(hi, dLast);
 		}
 	}
+
 	if (lo === null || hi === null) return null;
+
 	const stopBound = Math.max(0, lo);
+
 	// Interruption-censored: the day's data contradicts a rational stop by more
 	// than the instrument's slack — see STOP_INVERSION_MARGIN.
 	if (stopBound > hi + STOP_INVERSION_MARGIN) return null;
+
 	return (stopBound + hi) / 2;
 }
 
@@ -1418,21 +1686,27 @@ export function fitStoppingValue(
 	observations: StopObservation[],
 	fallbackValue: number,
 	params: EnergyParams,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): StoppingValueFit {
 	const points = observations
 		.map((o) => stopIndifferencePoint(o, params, constants))
 		.filter((p): p is number => p !== null);
+
 	if (points.length === 0) {
-		return { value: fallbackValue, fitted: false, usedCount: 0 };
+		return {
+			value: fallbackValue,
+			fitted: false,
+			usedCount: 0,
+		};
 	}
 
 	const value0 = Math.min(Math.max(fallbackValue, STOP_FIT_MIN), STOP_FIT_MAX);
 	const n = points.length;
+
 	const mean =
 		(points.reduce((s, p) => s + p, 0) + STOP_PRIOR_STRENGTH * value0) / (n + STOP_PRIOR_STRENGTH);
-	const value = Math.min(Math.max(mean, STOP_FIT_MIN), STOP_FIT_MAX);
 
+	const value = Math.min(Math.max(mean, STOP_FIT_MIN), STOP_FIT_MAX);
 	// Noise estimate and Laplace posterior std, the §8.7/§8.9 construction
 	// with sensitivity Σ(dpred/dλ₀)² = n exactly.
 	const nu0 = CALIBRATION_NOISE_PRIOR_WEIGHT;
@@ -1440,5 +1714,10 @@ export function fitStoppingValue(
 	const sigma2 = (nu0 * STOP_NOISE_PRIOR_STD * STOP_NOISE_PRIOR_STD + ssr) / (nu0 + n);
 	const valueStd = Math.sqrt(sigma2 / (n + STOP_PRIOR_STRENGTH));
 
-	return { value, fitted: true, valueStd, usedCount: n };
+	return {
+		value,
+		fitted: true,
+		valueStd,
+		usedCount: n,
+	};
 }

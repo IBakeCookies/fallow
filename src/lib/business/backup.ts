@@ -8,5 +8,5 @@ export {
 	$exportAllStores,
 	$importAllStores,
 	$deleteAllStores,
-	type BackupFile
+	type BackupFile,
 } from '$lib/data/repository/backup-repository';

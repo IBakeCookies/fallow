@@ -11,7 +11,7 @@ import {
 	randomScenerySeed,
 	themes,
 	type ThemeItem,
-	type ThemeName
+	type ThemeName,
 } from '$lib/business/model/theme';
 
 const CONTEXT_KEY = Symbol();
@@ -53,7 +53,7 @@ export class ThemeStore {
 	constructor(
 		initialTheme?: ThemeName,
 		initialScenerySeed?: number,
-		initialSceneryPaused?: boolean
+		initialSceneryPaused?: boolean,
 	) {
 		// offline, the SW serves cached HTML whose serialized appearance may be
 		// stale — the cookies are the source of truth, so they win over the SSR
@@ -82,6 +82,7 @@ export class ThemeStore {
 			if (!window.matchMedia) return;
 
 			const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+
 			const sync = () => {
 				this.#prefersReducedMotion = query.matches;
 			};
@@ -173,11 +174,11 @@ export class ThemeStore {
 export function setThemeStore(
 	initialTheme?: ThemeName,
 	initialScenerySeed?: number,
-	initialSceneryPaused?: boolean
+	initialSceneryPaused?: boolean,
 ): ThemeStore {
 	return setContext<ThemeStore>(
 		CONTEXT_KEY,
-		new ThemeStore(initialTheme, initialScenerySeed, initialSceneryPaused)
+		new ThemeStore(initialTheme, initialScenerySeed, initialSceneryPaused),
 	);
 }
 

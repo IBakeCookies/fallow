@@ -85,6 +85,7 @@ export class EnergyObservationStore {
 	// is a measurement, not a plan.
 	async logDrain(id: number, hours: number, mindDrain: number, bodyDrain: number) {
 		const task = this.#readTasks().find((t) => t.id === id);
+
 		if (!task) return;
 
 		try {
@@ -96,8 +97,9 @@ export class EnergyObservationStore {
 				cognitiveDemand: task.mentalDifficulty / 10,
 				physicalDemand: task.physicalDifficulty / 10,
 				mindDrain,
-				bodyDrain
+				bodyDrain,
 			});
+
 			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 		} catch (e) {
 			console.error('Failed to save drain observation', e);
@@ -140,7 +142,7 @@ export class EnergyObservationStore {
 		mindBefore: number,
 		mindAfter: number,
 		bodyBefore: number,
-		bodyAfter: number
+		bodyAfter: number,
 	) {
 		try {
 			await restObservationRepository.$createRestObservation({
@@ -149,8 +151,9 @@ export class EnergyObservationStore {
 				mindBefore,
 				mindAfter,
 				bodyBefore,
-				bodyAfter
+				bodyAfter,
 			});
+
 			this.#restObservations = await restObservationRepository.$readAllRestObservations();
 		} catch (e) {
 			console.error('Failed to save rest observation', e);
@@ -185,11 +188,11 @@ export class EnergyObservationStore {
 
 export function setEnergyObservationStore(
 	readTasks: ReadTasks,
-	reportStorageError: ReportStorageError
+	reportStorageError: ReportStorageError,
 ): EnergyObservationStore {
 	return setContext<EnergyObservationStore>(
 		CONTEXT_KEY,
-		new EnergyObservationStore(readTasks, reportStorageError)
+		new EnergyObservationStore(readTasks, reportStorageError),
 	);
 }
 

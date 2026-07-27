@@ -7,7 +7,7 @@
 	const updated = new Date('2026-07-26T12:00:00').toLocaleDateString(getDateLocale(), {
 		year: 'numeric',
 		month: 'long',
-		day: 'numeric'
+		day: 'numeric',
 	});
 
 	// One entry per processing activity. The order is deliberate: the
@@ -15,13 +15,34 @@
 	// the cookies that qualify it, then the three server-side processings,
 	// then transfers and rights.
 	const sections = [
-		{ heading: m.privacy_local_heading, body: m.privacy_local_body },
-		{ heading: m.privacy_cookies_heading, body: m.privacy_cookies_body },
-		{ heading: m.privacy_hosting_heading, body: m.privacy_hosting_body },
-		{ heading: m.privacy_analytics_heading, body: m.privacy_analytics_body },
-		{ heading: m.privacy_speed_heading, body: m.privacy_speed_body },
-		{ heading: m.privacy_transfer_heading, body: m.privacy_transfer_body },
-		{ heading: m.privacy_rights_heading, body: m.privacy_rights_body }
+		{
+			heading: m.privacy_local_heading,
+			body: m.privacy_local_body,
+		},
+		{
+			heading: m.privacy_cookies_heading,
+			body: m.privacy_cookies_body,
+		},
+		{
+			heading: m.privacy_hosting_heading,
+			body: m.privacy_hosting_body,
+		},
+		{
+			heading: m.privacy_analytics_heading,
+			body: m.privacy_analytics_body,
+		},
+		{
+			heading: m.privacy_speed_heading,
+			body: m.privacy_speed_body,
+		},
+		{
+			heading: m.privacy_transfer_heading,
+			body: m.privacy_transfer_body,
+		},
+		{
+			heading: m.privacy_rights_heading,
+			body: m.privacy_rights_body,
+		},
 	];
 </script>
 
@@ -32,7 +53,11 @@
 >
 	<header>
 		<h1 class="text-2xl font-semibold text-ty-primary">{m.privacy_title()}</h1>
-		<p class="mt-text-2xs text-xs text-ty-silent">{m.privacy_updated({ date: updated })}</p>
+		<p class="mt-text-2xs text-xs text-ty-silent">
+			{m.privacy_updated({
+				date: updated,
+			})}
+		</p>
 	</header>
 
 	<section class="mt-text-2xl">

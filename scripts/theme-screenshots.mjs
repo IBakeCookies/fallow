@@ -9,24 +9,55 @@ import { mkdirSync, readFileSync } from 'fs';
 // stops covering new themes, which is the one thing this script is for.
 const catalogue = readFileSync('src/lib/business/model/theme.ts', 'utf8');
 const themes = [...catalogue.matchAll(/^\t\tname: '([^']+)'/gm)].map((m) => m[1]);
+
 if (themes.length === 0) throw new Error('no themes parsed from business/model/theme.ts');
 
 const outDir = process.argv[2] ?? 'screenshots';
-mkdirSync(outDir, { recursive: true });
+
+mkdirSync(outDir, {
+	recursive: true,
+});
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+
+const context = await browser.newContext({
+	viewport: {
+		width: 1440,
+		height: 1000,
+	},
+});
+
 const page = await context.newPage();
 
 for (const theme of themes) {
-	await context.addCookies([{ name: 'theme', value: theme, url: 'http://localhost:5173' }]);
+	await context.addCookies([
+		{
+			name: 'theme',
+			value: theme,
+			url: 'http://localhost:5173',
+		},
+	]);
+
 	await page.goto('http://localhost:5173/');
 	await page.waitForTimeout(800);
-	await page.screenshot({ path: `${outDir}/${theme}.png` });
+
+	await page.screenshot({
+		path: `${outDir}/${theme}.png`,
+	});
+
 	// theme switcher dropdown open — popovers are a common theme regression
-	await page.getByRole('button', { name: /theme/i }).click();
+	await page
+		.getByRole('button', {
+			name: /theme/i,
+		})
+		.click();
+
 	await page.waitForTimeout(400);
-	await page.screenshot({ path: `${outDir}/${theme}-dropdown.png` });
+
+	await page.screenshot({
+		path: `${outDir}/${theme}-dropdown.png`,
+	});
+
 	await page.keyboard.press('Escape');
 	await page.waitForTimeout(200);
 }

@@ -7,6 +7,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+
 const dirname =
 	typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,9 +19,9 @@ export default defineConfig({
 			compilerOptions: {
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
 				runes: ({ filename }) =>
-					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
 			},
-			adapter: adapter()
+			adapter: adapter(),
 		}),
 		paraglideVitePlugin({
 			project: './project.inlang',
@@ -29,12 +30,12 @@ export default defineConfig({
 			// has to outrank the cookie or two visitors get different copy at the
 			// same address. The base locale stays unprefixed, so every existing
 			// English URL is unchanged.
-			strategy: ['url', 'cookie', 'baseLocale']
-		})
+			strategy: ['url', 'cookie', 'baseLocale'],
+		}),
 	],
 	test: {
 		expect: {
-			requireAssertions: true
+			requireAssertions: true,
 		},
 		projects: [
 			{
@@ -47,13 +48,13 @@ export default defineConfig({
 						instances: [
 							{
 								browser: 'chromium',
-								headless: true
-							}
-						]
+								headless: true,
+							},
+						],
 					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
-					exclude: ['src/lib/server/**']
-				}
+					exclude: ['src/lib/server/**'],
+				},
 			},
 			{
 				extends: './vite.config.ts',
@@ -61,8 +62,8 @@ export default defineConfig({
 					name: 'server',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}'],
-					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
-				}
+					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}'],
+				},
 			},
 			{
 				extends: true,
@@ -70,8 +71,8 @@ export default defineConfig({
 					// The plugin will run tests for the stories defined in your Storybook config
 					// See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
 					storybookTest({
-						configDir: path.join(dirname, '.storybook')
-					})
+						configDir: path.join(dirname, '.storybook'),
+					}),
 				],
 				test: {
 					name: 'storybook',
@@ -81,12 +82,12 @@ export default defineConfig({
 						provider: playwright({}),
 						instances: [
 							{
-								browser: 'chromium'
-							}
-						]
-					}
-				}
-			}
-		]
-	}
+								browser: 'chromium',
+							},
+						],
+					},
+				},
+			},
+		],
+	},
 });

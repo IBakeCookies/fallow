@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 async function importFresh() {
 	vi.resetModules();
+
 	return import('./indexed-db');
 }
 
@@ -10,9 +11,14 @@ function openRaw(version?: number, stores: readonly string[] = []): Promise<IDBD
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open('zenith-db', version);
 		request.onerror = () => reject(request.error);
+
 		request.onupgradeneeded = () => {
-			for (const name of stores) request.result.createObjectStore(name, { keyPath: 'key' });
+			for (const name of stores)
+				request.result.createObjectStore(name, {
+					keyPath: 'key',
+				});
 		};
+
 		request.onsuccess = () => resolve(request.result);
 	});
 }
@@ -32,7 +38,7 @@ describe('indexed-db', () => {
 			'restObservations',
 			'routines',
 			'sessions',
-			'settings'
+			'settings',
 		]);
 	});
 
@@ -79,7 +85,6 @@ describe('indexed-db', () => {
 	it('releases its connection when another tab upgrades, then reopens', async () => {
 		const { openDatabase } = await importFresh();
 		const stale = await openDatabase();
-
 		// Second tab opens a newer schema; our versionchange handler must close
 		// the stale handle or this open would stay blocked forever.
 		const upgraded = await openRaw(stale.version + 1);

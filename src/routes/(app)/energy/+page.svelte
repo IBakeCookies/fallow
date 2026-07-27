@@ -21,7 +21,7 @@
 	function formatDecimals(value: number, digits: number): string {
 		return value.toLocaleString(getDateLocale(), {
 			minimumFractionDigits: digits,
-			maximumFractionDigits: digits
+			maximumFractionDigits: digits,
 		});
 	}
 
@@ -63,6 +63,7 @@
 
 	function setPlanView(view: 'chart' | 'schedule') {
 		planView = view;
+
 		try {
 			localStorage.setItem(VIEW_KEY, view);
 		} catch {
@@ -73,6 +74,7 @@
 	onMount(() => {
 		try {
 			const savedView = localStorage.getItem(VIEW_KEY);
+
 			if (savedView === 'chart' || savedView === 'schedule') planView = savedView;
 		} catch (e) {
 			console.error('Failed to load energy lab view preference', e);
@@ -90,7 +92,7 @@
 			title: m.energy_slider_physical(),
 			min: 0,
 			accent: 'accent-body',
-			color: 'text-body/80'
+			color: 'text-body/80',
 		},
 		{
 			key: 'mentalDifficulty',
@@ -98,7 +100,7 @@
 			title: m.energy_slider_mental(),
 			min: 0,
 			accent: 'accent-mind',
-			color: 'text-mind/80'
+			color: 'text-mind/80',
 		},
 		{
 			key: 'enjoyment',
@@ -106,8 +108,8 @@
 			title: m.energy_slider_enjoyment(),
 			min: 1,
 			accent: 'accent-brand',
-			color: 'text-brand/80'
-		}
+			color: 'text-brand/80',
+		},
 	] as const;
 
 	function setTaskValue(id: number, key: SliderKey, value: number) {
@@ -134,26 +136,31 @@
 
 	function openDrainLog(taskId: number) {
 		const existing = todaysDrainLog(taskId);
+
 		drainDraft = {
 			taskId,
 			minutes: existing ? Math.round(existing.hours * 60) : null,
 			mind: existing?.mindDrain ?? null,
-			body: existing?.bodyDrain ?? null
+			body: existing?.bodyDrain ?? null,
 		};
 	}
 
 	function saveDrainLog() {
 		if (!drainDraft) return;
+
 		const minutes = Number(drainDraft.minutes);
 		const mind = Number(drainDraft.mind);
 		const body = Number(drainDraft.body);
+
 		if (!minutes || minutes <= 0 || !Number.isFinite(mind) || !Number.isFinite(body)) return;
+
 		observations.logDrain(
 			drainDraft.taskId,
 			minutes / 60,
 			Math.min(10, Math.max(0, mind)),
-			Math.min(10, Math.max(0, body))
+			Math.min(10, Math.max(0, body)),
 		);
+
 		drainDraft = null;
 	}
 
@@ -173,17 +180,22 @@
 
 	function saveRestLog() {
 		if (!restDraft) return;
+
 		const minutes = Number(restDraft.minutes);
+
 		if (!minutes || minutes <= 0) return;
+
 		const rating = (value: number | null) =>
 			Math.min(10, Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0));
+
 		observations.logRest(
 			minutes / 60,
 			rating(restDraft.mindBefore),
 			rating(restDraft.mindAfter),
 			rating(restDraft.bodyBefore),
-			rating(restDraft.bodyAfter)
+			rating(restDraft.bodyAfter),
 		);
+
 		restDraft = null;
 	}
 
@@ -197,9 +209,14 @@
 	// Tailwind can statically see, and a name built in a template literal is
 	// invisible to its scanner, so the alias form would resolve to nothing here.
 	// The :root properties are plain CSS and always emitted.
-	const PALETTE = Array.from({ length: 8 }, (_, i) => `var(--series-${i + 1})`);
+	const PALETTE = Array.from(
+		{
+			length: 8,
+		},
+		(_, i) => `var(--series-${i + 1})`,
+	);
 	const taskColor = $derived(
-		new Map(lab.energyTasks.map((t, i) => [t.id, PALETTE[i % PALETTE.length]]))
+		new Map(lab.energyTasks.map((t, i) => [t.id, PALETTE[i % PALETTE.length]])),
 	);
 	const colorOf = (taskId: number | null) =>
 		taskId === null ? 'var(--series-rest)' : (taskColor.get(taskId) ?? 'var(--series-rest)');
@@ -212,7 +229,9 @@
 		const totalMinutes = Math.round(hours * 60);
 		const h = Math.floor(totalMinutes / 60);
 		const m = totalMinutes % 60;
+
 		if (h === 0) return `${m}m`;
+
 		return m === 0 ? `${h}h` : `${h}h ${m}m`;
 	}
 
@@ -220,6 +239,7 @@
 		const totalMinutes = Math.round(hours * 60);
 		const h = Math.floor(totalMinutes / 60);
 		const m = totalMinutes % 60;
+
 		return `${h}:${String(m).padStart(2, '0')}`;
 	}
 </script>
@@ -352,14 +372,17 @@
 							<span class="text-xs text-ty-silent">
 								{m.energy_work_free_summary({
 									work: formatDuration(plan.evaluation.workHours),
-									free: formatDuration(plan.evaluation.leisureHours)
+									free: formatDuration(plan.evaluation.leisureHours),
 								})}
 							</span>
 							<div class="flex rounded-lg border bg-surface-page/40 p-text-3xs text-xs">
 								<button
 									type="button"
 									aria-pressed={planView === 'chart'}
-									class={segmentedToggleVariants({ tone: 'plan', active: planView === 'chart' })}
+									class={segmentedToggleVariants({
+										tone: 'plan',
+										active: planView === 'chart',
+									})}
 									onclick={() => setPlanView('chart')}
 								>
 									{m.energy_view_chart()}
@@ -367,7 +390,10 @@
 								<button
 									type="button"
 									aria-pressed={planView === 'schedule'}
-									class={segmentedToggleVariants({ tone: 'plan', active: planView === 'schedule' })}
+									class={segmentedToggleVariants({
+										tone: 'plan',
+										active: planView === 'schedule',
+									})}
 									onclick={() => setPlanView('schedule')}
 								>
 									{m.energy_schedule()}
@@ -383,13 +409,13 @@
 									style="width: {(block.hours / windowHours) *
 										100}%; background-color: {colorOfAlpha(
 										block.taskId,
-										block.taskId === null ? 40 : 70
+										block.taskId === null ? 40 : 70,
 									)}"
 									title={m.energy_block_tooltip({
 										title: block.title,
 										start: formatClock(block.start),
 										end: formatClock(block.start + block.hours),
-										duration: formatDuration(block.hours)
+										duration: formatDuration(block.hours),
 									})}
 								>
 									{#if block.hours / windowHours > 0.07}
@@ -406,7 +432,7 @@
 									class="flex min-w-0 items-center justify-center bg-transparent"
 									style="width: {(trailingFreeHours / windowHours) * 100}%"
 									title={m.energy_free_time_tooltip({
-										duration: formatDuration(trailingFreeHours)
+										duration: formatDuration(trailingFreeHours),
 									})}
 								>
 									{#if trailingFreeHours / windowHours > 0.07}
@@ -456,7 +482,9 @@
 										</span>
 										{#if block.taskId !== null}
 											<span class="w-20 shrink-0 text-right text-xs tabular-nums text-brand-strong">
-												{m.energy_output_suffix({ output: formatDecimals(block.output, 2) })}
+												{m.energy_output_suffix({
+													output: formatDecimals(block.output, 2),
+												})}
 											</span>
 										{:else}
 											<span class="w-20 shrink-0 text-right text-xs text-ty-silent">
@@ -554,7 +582,9 @@
 												type="checkbox"
 												checked={task.completed}
 												onchange={() => session.toggleTask(task.id)}
-												aria-label={m.task_toggle_aria({ title: task.title })}
+												aria-label={m.task_toggle_aria({
+													title: task.title,
+												})}
 												class="h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
 											/>
 											<span
@@ -744,7 +774,7 @@
 									min: 0,
 									max: 24,
 									step: 0.5,
-									unit: m.unit_hours()
+									unit: m.unit_hours(),
 								})}
 								{@render paramRow({
 									id: 'alpha-cog',
@@ -756,7 +786,7 @@
 									max: 2,
 									step: 0.05,
 									unit: m.unit_per_hour(),
-									accent: 'focus-within:border-mind/50'
+									accent: 'focus-within:border-mind/50',
 								})}
 								{@render paramRow({
 									id: 'alpha-phys',
@@ -768,7 +798,7 @@
 									max: 2,
 									step: 0.05,
 									unit: m.unit_per_hour(),
-									accent: 'focus-within:border-body/50'
+									accent: 'focus-within:border-body/50',
 								})}
 								{@render paramRow({
 									id: 'recovery-rate',
@@ -779,7 +809,7 @@
 									min: 0.1,
 									max: 3,
 									step: 0.1,
-									unit: m.unit_per_hour()
+									unit: m.unit_per_hour(),
 								})}
 								{@render paramRow({
 									id: 'free-time-value',
@@ -790,7 +820,7 @@
 									min: 0,
 									max: 3,
 									step: 0.1,
-									unit: m.unit_output_per_hour()
+									unit: m.unit_output_per_hour(),
 								})}
 								{@render paramRow({
 									id: 'terminal-value',
@@ -801,7 +831,7 @@
 									min: 0,
 									max: 5,
 									step: 0.25,
-									unit: m.unit_output()
+									unit: m.unit_output(),
 								})}
 								{@render paramRow({
 									id: 'satiety-scale',
@@ -812,7 +842,7 @@
 									min: 0,
 									max: 5,
 									step: 0.25,
-									unit: '×'
+									unit: '×',
 								})}
 								{@render paramRow({
 									id: 'micro-recovery',
@@ -823,7 +853,7 @@
 									min: 0,
 									max: 30,
 									step: 1,
-									unit: '%'
+									unit: '%',
 								})}
 							</div>
 						</div>
@@ -859,7 +889,7 @@
 												{m.energy_fit_value({
 													alpha: formatDecimals(cogDrainFit.alpha, 2),
 													std: formatDecimals(cogDrainFit.alphaStd ?? 0, 2),
-													count: cogDrainFit.usedCount
+													count: cogDrainFit.usedCount,
 												})}
 											</span>
 										{:else}
@@ -873,7 +903,7 @@
 												{m.energy_fit_value({
 													alpha: formatDecimals(physDrainFit.alpha, 2),
 													std: formatDecimals(physDrainFit.alphaStd ?? 0, 2),
-													count: physDrainFit.usedCount
+													count: physDrainFit.usedCount,
 												})}
 											</span>
 										{:else}
@@ -887,15 +917,19 @@
 										lab.drainFitApplied ? m.energy_fit_applied() : m.energy_apply_fit(),
 										lab.drainFitApplied,
 										m.energy_apply_fit_title(),
-										() => lab.applyDrainFit()
+										() => lab.applyDrainFit(),
 									)}
 								{/if}
 
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<LogList
-										label={m.energy_drain_log_count({ count: drainObservations.length })}
+										label={m.energy_drain_log_count({
+											count: drainObservations.length,
+										})}
 										items={drainObservations}
-										confirmLabel={m.energy_reset_drain_confirm({ count: drainObservations.length })}
+										confirmLabel={m.energy_reset_drain_confirm({
+											count: drainObservations.length,
+										})}
 										resetLabel={m.energy_reset_drain_logs()}
 										resetTitle={m.energy_reset_drain_title()}
 										onreset={() => observations.resetDrainLogs()}
@@ -958,7 +992,7 @@
 													mindBefore: null,
 													mindAfter: null,
 													bodyBefore: null,
-													bodyAfter: null
+													bodyAfter: null,
 												})}
 								>
 									{restDraft ? m.common_cancel() : `☕ ${m.energy_log_rest()}`}
@@ -1080,7 +1114,7 @@
 											{m.energy_recovery_fit_value({
 												rate: formatDecimals(recoveryFit.rate, 2),
 												std: formatDecimals(recoveryFit.rateStd ?? 0, 2),
-												count: recoveryFit.usedCount
+												count: recoveryFit.usedCount,
 											})}
 										</span>
 									{:else}
@@ -1095,15 +1129,19 @@
 											: m.energy_apply_recovery_fit(),
 										lab.recoveryFitApplied,
 										m.energy_apply_recovery_fit_title(),
-										() => lab.applyRecoveryFit()
+										() => lab.applyRecoveryFit(),
 									)}
 								{/if}
 
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<LogList
-										label={m.energy_rest_log_count({ count: restObservations.length })}
+										label={m.energy_rest_log_count({
+											count: restObservations.length,
+										})}
 										items={restObservations}
-										confirmLabel={m.energy_reset_rest_confirm({ count: restObservations.length })}
+										confirmLabel={m.energy_reset_rest_confirm({
+											count: restObservations.length,
+										})}
 										resetLabel={m.energy_reset_rest_logs()}
 										resetTitle={m.energy_reset_rest_title()}
 										onreset={() => observations.resetRestLogs()}
@@ -1167,7 +1205,7 @@
 										{m.energy_stop_fit_value({
 											value: formatDecimals(stopFit.value, 2),
 											std: formatDecimals(stopFit.valueStd ?? 0, 2),
-											count: stopFit.usedCount
+											count: stopFit.usedCount,
 										})}
 									</span>
 								</div>
@@ -1176,7 +1214,7 @@
 									lab.stoppingFitApplied ? m.energy_stop_fit_applied() : m.energy_apply_stop_fit(),
 									lab.stoppingFitApplied,
 									m.energy_apply_stop_fit_title(),
-									() => lab.applyStoppingFit()
+									() => lab.applyStoppingFit(),
 								)}
 							{/if}
 						</div>

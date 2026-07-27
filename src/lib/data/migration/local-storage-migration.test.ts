@@ -2,25 +2,25 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	migrateFromLocalStorageToIndexedDB,
-	migrateEnergyParamsFromLocalStorage
-} from './local-storage-migration';
+	migrateEnergyParamsFromLocalStorage,
+} from '$lib/data/migration/local-storage-migration';
 import { $readSessionByDate } from '$lib/data/repository/session-repository';
 import { $deleteAllStores } from '$lib/data/repository/backup-repository';
 import {
 	ENERGY_PARAMS_SETTING,
 	$readSetting,
-	$updateSetting
+	$updateSetting,
 } from '$lib/data/repository/settings-repository';
 
 const STORAGE_KEY = 'zenith-daily-tasks';
 const MIGRATION_KEY = 'zenith-migrated-to-idb';
 const ENERGY_PARAMS_STORAGE_KEY = 'zenith-energy-params';
-
 const backing = new Map<string, string>();
+
 vi.stubGlobal('localStorage', {
 	getItem: (key: string) => backing.get(key) ?? null,
 	setItem: (key: string, value: string) => void backing.set(key, value),
-	removeItem: (key: string) => void backing.delete(key)
+	removeItem: (key: string) => void backing.delete(key),
 });
 
 describe('migrateFromLocalStorageToIndexedDB', () => {
@@ -28,7 +28,14 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 
 	it('skips when already migrated', async () => {
 		backing.set(MIGRATION_KEY, 'true');
-		backing.set(STORAGE_KEY, JSON.stringify({ tasks: [] }));
+
+		backing.set(
+			STORAGE_KEY,
+			JSON.stringify({
+				tasks: [],
+			}),
+		);
+
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-01', 0.5)).toBe(false);
 	});
 
@@ -36,7 +43,18 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 	// purpose (see the migration's comment). The one-way flag is what stops it
 	// resurrecting the wiped tasks on the next load — R8 step 5.
 	it('never resurrects the legacy blob after a wipe', async () => {
-		backing.set(STORAGE_KEY, JSON.stringify({ tasks: [{ id: 1, title: 'Wiped task' }] }));
+		backing.set(
+			STORAGE_KEY,
+			JSON.stringify({
+				tasks: [
+					{
+						id: 1,
+						title: 'Wiped task',
+					},
+				],
+			}),
+		);
+
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-06', 0.5)).toBe(true);
 
 		await $deleteAllStores();
@@ -51,7 +69,18 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 	});
 
 	it('migrates old data into a session, filling defaults', async () => {
-		backing.set(STORAGE_KEY, JSON.stringify({ tasks: [{ id: 1, title: 'Old task' }] }));
+		backing.set(
+			STORAGE_KEY,
+			JSON.stringify({
+				tasks: [
+					{
+						id: 1,
+						title: 'Old task',
+					},
+				],
+			}),
+		);
+
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-03', 0.5)).toBe(true);
 		const session = await $readSessionByDate('2026-01-03');
 		expect(session?.tasks).toHaveLength(1);
@@ -61,7 +90,14 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 	});
 
 	it('preserves an explicit switchCost of 0 (?? not ||)', async () => {
-		backing.set(STORAGE_KEY, JSON.stringify({ tasks: [], switchCost: 0 }));
+		backing.set(
+			STORAGE_KEY,
+			JSON.stringify({
+				tasks: [],
+				switchCost: 0,
+			}),
+		);
+
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-04', 0.5)).toBe(true);
 		expect((await $readSessionByDate('2026-01-04'))?.switchCost).toBe(0);
 	});
@@ -86,21 +122,40 @@ describe('migrateEnergyParamsFromLocalStorage', () => {
 	});
 
 	it('moves the params into the settings store and drops the legacy key', async () => {
-		backing.set(ENERGY_PARAMS_STORAGE_KEY, JSON.stringify({ alphaCog: 0.7 }));
+		backing.set(
+			ENERGY_PARAMS_STORAGE_KEY,
+			JSON.stringify({
+				alphaCog: 0.7,
+			}),
+		);
 
 		expect(await migrateEnergyParamsFromLocalStorage()).toBe(true);
 
-		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toEqual({ alphaCog: 0.7 });
+		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toEqual({
+			alphaCog: 0.7,
+		});
+
 		expect(backing.has(ENERGY_PARAMS_STORAGE_KEY)).toBe(false);
 	});
 
 	it('never lets a stale legacy copy overwrite what IndexedDB already owns', async () => {
-		await $updateSetting(ENERGY_PARAMS_SETTING, { alphaCog: 0.9 });
-		backing.set(ENERGY_PARAMS_STORAGE_KEY, JSON.stringify({ alphaCog: 0.1 }));
+		await $updateSetting(ENERGY_PARAMS_SETTING, {
+			alphaCog: 0.9,
+		});
+
+		backing.set(
+			ENERGY_PARAMS_STORAGE_KEY,
+			JSON.stringify({
+				alphaCog: 0.1,
+			}),
+		);
 
 		expect(await migrateEnergyParamsFromLocalStorage()).toBe(true);
 
-		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toEqual({ alphaCog: 0.9 });
+		expect(await $readSetting(ENERGY_PARAMS_SETTING)).toEqual({
+			alphaCog: 0.9,
+		});
+
 		expect(backing.has(ENERGY_PARAMS_STORAGE_KEY)).toBe(false);
 	});
 

@@ -12,8 +12,8 @@
 			step: 0.25,
 			unit: 'hrs',
 			accent: 'focus-within:border-brand/50',
-			ariaLabel: 'Available hours'
-		}
+			ariaLabel: 'Available hours',
+		},
 	});
 </script>
 
@@ -32,7 +32,16 @@
 </Story>
 
 <!-- At the minimum the − stepper disables; the field itself stays editable -->
-<Story name="At minimum" args={{ min: 0, max: 60, step: 5, unit: 'min', ariaLabel: 'Switch cost' }}>
+<Story
+	name="At minimum"
+	args={{
+		min: 0,
+		max: 60,
+		step: 5,
+		unit: 'min',
+		ariaLabel: 'Switch cost',
+	}}
+>
 	{#snippet template(args)}
 		<div class="max-w-48">
 			<NumberInput {...args} value={minutes} onchange={(next) => (minutes = next)} />

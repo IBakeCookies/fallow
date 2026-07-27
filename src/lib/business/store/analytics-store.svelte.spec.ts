@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
-import Harness from './analytics-store.test-harness.svelte';
-import * as sessionHistory from './session-history';
-import type { AnalyticsStore } from './analytics-store.svelte';
+import Harness from '$lib/business/store/analytics-store.test-harness.svelte';
+import * as sessionHistory from '$lib/business/store/session-history';
+import type { AnalyticsStore } from '$lib/business/store/analytics-store.svelte';
 import type { DaySummary } from '$lib/business/model/metric/history';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
 
@@ -16,11 +16,16 @@ const EMPTY_AUDIT: PlanAudit = {
 	energyOverlap: 0,
 	actualTaskSpread: 0,
 	classicTaskSpread: 0,
-	energyTaskSpread: 0
+	energyTaskSpread: 0,
 };
 
-vi.mock('$lib/business/state/today.svelte', () => ({ liveToday: { value: '2026-07-20' } }));
-vi.mock('./session-history', () => ({
+vi.mock('$lib/business/state/today.svelte', () => ({
+	liveToday: {
+		value: '2026-07-20',
+	},
+}));
+
+vi.mock('$lib/business/store/session-history', () => ({
 	EMPTY_PLAN_AUDIT: {
 		usedCount: 0,
 		days: [],
@@ -28,11 +33,14 @@ vi.mock('./session-history', () => ({
 		energyOverlap: 0,
 		actualTaskSpread: 0,
 		classicTaskSpread: 0,
-		energyTaskSpread: 0
+		energyTaskSpread: 0,
 	},
 	initializeStorage: vi.fn(async () => {}),
 	readDaySummaries: vi.fn(async () => []),
-	readModelReport: vi.fn(async () => ({ calibration: null, audit: EMPTY_AUDIT }))
+	readModelReport: vi.fn(async () => ({
+		calibration: null,
+		audit: EMPTY_AUDIT,
+	})),
 }));
 
 const readDaySummariesMock = vi.mocked(sessionHistory.readDaySummaries);
@@ -46,23 +54,30 @@ const day = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
 	completionRate: 50,
 	quadrant: 'flow',
 	availableHours: 4,
-	...over
+	...over,
 });
 
 async function setup(summaries: DaySummary[] = []): Promise<AnalyticsStore> {
 	readDaySummariesMock.mockResolvedValue(summaries);
 	let store!: AnalyticsStore;
-	render(Harness, { onstore: (s: AnalyticsStore) => (store = s) });
+
+	render(Harness, {
+		onstore: (s: AnalyticsStore) => (store = s),
+	});
+
 	await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
 	return store;
 }
 
 describe('AnalyticsStore', () => {
 	beforeEach(() => {
 		readDaySummariesMock.mockReset().mockResolvedValue([]);
-		readModelReportMock
-			.mockReset()
-			.mockResolvedValue({ calibration: null as never, audit: EMPTY_AUDIT });
+
+		readModelReportMock.mockReset().mockResolvedValue({
+			calibration: null as never,
+			audit: EMPTY_AUDIT,
+		});
 	});
 
 	it('loads the last 365 days ending today', async () => {
@@ -90,9 +105,18 @@ describe('AnalyticsStore', () => {
 
 	it('totals only the viewed range', async () => {
 		const store = await setup([
-			day('2026-07-10', { totalTasks: 9, completedTasks: 9 }), // outside the week
-			day('2026-07-15', { totalTasks: 4, completedTasks: 3 }),
-			day('2026-07-16', { totalTasks: 6, completedTasks: 0 })
+			day('2026-07-10', {
+				totalTasks: 9,
+				completedTasks: 9,
+			}), // outside the week
+			day('2026-07-15', {
+				totalTasks: 4,
+				completedTasks: 3,
+			}),
+			day('2026-07-16', {
+				totalTasks: 6,
+				completedTasks: 0,
+			}),
 		]);
 
 		expect(store.totalTasks).toBe(10);
@@ -101,14 +125,24 @@ describe('AnalyticsStore', () => {
 	});
 
 	it('reports no share when nothing was planned', async () => {
-		const store = await setup([day('2026-07-15', { totalTasks: 0, completedTasks: 0 })]);
+		const store = await setup([
+			day('2026-07-15', {
+				totalTasks: 0,
+				completedTasks: 0,
+			}),
+		]);
+
 		expect(store.completedShare).toBe(0);
 	});
 
 	it('compares against the previous period of equal length, but never for the year', async () => {
 		const store = await setup([
-			day('2026-07-08', { completionRate: 20 }), // previous week
-			day('2026-07-16', { completionRate: 80 })
+			day('2026-07-08', {
+				completionRate: 20,
+			}), // previous week
+			day('2026-07-16', {
+				completionRate: 80,
+			}),
 		]);
 
 		expect(store.averageCompletionRate).toBe(80);
@@ -130,8 +164,9 @@ describe('AnalyticsStore', () => {
 			'2026-07-16',
 			'2026-07-17',
 			'2026-07-18',
-			'2026-07-19'
+			'2026-07-19',
 		];
+
 		const store = await setup(dates.map((d) => day(d)));
 
 		expect(store.rangeDays).toBe(7);
@@ -141,9 +176,14 @@ describe('AnalyticsStore', () => {
 
 	it('sums the declared budget to one decimal', async () => {
 		const store = await setup([
-			day('2026-07-15', { availableHours: 3.35 }),
-			day('2026-07-16', { availableHours: 2.4 })
+			day('2026-07-15', {
+				availableHours: 3.35,
+			}),
+			day('2026-07-16', {
+				availableHours: 2.4,
+			}),
 		]);
+
 		expect(store.plannedHours).toBe(5.8);
 	});
 

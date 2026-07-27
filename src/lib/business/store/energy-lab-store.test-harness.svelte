@@ -1,9 +1,12 @@
 <script lang="ts">
 	// Test-only host: the store needs a component context (onMount, $effect).
-	import { EnergyLabStore } from './energy-lab-store.svelte';
-	import { mockObservations, mockSession } from './energy-lab-store.test-utils.svelte';
-	import type { SessionStore } from './session-store.svelte';
-	import type { EnergyObservationStore } from './energy-observation-store.svelte';
+	import { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import {
+		mockObservations,
+		mockSession,
+	} from '$lib/business/store/energy-lab-store.test-utils.svelte';
+	import type { SessionStore } from '$lib/business/store/session-store.svelte';
+	import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
 	let { onstore }: { onstore: (s: EnergyLabStore) => void } = $props();
 
@@ -13,7 +16,7 @@
 	onstore(
 		new EnergyLabStore(
 			mockSession as unknown as SessionStore,
-			mockObservations as unknown as EnergyObservationStore
-		)
+			mockObservations as unknown as EnergyObservationStore,
+		),
 	);
 </script>

@@ -19,25 +19,28 @@ export interface BackupFile {
 export async function $exportAllStores(): Promise<BackupFile> {
 	const database = await openDatabase();
 	const stores = {} as Record<StoreName, unknown[]>;
+
 	await Promise.all(
 		STORE_NAMES.map(
 			(name) =>
 				new Promise<void>((resolve, reject) => {
 					const request = database.transaction(name, 'readonly').objectStore(name).getAll();
+
 					request.onsuccess = () => {
 						stores[name] = request.result || [];
 						resolve();
 					};
+
 					request.onerror = () => reject(request.error);
-				})
-		)
+				}),
+		),
 	);
 
 	return {
 		app: 'fallow',
 		schemaVersion: DB_VERSION,
 		exportedAt: new Date().toISOString(),
-		stores
+		stores,
 	};
 }
 
@@ -48,15 +51,17 @@ export async function $exportAllStores(): Promise<BackupFile> {
  */
 export async function $importAllStores(backup: unknown): Promise<void> {
 	const parsed = backup as Partial<BackupFile> | null;
+
 	if (!parsed || parsed.app !== 'fallow' || typeof parsed.stores !== 'object' || !parsed.stores) {
 		throw new Error('Not a Fallow backup file');
 	}
+
 	// A newer schema may carry records this build can't interpret; refuse rather
 	// than blind-merge them. Missing/older versions still import — readers
 	// tolerate absent fields by design.
 	if (typeof parsed.schemaVersion === 'number' && parsed.schemaVersion > DB_VERSION) {
 		throw new Error(
-			`Backup schema v${parsed.schemaVersion} is newer than this app (v${DB_VERSION})`
+			`Backup schema v${parsed.schemaVersion} is newer than this app (v${DB_VERSION})`,
 		);
 	}
 
@@ -74,7 +79,9 @@ export async function $importAllStores(backup: unknown): Promise<void> {
 		try {
 			for (const name of STORE_NAMES) {
 				const records = parsed.stores?.[name];
+
 				if (!Array.isArray(records)) continue;
+
 				const store = transaction.objectStore(name);
 				for (const record of records) store.put(record);
 			}
@@ -94,6 +101,7 @@ export async function $deleteAllStores(): Promise<void> {
 		transaction.oncomplete = () => resolve();
 		transaction.onerror = () => reject(transaction.error);
 		transaction.onabort = () => reject(transaction.error ?? new Error('Wipe aborted'));
+
 		try {
 			for (const name of STORE_NAMES) transaction.objectStore(name).clear();
 		} catch (error) {

@@ -1,10 +1,19 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect } from 'vitest';
-import { $updateRoutine, $readAllRoutines, $deleteRoutine } from './routine-repository';
+import {
+	$updateRoutine,
+	$readAllRoutines,
+	$deleteRoutine,
+} from '$lib/data/repository/routine-repository';
 import type { SavedRoutine } from '$lib/data/type';
 
 function routine(id: string, name = 'Morning'): SavedRoutine {
-	return { id, name, tasks: [], createdAt: 1 };
+	return {
+		id,
+		name,
+		tasks: [],
+		createdAt: 1,
+	};
 }
 
 describe('routine-repository', () => {

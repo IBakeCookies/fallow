@@ -11,7 +11,7 @@
 		deLocalizeHref,
 		getLocale,
 		locales,
-		localizeHref
+		localizeHref,
 	} from '$lib/paraglide/runtime';
 	import { jsonLdScript } from '$lib/presentation/utils/json-ld';
 
@@ -23,7 +23,10 @@
 
 	let { title, description, jsonLd }: Props = $props();
 
-	const OG_LOCALES: Record<string, string> = { en: 'en_US', de: 'de_DE' };
+	const OG_LOCALES: Record<string, string> = {
+		en: 'en_US',
+		de: 'de_DE',
+	};
 
 	const origin = $derived((env.PUBLIC_SITE_URL ?? page.url.origin).replace(/\/$/, ''));
 
@@ -33,11 +36,17 @@
 	const basePath = $derived(deLocalizeHref(page.url.pathname));
 	const alternates = $derived(
 		Object.fromEntries(
-			locales.map((locale) => [locale, origin + localizeHref(basePath, { locale })])
-		)
+			locales.map((locale) => [
+				locale,
+				origin +
+					localizeHref(basePath, {
+						locale,
+					}),
+			]),
+		),
 	);
 	const canonical = $derived(alternates[getLocale()]);
-	const ogImage = $derived(origin + '/fallow-daily-time-allocation.png');
+	const ogImage = $derived(`${origin}/fallow-daily-time-allocation.png`);
 	const ogLocale = $derived(OG_LOCALES[getLocale()] ?? 'en_US');
 
 	const jsonLdTag = $derived(jsonLd ? jsonLdScript(jsonLd) : null);

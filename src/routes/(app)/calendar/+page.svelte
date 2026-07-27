@@ -25,7 +25,7 @@
 		m.weekday_thu(),
 		m.weekday_fri(),
 		m.weekday_sat(),
-		m.weekday_sun()
+		m.weekday_sun(),
 	];
 	const VIEWS = ['month', 'week'] as const;
 
@@ -38,6 +38,7 @@
 
 	onMount(async () => {
 		if (!browser) return;
+
 		try {
 			await initializeStorage();
 		} catch (e) {
@@ -51,23 +52,40 @@
 	const weeks = $derived(
 		view === 'month'
 			? monthGrid(anchorDate.getFullYear(), anchorDate.getMonth())
-			: [Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i))]
+			: [
+					Array.from(
+						{
+							length: 7,
+						},
+						(_, i) => addDays(startOfWeek(anchor), i),
+					),
+				],
 	);
 	const rangeStart = $derived(weeks[0][0]);
 	const rangeEnd = $derived(weeks[weeks.length - 1][6]);
 
 	const rangeLabel = $derived.by(() => {
 		if (view === 'month') {
-			return anchorDate.toLocaleDateString(getDateLocale(), { month: 'long', year: 'numeric' });
+			return anchorDate.toLocaleDateString(getDateLocale(), {
+				month: 'long',
+				year: 'numeric',
+			});
 		}
+
 		const start = fromISO(rangeStart);
 		const end = fromISO(rangeEnd);
-		const startFmt = start.toLocaleDateString(getDateLocale(), { month: 'short', day: 'numeric' });
+
+		const startFmt = start.toLocaleDateString(getDateLocale(), {
+			month: 'short',
+			day: 'numeric',
+		});
+
 		const endFmt = end.toLocaleDateString(getDateLocale(), {
 			month: 'short',
 			day: 'numeric',
-			year: 'numeric'
+			year: 'numeric',
 		});
+
 		return `${startFmt} – ${endFmt}`;
 	});
 
@@ -76,11 +94,14 @@
 	let loadVersion = 0;
 	$effect(() => {
 		if (!ready) return;
+
 		const [start, end] = [rangeStart, rangeEnd];
 		const version = ++loadVersion;
+
 		readDaySummaries(start, end)
 			.then((days) => {
 				if (version !== loadVersion) return;
+
 				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local accumulator, assigned once
 				const map = new Map<string, DaySummary>();
 				for (const day of days) map.set(day.date, day);
@@ -92,6 +113,7 @@
 
 	function shiftMonth(iso: string, n: number): string {
 		const d = fromISO(iso);
+
 		return toISODate(new Date(d.getFullYear(), d.getMonth() + n, 1));
 	}
 
@@ -126,7 +148,12 @@
 			{#each VIEWS as v (v)}
 				<button
 					onclick={() => (view = v)}
-					class={cn(segmentedToggleVariants({ active: view === v }), 'capitalize')}
+					class={cn(
+						segmentedToggleVariants({
+							active: view === v,
+						}),
+						'capitalize',
+					)}
 				>
 					{v === 'month' ? m.cal_view_month() : m.cal_view_week()}
 				</button>
@@ -138,7 +165,9 @@
 				variant="outline"
 				size="sm"
 				onclick={goPrev}
-				aria-label={m.cal_previous({ view: viewLabel })}
+				aria-label={m.cal_previous({
+					view: viewLabel,
+				})}
 			>
 				<ChevronLeft class="h-4 w-4" />
 			</Button>
@@ -151,7 +180,9 @@
 				variant="outline"
 				size="sm"
 				onclick={goNext}
-				aria-label={m.cal_next({ view: viewLabel })}
+				aria-label={m.cal_next({
+					view: viewLabel,
+				})}
 			>
 				<ChevronRight class="h-4 w-4" />
 			</Button>
@@ -193,7 +224,7 @@
 						{view === 'week'
 							? fromISO(date).toLocaleDateString(getDateLocale(), {
 									weekday: 'short',
-									day: 'numeric'
+									day: 'numeric',
 								})
 							: dayNum}
 					</span>
@@ -214,7 +245,9 @@
 					{#if !isFuture}
 						<div
 							class="mt-grid-2xs h-1 overflow-hidden rounded-full bg-surface-inset"
-							title={m.cal_completion_title({ rate: s.completionRate })}
+							title={m.cal_completion_title({
+								rate: s.completionRate,
+							})}
 						>
 							<div
 								class="h-full rounded-full {getCompletionBarClass(s.completionRate)}"
@@ -235,7 +268,11 @@
 								</li>
 							{/each}
 							{#if s.totalTasks > 3}
-								<li class="text-2xs text-ty-silent">{m.cal_more({ count: s.totalTasks - 3 })}</li>
+								<li class="text-2xs text-ty-silent">
+									{m.cal_more({
+										count: s.totalTasks - 3,
+									})}
+								</li>
 							{/if}
 						</ul>
 					{:else}
@@ -248,7 +285,11 @@
 								<span class="font-medium text-info-strong">{m.cal_planned_label()}</span>
 							{/if}
 							{#if s.availableHours > 0}
-								<span class="text-ty-silent">{m.cal_budget({ hours: s.availableHours })}</span>
+								<span class="text-ty-silent"
+									>{m.cal_budget({
+										hours: s.availableHours,
+									})}</span
+								>
 							{/if}
 						</div>
 						<ul class="mt-text-xs min-h-0 flex-1 space-y-text-2xs overflow-y-auto">
@@ -282,7 +323,9 @@
 
 {#if !isLoading && !hasAnyData}
 	<p class="mt-text-xs text-center text-xs text-ty-silent">
-		{m.cal_empty_1({ view: viewLabel })}
+		{m.cal_empty_1({
+			view: viewLabel,
+		})}
 		<a
 			href={localizeHref(resolve('/'))}
 			class="text-ty-secondary underline decoration-ty-ghost underline-offset-4 hover:text-ty-primary"

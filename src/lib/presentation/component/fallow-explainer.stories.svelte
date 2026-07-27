@@ -1,11 +1,11 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import FallowExplainer from './fallow-explainer.svelte';
+	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
 
 	const { Story } = defineMeta({
 		title: 'Component/Fallow Explainer',
 		component: FallowExplainer,
-		tags: ['autodocs']
+		tags: ['autodocs'],
 	});
 </script>
 

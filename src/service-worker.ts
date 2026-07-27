@@ -6,7 +6,6 @@
 import { build, files, version } from '$service-worker';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
-
 const CACHE = `fallow-${version}`;
 // '/' is the app shell — all data is client-side, so any route renders from it offline
 const ASSETS = [...build, ...files, '/'];
@@ -16,7 +15,7 @@ sw.addEventListener('install', (event) => {
 		caches
 			.open(CACHE)
 			.then((cache) => cache.addAll(ASSETS))
-			.then(() => sw.skipWaiting())
+			.then(() => sw.skipWaiting()),
 	);
 });
 
@@ -25,9 +24,9 @@ sw.addEventListener('activate', (event) => {
 		caches
 			.keys()
 			.then((keys) =>
-				Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))
+				Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))),
 			)
-			.then(() => sw.clients.claim())
+			.then(() => sw.clients.claim()),
 	);
 });
 
@@ -35,6 +34,7 @@ sw.addEventListener('fetch', (event) => {
 	if (event.request.method !== 'GET') return;
 
 	const url = new URL(event.request.url);
+
 	if (url.origin !== sw.location.origin) return;
 
 	event.respondWith(
@@ -46,6 +46,7 @@ sw.addEventListener('fetch', (event) => {
 			// (theme cookie, lang) stays live; the cached shell is offline fallback only.
 			if (build.includes(url.pathname) || files.includes(url.pathname)) {
 				const cached = await cache.match(url.pathname);
+
 				if (cached) return cached;
 			}
 
@@ -57,6 +58,7 @@ sw.addEventListener('fetch', (event) => {
 
 			try {
 				const response = await fetch(event.request);
+
 				// awaited: an unhandled rejection here (quota) would be silent.
 				// Storing the fallback is best-effort — the live response still wins.
 				if (response.ok) {
@@ -66,16 +68,21 @@ sw.addEventListener('fetch', (event) => {
 						/* storage full or response not storable */
 					}
 				}
+
 				return response;
 			} catch (error) {
 				const cached = await cache.match(cacheKey);
+
 				if (cached) return cached;
+
 				if (event.request.mode === 'navigate') {
 					const shell = await cache.match('/');
+
 					if (shell) return shell;
 				}
+
 				throw error;
 			}
-		})()
+		})(),
 	);
 });

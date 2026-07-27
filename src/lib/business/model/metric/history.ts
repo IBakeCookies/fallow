@@ -14,15 +14,15 @@ import {
 	type SuggestedTask,
 	calculateSuggestedTasks,
 	calculateCompletionRate,
-	calculateDailyQuadrant
-} from './calculation';
+	calculateDailyQuadrant,
+} from '$lib/business/model/metric/calculation';
 import {
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_USER_CONSTANTS,
 	type CapacityPools,
 	type FitPosterior,
-	type UserConstants
-} from '../zenith';
+	type UserConstants,
+} from '$lib/business/model/zenith';
 
 export type DaySummary = {
 	date: string;
@@ -50,7 +50,7 @@ function scoreTasksIndividually(
 	session: DailySession,
 	pools: CapacityPools,
 	constants: UserConstants,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): SuggestedTask[] {
 	return session.tasks.flatMap((task) =>
 		calculateSuggestedTasks(
@@ -59,21 +59,23 @@ function scoreTasksIndividually(
 			session.switchCost,
 			pools,
 			constants,
-			posterior
-		)
+			posterior,
+		),
 	);
 }
 
 export function summarizeSession(
 	session: DailySession,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	posterior?: FitPosterior
+	posterior?: FitPosterior,
 ): DaySummary {
 	const pools = {
 		cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
-		physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours
+		physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
 	};
+
 	const suggested = scoreTasksIndividually(session, pools, constants, posterior);
+
 	return {
 		date: session.date,
 		tasks: session.tasks,
@@ -81,7 +83,7 @@ export function summarizeSession(
 		completedTasks: session.tasks.filter((t) => t.completed).length,
 		completionRate: calculateCompletionRate(suggested),
 		quadrant: calculateDailyQuadrant(session.tasks),
-		availableHours: session.availableHours
+		availableHours: session.availableHours,
 	};
 }
 
@@ -93,16 +95,19 @@ export function summarizeSession(
 export function currentStreak(datesWithCompletion: Set<string>, today: string): number {
 	let cursor = datesWithCompletion.has(today) ? today : addDays(today, -1);
 	let streak = 0;
+
 	while (datesWithCompletion.has(cursor)) {
 		streak++;
 		cursor = addDays(cursor, -1);
 	}
+
 	return streak;
 }
 
 /** Mean priority-weighted completion rate over the given days, 0 when empty. */
 export function averageCompletionRate(summaries: DaySummary[]): number {
 	if (summaries.length === 0) return 0;
+
 	return Math.round(summaries.reduce((sum, s) => sum + s.completionRate, 0) / summaries.length);
 }
 
@@ -112,6 +117,7 @@ export function averageCompletionRate(summaries: DaySummary[]): number {
  */
 export function completionRateDelta(current: DaySummary[], previous: DaySummary[]): number | null {
 	if (previous.length === 0) return null;
+
 	return averageCompletionRate(current) - averageCompletionRate(previous);
 }
 
@@ -123,19 +129,28 @@ export function completionRateDelta(current: DaySummary[], previous: DaySummary[
  */
 export function findBestDay(summaries: DaySummary[]): DaySummary | null {
 	const withCompletion = summaries.filter((s) => s.completedTasks > 0);
+
 	if (withCompletion.length === 0) return null;
+
 	return withCompletion.reduce((best, s) =>
 		s.completionRate > best.completionRate ||
 		(s.completionRate === best.completionRate && s.completedTasks > best.completedTasks)
 			? s
-			: best
+			: best,
 	);
 }
 
 /** How many days in the range fell into each day profile. */
 export function countQuadrants(summaries: DaySummary[]): Record<DailyQuadrant, number> {
-	const counts: Record<DailyQuadrant, number> = { flow: 0, cruise: 0, grind: 0, routine: 0 };
+	const counts: Record<DailyQuadrant, number> = {
+		flow: 0,
+		cruise: 0,
+		grind: 0,
+		routine: 0,
+	};
+
 	for (const summary of summaries) counts[summary.quadrant]++;
+
 	return counts;
 }
 
@@ -156,37 +171,46 @@ export type MonthlyCompletion = {
 export function monthlyCompletionRates(
 	summaries: DaySummary[],
 	rangeStart: string,
-	today: string
+	today: string,
 ): MonthlyCompletion[] {
 	const buckets = new Map<string, DaySummary[]>();
+
 	for (const summary of summaries) {
 		const key = summary.date.slice(0, 7);
 		const bucket = buckets.get(key);
+
 		if (bucket) {
 			bucket.push(summary);
 			continue;
 		}
+
 		buckets.set(key, [summary]);
 	}
 
 	const months: MonthlyCompletion[] = [];
 	const lastMonth = today.slice(0, 7);
 	let month = rangeStart.slice(0, 7);
+
 	while (month <= lastMonth) {
 		const daysIn = buckets.get(month) ?? [];
+
 		months.push({
 			month,
 			average: daysIn.length > 0 ? averageCompletionRate(daysIn) : null,
-			dayCount: daysIn.length
+			dayCount: daysIn.length,
 		});
+
 		month = nextMonth(month);
 	}
+
 	return months;
 }
 
 // YYYY-MM + 1 month. String math, not Date: the chart only ever needs the key.
 function nextMonth(month: string): string {
 	const [year, index] = month.split('-').map(Number);
+
 	if (index === 12) return `${year + 1}-01`;
+
 	return `${year}-${String(index + 1).padStart(2, '0')}`;
 }

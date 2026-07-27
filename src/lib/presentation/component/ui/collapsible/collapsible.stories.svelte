@@ -7,8 +7,14 @@
 		title: 'UI/Collapsible',
 		component: CollapsibleRoot,
 		tags: ['autodocs'],
-		args: { open: false },
-		argTypes: { open: { control: 'boolean' } }
+		args: {
+			open: false,
+		},
+		argTypes: {
+			open: {
+				control: 'boolean',
+			},
+		},
 	});
 </script>
 

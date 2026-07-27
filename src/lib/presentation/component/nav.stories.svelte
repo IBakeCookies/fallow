@@ -1,19 +1,25 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { Button } from '$lib/presentation/component/ui/button';
-	import Nav from './nav.svelte';
+	import Nav from '$lib/presentation/component/nav.svelte';
 
 	/* Nav reads the current route from $app/state; @storybook/sveltekit's mock
 	   takes it from this parameter. */
 	const atUrl = (path: string) => ({
-		sveltekit_experimental: { state: { page: { url: new URL(`http://localhost${path}`) } } }
+		sveltekit_experimental: {
+			state: {
+				page: {
+					url: new URL(`http://localhost${path}`),
+				},
+			},
+		},
 	});
 
 	const { Story } = defineMeta({
 		title: 'Component/Nav',
 		component: Nav,
 		tags: ['autodocs'],
-		parameters: atUrl('/')
+		parameters: atUrl('/'),
 	});
 </script>
 

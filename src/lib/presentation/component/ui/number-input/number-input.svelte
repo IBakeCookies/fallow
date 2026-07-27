@@ -26,7 +26,7 @@
 		unit,
 		id,
 		ariaLabel,
-		accent = 'focus-within:border-brand/50'
+		accent = 'focus-within:border-brand/50',
 	}: Props = $props();
 
 	// Decimal places of the step, so 0.25-stepping never shows 0.35000000000000003
@@ -34,7 +34,9 @@
 
 	function clamp(v: number): number {
 		if (min !== undefined && v < min) return min;
+
 		if (max !== undefined && v > max) return max;
+
 		return v;
 	}
 
@@ -46,6 +48,7 @@
 	function handleInput(e: Event & { currentTarget: HTMLInputElement }) {
 		// Don't clamp mid-typing (it fights the user); clamp on blur/steppers.
 		const n = e.currentTarget.valueAsNumber;
+
 		if (Number.isFinite(n)) onchange(n);
 	}
 

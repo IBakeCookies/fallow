@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { calculateDailyMetrics, type DailyMetricsInput } from './daily-metrics';
-import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '../zenith';
-import { DEFAULT_ENERGY_PARAMS } from '../zenith-energy';
+import {
+	calculateDailyMetrics,
+	type DailyMetricsInput,
+} from '$lib/business/model/metric/daily-metrics';
+import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
 function makeTask(overrides: Partial<Task> & { id: number; title: string }): Task {
@@ -11,7 +14,7 @@ function makeTask(overrides: Partial<Task> & { id: number; title: string }): Tas
 		enjoyment: 5,
 		createdAt: '2026-07-26',
 		completed: false,
-		...overrides
+		...overrides,
 	};
 }
 
@@ -23,7 +26,7 @@ function input(tasks: Task[], overrides: Partial<DailyMetricsInput> = {}): Daily
 		pools: DEFAULT_CAPACITY_POOLS,
 		constants: DEFAULT_USER_CONSTANTS,
 		energyParams: DEFAULT_ENERGY_PARAMS,
-		...overrides
+		...overrides,
 	};
 }
 
@@ -33,15 +36,31 @@ const TASKS = [
 		title: 'Write spec',
 		mentalDifficulty: 8,
 		physicalDifficulty: 1,
-		enjoyment: 7
+		enjoyment: 7,
 	}),
-	makeTask({ id: 2, title: 'Gym', mentalDifficulty: 1, physicalDifficulty: 8, enjoyment: 4 }),
-	makeTask({ id: 3, title: 'Email', mentalDifficulty: 3, physicalDifficulty: 1, enjoyment: 2 })
+	makeTask({
+		id: 2,
+		title: 'Gym',
+		mentalDifficulty: 1,
+		physicalDifficulty: 8,
+		enjoyment: 4,
+	}),
+	makeTask({
+		id: 3,
+		title: 'Email',
+		mentalDifficulty: 3,
+		physicalDifficulty: 1,
+		enjoyment: 2,
+	}),
 ];
 
 describe('calculateDailyMetrics', () => {
 	it('returns zeroed, N/A-able values for an empty day instead of throwing', () => {
-		const metrics = calculateDailyMetrics(input([], { availableHours: 0 }));
+		const metrics = calculateDailyMetrics(
+			input([], {
+				availableHours: 0,
+			}),
+		);
 
 		expect(metrics.totalTasks).toBe(0);
 		expect(metrics.suggestedTasks).toEqual([]);
@@ -62,7 +81,6 @@ describe('calculateDailyMetrics', () => {
 
 	it('accounts for every budgeted hour: allocation + switch overhead + slack = budget', () => {
 		const metrics = calculateDailyMetrics(input(TASKS));
-
 		const funded = metrics.suggestedTasks.filter((t) => t.suggestedHours > 0);
 		const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 		const overhead = funded.length > 1 ? (funded.length - 1) * 0.25 : 0;
@@ -76,8 +94,18 @@ describe('calculateDailyMetrics', () => {
 	// when work got done.
 	it('keeps plan-scoped metrics fixed when a task is completed', () => {
 		const before = calculateDailyMetrics(input(TASKS));
+
 		const after = calculateDailyMetrics(
-			input(TASKS.map((t) => (t.id === 2 ? { ...t, completed: true } : t)))
+			input(
+				TASKS.map((t) =>
+					t.id === 2
+						? {
+								...t,
+								completed: true,
+							}
+						: t,
+				),
+			),
 		);
 
 		expect(after.burnoutRisk).toBe(before.burnoutRisk);
@@ -89,8 +117,18 @@ describe('calculateDailyMetrics', () => {
 
 	it('moves active-scoped metrics when a task is completed', () => {
 		const before = calculateDailyMetrics(input(TASKS));
+
 		const after = calculateDailyMetrics(
-			input(TASKS.map((t) => (t.id === 2 ? { ...t, completed: true } : t)))
+			input(
+				TASKS.map((t) =>
+					t.id === 2
+						? {
+								...t,
+								completed: true,
+							}
+						: t,
+				),
+			),
 		);
 
 		expect(after.activeTasks).toHaveLength(2);
@@ -101,17 +139,18 @@ describe('calculateDailyMetrics', () => {
 
 	it('hedges with the fit posterior without changing the shape of the plan', () => {
 		const plain = calculateDailyMetrics(input(TASKS));
+
 		const hedged = calculateDailyMetrics(
 			input(TASKS, {
 				posterior: {
 					covariance: [
 						[0.05, 0, 0],
 						[0, 0.05, 0],
-						[0, 0, 0.05]
+						[0, 0, 0.05],
 					],
-					sigma2: 0.09
-				}
-			})
+					sigma2: 0.09,
+				},
+			}),
 		);
 
 		expect(hedged.suggestedTasks).toHaveLength(plain.suggestedTasks.length);

@@ -4,12 +4,12 @@ import {
 	$createRestObservation,
 	$readAllRestObservations,
 	$deleteRestObservation,
-	$deleteAllRestObservations
-} from './rest-observation-repository';
+	$deleteAllRestObservations,
+} from '$lib/data/repository/rest-observation-repository';
 import type { RestObservationRecord } from '$lib/data/type';
 
 function observation(
-	overrides: Partial<RestObservationRecord> = {}
+	overrides: Partial<RestObservationRecord> = {},
 ): Omit<RestObservationRecord, 'id' | 'createdAt'> {
 	return {
 		date: '2026-01-01',
@@ -18,7 +18,7 @@ function observation(
 		mindAfter: 3,
 		bodyBefore: 4,
 		bodyAfter: 2,
-		...overrides
+		...overrides,
 	};
 }
 

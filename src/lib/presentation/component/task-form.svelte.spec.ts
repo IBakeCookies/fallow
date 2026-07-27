@@ -1,13 +1,19 @@
 import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import TaskForm from './task-form.svelte';
+import TaskForm from '$lib/presentation/component/task-form.svelte';
 
 describe('task-form.svelte', () => {
 	it('starts collapsed when startOpen is false and expands on click', async () => {
-		render(TaskForm, { onsubmit: vi.fn(), startOpen: false });
+		render(TaskForm, {
+			onsubmit: vi.fn(),
+			startOpen: false,
+		});
 
-		const addButton = page.getByRole('button', { name: '+ Add Task' });
+		const addButton = page.getByRole('button', {
+			name: '+ Add Task',
+		});
+
 		await expect.element(addButton).toBeInTheDocument();
 		await addButton.click();
 
@@ -15,43 +21,93 @@ describe('task-form.svelte', () => {
 	});
 
 	it('collapses back to the add row', async () => {
-		render(TaskForm, { onsubmit: vi.fn() });
+		render(TaskForm, {
+			onsubmit: vi.fn(),
+		});
 
-		await page.getByRole('button', { name: 'Collapse task form' }).click();
+		await page
+			.getByRole('button', {
+				name: 'Collapse task form',
+			})
+			.click();
 
-		await expect.element(page.getByRole('button', { name: '+ Add Task' })).toBeInTheDocument();
+		await expect
+			.element(
+				page.getByRole('button', {
+					name: '+ Add Task',
+				}),
+			)
+			.toBeInTheDocument();
 	});
 
 	it('submits trimmed title with slider values and resets the draft', async () => {
 		const onsubmit = vi.fn();
-		render(TaskForm, { onsubmit });
+
+		render(TaskForm, {
+			onsubmit,
+		});
 
 		const title = page.getByLabelText('Task Definition');
 		await title.fill('  Boxing training  ');
-		await page.getByRole('button', { name: 'Deploy Task' }).click();
+
+		await page
+			.getByRole('button', {
+				name: 'Deploy Task',
+			})
+			.click();
 
 		expect(onsubmit).toHaveBeenCalledExactlyOnceWith({
 			title: 'Boxing training',
 			physicalDifficulty: 5,
 			mentalDifficulty: 5,
-			enjoyment: 5
+			enjoyment: 5,
 		});
+
 		await expect.element(title).toHaveValue('');
 	});
 
 	it('names every slider by its label', async () => {
-		render(TaskForm, { onsubmit: vi.fn() });
+		render(TaskForm, {
+			onsubmit: vi.fn(),
+		});
 
-		await expect.element(page.getByRole('slider', { name: /Physical Diff/ })).toBeInTheDocument();
-		await expect.element(page.getByRole('slider', { name: /Mental Diff/ })).toBeInTheDocument();
-		await expect.element(page.getByRole('slider', { name: /Enjoyment/ })).toBeInTheDocument();
+		await expect
+			.element(
+				page.getByRole('slider', {
+					name: /Physical Diff/,
+				}),
+			)
+			.toBeInTheDocument();
+
+		await expect
+			.element(
+				page.getByRole('slider', {
+					name: /Mental Diff/,
+				}),
+			)
+			.toBeInTheDocument();
+
+		await expect
+			.element(
+				page.getByRole('slider', {
+					name: /Enjoyment/,
+				}),
+			)
+			.toBeInTheDocument();
 	});
 
 	it('does not submit an empty title', async () => {
 		const onsubmit = vi.fn();
-		render(TaskForm, { onsubmit });
 
-		await page.getByRole('button', { name: 'Deploy Task' }).click();
+		render(TaskForm, {
+			onsubmit,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Deploy Task',
+			})
+			.click();
 
 		expect(onsubmit).not.toHaveBeenCalled();
 	});

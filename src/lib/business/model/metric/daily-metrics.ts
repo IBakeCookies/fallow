@@ -10,8 +10,8 @@
  * in `$lib/presentation/utils/metric-descriptor`.
  */
 
-import type { CapacityPools, FitPosterior, UserConstants } from '../zenith';
-import type { EnergyParams } from '../zenith-energy';
+import type { CapacityPools, FitPosterior, UserConstants } from '$lib/business/model/zenith';
+import type { EnergyParams } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 import {
 	calculateAverageEnjoyment,
@@ -42,8 +42,8 @@ import {
 	calculateZenithGain,
 	type DailyQuadrant,
 	type SuggestedTask,
-	type ZenithGain
-} from './calculation';
+	type ZenithGain,
+} from '$lib/business/model/metric/calculation';
 
 export interface DailyMetricsInput {
 	tasks: Task[];
@@ -106,10 +106,10 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		switchCost,
 		pools,
 		constants,
-		posterior
+		posterior,
 	);
-	const activeTasks = suggestedTasks.filter((task) => !task.completed);
 
+	const activeTasks = suggestedTasks.filter((task) => !task.completed);
 	// Switch overhead counts only tasks that actually received time, matching
 	// the allocator.
 	const budget = Number(availableHours) || 0;
@@ -117,7 +117,6 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 	const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
 	const allocated = suggestedTasks.reduce((sum, task) => sum + task.suggestedHours, 0);
 	const planSlackHours = Math.max(0, Math.max(0, budget - overhead) - allocated);
-
 	const cognitiveLoad = calculateCognitiveLoad(suggestedTasks, availableHours);
 	const physicalLoad = calculatePhysicalLoad(suggestedTasks, availableHours);
 
@@ -166,6 +165,6 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		recoveryRatio: calculateRecoveryRatio(suggestedTasks),
 		averagePhysicalDifficulty: calculateAveragePhysicalDifficulty(tasks),
 		averageMentalDifficulty: calculateAverageMentalDifficulty(tasks),
-		averageEnjoyment: calculateAverageEnjoyment(tasks)
+		averageEnjoyment: calculateAverageEnjoyment(tasks),
 	};
 }

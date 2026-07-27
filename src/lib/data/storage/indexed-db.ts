@@ -16,6 +16,7 @@
  */
 
 const DB_NAME = 'zenith-db';
+
 export const DB_VERSION = 5;
 
 export const STORE_NAMES = [
@@ -24,7 +25,7 @@ export const STORE_NAMES = [
 	'flowObservations',
 	'drainObservations',
 	'restObservations',
-	'settings'
+	'settings',
 ] as const;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -36,6 +37,7 @@ export function openDatabase(): Promise<IDBDatabase> {
 			throw error;
 		});
 	}
+
 	return databasePromise;
 }
 
@@ -44,6 +46,7 @@ async function openAndHeal(): Promise<IDBDatabase> {
 		// On-disk version is newer than the code (user opened an older build after
 		// a newer one upgraded the schema): open at the existing version.
 		if (error instanceof DOMException && error.name === 'VersionError') return open();
+
 		throw error;
 	});
 
@@ -53,6 +56,7 @@ async function openAndHeal(): Promise<IDBDatabase> {
 	if (STORE_NAMES.some((name) => !database.objectStoreNames.contains(name))) {
 		const version = database.version + 1;
 		database.close();
+
 		return open(version);
 	}
 
@@ -94,21 +98,27 @@ function open(version?: number): Promise<IDBDatabase> {
 
 			// Daily sessions store - keyed by date
 			if (!database.objectStoreNames.contains('sessions')) {
-				const sessionStore = database.createObjectStore('sessions', { keyPath: 'date' });
+				const sessionStore = database.createObjectStore('sessions', {
+					keyPath: 'date',
+				});
+
 				sessionStore.createIndex('updatedAt', 'updatedAt');
 			}
 
 			// Saved routines store
 			if (!database.objectStoreNames.contains('routines')) {
-				database.createObjectStore('routines', { keyPath: 'id' });
+				database.createObjectStore('routines', {
+					keyPath: 'id',
+				});
 			}
 
 			// Flow observations store (v2) - measured time-to-flow data points
 			if (!database.objectStoreNames.contains('flowObservations')) {
 				const flowStore = database.createObjectStore('flowObservations', {
 					keyPath: 'id',
-					autoIncrement: true
+					autoIncrement: true,
 				});
+
 				flowStore.createIndex('date', 'date');
 			}
 
@@ -117,8 +127,9 @@ function open(version?: number): Promise<IDBDatabase> {
 			if (!database.objectStoreNames.contains('drainObservations')) {
 				const drainStore = database.createObjectStore('drainObservations', {
 					keyPath: 'id',
-					autoIncrement: true
+					autoIncrement: true,
 				});
+
 				drainStore.createIndex('date', 'date');
 			}
 
@@ -127,14 +138,17 @@ function open(version?: number): Promise<IDBDatabase> {
 			if (!database.objectStoreNames.contains('restObservations')) {
 				const restStore = database.createObjectStore('restObservations', {
 					keyPath: 'id',
-					autoIncrement: true
+					autoIncrement: true,
 				});
+
 				restStore.createIndex('date', 'date');
 			}
 
 			// Settings store (v5) - one record per named singleton setting
 			if (!database.objectStoreNames.contains('settings')) {
-				database.createObjectStore('settings', { keyPath: 'key' });
+				database.createObjectStore('settings', {
+					keyPath: 'key',
+				});
 			}
 		};
 	});
@@ -150,9 +164,10 @@ function open(version?: number): Promise<IDBDatabase> {
 export async function withStore<T>(
 	storeName: string,
 	mode: IDBTransactionMode,
-	work: (store: IDBObjectStore) => IDBRequest<T> | void
+	work: (store: IDBObjectStore) => IDBRequest<T> | void,
 ): Promise<T> {
 	const database = await openDatabase();
+
 	return new Promise<T>((resolve, reject) => {
 		const transaction = database.transaction(storeName, mode);
 		const request = work(transaction.objectStore(storeName));

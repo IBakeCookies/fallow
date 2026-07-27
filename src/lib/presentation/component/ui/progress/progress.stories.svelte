@@ -6,11 +6,24 @@
 		title: 'UI/Progress',
 		component: Progress,
 		tags: ['autodocs'],
-		args: { value: 60, max: 100, 'aria-label': 'Completion' },
+		args: {
+			value: 60,
+			max: 100,
+			'aria-label': 'Completion',
+		},
 		argTypes: {
-			value: { control: { type: 'range', min: 0, max: 100, step: 1 } },
-			max: { control: 'number' }
-		}
+			value: {
+				control: {
+					type: 'range',
+					min: 0,
+					max: 100,
+					step: 1,
+				},
+			},
+			max: {
+				control: 'number',
+			},
+		},
 	});
 </script>
 

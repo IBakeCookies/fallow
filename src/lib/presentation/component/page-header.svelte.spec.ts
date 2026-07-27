@@ -2,7 +2,7 @@ import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { Task, DailySession, SavedRoutine } from '$lib/business/type';
-import PageHeader from './page-header.svelte';
+import PageHeader from '$lib/presentation/component/page-header.svelte';
 
 const task = (id: number, title: string): Task => ({
 	id,
@@ -11,7 +11,7 @@ const task = (id: number, title: string): Task => ({
 	mentalDifficulty: 7,
 	enjoyment: 6,
 	createdAt: '2026-07-19',
-	completed: false
+	completed: false,
 });
 
 const yesterdaySession: DailySession = {
@@ -19,14 +19,21 @@ const yesterdaySession: DailySession = {
 	tasks: [task(1, 'boxing'), task(2, 'writing')],
 	availableHours: 6,
 	switchCost: 0.25,
-	updatedAt: 1
+	updatedAt: 1,
 };
 
 const routine: SavedRoutine = {
 	id: 'r1',
 	name: 'Morning',
-	tasks: [{ title: 'stretch', physicalDifficulty: 4, mentalDifficulty: 1, enjoyment: 8 }],
-	createdAt: 1
+	tasks: [
+		{
+			title: 'stretch',
+			physicalDifficulty: 4,
+			mentalDifficulty: 1,
+			enjoyment: 8,
+		},
+	],
+	createdAt: 1,
 };
 
 const baseProps = {
@@ -41,26 +48,66 @@ const baseProps = {
 	onimport: vi.fn(),
 	onimportdate: vi.fn(() => Promise.resolve(0)),
 	onsaveroutine: vi.fn(),
-	ondeleteroutine: vi.fn()
+	ondeleteroutine: vi.fn(),
 };
 
 describe('page-header.svelte', () => {
 	it('shows the completed/total count and no save action when empty on today', async () => {
 		render(PageHeader, baseProps);
 
-		await expect.element(page.getByRole('heading', { name: 'Fallow' })).toBeInTheDocument();
+		await expect
+			.element(
+				page.getByRole('heading', {
+					name: 'Fallow',
+				}),
+			)
+			.toBeInTheDocument();
+
 		await expect.element(page.getByText('tasks')).toBeInTheDocument();
-		await expect.element(page.getByText('1', { exact: true })).toBeInTheDocument();
+
+		await expect
+			.element(
+				page.getByText('1', {
+					exact: true,
+				}),
+			)
+			.toBeInTheDocument();
+
 		// Load stays available even with nothing saved — any past day can be imported by date.
-		await expect.element(page.getByRole('button', { name: 'Load' }).first()).toBeInTheDocument();
-		expect(page.getByRole('button', { name: 'Save' }).elements()).toHaveLength(0);
+		await expect
+			.element(
+				page
+					.getByRole('button', {
+						name: 'Load',
+					})
+					.first(),
+			)
+			.toBeInTheDocument();
+
+		expect(
+			page
+				.getByRole('button', {
+					name: 'Save',
+				})
+				.elements(),
+		).toHaveLength(0);
 	});
 
 	it('imports tasks from a picked date and closes the menu', async () => {
 		const onimportdate = vi.fn(() => Promise.resolve(2));
-		render(PageHeader, { ...baseProps, onimportdate });
 
-		await page.getByRole('button', { name: 'Load' }).first().click();
+		render(PageHeader, {
+			...baseProps,
+			onimportdate,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
 		await page.getByLabelText('Load from a day').fill('2026-07-15');
 
 		expect(onimportdate).toHaveBeenCalledExactlyOnceWith('2026-07-15');
@@ -69,9 +116,19 @@ describe('page-header.svelte', () => {
 
 	it('shows a hint when the picked date has no tasks', async () => {
 		const onimportdate = vi.fn(() => Promise.resolve(0));
-		render(PageHeader, { ...baseProps, onimportdate });
 
-		await page.getByRole('button', { name: 'Load' }).first().click();
+		render(PageHeader, {
+			...baseProps,
+			onimportdate,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
 		await page.getByLabelText('Load from a day').fill('2026-07-15');
 
 		await expect.element(page.getByText('No tasks on that day')).toBeInTheDocument();
@@ -79,9 +136,18 @@ describe('page-header.svelte', () => {
 
 	it('offers "Return to Today" when viewing another date', async () => {
 		const ondatechange = vi.fn();
-		render(PageHeader, { ...baseProps, selectedDate: '2026-07-21', ondatechange });
 
-		await page.getByRole('button', { name: 'Return to Today' }).click();
+		render(PageHeader, {
+			...baseProps,
+			selectedDate: '2026-07-21',
+			ondatechange,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Return to Today',
+			})
+			.click();
 
 		expect(ondatechange).toHaveBeenCalledExactlyOnceWith('2026-07-20');
 	});
@@ -92,60 +158,169 @@ describe('page-header.svelte', () => {
 			selectedDate: '2026-07-19',
 			yesterdaySession,
 			routines: [routine],
-			currentTasks: [task(3, 'now')]
+			currentTasks: [task(3, 'now')],
 		});
 
-		expect(page.getByRole('button', { name: 'Load' }).elements()).toHaveLength(0);
-		expect(page.getByRole('button', { name: 'Save' }).elements()).toHaveLength(0);
-		await expect.element(page.getByRole('button', { name: 'Return to Today' })).toBeInTheDocument();
+		expect(
+			page
+				.getByRole('button', {
+					name: 'Load',
+				})
+				.elements(),
+		).toHaveLength(0);
+
+		expect(
+			page
+				.getByRole('button', {
+					name: 'Save',
+				})
+				.elements(),
+		).toHaveLength(0);
+
+		await expect
+			.element(
+				page.getByRole('button', {
+					name: 'Return to Today',
+				}),
+			)
+			.toBeInTheDocument();
 	});
 
 	it("imports yesterday's tasks stripped to their definition", async () => {
 		const onimport = vi.fn();
-		render(PageHeader, { ...baseProps, yesterdaySession, onimport });
+
+		render(PageHeader, {
+			...baseProps,
+			yesterdaySession,
+			onimport,
+		});
 
 		// the bits-ui trigger button wraps the visual Button — take the outer one
-		await page.getByRole('button', { name: 'Load' }).first().click();
-		await page.getByRole('menuitem', { name: /Yesterday \(2 tasks\)/ }).click();
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		await page
+			.getByRole('menuitem', {
+				name: /Yesterday \(2 tasks\)/,
+			})
+			.click();
 
 		expect(onimport).toHaveBeenCalledExactlyOnceWith([
-			{ title: 'boxing', physicalDifficulty: 3, mentalDifficulty: 7, enjoyment: 6 },
-			{ title: 'writing', physicalDifficulty: 3, mentalDifficulty: 7, enjoyment: 6 }
+			{
+				title: 'boxing',
+				physicalDifficulty: 3,
+				mentalDifficulty: 7,
+				enjoyment: 6,
+			},
+			{
+				title: 'writing',
+				physicalDifficulty: 3,
+				mentalDifficulty: 7,
+				enjoyment: 6,
+			},
 		]);
 	});
 
 	it('imports and deletes saved routines from the load menu', async () => {
 		const onimport = vi.fn();
 		const ondeleteroutine = vi.fn();
-		render(PageHeader, { ...baseProps, routines: [routine], onimport, ondeleteroutine });
 
-		await page.getByRole('button', { name: 'Load' }).first().click();
+		render(PageHeader, {
+			...baseProps,
+			routines: [routine],
+			onimport,
+			ondeleteroutine,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
 		await expect.element(page.getByText('Saved Routines')).toBeInTheDocument();
-		await page.getByRole('button', { name: 'Morning (1)' }).click();
+
+		await page
+			.getByRole('button', {
+				name: 'Morning (1)',
+			})
+			.click();
+
 		expect(onimport).toHaveBeenCalledExactlyOnceWith(routine.tasks);
 
-		await page.getByRole('button', { name: 'Load' }).first().click();
-		await page.getByRole('button', { name: 'Delete routine Morning' }).click();
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		await page
+			.getByRole('button', {
+				name: 'Delete routine Morning',
+			})
+			.click();
+
 		expect(ondeleteroutine).toHaveBeenCalledExactlyOnceWith('r1');
 	});
 
 	it('saves the current tasks as a named routine', async () => {
 		const onsaveroutine = vi.fn();
-		render(PageHeader, { ...baseProps, currentTasks: [task(3, 'now')], onsaveroutine });
 
-		await page.getByRole('button', { name: 'Save' }).first().click();
+		render(PageHeader, {
+			...baseProps,
+			currentTasks: [task(3, 'now')],
+			onsaveroutine,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Save',
+			})
+			.first()
+			.click();
+
 		await page.getByPlaceholder('Routine name...').fill('  Deep work  ');
-		await page.getByRole('button', { name: 'Save', exact: true }).last().click();
+
+		await page
+			.getByRole('button', {
+				name: 'Save',
+				exact: true,
+			})
+			.last()
+			.click();
 
 		expect(onsaveroutine).toHaveBeenCalledExactlyOnceWith('Deep work');
 	});
 
 	it('ignores saving a routine with a blank name', async () => {
 		const onsaveroutine = vi.fn();
-		render(PageHeader, { ...baseProps, currentTasks: [task(3, 'now')], onsaveroutine });
 
-		await page.getByRole('button', { name: 'Save' }).first().click();
-		await page.getByRole('button', { name: 'Save', exact: true }).last().click();
+		render(PageHeader, {
+			...baseProps,
+			currentTasks: [task(3, 'now')],
+			onsaveroutine,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Save',
+			})
+			.first()
+			.click();
+
+		await page
+			.getByRole('button', {
+				name: 'Save',
+				exact: true,
+			})
+			.last()
+			.click();
 
 		expect(onsaveroutine).not.toHaveBeenCalled();
 	});

@@ -5,6 +5,7 @@ let current = $state(toISODate());
 
 function refresh() {
 	const now = toISODate();
+
 	if (now !== current) current = now;
 }
 
@@ -14,11 +15,13 @@ if (browser) {
 	const scheduleMidnightTick = () => {
 		const now = new Date();
 		const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+
 		setTimeout(() => {
 			refresh();
 			scheduleMidnightTick();
 		}, nextMidnight.getTime() - now.getTime());
 	};
+
 	scheduleMidnightTick();
 	document.addEventListener('visibilitychange', refresh);
 	window.addEventListener('focus', refresh);
@@ -32,5 +35,5 @@ export const liveToday = {
 		// would go stale on a warm instance — always read fresh there. In the
 		// browser `current` is reactive and tracks midnight/wake rollovers.
 		return browser ? current : toISODate();
-	}
+	},
 };

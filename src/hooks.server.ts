@@ -12,7 +12,7 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 			transformPageChunk: ({ html }) =>
 				html
 					.replace('%paraglide.lang%', locale)
-					.replace('%paraglide.dir%', getTextDirection(locale))
+					.replace('%paraglide.dir%', getTextDirection(locale)),
 		});
 	});
 
@@ -20,7 +20,7 @@ const handleTheme: Handle = async ({ event, resolve }) => {
 	const { themeClass } = readRequestAppearance(event.cookies);
 
 	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%theme%', themeClass)
+		transformPageChunk: ({ html }) => html.replace('%theme%', themeClass),
 	});
 
 	return response;
@@ -34,7 +34,7 @@ const handleSceneryMotion: Handle = async ({ event, resolve }) => {
 		: '';
 
 	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%scenery-paused%', sceneryPausedClass)
+		transformPageChunk: ({ html }) => html.replace('%scenery-paused%', sceneryPausedClass),
 	});
 
 	return response;

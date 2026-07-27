@@ -11,5 +11,5 @@ export type {
 	SavedRoutine,
 	FlowObservationRecord,
 	DrainObservationRecord,
-	RestObservationRecord
+	RestObservationRecord,
 } from '$lib/data/type';

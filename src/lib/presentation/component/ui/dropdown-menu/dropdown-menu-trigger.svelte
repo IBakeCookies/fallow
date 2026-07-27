@@ -5,12 +5,12 @@
 		variants: {
 			variant: {
 				default: '',
-				pill: 'inline-flex items-center gap-2 rounded-xl border bg-surface-card px-3 py-2 text-sm text-ty-secondary backdrop-blur transition-colors hover:bg-surface-hover hover:text-ty-primary'
-			}
+				pill: 'inline-flex items-center gap-2 rounded-xl border bg-surface-card px-3 py-2 text-sm text-ty-secondary backdrop-blur transition-colors hover:bg-surface-hover hover:text-ty-primary',
+			},
 		},
 		defaultVariants: {
-			variant: 'default'
-		}
+			variant: 'default',
+		},
 	});
 
 	export type DropdownMenuTriggerVariant = VariantProps<
@@ -35,6 +35,11 @@
 <DropdownMenuPrimitive.Trigger
 	bind:ref
 	data-slot="dropdown-menu-trigger"
-	class={cn(dropdownMenuTriggerVariants({ variant }), className)}
+	class={cn(
+		dropdownMenuTriggerVariants({
+			variant,
+		}),
+		className,
+	)}
 	{...restProps}
 />

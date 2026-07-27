@@ -15,7 +15,7 @@
 	data-slot="card-footer"
 	class={cn(
 		'rounded-b-xl px-(--card-spacing) [.border-t]:pt-(--card-spacing) flex items-center',
-		className
+		className,
 	)}
 	{...restProps}
 >
