@@ -36,8 +36,15 @@ test('advice prices real adjustments and goes stale when the day changes', async
 	await page.getByLabel('Available Hours').fill('10');
 	await page.getByLabel('Available Hours').blur();
 
-	// Nothing is computed until the user asks for it.
-	await expect(page.getByText('Adjust the plan')).toBeVisible();
+	// Nothing is computed until the user asks for it — and until then the feature
+	// is one button, not a card with a heading advertising an empty panel.
+	await expect(
+		page.getByRole('button', {
+			name: 'Check my day',
+		}),
+	).toBeVisible();
+
+	await expect(page.getByText('Adjust the plan')).toBeHidden();
 	await expect(page.getByText(/plan value/)).toBeHidden();
 
 	await page
@@ -45,6 +52,8 @@ test('advice prices real adjustments and goes stale when the day changes', async
 			name: 'Check my day',
 		})
 		.click();
+
+	await expect(page.getByText('Adjust the plan')).toBeVisible();
 
 	// A lever with the reading it produces and its price: an improvement shown
 	// without its cost is the advice this feature exists to avoid.
@@ -100,10 +109,14 @@ test('the advice card stays out of the way on a past day', async ({ page }) => {
 	await page.goto('/');
 	await addDrainingTask(page, 'Write the spec');
 
-	await expect(page.getByText('Adjust the plan')).toBeVisible();
+	const check = page.getByRole('button', {
+		name: 'Check my day',
+	});
+
+	await expect(check).toBeVisible();
 
 	// Past days are read-only, so there is nothing to adjust.
 	await page.goto('/?date=2026-01-02');
 
-	await expect(page.getByText('Adjust the plan')).toBeHidden();
+	await expect(check).toBeHidden();
 });

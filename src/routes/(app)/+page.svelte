@@ -12,8 +12,7 @@
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
-	import TimeBudgetCard from '$lib/presentation/component/time-budget-card.svelte';
-	import PersonalizationCard from '$lib/presentation/component/personalization-card.svelte';
+	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
@@ -71,22 +70,6 @@
 			day: 'numeric',
 		});
 	}
-
-	const modelStatus = $derived(
-		session.constantsFit.fitted
-			? session.flowObservations.length === 1
-				? m.model_status_personalized_one()
-				: m.model_status_personalized({
-						count: session.flowObservations.length,
-					})
-			: session.flowObservations.length > 0
-				? session.flowObservations.length === 1
-					? m.model_status_implausible_one()
-					: m.model_status_implausible({
-							count: session.flowObservations.length,
-						})
-				: m.model_status_default(),
-	);
 </script>
 
 <SeoHead
@@ -124,34 +107,64 @@
 	ondeleteroutine={(id) => session.deleteRoutine(id)}
 />
 
-<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-	<div class="space-y-grid-lg lg:col-span-2">
-		{#if !isViewingPast}
-			{#if isViewingFuture}
-				<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong text-sm">
-					<span class="font-medium">{m.banner_future_title()}</span>
-					{m.banner_future_body({
-						date: formatDisplayDate(selectedDate),
-					})}
-				</div>
-			{/if}
-			<TimeBudgetCard
-				bind:availableHours={session.availableHours}
-				bind:switchCost={session.switchCost}
-				bind:cognitivePool={session.cognitivePool}
-				bind:physicalPool={session.physicalPool}
-				{remainingSuggestedHours}
-				planSlackHours={daily.planSlackHours}
-				startOpen={availableHours <= 0}
+<!-- Lives in the task-list card so adding and reading the plan are one place;
+     passed as a snippet rather than imported there, per the components-take-props
+     rule. -->
+{#snippet addTaskForm()}
+	<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
+{/snippet}
+
+<!-- The day's banner and constraints span both columns: they scope the whole
+     page, and full width is what lets the four inputs sit on one row instead of
+     stacking 2×2 inside the narrower task column. -->
+<div class="space-y-grid-lg min-h-screen">
+	{#if isViewingFuture}
+		<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong text-sm">
+			<span class="font-medium">{m.banner_future_title()}</span>
+			{m.banner_future_body({
+				date: formatDisplayDate(selectedDate),
+			})}
+		</div>
+	{/if}
+
+	{#if isViewingPast}
+		<div
+			class="p-box-md rounded-xl border border-warning/20 bg-warning/5 text-warning-strong text-sm"
+		>
+			<span class="font-medium">{m.banner_past_title()}</span>
+			{m.banner_past_body()}
+		</div>
+	{:else}
+		<DayConstraintsBar
+			bind:availableHours={session.availableHours}
+			bind:switchCost={session.switchCost}
+			bind:cognitivePool={session.cognitivePool}
+			bind:physicalPool={session.physicalPool}
+			{remainingSuggestedHours}
+			planSlackHours={daily.planSlackHours}
+			constantsFitted={session.constantsFit.fitted}
+			flowLogs={session.flowObservations}
+			ondeletelog={(id) => session.deleteFlowLog(id)}
+			onresetlogs={() => session.resetFlowLogs()}
+			startOpen={availableHours <= 0}
+		/>
+	{/if}
+
+	<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
+		<div class="space-y-grid-lg lg:col-span-2">
+			<TaskList
+				suggestedTasks={daily.suggestedTasks}
+				runOrder={daily.runOrder}
+				ontoggle={(id) => session.toggleTask(id)}
+				onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
+				onlogflow={selectedDate === today
+					? (id, minutes) => session.logFlow(id, minutes)
+					: undefined}
+				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
+				form={isViewingPast ? undefined : addTaskForm}
 			/>
-			<PersonalizationCard
-				{modelStatus}
-				flowLogs={session.flowObservations}
-				ondeletelog={(id) => session.deleteFlowLog(id)}
-				onresetlogs={() => session.resetFlowLogs()}
-			/>
-			<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
-			{#if tasks.length > 0}
+
+			{#if !isViewingPast && tasks.length > 0}
 				<PlanAdviceCard
 					{advice}
 					busy={plan.adviceBusy}
@@ -159,27 +172,11 @@
 					oncheck={() => plan.computeAdvice()}
 				/>
 			{/if}
-		{:else}
-			<div
-				class="p-box-md rounded-xl border border-warning/20 bg-warning/5 text-warning-strong text-sm"
-			>
-				<span class="font-medium">{m.banner_past_title()}</span>
-				{m.banner_past_body()}
-			</div>
-		{/if}
+		</div>
 
-		<TaskList
-			suggestedTasks={daily.suggestedTasks}
-			runOrder={daily.runOrder}
-			ontoggle={(id) => session.toggleTask(id)}
-			onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
-			onlogflow={selectedDate === today ? (id, minutes) => session.logFlow(id, minutes) : undefined}
-			onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
-		/>
-	</div>
-
-	<div class="space-y-grid-md lg:sticky lg:top-page">
-		<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />
+		<div class="space-y-grid-md lg:sticky lg:top-page">
+			<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />
+		</div>
 	</div>
 </div>
 

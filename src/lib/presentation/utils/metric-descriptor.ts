@@ -90,6 +90,7 @@ export function buildMetrics(
 
 	return [
 		{
+			headline: true,
 			label: m.metric_zenith_gain(),
 			description: m.metric_zenith_gain_desc(),
 			...(hasTasks && hasBudget
@@ -117,10 +118,16 @@ export function buildMetrics(
 		{
 			label: m.metric_completion_rate(),
 			description: m.metric_completion_rate_desc(),
+			// The reading is honest at 0% but the band is not: an untouched day is the
+			// starting state, not a critical one, and colouring it red on first paint
+			// is what makes every other warning easy to ignore.
 			...(hasTasks
 				? {
 						value: `${completionRate}%`,
-						valStyle: getStatusBiggerBetter(completionRate).color,
+						valStyle:
+							metrics.completedTasks > 0
+								? getStatusBiggerBetter(completionRate).color
+								: STATUS.NEUTRAL.color,
 					}
 				: NA),
 		},
@@ -140,7 +147,7 @@ export function buildMetrics(
 				: NA),
 		},
 		{
-			section: true,
+			headline: true,
 			label: m.metric_human_capacity(),
 			description: m.metric_human_capacity_desc({
 				type:
@@ -157,9 +164,12 @@ export function buildMetrics(
 				: NA),
 		},
 		{
+			headline: true,
 			label: m.metric_time_scarcity(),
 			description: m.metric_time_scarcity_desc(),
-			...(hasTasks
+			// Budget-gated as well as task-gated: with no budget the model returns a
+			// degenerate 100%, which is true but says nothing and reads as an alarm.
+			...(hasTasks && hasBudget
 				? {
 						value: `${timeScarcity}%`,
 						valStyle: BAND.timeScarcity(timeScarcity).color,
@@ -167,6 +177,7 @@ export function buildMetrics(
 				: NA),
 		},
 		{
+			headline: true,
 			label: m.metric_bottleneck(),
 			value: bottleneckTask === 'None Detected' ? m.metric_none_detected() : bottleneckTask,
 			description: m.metric_bottleneck_desc(),
@@ -222,7 +233,9 @@ export function buildMetrics(
 			section: true,
 			label: m.metric_schedule_integrity(),
 			description: m.metric_schedule_integrity_desc(),
-			...(hasTasks
+			// Same as time scarcity: budget 0 short-circuits to 0%, an alarm about
+			// nothing.
+			...(hasTasks && hasBudget
 				? {
 						value: `${scheduleIntegrity}%`,
 						valStyle: BAND.scheduleIntegrity(scheduleIntegrity).color,

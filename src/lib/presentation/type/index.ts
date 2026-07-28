@@ -7,6 +7,8 @@
 export interface Metric {
 	/** starts a new visual section (rendered with a separator above) */
 	section?: boolean;
+	/** promoted out of the list to a large tile — the day's headline readings */
+	headline?: boolean;
 	label: string;
 	value: string;
 	description: string;

@@ -57,15 +57,14 @@
 	<button
 		type="button"
 		onclick={() => (open = true)}
-		class="w-full rounded-2xl border border-dashed border-line-strong bg-surface-card p-box-md text-sm text-ty-secondary backdrop-blur transition hover:border-brand/40 hover:text-ty-primary shadow-card"
+		class="w-full rounded-xl border border-dashed border-line-strong p-box-sm text-sm text-ty-secondary transition hover:border-brand/40 hover:text-ty-primary"
 	>
 		{m.form_add_task()}
 	</button>
 {:else}
-	<form
-		class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card"
-		onsubmit={handleSubmit}
-	>
+	<!-- Nested inside the task-list card: no own shadow/blur, it already sits on a
+	     blurred plane. -->
+	<form class="rounded-xl border border-line-soft p-box-md" onsubmit={handleSubmit}>
 		<div class="flex items-start justify-between gap-grid-sm">
 			<label class="min-w-0 flex-1 text-xs font-medium text-ty-secondary">
 				{m.form_task_definition()}

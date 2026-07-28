@@ -54,6 +54,9 @@ describe('plan-advice-card.svelte', () => {
 		});
 
 		expect(document.body.textContent).not.toContain('Burnout Risk');
+		// Until it has run, this is one button and no card: a heading and a
+		// description advertising an empty panel is pure vertical cost above the plan.
+		expect(document.body.textContent).not.toContain('Adjust the plan');
 
 		await page
 			.getByRole('button', {

@@ -15,20 +15,28 @@
 	let { advice, busy, stale, oncheck }: Props = $props();
 </script>
 
-<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-box-xl">
-	<div class="flex items-start justify-between gap-grid-xs">
-		<div class="min-w-0">
-			<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">
-				{m.advice_title()}
-			</h3>
-			<p class="mt-text-xs text-xs text-ty-silent">{m.advice_desc()}</p>
-		</div>
-		<Button variant="outline" size="sm" disabled={busy} onclick={oncheck}>
-			{busy ? m.advice_working() : advice ? m.advice_recheck() : m.advice_check()}
+<!-- Until the user asks, this is one button and nothing else: a card advertising
+     a feature it has not run yet is pure vertical cost above the plan. -->
+{#if !advice}
+	<div class="flex justify-end">
+		<Button variant="secondary" size="sm" disabled={busy} onclick={oncheck} title={m.advice_desc()}>
+			{busy ? m.advice_working() : m.advice_check()}
 		</Button>
 	</div>
+{:else}
+	<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-box-xl">
+		<div class="flex items-start justify-between gap-grid-xs">
+			<div class="min-w-0">
+				<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">
+					{m.advice_title()}
+				</h3>
+				<p class="mt-text-xs text-xs text-ty-silent">{m.advice_desc()}</p>
+			</div>
+			<Button variant="outline" size="sm" disabled={busy} onclick={oncheck}>
+				{busy ? m.advice_working() : m.advice_recheck()}
+			</Button>
+		</div>
 
-	{#if advice}
 		{#if stale}
 			<p
 				class="mt-grid-sm rounded-lg border border-warning/20 bg-warning/5 p-box-sm text-xs text-warning-strong"
@@ -71,5 +79,5 @@
 				{/each}
 			</ul>
 		{/if}
-	{/if}
-</div>
+	</div>
+{/if}

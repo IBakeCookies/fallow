@@ -1,0 +1,232 @@
+<script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
+	import type { FlowObservationRecord } from '$lib/business/type';
+	import { NumberInput } from '$lib/presentation/component/ui/number-input';
+	import LogList from '$lib/presentation/component/log-list.svelte';
+
+	interface Props {
+		availableHours: number;
+		switchCost: number;
+		cognitivePool: number;
+		physicalPool: number;
+		remainingSuggestedHours: string;
+		planSlackHours: number;
+		/** whether the personalized ϕ fit was accepted (implausible fits are not) */
+		constantsFitted: boolean;
+		flowLogs?: FlowObservationRecord[];
+		ondeletelog?: (id: number) => void;
+		onresetlogs?: () => void;
+		// Collapsed, the whole bar is one line carrying every constraint the plan
+		// reads. These are occasional-use inputs and the plan below them is what
+		// the page is for, so expanding is opt-in.
+		startOpen?: boolean;
+	}
+
+	let {
+		availableHours = $bindable(),
+		switchCost = $bindable(),
+		cognitivePool = $bindable(),
+		physicalPool = $bindable(),
+		remainingSuggestedHours,
+		planSlackHours,
+		constantsFitted,
+		flowLogs = [],
+		ondeletelog,
+		onresetlogs,
+		startOpen = false,
+	}: Props = $props();
+
+	// svelte-ignore state_referenced_locally -- deliberately initial-value only
+	let open = $state(startOpen);
+
+	// Display switch cost in minutes but store in hours
+	const switchCostMinutes = $derived(Math.round(switchCost * 60));
+
+	const summary = $derived(
+		[
+			m.budget_summary({
+				hours: availableHours,
+				planned: remainingSuggestedHours,
+			}),
+			...(planSlackHours > 0.05
+				? [
+						m.budget_summary_free({
+							slack: planSlackHours.toFixed(2),
+						}),
+					]
+				: []),
+			m.budget_summary_pools({
+				mind: cognitivePool,
+				body: physicalPool,
+				switchMinutes: switchCostMinutes,
+			}),
+		].join(' · '),
+	);
+
+	const modelStatus = $derived(
+		constantsFitted
+			? flowLogs.length === 1
+				? m.model_status_personalized_one()
+				: m.model_status_personalized({
+						count: flowLogs.length,
+					})
+			: flowLogs.length > 0
+				? flowLogs.length === 1
+					? m.model_status_implausible_one()
+					: m.model_status_implausible({
+							count: flowLogs.length,
+						})
+				: m.model_status_default(),
+	);
+
+	// A rejected fit is the only model state worth a line while collapsed — the
+	// user has a mistyped log to go fix. The other two are reassurance and
+	// onboarding, which belong behind the disclosure with the logs themselves.
+	const modelWarning = $derived(!constantsFitted && flowLogs.length > 0);
+
+	function updateSwitchCost(minutes: number) {
+		switchCost = minutes / 60;
+	}
+</script>
+
+<div
+	class="rounded-2xl border bg-surface-card px-box-md py-box-sm backdrop-blur shadow-card sm:px-box-xl"
+>
+	<button
+		type="button"
+		aria-expanded={open}
+		onclick={() => (open = !open)}
+		class="flex w-full items-baseline justify-between gap-grid-xs text-left"
+	>
+		<h3 class="shrink-0 text-xs font-semibold text-ty-secondary uppercase tracking-wider">
+			{m.budget_title()}
+		</h3>
+		<span class="flex min-w-0 items-baseline gap-grid-xs text-xs text-ty-silent">
+			{#if !open}
+				<span class="truncate">{summary}</span>
+			{/if}
+			<span class="shrink-0 text-lg leading-none">{open ? '▴' : '▾'}</span>
+		</span>
+	</button>
+
+	{#if modelWarning && !open}
+		<p class="mt-text-2xs text-xs text-warning-strong">{modelStatus}</p>
+	{/if}
+
+	{#if open}
+		<!-- The bar spans both page columns, so all four fit on one row from lg up. -->
+		<div class="mt-text-md grid gap-x-grid-xl gap-y-text-lg sm:grid-cols-2 lg:grid-cols-4">
+			<div>
+				<label for="available-hours" class="mb-text-2xs block text-xs text-ty-silent">
+					{m.budget_available_hours()}
+				</label>
+				<NumberInput
+					id="available-hours"
+					value={availableHours}
+					onchange={(v) => (availableHours = v)}
+					min={0}
+					max={24}
+					step={0.25}
+					unit={m.unit_hours()}
+				/>
+				<p class="mt-text-xs text-xs text-ty-silent">
+					{m.budget_allocated({
+						hours: remainingSuggestedHours,
+					})}
+				</p>
+				{#if planSlackHours > 0.05}
+					<p class="mt-text-2xs text-xs text-warning-strong" title={m.budget_unplanned_title()}>
+						{m.budget_unplanned({
+							hours: planSlackHours.toFixed(2),
+						})}
+					</p>
+				{/if}
+			</div>
+
+			<div>
+				<label for="switch-cost" class="mb-text-2xs block text-xs text-ty-silent">
+					{m.budget_switch_cost()}
+				</label>
+				<NumberInput
+					id="switch-cost"
+					value={switchCostMinutes}
+					onchange={updateSwitchCost}
+					min={0}
+					max={60}
+					step={5}
+					unit={m.unit_minutes()}
+				/>
+				<p class="mt-text-xs text-xs text-ty-silent">{m.budget_switch_cost_hint()}</p>
+			</div>
+
+			<div>
+				<label for="cognitive-pool" class="mb-text-2xs block text-xs text-ty-silent">
+					{m.budget_cognitive_capacity()}
+				</label>
+				<NumberInput
+					id="cognitive-pool"
+					value={cognitivePool}
+					onchange={(v) => (cognitivePool = v)}
+					min={0}
+					max={16}
+					step={0.5}
+					unit={m.unit_hours()}
+					accent="focus-within:border-mind/50"
+				/>
+				<p class="mt-text-xs text-xs text-ty-silent">{m.budget_cognitive_hint()}</p>
+			</div>
+
+			<div>
+				<label for="physical-pool" class="mb-text-2xs block text-xs text-ty-silent">
+					{m.budget_physical_capacity()}
+				</label>
+				<NumberInput
+					id="physical-pool"
+					value={physicalPool}
+					onchange={(v) => (physicalPool = v)}
+					min={0}
+					max={16}
+					step={0.5}
+					unit={m.unit_hours()}
+					accent="focus-within:border-body/50"
+				/>
+				<p class="mt-text-xs text-xs text-ty-silent">{m.budget_physical_hint()}</p>
+			</div>
+		</div>
+
+		<div class="mt-text-lg border-t border-line-soft pt-box-sm">
+			<LogList
+				label={modelStatus}
+				title={m.budget_model_tooltip()}
+				items={flowLogs}
+				confirmLabel={m.budget_reset_confirm({
+					count: flowLogs.length,
+				})}
+				resetLabel={m.budget_reset_personalization()}
+				resetTitle={m.budget_reset_title()}
+				onreset={onresetlogs}
+			>
+				{#snippet row(log)}
+					<span class="truncate">
+						<span class="text-ty-silent">{log.date}</span>
+						<span class="capitalize"> · {log.taskTitle}</span>
+					</span>
+					<span class="flex shrink-0 items-center gap-text-xs">
+						<span class="font-medium text-flow/90">⚡ {Math.round(log.phiHours * 60)}m</span>
+						{#if ondeletelog}
+							<button
+								type="button"
+								aria-label={m.budget_delete_log_aria()}
+								title={m.budget_delete_log_title()}
+								class="text-ty-silent transition hover:text-danger"
+								onclick={() => ondeletelog?.(log.id!)}
+							>
+								✕
+							</button>
+						{/if}
+					</span>
+				{/snippet}
+			</LogList>
+		</div>
+	{/if}
+</div>

@@ -1,4 +1,5 @@
 import { page } from 'vitest/browser';
+import { createRawSnippet } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { SuggestedTask } from '$lib/business/model/metric/calculation';
@@ -62,5 +63,41 @@ describe('task-list.svelte', () => {
 		await expect.element(page.getByText('writing')).toBeInTheDocument();
 		await expect.element(page.getByText('#1')).toBeInTheDocument();
 		await expect.element(page.getByText('#2')).toBeInTheDocument();
+	});
+
+	// The add-task form lives in this card so adding and reading the plan are one
+	// place. A read-only day passes no snippet and must not pay a gap for it.
+	it('renders the add-task form above the list when one is supplied', async () => {
+		render(TaskList, {
+			suggestedTasks: [task(1, 'boxing')],
+			runOrder: new Map([[1, 1]]),
+			form: createRawSnippet(() => ({
+				render: () => '<p>add a task</p>',
+			})),
+			...noop,
+		});
+
+		const heading = page
+			.getByRole('heading', {
+				name: 'Tasks',
+			})
+			.element();
+
+		await expect.element(page.getByText('add a task')).toBeInTheDocument();
+
+		expect(heading.compareDocumentPosition(document.querySelector('p')!)).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING,
+		);
+	});
+
+	it('adds no form slot at all when none is supplied', async () => {
+		render(TaskList, {
+			suggestedTasks: [task(1, 'boxing')],
+			runOrder: new Map([[1, 1]]),
+			...noop,
+		});
+
+		await expect.element(page.getByText('boxing')).toBeInTheDocument();
+		expect(document.querySelectorAll('.pb-text-md')).toHaveLength(0);
 	});
 });

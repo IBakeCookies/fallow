@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
@@ -6,6 +7,9 @@
 	interface Props {
 		suggestedTasks: SuggestedTask[];
 		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
+		// The add-task form, rendered inside this card above the list: adding and
+		// reading the plan are the same place, and it costs no second card.
+		form?: Snippet;
 		ontoggle: (id: number) => void;
 		onremove: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
@@ -21,13 +25,16 @@
 		) => void;
 	}
 
-	let { suggestedTasks, runOrder, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
+	let { suggestedTasks, runOrder, form, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
 </script>
 
 <div
 	class="bg-surface-card space-y-text-xs rounded-2xl border p-box-md sm:p-box-xl backdrop-blur shadow-card"
 >
 	<h2 class="text-lg font-bold text-ty-primary">{m.list_title()}</h2>
+	{#if form}
+		<div class="pb-text-md">{@render form()}</div>
+	{/if}
 	{#if suggestedTasks.length === 0}
 		<div class="flex flex-col items-center justify-center py-empty-state text-center">
 			<div class="text-ty-silent mb-text-xs">

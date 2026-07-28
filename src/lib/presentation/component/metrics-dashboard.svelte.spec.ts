@@ -13,16 +13,53 @@ const metric = (label: string, value: string): Metric => ({
 });
 
 describe('metrics-dashboard.svelte', () => {
-	it('renders each metric label and value', async () => {
+	// Headline readings are the four the app is for; the other nineteen are
+	// reference. Twenty-three rows of equal weight buries the four.
+	it('shows headline readings immediately and the rest behind the disclosure', async () => {
 		render(MetricsDashboard, {
-			metrics: [metric('Yield Index', '82%'), metric('Flow Coverage', '3/4')],
+			metrics: [
+				{
+					...metric('Fallow Gain', '+18%'),
+					headline: true,
+				},
+				metric('Yield Index', '82%'),
+				metric('Flow Coverage', '3/4'),
+			],
 			momentum: null,
 		});
 
-		await expect.element(page.getByText('Yield Index')).toBeInTheDocument();
-		await expect.element(page.getByText('82%')).toBeInTheDocument();
-		await expect.element(page.getByText('Flow Coverage')).toBeInTheDocument();
-		await expect.element(page.getByText('3/4')).toBeInTheDocument();
+		await expect.element(page.getByText('Fallow Gain')).toBeInTheDocument();
+		await expect.element(page.getByText('+18%')).toBeInTheDocument();
+
+		// closed: the reference rows are served (crawlable, findable) but not shown
+		expect(document.querySelector('details')!.open).toBe(false);
+		await expect.element(page.getByText('82%')).not.toBeVisible();
+
+		await page
+			.getByText('All 2 metrics', {
+				exact: true,
+			})
+			.click();
+
+		await expect.element(page.getByText('Yield Index')).toBeVisible();
+		await expect.element(page.getByText('82%')).toBeVisible();
+		await expect.element(page.getByText('Flow Coverage')).toBeVisible();
+		await expect.element(page.getByText('3/4')).toBeVisible();
+	});
+
+	it('omits the disclosure entirely when every metric is a headline', async () => {
+		render(MetricsDashboard, {
+			metrics: [
+				{
+					...metric('Fallow Gain', '+18%'),
+					headline: true,
+				},
+			],
+			momentum: null,
+		});
+
+		await expect.element(page.getByText('+18%')).toBeInTheDocument();
+		expect(document.querySelector('details')).toBeNull();
 	});
 
 	it('carries a judged band in text as well as colour', async () => {
@@ -30,10 +67,12 @@ describe('metrics-dashboard.svelte', () => {
 			metrics: [
 				{
 					...metric('Burnout Risk', '80%'),
+					headline: true,
 					valStyle: STATUS.CRITICAL.color,
 				},
 				{
 					...metric('Yield Index', '60%'),
+					headline: true,
 					valStyle: STATUS.NEUTRAL.color,
 				},
 			],

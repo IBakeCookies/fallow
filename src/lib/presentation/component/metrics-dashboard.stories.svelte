@@ -7,17 +7,41 @@
 	/* valStyle is the banding policy's output (utils/status.ts), so stories use
 	   the same classes the app would hand in. */
 	const metrics: Metric[] = [
+		// The four headline readings, rendered as a 2×2 tile grid. "Primary
+		// Bottleneck" is a task title, so it is the one that stress-tests wrapping.
+		{
+			headline: true,
+			label: 'Fallow Gain',
+			value: '+18%',
+			description: 'Improvement over a naive equal split of the same hours.',
+			valStyle: STATUS.SUCCESS.color,
+		},
+		{
+			headline: true,
+			label: 'Human Capacity',
+			value: '104%',
+			description: 'Planned load against the capacity pools — may read over 100%.',
+			valStyle: STATUS.WARNING.color,
+		},
+		{
+			headline: true,
+			label: 'Time Scarcity',
+			value: '62%',
+			description: 'How stretched the time budget is against demand.',
+			valStyle: STATUS.WARNING.color,
+		},
+		{
+			headline: true,
+			label: 'Primary Bottleneck',
+			value: 'Write the quarterly report',
+			description: 'Highest effort-to-enjoyability ratio among remaining tasks.',
+			valStyle: STATUS.WARNING.color,
+		},
 		{
 			label: 'Yield Index',
 			value: '82%',
 			description: 'Share of the achievable output this allocation reaches.',
 			valStyle: STATUS.SUCCESS.color,
-		},
-		{
-			label: 'Human Capacity',
-			value: '104%',
-			description: 'Planned load against the capacity pools — may read over 100%.',
-			valStyle: STATUS.WARNING.color,
 		},
 		{
 			label: 'Flow Coverage',
