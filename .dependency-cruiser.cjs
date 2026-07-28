@@ -67,6 +67,20 @@ module.exports = {
 			},
 		},
 		{
+			name: 'logger-imports-nothing',
+			severity: 'error',
+			comment:
+				'$lib/logger sits below all three layers on purpose — every layer reports through it ' +
+				'(AGENTS.md R1). Importing app code from it would make it a member of whichever layer ' +
+				'it imported, and break the direction for the other two.',
+			from: {
+				path: '^src/lib/logger[.]ts$',
+			},
+			to: {
+				path: '^src/(lib/(data|business|presentation)|routes)',
+			},
+		},
+		{
 			name: 'no-circular',
 			severity: 'error',
 			comment:

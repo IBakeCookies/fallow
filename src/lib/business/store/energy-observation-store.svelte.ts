@@ -1,5 +1,6 @@
 import { getContext, setContext, onMount } from 'svelte';
 import type { Task, DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
+import { logError } from '$lib/logger';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
 // on a namespace is fine.
@@ -59,7 +60,7 @@ export class EnergyObservationStore {
 			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 			this.#restObservations = await restObservationRepository.$readAllRestObservations();
 		} catch (e) {
-			console.error('Failed to load energy observations', e);
+			logError('Failed to load energy observations', e);
 			this.#reportStorageError('load-failed');
 		}
 	}
@@ -102,7 +103,7 @@ export class EnergyObservationStore {
 
 			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 		} catch (e) {
-			console.error('Failed to save drain observation', e);
+			logError('Failed to save drain observation', e);
 			this.#reportStorageError('save-failed');
 		}
 	}
@@ -114,7 +115,7 @@ export class EnergyObservationStore {
 			await drainObservationRepository.$deleteDrainObservation(id);
 			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
 		} catch (e) {
-			console.error('Failed to delete drain observation', e);
+			logError('Failed to delete drain observation', e);
 			this.#reportStorageError('save-failed');
 		}
 	}
@@ -126,7 +127,7 @@ export class EnergyObservationStore {
 			await drainObservationRepository.$deleteAllDrainObservations();
 			this.#drainObservations = [];
 		} catch (e) {
-			console.error('Failed to reset drain observations', e);
+			logError('Failed to reset drain observations', e);
 			this.#reportStorageError('save-failed');
 		}
 	}
@@ -156,7 +157,7 @@ export class EnergyObservationStore {
 
 			this.#restObservations = await restObservationRepository.$readAllRestObservations();
 		} catch (e) {
-			console.error('Failed to save rest observation', e);
+			logError('Failed to save rest observation', e);
 			this.#reportStorageError('save-failed');
 		}
 	}
@@ -168,7 +169,7 @@ export class EnergyObservationStore {
 			await restObservationRepository.$deleteRestObservation(id);
 			this.#restObservations = await restObservationRepository.$readAllRestObservations();
 		} catch (e) {
-			console.error('Failed to delete rest observation', e);
+			logError('Failed to delete rest observation', e);
 			this.#reportStorageError('save-failed');
 		}
 	}
@@ -180,7 +181,7 @@ export class EnergyObservationStore {
 			await restObservationRepository.$deleteAllRestObservations();
 			this.#restObservations = [];
 		} catch (e) {
-			console.error('Failed to reset rest observations', e);
+			logError('Failed to reset rest observations', e);
 			this.#reportStorageError('save-failed');
 		}
 	}

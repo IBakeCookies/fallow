@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logError } from '$lib/logger';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
@@ -77,7 +78,7 @@
 
 			if (savedView === 'chart' || savedView === 'schedule') planView = savedView;
 		} catch (e) {
-			console.error('Failed to load energy lab view preference', e);
+			logError('Failed to load energy lab view preference', e);
 		}
 	});
 

@@ -1,6 +1,7 @@
 import { getContext, setContext, onMount, onDestroy } from 'svelte';
 import { browser } from '$app/environment';
 import type { Task, DailySession, SavedRoutine, FlowObservationRecord } from '$lib/data/type';
+import { logError } from '$lib/logger';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
 // on a namespace is fine.
@@ -142,7 +143,7 @@ export class SessionStore {
 				.then((session) => (this.#yesterdaySession = session))
 				// Decoration, not the viewed day: log it rather than raising the
 				// banner, whose retry does not cover this read.
-				.catch((e) => console.error('Failed to load yesterday’s session', e));
+				.catch((e) => logError('Failed to load yesterday’s session', e));
 		});
 
 		// Reload whenever the viewed date changes, whatever triggered the
@@ -226,7 +227,7 @@ export class SessionStore {
 			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
 			await this.#loadSession(this.#selectedDate);
 		} catch (e) {
-			console.error('Failed to load from IndexedDB', e);
+			logError('Failed to load from IndexedDB', e);
 			this.#storageError = 'load-failed';
 		} finally {
 			this.#isLoading = false;
@@ -255,7 +256,10 @@ export class SessionStore {
 				if (payload.date === this.#loadedDate) this.#loadedHadSession = true;
 			})
 			.catch((e) => {
-				console.error('Failed to save session', e);
+				logError('Failed to save session', e, {
+					date: payload.date,
+				});
+
 				this.#storageError = 'save-failed';
 			});
 	}
@@ -293,7 +297,10 @@ export class SessionStore {
 			// what makes a load failure recover on the next date change too.
 			if (this.#storageError === 'load-failed') this.#storageError = null;
 		} catch (e) {
-			console.error('Failed to load session for date', date, e);
+			logError('Failed to load session', e, {
+				date,
+			});
+
 			this.#storageError = 'load-failed';
 		}
 	}
@@ -436,7 +443,10 @@ export class SessionStore {
 					updatedAt: Date.now(),
 				});
 			} catch (e) {
-				console.error('Failed to save completion change for', this.#selectedDate, e);
+				logError('Failed to save completion change', e, {
+					date: this.#selectedDate,
+				});
+
 				this.#storageError = 'save-failed';
 			}
 		}
@@ -482,7 +492,9 @@ export class SessionStore {
 
 			return tasks.length;
 		} catch (e) {
-			console.error('Failed to load session for import', date, e);
+			logError('Failed to load session for import', e, {
+				date,
+			});
 
 			return 0;
 		}
@@ -537,7 +549,7 @@ export class SessionStore {
 					: t,
 			);
 		} catch (e) {
-			console.error('Failed to save flow observation', e);
+			logError('Failed to save flow observation', e);
 			this.#storageError = 'save-failed';
 		}
 	}
@@ -563,7 +575,7 @@ export class SessionStore {
 				);
 			}
 		} catch (e) {
-			console.error('Failed to delete flow observation', e);
+			logError('Failed to delete flow observation', e);
 			this.#storageError = 'save-failed';
 		}
 	}
@@ -583,7 +595,7 @@ export class SessionStore {
 					: t,
 			);
 		} catch (e) {
-			console.error('Failed to reset flow observations', e);
+			logError('Failed to reset flow observations', e);
 			this.#storageError = 'save-failed';
 		}
 	}
@@ -607,7 +619,7 @@ export class SessionStore {
 			await routineRepository.$updateRoutine(routine);
 			this.#routines = await routineRepository.$readAllRoutines();
 		} catch (e) {
-			console.error('Failed to save routine', e);
+			logError('Failed to save routine', e);
 			this.#storageError = 'save-failed';
 		}
 	}
@@ -617,7 +629,7 @@ export class SessionStore {
 			await routineRepository.$deleteRoutine(id);
 			this.#routines = await routineRepository.$readAllRoutines();
 		} catch (e) {
-			console.error('Failed to delete routine', e);
+			logError('Failed to delete routine', e);
 			this.#storageError = 'save-failed';
 		}
 	}

@@ -1,6 +1,7 @@
 import { onDestroy, onMount } from 'svelte';
 import { browser } from '$app/environment';
 import type { StopObservation } from '$lib/business/model/zenith-energy';
+import { logError } from '$lib/logger';
 // Namespace import: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes).
 import * as settingsRepository from '$lib/data/repository/settings-repository';
@@ -107,7 +108,7 @@ export class EnergyLabStore {
 					await settingsRepository.$readSetting(ENERGY_PARAMS_SETTING),
 				);
 			} catch (e) {
-				console.error('Failed to load energy lab params', e);
+				logError('Failed to load energy lab params', e);
 			}
 
 			this.#loaded = true;
@@ -160,7 +161,7 @@ export class EnergyLabStore {
 		this.#pendingSave = null;
 
 		settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, payload).catch((e) => {
-			console.error('Failed to save energy lab params', e);
+			logError('Failed to save energy lab params', e);
 			this.#session.reportStorageError('save-failed');
 		});
 	}

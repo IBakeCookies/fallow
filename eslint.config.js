@@ -67,7 +67,9 @@ export default defineConfig(
 				},
 			],
 
-			'no-console': 'warn',
+			// `$lib/logger` is the only console caller; everything else goes through
+			// it, so a reporting service is one `setLogSink` call away.
+			'no-console': 'error',
 			'no-debugger': 'error',
 			'no-eval': 'error',
 			'no-alert': 'error',
@@ -294,6 +296,16 @@ export default defineConfig(
 					],
 				},
 			],
+		},
+	},
+	{
+		// The only two places `console` is allowed. `logger.ts` is the default
+		// sink — one that could not write to the console would leave the app
+		// silent until a reporting service is wired up. `scripts/` are Node CLI
+		// tools whose console output is the whole point of running them.
+		files: ['src/lib/logger.ts', 'scripts/**'],
+		rules: {
+			'no-console': 'off',
 		},
 	},
 	{

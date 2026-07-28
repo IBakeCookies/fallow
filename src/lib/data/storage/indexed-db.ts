@@ -15,6 +15,8 @@
  *                     else instead of living loose in localStorage
  */
 
+import { logWarning } from '$lib/logger';
+
 const DB_NAME = 'zenith-db';
 
 export const DB_VERSION = 5;
@@ -72,7 +74,7 @@ function open(version?: number): Promise<IDBDatabase> {
 		request.onblocked = () => {
 			// A tab with pre-versionchange-handling code holds an old connection;
 			// the open stays pending until that tab closes.
-			console.warn('zenith-db upgrade blocked by another open tab');
+			logWarning('zenith-db upgrade blocked by another open tab');
 		};
 
 		request.onsuccess = () => {

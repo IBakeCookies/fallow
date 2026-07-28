@@ -31,6 +31,18 @@ These are the ones that get broken. Each exists because it was broken before.
   (`storage/`), repositories with `$`-prefixed CRUD controllers
   (`repository/`), migrations (`migration/`). Never imports upward. Model
   defaults a migration needs are **passed in as parameters**.
+- `src/lib/logger.ts`: below all three, and the only module that is. Every layer
+  and the hooks report diagnostics, so a home inside any one layer would break
+  the direction for the other two. It imports nothing from the app
+  (`logger-imports-nothing`, an error) and is the only file allowed to touch
+  `console` — `no-console` is an **error** everywhere else (`scripts/` aside,
+  where console output is the point). Call `logError` / `logWarning` with a
+  message, the caught error, and a `context` object of ids, dates and counts —
+  never task titles or notes, which is the payload a reporting service would
+  ship off-device. Plugging in Sentry or similar is one `setLogSink` call in
+  `hooks.client.ts`; do not add per-call-site reporting. Logging is **not** the
+  banner: `reportStorageError` raises the user-facing failure state, and most
+  persistence failures do both.
 - Enforced twice, and the two catch different things. `no-restricted-imports`
   in `eslint.config.js` matches the `$lib/...` **specifier string**, so a
   dynamic (`import('$lib/data/...')`) crossing is invisible to it. A relative
@@ -485,11 +497,10 @@ build ignores the file and says so. Keep `runes` in step across the two.
 so keep it passing (`npx prettier --write` the files you touched, never the
 tree).
 
-Warnings are a known baseline, not a to-do list: 39 `no-console` (deliberate
-diagnostics) and 18 `max-depth` (the scheduler loops in
-`business/model/zenith*.ts`, which `eslint.config.js` downgrades to `warn`
-because unnesting them is a test-covered refactor, not a lint fixup). Errors
-are always zero — do not add to the warning count.
+Warnings are a known baseline, not a to-do list: 18 `max-depth` (the scheduler
+loops in `business/model/zenith*.ts`, which `eslint.config.js` downgrades to
+`warn` because unnesting them is a test-covered refactor, not a lint fixup).
+Errors are always zero — do not add to the warning count.
 
 `npm run depgraph` renders the module graph to `dependency-graph.svg` (needs
 graphviz). It is **gitignored, not committed**: CI regenerates it every run and

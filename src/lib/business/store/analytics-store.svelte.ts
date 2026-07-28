@@ -11,6 +11,7 @@
 
 import { onMount } from 'svelte';
 import { browser } from '$app/environment';
+import { logError } from '$lib/logger';
 import {
 	averageCompletionRate,
 	completionRateDelta,
@@ -103,7 +104,7 @@ export class AnalyticsStore {
 				this.#calibration = report.calibration;
 				this.#audit = report.audit;
 			} catch (e) {
-				console.error('Failed to load analytics data', e);
+				logError('Failed to load analytics data', e);
 				this.#audit ??= EMPTY_PLAN_AUDIT;
 				this.#calibrationFailed = this.#calibration === null;
 			} finally {

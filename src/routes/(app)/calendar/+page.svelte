@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { localizeHref } from '$lib/paraglide/runtime';
 	import { onMount } from 'svelte';
+	import { logError } from '$lib/logger';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import * as m from '$lib/paraglide/messages.js';
@@ -42,7 +43,7 @@
 		try {
 			await initializeStorage();
 		} catch (e) {
-			console.error('Failed to initialize calendar', e);
+			logError('Failed to initialize calendar', e);
 		} finally {
 			ready = true;
 		}
@@ -108,7 +109,7 @@
 				summaries = map;
 				isLoading = false;
 			})
-			.catch((e) => console.error('Failed to load sessions', e));
+			.catch((e) => logError('Failed to load sessions', e));
 	});
 
 	function shiftMonth(iso: string, n: number): string {
