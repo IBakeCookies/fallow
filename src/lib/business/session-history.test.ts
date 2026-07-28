@@ -1,10 +1,6 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect } from 'vitest';
-import {
-	EMPTY_PLAN_AUDIT,
-	readDaySummaries,
-	readModelReport,
-} from '$lib/business/store/session-history';
+import { describe, it, expect, vi } from 'vitest';
+import { EMPTY_PLAN_AUDIT, readDaySummaries, readModelReport } from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $updateDrainObservation } from '$lib/data/repository/drain-observation-repository';
 import type { DailySession, Task } from '$lib/data/type';
@@ -92,6 +88,23 @@ describe('readModelReport', () => {
 		expect(report.audit.usedCount).toBe(1);
 		expect(report.audit.energyOverlap).toBeGreaterThanOrEqual(0);
 		expect(report.audit.classicOverlap).toBeGreaterThanOrEqual(0);
+	});
+
+	// Both model cards derive from the same records, and every read is a full
+	// store scan that grows with the user's whole history — so composing the two
+	// derivations independently (three drain scans, two of everything else) is a
+	// cost the analytics screen pays on every visit.
+	it('reads each store once, whatever the report derives', async () => {
+		const transactions = vi.spyOn(IDBDatabase.prototype, 'transaction');
+
+		try {
+			await readModelReport('2026-07-02', 30);
+
+			// flowObservations, restObservations, drainObservations, sessions
+			expect(transactions.mock.calls.length).toBeLessThanOrEqual(4);
+		} finally {
+			transactions.mockRestore();
+		}
 	});
 
 	it('caps the audit lookback', async () => {

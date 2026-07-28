@@ -169,6 +169,7 @@
 					{advice}
 					busy={plan.adviceBusy}
 					stale={plan.adviceStale}
+					error={plan.adviceError}
 					oncheck={() => plan.computeAdvice()}
 				/>
 			{/if}

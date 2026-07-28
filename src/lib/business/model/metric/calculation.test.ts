@@ -9,11 +9,12 @@ import {
 	calculateHumanCapacity,
 	calculateTimeScarcity,
 	calculateFlowCoverage,
+	calculateTaskPlan,
 	calculateZenithGain,
 	getTaskNature,
 	type SuggestedTask,
-	type Task,
 } from '$lib/business/model/metric/calculation';
+import type { Task } from '$lib/data/type';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 
 function makeTask(overrides: Partial<Task> & { id: number; title: string }): Task {
@@ -656,5 +657,91 @@ describe('calculateZenithGain', () => {
 
 		expect(gain.optimized).toBeGreaterThan(0);
 		expect(gain.optimized).toBeGreaterThanOrEqual(gain.naive);
+	});
+
+	// The plan is solved once and handed here; a wrong-order or stale array would
+	// change the optimized side of the ratio without any other symptom.
+	it('trusts a supplied allocation only when it is the one it would have solved', () => {
+		const tasks = [
+			makeTask({
+				id: 1,
+				title: 'hard boring',
+				mentalDifficulty: 9,
+				enjoyment: 2,
+			}),
+			makeTask({
+				id: 2,
+				title: 'easy fun',
+				mentalDifficulty: 2,
+				enjoyment: 9,
+			}),
+		];
+
+		const { allocatedHours } = calculateTaskPlan(tasks, 4, 0.25);
+		const solvedForItself = calculateZenithGain(tasks, 4, 0.25);
+
+		expect(
+			calculateZenithGain(tasks, 4, 0.25, undefined, undefined, undefined, allocatedHours),
+		).toEqual(solvedForItself);
+
+		// Passing hours that are not the solved plan's must change the reading —
+		// otherwise this parameter proves nothing about what the screen shows.
+		expect(
+			calculateZenithGain(tasks, 4, 0.25, undefined, undefined, undefined, [0, 0]).optimized,
+		).toBe(0);
+
+		// A wrong-length array is a caller bug, and index-pairing would turn it
+		// into NaN across the whole optimized sum: solve instead of trusting it.
+		for (const wrongLength of [[], [0.5], [0.5, 0.5, 0.5]]) {
+			expect(
+				calculateZenithGain(tasks, 4, 0.25, undefined, undefined, undefined, wrongLength),
+			).toEqual(solvedForItself);
+		}
+	});
+});
+
+describe('calculateTaskPlan', () => {
+	// Deliberately listed worst-first, so the plan's order is not the input's.
+	const tasks = [
+		makeTask({
+			id: 1,
+			title: 'hard boring',
+			mentalDifficulty: 9,
+			enjoyment: 2,
+		}),
+		makeTask({
+			id: 2,
+			title: 'easy fun',
+			mentalDifficulty: 2,
+			enjoyment: 9,
+		}),
+	];
+
+	it('returns the plan in priority order and its hours in INPUT order', () => {
+		const { suggestedTasks, allocatedHours } = calculateTaskPlan(tasks, 6, 0.25);
+
+		// The sort is real — otherwise "input order" and "plan order" would be the
+		// same array and the distinction this function exists for is untested.
+		expect(suggestedTasks.map((task) => task.id)).not.toEqual([1, 2]);
+		expect(allocatedHours).toHaveLength(tasks.length);
+
+		tasks.forEach((task, index) => {
+			const planned = suggestedTasks.find((suggested) => suggested.id === task.id)!;
+
+			expect(allocatedHours[index]).toBe(planned.suggestedHours);
+		});
+	});
+
+	it('agrees with calculateSuggestedTasks, which is now the same solve', () => {
+		expect(calculateTaskPlan(tasks, 6, 0.25).suggestedTasks).toEqual(
+			calculateSuggestedTasks(tasks, 6, 0.25),
+		);
+	});
+
+	it('has no plan and no hours for an empty day', () => {
+		expect(calculateTaskPlan([], 8)).toEqual({
+			suggestedTasks: [],
+			allocatedHours: [],
+		});
 	});
 });

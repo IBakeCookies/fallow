@@ -2,9 +2,21 @@
  * Read-side session access for pages outside the live daily session (calendar,
  * analytics) plus storage startup. This is the business layer's facade over
  * the data layer — presentation code calls these instead of the repositories.
+ *
+ * It sits at the root of `business/` rather than in `store/` because it holds no
+ * reactive state: these are one-shot composed reads, and the stores are among
+ * the callers. `utils/` would be worse — that folder is pure helpers, which is
+ * why a route may value-import from it, and nothing here is pure. Root is where
+ * the layer's other data-layer facades already live (`backup.ts`,
+ * `appearance.ts`).
  */
 
-import type { DailySession } from '$lib/data/type';
+import type {
+	DailySession,
+	DrainObservationRecord,
+	FlowObservationRecord,
+	RestObservationRecord,
+} from '$lib/data/type';
 import { $readSessionsByDateRange } from '$lib/data/repository/session-repository';
 import { $readAllFlowObservations } from '$lib/data/repository/flow-observation-repository';
 import { $readAllDrainObservations } from '$lib/data/repository/drain-observation-repository';
@@ -43,6 +55,12 @@ import {
 } from '$lib/business/model/plan-audit';
 import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import {
+	sanitizeDrainObservations,
+	sanitizeFlowObservations,
+	sanitizeRestObservations,
+	sanitizeSessions,
+} from '$lib/business/model/persisted';
 
 /**
  * Run once per page that touches persistence: migrates any legacy
@@ -65,14 +83,14 @@ export async function initializeStorage(): Promise<void> {
  * so per-day completion rates match what the main dashboard showed that day —
  * which requires passing the posterior too, not just the point estimate.
  */
-async function readUserFit(): Promise<{
+interface UserFit {
 	constants: UserConstants;
 	posterior?: FitPosterior;
 	fitted: boolean;
 	usedCount: number;
-}> {
-	const observations = await $readAllFlowObservations();
+}
 
+function fitFrom(observations: FlowObservationRecord[]): UserFit {
 	const fit = fitUserConstants(
 		observations.map((o) => ({
 			E: o.E,
@@ -89,6 +107,10 @@ async function readUserFit(): Promise<{
 	};
 }
 
+async function readUserFit(): Promise<UserFit> {
+	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()));
+}
+
 /**
  * Every stored day that has tasks in the range, summarized with the user's own
  * fit, ascending by date. The calendar and the analytics screen must read a day
@@ -99,7 +121,7 @@ async function readUserFit(): Promise<{
 export async function readDaySummaries(startDate: string, endDate: string): Promise<DaySummary[]> {
 	const [fit, sessions] = await Promise.all([
 		readUserFit(),
-		$readSessionsByDateRange(startDate, endDate),
+		$readSessionsByDateRange(startDate, endDate).then(sanitizeSessions),
 	]);
 
 	return sessions
@@ -107,16 +129,24 @@ export async function readDaySummaries(startDate: string, endDate: string): Prom
 		.map((session) => summarizeSession(session, fit.constants, fit.posterior));
 }
 
+interface FinishedDay {
+	session: DailySession;
+	workedHours: { taskId: number; hours: number }[];
+}
+
 /**
  * Finished days: each day before `today` with at least one 🪫 drain log,
  * joined with its stored session, chronologically ascending. Shared by the
  * stopping-value calibration (§8.10) and the plan-adherence audit (§12) —
  * both read "what was actually worked" out of the same join.
+ *
+ * Takes the drain logs rather than reading them, so a caller that needs both
+ * derivations pays for one read (and one sessions range read) instead of two.
  */
 async function readFinishedDays(
 	today: string,
-): Promise<{ session: DailySession; workedHours: { taskId: number; hours: number }[] }[]> {
-	const drainLogs = await $readAllDrainObservations();
+	drainLogs: DrainObservationRecord[],
+): Promise<FinishedDay[]> {
 	const byDate = new Map<string, Map<number, number>>();
 
 	for (const log of drainLogs) {
@@ -130,9 +160,9 @@ async function readFinishedDays(
 	if (byDate.size === 0) return [];
 
 	const dates = [...byDate.keys()].sort();
-	const sessions = await $readSessionsByDateRange(dates[0], addDays(today, -1));
+	const sessions = sanitizeSessions(await $readSessionsByDateRange(dates[0], addDays(today, -1)));
 	const sessionByDate = new Map(sessions.map((s) => [s.date, s]));
-	const days: { session: DailySession; workedHours: { taskId: number; hours: number }[] }[] = [];
+	const days: FinishedDay[] = [];
 
 	for (const date of dates) {
 		const session = sessionByDate.get(date);
@@ -157,7 +187,13 @@ async function readFinishedDays(
  * decides which days are informative (censored days are dropped there, not here).
  */
 export async function readStopObservations(today: string): Promise<StopObservation[]> {
-	return (await readFinishedDays(today)).map(({ session, workedHours }) => ({
+	const drainLogs = sanitizeDrainObservations(await $readAllDrainObservations());
+
+	return toStopObservations(await readFinishedDays(today, drainLogs));
+}
+
+function toStopObservations(days: FinishedDay[]): StopObservation[] {
+	return days.map(({ session, workedHours }) => ({
 		tasks: session.tasks.map(toEnergyTask),
 		windowHours: session.availableHours,
 		workedHours,
@@ -170,17 +206,22 @@ export async function readStopObservations(today: string): Promise<StopObservati
  * audit compares against the plan the user would actually have seen that day.
  * Chronologically ascending — `readModelReport` caps the lookback.
  */
-async function readPlanAuditDays(today: string): Promise<PlanAuditDay[]> {
-	return (await readFinishedDays(today)).map(({ session, workedHours }) => ({
-		tasks: session.tasks.map(toEnergyTask),
-		windowHours: session.availableHours,
-		workedHours,
-		switchCost: session.switchCost,
-		pools: {
-			cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
-			physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
-		},
-	}));
+function toPlanAuditDays(days: FinishedDay[], stops: StopObservation[]): PlanAuditDay[] {
+	// A PlanAuditDay is a StopObservation plus that day's classic-planner inputs,
+	// so it extends the rows the stopping fit already built rather than mapping
+	// every day's tasks through toEnergyTask a second time.
+	return stops.map((stop, index) => {
+		const { session } = days[index];
+
+		return {
+			...stop,
+			switchCost: session.switchCost,
+			pools: {
+				cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
+				physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+			},
+		};
+	});
 }
 
 /**
@@ -201,14 +242,12 @@ export interface CalibrationSnapshot {
 	defaults: EnergyParams;
 }
 
-async function readCalibrationSnapshot(today: string): Promise<CalibrationSnapshot> {
-	const [fit, rest, drain, stops] = await Promise.all([
-		readUserFit(),
-		$readAllRestObservations(),
-		$readAllDrainObservations(),
-		readStopObservations(today),
-	]);
-
+function calibrationSnapshotFrom(
+	fit: UserFit,
+	rest: RestObservationRecord[],
+	drain: DrainObservationRecord[],
+	stops: StopObservation[],
+): CalibrationSnapshot {
 	const energy = calibrateEnergyParams(rest, drain);
 
 	const stopping = fitStoppingValue(
@@ -246,18 +285,28 @@ export interface ModelReport {
  * Everything the analytics screen's two model cards need, in one read: they
  * share the calibration snapshot, and the audit runs one optimizer pass per
  * audited day (~60ms), so `auditDayCap` bounds the lookback.
+ *
+ * "One read" is literal — each store is read exactly once here and every
+ * derivation is computed from those records. The two cards used to compose their
+ * own reads, which cost three scans of the drain log and two of everything else,
+ * growing with the user's whole history on every visit to the screen.
  */
 export async function readModelReport(today: string, auditDayCap: number): Promise<ModelReport> {
-	const [fit, days, calibration] = await Promise.all([
-		readUserFit(),
-		readPlanAuditDays(today),
-		readCalibrationSnapshot(today),
+	const [flow, rest, drain] = await Promise.all([
+		$readAllFlowObservations().then(sanitizeFlowObservations),
+		$readAllRestObservations().then(sanitizeRestObservations),
+		$readAllDrainObservations().then(sanitizeDrainObservations),
 	]);
+
+	const fit = fitFrom(flow);
+	const days = await readFinishedDays(today, drain);
+	const stops = toStopObservations(days);
+	const calibration = calibrationSnapshotFrom(fit, rest, drain, stops);
 
 	return {
 		calibration,
 		audit: auditPlanAdherence(
-			days.slice(-auditDayCap),
+			toPlanAuditDays(days, stops).slice(-auditDayCap),
 			calibration.energy.params,
 			fit.constants,
 			fit.posterior,

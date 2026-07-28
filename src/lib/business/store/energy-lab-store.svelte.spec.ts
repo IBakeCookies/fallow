@@ -9,8 +9,10 @@ import {
 	restRecord,
 } from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
-import * as sessionHistory from '$lib/business/store/session-history';
+import * as sessionHistory from '$lib/business/session-history';
 import type { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
+import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
@@ -24,7 +26,7 @@ vi.mock('$lib/data/repository/settings-repository', () => ({
 	$updateSetting: vi.fn(async () => {}),
 }));
 
-vi.mock('$lib/business/store/session-history', () => ({
+vi.mock('$lib/business/session-history', () => ({
 	readStopObservations: vi.fn(async () => []),
 }));
 
@@ -38,11 +40,7 @@ const stopObservation = (windowHours: number): StopObservation => ({
 	workedHours: [],
 });
 
-/**
- * Mount the Lab and settle the load. Reading the persisted params re-arms the
- * autosave effect, so the initial write is awaited and dropped here — every
- * test below asserts on writes it caused itself.
- */
+/** Mount the Lab and settle the load. Loading never writes params back. */
 async function setup(): Promise<EnergyLabStore> {
 	let store!: EnergyLabStore;
 
@@ -51,12 +49,6 @@ async function setup(): Promise<EnergyLabStore> {
 	});
 
 	await vi.waitFor(() => expect(store.isLoaded).toBe(true));
-
-	await vi.waitFor(() => expect(updateSettingMock).toHaveBeenCalled(), {
-		timeout: 3000,
-	});
-
-	updateSettingMock.mockClear();
 
 	return store;
 }
@@ -111,6 +103,12 @@ describe('EnergyLabStore', () => {
 
 		expect(notifyParamsLoadFailed).toHaveBeenCalledTimes(1);
 		expect(store.params).toEqual(DEFAULT_ENERGY_PARAMS);
+
+		// The regression: loading used to arm the autosave, so a transient read
+		// error persisted the defaults over the stored calibration — via the
+		// debounce, or this destroy flush.
+		cleanup();
+		expect(updateSettingMock).not.toHaveBeenCalled();
 	});
 
 	it('reports nothing when the params read succeeds', async () => {
@@ -230,7 +228,7 @@ describe('EnergyLabStore', () => {
 		flushSync();
 		expect(updateSettingMock).not.toHaveBeenCalled();
 
-		vi.advanceTimersByTime(499);
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS - 1);
 		expect(updateSettingMock).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(1);
 		expect(updateSettingMock).toHaveBeenCalledTimes(1);
@@ -288,14 +286,22 @@ describe('EnergyLabStore', () => {
 		});
 	});
 
-	it('surfaces a failed param write on the session store', async () => {
-		const store = await setup();
+	it('reports a failed param write on the app-wide banner store', async () => {
+		const status = new StorageStatusStore();
+		let store!: EnergyLabStore;
+
+		render(Harness, {
+			onstore: (s: EnergyLabStore) => (store = s),
+			status,
+		});
+
+		await vi.waitFor(() => expect(store.isLoaded).toBe(true));
 		updateSettingMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		store.setParam('alphaPhys', 0.5);
 		flushSync();
 
-		await vi.waitFor(() => expect(mockSession.storageErrors).toBe(1));
+		await vi.waitFor(() => expect(status.error).toBe('save-failed'));
 	});
 
 	// The stop-observation read is async and re-runs whenever the drain logs

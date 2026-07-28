@@ -224,7 +224,14 @@ export const DEFAULT_THEME: ThemeName = 'fallow';
 export const DEFAULT_DARK_THEME: ThemeName = 'solid-dark';
 
 /* 32-bit scenery seed. The store only mints and persists the number;
-   mapping it to CSS vars is presentation's job (utils/scenery-seed.ts). */
+   mapping it to CSS vars is presentation's job (utils/scenery-seed.ts).
+
+   The one nondeterministic function in `business/model/` — everything else here
+   is pure, which is what lets the models be pinned by a `.test.ts` asserting an
+   identity or a bound. It earns the exception because minting is the whole
+   point and there is nothing to assert but the range; keep any new randomness
+   out of the model layer, or the seam that makes the math testable goes with
+   it. */
 export function randomScenerySeed(): number {
 	return Math.floor(Math.random() * 0x100000000);
 }
@@ -232,6 +239,9 @@ export function randomScenerySeed(): number {
 export function getClassesToAdd(themeName: ThemeName): string[] {
 	return themes.find((t) => t.name === themeName)?.css ?? [];
 }
+
+/** Every theme class in the catalogue — what a theme switch must strip. */
+export const allThemeClasses: string[] = themes.flatMap((t) => t.css);
 
 /**
  * A stored/untrusted theme identifier → a known theme, or undefined.

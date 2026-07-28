@@ -3,6 +3,7 @@ import {
 	calculateDailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
+import { calculateZenithGain } from '$lib/business/model/metric/calculation';
 import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
@@ -135,6 +136,43 @@ describe('calculateDailyMetrics', () => {
 		expect(after.completedTasks).toBe(1);
 		expect(after.completionRate).toBeGreaterThan(before.completionRate);
 		expect(after.runOrder.size).toBe(2);
+	});
+
+	// The dashboard solves the allocation once and hands it to Zenith Gain, which
+	// used to re-solve it from the same inputs (2ⁿ enumeration, twice, inside a
+	// $derived). Reusing it may not move the number: hours are paired to tasks by
+	// index, so handing over the priority-sorted array instead of the input-order
+	// one charges each task the wrong task's time.
+	//
+	// The reversed list is the case that actually catches that, and it is here for
+	// that reason: priority is intrinsic, so for TASKS as listed the plan order
+	// already IS the input order and a mix-up would be invisible. The other four
+	// pin the early returns and the constrained paths.
+	it('reports the same gain as a Zenith Gain that solves the day for itself', () => {
+		const cases: DailyMetricsInput[] = [
+			input(TASKS),
+			input(TASKS, {
+				availableHours: 2,
+			}),
+			input(TASKS, {
+				switchCost: 1,
+			}),
+			input(TASKS, {
+				pools: {
+					cognitiveHours: 1.5,
+					physicalHours: 1,
+				},
+			}),
+			input([...TASKS].reverse()),
+		];
+
+		for (const metricsInput of cases) {
+			const { tasks, availableHours, switchCost, pools, constants, posterior } = metricsInput;
+
+			expect(calculateDailyMetrics(metricsInput).zenithGain).toEqual(
+				calculateZenithGain(tasks, availableHours, switchCost, pools, constants, posterior),
+			);
+		}
 	});
 
 	it('hedges with the fit posterior without changing the shape of the plan', () => {

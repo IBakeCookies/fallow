@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
+import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
+import type * as PlanAdvice from '$lib/business/model/metric/plan-advice';
 import Harness from '$lib/business/store/daily-plan-store.test-harness.svelte';
 import {
 	drainRecord,
@@ -10,6 +12,16 @@ import {
 } from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import type { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 import type { Task } from '$lib/business/type';
+
+// Passthrough by default; the error-path test overrides one call to throw.
+vi.mock('$lib/business/model/metric/plan-advice', async (importOriginal) => {
+	const mod = await importOriginal<typeof PlanAdvice>();
+
+	return {
+		...mod,
+		suggestPlanAdjustments: vi.fn(mod.suggestPlanAdjustments),
+	};
+});
 
 const task = (id: number, title: string, over: Partial<Task> = {}): Task => ({
 	id,
@@ -36,6 +48,7 @@ describe('DailyPlanStore', () => {
 	beforeEach(() => {
 		mockSession.reset();
 		mockObservations.reset();
+		vi.clearAllMocks();
 	});
 
 	it('plans the session tasks and reacts to the session changing', () => {
@@ -131,5 +144,50 @@ describe('DailyPlanStore', () => {
 		await store.computeAdvice();
 
 		expect(store.adviceStale).toBe(false);
+	});
+
+	// The busy guard drops a second request instead of queueing it — safe only
+	// because the in-flight run reads its input AFTER the pre-solve yield, so it
+	// solves the day as it stands, not as it stood when the button was clicked.
+	it('ignores a second request while one is in flight, and solves the freshest day', async () => {
+		const store = setup();
+		mockSession.tasks = [task(1, 'deep work')];
+		flushSync();
+
+		const first = store.computeAdvice();
+		expect(store.adviceBusy).toBe(true);
+		const second = store.computeAdvice();
+
+		// The day changes during the yield: the in-flight run must pick it up.
+		mockSession.availableHours = 6;
+		flushSync();
+
+		await Promise.all([first, second]);
+
+		expect(suggestPlanAdjustments).toHaveBeenCalledTimes(1);
+		expect(store.adviceStale).toBe(false);
+	});
+
+	// The only caller is a fire-and-forget click handler, so a failed solve must
+	// land in adviceError (and reset busy) instead of an unhandled rejection.
+	it('reports a failed solve and recovers on the next one', async () => {
+		const store = setup();
+		mockSession.tasks = [task(1, 'deep work')];
+		flushSync();
+
+		vi.mocked(suggestPlanAdjustments).mockImplementationOnce(() => {
+			throw new Error('solver blew up');
+		});
+
+		await store.computeAdvice();
+
+		expect(store.adviceError).toBe(true);
+		expect(store.adviceBusy).toBe(false);
+		expect(store.advice).toBeNull();
+
+		await store.computeAdvice();
+
+		expect(store.adviceError).toBe(false);
+		expect(store.advice).not.toBeNull();
 	});
 });

@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
 	$exportAllStores,
 	$importAllStores,
@@ -54,6 +54,27 @@ describe('backup-repository', () => {
 
 		expect(backup.stores.sessions).toHaveLength(1);
 		expect(backup.stores.flowObservations).toHaveLength(1);
+	});
+
+	// The snapshot property is structural: ONE transaction scoped to every store.
+	// A transaction per store is not a snapshot — another connection writing
+	// between two of them yields a backup whose stores disagree about the same day
+	// — and no single-connection test can observe that, since IDB already orders
+	// this connection's later writes behind all six reads.
+	it('exports in a single transaction scoped to every store', async () => {
+		const transactions = vi.spyOn(IDBDatabase.prototype, 'transaction');
+
+		try {
+			await $exportAllStores();
+
+			expect(transactions).toHaveBeenCalledTimes(1);
+
+			expect([...(transactions.mock.calls[0][0] as string[])].sort()).toEqual(
+				[...STORE_NAMES].sort(),
+			);
+		} finally {
+			transactions.mockRestore();
+		}
 	});
 
 	it('round-trips: import merges records back, preserving keys', async () => {

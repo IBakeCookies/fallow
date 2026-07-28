@@ -4,13 +4,13 @@ import { browser } from '$app/environment';
 // name inside .svelte.ts files ($ is reserved for runes).
 import * as appearanceRepository from '$lib/data/repository/appearance-repository';
 import {
+	allThemeClasses,
 	DEFAULT_DARK_THEME,
 	DEFAULT_THEME,
 	getClassesToAdd,
 	resolveThemeName,
 	randomScenerySeed,
 	themes,
-	type ThemeItem,
 	type ThemeName,
 } from '$lib/business/model/theme';
 
@@ -28,7 +28,6 @@ const CONTEXT_KEY = Symbol();
  */
 export class ThemeStore {
 	#theme = $state<ThemeName>(DEFAULT_THEME);
-	#themes: ThemeItem[] = themes;
 
 	// per-user scenery seed: minted server-side (+layout.server.ts cookie),
 	// identical on both ends so the SSR-inlined style never shifts
@@ -44,10 +43,6 @@ export class ThemeStore {
 
 	#classesToAdd = $derived.by<string[]>(() => {
 		return getClassesToAdd(this.#theme);
-	});
-
-	#classesToRemove = $derived.by<string[]>(() => {
-		return themes.map((t) => t.css).flat();
 	});
 
 	constructor(
@@ -66,7 +61,7 @@ export class ThemeStore {
 		this.#sceneryPaused = sceneryPaused ?? false;
 
 		$effect(() => {
-			document.documentElement.classList.remove(...this.#classesToRemove);
+			document.documentElement.classList.remove(...allThemeClasses);
 			document.documentElement.classList.add(...this.#classesToAdd);
 		});
 
@@ -136,7 +131,7 @@ export class ThemeStore {
 	}
 
 	get themes() {
-		return this.#themes;
+		return themes;
 	}
 
 	get scenerySeed() {

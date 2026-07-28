@@ -35,7 +35,7 @@ import {
 	calculateRecoveryRatio,
 	calculateRewardDensity,
 	calculateScheduleIntegrity,
-	calculateSuggestedTasks,
+	calculateTaskPlan,
 	calculateTaskVariety,
 	calculateTimeScarcity,
 	calculateYieldIndex,
@@ -100,7 +100,12 @@ export interface DailyMetrics {
 export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 	const { tasks, availableHours, switchCost, pools, constants, posterior, energyParams } = input;
 
-	const suggestedTasks = calculateSuggestedTasks(
+	// One solve for the whole dashboard. Zenith Gain describes this same plan, so
+	// it is handed the allocation rather than re-deriving it: the enumeration is
+	// ~55ms at n = 12 and this runs inside a `$derived`, i.e. on every keystroke
+	// in the budget field — and once more per candidate when the advisor
+	// re-solves the day (MATH.md §14).
+	const { suggestedTasks, allocatedHours } = calculateTaskPlan(
 		tasks,
 		availableHours,
 		switchCost,
@@ -138,7 +143,15 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		// activeTasks against the full budget/pools mixes scopes: e.g. burnout
 		// risk ROSE when a task was checked done (its T* left the overhang sum
 		// but the budget didn't shrink).
-		zenithGain: calculateZenithGain(tasks, availableHours, switchCost, pools, constants, posterior),
+		zenithGain: calculateZenithGain(
+			tasks,
+			availableHours,
+			switchCost,
+			pools,
+			constants,
+			posterior,
+			allocatedHours,
+		),
 		completionRate: calculateCompletionRate(suggestedTasks),
 		yieldIndex: calculateYieldIndex(suggestedTasks),
 		flowCoverage: calculateFlowCoverage(suggestedTasks),

@@ -4,7 +4,7 @@ import {
 	migrateFromLocalStorageToIndexedDB,
 	migrateEnergyParamsFromLocalStorage,
 } from '$lib/data/migration/local-storage-migration';
-import { $readSessionByDate } from '$lib/data/repository/session-repository';
+import { $readSessionByDate, $updateSession } from '$lib/data/repository/session-repository';
 import { $deleteAllStores } from '$lib/data/repository/backup-repository';
 import {
 	ENERGY_PARAMS_SETTING,
@@ -100,6 +100,56 @@ describe('migrateFromLocalStorageToIndexedDB', () => {
 
 		expect(await migrateFromLocalStorageToIndexedDB('2026-01-04', 0.5)).toBe(true);
 		expect((await $readSessionByDate('2026-01-04'))?.switchCost).toBe(0);
+	});
+
+	// The legacy blob is kept forever, so any lost flag (a failed flag write, a
+	// devtools hand-edit) re-runs the migration — over a day the user is using.
+	it('never lets the kept legacy blob overwrite a day IndexedDB already owns', async () => {
+		await $updateSession({
+			date: '2026-01-07',
+			tasks: [],
+			availableHours: 4,
+			switchCost: 0.5,
+			updatedAt: 1,
+		});
+
+		backing.set(
+			STORAGE_KEY,
+			JSON.stringify({
+				tasks: [
+					{
+						id: 1,
+						title: 'Stale task',
+					},
+				],
+			}),
+		);
+
+		await migrateFromLocalStorageToIndexedDB('2026-01-07', 0.5);
+
+		expect((await $readSessionByDate('2026-01-07'))?.tasks).toHaveLength(0);
+		expect(backing.get(MIGRATION_KEY)).toBe('true');
+	});
+
+	it('survives a flag write that throws instead of failing the boot', async () => {
+		backing.set(
+			STORAGE_KEY,
+			JSON.stringify({
+				tasks: [],
+			}),
+		);
+
+		const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+			throw new Error('QuotaExceededError');
+		});
+
+		try {
+			await expect(migrateFromLocalStorageToIndexedDB('2026-01-08', 0.5)).resolves.toBe(true);
+		} finally {
+			setItem.mockRestore();
+		}
+
+		expect(await $readSessionByDate('2026-01-08')).not.toBeNull();
 	});
 
 	it('marks migrated on corrupt JSON so it does not retry forever', async () => {

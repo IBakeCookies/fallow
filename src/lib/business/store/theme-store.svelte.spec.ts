@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Harness from '$lib/business/store/theme-store.test-harness.svelte';
 import * as appearanceRepository from '$lib/data/repository/appearance-repository';
@@ -84,5 +84,80 @@ describe('ThemeStore appearance reconciliation', () => {
 				initialSceneryPaused: true,
 			}).sceneryPaused,
 		).toBe(true);
+	});
+
+	it('falls back to the SSR theme when the cookie names a deleted theme', () => {
+		storeCookie({
+			theme: 'retired-theme',
+		});
+
+		expect(
+			mount({
+				initialTheme: 'abyss',
+			}).theme,
+		).toBe('abyss');
+	});
+});
+
+describe('ThemeStore reduced-motion seeding', () => {
+	const stubReducedMotion = (matches: boolean) =>
+		vi.spyOn(window, 'matchMedia').mockReturnValue({
+			matches,
+			addEventListener: vi.fn(),
+			removeEventListener: vi.fn(),
+		} as unknown as MediaQueryList);
+
+	beforeEach(() => {
+		storeCookie({});
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('pauses scenery when the OS prefers reduced motion and no preference is stored', () => {
+		stubReducedMotion(true);
+
+		const store = mount({
+			initialTheme: 'fallow',
+		});
+
+		expect(store.sceneryPaused).toBe(true);
+		expect(store.sceneryMotionToggleable).toBe(false);
+	});
+
+	it('keeps a stored preference over the OS setting', () => {
+		stubReducedMotion(true);
+
+		storeCookie({
+			sceneryPaused: false,
+		});
+
+		expect(
+			mount({
+				initialTheme: 'fallow',
+			}).sceneryPaused,
+		).toBe(false);
+	});
+});
+
+describe('ThemeStore persistence', () => {
+	beforeEach(() => {
+		storeCookie({});
+	});
+
+	it('writes each control change through the repository', () => {
+		const store = mount({});
+
+		store.switchTheme('abyss');
+		expect(store.theme).toBe('abyss');
+		expect(appearanceRepository.$updateTheme).toHaveBeenCalledWith('abyss');
+
+		store.rerollScenery();
+		expect(appearanceRepository.$updateScenerySeed).toHaveBeenCalledWith(store.scenerySeed);
+
+		store.toggleSceneryMotion();
+		expect(store.sceneryPaused).toBe(true);
+		expect(appearanceRepository.$updateSceneryMotion).toHaveBeenCalledWith(true);
 	});
 });

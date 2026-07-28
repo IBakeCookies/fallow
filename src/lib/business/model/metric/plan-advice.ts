@@ -123,7 +123,14 @@ const AXIS: Record<
 		badness: (value) => value,
 	},
 	energyBalance: {
-		read: (metrics) => metrics.energyBalance,
+		// A zero-load plan has no balance: `calculateEnergyBalance` returns the
+		// display sentinel 50 there, which is also the target — read as-is, an
+		// empty plan is this axis's global optimum and "set the budget to 0"
+		// wins the frontier (MATH.md §14.1 defect 5). NaN fails the improvement
+		// test in both directions, so zero-load candidates and baselines are
+		// silently excluded, like the Infinity Human Capacity reading.
+		read: (metrics) =>
+			metrics.cognitiveLoad + metrics.physicalLoad === 0 ? NaN : metrics.energyBalance,
 		badness: (value) => Math.abs(value - 50),
 	},
 	frictionIndex: {

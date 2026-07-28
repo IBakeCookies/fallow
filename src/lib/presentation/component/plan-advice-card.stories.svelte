@@ -85,6 +85,7 @@
 			advice,
 			busy: false,
 			stale: false,
+			error: false,
 			oncheck: () => {},
 		},
 	});
@@ -113,6 +114,14 @@
 	name="Stale"
 	args={{
 		stale: true,
+	}}
+/>
+
+<!-- The last check threw; the advice shown predates the failure. -->
+<Story
+	name="Error"
+	args={{
+		error: true,
 	}}
 />
 

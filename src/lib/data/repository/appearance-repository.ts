@@ -34,11 +34,11 @@ export interface StoredAppearance {
  * argument in the browser to read `document.cookie`.
  */
 export function $readAppearance(source: CookieSource = documentCookies()): StoredAppearance {
-	// `Number('')` is 0, so an empty-valued cookie would otherwise read as a
-	// perfectly valid seed 0 — pinning every such visitor to one arrangement,
-	// which is the opposite of what the seed is for.
+	// Strict digits only: `Number` maps `''` and `' '` to 0 — pinning every
+	// such visitor to one arrangement, the opposite of what the seed is for —
+	// and accepts hex/exponent forms the writer never produces.
 	const rawSeed = source.get(SCENERY_SEED_COOKIE);
-	const seed = rawSeed ? Number(rawSeed) : Number.NaN;
+	const seed = /^\d+$/.test(rawSeed ?? '') ? Number(rawSeed) : Number.NaN;
 	const motion = source.get(SCENERY_MOTION_COOKIE);
 
 	return {

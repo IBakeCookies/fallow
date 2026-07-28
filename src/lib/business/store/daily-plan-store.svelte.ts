@@ -9,6 +9,7 @@
  */
 
 import { getContext, setContext } from 'svelte';
+import { logError } from '$lib/logger';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
 import { fitEnergyParams } from '$lib/business/model/energy-calibration';
@@ -57,6 +58,7 @@ export class DailyPlanStore {
 
 	#advice = $state<PlanAdvice | null>(null);
 	#adviceBusy = $state(false);
+	#adviceError = $state(false);
 	#adviceFor = $state<string | null>(null);
 
 	constructor(session: SessionStore, observations: EnergyObservationStore) {
@@ -76,6 +78,11 @@ export class DailyPlanStore {
 		return this.#adviceBusy;
 	}
 
+	/** The last check failed; the advice shown (if any) predates the failure. */
+	get adviceError(): boolean {
+		return this.#adviceError;
+	}
+
 	/** Advice exists but describes an older version of the day. */
 	get adviceStale(): boolean {
 		return this.#advice !== null && this.#adviceFor !== this.#fingerprint;
@@ -90,6 +97,7 @@ export class DailyPlanStore {
 		if (this.#adviceBusy) return;
 
 		this.#adviceBusy = true;
+		this.#adviceError = false;
 
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 0));
@@ -97,10 +105,13 @@ export class DailyPlanStore {
 			// Both read after the yield, in one tick, so the plan matches the input
 			// it was solved from — and the current plan is reused as the baseline
 			// rather than solved a second time.
-			const input = this.#input;
-
-			this.#advice = suggestPlanAdjustments(input, this.#daily);
-			this.#adviceFor = JSON.stringify(input);
+			this.#advice = suggestPlanAdjustments(this.#input, this.#daily);
+			this.#adviceFor = this.#fingerprint;
+		} catch (e) {
+			// The only caller is a fire-and-forget click handler; rethrowing would
+			// be an unhandled rejection, not a signal.
+			logError('Failed to compute plan advice', e);
+			this.#adviceError = true;
 		} finally {
 			this.#adviceBusy = false;
 		}

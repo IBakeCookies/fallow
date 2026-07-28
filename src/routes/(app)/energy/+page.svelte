@@ -11,10 +11,11 @@
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import EnergyChart from '$lib/presentation/component/energy-chart.svelte';
 	import LogList from '$lib/presentation/component/log-list.svelte';
-	import type { Task } from '$lib/business/model/metric/calculation';
+	import type { Task } from '$lib/business/type';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { setEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import { getStorageStatusStore } from '$lib/business/store/storage-status.svelte';
 
 	const VIEW_KEY = 'zenith-energy-view';
 
@@ -43,7 +44,7 @@
 	// them and edits them, nothing more. Params are the lab's own and never
 	// written back to the session, but they ARE persisted (IndexedDB, so backup
 	// covers them).
-	const lab = setEnergyLabStore(session, observations, () =>
+	const lab = setEnergyLabStore(session, observations, getStorageStatusStore(), () =>
 		showToast.danger(m.energy_params_load_failed()),
 	);
 

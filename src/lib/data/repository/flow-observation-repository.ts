@@ -16,13 +16,15 @@ export async function $updateFlowObservation(
 	observation: Omit<FlowObservationRecord, 'id' | 'createdAt'>,
 ): Promise<void> {
 	await withStore('flowObservations', 'readwrite', (store) => {
-		// The store is small (one record per task per day), so a scan for the
-		// existing record beats maintaining a compound index + schema migration.
-		const getAll = store.getAll();
+		// The upsert key is (taskId, date) and only `date` is indexed, so read that
+		// day's handful of records and match taskId in memory — a whole-store scan
+		// would read years of history that can never match, and a compound index
+		// would cost a schema version.
+		const sameDay = store.index('date').getAll(observation.date);
 
-		getAll.onsuccess = () => {
-			const existing = (getAll.result as FlowObservationRecord[]).find(
-				(record) => record.taskId === observation.taskId && record.date === observation.date,
+		sameDay.onsuccess = () => {
+			const existing = (sameDay.result as FlowObservationRecord[]).find(
+				(record) => record.taskId === observation.taskId,
 			);
 
 			const record = existing

@@ -10,7 +10,6 @@
  */
 
 import { getContext, onMount, setContext } from 'svelte';
-import { browser } from '$app/environment';
 import { logError } from '$lib/logger';
 import {
 	averageCompletionRate,
@@ -32,7 +31,7 @@ import {
 	readDaySummaries,
 	readModelReport,
 	type CalibrationSnapshot,
-} from '$lib/business/store/session-history';
+} from '$lib/business/session-history';
 
 const CONTEXT_KEY = Symbol();
 
@@ -86,8 +85,7 @@ export class AnalyticsStore {
 	#totalTasks = $derived(this.#summaries.reduce((sum, s) => sum + s.totalTasks, 0));
 	#completedTasks = $derived(this.#summaries.reduce((sum, s) => sum + s.completedTasks, 0));
 	#plannedHours = $derived(
-		Math.round(this.#summaries.reduce((sum, s) => sum + (Number(s.availableHours) || 0), 0) * 10) /
-			10,
+		Math.round(this.#summaries.reduce((sum, s) => sum + s.availableHours, 0) * 10) / 10,
 	);
 	// Reads the whole loaded year, not the viewed range — a streak is not a
 	// property of whichever window happens to be open.
@@ -105,8 +103,6 @@ export class AnalyticsStore {
 	// which is indistinguishable from a user who has never used the app.
 	constructor(notifyHistoryLoadFailed: NotifyHistoryLoadFailed) {
 		onMount(async () => {
-			if (!browser) return;
-
 			const today = this.#today;
 
 			try {
@@ -115,7 +111,7 @@ export class AnalyticsStore {
 			} catch (e) {
 				logError('Failed to load analytics history', e);
 				notifyHistoryLoadFailed();
-				this.#audit ??= EMPTY_PLAN_AUDIT;
+				this.#audit = EMPTY_PLAN_AUDIT;
 				this.#calibrationFailed = true;
 				this.#isLoading = false;
 
@@ -131,8 +127,8 @@ export class AnalyticsStore {
 				this.#audit = report.audit;
 			} catch (e) {
 				logError('Failed to load the analytics model report', e);
-				this.#audit ??= EMPTY_PLAN_AUDIT;
-				this.#calibrationFailed = this.#calibration === null;
+				this.#audit = EMPTY_PLAN_AUDIT;
+				this.#calibrationFailed = true;
 			}
 		});
 	}

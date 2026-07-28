@@ -6,9 +6,11 @@ import { mockPage } from '$lib/business/store/session-store.test-utils.svelte';
 import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
+import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
+import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
 
-vi.mock('$lib/business/store/session-history', () => ({
+vi.mock('$lib/business/session-history', () => ({
 	initializeStorage: vi.fn(async () => {}),
 }));
 
@@ -35,18 +37,27 @@ const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
 
-/** Mount the store in a component context and wait for the initial load. */
-async function setup(): Promise<SessionStore> {
+/**
+ * Mount the store in a component context and wait for the initial load. The
+ * banner comes back too: the store reports failures into `StorageStatusStore`
+ * rather than owning the flag, so that is where a spec reads them.
+ */
+async function setup(): Promise<{ store: SessionStore; status: StorageStatusStore }> {
 	let store!: SessionStore;
+	let status!: StorageStatusStore;
 
 	render(Harness, {
 		onstore: (s: SessionStore) => (store = s),
+		onstatus: (s: StorageStatusStore) => (status = s),
 	});
 
 	await vi.waitFor(() => expect(store.isLoading).toBe(false));
 	vi.clearAllMocks(); // drop the initial-load calls; tests assert deltas
 
-	return store;
+	return {
+		store,
+		status,
+	};
 }
 
 function setHidden(hidden: boolean) {
@@ -78,7 +89,7 @@ describe('SessionStore persistence', () => {
 	});
 
 	it('debounces autosave: a burst of edits collapses to one put with the last value', async () => {
-		const store = await setup();
+		const { store } = await setup();
 		useFakeTimers();
 
 		store.availableHours = 4;
@@ -87,7 +98,7 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		expect(updateSessionMock).not.toHaveBeenCalled();
 
-		vi.advanceTimersByTime(499);
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS - 1);
 		expect(updateSessionMock).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(1);
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
@@ -99,7 +110,7 @@ describe('SessionStore persistence', () => {
 	});
 
 	it('flushes the pending save immediately when the tab hides', async () => {
-		const store = await setup();
+		const { store } = await setup();
 		useFakeTimers();
 
 		store.availableHours = 3;
@@ -115,7 +126,7 @@ describe('SessionStore persistence', () => {
 	});
 
 	it('re-reads the selected date on becoming visible, picking up another tab’s write', async () => {
-		const store = await setup();
+		const { store } = await setup();
 
 		const otherTabSession: DailySession = {
 			date: store.today,
@@ -135,8 +146,36 @@ describe('SessionStore persistence', () => {
 		expect(readSessionByDateMock).toHaveBeenCalledWith(store.today);
 	});
 
+	// The other half of that handler, and the half the shared autosave writer made
+	// a cross-module question — the store asks the writer whether anything is
+	// still queued. Reachable in the wild: a hidden tab that rolls over midnight
+	// re-loads the day and re-arms the autosave, so a return can land with a write
+	// pending. Re-reading then would overwrite the unlanded edit with the stored
+	// day, which is the edit the user just typed.
+	it('does not re-read on becoming visible while a write is still pending', async () => {
+		const { store } = await setup();
+		useFakeTimers();
+
+		store.availableHours = 4;
+		flushSync();
+
+		const stored: DailySession = {
+			date: store.today,
+			tasks: [],
+			availableHours: 9,
+			switchCost: 0.25,
+			updatedAt: Date.now(),
+		};
+
+		readSessionByDateMock.mockResolvedValue(stored);
+		setHidden(false); // still inside the debounce: the edit has not landed
+
+		expect(readSessionByDateMock).not.toHaveBeenCalled();
+		expect(store.availableHours).toBe(4);
+	});
+
 	it('flushes the pending save before loading a newly selected date', async () => {
-		const store = await setup();
+		const { store } = await setup();
 		const today = store.today;
 		useFakeTimers();
 
@@ -155,23 +194,23 @@ describe('SessionStore persistence', () => {
 		});
 	});
 
-	it('surfaces a failed save as storageError and clears it on demand', async () => {
-		const store = await setup();
+	it('reports a failed save into the banner store, which clears it on demand', async () => {
+		const { store, status } = await setup();
 		updateSessionMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 		useFakeTimers();
 
 		store.availableHours = 2;
 		flushSync();
-		vi.advanceTimersByTime(500);
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
 		vi.useRealTimers();
 
-		await vi.waitFor(() => expect(store.storageError).toBe('save-failed'));
-		store.clearStorageError();
-		expect(store.storageError).toBeNull();
+		await vi.waitFor(() => expect(status.error).toBe('save-failed'));
+		status.clear();
+		expect(status.error).toBeNull();
 	});
 
 	it('stamps the ⚡ badge only when the flow write succeeds', async () => {
-		const store = await setup();
+		const { store, status } = await setup();
 
 		store.addTask({
 			title: 'deep work',
@@ -186,23 +225,85 @@ describe('SessionStore persistence', () => {
 		updateFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
 		await store.logFlow(id, 25);
 		expect(store.tasks[0].flowMinutes).toBeUndefined();
-		expect(store.storageError).toBe('save-failed');
+		expect(status.error).toBe('save-failed');
 
-		store.clearStorageError();
+		status.clear();
 		await store.logFlow(id, 25);
 		expect(store.tasks[0].flowMinutes).toBe(25);
-		expect(store.storageError).toBeNull();
+		expect(status.error).toBeNull();
+	});
+
+	// Stored JSON is user-reachable (devtools, a hand-edited backup, an older
+	// build), and nothing downstream defends itself: Math.max('abc', 3) is NaN,
+	// and the auto-save would then write that NaN straight back.
+	it('repairs a corrupt persisted day instead of feeding the model NaN', async () => {
+		readSessionByDateMock.mockImplementation(
+			async (date: string) =>
+				({
+					date,
+					tasks: [
+						{
+							id: 1,
+							title: 'write',
+							physicalDifficulty: 3,
+							mentalDifficulty: 'abc',
+							enjoyment: 5,
+							createdAt: date,
+							completed: false,
+						},
+						{
+							title: 'unaddressable, no id',
+						},
+					],
+					availableHours: 'eight',
+					switchCost: 0.25,
+					updatedAt: 0,
+				}) as unknown as DailySession,
+		);
+
+		const { store } = await setup();
+
+		expect(store.tasks).toHaveLength(1); // the id-less task can't be kept
+		expect(store.tasks[0].title).toBe('write'); // …but the user's writing is
+		expect(store.tasks[0].mentalDifficulty).not.toBeNaN();
+		expect(store.availableHours).toBe(0);
+		expect(store.userConstants.c1).not.toBeNaN();
+	});
+
+	it('gives every task its own integer id, even added in the same millisecond', async () => {
+		const { store } = await setup();
+		useFakeTimers(); // freezes Date.now(), which alone used to be the id
+
+		const draft = {
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		};
+
+		store.addTask(draft);
+		flushSync();
+		store.addTask(draft);
+		flushSync();
+		store.importTasks([draft, draft]); // the path that used to add a fraction
+		flushSync();
+
+		const ids = store.tasks.map((t) => t.id);
+		expect(new Set(ids).size).toBe(4);
+		expect(ids.every(Number.isInteger)).toBe(true);
 	});
 
 	it('surfaces a failed load instead of silently never saving again', async () => {
 		readSessionByDateMock.mockRejectedValue(new Error('IndexedDB unavailable'));
 		let store!: SessionStore;
+		let status!: StorageStatusStore;
 
 		render(Harness, {
 			onstore: (s: SessionStore) => (store = s),
+			onstatus: (s: StorageStatusStore) => (status = s),
 		});
 
-		await vi.waitFor(() => expect(store.storageError).toBe('load-failed'));
+		await vi.waitFor(() => expect(status.error).toBe('load-failed'));
 
 		// …and the failure is recoverable: retrying re-reads the day, which both
 		// clears the banner and unblocks the auto-save guard.
@@ -214,16 +315,19 @@ describe('SessionStore persistence', () => {
 			updatedAt: Date.now(),
 		}));
 
-		store.retryLoad();
+		// Through the banner's own action rather than the store's method: the
+		// store registered itself, and that registration is what the layout
+		// relies on instead of naming every store it has to retry.
+		status.retry();
 
 		await vi.waitFor(() => {
-			expect(store.storageError).toBeNull();
+			expect(status.error).toBeNull();
 			expect(store.availableHours).toBe(7);
 		});
 	});
 
 	it('ignores a task toggle while a date change is still loading', async () => {
-		const store = await setup();
+		const { store } = await setup();
 
 		store.addTask({
 			title: 'ship it',
@@ -254,7 +358,7 @@ describe('SessionStore persistence', () => {
 	});
 
 	it('flushes the pending save when the component is destroyed', async () => {
-		const store = await setup();
+		const { store } = await setup();
 		useFakeTimers();
 
 		store.availableHours = 8;
@@ -271,7 +375,7 @@ describe('SessionStore persistence', () => {
 	});
 
 	it('re-reads yesterday after a midnight rollover', async () => {
-		const store = await setup();
+		const { store } = await setup();
 		const dayBeforeRollover = store.today;
 		const realNow = Date.now();
 

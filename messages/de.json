@@ -194,6 +194,7 @@
 	"advice_recheck": "Neu prüfen",
 	"advice_working": "Wird gelöst …",
 	"advice_stale": "Dein Tag hat sich seit dieser Berechnung geändert.",
+	"advice_error": "Die Prüfung ist fehlgeschlagen. Versuch es noch einmal.",
 	"advice_clear": "Nichts liest sich schlecht genug, um etwas zu ändern. Dieser Tag passt.",
 	"advice_action_defer": "„{title}“ auf einen anderen Tag verschieben",
 	"advice_action_budget": "Budget auf {hours} h setzen",

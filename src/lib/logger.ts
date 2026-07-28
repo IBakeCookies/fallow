@@ -8,7 +8,7 @@
  * layer direction for the other two (AGENTS.md R1).
  *
  * Distinct from the user-facing surfaces, of which there are three:
- * `reportStorageError` (the session store's banner), a toast
+ * `StorageStatusStore.report` (the app-wide banner), a toast
  * (`presentation/utils/toast.ts`, reached from a store through an injected
  * thunk), and a failure a component already shows on its own. This records what
  * happened for whoever debugs it. Most failures do both, and neither replaces

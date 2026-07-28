@@ -482,4 +482,75 @@ describe('suggestPlanAdjustments', () => {
 		expect(gains.length).toBeGreaterThan(0);
 		expect(gains.every((option) => option.planValueDeltaPercent === null)).toBe(true);
 	});
+
+	// MATH.md §14.1-5. A zero-load plan reads the display sentinel 50, which is
+	// also the axis target — read as a balance, "set the budget to 0" becomes
+	// the axis's global optimum and the advisor chases the budget to nothing.
+	describe('energy balance and the empty plan', () => {
+		// The live day that surfaced it: physical-heavy, budget low enough that
+		// `budget − 1` clamps to an empty plan.
+		const PHYSICAL_HEAVY = [
+			makeTask({
+				id: 1,
+				title: 'Boxing',
+				physicalDifficulty: 9,
+				mentalDifficulty: 3,
+				enjoyment: 10,
+			}),
+			makeTask({
+				id: 2,
+				title: 'Guitar',
+				physicalDifficulty: 1,
+				mentalDifficulty: 5,
+				enjoyment: 7,
+			}),
+			makeTask({
+				id: 3,
+				title: 'Reading',
+				physicalDifficulty: 0,
+				mentalDifficulty: 4,
+				enjoyment: 3,
+			}),
+		];
+
+		it('never offers a zero-load plan as balance advice', () => {
+			const advice = suggestPlanAdjustments(
+				input(PHYSICAL_HEAVY, {
+					availableHours: 1,
+				}),
+			);
+
+			const options = findingFor(advice, 'energyBalance')?.options ?? [];
+
+			expect(options.map((option) => option.lever)).not.toContainEqual({
+				kind: 'set-budget',
+				hours: 0,
+			});
+		});
+
+		it('generates no balance advice from a zero-load baseline', () => {
+			const advice = suggestPlanAdjustments(
+				input(PHYSICAL_HEAVY, {
+					availableHours: 0,
+				}),
+			);
+
+			expect(findingFor(advice, 'energyBalance')).toBeUndefined();
+		});
+
+		it('still offers the empty plan on the v-badness axes, priced honestly', () => {
+			const advice = suggestPlanAdjustments(
+				input(PHYSICAL_HEAVY, {
+					availableHours: 1,
+				}),
+			);
+
+			const emptyPlan = findingFor(advice, 'physicalLoad')?.options.find(
+				(option) => option.lever.kind === 'set-budget' && option.lever.hours === 0,
+			);
+
+			expect(emptyPlan?.after).toBe(0);
+			expect(emptyPlan?.planValueDeltaPercent).toBe(-100);
+		});
+	});
 });

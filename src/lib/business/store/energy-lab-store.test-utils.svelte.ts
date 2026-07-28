@@ -16,8 +16,6 @@ import {
 class MockSession {
 	tasks = $state<Task[]>([]);
 	availableHours = $state(8);
-	/** Bumped by the Lab when a persist fails — the real store raises a banner. */
-	storageErrors = $state(0);
 
 	readonly today = '2026-07-20';
 	readonly switchCost = DEFAULT_SWITCH_COST;
@@ -25,14 +23,9 @@ class MockSession {
 	readonly constantsFit = fitUserConstants([]);
 	readonly userConstants = this.constantsFit.constants;
 
-	reportStorageError() {
-		this.storageErrors += 1;
-	}
-
 	reset() {
 		this.tasks = [];
 		this.availableHours = 8;
-		this.storageErrors = 0;
 	}
 }
 

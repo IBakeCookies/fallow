@@ -1,4 +1,4 @@
-import { getContext, setContext, onMount, onDestroy } from 'svelte';
+import { getContext, setContext, onMount } from 'svelte';
 import { browser } from '$app/environment';
 import type { Task, DailySession, SavedRoutine, FlowObservationRecord } from '$lib/data/type';
 import { logError } from '$lib/logger';
@@ -9,8 +9,13 @@ import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
-import { addDays } from '$lib/business/utils/date';
-import { initializeStorage } from '$lib/business/store/session-history';
+import { addDays, isISODate } from '$lib/business/utils/date';
+import {
+	sanitizeFlowObservations,
+	sanitizeRoutines,
+	sanitizeSession,
+} from '$lib/business/model/persisted';
+import { initializeStorage } from '$lib/business/session-history';
 import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 import {
 	DEFAULT_SWITCH_COST,
@@ -19,6 +24,11 @@ import {
 	mapEffort,
 	mapEnjoyability,
 } from '$lib/business/model/zenith';
+import {
+	createDebouncedWrite,
+	type DebouncedWrite,
+} from '$lib/business/store/debounced-write.svelte';
+import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 
 const CONTEXT_KEY = Symbol();
 
@@ -31,10 +41,23 @@ const CONTEXT_KEY = Symbol();
 export type ReadDateParam = () => string | null;
 
 /**
- * A storage failure the app-wide banner can show. 'load-failed' is the
- * recoverable one; 'save-failed' has already lost the edit.
+ * The next task id: monotonic and never recycled. `Date.now()` alone collided
+ * for two tasks added in the same millisecond (and the import path used
+ * `Date.now() + Math.random()`, putting fractions in a field three observation
+ * stores use as their foreign key). Recycling ids is the other trap: `max + 1`
+ * over the day's tasks alone would hand a new task the id of a deleted one, and
+ * the deleted task's drain logs — measurements outlive their task — would
+ * silently re-attach to it.
+ *
+ * "Never recycled" is within a day: only the viewed day's tasks are in scope, so
+ * across days it rests on `Date.now()`, and importing N tasks reserves ids up to
+ * now+N−1. Adding a task on another day inside that window could reuse one —
+ * harmless, because every observation join is per-date, and no UI reaches two
+ * days that fast.
  */
-export type StorageErrorKind = 'save-failed' | 'load-failed';
+function nextTaskId(tasks: readonly Task[]): number {
+	return Math.max(Date.now(), ...tasks.map((task) => Math.floor(task.id) + 1));
+}
 
 /**
  * The daily session as a shared reactive store: tasks, time budget, capacity
@@ -53,6 +76,7 @@ export class SessionStore {
 	// lazy (never evaluated before the constructor body runs) — but TypeScript
 	// checks declaration order, not laziness.
 	#readDateParam!: ReadDateParam;
+	#status!: StorageStatusStore;
 
 	// ----- Daily session state -----
 	#tasks = $state<Task[]>([]);
@@ -75,26 +99,16 @@ export class SessionStore {
 	// keeps saving once a session exists (so deleting the last task persists).
 	#loadedHadSession = $state(false);
 
-	// A storage failure the UI should surface. Machine value; the layout resolves
-	// it to a localized banner. 'load-failed' is the recoverable one — a failed
-	// read leaves #loadedDate null, which blocks the auto-save guard forever, so
-	// the banner offers retryLoad(). Cleared by clearStorageError.
-	#storageError = $state<StorageErrorKind | null>(null);
-
-	// Trailing-debounced auto-save: the effect captures a snapshot into
-	// #pendingSave and (re)arms #saveTimer, so a burst of edits collapses to one
-	// IndexedDB put; the write is flushed early when the tab is hidden.
-	#pendingSave: DailySession | null = null;
-	#saveTimer: ReturnType<typeof setTimeout> | undefined;
+	// Trailing-debounced auto-save, so a burst of edits collapses to one
+	// IndexedDB put. Built in the constructor: it registers lifecycle hooks.
+	#autoSave!: DebouncedWrite<DailySession>;
 
 	// The URL is the single source of truth for the viewed day: /?date=YYYY-MM-DD
 	// for any other day, plain / for today. Routes without a date param (Energy
 	// Lab, calendar, …) always view today. Invalid dates fall back to today.
 	#today = $derived(liveToday.value);
 	#dateParam = $derived(this.#readDateParam());
-	#selectedDate = $derived(
-		this.#dateParam && /^\d{4}-\d{2}-\d{2}$/.test(this.#dateParam) ? this.#dateParam : this.#today,
-	);
+	#selectedDate = $derived(isISODate(this.#dateParam) ? this.#dateParam : this.#today);
 
 	// Day modes: past is read-only history (completion toggles only), future
 	// is a plan you can edit freely; flow logging — an actual measurement —
@@ -123,8 +137,30 @@ export class SessionStore {
 		),
 	);
 
-	constructor(readDateParam: ReadDateParam) {
+	constructor(readDateParam: ReadDateParam, status: StorageStatusStore) {
 		this.#readDateParam = readDateParam;
+		this.#status = status;
+
+		this.#autoSave = createDebouncedWrite(
+			async (session) => {
+				await sessionRepository.$updateSession(session);
+
+				// Guard: a late flush of a previous date must not mark the currently
+				// loaded (possibly pristine) day as having a session.
+				if (session.date === this.#loadedDate) this.#loadedHadSession = true;
+			},
+			(error, session) => {
+				logError('Failed to save session', error, {
+					date: session.date,
+				});
+
+				this.#status.report('save-failed');
+			},
+		);
+
+		// A failed read leaves #loadedDate null, which blocks the auto-save guard
+		// forever — so this store is one the banner's retry has to cover.
+		this.#status.registerRetry(() => this.retryLoad());
 
 		onMount(() => {
 			this.#boot();
@@ -138,8 +174,7 @@ export class SessionStore {
 
 			if (!browser || this.#isLoading) return;
 
-			sessionRepository
-				.$readSessionByDate(yesterday)
+			this.#readSession(yesterday)
 				.then((session) => (this.#yesterdaySession = session))
 				// Decoration, not the viewed day: log it rather than raising the
 				// banner, whose retry does not cover this read.
@@ -158,8 +193,7 @@ export class SessionStore {
 		// Auto-save to IndexedDB for today and future plans (past days save
 		// explicitly on toggle). Guards: the in-memory state must actually belong
 		// to the viewed date (loads are async), and pristine never-saved days are
-		// skipped so browsing ahead creates no empty records. The put is debounced
-		// (trailing 500ms) so typing a budget doesn't fire a put per keystroke.
+		// skipped so browsing ahead creates no empty records.
 		$effect(() => {
 			if (
 				browser &&
@@ -177,9 +211,8 @@ export class SessionStore {
 
 				if (!dirty) return;
 
-				// Snapshot inside the tracked effect (so deep task edits are seen),
-				// then persist on a trailing debounce.
-				this.#pendingSave = {
+				// Snapshot inside the tracked effect, so deep task edits are seen.
+				this.#autoSave.schedule({
 					date: this.#selectedDate,
 					tasks: $state.snapshot(this.#tasks),
 					availableHours: this.#availableHours,
@@ -187,33 +220,24 @@ export class SessionStore {
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
 					updatedAt: Date.now(),
-				};
-
-				clearTimeout(this.#saveTimer);
-				this.#saveTimer = setTimeout(() => this.#flushSave(), 500);
+				});
 			}
 		});
 
-		// The effect's own teardown can't do this: it also runs before every
-		// re-run, so flushing there would defeat the debounce. Destroy is not
-		// rare — the (app) layout re-keys its subtree on a locale switch.
-		onDestroy(() => this.#flushSave());
-
-		// Flush the pending write the instant the tab is hidden (the debounce may
-		// not fire before a discard), and on returning re-read the selected date
-		// so another tab's writes are picked up. Re-reading only when nothing is
-		// pending is safe: a hidden tab can't be mid-edit, so no ping-pong.
+		// On returning to the tab, re-read the selected date so another tab's
+		// writes are picked up. Only when nothing is pending: an edit of ours that
+		// has not landed yet would be overwritten by the older stored day. (The
+		// hidden half of this — flushing before a discard — is the writer's.)
 		$effect(() => {
 			if (!browser) return;
 
-			const onVisibility = () => {
-				if (document.hidden) this.#flushSave();
-				else if (!this.#pendingSave) this.#loadSession(this.#selectedDate);
+			const onVisibilityChange = () => {
+				if (!document.hidden && !this.#autoSave.pending) this.#loadSession(this.#selectedDate);
 			};
 
-			document.addEventListener('visibilitychange', onVisibility);
+			document.addEventListener('visibilitychange', onVisibilityChange);
 
-			return () => document.removeEventListener('visibilitychange', onVisibility);
+			return () => document.removeEventListener('visibilitychange', onVisibilityChange);
 		});
 	}
 
@@ -223,55 +247,49 @@ export class SessionStore {
 	async #boot() {
 		try {
 			await initializeStorage();
-			this.#routines = await routineRepository.$readAllRoutines();
-			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+			this.#routines = await this.#readRoutines();
+			this.#flowObservations = await this.#readFlowObservations();
 			await this.#loadSession(this.#selectedDate);
 		} catch (e) {
 			logError('Failed to load from IndexedDB', e);
-			this.#storageError = 'load-failed';
+			this.#status.report('load-failed');
 		} finally {
 			this.#isLoading = false;
 		}
 	}
 
-	/** Re-run the initial read — the banner's action after a failed load. */
-	retryLoad() {
-		this.#storageError = null;
-		this.#boot();
+	// Every flow-observation read goes through here: the records feed the ϕ fit,
+	// where one corrupt number would make every constant NaN (AGENTS.md R4).
+	async #readFlowObservations(): Promise<FlowObservationRecord[]> {
+		return sanitizeFlowObservations(await flowObservationRepository.$readAllFlowObservations());
 	}
 
-	// Persist the pending snapshot now, cancelling any scheduled debounce.
-	#flushSave() {
-		if (!this.#pendingSave) return;
+	// Every session read goes through here, so a new read site cannot quietly skip
+	// the validation (AGENTS.md R4). A day that fails it reads as absent: the day
+	// loads empty, and the next edit overwrites the broken record.
+	async #readSession(date: string): Promise<DailySession | null> {
+		return sanitizeSession(await sessionRepository.$readSessionByDate(date));
+	}
 
-		clearTimeout(this.#saveTimer);
-		const payload = this.#pendingSave;
-		this.#pendingSave = null;
+	// Routine tasks are imported straight into the live plan, so their numbers
+	// get the same keep-and-clamp as session tasks (AGENTS.md R4).
+	async #readRoutines(): Promise<SavedRoutine[]> {
+		return sanitizeRoutines(await routineRepository.$readAllRoutines());
+	}
 
-		sessionRepository
-			.$updateSession(payload)
-			// guard: a late flush of a previous date must not mark the currently
-			// loaded (possibly pristine) day as having a session
-			.then(() => {
-				if (payload.date === this.#loadedDate) this.#loadedHadSession = true;
-			})
-			.catch((e) => {
-				logError('Failed to save session', e, {
-					date: payload.date,
-				});
-
-				this.#storageError = 'save-failed';
-			});
+	/** Re-run the initial read — registered as the banner's retry action. */
+	retryLoad() {
+		this.#boot();
 	}
 
 	async #loadSession(date: string) {
 		// A pending debounced save may belong to the previous date — flush before
 		// loading so a quick date switch can't drop the edit (the payload carries
 		// its own date, so a late flush is always safe).
-		this.#flushSave();
+		this.#autoSave.flush();
 
 		try {
-			const session = await sessionRepository.$readSessionByDate(date);
+			const session = await this.#readSession(date);
 
 			if (date !== this.#selectedDate) return; // navigated again mid-load
 
@@ -295,13 +313,13 @@ export class SessionStore {
 
 			// Reading again worked, so the day is no longer unreachable — this is
 			// what makes a load failure recover on the next date change too.
-			if (this.#storageError === 'load-failed') this.#storageError = null;
+			this.#status.clearLoadFailure();
 		} catch (e) {
 			logError('Failed to load session', e, {
 				date,
 			});
 
-			this.#storageError = 'load-failed';
+			this.#status.report('load-failed');
 		}
 	}
 
@@ -315,22 +333,6 @@ export class SessionStore {
 	}
 	get isLoading() {
 		return this.#isLoading;
-	}
-	get storageError() {
-		return this.#storageError;
-	}
-	/**
-	 * Raise the app-wide persistence banner from another store (the Energy Lab
-	 * writes its own setting; the measurement store its own observations), so
-	 * there is one place a storage failure shows up rather than one banner per
-	 * store. The layout's retry action covers every store that can raise
-	 * 'load-failed'.
-	 */
-	reportStorageError(kind: StorageErrorKind) {
-		this.#storageError = kind;
-	}
-	clearStorageError() {
-		this.#storageError = null;
 	}
 	get today() {
 		return this.#today;
@@ -401,7 +403,7 @@ export class SessionStore {
 	}) {
 		this.#tasks = [
 			{
-				id: Date.now(),
+				id: nextTaskId(this.#tasks),
 				...taskData,
 				createdAt: this.#selectedDate,
 				completed: false,
@@ -447,7 +449,7 @@ export class SessionStore {
 					date: this.#selectedDate,
 				});
 
-				this.#storageError = 'save-failed';
+				this.#status.report('save-failed');
 			}
 		}
 	}
@@ -476,7 +478,7 @@ export class SessionStore {
 	// viewed day. Returns the imported count so the UI can react to empty days.
 	async importFromDate(date: string): Promise<number> {
 		try {
-			const session = await sessionRepository.$readSessionByDate(date);
+			const session = await this.#readSession(date);
 			const tasks = session?.tasks ?? [];
 
 			if (tasks.length) {
@@ -499,16 +501,18 @@ export class SessionStore {
 			// 0 makes the header say "No tasks on that date", which is a claim about
 			// the user's data that this failure cannot support. A failed read is
 			// retryable, so raise the banner and let the count stay 0.
-			this.#storageError = 'load-failed';
+			this.#status.report('load-failed');
 
 			return 0;
 		}
 	}
 
 	importTasks(imported: Omit<Task, 'id' | 'createdAt' | 'completed'>[]) {
+		let id = nextTaskId(this.#tasks);
+
 		const newTasks = imported.map((t) => ({
 			...t,
-			id: Date.now() + Math.random(),
+			id: id++,
 			createdAt: this.#selectedDate,
 			completed: false,
 		}));
@@ -541,7 +545,7 @@ export class SessionStore {
 				phiHours: minutes / 60,
 			});
 
-			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+			this.#flowObservations = await this.#readFlowObservations();
 
 			// Stamp the ⚡ badge only once the write lands, so the UI never shows
 			// success for a failed persist.
@@ -555,7 +559,7 @@ export class SessionStore {
 			);
 		} catch (e) {
 			logError('Failed to save flow observation', e);
-			this.#storageError = 'save-failed';
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -567,7 +571,7 @@ export class SessionStore {
 
 		try {
 			await flowObservationRepository.$deleteFlowObservation(id);
-			this.#flowObservations = await flowObservationRepository.$readAllFlowObservations();
+			this.#flowObservations = await this.#readFlowObservations();
 
 			if (record && record.date === this.#today) {
 				this.#tasks = this.#tasks.map((t) =>
@@ -581,7 +585,7 @@ export class SessionStore {
 			}
 		} catch (e) {
 			logError('Failed to delete flow observation', e);
-			this.#storageError = 'save-failed';
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -601,7 +605,7 @@ export class SessionStore {
 			);
 		} catch (e) {
 			logError('Failed to reset flow observations', e);
-			this.#storageError = 'save-failed';
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -622,26 +626,29 @@ export class SessionStore {
 
 		try {
 			await routineRepository.$updateRoutine(routine);
-			this.#routines = await routineRepository.$readAllRoutines();
+			this.#routines = await this.#readRoutines();
 		} catch (e) {
 			logError('Failed to save routine', e);
-			this.#storageError = 'save-failed';
+			this.#status.report('save-failed');
 		}
 	}
 
 	async deleteRoutine(id: string) {
 		try {
 			await routineRepository.$deleteRoutine(id);
-			this.#routines = await routineRepository.$readAllRoutines();
+			this.#routines = await this.#readRoutines();
 		} catch (e) {
 			logError('Failed to delete routine', e);
-			this.#storageError = 'save-failed';
+			this.#status.report('save-failed');
 		}
 	}
 }
 
-export function setSessionStore(readDateParam: ReadDateParam): SessionStore {
-	return setContext<SessionStore>(CONTEXT_KEY, new SessionStore(readDateParam));
+export function setSessionStore(
+	readDateParam: ReadDateParam,
+	status: StorageStatusStore,
+): SessionStore {
+	return setContext<SessionStore>(CONTEXT_KEY, new SessionStore(readDateParam, status));
 }
 
 export function getSessionStore(): SessionStore {

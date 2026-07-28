@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
 import Harness from '$lib/business/store/analytics-store.test-harness.svelte';
-import * as sessionHistory from '$lib/business/store/session-history';
+import * as sessionHistory from '$lib/business/session-history';
+import type { CalibrationSnapshot } from '$lib/business/session-history';
 import type { AnalyticsStore } from '$lib/business/store/analytics-store.svelte';
 import type { DaySummary } from '$lib/business/model/metric/history';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
@@ -19,13 +20,23 @@ const EMPTY_AUDIT: PlanAudit = {
 	energyTaskSpread: 0,
 };
 
+// The store publishes the snapshot untouched, so a shallow stub suffices.
+const CALIBRATION = {
+	flow: {
+		fitted: false,
+		usedCount: 0,
+		phiHours: 0.5,
+		defaultPhiHours: 0.5,
+	},
+} as CalibrationSnapshot;
+
 vi.mock('$lib/business/state/today.svelte', () => ({
 	liveToday: {
 		value: '2026-07-20',
 	},
 }));
 
-vi.mock('$lib/business/store/session-history', () => ({
+vi.mock('$lib/business/session-history', () => ({
 	EMPTY_PLAN_AUDIT: {
 		usedCount: 0,
 		days: [],
@@ -81,7 +92,7 @@ describe('AnalyticsStore', () => {
 		readDaySummariesMock.mockReset().mockResolvedValue([]);
 
 		readModelReportMock.mockReset().mockResolvedValue({
-			calibration: null as never,
+			calibration: CALIBRATION,
 			audit: EMPTY_AUDIT,
 		});
 	});
@@ -191,6 +202,26 @@ describe('AnalyticsStore', () => {
 		]);
 
 		expect(store.plannedHours).toBe(5.8);
+	});
+
+	it('publishes the model report once it resolves', async () => {
+		const audit: PlanAudit = {
+			...EMPTY_AUDIT,
+			usedCount: 3,
+		};
+
+		readModelReportMock.mockResolvedValue({
+			calibration: CALIBRATION,
+			audit,
+		});
+
+		const store = await setup([day('2026-07-15')]);
+
+		// toEqual, not toBe: $state proxies the assigned object.
+		await vi.waitFor(() => expect(store.calibration).toEqual(CALIBRATION));
+		expect(store.audit).toEqual(audit);
+		expect(store.calibrationFailed).toBe(false);
+		expect(readModelReportMock).toHaveBeenCalledWith(TODAY, 30);
 	});
 
 	it('falls back to an empty audit and flags the calibration when the read fails', async () => {

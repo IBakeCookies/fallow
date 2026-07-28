@@ -21,10 +21,6 @@ import {
 } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
-// Re-exported so callers of the metric functions get the entity type from the
-// same module; the definition lives in the data layer (it is persisted).
-export type { Task };
-
 // Spillover: how much the secondary difficulty dimension adds on top of the
 // dominant one. A task demanding BOTH body and mind (competitive climbing:
 // phys 8, mental 6 → 9.8) is harder than a single-dimension task at the same
@@ -116,17 +112,35 @@ function toPooledInputs(tasks: Task[]) {
 	}));
 }
 
-export function calculateSuggestedTasks(
+/**
+ * The day's plan, solved ONCE: the tasks with their allocations attached (sorted
+ * by priority, which is what a screen shows) and the same allocation as bare
+ * hours in the INPUT order.
+ *
+ * Both views exist because the two consumers need different orders and the solve
+ * is the expensive part — 2ⁿ funded-subset enumeration, ~50ms at n = 12.
+ * `calculateZenithGain` takes the input-order hours, and the order is
+ * load-bearing rather than cosmetic: everything downstream pairs hours to tasks
+ * **by index** (`calculateTotalProductivity`), so the priority-sorted hours would
+ * charge each task the time of whichever task outranked it — a number that is
+ * wrong without being obviously wrong. The naive baseline is unaffected either
+ * way; it is derived from the task list, not from these hours.
+ */
+export function calculateTaskPlan(
 	tasks: Task[],
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST,
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	posterior?: FitPosterior,
-): SuggestedTask[] {
+): { suggestedTasks: SuggestedTask[]; allocatedHours: number[] } {
 	const budget = Number(availableHours) || 0;
 
-	if (tasks.length === 0) return [];
+	if (tasks.length === 0)
+		return {
+			suggestedTasks: [],
+			allocatedHours: [],
+		};
 
 	// Dual-pool allocation: respects the time budget AND the separate
 	// cognitive/physical daily capacity pools, so the plan never schedules an
@@ -143,31 +157,47 @@ export function calculateSuggestedTasks(
 		posterior,
 	);
 
-	return tasks
-		.map((task, index) => {
-			const alloc = allocations[index];
-			// Priority is the task's INTRINSIC value: its average productivity at
-			// its own optimal stopping time, P̄(T*). Allocation-independent, so a
-			// great task the pools zeroed out still ranks by what it's worth, not
-			// by what this plan could give it. (Model v2: T* and P̄(T*) are
-			// task-dependent, so the allocator computes them per task — the old
-			// (a+p₀)×OPTIMAL_AVG_FRACTION reconstruction no longer applies.)
-			const intrinsicValue = alloc.optimalAvgProductivity;
+	return {
+		suggestedTasks: tasks
+			.map((task, index) => {
+				const alloc = allocations[index];
+				// Priority is the task's INTRINSIC value: its average productivity at
+				// its own optimal stopping time, P̄(T*). Allocation-independent, so a
+				// great task the pools zeroed out still ranks by what it's worth, not
+				// by what this plan could give it. (Model v2: T* and P̄(T*) are
+				// task-dependent, so the allocator computes them per task — the old
+				// (a+p₀)×OPTIMAL_AVG_FRACTION reconstruction no longer applies.)
+				const intrinsicValue = alloc.optimalAvgProductivity;
 
-			return {
-				...task,
-				suggestedHours: alloc.allocatedHours,
-				priorityScore: Number((intrinsicValue * 10).toFixed(1)),
-				flowStateTime: alloc.phi,
-				trueEffort: alloc.E,
-				trueEnjoyability: alloc.beta,
-				peakProductivity: alloc.peakProductivity,
-				avgProductivity: alloc.avgProductivity,
-				optimalHours: alloc.optimalHours,
-				nature: getTaskNature(task),
-			};
-		})
-		.sort((a, b) => b.priorityScore - a.priorityScore);
+				return {
+					...task,
+					suggestedHours: alloc.allocatedHours,
+					priorityScore: Number((intrinsicValue * 10).toFixed(1)),
+					flowStateTime: alloc.phi,
+					trueEffort: alloc.E,
+					trueEnjoyability: alloc.beta,
+					peakProductivity: alloc.peakProductivity,
+					avgProductivity: alloc.avgProductivity,
+					optimalHours: alloc.optimalHours,
+					nature: getTaskNature(task),
+				};
+			})
+			.sort((a, b) => b.priorityScore - a.priorityScore),
+		allocatedHours: allocations.map((alloc) => alloc.allocatedHours),
+	};
+}
+
+/** The plan alone, for the callers that have no use for the input-order hours. */
+export function calculateSuggestedTasks(
+	tasks: Task[],
+	availableHours: number,
+	switchCost: number = DEFAULT_SWITCH_COST,
+	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	posterior?: FitPosterior,
+): SuggestedTask[] {
+	return calculateTaskPlan(tasks, availableHours, switchCost, pools, constants, posterior)
+		.suggestedTasks;
 }
 
 export function calculateZenithGain(
@@ -177,6 +207,8 @@ export function calculateZenithGain(
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	posterior?: FitPosterior,
+	/** This day's already-solved allocation, index-aligned with `tasks`. */
+	allocatedHours?: number[],
 ): ZenithGain {
 	const budget = Number(availableHours) || 0;
 
@@ -188,7 +220,8 @@ export function calculateZenithGain(
 		};
 
 	// Same dual-pool optimizer that produces the suggested plan, so the gain
-	// shown describes the plan shown (not a separate single-constraint solve).
+	// shown describes the plan shown (not a separate single-constraint solve) —
+	// and when the caller already has that plan, literally the same solve.
 	return pooledProductivityGain(
 		toPooledInputs(tasks),
 		budget,
@@ -196,6 +229,7 @@ export function calculateZenithGain(
 		constants,
 		switchCost,
 		posterior,
+		allocatedHours,
 	);
 }
 

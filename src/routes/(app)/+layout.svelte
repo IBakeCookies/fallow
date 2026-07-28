@@ -15,6 +15,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import type { ThemeName } from '$lib/business/model/theme';
 	import Footer from '$lib/presentation/component/footer.svelte';
+	import { setStorageStatusStore } from '$lib/business/store/storage-status.svelte';
 	import { setSessionStore } from '$lib/business/store/session-store.svelte';
 	import { setEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
@@ -102,34 +103,28 @@
 		location.reload();
 	}
 
+	// The one persistence banner for the whole app. Created first because every
+	// store below reports into it, and each registers its own re-read — so the
+	// retry button covers them without this layout keeping a list.
+	const storageStatus = setStorageStatusStore();
+
 	// The shared daily session (tasks, budget, pools + persistence) lives in
 	// context, created per component tree — never at module scope, so nothing
-	// can leak across SSR requests. Pages grab it with getSessionStore(); the
-	// layout keeps the reference to surface its persistence errors.
+	// can leak across SSR requests. Pages grab it with getSessionStore().
 	// The routing dependency is the layout's, not the store's: the store is
 	// handed a reader for the viewed day instead of importing $app/state.
-	const session = setSessionStore(() => page.url.searchParams.get('date'));
+	const session = setSessionStore(() => page.url.searchParams.get('date'), storageStatus);
 
 	// Drain/rest measurements key on the live clock, not the viewed day, so they
 	// are their own store — wired here because the layout owns what each store
-	// gets: a task lookup, and the one banner both report into.
-	const observations = setEnergyObservationStore(
-		() => session.tasks,
-		(kind) => session.reportStorageError(kind),
-	);
+	// gets: a task lookup, and the banner they report into.
+	setEnergyObservationStore(() => session.tasks, storageStatus);
 
 	// A failed read and a failed write need different copy and different actions:
 	// a read is retryable, a write has already lost the edit.
 	const storageErrorMessage = $derived(
-		session.storageError === 'load-failed' ? m.error_body() : m.storage_error(),
+		storageStatus.error === 'load-failed' ? m.error_body() : m.storage_error(),
 	);
-
-	// Either store can have been the one that failed to read, and neither knows
-	// about the other's failure, so the retry re-runs both.
-	function onRetryClick() {
-		session.retryLoad();
-		observations.retryLoad();
-	}
 
 	// Calendar is the one full-viewport page: it must never scroll, so its grid
 	// rows split the leftover height instead of growing the page.
@@ -237,16 +232,16 @@
 				</div>
 			{/snippet}
 		</Nav>
-		{#if session.storageError}
+		{#if storageStatus.error}
 			<div
 				role="alert"
 				class="border-danger/20 bg-danger/5 text-danger-strong mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
 			>
 				<span class="flex-1">{storageErrorMessage}</span>
-				{#if session.storageError === 'load-failed'}
+				{#if storageStatus.error === 'load-failed'}
 					<button
 						type="button"
-						onclick={onRetryClick}
+						onclick={() => storageStatus.retry()}
 						class="border-danger/20 hover:bg-danger/10 shrink-0 rounded-md border px-text-xs py-text-3xs"
 					>
 						{m.error_reload()}
@@ -255,7 +250,7 @@
 				<button
 					type="button"
 					aria-label={storageErrorMessage}
-					onclick={() => session.clearStorageError()}
+					onclick={() => storageStatus.clear()}
 					class="hover:text-danger-strong shrink-0 rounded-md p-text-2xs"
 				>
 					<X class="h-4 w-4" />

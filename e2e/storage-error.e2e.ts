@@ -10,10 +10,10 @@ import {
 
 /* The storage banner is the app's only report that persistence broke, and its two
    kinds behave differently on purpose: a failed READ is retryable, a failed WRITE
-   has already lost the edit. Each store's own spec covers its `storageError`
-   field, but the wiring the banner depends on lives in the (app) layout — most
-   importantly that one retry click re-runs BOTH stores' retryLoad(), which
-   AGENTS.md §5 flags as the thing that rots when a store is added. */
+   has already lost the edit. Each store's own spec covers what it reports into
+   `StorageStatusStore`; what only a real browser can show is that the pieces are
+   wired together — that both stores registered their re-read with the banner, so
+   one retry click recovers both without the layout naming either of them. */
 
 test('one retry click recovers both stores after a failed read', async ({ page }) => {
 	await installFailableIndexedDB(page);

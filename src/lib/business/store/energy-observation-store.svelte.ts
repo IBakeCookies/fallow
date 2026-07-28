@@ -7,18 +7,13 @@ import { logError } from '$lib/logger';
 import * as drainObservationRepository from '$lib/data/repository/drain-observation-repository';
 import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
-import type { StorageErrorKind } from '$lib/business/store/session-store.svelte';
+import { sanitizeDrainObservations, sanitizeRestObservations } from '$lib/business/model/persisted';
+import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 
 const CONTEXT_KEY = Symbol();
 
 /** Looks up the day's tasks — a drain rating captures the rated task's demands. */
 export type ReadTasks = () => Task[];
-
-/**
- * Raises the app-wide persistence banner, which the session store owns: one
- * place a storage failure shows up rather than one banner per store.
- */
-export type ReportStorageError = (kind: StorageErrorKind) => void;
 
 /**
  * Drain and rest observations: the measurements that calibrate the energy
@@ -27,8 +22,9 @@ export type ReportStorageError = (kind: StorageErrorKind) => void;
  * Separate from the session store because it shares none of that store's
  * state. A measurement is stamped with the live clock's today, never the viewed
  * day, so none of the date-routing, load or auto-save machinery applies — and
- * the two things it does need (a task lookup, somewhere to report a failed
- * write) are injected, so it owns no session state either.
+ * the one thing it needs from the session (a task lookup) is injected, so it
+ * owns no session state either. Failures go to the app-wide banner's own store,
+ * not through the session's.
  *
  * Flow observations deliberately stay in the session store: logging one stamps
  * `flowMinutes` onto the task, which is persisted with the day's session.
@@ -41,11 +37,13 @@ export class EnergyObservationStore {
 	#restObservations = $state<RestObservationRecord[]>([]);
 
 	#readTasks: ReadTasks;
-	#reportStorageError: ReportStorageError;
+	#status: StorageStatusStore;
 
-	constructor(readTasks: ReadTasks, reportStorageError: ReportStorageError) {
+	constructor(readTasks: ReadTasks, status: StorageStatusStore) {
 		this.#readTasks = readTasks;
-		this.#reportStorageError = reportStorageError;
+		this.#status = status;
+
+		status.registerRetry(() => this.retryLoad());
 
 		// No `initializeStorage()` here: the localStorage migration it runs writes
 		// only sessions and the energy params, never these two stores, so this read
@@ -55,13 +53,24 @@ export class EnergyObservationStore {
 		});
 	}
 
+	// Every read of these two stores goes through the sanitizers: the records feed
+	// the α and r fits, where one corrupt number would make every fitted energy
+	// parameter NaN (AGENTS.md R4).
+	async #readDrain(): Promise<DrainObservationRecord[]> {
+		return sanitizeDrainObservations(await drainObservationRepository.$readAllDrainObservations());
+	}
+
+	async #readRest(): Promise<RestObservationRecord[]> {
+		return sanitizeRestObservations(await restObservationRepository.$readAllRestObservations());
+	}
+
 	async #load() {
 		try {
-			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
-			this.#restObservations = await restObservationRepository.$readAllRestObservations();
+			this.#drainObservations = await this.#readDrain();
+			this.#restObservations = await this.#readRest();
 		} catch (e) {
 			logError('Failed to load energy observations', e);
-			this.#reportStorageError('load-failed');
+			this.#status.report('load-failed');
 		}
 	}
 
@@ -101,10 +110,10 @@ export class EnergyObservationStore {
 				bodyDrain,
 			});
 
-			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
+			this.#drainObservations = await this.#readDrain();
 		} catch (e) {
 			logError('Failed to save drain observation', e);
-			this.#reportStorageError('save-failed');
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -113,10 +122,10 @@ export class EnergyObservationStore {
 	async deleteDrainLog(id: number) {
 		try {
 			await drainObservationRepository.$deleteDrainObservation(id);
-			this.#drainObservations = await drainObservationRepository.$readAllDrainObservations();
+			this.#drainObservations = await this.#readDrain();
 		} catch (e) {
 			logError('Failed to delete drain observation', e);
-			this.#reportStorageError('save-failed');
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -128,7 +137,7 @@ export class EnergyObservationStore {
 			this.#drainObservations = [];
 		} catch (e) {
 			logError('Failed to reset drain observations', e);
-			this.#reportStorageError('save-failed');
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -155,10 +164,10 @@ export class EnergyObservationStore {
 				bodyAfter,
 			});
 
-			this.#restObservations = await restObservationRepository.$readAllRestObservations();
+			this.#restObservations = await this.#readRest();
 		} catch (e) {
 			logError('Failed to save rest observation', e);
-			this.#reportStorageError('save-failed');
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -167,10 +176,10 @@ export class EnergyObservationStore {
 	async deleteRestLog(id: number) {
 		try {
 			await restObservationRepository.$deleteRestObservation(id);
-			this.#restObservations = await restObservationRepository.$readAllRestObservations();
+			this.#restObservations = await this.#readRest();
 		} catch (e) {
 			logError('Failed to delete rest observation', e);
-			this.#reportStorageError('save-failed');
+			this.#status.report('save-failed');
 		}
 	}
 
@@ -182,18 +191,18 @@ export class EnergyObservationStore {
 			this.#restObservations = [];
 		} catch (e) {
 			logError('Failed to reset rest observations', e);
-			this.#reportStorageError('save-failed');
+			this.#status.report('save-failed');
 		}
 	}
 }
 
 export function setEnergyObservationStore(
 	readTasks: ReadTasks,
-	reportStorageError: ReportStorageError,
+	status: StorageStatusStore,
 ): EnergyObservationStore {
 	return setContext<EnergyObservationStore>(
 		CONTEXT_KEY,
-		new EnergyObservationStore(readTasks, reportStorageError),
+		new EnergyObservationStore(readTasks, status),
 	);
 }
 

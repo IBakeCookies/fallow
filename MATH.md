@@ -1746,10 +1746,12 @@ function so that lower is always better:
 
 Energy Balance is a **target** between the two pools, not a maximum — both
 80% cognitive and 80% physical are worse than 50/50, which `v` alone cannot
-express. Human Capacity may read `Infinity` (a pool of 0 with demand on it,
-§11 `calculateHumanCapacity`); the improvement test is `<`, so `Infinity`
-never beats `Infinity` and such a candidate is silently excluded rather than
-producing `NaN`.
+express. On a zero-load plan the advisor reads it as `NaN`, not the 50 that
+`calculateEnergyBalance` displays — an empty plan has no balance, and the
+sentinel is also the target (§14.1 defect 5). Human Capacity may read
+`Infinity` (a pool of 0 with demand on it, §11 `calculateHumanCapacity`); the
+improvement test is `<`, so `Infinity` never beats `Infinity` and such a
+candidate is silently excluded rather than producing `NaN`.
 
 Badness only **orders** candidates. It never decides that a reading is bad:
 whether 82% burnout deserves advice at all is a band, and bands are
@@ -1788,8 +1790,20 @@ funded-subset enumeration of §4, which the linear candidate count amplifies
 into 12 ms for a 6-task day but **946 ms for a 12-task one**. Advice is
 therefore computed **on demand and never in a `$derived`**: a 12-task day
 would otherwise freeze the main thread on every keystroke in the budget
-field. Caching `buildCurves` (AGENTS.md §5) is the lever if this ever has to
-be interactive.
+field.
+
+Since 2026-07-28 each of those solves costs half what it did: a
+`calculateDailyMetrics` used to run the pooled allocator **twice** on identical
+inputs, once for the plan and once for Zenith Gain's optimized side, and the
+gain is now handed the plan's own allocation (`calculateTaskPlan`). Re-measured
+on one 12-task day, one solve went 103.6 ms → 51.2 ms and the whole advice run
+421 ms — the ratio is exactly 2, the absolute numbers are not comparable with
+the row above (different task mix). Nothing the gain reports changed: §13.2's
+naive baseline is derived from the task list, not from the allocation, and the
+optimized side is the same Σ P̄ over the same hours — but only because they are
+passed in the tasks' own order, since `calculateTotalProductivity` pairs hours to
+tasks by index. Caching `buildCurves` (AGENTS.md §5) is the next lever if this
+ever has to be interactive.
 
 **Deliberate approximations.**
 
@@ -1815,7 +1829,7 @@ be interactive.
   where every task is flagged reduces the search to the budget levers, which
   is the correct answer to "nothing here can move".
 
-### 14.1 Four corrections to the first cut (2026-07-28)
+### 14.1 Five corrections to the first cut (2026-07-28)
 
 A math review of §14 as first shipped found four defects, all reproduced by a
 probe sweep of 200 random days (2–7 tasks, budget 1–12 h in 0.25 steps, switch
@@ -1893,3 +1907,24 @@ fraction of the cost" one. `slice(0, maxOptions)` therefore cut exactly that.
 Rare but exactly backwards when it fired: 16 of 1580 frontiers exceeded 3
 options, longest 5. Fix: keep both ends — `maxOptions − 1` from the front plus
 the last — and drop from the middle.
+
+**5. The empty plan read as perfectly balanced, and the advisor chased it.**
+Found in live use the same day, not by the sweep — the sweep's budgets started
+at 1 h, so `budget − 1` never clamped to an empty plan. `calculateEnergyBalance`
+returns 50 for a zero-load plan (§11): a display sentinel, chosen so an empty
+dashboard reads neutral rather than extreme. But 50 is also this axis's
+_target_, so under `abs(v − 50)` the empty plan is the global optimum of Energy
+Balance. On a 2 h physical-heavy day (balance 36) the advisor recommended
+trimming to 1 h; re-asked at 1 h (balance 37, and every defer flips the
+imbalance rather than fixing it) the only "improving" priced lever was
+`set-budget 0` — sold as "Balanced (Optimal) · −100% plan value". Each number
+was a real solve; the reading was fabricated. No work is not balanced work,
+it is no reading at all. Fix: the advice axis reads `NaN` when
+`cognitiveLoad + physicalLoad = 0`. `NaN` fails the `improvement > 0` test in
+both directions — a zero-load candidate never improves the axis, and a
+zero-load baseline never generates balance advice — the same silent-exclusion
+mechanism the Infinity Human Capacity reading already uses. The dashboard
+sentinel itself is untouched: an empty day showing a neutral 50 is fine as
+long as nothing optimizes toward it. The `v`-badness axes keep offering the
+empty plan (a zero-load day genuinely has zero Physical Load — that reading is
+true, and the −100% price is shown); only the fabricated optimum is removed.

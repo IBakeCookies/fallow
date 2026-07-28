@@ -25,6 +25,7 @@ import {
 } from '$lib/business/model/zenith';
 import {
 	optimizeSchedule,
+	workedHoursByTask,
 	type EnergyParams,
 	type EnergyTaskInput,
 } from '$lib/business/model/zenith-energy';
@@ -120,13 +121,7 @@ export function auditPlanAdherence(
 
 		if (tasks.length === 0 || windowHours <= 0) continue;
 
-		const hoursByTask = new Map<number, number>();
-
-		for (const { taskId, hours } of day.workedHours) {
-			if (hours > 0 && tasks.some((t) => t.id === taskId)) {
-				hoursByTask.set(taskId, (hoursByTask.get(taskId) ?? 0) + hours);
-			}
-		}
+		const hoursByTask = workedHoursByTask(tasks, day.workedHours);
 
 		if (hoursByTask.size === 0) continue;
 

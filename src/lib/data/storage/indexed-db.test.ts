@@ -82,6 +82,59 @@ describe('indexed-db', () => {
 		expect(database.objectStoreNames.contains('settings')).toBe(true);
 	});
 
+	// A dead handle is recoverable: reopening is the whole fix, so failing the
+	// read instead would surface a hard error for a transient condition.
+	it('reopens after the browser force-closes the connection', async () => {
+		const { openDatabase, withStore } = await importFresh();
+		(await openDatabase()).close();
+
+		await expect(withStore('sessions', 'readonly', (store) => store.getAll())).resolves.toEqual([]);
+	});
+
+	// A superseded handle's close event must not evict the cache entry that
+	// replaced it: the live connection would then be unreachable AND still open,
+	// which is what blocks the next tab's upgrade.
+	it('keeps the cached connection when a stale handle closes late', async () => {
+		const { openDatabase } = await importFresh();
+		const stale = await openDatabase();
+		(await openRaw(stale.version + 1)).close(); // another tab upgrades
+		const live = await openDatabase();
+
+		// Invoked directly: a closed connection refuses dispatchEvent, and what is
+		// under test is what the handler does, not how the browser delivers it.
+		stale.onclose?.call(stale, new Event('close'));
+
+		expect(await openDatabase()).toBe(live);
+	});
+
+	it('rolls back every store when one record in a multi-store write is malformed', async () => {
+		const { withStore, withTransaction } = await importFresh();
+
+		await withTransaction(['sessions', 'routines'], 'readwrite', (transaction) => {
+			transaction.objectStore('sessions').put({
+				date: '2026-01-01',
+			});
+		});
+
+		await expect(
+			withTransaction(['sessions', 'routines'], 'readwrite', (transaction) => {
+				transaction.objectStore('routines').put({
+					id: 'morning',
+				});
+
+				// No `date`, so put() throws synchronously on the missing keyPath.
+				transaction.objectStore('sessions').put({
+					tasks: [],
+				});
+			}),
+		).rejects.toThrow();
+
+		// The routine queued before the throw must have gone with it, and the
+		// session written earlier must have survived.
+		expect(await withStore('routines', 'readonly', (store) => store.getAll())).toEqual([]);
+		expect(await withStore('sessions', 'readonly', (store) => store.getAll())).toHaveLength(1);
+	});
+
 	it('releases its connection when another tab upgrades, then reopens', async () => {
 		const { openDatabase } = await importFresh();
 		const stale = await openDatabase();

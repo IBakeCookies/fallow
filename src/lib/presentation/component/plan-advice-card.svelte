@@ -10,16 +10,21 @@
 		busy: boolean;
 		/** The day changed after this advice was calculated. */
 		stale: boolean;
+		/** The last check failed; the advice shown (if any) predates the failure. */
+		error: boolean;
 		oncheck: () => void;
 	}
 
-	let { advice, busy, stale, oncheck }: Props = $props();
+	let { advice, busy, stale, error, oncheck }: Props = $props();
 </script>
 
 <!-- Until the user asks, this is one button and nothing else: a card advertising
      a feature it has not run yet is pure vertical cost above the plan. -->
 {#if !advice}
-	<div class="flex justify-end">
+	<div class="flex items-baseline justify-end gap-grid-xs">
+		{#if error}
+			<p class="text-xs text-danger">{m.advice_error()}</p>
+		{/if}
 		<Button variant="secondary" size="sm" disabled={busy} onclick={oncheck} title={m.advice_desc()}>
 			{busy ? m.advice_working() : m.advice_check()}
 		</Button>
@@ -37,6 +42,14 @@
 				{busy ? m.advice_working() : m.advice_recheck()}
 			</Button>
 		</div>
+
+		{#if error}
+			<p
+				class="mt-grid-sm rounded-lg border border-danger/20 bg-danger/5 p-box-sm text-xs text-danger"
+			>
+				{m.advice_error()}
+			</p>
+		{/if}
 
 		{#if stale}
 			<p

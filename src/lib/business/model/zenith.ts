@@ -1343,6 +1343,15 @@ export function pooledProductivityGain(
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	switchCost: number = DEFAULT_SWITCH_COST,
 	posterior?: FitPosterior,
+	/**
+	 * The optimized plan's hours per task, index-aligned with `tasks`, when the
+	 * caller has already solved it. Omit and the plan is solved here. This is
+	 * not an optimization detail the caller may skip lightly: a screen showing
+	 * both the plan and its gain would otherwise run the 2ⁿ funded-subset
+	 * enumeration twice on identical inputs (~50ms each at n = 12), and the
+	 * second run can only reproduce the first — the allocator is deterministic.
+	 */
+	allocatedHours?: number[],
 ): { optimized: number; naive: number; gainPercent: number } {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return {
@@ -1352,22 +1361,19 @@ export function pooledProductivityGain(
 		};
 	}
 
-	const allocations = calculatePooledAllocations(
-		tasks,
-		totalBudget,
-		pools,
-		constants,
-		switchCost,
-		posterior,
-	);
+	// The length is checked, not trusted: a short array pairs a task with
+	// `undefined` hours, and the whole optimized sum comes back NaN — a rendered
+	// "NaN%" rather than a wrong number, from a caller that only got the
+	// bookkeeping slightly wrong. Falling back to the solve costs time and
+	// nothing else.
+	const solvedHours =
+		allocatedHours?.length === tasks.length
+			? allocatedHours
+			: calculatePooledAllocations(tasks, totalBudget, pools, constants, switchCost, posterior).map(
+					(allocation) => allocation.allocatedHours,
+				);
 
-	const optimized = calculateTotalProductivity(
-		tasks,
-		allocations.map((a) => a.allocatedHours),
-		constants,
-		posterior,
-	);
-
+	const optimized = calculateTotalProductivity(tasks, solvedHours, constants, posterior);
 	// Naive: equal split across ALL tasks (a naive planner attempts every task,
 	// so it pays n-1 switches), on the same block lattice and inside the same
 	// pools as the optimized plan — see naiveBlockPlan for why the baseline is

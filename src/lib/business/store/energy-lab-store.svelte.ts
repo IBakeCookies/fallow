@@ -1,4 +1,4 @@
-import { getContext, onDestroy, onMount, setContext } from 'svelte';
+import { getContext, onMount, setContext } from 'svelte';
 import { browser } from '$app/environment';
 import type { StopObservation } from '$lib/business/model/zenith-energy';
 import { logError } from '$lib/logger';
@@ -8,7 +8,12 @@ import * as settingsRepository from '$lib/data/repository/settings-repository';
 import { ENERGY_PARAMS_SETTING } from '$lib/data/repository/settings-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
-import { readStopObservations } from '$lib/business/store/session-history';
+import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
+import {
+	createDebouncedWrite,
+	type DebouncedWrite,
+} from '$lib/business/store/debounced-write.svelte';
+import { readStopObservations } from '$lib/business/session-history';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	evaluateSchedule,
@@ -34,7 +39,6 @@ import {
 const CONTEXT_KEY = Symbol();
 /** Fitted values are surfaced (and applied) at 2dp — the sliders' precision. */
 const round2 = (x: number) => Math.round(x * 100) / 100;
-const SAVE_DEBOUNCE_MS = 500;
 
 /**
  * Persisted params are user-reachable JSON (edited by hand, or restored from
@@ -96,10 +100,10 @@ export class EnergyLabStore {
 	});
 	#loaded = $state(false);
 
-	// Trailing-debounced persistence, same reasoning as the session store's:
-	// dragging a slider must not fire a put per intermediate value.
-	#saveTimer: ReturnType<typeof setTimeout> | undefined;
-	#pendingSave: EnergyParams | null = null;
+	// Trailing-debounced persistence: dragging a slider must not fire a put per
+	// intermediate value. Built in the constructor — it registers lifecycle hooks.
+	#autoSave!: DebouncedWrite<EnergyParams>;
+	#saveArmed = false;
 
 	// Day window follows today's budget until overridden — the override is
 	// lab-local and never written back to the session.
@@ -114,10 +118,23 @@ export class EnergyLabStore {
 	constructor(
 		session: SessionStore,
 		observations: EnergyObservationStore,
+		status: StorageStatusStore,
 		notifyParamsLoadFailed: NotifyParamsLoadFailed,
 	) {
 		this.#session = session;
 		this.#observations = observations;
+
+		this.#autoSave = createDebouncedWrite(
+			(params) => settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, params),
+			(error) => {
+				logError('Failed to save energy lab params', error);
+				status.report('save-failed');
+			},
+		);
+
+		// No `registerRetry`: a failed params READ raises a toast rather than the
+		// banner (it is not the viewed day), and this store is per-route, so a
+		// registration would outlive it.
 
 		onMount(async () => {
 			try {
@@ -137,29 +154,19 @@ export class EnergyLabStore {
 		$effect(() => {
 			if (!browser || !this.#loaded) return;
 
-			this.#pendingSave = $state.snapshot(this.#params);
-			clearTimeout(this.#saveTimer);
-			this.#saveTimer = setTimeout(() => this.#flushSave(), SAVE_DEBOUNCE_MS);
-		});
+			// The snapshot must be taken before the arming check: the first run
+			// after load only establishes tracking. Scheduling a save there would
+			// write the just-loaded params straight back — and after a FAILED load,
+			// overwrite the stored calibration with the defaults.
+			const snapshot = $state.snapshot(this.#params);
 
-		// The effect's own teardown can't do this: it also runs before every
-		// re-run, so flushing there would defeat the debounce. Destroy is the
-		// common case here — this store is per-page, so navigating off /energy
-		// within the debounce used to discard the edit outright.
-		onDestroy(() => this.#flushSave());
+			if (!this.#saveArmed) {
+				this.#saveArmed = true;
 
-		// Same safety net as the session store's: the debounce may never fire if
-		// the tab is discarded while hidden.
-		$effect(() => {
-			if (!browser) return;
+				return;
+			}
 
-			const onVisibility = () => {
-				if (document.hidden) this.#flushSave();
-			};
-
-			document.addEventListener('visibilitychange', onVisibility);
-
-			return () => document.removeEventListener('visibilitychange', onVisibility);
+			this.#autoSave.schedule(snapshot);
 		});
 
 		$effect(() => {
@@ -175,20 +182,6 @@ export class EnergyLabStore {
 				// failure here only empties the stopping-value fit, which the card
 				// already renders as "not fitted".
 				.catch((e) => logError('Failed to load stopping observations', e));
-		});
-	}
-
-	// Persist the pending snapshot now, cancelling any scheduled debounce.
-	#flushSave() {
-		if (!this.#pendingSave) return;
-
-		clearTimeout(this.#saveTimer);
-		const payload = this.#pendingSave;
-		this.#pendingSave = null;
-
-		settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, payload).catch((e) => {
-			logError('Failed to save energy lab params', e);
-			this.#session.reportStorageError('save-failed');
 		});
 	}
 
@@ -445,19 +438,20 @@ export class EnergyLabStore {
 /**
  * Read by `/energy` alone, and created there rather than in a layout — the
  * context does not change that. Its per-page lifetime is load-bearing: the
- * `onDestroy` flush above exists because the store dies with the route, and
- * creating it in the layout would also run its `onMount` read on every other
- * page. `setContext` is here for the guard it gives — it throws outside
+ * auto-save's `onDestroy` flush exists because the store dies with the route,
+ * and creating it in the layout would also run its `onMount` read on every
+ * other page. `setContext` is here for the guard it gives — it throws outside
  * component initialisation, so no `+page.ts` load can build this store.
  */
 export function setEnergyLabStore(
 	session: SessionStore,
 	observations: EnergyObservationStore,
+	status: StorageStatusStore,
 	notifyParamsLoadFailed: NotifyParamsLoadFailed,
 ): EnergyLabStore {
 	return setContext<EnergyLabStore>(
 		CONTEXT_KEY,
-		new EnergyLabStore(session, observations, notifyParamsLoadFailed),
+		new EnergyLabStore(session, observations, status, notifyParamsLoadFailed),
 	);
 }
 

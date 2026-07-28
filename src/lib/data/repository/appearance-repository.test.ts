@@ -58,7 +58,7 @@ describe('$readAppearance', () => {
 	});
 
 	it('rejects a malformed seed so the caller mints a fresh one', () => {
-		for (const seed of ['abc', '-1', '1.5', '']) {
+		for (const seed of ['abc', '-1', '1.5', '', ' ', '1e3', '0x1f']) {
 			expect(
 				$readAppearance(
 					from({

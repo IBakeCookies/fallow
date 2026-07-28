@@ -23,14 +23,31 @@ These are the ones that get broken. Each exists because it was broken before.
 ### R1 — Layers point one way: presentation → business → data
 
 - `src/lib/presentation` (and `src/routes`): UI only. **Never** imports
-  `$lib/data/*`. Persisted types come from `$lib/business/type`.
-- `src/lib/business`: domain logic — models (`model/`), stores (`store/`),
-  app-wide reactive state (`state/`), helpers (`utils/`). Never imports
-  `$lib/presentation/*`.
+  `$lib/data/*`. Persisted types come from `$lib/business/type` — the one place,
+  so do not re-export an entity type from a model as a convenience (`Task` was
+  reachable from `metric/calculation.ts` too, and a route used that path).
+- `src/lib/business`: domain logic — pure models (`model/`), reactive stores
+  (`store/`), app-wide reactive state (`state/`), pure helpers (`utils/`).
+  Never imports `$lib/presentation/*`.
+  The layer's **root** is its fifth category and the one that is easy to get
+  wrong: composed, stateless facades over the data layer — `session-history.ts`
+  (read-side sessions, the calibration snapshot, storage startup), `backup.ts`,
+  `appearance.ts`. A facade is not a store, because it holds no reactive state
+  and the stores are among its callers; and it is not a `utils/` helper, because
+  `utils/` is pure — which is what lets a route value-import from it (see the
+  `presentation-not-to-business-model` rule) and what nothing touching
+  IndexedDB may claim.
 - `src/lib/data`: storage models (`type/`), the IndexedDB connection
   (`storage/`), repositories with `$`-prefixed CRUD controllers
   (`repository/`), migrations (`migration/`). Never imports upward. Model
-  defaults a migration needs are **passed in as parameters**.
+  defaults a migration needs are **passed in as parameters**. Every IndexedDB
+  access goes through one primitive — `withStore` for a single store,
+  `withTransaction` for several — and both resolve when the transaction
+  **commits**, not on request success, which fires before the commit and would
+  hide a later abort (quota, a malformed record). Hand-rolling a transaction is
+  how `$exportAllStores` ended up reading each store separately, which is not a
+  snapshot: a save landing between two of those reads yields a backup whose
+  stores disagree.
 - `src/lib/logger.ts`: below all three, and the only module that is. Every layer
   and the hooks report diagnostics, so a home inside any one layer would break
   the direction for the other two. It imports nothing from the app
@@ -44,7 +61,10 @@ These are the ones that get broken. Each exists because it was broken before.
   user-facing surface — see the next bullet for those — and most failures do one
   of each.
 - **Three user-facing failure surfaces, and picking the wrong one is the bug.**
-  Retryable and persistent → the `storageError` banner. Transient and
+  Retryable and persistent → the banner, which is `StorageStatusStore`'s
+  (`store/storage-status.svelte.ts`): a store reports `'load-failed'` or
+  `'save-failed'` on it, and one that can fail a **read** also calls
+  `registerRetry`, which is what the banner's retry button re-runs. Transient and
   informational → a toast (`presentation/utils/toast.ts`). Already visible in
   the component that failed → nothing more, but check that it really is: the
   `analytics-store` load is split into two `try` blocks for this reason, because
@@ -75,6 +95,10 @@ These are the ones that get broken. Each exists because it was broken before.
   presentation, so an enum in the business layer would mirror the message
   catalogue for no gain. A second site gets its own thunk; a union earns its
   keep at three.
+  The banner is the counter-example that shows where the line is: it is a
+  business-owned _state_ with no copy in it (`'load-failed'` is a machine value
+  the layout resolves to a localized string), so it is a store the others take,
+  not a thunk they are handed.
 - Enforced twice, and the two catch different things. `no-restricted-imports`
   in `eslint.config.js` matches the `$lib/...` **specifier string**, so a
   dynamic (`import('$lib/data/...')`) crossing is invisible to it. A relative
@@ -127,6 +151,11 @@ Energy Lab's task mapping"); the Lab and the calibration fits could have
 silently disagreed about what a task _is_. It is now
 `toEnergyTask` in `business/model/metric/calculation.ts` — one definition.
 
+`workedHoursByTask` in `zenith-energy.ts` is the same story: the §8.10 stopping
+fit and the §12 adherence audit had their own copy of the "hours per task,
+restricted to the day's tasks" join, so the two could have disagreed about what
+the user actually worked — while auditing each other.
+
 If you catch yourself writing "mirrors", "same as", or "keep in sync with" in
 a comment, export the thing instead.
 
@@ -157,9 +186,29 @@ Anything the model reads must survive a backup/restore round trip.
 
 Persisted values are user-reachable — hand-edited, or restored from an older
 backup, or written by a build that has since been deployed over. **Validate on
-read**, in the business layer that owns the shape (`sanitizeEnergyParams`,
-`resolveThemeName`). The data layer parses and stores; it does not know what a
-valid value means.
+read**, in the business layer that owns the shape. The data layer parses and
+stores; it does not know what a valid value means. Import does not judge records
+either: it merges whatever the file holds (`backup-repository.ts` checks only
+`app` and `schemaVersion`), so the read side is the only line of defence.
+
+- Sessions, tasks, routines and all three observation records go through
+  `business/model/persisted.ts`, and **every** read of them does — each store
+  funnels its repository calls through one private helper (`#readSession`,
+  `#readRoutines`, `#readFlowObservations`, `#readDrain`, `#readRest`) so a new
+  call site cannot quietly skip it, and `session-history.ts` sanitizes at each of
+  its reads. Nothing downstream defends itself: `Math.max('abc', 3)` is
+  NaN, one non-finite observation makes an entire least-squares fit NaN, and a
+  NaN task in the daily session is written straight back by the auto-save.
+- Two repairs, because the records mean different things. Sessions and tasks are
+  the user's own content: keep them, clamp the numbers, default a non-number to
+  the least-effort end of its scale so corruption can never inflate a plan.
+  Observations are measurements: a corrupt number cannot be repaired without
+  inventing data, so the record is dropped. A record with no usable key (a
+  session with no ISO `date`, a task or observation with no finite `id`) is
+  always dropped — nothing can address it.
+- Settings and appearance own their own validators, next to the shape they know:
+  `sanitizeEnergyParams` (energy-lab-store), `resolveThemeName`
+  (`business/model/theme.ts`).
 
 No **store** talks to a storage API directly — not IndexedDB, not
 `document.cookie`, not `localStorage`. Key names, cookie attributes and schema
@@ -294,9 +343,9 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 
 ### Svelte / stores
 
-- **Every store reaches a route through its `setXStore()`** — all six of them
-  (`ThemeStore`, `SessionStore`, `EnergyObservationStore`, `DailyPlanStore`,
-  `AnalyticsStore`, `EnergyLabStore`). The one exception is a
+- **Every store reaches a route through its `setXStore()`** — all seven of them
+  (`ThemeStore`, `StorageStatusStore`, `SessionStore`, `EnergyObservationStore`,
+  `DailyPlanStore`, `AnalyticsStore`, `EnergyLabStore`). The one exception is a
   `*.test-harness.svelte`, which constructs directly because the store under
   test is the thing it hands back. A bare
   `new XStore(...)` in a route is not a shortcut, it is the hole:
@@ -312,14 +361,22 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   the clock), never user data.
 - **Context is the creation rule; the layout is not.** `setXStore()` runs in
   whichever component's tree needs the store — the layout when more than one
-  route reads it (`ThemeStore` in the root layout, `SessionStore` and
-  `EnergyObservationStore` in `(app)`), the route's own instance script when one
-  route does (`setDailyPlanStore` in `/`, `setAnalyticsStore` in `/analytics`,
-  `setEnergyLabStore` in `/energy`). Moving a page-scoped store up to the layout
-  is a behaviour change, not tidying: the Lab's `onDestroy` flush — and the e2e
-  test pinning it — work _because_ the store dies with the route, and the layout
-  would additionally run its `onMount` `settings` read — and arm its autosave and
-  its stopping-observation `$effect` — on all five other pages.
+  route reads it (`ThemeStore` in the root layout, `StorageStatusStore`,
+  `SessionStore` and `EnergyObservationStore` in `(app)`), the route's own
+  instance script when one route does (`setDailyPlanStore` in `/`,
+  `setAnalyticsStore` in `/analytics`, `setEnergyLabStore` in `/energy`). Order
+  matters in the layout: the status store is created first, because the two below
+  it report into it and register their re-reads with it. Moving a page-scoped
+  store up to the layout is a behaviour change, not tidying: the Lab's
+  `onDestroy` flush — and the e2e test pinning it — work _because_ the store dies
+  with the route, and the layout would additionally run its `onMount` `settings`
+  read — and arm its autosave and its stopping-observation `$effect` — on all
+  five other pages. It also follows that a per-route store must not register
+  anything on a layout-scoped store: `StorageStatusStore.registerRetry` has no
+  unregistration to call, so a registration outlives the route that made it.
+  `EnergyLabStore` registers nothing — a failed params read is a toast, not the
+  banner — and a future page-scoped store that needs the banner's retry is the
+  point at which an unregistration earns its keep.
   A single-consumer store's `getXStore()` may legitimately have no callers yet;
   it is there so a child component can read the store without the page threading
   it down, and it costs one line.
@@ -328,12 +385,29 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   TypeScript checks declaration order.
 - Components take snippets/props from the layout; they do not reach into
   stores themselves.
-- **A debounce flush belongs in `onDestroy`, never in an `$effect` teardown.**
-  An effect's cleanup runs before _every_ re-run, not only on destroy, so
-  flushing there fires on each keystroke and defeats the debounce. Both stores
-  arm their timer in an `$effect` and flush from `onDestroy` plus a
-  `visibilitychange` listener — cancelling on teardown instead (the old bug)
-  silently drops the last edit when the user navigates away.
+- **Autosave goes through `createDebouncedWrite`** (`store/debounced-write.svelte.ts`),
+  which owns the whole mechanism: the trailing timer, the `onDestroy` flush and
+  the flush-when-hidden listener. A store snapshots inside its own tracked
+  `$effect` and calls `schedule(payload)`; nothing else.
+  The rule the module exists to encode: **a debounce flush belongs in
+  `onDestroy`, never in an `$effect` teardown.** An effect's cleanup runs before
+  _every_ re-run, not only on destroy, so flushing there fires on each keystroke
+  and defeats the debounce, while cancelling there (the old bug) silently drops
+  the last edit when the user navigates away. The session store and the Energy
+  Lab each had their own copy of this, spelling the 500 ms delay two ways — R3
+  applied to a mechanism rather than a mapping. The delay is
+  `AUTOSAVE_DEBOUNCE_MS`; wait on it in a spec instead of on `500`, and note
+  `e2e/helpers.ts` exports its own `AUTOSAVE_MS = 1000` to wait on from
+  Playwright, which cannot import app code.
+  Two things stay with the caller because they are not the mechanism. The Lab's
+  `#saveArmed` guard: the effect's first run after a load only establishes
+  tracking, and scheduling there writes the just-loaded params straight back —
+  after a _failed_ load, that overwrites the stored calibration with the
+  defaults, which is a bug that was shipped and is pinned by
+  `energy-lab-store.svelte.spec.ts`. And the session store's re-read when the tab
+  becomes visible, which asks the writer for `pending` so an unlanded edit is not
+  overwritten by the stored day — reachable because a hidden tab that rolls over
+  midnight re-loads and re-arms the autosave.
 - Storybook stories live **beside their component** (`*.stories.svelte`), one
   file per component or primitive group, and are rendered as smoke tests by the
   `storybook` vitest project. `.storybook/preview.ts` builds the theme toolbar
@@ -636,15 +710,57 @@ you an hour otherwise:
   reproduce. Verify against `npm run build && npx vite preview`, or a
   freshly-started dev server.
 - All data is client-side IndexedDB, so a headless profile starts empty. Seed
-  through the UI and wait for the debounced autosave: it is 500ms in both
-  stores, and `e2e/helpers.ts` exports `AUTOSAVE_MS = 1000` to wait on — use
-  that rather than a literal, so the margin moves with the constant.
+  through the UI and wait for the debounced autosave: it is `AUTOSAVE_DEBOUNCE_MS`
+  for every store that has one, and `e2e/helpers.ts` exports `AUTOSAVE_MS = 1000`
+  to wait on — use that rather than a literal, so the margin moves with the
+  constant.
 
 ---
 
 ## 5. Settled decisions — do not re-litigate
 
 Each of these was considered and decided. Re-deciding them is churn.
+
+- **Task ids come from `nextTaskId` and nowhere else** (`session-store`):
+  `Math.max(Date.now(), …ids + 1)`, monotonic and never recycled. Both simpler
+  rules are wrong and were shipped. `Date.now()` alone collides for two tasks
+  added in the same millisecond (and the import path patched around that with
+  `Date.now() + Math.random()`, putting fractions in a field three observation
+  stores use as their foreign key). Plain `max + 1` over the day's tasks recycles
+  the id of a deleted task, and a drain log — which outlives the task it rated —
+  would then re-attach to whatever new task inherited it.
+
+- **The day's plan is solved once per `calculateDailyMetrics`.** The allocator is
+  the dominant cost on the dashboard (2ⁿ funded-subset enumeration, ~51 ms at
+  n = 12) and it ran **twice** on identical inputs: once for the plan, once
+  inside Zenith Gain for the optimized side of its ratio. `calculateTaskPlan`
+  now returns the plan plus its `allocatedHours`, and `calculateZenithGain` takes
+  them. It halved the dashboard `$derived` — which re-runs on every keystroke in
+  the budget field — and the plan advice with it (MATH.md §14).
+  The hours are passed in **input order**, and that is not cosmetic: hours are
+  paired to tasks **by index** all the way down (`calculateTotalProductivity`), so
+  the priority-sorted array would charge each task the time of whichever task
+  outranked it. `pooledProductivityGain` therefore checks the length and re-solves
+  rather than trusting a mismatched array — index-pairing turns one missing entry
+  into a `NaN` optimized sum, i.e. a rendered "NaN%". A test in
+  `daily-metrics.test.ts` asserts the gain still equals what a self-solving
+  `calculateZenithGain` reports; the **reversed** task list in it is the case that
+  can catch a mix-up at all, because priority is intrinsic and the other fixtures
+  happen to plan in input order.
+
+- **A composed read reads each store once** (`session-history.ts`). Every read is
+  a full store scan that grows with the user's whole history, so
+  `readModelReport` reads flow, rest, drain and the session range once each and
+  derives both model cards from those records — it used to compose its own
+  sub-reads and cost three drain scans and two of everything else on every visit
+  to analytics. A test in `session-history.test.ts` counts transactions.
+
+- **The per-day observation upsert reads through the `date` index**, not a
+  whole-store scan (`flow-observation-repository`, `drain-observation-repository`).
+  The key is (`taskId`, `date`), only `date` is indexed, so the day's handful of
+  records are read and `taskId` matched in memory. A compound index would cost a
+  schema version (R8) for nothing; scanning the store reads years of history that
+  can never match.
 
 - **`zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
   deliberately deep modules** — large implementations behind tiny interfaces.
@@ -667,10 +783,10 @@ Each of these was considered and decided. Re-deciding them is churn.
   extraction cost **zero** new cross-module exports: a measurement is stamped
   with the live clock's today, never the viewed day, so it needs none of the
   date-routing, load or auto-save state — only a task lookup and somewhere to
-  report a failed write, both of which were already public (`tasks`,
-  `reportStorageError`, and `liveToday` needs no store at all). It also needs no
-  `initializeStorage()` ordering: the localStorage migration writes only
-  sessions and `energyParams`, never these two object stores.
+  report a failed write, both of which were already available (`tasks`, and
+  `liveToday` needs no store at all). It also needs no `initializeStorage()`
+  ordering: the localStorage migration writes only sessions and `energyParams`,
+  never these two object stores.
 
   What deliberately did **not** move, and why re-proposing it is churn:
 
@@ -679,11 +795,22 @@ Each of these was considered and decided. Re-deciding them is churn.
   | Day routing + load + autosave | One concern; task mutations work _because_ the autosave effect watches them |
   | Flow observations             | `logFlow` stamps `flowMinutes` onto the task, persisted with the session    |
   | Routines                      | 3 members, needs a `tasks` thunk — not worth a file                         |
-  | The `storageError` banner     | One banner app-wide; every store reports into it via `reportStorageError`   |
 
-  Both stores can raise `'load-failed'` and neither knows about the other, so
-  the layout's retry action re-runs **both** `retryLoad()`s. A new store that
-  can fail a read belongs in that handler too.
+- **The banner is `StorageStatusStore`'s, not the session store's** (extracted
+  2026-07-28). It was the session store's because that store was the first thing
+  that could fail, and every store added afterwards then depended on it to reach
+  the banner: `EnergyObservationStore` imported `StorageErrorKind` from it,
+  `EnergyLabStore` held a session store partly to call `reportStorageError`, and
+  the retry action was a list in the layout that each new `retryLoad()` had to be
+  remembered into — an invariant this file was maintaining in prose. With one
+  ~90-line store that owns `error` / `report` / `clear` / `clearLoadFailure` /
+  `registerRetry` / `retry`, the session store loses three public members, the
+  cross-store type import is gone, and "a store that can fail a read is covered
+  by the retry" is true because it registered rather than because someone
+  remembered.
+  `clearLoadFailure` is separate from `clear` on purpose: a read that works again
+  proves the data is reachable, so it drops a `'load-failed'` — but never a
+  `'save-failed'`, whose edit is already lost and which only the user dismisses.
 
 - **Metric color-band thresholds live in the presentation layer**
   (`utils/band.ts`, the whole banding policy in one module: the four band names,
@@ -704,8 +831,10 @@ Each of these was considered and decided. Re-deciding them is churn.
 - **Plan advice is computed on demand, never in a `$derived`** (MATH.md §14).
   `suggestPlanAdjustments` re-solves the whole day once per candidate, so cost
   scales with the 2ⁿ funded-subset enumeration: measured 12 ms for a 6-task day
-  but **946 ms for a 12-task one**. In a `$derived` that is a frozen main
-  thread on every keystroke in the budget field. `DailyPlanStore` therefore
+  but **946 ms for a 12-task one** (2026-07-27, before the day was solved once
+  per solve — that halved it and did not change the conclusion). In a `$derived`
+  that is a frozen main thread on every keystroke in the budget field.
+  `DailyPlanStore` therefore
   exposes `computeAdvice()` plus `adviceStale`, and staleness compares a
   **fingerprint of the inputs** — a `$derived` read from outside a reactive
   context is not guaranteed to return the same object twice, so identity
@@ -780,9 +909,10 @@ Each of these was considered and decided. Re-deciding them is churn.
 
 ## 6. Known open items
 
-- Persisted **settings** are validated (`sanitizeEnergyParams`) and so is the
-  session shape read from IndexedDB (`sanitizeSession`), but nothing else is —
-  add a validator with each new persisted shape.
+- Every persisted shape now has a validator (R4). **Add one with each new
+  persisted shape**, in `business/model/persisted.ts` for a record the model
+  reads, and route the read through it — the repository's return type is a
+  description of a well-formed record, never a guarantee.
 - **A task cannot move between days.** Tasks live inside their day's
   `DailySession` record, so "move to tomorrow" means removing from today's
   session _and_ appending to tomorrow's. The data layer is already

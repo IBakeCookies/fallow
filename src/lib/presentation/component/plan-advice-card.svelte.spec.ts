@@ -49,6 +49,7 @@ describe('plan-advice-card.svelte', () => {
 			advice: null,
 			busy: false,
 			stale: false,
+			error: false,
 			oncheck,
 		});
 
@@ -71,6 +72,7 @@ describe('plan-advice-card.svelte', () => {
 			advice: null,
 			busy: true,
 			stale: false,
+			error: false,
 			oncheck: () => {},
 		});
 
@@ -90,6 +92,7 @@ describe('plan-advice-card.svelte', () => {
 			advice: display,
 			busy: false,
 			stale: false,
+			error: false,
 			oncheck: () => {},
 		});
 
@@ -110,6 +113,7 @@ describe('plan-advice-card.svelte', () => {
 			advice: display,
 			busy: false,
 			stale: false,
+			error: false,
 			oncheck: () => {},
 		});
 
@@ -123,6 +127,7 @@ describe('plan-advice-card.svelte', () => {
 			advice: display,
 			busy: false,
 			stale: true,
+			error: false,
 			oncheck: () => {},
 		});
 
@@ -147,6 +152,7 @@ describe('plan-advice-card.svelte', () => {
 			},
 			busy: false,
 			stale: false,
+			error: false,
 			oncheck: () => {},
 		});
 

@@ -5,7 +5,7 @@
  * overwritten and everything else is kept.
  */
 
-import { openDatabase, DB_VERSION, STORE_NAMES } from '$lib/data/storage/indexed-db';
+import { withTransaction, DB_VERSION, STORE_NAMES } from '$lib/data/storage/indexed-db';
 
 type StoreName = (typeof STORE_NAMES)[number];
 
@@ -17,24 +17,20 @@ export interface BackupFile {
 }
 
 export async function $exportAllStores(): Promise<BackupFile> {
-	const database = await openDatabase();
 	const stores = {} as Record<StoreName, unknown[]>;
 
-	await Promise.all(
-		STORE_NAMES.map(
-			(name) =>
-				new Promise<void>((resolve, reject) => {
-					const request = database.transaction(name, 'readonly').objectStore(name).getAll();
+	// ONE transaction over every store, so the file is a consistent snapshot. Read
+	// per store instead and a save landing mid-export produces a backup whose
+	// observations reference a session state that never existed.
+	await withTransaction(STORE_NAMES, 'readonly', (transaction) => {
+		for (const name of STORE_NAMES) {
+			const request = transaction.objectStore(name).getAll();
 
-					request.onsuccess = () => {
-						stores[name] = request.result || [];
-						resolve();
-					};
-
-					request.onerror = () => reject(request.error);
-				}),
-		),
-	);
+			request.onsuccess = () => {
+				stores[name] = request.result || [];
+			};
+		}
+	});
 
 	return {
 		app: 'fallow',
@@ -56,6 +52,8 @@ export async function $importAllStores(backup: unknown): Promise<void> {
 		throw new Error('Not a Fallow backup file');
 	}
 
+	const backupStores = parsed.stores;
+
 	// A newer schema may carry records this build can't interpret; refuse rather
 	// than blind-merge them. Missing/older versions still import — readers
 	// tolerate absent fields by design.
@@ -65,48 +63,23 @@ export async function $importAllStores(backup: unknown): Promise<void> {
 		);
 	}
 
-	const database = await openDatabase();
+	// A malformed record makes put() throw synchronously; withTransaction aborts
+	// on that, so a bad record rolls back the records queued before it.
+	await withTransaction(STORE_NAMES, 'readwrite', (transaction) => {
+		for (const name of STORE_NAMES) {
+			const records = backupStores[name];
 
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction(STORE_NAMES as unknown as string[], 'readwrite');
-		transaction.oncomplete = () => resolve();
-		transaction.onerror = () => reject(transaction.error);
-		transaction.onabort = () => reject(transaction.error ?? new Error('Import aborted'));
+			if (!Array.isArray(records)) continue;
 
-		// put() throws SYNCHRONOUSLY on a bad record (DataError, DataCloneError).
-		// Without the abort the puts queued before it still commit, so the caller
-		// sees a rejection over a half-restored database.
-		try {
-			for (const name of STORE_NAMES) {
-				const records = parsed.stores?.[name];
-
-				if (!Array.isArray(records)) continue;
-
-				const store = transaction.objectStore(name);
-				for (const record of records) store.put(record);
-			}
-		} catch (error) {
-			transaction.abort();
-			reject(error);
+			const store = transaction.objectStore(name);
+			for (const record of records) store.put(record);
 		}
 	});
 }
 
 /** Wipe every object store in one transaction — all data or none. */
 export async function $deleteAllStores(): Promise<void> {
-	const database = await openDatabase();
-
-	return new Promise((resolve, reject) => {
-		const transaction = database.transaction(STORE_NAMES as unknown as string[], 'readwrite');
-		transaction.oncomplete = () => resolve();
-		transaction.onerror = () => reject(transaction.error);
-		transaction.onabort = () => reject(transaction.error ?? new Error('Wipe aborted'));
-
-		try {
-			for (const name of STORE_NAMES) transaction.objectStore(name).clear();
-		} catch (error) {
-			transaction.abort();
-			reject(error);
-		}
+	await withTransaction(STORE_NAMES, 'readwrite', (transaction) => {
+		for (const name of STORE_NAMES) transaction.objectStore(name).clear();
 	});
 }

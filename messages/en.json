@@ -194,6 +194,7 @@
 	"advice_recheck": "Recheck",
 	"advice_working": "Solving…",
 	"advice_stale": "Your day has changed since this was calculated.",
+	"advice_error": "The check failed. Try again.",
 	"advice_clear": "Nothing reads badly enough to act on. This day is fine.",
 	"advice_action_defer": "Move “{title}” off today",
 	"advice_action_budget": "Set the budget to {hours}h",

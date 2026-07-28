@@ -5,7 +5,7 @@ import * as drainObservationRepository from '$lib/data/repository/drain-observat
 import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { toISODate } from '$lib/business/utils/date';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
-import type { StorageErrorKind } from '$lib/business/store/session-store.svelte';
+import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { Task, DrainObservationRecord } from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
@@ -52,22 +52,26 @@ const drainRecord = (over: Partial<DrainObservationRecord> = {}): DrainObservati
 	...over,
 });
 
-/** Mount the store and settle the initial read. */
+/**
+ * Mount the store and settle the initial read. The banner store is the real
+ * one: what matters is which failure kind reaches it, and that the store
+ * registered its own re-read there.
+ */
 async function setup(tasks: Task[] = [task()]) {
-	const reported: StorageErrorKind[] = [];
+	const status = new StorageStatusStore();
 	let store!: EnergyObservationStore;
 
 	render(Harness, {
 		onstore: (s: EnergyObservationStore) => (store = s),
 		readTasks: () => tasks,
-		reportStorageError: (kind: StorageErrorKind) => reported.push(kind),
+		status,
 	});
 
 	await vi.waitFor(() => expect(readAllDrainMock).toHaveBeenCalled());
 
 	return {
 		store,
-		reported,
+		status,
 	};
 }
 
@@ -120,12 +124,12 @@ describe('EnergyObservationStore', () => {
 	});
 
 	it('writes nothing when the rated task is gone', async () => {
-		const { store, reported } = await setup([]);
+		const { store, status } = await setup([]);
 
 		await store.logDrain(1, 3, 9, 4);
 
 		expect(updateDrainMock).not.toHaveBeenCalled();
-		expect(reported).toEqual([]);
+		expect(status.error).toBeNull();
 	});
 
 	// Consumers derive their fits from these lists, so a write that does not
@@ -139,37 +143,40 @@ describe('EnergyObservationStore', () => {
 		expect(store.drainObservations).toEqual([drainRecord()]);
 	});
 
-	it('reports a failed write as save-failed on the injected reporter', async () => {
-		const { store, reported } = await setup();
+	it('reports a failed write as save-failed on the banner store', async () => {
+		const { store, status } = await setup();
 		updateDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		await store.logDrain(1, 3, 9, 4);
 
-		expect(reported).toEqual(['save-failed']);
+		expect(status.error).toBe('save-failed');
 	});
 
 	it('reports a failed rest write as save-failed', async () => {
-		const { store, reported } = await setup();
+		const { store, status } = await setup();
 		createRestMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		await store.logRest(0.5, 9, 2, 8, 1);
 
-		expect(reported).toEqual(['save-failed']);
+		expect(status.error).toBe('save-failed');
 	});
 
 	// A failed read is the recoverable kind: it must raise the retryable banner
-	// rather than the write one, and the retry must actually re-read.
-	it('reports a failed load as load-failed and recovers on retry', async () => {
+	// rather than the write one, and the retry must actually re-read. Driven
+	// through the banner rather than through `retryLoad()` — this store is one of
+	// the two that register there, and the registration is what replaced the
+	// layout's hand-maintained list of stores to retry.
+	it('reports a failed load as load-failed and recovers on the banner’s retry', async () => {
 		readAllDrainMock.mockRejectedValueOnce(new Error('IndexedDB unavailable'));
-		const { store, reported } = await setup();
+		const { store, status } = await setup();
 
-		await vi.waitFor(() => expect(reported).toEqual(['load-failed']));
+		await vi.waitFor(() => expect(status.error).toBe('load-failed'));
 		expect(store.drainObservations).toEqual([]);
 
 		readAllDrainMock.mockResolvedValue([drainRecord()]);
-		store.retryLoad();
+		status.retry();
 
 		await vi.waitFor(() => expect(store.drainObservations).toEqual([drainRecord()]));
-		expect(reported).toEqual(['load-failed']);
+		expect(status.error).toBeNull();
 	});
 });

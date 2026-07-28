@@ -8,6 +8,17 @@
  */
 
 const pad = (n: number) => String(n).padStart(2, '0');
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Is this a YYYY-MM-DD day string? One definition (AGENTS.md R3): it decides both
+ * whether a `?date=` URL param is usable and whether a stored record has a valid
+ * day key, and the two must agree — a day the router accepts but the validator
+ * drops would load blank forever.
+ */
+export function isISODate(value: unknown): value is string {
+	return typeof value === 'string' && ISO_DATE.test(value);
+}
 
 /** Local calendar date (YYYY-MM-DD); defaults to now. */
 export function toISODate(d: Date = new Date()): string {

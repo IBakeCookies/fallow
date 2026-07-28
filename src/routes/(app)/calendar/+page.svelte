@@ -20,7 +20,7 @@
 	import { showToast } from '$lib/presentation/utils/toast';
 	import type { DaySummary } from '$lib/business/model/metric/history';
 	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
-	import { initializeStorage, readDaySummaries } from '$lib/business/store/session-history';
+	import { initializeStorage, readDaySummaries } from '$lib/business/session-history';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);

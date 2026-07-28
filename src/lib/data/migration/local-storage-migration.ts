@@ -6,7 +6,7 @@
  */
 
 import type { DailySession } from '$lib/data/type';
-import { $updateSession } from '$lib/data/repository/session-repository';
+import { $readSessionByDate, $updateSession } from '$lib/data/repository/session-repository';
 import {
 	ENERGY_PARAMS_SETTING,
 	$readSetting,
@@ -16,6 +16,19 @@ import {
 const STORAGE_KEY = 'zenith-daily-tasks';
 const MIGRATION_KEY = 'zenith-migrated-to-idb';
 const ENERGY_PARAMS_STORAGE_KEY = 'zenith-energy-params';
+
+/**
+ * The flag write can itself throw (quota) — after a successful migration, that
+ * must not fail the boot. The retry next load is harmless: the owns-the-day
+ * guard below skips the write once IndexedDB has the session.
+ */
+function markMigrated(): void {
+	try {
+		localStorage.setItem(MIGRATION_KEY, 'true');
+	} catch {
+		// Retried on the next load.
+	}
+}
 
 /**
  * Move the Energy Lab's parameters out of localStorage into the `settings`
@@ -70,7 +83,7 @@ export async function migrateFromLocalStorageToIndexedDB(
 	const oldData = localStorage.getItem(STORAGE_KEY);
 
 	if (!oldData) {
-		localStorage.setItem(MIGRATION_KEY, 'true');
+		markMigrated();
 
 		return false;
 	}
@@ -90,20 +103,25 @@ export async function migrateFromLocalStorageToIndexedDB(
 	} catch {
 		// Unparseable/malformed legacy JSON will never parse — a permanent
 		// failure. Mark migrated so we stop retrying it on every load.
-		localStorage.setItem(MIGRATION_KEY, 'true');
+		markMigrated();
 
 		return false;
 	}
 
 	try {
-		await $updateSession(session);
+		// Once IndexedDB owns a session for today, the legacy copy must never
+		// win: the blob is kept forever, so a lost flag (a failed flag write, a
+		// hand-edit) would otherwise re-import it over the user's live plan.
+		if (!(await $readSessionByDate(today))) {
+			await $updateSession(session);
+		}
 	} catch {
 		// An IndexedDB write can fail transiently (e.g. quota): leave the flag
 		// unset so a later load retries the migration.
 		return false;
 	}
 
-	localStorage.setItem(MIGRATION_KEY, 'true');
+	markMigrated();
 
 	// Keep old data for safety, can be cleaned up later
 	return true;

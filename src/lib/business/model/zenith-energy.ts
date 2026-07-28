@@ -1462,6 +1462,31 @@ export interface StopObservation {
 	workedHours: { taskId: number; hours: number }[];
 }
 
+/**
+ * Logged hours summed per task, keeping only positive entries whose task is
+ * still part of the day. ONE definition (AGENTS.md R3): the §8.10 stopping fit
+ * and the §12 adherence audit both read "what was actually worked" out of this
+ * join, and they must agree about it or one of them is auditing a different day.
+ *
+ * Dropping unknown ids is the load-bearing part: a drain log outlives the task
+ * it rated (deleting a task does not delete the measurement), and hours on a
+ * task the day's plan never contained can be no part of a composition.
+ */
+export function workedHoursByTask(
+	tasks: readonly { id: number }[],
+	workedHours: readonly { taskId: number; hours: number }[],
+): Map<number, number> {
+	const byTask = new Map<number, number>();
+
+	for (const { taskId, hours } of workedHours) {
+		if (hours > 0 && tasks.some((task) => task.id === taskId)) {
+			byTask.set(taskId, (byTask.get(taskId) ?? 0) + hours);
+		}
+	}
+
+	return byTask;
+}
+
 export interface StoppingValueFit {
 	/** MAP freeTimeValue λ₀ (the fallback when not fitted) */
 	value: number;
@@ -1567,13 +1592,7 @@ export function stopIndifferencePoint(
 	if (windowHours <= 0 || tasks.length === 0) return null;
 
 	const step = DEFAULT_STEP_HOURS;
-	const byTask = new Map<number, number>();
-
-	for (const { taskId, hours } of observation.workedHours) {
-		if (hours > 0 && tasks.some((t) => t.id === taskId)) {
-			byTask.set(taskId, (byTask.get(taskId) ?? 0) + hours);
-		}
-	}
+	const byTask = workedHoursByTask(tasks, observation.workedHours);
 
 	if (byTask.size === 0) return null;
 

@@ -34,10 +34,34 @@ let databasePromise: Promise<IDBDatabase> | null = null;
 
 export function openDatabase(): Promise<IDBDatabase> {
 	if (!databasePromise) {
-		databasePromise = openAndHeal().catch((error) => {
-			databasePromise = null;
-			throw error;
-		});
+		// Every invalidation is guarded on the cache still holding THIS connection:
+		// a superseded handle's late close event must not evict the newer one that
+		// replaced it, which would leave that one open forever — and an open
+		// connection nobody can reach is what blocks the next tab's upgrade.
+		const promise: Promise<IDBDatabase> = (databasePromise = openAndHeal().then(
+			(database) => {
+				const invalidate = () => {
+					if (databasePromise === promise) databasePromise = null;
+				};
+
+				// Another tab is upgrading the schema: release our handle so its
+				// upgrade proceeds, and reopen lazily on next access.
+				database.onversionchange = () => {
+					database.close();
+					invalidate();
+				};
+
+				// Browser force-closed the connection (e.g. storage cleared).
+				database.onclose = invalidate;
+
+				return database;
+			},
+			(error) => {
+				if (databasePromise === promise) databasePromise = null;
+
+				throw error;
+			},
+		));
 	}
 
 	return databasePromise;
@@ -77,23 +101,10 @@ function open(version?: number): Promise<IDBDatabase> {
 			logWarning('zenith-db upgrade blocked by another open tab');
 		};
 
-		request.onsuccess = () => {
-			const database = request.result;
-
-			// Another tab is upgrading the schema: release our handle so its
-			// upgrade proceeds, and reopen lazily on next access.
-			database.onversionchange = () => {
-				database.close();
-				databasePromise = null;
-			};
-
-			// Browser force-closed the connection (e.g. storage cleared).
-			database.onclose = () => {
-				databasePromise = null;
-			};
-
-			resolve(database);
-		};
+		// The lifecycle handlers belong to the CACHED connection, so `openDatabase`
+		// installs them — the intermediate handle `openAndHeal` opens and closes
+		// again must not invalidate a cache entry it never owned.
+		request.onsuccess = () => resolve(request.result);
 
 		request.onupgradeneeded = (event) => {
 			const database = (event.target as IDBOpenDBRequest).result;
@@ -157,25 +168,72 @@ function open(version?: number): Promise<IDBDatabase> {
 }
 
 /**
- * Run `work` against one object store in a single transaction and resolve when
- * the transaction COMMITS — not on request success, which fires before the
+ * Run `work` in ONE transaction over one or more object stores and resolve when
+ * that transaction COMMITS — not on request success, which fires before the
  * commit and would hide a later abort (e.g. quota). Resolves with the returned
- * request's result, or undefined when `work` returns nothing. A failing request
- * aborts the transaction, so per-request onerror handlers are unnecessary.
+ * request's result, or undefined when `work` returns nothing.
+ *
+ * A failing request aborts the transaction, so per-request onerror handlers are
+ * unnecessary. A request that throws SYNCHRONOUSLY (`put()` on a malformed
+ * record throws DataError/DataCloneError) is aborted here, because the requests
+ * queued before it would otherwise still commit — leaving the caller with a
+ * rejection over a half-written database.
+ *
+ * Nothing may `await` between creating the transaction and queueing the first
+ * request: a transaction goes inactive at the end of the task that created it,
+ * so a microtask hop in between is an InvalidStateError on the strictest
+ * engines. That is why the retry below re-creates the transaction rather than
+ * being awaited on the way in.
  */
-export async function withStore<T>(
-	storeName: string,
+export async function withTransaction<T>(
+	storeNames: readonly string[],
 	mode: IDBTransactionMode,
-	work: (store: IDBObjectStore) => IDBRequest<T> | void,
+	work: (transaction: IDBTransaction) => IDBRequest<T> | void,
 ): Promise<T> {
-	const database = await openDatabase();
+	const names = [...storeNames];
+	const promise = openDatabase();
+	const database = await promise;
+	let transaction: IDBTransaction;
+
+	try {
+		transaction = database.transaction(names, mode);
+	} catch (error) {
+		// A force-closed connection (storage cleared, an eviction while the tab
+		// slept) throws InvalidStateError, and reopening IS the recovery — the
+		// alternative is failing a perfectly retryable read. Evict only while the
+		// cache still holds THIS dead handle, or a concurrent caller's healthy
+		// replacement gets thrown away and left open with nobody able to reach it.
+		if (!(error instanceof DOMException) || error.name !== 'InvalidStateError') throw error;
+
+		if (databasePromise === promise) databasePromise = null;
+
+		transaction = (await openDatabase()).transaction(names, mode);
+	}
 
 	return new Promise<T>((resolve, reject) => {
-		const transaction = database.transaction(storeName, mode);
-		const request = work(transaction.objectStore(storeName));
+		let request: IDBRequest<T> | void;
+
 		transaction.oncomplete = () => resolve(request ? request.result : (undefined as T));
 		const fail = () => reject(transaction.error ?? new Error('Transaction aborted'));
 		transaction.onerror = fail;
 		transaction.onabort = fail;
+
+		try {
+			request = work(transaction);
+		} catch (error) {
+			transaction.abort();
+			reject(error);
+		}
 	});
+}
+
+/** `withTransaction` over a single store — what every per-store repository wants. */
+export function withStore<T>(
+	storeName: string,
+	mode: IDBTransactionMode,
+	work: (store: IDBObjectStore) => IDBRequest<T> | void,
+): Promise<T> {
+	return withTransaction([storeName], mode, (transaction) =>
+		work(transaction.objectStore(storeName)),
+	);
 }
