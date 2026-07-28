@@ -2,14 +2,13 @@ import { page } from 'vitest/browser';
 import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { Metric } from '$lib/presentation/type';
-import { STATUS } from '$lib/presentation/utils/status';
 import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 
 const metric = (label: string, value: string): Metric => ({
 	label,
 	value,
 	description: `${label} description`,
-	valStyle: '',
+	band: 'neutral',
 });
 
 describe('metrics-dashboard.svelte', () => {
@@ -68,20 +67,24 @@ describe('metrics-dashboard.svelte', () => {
 				{
 					...metric('Burnout Risk', '80%'),
 					headline: true,
-					valStyle: STATUS.CRITICAL.color,
+					band: 'critical',
 				},
 				{
 					...metric('Yield Index', '60%'),
 					headline: true,
-					valStyle: STATUS.NEUTRAL.color,
+					band: 'neutral',
 				},
 			],
 			momentum: null,
 		});
 
 		await expect.element(page.getByText('(Critical)')).toBeInTheDocument();
-		// The neutral band is the default value colour and carries no judgement
-		expect(page.getByText('(Nominal)').elements()).toHaveLength(0);
+
+		// One judged reading, one neutral one, and exactly one band text between
+		// them: the neutral band is the default value colour and makes no claim, so
+		// it must stay silent. Counted in the DOM rather than asserted against the
+		// word "Nominal", which no locale renders any more.
+		expect(document.querySelectorAll('.sr-only')).toHaveLength(1);
 	});
 
 	it.each([

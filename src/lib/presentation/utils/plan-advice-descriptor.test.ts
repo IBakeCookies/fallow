@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
-import type {
-	AdviceLever,
-	AdviceOption,
-	PlanAdvice,
-} from '$lib/business/model/metric/plan-advice';
+import type { AdviceLever, AdviceOption, PlanAdvice } from '$lib/business/model/metric/plan-advice';
 
 function option(planValueDeltaPercent: number | null, lever: AdviceLever): AdviceOption {
 	return {
@@ -103,6 +99,47 @@ describe('buildAdviceDisplay', () => {
 		const display = buildAdviceDisplay(advice([defer(1, 0)]), 3);
 
 		expect(display.rows[0].options[0].cost).toBe('costs no plan value');
+	});
+
+	// MATH.md §14: Human Capacity reads Infinity when a pool holds 0 hours with
+	// demand on it. "N/A" coloured red — and announced as critical to a screen
+	// reader — judges a number that does not exist; the metric rows render every
+	// N/A neutral for the same reason.
+	it('gives a reading that is not a number no band', () => {
+		const display = buildAdviceDisplay(
+			{
+				planValue: 10,
+				quadrant: 'grind',
+				findings: [
+					{
+						axis: 'humanCapacity',
+						before: Infinity,
+						options: [
+							{
+								...setBudget(9, -4),
+								after: Infinity,
+							},
+							setBudget(10, -8),
+						],
+						unpriced: null,
+					},
+				],
+				unfundedTaskIds: [],
+				candidatesEvaluated: 2,
+			},
+			3,
+		);
+
+		const row = display.rows[0];
+
+		expect(row.before).toBe('N/A');
+		expect(row.beforeBand).toBe('neutral');
+
+		expect(row.options[0].after).toBe('N/A');
+		expect(row.options[0].afterBand).toBe('neutral');
+		// A finite option on the same row still bands normally.
+		expect(row.options[1].after).toBe('50%');
+		expect(row.options[1].afterBand).toBe('success');
 	});
 
 	// MATH.md §14.1-2: the lever carries the exact trim; only the label rounds.

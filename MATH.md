@@ -1190,6 +1190,21 @@ contradict older commit messages or comments, this log is the current truth.
    `p(s) = (a+p₀)·k·s·e^(−ks)` with `s` the session phase (task time, not
    clock time).
 
+### 2026-07-28 — banding policy moved within the presentation layer
+
+1. **§14's band pointer retargeted.** The per-axis band table and
+   `isOutOfBand` moved from `presentation/utils/metric-descriptor.ts` to
+   `presentation/utils/band.ts` (renamed `BAND` → `AXIS_BAND`), which now owns
+   the whole banding vocabulary: thresholds, tokens and the words a screen
+   reader hears. Same thresholds, same call for the card and the metric rows —
+   a file move, no threshold, formula or constant touched.
+2. **Infinite readings render as N/A, not as a judgement.** §14 already notes
+   that Human Capacity can read `Infinity` (a pool of 0 hours with demand on
+   it) and that badness excludes such a candidate. The two display paths now
+   agree with each other about it: the metric row and the advice row both show
+   N/A with no band, where the row used to print `Infinity%` and the card used
+   to colour "N/A" critical. Display only — the model's ordering is unchanged.
+
 ## 11. Metric-layer corrections (2026-07-18)
 
 ### 11.1 Scope and principle
@@ -1738,8 +1753,9 @@ producing `NaN`.
 
 Badness only **orders** candidates. It never decides that a reading is bad:
 whether 82% burnout deserves advice at all is a band, and bands are
-presentation policy (AGENTS.md §5) — `metric-descriptor.ts` owns them and the
-card consults them. The model is threshold-free on purpose, and answers the
+presentation policy (AGENTS.md §5) — `presentation/utils/band.ts` owns them
+(`AXIS_BAND` + `isOutOfBand`) and both the card and the metric rows consult
+them. The model is threshold-free on purpose, and answers the
 same question for every axis unconditionally: what would help this, and what
 would it cost.
 

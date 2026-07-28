@@ -1,66 +1,48 @@
 /**
  * Dashboard metrics → display rows: label, description, formatted value and
- * color band.
+ * the band the reading falls in.
  *
- * Presentation policy on purpose (see the `status.ts` header): banding a
- * reading as good/bad is a display decision, not domain math, so the
- * thresholds live here next to the colors rather than in the model. The
- * numbers themselves come from `calculateDailyMetrics` — nothing here computes.
+ * The band policy itself lives in `utils/band.ts` — it is shared with the plan
+ * advice card, which decides which findings to surface from the same call
+ * (AGENTS.md R3). The numbers come from `calculateDailyMetrics`; nothing here
+ * computes.
+ *
+ * A reading is gated on the inputs it needs: a metric that is undefined without
+ * tasks, without active tasks or without a budget renders N/A, never 0. `gated`
+ * is that policy, one argument wide, because the same three-line ternary spelled
+ * out 20 times is how a missing gate hides. The two rows that carry their own
+ * sentinel instead — the bottleneck and the recovery ratio — read it off the
+ * string the model returns.
  */
 
 import type { Metric } from '$lib/presentation/type';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
-import type { AdviceAxis } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
-import {
-	STATUS,
-	getStatusBiggerBetter,
-	getStatusSmallerBetter,
-	type StatusType,
-} from '$lib/presentation/utils/status';
+import { AXIS_BAND, getBandBiggerBetter, type Band } from '$lib/presentation/utils/band';
 
-/**
- * The band policy for every reading the plan advisor can search on, exported
- * because the advice card decides WHICH findings to surface from exactly the
- * good/bad call these rows are colored by (AGENTS.md R3 — one definition, not
- * two copies of the same thresholds). `satisfies` keeps it total over the axes.
- */
-export const BAND = {
-	burnoutRisk: (value: number) => getStatusSmallerBetter(value),
-	humanCapacity: (value: number) =>
-		value <= 75 ? STATUS.SUCCESS : value <= 100 ? STATUS.NEUTRAL : STATUS.CRITICAL,
-	// Load only reads as a problem past 70%; below that it is just how the day is
-	// shaped.
-	cognitiveLoad: (value: number) => getStatusSmallerBetter(value > 70 ? value : 0),
-	physicalLoad: (value: number) => getStatusSmallerBetter(value > 70 ? value : 0),
-	energyBalance: (value: number) => (value > 60 || value < 40 ? STATUS.WARNING : STATUS.SUCCESS),
-	frictionIndex: (value: number) => getStatusSmallerBetter(value),
-	grindDensity: (value: number) => getStatusSmallerBetter(value),
-	timeScarcity: (value: number) => getStatusSmallerBetter(value),
-	scheduleIntegrity: (value: number) => getStatusBiggerBetter(value),
-} satisfies Record<AdviceAxis, (value: number) => StatusType>;
-
-/** Whether a reading is bad enough to be worth advice about. */
-export function isOutOfBand(axis: AdviceAxis, value: number): boolean {
-	const status = BAND[axis](value);
-
-	return status === STATUS.WARNING || status === STATUS.CRITICAL;
-}
-
-/** Metrics that are undefined without tasks/budget render as N/A, not 0. */
-const notAvailable = () => ({
-	value: m.na_value(),
-	valStyle: STATUS.NEUTRAL.color,
-});
+type Reading = Pick<Metric, 'value' | 'band'>;
 
 export function buildMetrics(
 	metrics: DailyMetrics,
 	pools: { cognitiveHours: number; physicalHours: number },
 ): Metric[] {
-	const NA = notAvailable();
+	const notAvailable: Reading = {
+		value: m.na_value(),
+		band: 'neutral',
+	};
+
+	const gated = (available: boolean, value: string, band: Band): Reading =>
+		available
+			? {
+					value,
+					band,
+				}
+			: notAvailable;
+
 	const hasTasks = metrics.totalTasks > 0;
 	const hasActive = metrics.activeTasks.length > 0;
 	const hasBudget = metrics.budgetHours > 0;
+	const planned = hasTasks && hasBudget;
 
 	const {
 		zenithGain,
@@ -93,27 +75,20 @@ export function buildMetrics(
 			headline: true,
 			label: m.metric_zenith_gain(),
 			description: m.metric_zenith_gain_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `+${zenithGain.gainPercent}%`,
-						valStyle:
-							zenithGain.gainPercent >= 15
-								? STATUS.SUCCESS.color
-								: zenithGain.gainPercent >= 5
-									? STATUS.NEUTRAL.color
-									: STATUS.WARNING.color,
-					}
-				: NA),
+			...gated(
+				planned,
+				`+${zenithGain.gainPercent}%`,
+				zenithGain.gainPercent >= 15
+					? 'success'
+					: zenithGain.gainPercent >= 5
+						? 'neutral'
+						: 'warning',
+			),
 		},
 		{
 			label: m.metric_yield_index(),
 			description: m.metric_yield_index_desc(),
-			...(metrics.completedTasks > 0
-				? {
-						value: `${yieldIndex}%`,
-						valStyle: getStatusBiggerBetter(yieldIndex).color,
-					}
-				: NA),
+			...gated(metrics.completedTasks > 0, `${yieldIndex}%`, getBandBiggerBetter(yieldIndex)),
 		},
 		{
 			label: m.metric_completion_rate(),
@@ -121,30 +96,24 @@ export function buildMetrics(
 			// The reading is honest at 0% but the band is not: an untouched day is the
 			// starting state, not a critical one, and colouring it red on first paint
 			// is what makes every other warning easy to ignore.
-			...(hasTasks
-				? {
-						value: `${completionRate}%`,
-						valStyle:
-							metrics.completedTasks > 0
-								? getStatusBiggerBetter(completionRate).color
-								: STATUS.NEUTRAL.color,
-					}
-				: NA),
+			...gated(
+				hasTasks,
+				`${completionRate}%`,
+				metrics.completedTasks > 0 ? getBandBiggerBetter(completionRate) : 'neutral',
+			),
 		},
 		{
 			label: m.metric_flow_coverage(),
 			description: m.metric_flow_coverage_desc(),
-			...(hasActive && hasBudget
-				? {
-						value: `${flowCoverage.reached}/${flowCoverage.total}`,
-						valStyle:
-							flowCoverage.reached === flowCoverage.total
-								? STATUS.SUCCESS.color
-								: flowCoverage.reached >= flowCoverage.total / 2
-									? STATUS.NEUTRAL.color
-									: STATUS.WARNING.color,
-					}
-				: NA),
+			...gated(
+				hasActive && hasBudget,
+				`${flowCoverage.reached}/${flowCoverage.total}`,
+				flowCoverage.reached === flowCoverage.total
+					? 'success'
+					: flowCoverage.reached >= flowCoverage.total / 2
+						? 'neutral'
+						: 'warning',
+			),
 		},
 		{
 			headline: true,
@@ -156,12 +125,13 @@ export function buildMetrics(
 						: m.metric_type_physical(),
 				hours: humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours,
 			}),
-			...(hasTasks && hasBudget
-				? {
-						value: `${humanCapacity.percent}%`,
-						valStyle: BAND.humanCapacity(humanCapacity.percent).color,
-					}
-				: NA),
+			// Finite as well as planned: a pool of 0 hours carrying demand saturates
+			// to Infinity (MATH.md §14), which renders literally as "Infinity%".
+			...gated(
+				planned && Number.isFinite(humanCapacity.percent),
+				`${humanCapacity.percent}%`,
+				AXIS_BAND.humanCapacity(humanCapacity.percent),
+			),
 		},
 		{
 			headline: true,
@@ -169,65 +139,43 @@ export function buildMetrics(
 			description: m.metric_time_scarcity_desc(),
 			// Budget-gated as well as task-gated: with no budget the model returns a
 			// degenerate 100%, which is true but says nothing and reads as an alarm.
-			...(hasTasks && hasBudget
-				? {
-						value: `${timeScarcity}%`,
-						valStyle: BAND.timeScarcity(timeScarcity).color,
-					}
-				: NA),
+			...gated(planned, `${timeScarcity}%`, AXIS_BAND.timeScarcity(timeScarcity)),
 		},
 		{
 			headline: true,
 			label: m.metric_bottleneck(),
-			value: bottleneckTask === 'None Detected' ? m.metric_none_detected() : bottleneckTask,
 			description: m.metric_bottleneck_desc(),
-			valStyle: bottleneckTask !== 'None Detected' ? STATUS.WARNING.color : STATUS.NEUTRAL.color,
+			value: bottleneckTask === 'None Detected' ? m.metric_none_detected() : bottleneckTask,
+			band: bottleneckTask === 'None Detected' ? 'neutral' : 'warning',
 		},
 		{
 			section: true,
 			label: m.metric_burnout_risk(),
 			description: m.metric_burnout_risk_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `${burnoutRisk}%`,
-						valStyle: BAND.burnoutRisk(burnoutRisk).color,
-					}
-				: NA),
+			...gated(planned, `${burnoutRisk}%`, AXIS_BAND.burnoutRisk(burnoutRisk)),
 		},
 		{
 			label: m.metric_cognitive_load(),
 			description: m.metric_cognitive_load_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `${cognitiveLoad}%`,
-						valStyle: BAND.cognitiveLoad(cognitiveLoad).color,
-					}
-				: NA),
+			...gated(planned, `${cognitiveLoad}%`, AXIS_BAND.cognitiveLoad(cognitiveLoad)),
 		},
 		{
 			label: m.metric_physical_load(),
 			description: m.metric_physical_load_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `${physicalLoad}%`,
-						valStyle: BAND.physicalLoad(physicalLoad).color,
-					}
-				: NA),
+			...gated(planned, `${physicalLoad}%`, AXIS_BAND.physicalLoad(physicalLoad)),
 		},
 		{
 			label: m.metric_energy_balance(),
 			description: m.metric_energy_balance_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value:
-							energyBalance > 60
-								? m.metric_cognitive_heavy()
-								: energyBalance < 40
-									? m.metric_physical_heavy()
-									: m.metric_balanced(),
-						valStyle: BAND.energyBalance(energyBalance).color,
-					}
-				: NA),
+			...gated(
+				planned,
+				energyBalance > 60
+					? m.metric_cognitive_heavy()
+					: energyBalance < 40
+						? m.metric_physical_heavy()
+						: m.metric_balanced(),
+				AXIS_BAND.energyBalance(energyBalance),
+			),
 		},
 		{
 			section: true,
@@ -235,135 +183,84 @@ export function buildMetrics(
 			description: m.metric_schedule_integrity_desc(),
 			// Same as time scarcity: budget 0 short-circuits to 0%, an alarm about
 			// nothing.
-			...(hasTasks && hasBudget
-				? {
-						value: `${scheduleIntegrity}%`,
-						valStyle: BAND.scheduleIntegrity(scheduleIntegrity).color,
-					}
-				: NA),
+			...gated(planned, `${scheduleIntegrity}%`, AXIS_BAND.scheduleIntegrity(scheduleIntegrity)),
 		},
 		{
 			label: m.metric_friction_index(),
 			description: m.metric_friction_index_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `${frictionIndex}%`,
-						valStyle: BAND.frictionIndex(frictionIndex).color,
-					}
-				: NA),
+			...gated(planned, `${frictionIndex}%`, AXIS_BAND.frictionIndex(frictionIndex)),
 		},
 		{
 			section: true,
 			label: m.metric_deep_work(),
 			description: m.metric_deep_work_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `${deepWorkRatio}%`,
-						valStyle: getStatusBiggerBetter(deepWorkRatio).color,
-					}
-				: NA),
+			...gated(planned, `${deepWorkRatio}%`, getBandBiggerBetter(deepWorkRatio)),
 		},
 		{
 			label: m.metric_quick_wins(),
 			description: m.metric_quick_wins_desc(),
-			...(hasActive
-				? {
-						value: `${quickWins}`,
-						valStyle: quickWins > 0 ? STATUS.SUCCESS.color : STATUS.NEUTRAL.color,
-					}
-				: NA),
+			...gated(hasActive, `${quickWins}`, quickWins > 0 ? 'success' : 'neutral'),
 		},
 		{
 			label: m.metric_task_variety(),
 			description: m.metric_task_variety_desc(),
-			...(hasActive
-				? {
-						value: `${taskVariety}%`,
-						valStyle: getStatusBiggerBetter(taskVariety).color,
-					}
-				: NA),
+			...gated(hasActive, `${taskVariety}%`, getBandBiggerBetter(taskVariety)),
 		},
 		{
 			section: true,
 			label: m.metric_grind_density(),
 			description: m.metric_grind_density_desc(),
-			...(hasActive
-				? {
-						value: `${grindDensity}%`,
-						valStyle: BAND.grindDensity(grindDensity).color,
-					}
-				: NA),
+			...gated(hasActive, `${grindDensity}%`, AXIS_BAND.grindDensity(grindDensity)),
 		},
 		{
 			label: m.metric_sustainable_work(),
 			description: m.metric_sustainable_work_desc(),
-			...(hasTasks && hasBudget
-				? {
-						value: `${rewardDensity}%`,
-						valStyle: getStatusBiggerBetter(rewardDensity).color,
-					}
-				: NA),
+			...gated(planned, `${rewardDensity}%`, getBandBiggerBetter(rewardDensity)),
 		},
 		{
 			label: m.metric_recovery_ratio(),
+			description: m.metric_recovery_ratio_desc(),
 			value:
 				recoveryRatio === 'No strain'
 					? m.metric_no_strain()
 					: recoveryRatio === 'N/A'
 						? m.na_value()
 						: recoveryRatio,
-			description: m.metric_recovery_ratio_desc(),
-			valStyle:
+			band:
 				recoveryRatio === 'No strain' || recoveryRatio === 'N/A'
-					? STATUS.NEUTRAL.color
+					? 'neutral'
 					: recoveryRatio.startsWith('0:')
-						? STATUS.WARNING.color
-						: STATUS.SUCCESS.color,
+						? 'warning'
+						: 'success',
 		},
 		{
 			label: m.metric_day_profile(),
 			description: m.metric_day_profile_desc(),
-			...(hasTasks
-				? {
-						value: {
-							flow: m.quadrant_flow(),
-							grind: m.quadrant_grind(),
-							cruise: m.quadrant_cruise(),
-							routine: m.quadrant_routine(),
-						}[dailyQuadrant],
-						valStyle: STATUS.NEUTRAL.color,
-					}
-				: NA),
+			...gated(
+				hasTasks,
+				{
+					flow: m.quadrant_flow(),
+					grind: m.quadrant_grind(),
+					cruise: m.quadrant_cruise(),
+					routine: m.quadrant_routine(),
+				}[dailyQuadrant],
+				'neutral',
+			),
 		},
 		{
 			label: m.metric_avg_physical(),
 			description: m.metric_avg_physical_desc(),
-			...(hasTasks
-				? {
-						value: `${averagePhysicalDifficulty}/10`,
-						valStyle: STATUS.NEUTRAL.color,
-					}
-				: NA),
+			...gated(hasTasks, `${averagePhysicalDifficulty}/10`, 'neutral'),
 		},
 		{
 			label: m.metric_avg_mental(),
 			description: m.metric_avg_mental_desc(),
-			...(hasTasks
-				? {
-						value: `${averageMentalDifficulty}/10`,
-						valStyle: STATUS.NEUTRAL.color,
-					}
-				: NA),
+			...gated(hasTasks, `${averageMentalDifficulty}/10`, 'neutral'),
 		},
 		{
 			label: m.metric_avg_enjoyment(),
 			description: m.metric_avg_enjoyment_desc(),
-			...(hasTasks
-				? {
-						value: `${averageEnjoyment}/10`,
-						valStyle: STATUS.NEUTRAL.color,
-					}
-				: NA),
+			...gated(hasTasks, `${averageEnjoyment}/10`, 'neutral'),
 		},
 	];
 }

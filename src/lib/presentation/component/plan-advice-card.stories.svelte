@@ -1,12 +1,11 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import type { AdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
-	import { STATUS } from '$lib/presentation/utils/status';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 
-	/* Shaped exactly as `buildAdviceDisplay` returns it: the band classes are the
-	   presentation policy's output, and every number is one the model would have
-	   produced by re-solving the day. */
+	/* Shaped exactly as `buildAdviceDisplay` returns it: the bands are the
+	   presentation policy's output (utils/band.ts), and every number is one the
+	   model would have produced by re-solving the day. */
 	const advice: AdviceDisplay = {
 		unfunded: '2 tasks get no hours in this plan.',
 		rows: [
@@ -14,7 +13,7 @@
 				axis: 'burnoutRisk',
 				label: 'Burnout Risk',
 				before: '82%',
-				beforeStyle: STATUS.CRITICAL.color,
+				beforeBand: 'critical',
 				options: [
 					{
 						lever: {
@@ -24,7 +23,7 @@
 						},
 						action: 'Move “Tax return” off today',
 						after: '54%',
-						afterStyle: STATUS.WARNING.color,
+						afterBand: 'warning',
 						cost: '−6.2% plan value',
 						profileFlip: 'Day Profile → Cruise',
 					},
@@ -35,7 +34,7 @@
 						},
 						action: 'Set the budget to 6.5h',
 						after: '71%',
-						afterStyle: STATUS.WARNING.color,
+						afterBand: 'warning',
 						cost: 'costs no plan value',
 						profileFlip: null,
 					},
@@ -45,7 +44,7 @@
 				axis: 'cognitiveLoad',
 				label: 'Cognitive Load',
 				before: '88%',
-				beforeStyle: STATUS.CRITICAL.color,
+				beforeBand: 'critical',
 				options: [
 					{
 						lever: {
@@ -55,7 +54,7 @@
 						},
 						action: 'Move “Migrate the database” off today',
 						after: '41%',
-						afterStyle: STATUS.SUCCESS.color,
+						afterBand: 'success',
 						cost: '−18.4% plan value',
 						profileFlip: null,
 					},
@@ -69,7 +68,7 @@
 						},
 						action: 'Set the budget to 9h',
 						after: '78%',
-						afterStyle: STATUS.WARNING.color,
+						afterBand: 'warning',
 						cost: 'costs an extra hour of your day',
 						profileFlip: null,
 					},

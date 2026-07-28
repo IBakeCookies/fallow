@@ -37,11 +37,17 @@
 	let sceneryNow = $state(nowInTimeZone(data.timezone));
 
 	onMount(() => {
-		sceneryNow = new Date();
-		const id = setInterval(() => (sceneryNow = new Date()), 60_000);
+		sceneryNow = nowInTimeZone();
+		const id = setInterval(() => (sceneryNow = nowInTimeZone()), 60_000);
 
 		return () => clearInterval(id);
 	});
+
+	// Separately derived, not inlined into the style attribute: one expression
+	// there re-runs the whole seeded var table — and both of its SVG generators —
+	// on every minute tick, though nothing but the clock has changed.
+	const seedStyle = $derived(sceneryStyle(themeStore.scenerySeed));
+	const clockStyle = $derived(dataSceneryStyle(sceneryNow));
 
 	// A language switch is a client-side goto(), so the SSR'd <html lang> would
 	// otherwise keep claiming the language the page was loaded in.
@@ -56,11 +62,7 @@
      default; a theme opts in by styling the helpers in style/scenery/. The seeded
      vars vary each theme's arrangement per user (see utils/scenery-seed.ts);
      the data vars set the clock-driven themes' state (utils/scenery-time.ts). -->
-<div
-	class="theme-scenery"
-	aria-hidden="true"
-	style="{sceneryStyle(themeStore.scenerySeed)}; {dataSceneryStyle(sceneryNow)}"
->
+<div class="theme-scenery" aria-hidden="true" style="{seedStyle}; {clockStyle}">
 	<div class="theme-helper-1"></div>
 	<div class="theme-helper-2"></div>
 	<div class="theme-helper-3"></div>

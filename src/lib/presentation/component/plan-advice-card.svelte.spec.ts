@@ -2,7 +2,6 @@ import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { AdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
-import { STATUS } from '$lib/presentation/utils/status';
 import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 
 const display: AdviceDisplay = {
@@ -12,7 +11,7 @@ const display: AdviceDisplay = {
 			axis: 'burnoutRisk',
 			label: 'Burnout Risk',
 			before: '82%',
-			beforeStyle: STATUS.CRITICAL.color,
+			beforeBand: 'critical',
 			options: [
 				{
 					lever: {
@@ -22,7 +21,7 @@ const display: AdviceDisplay = {
 					},
 					action: 'Move “Tax return” off today',
 					after: '54%',
-					afterStyle: STATUS.WARNING.color,
+					afterBand: 'warning',
 					cost: '−6.2% plan value',
 					profileFlip: 'Day Profile → Cruise',
 				},
@@ -33,7 +32,7 @@ const display: AdviceDisplay = {
 					},
 					action: 'Set the budget to 6.5h',
 					after: '71%',
-					afterStyle: STATUS.WARNING.color,
+					afterBand: 'warning',
 					cost: 'costs no plan value',
 					profileFlip: null,
 				},
@@ -102,6 +101,21 @@ describe('plan-advice-card.svelte', () => {
 		await expect.element(page.getByText('Set the budget to 6.5h')).toBeInTheDocument();
 		await expect.element(page.getByText('· costs no plan value')).toBeInTheDocument();
 		await expect.element(page.getByText('2 tasks get no hours in this plan.')).toBeInTheDocument();
+	});
+
+	// A band is otherwise carried by colour alone (WCAG 1.4.1) — the same reason
+	// the metrics dashboard renders this text.
+	it('carries every reading’s band in text as well as colour', async () => {
+		render(PlanAdviceCard, {
+			advice: display,
+			busy: false,
+			stale: false,
+			oncheck: () => {},
+		});
+
+		// The row's own reading, plus one per option: 82% critical, both afters caution.
+		await expect.element(page.getByText('(Critical)')).toBeInTheDocument();
+		expect(page.getByText('(Caution)').elements()).toHaveLength(2);
 	});
 
 	it('warns that the advice describes an older version of the day', async () => {

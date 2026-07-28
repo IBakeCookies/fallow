@@ -34,15 +34,26 @@ export function switchLocale(locale: Locale) {
 	);
 }
 
-/** Language names in their own language — identical in every UI locale. */
-const localeLabels: Record<Locale, string> = {
-	en: 'English',
-	de: 'Deutsch',
+/**
+ * Per-locale display data: the language's own name (identical in every UI
+ * locale) and its BCP-47 tag for `Intl` date formatting. One total record, so
+ * adding a locale fails to compile until both are filled in — a ternary
+ * defaulting to `en-US` would have shipped English dates silently.
+ */
+const LOCALE_DISPLAY: Record<Locale, { label: string; dateTag: string }> = {
+	en: {
+		label: 'English',
+		dateTag: 'en-US',
+	},
+	de: {
+		label: 'Deutsch',
+		dateTag: 'de-DE',
+	},
 };
 
-export const localeLabel = (locale: Locale) => localeLabels[locale];
+export const localeLabel = (locale: Locale) => LOCALE_DISPLAY[locale].label;
 
 /** BCP-47 tag for Intl date formatting, tracking the active locale. */
 export function getDateLocale(): string {
-	return activeLocale.value === 'de' ? 'de-DE' : 'en-US';
+	return LOCALE_DISPLAY[activeLocale.value].dateTag;
 }

@@ -685,12 +685,21 @@ Each of these was considered and decided. Re-deciding them is churn.
   the layout's retry action re-runs **both** `retryLoad()`s. A new store that
   can fail a read belongs in that handler too.
 
-- **Metric color-band thresholds live in the presentation layer** (`status.ts`,
-  `metric-descriptor.ts`). Banding a reading as good/bad is display policy,
-  not domain math. `metric-descriptor.ts` exports that policy as `BAND` +
-  `isOutOfBand` because the plan-advice card decides which findings to surface
-  from the same call the metric rows are colored by — two copies of the same
-  thresholds is exactly the R3 failure.
+- **Metric color-band thresholds live in the presentation layer**
+  (`utils/band.ts`, the whole banding policy in one module: the four band names,
+  the thresholds, the per-axis table, and the tokens and words each band renders
+  as). Banding a reading as good/bad is display policy, not domain math. It
+  exports `AXIS_BAND` + `isOutOfBand` because the plan-advice card decides which
+  findings to surface from the same call the metric rows are colored by — two
+  copies of the same thresholds is exactly the R3 failure.
+  **A view model carries a `Band`, never a class string.** `Metric.band` and
+  `AdviceRow.beforeBand` name the band; the component looks up
+  `BAND_TEXT_CLASS` / `BAND_BAR_CLASS` and `bandLabel`. Keying anything off
+  `text-success` makes renaming a token a silent behaviour change: the
+  dashboard's screen-reader band text was wired that way and a `-strong` swap
+  would have dropped it with nothing failing. `bandLabel` returns `null` for
+  `neutral` on purpose — the default value colour makes no claim, so silence is
+  the honest equivalent.
 
 - **Plan advice is computed on demand, never in a `$derived`** (MATH.md §14).
   `suggestPlanAdjustments` re-solves the whole day once per candidate, so cost

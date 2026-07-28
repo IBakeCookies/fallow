@@ -129,7 +129,6 @@
 	"banner_past_body": "du kannst Aufgaben weiterhin abhaken (eine vor Mitternacht vergessen? Hier korrigieren — Änderungen werden gespeichert), aber Hinzufügen oder Bearbeiten ist nur am heutigen Tag möglich.",
 	"metrics_all": "Alle {count} Kennzahlen",
 	"metric_band_optimal": "Optimal",
-	"metric_band_nominal": "Normal",
 	"metric_band_caution": "Achtung",
 	"metric_band_critical": "Kritisch",
 	"metric_zenith_gain": "Fallow-Gewinn",

@@ -12,7 +12,11 @@
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { cn } from '$lib/presentation/utils';
 	import { Button } from '$lib/presentation/component/ui/button';
-	import { getStatusBiggerBetter, getCompletionBarClass } from '$lib/presentation/utils/status';
+	import {
+		BAND_BAR_CLASS,
+		BAND_TEXT_CLASS,
+		getBandBiggerBetter,
+	} from '$lib/presentation/utils/band';
 	import { showToast } from '$lib/presentation/utils/toast';
 	import type { DaySummary } from '$lib/business/model/metric/history';
 	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
@@ -276,7 +280,7 @@
 							})}
 						>
 							<div
-								class="h-full rounded-full {getCompletionBarClass(s.completionRate)}"
+								class="h-full rounded-full {BAND_BAR_CLASS[getBandBiggerBetter(s.completionRate)]}"
 								style="width: {s.completionRate}%"
 							></div>
 						</div>
@@ -304,7 +308,7 @@
 					{:else}
 						<div class="mt-text-xs flex items-baseline justify-between text-xs">
 							{#if !isFuture}
-								<span class="font-medium {getStatusBiggerBetter(s.completionRate).color}">
+								<span class="font-medium {BAND_TEXT_CLASS[getBandBiggerBetter(s.completionRate)]}">
 									{s.completionRate}%
 								</span>
 							{:else}

@@ -3,6 +3,8 @@
  * persistence.
  */
 
+import type { Band } from '$lib/presentation/utils/band';
+
 /** One row/tile in the metrics dashboard. */
 export interface Metric {
 	/** starts a new visual section (rendered with a separator above) */
@@ -12,5 +14,6 @@ export interface Metric {
 	label: string;
 	value: string;
 	description: string;
-	valStyle: string;
+	/** How the reading judges; the component owns the colour and the wording. */
+	band: Band;
 }

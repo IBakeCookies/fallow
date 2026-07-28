@@ -15,14 +15,14 @@ import type {
 } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
-import { BAND, isOutOfBand } from '$lib/presentation/utils/metric-descriptor';
+import { AXIS_BAND, isOutOfBand, type Band } from '$lib/presentation/utils/band';
 
 export interface AdviceRowOption {
 	lever: AdviceLever;
 	/** What to do, in words: "Move “Tax return” off today". */
 	action: string;
 	after: string;
-	afterStyle: string;
+	afterBand: Band;
 	/** What it costs in plan value, already signed. */
 	cost: string;
 	/** Set only when this lever also changes the Day Profile. */
@@ -33,7 +33,7 @@ export interface AdviceRow {
 	axis: AdviceAxis;
 	label: string;
 	before: string;
-	beforeStyle: string;
+	beforeBand: Band;
 	options: AdviceRowOption[];
 }
 
@@ -62,18 +62,36 @@ const QUADRANT_LABEL: Record<DailyQuadrant, () => string> = {
 	routine: m.quadrant_routine,
 };
 
-/** Energy Balance reads as a direction, not a percentage — the metric row agrees. */
-function formatReading(axis: AdviceAxis, value: number): string {
-	if (!Number.isFinite(value)) return m.na_value();
+/**
+ * A reading and the band it falls in. Energy Balance reads as a direction, not
+ * a percentage — the metric row agrees.
+ *
+ * A non-reading gets no band: Human Capacity is `Infinity` when a pool holds 0
+ * hours with demand on it (MATH.md §14), and `AXIS_BAND` would call that
+ * critical — colouring "N/A" red, and announcing it as critical to a screen
+ * reader, is a judgement about a number that does not exist. The metric rows
+ * render every N/A neutral for the same reason.
+ */
+function readingOf(axis: AdviceAxis, value: number): { text: string; band: Band } {
+	if (!Number.isFinite(value))
+		return {
+			text: m.na_value(),
+			band: 'neutral',
+		};
 
-	if (axis === 'energyBalance')
-		return value > 60
-			? m.metric_cognitive_heavy()
-			: value < 40
-				? m.metric_physical_heavy()
-				: m.metric_balanced();
+	const text =
+		axis === 'energyBalance'
+			? value > 60
+				? m.metric_cognitive_heavy()
+				: value < 40
+					? m.metric_physical_heavy()
+					: m.metric_balanced()
+			: `${Math.round(value)}%`;
 
-	return `${Math.round(value)}%`;
+	return {
+		text,
+		band: AXIS_BAND[axis](value),
+	};
 }
 
 function formatAction(lever: AdviceLever): string {
@@ -115,37 +133,47 @@ function cap(options: AdviceOption[], max: number): AdviceOption[] {
 }
 
 export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDisplay {
-	const toRow = (axis: AdviceAxis, option: AdviceOption, cost: string): AdviceRowOption => ({
-		lever: option.lever,
-		action: formatAction(option.lever),
-		after: formatReading(axis, option.after),
-		afterStyle: BAND[axis](option.after).color,
-		cost,
-		profileFlip:
-			option.quadrant === advice.quadrant
-				? null
-				: m.advice_profile_flip({
-						profile: QUADRANT_LABEL[option.quadrant](),
-					}),
-	});
+	const toRow = (axis: AdviceAxis, option: AdviceOption, cost: string): AdviceRowOption => {
+		const after = readingOf(axis, option.after);
+
+		return {
+			lever: option.lever,
+			action: formatAction(option.lever),
+			after: after.text,
+			afterBand: after.band,
+			cost,
+			profileFlip:
+				option.quadrant === advice.quadrant
+					? null
+					: m.advice_profile_flip({
+							profile: QUADRANT_LABEL[option.quadrant](),
+						}),
+		};
+	};
 
 	const rows = advice.findings
 		.filter((finding) => isOutOfBand(finding.axis, finding.before))
-		.map((finding) => ({
-			axis: finding.axis,
-			label: AXIS_LABEL[finding.axis](),
-			before: formatReading(finding.axis, finding.before),
-			beforeStyle: BAND[finding.axis](finding.before).color,
-			options: [
-				...cap(finding.options, maxOptions).map((option) =>
-					toRow(finding.axis, option, formatCost(option.planValueDeltaPercent)),
-				),
-				// Last, and priced in hours rather than plan value: Σ P̄ *rises* when
-				// the budget does, so showing that rise in the cost column would read
-				// as the extra hour being free (MATH.md §14).
-				...(finding.unpriced ? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour())] : []),
-			],
-		}));
+		.map((finding) => {
+			const before = readingOf(finding.axis, finding.before);
+
+			return {
+				axis: finding.axis,
+				label: AXIS_LABEL[finding.axis](),
+				before: before.text,
+				beforeBand: before.band,
+				options: [
+					...cap(finding.options, maxOptions).map((option) =>
+						toRow(finding.axis, option, formatCost(option.planValueDeltaPercent)),
+					),
+					// Last, and priced in hours rather than plan value: Σ P̄ *rises* when
+					// the budget does, so showing that rise in the cost column would read
+					// as the extra hour being free (MATH.md §14).
+					...(finding.unpriced
+						? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour())]
+						: []),
+				],
+			};
+		});
 
 	const unfundedCount = advice.unfundedTaskIds.length;
 

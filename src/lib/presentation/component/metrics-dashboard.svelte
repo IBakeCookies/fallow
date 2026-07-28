@@ -3,7 +3,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { Badge } from '$lib/presentation/component/ui/badge';
-	import { STATUS } from '$lib/presentation/utils/status';
+	import { BAND_TEXT_CLASS, bandLabel, type Band } from '$lib/presentation/utils/band';
 
 	interface Props {
 		metrics: Metric[];
@@ -16,16 +16,6 @@
 	// The headline four get tiles; the rest stay one click away rather than gone.
 	const headline = $derived(metrics.filter((item) => item.headline));
 	const rest = $derived(metrics.filter((item) => !item.headline));
-
-	// A reading's band is otherwise carried by colour alone (WCAG 1.4.1), so
-	// each judged band also gets text only a screen reader hears. NEUTRAL is
-	// left out on purpose: `text-ty-primary` is the default value colour and
-	// says nothing — silence is the honest equivalent.
-	const bandLabel: Record<string, () => string> = {
-		[STATUS.SUCCESS.color]: m.metric_band_optimal,
-		[STATUS.WARNING.color]: m.metric_band_caution,
-		[STATUS.CRITICAL.color]: m.metric_band_critical,
-	};
 </script>
 
 <div class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card">
@@ -76,11 +66,13 @@
 			<div class="rounded-xl border border-line-soft px-box-sm py-box-xs">
 				{@render label(item)}
 				<p
-					class="mt-text-2xs text-lg font-semibold leading-tight capitalize wrap-anywhere {item.valStyle}"
+					class="mt-text-2xs text-lg font-semibold leading-tight capitalize wrap-anywhere {BAND_TEXT_CLASS[
+						item.band
+					]}"
 				>
 					{item.value}
 				</p>
-				{@render band(item.valStyle)}
+				{@render bandText(item.band)}
 			</div>
 		{/each}
 	</div>
@@ -107,8 +99,10 @@
 						class="px-box-sm py-box-2xs flex justify-between items-baseline rounded-lg transition hover:bg-surface-hover"
 					>
 						{@render label(item)}
-						<span class="text-sm font-semibold capitalize {item.valStyle}">{item.value}</span>
-						{@render band(item.valStyle)}
+						<span class="text-sm font-semibold capitalize {BAND_TEXT_CLASS[item.band]}"
+							>{item.value}</span
+						>
+						{@render bandText(item.band)}
 					</div>
 				{/each}
 			</div>
@@ -133,12 +127,14 @@
 	</Tooltip.Provider>
 {/snippet}
 
-<!-- Sibling of the value, never nested: keeps the value element's text content
-     exactly the reading, which is what the e2e assertions and any consumer of the
-     rendered number match on. A screen reader reads the two in sequence either
-     way. -->
-{#snippet band(valStyle: string)}
-	{#if bandLabel[valStyle]}
-		<span class="sr-only">({bandLabel[valStyle]()})</span>
+<!-- A reading's band is otherwise carried by colour alone (WCAG 1.4.1), so each
+     judged band also gets text only a screen reader hears. Sibling of the value,
+     never nested: that keeps the value element's text content exactly the
+     reading, which is what the e2e assertions and any consumer of the rendered
+     number match on. A screen reader reads the two in sequence either way. -->
+{#snippet bandText(band: Band)}
+	{@const judged = bandLabel(band)}
+	{#if judged}
+		<span class="sr-only">({judged})</span>
 	{/if}
 {/snippet}

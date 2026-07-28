@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import type { AdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
+	import { BAND_TEXT_CLASS, bandLabel, type Band } from '$lib/presentation/utils/band';
 	import { Button } from '$lib/presentation/component/ui/button';
 
 	interface Props {
@@ -57,7 +58,10 @@
 					<li class="rounded-xl border border-line-soft p-box-sm">
 						<div class="flex items-baseline justify-between gap-grid-xs">
 							<span class="text-xs font-medium text-ty-secondary">{row.label}</span>
-							<span class="text-sm font-semibold {row.beforeStyle}">{row.before}</span>
+							<span class="text-sm font-semibold {BAND_TEXT_CLASS[row.beforeBand]}"
+								>{row.before}</span
+							>
+							{@render bandText(row.beforeBand)}
 						</div>
 						<ul class="mt-text-xs space-y-text-xs">
 							{#each row.options as option (option.action)}
@@ -66,7 +70,10 @@
 								>
 									<span class="min-w-0 text-xs text-ty-primary">{option.action}</span>
 									<span class="flex shrink-0 items-baseline gap-text-xs text-xs">
-										<span class="font-semibold {option.afterStyle}">{option.after}</span>
+										<span class="font-semibold {BAND_TEXT_CLASS[option.afterBand]}"
+											>{option.after}</span
+										>
+										{@render bandText(option.afterBand)}
 										<span class="text-ty-silent">· {option.cost}</span>
 									</span>
 									{#if option.profileFlip}
@@ -81,3 +88,13 @@
 		{/if}
 	</div>
 {/if}
+
+<!-- The band a reading falls in is otherwise carried by colour alone (WCAG
+     1.4.1), the same reason the metrics dashboard renders this. Sibling of the
+     value, never nested, so the value element's text stays exactly the reading. -->
+{#snippet bandText(band: Band)}
+	{@const judged = bandLabel(band)}
+	{#if judged}
+		<span class="sr-only">({judged})</span>
+	{/if}
+{/snippet}

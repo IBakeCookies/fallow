@@ -129,7 +129,6 @@
 	"banner_past_body": "you can still check tasks on or off (forgot one before midnight? fix it here — changes are saved), but adding or editing tasks is only possible on today.",
 	"metrics_all": "All {count} metrics",
 	"metric_band_optimal": "Optimal",
-	"metric_band_nominal": "Nominal",
 	"metric_band_caution": "Caution",
 	"metric_band_critical": "Critical",
 	"metric_zenith_gain": "Fallow Gain",

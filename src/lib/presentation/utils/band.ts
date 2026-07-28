@@ -1,0 +1,107 @@
+/**
+ * Banding policy: a reading → one of four bands, and a band → the tokens and
+ * the words that render it.
+ *
+ * Presentation policy on purpose — calling a number good or bad is a display
+ * decision, not domain math, so the thresholds live here and not with the
+ * metric model. Nothing in this file computes a reading.
+ *
+ * A view model carries the **band** (`Metric.band`, `AdviceRow.beforeBand`),
+ * never a class string. Keying anything off `text-success` makes renaming a
+ * token a silent behaviour change: that is how the dashboard's screen-reader
+ * band text was wired, and a `-strong` swap would have dropped it with nothing
+ * failing.
+ */
+
+import type { AdviceAxis } from '$lib/business/model/metric/plan-advice';
+import * as m from '$lib/paraglide/messages.js';
+
+export const BANDS = ['success', 'neutral', 'warning', 'critical'] as const;
+
+export type Band = (typeof BANDS)[number];
+
+/** Value colour per band. */
+export const BAND_TEXT_CLASS: Record<Band, string> = {
+	success: 'text-success',
+	neutral: 'text-ty-primary',
+	warning: 'text-warning',
+	critical: 'text-danger',
+};
+
+/** Fill per band, for completion bars — the same bands, so the same thresholds. */
+export const BAND_BAR_CLASS: Record<Band, string> = {
+	success: 'bg-success',
+	neutral: 'bg-ty-secondary',
+	warning: 'bg-warning',
+	critical: 'bg-danger',
+};
+
+/**
+ * The band in words, for the text a screen reader hears where colour is
+ * otherwise the only carrier (WCAG 1.4.1). Read per call rather than baked into
+ * a table, so it follows a locale switch.
+ *
+ * Neutral is `null` on purpose: `text-ty-primary` is the default value colour
+ * and says nothing, so silence is the honest equivalent.
+ */
+export function bandLabel(band: Band): string | null {
+	switch (band) {
+		case 'success':
+			return m.metric_band_optimal();
+		case 'neutral':
+			return null;
+		case 'warning':
+			return m.metric_band_caution();
+		case 'critical':
+			return m.metric_band_critical();
+	}
+}
+
+export function getBandBiggerBetter(value: number): Band {
+	if (value >= 75) return 'success';
+
+	if (value >= 50) return 'neutral';
+
+	if (value >= 25) return 'warning';
+
+	return 'critical';
+}
+
+export function getBandSmallerBetter(value: number): Band {
+	if (value <= 25) return 'success';
+
+	if (value <= 50) return 'neutral';
+
+	if (value <= 75) return 'warning';
+
+	return 'critical';
+}
+
+/**
+ * The band policy for every reading the plan advisor can search on, exported
+ * because the advice card decides WHICH findings to surface from exactly the
+ * good/bad call the metric rows are coloured by (AGENTS.md R3 — one definition,
+ * not two copies of the same thresholds). `satisfies` keeps it total over the
+ * axes.
+ */
+export const AXIS_BAND = {
+	burnoutRisk: (value: number) => getBandSmallerBetter(value),
+	humanCapacity: (value: number): Band =>
+		value <= 75 ? 'success' : value <= 100 ? 'neutral' : 'critical',
+	// Load only reads as a problem past 70%; below that it is just how the day is
+	// shaped.
+	cognitiveLoad: (value: number) => getBandSmallerBetter(value > 70 ? value : 0),
+	physicalLoad: (value: number) => getBandSmallerBetter(value > 70 ? value : 0),
+	energyBalance: (value: number): Band => (value > 60 || value < 40 ? 'warning' : 'success'),
+	frictionIndex: (value: number) => getBandSmallerBetter(value),
+	grindDensity: (value: number) => getBandSmallerBetter(value),
+	timeScarcity: (value: number) => getBandSmallerBetter(value),
+	scheduleIntegrity: (value: number) => getBandBiggerBetter(value),
+} satisfies Record<AdviceAxis, (value: number) => Band>;
+
+/** Whether a reading is bad enough to be worth advice about. */
+export function isOutOfBand(axis: AdviceAxis, value: number): boolean {
+	const band = AXIS_BAND[axis](value);
+
+	return band === 'warning' || band === 'critical';
+}

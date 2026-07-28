@@ -245,9 +245,7 @@ function paretoOptions(
 					// A zero baseline has no ratio, and reporting 0% there renders a
 					// real gain as costing nothing (MATH.md §14).
 					planValueDeltaPercent:
-						baseValue > 0
-							? Math.round(((planValue - baseValue) / baseValue) * 1000) / 10
-							: null,
+						baseValue > 0 ? Math.round(((planValue - baseValue) / baseValue) * 1000) / 10 : null,
 				},
 			};
 		})
