@@ -27,9 +27,9 @@ export type AdviceLever =
 			/**
 			 * "Suppose this task were not on today's list" — a counterfactual, not an
 			 * operation. `applyLever` filters it out and re-solves; nothing is moved
-			 * and nothing is deleted, and the model has no opinion on where it goes
-			 * (tasks cannot move between days at all — AGENTS.md §6). Applying it is
-			 * the user's action, which is why the card offers no Apply here.
+			 * and nothing is deleted, and the model has no opinion on where it goes.
+			 * Performing it is `SessionStore.moveTaskToTomorrow` (AGENTS.md §6),
+			 * which this module knows nothing about.
 			 */
 			kind: 'defer-task';
 			taskId: number;

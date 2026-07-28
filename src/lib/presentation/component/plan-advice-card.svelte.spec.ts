@@ -51,6 +51,7 @@ describe('plan-advice-card.svelte', () => {
 			stale: false,
 			error: false,
 			oncheck,
+			onapply: () => {},
 		});
 
 		expect(document.body.textContent).not.toContain('Burnout Risk');
@@ -74,6 +75,7 @@ describe('plan-advice-card.svelte', () => {
 			stale: false,
 			error: false,
 			oncheck: () => {},
+			onapply: () => {},
 		});
 
 		await expect
@@ -94,6 +96,7 @@ describe('plan-advice-card.svelte', () => {
 			stale: false,
 			error: false,
 			oncheck: () => {},
+			onapply: () => {},
 		});
 
 		await expect.element(page.getByText('Burnout Risk')).toBeInTheDocument();
@@ -115,6 +118,7 @@ describe('plan-advice-card.svelte', () => {
 			stale: false,
 			error: false,
 			oncheck: () => {},
+			onapply: () => {},
 		});
 
 		// The row's own reading, plus one per option: 82% critical, both afters caution.
@@ -129,6 +133,7 @@ describe('plan-advice-card.svelte', () => {
 			stale: true,
 			error: false,
 			oncheck: () => {},
+			onapply: () => {},
 		});
 
 		await expect
@@ -144,6 +149,38 @@ describe('plan-advice-card.svelte', () => {
 			.toBeEnabled();
 	});
 
+	// Only a deferral is performable: the budget lever is a slider the user
+	// already owns, and the button must say which task it moves (the visible
+	// "To tomorrow" alone would leave N identical buttons).
+	it('applies a deferral with its task id, and only offers apply for deferrals', async () => {
+		const onapply = vi.fn();
+
+		render(PlanAdviceCard, {
+			advice: display,
+			busy: false,
+			stale: false,
+			error: false,
+			oncheck: () => {},
+			onapply,
+		});
+
+		expect(
+			page
+				.getByRole('button', {
+					name: /to tomorrow/i,
+				})
+				.elements(),
+		).toHaveLength(1);
+
+		await page
+			.getByRole('button', {
+				name: 'Move “Tax return” to tomorrow',
+			})
+			.click();
+
+		expect(onapply).toHaveBeenCalledExactlyOnceWith(1);
+	});
+
 	it('says so plainly when nothing is out of band', async () => {
 		render(PlanAdviceCard, {
 			advice: {
@@ -154,6 +191,7 @@ describe('plan-advice-card.svelte', () => {
 			stale: false,
 			error: false,
 			oncheck: () => {},
+			onapply: () => {},
 		});
 
 		await expect

@@ -197,6 +197,8 @@
 	"advice_error": "The check failed. Try again.",
 	"advice_clear": "Nothing reads badly enough to act on. This day is fine.",
 	"advice_action_defer": "Move “{title}” off today",
+	"advice_apply": "To tomorrow",
+	"advice_apply_label": "Move “{title}” to tomorrow",
 	"advice_action_budget": "Set the budget to {hours}h",
 	"advice_cost": "{percent}% plan value",
 	"advice_cost_free": "costs no plan value",

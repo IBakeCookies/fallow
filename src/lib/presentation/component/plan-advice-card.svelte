@@ -13,9 +13,11 @@
 		/** The last check failed; the advice shown (if any) predates the failure. */
 		error: boolean;
 		oncheck: () => void;
+		/** Perform a defer-task option: move that task to tomorrow's plan. */
+		onapply: (taskId: number) => void;
 	}
 
-	let { advice, busy, stale, error, oncheck }: Props = $props();
+	let { advice, busy, stale, error, oncheck, onapply }: Props = $props();
 </script>
 
 <!-- Until the user asks, this is one button and nothing else: a card advertising
@@ -78,6 +80,7 @@
 						</div>
 						<ul class="mt-text-xs space-y-text-xs">
 							{#each row.options as option (option.action)}
+								{@const lever = option.lever}
 								<li
 									class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
 								>
@@ -88,6 +91,22 @@
 										>
 										{@render bandText(option.afterBand)}
 										<span class="text-ty-silent">· {option.cost}</span>
+										<!-- Only a deferral is performable: the reading prices "off
+										     today" (MATH.md §14), the button commits to a destination.
+										     aria-label carries the title so the buttons stay apart. -->
+										{#if lever.kind === 'defer-task'}
+											<Button
+												variant="outline"
+												size="sm"
+												disabled={busy}
+												aria-label={m.advice_apply_label({
+													title: lever.title,
+												})}
+												onclick={() => onapply(lever.taskId)}
+											>
+												{m.advice_apply()}
+											</Button>
+										{/if}
 									</span>
 									{#if option.profileFlip}
 										<span class="basis-full text-xs text-ty-silent">{option.profileFlip}</span>

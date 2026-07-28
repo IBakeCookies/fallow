@@ -7,6 +7,7 @@ import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
+import { addDays } from '$lib/business/utils/date';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
 
@@ -372,6 +373,142 @@ describe('SessionStore persistence', () => {
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			availableHours: 8,
 		});
+	});
+
+	it('moves a task to tomorrow, leaving today-only facts behind', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+		});
+
+		flushSync();
+		const id = store.tasks[0].id;
+		await store.logFlow(id, 25); // stamps flowMinutes, which must NOT travel
+		vi.clearAllMocks();
+		useFakeTimers(); // freeze the auto-save so only the move writes
+
+		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+		expect(store.tasks).toHaveLength(0);
+
+		const write = updateSessionMock.mock.calls[0][0];
+		expect(write.date).toBe(addDays(store.today, 1));
+		expect(write.tasks).toHaveLength(1);
+
+		expect(write.tasks[0]).toMatchObject({
+			title: 'Tax return',
+			completed: false,
+		});
+
+		// A statement about today and a measurement keyed to today stay behind.
+		expect(write.tasks[0].mustDoToday).toBeUndefined();
+		expect(write.tasks[0].flowMinutes).toBeUndefined();
+	});
+
+	it('appends to tomorrow’s existing plan instead of replacing it', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'Migrate the database',
+			physicalDifficulty: 1,
+			mentalDifficulty: 9,
+			enjoyment: 2,
+		});
+
+		flushSync();
+		const id = store.tasks[0].id;
+		const tomorrow = addDays(store.today, 1);
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === tomorrow
+				? {
+						date,
+						tasks: [
+							{
+								id: 1,
+								title: 'already planned',
+								physicalDifficulty: 3,
+								mentalDifficulty: 3,
+								enjoyment: 5,
+								createdAt: tomorrow,
+								completed: false,
+							},
+						],
+						availableHours: 5,
+						switchCost: 0.5,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		useFakeTimers();
+
+		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+
+		const write = updateSessionMock.mock.calls[0][0];
+		expect(write.tasks.map((t) => t.title)).toEqual(['Migrate the database', 'already planned']);
+		expect(new Set(write.tasks.map((t) => t.id)).size).toBe(2);
+
+		// Tomorrow's own budget survives the append.
+		expect(write).toMatchObject({
+			availableHours: 5,
+			switchCost: 0.5,
+		});
+	});
+
+	// Destination write first, removal after: the failure mode must be a visible
+	// duplicate, never a vanished task.
+	it('keeps the task and raises the banner when the destination write fails', async () => {
+		const { store, status } = await setup();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		useFakeTimers();
+		updateSessionMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(false);
+		expect(store.tasks).toHaveLength(1);
+		expect(status.error).toBe('save-failed');
+	});
+
+	it('refuses to move a completed or must-do-today task', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+			mustDoToday: true,
+		});
+
+		store.addTask({
+			title: 'done already',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		await store.toggleTask(store.tasks[0].id); // completes 'done already'
+		useFakeTimers();
+		vi.clearAllMocks();
+
+		for (const task of store.tasks) {
+			expect(await store.moveTaskToTomorrow(task.id)).toBe(false);
+		}
+
+		expect(store.tasks).toHaveLength(2);
+		expect(updateSessionMock).not.toHaveBeenCalled();
 	});
 
 	it('re-reads yesterday after a midnight rollover', async () => {

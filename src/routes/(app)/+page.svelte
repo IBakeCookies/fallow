@@ -171,6 +171,7 @@
 					stale={plan.adviceStale}
 					error={plan.adviceError}
 					oncheck={() => plan.computeAdvice()}
+					onapply={(id) => session.moveTaskToTomorrow(id)}
 				/>
 			{/if}
 		</div>

@@ -460,6 +460,80 @@ export class SessionStore {
 		this.#tasks = this.#tasks.filter((t) => t.id !== id);
 	}
 
+	// Serializes moveTaskToTomorrow: two overlapping moves would each
+	// read-modify-write tomorrow's record and the second would drop the first's
+	// task. Not $state — nothing renders it.
+	#moving = false;
+
+	/**
+	 * Move one active task to tomorrow's plan: append it there, then drop it
+	 * here. The destination write is a read-modify-write against tomorrow's
+	 * stored session — the only write in this store that does not target the
+	 * viewed day (AGENTS.md §6). Ordered so the failure mode is a visible
+	 * duplicate, never a vanished task: the local removal (persisted by
+	 * auto-save) happens only after the destination write lands.
+	 */
+	async moveTaskToTomorrow(id: number): Promise<boolean> {
+		// Same guard as toggleTask: loads are async, so mid-navigation the
+		// in-memory tasks still belong to the previous day. Past days are
+		// read-only history, and a completed task IS history.
+		if (this.#loadedDate !== this.#selectedDate || this.#isViewingPast) return false;
+
+		if (this.#moving) return false;
+
+		const task = this.#tasks.find((t) => t.id === id);
+
+		// `=== true` like the advisor: the flag is persisted, so validate on read.
+		if (!task || task.completed || task.mustDoToday === true) return false;
+
+		this.#moving = true;
+
+		const tomorrow = addDays(this.#selectedDate, 1);
+
+		try {
+			const dest = await this.#readSession(tomorrow);
+			const destTasks = dest?.tasks ?? [];
+
+			// Definition and provenance only: a fresh id in the destination day's
+			// id space (observation joins are per-date, so the old id keeps its
+			// logs here), no `mustDoToday` (a statement about today, not the task)
+			// and no `flowMinutes` (a measurement keyed to this date).
+			const moved: Task = {
+				id: nextTaskId(destTasks),
+				title: task.title,
+				physicalDifficulty: task.physicalDifficulty,
+				mentalDifficulty: task.mentalDifficulty,
+				enjoyment: task.enjoyment,
+				createdAt: task.createdAt,
+				completed: false,
+			};
+
+			await sessionRepository.$updateSession({
+				date: tomorrow,
+				tasks: [moved, ...destTasks],
+				availableHours: dest?.availableHours ?? 0,
+				switchCost: dest?.switchCost ?? DEFAULT_SWITCH_COST,
+				cognitivePool: dest?.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
+				physicalPool: dest?.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+				updatedAt: Date.now(),
+			});
+
+			this.#tasks = this.#tasks.filter((t) => t.id !== id);
+
+			return true;
+		} catch (e) {
+			logError('Failed to move task to tomorrow', e, {
+				date: this.#selectedDate,
+			});
+
+			this.#reporter.report('save-failed');
+
+			return false;
+		} finally {
+			this.#moving = false;
+		}
+	}
+
 	updateTask(
 		id: number,
 		changes: Partial<

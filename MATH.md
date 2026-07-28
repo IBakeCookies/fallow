@@ -1813,14 +1813,16 @@ ever has to be interactive.
   first is taken.
 - **"Defer" is a counterfactual, not an operation.** The lever is exactly
   `tasks.filter(t => t.id !== id)` re-solved: it asks _suppose this task were
-  not on today's list_, and the model has no opinion on where it goes. Nothing
-  is moved and nothing is deleted — the reading is the price of the option, and
-  taking it is the user's action (see AGENTS.md §6: there is no cross-day move
-  yet, which is why the card offers no Apply). The label reads "move it off
-  today" rather than "defer to tomorrow" for that reason.
+  not on today's list_, and the model has no opinion on where it goes. The
+  reading is the price of the option; performing it is separate — the card's
+  "To tomorrow" button calls `moveTaskToTomorrow` (AGENTS.md §6), a store
+  operation the model knows nothing about. The reading's label stays "move it
+  off today" because that is all the model prices; only the button commits to
+  a destination.
 - **A deferred task is not scored against tomorrow.** The model has no
-  multi-day horizon, so "defer" prices the relief and not the debt. Even once a
-  real move exists, that stays true until the horizon does.
+  multi-day horizon, so "defer" prices the relief and not the debt. The real
+  move exists now, and this stays true: applying a deferral changes tomorrow's
+  plan without tomorrow's readings ever entering today's advice.
 - **Obligation is a flag, not a model.** `Task.mustDoToday` removes a task from
   the defer candidates entirely, which is the whole of what the model knows
   about obligation: there is no deadline date, no priority order, and no cost

@@ -934,20 +934,23 @@ Each of these was considered and decided. Re-deciding them is churn.
   persisted shape**, in `business/model/persisted.ts` for a record the model
   reads, and route the read through it — the repository's return type is a
   description of a well-formed record, never a guarantee.
-- **A task cannot move between days.** Tasks live inside their day's
-  `DailySession` record, so "move to tomorrow" means removing from today's
-  session _and_ appending to tomorrow's. The data layer is already
-  date-general (`$readSessionByDate`, `$updateSession` both take a date); the
-  gap is one layer up — every write in `session-store.svelte.ts` targets the
-  **viewed** day (`#tasks` plus the debounced autosave under `#selectedDate`),
-  and the one method that names another date, `importFromDate`, reads _from_
-  that date _into_ the current one. A real move needs its own store method,
-  the existing `#loadedDate !== #selectedDate` guard so a mid-navigation write
-  cannot clobber the incoming day, and a decision about what happens when the
-  destination day is the one on screen.
-  This is why the plan-advice card shows no Apply button on a `defer-task`
-  option: the only mechanism available is `removeTask`, which discards the task
-  with no undo. The advice states the price and the user acts (MATH.md §14).
+- **A task moves between days only via `moveTaskToTomorrow`.** Tasks live
+  inside their day's `DailySession` record, so a move is two writes: append to
+  tomorrow's session (a read-modify-write through `$readSessionByDate` /
+  `$updateSession` — the only store write that does not target the viewed
+  day), then drop from today's `#tasks` (persisted by the normal autosave). In
+  that order and without a transaction on purpose: the failure mode is a
+  visible duplicate, never a vanished task. What travels is definition and
+  provenance only — a fresh id in the destination day's id space (observation
+  joins are per-date), no `mustDoToday`, no `flowMinutes`. The method refuses
+  completed and `mustDoToday` tasks, no-ops mid-navigation
+  (`#loadedDate !== #selectedDate`) and serializes with itself (two
+  overlapping read-modify-writes on tomorrow would drop one task). Destination
+  is hard-coded to `selectedDate + 1`: the advice card's "To tomorrow" button
+  is the only caller, it never means anything else, and tomorrow is never the
+  day on screen — an arbitrary-date move would have to answer that (YAGNI).
+  The advice reading itself stays a counterfactual (MATH.md §14): the model
+  prices "off today", only the button commits to a destination.
 - **`PUBLIC_SITE_URL` is unset on Vercel** (see `.env.example`). It is the only
   environment variable the app reads. Production origin:
   `https://zenith-drab-psi.vercel.app` — no trailing slash, **Production scope

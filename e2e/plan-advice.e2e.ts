@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { AUTOSAVE_MS, isoDate } from './helpers';
 
 /* The advice card is the one place the app says what to CHANGE rather than what
    the day reads. Every option it shows is a full re-solve of the day (MATH.md
@@ -103,6 +104,55 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
 
 	await expect(page.getByText(/plan value/).first()).toBeVisible();
 	await expect(page.getByText('Move “Tax return” off today')).toBeHidden();
+});
+
+// The one advice the card can perform itself (MATH.md §14 / AGENTS.md §6):
+// the button names the task it moves, so the test reads it back rather than
+// assuming which lever survives the frontier.
+test('applying a deferral moves the task to tomorrow’s plan', async ({ page }) => {
+	await page.goto('/');
+	await addDrainingTask(page, 'Write the spec');
+	await addDrainingTask(page, 'Migrate the database');
+	await addDrainingTask(page, 'Refactor the auth flow');
+
+	// Tight on purpose: with slack in the budget, the free trim lever dominates
+	// every deferral on every axis and no defer survives the frontier.
+	await page.getByLabel('Available Hours').fill('4');
+	await page.getByLabel('Available Hours').blur();
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	const apply = page
+		.getByRole('button', {
+			name: /Move “.+” to tomorrow/,
+		})
+		.first();
+
+	await expect(apply).toBeVisible();
+	const title = (await apply.getAttribute('aria-label'))!.match(/“(.+)”/)![1];
+
+	await apply.click();
+
+	// Gone from today…
+	await expect(
+		page.getByRole('checkbox', {
+			name: `Mark ${title} complete`,
+		}),
+	).toBeHidden();
+
+	// …and the removal is a debounced autosave; let it land before navigating.
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto(`/?date=${isoDate(1)}`);
+
+	await expect(
+		page.getByRole('checkbox', {
+			name: `Mark ${title} complete`,
+		}),
+	).toBeVisible();
 });
 
 test('the advice card stays out of the way on a past day', async ({ page }) => {

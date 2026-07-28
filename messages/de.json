@@ -197,6 +197,8 @@
 	"advice_error": "Die Prüfung ist fehlgeschlagen. Versuch es noch einmal.",
 	"advice_clear": "Nichts liest sich schlecht genug, um etwas zu ändern. Dieser Tag passt.",
 	"advice_action_defer": "„{title}“ auf einen anderen Tag verschieben",
+	"advice_apply": "Auf morgen",
+	"advice_apply_label": "„{title}“ auf morgen verschieben",
 	"advice_action_budget": "Budget auf {hours} h setzen",
 	"advice_cost": "{percent} % Planwert",
 	"advice_cost_free": "kostet keinen Planwert",
