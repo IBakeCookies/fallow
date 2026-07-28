@@ -80,6 +80,12 @@ const SYNODIC_DAYS = 29.53058867;
 /* a known new moon: 2000-01-06 18:14 UTC */
 const NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14);
 
+/* 0 below `from`, 1 above `to`, linear between — the building block for the
+   foliage season windows below. */
+function rampBetween(value: number, from: number, to: number): number {
+	return Math.min(1, Math.max(0, (value - from) / (to - from)));
+}
+
 export function dataSceneryStyle(clock: WallClock): string {
 	const { hours } = clock;
 	/* sundial: 0 at 06:00 → 1 at 20:00, clamped; alt is the sun's altitude
@@ -110,6 +116,23 @@ export function dataSceneryStyle(clock: WallClock): string {
 	   facing north, the sky rotates counterclockwise. vis is sundial's curve
 	   inverted — the star clock wakes when the sundial sleeps. */
 	const polaris = -((hours * 15.041 + clock.dayOfYear * 0.9857) % 360);
+	/* hourglass: the hour's sand — full on the hour, empty at :59, refilled
+	   ("flipped") at the next :00. A level, not an animation: it steps down
+	   with each minutely recompute like every var here. */
+	const hourglassLevel = 1 - (hours % 1);
+	/* circuit: the board's heat — cold at midnight, peaking at noon, cooling
+	   back toward the next midnight. The CSS maps it to hue and glow. */
+	const circuitHeat = Math.sin((Math.PI * hours) / 24);
+	/* foliage: three leaf layers over the day of the year, each a plateau with
+	   linear on/off ramps (zero-based, non-leap: day 59 = Mar 1, 151 = Jun 1,
+	   243 = Sep 1, 334 = Dec 1). Buds carry spring, the full canopy carries
+	   summer and thins through autumn while the warm layer turns, and by
+	   December the branch is bare. Northern-hemisphere seasons, like polaris's
+	   northern sky. */
+	const { dayOfYear } = clock;
+	const foliageBuds = rampBetween(dayOfYear, 59, 90) * (1 - rampBetween(dayOfYear, 120, 151));
+	const foliageSummer = rampBetween(dayOfYear, 105, 151) * (1 - rampBetween(dayOfYear, 243, 319));
+	const foliageAutumn = rampBetween(dayOfYear, 243, 283) * (1 - rampBetween(dayOfYear, 305, 334));
 
 	return [
 		`--sundial-t: ${sun.toFixed(3)}`,
@@ -122,5 +145,10 @@ export function dataSceneryStyle(clock: WallClock): string {
 		`--orrery-week: ${weekAngle.toFixed(2)}`,
 		`--polaris-angle: ${polaris.toFixed(2)}`,
 		`--polaris-vis: ${(1 - vis).toFixed(3)}`,
+		`--hourglass-level: ${hourglassLevel.toFixed(3)}`,
+		`--circuit-heat: ${circuitHeat.toFixed(3)}`,
+		`--foliage-buds: ${foliageBuds.toFixed(3)}`,
+		`--foliage-summer: ${foliageSummer.toFixed(3)}`,
+		`--foliage-autumn: ${foliageAutumn.toFixed(3)}`,
 	].join('; ');
 }

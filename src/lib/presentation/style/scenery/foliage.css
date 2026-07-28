@@ -1,0 +1,49 @@
+/* Foliage: a bough across the top edge that keeps the calendar. Three leaf
+   layers share the branch's anchor points and fade with the season —
+   --foliage-buds carries spring, --foliage-summer the full canopy,
+   --foliage-autumn the turning leaves — so July reads dense green, October
+   amber, and January bare wood (vars from utils/scenery-time.ts, northern
+   seasons). Nothing moves; the year does.
+
+   All four layers share one 1200×320 viewBox anchored to the top edge at
+   100% width, so the leaf clusters stay registered on their twigs at any
+   aspect ratio. */
+.foliage .theme-scenery {
+	display: block;
+
+	.theme-helper-1,
+	.theme-helper-2,
+	.theme-helper-3,
+	.theme-helper-4 {
+		position: absolute;
+		inset: 0;
+		top: 70%;
+		background-repeat: no-repeat;
+		background-position: top;
+		background-size: 100% auto;
+	}
+
+	/* the bough and its twigs — bare wood, the winter state */
+	.theme-helper-1 {
+		opacity: 0.9;
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='320' viewBox='0 0 1200 320'><g fill='none' stroke='%236b4a33' stroke-linecap='round'><path d='M1210 42 C1010 74 780 58 565 96 C405 124 255 108 125 76' stroke-width='11'/><path d='M955 66 C925 108 898 138 852 166' stroke-width='5'/><path d='M625 88 C602 122 572 150 522 172' stroke-width='5'/><path d='M335 106 C312 130 282 148 242 158' stroke-width='4'/><path d='M765 70 C745 94 726 110 702 124' stroke-width='3'/><path d='M455 108 C438 128 422 140 402 148' stroke-width='3'/><path d='M880 63 C872 42 860 30 845 22' stroke-width='3'/><path d='M420 105 C412 84 400 70 384 58' stroke-width='3'/></g></svg>");
+	}
+
+	/* spring buds — small fresh dots at every anchor */
+	.theme-helper-2 {
+		opacity: var(--foliage-buds, 0);
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='320' viewBox='0 0 1200 320'><g fill='%23a9c97a' fill-opacity='0.95'><g transform='translate(852 172)'><circle r='5'/><circle cx='11' cy='-7' r='4'/><circle cx='-9' cy='-5' r='3.5'/></g><g transform='translate(522 178)'><circle r='5'/><circle cx='11' cy='-7' r='4'/><circle cx='-9' cy='-5' r='3.5'/></g><g transform='translate(242 164)'><circle r='5'/><circle cx='10' cy='-6' r='4'/></g><g transform='translate(702 130)'><circle r='4.5'/><circle cx='10' cy='-6' r='3.5'/></g><g transform='translate(402 154)'><circle r='4.5'/><circle cx='10' cy='-6' r='3.5'/></g><g transform='translate(1055 70)'><circle r='5'/><circle cx='-11' cy='-6' r='4'/></g><g transform='translate(845 20)'><circle r='4.5'/><circle cx='10' cy='6' r='3.5'/></g><g transform='translate(384 56)'><circle r='4.5'/><circle cx='10' cy='6' r='3.5'/></g><g transform='translate(955 110)'><circle r='4'/></g><g transform='translate(625 132)'><circle r='4'/></g><g transform='translate(150 68)'><circle r='5'/><circle cx='-10' cy='-6' r='4'/></g><g transform='translate(300 96)'><circle r='4'/></g></g></svg>");
+	}
+
+	/* summer canopy — full leaf clusters on the same anchors */
+	.theme-helper-3 {
+		opacity: var(--foliage-summer, 1);
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='320' viewBox='0 0 1200 320'><g fill-opacity='0.88'><g transform='translate(852 172)'><ellipse rx='16' ry='10' transform='rotate(-28)' fill='%234d8544'/><ellipse rx='14' ry='9' transform='translate(17 -9) rotate(22)' fill='%235f9a4e'/><ellipse rx='13' ry='8' transform='translate(-15 -7) rotate(55)' fill='%23568f49'/></g><g transform='translate(522 178)'><ellipse rx='16' ry='10' transform='rotate(-24)' fill='%235f9a4e'/><ellipse rx='14' ry='9' transform='translate(17 -9) rotate(28)' fill='%234d8544'/><ellipse rx='13' ry='8' transform='translate(-15 -7) rotate(60)' fill='%23568f49'/></g><g transform='translate(242 164)'><ellipse rx='15' ry='9' transform='rotate(-30)' fill='%23568f49'/><ellipse rx='13' ry='8' transform='translate(15 -8) rotate(20)' fill='%235f9a4e'/></g><g transform='translate(702 130)'><ellipse rx='15' ry='9' transform='rotate(-20)' fill='%234d8544'/><ellipse rx='13' ry='8' transform='translate(15 -8) rotate(35)' fill='%23568f49'/></g><g transform='translate(402 154)'><ellipse rx='15' ry='9' transform='rotate(-26)' fill='%235f9a4e'/><ellipse rx='13' ry='8' transform='translate(15 -8) rotate(30)' fill='%234d8544'/></g><g transform='translate(1055 70)'><ellipse rx='16' ry='10' transform='rotate(-18)' fill='%234d8544'/><ellipse rx='14' ry='9' transform='translate(-16 -8) rotate(30)' fill='%235f9a4e'/></g><g transform='translate(845 20)'><ellipse rx='14' ry='9' transform='rotate(-22)' fill='%23568f49'/><ellipse rx='12' ry='8' transform='translate(14 7) rotate(25)' fill='%235f9a4e'/></g><g transform='translate(384 56)'><ellipse rx='14' ry='9' transform='rotate(-25)' fill='%234d8544'/><ellipse rx='12' ry='8' transform='translate(14 7) rotate(30)' fill='%23568f49'/></g><g transform='translate(955 110)'><ellipse rx='13' ry='8' transform='rotate(-20)' fill='%235f9a4e'/></g><g transform='translate(625 132)'><ellipse rx='13' ry='8' transform='rotate(-24)' fill='%23568f49'/></g><g transform='translate(150 68)'><ellipse rx='15' ry='9' transform='rotate(-28)' fill='%234d8544'/><ellipse rx='13' ry='8' transform='translate(-14 -8) rotate(25)' fill='%235f9a4e'/></g><g transform='translate(300 96)'><ellipse rx='13' ry='8' transform='rotate(-22)' fill='%235f9a4e'/></g></g></svg>");
+	}
+
+	/* autumn — the same clusters turned amber and rust */
+	.theme-helper-4 {
+		opacity: var(--foliage-autumn, 0);
+		background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='320' viewBox='0 0 1200 320'><g fill-opacity='0.88'><g transform='translate(852 172)'><ellipse rx='16' ry='10' transform='rotate(-28)' fill='%23c9812f'/><ellipse rx='14' ry='9' transform='translate(17 -9) rotate(22)' fill='%23b85c2a'/><ellipse rx='13' ry='8' transform='translate(-15 -7) rotate(55)' fill='%23a34d24'/></g><g transform='translate(522 178)'><ellipse rx='16' ry='10' transform='rotate(-24)' fill='%23b85c2a'/><ellipse rx='14' ry='9' transform='translate(17 -9) rotate(28)' fill='%23c9812f'/><ellipse rx='13' ry='8' transform='translate(-15 -7) rotate(60)' fill='%23a34d24'/></g><g transform='translate(242 164)'><ellipse rx='15' ry='9' transform='rotate(-30)' fill='%23a34d24'/><ellipse rx='13' ry='8' transform='translate(15 -8) rotate(20)' fill='%23b85c2a'/></g><g transform='translate(702 130)'><ellipse rx='15' ry='9' transform='rotate(-20)' fill='%23c9812f'/><ellipse rx='13' ry='8' transform='translate(15 -8) rotate(35)' fill='%23a34d24'/></g><g transform='translate(402 154)'><ellipse rx='15' ry='9' transform='rotate(-26)' fill='%23b85c2a'/><ellipse rx='13' ry='8' transform='translate(15 -8) rotate(30)' fill='%23c9812f'/></g><g transform='translate(1055 70)'><ellipse rx='16' ry='10' transform='rotate(-18)' fill='%23c9812f'/><ellipse rx='14' ry='9' transform='translate(-16 -8) rotate(30)' fill='%23b85c2a'/></g><g transform='translate(845 20)'><ellipse rx='14' ry='9' transform='rotate(-22)' fill='%23a34d24'/><ellipse rx='12' ry='8' transform='translate(14 7) rotate(25)' fill='%23b85c2a'/></g><g transform='translate(384 56)'><ellipse rx='14' ry='9' transform='rotate(-25)' fill='%23c9812f'/><ellipse rx='12' ry='8' transform='translate(14 7) rotate(30)' fill='%23a34d24'/></g><g transform='translate(955 110)'><ellipse rx='13' ry='8' transform='rotate(-20)' fill='%23b85c2a'/></g><g transform='translate(625 132)'><ellipse rx='13' ry='8' transform='rotate(-24)' fill='%23a34d24'/></g><g transform='translate(150 68)'><ellipse rx='15' ry='9' transform='rotate(-28)' fill='%23c9812f'/><ellipse rx='13' ry='8' transform='translate(-14 -8) rotate(25)' fill='%23b85c2a'/></g><g transform='translate(300 96)'><ellipse rx='13' ry='8' transform='rotate(-22)' fill='%23b85c2a'/></g></g></svg>");
+	}
+}

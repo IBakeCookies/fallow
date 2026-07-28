@@ -130,9 +130,9 @@
 	   enough to catch emerald-600 (l 0.596) and hand it a mid-grey ink, the worst
 	   of both.
 
-	   0.58 is measured, not chosen: sweeping the threshold over all 33 themes ×
+	   0.58 is measured, not chosen: sweeping the threshold over all 34 themes ×
 	   9 fills, it is the only value that picks the better of the two poles for
-	   every one of the 297 pairs. Worst case is then 4.28:1, and 15 of the 297
+	   every one of the 306 pairs. Worst case is then 4.28:1, and 16 of the 306
 	   cannot beat 4.5:1 with ANY ink — mid-luminance chromatic fills are simply
 	   capped. So this is sound for a short bold label on a solid chip; body copy
 	   wants the soft pattern instead (`bg-danger/5` + `text-danger-strong`).

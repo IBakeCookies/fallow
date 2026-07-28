@@ -40,6 +40,10 @@
 @custom-variant polaris (&:is(.polaris *));
 @custom-variant city-windows (&:is(.city-windows *));
 @custom-variant orrery (&:is(.orrery *));
+@custom-variant mist (&:is(.mist *));
+@custom-variant hourglass (&:is(.hourglass *));
+@custom-variant foliage (&:is(.foliage *));
+@custom-variant circuit (&:is(.circuit *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes.

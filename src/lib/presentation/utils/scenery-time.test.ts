@@ -107,7 +107,17 @@ describe('dataSceneryStyle', () => {
 	it.each([0, 5, 6, 12, 20, 21, 23.99])('keeps the clamped vars within [0, 1] at %sh', (hours) => {
 		const emitted = vars(clock(hours));
 
-		for (const name of ['--sundial-t', '--sundial-vis', '--tide-level', '--city-dark']) {
+		for (const name of [
+			'--sundial-t',
+			'--sundial-vis',
+			'--tide-level',
+			'--city-dark',
+			'--hourglass-level',
+			'--circuit-heat',
+			'--foliage-buds',
+			'--foliage-summer',
+			'--foliage-autumn',
+		]) {
 			expect(emitted[name], `${name} at ${hours}h`).toBeGreaterThanOrEqual(0);
 			expect(emitted[name], `${name} at ${hours}h`).toBeLessThanOrEqual(1);
 		}
@@ -118,6 +128,52 @@ describe('dataSceneryStyle', () => {
 		expect(vars(clock(3))['--polaris-vis']).toBe(1);
 		expect(vars(clock(12))['--sundial-vis']).toBe(1);
 		expect(vars(clock(12))['--polaris-vis']).toBe(0);
+	});
+
+	// The glass is full on the hour and runs out by :59 — the flip is the jump
+	// back to 1 at the next :00, so both endpoints matter.
+	it('drains the hourglass over each hour and refills on the hour mark', () => {
+		expect(vars(clock(10))['--hourglass-level']).toBe(1);
+		expect(vars(clock(10.5))['--hourglass-level']).toBeCloseTo(0.5, 3);
+		expect(vars(clock(10 + 59 / 60))['--hourglass-level']).toBeCloseTo(1 / 60, 3);
+		expect(vars(clock(11))['--hourglass-level']).toBe(1);
+	});
+
+	it('peaks the circuit heat at noon and cools it to zero at midnight', () => {
+		expect(vars(clock(0))['--circuit-heat']).toBe(0);
+		expect(vars(clock(12))['--circuit-heat']).toBe(1);
+		// symmetric shoulders: 06:00 and 18:00 sit at the same warmth
+		expect(vars(clock(6))['--circuit-heat']).toBeCloseTo(vars(clock(18))['--circuit-heat'], 10);
+	});
+
+	// The layers tell the year: buds alone in early spring, the full canopy in
+	// July, the warm layer in October, a bare branch in January.
+	it('walks the foliage layers through the seasons', () => {
+		const season = (dayOfYear: number) =>
+			vars(
+				clock(12, {
+					dayOfYear,
+				}),
+			);
+
+		const january = season(14);
+		expect(january['--foliage-buds']).toBe(0);
+		expect(january['--foliage-summer']).toBe(0);
+		expect(january['--foliage-autumn']).toBe(0);
+
+		const april = season(100);
+		expect(april['--foliage-buds']).toBe(1);
+		expect(april['--foliage-autumn']).toBe(0);
+
+		const july = season(208);
+		expect(july['--foliage-buds']).toBe(0);
+		expect(july['--foliage-summer']).toBe(1);
+		expect(july['--foliage-autumn']).toBe(0);
+
+		const october = season(290);
+		expect(october['--foliage-autumn']).toBe(1);
+		expect(october['--foliage-summer']).toBeLessThan(0.5);
+		expect(october['--foliage-buds']).toBe(0);
 	});
 
 	// Monday 00:00 sits at the top of the dial; the outer planet laps once a week.

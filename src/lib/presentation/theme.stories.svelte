@@ -14,7 +14,7 @@
 		parameters: {
 			layout: 'fullscreen',
 			/* This is a token swatch sheet, not a UI surface: it renders every
-			   fill/ink pair on purpose, including the 15 of 297 that AGENTS.md §2
+			   fill/ink pair on purpose, including the 16 of 306 that STYLE.md
 			   records as unable to reach 4.5:1 with any ink (a mid-luminance
 			   chromatic fill caps out; worst case 4.28:1). That budget is measured
 			   by scripts/ink-contrast.mjs, not by axe — which would otherwise fail

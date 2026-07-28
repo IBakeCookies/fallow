@@ -40,7 +40,11 @@ export type ThemeName =
 	| 'breath'
 	| 'polaris'
 	| 'city-windows'
-	| 'orrery';
+	| 'orrery'
+	| 'mist'
+	| 'hourglass'
+	| 'foliage'
+	| 'circuit';
 
 export interface ThemeItem {
 	name: ThemeName;
@@ -214,6 +218,26 @@ export const themes: ThemeItem[] = [
 		name: 'orrery',
 		label: 'Orrery',
 		css: ['orrery', 'dark'],
+	},
+	{
+		name: 'mist',
+		label: 'Mist',
+		css: ['mist'],
+	},
+	{
+		name: 'hourglass',
+		label: 'Hourglass',
+		css: ['hourglass'],
+	},
+	{
+		name: 'foliage',
+		label: 'Foliage',
+		css: ['foliage'],
+	},
+	{
+		name: 'circuit',
+		label: 'Circuit',
+		css: ['circuit', 'dark'],
 	},
 ] as const;
 

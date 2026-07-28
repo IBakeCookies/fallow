@@ -1,0 +1,94 @@
+/* Hourglass: the hour made visible. A glass at the right edge drains over
+   each hour — the top bulb's sand falls, the mound below grows, the stream
+   between them shortens as the mound rises — and "flips" back to full on
+   the :00. Driven by --hourglass-level (1 on the hour → 0 at :59, from
+   utils/scenery-time.ts); a position recomputed by the minute, never an
+   animation, like every clock-driven scenery here. */
+.hourglass .theme-scenery {
+	display: block;
+	/* watermark scale, but never taller than the viewport */
+	--glass-width: min(clamp(8rem, 26vw, 24rem), 60vh);
+	--glass-height: calc(var(--glass-width) * 1.45);
+	--glass-right: clamp(1rem, 6vw, 7rem);
+	--glass-bottom: clamp(2rem, 6vh, 5rem);
+	--sand: oklch(0.72 0.11 75 / 0.7);
+	--frame: oklch(0.45 0.06 60 / 0.45);
+
+	.theme-helper-1,
+	.theme-helper-4 {
+		position: absolute;
+		bottom: var(--glass-bottom);
+		right: var(--glass-right);
+		width: var(--glass-width);
+		height: var(--glass-height);
+	}
+
+	/* the glass itself: two bulbs meeting at the waist */
+	.theme-helper-1 {
+		clip-path: polygon(3% 0, 97% 0, 55% 48%, 55% 52%, 97% 100%, 3% 100%, 45% 52%, 45% 48%);
+		background: linear-gradient(oklch(0.55 0.04 80 / 0.09), oklch(0.55 0.04 80 / 0.16));
+	}
+
+	/* top bulb's sand: the surface descends from the rim toward the neck as
+	   the level falls — the gradient stop is the surface */
+	.theme-helper-2 {
+		position: absolute;
+		bottom: calc(var(--glass-bottom) + var(--glass-height) * 0.52);
+		right: var(--glass-right);
+		width: var(--glass-width);
+		height: calc(var(--glass-height) * 0.48);
+		clip-path: polygon(4% 0, 96% 0, 55% 100%, 45% 100%);
+		background: linear-gradient(
+			to bottom,
+			transparent calc((1 - var(--hourglass-level, 1)) * 100%),
+			var(--sand) 0
+		);
+	}
+
+	/* bottom bulb: the mound rising from the floor, and the falling stream — a
+	   thin column from the neck sized to the sand still above, so its tip and
+	   the mound's surface always meet (the bulbs are equal, so height drained
+	   above = height risen below) */
+	.theme-helper-3 {
+		position: absolute;
+		bottom: var(--glass-bottom);
+		right: var(--glass-right);
+		width: var(--glass-width);
+		height: calc(var(--glass-height) * 0.48);
+		clip-path: polygon(45% 0, 55% 0, 96% 100%, 4% 100%);
+		background:
+			linear-gradient(var(--sand), var(--sand)) top center / 0.18rem
+				calc(var(--hourglass-level, 1) * 100%) no-repeat,
+			linear-gradient(
+				to top,
+				var(--sand) calc((1 - var(--hourglass-level, 1)) * 100%),
+				transparent 0
+			);
+	}
+
+	/* the frame: caps past the rims, posts down the sides */
+	.theme-helper-4 {
+		background:
+			linear-gradient(var(--frame), var(--frame)) left 4% center / 0.3rem 100% no-repeat,
+			linear-gradient(var(--frame), var(--frame)) right 4% center / 0.3rem 100% no-repeat;
+	}
+
+	.theme-helper-4::before,
+	.theme-helper-4::after {
+		content: '';
+		position: absolute;
+		left: -4%;
+		right: -4%;
+		height: 0.55rem;
+		border-radius: 0.3rem;
+		background: var(--frame);
+	}
+
+	.theme-helper-4::before {
+		top: -0.55rem;
+	}
+
+	.theme-helper-4::after {
+		bottom: -0.55rem;
+	}
+}

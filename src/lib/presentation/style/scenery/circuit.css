@@ -1,0 +1,67 @@
+/* Circuit: a board that runs the day's temperature. Every layer takes its
+   hue from --circuit-heat (0 at midnight → 1 at noon, from
+   utils/scenery-time.ts): cool blue in the small hours, warming through
+   teal to ember as the day peaks, cooling back toward the next midnight.
+   Heat also lifts the layers' opacity, so the board glows brightest when
+   the day does. Positions only, zero animation — the hue is the clock. */
+.circuit .theme-scenery {
+	display: block;
+	--heat: var(--circuit-heat, 0.5);
+	/* 240 (cold blue) → 30 (ember) */
+	--trace-hue: calc(240 - var(--heat) * 210);
+	--trace-line: oklch(0.72 calc(0.05 + var(--heat) * 0.1) var(--trace-hue));
+
+	/* the fine etch grid over the whole board */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		opacity: calc(0.14 + var(--heat) * 0.18);
+		background-image:
+			repeating-linear-gradient(0deg, var(--trace-line) 0 1px, transparent 1px 3rem),
+			repeating-linear-gradient(90deg, var(--trace-line) 0 1px, transparent 1px 3rem);
+	}
+
+	/* main traces with solder pads at their crossings — the pad tile is
+	   half-tile-shifted so its centered dot lands exactly on the line grid */
+	.theme-helper-2 {
+		position: absolute;
+		inset: 0;
+		opacity: calc(0.28 + var(--heat) * 0.42);
+		background-image:
+			radial-gradient(circle 0.16rem at 50% 50%, var(--trace-line) 98%, transparent),
+			repeating-linear-gradient(0deg, var(--trace-line) 0 2px, transparent 2px 9rem),
+			repeating-linear-gradient(90deg, var(--trace-line) 0 2px, transparent 2px 9rem);
+		background-position:
+			-4.5rem -4.5rem,
+			0 0,
+			0 0;
+		background-size:
+			9rem 9rem,
+			auto,
+			auto;
+		/* keep the board quiet behind the content column */
+		mask-image: radial-gradient(ellipse 75% 65% at 50% 42%, transparent 25%, black 72%);
+	}
+
+	/* heat blooming off the busiest corners of the board */
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(
+				ellipse 40% 30% at 15% 18%,
+				oklch(0.6 0.15 var(--trace-hue) / calc(var(--heat) * 0.14)),
+				transparent 70%
+			),
+			radial-gradient(
+				ellipse 45% 35% at 85% 78%,
+				oklch(0.6 0.15 var(--trace-hue) / calc(var(--heat) * 0.12)),
+				transparent 70%
+			),
+			radial-gradient(
+				ellipse 35% 25% at 72% 12%,
+				oklch(0.62 0.15 var(--trace-hue) / calc(var(--heat) * 0.1)),
+				transparent 70%
+			);
+	}
+}

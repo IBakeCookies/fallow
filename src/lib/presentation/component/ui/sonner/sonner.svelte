@@ -14,8 +14,8 @@
 	all four, so check this file after.
 
 	1. No `mode-watcher`. The registry version imports it for `theme={mode.current}`,
-	   which is a light/dark *binary* over a catalogue of 33 palettes — the exact
-	   thing AGENTS.md §2 bans `dark:` for. Every colour below comes from a token
+	   which is a light/dark *binary* over a catalogue of 34 palettes — the exact
+	   thing STYLE.md bans `dark:` for. Every colour below comes from a token
 	   the themes already swap, so sonner's own `theme` (default `light`) never
 	   shows and the dependency is dead weight.
 	2. The registry sets only the `--normal-*` trio; the four severity tints are
@@ -33,7 +33,7 @@
 	because "popovers float over arbitrary content", so it resolves to the same
 	value this writes. `--surface-page` is named directly only because a raw
 	`var()` should name the unprefixed token. Do not "fix" this to
-	`--surface-card`: it carries alpha on 31 of the 33 themes, and `terminal`
+	`--surface-card`: it carries alpha on 32 of the 34 themes, and `terminal`
 	pairs that with `--blur: 0` on purpose, so page text shows straight through a
 	floating toast — verified by screenshot. An opaque fill also leaves nothing
 	for a `backdrop-blur` to blur, which is why there isn't one.
