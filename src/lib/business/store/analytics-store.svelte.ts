@@ -9,7 +9,7 @@
  * presentation: labels, colors, locale formatting and the SVG geometry.
  */
 
-import { onMount } from 'svelte';
+import { getContext, onMount, setContext } from 'svelte';
 import { browser } from '$app/environment';
 import { logError } from '$lib/logger';
 import {
@@ -34,6 +34,8 @@ import {
 	type CalibrationSnapshot,
 } from '$lib/business/store/session-history';
 
+const CONTEXT_KEY = Symbol();
+
 /** Each range's length in days. The year view is the whole loaded history. */
 export const ANALYTICS_RANGES = {
 	week: 7,
@@ -45,6 +47,13 @@ export type AnalyticsRange = keyof typeof ANALYTICS_RANGES;
 
 /** One optimizer run per audited day (~60ms each) — cap the lookback. */
 const AUDIT_DAY_CAP = 30;
+
+/**
+ * Says the year of history could not be read, so an empty page does not read as
+ * an empty life. Injected for the same reason as `NotifyParamsLoadFailed`:
+ * raising a toast is presentation (R1) and so is the copy (R2).
+ */
+export type NotifyHistoryLoadFailed = () => void;
 
 export class AnalyticsStore {
 	#range = $state<AnalyticsRange>('week');
@@ -89,7 +98,12 @@ export class AnalyticsStore {
 		return currentStreak(active, this.#today);
 	});
 
-	constructor() {
+	// Two reads, deliberately not one try block: they fail into different
+	// surfaces. A failed model report is already visible — #calibrationFailed
+	// takes that card out of its loading string. A failed history read is not:
+	// #all stays empty, so every chart renders as a year with nothing in it,
+	// which is indistinguishable from a user who has never used the app.
+	constructor(notifyHistoryLoadFailed: NotifyHistoryLoadFailed) {
 		onMount(async () => {
 			if (!browser) return;
 
@@ -98,17 +112,27 @@ export class AnalyticsStore {
 			try {
 				await initializeStorage();
 				this.#all = await readDaySummaries(addDays(today, -(ANALYTICS_RANGES.year - 1)), today);
-				// The main view can paint before the audit's optimizer runs finish.
+			} catch (e) {
+				logError('Failed to load analytics history', e);
+				notifyHistoryLoadFailed();
+				this.#audit ??= EMPTY_PLAN_AUDIT;
+				this.#calibrationFailed = true;
 				this.#isLoading = false;
+
+				return;
+			}
+
+			// The main view can paint before the audit's optimizer runs finish.
+			this.#isLoading = false;
+
+			try {
 				const report = await readModelReport(today, AUDIT_DAY_CAP);
 				this.#calibration = report.calibration;
 				this.#audit = report.audit;
 			} catch (e) {
-				logError('Failed to load analytics data', e);
+				logError('Failed to load the analytics model report', e);
 				this.#audit ??= EMPTY_PLAN_AUDIT;
 				this.#calibrationFailed = this.#calibration === null;
-			} finally {
-				this.#isLoading = false;
 			}
 		});
 	}
@@ -199,4 +223,20 @@ export class AnalyticsStore {
 	get calibrationFailed(): boolean {
 		return this.#calibrationFailed;
 	}
+}
+
+/**
+ * Read by `/analytics` alone. The context is the guard, not a sharing
+ * mechanism: `setContext` throws outside component initialisation, so no store
+ * can be built in a `+page.ts` load and handed to a layout, where it would
+ * outlive the request.
+ */
+export function setAnalyticsStore(
+	notifyHistoryLoadFailed: NotifyHistoryLoadFailed,
+): AnalyticsStore {
+	return setContext<AnalyticsStore>(CONTEXT_KEY, new AnalyticsStore(notifyHistoryLoadFailed));
+}
+
+export function getAnalyticsStore(): AnalyticsStore {
+	return getContext<AnalyticsStore>(CONTEXT_KEY);
 }

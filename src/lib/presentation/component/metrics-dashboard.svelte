@@ -88,6 +88,8 @@
 	<!-- The remaining readings are reference, not headline: one click away rather
 	     than 19 rows of equal weight burying the four that matter. -->
 	{#if rest.length > 0}
+		<div class="border-t border-line-soft my-grid-sm"></div>
+
 		<details class="mt-grid-sm">
 			<summary
 				class="cursor-pointer text-xs text-ty-secondary transition hover:text-ty-primary marker:text-ty-silent"

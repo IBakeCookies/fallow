@@ -8,11 +8,14 @@
  * testable while it sits inside a route (AGENTS.md R2).
  */
 
+import { getContext, setContext } from 'svelte';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
 import { fitEnergyParams } from '$lib/business/model/energy-calibration';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
+
+const CONTEXT_KEY = Symbol();
 
 export class DailyPlanStore {
 	// Assigned first thing in the constructor. The `!` is load-bearing: the
@@ -102,4 +105,25 @@ export class DailyPlanStore {
 			this.#adviceBusy = false;
 		}
 	}
+}
+
+/**
+ * Read by `/` alone, so the context is not there to share the instance — it is
+ * what makes "a store is only ever created inside a component" enforced rather
+ * than conventional. `setContext` throws outside component initialisation, so
+ * this store cannot be built in a `+page.ts` load and returned to the layout,
+ * where it would be module-adjacent state living across SSR requests. That risk
+ * is real here specifically: nothing in this class touches `onMount` or
+ * `$effect`, so a bare `new DailyPlanStore(...)` in a load function would
+ * succeed instead of throwing.
+ */
+export function setDailyPlanStore(
+	session: SessionStore,
+	observations: EnergyObservationStore,
+): DailyPlanStore {
+	return setContext<DailyPlanStore>(CONTEXT_KEY, new DailyPlanStore(session, observations));
+}
+
+export function getDailyPlanStore(): DailyPlanStore {
+	return getContext<DailyPlanStore>(CONTEXT_KEY);
 }

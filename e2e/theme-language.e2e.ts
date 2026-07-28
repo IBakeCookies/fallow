@@ -26,7 +26,13 @@ test('language switch moves between the unprefixed and the /de URL', async ({ pa
 
 	await page
 		.getByRole('button', {
-			name: 'Switch language: DE',
+			name: 'Switch language',
+		})
+		.click();
+
+	await page
+		.getByRole('menuitemradio', {
+			name: 'Deutsch',
 		})
 		.click();
 
@@ -39,10 +45,16 @@ test('language switch moves between the unprefixed and the /de URL', async ({ pa
 		}),
 	).toBeVisible();
 
-	// switch back — the label is German now ("Sprache wechseln: EN")
+	// switch back — the trigger label is German now ("Sprache wechseln")
 	await page
 		.getByRole('button', {
-			name: 'Sprache wechseln: EN',
+			name: 'Sprache wechseln',
+		})
+		.click();
+
+	await page
+		.getByRole('menuitemradio', {
+			name: 'English',
 		})
 		.click();
 
@@ -113,7 +125,13 @@ test('theme picked at runtime survives a language switch', async ({ page }) => {
 
 	await page
 		.getByRole('button', {
-			name: 'Switch language: DE',
+			name: 'Switch language',
+		})
+		.click();
+
+	await page
+		.getByRole('menuitemradio', {
+			name: 'Deutsch',
 		})
 		.click();
 

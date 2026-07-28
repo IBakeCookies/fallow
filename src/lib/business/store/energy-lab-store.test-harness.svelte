@@ -8,7 +8,14 @@
 	import type { SessionStore } from '$lib/business/store/session-store.svelte';
 	import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
-	let { onstore }: { onstore: (s: EnergyLabStore) => void } = $props();
+	let {
+		onstore,
+		onparamsloadfailed = () => {},
+	}: {
+		onstore: (s: EnergyLabStore) => void;
+		/** Stands in for the route's toast, so a spec can assert the store raised it. */
+		onparamsloadfailed?: () => void;
+	} = $props();
 
 	// The Lab reads both stores through plain getters, so reactive stand-ins are
 	// enough — and keep six repository mocks out of this spec.
@@ -17,6 +24,7 @@
 		new EnergyLabStore(
 			mockSession as unknown as SessionStore,
 			mockObservations as unknown as EnergyObservationStore,
+			onparamsloadfailed,
 		),
 	);
 </script>

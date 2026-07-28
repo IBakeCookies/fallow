@@ -16,7 +16,7 @@
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
-	import { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
+	import { setDailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
@@ -28,7 +28,7 @@
 	// The whole dashboard — plan and metrics — from the business layer. The
 	// per-metric task scoping and thresholds live there and in
 	// metric-descriptor; this page only renders what comes back.
-	const plan = new DailyPlanStore(session, observations);
+	const plan = setDailyPlanStore(session, observations);
 
 	const today = $derived(session.today);
 	const selectedDate = $derived(session.selectedDate);

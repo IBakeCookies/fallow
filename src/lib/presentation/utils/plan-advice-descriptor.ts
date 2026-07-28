@@ -7,7 +7,12 @@
  * rows. Nothing in this file computes a reading.
  */
 
-import type { AdviceAxis, AdviceLever, PlanAdvice } from '$lib/business/model/metric/plan-advice';
+import type {
+	AdviceAxis,
+	AdviceLever,
+	AdviceOption,
+	PlanAdvice,
+} from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 import { BAND, isOutOfBand } from '$lib/presentation/utils/metric-descriptor';
@@ -77,12 +82,17 @@ function formatAction(lever: AdviceLever): string {
 			title: lever.title,
 		});
 
+	// The lever carries unrounded hours on purpose (MATH.md §14); only the label
+	// rounds, and only to keep "6.42h" out of the card.
 	return m.advice_action_budget({
-		hours: lever.hours,
+		hours: Number(lever.hours.toFixed(2)),
 	});
 }
 
-function formatCost(deltaPercent: number): string {
+function formatCost(deltaPercent: number | null): string {
+	// Nothing to compare against — the current plan's Σ P̄ is 0 (MATH.md §14).
+	if (deltaPercent === null) return m.na_value();
+
 	if (deltaPercent === 0) return m.advice_cost_free();
 
 	// An explicit sign both ways: "+3.1%" and "−6.2%" have to be told apart at a
@@ -92,7 +102,33 @@ function formatCost(deltaPercent: number): string {
 	});
 }
 
+/**
+ * The frontier rises in plan value, so its *last* option is the cheapest one —
+ * the "most of the relief for a fraction of the cost" row §14 returns a whole
+ * frontier to surface. Truncating from the end would drop exactly that, so drop
+ * from the middle and keep both ends.
+ */
+function cap(options: AdviceOption[], max: number): AdviceOption[] {
+	if (options.length <= max) return options;
+
+	return [...options.slice(0, max - 1), options[options.length - 1]];
+}
+
 export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDisplay {
+	const toRow = (axis: AdviceAxis, option: AdviceOption, cost: string): AdviceRowOption => ({
+		lever: option.lever,
+		action: formatAction(option.lever),
+		after: formatReading(axis, option.after),
+		afterStyle: BAND[axis](option.after).color,
+		cost,
+		profileFlip:
+			option.quadrant === advice.quadrant
+				? null
+				: m.advice_profile_flip({
+						profile: QUADRANT_LABEL[option.quadrant](),
+					}),
+	});
+
 	const rows = advice.findings
 		.filter((finding) => isOutOfBand(finding.axis, finding.before))
 		.map((finding) => ({
@@ -100,19 +136,15 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 			label: AXIS_LABEL[finding.axis](),
 			before: formatReading(finding.axis, finding.before),
 			beforeStyle: BAND[finding.axis](finding.before).color,
-			options: finding.options.slice(0, maxOptions).map((option) => ({
-				lever: option.lever,
-				action: formatAction(option.lever),
-				after: formatReading(finding.axis, option.after),
-				afterStyle: BAND[finding.axis](option.after).color,
-				cost: formatCost(option.planValueDeltaPercent),
-				profileFlip:
-					option.quadrant === advice.quadrant
-						? null
-						: m.advice_profile_flip({
-								profile: QUADRANT_LABEL[option.quadrant](),
-							}),
-			})),
+			options: [
+				...cap(finding.options, maxOptions).map((option) =>
+					toRow(finding.axis, option, formatCost(option.planValueDeltaPercent)),
+				),
+				// Last, and priced in hours rather than plan value: Σ P̄ *rises* when
+				// the budget does, so showing that rise in the cost column would read
+				// as the extra hour being free (MATH.md §14).
+				...(finding.unpriced ? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour())] : []),
+			],
 		}));
 
 	const unfundedCount = advice.unfundedTaskIds.length;

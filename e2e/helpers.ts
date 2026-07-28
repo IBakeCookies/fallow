@@ -51,3 +51,60 @@ export async function logDrain(page: Page, minutes: number, mind: number, body: 
 		})
 		.click();
 }
+
+/* Make IndexedDB fail on demand. `open()` wraps `indexedDB.open` in a Promise
+   executor, so a synchronous throw there rejects it exactly like a real failure.
+   The switch lives in sessionStorage because addInitScript re-runs on every
+   navigation — a plain flag would reset itself on the reload under test.
+
+   Lives here rather than in one suite because two need it: storage-error.e2e.ts
+   drives the banner, failure-toast.e2e.ts the toasts. */
+/* Both the backup round trip and the failure toasts drive the same menu. */
+export const openDataMenu = (page: Page) =>
+	page
+		.getByRole('button', {
+			name: 'Data menu',
+		})
+		.click();
+
+const FAIL_SWITCH = 'e2e-fail-indexeddb';
+
+export async function installFailableIndexedDB(page: Page) {
+	await page.addInitScript((key) => {
+		const realOpen = indexedDB.open.bind(indexedDB);
+
+		indexedDB.open = ((name: string, version?: number) => {
+			if (sessionStorage.getItem(key) === '1') {
+				throw new DOMException('e2e-induced IndexedDB failure', 'UnknownError');
+			}
+
+			return realOpen(name, version);
+		}) as typeof indexedDB.open;
+	}, FAIL_SWITCH);
+}
+
+/* Break an already-open database instead of its `open()`. `openDatabase()` caches
+   its handle in module scope, so the switch above cannot reach a read or write
+   issued after the first successful open — which is exactly where a quota or
+   InvalidState error shows up. Reversible, so a test can prove a store recovers. */
+type PatchedDatabase = IDBDatabase & {
+	realTransaction?: IDBDatabase['transaction'];
+};
+
+export const setIndexedDBTransactionsFailing = (page: Page, failing: boolean) =>
+	page.evaluate((on) => {
+		const proto = IDBDatabase.prototype as PatchedDatabase;
+		proto.realTransaction ??= proto.transaction;
+
+		proto.transaction = on
+			? ((() => {
+					throw new DOMException('e2e-induced transaction failure', 'InvalidStateError');
+				}) as IDBDatabase['transaction'])
+			: proto.realTransaction;
+	}, failing);
+
+export const setIndexedDBFailing = (page: Page, failing: boolean) =>
+	page.evaluate(
+		([key, on]) => (on === '1' ? sessionStorage.setItem(key, '1') : sessionStorage.removeItem(key)),
+		[FAIL_SWITCH, failing ? '1' : '0'],
+	);

@@ -93,6 +93,40 @@ describe('EnergyLabStore', () => {
 		expect(store.params.recoveryRate).toBe(DEFAULT_ENERGY_PARAMS.recoveryRate);
 	});
 
+	// A failed read leaves #params on DEFAULT_ENERGY_PARAMS, which is
+	// indistinguishable from a user who never calibrated — so the store has to
+	// say so. Injected, because raising the toast is the route's job (R1/R2).
+	it('reports a failed params read and keeps the defaults', async () => {
+		readSettingMock.mockRejectedValue(new Error('IndexedDB unavailable'));
+
+		const notifyParamsLoadFailed = vi.fn();
+		let store!: EnergyLabStore;
+
+		render(Harness, {
+			onstore: (s: EnergyLabStore) => (store = s),
+			onparamsloadfailed: notifyParamsLoadFailed,
+		});
+
+		await vi.waitFor(() => expect(store.isLoaded).toBe(true));
+
+		expect(notifyParamsLoadFailed).toHaveBeenCalledTimes(1);
+		expect(store.params).toEqual(DEFAULT_ENERGY_PARAMS);
+	});
+
+	it('reports nothing when the params read succeeds', async () => {
+		const notifyParamsLoadFailed = vi.fn();
+		let store!: EnergyLabStore;
+
+		render(Harness, {
+			onstore: (s: EnergyLabStore) => (store = s),
+			onparamsloadfailed: notifyParamsLoadFailed,
+		});
+
+		await vi.waitFor(() => expect(store.isLoaded).toBe(true));
+
+		expect(notifyParamsLoadFailed).not.toHaveBeenCalled();
+	});
+
 	// AGENTS.md §3: "A fit never writes params silently." The whole point of the
 	// Apply buttons is that the sliders stay the user's.
 	it('computes the fits without touching the params', async () => {

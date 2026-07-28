@@ -496,6 +496,11 @@ export class SessionStore {
 				date,
 			});
 
+			// 0 makes the header say "No tasks on that date", which is a claim about
+			// the user's data that this failure cannot support. A failed read is
+			// retryable, so raise the banner and let the count stay 0.
+			this.#storageError = 'load-failed';
+
 			return 0;
 		}
 	}

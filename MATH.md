@@ -1701,7 +1701,12 @@ extrapolation.
   tasks, §11.3) and the Day Profile averages.
 - **Set the budget to h** — three candidates: `budget − planSlack` (declare
   only the hours the plan actually spends), `budget − 1`, `budget + 1`.
-  Clamped at 0, deduplicated, and the current budget dropped.
+  Clamped at 0, and any candidate within **one minute** of the current budget
+  or of an earlier candidate is dropped. That tolerance is the whole of the
+  deduplication: `planSlack` is a float difference, so a plan that spends its
+  whole budget puts `budget − planSlack` ~1e-16 away from `budget`, and a
+  sub-minute budget change is not advice either. The hours are **not rounded**
+  to quarters — see §14.1.
 
 Deliberately _*not*_ levers: `switchCost` and the two capacity pools are
 measurements of the user, not choices about the day — advising someone to
@@ -1751,6 +1756,11 @@ fraction of the cost — ordered by decreasing improvement and increasing
 value, with no weight λ to justify. The frontier is returned whole; how many
 rows to show is the card's decision.
 
+The domination walk runs over the **Σ P̄-priced** levers only — the defers and
+the budget _decreases_. An improving `budget + 1` is returned beside the
+frontier as `unpriced`, never inside it (§14.1). The delta is `null`, not `0`,
+when the current plan's Σ P̄ is 0.
+
 Alongside the frontiers the advice reports the active tasks the plan funds no
 hours for. That needs no search, and it is the one piece of advice that is
 purely a read of the existing plan.
@@ -1788,3 +1798,82 @@ be interactive.
   "this slips a week" — it can only be told not to suggest the move. A day
   where every task is flagged reduces the search to the budget levers, which
   is the correct answer to "nothing here can move".
+
+### 14.1 Four corrections to the first cut (2026-07-28)
+
+A math review of §14 as first shipped found four defects, all reproduced by a
+probe sweep of 200 random days (2–7 tasks, budget 1–12 h in 0.25 steps, switch
+cost 5–30 min in 5-min steps → 1580 axis-frontiers). All four are fixed.
+
+§13's through-line held for a second time, and in a sharper form: every one of
+these four is invisible on the curated fixtures and obvious on the sweep. The
+sharper form is that a curated fixture can make a test pass **vacuously** —
+`plan-advice.test.ts` asserted the frontier's ordering on a 10 h grind day where
+every priced frontier turns out to be a single option, so the assertion had
+nothing to order and only ever ran because `budget + 1` was padding those
+frontiers. Fixing defect 1 emptied the padding and the test failed honestly.
+Randomize the sweep _and_ check that the invariant has more than one case to
+bite on.
+
+**1. `budget + 1` was an unpriced lever competing on the priced axis, and it
+evicted real alternatives.** Σ P̄ is monotone non-decreasing in the budget —
+probe: `budget + 1` raised plan value on 128 of 200 days and lowered it on
+**none** — so `budget + 1` holds the highest plan value of every candidate.
+Once the domination walk kept it, `bestValue` was maximal and every later
+candidate was discarded. Where it also had the largest improvement the frontier
+collapsed to it alone: **99 of 1580** frontiers were `budget + 1`-only, and in
+**75** of those an improving defer existed and was dominated off the menu. On
+those axes the card's entire advice was "work more".
+
+The domination test was never wrong about plan value; the lever was wrong about
+its cost. Deferring and trimming pay in Σ P̄, in full. Adding an hour pays in an
+_hour_, which the objective cannot see at all — and for Cognitive and Physical
+Load part of the apparent improvement is denominator mechanics, since both are
+`weightedHours / budget` (§11). So the two are not comparable on one axis and
+must not dominate each other.
+
+Fix: partition the candidates by whether Σ P̄ prices them (`isPriced` —
+`defer-task`, or `set-budget` below the current budget). The frontier is the
+domination walk over the priced set; an improving budget increase is returned
+alongside as `AdviceFinding.unpriced`, and an axis is reported when _either_ is
+non-empty. The card lists the frontier first and the extra hour last, labelled
+in hours rather than in plan value — "costs an extra hour of your day". Showing
+its Σ P̄ _rise_ in the cost column is what made "work more" look free. The label
+is exact because `budget + 1` is the only unpriced lever; adding another would
+have to make it parametric.
+
+**2. Quarter-rounding the budget levers broke the pure trim.** The hours were
+`Math.round(h * 4) / 4`, which this document never said. Switch cost steps in
+5-minute units while the budget steps in quarters and allocations come in 0.75 h
+blocks (§8.8), so `planSlack` is usually not quarter-aligned: **132 of 200**
+days had off-quarter slack. Two consequences, both reproduced. Rounding _down_
+cut past the hours the plan actually spends — budget 1.5 with slack 0.15 gives
+1.35, rounded to 1.25, so 0.1 h of funded time went with it and the trim was no
+longer free (**58 of 200** days). Rounding _up_ to the budget made the dedup
+filter delete the lever outright (**50 of 200** days), silently losing one of
+the three candidates this section promises.
+
+Fix: drop the rounding from the model. `Math.ceil` was considered and rejected —
+it preserves the trim but makes the silent deletion _more_ frequent, since any
+slack under 0.25 h ceils back to the budget. The card has no Apply for
+`set-budget`, so the hours are never written back to an input and there is
+nothing to align them to; the descriptor rounds the **label** to two decimals
+and the lever stays exact. Distinctness is now the one-minute tolerance above,
+which is what the rounding had been incidentally providing against float noise.
+
+**3. A zero-value baseline reported gains as free.** With `baseValue = 0` (a
+0 h budget, nothing funded) the guard returned `0` for every option, and the
+card renders 0 as "costs no plan value" — so a lever that _created_ value read
+as costless. Probe: at budget 0, `set-budget 1h` reached plan value 2.568 and
+displayed "costs no plan value". Fix: the delta is `null` there, and the card
+renders `null` as N/A. There is no ratio to a zero baseline, and saying so is
+cheaper than inventing one.
+
+**4. Card truncation dropped the end of the frontier this section exists to
+surface.** The walk keeps only strictly increasing plan values, so the frontier
+is monotone in plan value by construction — 0 of 1580 frontiers violated it —
+which makes the **last** row the cheapest option, the "most of the relief for a
+fraction of the cost" one. `slice(0, maxOptions)` therefore cut exactly that.
+Rare but exactly backwards when it fired: 16 of 1580 frontiers exceeded 3
+options, longest 5. Fix: keep both ends — `maxOptions − 1` from the front plus
+the last — and drop from the middle.

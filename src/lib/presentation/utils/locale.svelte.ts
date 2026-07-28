@@ -34,6 +34,14 @@ export function switchLocale(locale: Locale) {
 	);
 }
 
+/** Language names in their own language — identical in every UI locale. */
+const localeLabels: Record<Locale, string> = {
+	en: 'English',
+	de: 'Deutsch',
+};
+
+export const localeLabel = (locale: Locale) => localeLabels[locale];
+
 /** BCP-47 tag for Intl date formatting, tracking the active locale. */
 export function getDateLocale(): string {
 	return activeLocale.value === 'de' ? 'de-DE' : 'en-US';

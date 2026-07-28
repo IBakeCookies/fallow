@@ -5,17 +5,18 @@
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { showToast } from '$lib/presentation/utils/toast';
 	import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 	import { addDays, fromISO } from '$lib/business/utils/date';
 	import {
 		ANALYTICS_RANGES,
-		AnalyticsStore,
+		setAnalyticsStore,
 		type AnalyticsRange,
 	} from '$lib/business/store/analytics-store.svelte';
 
 	// Everything on this page comes off the store — the folds and the load live
 	// there; this file is labels, colors, locale formatting and SVG geometry.
-	const analytics = new AnalyticsStore();
+	const analytics = setAnalyticsStore(() => showToast.danger(m.analytics_load_failed()));
 
 	// Decimals follow the active locale, like every date on this page does —
 	// otherwise a German reader gets "1.5" between two German dates.

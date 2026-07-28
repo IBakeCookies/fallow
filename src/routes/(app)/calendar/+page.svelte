@@ -13,6 +13,7 @@
 	import { cn } from '$lib/presentation/utils';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import { getStatusBiggerBetter, getCompletionBarClass } from '$lib/presentation/utils/status';
+	import { showToast } from '$lib/presentation/utils/toast';
 	import type { DaySummary } from '$lib/business/model/metric/history';
 	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
 	import { initializeStorage, readDaySummaries } from '$lib/business/store/session-history';
@@ -37,13 +38,27 @@
 	let ready = $state(false);
 	let isLoading = $state(true);
 
+	// The range load re-runs on every month/week step, and one broken database
+	// fails all of them. Report the first failure only, and re-arm on a success,
+	// so the user gets one toast per outage instead of one per click.
+	let loadFailureReported = false;
+
+	function reportLoadFailure(e: unknown, message: string) {
+		logError(message, e);
+
+		if (loadFailureReported) return;
+
+		loadFailureReported = true;
+		showToast.danger(m.calendar_load_failed());
+	}
+
 	onMount(async () => {
 		if (!browser) return;
 
 		try {
 			await initializeStorage();
 		} catch (e) {
-			logError('Failed to initialize calendar', e);
+			reportLoadFailure(e, 'Failed to initialize calendar');
 		} finally {
 			ready = true;
 		}
@@ -108,8 +123,18 @@
 				for (const day of days) map.set(day.date, day);
 				summaries = map;
 				isLoading = false;
+				loadFailureReported = false;
 			})
-			.catch((e) => logError('Failed to load sessions', e));
+			.catch((e) => {
+				// Same guard as the success path: a stale rejection arriving after a
+				// newer range rendered would report a failure over a correct month.
+				if (version !== loadVersion) return;
+
+				// Cleared even on failure, or the empty-state copy stays suppressed and
+				// the four-second toast is the only explanation the user ever gets.
+				isLoading = false;
+				reportLoadFailure(e, 'Failed to load sessions');
+			});
 	});
 
 	function shiftMonth(iso: string, n: number): string {

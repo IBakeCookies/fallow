@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { LayoutProps } from './$types';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { logError } from '$lib/logger';
 	import Nav from '$lib/presentation/component/nav.svelte';
 	import Palette from '@lucide/svelte/icons/palette';
 	import Dices from '@lucide/svelte/icons/dices';
@@ -9,6 +11,7 @@
 	import Menu from '@lucide/svelte/icons/menu';
 	import X from '@lucide/svelte/icons/x';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
+	import { Toaster } from '$lib/presentation/component/ui/sonner';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { ThemeName } from '$lib/business/model/theme';
 	import Footer from '$lib/presentation/component/footer.svelte';
@@ -16,51 +19,86 @@
 	import { setEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
 	import * as backup from '$lib/business/backup';
+	import {
+		flushPendingToasts,
+		showToast,
+		showToastAfterReload,
+	} from '$lib/presentation/utils/toast';
 
 	let { children }: LayoutProps = $props();
+
+	// Every real route lives under (app), so a reload lands here and flushes. The
+	// one gap is `routes/+error.svelte`, which sits above this layout: a reload
+	// that errors out shows no confirmation, and the queued message then fires on
+	// the next page the user opens. Not worth a TTL — it costs one stale toast on
+	// a path that has already failed louder.
+	onMount(flushPendingToasts);
 
 	const themeStore = getThemeStore();
 
 	let backupFileInput: HTMLInputElement | undefined = $state();
 
+	// The only one of the three that does not reload, so its toast can be live.
 	async function exportData() {
-		const file = await backup.$exportAllStores();
+		// The whole body is guarded, not just the read: `JSON.stringify` throws
+		// RangeError on a database past the string-length cap, and that failure
+		// looks identical to the user.
+		try {
+			const file = await backup.$exportAllStores();
 
-		const url = URL.createObjectURL(
-			new Blob([JSON.stringify(file, null, '\t')], {
-				type: 'application/json',
-			}),
-		);
+			const url = URL.createObjectURL(
+				new Blob([JSON.stringify(file, null, '\t')], {
+					type: 'application/json',
+				}),
+			);
 
-		const anchor = document.createElement('a');
-		anchor.href = url;
-		anchor.download = `fallow-backup-${file.exportedAt.slice(0, 10)}.json`;
-		anchor.click();
-		URL.revokeObjectURL(url);
+			const anchor = document.createElement('a');
+			anchor.href = url;
+			anchor.download = `fallow-backup-${file.exportedAt.slice(0, 10)}.json`;
+			anchor.click();
+			URL.revokeObjectURL(url);
+			showToast.success(m.backup_export_done());
+		} catch (e) {
+			logError('Failed to export backup', e);
+			showToast.danger(m.backup_export_failed());
+		}
 	}
 
 	async function importData(file: File) {
 		try {
 			await backup.$importAllStores(JSON.parse(await file.text()));
-		} catch {
-			// The import failure has no other surface yet; replacing this means a
-			// dialog component of its own.
-			alert(m.backup_import_failed()); // eslint-disable-line no-alert
+		} catch (e) {
+			logError('Failed to import backup', e);
+			showToast.danger(m.backup_import_failed());
 
 			return;
 		}
 
 		// Stores read IndexedDB once on mount — reload so they pick up the
-		// imported records.
+		// imported records. The confirmation has to outlive that reload.
+		showToastAfterReload('success', m.backup_import_done());
 		location.reload();
 	}
 
 	async function deleteData() {
 		// This guards an irreversible delete of every store; it stays until an
-		// AlertDialog replaces it like-for-like.
+		// AlertDialog replaces it like-for-like. A toast is not a confirmation.
 		if (!confirm(m.data_delete_confirm())) return; // eslint-disable-line no-alert
 
-		await backup.$deleteAllStores();
+		// $deleteAllStores rejects if the database will not open or the wipe
+		// transaction aborts — a second tab blocking an upgrade is enough. Without
+		// this the reload never happens, every record is still there, and the user
+		// has been shown nothing at all.
+		try {
+			await backup.$deleteAllStores();
+		} catch (e) {
+			logError('Failed to delete all data', e);
+			showToast.danger(m.data_delete_failed());
+
+			return;
+		}
+
+		showToastAfterReload('success', m.data_delete_done());
 		location.reload();
 	}
 
@@ -228,3 +266,10 @@
 		<Footer />
 	</div>
 </main>
+
+<!--
+	Fixed-position overlay, so it sits outside the page's layout flow. The region
+	label is passed because sonner's default is hardcoded English, and it is the
+	accessible name of a live region on a site that serves /de/*.
+-->
+<Toaster containerAriaLabel={m.toast_region_label()} />

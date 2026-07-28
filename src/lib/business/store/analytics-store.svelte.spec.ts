@@ -57,12 +57,17 @@ const day = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
 	...over,
 });
 
+// Stands in for the route's toast. Declared here so a spec can assert both that
+// the store raised it and — for the model-report half — that it did not.
+const notifyHistoryLoadFailed = vi.fn();
+
 async function setup(summaries: DaySummary[] = []): Promise<AnalyticsStore> {
 	readDaySummariesMock.mockResolvedValue(summaries);
 	let store!: AnalyticsStore;
 
 	render(Harness, {
 		onstore: (s: AnalyticsStore) => (store = s),
+		onhistoryloadfailed: notifyHistoryLoadFailed,
 	});
 
 	await vi.waitFor(() => expect(store.isLoading).toBe(false));
@@ -72,6 +77,7 @@ async function setup(summaries: DaySummary[] = []): Promise<AnalyticsStore> {
 
 describe('AnalyticsStore', () => {
 	beforeEach(() => {
+		notifyHistoryLoadFailed.mockClear();
 		readDaySummariesMock.mockReset().mockResolvedValue([]);
 
 		readModelReportMock.mockReset().mockResolvedValue({
@@ -197,5 +203,28 @@ describe('AnalyticsStore', () => {
 		expect(store.isLoading).toBe(false);
 		// The day summaries still loaded, so the page renders its stats
 		expect(store.hasData).toBe(true);
+		// …and that card says so itself, which is why this half raises no toast.
+		expect(notifyHistoryLoadFailed).not.toHaveBeenCalled();
+	});
+
+	// The reason the load is two try blocks: an empty year of charts is
+	// indistinguishable from a new user, so only this half gets the toast.
+	it('reports a failed history read and still leaves the model card explained', async () => {
+		// Rendered directly: `setup` resolves the history read, which is the thing
+		// this case has to break.
+		readDaySummariesMock.mockRejectedValue(new Error('indexeddb is gone'));
+		let store!: AnalyticsStore;
+
+		render(Harness, {
+			onstore: (s: AnalyticsStore) => (store = s),
+			onhistoryloadfailed: notifyHistoryLoadFailed,
+		});
+
+		await vi.waitFor(() => expect(notifyHistoryLoadFailed).toHaveBeenCalledTimes(1));
+		expect(store.hasData).toBe(false);
+		expect(store.calibrationFailed).toBe(true);
+		expect(store.audit?.usedCount).toBe(0);
+		// The second read is never attempted — its transaction would fail too.
+		expect(readModelReportMock).not.toHaveBeenCalled();
 	});
 });

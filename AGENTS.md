@@ -40,9 +40,41 @@ These are the ones that get broken. Each exists because it was broken before.
   message, the caught error, and a `context` object of ids, dates and counts —
   never task titles or notes, which is the payload a reporting service would
   ship off-device. Plugging in Sentry or similar is one `setLogSink` call in
-  `hooks.client.ts`; do not add per-call-site reporting. Logging is **not** the
-  banner: `reportStorageError` raises the user-facing failure state, and most
-  persistence failures do both.
+  `hooks.client.ts`; do not add per-call-site reporting. Logging is **not** a
+  user-facing surface — see the next bullet for those — and most failures do one
+  of each.
+- **Three user-facing failure surfaces, and picking the wrong one is the bug.**
+  Retryable and persistent → the `storageError` banner. Transient and
+  informational → a toast (`presentation/utils/toast.ts`). Already visible in
+  the component that failed → nothing more, but check that it really is: the
+  `analytics-store` load is split into two `try` blocks for this reason, because
+  `#calibrationFailed` covers the model card only, and a failed **history** read
+  renders every chart as an empty year — a screen that looks like a user with no
+  data, so it gets a toast. A silent failure is only acceptable where the screen
+  itself is already wrong in a way the user can see. Three stay deliberately
+  silent and re-proposing them is churn — yesterday's session (decoration, and
+  the banner's retry does not cover that read), the Energy Lab's `localStorage`
+  view preference (losing it costs nothing), and its `readStopObservations`
+  effect (in any real outage the `settings` read fails with it and raises the
+  toast for both, and an isolated failure only empties a fit the card already
+  labels "not fitted"). Silent still means **logged**: that one was an
+  unhandled rejection until it was caught. `indexed-db.ts`'s `onblocked` is a
+  different animal again — the `open` promise never settles, so it is a hang in
+  the data layer with no store to report through.
+  A count is not a surface: `importFromDate` returning 0 makes the header say
+  "No tasks on that date", a claim about the user's data that a failed read
+  cannot support, so it raises the retryable banner instead.
+- **A store never imports the toast API; it takes an injected thunk.** Importing
+  it is doubly illegal (business → presentation, caught by both `eslint` and
+  `depcruise`), and `svelte-sonner`'s `toast` is module-scope state, which no
+  store may hold. Injection also keeps the store testable without module mocks —
+  the same reason R5 exists. `EnergyLabStore`'s `NotifyParamsLoadFailed` and
+  `AnalyticsStore`'s `NotifyHistoryLoadFailed` are the two so far, each wired by
+  its own route: one purpose-named thunk per case, **not** a
+  `NotificationKind` union. Both the severity vocabulary and the copy belong to
+  presentation, so an enum in the business layer would mirror the message
+  catalogue for no gain. A second site gets its own thunk; a union earns its
+  keep at three.
 - Enforced twice, and the two catch different things. `no-restricted-imports`
   in `eslint.config.js` matches the `$lib/...` **specifier string**, so a
   dynamic (`import('$lib/data/...')`) crossing is invisible to it. A relative
@@ -109,6 +141,15 @@ Anything the model reads must survive a backup/restore round trip.
   `energyParams`).
 - **localStorage**: only preferences whose loss costs nothing and that have no
   business in a backup (e.g. which tab of a card was open).
+- **sessionStorage**: one thing only — the toast queue that has to outlive a
+  deliberate `location.reload()` (`showToastAfterReload` in
+  `presentation/utils/toast.ts`; import and delete are the callers, export does
+  not reload and toasts live).
+  An IndexedDB store was considered and is **wrong**: it would have to join
+  `STORE_NAMES`, so a backup file would carry "Import failed" and restoring an
+  old one would replay stale toasts — a permanent schema version (R8's five
+  steps) for a string that lives four seconds. Nor is it a store's to write:
+  this tier is presentation's, like the Energy Lab's view preference.
 - **Cookies** (via `data/repository/appearance-repository.ts`): only what SSR
   must know before hydration — `hooks.server.ts` stamps the theme and scenery
   classes into the HTML so the first paint is already correct. Nothing else
@@ -120,10 +161,17 @@ read**, in the business layer that owns the shape (`sanitizeEnergyParams`,
 `resolveThemeName`). The data layer parses and stores; it does not know what a
 valid value means.
 
-No store talks to a storage API directly — not IndexedDB, not `document.cookie`,
-not `localStorage`. Key names, cookie attributes and schema live in exactly one
-repository, because they are read from the server and written from the browser
-and will otherwise be spelled out at four call sites.
+No **store** talks to a storage API directly — not IndexedDB, not
+`document.cookie`, not `localStorage`. Key names, cookie attributes and schema
+live in exactly one repository, because they are read from the server and
+written from the browser and will otherwise be spelled out at four call sites.
+This is store-scoped, and the two presentation-tier keys above are the reason to
+say so: `toast.ts` and `/energy`'s `VIEW_KEY` reach `sessionStorage` and
+`localStorage` themselves. The one-place rule still binds them — each key is
+declared in exactly one module — but a repository would put a view preference
+in the data layer to no purpose. "One module" is about production code: a test
+may re-spell a key as an independent oracle, the way R8 step 4 keeps the
+store-name lists literal.
 
 ### R5 — Business code does not import SvelteKit routing
 
@@ -246,10 +294,35 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 
 ### Svelte / stores
 
-- Stores are created via context in a layout (`setXStore()` / `getXStore()`),
-  **never at module scope** — module state leaks across SSR requests.
-  `business/state/*.svelte.ts` is the one exception and only for values
-  derived from the environment (e.g. the clock), never user data.
+- **Every store reaches a route through its `setXStore()`** — all six of them
+  (`ThemeStore`, `SessionStore`, `EnergyObservationStore`, `DailyPlanStore`,
+  `AnalyticsStore`, `EnergyLabStore`). The one exception is a
+  `*.test-harness.svelte`, which constructs directly because the store under
+  test is the thing it hands back. A bare
+  `new XStore(...)` in a route is not a shortcut, it is the hole:
+  `setContext` **throws outside component initialisation**, which is what makes
+  "a store only ever exists inside a component tree" mechanically enforced
+  instead of merely conventional. Without it nothing stops a `+page.ts` from
+  importing the class, building one in `load()` and returning it to a layout —
+  state created on the server and shared across SSR requests. Do not assume the
+  runes catch that for you: `DailyPlanStore` touches neither `onMount` nor
+  `$effect`, only `$state`/`$derived`, so a `new DailyPlanStore(...)` in a load
+  function **succeeds**. `business/state/*.svelte.ts` remains the one
+  module-scope exception, and only for values derived from the environment (e.g.
+  the clock), never user data.
+- **Context is the creation rule; the layout is not.** `setXStore()` runs in
+  whichever component's tree needs the store — the layout when more than one
+  route reads it (`ThemeStore` in the root layout, `SessionStore` and
+  `EnergyObservationStore` in `(app)`), the route's own instance script when one
+  route does (`setDailyPlanStore` in `/`, `setAnalyticsStore` in `/analytics`,
+  `setEnergyLabStore` in `/energy`). Moving a page-scoped store up to the layout
+  is a behaviour change, not tidying: the Lab's `onDestroy` flush — and the e2e
+  test pinning it — work _because_ the store dies with the route, and the layout
+  would additionally run its `onMount` `settings` read — and arm its autosave and
+  its stopping-observation `$effect` — on all five other pages.
+  A single-consumer store's `getXStore()` may legitimately have no callers yet;
+  it is there so a child component can read the store without the page threading
+  it down, and it costs one line.
 - A class field that a `$derived` initializer reads must be declared with `!`
   and assigned first in the constructor — the deriveds are lazy, but
   TypeScript checks declaration order.
@@ -323,12 +396,30 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 - A hover/active surface is `surface-hover`. `hover:bg-surface-card` on an
   element already sitting on a card is a no-op, which is easy to miss.
 - **A translucent surface sitting on the page needs `backdrop-blur`.** Both
-  `surface-card` and `input` are translucent in ~20 themes, so without it the
+  `surface-card` and `input` are translucent in 31 of the 33 themes, so without it the
   background image shows through unblurred while every card around it is frosted.
   This has been missed on the toolbar buttons, the calendar arrows and both
   segmented-toggle pills. Controls _nested inside_ an already-blurred card do not
   need their own — they sit on a blurred plane already. Bare `backdrop-blur` is
   theme-aware (`terminal` → 0, `lantern-drift` → 2rem); `backdrop-blur-sm` is not.
+- **`component/ui/sonner/sonner.svelte` deviates from its registry version in
+  four ways, and `shadcn add sonner` undoes all four** — check the file after
+  ever re-running the CLI. (1) No `mode-watcher`: the registry passes
+  `theme={mode.current}`, a light/dark **binary** over 33 palettes, which is the
+  same mistake as `dark:`. Every colour comes from tokens instead, so sonner's
+  own `theme` never shows and the dependency is not installed. (2) The four
+  severity tints are added — the registry sets only `--normal-*`, and
+  `richColors` is load-bearing rather than decorative: without it sonner ignores
+  `--error-*`/`--success-*`/`--warning-*`/`--info-*` and paints every severity
+  alike. (3) `--border-radius` follows `--radius`, which the registry's trio also
+  leaves out. (4) The `loadingIcon` snippet is dropped — nothing raises a promise toast, and
+  the registry's `icons/loader-2` is an alias with no `.svelte` entry, so
+  `npm run depcheck` fails on it as unresolvable. The base surface is **not** a
+  deviation: the registry's `--color-popover` exists here and `tokens.css`
+  already maps it to `--surface-page` for exactly this reason ("popovers float
+  over arbitrary content"). A floating overlay must not sit on `--surface-card` —
+  it carries alpha on 31 of the 33 themes and `terminal` pairs that with
+  `--blur: 0`, so page text reads straight through the toast.
 - Checkboxes use `appearance-auto accent-brand`, not the `@tailwindcss/forms`
   look. The plugin paints a hardcoded `fill='white'` checkmark over
   `background-color: currentColor`, so the fill has to be dark — impossible here,
@@ -485,8 +576,34 @@ npm run test:unit -- --run
 npm run test:e2e
 ```
 
-All five run in CI (`.github/workflows/ci.yml`) on every push/PR to `main`.
-Two notes on `check`: it also type-checks `src/service-worker.ts` through
+Then, once those pass and **before reporting the work as done, dispatch a
+read-only reviewer subagent over the working diff** — every completed feature
+and every fixed bug, no exceptions for "small". The five commands prove a change
+compiles, lints and passes the tests it shipped with; none of them can tell you
+it is _right_. A reviewer reading the diff cold is the only step here that
+catches a wrong invariant, a rule in this file quietly broken, or a test that
+asserts the implementation instead of the behaviour.
+
+- `/code-review` covers the working diff; any review-focused subagent does too.
+  What matters is that a second pass reads the diff, not which one runs it.
+- **Give it this file along with the diff.** The findings worth having here are
+  mostly violations of the rules above — layer direction (R1), logic in a route
+  (R2), a mirrored definition (R3), a behaviour change with no test (R6), a
+  formula changed without `MATH.md` (R7) — and a reviewer that has not read them
+  cannot report them.
+- Ask for correctness first. A reviewer left to its own priorities will spend
+  the pass on style, which `eslint` and `prettier` already settled.
+- Fix what it finds, or state plainly why a finding is declined. Findings that
+  are noted and then dropped cost tokens and buy nothing.
+- The same applies to a review's own output: verify a claim before acting on it.
+  A confident reviewer finding is still a claim about code, not a fact.
+
+The reason this is a step and not a suggestion: the checks above are all
+_mechanical_, and every rule in §1 exists because something mechanical passed
+while the change was still wrong.
+
+All five commands run in CI (`.github/workflows/ci.yml`) on every push/PR to
+`main`. Two notes on `check`: it also type-checks `src/service-worker.ts` through
 `tsconfig.worker.json`, because SvelteKit's generated tsconfig `exclude`s that
 file and it would otherwise never be checked. And `svelte.config.js` exists
 only so svelte-check and eslint compile in the same runes mode the build
@@ -590,6 +707,20 @@ Each of these was considered and decided. Re-deciding them is churn.
   bad enough to act on is the band above. Options per axis are the Pareto
   frontier on (improvement ↑, plan value ↑) so there is no weight λ to defend —
   see MATH.md §14 for why "the single biggest improvement" is bad advice.
+
+- **A budget _increase_ never enters that frontier** (MATH.md §14.1).
+  Σ P̄ prices deferring and trimming in full, but it does not price the extra
+  hour — and Σ P̄ is monotone in the budget, so a `budget + 1` inside the
+  frontier out-values every defer and dominates the entire menu down to "work
+  more". `plan-advice.ts` splits the candidates with `isPriced` and returns the
+  increase as `AdviceFinding.unpriced`, which the card renders last and labelled
+  in hours. Do not merge the two lists back together.
+
+- **The budget levers carry unrounded hours** (MATH.md §14.1). Rounding
+  `budget − planSlack` to quarter-hours trimmed past the hours the plan actually
+  spends, so the one lever that must be free stopped being free. The card has no
+  Apply for `set-budget`, so there is nothing to align the hours to — the
+  descriptor rounds the **label**, never the lever.
 - **`buildCurves` is not cached.** Known perf headroom, a deliberate non-fix at
   current plan sizes.
 - **Human Capacity is unclamped** — it is allowed to read over 100%.

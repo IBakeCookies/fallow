@@ -7,9 +7,12 @@
  * hooks all report failures, so any home inside one of them would break the
  * layer direction for the other two (AGENTS.md R1).
  *
- * Distinct from `reportStorageError` on the session store: that raises the
- * user-facing banner, this records what happened for whoever debugs it. Most
- * persistence failures do both, and neither replaces the other.
+ * Distinct from the user-facing surfaces, of which there are three:
+ * `reportStorageError` (the session store's banner), a toast
+ * (`presentation/utils/toast.ts`, reached from a store through an injected
+ * thunk), and a failure a component already shows on its own. This records what
+ * happened for whoever debugs it. Most failures do both, and neither replaces
+ * the other — AGENTS.md R1 has the rule for choosing.
  *
  * Never put task titles, notes or any other user content in `context`. It is
  * the payload a reporting service would ship off-device, and this app's whole

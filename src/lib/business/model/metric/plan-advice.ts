@@ -62,15 +62,26 @@ export interface AdviceOption {
 	quadrant: DailyQuadrant;
 	/** Σ P̄ of the resulting plan (MATH.md §14) and its signed change, in %. */
 	planValue: number;
-	planValueDeltaPercent: number;
+	/** Null when the current plan's Σ P̄ is 0: there is no ratio to report. */
+	planValueDeltaPercent: number | null;
 }
 
 export interface AdviceFinding {
 	axis: AdviceAxis;
 	/** The current plan's reading, for the same axis. */
 	before: number;
-	/** Pareto-efficient levers, biggest improvement first. Never empty. */
+	/**
+	 * Pareto-efficient Σ P̄-priced levers, biggest improvement first. Empty when
+	 * only `unpriced` improves this axis.
+	 */
 	options: AdviceOption[];
+	/**
+	 * An improving budget *increase*, which Σ P̄ does not price — the extra hour
+	 * costs the user something plan value cannot see. It therefore neither
+	 * dominates `options` nor is ranked among them (MATH.md §14). At most one
+	 * exists, because `budget + 1` is the only such lever.
+	 */
+	unpriced: AdviceOption | null;
 }
 
 export interface PlanAdvice {
@@ -138,6 +149,23 @@ function planValueOf(metrics: DailyMetrics): number {
 	return metrics.zenithGain.optimized;
 }
 
+/**
+ * Budget levers nearer than a minute to the current budget are the same lever,
+ * not advice — `budget − planSlack` lands within float noise of the budget on a
+ * plan that spends everything.
+ */
+const MIN_BUDGET_STEP = 1 / 60;
+
+/**
+ * Whether Σ P̄ captures what this lever costs the user. Deferring and trimming
+ * both pay in plan value; *adding* an hour pays in an hour, which the objective
+ * does not see — and Σ P̄ is monotone in the budget, so a priced comparison
+ * would let `budget + 1` dominate every real alternative (MATH.md §14).
+ */
+function isPriced(lever: AdviceLever, budget: number): boolean {
+	return lever.kind === 'defer-task' || lever.hours < budget;
+}
+
 function buildLevers(baseline: DailyMetrics): AdviceLever[] {
 	const levers: AdviceLever[] = baseline.activeTasks
 		// `=== true` and not a truthiness check: the flag is persisted, so it is
@@ -151,11 +179,19 @@ function buildLevers(baseline: DailyMetrics): AdviceLever[] {
 		}));
 
 	const budget = baseline.budgetHours;
+	// Deliberately unrounded: switch cost moves in 5-minute steps, so the slack it
+	// carries is not quarter-aligned, and rounding the trim to quarters would cut
+	// past the hours the plan actually spends — the one lever that must be free
+	// (MATH.md §14).
 	const trimmed = Math.max(0, budget - baseline.planSlackHours);
 
 	const hours = [trimmed, budget - 1, budget + 1]
-		.map((h) => Math.max(0, Math.round(h * 4) / 4))
-		.filter((h, index, all) => h !== budget && all.indexOf(h) === index);
+		.map((h) => Math.max(0, h))
+		.filter(
+			(h, index, all) =>
+				Math.abs(h - budget) >= MIN_BUDGET_STEP &&
+				all.findIndex((other) => Math.abs(other - h) < MIN_BUDGET_STEP) === index,
+		);
 
 	return [
 		...levers,
@@ -182,13 +218,14 @@ function applyLever(input: DailyMetricsInput, lever: AdviceLever): DailyMetricsI
 /**
  * The candidates that beat the current plan on one axis and are not dominated
  * on (improvement ↑, plan value ↑) — sorted by improvement, so the caller reads
- * "the most relief" first and "most of the relief, far cheaper" after it.
+ * "the most relief" first and "most of the relief, far cheaper" after it. The
+ * unpriced budget increase is returned beside the frontier, never inside it.
  */
 function paretoOptions(
 	candidates: { lever: AdviceLever; metrics: DailyMetrics }[],
 	axis: AdviceAxis,
 	baseline: DailyMetrics,
-): AdviceOption[] {
+): Pick<AdviceFinding, 'options' | 'unpriced'> {
 	const { read, badness } = AXIS[axis];
 	const baseValue = planValueOf(baseline);
 	const baseBadness = badness(read(baseline));
@@ -205,8 +242,12 @@ function paretoOptions(
 					after,
 					quadrant: candidate.metrics.dailyQuadrant,
 					planValue,
+					// A zero baseline has no ratio, and reporting 0% there renders a
+					// real gain as costing nothing (MATH.md §14).
 					planValueDeltaPercent:
-						baseValue > 0 ? Math.round(((planValue - baseValue) / baseValue) * 1000) / 10 : 0,
+						baseValue > 0
+							? Math.round(((planValue - baseValue) / baseValue) * 1000) / 10
+							: null,
 				},
 			};
 		})
@@ -219,13 +260,18 @@ function paretoOptions(
 	let bestValue = -Infinity;
 
 	for (const { option } of improving) {
-		if (option.planValue <= bestValue) continue;
+		if (!isPriced(option.lever, baseline.budgetHours) || option.planValue <= bestValue) continue;
 
 		bestValue = option.planValue;
 		frontier.push(option);
 	}
 
-	return frontier;
+	return {
+		options: frontier,
+		unpriced:
+			improving.find((entry) => !isPriced(entry.option.lever, baseline.budgetHours))?.option ??
+			null,
+	};
 }
 
 /**
@@ -251,8 +297,8 @@ export function suggestPlanAdjustments(
 	const findings = ADVICE_AXES.map((axis) => ({
 		axis,
 		before: AXIS[axis].read(baseline),
-		options: paretoOptions(candidates, axis, baseline),
-	})).filter((finding) => finding.options.length > 0);
+		...paretoOptions(candidates, axis, baseline),
+	})).filter((finding) => finding.options.length > 0 || finding.unpriced !== null);
 
 	return {
 		planValue: planValueOf(baseline),

@@ -5,11 +5,17 @@
 	import CalendarDays from '@lucide/svelte/icons/calendar-days';
 	import ChartColumn from '@lucide/svelte/icons/chart-column';
 	import Zap from '@lucide/svelte/icons/zap';
+	import Languages from '@lucide/svelte/icons/languages';
 	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
-	import { locales, localizeHref, deLocalizeHref } from '$lib/paraglide/runtime';
-	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
-	import { activeLocale, switchLocale, getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { locales, localizeHref, deLocalizeHref, type Locale } from '$lib/paraglide/runtime';
+	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
+	import {
+		activeLocale,
+		switchLocale,
+		localeLabel,
+		getDateLocale,
+	} from '$lib/presentation/utils/locale.svelte';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	interface Props {
@@ -109,20 +115,27 @@
 		{/each}
 
 		<div class="mx-text-2xs h-4 w-px bg-line-soft"></div>
-		{#each locales as locale (locale)}
-			<button
-				type="button"
-				aria-label="{m.nav_switch_language()}: {locale.toUpperCase()}"
-				aria-current={activeLocale.value === locale ? 'true' : undefined}
-				onclick={() => switchLocale(locale)}
-				class={segmentedToggleVariants({
-					tone: 'nav',
-					active: activeLocale.value === locale,
-				})}
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger
+				aria-label={m.nav_switch_language()}
+				class="flex items-center gap-text-xs rounded-lg px-box-sm py-box-3xs text-sm text-ty-secondary transition-colors hover:bg-surface-hover hover:text-ty-primary"
 			>
-				{locale}
-			</button>
-		{/each}
+				<Languages class="h-4 w-4 shrink-0" />
+				<span class="hidden sm:inline">{localeLabel(activeLocale.value)}</span>
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-max min-w-40">
+				<DropdownMenu.RadioGroup
+					value={activeLocale.value}
+					onValueChange={(v) => switchLocale(v as Locale)}
+				>
+					{#each locales as locale (locale)}
+						<DropdownMenu.RadioItem value={locale} class="cursor-pointer">
+							{localeLabel(locale)}
+						</DropdownMenu.RadioItem>
+					{/each}
+				</DropdownMenu.RadioGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 	</nav>
 
 	{@render actions?.()}

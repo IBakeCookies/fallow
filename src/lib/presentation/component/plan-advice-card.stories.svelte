@@ -59,6 +59,20 @@
 						cost: '−18.4% plan value',
 						profileFlip: null,
 					},
+					/* The unpriced lever, always last and costed in hours rather than in
+					   plan value: Σ P̄ rises with the budget, so a percentage here would
+					   read as the extra hour being free (MATH.md §14.1). */
+					{
+						lever: {
+							kind: 'set-budget',
+							hours: 9,
+						},
+						action: 'Set the budget to 9h',
+						after: '78%',
+						afterStyle: STATUS.WARNING.color,
+						cost: 'costs an extra hour of your day',
+						profileFlip: null,
+					},
 				],
 			},
 		],

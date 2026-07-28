@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	calculateDailyMetrics,
+	type DailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
 import {
@@ -81,8 +82,17 @@ function badnessOf(axis: AdviceAxis, value: number): number {
 	return value;
 }
 
+/** The same nine readings the model searches over (MATH.md §14). */
+function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
+	if (axis === 'humanCapacity') return metrics.humanCapacity.percent;
+
+	return metrics[axis];
+}
+
 function everyOption(advice: PlanAdvice): AdviceOption[] {
-	return advice.findings.flatMap((finding) => finding.options);
+	return advice.findings.flatMap((finding) =>
+		finding.unpriced ? [...finding.options, finding.unpriced] : finding.options,
+	);
 }
 
 function budgetLevers(advice: PlanAdvice): number[] {
@@ -212,7 +222,8 @@ describe('suggestPlanAdjustments', () => {
 	it('reports readings the model reproduces when the lever is applied', () => {
 		const base = grindDay();
 		const advice = suggestPlanAdjustments(base);
-		const option = findingFor(advice, 'burnoutRisk')?.options[0];
+		const finding = findingFor(advice, 'burnoutRisk');
+		const option = finding?.options[0] ?? finding?.unpriced;
 
 		expect(option).toBeDefined();
 
@@ -240,7 +251,7 @@ describe('suggestPlanAdjustments', () => {
 		expect(advice.findings.length).toBeGreaterThan(0);
 
 		const notImproving = advice.findings.flatMap((finding) =>
-			finding.options.filter(
+			(finding.unpriced ? [...finding.options, finding.unpriced] : finding.options).filter(
 				(option) =>
 					badnessOf(finding.axis, option.after) >= badnessOf(finding.axis, finding.before),
 			),
@@ -268,8 +279,11 @@ describe('suggestPlanAdjustments', () => {
 		expect(dominated).toEqual([]);
 	});
 
+	// 6h and not the usual 10: at 10 the trim already carries both the biggest
+	// improvement and the highest plan value on every axis, so every priced
+	// frontier is a single option and the ordering is vacuous.
 	it('orders options by decreasing improvement and increasing plan value', () => {
-		const advice = suggestPlanAdjustments(grindDay());
+		const advice = suggestPlanAdjustments(grindDay(6));
 		const multi = advice.findings.filter((finding) => finding.options.length > 1);
 
 		expect(multi.length).toBeGreaterThan(0);
@@ -293,7 +307,7 @@ describe('suggestPlanAdjustments', () => {
 
 		const advice = suggestPlanAdjustments(base, baseline);
 
-		expect(budgetLevers(advice)).toContain(Math.round((14 - baseline.planSlackHours) * 4) / 4);
+		expect(budgetLevers(advice)).toContain(14 - baseline.planSlackHours);
 	});
 
 	// Trimming unspendable hours changes no allocation, so it must cost nothing —
@@ -301,7 +315,7 @@ describe('suggestPlanAdjustments', () => {
 	it('prices a pure budget trim at zero plan value', () => {
 		const base = grindDay(14);
 		const baseline = calculateDailyMetrics(base);
-		const trimTo = Math.round((14 - baseline.planSlackHours) * 4) / 4;
+		const trimTo = 14 - baseline.planSlackHours;
 		const advice = suggestPlanAdjustments(base, baseline);
 
 		const trim = everyOption(advice).find(
@@ -329,7 +343,10 @@ describe('suggestPlanAdjustments', () => {
 
 		expect(order).toEqual([...order].sort((a, b) => a - b));
 		expect(order.every((index) => index >= 0)).toBe(true);
-		expect(advice.findings.every((finding) => finding.options.length > 0)).toBe(true);
+
+		expect(
+			advice.findings.every((finding) => finding.options.length > 0 || finding.unpriced !== null),
+		).toBe(true);
 	});
 
 	// A zero pool with demand on it makes Human Capacity read Infinity
@@ -355,5 +372,114 @@ describe('suggestPlanAdjustments', () => {
 
 	it('is deterministic — the same input yields the same advice', () => {
 		expect(suggestPlanAdjustments(grindDay())).toEqual(suggestPlanAdjustments(grindDay()));
+	});
+
+	// MATH.md §14.1-1. Σ P̄ rises with the budget, so a budget increase inside the
+	// frontier would out-value every defer and dominate the whole menu — which on
+	// 99 of 1580 probe frontiers reduced the advice to "work an extra hour".
+	it('never files a budget increase inside the priced frontier', () => {
+		for (const hours of [4, 6, 8, 10, 14]) {
+			const advice = suggestPlanAdjustments(grindDay(hours));
+
+			const raises = advice.findings.flatMap((finding) =>
+				finding.options.filter(
+					(option) => option.lever.kind === 'set-budget' && option.lever.hours > hours,
+				),
+			);
+
+			expect(raises).toEqual([]);
+		}
+	});
+
+	// The regression itself: the extra hour must not silence a defer that helps.
+	it('keeps improving defers on an axis a budget increase also improves', () => {
+		const base = grindDay(6);
+		const baseline = calculateDailyMetrics(base);
+		const advice = suggestPlanAdjustments(base, baseline);
+		const withUnpriced = advice.findings.filter((finding) => finding.unpriced !== null);
+
+		expect(withUnpriced.length).toBeGreaterThan(0);
+
+		// Every axis the extra hour improves and a defer also improves must still
+		// list that defer; `unpriced` is reported beside the frontier, not in it.
+		const deferrable = withUnpriced.filter((finding) =>
+			baseline.activeTasks.some((task) => {
+				const metrics = calculateDailyMetrics({
+					...base,
+					tasks: base.tasks.filter((other) => other.id !== task.id),
+				});
+
+				return (
+					badnessOf(finding.axis, readAxis(metrics, finding.axis)) <
+					badnessOf(finding.axis, finding.before)
+				);
+			}),
+		);
+
+		expect(deferrable.length).toBeGreaterThan(0);
+		expect(deferrable.every((finding) => finding.options.length > 0)).toBe(true);
+	});
+
+	// MATH.md §14.1-2. A 5-minute switch cost puts the slack off the quarter-hour
+	// grid; rounding the trim to quarters cut into funded time (58/200 probe days)
+	// or deleted the lever (50/200).
+	it('trims to exactly the hours the plan spends, unrounded', () => {
+		const base = input(GRIND, {
+			availableHours: 9,
+			// 10 minutes: two switches make the overhead 1/3 h, so no quarter-hour
+			// trim exists.
+			switchCost: 1 / 6,
+		});
+
+		const baseline = calculateDailyMetrics(base);
+		const trimTo = baseline.budgetHours - baseline.planSlackHours;
+
+		expect(Math.abs(trimTo * 4 - Math.round(trimTo * 4))).toBeGreaterThan(1e-9);
+
+		const advice = suggestPlanAdjustments(base, baseline);
+
+		const trim = everyOption(advice).find(
+			(option) => option.lever.kind === 'set-budget' && option.lever.hours === trimTo,
+		);
+
+		expect(trim).toBeDefined();
+		// Unspendable hours, so the allocation — and therefore the value — is
+		// untouched. The rounded lever was not free.
+		expect(trim!.planValueDeltaPercent).toBe(0);
+	});
+
+	it('drops a budget lever less than a minute from the current budget', () => {
+		// A plan that spends its whole budget leaves float-noise slack, and
+		// "set the budget to what it already is" is not advice.
+		const base = grindDay(2.25);
+		const baseline = calculateDailyMetrics(base);
+
+		expect(baseline.planSlackHours).toBeLessThan(1 / 60);
+
+		const advice = suggestPlanAdjustments(base, baseline);
+
+		expect(budgetLevers(advice)).not.toContain(baseline.budgetHours);
+
+		expect(
+			budgetLevers(advice).filter((hours) => Math.abs(hours - baseline.budgetHours) < 1 / 60),
+		).toEqual([]);
+	});
+
+	// MATH.md §14.1-3. With no baseline value there is no ratio; reporting 0 made
+	// the card render a real gain as "costs no plan value".
+	it('reports a null delta rather than 0% when the plan has no value to lose', () => {
+		const base = input(GRIND, {
+			availableHours: 0,
+		});
+
+		const baseline = calculateDailyMetrics(base);
+		const advice = suggestPlanAdjustments(base, baseline);
+
+		expect(baseline.zenithGain.optimized).toBe(0);
+
+		const gains = everyOption(advice).filter((option) => option.planValue > 0);
+
+		expect(gains.length).toBeGreaterThan(0);
+		expect(gains.every((option) => option.planValueDeltaPercent === null)).toBe(true);
 	});
 });

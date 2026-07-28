@@ -1,5 +1,12 @@
-import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, addTask, logDrain } from './helpers';
+import { expect, test } from '@playwright/test';
+import {
+	AUTOSAVE_MS,
+	addTask,
+	installFailableIndexedDB,
+	logDrain,
+	setIndexedDBFailing,
+	setIndexedDBTransactionsFailing,
+} from './helpers';
 
 /* The storage banner is the app's only report that persistence broke, and its two
    kinds behave differently on purpose: a failed READ is retryable, a failed WRITE
@@ -7,32 +14,6 @@ import { AUTOSAVE_MS, addTask, logDrain } from './helpers';
    field, but the wiring the banner depends on lives in the (app) layout — most
    importantly that one retry click re-runs BOTH stores' retryLoad(), which
    AGENTS.md §5 flags as the thing that rots when a store is added. */
-
-/* Make IndexedDB fail on demand. `open()` wraps `indexedDB.open` in a Promise
-   executor, so a synchronous throw there rejects it exactly like a real failure.
-   The switch lives in sessionStorage because addInitScript re-runs on every
-   navigation — a plain flag would reset itself on the reload under test. */
-const FAIL_SWITCH = 'e2e-fail-indexeddb';
-
-async function installFailableIndexedDB(page: Page) {
-	await page.addInitScript((key) => {
-		const realOpen = indexedDB.open.bind(indexedDB);
-
-		indexedDB.open = ((name: string, version?: number) => {
-			if (sessionStorage.getItem(key) === '1') {
-				throw new DOMException('e2e-induced IndexedDB failure', 'UnknownError');
-			}
-
-			return realOpen(name, version);
-		}) as typeof indexedDB.open;
-	}, FAIL_SWITCH);
-}
-
-const setIndexedDBFailing = (page: Page, failing: boolean) =>
-	page.evaluate(
-		([key, on]) => (on === '1' ? sessionStorage.setItem(key, '1') : sessionStorage.removeItem(key)),
-		[FAIL_SWITCH, failing ? '1' : '0'],
-	);
 
 test('one retry click recovers both stores after a failed read', async ({ page }) => {
 	await installFailableIndexedDB(page);
@@ -80,11 +61,7 @@ test('a failed write says the edit may be lost and offers no retry', async ({ pa
 	await addTask(page, 'Boxing training');
 	await page.waitForTimeout(AUTOSAVE_MS);
 
-	await page.evaluate(() => {
-		IDBDatabase.prototype.transaction = () => {
-			throw new DOMException('e2e-induced write failure', 'InvalidStateError');
-		};
-	});
+	await setIndexedDBTransactionsFailing(page, true);
 
 	// Any task mutation arms the autosave the broken transaction then fails.
 	await addTask(page, 'Write report');

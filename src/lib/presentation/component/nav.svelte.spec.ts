@@ -69,23 +69,29 @@ describe('nav.svelte', () => {
 		await expect.element(link).toHaveAttribute('title', 'Return to today');
 	});
 
-	it('renders a language switcher with the active locale marked', async () => {
+	it('renders a language dropdown with the active locale checked', async () => {
 		render(Nav);
 
-		await expect
-			.element(
-				page.getByRole('button', {
-					name: 'Switch language: EN',
-				}),
-			)
-			.toHaveAttribute('aria-current', 'true');
+		await page
+			.getByRole('button', {
+				name: 'Switch language',
+			})
+			.click();
 
 		await expect
 			.element(
-				page.getByRole('button', {
-					name: 'Switch language: DE',
+				page.getByRole('menuitemradio', {
+					name: 'English',
 				}),
 			)
-			.not.toHaveAttribute('aria-current');
+			.toHaveAttribute('aria-checked', 'true');
+
+		await expect
+			.element(
+				page.getByRole('menuitemradio', {
+					name: 'Deutsch',
+				}),
+			)
+			.toHaveAttribute('aria-checked', 'false');
 	});
 });

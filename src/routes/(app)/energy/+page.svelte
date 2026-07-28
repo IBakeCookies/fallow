@@ -3,6 +3,7 @@
 	import { logError } from '$lib/logger';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { showToast } from '$lib/presentation/utils/toast';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
@@ -13,7 +14,7 @@
 	import type { Task } from '$lib/business/model/metric/calculation';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
-	import { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import { setEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 
 	const VIEW_KEY = 'zenith-energy-view';
 
@@ -42,7 +43,9 @@
 	// them and edits them, nothing more. Params are the lab's own and never
 	// written back to the session, but they ARE persisted (IndexedDB, so backup
 	// covers them).
-	const lab = new EnergyLabStore(session, observations);
+	const lab = setEnergyLabStore(session, observations, () =>
+		showToast.danger(m.energy_params_load_failed()),
+	);
 
 	// Aliases so the markup reads in the model's vocabulary
 	const params = $derived(lab.params);

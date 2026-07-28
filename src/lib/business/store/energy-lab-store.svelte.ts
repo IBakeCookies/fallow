@@ -1,4 +1,4 @@
-import { onDestroy, onMount } from 'svelte';
+import { getContext, onDestroy, onMount, setContext } from 'svelte';
 import { browser } from '$app/environment';
 import type { StopObservation } from '$lib/business/model/zenith-energy';
 import { logError } from '$lib/logger';
@@ -31,6 +31,7 @@ import {
 	toRestObservations,
 } from '$lib/business/model/energy-calibration';
 
+const CONTEXT_KEY = Symbol();
 /** Fitted values are surfaced (and applied) at 2dp — the sliders' precision. */
 const round2 = (x: number) => Math.round(x * 100) / 100;
 const SAVE_DEBOUNCE_MS = 500;
@@ -55,6 +56,18 @@ export function sanitizeEnergyParams(raw: unknown): EnergyParams {
 
 	return params;
 }
+
+/**
+ * Tells the user their saved parameters could not be read, so the sliders
+ * showing defaults does not look like their calibration was thrown away.
+ *
+ * Injected rather than imported: raising a toast is presentation, which the
+ * business layer may not reach (R1), and copy is a presentation concern (R2).
+ * Same shape and the same reason as `ReportStorageError` — but a distinct
+ * surface, because this is not the viewed day and the banner's retry does not
+ * cover it.
+ */
+export type NotifyParamsLoadFailed = () => void;
 
 /**
  * The Energy Lab: the user's model parameters plus everything derived from
@@ -98,7 +111,11 @@ export class EnergyLabStore {
 	#stopObservations = $state<StopObservation[]>([]);
 	#stopLoadVersion = 0;
 
-	constructor(session: SessionStore, observations: EnergyObservationStore) {
+	constructor(
+		session: SessionStore,
+		observations: EnergyObservationStore,
+		notifyParamsLoadFailed: NotifyParamsLoadFailed,
+	) {
 		this.#session = session;
 		this.#observations = observations;
 
@@ -108,7 +125,10 @@ export class EnergyLabStore {
 					await settingsRepository.$readSetting(ENERGY_PARAMS_SETTING),
 				);
 			} catch (e) {
+				// #params keeps DEFAULT_ENERGY_PARAMS, which is indistinguishable from
+				// a never-calibrated user unless we say so.
 				logError('Failed to load energy lab params', e);
+				notifyParamsLoadFailed();
 			}
 
 			this.#loaded = true;
@@ -146,9 +166,15 @@ export class EnergyLabStore {
 			void this.#observations.drainObservations;
 			const version = ++this.#stopLoadVersion;
 
-			readStopObservations(this.#session.today).then((observations) => {
-				if (version === this.#stopLoadVersion) this.#stopObservations = observations;
-			});
+			readStopObservations(this.#session.today)
+				.then((observations) => {
+					if (version === this.#stopLoadVersion) this.#stopObservations = observations;
+				})
+				// Silent on purpose, but never unhandled: in any real outage the params
+				// read above fails too and raises the toast for both. An isolated
+				// failure here only empties the stopping-value fit, which the card
+				// already renders as "not fitted".
+				.catch((e) => logError('Failed to load stopping observations', e));
 		});
 	}
 
@@ -414,4 +440,27 @@ export class EnergyLabStore {
 	applyStoppingFit() {
 		if (this.#stoppingFit.fitted) this.#params.freeTimeValue = round2(this.#stoppingFit.value);
 	}
+}
+
+/**
+ * Read by `/energy` alone, and created there rather than in a layout — the
+ * context does not change that. Its per-page lifetime is load-bearing: the
+ * `onDestroy` flush above exists because the store dies with the route, and
+ * creating it in the layout would also run its `onMount` read on every other
+ * page. `setContext` is here for the guard it gives — it throws outside
+ * component initialisation, so no `+page.ts` load can build this store.
+ */
+export function setEnergyLabStore(
+	session: SessionStore,
+	observations: EnergyObservationStore,
+	notifyParamsLoadFailed: NotifyParamsLoadFailed,
+): EnergyLabStore {
+	return setContext<EnergyLabStore>(
+		CONTEXT_KEY,
+		new EnergyLabStore(session, observations, notifyParamsLoadFailed),
+	);
+}
+
+export function getEnergyLabStore(): EnergyLabStore {
+	return getContext<EnergyLabStore>(CONTEXT_KEY);
 }
