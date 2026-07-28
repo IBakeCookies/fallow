@@ -19,6 +19,12 @@ async function saveRoutine(page: Page, name: string) {
 
 	await page.getByPlaceholder('Routine name...').fill(name);
 	await page.getByPlaceholder('Routine name...').press('Enter');
+
+	// The routine write is a real IndexedDB round trip, and navigating before it
+	// lands loses the routine — the menu then opens with nothing in it. Not the
+	// autosave debounce, but the same order of magnitude, so the constant moves
+	// with it.
+	await page.waitForTimeout(AUTOSAVE_MS);
 }
 
 test('a routine saved today loads onto another day', async ({ page }) => {

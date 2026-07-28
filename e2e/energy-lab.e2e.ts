@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, addTask } from './helpers';
+import { AUTOSAVE_MS, addTask, logDrain } from './helpers';
 
 /* The Energy Lab reads the shared daily session but owns its own params and
    measurements, so the flows worth covering here are the seams between them:
@@ -14,31 +14,6 @@ const statValue = (page: Page, label: string) =>
 			exact: true,
 		})
 		.locator('xpath=preceding-sibling::p[1]');
-
-// Log an end-of-session drain rating (🪫) against the first task.
-async function logDrain(page: Page, minutes: number, mind: number, body: number) {
-	await page
-		.getByRole('button', {
-			name: 'Log end-of-session drain',
-		})
-		.first()
-		.click();
-
-	const form = page.locator('form').filter({
-		hasText: 'After the session',
-	});
-
-	const fields = form.locator('input[type="number"]');
-	await fields.nth(0).fill(String(minutes));
-	await fields.nth(1).fill(String(mind));
-	await fields.nth(2).fill(String(body));
-
-	await form
-		.getByRole('button', {
-			name: '✓',
-		})
-		.click();
-}
 
 // Log a pre/post-rest pair (☕). Field order follows the form: duration, then
 // mind/body before, then mind/body after.

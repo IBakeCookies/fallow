@@ -29,13 +29,23 @@ test('completing a task persists across reload', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Write report');
 
-	const checkbox = page.getByRole('checkbox');
+	// Named, not the only one on the page: the task form carries a "must do today"
+	// checkbox above the list, so a bare checkbox role is ambiguous.
+	const checkbox = page.getByRole('checkbox', {
+		name: 'Mark Write report complete',
+	});
+
 	await checkbox.check();
 	await expect(checkbox).toBeChecked();
 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
-	await expect(page.getByRole('checkbox')).toBeChecked();
+
+	await expect(
+		page.getByRole('checkbox', {
+			name: 'Mark Write report complete',
+		}),
+	).toBeChecked();
 });
 
 test('removing a task restores the empty state', async ({ page }) => {

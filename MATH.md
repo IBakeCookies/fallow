@@ -1677,3 +1677,114 @@ must be settled FIRST:
    unchanged and Burnout Risk would inflate the energy plan's intentional
    slack back to a full workday — warning about a day the plan explicitly
    declined to schedule.
+
+## 14. Plan advice — priced counterfactuals over the day's levers (2026-07-27)
+
+**The question.** The dashboard says the day reads badly — Burnout Risk 82%,
+Day Profile "Grind", Cognitive Load 88% — and then stops there. §11 made
+every reading honest; none of them says what to _change_. The obvious
+implementation is a rule table ("if burnout > 70, drop the hardest task"),
+but a rule table has to **guess the consequence of its own advice**. It does
+not have to guess: `calculateDailyMetrics` is a pure function of (tasks,
+hours, switch cost, pools, constants, energy params), so a candidate
+adjustment can be re-solved and measured by the same optimizer that produced
+the plan being criticised. Advice is therefore a search over the day's
+levers, and every number it shows is a real model output rather than an
+extrapolation.
+
+**Levers.** Only inputs the user can honestly move on the day itself:
+
+- **Defer task i** — one candidate per _active_ task that is not flagged
+  `mustDoToday`. Completed tasks are not deferrable (and the plan keeps their
+  hours either way, §11.8). Unfunded tasks are included: dropping one leaves
+  the allocation untouched but does move Time Scarcity (Σϕ runs over all
+  tasks, §11.3) and the Day Profile averages.
+- **Set the budget to h** — three candidates: `budget − planSlack` (declare
+  only the hours the plan actually spends), `budget − 1`, `budget + 1`.
+  Clamped at 0, deduplicated, and the current budget dropped.
+
+Deliberately _*not*_ levers: `switchCost` and the two capacity pools are
+measurements of the user, not choices about the day — advising someone to
+raise their cognitive pool is advising them to lie to the model. Per-task
+difficulty and enjoyment are excluded for the same reason.
+
+**A plan's value** is the model's own objective, Σᵢ P̄ᵢ(tᵢ) over the funded
+tasks (§0/§2) — and it is already computed. Probe 2026-07-27:
+`zenithGain.optimized` equals `Σ avgProductivity` over funded tasks to the
+last digit (6.531452631233891 both ways, n = 5), because
+`pooledProductivityGain` optimizes exactly that sum. So a candidate's cost is
+`ΔΣP̄ / ΣP̄` and no new quantity enters the model.
+
+**Axes and badness.** Nine readings are searchable, each with a _badness_
+function so that lower is always better:
+
+| Axis                                                                                                      | badness     |
+| --------------------------------------------------------------------------------------------------------- | ----------- |
+| Burnout Risk, Human Capacity, Cognitive Load, Physical Load, Friction Index, Grind Density, Time Scarcity | `v`         |
+| Energy Balance                                                                                            | `abs(v−50)` |
+| Schedule Integrity                                                                                        | `−v`        |
+
+Energy Balance is a **target** between the two pools, not a maximum — both
+80% cognitive and 80% physical are worse than 50/50, which `v` alone cannot
+express. Human Capacity may read `Infinity` (a pool of 0 with demand on it,
+§11 `calculateHumanCapacity`); the improvement test is `<`, so `Infinity`
+never beats `Infinity` and such a candidate is silently excluded rather than
+producing `NaN`.
+
+Badness only **orders** candidates. It never decides that a reading is bad:
+whether 82% burnout deserves advice at all is a band, and bands are
+presentation policy (AGENTS.md §5) — `metric-descriptor.ts` owns them and the
+card consults them. The model is threshold-free on purpose, and answers the
+same question for every axis unconditionally: what would help this, and what
+would it cost.
+
+**What is returned: the per-axis Pareto frontier.** For a given axis, a
+candidate qualifies iff its badness beats the current plan's. Returning only
+the single largest improvement is bad advice — that is nearly always "defer
+your biggest task", which is also the most expensive one — and returning all
+of them is noise. So the options are the candidates **not dominated** on
+(improvement ↑, plan value ↑): sort by improvement descending, walk the list,
+keep a candidate only if its plan value strictly exceeds every candidate
+already kept. Ties in improvement resolve to the higher-value candidate. What
+survives is the honest menu — the most relief, and most of the relief for a
+fraction of the cost — ordered by decreasing improvement and increasing
+value, with no weight λ to justify. The frontier is returned whole; how many
+rows to show is the card's decision.
+
+Alongside the frontiers the advice reports the active tasks the plan funds no
+hours for. That needs no search, and it is the one piece of advice that is
+purely a read of the existing plan.
+
+**Cost.** One `calculateDailyMetrics` per candidate, so `activeTasks + 3`
+full solves. Measured 2026-07-27 (default constants and pools, 8h budget):
+1.6 ms per solve at 3 tasks, 3.9 at 6, 12.5 at 9, **95 at 12** — the 2ⁿ
+funded-subset enumeration of §4, which the linear candidate count amplifies
+into 12 ms for a 6-task day but **946 ms for a 12-task one**. Advice is
+therefore computed **on demand and never in a `$derived`**: a 12-task day
+would otherwise freeze the main thread on every keystroke in the budget
+field. Caching `buildCurves` (AGENTS.md §5) is the lever if this ever has to
+be interactive.
+
+**Deliberate approximations.**
+
+- **Single-step only.** No two levers are evaluated jointly — the search is
+  `n + 3`, not `2ⁿ`. Applying one suggestion and asking again is the intended
+  loop; a day that needs two deferrals surfaces the second one after the
+  first is taken.
+- **"Defer" is a counterfactual, not an operation.** The lever is exactly
+  `tasks.filter(t => t.id !== id)` re-solved: it asks _suppose this task were
+  not on today's list_, and the model has no opinion on where it goes. Nothing
+  is moved and nothing is deleted — the reading is the price of the option, and
+  taking it is the user's action (see AGENTS.md §6: there is no cross-day move
+  yet, which is why the card offers no Apply). The label reads "move it off
+  today" rather than "defer to tomorrow" for that reason.
+- **A deferred task is not scored against tomorrow.** The model has no
+  multi-day horizon, so "defer" prices the relief and not the debt. Even once a
+  real move exists, that stays true until the horizon does.
+- **Obligation is a flag, not a model.** `Task.mustDoToday` removes a task from
+  the defer candidates entirely, which is the whole of what the model knows
+  about obligation: there is no deadline date, no priority order, and no cost
+  for missing one. So the advisor cannot trade "this slips a day" against
+  "this slips a week" — it can only be told not to suggest the move. A day
+  where every task is flagged reduces the search to the budget levers, which
+  is the correct answer to "nothing here can move".

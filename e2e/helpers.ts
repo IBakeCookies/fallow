@@ -25,3 +25,29 @@ export async function addTask(page: Page, title: string) {
 		})
 		.click();
 }
+
+/** Log an end-of-session drain rating (🪫) on /energy against the first task. */
+export async function logDrain(page: Page, minutes: number, mind: number, body: number) {
+	await page
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.first()
+		.click();
+
+	const form = page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+	const fields = form.locator('input[type="number"]');
+
+	await fields.nth(0).fill(String(minutes));
+	await fields.nth(1).fill(String(mind));
+	await fields.nth(2).fill(String(body));
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+}

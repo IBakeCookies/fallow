@@ -83,4 +83,53 @@ describe('DailyPlanStore', () => {
 
 		expect(store.daily.burnoutRisk).not.toBe(onDefaults);
 	});
+
+	// Advice costs one full solve per candidate (MATH.md §14), so it is explicitly
+	// requested and then goes stale rather than recomputing on every keystroke.
+	it('computes advice on demand only', async () => {
+		const store = setup();
+
+		mockSession.tasks = [
+			task(1, 'tax return', {
+				enjoyment: 1,
+				mentalDifficulty: 10,
+			}),
+		];
+
+		mockSession.availableHours = 10;
+		flushSync();
+
+		expect(store.advice).toBeNull();
+		expect(store.adviceStale).toBe(false);
+
+		await store.computeAdvice();
+
+		expect(store.advice?.candidatesEvaluated).toBeGreaterThan(0);
+		expect(store.adviceBusy).toBe(false);
+		expect(store.adviceStale).toBe(false);
+	});
+
+	it('marks advice stale when the day changes under it, and fresh again after a recompute', async () => {
+		const store = setup();
+
+		mockSession.tasks = [
+			task(1, 'tax return', {
+				enjoyment: 1,
+				mentalDifficulty: 10,
+			}),
+		];
+
+		mockSession.availableHours = 10;
+		flushSync();
+		await store.computeAdvice();
+
+		mockSession.availableHours = 6;
+		flushSync();
+
+		expect(store.adviceStale).toBe(true);
+
+		await store.computeAdvice();
+
+		expect(store.adviceStale).toBe(false);
+	});
 });

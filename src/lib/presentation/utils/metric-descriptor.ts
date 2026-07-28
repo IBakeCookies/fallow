@@ -10,12 +10,42 @@
 
 import type { Metric } from '$lib/presentation/type';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
+import type { AdviceAxis } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
 import {
 	STATUS,
 	getStatusBiggerBetter,
 	getStatusSmallerBetter,
+	type StatusType,
 } from '$lib/presentation/utils/status';
+
+/**
+ * The band policy for every reading the plan advisor can search on, exported
+ * because the advice card decides WHICH findings to surface from exactly the
+ * good/bad call these rows are colored by (AGENTS.md R3 — one definition, not
+ * two copies of the same thresholds). `satisfies` keeps it total over the axes.
+ */
+export const BAND = {
+	burnoutRisk: (value: number) => getStatusSmallerBetter(value),
+	humanCapacity: (value: number) =>
+		value <= 75 ? STATUS.SUCCESS : value <= 100 ? STATUS.NEUTRAL : STATUS.CRITICAL,
+	// Load only reads as a problem past 70%; below that it is just how the day is
+	// shaped.
+	cognitiveLoad: (value: number) => getStatusSmallerBetter(value > 70 ? value : 0),
+	physicalLoad: (value: number) => getStatusSmallerBetter(value > 70 ? value : 0),
+	energyBalance: (value: number) => (value > 60 || value < 40 ? STATUS.WARNING : STATUS.SUCCESS),
+	frictionIndex: (value: number) => getStatusSmallerBetter(value),
+	grindDensity: (value: number) => getStatusSmallerBetter(value),
+	timeScarcity: (value: number) => getStatusSmallerBetter(value),
+	scheduleIntegrity: (value: number) => getStatusBiggerBetter(value),
+} satisfies Record<AdviceAxis, (value: number) => StatusType>;
+
+/** Whether a reading is bad enough to be worth advice about. */
+export function isOutOfBand(axis: AdviceAxis, value: number): boolean {
+	const status = BAND[axis](value);
+
+	return status === STATUS.WARNING || status === STATUS.CRITICAL;
+}
 
 /** Metrics that are undefined without tasks/budget render as N/A, not 0. */
 const notAvailable = () => ({
@@ -122,12 +152,7 @@ export function buildMetrics(
 			...(hasTasks && hasBudget
 				? {
 						value: `${humanCapacity.percent}%`,
-						valStyle:
-							humanCapacity.percent <= 75
-								? STATUS.SUCCESS.color
-								: humanCapacity.percent <= 100
-									? STATUS.NEUTRAL.color
-									: STATUS.CRITICAL.color,
+						valStyle: BAND.humanCapacity(humanCapacity.percent).color,
 					}
 				: NA),
 		},
@@ -137,7 +162,7 @@ export function buildMetrics(
 			...(hasTasks
 				? {
 						value: `${timeScarcity}%`,
-						valStyle: getStatusSmallerBetter(timeScarcity).color,
+						valStyle: BAND.timeScarcity(timeScarcity).color,
 					}
 				: NA),
 		},
@@ -154,7 +179,7 @@ export function buildMetrics(
 			...(hasTasks && hasBudget
 				? {
 						value: `${burnoutRisk}%`,
-						valStyle: getStatusSmallerBetter(burnoutRisk).color,
+						valStyle: BAND.burnoutRisk(burnoutRisk).color,
 					}
 				: NA),
 		},
@@ -164,7 +189,7 @@ export function buildMetrics(
 			...(hasTasks && hasBudget
 				? {
 						value: `${cognitiveLoad}%`,
-						valStyle: getStatusSmallerBetter(cognitiveLoad > 70 ? cognitiveLoad : 0).color,
+						valStyle: BAND.cognitiveLoad(cognitiveLoad).color,
 					}
 				: NA),
 		},
@@ -174,7 +199,7 @@ export function buildMetrics(
 			...(hasTasks && hasBudget
 				? {
 						value: `${physicalLoad}%`,
-						valStyle: getStatusSmallerBetter(physicalLoad > 70 ? physicalLoad : 0).color,
+						valStyle: BAND.physicalLoad(physicalLoad).color,
 					}
 				: NA),
 		},
@@ -189,10 +214,7 @@ export function buildMetrics(
 								: energyBalance < 40
 									? m.metric_physical_heavy()
 									: m.metric_balanced(),
-						valStyle:
-							energyBalance > 60 || energyBalance < 40
-								? STATUS.WARNING.color
-								: STATUS.SUCCESS.color,
+						valStyle: BAND.energyBalance(energyBalance).color,
 					}
 				: NA),
 		},
@@ -203,7 +225,7 @@ export function buildMetrics(
 			...(hasTasks
 				? {
 						value: `${scheduleIntegrity}%`,
-						valStyle: getStatusBiggerBetter(scheduleIntegrity).color,
+						valStyle: BAND.scheduleIntegrity(scheduleIntegrity).color,
 					}
 				: NA),
 		},
@@ -213,7 +235,7 @@ export function buildMetrics(
 			...(hasTasks && hasBudget
 				? {
 						value: `${frictionIndex}%`,
-						valStyle: getStatusSmallerBetter(frictionIndex).color,
+						valStyle: BAND.frictionIndex(frictionIndex).color,
 					}
 				: NA),
 		},
@@ -255,7 +277,7 @@ export function buildMetrics(
 			...(hasActive
 				? {
 						value: `${grindDensity}%`,
-						valStyle: getStatusSmallerBetter(grindDensity).color,
+						valStyle: BAND.grindDensity(grindDensity).color,
 					}
 				: NA),
 		},

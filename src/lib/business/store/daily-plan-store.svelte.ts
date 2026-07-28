@@ -9,6 +9,7 @@
  */
 
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
+import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
 import { fitEnergyParams } from '$lib/business/model/energy-calibration';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
@@ -31,19 +32,29 @@ export class DailyPlanStore {
 		fitEnergyParams(this.#observations.restObservations, this.#observations.drainObservations),
 	);
 
-	#daily = $derived(
-		calculateDailyMetrics({
-			tasks: this.#session.tasks,
-			availableHours: this.#session.availableHours,
-			switchCost: this.#session.switchCost,
-			pools: this.#session.pools,
-			constants: this.#session.userConstants,
-			// The fit posterior makes the allocator hedge ϕ-uncertainty (MATH.md
-			// §5.1): barely-measured tasks plan slightly shorter/lower.
-			posterior: this.#session.constantsFit.posterior,
-			energyParams: this.#energyParams,
-		}),
-	);
+	#input = $derived({
+		tasks: this.#session.tasks,
+		availableHours: this.#session.availableHours,
+		switchCost: this.#session.switchCost,
+		pools: this.#session.pools,
+		constants: this.#session.userConstants,
+		// The fit posterior makes the allocator hedge ϕ-uncertainty (MATH.md
+		// §5.1): barely-measured tasks plan slightly shorter/lower.
+		posterior: this.#session.constantsFit.posterior,
+		energyParams: this.#energyParams,
+	});
+
+	#daily = $derived(calculateDailyMetrics(this.#input));
+
+	// Everything the advice depends on, as a value. Not the identity of `#input`
+	// or `#daily`: a `$derived` read from outside a reactive context is not
+	// guaranteed to hand back the same object twice, so identity reports staleness
+	// on a day that never changed.
+	#fingerprint = $derived(JSON.stringify(this.#input));
+
+	#advice = $state<PlanAdvice | null>(null);
+	#adviceBusy = $state(false);
+	#adviceFor = $state<string | null>(null);
 
 	constructor(session: SessionStore, observations: EnergyObservationStore) {
 		this.#session = session;
@@ -52,5 +63,43 @@ export class DailyPlanStore {
 
 	get daily(): DailyMetrics {
 		return this.#daily;
+	}
+
+	get advice(): PlanAdvice | null {
+		return this.#advice;
+	}
+
+	get adviceBusy(): boolean {
+		return this.#adviceBusy;
+	}
+
+	/** Advice exists but describes an older version of the day. */
+	get adviceStale(): boolean {
+		return this.#advice !== null && this.#adviceFor !== this.#fingerprint;
+	}
+
+	/**
+	 * One full solve per candidate — up to ~950 ms on a 12-task day (MATH.md
+	 * §14), which is why this is a method and not a `$derived`. The yield before
+	 * the search lets the caller's busy state paint; the search itself blocks.
+	 */
+	async computeAdvice(): Promise<void> {
+		if (this.#adviceBusy) return;
+
+		this.#adviceBusy = true;
+
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			// Both read after the yield, in one tick, so the plan matches the input
+			// it was solved from — and the current plan is reused as the baseline
+			// rather than solved a second time.
+			const input = this.#input;
+
+			this.#advice = suggestPlanAdjustments(input, this.#daily);
+			this.#adviceFor = JSON.stringify(input);
+		} finally {
+			this.#adviceBusy = false;
+		}
 	}
 }

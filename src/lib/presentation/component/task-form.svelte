@@ -8,6 +8,7 @@
 			physicalDifficulty: number;
 			mentalDifficulty: number;
 			enjoyment: number;
+			mustDoToday: boolean;
 		}) => void;
 		// Collapsed, the form is a single "+ Add Task" row so the task list
 		// stays above the fold; adding happens in bursts, so it stays open
@@ -25,6 +26,7 @@
 		physicalDifficulty: 5,
 		mentalDifficulty: 5,
 		enjoyment: 5,
+		mustDoToday: false,
 	});
 
 	function handleSubmit(e: SubmitEvent) {
@@ -38,6 +40,7 @@
 			physicalDifficulty: draft.physicalDifficulty,
 			mentalDifficulty: draft.mentalDifficulty,
 			enjoyment: draft.enjoyment,
+			mustDoToday: draft.mustDoToday,
 		});
 
 		draft = {
@@ -45,6 +48,7 @@
 			physicalDifficulty: 5,
 			mentalDifficulty: 5,
 			enjoyment: 5,
+			mustDoToday: false,
 		};
 	}
 </script>
@@ -129,7 +133,18 @@
 			</label>
 		</div>
 
-		<div class="mt-text-xl flex justify-end">
+		<div class="mt-text-xl flex flex-wrap items-center justify-between gap-grid-sm">
+			<label
+				class="flex items-center gap-text-xs text-xs font-medium text-ty-secondary"
+				title={m.form_must_do_today_title()}
+			>
+				<input
+					type="checkbox"
+					bind:checked={draft.mustDoToday}
+					class="size-4 appearance-auto accent-brand"
+				/>
+				{m.form_must_do_today()}
+			</label>
 			<Button type="submit">{m.form_deploy_task()}</Button>
 		</div>
 	</form>

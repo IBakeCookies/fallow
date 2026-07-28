@@ -559,7 +559,26 @@ Each of these was considered and decided. Re-deciding them is churn.
 
 - **Metric color-band thresholds live in the presentation layer** (`status.ts`,
   `metric-descriptor.ts`). Banding a reading as good/bad is display policy,
-  not domain math.
+  not domain math. `metric-descriptor.ts` exports that policy as `BAND` +
+  `isOutOfBand` because the plan-advice card decides which findings to surface
+  from the same call the metric rows are colored by — two copies of the same
+  thresholds is exactly the R3 failure.
+
+- **Plan advice is computed on demand, never in a `$derived`** (MATH.md §14).
+  `suggestPlanAdjustments` re-solves the whole day once per candidate, so cost
+  scales with the 2ⁿ funded-subset enumeration: measured 12 ms for a 6-task day
+  but **946 ms for a 12-task one**. In a `$derived` that is a frozen main
+  thread on every keystroke in the budget field. `DailyPlanStore` therefore
+  exposes `computeAdvice()` plus `adviceStale`, and staleness compares a
+  **fingerprint of the inputs** — a `$derived` read from outside a reactive
+  context is not guaranteed to return the same object twice, so identity
+  reports staleness on a day that never changed.
+
+- **The advisor ranks, it does not judge.** It reports every axis
+  unconditionally with a lower-is-better badness function; whether a reading is
+  bad enough to act on is the band above. Options per axis are the Pareto
+  frontier on (improvement ↑, plan value ↑) so there is no weight λ to defend —
+  see MATH.md §14 for why "the single biggest improvement" is bad advice.
 - **`buildCurves` is not cached.** Known perf headroom, a deliberate non-fix at
   current plan sizes.
 - **Human Capacity is unclamped** — it is allowed to read over 100%.
@@ -613,6 +632,20 @@ Each of these was considered and decided. Re-deciding them is churn.
 - Persisted **settings** are validated (`sanitizeEnergyParams`) and so is the
   session shape read from IndexedDB (`sanitizeSession`), but nothing else is —
   add a validator with each new persisted shape.
+- **A task cannot move between days.** Tasks live inside their day's
+  `DailySession` record, so "move to tomorrow" means removing from today's
+  session _and_ appending to tomorrow's. The data layer is already
+  date-general (`$readSessionByDate`, `$updateSession` both take a date); the
+  gap is one layer up — every write in `session-store.svelte.ts` targets the
+  **viewed** day (`#tasks` plus the debounced autosave under `#selectedDate`),
+  and the one method that names another date, `importFromDate`, reads _from_
+  that date _into_ the current one. A real move needs its own store method,
+  the existing `#loadedDate !== #selectedDate` guard so a mid-navigation write
+  cannot clobber the incoming day, and a decision about what happens when the
+  destination day is the one on screen.
+  This is why the plan-advice card shows no Apply button on a `defer-task`
+  option: the only mechanism available is `removeTask`, which discards the task
+  with no undo. The advice states the price and the user acts (MATH.md §14).
 - **`PUBLIC_SITE_URL` is unset on Vercel** (see `.env.example`). It is the only
   environment variable the app reads. Production origin:
   `https://zenith-drab-psi.vercel.app` — no trailing slash, **Production scope

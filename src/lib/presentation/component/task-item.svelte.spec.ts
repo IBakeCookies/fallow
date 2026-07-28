@@ -245,6 +245,42 @@ describe('task-item.svelte', () => {
 			physicalDifficulty: 5,
 			mentalDifficulty: 5,
 			enjoyment: 7,
+			mustDoToday: false,
+		});
+	});
+
+	it('badges an unmovable task and lets the editor flag one', async () => {
+		const onupdate = vi.fn();
+
+		render(TaskItem, {
+			...baseProps,
+			mustDoToday: true,
+			onupdate,
+		});
+
+		await expect.element(page.getByText('Must do')).toBeInTheDocument();
+
+		await page
+			.getByRole('button', {
+				name: 'Edit task',
+			})
+			.click();
+
+		await expect.element(page.getByLabelText('Must do today')).toBeChecked();
+		await page.getByLabelText('Must do today').click();
+
+		await page
+			.getByRole('button', {
+				name: 'Save',
+			})
+			.click();
+
+		expect(onupdate).toHaveBeenCalledExactlyOnceWith(1, {
+			title: 'boxing',
+			physicalDifficulty: 5,
+			mentalDifficulty: 5,
+			enjoyment: 7,
+			mustDoToday: false,
 		});
 	});
 

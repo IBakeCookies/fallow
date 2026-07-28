@@ -16,6 +16,7 @@
 				physicalDifficulty: number;
 				mentalDifficulty: number;
 				enjoyment: number;
+				mustDoToday: boolean;
 			},
 		) => void;
 	}
@@ -62,6 +63,7 @@
 			optimalStopHours={task.optimalHours}
 			runOrder={runOrder.get(task.id)}
 			flowMinutes={task.flowMinutes}
+			mustDoToday={task.mustDoToday}
 			{ontoggle}
 			{onremove}
 			{onlogflow}

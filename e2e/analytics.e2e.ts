@@ -33,7 +33,16 @@ test('empty profile shows the empty state, not a stuck spinner', async ({ page }
 
 test('stats and chart come off the stored days', async ({ page }) => {
 	await seedDay(page, 0, ['write the calibration section', 'inbox sweep']);
-	await page.getByRole('checkbox').first().check();
+
+	// Named: the task form's "must do today" checkbox sits above the list, so the
+	// first checkbox on the page is no longer a task's completion box.
+	await page
+		.getByRole('checkbox', {
+			name: /^Mark /,
+		})
+		.first()
+		.check();
+
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/analytics');

@@ -7,6 +7,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
+	import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
@@ -14,6 +15,7 @@
 	import TimeBudgetCard from '$lib/presentation/component/time-budget-card.svelte';
 	import PersonalizationCard from '$lib/presentation/component/personalization-card.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
+	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
 	import { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
@@ -39,6 +41,7 @@
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
+	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice) : null);
 
 	// /?date=<today> renders the same view as / — collapse to the canonical
 	// URL. Also fires when a viewed date BECOMES today at midnight rollover.
@@ -148,6 +151,14 @@
 				onresetlogs={() => session.resetFlowLogs()}
 			/>
 			<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
+			{#if tasks.length > 0}
+				<PlanAdviceCard
+					{advice}
+					busy={plan.adviceBusy}
+					stale={plan.adviceStale}
+					oncheck={() => plan.computeAdvice()}
+				/>
+			{/if}
 		{:else}
 			<div
 				class="p-box-md rounded-xl border border-warning/20 bg-warning/5 text-warning-strong text-sm"

@@ -390,6 +390,7 @@ export class SessionStore {
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
+		mustDoToday?: boolean;
 	}) {
 		this.#tasks = [
 			{
@@ -447,7 +448,9 @@ export class SessionStore {
 
 	updateTask(
 		id: number,
-		changes: Partial<Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment'>>,
+		changes: Partial<
+			Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment' | 'mustDoToday'>
+		>,
 	) {
 		this.#tasks = this.#tasks.map((t) =>
 			t.id === id

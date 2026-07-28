@@ -24,6 +24,8 @@
 		optimalStopHours: number;
 		runOrder?: number;
 		flowMinutes?: number;
+		/** Flagged as unmovable, so the plan advisor never offers to defer it. */
+		mustDoToday?: boolean;
 		ontoggle: (id: number) => void;
 		onremove: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
@@ -34,6 +36,7 @@
 				physicalDifficulty: number;
 				mentalDifficulty: number;
 				enjoyment: number;
+				mustDoToday: boolean;
 			},
 		) => void;
 	}
@@ -53,6 +56,7 @@
 		optimalStopHours,
 		runOrder,
 		flowMinutes,
+		mustDoToday = false,
 		ontoggle,
 		onremove,
 		onlogflow,
@@ -70,6 +74,7 @@
 		physicalDifficulty: 5,
 		mentalDifficulty: 5,
 		enjoyment: 5,
+		mustDoToday: false,
 	});
 
 	const editSliders = [
@@ -99,6 +104,7 @@
 			physicalDifficulty,
 			mentalDifficulty,
 			enjoyment,
+			mustDoToday,
 		};
 
 		loggingFlow = false;
@@ -191,6 +197,20 @@
 							<p>{badge.description}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
+					{#if mustDoToday}
+						<Tooltip.Root>
+							<Tooltip.Trigger class="cursor-help">
+								<Badge
+									class="border-transparent bg-warning/20 uppercase tracking-wide text-warning"
+								>
+									{m.task_must_do_badge()}
+								</Badge>
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>{m.form_must_do_today_title()}</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					{/if}
 					<h3
 						class:text-ty-silent={completed}
 						class:line-through={completed}
@@ -405,13 +425,26 @@
 					{/each}
 				</div>
 
-				<div class="flex justify-end gap-grid-xs">
-					<Button variant="ghost" size="xs" type="button" onclick={() => (editing = false)}>
-						{m.common_cancel()}
-					</Button>
-					<Button size="xs" type="submit" disabled={!editDraft.title.trim()}>
-						{m.common_save()}
-					</Button>
+				<div class="flex flex-wrap items-center justify-between gap-grid-xs">
+					<label
+						class="flex items-center gap-text-xs text-xs font-medium text-ty-secondary"
+						title={m.form_must_do_today_title()}
+					>
+						<input
+							type="checkbox"
+							bind:checked={editDraft.mustDoToday}
+							class="size-4 appearance-auto accent-brand"
+						/>
+						{m.form_must_do_today()}
+					</label>
+					<span class="flex items-center gap-grid-xs">
+						<Button variant="ghost" size="xs" type="button" onclick={() => (editing = false)}>
+							{m.common_cancel()}
+						</Button>
+						<Button size="xs" type="submit" disabled={!editDraft.title.trim()}>
+							{m.common_save()}
+						</Button>
+					</span>
 				</div>
 			</form>
 		{/if}

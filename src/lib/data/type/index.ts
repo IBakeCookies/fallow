@@ -17,6 +17,11 @@ export type Task = {
 	// Measured minutes until flow state, if the user logged one for this task.
 	// Feeds the least-squares personalization of the c₁,c₂,c₃ constants.
 	flowMinutes?: number;
+	// This task cannot move to another day (a deadline, someone else waiting).
+	// The plan advisor never offers to defer it (MATH.md §14). A statement about
+	// TODAY, not about the task's definition, so routines and day-imports
+	// deliberately do not carry it.
+	mustDoToday?: boolean;
 };
 
 export interface DailySession {

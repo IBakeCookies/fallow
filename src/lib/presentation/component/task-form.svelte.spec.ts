@@ -61,9 +61,39 @@ describe('task-form.svelte', () => {
 			physicalDifficulty: 5,
 			mentalDifficulty: 5,
 			enjoyment: 5,
+			mustDoToday: false,
 		});
 
 		await expect.element(title).toHaveValue('');
+	});
+
+	// The flag is what stops the plan advisor offering to move a task that cannot
+	// move, so it has to survive the submit — and reset with the rest of the draft.
+	it('submits and then clears the must-do-today flag', async () => {
+		const onsubmit = vi.fn();
+
+		render(TaskForm, {
+			onsubmit,
+		});
+
+		await page.getByLabelText('Task Definition').fill('Tax return');
+		await page.getByLabelText('Must do today').click();
+
+		await page
+			.getByRole('button', {
+				name: 'Deploy Task',
+			})
+			.click();
+
+		expect(onsubmit).toHaveBeenCalledExactlyOnceWith({
+			title: 'Tax return',
+			physicalDifficulty: 5,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+			mustDoToday: true,
+		});
+
+		await expect.element(page.getByLabelText('Must do today')).not.toBeChecked();
 	});
 
 	it('names every slider by its label', async () => {
