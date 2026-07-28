@@ -12,7 +12,8 @@ import { getContext, setContext } from 'svelte';
 import { logError } from '$lib/logger';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
-import { fitEnergyParams } from '$lib/business/model/energy-calibration';
+import { fitEnergyParams, seedMorningReservoirs } from '$lib/business/model/energy-calibration';
+import { addDays } from '$lib/business/utils/date';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
@@ -32,8 +33,20 @@ export class DailyPlanStore {
 	// deliberately never writes to the session). Kept separate from the metric
 	// derivation below so it only refits when the logs change, not on every
 	// keystroke.
-	#energyParams = $derived(
+	#calibratedParams = $derived(
 		fitEnergyParams(this.#observations.restObservations, this.#observations.drainObservations),
+	);
+
+	// Overnight carry-over (MATH.md §11.9): the previous day's 🪫 logs seed the
+	// morning reservoir levels. Keyed to the VIEWED day's predecessor, so a past
+	// day reads with its own morning, not today's.
+	#energyParams = $derived(
+		seedMorningReservoirs(
+			this.#calibratedParams,
+			this.#observations.drainObservations.filter(
+				(o) => o.date === addDays(this.#session.selectedDate, -1),
+			),
+		),
 	);
 
 	#input = $derived({

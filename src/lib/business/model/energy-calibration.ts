@@ -8,11 +8,13 @@ import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
+	simulateReservoirs,
 	type DrainObservation,
 	type DrainRateFit,
 	type EnergyParams,
 	type RecoveryRateFit,
 	type RestObservation,
+	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 
@@ -100,6 +102,69 @@ export function calibrateEnergyParams(
 		recovery,
 		cognitiveDrain,
 		physicalDrain,
+	};
+}
+
+/**
+ * One work-start-to-work-start cycle. No clock times are stored, so this is
+ * the only anchor available: everything not worked in the cycle recovers at
+ * the §8.1 rest law (evening leisure and sleep alike — documented in §11.9).
+ */
+export const RESERVOIR_CYCLE_HOURS = 24;
+
+/**
+ * Overnight reservoir carry-over (MATH.md §11.9): seed a day's starting
+ * reservoir levels from the previous day's 🪫 drain logs. Each log carries the
+ * worked hours and the demands captured at logging time, so the previous day
+ * is simulated from fresh reservoirs through the §8.1/§8.5 law, then rests
+ * through the remainder of the 24 h cycle. Starting fresh is the one-day
+ * lookback: the day before yesterday reaches this morning attenuated by two
+ * nights of recovery (< 1 % even at the r fit floor), so recursing is noise.
+ *
+ * No logs → `params` unchanged (a fresh morning, the previous behavior).
+ * Under default recovery a full night heals completely — carry-over becomes
+ * visible exactly when the user's own ☕ fit says recovery is slow.
+ */
+export function seedMorningReservoirs(
+	params: EnergyParams,
+	previousDayDrain: DrainObservationRecord[],
+): EnergyParams {
+	const worked = previousDayDrain.filter((o) => o.hours > 0);
+
+	if (!worked.length) return params;
+
+	const blocks: ScheduleBlock[] = worked.map((o) => ({
+		taskId: o.taskId,
+		hours: o.hours,
+	}));
+
+	const workedHours = worked.reduce((sum, o) => sum + o.hours, 0);
+	const gap = RESERVOIR_CYCLE_HOURS - workedHours;
+
+	if (gap > 0)
+		blocks.push({
+			taskId: null,
+			hours: gap,
+		});
+
+	const { endCog, endPhys } = simulateReservoirs(
+		blocks,
+		worked.map((o) => ({
+			id: o.taskId,
+			cognitiveDemand: o.cognitiveDemand,
+			physicalDemand: o.physicalDemand,
+		})),
+		{
+			...params,
+			initialCog: 1,
+			initialPhys: 1,
+		},
+	);
+
+	return {
+		...params,
+		initialCog: endCog,
+		initialPhys: endPhys,
 	};
 }
 

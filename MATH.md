@@ -1411,6 +1411,59 @@ completed tasks from the classic side only — both plans simulate the full
 intended day, so `outputVsClassic` is no longer biased toward the energy
 plan once anything is checked off.
 
+### 11.9 Overnight reservoir carry-over (2026-07-28)
+
+Burnout Risk (§11.6) simulated every day from full reservoirs — yesterday's
+boxing did not exist this morning. Now the viewed day's `initialCog`/
+`initialPhys` come from the previous day's 🪫 drain logs
+(`seedMorningReservoirs`, `energy-calibration.ts`): each log carries the
+worked hours and the demands captured at logging time, so the previous day
+is simulated from fresh reservoirs through the §8.1/§8.5 law — its logged
+blocks, then one rest block filling the remainder of a 24 h cycle,
+`gap = max(0, 24 − Σ hoursᵢ)`.
+
+No logs → 1 exactly (the previous behavior). Keyed to the **viewed** day's
+predecessor, so a past day reads with its own morning.
+
+- **Why a 24 h cycle.** No clock times are stored anywhere (sessions and
+  logs are dated, not timed), so work-start-to-work-start = 24 h is the only
+  available anchor. Everything not worked in the cycle — evening leisure and
+  sleep alike — recovers at the §8.1 rest law (ρ_rest = r′ = r·m, the demand-0
+  gate is 1).
+- **Why one-day lookback, not recursion.** A deficit two mornings back
+  reaches today attenuated by two nights: ≤ e^(−2·ρ_rest·gap). Even at the r
+  fit floor (r = 0.1 → ρ_rest = 0.15/h, 16 h gap) that is e^(−4.8) ≈ 0.8 %;
+  at defaults it is ~0. Starting yesterday fresh IS the fixed point to first
+  order, so recursing over history would model noise.
+- **Defaults heal completely.** ρ_rest = 0.7·1.5 = 1.05/h leaves
+  e^(−16.8) ≈ 5·10⁻⁸ of an 8 h day's deficit by morning — under default
+  recovery the metric behaves exactly as before. Carry-over becomes visible
+  when the user's own ☕ fit (§8.9) says recovery is slow: at the fit floor, a
+  fully-drained 8 h day starts the next morning near 92 %, and a 16 h day
+  (8 h gap) near 74 %. Morning-awareness appears exactly where calibration
+  evidence supports it — deliberate, not a shortfall.
+- **Inherited approximations** (same class as §8.10's reconstruction, all
+  documented there or in §12): breaks inside the worked day are omitted, and
+  block order is taken as logged — both wash out exponentially through the
+  trailing rest, which dominates the cycle; partial logging under-counts the
+  previous day's work, biasing the morning level **up** (risk reads low, the
+  conservative direction for a metric that warns); the ☕-calibrated awake
+  rest law stands in for sleep — no instrument identifies a separate sleep
+  rate (the §8.3 circadian boundary: rejected until there is an instrument).
+- **Scope.** A metric-input policy only: the energy optimizer, the Energy Lab
+  (whose `initialCog` sliders stay session-isolated), and the §12 audit
+  (which compares plans under a common fresh-morning assumption) are
+  untouched. Full multi-day optimization stays shelved — this is its cheap
+  first step, not its start.
+
+Locked by tests: `energy-calibration.test.ts` pins the closed form (work
+from fresh, rest out the cycle, 12 decimal places), the no-logs identity,
+default-recovery healing, monotonicity in worked hours, and the > 24 h
+guard; `daily-plan-store.svelte.spec.ts` pins the wiring — the same heavy
+log moves Burnout Risk only when dated the viewed day's predecessor (the α
+fit sees it identically from any date, so the difference is carry-over
+alone).
+
 ## 12. Plan-adherence audit (2026-07-23)
 
 **The question.** The two planners disagree structurally: the classic Σ P̄

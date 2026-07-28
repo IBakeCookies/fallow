@@ -149,7 +149,7 @@
 	"metric_bottleneck_desc": "Among your remaining tasks, the one with the highest effort-to-enjoyability ratio in Fallow terms — the biggest drag on your list, even if today's plan gave it no time.",
 	"metric_none_detected": "None Detected",
 	"metric_burnout_risk": "Burnout Risk",
-	"metric_burnout_risk_desc": "Your planned day simulated through the energy model: each task drains the cognitive and physical reservoirs by its demand and duration (drain and recovery rates come from your own calibration logs). Risk is how depleted the most-drained reservoir ends the day — hours you intend beyond the plan are simulated as extra work.",
+	"metric_burnout_risk_desc": "Your planned day simulated through the energy model: each task drains the cognitive and physical reservoirs by its demand and duration (drain and recovery rates come from your own calibration logs). Risk is how depleted the most-drained reservoir ends the day — hours you intend beyond the plan are simulated as extra work, and yesterday's logged work carries into this morning's starting energy.",
 	"metric_cognitive_load": "Cognitive Load",
 	"metric_cognitive_load_desc": "Percentage of your day allocated to mental/cognitive tasks.",
 	"metric_physical_load": "Physical Load",

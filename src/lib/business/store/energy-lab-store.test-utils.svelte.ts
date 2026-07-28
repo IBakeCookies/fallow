@@ -18,6 +18,7 @@ class MockSession {
 	availableHours = $state(8);
 
 	readonly today = '2026-07-20';
+	readonly selectedDate = '2026-07-20';
 	readonly switchCost = DEFAULT_SWITCH_COST;
 	readonly pools = DEFAULT_CAPACITY_POOLS;
 	readonly constantsFit = fitUserConstants([]);

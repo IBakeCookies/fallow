@@ -149,7 +149,7 @@
 	"metric_bottleneck_desc": "Unter deinen verbleibenden Aufgaben die mit dem höchsten Aufwand-zu-Freude-Verhältnis in Fallow-Begriffen — die größte Bremse deiner Liste, selbst wenn der heutige Plan ihr keine Zeit gibt.",
 	"metric_none_detected": "Keiner erkannt",
 	"metric_burnout_risk": "Burnout-Risiko",
-	"metric_burnout_risk_desc": "Dein geplanter Tag, simuliert durch das Energiemodell: Jede Aufgabe entleert die kognitive und körperliche Reserve gemäß ihrer Anforderung und Dauer (Entleerungs- und Erholungsraten stammen aus deinen eigenen Kalibrierungs-Logs). Das Risiko ist der Füllstand der am stärksten entleerten Reserve am Tagesende — Stunden, die du über den Plan hinaus vorhast, werden als zusätzliche Arbeit simuliert.",
+	"metric_burnout_risk_desc": "Dein geplanter Tag, simuliert durch das Energiemodell: Jede Aufgabe entleert die kognitive und körperliche Reserve gemäß ihrer Anforderung und Dauer (Entleerungs- und Erholungsraten stammen aus deinen eigenen Kalibrierungs-Logs). Das Risiko ist der Füllstand der am stärksten entleerten Reserve am Tagesende — Stunden, die du über den Plan hinaus vorhast, werden als zusätzliche Arbeit simuliert, und die gestern geloggte Arbeit fließt in die Startenergie des Morgens ein.",
 	"metric_cognitive_load": "Kognitive Last",
 	"metric_cognitive_load_desc": "Anteil deines Tages, der mentalen/kognitiven Aufgaben zugeteilt ist.",
 	"metric_physical_load": "Körperliche Last",

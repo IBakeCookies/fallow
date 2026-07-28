@@ -97,6 +97,45 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.burnoutRisk).not.toBe(onDefaults);
 	});
 
+	// Overnight carry-over (MATH.md §11.9): the viewed day's predecessor seeds
+	// the morning reservoirs. The same heavy log feeds the α fit identically from
+	// either date — only yesterday's carries into this morning.
+	it('reads yesterday’s logged work into the morning, and only yesterday’s', () => {
+		const store = setup();
+		mockSession.tasks = [task(1, 'deep work')];
+		mockSession.availableHours = 4;
+
+		// Rest pairs that barely recover pin the fitted r near its floor — the
+		// regime where a night does not fully heal (§11.9: default recovery does).
+		mockObservations.restObservations = [1, 2, 3].map((createdAt) =>
+			restRecord({
+				createdAt,
+				hours: 1,
+				mindBefore: 9,
+				mindAfter: 9,
+				bodyBefore: 9,
+				bodyAfter: 9,
+			}),
+		);
+
+		const heavyDay = (date: string) =>
+			drainRecord({
+				date,
+				hours: 8,
+				mindDrain: 9,
+				bodyDrain: 9,
+			});
+
+		mockObservations.drainObservations = [heavyDay('2026-07-10')];
+		flushSync();
+		const freshMorning = store.daily.burnoutRisk;
+
+		mockObservations.drainObservations = [heavyDay('2026-07-19')];
+		flushSync();
+
+		expect(store.daily.burnoutRisk).toBeGreaterThan(freshMorning);
+	});
+
 	// Advice costs one full solve per candidate (MATH.md §14), so it is explicitly
 	// requested and then goes stale rather than recomputing on every keystroke.
 	it('computes advice on demand only', async () => {
