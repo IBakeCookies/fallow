@@ -179,4 +179,22 @@ describe('EnergyObservationStore', () => {
 		await vi.waitFor(() => expect(store.drainObservations).toEqual([drainRecord()]));
 		expect(status.error).toBeNull();
 	});
+
+	// The other recovery path, and the one only this store can take: a read that
+	// works again without the banner's retry having cleared anything first. The
+	// banner is app-wide but the failure is per store, so nothing else is allowed
+	// to decide that THIS store's logs became readable — and before that was true,
+	// the session store's next successful read used to say it on its behalf.
+	it('clears its own load failure when its read works again', async () => {
+		readAllDrainMock.mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+		const { store, status } = await setup();
+
+		await vi.waitFor(() => expect(status.error).toBe('load-failed'));
+
+		readAllDrainMock.mockResolvedValue([drainRecord()]);
+		store.retryLoad(); // not status.retry(): the entry is still standing
+
+		await vi.waitFor(() => expect(status.error).toBeNull());
+		expect(store.drainObservations).toEqual([drainRecord()]);
+	});
 });

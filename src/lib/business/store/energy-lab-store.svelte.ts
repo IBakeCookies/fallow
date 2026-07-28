@@ -124,17 +124,19 @@ export class EnergyLabStore {
 		this.#session = session;
 		this.#observations = observations;
 
+		// No `retryLoad` passed: a failed params READ raises a toast rather than the
+		// banner (it is not the viewed day), and this store is per-route, so a
+		// retry callback would outlive it. Reporting is safe — a lost write is
+		// cleared by nothing but the user's dismissal.
+		const reporter = status.register('energyLab');
+
 		this.#autoSave = createDebouncedWrite(
 			(params) => settingsRepository.$updateSetting(ENERGY_PARAMS_SETTING, params),
 			(error) => {
 				logError('Failed to save energy lab params', error);
-				status.report('save-failed');
+				reporter.report('save-failed');
 			},
 		);
-
-		// No `registerRetry`: a failed params READ raises a toast rather than the
-		// banner (it is not the viewed day), and this store is per-route, so a
-		// registration would outlive it.
 
 		onMount(async () => {
 			try {

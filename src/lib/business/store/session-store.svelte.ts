@@ -28,7 +28,10 @@ import {
 	createDebouncedWrite,
 	type DebouncedWrite,
 } from '$lib/business/store/debounced-write.svelte';
-import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
+import type {
+	StorageReporter,
+	StorageStatusStore,
+} from '$lib/business/store/storage-status.svelte';
 
 const CONTEXT_KEY = Symbol();
 
@@ -76,7 +79,7 @@ export class SessionStore {
 	// lazy (never evaluated before the constructor body runs) — but TypeScript
 	// checks declaration order, not laziness.
 	#readDateParam!: ReadDateParam;
-	#status!: StorageStatusStore;
+	#reporter!: StorageReporter;
 
 	// ----- Daily session state -----
 	#tasks = $state<Task[]>([]);
@@ -139,7 +142,10 @@ export class SessionStore {
 
 	constructor(readDateParam: ReadDateParam, status: StorageStatusStore) {
 		this.#readDateParam = readDateParam;
-		this.#status = status;
+
+		// A failed read leaves #loadedDate null, which blocks the auto-save guard
+		// forever — so this store is one the banner's retry has to cover.
+		this.#reporter = status.register('session', () => this.retryLoad());
 
 		this.#autoSave = createDebouncedWrite(
 			async (session) => {
@@ -154,13 +160,9 @@ export class SessionStore {
 					date: session.date,
 				});
 
-				this.#status.report('save-failed');
+				this.#reporter.report('save-failed');
 			},
 		);
-
-		// A failed read leaves #loadedDate null, which blocks the auto-save guard
-		// forever — so this store is one the banner's retry has to cover.
-		this.#status.registerRetry(() => this.retryLoad());
 
 		onMount(() => {
 			this.#boot();
@@ -252,7 +254,7 @@ export class SessionStore {
 			await this.#loadSession(this.#selectedDate);
 		} catch (e) {
 			logError('Failed to load from IndexedDB', e);
-			this.#status.report('load-failed');
+			this.#reporter.report('load-failed');
 		} finally {
 			this.#isLoading = false;
 		}
@@ -313,13 +315,13 @@ export class SessionStore {
 
 			// Reading again worked, so the day is no longer unreachable — this is
 			// what makes a load failure recover on the next date change too.
-			this.#status.clearLoadFailure();
+			this.#reporter.clearLoadFailure();
 		} catch (e) {
 			logError('Failed to load session', e, {
 				date,
 			});
 
-			this.#status.report('load-failed');
+			this.#reporter.report('load-failed');
 		}
 	}
 
@@ -449,7 +451,7 @@ export class SessionStore {
 					date: this.#selectedDate,
 				});
 
-				this.#status.report('save-failed');
+				this.#reporter.report('save-failed');
 			}
 		}
 	}
@@ -501,7 +503,7 @@ export class SessionStore {
 			// 0 makes the header say "No tasks on that date", which is a claim about
 			// the user's data that this failure cannot support. A failed read is
 			// retryable, so raise the banner and let the count stay 0.
-			this.#status.report('load-failed');
+			this.#reporter.report('load-failed');
 
 			return 0;
 		}
@@ -559,7 +561,7 @@ export class SessionStore {
 			);
 		} catch (e) {
 			logError('Failed to save flow observation', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -585,7 +587,7 @@ export class SessionStore {
 			}
 		} catch (e) {
 			logError('Failed to delete flow observation', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -605,7 +607,7 @@ export class SessionStore {
 			);
 		} catch (e) {
 			logError('Failed to reset flow observations', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -629,7 +631,7 @@ export class SessionStore {
 			this.#routines = await this.#readRoutines();
 		} catch (e) {
 			logError('Failed to save routine', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -639,7 +641,7 @@ export class SessionStore {
 			this.#routines = await this.#readRoutines();
 		} catch (e) {
 			logError('Failed to delete routine', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 }

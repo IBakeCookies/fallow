@@ -120,8 +120,10 @@
 	// gets: a task lookup, and the banner they report into.
 	setEnergyObservationStore(() => session.tasks, storageStatus);
 
-	// A failed read and a failed write need different copy and different actions:
-	// a read is retryable, a write has already lost the edit.
+	// A failed read and a failed write need different copy: a read is retryable, a
+	// write has already lost the edit. Which message shows and whether Retry is
+	// offered are separate questions — with both kinds outstanding the lost edit is
+	// the more urgent thing to say, but the read still needs its way out.
 	const storageErrorMessage = $derived(
 		storageStatus.error === 'load-failed' ? m.error_body() : m.storage_error(),
 	);
@@ -238,7 +240,7 @@
 				class="border-danger/20 bg-danger/5 text-danger-strong mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
 			>
 				<span class="flex-1">{storageErrorMessage}</span>
-				{#if storageStatus.error === 'load-failed'}
+				{#if storageStatus.canRetry}
 					<button
 						type="button"
 						onclick={() => storageStatus.retry()}

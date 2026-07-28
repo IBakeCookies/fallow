@@ -1,20 +1,28 @@
 /**
- * The app-wide persistence banner's state: whether a read or a write to
- * IndexedDB failed, and how to try the reads again.
+ * The app-wide persistence banner's state: which stores currently have a failed
+ * read or a failed write, and how to try the reads again.
  *
- * There is ONE banner for the whole app, and it used to live in `SessionStore`
- * because that store was the first thing that could fail. Every store added
- * since had to reach the banner through it: `EnergyObservationStore` imported a
- * type from it, `EnergyLabStore` holds a session store partly to report through
- * it, and the retry action was a hand-maintained list in the layout that a new
- * store's `retryLoad()` had to be remembered into. This owns the banner instead,
- * so those stores are peers of the session rather than dependents of it.
+ * There is ONE banner for the whole app, and it used to be a single field on
+ * `SessionStore` because that store was the first thing that could fail. Every
+ * store added since had to reach it through that one: `EnergyObservationStore`
+ * imported a type from it, `EnergyLabStore` held a session store partly to report
+ * through it, and the retry action was a hand-maintained list in the layout that
+ * a new store's `retryLoad()` had to be remembered into.
  *
- * `registerRetry` is what closes the hand-maintained list: a store that can fail
- * a READ registers itself, and the banner's retry re-runs every registration.
+ * The failure is tracked **per reporting store**, not as one flag, because the
+ * stores fail independently. One flag meant one store's success cleared another's
+ * unrecovered failure — sharpest on the retry path, where the observation store's
+ * two reads normally settle before the session's migration-plus-three, so a
+ * re-failure there was wiped by the session's later success: the user pressed
+ * Retry, the banner vanished, and the drain/rest logs were still unreadable with
+ * Burnout Risk quietly running on defaults.
+ *
+ * A store gets a `StorageReporter` and nothing more — it can speak for itself, and
+ * cannot dismiss the banner, trigger the retry, or clear another store's failure.
  */
 
 import { getContext, setContext } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 
 const CONTEXT_KEY = Symbol();
 
@@ -24,64 +32,89 @@ const CONTEXT_KEY = Symbol();
  */
 export type StorageErrorKind = 'save-failed' | 'load-failed';
 
+/** One store's channel into the banner. Speaks only for that store. */
+export interface StorageReporter {
+	report(kind: StorageErrorKind): void;
+	/**
+	 * This store's read worked again, so its data is reachable: drops ITS
+	 * 'load-failed'. Never a 'save-failed' — that edit is gone whatever happens
+	 * next — and never another store's anything. This is what lets a transient
+	 * read failure heal on the next successful read instead of leaving a banner up
+	 * over an app that has already recovered.
+	 */
+	clearLoadFailure(): void;
+}
+
 export class StorageStatusStore {
-	#error = $state<StorageErrorKind | null>(null);
+	// Keyed by reporter name so each store's failure is its own. SvelteMap rather
+	// than a plain Map: the getters below are read from the layout's markup.
+	#failures = new SvelteMap<string, StorageErrorKind>();
 
 	// Not reactive: nothing renders the registrations, they are only iterated.
 	#retries: (() => void)[] = [];
 
+	/**
+	 * A store's channel into the banner. `retryLoad` is for a store that can fail
+	 * a **read**; registering it is what puts the store behind the banner's retry,
+	 * instead of the layout naming each store it has to call.
+	 *
+	 * Pass one only from a store that lives as long as this one — the layout-scoped
+	 * ones. There is no unregistration, so a per-route store would leave a callback
+	 * pointing at a store the user has navigated away from. Reporting is safe from
+	 * anywhere: `EnergyLabStore` registers without a `retryLoad` (a failed params
+	 * read is a toast, not this banner) and only ever reports a lost write, which
+	 * nothing but a dismissal clears anyway.
+	 */
+	register(name: string, retryLoad?: () => void): StorageReporter {
+		if (retryLoad) this.#retries.push(retryLoad);
+
+		return {
+			report: (kind) => this.#failures.set(name, kind),
+			clearLoadFailure: () => {
+				if (this.#failures.get(name) === 'load-failed') this.#failures.delete(name);
+			},
+		};
+	}
+
+	/**
+	 * Which message the banner shows, or null for no banner. A lost write outranks
+	 * a failed read: a read failure is already visible as a wrong or empty screen,
+	 * whereas an unsurfaced lost edit reads as success. The read is not stranded by
+	 * that — `canRetry` is what offers the action, and it is independent.
+	 */
 	get error(): StorageErrorKind | null {
-		return this.#error;
+		const kinds = [...this.#failures.values()];
+
+		if (kinds.includes('save-failed')) return 'save-failed';
+
+		return kinds.length > 0 ? 'load-failed' : null;
 	}
 
-	/** Raise the banner; the most recent failure is the one shown. */
-	report(kind: StorageErrorKind) {
-		this.#error = kind;
+	/**
+	 * Whether to offer Retry: any outstanding failed read, whichever message is
+	 * showing. Keying the button off `error` instead would hide the only recovery
+	 * affordance whenever a write had also failed.
+	 */
+	get canRetry(): boolean {
+		return [...this.#failures.values()].includes('load-failed');
 	}
 
-	/** Dismiss — the banner's close button. */
+	/** Dismiss — the banner's close button. The user has seen all of it. */
 	clear() {
-		this.#error = null;
+		this.#failures.clear();
 	}
 
 	/**
-	 * A read succeeded, so the data is reachable again: drop a 'load-failed' but
-	 * never a 'save-failed', whose edit is gone whatever happens next. This is
-	 * what makes a failed load recover on the next date change as well as on the
-	 * banner's retry.
-	 *
-	 * Known limitation, unchanged from when the session store owned this flag: the
-	 * banner is app-wide but this clear is not scoped to the store that raised it,
-	 * so one store reading successfully hides another's still-unrecovered read
-	 * failure. Fixing it means tracking the failure per store, which is its own
-	 * change — not a side effect of moving the flag.
-	 */
-	clearLoadFailure() {
-		if (this.#error === 'load-failed') this.#error = null;
-	}
-
-	/**
-	 * Register a store's re-read. Registering is how a store gets covered by the
-	 * banner's retry, instead of the layout naming each store it has to call.
-	 *
-	 * Only a store that lives as long as this one may register — in practice the
-	 * layout-scoped ones, which is why there is no unregistration to call: a
-	 * per-route store would leave a registration pointing at a store the user has
-	 * navigated away from, and the one page-scoped store deliberately registers
-	 * nothing (a failed params read is a toast, not this banner).
-	 */
-	registerRetry(retry: () => void) {
-		this.#retries.push(retry);
-	}
-
-	/**
-	 * The banner's retry action: any registered store could have been the one
-	 * that failed, and none of them knows about the others, so all of them
-	 * re-read. Clearing first means a re-failure raises the banner again rather
-	 * than leaving it up from the previous attempt.
+	 * The banner's retry action: any registered store could have been the one that
+	 * failed and none knows about the others, so all of them re-read. Their load
+	 * failures are dropped first, so a re-failure raises the banner again instead
+	 * of leaving the previous attempt's up — but a `'save-failed'` survives,
+	 * because re-reading does not un-lose a write.
 	 */
 	retry() {
-		this.#error = null;
+		for (const [name, kind] of [...this.#failures]) {
+			if (kind === 'load-failed') this.#failures.delete(name);
+		}
 
 		for (const retryOne of this.#retries) retryOne();
 	}

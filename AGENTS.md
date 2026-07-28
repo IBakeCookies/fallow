@@ -62,9 +62,10 @@ These are the ones that get broken. Each exists because it was broken before.
   of each.
 - **Three user-facing failure surfaces, and picking the wrong one is the bug.**
   Retryable and persistent → the banner, which is `StorageStatusStore`'s
-  (`store/storage-status.svelte.ts`): a store reports `'load-failed'` or
-  `'save-failed'` on it, and one that can fail a **read** also calls
-  `registerRetry`, which is what the banner's retry button re-runs. Transient and
+  (`store/storage-status.svelte.ts`): a store takes a `StorageReporter` from
+  `register(name, retryLoad?)` and reports `'load-failed'` or `'save-failed'` on
+  it, passing a `retryLoad` if it can fail a **read** — that is what the banner's
+  retry button re-runs. Transient and
   informational → a toast (`presentation/utils/toast.ts`). Already visible in
   the component that failed → nothing more, but check that it really is: the
   `analytics-store` load is split into two `try` blocks for this reason, because
@@ -371,12 +372,13 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `onDestroy` flush — and the e2e test pinning it — work _because_ the store dies
   with the route, and the layout would additionally run its `onMount` `settings`
   read — and arm its autosave and its stopping-observation `$effect` — on all
-  five other pages. It also follows that a per-route store must not register
-  anything on a layout-scoped store: `StorageStatusStore.registerRetry` has no
-  unregistration to call, so a registration outlives the route that made it.
-  `EnergyLabStore` registers nothing — a failed params read is a toast, not the
-  banner — and a future page-scoped store that needs the banner's retry is the
-  point at which an unregistration earns its keep.
+  five other pages. It also follows that a per-route store must not hand a
+  layout-scoped store a callback: `StorageStatusStore.register` has no
+  unregistration, so a `retryLoad` outlives the route that passed it.
+  `EnergyLabStore` therefore registers _without_ one — a failed params read is a
+  toast, not the banner, and the only thing it reports is a lost write, which
+  nothing but a dismissal clears anyway. A future page-scoped store that needs the
+  banner's retry is the point at which an unregistration earns its keep.
   A single-consumer store's `getXStore()` may legitimately have no callers yet;
   it is there so a child component can read the store without the page threading
   it down, and it costs one line.
@@ -802,15 +804,34 @@ Each of these was considered and decided. Re-deciding them is churn.
   the banner: `EnergyObservationStore` imported `StorageErrorKind` from it,
   `EnergyLabStore` held a session store partly to call `reportStorageError`, and
   the retry action was a list in the layout that each new `retryLoad()` had to be
-  remembered into — an invariant this file was maintaining in prose. With one
-  ~90-line store that owns `error` / `report` / `clear` / `clearLoadFailure` /
-  `registerRetry` / `retry`, the session store loses three public members, the
-  cross-store type import is gone, and "a store that can fail a read is covered
-  by the retry" is true because it registered rather than because someone
-  remembered.
-  `clearLoadFailure` is separate from `clear` on purpose: a read that works again
-  proves the data is reachable, so it drops a `'load-failed'` — but never a
-  `'save-failed'`, whose edit is already lost and which only the user dismisses.
+  remembered into — an invariant this file was maintaining in prose. Now the
+  session store loses three public members, the cross-store type import is gone,
+  and "a store that can fail a read is covered by the retry" is true because it
+  registered rather than because someone remembered.
+
+  **The failure is tracked per reporting store, not as one flag**, and that is the
+  part to keep. One flag meant one store's success cleared another's unrecovered
+  failure. Sharpest on the retry path: `retry()` fires the registrations in order,
+  but `EnergyObservationStore`'s two reads settle before `SessionStore`'s
+  migration-plus-three, so a re-failure there was wiped by the session's later
+  `clearLoadFailure()` — the user pressed Retry, the banner vanished, and the
+  drain/rest logs were still unreadable with Burnout Risk quietly on defaults.
+  A store therefore gets a `StorageReporter` and nothing else: it can report and
+  clear **its own** load failure, and cannot dismiss the banner, fire the retry, or
+  speak for another store.
+  Three consequences worth not undoing:
+  - `clearLoadFailure` is not `clear`. A read that works again proves that store's
+    data is reachable, so it drops that store's `'load-failed'` — never a
+    `'save-failed'`, whose edit is already lost, and never anyone else's. This is
+    what lets a transient read failure heal on the next successful read instead of
+    leaving a banner up over an app that has recovered.
+  - `error` and `canRetry` are separate. A lost write outranks a failed read for
+    the _message_ (a read failure is already visible as a wrong or empty screen; an
+    unsurfaced lost edit reads as success), but Retry is offered for any
+    outstanding failed read regardless — keying the button off `error`, as it was,
+    hides the only recovery affordance whenever a write has also failed.
+  - `retry()` drops the load failures and keeps the save failures. Re-reading does
+    not un-lose a write.
 
 - **Metric color-band thresholds live in the presentation layer**
   (`utils/band.ts`, the whole banding policy in one module: the four band names,

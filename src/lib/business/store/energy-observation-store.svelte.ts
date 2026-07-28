@@ -8,7 +8,10 @@ import * as drainObservationRepository from '$lib/data/repository/drain-observat
 import * as restObservationRepository from '$lib/data/repository/rest-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
 import { sanitizeDrainObservations, sanitizeRestObservations } from '$lib/business/model/persisted';
-import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
+import type {
+	StorageReporter,
+	StorageStatusStore,
+} from '$lib/business/store/storage-status.svelte';
 
 const CONTEXT_KEY = Symbol();
 
@@ -37,13 +40,11 @@ export class EnergyObservationStore {
 	#restObservations = $state<RestObservationRecord[]>([]);
 
 	#readTasks: ReadTasks;
-	#status: StorageStatusStore;
+	#reporter: StorageReporter;
 
 	constructor(readTasks: ReadTasks, status: StorageStatusStore) {
 		this.#readTasks = readTasks;
-		this.#status = status;
-
-		status.registerRetry(() => this.retryLoad());
+		this.#reporter = status.register('energyObservations', () => this.retryLoad());
 
 		// No `initializeStorage()` here: the localStorage migration it runs writes
 		// only sessions and the energy params, never these two stores, so this read
@@ -68,9 +69,12 @@ export class EnergyObservationStore {
 		try {
 			this.#drainObservations = await this.#readDrain();
 			this.#restObservations = await this.#readRest();
+			// Both logs are readable again, so this store's own failure is over —
+			// which nothing else can say for it, and nothing else may say for it.
+			this.#reporter.clearLoadFailure();
 		} catch (e) {
 			logError('Failed to load energy observations', e);
-			this.#status.report('load-failed');
+			this.#reporter.report('load-failed');
 		}
 	}
 
@@ -113,7 +117,7 @@ export class EnergyObservationStore {
 			this.#drainObservations = await this.#readDrain();
 		} catch (e) {
 			logError('Failed to save drain observation', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -125,7 +129,7 @@ export class EnergyObservationStore {
 			this.#drainObservations = await this.#readDrain();
 		} catch (e) {
 			logError('Failed to delete drain observation', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -137,7 +141,7 @@ export class EnergyObservationStore {
 			this.#drainObservations = [];
 		} catch (e) {
 			logError('Failed to reset drain observations', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -167,7 +171,7 @@ export class EnergyObservationStore {
 			this.#restObservations = await this.#readRest();
 		} catch (e) {
 			logError('Failed to save rest observation', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -179,7 +183,7 @@ export class EnergyObservationStore {
 			this.#restObservations = await this.#readRest();
 		} catch (e) {
 			logError('Failed to delete rest observation', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 
@@ -191,7 +195,7 @@ export class EnergyObservationStore {
 			this.#restObservations = [];
 		} catch (e) {
 			logError('Failed to reset rest observations', e);
-			this.#status.report('save-failed');
+			this.#reporter.report('save-failed');
 		}
 	}
 }
