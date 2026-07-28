@@ -19,10 +19,13 @@
 	// svelte-ignore state_referenced_locally
 	const themeStore = setThemeStore(data.theme, data.scenerySeed, data.sceneryPaused);
 
-	injectAnalytics({
-		mode: dev ? 'development' : 'production',
-	});
-	injectSpeedInsights();
+	// Not in dev: both inject a `script.debug.js` fetched from
+	// va.vercel-scripts.com on every page load, which measures nothing locally
+	// and sits on the critical path of an already slower dev load.
+	if (!dev) {
+		injectAnalytics();
+		injectSpeedInsights();
+	}
 
 	// Clock-driven scenery state. SSR renders the request's IP-derived
 	// timezone; hydration never re-patches the SSR'd style attribute, so

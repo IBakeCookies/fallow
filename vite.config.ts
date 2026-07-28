@@ -33,6 +33,19 @@ export default defineConfig({
 			strategy: ['url', 'cookie', 'baseLocale'],
 		}),
 	],
+	server: {
+		// Dev serves ~180 unbundled client modules and transforms each on its
+		// first request, which gates hydration — and the app only reads
+		// IndexedDB once hydrated, so a cold graph shows an empty page for
+		// seconds. Transforming the route entries at server start (imports
+		// cascade via preTransformRequests) moves that cost off the first load.
+		warmup: {
+			// Route entries only: a `**/*.svelte` glob would pull in the
+			// `*.stories.svelte` files, whose Storybook deps then trip the dep
+			// optimizer into a mid-load full reload.
+			clientFiles: ['./src/routes/**/+*.svelte'],
+		},
+	},
 	test: {
 		expect: {
 			requireAssertions: true,
