@@ -82,7 +82,7 @@
 	--ty-silent: color-mix(in oklch, var(--ty-primary) 55%, transparent);
 	--ty-ghost: color-mix(in oklch, var(--ty-primary) 40%, transparent);
 
-	--surface-hover: color-mix(in oklch, var(--ty-primary) 8%, transparent);
+	--surface-hover: color-mix(in oklch, var(--ty-primary) 6%, transparent);
 	--border: color-mix(in oklch, var(--ty-primary) 15%, transparent);
 	--line-soft: color-mix(in oklch, var(--ty-primary) 8%, transparent);
 	--input: color-mix(in oklch, var(--ty-primary) 10%, transparent);

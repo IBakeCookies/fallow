@@ -75,4 +75,3 @@
 {#key activeLocale.value}
 	{@render children()}
 {/key}
-{data.isVercel}

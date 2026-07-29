@@ -27,7 +27,7 @@
 		{#if error}
 			<p class="text-xs text-danger">{m.advice_error()}</p>
 		{/if}
-		<Button variant="secondary" size="sm" disabled={busy} onclick={oncheck} title={m.advice_desc()}>
+		<Button variant="outline" size="sm" disabled={busy} onclick={oncheck} title={m.advice_desc()}>
 			{busy ? m.advice_working() : m.advice_check()}
 		</Button>
 	</div>
