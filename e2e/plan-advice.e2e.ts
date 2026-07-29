@@ -20,7 +20,7 @@ async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
 	await form.getByLabel(/Physical Diff/).fill('2');
 	await form.getByLabel(/Enjoyment/).fill('1');
 
-	if (mustDoToday) await form.getByLabel('Must do today').check();
+	if (mustDoToday) await form.getByLabel("Don't move off today").check();
 
 	await form
 		.getByRole('button', {
@@ -86,9 +86,10 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
 	await addDrainingTask(page, 'Tax return', true);
 	await addDrainingTask(page, 'Migrate the database');
 
-	// Exact: the form's "Must do today" label is a substring match otherwise.
+	// Exact: the badge says the day is fixed, not that hours are reserved — the
+	// card's unfunded line carries the same words in a sentence.
 	await expect(
-		page.getByText('Must do', {
+		page.getByText('Stays today', {
 			exact: true,
 		}),
 	).toBeVisible();

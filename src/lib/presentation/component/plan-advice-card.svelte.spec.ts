@@ -4,8 +4,12 @@ import { render } from 'vitest-browser-svelte';
 import type { AdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 
+const UNFUNDED = '3 tasks get no hours in this plan.';
+const UNFUNDED_MUST_DO = '1 task stays today but gets no hours — add hours or let it move.';
+
 const display: AdviceDisplay = {
 	unfunded: '2 tasks get no hours in this plan.',
+	unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
 	rows: [
 		{
 			axis: 'burnoutRisk',
@@ -181,11 +185,70 @@ describe('plan-advice-card.svelte', () => {
 		expect(onapply).toHaveBeenCalledExactlyOnceWith(1);
 	});
 
+	// The must-do line is louder than the plain unfunded one above it on purpose:
+	// the flag removed that task's only per-task lever, so the menu below cannot
+	// offer to resolve it and the user has to.
+	it('renders an unfunded must-do louder than a plain unfunded read', async () => {
+		render(PlanAdviceCard, {
+			advice: {
+				rows: [],
+				unfunded: UNFUNDED,
+				unfundedMustDo: UNFUNDED_MUST_DO,
+			},
+			busy: false,
+			stale: false,
+			error: false,
+			oncheck: () => {},
+			onapply: () => {},
+		});
+
+		await expect.element(page.getByText(UNFUNDED_MUST_DO)).toHaveClass(/text-warning-strong/);
+		await expect.element(page.getByText(UNFUNDED)).toHaveClass(/text-ty-secondary/);
+	});
+
+	// Unfunded is a read, not a band, so every axis can be in band (`rows: []`)
+	// while work still gets no hours — and "this day is fine" printed under that
+	// negates it. Each read ALONE, because the gate must check both: a day whose
+	// only unfunded task is pinned reports nothing in `unfunded`.
+	it.each([
+		{
+			label: 'a plain unfunded read',
+			text: UNFUNDED,
+			advice: {
+				rows: [],
+				unfunded: UNFUNDED,
+				unfundedMustDo: null,
+			},
+		},
+		{
+			label: 'a pinned one',
+			text: UNFUNDED_MUST_DO,
+			advice: {
+				rows: [],
+				unfunded: null,
+				unfundedMustDo: UNFUNDED_MUST_DO,
+			},
+		},
+	])('never calls the day fine under $label', ({ text, advice }) => {
+		render(PlanAdviceCard, {
+			advice,
+			busy: false,
+			stale: false,
+			error: false,
+			oncheck: () => {},
+			onapply: () => {},
+		});
+
+		expect(document.body.textContent).toContain(text);
+		expect(document.body.textContent).not.toContain('Nothing reads badly enough to act on');
+	});
+
 	it('says so plainly when nothing is out of band', async () => {
 		render(PlanAdviceCard, {
 			advice: {
 				rows: [],
 				unfunded: null,
+				unfundedMustDo: null,
 			},
 			busy: false,
 			stale: false,

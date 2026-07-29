@@ -19,7 +19,7 @@ import {
 	type DailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
-import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
+import { isPinned, type DailyQuadrant } from '$lib/business/model/metric/calculation';
 
 /** One honest change to today's inputs (MATH.md §14 — pools and switch cost are not levers). */
 export type AdviceLever =
@@ -91,6 +91,12 @@ export interface PlanAdvice {
 	findings: AdviceFinding[];
 	/** Active tasks the plan funds no hours for — a read, not a search. */
 	unfundedTaskIds: number[];
+	/**
+	 * The `mustDoToday` subset of that read, partitioned out of it: an unfunded
+	 * task the advisor is forbidden to defer is the one conflict the menu below
+	 * cannot express, since the flag removed its only per-task lever (MATH.md §14).
+	 */
+	unfundedMustDoTaskIds: number[];
 	candidatesEvaluated: number;
 }
 
@@ -175,10 +181,7 @@ function isPriced(lever: AdviceLever, budget: number): boolean {
 
 function buildLevers(baseline: DailyMetrics): AdviceLever[] {
 	const levers: AdviceLever[] = baseline.activeTasks
-		// `=== true` and not a truthiness check: the flag is persisted, so it is
-		// user-reachable and may come back from an older backup as anything at all
-		// (AGENTS.md R4 — validate on read).
-		.filter((task) => task.mustDoToday !== true)
+		.filter((task) => !isPinned(task))
 		.map((task) => ({
 			kind: 'defer-task' as const,
 			taskId: task.id,
@@ -305,13 +308,14 @@ export function suggestPlanAdjustments(
 		...paretoOptions(candidates, axis, baseline),
 	})).filter((finding) => finding.options.length > 0 || finding.unpriced !== null);
 
+	const unfunded = baseline.activeTasks.filter((task) => task.suggestedHours <= 0);
+
 	return {
 		planValue: planValueOf(baseline),
 		quadrant: baseline.dailyQuadrant,
 		findings,
-		unfundedTaskIds: baseline.activeTasks
-			.filter((task) => task.suggestedHours <= 0)
-			.map((task) => task.id),
+		unfundedTaskIds: unfunded.filter((task) => !isPinned(task)).map((task) => task.id),
+		unfundedMustDoTaskIds: unfunded.filter(isPinned).map((task) => task.id),
 		candidatesEvaluated: candidates.length,
 	};
 }

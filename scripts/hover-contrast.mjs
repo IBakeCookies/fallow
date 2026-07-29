@@ -41,7 +41,9 @@ import { inflateSync } from 'node:zlib';
 // stops covering new themes, which is the one thing this script is for.
 const only = process.argv.slice(2);
 
-const THEMES = [...readFileSync('src/lib/business/model/theme.ts', 'utf8').matchAll(/name: '([^']+)',/g)]
+const THEMES = [
+	...readFileSync('src/lib/business/model/theme.ts', 'utf8').matchAll(/name: '([^']+)',/g),
+]
 	.map((m) => m[1])
 	.filter((n) => n !== 'ThemeName' && (!only.length || only.includes(n)));
 
@@ -82,9 +84,10 @@ const ratio = (a, b) => {
 const browser = await chromium.launch();
 
 const page = await browser.newPage({
- viewport: {
- width: 900, height: 300, 
-}, 
+	viewport: {
+		width: 900,
+		height: 300,
+	},
 });
 
 // any CSS colour -> sRGB, via the browser: these tokens are oklab/oklch
@@ -105,60 +108,86 @@ for (const theme of THEMES) {
 	await page.goto(
 		`http://localhost:6006/iframe.html?id=ui-button--variants&globals=theme:${theme}`,
 		{
- waitUntil: 'networkidle', 
-},
+			waitUntil: 'networkidle',
+		},
 	);
 
 	const row = [];
 
 	for (const v of VARIANTS) {
 		const el = page.getByRole('button', {
- name: v, exact: true, 
-});
+			name: v,
+			exact: true,
+		});
 
 		const box = await el.boundingBox();
 		const y = Math.round(box.y + box.height / 2);
 
 		// inside the left edge, clear of both the border and the label glyphs
 		const fill = {
- x: Math.round(box.x + 4), y, width: 1, height: 1, 
-};
+			x: Math.round(box.x + 4),
+			y,
+			width: 1,
+			height: 1,
+		};
 
 		// the surface immediately left of the button: what it sits on
 		const behind = {
- x: Math.round(box.x - 4), y, width: 1, height: 1, 
-};
+			x: Math.round(box.x - 4),
+			y,
+			width: 1,
+			height: 1,
+		};
 
 		// the 1px left edge: a variant may carry its hover on the border instead
 		const edge = {
- x: Math.round(box.x), y, width: 1, height: 1, 
-};
+			x: Math.round(box.x),
+			y,
+			width: 1,
+			height: 1,
+		};
 
 		await page.mouse.move(880, 290);
 		await page.waitForTimeout(250);
 
-		const surface = lum(pixel(await page.screenshot({
- clip: behind, 
-})));
+		const surface = lum(
+			pixel(
+				await page.screenshot({
+					clip: behind,
+				}),
+			),
+		);
 
-		const restPx = pixel(await page.screenshot({
- clip: fill, 
-}));
+		const restPx = pixel(
+			await page.screenshot({
+				clip: fill,
+			}),
+		);
 
-		const restEdge = lum(pixel(await page.screenshot({
- clip: edge, 
-})));
+		const restEdge = lum(
+			pixel(
+				await page.screenshot({
+					clip: edge,
+				}),
+			),
+		);
 
 		await el.hover();
 		await page.waitForTimeout(350);
 
-		const hoverPx = pixel(await page.screenshot({
- clip: fill, 
-}));
+		const hoverPx = pixel(
+			await page.screenshot({
+				clip: fill,
+			}),
+		);
 
-		const hoverEdge = lum(pixel(await page.screenshot({
- clip: edge, 
-})));
+		const hoverEdge = lum(
+			pixel(
+				await page.screenshot({
+					clip: edge,
+				}),
+			),
+		);
 
 		const ink = await toRgb(await el.evaluate((n) => getComputedStyle(n).color));
 		const crRest = ratio(ink, restPx);

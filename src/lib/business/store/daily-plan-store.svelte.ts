@@ -29,8 +29,10 @@ export class DailyPlanStore {
 
 	// Burnout Risk's parameters are the model DEFAULTS refined by the user's own
 	// calibration logs (🪫 drain, ☕ rest) — the same fits the Energy Lab offers,
-	// but anchored to defaults rather than the lab's local sliders (the lab
-	// deliberately never writes to the session). Kept separate from the metric
+	// but anchored to defaults rather than the lab's local sliders (a fit never
+	// writes params silently, and the params stay the lab's — AGENTS.md §3; the
+	// day's HOURS are shared, but they are a session field, not a param this store
+	// reads from the lab). Kept separate from the metric
 	// derivation below so it only refits when the logs change, not on every
 	// keystroke.
 	#calibratedParams = $derived(

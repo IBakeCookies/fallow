@@ -11,6 +11,7 @@ import {
 	restRecord,
 } from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import type { DailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
+import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import type { Task } from '$lib/business/type';
 
 // Passthrough by default; the error-path test overrides one call to throw.
@@ -33,6 +34,34 @@ const task = (id: number, title: string, over: Partial<Task> = {}): Task => ({
 	completed: false,
 	...over,
 });
+
+/**
+ * The `DailyMetrics` fields a completion is ALLOWED to move (MATH.md §11.8:
+ * progress and next-up scope). Everything else is plan-scoped and frozen — so a
+ * metric added to `DailyMetrics` is frozen until it is listed here deliberately.
+ */
+const RESPONDS_TO_COMPLETION: ReadonlySet<string> = new Set<keyof DailyMetrics>([
+	// The plan array carries each task's own `completed` flag, so it necessarily
+	// differs; the HOURS it allocates must not, asserted separately.
+	'suggestedTasks',
+	'activeTasks',
+	'runOrder',
+	'remainingSuggestedHours',
+	'completedTasks',
+	// Progress scope — these exist in order to move.
+	'completionRate',
+	'yieldIndex',
+	// Next-up scope — what is still ahead of you.
+	'bottleneckTask',
+	'momentum',
+	'quickWins',
+]);
+
+function planScoped(daily: DailyMetrics): Record<string, unknown> {
+	return Object.fromEntries(
+		Object.entries(daily).filter(([field]) => !RESPONDS_TO_COMPLETION.has(field)),
+	);
+}
 
 function setup(): DailyPlanStore {
 	let store!: DailyPlanStore;
@@ -69,6 +98,56 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.suggestedTasks.map((t) => t.id).sort()).toEqual([1, 2]);
 		// Priority-sorted, so the run order covers every planned task
 		expect(store.daily.runOrder.size).toBe(2);
+	});
+
+	// The §11.8 scope split is DECIDED HERE, not in the model:
+	// `calculateDailyMetrics` scopes each metric within whatever task list it is
+	// handed, and this store hands it `session.tasks` — the full day, completed
+	// included. `session.activeTasks` exists right next to it, so the slip is one
+	// word wide, invisible to every model-layer test (scope is the caller's
+	// choice), and it moves every plan-scoped metric the moment a box is ticked.
+	// That is the regression that produced this invariant: Burnout Risk RISING
+	// when work got done.
+	it('freezes every plan-scoped metric when a task is checked done', () => {
+		const store = setup();
+
+		mockSession.tasks = [
+			task(1, 'deep work'),
+			task(2, 'boxing', {
+				physicalDifficulty: 9,
+				mentalDifficulty: 2,
+			}),
+			task(3, 'inbox', {
+				mentalDifficulty: 3,
+				physicalDifficulty: 1,
+				enjoyment: 2,
+			}),
+		];
+
+		flushSync();
+
+		const frozen = planScoped(store.daily);
+		const allocation = store.daily.suggestedTasks.map((t) => [t.id, t.suggestedHours]);
+		expect(store.daily.burnoutRisk).toBeGreaterThan(0);
+
+		mockSession.tasks = mockSession.tasks.map((t) =>
+			t.id === 2
+				? {
+						...t,
+						completed: true,
+					}
+				: t,
+		);
+
+		flushSync();
+
+		expect(planScoped(store.daily)).toEqual(frozen);
+		expect(store.daily.suggestedTasks.map((t) => [t.id, t.suggestedHours])).toEqual(allocation);
+
+		// ...and the progress side did respond, so the freeze above is not vacuous.
+		expect(store.daily.completedTasks).toBe(1);
+		expect(store.daily.activeTasks).toHaveLength(2);
+		expect(store.daily.completionRate).toBeGreaterThan(0);
 	});
 
 	// The wiring this store exists for: Burnout Risk must read the user's own

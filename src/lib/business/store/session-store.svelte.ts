@@ -16,7 +16,7 @@ import {
 	sanitizeSession,
 } from '$lib/business/model/persisted';
 import { initializeStorage } from '$lib/business/session-history';
-import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
+import { getEffectiveDifficulty, isPinned } from '$lib/business/model/metric/calculation';
 import {
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
@@ -483,8 +483,7 @@ export class SessionStore {
 
 		const task = this.#tasks.find((t) => t.id === id);
 
-		// `=== true` like the advisor: the flag is persisted, so validate on read.
-		if (!task || task.completed || task.mustDoToday === true) return false;
+		if (!task || task.completed || isPinned(task)) return false;
 
 		this.#moving = true;
 

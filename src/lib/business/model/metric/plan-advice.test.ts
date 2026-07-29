@@ -337,6 +337,42 @@ describe('suggestPlanAdjustments', () => {
 		expect(advice.unfundedTaskIds.length).toBeGreaterThan(0);
 	});
 
+	// A flagged task has no per-task lever left, so an unfunded one is the single
+	// conflict the menu cannot express — reported apart from the plain unfunded
+	// read rather than counted in it (MATH.md §14).
+	it('partitions the unfunded read by the must-do flag', () => {
+		const starved = calculateDailyMetrics(grindDay(0.5))
+			.activeTasks.filter((task) => task.suggestedHours <= 0)
+			.map((task) => task.id);
+
+		const pinned = starved[0];
+
+		const advice = suggestPlanAdjustments(
+			input(
+				GRIND.map((task) =>
+					task.id === pinned
+						? {
+								...task,
+								mustDoToday: true,
+							}
+						: task,
+				),
+				{
+					availableHours: 0.5,
+				},
+			),
+		);
+
+		expect(starved.length).toBeGreaterThan(1);
+		expect(advice.unfundedMustDoTaskIds).toEqual([pinned]);
+		expect(advice.unfundedTaskIds).not.toContain(pinned);
+		const byId = (a: number, b: number) => a - b;
+
+		expect([...advice.unfundedTaskIds, ...advice.unfundedMustDoTaskIds].sort(byId)).toEqual(
+			[...starved].sort(byId),
+		);
+	});
+
 	it('files every finding under a known axis, in axis order, with options', () => {
 		const advice = suggestPlanAdjustments(grindDay());
 		const order = advice.findings.map((finding) => ADVICE_AXES.indexOf(finding.axis));

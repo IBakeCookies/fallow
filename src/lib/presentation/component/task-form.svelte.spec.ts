@@ -77,7 +77,7 @@ describe('task-form.svelte', () => {
 		});
 
 		await page.getByLabelText('Task Definition').fill('Tax return');
-		await page.getByLabelText('Must do today').click();
+		await page.getByLabelText("Don't move off today").click();
 
 		await page
 			.getByRole('button', {
@@ -93,7 +93,7 @@ describe('task-form.svelte', () => {
 			mustDoToday: true,
 		});
 
-		await expect.element(page.getByLabelText('Must do today')).not.toBeChecked();
+		await expect.element(page.getByLabelText("Don't move off today")).not.toBeChecked();
 	});
 
 	it('names every slider by its label', async () => {

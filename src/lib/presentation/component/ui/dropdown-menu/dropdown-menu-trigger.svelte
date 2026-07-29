@@ -13,7 +13,11 @@
 		size = 'sm',
 		children,
 		...restProps
-	}: DropdownMenuPrimitive.TriggerProps & {
+		// `child` omitted, not forwarded: this component spends the primitive's one
+		// child slot on the Button below, so a caller's snippet would be dropped
+		// silently. Omitting it makes that a type error instead — and a trigger that
+		// is not a Button is a styling fork, which is the point of this wrapper.
+	}: Omit<DropdownMenuPrimitive.TriggerProps, 'child'> & {
 		variant?: ButtonVariant;
 		size?: ButtonSize;
 	} = $props();

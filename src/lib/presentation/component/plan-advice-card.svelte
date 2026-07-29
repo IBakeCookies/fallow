@@ -65,8 +65,20 @@
 			<p class="mt-grid-sm text-xs text-ty-secondary">{advice.unfunded}</p>
 		{/if}
 
+		<!-- Louder than the plain unfunded line: this one is a contradiction the user
+		     set up, and the menu below cannot offer to resolve it. -->
+		{#if advice.unfundedMustDo}
+			<p class="mt-grid-sm text-xs text-warning-strong">{advice.unfundedMustDo}</p>
+		{/if}
+
+		<!-- Every axis in band does NOT mean the day is fine: unfunded tasks are a
+		     read, not a band, so a day can read clean everywhere and still leave work
+		     with no hours. Saying "this day is fine" under that negates the two lines
+		     above it. -->
 		{#if advice.rows.length === 0}
-			<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
+			{#if !advice.unfunded && !advice.unfundedMustDo}
+				<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
+			{/if}
 		{:else}
 			<ul class="mt-grid-sm space-y-grid-sm">
 				{#each advice.rows as row (row.axis)}

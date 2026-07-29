@@ -258,7 +258,7 @@ describe('task-item.svelte', () => {
 			onupdate,
 		});
 
-		await expect.element(page.getByText('Must do')).toBeInTheDocument();
+		await expect.element(page.getByText('Stays today')).toBeInTheDocument();
 
 		await page
 			.getByRole('button', {
@@ -266,8 +266,8 @@ describe('task-item.svelte', () => {
 			})
 			.click();
 
-		await expect.element(page.getByLabelText('Must do today')).toBeChecked();
-		await page.getByLabelText('Must do today').click();
+		await expect.element(page.getByLabelText("Don't move off today")).toBeChecked();
+		await page.getByLabelText("Don't move off today").click();
 
 		await page
 			.getByRole('button', {

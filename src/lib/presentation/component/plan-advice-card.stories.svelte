@@ -8,6 +8,7 @@
 	   model would have produced by re-solving the day. */
 	const advice: AdviceDisplay = {
 		unfunded: '2 tasks get no hours in this plan.',
+		unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -131,6 +132,7 @@
 		advice: {
 			rows: [],
 			unfunded: null,
+			unfundedMustDo: null,
 		},
 	}}
 />

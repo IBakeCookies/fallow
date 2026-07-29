@@ -1,10 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { AUTOSAVE_MS, addTask, logDrain } from './helpers';
 
-/* The Energy Lab reads the shared daily session but owns its own params and
+/* The Energy Lab shares the daily session but owns its own params and
    measurements, so the flows worth covering here are the seams between them:
-   what the Lab must see from the session, what it must never write back, and
-   the two measurement logs that live in EnergyObservationStore. */
+   what the Lab must see from the session, the day's hours it shares BOTH ways
+   with the main page (settled 2026-07-29 — the Lab's params stay its own, the
+   window does not), and the two measurement logs that live in
+   EnergyObservationStore. */
 
 // A stat tile renders as <p>value</p><p>label</p>, so the value is the label's
 // preceding sibling — the only way to read one without a test id.
@@ -59,6 +61,16 @@ test('an empty day offers the task form, and deploying one reveals the Lab', asy
 
 	await expect(page.getByText('No open tasks for today.')).not.toBeVisible();
 	await expect(page.getByLabel('Day window')).toBeVisible();
+
+	// A fresh profile has no budget, and the window is that budget now — so the
+	// Lab asks for it rather than planning an invented 8h day the main page does
+	// not have (the old `|| 8` fallback). Setting it here is what starts the plan.
+	await expect(page.getByLabel('Day window')).toHaveValue('0');
+	await expect(page.getByText('Set a day window above 0 hours.')).toBeVisible();
+
+	await page.getByLabel('Day window').fill('8');
+	await page.getByLabel('Day window').blur();
+	await expect(page.getByText('Set a day window above 0 hours.')).not.toBeVisible();
 });
 
 test('the Lab plans the task deployed on the main page', async ({ page }) => {
@@ -78,9 +90,10 @@ test('the Lab plans the task deployed on the main page', async ({ page }) => {
 	await expect(statValue(page, 'Planned work')).toHaveText(/[1-9]/);
 });
 
-// AGENTS.md §3: "The Lab never writes to the daily session." Its params are its
-// own; the main page's budget must not move when the Lab's window does.
-test('editing the Lab’s day window leaves the session budget alone', async ({ page }) => {
+// Settled 2026-07-29: neither mode is the better one, so neither owns the day's
+// hours. The window and Available Hours are one persisted value — the Lab's
+// PARAMS stay its own, which the reload test below still pins.
+test('the day window and the main page’s budget are one value', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await page.getByLabel('Available Hours').fill('8');
@@ -88,13 +101,65 @@ test('editing the Lab’s day window leaves the session budget alone', async ({ 
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/energy');
+	await expect(page.getByLabel('Day window')).toHaveValue('8');
+
 	await page.getByLabel('Day window').fill('5');
 	await page.getByLabel('Day window').blur();
 	await expect(statValue(page, 'Planned work')).toBeVisible();
 	await page.waitForTimeout(AUTOSAVE_MS);
 
+	// It reached the session, not just the Lab's own view of it.
 	await page.goto('/');
-	await expect(page.getByLabel('Available Hours')).toHaveValue('8');
+	await expect(page.getByLabel('Available Hours')).toHaveValue('5');
+});
+
+// One value edited by two steppers, so they must agree on its granularity: the
+// number input rounds to its own step's decimals, so a coarser step here would
+// round a quarter-hour day set on the main page (6.25 → 6.75 → "6.8") and write
+// that back. Neither page can afford to mangle the other's number.
+test('the window stepper moves the shared budget in the main page’s increments', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.getByLabel('Available Hours').fill('6.25');
+	await page.getByLabel('Available Hours').blur();
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+	await expect(page.getByLabel('Day window')).toHaveValue('6.25');
+
+	// The steppers flank the input, so its grandparent is the one control.
+	await page
+		.locator('#window-hours')
+		.locator('xpath=../..')
+		.getByRole('button', {
+			name: 'Increase',
+		})
+		.click();
+
+	await expect(page.getByLabel('Day window')).toHaveValue('6.5');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/');
+	await expect(page.getByLabel('Available Hours')).toHaveValue('6.5');
+});
+
+// The session store's date reader belongs to the (app) layout and is route-blind,
+// so `?date=` reached the Lab too — loading another day's tasks with live sliders
+// under copy that promises today's session, while 🪫 logs still stamp today.
+test('a dated URL collapses to the canonical Lab', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.getByLabel('Available Hours').fill('8');
+	await page.getByLabel('Available Hours').blur();
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy?date=2026-01-15');
+
+	await expect(page).toHaveURL(/\/energy$/);
+	// Today's task is what the Lab plans — the dated day has none at all.
+	await expect(page.getByText('Deep work').first()).toBeVisible();
 });
 
 // AGENTS.md §3: "A fit never writes params silently." The whole point of the

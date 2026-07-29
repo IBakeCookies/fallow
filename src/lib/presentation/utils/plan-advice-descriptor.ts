@@ -41,6 +41,11 @@ export interface AdviceDisplay {
 	rows: AdviceRow[];
 	/** Active tasks the plan funds no hours for, as a sentence, or null. */
 	unfunded: string | null;
+	/**
+	 * The same read for tasks flagged `mustDoToday`, kept apart because the badge
+	 * promises the day, not the hours — and the menu below has no lever for them.
+	 */
+	unfundedMustDo: string | null;
 }
 
 const AXIS_LABEL: Record<AdviceAxis, () => string> = {
@@ -176,6 +181,7 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 		});
 
 	const unfundedCount = advice.unfundedTaskIds.length;
+	const unfundedMustDoCount = advice.unfundedMustDoTaskIds.length;
 
 	return {
 		rows,
@@ -186,6 +192,14 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 					? m.advice_unfunded_one()
 					: m.advice_unfunded({
 							count: unfundedCount,
+						}),
+		unfundedMustDo:
+			unfundedMustDoCount === 0
+				? null
+				: unfundedMustDoCount === 1
+					? m.advice_unfunded_must_do_one()
+					: m.advice_unfunded_must_do({
+							count: unfundedMustDoCount,
 						}),
 	};
 }

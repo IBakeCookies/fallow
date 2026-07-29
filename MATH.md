@@ -1760,6 +1760,19 @@ classic allocation is ever pointed at the energy plan:
    slack back to a full workday — warning about a day the plan explicitly
    declined to schedule.
 
+   **The input is now shared unconditionally (2026-07-29), and that does not
+   make this live.** The Lab's day window used to seed off `availableHours`
+   and then fork into a lab-local override; it is now the same value, written
+   from either page. What blocks promotion is the **plan** crossing over, not
+   the input: Burnout Risk stretches whatever allocation it is handed, and it
+   is still handed the classic one. Two consequences of the merge worth
+   recording. The user can no longer express "8 h of work inside a 10 h
+   window" — one field cannot hold both readings, and the honest resolution
+   for a peer mode is that the day has one length. And a day with no budget
+   yet now has no window in the Lab either (the old `|| 8` fallback is gone),
+   because a window the main page does not have is the same divergence in
+   miniature.
+
 ## 14. Plan advice — priced counterfactuals over the day's levers (2026-07-27)
 
 **The question.** The dashboard says the day reads badly — Burnout Risk 82%,
@@ -1897,6 +1910,19 @@ ever has to be interactive.
   "this slips a week" — it can only be told not to suggest the move. A day
   where every task is flagged reduces the search to the budget levers, which
   is the correct answer to "nothing here can move".
+- **The flag says nothing about hours, so an unfunded flagged task is reported
+  on its own** (2026-07-29). `mustDoToday` does not enter the allocation: a
+  flagged task competes for hours exactly like any other and can be funded
+  zero (§0/§2 fund the subset that maximizes Σ P̄, and the flag is not in that
+  objective). That combination is the one state the menu cannot speak to —
+  removing the task from the defer candidates removed its only per-task
+  lever — so `unfundedTaskIds` is **partitioned**, with the flagged ids in
+  `unfundedMustDoTaskIds`, and the card says so in its own line. No number
+  changes; this is a read of the same plan, and the honest resolution is the
+  user's (more hours, or let it move) rather than a funding privilege the
+  objective would then have to defend. The UI is worded to match: the badge
+  reads "Stays today" and not "Must do", because the model only ever promised
+  the day.
 
 ### 14.1 Five corrections to the first cut (2026-07-28)
 
@@ -2052,6 +2078,9 @@ about concentration — the §0 spreading question, measured:
   things) stay **latent, not fixed**: nothing outside `/energy` reads the
   energy plan, and the Lab shows no metrics. They become live only if a metric
   defined against the classic allocation is ever pointed at the energy plan.
+  The second one's _input_ was merged the same day — one budget, written from
+  either page — which is peer symmetry applied to the day's hours, not a step
+  toward promotion; see §13.6.
 - The user-facing distinction is the one the probe measured: classic spreads
   the day across commitments, energy concentrates on one or two and protects
   the reservoir. Neither is the corrected version of the other.

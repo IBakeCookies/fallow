@@ -42,6 +42,7 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 			},
 		],
 		unfundedTaskIds: [],
+		unfundedMustDoTaskIds: [],
 		candidatesEvaluated: options.length,
 	};
 }
@@ -125,6 +126,7 @@ describe('buildAdviceDisplay', () => {
 					},
 				],
 				unfundedTaskIds: [],
+				unfundedMustDoTaskIds: [],
 				candidatesEvaluated: 2,
 			},
 			3,
@@ -140,6 +142,30 @@ describe('buildAdviceDisplay', () => {
 		// A finite option on the same row still bands normally.
 		expect(row.options[1].after).toBe('50%');
 		expect(row.options[1].afterBand).toBe('success');
+	});
+
+	// The badge fixes the day, not the hours, so a flagged task funded nothing gets
+	// its own sentence — the plain unfunded line reads as something the menu below
+	// can fix, and for these there is no lever.
+	it('reports unfunded must-do tasks as a separate sentence', () => {
+		const display = buildAdviceDisplay(
+			{
+				...advice([defer(1, -30)]),
+				unfundedTaskIds: [2],
+				unfundedMustDoTaskIds: [3],
+			},
+			3,
+		);
+
+		expect(display.unfunded).toBe('1 task gets no hours in this plan.');
+
+		expect(display.unfundedMustDo).toBe(
+			'1 task stays today but gets no hours — add hours or let it move.',
+		);
+	});
+
+	it('says nothing about must-do tasks when the plan funds them all', () => {
+		expect(buildAdviceDisplay(advice([defer(1, -30)]), 3).unfundedMustDo).toBeNull();
 	});
 
 	// MATH.md §14.1-2: the lever carries the exact trim; only the label rounds.

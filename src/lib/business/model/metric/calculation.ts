@@ -65,6 +65,25 @@ export function getTaskNature(
 }
 
 /**
+ * Flagged "don't move off today" (MATH.md §14). Lives here, beside the other
+ * facts read straight off a task record, because three unrelated callers must
+ * agree on it: the advisor's defer candidates, its unfunded partition, and
+ * `SessionStore.moveTaskToTomorrow` — otherwise a task reported as
+ * un-deferrable gets offered as a deferral anyway (AGENTS.md R3).
+ *
+ * The flag says nothing about hours: it removes a task from the defer levers,
+ * and the allocator never sees it.
+ *
+ * `=== true` rather than a truthiness check is defense in depth. `sanitizeTask`
+ * already narrows the persisted flag to `true`-or-absent on the read path
+ * (R4), so this is what keeps the narrowing honest for tasks built in memory —
+ * fixtures, and any future path that skips the sanitizer.
+ */
+export function isPinned(task: Pick<Task, 'mustDoToday'>): boolean {
+	return task.mustDoToday === true;
+}
+
+/**
  * The energy model's view of a task: effective difficulty plus the per-hour
  * reservoir demands (sliders are 1–10, the reservoir law wants [0,1]).
  *

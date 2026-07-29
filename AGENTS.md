@@ -517,9 +517,21 @@ of its allocation code, so the main page is unaffected by changes here.
   current inputs. Ratings with demand 0 carry no signal and are dropped.
 - A fit never writes params silently: the "Apply fitted rates" button copies
   it into the manual inputs.
-- The Lab never writes to the daily session. Its params live in IndexedDB
-  (`settings` store, key `energyParams`) — see R4 — orchestrated by
-  `business/store/energy-lab-store.svelte.ts`, not by the route.
+- `EnergyLabStore` never writes to the daily session. Its params live in
+  IndexedDB (`settings` store, key `energyParams`) — see R4 — orchestrated by
+  that store, not by the route. The **day window is not a param**: it is
+  `session.availableHours`, one value shared both ways with the main page
+  (settled 2026-07-29 — neither mode is the better one, so neither owns the
+  day's hours). The store reads it; `/energy` writes it, like every other
+  session field that route edits. There is deliberately **no** `|| 8` fallback
+  and no lab-local override: either would render a window the main page does
+  not have, which is the fork this replaced. A dated URL is refused rather
+  than served — `/energy?date=…` redirects to the canonical route, because the
+  layout's date reader is route-blind while the Lab is a today-only instrument
+  (🪫/☕ stamp the live clock, the λ₀ fit reads finished days). That redirect
+  belongs in `energy/+page.ts`, not in a `$effect`: a load redirect runs before
+  the layout hands the session store a date, so the wrong day is never read,
+  and it holds with JS disabled.
 
 ---
 
@@ -778,6 +790,16 @@ Each was considered and decided. Re-deciding them is churn.
   more". `plan-advice.ts` splits the candidates with `isPriced` and returns
   the increase as `AdviceFinding.unpriced`, which the card renders last and
   labelled in hours. Do not merge the two lists back together.
+
+- **`mustDoToday` promises the day, not the hours** (MATH.md §14). The flag only
+  removes a task from the defer candidates; the allocator never sees it, so a
+  flagged task can still be funded zero. `suggestPlanAdjustments` therefore
+  **partitions** the unfunded read — `unfundedMustDoTaskIds` beside
+  `unfundedTaskIds` — and the card gives it its own warning-coloured line,
+  because the plain unfunded sentence reads as something the menu below can fix
+  and for these tasks there is no lever left. The badge is worded "Stays today"
+  and the checkbox "Don't move off today" for the same reason: "Must do" beside
+  `0m` reads as a promise the model never made.
 
 - **The budget levers carry unrounded hours** (MATH.md §14.1). Rounding
   `budget − planSlack` to quarter-hours trimmed past the hours the plan

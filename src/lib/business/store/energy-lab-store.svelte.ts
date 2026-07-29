@@ -86,6 +86,10 @@ export type NotifyParamsLoadFailed = () => void;
  * session — but they ARE persisted (IndexedDB `settings`, so backup covers
  * them) and they ARE the model's inputs, so they belong to a store rather than
  * to component state.
+ *
+ * The day window is the exception that proves the rule: it is NOT a param. It
+ * is `session.availableHours`, shared both ways with the main page — see
+ * `windowHours`.
  */
 export class EnergyLabStore {
 	// Assigned first thing in the constructor. The `!` is load-bearing: the
@@ -104,10 +108,6 @@ export class EnergyLabStore {
 	// intermediate value. Built in the constructor — it registers lifecycle hooks.
 	#autoSave!: DebouncedWrite<EnergyParams>;
 	#saveArmed = false;
-
-	// Day window follows today's budget until overridden — the override is
-	// lab-local and never written back to the session.
-	#windowOverride = $state<number | null>(null);
 
 	// Past days' stop decisions (MATH.md §8.10), re-read whenever the drain logs
 	// change. Loaded async, so a version guard keeps out-of-order completions
@@ -205,13 +205,22 @@ export class EnergyLabStore {
 		return this.#loaded;
 	}
 
-	#windowHours = $derived(this.#windowOverride ?? (this.#session.availableHours || 8));
-	get windowHours() {
-		return this.#windowHours;
-	}
-	set windowHours(hours: number) {
-		this.#windowOverride = hours;
-	}
+	/**
+	 * The day window IS the session's budget — one value, no lab-local override
+	 * (settled 2026-07-29: neither mode owns the day, so neither owns the hours).
+	 * Read-only here: the route writes `session.availableHours`, the same way it
+	 * writes every other session field on this page, which keeps this store's
+	 * "never writes the daily session" true.
+	 *
+	 * Private, and deliberately not re-exported: it transforms nothing, so a getter
+	 * would let the route read the window off this store while writing it to the
+	 * session — one value on two objects. The route reads `session.availableHours`.
+	 *
+	 * No `|| 8` fallback. A fresh day genuinely has no budget yet, and inventing
+	 * one here would render a window the main page does not have — the fork this
+	 * change exists to remove. The plan card says so instead.
+	 */
+	#windowHours = $derived(this.#session.availableHours);
 
 	// ----- The plan -----
 

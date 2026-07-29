@@ -35,6 +35,9 @@
 	const tasks = $derived(session.tasks);
 	const activeTasks = $derived(session.activeTasks);
 
+	// A dated `/energy?date=…` never reaches this component: `+page.ts` redirects
+	// it to the canonical route before the layout hands the session store a date.
+
 	// The 🪫/☕ measurements that calibrate α and r — their own store, since they
 	// are stamped with today rather than the viewed day.
 	const observations = getEnergyObservationStore();
@@ -52,7 +55,9 @@
 	const params = $derived(lab.params);
 	const plan = $derived(lab.plan);
 	const trajectory = $derived(lab.trajectory);
-	const windowHours = $derived(lab.windowHours);
+	// Read from the session, which is also where the window row writes it — the lab
+	// store consumes the same value but does not re-export it.
+	const windowHours = $derived(session.availableHours);
 	const trailingFreeHours = $derived(lab.trailingFreeHours);
 	const outputVsClassic = $derived(lab.outputVsClassic);
 	const cogDrainFit = $derived(lab.cognitiveDrainFit);
@@ -540,7 +545,11 @@
 									>
 										{outputVsClassic >= 0 ? '+' : ''}{outputVsClassic}%
 									</p>
-									<p class="text-xs text-ty-silent">
+									<!-- The only reading on this page that switch cost and the capacity
+									     pools reach at all: they constrain the rival plan, never the
+									     schedule above. Said out loud, or the number moves for no
+									     visible reason when those are edited on the main page. -->
+									<p class="cursor-help text-xs text-ty-silent" title={m.energy_vs_classic_title()}>
 										{m.energy_vs_classic()}
 									</p>
 								{:else}
@@ -763,15 +772,21 @@
 								</button>
 							</div>
 							<div class="space-y-grid-md">
+								<!-- Not a model param like every row below it: the window IS the
+								     session's budget, so this writes the shared value and the main
+								     page's Available Hours moves with it. Hence 0.25 and not the
+								     coarser 0.5 a lab-local slider could afford: the stepper rounds to
+								     its own step's decimals, so a 6.25h day set on the main page would
+								     come back 6.8 after one click here. -->
 								{@render paramRow({
 									id: 'window-hours',
 									label: m.energy_day_window(),
 									hint: m.energy_day_window_hint(),
 									value: windowHours,
-									onchange: (v) => (lab.windowHours = v),
+									onchange: (v) => (session.availableHours = v),
 									min: 0,
 									max: 24,
-									step: 0.5,
+									step: 0.25,
 									unit: m.unit_hours(),
 								})}
 								{@render paramRow({

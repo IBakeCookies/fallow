@@ -111,6 +111,93 @@ describe('EnergyLabStore', () => {
 		expect(updateSettingMock).not.toHaveBeenCalled();
 	});
 
+	// Settled 2026-07-29 (MATH.md §13.6): one budget for both planners. The window
+	// is a plain read of the session — there is no lab-local override to fork it
+	// with, and no `|| 8` fallback inventing a window the main page does not have.
+	it('takes the day window from the session budget, with no fallback and no fork', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+		// The window is not a public field — it would be a pass-through read of a
+		// value the route writes to the session. It is observable as what the plan
+		// partitions it into, which pins the number AND the stronger claim that the
+		// optimizer is bounded by it rather than a label merely quoting it.
+		const windowOf = () => store.plannedHours + store.trailingFreeHours;
+
+		expect(windowOf()).toBeCloseTo(8, 10);
+		expect(store.plannedHours).toBeGreaterThan(0);
+
+		mockSession.availableHours = 2;
+		flushSync();
+		expect(windowOf()).toBeCloseTo(2, 10);
+		expect(store.plannedHours).toBeLessThanOrEqual(2);
+
+		// A day with no budget yet has no window. The old fallback showed 8 here.
+		mockSession.availableHours = 0;
+		flushSync();
+		expect(windowOf()).toBe(0);
+		expect(store.plannedHours).toBe(0);
+	});
+
+	// The Lab makes the main page's §11.8 call for itself (2026-07-20): both plans
+	// simulate the full intended day, completed tasks included. `toEnergyTask`
+	// drops the flag and `calculateInterleavedOrder` ranks on hours, so the only
+	// way a completion can reach either plan is a `!t.completed` filter added
+	// here — which would reshuffle the plan on every tick and bias the comparison
+	// pro-energy, since it strips work from the classic side only.
+	it('plans over completed tasks too, so ticking one off moves nothing', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 6,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+			{
+				id: 2,
+				title: 'boxing',
+				physicalDifficulty: 9,
+				mentalDifficulty: 2,
+				enjoyment: 5,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+		const blocks = store.plan.blocks;
+		const outputVsClassic = store.outputVsClassic;
+		expect(store.plannedHours).toBeGreaterThan(0);
+		expect(outputVsClassic).not.toBeNull();
+
+		mockSession.tasks = mockSession.tasks.map((t) =>
+			t.id === 1
+				? {
+						...t,
+						completed: true,
+					}
+				: t,
+		);
+
+		flushSync();
+
+		expect(store.plan.blocks).toEqual(blocks);
+		expect(store.outputVsClassic).toBe(outputVsClassic);
+	});
+
 	it('reports nothing when the params read succeeds', async () => {
 		const notifyParamsLoadFailed = vi.fn();
 		let store!: EnergyLabStore;
