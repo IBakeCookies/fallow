@@ -410,13 +410,17 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   opts out of `color-contrast` only: it renders every fill/ink pair on
   purpose, including the 18 of 333 that cannot reach 4.5:1 (see STYLE.md's ink
   note; the budget is measured by `scripts/ink-contrast.mjs`). Contrast stays
-  enforced on every real component.
+  enforced on every real component. Storybook is also what
+  `scripts/hover-contrast.mjs` drives (on :6006, unlike the ink script): axe only
+  ever sees a story's REST state, so every hover fill's step and label contrast
+  is measured there instead, over all 37 themes.
 
 ### Style
 
 All styling rules live in [STYLE.md](src/lib/presentation/style/STYLE.md):
 tokens-only classes, the `dark:` ban, the three colour roles and the ink
-contrast budget, backdrop-blur, sonner's four registry deviations, the
+contrast budget, the two hover families, backdrop-blur, sonner's four
+registry deviations, the
 Tailwind scanner gotchas, the CSS namespace split, the adding-a-theme
 checklist. **Read it before touching markup, classes, or anything under
 `presentation/style/`.**

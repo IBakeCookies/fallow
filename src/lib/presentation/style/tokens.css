@@ -186,18 +186,26 @@
 	--color-popover-foreground: var(--ty-primary);
 
 	--color-primary: var(--primary);
+	--color-primary-hover: var(--primary-hover);
 	--color-primary-foreground: var(--primary-foreground);
 	--color-secondary: var(--secondary);
+	--color-secondary-hover: var(--secondary-hover);
 	--color-secondary-foreground: var(--secondary-foreground);
 	--color-muted: var(--muted);
 	--color-muted-foreground: var(--muted-foreground);
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-destructive: var(--destructive);
+	/* the danger control's fill: opaque, unlike every other fill here */
+	--color-destructive-soft: var(--destructive-soft);
+	--color-destructive-soft-hover: var(--destructive-soft-hover);
 	--color-destructive-foreground: var(--destructive-foreground);
 
 	--color-border: var(--border);
 	--color-input: var(--input);
+	/* the neutral control fill (= --input by default) and its hover partner */
+	--color-control: var(--control);
+	--color-control-hover: var(--control-hover);
 	--color-ring: var(--ring);
 
 	--radius-sm: calc(var(--radius) * 0.6);

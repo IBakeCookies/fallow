@@ -10,21 +10,27 @@
 		base: "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 aria-invalid:border-destructive rounded-md border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 active:not-aria-[haspopup]:translate-y-px aria-invalid:ring-3 [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap transition-all outline-none select-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
 		variants: {
 			variant: {
-				default: 'bg-primary text-primary-foreground hover:bg-primary/80',
-				// bg-input, not bg-background: --surface-page is opaque, and these sit on
-				// translucent glass cards in ~20 themes. --input is the per-theme
-				// "field on this surface" tint, so it reads correctly on all of them.
-				// backdrop-blur because --input IS translucent: these buttons sit straight
+				default: 'bg-primary text-primary-foreground hover:bg-primary-hover',
+				// bg-control, not bg-background: --surface-page is opaque, and these sit
+				// on translucent glass cards in ~20 themes. --control is the per-theme
+				// "control on this surface" tint, so it reads correctly on all of them.
+				// backdrop-blur because it IS translucent: these buttons sit straight
 				// on the page (toolbar, calendar arrows), so without it the background
 				// image shows through unblurred, unlike every card around them.
 				outline:
-					'border-border bg-input backdrop-blur hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-hover aria-expanded:text-foreground',
+					'border-border bg-control backdrop-blur hover:bg-control-hover hover:text-foreground aria-expanded:bg-control-hover aria-expanded:text-foreground',
 				secondary:
-					'backdrop-blur bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
+					'backdrop-blur bg-secondary text-secondary-foreground hover:bg-secondary-hover aria-expanded:bg-secondary-hover aria-expanded:text-secondary-foreground',
 				ghost:
 					'hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-hover aria-expanded:text-foreground',
+				// The tinted-danger recipe, per STYLE.md: `-strong` text on a faint fill
+				// of the bare colour. Two fixes over what shadcn ships: `text-destructive`
+				// on that fill measured 1.97–3.42:1 across 20 themes (red ink on a red
+				// wash, the mush the colour-role rule warns about), and `bg-destructive/8`
+				// let the backdrop through, so the pairing depended on the wallpaper —
+				// `destructive-soft` is opaque, which is also why no backdrop-blur here.
 				destructive:
-					'bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 text-destructive focus-visible:border-destructive/40',
+					'bg-destructive-soft hover:bg-destructive-soft-hover focus-visible:ring-destructive/20 text-destructive-foreground focus-visible:border-destructive/40',
 				link: 'text-primary underline-offset-4 hover:underline',
 			},
 			size: {

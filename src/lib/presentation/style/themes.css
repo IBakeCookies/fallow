@@ -181,9 +181,26 @@
 	--input: oklch(1 0 0 / 0.12);
 	--border: oklch(1 0 0 / 0.3);
 
-	/* drafting-pen white */
+	/* drafting-pen white. Note this is the one primary in the catalogue that is
+	   near-white, so `--secondary` (a wash of it) lands mid-luminance here and
+	   holds `ty-primary` label text at only 3.74:1 — a cap of this palette, not
+	   of the token: the flat 10% white it used to be measured 3.9:1, and going
+	   darker instead kills the hover, since the page is as dark as the fill. */
 	--primary: oklch(0.97 0.01 240);
 	--primary-foreground: oklch(0.35 0.09 256);
+
+	/* Same cause, and here it is fixable: the shared hover shows MORE of the
+	   fill, which for a light wash on this dark card means lighter, walking the
+	   label from 3.74 down to 2.72. Deepen instead — the one direction with
+	   room on this palette. */
+	--secondary-hover: oklch(from var(--secondary) calc(l * 0.7) c h / calc(alpha * 1.25));
+
+	/* And the same trade on the danger fill: this is the only theme whose danger
+	   pair is two LIGHT shades (red-300 fill, red-200 ink, 1.4:1 apart), so the
+	   shared hover — more red over a dark page, i.e. lighter — takes the label
+	   from 4.49 to 3.46. Darker keeps the step visible against the mid-blue page
+	   and moves the light ink up instead of down. */
+	--destructive-soft-hover: oklch(from var(--destructive-soft) calc(l * 0.82) c h);
 
 	--danger: var(--color-red-300);
 	--danger-strong: var(--color-red-200);

@@ -116,10 +116,7 @@
 
 		<div class="mx-text-2xs h-4 w-px bg-line-soft"></div>
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger
-				aria-label={m.nav_switch_language()}
-				class="flex items-center gap-text-xs rounded-lg px-box-sm py-box-3xs text-sm text-ty-secondary transition-colors hover:bg-surface-hover hover:text-ty-primary"
-			>
+			<DropdownMenu.Trigger variant="ghost" aria-label={m.nav_switch_language()}>
 				<Languages class="h-4 w-4 shrink-0" />
 				<span class="hidden sm:inline">{localeLabel(activeLocale.value)}</span>
 			</DropdownMenu.Trigger>

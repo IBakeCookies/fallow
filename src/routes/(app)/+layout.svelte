@@ -144,7 +144,7 @@
 			{#snippet actions()}
 				<div class="flex items-center gap-grid-xs">
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger variant="pill" aria-label={m.nav_switch_theme()}>
+						<DropdownMenu.Trigger aria-label={m.nav_switch_theme()}>
 							<Palette class="h-4 w-4 shrink-0" />
 							<span class="hidden sm:inline">{themeStore.label}</span>
 						</DropdownMenu.Trigger>
@@ -204,7 +204,7 @@
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger variant="pill" aria-label={m.header_data_menu()}>
+						<DropdownMenu.Trigger size="icon-sm" aria-label={m.header_data_menu()}>
 							<Menu class="h-4 w-4 shrink-0" />
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content align="end" class="w-48">

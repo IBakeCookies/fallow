@@ -41,6 +41,14 @@
 		'bg-surface-inset',
 		'bg-surface-hover',
 		'bg-input',
+		'bg-control',
+		'bg-control-hover',
+		'bg-secondary',
+		'bg-secondary-hover',
+		'bg-primary',
+		'bg-primary-hover',
+		'bg-destructive-soft',
+		'bg-destructive-soft-hover',
 	];
 	/* Each fill with its paired ink, so the "Aa" doubles as the legibility check
 	   the ink tokens exist for — they are derived from the fill, so a theme that
@@ -90,8 +98,11 @@
 			<h2 class="text-lg font-bold text-ty-primary">Surfaces</h2>
 			<div class="flex flex-wrap gap-grid-sm">
 				{#each surfaces as surface (surface)}
-					<div class="w-40 rounded-lg border {surface} p-box-sm text-xs text-ty-secondary">
-						{surface}
+					<div class="w-34 space-y-text-2xs">
+						<div class="flex h-10 items-center justify-center rounded-lg {surface}">
+							<span class="text-xs text-ty-primary">Aa</span>
+						</div>
+						<p class="text-xs text-ty-secondary">{surface}</p>
 					</div>
 				{/each}
 			</div>

@@ -40,7 +40,7 @@
 				? 'default'
 				: momentum !== null && momentum < 0
 					? 'destructive'
-					: 'secondary'}
+					: 'outline'}
 			class={momentum !== null && momentum > 0
 				? 'bg-success/20 text-success-strong'
 				: momentum !== null && momentum < 0

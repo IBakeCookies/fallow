@@ -1,6 +1,5 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { Button } from '$lib/presentation/component/ui/button';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
 	import DropdownMenuRoot from './dropdown-menu.svelte';
 
@@ -17,27 +16,11 @@
 	let range = $state('7d');
 </script>
 
-<!-- The trigger's own "pill" variant: the toolbar buttons in the app layout -->
-<Story name="Pill trigger" asChild>
+<!-- The trigger IS a Button: `variant` and `size` are Button's own, and
+     default to outline/sm so every dropdown in the app matches. -->
+<Story name="Trigger" asChild>
 	<DropdownMenu.Root>
-		<DropdownMenu.Trigger variant="pill" aria-label="Data menu">☰ Data</DropdownMenu.Trigger>
-		<DropdownMenu.Content align="end" class="w-48">
-			<DropdownMenu.Item>Export backup</DropdownMenu.Item>
-			<DropdownMenu.Item>Import backup</DropdownMenu.Item>
-			<DropdownMenu.Separator />
-			<DropdownMenu.Item variant="destructive">Delete all data</DropdownMenu.Item>
-		</DropdownMenu.Content>
-	</DropdownMenu.Root>
-</Story>
-
-<!-- A Button as the trigger, via the `child` snippet -->
-<Story name="Button trigger" asChild>
-	<DropdownMenu.Root>
-		<DropdownMenu.Trigger>
-			{#snippet child({ props })}
-				<Button {...props} variant="outline" size="sm">Load</Button>
-			{/snippet}
-		</DropdownMenu.Trigger>
+		<DropdownMenu.Trigger>Load</DropdownMenu.Trigger>
 		<DropdownMenu.Content align="end" class="w-64">
 			<DropdownMenu.Item>
 				Yesterday (3)
@@ -51,9 +34,22 @@
 	</DropdownMenu.Root>
 </Story>
 
+<!-- Icon-only, as the layout's data menu -->
+<Story name="Icon trigger" asChild>
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger size="icon-sm" aria-label="Data menu">☰</DropdownMenu.Trigger>
+		<DropdownMenu.Content align="end" class="w-48">
+			<DropdownMenu.Item>Export backup</DropdownMenu.Item>
+			<DropdownMenu.Item>Import backup</DropdownMenu.Item>
+			<DropdownMenu.Separator />
+			<DropdownMenu.Item variant="destructive">Delete all data</DropdownMenu.Item>
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+</Story>
+
 <Story name="Checkbox, radio and submenu" asChild>
 	<DropdownMenu.Root>
-		<DropdownMenu.Trigger variant="pill">View</DropdownMenu.Trigger>
+		<DropdownMenu.Trigger>View</DropdownMenu.Trigger>
 		<DropdownMenu.Content align="start" class="w-56">
 			<DropdownMenu.CheckboxItem bind:checked={includeCompleted}>
 				Include completed
