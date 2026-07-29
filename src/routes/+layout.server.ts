@@ -1,4 +1,5 @@
 import type { LayoutServerLoad } from './$types';
+import { env } from '$env/dynamic/private';
 import { readOrMintScenerySeed, readRequestAppearance } from '$lib/business/appearance';
 
 export const load: LayoutServerLoad = async (event) => {
@@ -15,5 +16,8 @@ export const load: LayoutServerLoad = async (event) => {
 		// IP-derived visitor timezone (set by Vercel) so the SSR-inlined
 		// scenery clock state is the visitor's local time, not the server's
 		timezone: event.request.headers.get('x-vercel-ip-timezone') ?? undefined,
+		// the /_vercel/* analytics scripts only exist when hosted on Vercel;
+		// injecting them elsewhere (local preview, e2e) just 404s
+		isVercel: !!env.VERCEL,
 	};
 };

@@ -22,7 +22,9 @@
 	// Not in dev: both inject a `script.debug.js` fetched from
 	// va.vercel-scripts.com on every page load, which measures nothing locally
 	// and sits on the critical path of an already slower dev load.
-	if (!dev) {
+	// Only on Vercel: the /_vercel/* scripts 404 anywhere else (e2e preview).
+	// svelte-ignore state_referenced_locally
+	if (!dev && data.isVercel) {
 		injectAnalytics();
 		injectSpeedInsights();
 	}
@@ -68,9 +70,9 @@
 	<div class="theme-helper-3"></div>
 	<div class="theme-helper-4"></div>
 </div>
-
 <!-- Keyed on the locale so a language switch re-renders the app in place
      (m.*() messages resolve at render time) instead of reloading the page -->
 {#key activeLocale.value}
 	{@render children()}
 {/key}
+{data.isVercel}
