@@ -548,10 +548,31 @@
 									<!-- The only reading on this page that switch cost and the capacity
 									     pools reach at all: they constrain the rival plan, never the
 									     schedule above. Said out loud, or the number moves for no
-									     visible reason when those are edited on the main page. -->
-									<p class="cursor-help text-xs text-ty-silent" title={m.energy_vs_classic_title()}>
-										{m.energy_vs_classic()}
-									</p>
+									     visible reason when those are edited on the main page.
+
+									     A tooltip and not `title=`: two sentences is past what a native
+									     tooltip shows, touch shows one never, and the dotted underline is
+									     what tells anyone it is there — the same treatment every other
+									     explained label on this page gets. `child` keeps the tile's
+									     <p>value</p><p>label</p> shape, which the e2e reads by preceding
+									     sibling. -->
+									<Tooltip.Provider delayDuration={150}>
+										<Tooltip.Root>
+											<Tooltip.Trigger>
+												{#snippet child({ props })}
+													<p
+														{...props}
+														class="w-fit cursor-help text-xs text-ty-silent underline decoration-ty-ghost decoration-dotted underline-offset-4"
+													>
+														{m.energy_vs_classic()}
+													</p>
+												{/snippet}
+											</Tooltip.Trigger>
+											<Tooltip.Content class="max-w-md">
+												<p>{m.energy_vs_classic_title()}</p>
+											</Tooltip.Content>
+										</Tooltip.Root>
+									</Tooltip.Provider>
 								{:else}
 									<p class="text-lg font-semibold text-ty-silent">—</p>
 									<p class="text-xs text-ty-silent">{m.energy_no_classic()}</p>

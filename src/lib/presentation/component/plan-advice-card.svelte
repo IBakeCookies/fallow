@@ -71,15 +71,7 @@
 			<p class="mt-grid-sm text-xs text-warning-strong">{advice.unfundedMustDo}</p>
 		{/if}
 
-		<!-- Every axis in band does NOT mean the day is fine: unfunded tasks are a
-		     read, not a band, so a day can read clean everywhere and still leave work
-		     with no hours. Saying "this day is fine" under that negates the two lines
-		     above it. -->
-		{#if advice.rows.length === 0}
-			{#if !advice.unfunded && !advice.unfundedMustDo}
-				<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
-			{/if}
-		{:else}
+		{#if advice.rows.length > 0}
 			<ul class="mt-grid-sm space-y-grid-sm">
 				{#each advice.rows as row (row.axis)}
 					<li class="rounded-xl border border-line-soft p-box-sm">
@@ -129,6 +121,12 @@
 					</li>
 				{/each}
 			</ul>
+			<!-- Every axis in band does NOT mean the day is fine: unfunded tasks are a
+			     read, not a band, so a day can read clean everywhere and still leave
+			     work with no hours. Saying "this day is fine" under either line above
+			     negates it. -->
+		{:else if !advice.unfunded && !advice.unfundedMustDo}
+			<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
 		{/if}
 	</div>
 {/if}

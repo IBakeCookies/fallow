@@ -88,6 +88,16 @@ test('the Lab plans the task deployed on the main page', async ({ page }) => {
 	await expect(page.getByLabel('Day window')).toHaveValue('8');
 	// …and the optimizer actually funded it.
 	await expect(statValue(page, 'Planned work')).toHaveText(/[1-9]/);
+
+	// The comparison tile is the one reading switch cost and the pools reach, and
+	// it says so on demand rather than in a `title` no touch device shows.
+	await page.getByText('Output vs the classic plan, judged by this model').hover();
+
+	await expect(
+		page.getByText('It is the only reading here that uses your switch cost', {
+			exact: false,
+		}),
+	).toBeVisible();
 });
 
 // Settled 2026-07-29: neither mode is the better one, so neither owns the day's
