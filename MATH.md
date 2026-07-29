@@ -40,8 +40,8 @@ _quality of hours worked_, not the amount of work done. It is what creates
 (p > 0 everywhere), so a total-output maximizer would always consume the whole
 budget. Under the average-productivity objective, pushing a task past its
 optimal stopping time **lowers** the objective, so an abundant budget
-correctly leaves slack. (The experimental `zenith-energy.ts` model explores
-the total-output alternative; see §8.)
+correctly leaves slack. (The `zenith-energy.ts` model takes the total-output
+alternative; see §8. It is a peer mode, not a successor — §15.)
 
 ## 1. Inputs and parameter mappings (unchanged from the article)
 
@@ -453,10 +453,9 @@ negligible next to the subset enumeration.
 - **Forward selection for n > 12 funded-subset search** is a heuristic for a
   regime a daily planner rarely reaches.
 - **Budgets below 0.25h are left unplanned** (v1 would allocate slivers).
-- **`zenith-energy.ts` intentionally still uses the v1 curve.** It is an
-  experimental, standalone, total-output model with its own fatigue
-  dynamics (documented in §8); migrating it to the v2 curve is a separate
-  decision.
+- **`zenith-energy.ts` intentionally still uses the v1 curve.** It is a
+  standalone total-output model with its own fatigue dynamics (documented in
+  §8); migrating it to the v2 curve is a separate decision.
 - **`a = E·β` (peak monotone in effort) is kept from the article** even
   though flow research suggests an inverted-U in challenge (see references);
   changing it alters the meaning of the difficulty slider and deserves its
@@ -464,7 +463,7 @@ negligible next to the subset enumeration.
 
 ## 8. Energy model (`zenith-energy.ts`) — fatigue-recovery extensions
 
-The experimental total-output model keeps the v1 curve (see §7) but got two
+The total-output model keeps the v1 curve (see §7) but got two
 literature-grounded corrections on 2026-07-13 (§8.1–8.2), a per-task
 satiety term on 2026-07-14 (§8.4), and a micro-recovery floor for
 full-demand tasks plus optimizer-reliability fixes on 2026-07-14
@@ -1474,8 +1473,10 @@ energy model concentrates (satiety-tempered total output, §8.4). Which
 composition does the user's REAL behavior track? The 🪫 drain logs already
 record worked hours per task per day, and §8.10 already joins them with the
 stored sessions — so the audit is a revealed-preference measurement with no
-new instrument, pointed at the planner itself this time. Its answer is the
-evidence gate for promoting the energy plan out of the lab.
+new instrument, pointed at the planner itself this time. It was built as the
+evidence gate for promoting the energy plan out of the lab; **that gate was
+withdrawn on 2026-07-29 (§15)** — the two models are peer modes and the audit
+is a descriptive signal, not a verdict.
 
 **Per finished day** (`auditPlanAdherence` in `plan-audit.ts`; days from the
 §8.10 join plus that day's stored switch cost and pools):
@@ -1727,9 +1728,10 @@ only two lattice levels). Two facts recorded separately are the same fact.
 page's plan comes from the classic allocator, which has no terminal term at
 all, and Burnout Risk only SCORES that plan. The collision is latent.
 
-**Gated on the roadmap's "energy-plan promotion" (same gate as §12's
-audit evidence).** If the energy plan ever drives the main page, two things
-must be settled FIRST:
+**Latent, and staying that way (§15).** Promotion was settled against on
+2026-07-29, so these are not on the path to anything — but they are the
+conditions that would have to be settled FIRST if a metric defined against the
+classic allocation is ever pointed at the energy plan:
 
 1. **The objective lacks a peak-depletion term.** Promoted, the optimizer
    would be choosing plans while Burnout Risk grades them — and its
@@ -1983,3 +1985,61 @@ sentinel itself is untouched: an empty day showing a neutral 50 is fine as
 long as nothing optimizes toward it. The `v`-badness axes keep offering the
 empty plan (a zero-load day genuinely has zero Physical Load — that reading is
 true, and the −100% price is shown); only the fabricated optimum is removed.
+
+## 15. Two objectives, two modes (2026-07-29)
+
+**The question, settled.** The roadmap carried "promote the energy plan to the
+main page", gated on §12's audit showing higher overlap with real logged days.
+The gate is withdrawn: the two models are **peer modes**, and no evidence could
+have decided between them, because "better" is not a property either objective
+can report about the other.
+
+**Cross-scoring probe** (300 random days, 2–6 tasks, budget 3–11 h, default
+pools/switch cost/energy params, deterministic seed; both plans scored under
+both objectives — classic `Σ P̄` over per-task totals, energy `objective` from
+`evaluateSchedule` with the classic plan converted the Lab's way, interleaved
+order and switch costs as rest gaps):
+
+| plan    | under classic `Σ P̄`                       | under the energy objective                |
+| ------- | ----------------------------------------- | ----------------------------------------- |
+| classic | **wins 276/300**, median +37.5%, p90 +90% | loses 0/300                               |
+| energy  | wins 24/300                               | **wins 300/300**, median +18.4%, p90 +43% |
+
+Each model beats the other by tens of percent on its own scale. That is not a
+close call awaiting better data; it is two definitions of a good day.
+
+**The 24 exceptions are not an allocator defect.** Controlled by re-solving the
+classic allocator with a budget that hands it exactly the energy plan's work
+hours (`(m−1)·switchCost` added back): 20 days still scored below the energy
+plan under `Σ P̄`, and **all 20 are infeasible for the classic allocator** —
+cognitive load 4.05–7.28 h against the 4 h pool, one at 7.57 h physical against
+6 h. The energy model has no pool constraint at all (§8 substitutes reservoir
+dynamics), so it plans days the pooled allocator is forbidden to emit. On the
+plans it is allowed to emit, the classic allocator never loses its own
+objective.
+
+**How they differ, quantified.** The disagreement is systematic, and it is
+about concentration — the §0 spreading question, measured:
+
+- Funded tasks per day: energy **2.05** vs classic **3.88**. Energy funds
+  **more on 0 of 300 days** — not once.
+- Composition overlap `Σ min(share)`: mean 0.61, median 0.59, p10 0.36.
+  Identical funded set on **49/300 days (16%)**.
+- Work planned: energy **91%** of budget (median 94%) vs classic **81%**
+  (median 83%), despite λ₀ pricing free time. Classic reserves
+  `(m−1)·switchCost` as overhead and caps each task at `T*` (past `T*`, `Σ P̄`
+  falls); the energy model pays no fixed switch cost and keeps going past `T*`
+  because total output still rises.
+
+**Consequences.**
+
+- §12's audit is a **descriptive** signal — which composition the user's
+  behaviour tracks — not a promotion gate. It cannot separate "the model is
+  right" from "the user was right and it learned to imitate them".
+- §13.6's two blockers (no peak-depletion term; `availableHours` meaning two
+  things) stay **latent, not fixed**: nothing outside `/energy` reads the
+  energy plan, and the Lab shows no metrics. They become live only if a metric
+  defined against the classic allocation is ever pointed at the energy plan.
+- The user-facing distinction is the one the probe measured: classic spreads
+  the day across commitments, energy concentrates on one or two and protects
+  the reservoir. Neither is the corrected version of the other.

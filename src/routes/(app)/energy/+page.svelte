@@ -307,38 +307,31 @@
 
 {#if !session.isLoading && lab.isLoaded}
 	<div class="mb-text-xl">
-		<div class="flex items-center gap-grid-md">
-			<!-- The intro paragraph lives in the title's tooltip now — the header
-			     stays one line so the plan is what fills the fold. -->
-			<Tooltip.Provider delayDuration={150}>
-				<Tooltip.Root>
-					<Tooltip.Trigger>
-						{#snippet child({ props })}
-							<h1
-								{...props}
-								class="cursor-help text-2xl font-bold text-ty-primary underline decoration-ty-ghost decoration-dotted underline-offset-4"
-							>
-								{m.energy_heading()}
-							</h1>
-						{/snippet}
-					</Tooltip.Trigger>
-					<Tooltip.Content side="bottom" align="start" class="max-w-md">
-						<p>
-							{m.energy_intro_1()}
-							<span class="font-medium text-ty-primary">{m.energy_intro_highlight_1()}</span>
-							{m.energy_intro_2()}
-							<span class="font-medium text-ty-primary">{m.energy_intro_highlight_2()}</span>
-							{m.energy_intro_3()}
-						</p>
-					</Tooltip.Content>
-				</Tooltip.Root>
-			</Tooltip.Provider>
-			<span
-				class="rounded-full border border-warning/30 bg-warning/10 px-box-xs py-text-3xs text-xs font-medium text-warning-strong"
-			>
-				{m.energy_experimental()}
-			</span>
-		</div>
+		<!-- The intro paragraph lives in the title's tooltip now — the header
+		     stays one line so the plan is what fills the fold. -->
+		<Tooltip.Provider delayDuration={150}>
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					{#snippet child({ props })}
+						<h1
+							{...props}
+							class="cursor-help text-2xl font-bold text-ty-primary underline decoration-ty-ghost decoration-dotted underline-offset-4"
+						>
+							{m.energy_heading()}
+						</h1>
+					{/snippet}
+				</Tooltip.Trigger>
+				<Tooltip.Content side="bottom" align="start" class="max-w-md">
+					<p>
+						{m.energy_intro_1()}
+						<span class="font-medium text-ty-primary">{m.energy_intro_highlight_1()}</span>
+						{m.energy_intro_2()}
+						<span class="font-medium text-ty-primary">{m.energy_intro_highlight_2()}</span>
+						{m.energy_intro_3()}
+					</p>
+				</Tooltip.Content>
+			</Tooltip.Root>
+		</Tooltip.Provider>
 	</div>
 
 	{#if tasks.length === 0}

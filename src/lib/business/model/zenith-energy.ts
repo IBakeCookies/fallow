@@ -1,5 +1,5 @@
 /**
- * Zenith Energy Model (experimental — powers the /energy route)
+ * Zenith Energy Model (powers the /energy route)
  *
  * A schedule-level alternative to the classic allocator in `zenith.ts`. Instead
  * of maximizing a sum of average productivity *rates*, this model maximizes

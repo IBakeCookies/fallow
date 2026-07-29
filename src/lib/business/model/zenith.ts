@@ -114,8 +114,8 @@ export const BLOCK_HOURS = 0.25;
  * (a) the exact r → 0 limit, (b) a strict UPPER BOUND on every task's
  * multiplier, and (c) the seed/bracket for the per-task root solve. Use
  * findOptimalSingleTaskTime (or TaskAllocation.optimalHours) for real values.
- * Still consumed by the experimental zenith-energy model, which intentionally
- * remains on the v1 curve (see MATH.md §7).
+ * Still consumed by the zenith-energy model, which intentionally remains on
+ * the v1 curve (see MATH.md §7).
  */
 export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
 

@@ -647,6 +647,19 @@ Each was considered and decided. Re-deciding them is churn.
   memory. A compound index would cost a schema version (R8) for nothing;
   scanning the store reads years of history that can never match.
 
+- **The energy model is a peer mode, not a candidate to replace the main
+  plan** (settled 2026-07-29, MATH.md §15). A 300-day cross-scoring probe:
+  each model beats the other by tens of percent **on the other's objective** —
+  classic wins `Σ P̄` on 276/300 days (median +37.5%), energy wins its own
+  objective on 300/300 (median +18.4%). The 24 exceptions are all plans the
+  pooled allocator is forbidden to emit (4.05–7.28 h cognitive against the 4 h
+  pool — the energy model has no pool constraint), so neither allocator is
+  defective. No evidence can rank them; §12's audit is a descriptive signal,
+  not a promotion gate. What the probe does establish is the user-facing
+  difference: energy funds 2.05 tasks/day vs classic 3.88 and **never more**
+  (0/300 days), overlapping on composition 0.61 and agreeing on the funded set
+  16% of the time. Classic spreads, energy concentrates. Keep both routes.
+
 - **`zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
   deliberately deep modules** — large implementations behind tiny interfaces.
   A 2026-07-23 interface analysis found every proposed split would force
@@ -792,6 +805,13 @@ Each was considered and decided. Re-deciding them is churn.
   **both** locales with `xhtml:link` alternates, `/imprint` and `/privacy`
   included.
 
+- **`PUBLIC_SITE_URL` is set on Vercel in the Production scope only** — the one
+  environment variable the app reads (see `.env.example`). Production-scoped on
+  purpose: preview deploys fall back to their own request origin instead of
+  claiming to be canonical. Consequences of the scope choice, both intended —
+  previews serve dynamic (not prerendered) crawler files, and their SEO tags
+  point at themselves.
+
 - **`/de/*` is a real, indexable URL, not a cookie state.** The paraglide
   strategy is `['url', 'cookie', 'baseLocale']`; `en` stays unprefixed. Two
   consequences that are easy to get wrong:
@@ -826,14 +846,6 @@ Each was considered and decided. Re-deciding them is churn.
   day on screen — an arbitrary-date move would have to answer that (YAGNI).
   The advice reading itself stays a counterfactual (MATH.md §14): the model
   prices "off today", only the button commits to a destination.
-- **`PUBLIC_SITE_URL` is unset on Vercel** (see `.env.example`) — the only
-  environment variable the app reads. Production origin:
-  `https://zenith-drab-psi.vercel.app` — no trailing slash, **Production scope
-  only**, so preview deploys keep falling back to their own request origin
-  instead of claiming to be canonical. Without it, SEO tags, `sitemap.xml` and
-  `robots.txt` fall back to the request origin (splitting indexing between the
-  production domain and every `*.vercel.app` alias), and the two crawler files
-  stay dynamic instead of prerendering.
 - `app.html`'s inline pre-paint script hardcodes **two** theme names: it
   removes `DEFAULT_THEME`'s class and adds `DEFAULT_DARK_THEME`'s (it no
   longer assigns `className`, which used to wipe the server-stamped
