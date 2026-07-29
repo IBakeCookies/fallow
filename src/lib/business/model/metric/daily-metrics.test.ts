@@ -71,6 +71,36 @@ describe('calculateDailyMetrics', () => {
 		expect(metrics.zenithGain.gainPercent).toBe(0);
 	});
 
+	it('ranks and scores a day whose hours have not been entered yet', () => {
+		// availableHours 0 with real tasks — the default order of operations, since
+		// the day saves as soon as a task exists. Every priority score used to read
+		// 0 here, which left the list in input order and made both
+		// priority-weighted metrics report 0% on a day with completions (MATH.md
+		// §3).
+		const withOneDone = TASKS.map((task, i) => ({
+			...task,
+			completed: i === 0,
+		}));
+
+		const metrics = calculateDailyMetrics(
+			input(withOneDone, {
+				availableHours: 0,
+			}),
+		);
+
+		const scores = metrics.suggestedTasks.map((t) => t.priorityScore);
+
+		expect(scores).toHaveLength(3);
+		expect(scores.every((score) => score > 0)).toBe(true);
+		expect([...scores].sort((a, b) => b - a)).toEqual(scores);
+
+		// Nothing is planned, but the day is still scored on what got done.
+		expect(metrics.suggestedTasks.every((t) => t.suggestedHours === 0)).toBe(true);
+		expect(metrics.runOrder.size).toBe(0);
+		expect(metrics.completionRate).toBeGreaterThan(0);
+		expect(metrics.yieldIndex).toBeGreaterThan(0);
+	});
+
 	it('plans the day: allocates within budget and numbers the run order', () => {
 		const metrics = calculateDailyMetrics(input(TASKS));
 

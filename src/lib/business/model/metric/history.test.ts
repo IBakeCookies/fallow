@@ -84,6 +84,24 @@ describe('summarizeSession', () => {
 		}
 	});
 
+	it('scores a day with no stored hours by the tasks own intrinsic priorities', () => {
+		// availableHours 0 — never entered, or a day written by moveTaskToTomorrow
+		// — used to zero every priority score, so a fully ticked-off day read 0%.
+		const session = makeSession(3, 0);
+		expect(session.tasks.filter((t) => t.completed)).toHaveLength(1);
+		expect(summarizeSession(session).completionRate).toBeGreaterThan(0);
+
+		const allDone = {
+			...session,
+			tasks: session.tasks.map((t) => ({
+				...t,
+				completed: true,
+			})),
+		};
+
+		expect(summarizeSession(allDone).completionRate).toBe(100);
+	});
+
 	it('summarizes a year of full days without running the exhaustive allocator', () => {
 		// The 2ⁿ funded-subset enumeration costs ~55ms per 12-task day, so the old
 		// path needed ~20s here and blocked first paint. Bound is deliberately

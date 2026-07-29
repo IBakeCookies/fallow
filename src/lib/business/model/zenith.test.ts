@@ -461,6 +461,44 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 			expect(achieved).toBeCloseTo(brute, 9);
 		});
+
+		it('keeps every task-intrinsic value at a zero budget (MATH.md §3)', () => {
+			// ϕ, T*, the peak height and P̄(T*) are functions of the task alone, so
+			// an empty plan must still report them — the metric layer's priority
+			// score IS P̄(T*), and a 0 there reads as "this task is worthless"
+			// rather than "you have not said how long you have".
+			const tasks = [
+				{
+					title: 'Write report',
+					difficulty: 8,
+					enjoyment: 3,
+				},
+				{
+					title: 'Practice piano',
+					difficulty: 2,
+					enjoyment: 9,
+				},
+			];
+
+			const funded = calculateTaskAllocations(tasks, 8, DEFAULT_USER_CONSTANTS, 0);
+			const empty = calculateTaskAllocations(tasks, 0, DEFAULT_USER_CONSTANTS, 0);
+
+			empty.forEach((alloc, i) => {
+				// Allocation-dependent — legitimately zero, nothing was planned.
+				expect(alloc.allocatedHours).toBe(0);
+				expect(alloc.avgProductivity).toBe(0);
+
+				// Intrinsic — bit-identical to the funded plan's.
+				expect(alloc.phi).toBe(funded[i].phi);
+				expect(alloc.optimalHours).toBe(funded[i].optimalHours);
+				expect(alloc.peakProductivity).toBe(funded[i].peakProductivity);
+				expect(alloc.optimalAvgProductivity).toBe(funded[i].optimalAvgProductivity);
+				expect(alloc.optimalAvgProductivity).toBeGreaterThan(0);
+			});
+
+			// Negative budgets take the same path.
+			expect(calculateTaskAllocations(tasks, -1, DEFAULT_USER_CONSTANTS, 0)).toEqual(empty);
+		});
 	});
 
 	describe('Dual-Pool Allocation', () => {
@@ -1691,6 +1729,40 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 				expect(hedgeLots).toBeGreaterThan(0);
 				expect(hedgeLots).toBeLessThan(hedgeFew);
 			}
+		});
+
+		it('a zero budget carries the posterior through the pooled allocator too', () => {
+			// The empty plan must be HEDGED like any other: it reports the expected
+			// intrinsic values under ϕ-uncertainty, not the certainty ones.
+			const tasks: PooledTaskInput[] = [
+				{
+					title: 'deep work',
+					difficulty: 9,
+					enjoyment: 5,
+					cognitiveWeight: 1,
+					physicalWeight: 0,
+				},
+				{
+					title: 'gym',
+					difficulty: 6,
+					enjoyment: 7,
+					cognitiveWeight: 0.1,
+					physicalWeight: 1,
+				},
+			];
+
+			const args = [DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS, 0.25] as const;
+			const funded = calculatePooledAllocations(tasks, 8, ...args, widePosterior);
+			const empty = calculatePooledAllocations(tasks, 0, ...args, widePosterior);
+			const certain = calculatePooledAllocations(tasks, 0, ...args);
+
+			empty.forEach((alloc, i) => {
+				expect(alloc.allocatedHours).toBe(0);
+				expect(alloc.optimalHours).toBe(funded[i].optimalHours);
+				expect(alloc.optimalAvgProductivity).toBe(funded[i].optimalAvgProductivity);
+				// Strictly below the certainty twin — no free lunch at budget 0 either.
+				expect(alloc.optimalAvgProductivity).toBeLessThan(certain[i].optimalAvgProductivity);
+			});
 		});
 	});
 

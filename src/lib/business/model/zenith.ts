@@ -579,20 +579,6 @@ export function findOptimalSingleTaskTime(
 	return optimalStoppingX(amplitudeRatio(a, p0)) / k;
 }
 
-function zeroAllocations(tasks: TaskInput[]): TaskAllocation[] {
-	return tasks.map((task) => ({
-		...task,
-		allocatedHours: 0,
-		E: mapEffort(task.difficulty),
-		beta: mapEnjoyability(task.enjoyment),
-		phi: 0,
-		peakProductivity: 0,
-		avgProductivity: 0,
-		optimalHours: 0,
-		optimalAvgProductivity: 0,
-	}));
-}
-
 // ==================== Discrete allocator (v2) ====================
 //
 // The objective Σᵢ P̄ᵢ(tᵢ) is maximized over 15-minute blocks by greedy
@@ -1076,6 +1062,22 @@ function phiStdsFor(
 	return params.map(({ E, beta }) => phiParameterStd(E, beta, posterior));
 }
 
+/**
+ * Curve parameters, ϕ-uncertainty and single-task optima — the preamble every
+ * allocation path shares. One place, so a funded plan and the empty plan cannot
+ * compute a task's intrinsic values differently.
+ */
+function buildTaskParams(tasks: TaskInput[], constants: UserConstants, posterior?: FitPosterior) {
+	const params = tasks.map((task) => calculateTaskParams(task, constants));
+	const phiStds = phiStdsFor(params, posterior);
+
+	return {
+		params,
+		phiStds,
+		optimalTimes: params.map(({ a, p0, phi }, i) => expectedOptimalTime(a, p0, phi, phiStds[i])),
+	};
+}
+
 function toAllocations(
 	tasks: TaskInput[],
 	params: ReturnType<typeof calculateTaskParams>[],
@@ -1104,6 +1106,32 @@ function toAllocations(
 }
 
 /**
+ * The empty plan: nobody gets time, but every task-INTRINSIC quantity keeps
+ * its real value (MATH.md §3). ϕ, T*, the peak height and P̄(T*) are functions
+ * of the task's own (E, β) and the user constants alone — not of the budget,
+ * the pools, or the other tasks — so zeroing them made a task's intrinsic
+ * priority score read 0 at budget 0, contradicting the invariant at exactly
+ * the boundary where it is the only thing left to rank by. Only
+ * `allocatedHours` and `avgProductivity` are allocation-dependent, and both
+ * are legitimately 0 here (P̄(0) := 0 by definition — see averageProductivity).
+ */
+function zeroAllocations(
+	tasks: TaskInput[],
+	constants: UserConstants,
+	posterior?: FitPosterior,
+): TaskAllocation[] {
+	const { params, phiStds, optimalTimes } = buildTaskParams(tasks, constants, posterior);
+
+	return toAllocations(
+		tasks,
+		params,
+		phiStds,
+		optimalTimes,
+		tasks.map(() => 0),
+	);
+}
+
+/**
  * Main optimization: allocate the time budget across tasks in 15-minute
  * blocks to maximize  Σᵢ P̄ᵢ(tᵢ)  subject to  Σᵢ tᵢ + (m−1)·switchCost ≤ T,
  * where m is the number of tasks that actually receive time.
@@ -1125,15 +1153,10 @@ export function calculateTaskAllocations(
 	posterior?: FitPosterior,
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
-		return zeroAllocations(tasks);
+		return zeroAllocations(tasks, constants, posterior);
 	}
 
-	const params = tasks.map((task) => calculateTaskParams(task, constants));
-	const phiStds = phiStdsFor(params, posterior);
-
-	const optimalTimes = params.map(({ a, p0, phi }, i) =>
-		expectedOptimalTime(a, p0, phi, phiStds[i]),
-	);
+	const { params, phiStds, optimalTimes } = buildTaskParams(tasks, constants, posterior);
 
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
 		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
@@ -1199,15 +1222,10 @@ export function calculatePooledAllocations(
 	posterior?: FitPosterior,
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
-		return zeroAllocations(tasks);
+		return zeroAllocations(tasks, constants, posterior);
 	}
 
-	const params = tasks.map((task) => calculateTaskParams(task, constants));
-	const phiStds = phiStdsFor(params, posterior);
-
-	const optimalTimes = params.map(({ a, p0, phi }, i) =>
-		expectedOptimalTime(a, p0, phi, phiStds[i]),
-	);
+	const { params, phiStds, optimalTimes } = buildTaskParams(tasks, constants, posterior);
 
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
 		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),

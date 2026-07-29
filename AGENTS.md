@@ -660,6 +660,17 @@ Each was considered and decided. Re-deciding them is churn.
   (0/300 days), overlapping on composition 0.61 and agreeing on the funded set
   16% of the time. Classic spreads, energy concentrates. Keep both routes.
 
+- **Run order stays `calculateInterleavedOrder`'s nature alternation** (settled
+  2026-07-29, MATH.md §16). `Σ P̄` is order-invariant, so only the energy model
+  scores order at all — and under it the heuristic is a median 0.47% below the
+  best ordering of the same allocation (p90 2.03%), landing at the 6th
+  percentile of all orderings while best-vs-worst spans 7.31%. Holding the
+  allocation fixed bounds any order-only change, the solver's included. The
+  swap is also actively harmful to one metric: the objective-maximizing order
+  is uncorrelated with drain (§8 charges no cost for it), so it moves Burnout
+  Risk by >5 points on 34% of days in no consistent direction. Do not re-open
+  without a reason that isn't "the optimizer should beat the heuristic".
+
 - **`zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
   deliberately deep modules** — large implementations behind tiny interfaces.
   A 2026-07-23 interface analysis found every proposed split would force

@@ -164,8 +164,10 @@ export function calculateTaskPlan(
 				// Priority is the task's INTRINSIC value: its average productivity at
 				// its own optimal stopping time, P̄(T*). Allocation-independent, so a
 				// great task the pools zeroed out still ranks by what it's worth, not
-				// by what this plan could give it. (Model v2: T* and P̄(T*) are
-				// task-dependent, so the allocator computes them per task — the old
+				// by what this plan could give it — and so does every task on a day
+				// with no hours entered yet, where it is the only ranking left
+				// (MATH.md §3). (Model v2: T* and P̄(T*) are task-dependent, so the
+				// allocator computes them per task — the old
 				// (a+p₀)×OPTIMAL_AVG_FRACTION reconstruction no longer applies.)
 				const intrinsicValue = alloc.optimalAvgProductivity;
 
@@ -734,6 +736,13 @@ export function calculateTaskVariety(tasks: SuggestedTask[]): number {
  *
  * Only tasks with allocated time are sequenced — a 0h task has no session
  * to schedule.
+ *
+ * Deliberately still a heuristic (MATH.md §16): scored under the energy model —
+ * the only objective that reads order at all — this sequence lands within a
+ * median 0.47% of the best possible ordering of the same allocation, and the
+ * objective-maximizing order moves `calculateBurnoutRisk` by >5 points on a
+ * third of days in no consistent direction. One definition for both consumers,
+ * the `#N` badges and burnout's block sequence.
  */
 export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask[] {
 	const remaining = tasks

@@ -210,6 +210,18 @@ The best achievable average `P̄(T*)` is computed per task and exposed as
 multiplier was universal). The metric layer's _priority score_ is this value:
 a task's intrinsic worth independent of what the current plan gives it.
 
+That independence holds at **every** budget, zero included (2026-07-29). `ϕ`,
+`T*`, the peak height `a·e^(r−1)` and `P̄(T*)` are functions of the task's own
+(E, β) and the user constants alone, so the empty plan reports them unchanged
+and only the two allocation-dependent fields — `allocatedHours` and
+`avgProductivity` — go to 0 (`P̄(0) := 0`, §2). Previously the `budget ≤ 0`
+short-circuit zeroed all of them, which made a task's intrinsic priority read 0
+at exactly the boundary where it is the only thing left to rank by, and made a
+stored day with completions but no recorded hours read 0% complete (the
+priority-weighted completion rate divided by a zero total). Under a fit
+posterior the empty plan is hedged like any other — it carries the expected
+values, not the certainty ones.
+
 ## 4. Allocation — **v2 change: discrete blocks, exact greedy, exact subset search**
 
 ### Why v1's continuous solver was replaced
@@ -2043,3 +2055,76 @@ about concentration — the §0 spreading question, measured:
 - The user-facing distinction is the one the probe measured: classic spreads
   the day across commitments, energy concentrates on one or two and protects
   the reservoir. Neither is the corrected version of the other.
+
+## 16. Run order stays a heuristic (2026-07-29)
+
+**The question, settled.** The roadmap carried "model-derived run order":
+replace `calculateInterleavedOrder`'s nature alternation with the sequence the
+energy solver would choose. Measured and **declined** — the heuristic captures
+~94% of the available gain, and the swap would inject two-sided noise into
+Burnout Risk.
+
+**Why the classic model cannot answer this.** `averageProductivity(T, a, p0, k)`
+takes no sequence, so `Σ P̄` is invariant to order: the classic objective has no
+opinion at all. The heuristic's docstring argues from dual-pool recovery, but
+nothing in §2–§4 scores that. Order is only scoreable under §8, where the
+reservoir law refills `C` at `r'·g·(1−C)` whenever the current task's demand on
+that reservoir is low — which is precisely the effect alternation gropes for.
+The heuristic is a crude version of the same physics, not a rival to it.
+
+**Order-only probe** (300 random days, 3–8 tasks, budget 4–10 h, default
+pools/switch cost/energy params, deterministic seed). The classic allocation is
+held **fixed** — same funded set, same hours, same `stretch = 1 + overhang /
+allocated` and switch-costs-as-rest that §11.6 applies — and only the sequence
+varies, scored by `evaluateSchedule().objective`. Exhaustive over all
+permutations up to 6 funded tasks; 720 sampled orderings on the 82/300 days
+above that.
+
+| comparison                     | median     | p90     | max     |
+| ------------------------------ | ---------- | ------- | ------- |
+| best ordering vs interleaved   | **+0.47%** | +2.03%  | +5.02%  |
+| best vs worst (whole spread)   | +7.31%     | +11.58% | +19.80% |
+| interleaved vs plain priority  | 0.00%      | +1.19%  | +3.35%  |
+| — on the 118 days it re-orders | +0.32%     | +2.12%  | +3.35%  |
+
+Order matters (7.31% median spread between best and worst), and interleaved
+lands at the **6.24th percentile** of orderings (p90: 30th), outright optimal on
+**60/300** days. Because the fixed allocation is an upper bound on what any
+order-only change can win, **0.47% bounds the solver's own order too**.
+
+**Alternation earns its keep, on the days it fires.** It changes the sequence on
+only **118/300 days (39%)** — 44% of tasks land `'balanced'` under the ±3
+threshold, and balanced contrasts with everything, so the greedy degenerates to
+priority order. The 0.00% overall median is that no-op rate, not a null effect:
+where it fires it gains a median 0.32% over plain priority.
+
+**The decisive finding: the objective-optimal order is uncorrelated with
+drain.** Burnout Risk (§11.6) under interleaved minus under the
+objective-maximizing order, in points:
+
+```text
+min −26.95   p10 −7.47   median 0.00   mean −0.02   p90 +7.54   max +33.67
+|Δ| > 5 points on 101/300 days (34%)
+```
+
+Two-sided noise with no systematic direction. This is expected, not anomalous:
+in §8 drain is not a cost term — it enters the objective only through the
+reservoirs' effect on output, so a sequence chosen to maximize output has no
+reason to end the day rested. Adopting it would move a displayed health metric
+by >5 points on a third of days in an arbitrary direction to buy ≤0.47% on an
+objective the main page does not use.
+
+**Consequences.**
+
+- `calculateInterleavedOrder` stays as it is, and stays the single definition
+  for both consumers — the `#N` badges (§11) and Burnout Risk's block sequence
+  (§11.6).
+- The ontology mismatch is **acknowledged and accepted**: an order justified by
+  dual-pool reasoning feeds an energy-model simulation. The probe is the
+  justification — under §8's own scoring the heuristic is within 0.47% of
+  optimal, so the mismatch costs nothing measurable.
+- §12 and §15's classic baseline keep their current sequencing, so their figures
+  stand unrevised.
+- Caveat on generalization: uniform-random difficulties produce the 44% balanced
+  rate, so a real task list may re-order more or less often than 39% of days.
+  The bound on the _gain_ does not depend on that rate.
