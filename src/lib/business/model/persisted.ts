@@ -22,6 +22,7 @@ import type {
 	DailySession,
 	DrainObservationRecord,
 	FlowObservationRecord,
+	Persisted,
 	RestObservationRecord,
 	SavedRoutine,
 	Task,
@@ -201,14 +202,17 @@ const DRAIN_NUMBERS = [
 
 const REST_NUMBERS = ['hours', 'mindBefore', 'mindAfter', 'bodyBefore', 'bodyAfter'] as const;
 
-export function sanitizeFlowObservations(raw: unknown): FlowObservationRecord[] {
-	return sanitizeObservations<FlowObservationRecord>(raw, FLOW_NUMBERS);
+// `Persisted<…>` rather than the bare record, and the only place that upgrade is
+// made: the id filter above is what earns it, so the callers keying a list or
+// deleting a row need no `id!`.
+export function sanitizeFlowObservations(raw: unknown): Persisted<FlowObservationRecord>[] {
+	return sanitizeObservations<Persisted<FlowObservationRecord>>(raw, FLOW_NUMBERS);
 }
 
-export function sanitizeDrainObservations(raw: unknown): DrainObservationRecord[] {
-	return sanitizeObservations<DrainObservationRecord>(raw, DRAIN_NUMBERS);
+export function sanitizeDrainObservations(raw: unknown): Persisted<DrainObservationRecord>[] {
+	return sanitizeObservations<Persisted<DrainObservationRecord>>(raw, DRAIN_NUMBERS);
 }
 
-export function sanitizeRestObservations(raw: unknown): RestObservationRecord[] {
-	return sanitizeObservations<RestObservationRecord>(raw, REST_NUMBERS);
+export function sanitizeRestObservations(raw: unknown): Persisted<RestObservationRecord>[] {
+	return sanitizeObservations<Persisted<RestObservationRecord>>(raw, REST_NUMBERS);
 }

@@ -1,5 +1,10 @@
 import { getContext, setContext, onMount } from 'svelte';
-import type { Task, DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
+import type {
+	Persisted,
+	Task,
+	DrainObservationRecord,
+	RestObservationRecord,
+} from '$lib/data/type';
 import { logError } from '$lib/logger';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
@@ -36,8 +41,8 @@ export type ReadTasks = () => Task[];
  * can leak between SSR requests.
  */
 export class EnergyObservationStore {
-	#drainObservations = $state<DrainObservationRecord[]>([]);
-	#restObservations = $state<RestObservationRecord[]>([]);
+	#drainObservations = $state<Persisted<DrainObservationRecord>[]>([]);
+	#restObservations = $state<Persisted<RestObservationRecord>[]>([]);
 
 	#readTasks: ReadTasks;
 	#reporter: StorageReporter;
@@ -57,11 +62,11 @@ export class EnergyObservationStore {
 	// Every read of these two stores goes through the sanitizers: the records feed
 	// the α and r fits, where one corrupt number would make every fitted energy
 	// parameter NaN (AGENTS.md R4).
-	async #readDrain(): Promise<DrainObservationRecord[]> {
+	async #readDrain(): Promise<Persisted<DrainObservationRecord>[]> {
 		return sanitizeDrainObservations(await drainObservationRepository.$readAllDrainObservations());
 	}
 
-	async #readRest(): Promise<RestObservationRecord[]> {
+	async #readRest(): Promise<Persisted<RestObservationRecord>[]> {
 		return sanitizeRestObservations(await restObservationRepository.$readAllRestObservations());
 	}
 

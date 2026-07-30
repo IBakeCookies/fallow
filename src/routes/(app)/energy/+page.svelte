@@ -1052,7 +1052,7 @@
 													aria-label={m.energy_delete_drain_log_aria()}
 													title={m.energy_delete_drain_log_title()}
 													class="text-ty-silent transition hover:text-danger"
-													onclick={() => observations.deleteDrainLog(log.id!)}
+													onclick={() => observations.deleteDrainLog(log.id)}
 												>
 													✕
 												</button>
@@ -1271,7 +1271,7 @@
 													aria-label={m.energy_delete_rest_log_aria()}
 													title={m.energy_delete_rest_log_title()}
 													class="text-ty-silent transition hover:text-danger"
-													onclick={() => observations.deleteRestLog(log.id!)}
+													onclick={() => observations.deleteRestLog(log.id)}
 												>
 													✕
 												</button>

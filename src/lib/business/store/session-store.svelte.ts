@@ -1,6 +1,12 @@
 import { getContext, setContext, onMount } from 'svelte';
 import { browser } from '$app/environment';
-import type { Task, DailySession, SavedRoutine, FlowObservationRecord } from '$lib/data/type';
+import type {
+	Persisted,
+	Task,
+	DailySession,
+	SavedRoutine,
+	FlowObservationRecord,
+} from '$lib/data/type';
 import { logError } from '$lib/logger';
 // Namespace imports: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes), but property access
@@ -90,7 +96,7 @@ export class SessionStore {
 	#isLoading = $state(true);
 	#yesterdaySession = $state<DailySession | null>(null);
 	#routines = $state<SavedRoutine[]>([]);
-	#flowObservations = $state<FlowObservationRecord[]>([]);
+	#flowObservations = $state<Persisted<FlowObservationRecord>[]>([]);
 
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
@@ -262,7 +268,7 @@ export class SessionStore {
 
 	// Every flow-observation read goes through here: the records feed the ϕ fit,
 	// where one corrupt number would make every constant NaN (AGENTS.md R4).
-	async #readFlowObservations(): Promise<FlowObservationRecord[]> {
+	async #readFlowObservations(): Promise<Persisted<FlowObservationRecord>[]> {
 		return sanitizeFlowObservations(await flowObservationRepository.$readAllFlowObservations());
 	}
 

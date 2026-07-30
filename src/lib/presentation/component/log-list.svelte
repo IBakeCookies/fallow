@@ -1,4 +1,4 @@
-<script lang="ts" generics="T extends { id?: number }">
+<script lang="ts" generics="T extends { id: number }">
 	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 

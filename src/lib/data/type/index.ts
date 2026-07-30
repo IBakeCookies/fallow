@@ -6,6 +6,18 @@
  * import them via `$lib/business/type`, never from here.
  */
 
+/**
+ * A record with its `autoIncrement` key. The interfaces below leave `id`
+ * optional because that is how a record is written — the key does not exist
+ * until IndexedDB assigns it — but consumers that key a list or delete a row
+ * need to rely on one rather than asserting `id!` at every call site.
+ *
+ * Only the sanitizers in `business/model/persisted.ts` hand this out: they drop
+ * records without a usable id, so the type is earned there. A repository read is
+ * a raw `getAll()` and verifies nothing, so it promises the bare record.
+ */
+export type Persisted<T> = T & { id: number };
+
 export type Task = {
 	id: number;
 	title: string;

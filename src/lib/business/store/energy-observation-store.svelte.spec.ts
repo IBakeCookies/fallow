@@ -6,7 +6,7 @@ import * as restObservationRepository from '$lib/data/repository/rest-observatio
 import { toISODate } from '$lib/business/utils/date';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
-import type { Task, DrainObservationRecord } from '$lib/data/type';
+import type { Persisted, Task, DrainObservationRecord } from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
 	$updateDrainObservation: vi.fn(async () => {}),
@@ -38,7 +38,9 @@ const task = (over: Partial<Task> = {}): Task => ({
 	...over,
 });
 
-const drainRecord = (over: Partial<DrainObservationRecord> = {}): DrainObservationRecord => ({
+const drainRecord = (
+	over: Partial<DrainObservationRecord> = {},
+): Persisted<DrainObservationRecord> => ({
 	id: 1,
 	date: toISODate(),
 	taskId: 1,

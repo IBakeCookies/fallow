@@ -6,6 +6,7 @@
  */
 
 export type {
+	Persisted,
 	Task,
 	DailySession,
 	SavedRoutine,

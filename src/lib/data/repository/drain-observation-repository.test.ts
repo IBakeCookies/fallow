@@ -61,6 +61,8 @@ describe('drain-observation-repository', () => {
 
 	it('deletes a single record by id', async () => {
 		const all = await $readAllDrainObservations();
+		// `id!`: a repository read is unsanitized, and asserting the key IndexedDB
+		// just assigned is this test's point.
 		await $deleteDrainObservation(all[0].id!);
 		expect(await $readAllDrainObservations()).toHaveLength(all.length - 1);
 	});

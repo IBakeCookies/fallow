@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import type { FlowObservationRecord } from '$lib/business/type';
+	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 	import { cn } from '$lib/presentation/utils';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import LogList from '$lib/presentation/component/log-list.svelte';
@@ -14,7 +14,7 @@
 		planSlackHours: number;
 		/** whether the personalized ϕ fit was accepted (implausible fits are not) */
 		constantsFitted: boolean;
-		flowLogs?: FlowObservationRecord[];
+		flowLogs?: Persisted<FlowObservationRecord>[];
 		/** whether the viewed day's tasks can be ⚡-logged at all — false off today,
 		 *  where the prompt would point at a button no task renders */
 		canLogFlow?: boolean;
@@ -229,7 +229,7 @@
 								aria-label={m.budget_delete_log_aria()}
 								title={m.budget_delete_log_title()}
 								class="text-ty-silent transition hover:text-danger"
-								onclick={() => ondeletelog?.(log.id!)}
+								onclick={() => ondeletelog(log.id)}
 							>
 								✕
 							</button>

@@ -1,7 +1,7 @@
 import { page } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
-import type { FlowObservationRecord } from '$lib/business/type';
+import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
 
 const props = {
@@ -14,7 +14,11 @@ const props = {
 	constantsFitted: false,
 };
 
-const log = (id: number, taskTitle: string, phiHours: number): FlowObservationRecord => ({
+const log = (
+	id: number,
+	taskTitle: string,
+	phiHours: number,
+): Persisted<FlowObservationRecord> => ({
 	id,
 	date: '2026-07-19',
 	taskId: id,

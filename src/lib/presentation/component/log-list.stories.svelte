@@ -5,7 +5,7 @@
 
 	/* The component is generic over the row shape; this is the flow-log one. */
 	interface FlowRow {
-		id?: number;
+		id: number;
 		date: string;
 		taskTitle: string;
 		phiHours: number;
