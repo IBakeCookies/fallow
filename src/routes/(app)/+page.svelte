@@ -37,6 +37,12 @@
 	const tasks = $derived(session.tasks);
 	const availableHours = $derived(session.availableHours);
 
+	// One value, two consumers that must agree: only today's session can be ⚡-logged,
+	// so the callback and the bar's prompt for it have to appear and vanish together
+	// — the whole point of `canLogFlow` is that the prompt never points at a button
+	// no task renders.
+	const canLogFlow = $derived(selectedDate === today);
+
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
@@ -144,6 +150,7 @@
 			planSlackHours={daily.planSlackHours}
 			constantsFitted={session.constantsFit.fitted}
 			flowLogs={session.flowObservations}
+			{canLogFlow}
 			ondeletelog={(id) => session.deleteFlowLog(id)}
 			onresetlogs={() => session.resetFlowLogs()}
 			startOpen={availableHours <= 0}
@@ -157,9 +164,7 @@
 				runOrder={daily.runOrder}
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
-				onlogflow={selectedDate === today
-					? (id, minutes) => session.logFlow(id, minutes)
-					: undefined}
+				onlogflow={canLogFlow ? (id, minutes) => session.logFlow(id, minutes) : undefined}
 				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
 				form={isViewingPast ? undefined : addTaskForm}
 			/>

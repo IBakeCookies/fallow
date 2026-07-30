@@ -89,9 +89,10 @@ describe('day-constraints-bar.svelte', () => {
 		await expect.element(page.getByLabelText('Switch Cost (per task change)')).toHaveValue(20);
 	});
 
-	// The model's state is derived from the fit flag plus the log count. Only a
-	// rejected fit is worth the user's attention on the collapsed bar — they have a
-	// mistyped log to go fix; the other two states are reassurance and onboarding.
+	// The model's state is derived from the fit flag plus the log count. Two of the
+	// three reach the collapsed bar: a rejected fit (a mistyped log to go fix) and
+	// no logs at all (the only sentence in the app that says ⚡ exists). A healthy
+	// fit is reassurance and stays inside.
 	it('surfaces a rejected fit while collapsed', async () => {
 		render(DayConstraintsBar, {
 			...props,
@@ -103,31 +104,60 @@ describe('day-constraints-bar.svelte', () => {
 			.toBeInTheDocument();
 	});
 
-	it.each([
-		[true, logs, /Model personalized from 2 time-to-flow logs/],
-		[true, [logs[0]], /Model personalized from 1 time-to-flow log/],
-		[false, [], /Model uses default constants/],
-	])(
-		'collapsed, keeps a fitted or default model quiet (fitted: %s)',
-		async (constantsFitted, flowLogs, quiet) => {
-			render(DayConstraintsBar, {
-				...props,
-				constantsFitted,
-				flowLogs,
-			});
+	it('prompts for a first flow log while collapsed', async () => {
+		render(DayConstraintsBar, props);
 
-			expect(page.getByText(quiet).elements()).toHaveLength(0);
-
-			// …and states it inside, as the log-list toggle
-			await page
-				.getByRole('button', {
+		await expect
+			.element(
+				page.getByRole('button', {
 					name: /Time Budget/,
-				})
-				.click();
+				}),
+			)
+			.toHaveAttribute('aria-expanded', 'false');
 
-			await expect.element(page.getByText(quiet)).toBeInTheDocument();
-		},
-	);
+		// Not the warning colour — nothing is wrong, there is just nothing logged yet
+		await expect
+			.element(page.getByText(/Model uses default constants/))
+			.toHaveClass(/text-ty-silent/);
+	});
+
+	// The bar renders on a future day, but no task there offers a ⚡ button
+	it('does not prompt on a day whose tasks cannot be logged', async () => {
+		render(DayConstraintsBar, {
+			...props,
+			canLogFlow: false,
+		});
+
+		// The summary line proves the bar rendered — otherwise the absence below is
+		// satisfied by nothing having rendered at all
+		await expect
+			.element(page.getByText('6h budget · 3.50h planned · 4h mind · 3h body · 15m switch'))
+			.toBeInTheDocument();
+
+		expect(page.getByText(/Model uses default constants/).elements()).toHaveLength(0);
+	});
+
+	it.each([
+		[logs, /Model personalized from 2 time-to-flow logs/],
+		[[logs[0]], /Model personalized from 1 time-to-flow log/],
+	])('collapsed, keeps a healthy fit quiet (%# logs)', async (flowLogs, quiet) => {
+		render(DayConstraintsBar, {
+			...props,
+			constantsFitted: true,
+			flowLogs,
+		});
+
+		expect(page.getByText(quiet).elements()).toHaveLength(0);
+
+		// …and states it inside, as the log-list toggle
+		await page
+			.getByRole('button', {
+				name: /Time Budget/,
+			})
+			.click();
+
+		await expect.element(page.getByText(quiet)).toBeInTheDocument();
+	});
 
 	it('expands to list logs newest-first with measured flow minutes', async () => {
 		render(DayConstraintsBar, {

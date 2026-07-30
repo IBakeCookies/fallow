@@ -39,6 +39,57 @@ test('logging time-to-flow badges the task and personalizes the model', async ({
 	await expect(page.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
 });
 
+/* The ⚡ button is hover-revealed and the prompt for it sat behind the collapsed
+   Time Budget disclosure, so the measurement that personalizes the model was
+   reachable only by accident. Completing a task is when the user still knows the
+   answer — so the whole path from "nothing logged" to a personalized fit has to
+   work without ever pressing ⚡. */
+test('completing a task asks for its time-to-flow', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+
+	// The bar opens itself while the day's hours are unset — collapse it, so the
+	// prompt is proving itself and not `startOpen`.
+	await page.getByLabel('Available Hours').fill('6');
+	await page.getByLabel('Available Hours').blur();
+
+	await page
+		.getByRole('button', {
+			name: /Time Budget/,
+		})
+		.click();
+
+	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Boxing training complete',
+		})
+		.check();
+
+	await page.getByPlaceholder('min').fill('40');
+
+	await page
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	await expect(page.getByText('⚡ 40m').first()).toBeVisible();
+
+	// The prompt has done its job and gets out of the way — a healthy fit is
+	// reassurance, so it stays inside the disclosure with the logs.
+	await expect(page.getByText(/Model uses default constants/)).toHaveCount(0);
+
+	await page
+		.getByRole('button', {
+			name: /Time Budget/,
+		})
+		.click();
+
+	await expect(page.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
+});
+
 // The constants are always derived from the logs, never stored — so deleting the
 // logs is the only reset, and it has to take the badge with it.
 test('resetting personalization reverts to the default constants', async ({ page }) => {

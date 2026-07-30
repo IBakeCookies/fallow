@@ -88,6 +88,7 @@
 	"task_toggle_aria": "{title} als erledigt markieren",
 	"task_log_flow_aria": "Zeit bis zum Flow protokollieren",
 	"task_log_flow_tooltip": "Protokolliere, wie viele Minuten es bis zum Flow gedauert hat — gemessene Datenpunkte personalisieren die Konstanten c₁,c₂,c₃ des Modells",
+	"task_flow_form_title": "⚡ Minuten bis zum Flow:",
 	"task_edit_aria": "Aufgabe bearbeiten",
 	"task_edit_tooltip": "Titel, Schwierigkeit und Freude bearbeiten",
 	"task_remove_aria": "Aufgabe löschen",

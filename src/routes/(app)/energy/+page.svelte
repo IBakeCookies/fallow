@@ -4,6 +4,12 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
+	import {
+		completionPromptAction,
+		MEASUREMENT_FORM_CLASS,
+		MEASUREMENT_MINUTES_CLASS,
+		type EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
@@ -132,8 +138,9 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// Inline per-task rating editor (🪫): mirrors the main page's ⚡ editor,
-	// including its minutes-based duration input (the record stores hours).
+	// Inline per-task rating editor (🪫). Minutes in, hours stored. What it shares with
+	// the main page's ⚡ editor is exported, not mirrored: `completionPromptAction` for
+	// the behaviour, `MEASUREMENT_*_CLASS` for the look.
 	let drainDraft = $state<{
 		taskId: number;
 		minutes: number | null;
@@ -141,11 +148,31 @@
 		body: number | null;
 	} | null>(null);
 
+	// Which of the two ways the editor was opened, because the caret and the withdraw
+	// both turn on it — task-item.svelte's `focusFlowInput` carries the full reasons,
+	// including why the focus cannot be an `autofocus` attribute.
+	let focusDrainInput = $state(false);
+	let drainPromptedByCompletion = $state(false);
+
+	// A draft only counts while its row is on screen. `session.tasks` is replaced
+	// wholesale by the midnight rollover and by the visibility re-read, so a draft can
+	// outlive its row — and it is the whole gate on the prompt below, so an orphan
+	// suppressed the prompt for every task with no form left to close. Derived rather
+	// than cleared per site, because a rollover has no site to hang it on.
+	const liveDrainDraft = $derived.by(() => {
+		const draft = drainDraft;
+
+		return draft && tasks.some((t) => t.id === draft.taskId) ? draft : null;
+	});
+
 	const todaysDrainLog = (taskId: number) =>
 		drainObservations.find((o) => o.date === session.today && o.taskId === taskId);
 
-	function openDrainLog(taskId: number) {
+	function openDrainLog(taskId: number, source: EditorSource) {
 		const existing = todaysDrainLog(taskId);
+
+		focusDrainInput = source === 'button';
+		drainPromptedByCompletion = source === 'completion';
 
 		drainDraft = {
 			taskId,
@@ -155,14 +182,40 @@
 		};
 	}
 
+	// Ticking a task off is the end of the session the 🪫 rating describes, so ask
+	// here rather than behind the hover-revealed button. The draft is page-level, one
+	// editor at a time — so ANY open one blocks the prompt, including another task's,
+	// while the withdraw only ever touches this task's own.
+	function onCompletionChange(taskId: number, completed: boolean) {
+		const draft = liveDrainDraft;
+
+		const action = completionPromptAction({
+			finishing: !completed,
+			measured: Boolean(todaysDrainLog(taskId)),
+			anyEditorOpen: draft !== null,
+			promptOpenForThisTask: draft?.taskId === taskId && drainPromptedByCompletion,
+		});
+
+		session.toggleTask(taskId);
+
+		if (action === 'open') openDrainLog(taskId, 'completion');
+
+		if (action === 'withdraw') drainDraft = null;
+	}
+
 	function saveDrainLog() {
 		if (!drainDraft) return;
 
 		const minutes = Number(drainDraft.minutes);
-		const mind = Number(drainDraft.mind);
-		const body = Number(drainDraft.body);
+		const { mind, body } = drainDraft;
 
-		if (!minutes || minutes <= 0 || !Number.isFinite(mind) || !Number.isFinite(body)) return;
+		if (!minutes || minutes <= 0) return;
+
+		// An empty rating is not a rating of 0 — `Number(null)` is a finite 0, so ✓ with
+		// only the minutes filled used to record "worked 90 minutes, felt entirely fresh"
+		// and bias the α fit toward no drain. 0 is legitimate, so the test is emptiness,
+		// not falsiness. `required` on the fields is what makes the refusal visible.
+		if (mind === null || body === null) return;
 
 		observations.logDrain(
 			drainDraft.taskId,
@@ -192,18 +245,24 @@
 		if (!restDraft) return;
 
 		const minutes = Number(restDraft.minutes);
+		const { mindBefore, mindAfter, bodyBefore, bodyAfter } = restDraft;
 
 		if (!minutes || minutes <= 0) return;
 
-		const rating = (value: number | null) =>
-			Math.min(10, Math.max(0, Number.isFinite(Number(value)) ? Number(value) : 0));
+		// Same as `saveDrainLog`, and worse: MATH.md §8.9 reads the pair as a decay
+		// (`d_after = d_before · e^(−r·m·g)`), so a blank "after" invents "the break left
+		// me at zero", which fits r → ∞ and drags the estimate to its upper bound.
+		if (mindBefore === null || mindAfter === null || bodyBefore === null || bodyAfter === null)
+			return;
+
+		const rating = (value: number) => Math.min(10, Math.max(0, value));
 
 		observations.logRest(
 			minutes / 60,
-			rating(restDraft.mindBefore),
-			rating(restDraft.mindAfter),
-			rating(restDraft.bodyBefore),
-			rating(restDraft.bodyAfter),
+			rating(mindBefore),
+			rating(mindAfter),
+			rating(bodyBefore),
+			rating(bodyAfter),
 		);
 
 		restDraft = null;
@@ -349,7 +408,10 @@
 					{m.energy_no_open_tasks_hint()}
 				</p>
 			</div>
-			<TaskForm onsubmit={(t) => session.addTask(t)} />
+
+			<div class="backdrop-blur">
+				<TaskForm onsubmit={(t) => session.addTask(t)} />
+			</div>
 		</div>
 	{:else}
 		<div class="space-y-grid-xl">
@@ -601,15 +663,16 @@
 						<Tooltip.Provider delayDuration={150}>
 							<ul class="space-y-text-2xs">
 								{#each tasks as task (task.id)}
-									<li
-										class="group rounded-lg p-box-2xs transition hover:bg-surface-hover"
-										class:opacity-50={task.completed}
-									>
+									<!-- The completed look dims the task's own identity, never the whole row:
+									     it used to sit on the <li>, which faded the 🪫 rating that only exists
+									     for a finished session into looking disabled. Same split as
+									     task-item.svelte, which dims its title block alone. -->
+									<li class="group rounded-lg p-box-2xs transition hover:bg-surface-hover">
 										<div class="flex items-center gap-grid-xs">
 											<input
 												type="checkbox"
 												checked={task.completed}
-												onchange={() => session.toggleTask(task.id)}
+												onchange={() => onCompletionChange(task.id, task.completed)}
 												aria-label={m.task_toggle_aria({
 													title: task.title,
 												})}
@@ -617,40 +680,43 @@
 											/>
 											<span
 												class="h-2.5 w-2.5 shrink-0 rounded-full"
+												class:opacity-50={task.completed}
 												style="background-color: {colorOf(task.id)}"
 											></span>
 											<span
+												class:opacity-50={task.completed}
 												class="min-w-0 flex-1 truncate text-sm font-medium capitalize {task.completed
 													? 'text-ty-silent line-through'
 													: 'text-ty-primary'}"
 											>
 												{task.title}
 											</span>
-											{#if !task.completed}
-												<Tooltip.Root>
-													<Tooltip.Trigger>
-														{#snippet child({ props })}
-															<button
-																{...props}
-																type="button"
-																aria-label={m.energy_log_drain_aria()}
-																class="shrink-0 transition {todaysDrainLog(task.id)
-																	? 'text-flow'
-																	: 'text-ty-silent opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-flow'}"
-																onclick={() =>
-																	drainDraft?.taskId === task.id
-																		? (drainDraft = null)
-																		: openDrainLog(task.id)}
-															>
-																🪫
-															</button>
-														{/snippet}
-													</Tooltip.Trigger>
-													<Tooltip.Content side="top">
-														<p>{m.energy_log_drain_tooltip()}</p>
-													</Tooltip.Content>
-												</Tooltip.Root>
-											{/if}
+											<!-- Deliberately NOT hidden on a completed task, unlike the sliders
+											     below: finishing one is the commonest way a session ends, and
+											     the drain rating is the whole point of the row. -->
+											<Tooltip.Root>
+												<Tooltip.Trigger>
+													{#snippet child({ props })}
+														<button
+															{...props}
+															type="button"
+															aria-label={m.energy_log_drain_aria()}
+															class="shrink-0 transition {todaysDrainLog(task.id)
+																? 'text-flow'
+																: 'text-ty-silent opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-flow'}"
+															onclick={() =>
+																drainDraft?.taskId === task.id
+																	? (drainDraft = null)
+																	: openDrainLog(task.id, 'button')}
+														>
+															🪫
+														</button>
+													{/snippet}
+												</Tooltip.Trigger>
+												<Tooltip.Content side="top">
+													<p>{m.energy_log_drain_tooltip()}</p>
+												</Tooltip.Content>
+											</Tooltip.Root>
 											<button
 												type="button"
 												aria-label={m.task_remove_aria()}
@@ -684,84 +750,88 @@
 													</label>
 												{/each}
 											</div>
-											{#if drainDraft?.taskId === task.id}
-												{@const draft = drainDraft}
-												<form
-													class="mt-text-xs ml-7 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-box-xs py-box-2xs text-2xs text-ty-silent"
-													onsubmit={(e) => (e.preventDefault(), saveDrainLog())}
-												>
-													<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>
-													<label class="flex items-center gap-grid-2xs">
-														{m.energy_drain_worked_label()}
-														<!-- svelte-ignore a11y_autofocus -->
-														<input
-															type="number"
-															min="1"
-															max="960"
-															placeholder={m.task_minutes_placeholder()}
-															autofocus
-															bind:value={draft.minutes}
-															class="w-14 rounded-sm border border-flow/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-flow/60"
-														/>
-													</label>
-													<Tooltip.Root>
-														<Tooltip.Trigger>
-															{#snippet child({ props })}
-																<label {...props} class="flex items-center gap-grid-2xs">
-																	<span class="font-medium text-mind/80">
-																		{m.energy_drain_mind_label()}
-																	</span>
-																	<input
-																		type="number"
-																		min="0"
-																		max="10"
-																		step="1"
-																		bind:value={draft.mind}
-																		class="w-12 rounded-sm border border-mind/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-mind/60"
-																	/>
-																</label>
-															{/snippet}
-														</Tooltip.Trigger>
-														<Tooltip.Content side="top">
-															<p>{m.energy_drain_mind_title()}</p>
-														</Tooltip.Content>
-													</Tooltip.Root>
-													<Tooltip.Root>
-														<Tooltip.Trigger>
-															{#snippet child({ props })}
-																<label {...props} class="flex items-center gap-grid-2xs">
-																	<span class="font-medium text-body/80">
-																		{m.energy_drain_body_label()}
-																	</span>
-																	<input
-																		type="number"
-																		min="0"
-																		max="10"
-																		step="1"
-																		bind:value={draft.body}
-																		class="w-12 rounded-sm border border-body/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-body/60"
-																	/>
-																</label>
-															{/snippet}
-														</Tooltip.Trigger>
-														<Tooltip.Content side="top">
-															<p>{m.energy_drain_body_title()}</p>
-														</Tooltip.Content>
-													</Tooltip.Root>
-													<span class="ml-auto flex items-center gap-grid-2xs">
-														<button type="submit" class="px-text-2xs text-flow hover:text-flow">
-															✓
-														</button>
-														<button
-															type="button"
-															class="px-text-2xs text-ty-silent hover:text-ty-secondary"
-															onclick={() => (drainDraft = null)}
-														>
-															✕
-														</button>
-													</span>
-												</form>
-											{/if}
+										{/if}
+										{#if drainDraft?.taskId === task.id}
+											{@const draft = drainDraft}
+											<form
+												class={MEASUREMENT_FORM_CLASS}
+												onsubmit={(e) => (e.preventDefault(), saveDrainLog())}
+											>
+												<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>
+												<label class="flex items-center gap-grid-2xs">
+													{m.energy_drain_worked_label()}
+													<input
+														type="number"
+														min="1"
+														max="960"
+														placeholder={m.task_minutes_placeholder()}
+														{@attach (node) => {
+															if (focusDrainInput) node.focus();
+														}}
+														bind:value={draft.minutes}
+														required
+														class={MEASUREMENT_MINUTES_CLASS}
+													/>
+												</label>
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														{#snippet child({ props })}
+															<label {...props} class="flex items-center gap-grid-2xs">
+																<span class="font-medium text-mind/80">
+																	{m.energy_drain_mind_label()}
+																</span>
+																<input
+																	type="number"
+																	min="0"
+																	max="10"
+																	step="1"
+																	bind:value={draft.mind}
+																	required
+																	class="w-12 rounded-sm border border-mind/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-mind/60"
+																/>
+															</label>
+														{/snippet}
+													</Tooltip.Trigger>
+													<Tooltip.Content side="top">
+														<p>{m.energy_drain_mind_title()}</p>
+													</Tooltip.Content>
+												</Tooltip.Root>
+												<Tooltip.Root>
+													<Tooltip.Trigger>
+														{#snippet child({ props })}
+															<label {...props} class="flex items-center gap-grid-2xs">
+																<span class="font-medium text-body/80">
+																	{m.energy_drain_body_label()}
+																</span>
+																<input
+																	type="number"
+																	min="0"
+																	max="10"
+																	step="1"
+																	bind:value={draft.body}
+																	required
+																	class="w-12 rounded-sm border border-body/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-body/60"
+																/>
+															</label>
+														{/snippet}
+													</Tooltip.Trigger>
+													<Tooltip.Content side="top">
+														<p>{m.energy_drain_body_title()}</p>
+													</Tooltip.Content>
+												</Tooltip.Root>
+												<span class="ml-auto flex items-center gap-grid-2xs">
+													<button type="submit" class="px-text-2xs text-flow hover:text-flow">
+														✓
+													</button>
+													<button
+														type="button"
+														class="px-text-2xs text-ty-silent hover:text-ty-secondary"
+														onclick={() => (drainDraft = null)}
+													>
+														✕
+													</button>
+												</span>
+											</form>
 										{/if}
 									</li>
 								{/each}
@@ -1040,14 +1110,16 @@
 								>
 									<label class="flex items-center gap-grid-2xs">
 										{m.energy_rest_rested_label()}
-										<!-- svelte-ignore a11y_autofocus -->
+										<!-- Always focuses: the ☕ button is the only way in, so the caret is
+										     always asked for. Not `autofocus` — see `focusDrainInput`. -->
 										<input
 											type="number"
 											min="1"
 											max="480"
 											placeholder={m.task_minutes_placeholder()}
-											autofocus
+											{@attach (node) => node.focus()}
 											bind:value={restDraft.minutes}
+											required
 											class="w-14 rounded-sm border border-info/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-info/60"
 										/>
 									</label>
@@ -1066,6 +1138,7 @@
 												max="10"
 												step="1"
 												bind:value={restDraft.mindBefore}
+												required
 												class="w-12 rounded-sm border border-mind/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-mind/60"
 											/>
 										</label>
@@ -1082,6 +1155,7 @@
 												max="10"
 												step="1"
 												bind:value={restDraft.bodyBefore}
+												required
 												class="w-12 rounded-sm border border-body/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-body/60"
 											/>
 										</label>
@@ -1101,6 +1175,7 @@
 												max="10"
 												step="1"
 												bind:value={restDraft.mindAfter}
+												required
 												class="w-12 rounded-sm border border-mind/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-mind/60"
 											/>
 										</label>
@@ -1117,6 +1192,7 @@
 												max="10"
 												step="1"
 												bind:value={restDraft.bodyAfter}
+												required
 												class="w-12 rounded-sm border border-body/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-body/60"
 											/>
 										</label>

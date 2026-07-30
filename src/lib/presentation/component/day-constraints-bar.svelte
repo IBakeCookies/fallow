@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import type { FlowObservationRecord } from '$lib/business/type';
+	import { cn } from '$lib/presentation/utils';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import LogList from '$lib/presentation/component/log-list.svelte';
 
@@ -14,6 +15,9 @@
 		/** whether the personalized ϕ fit was accepted (implausible fits are not) */
 		constantsFitted: boolean;
 		flowLogs?: FlowObservationRecord[];
+		/** whether the viewed day's tasks can be ⚡-logged at all — false off today,
+		 *  where the prompt would point at a button no task renders */
+		canLogFlow?: boolean;
 		ondeletelog?: (id: number) => void;
 		onresetlogs?: () => void;
 		// Collapsed, the whole bar is one line carrying every constraint the plan
@@ -31,6 +35,7 @@
 		planSlackHours,
 		constantsFitted,
 		flowLogs = [],
+		canLogFlow = true,
 		ondeletelog,
 		onresetlogs,
 		startOpen = false,
@@ -79,10 +84,13 @@
 				: m.model_status_default(),
 	);
 
-	// A rejected fit is the only model state worth a line while collapsed — the
-	// user has a mistyped log to go fix. The other two are reassurance and
-	// onboarding, which belong behind the disclosure with the logs themselves.
+	// Two model states earn a line while collapsed: a rejected fit (a mistyped log to
+	// go fix) and no logs at all — `model_status_default` is the only sentence in the
+	// app that says ⚡ exists. `startOpen` does not cover the second: the bar opens
+	// itself only while the day's hours are unset. A healthy fit is reassurance and
+	// stays inside; a future day gets neither, since no task there offers a ⚡ button.
 	const modelWarning = $derived(!constantsFitted && flowLogs.length > 0);
+	const modelPrompt = $derived(canLogFlow && flowLogs.length === 0);
 
 	function updateSwitchCost(minutes: number) {
 		switchCost = minutes / 60;
@@ -109,8 +117,10 @@
 		</span>
 	</button>
 
-	{#if modelWarning && !open}
-		<p class="mt-text-2xs text-xs text-warning-strong">{modelStatus}</p>
+	{#if !open && (modelWarning || modelPrompt)}
+		<p class={cn('mt-text-2xs text-xs', modelWarning ? 'text-warning-strong' : 'text-ty-silent')}>
+			{modelStatus}
+		</p>
 	{/if}
 
 	{#if open}

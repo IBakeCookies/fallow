@@ -182,7 +182,12 @@ describe('task-item.svelte', () => {
 			})
 			.click();
 
-		await page.getByPlaceholder('min').fill('25');
+		// The button asked for the editor, so it gets the caret — unlike the
+		// completion prompt below
+		const minutes = page.getByPlaceholder('min');
+		expect(document.activeElement).toBe(minutes.element());
+
+		await minutes.fill('25');
 
 		await page
 			.getByRole('button', {
@@ -282,6 +287,145 @@ describe('task-item.svelte', () => {
 			enjoyment: 7,
 			mustDoToday: false,
 		});
+	});
+
+	/* Completing a task is the only ⚡ prompt the user does not have to discover:
+	   the button is hover-revealed and its tooltip is the only explanation of the
+	   measurement. `completed` is a prop, so the decision reads the value BEFORE
+	   the toggle — the parent flips it, not this component. */
+	it('asks for time-to-flow when the task is completed', async () => {
+		const ontoggle = vi.fn();
+		const onlogflow = vi.fn();
+
+		render(TaskItem, {
+			...baseProps,
+			ontoggle,
+			onlogflow,
+		});
+
+		const checkbox = page.getByRole('checkbox');
+		await checkbox.click();
+		expect(ontoggle).toHaveBeenCalledExactlyOnceWith(1);
+
+		// …and opening it must not pull the caret out of the task list. Asserted as
+		// "the checkbox still has it", not "the input does not": the attachment runs
+		// in an effect, so a focus one tick late satisfies the negative form.
+		const minutes = page.getByPlaceholder('min');
+		await expect.element(minutes).toBeInTheDocument();
+		expect(document.activeElement).toBe(checkbox.element());
+
+		await minutes.fill('25');
+
+		await page
+			.getByRole('button', {
+				name: '✓',
+			})
+			.click();
+
+		expect(onlogflow).toHaveBeenCalledExactlyOnceWith(1, 25);
+	});
+
+	/* A mis-click is the common case: `completed` is a prop, so the parent flips it
+	   back and the prompt has to withdraw the question itself. */
+	it('withdraws the prompt when the task is un-completed', async () => {
+		let completed = $state(false);
+
+		render(TaskItem, {
+			...baseProps,
+			get completed() {
+				return completed;
+			},
+			ontoggle: () => (completed = !completed),
+			onlogflow: vi.fn(),
+		});
+
+		const checkbox = page.getByRole('checkbox');
+
+		await checkbox.click();
+		await expect.element(page.getByPlaceholder('min')).toBeInTheDocument();
+
+		await checkbox.click();
+		expect(page.getByPlaceholder('min').elements()).toHaveLength(0);
+	});
+
+	// …but an editor the user opened by hand is theirs, mid-edit value included
+	it('keeps a hand-opened editor across a completion toggle', async () => {
+		let completed = $state(false);
+
+		render(TaskItem, {
+			...baseProps,
+			get completed() {
+				return completed;
+			},
+			ontoggle: () => (completed = !completed),
+			onlogflow: vi.fn(),
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Log time to flow',
+			})
+			.click();
+
+		await page.getByPlaceholder('min').fill('25');
+
+		const checkbox = page.getByRole('checkbox');
+		await checkbox.click();
+		await checkbox.click();
+
+		await expect.element(page.getByPlaceholder('min')).toHaveValue(25);
+	});
+
+	// `openFlowLog` closes the ✎ editor, whose draft is unsaved until Save — so the
+	// prompt must not fire over it
+	it('does not ask over the open task editor', async () => {
+		render(TaskItem, {
+			...baseProps,
+			onlogflow: vi.fn(),
+			onupdate: vi.fn(),
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Edit task',
+			})
+			.click();
+
+		await page.getByLabelText('Title').fill('sparring');
+
+		// The open editor carries its own checkbox, so name the completion one
+		await page
+			.getByRole('checkbox', {
+				name: 'Mark boxing complete',
+			})
+			.click();
+
+		expect(page.getByPlaceholder('min').elements()).toHaveLength(0);
+		await expect.element(page.getByLabelText('Title')).toHaveValue('sparring');
+	});
+
+	it('does not ask when the task already carries a measurement', async () => {
+		render(TaskItem, {
+			...baseProps,
+			flowMinutes: 25,
+			onlogflow: vi.fn(),
+		});
+
+		await page.getByRole('checkbox').click();
+
+		expect(page.getByPlaceholder('min').elements()).toHaveLength(0);
+	});
+
+	it('does not ask on un-completing, which ends no session', async () => {
+		render(TaskItem, {
+			...baseProps,
+			completed: true,
+			onlogflow: vi.fn(),
+		});
+
+		await page.getByRole('checkbox').click();
+
+		expect(page.getByPlaceholder('min').elements()).toHaveLength(0);
 	});
 
 	it('shows the measured flow badge when present', async () => {

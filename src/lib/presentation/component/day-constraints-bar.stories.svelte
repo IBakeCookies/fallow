@@ -65,13 +65,27 @@
 	}}
 />
 
-<!-- Logs present but the fit was rejected: the only model state that surfaces
-     while collapsed -->
+<!-- Logs present but the fit was rejected: one of the two model states that
+     surface while collapsed, and the loud one -->
 <Story
 	name="Collapsed with a rejected fit"
 	args={{
 		startOpen: false,
 		constantsFitted: false,
+	}}
+/>
+
+<!-- The other one, and the quiet one: nothing is wrong, there is just nothing
+     logged. This line is the only place in the app that says ⚡ exists, so it has
+     to be legible at `text-ty-silent` on a card in every theme — which is what the
+     a11y addon checks here and cannot check while it is collapsed out of view. -->
+<Story
+	name="Collapsed, nothing logged"
+	args={{
+		startOpen: false,
+		constantsFitted: false,
+		flowLogs: [],
+		onresetlogs: undefined,
 	}}
 />
 

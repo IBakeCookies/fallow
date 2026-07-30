@@ -5,6 +5,12 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { cn } from '$lib/presentation/utils';
 	import { natureBadge, type TaskNature } from '$lib/presentation/utils/task-nature';
+	import {
+		completionPromptAction,
+		MEASUREMENT_FORM_CLASS,
+		MEASUREMENT_MINUTES_CLASS,
+		type EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 
 	interface Props {
 		id: number;
@@ -66,6 +72,14 @@
 	// Inline "log time-to-flow" editor (⚡): feeds the c₁,c₂,c₃ personalization
 	let loggingFlow = $state(false);
 	let flowMinutesInput = $state<number | null>(null);
+	// How the editor was opened. The caret: auto-opening must not move it, or ticking
+	// tasks off with the keyboard lands it in a number field nobody asked for. And the
+	// close: un-completing withdraws a question completion asked, but must not discard
+	// an editor the user opened. Focus cannot be an `autofocus` attribute — the
+	// document's autofocus-processed flag is set at load, so it is inert on any node
+	// inserted afterwards, which is every editor in this app.
+	let focusFlowInput = $state(false);
+	let flowPromptedByCompletion = $state(false);
 
 	// Inline task editor (✎): re-tune the sliders after the task is added
 	let editing = $state(false);
@@ -124,10 +138,31 @@
 		editing = false;
 	}
 
-	function openFlowLog() {
+	function openFlowLog(source: EditorSource) {
 		flowMinutesInput = flowMinutes ?? null;
 		editing = false;
+		focusFlowInput = source === 'button';
+		flowPromptedByCompletion = source === 'completion';
 		loggingFlow = true;
+	}
+
+	// Completing a task is the one moment the user still knows how long the ramp-up
+	// took. `completed` is a prop, so this reads the value BEFORE the parent flips it.
+	// The ✎ editor counts as open: `openFlowLog` closes it, and its draft is not
+	// persisted until Save.
+	function onCompletionChange() {
+		const action = completionPromptAction({
+			finishing: !completed,
+			measured: Boolean(flowMinutes),
+			anyEditorOpen: loggingFlow || editing,
+			promptOpenForThisTask: loggingFlow && flowPromptedByCompletion,
+		});
+
+		ontoggle(id);
+
+		if (action === 'open' && onlogflow) openFlowLog('completion');
+
+		if (action === 'withdraw') loggingFlow = false;
 	}
 
 	function saveFlowLog() {
@@ -166,7 +201,7 @@
 			<input
 				type="checkbox"
 				checked={completed}
-				onchange={() => ontoggle(id)}
+				onchange={onCompletionChange}
 				aria-label={m.task_toggle_aria({
 					title,
 				})}
@@ -286,52 +321,24 @@
 						: 'opacity-0 [@media(hover:none)]:opacity-100 focus-within:opacity-100 group-hover:opacity-100'}"
 				>
 					{#if onlogflow}
-						{#if loggingFlow}
-							<form
-								class="flex items-center gap-grid-2xs"
-								onsubmit={(e) => (e.preventDefault(), saveFlowLog())}
+						<Tooltip.Root>
+							<Tooltip.Trigger
+								class={cn(
+									buttonVariants({
+										variant: 'ghost',
+										size: 'icon-xs',
+									}),
+									flowMinutes || loggingFlow ? 'text-flow' : 'text-ty-silent hover:text-flow',
+								)}
+								onclick={() => (loggingFlow ? (loggingFlow = false) : openFlowLog('button'))}
+								aria-label={m.task_log_flow_aria()}
 							>
-								<!-- svelte-ignore a11y_autofocus -->
-								<input
-									type="number"
-									min="1"
-									max="960"
-									placeholder={m.task_minutes_placeholder()}
-									autofocus
-									bind:value={flowMinutesInput}
-									class="w-14 rounded-sm border border-flow/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-flow/60"
-								/>
-								<Button variant="ghost" size="icon-xs" type="submit" class="text-flow">✓</Button>
-								<Button
-									variant="ghost"
-									size="icon-xs"
-									type="button"
-									onclick={() => (loggingFlow = false)}
-									class="text-ty-silent"
-								>
-									✕
-								</Button>
-							</form>
-						{:else}
-							<Tooltip.Root>
-								<Tooltip.Trigger
-									class={cn(
-										buttonVariants({
-											variant: 'ghost',
-											size: 'icon-xs',
-										}),
-										flowMinutes ? 'text-flow' : 'text-ty-silent hover:text-flow',
-									)}
-									onclick={openFlowLog}
-									aria-label={m.task_log_flow_aria()}
-								>
-									⚡
-								</Tooltip.Trigger>
-								<Tooltip.Content>
-									<p>{m.task_log_flow_tooltip()}</p>
-								</Tooltip.Content>
-							</Tooltip.Root>
-						{/if}
+								⚡
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>{m.task_log_flow_tooltip()}</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
 					{/if}
 
 					{#if onupdate}
@@ -390,6 +397,40 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Its own row, not the action strip: the strip has no room for a label, and
+		     an unlabelled number field is exactly what nobody understood. -->
+		{#if loggingFlow && onlogflow}
+			<form class={MEASUREMENT_FORM_CLASS} onsubmit={(e) => (e.preventDefault(), saveFlowLog())}>
+				<label class="flex items-center gap-grid-2xs">
+					<span class="text-ty-secondary">{m.task_flow_form_title()}</span>
+					<input
+						type="number"
+						min="1"
+						max="960"
+						placeholder={m.task_minutes_placeholder()}
+						{@attach (node) => {
+							if (focusFlowInput) node.focus();
+						}}
+						bind:value={flowMinutesInput}
+						required
+						class={MEASUREMENT_MINUTES_CLASS}
+					/>
+				</label>
+				<span class="ml-auto flex items-center gap-grid-2xs">
+					<Button variant="ghost" size="icon-xs" type="submit" class="text-flow">✓</Button>
+					<Button
+						variant="ghost"
+						size="icon-xs"
+						type="button"
+						onclick={() => (loggingFlow = false)}
+						class="text-ty-silent"
+					>
+						✕
+					</Button>
+				</span>
+			</form>
+		{/if}
 
 		{#if editing}
 			<form

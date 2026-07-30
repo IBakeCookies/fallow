@@ -18,6 +18,32 @@ the five above — architecture and rules here, math in `MATH.md`, styling in
 
 ---
 
+## 0. Less code, fewer bugs
+
+The rule that outranks every rule below: **build the simplest thing that does
+what was asked, and nothing else.** Think like an architect about where code
+goes; do not let that turn into building for a future nobody has asked for.
+
+- **Ship the ask, not the ask plus your improvements.** A form that opens on
+  check and closes on uncheck is a form that opens on check and closes on
+  uncheck. Flags, live regions, extra guards and defensive branches that were
+  not asked for are not free — every one is state to reason about, a comment to
+  keep true, and a test to maintain.
+- **No speculative generality.** No abstraction for a second caller that does
+  not exist. Extract on the _second_ real duplication (R3), not in
+  anticipation of one.
+- **Complexity needs a reachable failure to justify it.** If you cannot name
+  the inputs and the wrong outcome, the branch does not go in. "Defensive" is
+  not a reason; unreachable code is a lie about what can happen.
+- **Comments earn their length.** One or two lines saying _why_, where the code
+  cannot. A paragraph justifying a decision usually means the decision is too
+  clever — simplify the code instead of defending it.
+- **When you notice something unrelated, say it; do not fix it.** A finding
+  reported costs a sentence. A finding fixed costs a review, a test, and a
+  larger diff for the thing you were actually asked to do.
+
+Deleting code to satisfy this rule is progress, not lost work.
+
 ## 1. Hard rules
 
 Each exists because it was broken before.
@@ -223,9 +249,20 @@ through an injected `ReadDateParam` thunk supplied by the `(app)` layout — not
 by importing `$app/state`. Testable without module mocks; routing stays a
 layout concern. (`$app/environment`'s `browser` is fine.)
 
-### R6 — Every behaviour change ships with a test
+### R6 — Test first: write it, watch it fail, then implement
 
-No exceptions for "small". Pick the level:
+No exceptions for "small". The test comes **before** the implementation, and
+you must **see it fail for the reason you expect** — not error out on a typo, a
+missing import, or a locator that never matched. A test written after the code
+is a description of whatever the code happens to do; only a test you watched go
+red proves it can catch the thing coming back.
+
+This applies to features as much as to bugs. Write the assertion for the
+behaviour you are about to add, run it, read the failure, then build. If the
+"failure" is anything other than the behaviour being absent, the test is wrong —
+fix the test before touching the implementation.
+
+Pick the level:
 
 | Change                            | Test                                                   |
 | --------------------------------- | ------------------------------------------------------ |
@@ -239,12 +276,12 @@ No exceptions for "small". Pick the level:
 **Check for existing coverage first; when there is none, adding it is part of
 the change, not a follow-up:**
 
-- **Fixing a bug** — write the failing test _first_, from the reproduction.
-  Watch it fail for the stated reason, then fix, then watch it pass. A fix
-  that never had a red test does not prove the bug is gone, and nothing stops
-  it coming back.
+- **Fixing a bug** — the failing test comes from the _reproduction_, so write
+  the repro first and let it dictate the test.
 - **Adding a feature** — it ships with tests for its own behaviour, including
-  the empty, failed and boundary cases, not only the happy path.
+  the empty, failed and boundary cases, not only the happy path. One test per
+  behaviour, not per branch: a suite that grows faster than the feature is a
+  cost, and every test is code that has to be maintained too.
 - **Refactoring** — pin the behaviour _before_ moving it: add the test against
   the OLD code, confirm it passes, then refactor. That is what makes it a
   safety net rather than a description of whatever the new code happens to do.
@@ -397,6 +434,14 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   tab becomes visible, which asks the writer for `pending` so an unlanded edit
   is not overwritten by the stored day — reachable because a hidden tab that
   rolls over midnight re-loads and re-arms the autosave.
+- **An inline editor focuses with `{@attach (node) => node.focus()}`, never
+  `autofocus`.** The attribute is inert on any node inserted after load (the
+  document's autofocus-processed flag), so all three editors that used it — ⚡,
+  🪫, ☕ — silently never focused. The attachment also makes the choice
+  conditional, which matters where an editor opens itself: `task-item.svelte`
+  and `/energy` open theirs on task completion and deliberately do NOT focus,
+  so ticking tasks off with the keyboard cannot yank the caret into a number
+  field.
 - Storybook stories live **beside their component** (`*.stories.svelte`), one
   file per component or primitive group, rendered as smoke tests by the
   `storybook` vitest project. `.storybook/preview.ts` builds the theme toolbar
@@ -563,11 +608,34 @@ asserts the implementation instead of the behaviour.
   route (R2), a mirrored definition (R3), a behaviour change with no test
   (R6), a formula changed without `MATH.md` (R7) — and a reviewer that has not
   read them cannot report them.
-- Ask for correctness first, or the pass goes to style, which `eslint` and
-  `prettier` already settled.
-- Fix what it finds, or state plainly why a finding is declined —
-  noted-and-dropped costs tokens and buys nothing. And verify a reviewer's
-  claim before acting on it: it is a claim about code, not a fact.
+
+**Scope the reviewer to two things: bugs and inconsistencies.**
+
+1. **Bugs** — a reachable input or click order that produces a wrong result,
+   loses the user's typing, or writes a measurement they never gave. A bug
+   report must name the inputs and the wrong outcome. Anything that cannot be
+   stated that way is not a bug.
+2. **Inconsistencies** — the diff contradicting itself, this file, `MATH.md`,
+   or `STYLE.md`. A comment that no longer describes its code. A test that
+   passes whether or not the behaviour works.
+
+**Ask it explicitly NOT to suggest improvements, hardening, extra abstraction,
+or additional tests beyond a missing one for behaviour the diff changed.** Ask
+it to say "no defects" when it finds none, and tell it that finding nothing is a
+valid, expected outcome. Every reviewer will otherwise return _something_,
+because that is what it was asked for.
+
+Then, on the way back:
+
+- **Verify each claim against the code before acting on it.** A finding is a
+  claim about code, not a fact — reviewers do report things that are not true.
+- **Fix bugs. Decline the rest, out loud, in one line each.** A finding that is
+  real but is not a bug in what was asked for is a note, not a task; §0 outranks
+  it. Accepting every finding is how a small change turns into a large one, and
+  that is the reviewer's job done badly by the person reading it.
+- **One review pass per change.** Fix what it found, re-run the five commands,
+  ship. Re-reviewing your own fixes invites a fresh set of suggestions on code
+  that was fine, and the loop does not converge — it accretes.
 
 This is a step, not a suggestion: the checks above are all _mechanical_, and
 every rule in §1 exists because something mechanical passed while the change
