@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /* All data lives in client-side IndexedDB; each test gets a fresh browser
    context, so every test starts on an empty profile. */
@@ -22,6 +22,19 @@ export async function addTask(page: Page, title: string) {
 	await page
 		.getByRole('button', {
 			name: 'Deploy Task',
+		})
+		.click();
+}
+
+/** Expand the Time Budget bar, which collapses itself on a day that has hours.
+ *  Takes the summary the loaded day should read: the bar re-samples its default
+ *  when that day's values land, discarding a click made before they did. */
+export async function openTimeBudget(page: Page, loadedSummary: RegExp) {
+	await expect(page.getByText(loadedSummary)).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Time Budget',
 		})
 		.click();
 }

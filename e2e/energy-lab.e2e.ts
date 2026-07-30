@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, addTask, logDrain } from './helpers';
+import { AUTOSAVE_MS, addTask, logDrain, openTimeBudget } from './helpers';
 
 /* The Energy Lab shares the daily session but owns its own params and
    measurements, so the flows worth covering here are the seams between them:
@@ -118,8 +118,10 @@ test('the day window and the main page’s budget are one value', async ({ page 
 	await expect(statValue(page, 'Planned work')).toBeVisible();
 	await page.waitForTimeout(AUTOSAVE_MS);
 
-	// It reached the session, not just the Lab's own view of it.
+	// It reached the session, not just the Lab's own view of it. The bar collapses
+	// itself on a day that has hours, so open it to read the field.
 	await page.goto('/');
+	await openTimeBudget(page, /5h budget/);
 	await expect(page.getByLabel('Available Hours')).toHaveValue('5');
 });
 
@@ -152,6 +154,7 @@ test('the window stepper moves the shared budget in the main page’s increments
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/');
+	await openTimeBudget(page, /6\.5h budget/);
 	await expect(page.getByLabel('Available Hours')).toHaveValue('6.5');
 });
 

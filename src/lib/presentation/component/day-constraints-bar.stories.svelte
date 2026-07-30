@@ -1,7 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { fn } from 'storybook/test';
-	import type { FlowObservationRecord } from '$lib/business/type';
+	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
 
 	const log = (id: number, date: string, taskTitle: string, phiHours: number) =>
@@ -16,9 +16,9 @@
 			beta: 1.5,
 			phiHours,
 			createdAt: id,
-		}) satisfies FlowObservationRecord;
+		}) satisfies Persisted<FlowObservationRecord>;
 
-	const flowLogs: FlowObservationRecord[] = [
+	const flowLogs: Persisted<FlowObservationRecord>[] = [
 		log(1, '2026-07-18', 'boxing', 0.5),
 		log(2, '2026-07-19', 'writing', 0.75),
 		log(3, '2026-07-20', 'inbox', 0.25),
@@ -39,7 +39,7 @@
 			flowLogs,
 			ondeletelog: fn(),
 			onresetlogs: fn(),
-			startOpen: true,
+			isOpen: true,
 		},
 	});
 </script>
@@ -59,7 +59,7 @@
 <Story
 	name="Collapsed"
 	args={{
-		startOpen: false,
+		isOpen: false,
 		remainingSuggestedHours: '4.00',
 		planSlackHours: 2,
 	}}
@@ -70,7 +70,7 @@
 <Story
 	name="Collapsed with a rejected fit"
 	args={{
-		startOpen: false,
+		isOpen: false,
 		constantsFitted: false,
 	}}
 />
@@ -82,7 +82,7 @@
 <Story
 	name="Collapsed, nothing logged"
 	args={{
-		startOpen: false,
+		isOpen: false,
 		constantsFitted: false,
 		flowLogs: [],
 		onresetlogs: undefined,

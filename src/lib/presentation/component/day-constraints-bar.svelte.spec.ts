@@ -63,10 +63,39 @@ describe('day-constraints-bar.svelte', () => {
 			.toBeInTheDocument();
 	});
 
+	// `isOpen` is the day's default, sampled at mount: the page re-renders on every
+	// keystroke in the budget field — including the one that stops the hours reading 0 —
+	// and none of those may move a disclosure the user has set.
+	it('keeps the state the user chose across parent re-renders', async () => {
+		const { rerender } = render(DayConstraintsBar, {
+			...props,
+			isOpen: true,
+		});
+
+		await page
+			.getByRole('button', {
+				name: /Time Budget/,
+			})
+			.click();
+
+		await rerender({
+			...props,
+			isOpen: true,
+		});
+
+		await expect
+			.element(
+				page.getByRole('button', {
+					name: /Time Budget/,
+				}),
+			)
+			.toHaveAttribute('aria-expanded', 'false');
+	});
+
 	it('expanded, shows all four inputs with switch cost in minutes', async () => {
 		render(DayConstraintsBar, {
 			...props,
-			startOpen: true,
+			isOpen: true,
 		});
 
 		await expect.element(page.getByLabelText('Available Hours')).toHaveValue(6);
@@ -79,7 +108,7 @@ describe('day-constraints-bar.svelte', () => {
 	it('stepping switch cost converts minutes back to hours', async () => {
 		render(DayConstraintsBar, {
 			...props,
-			startOpen: true,
+			isOpen: true,
 		});
 
 		// second "Increase" stepper belongs to switch cost: 15 min → 20 min = 1/3 h
@@ -168,7 +197,7 @@ describe('day-constraints-bar.svelte', () => {
 			...props,
 			constantsFitted: true,
 			flowLogs: logs,
-			startOpen: true,
+			isOpen: true,
 		});
 
 		await page
@@ -191,7 +220,7 @@ describe('day-constraints-bar.svelte', () => {
 			...props,
 			flowLogs: logs,
 			ondeletelog,
-			startOpen: true,
+			isOpen: true,
 		});
 
 		await page
@@ -218,7 +247,7 @@ describe('day-constraints-bar.svelte', () => {
 			...props,
 			flowLogs: logs,
 			onresetlogs,
-			startOpen: true,
+			isOpen: true,
 		});
 
 		await page

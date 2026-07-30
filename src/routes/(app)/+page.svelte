@@ -37,7 +37,6 @@
 	const isViewingPast = $derived(session.isViewingPast);
 	const isViewingFuture = $derived(session.isViewingFuture);
 	const tasks = $derived(session.tasks);
-	const availableHours = $derived(session.availableHours);
 
 	// One value, two consumers that must agree: only today's session can be ⚡-logged,
 	// so the callback and the bar's prompt for it have to appear and vanish together
@@ -143,20 +142,27 @@
 			{m.banner_past_body()}
 		</div>
 	{:else}
-		<DayConstraintsBar
-			bind:availableHours={session.availableHours}
-			bind:switchCost={session.switchCost}
-			bind:cognitivePool={session.cognitivePool}
-			bind:physicalPool={session.physicalPool}
-			{remainingSuggestedHours}
-			planSlackHours={daily.planSlackHours}
-			constantsFitted={session.constantsFit.fitted}
-			flowLogs={session.flowObservations}
-			{canLogFlow}
-			ondeletelog={(id) => session.deleteFlowLog(id)}
-			onresetlogs={() => session.resetFlowLogs()}
-			startOpen={availableHours <= 0}
-		/>
+		<!-- Keyed on the loaded day, so each day gets a fresh bar that asks once whether
+		     it needs its constraints open. `loadedDate` is the only honest moment to ask:
+		     the hours read 0 until a day lands — forever on the server, which has no
+		     IndexedDB — and reading them any earlier opens the panel for every visitor,
+		     including the one whose day is already set. -->
+		{#key session.loadedDate}
+			<DayConstraintsBar
+				bind:availableHours={session.availableHours}
+				bind:switchCost={session.switchCost}
+				bind:cognitivePool={session.cognitivePool}
+				bind:physicalPool={session.physicalPool}
+				{remainingSuggestedHours}
+				planSlackHours={daily.planSlackHours}
+				constantsFitted={session.constantsFit.fitted}
+				flowLogs={session.flowObservations}
+				{canLogFlow}
+				ondeletelog={(id) => session.deleteFlowLog(id)}
+				onresetlogs={() => session.resetFlowLogs()}
+				isOpen={session.loadedDate !== null && session.availableHours <= 0}
+			/>
+		{/key}
 	{/if}
 
 	<div class="grid gap-grid-xl lg:grid-cols-3 items-start">

@@ -348,6 +348,11 @@ export class SessionStore {
 	get selectedDate() {
 		return this.#selectedDate;
 	}
+	/** Which day the in-memory values belong to — lags `selectedDate` while a day
+	 *  loads, so it is the signal for "these hours describe this day". */
+	get loadedDate() {
+		return this.#loadedDate;
+	}
 	get isViewingPast() {
 		return this.#isViewingPast;
 	}
