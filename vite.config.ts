@@ -50,6 +50,24 @@ export default defineConfig({
 		expect: {
 			requireAssertions: true,
 		},
+		reporters: ['default', 'html'],
+		outputFile: {
+			html: 'test-result/unit/index.html',
+		},
+		coverage: {
+			enabled: true,
+			provider: 'v8',
+			include: [
+				'src/lib/business/**/*.ts',
+				'src/lib/data/**/*.ts',
+				'src/lib/presentation/**/*.{ts,svelte}',
+			],
+			// Setting `exclude` replaces Vitest's defaults, so the test files
+			// themselves have to be listed back or they are measured as source.
+			exclude: ['**/*.{test,spec}.ts', '**/*.stories.svelte'],
+			reportsDirectory: 'test-result/coverage',
+			reporter: ['text', 'html'],
+		},
 		projects: [
 			{
 				extends: './vite.config.ts',

@@ -667,6 +667,11 @@ download away instead of a 500 KB file that goes stale between commits.
 Vitest has three projects: `server` (node, `*.test.ts`), `client` (real
 chromium, `*.svelte.{test,spec}.ts`), `storybook`.
 
+Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
+html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
+`e2e/` (playwright report and traces). Coverage is a number to read, not a gate
+— nothing fails on it.
+
 **Driving the real app:** see the `verify` skill. Two gotchas that will cost
 you an hour otherwise:
 
