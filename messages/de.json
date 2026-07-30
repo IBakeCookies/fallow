@@ -339,6 +339,7 @@
 	"energy_view_chart": "Diagramm",
 	"energy_nothing_scheduled": "Nichts geplant — mit den aktuellen Parametern ist Freizeit mehr wert als die Leistung jeder Aufgabe. Senke den Freizeitwert oder prüfe dein Tagesfenster.",
 	"energy_output_suffix": "{output} Out",
+	"energy_no_hours": "keine Stunden",
 	"energy_recovery": "Erholung",
 	"energy_total_output": "Gesamtleistung (Produktivitätseinheiten)",
 	"energy_end_energy": "Energie am Tagesende (kog / körp)",

@@ -73,6 +73,51 @@ test('an empty day offers the task form, and deploying one reveals the Lab', asy
 	await expect(page.getByText('Set a day window above 0 hours.')).not.toBeVisible();
 });
 
+// The window field is the one thing standing between a fresh profile and a plan,
+// and it is a card away on a desktop and three on a phone. The prompt in the
+// empty plan card is the only thing pointing at it, so it has to go there.
+test('the empty plan card sends you to the day window', async ({ page }) => {
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+
+	// The plan card carries no work/free summary and no chart/schedule switch yet:
+	// both read a plan that does not exist.
+	await expect(page.getByText('0m work · 0m free')).toHaveCount(0);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Chart',
+		}),
+	).toHaveCount(0);
+
+	await page
+		.getByRole('button', {
+			name: 'Set a day window above 0 hours.',
+		})
+		.click();
+
+	await expect(page.getByLabel('Day window')).toBeFocused();
+});
+
+// The card invites you to drag a slider and watch the schedule re-optimize, so
+// each row has to say what the plan gave it. A task funded zero is the reading
+// the timeline above cannot show at all — it simply has no block there.
+test('every task row reports the hours the plan gave it', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await addTask(page, 'Boxing');
+	await addTask(page, 'Inbox');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	// One hour is one 45-minute block: room for exactly one of the three.
+	await page.getByLabel('Day window').fill('1');
+	await page.getByLabel('Day window').blur();
+
+	await expect(page.getByText('45m').first()).toBeVisible();
+	await expect(page.getByText('no hours')).toHaveCount(2);
+});
+
 test('the Lab plans the task deployed on the main page', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');

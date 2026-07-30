@@ -265,6 +265,31 @@ export class EnergyLabStore {
 		return this.#trailingFreeHours;
 	}
 
+	/**
+	 * The plan summed per task, for the task list beside the timeline. Read off the
+	 * evaluated blocks, so it is the same partition the timeline draws and the rows
+	 * sum to exactly the `workHours` the summary tile reports.
+	 *
+	 * A task the optimizer funded nothing is absent rather than 0 — the map holds
+	 * no empty entries, which is what makes that sum total. The list renders either
+	 * as "no hours", so the caller's `?? 0` is not losing a distinction.
+	 */
+	#allocatedHoursByTask = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived lookup, rebuilt not mutated
+		const hours = new Map<number, number>();
+
+		for (const block of this.#plan.evaluation.blocks) {
+			if (block.taskId === null) continue;
+
+			hours.set(block.taskId, (hours.get(block.taskId) ?? 0) + block.hours);
+		}
+
+		return hours;
+	});
+	get allocatedHoursByTask() {
+		return this.#allocatedHoursByTask;
+	}
+
 	// The classic allocator's plan (same math as the main page), evaluated under
 	// THIS model: interleaved run order, switch costs as rest gaps.
 	#classicEvaluation = $derived.by(() => {

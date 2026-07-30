@@ -198,6 +198,58 @@ describe('EnergyLabStore', () => {
 		expect(store.outputVsClassic).toBe(outputVsClassic);
 	});
 
+	// The task list beside the plan reads this: without it the only place the plan
+	// says what a task got is the timeline, and a task funded zero says nothing at
+	// all there — the row is where the slider that starved it lives.
+	it('sums the plan into hours per task, omitting the ones it funded zero', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 8,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+			{
+				id: 2,
+				title: 'boxing',
+				physicalDifficulty: 9,
+				mentalDifficulty: 2,
+				enjoyment: 5,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+			{
+				id: 3,
+				title: 'inbox',
+				physicalDifficulty: 1,
+				mentalDifficulty: 4,
+				enjoyment: 1,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+		];
+
+		mockSession.availableHours = 2;
+
+		const store = await setup();
+		const allocated = store.allocatedHoursByTask;
+
+		// A two-hour day cannot fund three tasks, and the ones it skipped are absent
+		// rather than present with 0 — the row renders the difference.
+		expect(allocated.size).toBeGreaterThan(0);
+		expect(allocated.size).toBeLessThan(3);
+
+		for (const hours of allocated.values()) expect(hours).toBeGreaterThan(0);
+
+		// The entries account for exactly the planned work, so a row can be read as
+		// this task's share of the number the summary tile shows.
+		const total = [...allocated.values()].reduce((sum, hours) => sum + hours, 0);
+		expect(total).toBeCloseTo(store.plan.evaluation.workHours, 10);
+	});
+
 	it('reports nothing when the params read succeeds', async () => {
 		const notifyParamsLoadFailed = vi.fn();
 		let store!: EnergyLabStore;

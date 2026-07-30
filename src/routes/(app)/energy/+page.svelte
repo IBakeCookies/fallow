@@ -305,12 +305,23 @@
 		return m === 0 ? `${h}h` : `${h}h ${m}m`;
 	}
 
-	function formatClock(hours: number): string {
-		const totalMinutes = Math.round(hours * 60);
-		const h = Math.floor(totalMinutes / 60);
-		const m = totalMinutes % 60;
+	// Hours elapsed since the start of the day window, not a wall-clock time: the
+	// model has no notion of when the day begins, and the old `0:00`–`10:00` form
+	// read as midnight to breakfast. Matches the chart's own `0h` axis.
+	function formatOffset(hours: number): string {
+		return hours === 0 ? '0h' : formatDuration(hours);
+	}
 
-		return `${h}:${String(m).padStart(2, '0')}`;
+	// What the plan gave each task, for its row in the list below. Null when there
+	// is no plan to report on — "no hours" against every task would be a claim the
+	// optimizer never made.
+	const plannedFor = (taskId: number) =>
+		plan.evaluation.blocks.length === 0 ? null : (lab.allocatedHoursByTask.get(taskId) ?? 0);
+
+	// The window field is a card away on a desktop and three on a phone, so the
+	// prompt in the empty plan goes there instead of naming it.
+	function focusDayWindow() {
+		document.getElementById('window-hours')?.focus();
 	}
 </script>
 
@@ -434,38 +445,43 @@
 						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 							{m.energy_optimized_day()}
 						</h3>
-						<div class="flex items-center gap-grid-xs">
-							<span class="text-xs text-ty-silent">
-								{m.energy_work_free_summary({
-									work: formatDuration(plan.evaluation.workHours),
-									free: formatDuration(plan.evaluation.leisureHours),
-								})}
-							</span>
-							<div class="flex rounded-lg border bg-surface-page/40 p-text-3xs text-xs">
-								<button
-									type="button"
-									aria-pressed={planView === 'chart'}
-									class={segmentedToggleVariants({
-										tone: 'plan',
-										active: planView === 'chart',
+						<!-- Both read the plan, so neither belongs above a card that has none:
+						     "0m work · 0m free" and a chart/schedule switch over an empty region
+						     are furniture the day window has not earned yet. -->
+						{#if windowHours > 0}
+							<div class="flex items-center gap-grid-xs">
+								<span class="text-xs text-ty-silent">
+									{m.energy_work_free_summary({
+										work: formatDuration(plan.evaluation.workHours),
+										free: formatDuration(plan.evaluation.leisureHours),
 									})}
-									onclick={() => setPlanView('chart')}
-								>
-									{m.energy_view_chart()}
-								</button>
-								<button
-									type="button"
-									aria-pressed={planView === 'schedule'}
-									class={segmentedToggleVariants({
-										tone: 'plan',
-										active: planView === 'schedule',
-									})}
-									onclick={() => setPlanView('schedule')}
-								>
-									{m.energy_schedule()}
-								</button>
+								</span>
+								<div class="flex rounded-lg border bg-surface-page/40 p-text-3xs text-xs">
+									<button
+										type="button"
+										aria-pressed={planView === 'chart'}
+										class={segmentedToggleVariants({
+											tone: 'plan',
+											active: planView === 'chart',
+										})}
+										onclick={() => setPlanView('chart')}
+									>
+										{m.energy_view_chart()}
+									</button>
+									<button
+										type="button"
+										aria-pressed={planView === 'schedule'}
+										class={segmentedToggleVariants({
+											tone: 'plan',
+											active: planView === 'schedule',
+										})}
+										onclick={() => setPlanView('schedule')}
+									>
+										{m.energy_schedule()}
+									</button>
+								</div>
 							</div>
-						</div>
+						{/if}
 					</div>
 					{#if windowHours > 0}
 						<div class="flex h-12 w-full overflow-hidden rounded-lg border">
@@ -479,15 +495,18 @@
 									)}"
 									title={m.energy_block_tooltip({
 										title: block.title,
-										start: formatClock(block.start),
-										end: formatClock(block.start + block.hours),
+										start: formatOffset(block.start),
+										end: formatOffset(block.start + block.hours),
 										duration: formatDuration(block.hours),
 									})}
 								>
 									{#if block.hours / windowHours > 0.07}
 										<!-- series-ink, not ty-primary: ty-primary flips to white on the
-										     31 dark themes and disappears on these fixed pastel fills -->
-										<span class="truncate px-box-3xs text-xs font-medium text-series-ink">
+										     31 dark themes and disappears on these fixed pastel fills.
+										     Capitalized like the task list — one title, one casing. -->
+										<span
+											class="truncate px-box-3xs text-xs font-medium capitalize text-series-ink"
+										>
 											{block.title}
 										</span>
 									{/if}
@@ -509,72 +528,80 @@
 							{/if}
 						</div>
 						<div class="mt-text-2xs flex justify-between text-2xs text-ty-silent">
-							<span>0:00</span>
-							<span>{formatClock(windowHours)}</span>
+							<span>0h</span>
+							<span>{formatOffset(windowHours)}</span>
 						</div>
 					{:else}
-						<p class="text-sm text-ty-silent">{m.energy_set_window()}</p>
+						<button
+							type="button"
+							class="text-sm text-ty-secondary underline decoration-ty-ghost decoration-dotted underline-offset-4 transition hover:text-ty-primary"
+							onclick={focusDayWindow}
+						>
+							{m.energy_set_window()}
+						</button>
 					{/if}
 
-					<!-- Toggled region: energy chart ↔ schedule detail. The timeline bar
-					     above and the summary stats below stay put in both views. -->
 					{#if windowHours > 0}
-						{#if planView === 'chart'}
-							<EnergyChart {trajectory} {windowHours} />
-						{:else if plan.evaluation.blocks.length === 0}
-							<p class="mt-text-md text-sm text-ty-silent">
-								{m.energy_nothing_scheduled()}
-							</p>
-						{:else}
-							<ul class="mt-text-md space-y-text-xs">
-								{#each plan.evaluation.blocks as block (block.start)}
-									<li class="flex items-center gap-grid-xs text-sm">
-										<span
-											class="h-2.5 w-2.5 shrink-0 rounded-full"
-											style="background-color: {colorOf(block.taskId)}"
-										></span>
-										<span class="w-24 shrink-0 tabular-nums text-ty-silent">
-											{formatClock(block.start)}–{formatClock(block.start + block.hours)}
-										</span>
-										<span
-											class="min-w-0 flex-1 truncate {block.taskId === null
-												? 'text-ty-silent italic'
-												: 'text-ty-primary'}"
-										>
-											{block.title}
-										</span>
-										<span class="shrink-0 text-xs text-ty-silent">
-											{formatDuration(block.hours)}
-										</span>
-										{#if block.taskId !== null}
-											<span class="w-20 shrink-0 text-right text-xs tabular-nums text-brand-strong">
-												{m.energy_output_suffix({
-													output: formatDecimals(block.output, 2),
-												})}
+						<div>
+							{#if planView === 'chart'}
+								<EnergyChart {trajectory} {windowHours} />
+							{:else if plan.evaluation.blocks.length === 0}
+								<p class="mt-text-md text-sm text-ty-silent">
+									{m.energy_nothing_scheduled()}
+								</p>
+							{:else}
+								<ul class="mt-text-md space-y-text-xs">
+									{#each plan.evaluation.blocks as block (block.start)}
+										<li class="flex items-center gap-grid-xs text-sm">
+											<span
+												class="h-2.5 w-2.5 shrink-0 rounded-full"
+												style="background-color: {colorOf(block.taskId)}"
+											></span>
+											<span class="w-28 shrink-0 tabular-nums text-ty-silent">
+												{formatOffset(block.start)}–{formatOffset(block.start + block.hours)}
 											</span>
-										{:else}
-											<span class="w-20 shrink-0 text-right text-xs text-ty-silent">
-												{m.energy_recovery()}
+											<span
+												class="min-w-0 flex-1 truncate {block.taskId === null
+													? 'text-ty-silent italic'
+													: 'capitalize text-ty-primary'}"
+											>
+												{block.title}
 											</span>
-										{/if}
-									</li>
-								{/each}
-								{#if trailingFreeHours > 1e-6}
-									<li class="flex items-center gap-grid-xs text-sm">
-										<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-line-strong"
-										></span>
-										<span class="w-24 shrink-0 tabular-nums text-ty-silent">
-											{formatClock(lab.plannedHours)}–{formatClock(windowHours)}
-										</span>
-										<span class="flex-1 text-ty-silent italic">{m.energy_free_time()}</span>
-										<span class="shrink-0 text-xs text-ty-silent">
-											{formatDuration(trailingFreeHours)}
-										</span>
-										<span class="w-20"></span>
-									</li>
-								{/if}
-							</ul>
-						{/if}
+											<span class="shrink-0 text-xs text-ty-silent">
+												{formatDuration(block.hours)}
+											</span>
+											{#if block.taskId !== null}
+												<span
+													class="w-20 shrink-0 text-right text-xs tabular-nums text-brand-strong"
+												>
+													{m.energy_output_suffix({
+														output: formatDecimals(block.output, 2),
+													})}
+												</span>
+											{:else}
+												<span class="w-20 shrink-0 text-right text-xs text-ty-silent">
+													{m.energy_recovery()}
+												</span>
+											{/if}
+										</li>
+									{/each}
+									{#if trailingFreeHours > 1e-6}
+										<li class="flex items-center gap-grid-xs text-sm">
+											<span class="h-2.5 w-2.5 shrink-0 rounded-full border border-line-strong"
+											></span>
+											<span class="w-28 shrink-0 tabular-nums text-ty-silent">
+												{formatOffset(lab.plannedHours)}–{formatOffset(windowHours)}
+											</span>
+											<span class="flex-1 text-ty-silent italic">{m.energy_free_time()}</span>
+											<span class="shrink-0 text-xs text-ty-silent">
+												{formatDuration(trailingFreeHours)}
+											</span>
+											<span class="w-20"></span>
+										</li>
+									{/if}
+								</ul>
+							{/if}
+						</div>
 
 						<!-- Summary: the objective readout, visible in both views -->
 						<div
@@ -646,24 +673,27 @@
 				</div>
 			{/if}
 
-			<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-				<div class="space-y-grid-xl lg:col-span-2">
-					<!-- Tasks: shared with the main page, edited live -->
-					<div
-						class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
-					>
-						<div class="mb-text-2xs flex items-baseline justify-between gap-grid-xs">
-							<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-								{m.energy_tasks()}
-							</h3>
-							<span class="text-xs text-ty-silent">{m.energy_shared_note()}</span>
-						</div>
-						<p class="mb-text-sm text-xs text-ty-silent">
-							{m.energy_drag_hint()}
-						</p>
-						<Tooltip.Provider delayDuration={150}>
+			<!-- One provider for the whole region: the task rows, the parameter labels
+			     and all three calibration headings. -->
+			<Tooltip.Provider delayDuration={150}>
+				<div class="space-y-grid-xl">
+					<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
+						<!-- Tasks: shared with the main page, edited live -->
+						<div
+							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur lg:col-span-2"
+						>
+							<div class="mb-text-2xs flex items-baseline justify-between gap-grid-xs">
+								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+									{m.energy_tasks()}
+								</h3>
+								<span class="text-xs text-ty-silent">{m.energy_shared_note()}</span>
+							</div>
+							<p class="mb-text-sm text-xs text-ty-silent">
+								{m.energy_drag_hint()}
+							</p>
 							<ul class="space-y-text-2xs">
 								{#each tasks as task (task.id)}
+									{@const plannedHours = plannedFor(task.id)}
 									<!-- The completed look dims the task's own identity, never the whole row:
 									     it used to sit on the <li>, which faded the 🪫 rating that only exists
 									     for a finished session into looking disabled. Same split as
@@ -692,6 +722,19 @@
 											>
 												{task.title}
 											</span>
+											<!-- What the plan gave this task. The card invites you to drag a slider
+											     and watch the schedule re-optimize, and until this was here the only
+											     place it answered was the timeline — where a task funded zero says
+											     nothing at all. -->
+											{#if plannedHours !== null}
+												<span
+													class="shrink-0 text-2xs tabular-nums {plannedHours
+														? 'text-ty-secondary'
+														: 'text-ty-silent italic'}"
+												>
+													{plannedHours ? formatDuration(plannedHours) : m.energy_no_hours()}
+												</span>
+											{/if}
 											<!-- Deliberately NOT hidden on a completed task, unlike the sliders
 											     below: finishing one is the commonest way a session ends, and
 											     the drain rating is the whole point of the row. -->
@@ -837,16 +880,10 @@
 									</li>
 								{/each}
 							</ul>
-						</Tooltip.Provider>
-						<div class="mt-text-sm">
-							<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={false} />
+							<div class="mt-text-sm">
+								<TaskForm onsubmit={(t) => session.addTask(t)} isOpen={false} />
+							</div>
 						</div>
-					</div>
-				</div>
-
-				<!-- Parameters + calibration -->
-				<div class="space-y-grid-lg">
-					<Tooltip.Provider delayDuration={150}>
 						<div
 							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
 						>
@@ -962,7 +999,12 @@
 								})}
 							</div>
 						</div>
+					</div>
 
+					<!-- The three calibration cards used to stack under the parameters, in a
+				     third of the width — while the tasks card beside them ended far higher,
+				     leaving ~700px of empty column. -->
+					<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
 						<!-- Drain calibration: fitted α from end-of-session ratings -->
 						<div
 							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
@@ -1329,9 +1371,9 @@
 								)}
 							{/if}
 						</div>
-					</Tooltip.Provider>
+					</div>
 				</div>
-			</div>
+			</Tooltip.Provider>
 		</div>
 	{/if}
 {/if}

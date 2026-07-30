@@ -339,6 +339,7 @@
 	"energy_view_chart": "Chart",
 	"energy_nothing_scheduled": "Nothing scheduled — with the current parameters, free time is worth more than any task's output. Lower the free-time value or check your day window.",
 	"energy_output_suffix": "{output} out",
+	"energy_no_hours": "no hours",
 	"energy_recovery": "recovery",
 	"energy_total_output": "Total output (productivity units)",
 	"energy_end_energy": "End-of-day energy (cog / phys)",
