@@ -16,42 +16,31 @@
 	// The headline four get tiles; the rest stay one click away rather than gone.
 	const headline = $derived(metrics.filter((item) => item.headline));
 	const rest = $derived(metrics.filter((item) => !item.headline));
+
+	// Only the sign is rendered, by both the badge's fill and its wording. `-0`
+	// (Math.round of a small negative) compares equal to 0, so it reads as stable.
+	const trend = $derived(momentum === null ? null : Math.sign(momentum));
 </script>
 
 <div class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card">
-	<!-- Momentum -->
+	<!-- Momentum. tailwind-merge lets `class` win the fill and the ink, so the
+	     variant only picks tinted vs. plain: a `destructive` branch would style
+	     nothing and name a severity the warning fill contradicts. -->
 	<div class="flex items-center justify-between mb-text-md">
-		<Tooltip.Provider>
-			<Tooltip.Root>
-				<Tooltip.Trigger>
-					<span
-						class="text-xs text-ty-secondary cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4"
-					>
-						{m.momentum_label()}
-					</span>
-				</Tooltip.Trigger>
-				<Tooltip.Content side="left">
-					<p>{m.momentum_tooltip()}</p>
-				</Tooltip.Content>
-			</Tooltip.Root>
-		</Tooltip.Provider>
+		{@render label(m.momentum_label(), m.momentum_tooltip())}
 		<Badge
-			variant={momentum !== null && momentum > 0
-				? 'default'
-				: momentum !== null && momentum < 0
-					? 'destructive'
-					: 'outline'}
-			class={momentum !== null && momentum > 0
+			variant={trend ? 'default' : 'outline'}
+			class={trend === 1
 				? 'bg-success/20 text-success-strong'
-				: momentum !== null && momentum < 0
+				: trend === -1
 					? 'bg-warning/20 text-warning-strong'
 					: ''}
 		>
-			{momentum === null
+			{trend === null
 				? m.na_value()
-				: momentum > 0
+				: trend === 1
 					? m.momentum_upward()
-					: momentum < 0
+					: trend === -1
 						? m.momentum_reset_required()
 						: m.momentum_stable()}
 		</Badge>
@@ -64,7 +53,7 @@
 	<div class="grid grid-cols-2 gap-grid-xs">
 		{#each headline as item (item.label)}
 			<div class="rounded-xl border border-line-soft px-box-sm py-box-xs">
-				{@render label(item)}
+				{@render label(item.label, item.description)}
 				<p
 					class="mt-text-2xs text-lg font-semibold leading-tight capitalize wrap-anywhere {BAND_TEXT_CLASS[
 						item.band
@@ -86,7 +75,7 @@
 			<summary
 				class="cursor-pointer text-xs text-ty-secondary transition hover:text-ty-primary marker:text-ty-silent"
 			>
-				{m.metrics_all({
+				{m.metrics_more({
 					count: rest.length,
 				})}
 			</summary>
@@ -98,7 +87,7 @@
 					<div
 						class="px-box-sm py-box-2xs flex justify-between items-baseline rounded-lg transition hover:bg-surface-hover"
 					>
-						{@render label(item)}
+						{@render label(item.label, item.description)}
 						<span class="text-sm font-semibold capitalize {BAND_TEXT_CLASS[item.band]}"
 							>{item.value}</span
 						>
@@ -110,18 +99,20 @@
 	{/if}
 </div>
 
-{#snippet label(item: Metric)}
+<!-- Every label in the card is a dotted-underlined tooltip trigger: the readings'
+     and Momentum's, which is why this takes the two strings rather than a Metric. -->
+{#snippet label(text: string, description: string)}
 	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				<span
 					class="text-xs text-ty-secondary cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4"
 				>
-					{item.label}
+					{text}
 				</span>
 			</Tooltip.Trigger>
 			<Tooltip.Content side="left">
-				<p>{item.description}</p>
+				<p>{description}</p>
 			</Tooltip.Content>
 		</Tooltip.Root>
 	</Tooltip.Provider>

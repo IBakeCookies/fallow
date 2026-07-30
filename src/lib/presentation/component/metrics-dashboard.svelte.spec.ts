@@ -34,8 +34,11 @@ describe('metrics-dashboard.svelte', () => {
 		expect(document.querySelector('details')!.open).toBe(false);
 		await expect.element(page.getByText('82%')).not.toBeVisible();
 
+		// "2 more metrics", not "All 2 metrics": the disclosure holds the readings
+		// that are NOT already tiles above it, so a count labelled "all" is false
+		// either way — 2 understates the three metrics, 3 overstates what expands.
 		await page
-			.getByText('All 2 metrics', {
+			.getByText('2 more metrics', {
 				exact: true,
 			})
 			.click();

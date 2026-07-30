@@ -128,7 +128,7 @@
 	"banner_future_body": "tasks and budget you set here are saved to {date} — open it on that day to work the plan.",
 	"banner_past_title": "Viewing a past day:",
 	"banner_past_body": "you can still check tasks on or off (forgot one before midnight? fix it here — changes are saved), but adding or editing tasks is only possible on today.",
-	"metrics_all": "All {count} metrics",
+	"metrics_more": "{count} more metrics",
 	"metric_band_optimal": "Optimal",
 	"metric_band_caution": "Caution",
 	"metric_band_critical": "Critical",

@@ -128,7 +128,7 @@
 	"banner_future_body": "Aufgaben und Budget, die du hier festlegst, werden für den {date} gespeichert — öffne den Tag dann, um den Plan abzuarbeiten.",
 	"banner_past_title": "Vergangener Tag:",
 	"banner_past_body": "du kannst Aufgaben weiterhin abhaken (eine vor Mitternacht vergessen? Hier korrigieren — Änderungen werden gespeichert), aber Hinzufügen oder Bearbeiten ist nur am heutigen Tag möglich.",
-	"metrics_all": "Alle {count} Kennzahlen",
+	"metrics_more": "{count} weitere Kennzahlen",
 	"metric_band_optimal": "Optimal",
 	"metric_band_caution": "Achtung",
 	"metric_band_critical": "Kritisch",
