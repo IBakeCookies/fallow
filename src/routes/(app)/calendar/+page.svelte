@@ -9,7 +9,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
-	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { getDateLocale, getWeekStartsOn } from '$lib/presentation/utils/locale.svelte';
 	import { cn } from '$lib/presentation/utils';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import {
@@ -24,7 +24,10 @@
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
-	const WEEKDAYS = [
+
+	// Mon-first, then rotated to the locale's first day — the column headers and
+	// the grid share one week start or every cell sits under the wrong name.
+	const WEEKDAY_LABELS = [
 		m.weekday_mon(),
 		m.weekday_tue(),
 		m.weekday_wed(),
@@ -33,6 +36,11 @@
 		m.weekday_sat(),
 		m.weekday_sun(),
 	];
+	const weekStartsOn = $derived(getWeekStartsOn());
+	const WEEKDAYS = $derived([
+		...WEEKDAY_LABELS.slice(weekStartsOn - 1),
+		...WEEKDAY_LABELS.slice(0, weekStartsOn - 1),
+	]);
 	const VIEWS = ['month', 'week'] as const;
 
 	let view = $state<'month' | 'week'>('month');
@@ -71,13 +79,13 @@
 	const anchorDate = $derived(fromISO(anchor));
 	const weeks = $derived(
 		view === 'month'
-			? monthGrid(anchorDate.getFullYear(), anchorDate.getMonth())
+			? monthGrid(anchorDate.getFullYear(), anchorDate.getMonth(), weekStartsOn)
 			: [
 					Array.from(
 						{
 							length: 7,
 						},
-						(_, i) => addDays(startOfWeek(anchor), i),
+						(_, i) => addDays(startOfWeek(anchor, weekStartsOn), i),
 					),
 				],
 	);
@@ -148,11 +156,13 @@
 	}
 
 	function goPrev() {
-		anchor = view === 'month' ? shiftMonth(anchor, -1) : addDays(startOfWeek(anchor), -7);
+		anchor =
+			view === 'month' ? shiftMonth(anchor, -1) : addDays(startOfWeek(anchor, weekStartsOn), -7);
 	}
 
 	function goNext() {
-		anchor = view === 'month' ? shiftMonth(anchor, 1) : addDays(startOfWeek(anchor), 7);
+		anchor =
+			view === 'month' ? shiftMonth(anchor, 1) : addDays(startOfWeek(anchor, weekStartsOn), 7);
 	}
 
 	const hasAnyData = $derived(summaries.size > 0);

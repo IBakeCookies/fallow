@@ -10,14 +10,19 @@
 const pad = (n: number) => String(n).padStart(2, '0');
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** First day of the week as an ISO weekday: Mon=1 … Sun=7. */
+export type WeekStart = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
 /**
- * Is this a YYYY-MM-DD day string? One definition (AGENTS.md R3): it decides both
+ * Is this a real YYYY-MM-DD day? One definition (AGENTS.md R3): it decides both
  * whether a `?date=` URL param is usable and whether a stored record has a valid
  * day key, and the two must agree — a day the router accepts but the validator
- * drops would load blank forever.
+ * drops would load blank forever. The shape alone is not enough: `Date` rolls
+ * 2026-02-30 on to March 2, so a regex-only gate would key a day whose every
+ * label renders as a different one. Round-tripping also rejects `Invalid Date`.
  */
 export function isISODate(value: unknown): value is string {
-	return typeof value === 'string' && ISO_DATE.test(value);
+	return typeof value === 'string' && ISO_DATE.test(value) && toISODate(fromISO(value)) === value;
 }
 
 /** Local calendar date (YYYY-MM-DD); defaults to now. */
@@ -36,22 +41,26 @@ export function addDays(iso: string, n: number): string {
 	return toISODate(d);
 }
 
-/** Monday of the week containing `iso`. */
-export function startOfWeek(iso: string): string {
-	const dow = (fromISO(iso).getDay() + 6) % 7; // Mon=0 … Sun=6
+/**
+ * First day of the week containing `iso`. The week start is a caller's decision,
+ * not a constant: it is locale data (Monday in de-DE, Sunday in en-US), and this
+ * layer must not reach for the locale.
+ */
+export function startOfWeek(iso: string, weekStartsOn: WeekStart): string {
+	const dow = fromISO(iso).getDay() || 7; // Mon=1 … Sun=7
 
-	return addDays(iso, -dow);
+	return addDays(iso, -((dow - weekStartsOn + 7) % 7));
 }
 
 /**
- * Full weeks (Mon–Sun) covering a month, as ISO date strings.
- * Leading/trailing cells belong to the adjacent months.
+ * Full weeks covering a month, as ISO date strings, each starting on
+ * `weekStartsOn`. Leading/trailing cells belong to the adjacent months.
  * `month` is 0-based to match Date#getMonth.
  */
-export function monthGrid(year: number, month: number): string[][] {
+export function monthGrid(year: number, month: number, weekStartsOn: WeekStart): string[][] {
 	const lastDay = new Date(year, month + 1, 0).getDate();
 	const lastOfMonth = `${year}-${pad(month + 1)}-${pad(lastDay)}`;
-	let cursor = startOfWeek(`${year}-${pad(month + 1)}-01`);
+	let cursor = startOfWeek(`${year}-${pad(month + 1)}-01`, weekStartsOn);
 	const weeks: string[][] = [];
 
 	while (cursor <= lastOfMonth) {

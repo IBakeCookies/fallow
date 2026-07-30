@@ -25,6 +25,17 @@ test('a planned day shows on the grid and links back to that day', async ({ page
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/calendar');
+
+	// The month grid is padded to whole weeks, which is not the same as showing the
+	// next two days: on the last days of a month the planned day belongs to the next
+	// one, and July 2026 stops at Aug 1. One step at most — `planned` is two days out.
+	if (planned.slice(0, 7) !== isoDate(0).slice(0, 7))
+		await page
+			.getByRole('button', {
+				name: 'Next',
+			})
+			.click();
+
 	await expect(page.getByText(/No data in this month yet/)).not.toBeVisible();
 
 	const cell = page.locator(`a[href$="?date=${planned}"]`);

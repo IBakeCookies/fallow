@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { activeLocale, getDateLocale, localeLabel } from '$lib/presentation/utils/locale.svelte';
+import {
+	activeLocale,
+	getDateLocale,
+	getWeekStartsOn,
+	localeLabel,
+} from '$lib/presentation/utils/locale.svelte';
 
 const mock = vi.hoisted(() => ({
 	url: new URL('http://localhost/'),
@@ -36,6 +41,17 @@ describe('locale', () => {
 		mock.url = new URL(url);
 
 		expect(getDateLocale()).toBe(tag);
+	});
+
+	// Week start is locale data, not a constant: a German calendar starts Monday,
+	// an American one Sunday, and the column headers follow the same number.
+	it.each([
+		['http://localhost/', 7],
+		['http://localhost/de', 1],
+	])('starts the week for %s on ISO day %i', (url, day) => {
+		mock.url = new URL(url);
+
+		expect(getWeekStartsOn()).toBe(day);
 	});
 
 	// Language names stay in their own language in every UI locale, so the picker

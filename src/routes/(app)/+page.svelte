@@ -19,6 +19,7 @@
 	import { setDailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
+	import { fromISO } from '$lib/business/utils/date';
 
 	// Shared daily session (tasks, budget, pools + persistence) — set in the
 	// (app) layout, also consumed live by the Energy Lab.
@@ -70,7 +71,7 @@
 	}
 
 	function formatDisplayDate(dateStr: string): string {
-		return new Date(`${dateStr}T12:00:00`).toLocaleDateString(getDateLocale(), {
+		return fromISO(dateStr).toLocaleDateString(getDateLocale(), {
 			weekday: 'short',
 			month: 'short',
 			day: 'numeric',
