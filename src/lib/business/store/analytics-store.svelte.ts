@@ -26,7 +26,6 @@ import type { PlanAudit } from '$lib/business/model/plan-audit';
 import { addDays } from '$lib/business/utils/date';
 import { liveToday } from '$lib/business/state/today.svelte';
 import {
-	EMPTY_PLAN_AUDIT,
 	initializeStorage,
 	readDaySummaries,
 	readModelReport,
@@ -59,12 +58,12 @@ export class AnalyticsStore {
 	/** Every stored day with tasks in the last year, ascending by date. */
 	#all = $state<DaySummary[]>([]);
 	#isLoading = $state(true);
-	/** Plan-adherence audit (MATH.md §12); null while loading. */
+	/** Plan-adherence audit (MATH.md §12); null while loading or failed. */
 	#audit = $state<PlanAudit | null>(null);
-	/** Calibration snapshot ("Your model" card); null while loading. */
+	/** Calibration snapshot ("Your model" card); null while loading or failed. */
 	#calibration = $state<CalibrationSnapshot | null>(null);
-	/** A load failure must not leave the card on the loading string forever. */
-	#calibrationFailed = $state(false);
+	/** A load failure must not leave the two cards on the loading string forever. */
+	#hasModelReportFailed = $state(false);
 
 	#today = $derived(liveToday.value);
 	#rangeDays = $derived(ANALYTICS_RANGES[this.#range]);
@@ -97,10 +96,13 @@ export class AnalyticsStore {
 	});
 
 	// Two reads, deliberately not one try block: they fail into different
-	// surfaces. A failed model report is already visible — #calibrationFailed
-	// takes that card out of its loading string. A failed history read is not:
-	// #all stays empty, so every chart renders as a year with nothing in it,
-	// which is indistinguishable from a user who has never used the app.
+	// surfaces. A failed model report is already visible — #hasModelReportFailed
+	// takes both of its cards out of their loading string, and each says the read
+	// failed rather than reporting a count. An audit of no days is a claim about
+	// the user's logs ("needs finished days with drain logs"), which a read that
+	// never returned cannot support. A failed history read is not visible at all:
+	// #all stays empty, so every chart renders as a year with nothing in it, which
+	// is indistinguishable from a user who has never used the app.
 	constructor(notifyHistoryLoadFailed: NotifyHistoryLoadFailed) {
 		onMount(async () => {
 			const today = this.#today;
@@ -111,8 +113,8 @@ export class AnalyticsStore {
 			} catch (e) {
 				logError('Failed to load analytics history', e);
 				notifyHistoryLoadFailed();
-				this.#audit = EMPTY_PLAN_AUDIT;
-				this.#calibrationFailed = true;
+				// The report is never attempted — its transaction would fail too.
+				this.#hasModelReportFailed = true;
 				this.#isLoading = false;
 
 				return;
@@ -127,8 +129,7 @@ export class AnalyticsStore {
 				this.#audit = report.audit;
 			} catch (e) {
 				logError('Failed to load the analytics model report', e);
-				this.#audit = EMPTY_PLAN_AUDIT;
-				this.#calibrationFailed = true;
+				this.#hasModelReportFailed = true;
 			}
 		});
 	}
@@ -216,8 +217,9 @@ export class AnalyticsStore {
 	get calibration(): CalibrationSnapshot | null {
 		return this.#calibration;
 	}
-	get calibrationFailed(): boolean {
-		return this.#calibrationFailed;
+	/** Covers both cards the report feeds: neither may report a count instead. */
+	get hasModelReportFailed(): boolean {
+		return this.#hasModelReportFailed;
 	}
 }
 

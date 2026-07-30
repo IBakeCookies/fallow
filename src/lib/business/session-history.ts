@@ -71,8 +71,11 @@ export async function initializeStorage(): Promise<void> {
 	await migrateFromLocalStorageToIndexedDB(toISODate(), DEFAULT_SWITCH_COST);
 	await migrateEnergyParamsFromLocalStorage();
 
-	if (navigator.storage?.persist) {
-		await navigator.storage.persist();
+	try {
+		await navigator.storage?.persist();
+	} catch {
+		// Best-effort: the exemption is a nicety, and this runs before every read,
+		// so a refused request must not fail boot into the storage-error surface.
 	}
 }
 
@@ -273,7 +276,7 @@ function calibrationSnapshotFrom(
 	};
 }
 
-/** An audit of no days — what the analytics screen shows when the read failed. */
+/** An audit of no days — the oracle for a report read before anything is worked. */
 export const EMPTY_PLAN_AUDIT: PlanAudit = auditPlanAdherence([], DEFAULT_ENERGY_PARAMS);
 
 export interface ModelReport {

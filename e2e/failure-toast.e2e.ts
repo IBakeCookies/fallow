@@ -5,6 +5,7 @@ import {
 	installFailableIndexedDB,
 	openDataMenu,
 	setIndexedDBFailing,
+	setIndexedDBStoreFailing,
 	setIndexedDBTransactionsFailing,
 } from './helpers';
 
@@ -74,6 +75,44 @@ test('analytics says the empty charts are a failure, not an empty history', asyn
 	await expect(
 		page.getByText("Couldn't load your history — the charts below are empty, not your data."),
 	).toBeVisible();
+});
+
+/* The other half of that load: the history lands and only the model report fails,
+   which raises no toast because both cards it feeds are already on screen. They
+   must both say so — "Needs finished days with 🪫 drain logs" is advice about the
+   user's data, and the read that would have justified it never returned. */
+test('a failed model report says so on both cards, not "no logs yet"', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	// Only the ☕ store: the history read does not touch it, so the page paints.
+	await setIndexedDBStoreFailing(page, 'restObservations');
+
+	// Client-side, so the patch above survives — it is not an init script.
+	await page
+		.getByRole('link', {
+			name: 'Analytics',
+		})
+		.click();
+
+	const adherence = page
+		.locator('div', {
+			has: page.getByRole('heading', {
+				name: 'Plan adherence',
+			}),
+		})
+		.last();
+
+	await expect(adherence.getByText('Something went wrong')).toBeVisible({
+		timeout: 15000,
+	});
+
+	await expect(page.getByText(/Needs finished days with/)).not.toBeVisible();
+
+	// The history half succeeded: no toast, and the stats are real.
+	await expect(page.getByText("Couldn't load your history")).not.toBeVisible();
+	await expect(page.getByText('Nothing to analyze in this range yet.')).not.toBeVisible();
 });
 
 test('the Energy Lab says its saved parameters could not be read', async ({ page }) => {

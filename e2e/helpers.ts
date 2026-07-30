@@ -103,6 +103,32 @@ export const setIndexedDBTransactionsFailing = (page: Page, failing: boolean) =>
 			: proto.realTransaction;
 	}, failing);
 
+/* Break transactions that touch ONE store, so a read the page already made can
+   land while a later one fails. Analytics needs exactly that: its history read
+   (sessions + ⚡ logs) must succeed and only the model report, which also reads
+   the ☕ rest logs, may fail. Store-scoped, so it cannot be reversed the way the
+   blanket switch above can — the test that needs it ends there. */
+export const setIndexedDBStoreFailing = (page: Page, storeName: string) =>
+	page.evaluate((broken) => {
+		const proto = IDBDatabase.prototype as PatchedDatabase;
+		proto.realTransaction ??= proto.transaction;
+		const real = proto.realTransaction;
+
+		proto.transaction = function (
+			this: IDBDatabase,
+			...args: Parameters<IDBDatabase['transaction']>
+		): IDBTransaction {
+			const [stores] = args;
+			const touched = typeof stores === 'string' ? [stores] : [...stores];
+
+			if (touched.includes(broken)) {
+				throw new DOMException('e2e-induced transaction failure', 'InvalidStateError');
+			}
+
+			return real!.apply(this, args);
+		};
+	}, storeName);
+
 export const setIndexedDBFailing = (page: Page, failing: boolean) =>
 	page.evaluate(
 		([key, on]) => (on === '1' ? sessionStorage.setItem(key, '1') : sessionStorage.removeItem(key)),

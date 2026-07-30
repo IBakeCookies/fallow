@@ -37,15 +37,6 @@ vi.mock('$lib/business/state/today.svelte', () => ({
 }));
 
 vi.mock('$lib/business/session-history', () => ({
-	EMPTY_PLAN_AUDIT: {
-		usedCount: 0,
-		days: [],
-		classicOverlap: 0,
-		energyOverlap: 0,
-		actualTaskSpread: 0,
-		classicTaskSpread: 0,
-		energyTaskSpread: 0,
-	},
 	initializeStorage: vi.fn(async () => {}),
 	readDaySummaries: vi.fn(async () => []),
 	readModelReport: vi.fn(async () => ({
@@ -220,17 +211,20 @@ describe('AnalyticsStore', () => {
 		// toEqual, not toBe: $state proxies the assigned object.
 		await vi.waitFor(() => expect(store.calibration).toEqual(CALIBRATION));
 		expect(store.audit).toEqual(audit);
-		expect(store.calibrationFailed).toBe(false);
+		expect(store.hasModelReportFailed).toBe(false);
 		expect(readModelReportMock).toHaveBeenCalledWith(TODAY, 30);
 	});
 
-	it('falls back to an empty audit and flags the calibration when the read fails', async () => {
+	// Both cards come off this one read, so one flag covers them — and it never
+	// publishes an audit of no days, which the card would render as a statement
+	// about the user's drain logs.
+	it('flags the whole model report when the read fails, publishing no audit', async () => {
 		readModelReportMock.mockRejectedValue(new Error('indexeddb is gone'));
 		const store = await setup([day('2026-07-15')]);
 
-		await vi.waitFor(() => expect(store.audit).not.toBeNull());
-		expect(store.audit?.usedCount).toBe(0);
-		expect(store.calibrationFailed).toBe(true);
+		await vi.waitFor(() => expect(store.hasModelReportFailed).toBe(true));
+		expect(store.audit).toBeNull();
+		expect(store.calibration).toBeNull();
 		expect(store.isLoading).toBe(false);
 		// The day summaries still loaded, so the page renders its stats
 		expect(store.hasData).toBe(true);
@@ -240,7 +234,7 @@ describe('AnalyticsStore', () => {
 
 	// The reason the load is two try blocks: an empty year of charts is
 	// indistinguishable from a new user, so only this half gets the toast.
-	it('reports a failed history read and still leaves the model card explained', async () => {
+	it('reports a failed history read and still leaves the model cards explained', async () => {
 		// Rendered directly: `setup` resolves the history read, which is the thing
 		// this case has to break.
 		readDaySummariesMock.mockRejectedValue(new Error('indexeddb is gone'));
@@ -253,8 +247,8 @@ describe('AnalyticsStore', () => {
 
 		await vi.waitFor(() => expect(notifyHistoryLoadFailed).toHaveBeenCalledTimes(1));
 		expect(store.hasData).toBe(false);
-		expect(store.calibrationFailed).toBe(true);
-		expect(store.audit?.usedCount).toBe(0);
+		expect(store.hasModelReportFailed).toBe(true);
+		expect(store.audit).toBeNull();
 		// The second read is never attempted — its transaction would fail too.
 		expect(readModelReportMock).not.toHaveBeenCalled();
 	});

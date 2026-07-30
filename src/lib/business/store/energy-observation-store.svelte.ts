@@ -72,8 +72,13 @@ export class EnergyObservationStore {
 
 	async #load() {
 		try {
-			this.#drainObservations = await this.#readDrain();
-			this.#restObservations = await this.#readRest();
+			// Read both before assigning either: a failure half-way through would
+			// otherwise leave one log replaced and the other stale behind the
+			// load-failed banner. Independent stores, so they read in parallel.
+			const [drain, rest] = await Promise.all([this.#readDrain(), this.#readRest()]);
+
+			this.#drainObservations = drain;
+			this.#restObservations = rest;
 			// Both logs are readable again, so this store's own failure is over —
 			// which nothing else can say for it, and nothing else may say for it.
 			this.#reporter.clearLoadFailure();
@@ -105,6 +110,9 @@ export class EnergyObservationStore {
 	async logDrain(id: number, hours: number, mindDrain: number, bodyDrain: number) {
 		const task = this.#readTasks().find((t) => t.id === id);
 
+		// A rating needs the task's demands, so an id the day no longer holds (a
+		// task deleted while the rating dialog was open) is nothing to log, not a
+		// storage failure — drop it silently rather than raise the banner.
 		if (!task) return;
 
 		try {

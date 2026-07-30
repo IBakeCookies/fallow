@@ -544,7 +544,9 @@
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
 
-		{#if audit === null}
+		{#if analytics.hasModelReportFailed}
+			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+		{:else if audit === null}
 			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
 		{:else if audit.usedCount === 0}
 			<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
@@ -591,7 +593,7 @@
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
 
-		{#if analytics.calibrationFailed}
+		{#if analytics.hasModelReportFailed}
 			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
 		{:else if calibration === null}
 			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
