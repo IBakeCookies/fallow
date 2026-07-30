@@ -185,6 +185,50 @@ describe('plan-advice-card.svelte', () => {
 		expect(onapply).toHaveBeenCalledExactlyOnceWith(1);
 	});
 
+	// Two tasks may share a title, so an option's own words are not an identity —
+	// two defer levers then read identically and the card has to render both.
+	it('renders both options when two tasks share a title', async () => {
+		const onapply = vi.fn();
+		const [row] = display.rows;
+		const [defer] = row.options;
+
+		render(PlanAdviceCard, {
+			advice: {
+				rows: [
+					{
+						...row,
+						options: [1, 2].map((taskId) => ({
+							...defer,
+							lever: {
+								kind: 'defer-task' as const,
+								taskId,
+								title: 'Email',
+							},
+							action: 'Move “Email” off today',
+						})),
+					},
+				],
+				unfunded: null,
+				unfundedMustDo: null,
+			},
+			isBusy: false,
+			isStale: false,
+			hasError: false,
+			oncheck: () => {},
+			onapply,
+		});
+
+		const applies = page.getByRole('button', {
+			name: 'Move “Email” to tomorrow',
+		});
+
+		expect(applies.elements()).toHaveLength(2);
+
+		await applies.nth(1).click();
+
+		expect(onapply).toHaveBeenCalledExactlyOnceWith(2);
+	});
+
 	// The must-do line is louder than the plain unfunded one above it on purpose:
 	// the flag removed that task's only per-task lever, so the menu below cannot
 	// offer to resolve it and the user has to.

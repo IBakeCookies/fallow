@@ -83,7 +83,10 @@
 							{@render bandText(row.beforeBand)}
 						</div>
 						<ul class="mt-text-xs space-y-text-xs">
-							{#each row.options as option (option.action)}
+							<!-- Keyed on the lever — one object per candidate — and never on the
+							     option's words: two tasks sharing a title spell the same
+							     sentence, and a duplicate key crashes the card outright. -->
+							{#each row.options as option (option.lever)}
 								{@const lever = option.lever}
 								<li
 									class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
