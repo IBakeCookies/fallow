@@ -4,6 +4,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
+	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
 		completionPromptAction,
 		MEASUREMENT_FORM_CLASS,
@@ -722,7 +723,7 @@
 												aria-label={m.task_remove_aria()}
 												title={m.task_remove_tooltip()}
 												class="shrink-0 text-ty-silent opacity-0 transition hover:text-danger focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-												onclick={() => session.removeTask(task.id)}
+												onclick={() => removeTaskWithUndo(session, task.id)}
 											>
 												✕
 											</button>

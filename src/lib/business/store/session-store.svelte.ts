@@ -462,8 +462,37 @@ export class SessionStore {
 		}
 	}
 
-	removeTask(id: number) {
+	/**
+	 * Remove a task and hand back the way to put it back — the ✕ deletes at once and
+	 * the page offers an undo for as long as its toast lives (`removeTaskWithUndo`).
+	 * The undo is a closure because only the store knows what restoring means: the
+	 * row's position, and the day it was removed from.
+	 */
+	removeTask(id: number): { task: Task; undo: () => void } | undefined {
+		const index = this.#tasks.findIndex((t) => t.id === id);
+
+		if (index === -1) return undefined;
+
+		const task = this.#tasks[index];
+		const date = this.#selectedDate;
+
 		this.#tasks = this.#tasks.filter((t) => t.id !== id);
+
+		return {
+			task,
+			undo: () => {
+				// Same guard as toggleTask, and the undo is what makes it reachable
+				// without a race: a toast outlives a click on another day, and putting
+				// the task back into the tasks on screen would autosave it into that
+				// day instead — or into the day whose load has not landed yet.
+				if (this.#loadedDate !== this.#selectedDate || this.#selectedDate !== date) return;
+
+				// Its original id: `nextTaskId` is monotonic, so a task added in between
+				// cannot have taken it, and the drain log that outlives a task
+				// re-attaches to the row that produced it.
+				this.#tasks = [...this.#tasks.slice(0, index), task, ...this.#tasks.slice(index)];
+			},
+		};
 	}
 
 	// Serializes moveTaskToTomorrow: two overlapping moves would each

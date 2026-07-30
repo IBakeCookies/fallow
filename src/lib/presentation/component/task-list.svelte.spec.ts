@@ -59,10 +59,26 @@ describe('task-list.svelte', () => {
 			)
 			.toBeInTheDocument();
 
+		// A list, so a screen reader announces how many tasks the day holds and can
+		// navigate them as items.
+		await expect.element(page.getByRole('list')).toBeInTheDocument();
+		expect(page.getByRole('listitem').elements()).toHaveLength(2);
+
 		await expect.element(page.getByText('boxing')).toBeInTheDocument();
 		await expect.element(page.getByText('writing')).toBeInTheDocument();
 		await expect.element(page.getByText('#1')).toBeInTheDocument();
 		await expect.element(page.getByText('#2')).toBeInTheDocument();
+	});
+
+	// An empty <ul> would announce "list, 0 items" over the empty-state copy.
+	it('renders no list when there are no tasks', async () => {
+		render(TaskList, {
+			suggestedTasks: [],
+			runOrder: new Map(),
+			...noop,
+		});
+
+		expect(page.getByRole('list').elements()).toHaveLength(0);
 	});
 
 	// The add-task form lives in this card so adding and reading the plan are one
@@ -97,7 +113,14 @@ describe('task-list.svelte', () => {
 			...noop,
 		});
 
-		await expect.element(page.getByText('boxing')).toBeInTheDocument();
-		expect(document.querySelectorAll('.pb-text-md')).toHaveLength(0);
+		const heading = page
+			.getByRole('heading', {
+				name: 'Tasks',
+			})
+			.element();
+
+		// The list starts immediately after the heading: nothing — not even the
+		// wrapper the snippet would sit in — stands between them.
+		expect(heading.nextElementSibling?.textContent).toContain('boxing');
 	});
 });

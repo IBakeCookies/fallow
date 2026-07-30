@@ -168,6 +168,25 @@ describe('task-item.svelte', () => {
 		expect(onremove).toHaveBeenCalledExactlyOnceWith(1);
 	});
 
+	// A past day is read-only, so the page passes no `onremove` — the same way it
+	// withholds `onupdate` and `onlogflow`. An inert ✕ is worse than no ✕.
+	it('offers no delete control when removal is not offered', async () => {
+		render(TaskItem, {
+			...baseProps,
+			onremove: undefined,
+		});
+
+		await expect.element(page.getByRole('checkbox')).toBeInTheDocument();
+
+		expect(
+			page
+				.getByRole('button', {
+					name: 'Delete task',
+				})
+				.elements(),
+		).toHaveLength(0);
+	});
+
 	it('logs time-to-flow in minutes', async () => {
 		const onlogflow = vi.fn();
 

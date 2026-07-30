@@ -61,3 +61,45 @@ test('removing a task restores the empty state', async ({ page }) => {
 
 	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
 });
+
+/* The ✕ is one hover-revealed click next to the ✎ and takes the task's sliders and
+   ⚡ logs with it, so the delete is immediate and the toast is the way back. */
+test('a deleted task comes back from the undo toast', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Throwaway');
+	await addTask(page, 'Keep me');
+
+	// The row, not its title: the title is also in the toast that reports the delete.
+	const row = page.getByRole('checkbox', {
+		name: 'Mark Throwaway complete',
+	});
+
+	await page
+		.locator('li')
+		.filter({
+			hasText: 'Throwaway',
+		})
+		.getByRole('button', {
+			name: 'Delete task',
+		})
+		.click();
+
+	await expect(row).toHaveCount(0);
+	await expect(page.getByText('Deleted “Throwaway”.')).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Undo',
+		})
+		.click();
+
+	await expect(row).toBeVisible();
+	await expect(page.getByText('Keep me').first()).toBeVisible();
+
+	// The restored task has to survive the autosave that follows it — the removal was
+	// already persisted by the time the undo ran.
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.reload();
+
+	await expect(row).toBeVisible();
+});

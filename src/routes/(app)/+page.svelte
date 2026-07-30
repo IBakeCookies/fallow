@@ -8,6 +8,7 @@
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
 	import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
+	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
@@ -164,7 +165,7 @@
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
 				ontoggle={(id) => session.toggleTask(id)}
-				onremove={isViewingPast ? () => {} : (id) => session.removeTask(id)}
+				onremove={isViewingPast ? undefined : (id) => removeTaskWithUndo(session, id)}
 				onlogflow={canLogFlow ? (id, minutes) => session.logFlow(id, minutes) : undefined}
 				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
 				form={isViewingPast ? undefined : addTaskForm}

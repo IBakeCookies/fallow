@@ -1,3 +1,13 @@
+<script module lang="ts">
+	import type { Task } from '$lib/business/type';
+
+	/** What the inline editor emits — the only task fields it can change. */
+	export type TaskEdit = Pick<
+		Task,
+		'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment' | 'mustDoToday'
+	>;
+</script>
+
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import { Button, buttonVariants } from '$lib/presentation/component/ui/button';
@@ -33,18 +43,9 @@
 		/** Flagged as unmovable, so the plan advisor never offers to defer it. */
 		mustDoToday?: boolean;
 		ontoggle: (id: number) => void;
-		onremove: (id: number) => void;
+		onremove?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
-		onupdate?: (
-			id: number,
-			changes: {
-				title: string;
-				physicalDifficulty: number;
-				mentalDifficulty: number;
-				enjoyment: number;
-				mustDoToday: boolean;
-			},
-		) => void;
+		onupdate?: (id: number, changes: TaskEdit) => void;
 	}
 
 	let {
@@ -72,14 +73,14 @@
 	// Inline "log time-to-flow" editor (⚡): feeds the c₁,c₂,c₃ personalization
 	let loggingFlow = $state(false);
 	let flowMinutesInput = $state<number | null>(null);
-	// How the editor was opened. The caret: auto-opening must not move it, or ticking
-	// tasks off with the keyboard lands it in a number field nobody asked for. And the
-	// close: un-completing withdraws a question completion asked, but must not discard
-	// an editor the user opened. Focus cannot be an `autofocus` attribute — the
-	// document's autofocus-processed flag is set at load, so it is inert on any node
-	// inserted afterwards, which is every editor in this app.
-	let focusFlowInput = $state(false);
-	let flowPromptedByCompletion = $state(false);
+	// How the editor was opened, which decides two things. The caret: auto-opening must
+	// not move it, or ticking tasks off with the keyboard lands it in a number field
+	// nobody asked for. And the close: un-completing withdraws a question completion
+	// asked, but must not discard an editor the user opened. Focus cannot be an
+	// `autofocus` attribute — the document's autofocus-processed flag is set at load, so
+	// it is inert on any node inserted afterwards, which is every editor in this app.
+	// Only meaningful while `loggingFlow`; every read is gated on it.
+	let flowSource = $state<EditorSource>('button');
 
 	// Inline task editor (✎): re-tune the sliders after the task is added
 	let editing = $state(false);
@@ -141,8 +142,7 @@
 	function openFlowLog(source: EditorSource) {
 		flowMinutesInput = flowMinutes ?? null;
 		editing = false;
-		focusFlowInput = source === 'button';
-		flowPromptedByCompletion = source === 'completion';
+		flowSource = source;
 		loggingFlow = true;
 	}
 
@@ -155,7 +155,7 @@
 			finishing: !completed,
 			measured: Boolean(flowMinutes),
 			anyEditorOpen: loggingFlow || editing,
-			promptOpenForThisTask: loggingFlow && flowPromptedByCompletion,
+			promptOpenForThisTask: loggingFlow && flowSource === 'completion',
 		});
 
 		ontoggle(id);
@@ -187,8 +187,6 @@
 
 		return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
 	}
-
-	const optimalStopTime = $derived(optimalStopHours);
 
 	const badge = $derived(natureBadge(nature));
 </script>
@@ -276,7 +274,7 @@
 							{m.task_derived_values({
 								effort: trueEffort.toFixed(1),
 								flow: formatHours(flowStateTime),
-								stop: formatHours(optimalStopTime),
+								stop: formatHours(optimalStopHours),
 							})}
 						</Tooltip.Trigger>
 						<Tooltip.Content>
@@ -299,15 +297,17 @@
 			<div class="flex shrink-0 items-center gap-grid-xs">
 				{#if !completed}
 					<Tooltip.Root>
+						<!-- Spans, not divs: the trigger renders a <button>, whose content
+						     model is phrasing content only. -->
 						<Tooltip.Trigger class="cursor-help text-right">
-							<div class="text-sm font-semibold text-ty-primary">
+							<span class="block text-sm font-semibold text-ty-primary">
 								{formatHours(suggestedHours)}
-							</div>
-							<div class="text-2xs text-ty-silent">
+							</span>
+							<span class="block text-2xs text-ty-silent">
 								{m.task_priority({
 									score: priorityScore,
 								})}
-							</div>
+							</span>
 						</Tooltip.Trigger>
 						<Tooltip.Content>
 							<p>{m.task_allocation_tooltip()}</p>
@@ -369,31 +369,33 @@
 						</Tooltip.Root>
 					{/if}
 
-					<Tooltip.Root>
-						<Tooltip.Trigger
-							class={cn(
-								buttonVariants({
-									variant: 'ghost',
-									size: 'icon-xs',
-								}),
-								'text-ty-silent hover:text-danger',
-							)}
-							onclick={() => onremove(id)}
-							aria-label={m.task_remove_aria()}
-						>
-							<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M6 18L18 6M6 6l12 12"
-								/>
-							</svg>
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{m.task_remove_tooltip()}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
+					{#if onremove}
+						<Tooltip.Root>
+							<Tooltip.Trigger
+								class={cn(
+									buttonVariants({
+										variant: 'ghost',
+										size: 'icon-xs',
+									}),
+									'text-ty-silent hover:text-danger',
+								)}
+								onclick={() => onremove(id)}
+								aria-label={m.task_remove_aria()}
+							>
+								<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18L18 6M6 6l12 12"
+									/>
+								</svg>
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>{m.task_remove_tooltip()}</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -410,7 +412,7 @@
 						max="960"
 						placeholder={m.task_minutes_placeholder()}
 						{@attach (node) => {
-							if (focusFlowInput) node.focus();
+							if (flowSource === 'button') node.focus();
 						}}
 						bind:value={flowMinutesInput}
 						required

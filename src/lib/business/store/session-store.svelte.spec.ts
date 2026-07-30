@@ -511,6 +511,71 @@ describe('SessionStore persistence', () => {
 		expect(updateSessionMock).not.toHaveBeenCalled();
 	});
 
+	it('puts an undone removal back where it was, with its id', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'stretch',
+			physicalDifficulty: 6,
+			mentalDifficulty: 1,
+			enjoyment: 4,
+		});
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		const removed = store.removeTask(store.tasks[1].id); // 'stretch': addTask prepends
+		flushSync();
+
+		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
+
+		removed?.undo();
+		flushSync();
+
+		// Position and id both: /energy renders the day in store order, and all three
+		// observation stores key on the id.
+		expect(store.tasks.map((t) => t.title)).toEqual(['ship it', 'stretch']);
+		expect(store.tasks[1].id).toBe(removed?.task.id);
+	});
+
+	it('refuses an undo aimed at a day the task did not come from', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		const removed = store.removeTask(store.tasks[0].id);
+		flushSync();
+
+		// The undo outlives its toast's few seconds of day: a read that never settles,
+		// so the viewed date is already the past day while the in-memory tasks still
+		// belong to today — the same shape as the toggle guard above.
+		readSessionByDateMock.mockImplementationOnce(() => new Promise(() => {}));
+		mockPage.url = new URL('http://localhost/?date=2000-01-01');
+		flushSync();
+
+		removed?.undo();
+		flushSync();
+
+		expect(store.tasks).toEqual([]);
+
+		expect(updateSessionMock).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				date: '2000-01-01',
+			}),
+		);
+	});
+
 	it('re-reads yesterday after a midnight rollover', async () => {
 		const { store } = await setup();
 		const dayBeforeRollover = store.today;

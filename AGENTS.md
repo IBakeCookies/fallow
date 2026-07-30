@@ -713,6 +713,18 @@ Each was considered and decided. Re-deciding them is churn.
   recycles a deleted task's id, and a drain log — which outlives the task it
   rated — re-attaches to whatever new task inherits it.
 
+- **A deleted task is undone from its toast; only routines get a confirm step.**
+  The ✕ deletes at once and `removeTaskWithUndo` (`presentation/utils`) offers the
+  task back for eight seconds. A second press would sit on the common path forever
+  to save the rare mistake — deleting a task is frequent, and the row is gone
+  either way when the user meant it. The header's routine rows arm-then-delete
+  instead, for the opposite reason: nothing there can be handed back. The undo
+  restores the task at its original index (`/energy` renders the day in store
+  order) with its original id — safe because `nextTaskId` never recycles one, and
+  necessary because the drain logs that outlive a task key on it. It refuses once
+  the viewed day has moved on: a toast outlives a click onto another day, and
+  autosave would keep the stray task there.
+
 - **The day's plan is solved once per `calculateDailyMetrics`.** The allocator
   dominates dashboard cost (2ⁿ funded-subset enumeration, ~51 ms at n = 12)
   and used to run **twice** on identical inputs: the plan, then Zenith Gain's

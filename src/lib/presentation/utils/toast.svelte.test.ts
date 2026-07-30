@@ -9,6 +9,7 @@ import {
 	flushPendingToasts,
 	showToast,
 	showToastAfterReload,
+	showUndoToast,
 	TOAST_SEVERITIES,
 } from '$lib/presentation/utils/toast';
 
@@ -16,8 +17,8 @@ import {
 // key, the way R8 step 4 keeps the store-name lists literal.
 const PENDING_KEY = 'fallow:pending-toasts';
 
-// Nothing in production calls `warning` or `info` yet, so without this a
-// mis-wire (`warning` → `toast.info`) would fail no test at all.
+// Nothing in production calls `warning` yet, so without this a mis-wire
+// (`warning` → `toast.info`) would fail no test at all.
 describe('severity mapping', () => {
 	it.for([
 		['danger', 'error'],
@@ -35,6 +36,30 @@ describe('severity mapping', () => {
 
 	it('covers every severity in TOAST_SEVERITIES', () => {
 		expect(TOAST_SEVERITIES).toEqual(['danger', 'warning', 'success', 'info']);
+	});
+});
+
+// The undo lives on the toast and nowhere else, so a mis-wired action button is a
+// delete with no way back.
+describe('the undo toast', () => {
+	it('hands the undo to sonner as the toast’s action', () => {
+		const spy = vi.spyOn(toast, 'info').mockImplementation(() => '');
+		const onUndo = vi.fn();
+
+		showUndoToast('Deleted “Boxing training”.', 'Undo', onUndo);
+
+		const action = spy.mock.calls[0][1]?.action as {
+			label: string;
+			onClick: (event: MouseEvent) => void;
+		};
+
+		expect(action.label).toBe('Undo');
+		expect(onUndo).not.toHaveBeenCalled();
+
+		action.onClick(new MouseEvent('click'));
+
+		expect(onUndo).toHaveBeenCalledOnce();
+		spy.mockRestore();
 	});
 });
 

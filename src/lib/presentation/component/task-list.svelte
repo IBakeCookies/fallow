@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
-	import TaskItem from '$lib/presentation/component/task-item.svelte';
+	import TaskItem, { type TaskEdit } from '$lib/presentation/component/task-item.svelte';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 
 	interface Props {
@@ -11,18 +11,9 @@
 		// reading the plan are the same place, and it costs no second card.
 		form?: Snippet;
 		ontoggle: (id: number) => void;
-		onremove: (id: number) => void;
+		onremove?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
-		onupdate?: (
-			id: number,
-			changes: {
-				title: string;
-				physicalDifficulty: number;
-				mentalDifficulty: number;
-				enjoyment: number;
-				mustDoToday: boolean;
-			},
-		) => void;
+		onupdate?: (id: number, changes: TaskEdit) => void;
 	}
 
 	let { suggestedTasks, runOrder, form, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
@@ -50,31 +41,35 @@
 			<p class="text-sm text-ty-secondary">{m.list_empty()}</p>
 			<p class="text-xs text-ty-silent mt-text-2xs">{m.list_empty_hint()}</p>
 		</div>
+	{:else}
+		<ul class="space-y-text-xs">
+			{#each suggestedTasks as task, i (task.id)}
+				<!-- The rule between items is the item's own top border, not an <hr>: a
+				     separator element inside the <li> would be announced as content. -->
+				<li class={i > 0 ? 'border-t border-line-soft pt-text-xs' : undefined}>
+					<TaskItem
+						id={task.id}
+						title={task.title}
+						physicalDifficulty={task.physicalDifficulty}
+						mentalDifficulty={task.mentalDifficulty}
+						enjoyment={task.enjoyment}
+						nature={task.nature}
+						completed={task.completed}
+						priorityScore={task.priorityScore}
+						suggestedHours={task.suggestedHours}
+						trueEffort={task.trueEffort}
+						flowStateTime={task.flowStateTime}
+						optimalStopHours={task.optimalHours}
+						runOrder={runOrder.get(task.id)}
+						flowMinutes={task.flowMinutes}
+						mustDoToday={task.mustDoToday}
+						{ontoggle}
+						{onremove}
+						{onlogflow}
+						{onupdate}
+					/>
+				</li>
+			{/each}
+		</ul>
 	{/if}
-	{#each suggestedTasks as task, i (task.id)}
-		{#if i > 0}
-			<hr class="border-line-soft" />
-		{/if}
-		<TaskItem
-			id={task.id}
-			title={task.title}
-			physicalDifficulty={task.physicalDifficulty}
-			mentalDifficulty={task.mentalDifficulty}
-			enjoyment={task.enjoyment}
-			nature={task.nature}
-			completed={task.completed}
-			priorityScore={task.priorityScore}
-			suggestedHours={task.suggestedHours}
-			trueEffort={task.trueEffort}
-			flowStateTime={task.flowStateTime}
-			optimalStopHours={task.optimalHours}
-			runOrder={runOrder.get(task.id)}
-			flowMinutes={task.flowMinutes}
-			mustDoToday={task.mustDoToday}
-			{ontoggle}
-			{onremove}
-			{onlogflow}
-			{onupdate}
-		/>
-	{/each}
 </div>
