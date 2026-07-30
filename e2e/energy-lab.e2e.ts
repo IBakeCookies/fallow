@@ -187,7 +187,7 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	const defaultDrain = await cognitiveDrain.inputValue();
 
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
 	// The fit ran — but the parameter is untouched.
 	const apply = page.getByRole('button', {
@@ -241,7 +241,7 @@ test('completing a task opens its drain rating', async ({ page }) => {
 		})
 		.click();
 
-	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
 	// The completed row keeps its 🪫 button, so the rating stays editable
 	await expect(
@@ -357,7 +357,7 @@ test('the drain prompt takes no focus and refuses an empty rating', async ({ pag
 		.click();
 
 	await expect(form).toBeVisible();
-	await expect(page.getByText('1 drain ratings recorded')).toHaveCount(0);
+	await expect(page.getByText('Drain ratings · 1')).toHaveCount(0);
 });
 
 /* The draft is page-level and is the whole gate on the prompt, so one left pointing
@@ -458,12 +458,12 @@ test('the rest editor refuses a half-filled pair but accepts a rating of 0', asy
 	await save.click();
 
 	await expect(form).toBeVisible();
-	await expect(page.getByText('1 rest pairs recorded')).toHaveCount(0);
+	await expect(page.getByText('Rest pairs · 1')).toHaveCount(0);
 
 	await fields.nth(4).fill('0');
 	await save.click();
 
-	await expect(page.getByText('1 rest pairs recorded')).toBeVisible();
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 });
 
 // Both logs live in EnergyObservationStore now, which reads IndexedDB on its
@@ -475,15 +475,15 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
 	await logRest(page, 30, 9, 8, 3, 2);
-	await expect(page.getByText('1 rest pairs recorded')).toBeVisible();
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
 	await page.reload();
 
-	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
-	await expect(page.getByText('1 rest pairs recorded')).toBeVisible();
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
 	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), so its
 	// own Apply appears alongside the drain one.
@@ -525,7 +525,7 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 	// The log list is collapsed until its count is clicked.
 	await page
 		.getByRole('button', {
-			name: '1 drain ratings recorded',
+			name: 'Drain ratings · 1',
 		})
 		.click();
 

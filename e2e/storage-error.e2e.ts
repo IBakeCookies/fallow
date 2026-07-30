@@ -25,7 +25,7 @@ test('one retry click recovers both stores after a failed read', async ({ page }
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/energy');
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
 	await setIndexedDBFailing(page, true);
 	await page.reload();
@@ -49,7 +49,7 @@ test('one retry click recovers both stores after a failed read', async ({ page }
 	// The session store recovered…
 	await expect(page.getByText('Boxing training').first()).toBeVisible();
 	// …and so did the observation store, which only its own retryLoad() restores.
-	await expect(page.getByText('1 drain ratings recorded')).toBeVisible();
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 });
 
 /* The write path fails on the cached database handle, long after any open() —

@@ -23,27 +23,43 @@
 	// the caller and a two-step reset.
 	let open = $state(false);
 	let confirmingReset = $state(false);
+	// Deleting the last row empties the list under an open panel, so expansion is
+	// derived rather than stored: the toggle never claims aria-expanded over
+	// content it no longer renders, and the next log logged doesn't arrive
+	// pre-expanded.
+	const expanded = $derived(open && items.length > 0);
 	const newestFirst = $derived([...items].reverse());
+
+	// Focus follows the two-step swap, which unmounts whichever button was
+	// focused: entering confirm focuses Cancel — the safe half, so a second
+	// stray Enter cannot wipe the logs — and cancelling hands focus back to the
+	// trigger. A plain `let`, not `$state`: the attachment reads it once when
+	// the trigger mounts and must not re-run when it flips back.
+	let returningFromCancel = false;
 </script>
 
-<button
-	type="button"
-	aria-expanded={open}
-	class="flex w-full items-center justify-between gap-grid-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary disabled:cursor-default disabled:hover:text-ty-silent"
-	disabled={items.length === 0}
-	{title}
-	onclick={() => {
-		open = !open;
-		confirmingReset = false;
-	}}
->
-	<span>{label}</span>
-	{#if items.length > 0}
-		<span class="shrink-0 text-lg leading-none text-ty-silent">{open ? '▴' : '▾'}</span>
-	{/if}
-</button>
+{#if items.length === 0}
+	<!-- Nothing to expand. A paragraph, not a disabled button: `disabled` takes
+	     the row out of the tab order, and with it any `title` the caller passed
+	     to explain why the list is empty. -->
+	<p class="text-xs text-ty-silent" {title}>{label}</p>
+{:else}
+	<button
+		type="button"
+		aria-expanded={expanded}
+		class="flex w-full items-center justify-between gap-grid-xs text-left text-xs text-ty-silent transition hover:text-ty-secondary"
+		{title}
+		onclick={() => {
+			open = !open;
+			confirmingReset = false;
+		}}
+	>
+		<span>{label}</span>
+		<span class="shrink-0 text-lg leading-none text-ty-silent">{expanded ? '▴' : '▾'}</span>
+	</button>
+{/if}
 
-{#if open && items.length > 0}
+{#if expanded}
 	<ul class="mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
 		{#each newestFirst as item (item.id)}
 			<li
@@ -72,7 +88,11 @@
 					<button
 						type="button"
 						class="text-ty-silent hover:text-ty-secondary"
-						onclick={() => (confirmingReset = false)}
+						{@attach (node) => node.focus()}
+						onclick={() => {
+							returningFromCancel = true;
+							confirmingReset = false;
+						}}
 					>
 						{m.common_cancel()}
 					</button>
@@ -82,6 +102,12 @@
 					type="button"
 					class="text-xs text-ty-silent transition hover:text-danger"
 					title={resetTitle}
+					{@attach (node) => {
+						if (returningFromCancel) {
+							returningFromCancel = false;
+							node.focus();
+						}
+					}}
 					onclick={() => (confirmingReset = true)}
 				>
 					{resetLabel}
