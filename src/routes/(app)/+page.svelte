@@ -119,7 +119,7 @@
      passed as a snippet rather than imported there, per the components-take-props
      rule. -->
 {#snippet addTaskForm()}
-	<TaskForm onsubmit={(t) => session.addTask(t)} startOpen={tasks.length === 0} />
+	<TaskForm onsubmit={(t) => session.addTask(t)} isOpen={tasks.length === 0} />
 {/snippet}
 
 <!-- The day's banner and constraints span both columns: they scope the whole
@@ -174,9 +174,9 @@
 			{#if !isViewingPast && tasks.length > 0}
 				<PlanAdviceCard
 					{advice}
-					busy={plan.adviceBusy}
-					stale={plan.adviceStale}
-					error={plan.adviceError}
+					isBusy={plan.isAdviceBusy}
+					isStale={plan.isAdviceStale}
+					hasError={plan.hasAdviceError}
 					oncheck={() => plan.computeAdvice()}
 					onapply={(id) => session.moveTaskToTomorrow(id)}
 				/>

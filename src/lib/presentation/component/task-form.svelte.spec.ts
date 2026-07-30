@@ -4,10 +4,10 @@ import { render } from 'vitest-browser-svelte';
 import TaskForm from '$lib/presentation/component/task-form.svelte';
 
 describe('task-form.svelte', () => {
-	it('starts collapsed when startOpen is false and expands on click', async () => {
+	it('starts collapsed when isOpen is false and expands on click', async () => {
 		render(TaskForm, {
 			onsubmit: vi.fn(),
-			startOpen: false,
+			isOpen: false,
 		});
 
 		const addButton = page.getByRole('button', {

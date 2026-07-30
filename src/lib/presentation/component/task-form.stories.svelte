@@ -9,7 +9,7 @@
 		tags: ['autodocs'],
 		args: {
 			onsubmit: fn(),
-			startOpen: true,
+			isOpen: true,
 		},
 	});
 </script>
@@ -20,6 +20,6 @@
 <Story
 	name="Collapsed"
 	args={{
-		startOpen: false,
+		isOpen: false,
 	}}
 />

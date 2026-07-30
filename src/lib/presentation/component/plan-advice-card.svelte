@@ -7,28 +7,28 @@
 	interface Props {
 		/** Null until the user asks: the search costs a full solve per candidate. */
 		advice: AdviceDisplay | null;
-		busy: boolean;
+		isBusy: boolean;
 		/** The day changed after this advice was calculated. */
-		stale: boolean;
+		isStale: boolean;
 		/** The last check failed; the advice shown (if any) predates the failure. */
-		error: boolean;
+		hasError: boolean;
 		oncheck: () => void;
 		/** Perform a defer-task option: move that task to tomorrow's plan. */
 		onapply: (taskId: number) => void;
 	}
 
-	let { advice, busy, stale, error, oncheck, onapply }: Props = $props();
+	let { advice, isBusy, isStale, hasError, oncheck, onapply }: Props = $props();
 </script>
 
 <!-- Until the user asks, this is one button and nothing else: a card advertising
      a feature it has not run yet is pure vertical cost above the plan. -->
 {#if !advice}
 	<div class="flex items-baseline justify-end gap-grid-xs">
-		{#if error}
+		{#if hasError}
 			<p class="text-xs text-danger">{m.advice_error()}</p>
 		{/if}
-		<Button variant="outline" size="sm" disabled={busy} onclick={oncheck} title={m.advice_desc()}>
-			{busy ? m.advice_working() : m.advice_check()}
+		<Button variant="outline" size="sm" disabled={isBusy} onclick={oncheck} title={m.advice_desc()}>
+			{isBusy ? m.advice_working() : m.advice_check()}
 		</Button>
 	</div>
 {:else}
@@ -40,12 +40,12 @@
 				</h3>
 				<p class="mt-text-xs text-xs text-ty-silent">{m.advice_desc()}</p>
 			</div>
-			<Button variant="outline" size="sm" disabled={busy} onclick={oncheck}>
-				{busy ? m.advice_working() : m.advice_recheck()}
+			<Button variant="outline" size="sm" disabled={isBusy} onclick={oncheck}>
+				{isBusy ? m.advice_working() : m.advice_recheck()}
 			</Button>
 		</div>
 
-		{#if error}
+		{#if hasError}
 			<p
 				class="mt-grid-sm rounded-lg border border-danger/20 bg-danger/5 p-box-sm text-xs text-danger"
 			>
@@ -53,7 +53,7 @@
 			</p>
 		{/if}
 
-		{#if stale}
+		{#if isStale}
 			<p
 				class="mt-grid-sm rounded-lg border border-warning/20 bg-warning/5 p-box-sm text-xs text-warning-strong"
 			>
@@ -102,7 +102,7 @@
 											<Button
 												variant="outline"
 												size="sm"
-												disabled={busy}
+												disabled={isBusy}
 												aria-label={m.advice_apply_label({
 													title: lever.title,
 												})}

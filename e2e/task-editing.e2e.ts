@@ -49,7 +49,7 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 	await addTask(page, 'Boxing training');
 
 	// The bar opens itself while the day's hours are unset — collapse it, so the
-	// prompt is proving itself and not `startOpen`.
+	// prompt is proving itself and not `isOpen`.
 	await page.getByLabel('Available Hours').fill('6');
 	await page.getByLabel('Available Hours').blur();
 

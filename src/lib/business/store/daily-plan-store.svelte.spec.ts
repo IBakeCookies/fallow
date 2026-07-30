@@ -231,13 +231,13 @@ describe('DailyPlanStore', () => {
 		flushSync();
 
 		expect(store.advice).toBeNull();
-		expect(store.adviceStale).toBe(false);
+		expect(store.isAdviceStale).toBe(false);
 
 		await store.computeAdvice();
 
 		expect(store.advice?.candidatesEvaluated).toBeGreaterThan(0);
-		expect(store.adviceBusy).toBe(false);
-		expect(store.adviceStale).toBe(false);
+		expect(store.isAdviceBusy).toBe(false);
+		expect(store.isAdviceStale).toBe(false);
 	});
 
 	it('marks advice stale when the day changes under it, and fresh again after a recompute', async () => {
@@ -257,11 +257,11 @@ describe('DailyPlanStore', () => {
 		mockSession.availableHours = 6;
 		flushSync();
 
-		expect(store.adviceStale).toBe(true);
+		expect(store.isAdviceStale).toBe(true);
 
 		await store.computeAdvice();
 
-		expect(store.adviceStale).toBe(false);
+		expect(store.isAdviceStale).toBe(false);
 	});
 
 	// The busy guard drops a second request instead of queueing it — safe only
@@ -273,7 +273,7 @@ describe('DailyPlanStore', () => {
 		flushSync();
 
 		const first = store.computeAdvice();
-		expect(store.adviceBusy).toBe(true);
+		expect(store.isAdviceBusy).toBe(true);
 		const second = store.computeAdvice();
 
 		// The day changes during the yield: the in-flight run must pick it up.
@@ -283,11 +283,11 @@ describe('DailyPlanStore', () => {
 		await Promise.all([first, second]);
 
 		expect(suggestPlanAdjustments).toHaveBeenCalledTimes(1);
-		expect(store.adviceStale).toBe(false);
+		expect(store.isAdviceStale).toBe(false);
 	});
 
 	// The only caller is a fire-and-forget click handler, so a failed solve must
-	// land in adviceError (and reset busy) instead of an unhandled rejection.
+	// land in hasAdviceError (and reset busy) instead of an unhandled rejection.
 	it('reports a failed solve and recovers on the next one', async () => {
 		const store = setup();
 		mockSession.tasks = [task(1, 'deep work')];
@@ -299,13 +299,13 @@ describe('DailyPlanStore', () => {
 
 		await store.computeAdvice();
 
-		expect(store.adviceError).toBe(true);
-		expect(store.adviceBusy).toBe(false);
+		expect(store.hasAdviceError).toBe(true);
+		expect(store.isAdviceBusy).toBe(false);
 		expect(store.advice).toBeNull();
 
 		await store.computeAdvice();
 
-		expect(store.adviceError).toBe(false);
+		expect(store.hasAdviceError).toBe(false);
 		expect(store.advice).not.toBeNull();
 	});
 });

@@ -84,9 +84,9 @@
 		tags: ['autodocs'],
 		args: {
 			advice,
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 		},
 	});
@@ -106,7 +106,7 @@
 	name="Solving"
 	args={{
 		advice: null,
-		busy: true,
+		isBusy: true,
 	}}
 />
 
@@ -114,7 +114,7 @@
 <Story
 	name="Stale"
 	args={{
-		stale: true,
+		isStale: true,
 	}}
 />
 
@@ -122,7 +122,7 @@
 <Story
 	name="Error"
 	args={{
-		error: true,
+		hasError: true,
 	}}
 />
 

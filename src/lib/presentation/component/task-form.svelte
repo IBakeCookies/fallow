@@ -13,13 +13,13 @@
 		// Collapsed, the form is a single "+ Add Task" row so the task list
 		// stays above the fold; adding happens in bursts, so it stays open
 		// once expanded until collapsed again.
-		startOpen?: boolean;
+		isOpen?: boolean;
 	}
 
-	let { onsubmit, startOpen = true }: Props = $props();
+	let { onsubmit, isOpen = true }: Props = $props();
 
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
-	let open = $state(startOpen);
+	let open = $state(isOpen);
 
 	let draft = $state({
 		title: '',

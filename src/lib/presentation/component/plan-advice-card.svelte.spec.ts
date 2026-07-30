@@ -51,9 +51,9 @@ describe('plan-advice-card.svelte', () => {
 
 		render(PlanAdviceCard, {
 			advice: null,
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck,
 			onapply: () => {},
 		});
@@ -75,9 +75,9 @@ describe('plan-advice-card.svelte', () => {
 	it('blocks a second request while the search is running', async () => {
 		render(PlanAdviceCard, {
 			advice: null,
-			busy: true,
-			stale: false,
-			error: false,
+			isBusy: true,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});
@@ -96,9 +96,9 @@ describe('plan-advice-card.svelte', () => {
 	it('shows every option with its resulting reading and its cost', async () => {
 		render(PlanAdviceCard, {
 			advice: display,
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});
@@ -118,9 +118,9 @@ describe('plan-advice-card.svelte', () => {
 	it('carries every reading’s band in text as well as colour', async () => {
 		render(PlanAdviceCard, {
 			advice: display,
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});
@@ -133,9 +133,9 @@ describe('plan-advice-card.svelte', () => {
 	it('warns that the advice describes an older version of the day', async () => {
 		render(PlanAdviceCard, {
 			advice: display,
-			busy: false,
-			stale: true,
-			error: false,
+			isBusy: false,
+			isStale: true,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});
@@ -161,9 +161,9 @@ describe('plan-advice-card.svelte', () => {
 
 		render(PlanAdviceCard, {
 			advice: display,
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply,
 		});
@@ -195,9 +195,9 @@ describe('plan-advice-card.svelte', () => {
 				unfunded: UNFUNDED,
 				unfundedMustDo: UNFUNDED_MUST_DO,
 			},
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});
@@ -232,9 +232,9 @@ describe('plan-advice-card.svelte', () => {
 	])('never calls the day fine under $label', ({ text, advice }) => {
 		render(PlanAdviceCard, {
 			advice,
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});
@@ -250,9 +250,9 @@ describe('plan-advice-card.svelte', () => {
 				unfunded: null,
 				unfundedMustDo: null,
 			},
-			busy: false,
-			stale: false,
-			error: false,
+			isBusy: false,
+			isStale: false,
+			hasError: false,
 			oncheck: () => {},
 			onapply: () => {},
 		});

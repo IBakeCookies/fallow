@@ -348,6 +348,15 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 - Slot names and emitted events: `kebab-case`.
 - Functions: _imperative verb + object [+ from|to|by + target]_ —
   `getUser()`, `addItemToCart()`, `sortCompaniesByName()`.
+- **Booleans start with `is`, `has` or `with`** — `isOpen`, `hasUser`,
+  `withAutoLoad` — so the name reads as a claim and never as a command: a prop
+  called `open` or `fitted` says nothing about whether it asks a question or
+  performs an action, which is how a caller ends up passing the wrong thing.
+  `can` / `must` / `should` are the same shape where the modal is the accurate
+  verb (`canLogFlow`, `mustDoToday`). A component's own mount-time copy of such
+  a prop keeps the plain word (`isOpen` → `let open = $state(isOpen)`), so the
+  two never shadow each other. Existing names are a baseline, not a to-do list:
+  rename one when you touch it, in a change of its own.
 - Data-layer controllers start with `$` + a CRUD verb: `$createX`, `$readX`,
   `$updateX`, `$deleteX`. Inside `.svelte`/`.svelte.ts` the `$` prefix is
   reserved for runes, so import the repository as a namespace:
@@ -870,7 +879,7 @@ Each was considered and decided. Re-deciding them is churn.
   day but **946 ms for a 12-task one** (2026-07-27, before solve-once halved
   it — conclusion unchanged). In a `$derived` that is a frozen main thread on
   every keystroke in the budget field. `DailyPlanStore` therefore exposes
-  `computeAdvice()` plus `adviceStale`, and staleness compares a **fingerprint
+  `computeAdvice()` plus `isAdviceStale`, and staleness compares a **fingerprint
   of the inputs** — a `$derived` read from outside a reactive context is not
   guaranteed to return the same object twice, so identity reports staleness on
   a day that never changed.

@@ -72,8 +72,8 @@ export class DailyPlanStore {
 	#fingerprint = $derived(JSON.stringify(this.#input));
 
 	#advice = $state<PlanAdvice | null>(null);
-	#adviceBusy = $state(false);
-	#adviceError = $state(false);
+	#isAdviceBusy = $state(false);
+	#hasAdviceError = $state(false);
 	#adviceFor = $state<string | null>(null);
 
 	constructor(session: SessionStore, observations: EnergyObservationStore) {
@@ -89,17 +89,17 @@ export class DailyPlanStore {
 		return this.#advice;
 	}
 
-	get adviceBusy(): boolean {
-		return this.#adviceBusy;
+	get isAdviceBusy(): boolean {
+		return this.#isAdviceBusy;
 	}
 
 	/** The last check failed; the advice shown (if any) predates the failure. */
-	get adviceError(): boolean {
-		return this.#adviceError;
+	get hasAdviceError(): boolean {
+		return this.#hasAdviceError;
 	}
 
 	/** Advice exists but describes an older version of the day. */
-	get adviceStale(): boolean {
+	get isAdviceStale(): boolean {
 		return this.#advice !== null && this.#adviceFor !== this.#fingerprint;
 	}
 
@@ -109,10 +109,10 @@ export class DailyPlanStore {
 	 * the search lets the caller's busy state paint; the search itself blocks.
 	 */
 	async computeAdvice(): Promise<void> {
-		if (this.#adviceBusy) return;
+		if (this.#isAdviceBusy) return;
 
-		this.#adviceBusy = true;
-		this.#adviceError = false;
+		this.#isAdviceBusy = true;
+		this.#hasAdviceError = false;
 
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 0));
@@ -126,9 +126,9 @@ export class DailyPlanStore {
 			// The only caller is a fire-and-forget click handler; rethrowing would
 			// be an unhandled rejection, not a signal.
 			logError('Failed to compute plan advice', e);
-			this.#adviceError = true;
+			this.#hasAdviceError = true;
 		} finally {
-			this.#adviceBusy = false;
+			this.#isAdviceBusy = false;
 		}
 	}
 }
