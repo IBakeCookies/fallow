@@ -328,7 +328,7 @@
 	"energy_chart_aria": "Energy levels and output rate over the day",
 	"energy_legend_cognitive": "Cognitive energy",
 	"energy_legend_physical": "Physical energy",
-	"energy_legend_output": "Output rate",
+	"energy_legend_output": "Output rate (relative)",
 	"energy_tasks": "Tasks",
 	"energy_shared_note": "Shared with the main page",
 	"energy_drag_hint": "Drag a slider and watch the schedule above re-optimize. Edits save to today's session.",

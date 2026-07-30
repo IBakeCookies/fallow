@@ -53,7 +53,9 @@
 	{/snippet}
 </Story>
 
-<!-- Past 14 h the hour ticks step by 2 instead of 1 -->
+<!-- The hour ticks thin out to fit: one label per ~44px of plot, so a 16 h day
+     steps by 2 at this width -->
+
 <Story
 	name="Sixteen hour window"
 	args={{

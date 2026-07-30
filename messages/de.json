@@ -328,7 +328,7 @@
 	"energy_chart_aria": "Energieniveaus und Leistungsrate über den Tag",
 	"energy_legend_cognitive": "Kognitive Energie",
 	"energy_legend_physical": "Körperliche Energie",
-	"energy_legend_output": "Leistungsrate",
+	"energy_legend_output": "Leistungsrate (relativ)",
 	"energy_tasks": "Aufgaben",
 	"energy_shared_note": "Mit der Hauptseite geteilt",
 	"energy_drag_hint": "Bewege einen Regler und sieh zu, wie sich der Plan oben neu optimiert. Änderungen werden in der heutigen Sitzung gespeichert.",
