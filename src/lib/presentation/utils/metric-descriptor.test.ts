@@ -288,10 +288,38 @@ describe('buildMetrics', () => {
 	// banding on "easy > 0" called that day optimal.
 	it.each<[DailyMetrics['recoveryRatio'], string, Band]>([
 		[null, m.na_value(), 'neutral'],
-		[{ easy: 3, hard: 0 }, m.metric_no_strain(), 'neutral'],
-		[{ easy: 0, hard: 45 }, '0:45', 'warning'],
-		[{ easy: 1, hard: 30 }, '1:30', 'warning'],
-		[{ easy: 2, hard: 2 }, '2:2', 'success'],
+		[
+			{
+				easy: 3,
+				hard: 0,
+			},
+			m.metric_no_strain(),
+			'neutral',
+		],
+		[
+			{
+				easy: 0,
+				hard: 45,
+			},
+			'0:45',
+			'warning',
+		],
+		[
+			{
+				easy: 1,
+				hard: 30,
+			},
+			'1:30',
+			'warning',
+		],
+		[
+			{
+				easy: 2,
+				hard: 2,
+			},
+			'2:2',
+			'success',
+		],
 	])('reads a recovery ratio of %j as %s', (recoveryRatio, value, band) => {
 		const row = reading(
 			dailyMetrics({

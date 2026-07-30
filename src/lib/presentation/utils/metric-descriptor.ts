@@ -88,7 +88,10 @@ export function buildMetrics(
 		recoveryRatio === null
 			? notAvailable
 			: recoveryRatio.hard === 0
-				? { value: m.metric_no_strain(), band: 'neutral' }
+				? {
+						value: m.metric_no_strain(),
+						band: 'neutral',
+					}
 				: {
 						value: `${recoveryRatio.easy}:${recoveryRatio.hard}`,
 						band: recoveryRatio.easy >= recoveryRatio.hard ? 'success' : 'warning',
