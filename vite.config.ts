@@ -22,6 +22,17 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
 			},
 			adapter: adapter(),
+			paths: {
+				// `resolve()` returns a ROOT-relative path, not SvelteKit's default
+				// page-relative one. Two things break on `./`: the nav compares
+				// `resolve('/')` against `page.url.pathname` to mark the active
+				// section, which `'/' === './'` can never satisfy, and paraglide's
+				// `localizeHref('./')` resolves the dot against the current URL, so
+				// SSR emits an absolute href with no `/de` prefix on the German page.
+				// The app is served from the domain root — nothing needs portability
+				// across base paths, and the crawler files want root paths anyway.
+				relative: false,
+			},
 		}),
 		paraglideVitePlugin({
 			project: './project.inlang',

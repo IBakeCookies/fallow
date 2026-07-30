@@ -69,6 +69,17 @@ describe('nav.svelte', () => {
 		await expect.element(link).toHaveAttribute('title', 'Return to today');
 	});
 
+	it('shows the viewed date on a locale-prefixed path too', async () => {
+		mock.url = new URL('http://localhost/de/?date=2020-01-01');
+		render(Nav);
+
+		const link = page.getByRole('link', {
+			name: 'Viewing 1. Jan. — return to today',
+		});
+
+		await expect.element(link).toHaveAttribute('title', 'Return to today');
+	});
+
 	it('renders a language dropdown with the active locale checked', async () => {
 		render(Nav);
 
