@@ -84,6 +84,19 @@ export function getBandSmallerBetter(value: number): Band {
  * not two copies of the same thresholds). `satisfies` keeps it total over the
  * axes.
  */
+/**
+ * Which pool the day leans on, from the cognitive share. The word on the row
+ * and the colour behind it are the same call: two copies of `> 60 / < 40` drift
+ * into a day labelled "Balanced" and banded a warning.
+ */
+export function energyBalanceSkew(value: number): 'cognitive' | 'physical' | 'balanced' {
+	if (value > 60) return 'cognitive';
+
+	if (value < 40) return 'physical';
+
+	return 'balanced';
+}
+
 export const AXIS_BAND = {
 	burnoutRisk: (value: number) => getBandSmallerBetter(value),
 	humanCapacity: (value: number): Band =>
@@ -92,7 +105,8 @@ export const AXIS_BAND = {
 	// shaped.
 	cognitiveLoad: (value: number) => getBandSmallerBetter(value > 70 ? value : 0),
 	physicalLoad: (value: number) => getBandSmallerBetter(value > 70 ? value : 0),
-	energyBalance: (value: number): Band => (value > 60 || value < 40 ? 'warning' : 'success'),
+	energyBalance: (value: number): Band =>
+		energyBalanceSkew(value) === 'balanced' ? 'success' : 'warning',
 	frictionIndex: (value: number) => getBandSmallerBetter(value),
 	grindDensity: (value: number) => getBandSmallerBetter(value),
 	timeScarcity: (value: number) => getBandSmallerBetter(value),

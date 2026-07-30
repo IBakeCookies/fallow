@@ -142,6 +142,7 @@
 	"metric_flow_coverage_desc": "Tasks that reach flow state (allocated time ≥ ϕ). Low coverage means too many tasks for budget — drop tasks or add hours.",
 	"metric_human_capacity": "Human Capacity",
 	"metric_human_capacity_desc": "{type} limit ({hours}h/day, configurable in Time Budget). The allocator enforces these pools, so suggested plans stay ≤100% — this shows how much of your sustainable capacity the plan uses.",
+	"metric_human_capacity_desc_none": "How much of your sustainable capacity the plan uses. With no tasks yet, neither pool binds — add a task and this names the one that does (both are configurable in Time Budget).",
 	"metric_type_cognitive": "Cognitive",
 	"metric_type_physical": "Physical",
 	"metric_time_scarcity": "Time Scarcity",

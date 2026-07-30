@@ -1422,6 +1422,14 @@ completed tasks from the classic side only — both plans simulate the full
 intended day, so `outputVsClassic` is no longer biased toward the energy
 plan once anything is checked off.
 
+**The display gate belongs to the same family (2026-07-30).** Scoping the
+calculation is only half of it: `buildMetrics` withholds a reading whose
+inputs are missing, and gating a plan-scoped row on _active_ tasks blanks it
+to N/A the moment the last task is checked done — the red-0 defect above in a
+different colour. Flow Coverage, Task Variety and Grind Density were gated
+that way and now gate on the plan (tasks, plus a budget where a budget-0 plan
+reads degenerately). Only a next-up row may be gated on active tasks.
+
 ### 11.9 Overnight reservoir carry-over (2026-07-28)
 
 Burnout Risk (§11.6) simulated every day from full reservoirs — yesterday's

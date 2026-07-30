@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import * as m from '$lib/paraglide/messages.js';
-import { AXIS_BAND } from '$lib/presentation/utils/band';
+import { AXIS_BAND, type Band } from '$lib/presentation/utils/band';
 import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
 
 const pools = {
@@ -41,7 +41,7 @@ function dailyMetrics(overrides: Partial<DailyMetrics> = {}): DailyMetrics {
 			percent: 0,
 			limitType: 'none',
 		},
-		bottleneckTask: 'None Detected',
+		bottleneckTask: null,
 		timeScarcity: 0,
 		burnoutRisk: 0,
 		cognitiveLoad: 0,
@@ -56,7 +56,7 @@ function dailyMetrics(overrides: Partial<DailyMetrics> = {}): DailyMetrics {
 		taskVariety: 0,
 		grindDensity: 0,
 		rewardDensity: 0,
-		recoveryRatio: 'N/A',
+		recoveryRatio: null,
 		averagePhysicalDifficulty: 0,
 		averageMentalDifficulty: 0,
 		averageEnjoyment: 0,
@@ -104,6 +104,7 @@ describe('buildMetrics', () => {
 		m.metric_burnout_risk(),
 		m.metric_human_capacity(),
 		m.metric_friction_index(),
+		m.metric_flow_coverage(),
 	])('reads %s as N/A with tasks but no budget', (label) => {
 		const row = reading(
 			dailyMetrics({
@@ -125,11 +126,13 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe('neutral');
 	});
 
-	// The four gates are not interchangeable, and a swapped one is invisible on a
-	// day that satisfies all of them. A finished day is the case that separates
-	// them: tasks and a budget, but nothing left active, so anything measured over
-	// the remaining work is undefined again.
-	it('reads the remaining-work metrics as N/A once every task is done', () => {
+	// The gates are not interchangeable, and a swapped one is invisible on a day
+	// that satisfies all of them. A finished day is the case that separates them:
+	// tasks and a budget, but nothing left active. Only the next-up rows may go
+	// quiet — a plan-scoped reading has to survive its last task being checked
+	// off (MATH.md §11.8), which is the entire reason those metrics are computed
+	// over the full plan rather than the remaining one.
+	it('keeps the plan-scoped readings once every task is done, silencing only next-up', () => {
 		const finished = dailyMetrics({
 			totalTasks: 2,
 			completedTasks: 2,
@@ -137,27 +140,27 @@ describe('buildMetrics', () => {
 			activeTasks: activeTasks(0),
 			completionRate: 100,
 			flowCoverage: {
-				reached: 0,
-				total: 0,
+				reached: 2,
+				total: 2,
 			},
 			quickWins: 0,
-			taskVariety: 0,
-			grindDensity: 0,
+			taskVariety: 67,
+			grindDensity: 50,
 			yieldIndex: 90,
 		});
 
-		for (const label of [
-			m.metric_flow_coverage(),
-			m.metric_quick_wins(),
-			m.metric_task_variety(),
-			m.metric_grind_density(),
-		]) {
-			expect(reading(finished, label).value, label).toBe(m.na_value());
-		}
+		expect(reading(finished, m.metric_quick_wins()).value).toBe(m.na_value());
 
-		// The two that are about work already done still read.
-		expect(reading(finished, m.metric_completion_rate()).value).toBe('100%');
-		expect(reading(finished, m.metric_yield_index()).value).toBe('90%');
+		for (const [label, value] of [
+			[m.metric_flow_coverage(), '2/2'],
+			[m.metric_task_variety(), '67%'],
+			[m.metric_grind_density(), '50%'],
+			// And the two that are about the work already done.
+			[m.metric_completion_rate(), '100%'],
+			[m.metric_yield_index(), '90%'],
+		]) {
+			expect(reading(finished, label).value, label).toBe(value);
+		}
 	});
 
 	// Yield Index divides by completed work, so it needs a completion, not a task.
@@ -280,21 +283,25 @@ describe('buildMetrics', () => {
 		expect(physical.description).not.toContain(String(pools.cognitiveHours));
 	});
 
-	// "0:xx" is the ratio the model emits when a day funds no recovery at all.
-	it.each([
-		['No strain', 'neutral'],
-		['N/A', 'neutral'],
-		['0:45', 'warning'],
-		['1:30', 'success'],
-	])('bands a recovery ratio of %s as %s', (recoveryRatio, band) => {
-		expect(
-			reading(
-				dailyMetrics({
-					...plannedDay,
-					recoveryRatio,
-				}),
-				m.metric_recovery_ratio(),
-			).band,
-		).toBe(band);
+	// A day funds its own recovery only if the easy tasks hold their own against
+	// the hard ones. One easy task against thirty is not a recovery ratio, and
+	// banding on "easy > 0" called that day optimal.
+	it.each<[DailyMetrics['recoveryRatio'], string, Band]>([
+		[null, m.na_value(), 'neutral'],
+		[{ easy: 3, hard: 0 }, m.metric_no_strain(), 'neutral'],
+		[{ easy: 0, hard: 45 }, '0:45', 'warning'],
+		[{ easy: 1, hard: 30 }, '1:30', 'warning'],
+		[{ easy: 2, hard: 2 }, '2:2', 'success'],
+	])('reads a recovery ratio of %j as %s', (recoveryRatio, value, band) => {
+		const row = reading(
+			dailyMetrics({
+				...plannedDay,
+				recoveryRatio,
+			}),
+			m.metric_recovery_ratio(),
+		);
+
+		expect(row.value).toBe(value);
+		expect(row.band).toBe(band);
 	});
 });

@@ -142,6 +142,7 @@
 	"metric_flow_coverage_desc": "Aufgaben, die den Flow-Zustand erreichen (zugeteilte Zeit ≥ ϕ). Niedrige Abdeckung bedeutet zu viele Aufgaben fürs Budget — Aufgaben streichen oder Stunden erhöhen.",
 	"metric_human_capacity": "Menschliche Kapazität",
 	"metric_human_capacity_desc": "{type} Limit ({hours}h/Tag, im Zeitbudget konfigurierbar). Der Planer erzwingt diese Pools, Vorschläge bleiben also ≤100 % — hier siehst du, wie viel deiner nachhaltigen Kapazität der Plan nutzt.",
+	"metric_human_capacity_desc_none": "Wie viel deiner nachhaltigen Kapazität der Plan nutzt. Ohne Aufgaben bindet noch kein Pool — füge eine hinzu, dann steht hier der Pool, der begrenzt (beide im Zeitbudget konfigurierbar).",
 	"metric_type_cognitive": "Kognitives",
 	"metric_type_physical": "Körperliches",
 	"metric_time_scarcity": "Zeitknappheit",

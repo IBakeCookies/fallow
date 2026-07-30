@@ -328,7 +328,7 @@ export function calculateHumanCapacity(
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
 ): {
 	percent: number;
-	limitType: string;
+	limitType: 'cognitive' | 'physical' | 'none';
 } {
 	if (!tasks.length)
 		return {
@@ -374,9 +374,12 @@ export function calculateHumanCapacity(
  *
  * Uses mapped Zenith values for consistency with the productivity model.
  * Higher E/β means lower initial productivity (p₀ = β/E) and more draining.
+ *
+ * `null` when there is no task to blame — a sentinel title would collide with a
+ * task actually called that, and it is presentation's word to choose anyway.
  */
-export function calculateBottleneckTask(tasks: SuggestedTask[]): string {
-	if (!tasks.length) return 'None Detected';
+export function calculateBottleneckTask(tasks: SuggestedTask[]): string | null {
+	if (!tasks.length) return null;
 
 	return tasks.reduce((worst, current) => {
 		// Use Zenith mapped values (E/β) for consistency
@@ -836,17 +839,20 @@ export function calculateRewardDensity(tasks: SuggestedTask[], availableHours: n
 	return Math.round((sustainableHours / budget) * 100);
 }
 
-export function calculateRecoveryRatio(tasks: SuggestedTask[]): string {
-	if (!tasks.length) return 'N/A';
+/**
+ * Easy tasks against hard ones — the counts, not the sentence. `null` when
+ * there is nothing to count; `hard === 0` is a day with no strain to recover
+ * from. Wording and banding are presentation policy.
+ */
+export function calculateRecoveryRatio(
+	tasks: SuggestedTask[],
+): { easy: number; hard: number } | null {
+	if (!tasks.length) return null;
 
-	const hardTasks = tasks.filter((t) => getEffectiveDifficulty(t) >= 7).length;
-	const easyTasks = tasks.filter((t) => getEffectiveDifficulty(t) <= 4).length;
-
-	if (hardTasks === 0) return 'No strain';
-
-	if (easyTasks === 0 && hardTasks > 0) return `0:${hardTasks}`;
-
-	return `${easyTasks}:${hardTasks}`;
+	return {
+		easy: tasks.filter((t) => getEffectiveDifficulty(t) <= 4).length,
+		hard: tasks.filter((t) => getEffectiveDifficulty(t) >= 7).length,
+	};
 }
 
 export function calculateAveragePhysicalDifficulty(tasks: Task[]): number {

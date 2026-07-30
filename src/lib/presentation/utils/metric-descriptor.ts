@@ -10,15 +10,25 @@
  * A reading is gated on the inputs it needs: a metric that is undefined without
  * tasks, without active tasks or without a budget renders N/A, never 0. `gated`
  * is that policy, one argument wide, because the same three-line ternary spelled
- * out 20 times is how a missing gate hides. The two rows that carry their own
- * sentinel instead — the bottleneck and the recovery ratio — read it off the
- * string the model returns.
+ * out 20 times is how a missing gate hides. The two rows the model can answer
+ * with "nothing to report" — the bottleneck and the recovery ratio — say so in
+ * their own words instead.
+ *
+ * The gate has to match the metric's scope family (MATH.md §11.8): only a
+ * next-up reading may be gated on active tasks. Gating a plan-scoped one that
+ * way blanks it the moment the last task is checked done — the same defect as
+ * the red 0 that §11.8 rescoped these metrics to remove.
  */
 
 import type { Metric } from '$lib/presentation/type';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import * as m from '$lib/paraglide/messages.js';
-import { AXIS_BAND, getBandBiggerBetter, type Band } from '$lib/presentation/utils/band';
+import {
+	AXIS_BAND,
+	energyBalanceSkew,
+	getBandBiggerBetter,
+	type Band,
+} from '$lib/presentation/utils/band';
 
 type Reading = Pick<Metric, 'value' | 'band'>;
 
@@ -39,12 +49,9 @@ export function buildMetrics(
 				}
 			: notAvailable;
 
-	const hasTasks = metrics.totalTasks > 0;
-	const hasActive = metrics.activeTasks.length > 0;
-	const hasBudget = metrics.budgetHours > 0;
-	const planned = hasTasks && hasBudget;
-
 	const {
+		totalTasks,
+		completedTasks,
 		zenithGain,
 		yieldIndex,
 		completionRate,
@@ -70,6 +77,23 @@ export function buildMetrics(
 		averageEnjoyment,
 	} = metrics;
 
+	const hasTasks = totalTasks > 0;
+	const hasActive = metrics.activeTasks.length > 0;
+	const hasBudget = metrics.budgetHours > 0;
+	const planned = hasTasks && hasBudget;
+
+	// The ratio has to hold, not merely be non-zero: one easy task against thirty
+	// hard ones is not a day that funds its own recovery.
+	const recovery: Reading =
+		recoveryRatio === null
+			? notAvailable
+			: recoveryRatio.hard === 0
+				? { value: m.metric_no_strain(), band: 'neutral' }
+				: {
+						value: `${recoveryRatio.easy}:${recoveryRatio.hard}`,
+						band: recoveryRatio.easy >= recoveryRatio.hard ? 'success' : 'warning',
+					};
+
 	return [
 		{
 			headline: true,
@@ -88,7 +112,7 @@ export function buildMetrics(
 		{
 			label: m.metric_yield_index(),
 			description: m.metric_yield_index_desc(),
-			...gated(metrics.completedTasks > 0, `${yieldIndex}%`, getBandBiggerBetter(yieldIndex)),
+			...gated(completedTasks > 0, `${yieldIndex}%`, getBandBiggerBetter(yieldIndex)),
 		},
 		{
 			label: m.metric_completion_rate(),
@@ -99,14 +123,16 @@ export function buildMetrics(
 			...gated(
 				hasTasks,
 				`${completionRate}%`,
-				metrics.completedTasks > 0 ? getBandBiggerBetter(completionRate) : 'neutral',
+				completedTasks > 0 ? getBandBiggerBetter(completionRate) : 'neutral',
 			),
 		},
 		{
 			label: m.metric_flow_coverage(),
 			description: m.metric_flow_coverage_desc(),
+			// Plan-scoped (§11.8): "3/3 reached flow" is the answer a finished day
+			// earns, so this is gated on the plan, not on what is left of it.
 			...gated(
-				hasActive && hasBudget,
+				planned,
 				`${flowCoverage.reached}/${flowCoverage.total}`,
 				flowCoverage.reached === flowCoverage.total
 					? 'success'
@@ -118,13 +144,22 @@ export function buildMetrics(
 		{
 			headline: true,
 			label: m.metric_human_capacity(),
-			description: m.metric_human_capacity_desc({
-				type:
-					humanCapacity.limitType === 'cognitive'
-						? m.metric_type_cognitive()
-						: m.metric_type_physical(),
-				hours: humanCapacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours,
-			}),
+			// The description names the pool that binds, so it can only be written
+			// once one does: with no tasks the model reports no limit type, and
+			// naming a pool anyway describes a constraint that isn't there.
+			description:
+				humanCapacity.limitType === 'none'
+					? m.metric_human_capacity_desc_none()
+					: m.metric_human_capacity_desc({
+							type:
+								humanCapacity.limitType === 'cognitive'
+									? m.metric_type_cognitive()
+									: m.metric_type_physical(),
+							hours:
+								humanCapacity.limitType === 'cognitive'
+									? pools.cognitiveHours
+									: pools.physicalHours,
+						}),
 			// Finite as well as planned: a pool of 0 hours carrying demand saturates
 			// to Infinity (MATH.md §14), which renders literally as "Infinity%".
 			...gated(
@@ -145,8 +180,8 @@ export function buildMetrics(
 			headline: true,
 			label: m.metric_bottleneck(),
 			description: m.metric_bottleneck_desc(),
-			value: bottleneckTask === 'None Detected' ? m.metric_none_detected() : bottleneckTask,
-			band: bottleneckTask === 'None Detected' ? 'neutral' : 'warning',
+			value: bottleneckTask ?? m.metric_none_detected(),
+			band: bottleneckTask === null ? 'neutral' : 'warning',
 		},
 		{
 			section: true,
@@ -169,11 +204,11 @@ export function buildMetrics(
 			description: m.metric_energy_balance_desc(),
 			...gated(
 				planned,
-				energyBalance > 60
-					? m.metric_cognitive_heavy()
-					: energyBalance < 40
-						? m.metric_physical_heavy()
-						: m.metric_balanced(),
+				{
+					cognitive: m.metric_cognitive_heavy(),
+					physical: m.metric_physical_heavy(),
+					balanced: m.metric_balanced(),
+				}[energyBalanceSkew(energyBalance)],
 				AXIS_BAND.energyBalance(energyBalance),
 			),
 		},
@@ -204,13 +239,13 @@ export function buildMetrics(
 		{
 			label: m.metric_task_variety(),
 			description: m.metric_task_variety_desc(),
-			...gated(hasActive, `${taskVariety}%`, getBandBiggerBetter(taskVariety)),
+			...gated(hasTasks, `${taskVariety}%`, getBandBiggerBetter(taskVariety)),
 		},
 		{
 			section: true,
 			label: m.metric_grind_density(),
 			description: m.metric_grind_density_desc(),
-			...gated(hasActive, `${grindDensity}%`, AXIS_BAND.grindDensity(grindDensity)),
+			...gated(hasTasks, `${grindDensity}%`, AXIS_BAND.grindDensity(grindDensity)),
 		},
 		{
 			label: m.metric_sustainable_work(),
@@ -220,18 +255,7 @@ export function buildMetrics(
 		{
 			label: m.metric_recovery_ratio(),
 			description: m.metric_recovery_ratio_desc(),
-			value:
-				recoveryRatio === 'No strain'
-					? m.metric_no_strain()
-					: recoveryRatio === 'N/A'
-						? m.na_value()
-						: recoveryRatio,
-			band:
-				recoveryRatio === 'No strain' || recoveryRatio === 'N/A'
-					? 'neutral'
-					: recoveryRatio.startsWith('0:')
-						? 'warning'
-						: 'success',
+			...recovery,
 		},
 		{
 			label: m.metric_day_profile(),

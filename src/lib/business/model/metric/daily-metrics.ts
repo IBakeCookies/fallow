@@ -76,7 +76,7 @@ export interface DailyMetrics {
 	yieldIndex: number;
 	flowCoverage: { reached: number; total: number };
 	humanCapacity: ReturnType<typeof calculateHumanCapacity>;
-	bottleneckTask: string;
+	bottleneckTask: string | null;
 	timeScarcity: number;
 	burnoutRisk: number;
 	cognitiveLoad: number;
@@ -91,7 +91,7 @@ export interface DailyMetrics {
 	taskVariety: number;
 	grindDensity: number;
 	rewardDensity: number;
-	recoveryRatio: string;
+	recoveryRatio: { easy: number; hard: number } | null;
 	averagePhysicalDifficulty: number;
 	averageMentalDifficulty: number;
 	averageEnjoyment: number;
