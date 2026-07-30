@@ -1,4 +1,4 @@
-import { page } from 'vitest/browser';
+import { page, userEvent } from 'vitest/browser';
 import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import type { Task, DailySession, SavedRoutine } from '$lib/business/type';
@@ -114,7 +114,7 @@ describe('page-header.svelte', () => {
 		await expect.element(page.getByLabelText('Load from a day')).not.toBeInTheDocument();
 	});
 
-	it('shows a hint when the picked date has no tasks', async () => {
+	it('shows a hint when the picked date has no tasks, and forgets it on reopen', async () => {
 		const onimportdate = vi.fn(() => Promise.resolve(0));
 
 		render(PageHeader, {
@@ -132,6 +132,20 @@ describe('page-header.svelte', () => {
 		await page.getByLabelText('Load from a day').fill('2026-07-15');
 
 		await expect.element(page.getByText('No tasks on that day')).toBeInTheDocument();
+
+		// A closed menu holds no draft: the next open starts from an empty picker,
+		// not from last time's failed lookup.
+		await userEvent.keyboard('{Escape}');
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		await expect.element(page.getByLabelText('Load from a day')).toHaveValue('');
+		expect(page.getByText('No tasks on that day').elements()).toHaveLength(0);
 	});
 
 	it('offers "Return to Today" when viewing another date', async () => {
@@ -246,7 +260,7 @@ describe('page-header.svelte', () => {
 		await expect.element(page.getByText('Saved Routines')).toBeInTheDocument();
 
 		await page
-			.getByRole('button', {
+			.getByRole('menuitem', {
 				name: 'Morning (1)',
 			})
 			.click();
@@ -260,13 +274,146 @@ describe('page-header.svelte', () => {
 			.first()
 			.click();
 
+		// Deleting takes two presses — the first only arms it.
 		await page
-			.getByRole('button', {
+			.getByRole('menuitem', {
 				name: 'Delete routine Morning',
 			})
 			.click();
 
+		expect(ondeleteroutine).not.toHaveBeenCalled();
+
+		await page
+			.getByRole('menuitem', {
+				name: 'Delete Morning?',
+			})
+			.click();
+
 		expect(ondeleteroutine).toHaveBeenCalledExactlyOnceWith('r1');
+	});
+
+	it('backs out of an armed delete without closing the menu', async () => {
+		const ondeleteroutine = vi.fn();
+
+		render(PageHeader, {
+			...baseProps,
+			routines: [routine],
+			ondeleteroutine,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		await page
+			.getByRole('menuitem', {
+				name: 'Delete routine Morning',
+			})
+			.click();
+
+		await page
+			.getByRole('menuitem', {
+				name: 'Cancel',
+			})
+			.click();
+
+		expect(ondeleteroutine).not.toHaveBeenCalled();
+
+		// Still open, and back to offering the routine rather than the confirmation.
+		await expect
+			.element(
+				page.getByRole('menuitem', {
+					name: 'Delete routine Morning',
+				}),
+			)
+			.toBeInTheDocument();
+
+		expect(
+			page
+				.getByRole('menuitem', {
+					name: 'Cancel',
+				})
+				.elements(),
+		).toHaveLength(0);
+	});
+
+	it('imports a routine with the keyboard', async () => {
+		const onimport = vi.fn();
+
+		render(PageHeader, {
+			...baseProps,
+			routines: [routine],
+			onimport,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		// Focus the row and press Enter — which did nothing while the row was a
+		// button nested in a menu item, since bits-ui dispatches the selection key
+		// at the item. Focused directly rather than walked to with arrows: on open,
+		// bits-ui races its roving focus against the focus trap's first-tabbable,
+		// so where the first arrow starts from is not fixed.
+		page
+			.getByRole('menuitem', {
+				name: 'Morning (1)',
+			})
+			.element()
+			.focus();
+
+		await userEvent.keyboard('{Enter}');
+
+		expect(onimport).toHaveBeenCalledExactlyOnceWith(routine.tasks);
+	});
+
+	it('leaves typing in the date field to the date field', async () => {
+		render(PageHeader, {
+			...baseProps,
+			routines: [routine],
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		const dateField = page.getByLabelText('Load from a day').element();
+		dateField.focus();
+
+		// Unguarded, the menu reads any character as typeahead and would pull focus
+		// onto "Morning" mid-entry.
+		await userEvent.keyboard('m');
+
+		expect(document.activeElement).toBe(dateField);
+	});
+
+	it('drops the yesterday shortcut when the day on screen is not today', async () => {
+		render(PageHeader, {
+			...baseProps,
+			selectedDate: '2026-07-21',
+			yesterdaySession,
+		});
+
+		await page
+			.getByRole('button', {
+				name: 'Load',
+			})
+			.first()
+			.click();
+
+		// "Yesterday" is relative to today, so it would name the wrong day here.
+		expect(page.getByText(/Yesterday/).elements()).toHaveLength(0);
+
+		await expect.element(page.getByLabelText('Load from a day')).toBeInTheDocument();
 	});
 
 	it('saves the current tasks as a named routine', async () => {
@@ -289,10 +436,8 @@ describe('page-header.svelte', () => {
 
 		await page
 			.getByRole('button', {
-				name: 'Save',
-				exact: true,
+				name: 'Save routine',
 			})
-			.last()
 			.click();
 
 		expect(onsaveroutine).toHaveBeenCalledExactlyOnceWith('Deep work');
@@ -316,10 +461,8 @@ describe('page-header.svelte', () => {
 
 		await page
 			.getByRole('button', {
-				name: 'Save',
-				exact: true,
+				name: 'Save routine',
 			})
-			.last()
 			.click();
 
 		expect(onsaveroutine).not.toHaveBeenCalled();

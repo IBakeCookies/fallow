@@ -442,6 +442,20 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   and `/energy` open theirs on task completion and deliberately do NOT focus,
   so ticking tasks off with the keyboard cannot yank the caret into a number
   field.
+- **A `DropdownMenu.Item` never contains a focusable child, and an input inside
+  menu content stops the keys it needs.** Two separate bits-ui facts, both of
+  which shipped as mouse-only UI in the header's routine rows. First: the menu's
+  Tab handler `preventDefault`s and moves focus past the whole menu, so a
+  `<button>` nested in an item is unreachable, and Enter on the item dispatches
+  the click at the _item_ — an item with no `onclick` silently does nothing. A
+  row of two actions is therefore two sibling items inside a
+  `DropdownMenu.Group` (`role="group"` keeps the menu → menuitem ownership
+  valid), not one item with buttons in it. Second: the content's keydown handler
+  claims arrows/Home/End for roving focus and every single character for
+  typeahead **regardless of the event's target**, so an `<input>` in a menu must
+  `stopPropagation()` on the keys it owns — but never on Escape, whose listener
+  sits on `document`, nor on the arrow that is the only way out of the field
+  (menu content hands focus to its first tabbable on open, which is that input).
 - Storybook stories live **beside their component** (`*.stories.svelte`), one
   file per component or primitive group, rendered as smoke tests by the
   `storybook` vitest project. `.storybook/preview.ts` builds the theme toolbar

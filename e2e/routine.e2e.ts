@@ -8,8 +8,7 @@ import { AUTOSAVE_MS, addTask, isoDate } from './helpers';
 const ROUTINE_NAME = 'Morning block';
 
 async function saveRoutine(page: Page, name: string) {
-	// Only one "Save" button exists until the menu opens; submitting with Enter
-	// then avoids competing with the form's own submit button.
+	// "Save" exact is the trigger; the form's own button is "Save routine".
 	await page
 		.getByRole('button', {
 			name: 'Save',
@@ -48,7 +47,7 @@ test('a routine saved today loads onto another day', async ({ page }) => {
 	await expect(page.getByText('Saved Routines')).toBeVisible();
 
 	await page
-		.getByRole('button', {
+		.getByRole('menuitem', {
 			name: `${ROUTINE_NAME} (2)`,
 		})
 		.click();
@@ -69,9 +68,16 @@ test('a routine is deletable and stops being offered', async ({ page }) => {
 		})
 		.click();
 
+	// Two presses: the first only arms the delete, since it cannot be undone.
 	await page
-		.getByRole('button', {
+		.getByRole('menuitem', {
 			name: `Delete routine ${ROUTINE_NAME}`,
+		})
+		.click();
+
+	await page
+		.getByRole('menuitem', {
+			name: `Delete ${ROUTINE_NAME}?`,
 		})
 		.click();
 
