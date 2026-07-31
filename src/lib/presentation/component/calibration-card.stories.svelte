@@ -20,7 +20,7 @@
 >
 	{#snippet template(args)}
 		<div class="max-w-sm">
-			<CalibrationCard {...args}>
+			<CalibrationCard title={args.title} hint={args.hint}>
 				<div class="mt-text-sm space-y-text-xs">
 					<FitRow label="Cognitive Drain" value="0.42 ± 0.08 (n=7)" tone="mind" />
 					<FitRow label="Physical Drain" value="0.61 ± 0.11 (n=7)" tone="body" />
@@ -40,7 +40,7 @@
 >
 	{#snippet template(args)}
 		<div class="max-w-sm">
-			<CalibrationCard {...args}>
+			<CalibrationCard title={args.title} hint={args.hint}>
 				<p class="mt-text-sm text-xs text-ty-silent">
 					No finished days yet — the fit needs a day you stopped on purpose.
 				</p>
@@ -59,7 +59,7 @@
 >
 	{#snippet template(args)}
 		<div class="max-w-sm">
-			<CalibrationCard {...args}>
+			<CalibrationCard title={args.title} hint={args.hint}>
 				{#snippet action()}
 					<button type="button" class="shrink-0 text-xs text-info/90 hover:text-info-strong">
 						☕ Log a rest
