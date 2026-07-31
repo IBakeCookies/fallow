@@ -32,4 +32,24 @@ export const segmentedToggleVariants = tv({
 	},
 });
 
+/**
+ * The strip the buttons sit in. Its surface is per-tone and not decoration: a
+ * toggle sitting on the page needs `backdrop-blur` (STYLE.md — `surface-card`
+ * carries alpha in 35 of the 37 themes), while the `plan` one is nested inside an
+ * already-blurred card, where a second blur is a no-op over a fill that has to be
+ * a step off the card rather than the same `surface-card` again.
+ */
+export const segmentedToggleGroupVariants = tv({
+	base: 'rounded-lg border p-text-3xs',
+	variants: {
+		tone: {
+			segment: 'inline-flex items-center bg-surface-card backdrop-blur',
+			plan: 'flex bg-surface-page/40',
+		},
+	},
+	defaultVariants: {
+		tone: 'segment',
+	},
+});
+
 export type SegmentedToggleTone = VariantProps<typeof segmentedToggleVariants>['tone'];

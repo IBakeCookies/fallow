@@ -73,7 +73,7 @@ test('stats and chart come off the stored days', async ({ page }) => {
 		}),
 	).toBeVisible();
 
-	await expect(page.locator('svg path[fill="var(--brand)"]')).not.toHaveCount(0);
+	await expect(page.locator('svg path.fill-brand')).not.toHaveCount(0);
 
 	await expect(
 		page.getByRole('heading', {

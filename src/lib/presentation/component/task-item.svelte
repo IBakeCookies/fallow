@@ -15,6 +15,7 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { cn } from '$lib/presentation/utils';
 	import { natureBadge, type TaskNature } from '$lib/presentation/utils/task-nature';
+	import { formatDuration } from '$lib/presentation/utils/duration-format';
 	import {
 		completionPromptAction,
 		MEASUREMENT_FORM_CLASS,
@@ -174,20 +175,6 @@
 		loggingFlow = false;
 	}
 
-	function formatHours(decimalHour: number): string {
-		let hours = Math.floor(decimalHour);
-		let minutes = Math.round((decimalHour - hours) * 60);
-
-		if (minutes === 60) {
-			hours += 1;
-			minutes = 0;
-		}
-
-		if (hours === 0) return `${minutes}m`;
-
-		return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
-	}
-
 	const badge = $derived(natureBadge(nature));
 </script>
 
@@ -273,8 +260,8 @@
 						<Tooltip.Trigger class="cursor-help">
 							{m.task_derived_values({
 								effort: trueEffort.toFixed(1),
-								flow: formatHours(flowStateTime),
-								stop: formatHours(optimalStopHours),
+								flow: formatDuration(flowStateTime),
+								stop: formatDuration(optimalStopHours),
 							})}
 						</Tooltip.Trigger>
 						<Tooltip.Content>
@@ -301,7 +288,7 @@
 						     model is phrasing content only. -->
 						<Tooltip.Trigger class="cursor-help text-right">
 							<span class="block text-sm font-semibold text-ty-primary">
-								{formatHours(suggestedHours)}
+								{formatDuration(suggestedHours)}
 							</span>
 							<span class="block text-2xs text-ty-silent">
 								{m.task_priority({

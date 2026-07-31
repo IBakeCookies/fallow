@@ -462,6 +462,57 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(achieved).toBeCloseTo(brute, 9);
 		});
 
+		it('falls back to greedy forward selection past the exact-subset limit (13 tasks)', () => {
+			// n > EXACT_SUBSET_LIMIT (12) with a positive switch cost takes the
+			// greedy forward-selection path instead of subset enumeration. The
+			// heuristic's contract: a feasible plan that never falls below the best
+			// single-task plan (its own first admission round).
+			const switchCost = 0.25;
+			const budget = 8;
+			const tasks = Array.from({ length: 13 }, (_, i) => ({
+				title: `t${i}`,
+				difficulty: 1 + (i % 5) * 2,
+				enjoyment: 1 + ((i * 3) % 9),
+			}));
+
+			const allocations = calculateTaskAllocations(
+				tasks,
+				budget,
+				DEFAULT_USER_CONSTANTS,
+				switchCost,
+			);
+
+			const funded = allocations.filter((a) => a.allocatedHours > 0).length;
+			const totalHours = allocations.reduce((sum, a) => sum + a.allocatedHours, 0);
+			const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
+
+			expect(funded).toBeGreaterThan(1);
+			expect(totalHours + overhead).toBeLessThanOrEqual(budget + 1e-9);
+
+			const achieved = calculateTotalProductivity(
+				tasks,
+				allocations.map((a) => a.allocatedHours),
+				DEFAULT_USER_CONSTANTS,
+			);
+
+			const bestSingle = Math.max(
+				...tasks.map((task, i) => {
+					const single = calculateTaskAllocations(
+						[task],
+						budget,
+						DEFAULT_USER_CONSTANTS,
+						switchCost,
+					);
+					const hours = new Array<number>(tasks.length).fill(0);
+					hours[i] = single[0].allocatedHours;
+
+					return calculateTotalProductivity(tasks, hours, DEFAULT_USER_CONSTANTS);
+				}),
+			);
+
+			expect(achieved).toBeGreaterThanOrEqual(bestSingle - 1e-9);
+		});
+
 		it('keeps every task-intrinsic value at a zero budget (MATH.md §3)', () => {
 			// ϕ, T*, the peak height and P̄(T*) are functions of the task alone, so
 			// an empty plan must still report them — the metric layer's priority

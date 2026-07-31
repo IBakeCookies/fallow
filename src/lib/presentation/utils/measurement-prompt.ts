@@ -45,3 +45,13 @@ export const MEASUREMENT_FORM_CLASS =
 
 export const MEASUREMENT_MINUTES_CLASS =
 	'w-14 rounded-sm border border-flow/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-flow/60';
+
+/* The 0–10 rating fields are the same field in two paints — mind and body — and the
+   capacity is spelled into three classes each. Six copies of that pair had to be
+   kept in step by hand across the 🪫 editor (two) and the ☕ pre/post pairs (four).
+   Full literal strings and never `border-${channel}/30`: Tailwind's scanner cannot
+   see an interpolated class name, so the tinted variants would emit nothing. */
+export const RATING_INPUT_CLASS = {
+	mind: 'w-12 rounded-sm border border-mind/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-mind/60',
+	body: 'w-12 rounded-sm border border-body/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-body/60',
+} as const;

@@ -8,9 +8,8 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import * as m from '$lib/paraglide/messages.js';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
-	import { segmentedToggleVariants } from '$lib/presentation/component/segmented-toggle-variants';
+	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 	import { getDateLocale, getWeekStartsOn } from '$lib/presentation/utils/locale.svelte';
-	import { cn } from '$lib/presentation/utils';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import {
 		BAND_BAR_CLASS,
@@ -42,10 +41,18 @@
 		...WEEKDAY_LABELS.slice(0, weekStartsOn - 1),
 	]);
 	const VIEWS = ['month', 'week'] as const;
+	const viewLabelOf = (view: (typeof VIEWS)[number]) =>
+		view === 'month' ? m.cal_view_month() : m.cal_view_week();
 
 	let view = $state<'month' | 'week'>('month');
 	let anchor = $state(toISODate()); // any date inside the visible month/week
-	const viewLabel = $derived(view === 'month' ? m.cal_view_month() : m.cal_view_week());
+	const viewLabel = $derived(viewLabelOf(view));
+	const viewItems = $derived(
+		VIEWS.map((value) => ({
+			value,
+			label: viewLabelOf(value),
+		})),
+	);
 	let summaries = $state<Map<string, DaySummary>>(new Map());
 	let ready = $state(false);
 	let isLoading = $state(true);
@@ -182,23 +189,14 @@
 				{m.link_today()}
 			</Button>
 		{/if}
-		<div
-			class="ml-auto inline-flex items-center rounded-lg border bg-surface-card p-text-3xs backdrop-blur"
-		>
-			{#each VIEWS as v (v)}
-				<button
-					onclick={() => (view = v)}
-					class={cn(
-						segmentedToggleVariants({
-							active: view === v,
-						}),
-						'capitalize',
-					)}
-				>
-					{v === 'month' ? m.cal_view_month() : m.cal_view_week()}
-				</button>
-			{/each}
-		</div>
+		<SegmentedToggle
+			items={viewItems}
+			value={view}
+			onchange={(next) => (view = next)}
+			label={m.cal_view_group()}
+			class="ml-auto"
+			itemClass="capitalize"
+		/>
 
 		<div class="flex items-center gap-grid-2xs">
 			<Button

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	calculateSuggestedTasks,
+	calculateDailyQuadrant,
 	calculateFrictionIndex,
 	calculateBurnoutRisk,
 	calculateScheduleIntegrity,
@@ -65,6 +66,23 @@ describe('getTaskNature', () => {
 				physicalDifficulty,
 			}),
 		).toBe(nature);
+	});
+});
+
+describe('calculateDailyQuadrant', () => {
+	// 5.5 splits both axes; effective difficulty is the dominant dimension
+	// plus 0.3 × the secondary one.
+	it.each([
+		[8, 8, 'flow'],
+		[8, 3, 'grind'],
+		[3, 8, 'cruise'],
+		[3, 3, 'routine'],
+	] as const)('difficulty %s / enjoyment %s is %s', (mentalDifficulty, enjoyment, quadrant) => {
+		expect(
+			calculateDailyQuadrant([
+				makeTask({ id: 1, title: 'a', mentalDifficulty, physicalDifficulty: 0, enjoyment }),
+			]),
+		).toBe(quadrant);
 	});
 });
 

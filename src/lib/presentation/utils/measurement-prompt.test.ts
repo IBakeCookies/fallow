@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { completionPromptAction } from '$lib/presentation/utils/measurement-prompt';
+import {
+	completionPromptAction,
+	RATING_INPUT_CLASS,
+} from '$lib/presentation/utils/measurement-prompt';
 
 const base = {
 	finishing: true,
@@ -71,5 +74,16 @@ describe('completionPromptAction', () => {
 				promptOpenForThisTask: false,
 			}),
 		).toBe('none');
+	});
+});
+
+describe('RATING_INPUT_CLASS', () => {
+	// Mind and body are one field in two paints, six copies of it before this record.
+	// Anything that changes in one and not the other — a width, a focus ring — is the
+	// drift the record exists to stop, and it is invisible on a page showing both.
+	it('spells both channels identically apart from the capacity token', () => {
+		expect(RATING_INPUT_CLASS.mind.replaceAll('mind', 'CAPACITY')).toBe(
+			RATING_INPUT_CLASS.body.replaceAll('body', 'CAPACITY'),
+		);
 	});
 });

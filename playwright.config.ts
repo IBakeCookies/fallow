@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const serverTimeout = 30 * 1000;
+const serverTimeout = 60 * 1000;
 const testTimeout = 60 * 1000;
 // Absolute: Playwright resolves `outputDir` against this file's directory but
 // a reporter's `outputFolder` against the test root, so a relative path wrote
