@@ -80,7 +80,13 @@ describe('calculateDailyQuadrant', () => {
 	] as const)('difficulty %s / enjoyment %s is %s', (mentalDifficulty, enjoyment, quadrant) => {
 		expect(
 			calculateDailyQuadrant([
-				makeTask({ id: 1, title: 'a', mentalDifficulty, physicalDifficulty: 0, enjoyment }),
+				makeTask({
+					id: 1,
+					title: 'a',
+					mentalDifficulty,
+					physicalDifficulty: 0,
+					enjoyment,
+				}),
 			]),
 		).toBe(quadrant);
 	});

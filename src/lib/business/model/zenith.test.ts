@@ -469,11 +469,17 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// single-task plan (its own first admission round).
 			const switchCost = 0.25;
 			const budget = 8;
-			const tasks = Array.from({ length: 13 }, (_, i) => ({
-				title: `t${i}`,
-				difficulty: 1 + (i % 5) * 2,
-				enjoyment: 1 + ((i * 3) % 9),
-			}));
+
+			const tasks = Array.from(
+				{
+					length: 13,
+				},
+				(_, i) => ({
+					title: `t${i}`,
+					difficulty: 1 + (i % 5) * 2,
+					enjoyment: 1 + ((i * 3) % 9),
+				}),
+			);
 
 			const allocations = calculateTaskAllocations(
 				tasks,
@@ -503,6 +509,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 						DEFAULT_USER_CONSTANTS,
 						switchCost,
 					);
+
 					const hours = new Array<number>(tasks.length).fill(0);
 					hours[i] = single[0].allocatedHours;
 

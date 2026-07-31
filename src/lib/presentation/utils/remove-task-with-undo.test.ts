@@ -21,6 +21,7 @@ beforeEach(() => {
 describe('removeTaskWithUndo', () => {
 	it('deletes through the store and hands its undo to the toast', () => {
 		const undo = vi.fn();
+
 		const session = sessionRemoving({
 			task: {
 				title: 'Boxing training',
@@ -31,6 +32,7 @@ describe('removeTaskWithUndo', () => {
 		removeTaskWithUndo(session, 7);
 
 		expect(session.removeTask).toHaveBeenCalledExactlyOnceWith(7);
+
 		// The exact resolved copy: the toast text is what tells the user there is
 		// anything to undo, so a broken interpolation is a silent delete.
 		expect(showUndoToast).toHaveBeenCalledExactlyOnceWith(

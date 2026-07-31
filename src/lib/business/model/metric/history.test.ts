@@ -73,18 +73,24 @@ function completionRateViaFullPlan(session: DailySession, posterior?: FitPosteri
 describe('summarizeSession', () => {
 	// 32 full-plan solves under always-on coverage instrumentation run ~5s on a
 	// loaded suite — the default 5s timeout is too tight, the grid is the point.
-	it('reports the same completion rate as solving the full day plan', { timeout: 20_000 }, () => {
-		for (const taskCount of [1, 3, 8, 12]) {
-			for (const hours of [0, 2, 8, 24]) {
-				const session = makeSession(taskCount, hours);
-				expect(summarizeSession(session).completionRate).toBe(completionRateViaFullPlan(session));
+	it(
+		'reports the same completion rate as solving the full day plan',
+		{
+			timeout: 20_000,
+		},
+		() => {
+			for (const taskCount of [1, 3, 8, 12]) {
+				for (const hours of [0, 2, 8, 24]) {
+					const session = makeSession(taskCount, hours);
+					expect(summarizeSession(session).completionRate).toBe(completionRateViaFullPlan(session));
 
-				expect(summarizeSession(session, DEFAULT_USER_CONSTANTS, POSTERIOR).completionRate).toBe(
-					completionRateViaFullPlan(session, POSTERIOR),
-				);
+					expect(summarizeSession(session, DEFAULT_USER_CONSTANTS, POSTERIOR).completionRate).toBe(
+						completionRateViaFullPlan(session, POSTERIOR),
+					);
+				}
 			}
-		}
-	});
+		},
+	);
 
 	it('scores a day with no stored hours by the tasks own intrinsic priorities', () => {
 		// availableHours 0 — never entered, or a day written by moveTaskToTomorrow
