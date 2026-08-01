@@ -3,6 +3,7 @@ import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { sequence } from '@sveltejs/kit/hooks';
 import { readRequestAppearance } from '$lib/business/appearance';
+import { DEFAULT_DARK_THEME, DEFAULT_THEME, getClassesToAdd } from '$lib/business/model/theme';
 
 const handleParaglide: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -16,11 +17,21 @@ const handleParaglide: Handle = ({ event, resolve }) =>
 		});
 	});
 
+// app.html's pre-paint script swaps the default theme's classes for the dark
+// default's; injecting them as JS array literals keeps the catalogue in
+// business/model/theme.ts the single source of both.
+const defaultThemeClasses = JSON.stringify(getClassesToAdd(DEFAULT_THEME));
+const defaultDarkThemeClasses = JSON.stringify(getClassesToAdd(DEFAULT_DARK_THEME));
+
 const handleTheme: Handle = async ({ event, resolve }) => {
 	const { themeClass } = readRequestAppearance(event.cookies);
 
 	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%theme%', themeClass),
+		transformPageChunk: ({ html }) =>
+			html
+				.replace('%theme%', themeClass)
+				.replace('%theme.default%', defaultThemeClasses)
+				.replace('%theme.default-dark%', defaultDarkThemeClasses),
 	});
 
 	return response;

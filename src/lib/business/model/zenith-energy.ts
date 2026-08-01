@@ -214,14 +214,16 @@ interface TaskCurve {
 	 * so satiety auto-scales with how much a good session on this task yields.
 	 */
 	refOutput: number;
+	/** This task's reservoir laws under the params the curves were built with. */
+	lawC: ReservoirLaw;
+	lawP: ReservoirLaw;
 }
 
 /**
- * Pure in (tasks, constants, params), but rebuilt on every evaluateSchedule
- * call — including the refOutput quadrature per task — and the optimizer
- * evaluates thousands of candidates per search. Caching curves across a search
- * is the known ~2× perf win if optimize time ever matters (param sweeps,
- * longer windows); at ~55ms for 3 tasks/8h it deliberately hasn't been taken.
+ * Pure in (tasks, constants, params). Built once per search or fit and
+ * threaded through every evaluation (`evaluateWithCurves`) — the refOutput
+ * quadrature per task made per-evaluation rebuilds the dominant optimizer
+ * cost (hoisting measured 2.6× on a 4-task/8h optimizeSchedule, 104 → 40 ms).
  */
 function buildCurves(
 	tasks: EnergyTaskInput[],
@@ -229,11 +231,15 @@ function buildCurves(
 	params: EnergyParams,
 ): Map<number, TaskCurve> {
 	const curves = new Map<number, TaskCurve>();
+	const m = params.restRecoveryMultiplier;
+	const b = params.microRecoveryFraction;
 
 	for (const task of tasks) {
 		const E = mapEffort(task.difficulty);
 		const beta = mapEnjoyability(task.enjoyment);
 		const phi = calculateFlowStateTime(E, beta, constants);
+		const wc = clamp01(task.cognitiveDemand);
+		const wp = clamp01(task.physicalDemand);
 
 		const curve: TaskCurve = {
 			id: task.id,
@@ -241,20 +247,19 @@ function buildCurves(
 			amp: E * beta + beta / E,
 			k: 1 / phi,
 			phi,
-			wc: clamp01(task.cognitiveDemand),
-			wp: clamp01(task.physicalDemand),
+			wc,
+			wp,
 			refOutput: 0,
+			lawC: reservoirLaw(wc, params.alphaCog, params.recoveryRate, m, b),
+			lawP: reservoirLaw(wp, params.alphaPhys, params.recoveryRate, m, b),
 		};
-
-		const m = params.restRecoveryMultiplier;
-		const b = params.microRecoveryFraction;
 
 		curve.refOutput = blockOutput(
 			curve,
 			1,
 			1,
-			reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m, b),
-			reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m, b),
+			curve.lawC,
+			curve.lawP,
 			OPTIMAL_PHI_MULTIPLIER * phi,
 		);
 
@@ -477,8 +482,20 @@ export function evaluateSchedule(
 	params: EnergyParams = DEFAULT_ENERGY_PARAMS,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): ScheduleEvaluation {
-	const curves = buildCurves(tasks, constants, params);
+	return evaluateWithCurves(blocksIn, buildCurves(tasks, constants, params), windowHours, params);
+}
 
+/**
+ * The hot path: `evaluateSchedule` with prebuilt curves, so a caller that
+ * evaluates many candidates under the same (tasks, constants, params) — the
+ * optimizer, the stopping fit — pays for `buildCurves` once.
+ */
+function evaluateWithCurves(
+	blocksIn: ScheduleBlock[],
+	curves: Map<number, TaskCurve>,
+	windowHours: number,
+	params: EnergyParams,
+): ScheduleEvaluation {
 	const blocks = normalizeSchedule(blocksIn, windowHours).filter(
 		(b) => b.taskId === null || curves.has(b.taskId),
 	);
@@ -516,10 +533,8 @@ export function evaluateSchedule(
 			});
 		} else {
 			const curve = curves.get(b.taskId)!;
-			const lawC = reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m, bMicro);
-			const lawP = reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m, bMicro);
 			const sStart = resumePhase(phase.get(b.taskId), t, params.resumptionTimeConstant);
-			const output = blockOutput(curve, cog, phys, lawC, lawP, b.hours, sStart);
+			const output = blockOutput(curve, cog, phys, curve.lawC, curve.lawP, b.hours, sStart);
 
 			phase.set(b.taskId, {
 				sEnd: sStart + b.hours,
@@ -529,8 +544,8 @@ export function evaluateSchedule(
 			outputByTask.set(b.taskId, (outputByTask.get(b.taskId) ?? 0) + output);
 			totalOutput += output;
 			workHours += b.hours;
-			cog = reservoirAt(cog, lawC, b.hours);
-			phys = reservoirAt(phys, lawP, b.hours);
+			cog = reservoirAt(cog, curve.lawC, b.hours);
+			phys = reservoirAt(phys, curve.lawP, b.hours);
 
 			evaluated.push({
 				taskId: b.taskId,
@@ -654,13 +669,7 @@ export function sampleTrajectory(
 				tEnd: t + b.hours,
 			});
 
-			sampleSegment(
-				b.hours,
-				curve,
-				reservoirLaw(curve.wc, params.alphaCog, params.recoveryRate, m, bMicro),
-				reservoirLaw(curve.wp, params.alphaPhys, params.recoveryRate, m, bMicro),
-				sStart,
-			);
+			sampleSegment(b.hours, curve, curve.lawC, curve.lawP, sStart);
 		}
 	}
 
@@ -727,7 +736,9 @@ export function optimizeSchedule(
 ): OptimizeResult {
 	const step = options.stepHours ?? DEFAULT_STEP_HOURS;
 	const maxIterations = options.maxIterations ?? 300;
-	const emptyEval = evaluateSchedule([], tasks, windowHours, params, constants);
+	// One curve build for the whole search — every candidate evaluation reuses it.
+	const curves = buildCurves(tasks, constants, params);
+	const emptyEval = evaluateWithCurves([], curves, windowHours, params);
 
 	if (windowHours <= 0 || tasks.length === 0) {
 		return {
@@ -739,14 +750,8 @@ export function optimizeSchedule(
 	// T* per task, snapped to the lattice, for the full-session insert move.
 	const sessionHours = new Map<number, number>();
 
-	for (const task of tasks) {
-		const phi = calculateFlowStateTime(
-			mapEffort(task.difficulty),
-			mapEnjoyability(task.enjoyment),
-			constants,
-		);
-
-		sessionHours.set(task.id, snapToStep(OPTIMAL_PHI_MULTIPLIER * phi, step));
+	for (const curve of curves.values()) {
+		sessionHours.set(curve.id, snapToStep(OPTIMAL_PHI_MULTIPLIER * curve.phi, step));
 	}
 
 	let best: ScheduleBlock[] = [];
@@ -756,9 +761,9 @@ export function optimizeSchedule(
 		const result = localSearch(
 			seed,
 			tasks,
+			curves,
 			windowHours,
 			params,
-			constants,
 			step,
 			maxIterations,
 			sessionHours,
@@ -873,21 +878,21 @@ function buildSeeds(
 function localSearch(
 	seed: ScheduleBlock[],
 	tasks: EnergyTaskInput[],
+	curves: Map<number, TaskCurve>,
 	windowHours: number,
 	params: EnergyParams,
-	constants: UserConstants,
 	step: number,
 	maxIterations: number,
 	sessionHours: Map<number, number>,
 ): OptimizeResult {
 	let current = normalizeSchedule(seed, windowHours);
-	let currentEval = evaluateSchedule(current, tasks, windowHours, params, constants);
+	let currentEval = evaluateWithCurves(current, curves, windowHours, params);
 
 	for (let iter = 0; iter < maxIterations; iter++) {
 		let improved: { blocks: ScheduleBlock[]; evaluation: ScheduleEvaluation } | null = null;
 
 		for (const candidate of neighbors(current, tasks, windowHours, step, sessionHours)) {
-			const evaluation = evaluateSchedule(candidate, tasks, windowHours, params, constants);
+			const evaluation = evaluateWithCurves(candidate, curves, windowHours, params);
 
 			if (evaluation.objective > (improved?.evaluation.objective ?? currentEval.objective) + 1e-9) {
 				improved = {
@@ -1610,9 +1615,10 @@ export function stopIndifferencePoint(
 		}));
 
 	const total = sched.reduce((sum, b) => sum + b.hours, 0);
+	const curves = buildCurves(tasks, constants, params);
 
 	const workValue = (blocks: ScheduleBlock[]): number => {
-		const ev = evaluateSchedule(blocks, tasks, windowHours, params, constants);
+		const ev = evaluateWithCurves(blocks, curves, windowHours, params);
 
 		return ev.satiatedOutput + ev.terminalBonus;
 	};

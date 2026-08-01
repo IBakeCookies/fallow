@@ -62,14 +62,18 @@ test('the week view reslices the same range', async ({ page }) => {
 		})
 		.click();
 
-	// Week cells carry the per-day detail the month cells drop.
-	await expect(page.getByText('Nothing planned').first()).toBeVisible();
-
-	await expect(
-		page.getByRole('button', {
+	// Week cells carry the per-day detail the month cells drop. Paged one week
+	// forward so every cell is a future day: empty cells read "Nothing planned"
+	// only for future days ("No tasks" for past ones), so the current week's
+	// wording depends on which weekday the test runs on — on a Saturday it has
+	// no future day at all.
+	await page
+		.getByRole('button', {
 			name: 'Next week',
-		}),
-	).toBeVisible();
+		})
+		.click();
+
+	await expect(page.getByText('Nothing planned').first()).toBeVisible();
 });
 
 test('paging away from the seeded month empties the grid, and Today returns', async ({ page }) => {

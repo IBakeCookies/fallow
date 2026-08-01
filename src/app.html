@@ -25,9 +25,11 @@
 				matchMedia('(prefers-color-scheme: dark)').matches
 			) {
 				// swap only the classes this script owns: assigning className would
-				// wipe the scenery-paused class hooks.server.ts already stamped
-				document.documentElement.classList.remove('fallow');
-				document.documentElement.classList.add('dark');
+				// wipe the scenery-paused class hooks.server.ts already stamped.
+				// hooks.server.ts fills both placeholders from the theme catalogue,
+				// so a default-theme change no longer needs a hand edit here.
+				document.documentElement.classList.remove(...%theme.default%);
+				document.documentElement.classList.add(...%theme.default-dark%);
 			}
 
 			if (

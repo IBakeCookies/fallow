@@ -1216,6 +1216,20 @@ contradict older commit messages or comments, this log is the current truth.
    N/A with no band, where the row used to print `Infinity%` and the card used
    to colour "N/A" critical. Display only — the model's ordering is unchanged.
 
+### 2026-08-01 — §14's "next lever" pointed at the wrong path
+
+1. **`buildCurves` caching never applied to advice.** §14's cost note claimed
+   caching `buildCurves` was "the next lever if this ever has to be
+   interactive" — but no advice candidate calls it: the solves are
+   classic-model (`calculateDailyMetrics`) and Burnout Risk enters through
+   `simulateReservoirs`, which is deliberately curve-free (§11.6). The cache
+   was built the same day where the function does run — `optimizeSchedule`
+   and the §8.10 stopping fit now build one curve map per search/fit and
+   thread it through every evaluation (`evaluateWithCurves`; task reservoir
+   laws ride along on the curve). Identical arithmetic per evaluation, so no
+   formula, constant or plan changed — measured 2.6× on a 4-task/8h solve
+   (104 → 40 ms).
+
 ## 11. Metric-layer corrections (2026-07-18)
 
 ### 11.1 Scope and principle
@@ -1890,8 +1904,12 @@ the row above (different task mix). Nothing the gain reports changed: §13.2's
 naive baseline is derived from the task list, not from the allocation, and the
 optimized side is the same Σ P̄ over the same hours — but only because they are
 passed in the tasks' own order, since `calculateTotalProductivity` pairs hours to
-tasks by index. Caching `buildCurves` (AGENTS.md §5) is the next lever if this
-ever has to be interactive.
+tasks by index. (An earlier revision named caching `buildCurves` as the next
+lever here — wrong path: no advice candidate ever calls it, the solves are
+classic-model and Burnout Risk's `simulateReservoirs` is deliberately
+curve-free. The cache exists since 2026-08-01 where the function does run:
+`optimizeSchedule` and the §8.10 stopping fit build one curve map and thread
+it through every evaluation. See §10.)
 
 **Deliberate approximations.**
 

@@ -915,8 +915,10 @@ Each was considered and decided. Re-deciding them is churn.
   card has no Apply for `set-budget`, so there is nothing to align the hours
   to — the descriptor rounds the **label**, never the lever.
 
-- **`buildCurves` is not cached.** Known perf headroom, a deliberate non-fix
-  at current plan sizes.
+- **`buildCurves` is built once per search or fit** (2026-08-01): the
+  optimizer and the stopping fit thread one curve map through every
+  evaluation (`evaluateWithCurves`); public `evaluateSchedule` still builds
+  its own. Hoisting measured 2.6× (104 → 40 ms on a 4-task/8h solve).
 - **Human Capacity is unclamped** — it is allowed to read over 100%.
 - The productivity curve deviates from the source article on purpose
   (MATH.md §6).
@@ -938,6 +940,14 @@ Each was considered and decided. Re-deciding them is churn.
   (`ThemeStore` reconciles theme and scenery motion at hydration, not the
   seed), so a cold-loaded prerendered page renders different scenery from the
   rest of the session. Two trivial CDN renders do not pay for that.
+
+- **`app.html`'s inline pre-paint script no longer hardcodes theme names**
+  (2026-08-01): `hooks.server.ts` fills the `%theme.default%` /
+  `%theme.default-dark%` placeholders with JS array literals from the
+  catalogue in `business/model/theme.ts`, so a default-theme change is a
+  one-place edit again. The script still only swaps the classes it owns
+  (assigning `className` would wipe the server-stamped scenery-paused class).
+  Pinned by the `dark-preferring first visit` e2e.
 
 - **`sitemap.xml` and `robots.txt` prerender only when `PUBLIC_SITE_URL` is
   set** (`export const prerender = Boolean(env.PUBLIC_SITE_URL)`). Both must
@@ -987,12 +997,6 @@ Each was considered and decided. Re-deciding them is churn.
   day on screen — an arbitrary-date move would have to answer that (YAGNI).
   The advice reading itself stays a counterfactual (MATH.md §14): the model
   prices "off today", only the button commits to a destination.
-- `app.html`'s inline pre-paint script hardcodes **two** theme names: it
-  removes `DEFAULT_THEME`'s class and adds `DEFAULT_DARK_THEME`'s (it no
-  longer assigns `className`, which used to wipe the server-stamped
-  scenery-paused class). It is the one place the catalogue in
-  `business/model/theme.ts` cannot reach, so both must be updated by hand if
-  either default changes.
 - The service worker caches page HTML that is **per-cookie personalised**. It
   is bounded and its failures are no longer silent, and `ThemeStore` repairs
   theme and scenery motion at hydration — but the locale and the SSR'd seed

@@ -142,3 +142,22 @@ test('theme picked at runtime survives a language switch', async ({ page }) => {
 	await expect(html).toHaveClass(/terminal/);
 	await expect(html).not.toHaveClass(/glass-dark/);
 });
+
+/* First visit (no theme cookie) on a dark-preferring OS: app.html's pre-paint
+   script must swap the SSR-stamped default theme's classes for the dark
+   default's before first paint. Pins the script end-to-end — if the classes it
+   swaps ever drift from the catalogue (or a placeholder goes unreplaced and
+   the script throws), the page stays on the light default. */
+test.describe('dark-preferring first visit', () => {
+	test.use({
+		colorScheme: 'dark',
+	});
+
+	test('gets the dark default theme, not the light one', async ({ page }) => {
+		await page.goto('/');
+		const html = page.locator('html');
+
+		await expect(html).toHaveClass(/dark/);
+		await expect(html).not.toHaveClass(/fallow/);
+	});
+});
