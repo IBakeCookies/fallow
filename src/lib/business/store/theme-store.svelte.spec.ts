@@ -26,7 +26,11 @@ const storeCookie = (appearance: Partial<appearanceRepository.StoredAppearance>)
 		...appearance,
 	});
 
-function mount(props: { initialTheme?: ThemeName; initialSceneryPaused?: boolean }): ThemeStore {
+function mount(props: {
+	initialTheme?: ThemeName;
+	initialScenerySeed?: number;
+	initialSceneryPaused?: boolean;
+}): ThemeStore {
 	let store!: ThemeStore;
 
 	render(Harness, {
@@ -84,6 +88,26 @@ describe('ThemeStore appearance reconciliation', () => {
 				initialSceneryPaused: true,
 			}).sceneryPaused,
 		).toBe(true);
+	});
+
+	it('lets the cookie override a stale SSR scenery seed once mounted', () => {
+		storeCookie({
+			scenerySeed: 42,
+		});
+
+		expect(
+			mount({
+				initialScenerySeed: 7,
+			}).scenerySeed,
+		).toBe(42);
+	});
+
+	it('keeps the SSR seed when no cookie records one', () => {
+		expect(
+			mount({
+				initialScenerySeed: 7,
+			}).scenerySeed,
+		).toBe(7);
 	});
 
 	it('falls back to the SSR theme when the cookie names a deleted theme', () => {

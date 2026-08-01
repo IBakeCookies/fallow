@@ -6,13 +6,15 @@
 	let {
 		onstore,
 		initialTheme,
+		initialScenerySeed,
 		initialSceneryPaused,
 	}: {
 		onstore: (store: ThemeStore) => void;
 		initialTheme?: ThemeName;
+		initialScenerySeed?: number;
 		initialSceneryPaused?: boolean;
 	} = $props();
 
 	// svelte-ignore state_referenced_locally -- deliberate one-shot handoff
-	onstore(new ThemeStore(initialTheme, 0, initialSceneryPaused));
+	onstore(new ThemeStore(initialTheme, initialScenerySeed ?? 0, initialSceneryPaused));
 </script>

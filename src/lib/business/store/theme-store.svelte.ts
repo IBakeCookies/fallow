@@ -52,13 +52,22 @@ export class ThemeStore {
 	) {
 		// offline, the SW serves cached HTML whose serialized appearance may be
 		// stale — the cookies are the source of truth, so they win over the SSR
-		// payload for both theme and motion. (The seed deliberately isn't
-		// reconciled: re-seeding mid-session would shift the scenery.)
+		// payload for theme, motion and seed alike.
 		const stored = browser ? appearanceRepository.$readAppearance() : undefined;
 		const sceneryPaused = stored?.sceneryPaused ?? initialSceneryPaused;
 
 		this.#scenerySeed = initialScenerySeed ?? 0;
 		this.#sceneryPaused = sceneryPaused ?? false;
+
+		// The seed repair waits for mount: hydration never re-patches the SSR'd
+		// style attribute (see +layout.svelte's scenery clock), so a
+		// constructor-time change would leave the DOM on the stale arrangement
+		// while the state disagrees. Post-mount, the assignment reaches the DOM.
+		onMount(() => {
+			if (stored?.scenerySeed !== undefined && stored.scenerySeed !== this.#scenerySeed) {
+				this.#scenerySeed = stored.scenerySeed;
+			}
+		});
 
 		$effect(() => {
 			document.documentElement.classList.remove(...allThemeClasses);

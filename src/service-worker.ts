@@ -4,11 +4,16 @@
 /// <reference lib="webworker" />
 
 import { build, files, version } from '$service-worker';
+import { baseLocale, locales } from '$lib/paraglide/runtime';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE = `fallow-${version}`;
-// '/' is the app shell — all data is client-side, so any route renders from it offline
-const ASSETS = [...build, ...files, '/'];
+// One app shell per locale — all data is client-side, so any route renders
+// from its locale's shell offline. Locale lives in the URL ('/de/*'), so a
+// single '/' shell would first-paint English copy and lang="en" on a German
+// route; the list comes from the paraglide runtime, never spelled here.
+const SHELLS = locales.map((locale) => (locale === baseLocale ? '/' : `/${locale}`));
+const ASSETS = [...build, ...files, ...SHELLS];
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -76,7 +81,13 @@ sw.addEventListener('fetch', (event) => {
 				if (cached) return cached;
 
 				if (event.request.mode === 'navigate') {
-					const shell = await cache.match('/');
+					const shellKey =
+						SHELLS.find(
+							(shell) =>
+								shell !== '/' && (url.pathname === shell || url.pathname.startsWith(`${shell}/`)),
+						) ?? '/';
+
+					const shell = await cache.match(shellKey);
 
 					if (shell) return shell;
 				}

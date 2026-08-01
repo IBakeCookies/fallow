@@ -5,6 +5,11 @@
 	"compilerOptions": {
 		"lib": ["esnext", "WebWorker"],
 		"types": [],
+		// the worker imports the locale list from $lib/paraglide/runtime (a
+		// generated .js file) — resolve the alias and admit the JS without
+		// checking its internals (no "checkJs")
+		"paths": { "$lib/*": ["./src/lib/*"] },
+		"allowJs": true,
 		"target": "esnext",
 		"module": "esnext",
 		"moduleResolution": "bundler",

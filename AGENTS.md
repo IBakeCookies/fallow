@@ -933,13 +933,31 @@ Each was considered and decided. Re-deciding them is churn.
   cold load gets the seed baked at build time, not the visitor's cookie.
   Locale living in the URL makes the case stronger, not weaker: 12 indexable
   URLs, every one still cookie-personalised for theme and seed. Hydration
-  repairs the class and the copy, so it costs a FOUC rather than a wrong
-  page — but avoiding exactly that FOUC is why the theme is stamped
-  server-side, and it would hit precisely the cold arrivals (search results,
-  shared links) these pages exist for. The seed is **not** repaired
-  (`ThemeStore` reconciles theme and scenery motion at hydration, not the
-  seed), so a cold-loaded prerendered page renders different scenery from the
-  rest of the session. Two trivial CDN renders do not pay for that.
+  repairs the class, the copy and (since 2026-08-01) the seed, so it costs a
+  FOUC rather than a wrong page — but avoiding exactly that FOUC is why the
+  theme is stamped server-side, and it would hit precisely the cold arrivals
+  (search results, shared links) these pages exist for. Two trivial CDN
+  renders do not pay for that.
+
+- **The service worker caches page HTML that is per-cookie personalised, and
+  every personalised input is repaired when a stale copy is served**
+  (2026-08-01, closing the last §6 SW item). The cache is bounded (keyed on
+  pathname), its failures are not silent, and pages are network-first — a
+  cached page only ever wins offline. What a stale copy can then get wrong,
+  and what fixes it: theme and scenery motion reconcile against their cookies
+  in `ThemeStore`'s constructor; the scenery **seed** reconciles in its
+  `onMount`, not the constructor, because hydration never re-patches the
+  SSR'd style attribute (the `+layout.svelte` scenery-clock comment is the
+  precedent) — only a post-mount state change reaches the DOM. **Locale** is
+  URL-addressed (`/de/*`), so a cached page's language always matches its
+  cache key; the one wrong-language path was the offline shell fallback, and
+  the worker now caches one shell per locale (`SHELLS`, derived from the
+  paraglide runtime's `locales`/`baseLocale`, never spelled by hand) and
+  picks it by pathname prefix. Residual cost by design: a stale cached page
+  repairs with a FOUC, and `x-vercel-ip-timezone` in the serialized payload
+  is repaired by the layout's own clock re-derivation at mount. Pinned by the
+  `German shell` e2e (raw response HTML asserts `lang="de"` pre-hydration)
+  and the seed-reconciliation store specs.
 
 - **`app.html`'s inline pre-paint script no longer hardcodes theme names**
   (2026-08-01): `hooks.server.ts` fills the `%theme.default%` /
@@ -997,8 +1015,3 @@ Each was considered and decided. Re-deciding them is churn.
   day on screen — an arbitrary-date move would have to answer that (YAGNI).
   The advice reading itself stays a counterfactual (MATH.md §14): the model
   prices "off today", only the button commits to a destination.
-- The service worker caches page HTML that is **per-cookie personalised**. It
-  is bounded and its failures are no longer silent, and `ThemeStore` repairs
-  theme and scenery motion at hydration — but the locale and the SSR'd seed
-  style are not repaired, so a served-from-cache page can briefly show the
-  wrong one.

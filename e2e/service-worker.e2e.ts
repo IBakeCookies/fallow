@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 /* The service worker only exists in a production build, so `npm run check` is the
    only thing that has ever looked at it — it type-checks and is never executed.
    Its whole contract is a behaviour no unit test can see: pages are network-first
-   (so the SSR'd theme and locale stay live) with the last cached copy, or the '/'
-   shell, as the offline fallback. */
+   (so the SSR'd theme and locale stay live) with the last cached copy, or the
+   requested locale's shell, as the offline fallback. */
 
 /** Resolves once the worker has activated AND claimed this page. */
 async function waitForServiceWorker(page: Page) {
@@ -51,6 +51,29 @@ test('a never-visited route falls back to the cached shell offline', async ({ pa
 	await expect(
 		page.locator('nav').getByRole('link', {
 			name: 'Energy Lab',
+		}),
+	).toBeVisible();
+});
+
+/* The shell is per-locale: locale lives in the URL, so an offline '/de/*'
+   navigation served the English '/' shell would first-paint English copy with
+   lang="en" — the raw response pins the pre-hydration language. */
+test('a never-visited German route falls back to the German shell offline', async ({
+	page,
+	context,
+}) => {
+	await page.goto('/de/');
+	await waitForServiceWorker(page);
+
+	await context.setOffline(true);
+	const response = await page.goto('/de/calendar');
+
+	expect(response?.status()).toBe(200);
+	expect(await response?.text()).toContain('lang="de"');
+
+	await expect(
+		page.locator('nav').getByRole('link', {
+			name: 'Kalender',
 		}),
 	).toBeVisible();
 });
