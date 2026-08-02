@@ -23,6 +23,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run depcheck
       # chromium for vitest browser mode + playwright e2e (webServer builds
       # the app). Browsers are cached per Playwright version; `install` skips
       # the download on a cache hit and only the apt deps re-install.
@@ -33,9 +36,6 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ steps.playwright.outputs.version }}
       - run: npx playwright install --with-deps chromium
-      - run: npm run check
-      - run: npm run lint
-      - run: npm run depcheck
       - run: npm run test:unit -- --run
       - run: npm run test:e2e
 
