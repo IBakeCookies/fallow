@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import { expect } from 'storybook/test';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
 
 	const { Story } = defineMeta({
@@ -14,7 +15,16 @@
 	});
 </script>
 
-<Story name="With a denominator">
+<Story
+	name="With a denominator"
+	play={async ({ canvas }) => {
+		// Label, reading and suffix all show; a real value keeps full ink
+		await expect(canvas.getByText('Tasks completed')).toBeInTheDocument();
+		await expect(canvas.getByText('14')).toHaveClass('text-ty-primary');
+		await expect(canvas.getByText('/ 22')).toBeInTheDocument();
+		await expect(canvas.getByText('64% of planned tasks')).toBeInTheDocument();
+	}}
+>
 	{#snippet template(args)}
 		<StatTile {...args}>
 			{#snippet note()}64% of planned tasks{/snippet}
@@ -47,6 +57,15 @@
 		value: '71%',
 		suffix: undefined,
 	}}
+	play={async ({ canvas, canvasElement }) => {
+		// No unit: no empty suffix span may be left behind as a stray space
+		await expect(canvas.getByText('71%')).toBeInTheDocument();
+		await expect(canvasElement.querySelectorAll('.text-base')).toHaveLength(0);
+
+		// The note is markup, not text — the delta colours its own sign
+		await expect(canvas.getByText('+6%')).toHaveClass('text-success');
+		await expect(canvas.getByText(/vs the previous 7 days/)).toBeInTheDocument();
+	}}
 >
 	{#snippet template(args)}
 		<StatTile {...args}>
@@ -66,6 +85,10 @@
 		value: '—',
 		suffix: undefined,
 		muted: true,
+	}}
+	play={async ({ canvas }) => {
+		// The em-dash must not carry the ink weight of a real reading
+		await expect(canvas.getByText('—')).toHaveClass('text-ty-silent');
 	}}
 >
 	{#snippet template(args)}

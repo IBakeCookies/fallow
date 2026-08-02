@@ -48,6 +48,25 @@ jobs:
           path: test-result/
           if-no-files-found: ignore
 
+      # Published to GitHub Pages by the pages job below (main only).
+      - name: Add report index
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cat > test-result/index.html <<'EOF'
+          <!doctype html>
+          <title>Fallow test reports</title>
+          <h1>Fallow test reports</h1>
+          <ul>
+            <li><a href="unit/">Unit</a></li>
+            <li><a href="coverage/">Coverage</a></li>
+            <li><a href="e2e/report/">E2E</a></li>
+          </ul>
+          EOF
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: test-result/
+
       # The dependency graph is generated, never committed — download it from
       # this run's artifacts. `dot` is not on the runner by default.
       - name: Render the dependency graph
@@ -57,3 +76,36 @@ jobs:
           name: dependency-graph
           path: dependency-graph.svg
           if-no-files-found: error
+
+  chromatic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Chromatic needs full history for baseline detection
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: chromaui/action@v13
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          onlyChanged: true # TurboSnap — saves snapshot quota
+          autoAcceptChanges: main # main is the baseline, never blocks
+          exitZeroOnChanges: true # PR diffs surface as a check, don't fail CI
+
+  pages:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

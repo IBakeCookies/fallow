@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { fn } from 'storybook/test';
+	import { expect, fn } from 'storybook/test';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
 
 	const { Story } = defineMeta({
@@ -22,8 +22,25 @@
 </script>
 
 <!-- Hover the label: every parameter carries its hint, because none of the names mean
-     anything on their own -->
-<Story name="Default">
+     anything on their own. The label names the stepper (screen reader and e2e), the
+     help cursor advertises the hint, and the stepper reports in the parameter's own
+     increments. -->
+<Story
+	name="Default"
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.getByLabelText(args.label)).toHaveValue(args.value);
+		await expect(canvas.getByText(args.label)).toHaveClass('cursor-help');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Increase',
+			}),
+		);
+
+		await expect(args.onchange).toHaveBeenCalledOnce();
+		await expect(args.onchange).toHaveBeenCalledWith(0.45);
+	}}
+>
 	{#snippet template(args)}
 		<div class="max-w-xs"><ParamRow {...args} /></div>
 	{/snippet}

@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import { expect, waitFor, within } from 'storybook/test';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
 	import FitRow from '$lib/presentation/component/fit-row.svelte';
 
@@ -10,12 +11,25 @@
 	});
 </script>
 
-<!-- The drain card's shape: two fitted constants under an explained heading -->
+<!-- The drain card's shape: two fitted constants under an explained heading.
+     The play function covers what the spec can't see rendered statically: hovering
+     the heading actually opens the hint tooltip (portalled to <body>). -->
 <Story
 	name="With fits"
 	args={{
 		title: 'Drain Calibration',
 		hint: 'Fits the two drain rates to your 🪫 end-of-session ratings, anchored to the defaults.',
+	}}
+	play={async ({ args, canvas, canvasElement, userEvent }) => {
+		const heading = canvas.getByRole('heading', {
+			name: args.title,
+		});
+
+		await expect(heading).toHaveClass('cursor-help');
+
+		await userEvent.hover(heading);
+		const body = within(canvasElement.ownerDocument.body);
+		await waitFor(() => expect(body.getByText(args.hint)).toBeVisible());
 	}}
 >
 	{#snippet template(args)}
@@ -37,6 +51,10 @@
 		title: 'Stopping Calibration',
 		hint: 'Fits the value of free time to the days you chose to stop.',
 	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText(/No finished days yet/)).toBeVisible();
+		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
+	}}
 >
 	{#snippet template(args)}
 		<div class="max-w-sm">
@@ -55,6 +73,13 @@
 	args={{
 		title: 'Recovery Calibration',
 		hint: 'Fits the recovery rate to your ☕ pre/post-rest rating pairs.',
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.getByRole('button', {
+				name: /log a rest/i,
+			}),
+		).toBeVisible();
 	}}
 >
 	{#snippet template(args)}

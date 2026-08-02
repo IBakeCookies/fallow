@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import { expect } from 'storybook/test';
 	import type { EvaluatedBlock } from '$lib/business/model/zenith-energy';
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
 	import { seriesColors } from '$lib/presentation/utils/series-color';
@@ -28,7 +29,8 @@
 	});
 </script>
 
-<!-- A worked day: two sessions around a break, planned to the end of the window -->
+<!-- A worked day: two sessions around a break, planned to the end of the window.
+     The 1e-9 tail is the optimizer's floating-point dust, not free time. -->
 <Story
 	name="Full window"
 	args={{
@@ -39,8 +41,38 @@
 			block(3, 'inbox', 6, 2),
 		],
 		windowHours: 8,
-		trailingFreeHours: 0,
+		trailingFreeHours: 1e-9,
 		colors,
+	}}
+	play={async ({ canvas }) => {
+		// A block's width IS its share of the day window, named by offsets and duration
+		await expect(canvas.getByTitle('boxing — 0h–2h 15m (2h 15m)')).toHaveAttribute(
+			'style',
+			expect.stringContaining('width: 28.125%'),
+		);
+
+		await expect(canvas.getByTitle('writing — 3h–6h (3h)')).toHaveAttribute(
+			'style',
+			expect.stringContaining('width: 37.5%'),
+		);
+
+		// Rest takes the rest colour, a lighter fill than worked time
+		await expect(canvas.getByTitle(/^rest/)).toHaveAttribute(
+			'style',
+			expect.stringContaining('color-mix(in oklch, var(--series-rest) 40%, transparent)'),
+		);
+
+		await expect(canvas.getByTitle(/boxing/)).toHaveAttribute(
+			'style',
+			expect.stringContaining('color-mix(in oklch, var(--series-1) 70%, transparent)'),
+		);
+
+		// The axis is elapsed hours from the start of the window, not wall-clock times
+		await expect(canvas.getByText('0h')).toBeVisible();
+		await expect(canvas.getByText('8h')).toBeVisible();
+
+		// The dust tail draws no free-time segment nobody could see or hover
+		expect(canvas.queryByTitle(/Free time/)).not.toBeInTheDocument();
 	}}
 />
 
@@ -52,6 +84,10 @@
 		windowHours: 8,
 		trailingFreeHours: 3,
 		colors,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByTitle('Free time — 3h')).toBeInTheDocument();
+		await expect(canvas.getByText('free')).toBeVisible();
 	}}
 />
 
@@ -68,5 +104,11 @@
 		windowHours: 8,
 		trailingFreeHours: 0,
 		colors,
+	}}
+	play={async ({ canvas }) => {
+		expect(canvas.queryByText('boxing')).not.toBeInTheDocument();
+		expect(canvas.queryByText('inbox')).not.toBeInTheDocument();
+		await expect(canvas.getByTitle(/inbox/)).toBeInTheDocument();
+		await expect(canvas.getByText('writing')).toBeVisible();
 	}}
 />

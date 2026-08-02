@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { fn } from 'storybook/test';
+	import { expect, fn } from 'storybook/test';
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 
 	const { Story } = defineMeta({
@@ -30,7 +30,48 @@
 </script>
 
 <!-- The analytics range picker: on the page, so its own backdrop-blur -->
-<Story name="Segment tone" />
+<Story
+	name="Segment tone"
+	play={async ({ args, canvas, userEvent }) => {
+		// A named group, so the buttons are not three unrelated switches
+		await expect(
+			canvas.getByRole('group', {
+				name: 'Time range',
+			}),
+		).toBeInTheDocument();
+
+		// The pressed state is the only thing telling a screen reader which option
+		// is live — the active pill is otherwise a fill
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Last 7 days',
+			}),
+		).toHaveAttribute('aria-pressed', 'true');
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Last 30 days',
+			}),
+		).toHaveAttribute('aria-pressed', 'false');
+
+		// Reports the chosen value and leaves the writing to its caller: a page
+		// that ignores `onchange` must not appear to have switched
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Last 30 days',
+			}),
+		);
+
+		await expect(args.onchange).toHaveBeenCalledTimes(1);
+		await expect(args.onchange).toHaveBeenCalledWith('month');
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Last 7 days',
+			}),
+		).toHaveAttribute('aria-pressed', 'true');
+	}}
+/>
 
 <!-- axe only ever sees a story's REST state, so the middle option being selected is
      not cosmetic: it puts an inactive pill on either side of an active one, which is
@@ -63,7 +104,8 @@
 	}}
 />
 
-<!-- The calendar's view names are lowercase copy, capitalized in the markup -->
+<!-- The calendar's view names are lowercase copy, capitalized in the markup:
+     `itemClass` reaches every option's button -->
 <Story
 	name="Two options, capitalized"
 	args={{
@@ -80,5 +122,14 @@
 				label: 'week',
 			},
 		],
+	}}
+	play={async ({ canvas }) => {
+		for (const name of [/^month$/i, /^week$/i]) {
+			await expect(
+				canvas.getByRole('button', {
+					name,
+				}),
+			).toHaveClass('capitalize');
+		}
 	}}
 />

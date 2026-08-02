@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import { expect, fn } from 'storybook/test';
 	import type { AdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 
@@ -78,6 +79,47 @@
 		],
 	};
 
+	/* Two tasks may share a title, so an option's own words are not an identity —
+	   two defer levers then read identically and the card has to render both. */
+	const sharedTitle: AdviceDisplay = {
+		unfunded: null,
+		unfundedMustDo: null,
+		rows: [
+			{
+				axis: 'burnoutRisk',
+				label: 'Burnout Risk',
+				before: '82%',
+				beforeBand: 'critical',
+				options: [
+					{
+						lever: {
+							kind: 'defer-task',
+							taskId: 1,
+							title: 'Email',
+						},
+						action: 'Move “Email” off today',
+						after: '54%',
+						afterBand: 'warning',
+						cost: '−6.2% plan value',
+						profileFlip: null,
+					},
+					{
+						lever: {
+							kind: 'defer-task',
+							taskId: 2,
+							title: 'Email',
+						},
+						action: 'Move “Email” off today',
+						after: '61%',
+						afterBand: 'warning',
+						cost: '−4.1% plan value',
+						profileFlip: null,
+					},
+				],
+			},
+		],
+	};
+
 	const { Story } = defineMeta({
 		title: 'Component/Plan Advice Card',
 		component: PlanAdviceCard,
@@ -87,26 +129,95 @@
 			isBusy: false,
 			isStale: false,
 			hasError: false,
-			oncheck: () => {},
+			oncheck: fn(),
+			onapply: fn(),
 		},
 	});
 </script>
 
-<!-- Before the user asks: the search costs a full solve per candidate. -->
+<!-- Before the user asks: the search costs a full solve per candidate, so this
+     is one button and no card — a heading over an empty panel is pure vertical
+     cost above the plan. -->
 <Story
 	name="Not calculated yet"
 	args={{
 		advice: null,
 	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.queryByText('Burnout Risk')).not.toBeInTheDocument();
+		await expect(canvas.queryByText('Adjust the plan')).not.toBeInTheDocument();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Check my day',
+			}),
+		);
+
+		await expect(args.oncheck).toHaveBeenCalledOnce();
+	}}
 />
 
-<Story name="Findings" />
+<!-- Every option must show the reading it produces AND what it costs — an
+     improvement with its price hidden is the advice this feature exists to avoid. -->
+<Story
+	name="Findings"
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.getByText('Burnout Risk')).toBeVisible();
+		await expect(canvas.getByText('82%')).toBeVisible();
+		await expect(canvas.getByText('Move “Tax return” off today')).toBeVisible();
+		await expect(canvas.getByText('· −6.2% plan value')).toBeVisible();
+		await expect(canvas.getByText('Day Profile → Cruise')).toBeVisible();
+		await expect(canvas.getByText('Set the budget to 6.5h')).toBeVisible();
+		await expect(canvas.getByText('· costs no plan value')).toBeVisible();
 
+		// A band is otherwise carried by colour alone (WCAG 1.4.1): both readings
+		// are critical, and three of the four afters read caution.
+		expect(canvas.getAllByText('(Critical)')).toHaveLength(2);
+		expect(canvas.getAllByText('(Caution)')).toHaveLength(3);
+
+		// The must-do line is louder than the plain unfunded one on purpose: the
+		// flag removed that task's only per-task lever, so the menu below cannot
+		// offer to resolve it and the user has to.
+		await expect(canvas.getByText('2 tasks get no hours in this plan.')).toHaveClass(
+			'text-ty-secondary',
+		);
+
+		await expect(
+			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
+		).toHaveClass('text-warning-strong');
+
+		// Only a deferral is performable — the budget lever is a slider the user
+		// already owns — and the button must say which task it moves.
+		expect(
+			canvas.getAllByRole('button', {
+				name: /to tomorrow/i,
+			}),
+		).toHaveLength(2);
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Move “Tax return” to tomorrow',
+			}),
+		);
+
+		await expect(args.onapply).toHaveBeenCalledOnce();
+		await expect(args.onapply).toHaveBeenCalledWith(1);
+	}}
+/>
+
+<!-- A second request is blocked while the search is running. -->
 <Story
 	name="Solving"
 	args={{
 		advice: null,
 		isBusy: true,
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Solving…',
+			}),
+		).toBeDisabled();
 	}}
 />
 
@@ -115,6 +226,15 @@
 	name="Stale"
 	args={{
 		isStale: true,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('Your day has changed since this was calculated.')).toBeVisible();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Recheck',
+			}),
+		).toBeEnabled();
 	}}
 />
 
@@ -134,5 +254,72 @@
 			unfunded: null,
 			unfundedMustDo: null,
 		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.getByText('Nothing reads badly enough to act on. This day is fine.'),
+		).toBeVisible();
+	}}
+/>
+
+<!-- Identical words, distinct levers: the card renders both and applies each by
+     its task id. -->
+<Story
+	name="Two tasks share a title"
+	args={{
+		advice: sharedTitle,
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		const applies = canvas.getAllByRole('button', {
+			name: 'Move “Email” to tomorrow',
+		});
+
+		expect(applies).toHaveLength(2);
+
+		await userEvent.click(applies[1]);
+		await expect(args.onapply).toHaveBeenCalledOnce();
+		await expect(args.onapply).toHaveBeenCalledWith(2);
+	}}
+/>
+
+<!-- Unfunded is a read, not a band: every axis can be in band (`rows: []`) while
+     work still gets no hours — and "this day is fine" printed under that negates it. -->
+<Story
+	name="Only an unfunded read"
+	args={{
+		advice: {
+			rows: [],
+			unfunded: '2 tasks get no hours in this plan.',
+			unfundedMustDo: null,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('2 tasks get no hours in this plan.')).toBeVisible();
+
+		await expect(
+			canvas.queryByText(/Nothing reads badly enough to act on/),
+		).not.toBeInTheDocument();
+	}}
+/>
+
+<!-- Each read alone, because the gate must check both: a day whose only unfunded
+     task is pinned reports nothing in `unfunded`. -->
+<Story
+	name="Only a pinned unfunded read"
+	args={{
+		advice: {
+			rows: [],
+			unfunded: null,
+			unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
+		).toBeVisible();
+
+		await expect(
+			canvas.queryByText(/Nothing reads badly enough to act on/),
+		).not.toBeInTheDocument();
 	}}
 />

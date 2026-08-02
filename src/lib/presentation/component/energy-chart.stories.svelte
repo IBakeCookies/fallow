@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import { expect, waitFor } from 'storybook/test';
 	import type { TrajectoryPoint } from '$lib/business/model/zenith-energy';
 	import EnergyChart from '$lib/presentation/component/energy-chart.svelte';
 
@@ -45,7 +46,21 @@
 	});
 </script>
 
-<Story name="Twelve hour window">
+<Story
+	name="Twelve hour window"
+	play={async ({ canvas, canvasElement }) => {
+		// Both reservoirs are fractions of capacity, so the energy axis is labelled
+		// as a percentage — unlabelled, the only readable axis was time
+		for (const label of ['0%', '50%', '100%']) {
+			await expect(canvas.getByText(label)).toBeInTheDocument();
+		}
+
+		// `terminal` maps --mind and --body to two greens of the same lightness, so
+		// one of the two lines must be dashed as well as coloured
+		const svg = canvasElement.querySelector('svg');
+		await expect(svg?.querySelectorAll('path[stroke-dasharray]')).toHaveLength(1);
+	}}
+>
 	{#snippet template(args)}
 		<div class="max-w-3xl rounded-2xl border bg-surface-card p-box-xl backdrop-blur shadow-card">
 			<EnergyChart {...args} />
@@ -65,6 +80,28 @@
 >
 	{#snippet template(args)}
 		<div class="max-w-3xl rounded-2xl border bg-surface-card p-box-xl backdrop-blur shadow-card">
+			<EnergyChart {...args} />
+		</div>
+	{/snippet}
+</Story>
+
+<!-- The viewBox is measured in CSS pixels, so at a phone width the plot keeps one
+     unit per pixel and the 9px axis type renders at 9px — a fixed viewBox scaled
+     to the element squashed both -->
+<Story
+	name="Phone width"
+	play={async ({ canvasElement }) => {
+		const svg = canvasElement.querySelector('svg');
+
+		await waitFor(() => {
+			const viewBoxWidth = Number(svg?.getAttribute('viewBox')?.split(' ')[2]);
+			expect(viewBoxWidth).toBeCloseTo(svg?.getBoundingClientRect().width ?? 0, 0);
+			expect(svg?.querySelector('text')?.getBoundingClientRect().height ?? 0).toBeGreaterThan(7);
+		});
+	}}
+>
+	{#snippet template(args)}
+		<div style="width: 360px">
 			<EnergyChart {...args} />
 		</div>
 	{/snippet}

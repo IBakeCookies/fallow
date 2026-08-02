@@ -3,32 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
 
+// Only the <head> injection lives here — a story canvas can't reach document.head.
+// The rendered pitch, FAQ, and links are asserted in fallow-explainer.stories.svelte.
 describe('fallow-explainer.svelte', () => {
-	it('renders the pitch, FAQ, and external links', async () => {
-		render(FallowExplainer);
-
-		await expect
-			.element(
-				page.getByRole('heading', {
-					level: 2,
-				}),
-			)
-			.toHaveTextContent("A to-do app that does calculus so you don't have to");
-
-		await expect
-			.element(
-				page.getByRole('heading', {
-					name: 'Frequently asked questions',
-				}),
-			)
-			.toBeInTheDocument();
-
-		const article = document.querySelector('a[href*="thequantasticjournal.com"]');
-		const repo = document.querySelector('a[href*="github.com/IBakeCookies/fallow"]');
-		expect(article).not.toBeNull();
-		expect(repo).not.toBeNull();
-	});
-
 	it('injects FAQPage JSON-LD mirroring the visible FAQ', async () => {
 		render(FallowExplainer);
 

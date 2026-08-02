@@ -270,7 +270,8 @@ Pick the level:
 | Metric composition, scoping       | `daily-metrics.test.ts` — scope invariants             |
 | Repository, migration, IDB schema | `*.test.ts` with `fake-indexeddb`                      |
 | Store (needs a component context) | `*.svelte.spec.ts` + a test harness component          |
-| Component                         | `*.svelte.spec.ts` (browser project)                   |
+| Component                         | `play` function on its story (`storybook` project)     |
+| Component, not story-expressible  | `*.svelte.spec.ts` — module mocks, rerender, head      |
 | A user-visible flow               | `e2e/*.e2e.ts`                                         |
 
 **Check for existing coverage first; when there is none, adding it is part of
