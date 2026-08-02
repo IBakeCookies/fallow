@@ -10,6 +10,13 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * Upsert: re-rating the same task on the same day REPLACES the earlier
  * record instead of appending a duplicate — the same typo-correction
  * semantics as flow logs (the editor prefills the previous values).
+ *
+ * Unlike the flow-log upsert, an edit keeps the ORIGINAL `createdAt`: a
+ * correction re-describes the same session, so its log moment stands. That
+ * moment (≈ session end when logged promptly) is the only time-of-day signal
+ * the drain data carries — the instrument a future circadian modulation fit
+ * would condition on — and refreshing it on a next-morning edit would shift
+ * it by hours.
  */
 export async function $updateDrainObservation(
 	observation: Omit<DrainObservationRecord, 'id' | 'createdAt'>,
@@ -29,7 +36,6 @@ export async function $updateDrainObservation(
 				? {
 						...existing,
 						...observation,
-						createdAt: Date.now(),
 					}
 				: {
 						...observation,

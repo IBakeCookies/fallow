@@ -91,6 +91,8 @@ export interface DrainObservationRecord {
 	physicalDemand: number; // wp = physicalDifficulty/10 when logged (0-1)
 	mindDrain: number; // 0-10 rating of cognitive drain after the session
 	bodyDrain: number; // 0-10 rating of physical drain after the session
+	// Log moment, preserved across edits (≈ session end when logged promptly).
+	// The time-of-day instrument a future circadian drain fit would need.
 	createdAt: number;
 }
 

@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
 	$updateDrainObservation,
 	$readAllDrainObservations,
@@ -25,6 +25,10 @@ function observation(
 }
 
 describe('drain-observation-repository', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
 	it('upserts: same taskId + date replaces instead of appending', async () => {
 		await $updateDrainObservation(
 			observation({
@@ -57,6 +61,33 @@ describe('drain-observation-repository', () => {
 		);
 
 		expect(await $readAllDrainObservations()).toHaveLength(3);
+	});
+
+	it('editing a rating keeps the original createdAt', async () => {
+		const loggedAt = Date.parse('2026-01-03T18:30:00Z');
+		const editedAt = Date.parse('2026-01-04T09:00:00Z');
+
+		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
+
+		await $updateDrainObservation(
+			observation({
+				date: '2026-01-03',
+				mindDrain: 4,
+			}),
+		);
+
+		vi.spyOn(Date, 'now').mockReturnValue(editedAt);
+
+		await $updateDrainObservation(
+			observation({
+				date: '2026-01-03',
+				mindDrain: 5,
+			}),
+		);
+
+		const edited = (await $readAllDrainObservations()).find((r) => r.date === '2026-01-03');
+		expect(edited?.mindDrain).toBe(5);
+		expect(edited?.createdAt).toBe(loggedAt);
 	});
 
 	it('deletes a single record by id', async () => {
