@@ -519,6 +519,168 @@ describe('suggestPlanAdjustments', () => {
 		expect(gains.every((option) => option.planValueDeltaPercent === null)).toBe(true);
 	});
 
+	// MATH.md §14.2. The budget's shadow price: what one more block is worth and
+	// which task the allocator hands it to.
+	describe('the marginal of the budget', () => {
+		const hoursOf = (metrics: DailyMetrics, taskId: number) =>
+			metrics.suggestedTasks.find((task) => task.id === taskId)!.suggestedHours;
+
+		const widen = (base: DailyMetricsInput, baseline: DailyMetrics, blockHours: number) =>
+			calculateDailyMetrics({
+				...base,
+				availableHours: baseline.budgetHours + blockHours,
+			});
+
+		it('prices the next block against a re-solve one block wider', () => {
+			const rows = [0, 2, 6, 10, 14].map((hours) => {
+				const base = grindDay(hours);
+				const baseline = calculateDailyMetrics(base);
+				const { budgetMarginal } = suggestPlanAdjustments(base, baseline);
+
+				return {
+					gain: budgetMarginal.planValueGain,
+					delta:
+						widen(base, baseline, budgetMarginal.blockHours).zenithGain.optimized -
+						baseline.zenithGain.optimized,
+				};
+			});
+
+			// Not vacuous: some of those budgets genuinely buy something.
+			expect(rows.filter((row) => row.delta > 0).length).toBeGreaterThan(0);
+
+			// Nothing on GRIND is completed, so the open-scoped rise IS the plan's
+			// own Σ P̄ rise — which is what ties the per-task decomposition to the
+			// objective. Floored at 0: the true optimum is monotone in the budget,
+			// so a negative shadow price is a claim the model does not make.
+			rows.forEach((row) => expect(row.gain).toBeCloseTo(Math.max(0, row.delta), 12));
+		});
+
+		// The allocator is blind to `completed` (a ticked-off task keeps its hours,
+		// MATH.md §11.8), so the wider plan can spend its extra block on work
+		// already done. Naming it would answer "what next?" with "the thing you
+		// just finished".
+		it('never spends the block on a task that is already done', () => {
+			const done = [
+				{
+					...GRIND[0],
+					completed: true,
+				},
+				GRIND[2],
+			];
+
+			const base = input(done, {
+				availableHours: 6,
+			});
+
+			const baseline = calculateDailyMetrics(base);
+			const { budgetMarginal } = suggestPlanAdjustments(base, baseline);
+			const wider = widen(base, baseline, budgetMarginal.blockHours);
+
+			// The defect this pins is live: the wider plan really does hand the
+			// block to the completed task, which unscoped made it the recipient.
+			expect(hoursOf(wider, GRIND[0].id)).toBeGreaterThan(hoursOf(baseline, GRIND[0].id));
+			expect(hoursOf(wider, GRIND[2].id)).toBe(hoursOf(baseline, GRIND[2].id));
+
+			expect(budgetMarginal.recipient).toBeNull();
+			// …and the value that block carries is not reported as a gain either.
+			expect(budgetMarginal.planValueGain).toBe(0);
+		});
+
+		// MATH.md §14.2 says "largest gainer, not the only one". Multi-gainer days
+		// exist but are rare (36 of 600 probe days, 5 of them with gainers of
+		// different size), so the rule needs the fixture that produces one — on a
+		// curated day it never bites and the tie-break is untested.
+		it('names the largest gainer when the block reshuffles several tasks', () => {
+			const reshuffle = [
+				[5, 10, 8],
+				[10, 5, 9],
+				[3, 4, 5],
+				[4, 7, 6],
+				[4, 5, 6],
+			].map(([mental, physical, enjoyment], index) =>
+				makeTask({
+					id: index + 1,
+					title: `T${index + 1}`,
+					mentalDifficulty: mental,
+					physicalDifficulty: physical,
+					enjoyment,
+				}),
+			);
+
+			const base = input(reshuffle, {
+				availableHours: 9.75,
+				switchCost: 0.5,
+			});
+
+			const baseline = calculateDailyMetrics(base);
+			const { budgetMarginal } = suggestPlanAdjustments(base, baseline);
+			const wider = widen(base, baseline, budgetMarginal.blockHours);
+
+			const gainers = baseline.activeTasks
+				.map((task) => ({
+					id: task.id,
+					extra: hoursOf(wider, task.id) - task.suggestedHours,
+				}))
+				.filter((row) => row.extra > 0);
+
+			// The fixture's whole point: more than one task gains, by different
+			// amounts, so the tie-break has something to decide.
+			expect(gainers.length).toBeGreaterThan(1);
+			expect(new Set(gainers.map((row) => row.extra)).size).toBeGreaterThan(1);
+
+			const largest = [...gainers].sort((a, b) => b.extra - a.extra)[0];
+
+			expect(budgetMarginal.recipient?.taskId).toBe(largest.id);
+		});
+
+		it('names the task the extra block goes to', () => {
+			const base = grindDay(6);
+			const baseline = calculateDailyMetrics(base);
+			const { budgetMarginal } = suggestPlanAdjustments(base, baseline);
+			const recipient = budgetMarginal.recipient;
+
+			expect(recipient).not.toBeNull();
+
+			const wider = widen(base, baseline, budgetMarginal.blockHours);
+
+			expect(hoursOf(wider, recipient!.taskId)).toBeGreaterThan(
+				hoursOf(baseline, recipient!.taskId),
+			);
+
+			expect(recipient!.title).toBe(GRIND.find((task) => task.id === recipient!.taskId)!.title);
+		});
+
+		// The honest reading of a day whose budget is not what limits it. No claim
+		// about WHY — pools and every task sitting past its T* look identical here.
+		it('reports no recipient and no gain when the plan cannot spend another block', () => {
+			const base = grindDay(14);
+			const baseline = calculateDailyMetrics(base);
+
+			expect(baseline.planSlackHours).toBeGreaterThan(1);
+
+			const { budgetMarginal } = suggestPlanAdjustments(base, baseline);
+
+			expect(budgetMarginal.recipient).toBeNull();
+			expect(budgetMarginal.planValueGain).toBe(0);
+			expect(budgetMarginal.planValueGainPercent).toBe(0);
+		});
+
+		// The one day where the shadow price matters most and the ratio cannot be
+		// stated: no hours entered yet, so there is no plan value to divide by.
+		it('has no ratio to report when the current plan has no value', () => {
+			const base = grindDay(0);
+			const baseline = calculateDailyMetrics(base);
+
+			expect(baseline.zenithGain.optimized).toBe(0);
+
+			const { budgetMarginal } = suggestPlanAdjustments(base, baseline);
+
+			expect(budgetMarginal.planValueGain).toBeGreaterThan(0);
+			expect(budgetMarginal.planValueGainPercent).toBeNull();
+			expect(budgetMarginal.recipient).not.toBeNull();
+		});
+	});
+
 	// MATH.md §14.1-5. A zero-load plan reads the display sentinel 50, which is
 	// also the axis target — read as a balance, "set the budget to 0" becomes
 	// the axis's global optimum and the advisor chases the budget to nothing.

@@ -11,6 +11,7 @@ import type {
 	AdviceAxis,
 	AdviceLever,
 	AdviceOption,
+	BudgetMarginal,
 	PlanAdvice,
 } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
@@ -46,6 +47,8 @@ export interface AdviceDisplay {
 	 * promises the day, not the hours — and the menu below has no lever for them.
 	 */
 	unfundedMustDo: string | null;
+	/** The budget's shadow price as a sentence (MATH.md §14.2) — always a reading. */
+	marginal: string;
 }
 
 const AXIS_LABEL: Record<AdviceAxis, () => string> = {
@@ -126,6 +129,34 @@ function formatCost(deltaPercent: number | null): string {
 }
 
 /**
+ * The block the budget would buy, and who gets it (MATH.md §14.2). Priced in the
+ * same "% plan value" as the cost column — `advice_cost` spells that half — but
+ * signed +, because a wider budget can only add.
+ */
+function formatMarginal(marginal: BudgetMarginal): string {
+	const minutes = Math.round(marginal.blockHours * 60);
+
+	// Keyed on the gain as well as the recipient: the pooled heuristic can hand a
+	// task the block while the day's value nets out flat (MATH.md §14.2), and
+	// "goes to X · +0% plan value" is the same non-advice as no recipient at all.
+	if (!marginal.recipient || marginal.planValueGainPercent === 0)
+		return m.advice_marginal_none({
+			minutes,
+		});
+
+	return m.advice_marginal({
+		minutes,
+		title: marginal.recipient.title,
+		gain:
+			marginal.planValueGainPercent === null
+				? m.na_value()
+				: m.advice_cost({
+						percent: `+${marginal.planValueGainPercent}`,
+					}),
+	});
+}
+
+/**
  * The frontier rises in plan value, so its *last* option is the cheapest one —
  * the "most of the relief for a fraction of the cost" row §14 returns a whole
  * frontier to surface. Truncating from the end would drop exactly that, so drop
@@ -185,6 +216,7 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 
 	return {
 		rows,
+		marginal: formatMarginal(advice.budgetMarginal),
 		unfunded:
 			unfundedCount === 0
 				? null

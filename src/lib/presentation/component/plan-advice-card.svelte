@@ -71,6 +71,11 @@
 			<p class="mt-grid-sm text-xs text-warning-strong">{advice.unfundedMustDo}</p>
 		{/if}
 
+		<!-- The budget's shadow price (MATH.md §14.2): what one more block buys and
+		     who gets it. A day-level reading, so it sits above the per-axis menu
+		     rather than inside any one row's budget levers. -->
+		<p class="mt-grid-sm text-xs text-ty-silent">{advice.marginal}</p>
+
 		{#if advice.rows.length > 0}
 			<ul class="mt-grid-sm space-y-grid-sm">
 				{#each advice.rows as row (row.axis)}
