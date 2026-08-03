@@ -15,7 +15,7 @@ import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import { liveToday } from '$lib/business/state/today.svelte';
-import { addDays, isISODate } from '$lib/business/utils/date';
+import { addDays, daysBetween, isISODate } from '$lib/business/utils/date';
 import {
 	sanitizeFlowObservations,
 	sanitizeRoutines,
@@ -135,13 +135,16 @@ export class SessionStore {
 
 	// Personalized model constants: ridge least-squares fit of ϕ = c₁E + c₂β + c₃
 	// over the logged time-to-flow measurements, anchored to the article's
-	// defaults. Every ⚡ log nudges the model; more logs = less anchor.
+	// defaults. Every ⚡ log nudges the model; more logs = less anchor. Ages are
+	// against the LIVE today, not the viewed day: the fit is who the user is now,
+	// and a past day's plan is re-read through today's model either way.
 	#constantsFit = $derived(
 		fitUserConstants(
 			this.#flowObservations.map((o) => ({
 				E: o.E,
 				beta: o.beta,
 				phi: o.phiHours,
+				ageDays: daysBetween(o.date, this.#today),
 			})),
 		),
 	);

@@ -323,11 +323,96 @@ passed by any caller, never reached the UI, and was not on the roadmap, while
 carrying a paragraph of doc and a silent ordering contract (observations had
 to arrive oldest-first, which nothing enforced). With it gone `Σwᵢ` collapses
 to `n` everywhere, and `FitPosterior.nEff` — which existed only to report the
-weighted count — went with it; callers that want a count already have
-`observations.length` (`readUserFit` returns it as `usedCount`). §10's
-half-life correction is kept below as history. If drift-forgetting is ever
+weighted count — went with it; callers that wanted a count had
+`observations.length` (which `readUserFit` returned as `usedCount`, until §5.2
+made it a weighted sum). §10's half-life correction is kept below as history.
+If drift-forgetting is ever
 wanted again, the right instrument is probably a timestamp on each ⚡ log,
-not a decay over arrival index.
+not a decay over arrival index. **That is what §5.2 now does** — the weights
+are back, keyed on the log's date rather than its position.
+
+### 5.2 Recency weighting of the ϕ fit (added 2026-08-04)
+
+**The problem.** Every fit above reads the user's ENTIRE ⚡ history at equal
+weight, and ϕ is not stationary. Someone who reached flow in 1h at 20 and needs
+2h at 30 is fitted at 1.5h — a person who never existed, and who is wrong about
+the person logging today. Ageing is the slow version; a new job, a newborn, an
+illness, a medication change or a shifted sleep schedule move ϕ in weeks.
+
+**The weights.** Each observation carries `ageDays`, the calendar days between
+its log date and today, and enters the fit with
+
+```
+wᵢ = 2^(−max(0, ageDaysᵢ)/H),   H = PHI_RECENCY_HALF_LIFE_DAYS = 365
+```
+
+Every `n` in §5 becomes `Σwᵢ`, and the sums become weighted sums:
+
+```
+Posterior:  ĉ = (XᵀWX + λI)⁻¹(XᵀWϕ + λc₀),   W = diag(w)
+            Σ = σ̂²·(XᵀWX + λI)⁻¹
+Noise:      σ̂² = (ν₀σ₀² + Σwᵢ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + Σwᵢ)
+Data mass:  effectiveCount = Σwᵢ
+```
+
+`ageDays` omitted ⇒ wᵢ = 1 ⇒ every formula collapses **exactly** to §5, and a
+test pins that bit-equality. The `max(0, …)` floor exists for one reachable
+case: a backup restored from a device with a fast clock carries a log dated
+ahead of today, and an unfloored 2^(−age/H) would exceed 1 and let that single
+log outvote the rest.
+
+**Why a half-life and not a cutoff.** A hard window ("only the last 2 years")
+is a step function: a log at 2y−1d counts fully and one at 2y+1d counts zero.
+Worse, it interacts badly with sparse logging — drop a light user under the
+data the fit needs and `fitted` goes false, so the model falls back to
+`DEFAULT_USER_CONSTANTS`. Falling back to a stranger's defaults is a larger
+error than a somewhat stale personal fit. The exponential has no cliff, never
+fully discards a log, and degrades toward the prior exactly as a fit with
+little data already does — the ridge machinery needs no new case.
+
+**Why H = 365 days.** Slow enough that a steady logger keeps a personal fit
+through a quiet stretch; fast enough that the 10-year problem above is gone
+(a decade-old log lands at 2⁻¹⁰ ≈ 0.001, and the effective memory is ≈ 1.44
+years of logs). Shrinkage compresses the effect: at 3 half-lives (w = ⅛) a
+single log still moves the prediction ≈ ⅓ as much as a fresh one, not ⅛ —
+the ridge denominator is λ-dominated at small Σw, so the weights bite less
+than their ratio suggests. Directionally right, deliberately gentle.
+
+**Σw is the number the UI prints, and the usual n_eff is the wrong statistic.**
+The "Your model" card's ϕ row says "N ⚡ logs"; with weighting, N raw logs no
+longer describes what moved the fit, so the row reports Σw — "what this history
+is worth in fresh logs" — fractional, one decimal, labelled recency-weighted.
+
+The textbook effective sample size (Σwᵢ)²/Σwᵢ² was tried first and is wrong
+here: it measures how EVENLY weight is spread, not how much of it there is. A
+user who logged 20 times ten years ago and stopped has equal weights, so it
+scores a full 20.0 — printed beside a fit that has essentially returned to the
+prior. Measured on the card's reference task (difficulty 5, enjoyment 5), 20
+logs of ϕ = 4h aged ten years: Σw = 0.0195, and the row reads 109.4 min against
+a 102.5 min default — 6.9 of the 135 minutes the same 20 logs move when fresh
+(237.5 min). Σw reports 0.0; n_eff would have reported 20.0.
+
+Σw ≤ n always, with equality exactly when every log is same-day fresh, which is
+also what makes "3.5 ⚡ logs" read correctly.
+
+**Scope: ϕ only.** `fitRecoveryRate` (r, §8.9), `fitDrainRate` (α, §8.7) and
+`fitStoppingValue` (λ₀, §8.10) are **unweighted** and read their whole history
+— unchanged by this section. Three reasons, and they should be revisited
+together rather than one at a time:
+
+- ϕ has by far the most log-years behind it. r and α come from ☕/🪫 ratings
+  that only became loggable later, and λ₀ needs finished days, so none of the
+  three yet spans a period over which drift dominates noise.
+- The three energy fits are 1-D ridges over much noisier self-reports; halving
+  the data mass costs proportionally more there than it does on ϕ's 3-parameter
+  plane, and the drain fit already saturates at large α (§8.7).
+- Calibration order is load-bearing (§8.7/§8.9/§8.10): α is fitted conditioned
+  on r, and λ₀ on both. Weighting one and not its conditioner would fit α from
+  recent drain logs against an r averaged over all history — an inconsistency
+  the current all-or-nothing scope avoids.
+
+Consequence to keep in mind when reading the card: its four rows do not all
+answer "over what period?" the same way.
 
 ### 5.1 Posterior-aware allocation (added 2026-07-18)
 

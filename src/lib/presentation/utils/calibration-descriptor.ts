@@ -6,7 +6,9 @@
    it were a fit would have gone unnoticed.
 
    The counts are each fit's OWN `usedCount` — informative observations, not raw
-   log rows. */
+   log rows. The ϕ row's is additionally recency-weighted, so it is a fresh-log
+   equivalent and prints with a decimal (MATH.md §5.2); the other three are
+   whole counts. */
 
 import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
@@ -88,7 +90,10 @@ export function calibrationRows(
 			value: flow.fitted ? `≈ ${minutes(flow.phiHours)}` : minutes(flow.phiHours),
 			note: m.ana_model_note_flow({
 				value: minutes(flow.defaultPhiHours),
-				count: flow.usedCount,
+				// Σw, what the history is worth in FRESH logs (MATH.md §5.2) — a
+				// year-old log counts half. Printing the raw count beside a discounted
+				// fit would overstate what moved it.
+				count: formatDecimals(flow.usedCount, 1, locale),
 			}),
 			trend: trend(flowLabel, series.phiHours, flow.defaultPhiHours, minutes),
 		},

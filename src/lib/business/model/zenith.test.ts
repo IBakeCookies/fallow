@@ -24,9 +24,11 @@ import {
 	BLOCK_HOURS,
 	OPTIMAL_PHI_MULTIPLIER,
 	GAIN_PERCENT_CAP,
+	PHI_RECENCY_HALF_LIFE_DAYS,
 	type FitPosterior,
 	type PooledTaskInput,
 	type FlowObservation,
+	type UserConstants,
 } from '$lib/business/model/zenith';
 
 // A representative grid over the whole user-input domain, used by the tests
@@ -1337,6 +1339,174 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(absurd.fitted).toBe(false);
 			expect(absurd.constants).toEqual(DEFAULT_USER_CONSTANTS);
 			expect(absurd.posterior.covariance[0][0]).toBeCloseTo((0.25 * 0.25) / 4, 12);
+		});
+
+		describe('recency weighting (§5.2)', () => {
+			const slow: FlowObservation = {
+				E: 3,
+				beta: 1.5,
+				phi: 4,
+			};
+
+			const at = (c: UserConstants) => c.c1 * slow.E + c.c2 * slow.beta + c.c3;
+
+			it('an undated log weighs the same as a fresh one', () => {
+				// Every caller supplies ageDays, but the model's own default must be
+				// the unweighted fit — otherwise a fixture without dates silently
+				// tests a different estimator than the app runs.
+				const undated = fitUserConstants([slow, slow, slow]);
+
+				const fresh = fitUserConstants([
+					{
+						...slow,
+						ageDays: 0,
+					},
+					{
+						...slow,
+						ageDays: 0,
+					},
+					{
+						...slow,
+						ageDays: 0,
+					},
+				]);
+
+				expect(fresh.constants).toEqual(undated.constants);
+				expect(fresh.effectiveCount).toBeCloseTo(undated.effectiveCount, 12);
+			});
+
+			it('a recent log moves the fit further than the same log logged long ago', () => {
+				const base = at(DEFAULT_USER_CONSTANTS);
+
+				const recent = at(
+					fitUserConstants([
+						{
+							...slow,
+							ageDays: 0,
+						},
+					]).constants,
+				);
+
+				const old = at(
+					fitUserConstants([
+						{
+							...slow,
+							ageDays: 3 * PHI_RECENCY_HALF_LIFE_DAYS,
+						},
+					]).constants,
+				);
+
+				// Both pull ϕ up toward the logged 4h; the stale one barely does. The
+				// gap is smaller than the 8× weight ratio — ridge shrinkage compresses
+				// it — so the claim is directional, not proportional.
+				expect(recent).toBeGreaterThan(old);
+				expect(old).toBeGreaterThan(base);
+				expect(Math.abs(old - base)).toBeLessThan(Math.abs(recent - base) / 2);
+			});
+
+			it('logs many half-lives old leave the fit at the defaults', () => {
+				// The 10-year logger: ancient data must decay into the prior rather
+				// than average with today's behaviour forever.
+				const ancient = fitUserConstants(
+					Array.from(
+						{
+							length: 50,
+						},
+						() => ({
+							...slow,
+							ageDays: 20 * PHI_RECENCY_HALF_LIFE_DAYS,
+						}),
+					),
+				);
+
+				// 50 logs at 2⁻²⁰ each carry ~5e-5 of one fresh log's weight: what is
+				// left of them moves the prediction by under a second.
+				expect(at(ancient.constants)).toBeCloseTo(at(DEFAULT_USER_CONSTANTS), 3);
+			});
+
+			it('reports the effective count as data mass, not weight spread', () => {
+				// Σw, the quantity the ridge actually divides by — NOT (Σw)²/Σw².
+				// That statistic measures how EVENLY weight is spread, so 20 logs all
+				// ten years old score a full 20 while the fit they support has
+				// returned to the prior. The card would then claim 20 logs moved a
+				// number that did not move.
+				const twenty = (ageDays: number) =>
+					fitUserConstants(
+						Array.from(
+							{
+								length: 20,
+							},
+							() => ({
+								...slow,
+								ageDays,
+							}),
+						),
+					);
+
+				const stale = twenty(10 * PHI_RECENCY_HALF_LIFE_DAYS);
+				const fresh20 = twenty(0);
+				expect(stale.effectiveCount).toBeLessThan(0.05);
+				expect(fresh20.effectiveCount).toBeCloseTo(20, 9);
+
+				// n_eff would have scored this history a full 20. What it is actually
+				// worth: under a fifteenth of the pull the same logs have when fresh.
+				// Not the 1024:1 the weights suggest — the fresh fit saturates, its own
+				// denominator growing with Σw, so the movement ratio is ≈17:1.
+				const base = at(DEFAULT_USER_CONSTANTS);
+
+				expect(at(stale.constants) - base).toBeLessThan((at(fresh20.constants) - base) / 15);
+
+				// Eight logs at exactly one half-life are worth four fresh ones.
+				const halved = fitUserConstants(
+					Array.from(
+						{
+							length: 8,
+						},
+						() => ({
+							...slow,
+							ageDays: PHI_RECENCY_HALF_LIFE_DAYS,
+						}),
+					),
+				);
+
+				expect(halved.effectiveCount).toBeCloseTo(4, 9);
+
+				// Fresh logs are worth exactly themselves, so the count never exceeds
+				// the log count — which is what makes "3.5 ⚡ logs" readable.
+				const fresh = fitUserConstants(
+					Array.from(
+						{
+							length: 8,
+						},
+						() => ({
+							...slow,
+							ageDays: 0,
+						}),
+					),
+				);
+
+				expect(fresh.effectiveCount).toBeCloseTo(8, 9);
+			});
+
+			it('a future-dated log never outweighs a fresh one', () => {
+				// A backup restored from a device with a fast clock yields a negative
+				// age; 2^(−age/H) would exceed 1 and inflate that single log.
+				const future = fitUserConstants([
+					{
+						...slow,
+						ageDays: -400,
+					},
+				]);
+
+				const fresh = fitUserConstants([
+					{
+						...slow,
+						ageDays: 0,
+					},
+				]);
+
+				expect(future.constants).toEqual(fresh.constants);
+			});
 		});
 	});
 

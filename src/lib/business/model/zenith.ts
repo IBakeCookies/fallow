@@ -1485,7 +1485,22 @@ export interface FlowObservation {
 	E: number; // mapped effort (1-5) of the task when the observation was taken
 	beta: number; // mapped enjoyability (1-2)
 	phi: number; // measured time to reach flow state, in hours
+	/** Calendar days between the log and today; omitted counts as fresh (MATH.md §5.2) */
+	ageDays?: number;
 }
+
+/**
+ * Half-life of a ⚡ log's influence on the ϕ fit, in days (MATH.md §5.2).
+ *
+ * ϕ is not stationary: a new job, a newborn, an illness or ten years of ageing
+ * all move how long it takes a person to reach flow, and an unweighted fit
+ * averages the person they were with the person they are. One year is slow
+ * enough that a steady logger keeps a personal fit through a quiet stretch, and
+ * fast enough that a decade-old log lands at 2⁻¹⁰ ≈ 0.001 — effectively gone.
+ *
+ * Applied to ⚡ ONLY. The energy fits (r, α, λ₀) stay unweighted — see §5.2.
+ */
+export const PHI_RECENCY_HALF_LIFE_DAYS = 365;
 
 /**
  * Prior strength for the regularized constants fit. Bayesian reading (v2):
@@ -1513,7 +1528,7 @@ const FLOW_NOISE_PRIOR_STD = 0.25;
  * instead of treating a 2-observation fit like a 200-observation one.
  */
 export interface FitPosterior {
-	/** 3×3 posterior covariance of (c₁, c₂, c₃): σ̂²·(XᵀX + λI)⁻¹ */
+	/** 3×3 posterior covariance of (c₁, c₂, c₃): σ̂²·(XᵀWX + λI)⁻¹, W = §5.2 weights */
 	covariance: number[][];
 	/** Estimated observation noise variance σ̂² (hours²) */
 	sigma2: number;
@@ -1557,10 +1572,14 @@ function priorPosterior(): FitPosterior {
  * with design rows xᵢ = [Eᵢ, βᵢ, 1], prior mean c₀ = fallback constants and
  * λ = RIDGE_PRIOR_STRENGTH.
  *
- * Posterior (all closed-form):
- *   mean        ĉ = (XᵀX + λI)⁻¹ (Xᵀϕ + λc₀)       ← identical to v1's ridge
- *   covariance  Σ = σ̂²·(XᵀX + λI)⁻¹
- *   noise       σ̂² = (ν₀σ₀² + Σ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + n)
+ * Posterior (all closed-form), with W = diag(wᵢ) the §5.2 recency weights:
+ *   mean        ĉ = (XᵀWX + λI)⁻¹ (XᵀWϕ + λc₀)     ← v1's ridge at every wᵢ = 1
+ *   covariance  Σ = σ̂²·(XᵀWX + λI)⁻¹
+ *   noise       σ̂² = (ν₀σ₀² + Σwᵢ(ϕᵢ − ĉ·xᵢ)²)/(ν₀ + Σwᵢ)
+ *
+ * Σwᵢ is the data mass: it replaces the observation count everywhere n stood,
+ * and is returned as `effectiveCount` — "how many fresh logs is this history
+ * worth", which is what the "Your model" card prints.
  *
  * The point estimate the allocator consumes is unchanged from v1 (the ridge
  * MAP); `posterior` is what makes a 2-log plan differ from a 200-log plan
@@ -1590,14 +1609,27 @@ function priorPosterior(): FitPosterior {
 export function fitUserConstants(
 	observations: FlowObservation[],
 	fallback: UserConstants = DEFAULT_USER_CONSTANTS,
-): { constants: UserConstants; fitted: boolean; posterior: FitPosterior } {
+): {
+	constants: UserConstants;
+	fitted: boolean;
+	posterior: FitPosterior;
+	effectiveCount: number;
+} {
 	if (observations.length === 0) {
 		return {
 			constants: fallback,
 			fitted: false,
 			posterior: priorPosterior(),
+			effectiveCount: 0,
 		};
 	}
+
+	// A backup restored from a device with a fast clock carries a log dated
+	// ahead of today; without the floor its weight exceeds 1 and that one log
+	// outvotes the rest.
+	const weights = observations.map((o) =>
+		Math.pow(2, -Math.max(0, o.ageDays ?? 0) / PHI_RECENCY_HALF_LIFE_DAYS),
+	);
 
 	let sEE = 0;
 	let sEb = 0;
@@ -1607,17 +1639,25 @@ export function fitUserConstants(
 	let sEp = 0;
 	let sbp = 0;
 	let sp = 0;
-	const n = observations.length;
+	// Σw replaces the observation count everywhere n appeared: it is the ridge's
+	// data mass, so a fit of ancient logs is pulled to the prior exactly as a fit
+	// of few logs is — and it is therefore also the honest count to report.
+	// (Σw)²/Σw², the usual effective sample size, is the WRONG statistic here: it
+	// measures how evenly weight is spread, so 20 logs all ten years old score a
+	// full 20 beside a fit that has returned to the prior.
+	let sumWeight = 0;
 
-	for (const o of observations) {
-		sEE += o.E * o.E;
-		sEb += o.E * o.beta;
-		sE += o.E;
-		sbb += o.beta * o.beta;
-		sb += o.beta;
-		sEp += o.E * o.phi;
-		sbp += o.beta * o.phi;
-		sp += o.phi;
+	for (const [i, o] of observations.entries()) {
+		const w = weights[i];
+		sEE += w * o.E * o.E;
+		sEb += w * o.E * o.beta;
+		sE += w * o.E;
+		sbb += w * o.beta * o.beta;
+		sb += w * o.beta;
+		sEp += w * o.E * o.phi;
+		sbp += w * o.beta * o.phi;
+		sp += w * o.phi;
+		sumWeight += w;
 	}
 
 	const lambda = RIDGE_PRIOR_STRENGTH;
@@ -1625,7 +1665,7 @@ export function fitUserConstants(
 	const A = [
 		[sEE + lambda, sEb, sE],
 		[sEb, sbb + lambda, sb],
-		[sE, sb, n + lambda],
+		[sE, sb, sumWeight + lambda],
 	];
 
 	const solution = solve3x3(A, [
@@ -1641,6 +1681,7 @@ export function fitUserConstants(
 			constants: fallback,
 			fitted: false,
 			posterior: priorPosterior(),
+			effectiveCount: sumWeight,
 		};
 
 	const [c1, c2, c3] = solution;
@@ -1654,6 +1695,7 @@ export function fitUserConstants(
 					constants: fallback,
 					fitted: false,
 					posterior: priorPosterior(),
+					effectiveCount: sumWeight,
 				};
 			}
 		}
@@ -1664,13 +1706,13 @@ export function fitUserConstants(
 	// a couple of lucky logs nor ignores genuinely noisy users.
 	let ssr = 0;
 
-	for (const o of observations) {
+	for (const [i, o] of observations.entries()) {
 		const resid = o.phi - (c1 * o.E + c2 * o.beta + c3);
-		ssr += resid * resid;
+		ssr += weights[i] * resid * resid;
 	}
 
 	const nu0 = RIDGE_PRIOR_STRENGTH;
-	const sigma2 = (nu0 * FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD + ssr) / (nu0 + n);
+	const sigma2 = (nu0 * FLOW_NOISE_PRIOR_STD * FLOW_NOISE_PRIOR_STD + ssr) / (nu0 + sumWeight);
 	const Ainv = invert3x3(A);
 
 	if (!Ainv)
@@ -1682,6 +1724,7 @@ export function fitUserConstants(
 			},
 			fitted: true,
 			posterior: priorPosterior(),
+			effectiveCount: sumWeight,
 		};
 
 	return {
@@ -1695,6 +1738,7 @@ export function fitUserConstants(
 			covariance: Ainv.map((row) => row.map((v) => v * sigma2)),
 			sigma2,
 		},
+		effectiveCount: sumWeight,
 	};
 }
 

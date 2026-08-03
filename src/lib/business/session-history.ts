@@ -27,7 +27,7 @@ import {
 	migrateFromLocalStorageToIndexedDB,
 	migrateEnergyParamsFromLocalStorage,
 } from '$lib/data/migration/local-storage-migration';
-import { addDays, toISODate } from '$lib/business/utils/date';
+import { addDays, daysBetween, toISODate } from '$lib/business/utils/date';
 import {
 	calculateFlowStateTime,
 	DEFAULT_CAPACITY_POOLS,
@@ -95,15 +95,17 @@ interface UserFit {
 	/** Never absent: every `fitUserConstants` path returns one (MATH.md §13.1). */
 	posterior: FitPosterior;
 	fitted: boolean;
+	/** Σw: what the ⚡ history is worth in fresh logs, not its row count (§5.2). */
 	usedCount: number;
 }
 
-function fitFrom(observations: FlowObservationRecord[]): UserFit {
+function fitFrom(observations: FlowObservationRecord[], today: string): UserFit {
 	const fit = fitUserConstants(
 		observations.map((o) => ({
 			E: o.E,
 			beta: o.beta,
 			phi: o.phiHours,
+			ageDays: daysBetween(o.date, today),
 		})),
 	);
 
@@ -111,12 +113,12 @@ function fitFrom(observations: FlowObservationRecord[]): UserFit {
 		constants: fit.constants,
 		posterior: fit.posterior,
 		fitted: fit.fitted,
-		usedCount: observations.length,
+		usedCount: fit.effectiveCount,
 	};
 }
 
 async function readUserFit(): Promise<UserFit> {
-	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()));
+	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()), toISODate());
 }
 
 /**
@@ -270,8 +272,13 @@ export interface FitTrend {
  * finished days' stop decisions (§8.10). `flow` reports ϕ for a mid-scale
  * reference task (difficulty 5, enjoyment 5) so the fitted plane reads as one
  * legible number next to its default.
+ *
+ * Only the ϕ fit is recency-weighted (§5.2); r, α and λ₀ read their whole log
+ * history at equal weight, so the four rows of the card do not all answer
+ * "over what period?" the same way.
  */
 export interface CalibrationSnapshot {
+	/** `usedCount` is ϕ's recency-weighted fresh-log equivalent, not a row count (§5.2). */
 	flow: { fitted: boolean; usedCount: number; phiHours: number; defaultPhiHours: number };
 	energy: EnergyCalibration;
 	stopping: StoppingValueFit;
@@ -433,7 +440,7 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 		$readAllDrainObservations().then(sanitizeDrainObservations),
 	]);
 
-	const fit = fitFrom(flow);
+	const fit = fitFrom(flow, today);
 	const days = await readFinishedDays(today, drain);
 	const stops = toStopObservations(days);
 	const trendStart = addDays(today, -(auditDayCap - 1));
