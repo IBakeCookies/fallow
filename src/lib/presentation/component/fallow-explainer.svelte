@@ -56,9 +56,7 @@
 	{@html jsonLdScript(faqSchema)}
 </svelte:head>
 
-<section
-	class="mt-section-lg space-y-section rounded-2xl border bg-surface-card p-box-md text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
->
+<section class="card-shell mt-section-lg space-y-section p-box-md text-ty-secondary sm:p-box-xl">
 	<div class="max-w-3xl space-y-text-sm">
 		<h2 class="text-xl font-bold text-ty-primary">{m.about_hook_title()}</h2>
 		<p class="text-sm leading-relaxed">{m.about_hook_body()}</p>

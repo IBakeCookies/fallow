@@ -19,9 +19,7 @@
 	let { suggestedTasks, runOrder, form, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
 </script>
 
-<div
-	class="bg-surface-card space-y-text-xs rounded-2xl border p-box-md sm:p-box-xl backdrop-blur shadow-card"
->
+<div class="card-shell space-y-text-xs p-box-md sm:p-box-xl">
 	<h2 class="text-lg font-bold text-ty-primary">{m.list_title()}</h2>
 	{#if form}
 		<div class="pb-text-md">{@render form()}</div>

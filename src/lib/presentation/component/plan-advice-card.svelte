@@ -32,7 +32,7 @@
 		</Button>
 	</div>
 {:else}
-	<div class="rounded-2xl border bg-surface-card backdrop-blur shadow-card p-box-md sm:p-box-xl">
+	<div class="card-shell p-box-md sm:p-box-xl">
 		<div class="flex items-start justify-between gap-grid-xs">
 			<div class="min-w-0">
 				<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">

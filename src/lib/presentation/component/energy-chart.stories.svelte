@@ -62,7 +62,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-2xl border bg-surface-card p-box-xl backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl p-box-xl">
 			<EnergyChart {...args} />
 		</div>
 	{/snippet}
@@ -79,7 +79,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-2xl border bg-surface-card p-box-xl backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl p-box-xl">
 			<EnergyChart {...args} />
 		</div>
 	{/snippet}
@@ -115,7 +115,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-2xl border bg-surface-card p-box-xl backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl p-box-xl">
 			<EnergyChart {...args} />
 		</div>
 	{/snippet}

@@ -147,9 +147,7 @@
 		</section>
 
 		<!-- What every card in the app is: translucent surface + backdrop-blur -->
-		<section
-			class="space-y-text-xs rounded-2xl border bg-surface-card p-box-xl backdrop-blur shadow-card"
-		>
+		<section class="card-shell space-y-text-xs p-box-xl">
 			<h2 class="text-lg font-bold text-ty-primary">A card on this theme</h2>
 			<p class="text-sm text-ty-secondary">
 				surface-card is translucent in about twenty themes — without backdrop-blur the background

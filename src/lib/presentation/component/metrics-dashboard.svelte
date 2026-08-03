@@ -22,7 +22,7 @@
 	const trend = $derived(momentum === null ? null : Math.sign(momentum));
 </script>
 
-<div class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl backdrop-blur shadow-card">
+<div class="card-shell p-box-md sm:p-box-xl">
 	<!-- Momentum. tailwind-merge lets `class` win the fill and the ink, so the
 	     variant only picks tinted vs. plain: a `destructive` branch would style
 	     nothing and name a severity the warning fill contradicts. -->
@@ -105,9 +105,7 @@
 	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
-				<span
-					class="text-xs text-ty-secondary cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4"
-				>
+				<span class="hint-underline text-xs text-ty-secondary">
 					{text}
 				</span>
 			</Tooltip.Trigger>

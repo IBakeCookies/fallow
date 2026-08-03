@@ -25,7 +25,7 @@
 			name: args.title,
 		});
 
-		await expect(heading).toHaveClass('cursor-help');
+		await expect(heading).toHaveClass('hint-underline');
 
 		await userEvent.hover(heading);
 		const body = within(canvasElement.ownerDocument.body);

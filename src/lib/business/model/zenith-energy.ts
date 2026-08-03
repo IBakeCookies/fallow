@@ -1592,18 +1592,76 @@ export function stopIndifferencePoint(
 	params: EnergyParams,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): number | null {
+	const day = reconstructStopDay(observation, params, constants);
+
+	if (day === null || day.byTask.size === 0) return null;
+
+	const step = DEFAULT_STEP_HOURS;
+
+	const lo =
+		day.total + step <= observation.windowHours + 1e-9 ? bestNextStep(day).marginalValue : null;
+
+	let hi: number | null = null;
+
+	for (const t of observation.tasks) {
+		if ((day.byTask.get(t.id) ?? 0) >= step - 1e-9) {
+			const shrunk = day.sched
+				.map((b) =>
+					b.taskId === t.id
+						? {
+								...b,
+								hours: b.hours - step,
+							}
+						: b,
+				)
+				.filter((b) => b.hours > 1e-9);
+
+			const dLast = (day.base - day.workValue(shrunk)) / step;
+			hi = hi === null ? dLast : Math.max(hi, dLast);
+		}
+	}
+
+	if (lo === null || hi === null) return null;
+
+	const stopBound = Math.max(0, lo);
+
+	// Interruption-censored: the day's data contradicts a rational stop by more
+	// than the instrument's slack — see STOP_INVERSION_MARGIN.
+	if (stopBound > hi + STOP_INVERSION_MARGIN) return null;
+
+	return (stopBound + hi) / 2;
+}
+
+/**
+ * The reconstructed day the two stop readings share (§8.10/§8.11): one session
+ * per logged task at its observed hours in canonical amplitude order, plus the
+ * λ₀-free work value V = satiatedOutput + terminalBonus evaluated around it.
+ * `tasks` is the day's full task list, non-empty by construction — which is
+ * what lets `bestNextStep` promise a result.
+ */
+interface StopDayReconstruction {
+	tasks: EnergyTaskInput[];
+	sched: ScheduleBlock[];
+	byTask: Map<number, number>;
+	rank: Map<number, number>;
+	total: number;
+	base: number;
+	workValue: (blocks: ScheduleBlock[]) => number;
+}
+
+function reconstructStopDay(
+	observation: StopObservation,
+	params: EnergyParams,
+	constants: UserConstants,
+): StopDayReconstruction | null {
 	const { tasks, windowHours } = observation;
 
 	if (windowHours <= 0 || tasks.length === 0) return null;
 
-	const step = DEFAULT_STEP_HOURS;
 	const byTask = workedHoursByTask(tasks, observation.workedHours);
-
-	if (byTask.size === 0) return null;
-
 	// Canonical amplitude order over ALL of the day's tasks: the worked ones
 	// become the reconstructed schedule, and the rank doubles as the insertion
-	// point when an UNLOGGED task is probed below.
+	// point when an UNLOGGED task is probed in `bestNextStep`.
 	const canonical = [...tasks].sort((x, y) => taskAmplitude(y) - taskAmplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
 
@@ -1623,67 +1681,164 @@ export function stopIndifferencePoint(
 		return ev.satiatedOutput + ev.terminalBonus;
 	};
 
-	const base = workValue(sched);
-	let lo: number | null = null;
-	let hi: number | null = null;
+	return {
+		tasks,
+		sched,
+		byTask,
+		rank,
+		total,
+		base: workValue(sched),
+		workValue,
+	};
+}
 
-	for (const t of tasks) {
-		if (total + step <= windowHours + 1e-9) {
-			// An unlogged task is probed at ITS canonical position, not appended
-			// last. Block order changes the marginal through the reservoirs — the
-			// same step measured 0.65 appended-last vs 0.37 inserted-first on the
-			// probe day — so appending made `lo` (and hence λ̂₀) depend on an
-			// arbitrary convention rather than on the day (MATH.md §13.4).
-			const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
+/**
+ * The reconstructed day grown by `hours` more on task `t`. An unlogged task
+ * is inserted at ITS canonical position, not appended last: block order
+ * changes the marginal through the reservoirs — the same step measured 0.65
+ * appended-last vs 0.37 inserted-first on the probe day — so appending made
+ * the reading depend on an arbitrary convention rather than on the day
+ * (MATH.md §13.4).
+ */
+function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): ScheduleBlock[] {
+	if (day.byTask.has(t.id)) {
+		return day.sched.map((b) =>
+			b.taskId === t.id
+				? {
+						...b,
+						hours: b.hours + hours,
+					}
+				: b,
+		);
+	}
 
-			const grown = byTask.has(t.id)
-				? sched.map((b) =>
-						b.taskId === t.id
-							? {
-									...b,
-									hours: b.hours + step,
-								}
-							: b,
-					)
-				: [
-						...sched.slice(0, at),
-						{
-							taskId: t.id,
-							hours: step,
-						},
-						...sched.slice(at),
-					];
+	const at = day.sched.filter((b) => day.rank.get(b.taskId!)! < day.rank.get(t.id)!).length;
 
-			const dNext = (workValue(grown) - base) / step;
-			lo = lo === null ? dNext : Math.max(lo, dNext);
-		}
+	return [
+		...day.sched.slice(0, at),
+		{
+			taskId: t.id,
+			hours,
+		},
+		...day.sched.slice(at),
+	];
+}
 
-		if ((byTask.get(t.id) ?? 0) >= step - 1e-9) {
-			const shrunk = sched
-				.map((b) =>
-					b.taskId === t.id
-						? {
-								...b,
-								hours: b.hours - step,
-							}
-						: b,
-				)
-				.filter((b) => b.hours > 1e-9);
+/**
+ * max over ALL of the day's tasks of Δ(one more step on t)/step — §8.10's `lo`
+ * bound. Declining to extend a logged task and declining to START an unlogged
+ * one are both part of the stop decision, so both are probed. Callers
+ * guarantee a whole step fits.
+ */
+function bestNextStep(day: StopDayReconstruction): { taskId: number; marginalValue: number } {
+	const step = DEFAULT_STEP_HOURS;
+	let best: { taskId: number; marginalValue: number } | null = null;
 
-			const dLast = (base - workValue(shrunk)) / step;
-			hi = hi === null ? dLast : Math.max(hi, dLast);
+	for (const t of day.tasks) {
+		const dNext = (day.workValue(growBy(day, t, step)) - day.base) / step;
+
+		if (best === null || dNext > best.marginalValue) {
+			best = {
+				taskId: t.id,
+				marginalValue: dNext,
+			};
 		}
 	}
 
-	if (lo === null || hi === null) return null;
+	// day.tasks is non-empty by reconstruction, so the loop ran at least once.
+	return best!;
+}
 
-	const stopBound = Math.max(0, lo);
+/**
+ * The live stop advisor's verdict on the day so far (MATH.md §8.11): either a
+ * priced best next session, or the fact that no whole step fits the window.
+ */
+export type StopAdvice =
+	| {
+			verdict: 'continue' | 'stop';
+			/** The task whose next session is worth the most right now */
+			taskId: number;
+			/** That best session's length — a whole number of 45-min steps */
+			sessionHours: number;
+			/** Its average work-value gain per hour — same units as freeTimeValue */
+			marginalValue: number;
+	  }
+	| {
+			verdict: 'window-full';
+	  };
 
-	// Interruption-censored: the day's data contradicts a rational stop by more
-	// than the instrument's slack — see STOP_INVERSION_MARGIN.
-	if (stopBound > hi + STOP_INVERSION_MARGIN) return null;
+/**
+ * §8.10's stop reading run forward mid-day instead of on a finished one
+ * (MATH.md §8.11): given the work logged so far, price the best next SESSION —
+ * max over (task, whole-step duration) of average work-value gain per hour,
+ * the same λ₀-free value the stopping fit brackets with — and compare it
+ * against the CURRENT freeTimeValue. Continue while some session still beats
+ * an hour of leisure, stop at indifference or below.
+ *
+ * Sessions, not single steps, on purpose: a fresh task's first 45 min is
+ * mostly warm-up ramp, so its one-step marginal sits below a λ₀ the full
+ * session clears — probe 2026-08-03: the one-step verdict cried stop mid-day
+ * on 16–25% of checkpoints at λ₀ ≥ 0.9, session-lookahead on 1–6%, with
+ * at-stop agreement unchanged (§8.11). The duration axis is the optimizer's
+ * own move shape (grow / T*-session insert), so at a rational stop no session
+ * clears λ₀ and the verdicts still agree.
+ *
+ * `candidateTaskIds` limits which tasks may be RECOMMENDED — the store passes
+ * the open tasks, because "one more session of a task you already checked
+ * off" is no advice — while every logged task still shapes the reconstruction:
+ * a completed task's hours drained the reservoirs the open ones must work
+ * with. Omitted means all of the day's tasks.
+ *
+ * Null when there is nothing to advise on (no window, no tasks, or no
+ * candidate left); `window-full` when no whole step fits in what remains of
+ * the window — logged hours filled it, or the window is smaller than one step.
+ */
+export function adviseStop(
+	observation: StopObservation,
+	params: EnergyParams,
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	candidateTaskIds?: ReadonlySet<number>,
+): StopAdvice | null {
+	const day = reconstructStopDay(observation, params, constants);
 
-	return (stopBound + hi) / 2;
+	if (day === null) return null;
+
+	const candidates = day.tasks.filter(
+		(t) => candidateTaskIds === undefined || candidateTaskIds.has(t.id),
+	);
+
+	if (candidates.length === 0) return null;
+
+	const step = DEFAULT_STEP_HOURS;
+	const room = Math.floor((observation.windowHours - day.total) / step + 1e-9);
+
+	if (room < 1) {
+		return {
+			verdict: 'window-full',
+		};
+	}
+
+	let best: { taskId: number; sessionHours: number; marginalValue: number } | null = null;
+
+	for (const t of candidates) {
+		for (let m = 1; m <= room; m++) {
+			const hours = m * step;
+			const avg = (day.workValue(growBy(day, t, hours)) - day.base) / hours;
+
+			if (best === null || avg > best.marginalValue) {
+				best = {
+					taskId: t.id,
+					sessionHours: hours,
+					marginalValue: avg,
+				};
+			}
+		}
+	}
+
+	return {
+		verdict: best!.marginalValue > params.freeTimeValue ? 'continue' : 'stop',
+		...best!,
+	};
 }
 
 /**

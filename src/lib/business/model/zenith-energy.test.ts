@@ -14,8 +14,10 @@ import {
 	sampleTrajectory,
 	simulateReservoirs,
 	STOP_INVERSION_MARGIN,
+	adviseStop,
 	stopIndifferencePoint,
 	type DrainObservation,
+	type StopAdvice,
 	type EnergyTaskInput,
 	type RestObservation,
 	type StopObservation,
@@ -1383,6 +1385,260 @@ describe('Zenith Energy Model', () => {
 			const days = [dayFromPlan(0.9, 8), dayFromPlan(0.9, 12)];
 			const a = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
 			const b = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
+			expect(a).toEqual(b);
+		});
+	});
+
+	describe('live stop advisor (adviseStop, MATH.md §8.11)', () => {
+		const singleTask = [makeTask(1, 'Deep work', 7, 6, 0.8, 0.2)];
+
+		const singleDay = (hours: number, windowHours = 8): StopObservation => ({
+			tasks: singleTask,
+			windowHours,
+			workedHours:
+				hours > 0
+					? [
+							{
+								taskId: 1,
+								hours,
+							},
+						]
+					: [],
+		});
+
+		/** Narrows to the priced arm; a test reaching this on the wrong arm fails. */
+		const priced = (advice: StopAdvice | null) => {
+			if (advice === null || advice.verdict === 'window-full') {
+				throw new Error('expected a priced verdict');
+			}
+
+			return advice;
+		};
+
+		const workValue = (hours: number, windowHours = 8) => {
+			const ev = evaluateSchedule(
+				hours > 0
+					? [
+							{
+								taskId: 1,
+								hours,
+							},
+						]
+					: [],
+				singleTask,
+				windowHours,
+			);
+
+			return ev.satiatedOutput + ev.terminalBonus;
+		};
+
+		it('prices the best next session of a single-task day exactly: max over whole-step durations of the average work-value gain per hour', () => {
+			const worked = 1.5;
+			const room = Math.floor((8 - worked) / DEFAULT_STEP_HOURS);
+			let expected = -Infinity;
+			let expectedHours = 0;
+
+			for (let m = 1; m <= room; m++) {
+				const hours = m * DEFAULT_STEP_HOURS;
+				const avg = (workValue(worked + hours) - workValue(worked)) / hours;
+
+				if (avg > expected) {
+					expected = avg;
+					expectedHours = hours;
+				}
+			}
+
+			const advice = priced(adviseStop(singleDay(worked), DEFAULT_ENERGY_PARAMS));
+
+			expect(advice.taskId).toBe(1);
+			expect(advice.marginalValue).toBeCloseTo(expected, 12);
+			expect(advice.sessionHours).toBeCloseTo(expectedHours, 12);
+		});
+
+		it('looks ahead past the warm-up ramp: continues when only a longer session clears λ₀ (probe 2026-08-03)', () => {
+			// Hard, unloved task: long ϕ, so the first 45 min is mostly ramp and its
+			// one-step marginal undersells the session. A one-step advisor stops here.
+			const grind = [makeTask(1, 'Grind', 10, 2, 0.6, 0.2)];
+
+			const value = (hours: number) => {
+				const ev = evaluateSchedule(
+					hours > 0
+						? [
+								{
+									taskId: 1,
+									hours,
+								},
+							]
+						: [],
+					grind,
+					10,
+				);
+
+				return ev.satiatedOutput + ev.terminalBonus;
+			};
+
+			const oneStep = (value(DEFAULT_STEP_HOURS) - value(0)) / DEFAULT_STEP_HOURS;
+			let bestAvg = -Infinity;
+
+			for (let m = 1; m <= Math.floor(10 / DEFAULT_STEP_HOURS); m++) {
+				const hours = m * DEFAULT_STEP_HOURS;
+
+				bestAvg = Math.max(bestAvg, (value(hours) - value(0)) / hours);
+			}
+
+			// The fixture only tests something while the two straddle a λ₀.
+			expect(bestAvg).toBeGreaterThan(oneStep);
+
+			const advice = priced(
+				adviseStop(
+					{
+						tasks: grind,
+						windowHours: 10,
+						workedHours: [],
+					},
+					{
+						...DEFAULT_ENERGY_PARAMS,
+						freeTimeValue: (oneStep + bestAvg) / 2,
+					},
+				),
+			);
+
+			expect(advice.verdict).toBe('continue');
+			expect(advice.marginalValue).toBeCloseTo(bestAvg, 12);
+		});
+
+		it('verdict flips across the freeTimeValue threshold; the marginal itself is λ₀-free', () => {
+			const day = singleDay(1.5);
+			const base = priced(adviseStop(day, DEFAULT_ENERGY_PARAMS));
+
+			const at = (freeTimeValue: number) =>
+				priced(
+					adviseStop(day, {
+						...DEFAULT_ENERGY_PARAMS,
+						freeTimeValue,
+					}),
+				);
+
+			const generous = at(base.marginalValue - 0.01);
+			const stingy = at(base.marginalValue + 0.01);
+
+			expect(generous.verdict).toBe('continue');
+			expect(stingy.verdict).toBe('stop');
+			expect(generous.marginalValue).toBe(base.marginalValue);
+			expect(stingy.marginalValue).toBe(base.marginalValue);
+		});
+
+		it('on a fresh morning it advises starting, and picks the lighter of two curve-twins', () => {
+			// Identical curve (same difficulty/enjoyment), different demands: the
+			// low-demand twin's first block drains less and gates higher, so the
+			// argmax is known without assuming an amplitude order.
+			const heavy = makeTask(1, 'Heavy', 8, 5, 0.9, 0.9);
+			const light = makeTask(2, 'Light', 8, 5, 0.3, 0.3);
+
+			const advice = priced(
+				adviseStop(
+					{
+						tasks: [heavy, light],
+						windowHours: 8,
+						workedHours: [],
+					},
+					DEFAULT_ENERGY_PARAMS,
+				),
+			);
+
+			expect(advice.verdict).toBe('continue');
+			expect(advice.taskId).toBe(2);
+		});
+
+		it('degrades to stop as the day wears on: a λ₀ the fresh day clears, a worn day does not', () => {
+			const fresh = priced(adviseStop(singleDay(0, 10), DEFAULT_ENERGY_PARAMS));
+			const worn = priced(adviseStop(singleDay(6, 10), DEFAULT_ENERGY_PARAMS));
+
+			expect(worn.marginalValue).toBeLessThan(fresh.marginalValue);
+			expect(fresh.verdict).toBe('continue');
+			expect(worn.verdict).toBe('stop');
+		});
+
+		it('recommends only candidate tasks, while non-candidate work still shapes the day', () => {
+			// The non-candidate dominates every unfiltered max (higher amplitude,
+			// lighter demands), so this test can only pass through the filter.
+			const pair = [
+				makeTask(1, 'Done already', 8, 8, 0.3, 0.2),
+				makeTask(2, 'Still open', 4, 4, 0.5, 0.5),
+			];
+
+			const withHistory = priced(
+				adviseStop(
+					{
+						tasks: pair,
+						windowHours: 10,
+						workedHours: [
+							{
+								taskId: 1,
+								hours: 4.5,
+							},
+						],
+					},
+					DEFAULT_ENERGY_PARAMS,
+					undefined,
+					new Set([2]),
+				),
+			);
+
+			const withoutHistory = priced(
+				adviseStop(
+					{
+						tasks: pair,
+						windowHours: 10,
+						workedHours: [],
+					},
+					DEFAULT_ENERGY_PARAMS,
+					undefined,
+					new Set([2]),
+				),
+			);
+
+			expect(withHistory.taskId).toBe(2);
+			expect(withoutHistory.taskId).toBe(2);
+			// The completed task's 4.5 h drained the reservoirs the open task needs,
+			// so pricing it as if the day were fresh would be a different number.
+			expect(withHistory.marginalValue).not.toBeCloseTo(withoutHistory.marginalValue, 6);
+			expect(withHistory.marginalValue).toBeLessThan(withoutHistory.marginalValue);
+		});
+
+		it('returns null when no candidate is left to recommend', () => {
+			expect(adviseStop(singleDay(1.5), DEFAULT_ENERGY_PARAMS, undefined, new Set())).toBeNull();
+		});
+
+		it('reports window-full when no whole step fits, including hours logged past the window', () => {
+			expect(adviseStop(singleDay(7.6), DEFAULT_ENERGY_PARAMS)).toEqual({
+				verdict: 'window-full',
+			});
+
+			expect(adviseStop(singleDay(9), DEFAULT_ENERGY_PARAMS)).toEqual({
+				verdict: 'window-full',
+			});
+		});
+
+		it('returns null when there is nothing to advise on', () => {
+			expect(adviseStop(singleDay(1, 0), DEFAULT_ENERGY_PARAMS)).toBeNull();
+
+			expect(
+				adviseStop(
+					{
+						tasks: [],
+						windowHours: 8,
+						workedHours: [],
+					},
+					DEFAULT_ENERGY_PARAMS,
+				),
+			).toBeNull();
+		});
+
+		it('is deterministic', () => {
+			const a = adviseStop(singleDay(1.5), DEFAULT_ENERGY_PARAMS);
+			const b = adviseStop(singleDay(1.5), DEFAULT_ENERGY_PARAMS);
+
 			expect(a).toEqual(b);
 		});
 	});

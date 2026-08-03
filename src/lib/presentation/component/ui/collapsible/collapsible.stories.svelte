@@ -19,9 +19,7 @@
 </script>
 
 <Story name="Default" asChild>
-	<Collapsible.Root
-		class="max-w-sm rounded-2xl border bg-surface-card p-box-md shadow-card backdrop-blur"
-	>
+	<Collapsible.Root class="card-shell max-w-sm p-box-md">
 		<Collapsible.Trigger class="text-sm text-ty-secondary hover:text-ty-primary">
 			Model details ▾
 		</Collapsible.Trigger>
@@ -32,10 +30,7 @@
 </Story>
 
 <Story name="Open" asChild>
-	<Collapsible.Root
-		open
-		class="max-w-sm rounded-2xl border bg-surface-card p-box-md shadow-card backdrop-blur"
-	>
+	<Collapsible.Root open class="card-shell max-w-sm p-box-md">
 		<Collapsible.Trigger class="text-sm text-ty-secondary hover:text-ty-primary">
 			Model details ▴
 		</Collapsible.Trigger>

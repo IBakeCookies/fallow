@@ -50,7 +50,7 @@
 <SeoHead title="{m.privacy_title()} — Fallow" description={m.privacy_local_heading()} />
 
 <article
-	class="max-w-2xl rounded-2xl border bg-surface-card p-box-md text-sm leading-relaxed text-ty-secondary backdrop-blur sm:p-box-xl shadow-card"
+	class="card-shell max-w-2xl p-box-md text-sm leading-relaxed text-ty-secondary sm:p-box-xl"
 >
 	<header>
 		<h1 class="text-2xl font-semibold text-ty-primary">{m.privacy_title()}</h1>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, addTask, logDrain, openTimeBudget } from './helpers';
+import { addTask, AUTOSAVE_MS, budgetField, logDrain, openTimeBudget, setBudget } from './helpers';
 
 /* The Energy Lab shares the daily session but owns its own params and
    measurements, so the flows worth covering here are the seams between them:
@@ -121,8 +121,7 @@ test('every task row reports the hours the plan gave it', async ({ page }) => {
 test('the Lab plans the task deployed on the main page', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.getByLabel('Available Hours').fill('8');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 8);
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/energy');
@@ -151,8 +150,7 @@ test('the Lab plans the task deployed on the main page', async ({ page }) => {
 test('the day window and the main page’s budget are one value', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.getByLabel('Available Hours').fill('8');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 8);
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/energy');
@@ -167,7 +165,7 @@ test('the day window and the main page’s budget are one value', async ({ page 
 	// itself on a day that has hours, so open it to read the field.
 	await page.goto('/');
 	await openTimeBudget(page, /5h budget/);
-	await expect(page.getByLabel('Available Hours')).toHaveValue('5');
+	await expect(budgetField(page)).toHaveValue('5');
 });
 
 // One value edited by two steppers, so they must agree on its granularity: the
@@ -179,8 +177,7 @@ test('the window stepper moves the shared budget in the main page’s increments
 }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.getByLabel('Available Hours').fill('6.25');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 6.25);
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/energy');
@@ -200,7 +197,32 @@ test('the window stepper moves the shared budget in the main page’s increments
 
 	await page.goto('/');
 	await openTimeBudget(page, /6\.5h budget/);
-	await expect(page.getByLabel('Available Hours')).toHaveValue('6.5');
+	await expect(budgetField(page)).toHaveValue('6.5');
+});
+
+/* The live stop advisor (MATH.md §8.11) is the one surface where today's 🪫
+   logs meet the params mid-day, so this pins the page wiring end to end: a
+   fresh day with hours to spare prices a session of the task by name, and
+   logging hours that fill the window flips the verdict. */
+test('the stop advisor prices the fresh day and flips when logged hours fill the window', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	// Fresh morning at the default free-time value: continuing wins, and the
+	// recommendation names the task it priced.
+	await expect(page.getByText('Worth continuing')).toBeVisible();
+	await expect(page.getByText(/of Deep work is worth/)).toBeVisible();
+
+	// 7h45m logged: no whole 45-min block fits an 8-hour window any more.
+	await logDrain(page, 465, 5, 5);
+	await expect(page.getByText(/No whole work session fits/)).toBeVisible();
+	await expect(page.getByText('Worth continuing')).not.toBeVisible();
 });
 
 // The session store's date reader belongs to the (app) layout and is route-blind,
@@ -209,8 +231,7 @@ test('the window stepper moves the shared budget in the main page’s increments
 test('a dated URL collapses to the canonical Lab', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.getByLabel('Available Hours').fill('8');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 8);
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/energy?date=2026-01-15');

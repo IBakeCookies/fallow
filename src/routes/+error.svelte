@@ -11,9 +11,7 @@
 <svelte:head><title>{page.status} — Fallow</title></svelte:head>
 
 <main class="flex min-h-screen items-center justify-center px-box-md text-ty-secondary antialiased">
-	<div
-		class="w-full max-w-md rounded-2xl border bg-surface-card p-box-md text-center backdrop-blur sm:p-box-xl shadow-card"
-	>
+	<div class="card-shell w-full max-w-md p-box-md text-center sm:p-box-xl">
 		<p class="text-5xl font-semibold text-ty-ghost">{page.status}</p>
 		<h1 class="mt-text-md text-2xl font-semibold text-ty-primary">
 			{notFound ? m.error_404_title() : m.error_title()}

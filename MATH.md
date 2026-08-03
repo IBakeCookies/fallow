@@ -1119,6 +1119,77 @@ conditioning chain on ALL logs (ϕ from ⚡, r from ☕, α given r from 🪫,
 Burnout Risk consume; the card changes no state, calibration stays in the
 Energy Lab (α, r, λ₀) and ⚡ logging (ϕ).
 
+### 8.11 Live stop advisor — §8.10 run forward mid-day (added 2026-08-03)
+
+**The question inverted.** §8.10 reads a _finished_ day's stop to learn λ₀;
+the advisor takes the fitted (or hand-set) λ₀ and answers the in-day
+question: _given the work logged so far, is more work still worth it — and on
+what?_ Same instrument both ways: today's 🪫 drain logs are the day so far,
+reconstructed exactly as §8.10 will reconstruct them once the day is
+finished — one session per logged task at its observed hours, canonical
+amplitude order, breaks unknown and omitted — and priced by the same λ₀-free
+work value `V = satiatedOutput + terminalBonus`. No new parameters, no new
+logging instrument.
+
+**Sessions, not steps** (`adviseStop`). The verdict is
+
+```text
+continue  ⇔  max over open tasks t, whole-step durations d ≤ room of
+             [V(day + d on t) − V(day)] / d   >   λ₀
+```
+
+with the argmax reported as the recommendation (task, duration, average
+value per hour). The naive candidate — §8.10's own one-step marginal, i.e.
+its `lo` bound — is deliberately NOT the verdict: a fresh task's first 45 min
+is mostly warm-up ramp, so its one-step marginal sits below a λ₀ that the
+full session clears, and the one-step advisor cries stop mid-day exactly
+when λ₀ is high. Probe 2026-08-03 (40 random days × 4 λ₀ levels; ground
+truth = the optimizer's own plan walked chronologically step by step, the
+advisor seeing only the composition so far):
+
+| Reading of the probe            | one-step       | session-lookahead |
+| ------------------------------- | -------------- | ----------------- |
+| mid-day false stops, λ₀ 0.3/0.5 | 0.9% / 2.2%    | 0.7% / 1.9%       |
+| mid-day false stops, λ₀ 0.9/1.3 | 16% / 25%      | 5.2% / 6.4%       |
+| at-stop agreement (true λ₀)     | 33–39/40       | 33–39/40          |
+| when late, late by              | 1 step (one 2) | 1 step (one 2)    |
+| at-stop agreement (fitted λ̂₀)   | —              | 34–40/40          |
+
+The duration axis is the optimizer's own move shape (grow, T\*-session
+insert), which is why at-stop agreement survives the stronger test: at a
+rational stop no session of any length clears λ₀, so maxing over durations
+does not push the user past it. Of the residual false stops at λ₀ = 0.9,
+roughly a third sit immediately before a _planned_ rest — the known
+breaks-omitted approximation (§8.10), not a new one.
+
+**Candidates vs reconstruction.** The max runs over the OPEN tasks only
+(`candidateTaskIds`, the store passes the unchecked ones): "one more session
+of a task you already checked off" is no advice. Every logged task stays in
+the reconstruction regardless — a completed task's hours drained the
+reservoirs the open ones must work with (test-pinned: the same open task
+prices strictly lower after 4.5 logged hours on a completed one). This makes
+the advisor a **next-up-family** reading under §11.8 — it responds to
+completion, unlike the plan — and it is the one deliberate asymmetry with
+§8.10, whose `lo` bound maxes over all tasks because a finished day's stop
+declined them all.
+
+**Bounds of validity, stated on the card's tooltip:** the reading trusts
+today's 🪫 logs, so unlogged work reads as free time (the advisor will say
+"continue" too eagerly) and batch-logged sessions blur it — same
+partial-logging caveat as §8.10, now visible in-day. Verdicts: `continue` /
+`stop` (strictly: continue iff best session > λ₀, so exact indifference reads
+as stop, matching §8.10's `stopped ⇒ λ₀ ≥ lo`), plus `window-full` when no
+whole 45-min step fits in what remains of the window — logged hours filled
+it, or the window is smaller than one step — and no verdict at all when
+there is no window, no tasks, or nothing left unchecked.
+
+**Implementation sharing (R3).** `reconstructStopDay` + `growBy` are one
+definition used by both readings; `stopIndifferencePoint`'s `lo` is
+`bestNextStep`, the m = 1 slice of the advisor's search. The fit itself is
+untouched — its bracket stays one-step, because discrete stationarity of an
+observed stop is a statement about the marginal step, not about hypothetical
+sessions.
+
 ## 9. References
 
 - Fox, B. L. (1966). _Discrete optimization via marginal analysis._

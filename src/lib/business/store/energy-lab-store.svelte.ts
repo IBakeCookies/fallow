@@ -15,6 +15,7 @@ import {
 } from '$lib/business/store/debounced-write.svelte';
 import { readStopObservations } from '$lib/business/session-history';
 import {
+	adviseStop,
 	DEFAULT_ENERGY_PARAMS,
 	evaluateSchedule,
 	fitDrainRate,
@@ -347,6 +348,41 @@ export class EnergyLabStore {
 	});
 	get outputVsClassic() {
 		return this.#outputVsClassic;
+	}
+
+	// ----- Live stop advisor (MATH.md §8.11) -----
+
+	// The in-day face of the §8.10 machinery: TODAY's drain logs are the work
+	// so far (the same records the stopping fit will read once the day is
+	// finished), priced under the CURRENT params — freeTimeValue included, so
+	// applying a fitted λ₀ immediately moves the verdict.
+	#stopAdvice = $derived.by(() => {
+		const worked = this.#observations.drainObservations
+			.filter((o) => o.date === this.#session.today)
+			.map((o) => ({
+				taskId: o.taskId,
+				hours: o.hours,
+			}));
+
+		// Open tasks only as candidates (next-up family, §11.8): a checked-off
+		// task is no recommendation — but its logged hours stay in the
+		// reconstruction above, because they drained the reservoirs.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived lookup, rebuilt not mutated
+		const openTaskIds = new Set(this.#session.tasks.filter((t) => !t.completed).map((t) => t.id));
+
+		return adviseStop(
+			{
+				tasks: this.#energyTasks,
+				windowHours: this.#windowHours,
+				workedHours: worked,
+			},
+			this.#params,
+			this.#session.userConstants,
+			openTaskIds,
+		);
+	});
+	get stopAdvice() {
+		return this.#stopAdvice;
 	}
 
 	// ----- Drain calibration (α fit from end-of-session ratings) -----
