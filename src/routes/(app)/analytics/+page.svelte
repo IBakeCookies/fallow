@@ -102,7 +102,7 @@
 {#if analytics.isLoading}
 	<p class="text-sm text-ty-silent">{m.ana_loading()}</p>
 {:else if !analytics.hasData}
-	<div class="rounded-xl border bg-surface-card p-box-2xl text-center backdrop-blur shadow-card">
+	<div class="card-shell rounded-xl p-box-2xl text-center">
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
 		<p class="mt-text-2xs text-sm text-ty-silent">
 			{m.ana_empty_hint_1()}
@@ -195,7 +195,7 @@
 	</div>
 
 	<!-- Completion trend -->
-	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">
 			{analytics.range === 'year' ? m.ana_chart_hint_year() : m.ana_chart_hint_day()}
@@ -210,7 +210,7 @@
 	</div>
 
 	<!-- Day profiles -->
-	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_day_profiles()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">
 			{m.ana_day_profiles_hint()}
@@ -220,7 +220,7 @@
 	</div>
 
 	<!-- Plan adherence (MATH.md §12) -->
-	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
 
@@ -269,7 +269,7 @@
 	</div>
 
 	<!-- Your model (calibration visibility) -->
-	<div class="mt-grid-xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
 

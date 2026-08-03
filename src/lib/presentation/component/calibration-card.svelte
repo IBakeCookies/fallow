@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
-	import { HINT_UNDERLINE_CLASS } from '$lib/presentation/component/hint-underline';
 
 	/* The shell the three calibration cards share: a card, an explained heading, and
 	   whatever that fit has to say. Deliberately only the shell — the bodies stay at
@@ -21,7 +20,7 @@
 	let { title, hint, action, children }: Props = $props();
 </script>
 
-<div class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur">
+<div class="card-shell p-box-md sm:p-box-xl">
 	<!-- Its own provider so the card stands alone; nesting inside a page-level one is
 	     harmless, the inner wins with the same delay. -->
 	<Tooltip.Provider delayDuration={150}>
@@ -31,7 +30,7 @@
 					{#snippet child({ props })}
 						<h3
 							{...props}
-							class="w-fit text-xs font-semibold tracking-wider text-ty-secondary uppercase {HINT_UNDERLINE_CLASS}"
+							class="hint-underline w-fit text-xs font-semibold tracking-wider text-ty-secondary uppercase"
 						>
 							{title}
 						</h3>

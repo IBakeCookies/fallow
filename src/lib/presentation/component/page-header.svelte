@@ -124,10 +124,7 @@
 			<Tooltip.Root>
 				<Tooltip.Trigger>
 					{#snippet child({ props })}
-						<h1
-							{...props}
-							class="cursor-help text-2xl font-bold text-ty-primary underline decoration-ty-ghost decoration-dotted underline-offset-4"
-						>
+						<h1 {...props} class="hint-underline text-2xl font-bold text-ty-primary">
 							{m.app_name()}
 						</h1>
 					{/snippet}

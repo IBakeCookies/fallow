@@ -22,7 +22,7 @@
 	let { label, value, suffix, muted = false, note }: Props = $props();
 </script>
 
-<div class="rounded-xl border bg-surface-card p-box-md backdrop-blur shadow-card">
+<div class="card-shell rounded-xl p-box-md">
 	<p class="text-xs text-ty-silent">{label}</p>
 	<p class="mt-text-2xs text-2xl font-semibold {muted ? 'text-ty-silent' : 'text-ty-primary'}">
 		{value}

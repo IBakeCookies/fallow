@@ -256,10 +256,7 @@
 			<Tooltip.Root>
 				<Tooltip.Trigger>
 					{#snippet child({ props })}
-						<h1
-							{...props}
-							class="cursor-help text-2xl font-bold text-ty-primary underline decoration-ty-ghost decoration-dotted underline-offset-4"
-						>
+						<h1 {...props} class="hint-underline inline-flex text-2xl font-bold text-ty-primary">
 							{m.energy_heading()}
 						</h1>
 					{/snippet}
@@ -278,10 +275,8 @@
 	</div>
 
 	{#if tasks.length === 0}
-		<div class="space-y-grid-xl">
-			<div
-				class="rounded-2xl border bg-surface-card p-box-2xl text-center backdrop-blur shadow-card"
-			>
+		<div class="space-y-grid-lg">
+			<div class="card-shell p-box-2xl text-center">
 				<p class="text-ty-secondary">{m.energy_no_open_tasks()}</p>
 				<p class="mt-text-2xs text-sm text-ty-silent">
 					{m.energy_no_open_tasks_hint()}
@@ -293,21 +288,17 @@
 			</div>
 		</div>
 	{:else}
-		<div class="space-y-grid-xl">
+		<div class="space-y-grid-lg">
 			{#if activeTasks.length === 0}
 				<!-- All done: the optimizer needs an open task, but the list below
 				     stays visible so a task can be un-checked or added -->
-				<div
-					class="rounded-2xl border bg-surface-card p-box-2xl text-center backdrop-blur shadow-card"
-				>
+				<div class="card-shell p-box-2xl text-center">
 					<p class="text-ty-secondary">{m.energy_all_done()}</p>
 					<p class="mt-text-2xs text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
 				</div>
 			{:else}
 				<!-- Timeline -->
-				<div
-					class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
-				>
+				<div class="card-shell p-box-md sm:p-box-xl">
 					<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
 						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 							{m.energy_optimized_day()}
@@ -343,7 +334,7 @@
 					{:else}
 						<button
 							type="button"
-							class="text-sm text-ty-secondary underline decoration-ty-ghost decoration-dotted underline-offset-4 transition hover:text-ty-primary"
+							class="hint-underline cursor-default text-sm text-ty-secondary transition hover:text-ty-primary"
 							onclick={focusDayWindow}
 						>
 							{m.energy_set_window()}
@@ -380,12 +371,10 @@
 			<!-- One provider for the whole region: the task rows, the parameter labels
 			     and all three calibration headings. -->
 			<Tooltip.Provider delayDuration={150}>
-				<div class="space-y-grid-xl">
+				<div class="space-y-grid-lg">
 					<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
 						<!-- Tasks: shared with the main page, edited live -->
-						<div
-							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur lg:col-span-2"
-						>
+						<div class="card-shell p-box-md sm:p-box-xl lg:col-span-2">
 							<div class="mb-text-2xs flex items-baseline justify-between gap-grid-xs">
 								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 									{m.energy_tasks()}
@@ -424,119 +413,119 @@
 								<TaskForm onsubmit={(t) => session.addTask(t)} isOpen={false} />
 							</div>
 						</div>
-						<div
-							class="rounded-2xl border bg-surface-card p-box-md sm:p-box-xl shadow-card backdrop-blur"
-						>
-							<div class="mb-text-md flex items-baseline justify-between">
-								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-									{m.energy_model_parameters()}
-								</h3>
-								<button
-									type="button"
-									class="text-xs text-ty-silent transition hover:text-ty-secondary"
-									title={m.energy_reset_defaults_title()}
-									onclick={() => lab.resetParams()}
-								>
-									{m.energy_reset_defaults()}
-								</button>
-							</div>
-							<div class="space-y-grid-md">
-								<!-- Not a model param like every row below it: the window IS the
+						<div class="space-y-grid-lg">
+							<div class="card-shell p-box-md sm:p-box-xl">
+								<div class="mb-text-md flex items-baseline justify-between">
+									<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+										{m.energy_model_parameters()}
+									</h3>
+									<button
+										type="button"
+										class="text-xs text-ty-silent transition hover:text-ty-secondary"
+										title={m.energy_reset_defaults_title()}
+										onclick={() => lab.resetParams()}
+									>
+										{m.energy_reset_defaults()}
+									</button>
+								</div>
+								<div class="space-y-grid-md">
+									<!-- Not a model param like every row below it: the window IS the
 								     session's budget, so this writes the shared value and the main
 								     page's Available Hours moves with it. Hence 0.25 and not the
 								     coarser 0.5 a lab-local slider could afford: the stepper rounds to
 								     its own step's decimals, so a 6.25h day set on the main page would
 								     come back 6.8 after one click here. -->
-								<ParamRow
-									id="window-hours"
-									label={m.energy_day_window()}
-									hint={m.energy_day_window_hint()}
-									value={windowHours}
-									onchange={(v) => (session.availableHours = v)}
-									min={0}
-									max={24}
-									step={0.25}
-									unit={m.unit_hours()}
-								/>
-								<ParamRow
-									id="alpha-cog"
-									label={m.energy_cognitive_drain()}
-									hint={m.energy_cognitive_drain_hint()}
-									value={params.alphaCog}
-									onchange={(v) => lab.setParam('alphaCog', v)}
-									min={0.05}
-									max={2}
-									step={0.05}
-									unit={m.unit_per_hour()}
-									accent="focus-within:border-mind/50"
-								/>
-								<ParamRow
-									id="alpha-phys"
-									label={m.energy_physical_drain()}
-									hint={m.energy_physical_drain_hint()}
-									value={params.alphaPhys}
-									onchange={(v) => lab.setParam('alphaPhys', v)}
-									min={0.05}
-									max={2}
-									step={0.05}
-									unit={m.unit_per_hour()}
-									accent="focus-within:border-body/50"
-								/>
-								<ParamRow
-									id="recovery-rate"
-									label={m.energy_recovery_rate()}
-									hint={m.energy_recovery_rate_hint()}
-									value={params.recoveryRate}
-									onchange={(v) => lab.setParam('recoveryRate', v)}
-									min={0.1}
-									max={3}
-									step={0.1}
-									unit={m.unit_per_hour()}
-								/>
-								<ParamRow
-									id="free-time-value"
-									label={m.energy_free_time_value()}
-									hint={m.energy_free_time_value_hint()}
-									value={params.freeTimeValue}
-									onchange={(v) => lab.setParam('freeTimeValue', v)}
-									min={0}
-									max={3}
-									step={0.1}
-									unit={m.unit_output_per_hour()}
-								/>
-								<ParamRow
-									id="terminal-value"
-									label={m.energy_evening_energy()}
-									hint={m.energy_evening_energy_hint()}
-									value={params.terminalEnergyValue}
-									onchange={(v) => lab.setParam('terminalEnergyValue', v)}
-									min={0}
-									max={5}
-									step={0.25}
-									unit={m.unit_output()}
-								/>
-								<ParamRow
-									id="satiety-scale"
-									label={m.energy_satiety()}
-									hint={m.energy_satiety_hint()}
-									value={params.satietyScale}
-									onchange={(v) => lab.setParam('satietyScale', v)}
-									min={0}
-									max={5}
-									step={0.25}
-									unit="×"
-								/>
-								<ParamRow
-									id="micro-recovery"
-									label={m.energy_micro_recovery()}
-									hint={m.energy_micro_recovery_hint()}
-									value={Number((params.microRecoveryFraction * 100).toFixed(1))}
-									onchange={(v) => lab.setParam('microRecoveryFraction', v / 100)}
-									min={0}
-									max={30}
-									step={1}
-									unit="%"
-								/>
+									<ParamRow
+										id="window-hours"
+										label={m.energy_day_window()}
+										hint={m.energy_day_window_hint()}
+										value={windowHours}
+										onchange={(v) => (session.availableHours = v)}
+										min={0}
+										max={24}
+										step={0.25}
+										unit={m.unit_hours()}
+									/>
+									<ParamRow
+										id="alpha-cog"
+										label={m.energy_cognitive_drain()}
+										hint={m.energy_cognitive_drain_hint()}
+										value={params.alphaCog}
+										onchange={(v) => lab.setParam('alphaCog', v)}
+										min={0.05}
+										max={2}
+										step={0.05}
+										unit={m.unit_per_hour()}
+										accent="focus-within:border-mind/50"
+									/>
+									<ParamRow
+										id="alpha-phys"
+										label={m.energy_physical_drain()}
+										hint={m.energy_physical_drain_hint()}
+										value={params.alphaPhys}
+										onchange={(v) => lab.setParam('alphaPhys', v)}
+										min={0.05}
+										max={2}
+										step={0.05}
+										unit={m.unit_per_hour()}
+										accent="focus-within:border-body/50"
+									/>
+									<ParamRow
+										id="recovery-rate"
+										label={m.energy_recovery_rate()}
+										hint={m.energy_recovery_rate_hint()}
+										value={params.recoveryRate}
+										onchange={(v) => lab.setParam('recoveryRate', v)}
+										min={0.1}
+										max={3}
+										step={0.1}
+										unit={m.unit_per_hour()}
+									/>
+									<ParamRow
+										id="free-time-value"
+										label={m.energy_free_time_value()}
+										hint={m.energy_free_time_value_hint()}
+										value={params.freeTimeValue}
+										onchange={(v) => lab.setParam('freeTimeValue', v)}
+										min={0}
+										max={3}
+										step={0.1}
+										unit={m.unit_output_per_hour()}
+									/>
+									<ParamRow
+										id="terminal-value"
+										label={m.energy_evening_energy()}
+										hint={m.energy_evening_energy_hint()}
+										value={params.terminalEnergyValue}
+										onchange={(v) => lab.setParam('terminalEnergyValue', v)}
+										min={0}
+										max={5}
+										step={0.25}
+										unit={m.unit_output()}
+									/>
+									<ParamRow
+										id="satiety-scale"
+										label={m.energy_satiety()}
+										hint={m.energy_satiety_hint()}
+										value={params.satietyScale}
+										onchange={(v) => lab.setParam('satietyScale', v)}
+										min={0}
+										max={5}
+										step={0.25}
+										unit="×"
+									/>
+									<ParamRow
+										id="micro-recovery"
+										label={m.energy_micro_recovery()}
+										hint={m.energy_micro_recovery_hint()}
+										value={Number((params.microRecoveryFraction * 100).toFixed(1))}
+										onchange={(v) => lab.setParam('microRecoveryFraction', v / 100)}
+										min={0}
+										max={30}
+										step={1}
+										unit="%"
+									/>
+								</div>
 							</div>
 						</div>
 					</div>

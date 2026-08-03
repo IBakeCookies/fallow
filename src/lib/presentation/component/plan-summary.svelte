@@ -1,7 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
-	import { HINT_UNDERLINE_CLASS } from '$lib/presentation/component/hint-underline';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 	interface Props {
@@ -57,7 +56,7 @@
 				<Tooltip.Root>
 					<Tooltip.Trigger>
 						{#snippet child({ props })}
-							<p {...props} class="w-fit text-xs text-ty-silent {HINT_UNDERLINE_CLASS}">
+							<p {...props} class="hint-underline w-fit text-xs text-ty-silent">
 								{m.energy_vs_classic()}
 							</p>
 						{/snippet}

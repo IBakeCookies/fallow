@@ -15,11 +15,7 @@
 	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
-				<span
-					class="cursor-help text-xs text-ty-secondary underline decoration-ty-ghost decoration-dotted underline-offset-4"
-				>
-					Yield Index
-				</span>
+				<span class="hint-underline text-xs text-ty-secondary"> Yield Index </span>
 			</Tooltip.Trigger>
 			<Tooltip.Content side="right">
 				<p>Share of the planned output the current allocation actually reaches.</p>
@@ -48,12 +44,7 @@
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}
-					<h1
-						{...props}
-						class="cursor-help text-2xl font-bold text-ty-primary underline decoration-ty-ghost decoration-dotted underline-offset-4"
-					>
-						Fallow
-					</h1>
+					<h1 {...props} class="hint-underline text-2xl font-bold text-ty-primary">Fallow</h1>
 				{/snippet}
 			</Tooltip.Trigger>
 			<Tooltip.Content side="bottom" align="start" class="max-w-md">

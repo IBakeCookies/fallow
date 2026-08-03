@@ -1,7 +1,6 @@
 <script lang="ts">
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
-	import { HINT_UNDERLINE_CLASS } from '$lib/presentation/component/hint-underline';
 
 	/* One model parameter: what it is called, what it means, and its stepper. Nine of
 	   these make up the Lab's parameter card, and each carries a hint because none of
@@ -35,7 +34,7 @@
 					<label
 						{...props}
 						for={id}
-						class="mb-text-2xs block w-fit text-xs text-ty-secondary {HINT_UNDERLINE_CLASS}"
+						class="hint-underline mb-text-2xs block w-fit text-xs text-ty-secondary"
 					>
 						{label}
 					</label>

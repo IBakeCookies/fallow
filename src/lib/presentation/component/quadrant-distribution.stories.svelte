@@ -21,7 +21,7 @@
 
 <Story name="All four profiles">
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl rounded-xl p-box-lg">
 			<QuadrantDistribution {...args} />
 		</div>
 	{/snippet}
@@ -55,7 +55,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl rounded-xl p-box-lg">
 			<QuadrantDistribution {...args} />
 		</div>
 	{/snippet}
@@ -90,7 +90,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl rounded-xl p-box-lg">
 			<QuadrantDistribution {...args} />
 		</div>
 	{/snippet}
@@ -116,7 +116,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<div class="max-w-3xl rounded-xl border bg-surface-card p-box-lg backdrop-blur shadow-card">
+		<div class="card-shell max-w-3xl rounded-xl p-box-lg">
 			<QuadrantDistribution {...args} />
 		</div>
 	{/snippet}

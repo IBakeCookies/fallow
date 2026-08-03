@@ -29,7 +29,7 @@
 	name="Default"
 	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.getByLabelText(args.label)).toHaveValue(args.value);
-		await expect(canvas.getByText(args.label)).toHaveClass('cursor-help');
+		await expect(canvas.getByText(args.label)).toHaveClass('hint-underline');
 
 		await userEvent.click(
 			canvas.getByRole('button', {

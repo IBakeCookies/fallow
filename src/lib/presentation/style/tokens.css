@@ -64,6 +64,8 @@
 	--spacing-page-md: var(--spacer-page-md);
 	--spacing-page: var(--spacer-page);
 
+	--container-layout: 90rem;
+
 	/* rhythm between major page sections (-lg: app UI ↔ below-the-fold content) */
 	--spacing-section: var(--spacer-section);
 	--spacing-section-lg: var(--spacer-section-lg);
@@ -216,4 +218,22 @@
 	--radius-3xl: calc(var(--radius) * 2.2);
 	--radius-4xl: calc(var(--radius) * 2.6);
 	/* shadcn end */
+}
+
+/* The "there is an explanation here" affordance: a dotted underline plus the help
+   cursor, on every tooltip-explained label in the app. A utility rather than a
+   component because the sites are an <h1>, an <h3>, a <label for>, a <p> and a
+   <button> — one wrapper element would cost the heading level, the label
+   association, or the button. */
+@utility hint-underline {
+	@apply cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4;
+}
+
+/* The card surface every panel in the app sits on. Padding is deliberately not
+   in here — it genuinely varies per card — and the radius is the common 2xl;
+   smaller cards stack `rounded-xl` after it, which wins because single-property
+   utilities sort after multi-property ones. Chips and inputs that only borrow
+   the bg-surface-card colour (no shadow) are not this. */
+@utility card-shell {
+	@apply rounded-2xl border bg-surface-card shadow-card backdrop-blur;
 }

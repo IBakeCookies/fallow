@@ -104,9 +104,7 @@
 	}
 </script>
 
-<div
-	class="rounded-2xl border bg-surface-card px-box-md py-box-sm backdrop-blur shadow-card sm:px-box-xl"
->
+<div class="card-shell px-box-md py-box-sm sm:px-box-xl">
 	<button
 		type="button"
 		aria-expanded={open}
