@@ -14,10 +14,12 @@ import type { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte
 import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
 import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import {
+	adviseStop,
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import { toCognitiveDrainObservations } from '$lib/business/model/energy-calibration';
 
 vi.mock('$lib/data/repository/settings-repository', () => ({
@@ -462,5 +464,101 @@ describe('EnergyLabStore', () => {
 		resolveStale([stopObservation(4)]);
 		await vi.waitFor(() => expect(readStopObservationsMock).toHaveBeenCalledTimes(2));
 		expect(store.stopObservationCount).toBe(2);
+	});
+
+	// ----- Live stop advisor (MATH.md §8.11) -----
+
+	it("prices the day so far from TODAY's drain logs only", async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		const oracle = (workedHours: { taskId: number; hours: number }[]) =>
+			adviseStop(
+				{
+					tasks: mockSession.tasks.map(toEnergyTask),
+					windowHours: 8,
+					workedHours,
+				},
+				store.params,
+				mockSession.userConstants,
+			);
+
+		const fresh = store.stopAdvice;
+
+		expect(fresh).toEqual(oracle([]));
+		expect(fresh?.verdict).toBe('continue');
+
+		// Yesterday's log is history, not the day so far.
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-19',
+				hours: 6,
+			}),
+		];
+
+		flushSync();
+		expect(store.stopAdvice).toEqual(fresh);
+
+		// Today's log moves the reading.
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-20',
+				hours: 6,
+			}),
+		];
+
+		flushSync();
+		const worn = store.stopAdvice;
+
+		expect(worn).toEqual(
+			oracle([
+				{
+					taskId: 1,
+					hours: 6,
+				},
+			]),
+		);
+
+		expect(worn).not.toEqual(fresh);
+	});
+
+	// Next-up family (MATH.md §11.8): unlike the plan, the advisor DOES respond
+	// to completion — "one more session of a task you checked off" is no advice.
+	it('stops recommending a task the user checked off', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		expect(store.stopAdvice?.verdict).toBe('continue');
+
+		mockSession.tasks = mockSession.tasks.map((t) => ({
+			...t,
+			completed: true,
+		}));
+
+		flushSync();
+
+		expect(store.stopAdvice).toBeNull();
 	});
 });

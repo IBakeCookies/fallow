@@ -21,6 +21,7 @@
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
 	import PlanScheduleList from '$lib/presentation/component/plan-schedule-list.svelte';
 	import PlanSummary from '$lib/presentation/component/plan-summary.svelte';
+	import StopAdvisorCard from '$lib/presentation/component/stop-advisor-card.svelte';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
 	import FitRow from '$lib/presentation/component/fit-row.svelte';
@@ -72,6 +73,14 @@
 	const physDrainFit = $derived(lab.physicalDrainFit);
 	const recoveryFit = $derived(lab.recoveryFit);
 	const stopFit = $derived(lab.stoppingFit);
+	const stopAdvice = $derived(lab.stopAdvice);
+	// The advisor's ids come from the session's own tasks, so the lookup always
+	// resolves; '' only satisfies the type where the verdict carries no task.
+	const stopTaskTitle = $derived(
+		stopAdvice !== null && stopAdvice.verdict !== 'window-full'
+			? (tasks.find((t) => t.id === stopAdvice.taskId)?.title ?? '')
+			: '',
+	);
 
 	// The plan card's lower region: energy chart or the schedule detail list.
 	// The timeline bar and the summary stats stay visible in both views. A pure
@@ -414,6 +423,18 @@
 							</div>
 						</div>
 						<div class="space-y-grid-lg">
+							<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced
+							     against free time. In the side column so it never pushes the
+							     task list down. Absent whenever there is nothing to advise on —
+							     no window, no tasks, or every task checked off. -->
+							{#if stopAdvice !== null}
+								<StopAdvisorCard
+									advice={stopAdvice}
+									taskTitle={stopTaskTitle}
+									freeTimeValue={params.freeTimeValue}
+									locale={getDateLocale()}
+								/>
+							{/if}
 							<div class="card-shell p-box-md sm:p-box-xl">
 								<div class="mb-text-md flex items-baseline justify-between">
 									<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">

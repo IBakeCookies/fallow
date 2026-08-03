@@ -17,10 +17,12 @@ ships or is rejected.
 
 The model is strong at 8am and silent at 2pm; these close that gap.
 
-1. **Live stop advisor** — run §8.10 forward during the day: given the work
-   logged so far, is the next block's marginal value still above the fitted
-   λ₀? Reuses `stopIndifferencePoint`; no new parameters. Probe first: how
-   often does it disagree with actual stops?
+1. ~~**Live stop advisor**~~ — SHIPPED 2026-08-03 (MATH.md §8.11): `adviseStop`
+   prices the best next _session_ (max over open tasks × durations of average
+   value/hour) from today's 🪫 logs against λ₀; card on `/energy`. Probed
+   first, as planned: session-lookahead cut the one-step verdict's mid-day
+   false stops from 16–25% to 5–6% at high λ₀, at-stop agreement within one
+   45-min step throughout.
 2. **Interactive budget slider** — the classic model solves in ~1–13 ms at
    realistic task counts, fast enough to re-solve live while dragging
    `availableHours`. Makes the advice card's budget levers explorable.

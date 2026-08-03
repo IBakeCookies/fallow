@@ -203,6 +203,32 @@ test('the window stepper moves the shared budget in the main page’s increments
 	await expect(page.getByLabel('Available Hours')).toHaveValue('6.5');
 });
 
+/* The live stop advisor (MATH.md §8.11) is the one surface where today's 🪫
+   logs meet the params mid-day, so this pins the page wiring end to end: a
+   fresh day with hours to spare prices a session of the task by name, and
+   logging hours that fill the window flips the verdict. */
+test('the stop advisor prices the fresh day and flips when logged hours fill the window', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.getByLabel('Available Hours').fill('8');
+	await page.getByLabel('Available Hours').blur();
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	// Fresh morning at the default free-time value: continuing wins, and the
+	// recommendation names the task it priced.
+	await expect(page.getByText('Worth continuing')).toBeVisible();
+	await expect(page.getByText(/of Deep work is worth/)).toBeVisible();
+
+	// 7h45m logged: no whole 45-min block fits an 8-hour window any more.
+	await logDrain(page, 465, 5, 5);
+	await expect(page.getByText(/No whole work session fits/)).toBeVisible();
+	await expect(page.getByText('Worth continuing')).not.toBeVisible();
+});
+
 // The session store's date reader belongs to the (app) layout and is route-blind,
 // so `?date=` reached the Lab too — loading another day's tasks with live sliders
 // under copy that promises today's session, while 🪫 logs still stamp today.
