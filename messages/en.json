@@ -212,6 +212,8 @@
 	"advice_cost_free": "costs no plan value",
 	"advice_cost_hour": "costs an extra hour of your day",
 	"advice_profile_flip": "Day Profile → {profile}",
+	"advice_marginal": "The next {minutes} minutes would go to “{title}” · {gain}",
+	"advice_marginal_none": "Another {minutes} minutes would get nothing more done.",
 	"advice_unfunded": "{count} tasks get no hours in this plan.",
 	"advice_unfunded_one": "1 task gets no hours in this plan.",
 	"advice_unfunded_must_do": "{count} tasks stay today but get no hours — add hours or let them move.",

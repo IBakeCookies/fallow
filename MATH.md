@@ -2121,6 +2121,132 @@ long as nothing optimizes toward it. The `v`-badness axes keep offering the
 empty plan (a zero-load day genuinely has zero Physical Load — that reading is
 true, and the −100% price is shown); only the fabricated optimum is removed.
 
+### 14.2 The marginal of the budget (added 2026-08-03)
+
+**The question.** §14 already offers `budget + 1` as a lever and, since §14.1-1,
+prices it honestly as costing "an extra hour of your day" — the cost side.
+Nothing said what the hour _buys_. This adds the yield side: the time budget's
+shadow price.
+
+**The definition.** One extra solve at `budgetHours + BLOCK_HOURS` (§4, 15
+minutes), read over the tasks still OPEN — the next-up scope family of §11.8:
+
+```text
+open                 = tasks not completed
+planValueGain        = max(0, Σ_open [P̄ᵢ(after) − P̄ᵢ(before)])
+planValueGainPercent = planValueGain / Σ P̄(budget)      (null when that is 0)
+recipient            = argmax over open of (hours after − hours before), if > 0
+```
+
+Both plans come from the same allocator the day's plan came from, so this is a
+model output, not a derivative of a curve. Σ P̄ is a per-task sum, so restricting
+it to open work needs no second gain solve — the per-task `avgProductivity` the
+allocator already returns _is_ P̄ᵢ at that task's allocation, and on a day with
+nothing completed the sum is the plan's own Σ P̄ rise exactly.
+
+The recipient is the **largest** gainer rather than the only one: the pooled
+path's transfer and admission moves (§13.3) can reshuffle several tasks to fit
+the new block in. Multi-gainer days are real but rare — 36 of 600 probe days,
+5 of them with gainers of differing size — which is why the tie-break is pinned
+by a fixture found in that sweep rather than a curated day, where it never bites.
+
+**Why open-scoped, and not the whole plan.** The allocator is blind to
+`completed`: a ticked-off task keeps its allocation, deliberately, so that
+finishing something cannot move a plan-scoped metric (§11.8). A wider budget can
+therefore spend its extra block on work already done — a true statement about
+the plan and a useless one as advice, since the sentence this feeds is read as
+"what would I do with 15 more minutes". Measured on a two-task day (a completed
+mental-10/enjoyment-1 task beside an active physical-9 one), the plan-scoped
+reading named the **completed** task as recipient at five of six budgets, worth
+up to **+33.4%** of plan value. Scoping both halves to open work is what makes
+the sentence true; on a day with nothing completed the two readings coincide.
+
+**Why the floor.** Σ P̄ is monotone non-decreasing in the budget at the true
+optimum — every allocation feasible at `b` is feasible at `b + ε`. The pooled
+path is a near-exact heuristic (§13.3: exact on 99.5%, worst 0.09% short), so
+two adjacent budgets can invert by a fraction of a percent. `max(0, ·)` keeps
+the reading inside a claim the model actually makes.
+
+**No attribution when the block buys nothing.** `recipient = null` says a wider
+budget buys no remaining work; it deliberately does not say why. A capacity pool
+at its limit, a plan whose tasks are all near their stopping times, and a block
+spent on work already ticked off are indistinguishable from one extra solve, and
+naming the wrong one is the §14.1-5 mistake (a real number, a fabricated
+reading). The card says the same thing when a task DOES take the block but the
+day's value nets out flat: the floor below can leave `recipient` set with a 0%
+gain, and "goes to X · +0% plan value" is the same non-advice.
+
+**What the probe found** — 400 seeded random days, 2–7 tasks, budget 1–12 h in
+0.25 h steps, switch cost 5–30 min in 5-min steps, **no completed tasks** (which
+is why the scoping above was found by review rather than by the sweep):
+
+- **On 35% of days another block buys nothing at all** (140/400: no recipient,
+  gain 0).
+- **On 100% of those days the card was still offering "work an extra hour."**
+  Not a defect in §14.1-1's split, which was about domination, not about
+  suppression: Cognitive and Physical Load are `weightedHours / budget` (§11),
+  so a wider budget lowers them by denominator mechanics with no allocation
+  change whatsoever, and that reading is true. It is also, on those days, the
+  entire content of the advice — the extra hour changes the ratio and buys no
+  work. This line is what says so.
+- Where a block does buy something, it is worth a **median 3.0%** of plan value,
+  **p90 9.1%**.
+- The recipient is the **top-priority task only 33.5%** of the time, so the
+  reading is not a restatement of the priority column.
+
+**A per-task marginal column is still the wrong shape — but not for the reason
+this was planned under.** The plan record (and ROADMAP item 3) asserted that
+marginals equalize at the optimum, so a column would degenerate. **Measured, it
+does not.** Over the 257 multi-task days, the naive column — bump task _i_'s
+hours by one block on the curve, hold the rest — has relative spread
+`(max − min)/max` with **median 0.265, p90 0.803, max 0.994**; only **20.6%**
+fall under 0.10. Greedy marginal analysis (§4) equalizes only in the sense that
+every funded task's next block sits _below_ the admission cutoff, and that is a
+wide band, not a point. The related guess that tasks run to `T*` would price at
+zero is also wrong: **0 of the funded tasks** sat at or past their peak, because
+the allocator stops admitting blocks well before a task's increment reaches 0.
+
+Two reasons that do survive:
+
+1. **The column is not the price of anything the user can move.** The budget is
+   a number the user owns (and now drags); which task receives a block is the
+   allocator's decision, not an input. A column answers a question no lever
+   corresponds to.
+2. **The column is arithmetic on a curve, not a solve.** It ignores both
+   capacity pools and the switch cost, so it is not a feasible plan. Its best
+   entry **overstates** what a wider budget actually delivers on **16.0%** of
+   days (mean overstatement 0.005 in Σ P̄ units). The budget marginal re-solves,
+   so what it reports is what the model would really produce.
+
+**A zero marginal does not retire the unpriced `budget + 1` lever, and must not
+be wired to suppress it.** The two co-occur constantly: on the **35%** of probe
+days where another block buys no Σ P̄, **every one** still offered the extra hour
+somewhere on the menu. That is not a contradiction, because the two readings
+measure different things. The marginal is Σ P̄ — output. The lever appears on any
+axis it improves, and Cognitive and Physical Load are `weightedHours / budget`
+(§11), so on precisely these days the numerator is frozen and the whole
+improvement is denominator mechanics — the effect §14.1-1 named when it refused
+to _price_ the lever, while keeping it as advice. Keeping it is right: §11 defines
+those axes as how packed the day is, and the same work in a longer day genuinely
+is less packed. Slack is the relief on offer and "costs an extra hour of your
+day" is its honest price. So the marginal is the missing half of that lever's
+story — it says the hour buys relief and _no output_ — and the two lines are
+complementary. What this cost was one word of scope in the copy: "would add
+nothing to this plan" read as _the time is worthless_, directly above a row
+recommending you spend it, so the sentence is now "would get nothing more done".
+Do not instead hide the lever when the marginal is zero: that deletes correct
+advice on exactly the over-loaded days that need it, inverts §14.1-1's failure
+(the card going silent rather than only saying "work more"), and gates a
+per-axis reading on a day-level one, across the §11.8 scope split.
+
+**Cost.** One `calculateTaskPlan` and nothing else — the per-task decomposition
+above is what removes the second gain solve — so exactly one extra solve on top
+of the advisor's `activeTasks + 3`. It therefore lives in `suggestPlanAdjustments`
+and inherits its on-demand contract; it is deliberately **not** in
+`calculateDailyMetrics`, which runs inside a `$derived` on every keystroke and
+every drag of the budget slider, where a second solve would double the
+dashboard's cost.
+
 ## 15. Two objectives, two modes (2026-07-29)
 
 **The question, settled.** The roadmap carried "promote the energy plan to the

@@ -10,6 +10,7 @@
 	const advice: AdviceDisplay = {
 		unfunded: '2 tasks get no hours in this plan.',
 		unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
+		marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -84,6 +85,7 @@
 	const sharedTitle: AdviceDisplay = {
 		unfunded: null,
 		unfundedMustDo: null,
+		marginal: 'Another 15 minutes would get nothing more done.',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -170,6 +172,12 @@
 		await expect(canvas.getByText('Set the budget to 6.5h')).toBeVisible();
 		await expect(canvas.getByText('· costs no plan value')).toBeVisible();
 
+		// The budget's shadow price: the yield side of the same statement the
+		// unpriced "+1h" lever below makes only the cost of (MATH.md §14.2).
+		await expect(
+			canvas.getByText('The next 15 minutes would go to “Tax return” · +2.4% plan value'),
+		).toBeVisible();
+
 		// A band is otherwise carried by colour alone (WCAG 1.4.1): both readings
 		// are critical, and three of the four afters read caution.
 		expect(canvas.getAllByText('(Critical)')).toHaveLength(2);
@@ -253,12 +261,17 @@
 			rows: [],
 			unfunded: null,
 			unfundedMustDo: null,
+			marginal: 'Another 15 minutes would get nothing more done.',
 		},
 	}}
 	play={async ({ canvas }) => {
 		await expect(
 			canvas.getByText('Nothing reads badly enough to act on. This day is fine.'),
 		).toBeVisible();
+
+		// The shadow price is a reading, not a finding: a day with nothing to fix
+		// still answers what the next block would buy (MATH.md §14.2).
+		await expect(canvas.getByText('Another 15 minutes would get nothing more done.')).toBeVisible();
 	}}
 />
 
@@ -291,6 +304,7 @@
 			rows: [],
 			unfunded: '2 tasks get no hours in this plan.',
 			unfundedMustDo: null,
+			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -311,6 +325,7 @@
 			rows: [],
 			unfunded: null,
 			unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
+			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 		},
 	}}
 	play={async ({ canvas }) => {

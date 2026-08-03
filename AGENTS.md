@@ -917,6 +917,23 @@ Each was considered and decided. Re-deciding them is churn.
   card has no Apply for `set-budget`, so there is nothing to align the hours
   to — the descriptor rounds the **label**, never the lever.
 
+- **The budget's shadow price is a day-level reading, not a per-task column**
+  (MATH.md §14.2). `PlanAdvice.budgetMarginal` re-solves at
+  `budget + BLOCK_HOURS` and reports what that block adds plus which task takes
+  it. **Both halves are open-scoped** (§11.8): the allocator is blind to
+  `completed`, so the plan-scoped reading named an already-ticked-off task as
+  the recipient of the next 15 minutes, worth up to +33.4%. `recipient: null`
+  means a wider budget buys no remaining work, and says nothing about why —
+  a bound pool, tasks near their stopping times and a block landing on finished
+  work look identical from one solve. Do not re-propose the per-task column:
+  the reason originally recorded for rejecting it (marginals equalize, so a
+  column degenerates) is **false and measured false** — the two that hold are
+  that no user lever corresponds to a per-task entry, and that the column is
+  arithmetic on a curve that ignores the pools and the switch cost, overstating
+  the budget's yield on 16% of probe days. It lives in `suggestPlanAdjustments`,
+  not `calculateDailyMetrics`: the latter runs in a `$derived` on every
+  keystroke and every slider drag, where a second solve doubles dashboard cost.
+
 - **`buildCurves` is built once per search or fit** (2026-08-01): the
   optimizer and the stopping fit thread one curve map through every
   evaluation (`evaluateWithCurves`); public `evaluateSchedule` still builds

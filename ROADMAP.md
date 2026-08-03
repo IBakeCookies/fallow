@@ -30,10 +30,18 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    task counts. Plan advice deliberately does **not** follow the drag: it stays
    on-demand behind `isAdviceStale` (MATH.md §14), because at 12 tasks the
    advice run is `activeTasks + 3` solves.
-3. **Marginal-of-budget diagnostic** — show the budget's shadow price: what
-   the next block would be worth and which task gets it. A budget diagnostic,
-   not a per-task priority column (marginals equalize at the optimum, so a
-   column degenerates — MATH.md §14.1).
+3. ~~**Marginal-of-budget diagnostic**~~ — SHIPPED 2026-08-03 (MATH.md §14.2):
+   one extra solve at `budget + BLOCK_HOURS` prices the next 15 minutes and
+   names the task that would get them; a line in the advice card. Open-scoped
+   (§11.8) — review caught the plan-scoped reading naming an already-completed
+   task as the recipient, worth up to +33.4%. Still a
+   budget diagnostic rather than a per-task column, but **the reason planned
+   here was wrong** — the probe found per-task marginals do _not_ equalize at
+   the optimum (relative spread median 0.265, p90 0.803). What survives: the
+   column prices no lever the user owns, and it ignores the pools and switch
+   cost, overstating the budget's yield on 16% of days. The finding that
+   justified shipping it: on **35%** of days another block buys nothing, and on
+   every one of those the card was still offering "work an extra hour".
 
 ## Phase 2 — calibration trust
 

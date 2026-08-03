@@ -1,6 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
-import type { AdviceLever, AdviceOption, PlanAdvice } from '$lib/business/model/metric/plan-advice';
+import type {
+	AdviceLever,
+	AdviceOption,
+	BudgetMarginal,
+	PlanAdvice,
+} from '$lib/business/model/metric/plan-advice';
+
+/** A 15-minute block going to "Tax return", unless a test says otherwise. */
+function marginal(overrides: Partial<BudgetMarginal> = {}): BudgetMarginal {
+	return {
+		blockHours: 0.25,
+		planValueGain: 0.12,
+		planValueGainPercent: 2.4,
+		recipient: {
+			taskId: 1,
+			title: 'Tax return',
+		},
+		...overrides,
+	};
+}
 
 function option(planValueDeltaPercent: number | null, lever: AdviceLever): AdviceOption {
 	return {
@@ -43,6 +62,7 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 		],
 		unfundedTaskIds: [],
 		unfundedMustDoTaskIds: [],
+		budgetMarginal: marginal(),
 		candidatesEvaluated: options.length,
 	};
 }
@@ -127,6 +147,7 @@ describe('buildAdviceDisplay', () => {
 				],
 				unfundedTaskIds: [],
 				unfundedMustDoTaskIds: [],
+				budgetMarginal: marginal(),
 				candidatesEvaluated: 2,
 			},
 			3,
@@ -166,6 +187,67 @@ describe('buildAdviceDisplay', () => {
 
 	it('says nothing about must-do tasks when the plan funds them all', () => {
 		expect(buildAdviceDisplay(advice([defer(1, -30)]), 3).unfundedMustDo).toBeNull();
+	});
+
+	// MATH.md §14.2: the budget's shadow price, in the same "% plan value" the
+	// cost column is spelled in — but signed +, because this one is a gain.
+	describe('the marginal of the budget', () => {
+		const displayFor = (budgetMarginal: BudgetMarginal) =>
+			buildAdviceDisplay(
+				{
+					...advice([defer(1, -30)]),
+					budgetMarginal,
+				},
+				3,
+			).marginal;
+
+		it('names the task the next block goes to and prices it', () => {
+			expect(displayFor(marginal())).toBe(
+				'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			);
+		});
+
+		// Scoped to output, not to the whole worth of the time (MATH.md §14.2): on
+		// these same days the unpriced `budget + 1` lever is still correct advice,
+		// because Load is `weightedHours / budget` and slack is real relief. A
+		// sentence reading "the time is useless" would contradict the row below it.
+		it('says the next block gets nothing more done when no task takes it', () => {
+			expect(
+				displayFor(
+					marginal({
+						planValueGain: 0,
+						planValueGainPercent: 0,
+						recipient: null,
+					}),
+				),
+			).toBe('Another 15 minutes would get nothing more done.');
+		});
+
+		// The pooled heuristic can hand a task the block while the day's value nets
+		// out flat (MATH.md §14.2/§13.3). "Goes to X · +0% plan value" is the same
+		// non-advice as no recipient, so it reads as the same sentence.
+		it('says the same when a task takes the block but the value nets out flat', () => {
+			expect(
+				displayFor(
+					marginal({
+						planValueGain: 0,
+						planValueGainPercent: 0,
+					}),
+				),
+			).toBe('Another 15 minutes would get nothing more done.');
+		});
+
+		// A day with no hours entered yet: the block still goes somewhere, but
+		// there is no plan value to state it as a fraction of (MATH.md §14.1-3).
+		it('drops the percentage when the plan has no value to compare against', () => {
+			expect(
+				displayFor(
+					marginal({
+						planValueGainPercent: null,
+					}),
+				),
+			).toBe('The next 15 minutes would go to “Tax return” · N/A');
+		});
 	});
 
 	// MATH.md §14.1-2: the lever carries the exact trim; only the label rounds.

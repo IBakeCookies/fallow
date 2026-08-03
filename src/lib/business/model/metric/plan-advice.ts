@@ -19,7 +19,12 @@ import {
 	type DailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
-import { isPinned, type DailyQuadrant } from '$lib/business/model/metric/calculation';
+import {
+	calculateTaskPlan,
+	isPinned,
+	type DailyQuadrant,
+} from '$lib/business/model/metric/calculation';
+import { BLOCK_HOURS } from '$lib/business/model/zenith';
 
 /** One honest change to today's inputs (MATH.md §14 — pools and switch cost are not levers). */
 export type AdviceLever =
@@ -84,6 +89,36 @@ export interface AdviceFinding {
 	unpriced: AdviceOption | null;
 }
 
+/**
+ * The time budget's shadow price (MATH.md §14.2): what the allocator would do
+ * with one more block, and what that block is worth in Σ P̄.
+ *
+ * A DAY-level diagnostic, deliberately not a per-task column: the budget is a
+ * number the user owns, while which task receives a block is the allocator's
+ * decision, and a per-task column is arithmetic on a curve that ignores both
+ * pools and the switch cost. (It is NOT because per-task marginals equalize at
+ * the optimum — that was the plan and the probe refuted it, §14.2.)
+ */
+export interface BudgetMarginal {
+	/** One allocator block, in hours — what "the next block" means (MATH.md §4). */
+	blockHours: number;
+	/**
+	 * Σ P̄ that block adds across the tasks still OPEN (MATH.md §11.8/§14.2).
+	 * Never negative: the true optimum is monotone in the budget, and the pooled
+	 * path's heuristic noise is floored away.
+	 */
+	planValueGain: number;
+	/** That rise against the whole current plan's Σ P̄, in %; null when that is 0. */
+	planValueGainPercent: number | null;
+	/**
+	 * The open task the block goes to, or null when none takes it — the day where
+	 * a wider budget buys no remaining work. Why is deliberately not claimed: a
+	 * bound capacity pool, tasks near their stopping times, and a block spent on
+	 * work already ticked off are indistinguishable from one extra solve.
+	 */
+	recipient: { taskId: number; title: string } | null;
+}
+
 export interface PlanAdvice {
 	planValue: number;
 	quadrant: DailyQuadrant;
@@ -97,6 +132,7 @@ export interface PlanAdvice {
 	 * cannot express, since the flag removed its only per-task lever (MATH.md §14).
 	 */
 	unfundedMustDoTaskIds: number[];
+	budgetMarginal: BudgetMarginal;
 	candidatesEvaluated: number;
 }
 
@@ -283,6 +319,75 @@ function paretoOptions(
 }
 
 /**
+ * One extra solve, one block wider than today's budget (MATH.md §14.2). Only the
+ * plan is needed, so this goes to the allocator directly instead of through
+ * `calculateDailyMetrics` — the twenty other metrics would be computed and
+ * thrown away.
+ */
+function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetrics): BudgetMarginal {
+	const { tasks, switchCost, pools, constants, posterior } = input;
+	const budget = baseline.budgetHours + BLOCK_HOURS;
+
+	const { suggestedTasks } = calculateTaskPlan(
+		tasks,
+		budget,
+		switchCost,
+		pools,
+		constants,
+		posterior,
+	);
+
+	// Active-scoped, like every "what is still ahead" reading (MATH.md §11.8).
+	// The allocator is blind to `completed` — a task keeps its hours once ticked
+	// off — so a wider budget can spend its extra block on work already done:
+	// true about the plan, and useless as the next-up sentence this feeds.
+	const open = new Map(baseline.activeTasks.map((task) => [task.id, task]));
+
+	const gains = suggestedTasks
+		.filter((task) => open.has(task.id))
+		.map((task) => {
+			const before = open.get(task.id)!;
+
+			return {
+				task,
+				extraHours: task.suggestedHours - before.suggestedHours,
+				// Σ P̄ is a per-task sum (MATH.md §14), so the day's rise restricted to
+				// open work is just this sum — no second gain solve needed.
+				extraValue: task.avgProductivity - before.avgProductivity,
+			};
+		});
+
+	const baseValue = planValueOf(baseline);
+
+	// Floored: Σ P̄ is monotone in the budget at the true optimum, but the pooled
+	// path is a near-exact heuristic (MATH.md §13.3) and two adjacent budgets can
+	// invert by a fraction of a percent. A negative shadow price is a claim the
+	// model does not make.
+	const gain = Math.max(
+		0,
+		gains.reduce((sum, row) => sum + row.extraValue, 0),
+	);
+
+	// The largest gainer, not the only one: the pooled transfer and admission
+	// moves can reshuffle several tasks to fit the new block in (MATH.md §13.3).
+	const [recipient] = gains
+		.filter((row) => row.extraHours > 0)
+		.sort((a, b) => b.extraHours - a.extraHours);
+
+	return {
+		blockHours: BLOCK_HOURS,
+		planValueGain: gain,
+		planValueGainPercent: baseValue > 0 ? Math.round((gain / baseValue) * 1000) / 10 : null,
+		recipient: recipient
+			? {
+					taskId: recipient.task.id,
+					title: recipient.task.title,
+				}
+			: null,
+	};
+}
+
+/**
  * Re-solve the day under each lever and report, per axis, the efficient menu
  * of adjustments. Costs one full solve per candidate — `activeTasks + 3` of
  * them, up to ~950 ms on a 12-task day — so call it on demand, never from a
@@ -316,6 +421,7 @@ export function suggestPlanAdjustments(
 		findings,
 		unfundedTaskIds: unfunded.filter((task) => !isPinned(task)).map((task) => task.id),
 		unfundedMustDoTaskIds: unfunded.filter(isPinned).map((task) => task.id),
+		budgetMarginal: calculateBudgetMarginal(input, baseline),
 		candidatesEvaluated: candidates.length,
 	};
 }
