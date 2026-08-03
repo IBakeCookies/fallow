@@ -162,6 +162,63 @@ test('plan adherence and the model card resolve without calibration logs', async
 	await expect(page.getByText('Something went wrong')).not.toBeVisible();
 });
 
+/* Visiting analytics stamps today's fit (MATH.md §12.1). Read back out of the
+   real IndexedDB rather than off the screen: today is the FIRST recorded day, so
+   there is no second point to draw a sparkline from yet, and the write is the
+   half that has to work for any of the history to accumulate.
+
+   A Playwright profile starts empty, so this exercises store CREATION at v6, not
+   the v5 → v6 upgrade an existing user takes — that path is pinned in
+   `indexed-db.test.ts`, where a v5 database can actually be stood up first. */
+test("visiting analytics records today's fitted params", async ({ page }) => {
+	await seedDay(page, 0, ['write the calibration section']);
+	await page.goto('/analytics');
+
+	await expect(page.getByText(/default \d/).first()).toBeVisible({
+		timeout: 15000,
+	});
+
+	const recorded = await page.evaluate(
+		() =>
+			new Promise<Record<string, unknown>[]>((resolve, reject) => {
+				const request = indexedDB.open('zenith-db');
+				request.onerror = () => reject(request.error);
+
+				request.onsuccess = () => {
+					const all = request.result
+						.transaction('fitSnapshots', 'readonly')
+						.objectStore('fitSnapshots')
+						.getAll();
+
+					all.onerror = () => reject(all.error);
+					all.onsuccess = () => resolve(all.result);
+				};
+			}),
+	);
+
+	expect(recorded).toHaveLength(1);
+
+	expect(recorded[0]).toMatchObject({
+		date: isoDate(0),
+	});
+
+	// Every value a fit can move, plus the posterior — a record missing the
+	// covariance is dropped on read (§13.1), so it would never reach the audit.
+	for (const field of [
+		'c1',
+		'c2',
+		'c3',
+		'sigma2',
+		'alphaCog',
+		'alphaPhys',
+		'recoveryRate',
+		'stoppingValue',
+	])
+		expect(typeof recorded[0][field]).toBe('number');
+
+	expect(recorded[0].covariance).toHaveLength(3);
+});
+
 test('the calendar reads the same day summaries', async ({ page }) => {
 	await seedDay(page, 0, ['write the calibration section']);
 	await page.goto('/calendar');

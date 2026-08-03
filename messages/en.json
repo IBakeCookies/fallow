@@ -311,6 +311,7 @@
 	"ana_model_note_flow": "default {value} · {count} ⚡ logs",
 	"ana_model_note_ratings": "default {value} · {count} ratings",
 	"ana_model_note_days": "default {value} · {count} days",
+	"ana_model_trend_aria": "{label} over the last {count} recorded days: {from} to {to}",
 	"energy_title_head": "Fallow — Energy Lab",
 	"energy_meta_description": "Total-output scheduler: energy reservoirs drain as you work and recover as you rest; breaks and quitting time emerge from the math.",
 	"energy_heading": "Energy Lab",

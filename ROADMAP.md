@@ -48,10 +48,20 @@ The model is strong at 8am and silent at 2pm; these close that gap.
 4. **Censored-likelihood stopping fit** — worked-to-edge, zero-work and
    inverted days currently drop out of the §8.10 fit; a one-sided likelihood
    term would use them. Build once real usage shows enough censored days.
-5. **Fit-snapshot persistence** — append-only store of per-day fitted params
-   (an R8 five-step schema change). Closes two documented gaps at once: the
-   §12 audit compares against the fit as of the audited day instead of the
-   current one, and the calibration card gets a params-over-time chart.
+5. ~~**Fit-snapshot persistence**~~ — SHIPPED 2026-08-03 (MATH.md §12.1): a
+   `fitSnapshots` store keyed by date, holding only what a fit can move (the ϕ
+   plane with its posterior, α_cog/α_phys/r, λ₀); the §12 audit scores each day
+   under the fit recorded that day, and the "Your model" card draws each fit as a
+   sparkline against its default. Only today's record is ever written, so a
+   day's fit is immutable once the day passes; a day with no snapshot falls back
+   to the live fit. **Probed first, and the gap was bigger than assumed**: on a
+   drifting synthetic year, α_cog as of day 10 was 0.3069 against a
+   whole-history 0.4973 — the early day had been audited against a drain rate
+   62% too high. Recomputing the fit per day instead was rejected on cost, not
+   on correctness: it would fix history retroactively (which storing cannot) but
+   costs a whole-history fit per audited day — 19 ms/day, 570 ms per 30-day
+   audit — so it grows with everything the user ever logs. The accepted cost is
+   that the correction only accrues forward.
 6. **Per-task ϕ offsets** — hierarchical partial pooling on top of the global
    c-plane, ridge toward 0 with the same MAP machinery as the α/r/λ₀ fits, so
    repeated ⚡ logs on one task sharpen that task without destabilizing the

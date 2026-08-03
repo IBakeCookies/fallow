@@ -3,7 +3,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { EMPTY_PLAN_AUDIT, readDaySummaries, readModelReport } from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $updateDrainObservation } from '$lib/data/repository/drain-observation-repository';
-import type { DailySession, Task } from '$lib/data/type';
+import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
+import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
+import type { DailySession, FitSnapshotRecord, Task } from '$lib/data/type';
 
 const task = (id: number, over: Partial<Task> = {}): Task => ({
 	id,
@@ -28,6 +31,27 @@ const session = (date: string, over: Partial<DailySession> = {}): DailySession =
 	switchCost: 0.5,
 	updatedAt: 0,
 	...over,
+});
+
+const fitSnapshot = (
+	date: string,
+	overrides: Partial<FitSnapshotRecord> = {},
+): Omit<FitSnapshotRecord, 'createdAt'> => ({
+	date,
+	c1: DEFAULT_USER_CONSTANTS.c1,
+	c2: DEFAULT_USER_CONSTANTS.c2,
+	c3: DEFAULT_USER_CONSTANTS.c3,
+	covariance: [
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+	],
+	sigma2: 0.0625,
+	alphaCog: DEFAULT_ENERGY_PARAMS.alphaCog,
+	alphaPhys: DEFAULT_ENERGY_PARAMS.alphaPhys,
+	recoveryRate: DEFAULT_ENERGY_PARAMS.recoveryRate,
+	stoppingValue: DEFAULT_ENERGY_PARAMS.freeTimeValue,
+	...overrides,
 });
 
 describe('readDaySummaries', () => {
@@ -100,8 +124,8 @@ describe('readModelReport', () => {
 		try {
 			await readModelReport('2026-07-02', 30);
 
-			// flowObservations, restObservations, drainObservations, sessions
-			expect(transactions.mock.calls.length).toBeLessThanOrEqual(4);
+			// flowObservations, restObservations, drainObservations, sessions, fitSnapshots
+			expect(transactions.mock.calls.length).toBeLessThanOrEqual(5);
 		} finally {
 			transactions.mockRestore();
 		}
@@ -124,5 +148,174 @@ describe('readModelReport', () => {
 		}
 
 		expect((await readModelReport('2026-08-04', 2)).audit.usedCount).toBe(2);
+	});
+});
+
+// MATH.md §12: the audit scores a finished day against the fit recorded on that
+// day, so the report hands back today's fit for the caller to record.
+describe('readModelReport fit snapshots', () => {
+	/** Two tasks the planners must rank differently, or a re-fit changes no share. */
+	const lopsided = (date: string): DailySession => ({
+		date,
+		tasks: [
+			task(1, {
+				mentalDifficulty: 9,
+				physicalDifficulty: 1,
+				enjoyment: 3,
+			}),
+			task(2, {
+				mentalDifficulty: 2,
+				physicalDifficulty: 9,
+				enjoyment: 9,
+			}),
+		],
+		availableHours: 8,
+		switchCost: 0.5,
+		updatedAt: 0,
+	});
+
+	const logWork = (date: string) =>
+		$updateDrainObservation({
+			date,
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 3,
+			cognitiveDemand: 0.9,
+			physicalDemand: 0.1,
+			mindDrain: 7,
+			bodyDrain: 2,
+		});
+
+	it("hands back today's fit, matching the numbers the card reports", async () => {
+		const report = await readModelReport('2026-09-10', 30);
+		const { todaysFit, calibration } = report;
+
+		expect(todaysFit.date).toBe('2026-09-10');
+		expect(todaysFit.alphaCog).toBe(calibration.energy.params.alphaCog);
+		expect(todaysFit.alphaPhys).toBe(calibration.energy.params.alphaPhys);
+		expect(todaysFit.recoveryRate).toBe(calibration.energy.params.recoveryRate);
+		expect(todaysFit.stoppingValue).toBe(calibration.stopping.value);
+		// The posterior travels whole: without it σ_ϕ is 0 downstream (§13.1).
+		expect(todaysFit.covariance).toHaveLength(3);
+		expect(todaysFit.covariance.every((row) => row.length === 3)).toBe(true);
+		expect(Number.isFinite(todaysFit.sigma2)).toBe(true);
+	});
+
+	// The audit reports days ascending, so the day under test is the last one — the
+	// count itself is not the assertion (this file shares one database).
+	it('scores a finished day under the fit recorded that day, leaving the others alone', async () => {
+		await $updateSession(lopsided('2026-09-01'));
+		await logWork('2026-09-01');
+
+		const live = await readModelReport('2026-09-02', 30);
+
+		await $updateFitSnapshot(
+			fitSnapshot('2026-09-01', {
+				// A plane that inverts which task reaches flow first, and rates that
+				// drain the day flat — nothing the live fit could coincide with.
+				c1: -0.3,
+				c2: 0.8,
+				c3: 0.4,
+				alphaCog: 1.9,
+				alphaPhys: 1.9,
+				recoveryRate: 0.1,
+			}),
+		);
+
+		const recorded = await readModelReport('2026-09-02', 30);
+
+		expect(recorded.audit.usedCount).toBe(live.audit.usedCount);
+		expect(recorded.audit.days.at(-1)).not.toEqual(live.audit.days.at(-1));
+		// Only the day that has a snapshot moves; the rest keep the live fit.
+		expect(recorded.audit.days.slice(0, -1)).toEqual(live.audit.days.slice(0, -1));
+	});
+
+	// A day whose snapshot is unreadable must fall back to the live fit rather than
+	// drop out of the audit — the day was still worked.
+	it('ignores a corrupt snapshot and audits the day on the live fit', async () => {
+		await $updateSession(lopsided('2026-09-05'));
+		await logWork('2026-09-05');
+
+		const live = await readModelReport('2026-09-06', 30);
+
+		await $updateFitSnapshot(
+			fitSnapshot('2026-09-05', {
+				alphaCog: NaN,
+			}),
+		);
+
+		const report = await readModelReport('2026-09-06', 30);
+
+		expect(report.audit.usedCount).toBe(live.audit.usedCount);
+		expect(report.audit.days.at(-1)).toEqual(live.audit.days.at(-1));
+	});
+
+	it("ends the trend in today's fit, before anything is recorded", async () => {
+		const { calibration } = await readModelReport('2026-10-05', 30);
+		const { trend } = calibration;
+
+		expect(trend.alphaCog.at(-1)).toBe(calibration.energy.params.alphaCog);
+		expect(trend.recoveryRate.at(-1)).toBe(calibration.energy.params.recoveryRate);
+		expect(trend.stoppingValue.at(-1)).toBe(calibration.stopping.value);
+		expect(trend.phiHours.at(-1)).toBe(calibration.flow.phiHours);
+	});
+
+	// The audit keeps the last `auditDayCap` days that were WORKED, which for
+	// anyone who skips days reaches further back than `auditDayCap` CALENDAR days
+	// — the trend's window. The snapshot read is widened to cover them, and
+	// without that widening this day's recorded fit is silently ignored and the
+	// §12.1 correction is lost for exactly the sporadic loggers it matters most
+	// for. Nothing else in this suite audits a day outside the trend window.
+	it('applies the recorded fit of a worked day older than the trend window', async () => {
+		await $updateSession(lopsided('2026-10-01'));
+		await logWork('2026-10-01');
+
+		// Three months on: 2026-10-01 is far outside today − 29, but it is still one
+		// of the last 30 worked days, so the audit still scores it.
+		const live = await readModelReport('2027-01-01', 30);
+
+		await $updateFitSnapshot(
+			fitSnapshot('2026-10-01', {
+				c1: -0.3,
+				c2: 0.8,
+				c3: 0.4,
+				alphaCog: 1.9,
+				alphaPhys: 1.9,
+				recoveryRate: 0.1,
+			}),
+		);
+
+		const recorded = await readModelReport('2027-01-01', 30);
+
+		expect(recorded.audit.usedCount).toBe(live.audit.usedCount);
+		expect(recorded.audit.days.at(-1)).not.toEqual(live.audit.days.at(-1));
+		// …and it is outside the trend window, so the sparkline never sees it.
+		expect(recorded.calibration.trend.alphaCog).toHaveLength(1);
+	});
+
+	it('plots the recorded days ascending, with today fitted fresh rather than read back', async () => {
+		await $updateFitSnapshot(
+			fitSnapshot('2026-11-02', {
+				alphaCog: 0.11,
+			}),
+		);
+
+		await $updateFitSnapshot(
+			fitSnapshot('2026-11-03', {
+				alphaCog: 0.22,
+			}),
+		);
+
+		// A stale record for today: the card's number comes from the live fit, so the
+		// last point must too, or the sparkline contradicts the value beside it.
+		await $updateFitSnapshot(
+			fitSnapshot('2026-11-04', {
+				alphaCog: 1.99,
+			}),
+		);
+
+		const { calibration } = await readModelReport('2026-11-04', 30);
+
+		expect(calibration.trend.alphaCog).toEqual([0.11, 0.22, calibration.energy.params.alphaCog]);
 	});
 });

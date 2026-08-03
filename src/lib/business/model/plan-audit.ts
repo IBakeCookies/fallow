@@ -30,6 +30,16 @@ import {
 	type EnergyTaskInput,
 } from '$lib/business/model/zenith-energy';
 
+/** The calibration one day was planned under — a recorded fit snapshot (§12). */
+export interface PlanAuditFit {
+	/** Fitted energy params (the energy side) */
+	params: EnergyParams;
+	/** Fitted ϕ plane (the classic side) */
+	constants: UserConstants;
+	/** Its posterior, so the classic plan hedges ϕ-uncertainty as it did that day */
+	posterior?: FitPosterior;
+}
+
 /** One finished day: the stored session's plan inputs plus the logged hours. */
 export interface PlanAuditDay {
 	tasks: EnergyTaskInput[];
@@ -41,6 +51,13 @@ export interface PlanAuditDay {
 	switchCost: number;
 	/** That day's stored capacity pools (classic-planner input) */
 	pools: CapacityPools;
+	/**
+	 * The fit recorded on that day. Absent for a day older than the snapshot
+	 * store, or one the user never opened the analytics screen on — those fall
+	 * back to the caller's live fit, which is what every day did before §12
+	 * started recording them.
+	 */
+	fit?: PlanAuditFit;
 }
 
 export interface PlanAuditDayResult {
@@ -100,10 +117,10 @@ function taskSpreadOf(shares: number[]): number {
 
 /**
  * Compare each finished day's logged composition against what BOTH planners
- * would have suggested for that day, under the caller's live calibration
- * (fit posterior for the classic side, fitted energy params for the energy
- * side — pass what the dashboard uses so the comparison is against the plans
- * the user would actually have seen).
+ * would have suggested for that day, under the calibration that day was planned
+ * under: `day.fit` when one was recorded (§12), otherwise the caller's live fit
+ * (fit posterior for the classic side, fitted energy params for the energy side
+ * — pass what the dashboard uses).
  *
  * Cost: one optimizeSchedule run per day (~60ms for a 3-task/8h day) — cap
  * the day count at the call site rather than here.
@@ -116,8 +133,15 @@ export function auditPlanAdherence(
 ): PlanAudit {
 	const results: PlanAuditDayResult[] = [];
 
+	const live: PlanAuditFit = {
+		params,
+		constants,
+		posterior,
+	};
+
 	for (const day of days) {
 		const { tasks, windowHours } = day;
+		const fit = day.fit ?? live;
 
 		if (tasks.length === 0 || windowHours <= 0) continue;
 
@@ -137,13 +161,13 @@ export function auditPlanAdherence(
 			})),
 			windowHours,
 			day.pools,
-			constants,
+			fit.constants,
 			day.switchCost,
-			posterior,
+			fit.posterior,
 		);
 
 		const classic = classicAllocations.map((a) => a.allocatedHours);
-		const energyPlan = optimizeSchedule(tasks, windowHours, params, constants);
+		const energyPlan = optimizeSchedule(tasks, windowHours, fit.params, fit.constants);
 		const energyByTask = new Map<number, number>();
 
 		for (const block of energyPlan.blocks) {

@@ -311,6 +311,7 @@
 	"ana_model_note_flow": "Standard {value} · {count} ⚡-Logs",
 	"ana_model_note_ratings": "Standard {value} · {count} Bewertungen",
 	"ana_model_note_days": "Standard {value} · {count} Tage",
+	"ana_model_trend_aria": "{label} über die letzten {count} erfassten Tage: {from} bis {to}",
 	"energy_title_head": "Fallow — Energie-Labor",
 	"energy_meta_description": "Gesamtleistungs-Planer: Energiereservoirs leeren sich beim Arbeiten und füllen sich in Pausen; Pausen und Feierabend ergeben sich aus der Mathematik.",
 	"energy_heading": "Energie-Labor",

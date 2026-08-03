@@ -21,13 +21,19 @@
 import type {
 	DailySession,
 	DrainObservationRecord,
+	FitSnapshotRecord,
 	FlowObservationRecord,
 	Persisted,
 	RestObservationRecord,
 	SavedRoutine,
 	Task,
 } from '$lib/data/type';
-import { DEFAULT_SWITCH_COST } from '$lib/business/model/zenith';
+import {
+	DEFAULT_SWITCH_COST,
+	type FitPosterior,
+	type UserConstants,
+} from '$lib/business/model/zenith';
+import { DEFAULT_ENERGY_PARAMS, type EnergyParams } from '$lib/business/model/zenith-energy';
 import { isISODate } from '$lib/business/utils/date';
 
 /** The sliders' ranges (`task-form.svelte`): difficulties from 0, enjoyment from 1. */
@@ -215,4 +221,88 @@ export function sanitizeDrainObservations(raw: unknown): Persisted<DrainObservat
 
 export function sanitizeRestObservations(raw: unknown): Persisted<RestObservationRecord>[] {
 	return sanitizeObservations<Persisted<RestObservationRecord>>(raw, REST_NUMBERS);
+}
+
+/**
+ * One day's recorded fit, composed back into the shapes the two planners take.
+ * `params` is the defaults with the three fitted rates applied — the record
+ * stores only what a fit can move (see `FitSnapshotRecord`).
+ */
+export interface FitSnapshot {
+	date: string;
+	constants: UserConstants;
+	posterior: FitPosterior;
+	params: EnergyParams;
+	/** Fitted λ₀ (§8.10), which `params.freeTimeValue` deliberately does not carry */
+	stoppingValue: number;
+}
+
+const SNAPSHOT_NUMBERS = [
+	'c1',
+	'c2',
+	'c3',
+	'sigma2',
+	'alphaCog',
+	'alphaPhys',
+	'recoveryRate',
+	'stoppingValue',
+] as const;
+
+/** A 3×3 matrix of finite numbers, or null — the shape `phiPredictionStd` indexes. */
+function covarianceOf(value: unknown): number[][] | null {
+	if (!Array.isArray(value) || value.length !== 3) return null;
+
+	const rows = value.map((row) =>
+		Array.isArray(row) && row.length === 3 && row.every((cell) => finite(cell) !== null)
+			? (row as number[])
+			: null,
+	);
+
+	return rows.every((row) => row !== null) ? (rows as number[][]) : null;
+}
+
+/**
+ * Drop-or-keep, like the observation sanitizers and for the same reason: a
+ * snapshot records what the model believed on a past day, and a default
+ * substituted for a corrupt field would report a plan the user never saw as the
+ * plan they did. The posterior must survive whole — a snapshot missing its
+ * covariance would leave σ_ϕ = 0 (MATH.md §13.1), i.e. an early day audited as
+ * though the user had been perfectly certain, which is the bias this fixes.
+ */
+export function sanitizeFitSnapshots(raw: unknown): FitSnapshot[] {
+	if (!Array.isArray(raw)) return [];
+
+	const snapshots: FitSnapshot[] = [];
+
+	for (const record of raw as FitSnapshotRecord[]) {
+		const source = fields(record);
+		const date = isoDate(source?.date);
+		const covariance = covarianceOf(source?.covariance);
+
+		if (!source || date === null || covariance === null) continue;
+
+		if (SNAPSHOT_NUMBERS.some((field) => finite(source[field]) === null)) continue;
+
+		snapshots.push({
+			date,
+			constants: {
+				c1: source.c1 as number,
+				c2: source.c2 as number,
+				c3: source.c3 as number,
+			},
+			posterior: {
+				covariance,
+				sigma2: source.sigma2 as number,
+			},
+			params: {
+				...DEFAULT_ENERGY_PARAMS,
+				alphaCog: source.alphaCog as number,
+				alphaPhys: source.alphaPhys as number,
+				recoveryRate: source.recoveryRate as number,
+			},
+			stoppingValue: source.stoppingValue as number,
+		});
+	}
+
+	return snapshots;
 }

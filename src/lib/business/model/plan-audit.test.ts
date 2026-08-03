@@ -4,10 +4,12 @@ import {
 	calculatePooledAllocations,
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_USER_CONSTANTS,
+	type UserConstants,
 } from '$lib/business/model/zenith';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	optimizeSchedule,
+	type EnergyParams,
 	type EnergyTaskInput,
 } from '$lib/business/model/zenith-energy';
 
@@ -180,6 +182,130 @@ describe('auditPlanAdherence', () => {
 		expect(audit.usedCount).toBe(0);
 		expect(audit.days).toEqual([]);
 		expect(audit.classicOverlap).toBe(0);
+	});
+
+	// MATH.md §12: a finished day is scored against the fit recorded THAT day, so
+	// an early day is not compared against plans built from months of later logs.
+	describe('per-day fit', () => {
+		/** Nothing like the defaults, so a plan built on it cannot coincide with one. */
+		const drained: EnergyParams = {
+			...DEFAULT_ENERGY_PARAMS,
+			alphaCog: 1.9,
+			alphaPhys: 1.9,
+			recoveryRate: 0.1,
+		};
+
+		// c₁ negative and c₂ positive inverts which task reaches flow soonest. A
+		// uniformly slower plane does NOT discriminate: overlap compares SHARES, and
+		// scaling every ϕ scales every T* with it (measured — all three tasks keep
+		// their share of an 8 h day).
+		const invertedPlane: UserConstants = {
+			c1: -0.3,
+			c2: 0.8,
+			c3: 0.4,
+		};
+
+		const worked = [
+			{
+				taskId: 1,
+				hours: 2,
+			},
+			{
+				taskId: 2,
+				hours: 3,
+			},
+		];
+
+		it("scores the day under the fit it carries, not the caller's live one", () => {
+			const carried = auditPlanAdherence(
+				[
+					{
+						...day(worked),
+						fit: {
+							params: DEFAULT_ENERGY_PARAMS,
+							constants: DEFAULT_USER_CONSTANTS,
+						},
+					},
+				],
+				drained,
+				invertedPlane,
+			);
+
+			const asIfLive = auditPlanAdherence([day(worked)], DEFAULT_ENERGY_PARAMS);
+			const underLive = auditPlanAdherence([day(worked)], drained, invertedPlane);
+
+			expect(carried.days[0]).toEqual(asIfLive.days[0]);
+			// …and the two calibrations really do plan the day differently, or the
+			// assertion above would hold however the fit were threaded.
+			expect(carried.energyOverlap).not.toBeCloseTo(underLive.energyOverlap, 3);
+			expect(carried.classicOverlap).not.toBeCloseTo(underLive.classicOverlap, 3);
+		});
+
+		// The posterior is what makes the classic allocator hedge ϕ-uncertainty
+		// (§5.1), and a snapshot that dropped it would audit an early day as though
+		// the user had been perfectly certain (§13.1) — the bias, restored.
+		//
+		// A TIGHT window is what makes the hedge visible: with 8 h every task is
+		// funded near its T* either way, so the shares — and the overlap — coincide.
+		const tightDay = (fit: PlanAuditDay['fit']): PlanAuditDay => ({
+			...day(worked),
+			windowHours: 2,
+			fit,
+		});
+
+		it('threads the day fit posterior into the classic plan', () => {
+			const uncertain = auditPlanAdherence(
+				[
+					tightDay({
+						params: DEFAULT_ENERGY_PARAMS,
+						constants: DEFAULT_USER_CONSTANTS,
+						posterior: {
+							covariance: [
+								[4, 0, 0],
+								[0, 4, 0],
+								[0, 0, 4],
+							],
+							sigma2: 4,
+						},
+					}),
+				],
+				DEFAULT_ENERGY_PARAMS,
+			);
+
+			const certain = auditPlanAdherence(
+				[
+					tightDay({
+						params: DEFAULT_ENERGY_PARAMS,
+						constants: DEFAULT_USER_CONSTANTS,
+					}),
+				],
+				DEFAULT_ENERGY_PARAMS,
+			);
+
+			expect(uncertain.classicOverlap).not.toBeCloseTo(certain.classicOverlap, 3);
+		});
+
+		it('falls back to the live fit for a day with no recorded snapshot', () => {
+			const mixed = auditPlanAdherence(
+				[
+					day(worked),
+					{
+						...day(worked),
+						fit: {
+							params: DEFAULT_ENERGY_PARAMS,
+							constants: DEFAULT_USER_CONSTANTS,
+						},
+					},
+				],
+				drained,
+				invertedPlane,
+			);
+
+			const [live, carried] = mixed.days;
+			expect(mixed.usedCount).toBe(2);
+			expect(live).not.toEqual(carried);
+			expect(live).toEqual(auditPlanAdherence([day(worked)], drained, invertedPlane).days[0]);
+		});
 	});
 
 	it('aggregates as the mean over used days', () => {

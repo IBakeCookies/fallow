@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	sanitizeDrainObservations,
+	sanitizeFitSnapshots,
 	sanitizeFlowObservations,
 	sanitizeRestObservations,
 	sanitizeRoutines,
@@ -9,6 +10,7 @@ import {
 	sanitizeTask,
 } from '$lib/business/model/persisted';
 import { DEFAULT_SWITCH_COST } from '$lib/business/model/zenith';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 
 const flow = (over: Record<string, unknown> = {}) => ({
@@ -47,6 +49,25 @@ const rest = (over: Record<string, unknown> = {}) => ({
 	mindAfter: 3,
 	bodyBefore: 4,
 	bodyAfter: 2,
+	createdAt: 0,
+	...over,
+});
+
+const fitSnapshot = (over: Record<string, unknown> = {}) => ({
+	date: '2026-07-01',
+	c1: 0.6,
+	c2: -0.2,
+	c3: 0.4,
+	covariance: [
+		[1, 0, 0],
+		[0, 2, 0],
+		[0, 0, 3],
+	],
+	sigma2: 0.0625,
+	alphaCog: 0.42,
+	alphaPhys: 0.31,
+	recoveryRate: 0.9,
+	stoppingValue: 0.7,
 	createdAt: 0,
 	...over,
 });
@@ -365,5 +386,126 @@ describe('observation sanitizers', () => {
 		expect(sanitizeFlowObservations(null)).toEqual([]);
 		expect(sanitizeDrainObservations({})).toEqual([]);
 		expect(sanitizeRestObservations(undefined)).toEqual([]);
+	});
+
+	// A snapshot is a record of a past fit, so it is dropped rather than repaired
+	// for the same reason an observation is: a default substituted for a corrupt
+	// field would report the plan the user saw as a plan they never saw.
+	describe('sanitizeFitSnapshots', () => {
+		it('composes a well-formed record back into the fit the model consumes', () => {
+			const [snapshot] = sanitizeFitSnapshots([fitSnapshot()]);
+
+			expect(snapshot.date).toBe('2026-07-01');
+
+			expect(snapshot.constants).toEqual({
+				c1: 0.6,
+				c2: -0.2,
+				c3: 0.4,
+			});
+
+			expect(snapshot.posterior).toEqual({
+				covariance: [
+					[1, 0, 0],
+					[0, 2, 0],
+					[0, 0, 3],
+				],
+				sigma2: 0.0625,
+			});
+
+			expect(snapshot.stoppingValue).toBe(0.7);
+
+			// The three fitted rates land on the params; every model constant keeps
+			// its default, which is why they are not stored.
+			expect(snapshot.params).toEqual({
+				...DEFAULT_ENERGY_PARAMS,
+				alphaCog: 0.42,
+				alphaPhys: 0.31,
+				recoveryRate: 0.9,
+			});
+		});
+
+		it('drops a record with a non-finite fitted value or no ISO date', () => {
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						alphaCog: null,
+					}),
+				]),
+			).toEqual([]);
+
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						stoppingValue: NaN,
+					}),
+				]),
+			).toEqual([]);
+
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						date: 'yesterday',
+					}),
+				]),
+			).toEqual([]);
+
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({}),
+					fitSnapshot({
+						c2: 'x',
+					}),
+				]),
+			).toHaveLength(1);
+		});
+
+		// A MISSING posterior means σ_ϕ = 0 downstream — the allocator treats the
+		// user as perfectly certain (MATH.md §13.1) — so a snapshot that lost its
+		// covariance must leave the audit rather than silently harden the plan.
+		it('drops a record whose posterior is not a 3×3 matrix of finite numbers', () => {
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						covariance: undefined,
+					}),
+				]),
+			).toEqual([]);
+
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						covariance: [
+							[1, 0],
+							[0, 1],
+						],
+					}),
+				]),
+			).toEqual([]);
+
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						covariance: [
+							[1, 0, 0],
+							[0, 'x', 0],
+							[0, 0, 1],
+						],
+					}),
+				]),
+			).toEqual([]);
+
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						sigma2: 'quite',
+					}),
+				]),
+			).toEqual([]);
+		});
+
+		it('tolerates a non-array read', () => {
+			expect(sanitizeFitSnapshots(null)).toEqual([]);
+			expect(sanitizeFitSnapshots('nope')).toEqual([]);
+		});
 	});
 });

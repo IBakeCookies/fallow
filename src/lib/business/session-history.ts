@@ -14,6 +14,7 @@
 import type {
 	DailySession,
 	DrainObservationRecord,
+	FitSnapshotRecord,
 	FlowObservationRecord,
 	RestObservationRecord,
 } from '$lib/data/type';
@@ -21,6 +22,7 @@ import { $readSessionsByDateRange } from '$lib/data/repository/session-repositor
 import { $readAllFlowObservations } from '$lib/data/repository/flow-observation-repository';
 import { $readAllDrainObservations } from '$lib/data/repository/drain-observation-repository';
 import { $readAllRestObservations } from '$lib/data/repository/rest-observation-repository';
+import { $readFitSnapshotsByDateRange } from '$lib/data/repository/fit-snapshot-repository';
 import {
 	migrateFromLocalStorageToIndexedDB,
 	migrateEnergyParamsFromLocalStorage,
@@ -57,9 +59,11 @@ import { summarizeSession, type DaySummary } from '$lib/business/model/metric/hi
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import {
 	sanitizeDrainObservations,
+	sanitizeFitSnapshots,
 	sanitizeFlowObservations,
 	sanitizeRestObservations,
 	sanitizeSessions,
+	type FitSnapshot,
 } from '$lib/business/model/persisted';
 
 /**
@@ -88,7 +92,8 @@ export async function initializeStorage(): Promise<void> {
  */
 interface UserFit {
 	constants: UserConstants;
-	posterior?: FitPosterior;
+	/** Never absent: every `fitUserConstants` path returns one (MATH.md §13.1). */
+	posterior: FitPosterior;
 	fitted: boolean;
 	usedCount: number;
 }
@@ -205,16 +210,25 @@ function toStopObservations(days: FinishedDay[]): StopObservation[] {
 
 /**
  * Finished days for the plan-adherence audit (MATH.md §12): the §8.10 join
- * plus each day's stored classic-planner inputs (switch cost, pools), so the
- * audit compares against the plan the user would actually have seen that day.
- * Chronologically ascending — `readModelReport` caps the lookback.
+ * plus each day's stored classic-planner inputs (switch cost, pools) and the
+ * fit recorded on it, so the audit compares against the plan the user would
+ * actually have seen that day. Chronologically ascending — `readModelReport`
+ * caps the lookback.
+ *
+ * A day with no snapshot carries no `fit` and falls back to the live one: days
+ * before the snapshot store existed, and days the user never opened analytics on.
  */
-function toPlanAuditDays(days: FinishedDay[], stops: StopObservation[]): PlanAuditDay[] {
+function toPlanAuditDays(
+	days: FinishedDay[],
+	stops: StopObservation[],
+	fitByDate: Map<string, FitSnapshot>,
+): PlanAuditDay[] {
 	// A PlanAuditDay is a StopObservation plus that day's classic-planner inputs,
 	// so it extends the rows the stopping fit already built rather than mapping
 	// every day's tasks through toEnergyTask a second time.
 	return stops.map((stop, index) => {
 		const { session } = days[index];
+		const snapshot = fitByDate.get(session.date);
 
 		return {
 			...stop,
@@ -223,8 +237,28 @@ function toPlanAuditDays(days: FinishedDay[], stops: StopObservation[]): PlanAud
 				cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
 				physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
 			},
+			...(snapshot && {
+				fit: {
+					params: snapshot.params,
+					constants: snapshot.constants,
+					posterior: snapshot.posterior,
+				},
+			}),
 		};
 	});
+}
+
+/**
+ * Each calibrated parameter over the recorded days, ascending and ending in
+ * today's fit — one series per row of the "Your model" card. Parallel arrays
+ * because that is what a row's sparkline takes; they are always the same length.
+ */
+export interface FitTrend {
+	phiHours: number[];
+	recoveryRate: number[];
+	alphaCog: number[];
+	alphaPhys: number[];
+	stoppingValue: number[];
 }
 
 /**
@@ -243,6 +277,51 @@ export interface CalibrationSnapshot {
 	stopping: StoppingValueFit;
 	/** The defaults each fit is anchored to — every row shows one next to its fit. */
 	defaults: EnergyParams;
+	/** How each fit has moved over the recorded days (MATH.md §12). */
+	trend: FitTrend;
+}
+
+/** ϕ for the mid-scale reference task the card reports — difficulty 5, enjoyment 5. */
+const REFERENCE_EFFORT = mapEffort(5);
+const REFERENCE_ENJOYABILITY = mapEnjoyability(5);
+
+function referencePhi(constants: UserConstants): number {
+	return calculateFlowStateTime(REFERENCE_EFFORT, REFERENCE_ENJOYABILITY, constants);
+}
+
+/**
+ * The recorded days plus today. Today's point is the LIVE fit, not whatever was
+ * recorded earlier today: the card prints the live numbers, so a sparkline
+ * ending on a stale record would contradict the value beside it.
+ *
+ * `windowStart` bounds it to a fixed CALENDAR lookback rather than to everything
+ * the report read — that range is widened to reach the oldest audited day, so
+ * the sparkline's x-extent would otherwise stretch with however long ago the
+ * user last worked. It is deliberately not the audit's window, which counts the
+ * last `auditDayCap` days that were WORKED and so reaches further back for
+ * anyone who skips days: the audit's stretch contains this one, never the
+ * reverse, so the sparkline only ever shows movement the audit also scored.
+ */
+function trendFrom(
+	snapshots: FitSnapshot[],
+	today: string,
+	windowStart: string,
+	live: CalibrationSnapshot['flow'] & {
+		params: EnergyParams;
+		stoppingValue: number;
+	},
+): FitTrend {
+	const past = snapshots.filter(
+		(snapshot) => snapshot.date !== today && snapshot.date >= windowStart,
+	);
+
+	return {
+		phiHours: [...past.map((s) => referencePhi(s.constants)), live.phiHours],
+		recoveryRate: [...past.map((s) => s.params.recoveryRate), live.params.recoveryRate],
+		alphaCog: [...past.map((s) => s.params.alphaCog), live.params.alphaCog],
+		alphaPhys: [...past.map((s) => s.params.alphaPhys), live.params.alphaPhys],
+		stoppingValue: [...past.map((s) => s.stoppingValue), live.stoppingValue],
+	};
 }
 
 function calibrationSnapshotFrom(
@@ -250,6 +329,9 @@ function calibrationSnapshotFrom(
 	rest: RestObservationRecord[],
 	drain: DrainObservationRecord[],
 	stops: StopObservation[],
+	recorded: FitSnapshot[],
+	today: string,
+	trendStart: string,
 ): CalibrationSnapshot {
 	const energy = calibrateEnergyParams(rest, drain);
 
@@ -260,20 +342,65 @@ function calibrationSnapshotFrom(
 		fit.constants,
 	);
 
-	const E = mapEffort(5);
-	const beta = mapEnjoyability(5);
+	const flow = {
+		fitted: fit.fitted,
+		usedCount: fit.usedCount,
+		phiHours: referencePhi(fit.constants),
+		defaultPhiHours: referencePhi(DEFAULT_USER_CONSTANTS),
+	};
 
 	return {
-		flow: {
-			fitted: fit.fitted,
-			usedCount: fit.usedCount,
-			phiHours: calculateFlowStateTime(E, beta, fit.constants),
-			defaultPhiHours: calculateFlowStateTime(E, beta, DEFAULT_USER_CONSTANTS),
-		},
+		flow,
 		energy,
 		stopping,
 		defaults: DEFAULT_ENERGY_PARAMS,
+		trend: trendFrom(recorded, today, trendStart, {
+			...flow,
+			params: energy.params,
+			stoppingValue: stopping.value,
+		}),
 	};
+}
+
+/**
+ * Today's fit as a storable record (MATH.md §12). Only what a fit can move: the
+ * rest of `EnergyParams` is model constants, so `sanitizeFitSnapshots` restores
+ * them from the defaults on the way back in.
+ */
+function toFitSnapshotRecord(
+	date: string,
+	fit: UserFit,
+	calibration: CalibrationSnapshot,
+): Omit<FitSnapshotRecord, 'createdAt'> {
+	return {
+		date,
+		c1: fit.constants.c1,
+		c2: fit.constants.c2,
+		c3: fit.constants.c3,
+		covariance: fit.posterior.covariance,
+		sigma2: fit.posterior.sigma2,
+		alphaCog: calibration.energy.params.alphaCog,
+		alphaPhys: calibration.energy.params.alphaPhys,
+		recoveryRate: calibration.energy.params.recoveryRate,
+		stoppingValue: calibration.stopping.value,
+	};
+}
+
+/**
+ * The window of recorded fits to read: the trend's fixed lookback, widened to
+ * reach the oldest audited day. Those two differ for a user who skips days — the
+ * audit keeps the last `auditDayCap` days that were WORKED, which can be older
+ * than `auditDayCap` calendar days, and a day whose snapshot went unread would
+ * silently fall back to the live fit.
+ */
+function recordedFitRangeStart(
+	trendStart: string,
+	days: FinishedDay[],
+	auditDayCap: number,
+): string {
+	const oldestAudited = days.at(-auditDayCap)?.session.date ?? days[0]?.session.date;
+
+	return oldestAudited !== undefined && oldestAudited < trendStart ? oldestAudited : trendStart;
 }
 
 /** An audit of no days — the oracle for a report read before anything is worked. */
@@ -282,6 +409,11 @@ export const EMPTY_PLAN_AUDIT: PlanAudit = auditPlanAdherence([], DEFAULT_ENERGY
 export interface ModelReport {
 	calibration: CalibrationSnapshot;
 	audit: PlanAudit;
+	/**
+	 * Today's fit, for the caller to persist with `$updateFitSnapshot` — a read
+	 * does not write, and a failed stamp must not take the two cards down with it.
+	 */
+	todaysFit: Omit<FitSnapshotRecord, 'createdAt'>;
 }
 
 /**
@@ -304,15 +436,23 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 	const fit = fitFrom(flow);
 	const days = await readFinishedDays(today, drain);
 	const stops = toStopObservations(days);
-	const calibration = calibrationSnapshotFrom(fit, rest, drain, stops);
+	const trendStart = addDays(today, -(auditDayCap - 1));
+
+	const recorded = sanitizeFitSnapshots(
+		await $readFitSnapshotsByDateRange(recordedFitRangeStart(trendStart, days, auditDayCap), today),
+	);
+
+	const calibration = calibrationSnapshotFrom(fit, rest, drain, stops, recorded, today, trendStart);
+	const fitByDate = new Map(recorded.map((snapshot) => [snapshot.date, snapshot]));
 
 	return {
 		calibration,
 		audit: auditPlanAdherence(
-			toPlanAuditDays(days, stops).slice(-auditDayCap),
+			toPlanAuditDays(days, stops, fitByDate).slice(-auditDayCap),
 			calibration.energy.params,
 			fit.constants,
 			fit.posterior,
 		),
+		todaysFit: toFitSnapshotRecord(today, fit, calibration),
 	};
 }
