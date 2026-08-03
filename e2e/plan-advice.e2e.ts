@@ -66,7 +66,7 @@ test('advice prices real adjustments and goes stale when the day changes', async
 	// The budget's shadow price, from a real solve (MATH.md §14.2): either the
 	// next block goes somewhere, or the budget is not what limits this day.
 	await expect(
-		page.getByText(/The next \d+ minutes would go to “.+”|would add nothing to this plan/),
+		page.getByText(/The next \d+ minutes would go to “.+”|would get nothing more done/),
 	).toBeVisible();
 
 	// Editing the day must not silently leave the last solve's numbers on screen.

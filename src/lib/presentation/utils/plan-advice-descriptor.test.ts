@@ -207,7 +207,11 @@ describe('buildAdviceDisplay', () => {
 			);
 		});
 
-		it('says the next block buys nothing when no task takes it', () => {
+		// Scoped to output, not to the whole worth of the time (MATH.md §14.2): on
+		// these same days the unpriced `budget + 1` lever is still correct advice,
+		// because Load is `weightedHours / budget` and slack is real relief. A
+		// sentence reading "the time is useless" would contradict the row below it.
+		it('says the next block gets nothing more done when no task takes it', () => {
 			expect(
 				displayFor(
 					marginal({
@@ -216,7 +220,7 @@ describe('buildAdviceDisplay', () => {
 						recipient: null,
 					}),
 				),
-			).toBe('Another 15 minutes would add nothing to this plan.');
+			).toBe('Another 15 minutes would get nothing more done.');
 		});
 
 		// The pooled heuristic can hand a task the block while the day's value nets
@@ -230,7 +234,7 @@ describe('buildAdviceDisplay', () => {
 						planValueGainPercent: 0,
 					}),
 				),
-			).toBe('Another 15 minutes would add nothing to this plan.');
+			).toBe('Another 15 minutes would get nothing more done.');
 		});
 
 		// A day with no hours entered yet: the block still goes somewhere, but

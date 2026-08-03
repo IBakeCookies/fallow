@@ -85,7 +85,7 @@
 	const sharedTitle: AdviceDisplay = {
 		unfunded: null,
 		unfundedMustDo: null,
-		marginal: 'Another 15 minutes would add nothing to this plan.',
+		marginal: 'Another 15 minutes would get nothing more done.',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -261,7 +261,7 @@
 			rows: [],
 			unfunded: null,
 			unfundedMustDo: null,
-			marginal: 'Another 15 minutes would add nothing to this plan.',
+			marginal: 'Another 15 minutes would get nothing more done.',
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -271,9 +271,7 @@
 
 		// The shadow price is a reading, not a finding: a day with nothing to fix
 		// still answers what the next block would buy (MATH.md §14.2).
-		await expect(
-			canvas.getByText('Another 15 minutes would add nothing to this plan.'),
-		).toBeVisible();
+		await expect(canvas.getByText('Another 15 minutes would get nothing more done.')).toBeVisible();
 	}}
 />
 

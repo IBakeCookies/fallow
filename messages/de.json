@@ -213,7 +213,7 @@
 	"advice_cost_hour": "kostet eine zusätzliche Stunde deines Tages",
 	"advice_profile_flip": "Tagesprofil → {profile}",
 	"advice_marginal": "Die nächsten {minutes} Minuten gingen an „{title}“ · {gain}",
-	"advice_marginal_none": "Weitere {minutes} Minuten würden diesem Plan nichts hinzufügen.",
+	"advice_marginal_none": "Weitere {minutes} Minuten würden nichts zusätzlich erledigen.",
 	"advice_unfunded": "{count} Aufgaben erhalten in diesem Plan keine Stunden.",
 	"advice_unfunded_one": "1 Aufgabe erhält in diesem Plan keine Stunden.",
 	"advice_unfunded_must_do": "{count} Aufgaben bleiben heute, erhalten aber keine Stunden — plane mehr Stunden ein oder erlaube das Verschieben.",

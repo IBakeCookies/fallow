@@ -139,6 +139,11 @@ function formatMarginal(marginal: BudgetMarginal): string {
 	// Keyed on the gain as well as the recipient: the pooled heuristic can hand a
 	// task the block while the day's value nets out flat (MATH.md §14.2), and
 	// "goes to X · +0% plan value" is the same non-advice as no recipient at all.
+	//
+	// The sentence is scoped to output, not to the worth of the time: on these
+	// same days the unpriced `budget + 1` lever below is still right, because Load
+	// is `weightedHours / budget` and a longer day for the same work is real
+	// relief (MATH.md §14.2). "Adds nothing to this plan" contradicted that row.
 	if (!marginal.recipient || marginal.planValueGainPercent === 0)
 		return m.advice_marginal_none({
 			minutes,

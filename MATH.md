@@ -2218,6 +2218,27 @@ Two reasons that do survive:
    days (mean overstatement 0.005 in Σ P̄ units). The budget marginal re-solves,
    so what it reports is what the model would really produce.
 
+**A zero marginal does not retire the unpriced `budget + 1` lever, and must not
+be wired to suppress it.** The two co-occur constantly: on the **35%** of probe
+days where another block buys no Σ P̄, **every one** still offered the extra hour
+somewhere on the menu. That is not a contradiction, because the two readings
+measure different things. The marginal is Σ P̄ — output. The lever appears on any
+axis it improves, and Cognitive and Physical Load are `weightedHours / budget`
+(§11), so on precisely these days the numerator is frozen and the whole
+improvement is denominator mechanics — the effect §14.1-1 named when it refused
+to _price_ the lever, while keeping it as advice. Keeping it is right: §11 defines
+those axes as how packed the day is, and the same work in a longer day genuinely
+is less packed. Slack is the relief on offer and "costs an extra hour of your
+day" is its honest price. So the marginal is the missing half of that lever's
+story — it says the hour buys relief and _no output_ — and the two lines are
+complementary. What this cost was one word of scope in the copy: "would add
+nothing to this plan" read as _the time is worthless_, directly above a row
+recommending you spend it, so the sentence is now "would get nothing more done".
+Do not instead hide the lever when the marginal is zero: that deletes correct
+advice on exactly the over-loaded days that need it, inverts §14.1-1's failure
+(the card going silent rather than only saying "work more"), and gates a
+per-axis reading on a day-level one, across the §11.8 scope split.
+
 **Cost.** One `calculateTaskPlan` and nothing else — the per-task decomposition
 above is what removes the second gain solve — so exactly one extra solve on top
 of the advisor's `activeTasks + 3`. It therefore lives in `suggestPlanAdjustments`
