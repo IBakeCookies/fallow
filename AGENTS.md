@@ -95,10 +95,11 @@ Each exists because it was broken before.
   Retry re-runs. Transient and informational → a toast
   (`presentation/utils/toast.ts`). Already visible in the failing component →
   nothing more, but verify it really is visible: the `analytics-store` load is
-  two `try` blocks because `#calibrationFailed` covers only the model card,
-  and a failed **history** read renders every chart as an empty year — looks
-  like a user with no data, so it toasts. Silent is only acceptable where the
-  screen is already visibly wrong. Three stay deliberately silent
+  two `try` blocks — one per read — because `#hasModelReportFailed` takes both
+  cards that read feeds out of their loading string and each then says so
+  itself, while a failed **history** read renders every chart as an empty year
+  — looks like a user with no data, so it toasts. Silent is only acceptable
+  where the screen is already visibly wrong. Three stay deliberately silent
   (re-proposing them is churn): yesterday's session (decoration, and the
   banner's Retry does not cover that read), the Energy Lab's `localStorage`
   view preference (loss costs nothing), and its `readStopObservations` effect
