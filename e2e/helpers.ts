@@ -26,6 +26,18 @@ export async function addTask(page: Page, title: string) {
 		.click();
 }
 
+/** The day's budget field. Spelled once: `getByLabel` matches substrings, so the
+ *  bar's budget slider — whose own name must therefore not contain this one —
+ *  would otherwise resolve two elements at every call site at once. */
+export const budgetField = (page: Page) => page.getByLabel('Available Hours');
+
+/** Set the day's budget. Typing already commits per keystroke; the blur is what
+ *  clamps it into range, so both halves stay. */
+export async function setBudget(page: Page, hours: number) {
+	await budgetField(page).fill(String(hours));
+	await budgetField(page).blur();
+}
+
 /** Expand the Time Budget bar, which collapses itself on a day that has hours.
  *  Takes the summary the loaded day should read: the bar re-samples its default
  *  when that day's values land, discarding a click made before they did. */

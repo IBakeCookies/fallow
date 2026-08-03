@@ -104,6 +104,7 @@
 	"budget_summary_free": "{slack}h free",
 	"budget_summary_pools": "{mind}h mind · {body}h body · {switchMinutes}m switch",
 	"budget_available_hours": "Available Hours",
+	"budget_hours_slider": "Budget hours",
 	"budget_allocated": "Allocated: {hours}h",
 	"budget_unplanned": "{hours}h left unplanned — capped by optimal stopping times & capacity pools",
 	"budget_unplanned_title": "The plan deliberately stops short of your budget: each task is capped at its optimal stopping time (1.79×ϕ, where average productivity peaks) and by your cognitive/physical capacity pools. The unused hours are recovery time, not lost time.",

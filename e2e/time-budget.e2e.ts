@@ -1,13 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, isoDate } from './helpers';
+import { addTask, AUTOSAVE_MS, budgetField, isoDate, setBudget } from './helpers';
 
 test('setting the time budget feeds the plan', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 
 	// budget defaults to 0 so the card starts open
-	await page.getByLabel('Available Hours').fill('8');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 8);
 
 	// metrics leave N/A once tasks + budget exist: Zenith Gain shows +X%
 	await expect(page.getByText(/^\+[\d.]+%$/).first()).toBeVisible();
@@ -20,6 +19,25 @@ test('setting the time budget feeds the plan', async ({ page }) => {
 		.click();
 
 	await expect(page.getByText(/8h budget/)).toBeVisible();
+});
+
+/* The budget has a slider so the day can be explored by dragging it. The whole
+   plan is one `$derived`, so each step re-solves it — which is the thing only an
+   e2e can see: the store and the allocator have to be in the loop, and the drag
+   commits nothing but the value the field already holds. */
+test('the budget slider re-solves the plan live', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+
+	const allocated = page.getByText(/^Allocated: /);
+	await expect(allocated).not.toHaveText('Allocated: 0.00h');
+
+	// No blur: the plan follows the drag itself, and the field is the same value.
+	await page.getByLabel('Budget hours').fill('0');
+
+	await expect(budgetField(page)).toHaveValue('0');
+	await expect(allocated).toHaveText('Allocated: 0.00h');
 });
 
 /* The session lives in client-side IndexedDB, so the server cannot know whether
@@ -40,7 +58,7 @@ test.describe('server-rendered, before the day is read', () => {
 			}),
 		).toHaveAttribute('aria-expanded', 'false');
 
-		await expect(page.getByLabel('Available Hours')).toBeHidden();
+		await expect(budgetField(page)).toBeHidden();
 	});
 });
 
@@ -51,13 +69,12 @@ test.describe('server-rendered, before the day is read', () => {
 test('the bar follows the day on screen, not the day the tab booted on', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.getByLabel('Available Hours').fill('8');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 8);
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	// Boot on a day with no session at all: hours unset, so the bar opens itself.
 	await page.goto(`/?date=${isoDate(1)}`);
-	await expect(page.getByLabel('Available Hours')).toHaveValue('0');
+	await expect(budgetField(page)).toHaveValue('0');
 
 	// Today has 8h — the bar has nothing left to ask for, so it gets out of the way.
 	await page

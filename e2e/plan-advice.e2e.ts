@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, isoDate } from './helpers';
+import { AUTOSAVE_MS, isoDate, setBudget } from './helpers';
 
 /* The advice card is the one place the app says what to CHANGE rather than what
    the day reads. Every option it shows is a full re-solve of the day (MATH.md
@@ -34,8 +34,7 @@ test('advice prices real adjustments and goes stale when the day changes', async
 	await addDrainingTask(page, 'Write the spec');
 	await addDrainingTask(page, 'Migrate the database');
 
-	await page.getByLabel('Available Hours').fill('10');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 10);
 
 	// Nothing is computed until the user asks for it — and until then the feature
 	// is one button, not a card with a heading advertising an empty panel.
@@ -65,8 +64,7 @@ test('advice prices real adjustments and goes stale when the day changes', async
 	await expect(page.getByText(/plan value/).first()).toBeVisible();
 
 	// Editing the day must not silently leave the last solve's numbers on screen.
-	await page.getByLabel('Available Hours').fill('6');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 6);
 
 	await expect(page.getByText('Your day has changed since this was calculated.')).toBeVisible();
 
@@ -94,8 +92,7 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
 		}),
 	).toBeVisible();
 
-	await page.getByLabel('Available Hours').fill('10');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 10);
 
 	await page
 		.getByRole('button', {
@@ -118,8 +115,7 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 
 	// Tight on purpose: with slack in the budget, the free trim lever dominates
 	// every deferral on every axis and no defer survives the frontier.
-	await page.getByLabel('Available Hours').fill('4');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 4);
 
 	await page
 		.getByRole('button', {

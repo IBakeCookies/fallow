@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn } from 'storybook/test';
+	import { expect, fireEvent, fn } from 'storybook/test';
 	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
 
@@ -54,6 +54,26 @@
 		await expect(canvas.getByLabelText('Cognitive Capacity')).toHaveValue(8);
 		await expect(canvas.getByLabelText('Physical Capacity')).toHaveValue(4);
 		await expect(canvas.getByText('Allocated: 5.25h')).toBeVisible();
+
+		// The slider and the field are two views of one budget, so dragging the
+		// slider is what the field then shows. Dragging re-solves the plan live —
+		// the reason the budget got a slider at all (ROADMAP phase 1).
+		await fireEvent.input(canvas.getByRole('slider'), {
+			target: {
+				value: '7.5',
+			},
+		});
+
+		await expect(canvas.getByLabelText('Available Hours')).toHaveValue(7.5);
+
+		// And the other direction: the thumb follows the field's own stepper.
+		await userEvent.click(
+			canvas.getAllByRole('button', {
+				name: 'Increase',
+			})[0],
+		);
+
+		await expect(canvas.getByRole('slider')).toHaveValue('7.75');
 
 		// Stepping switch cost converts minutes back to hours: 15 min → 20 min.
 		await userEvent.click(

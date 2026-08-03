@@ -50,6 +50,19 @@
 	// Display switch cost in minutes but store in hours
 	const switchCostMinutes = $derived(Math.round(switchCost * 60));
 
+	// Shared so the slider can never cap below a budget the field still accepts.
+	// `step` binds only the slider: the field does not snap to it, and an
+	// off-quarter budget is a state the advice card's unrounded `set-budget`
+	// levers actively ask the user to type (MATH.md §14.1). Such a budget renders
+	// the thumb at the nearest quarter until the slider is next touched, which
+	// then snaps the value — under 0.5% of the track, and the field is the
+	// precise view.
+	const BUDGET_BOUNDS = {
+		min: 0,
+		max: 24,
+		step: 0.25,
+	};
+
 	// Below this, the slack is rounding noise from the 15-minute blocks rather than
 	// an hour anyone could spend — the summary and the warning must agree on it.
 	const MINIMUM_REPORTED_SLACK_HOURS = 0.05;
@@ -141,10 +154,22 @@
 					id="available-hours"
 					value={availableHours}
 					onchange={(v) => (availableHours = v)}
-					min={0}
-					max={24}
-					step={0.25}
+					min={BUDGET_BOUNDS.min}
+					max={BUDGET_BOUNDS.max}
+					step={BUDGET_BOUNDS.step}
 					unit={m.unit_hours()}
+				/>
+				<!-- The whole plan is one `$derived`, so dragging re-solves the day live
+				     (~1–13 ms at realistic task counts) — which is what makes the advice
+				     card's budget levers explorable rather than just readable. -->
+				<input
+					type="range"
+					aria-label={m.budget_hours_slider()}
+					min={BUDGET_BOUNDS.min}
+					max={BUDGET_BOUNDS.max}
+					step={BUDGET_BOUNDS.step}
+					bind:value={availableHours}
+					class="mt-text-xs h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-brand"
 				/>
 				<p class="mt-text-xs text-xs text-ty-silent">
 					{m.budget_allocated({

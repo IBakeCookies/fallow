@@ -104,6 +104,7 @@
 	"budget_summary_free": "{slack}h frei",
 	"budget_summary_pools": "{mind}h Kopf · {body}h Körper · {switchMinutes}m Wechsel",
 	"budget_available_hours": "Verfügbare Stunden",
+	"budget_hours_slider": "Budget-Stunden",
 	"budget_allocated": "Zugeteilt: {hours}h",
 	"budget_unplanned": "{hours}h ungeplant — begrenzt durch optimale Stoppzeiten & Kapazitätspools",
 	"budget_unplanned_title": "Der Plan bleibt bewusst unter deinem Budget: Jede Aufgabe ist auf ihre optimale Stoppzeit (1,79×ϕ, wo die durchschnittliche Produktivität ihren Höhepunkt erreicht) und durch deine kognitiven/körperlichen Kapazitätspools begrenzt. Die ungenutzten Stunden sind Erholungszeit, keine verlorene Zeit.",

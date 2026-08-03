@@ -23,9 +23,13 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    first, as planned: session-lookahead cut the one-step verdict's mid-day
    false stops from 16–25% to 5–6% at high λ₀, at-stop agreement within one
    45-min step throughout.
-2. **Interactive budget slider** — the classic model solves in ~1–13 ms at
-   realistic task counts, fast enough to re-solve live while dragging
-   `availableHours`. Makes the advice card's budget levers explorable.
+2. ~~**Interactive budget slider**~~ — SHIPPED 2026-08-03: a range input beside
+   the Available Hours field in the day-constraints bar, sharing its bounds and
+   its value. No new plumbing was needed — the whole plan is already one
+   `$derived`, so a drag re-solves the day at the ~1–13 ms/solve of realistic
+   task counts. Plan advice deliberately does **not** follow the drag: it stays
+   on-demand behind `isAdviceStale` (MATH.md §14), because at 12 tasks the
+   advice run is `activeTasks + 3` solves.
 3. **Marginal-of-budget diagnostic** — show the budget's shadow price: what
    the next block would be worth and which task gets it. A budget diagnostic,
    not a per-task priority column (marginals equalize at the optimum, so a

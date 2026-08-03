@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, addTask } from './helpers';
+import { addTask, AUTOSAVE_MS, setBudget } from './helpers';
 
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
    one place where editing a task changes the model rather than just the row. Both
@@ -50,8 +50,7 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 
 	// The bar opens itself while the day's hours are unset — collapse it, so the
 	// prompt is proving itself and not `isOpen`.
-	await page.getByLabel('Available Hours').fill('6');
-	await page.getByLabel('Available Hours').blur();
+	await setBudget(page, 6);
 
 	await page
 		.getByRole('button', {
