@@ -8,13 +8,14 @@ Other documentation, and nothing else:
 | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
 | [README.md](README.md)                                           | User-facing: what the app does and how to run it                    |
 | [MATH.md](MATH.md)                                               | **Authoritative** record of the implemented math — every derivation |
+| [ROADMAP.md](ROADMAP.md)                                         | Planned work in priority order — update when an item ships          |
 | [STYLE.md](src/lib/presentation/style/STYLE.md)                  | All styling rules — read before touching markup or classes          |
 | [zenith.md](zenith.md)                                           | Frozen copy of the source article. Historical only — never a spec   |
 | [.claude/skills/verify/SKILL.md](.claude/skills/verify/SKILL.md) | How to launch and drive the app in a real browser                   |
 
 Do not add new top-level `.md` files. New durable knowledge belongs in one of
-the five above — architecture and rules here, math in `MATH.md`, styling in
-`STYLE.md`.
+the six above — architecture and rules here, math in `MATH.md`, styling in
+`STYLE.md`, planned work in `ROADMAP.md`.
 
 ---
 

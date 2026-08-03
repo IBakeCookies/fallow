@@ -58,6 +58,7 @@ export default defineConfig({
 		},
 	},
 	test: {
+		maxWorkers: process.env.CI ? 1 : 6,
 		expect: {
 			requireAssertions: true,
 		},
