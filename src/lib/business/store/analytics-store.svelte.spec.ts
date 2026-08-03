@@ -4,9 +4,11 @@ import { flushSync } from 'svelte';
 import Harness from '$lib/business/store/analytics-store.test-harness.svelte';
 import * as sessionHistory from '$lib/business/session-history';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
+import * as fitSnapshotRepository from '$lib/data/repository/fit-snapshot-repository';
 import type { AnalyticsStore } from '$lib/business/store/analytics-store.svelte';
 import type { DaySummary } from '$lib/business/model/metric/history';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
+import type { FitSnapshotRecord } from '$lib/data/type';
 
 const TODAY = '2026-07-20';
 
@@ -36,17 +38,41 @@ vi.mock('$lib/business/state/today.svelte', () => ({
 	},
 }));
 
+/** What §12 stamps for today; only its identity matters to the store. */
+const TODAYS_FIT: Omit<FitSnapshotRecord, 'createdAt'> = {
+	date: TODAY,
+	c1: 0.56,
+	c2: -0.24,
+	c3: 0.5,
+	covariance: [
+		[1, 0, 0],
+		[0, 1, 0],
+		[0, 0, 1],
+	],
+	sigma2: 0.0625,
+	alphaCog: 0.35,
+	alphaPhys: 0.3,
+	recoveryRate: 0.7,
+	stoppingValue: 0.5,
+};
+
 vi.mock('$lib/business/session-history', () => ({
 	initializeStorage: vi.fn(async () => {}),
 	readDaySummaries: vi.fn(async () => []),
 	readModelReport: vi.fn(async () => ({
 		calibration: null,
 		audit: EMPTY_AUDIT,
+		todaysFit: TODAYS_FIT,
 	})),
+}));
+
+vi.mock('$lib/data/repository/fit-snapshot-repository', () => ({
+	$updateFitSnapshot: vi.fn(async () => {}),
 }));
 
 const readDaySummariesMock = vi.mocked(sessionHistory.readDaySummaries);
 const readModelReportMock = vi.mocked(sessionHistory.readModelReport);
+const updateFitSnapshotMock = vi.mocked(fitSnapshotRepository.$updateFitSnapshot);
 
 const day = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
 	date,
@@ -80,11 +106,13 @@ async function setup(summaries: DaySummary[] = []): Promise<AnalyticsStore> {
 describe('AnalyticsStore', () => {
 	beforeEach(() => {
 		notifyHistoryLoadFailed.mockClear();
+		updateFitSnapshotMock.mockReset().mockResolvedValue(undefined);
 		readDaySummariesMock.mockReset().mockResolvedValue([]);
 
 		readModelReportMock.mockReset().mockResolvedValue({
 			calibration: CALIBRATION,
 			audit: EMPTY_AUDIT,
+			todaysFit: TODAYS_FIT,
 		});
 	});
 
@@ -204,6 +232,7 @@ describe('AnalyticsStore', () => {
 		readModelReportMock.mockResolvedValue({
 			calibration: CALIBRATION,
 			audit,
+			todaysFit: TODAYS_FIT,
 		});
 
 		const store = await setup([day('2026-07-15')]);
@@ -213,6 +242,36 @@ describe('AnalyticsStore', () => {
 		expect(store.audit).toEqual(audit);
 		expect(store.hasModelReportFailed).toBe(false);
 		expect(readModelReportMock).toHaveBeenCalledWith(TODAY, 30);
+	});
+
+	// MATH.md §12: today's fit is recorded so a LATER visit audits today against
+	// what the model believed today, not against months of subsequent logs.
+	it("records today's fit once the report resolves", async () => {
+		await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(updateFitSnapshotMock).toHaveBeenCalledTimes(1));
+		expect(updateFitSnapshotMock).toHaveBeenCalledWith(TODAYS_FIT);
+	});
+
+	// A lost stamp costs one day of trend, never anything the user typed — so it
+	// must not put the two cards into their failure state.
+	it('leaves the cards intact when the fit stamp cannot be written', async () => {
+		updateFitSnapshotMock.mockRejectedValue(new Error('quota exceeded'));
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.calibration).toEqual(CALIBRATION));
+		expect(store.hasModelReportFailed).toBe(false);
+		expect(store.audit).toEqual(EMPTY_AUDIT);
+	});
+
+	it('never stamps a fit the report failed to produce', async () => {
+		readModelReportMock.mockRejectedValue(new Error('indexeddb is gone'));
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.hasModelReportFailed).toBe(true));
+		expect(updateFitSnapshotMock).not.toHaveBeenCalled();
 	});
 
 	// Both cards come off this one read, so one flag covers them — and it never

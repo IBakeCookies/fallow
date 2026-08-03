@@ -11,6 +11,7 @@
 
 import { getContext, onMount, setContext } from 'svelte';
 import { logError } from '$lib/logger';
+import * as fitSnapshotRepository from '$lib/data/repository/fit-snapshot-repository';
 import {
 	averageCompletionRate,
 	completionRateDelta,
@@ -30,6 +31,7 @@ import {
 	readDaySummaries,
 	readModelReport,
 	type CalibrationSnapshot,
+	type ModelReport,
 } from '$lib/business/session-history';
 
 const CONTEXT_KEY = Symbol();
@@ -123,13 +125,33 @@ export class AnalyticsStore {
 			// The main view can paint before the audit's optimizer runs finish.
 			this.#isLoading = false;
 
+			let todaysFit: ModelReport['todaysFit'];
+
 			try {
 				const report = await readModelReport(today, AUDIT_DAY_CAP);
 				this.#calibration = report.calibration;
 				this.#audit = report.audit;
+				todaysFit = report.todaysFit;
 			} catch (e) {
 				logError('Failed to load the analytics model report', e);
 				this.#hasModelReportFailed = true;
+
+				return;
+			}
+
+			// Stamping today's fit fails silently — the quietest case of R1's third
+			// surface, "already visible in the failing component", except that here
+			// there is nothing to be visible: losing it costs one point of the trend
+			// and one day the audit will score on the live fit instead (MATH.md
+			// §12.1), so the screen is identical either way. Its own try so a failed
+			// WRITE never puts the two cards, which have already published, into the
+			// state that says their READ failed.
+			try {
+				await fitSnapshotRepository.$updateFitSnapshot(todaysFit);
+			} catch (e) {
+				logError('Failed to record the day fit snapshot', e, {
+					date: today,
+				});
 			}
 		});
 	}

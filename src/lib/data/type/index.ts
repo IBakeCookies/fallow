@@ -110,6 +110,41 @@ export interface SettingRecord {
 }
 
 /**
+ * One day's fitted model parameters — what the model believed about the user on
+ * that date (MATH.md §12). Only the values a FIT can move are stored: the rest
+ * of `EnergyParams` is model constants, and copying those would freeze a
+ * constant into history rather than record a measurement.
+ *
+ * Flat numbers rather than the business layer's `UserConstants` / `FitPosterior`
+ * / `EnergyParams` shapes, because the data layer never imports upward (R1) and
+ * mirroring those interfaces here is the R3 failure. `business/model/persisted.ts`
+ * validates a record and composes it back into them.
+ *
+ * Keyed by date, and only TODAY's record is ever written: a past day's fit is
+ * what the user actually had, so it is recorded once and never recomputed.
+ */
+export interface FitSnapshotRecord {
+	date: string; // YYYY-MM-DD
+	// The ϕ plane fitted from ⚡ flow logs (MATH.md §5.1)
+	c1: number;
+	c2: number;
+	c3: number;
+	// Posterior of that plane. Stored because a MISSING posterior means σ_ϕ = 0
+	// downstream — a user with one ⚡ log read as perfectly certain (§13.1) — so a
+	// snapshot without it would re-introduce exactly the bias it exists to remove.
+	covariance: number[][];
+	sigma2: number;
+	// The energy-model rates fitted from ☕ / 🪫 logs (§8.7/§8.9)
+	alphaCog: number;
+	alphaPhys: number;
+	recoveryRate: number;
+	// Fitted λ₀ (§8.10). Not part of the fitted params: `EnergyParams.freeTimeValue`
+	// keeps its default there, and the stopping fit reports λ₀ separately.
+	stoppingValue: number;
+	createdAt: number;
+}
+
+/**
  * One pre/post-rest rating pair: the user took a break of `hours` and rated
  * both energy systems going in and coming out (0 = fresh, 10 = completely
  * spent). Feeds the energy model's recovery-rate calibration — during pure

@@ -95,10 +95,11 @@ Each exists because it was broken before.
   Retry re-runs. Transient and informational → a toast
   (`presentation/utils/toast.ts`). Already visible in the failing component →
   nothing more, but verify it really is visible: the `analytics-store` load is
-  two `try` blocks because `#calibrationFailed` covers only the model card,
-  and a failed **history** read renders every chart as an empty year — looks
-  like a user with no data, so it toasts. Silent is only acceptable where the
-  screen is already visibly wrong. Three stay deliberately silent
+  two `try` blocks — one per read — because `#hasModelReportFailed` takes both
+  cards that read feeds out of their loading string and each then says so
+  itself, while a failed **history** read renders every chart as an empty year
+  — looks like a user with no data, so it toasts. Silent is only acceptable
+  where the screen is already visibly wrong. Three stay deliberately silent
   (re-proposing them is churn): yesterday's session (decoration, and the
   banner's Retry does not cover that read), the Energy Lab's `localStorage`
   view preference (loss costs nothing), and its `readStopObservations` effect
@@ -188,9 +189,10 @@ a comment, export the thing instead.
 Anything the model reads must survive a backup/restore round trip.
 
 - **IndexedDB** (via a repository, listed in `indexed-db.ts` `STORE_NAMES`,
-  which `backup-repository.ts` imports): sessions, routines, observations, and
-  any setting that feeds a calculation — e.g. the Energy Lab's params
-  (`settings` store, key `energyParams`).
+  which `backup-repository.ts` imports): sessions, routines, observations, the
+  per-day fit snapshots (`fitSnapshots`, MATH.md §12.1), and any setting that
+  feeds a calculation — e.g. the Energy Lab's params (`settings` store, key
+  `energyParams`).
 - **localStorage**: only preferences whose loss costs nothing and that have no
   business in a backup (e.g. which tab of a card was open).
 - **sessionStorage**: one thing only — the toast queue that must outlive a
@@ -933,6 +935,21 @@ Each was considered and decided. Re-deciding them is churn.
   the budget's yield on 16% of probe days. It lives in `suggestPlanAdjustments`,
   not `calculateDailyMetrics`: the latter runs in a `$derived` on every
   keystroke and every slider drag, where a second solve doubles dashboard cost.
+
+- **A day's fitted params are stored, not recomputed from the logs**
+  (2026-08-03, MATH.md §12.1). The fit as of day D _is_ a pure function of the
+  observations dated ≤ D, so the §12 audit could refit per audited day instead of
+  reading a `fitSnapshots` record — and that would fix history retroactively,
+  which storing cannot. It loses on cost, and only on cost: each per-day refit
+  costs a WHOLE-history fit (19 ms/day measured, 570 ms for a 30-day audit vs
+  17.6 ms for one), so recomputation is O(auditDays × totalLogVolume) and gets
+  slower every time the user logs anything, on a screen that runs it on every
+  visit. Do not re-propose refitting as a simplification; the trade was measured.
+  Two consequences that follow and are intended: **only today's record is ever
+  written** (a past day's fit is what the user had, so it is never rewritten —
+  `$updateFitSnapshot` is an upsert on the date and every caller passes today),
+  and a day with **no** snapshot falls back to the caller's live fit rather than
+  dropping out of the audit, because the day was still worked.
 
 - **`buildCurves` is built once per search or fit** (2026-08-01): the
   optimizer and the stopping fit thread one curve map through every

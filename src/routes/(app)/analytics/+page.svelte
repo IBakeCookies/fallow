@@ -6,6 +6,7 @@
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
 	import CompletionBarChart from '$lib/presentation/component/completion-bar-chart.svelte';
+	import ParamTrend from '$lib/presentation/component/param-trend.svelte';
 	import QuadrantDistribution from '$lib/presentation/component/quadrant-distribution.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
@@ -282,7 +283,14 @@
 				{#each modelRows as row (row.label)}
 					<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
 						<span class="text-xs text-ty-silent">{row.label}</span>
-						<span class="text-sm">
+						<span class="flex items-baseline gap-grid-2xs text-sm">
+							{#if row.trend}
+								<ParamTrend
+									values={row.trend.values}
+									defaultValue={row.trend.defaultValue}
+									ariaLabel={row.trend.ariaLabel}
+								/>
+							{/if}
 							<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums"
 								>{row.value}</span
 							>

@@ -45,6 +45,7 @@ describe('backup-repository', () => {
 
 		expect(Object.keys(backup.stores).sort()).toEqual([
 			'drainObservations',
+			'fitSnapshots',
 			'flowObservations',
 			'restObservations',
 			'routines',
@@ -196,6 +197,11 @@ describe('backup-repository', () => {
 					{
 						key: 'energyParams',
 						value: {},
+					},
+				],
+				fitSnapshots: [
+					{
+						date: '2026-03-01',
 					},
 				],
 			},

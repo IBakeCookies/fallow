@@ -1588,9 +1588,9 @@ is a descriptive signal, not a verdict.
 
 - Three allocation vectors over the day's task list: **actual** (logged
   hours), **classic** (`calculatePooledAllocations` under that day's pools
-  and switch cost, with the live fit posterior — the plan the user would
-  actually have seen), **energy** (`optimizeSchedule` under the calibrated
-  §8.7/§8.9 params).
+  and switch cost, with that day's fit posterior — the plan the user would
+  actually have seen), **energy** (`optimizeSchedule` under that day's
+  calibrated §8.7/§8.9 params).
 - Compared as **shares** of worked time, not absolute hours: how much total
   to work is the stop decision, priced separately by §8.10 — the audit asks
   only "which tasks got the day".
@@ -1606,17 +1606,65 @@ compare); a plan that allocates nothing scores overlap 0 against any worked
 day. The audit is descriptive — means over days, no noise model — because
 its job is a model-selection signal, not a parameter estimate.
 
+### 12.1 Per-day fit snapshots (2026-08-03)
+
+The audit used to score every past day against the **current** fit, so an early
+day was compared against plans built from months of later logs. Measured on a
+synthetic year of a heavy logger whose true rates drift (α 0.25 → 0.55 over 365
+days, 730 ⚡ / 730 ☕ / 1095 🪫): α_cog fitted from logs up to day 10 is
+**0.3069**, the whole-history fit is **0.4973** — the day-10 plan was audited
+against a drain rate **62 % higher** than that day's own logs supported. The
+bias is an early-history bias and it does not show up inside the 30-day audit
+window (0.4809 → 0.4965 there), which is why it went unnoticed.
+
+**The fix.** One record per day, keyed by the ISO date (`fitSnapshots`), holding
+exactly the values a fit can move: the ϕ plane (c₁, c₂, c₃) with its posterior
+covariance and σ̂², the three §8.7/§8.9 rates (α_cog, α_phys, r), and λ₀ from
+§8.10. Everything else in `EnergyParams` is a model constant, restored from the
+defaults on read — storing them would freeze a constant into history rather than
+record a measurement. The posterior is stored and **required**: a snapshot
+missing it leaves σ_ϕ = 0 downstream (§13.1), i.e. an early day audited as
+though the user had been perfectly certain, which is the bias itself.
+
+`readModelReport` hands today's fit back for its caller to write; only **today's**
+record is ever written, so a day's fit becomes immutable once the day passes. A
+finished day with no snapshot — before the store existed, or a day the user never
+opened analytics on — falls back to the live fit, i.e. the old behaviour, per day.
+
+**Why stored rather than recomputed.** The fit as of day D is a pure function of
+the logs dated ≤ D, so it could be refitted instead — and that would fix history
+retroactively, which storing cannot. It is rejected on cost: refitting per
+audited day costs the WHOLE-history fit each time (measured 19 ms per day at the
+volume above, 570 ms for a 30-day audit, against 17.6 ms for one whole-history
+fit), so recomputation is O(auditDays × totalLogVolume) and grows every time the
+user logs anything — the wrong direction for an instrument read on every visit to
+analytics. Storing is one `put` per day and one range read per report. The
+accepted cost is that the correction only accrues forward from 2026-08-03.
+
 **Known approximations (deliberate).** Partial logging under-counts a
 task's true share exactly as it under-counts W in §8.10 — the audit is for
-users who log consistently. And the classic comparison uses the CURRENT fit
-posterior rather than the fit as of the audited day (per-day fit snapshots
-are not stored); early days are therefore compared against slightly
-better-informed plans than the user saw.
+users who log consistently. A day's snapshot is stamped whenever the user opened
+analytics that day, so it is the fit as of that moment rather than as of the
+morning they planned; and it necessarily includes that day's own logs, so the
+fit is not strictly prior to the behaviour being scored.
 
 **UI.** Analytics page, "Plan adherence" card: mean overlap per planner,
 the three spreads, and a verdict line (energy vs classic vs tie at a ±0.05
 overlap margin), over the last ≤ 30 finished logged days (one optimizer run
 per day, ~60 ms each, loaded after the main view paints).
+
+The "Your model" card draws each fit's recorded history as a sparkline beside its
+value, over the last 30 **calendar** days. That is deliberately not the audit's
+window, which is the last ≤ 30 **worked** days and so reaches further back for
+anyone who skips days: the audited stretch always contains the plotted one, never
+the reverse, so the sparkline only ever shows movement the audit also scored — but
+the two are not the same span, and the snapshot read is widened past the plotted
+window precisely so an older audited day still gets its own recorded fit. The
+last point is the **live** fit rather than today's stored record, or the line
+would contradict the number printed next to it. The row default is inside the
+drawn range and drawn as a dashed line: auto-scaling to the data alone turns a
+fit that has barely moved into a dramatic climb, and there is no axis to say
+otherwise. Fewer than two recorded days draws nothing.
 
 ## 13. Math review, 2026-07-26
 

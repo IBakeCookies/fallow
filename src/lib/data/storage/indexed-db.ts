@@ -13,13 +13,15 @@
  * - settings:         singleton records keyed by name (e.g. the Energy Lab's
  *                     model parameters), so they are backed up with everything
  *                     else instead of living loose in localStorage
+ * - fitSnapshots:     one day's fitted model parameters, keyed by date — the
+ *                     record of what the model believed that day (MATH.md §12)
  */
 
 import { logWarning } from '$lib/logger';
 
 const DB_NAME = 'zenith-db';
 
-export const DB_VERSION = 5;
+export const DB_VERSION = 6;
 
 export const STORE_NAMES = [
 	'sessions',
@@ -28,6 +30,7 @@ export const STORE_NAMES = [
 	'drainObservations',
 	'restObservations',
 	'settings',
+	'fitSnapshots',
 ] as const;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
@@ -161,6 +164,14 @@ function open(version?: number): Promise<IDBDatabase> {
 			if (!database.objectStoreNames.contains('settings')) {
 				database.createObjectStore('settings', {
 					keyPath: 'key',
+				});
+			}
+
+			// Fit snapshots store (v6) - one record per day, keyed by the ISO date.
+			// No `date` index: the key IS the date, so a range query is a key range.
+			if (!database.objectStoreNames.contains('fitSnapshots')) {
+				database.createObjectStore('fitSnapshots', {
+					keyPath: 'date',
 				});
 			}
 		};

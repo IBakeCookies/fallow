@@ -34,6 +34,7 @@ describe('indexed-db', () => {
 
 		expect([...database.objectStoreNames].sort()).toEqual([
 			'drainObservations',
+			'fitSnapshots',
 			'flowObservations',
 			'restObservations',
 			'routines',
@@ -80,6 +81,55 @@ describe('indexed-db', () => {
 
 		expect(database.version).toBe(DB_VERSION + 1);
 		expect(database.objectStoreNames.contains('settings')).toBe(true);
+	});
+
+	// The path an EXISTING user takes, and the one R8 step 2's "additive, never
+	// destructive" guard exists for. Every other test here starts from nothing, so
+	// they only ever prove store CREATION at the current version — they would all
+	// pass an onupgradeneeded that dropped and recreated the stores it already had.
+	it('upgrades an older database without touching the data already in it', async () => {
+		const previous = await openRaw(5, [
+			'sessions',
+			'routines',
+			'flowObservations',
+			'drainObservations',
+			'restObservations',
+			'settings',
+		]);
+
+		await new Promise<void>((resolve, reject) => {
+			const transaction = previous.transaction('sessions', 'readwrite');
+
+			transaction.objectStore('sessions').put({
+				key: '2026-08-01',
+				tasks: ['keep me'],
+			});
+
+			transaction.oncomplete = () => resolve();
+			transaction.onerror = () => reject(transaction.error);
+		});
+
+		previous.close();
+
+		const { openDatabase, DB_VERSION } = await importFresh();
+		const database = await openDatabase();
+
+		expect(database.version).toBe(DB_VERSION);
+		expect(database.objectStoreNames.contains('fitSnapshots')).toBe(true);
+
+		const kept = await new Promise((resolve, reject) => {
+			const request = database.transaction('sessions', 'readonly').objectStore('sessions').getAll();
+
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+
+		expect(kept).toEqual([
+			{
+				key: '2026-08-01',
+				tasks: ['keep me'],
+			},
+		]);
 	});
 
 	// A dead handle is recoverable: reopening is the whole fix, so failing the

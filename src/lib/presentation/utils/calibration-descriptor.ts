@@ -12,12 +12,24 @@ import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
 
+/** One fit's history as a sparkline (MATH.md §12). */
+export interface RowTrend {
+	/** Ascending by recorded day, ending in the value this row prints */
+	values: number[];
+	/** Drawn inside the line's range, so the line's level says something */
+	defaultValue: number;
+	/** A line carries no numbers, so the name states start, end and span */
+	ariaLabel: string;
+}
+
 export interface ModelRow {
 	label: string;
 	/** The fit with its ± posterior std, or the bare default when not fitted */
 	value: string;
 	/** The default the fit is anchored to, and how many observations moved it */
 	note: string;
+	/** Its recorded history, or null while there is not yet a line to draw */
+	trend: RowTrend | null;
 }
 
 /** One row per calibrated parameter; empty until the snapshot has loaded. */
@@ -29,6 +41,8 @@ export function calibrationRows(
 
 	const f2 = (value: number) => formatDecimals(value, 2, locale);
 	const minutes = (hours: number) => `${Math.round(hours * 60)} ${m.unit_minutes()}`;
+	const perHour = (value: number) => `${f2(value)} ${m.unit_per_hour()}`;
+	const outputPerHour = (value: number) => `${f2(value)} ${m.unit_output_per_hour()}`;
 
 	const rate = (
 		fit: {
@@ -39,19 +53,47 @@ export function calibrationRows(
 		unit: string,
 	) => (fit.fitted ? `≈ ${f2(value)} ± ${f2(std ?? 0)} ${unit}` : `${f2(value)} ${unit}`);
 
+	// One point is a dot, not a trend — and a row that plotted one would draw a
+	// flat line through whatever single day happens to be recorded.
+	const trend = (
+		label: string,
+		values: number[],
+		defaultValue: number,
+		format: (value: number) => string,
+	): RowTrend | null =>
+		values.length < 2
+			? null
+			: {
+					values,
+					defaultValue,
+					ariaLabel: m.ana_model_trend_aria({
+						label,
+						count: values.length,
+						from: format(values[0]),
+						to: format(values[values.length - 1]),
+					}),
+				};
+
 	const { flow, energy, stopping, defaults } = calibration;
+	const series = calibration.trend;
+	const flowLabel = m.ana_model_flow();
+	const recoveryLabel = m.ana_model_recovery();
+	const cognitiveLabel = m.ana_model_drain_cog();
+	const physicalLabel = m.ana_model_drain_phys();
+	const stopLabel = m.ana_model_stop();
 
 	return [
 		{
-			label: m.ana_model_flow(),
+			label: flowLabel,
 			value: flow.fitted ? `≈ ${minutes(flow.phiHours)}` : minutes(flow.phiHours),
 			note: m.ana_model_note_flow({
 				value: minutes(flow.defaultPhiHours),
 				count: flow.usedCount,
 			}),
+			trend: trend(flowLabel, series.phiHours, flow.defaultPhiHours, minutes),
 		},
 		{
-			label: m.ana_model_recovery(),
+			label: recoveryLabel,
 			value: rate(
 				energy.recovery,
 				energy.recovery.rate,
@@ -62,9 +104,10 @@ export function calibrationRows(
 				value: f2(defaults.recoveryRate),
 				count: energy.recovery.usedCount,
 			}),
+			trend: trend(recoveryLabel, series.recoveryRate, defaults.recoveryRate, perHour),
 		},
 		{
-			label: m.ana_model_drain_cog(),
+			label: cognitiveLabel,
 			value: rate(
 				energy.cognitiveDrain,
 				energy.cognitiveDrain.alpha,
@@ -75,9 +118,10 @@ export function calibrationRows(
 				value: f2(defaults.alphaCog),
 				count: energy.cognitiveDrain.usedCount,
 			}),
+			trend: trend(cognitiveLabel, series.alphaCog, defaults.alphaCog, perHour),
 		},
 		{
-			label: m.ana_model_drain_phys(),
+			label: physicalLabel,
 			value: rate(
 				energy.physicalDrain,
 				energy.physicalDrain.alpha,
@@ -88,14 +132,16 @@ export function calibrationRows(
 				value: f2(defaults.alphaPhys),
 				count: energy.physicalDrain.usedCount,
 			}),
+			trend: trend(physicalLabel, series.alphaPhys, defaults.alphaPhys, perHour),
 		},
 		{
-			label: m.ana_model_stop(),
+			label: stopLabel,
 			value: rate(stopping, stopping.value, stopping.valueStd, m.unit_output_per_hour()),
 			note: m.ana_model_note_days({
 				value: f2(defaults.freeTimeValue),
 				count: stopping.usedCount,
 			}),
+			trend: trend(stopLabel, series.stoppingValue, defaults.freeTimeValue, outputPerHour),
 		},
 	];
 }
