@@ -2513,3 +2513,113 @@ objective the main page does not use.
 - Caveat on generalization: uniform-random difficulties produce the 44% balanced
   rate, so a real task list may re-order more or less often than 39% of days.
   The bound on the _gain_ does not depend on that rate.
+
+## 17. Per-task ϕ offsets stay unbuilt (2026-08-04)
+
+**The question, settled.** The roadmap carried "per-task ϕ offsets":
+hierarchical partial pooling on top of the §5 plane, so repeated ⚡ logs on one
+task sharpen that task. Probed as the roadmap required, and **declined** — the
+offsets fit works (it recovers per-task structure and cuts held-out ϕ error by
+a third), but the plans it produces are worth well under a minute of the user's
+own budget lever, because `Σ P̄` is second-order insensitive to per-task ϕ.
+
+**The model probed.** `ϕᵢ = c·xᵢ + δ_{t(i)} + εᵢ` with `δ_t ~ N(0, σ²/λ_δ)` on
+top of §5's `c ~ N(c₀, (σ²/λ)·I)`; the MAP is the joint ridge, δ shrunk toward
+0, so `λ_δ = σ²/τ²` and the offset prior std is `τ = σ₀/√λ_δ` (λ_δ = 1 ≙ 15
+min). Every §5.2 weight `wᵢ` applies unchanged. The probe solves the
+`(3+G)×(3+G)` system densely rather than by block elimination, and pins
+`λ_δ → ∞` against the shipped `fitUserConstants`: max |Δc| = 2.7·10⁻¹³,
+|Δσ̂| = 7.6·10⁻¹³, |Δσ_ϕ| = 2.4·10⁻¹⁴. Per-task ϕ and σ_ϕ were injected into
+the **real** allocator (subset enumeration, switch cost, §5.1 quadrature all
+untouched); an injected offset of 0 reproduces the shipped allocation exactly.
+
+Synthetic users, because the instrument has no log history to read yet: 8
+recurring titles, 70% of logs on them, 120-day span, stopwatch noise at the
+model's own σ₀ = 0.25 h floor, `τ_true` swept as the unknown under test.
+
+**The fit works.** Held-out ϕ RMSE against true ϕ, 300 users/cell, λ_δ = 1,
+relative to the shipped global fit:
+
+| `τ_true` | n = 25   | n = 50   | n = 100  |
+| -------- | -------- | -------- | -------- |
+| 0.3 h    | −23%     | −31%     | −34%     |
+| 0.6 h    | −28%     | −36%     | −37%     |
+| **0**    | **+68%** | **+81%** | **+98%** |
+
+The null row is the price of the parameters: **64–79% of logged titles carry
+exactly one log**, and at λ_δ = 1 a single log passes 49% of its residual
+straight into δ̂, so a user whose tasks have no per-task structure gets a
+measurably worse ϕ — the number the "Your model" card prints and §8.10/§8.11
+consume. λ_δ = 8 caps that at +7–32% but gives back 30–60% of the gain.
+
+**The plans barely notice.** 200 days/cell, 6 tasks, true-ϕ-scored `Σ P̄`
+against the shipped global plan, with both channels live (mean shift + per-task
+σ_ϕ; the mean-only variant differs by ≤ 0.06 pp — see below). `eq. min`
+converts the gain into the lever the user already owns (§14.2's +15 min of
+budget, scored the same way):
+
+| `τ_true` | budget | today's tasks      | Δvalue | oracle | moved | eq. min |
+| -------- | ------ | ------------------ | ------ | ------ | ----- | ------- |
+| 0.3      | 2 h    | 4 logged + 2 fresh | +0.27% | +0.41% | 24%   | 0.4     |
+| 0.3      | 4 h    | 4 + 2              | +0.09% | +0.16% | 38%   | 0.4     |
+| 0.3      | 10 h   | 4 + 2              | +0.15% | +0.29% | 56%   | 2.8     |
+| 0.6      | 4 h    | 6 logged           | +0.84% | +0.90% | 75%   | 4.3     |
+| 0.6      | 10 h   | 6 logged           | +1.84% | +2.18% | 89%   | 43.7    |
+| 1.0      | 10 h   | 6 logged           | +6.67% | +9.20% | 97%   | 207     |
+| 0        | 4 h    | 6 logged           | −0.01% | 0.00%  | 20%   | −0.1    |
+
+`oracle` is the plan built from each task's TRUE ϕ — the ceiling on any
+per-task-ϕ work. The offsets capture 85–93% of that ceiling once data is
+plentiful, so the fit is not what limits this; **the ceiling is**. Plans do
+move — a different block vector on 38% of days at plausible `τ_true` — by a
+mean 0.38 blocks (≈6 min), worth 0.4 equivalent budget-minutes. The funded set
+changes only at a 2 h budget (18–28% of days), which is also the only cell
+where the gain exceeds the movement.
+
+**Why the ceiling is that low — and this part generalizes.** Value lost to a
+per-task ϕ error of size `s` (400 days, `ΣT* = 19.4 h`, mean % below the oracle
+plan):
+
+| budget | s = 0.1 h | 0.2 h | 0.4 h | 0.8 h | 1.6 h |
+| ------ | --------- | ----- | ----- | ----- | ----- |
+| 1 h    | 0.08      | 0.43  | 1.21  | 4.35  | 11.61 |
+| 2 h    | 0.04      | 0.15  | 0.59  | 1.63  | 3.97  |
+| 4 h    | 0.02      | 0.07  | 0.29  | 0.79  | 2.01  |
+| 6 h    | 0.01      | 0.08  | 0.27  | 0.98  | 3.58  |
+| 10 h   | 0.05      | 0.16  | 0.59  | 2.23  | 7.25  |
+
+**Half an hour of per-task ϕ error costs ~0.3% of the day.** `P̄` is flat at
+`T*` (§3: `P̄′(T*) = 0`), so mis-timing is second-order — the loss is `O(ΔT²)`
+— and the only first-order decision, which tasks get funded at all, moves only
+when the budget is tight. The U-shape is that trade: at 1 h the funded set
+decides everything, at 10 h each task sits near its own `T*` where a wrong
+`T*` wastes time no other task can use, and 4–6 h is the flat middle. **Price
+any future per-task-ϕ proposal against this table before building it.**
+
+**The σ_ϕ channel is a behaviour change with no payoff.** A never-logged task's
+δ is unknown at its prior scale, so honest per-task uncertainty is
+`√(xᵀΣx + σ²/λ_δ)`. Measured at the card's reference task (difficulty 5,
+enjoyment 5, 50 logs, λ_δ = 1): σ_ϕ = 0.058 h under the shipped fit, 0.125 h
+for a logged task, **0.259 h for a never-logged one**. §5.1 makes uncertainty a
+strict penalty, and this part is prior — it never shrinks — so every task the
+user has never logged is permanently demoted against the ones they have. It
+buys ≤ 0.06 pp of plan value over the mean-only channel.
+
+**Consequences.**
+
+- `fitUserConstants` keeps one plane for all tasks. ϕ personalization stays
+  §5 + §5.2 (recency), which is a re-weighting of the same three constants,
+  not new parameters.
+- The identity a re-opening would need does not exist yet either: ⚡ logs carry
+  `taskId`, but `nextTaskId` is `Date.now()`-based and never recycled
+  (AGENTS.md §5), so each day's instance of a recurring task is a different id
+  and `k = 1` always. The only usable key is the free-text `taskTitle` — a
+  rename splits a task's history, and two tasks sharing a title merge.
+- Two conditions would flip this, both measurable from real logs before any
+  code: a habitually tight budget (≤ 2 h, where the funded set moves) **and**
+  `τ_true ≥ 0.6 h`. The second is estimable by fitting δ once and comparing
+  `Σδ̂²` against the 0.25 h noise floor — do that, not a rebuild.
+- If it is ever built, λ_δ must be estimated from the data (empirical Bayes on
+  τ), not fixed: the optimum is λ_δ ≈ 0.25–1 at `τ_true ≥ 0.3 h` and λ_δ ≈ 8 at
+  `τ_true = 0`, and a fixed choice takes the null-case ϕ degradation above.
+  Adaptivity removes that downside; it does not raise the ceiling.

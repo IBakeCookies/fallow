@@ -250,7 +250,20 @@ oracle, the way R8 step 4 keeps the store-name lists literal.
 Stores take what they need as arguments. `SessionStore` reads the viewed day
 through an injected `ReadDateParam` thunk supplied by the `(app)` layout — not
 by importing `$app/state`. Testable without module mocks; routing stays a
-layout concern. (`$app/environment`'s `browser` is fine.)
+layout concern.
+
+The **environment** is an argument too. `ThemeStore` takes both appearance
+snapshots — the SSR payload (`data.appearance`) and `appearance.ts`'s
+`readClientAppearance()`, both read by `+layout.svelte` — instead of reading
+`document.cookie` itself behind a `browser` check. The layout is the module
+that genuinely runs in both places; a store handed two snapshots reconciles
+them by precedence alone, and its spec needs no module mock to do it.
+
+`$app/environment`'s `browser` is still fine where a module really does run in
+both (`state/today.svelte.ts`, whose getter SSR reaches). **Never inside an
+`$effect`**: effects do not run during SSR, so a `browser` guard in one is dead
+code — six were, across `SessionStore`, `EnergyLabStore` and
+`debounced-write.svelte.ts`, until 2026-08-04.
 
 ### R6 — Test first: write it, watch it fail, then implement
 
@@ -799,6 +812,22 @@ Each was considered and decided. Re-deciding them is churn.
   Risk by >5 points on 34% of days in no consistent direction. Do not re-open
   without a reason that isn't "the optimizer should beat the heuristic".
 
+- **ϕ stays one plane for all tasks — no per-task offsets** (settled
+  2026-08-04, MATH.md §17). Hierarchical partial pooling `ϕ = c·x + δ_task`
+  fits fine and cuts held-out ϕ error 23–37%, but it buys **+0.09%** of plan
+  value at a plausible per-task spread (0.3 h) and 4 h budget — 0.4 minutes of
+  the budget lever the user already has — because the oracle that knows every
+  task's true ϕ is itself worth only +0.16%. `P̄` is flat at `T*`, so ϕ error
+  costs `O(ΔT²)`: **half an hour of per-task ϕ error costs ~0.3% of the day**
+  (§17 has the table — price any per-task-ϕ proposal against it first). It also
+  costs: 64–79% of logged titles carry one log, so δ absorbs stopwatch noise and
+  the displayed ϕ gets 68–98% worse for users with no per-task structure; a
+  never-logged task's σ_ϕ rises 0.058 → 0.259 h, which §5.1 turns into a
+  permanent demotion of every task the user hasn't logged; and the grouping key
+  would have to be the free-text title, since `nextTaskId` gives each day's
+  instance a fresh id. Re-open only with real logs showing `Σδ̂²` above the
+  0.25 h noise floor **and** a habitually ≤2 h budget.
+
 - **`zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
   deliberately deep modules** — large implementations behind tiny interfaces.
   A 2026-07-23 interface analysis found every proposed split would force
@@ -985,7 +1014,8 @@ Each was considered and decided. Re-deciding them is churn.
   pathname), its failures are not silent, and pages are network-first — a
   cached page only ever wins offline. What a stale copy can then get wrong,
   and what fixes it: theme and scenery motion reconcile against their cookies
-  in `ThemeStore`'s constructor; the scenery **seed** reconciles in its
+  in `ThemeStore`'s constructor (against the snapshot `+layout.svelte` reads
+  for it — see R5); the scenery **seed** reconciles in its
   `onMount`, not the constructor, because hydration never re-patches the
   SSR'd style attribute (the `+layout.svelte` scenery-clock comment is the
   precedent) — only a post-mount state change reaches the DOM. **Locale** is

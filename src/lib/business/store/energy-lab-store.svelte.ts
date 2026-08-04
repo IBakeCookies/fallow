@@ -1,5 +1,4 @@
 import { getContext, onMount, setContext } from 'svelte';
-import { browser } from '$app/environment';
 import type { StopObservation } from '$lib/business/model/zenith-energy';
 import { logError } from '$lib/logger';
 // Namespace import: the $-prefixed controller methods can't be imported by
@@ -155,7 +154,7 @@ export class EnergyLabStore {
 		});
 
 		$effect(() => {
-			if (!browser || !this.#loaded) return;
+			if (!this.#loaded) return;
 
 			// The snapshot must be taken before the arming check: the first run
 			// after load only establishes tracking. Scheduling a save there would

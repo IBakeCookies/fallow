@@ -28,6 +28,20 @@ export interface RequestAppearance {
 	sceneryPaused: boolean | undefined;
 }
 
+/**
+ * One appearance, resolved. The SSR payload and the browser's own cookies share
+ * this shape so `ThemeStore` can reconcile them by precedence alone — it is
+ * handed both and reads neither itself.
+ *
+ * Every field may be undefined: nothing stored, or a theme that a deploy has
+ * since deleted. The store decides what a gap falls back to.
+ */
+export interface AppearanceSnapshot {
+	theme: ThemeName | undefined;
+	scenerySeed: number | undefined;
+	sceneryPaused: boolean | undefined;
+}
+
 /** Read-only: what this request should render as. */
 export function readRequestAppearance(cookies: CookieSource): RequestAppearance {
 	const stored = appearanceRepository.$readAppearance(cookies);
@@ -36,6 +50,27 @@ export function readRequestAppearance(cookies: CookieSource): RequestAppearance 
 	return {
 		theme,
 		themeClass: getClassesToAdd(theme ?? DEFAULT_THEME).join(' '),
+		sceneryPaused: stored.sceneryPaused,
+	};
+}
+
+/**
+ * What the browser's own cookie jar says right now — the client-side counterpart
+ * to `readRequestAppearance`, and the reason the theme store needs no cookie
+ * access of its own. Offline the service worker can serve cached HTML whose
+ * serialized SSR appearance is stale, so this snapshot is the one that wins.
+ *
+ * Safe to call during SSR, where the root layout also runs: there is no
+ * `document` to read, so every field comes back undefined and the SSR payload
+ * stands unopposed.
+ */
+export function readClientAppearance(): AppearanceSnapshot {
+	const stored = appearanceRepository.$readAppearance();
+
+	return {
+		// a cookie outlives a deploy, so it may still name a deleted theme
+		theme: resolveThemeName(stored.theme),
+		scenerySeed: stored.scenerySeed,
 		sceneryPaused: stored.sceneryPaused,
 	};
 }
