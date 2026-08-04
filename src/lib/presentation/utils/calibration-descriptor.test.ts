@@ -143,9 +143,30 @@ describe('calibrationRows', () => {
 	it('anchors each row to its default and the count that moved it', () => {
 		const rows = calibrationRows(unfitted, 'en-US');
 
-		expect(rows[0].note).toBe('default 45 min · 0 ⚡ logs');
+		expect(rows[0].note).toBe('default 45 min · 0.0 ⚡ logs, recency-weighted');
 		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
 		expect(rows[4].note).toBe('default 0.40 · 0 days');
+	});
+
+	// The ϕ row alone is recency-weighted (MATH.md §5.2), so its count is an
+	// effective one — fractional, and below the ⚡ logs the user actually has.
+	// The other rows count whole observations and must keep saying so.
+	it('prints the flow count as a fractional weighted total', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				flow: {
+					fitted: true,
+					usedCount: 3.5,
+					phiHours: 0.4,
+					defaultPhiHours: 0.75,
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[0].note).toBe('default 45 min · 3.5 ⚡ logs, recency-weighted');
+		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
 	});
 
 	it('renders the numbers in the reader locale', () => {

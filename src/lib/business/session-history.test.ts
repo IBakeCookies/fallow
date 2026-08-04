@@ -4,6 +4,7 @@ import { EMPTY_PLAN_AUDIT, readDaySummaries, readModelReport } from '$lib/busine
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $updateDrainObservation } from '$lib/data/repository/drain-observation-repository';
 import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
+import { $updateFlowObservation } from '$lib/data/repository/flow-observation-repository';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { DailySession, FitSnapshotRecord, Task } from '$lib/data/type';
@@ -91,6 +92,40 @@ describe('readModelReport', () => {
 		// The "Your model" card needs a default beside every fitted row
 		expect(report.calibration.defaults.recoveryRate).toBeGreaterThan(0);
 		expect(report.calibration.flow.defaultPhiHours).toBeGreaterThan(0);
+	});
+
+	// The §5.2 weights are only real if the facade dates them: passing no
+	// ageDays silently restores the unweighted fit, and nothing above would
+	// notice — the fit still succeeds, just over the wrong person.
+	it('ages ⚡ logs against the report date (§5.2)', async () => {
+		await $updateFlowObservation({
+			date: '2016-03-04',
+			taskId: 900,
+			taskTitle: 'a decade ago',
+			difficulty: 5,
+			enjoyment: 5,
+			E: 3,
+			beta: 1.5,
+			phiHours: 4,
+		});
+
+		const sameDay = await readModelReport('2016-03-04', 30);
+		const decadeLater = await readModelReport('2026-03-04', 30);
+
+		// The card's count is Σw — one fresh log is worth 1, the same log a decade
+		// later ≈ 2⁻¹⁰ of one (a hair under, since ten years is 3652 days).
+		expect(sameDay.calibration.flow.usedCount).toBeCloseTo(1, 9);
+		expect(decadeLater.calibration.flow.usedCount).toBeCloseTo(2 ** -10, 4);
+
+		// One 4h log pulls ϕ up while it is fresh; ten half-lives on, what is left
+		// of that pull is a twentieth of it — the fit has returned to the prior.
+		const fresh = sameDay.calibration.flow;
+		const stale = decadeLater.calibration.flow;
+		expect(fresh.phiHours).toBeGreaterThan(stale.phiHours);
+
+		expect(Math.abs(stale.phiHours - stale.defaultPhiHours)).toBeLessThan(
+			Math.abs(fresh.phiHours - fresh.defaultPhiHours) / 20,
+		);
 	});
 
 	it('audits a finished day once its worked hours are logged', async () => {

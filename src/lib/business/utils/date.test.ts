@@ -3,6 +3,7 @@ import {
 	toISODate,
 	fromISO,
 	addDays,
+	daysBetween,
 	startOfWeek,
 	monthGrid,
 	isISODate,
@@ -58,6 +59,24 @@ describe('date utilities', () => {
 	it('addDays is stable across DST transitions (Europe: late March / late October)', () => {
 		expect(addDays('2026-03-28', 2)).toBe('2026-03-30');
 		expect(addDays('2026-10-24', 2)).toBe('2026-10-26');
+	});
+
+	// The ⚡ recency weights are 2^(−daysBetween/365) (MATH.md §5.2), so a day
+	// miscounted here silently mis-weights a log.
+	it('daysBetween counts whole days in both directions', () => {
+		expect(daysBetween('2026-07-11', '2026-07-11')).toBe(0);
+		expect(daysBetween('2026-07-11', '2026-07-12')).toBe(1);
+		expect(daysBetween('2026-07-12', '2026-07-11')).toBe(-1);
+		expect(daysBetween('2025-12-31', '2026-01-01')).toBe(1);
+		expect(daysBetween('2024-02-28', '2024-03-01')).toBe(2); // leap year
+		expect(daysBetween('2025-07-11', '2026-07-11')).toBe(365);
+	});
+
+	// A 23- and a 25-hour day sit inside these spans; dividing elapsed
+	// milliseconds without the noon anchor would round one of them to 1 or 3.
+	it('daysBetween is stable across DST transitions', () => {
+		expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2);
+		expect(daysBetween('2026-10-24', '2026-10-26')).toBe(2);
 	});
 
 	it('startOfWeek returns the Monday for every day of the week', () => {

@@ -34,6 +34,15 @@ export function fromISO(iso: string): Date {
 	return new Date(`${iso}T12:00:00`);
 }
 
+/**
+ * Whole calendar days from `from` to `to`, negative when `from` is later. Both
+ * ends are anchored at local noon, so a DST boundary in between cannot round a
+ * 23- or 25-hour day to the wrong count.
+ */
+export function daysBetween(from: string, to: string): number {
+	return Math.round((fromISO(to).getTime() - fromISO(from).getTime()) / 86_400_000);
+}
+
 export function addDays(iso: string, n: number): string {
 	const d = fromISO(iso);
 	d.setDate(d.getDate() + n);

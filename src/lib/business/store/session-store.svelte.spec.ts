@@ -37,6 +37,7 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
+const readAllFlowObservationsMock = vi.mocked(flowObservationRepository.$readAllFlowObservations);
 
 /**
  * Mount the store in a component context and wait for the initial load. The
@@ -269,6 +270,40 @@ describe('SessionStore persistence', () => {
 		expect(store.tasks[0].mentalDifficulty).not.toBeNaN();
 		expect(store.availableHours).toBe(0);
 		expect(store.userConstants.c1).not.toBeNaN();
+	});
+
+	// The store feeds the main page's allocator, so this is where a missing
+	// `ageDays` would do the most damage — and it would do it silently: the fit
+	// still succeeds, just over the person the user was a decade ago.
+	it('ages ⚡ logs against today, so a decade-old log no longer personalizes the plan', async () => {
+		const flowLog = (date: string) => ({
+			id: 1,
+			date,
+			taskId: 1,
+			taskTitle: 'a slow one',
+			difficulty: 5,
+			enjoyment: 5,
+			E: 3,
+			beta: 1.5,
+			phiHours: 4,
+			createdAt: 0,
+		});
+
+		const constantsFrom = async (ageDays: number) => {
+			const today = new Date().toISOString().slice(0, 10);
+			readAllFlowObservationsMock.mockResolvedValue([flowLog(addDays(today, -ageDays))]);
+			const { store } = await setup();
+			const { c1, c2, c3 } = store.userConstants;
+
+			cleanup();
+
+			return c1 * 3 + c2 * 1.5 + c3;
+		};
+
+		const fresh = await constantsFrom(0);
+		const ancient = await constantsFrom(3650);
+
+		expect(fresh).toBeGreaterThan(ancient + 1);
 	});
 
 	it('gives every task its own integer id, even added in the same millisecond', async () => {

@@ -10,7 +10,7 @@
 		completionPromptAction,
 		type EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
-	import { formatDuration, formatOffset } from '$lib/presentation/utils/duration-format';
+	import { formatDuration } from '$lib/presentation/utils/duration-format';
 	import { seriesColors } from '$lib/presentation/utils/series-color';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
