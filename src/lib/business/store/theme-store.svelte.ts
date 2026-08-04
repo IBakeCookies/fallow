@@ -1,14 +1,13 @@
 import { getContext, setContext, onMount } from 'svelte';
-import { browser } from '$app/environment';
 // Namespace import: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes).
 import * as appearanceRepository from '$lib/data/repository/appearance-repository';
+import type { AppearanceSnapshot } from '$lib/business/appearance';
 import {
 	allThemeClasses,
 	DEFAULT_DARK_THEME,
 	DEFAULT_THEME,
 	getClassesToAdd,
-	resolveThemeName,
 	randomScenerySeed,
 	themes,
 	type ThemeName,
@@ -24,7 +23,9 @@ const CONTEXT_KEY = Symbol();
  * The catalogue lives in `business/model/theme.ts` and the cookies in
  * `data/repository/appearance-repository.ts`; this class owns only the
  * reactive state and the initial-value reconciliation, which is the subtle
- * part (three sources: SSR payload, cookie, OS preference).
+ * part (three sources: SSR payload, cookie, OS preference). Both snapshots are
+ * constructor arguments — `business/appearance.ts` reads them — so the only
+ * source this class reaches for itself is the OS one, and only after mount.
  */
 export class ThemeStore {
 	#theme = $state<ThemeName>(DEFAULT_THEME);
@@ -45,18 +46,17 @@ export class ThemeStore {
 		return getClassesToAdd(this.#theme);
 	});
 
-	constructor(
-		initialTheme?: ThemeName,
-		initialScenerySeed?: number,
-		initialSceneryPaused?: boolean,
-	) {
-		// offline, the SW serves cached HTML whose serialized appearance may be
-		// stale — the cookies are the source of truth, so they win over the SSR
-		// payload for theme, motion and seed alike.
-		const stored = browser ? appearanceRepository.$readAppearance() : undefined;
-		const sceneryPaused = stored?.sceneryPaused ?? initialSceneryPaused;
+	/**
+	 * @param ssr what the server rendered as — a request-time snapshot of the
+	 * same cookies, which the service worker can serve back stale.
+	 * @param cookies what the cookies say now. Offline that is the trustworthy
+	 * one, so it wins over `ssr` for theme, motion and seed alike. Both are
+	 * passed in: reading either is the layout's job, not the store's.
+	 */
+	constructor(ssr: AppearanceSnapshot, cookies: AppearanceSnapshot) {
+		const sceneryPaused = cookies.sceneryPaused ?? ssr.sceneryPaused;
 
-		this.#scenerySeed = initialScenerySeed ?? 0;
+		this.#scenerySeed = ssr.scenerySeed ?? 0;
 		this.#sceneryPaused = sceneryPaused ?? false;
 
 		// The seed repair waits for mount: hydration never re-patches the SSR'd
@@ -64,8 +64,8 @@ export class ThemeStore {
 		// constructor-time change would leave the DOM on the stale arrangement
 		// while the state disagrees. Post-mount, the assignment reaches the DOM.
 		onMount(() => {
-			if (stored?.scenerySeed !== undefined && stored.scenerySeed !== this.#scenerySeed) {
-				this.#scenerySeed = stored.scenerySeed;
+			if (cookies.scenerySeed !== undefined && cookies.scenerySeed !== this.#scenerySeed) {
+				this.#scenerySeed = cookies.scenerySeed;
 			}
 		});
 
@@ -102,19 +102,12 @@ export class ThemeStore {
 			return () => query.removeEventListener('change', sync);
 		});
 
-		const cookieTheme = resolveThemeName(stored?.theme);
+		// Both arrive already resolved against the catalogue, so a snapshot naming
+		// a theme this deploy deleted reads as undefined and falls through.
+		const theme = cookies.theme ?? ssr.theme;
 
-		if (cookieTheme) {
-			this.#theme = cookieTheme;
-
-			return;
-		}
-
-		// a stale cookie may still name a deleted theme — fall through to defaults
-		const seededTheme = resolveThemeName(initialTheme);
-
-		if (seededTheme) {
-			this.#theme = seededTheme;
+		if (theme) {
+			this.#theme = theme;
 
 			return;
 		}
@@ -175,15 +168,8 @@ export class ThemeStore {
 	}
 }
 
-export function setThemeStore(
-	initialTheme?: ThemeName,
-	initialScenerySeed?: number,
-	initialSceneryPaused?: boolean,
-): ThemeStore {
-	return setContext<ThemeStore>(
-		CONTEXT_KEY,
-		new ThemeStore(initialTheme, initialScenerySeed, initialSceneryPaused),
-	);
+export function setThemeStore(ssr: AppearanceSnapshot, cookies: AppearanceSnapshot): ThemeStore {
+	return setContext<ThemeStore>(CONTEXT_KEY, new ThemeStore(ssr, cookies));
 }
 
 export function getThemeStore(): ThemeStore {

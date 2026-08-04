@@ -6,6 +6,7 @@
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 	import { activeLocale } from '$lib/presentation/utils/locale.svelte';
+	import { readClientAppearance } from '$lib/business/appearance';
 	import { setThemeStore } from '$lib/business/store/theme-store.svelte';
 	import { onMount } from 'svelte';
 	import { sceneryStyle } from '$lib/presentation/utils/scenery-seed';
@@ -15,9 +16,11 @@
 
 	// Theme lives here, OUTSIDE the {#key} below — a language switch recreates
 	// the keyed subtree, and a store owned by it would reset to the load-time
-	// cookie snapshot. data.theme/scenerySeed are deliberately only init seeds.
+	// cookie snapshot. data.appearance is deliberately only init seeds.
+	// The layout is the environment-dual module, so reading the live cookies is
+	// its job: readClientAppearance() is empty under SSR and real after that.
 	// svelte-ignore state_referenced_locally
-	const themeStore = setThemeStore(data.theme, data.scenerySeed, data.sceneryPaused);
+	const themeStore = setThemeStore(data.appearance, readClientAppearance());
 
 	// Not in dev: both inject a `script.debug.js` fetched from
 	// va.vercel-scripts.com on every page load, which measures nothing locally

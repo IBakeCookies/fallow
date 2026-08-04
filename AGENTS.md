@@ -250,7 +250,20 @@ oracle, the way R8 step 4 keeps the store-name lists literal.
 Stores take what they need as arguments. `SessionStore` reads the viewed day
 through an injected `ReadDateParam` thunk supplied by the `(app)` layout — not
 by importing `$app/state`. Testable without module mocks; routing stays a
-layout concern. (`$app/environment`'s `browser` is fine.)
+layout concern.
+
+The **environment** is an argument too. `ThemeStore` takes both appearance
+snapshots — the SSR payload (`data.appearance`) and `appearance.ts`'s
+`readClientAppearance()`, both read by `+layout.svelte` — instead of reading
+`document.cookie` itself behind a `browser` check. The layout is the module
+that genuinely runs in both places; a store handed two snapshots reconciles
+them by precedence alone, and its spec needs no module mock to do it.
+
+`$app/environment`'s `browser` is still fine where a module really does run in
+both (`state/today.svelte.ts`, whose getter SSR reaches). **Never inside an
+`$effect`**: effects do not run during SSR, so a `browser` guard in one is dead
+code — six were, across `SessionStore`, `EnergyLabStore` and
+`debounced-write.svelte.ts`, until 2026-08-04.
 
 ### R6 — Test first: write it, watch it fail, then implement
 
@@ -985,7 +998,8 @@ Each was considered and decided. Re-deciding them is churn.
   pathname), its failures are not silent, and pages are network-first — a
   cached page only ever wins offline. What a stale copy can then get wrong,
   and what fixes it: theme and scenery motion reconcile against their cookies
-  in `ThemeStore`'s constructor; the scenery **seed** reconciles in its
+  in `ThemeStore`'s constructor (against the snapshot `+layout.svelte` reads
+  for it — see R5); the scenery **seed** reconciles in its
   `onMount`, not the constructor, because hydration never re-patches the
   SSR'd style attribute (the `+layout.svelte` scenery-clock comment is the
   precedent) — only a post-mount state change reaches the DOM. **Locale** is

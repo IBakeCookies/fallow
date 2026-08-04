@@ -18,7 +18,6 @@
  */
 
 import { onDestroy } from 'svelte';
-import { browser } from '$app/environment';
 
 /** Long enough that typing a number is one write, short enough to feel saved. */
 export const AUTOSAVE_DEBOUNCE_MS = 500;
@@ -59,9 +58,9 @@ export function createDebouncedWrite<T>(
 
 	onDestroy(flush);
 
+	// No `browser` guard: an $effect never runs during SSR, so `document` is
+	// always there by the time this body does.
 	$effect(() => {
-		if (!browser) return;
-
 		const onVisibilityChange = () => {
 			if (document.hidden) flush();
 		};

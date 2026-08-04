@@ -1,40 +1,31 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Harness from '$lib/business/store/theme-store.test-harness.svelte';
 import * as appearanceRepository from '$lib/data/repository/appearance-repository';
+import type { AppearanceSnapshot } from '$lib/business/appearance';
 import type { ThemeStore } from '$lib/business/store/theme-store.svelte';
-import type { ThemeName } from '$lib/business/model/theme';
 
+// Only the write side is mocked: the store no longer reads cookies at all — it
+// is handed both snapshots — but its writes still go through the repository.
 vi.mock('$lib/data/repository/appearance-repository', () => ({
-	$readAppearance: vi.fn(() => ({
-		theme: undefined,
-		scenerySeed: undefined,
-		sceneryPaused: undefined,
-	})),
 	$updateTheme: vi.fn(),
 	$updateScenerySeed: vi.fn(),
 	$updateSceneryMotion: vi.fn(),
 }));
 
-const readAppearanceMock = vi.mocked(appearanceRepository.$readAppearance);
+const snapshot = (appearance: Partial<AppearanceSnapshot> = {}): AppearanceSnapshot => ({
+	theme: undefined,
+	scenerySeed: undefined,
+	sceneryPaused: undefined,
+	...appearance,
+});
 
-const storeCookie = (appearance: Partial<appearanceRepository.StoredAppearance>) =>
-	readAppearanceMock.mockReturnValue({
-		theme: undefined,
-		scenerySeed: undefined,
-		sceneryPaused: undefined,
-		...appearance,
-	});
-
-function mount(props: {
-	initialTheme?: ThemeName;
-	initialScenerySeed?: number;
-	initialSceneryPaused?: boolean;
-}): ThemeStore {
+function mount(ssr: Partial<AppearanceSnapshot>, cookies: Partial<AppearanceSnapshot> = {}) {
 	let store!: ThemeStore;
 
 	render(Harness, {
-		...props,
+		ssr: snapshot(ssr),
+		cookies: snapshot(cookies),
 		onstore: (created: ThemeStore) => (store = created),
 	});
 
@@ -44,81 +35,84 @@ function mount(props: {
 /* The service worker can serve cached HTML whose SSR'd appearance is stale, so
    the cookie — not the payload — decides what the page renders as. */
 describe('ThemeStore appearance reconciliation', () => {
-	beforeEach(() => {
-		storeCookie({});
-	});
-
-	it('lets the cookie override a stale SSR theme', async () => {
-		storeCookie({
-			theme: 'abyss',
-		});
-
+	it('lets the cookie override a stale SSR theme', () => {
 		expect(
-			mount({
-				initialTheme: 'parchment',
-			}).theme,
+			mount(
+				{
+					theme: 'parchment',
+				},
+				{
+					theme: 'abyss',
+				},
+			).theme,
 		).toBe('abyss');
 	});
 
-	it('lets the cookie override a stale SSR scenery-motion setting', async () => {
-		storeCookie({
-			sceneryPaused: false,
-		});
-
+	it('lets the cookie override a stale SSR scenery-motion setting', () => {
 		expect(
-			mount({
-				initialSceneryPaused: true,
-			}).sceneryPaused,
+			mount(
+				{
+					sceneryPaused: true,
+				},
+				{
+					sceneryPaused: false,
+				},
+			).sceneryPaused,
 		).toBe(false);
 
-		storeCookie({
-			sceneryPaused: true,
-		});
-
 		expect(
-			mount({
-				initialSceneryPaused: false,
-			}).sceneryPaused,
+			mount(
+				{
+					sceneryPaused: false,
+				},
+				{
+					sceneryPaused: true,
+				},
+			).sceneryPaused,
 		).toBe(true);
 	});
 
-	it('keeps the SSR value when no cookie records a preference', async () => {
+	it('keeps the SSR value when no cookie records a preference', () => {
 		expect(
 			mount({
-				initialSceneryPaused: true,
+				sceneryPaused: true,
 			}).sceneryPaused,
 		).toBe(true);
 	});
 
 	it('lets the cookie override a stale SSR scenery seed once mounted', () => {
-		storeCookie({
-			scenerySeed: 42,
-		});
-
 		expect(
-			mount({
-				initialScenerySeed: 7,
-			}).scenerySeed,
+			mount(
+				{
+					scenerySeed: 7,
+				},
+				{
+					scenerySeed: 42,
+				},
+			).scenerySeed,
 		).toBe(42);
 	});
 
 	it('keeps the SSR seed when no cookie records one', () => {
 		expect(
 			mount({
-				initialScenerySeed: 7,
+				scenerySeed: 7,
 			}).scenerySeed,
 		).toBe(7);
 	});
 
-	it('falls back to the SSR theme when the cookie names a deleted theme', () => {
-		storeCookie({
-			theme: 'retired-theme',
-		});
-
+	/* A cookie naming a theme this deploy deleted reaches the store as
+	   undefined — appearance.ts resolves it — and must not blank the payload. */
+	it('falls back to the SSR theme when the cookie contributes none', () => {
 		expect(
-			mount({
-				initialTheme: 'abyss',
-			}).theme,
+			mount(
+				{
+					theme: 'abyss',
+				},
+				{
+					theme: undefined,
+				},
+			).theme,
 		).toBe('abyss');
 	});
 });
@@ -131,10 +125,6 @@ describe('ThemeStore reduced-motion seeding', () => {
 			removeEventListener: vi.fn(),
 		} as unknown as MediaQueryList);
 
-	beforeEach(() => {
-		storeCookie({});
-	});
-
 	afterEach(() => {
 		vi.restoreAllMocks();
 	});
@@ -143,7 +133,7 @@ describe('ThemeStore reduced-motion seeding', () => {
 		stubReducedMotion(true);
 
 		const store = mount({
-			initialTheme: 'fallow',
+			theme: 'fallow',
 		});
 
 		expect(store.sceneryPaused).toBe(true);
@@ -153,23 +143,20 @@ describe('ThemeStore reduced-motion seeding', () => {
 	it('keeps a stored preference over the OS setting', () => {
 		stubReducedMotion(true);
 
-		storeCookie({
-			sceneryPaused: false,
-		});
-
 		expect(
-			mount({
-				initialTheme: 'fallow',
-			}).sceneryPaused,
+			mount(
+				{
+					theme: 'fallow',
+				},
+				{
+					sceneryPaused: false,
+				},
+			).sceneryPaused,
 		).toBe(false);
 	});
 });
 
 describe('ThemeStore persistence', () => {
-	beforeEach(() => {
-		storeCookie({});
-	});
-
 	it('writes each control change through the repository', () => {
 		const store = mount({});
 

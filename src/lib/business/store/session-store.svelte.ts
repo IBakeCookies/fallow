@@ -1,5 +1,4 @@
 import { getContext, setContext, onMount } from 'svelte';
-import { browser } from '$app/environment';
 import type {
 	Persisted,
 	Task,
@@ -183,7 +182,7 @@ export class SessionStore {
 		$effect(() => {
 			const yesterday = addDays(this.#today, -1);
 
-			if (!browser || this.#isLoading) return;
+			if (this.#isLoading) return;
 
 			this.#readSession(yesterday)
 				.then((session) => (this.#yesterdaySession = session))
@@ -196,7 +195,7 @@ export class SessionStore {
 		// navigation (nav "Today" link, calendar deep-link, back/forward button,
 		// switching to a route without a date param).
 		$effect(() => {
-			if (browser && !this.#isLoading && this.#selectedDate !== this.#loadedDate) {
+			if (!this.#isLoading && this.#selectedDate !== this.#loadedDate) {
 				this.#loadSession(this.#selectedDate);
 			}
 		});
@@ -206,12 +205,7 @@ export class SessionStore {
 		// to the viewed date (loads are async), and pristine never-saved days are
 		// skipped so browsing ahead creates no empty records.
 		$effect(() => {
-			if (
-				browser &&
-				!this.#isLoading &&
-				!this.#isViewingPast &&
-				this.#loadedDate === this.#selectedDate
-			) {
+			if (!this.#isLoading && !this.#isViewingPast && this.#loadedDate === this.#selectedDate) {
 				const dirty =
 					this.#loadedHadSession ||
 					this.#tasks.length > 0 ||
@@ -240,8 +234,6 @@ export class SessionStore {
 		// has not landed yet would be overwritten by the older stored day. (The
 		// hidden half of this — flushing before a discard — is the writer's.)
 		$effect(() => {
-			if (!browser) return;
-
 			const onVisibilityChange = () => {
 				if (!document.hidden && !this.#autoSave.pending) this.#loadSession(this.#selectedDate);
 			};
