@@ -6,9 +6,10 @@ Gradient allocator and the Energy Lab), a full calibration loop (⚡ time-to-flo
 PWA, en/de.
 
 The math behind every item lives in [MATH.md](MATH.md). Settled decisions are
-in [AGENTS.md §5](AGENTS.md) — notably the two roads deliberately not taken:
-the energy model stays a peer mode, never a replacement (MATH.md §15), and run
-order stays the nature-alternation heuristic (§16). Do not re-open those here.
+in [AGENTS.md §5](AGENTS.md) — notably the three roads deliberately not taken:
+the energy model stays a peer mode, never a replacement (MATH.md §15), run
+order stays the nature-alternation heuristic (§16), and ϕ stays one plane for
+all tasks (§17). Do not re-open those here.
 
 Phases are priority order, agreed 2026-08-03. Update this file when an item
 ships or is rejected.
@@ -62,10 +63,20 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    costs a whole-history fit per audited day — 19 ms/day, 570 ms per 30-day
    audit — so it grows with everything the user ever logs. The accepted cost is
    that the correction only accrues forward.
-6. **Per-task ϕ offsets** — hierarchical partial pooling on top of the global
-   c-plane, ridge toward 0 with the same MAP machinery as the α/r/λ₀ fits, so
-   repeated ⚡ logs on one task sharpen that task without destabilizing the
-   rest. Probe first: do offsets actually move plans on real logs?
+6. ~~**Per-task ϕ offsets**~~ — REJECTED 2026-08-04 (MATH.md §17, AGENTS.md §5).
+   Probed as planned, and the probe answered the gate: offsets move **blocks,
+   not value**. The hierarchical fit works — held-out ϕ error −23% to −37% — but
+   at a plausible 0.3 h per-task spread it buys **+0.09%** of plan value on a
+   4 h budget, 0.4 minutes' worth of the budget slider, and the oracle that
+   knows every task's true ϕ is itself worth only +0.16%. The reason is
+   structural and outlives this item: `P̄` is flat at `T*`, so **half an hour of
+   per-task ϕ error costs ~0.3% of the day** (§17's table prices any future
+   per-task-ϕ idea). Against that: 64–79% of logged titles carry one log, so δ
+   absorbs stopwatch noise and a no-structure user's displayed ϕ gets 68–98%
+   worse; unlogged tasks would carry a permanent σ_ϕ penalty (0.058 → 0.259 h);
+   and grouping would key on the free-text title, since `nextTaskId` gives each
+   day's instance a new id. Re-open only on real logs with `Σδ̂²` above the
+   0.25 h noise floor **and** a habitually ≤2 h budget.
 
 ## Phase 3 — multi-day horizon
 

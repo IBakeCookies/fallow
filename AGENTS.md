@@ -812,6 +812,22 @@ Each was considered and decided. Re-deciding them is churn.
   Risk by >5 points on 34% of days in no consistent direction. Do not re-open
   without a reason that isn't "the optimizer should beat the heuristic".
 
+- **ϕ stays one plane for all tasks — no per-task offsets** (settled
+  2026-08-04, MATH.md §17). Hierarchical partial pooling `ϕ = c·x + δ_task`
+  fits fine and cuts held-out ϕ error 23–37%, but it buys **+0.09%** of plan
+  value at a plausible per-task spread (0.3 h) and 4 h budget — 0.4 minutes of
+  the budget lever the user already has — because the oracle that knows every
+  task's true ϕ is itself worth only +0.16%. `P̄` is flat at `T*`, so ϕ error
+  costs `O(ΔT²)`: **half an hour of per-task ϕ error costs ~0.3% of the day**
+  (§17 has the table — price any per-task-ϕ proposal against it first). It also
+  costs: 64–79% of logged titles carry one log, so δ absorbs stopwatch noise and
+  the displayed ϕ gets 68–98% worse for users with no per-task structure; a
+  never-logged task's σ_ϕ rises 0.058 → 0.259 h, which §5.1 turns into a
+  permanent demotion of every task the user hasn't logged; and the grouping key
+  would have to be the free-text title, since `nextTaskId` gives each day's
+  instance a fresh id. Re-open only with real logs showing `Σδ̂²` above the
+  0.25 h noise floor **and** a habitually ≤2 h budget.
+
 - **`zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
   deliberately deep modules** — large implementations behind tiny interfaces.
   A 2026-07-23 interface analysis found every proposed split would force
