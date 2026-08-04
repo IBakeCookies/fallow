@@ -349,7 +349,10 @@
 							{/each}
 						</ul>
 					{/if}
-				{:else if view === 'week'}
+				{:else if view === 'week' && !isLoading}
+					<!-- Same guard as the empty-state line below the grid: before the range
+					     lands every cell is summary-less, and "No tasks" is a claim about
+					     the user's day, not a description of a read that has not returned. -->
 					<p class="mt-text-xs text-xs text-ty-silent">
 						{isFuture ? m.cal_nothing_planned() : m.cal_no_tasks()}
 					</p>

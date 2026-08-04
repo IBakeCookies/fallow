@@ -125,9 +125,8 @@ export class EnergyLabStore {
 		this.#observations = observations;
 
 		// No `retryLoad` passed: a failed params READ raises a toast rather than the
-		// banner (it is not the viewed day), and this store is per-route, so a
-		// retry callback would outlive it. Reporting is safe — a lost write is
-		// cleared by nothing but the user's dismissal.
+		// banner, because it is not the viewed day. Reporting is safe — a lost
+		// write is cleared by nothing but the user's dismissal.
 		const reporter = status.register('energyLab');
 
 		this.#autoSave = createDebouncedWrite(
@@ -507,12 +506,24 @@ export class EnergyLabStore {
 }
 
 /**
- * Read by `/energy` alone, and created there rather than in a layout — the
- * context does not change that. Its per-page lifetime is load-bearing: the
- * auto-save's `onDestroy` flush exists because the store dies with the route,
- * and creating it in the layout would also run its `onMount` read on every
- * other page. `setContext` is here for the guard it gives — it throws outside
- * component initialisation, so no `+page.ts` load can build this store.
+ * Read by `/energy` alone, but created in the (app) layout so re-entering the
+ * route does not re-read the params it already holds — a ~120ms skeleton on
+ * every visit to a page the user tabs in and out of is what that cost. What
+ * makes the long lifetime safe is who writes the data: the params and stopping
+ * observations are written by the Lab and nothing else, so an instance that
+ * survives the navigation cannot fall behind a change made elsewhere, and needs
+ * no refresh on the way back in. Affordable there for the second reason —
+ * the constructor's work is two small reads, and the optimizer behind `plan` is
+ * a `$derived` that stays unrun until the Lab's markup asks for it, since no
+ * `$effect` here touches it.
+ *
+ * The auto-save's `onDestroy` flush now fires on app teardown rather than on
+ * leaving the route, which is not a loss — the store outliving the navigation
+ * is exactly what keeps its pending debounce alive to fire on its own, and
+ * `visibilitychange` still covers a tab that goes away first (the session
+ * store has always been in the layout on those terms). `setContext` is here
+ * for the guard it gives — it throws outside component initialisation, so no
+ * `+page.ts` load can build this store.
  */
 export function setEnergyLabStore(
 	session: SessionStore,

@@ -184,6 +184,11 @@ export class AnalyticsStore {
 	get isLoading(): boolean {
 		return this.#isLoading;
 	}
+	/**
+	 * Whether the range holds anything — a statement about the data, so it only
+	 * means what it says once `isLoading` is false. Read alone it reports "no
+	 * history" for a read still in flight (AGENTS.md, loaded-ness is a field).
+	 */
 	get hasData(): boolean {
 		return this.#summaries.length > 0;
 	}
@@ -246,10 +251,22 @@ export class AnalyticsStore {
 }
 
 /**
- * Read by `/analytics` alone. The context is the guard, not a sharing
- * mechanism: `setContext` throws outside component initialisation, so no store
- * can be built in a `+page.ts` load and handed to a layout, where it would
- * outlive the request.
+ * Read by `/analytics` alone, and built there rather than in the (app) layout
+ * where the other single-route store now lives. Two reasons, and the second is
+ * the one that settles it. The constructor's read is a year of summaries plus a
+ * 30-day audit running both planners per day, which a store in the layout would
+ * spend at app boot on behalf of someone who only opens the main page. And the
+ * day summaries it folds are written by the main page all day, so a surviving
+ * instance would go stale behind its own back — on the route, arriving _is_ the
+ * refresh, which is what a layout-scoped one would need a method to do.
+ *
+ * The price is the empty window on the way in, and the page's placeholder frame
+ * is what covers it. Not to be paid down with a lazy `load()` the route calls:
+ * that hides from the caller that a fresh store is inert (AGENTS.md).
+ *
+ * The context is the guard, not a sharing mechanism: `setContext` throws
+ * outside component initialisation, so no store can be built in a `+page.ts`
+ * load and handed to a layout, where it would outlive the request.
  */
 export function setAnalyticsStore(
 	notifyHistoryLoadFailed: NotifyHistoryLoadFailed,
