@@ -65,7 +65,7 @@
 	function formatDay(iso: string): string {
 		return fromISO(iso).toLocaleDateString(getDateLocale(), {
 			month: 'short',
-			day: 'numeric', 
+			day: 'numeric',
 		});
 	}
 
