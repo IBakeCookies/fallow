@@ -18,6 +18,7 @@
 	import { setStorageStatusStore } from '$lib/business/store/storage-status.svelte';
 	import { setSessionStore } from '$lib/business/store/session-store.svelte';
 	import { setEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
+	import { setEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
 	import * as backup from '$lib/business/backup';
 	import {
@@ -118,7 +119,19 @@
 	// Drain/rest measurements key on the live clock, not the viewed day, so they
 	// are their own store — wired here because the layout owns what each store
 	// gets: a task lookup, and the banner they report into.
-	setEnergyObservationStore(() => session.tasks, storageStatus);
+	const observations = setEnergyObservationStore(() => session.tasks, storageStatus);
+
+	// Read by `/energy` alone, but created here so leaving the route and coming
+	// back finds a store that never unloaded — built per page it re-read its
+	// params on every visit, which cost a ~120ms placeholder each time. It can
+	// live here because the Lab is the only writer of what it reads, so an
+	// instance this long-lived cannot go stale; `AnalyticsStore` stays on its
+	// own route because the main page rewrites its data all day. The toast is
+	// injected from here for the reason every other store's is: raising one is
+	// presentation, and so is the copy (AGENTS.md R1).
+	setEnergyLabStore(session, observations, storageStatus, () =>
+		showToast.danger(m.energy_params_load_failed()),
+	);
 
 	// A failed read and a failed write need different copy: a read is retryable, a
 	// write has already lost the edit. Which message shows and whether Retry is

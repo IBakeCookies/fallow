@@ -101,7 +101,35 @@
 </div>
 
 {#if analytics.isLoading}
-	<p class="text-sm text-ty-silent">{m.ana_loading()}</p>
+	<!-- The frame the history will land in, at the sizes it will take. The
+	     alternative is not a faster page but a less finished one: the readings
+	     come from IndexedDB after mount, so anything rendered here is either a
+	     placeholder or a claim — zeroed tiles say the range was empty, and the
+	     empty-state card below says the user has never used the app. The text
+	     stays for screen readers, which the bars tell nothing. -->
+	<p class="sr-only">{m.ana_loading()}</p>
+	<!-- Bar heights are the line-heights they stand in for: `text-xs` is h-4,
+	     `text-sm` h-5, the tile's `text-2xl` reading h-8. -->
+	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+		{#each Array(6), i (i)}
+			<div class="card-shell rounded-xl p-box-md">
+				<div class="skeleton-block h-4 w-20"></div>
+				<div class="skeleton-block mt-text-2xs h-8 w-24"></div>
+				<div class="skeleton-block mt-text-3xs h-4 w-28"></div>
+			</div>
+		{/each}
+	</div>
+	<!-- Bodies, in the four cards' order. The trend chart is a fixed 800×240
+	     viewBox at `w-full`, so its height is a function of the container's
+	     width and the ratio is the only thing that tracks it; the other three
+	     are the heights their content measures. -->
+	{#each ['aspect-[800/240]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
+		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
+			<div class="skeleton-block h-5 w-40"></div>
+			<div class="skeleton-block mt-text-3xs h-4 w-64 max-w-full"></div>
+			<div class="skeleton-block mt-text-md w-full {body}"></div>
+		</div>
+	{/each}
 {:else if !analytics.hasData}
 	<div class="card-shell rounded-xl p-box-2xl text-center">
 		<p class="text-ty-secondary">{m.ana_empty()}</p>

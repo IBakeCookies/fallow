@@ -166,5 +166,28 @@ Read this before touching markup, classes, or anything under
 - Adding a theme touches four places: the catalogue in
   `business/model/theme.ts`, a `@custom-variant` in `tokens.css`, a palette
   block in `themes.css`, and (if animated) a file under `style/scenery/`.
+- **First paint is the page's frame, not a loading string and never a blank
+  screen.** Every page's readings come from IndexedDB after mount, so the server
+  renders with empty stores and the four routes each answered that differently:
+  `/` painted the whole frame at its defaults, `/calendar` painted its
+  date-derived grid, `/analytics` painted the words "Loading…", and `/energy`
+  painted _nothing_ — its `<h1>` was inside the load gate. The rule now: markup
+  that depends on no read (headings, range toggles, the calendar grid) renders
+  unconditionally, and a region that would otherwise show a **claim** — zeroed
+  metrics, "no open tasks", "No tasks" — gets a gate whose `{:else}` is
+  `skeleton-block` bars inside the real card shells, sized to what will land
+  there. Two things are load-bearing about that shape. The bars carry
+  `aria-hidden`, because empty boxes announce nothing and a screen reader wants
+  the sentence instead — keep an `sr-only` copy of it wherever one already
+  existed. And the sizes are **measured off the loaded page**, not guessed —
+  drive it in a browser and read the heights back. Where the height is a
+  property of the layout the match is exact and worth having: the analytics
+  skeleton reproduces the loaded card heights to the pixel, and its trend body
+  is `aspect-[800/240]` because that chart is a fixed viewBox at `w-full`, so
+  its height is a function of the container's width and no `h-*` can track it.
+  Where the height is a property of the user's data — how many tasks are in the
+  Lab's list, whether a day window is set — the skeleton is a plausible frame
+  and a few px of settle is the honest outcome; do not pixel-fit it to one
+  profile.
 - Use the `cn` helper (tailwind-merge + clsx) for conditional classes.
 - Avoid `<style>` blocks; prefer Tailwind.

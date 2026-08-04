@@ -117,7 +117,8 @@ Each exists because it was broken before.
   state, which no store may hold. Injection also keeps the store testable
   without module mocks — the same reason R5 exists. Two so far —
   `EnergyLabStore`'s `NotifyParamsLoadFailed`, `AnalyticsStore`'s
-  `NotifyHistoryLoadFailed` — each wired by its own route: one purpose-named
+  `NotifyHistoryLoadFailed` — both wired by the `(app)` layout, which builds
+  every store in the app even where only one route reads it: one purpose-named
   thunk per case, **not** a `NotificationKind` union. Severity vocabulary and
   copy belong to presentation; an enum in business mirrors the message
   catalogue for no gain. A second site gets its own thunk; a union earns its
@@ -412,27 +413,70 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   **succeeds** — state created on the server and shared across SSR requests.
   `business/state/*.svelte.ts` remains the one module-scope exception, only
   for values derived from the environment (e.g. the clock), never user data.
-- **Context is the creation rule; the layout is not.** `setXStore()` runs in
-  whichever component's tree needs the store — the layout when more than one
-  route reads it (`ThemeStore` in the root layout; `StorageStatusStore`,
-  `SessionStore` and `EnergyObservationStore` in `(app)`, status store first
-  because the two below report into it and register their re-reads), the
-  route's own instance script when one route does (`setDailyPlanStore` in `/`,
-  `setAnalyticsStore` in `/analytics`, `setEnergyLabStore` in `/energy`).
-  Moving a page-scoped store up to the layout is a behaviour change, not
-  tidying: the Lab's `onDestroy` flush — and the e2e test pinning it — work
-  _because_ the store dies with the route, and the layout would additionally
-  run its `onMount` `settings` read — and arm its autosave and its
-  stopping-observation `$effect` — on all five other pages. It also follows
-  that a per-route store must not hand a layout-scoped store a callback:
-  `StorageStatusStore.register` has no unregistration, so a `retryLoad` would
-  outlive the route that passed it. `EnergyLabStore` therefore registers
-  _without_ one — a failed params read is a toast, not the banner, and the
-  only thing it reports is a lost write, which nothing but a dismissal clears
-  anyway. A future page-scoped store that needs the banner's retry is the
-  point where an unregistration earns its keep. A single-consumer store's
-  `getXStore()` may legitimately have no callers yet; it lets a child
-  component read the store without the page threading it down, at one line.
+- **Context is the creation rule; what the constructor does picks the tree.**
+  `setXStore()` runs in whichever component's tree needs the store — the root
+  layout for `ThemeStore`, `(app)` for `StorageStatusStore`, `SessionStore`,
+  `EnergyObservationStore` and `EnergyLabStore` (status store first, because
+  the others report into it and register their re-reads), the route's own
+  instance script for `setDailyPlanStore` in `/` and `setAnalyticsStore` in
+  `/analytics`. **Every store loads at init** — in its constructor, so a caller
+  holding one never has to know it is inert. Three questions place the call:
+  - **Does the constructor do I/O?** If not, lifetime is irrelevant: put the
+    store at the route, because recreating it costs an allocation.
+    `DailyPlanStore` touches neither `onMount` nor `$effect` — it is a fold
+    over two layout stores, so a fresh one per visit is free.
+  - **Do several routes read it?** Then it belongs at their lowest shared node,
+    and its data comes from _that_ node's load. `ThemeStore` is the clean case:
+    `+layout.server.ts` reads the cookies, the root layout hands them to the
+    constructor, and no route ever passes the store anything. Nothing else can
+    follow it — every other store's data is in IndexedDB, which no server
+    `load` can await, which is why the rest read for themselves.
+  - **Does it hold state its source does not own?** Then hoist it above the
+    consumers and take each fresh slice through a named setter. Do **not** add
+    an `init(data)` for the route to call on arrival: if it resets everything
+    it is recreation with a precondition bolted on, and if it does not, the
+    store and its source are two authorities over one array.
+
+  For a single-route store whose constructor reads, both trees are defensible
+  and the trade runs the same way in each direction:
+  - **On the route, recreation is the refresh.** `AnalyticsStore` reads a year
+    of summaries plus a 30-day audit that runs both planners per day: at boot
+    every other page would pay for it, and it reads day summaries the main page
+    rewrites all day, so arriving with a fresh store is how the numbers stay
+    true. The price is the empty window on the way in, which the page's
+    placeholder frame covers. Do **not** reach for a lazy `load()` to get cheap
+    boot without that price — an inert store whose correctness depends on the
+    caller remembering a second call is worse than the re-read it saves.
+  - **In the layout when nothing outside can make it stale.** `EnergyLabStore`
+    moved there: its params and stop observations are written by the Lab alone,
+    so a surviving instance cannot fall behind, and the optimizer behind `plan`
+    is a `$derived` no `$effect` touches, so it stays unrun on the five routes
+    that never show it. What it buys is the ~120ms of placeholder a page-scoped
+    store spent re-reading on every visit. Hoisting one that _can_ go stale
+    means a named refresh per staleness reason, called by whoever knows the
+    reason — `SessionStore` has two, `retryLoad()` for the banner's button and
+    a `visibilitychange` re-read for a returning tab. A refresh is not the
+    `load()` above: it leaves the store valid, only less current.
+  - **A layout-scoped debounced write flushes on app teardown, not route
+    teardown**, and that is not a loss: the pending timer stays alive to fire
+    on its own precisely _because_ the store did, and `visibilitychange` still
+    covers a tab that leaves first.
+  - `StorageStatusStore.register` has no unregistration, so anything
+    layout-scoped may pass a `retryLoad` freely and anything page-scoped may
+    not. `EnergyLabStore` registers without one anyway, on its own merits: a
+    failed params read is a toast, not the banner.
+
+  A single-consumer store's `getXStore()` may legitimately have no callers yet;
+  it lets a child component read the store without the page threading it down,
+  at one line.
+
+- **Loaded-ness is a field, never emptiness.** Every store that reads carries
+  its own `isLoading`/`isLoaded`, because an empty array is an answer and a read
+  that has not returned is the absence of one. Collapsing them is how a page
+  ends up telling a user with a full week "No tasks" — the failure the
+  first-paint policy in `STYLE.md` exists to prevent. A getter that reports on
+  the data rather than the read (`AnalyticsStore.hasData`) is only meaningful
+  once the flag says the read is done, and says so in its doc comment.
 - A class field that a `$derived` initializer reads must be declared with `!`
   and assigned first in the constructor — the deriveds are lazy, but
   TypeScript checks declaration order.

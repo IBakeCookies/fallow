@@ -237,3 +237,12 @@
 @utility card-shell {
 	@apply rounded-2xl border bg-surface-card shadow-card backdrop-blur;
 }
+
+/* One bar standing in for a reading that has not been read yet, so a page whose
+   data comes from IndexedDB can paint its frame server-side without claiming a
+   number it does not have. Size it at the call site (`skeleton-block h-3 w-20`).
+   Still on purpose: this is a focus app, and a pulse on every card would be the
+   busiest thing on the screen for the one second it exists. */
+@utility skeleton-block {
+	@apply rounded-md bg-surface-inset;
+}
