@@ -24,14 +24,16 @@ test('a calendar whose history will not load says so, once per outage', async ({
 	await expect(page.getByText("Couldn't load your calendar history.")).toBeVisible();
 
 	// The range load re-runs per month step and every one of them fails. One
-	// outage is one report — the regression was N toasts for N clicks.
+	// outage is one report — the regression was N toasts for N clicks. Counted by
+	// message, not by toast: the Energy Lab's params read fails in this outage
+	// too, and it is layout-scoped, so it reports here on its own account.
 	const nextMonth = page.getByRole('button', {
 		name: 'Next',
 	});
 
 	for (let step = 0; step < 3; step += 1) await nextMonth.click();
 
-	await expect(page.locator('[data-sonner-toast]')).toHaveCount(1);
+	await expect(page.getByText("Couldn't load your calendar history.")).toHaveCount(1);
 });
 
 /* The test above never reaches the range load — `initializeStorage()` rejects
