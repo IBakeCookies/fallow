@@ -5,6 +5,7 @@ import type {
 	AdviceOption,
 	BudgetMarginal,
 	PlanAdvice,
+	SwitchCostPrice,
 } from '$lib/business/model/metric/plan-advice';
 
 /** A 15-minute block going to "Tax return", unless a test says otherwise. */
@@ -47,6 +48,28 @@ function setBudget(hours: number, deltaPercent: number | null): AdviceOption {
 	});
 }
 
+/** 15 minutes a switch, three funded tasks, on an 8-hour day. */
+function switchCostPrice(overrides: Partial<SwitchCostPrice> = {}): SwitchCostPrice {
+	return {
+		declared: 0.25,
+		reservedHours: 0.5,
+		reservedShare: 0.0625,
+		alternatives: [
+			{
+				switchCost: 0,
+				planValue: 11,
+				planValueDeltaPercent: 10.4,
+			},
+			{
+				switchCost: 0.5,
+				planValue: 9,
+				planValueDeltaPercent: -8.7,
+			},
+		],
+		...overrides,
+	};
+}
+
 /** Burnout Risk at 90% is out of band, so the row survives the band filter. */
 function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): PlanAdvice {
 	return {
@@ -63,6 +86,7 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 		unfundedTaskIds: [],
 		unfundedMustDoTaskIds: [],
 		budgetMarginal: marginal(),
+		switchCostPrice: switchCostPrice(),
 		candidatesEvaluated: options.length,
 	};
 }
@@ -148,6 +172,7 @@ describe('buildAdviceDisplay', () => {
 				unfundedTaskIds: [],
 				unfundedMustDoTaskIds: [],
 				budgetMarginal: marginal(),
+				switchCostPrice: switchCostPrice(),
 				candidatesEvaluated: 2,
 			},
 			3,
@@ -187,6 +212,157 @@ describe('buildAdviceDisplay', () => {
 
 	it('says nothing about must-do tasks when the plan funds them all', () => {
 		expect(buildAdviceDisplay(advice([defer(1, -30)]), 3).unfundedMustDo).toBeNull();
+	});
+
+	// MATH.md §14.3: the declared switch cost, priced. Conditional on purpose —
+	// each alternative is what the plan would be worth if the declaration were
+	// that number, never a claim the user can go and switch tasks faster.
+	describe('the price of the switch cost', () => {
+		const displayFor = (price: SwitchCostPrice) =>
+			buildAdviceDisplay(
+				{
+					...advice([defer(1, -30)]),
+					switchCostPrice: price,
+				},
+				3,
+			).switchCost;
+
+		it('reports the reservation and brackets it either way', () => {
+			expect(displayFor(switchCostPrice())).toBe(
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. ' +
+					'At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+			);
+		});
+
+		// The share ROUNDS rather than truncating, which the two cases above cannot
+		// tell apart (0.0625 → 6 and 0.00208 → 0 either way). `Math.floor` here would
+		// under-report every share by up to a point and passed the whole suite.
+		it('rounds the share rather than truncating it', () => {
+			expect(
+				displayFor(
+					switchCostPrice({
+						reservedHours: 1.25,
+						reservedShare: 0.208,
+					}),
+				),
+			).toContain('reserves 1h 15m of today, 21% of the budget');
+		});
+
+		// One task takes no switches, so `(m−1)·s` is 0 and both alternatives can
+		// only reproduce this plan. Stating "+0%" twice is noise about a day where
+		// the constant provably did nothing.
+		it('says the plan pays for no switching when it funds one task', () => {
+			expect(
+				displayFor(
+					switchCostPrice({
+						reservedHours: 0,
+						reservedShare: 0,
+						alternatives: [
+							{
+								switchCost: 0,
+								planValue: 10,
+								planValueDeltaPercent: 0,
+							},
+							{
+								switchCost: 0.5,
+								planValue: 10,
+								planValueDeltaPercent: 0,
+							},
+						],
+					}),
+				),
+			).toBe('At 15m a switch, this plan pays for no switching.');
+		});
+
+		// A declared 0 collapses both candidates onto the declaration itself
+		// (MATH.md §14.3), so there is nothing left to bracket against.
+		it('says the same when the day declares no switch cost at all', () => {
+			expect(
+				displayFor(
+					switchCostPrice({
+						declared: 0,
+						reservedHours: 0,
+						reservedShare: 0,
+						alternatives: [],
+					}),
+				),
+			).toBe('At 0m a switch, this plan pays for no switching.');
+		});
+
+		// The defect the union condition shipped: a plan can reserve nothing BECAUSE
+		// the declaration priced every task but one out of it, and suppressing the
+		// bracket there discards the one reading both extra solves existed to
+		// produce, on the day the constant did the most damage. Measured on a 3-task
+		// day at budget 0.5 h and s = 15 min, the model computes +41.8% at s = 0.
+		it('keeps the bracket when the declaration starved the plan to one task', () => {
+			expect(
+				displayFor(
+					switchCostPrice({
+						reservedHours: 0,
+						reservedShare: 0,
+						alternatives: [
+							{
+								switchCost: 0,
+								planValue: 14.2,
+								planValueDeltaPercent: 41.8,
+							},
+							{
+								switchCost: 0.5,
+								planValue: 10,
+								planValueDeltaPercent: 0,
+							},
+						],
+					}),
+				),
+			).toBe(
+				'At 15m a switch, this plan pays for no switching. ' +
+					'At no switch cost this plan reads +41.8% plan value; at 30m a switch, 0% plan value.',
+			);
+		});
+
+		// The other half of the same defect: a sub-minute declaration reserves real
+		// hours while `MIN_HOUR_STEP` collapses both candidates, and the union
+		// condition then stated "pays for no switching" about a plan that reserves.
+		// Reachable because `NumberInput` never snaps typed input to its step.
+		it('still reports the reservation when there is no bracket to show', () => {
+			expect(
+				displayFor(
+					switchCostPrice({
+						declared: 0.5 / 60,
+						reservedHours: 1 / 60,
+						reservedShare: 1 / 60 / 8,
+						alternatives: [],
+					}),
+				),
+			).toBe('Switching reserves 1m of today, 0% of the budget, at 1m a switch.');
+		});
+
+		// A day with no hours entered yet. The two states arrive together and cannot
+		// be separated: a null percentage means Σ P̄ is 0 (MATH.md §14.1-3), which
+		// takes at most one funded task, which reserves nothing — so the sentence
+		// that has no share to report is the one that reports no switching either.
+		it('says the same on a day with no budget, which has no share to report', () => {
+			expect(
+				displayFor(
+					switchCostPrice({
+						reservedHours: 0,
+						reservedShare: null,
+						alternatives: [
+							{
+								switchCost: 0,
+								planValue: 0,
+								planValueDeltaPercent: null,
+							},
+							{
+								switchCost: 0.5,
+								planValue: 0,
+								planValueDeltaPercent: null,
+							},
+						],
+					}),
+				),
+			).toBe('At 15m a switch, this plan pays for no switching.');
+		});
 	});
 
 	// MATH.md §14.2: the budget's shadow price, in the same "% plan value" the

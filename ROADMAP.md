@@ -230,23 +230,31 @@ re-labeling, not a loss.**
     headline tiles read N/A, the constraints bar auto-opens
     (`+page.svelte:163`), and a deferred task lands in an unplanned day. Not a
     precision claim — it is the instrument item 21 needs.
-17. **Switch-cost price diagnostic** — "your 15-minute switch cost is spending
-    45 minutes of today; halving it would buy X". Two extra solves at `s = 0`
-    and `s = 2s`, reported on demand beside `budgetMarginal`
-    (`plan-advice.ts:327`) and never in a `$derived` (settled, §14.2).
-    `DEFAULT_SWITCH_COST = 0.25` (`zenith.ts:92`) is a bare literal with a
-    CHI-2008 citation and no instrument anywhere, and declaring it 2× too high
-    costs **10.13% mean / 10.38% median with 94% of days moved** — 137× the ϕ
-    anchor — sharply asymmetric (2× too low 1.04%, ignoring it entirely 1.18%),
-    because an over-declared `s` reserves overhead that is never spent. Framed
-    as a **diagnostic on a declared measurement with no prescription**:
-    MATH.md §14 rules `switchCost` and the pools "measurements of the user, not
-    choices about the day", which excludes them as advice levers and by the
-    same sentence licenses them as instrument targets. **Probe:** re-run on
-    real days; **kill if median |Δ value| between s = 0.25 and s = 0.5 is under
-    ~1%** on real 2–4-task days. ~20 lines plus a short MATH.md §14.3 note. No
-    data dependency, no store, no input.
-    _Do not build the estimator proposed alongside it:_ fitting `s` from the
+17. ~~**Switch-cost price diagnostic**~~ — SHIPPED 2026-08-04 (MATH.md §14.3):
+    `switchCostPrice` on `PlanAdvice`, two extra solves at `s = 0` and `s = 2s`
+    inside `suggestPlanAdjustments`, one quiet line on the advice card. The
+    gate cleared by 8×: the kill criterion was a median |Δ value| under ~1%
+    between `s = 0.25` and `s = 0.5` on 2–4-task days, and the measurement
+    through the real solver is **8.51%** over the fixture's 180 such days,
+    **8.14%** over the author's own four logged days, and **18.80%** on 5+-task
+    days. Constant-independent (8.54% under the fixture's own ground-truth ϕ
+    constants), and the reservation it reports is a median **23.08%** of the
+    day's budget.
+    Two things changed on contact with the measurement. The **framing had to
+    become conditional**: the planned copy ("halving it would buy X") priced a
+    quantity the app cannot compute, because the cost of _mis_-declaring `s`
+    needs to know which value is true, so each alternative now reads "if your
+    switch cost were X, this plan would read Y". And the old asymmetry figures
+    quoted below (2× too high 10.13%, too low 1.04%, ignoring it 1.18%) answer
+    that different question — the diagnostic's own numbers are the table in
+    §14.3, where `s → 0` reads **+10.95%** rather than 1.18%, because planning
+    as if switching were free _raises_ reported value while switching for
+    free-that-isn't lowers realized value. No floor, unlike §14.2 — but not
+    because inversions cannot happen: 0 of 298 fixture days invert at their
+    **stored** budget and pools, and off those values they do (§13.3's pooled
+    suboptimality). The floor is refused because it would zero the doubled arm,
+    which is the arm that carries the message.
+    _The estimator proposed alongside it stays unbuilt:_ fitting `s` from the
     observed funded-task count died on three measurements — `m(s)` is not
     monotone (609 violations over 400 days × 101 `s` values), median one-day
     bracket width 0.39 h against a [0,1] h range with 14% of days consistent
@@ -362,11 +370,11 @@ present:
 20. **Unfunded-task attribution** — name the binding reason a task got 0 h.
     **Zero extra solves:** `suggestPlanAdjustments` already computes a full
     `calculateDailyMetrics` per defer candidate, each carrying `activeTasks`
-    with `suggestedHours` (`plan-advice.ts:404-407`), so "which single removal
+    with `suggestedHours` (`plan-advice.ts` `suggestPlanAdjustments`), so "which single removal
     funds this task" is a lookup over candidates already in hand; pool-bound is
     detectable by comparing the plan's `Σ hours·weight` against the declared
     pool with no solve at all; and the budget branch already ships as
-    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:422`) today says
+    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:527`) today says
     _that_ and never _why_, and §14.2 concedes that a bound pool, a task near
     `T*`, and a block landing on finished work "look identical from one solve".
     **Strip all prescription** from the pool and switch branches — §14 is

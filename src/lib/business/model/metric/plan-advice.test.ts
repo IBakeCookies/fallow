@@ -681,6 +681,242 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
+	// MATH.md §14.3. `switchCost` is a measurement of the user, so this prices
+	// the declared number rather than advising a different one.
+	describe('the price of the switch cost', () => {
+		const resolveAt = (base: DailyMetricsInput, switchCost: number) =>
+			calculateDailyMetrics({
+				...base,
+				switchCost,
+			}).zenithGain.optimized;
+
+		it('prices the declared cost against a re-solve at zero and at double', () => {
+			const rows = [2, 4, 6, 10].map((hours) => {
+				const base = grindDay(hours);
+				const baseline = calculateDailyMetrics(base);
+				const { switchCostPrice } = suggestPlanAdjustments(base, baseline);
+				const declared = baseline.zenithGain.optimized;
+				const expected = [0, base.switchCost * 2].map((switchCost) => resolveAt(base, switchCost));
+
+				return {
+					candidates: switchCostPrice.alternatives.map((alternative) => alternative.switchCost),
+					reported: switchCostPrice.alternatives.map((alternative) => alternative.planValue),
+					reportedDeltas: switchCostPrice.alternatives.map(
+						(alternative) => alternative.planValueDeltaPercent,
+					),
+					expected,
+					expectedDeltas: expected.map(
+						(value) => Math.round(((value - declared) / declared) * 1000) / 10,
+					),
+					declared,
+				};
+			});
+
+			// The declaration each arm priced, which the bracket copy prints and
+			// nothing else pinned: object-shorthand `switchCost` in place of
+			// `candidate` renders "at 15m a switch … at 15m a switch" with two
+			// different plan values, and passed the whole suite.
+			rows.forEach((row) => expect(row.candidates).toEqual([0, 0.5]));
+
+			// Not vacuous: the switch cost has to actually be moving the plan on
+			// some of those budgets, or the identity below holds trivially.
+			expect(rows.filter((row) => row.expected[0] > row.declared).length).toBeGreaterThan(0);
+
+			// …and the doubled arm has to be genuinely NEGATIVE somewhere, or the
+			// unfloored contract below is untested: flooring the delta at 0 the way
+			// §14.2's marginal does would then still pass (MATH.md §14.3).
+			expect(rows.filter((row) => row.expectedDeltas[1] < 0).length).toBeGreaterThan(0);
+
+			// Exactly, not floored: both numbers are the Σ P̄ of a plan the
+			// allocator really solved, so this is a comparison and not a shadow
+			// price (MATH.md §14.3). Asserted on the percentages too, not only the
+			// values — a floor lands on the percentage, and pinning the values
+			// alone left the whole unfloored contract green under it.
+			rows.forEach((row) => {
+				row.reported.forEach((value, index) => expect(value).toBe(row.expected[index]));
+				row.reportedDeltas.forEach((delta, index) => expect(delta).toBe(row.expectedDeltas[index]));
+			});
+		});
+
+		// Three mutations passed the whole suite before this test existed: counting
+		// listed tasks instead of funded ones, moving the `funded > 1` boundary, and
+		// scoping the re-solve to active tasks — the last being the thing AGENTS.md
+		// forbids first. Every earlier day here funds all of its tasks and completes
+		// none, so none of the three had anything to bite on.
+		it('counts the tasks the plan funds, over a task list that is neither', () => {
+			const base = input(
+				[
+					...GRIND,
+					makeTask({
+						id: 4,
+						title: 'Already done',
+						mentalDifficulty: 8,
+						physicalDifficulty: 1,
+						enjoyment: 3,
+						completed: true,
+					}),
+				],
+				{
+					availableHours: 1,
+				},
+			);
+
+			const baseline = calculateDailyMetrics(base);
+			const { switchCostPrice } = suggestPlanAdjustments(base, baseline);
+			const funded = baseline.suggestedTasks.filter((task) => task.suggestedHours > 0).length;
+
+			// The fixture's whole point: funded, listed and active are three different
+			// numbers, so each mutation reports a different reservation.
+			expect(funded).toBe(2);
+			expect(base.tasks.length).toBe(4);
+			expect(baseline.activeTasks.length).toBe(3);
+
+			// Literal, not re-derived from the same baseline the assertion checks.
+			expect(switchCostPrice.reservedHours).toBeCloseTo(0.25, 12);
+
+			// Plan-scoped: the value is the whole list's, and the active-only solve is
+			// a genuinely different number here rather than a float-noise apart —
+			// which is what makes this a scope test (MATH.md §11.8/§14.3).
+			const activeOnly = calculateDailyMetrics({
+				...base,
+				tasks: base.tasks.filter((task) => !task.completed),
+				switchCost: 0,
+			}).zenithGain.optimized;
+
+			expect(switchCostPrice.alternatives[0].planValue).toBe(resolveAt(base, 0));
+
+			expect(Math.abs(switchCostPrice.alternatives[0].planValue - activeOnly)).toBeGreaterThan(
+				0.01,
+			);
+		});
+
+		it('reports the hours the plan reserves for switching', () => {
+			const base = grindDay(10);
+			const baseline = calculateDailyMetrics(base);
+			const { switchCostPrice } = suggestPlanAdjustments(base, baseline);
+			const funded = baseline.suggestedTasks.filter((task) => task.suggestedHours > 0).length;
+
+			expect(funded).toBeGreaterThan(1);
+			expect(switchCostPrice.reservedHours).toBeCloseTo((funded - 1) * base.switchCost, 12);
+
+			expect(switchCostPrice.reservedShare).toBeCloseTo(
+				switchCostPrice.reservedHours / base.availableHours,
+				12,
+			);
+		});
+
+		// MATH.md §14.3 proves the exact optimum is monotone non-increasing in `s`:
+		// any allocation feasible at `s` is feasible at every smaller `s`, with the
+		// same pool draw and the same Σ P̄. So a LOWER declaration can only read ≥ 0
+		// and a higher one ≤ 0, and the opposite sign is §13.3 allocator error rather
+		// than a fact about the day.
+		//
+		// The fixture that produces one, found by sweeping the generated year rather
+		// than curated: this is 2026-05-14 with its own tasks, at a budget and pools
+		// on the constraints bar's own grid. Unclamped, the free arm reads −6.5% and
+		// the card told the user that making switching free would COST them 6.5% —
+		// while the s = 5 min plan is itself feasible at s = 0 and achieves the exact
+		// optimum there.
+		it('never reports a sign the monotonicity of the optimum rules out', () => {
+			const base = input(
+				[
+					makeTask({
+						id: 1,
+						title: 'network',
+						mentalDifficulty: 5,
+						physicalDifficulty: 0,
+						enjoyment: 2,
+					}),
+					makeTask({
+						id: 2,
+						title: 'guitar',
+						mentalDifficulty: 4,
+						physicalDifficulty: 1,
+						enjoyment: 8,
+					}),
+					makeTask({
+						id: 3,
+						title: 'gym',
+						mentalDifficulty: 1,
+						physicalDifficulty: 9,
+						enjoyment: 5,
+					}),
+					makeTask({
+						id: 4,
+						title: 'admin',
+						mentalDifficulty: 3,
+						physicalDifficulty: 1,
+						enjoyment: 1,
+					}),
+					makeTask({
+						id: 5,
+						title: 'reading',
+						mentalDifficulty: 6,
+						physicalDifficulty: 0,
+						enjoyment: 7,
+						completed: true,
+					}),
+				],
+				{
+					availableHours: 3,
+					switchCost: 5 / 60,
+					pools: {
+						cognitiveHours: 0.5,
+						physicalHours: 2,
+					},
+				},
+			);
+
+			const baseline = calculateDailyMetrics(base);
+			const { switchCostPrice } = suggestPlanAdjustments(base, baseline);
+			const [free, doubled] = switchCostPrice.alternatives;
+
+			// Not vacuous: the raw re-solve really does invert here, so the assertion
+			// below is about the clamp and not about a day where nothing happens.
+			expect(resolveAt(base, 0)).toBeLessThan(baseline.zenithGain.optimized);
+
+			expect(free.planValueDeltaPercent).toBe(0);
+			expect(doubled.planValueDeltaPercent).toBeLessThanOrEqual(0);
+		});
+
+		it('charges a one-task day nothing, having no switch to pay for', () => {
+			const advice = suggestPlanAdjustments(input([GRIND[0]]));
+
+			expect(advice.switchCostPrice.reservedHours).toBe(0);
+			expect(advice.switchCostPrice.reservedShare).toBe(0);
+		});
+
+		it('has nothing to price when the day declares no switch cost', () => {
+			const advice = suggestPlanAdjustments(
+				input(GRIND, {
+					switchCost: 0,
+				}),
+			);
+
+			expect(advice.switchCostPrice.declared).toBe(0);
+			expect(advice.switchCostPrice.alternatives).toEqual([]);
+		});
+
+		it('reports no percentage and no share when there is no plan to price', () => {
+			const advice = suggestPlanAdjustments(
+				input(GRIND, {
+					availableHours: 0,
+				}),
+			);
+
+			expect(advice.switchCostPrice.reservedShare).toBeNull();
+
+			// Funded is 0 here, not 1, and that is the `funded > 1` guard's only
+			// behavioural consequence: without it `(0 − 1)·s` is NEGATIVE and the card
+			// prints it. Removing the guard passed every other test.
+			expect(advice.switchCostPrice.reservedHours).toBe(0);
+
+			advice.switchCostPrice.alternatives.forEach((alternative) =>
+				expect(alternative.planValueDeltaPercent).toBeNull(),
+			);
+		});
+	});
+
 	// MATH.md §14.1-5. A zero-load plan reads the display sentinel 50, which is
 	// also the axis target — read as a balance, "set the budget to 0" becomes
 	// the axis's global optimum and the advisor chases the budget to nothing.

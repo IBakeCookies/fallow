@@ -1013,6 +1013,45 @@ Each was considered and decided. Re-deciding them is churn.
   not `calculateDailyMetrics`: the latter runs in a `$derived` on every
   keystroke and every slider drag, where a second solve doubles dashboard cost.
 
+- **The switch cost is instrumented but never advised** (2026-08-04, MATH.md
+  §14.3). MATH.md §14 rules `switchCost` and the pools "measurements of the
+  user, not choices about the day" — that excludes them as levers and, by the
+  same sentence, licenses them as instrument targets.
+  `PlanAdvice.switchCostPrice` reports the `(m−1)·s` hours the plan reserves
+  over **funded** tasks, that as a share of the budget, and Σ P̄ re-solved at
+  `s = 0` and `s = 2s`. Declaring it 2× too high costs a measured **8.51%** of
+  plan value on a 2–4-task day (18.80% at 5+ tasks), against 0.16% for the ϕ
+  oracle — this was the last model input with no reading anywhere. Four things
+  it must keep, three of which invert the bullet directly above:
+  - **Plan-scoped, not open-scoped**, because it is compared against
+    `planValueOf`, which is built from the whole task list (§11.8). Restricting
+    one side to open work reports a difference that is mostly the scope change.
+  - **Clamped per arm, never floored.** The exact optimum is monotone
+    non-increasing in `s`, so a lower declaration reads only ≥ 0 and a higher one
+    only ≤ 0; the opposite sign is §13.3 suboptimality, not the day. Inversions
+    are reachable and large — 322 over 178,800 UI-grid configurations, worst free
+    arm **−6.53%**, worst doubled arm **+1.95%**, and 43 of them without touching
+    `s`. Their magnitude is **not** bounded by §13.3's "worst 0.09%", which is a
+    single-draw maximum. So each arm is clamped to its provable direction and
+    nothing else is touched. Do **not** replace this with §14.2's floor: that
+    zeroes the doubled arm on 284 of 596 fixture alternatives, the arm that says
+    over-declaring is the expensive direction. Tests pin both a symmetric floor
+    and an inverted clamp.
+  - **Read through `calculateZenithGain`**, not by summing `avgProductivity`
+    over the returned plan. The plan comes back priority-sorted, so the same
+    terms add in a different order and land a few ulps off `planValueOf`.
+  - **The copy stays conditional** — "if your switch cost were X, this plan
+    would read Y". It reports plan value _under a declaration_, never the cost
+    of mis-declaring, which would require knowing which value is true. The two
+    even differ in sign: planning as if switching were free raises reported
+    value, while switching for free-that-isn't lowers realized value.
+
+  It gets no `AdviceLever`, no axis, no frontier entry and no Apply button, and
+  must not be wired to suppress anything. Do not re-propose **fitting** `s` from
+  the observed funded-task count: `m(s)` is not monotone (609 violations over
+  400 days × 101 `s` values), a one-day bracket is a median 0.39 h wide against
+  a [0,1] h range, and one mis-counted task moves the bracket edge 0.34 h.
+
 - **A day's fitted params are stored, not recomputed from the logs**
   (2026-08-03, MATH.md §12.1). The fit as of day D _is_ a pure function of the
   observations dated ≤ D, so the §12 audit could refit per audited day instead of

@@ -69,6 +69,12 @@ test('advice prices real adjustments and goes stale when the day changes', async
 		page.getByText(/The next \d+ minutes would go to “.+”|would get nothing more done/),
 	).toBeVisible();
 
+	// The declared switch cost, priced by two more real solves (MATH.md §14.3):
+	// either this plan reserves hours for switching, or it pays for none.
+	await expect(
+		page.getByText(/Switching reserves .+ of today|pays for no switching/),
+	).toBeVisible();
+
 	// Editing the day must not silently leave the last solve's numbers on screen.
 	await setBudget(page, 6);
 

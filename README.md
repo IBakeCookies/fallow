@@ -66,7 +66,9 @@ split. (Full derivations: [MATH.md](MATH.md).)
   overhead (grounded in attention-residue research). Fallow charges switches
   only between tasks that actually get time, and will _drop_ a weak task when
   the switch it costs outweighs its value — decided by exhaustively comparing
-  every funded-task subset.
+  every funded-task subset. It also tells you what that charge is doing: how
+  many hours of today it reserves, and what the same day would be worth if your
+  switch cost were nothing, or double what you declared.
 - **Personalization from your own data.** Log how long a task really took to
   reach flow (the ⚡ button, stopwatch-style) and Fallow refits your personal
   constants (`c₁, c₂, c₃`) with a Bayesian linear regression — anchored to the

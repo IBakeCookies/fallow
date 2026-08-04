@@ -1862,6 +1862,16 @@ space.** That is the method to reach for first next time.
      the lowest-value funded blocks until budget and pools allow, then refill.
 - **Measured after (same 1471 days): exact on 99.5%, p99 0.00%, worst 0.09%.**
   Cost 0.32 ms → 0.6 ms per pooled solve (n = 5–7, tight pools) — irrelevant.
+- **That 0.09% is the maximum of one draw, not an envelope** (added 2026-08-05).
+  It replicates exactly on the cited seed, but a fresh draw from the **same
+  generator** reaches **6.03%** over 19,683 days, keeping the exact rate and the
+  p99 — and the tail survives restriction to app-reachable inputs (worst 3.92%
+  over 11,434 days). It also exceeds this section's own pre-fix worst of 5.46%:
+  the three changes above made suboptimality **rarer, not smaller**. Nothing
+  downstream may cite this number as an error bound, and §14.3 no longer does —
+  it clamps instead. A real envelope over app-reachable inputs, and whether the
+  value-ranked greedy can be fixed at the worst case rather than documented
+  around, are both open.
 - **The single-constraint path is untouched:** with infinite pools nothing
   ever reports `poolBlocked`, so none of the three run and plain greedy's
   exactness (§4) stands. Test-locked by the randomized envelope test, which
@@ -2296,9 +2306,13 @@ the sentence true; on a day with nothing completed the two readings coincide.
 
 **Why the floor.** Σ P̄ is monotone non-decreasing in the budget at the true
 optimum — every allocation feasible at `b` is feasible at `b + ε`. The pooled
-path is a near-exact heuristic (§13.3: exact on 99.5%, worst 0.09% short), so
-two adjacent budgets can invert by a fraction of a percent. `max(0, ·)` keeps
-the reading inside a claim the model actually makes.
+path is a near-exact heuristic (§13.3: exact on 99.5% of the cited draw), so two
+adjacent budgets can invert. `max(0, ·)` keeps the reading inside a claim the
+model actually makes. The size of a suppressed inversion is **not** bounded by
+§13.3's 0.09%, which is a single-draw maximum — but nothing here depends on that,
+because this floor is in the direction monotonicity allows and only ever hides a
+value the model rules out. The same argument, applied per arm, is what §14.3
+clamps with.
 
 **No attribution when the block buys nothing.** `recipient = null` says a wider
 budget buys no remaining work; it deliberately does not say why. A capacity pool
@@ -2379,6 +2393,176 @@ and inherits its on-demand contract; it is deliberately **not** in
 `calculateDailyMetrics`, which runs inside a `$derived` on every keystroke and
 every drag of the budget slider, where a second solve would double the
 dashboard's cost.
+
+### 14.3 The price of the switch cost (added 2026-08-04)
+
+**The question.** §14 rules `switchCost` and the two capacity pools
+"measurements of the user, not choices about the day", which correctly excludes
+them from the lever set — and leaves `switchCost` with **no instrument
+anywhere**. `DEFAULT_SWITCH_COST = 0.25` is a literal with a CHI-2008 citation
+(Mark, Gudith & Klocke; ~23 min to regain focus, discounted to 15 for a
+_planned_ switch), it is subtracted from the budget as `(m−1)·s` before any
+block is placed (§4), and while the constraints bar does let the user set it,
+nothing anywhere reported what setting it does. That same sentence in §14 licenses this: a declared measurement may be
+instrumented even though it may not be advised. This is a diagnostic, not an
+`AdviceLever` and not an axis option.
+
+**The definition.** Two extra solves at the same tasks and the same budget:
+
+```text
+funded          = tasks with allocated hours > 0        (not tasks on the list)
+reservedHours   = (funded − 1)·s   if funded > 1, else 0
+reservedShare   = reservedHours / budget               (null when budget is 0)
+alternatives    = [0, 2s], each dropped when within one minute of s
+  planValue              = Σ P̄(plan solved at that s)
+  planValueDeltaPercent  = (planValue − Σ P̄(s)) / Σ P̄(s)   (null when that is 0)
+```
+
+`funded` and not `tasks.length` because the allocator pays for the switches it
+makes: a task the pools zeroed out costs nothing to switch to. Zero and double
+are a **bracket, not a menu** — zero is the whole price of having a switch cost
+at all, double is the asymmetry check, since an over-declared cost reserves
+overhead the day never spends. At `s = 0` both candidates collapse onto the
+declaration and `alternatives` is empty: there is nothing to price.
+
+The one-minute tolerance doing that collapsing is §14.1-2's, which described it
+as a rule about budget levers; it is now the general rule that two hour-valued
+declarations less than a minute apart are the same declaration, and the constant
+enforcing it is named `MIN_HOUR_STEP` rather than `MIN_BUDGET_STEP` for that
+reason. Its reach is bounded by being **sub-minute**, not by the input's step:
+`NumberInput` never snaps typed input to `step`, so a typed `0.4` in a field
+reading "0" settles 0.00667 h and `sanitizeSession`'s `atLeastZero` persists it
+across a reload. A declaration under a minute therefore empties `alternatives`
+while `(m−1)·s` is genuinely non-zero — the second of the two empty-bracket
+cases, which is why the descriptor suppresses the reservation sentence and the
+bracket **independently**. Unioning them was a real defect: a plan can reserve
+nothing precisely because the declaration priced every task but one out of it,
+and on a 3-task day at a 0.5 h budget with `s = 15 min` the suppressed bracket
+carried **+41.8%**. The bracket is dropped only when both arms would read 0 or
+null, which is what a single-task list looks like and what a starved plan does
+not.
+
+**It stays a diagnostic.** It gets no `AdviceLever`, no `AdviceAxis`, no entry on
+any per-axis frontier, and no Apply button, because there is no honest action for
+one to perform: the user cannot decide to switch tasks faster, they can only
+report how fast they do. Nor may it be wired to suppress anything — the §14.2
+prohibition applies unchanged.
+
+**What it reports, and what it does not.** Each alternative is the plan value
+**under that declaration** — what the model would plan, and what that plan would
+be worth, if the user's switch cost were that number. It is _not_ the cost of
+**mis**-declaring: that would be the plan chosen under `s'` and then valued under
+the true `s`, which requires knowing which of the two is true, and the app does
+not. The two differ in sign as well as size — planning as if switching were free
+_raises_ reported value (more hours reach the tasks) while actually switching for
+free-that-isn't _lowers_ realized value. The copy this feeds must stay
+conditional ("if your switch cost were really X, this plan would be worth Y%
+more"), never "halve your switch cost and gain Y%".
+
+**Plan-scoped, unlike §14.2.** The budget marginal is open-scoped because it
+answers "what would I do with 15 more minutes". This one is compared against
+`planValueOf(baseline)` = `zenithGain.optimized`, which `calculateDailyMetrics`
+builds from the **whole** task list (§11.8); restricting one side to open work
+would report a difference that is mostly the scope change. Completing a task
+therefore does not move this reading, which is what §11.8 requires of a
+plan-scoped number.
+
+**Clamped per arm to the direction the optimum allows — not floored like §14.2.**
+The budget marginal publishes a shadow price, where a negative would be a claim
+the model does not make, so it floors. Here the two numbers are plans the
+allocator really solved, and the signed difference between them is a fact about
+those plans — but not every sign is a fact about the **day**.
+
+**The monotonicity.** The exact optimum is monotone non-increasing in `s`: any
+allocation feasible at `s` is feasible at every smaller `s`, with the same pool
+draw and the same Σ P̄, because lowering `s` only frees reserved time. So a lower
+declaration can be worth **only ≥ 0** and a higher one **only ≤ 0**. The opposite
+sign is not a reading; it is §13.3's pooled greedy falling short at the other `s`.
+
+**Inversions are reachable, and they are not small.** At each fixture day's own
+stored budget, switch cost and pools, 0 of 298 days invert — an exact measurement
+that licenses nothing beyond itself. Move only the pool inputs or the budget onto
+other values the constraints bar itself offers and the sign flips both ways. Over
+178,800 grid configurations across the 298 days: **322 visible inversions, 181 of
+them past 1%, worst free arm −6.53%** (2026-05-14, budget 3 h, pools 0.5/2,
+`s = 5 min`) and **worst doubled arm +1.95%**. With both pools held at ≥ 1 h the
+worst is still −2.76%. **43 of them need no change to `s` at all** — budget and
+pools alone. Brute force over that day confirms the diagnosis: the `s = 5 min`
+plan is itself feasible at `s = 0` and already achieves the exact `s = 0`
+optimum, so the unclamped card told the user that making switching free would
+_cost_ them 6.5%.
+
+The magnitude is **not** bounded by §13.3's "worst 0.09% short". That figure is
+the maximum of one draw, not an envelope (§13.3), so nothing here may rest on it.
+
+**Why a clamp and not a floor.** Flooring the delta rewrites 284 of 596 fixture
+alternatives (median −13.35%) to "0% plan value" and deletes the doubled arm's
+entire message — that over-declaring is the expensive direction. The per-arm
+clamp moves only the provably impossible sign, and only to 0: every informative
+value passes through untouched. What it costs is exactness against the app rather
+than against the model — on an inverting day the card now reads "0%" while
+actually typing `s = 0` would show the allocator's lower value. That trade is
+deliberate: a conservative reading in the provable direction misleads no one,
+while "switching free costs you 6.5%" is indistinguishable from a real reading
+and contradicts the model. The test pins both directions — a symmetric floor and
+a clamp applied the wrong way round each go red.
+
+Note the value is read through `calculateZenithGain` rather than by summing
+`avgProductivity` over the returned plan: the two agree only to within float
+noise, because the plan comes back priority-sorted and the same terms added in a
+different order land a few ulps apart — 1–2 ulps on 80 of the 298 days.
+
+**What the probe found** — the 298 worked days of `scripts/generate-fixture.mjs`
+(seed 42, 365 days), each day's own budget, tasks and stored pools, run through
+the real `calculateZenithGain`. Relative change in Σ P̄ from `s = 0.25`:
+
+| days               | → `s = 0.5` median |   mean |    p90 | days moved | → `s = 0` median |
+| ------------------ | -----------------: | -----: | -----: | ---------: | ---------------: |
+| all (298)          |             12.56% | 11.75% | 19.97% |     95.30% |           10.95% |
+| 2–4 tasks (180)    |              8.51% |  9.04% | 16.71% |       100% |            7.50% |
+| 5+ tasks (104)     |             18.80% | 18.02% | 20.90% |       100% |           20.07% |
+| budget < 4 h (216) |             15.30% | 13.36% | 20.50% |     96.76% |           14.08% |
+
+- **It is not the constants.** Re-run under the fixture's own ground-truth
+  `c₁ = 0.72, c₂ = −0.38, c₃ = 0.34` instead of the defaults, the 2–4-task median
+  moves from 8.51% to **8.54%** and the all-days median from 12.56% to 12.60%.
+  The reading is a property of the budget arithmetic, not of the ϕ fit.
+- **It survives on real days.** The author's four logged days (2–3 tasks, 2 h
+  budgets) read a median **8.14%**, against the 1% kill threshold this item was
+  gated on (ROADMAP item 17).
+- **The reservation is large.** At `s = 0.25` with every task funded, the
+  overhead is a median **23.08%** of the day's budget, p90 **45.82%** — a
+  counterfactual over the task list, not the shipped reading, whose own p90 over
+  funded tasks is 41.67%. On a 4-task day that is 45 minutes gone before the
+  first block.
+- **The day shape drives it.** Task-count distribution 1:14 2:47 3:58 4:75 5:63
+  6:26 7:10 8:5 — the effect roughly doubles from 2–4 tasks to 5+, as `(m−1)`
+  says it must.
+
+**Cost.** Two `calculateZenithGain` solves, on top of the advisor's
+`activeTasks + 3` and §14.2's one. It therefore lives in
+`suggestPlanAdjustments` and inherits its on-demand contract — deliberately not
+in `calculateDailyMetrics`, which runs inside a `$derived` on every keystroke and
+every drag of the budget slider.
+
+Both are **cheaper than the solve they are compared against**, and the pair costs
+a measured **7.3% of the advisor at n = 8 and 2.9% at n = 12** — the share
+_falls_ as the day grows, because the declared solve's 2ⁿ funded-subset
+enumeration grows faster than either alternative's. `s = 0` is very nearly free
+(under 1 ms against the declared solve's tens to hundreds): `switchCost <= 0`
+short-circuits the enumeration entirely and allocates once. `s = 2s` runs at
+roughly a third of the declared solve, because the larger reservation drives
+`budgetBlocksFor` non-positive for most large subsets and they are skipped. The
+absolute milliseconds are not quoted here; they were taken under coverage
+instrumentation and are not comparable to §14/§14.2's figures.
+
+**Not built: fitting `s` from the plan.** Estimating the user's switch cost from
+their observed funded-task count died on three measurements (ROADMAP item 17):
+`m(s)` is not monotone (609 violations over 400 days × 101 `s` values), the
+median one-day bracket is 0.39 h wide against a [0,1] h range with 14% of days
+consistent with the entire range, and one mis-counted task shifts the bracket
+edge by a median 0.34 h. The diagnostic reports what the declaration does; it
+does not infer the declaration.
 
 ## 15. Two objectives, two modes (2026-07-29)
 
