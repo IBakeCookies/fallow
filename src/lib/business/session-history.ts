@@ -56,6 +56,7 @@ import {
 	type PlanAuditDay,
 } from '$lib/business/model/plan-audit';
 import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
+import { latestRatingsByTitle, type TitleRating } from '$lib/business/model/title-memory';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import {
 	sanitizeDrainObservations,
@@ -65,6 +66,9 @@ import {
 	sanitizeSessions,
 	type FitSnapshot,
 } from '$lib/business/model/persisted';
+
+/** Sorts below every ISO date, so it is the open lower bound of a range read. */
+const BEFORE_ANY_DATE = '0000-01-01';
 
 /**
  * Run once per page that touches persistence: migrates any legacy
@@ -137,6 +141,19 @@ export async function readDaySummaries(startDate: string, endDate: string): Prom
 	return sessions
 		.filter((session) => session.tasks.length > 0)
 		.map((session) => summarizeSession(session, fit.constants, fit.posterior));
+}
+
+/**
+ * What each task title was last rated, over everything ever stored up to and
+ * including `today` — a title used once a year is still the best guess there is,
+ * so this deliberately has no lookback window. `date` is the store's keyPath and
+ * ISO dates sort lexicographically, so a lower bound below any of them reads all
+ * of history in one range query.
+ */
+export async function readTitleRatings(today: string): Promise<Map<string, TitleRating>> {
+	return latestRatingsByTitle(
+		sanitizeSessions(await $readSessionsByDateRange(BEFORE_ANY_DATE, today)),
+	);
 }
 
 interface FinishedDay {

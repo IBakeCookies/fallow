@@ -99,14 +99,17 @@ Each exists because it was broken before.
   cards that read feeds out of their loading string and each then says so
   itself, while a failed **history** read renders every chart as an empty year
   — looks like a user with no data, so it toasts. Silent is only acceptable
-  where the screen is already visibly wrong. Three stay deliberately silent
+  where the screen is already visibly wrong. Four stay deliberately silent
   (re-proposing them is churn): yesterday's session (decoration, and the
   banner's Retry does not cover that read), the Energy Lab's `localStorage`
-  view preference (loss costs nothing), and its `readStopObservations` effect
+  view preference (loss costs nothing), its `readStopObservations` effect
   (any real outage also fails the `settings` read, which toasts for both; an
-  isolated failure only empties a fit the card already labels "not fitted").
-  Silent still means **logged** — that last one was an unhandled rejection
-  until caught. `indexed-db.ts`'s `onblocked` is different again: the `open`
+  isolated failure only empties a fit the card already labels "not fitted"),
+  and `readTitleRatings` (the add-task form offers no title suggestions and every
+  task is rated on the 5/5/5 defaults it shipped with for a year — a banner would
+  claim the day failed to load).
+  Silent still means **logged** — `readStopObservations` was an unhandled
+  rejection until caught. `indexed-db.ts`'s `onblocked` is different again: the `open`
   promise never settles — a data-layer hang with no store to report through.
   A count is not a surface: `importFromDate` returning 0 makes the header say
   "No tasks on that date", a claim about the user's data a failed read cannot
@@ -882,10 +885,11 @@ Each was considered and decided. Re-deciding them is churn.
   `energy-observation-store.svelte.ts` (below). Don't split on line count —
   **the test is interface arithmetic**:
   a split pays only if it removes more public surface than it adds. Measure
-  before proposing one: `session-store.svelte.ts` was 675 lines behind **39
-  public members** (~1 per 17 lines, vs. 1 per 50 in `zenith.ts`), 34 of them
-  called from exactly one place — a wide facade, not a deep module, so size
-  was never the argument either way.
+  before proposing one, and **re-measure rather than quoting these numbers** —
+  both files have grown since: on 2026-07-23 `session-store.svelte.ts` stood at
+  675 lines behind **39 public members** (~1 per 17 lines, against ~1 per 50 in
+  `zenith.ts`), 34 of them called from exactly one place — a wide facade, not a
+  deep module, so size was never the argument either way.
 
 - **Drain and rest observations live in `EnergyObservationStore`**, not the
   session store (extracted 2026-07-27) — the one cluster whose extraction cost

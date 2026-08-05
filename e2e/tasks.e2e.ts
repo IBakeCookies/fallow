@@ -103,3 +103,54 @@ test('a deleted task comes back from the undo toast', async ({ page }) => {
 
 	await expect(row).toBeVisible();
 });
+
+// ROADMAP items 15 and 24. Only an e2e covers the whole path this feature is: a
+// stored day, the history read the store boots with, and the form that offers it
+// back as you type.
+test('a title picked from the suggestions brings its ratings with it', async ({ page }) => {
+	await page.goto('/');
+
+	// The task editor carries the same slider labels, so scope to the add form —
+	// the only one with a "Task Definition" field.
+	const form = page.locator('form').filter({
+		has: page.getByLabel('Task Definition'),
+	});
+
+	await form.getByLabel('Task Definition').fill('Gym session');
+
+	// Range inputs take keyboard steps; fill() refuses them.
+	for (let step = 0; step < 3; step++) {
+		await form.getByLabel('Physical Diff').press('ArrowRight');
+		await form.getByLabel('Mental Diff').press('ArrowLeft');
+		await form.getByLabel('Enjoyment').press('ArrowRight');
+	}
+
+	await form
+		.getByRole('button', {
+			name: 'Deploy Task',
+		})
+		.click();
+
+	await expect(page.getByText('P 8 · M 2 · E 8')).toBeVisible();
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.reload();
+
+	// The form is still open: it samples `isOpen` once, at mount, and the stored
+	// day has not landed yet at that point.
+	await expect(page.getByText('Gym session').first()).toBeVisible();
+
+	// Typed, not filled: the suggestions answer to input events, and two
+	// characters of the wrong case are all it takes.
+	await form.getByLabel('Task Definition').pressSequentially('GY');
+
+	await form
+		.getByRole('option', {
+			name: 'Gym session',
+		})
+		.click();
+
+	await expect(form.getByLabel('Task Definition')).toHaveValue('Gym session');
+	await expect(form.getByLabel('Physical Diff')).toHaveValue('8');
+	await expect(form.getByLabel('Mental Diff')).toHaveValue('2');
+	await expect(form.getByLabel('Enjoyment')).toHaveValue('8');
+});
