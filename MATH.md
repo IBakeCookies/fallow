@@ -2136,6 +2136,29 @@ the budget _decreases_. An improving `budget + 1` is returned beside the
 frontier as `unpriced`, never inside it (§14.1). The delta is `null`, not `0`,
 when the current plan's Σ P̄ is 0.
 
+**The frontier's delta is published unclamped, and that is the deliberate
+asymmetry with §14.2 and §14.3** (recorded 2026-08-06). Both priced levers have
+a provable sign at the exact optimum: a defer can only be ≤ 0, since the plan
+without task _i_ is feasible for the with-_i_ problem at P̄ᵢ(0) = 0, and a budget
+decrease can only be ≤ 0 by the monotonicity §14.1-1 rests on. So a positive
+cost is §13.3 suboptimality, exactly the kind of sign §14.2 floors and §14.3
+clamps per arm. This one is not clamped, for two reasons.
+
+The first is size. Measured (`scripts/plan-advice.probe.ts`, 2026-08-06): **0
+positive deltas over 4450** non-empty priced frontiers on 600 seeded days. Two
+independent draws during the same review each turned up exactly one, at +0.1%,
+so the rate is around 1 in 4000 and the damage is one wrong sign character on a
+cost that reads as small either way. §14.3 clamps because its inversions reach
+−6.53% and are indistinguishable from real readings; nothing here is.
+
+The second is that a clamp would delete a reading this document now depends on.
+§14.1-2's trim residual is the **same mechanism in the other direction** — the
+pooled path landing short of the optimum — and it is a number the card must
+keep printing, because the plan it prices is one the allocator really produces.
+A `Math.min(0, ·)` on the frontier would leave the −0.9% intact while hiding
+its mirror image, which is a policy about signs rather than about the model. If
+the rate ever moves, the honest fix is the allocator, not the display.
+
 Alongside the frontiers the advice reports the active tasks the plan funds no
 hours for. That needs no search, and it is the one piece of advice that is
 purely a read of the existing plan.

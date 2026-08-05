@@ -178,6 +178,26 @@ hours you have already spent.
     with no probe and no plan risk — argue it as one. **Prereq:** 11; free
     once 12 lands.
 
+Found by the 2026-08-06 review of the advice card, and small enough to be
+nobody's feature — which is why it is written down rather than remembered:
+
+25. **The advice card's buttons must not outlive the day they priced.** Two
+    halves of one rule, both reachable today. (a) `isStale` renders a banner
+    but every Apply button stays enabled on `isBusy` alone
+    (`plan-advice-card.svelte`), so after one deferral the remaining rows offer
+    single-step prices that no longer describe the day the button would act
+    on — §14's single-step contract is exactly what makes them wrong together.
+    (b) `DailyPlanStore`'s `#fingerprint` covers the seven model inputs but not
+    `selectedDate`, so advice survives a day change and renders on the new day
+    with the stale banner and buttons that silently do nothing. Not a wrong
+    move — ids are `Date.now()`-derived, so `moveTaskToTomorrow` finds no task
+    and returns `false` — but the click is swallowed and the return value has
+    no reader anywhere. **No probe:** this is a correctness fix, not a
+    measurement, and it makes no claim to establish. Argue it as one, or
+    decline it: the counter-case is that the banner already says the numbers
+    are stale, and gating the buttons costs a user the one deferral they can
+    still take honestly.
+
 _Decide before 11, not a roadmap item:_ `importFromDate` / `importYesterday`
 copy every stored task — completed ones included — into fresh incomplete tasks
 with no dedupe against today's list (`session-store.svelte.ts:616`, `:647`).
