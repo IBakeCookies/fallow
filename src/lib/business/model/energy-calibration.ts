@@ -133,8 +133,15 @@ export function seedMorningReservoirs(
 
 	if (!worked.length) return params;
 
-	const blocks: ScheduleBlock[] = worked.map((o) => ({
-		taskId: o.taskId,
+	// One block per ROW, keyed by the row's position rather than its taskId.
+	// A task rated twice in a day is two sessions with their own demands
+	// captured at their own logging times (MATH.md §8.7/§18), and
+	// `simulateReservoirs` looks demands up by id — so sharing an id would let
+	// the later row's demands re-rate the earlier session, which is exactly
+	// what capturing demands at logging time exists to prevent. The id is only
+	// ever that lookup key here; nothing downstream reads it back.
+	const blocks: ScheduleBlock[] = worked.map((o, i) => ({
+		taskId: i,
 		hours: o.hours,
 	}));
 
@@ -149,8 +156,8 @@ export function seedMorningReservoirs(
 
 	const { endCog, endPhys } = simulateReservoirs(
 		blocks,
-		worked.map((o) => ({
-			id: o.taskId,
+		worked.map((o, i) => ({
+			id: i,
 			cognitiveDemand: o.cognitiveDemand,
 			physicalDemand: o.physicalDemand,
 		})),

@@ -104,9 +104,11 @@ export class EnergyObservationStore {
 
 	// Log an end-of-session drain rating for a task: after `hours` of work,
 	// how drained body and mind feel (0–10). Captures the task's reservoir
-	// demands at logging time; re-rating the same task today REPLACES the
-	// earlier record (typo correction), mirroring logFlow. Today-only because it
-	// is a measurement, not a plan.
+	// demands at logging time. One record per SESSION — a second session on a
+	// task already rated today appends rather than replacing, because the
+	// day's worked hours are the sum of its sessions (MATH.md §8.7); unlike
+	// logFlow, which upserts because time-to-flow is one number per day.
+	// Today-only because it is a measurement, not a plan.
 	async logDrain(id: number, hours: number, mindDrain: number, bodyDrain: number) {
 		const task = this.#readTasks().find((t) => t.id === id);
 
@@ -116,7 +118,7 @@ export class EnergyObservationStore {
 		if (!task) return;
 
 		try {
-			await drainObservationRepository.$updateDrainObservation({
+			await drainObservationRepository.$addDrainObservation({
 				date: liveToday.value,
 				taskId: id,
 				taskTitle: task.title,
@@ -125,6 +127,34 @@ export class EnergyObservationStore {
 				physicalDemand: task.physicalDifficulty / 10,
 				mindDrain,
 				bodyDrain,
+			});
+
+			this.#drainObservations = await this.#readDrain();
+		} catch (e) {
+			logError('Failed to save drain observation', e);
+			this.#reporter.report('save-failed');
+		}
+	}
+
+	// Correct one already-logged session in place. Separate from logDrain
+	// because appending a corrected copy would count the session twice — the
+	// row IS the session now (MATH.md §18). Demands are re-captured from the
+	// task as they are on a fresh log: a correction is a re-rating.
+	async editDrainLog(recordId: number, id: number, hours: number, mind: number, body: number) {
+		const task = this.#readTasks().find((t) => t.id === id);
+
+		if (!task) return;
+
+		try {
+			await drainObservationRepository.$editDrainObservation(recordId, {
+				date: liveToday.value,
+				taskId: id,
+				taskTitle: task.title,
+				hours,
+				cognitiveDemand: task.mentalDifficulty / 10,
+				physicalDemand: task.physicalDifficulty / 10,
+				mindDrain: mind,
+				bodyDrain: body,
 			});
 
 			this.#drainObservations = await this.#readDrain();

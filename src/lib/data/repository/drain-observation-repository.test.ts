@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-	$updateDrainObservation,
+	$addDrainObservation,
+	$editDrainObservation,
 	$readAllDrainObservations,
 	$deleteDrainObservation,
 	$deleteAllDrainObservations,
@@ -29,65 +30,101 @@ describe('drain-observation-repository', () => {
 		vi.restoreAllMocks();
 	});
 
-	it('upserts: same taskId + date replaces instead of appending', async () => {
-		await $updateDrainObservation(
+	// The load-bearing one: this was an upsert on (taskId, date) until 2026-08-05,
+	// so a second session REPLACED the first and vanished from the day's worked
+	// hours that §8.10/§8.11/§12 read back.
+	it('appends: a second session on the same task and day is its own row', async () => {
+		await $addDrainObservation(
 			observation({
-				mindDrain: 4,
+				hours: 3,
 			}),
 		);
 
-		await $updateDrainObservation(
+		await $addDrainObservation(
 			observation({
+				hours: 1.5,
 				mindDrain: 8,
 			}),
 		);
 
-		const all = await $readAllDrainObservations();
-		expect(all).toHaveLength(1);
-		expect(all[0].mindDrain).toBe(8);
+		const sameDay = (await $readAllDrainObservations()).filter(
+			(r) => r.date === '2026-01-01' && r.taskId === 1,
+		);
+
+		expect(sameDay).toHaveLength(2);
+		expect(sameDay.reduce((sum, r) => sum + r.hours, 0)).toBe(4.5);
 	});
 
-	it('different taskId or date appends', async () => {
-		await $updateDrainObservation(
+	// Each row is its own session, so each carries its own log moment — the
+	// time-of-day signal a circadian drain fit would condition on.
+	it('stamps every row with its own createdAt', async () => {
+		const morning = Date.parse('2026-01-03T09:00:00Z');
+		const evening = Date.parse('2026-01-03T18:30:00Z');
+
+		vi.spyOn(Date, 'now').mockReturnValue(morning);
+
+		await $addDrainObservation(
 			observation({
-				taskId: 2,
+				date: '2026-01-03',
 			}),
 		);
 
-		await $updateDrainObservation(
+		vi.spyOn(Date, 'now').mockReturnValue(evening);
+
+		await $addDrainObservation(
 			observation({
-				date: '2026-01-02',
+				date: '2026-01-03',
 			}),
 		);
 
-		expect(await $readAllDrainObservations()).toHaveLength(3);
+		const day = (await $readAllDrainObservations()).filter((r) => r.date === '2026-01-03');
+		expect(day.map((r) => r.createdAt)).toEqual([morning, evening]);
 	});
 
-	it('editing a rating keeps the original createdAt', async () => {
-		const loggedAt = Date.parse('2026-01-03T18:30:00Z');
-		const editedAt = Date.parse('2026-01-04T09:00:00Z');
+	// Correcting one session must not create a second one — and must not move the
+	// log moment, which is the only time-of-day signal the drain data carries.
+	it('edits one row in place, keeping its original createdAt', async () => {
+		const loggedAt = Date.parse('2026-01-05T18:30:00Z');
+		const fixedAt = Date.parse('2026-01-06T09:00:00Z');
 
 		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
 
-		await $updateDrainObservation(
+		await $addDrainObservation(
 			observation({
-				date: '2026-01-03',
+				date: '2026-01-05',
 				mindDrain: 4,
 			}),
 		);
 
-		vi.spyOn(Date, 'now').mockReturnValue(editedAt);
+		const before = await $readAllDrainObservations();
+		// `id!`: a repository read is unsanitized, and the key IndexedDB just
+		// assigned is what an edit addresses.
+		const target = before.find((r) => r.date === '2026-01-05')!;
 
-		await $updateDrainObservation(
+		vi.spyOn(Date, 'now').mockReturnValue(fixedAt);
+
+		await $editDrainObservation(
+			target.id!,
 			observation({
-				date: '2026-01-03',
+				date: '2026-01-05',
 				mindDrain: 5,
 			}),
 		);
 
-		const edited = (await $readAllDrainObservations()).find((r) => r.date === '2026-01-03');
+		const after = await $readAllDrainObservations();
+		const edited = after.find((r) => r.id === target.id);
+
+		expect(after).toHaveLength(before.length);
 		expect(edited?.mindDrain).toBe(5);
 		expect(edited?.createdAt).toBe(loggedAt);
+	});
+
+	it('ignores an edit to a row that is gone', async () => {
+		const before = await $readAllDrainObservations();
+
+		await $editDrainObservation(9999, observation());
+
+		expect(await $readAllDrainObservations()).toHaveLength(before.length);
 	});
 
 	it('deletes a single record by id', async () => {

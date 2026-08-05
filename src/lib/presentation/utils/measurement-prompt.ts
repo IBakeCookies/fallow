@@ -18,7 +18,9 @@ export type CompletionPromptAction = 'open' | 'withdraw' | 'none';
 export function completionPromptAction(input: {
 	/** true when the click completes the task, false when it un-completes one */
 	finishing: boolean;
-	/** the task already carries the measurement being asked for */
+	/** the task already carries the measurement being asked for — false for a
+	 *  per-SESSION measurement like 🪫 drain, where finishing a task ends a
+	 *  session an earlier rating says nothing about (MATH.md §18) */
 	measured: boolean;
 	/** any editor is open that this prompt would replace — including one on
 	 *  another task, and including a different editor on the same row */
@@ -26,7 +28,7 @@ export function completionPromptAction(input: {
 	/** an editor this prompt itself opened is showing for the task being toggled */
 	promptOpenForThisTask: boolean;
 }): CompletionPromptAction {
-	// Never over work in progress: opening reseeds the draft from stored values, so
+	// Never over work in progress: opening REPLACES the page's one draft, so
 	// prompting across an open editor silently discards what was typed into it.
 	if (input.finishing) return input.measured || input.anyEditorOpen ? 'none' : 'open';
 

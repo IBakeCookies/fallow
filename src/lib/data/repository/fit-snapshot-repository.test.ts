@@ -52,7 +52,7 @@ describe('fit-snapshot-repository', () => {
 		expect(all[0].alphaCog).toBe(0.9);
 	});
 
-	// Unlike the drain log's upsert, a re-record is a NEW belief about today rather
+	// Unlike a drain log's edit, a re-record is a NEW belief about today rather
 	// than a correction of one measurement, so its moment moves with it.
 	it('re-recording a day refreshes createdAt', async () => {
 		const first = Date.parse('2026-01-02T08:00:00Z');

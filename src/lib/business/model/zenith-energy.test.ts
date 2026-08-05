@@ -17,6 +17,7 @@ import {
 	adviseStop,
 	stopIndifferencePoint,
 	type DrainObservation,
+	type ScheduleBlock,
 	type StopAdvice,
 	type EnergyTaskInput,
 	type RestObservation,
@@ -1604,6 +1605,72 @@ describe('Zenith Energy Model', () => {
 			// so pricing it as if the day were fresh would be a different number.
 			expect(withHistory.marginalValue).not.toBeCloseTo(withoutHistory.marginalValue, 6);
 			expect(withHistory.marginalValue).toBeLessThan(withoutHistory.marginalValue);
+		});
+
+		// The sibling above ranks the LOGGED task first, so its probe lands last
+		// either way. This is the other branch of `growBy` (MATH.md §13.4): a
+		// candidate probed AHEAD of logged work, which is what makes the forward
+		// reading order-dependent (MATH.md §8.11's bounds). Three tasks, with the
+		// candidate at rank 1, so the position is the MIDDLE — insert-first,
+		// append-last and canonical are three different numbers here, where two
+		// tasks would let a constant index 0 pass for canonical.
+		it('inserts an unlogged candidate at its canonical rank, between higher- and lower-amplitude logged work', () => {
+			const trio = [
+				makeTask(1, 'Deep work', 9, 9, 0.8, 0.2), // rank 0 by amplitude a + p₀
+				makeTask(2, 'Review', 6, 6, 0.8, 0.2), // rank 1 — the candidate
+				makeTask(3, 'Admin', 3, 3, 0.8, 0.2), // rank 2
+			];
+
+			const worked: ScheduleBlock[] = [
+				{
+					taskId: 1,
+					hours: 2.25,
+				},
+				{
+					taskId: 3,
+					hours: 2.25,
+				},
+			];
+
+			// Leaves room for exactly one step, so the advice IS the m = 1 probe.
+			const windowHours = 4.5 + DEFAULT_STEP_HOURS;
+
+			const value = (blocks: ScheduleBlock[]) => {
+				const ev = evaluateSchedule(blocks, trio, windowHours);
+
+				return ev.satiatedOutput + ev.terminalBonus;
+			};
+
+			const base = value(worked);
+			const probe = (blocks: ScheduleBlock[]) => (value(blocks) - base) / DEFAULT_STEP_HOURS;
+
+			const step: ScheduleBlock = {
+				taskId: 2,
+				hours: DEFAULT_STEP_HOURS,
+			};
+
+			const advice = priced(
+				adviseStop(
+					{
+						tasks: trio,
+						windowHours,
+						workedHours: worked.map((b) => ({
+							taskId: b.taskId!,
+							hours: b.hours,
+						})),
+					},
+					DEFAULT_ENERGY_PARAMS,
+					undefined,
+					new Set([2]),
+				),
+			);
+
+			expect(advice.sessionHours).toBeCloseTo(DEFAULT_STEP_HOURS, 12);
+			expect(advice.marginalValue).toBeCloseTo(probe([worked[0], step, worked[1]]), 12);
+			// Neither end of the day is the same number — which is the point of
+			// pinning the convention rather than the value.
+			expect(advice.marginalValue).not.toBeCloseTo(probe([step, ...worked]), 6);
+			expect(advice.marginalValue).not.toBeCloseTo(probe([...worked, step]), 6);
 		});
 
 		it('returns null when no candidate is left to recommend', () => {

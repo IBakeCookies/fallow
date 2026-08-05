@@ -7,7 +7,7 @@ import {
 	readTitleRatings,
 } from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
-import { $updateDrainObservation } from '$lib/data/repository/drain-observation-repository';
+import { $addDrainObservation } from '$lib/data/repository/drain-observation-repository';
 import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
 import { $updateFlowObservation } from '$lib/data/repository/flow-observation-repository';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
@@ -202,7 +202,7 @@ describe('readModelReport', () => {
 	it('audits a finished day once its worked hours are logged', async () => {
 		await $updateSession(session('2026-07-01'));
 
-		await $updateDrainObservation({
+		await $addDrainObservation({
 			date: '2026-07-01',
 			taskId: 1,
 			taskTitle: 'task 1',
@@ -241,7 +241,7 @@ describe('readModelReport', () => {
 		for (const day of ['2026-08-01', '2026-08-02', '2026-08-03']) {
 			await $updateSession(session(day));
 
-			await $updateDrainObservation({
+			await $addDrainObservation({
 				date: day,
 				taskId: 1,
 				taskTitle: 'task 1',
@@ -281,7 +281,7 @@ describe('readModelReport fit snapshots', () => {
 	});
 
 	const logWork = (date: string) =>
-		$updateDrainObservation({
+		$addDrainObservation({
 			date,
 			taskId: 1,
 			taskTitle: 'task 1',

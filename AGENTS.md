@@ -829,11 +829,23 @@ Each was considered and decided. Re-deciding them is churn.
   in `session-history.test.ts` counts transactions.
 
 - **The per-day observation upsert reads through the `date` index**, not a
-  whole-store scan (`flow-observation-repository`,
-  `drain-observation-repository`). The key is (`taskId`, `date`), only `date`
-  is indexed, so the day's handful of records are read and `taskId` matched in
-  memory. A compound index would cost a schema version (R8) for nothing;
-  scanning the store reads years of history that can never match.
+  whole-store scan (`flow-observation-repository`). The key is (`taskId`,
+  `date`), only `date` is indexed, so the day's handful of records are read
+  and `taskId` matched in memory. A compound index would cost a schema
+  version (R8) for nothing; scanning the store reads years of history that
+  can never match.
+
+- **🪫 drain ratings do NOT upsert — one row per session**
+  (`$addDrainObservation`). `hours` is one session's length for the §8.7 α
+  fit, while §8.10/§8.11/§12 read a task's hours for a day as the sum of its
+  rows; the (`taskId`, `date`) upsert this used to do meant a second session
+  overwrote the first and vanished from that sum (MATH.md §18). The row's 🪫
+  button therefore always opens an EMPTY editor — one more session — while
+  correcting a rating goes through the ✎ beside it in the calibration card and
+  `$editDrainObservation`, which keeps that row's `createdAt`. Re-logging a
+  correction would count the session twice. For the same reason the completion
+  prompt passes `measured: false`: finishing a task ends a session that an
+  earlier rating says nothing about.
 
 - **The energy model is a peer mode, not a candidate to replace the main
   plan** (settled 2026-07-29, MATH.md §15). A 300-day cross-scoring probe:

@@ -36,7 +36,7 @@ today:
   input, no deadline, no task size. Item 23 is the only item that changes this,
   and it is deliberately last.
 - **Every calibration instrument lives behind `/energy`.** `logDrain` has
-  exactly one caller (`energy/+page.svelte:193`), and `readFinishedDays` skips
+  exactly one caller (`energy/+page.svelte:197`), and `readFinishedDays` skips
   any date without a 🪫 log with `hours > 0`
   (`session-history.ts:180`, `:197`). A user who only ever opens `/` therefore
   contributes **zero** days to λ₀ (§8.10), the §12 audit and overnight
@@ -104,24 +104,21 @@ hours you have already spent.
     `DailyPlanStore` already holds the observation store and reads drain logs
     for fits and for `selectedDate − 1`. Zero plan value on its own — it is a
     binary unlock (0 → n fitted days) and the prerequisite for 12–14.
-    **The decision that _is_ the build is hours provenance.**
-    `DrainObservationRecord.hours` is documented as _session length worked
-    before the rating_ and is the α instrument (§8.7 reads `H` as one session
-    from a full reservoir), while §8.10/§11.9/§12 de-facto treat one record as
-    that task's whole day — the upsert key is `(taskId, date)`. Amending hours
-    without re-rating therefore attaches a 2 h rating to 5 h of hours, biasing
-    α̂ **down** in a fit that already has a documented **upward** fresh-start
-    bias. Pick one first: (a) every amendment re-asks mind/body — honest, more
-    friction, no schema change; (b) worked hours become a `Task` field —
-    session-embedded, validator in `persisted.ts`, round-trips in backup, no
-    new store and no R8, but two definitions of "worked hours" then exist and
-    R3 forces §8.10/§12 to choose one; (c) a new store — R8's five steps, only
-    if (a) and (b) both fail. **Probe:** refit α on synthetic days amended
-    without re-rating vs correctly re-rated; **kill hours-only if α̂ moves by
-    more than the reported posterior std** (§8.7 measures 0.033–0.090 at 2–8
-    logs). If it moves less, (a) is friction for nothing and (b)'s R3 cost is
-    unjustified — take the cheap path. New user input: yes. MATH.md: a sentence
-    in §8.7/§8.10 fixing the convention chosen.
+    **Hours provenance — SETTLED 2026-08-05 as option (a)** (MATH.md §18).
+    `DrainObservationRecord.hours` stayed the α instrument (§8.7's one session
+    `H`) and the store became **one row per session**: §8.10/§11.9/§12 read a
+    task's day as the sum of its rows, which is what `workedHoursByTask` and
+    `readFinishedDays` already computed. The `(taskId, date)` upsert that
+    forced the two readings onto one number is gone — it was deleting the
+    earlier session outright, not just blurring it — so there is no amendment
+    path that attaches an old rating to new hours: every session re-asks
+    mind/body, and correcting one edits that row in place. No schema change,
+    no R8.
+    Options (b) (worked hours as a `Task` field) and (c) (a new store) are
+    therefore moot, and the α-drift probe that would have chosen between them
+    is not needed; what remains true is the **sessions-per-day bias** in
+    item 18's table, which this makes commoner and does not cause. New user
+    input: yes, but only the `/`-side form.
 12. **Prefix-aware mid-day re-plan** — "it's 2pm, you're an hour behind and you
     spent it on the wrong thing; here is the best use of the hours left". Pass
     an optional per-task already-worked vector `h` into the allocation entry
