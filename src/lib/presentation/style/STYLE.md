@@ -165,7 +165,17 @@ Read this before touching markup, classes, or anything under
   never `ty-primary`, which flips to white and vanishes on the fills.
 - Adding a theme touches four places: the catalogue in
   `business/model/theme.ts`, a `@custom-variant` in `tokens.css`, a palette
-  block in `themes.css`, and (if animated) a file under `style/scenery/`.
+  block in `themes.css`, and (if animated) a file under `style/scenery/`. A
+  scenery file that reads a seeded var needs a fifth: its own PRNG stream in
+  `presentation/utils/scenery-seed.ts` — `themeRandom(seed, '<name>')`, one per
+  theme, and the 12 streams there are exactly the 12 scenery files that read
+  one. Per-theme streams are the point: draw order only has to stay stable
+  _within_ a theme, so adding or retuning one theme can never reshuffle
+  another's arrangement. The stream key is a plain string we keep equal to the
+  theme name, so **renaming a theme is a choice**: update the string too and
+  that theme's scenery shifts for every existing seed (palette unchanged, but
+  drifts and phases move), or leave it and the key stops matching the
+  catalogue. Neither is wrong; pick one deliberately.
 - **First paint is the page's frame, not a loading string and never a blank
   screen.** Every page's readings come from IndexedDB after mount, so the server
   renders with empty stores and the four routes each answered that differently:
