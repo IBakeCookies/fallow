@@ -13,10 +13,12 @@ import type {
 	AdviceOption,
 	BudgetMarginal,
 	PlanAdvice,
+	SwitchCostPrice,
 } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 import { AXIS_BAND, isOutOfBand, type Band } from '$lib/presentation/utils/band';
+import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 export interface AdviceRowOption {
 	lever: AdviceLever;
@@ -49,6 +51,12 @@ export interface AdviceDisplay {
 	unfundedMustDo: string | null;
 	/** The budget's shadow price as a sentence (MATH.md §14.2) — always a reading. */
 	marginal: string;
+	/**
+	 * What the day's declared switch cost reserves, and what the plan would be
+	 * worth at zero and at double (MATH.md §14.3) — always a reading, and never
+	 * phrased as something to act on.
+	 */
+	switchCost: string;
 }
 
 const AXIS_LABEL: Record<AdviceAxis, () => string> = {
@@ -115,17 +123,30 @@ function formatAction(lever: AdviceLever): string {
 	});
 }
 
+/**
+ * A change in plan value, signed: "+3.1% plan value", "−6.2% plan value", or
+ * "N/A" when there is no Σ P̄ to compare against (MATH.md §14.1-3).
+ *
+ * An explicit sign both ways, because "+3.1%" and "−6.2%" have to be told apart
+ * at a glance and a bare "6.2%" reads as a gain. One signing for all three
+ * readings priced this way — the cost column, the budget's marginal and the
+ * switch cost's bracket.
+ */
+function signedPlanValue(deltaPercent: number | null): string {
+	if (deltaPercent === null) return m.na_value();
+
+	return m.advice_cost({
+		percent: `${deltaPercent > 0 ? '+' : deltaPercent < 0 ? '−' : ''}${Math.abs(deltaPercent)}`,
+	});
+}
+
 function formatCost(deltaPercent: number | null): string {
 	// Nothing to compare against — the current plan's Σ P̄ is 0 (MATH.md §14).
 	if (deltaPercent === null) return m.na_value();
 
 	if (deltaPercent === 0) return m.advice_cost_free();
 
-	// An explicit sign both ways: "+3.1%" and "−6.2%" have to be told apart at a
-	// glance, and a bare "6.2%" reads as a gain.
-	return m.advice_cost({
-		percent: `${deltaPercent > 0 ? '+' : '−'}${Math.abs(deltaPercent)}`,
-	});
+	return signedPlanValue(deltaPercent);
 }
 
 /**
@@ -152,13 +173,61 @@ function formatMarginal(marginal: BudgetMarginal): string {
 	return m.advice_marginal({
 		minutes,
 		title: marginal.recipient.title,
-		gain:
-			marginal.planValueGainPercent === null
-				? m.na_value()
-				: m.advice_cost({
-						percent: `+${marginal.planValueGainPercent}`,
-					}),
+		gain: signedPlanValue(marginal.planValueGainPercent),
 	});
+}
+
+/**
+ * What the declared switch cost is doing to today, bracketed by zero and double
+ * (MATH.md §14.3).
+ *
+ * Conditional on purpose: each alternative is what this plan would be worth *if*
+ * the declaration were that number, and never "switch faster and gain this". The
+ * user cannot decide to switch tasks more cheaply, only report how cheaply they
+ * do — which is the same reason §14 refuses to make this a lever.
+ */
+function formatSwitchCostPrice(price: SwitchCostPrice): string {
+	const declared = formatDuration(price.declared);
+	const [free, doubled] = price.alternatives;
+
+	// TWO INDEPENDENT SUPPRESSIONS, and unioning them was a defect: a plan can
+	// reserve nothing and still have a large bracket, because the declaration is
+	// *why* it funds too few tasks to switch between. Measured on a 3-task day at
+	// budget 0.5 h and s = 15 min, the model computes +41.8% at s = 0 and the
+	// unioned version printed "pays for no switching" — discarding the reading
+	// both extra solves existed to produce, on precisely the day the constant did
+	// the most damage.
+	const head =
+		price.reservedHours === 0
+			? m.advice_switch_cost_none({
+					declared,
+				})
+			: m.advice_switch_cost({
+					reserved: formatDuration(price.reservedHours),
+					share: Math.round((price.reservedShare ?? 0) * 100),
+					declared,
+				});
+
+	// The bracket is dropped only when it would say nothing, and that is read off
+	// the numbers rather than guessed from the day's shape: a null delta means the
+	// plan's Σ P̄ is 0 and there is no ratio to state (MATH.md §14.1-3), and two
+	// zero deltas mean both declarations reproduce this exact plan — which is what
+	// a day with a single task on the list looks like, as against a day the
+	// declaration starved down to one funded task, where the free arm is large.
+	if (
+		!free ||
+		!doubled ||
+		free.planValueDeltaPercent === null ||
+		doubled.planValueDeltaPercent === null ||
+		(free.planValueDeltaPercent === 0 && doubled.planValueDeltaPercent === 0)
+	)
+		return head;
+
+	return `${head} ${m.advice_switch_cost_bracket({
+		free: signedPlanValue(free.planValueDeltaPercent),
+		doubled: formatDuration(doubled.switchCost),
+		cost: signedPlanValue(doubled.planValueDeltaPercent),
+	})}`;
 }
 
 /**
@@ -222,6 +291,7 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 	return {
 		rows,
 		marginal: formatMarginal(advice.budgetMarginal),
+		switchCost: formatSwitchCostPrice(advice.switchCostPrice),
 		unfunded:
 			unfundedCount === 0
 				? null

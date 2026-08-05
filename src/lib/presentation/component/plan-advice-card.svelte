@@ -76,6 +76,12 @@
 		     rather than inside any one row's budget levers. -->
 		<p class="mt-grid-sm text-xs text-ty-silent">{advice.marginal}</p>
 
+		<!-- What the declared switch cost reserves, and what the plan would read at
+		     zero and at double (MATH.md §14.3). Same quiet register as the marginal
+		     above, and deliberately not a row in the menu below: §14 rules the switch
+		     cost a measurement of the user, so there is no lever to offer. -->
+		<p class="mt-text-xs text-xs text-ty-silent">{advice.switchCost}</p>
+
 		{#if advice.rows.length > 0}
 			<ul class="mt-grid-sm space-y-grid-sm">
 				{#each advice.rows as row (row.axis)}

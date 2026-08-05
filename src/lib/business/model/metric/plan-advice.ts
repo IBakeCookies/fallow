@@ -21,6 +21,7 @@ import {
 } from '$lib/business/model/metric/daily-metrics';
 import {
 	calculateTaskPlan,
+	calculateZenithGain,
 	isPinned,
 	type DailyQuadrant,
 } from '$lib/business/model/metric/calculation';
@@ -119,6 +120,46 @@ export interface BudgetMarginal {
 	recipient: { taskId: number; title: string } | null;
 }
 
+/** The same day and the same tasks, solved against a different declared cost. */
+export interface SwitchCostAlternative {
+	/** The declaration being tried, in hours. */
+	switchCost: number;
+	/** Σ P̄ of the plan that declaration produces. */
+	planValue: number;
+	/** Signed change against the current plan's Σ P̄, in %; null when that is 0. */
+	planValueDeltaPercent: number | null;
+}
+
+/**
+ * What today's declared switch cost is doing to today's plan (MATH.md §14.3).
+ *
+ * A DIAGNOSTIC on a declared measurement, never advice: §14 rules `switchCost`
+ * "a measurement of the user, not a choice about the day", which is exactly why
+ * it is not an `AdviceLever` — and by the same sentence why it may be
+ * instrumented. `DEFAULT_SWITCH_COST` is a literal with a citation and no other
+ * instrument anywhere, while over-declaring it is the most expensive input
+ * mistake the model can absorb.
+ */
+export interface SwitchCostPrice {
+	/** Today's declaration, in hours — the number being priced. */
+	declared: number;
+	/**
+	 * The `(m−1)·declared` hours the allocator takes off the budget before it
+	 * places a block (`zenith.ts` `bestPlanWithSwitchCost`), where `m` is the
+	 * count of tasks the plan actually funds — not the count on the list.
+	 */
+	reservedHours: number;
+	/** Those hours as a share of the budget, 0–1; null when the budget is 0. */
+	reservedShare: number | null;
+	/**
+	 * Zero and double, in that order — the bracket, not a menu: zero is the whole
+	 * price of having a switch cost at all, and double is the asymmetry check,
+	 * since an over-declared cost reserves overhead the day never spends. Empty
+	 * when the declaration is 0 and there is nothing to price.
+	 */
+	alternatives: SwitchCostAlternative[];
+}
+
 export interface PlanAdvice {
 	planValue: number;
 	quadrant: DailyQuadrant;
@@ -133,6 +174,7 @@ export interface PlanAdvice {
 	 */
 	unfundedMustDoTaskIds: number[];
 	budgetMarginal: BudgetMarginal;
+	switchCostPrice: SwitchCostPrice;
 	candidatesEvaluated: number;
 }
 
@@ -199,11 +241,12 @@ function planValueOf(metrics: DailyMetrics): number {
 }
 
 /**
- * Budget levers nearer than a minute to the current budget are the same lever,
- * not advice — `budget − planSlack` lands within float noise of the budget on a
- * plan that spends everything.
+ * Two hour-valued declarations nearer than a minute apart are the same
+ * declaration, not a distinct one to report: `budget − planSlack` lands within
+ * float noise of the budget on a plan that spends everything, and doubling a
+ * switch cost of zero lands on zero.
  */
-const MIN_BUDGET_STEP = 1 / 60;
+const MIN_HOUR_STEP = 1 / 60;
 
 /**
  * Whether Σ P̄ captures what this lever costs the user. Deferring and trimming
@@ -235,8 +278,8 @@ function buildLevers(baseline: DailyMetrics): AdviceLever[] {
 		.map((h) => Math.max(0, h))
 		.filter(
 			(h, index, all) =>
-				Math.abs(h - budget) >= MIN_BUDGET_STEP &&
-				all.findIndex((other) => Math.abs(other - h) < MIN_BUDGET_STEP) === index,
+				Math.abs(h - budget) >= MIN_HOUR_STEP &&
+				all.findIndex((other) => Math.abs(other - h) < MIN_HOUR_STEP) === index,
 		);
 
 	return [
@@ -388,6 +431,78 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 }
 
 /**
+ * Two extra solves, at a switch cost of zero and of double (MATH.md §14.3).
+ *
+ * Goes through `calculateZenithGain` and not through the allocator plus a sum
+ * over `avgProductivity`, even though Σ P̄ is a per-task sum and the two agree to
+ * within float noise. They agree only to within it: the plan comes back
+ * priority-sorted, so a hand-rolled sum adds the same terms in a different order
+ * and lands a few ulps off `planValueOf`. Reading the value from the function
+ * that defines it makes the comparison exact by construction, and the naive
+ * baseline it also builds is a linear pass against a 2ⁿ enumeration.
+ *
+ * PLAN-SCOPED, over every task and not just the open ones: it is compared
+ * against `planValueOf(baseline)`, which `calculateDailyMetrics` builds from the
+ * whole task list (MATH.md §11.8), and mixing the two scopes here would report
+ * a difference that is mostly the scope change.
+ */
+function calculateSwitchCostPrice(
+	input: DailyMetricsInput,
+	baseline: DailyMetrics,
+): SwitchCostPrice {
+	const { tasks, switchCost, pools, constants, posterior } = input;
+	const budget = baseline.budgetHours;
+	const baseValue = planValueOf(baseline);
+	// Funded, not listed: the allocator pays for the switches it actually makes,
+	// so a task the pools zeroed out costs nothing to "switch" to.
+	const funded = baseline.suggestedTasks.filter((task) => task.suggestedHours > 0).length;
+	const reservedHours = funded > 1 ? (funded - 1) * switchCost : 0;
+
+	const planValueAt = (candidate: number) =>
+		calculateZenithGain(tasks, budget, candidate, pools, constants, posterior).optimized;
+
+	return {
+		declared: switchCost,
+		reservedHours,
+		reservedShare: budget > 0 ? reservedHours / budget : null,
+		alternatives: [0, switchCost * 2]
+			.filter((candidate) => Math.abs(candidate - switchCost) >= MIN_HOUR_STEP)
+			.map((candidate) => {
+				const planValue = planValueAt(candidate);
+
+				const delta =
+					baseValue > 0 ? Math.round(((planValue - baseValue) / baseValue) * 1000) / 10 : null;
+
+				return {
+					switchCost: candidate,
+					planValue,
+					// CLAMPED TO THE DIRECTION THE OPTIMUM ALLOWS, and only that far.
+					// The exact optimum is monotone non-increasing in `s` (MATH.md §14.3):
+					// any allocation feasible at `s` is feasible at every smaller `s`, with
+					// the same pool draw and the same Σ P̄. So a lower declaration can only
+					// be worth ≥ 0 and a higher one ≤ 0, and the opposite sign is §13.3
+					// allocator suboptimality rather than anything about the day —
+					// measured to −6.5% on the free arm over inputs straight off the
+					// constraints bar's grid, which is a number no user can tell from a
+					// real one.
+					//
+					// This is NOT §14.2's floor, which would zero the doubled arm on 284 of
+					// 596 fixture alternatives and delete the one thing this reading exists
+					// to say: over-declaring is the expensive direction. Every informative
+					// value passes through untouched; only a provably impossible sign is
+					// moved, and only to 0.
+					planValueDeltaPercent:
+						delta === null
+							? null
+							: candidate < switchCost
+								? Math.max(0, delta)
+								: Math.min(0, delta),
+				};
+			}),
+	};
+}
+
+/**
  * Re-solve the day under each lever and report, per axis, the efficient menu
  * of adjustments. Costs one full solve per candidate — `activeTasks + 3` of
  * them, up to ~950 ms on a 12-task day — so call it on demand, never from a
@@ -422,6 +537,7 @@ export function suggestPlanAdjustments(
 		unfundedTaskIds: unfunded.filter((task) => !isPinned(task)).map((task) => task.id),
 		unfundedMustDoTaskIds: unfunded.filter(isPinned).map((task) => task.id),
 		budgetMarginal: calculateBudgetMarginal(input, baseline),
+		switchCostPrice: calculateSwitchCostPrice(input, baseline),
 		candidatesEvaluated: candidates.length,
 	};
 }

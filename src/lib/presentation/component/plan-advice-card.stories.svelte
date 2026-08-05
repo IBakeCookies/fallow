@@ -11,6 +11,8 @@
 		unfunded: '2 tasks get no hours in this plan.',
 		unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
 		marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+		switchCost:
+			'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -86,6 +88,7 @@
 		unfunded: null,
 		unfundedMustDo: null,
 		marginal: 'Another 15 minutes would get nothing more done.',
+		switchCost: 'At 15m a switch, this plan pays for no switching.',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -178,6 +181,16 @@
 			canvas.getByText('The next 15 minutes would go to “Tax return” · +2.4% plan value'),
 		).toBeVisible();
 
+		// The switch cost's price sits in the same quiet register as the marginal and
+		// NOT as a menu row: §14 rules it a measurement of the user, so it must never
+		// render as something to apply (MATH.md §14.3). The lever count below is what
+		// pins that it added none.
+		await expect(
+			canvas.getByText(
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+			),
+		).toHaveClass('text-ty-silent');
+
 		// A band is otherwise carried by colour alone (WCAG 1.4.1): both readings
 		// are critical, and three of the four afters read caution.
 		expect(canvas.getAllByText('(Critical)')).toHaveLength(2);
@@ -262,6 +275,7 @@
 			unfunded: null,
 			unfundedMustDo: null,
 			marginal: 'Another 15 minutes would get nothing more done.',
+			switchCost: 'At 15m a switch, this plan pays for no switching.',
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -305,6 +319,8 @@
 			unfunded: '2 tasks get no hours in this plan.',
 			unfundedMustDo: null,
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			switchCost:
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -326,6 +342,8 @@
 			unfunded: null,
 			unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			switchCost:
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
 		},
 	}}
 	play={async ({ canvas }) => {
