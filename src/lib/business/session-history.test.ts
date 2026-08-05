@@ -152,6 +152,36 @@ describe('readTitleRatings', () => {
 	it('is empty when nothing has ever been stored', async () => {
 		expect((await readTitleRatings('1999-12-31')).size).toBe(0);
 	});
+
+	// This reads all of history in one range query, so one unreadable day is the
+	// whole map's blast radius: without the sanitizer a restored backup's bad row
+	// throws, and the user loses every title they ever rated rather than one day.
+	it('recalls the readable days when a stored day is corrupt', async () => {
+		await $updateSession({
+			...session('2019-01-01'),
+			tasks: 'not an array',
+		} as unknown as DailySession);
+
+		await $updateSession(
+			session('2019-01-02', {
+				tasks: [
+					task(1, {
+						title: 'Stretch',
+						physicalDifficulty: 2,
+						mentalDifficulty: 1,
+						enjoyment: 8,
+					}),
+				],
+			}),
+		);
+
+		expect((await readTitleRatings('2026-06-10')).get('stretch')).toEqual({
+			title: 'Stretch',
+			physicalDifficulty: 2,
+			mentalDifficulty: 1,
+			enjoyment: 8,
+		});
+	});
 });
 
 describe('readModelReport', () => {
