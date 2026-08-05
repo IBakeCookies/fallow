@@ -219,7 +219,7 @@
 								aria-selected={index === active}
 								onmousedown={(e) => e.preventDefault()}
 								onclick={() => pick(suggestion)}
-								class="cursor-pointer truncate px-box-md py-box-xs {index === active
+								class="cursor-pointer break-words px-box-md py-box-xs {index === active
 									? 'bg-surface-hover'
 									: ''} hover:bg-surface-hover"
 							>

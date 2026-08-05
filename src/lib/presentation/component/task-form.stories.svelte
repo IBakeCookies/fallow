@@ -51,7 +51,7 @@
 
 	const suggestGym = (query: string) => suggestTitles(rated, query);
 
-	// More matches than the list can show at once: `max-h-56` is about seven rows
+	// More matches than the list can show at once: `max-h-56` is about five rows
 	// and `suggestTitles` caps nothing, so twelve is enough to arrow past the fold.
 	const manyRuns = latestRatingsByTitle([
 		{
@@ -72,6 +72,35 @@
 	]);
 
 	const suggestRuns = (query: string) => suggestTitles(manyRuns, query);
+
+	// Two titles that differ only after the width of the field, plus a short one
+	// as the single-line yardstick. A row that clips renders the long pair as the
+	// same words and an ellipsis, and picking one is then a guess (ROADMAP 24).
+	const sharedPrefix = [
+		'Gym',
+		'Morning gym session at the riverside club before the first meeting',
+		'Morning gym session at the riverside club before the second meeting',
+	];
+
+	const longRated = latestRatingsByTitle([
+		{
+			date: '2026-08-01',
+			tasks: sharedPrefix.map((title, index) => ({
+				id: index + 1,
+				title,
+				physicalDifficulty: 7,
+				mentalDifficulty: 3,
+				enjoyment: 5,
+				createdAt: '2026-08-01',
+				completed: false,
+			})),
+			availableHours: 4,
+			switchCost: 0.25,
+			updatedAt: 0,
+		},
+	]);
+
+	const suggestLong = (query: string) => suggestTitles(longRated, query);
 </script>
 
 <!-- The full form. The play walks the submit policy: every slider named by its
@@ -418,6 +447,41 @@
 		await expect(canvas.getByRole('listbox').scrollTop).toBeGreaterThan(0);
 	}}
 />
+
+<!-- A suggestion the user cannot read is a suggestion they cannot pick: titles
+     longer than the field wrap onto another line rather than clipping. -->
+<Story
+	name="A long title is shown whole"
+	args={{
+		suggest: fn(suggestLong),
+	}}
+	play={async ({ canvas, userEvent }) => {
+		const title = canvas.getByLabelText('Task Definition');
+
+		await userEvent.type(title, 'gym');
+
+		const [short, ...long] = canvas.getAllByRole('option');
+
+		await expect([short, ...long].map((o) => o.textContent?.trim())).toEqual(sharedPrefix);
+
+		// scrollWidth is what the text needs and clientWidth what it got, so equal
+		// means every character of the difference is on screen. The height says the
+		// premise held — these really are too long for one line at this width, and
+		// a clipped row would have ended both at the same word.
+		for (const option of long) {
+			await expect(option.scrollWidth).toBe(option.clientWidth);
+			await expect(option.clientHeight).toBeGreaterThan(short.clientHeight);
+		}
+	}}
+>
+	{#snippet template(args)}
+		<!-- The form lives in a column, not across the viewport; the default canvas
+		     is wide enough to fit these titles and would prove nothing. -->
+		<div class="max-w-sm">
+			<TaskForm {...args} />
+		</div>
+	{/snippet}
+</Story>
 
 <!-- Collapsed it is a single "+ Add Task" row, so the task list stays above the fold -->
 <Story
