@@ -270,9 +270,12 @@ function buildLevers(baseline: DailyMetrics): AdviceLever[] {
 	const budget = baseline.budgetHours;
 	// Deliberately unrounded: switch cost moves in 5-minute steps, so the slack it
 	// carries is not quarter-aligned, and rounding the trim to quarters would cut
-	// past the hours the plan actually spends — the one lever that must be free
-	// (MATH.md §14).
-	const trimmed = Math.max(0, budget - baseline.planSlackHours);
+	// past the hours the plan actually spends — the one lever that must stay
+	// FEASIBLE. Feasible, not free: `allocate` is path-dependent on `budgetBlocks`,
+	// so on a pool-bound day the re-solve lands up to −0.9% below (MATH.md §14.1-2).
+	// Clamped once, by the `.map` below — `planSlackHours` is itself floored at 0
+	// (`daily-metrics.ts`), so the subtraction cannot exceed the budget either way.
+	const trimmed = budget - baseline.planSlackHours;
 
 	const hours = [trimmed, budget - 1, budget + 1]
 		.map((h) => Math.max(0, h))
@@ -338,8 +341,10 @@ function paretoOptions(
 				},
 			};
 		})
-		// `>` and not `>=`: an Infinity reading (a zero pool with demand on it)
-		// must not count as improving on itself, which would yield NaN.
+		// `>` and not `>=` so a candidate that merely TIES the baseline is not
+		// offered as an option. The non-readings need no help from the operator:
+		// Infinity − Infinity and the zero-load NaN are both NaN, and every NaN
+		// comparison is false (MATH.md §14.1-5).
 		.filter((entry) => entry.improvement > 0)
 		.sort((a, b) => b.improvement - a.improvement || b.option.planValue - a.option.planValue);
 
@@ -505,8 +510,8 @@ function calculateSwitchCostPrice(
 /**
  * Re-solve the day under each lever and report, per axis, the efficient menu
  * of adjustments. Costs one full solve per candidate — `activeTasks + 3` of
- * them, up to ~950 ms on a 12-task day — so call it on demand, never from a
- * `$derived` (MATH.md §14).
+ * them, measured at 421 ms for a 12-task day since the solve-once change halved
+ * each one (MATH.md §14) — so call it on demand, never from a `$derived`.
  *
  * Pass `baseline` when the caller already has the current plan; it is only
  * recomputed here so the function stays usable on its own.

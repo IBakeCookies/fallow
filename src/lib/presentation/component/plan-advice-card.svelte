@@ -47,7 +47,7 @@
 
 		{#if hasError}
 			<p
-				class="mt-grid-sm rounded-lg border border-danger/20 bg-danger/5 p-box-sm text-xs text-danger"
+				class="mt-grid-sm rounded-lg border border-danger/20 bg-danger/5 p-box-sm text-xs text-danger-strong"
 			>
 				{m.advice_error()}
 			</p>

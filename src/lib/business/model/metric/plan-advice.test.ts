@@ -310,8 +310,9 @@ describe('suggestPlanAdjustments', () => {
 		expect(budgetLevers(advice)).toContain(14 - baseline.planSlackHours);
 	});
 
-	// Trimming unspendable hours changes no allocation, so it must cost nothing —
-	// the case that proves the cost figure is not a fudge.
+	// On a budget-bound day the trim changes no allocation, so it costs nothing —
+	// the case that proves the cost figure is not a fudge. It is NOT the general
+	// property: see the pool-bound day below (MATH.md §14.1-2).
 	it('prices a pure budget trim at zero plan value', () => {
 		const base = grindDay(14);
 		const baseline = calculateDailyMetrics(base);
@@ -323,6 +324,72 @@ describe('suggestPlanAdjustments', () => {
 		);
 
 		expect(trim?.planValueDeltaPercent).toBe(0);
+	});
+
+	// The counter-case, pinned from `scripts/plan-advice.probe.ts` (MATH.md
+	// §14.1-2): the trim keeps the plan FEASIBLE — same funded count, same
+	// allocated hours — but `allocate` is path-dependent on `budgetBlocks`, so a
+	// pool-bound day re-solves to a different distribution of those hours and the
+	// lever is not free. Guards against anyone "fixing" the residual with a clamp.
+	it('does not promise a free trim on a pool-bound day', () => {
+		const base = input(
+			// [mental, physical, enjoyment] per task, from the probe's sweep.
+			(
+				[
+					[9, 9, 6],
+					[3, 5, 4],
+					[1, 10, 7],
+					[0, 1, 6],
+					[0, 5, 9],
+					[9, 5, 2],
+					[8, 6, 8],
+				] as const
+			).map(([mentalDifficulty, physicalDifficulty, enjoyment], index) =>
+				makeTask({
+					id: index + 1,
+					title: `t${index + 1}`,
+					mentalDifficulty,
+					physicalDifficulty,
+					enjoyment,
+				}),
+			),
+			{
+				availableHours: 9.75,
+				pools: {
+					cognitiveHours: 4.5,
+					physicalHours: 4.5,
+				},
+			},
+		);
+
+		const baseline = calculateDailyMetrics(base);
+		const trimTo = baseline.budgetHours - baseline.planSlackHours;
+
+		const trimmed = calculateDailyMetrics({
+			...base,
+			availableHours: trimTo,
+		});
+
+		const funded = (metrics: DailyMetrics) =>
+			metrics.suggestedTasks.filter((task) => task.suggestedHours > 0).length;
+
+		const allocated = (metrics: DailyMetrics) =>
+			metrics.suggestedTasks.reduce((sum, task) => sum + task.suggestedHours, 0);
+
+		// Feasible: nothing was cut, so this is not §14.1-2's rounding defect.
+		expect(funded(trimmed)).toBe(funded(baseline));
+		expect(allocated(trimmed)).toBeCloseTo(allocated(baseline), 10);
+
+		// …and still not free.
+		expect(trimmed.zenithGain.optimized).toBeLessThan(baseline.zenithGain.optimized);
+
+		const advice = suggestPlanAdjustments(base, baseline);
+
+		const trim = everyOption(advice).find(
+			(option) => option.lever.kind === 'set-budget' && option.lever.hours === trimTo,
+		);
+
+		expect(trim!.planValueDeltaPercent).toBeLessThan(0);
 	});
 
 	it('lists the active tasks the plan funds no hours for', () => {
@@ -479,8 +546,8 @@ describe('suggestPlanAdjustments', () => {
 		);
 
 		expect(trim).toBeDefined();
-		// Unspendable hours, so the allocation — and therefore the value — is
-		// untouched. The rounded lever was not free.
+		// Unspendable hours on a day where the trim does reproduce the plan, so the
+		// value is untouched. The rounded lever was not even feasible.
 		expect(trim!.planValueDeltaPercent).toBe(0);
 	});
 

@@ -1405,6 +1405,28 @@ contradict older commit messages or comments, this log is the current truth.
    formula, constant or plan changed — measured 2.6× on a 4-task/8h solve
    (104 → 40 ms).
 
+### 2026-08-06 — §14.1-2's "free trim" was a claim, not a property
+
+1. **The budget trim is feasible, not free.** §14.1-2, `AGENTS.md` and
+   `plan-advice.ts`'s comment all said trimming to `budget − planSlack` costs
+   no Σ P̄. It does not hold: `allocate` is path-dependent on `budgetBlocks`,
+   so a pool-bound day re-solves the same hours into a worse distribution —
+   **103 of 126** fixture levers, worst **−0.9%**, none of them cutting funded
+   work (`scripts/plan-advice.probe.ts`). No formula, constant or bound moved
+   and the card's arithmetic is unchanged; the number it always printed was
+   right and the sentence describing it was wrong. The delta is deliberately
+   **not** clamped — see §14.1-2.
+2. **Two code comments were re-dated, not re-measured.** `plan-advice.ts` and
+   `daily-plan-store.svelte.ts` quoted the pre-solve-once ~950 ms for a 12-task
+   advice run; §14 has recorded 421 ms since 2026-07-28 and both now say so.
+3. **The `improvement > 0` filter's comment gave the wrong reason.** It
+   credited `>` with excluding an Infinity reading improving on itself;
+   `Infinity − Infinity` is `NaN` and every `NaN` comparison is false, so `>=`
+   would exclude it identically. Strictness excludes candidates that _tie_ the
+   baseline. §14 line "the improvement test is `<`" is correct for a direct
+   badness comparison — the code subtracts, and the comment carried the reason
+   across a form change where it stopped holding.
+
 ## 11. Metric-layer corrections (2026-07-18)
 
 ### 11.1 Scope and principle
@@ -2187,7 +2209,9 @@ it through every evaluation. See §10.)
 
 A math review of §14 as first shipped found four defects, all reproduced by a
 probe sweep of 200 random days (2–7 tasks, budget 1–12 h in 0.25 steps, switch
-cost 5–30 min in 5-min steps → 1580 axis-frontiers). All four are fixed.
+cost 5–30 min in 5-min steps → 1580 axis-frontiers). All four are fixed. The
+fifth below was found in live use the same day, off the sweep entirely — hence
+the count in the heading.
 
 §13's through-line held for a second time, and in a sharper form: every one of
 these four is invisible on the curated fixtures and obvious on the sweep. The
@@ -2244,6 +2268,31 @@ slack under 0.25 h ceils back to the budget. The card has no Apply for
 nothing to align them to; the descriptor rounds the **label** to two decimals
 and the lever stays exact. Distinctness is now the one-minute tolerance above,
 which is what the rounding had been incidentally providing against float noise.
+
+**The trim is feasible, not free** (corrected 2026-08-06). The paragraph above
+treats the trim as costless — it takes only hours the plan cannot spend, so it
+changes no allocation and pays no Σ P̄ — and `AGENTS.md` and `plan-advice.ts`
+both stated that outright as "the one lever that must be free". The premise
+holds and the conclusion does not. The same subset with exactly its blocks does
+still fit at `budget − planSlack`, but `allocate` (`zenith.ts`) is
+path-dependent on `budgetBlocks`: on a pool-blocked day `improveWithTransfers`
+starts from more headroom at the wider budget and can reach a better
+pool-feasible distribution of the **same** total hours, which the trimmed
+re-solve then cannot. Measured (`scripts/plan-advice.probe.ts`, 2026-08-06) on a
+7-task pool-bound day (pools 4.5/4.5 h): the trim loses value on **103 of 126**
+budget × switch-cost combinations, worst **−0.9%**, and on **0 of those 103**
+does the funded count or the allocated total move — the hours are all still
+there, arranged worse, which is what tells this apart from defect 2's rounding.
+It is invisible on random days — **0 of 404** trim levers over 600 seeded ones —
+the inverse of §14.1's own lesson above, and the reason the original sweep
+missed it: a random sweep and a curated fixture each hide what the other finds,
+so a claim this load-bearing needs both.
+
+The delta is **not** clamped to 0. Unlike §14.2's floor and §14.3's per-arm
+clamp, it is the Σ P̄ of a plan the allocator really would produce at that
+budget, and §14.1-3 below is the standing rule against rendering a real
+difference as costless. What changes here is the claim, not the arithmetic: the
+trim is the lever that keeps the plan **feasible**, not the lever that is free.
 
 **3. A zero-value baseline reported gains as free.** With `baseValue = 0` (a
 0 h budget, nothing funded) the guard returned `0` for every option, and the

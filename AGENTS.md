@@ -758,6 +758,28 @@ download away instead of a 500 KB file that goes stale between commits.
 Vitest has three projects: `server` (node, `*.test.ts`), `client` (real
 chromium, `*.svelte.{test,spec}.ts`), `storybook`.
 
+**Probes are committed, and they are not tests.** A test asks _does this still
+hold_ — binary, fast, green or red. A probe asks _what is true of the model over
+a large input space_ and answers with a number, which legitimately moves
+whenever the allocator changes. In the suite that is a red build carrying no
+regression, so probes live in `scripts/*.probe.ts` behind their own config
+(`vitest.probe.config.ts`, `npm run probe`) and never run in `npm test`. They
+are committed because the alternative is the failure `MATH.md` already shows:
+the sweep behind §14.1-2's "the trim is free" was thrown away, so the claim
+could not be re-checked and stayed in the document while being false.
+
+- **Seed the randomness.** A quoted number must be reproducible, not
+  re-rollable — and a curated fixture and a random sweep answer different
+  questions, so keep both (600 random days show the trim free on all 404 levers;
+  the pool-bound fixture beside them is non-free on 103 of 126).
+- **Date the number where it is quoted.** `MATH.md` already does this
+  ("Probe 2026-07-27", "measured 2026-08-04"). `scripts/` is linted but sits
+  outside `tsconfig.json`, and nothing runs a probe on a schedule, so one rots
+  quietly; the date is what tells a reader whether the figure has been re-run
+  since the code under it moved.
+- **Pin what the probe found with one fixture in the suite**, never the sweep
+  itself — §14.2's multi-gainer tie-break is pinned exactly that way.
+
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
 `e2e/` (playwright report and traces). Coverage is a number to read, not a gate
@@ -1008,9 +1030,14 @@ Each was considered and decided. Re-deciding them is churn.
 
 - **The budget levers carry unrounded hours** (MATH.md §14.1). Rounding
   `budget − planSlack` to quarter-hours trimmed past the hours the plan
-  actually spends, so the one lever that must be free stopped being free. The
-  card has no Apply for `set-budget`, so there is nothing to align the hours
-  to — the descriptor rounds the **label**, never the lever.
+  actually spends, so the trim stopped even being feasible. The card has no
+  Apply for `set-budget`, so there is nothing to align the hours to — the
+  descriptor rounds the **label**, never the lever. The trim is **feasible, not
+  free**: `allocate` is path-dependent on `budgetBlocks`, so on a pool-bound day
+  the re-solve can land up to a measured **−0.9%** below the plan it trimmed
+  (MATH.md §14.1-2, `scripts/plan-advice.probe.ts`). Do not clamp that to 0 —
+  it is a plan the allocator really produces, and §14.1-3 forbids showing a real
+  difference as costless.
 
 - **The budget's shadow price is a day-level reading, not a per-task column**
   (MATH.md §14.2). `PlanAdvice.budgetMarginal` re-solves at

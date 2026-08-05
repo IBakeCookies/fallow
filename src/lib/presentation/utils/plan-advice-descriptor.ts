@@ -17,8 +17,15 @@ import type {
 } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
-import { AXIS_BAND, isOutOfBand, type Band } from '$lib/presentation/utils/band';
+import { AXIS_BAND, energyBalanceSkew, isOutOfBand, type Band } from '$lib/presentation/utils/band';
 import { formatDuration } from '$lib/presentation/utils/duration-format';
+
+/**
+ * How many frontier options a row shows. A constant and not a parameter: the one
+ * caller has never wanted a different number, and `cap` below is written for
+ * "keep both ends", which is not what a caller passing 1 would get.
+ */
+const MAX_OPTIONS = 3;
 
 export interface AdviceRowOption {
 	lever: AdviceLever;
@@ -97,11 +104,11 @@ function readingOf(axis: AdviceAxis, value: number): { text: string; band: Band 
 
 	const text =
 		axis === 'energyBalance'
-			? value > 60
-				? m.metric_cognitive_heavy()
-				: value < 40
-					? m.metric_physical_heavy()
-					: m.metric_balanced()
+			? {
+					cognitive: m.metric_cognitive_heavy(),
+					physical: m.metric_physical_heavy(),
+					balanced: m.metric_balanced(),
+				}[energyBalanceSkew(value)]
 			: `${Math.round(value)}%`;
 
 	return {
@@ -110,16 +117,21 @@ function readingOf(axis: AdviceAxis, value: number): { text: string; band: Band 
 	};
 }
 
-function formatAction(lever: AdviceLever): string {
+function formatAction(lever: AdviceLever, locale: string): string {
 	if (lever.kind === 'defer-task')
 		return m.advice_action_defer({
 			title: lever.title,
 		});
 
 	// The lever carries unrounded hours on purpose (MATH.md §14); only the label
-	// rounds, and only to keep "6.42h" out of the card.
+	// rounds, and only to keep "6.4167h" out of the card. `maximumFractionDigits`
+	// rather than `formatDecimals`, which pads: a whole-hour lever reads "8h", not
+	// "8.00h". The locale owns the separator either way — a German card printing
+	// "6.42h" between two German dates is what `number-format.ts` exists to stop.
 	return m.advice_action_budget({
-		hours: Number(lever.hours.toFixed(2)),
+		hours: lever.hours.toLocaleString(locale, {
+			maximumFractionDigits: 2,
+		}),
 	});
 }
 
@@ -132,21 +144,26 @@ function formatAction(lever: AdviceLever): string {
  * readings priced this way — the cost column, the budget's marginal and the
  * switch cost's bracket.
  */
-function signedPlanValue(deltaPercent: number | null): string {
+function signedPlanValue(deltaPercent: number | null, locale: string): string {
 	if (deltaPercent === null) return m.na_value();
 
+	const sign = deltaPercent > 0 ? '+' : deltaPercent < 0 ? '−' : '';
+
+	const magnitude = Math.abs(deltaPercent).toLocaleString(locale, {
+		maximumFractionDigits: 1,
+	});
+
 	return m.advice_cost({
-		percent: `${deltaPercent > 0 ? '+' : deltaPercent < 0 ? '−' : ''}${Math.abs(deltaPercent)}`,
+		percent: `${sign}${magnitude}`,
 	});
 }
 
-function formatCost(deltaPercent: number | null): string {
-	// Nothing to compare against — the current plan's Σ P̄ is 0 (MATH.md §14).
-	if (deltaPercent === null) return m.na_value();
-
+function formatCost(deltaPercent: number | null, locale: string): string {
+	// A genuinely costless lever, said in words. Null falls through to
+	// `signedPlanValue`'s own N/A — the plan's Σ P̄ is 0 and there is no ratio.
 	if (deltaPercent === 0) return m.advice_cost_free();
 
-	return signedPlanValue(deltaPercent);
+	return signedPlanValue(deltaPercent, locale);
 }
 
 /**
@@ -154,7 +171,7 @@ function formatCost(deltaPercent: number | null): string {
  * same "% plan value" as the cost column — `advice_cost` spells that half — but
  * signed +, because a wider budget can only add.
  */
-function formatMarginal(marginal: BudgetMarginal): string {
+function formatMarginal(marginal: BudgetMarginal, locale: string): string {
 	const minutes = Math.round(marginal.blockHours * 60);
 
 	// Keyed on the gain as well as the recipient: the pooled heuristic can hand a
@@ -173,7 +190,7 @@ function formatMarginal(marginal: BudgetMarginal): string {
 	return m.advice_marginal({
 		minutes,
 		title: marginal.recipient.title,
-		gain: signedPlanValue(marginal.planValueGainPercent),
+		gain: signedPlanValue(marginal.planValueGainPercent, locale),
 	});
 }
 
@@ -186,8 +203,10 @@ function formatMarginal(marginal: BudgetMarginal): string {
  * user cannot decide to switch tasks more cheaply, only report how cheaply they
  * do — which is the same reason §14 refuses to make this a lever.
  */
-function formatSwitchCostPrice(price: SwitchCostPrice): string {
+function formatSwitchCostPrice(price: SwitchCostPrice, locale: string): string {
 	const declared = formatDuration(price.declared);
+	// Both arms or neither: `plan-advice.ts` drops them on the same test, |s| under
+	// a minute, so a length-1 `alternatives` does not exist (MATH.md §14.3).
 	const [free, doubled] = price.alternatives;
 
 	// TWO INDEPENDENT SUPPRESSIONS, and unioning them was a defect: a plan can
@@ -204,7 +223,9 @@ function formatSwitchCostPrice(price: SwitchCostPrice): string {
 				})
 			: m.advice_switch_cost({
 					reserved: formatDuration(price.reservedHours),
-					share: Math.round((price.reservedShare ?? 0) * 100),
+					// Non-null by the branch: the share is null only at budget 0, where
+					// the allocator funds nothing and `reservedHours` is 0 (MATH.md §14.3).
+					share: Math.round(price.reservedShare! * 100),
 					declared,
 				});
 
@@ -214,19 +235,22 @@ function formatSwitchCostPrice(price: SwitchCostPrice): string {
 	// zero deltas mean both declarations reproduce this exact plan — which is what
 	// a day with a single task on the list looks like, as against a day the
 	// declaration starved down to one funded task, where the free arm is large.
+	//
+	// One arm answers for the pair: the two deltas share a single `baseValue > 0`
+	// test in the model, so they are both null or both numbers. `doubled` is named
+	// here only to narrow the type.
 	if (
 		!free ||
 		!doubled ||
 		free.planValueDeltaPercent === null ||
-		doubled.planValueDeltaPercent === null ||
 		(free.planValueDeltaPercent === 0 && doubled.planValueDeltaPercent === 0)
 	)
 		return head;
 
 	return `${head} ${m.advice_switch_cost_bracket({
-		free: signedPlanValue(free.planValueDeltaPercent),
+		free: signedPlanValue(free.planValueDeltaPercent, locale),
 		doubled: formatDuration(doubled.switchCost),
-		cost: signedPlanValue(doubled.planValueDeltaPercent),
+		cost: signedPlanValue(doubled.planValueDeltaPercent, locale),
 	})}`;
 }
 
@@ -236,19 +260,20 @@ function formatSwitchCostPrice(price: SwitchCostPrice): string {
  * frontier to surface. Truncating from the end would drop exactly that, so drop
  * from the middle and keep both ends.
  */
-function cap(options: AdviceOption[], max: number): AdviceOption[] {
-	if (options.length <= max) return options;
+function cap(options: AdviceOption[]): AdviceOption[] {
+	if (options.length <= MAX_OPTIONS) return options;
 
-	return [...options.slice(0, max - 1), options[options.length - 1]];
+	return [...options.slice(0, MAX_OPTIONS - 1), options[options.length - 1]];
 }
 
-export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDisplay {
+/** `locale` is a BCP-47 tag — `getDateLocale()` at the call site. */
+export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDisplay {
 	const toRow = (axis: AdviceAxis, option: AdviceOption, cost: string): AdviceRowOption => {
 		const after = readingOf(axis, option.after);
 
 		return {
 			lever: option.lever,
-			action: formatAction(option.lever),
+			action: formatAction(option.lever, locale),
 			after: after.text,
 			afterBand: after.band,
 			cost,
@@ -272,8 +297,8 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 				before: before.text,
 				beforeBand: before.band,
 				options: [
-					...cap(finding.options, maxOptions).map((option) =>
-						toRow(finding.axis, option, formatCost(option.planValueDeltaPercent)),
+					...cap(finding.options).map((option) =>
+						toRow(finding.axis, option, formatCost(option.planValueDeltaPercent, locale)),
 					),
 					// Last, and priced in hours rather than plan value: Σ P̄ *rises* when
 					// the budget does, so showing that rise in the cost column would read
@@ -290,8 +315,8 @@ export function buildAdviceDisplay(advice: PlanAdvice, maxOptions = 3): AdviceDi
 
 	return {
 		rows,
-		marginal: formatMarginal(advice.budgetMarginal),
-		switchCost: formatSwitchCostPrice(advice.switchCostPrice),
+		marginal: formatMarginal(advice.budgetMarginal, locale),
+		switchCost: formatSwitchCostPrice(advice.switchCostPrice, locale),
 		unfunded:
 			unfundedCount === 0
 				? null
