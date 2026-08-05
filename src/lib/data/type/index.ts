@@ -86,7 +86,7 @@ export interface DrainObservationRecord {
 	date: string; // YYYY-MM-DD
 	taskId: number;
 	taskTitle: string;
-	hours: number; // session length worked before the rating
+	hours: number; // this SESSION's length; a day's total per task is the sum of its rows
 	cognitiveDemand: number; // wc = mentalDifficulty/10 when logged (0-1)
 	physicalDemand: number; // wp = physicalDifficulty/10 when logged (0-1)
 	mindDrain: number; // 0-10 rating of cognitive drain after the session
@@ -149,8 +149,8 @@ export interface FitSnapshotRecord {
  * both energy systems going in and coming out (0 = fresh, 10 = completely
  * spent). Feeds the energy model's recovery-rate calibration — during pure
  * rest the drain decays as e^(−r·m·g), so the pair identifies r without
- * involving the α drain rates. Unlike drain ratings there is no task and no
- * per-day upsert key: several breaks a day are normal, so records append.
+ * involving the α drain rates. Like drain ratings these append one row per
+ * logged event; unlike them there is no task to hang the row on.
  */
 export interface RestObservationRecord {
 	id?: number; // autoIncrement key

@@ -9,7 +9,7 @@ import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { Persisted, Task, DrainObservationRecord } from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
-	$updateDrainObservation: vi.fn(async () => {}),
+	$addDrainObservation: vi.fn(async () => {}),
 	$deleteDrainObservation: vi.fn(async () => {}),
 	$deleteAllDrainObservations: vi.fn(async () => {}),
 	$readAllDrainObservations: vi.fn(async () => []),
@@ -22,7 +22,7 @@ vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 	$readAllRestObservations: vi.fn(async () => []),
 }));
 
-const updateDrainMock = vi.mocked(drainObservationRepository.$updateDrainObservation);
+const addDrainMock = vi.mocked(drainObservationRepository.$addDrainObservation);
 const readAllDrainMock = vi.mocked(drainObservationRepository.$readAllDrainObservations);
 const createRestMock = vi.mocked(restObservationRepository.$createRestObservation);
 const readAllRestMock = vi.mocked(restObservationRepository.$readAllRestObservations);
@@ -81,7 +81,7 @@ describe('EnergyObservationStore', () => {
 	beforeEach(() => {
 		readAllDrainMock.mockReset().mockResolvedValue([]);
 		readAllRestMock.mockReset().mockResolvedValue([]);
-		updateDrainMock.mockReset().mockResolvedValue(undefined);
+		addDrainMock.mockReset().mockResolvedValue(undefined);
 		createRestMock.mockReset().mockResolvedValue(undefined);
 	});
 
@@ -97,7 +97,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 3, 9, 4);
 
-		expect(updateDrainMock.mock.calls[0][0]).toMatchObject({
+		expect(addDrainMock.mock.calls[0][0]).toMatchObject({
 			date: toISODate(),
 		});
 	});
@@ -114,7 +114,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 2.5, 9, 4);
 
-		expect(updateDrainMock.mock.calls[0][0]).toMatchObject({
+		expect(addDrainMock.mock.calls[0][0]).toMatchObject({
 			taskId: 1,
 			taskTitle: 'deep work',
 			hours: 2.5,
@@ -130,7 +130,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 3, 9, 4);
 
-		expect(updateDrainMock).not.toHaveBeenCalled();
+		expect(addDrainMock).not.toHaveBeenCalled();
 		expect(status.error).toBeNull();
 	});
 
@@ -147,7 +147,7 @@ describe('EnergyObservationStore', () => {
 
 	it('reports a failed write as save-failed on the banner store', async () => {
 		const { store, status } = await setup();
-		updateDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
+		addDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		await store.logDrain(1, 3, 9, 4);
 

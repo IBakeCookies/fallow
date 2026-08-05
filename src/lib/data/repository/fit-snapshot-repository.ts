@@ -11,7 +11,7 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * Callers only ever record TODAY, so a replacement is a fresher belief about the
  * day in progress — never a rewrite of a finished day's history.
  *
- * `createdAt` moves with it, unlike the drain log's upsert: that one corrects a
+ * `createdAt` moves with it, unlike a drain log's edit: that one corrects a
  * single measurement and keeps its original moment, while this records the fit
  * as it stands now.
  */

@@ -309,7 +309,7 @@ test('completing a task opens its drain rating', async ({ page }) => {
 
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
-	// The completed row keeps its 🪫 button, so the rating stays editable
+	// The completed row keeps its 🪫 button, so a second session can still be logged
 	await expect(
 		page.getByRole('button', {
 			name: 'Log end-of-session drain',
@@ -580,6 +580,55 @@ test('a changed parameter survives a reload', async ({ page }) => {
 
 // Deleting the last rating must take the calibration back to the defaults, not
 // leave a stale fit applied to the params.
+// MATH.md §18: a rating is one SESSION, so the row button always starts a new one
+// and correcting an old one goes through its ✎. Logging the correction instead
+// would count the session twice — the defect this replaced, from the other side.
+test('correcting a rating edits its row, while a second session adds one', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logDrain(page, 180, 9, 5);
+
+	await page
+		.getByRole('button', {
+			name: 'Drain ratings · 1',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Correct this drain rating',
+		})
+		.click();
+
+	// The ✎ re-opens THAT session, so the editor carries its stored values.
+	const form = page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+	const fields = form.locator('input[type="number"]');
+	await expect(fields.nth(0)).toHaveValue('180');
+	await expect(fields.nth(1)).toHaveValue('9');
+
+	await fields.nth(1).fill('6');
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	// Corrected in place: still one row, now reading M6.
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(page.getByText('M6')).toBeVisible();
+
+	// The row's own button is the other path: an empty form, and a second row.
+	await logDrain(page, 90, 7, 4);
+	await expect(page.getByText('Drain ratings · 2')).toBeVisible();
+});
+
 test('deleting the drain rating clears the calibration', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');

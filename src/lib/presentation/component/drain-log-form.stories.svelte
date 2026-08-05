@@ -88,7 +88,8 @@
 	}}
 />
 
-<!-- Re-opened on a task already rated today: amending, not starting over -->
+<!-- Re-opened from the ✎ on a stored rating: correcting THAT session, not
+     starting a new one — the row 🪫 button opens the empty form instead -->
 <Story
 	name="Amending today's rating"
 	args={{

@@ -796,9 +796,12 @@ user logs a 🪫 rating: session length `H` plus "how drained do you feel now"
 for mind and body on a 0–10 scale (a Borg CR10-style category-ratio
 instrument). The task's reservoir demands `wc, wp` are captured at logging
 time, like E/β on ⚡ flow logs, so later slider edits don't rewrite past
-measurements. Ratings are stored per task per day with upsert-on-re-log
-(typo-correction semantics), in a new IndexedDB store (`drainObservations`,
-DB v3).
+measurements. Ratings are stored **one row per session** in a new IndexedDB
+store (`drainObservations`, DB v3): `hours` is that session's `H`, and a
+task's hours for a day are the SUM of its rows. It was an upsert on
+(taskId, date) until 2026-08-05, which silently deleted a task's earlier
+session from that sum — see §18. Corrections edit the row in place and keep
+its log moment; a new log is always a new session.
 
 **The model.** A rating is read as the drained fraction of one reservoir,
 `d/10 = 1 − C(H)`, where C follows the §8.1/§8.5 law from a full reservoir:
@@ -972,10 +975,10 @@ instrument: pre/post-REST rating pairs. This section builds it.
 
 **The data signal.** Around a break, the user logs a ☕ pair: break length
 `g` plus mind and body drain ratings (0–10) going **in** and coming **out**.
-Stored in a new IndexedDB store (`restObservations`, DB v4). Unlike drain
-ratings there is no task and no per-day upsert key — several breaks a day are
-normal, so records append; corrections happen by deleting a pair from the
-calibration list.
+Stored in a new IndexedDB store (`restObservations`, DB v4). Like drain
+ratings these append one row per logged event (§18); unlike them there is no
+task to hang the row on, and corrections happen by deleting a pair from the
+calibration list rather than re-opening it.
 
 **The model.** During pure rest the §8.1/§8.5 law loses α entirely: demand 0
 gives `ρ = r·m` (with `m = restRecoveryMultiplier`), `C_eq = 1`, so the
@@ -1211,8 +1214,9 @@ the advisor takes the fitted (or hand-set) λ₀ and answers the in-day
 question: _given the work logged so far, is more work still worth it — and on
 what?_ Same instrument both ways: today's 🪫 drain logs are the day so far,
 reconstructed exactly as §8.10 will reconstruct them once the day is
-finished — one session per logged task at its observed hours, canonical
-amplitude order, breaks unknown and omitted — and priced by the same λ₀-free
+finished — one block per logged task at its observed hours (its sessions
+summed), canonical amplitude order, breaks unknown and omitted — and priced
+by the same λ₀-free
 work value `V = satiatedOutput + terminalBonus`. No new parameters, no new
 logging instrument.
 
@@ -1261,7 +1265,22 @@ declined them all.
 **Bounds of validity, stated on the card's tooltip:** the reading trusts
 today's 🪫 logs, so unlogged work reads as free time (the advisor will say
 "continue" too eagerly) and batch-logged sessions blur it — same
-partial-logging caveat as §8.10, now visible in-day. Verdicts: `continue` /
+partial-logging caveat as §8.10, now visible in-day.
+
+**One bound is specific to the forward reading** (added 2026-08-05): `growBy`
+places the probed session at the candidate's CANONICAL rank, so a candidate
+that outranks the logged work is priced AHEAD of it — on fresher reservoirs,
+with an intact warm-up, than the session it actually describes, which can
+only over-price `continue`. Kept rather than appended for two reasons.
+`StopObservation` carries no order, so the reconstructed past is itself
+canonical, not chronological — appending places the future after a fiction,
+not after the real day. And appending does not measurably help: re-running
+the probe design above (60 days × 4 λ₀ = 1465 mid-day checkpoints), canonical
+was wrong on 104 checkpoints and append-last on 103, with canonical taking
+FEWER mid-day false stops (79 vs 84) — the metric the table optimizes. The
+gap between the two conventions only opens on days §8.10 itself calls
+non-rational (a long grind on a weak, satiating task while a high-amplitude
+task sat unstarted), where it reaches 2.4×. Verdicts: `continue` /
 `stop` (strictly: continue iff best session > λ₀, so exact indifference reads
 as stop, matching §8.10's `stopped ⇒ λ₀ ≥ lo`), plus `window-full` when no
 whole 45-min step fits in what remains of the window — logged hours filled
@@ -2807,3 +2826,71 @@ buys ≤ 0.06 pp of plan value over the mean-only channel.
   τ), not fixed: the optimum is λ_δ ≈ 0.25–1 at `τ_true ≥ 0.3 h` and λ_δ ≈ 8 at
   `τ_true = 0`, and a fixed choice takes the null-case ϕ degradation above.
   Adaptivity removes that downside; it does not raise the ceiling.
+
+## 18. Drain logs are one row per SESSION, not per task-day (2026-08-05)
+
+A review of the §8.11 advisor found the defect in its input, not in its
+arithmetic.
+
+- **Before.** `$updateDrainObservation` upserted on `(taskId, date)`:
+  re-rating a task the same day replaced the record, keeping the newest
+  `hours`. Typo-correction semantics, mirroring the ⚡ flow log.
+- **The defect.** `hours` is ONE session's `H` (§8.7 fits α from
+  `d/10 = 1 − C(H)` off a full reservoir), but §8.10, §8.11 and §12 all read
+  the day's hours per task as the SUM of that task's logs —
+  `workedHoursByTask` and `readFinishedDays` both accumulate. The upsert key
+  guaranteed those accumulators could never fire twice, so a task worked in
+  two sessions kept only the last one. No value of the field served both
+  readings: entering the running total would have fed §8.7 a multi-session
+  `H` from a drained reservoir instead.
+- **Why the advisor is where it bites.** The advisor is what produces the
+  second session — it says "continue", and its tooltip says to log sessions as
+  they finish. Window 8 h, one task (difficulty 7, enjoyment 6, w = (0.8, 0.2)),
+  λ₀ = 0.5: work 3 h, log it → `continue`, 45 min, 0.667/h. Work another
+  1.5 h, log it → the stored day goes 3 h → 1.5 h, and the card reads
+  `continue` at **1.099/h** — a day that reads LESS worked, and a marginal
+  HIGHER, than an hour earlier. The true 4.5 h day prices at 0.372/h, i.e.
+  `stop`. That night's λ₀ bracket and §12's audit then score the same
+  truncated day.
+- **After.** The writer appends (`$addDrainObservation`); a task's hours for a
+  day are its rows summed, which is what `workedHoursByTask` and
+  `readFinishedDays` already computed. §8.7 is unchanged and gets cleaner
+  data — each row is one session, so the fresh-start approximation applies per
+  row as written. Correcting a rating is `$editDrainObservation` on that row
+  (the ✎ beside it in the calibration card), which keeps its original
+  `createdAt`; re-logging a correction would count the session twice, which is
+  the same defect from the other side. One reader did NOT already sum:
+  §11.9's `seedMorningReservoirs` passed one demand entry per log keyed by
+  `taskId`, and `simulateReservoirs` looks demands up by id, so two rows for
+  one task let the later row's demands re-rate the earlier session — newly
+  reachable, now keyed per row.
+
+- **What it costs.** A task worked twice a day now produces two rows where it
+  produced one, so multi-log days get commoner — and §8.7's fresh-start
+  assumption is measurably harder on those: α̂ is unbiased at one 🪫 log per
+  day and drifts +17%/+15% (cog/phys) at two, +28%/+22% at three (probe
+  2026-08-04, ROADMAP item 18). That bias is not new and the upsert did not
+  avoid it: it hid the second session instead, paying the same α cost the
+  moment two DIFFERENT tasks were rated in a day while also corrupting the
+  hours §8.10/§8.11/§12 read. The honest fix for the α side is chaining the
+  day's reservoir trajectory through every rating — §8.7's own approximation
+  list calls for a complete work log, which these rows are a necessary but not
+  a sufficient part of: they carry no session boundaries and no gaps between
+  sessions.
+
+**What the UI had to learn.** Per-session rows make two of its habits wrong.
+The 🪫 editor no longer prefills the last rating and no longer re-saves it:
+the row's button starts a session, and a ✎ on each stored rating corrects that
+one in place — without it, the typo correction the old upsert served would
+double-count the session, which is this defect from the other side. And the
+completion prompt now passes `measured: false`, because finishing a task ends
+a session that an earlier rating says nothing about; leaving it at "already
+rated today" left the commonest second session — take the advice, then tick
+the task off — unlogged.
+
+**Also in this review.** Two things were checked and deliberately left alone:
+the canonical-rank probe placement, now stated as a bound in §8.11 with the
+measurement that justifies keeping it; and the store-level split between the
+advisor's candidates and its reconstruction (§8.11), which was correct but
+untested at the only layer that decides it — now pinned with a completed task
+carrying today's hours beside an open one.
