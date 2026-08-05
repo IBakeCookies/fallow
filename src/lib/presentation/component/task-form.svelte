@@ -2,24 +2,28 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import type { TitleRating } from '$lib/business/model/title-memory';
 	import { Button } from '$lib/presentation/component/ui/button';
+	import TaskFormFields, {
+		type TaskEdit,
+	} from '$lib/presentation/component/task-form-fields.svelte';
+
+	/* Deploy a task. The three sliders and the must-do flag are the same fields the ✎
+	   editor sets — task-form-fields.svelte. What is this form's own is everything around
+	   the title: a combobox over rated history, the collapse, and a reset after submit. */
 
 	interface Props {
-		onsubmit: (task: {
-			title: string;
-			physicalDifficulty: number;
-			mentalDifficulty: number;
-			enjoyment: number;
-			mustDoToday: boolean;
-		}) => void;
+		onsubmit: (task: TaskEdit) => void;
 		/** Rated titles a part-typed one could be naming; empty until it is a query. */
 		suggest: (query: string) => TitleRating[];
 		// Collapsed, the form is a single "+ Add Task" row so the task list
 		// stays above the fold; adding happens in bursts, so it stays open
 		// once expanded until collapsed again.
 		isOpen?: boolean;
+		/** Off in the Energy Lab — see task-form-fields.svelte. Submitting still reports
+		 *  `mustDoToday: false`, which is what an unflagged task is. */
+		showMustDoToday?: boolean;
 	}
 
-	let { onsubmit, suggest, isOpen = true }: Props = $props();
+	let { onsubmit, suggest, isOpen = true, showMustDoToday = true }: Props = $props();
 
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let open = $state(isOpen);
@@ -27,7 +31,7 @@
 	// The middle of every slider: what a task is rated when nothing says otherwise.
 	const DEFAULT_RATING = 5;
 
-	const emptyDraft = () => ({
+	const emptyDraft = (): TaskEdit => ({
 		title: '',
 		physicalDifficulty: DEFAULT_RATING,
 		mentalDifficulty: DEFAULT_RATING,
@@ -146,11 +150,8 @@
 		if (!title) return;
 
 		onsubmit({
+			...draft,
 			title,
-			physicalDifficulty: draft.physicalDifficulty,
-			mentalDifficulty: draft.mentalDifficulty,
-			enjoyment: draft.enjoyment,
-			mustDoToday: draft.mustDoToday,
 		});
 
 		// The next task's rating is nobody's pick yet: leaving the flag set would let
@@ -170,8 +171,10 @@
 	</button>
 {:else}
 	<!-- Nested inside the task-list card: no own shadow/blur, it already sits on a
-	     blurred plane. -->
-	<form class="rounded-xl border border-line-soft p-box-md" onsubmit={handleSubmit}>
+	     blurred plane. `space-y` is what spaces the shared fields from the title above
+	     them, which is why they need no margin of their own: a form with room to breathe
+	     sets it wider here, and the ✎ editor squeezed into a row sets it tighter. -->
+	<form class="space-y-grid-lg rounded-xl border border-line-soft p-box-md" onsubmit={handleSubmit}>
 		<div class="flex items-start justify-between gap-grid-sm">
 			<!-- The suggestion list sits outside the label — inside it, a click on an
 			     option would also be a click on the label — and the wrapper is what it
@@ -240,64 +243,10 @@
 			</button>
 		</div>
 
-		<div class="text-sm mt-text-lg grid gap-grid-lg sm:grid-cols-3">
-			<!-- The wrapping label is what names each range input -->
-			<label class="block space-y-text-xs">
-				<span class="flex justify-between text-xs font-medium">
-					<span class="text-ty-secondary">{m.form_physical_difficulty()}</span>
-					<span class="text-ty-primary">{draft.physicalDifficulty}</span>
-				</span>
-				<input
-					type="range"
-					min="0"
-					max="10"
-					bind:value={draft.physicalDifficulty}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-body"
-				/>
-			</label>
-
-			<label class="block space-y-text-xs">
-				<span class="flex justify-between text-xs font-medium">
-					<span class="text-ty-secondary">{m.form_mental_difficulty()}</span>
-					<span class="text-ty-primary">{draft.mentalDifficulty}</span>
-				</span>
-				<input
-					type="range"
-					min="0"
-					max="10"
-					bind:value={draft.mentalDifficulty}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-mind"
-				/>
-			</label>
-
-			<label class="block space-y-text-xs">
-				<span class="flex justify-between text-xs font-medium">
-					<span class="text-ty-secondary">{m.form_enjoyment()}</span>
-					<span class="text-ty-primary">{draft.enjoyment}</span>
-				</span>
-				<input
-					type="range"
-					min="1"
-					max="10"
-					bind:value={draft.enjoyment}
-					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-brand"
-				/>
-			</label>
-		</div>
-
-		<div class="mt-text-xl flex flex-wrap items-center justify-between gap-grid-sm">
-			<label
-				class="flex items-center gap-text-xs text-xs font-medium text-ty-secondary"
-				title={m.form_must_do_today_title()}
-			>
-				<input
-					type="checkbox"
-					bind:checked={draft.mustDoToday}
-					class="size-4 appearance-auto accent-brand"
-				/>
-				{m.form_must_do_today()}
-			</label>
+		<TaskFormFields bind:draft {showMustDoToday}>
+			{#snippet footer()}
 			<Button type="submit">{m.form_deploy_task()}</Button>
-		</div>
+			{/snippet}
+		</TaskFormFields>
 	</form>
 {/if}

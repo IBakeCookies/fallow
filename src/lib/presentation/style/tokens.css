@@ -229,6 +229,15 @@
 	@apply cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4;
 }
 
+/* A row's actions, revealed by hovering the row (`group`) and always present where
+   hover does not exist. `focus-within` and not `focus`: the same utility sits on a
+   single button and on the strip that wraps several, and a focused button matches
+   its own `:focus-within`. The transition stays at the call site — a row that also
+   animates its colours needs `transition`, not `transition-opacity`. */
+@utility hover-reveal {
+	@apply opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100;
+}
+
 /* The card surface every panel in the app sits on. Padding is deliberately not
    in here — it genuinely varies per card — and the radius is the common 2xl;
    smaller cards stack `rounded-xl` after it, which wins because single-property

@@ -11,6 +11,7 @@ import {
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import * as sessionHistory from '$lib/business/session-history';
 import type { EnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+import type { Task } from '$lib/business/type';
 import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
 import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import {
@@ -251,6 +252,144 @@ describe('EnergyLabStore', () => {
 		// this task's share of the number the summary tile shows.
 		const total = [...allocated.values()].reduce((sum, hours) => sum + hours, 0);
 		expect(total).toBeCloseTo(store.plan.evaluation.workHours, 10);
+	});
+
+	/* ----- The list's order (snapshotted schedule order) ----- */
+
+	const threeTasks = (): Task[] => [
+		{
+			id: 1,
+			title: 'inbox',
+			physicalDifficulty: 1,
+			mentalDifficulty: 4,
+			enjoyment: 1,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+		{
+			id: 2,
+			title: 'deep work',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 9,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+		{
+			id: 3,
+			title: 'boxing',
+			physicalDifficulty: 9,
+			mentalDifficulty: 2,
+			enjoyment: 5,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+	];
+
+	/** First appearance per task across the evaluated blocks — the day's own order. */
+	const plannedOrder = (store: EnergyLabStore) => [
+		...new Set(
+			store.plan.evaluation.blocks
+				.map((block) => block.taskId)
+				.filter((id): id is number => id !== null),
+		),
+	];
+
+	it('reads the list in schedule order, with the unfunded behind it', async () => {
+		mockSession.tasks = threeTasks();
+		mockSession.availableHours = 2;
+
+		const store = await setup();
+		flushSync();
+
+		const scheduled = plannedOrder(store);
+		const ids = store.scheduledTasks.map((t) => t.id);
+
+		// Every task is still here — the order changes, the membership never does
+		expect([...ids].sort()).toEqual([1, 2, 3]);
+		// A two-hour day cannot fund three tasks, so this asserts both halves at once
+		expect(scheduled.length).toBeLessThan(3);
+		expect(ids.slice(0, scheduled.length)).toEqual(scheduled);
+
+		// …and the tail is the unfunded, in the store's own order
+		expect(ids.slice(scheduled.length)).toEqual(
+			mockSession.tasks.map((t) => t.id).filter((id) => !scheduled.includes(id)),
+		);
+	});
+
+	// The whole reason the order is a snapshot: every parameter edit re-optimizes, and a
+	// live sort re-ranked the rows under a slider drag — moving the row being dragged
+	// out from under the cursor.
+	it('holds the order across a re-optimization, and re-sorts only when asked', async () => {
+		mockSession.tasks = threeTasks();
+		mockSession.availableHours = 2;
+
+		const store = await setup();
+		flushSync();
+
+		const before = store.scheduledTasks.map((t) => t.id);
+
+		// A drag big enough to fund a different task
+		store.setParam('alphaCog', 2);
+		flushSync();
+
+		expect(store.scheduledTasks.map((t) => t.id)).toEqual(before);
+
+		store.resnapshotOrder();
+		flushSync();
+
+		expect(store.scheduledTasks.map((t) => t.id).slice(0, plannedOrder(store).length)).toEqual(
+			plannedOrder(store),
+		);
+	});
+
+	// `addTask` puts a new task first and the card's form sits above the list, so the
+	// front is where the user is looking for the row they just deployed.
+	it('puts a task added after the snapshot first', async () => {
+		mockSession.tasks = threeTasks();
+
+		const store = await setup();
+		flushSync();
+
+		const snapshot = store.scheduledTasks.map((t) => t.id);
+
+		mockSession.tasks = [
+			{
+				id: 4,
+				title: 'water the plants',
+				physicalDifficulty: 1,
+				mentalDifficulty: 1,
+				enjoyment: 4,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+			...mockSession.tasks,
+		];
+
+		flushSync();
+
+		// First, and the snapshot behind it is untouched — adding a task re-plans the
+		// day, and re-ranking the rows on that is the whole thing this avoids.
+		expect(store.scheduledTasks.map((t) => t.id)).toEqual([4, ...snapshot]);
+	});
+
+	// No window is no plan, so there is nothing to sort by — and the snapshot stays
+	// unfilled rather than empty, so setting one still orders the list.
+	it("keeps the store's order until there is a plan to sort by", async () => {
+		mockSession.tasks = threeTasks();
+		mockSession.availableHours = 0;
+
+		const store = await setup();
+		flushSync();
+
+		expect(store.scheduledTasks.map((t) => t.id)).toEqual([1, 2, 3]);
+
+		mockSession.availableHours = 2;
+		flushSync();
+
+		const scheduled = plannedOrder(store);
+		expect(scheduled.length).toBeGreaterThan(0);
+		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
 	});
 
 	it('reports nothing when the params read succeeds', async () => {

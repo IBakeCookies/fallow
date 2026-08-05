@@ -40,7 +40,7 @@ test('one retry click recovers both stores after a failed read', async ({ page }
 
 	await expect(retry).toBeVisible();
 	// Neither store loaded: no task for the Lab to plan, and no rating.
-	await expect(page.getByText('No open tasks for today.')).toBeVisible();
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
 
 	await setIndexedDBFailing(page, false);
 	await retry.click();
