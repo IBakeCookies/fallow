@@ -401,6 +401,8 @@
 	"energy_apply_fit_title": "Die beiden Erschöpfungsraten-Parameter auf die gefitteten Werte setzen",
 	"energy_fit_applied": "Gefittete Raten übernommen",
 	"energy_drain_log_count": "Erschöpfungs-Bewertungen · {count}",
+	"energy_edit_drain_log_aria": "Diese Bewertung korrigieren",
+	"energy_edit_drain_log_title": "Diese Session erneut im Editor öffnen — jede Bewertung ist eine Session, also hier korrigieren statt sie noch einmal zu erfassen",
 	"energy_delete_drain_log_aria": "Diese Bewertung löschen",
 	"energy_delete_drain_log_title": "Diese Bewertung aus der Kalibrierung entfernen",
 	"energy_reset_drain_logs": "Alle Bewertungen löschen",

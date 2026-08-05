@@ -7,9 +7,10 @@ import type { RestObservationRecord } from '$lib/data/type';
 import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
- * Append-only create: unlike drain ratings (one per task per day, upserted)
- * several breaks a day are normal, so every logged rest is its own record.
- * Typo correction happens by deleting the entry from the calibration list.
+ * Append-only create: several breaks a day are normal, so every logged rest is
+ * its own record — the same one-row-per-event shape drain ratings have carried
+ * since MATH.md §18, minus their task. Typo correction happens by deleting the
+ * entry from the calibration list.
  */
 export async function $createRestObservation(
 	observation: Omit<RestObservationRecord, 'id' | 'createdAt'>,

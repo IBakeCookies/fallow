@@ -401,6 +401,8 @@
 	"energy_apply_fit_title": "Set the two drain-rate parameters to the fitted values",
 	"energy_fit_applied": "Fitted rates applied",
 	"energy_drain_log_count": "Drain ratings · {count}",
+	"energy_edit_drain_log_aria": "Correct this drain rating",
+	"energy_edit_drain_log_title": "Re-open this session in the editor — each rating is one session, so correct it here rather than logging it again",
 	"energy_delete_drain_log_aria": "Delete this drain rating",
 	"energy_delete_drain_log_title": "Remove this rating from the calibration",
 	"energy_reset_drain_logs": "Delete all ratings",

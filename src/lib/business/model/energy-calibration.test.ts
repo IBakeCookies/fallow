@@ -223,6 +223,49 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 		}
 	});
 
+	// Two rows for ONE task became possible with MATH.md §18's per-session rows,
+	// and the demands go into `simulateReservoirs` keyed by id — so sharing the
+	// taskId let the later row's demands re-rate the earlier session, which is
+	// what capturing demands at logging time exists to prevent (§8.7).
+	it("keeps each session's own demands when a task is rated twice in a day", () => {
+		const twoSessions = seedMorningReservoirs(slowRecovery, [
+			drainRecord({
+				hours: 3,
+				cognitiveDemand: 0.9,
+			}),
+			drainRecord({
+				hours: 3,
+				cognitiveDemand: 0.2,
+			}),
+		]);
+
+		// The same two sessions, told apart by task, are the same day's work.
+		const twoTasks = seedMorningReservoirs(slowRecovery, [
+			drainRecord({
+				hours: 3,
+				cognitiveDemand: 0.9,
+			}),
+			drainRecord({
+				taskId: 2,
+				hours: 3,
+				cognitiveDemand: 0.2,
+			}),
+		]);
+
+		expect(twoSessions.initialCog).toBeCloseTo(twoTasks.initialCog, 12);
+
+		// ...and NOT the reading where the second row's lighter demand applies to
+		// both blocks, which is what a taskId-keyed lookup collapses to.
+		const bothLight = seedMorningReservoirs(slowRecovery, [
+			drainRecord({
+				hours: 6,
+				cognitiveDemand: 0.2,
+			}),
+		]);
+
+		expect(twoSessions.initialCog).toBeLessThan(bothLight.initialCog);
+	});
+
 	it('stays a valid level when the logs claim the whole cycle was worked', () => {
 		const seeded = seedMorningReservoirs(slowRecovery, [
 			drainRecord({

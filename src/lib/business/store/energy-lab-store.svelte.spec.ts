@@ -17,6 +17,7 @@ import {
 	adviseStop,
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
+	type StopAdvice,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
@@ -560,5 +561,179 @@ describe('EnergyLabStore', () => {
 		flushSync();
 
 		expect(store.stopAdvice).toBeNull();
+	});
+
+	/** What the recommended session is worth; the window-full verdict prices none. */
+	const marginalValue = (advice: StopAdvice | null) => {
+		if (advice === null || advice.verdict === 'window-full') {
+			throw new Error(`expected a priced verdict, got ${advice?.verdict ?? 'null'}`);
+		}
+
+		return advice.marginalValue;
+	};
+
+	// The split MATH.md §8.11 calls "the one deliberate asymmetry with §8.10" is
+	// decided HERE and nowhere else: candidates are the OPEN tasks, while every
+	// task's logged hours stay in the reconstruction. Both halves need a second
+	// task to be visible — with one task, filtering either way still reads null.
+	// The completed task is the STRONGER one on purpose (as in the model-level
+	// sibling, zenith-energy.test.ts): it wins the unfiltered max at every level
+	// of logged hours, so recommending the open one can only come through the
+	// filter. With the ratings the other way round, dropping the candidate set
+	// entirely leaves the same answer and the assertion pins nothing.
+	it("prices the open task against a completed one's logged hours", async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 9,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: true,
+			},
+			{
+				id: 2,
+				title: 'inbox',
+				physicalDifficulty: 3,
+				mentalDifficulty: 3,
+				enjoyment: 3,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-20',
+				hours: 4.5,
+			}),
+		];
+
+		flushSync();
+		const drained = store.stopAdvice;
+
+		// Only the open task is a candidate — the completed one is no advice...
+		expect(drained).toEqual(
+			adviseStop(
+				{
+					tasks: mockSession.tasks.map(toEnergyTask),
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 4.5,
+						},
+					],
+				},
+				store.params,
+				mockSession.userConstants,
+				new Set([2]),
+			),
+		);
+
+		expect(drained).toMatchObject({
+			taskId: 2,
+		});
+
+		// ...and it would have won without the filter, so the recommendation is the
+		// filter's doing and not the fixture's.
+		expect(
+			adviseStop(
+				{
+					tasks: mockSession.tasks.map(toEnergyTask),
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 4.5,
+						},
+					],
+				},
+				store.params,
+				mockSession.userConstants,
+			),
+		).toMatchObject({
+			taskId: 1,
+		});
+
+		// ...but its 4.5 h drained the reservoirs the open task must work with: take
+		// them away and the same task prices strictly higher on a fresher day.
+		mockObservations.drainObservations = [];
+		flushSync();
+
+		expect(marginalValue(store.stopAdvice)).toBeGreaterThan(marginalValue(drained));
+	});
+
+	// The defect MATH.md §18 fixed, pinned where it was VISIBLE: the writer used to
+	// upsert on (taskId, date), so a second session replaced the first and the day
+	// read short. Every layer between the rows and the advice has to sum them.
+	it("sums a task's sessions into the day so far", async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-20',
+				hours: 3,
+			}),
+			drainRecord({
+				date: '2026-07-20',
+				hours: 1.5,
+				mindDrain: 6,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.stopAdvice).toEqual(
+			adviseStop(
+				{
+					tasks: mockSession.tasks.map(toEnergyTask),
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 4.5,
+						},
+					],
+				},
+				store.params,
+				mockSession.userConstants,
+				new Set([1]),
+			),
+		);
+
+		// Not the last session alone, which is what the upsert left behind.
+		expect(store.stopAdvice).not.toEqual(
+			adviseStop(
+				{
+					tasks: mockSession.tasks.map(toEnergyTask),
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 1.5,
+						},
+					],
+				},
+				store.params,
+				mockSession.userConstants,
+				new Set([1]),
+			),
+		);
 	});
 });

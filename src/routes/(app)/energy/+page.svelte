@@ -29,6 +29,7 @@
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import type { DrainObservationRecord, Persisted } from '$lib/business/type';
 
 	const VIEW_KEY = 'zenith-energy-view';
 
@@ -125,6 +126,8 @@
 	// — a fact no single row can see.
 	let drainDraft = $state<{
 		taskId: number;
+		/** The row being corrected, or undefined when this is a new session */
+		recordId?: number;
 		minutes: number | null;
 		mind: number | null;
 		body: number | null;
@@ -147,22 +150,45 @@
 		return draft && tasks.some((t) => t.id === draft.taskId) ? draft : null;
 	});
 
-	const todaysDrainLog = (taskId: number) =>
-		drainObservations.find((o) => o.date === session.today && o.taskId === taskId);
+	// Whether the task carries a 🪫 rating for today at ALL — never "the" rating:
+	// a task worked in two sessions has two of them (MATH.md §8.7).
+	const measuredToday = (taskId: number) =>
+		drainObservations.some((o) => o.date === session.today && o.taskId === taskId);
 
 	function openDrainLog(taskId: number, source: EditorSource) {
-		const existing = todaysDrainLog(taskId);
-
 		focusDrainInput = source === 'button';
 		drainPromptedByCompletion = source === 'completion';
 
+		// Always empty, never seeded from an earlier rating: each 🪫 log describes one
+		// session (MATH.md §18), so prefilling the last one invites re-saving hours the
+		// day already counts. Correcting a rating goes through `editDrainLog` below.
 		drainDraft = {
 			taskId,
-			minutes: existing ? Math.round(existing.hours * 60) : null,
-			mind: existing?.mindDrain ?? null,
-			body: existing?.bodyDrain ?? null,
+			minutes: null,
+			mind: null,
+			body: null,
 		};
 	}
+
+	// The other way in: the ✎ on a rating in the calibration card, which re-opens THAT
+	// session in the same one editor. Only offered for today's rows whose task is still
+	// on the list, because the editor lives in the task row — a rating outlives its task
+	// (and the day it was logged on), and those stay delete-only.
+	function editDrainLog(log: Persisted<DrainObservationRecord>) {
+		focusDrainInput = true;
+		drainPromptedByCompletion = false;
+
+		drainDraft = {
+			taskId: log.taskId,
+			recordId: log.id,
+			minutes: Math.round(log.hours * 60),
+			mind: log.mindDrain,
+			body: log.bodyDrain,
+		};
+	}
+
+	const editableDrainLog = (log: Persisted<DrainObservationRecord>) =>
+		log.date === session.today && tasks.some((t) => t.id === log.taskId);
 
 	// Ticking a task off is the end of the session the 🪫 rating describes, so ask
 	// here rather than behind the hover-revealed button. The draft is page-level, one
@@ -172,8 +198,12 @@
 		const draft = liveDrainDraft;
 
 		const action = completionPromptAction({
+			// Never "already measured": ticking a task off ENDS a session, and every
+			// session gets its own row (MATH.md §18), so an earlier rating is no reason
+			// to skip the one that just finished. The ⚡ caller on `/` keeps the
+			// measured-once reading — time-to-flow is one number per day.
+			measured: false,
 			finishing: !completed,
-			measured: Boolean(todaysDrainLog(taskId)),
 			anyEditorOpen: draft !== null,
 			promptOpenForThisTask: draft?.taskId === taskId && drainPromptedByCompletion,
 		});
@@ -190,7 +220,13 @@
 	function saveDrainLog(entry: { hours: number; mind: number; body: number }) {
 		if (!drainDraft) return;
 
-		observations.logDrain(drainDraft.taskId, entry.hours, entry.mind, entry.body);
+		const { taskId, recordId } = drainDraft;
+
+		if (recordId === undefined) {
+			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
+		} else {
+			observations.editDrainLog(recordId, taskId, entry.hours, entry.mind, entry.body);
+		}
 
 		drainDraft = null;
 	}
@@ -427,7 +463,7 @@
 									enjoyment={task.enjoyment}
 									color={colors.colorOf(task.id)}
 									plannedHours={plannedFor(task.id)}
-									measured={Boolean(todaysDrainLog(task.id))}
+									measured={measuredToday(task.id)}
 									drainDraft={drainDraft?.taskId === task.id ? drainDraft : null}
 									focusDrainMinutes={focusDrainInput}
 									ontoggle={() => onCompletionChange(task.id, task.completed)}
@@ -644,6 +680,20 @@
 											<span class="text-ty-silent">{formatDuration(log.hours)}</span>
 											<span class="font-medium text-mind/90">M{log.mindDrain}</span>
 											<span class="font-medium text-body/90">B{log.bodyDrain}</span>
+											<!-- Correcting a rating, never re-logging it: a second log of the same
+											     session would count its hours twice (MATH.md §18). Only today's rows
+											     whose task is still listed, because the editor lives in that row. -->
+											{#if editableDrainLog(log)}
+												<button
+													type="button"
+													aria-label={m.energy_edit_drain_log_aria()}
+													title={m.energy_edit_drain_log_title()}
+													class="text-ty-silent transition hover:text-ty-primary"
+													onclick={() => editDrainLog(log)}
+												>
+													✎
+												</button>
+											{/if}
 											<button
 												type="button"
 												aria-label={m.energy_delete_drain_log_aria()}
