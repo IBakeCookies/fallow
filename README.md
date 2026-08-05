@@ -86,7 +86,9 @@ split. (Full derivations: [MATH.md](MATH.md).)
 ## How you use it
 
 1. Add tasks. For each, set **physical difficulty**, **mental difficulty**, and
-   **enjoyment** on 1–10 sliders.
+   **enjoyment** on 1–10 sliders. Start typing a title you have rated on an
+   earlier day and it appears in a list under the field — pick it and all three
+   sliders come back the way you last set them, still yours to adjust.
 2. Set your **available hours** for the day, and optionally tune your
    cognitive/physical capacity pools and switch cost.
 3. Fallow suggests how many hours to give each task, what order to do them in,

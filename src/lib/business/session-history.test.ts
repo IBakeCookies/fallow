@@ -1,6 +1,11 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, vi } from 'vitest';
-import { EMPTY_PLAN_AUDIT, readDaySummaries, readModelReport } from '$lib/business/session-history';
+import {
+	EMPTY_PLAN_AUDIT,
+	readDaySummaries,
+	readModelReport,
+	readTitleRatings,
+} from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $updateDrainObservation } from '$lib/data/repository/drain-observation-repository';
 import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
@@ -80,6 +85,72 @@ describe('readDaySummaries', () => {
 
 	it('is empty when nothing is stored in the range', async () => {
 		expect(await readDaySummaries('1999-01-01', '1999-12-31')).toEqual([]);
+	});
+});
+
+describe('readTitleRatings', () => {
+	it('reads every stored day up to today, so an old title is still recalled', async () => {
+		await $updateSession(
+			session('2020-03-04', {
+				tasks: [
+					task(1, {
+						title: 'Deep work',
+						physicalDifficulty: 1,
+						mentalDifficulty: 9,
+						enjoyment: 7,
+					}),
+				],
+			}),
+		);
+
+		const ratings = await readTitleRatings('2026-06-10');
+
+		expect(ratings.get('deep work')).toEqual({
+			title: 'Deep work',
+			physicalDifficulty: 1,
+			mentalDifficulty: 9,
+			enjoyment: 7,
+		});
+	});
+
+	// A day planned ahead usually carries ratings imported from an older day, so
+	// letting it win would answer with a rating the user has since replaced.
+	it('ignores days after today', async () => {
+		await $updateSession(
+			session('2026-06-09', {
+				tasks: [
+					task(1, {
+						title: 'Gym',
+						physicalDifficulty: 8,
+						mentalDifficulty: 2,
+						enjoyment: 6,
+					}),
+				],
+			}),
+		);
+
+		await $updateSession(
+			session('2026-06-11', {
+				tasks: [
+					task(1, {
+						title: 'Gym',
+						physicalDifficulty: 5,
+						mentalDifficulty: 5,
+					}),
+				],
+			}),
+		);
+
+		expect((await readTitleRatings('2026-06-10')).get('gym')).toEqual({
+			title: 'Gym',
+			physicalDifficulty: 8,
+			mentalDifficulty: 2,
+			enjoyment: 6,
+		});
+	});
+
+	it('is empty when nothing has ever been stored', async () => {
+		expect((await readTitleRatings('1999-12-31')).size).toBe(0);
 	});
 });
 

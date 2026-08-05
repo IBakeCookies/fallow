@@ -118,7 +118,11 @@
      passed as a snippet rather than imported there, per the components-take-props
      rule. -->
 {#snippet addTaskForm()}
-	<TaskForm onsubmit={(t) => session.addTask(t)} isOpen={tasks.length === 0} />
+	<TaskForm
+		onsubmit={(t) => session.addTask(t)}
+		suggest={(query) => session.suggestTitles(query)}
+		isOpen={tasks.length === 0}
+	/>
 {/snippet}
 
 <!-- The day's banner and constraints span both columns: they scope the whole

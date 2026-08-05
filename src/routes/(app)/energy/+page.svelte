@@ -314,7 +314,10 @@
 		</div>
 
 		<div class="backdrop-blur">
-			<TaskForm onsubmit={(t) => session.addTask(t)} />
+			<TaskForm
+				onsubmit={(t) => session.addTask(t)}
+				suggest={(query) => session.suggestTitles(query)}
+			/>
 		</div>
 	</div>
 {:else}
@@ -440,7 +443,11 @@
 							{/each}
 						</ul>
 						<div class="mt-text-sm">
-							<TaskForm onsubmit={(t) => session.addTask(t)} isOpen={false} />
+							<TaskForm
+								onsubmit={(t) => session.addTask(t)}
+								suggest={(query) => session.suggestTitles(query)}
+								isOpen={false}
+							/>
 						</div>
 					</div>
 					<div class="space-y-grid-lg">

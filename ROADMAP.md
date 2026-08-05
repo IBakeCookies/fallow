@@ -16,6 +16,14 @@ Phases are priority order. Item numbers are stable and cited from elsewhere
 cited and were re-cut on 2026-08-04 when items 11–23 were added. Update this
 file when an item ships or is rejected.
 
+**Prettier renumbers a contiguous ordered list to increment from its first
+number**, so an out-of-sequence item dropped into the middle of a phase is
+silently rewritten — which, since numbers are cited, collides with a real item
+elsewhere. A new item therefore starts its own list: put it after a blank line
+and a sentence of prose, the way items 11 and 24 sit apart from 1–3 and 15–18.
+After editing this file, re-run `npx prettier --write ROADMAP.md` and check the
+numbers.
+
 ## Where the headroom actually is (2026-08-04)
 
 Three readings shaped the phases below, and each is checkable in the code
@@ -28,9 +36,9 @@ today:
   input, no deadline, no task size. Item 23 is the only item that changes this,
   and it is deliberately last.
 - **Every calibration instrument lives behind `/energy`.** `logDrain` has
-  exactly one caller (`energy/+page.svelte:196`), and `readFinishedDays` skips
+  exactly one caller (`energy/+page.svelte:193`), and `readFinishedDays` skips
   any date without a 🪫 log with `hours > 0`
-  (`session-history.ts:163`, `:180`). A user who only ever opens `/` therefore
+  (`session-history.ts:180`, `:197`). A user who only ever opens `/` therefore
   contributes **zero** days to λ₀ (§8.10), the §12 audit and overnight
   carry-over (§11.9). Item 11 is the cheapest item here for that reason.
 - **The one constant the app fits is the cheapest one in the model.** §17
@@ -175,7 +183,7 @@ hours you have already spent.
 
 _Decide before 11, not a roadmap item:_ `importFromDate` / `importYesterday`
 copy every stored task — completed ones included — into fresh incomplete tasks
-with no dedupe against today's list (`session-store.svelte.ts:597-620`).
+with no dedupe against today's list (`session-store.svelte.ts:616`, `:647`).
 Re-importing a finished task as fresh is plausibly the point of "import
 yesterday"; the missing dedupe is less clearly intended. Settle which it is
 before 11 adds a second write path to the same day.
@@ -185,37 +193,81 @@ before 11 adds a second write path to the same day.
 The inversion named above, in priority order. Measured framing for the whole
 phase (400 synthetic days, 3–7 tasks, budgets {2,4,4,6,8}, real
 `calculatePooledAllocations`, scored §17-style — plan under θ̂, score under
-θ_true): ϕ off by +0.5 h on every task costs **0.074%** (the §17 anchor); one
-enjoyment point **0.052%** — _below_ the anchor that killed item 6, which kills
-every enjoyment-side idea outright; one task's mental demand off by 4 points
-**0.582%**; a pool 2× wrong **4.1–5.7%**; `switchCost` 2× too high **10.1%**;
-every slider left at 5/5/5 **5.42%**. **The constraint side and the difficulty
-side are where declared-input error costs real money; the β side is a
-re-labeling, not a loss.**
+θ_true): ϕ off by +0.5 h on **every** task costs **0.074%** (the §17 anchor);
+one enjoyment point on **one** task **0.052%**; one task's mental demand off by
+4 points **0.582%**; a pool 2× wrong **4.1–5.7%**; `switchCost` 2× too high
+**10.1%**; every slider left at 5/5/5 **5.42%**.
+**Read the scope of each figure before comparing two of them.** Item 15 excluded
+enjoyment by putting the per-point-per-task 0.052% next to the every-task ϕ
+anchor and concluding the β channel was "a re-labeling, not a loss". Measured at
+the same scope, a whole day planned with enjoyment at its default costs **2.02%
+mean / 1.16% median** — 27× the ϕ anchor, and never negative. That retraction
+does not resurrect β _inference_ (below), which loses on its own costs, but the
+value argument against it was arithmetic, not evidence. **The constraint side is
+still where the money is; the difficulty and β sides are the same order as each
+other.**
 
-15. **Title memory for the two difficulty sliders** — retype a title you have
-    used before and its P/M sliders come back instead of resetting to 5/5.
-    `$readSessionsByDateRange` already returns full `tasks: Task[]`
-    (`metric/history.ts:27-35`), so this is a `Map<normalizedTitle, latest
-{physicalDifficulty, mentalDifficulty}>` built in business and passed as a
-    prop to `task-form.svelte`, which hardcodes 5/5/5 twice (lines 26-28,
-    48-50). **Enjoyment is deliberately out of scope** at 0.024%. Title
-    normalization is a genuinely new concept — there is no `toLowerCase`
-    anywhere in `src/lib/business` today — so it gets exactly one definition
-    (R3). Ceiling measured: planning under 5/5/5 costs **5.42% mean / 4.72%
-    median with 98% of days moved**, 73× the ϕ anchor, and systematic per
-    re-typed title rather than noisy; realized value is that ceiling ×
-    P(default left) × recurrence share. **Probe:** over real sessions, the
-    share of tasks whose normalized title repeats **and** whose P/M sit at
-    exactly 5/5 — **kill if recurring titles are already hand-rated**, because
-    the ceiling is then unreachable. No store, no schema, no formula, and it
-    _removes_ an input rather than adding one.
+15. ~~**Title memory for the task sliders**~~ — SHIPPED 2026-08-05 together with
+    item 24, which is the surface it ships behind. `normalizeTitle` and
+    `latestRatingsByTitle` (`business/model/title-memory.ts`) fold every stored day
+    into `Map<normalizedTitle, {title, physicalDifficulty, mentalDifficulty,
+enjoyment}>`; `readTitleRatings(today)` reads it once at boot and
+    `SessionStore.suggestTitles` answers the add-task form. No store, no schema, no
+    formula. **The fold walks each day's tasks backwards**, which a review caught:
+    days sort ascending, but within a day `tasks` is newest-first — every writer in
+    `SessionStore` prepends — so array order handed a title used twice in one day the
+    rating the user had already superseded. Reversed rather than sorted by `id`,
+    because an import assigns ids ascending across a batch it prepends as a block.
+    The test that should have caught it was pinning array position instead: its
+    fixture was written in an order the store cannot produce.
+    **Nothing infers which title the user means.** Two versions of this were built
+    before the shipped one, and both failed the same way: they moved the sliders
+    while the user was still typing. Applying a rating once per title and never
+    taking it back deployed `Gym session notes` at `gym session`'s 8/2, because
+    typing walks through every prefix and the recall fires on the way past.
+    Withdrawing it again on every keystroke fixed that and cost a per-slider
+    ownership flag to stop the memory speaking over a slider the user had dragged —
+    two mechanisms, both guessing. The pick in item 24 has neither, and the sliders
+    move only when the user names the title they mean.
+    **Two corrections to this item's own numbers, both the same unit error.** The
+    5.42% it quoted is all _three_ sliders at 5/5/5, so as first shipped — two
+    sliders — it overstated its reach 2.3×. Then excluding enjoyment was justified
+    with "0.052% per point", which is one point on **one** task, against a ϕ
+    anchor measured as +0.5 h on **every** task. Measured properly through the
+    real `calculateTaskPlan` (400 days, 3–7 tasks, budgets {2,4,4,6,8},
+    §17-style):
+
+    | planned under                  |  mean | median |   p90 | days moved | days it helped |
+    | ------------------------------ | ----: | -----: | ----: | ---------: | -------------: |
+    | P/M at 5/5, enjoyment true     | 2.39% |  2.02% | 6.17% |      91.8% |      19 of 400 |
+    | enjoyment at 5, P/M true       | 2.02% |  1.16% | 4.90% |      90.8% |              0 |
+    | all three at 5/5/5             | 4.59% |  3.97% | 9.56% |      97.5% |      16 of 400 |
+    | one task, enjoyment off by one | 0.06% |      0 | 0.18% |      26.3% |       1 of 400 |
+
+    The last row reproduces the 0.052% that was used to exclude the third slider;
+    the second row is what excluding it actually cost. Enjoyment is 85% of the
+    difficulties by mean and the only arm that is never negative.
+    **The stated probe was not runnable and the item shipped without it.** Its
+    gate — the share of repeating titles already hand-rated — is a question about
+    habit, answerable only from real sessions, and there is no exported history on
+    the author's machine; the fixture generator is disqualified for exactly this
+    class of question (see above). So the ceiling is confirmed and the realized
+    fraction of it is still unmeasured: run the gate the moment a backup exists,
+    and if recurring titles turn out to be hand-rated already, the honest move is
+    to delete this, not to keep it.
+    Declared limits, none of them worth code today: the map is a **boot snapshot**,
+    so a title rated within one session is not suggested until the next load, and
+    it stays the boot day's answer while another date is viewed; the **task editor
+    deliberately offers no suggestions** — renaming a task the user already rated
+    must not rewrite its ratings; and the whole-history read measured 47 ms at 3651
+    stored days, unguarded by any budget in the repo.
+
 16. **Budget prefill for unseen days** — a new day opens with the hours that
     weekday usually has, overwritable, instead of 0. Seed `#availableHours`
     from the range read already available: same-weekday median → overall median
     → 0. **The trap that makes this bigger than it looks:** the autosave dirty
     test is literally `this.#availableHours > 0`
-    (`session-store.svelte.ts:212`), whose documented purpose is that pristine
+    (`session-store.svelte.ts:220`), whose documented purpose is that pristine
     never-saved days are skipped so browsing ahead creates no empty records. A
     nonzero prefill therefore writes a phantom session for every future day the
     user merely looks at — which then appears in the calendar, in `DaySummary`,
@@ -228,7 +280,7 @@ re-labeling, not a loss.**
     share of prefills overwritten; **kill if MAE > ~1.5 h**, and then just fix
     the auto-open. Today 100% of unseen days read budget 0, so all four
     headline tiles read N/A, the constraints bar auto-opens
-    (`+page.svelte:163`), and a deferred task lands in an unplanned day. Not a
+    (`+page.svelte:167`), and a deferred task lands in an unplanned day. Not a
     precision claim — it is the instrument item 21 needs.
 17. ~~**Switch-cost price diagnostic**~~ — SHIPPED 2026-08-04 (MATH.md §14.3):
     `switchCostPrice` on `PlanAdvice`, two extra solves at `s = 0` and `s = 2s`
@@ -287,7 +339,7 @@ re-labeling, not a loss.**
     the map ships.
     And it must be a **prefill of the per-day session
     field, never a change to `DEFAULT_CAPACITY_POOLS`**: that constant is the
-    fallback for every stored day with no pools (`session-history.ts:239`,
+    fallback for every stored day with no pools (`session-history.ts:256`,
     `history.ts:73`), so changing it re-scores history against §12.1's settled
     "a past day's fit is what the user had", and prefilling is also what "a fit
     never writes params silently" requires. **Probe:** the pool has no
@@ -300,6 +352,75 @@ re-labeling, not a loss.**
     MATH.md section required (the map, the pole, the clamp, and the
     sessions-per-day bias). **Prereq:** enough 🪫 logs for a credible α, i.e.
     item 11 in practice.
+
+Item 15 shipped as one feature with the item below, which is how its ratings
+reach the form at all:
+
+24. ~~**Title suggestions as you type**~~ — SHIPPED 2026-08-05, and it replaced
+    item 15's first two mechanisms rather than adding to them. `suggestTitles`
+    (`business/model/title-memory.ts`) answers a part-typed title with every rated
+    title it could be naming; `SessionStore.suggestTitles` hands that to the
+    add-task form, which shows them under the field. The history read is not
+    awaited — the day must not wait on it — so the Map it lands in is `$state`:
+    the form is on screen and typed into while the read is in flight, and a list
+    that asked before it landed has to see it arrive. **Picking one fills the title
+    and moves all three sliders to what that title was last rated, and the user
+    can then drag any of them.** Typing past the list and picking nothing leaves
+    the sliders where they are — a task nobody picked is rated by hand.
+    **It is smaller than what it replaced.** The recall fires on one explicit
+    action instead of on every keystroke, so there is no prefix to walk through,
+    nothing to withdraw, and no per-slider ownership flag; the form lost both, and
+    the two stories that existed only to pin them. One rule survived contact with
+    its own story: **emptying the field returns the sliders to 5/5/5 — but only
+    when a pick put the numbers there** (`fromPick`). Both halves are a failure
+    somebody hit: without the reset, clearing a picked title and typing an
+    unrelated task deploys it wearing the picked rating; without the guard, a
+    typo in a hand-rated title costs the user the drags they made themselves, and
+    the flag has to clear on submit or the _next_ task's drags are lost the same
+    way. Editing short of empty keeps a pick on purpose — a renamed task is still
+    that task, and its three numbers are on screen. **One case is knowingly
+    unguarded**: selecting the whole field and typing over it never passes through
+    empty, so a pick's rating survives the replacement. It is rare, and every rule
+    that would catch it (reset when the field diverges from the picked title, or
+    stops being a prefix of it) breaks appending to a picked title, which is the
+    ordinary reason to keep typing after a pick. If it shows up in real use the fix
+    is to make the carried rating legible ("recalled from _Gym_" until a drag), not
+    to guess harder.
+    **Hand-rolled, and the library was read before it was refused.** `bits-ui` is
+    already a dependency and has a combobox, and the repo's `ui/` directory is
+    shadcn-svelte ports of exactly those primitives — but its combobox is
+    Select-shaped and this field is a free-text input that sometimes matches:
+    `Combobox.Input` strips `value` from its own attributes and drives it from the
+    root's `inputValue`, so `draft.title` would have two owners (R3); its
+    `onkeydown` calls `preventDefault()` on Enter and opens the menu instead, which
+    takes the form's only keyboard submit; and its `oninput` does not open the menu
+    at all, so `open` had to be driven here regardless. What shipped is the ARIA
+    1.2 combobox pattern inline in `task-form.svelte` — `role="combobox"` with
+    `aria-expanded`/`aria-controls`/`aria-activedescendant` over a `role="listbox"`
+    of `role="option"` rows, arrow keys and Enter and Escape on the input, and
+    `mousedown` prevented so a click does not blur the field before it picks. Three
+    of those details are the pattern's and were missing until a review asked for
+    them: an arrow key **reopens** a list that Escape or a blur closed and highlights
+    the end it was opened from (otherwise editing the field is the only way back, and
+    reaching a suggestion cost two keystrokes), Escape, a pick and a blur all **drop
+    the highlight** with the list it names (otherwise `aria-activedescendant` outlives
+    its element), and the highlighted row is **scrolled into view** — the list is
+    uncapped, so it can be taller than the box that shows it, and a highlight below
+    the fold is one nobody can see. The scroll is an `$effect` on `active` rather than
+    a call beside each assignment, because a reopen highlights a row whose `<li>` does
+    not exist until the DOM has been patched.
+    **Two characters, not three, and it is a judgement.** The match is a substring,
+    so one character finds most of a history and the list would cover the sliders
+    on every new task; two is the first length that discriminates and is shorter
+    than the shortest titles anyone writes (`Gym`, `Run`). Matching is substring
+    rather than prefix because the word the user reaches for is often not the first
+    one, ordering is alphabetical, and the list is **uncapped** — any ranking would
+    be invented and a cap would hide rated titles with no way to know.
+    **Item 15's gate still has not been run** (no exported history exists), and it
+    now gates both: if recurring titles turn out to be hand-rated already, this
+    goes with it. The one question this item adds — whether a real history holds so
+    many titles that alphabetical is unreadable — is answerable at the same moment,
+    from the same backup.
 
 ## Phase 3 — calibration trust
 
@@ -346,9 +467,9 @@ present:
     ±1σ band from `phiPredictionStd` (`zenith.ts:1756` — exported, documented
     "intended for UI", and consumed by nothing outside its own test).
     Whole-history flow is already read once in `readModelReport`
-    (`session-history.ts:437`), so this adds no read. **Two corrections that
+    (`session-history.ts:453`), so this adds no read. **Two corrections that
     are easy to get wrong:** each backtest fit must pass `ageDays` relative to
-    _that log's_ date, not today (`session-history.ts:103-110` bases it on
+    _that log's_ date, not today (`session-history.ts:106-113` bases it on
     today, and §5.2 half-life-weights the ridge), or every historical fit is
     weighted with the future's clock; and the retained residuals should be
     grouped by `taskTitle` to report **between-title variance against
@@ -374,7 +495,7 @@ present:
     funds this task" is a lookup over candidates already in hand; pool-bound is
     detectable by comparing the plan's `Σ hours·weight` against the declared
     pool with no solve at all; and the budget branch already ships as
-    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:527`) today says
+    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:537`) today says
     _that_ and never _why_, and §14.2 concedes that a bound pool, a task near
     `T*`, and a block landing on finished work "look identical from one solve".
     **Strip all prescription** from the pool and switch branches — §14 is
@@ -392,7 +513,7 @@ present:
    mechanism is unavailable: `seedMorningReservoirs` receives only
    `{id, cognitiveDemand, physicalDemand}` (`energy-calibration.ts:150-160`),
    while per-task output needs `curves.get(taskId)` built from difficulty
-   **and enjoyment** (`zenith-energy.ts:538-544`), which
+   **and enjoyment** (`zenith-energy.ts:535-537`), which
    `DrainObservationRecord` does not carry. It is not "the same pass" — it
    needs a yesterday-session read, cross-day task identity, and a curve
    rebuild, and it puts a second uninstrumented knob (the half-life) on top of
@@ -422,7 +543,7 @@ What survives of the multi-day idea is two readings, not a solver:
     moments** — item 16 is what makes it non-empty. **Prereq:** 16.
 22. **Chronic-slide badge** — "this has been on your list 6 days".
     `moveTaskToTomorrow` copies `createdAt` verbatim
-    (`session-store.svelte.ts:536-548`), `Task.createdAt` is an ISO date string
+    (`session-store.svelte.ts:568`), `Task.createdAt` is an ISO date string
     already validated on read (`persisted.ts:91`), and nothing in presentation
     renders it — so slide age is `today − task.createdAt`: no title matching,
     no new read, no new concept. Cross with `unfundedTaskIds` for the "never
@@ -501,9 +622,13 @@ have to be re-derived:
   there is an instrument. Highest cost in the batch (R8 + a timer store + a
   backup bump) for no plan-value number.
 - **Enjoyment inference of any kind** (revealed dread, completion-order
-  regression). The whole β channel measures **0.052% per point** — below the
-  0.074% ϕ anchor that item 6 was rejected for. A perfect β oracle is worth
-  less than the thing already declined.
+  regression). **The figure this was rejected on was mis-scoped** (see the phase
+  framing): 0.052% is one point on one task, not the channel. A β oracle is worth
+  up to the 2.02% that defaulting enjoyment costs — for users who leave it
+  defaulted, which item 15 now handles for any title they have rated before. What
+  survives without arithmetic help: there is no instrument for enjoyment, the
+  mapping from behaviour to β would be invented, and the user can simply move the
+  slider. Re-decide on those if it is ever re-opened, not on the anchor.
 - **A budget-realization ratio ρ as a fit or a prior.** Unidentifiable:
   worked hours come only from opt-in 🪫 logs, so ρ conflates over-declaration,
   under-logging, and §13.6's dual meaning of `availableHours`. At most one

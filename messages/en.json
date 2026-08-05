@@ -66,6 +66,7 @@
 	"form_add_task": "+ Add Task",
 	"form_task_definition": "Task Definition",
 	"form_task_placeholder": "e.g., Boxing training",
+	"form_title_suggestions": "Titles you have rated before",
 	"form_collapse": "Collapse task form",
 	"form_collapse_title": "Collapse",
 	"form_physical_difficulty": "Physical Diff",

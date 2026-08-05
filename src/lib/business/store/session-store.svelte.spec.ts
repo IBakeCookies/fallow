@@ -3,6 +3,7 @@ import { render, cleanup } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
 import Harness from '$lib/business/store/session-store.test-harness.svelte';
 import { mockPage } from '$lib/business/store/session-store.test-utils.svelte';
+import * as sessionHistory from '$lib/business/session-history';
 import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
@@ -10,9 +11,11 @@ import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte
 import { addDays } from '$lib/business/utils/date';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
+import type { TitleRating } from '$lib/business/model/title-memory';
 
 vi.mock('$lib/business/session-history', () => ({
 	initializeStorage: vi.fn(async () => {}),
+	readTitleRatings: vi.fn(async () => new Map()),
 }));
 
 vi.mock('$lib/data/repository/session-repository', () => ({
@@ -34,6 +37,7 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$readAllFlowObservations: vi.fn(async () => []),
 }));
 
+const readTitleRatingsMock = vi.mocked(sessionHistory.readTitleRatings);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
@@ -643,5 +647,141 @@ describe('SessionStore persistence', () => {
 
 		window.dispatchEvent(new Event('focus')); // roll the shared clock back
 		flushSync();
+	});
+});
+
+describe('SessionStore title memory', () => {
+	beforeEach(() => {
+		mockPage.url = new URL('http://localhost/');
+		// The call log is what the date-scoping test reads, and `mount()` deliberately
+		// does not clear it — so without this that test could pass on a call another
+		// test made, and only fail for its own reason while it happens to run first.
+		readTitleRatingsMock.mockClear();
+	});
+
+	afterEach(() => {
+		readTitleRatingsMock.mockImplementation(async () => new Map());
+	});
+
+	/** Mount without clearing the boot calls: the read itself is under test here. */
+	function mount(): { store: SessionStore; status: StorageStatusStore } {
+		let store!: SessionStore;
+		let status!: StorageStatusStore;
+
+		render(Harness, {
+			onstore: (s: SessionStore) => (store = s),
+			onstatus: (s: StorageStatusStore) => (status = s),
+		});
+
+		return {
+			store,
+			status,
+		};
+	}
+
+	// The viewed day, not the live one, is what a bug here would read: a future
+	// plan's imported 5/5 is a later day than today, and latest day wins.
+	it('reads the ratings against today even while a future day is viewed', async () => {
+		mockPage.url = new URL('http://localhost/?date=2099-01-01');
+
+		const { store } = mount();
+
+		await vi.waitFor(() => expect(readTitleRatingsMock).toHaveBeenCalled());
+
+		expect(store.selectedDate).toBe('2099-01-01');
+		expect(readTitleRatingsMock).toHaveBeenCalledWith(store.today);
+		expect(readTitleRatingsMock).not.toHaveBeenCalledWith('2099-01-01');
+	});
+
+	it('suggests the rated titles a part-typed one could be', async () => {
+		readTitleRatingsMock.mockResolvedValue(
+			new Map([
+				[
+					'gym session',
+					{
+						title: 'Gym session',
+						physicalDifficulty: 8,
+						mentalDifficulty: 2,
+						enjoyment: 3,
+					},
+				],
+			]),
+		);
+
+		const { store } = mount();
+
+		await vi.waitFor(() =>
+			expect(store.suggestTitles('  GYM ')).toEqual([
+				{
+					title: 'Gym session',
+					physicalDifficulty: 8,
+					mentalDifficulty: 2,
+					enjoyment: 3,
+				},
+			]),
+		);
+
+		// Nothing this could be, and nothing to search on yet
+		expect(store.suggestTitles('pilates')).toEqual([]);
+		expect(store.suggestTitles('g')).toEqual([]);
+	});
+
+	/*
+	 * The read is not awaited — `isLoading` is already false while it is in flight,
+	 * so the form is on screen and being typed into. A subscriber that asked before
+	 * the history landed has to see it arrive; polling `suggestTitles` in a waitFor
+	 * cannot tell that apart from a field nothing ever invalidates.
+	 */
+	it('lets a suggestion list that already asked see the history land', async () => {
+		let land!: (ratings: Map<string, TitleRating>) => void;
+
+		readTitleRatingsMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+
+		const { store } = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		const answers: number[] = [];
+
+		const stop = $effect.root(() => {
+			$effect(() => void answers.push(store.suggestTitles('gym').length));
+		});
+
+		flushSync();
+		expect(answers).toEqual([0]); // asked, and answered from an empty history
+
+		land(
+			new Map([
+				[
+					'gym session',
+					{
+						title: 'Gym session',
+						physicalDifficulty: 8,
+						mentalDifficulty: 2,
+						enjoyment: 3,
+					},
+				],
+			]),
+		);
+
+		await vi.waitFor(() => {
+			flushSync();
+			expect(answers.at(-1)).toBe(1);
+		});
+
+		stop();
+	});
+
+	// The form falling back to 5/5 is the state the app shipped in for a year;
+	// raising the banner over it would tell the user their day failed to load.
+	it('leaves the banner clear when the ratings read fails', async () => {
+		readTitleRatingsMock.mockRejectedValue(new Error('IndexedDB unavailable'));
+
+		const { store, status } = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		expect(status.error).toBeNull();
+		expect(store.suggestTitles('gym')).toEqual([]);
 	});
 });

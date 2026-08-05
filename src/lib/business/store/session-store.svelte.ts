@@ -20,7 +20,8 @@ import {
 	sanitizeRoutines,
 	sanitizeSession,
 } from '$lib/business/model/persisted';
-import { initializeStorage } from '$lib/business/session-history';
+import { initializeStorage, readTitleRatings } from '$lib/business/session-history';
+import { suggestTitles, type TitleRating } from '$lib/business/model/title-memory';
 import { getEffectiveDifficulty, isPinned } from '$lib/business/model/metric/calculation';
 import {
 	DEFAULT_SWITCH_COST,
@@ -96,6 +97,13 @@ export class SessionStore {
 	#yesterdaySession = $state<DailySession | null>(null);
 	#routines = $state<SavedRoutine[]>([]);
 	#flowObservations = $state<Persisted<FlowObservationRecord>[]>([]);
+	// `$state` but not a SvelteMap: it is replaced wholesale when the read lands and
+	// never mutated, so tracking the reference is the whole of it. Tracking it at all
+	// matters because the read is not awaited — the form is on screen and typed into
+	// while it is still in flight, and a plain field would leave a list that had
+	// already asked showing nothing until the next keystroke.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- read-only lookup, replaced not mutated
+	#titleRatings = $state(new Map<string, TitleRating>());
 
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
@@ -253,6 +261,10 @@ export class SessionStore {
 			this.#routines = await this.#readRoutines();
 			this.#flowObservations = await this.#readFlowObservations();
 			await this.#loadSession(this.#selectedDate);
+
+			// Not awaited: it reads the whole history to prefill a form the user has
+			// not opened yet, and the day must not wait on it.
+			this.#readTitleRatings();
 		} catch (e) {
 			logError('Failed to load from IndexedDB', e);
 			this.#reporter.report('load-failed');
@@ -274,6 +286,16 @@ export class SessionStore {
 		return sanitizeSession(await sessionRepository.$readSessionByDate(date));
 	}
 
+	// What each title was last rated, for the add-task form's suggestions. Its own
+	// failure surface: the form falls back to its 5/5/5 defaults, which is what it
+	// did before this existed — so a failure is logged and never bannered. The
+	// banner's Retry does re-run it, via `#boot`, if it is raised for another read.
+	#readTitleRatings() {
+		readTitleRatings(this.#today)
+			.then((ratings) => (this.#titleRatings = ratings))
+			.catch((e) => logError('Failed to load title ratings', e));
+	}
+
 	// Routine tasks are imported straight into the live plan, so their numbers
 	// get the same keep-and-clamp as session tasks (AGENTS.md R4).
 	async #readRoutines(): Promise<SavedRoutine[]> {
@@ -283,6 +305,11 @@ export class SessionStore {
 	/** Re-run the initial read — registered as the banner's retry action. */
 	retryLoad() {
 		this.#boot();
+	}
+
+	/** Rated titles a part-typed one could be naming; empty until it is a query. */
+	suggestTitles(query: string): TitleRating[] {
+		return suggestTitles(this.#titleRatings, query);
 	}
 
 	async #loadSession(date: string) {
