@@ -185,6 +185,42 @@ adherence audit each had their own "hours per task, restricted to the day's
 tasks" join — free to disagree about what the user actually worked, while
 auditing each other.
 
+The two task screens are the same rule in the UI. `/` and `/energy` render the
+same day's list, and everything they were free to disagree about had drifted:
+the card around the list, where the add-task form sat (top on one, bottom on
+the other — plus a second form in the Lab's empty state, which replaced itself
+with a collapsed one the moment it took the first task, leaving no field on
+screen), the rule between rows, and the ✎ editor, which only `/` had, so the
+Lab could not rename a task at all. Four components hold what the two screens
+say the same way now:
+
+- `task-list-card.svelte` — the card, the heading, the form above the list, the
+  empty state, and the rule between rows (`divide-y`, so neither screen
+  decides how its own list is separated).
+- `task-row-shell.svelte` — the row's frame and hover surface, the completion
+  checkbox, the title, the `P · M · E` line, ✎ and ✕, and the slot the editors
+  open in. Each screen adds one action of its own (⚡ / 🪫) through the
+  `actions` snippet and its readings through `lead` / `meta` / `trailing`.
+- `task-edit-form.svelte` — the editor, on both screens.
+- `task-form-fields.svelte` — the fields both task forms set: the three model
+  input sliders (one loop over one table, so their labels, minimums and accents
+  are defined once) and the must-do flag, in the row the submit buttons sit in.
+  `TaskEdit` — the five fields a form can set — is this component's type, since
+  adding a task and re-tuning one emit the same thing. The forms are otherwise
+  not each other: `task-form.svelte` is a title combobox over rated history
+  with a collapse and a reset, `task-edit-form.svelte` is a plain title input,
+  which is ~150 lines of script the editor has no counterpart for. Do not push
+  the title or the frame in here to make them look like one component; the
+  callers keep both, so each frame and each field is defined once, whole, and
+  the caller's own `space-y-*` is what sets the form's density.
+
+What is left in `task-item.svelte` and `energy-task-row.svelte` is one
+screen's reading of the task: priority, allocation, run order and T* on `/`,
+the schedule's hue and hours in the Lab. That is two readings of one task, not
+one thing duplicated — and it is the only reason there are two components. If
+the readings ever converge, merge the two callers; do not give the shell a mode
+flag.
+
 If you catch yourself writing "mirrors", "same as", or "keep in sync with" in
 a comment, export the thing instead.
 
@@ -881,6 +917,32 @@ Each was considered and decided. Re-deciding them is churn.
   difference: energy funds 2.05 tasks/day vs classic 3.88 and **never more**
   (0/300 days), overlapping on composition 0.61 and agreeing on the funded set
   16% of the time. Classic spreads, energy concentrates. Keep both routes.
+
+- **The Lab's task list reads in schedule order, snapshotted per visit**
+  (settled 2026-08-05). Sorting it live is the obvious implementation and it is
+  wrong: every parameter edit re-optimizes, so the rows re-ranked mid-drag and
+  moved the row being dragged out from under the cursor. The page calls
+  `lab.resnapshotOrder()` from its `onMount` — first paint and every
+  re-navigation — and `#displayOrder` holds until then. Only positions freeze:
+  every number in a row stays live, so a stale order never shows a stale
+  reading. The snapshot is the **whole** day's order — scheduled tasks first,
+  then the ones the plan funded nothing, in the store's own order — so "has no
+  position" means exactly one thing: added since the snapshot. Those go to the
+  front, because `addTask` puts a new task first and the card's form is above
+  the list, so the front is where the user looks for the row they just
+  deployed. A day with no window has no blocks to sort by, so the snapshot
+  stays unfilled and the list reads in the store's order until one is set.
+
+- **The Lab's row reads the three model inputs, it does not slide them**
+  (settled 2026-08-06). They were live sliders — a second line on every row — on
+  the theory that the Lab is where you watch the schedule react. It is, but to
+  the params panel beside the list: `P`/`M`/`E` are a definition the user sets
+  once when deploying a task, and the form already suggests them from history
+  (ROADMAP item 24). So they read as text, exactly as `/` spells them, and ✎
+  re-tunes them. The must-do checkbox is hidden in both of the Lab's forms
+  (`showMustDoToday={false}`) because `isPinned` is read by the plan advisor and
+  by nothing in this mode — the seeded value still round-trips, so an edit here
+  cannot clear a flag set there.
 
 - **Run order stays `calculateInterleavedOrder`'s nature alternation** (settled
   2026-07-29, MATH.md §16). `Σ P̄` is order-invariant, so only the energy model

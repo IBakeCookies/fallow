@@ -55,12 +55,18 @@ async function logRest(
 // shared session like the main page's does.
 test('an empty day offers the task form, and deploying one reveals the Lab', async ({ page }) => {
 	await page.goto('/energy');
-	await expect(page.getByText('No open tasks for today.')).toBeVisible();
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
 
 	await addTask(page, 'Deep work');
 
-	await expect(page.getByText('No open tasks for today.')).not.toBeVisible();
+	await expect(page.getByText('No tasks deployed yet')).not.toBeVisible();
 	await expect(page.getByLabel('Day window')).toBeVisible();
+
+	// The card is one instance across both states, so the form that took the first
+	// task is still open and takes the second — it used to be replaced by a
+	// collapsed one, leaving no field on screen to type into.
+	await addTask(page, 'Boxing');
+	await expect(page.getByText('Boxing').first()).toBeVisible();
 
 	// A fresh profile has no budget, and the window is that budget now — so the
 	// Lab asks for it rather than planning an invented 8h day the main page does
@@ -116,6 +122,78 @@ test('every task row reports the hours the plan gave it', async ({ page }) => {
 
 	await expect(page.getByText('45m').first()).toBeVisible();
 	await expect(page.getByText('no hours')).toHaveCount(2);
+});
+
+/* The list reads in schedule order, but the sort is a snapshot per visit: a live one
+   re-ranked the rows on every re-optimization, so the row being edited moved out from
+   under the cursor as the plan moved off it. */
+test('re-tuning a task re-plans the day without reordering the list', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await addTask(page, 'Boxing');
+	await addTask(page, 'Inbox');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await page.getByLabel('Day window').fill('1');
+	await page.getByLabel('Day window').blur();
+
+	// Row order, read off the one label every row has — and only rows: the add-task
+	// form's must-do box is a checkbox on this card too.
+	const order = () =>
+		page
+			.getByRole('checkbox', {
+				name: /^Mark /,
+			})
+			.evaluateAll((rows) => rows.map((r) => r.getAttribute('aria-label')));
+
+	const before = await order();
+
+	// The one row the hour went to, pinned by name so it stays the same row after
+	// the plan moves off it.
+	const rows = page.locator('li').filter({
+		has: page.getByRole('checkbox'),
+	});
+
+	const fundedName = await rows
+		.filter({
+			hasNotText: 'no hours',
+		})
+		.getByRole('checkbox')
+		.getAttribute('aria-label');
+
+	const funded = rows.filter({
+		has: page.getByRole('checkbox', {
+			name: fundedName ?? '',
+		}),
+	});
+
+	// Its difficulties maxed through the row's own ✎: the same hour now buys less of
+	// this task than of either other, so the optimizer funds one of them instead.
+	await funded
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	const editor = funded.locator('form').filter({
+		has: page.getByLabel('Title'),
+	});
+
+	// Range inputs take keyboard steps; fill() refuses them.
+	await editor.getByRole('slider').nth(0).press('End');
+	await editor.getByRole('slider').nth(1).press('End');
+
+	await editor
+		.getByRole('button', {
+			name: 'Save',
+		})
+		.click();
+
+	// The plan moved off it…
+	await expect(funded).toContainText('no hours');
+	// …and the rows did not move at all.
+	expect(await order()).toEqual(before);
 });
 
 test('the Lab plans the task deployed on the main page', async ({ page }) => {

@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fireEvent, fn } from 'storybook/test';
+	import { expect, fn } from 'storybook/test';
 	import EnergyTaskRow from '$lib/presentation/component/energy-task-row.svelte';
 
 	const { Story } = defineMeta({
@@ -13,6 +13,7 @@
 			physicalDifficulty: 2,
 			mentalDifficulty: 8,
 			enjoyment: 7,
+			mustDoToday: false,
 			color: 'var(--series-1)',
 			plannedHours: 1.75,
 			measured: false,
@@ -28,57 +29,24 @@
 	});
 </script>
 
-<!-- The row is an <li>: the list is what makes it one. The play covers what the row
-     reports to the page: each slider as a task patch keyed by position (P, M, E),
-     the planned hours, the plan colour on the dot, and the three controls. -->
+<!-- The row fills the shared shell with the Lab's reading: the plan's hue, the three
+     model inputs as text, the hours the schedule gave it, and three actions. -->
 <Story
 	name="Default"
 	play={async ({ args, canvas, userEvent }) => {
-		// Each input shows its current value: physical, mental, enjoyment, in order
-		const sliders = canvas.getAllByRole('slider');
-		await expect(sliders[0]).toHaveValue('2');
-		await expect(sliders[1]).toHaveValue('8');
-		await expect(sliders[2]).toHaveValue('7');
-
-		// Dragging a slider re-optimizes the plan, so the row reports a task patch
-		// rather than a raw number — the page hands it straight to the session store
-		await fireEvent.input(sliders[0], {
-			target: {
-				value: '7',
-			},
-		});
-
-		await expect(args.onchange).toHaveBeenCalledWith({
-			physicalDifficulty: 7,
-		});
-
-		await fireEvent.input(sliders[1], {
-			target: {
-				value: '7',
-			},
-		});
-
-		await expect(args.onchange).toHaveBeenCalledWith({
-			mentalDifficulty: 7,
-		});
-
-		await fireEvent.input(sliders[2], {
-			target: {
-				value: '7',
-			},
-		});
-
-		await expect(args.onchange).toHaveBeenCalledWith({
-			enjoyment: 7,
-		});
-
-		await expect(args.onchange).toHaveBeenCalledTimes(3);
+		// The three inputs read the same way the main page spells them — no sliders:
+		// they are a definition, and ✎ is what re-tunes them. Asserted span by span:
+		// `getByText` reads an element's own text nodes, and this line is five of them.
+		await expect(canvas.getByText('P 2')).toBeInTheDocument();
+		await expect(canvas.getByText('M 8')).toBeInTheDocument();
+		await expect(canvas.getByText('E 7')).toBeInTheDocument();
+		await expect(canvas.queryByRole('slider')).not.toBeInTheDocument();
 
 		// What the plan gave the task, in the app's one duration spelling
 		await expect(canvas.getByText('1h 45m')).toBeInTheDocument();
 
-		// One hue per task across the timeline, the schedule list and this row —
-		// the dot is the title's preceding sibling, with no text of its own to find
+		// One hue per task across the timeline, the schedule list and this row — the dot
+		// is the title's preceding sibling, with no text of its own to find
 		const dot = canvas.getByText(args.title).previousElementSibling;
 		await expect(dot).toHaveAttribute('style', expect.stringContaining('var(--series-1)'));
 
@@ -112,7 +80,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<ul class="max-w-2xl space-y-text-2xs"><EnergyTaskRow {...args} /></ul>
+		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
 	{/snippet}
 </Story>
 
@@ -132,7 +100,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<ul class="max-w-2xl space-y-text-2xs"><EnergyTaskRow {...args} /></ul>
+		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
 	{/snippet}
 </Story>
 
@@ -149,11 +117,12 @@
 	}}
 >
 	{#snippet template(args)}
-		<ul class="max-w-2xl space-y-text-2xs"><EnergyTaskRow {...args} /></ul>
+		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
 	{/snippet}
 </Story>
 
-<!-- Finished, and rated: the sliders are gone, the 🪫 stays lit -->
+<!-- Finished, and rated: the optimizer no longer plans it, so its hours go rather
+     than read "no hours" as a verdict — and the 🪫 stays lit -->
 <Story
 	name="Completed and rated"
 	args={{
@@ -161,8 +130,8 @@
 		measured: true,
 	}}
 	play={async ({ canvas }) => {
-		// Nothing left to tune, but the one control the row exists for stays
-		await expect(canvas.queryByRole('slider')).not.toBeInTheDocument();
+		await expect(canvas.queryByText('1h 45m')).not.toBeInTheDocument();
+		await expect(canvas.queryByText('no hours')).not.toBeInTheDocument();
 
 		await expect(
 			canvas.getByRole('button', {
@@ -172,7 +141,57 @@
 	}}
 >
 	{#snippet template(args)}
-		<ul class="max-w-2xl space-y-text-2xs"><EnergyTaskRow {...args} /></ul>
+		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
+	{/snippet}
+</Story>
+
+<!-- ✎ opens the same editor the main page's rows open, minus the must-do flag: the
+     plan advisor is the main page's, so the checkbox would change nothing on screen
+     here. The flag still has to survive the round trip. -->
+<Story
+	name="Editing"
+	args={{
+		mustDoToday: true,
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Edit task',
+			}),
+		);
+
+		const title = canvas.getByLabelText('Title');
+		await expect(title).toHaveValue(args.title);
+
+		// The editor is where the three inputs are set, and where this mode stops
+		await expect(canvas.getAllByRole('slider')).toHaveLength(3);
+		await expect(canvas.queryByLabelText("Don't move off today")).not.toBeInTheDocument();
+
+		await userEvent.clear(title);
+		await userEvent.type(title, 'write §8.11');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Save',
+			}),
+		);
+
+		// The whole edit in one patch the page hands to the session store — with the
+		// flag it was seeded with, not the false a hidden checkbox would have reported
+		await expect(args.onchange).toHaveBeenCalledExactlyOnceWith({
+			title: 'write §8.11',
+			physicalDifficulty: args.physicalDifficulty,
+			mentalDifficulty: args.mentalDifficulty,
+			enjoyment: args.enjoyment,
+			mustDoToday: true,
+		});
+
+		// Saving closes it
+		await expect(canvas.queryByLabelText('Title')).not.toBeInTheDocument();
+	}}
+>
+	{#snippet template(args)}
+		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
 	{/snippet}
 </Story>
 
@@ -206,6 +225,6 @@
 	}}
 >
 	{#snippet template(args)}
-		<ul class="max-w-2xl space-y-text-2xs"><EnergyTaskRow {...args} /></ul>
+		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
 	{/snippet}
 </Story>

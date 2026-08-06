@@ -513,3 +513,31 @@
 		).toBeInTheDocument();
 	}}
 />
+
+<!-- The Lab's copy of the form: same fields, no must-do flag. Deploying still reports
+     the task as unflagged, which is what a task nobody flagged is. -->
+<Story
+	name="Without the must-do flag"
+	args={{
+		showMustDoToday: false,
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.queryByLabelText("Don't move off today")).not.toBeInTheDocument();
+
+		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Deep work');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Deploy Task',
+			}),
+		);
+
+		await expect(args.onsubmit).toHaveBeenCalledExactlyOnceWith({
+			title: 'Deep work',
+			physicalDifficulty: 5,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+			mustDoToday: false,
+		});
+	}}
+/>

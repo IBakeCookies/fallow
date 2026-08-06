@@ -180,3 +180,43 @@ test('editing a task rewrites its inputs and survives a reload', async ({ page }
 	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
 	await expect(page.getByText('P 5 · M 6 · E 5')).toBeVisible();
 });
+
+/* The same editor, opened from the Lab's row. It is the same task and the same
+   store, so a title was never one screen's to own — the Lab could not rename one at
+   all until the editor was shared. */
+test('the Lab edits a task with the same editor as the main page', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await setBudget(page, 6);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	await page
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	const editor = page.locator('form').filter({
+		has: page.getByLabel('Title'),
+	});
+
+	await editor.getByLabel('Title').fill('Boxing sparring');
+
+	await editor
+		.getByRole('button', {
+			name: 'Save',
+		})
+		.click();
+
+	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+
+	// Saving closes the editor, and the rename reached the shared session — the main
+	// page reads it without a reload.
+	await expect(page.getByLabel('Title')).toHaveCount(0);
+
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/');
+	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+});

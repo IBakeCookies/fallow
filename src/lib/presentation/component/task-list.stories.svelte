@@ -67,7 +67,7 @@
 </script>
 
 <!-- One item per task, each carrying its run order; no form supplied, so the
-     list follows the heading immediately — not even an empty wrapper between them -->
+     list follows the heading row immediately — not even an empty wrapper between them -->
 <Story
 	name="Default"
 	play={async ({ canvas }) => {
@@ -84,7 +84,8 @@
 		await expect(canvas.getByText('#1')).toBeVisible();
 		await expect(canvas.getByText('#2')).toBeVisible();
 
-		expect(heading.nextElementSibling?.textContent).toContain('write the calibration section');
+		// No form supplied, so nothing sits between the heading and the list
+		expect(heading.nextElementSibling).toBe(canvas.getByRole('list'));
 	}}
 />
 

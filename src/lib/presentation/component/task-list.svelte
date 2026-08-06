@@ -1,14 +1,15 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import * as m from '$lib/paraglide/messages.js';
-	import TaskItem, { type TaskEdit } from '$lib/presentation/component/task-item.svelte';
+	import TaskItem from '$lib/presentation/component/task-item.svelte';
+	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
+	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 
 	interface Props {
 		suggestedTasks: SuggestedTask[];
 		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
-		// The add-task form, rendered inside this card above the list: adding and
-		// reading the plan are the same place, and it costs no second card.
+		// The add-task form, rendered by the card above the list: adding and reading
+		// the plan are the same place, and it costs no second card.
 		form?: Snippet;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
@@ -19,55 +20,32 @@
 	let { suggestedTasks, runOrder, form, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
 </script>
 
-<div class="card-shell space-y-text-xs p-box-md sm:p-box-xl">
-	<h2 class="text-lg font-bold text-ty-primary">{m.list_title()}</h2>
-	{#if form}
-		<div class="pb-text-md">{@render form()}</div>
-	{/if}
-	{#if suggestedTasks.length === 0}
-		<div class="flex flex-col items-center justify-center py-empty-state text-center">
-			<div class="text-ty-silent mb-text-xs">
-				<svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="1.5"
-						d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-					/>
-				</svg>
-			</div>
-			<p class="text-sm text-ty-secondary">{m.list_empty()}</p>
-			<p class="text-xs text-ty-silent mt-text-2xs">{m.list_empty_hint()}</p>
-		</div>
-	{:else}
-		<ul class="space-y-text-xs">
-			{#each suggestedTasks as task, i (task.id)}
-				<!-- The rule between items is the item's own top border, not an <hr>: a
-				     separator element inside the <li> would be announced as content. -->
-				<li class={i > 0 ? 'border-t border-line-soft pt-text-xs' : undefined}>
-					<TaskItem
-						id={task.id}
-						title={task.title}
-						physicalDifficulty={task.physicalDifficulty}
-						mentalDifficulty={task.mentalDifficulty}
-						enjoyment={task.enjoyment}
-						nature={task.nature}
-						completed={task.completed}
-						priorityScore={task.priorityScore}
-						suggestedHours={task.suggestedHours}
-						trueEffort={task.trueEffort}
-						flowStateTime={task.flowStateTime}
-						optimalStopHours={task.optimalHours}
-						runOrder={runOrder.get(task.id)}
-						flowMinutes={task.flowMinutes}
-						mustDoToday={task.mustDoToday}
-						{ontoggle}
-						{onremove}
-						{onlogflow}
-						{onupdate}
-					/>
-				</li>
-			{/each}
-		</ul>
-	{/if}
-</div>
+{#snippet rows()}
+	{#each suggestedTasks as task (task.id)}
+		<li>
+			<TaskItem
+				id={task.id}
+				title={task.title}
+				physicalDifficulty={task.physicalDifficulty}
+				mentalDifficulty={task.mentalDifficulty}
+				enjoyment={task.enjoyment}
+				nature={task.nature}
+				completed={task.completed}
+				priorityScore={task.priorityScore}
+				suggestedHours={task.suggestedHours}
+				trueEffort={task.trueEffort}
+				flowStateTime={task.flowStateTime}
+				optimalStopHours={task.optimalHours}
+				runOrder={runOrder.get(task.id)}
+				flowMinutes={task.flowMinutes}
+				mustDoToday={task.mustDoToday}
+				{ontoggle}
+				{onremove}
+				{onlogflow}
+				{onupdate}
+			/>
+		</li>
+	{/each}
+{/snippet}
+
+<TaskListCard {form} rows={suggestedTasks.length ? rows : null} />
