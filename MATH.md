@@ -1915,7 +1915,11 @@ since v2, §3).
   least one** task leaves the risk unchanged. It is _not_ invariant when nothing
   at all is funded — that branch simulates the declared budget at the task
   list's average demands (§11.6), so one more dropped task moves the average and
-  the reading with it (32 → 16 on a 10 h budget).
+  the reading with it (32 → 16 on a 10 h budget). Those two readings are
+  themselves pinned by value since 2026-08-07: the test asserted only that they
+  DIFFER, which a mean → max (32 → 48), a sum (32 → 48), or a
+  cognitive/physical swap (28 → 18) all satisfy, so the averaging rule was
+  unconstrained.
 - **Documented semantic choice (deliberate):** `availableHours` is read as
   hours the user INTENDS to work, so budget beyond the funded workload is
   treated as overwork risk. The alternative reading ("available ≠ intended";
@@ -2023,7 +2027,9 @@ since v2, §3).
     `ALPHA_FIT_MAX` reads max 97% over the same days, `RECOVERY_FIT_MIN` 95%
     (and loses the plateau — 8 points between the 8h and 16h demand-0.5 days,
     a slow recoverer not yet at equilibrium by 8h), b = 0 reaches 100% on a
-    16h full-demand day, b = 0.3 tops out at 52%.
+    16h full-demand day, b = 0.3 reads a sweep max of 52% (53% on the
+    full-demand cognitive day — the same two-basis split as the defaults'
+    82 vs 87).
   - _Monotone in demand and duration, NOT in the declared budget_ (duration
     and the budget walk from the same probe, 2026-08-06; the demand arm is
     `scripts/mtr2-carry-over.probe.ts` — walking demand 0→10 at 1/2/4/8 h, 0 of
@@ -2042,6 +2048,26 @@ since v2, §3).
     (§11.3, now by construction — they contribute no block); a declared
     budget with nothing funded still warns (simulated at the task list's
     average demands); no tasks or no intended hours → 0.
+- **Non-positive switch cost means no switching** (2026-08-07). The overhead
+  the budget must cover is `(m − 1)·s`, so a NEGATIVE `s` grew the overhang
+  while the rest gaps were only emitted for `s > 0` — the simulated day then
+  ran longer than the declared budget with the whole difference counted as
+  work (4 funded tasks, 10 h budget, s = −30 m: an 11.5 h span), reading 1–2
+  points high. `s` is now clamped at entry to `max(0, s)`, which is the
+  allocator's own convention (`zenith.ts`: `switchCost <= 0` skips the
+  switching search entirely), so the two agree on the degenerate input instead
+  of diverging. Reachable only mid-typing — the number input defers clamping
+  to blur — and for every `s ≥ 0` the span was and remains exactly the budget.
+- **Pro-rata is pinned by value** (2026-08-07). The "stretching the funded
+  blocks pro-rata" clause above was locked by nothing: every other
+  multi-task fixture in the suite sits where pro-rata and an equal split
+  coincide (one at stretch 1.03 over two blocks that agree to the rounded
+  point, one at overhang exactly 0), so an equal-split regression passed all
+  616 server tests. The separating fixture now in the suite reads 41 against
+  the equal split's 8 — it ends on a TINY light task, which pro-rata keeps
+  short (0.25 h × 1.875) so the day ends on the heavy block, while an equal
+  split hands it 2.33 h of extra low-demand time and lets the reservoirs
+  refill. It also kills stretching the gaps too (33) and omitting them (53).
 - **Rejected alternative:** scaling the heuristic's `STRAIN_CAPACITY` with
   the declared cognitive pool. It fixes the reported symptom (capacity
   disconnect) but keeps the invented constants, the double-counting, and the
@@ -2159,11 +2185,17 @@ predecessor, so a past day reads with its own morning.
 
 Locked by tests: `energy-calibration.test.ts` pins the closed form (work
 from fresh, rest out the cycle, 12 decimal places), the no-logs identity,
-default-recovery healing, monotonicity in worked hours, and the > 24 h
-guard; `daily-plan-store.svelte.spec.ts` pins the wiring — the same heavy
-log moves Burnout Risk only when dated the viewed day's predecessor (the α
-fit sees it identically from any date, so the difference is carry-over
-alone).
+default-recovery healing, monotonicity in worked hours, the 24 h cycle
+constant itself, and the > 24 h guard — the last two added 2026-08-07, when
+a verification pass found both unpinned: the guard's test asserted only
+`0 < level < 1`, which a sign slip (`|24 − Σh|`, handing a 26 h day 2 h of
+bonus rest) passes while moving the reading 98 → 73, and the 12-decimal
+oracle imports `RESERVOIR_CYCLE_HOURS` into its own expectation, so 24 → 17
+passed the whole suite. The guard is now pinned as an identity — an
+over-logged day must read exactly its own pure-work simulation.
+`daily-plan-store.svelte.spec.ts` pins the wiring — the same heavy log moves
+Burnout Risk only when dated the viewed day's predecessor (the α fit sees it
+identically from any date, so the difference is carry-over alone).
 
 ## 12. Plan-adherence audit (2026-07-23)
 
@@ -3445,7 +3477,10 @@ metric by >5 points on a third of days in an arbitrary direction to buy a median
 
 - `calculateInterleavedOrder` stays as it is, and stays the single definition
   for both consumers — the `#N` badges (§11) and Burnout Risk's block sequence
-  (§11.6).
+  (§11.6). Same definition, **different scope**: the two consumers pass
+  different task sets (§11.8) and the interleave is a greedy over the set it is
+  handed, so the rendered `#N` order need not equal the simulated block order.
+  One definition, not one output.
 - The ontology mismatch is **acknowledged and accepted**: an order justified by
   dual-pool reasoning feeds an energy-model simulation. The probe is the
   justification — under §8's own scoring the heuristic is within 0.47% of

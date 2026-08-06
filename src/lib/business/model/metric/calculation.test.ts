@@ -300,9 +300,12 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 			suggestedHours: 0,
 		});
 
-		expect(calculateBurnoutRisk([unfunded], 10, 0.25)).not.toBe(
-			calculateBurnoutRisk([unfunded, dropped], 10, 0.25),
-		);
+		// The exact pair §11.3 quotes. Pinned by value, not by `not.toBe`: the
+		// inequality alone survives swapping the mean for a max (32 → 48), a sum
+		// (32 → 48), or the cognitive/physical demands (28 → 18) — every mutant
+		// still moves the reading, just not to the mean's number.
+		expect(calculateBurnoutRisk([unfunded], 10, 0.25)).toBe(32);
+		expect(calculateBurnoutRisk([unfunded, dropped], 10, 0.25)).toBe(16);
 	});
 
 	it('budget beyond the funded plan (intended overwork) raises the risk', () => {
@@ -314,6 +317,77 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		const low = calculateBurnoutRisk([work()], 3, 0.25);
 		const high = calculateBurnoutRisk([work()], 6, 0.25);
 		expect(high).toBeGreaterThan(low);
+	});
+
+	it('overwork stretches the funded blocks PRO-RATA, not evenly (§11.6)', () => {
+		// §11.6's "stretching the funded blocks pro-rata" was previously pinned by
+		// nothing: the other multi-task fixtures sit where pro-rata and an equal
+		// split coincide, so an equal-split regression passed the whole suite.
+		// This fixture separates them by 33 points. It works because the plan ends
+		// on a TINY light task: pro-rata keeps it short (0.25h × 1.875), so the day
+		// ends on the heavy p10 block, while an equal split hands it 2.33h of extra
+		// low-demand time and lets the reservoirs refill.
+		//
+		// Mutant readings at this fixture (scratch-probed 2026-08-07), all killed:
+		//   pro-rata (shipped)  41   ← the physical reservoir binds, 0.593 vs 0.833
+		//   equal split          8
+		//   gaps stretched too  33   (§11.6 stretches the FUNDED blocks only)
+		//   gaps omitted        53
+		//   overhang ignored    43
+		const plan = [
+			makeSuggested({
+				id: 1,
+				title: 'admin',
+				mentalDifficulty: 2,
+				physicalDifficulty: 4,
+				enjoyment: 4,
+				suggestedHours: 3.25,
+			}),
+			makeSuggested({
+				id: 2,
+				title: 'move house',
+				mentalDifficulty: 6,
+				physicalDifficulty: 10,
+				enjoyment: 4,
+				suggestedHours: 4.5,
+			}),
+			makeSuggested({
+				id: 3,
+				title: 'water plants',
+				mentalDifficulty: 1,
+				physicalDifficulty: 1,
+				enjoyment: 4,
+				suggestedHours: 0.25,
+			}),
+		];
+
+		// allocated 8h + 2 gaps × 15m = 8.5h against a declared 15.5h, so the
+		// overhang is 7h and the pro-rata stretch is exactly 1.875.
+		expect(calculateBurnoutRisk(plan, 15.5, 0.25)).toBe(41);
+	});
+
+	it('treats a non-positive switch cost as no switching, so the span stays the budget', () => {
+		// The overhead term is (n−1)·switchCost, so a NEGATIVE cost used to grow
+		// the overhang while the gap blocks were only pushed when positive — the
+		// simulated day then ran longer than the declared budget with the whole
+		// difference counted as work (4 tasks, 10h budget, s = −30m: an 11.5h
+		// span), reading ~1–2 points high. Reachable mid-typing: the number input
+		// defers clamping to blur.
+		const plan = [1, 2, 3, 4].map((id) =>
+			makeSuggested({
+				id,
+				title: `t${id}`,
+				mentalDifficulty: 7,
+				physicalDifficulty: 2,
+				enjoyment: 4,
+				suggestedHours: 1.5,
+			}),
+		);
+
+		const zero = calculateBurnoutRisk(plan, 10, 0);
+
+		expect(calculateBurnoutRisk(plan, 10, -0.5)).toBe(zero);
+		expect(calculateBurnoutRisk(plan, 10, Number.NaN)).toBe(zero);
 	});
 
 	it('MORE budget can read LOWER risk once the plan is re-solved (settled, not a bug)', () => {

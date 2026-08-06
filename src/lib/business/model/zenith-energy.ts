@@ -103,11 +103,10 @@ export interface EnergyParams {
 	 * active even while working at full demand (micro-pauses between efforts —
 	 * the same intermittent-effort regime as restRecoveryMultiplier). The
 	 * recovery gate becomes 1−(1−b)·w instead of 1−w, so a w = 1 task drains
-	 * toward the floor b·r′/(α + b·r′) > 0 instead of exactly 0. Without it,
-	 * without it a full-demand task has no basal floor at all. (The "demand 10 vs
-	 * 9.5 flips the plan" cliff measured in 2026-07-14 does NOT reproduce under
-	 * today's search and lattice — MATH.md §8.5.) 0 disables, recovering the pure
-	 * (1−w) gate.
+	 * toward the floor b·r′/(α + b·r′) > 0 instead of exactly 0. Without it a
+	 * full-demand task has no basal floor at all. (The "demand 10 vs 9.5 flips
+	 * the plan" cliff measured in 2026-07-14 does NOT reproduce under today's
+	 * search and lattice.) 0 disables, recovering the pure (1−w) gate.
 	 * MATH.md §8.5.
 	 */
 	microRecoveryFraction: number;
