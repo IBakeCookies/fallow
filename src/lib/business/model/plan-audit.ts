@@ -8,8 +8,9 @@
  * 🪫 drain logs already record what was actually worked per task per day, so
  * each finished day yields a revealed-preference comparison with NO new
  * instrument — the same trick as the §8.10 stopping fit, pointed at the
- * planner itself. Consistently higher energy overlap is the evidence gate for
- * promoting the energy plan out of the lab.
+ * planner itself. It is a READING, not a gate: the promotion it was originally
+ * built to decide was withdrawn on 2026-07-29 — the two modes are peers, and
+ * neither wins on the other's objective (MATH.md §15).
  *
  * Compositions are compared as SHARES of worked time, not absolute hours:
  * how much total to work is the stop decision, priced separately by §8.10 —

@@ -44,6 +44,51 @@ for (const difficulty of [1, 2.5, 4, 5.5, 7, 8.5, 10]) {
 	}
 }
 
+/**
+ * True maximum over block-quantized plans for exactly three tasks. Hoisted out
+ * of the `it` that uses it so the enumeration does not nest four deep inside
+ * describe/describe/it — `zenith*.ts` only downgrades `max-depth` to a warning,
+ * and the baseline is meant to stay where it is.
+ *
+ * The reference shares the allocator's quantization rule (`budgetBlocksFor`) —
+ * that defines the feasible SET, which is part of the problem, not the
+ * algorithm — but searches every plan inside it.
+ */
+function bruteForceThree(
+	params: { a: number; p0: number; k: number }[],
+	budget: number,
+	switchCost: number,
+): number {
+	const blocksFor = (funded: number) =>
+		Math.floor((budget - (funded > 1 ? (funded - 1) * switchCost : 0)) / BLOCK_HOURS + 1e-9);
+
+	const ceiling = blocksFor(1);
+	let brute = 0;
+
+	for (let code = 0; code < (ceiling + 1) ** 3; code++) {
+		const blocks = [
+			code % (ceiling + 1),
+			Math.floor(code / (ceiling + 1)) % (ceiling + 1),
+			Math.floor(code / (ceiling + 1) ** 2),
+		];
+
+		const funded = blocks.filter((b) => b > 0).length;
+		const used = blocks[0] + blocks[1] + blocks[2];
+
+		if (funded === 0 || used > blocksFor(funded)) continue;
+
+		const value = blocks.reduce(
+			(sum, b, i) =>
+				sum + averageProductivity(b * BLOCK_HOURS, params[i].a, params[i].p0, params[i].k),
+			0,
+		);
+
+		if (value > brute) brute = value;
+	}
+
+	return brute;
+}
+
 describe('Zenith Gradient Algorithm (model v2)', () => {
 	describe('Parameter Mappings', () => {
 		it('maps user effort (1-10) to true effort E (1-5)', () => {
@@ -87,6 +132,47 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(peak).toBeCloseTo(a * Math.exp(p0 / a - 1), 10);
 			expect(productivity(phi - 0.01, a, p0, k)).toBeLessThan(peak);
 			expect(productivity(phi + 0.01, a, p0, k)).toBeLessThan(peak);
+		});
+
+		// MATH.md §2 listed concavity-on-the-working-range and the decaying tail
+		// as "verified in tests" when nothing evaluated p″ or p at large t at all
+		// (2026-08-06). These two pin them; the sweep is
+		// scripts/curve-marginal-facts.probe.ts.
+		it('is concave on the working range — p″ < 0 up to T* (§2)', () => {
+			for (const task of DOMAIN_GRID) {
+				const input = {
+					title: '',
+					...task,
+				};
+
+				const p = calculateTaskParams(input);
+				const tStar = findOptimalSingleTaskTime(input);
+				const r = p.p0 / p.a;
+
+				for (let i = 1; i <= 20; i++) {
+					const t = (i / 20) * tStar;
+					// p″ = a·k²·e^(−kt)·(kt − (2 − r)); the inflection sits past x*.
+					expect(p.a * p.k * p.k * Math.exp(-p.k * t) * (p.k * t - (2 - r))).toBeLessThan(0);
+				}
+			}
+		});
+
+		it('decays to 0 in the tail, and the marginal never turns positive again (§2)', () => {
+			for (const task of DOMAIN_GRID) {
+				const input = {
+					title: '',
+					...task,
+				};
+
+				const p = calculateTaskParams(input);
+				const tStar = findOptimalSingleTaskTime(input);
+
+				expect(productivity(200, p.a, p.p0, p.k)).toBeLessThan(1e-6);
+
+				for (const mult of [1.5, 2, 4, 10]) {
+					expect(avgProductivityDerivative(mult * tStar, p.a, p.p0, p.k)).toBeLessThan(0);
+				}
+			}
 		});
 
 		it('averageProductivity matches numeric integration of p(t)', () => {
@@ -464,6 +550,89 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(achieved).toBeCloseTo(brute, 9);
 		});
 
+		it('stays exact on the three seams the fixture above cannot reach (2026-08-06, §4)', () => {
+			// Pins `scripts/allocator-exactness.probe.ts` (0 non-exact in 6400
+			// cases). The test above uses a budget ON the lattice and a switchCost
+			// that is itself exactly one block — the one combination where the
+			// fixed charge cannot desynchronize the budget from the grid. These
+			// are the cases it never sees: a budget a hair BELOW a block boundary,
+			// and switch costs that are not block multiples.
+			const tasks = [
+				{
+					title: 'a',
+					difficulty: 7,
+					enjoyment: 2,
+				},
+				{
+					title: 'b',
+					difficulty: 3,
+					enjoyment: 8,
+				},
+				{
+					title: 'c',
+					difficulty: 5,
+					enjoyment: 5,
+				},
+			];
+
+			const params = tasks.map((t) => calculateTaskParams(t, DEFAULT_USER_CONSTANTS));
+
+			const cells = [2.75 - 1e-9, 2.75 + 1e-9, 3.13].flatMap((budget) =>
+				[0.1, 0.33, 0.5].map((switchCost) => ({
+					budget,
+					switchCost,
+				})),
+			);
+
+			for (const { budget, switchCost } of cells) {
+				const achieved = calculateTotalProductivity(
+					tasks,
+					calculateTaskAllocations(tasks, budget, DEFAULT_USER_CONSTANTS, switchCost).map(
+						(a) => a.allocatedHours,
+					),
+					DEFAULT_USER_CONSTANTS,
+				);
+
+				expect(achieved).toBeCloseTo(bruteForceThree(params, budget, switchCost), 9);
+			}
+		});
+
+		it('the cost of a ϕ error is second-order — doubling it ~quadruples the loss (2026-08-06, §17)', () => {
+			// Pins the MECHANISM behind `scripts/phi-error-price.probe.ts`'s table
+			// and §17's whole conclusion: P̄′(T*) = 0, so mis-timing loses O(ΔT²).
+			// That, not the table's magnitudes, is why per-task ϕ offsets were
+			// declined — and it is what a future change would have to break.
+			//
+			// The single-task loss here is LARGER than the table's day-level cells
+			// (2.1% at half an hour, against 0.26% at a 4 h budget) because one
+			// task sitting at its own optimum is the worst case: with a real
+			// budget most tasks never reach T*, where a wrong T* costs nothing.
+			const task = {
+				title: 'a',
+				difficulty: 6,
+				enjoyment: 5,
+			};
+
+			const { a, p0, phi } = calculateTaskParams(task, DEFAULT_USER_CONSTANTS);
+			const trueK = (1 - p0 / a) / phi;
+			const optimal = findOptimalSingleTaskTime(task);
+			const best = averageProductivity(optimal, a, p0, trueK);
+
+			// A planner believing ϕ + e picks T*·(ϕ + e)/ϕ, since T* scales with ϕ
+			// at fixed amplitude ratio. Scored against the TRUE curve.
+			const lossAt = (error: number) =>
+				(best - averageProductivity((optimal * (phi + error)) / phi, a, p0, trueK)) / best;
+
+			for (const sign of [1, -1]) {
+				const small = lossAt(sign * 0.25);
+				const large = lossAt(sign * 0.5);
+
+				expect(small).toBeGreaterThan(0);
+				expect(large / small).toBeGreaterThan(3);
+				expect(large / small).toBeLessThan(5);
+			}
+		});
+
 		it('falls back to greedy forward selection past the exact-subset limit (13 tasks)', () => {
 			// n > EXACT_SUBSET_LIMIT (12) with a positive switch cost takes the
 			// greedy forward-selection path instead of subset enumeration. The
@@ -817,11 +986,115 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 
 			expect(compared).toBeGreaterThan(300);
-			// Measured 2026-07-26: 99.5% exact, worst 0.09%. Bounds are loose
+			// SCOPE (corrected 2026-08-06): "envelope" here means over THIS
+			// generator, which draws pool weights INDEPENDENTLY of difficulty. The
+			// app does not: calculation.ts sets cognitiveWeight = mentalDifficulty/10,
+			// so a hard task is automatically pool-expensive — exactly the shape
+			// value-ranked greedy is worst on. Over the app-reachable space every
+			// seed breaks 0.005 (next test). Bounds below are unchanged and stay
+			// honest about the space they cover.
+			// Measured 2026-07-26 on this generator: 99.5% exact, worst 0.09%. Loose
 			// enough not to flake on arithmetic reordering, tight enough that the
 			// pre-fix behaviour (97.4% exact, worst 5.5%) would fail both.
 			expect(exact / compared).toBeGreaterThan(0.98);
 			expect(worst).toBeLessThan(0.005);
+		});
+
+		it('is 5.3% short on the worst APP-REACHABLE day — 0.09% is not an envelope (2026-08-06, §13.3)', () => {
+			// scripts/pool-allocator.probe.ts ran the sweep above over app-reachable
+			// days instead (integer sliders, weights tied to them): per-seed worsts
+			// 4.56%, 3.37%, 4.81%, 3.83%, 5.28% over 5 × 2000 days, 18 of the 10,000
+			// past 2%. This is the worst of those days, printed verbatim by the
+			// probe — one day, hard-coded, so the suite carries the finding without
+			// carrying the sweep.
+			const tasks: PooledTaskInput[] = [
+				// difficulty = getEffectiveDifficulty(mental, physical) = the pool
+				// weights × 10 run back through the spillover map.
+				{
+					title: 't1',
+					difficulty: 7.9,
+					enjoyment: 3,
+					cognitiveWeight: 0.7,
+					physicalWeight: 0.3,
+				},
+				{
+					title: 't2',
+					difficulty: 9.5,
+					enjoyment: 4,
+					cognitiveWeight: 0.5,
+					physicalWeight: 0.8,
+				},
+				{
+					title: 't3',
+					difficulty: 8.2,
+					enjoyment: 4,
+					cognitiveWeight: 0.4,
+					physicalWeight: 0.7,
+				},
+				{
+					title: 't4',
+					difficulty: 9.8,
+					enjoyment: 10,
+					cognitiveWeight: 0.6,
+					physicalWeight: 0.8,
+				},
+				{
+					title: 't5',
+					difficulty: 10,
+					enjoyment: 4,
+					cognitiveWeight: 0.4,
+					physicalWeight: 0.9,
+				},
+			];
+
+			const budget = 10.5;
+
+			const pools = {
+				cognitiveHours: 1.5,
+				physicalHours: 1.5,
+			};
+
+			const switchCost = 0.25;
+			// The probe's exhaustive optimum, kept as the PLAN that attains it
+			// (4/1/1/3/1 blocks) rather than re-enumerated here: a witness plan is
+			// still a feasible plan under any future model, an enumerator is the
+			// sweep. Feasibility is re-checked below so it cannot rot into a plan
+			// the allocator was never allowed to make.
+			const optimalHours = [1, 0.25, 0.25, 0.75, 0.25];
+			const funded = optimalHours.filter((h) => h > 0).length;
+
+			expect(
+				optimalHours.reduce((sum, h) => sum + h, 0) + (funded - 1) * switchCost,
+			).toBeLessThanOrEqual(budget + 1e-9);
+
+			expect(
+				optimalHours.reduce((sum, h, i) => sum + h * tasks[i].cognitiveWeight, 0),
+			).toBeLessThanOrEqual(pools.cognitiveHours + 1e-9);
+
+			expect(
+				optimalHours.reduce((sum, h, i) => sum + h * tasks[i].physicalWeight, 0),
+			).toBeLessThanOrEqual(pools.physicalHours + 1e-9);
+
+			const reference = calculateTotalProductivity(tasks, optimalHours, DEFAULT_USER_CONSTANTS);
+			expect(reference).toBeCloseTo(3.9952911437413614, 9);
+
+			const achieved = calculateTotalProductivity(
+				tasks,
+				calculatePooledAllocations(tasks, budget, pools, DEFAULT_USER_CONSTANTS, switchCost).map(
+					(a) => a.allocatedHours,
+				),
+				DEFAULT_USER_CONSTANTS,
+			);
+
+			expect(achieved).toBeCloseTo(3.78441507785453, 9);
+
+			// Greedy funds one block of each pool-expensive task and never buys the
+			// fourth block of t1 that the optimum lives on.
+			const shortfall = (reference - achieved) / reference;
+			expect(shortfall).toBeCloseTo(0.0528, 3);
+			// An order of magnitude past the bound the test above holds — which is
+			// the whole point: that bound describes its generator, not the app.
+			expect(shortfall).toBeGreaterThan(0.005);
 		});
 
 		it('stays within 1% of the brute-force block optimum when a pool binds with unequal weights', () => {
@@ -1824,6 +2097,131 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 						prevInc = inc;
 					}
 				}
+			}
+		});
+
+		it('the 0.5·ϕ̂ cap is clean at the ϕ̂ ceiling DEFAULT_USER_CONSTANTS can reach (2026-08-06, §5.1)', () => {
+			// scripts/phi-uncertainty-cap.probe.ts rebuilt §5.1's grid and found its
+			// "at 0.5·ϕ̂ the grid has zero bimodal cases and zero truncation loss"
+			// FALSE as written: inside the cap 7 cells are bimodal and 51 forfeit
+			// value to the monotone-prefix cut, worst 26.53% at r = 0.3, ϕ̂ = 8h,
+			// σ = 2.8h. It is TRUE restricted to ϕ̂ ≤ 3.06h = c₁·5 + c₂·1 + c₃, the
+			// ceiling the default constants can reach — 0 bimodal, 0 loss over 990
+			// cells — and THAT qualification is what makes the shipped cap safe.
+			// So: the ceiling ϕ̂, σ at the cap, and r = 0.3, the ratio the ϕ̂ = 8h
+			// failure is worst at. The sweep above cannot reach this cell — the task
+			// maps couple r to ϕ̂, and DOMAIN_GRID's only ϕ̂ = 3.06 task has r = 0.04
+			// — while the mixture treats them as independent.
+			const a = 1;
+			const p0 = 0.3; // r = p₀/a = 0.3
+			const phi = 3.06;
+			const sigma = 0.5 * phi; // the cap itself
+
+			// The safety argument is "3.06h is as high as the DEFAULT constants
+			// go", so pin that too: a change to c₁/c₂/c₃ that lifts the ceiling
+			// into the lossy ϕ̂ ≈ 6–8h region must not leave this test green
+			// while the argument under it collapses.
+			expect(calculateFlowStateTime(5, 1, DEFAULT_USER_CONSTANTS)).toBeCloseTo(phi, 10);
+
+			// buildBlockIncrements' own span: ⌈T*(ϕ_max)/BLOCK_HOURS⌉ + 1 = 51
+			// blocks, ϕ_max = 7.4312h being the top quadrature node at this σ (the
+			// bottom one is floor-clamped to 0.1h — this IS the spike-vs-crawl
+			// mixture the cap exists to bound).
+			const values = Array.from(
+				{
+					length: 52,
+				},
+				(_, n) => expectedAverageProductivity(n * BLOCK_HOURS, a, p0, phi, sigma),
+			);
+
+			const increments = values.slice(1).map((value, i) => value - values[i]);
+
+			// Positive and strictly decreasing for exactly 15 blocks: the monotone
+			// cut never fires before the positive one, so greedy is offered the whole
+			// positive run.
+			for (let j = 0; j < 15; j++) {
+				expect(increments[j]).toBeGreaterThan(1e-12);
+
+				if (j > 0) expect(increments[j]).toBeLessThan(increments[j - 1] - 1e-12);
+			}
+
+			expect(increments[15]).toBeLessThanOrEqual(0);
+
+			// And the cut forfeits nothing: 15 blocks is the best block count over
+			// the whole span, so the mixture never rises into a second lobe.
+			expect(values[15]).toBeCloseTo(0.4224863835762828, 12);
+			expect(Math.max(...values)).toBe(values[15]);
+		});
+
+		it('a fit cannot deliver a high ϕ̂ and a high σ/ϕ̂ at once — why the cap stays 0.5 (2026-08-06, §5.1)', () => {
+			// The test above establishes that the cap is only safe BECAUSE ϕ̂ stays
+			// under ~3.06h, which invites the repair of lowering the cap to 0.35.
+			// scripts/phi-cap-reachability.probe.ts measured that repair and it
+			// loses: 0 of 576,000 fitted cells reach ϕ̂ > 3.06h WITH σ/ϕ̂ > 0.35, so
+			// there is nothing to buy, while the tighter clamp would hedge 1.23% of
+			// realistic cells less (worst +6.809% of conjured value).
+			//
+			// The opposition is not "few logs keep ϕ̂ small" — one strong log moves
+			// ϕ̂(5,1) to 6.93h. It is that σ/ϕ̂ is largest where ϕ̂ is SMALL, because
+			// ϕ̂ is the denominator: the probe's widest ratio, 3.951, sits at
+			// ϕ̂ = 0.10h, and its highest ϕ̂, 8.04h, carries a ratio of 0.024.
+			//
+			// So the pin is the corner condition itself, swept over the whole
+			// slider grid the UI offers: no (difficulty, enjoyment) may be both
+			// past the ceiling and past the ratio. A change to
+			// RIDGE_PRIOR_STRENGTH or the §5.2 weights that lets the two co-occur
+			// goes red here rather than quietly re-opening the corner.
+			const histories: FlowObservation[][] = [
+				// One hard, slow log — the strongest single push ϕ̂ can get.
+				[
+					{
+						E: 5,
+						beta: 1,
+						phi: 7.5,
+					},
+				],
+				// One easy, fast log — reaches σ/ϕ̂ = 0.431, past the ratio end,
+				// and its ϕ̂ tops out at 2.84h, short of the ceiling.
+				[
+					{
+						E: 1,
+						beta: 2,
+						phi: 0.3,
+					},
+				],
+			];
+
+			for (const logs of histories) {
+				const fit = fitUserConstants(logs);
+
+				expect(fit.fitted).toBe(true);
+
+				let maxPhi = 0;
+				let maxRatio = 0;
+
+				for (let difficulty = 1; difficulty <= 10; difficulty++) {
+					for (let enjoyment = 1; enjoyment <= 10; enjoyment++) {
+						const { E, beta, phi } = calculateTaskParams(
+							{
+								title: 'q',
+								difficulty,
+								enjoyment,
+							},
+							fit.constants,
+						);
+
+						const ratio = phiParameterStd(E, beta, fit.posterior) / phi;
+
+						// The corner §5.1's residual defect needs. Never both.
+						expect(phi > 3.06 && ratio > 0.35).toBe(false);
+
+						maxPhi = Math.max(maxPhi, phi);
+						maxRatio = Math.max(maxRatio, ratio);
+					}
+				}
+
+				// Non-vacuous: each history really does reach one end on its own.
+				expect(Math.max(maxPhi / 3.06, maxRatio / 0.35)).toBeGreaterThan(1);
 			}
 		});
 

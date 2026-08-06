@@ -104,8 +104,10 @@ export interface EnergyParams {
 	 * the same intermittent-effort regime as restRecoveryMultiplier). The
 	 * recovery gate becomes 1−(1−b)·w instead of 1−w, so a w = 1 task drains
 	 * toward the floor b·r′/(α + b·r′) > 0 instead of exactly 0. Without it,
-	 * full-demand tasks sit on a knife edge: demand 10 vs 9.5 flips the plan
-	 * (probe-verified 2026-07-14). 0 disables, recovering the pure (1−w) gate.
+	 * without it a full-demand task has no basal floor at all. (The "demand 10 vs
+	 * 9.5 flips the plan" cliff measured in 2026-07-14 does NOT reproduce under
+	 * today's search and lattice — MATH.md §8.5.) 0 disables, recovering the pure
+	 * (1−w) gate.
 	 * MATH.md §8.5.
 	 */
 	microRecoveryFraction: number;
@@ -416,8 +418,10 @@ function blockOutput(
 		hours,
 	);
 
-	// Simpson error ~ h⁴: 16 nodes per fastest timescale keeps relative error
-	// below ~1e-6 even for near-floor ϕ tasks inside long blocks (probe-verified).
+	// Simpson error ~ h⁴: 16 nodes per fastest timescale, capped at 1024. At the
+	// 0.1h ϕ floor the cap binds above a 6.4h block and the density then falls —
+	// relative error grows from ~3e-7 to 3.5e-6 at 12h and 5.6e-5 at 24h
+	// (scripts/enb-simpson-error.probe.ts). Never binds at default constants.
 	let n = Math.ceil(hours / (fastest / 16));
 	n = Math.min(Math.max(n, 16), 1024);
 
@@ -1108,8 +1112,9 @@ export interface DrainRateFit {
  *   Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²
  *
  * is exactly this penalized fit. Unlike the ϕ fit, the "design" here is the
- * SENSITIVITY dD/dα (≈ 0.3–0.9 per unit α for typical 1–3h full-demand
- * sessions, vanishing as w → 0), so λ is calibrated in those units, by probe
+ * SENSITIVITY dD/dα (≈ 0.7–1.0 per unit α at the default α for typical 1–3h
+ * full-demand sessions, ≈ 0.3–0.7 once α ≈ 0.5–0.8, vanishing as w → 0), so λ
+ * is calibrated in those units, by probe
  * (λ sweep, 2026-07-15): one consistent full-demand log moves α ~50% of the
  * way to what it implies, three ~70%, ten ~85%; a clean 8-log set recovers a
  * true α of 1.2 as 0.96 (the shortfall is drain saturation — the data barely
@@ -1377,9 +1382,9 @@ export interface RecoveryRateFit {
  * (dD/dr = m·g·d_pre·e^(−r·m·g) ≈ 0.2–0.4 for typical 30–60 min breaks from
  * half drain, roughly half the drain fit's lever arm; and one logged rest
  * contributes TWO observations, mind + body). Probe-tuned 2026-07-18 to match
- * the α fit's behavior: one consistent logged rest moves r 51% of the way to
- * what it implies, three 72%, ten 88% (λ = 0.1 was too anchored at 37% for
- * the first log). MATH.md §8.9.
+ * the α fit's behavior: one consistent logged rest moves r 53% of the way to
+ * what it implies, three 71%, ten 88% (λ = 0.1 was too anchored at 39% for
+ * the first log — re-measured 2026-08-06). MATH.md §8.9.
  */
 export const RECOVERY_PRIOR_STRENGTH = 0.05;
 
@@ -1516,7 +1521,8 @@ export const STOP_PRIOR_STRENGTH = 1;
 /**
  * Prior scale for indifference-point noise, in λ₀ units (output per hour).
  * Two sources add up: lattice quantization (the day's bracket is one 45-min
- * step wide — half-width ≈ 0.15 on the probe day) and day-to-day mood in the
+ * step wide — half-width a median 0.110 over 279 non-inverted days, measured
+ * 2026-08-06; the 0.15 this comment used to quote was one probe day) and day-to-day mood in the
  * stop decision itself, which no instrument separates. 0.25 ≈ a quarter of
  * the informative λ₀ band ([0.4, 1.5] on the probe day).
  */
@@ -1542,13 +1548,28 @@ export const STOP_FIT_MAX = 3;
  * already drops: keeping its midpoint as a point estimate pulls the fit
  * toward the task curves' characteristic marginal INDEPENDENT of the user's
  * true λ₀ (probe: a true λ₀ = 0.3 user's fit went 0.47 → 0.64 from two
- * interrupted days in five). The margin keeps near-boundary days: rational
- * days and rational-±1-step "mood" days never invert at all (probe
- * 2026-07-19), and small inversions are within the instrument's own slack —
- * the loose-max hi bias (~+0.1) plus a lattice bracket half-width (~0.15),
- * which is also STOP_NOISE_PRIOR_STD. Probe on the standard day: interruption
- * slivers gap 0.33–0.65 (censored), a mildly-off 2.25h reading day gaps 0.07
- * (kept).
+ * interrupted days in five). The margin keeps near-boundary days, and small
+ * inversions are within the instrument's own slack. Probe on the standard day:
+ * interruption slivers gap 0.33–0.65 (censored), a mildly-off 2.25h reading
+ * day gaps 0.07 (kept).
+ *
+ * CORRECTED 2026-08-06 (`scripts/stop-inversion-margin.probe.ts`, MATH.md
+ * §8.10). Two claims that used to justify this number did not survive a wider
+ * grid, so do not re-derive 0.25 from them:
+ *
+ *   - "rational days and rational-±1-step 'mood' days never invert at all" is
+ *     FALSE. Optimizer days invert on 4 of 315; their ±1-step mood variants on
+ *     44 of 1179, and 6 of those are censored — worst gap 0.421, past this
+ *     margin. Some honest days really are dropped.
+ *   - the "~+0.1 loose-max bias plus ~0.15 half-width" decomposition does not
+ *     add up: measured, the bias is median 0.000 / mean 0.045 and the
+ *     half-width median 0.110, summing to 0.110 — not 0.25.
+ *
+ * The constant is LEFT at 0.25 because tightening it censors more honest days
+ * (6 of 1179 already) and the two populations overlap — INVERTED random
+ * compositions gap a median 0.282 against honest mood days reaching 0.421 —
+ * so there is no clean cut to move it to. Re-deriving it from the measured
+ * distributions is open work, not a value to guess at.
  */
 export const STOP_INVERSION_MARGIN = 0.25;
 
@@ -1584,8 +1605,9 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * the one-sided λ₀ ≤ hi reading survives — the same reason worked-to-the-edge
  * days are dropped. Small inversions (within the margin, i.e. within the
  * instrument's own slack) keep the bracket midpoint as the compromise between
- * the two bounds. Rational and near-rational days (±1 step of "mood") never
- * inverted on the probe grid.
+ * the two bounds. Rational and near-rational days (±1 step of "mood") invert
+ * RARELY but not never — 4 of 315 and 44 of 1179 respectively, 6 of the latter
+ * past the margin (2026-08-06, see STOP_INVERSION_MARGIN).
  */
 export function stopIndifferencePoint(
 	observation: StopObservation,
@@ -1777,9 +1799,9 @@ export type StopAdvice =
  *
  * Sessions, not single steps, on purpose: a fresh task's first 45 min is
  * mostly warm-up ramp, so its one-step marginal sits below a λ₀ the full
- * session clears — probe 2026-08-03: the one-step verdict cried stop mid-day
- * on 16–25% of checkpoints at λ₀ ≥ 0.9, session-lookahead on 1–6%, with
- * at-stop agreement unchanged (§8.11). The duration axis is the optimizer's
+ * session clears — probe 2026-08-06: the one-step verdict cried stop mid-day
+ * on 19.7% of checkpoints at λ₀ = 0.9 and 24.7% at 1.3, session-lookahead on
+ * 6.6% and 6.2%, with at-stop agreement unchanged (§8.11). The duration axis is the optimizer's
  * own move shape (grow / T*-session insert), so at a rational stop no session
  * clears λ₀ and the verdicts still agree.
  *

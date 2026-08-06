@@ -323,8 +323,11 @@ function referencePhi(constants: UserConstants): number {
  * the sparkline's x-extent would otherwise stretch with however long ago the
  * user last worked. It is deliberately not the audit's window, which counts the
  * last `auditDayCap` days that were WORKED and so reaches further back for
- * anyone who skips days: the audit's stretch contains this one, never the
- * reverse, so the sparkline only ever shows movement the audit also scored.
+ * anyone who skips days: once there are `auditDayCap` worked days the audit's
+ * stretch contains this one, never the reverse, so the sparkline only ever shows
+ * movement the audit also scored. Before that it can be the wider of the two — a
+ * snapshot is stamped on any day analytics was opened, an audited day needs
+ * logged work (MATH.md §12.1).
  */
 function trendFrom(
 	snapshots: FitSnapshot[],

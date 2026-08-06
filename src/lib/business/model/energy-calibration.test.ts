@@ -281,3 +281,60 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 		expect(seeded.initialPhys).toBeLessThan(1);
 	});
 });
+
+describe('as-of-day vs whole-history fit (MATH.md §12.1)', () => {
+	// Pins `scripts/fit-snapshot-drift.probe.ts`. §12.1's entire case for the
+	// `fitSnapshots` store is that an early day audited against the CURRENT fit
+	// is audited against a drain rate its own logs never supported. Nothing in
+	// the suite measured that; the numbers behind it (0.3069 / 0.4973) were
+	// prose from a probe that was thrown away.
+	const drainingDay = (day: number, alpha: number): DrainObservationRecord[] =>
+		[0, 1, 2].map((i) => {
+			const hours = 1 + (i % 3) * 0.5;
+			const demand = 0.5 + (i % 4) * 0.1;
+
+			return drainRecord({
+				date: `2026-${String(1 + Math.floor(day / 28)).padStart(2, '0')}-${String((day % 28) + 1).padStart(2, '0')}`,
+				taskId: i + 1,
+				hours,
+				cognitiveDemand: demand,
+				physicalDemand: demand * 0.6,
+				mindDrain: Math.round((1 - Math.exp(-alpha * demand * hours)) * 10),
+				bodyDrain: 2,
+				createdAt: day * 86_400_000 + i,
+			});
+		});
+
+	const historyFor = (days: number, alphaOn: (day: number) => number): DrainObservationRecord[] =>
+		Array.from(
+			{
+				length: days,
+			},
+			(_, day) => drainingDay(day, alphaOn(day)),
+		).flat();
+
+	const alphaCogOf = (drain: DrainObservationRecord[]) =>
+		calibrateEnergyParams([], drain).params.alphaCog;
+
+	it("a drifting user's day-10 fit is far below the whole-history fit", () => {
+		const days = 120;
+		const drifting = historyFor(days, (day) => 0.25 + (0.55 - 0.25) * (day / days));
+		const early = alphaCogOf(drifting.filter((r) => r.createdAt < 10 * 86_400_000));
+		const whole = alphaCogOf(drifting);
+
+		// The bias the store exists to remove: auditing day 10 against `whole`
+		// prices it at a drain rate its own logs never saw.
+		expect(whole).toBeGreaterThan(early * 1.2);
+	});
+
+	it('and a NON-drifting user shows no such gap — the effect is the drift', () => {
+		const days = 120;
+		const flat = historyFor(days, () => 0.4);
+		const early = alphaCogOf(flat.filter((r) => r.createdAt < 10 * 86_400_000));
+		const whole = alphaCogOf(flat);
+
+		// Control. Without this the test above would also pass on a fit that is
+		// simply unstable at small n, which is a different (and cheaper) problem.
+		expect(Math.abs(whole - early) / early).toBeLessThan(0.1);
+	});
+});

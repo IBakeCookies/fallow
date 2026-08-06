@@ -464,9 +464,12 @@ export function calculateTimeScarcity(
  *   not depletion. Loved-hard and hated-hard days now read the same risk —
  *   the §11.4 "difficulty you love is not friction" boundary, applied here.
  * - 100% is unreachable by design: micro-recovery (§8.5) floors each
- *   reservoir at eq > 0 (defaults: ≈ 87% max for a full cognitive day), and a
+ *   reservoir at eq > 0 (defaults: ≈ 87% max for a full cognitive day, sweep
+ *   max 82% — probed 2026-08-06, `scripts/burnout-risk.probe.ts`), and a
  *   0-demand plan reads ~0. The dashboard thresholds are unchanged; readings
- *   simply live on an honest scale now.
+ *   simply live on an honest scale now. "By design" means by b > 0: the same
+ *   probe reads exactly 100% at microRecoveryFraction = 0, which the energy
+ *   lab permits.
  *
  * Funded tasks only, as before: a dropped task is one the user won't work
  * (§11.3). If NOTHING is funded but a budget is declared, the intended hours

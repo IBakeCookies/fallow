@@ -8,6 +8,7 @@ Other documentation, and nothing else:
 | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
 | [README.md](README.md)                                           | User-facing: what the app does and how to run it                    |
 | [MATH.md](MATH.md)                                               | **Authoritative** record of the implemented math — every derivation |
+| ↳ its `## Section index`                                         | 3.6k lines / ~55k tokens. Read the section you need, not the file   |
 | [ROADMAP.md](ROADMAP.md)                                         | Planned work in priority order — update when an item ships          |
 | [STYLE.md](src/lib/presentation/style/STYLE.md)                  | All styling rules — read before touching markup or classes          |
 | [zenith.md](zenith.md)                                           | Frozen copy of the source article. Historical only — never a spec   |
@@ -134,9 +135,10 @@ Each exists because it was broken before.
   dynamic `import('$lib/data/...')` crossing is invisible to it, and a
   relative one only cannot hide because relative specifiers are banned
   outright (see Code), not because it reads them as layer violations.
-  `.dependency-cruiser.cjs` resolves modules to disk; its three directional
+  `.dependency-cruiser.cjs` resolves modules to disk; its four directional
   rules — `data-not-to-upper-layers`, `business-not-to-presentation`,
-  `presentation-not-to-data`, all `severity: 'error'` — catch those. Run with
+  `presentation-not-to-data`, `presentation-not-to-business-model`, all
+  `severity: 'error'` — catch those. Run with
   `npm run depcheck`; it is in CI. `src/lib/paraglide` is generated and
   exempt.
 - One gap worth knowing: the Svelte compiler strips `import type` before
@@ -613,7 +615,8 @@ force). Do not change these without reading the derivation first.
   `p(0) = p₀` genuinely holds; peak at `t = ϕ`, value `a·e^(p₀/a−1)`. The
   ratio `r = p₀/a` is capped at 0.9 (`AMPLITUDE_RATIO_CAP`).
 - The single-task optimum is **per task**: `T* = ϕ·x*(r)/(1−r)` where `x*(r)`
-  solves `eˣ = 1 + x + x²/(1+r)`; the multiplier ranges over (1.5, 1.7933].
+  solves `eˣ = 1 + x + x²/(1+r)`; the multiplier ranges over [1.5194, 1.7933]
+  — 1.5 is the r → 1 asymptote and `AMPLITUDE_RATIO_CAP = 0.9` forbids it.
   `OPTIMAL_PHI_MULTIPLIER` (1.7933) is only the r→0 limit / upper bound (and
   the energy model's seed) — use `TaskAllocation.optimalHours` for real
   values. The allocator never assigns time meaningfully past a task's `T*`.
@@ -665,14 +668,18 @@ of its allocation code, so the main page is unaffected by changes here.
   `g = 1−(1−b)·w` (`b = microRecoveryFraction`, default 0.05) and
   `r' = recoveryRate·restRecoveryMultiplier` — closed-form exponential per
   block, no ODE solver. The gate keeps a full-demand (w = 1) task above the
-  floor `b·r'/(α+b·r')` instead of draining to zero; without it, demand 10 vs
-  9.5 flips the plan (knife edge). A `(1−w^q)` gate does **not** fix this
-  (still 0 at w = 1, probe-verified) — don't re-propose it. `b = 0` recovers
-  the pure `(1−w)` gate. §8.5.
+  floor `b·r'/(α+b·r')` instead of draining to zero; without it there is no
+  basal floor at all (the 2026-07-14 "demand 10 vs 9.5 flips the plan" cliff
+  does not reproduce under today's search — §8.5). A `(1−w^q)` gate does **not**
+  fix this (still 0 at w = 1, probe-verified) — don't re-propose it. `b = 0`
+  recovers the pure `(1−w)` gate. §8.5.
 - Output gate is Cobb-Douglas: `C_cog^wc · C_phys^wp`, demands
-  `w = dimensionDifficulty/10`. Block output uses composite Simpson with ≥16
-  nodes per fastest timescale (min of ϕ, 1/ρ) — relative error ~1e-6 even for
-  near-floor ϕ tasks in long blocks.
+  `w = dimensionDifficulty/10`. Block output uses composite Simpson with 16
+  nodes per fastest timescale (min of ϕ, 1/ρ), **capped at 1024 nodes** — so at
+  the 0.1h ϕ floor the density falls once a block exceeds 6.4h: relative error
+  is ~3e-7 up to 6h, 6.9e-7 at 8h, 1.7e-6 at 10h, 3.5e-6 at 12h and 5.6e-5 in a
+  24h block (`scripts/enb-simpson-error.probe.ts`). Under default constants
+  (min ϕ = 0.58h) the cap never binds.
 - The optimizer is a deterministic multi-seed steepest-ascent local search
   over (task|rest, duration) block schedules: not slot-greedy (myopic, never
   rests), not full DP. Pure single-step moves strand ~1% of the objective and
@@ -816,6 +823,47 @@ could not be re-checked and stayed in the document while being false.
 - **Pin what the probe found with one fixture in the suite**, never the sweep
   itself — §14.2's multi-gainer tie-break is pinned exactly that way.
 
+**Which probe backs what** (each file's header names its claim; each claim in
+`MATH.md` carries a dated back-reference to its probe). A `MATH.md` number with
+no probe citation beside it is unbacked — that is the list to work down.
+
+| Probe (`scripts/`)                      | Backs                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `plan-advice.probe.ts`                  | §14, §14.1-2 — priced-lever signs, the pure budget trim                                                       |
+| `pool-allocator.probe.ts`               | §13.3, §4 — pooled suboptimality: there is no envelope to quote                                               |
+| `energy-search-gap.probe.ts`            | §8.6 — the search's residual gap against the enumerated optimum, and the rest-split audit on the worst day    |
+| `stop-advisor.probe.ts`                 | §8.11 — session lookahead vs. the one-step marginal                                                           |
+| `burnout-risk.probe.ts`                 | §11.6 — the 87% ceiling, the plateau, the resolution ladder                                                   |
+| `phi-uncertainty-cap.probe.ts`          | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation                                                       |
+| `phi-cap-reachability.probe.ts`         | §5.1 — whether a real fit can reach the region that cap misses                                                |
+| `allocator-exactness.probe.ts`          | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level                                                   |
+| `satiety-gaming.probe.ts`               | §8.4 — the monotone accumulator, and what a laundering one costs                                              |
+| `stop-inversion-margin.probe.ts`        | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split                                                 |
+| `fit-snapshot-drift.probe.ts`           | §12.1 — as-of-day vs whole-history fit drift, and refit cost                                                  |
+| `phi-error-price.probe.ts`              | §17 — the per-task-ϕ error pricing table                                                                      |
+| `curve-marginal-facts.probe.ts`         | §2 — the r-cap boundary, the five curve properties, the three N facts                                         |
+| `alloc-epsilon-methodology.probe.ts`    | §4 — block-rule vs hour-rule admissibility, the 49% artefact                                                  |
+| `post-recency-weighting.probe.ts`       | §5.2 — the recency weights, Σw vs n_eff, the ten-year logger                                                  |
+| `post-monotone-prefix-cost.probe.ts`    | §5.1 guard 2 — violation size, blocks dropped, which cut lost the value                                       |
+| `post-quadrature-floor.probe.ts`        | §5.1 — GH moment exactness and the ϕ-floor mean shift                                                         |
+| `enb-simpson-error.probe.ts`            | §8.1 / AGENTS §3 — Simpson error under the 1024-node cap                                                      |
+| `enb-break-economics.probe.ts`          | §8 intro, §8.3–8.4, §13.5 — break economics pre/post fix, fragmentation cost, chunk sweep                     |
+| `sat-gate-floor.probe.ts`               | §8.5 — the w = 1 floor identity and 8 h endpoint, the rejected (1−w^q) gate, the demand sweep                 |
+| `sat-drain-identifiability.probe.ts`    | §8.7 — what ratings identify (r vs α), λ tuning, saturation                                                   |
+| `stp-lattice.probe.ts`                  | §8.8 — the 45-min lattice's quantization loss and enumerated optimum                                          |
+| `stp-recovery-fit.probe.ts`             | §8.9 — the recovery fit's λ profile, range and identifiability limits; §8.7's ν₀ ≠ λ effect on the reported ± |
+| `stp-stopping-identifiability.probe.ts` | §8.10 — V_T identifiability and the reconstruction's bracket                                                  |
+| `mtr2-carry-over.probe.ts`              | §11.6 demand arm, §11.9 carry-over levels, §12's Σ P̄ spread premise                                           |
+| `rv13-prior-posterior.probe.ts`         | §13.1 — the σ_ϕ ladder and what the n = 0 posterior moves                                                     |
+| `rv13-naive-lattice.probe.ts`           | §13.2 — the naive baseline's lattice handicap, before and after                                               |
+| `rv13-stop-insertion.probe.ts`          | §13.4 — insertion convention: size and sign of the error                                                      |
+| `rv13-terminal-timing.probe.ts`         | §13.6 — mean-vs-min re-scoring, and the timing difference                                                     |
+| `adv1-plan-advice-frontier.probe.ts`    | §14, §14.1 — the Σ P̄ identity, budget monotonicity, rounding, frontier widths, the budget-0 grind day         |
+| `adv2-budget-marginal.probe.ts`         | §14.2 — the budget marginal, zero-marginal days, per-task spread                                              |
+| `adv2-switch-cost-price.probe.ts`       | §14.3 — the fixture table, the inversion grid, m(s) and the bracket                                           |
+| `mode-cross-scoring.probe.ts`           | §15 — both plans scored under both objectives                                                                 |
+| `mode-run-order.probe.ts`               | §16 — the order-only gain and the burnout noise it would buy                                                  |
+
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
 `e2e/` (playwright report and traces). Coverage is a number to read, not a gate
@@ -908,15 +956,15 @@ Each was considered and decided. Re-deciding them is churn.
 - **The energy model is a peer mode, not a candidate to replace the main
   plan** (settled 2026-07-29, MATH.md §15). A 300-day cross-scoring probe:
   each model beats the other by tens of percent **on the other's objective** —
-  classic wins `Σ P̄` on 276/300 days (median +37.5%), energy wins its own
-  objective on 300/300 (median +18.4%). The 24 exceptions are all plans the
-  pooled allocator is forbidden to emit (4.05–7.28 h cognitive against the 4 h
+  classic wins `Σ P̄` on 283/300 days (median +38.8%), energy wins its own
+  objective on 298/300 (median +17.4%). The 17 exceptions are all plans the
+  pooled allocator is forbidden to emit (4.35–7.20 h cognitive against the 4 h
   pool — the energy model has no pool constraint), so neither allocator is
   defective. No evidence can rank them; §12's audit is a descriptive signal,
   not a promotion gate. What the probe does establish is the user-facing
-  difference: energy funds 2.05 tasks/day vs classic 3.88 and **never more**
-  (0/300 days), overlapping on composition 0.61 and agreeing on the funded set
-  16% of the time. Classic spreads, energy concentrates. Keep both routes.
+  difference: energy funds 1.97 tasks/day vs classic 3.96 and **never more**
+  (0/300 days), overlapping on composition 0.58 and agreeing on the funded set
+  10% of the time. Classic spreads, energy concentrates. Keep both routes.
 
 - **The Lab's task list reads in schedule order, snapshotted per visit**
   (settled 2026-08-05). Sorting it live is the obvious implementation and it is
@@ -947,12 +995,12 @@ Each was considered and decided. Re-deciding them is churn.
 - **Run order stays `calculateInterleavedOrder`'s nature alternation** (settled
   2026-07-29, MATH.md §16). `Σ P̄` is order-invariant, so only the energy model
   scores order at all — and under it the heuristic is a median 0.47% below the
-  best ordering of the same allocation (p90 2.03%), landing at the 6th
-  percentile of all orderings while best-vs-worst spans 7.31%. Holding the
+  best ordering of the same allocation (p90 1.50%), landing at the 5.83th
+  percentile of all orderings while best-vs-worst spans a median 7.07%. Holding the
   allocation fixed bounds any order-only change, the solver's included. The
   swap is also actively harmful to one metric: the objective-maximizing order
   is uncorrelated with drain (§8 charges no cost for it), so it moves Burnout
-  Risk by >5 points on 34% of days in no consistent direction. Do not re-open
+  Risk by >5 points on 89 of 300 days (30%) in no consistent direction. Do not re-open
   without a reason that isn't "the optimizer should beat the heuristic".
 
 - **ϕ stays one plane for all tasks — no per-task offsets** (settled
@@ -1114,7 +1162,7 @@ Each was considered and decided. Re-deciding them is churn.
   column degenerates) is **false and measured false** — the two that hold are
   that no user lever corresponds to a per-task entry, and that the column is
   arithmetic on a curve that ignores the pools and the switch cost, overstating
-  the budget's yield on 16% of probe days. It lives in `suggestPlanAdjustments`,
+  the budget's yield on 63% of probe days. It lives in `suggestPlanAdjustments`,
   not `calculateDailyMetrics`: the latter runs in a `$derived` on every
   keystroke and every slider drag, where a second solve doubles dashboard cost.
 
@@ -1124,8 +1172,8 @@ Each was considered and decided. Re-deciding them is churn.
   same sentence, licenses them as instrument targets.
   `PlanAdvice.switchCostPrice` reports the `(m−1)·s` hours the plan reserves
   over **funded** tasks, that as a share of the budget, and Σ P̄ re-solved at
-  `s = 0` and `s = 2s`. Declaring it 2× too high costs a measured **8.51%** of
-  plan value on a 2–4-task day (18.80% at 5+ tasks), against 0.16% for the ϕ
+  `s = 0` and `s = 2s`. Declaring it 2× too high costs a measured **8.47%** of
+  plan value on a 2–4-task day (18.77% at 5+ tasks), against 0.16% for the ϕ
   oracle — this was the last model input with no reading anywhere. Four things
   it must keep, three of which invert the bullet directly above:
   - **Plan-scoped, not open-scoped**, because it is compared against
@@ -1134,8 +1182,8 @@ Each was considered and decided. Re-deciding them is churn.
   - **Clamped per arm, never floored.** The exact optimum is monotone
     non-increasing in `s`, so a lower declaration reads only ≥ 0 and a higher one
     only ≤ 0; the opposite sign is §13.3 suboptimality, not the day. Inversions
-    are reachable and large — 322 over 178,800 UI-grid configurations, worst free
-    arm **−6.53%**, worst doubled arm **+1.95%**, and 43 of them without touching
+    are reachable and large — 112 over 71,520 UI-grid configurations, worst free
+    arm **−6.53%**, worst doubled arm **+1.36%**, and 40 of them without touching
     `s`. Their magnitude is **not** bounded by §13.3's "worst 0.09%", which is a
     single-draw maximum. So each arm is clamped to its provable direction and
     nothing else is touched. Do **not** replace this with §14.2's floor: that
@@ -1153,9 +1201,10 @@ Each was considered and decided. Re-deciding them is churn.
 
   It gets no `AdviceLever`, no axis, no frontier entry and no Apply button, and
   must not be wired to suppress anything. Do not re-propose **fitting** `s` from
-  the observed funded-task count: `m(s)` is not monotone (609 violations over
-  400 days × 101 `s` values), a one-day bracket is a median 0.39 h wide against
-  a [0,1] h range, and one mis-counted task moves the bracket edge 0.34 h.
+  the observed funded-task count: `m(s)` is not monotone (195 violations on 115 of
+  the 298 fixture days × 101 `s` values), a one-day bracket is a median 0.50 h
+  wide against a [0,1] h range, and one mis-counted task moves the bracket edge
+  0.34 h.
 
 - **A day's fitted params are stored, not recomputed from the logs**
   (2026-08-03, MATH.md §12.1). The fit as of day D _is_ a pure function of the
@@ -1177,6 +1226,24 @@ Each was considered and decided. Re-deciding them is churn.
   evaluation (`evaluateWithCurves`); public `evaluateSchedule` still builds
   its own. Hoisting measured 2.6× (104 → 40 ms on a 4-task/8h solve).
 - **Human Capacity is unclamped** — it is allowed to read over 100%.
+- **Burnout Risk is not monotone in the declared budget, and that stays**
+  (settled 2026-08-06, MATH.md §11.6). Raising `availableHours` over a fixed
+  task list makes the reading FALL on 3006 of 37800 probed steps, worst 29
+  points (`scripts/burnout-risk.probe.ts`). It is not a bug in the metric: the
+  larger budget funds more tasks, and their switch gaps are real rest, so the
+  simulated day contains less work. Documented rather than smoothed — holding
+  the funded set fixed while walking the budget would report a plan the user is
+  not being shown. Do not "fix" the fall.
+- **`PHI_UNCERTAINTY_RELATIVE_CAP` stays 0.5 — do not lower it to 0.35**
+  (settled 2026-08-06, MATH.md §5.1). §5.1 records that the cap does not
+  exclude everything it claims to: bimodality and truncation loss start at
+  σ/ϕ̂ ≈ 0.35, not 0.5. Tightening it is the obvious repair and the wrong one.
+  A real fit cannot reach the gap — the ridge's λ = 4 anchor shrinks ϕ̂ exactly
+  when σ is large, so 0 of 576 000 fitted cells land at ϕ̂ > 3.06h with
+  σ/ϕ̂ > 0.35, and the 5 of 28 800 that extrapolation reaches forfeit 0.0000%
+  (`scripts/phi-cap-reachability.probe.ts`). Lowering it would clamp 1.23% of
+  realistic cells and hedge them LESS, worth up to +6.809% of conjured value
+  for the few-log users the posterior exists to protect.
 - The productivity curve deviates from the source article on purpose
   (MATH.md §6).
 

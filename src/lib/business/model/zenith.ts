@@ -355,7 +355,9 @@ export function optimalStoppingX(r: number): number {
 // accuracy floor is NOT the rule's order: it is the ϕ-floor clamping of the
 // outer nodes (weight 0.0113 each), which makes the effective mixture
 // slightly narrower than N(ϕ̂, σ²) once ϕ̂ − √2σ·2.0202 drops below 0.1h.
-// Inside PHI_UNCERTAINTY_RELATIVE_CAP that is a sub-1% shift of the mean ϕ,
+// Inside PHI_UNCERTAINTY_RELATIVE_CAP that is a sub-1% shift of the mean ϕ for
+// ϕ̂ ≳ 0.31h — below that the inner nodes clamp too and the shift reaches 16.7%
+// at a floored ϕ̂ (MATH.md §5.1) —
 // and it is exactly the graceful degradation the cap exists to bound — a
 // Gaussian is the wrong posterior for a positive quantity out there anyway.
 // (An earlier comment called the error "~O(σ⁶)", which understated the rule
@@ -394,10 +396,22 @@ const GH_NODES = [
  * quadrature node collapses onto the ϕ floor and behaves like a fast "spike"
  * curve mixed with slow ones — the mixture turns bimodal in T, which breaks
  * both properties the greedy allocator's exactness rests on (non-increasing
- * block increments, single sign crossing). At σ ≤ 0.5·ϕ̂ the probe grid shows
- * zero bimodal cases and zero truncation loss. A σ beyond this cap also means
+ * block increments, single sign crossing). At σ ≤ 0.5·ϕ̂ the grid is clean for
+ * every ϕ̂ the default constants can reach (≤ 3.06h) — but not for all ϕ̂: the
+ * spike starts at σ/ϕ̂ ≈ 0.35, so a FITTED ϕ̂ past ~3h still finds bimodal cells
+ * inside the cap (re-measured 2026-08-06, `scripts/phi-uncertainty-cap.probe.ts`,
+ * MATH.md §5.1). Truncation is what makes that safe, not this cap alone. A σ
+ * beyond the cap also means
  * the Gaussian posterior is a poor description of a positive quantity anyway
  * (mass at ϕ < 0), so clamping is a graceful degradation, not a distortion.
+ *
+ * DO NOT lower this to 0.35 to "close" that gap — measured and rejected
+ * 2026-08-06 (`scripts/phi-cap-reachability.probe.ts`, MATH.md §5.1). A real fit
+ * cannot produce ϕ̂ > 3.06h and σ/ϕ̂ > 0.35 together (the ridge's λ = 4 anchor
+ * shrinks ϕ̂ exactly when σ is large): 0 of 576 000 fitted cells reach the lossy
+ * corner, and the 5 of 28 800 that extrapolation reaches forfeit 0.0000%.
+ * Lowering the cap clamps 1.23% of realistic cells that hedge today, worth up to
+ * +6.809% of conjured task value — ~7% harmful, 0% helpful.
  */
 const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
 
@@ -469,8 +483,9 @@ function expectedAvgProductivityDerivative(
  *
  * The mixture marginal is positive below every component's own optimum and
  * negative above all of them, so the root is bracketed by
- * [T*(ϕ_min), T*(ϕ_max)] with T*(ϕ) = x*(r)·ϕ/(1−r), and inside the σ-cap
- * regime it crosses zero exactly once (probe 2026-07-18). 60-step bisection,
+ * [T*(ϕ_min), T*(ϕ_max)] with T*(ϕ) = x*(r)·ϕ/(1−r), and inside the σ-cap it
+ * crosses zero exactly once for every ϕ̂ a default-constants user reaches — 7 of
+ * 1400 grid cells at ϕ̂ > 3h are the exception (MATH.md §5.1). 60-step bisection,
  * matching optimalStoppingX's tolerance. σ_ϕ = 0 reduces to the closed-form
  * classic T*.
  */
@@ -943,8 +958,9 @@ function bestPlanWithSwitchCost(
 	};
 
 	// Greedy + (only when a pool actually blocked a funding step) a second,
-	// ratio-ranked candidate plan and the resource-aware transfer pass on
-	// whichever candidate started higher. Pool-less plans skip both entirely,
+	// ratio-ranked candidate plan, with the resource-aware improvement pass run on
+	// BOTH candidates and the better end state kept — picking a start by its
+	// initial value is exactly what does not work (MATH.md §13.3). Pool-less plans skip both entirely,
 	// preserving plain greedy's exact-optimality on the single constraint.
 	const allocate = (subset: number[], budgetBlocks: number): number[] => {
 		const { blocks, poolBlocked } = greedyAllocateBlocks(
@@ -1293,7 +1309,9 @@ export const GAIN_PERCENT_CAP = 999;
  * Zenith structurally cannot do. The gain metric was therefore measuring two
  * things at once — allocation quality AND a lattice handicap charged to one
  * side only — and the handicap dominated: measured over random days the
- * reported gain was NEGATIVE on 4% (n = 2) to 19% (n = 6) of them. Since the
+ * reported gain was NEGATIVE on 3.8–7.8% of them, with no trend in n (the
+ * "4% at n = 2 rising to 19% at n = 6" first quoted here came from a draw whose
+ * generator was never committed and does not reproduce — §13.2). Since the
  * lattice is an accounting choice rather than a cost Zenith imposes on the
  * user (nobody executes 0.373h either way), both planners now face the same
  * feasible set and the number isolates allocation quality.
@@ -1350,7 +1368,8 @@ function gainPercentOf(optimized: number, naive: number): number {
  * Compare productivity gain from the dual-pool Zenith optimization vs a naive
  * equal time split, under the SAME constraints: the naive planner splits the
  * effective budget equally across all tasks (switching between every one), and
- * its plan is scaled down uniformly if it would overdraw a capacity pool. Both
+ * it skips any task whose next whole block would overdraw a capacity pool
+ * (`naiveBlockPlan`; nothing is scaled uniformly — MATH.md §13.2). Both
  * plans being pool-feasible makes the comparison about allocation quality, not
  * about one side ignoring constraints the other must respect.
  */
@@ -1543,8 +1562,8 @@ export interface FitPosterior {
  * path used to return NO posterior, and a missing posterior means σ_ϕ = 0
  * downstream — i.e. the allocator treated a user with ZERO ⚡ logs as
  * PERFECTLY certain, then started hedging the moment they logged their first
- * one. Measured at (E, β) = (2.78, 1.44): σ_ϕ was 0 at n = 0, 0.194h at n = 1,
- * 0.003h at n = 200. The honest sequence is 0.411 → 0.194 → 0.003, monotone
+ * one. Measured at (E, β) = (2.78, 1.44): σ_ϕ was 0 at n = 0, 0.191h at n = 1,
+ * 0.003h at n = 200. The honest sequence is 0.411 → 0.191 → 0.003, monotone
  * decreasing in data — which is exactly what §5.1's whole premise claims.
  * Returning the prior posterior restores that ordering; `fitted` still reports
  * whether the DATA moved the constants, which is what the UI keys on.
