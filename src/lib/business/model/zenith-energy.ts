@@ -1382,9 +1382,9 @@ export interface RecoveryRateFit {
  * (dD/dr = m·g·d_pre·e^(−r·m·g) ≈ 0.2–0.4 for typical 30–60 min breaks from
  * half drain, roughly half the drain fit's lever arm; and one logged rest
  * contributes TWO observations, mind + body). Probe-tuned 2026-07-18 to match
- * the α fit's behavior: one consistent logged rest moves r 51% of the way to
- * what it implies, three 72%, ten 88% (λ = 0.1 was too anchored at 37% for
- * the first log). MATH.md §8.9.
+ * the α fit's behavior: one consistent logged rest moves r 53% of the way to
+ * what it implies, three 71%, ten 88% (λ = 0.1 was too anchored at 39% for
+ * the first log — re-measured 2026-08-06). MATH.md §8.9.
  */
 export const RECOVERY_PRIOR_STRENGTH = 0.05;
 
@@ -1799,9 +1799,9 @@ export type StopAdvice =
  *
  * Sessions, not single steps, on purpose: a fresh task's first 45 min is
  * mostly warm-up ramp, so its one-step marginal sits below a λ₀ the full
- * session clears — probe 2026-08-03: the one-step verdict cried stop mid-day
- * on 16–25% of checkpoints at λ₀ ≥ 0.9, session-lookahead on 1–6%, with
- * at-stop agreement unchanged (§8.11). The duration axis is the optimizer's
+ * session clears — probe 2026-08-06: the one-step verdict cried stop mid-day
+ * on 19.7% of checkpoints at λ₀ = 0.9 and 24.7% at 1.3, session-lookahead on
+ * 6.6% and 6.2%, with at-stop agreement unchanged (§8.11). The duration axis is the optimizer's
  * own move shape (grow / T*-session insert), so at a rational stop no session
  * clears λ₀ and the verdicts still agree.
  *

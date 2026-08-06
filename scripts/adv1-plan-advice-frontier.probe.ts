@@ -17,6 +17,10 @@
  *   - §14.1-4 — the frontier is monotone in plan value by construction ("0 of
  *     1580"), and "16 of 1580" frontiers exceeded 3 options, "longest 5".
  *
+ * And one number that never had a day at all: §14.1-3's zero-baseline defect
+ * quoted a "2.568" with no recorded fixture, so the plan value `set-budget 1h`
+ * reaches from a 0 h budget is measured here on the suite's own grind day.
+ *
  * Same generator, seed and day count as `plan-advice.probe.ts` (600 days,
  * seed 42), so these counts compose with its 404 trim levers and 4450 priced
  * frontiers rather than describing a different sample.
@@ -105,6 +109,13 @@ function randomDays(count: number, seed: number): DailyMetricsInput[] {
 }
 
 const DAYS = randomDays(600, 42);
+/**
+ * The suite's own grind day, mirrored: `GRIND` and `grindDay` in
+ * `src/lib/business/model/metric/plan-advice.test.ts` — the same three tasks,
+ * the same 0.25 h switch cost, and `DEFAULT_CAPACITY_POOLS` (4 h / 6 h).
+ */
+const GRIND = [task(1, 10, 2, 1), task(2, 9, 1, 2), task(3, 2, 9, 2)];
+const grindDay = (budget: number) => day(GRIND, budget, 0.25, 4, 6);
 /** The same one-minute tolerance `buildLevers` drops a budget lever under. */
 const MIN_HOUR_STEP = 1 / 60;
 
@@ -305,16 +316,61 @@ describe('plan advice — the frontier and the levers', () => {
 	 * test had to move to 6 h to have more than one case to bite on.
 	 */
 	it('measures frontier width on the suite grind fixture (MATH.md §14.1)', () => {
-		const grind = [task(1, 10, 2, 1), task(2, 9, 1, 2), task(3, 2, 9, 2)];
-
 		for (const budget of [6, 10]) {
-			const widths = suggestPlanAdjustments(day(grind, budget, 0.25, 4, 6))
+			const widths = suggestPlanAdjustments(grindDay(budget))
 				.findings.map((finding) => finding.options.length)
 				.filter((width) => width > 0);
 
 			console.log(
 				`[§14.1 grind ${budget}h] ${widths.length} priced frontiers, widths ${widths.join('/')}`,
 			);
+		}
+	});
+
+	/**
+	 * §14.1-3's zero-baseline defect needs a day, and the "2.568" once quoted for
+	 * it had none. At a 0 h budget nothing is funded, so Σ P̄ is 0 and every ratio
+	 * against it was rendered as 0% — "costs no plan value" for the one lever that
+	 * CREATES all the value there is. `set-budget 1h` is that lever by
+	 * construction: at budget 0 the trim and `budget − 1` both clamp onto the
+	 * budget and are deduplicated away, and 1 h is wider than the budget, so it
+	 * arrives unpriced beside each frontier rather than inside it.
+	 */
+	it('measures the plan value set-budget 1h reaches from a 0 h budget (MATH.md §14.1-3)', () => {
+		const zero = grindDay(0);
+		const baseline = calculateDailyMetrics(zero);
+
+		const offers = suggestPlanAdjustments(zero).findings.flatMap((finding) =>
+			[...finding.options, ...(finding.unpriced ? [finding.unpriced] : [])]
+				.filter((option) => option.lever.kind === 'set-budget' && option.lever.hours === 1)
+				.map((option) => ({
+					axis: finding.axis,
+					priced: finding.options.includes(option),
+					option,
+				})),
+		);
+
+		const reached = calculateDailyMetrics({
+			...zero,
+			availableHours: 1,
+		}).zenithGain.optimized;
+
+		console.log(
+			`[§14.1-3 grind 0h] baseline Σ P̄ ${baseline.zenithGain.optimized}, set-budget 1h reaches ${reached.toFixed(3)} on ${offers.length} axes (${offers.map((offer) => offer.axis).join('/')}), delta ${offers.map((offer) => String(offer.option.planValueDeltaPercent)).join('/')}`,
+		);
+
+		// The defect and its fix, as signs and constructions: the baseline has no
+		// value to take a ratio of, the lever reaches a positive one anyway, it is
+		// the same plan on every axis that offers it, and the delta is null rather
+		// than the 0% that read as costless.
+		expect(baseline.zenithGain.optimized).toBe(0);
+		expect(offers.length).toBeGreaterThan(0);
+
+		for (const { option, priced } of offers) {
+			expect(priced).toBe(false);
+			expect(option.planValue).toBe(reached);
+			expect(option.planValue).toBeGreaterThan(0);
+			expect(option.planValueDeltaPercent).toBeNull();
 		}
 	});
 });

@@ -8,6 +8,11 @@
  * seeded, so every number in that subsection can be reproduced instead of
  * believed (AGENTS.md §4).
  *
+ * §14.2 also quotes the naive column's overstatement twice: over all multi-task
+ * days, and restricted to the days whose budget marginal is non-zero (a zero
+ * marginal makes every positive column entry an overstatement by construction,
+ * which flatters the all-days rate). Both pairs come out of this one sweep.
+ *
  * A probe, not a test: the numbers move whenever the allocator changes, which is
  * a legitimate model change and not a regression. Whatever it prints belongs in
  * MATH.md WITH ITS DATE.
@@ -126,6 +131,9 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 		let multiTask = 0;
 		let overstates = 0;
 		let overstatement = 0;
+		let nonZeroMarginalDays = 0;
+		let overstatesNonZero = 0;
+		let overstatementNonZero = 0;
 
 		for (const input of days) {
 			const baseline = calculateDailyMetrics(input);
@@ -195,6 +203,12 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 
 			multiTask++;
 
+			// The restriction §14.2 quotes beside the all-days pair, counted on the
+			// same population and in the same pass.
+			const marginalIsNonZero = budgetMarginal.planValueGain > 0;
+
+			if (marginalIsNonZero) nonZeroMarginalDays++;
+
 			const column = funded.map((row) => {
 				const { a, p0, k } = calculateTaskParams(
 					{
@@ -227,6 +241,11 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 			if (best > budgetMarginal.planValueGain + 1e-12) {
 				overstates++;
 				overstatement += best - budgetMarginal.planValueGain;
+
+				if (marginalIsNonZero) {
+					overstatesNonZero++;
+					overstatementNonZero += best - budgetMarginal.planValueGain;
+				}
 			}
 		}
 
@@ -258,9 +277,19 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 			`[§14.2] ${atPeak} of ${fundedSeen} funded tasks sit at or past T*; the column's best entry overstates the marginal on ${((overstates / multiTask) * 100).toFixed(1)}% of days, mean overstatement ${(overstatement / Math.max(1, overstates)).toFixed(4)} Σ P̄`,
 		);
 
+		console.log(
+			`[§14.2] restricted to the ${nonZeroMarginalDays} of ${multiTask} multi-task days whose budget marginal is non-zero: it overstates on ${((overstatesNonZero / nonZeroMarginalDays) * 100).toFixed(1)}% of them, mean overstatement ${(overstatementNonZero / Math.max(1, overstatesNonZero)).toFixed(4)} Σ P̄`,
+		);
+
 		// The one genuine invariant in the sweep, and the reason the decomposition
 		// needs no second gain solve: with nothing completed, the open-scoped sum of
 		// per-task `avgProductivity` rises IS the plan's floored Σ P̄ rise (§14.2).
 		expect(worstDecomposition).toBeLessThan(1e-12);
+
+		// The restriction is a subset of the same population, so both of its counts
+		// are dominated by the all-days ones — the numbers themselves are figures.
+		expect(nonZeroMarginalDays).toBeLessThanOrEqual(multiTask);
+		expect(overstatesNonZero).toBeLessThanOrEqual(overstates);
+		expect(overstatementNonZero).toBeLessThanOrEqual(overstatement);
 	});
 });

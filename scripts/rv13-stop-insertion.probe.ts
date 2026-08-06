@@ -12,6 +12,13 @@
  * lesson §13.3 had to learn twice), so this measures the SIGN and the SPREAD
  * over a seeded sweep instead of one day.
  *
+ * The "0.65 appended last vs 0.37 inserted first" step is from a day that was
+ * never recorded, so it cannot be reproduced — but §13.4's fallback claim, that
+ * inserting reads HIGHER on §8.10's own fixture day, is about a day that still
+ * exists, so it is measured here: both midpoints, on the one fixture day whose
+ * logged task is last in canonical rank (the rest cannot tell the conventions
+ * apart).
+ *
  * It also re-runs §13.4's third claim — that the synthetic round-trip recovery
  * is "unchanged" at true λ₀ 0.3/0.5/0.9 — on the only committed synthetic-day
  * generator (the `dayFromPlan` fixture in zenith-energy.test.ts), both ways.
@@ -195,6 +202,24 @@ const DAY = [
 	task(3, 'reading', 4, 7, 0.5, 0.05),
 ];
 
+/**
+ * §8.10's own fixture day that can tell the two conventions apart: 2.25 h of
+ * reading — the LOWEST-amplitude task — with boxing and guitar unstarted, so an
+ * unlogged task's probe block lands BEFORE the logged session at its canonical
+ * rank and AFTER it when appended. (§8.10's other fixture days log the
+ * highest-amplitude task, or every task, where the conventions coincide.)
+ */
+const FIXTURE_DAY: StopObservation = {
+	tasks: DAY,
+	windowHours: 12,
+	workedHours: [
+		{
+			taskId: 3,
+			hours: 2.25,
+		},
+	],
+};
+
 const dayFromPlan = (
 	tasks: EnergyTaskInput[],
 	trueLambda: number,
@@ -231,6 +256,30 @@ describe('MATH.md §13.4 — the insertion convention', () => {
 				if (mine === null) expect(shipped).toBeNull();
 				else expect(shipped!).toBeCloseTo(mine, 12);
 			}
+	});
+
+	it("reads §8.10's own fixture day under both conventions", () => {
+		const ins = reading(FIXTURE_DAY, DEFAULT_ENERGY_PARAMS, false);
+		const app = reading(FIXTURE_DAY, DEFAULT_ENERGY_PARAMS, true);
+
+		expect(stopIndifferencePoint(FIXTURE_DAY, DEFAULT_ENERGY_PARAMS)!).toBeCloseTo(ins.point!, 12);
+
+		// The day separates the conventions: its one logged task is LAST in
+		// canonical rank, so both unlogged probes move and the logged one cannot.
+		expect(app.probes.get(1)).not.toBe(ins.probes.get(1));
+		expect(app.probes.get(2)).not.toBe(ins.probes.get(2));
+		expect(app.probes.get(3)).toBe(ins.probes.get(3));
+
+		// The SIGN §13.4 claims for this day: inserting reads higher.
+		expect(ins.point!).toBeGreaterThan(app.point!);
+
+		console.log(
+			`§13.4 on §8.10's own fixture day (2.25 h of reading at T=12, boxing and guitar unstarted): indifference midpoint inserted-at-rank ${ins.point!.toFixed(4)} vs appended-last ${app.point!.toFixed(4)} — INSERTING reads higher, by ${(ins.point! - app.point!).toFixed(4)}`,
+		);
+
+		console.log(
+			`  its lo probes (value per hour of one more step): ${DAY.map((t) => `${t.title} inserted ${ins.probes.get(t.id)!.toFixed(4)} appended ${app.probes.get(t.id)!.toFixed(4)}`).join('; ')}`,
+		);
 	});
 
 	it('measures the sign and the spread of the append-last bias', () => {

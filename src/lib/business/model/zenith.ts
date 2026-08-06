@@ -1309,7 +1309,9 @@ export const GAIN_PERCENT_CAP = 999;
  * Zenith structurally cannot do. The gain metric was therefore measuring two
  * things at once — allocation quality AND a lattice handicap charged to one
  * side only — and the handicap dominated: measured over random days the
- * reported gain was NEGATIVE on 4% (n = 2) to 19% (n = 6) of them. Since the
+ * reported gain was NEGATIVE on 3.8–7.8% of them, with no trend in n (the
+ * "4% at n = 2 rising to 19% at n = 6" first quoted here came from a draw whose
+ * generator was never committed and does not reproduce — §13.2). Since the
  * lattice is an accounting choice rather than a cost Zenith imposes on the
  * user (nobody executes 0.373h either way), both planners now face the same
  * feasible set and the number isolates allocation quality.
@@ -1560,8 +1562,8 @@ export interface FitPosterior {
  * path used to return NO posterior, and a missing posterior means σ_ϕ = 0
  * downstream — i.e. the allocator treated a user with ZERO ⚡ logs as
  * PERFECTLY certain, then started hedging the moment they logged their first
- * one. Measured at (E, β) = (2.78, 1.44): σ_ϕ was 0 at n = 0, 0.194h at n = 1,
- * 0.003h at n = 200. The honest sequence is 0.411 → 0.194 → 0.003, monotone
+ * one. Measured at (E, β) = (2.78, 1.44): σ_ϕ was 0 at n = 0, 0.191h at n = 1,
+ * 0.003h at n = 200. The honest sequence is 0.411 → 0.191 → 0.003, monotone
  * decreasing in data — which is exactly what §5.1's whole premise claims.
  * Returning the prior posterior restores that ordering; `fitted` still reports
  * whether the DATA moved the constants, which is what the UI keys on.

@@ -71,8 +71,8 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    prices the best next _session_ (max over open tasks × durations of average
    value/hour) from today's 🪫 logs against λ₀; card on `/energy`. Probed
    first, as planned: session-lookahead cut the one-step verdict's mid-day
-   false stops from 16–25% to 5–6% at high λ₀, at-stop agreement within one
-   45-min step throughout.
+   false stops from 19.7–24.7% to 6.2–6.6% at high λ₀, at-stop agreement within
+   one 45-min step throughout.
 2. ~~**Interactive budget slider**~~ — SHIPPED 2026-08-03: a range input beside
    the Available Hours field in the day-constraints bar, sharing its bounds and
    its value. No new plumbing was needed — the whole plan is already one
@@ -327,10 +327,10 @@ enjoyment}>`; `readTitleRatings(today)` reads it once at boot and
     which is the arm that carries the message.
     _The estimator proposed alongside it stays unbuilt:_ fitting `s` from the
     observed funded-task count died on three measurements — `m(s)` is not
-    monotone (609 violations over 400 days × 101 `s` values), median one-day
-    bracket width 0.39 h against a [0,1] h range with 14% of days consistent
-    with the entire range, and one mis-counted task shifts the bracket edge by
-    median 0.34 h off opt-in logs.
+    monotone (195 violations on 115 of the 298 fixture days × 101 `s` values),
+    median one-day bracket width 0.50 h against a [0,1] h range with 25% of days
+    consistent with the entire range, and one mis-counted task shifts the
+    bracket edge by median 0.34 h off opt-in logs.
 18. **Capacity pools from the fitted drain rates** — your cognitive pool is
     what your own 🪫 logs say, not 4 hours. Invert the reservoir law at a
     shared floor: at defaults `C_cog(4 h) = 0.3042` and `C_phys(6 h) = 0.2516`,
@@ -569,9 +569,11 @@ defects it found without fixing.
     across all three untested seams. Its arm B also produced the one genuinely
     new number of the round: §5.1's guard 2 costs nothing until σ/ϕ̂ reaches the
     0.5 cap, where it forfeits up to **5.26%** of a plan.
-27. **§8.6's missing rest-insert move** — the energy search cannot split a funded
-    block around an interior rest, because splitting a block and re-growing it is
-    downhill in between. Measured 2026-08-06 against the **exhaustive** optimum
+27. **§8.6's missing off-midpoint rest split** — the energy search _can_ split a
+    funded block around an interior rest, but only at the rounded midpoint and
+    only when the window has a spare step (`neighbors`, 2026-08-06 audit); the
+    split it needs is off-midpoint, and splitting then re-growing is downhill in
+    between. Measured 2026-08-06 against the **exhaustive** optimum
     on the same 45-min lattice (`scripts/energy-search-gap.probe.ts` — every
     lattice plan enumerated, so a shortfall is a proven search defect and not a
     better heuristic): 58 of 60 seeded days exact, median 0.0000%, **worst
@@ -614,6 +616,9 @@ defects it found without fixing.
     not committed — which is item 26's own failure mode, one level up — so they
     are recorded with their numbers and marked unverified rather than trusted.
     Ranked by whether a shipped behaviour is wrong, not by effort.
+    **(b)–(f) were settled by the MATH.md claim audit of 2026-08-06** — each
+    now has a committed probe and a corrected section, noted inline below. The
+    residue is (a), (g) and (h).
     (a) **§11.9's "inherited approximations wash out exponentially through the
     trailing rest" is probably false where the feature exists** (UNVERIFIED,
     agent scratch probe). The claim covers block order and omitted intraday
@@ -630,6 +635,9 @@ defects it found without fixing.
     recomputing §11.9's stated closed form at its stated constants gives
     **70.6%**. The 8 h exemplar (92%) reproduces at 91.6%. Two fixed points, so
     a unit test, not a probe — do it in the same pass as (a).
+    SETTLED 2026-08-06: §11.9 now reads 92% / **71%**, printed by
+    `scripts/mtr2-carry-over.probe.ts` and pinned against a closed-form oracle
+    in `energy-calibration.test.ts`.
     (c) **§8.3 claims a unit test that does not exist.** "Post-fix probes
     (locked in as unit tests): … a ~30-minute break placed mid-session _raises_
     total output at equal work-hours — the Jaber–Neumann result". Grep finds no
@@ -638,22 +646,39 @@ defects it found without fixing.
     same claim from another thrown-away sweep. Cheapest of the three to settle
     and the most embarrassing to leave: the document asserts a suite guarantee
     it does not have.
+    SETTLED 2026-08-06: §8.3 no longer claims the test — it names the effect
+    (+5.1% / +6.9%, `scripts/enb-break-economics.probe.ts`) as the one post-fix
+    consequence with no suite fixture of its own; §13.5's +17% is now +19.5%.
     (d) **§8.9's "within ~0.05 of truth" under rating quantization + jitter**
     (UNVERIFIED): one agent realization deviated by up to **0.133** (true 0.7 →
     0.833). This is the identifiability bound the whole r → α → λ₀ conditioning
     chain rests on, so if it is really 0.13 the downstream stds are optimistic.
+    SETTLED 2026-08-06: §8.9 no longer claims ~0.05. Over 200 seeded trials per
+    level (`scripts/stp-recovery-fit.probe.ts`) the median is ~0.06 for r ≤ 0.7
+    and ~0.09 for r ≈ 1–1.5, p90 0.13–0.23, worst ~0.36 — so the 0.133 above
+    sits inside the p90 band and the tail is worse than either figure.
     (e) **§8.8's coarse/fine quantization ratio is tested at one window only.**
     The suite asserts ≥ 0.97 at `windowHours = 8`; an agent measured **0.9759 at
     12 h** — 0.6 pp of headroom on a window the test never runs — where the
     doc's "~1% objective cost" is actually 2.4%. Rest-confetti reproduced
     exactly (fine = 5 rest blocks vs coarse = 1).
+    SETTLED 2026-08-06: §8.8 now carries all four cells, the 2.4%, and the
+    breach — over windows 4–14 h the worst ratio is **0.9693 at 4 h**
+    (`scripts/stp-lattice.probe.ts`), so the suite's ≥ 0.97 is not a lattice
+    property and stays asserted at 8 h only. "0.6 pp of headroom" understated
+    it: the bound is crossed, not merely tight.
     (f) **Three more lost sweeps, same class as item 26's**: §14.3's switch-cost
     inversion grid (322 inversions over 178,800 configurations, worst free arm
-    −6.53% — quoted verbatim inside `plan-advice.ts` and the sole justification
-    for a shipped clamp); §15's 300-day cross-scoring table (276/300) that
-    withdrew the energy-plan promotion; §16's order-only permutation bound
-    (+0.47%) restated as fact in `calculation.ts`. No probe file was ever
-    committed for any of them.
+    −6.53% — the sole justification for a shipped clamp); §15's 300-day
+    cross-scoring table (276/300) that withdrew the energy-plan promotion;
+    §16's order-only permutation bound (+0.47%) restated as fact in
+    `calculation.ts`.
+    SETTLED 2026-08-06: all three now have committed, seeded probes and the
+    sections quote them. §14.3 is **112 inversions over 71,520** configurations
+    with the grid stated (`scripts/adv2-switch-cost-price.probe.ts`); §15 is
+    **283/300** (`scripts/mode-cross-scoring.probe.ts`, seed `0x290729`); §16's
+    median holds at **+0.47%**, p90 +1.50%, max +3.96%
+    (`scripts/mode-run-order.probe.ts`).
     (g) **§12's ±0.05 adherence verdict band has no noise model** — §12 says so
     outright ("no noise model") while printing one English verdict decided by
     that constant. Nothing shows it is wide enough to stop week-to-week flipping

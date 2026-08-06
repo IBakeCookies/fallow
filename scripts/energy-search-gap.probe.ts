@@ -26,6 +26,12 @@
  *   LOWER bound on the true optimum — a 0 there is evidence, not proof, and a
  *   negative gap just means the product search beat the reference.
  *
+ * The ENUMERATED tier's worst day then gets a REST-SPLIT AUDIT, because §8.6
+ * explains that day in prose: it replays the shipped split-around-rest move on
+ * the plan the search returned and says whether the move is generated, and if so
+ * whether it improves — so "the search cannot reach that break" is output, not a
+ * story.
+ *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports (AGENTS.md §4).
  *
@@ -237,12 +243,17 @@ function searchGap(
 	label: string,
 	days: Day[],
 	reference: (day: Day, index: number) => ScheduleBlock[],
-): void {
+): { day: Day; search: ScheduleBlock[]; reference: ScheduleBlock[] } {
 	const shortfalls: number[] = [];
 	let exact = 0;
 	let mismatches = 0;
 	let worst = -Infinity;
 	let worstDump = 'none';
+	let worstCase = {
+		day: days[0],
+		search: [] as ScheduleBlock[],
+		reference: [] as ScheduleBlock[],
+	};
 
 	days.forEach((day, index) => {
 		const search = optimizeSchedule(day.tasks, day.windowHours).blocks;
@@ -259,6 +270,12 @@ function searchGap(
 
 		if (shortfall > worst) {
 			worst = shortfall;
+
+			worstCase = {
+				day,
+				search,
+				reference: referenceBlocks,
+			};
 
 			worstDump = JSON.stringify({
 				windowHours: day.windowHours,
@@ -278,15 +295,157 @@ function searchGap(
 	);
 
 	console.log(`${label} worst day: ${worstDump}`);
+
+	return worstCase;
+}
+
+const fmt = (blocks: ScheduleBlock[]) =>
+	blocks.map((b) => `${b.taskId === null ? 'rest' : `t${b.taskId}`} ${b.hours}h`).join(' + ');
+
+/** Adjacent same-task blocks merged, trailing rest dropped — as the model reads a plan. */
+const merged = (blocks: ScheduleBlock[]): ScheduleBlock[] => {
+	const out: ScheduleBlock[] = [];
+
+	for (const b of blocks) {
+		const prev = out[out.length - 1];
+
+		if (prev && prev.taskId === b.taskId) prev.hours += b.hours;
+		else
+			out.push({
+				...b,
+			});
+	}
+
+	while (out.length > 0 && out[out.length - 1].taskId === null) out.pop();
+
+	return out;
+};
+
+/** Read off the numbers, so the sentence cannot outlive the day it describes. */
+function verdictOf(generated: boolean, incumbent: number, split: number): string {
+	if (!generated) return 'the split-around-rest move is NOT GENERATED — see the guards above';
+
+	if (split > incumbent + 1e-9)
+		return 'the move is GENERATED and IMPROVING — the search left it on the table, a real hill-climb defect';
+
+	return `no guard blocks the move, and the search leaves no improving move on the table: the optimum is two shipped moves away (midpoint split, then transfer) with the first ${(incumbent - split).toFixed(6)} downhill, so steepest ascent cannot take it`;
+}
+
+/**
+ * Why the worst enumerated day stays short: it replays the shipped
+ * split-around-rest move (`neighbors` in `zenith-energy.ts`) on the plan the
+ * search returned, then every interior split of that block, then the transfer
+ * step that finishes the job. `neighbors` is module-private, so the guards and
+ * the halves are mirrored here — keep them in step with it.
+ */
+function restSplitAudit(day: Day, search: ScheduleBlock[], reference: ScheduleBlock[]): void {
+	const step = DEFAULT_STEP_HOURS;
+	const block = search[0];
+
+	if (search.length !== 1 || block.taskId === null) {
+		console.log(
+			`REST-SPLIT AUDIT: skipped — worst day is no longer one funded block (${fmt(search)})`,
+		);
+
+		return;
+	}
+
+	const optimum = merged(reference);
+	const incumbent = objectiveOf(day, search);
+	const target = objectiveOf(day, optimum);
+	// The move's own arithmetic: rounded-midpoint halves, plus one step of rest,
+	// so it needs a spare step of window (`room`) to land.
+	const avail = Math.floor((day.windowHours - block.hours) / step + 1e-9) * step;
+	const room = avail > step - 1e-9;
+	const firstHalf = Math.max(step, Math.round(block.hours / 2 / step) * step);
+	const generated = block.hours >= 2 * step && room;
+
+	const split = [
+		{
+			taskId: block.taskId,
+			hours: firstHalf,
+		},
+		{
+			taskId: null,
+			hours: step,
+		},
+		{
+			taskId: block.taskId,
+			hours: block.hours - firstHalf,
+		},
+	];
+
+	const splitValue = objectiveOf(day, split);
+	const steps = Math.round(block.hours / step);
+	const sweep: string[] = [];
+	let uphill = 0;
+
+	for (let k = 1; k < steps; k++) {
+		const candidate = [
+			{
+				taskId: block.taskId,
+				hours: k * step,
+			},
+			{
+				taskId: null,
+				hours: step,
+			},
+			{
+				taskId: block.taskId,
+				hours: (steps - k) * step,
+			},
+		];
+
+		const value = objectiveOf(day, candidate);
+
+		if (value > incumbent + 1e-9) uphill++;
+
+		sweep.push(`${k * step}+${(steps - k) * step} ${value.toFixed(6)}`);
+	}
+
+	// One transfer move (shrink the second half, grow the first) out of the split.
+	const regrown = [
+		{
+			taskId: block.taskId,
+			hours: firstHalf + step,
+		},
+		split[1],
+		{
+			taskId: block.taskId,
+			hours: block.hours - firstHalf - step,
+		},
+	];
+
+	const regrownValue = objectiveOf(day, regrown);
+
+	console.log(
+		`REST-SPLIT AUDIT (worst enumerated day): window ${day.windowHours}h, search ${fmt(search)} = ${incumbent.toFixed(6)}, exhaustive optimum ${fmt(optimum)} = ${target.toFixed(6)}, shortfall ${(((target - incumbent) / target) * 100).toFixed(4)}%`,
+	);
+
+	console.log(
+		`  split-around-rest move: ${generated ? 'GENERATED' : 'NOT GENERATED'} (funded true, >= 2*step ${block.hours >= 2 * step}, room ${room} with ${avail}h spare) as ${fmt(split)} = ${splitValue.toFixed(6)} — ${splitValue > incumbent + 1e-9 ? 'IMPROVING' : 'rejected'}, ${(splitValue - incumbent).toFixed(6)} vs the incumbent`,
+	);
+
+	console.log(
+		`  every interior split of that block: ${sweep.join(' | ')} — ${uphill} of ${steps - 1} beat the incumbent, and the move offers only the rounded midpoint ${firstHalf}+${block.hours - firstHalf}`,
+	);
+
+	console.log(
+		`  one transfer step out of the rejected split: ${fmt(regrown)} = ${regrownValue.toFixed(6)} — ${(regrownValue - splitValue).toFixed(6)} uphill from the split, and ${Math.abs(regrownValue - target) <= 1e-9 ? 'IS' : 'is not'} the optimum`,
+	);
+
+	console.log(`  VERDICT: ${verdictOf(generated, incumbent, splitValue)}`);
 }
 
 describe('energy search gap', () => {
 	it('measures the residual optimality gap (MATH.md §8.6)', () => {
-		searchGap(
+		const worst = searchGap(
 			'ENUMERATED 2-3 tasks x 3-6h',
 			randomDays(60, 8006, [2, 3], [3, 6]),
 			enumeratedOptimum,
 		);
+
+		restSplitAudit(worst.day, worst.search, worst.reference);
 
 		searchGap(
 			'ENUMERATED §8.6 witness day x 3-8h',

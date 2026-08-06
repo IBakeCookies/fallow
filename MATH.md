@@ -40,55 +40,55 @@ whenever a section is inserted — reprint the headings with
 ```text
 §0           96-115  Objective
 §1          117-142  Inputs and parameter mappings (unchanged from the articl…
-§2          144-257  Productivity curve — v2 change
-§3          259-305  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          307-405  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          407-730  Personalization — v2 change: full Bayesian posterior
-  §5.2      456-541  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      543-730  Posterior-aware allocation (added 2026-07-18)
-§6          732-744  Summary of v1 → v2 changes
-§7          746-768  Known approximations and deliberate non-changes
-§8         770-1682  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      788-812  Intermittent-rest recovery correction
-  §8.2      814-834  Warm-up carryover instead of binary reset
-  §8.3      836-873  Verified consequences and an open calibration question
-  §8.4      875-976  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5     978-1035  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1037-1086  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1088-1211  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1213-1274  45-minute plan granularity (added 2026-07-18)
-  §8.9    1276-1350  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1352-1559  Stopping-value calibration from observed stop times (add…
-  §8.11   1561-1682  Live stop advisor — §8.10 run forward mid-day (added 202…
-§9        1684-1731  References
-§10       1733-1819  Revision log (doc-only corrections)
-§11       1821-2122  Metric-layer corrections (2026-07-18)
-  §11.1   1823-1837  Scope and principle
-  §11.2   1839-1856  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   1858-1881  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   1883-1897  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   1899-1914  Schedule Integrity: overhead share instead of the small-…
-  §11.6   1916-2004  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2006-2030  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2032-2068  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2070-2122  Overnight reservoir carry-over (2026-07-28)
-§12       2124-2248  Plan-adherence audit (2026-07-23)
-  §12.1   2165-2248  Per-day fit snapshots (2026-08-03)
-§13       2250-2573  Math review, 2026-07-26
-  §13.1   2267-2302  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2304-2350  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2352-2417  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2419-2450  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2452-2489  Also in this change
-  §13.6   2491-2573  The two end-of-day energy readings: a timing difference,…
-§14       2575-3225  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   2760-2894  Five corrections to the first cut (2026-07-28)
-  §14.2   2896-3039  The marginal of the budget (added 2026-08-03)
-  §14.3   3041-3225  The price of the switch cost (added 2026-08-04)
-§15       3227-3300  Two objectives, two modes (2026-07-29)
-§16       3302-3380  Run order stays a heuristic (2026-07-29)
-§17       3382-3540  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       3542-3610  Drain logs are one row per SESSION, not per task-day (20…
+§2          144-260  Productivity curve — v2 change
+§3          262-308  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          310-408  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          410-733  Personalization — v2 change: full Bayesian posterior
+  §5.2      459-544  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      546-733  Posterior-aware allocation (added 2026-07-18)
+§6          735-747  Summary of v1 → v2 changes
+§7          749-771  Known approximations and deliberate non-changes
+§8         773-1705  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      791-816  Intermittent-rest recovery correction
+  §8.2      818-838  Warm-up carryover instead of binary reset
+  §8.3      840-877  Verified consequences and an open calibration question
+  §8.4      879-980  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5     982-1041  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1043-1102  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1104-1234  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1236-1297  45-minute plan granularity (added 2026-07-18)
+  §8.9    1299-1373  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1375-1582  Stopping-value calibration from observed stop times (add…
+  §8.11   1584-1705  Live stop advisor — §8.10 run forward mid-day (added 202…
+§9        1707-1754  References
+§10       1756-1842  Revision log (doc-only corrections)
+§11       1844-2145  Metric-layer corrections (2026-07-18)
+  §11.1   1846-1860  Scope and principle
+  §11.2   1862-1879  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   1881-1904  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   1906-1920  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   1922-1937  Schedule Integrity: overhead share instead of the small-…
+  §11.6   1939-2027  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2029-2053  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2055-2091  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2093-2145  Overnight reservoir carry-over (2026-07-28)
+§12       2147-2271  Plan-adherence audit (2026-07-23)
+  §12.1   2188-2271  Per-day fit snapshots (2026-08-03)
+§13       2273-2602  Math review, 2026-07-26
+  §13.1   2290-2325  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2327-2374  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2376-2441  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2443-2479  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2481-2518  Also in this change
+  §13.6   2520-2602  The two end-of-day energy readings: a timing difference,…
+§14       2604-3256  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   2789-2925  Five corrections to the first cut (2026-07-28)
+  §14.2   2927-3070  The marginal of the budget (added 2026-08-03)
+  §14.3   3072-3256  The price of the switch cost (added 2026-08-04)
+§15       3258-3331  Two objectives, two modes (2026-07-29)
+§16       3333-3411  Run order stays a heuristic (2026-07-29)
+§17       3413-3571  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       3573-3641  Drain logs are one row per SESSION, not per task-day (20…
 ```
 
 <!-- section-index:end -->
@@ -176,9 +176,12 @@ the decaying tail are **not** — no suite fixture evaluates `p″` or `p` at la
 - **Peak value:** `p(ϕ) = a·e^(r−1)`. First-order in `r` this is
   `(a/e)(1+r) ≈ (a+p₀)/e` — the v1 peak was the small-p₀ approximation of the
   v2 peak. The gap is `1 − (1+r)·e^(−r)`, which is only small at high
-  difficulty: under 1.5% for user difficulty ≥ 4, 8.4% at difficulty 2, 22.75%
-  at the r-cap (20 of the 100 integer slider cells move more than 5% —
-  `scripts/curve-marginal-facts.probe.ts`, 2026-08-06). Nothing displays it either way: `peakProductivity` is carried on
+  difficulty: under 1.5% for user difficulty ≥ 4 — and only just, 1.49% at
+  difficulty 4 itself — 8.4% at difficulty 2, 22.75% at the r-cap (20 of the 100
+  integer slider cells move more than 5%, the whole difficulty 1 and 2 rows;
+  enjoyment cannot move the gap at all, since `r = p₀/a = 1/E²` depends on the
+  difficulty slider alone — `scripts/curve-marginal-facts.probe.ts`,
+  2026-08-06). Nothing displays it either way: `peakProductivity` is carried on
   `TaskAllocation` and `SuggestedTask` and rendered by no component.
 - **Concave on the working range:** `p'' = a·k²·e^(−kt)·(kt − (2 − r))`, so
   the only inflection sits at `x = kt = 2 − r` — and `x* < 2 − r` holds for
@@ -806,9 +809,10 @@ reproduces the old dynamics. (§8.5 later generalizes the recovery gate
 
 Composite Simpson takes 16 nodes per fastest timescale (min of ϕ, 1/ρ) but is
 **capped at 1024 nodes**, so at the 0.1 h ϕ floor the node density thins once a
-block passes 6.4 h: relative error against a 65537-node reference is ~3e-7 up
-to a 6 h block, 6.9e-7 at 8 h, 1.7e-6 at 10 h, 3.5e-6 at 12 h and 5.6e-5 in a
-24 h block (`scripts/enb-simpson-error.probe.ts`, 2026-08-06). Under the
+block passes 6.4 h: relative error against a 400 000-interval reference (itself
+checked against 800 000) is ~3e-7 up to a 6 h block, 6.9e-7 at 8 h, 1.7e-6 at
+10 h, 3.5e-6 at 12 h and 5.6e-5 in a 24 h block
+(`scripts/enb-simpson-error.probe.ts`, 2026-08-06). Under the
 default constants the smallest ϕ is 0.58 h, where the cap never binds.
 
 ### 8.2 Warm-up carryover instead of binary reset
@@ -1031,8 +1035,10 @@ sustainable indefinitely. The floor is where output stabilizes, not zero.
   step in even ~0.5 objective increments — but the b = 0 sweep is monotone as
   well under today's search, so the gate's justification is the `w = 1` algebra
   and the floor below, not a smoothing effect. Long full-demand sessions do
-  stabilize near the floor instead of grinding to zero (8 h at w = 1 ends at
-  0.20 physical against 0.09 without the gate).
+  decay _toward_ the floor instead of grinding to zero (8 h at w = 1 ends at
+  0.1997 physical against 0.0907 without the gate) — but 8 h is not yet near
+  it: that is 34% above the 0.1489 floor, which the decay reaches only after
+  ~16 h (0.1520 at 16 h, 0.1491 at 24 h).
 
 ### 8.6 Optimizer reliability — compound moves and drop-one seeds (added 2026-07-14)
 
@@ -1077,8 +1083,18 @@ shortfall 0.0000%, p99 0.5951%, worst 0.5951% below the optimum. That worst day 
 task over a 6 h window: the search returns one 5.25 h block, the optimum works
 the same 5.25 h split 3.75 + 1.5 around an interior 45-min rest — a break the
 search cannot reach, because splitting a block and re-growing it is downhill in
-between. The rest-insert move that would close it is ROADMAP item 27, which
-carries the case against building it too. The failure mode §8.6 calls the worse one is the clean one: **0
+between. The split-around-rest move itself **ships**: on that day it fires (7
+steps ≥ 2, and the window leaves exactly one spare step of `room`) but only at
+the rounded midpoint, 3 + rest + 2.25, scoring 7.6297 against the incumbent's
+7.6521 — downhill by 0.0224. Two of the six interior splits are uphill
+(3.75 + 1.5 = 7.6979, 4.5 + 0.75 = 7.6946), and one transfer step out of the
+rejected midpoint split lands exactly on the optimum. So the optimum is two
+shipped moves away with the first downhill, and no improving move is left on the
+table — a steepest-ascent limit, not a missing candidate. What ROADMAP item 27
+would add is the **off-midpoint** split (every interior lattice point, one step
+handed to rest at unchanged total hours, so it stays available on a fully-spent
+window where `room` blocks the shipped move); it carries the case against
+building it too. The failure mode §8.6 calls the worse one is the clean one: **0
 funded-set mismatches of 60**, and the witness day above is exactly optimal at
 all six windows 3–8 h. On the harder tier the reference is only a 200-restart
 hill climb, a LOWER bound, so its numbers are evidence and not proof: 12 days of
@@ -1142,9 +1158,9 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   `scripts/sat-drain-identifiability.probe.ts`, which also prints the
   r-conditioning profile above and the reported stds below); λ = 0.5
   left three logs at only 57% while buying almost no extra outlier
-  resistance (a wild outlier among 4 on-default logs lands within 0.01 of
-  the λ = 0.25 result — robustness comes from the other logs, not the
-  prior).
+  resistance (a wild outlier among 4 on-default logs lands 0.013 from the
+  λ = 0.25 result: 0.4610 against 0.4740 — robustness comes from the other
+  logs, not the prior).
 - **Solver.** D has no closed-form minimizer, so: deterministic 128-point
   grid to bracket the global minimum, then golden-section refinement. The
   bounds equal the Energy Lab's α input range, so a fitted value is always
@@ -1166,12 +1182,19 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   far data moves the MAP (probe-tuned per fit in sensitivity units: 0.25
   here, 0.05 in §8.9, 1 in §8.10), while ν₀ says how much prior evidence
   backs "ratings are at least this noisy". Reusing the small tuned λs as ν₀
-  erased the noise floors at small n and made the reported ±stds 2–10×
-  tighter than a floor-honest posterior (probe: 6 clean rest pairs reported
-  r ± 0.036 — 4% precision on recovery rate from six fuzzy self-ratings; the
-  §8.9 test's own 6-observation pair set now reports ± 0.199, and the 2026-07-19
-  fixture behind the quoted ± 0.249 was not recorded). The adversarial-pairs
-  case (§8.9) widened too: ± 0.615, and the
+  erased the noise floors at small n and made the reported ±stds several-fold
+  tighter than a floor-honest posterior _on clean data_ (probe 2026-08-06,
+  `scripts/stp-recovery-fit.probe.ts`: the §8.9 tests' own 6-observation pair
+  set — three logged rests, mind and body — reports r 0.700 ± 0.195 at the
+  prior and 1.196 ± 0.312 at true r = 1.4 under ν₀ = 4, against ± 0.028 and
+  ± 0.077 under ν₀ = λ, so 7.0× and 4.0× wider; the "6 clean rest pairs report
+  r ± 0.036 — 4% precision on recovery rate from six fuzzy self-ratings" that
+  motivated this fix was that artefact, and the ± 0.249 once quoted here is the
+  same generator at true r ≈ 1.0, ± 0.041 pre-fix). **But ν₀ is a blend toward
+  σ₀, not a floor under the ±**, so it cuts both ways: the adversarial-pairs
+  case (§8.9), whose residuals are far noisier than σ₀, _tightened_ —
+  ± 0.781 → ± 0.615. Both moves are steps toward the σ₀-only ± (0.309 / 0.487 /
+  0.508) and neither passes it, which is the invariant the probe asserts. The
   "std shrinks with data / grows with scatter" orderings all survive
   (test-locked).
 
@@ -2319,8 +2342,9 @@ space.** That is the method to reach for first next time.
   The two "before" rows are the 2026-07-26 draw and its generator was not
   committed; neither reproduces. A seeded continuous-baseline replica over 400
   app-reachable days per count (2026-08-06,
-  `scripts/rv13-naive-lattice.probe.ts`) puts `gain < 0, before` at **4–8% flat**
-  across all six counts rather than rising with n, and `naive = 0` at
+  `scripts/rv13-naive-lattice.probe.ts`) puts `gain < 0, before` at
+  **7.8 / 3.8 / 5.0 / 4.5 / 4.3 / 6.8%** — no trend in n rather than rising with
+  it — and `naive = 0` at
   **0.0 / 1.8 / 6.3 / 8.5 / 12.5 / 15.8%** — that last row is fully determined by
   P(budget < n·0.25h), so the shipped "0% at n = 3–4 then 7% at n = 5" cannot
   come from one budget draw. The **after** row reproduces exactly: 0% at every
@@ -2429,8 +2453,13 @@ space.** That is the method to reach for first next time.
   indifference point by a median 0.0000, **0.070 at p99 and 0.196 at worst** —
   79% of `STOP_INVERSION_MARGIN`, so the 0.087 once quoted here was the maximum
   of one draw, not an envelope. (The "0.65 appended last vs 0.37 inserted first"
-  step is not identifiable: the day was never recorded, and on §8.10's own
-  fixture day inserting reads _higher_, 0.719 against 0.652.) And since `lo` is a
+  step is not identifiable: the day was never recorded. Its _sign_ survives on
+  §8.10's own fixture day — 2.25 h of reading at a 12-hour window with boxing
+  and guitar unstarted, the only §8.10 fixture whose logged task is last in
+  canonical rank and therefore the only one that can tell the two conventions
+  apart at all — where inserting reads _higher_, midpoint 0.8894 against
+  0.8840. But the gap there is 0.005, not the 0.067 the quoted pair implied
+  (`scripts/rv13-stop-insertion.probe.ts`, 2026-08-06).) And since `lo` is a
   max over all tasks, appending moved it **either way** — deflating it on 734 of
   the 939 affected days and inflating it on 205, mean signed midpoint shift
   −0.002 — so λ̂₀ picked up a convention-dependent error with no reliable sign,
@@ -2857,7 +2886,9 @@ trim is the lever that keeps the plan **feasible**, not the lever that is free.
 card renders 0 as "costs no plan value" — so a lever that _created_ value read
 as costless. Probe: at budget 0, `set-budget 1h` reached a positive plan value
 and displayed "costs no plan value" (the 2.568 once quoted here has no recorded
-day; the suite's own budget-0 grind day gives 1.038). Fix: the delta is `null`
+day; the suite's own budget-0 grind day reaches 1.038 against a baseline of
+exactly 0 — `scripts/adv1-plan-advice-frontier.probe.ts`, 2026-08-06). Fix: the
+delta is `null`
 there, and the card
 renders `null` as N/A. There is no ratio to a zero baseline, and saying so is
 cheaper than inventing one.
@@ -2979,7 +3010,7 @@ is why the scoping above was found by review rather than by the sweep):
 **A per-task marginal column is still the wrong shape — but not for the reason
 this was planned under.** The plan record (and ROADMAP item 3) asserted that
 marginals equalize at the optimum, so a column would degenerate. **Measured, it
-does not.** Over all 400 days (394 of which fund more than one task), the naive
+does not.** Over 400 seeded multi-task days, the naive
 column — bump task _i_'s
 hours by one block on the curve, hold the rest — has relative spread
 `(max − min)/max` with **median 0.573, p90 0.977, max 1.061**; only **8.1%**
@@ -3002,7 +3033,7 @@ Two reasons that do survive:
    capacity pools and the switch cost, so it is not a feasible plan. Its best
    entry **overstates** what a wider budget actually delivers on **63.0%** of
    days (mean overstatement 0.18 in Σ P̄ units; on the days the marginal is
-   non-zero, 21.9% and 0.10 — re-measured 2026-08-06,
+   non-zero (183 of 400), 21.9% and 0.10 — re-measured 2026-08-06,
    `scripts/adv2-budget-marginal.probe.ts`, against the lost sweep's 16.0% and
    0.005). The budget marginal re-solves,
    so what it reports is what the model would really produce.
@@ -3188,7 +3219,7 @@ magnitudes. Re-measured 2026-08-06,
   budgets) read a median **8.14%**, against the 1% kill threshold this item was
   gated on (ROADMAP item 17).
 - **The reservation is large.** At `s = 0.25` with every task funded, the
-  overhead is a median **23.08%** of the day's budget, p90 **45.82%** — a
+  overhead is a median **23.08%** of the day's budget, p90 **46.67%** — a
   counterfactual over the task list, not the shipped reading, whose own p90 over
   funded tasks is 41.67%. On a 4-task day that is 45 minutes gone before the
   first block.
@@ -3490,8 +3521,8 @@ cells agree closely" was true in points and false in ratio: (10 h, 0.1 h) reads
 0.01 against 0.05 (**5.0×**), (10 h, 0.2 h) 0.05 against 0.16 (3.2×), (10 h,
 0.4 h) 0.22 against 0.59 (2.7×). At `s ≥ 0.8 h` the gaps are large in points too
 and reach 2.4×: 17.23 against 7.25 at 10 h, 8.22 against 3.58 at 6 h, 14.86
-against 11.61 at 1 h — while the `s = 0.8 h` column is the second-_best_-agreeing
-one — its worst ratio, 1.61×, is the smallest of all five columns — so the
+against 11.61 at 1 h — while the `s = 0.8 h` column is the _best_-agreeing one in
+ratio: its worst ratio, 1.61×, is the smallest of all five columns — so the
 backed/unbacked split this section used to draw at `s = 0.8 h` is not where the
 disagreement lives at all.
 

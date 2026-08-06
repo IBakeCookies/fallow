@@ -16,7 +16,18 @@
  *     against 1.58 from 1h pairs);
  *   - quantization + ±1-notch jitter stays "within ~0.05 of truth";
  *   - the motivating α bias: true α = 0.5 under true r = 1.4 fits to 0.415 at
- *     the default r, and to 0.469 conditioned on r fitted from 5 rests.
+ *     the default r, and to 0.469 conditioned on r fitted from 5 rests;
+ *   - and §8.7's ν₀ ≠ λ note, which quotes reported ± half-widths on two r-fit
+ *     populations it names but never sized here: the §8.9 tests' 6-observation
+ *     pair set and their adversarial-pairs fixture, each reported under the
+ *     shipped noise floor ν₀ = 4 and under the pre-fix ν₀ = λ it replaced. The
+ *     move is a blend toward σ₀, not a floor under the ±: it widens the clean
+ *     small-n sets several-fold and TIGHTENS the adversarial pairs, whose
+ *     residuals are far noisier than σ₀ = 0.21. Both fixtures are COPIED from
+ *     `zenith-energy.test.ts` (the generator at "One logged rest = mind +
+ *     body", and the "adversarial pairs" case), not re-invented — a different
+ *     fixture answers a different question, which is how the ± 0.249 that used
+ *     to stand here became unreproducible.
  *
  * A probe, not a test: every number moves when the reservoir law, the ridge or
  * the defaults move — legitimately. The suite pins only the direction (see
@@ -31,7 +42,10 @@
  * λ ≠ RECOVERY_PRIOR_STRENGTH is not reachable through `fitRecoveryRate`, so
  * the ridge is rebuilt here (`fitAtLambda`, the shipped minimizer included) and
  * VALIDATED against the shipped fit at the shipped λ before any λ = 0.1 / 0.25
- * number is believed — a nonzero worst gap invalidates those two rows.
+ * number is believed — a nonzero worst gap invalidates those two rows. ν₀ is
+ * not reachable either, so the posterior std is rebuilt the same way
+ * (`stdAtNu0`) and validated the same way at the shipped ν₀ before any pre-fix
+ * ± is believed.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -41,11 +55,13 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+	CALIBRATION_NOISE_PRIOR_WEIGHT,
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
 	RECOVERY_FIT_MAX,
 	RECOVERY_FIT_MIN,
+	RECOVERY_NOISE_PRIOR_STD,
 	RECOVERY_PRIOR_STRENGTH,
 	type RestObservation,
 } from '$lib/business/model/zenith-energy';
@@ -149,13 +165,54 @@ function fitAtLambda(observations: RestObservation[], lambda: number): number {
 	return minimize(objective, RECOVERY_FIT_MIN, RECOVERY_FIT_MAX);
 }
 
+/**
+ * `fitRecoveryRate`'s reported ± with ν₀ exposed: σ̂² = (ν₀σ₀² + SSR)/(ν₀ + n)
+ * blended at `rate`, then the Laplace curvature √(σ̂²/(Σ(dD/dr)² + λ)). The
+ * shipped fit hard-wires ν₀ = CALIBRATION_NOISE_PRIOR_WEIGHT, so the pre-fix
+ * ν₀ = λ posterior it replaced is only reachable here.
+ */
+function stdAtNu0(observations: RestObservation[], rate: number, nu0: number): number {
+	const used = observations.filter((o) => o.drainedBefore > 0 && o.hours > 0);
+	const predict = (r: number, o: RestObservation) => o.drainedBefore * Math.exp(-r * M * o.hours);
+	const h = 1e-4;
+	let ssr = 0;
+	let sensitivity = 0;
+
+	for (const o of used) {
+		const resid = o.drainedAfter - predict(rate, o);
+		ssr += resid * resid;
+		const dD = (predict(rate + h, o) - predict(rate - h, o)) / (2 * h);
+		sensitivity += dD * dD;
+	}
+
+	const sigma2 =
+		(nu0 * RECOVERY_NOISE_PRIOR_STD * RECOVERY_NOISE_PRIOR_STD + ssr) / (nu0 + used.length);
+
+	return Math.sqrt(sigma2 / (sensitivity + RECOVERY_PRIOR_STRENGTH));
+}
+
+/** The §8.9 suite's "adversarial pairs (more drained after resting)" fixture. */
+const ADVERSARIAL_PAIRS: RestObservation[] = [
+	{
+		drainedBefore: 0.3,
+		drainedAfter: 0.6,
+		hours: 0.5,
+	},
+	{
+		drainedBefore: 0.4,
+		drainedAfter: 0.7,
+		hours: 0.5,
+	},
+];
+
 const f3 = (x: number) => x.toFixed(3);
 const pct = (x: number) => `${(100 * x).toFixed(0)}%`;
 
 describe('recovery-rate calibration', () => {
-	it('validates the λ-exposed ridge replica against the shipped fit', () => {
+	it('validates the λ- and ν₀-exposed replicas against the shipped fit', () => {
 		const random = mulberry32(20260806);
 		let worst = 0;
+		let worstStd = 0;
 
 		for (let day = 0; day < 200; day++) {
 			const obs = Array.from(
@@ -176,16 +233,26 @@ describe('recovery-rate calibration', () => {
 			if (!shipped.fitted) continue;
 
 			worst = Math.max(worst, Math.abs(shipped.rate - fitAtLambda(obs, RECOVERY_PRIOR_STRENGTH)));
+
+			worstStd = Math.max(
+				worstStd,
+				Math.abs(shipped.rateStd! - stdAtNu0(obs, shipped.rate, CALIBRATION_NOISE_PRIOR_WEIGHT)),
+			);
 		}
 
 		console.log(
-			`[§8.9 replica] 200 random observation sets: worst |replica − fitRecoveryRate| = ${worst.toExponential(3)}`,
+			`[§8.9 replica] 200 random observation sets: worst |replica − fitRecoveryRate| = ${worst.toExponential(3)}, worst |std replica − rateStd| at the shipped ν₀ = ${worstStd.toExponential(3)}`,
 		);
 
 		// Validity gate, not a moving number: the λ = 0.1 / 0.25 rows below are
 		// only meaningful if the replica IS the shipped ridge at the shipped λ.
 		// The tolerance is the shared minimizer's own convergence, not slack.
 		expect(worst).toBeLessThan(1e-6);
+
+		// Same gate for the ν₀ replica: at the shipped ν₀ it is the shipped
+		// formula on the shipped MAP, so only float arithmetic may differ — a
+		// wider gap invalidates every pre-fix ± below.
+		expect(worstStd).toBeLessThan(1e-12);
 	});
 
 	it('measures the λ calibration profile (MATH.md §8.9)', () => {
@@ -302,6 +369,49 @@ describe('recovery-rate calibration', () => {
 				`[§8.9 jitter] true r ${trueR}, 200 seeded ±1-notch trials: |fit − truth| median ${f3(fromTruth[100])} p90 ${f3(fromTruth[180])} worst ${f3(worstFromTruth)}; worst |fit − noiseless fit| ${f3(worstFromClean)}`,
 			);
 		}
+	});
+
+	it('measures what the ν₀ ≠ λ noise floor did to the reported ± (MATH.md §8.7)', () => {
+		// The populations §8.7's ν₀ note names, sized side by side in one run:
+		// the §8.9 tests' 6-observation pair set (three logged rests, mind + body
+		// each — the count its λ profile's "3 rests" row fits), at the prior and
+		// at the true r = 1.4 that profile drives, and their adversarial-pairs
+		// fixture. Clean small-n first, then high scatter.
+		const populations: [string, RestObservation[]][] = [
+			['6 clean rest pairs (3 logged rests), true r = the prior 0.7', loggedRests(PRIOR, 3)],
+			['6 clean rest pairs (3 logged rests), true r 1.4', loggedRests(1.4, 3)],
+			['adversarial pairs (more drained after resting)', ADVERSARIAL_PAIRS],
+		];
+
+		// ν₀ → ∞ leaves σ̂² = σ₀² exactly: the ± σ₀ alone would report, which is
+		// what the ν₀ = 4 blend is pulling toward.
+		const FLOOR_ONLY = 1e9;
+
+		for (const [label, obs] of populations) {
+			const fit = fitRecoveryRate(obs, PRIOR, {
+				restRecoveryMultiplier: M,
+			});
+
+			const preFix = stdAtNu0(obs, fit.rate, RECOVERY_PRIOR_STRENGTH);
+			const floorOnly = stdAtNu0(obs, fit.rate, FLOOR_ONLY);
+
+			console.log(
+				`[§8.7 floor] ${label}, n = ${fit.usedCount}: r ${f3(fit.rate)} ± ${f3(fit.rateStd!)} at the shipped ν₀ = ${CALIBRATION_NOISE_PRIOR_WEIGHT}, ± ${f3(preFix)} under the pre-fix ν₀ = λ = ${RECOVERY_PRIOR_STRENGTH} = ${(fit.rateStd! / preFix).toFixed(1)}× the pre-fix ±, against ± ${f3(floorOnly)} from the σ₀ = ${RECOVERY_NOISE_PRIOR_STD} floor alone`,
+			);
+
+			// The invariant, not the magnitudes, and it is two-sided: ν₀
+			// pseudo-observations move σ̂² toward σ₀², so raising ν₀ from λ to 4
+			// widens data that looks cleaner than σ₀ and TIGHTENS data that looks
+			// noisier. Both moves are steps toward the floor-only ±, never past it.
+			expect(Math.sign(fit.rateStd! - preFix)).toBe(Math.sign(floorOnly - preFix));
+			expect(Math.abs(fit.rateStd! - preFix)).toBeLessThan(Math.abs(floorOnly - preFix));
+		}
+
+		// Construction: these ARE the named populations — six observations for
+		// the pair sets, and pairs that really do rest backwards for the other.
+		expect(populations[0][1]).toHaveLength(6);
+		expect(populations[1][1]).toHaveLength(6);
+		expect(ADVERSARIAL_PAIRS.every((o) => o.drainedAfter > o.drainedBefore)).toBe(true);
 	});
 
 	it('measures the α bias the r fit was built to remove', () => {

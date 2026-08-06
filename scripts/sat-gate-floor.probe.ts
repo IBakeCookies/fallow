@@ -16,11 +16,16 @@
  *      monotone … instead of cliffed". Both were measured on 2026-07-14, before
  *      §8.6's compound moves and §8.8's 45-min lattice — i.e. with the search
  *      §8.6 then found unreliable on this very day.
+ *   4. "Long full-demand sessions do stabilize near the floor instead of
+ *      grinding to zero (8 h at `w = 1` ends at 0.20 physical against 0.09
+ *      without the gate)" — an endpoint at a finite horizon, which arm A's
+ *      converged floor does not show.
  *
- * Arms A and B are algebra: exact identities that should hold forever, so they
- * assert. Arm C is a sweep whose numbers move with the optimizer, the lattice
- * and the objective — it prints, and the printed numbers belong in MATH.md WITH
- * THEIR DATE beside the claim they support (AGENTS.md §4).
+ * Arms A, B and D are algebra: exact consequences of the shipped constants that
+ * should hold forever, so they assert. Arm C is a sweep whose numbers move with
+ * the optimizer, the lattice and the objective — it prints, and the printed
+ * numbers belong in MATH.md WITH THEIR DATE beside the claim they support
+ * (AGENTS.md §4).
  *
  * Usage: npm run probe
  */
@@ -83,6 +88,33 @@ function shippedFloor(alpha: number, r: number, m: number, b: number): number {
 	);
 
 	return endCog;
+}
+
+/** Physical level a single uninterrupted w = 1 session of `hours` ends at. */
+function sessionEndPhys(hours: number, b: number): number {
+	const { endPhys } = simulateReservoirs(
+		[
+			{
+				taskId: 1,
+				hours,
+			},
+		],
+		[
+			{
+				id: 1,
+				cognitiveDemand: 1,
+				physicalDemand: 1,
+			},
+		],
+		{
+			...P,
+			microRecoveryFraction: b,
+			initialCog: 1,
+			initialPhys: 1,
+		},
+	);
+
+	return endPhys;
 }
 
 const task = (
@@ -333,5 +365,37 @@ describe('MATH.md §8.5 — the micro-recovery gate', () => {
 				`[§8.5 arm C] ${days.length} seeded days (3 tasks incl. one at wp=1, 4–8h), demand 1.00→0.70 in 0.05: b=${b} → mean biggest jump ${meanJump.toFixed(3)}h, worst ${worstJump.toFixed(2)}h, non-monotone days ${nonMonotone}/${days.length}, days moving >1 step on the 1.00→0.95 change ${cliffDays}/${days.length}`,
 			);
 		}
+	});
+
+	it('arm D: an 8 h w = 1 session ends above the floor, not at zero', () => {
+		const gated = sessionEndPhys(8, P.microRecoveryFraction);
+		const ungated = sessionEndPhys(8, 0);
+
+		const floor = law(
+			1,
+			P.alphaPhys,
+			P.recoveryRate,
+			P.restRecoveryMultiplier,
+			microGate(1, P.microRecoveryFraction),
+		).eq;
+
+		console.log(
+			`[§8.5 arm D] 8h at w=1, phys (α=${P.alphaPhys}): b=${P.microRecoveryFraction} → ${gated.toFixed(4)}, b=0 → ${ungated.toFixed(4)}; converged floor ${floor.toFixed(4)} (the 8h level is ${(((gated - floor) / floor) * 100).toFixed(0)}% above it, gap ${(gated - floor).toFixed(4)})`,
+		);
+
+		console.log(
+			`[§8.5 arm D] approach to the floor at b=${P.microRecoveryFraction}: ${[8, 16, 24, 48].map((h) => `${h}h ${sessionEndPhys(h, P.microRecoveryFraction).toFixed(4)}`).join('  ')}`,
+		);
+
+		// The gate's whole point: a finite full-demand session ends strictly higher
+		// with it than without, and the ungated arm heads for 0 rather than a floor.
+		expect(gated).toBeGreaterThan(ungated);
+		expect(ungated).toBeGreaterThan(0);
+		expect(sessionEndPhys(400, 0)).toBeLessThan(ungated);
+
+		// Monotone decay from C₀ = 1 onto the floor from above — never past it.
+		expect(gated).toBeGreaterThan(floor);
+		expect(sessionEndPhys(24, P.microRecoveryFraction)).toBeLessThan(gated);
+		expect(sessionEndPhys(24, P.microRecoveryFraction)).toBeGreaterThan(floor);
 	});
 });

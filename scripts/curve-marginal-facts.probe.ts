@@ -17,6 +17,11 @@
  * and evaluates every stated range at its ENDPOINTS, including
  * `AMPLITUDE_RATIO_CAP` (r = 0.9) and the r → 1 asymptote past it.
  *
+ * §2's peak-display claim was quoted the same way: only the grid maximum of the
+ * v1→v2 gap `1 − (1+r)·e^(−r)` was printed, while the per-difficulty figures and
+ * the count of integer slider cells over 5% were left to the reader's algebra.
+ * So the gap is also swept over the 100 integer cells, worst-per-difficulty.
+ *
  * A probe, not a test: it sweeps r and the whole slider domain and prints
  * margins. The invariants it establishes are pinned by cheap fixtures in
  * `zenith.test.ts`; the sweep itself never runs in `npm test`.
@@ -299,6 +304,55 @@ describe('MATH.md §2 curve properties the suite does not assert', () => {
 
 		expect(worstTail).toBeLessThan(1e-6);
 		expect(averageProductivity(0, 6, 0.5, 0.5)).toBe(0);
+	});
+
+	it('the peak gap 1 − (1+r)·e^(−r) per integer slider cell: difficulty-only, monotone, > 5% on the easiest rows', () => {
+		// r = p₀/a = (β/E)/(E·β) = 1/E², so the gap depends on the difficulty
+		// slider alone — enjoyment is swept to show it cannot move it.
+		let cellsOver5Percent = 0;
+		let previousWorst = Infinity;
+
+		for (let difficulty = 1; difficulty <= 10; difficulty++) {
+			let worst = 0;
+			let flattest = Infinity;
+			let rowR = 0;
+
+			for (let enjoyment = 1; enjoyment <= 10; enjoyment++) {
+				const { a, p0 } = calculateTaskParams({
+					title: '',
+					difficulty,
+					enjoyment,
+				});
+
+				const r = p0 / a;
+				const v2Peak = a * Math.exp(r - 1);
+				const shift = Math.abs(v2Peak - (a * (1 + r)) / Math.E) / v2Peak;
+
+				expect(shift).toBeCloseTo(1 - (1 + r) * Math.exp(-r), 12);
+
+				worst = Math.max(worst, shift);
+				flattest = Math.min(flattest, shift);
+				rowR = r;
+
+				if (shift > 0.05) cellsOver5Percent++;
+			}
+
+			console.log(
+				`difficulty=${difficulty}  r=${rowR.toFixed(6)}  ` +
+					`worst peak shift vs v1 (a+p₀)/e=${(100 * worst).toFixed(2)}%  ` +
+					`(identical on all 10 enjoyment cells)`,
+			);
+
+			expect(flattest).toBeCloseTo(worst, 12);
+			expect(worst).toBeGreaterThan(0);
+			expect(worst).toBeLessThan(previousWorst);
+			previousWorst = worst;
+		}
+
+		console.log(`integer slider cells shifting more than 5% = ${cellsOver5Percent}/100`);
+
+		// Whole rows cross together, since enjoyment does not enter the gap.
+		expect(cellsOver5Percent % 10).toBe(0);
 	});
 });
 
