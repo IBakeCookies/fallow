@@ -8,8 +8,10 @@ import { AUTOSAVE_MS, isoDate, setBudget } from './helpers';
    moves. */
 
 /* Two hard, joyless tasks against more hours than the plan wants: burnout risk
-   lands in the critical band and trimming the unspendable hours fixes it for
-   free, which is the advice worth proving end to end. */
+   lands in the critical band and trimming the unspendable hours fixes it at
+   little or no cost, which is the advice worth proving end to end. (Not "for
+   free" — on a pool-bound day the trim re-solves the same hours into a worse
+   arrangement, MATH.md §14.1-2.) */
 async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
 	const form = page.locator('form').filter({
 		has: page.getByPlaceholder('e.g., Boxing training'),
@@ -125,8 +127,9 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 	await addDrainingTask(page, 'Migrate the database');
 	await addDrainingTask(page, 'Refactor the auth flow');
 
-	// Tight on purpose: with slack in the budget, the free trim lever dominates
-	// every deferral on every axis and no defer survives the frontier.
+	// Tight on purpose: with slack in the budget, the trim lever costs so much
+	// less than any deferral that it dominates every axis and no defer survives
+	// the frontier.
 	await setBudget(page, 4);
 
 	await page

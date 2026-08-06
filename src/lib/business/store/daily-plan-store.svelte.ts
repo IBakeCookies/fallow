@@ -104,7 +104,7 @@ export class DailyPlanStore {
 	}
 
 	/**
-	 * One full solve per candidate — up to ~950 ms on a 12-task day (MATH.md
+	 * One full solve per candidate — measured 421 ms on a 12-task day (MATH.md
 	 * §14), which is why this is a method and not a `$derived`. The yield before
 	 * the search lets the caller's busy state paint; the search itself blocks.
 	 */

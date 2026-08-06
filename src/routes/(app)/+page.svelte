@@ -47,7 +47,7 @@
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
-	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice) : null);
+	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice, getDateLocale()) : null);
 
 	// /?date=<today> renders the same view as / — collapse to the canonical
 	// URL. Also fires when a viewed date BECOMES today at midnight rollover.
