@@ -655,6 +655,37 @@ describe('calculateHumanCapacity', () => {
 			limitType: 'none',
 		});
 	});
+
+	// MATH.md §20: the pool that BINDS is decided on the exact saturations. The
+	// rounded pair below ties at 60%, and the tie used to go to cognitive — which
+	// put the wrong pool, and its wrong hour count, into the row's description.
+	it('names the pool that binds, not the one rounding ties toward', () => {
+		const mental = makeSuggested({
+			id: 1,
+			title: 'mental',
+			mentalDifficulty: 10,
+			physicalDifficulty: 0,
+			suggestedHours: 2.4, // 2.4 of 4 cognitive-hours → 60.00%
+		});
+
+		const physical = makeSuggested({
+			id: 2,
+			title: 'physical',
+			mentalDifficulty: 0,
+			physicalDifficulty: 10,
+			suggestedHours: 2.41, // 2.41 of 4 physical-hours → 60.25%
+		});
+
+		expect(
+			calculateHumanCapacity([mental, physical], {
+				cognitiveHours: 4,
+				physicalHours: 4,
+			}),
+		).toEqual({
+			percent: 60,
+			limitType: 'physical',
+		});
+	});
 });
 
 describe('calculateTimeScarcity', () => {

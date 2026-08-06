@@ -864,6 +864,7 @@ no probe citation beside it is unbacked — that is the list to work down.
 | `adv2-switch-cost-price.probe.ts`       | §14.3 — the fixture table, the inversion grid, m(s) and the bracket                                                          |
 | `mode-cross-scoring.probe.ts`           | §15 — both plans scored under both objectives                                                                                |
 | `mode-run-order.probe.ts`               | §16 — the order-only gain and the burnout noise it would buy                                                                 |
+| `mtr-human-capacity.probe.ts`           | §20 — the reading-is-the-constraint identity, what the band's >100 and Infinity arms can reach, the pool the row names       |
 
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
@@ -1226,7 +1227,12 @@ Each was considered and decided. Re-deciding them is churn.
   optimizer and the stopping fit thread one curve map through every
   evaluation (`evaluateWithCurves`); public `evaluateSchedule` still builds
   its own. Hoisting measured 2.6× (104 → 40 ms on a 4-task/8h solve).
-- **Human Capacity is unclamped** — it is allowed to read over 100%.
+- **Human Capacity is unclamped** — it is allowed to read over 100%, and the
+  band above 100 stays even though the allocator's own plan cannot get there
+  (0 of 3000 probed days; 44.1% touch ≥ 99%, MATH.md §20). The reading is the
+  share of §4's capacity constraint the plan consumed, on the allocator's own
+  weights — so which pool it BLAMES is decided on the exact saturations, never
+  on the rounded ones (§20.1).
 - **Burnout Risk is not monotone in the declared budget, and that stays**
   (settled 2026-08-06, MATH.md §11.6). Raising `availableHours` over a fixed
   task list makes the reading FALL on 3006 of 37800 probed steps, worst 29
