@@ -1542,13 +1542,28 @@ export const STOP_FIT_MAX = 3;
  * already drops: keeping its midpoint as a point estimate pulls the fit
  * toward the task curves' characteristic marginal INDEPENDENT of the user's
  * true λ₀ (probe: a true λ₀ = 0.3 user's fit went 0.47 → 0.64 from two
- * interrupted days in five). The margin keeps near-boundary days: rational
- * days and rational-±1-step "mood" days never invert at all (probe
- * 2026-07-19), and small inversions are within the instrument's own slack —
- * the loose-max hi bias (~+0.1) plus a lattice bracket half-width (~0.15),
- * which is also STOP_NOISE_PRIOR_STD. Probe on the standard day: interruption
- * slivers gap 0.33–0.65 (censored), a mildly-off 2.25h reading day gaps 0.07
- * (kept).
+ * interrupted days in five). The margin keeps near-boundary days, and small
+ * inversions are within the instrument's own slack. Probe on the standard day:
+ * interruption slivers gap 0.33–0.65 (censored), a mildly-off 2.25h reading
+ * day gaps 0.07 (kept).
+ *
+ * CORRECTED 2026-08-06 (`scripts/stop-inversion-margin.probe.ts`, MATH.md
+ * §8.10). Two claims that used to justify this number did not survive a wider
+ * grid, so do not re-derive 0.25 from them:
+ *
+ *   - "rational days and rational-±1-step 'mood' days never invert at all" is
+ *     FALSE. Optimizer days invert on 4 of 315; their ±1-step mood variants on
+ *     44 of 1179, and 6 of those are censored — worst gap 0.421, past this
+ *     margin. Some honest days really are dropped.
+ *   - the "~+0.1 loose-max bias plus ~0.15 half-width" decomposition does not
+ *     add up: measured, the bias is median 0.000 / mean 0.045 and the
+ *     half-width median 0.110, summing to 0.110 — not 0.25.
+ *
+ * The constant is LEFT at 0.25 because tightening it censors more honest days
+ * (6 of 1179 already) and the two populations overlap — censored random
+ * compositions gap a median 0.282 against honest mood days reaching 0.421 —
+ * so there is no clean cut to move it to. Re-deriving it from the measured
+ * distributions is open work, not a value to guess at.
  */
 export const STOP_INVERSION_MARGIN = 0.25;
 
@@ -1584,8 +1599,9 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * the one-sided λ₀ ≤ hi reading survives — the same reason worked-to-the-edge
  * days are dropped. Small inversions (within the margin, i.e. within the
  * instrument's own slack) keep the bracket midpoint as the compromise between
- * the two bounds. Rational and near-rational days (±1 step of "mood") never
- * inverted on the probe grid.
+ * the two bounds. Rational and near-rational days (±1 step of "mood") invert
+ * RARELY but not never — 4 of 315 and 44 of 1179 respectively, 6 of the latter
+ * past the margin (2026-08-06, see STOP_INVERSION_MARGIN).
  */
 export function stopIndifferencePoint(
 	observation: StopObservation,

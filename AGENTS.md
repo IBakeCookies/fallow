@@ -8,6 +8,7 @@ Other documentation, and nothing else:
 | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
 | [README.md](README.md)                                           | User-facing: what the app does and how to run it                    |
 | [MATH.md](MATH.md)                                               | **Authoritative** record of the implemented math — every derivation |
+| ↳ its `## Section index`                                         | 3.1k lines / ~50k tokens. Read the section you need, not the file   |
 | [ROADMAP.md](ROADMAP.md)                                         | Planned work in priority order — update when an item ships          |
 | [STYLE.md](src/lib/presentation/style/STYLE.md)                  | All styling rules — read before touching markup or classes          |
 | [zenith.md](zenith.md)                                           | Frozen copy of the source article. Historical only — never a spec   |
@@ -134,9 +135,10 @@ Each exists because it was broken before.
   dynamic `import('$lib/data/...')` crossing is invisible to it, and a
   relative one only cannot hide because relative specifiers are banned
   outright (see Code), not because it reads them as layer violations.
-  `.dependency-cruiser.cjs` resolves modules to disk; its three directional
+  `.dependency-cruiser.cjs` resolves modules to disk; its four directional
   rules — `data-not-to-upper-layers`, `business-not-to-presentation`,
-  `presentation-not-to-data`, all `severity: 'error'` — catch those. Run with
+  `presentation-not-to-data`, `presentation-not-to-business-model`, all
+  `severity: 'error'` — catch those. Run with
   `npm run depcheck`; it is in CI. `src/lib/paraglide` is generated and
   exempt.
 - One gap worth knowing: the Svelte compiler strips `import type` before
@@ -816,6 +818,25 @@ could not be re-checked and stayed in the document while being false.
 - **Pin what the probe found with one fixture in the suite**, never the sweep
   itself — §14.2's multi-gainer tie-break is pinned exactly that way.
 
+**Which probe backs what** (each file's header names its claim; each claim in
+`MATH.md` carries a dated back-reference to its probe). A `MATH.md` number with
+no probe citation beside it is unbacked — that is the list to work down.
+
+| Probe (`scripts/`)               | Backs                                                            |
+| -------------------------------- | ---------------------------------------------------------------- |
+| `plan-advice.probe.ts`           | §14, §14.1-2 — priced-lever signs, the pure budget trim          |
+| `pool-allocator.probe.ts`        | §13.3, §4 — pooled suboptimality: there is no envelope to quote  |
+| `energy-search-gap.probe.ts`     | §8.6 — the search's residual gap against the enumerated optimum  |
+| `stop-advisor.probe.ts`          | §8.11 — session lookahead vs. the one-step marginal              |
+| `burnout-risk.probe.ts`          | §11.6 — the 87% ceiling, the plateau, the resolution ladder      |
+| `phi-uncertainty-cap.probe.ts`   | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation          |
+| `phi-cap-reachability.probe.ts`  | §5.1 — whether a real fit can reach the region that cap misses   |
+| `allocator-exactness.probe.ts`   | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level      |
+| `satiety-gaming.probe.ts`        | §8.4 — the monotone accumulator, and what a laundering one costs |
+| `stop-inversion-margin.probe.ts` | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split    |
+| `fit-snapshot-drift.probe.ts`    | §12.1 — as-of-day vs whole-history fit drift, and refit cost     |
+| `phi-error-price.probe.ts`       | §17 — the per-task-ϕ error pricing table                         |
+
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
 `e2e/` (playwright report and traces). Coverage is a number to read, not a gate
@@ -1177,6 +1198,24 @@ Each was considered and decided. Re-deciding them is churn.
   evaluation (`evaluateWithCurves`); public `evaluateSchedule` still builds
   its own. Hoisting measured 2.6× (104 → 40 ms on a 4-task/8h solve).
 - **Human Capacity is unclamped** — it is allowed to read over 100%.
+- **Burnout Risk is not monotone in the declared budget, and that stays**
+  (settled 2026-08-06, MATH.md §11.6). Raising `availableHours` over a fixed
+  task list makes the reading FALL on 3006 of 37800 probed steps, worst 29
+  points (`scripts/burnout-risk.probe.ts`). It is not a bug in the metric: the
+  larger budget funds more tasks, and their switch gaps are real rest, so the
+  simulated day contains less work. Documented rather than smoothed — holding
+  the funded set fixed while walking the budget would report a plan the user is
+  not being shown. Do not "fix" the fall.
+- **`PHI_UNCERTAINTY_RELATIVE_CAP` stays 0.5 — do not lower it to 0.35**
+  (settled 2026-08-06, MATH.md §5.1). §5.1 records that the cap does not
+  exclude everything it claims to: bimodality and truncation loss start at
+  σ/ϕ̂ ≈ 0.35, not 0.5. Tightening it is the obvious repair and the wrong one.
+  A real fit cannot reach the gap — the ridge's λ = 4 anchor shrinks ϕ̂ exactly
+  when σ is large, so 0 of 576 000 fitted cells land at ϕ̂ > 3.06h with
+  σ/ϕ̂ > 0.35, and the 5 of 28 800 that extrapolation reaches forfeit 0.0000%
+  (`scripts/phi-cap-reachability.probe.ts`). Lowering it would clamp 1.23% of
+  realistic cells and hedge them LESS, worth up to +6.809% of conjured value
+  for the few-log users the posterior exists to protect.
 - The productivity curve deviates from the source article on purpose
   (MATH.md §6).
 

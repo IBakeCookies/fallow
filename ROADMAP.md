@@ -522,6 +522,146 @@ present:
     static sentence), **or if the defer branch is empty on most days**, leaving
     only non-actionable branches.
 
+Left over from the 2026-08-06 probe round, which backed five `MATH.md` claims
+and found three of them wrong: the rest of that list, and the smallest of the
+defects it found without fixing.
+
+26. **Round-2 probes for the unbacked `MATH.md` claims** — **DONE 2026-08-06.**
+    All four targets built, plus a fifth found while doing them. Each carries a
+    dated back-reference in `MATH.md`, a row in AGENTS.md §4's registry, and one
+    suite fixture. The expectation that this round would correct more than it
+    confirmed held for one of the five.
+    (a) **§12.1's fit-snapshot numbers** → `scripts/fit-snapshot-drift.probe.ts`.
+    **Confirmed, both halves.** Day-10 fit 0.3447 against a whole-history 0.5240
+    (52%, doc says 62%), in-window movement 3.3% against the doc's 3.2%, and a
+    flat-α control at −0.1% proving it is the drift. Per-audited-day refit costs
+    ≈1.0× a whole-history fit and grows linearly with log volume, so
+    O(auditDays × totalLogVolume) — and item 5 stands.
+    (b) **§8.4's anti-gaming constraint** → `scripts/satiety-gaming.probe.ts`.
+    **Confirmed and, for the first time, priced.** Satiety is reproducible from
+    per-task totals alone to 8.9·10⁻¹⁵ over 300 schedules, 297 of which split a
+    task across a gap. A session-keyed accumulator puts **98.4%** of worked hours
+    on one task against the shipped 82.3% — the re-run-the-winner corner,
+    reproduced — at a cost of 0.226% (0.599% for the phase-decaying form).
+    (c) **§8.10's `STOP_INVERSION_MARGIN = 0.25`** →
+    `scripts/stop-inversion-margin.probe.ts`. **Both defences were wrong.**
+    "Zero inversions under ±1-step mood" is false: optimizer days invert 4/315,
+    mood days 44/1179, **6 of them censored**, worst gap 0.421. The
+    decomposition does not add up either — loose-max bias median 0.000 (not
+    ~0.1), half-width median 0.110 (not ~0.15), summing to 0.110 rather than
+    0.25. `MATH.md` §8.10 and the two source docblocks are corrected; the
+    constant is LEFT at 0.25 because the two populations overlap and there is no
+    clean cut to move it to. **Re-deriving it from the measured distributions is
+    now its own open item** — see 28.
+    (d) **§17's ϕ-error table** → `scripts/phi-error-price.probe.ts`.
+    **Confirmed.** Same U, same headline (half an hour costs a few tenths of a
+    percent); large-`s` cells run hotter than 2026-08-04's and small-`s` cooler,
+    which is two synthetic grids disagreeing, not the model. The funded-set
+    channel the U-shape is credited to is now measured apart from the timing
+    loss: 72%/68% of days at 1 h/2 h budgets, **0%** at 6 h and 10 h. The
+    rebuild needed no allocator seam — §17's claimed injection point does not
+    exist on `main`.
+    (e) **§4's exactness claim**, found unbacked while doing the above →
+    `scripts/allocator-exactness.probe.ts`. The document's strongest claim rested
+    on the suite's smallest sample (one 3-task case); **0 non-exact in 6400**
+    across all three untested seams. Its arm B also produced the one genuinely
+    new number of the round: §5.1's guard 2 costs nothing until σ/ϕ̂ reaches the
+    0.5 cap, where it forfeits up to **5.26%** of a plan.
+27. **§8.6's missing rest-insert move** — the energy search cannot split a funded
+    block around an interior rest, because splitting a block and re-growing it is
+    downhill in between. Measured 2026-08-06 against the **exhaustive** optimum
+    on the same 45-min lattice (`scripts/energy-search-gap.probe.ts` — every
+    lattice plan enumerated, so a shortfall is a proven search defect and not a
+    better heuristic): 58 of 60 seeded days exact, median 0.0000%, **worst
+    −0.5951%**, on a single task over a 6 h window where the search returns one
+    5.25 h block and the optimum works the same 5.25 h as 3.75 + 1.5 around a
+    45-min rest. The fix is one more deterministic paired candidate beside the
+    existing transfer move: split a funded block at each interior lattice point,
+    hand one step to REST, keep total hours.
+    **The smallest item in this file, and the case against it is on the record
+    too:** 0.5951% on 1 day of 60, and **0 funded-set mismatches of 60** — so on
+    the tier that is proven, the structural failure §8.6 itself calls the worse
+    one does not occur — against a new candidate class in a ~60 ms search that
+    re-runs on every Lab solve. What keeps it alive at all is the harder tier,
+    where 12 days of 4–6 tasks × 8–12 h show **3 funded-set mismatches**; those
+    are **unattributable**, because the reference there is a 200-restart hill
+    climb and a lower bound, so either search can be the wrong one.
+    **Probe:** re-run that same probe with the move in. **Kill if it does not
+    take the worst day to exact**, or if wall time moves enough to be felt at
+    3 tasks / 8 h. If it does close the exhaustive tier, raise the harder tier to
+    an exhaustive reference before reading anything into those 3. Written down
+    rather than remembered because the probe already scores any fix in one
+    command.
+28. **Re-derive `STOP_INVERSION_MARGIN` from measured distributions** — 26(c)
+    left the constant standing on an arithmetic that does not hold. What is known
+    now: the honest instrument slack is ~0.110, not 0.25; at 0.25 six near-
+    rational days in 1179 are still censored; and the inversion gap does not
+    separate the populations cleanly (censored random compositions gap a median
+    0.282 while honest mood days reach 0.421). So tightening toward 0.110 censors
+    MORE honest days, and widening keeps more contamination — the trade is real
+    and currently unpriced. The missing measurement is the one §8.10 actually
+    cares about: **λ₀ fit error as a function of the margin**, sweeping it over
+    a population mixing rational, mood-perturbed and genuinely interrupted days.
+    Kill criterion: if the fit's RMSE is flat across margins in [0.1, 0.5], the
+    constant does not matter and the paragraph should say so instead of
+    pretending to derive it.
+29. **Round-3: what the 2026-08-06 agent sweep found and nobody built** — five
+    agents swept disjoint `MATH.md` ranges to pick item 26's targets, and
+    surfaced far more than the five that got probes. This is the residue. Three
+    entries already have a COUNTEREXAMPLE measured in a scratch probe that was
+    not committed — which is item 26's own failure mode, one level up — so they
+    are recorded with their numbers and marked unverified rather than trusted.
+    Ranked by whether a shipped behaviour is wrong, not by effort.
+    (a) **§11.9's "inherited approximations wash out exponentially through the
+    trailing rest" is probably false where the feature exists** (UNVERIFIED,
+    agent scratch probe). The claim covers block order and omitted intraday
+    breaks. At the default recovery rate the spread is ≤ 0.01 pt, but at
+    `RECOVERY_FIT_MIN = 0.1` — which §11.9 itself says is exactly when
+    carry-over becomes visible — reordering three blocks over a 16 h day moved
+    the morning level by **8.4 points**, and moving a 2 h break from the
+    trailing gap to mid-day by **2.4 points**. Same shape as §14.1-2: a claim
+    true at defaults, stated unconditionally, and load-bearing only in the
+    regime where it fails. Entry point `seedMorningReservoirs`; propagate
+    through `calculateBurnoutRisk` and report the spread in risk POINTS.
+    (b) **§11.9's own exemplar may be arithmetically wrong** (UNVERIFIED): the
+    doc says a 16 h day (8 h gap) starts the next morning near **74%**;
+    recomputing §11.9's stated closed form at its stated constants gives
+    **70.6%**. The 8 h exemplar (92%) reproduces at 91.6%. Two fixed points, so
+    a unit test, not a probe — do it in the same pass as (a).
+    (c) **§8.3 claims a unit test that does not exist.** "Post-fix probes
+    (locked in as unit tests): … a ~30-minute break placed mid-session _raises_
+    total output at equal work-hours — the Jaber–Neumann result". Grep finds no
+    such test; the three nearest ones assert reservoir levels, not output, and
+    one asserts the opposite direction. §13.5's +17%-at-2-chunks figure is the
+    same claim from another thrown-away sweep. Cheapest of the three to settle
+    and the most embarrassing to leave: the document asserts a suite guarantee
+    it does not have.
+    (d) **§8.9's "within ~0.05 of truth" under rating quantization + jitter**
+    (UNVERIFIED): one agent realization deviated by up to **0.133** (true 0.7 →
+    0.833). This is the identifiability bound the whole r → α → λ₀ conditioning
+    chain rests on, so if it is really 0.13 the downstream stds are optimistic.
+    (e) **§8.8's coarse/fine quantization ratio is tested at one window only.**
+    The suite asserts ≥ 0.97 at `windowHours = 8`; an agent measured **0.9759 at
+    12 h** — 0.6 pp of headroom on a window the test never runs — where the
+    doc's "~1% objective cost" is actually 2.4%. Rest-confetti reproduced
+    exactly (fine = 5 rest blocks vs coarse = 1).
+    (f) **Three more lost sweeps, same class as item 26's**: §14.3's switch-cost
+    inversion grid (322 inversions over 178,800 configurations, worst free arm
+    −6.53% — quoted verbatim inside `plan-advice.ts` and the sole justification
+    for a shipped clamp); §15's 300-day cross-scoring table (276/300) that
+    withdrew the energy-plan promotion; §16's order-only permutation bound
+    (+0.47%) restated as fact in `calculation.ts`. No probe file was ever
+    committed for any of them.
+    (g) **§12's ±0.05 adherence verdict band has no noise model** — §12 says so
+    outright ("no noise model") while printing one English verdict decided by
+    that constant. Nothing shows it is wide enough to stop week-to-week flipping
+    or narrow enough to ever name a planner.
+    (h) **Documentation defect, free to fix**: §8.6 and item 27 both read as if
+    the energy search has NO split-around-rest move. It has one — `neighbors`
+    splits at the snapped midpoint, gated on spare lattice room. The real gap is
+    "midpoint-only, and only with room", which changes item 27's premise. Fix
+    the wording wherever item 27 is next touched.
+
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.

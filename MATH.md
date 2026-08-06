@@ -22,6 +22,72 @@ force).
 
 ---
 
+<!-- section-index:start -->
+
+## Section index
+
+Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
+The whole document is ~50k tokens; the largest single section is ~10k, and most
+are under 2k. Ranges shift whenever a section is inserted — reprint the headings
+with
+
+    node -e 'require("fs").readFileSync("MATH.md","utf8").split("\n").forEach((l,i)=>/^#{2,3} /.test(l)&&console.log(i+1,l))'
+
+```text
+§0          91-111  Objective
+§1         112-138  Inputs and parameter mappings (unchanged from the article)
+§2         139-242  Productivity curve
+§3         243-290  Optimal stopping
+§4         291-370  Allocation
+§5         371-674  Personalization
+  §5.2     420-502  Recency weighting of the ϕ fit
+  §5.1     503-674  Posterior-aware allocation
+§6         675-688  Summary of v1 → v2 changes
+§7         689-710  Known approximations and deliberate non-changes
+§8        711-1544  Energy model (`zenith-energy.ts`) — fatigue-recovery exten…
+  §8.1     724-742  Intermittent-rest recovery correction
+  §8.2     743-764  Warm-up carryover instead of binary reset
+  §8.3     765-790  Verified consequences and an open calibration question
+  §8.4     791-883  Per-task satiety — concave daily value
+  §8.5     884-930  Micro-recovery gate — a positive floor for full-demand tas…
+  §8.6     931-977  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    978-1097  Drain-rate calibration from end-of-session ratings
+  §8.8   1098-1154  45-minute plan granularity
+  §8.9   1155-1223  Recovery-rate calibration from pre/post-rest pairs
+  §8.10  1224-1423  Stopping-value calibration from observed stop times
+  §8.11  1424-1544  Live stop advisor — §8.10 run forward mid-day
+§9       1545-1593  References
+§10      1594-1677  Revision log (doc-only corrections)
+§11      1678-1969  Metric-layer corrections (2026-07-18)
+  §11.1  1680-1692  Scope and principle
+  §11.2  1693-1711  Zenith Gain: cap instead of a silent 0% when the naive pla…
+  §11.3  1712-1731  Burnout Risk: overhang counts funded tasks' T* only (formu…
+  §11.4  1732-1747  Friction Index: raw scales instead of the asymmetric mappe…
+  §11.5  1748-1764  Schedule Integrity: overhead share instead of the small-al…
+  §11.6  1765-1852  Burnout Risk v2: re-derived from the energy model (2026-07…
+  §11.7  1853-1878  Momentum: burnout claim removed, fed active tasks (2026-07…
+  §11.8  1879-1916  Metric scope families: plan / progress / next-up (2026-07-…
+  §11.9  1917-1969  Overnight reservoir carry-over (2026-07-28)
+§12      1970-2085  Plan-adherence audit (2026-07-23)
+§13      2086-2366  Math review, 2026-07-26
+  §13.1  2103-2131  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2  2132-2168  Zenith Gain measured the block lattice, not allocation qua…
+  §13.3  2169-2234  The pooled allocator's "within 1–2%" was a curated-scenari…
+  §13.4  2235-2256  The stopping fit probed unlogged tasks at an arbitrary pos…
+  §13.5  2257-2284  Also in this change
+  §13.6  2285-2366  The two end-of-day energy readings: a timing difference, n…
+§14      2367-2971  Plan advice — priced counterfactuals over the day's levers…
+  §14.1  2545-2671  Five corrections to the first cut (2026-07-28)
+  §14.2  2672-2801  The marginal of the budget
+  §14.3  2802-2971  The price of the switch cost
+§15      2972-3032  Two objectives, two modes (2026-07-29)
+§16      3033-3105  Run order stays a heuristic (2026-07-29)
+§17      3106-3253  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18      3254-3321  Drain logs are one row per SESSION, not per task-day (2026…
+```
+
+<!-- section-index:end -->
+
 ## 0. Objective
 
 For each task `i`, `p_i(t)` is productivity `t` hours into the task and
@@ -282,6 +348,26 @@ single-budget problem with switch cost and n ≤ 12, the returned plan attains
 the true maximum of the objective over all block-quantized plans.** (Test:
 brute force over every block distribution × funded-subset overhead.)
 
+**Measured, not just proved** (`scripts/allocator-exactness.probe.ts`,
+2026-08-06). The test behind that sentence is one hand-picked case — 3 tasks
+(8/3, 4/9, 6/6), budget 3 h, `switchCost` 0.25, default constants — and every
+other brute-force comparison in the suite is on the POOLED path, the one §4
+does _not_ claim exact. Swept against full enumeration over **6400 cases**
+(n ∈ 2–5, four budget families, `switchCost` ∈ {0, 0.1, 0.2, 0.25, 0.33, 0.5,
+1.0}, four constant sets spanning ϕ 0.10–7.60 h): **0 non-exact, worst gap
+0.0000%**. The three seams the single fixture cannot reach — budgets exactly
+on a block boundary and a hair either side of one, switch costs that are not
+multiples of `BLOCK_HOURS`, and ϕ far from mid-range — are all clean.
+
+One methodological note worth keeping, because it cost a run. The first cut
+charged feasibility in HOURS (`used·BLOCK_HOURS + overhead ≤ budget + 1e-9`)
+and reported 98/2400 non-exact, worst 49.72% — all of them budgets within 1e-9
+of a lattice point, and none of them a suboptimality. `budgetBlocksFor`'s
+epsilon is 1e-9 of a BLOCK, four times tighter, so the two sides disagreed
+about which plans were _admissible_ rather than which was _best_. A reference
+that admits plans the allocator may not place measures the tie-break
+convention, not the search.
+
 ## 5. Personalization — **v2 change: full Bayesian posterior**
 
 The article prescribes measuring time-to-flow ("⚡ logs") and fitting
@@ -490,6 +576,70 @@ truncation. The guards:
    bimodal cases and zero truncation loss. Beyond it a Gaussian is a poor
    posterior for a positive quantity anyway (significant mass below 0), so
    the cap is graceful degradation, not information loss.
+
+   **Re-measured 2026-08-06 by `scripts/phi-uncertainty-cap.probe.ts`, and
+   "zero and zero" is false as written.** Rebuilding the grid — r × ϕ̂ (0.1–8h)
+   × σ/ϕ̂ ∈ 0…1.5 in 0.05 steps, 4340 cells, menus built exactly the way
+   `buildBlockIncrements` builds them (same span, same 1e-12 tolerances) —
+   finds INSIDE the cap 7 bimodal cells, 51 cells that forfeit value to the
+   monotone-prefix cut (worst **26.53%** at r = 0.3, ϕ̂ = 8h, σ = 2.8h), and
+   7 of 1400 σ > 0 cells whose bisection bracket holds ≠ 1 crossing. All three
+   first appear at σ/ϕ̂ ≈ 0.35 (4000 seeded random cells put the first loss at
+   0.342), which is where the low outer node ϕ̂·(1 − 2.857·σ/ϕ̂) collapses onto
+   the ϕ floor — so **0.5 is not the boundary, ≈ 0.35 is**, and the cap was set
+   a round number OUTSIDE the regime it exists to exclude, not inside it.
+
+   Two things keep that from being a live defect. Restricted to ϕ̂ ≤ 3.06h, the
+   ceiling `DEFAULT_USER_CONSTANTS` can reach, the same sweep is clean — 0
+   bimodal, 0 truncation loss, 0 miscrossings over 990 cells — so the damage
+   needs a fitted ϕ̂ past 3h, the same "extreme corner" guard 2 already names.
+   And the cap does buy what it was chosen for: unclamped, σ/ϕ̂ > 0.5 gives 909
+   bimodal cells and up to 53.14% truncation loss (the same order as the 18 /
+   59% recorded above, from a smaller grid), and clamping removes all of it —
+   2800/2800 above-cap cells are bit-identical to their σ/ϕ̂ = 0.5 twin. The
+   honest statement is that 0.5 bounds the mixture's misbehavior for every ϕ̂ a
+   default-constants user can have, not that it eliminates it everywhere.
+
+   **The cap stays at 0.5, and that is now measured rather than argued**
+   (2026-08-06, `scripts/phi-cap-reachability.probe.ts`). The paragraph above
+   defends 0.5 with a statement about a GRID — "the damage needs a fitted ϕ̂ past
+   3h" — which says nothing about whether a real ⚡ history can produce ϕ̂ > 3.06h
+   and σ/ϕ̂ > 0.35 **at the same time**. It essentially cannot, and the reason is
+   structural: the ridge anchors ĉ to the default with λ = 4 pseudo-observations,
+   so few logs (large σ) pull ϕ̂ back into the clean region while many logs (ϕ̂
+   free to move past 3h) shrink σ. The two requirements are in opposition, and
+   the sweep shows them never meeting. Over 576 000 (fitted user × slider) cells
+   from habit-shaped histories (1–34 logs, three coverage widths, σ_log ∈ {0.25,
+   0.5}, true constants drawn out to ϕ(5,1) ≈ 8h): **0 cells in the corner**. The
+   extremes are the proof — the largest σ/ϕ̂ seen is 3.951, at ϕ̂ = 0.10h (the
+   floor), and the largest ϕ̂ seen is 8.04h, at σ/ϕ̂ = 0.024.
+
+   Extrapolation is the one mechanism that can satisfy both, since
+   `σ_ϕ = √(xᵀΣx)` grows with distance from the logged region. Probed on purpose
+   — every log at the easy/enjoyable corner, every query at the hard/unenjoyable
+   one — it reaches the corner and **the corner turns out to be empty of
+   damage**: 5 cells of 28 800, all at its very edge (ϕ̂ 3.23–3.49h, σ/ϕ̂
+   0.351–0.365), every one forfeiting **0.0000%**. Their r is 0.040–0.048, while
+   the 26.53% cell above needs r = 0.3 — and r spans 0.04–0.90 over the slider
+   grid, so that is the fit declining to go there, not an unreachable curve
+   shape. A control arm with truth = `DEFAULT_USER_CONSTANTS` also finds 0 corner
+   cells, though it does put fitted ϕ̂ as high as **3.73h**: the 3.06h ceiling
+   bounds the CONSTANTS, not the fit, and log noise carries ϕ̂ past it harmlessly.
+
+   **Lowering the cap to 0.35 would cost more than it buys, which is why it was
+   rejected.** It is the obvious repair and it is the wrong one: it clamps
+   **1.23%** of habit-shaped cells that are not clamped today, and clamping means
+   hedging LESS — worst case **+6.809%** of reported task value conjured out of a
+   tighter σ, with T\* moving up to 0.244h, at ϕ̂ = 0.47h with σ/ϕ̂ = 0.53. Those
+   are precisely the few-log users §5.1 exists to hedge for. Against 0.0000% of
+   measured loss, the trade is ~7% harmful and 0% helpful. What is real here is a
+   **documentation** defect, now fixed: guard 1's original "zero and zero" was
+   false, and the cap's actual warrant is that the fit cannot reach the region
+   the cap fails to exclude. The two fixes that would address the root cause —
+   renormalizing the floor-clamped quadrature node, or a lognormal ϕ posterior —
+   remain available if the fit ever changes, and both are unmotivated today.
+   Synthetic histories, as everywhere in this repo; re-run on a real export.
+
 2. **Monotone-prefix menu truncation:** `buildBlockIncrements` stops at the
    first non-positive OR non-decreasing increment. Inside the cap the only
    residual violations are O(10⁻⁴) wiggles at one extreme corner (ϕ̂ ≈ 6h
@@ -680,6 +830,26 @@ taking breaks — and the re-run-the-winner exploit would return. Keying on
 cumulative output satisfies this (output only accumulates), and has the side
 benefit that a drained, low-output session barely satiates.
 
+**Measured, and priced** (`scripts/satiety-gaming.probe.ts`, 2026-08-06). The
+rule holds exactly: over 300 random schedules — 297 of which split a task
+across a gap — `satiatedOutput` is reproduced to **8.9·10⁻¹⁵** by a replica
+that reads only the per-task output TOTALS, so satiety demonstrably cannot see
+session count or gap length. What the rule BUYS had never been measured, and
+it is not nothing. Enumerating every one of the 6561 lattice plans on 24 days
+× 2 tasks and taking the argmax under three accumulators built from the same
+per-block outputs:
+
+| accumulator             | sessions/day | top task's share | worth under the true objective |
+| ----------------------- | ------------ | ---------------- | ------------------------------ |
+| cumulative (shipped)    | 1.96         | 82.3%            | —                              |
+| session-keyed           | 2.38         | **98.4%**        | −0.226%                        |
+| phase-decaying `e^−g/τ` | 2.42         | 96.0%            | −0.599%                        |
+
+Both mutants fragment more AND concentrate harder — the session-keyed one puts
+98.4% of worked hours on a single task, which is the re-run-the-winner corner
+§8.4 was written to close, reproduced on demand. The constraint is doing real
+work, and the ~0.2–0.6% is what breaking it would cost.
+
 **Why this form and not the alternatives** (all probed 2026-07-14 against a
 validated replica of this module, same multi-seed local search):
 
@@ -787,6 +957,23 @@ this). Verification: both previously-failed probe cases now beat their
 hand-built witnesses, and the b = 0 legacy world's optimum improved too
 (10.70 vs 10.65) — meaning even pre-§8.5 results had mild search slack.
 Cost: ~60 ms for 3 tasks / 8 h (was ~40 ms), still interactive.
+
+**Residual gap, measured** (Probe 2026-08-06,
+`scripts/energy-search-gap.probe.ts`). The slack is smaller than the ~1% above,
+not gone. Scored against the exhaustive optimum on the same 45-min lattice —
+every lattice plan enumerated, so a shortfall is a proven search defect — 60
+seeded random days of 2–3 tasks × 3–6 h give 58 exact (within 1e-9), median
+shortfall 0.0000%, p99 0.5951%, worst −0.5951%. That worst day funds a single
+task over a 6 h window: the search returns one 5.25 h block, the optimum works
+the same 5.25 h split 3.75 + 1.5 around an interior 45-min rest — a break the
+search cannot reach, because splitting a block and re-growing it is downhill in
+between. The rest-insert move that would close it is ROADMAP item 27, which
+carries the case against building it too. The failure mode §8.6 calls the worse one is the clean one: **0
+funded-set mismatches of 60**, and the witness day above is exactly optimal at
+all six windows 3–8 h. On the harder tier the reference is only a 200-restart
+hill climb, a LOWER bound, so its numbers are evidence and not proof: 12 days of
+4–6 tasks × 8–12 h, 8 exact, worst −0.1104%, 3 funded-set mismatches —
+unattributable, since either search can be the one that is wrong there.
 
 ### 8.7 Drain-rate calibration from end-of-session ratings (added 2026-07-15)
 
@@ -1144,7 +1331,13 @@ machinery collapses to an exact closed form — no numeric minimizer:
   the calibration is for users who log consistently, and σ₀ is wide.
 - **The loose max on the `hi` side** biases midpoints up by ~+0.1 on the
   probe grid — inside one lattice bracket's half-width, i.e. below the
-  instrument's resolution.
+  instrument's resolution. **Re-measured 2026-08-06 and smaller than that**
+  (`scripts/stop-inversion-margin.probe.ts`): against the honest `hi` (the
+  marginal of the step actually worked last, knowable on optimizer-generated
+  days) the bias over 282 days is **mean 0.045, median 0.000, p90 0.164** —
+  it is zero on most days and only occasionally reaches the quoted 0.1. The
+  conclusion is unchanged and the direction is right; the magnitude was
+  overstated.
 - **Block ORDER is a modeling choice on both sides of the bracket.** The
   reconstruction fixes it canonically, but the marginals genuinely depend on
   it through the reservoirs — the same probe step scored 0.65 appended last
@@ -1158,9 +1351,19 @@ machinery collapses to an exact closed form — no numeric minimizer:
   rationalizes such a day (typical cases: a session cut short mid-warm-up,
   or a long grind on a weak, satiating task while a high-amplitude task sat
   unstarted). On arbitrary random compositions about HALF of days invert
-  (89/185) — but on the estimator's intended regime they don't:
-  optimizer-generated days, and those same days perturbed by ±1 lattice step
-  of "mood", produced zero inversions on the probe grid. That makes
+  (89/185; **re-measured 2026-08-06: 144/368 = 39%**,
+  `scripts/stop-inversion-margin.probe.ts`) — but on the estimator's intended
+  regime they mostly don't. **"Zero" was too strong, and that is now
+  measured**: on a wider grid than the 2026-07-19 one, optimizer-generated
+  days invert on **4 of 315**, and those days perturbed by ±1 lattice step of
+  "mood" invert on **44 of 1179**, of which **6 land past the margin and are
+  censored** — worst gap **0.421**, well beyond the 0.25 boundary. So a small
+  number of genuinely near-rational days ARE discarded, and the inversion gap
+  does not cleanly separate the two populations: censored random compositions
+  gap a median 0.282 while honest mood days reach 0.421. Inversion remains a
+  useful DETECTOR — 39% against 3.7% is a strong signal, and the contamination
+  it screens out is worse than the loss — but it is a noisy one, not the clean
+  partition this paragraph used to assert. That makes
   inversion a reliable DETECTOR of a stop that was not a leisure choice
   (interruption, sickness, deadline elsewhere) — and such a day's midpoint
   is NOT centered on the user's λ₀: it lands at the task curves'
@@ -1174,8 +1377,19 @@ machinery collapses to an exact closed form — no numeric minimizer:
   (`STOP_INVERSION_MARGIN = 0.25` = the hi-side loose-max bias ~+0.1 plus a
   lattice bracket half-width ~0.15) answers the over-censoring concern: a
   day has to contradict itself by more than the instrument's own slack
-  before it is discarded, and genuinely near-rational days sit nowhere near
-  the boundary (zero inversions under ±1-step mood). Probe on the standard
+  before it is discarded. **Neither half of that decomposition survived
+  re-measurement** (2026-08-06,
+  `scripts/stop-inversion-margin.probe.ts`): the loose-max bias is median
+  0.000 / mean 0.045, and the bracket half-width on non-inverted days is
+  median **0.110** (mean 0.109, p90 0.159) rather than 0.15. The two medians
+  sum to **0.110**, not 0.25 — so 0.25 is roughly twice the instrument slack
+  it is described as, and the arithmetic in the parenthesis above should be
+  read as a rationalization rather than a derivation. It is nonetheless not
+  obviously mis-set: widening slack is what keeps mild inversions, and even at
+  0.25 six near-rational mood days out of 1179 are still censored, so tighten
+  it and that number grows. Re-deriving the constant from the measured
+  distributions — rather than from these two terms — is the open item. Probe
+  on the standard
   day: interruption slivers gap 0.33–0.65 (censored); a 2.25h reading-only
   day gaps 0.07 (kept, midpoint 0.88). An earlier revision kept ALL inverted
   midpoints, reasoning σ₀ would absorb the contradiction — the
@@ -1250,6 +1464,40 @@ rational stop no session of any length clears λ₀, so maxing over durations
 does not push the user past it. Of the residual false stops at λ₀ = 0.9,
 roughly a third sit immediately before a _planned_ rest — the known
 breaks-omitted approximation (§8.10), not a new one.
+
+**The sweep, rebuilt and re-run (Probe 2026-08-06,
+`scripts/stop-advisor.probe.ts`).** The 2026-08-03 table above was quoted from
+a sweep that was never committed — the §14.1-2 failure mode — so it was rebuilt
+to the same design (72 seeded random days × the same four λ₀, ground truth the
+optimizer's own plan walked chronologically, the advisor seeing only the
+composition so far). The one-step arm exists nowhere in the code, so the probe
+reconstructs the search from exported parts and VALIDATES it: its max over all
+admissible m equalled `adviseStop`'s own `marginalValue` at every checkpoint of
+the run (0 mismatches), so the two arms are one search at two lookaheads.
+
+The direction holds and the ≥ 0.9 gap is real. Mid-day false stops, λ₀
+0.3 / 0.5 / 0.9 / 1.3: one-step 1.3% / 5.4% / 19.7% / 24.7% versus
+session 0.9% / 4.0% / 6.6% / 6.2%, over 759 / 680 / 407 / 162 mid-day
+checkpoints — a 3× gap at λ₀ = 0.9 and 4× at λ₀ = 1.3, wider than the table
+claimed. At-stop agreement is IDENTICAL between the arms at every level
+(22/31, 42/52, 67/69, 71/72) and neither arm is ever more than 1 step late,
+so pricing sessions costs nothing at a rational stop.
+
+Three corrections to the table's own reading. The agreement denominator is not
+the day count: at λ₀ = 0.3 only 31 of 72 days stop INSIDE the window, the rest
+fill it and read `window-full` (§8.10's censored category), so "33–39/40" was
+counting days that revealed no stop decision. Agreement is λ₀-dependent, not
+flat — 71% at λ₀ = 0.3 against 99% at λ₀ = 1.3. And the residual session false
+stops are rest-adjacent 2 of 27 at λ₀ = 0.9, not "roughly a third" (6 of 27 at
+λ₀ = 0.5) — the breaks-omitted approximation explains less of the residue than
+claimed.
+
+Where it does bend (curated fixture, 13 windows of 6–18h over four
+high-amplitude, high-demand tasks — a day the plan spends on planned rest):
+BOTH arms run 2–3 steps late and at-stop agreement collapses to 0/4, 0/9,
+1/13 at λ₀ ≤ 0.9. That is the breaks-omitted bound sized rather than a new
+one, and it separates the arms not at all — the session/one-step gap on the
+same fixture at λ₀ = 1.3 is 31.7% versus 9.9%, the largest measured.
 
 **Candidates vs reconstruction.** The max runs over the OPEN tasks only
 (`candidateTaskIds`, the store passes the unchecked ones): "one more session
@@ -1568,6 +1816,31 @@ since v2, §3).
     sustained moderate work plateaus at its equilibrium depletion (an 8h and
     a 16h demand-0.5 day read alike — the model's statement that such load is
     sustainable, per the Rohmert threshold behind §8.5).
+  - _Probe 2026-08-06_ (`scripts/burnout-risk.probe.ts`; 600 seeded random
+    days — 1–7 tasks, difficulties 0–10, budgets 0.25–16h, switch costs
+    5–30m — with the plan built by `calculateSuggestedTasks`, so the simulated
+    blocks are the real interleaved order). At `DEFAULT_ENERGY_PARAMS`: 0 days
+    read ≥ 100%, 0 read > 87%, sweep max 82%; the pure single-task full-demand
+    cognitive day reads 70/83/87/87% at 4/8/16/24h; the demand-0.5 8h and 16h
+    readings are identical (0 points apart); and the resolution ladder above
+    reproduces exactly — 25/41/57/63/66% for 1/2/4/6/8h at demand 0.9. The
+    ceiling is a claim about the DEFAULTS, not about the law: α at
+    `ALPHA_FIT_MAX` reads max 97% over the same days, `RECOVERY_FIT_MIN` 95%
+    (and loses the plateau — 8 points between the 8h and 16h demand-0.5 days,
+    a slow recoverer not yet at equilibrium by 8h), b = 0 reaches 100% on a
+    16h full-demand day, b = 0.3 tops out at 52%.
+  - _Monotone in demand and duration, NOT in the declared budget_ (same
+    probe, 2026-08-06). Walking `availableHours` 0.25→16h over a FIXED task
+    list, the reading FELL on 3006 of 37800 steps, on 531 of the 600 days,
+    worst drop 29 points (4 tasks, 3.25h → 3.5h at s = 25m: 41% → 12%). Not
+    min() switching reservoirs — the cognitive one binds on both sides — but
+    the re-solve: the larger budget funds 4 tasks instead of 2, and their
+    three switch gaps are 1.25h of REST against one gap's 0.42h, so the
+    simulated WORK falls from 2.83h to 2.25h even though the budget rose
+    (2.75h allocated over two tasks stretches by 1.03 to fill 3.25h; the
+    four-task plan's 2.25h already fills 3.5h with its gaps). The ladder is
+    monotone because it raises demand-hours; the budget alone is not a
+    monotone lever on this metric.
   - _Properties preserved:_ dropped tasks (0h) leave the risk unchanged
     (§11.3, now by construction — they contribute no block); a declared
     budget with nothing funded still warns (simulated at the task list's
@@ -1743,6 +2016,24 @@ against a drain rate **62 % higher** than that day's own logs supported. The
 bias is an early-history bias and it does not show up inside the 30-day audit
 window (0.4809 → 0.4965 there), which is why it went unnoticed.
 
+**Re-measured and confirmed** (`scripts/fit-snapshot-drift.probe.ts`,
+2026-08-06). On an independently generated year at the same volumes: the
+whole-history α_cog is 0.5240 against **0.3447 as of day 10 — 52% higher**,
+and the as-of-day fit is still 35–59% below whole-history everywhere before
+day 120. The subtle half holds too: across the last 30 days the as-of-day fit
+moves only 0.5075 → 0.5240, **3.3% apart**, against the document's 3.2%. A
+FLAT-α control run through the same generator sits at 1% on day 10 and −0.1%
+in-window, so the effect is the drift and not the estimator.
+
+The cost half — the whole reason recomputation was rejected over the option
+that "would fix history retroactively" — holds too, and it is the ratio rather
+than the milliseconds that matters, since those are machine-specific. A
+per-audited-day refit costs **≈1.0× a whole-history fit** (measured 0.95–1.04×
+across runs), and that per-day cost grows **linearly with log volume** —
+~17 ms/day at 1825 logs, ~36 at 3650, ~71 at 7300. So recomputation really is
+O(auditDays × totalLogVolume), and really does get worse every time the user
+logs anything.
+
 **The fix.** One record per day, keyed by the ISO date (`fitSnapshots`), holding
 exactly the values a fit can move: the ϕ plane (c₁, c₂, c₃) with its posterior
 covariance and σ̂², the three §8.7/§8.9 rates (α_cog, α_phys, r), and λ₀ from
@@ -1913,6 +2204,29 @@ space.** That is the method to reach for first next time.
   it clamps instead. A real envelope over app-reachable inputs, and whether the
   value-ranked greedy can be fixed at the worst case rather than documented
   around, are both open.
+- **There is no envelope to quote — measured on five seeds** (Probe 2026-08-06,
+  `scripts/pool-allocator.probe.ts`). 5 seeds × 2000 days per space against
+  exhaustive enumeration of every block distribution feasible under both pools
+  and the (m−1)·s overhead, 0 days skipped. **App-reachable** (n 2–6, integer
+  sliders, budget ≤ 14h on 0.25h steps, pools 0.5–8h, s ≤ 30m): exact on
+  93.55–94.50%, p99 0.52–0.70%, per-seed worsts 4.56%, 3.37%, 4.81%, 3.83%,
+  **5.28%** — a **1.91pp spread between draws that differ in nothing but the
+  seed**. The **wide** space (continuous difficulties and pool weights) is
+  tamer, not wilder: exact 97.15–97.80%, worsts 1.03–2.78%. So 0.09% and 6.03%
+  are two more samples of one tail: every app-reachable seed here exceeds 0.09%
+  by 37–59×, and **18 of the 10,000 app-reachable days exceed 2%**, which
+  falsifies §4's "within 1–2%" read as a bound (it stands only as a report on
+  its scenarios). Two further qualifications this section did not have: the
+  exact RATE is draw-dependent too — 93.6–94.5% here against the 99.5% quoted
+  above — and the suite's `worst < 0.005` holds on its own narrower generator
+  only; every seed of both spaces here exceeds it. The probe's curated
+  pool-trap fixture (value-ranked greedy's blind spot: two pool-expensive
+  high-value tasks against two cheap ones, budget 0.25–8h × pools 0.5–4h) is
+  exact on 98.96% with worst 1.59%, identical at every s — with those weights
+  the pools bind before the clock does. Worst app-reachable day: five tasks at
+  difficulty 7.9–10, weights 0.4–0.7 cognitive / 0.3–0.9 physical, 10.5h of
+  budget against 1.5h/1.5h pools at s = 15m — the probe prints it as a
+  copy-pasteable fixture line.
 - **The single-constraint path is untouched:** with infinite pools nothing
   ever reports `poolBlocked`, so none of the three run and plain greedy's
   exactness (§4) stands. Test-locked by the randomized envelope test, which
@@ -2870,6 +3184,44 @@ when the budget is tight. The U-shape is that trade: at 1 h the funded set
 decides everything, at 10 h each task sits near its own `T*` where a wrong
 `T*` wastes time no other task can use, and 4–6 h is the flat middle. **Price
 any future per-task-ϕ proposal against this table before building it.**
+
+**Rebuilt and confirmed** (`scripts/phi-error-price.probe.ts`, 2026-08-06). The
+original sweep is gone and its seam with it — §17 says "per-task ϕ and σ_ϕ were
+injected into the real allocator", but no such injection point exists on
+`main`, so the rebuild takes the shipped allocator's own plan as the wrong one
+and computes the oracle in-probe (max over funded subsets of greedy on the
+true-ϕ menus — exact by §4, and now measured exact by
+`allocator-exactness.probe.ts`). At `s = 0` the oracle reproduces the shipped
+allocation to 5·10⁻¹⁵ on all 1000 (day, budget) pairs, which is what makes the
+rest readable. 400 days × 6 tasks, mean ΣT* = 18.6 h:
+
+| budget | s = 0.1 h | 0.2 h | 0.4 h | 0.8 h | 1.6 h |
+| ------ | --------- | ----- | ----- | ----- | ----- |
+| 1 h    | 0.04      | 0.17  | 0.67  | 3.22  | 14.86 |
+| 2 h    | 0.04      | 0.14  | 0.50  | 1.71  | 7.31  |
+| 4 h    | 0.02      | 0.07  | 0.26  | 0.91  | 3.93  |
+| 6 h    | 0.01      | 0.04  | 0.15  | 0.61  | 8.22  |
+| 10 h   | 0.01      | 0.05  | 0.22  | 2.11  | 17.23 |
+
+Same U, same headline — half an hour of error costs a few tenths of a percent,
+and the small-`s` cells that headline rests on agree closely.
+
+**The large-`s` cells do not, and the reason is not established.** At
+`s = 1.6 h` this grid reads 17.23 against 7.25 at a 10 h budget, 8.22 against
+3.58 at 6 h, and 14.86 against 11.61 at 1 h — up to 2.4× apart. The likeliest
+explanation is that the two synthetic grids differ (this one draws 6 tasks to a
+mean ΣT* of 18.6 h against the 2026-08-04 grid's stated 19.4 h, and a 1.6 h
+displacement is a large fraction of a short ϕ, so the tail is sensitive to the
+task mix). But that is a hypothesis, not a measurement, and the original grid
+is gone — so it cannot be checked by re-running it. Treat the small-`s` half of
+this table as backed and the `s ≥ 0.8 h` half as order-of-magnitude only. If a
+future proposal ever turns on a large-`s` cell, re-derive that cell first.
+
+The
+funded-set channel the paragraph credits for the U-shape is now measured
+directly: at `s = 1.6 h` the funded set changes on **72% of days at a 1 h
+budget and 68% at 2 h, against 0% at 6 h and 10 h**. That is exactly the stated
+mechanism, and it is the first time it has been separated from the timing loss.
 
 **The σ_ϕ channel is a behaviour change with no payoff.** A never-logged task's
 δ is unknown at its prior scale, so honest per-task uncertainty is

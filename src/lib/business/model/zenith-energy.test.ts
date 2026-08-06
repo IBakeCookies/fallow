@@ -442,6 +442,97 @@ describe('Zenith Energy Model', () => {
 			expect(fundedTasks(withSatiety.blocks).size).toBe(3);
 			expect(fundedTasks(without.blocks).size).toBeLessThan(3);
 		});
+
+		it("a break cannot launder satiety away — §8.4's one hard constraint (2026-08-06)", () => {
+			// Pins `scripts/satiety-gaming.probe.ts` arm A. §8.4 forbids keying
+			// satiety on anything that decays over gaps, because the session phase
+			// does and the re-run-the-winner exploit would come back. Nothing in
+			// the suite inserted a break before this.
+			//
+			// κ = satietyScale·refOutput is recovered by inverting the wrapper,
+			// S = κ·ln(1 + O/κ), on each schedule. If satiety saw session count or
+			// gap length at all, the two would imply different κ.
+			const task = makeTask(1, 'deep', 8, 5, 0.9, 0.1);
+
+			const recoverKappa = (blocks: ScheduleBlock[]): number => {
+				const evaluation = evaluateSchedule(blocks, [task], 12, DEFAULT_ENERGY_PARAMS);
+				const raw = evaluation.totalOutput;
+				const satiated = evaluation.satiatedOutput;
+				let lo = 1e-9;
+				let hi = 1e6;
+
+				for (let i = 0; i < 200; i++) {
+					const mid = (lo + hi) / 2;
+
+					if (mid * Math.log(1 + raw / mid) < satiated) lo = mid;
+					else hi = mid;
+				}
+
+				return (lo + hi) / 2;
+			};
+
+			const contiguous = recoverKappa([
+				{
+					taskId: 1,
+					hours: 4,
+				},
+			]);
+
+			const split = recoverKappa([
+				{
+					taskId: 1,
+					hours: 2,
+				},
+				{
+					taskId: null,
+					hours: 1.5,
+				},
+				{
+					taskId: 1,
+					hours: 2,
+				},
+			]);
+
+			// Same κ, so the discount is a function of the per-task TOTAL alone.
+			expect(split).toBeCloseTo(contiguous, 6);
+
+			// Non-vacuous: the break really did change the day's raw output, so
+			// this is not two identical evaluations agreeing with themselves.
+			expect(
+				evaluateSchedule(
+					[
+						{
+							taskId: 1,
+							hours: 4,
+						},
+					],
+					[task],
+					12,
+					DEFAULT_ENERGY_PARAMS,
+				).totalOutput,
+			).not.toBeCloseTo(
+				evaluateSchedule(
+					[
+						{
+							taskId: 1,
+							hours: 2,
+						},
+						{
+							taskId: null,
+							hours: 1.5,
+						},
+						{
+							taskId: 1,
+							hours: 2,
+						},
+					],
+					[task],
+					12,
+					DEFAULT_ENERGY_PARAMS,
+				).totalOutput,
+				6,
+			);
+		});
 	});
 
 	describe('micro-recovery gate (w = 1 reservoir floor)', () => {
@@ -543,6 +634,63 @@ describe('Zenith Energy Model', () => {
 			});
 
 			expect(result.evaluation.objective).toBeGreaterThanOrEqual(handBuilt.objective - 1e-9);
+		});
+
+		it('KNOWN DEFECT: leaves 0.5951% on the table on the probe’s worst enumerated day (§8.6)', () => {
+			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: worst of 60
+			// enumerated days (2–3 tasks × 3–6 h), scored against the EXHAUSTIVE
+			// optimum on the same 45-min lattice, so the shortfall is a proven
+			// search defect and not quantization. §8.6 reads as if the compound
+			// moves removed the ~1% slack; they halved it.
+			//
+			// Search returns one 5.25 h block (objective 7.652129558455757). The
+			// lattice optimum works the SAME 5.25 h, split 3.75 + 1.5 around an
+			// interior 45-min rest (objective 7.697942316291558) — unreachable
+			// because splitting a block and re-growing it is downhill in between.
+			// The missing move is a REST-INSERT THAT PRESERVES TOTAL WORKED HOURS.
+			// Whoever adds it should expect this test to flip: that is the pin
+			// firing correctly, not a break.
+			const day = [makeTask(1, 'heavy', 10, 7, 0.5, 0.8), makeTask(2, 'light', 4, 8, 0.9, 0.1)];
+			const search = optimizeSchedule(day, 6);
+
+			const restInsert = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 3.75,
+					},
+					{
+						taskId: null,
+						hours: 0.75,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+				],
+				day,
+				6,
+			);
+
+			expect(search.blocks).toEqual([
+				{
+					taskId: 1,
+					hours: 5.25,
+				},
+			]);
+
+			expect(restInsert.objective).toBeGreaterThan(search.evaluation.objective);
+
+			const shortfallPercent =
+				((restInsert.objective - search.evaluation.objective) / restInsert.objective) * 100;
+
+			// Banded, not pinned to 4 dp: the finding is "the gap is ~0.6%, not
+			// gone", and any honest change to the curves, satiety or warm-up moves
+			// the last decimals without being a regression — the red build AGENTS.md
+			// §4 keeps sweeps out of the suite to avoid. The block shape above is
+			// what actually detects the defect; this sizes it. Probe: 0.5951%.
+			expect(shortfallPercent).toBeGreaterThan(0.4);
+			expect(shortfallPercent).toBeLessThan(0.8);
 		});
 
 		it('with zero leisure/terminal value it never leaves the window end idle', () => {
@@ -1340,6 +1488,64 @@ describe('Zenith Energy Model', () => {
 			expect(fitStoppingValue([mild], prior, DEFAULT_ENERGY_PARAMS).usedCount).toBe(1);
 		});
 
+		it('censoring DOES discard some near-rational days — "zero inversions" was wrong (2026-08-06, §8.10)', () => {
+			// Pins the correction from `scripts/stop-inversion-margin.probe.ts`.
+			// §8.10 asserted three times that optimizer days and their ±1-lattice-
+			// step "mood" variants "produced zero inversions" / "never invert at
+			// all", and that is the entire argument that censoring throws away
+			// interruptions and not honest days. On a wider grid: 4 of 315
+			// optimizer days invert, and 44 of 1179 mood variants do, 6 of them
+			// past the margin. This is one of those 6, found by search and frozen.
+			//
+			// The claim is not that the margin is mis-set — it is that the
+			// population it excludes is not empty, so the cost of censoring is a
+			// real number rather than zero.
+			const params = {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: 0.9,
+			};
+
+			const tasks = [makeTask(1, 'light', 4, 10, 0.8, 0.2), makeTask(2, 'heavy', 10, 5, 0.6, 0.4)];
+			const windowHours = 12;
+
+			const rational: StopObservation = {
+				tasks,
+				windowHours,
+				workedHours: [
+					{
+						taskId: 2,
+						hours: 6.75,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+				],
+			};
+
+			// The optimizer's own plan for this day reads cleanly.
+			expect(stopIndifferencePoint(rational, params)).not.toBeNull();
+
+			// One lattice step of "mood" off it — 15 minutes' less on the light
+			// task — and the day is censored.
+			const mood: StopObservation = {
+				tasks,
+				windowHours,
+				workedHours: [
+					{
+						taskId: 2,
+						hours: 6.75,
+					},
+					{
+						taskId: 1,
+						hours: 1.5 - DEFAULT_STEP_HOURS,
+					},
+				],
+			};
+
+			expect(stopIndifferencePoint(mood, params)).toBeNull();
+		});
+
 		it('prior profile is exact arithmetic: one day moves λ₀ halfway to its point', () => {
 			const obs = dayFromPlan(1.3, 10);
 			const point = stopIndifferencePoint(obs, DEFAULT_ENERGY_PARAMS)!;
@@ -1506,6 +1712,134 @@ describe('Zenith Energy Model', () => {
 
 			expect(advice.verdict).toBe('continue');
 			expect(advice.marginalValue).toBeCloseTo(bestAvg, 12);
+		});
+
+		it('continues at a mid-day checkpoint where the one-step arm would cry stop (λ₀ = 0.9, probe 2026-08-06)', () => {
+			// scripts/stop-advisor.probe.ts measured the one-step arm false-stopping
+			// on 19.7% of mid-day checkpoints at λ₀ = 0.9 against the session arm's
+			// 6.6% (MATH.md §8.11). A rate is the sweep; this pins the MECHANISM on
+			// one checkpoint of a day built the probe's WAY (not one of its 72
+			// seeded days — the probe prints rates and dumps no exemplar) — ground
+			// truth is the
+			// optimizer's own plan under λ₀ = 0.9 walked chronologically, and the
+			// advisor sees only the composition worked so far.
+			//
+			// Measured here: the one-step arm's best is 0.6157 (one more step of A,
+			// well past A's ramp) or 0.5490 (B's first step, almost all ramp), both
+			// under λ₀; the session arm prices 3 h of B at 1.0761 and continues.
+			const lambda = 0.9;
+
+			const params = {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: lambda,
+			};
+
+			const windowHours = 12;
+			const workedOnA = 6;
+			const pair = [makeTask(1, 'Deep A', 9, 8, 0.5, 0.5), makeTask(2, 'Deep B', 9, 4, 0.5, 0.5)];
+			// Truth here is CONTINUE: the plan spends its first 6 h on A (3.75 +
+			// rest + 2.25) and still has 3.75 h of B to go, so a stop verdict at
+			// this checkpoint would be a false stop.
+			const plan = optimizeSchedule(pair, windowHours, params);
+			let prefixOnA = 0;
+
+			for (const b of plan.blocks) {
+				if (b.taskId === null) continue;
+
+				if (b.taskId !== 1) break;
+
+				prefixOnA += b.hours;
+			}
+
+			const planWork = plan.blocks.reduce((sum, b) => sum + (b.taskId === null ? 0 : b.hours), 0);
+			expect(prefixOnA).toBeGreaterThanOrEqual(workedOnA - 1e-9);
+			expect(planWork).toBeGreaterThanOrEqual(workedOnA + DEFAULT_STEP_HOURS - 1e-9);
+
+			const value = (blocks: ScheduleBlock[]) => {
+				const ev = evaluateSchedule(blocks, pair, windowHours, params);
+
+				return ev.satiatedOutput + ev.terminalBonus;
+			};
+
+			const base = value([
+				{
+					taskId: 1,
+					hours: workedOnA,
+				},
+			]);
+
+			const perHour = (blocks: ScheduleBlock[], hours: number) => (value(blocks) - base) / hours;
+
+			const advice = priced(
+				adviseStop(
+					{
+						tasks: pair,
+						windowHours,
+						workedHours: [
+							{
+								taskId: 1,
+								hours: workedOnA,
+							},
+						],
+					},
+					params,
+				),
+			);
+
+			// The one-step replica below is only honest if it shares adviseStop's
+			// own base and canonical-rank placement (B ranks under A, so B's block
+			// appends). Reproducing the SHIPPED recommendation's price from the
+			// replica is that check: same search, two lookaheads.
+			expect(advice.taskId).toBe(2);
+			expect(advice.sessionHours).toBeCloseTo(3, 12);
+
+			expect(advice.marginalValue).toBeCloseTo(
+				perHour(
+					[
+						{
+							taskId: 1,
+							hours: workedOnA,
+						},
+						{
+							taskId: 2,
+							hours: 3,
+						},
+					],
+					3,
+				),
+				12,
+			);
+
+			const oneStep = Math.max(
+				perHour(
+					[
+						{
+							taskId: 1,
+							hours: workedOnA + DEFAULT_STEP_HOURS,
+						},
+					],
+					DEFAULT_STEP_HOURS,
+				),
+				perHour(
+					[
+						{
+							taskId: 1,
+							hours: workedOnA,
+						},
+						{
+							taskId: 2,
+							hours: DEFAULT_STEP_HOURS,
+						},
+					],
+					DEFAULT_STEP_HOURS,
+				),
+			);
+
+			// Both halves of the claim: the naive advisor stops here, the shipped
+			// one continues. Collapsing adviseStop back to m = 1 fails all three.
+			expect(oneStep).toBeLessThan(lambda);
+			expect(advice.marginalValue).toBeGreaterThan(lambda);
+			expect(advice.verdict).toBe('continue');
 		});
 
 		it('verdict flips across the freeTimeValue threshold; the marginal itself is λ₀-free', () => {

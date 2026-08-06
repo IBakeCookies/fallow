@@ -394,10 +394,22 @@ const GH_NODES = [
  * quadrature node collapses onto the ϕ floor and behaves like a fast "spike"
  * curve mixed with slow ones — the mixture turns bimodal in T, which breaks
  * both properties the greedy allocator's exactness rests on (non-increasing
- * block increments, single sign crossing). At σ ≤ 0.5·ϕ̂ the probe grid shows
- * zero bimodal cases and zero truncation loss. A σ beyond this cap also means
+ * block increments, single sign crossing). At σ ≤ 0.5·ϕ̂ the grid is clean for
+ * every ϕ̂ the default constants can reach (≤ 3.06h) — but not for all ϕ̂: the
+ * spike starts at σ/ϕ̂ ≈ 0.35, so a FITTED ϕ̂ past ~3h still finds bimodal cells
+ * inside the cap (re-measured 2026-08-06, `scripts/phi-uncertainty-cap.probe.ts`,
+ * MATH.md §5.1). Truncation is what makes that safe, not this cap alone. A σ
+ * beyond the cap also means
  * the Gaussian posterior is a poor description of a positive quantity anyway
  * (mass at ϕ < 0), so clamping is a graceful degradation, not a distortion.
+ *
+ * DO NOT lower this to 0.35 to "close" that gap — measured and rejected
+ * 2026-08-06 (`scripts/phi-cap-reachability.probe.ts`, MATH.md §5.1). A real fit
+ * cannot produce ϕ̂ > 3.06h and σ/ϕ̂ > 0.35 together (the ridge's λ = 4 anchor
+ * shrinks ϕ̂ exactly when σ is large): 0 of 576 000 fitted cells reach the lossy
+ * corner, and the 5 of 28 800 that extrapolation reaches forfeit 0.0000%.
+ * Lowering the cap clamps 1.23% of realistic cells that hedge today, worth up to
+ * +6.809% of conjured task value — ~7% harmful, 0% helpful.
  */
 const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
 
