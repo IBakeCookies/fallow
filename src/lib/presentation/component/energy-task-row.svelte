@@ -2,43 +2,23 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import DrainLogForm from '$lib/presentation/component/drain-log-form.svelte';
+	import TaskEditForm from '$lib/presentation/component/task-edit-form.svelte';
+	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
+	import TaskRowShell, {
+		ROW_ACTION_CLASS,
+	} from '$lib/presentation/component/task-row-shell.svelte';
+	import { cn } from '$lib/presentation/utils';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
-	import type { Task } from '$lib/business/type';
 
-	/* The Lab's task row: the three model inputs on live sliders, the hours the plan
-	   gave the task, and the 🪫 rating for the session it ends. Deliberately NOT
-	   task-item.svelte, which is the same object seen from the other screen — priority,
-	   allocation, T*, a ✎ editor — and would need a variant flag to be both. What the
-	   two genuinely share is exported: the measurement editors' policy and chrome. */
+	/* The Lab's reading of a task: the plan's hue, the hours the schedule gave it, and
+	   the 🪫 rating for the session it ends. Same shell as the main page's row, filled
+	   from the other model — that difference is the only reason there are two.
 
-	const SLIDERS = [
-		{
-			key: 'physicalDifficulty',
-			label: 'P',
-			title: m.energy_slider_physical(),
-			min: 0,
-			accent: 'accent-body',
-			color: 'text-body/80',
-		},
-		{
-			key: 'mentalDifficulty',
-			label: 'M',
-			title: m.energy_slider_mental(),
-			min: 0,
-			accent: 'accent-mind',
-			color: 'text-mind/80',
-		},
-		{
-			key: 'enjoyment',
-			label: 'E',
-			title: m.energy_slider_enjoyment(),
-			min: 1,
-			accent: 'accent-brand',
-			color: 'text-brand/80',
-		},
-	] as const;
-
-	type SliderKey = (typeof SLIDERS)[number]['key'];
+	   The three model inputs used to be live sliders here, a second line on every row.
+	   They are a definition the user sets once when deploying the task (the form even
+	   suggests them from history), so they read as text like the main page spells them
+	   and ✎ re-tunes them. What re-optimizes live is the params panel beside the list,
+	   which is what the Lab is actually for. */
 
 	interface Props {
 		title: string;
@@ -46,6 +26,9 @@
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
+		/** Flagged as unmovable. Not shown here — the plan advisor is the main page's —
+		 *  but ✎ must round-trip it rather than clear it. */
+		mustDoToday?: boolean;
 		/** The plan's colour for this task — the same hue the timeline gives its blocks. */
 		color: string;
 		/** What the plan gave the task. Null when there is no plan to report on: "no
@@ -66,7 +49,8 @@
 		ontoggle: () => void;
 		onremove: () => void;
 		ondrainclick: () => void;
-		onchange: (changes: Partial<Pick<Task, SliderKey>>) => void;
+		/** The whole edit ✎ collected — the only way this row changes the task. */
+		onchange: (edit: TaskEdit) => void;
 		ondrainsave: (entry: { hours: number; mind: number; body: number }) => void;
 		ondraincancel: () => void;
 	}
@@ -77,6 +61,7 @@
 		physicalDifficulty,
 		mentalDifficulty,
 		enjoyment,
+		mustDoToday = false,
 		color,
 		plannedHours,
 		measured,
@@ -90,120 +75,99 @@
 		ondraincancel,
 	}: Props = $props();
 
-	const values = $derived({
-		physicalDifficulty,
-		mentalDifficulty,
-		enjoyment,
-	});
-
-	function setValue(key: SliderKey, value: number) {
-		const changes: Partial<Pick<Task, SliderKey>> = {};
-		changes[key] = value;
-		onchange(changes);
-	}
+	// The ✎ editor, open. Local like task-item.svelte's, and unlike the 🪫 draft:
+	// nothing outside the row gates on it, because the completion prompt cannot destroy
+	// it — the two forms stack rather than replace each other.
+	let editing = $state(false);
 </script>
 
-<!-- The completed look dims the task's own identity, never the whole row: it used to
-     sit on the <li>, which faded the 🪫 rating that only exists for a finished session
-     into looking disabled. Same split as task-item.svelte, which dims its title block
-     alone. -->
-<li class="group rounded-lg p-box-2xs transition hover:bg-surface-hover">
-	<Tooltip.Provider delayDuration={150}>
-		<div class="flex items-center gap-grid-xs">
-			<input
-				type="checkbox"
-				checked={completed}
-				onchange={ontoggle}
-				aria-label={m.task_toggle_aria({
-					title,
-				})}
-				class="h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
-			/>
-			<span
-				class="h-2.5 w-2.5 shrink-0 rounded-full"
-				class:opacity-50={completed}
-				style="background-color: {color}"
-			></span>
-			<span
-				class:opacity-50={completed}
-				class="min-w-0 flex-1 truncate text-sm font-medium capitalize {completed
-					? 'text-ty-silent line-through'
-					: 'text-ty-primary'}"
-			>
-				{title}
-			</span>
-			<!-- What the plan gave this task. The card invites you to drag a slider and
-			     watch the schedule re-optimize, and until this was here the only place it
-			     answered was the timeline — where a task funded zero says nothing at all. -->
-			{#if plannedHours !== null}
-				<span
-					class="shrink-0 text-2xs tabular-nums {plannedHours
-						? 'text-ty-secondary'
-						: 'text-ty-silent italic'}"
-				>
-					{plannedHours ? formatDuration(plannedHours) : m.energy_no_hours()}
-				</span>
-			{/if}
-			<!-- Deliberately NOT hidden on a completed task, unlike the sliders below:
-			     finishing one is the commonest way a session ends, and the drain rating is
-			     the whole point of the row. -->
-			<Tooltip.Root>
-				<Tooltip.Trigger>
-					{#snippet child({ props })}
-						<button
-							{...props}
-							type="button"
-							aria-label={m.energy_log_drain_aria()}
-							class="shrink-0 transition {measured
-								? 'text-flow'
-								: 'text-ty-silent opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100 hover:text-flow'}"
-							onclick={ondrainclick}
-						>
-							🪫
-						</button>
-					{/snippet}
-				</Tooltip.Trigger>
-				<Tooltip.Content side="top">
-					<p>{m.energy_log_drain_tooltip()}</p>
-				</Tooltip.Content>
-			</Tooltip.Root>
-			<button
-				type="button"
-				aria-label={m.task_remove_aria()}
-				title={m.task_remove_tooltip()}
-				class="shrink-0 text-ty-silent opacity-0 transition hover:text-danger focus:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-				onclick={onremove}
-			>
-				✕
-			</button>
-		</div>
-		{#if !completed}
-			<div class="mt-text-xs ml-7 grid gap-x-grid-lg gap-y-grid-2xs sm:grid-cols-3">
-				{#each SLIDERS as slider (slider.key)}
-					<label class="flex items-center gap-text-xs text-2xs text-ty-silent" title={slider.title}>
-						<span class="w-3 font-medium {slider.color}">{slider.label}</span>
-						<input
-							type="range"
-							min={slider.min}
-							max="10"
-							value={values[slider.key]}
-							oninput={(e) => setValue(slider.key, Number(e.currentTarget.value))}
-							class="h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-surface-inset {slider.accent}"
-						/>
-						<span class="w-4 text-right tabular-nums text-ty-secondary">
-							{values[slider.key]}
-						</span>
-					</label>
-				{/each}
-			</div>
-		{/if}
-		{#if drainDraft}
-			<DrainLogForm
-				seed={drainDraft}
-				focusMinutes={focusDrainMinutes}
-				onsave={ondrainsave}
-				oncancel={ondraincancel}
-			/>
-		{/if}
-	</Tooltip.Provider>
-</li>
+{#snippet lead()}
+	<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {color}"></span>
+{/snippet}
+
+<!-- What the plan gave this task, where the main page puts its own allocation. Hidden
+     on a completed task, which the optimizer no longer plans at all: "no hours" there
+     reads as a verdict when it only means the task is done. -->
+{#snippet trailing()}
+	{#if !completed && plannedHours !== null}
+		<span
+			class="text-right {plannedHours
+				? 'text-sm font-semibold text-ty-primary'
+				: 'text-2xs text-ty-silent italic'}"
+		>
+			{plannedHours ? formatDuration(plannedHours) : m.energy_no_hours()}
+		</span>
+	{/if}
+{/snippet}
+
+<!-- The 🪫 rating is this screen's own action; ✎ and ✕ are the shell's. Deliberately
+     NOT hidden on a completed task: finishing one is the commonest way a session ends,
+     and rating it is what the row is for. -->
+{#snippet actions()}
+	<Tooltip.Root>
+		<Tooltip.Trigger
+			class={cn(
+				ROW_ACTION_CLASS,
+				measured || drainDraft ? 'text-flow' : 'text-ty-silent hover:text-flow',
+			)}
+			onclick={ondrainclick}
+			aria-label={m.energy_log_drain_aria()}
+		>
+			🪫
+		</Tooltip.Trigger>
+		<Tooltip.Content>
+			<p>{m.energy_log_drain_tooltip()}</p>
+		</Tooltip.Content>
+	</Tooltip.Root>
+{/snippet}
+
+{#snippet forms()}
+	{#if drainDraft}
+		<DrainLogForm
+			seed={drainDraft}
+			focusMinutes={focusDrainMinutes}
+			onsave={ondrainsave}
+			oncancel={ondraincancel}
+		/>
+	{/if}
+	{#if editing}
+		<!-- The same editor the main page's ✎ opens, minus the must-do flag: it is read
+		     by the plan advisor and by nothing in this mode, so the checkbox would be a
+		     control with no consequence on screen. The seed still carries the stored
+		     value through, so renaming a task here cannot clear a flag set there. -->
+		<TaskEditForm
+			seed={{
+				title,
+				physicalDifficulty,
+				mentalDifficulty,
+				enjoyment,
+				mustDoToday,
+			}}
+			showMustDoToday={false}
+			onsave={(edit) => {
+				onchange(edit);
+				editing = false;
+			}}
+			oncancel={() => (editing = false)}
+		/>
+	{/if}
+{/snippet}
+
+<Tooltip.Provider delayDuration={150}>
+	<TaskRowShell
+		{title}
+		{completed}
+		{physicalDifficulty}
+		{mentalDifficulty}
+		{enjoyment}
+		{ontoggle}
+		{lead}
+		{trailing}
+		{actions}
+		actionsPinned={measured || drainDraft !== null}
+		{editing}
+		onedit={() => (editing = !editing)}
+		{onremove}
+		{forms}
+	/>
+</Tooltip.Provider>

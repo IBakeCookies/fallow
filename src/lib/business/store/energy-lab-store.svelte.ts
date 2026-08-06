@@ -170,6 +170,28 @@ export class EnergyLabStore {
 			this.#autoSave.schedule(snapshot);
 		});
 
+		// Fills the list's order snapshot — on first paint, and again whenever the page
+		// re-mounts and asks. Blocks arrive in schedule order, so first appearance IS
+		// the task's position in the day; a day with no window has none, and the flag
+		// stays set until one is set.
+		$effect(() => {
+			const { blocks } = this.#plan.evaluation;
+
+			if (!this.#orderStale || blocks.length === 0) return;
+
+			const order: number[] = [];
+
+			for (const block of blocks)
+				if (block.taskId !== null && !order.includes(block.taskId)) order.push(block.taskId);
+
+			// Then the tasks the plan funded nothing, behind the scheduled ones and in the
+			// store's own order.
+			for (const task of this.#session.tasks) if (!order.includes(task.id)) order.push(task.id);
+
+			this.#displayOrder = order;
+			this.#orderStale = false;
+		});
+
 		$effect(() => {
 			void this.#observations.drainObservations;
 			const version = ++this.#stopLoadVersion;
@@ -287,6 +309,47 @@ export class EnergyLabStore {
 	});
 	get allocatedHoursByTask() {
 		return this.#allocatedHoursByTask;
+	}
+
+	/* ----- The task list's order -----
+
+	   The list reads in schedule order, but SNAPSHOT rather than live: every parameter
+	   edit re-optimizes, so a live sort re-ranked the rows under a slider drag and moved
+	   the row being dragged out from under the cursor. Only positions freeze — every
+	   number in a row stays live, so a stale order never shows a stale reading. */
+
+	/** The whole day's task ids in the order last snapshotted — scheduled ones first,
+	 *  then the rest. All of them on purpose: it makes "has no position" mean exactly
+	 *  one thing, that the task was added after the snapshot. */
+	#displayOrder = $state<number[]>([]);
+	/** Reactive on purpose: the page asks for a re-sort on a plan that has not changed,
+	 *  so nothing else would re-run the effect that fills the snapshot. */
+	#orderStale = $state(true);
+
+	/** Re-sort the list to the plan as it stands. Called on the page's mount — first
+	 *  paint and every re-navigation, which are the moments an order may change without
+	 *  surprising anyone. A no-op until there is a plan to read, so the cold load (where
+	 *  IndexedDB has not answered and no day window is set) snapshots when one appears. */
+	resnapshotOrder() {
+		this.#orderStale = true;
+	}
+
+	#scheduledTasks = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived lookup, rebuilt not mutated
+		const position = new Map(this.#displayOrder.map((id, index) => [id, index]));
+
+		// A task added since the snapshot has no position and takes the front, where the
+		// form that just added it is: the card's form is above the list and `addTask`
+		// puts a new task first, so this is the row the user is looking for. Several of
+		// them keep the store's newest-first order — the sort is stable. Only the place
+		// is provisional; the row's own readings are live.
+		return [...this.#session.tasks].sort(
+			(a, b) => (position.get(a.id) ?? -1) - (position.get(b.id) ?? -1),
+		);
+	});
+	/** The day's tasks in the order the list shows them. */
+	get scheduledTasks() {
+		return this.#scheduledTasks;
 	}
 
 	// The classic allocator's plan (same math as the main page), evaluated under
