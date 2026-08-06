@@ -134,6 +134,47 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(productivity(phi + 0.01, a, p0, k)).toBeLessThan(peak);
 		});
 
+		// MATH.md §2 listed concavity-on-the-working-range and the decaying tail
+		// as "verified in tests" when nothing evaluated p″ or p at large t at all
+		// (2026-08-06). These two pin them; the sweep is
+		// scripts/curve-marginal-facts.probe.ts.
+		it('is concave on the working range — p″ < 0 up to T* (§2)', () => {
+			for (const task of DOMAIN_GRID) {
+				const input = {
+					title: '',
+					...task,
+				};
+
+				const p = calculateTaskParams(input);
+				const tStar = findOptimalSingleTaskTime(input);
+				const r = p.p0 / p.a;
+
+				for (let i = 1; i <= 20; i++) {
+					const t = (i / 20) * tStar;
+					// p″ = a·k²·e^(−kt)·(kt − (2 − r)); the inflection sits past x*.
+					expect(p.a * p.k * p.k * Math.exp(-p.k * t) * (p.k * t - (2 - r))).toBeLessThan(0);
+				}
+			}
+		});
+
+		it('decays to 0 in the tail, and the marginal never turns positive again (§2)', () => {
+			for (const task of DOMAIN_GRID) {
+				const input = {
+					title: '',
+					...task,
+				};
+
+				const p = calculateTaskParams(input);
+				const tStar = findOptimalSingleTaskTime(input);
+
+				expect(productivity(200, p.a, p.p0, p.k)).toBeLessThan(1e-6);
+
+				for (const mult of [1.5, 2, 4, 10]) {
+					expect(avgProductivityDerivative(mult * tStar, p.a, p.p0, p.k)).toBeLessThan(0);
+				}
+			}
+		});
+
 		it('averageProductivity matches numeric integration of p(t)', () => {
 			for (const T of [0.25, 1, 2.5, 6]) {
 				const n = 50000;

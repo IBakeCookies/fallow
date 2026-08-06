@@ -87,11 +87,12 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    task as the recipient, worth up to +33.4%. Still a
    budget diagnostic rather than a per-task column, but **the reason planned
    here was wrong** — the probe found per-task marginals do _not_ equalize at
-   the optimum (relative spread median 0.265, p90 0.803). What survives: the
+   the optimum (relative spread median **0.573**, p90 **0.977**, re-measured
+   2026-08-06, MATH.md §14.2). What survives: the
    column prices no lever the user owns, and it ignores the pools and switch
-   cost, overstating the budget's yield on 16% of days. The finding that
-   justified shipping it: on **35%** of days another block buys nothing, and on
-   every one of those the card was still offering "work an extra hour".
+   cost, overstating the budget's yield on **63%** of days. The finding that
+   justified shipping it: on **54%** of days another block buys nothing, and on
+   all but one of those the card was still offering "work an extra hour".
 
 Items 1–3 shipped and did not finish the thesis: the plan still cannot see the
 hours you have already spent.
@@ -304,9 +305,10 @@ enjoyment}>`; `readTitleRatings(today)` reads it once at boot and
     inside `suggestPlanAdjustments`, one quiet line on the advice card. The
     gate cleared by 8×: the kill criterion was a median |Δ value| under ~1%
     between `s = 0.25` and `s = 0.5` on 2–4-task days, and the measurement
-    through the real solver is **8.51%** over the fixture's 180 such days,
-    **8.14%** over the author's own four logged days, and **18.80%** on 5+-task
-    days. Constant-independent (8.54% under the fixture's own ground-truth ϕ
+    through the real solver is **8.47%** over the fixture's 180 such days,
+    **8.14%** over the author's own four logged days (unrecorded — the only
+    figure here with nothing behind it), and **18.77%** on 5+-task
+    days. Constant-independent (8.50% under the fixture's own ground-truth ϕ
     constants), and the reservation it reports is a median **23.08%** of the
     day's budget.
     Two things changed on contact with the measurement. The **framing had to

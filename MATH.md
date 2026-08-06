@@ -15,10 +15,14 @@ reasoning from code.
   per-task optimal stopping, discrete exact allocator, Bayesian
   personalization.
 
-Every derivation below is verified numerically in
+Most derivations below are verified numerically in the model's suite tests —
 `src/lib/business/model/zenith.test.ts` (integration vs. closed form,
-derivatives vs. finite differences, root equations, allocator vs. brute
-force).
+derivatives vs. finite differences, root equations, allocator vs. brute force),
+plus `zenith-energy.test.ts`, `energy-calibration.test.ts` and the metric
+tests. Not all of them: a claim that is a sweep rather than a fixture is backed
+by a probe under `scripts/` instead, cited and dated beside the claim (see
+`AGENTS.md` §4). A number with neither is unbacked — that is the list to work
+down, and it is why §2's concavity property reads the way it does.
 
 ---
 
@@ -27,63 +31,64 @@ force).
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~50k tokens; the largest single section is ~10k, and most
-are under 2k. Ranges shift whenever a section is inserted — reprint the headings
-with
+The whole document is ~55k tokens; the largest single section is §8 at ~13k
+(§14 is ~10k), and most of the 45 leaf sections are under 2k. Ranges shift
+whenever a section is inserted — reprint the headings with
 
     node -e 'require("fs").readFileSync("MATH.md","utf8").split("\n").forEach((l,i)=>/^#{2,3} /.test(l)&&console.log(i+1,l))'
 
 ```text
-§0          91-111  Objective
-§1         112-138  Inputs and parameter mappings (unchanged from the article)
-§2         139-242  Productivity curve
-§3         243-290  Optimal stopping
-§4         291-370  Allocation
-§5         371-674  Personalization
-  §5.2     420-502  Recency weighting of the ϕ fit
-  §5.1     503-674  Posterior-aware allocation
-§6         675-688  Summary of v1 → v2 changes
-§7         689-710  Known approximations and deliberate non-changes
-§8        711-1544  Energy model (`zenith-energy.ts`) — fatigue-recovery exten…
-  §8.1     724-742  Intermittent-rest recovery correction
-  §8.2     743-764  Warm-up carryover instead of binary reset
-  §8.3     765-790  Verified consequences and an open calibration question
-  §8.4     791-883  Per-task satiety — concave daily value
-  §8.5     884-930  Micro-recovery gate — a positive floor for full-demand tas…
-  §8.6     931-977  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    978-1097  Drain-rate calibration from end-of-session ratings
-  §8.8   1098-1154  45-minute plan granularity
-  §8.9   1155-1223  Recovery-rate calibration from pre/post-rest pairs
-  §8.10  1224-1423  Stopping-value calibration from observed stop times
-  §8.11  1424-1544  Live stop advisor — §8.10 run forward mid-day
-§9       1545-1593  References
-§10      1594-1677  Revision log (doc-only corrections)
-§11      1678-1969  Metric-layer corrections (2026-07-18)
-  §11.1  1680-1692  Scope and principle
-  §11.2  1693-1711  Zenith Gain: cap instead of a silent 0% when the naive pla…
-  §11.3  1712-1731  Burnout Risk: overhang counts funded tasks' T* only (formu…
-  §11.4  1732-1747  Friction Index: raw scales instead of the asymmetric mappe…
-  §11.5  1748-1764  Schedule Integrity: overhead share instead of the small-al…
-  §11.6  1765-1852  Burnout Risk v2: re-derived from the energy model (2026-07…
-  §11.7  1853-1878  Momentum: burnout claim removed, fed active tasks (2026-07…
-  §11.8  1879-1916  Metric scope families: plan / progress / next-up (2026-07-…
-  §11.9  1917-1969  Overnight reservoir carry-over (2026-07-28)
-§12      1970-2085  Plan-adherence audit (2026-07-23)
-§13      2086-2366  Math review, 2026-07-26
-  §13.1  2103-2131  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2  2132-2168  Zenith Gain measured the block lattice, not allocation qua…
-  §13.3  2169-2234  The pooled allocator's "within 1–2%" was a curated-scenari…
-  §13.4  2235-2256  The stopping fit probed unlogged tasks at an arbitrary pos…
-  §13.5  2257-2284  Also in this change
-  §13.6  2285-2366  The two end-of-day energy readings: a timing difference, n…
-§14      2367-2971  Plan advice — priced counterfactuals over the day's levers…
-  §14.1  2545-2671  Five corrections to the first cut (2026-07-28)
-  §14.2  2672-2801  The marginal of the budget
-  §14.3  2802-2971  The price of the switch cost
-§15      2972-3032  Two objectives, two modes (2026-07-29)
-§16      3033-3105  Run order stays a heuristic (2026-07-29)
-§17      3106-3253  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18      3254-3321  Drain logs are one row per SESSION, not per task-day (2026…
+§0           96-115  Objective
+§1          117-142  Inputs and parameter mappings (unchanged from the articl…
+§2          144-257  Productivity curve — v2 change
+§3          259-305  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          307-405  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          407-730  Personalization — v2 change: full Bayesian posterior
+  §5.2      456-541  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      543-730  Posterior-aware allocation (added 2026-07-18)
+§6          732-744  Summary of v1 → v2 changes
+§7          746-768  Known approximations and deliberate non-changes
+§8         770-1682  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      788-812  Intermittent-rest recovery correction
+  §8.2      814-834  Warm-up carryover instead of binary reset
+  §8.3      836-873  Verified consequences and an open calibration question
+  §8.4      875-976  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5     978-1035  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1037-1086  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1088-1211  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1213-1274  45-minute plan granularity (added 2026-07-18)
+  §8.9    1276-1350  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1352-1559  Stopping-value calibration from observed stop times (add…
+  §8.11   1561-1682  Live stop advisor — §8.10 run forward mid-day (added 202…
+§9        1684-1731  References
+§10       1733-1819  Revision log (doc-only corrections)
+§11       1821-2122  Metric-layer corrections (2026-07-18)
+  §11.1   1823-1837  Scope and principle
+  §11.2   1839-1856  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   1858-1881  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   1883-1897  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   1899-1914  Schedule Integrity: overhead share instead of the small-…
+  §11.6   1916-2004  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2006-2030  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2032-2068  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2070-2122  Overnight reservoir carry-over (2026-07-28)
+§12       2124-2248  Plan-adherence audit (2026-07-23)
+  §12.1   2165-2248  Per-day fit snapshots (2026-08-03)
+§13       2250-2573  Math review, 2026-07-26
+  §13.1   2267-2302  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2304-2350  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2352-2417  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2419-2450  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2452-2489  Also in this change
+  §13.6   2491-2573  The two end-of-day energy readings: a timing difference,…
+§14       2575-3225  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   2760-2894  Five corrections to the first cut (2026-07-28)
+  §14.2   2896-3039  The marginal of the budget (added 2026-08-03)
+  §14.3   3041-3225  The price of the switch cost (added 2026-08-04)
+§15       3227-3300  Two objectives, two modes (2026-07-29)
+§16       3302-3380  Run order stays a heuristic (2026-07-29)
+§17       3382-3540  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       3542-3610  Drain logs are one row per SESSION, not per task-day (20…
 ```
 
 <!-- section-index:end -->
@@ -155,7 +160,14 @@ claim is true:
 v2:  p(t) = (a·k·t + p₀)·e^(−kt),   k = (1 − r)/ϕ,   r = p₀/a
 ```
 
-### Properties (all verified in tests)
+### Properties
+
+`p(0)`, the peak's position and height, the closed-form average and the
+marginal are asserted in `zenith.test.ts`. Concavity on the working range and
+the decaying tail are **not** — no suite fixture evaluates `p″` or `p` at large
+`t`, so they are measured over the slider grid by
+`scripts/curve-marginal-facts.probe.ts` instead (2026-08-06: max `p″` on
+`(0, T*]` = −1.21e−2, min `(2−r) − kT*` margin 0.256, max `p(200h)` = 6.5e−10).
 
 - **Starts at p₀:** `p(0) = p₀`.
 - **Peak exactly at ϕ:**
@@ -163,7 +175,11 @@ v2:  p(t) = (a·k·t + p₀)·e^(−kt),   k = (1 − r)/ϕ,   r = p₀/a
   (this is why `k` changed from `1/ϕ` to `(1−r)/ϕ`).
 - **Peak value:** `p(ϕ) = a·e^(r−1)`. First-order in `r` this is
   `(a/e)(1+r) ≈ (a+p₀)/e` — the v1 peak was the small-p₀ approximation of the
-  v2 peak, so peak-productivity displays change only slightly.
+  v2 peak. The gap is `1 − (1+r)·e^(−r)`, which is only small at high
+  difficulty: under 1.5% for user difficulty ≥ 4, 8.4% at difficulty 2, 22.75%
+  at the r-cap (20 of the 100 integer slider cells move more than 5% —
+  `scripts/curve-marginal-facts.probe.ts`, 2026-08-06). Nothing displays it either way: `peakProductivity` is carried on
+  `TaskAllocation` and `SuggestedTask` and rendered by no component.
 - **Concave on the working range:** `p'' = a·k²·e^(−kt)·(kt − (2 − r))`, so
   the only inflection sits at `x = kt = 2 − r` — and `x* < 2 − r` holds for
   every r (fact 3 under "Marginal of the average" below), so the curve has
@@ -335,34 +351,54 @@ tests, including under fast-flow fitted constants that hit the 0.1h ϕ floor.
   exact (multi-dimensional knapsack), and it has a known blind spot: it
   ranks blocks by _value_, not value per unit of _scarce resource_ — e.g. an
   hour off a weight-1.0 task frees enough pool for ~3.3h of a weight-0.3
-  task. So whenever greedy was actually blocked by a pool, a
-  **resource-aware transfer pass** runs: give back one donor block, greedily
-  refill the freed time + pool capacity across the other tasks, keep the
-  move only on strict improvement (strictness prevents cycles). Regression
-  tests hold the result within 1–2% of brute-force block optima on the
-  scenarios that broke earlier heuristics; the single-constraint path skips
-  the pass entirely and keeps its exactness.
+  task. So whenever greedy was actually blocked by a pool, the pool-bound
+  path builds a second, ratio-ranked candidate plan and runs a
+  **resource-aware improvement pass** on both, keeping the better end state:
+  donate 1, 2 or ALL of a donor's blocks and greedily refill the freed time +
+  pool capacity, plus an admission move that forces one block into an
+  unfunded task and evicts the cheapest funded blocks. Every move is kept
+  only on strict improvement (strictness prevents cycles). The three pieces,
+  and why one-block-at-a-time stalls, are in §13.3. Regression tests hold the
+  result within 1–2% of brute-force block optima on the scenarios that broke
+  earlier heuristics — a report on those scenarios, not a bound: §13.3
+  measures per-seed worsts of 3.37–5.28% over app-reachable days. The
+  single-constraint path skips the pass entirely and keeps its exactness.
 
-The allocator's verified exactness claim, precisely stated: **for the
-single-budget problem with switch cost and n ≤ 12, the returned plan attains
-the true maximum of the objective over all block-quantized plans.** (Test:
-brute force over every block distribution × funded-subset overhead.)
+The allocator's verified exactness claim, precisely stated: **with σ_ϕ = 0,
+for the single-budget problem with switch cost and n ≤ 12, the returned plan
+attains the true maximum of the objective over all block-quantized plans.**
+(Test: brute force over every block distribution × funded-subset overhead.)
+Under a fit posterior it does **not** hold: §5.1's monotone-prefix truncation
+takes blocks off the menu before the search sees them, and the plan-level cost
+is 21 of 4000 cases non-exact at σ/ϕ̂ ≈ 0.5 — the shipped
+`PHI_UNCERTAINTY_RELATIVE_CAP` — mean forfeit 0.0074%, worst **5.2607%**, and
+all 21 are truncation rather than search (probe 2026-08-06). At σ/ϕ̂ ≤ 0.3 it
+is 0 of 4000.
 
 **Measured, not just proved** (`scripts/allocator-exactness.probe.ts`,
 2026-08-06). The test behind that sentence is one hand-picked case — 3 tasks
-(8/3, 4/9, 6/6), budget 3 h, `switchCost` 0.25, default constants — and every
-other brute-force comparison in the suite is on the POOLED path, the one §4
-does _not_ claim exact. Swept against full enumeration over **6400 cases**
+(8/3, 4/9, 6/6), budget 3 h, `switchCost` 0.25, default constants. The seams
+it cannot reach are now pinned by a second single-budget brute-force test
+beside it (`zenith.test.ts`, 9 cells: budgets 2.75 ± 1e-9 and 3.13 ×
+`switchCost` ∈ {0.1, 0.33, 0.5}); every _other_ brute-force comparison in the
+suite is on the POOLED path, the one §4 does _not_ claim exact. Swept against
+full enumeration over **6400 cases**
 (n ∈ 2–5, four budget families, `switchCost` ∈ {0, 0.1, 0.2, 0.25, 0.33, 0.5,
 1.0}, four constant sets spanning ϕ 0.10–7.60 h): **0 non-exact, worst gap
-0.0000%**. The three seams the single fixture cannot reach — budgets exactly
-on a block boundary and a hair either side of one, switch costs that are not
-multiples of `BLOCK_HOURS`, and ϕ far from mid-range — are all clean.
+0.0000%**. The three seams the single fixture cannot reach — budgets a hair
+either side of a block boundary and budgets nowhere near one (its own budget of
+3 h sits exactly _on_ the lattice, and its `switchCost` is exactly one block),
+switch costs that are not multiples of `BLOCK_HOURS`, and ϕ far from mid-range
+— are all clean.
 
 One methodological note worth keeping, because it cost a run. The first cut
 charged feasibility in HOURS (`used·BLOCK_HOURS + overhead ≤ budget + 1e-9`)
-and reported 98/2400 non-exact, worst 49.72% — all of them budgets within 1e-9
-of a lattice point, and none of them a suboptimality. `budgetBlocksFor`'s
+and reported non-exactness that was pure admissibility. Re-measured 2026-08-06
+(`scripts/alloc-epsilon-methodology.probe.ts`) the hour rule reports **158/2400**
+non-exact, worst **49.3341%**, and 158/158 of them are a lattice±ε budget whose
+optimum the allocator is not allowed to place — against **0/2400** under the
+block rule. (The original run's own 98/2400 and 49.72% cannot be reproduced: it
+was thrown away with the first cut.) `budgetBlocksFor`'s
 epsilon is 1e-9 of a BLOCK, four times tighter, so the two sides disagreed
 about which plans were _admissible_ rather than which was _best_. A reference
 that admits plans the allocator may not place measures the tie-break
@@ -476,9 +512,13 @@ scores a full 20.0 — printed beside a fit that has essentially returned to the
 prior. Measured on the card's reference task (difficulty 5, enjoyment 5), 20
 logs of ϕ = 4h aged ten years: Σw = 0.0195, and the row reads 109.4 min against
 a 102.5 min default — 6.9 of the 135 minutes the same 20 logs move when fresh
-(237.5 min). Σw reports 0.0; n_eff would have reported 20.0.
+(237.5 min). Σw reports 0.0; n_eff would have reported 20.0. Every figure in
+this paragraph is `scripts/post-recency-weighting.probe.ts` (2026-08-06), which
+also prints the shrinkage profile above and checks Σw ≤ n over 2000 seeded
+histories.
 
-Σw ≤ n always, with equality exactly when every log is same-day fresh, which is
+Σw ≤ n always, with equality exactly when no log is older than today — same-day
+logs, and (via the `max(0, ·)` floor above) future-dated ones — which is
 also what makes "3.5 ⚡ logs" read correctly.
 
 **Scope: ϕ only.** `fitRecoveryRate` (r, §8.9), `fitDrainRate` (α, §8.7) and
@@ -497,8 +537,8 @@ together rather than one at a time:
   recent drain logs against an r averaged over all history — an inconsistency
   the current all-or-nothing scope avoids.
 
-Consequence to keep in mind when reading the card: its four rows do not all
-answer "over what period?" the same way.
+Consequence to keep in mind when reading the card: its five rows (four fits) do
+not all answer "over what period?" the same way.
 
 ### 5.1 Posterior-aware allocation (added 2026-07-18)
 
@@ -529,12 +569,15 @@ E[P̄](T) = Σₙ wₙ · P̄(T; kₙ),   kₙ = (1−r)/ϕₙ,   ϕₙ = max(0.
 
 with (ξₙ, wₙ) the 5-node Gauss–Hermite rule (exact for polynomial integrands
 through degree 9, so its own leading error rides on the 10th ϕ-derivative of
-P̄ and is negligible; moment checks to 4·10⁻¹⁶ in the probe). **The accuracy
-floor is not the rule's order** — it is the ϕ-floor clamping of the outer
-nodes (weight 0.0113 each), which narrows the effective mixture below
-N(ϕ̂, σ²) once `ϕ̂ − √2·σ·2.0202 < 0.1h`. Inside the σ-cap that is a sub-1%
-shift of the mean ϕ, and it is the same graceful degradation the cap exists
-to bound. Structural facts
+P̄ and is negligible; moment checks to 4.5·10⁻¹⁶ through degree 9, and 12.7%
+at degree 10 — `scripts/post-quadrature-floor.probe.ts`, 2026-08-06).
+**The accuracy floor is not the rule's order** — it is the ϕ-floor clamping of
+the outer nodes (weight 0.0113 each), which narrows the effective mixture below
+N(ϕ̂, σ²) once `ϕ̂ − √2·σ·2.0202 < 0.1h`, and the INNER nodes (weight 0.2221
+each) join it below ϕ̂ ≈ 0.31h. Inside the σ-cap that is a sub-1% shift of the
+mean ϕ for every ϕ̂ ≳ 0.31h, rising to **16.7%** for a ϕ̂ pinned at the 0.1h
+floor — the same graceful degradation the cap exists
+to bound, at the one ϕ̂ where the floor is most of the story. Structural facts
 that survive the mixture untouched:
 
 - **Activation bonus unchanged:** `lim T→0⁺ P̄(T; kₙ) = p₀` for every node, so
@@ -582,7 +625,8 @@ truncation. The guards:
    × σ/ϕ̂ ∈ 0…1.5 in 0.05 steps, 4340 cells, menus built exactly the way
    `buildBlockIncrements` builds them (same span, same 1e-12 tolerances) —
    finds INSIDE the cap 7 bimodal cells, 51 cells that forfeit value to the
-   monotone-prefix cut (worst **26.53%** at r = 0.3, ϕ̂ = 8h, σ = 2.8h), and
+   menu cut — 44 of them to the monotone-prefix cut and the 7 bimodal ones to
+   the non-positive cut (worst **26.53%** at r = 0.3, ϕ̂ = 8h, σ = 2.8h) — and
    7 of 1400 σ > 0 cells whose bisection bracket holds ≠ 1 crossing. All three
    first appear at σ/ϕ̂ ≈ 0.35 (4000 seeded random cells put the first loss at
    0.342), which is where the low outer node ϕ̂·(1 − 2.857·σ/ϕ̂) collapses onto
@@ -627,10 +671,13 @@ truncation. The guards:
    bounds the CONSTANTS, not the fit, and log noise carries ϕ̂ past it harmlessly.
 
    **Lowering the cap to 0.35 would cost more than it buys, which is why it was
-   rejected.** It is the obvious repair and it is the wrong one: it clamps
-   **1.23%** of habit-shaped cells that are not clamped today, and clamping means
+   rejected.** It is the obvious repair and it is the wrong one: it changes the
+   hedging of **1.23%** of habit-shaped cells — every cell past σ/ϕ̂ = 0.35,
+   newly clamping those up to 0.5 and clamping the rest harder — and clamping means
    hedging LESS — worst case **+6.809%** of reported task value conjured out of a
-   tighter σ, with T\* moving up to 0.244h, at ϕ̂ = 0.47h with σ/ϕ̂ = 0.53. Those
+   tighter σ, with T\* moving up to 0.244h, at ϕ̂ = 0.47h with σ/ϕ̂ = 0.53 (a cell
+   the shipped cap already clamps; the newly-clamped band (0.35, 0.5] approaches
+   that figure from below). Those
    are precisely the few-log users §5.1 exists to hedge for. Against 0.0000% of
    measured loss, the trade is ~7% harmful and 0% helpful. What is real here is a
    **documentation** defect, now fixed: guard 1's original "zero and zero" was
@@ -641,19 +688,29 @@ truncation. The guards:
    Synthetic histories, as everywhere in this repo; re-run on a real export.
 
 2. **Monotone-prefix menu truncation:** `buildBlockIncrements` stops at the
-   first non-positive OR non-decreasing increment. Inside the cap the only
-   residual violations are O(10⁻⁴) wiggles at one extreme corner (ϕ̂ ≈ 6h
-   with σ at the cap, where the outer node still lands on the ϕ floor);
-   cutting the menu there restores Fox's diminishing-increments premise BY
-   CONSTRUCTION rather than by sweep, at the cost of a few low-value blocks
-   in a corner where the fit is dubious anyway. At σ = 0 the cut can never
+   first non-positive OR non-decreasing increment. Inside the cap the
+   violations are small in absolute terms (worst `Δ(j) − Δ(j−1)` = 1.3·10⁻⁴)
+   but not small relatively — up to **117%** of the preceding increment — and
+   they are not one corner: 44 of 1540 grid cells, ϕ̂ 5–8h × σ/ϕ̂ 0.35–0.5, with
+   the low outer node floor-clamped in every one (2026-08-06,
+   `scripts/post-monotone-prefix-cost.probe.ts`).
+   Cutting the menu there restores Fox's diminishing-increments premise BY
+   CONSTRUCTION rather than by sweep, at a cost that is a few low-value blocks
+   in most of those cells and up to 44 blocks (11h, 26.53% of the task's value)
+   in the worst; after budget competition the plan-level forfeiture is 21 of
+   4000 cases and at most **5.26%** (`allocator-exactness.probe.ts` arm B at
+   σ/ϕ̂ ≈ 0.5, mean 0.0074%). Guard 1's reachability argument is what keeps that
+   off a real user's plan. At σ = 0 the cut can never
    trigger (increments are strictly decreasing — proved in §2).
 
 **Expected optimal stopping.** `T*_E = argmax E[P̄]` has no closed form; it is
 found by 60-step bisection of the mixture marginal `Σ wₙ·dP̄/dT(T; kₙ)` on
 `[T*(ϕ_min), T*(ϕ_max)]` — below the bracket every component's marginal is
-positive, above it every one is negative, and inside the cap regime the probe
-shows a single crossing. `TaskAllocation.optimalHours` and
+positive, above it every one is negative, and inside the cap the bracket holds
+exactly one crossing for every ϕ̂ a default-constants user can reach — with 7 of
+1400 σ > 0 grid cells at ϕ̂ > 3h the exception (2026-08-06,
+`scripts/phi-uncertainty-cap.probe.ts`), the corner guard 1 shows a real fit
+cannot reach. `TaskAllocation.optimalHours` and
 `optimalAvgProductivity` are now these expected quantities (σ = 0: the §3
 closed form, unchanged).
 
@@ -693,10 +750,12 @@ negligible next to the subset enumeration.
   reading ("quantization is part of what Zenith imposes") charged the lattice
   to one side of the comparison and made the reported gain negative on
   4–19% of random days.
-- **Pooled greedy + ratio candidate + transfer pass is a heuristic**
-  (multi-dimensional knapsack is NP-hard). Randomized envelope measured
-  2026-07-26 (§13.3): exact on **99.5%** of 1471 random pool-bound days,
-  worst observed shortfall **0.09%**. Single-budget remains exact.
+- **Pooled greedy + ratio candidate + improvement pass + admission move is a
+  heuristic** (multi-dimensional knapsack is NP-hard). There is no envelope to
+  quote: five seeds × 2000 app-reachable days (2026-08-06, §13.3,
+  `scripts/pool-allocator.probe.ts`) come out exact on 93.55–94.50% with
+  per-seed worst shortfalls 3.37–5.28%. The 99.5% / 0.09% pair once quoted here
+  was one draw, not a bound. Single-budget remains exact (σ_ϕ = 0, §4).
 - **Forward selection for n > 12 funded-subset search** is a heuristic for a
   regime a daily planner rarely reaches.
 - **Budgets below 0.25h are left unplanned** (v1 would allocate slivers).
@@ -719,7 +778,12 @@ empirical probe of the old behavior: on a 10-hour window with a demanding
 task the optimizer scheduled **zero** interior rest, and micro-breaks always
 _reduced_ output at equal work-hours — contradicting the well-replicated
 finding that short interspersed breaks raise total output (Jaber & Neumann
-2010; Bechtold, Janaro & Sumners 1984).
+2010; Bechtold, Janaro & Sumners 1984). The break half re-measures cleanly
+under the pre-fix dynamics (1/2/4/8 interior 15-minute breaks cost −14.5% /
+−29.6% / −48.6% / −66.2% of a 4-hour block's output — `scripts/enb-break-economics.probe.ts`,
+2026-08-06); the "zero interior rest" half belonged to the pre-§8.6 search and
+does not — under those same dynamics today's optimizer rests once, 2.25 h, and
+works 7.5 h.
 
 ### 8.1 Intermittent-rest recovery correction
 
@@ -739,6 +803,13 @@ is idle — full effect at rest, none at full demand — so the closed-form
 solution and Simpson quadrature are unchanged. `restRecoveryMultiplier = 1`
 reproduces the old dynamics. (§8.5 later generalizes the recovery gate
 `(1−w)` to `1−(1−b)·w`.)
+
+Composite Simpson takes 16 nodes per fastest timescale (min of ϕ, 1/ρ) but is
+**capped at 1024 nodes**, so at the 0.1 h ϕ floor the node density thins once a
+block passes 6.4 h: relative error against a 65537-node reference is ~3e-7 up
+to a 6 h block, 6.9e-7 at 8 h, 1.7e-6 at 10 h, 3.5e-6 at 12 h and 5.6e-5 in a
+24 h block (`scripts/enb-simpson-error.probe.ts`, 2026-08-06). Under the
+default constants the smallest ϕ is 0.58 h, where the cap never binds.
 
 ### 8.2 Warm-up carryover instead of binary reset
 
@@ -764,12 +835,18 @@ the peak).
 
 ### 8.3 Verified consequences and an open calibration question
 
-Post-fix probes (locked in as unit tests): the optimizer now inserts interior
-rest on long demanding windows (6 breaks on the 10-hour probe, a Pomodoro-like
-pattern), and a ~30-minute break placed mid-session _raises_ total output at
-equal work-hours — the Jaber–Neumann result the old model could not produce.
-Fragmentation still costs (contiguous ≈ 1.5× confetti on the standard probe),
-just no longer catastrophically.
+Post-fix probes (the signs are locked in as unit tests, the numbers are
+`scripts/enb-break-economics.probe.ts`, 2026-08-06): the optimizer now inserts
+interior rest on long demanding windows — 1 rest block on the 10-hour probe at
+the §8.8 45-minute lattice (work 3 h, rest 45 min, work 2.25 h), 4 at a
+15-minute step; the "6 breaks, a Pomodoro-like pattern" once claimed here
+reproduces at no step size, and no test asserts a count. And a ~30-minute break
+placed mid-session _raises_ total output at equal work-hours (+5.1% on the deep
+8/5 task, +6.9% on the fragmentation fixture) — the Jaber–Neumann result the old
+model could not produce, and the one post-fix consequence with no suite fixture
+of its own. Fragmentation still costs (contiguous ≈ 1.5× confetti on the
+standard probe: 1.5500×, against 4.1839× under a hard reset), just no longer
+catastrophically.
 
 **Open:** making sustained work efficient made it attractive. At the default
 `freeTimeValue = 0.5` the optimizer now recommends ≈ 9.9 h of work in a 12-hour
@@ -778,6 +855,13 @@ response to `freeTimeValue` is bang-bang: ≈ 1.0 still yields ≈ 9.5 h, ≈ 1.
 collapses to all-leisure. A humane default day needs a structural change — a
 concave (diminishing-returns) leisure value or a soft work-hour cap — not a
 retuned constant. Defaults were deliberately left alone pending that decision.
+(Those two hour figures are from the pre-§8.6 search and the pre-§8.8 lattice
+and no longer reproduce. Restoring only the pre-fix _dynamics_ under today's
+optimizer gives 12 h at λ₀ ≤ 0.5 and 10.5 h at every λ₀ from 0.8 through 1.5 —
+a two-step response, and no collapse to all-leisure anywhere in [0.2, 1.5]
+(`scripts/enb-break-economics.probe.ts`, 2026-08-06). So the bang-bang
+diagnosis was right about the _kind_ of response and wrong about where it
+lands: the pre-fix model never stopped working within the swept range.)
 
 **Resolved by §8.4 (noted 2026-07-19).** The structural change arrived, just
 on the other side of the margin: satiety's concave V(O) makes the marginal
@@ -839,16 +923,22 @@ it is not nothing. Enumerating every one of the 6561 lattice plans on 24 days
 × 2 tasks and taking the argmax under three accumulators built from the same
 per-block outputs:
 
-| accumulator             | sessions/day | top task's share | worth under the true objective |
-| ----------------------- | ------------ | ---------------- | ------------------------------ |
-| cumulative (shipped)    | 1.96         | 82.3%            | —                              |
-| session-keyed           | 2.38         | **98.4%**        | −0.226%                        |
-| phase-decaying `e^−g/τ` | 2.42         | 96.0%            | −0.599%                        |
+| accumulator             | sessions/day | top task's share | worth under the satiety term Σ V(O) |
+| ----------------------- | ------------ | ---------------- | ----------------------------------- |
+| cumulative (shipped)    | 1.96         | 82.3%            | —                                   |
+| session-keyed           | 2.38         | **98.4%**        | −0.226%                             |
+| phase-decaying `e^−g/τ` | 2.42         | 96.0%            | −0.599%                             |
 
 Both mutants fragment more AND concentrate harder — the session-keyed one puts
 98.4% of worked hours on a single task, which is the re-run-the-winner corner
-§8.4 was written to close, reproduced on demand. The constraint is doing real
-work, and the ~0.2–0.6% is what breaking it would cost.
+§8.4 was written to close, reproduced on demand. That last column is the satiety
+term alone, not the objective: scored against what `optimizeSchedule` actually
+maximizes (Σ V(O) plus the leisure and terminal terms) the mutants' plans lose
+**3.015%** (session-keyed) and **2.405%** (phase-decaying), and the order
+_reverses_ — the mutants work more hours for less value, so the leisure term
+widens the gap (both columns printed by `scripts/satiety-gaming.probe.ts`,
+2026-08-06). The constraint is worth ~2–3% of the objective, and
+~0.2–0.6% of output value alone.
 
 **Why this form and not the alternatives** (all probed 2026-07-14 against a
 validated replica of this module, same multi-seed local search):
@@ -857,8 +947,12 @@ validated replica of this module, same multi-seed local search):
   dynamics: warm-up, reservoirs, and the Simpson quadrature are untouched, so
   ϕ keeps its exact meaning (time-to-peak) and §8.2's calibration story is
   unaffected. Probe: turns the 7h/1h winner-take-all plan into one session
-  per task near each task's T*-scale; contiguous-vs-confetti ratio stays
-  ≈ 1.4 (baseline 1.5), so fragmentation stays priced; the plan responds
+  per task; fragmentation stays priced — the same 4 h chopped into 0.5 h slices
+  with 0.5 h gaps yields 1.45× less raw output (a ratio satiety cannot move,
+  since it lives outside the dynamics), and the objective still prefers
+  contiguous by 1.17×, against 1.28× before satiety (re-measured 2026-08-06 at
+  1.4511× / 1.1687× / 1.2750×, `scripts/enb-break-economics.probe.ts`); the
+  plan responds
   _smoothly_ to a demand sweep that flips the unsatiated plan violently
   between opposite winner-take-all corners; introduces no new
   break-then-resume gaming incentive.
@@ -886,9 +980,15 @@ reports both `totalOutput` (raw, still what the UI charts) and
 **The residual pathology.** Satiety (§8.4) fixed the winner-take-all task
 mix, but a knife-edge remained **exactly at w = 1**: under the pure `(1−w)`
 recovery gate a full-demand task has equilibrium `C_eq = r′·(1−w)/ρ = 0`, so
-it drains toward literally zero energy with no basal floor. Probe: lowering
-the probe day's boxing demand from 1.0 to just 0.95 jumped its optimal
-allocation from 2.65 h to 4.56 h — a plan cliff from a 5% demand change.
+it drains toward literally zero energy with no basal floor. Probe (2026-08-06,
+`scripts/sat-gate-floor.probe.ts`): the pathology is the algebra, not a measured
+cliff. With today's search and lattice the b = 0 world's demand sweep on the
+probe day is already monotone (3.00 h at both wp 1.0 and 0.95), and over 20
+seeded days the demand→allocation response is indistinguishable at b = 0 and
+b = 0.05 (mean biggest jump 0.825 h, 0 of 20 non-monotone, both). The original
+"2.65 h → 4.56 h cliff from a 5% demand change" was measured with the search
+§8.6 then found unreliable **on this same day**, so it is not separable from
+search slack and does not reproduce.
 
 **The fix.** A fraction `b` of recovery capacity stays active even while
 working flat out (micro-pauses between efforts — the same intermittent-effort
@@ -910,23 +1010,29 @@ unchanged.
 finding that static effort below ~15% of maximum voluntary contraction is
 sustainable indefinitely. The floor is where output stabilizes, not zero.
 
-**Why this form and not the alternatives** (probed 2026-07-14,
-`gate-floor-probe`):
+**Why this form and not the alternatives** (probed 2026-07-14; re-measured
+2026-08-06, `scripts/sat-gate-floor.probe.ts`):
 
 - **Rejected — gate `(1−w^q)`.** Still exactly 0 at `w = 1` for every q: the
-  within-session decay of a full-demand task is bit-identical to the current
-  law. Its only effect is inflating mid-range equilibria — a side effect, not
-  a fix. (This was the earlier roadmap suggestion; the probe killed it.)
+  within-session decay of a full-demand task is bit-identical to the pure
+  `(1−w)` law it was meant to replace (ρ = α, eq = 0) — not to the shipped one,
+  where b = 0.05 gives ρ = α + b·r′ and eq = 0.13. Its only effect is _moving_
+  mid-range equilibria — up for q > 1 (eq(w = 0.5) 0.75 → 0.82 at q = 2), down
+  for the sublinear q < 1 the roadmap suggested (0.75 → 0.64 at q = 0.5) — a
+  side effect, not a fix. (This was the earlier roadmap suggestion; the probe
+  killed it.)
 - **Rejected — clamp `C_eq = max(C_eq, F)`.** Produces the right floor but is
   non-smooth in w (the clamp binds only above w ≈ 0.95 at F = 0.15), is
   purely phenomenological, and decouples C_eq from ρ.
 - **Chosen — `1−(1−b)·w`.** Smooth and monotone in w, one parameter with a
   physical reading and a literature-anchored default, targeted where the
   problem is (eq at w = 0.5 moves ~1% at b = 0.05), exact opt-out at b = 0.
-  Probe: the demand sweep wp 1.0 → 0.7 becomes smooth and monotone
-  (3.0 → 4.5 → 5.2 h, objectives in even ~0.4 increments) instead of
-  cliffed, and long full-demand sessions stabilize near the floor instead of
-  grinding to zero.
+  Probe: the demand sweep wp 1.0 → 0.7 runs 3.00 → 4.50 → 5.25 h at the 0.25 h
+  step in even ~0.5 objective increments — but the b = 0 sweep is monotone as
+  well under today's search, so the gate's justification is the `w = 1` algebra
+  and the floor below, not a smoothing effect. Long full-demand sessions do
+  stabilize near the floor instead of grinding to zero (8 h at w = 1 ends at
+  0.20 physical against 0.09 without the gate).
 
 ### 8.6 Optimizer reliability — compound moves and drop-one seeds (added 2026-07-14)
 
@@ -939,7 +1045,8 @@ are uphill on their own:
 - **Reallocation plateaus:** moving time from task A to task B requires a
   shrink and a grow, each downhill alone. Fix: a **transfer move** (shrink
   block i, grow block j, one candidate).
-- **Cold-start slivers:** inserting an unfunded task at step size (0.25 h)
+- **Cold-start slivers:** inserting an unfunded task at step size (0.75 h
+  today; 0.25 h when this was written)
   never pays because of warm-up, even when a full session would. Fixes: a
   **half-block reassign** (hand the second half of a block to another task)
   and a **T\*-session insert** (insert a new task at its full single-task
@@ -950,20 +1057,23 @@ are uphill on their own:
   for each X).
 - The T\*-insert puts totals off the step lattice, so the grow move also
   learned to grow by the sub-step window remainder (with worthless leisure,
-  a stranded idle sliver is pure loss).
+  a stranded idle sliver is pure loss). Both were retired by §8.8: the
+  T\*-insert is now snapped to the lattice and the remainder-grow is gone.
 
 All fixes are deterministic (the search stays reproducible; a test asserts
 this). Verification: both previously-failed probe cases now beat their
 hand-built witnesses, and the b = 0 legacy world's optimum improved too
 (10.70 vs 10.65) — meaning even pre-§8.5 results had mild search slack.
-Cost: ~60 ms for 3 tasks / 8 h (was ~40 ms), still interactive.
+Cost: ~13 ms for 3 tasks / 8 h on the 45-min lattice (re-measured 2026-08-06;
+~60 ms when written, at the 0.25 h step and before the 2026-08-01 `buildCurves`
+hoist — 211 ms at that step today), still interactive.
 
 **Residual gap, measured** (Probe 2026-08-06,
 `scripts/energy-search-gap.probe.ts`). The slack is smaller than the ~1% above,
 not gone. Scored against the exhaustive optimum on the same 45-min lattice —
 every lattice plan enumerated, so a shortfall is a proven search defect — 60
 seeded random days of 2–3 tasks × 3–6 h give 58 exact (within 1e-9), median
-shortfall 0.0000%, p99 0.5951%, worst −0.5951%. That worst day funds a single
+shortfall 0.0000%, p99 0.5951%, worst 0.5951% below the optimum. That worst day funds a single
 task over a 6 h window: the search returns one 5.25 h block, the optimum works
 the same 5.25 h split 3.75 + 1.5 around an interior 45-min rest — a break the
 search cannot reach, because splitting a block and re-growing it is downhill in
@@ -1024,10 +1134,13 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
 
 - **Prior.** α₀ = the model default; λ = `DRAIN_PRIOR_STRENGTH` = 0.25 is
   the Bayesian ridge weight (prior α ~ N(α₀, σ_d²/λ)). Unlike the ϕ fit's
-  λ = 4, the effective "design" here is the sensitivity dD/dα (≈ 0.3–0.9 for
+  λ = 4, the effective "design" here is the sensitivity dD/dα (≈ 0.7–1.0 for
   typical 1–3 h full-demand sessions, vanishing as w → 0), so λ was tuned by
   probe in those units (λ sweep, 2026-07-15): one consistent full-demand log
-  moves α ~50% of the way to what it implies, three ~70%, ten ~85%; λ = 0.5
+  moves α ~50% of the way to what it implies, three ~70%, ten ~85%
+  (50.1 / 69.1 / 85.2% re-measured 2026-08-06,
+  `scripts/sat-drain-identifiability.probe.ts`, which also prints the
+  r-conditioning profile above and the reported stds below); λ = 0.5
   left three logs at only 57% while buying almost no extra outlier
   resistance (a wild outlier among 4 on-default logs lands within 0.01 of
   the λ = 0.25 result — robustness comes from the other logs, not the
@@ -1055,8 +1168,10 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   backs "ratings are at least this noisy". Reusing the small tuned λs as ν₀
   erased the noise floors at small n and made the reported ±stds 2–10×
   tighter than a floor-honest posterior (probe: 6 clean rest pairs reported
-  r ± 0.036 — 4% precision on recovery rate from six fuzzy self-ratings; now
-  ± 0.249). The adversarial-pairs case (§8.9) widened too: ± 0.615, and the
+  r ± 0.036 — 4% precision on recovery rate from six fuzzy self-ratings; the
+  §8.9 test's own 6-observation pair set now reports ± 0.199, and the 2026-07-19
+  fixture behind the quoted ± 0.249 was not recorded). The adversarial-pairs
+  case (§8.9) widened too: ± 0.615, and the
   "std shrinks with data / grows with scatter" orderings all survive
   (test-locked).
 
@@ -1133,19 +1248,25 @@ price of quantization rather than a regression. The pre-existing "never
 leaves the window end idle" test keeps passing because its 12 h window is
 lattice-exact.
 
-**Probe results (2026-07-18).** (a) _Quantization loss is small:_ objective
-ratio coarse/fine (0.75 vs 0.25 step) was 0.9865 / 0.9979 / 0.9936 / 0.9886
-across the standard probe days — bounded ≥ 0.97 in a test. (b) _Structure
-survives:_ the funded-task set matched the fine-step optimum in all four
-cases. (c) _No new search slack:_ exhaustive enumeration of all 45-min
-plans on the 2026-07-14 probe day (all task orders × allocations × interior
-rests, ~10⁴ evaluations) equals the search's 10.7331 exactly — locked in as
-a probe-time check, not a unit test (too slow). (d) _Faster:_ ~55 ms vs
-~330 ms on the 3-task/8 h day (fewer lattice points, fewer neighbors).
-(e) A side benefit: fine-step optima at long windows degenerate into 15-min
-rest confetti (e.g. five 0.25 h rests across 12 h); the coarse lattice
-returns one 45-min break — closer to what a human would actually do, at
-~1% objective cost.
+**Probe results** (2026-07-18, re-measured 2026-08-06 with
+`scripts/stp-lattice.probe.ts`). (a) _Quantization loss is small:_ objective
+ratio coarse/fine (0.75 vs 0.25 step) is 0.9865 (probe day, 8 h) / 0.9979
+(mixed day, 8 h) / 0.9936 (probe day, 12 h) / 0.9759 (mixed day, 12 h) — the
+fourth cell was quoted as 0.9886 and no cell in a 12-point sweep produces that.
+Over windows 4–14 h the worst is **0.9693** (probe day, 4 h): a short window has
+too few lattice points to hide the remainder in. The suite's ≥ 0.97 bound is
+asserted at the 8 h window, which is where it was measured — it is not a lattice
+property. (b) _Structure survives:_ the funded-task set matched the fine-step
+optimum in all four cases, and in all 12 of the sweep. (c) _No new search
+slack:_ exhaustive enumeration of all 45-min plans on the 2026-07-14 probe day
+(every assignment of the 10 lattice slots to a task or to rest — 1 048 576
+evaluations, not the ~10⁴ once claimed) equals the search's 10.7331 exactly —
+locked in as a probe-time check, not a unit test (too slow). (d) _Faster:_
+~13 ms vs ~210 ms on the 3-task/8 h day, post-`buildCurves`-caching (the
+~55/~330 ms pair predates it). (e) A side benefit: fine-step optima at long
+windows degenerate into 15-min rest confetti (five 0.25 h rests across the mixed
+day's 12 h); the coarse lattice returns one 45-min break — closer to what a
+human would actually do, at ~2.4% objective cost on that day.
 
 **Test guard note.** The 2026-07-14 local-search regression test compares
 against a hand-built witness (3.5/1.5/3 h) that is itself off the 45-min
@@ -1197,16 +1318,23 @@ code): ridge MAP toward the DEFAULT r with
 noise prior `RECOVERY_NOISE_PRIOR_STD = 0.21` (a residual compares TWO fuzzy
 ratings, so the single-rating floor 0.15 is widened by √2), Laplace posterior
 std from the Gauss–Newton curvature. λ probe-tuned 2026-07-18 to match the
-α fit's calibration profile: one consistent logged rest moves r **51%** of
-the way to what it implies, three **72%**, ten **88%** (λ = 0.1 sat at 37%
-for the first log — too anchored; λ = 0.25, the §8.7 value, would be worse
-still because dD/dr ≈ 0.2–0.4 here, roughly half the drain fit's lever arm).
+α fit's calibration profile: one consistent logged rest moves r **53%** of
+the way to what it implies, three **71%**, ten **88%** (λ = 0.1 sits at 39%
+for the first log — too anchored; λ = 0.25, the §8.7 value, reaches only 22%,
+worse still because dD/dr ≈ 0.22–0.26 here against the drain fit's
+dD/dα ≈ 0.6–0.9 — roughly a THIRD of its lever arm, not the half once claimed).
+Re-measured 2026-08-06, `scripts/stp-recovery-fit.probe.ts`.
 
-**Probe evidence (2026-07-18).** Noiseless 8-log recovery across the range:
-true 0.3 → 0.307, 0.7 → 0.700, 1.0 → 0.976, 1.5 → 1.365; under 0–10 notch
-quantization plus ±1-notch jitter the fit stays within ~0.05 of truth with
-honest stds. Known shrinkage at high true r mirrors §8.7's α saturation: from
-36-min breaks, true 2.5 fits to ~1.81, because any r ≥ 2 leaves less than one
+**Probe evidence** (2026-07-18, re-measured 2026-08-06 with the same probe).
+Noiseless 8-log recovery across the range:
+true 0.3 → 0.307, 0.7 → 0.700, 1.0 → 0.976, 1.5 → 1.365. Under 0–10 notch
+quantization plus ±1-notch jitter the fit stays within a median ~0.06 of truth
+for r ≤ 0.7 and ~0.09 for r ≈ 1–1.5, with a p90 of 0.13–0.23 and a worst case
+of ~0.36 over 200 seeded trials per level — honest stds throughout, but a single
+day's jitter moves r by more than one notch of its own, and the "within ~0.05"
+this line used to claim was not measured. Known shrinkage at high true r mirrors
+§8.7's α saturation: from breaks averaging ~43 min, true 2.5 fits to 1.81 (1.88
+from uniform 36-min breaks), because any r ≥ 2 leaves less than one
 rating notch of residual drain — the data genuinely can't distinguish.
 Consequence worth knowing: **short breaks carry the high-r signal** (true 2.5
 from 15-min-break pairs fits to 2.0 vs 1.58 from 1h-break pairs), noted in
@@ -1240,10 +1368,15 @@ gate the design:
    λ₀ ranges. Noiseless multi-window inversion recovers a synthetic user's
    λ₀ uniquely at 0.1 resolution; ±0.5 h noise on the stops still recovers
    it exactly by least squares.
-2. **Only λ₀ is identifiable.** Sweeping V_T over [0, 6] (12×) moved the
-   optimal stop across just two 45-min lattice levels, and the joint
-   (λ₀, V_T) response surface is almost constant in V_T. So the fit targets
-   λ₀ alone and **conditions on** the user-owned V_T — completing the
+2. **λ₀ dominates, but V_T is not free.** Sweeping V_T over [0, 6] (13 levels)
+   leaves the optimal stop on one or two 45-min lattice levels in 7 of 8
+   (window, λ₀) cells — but it can move the stop by 3 steps (2.25 h → 4.5 h at
+   an 8 h window, λ₀ = 1.3) and through three levels non-monotonically (12 h,
+   λ₀ = 0.9): re-measured 2026-08-06,
+   `scripts/stp-stopping-identifiability.probe.ts`, against the earlier
+   "almost constant in V_T". So the fit targets
+   λ₀ alone and **conditions on** the user-owned V_T — a slider left far from
+   the truth is a real unfitted error source, not a negligible one — completing the
    conditioning chain: r is fitted α-free (§8.9), α conditions on r (§8.7),
    λ₀ conditions on everything (α, r, m, b, satietyScale, V_T). Calibrate
    recovery and drain first; this fit inherits their quality.
@@ -1314,8 +1447,11 @@ machinery collapses to an exact closed form — no numeric minimizer:
   one day moves λ₀ 50% of the way to its point, three 75%, ten 91% —
   matching the α and r fits' probe-tuned profiles by construction
   (test-pinned to 10 decimal places).
-- **Noise/posterior:** σ₀ = `STOP_NOISE_PRIOR_STD` = 0.25 in λ₀ units
-  (lattice-bracket half-width ≈ 0.15 on the probe day, plus day-to-day mood
+- **Noise/posterior:** σ₀ = `STOP_NOISE_PRIOR_STD` = 0.25 in λ₀ units (the
+  lattice bracket's half-width — a median 0.110 over 279 non-inverted days
+  (`scripts/stop-inversion-margin.probe.ts`, 2026-08-06), not the 0.15 this line
+  asserted from one probe day —
+  plus day-to-day mood
   in the stop decision, which no instrument separates); σ̂² blends σ₀ with
   residual scatter as in §8.7; posterior std = √(σ̂²/(n + λ)).
 - **Bounds** = the Energy Lab's freeTimeValue input range [0, 3], same
@@ -1359,13 +1495,14 @@ machinery collapses to an exact closed form — no numeric minimizer:
   "mood" invert on **44 of 1179**, of which **6 land past the margin and are
   censored** — worst gap **0.421**, well beyond the 0.25 boundary. So a small
   number of genuinely near-rational days ARE discarded, and the inversion gap
-  does not cleanly separate the two populations: censored random compositions
-  gap a median 0.282 while honest mood days reach 0.421. Inversion remains a
+  does not cleanly separate the two populations: inverted random compositions
+  gap a median 0.282 (p90 0.583, max 0.815) while honest mood days reach 0.421.
+  Inversion remains a
   useful DETECTOR — 39% against 3.7% is a strong signal, and the contamination
   it screens out is worse than the loss — but it is a noisy one, not the clean
-  partition this paragraph used to assert. That makes
-  inversion a reliable DETECTOR of a stop that was not a leisure choice
-  (interruption, sickness, deadline elsewhere) — and such a day's midpoint
+  partition this paragraph used to assert. A day past the margin is therefore
+  treated as a stop that was not a leisure choice
+  (interruption, sickness, deadline elsewhere), and such a day's midpoint
   is NOT centered on the user's λ₀: it lands at the task curves'
   characteristic marginal regardless of the true value (probe: 1-step
   interrupted days read ~0.7–1.1 whether the true λ₀ was 0.3 or 1.5,
@@ -1495,9 +1632,11 @@ claimed.
 Where it does bend (curated fixture, 13 windows of 6–18h over four
 high-amplitude, high-demand tasks — a day the plan spends on planned rest):
 BOTH arms run 2–3 steps late and at-stop agreement collapses to 0/4, 0/9,
-1/13 at λ₀ ≤ 0.9. That is the breaks-omitted bound sized rather than a new
-one, and it separates the arms not at all — the session/one-step gap on the
-same fixture at λ₀ = 1.3 is 31.7% versus 9.9%, the largest measured.
+1/13 at λ₀ ≤ 0.9. That is the breaks-omitted bound sized rather than a new one,
+and at the stop itself it separates the arms not at all — while mid-day it
+separates them most: on the same fixture at λ₀ = 1.3 the one-step arm
+false-stops on **31.7%** of checkpoints against the session arm's **9.9%**, the
+largest gap measured.
 
 **Candidates vs reconstruction.** The max runs over the OPEN tasks only
 (`candidateTaskIds`, the store passes the unchecked ones): "one more session
@@ -1522,13 +1661,13 @@ with an intact warm-up, than the session it actually describes, which can
 only over-price `continue`. Kept rather than appended for two reasons.
 `StopObservation` carries no order, so the reconstructed past is itself
 canonical, not chronological — appending places the future after a fiction,
-not after the real day. And appending does not measurably help: re-running
-the probe design above (60 days × 4 λ₀ = 1465 mid-day checkpoints), canonical
-was wrong on 104 checkpoints and append-last on 103, with canonical taking
-FEWER mid-day false stops (79 vs 84) — the metric the table optimizes. The
-gap between the two conventions only opens on days §8.10 itself calls
-non-rational (a long grind on a weak, satiating task while a high-amplitude
-task sat unstarted), where it reaches 2.4×. Verdicts: `continue` /
+not after the real day. And appending does not measurably help: re-running the
+probe design above put the two conventions within one checkpoint of each other,
+with canonical taking fewer mid-day false stops — the metric the table
+optimizes. (The 2026-08-05 counts once quoted here — 104 vs 103 wrong, 79 vs 84
+false stops, a 2.4× gap on the days §8.10 calls non-rational — came from a sweep
+that was not committed; `scripts/stop-advisor.probe.ts` has no append-last arm
+and prints none of them.) Verdicts: `continue` /
 `stop` (strictly: continue iff best session > λ₀, so exact indifference reads
 as stop, matching §8.10's `stopped ⇒ λ₀ ≥ lo`), plus `window-full` when no
 whole 45-min step fits in what remains of the window — logged hours filled
@@ -1594,9 +1733,12 @@ sessions.
 ## 10. Revision log (doc-only corrections)
 
 Changes to this document and to code comments that did **not** change any
-formula, constant, or runtime behavior — recorded so future readers can tell
-a corrected explanation apart from a model change. If an entry here seems to
-contradict older commit messages or comments, this log is the current truth.
+formula, constant, bound or fit — pure explanations, code moves, and
+display-only corrections. Each entry says which of those it was; three of them
+(the band-table move, the `Infinity%` reading, the curve cache) do change
+runtime behavior without touching the model. Recorded so future readers can
+tell a corrected explanation apart from a model change. If an entry here seems
+to contradict older commit messages or comments, this log is the current truth.
 
 ### 2026-07-14 — math review of the v2 revision
 
@@ -1659,7 +1801,8 @@ contradict older commit messages or comments, this log is the current truth.
    `plan-advice.ts`'s comment all said trimming to `budget − planSlack` costs
    no Σ P̄. It does not hold: `allocate` is path-dependent on `budgetBlocks`,
    so a pool-bound day re-solves the same hours into a worse distribution —
-   **103 of 126** fixture levers, worst **−0.9%**, none of them cutting funded
+   **103 of the 126** budget × switch-cost combinations that carry a trim lever
+   at all (of 280 tried), worst **−0.9%**, none of them cutting funded
    work (`scripts/plan-advice.probe.ts`). No formula, constant or bound moved
    and the card's arithmetic is unchanged; the number it always printed was
    right and the sentence describing it was wrong. The delta is deliberately
@@ -1680,7 +1823,10 @@ contradict older commit messages or comments, this log is the current truth.
 ### 11.1 Scope and principle
 
 The dashboard metrics (`metric/calculation.ts`) are derived DISPLAYS, not
-allocator inputs — none of the fixes below change which plan gets suggested.
+allocator inputs — none of the fixes below change the plan the allocator
+solves. (Since 2026-07-28 these same readings are the plan advisor's search
+objectives, §14, so a redefinition here _does_ change which lever it offers:
+`frictionIndex` and `scheduleIntegrity` are both `AXIS` entries.)
 They had not received the §2–4 level of scrutiny; a 2026-07-18 review
 (scratchpad property probes against the real functions, same method as §8's
 probes) found four defects, fixed below. Each entry records the old formula,
@@ -1719,8 +1865,13 @@ since v2, §3).
   that actually land on the funded tasks' diminishing-returns zones. Probe
   (injured user: `physicalHours: 0`, 10h budget): the dropped gym task's
   `T* = 4.38h` suppressed the overhang from 6.16h to 1.78h, silencing the
-  overwork warning. Property now locked in a test: adding a dropped task to
-  the list leaves the risk unchanged.
+  overwork warning. (Those three figures are from a 2026-07-18 scratch probe of
+  a formula that no longer exists — history, not a re-runnable number.)
+  Property now locked in a test: adding a dropped task to a plan that funds **at
+  least one** task leaves the risk unchanged. It is _not_ invariant when nothing
+  at all is funded — that branch simulates the declared budget at the task
+  list's average demands (§11.6), so one more dropped task moves the average and
+  the reading with it (32 → 16 on a 10 h budget).
 - **Documented semantic choice (deliberate):** `availableHours` is read as
   hours the user INTENDS to work, so budget beyond the funded workload is
   treated as overwork risk. The alternative reading ("available ≠ intended";
@@ -1829,8 +1980,10 @@ since v2, §3).
     (and loses the plateau — 8 points between the 8h and 16h demand-0.5 days,
     a slow recoverer not yet at equilibrium by 8h), b = 0 reaches 100% on a
     16h full-demand day, b = 0.3 tops out at 52%.
-  - _Monotone in demand and duration, NOT in the declared budget_ (same
-    probe, 2026-08-06). Walking `availableHours` 0.25→16h over a FIXED task
+  - _Monotone in demand and duration, NOT in the declared budget_ (duration
+    and the budget walk from the same probe, 2026-08-06; the demand arm is
+    `scripts/mtr2-carry-over.probe.ts` — walking demand 0→10 at 1/2/4/8 h, 0 of
+    10 steps fell at any duration). Walking `availableHours` 0.25→16h over a FIXED task
     list, the reading FELL on 3006 of 37800 steps, on 531 of the 600 days,
     worst drop 29 points (4 tasks, 3.25h → 3.5h at s = 25m: 41% → 12%). Not
     min() switching reservoirs — the cognitive one binds on both sides — but
@@ -1943,7 +2096,8 @@ predecessor, so a past day reads with its own morning.
   recovery the metric behaves exactly as before. Carry-over becomes visible
   when the user's own ☕ fit (§8.9) says recovery is slow: at the fit floor, a
   fully-drained 8 h day starts the next morning near 92 %, and a 16 h day
-  (8 h gap) near 74 %. Morning-awareness appears exactly where calibration
+  (8 h gap) near 71 % (`scripts/mtr2-carry-over.probe.ts`, 2026-08-06:
+  91.6 % and 70.6 % cognitive). Morning-awareness appears exactly where calibration
   evidence supports it — deliberate, not a shortfall.
 - **Inherited approximations** (same class as §8.10's reconstruction, all
   documented there or in §12): breaks inside the worked day are omitted, and
@@ -1971,8 +2125,11 @@ alone).
 
 **The question.** The two planners disagree structurally: the classic Σ P̄
 objective spreads (every touched task collects its ≈ p₀ activation bonus —
-§0/§2; probe 2026-07-11: two identical tasks on 1h score 1.955 split vs 1.58
-concentrated under Σ P̄, while total output prefers concentrating), the
+§0/§2; probe 2026-08-06, `scripts/mtr2-carry-over.probe.ts`: Σ P̄ prefers the
+split in all 100 difficulty × enjoyment cells — two identical
+difficulty-7/enjoyment-7 tasks on 1 h score 1.958 split vs 1.361 concentrated,
+where the 2026-07-11 pair "1.955 vs 1.58" read the split off one cell and the
+concentration off another), the
 energy model concentrates (satiety-tempered total output, §8.4). Which
 composition does the user's REAL behavior track? The 🪫 drain logs already
 record worked hours per task per day, and §8.10 already joins them with the
@@ -2019,8 +2176,10 @@ window (0.4809 → 0.4965 there), which is why it went unnoticed.
 **Re-measured and confirmed** (`scripts/fit-snapshot-drift.probe.ts`,
 2026-08-06). On an independently generated year at the same volumes: the
 whole-history α_cog is 0.5240 against **0.3447 as of day 10 — 52% higher**,
-and the as-of-day fit is still 35–59% below whole-history everywhere before
-day 120. The subtle half holds too: across the last 30 days the as-of-day fit
+and the whole-history fit still exceeds the as-of-day fit by 35–59% everywhere
+through day 120 (the as-of-day fit sitting 26–37% _below_ it — the two
+directions are not the same number, and this line quoted the excess as if it
+were the shortfall). The subtle half holds too: across the last 30 days the as-of-day fit
 moves only 0.5075 → 0.5240, **3.3% apart**, against the document's 3.2%. A
 FLAT-α control run through the same generator sits at 1% on day 10 and −0.1%
 in-window, so the effect is the drift and not the estimator.
@@ -2028,9 +2187,10 @@ in-window, so the effect is the drift and not the estimator.
 The cost half — the whole reason recomputation was rejected over the option
 that "would fix history retroactively" — holds too, and it is the ratio rather
 than the milliseconds that matters, since those are machine-specific. A
-per-audited-day refit costs **≈1.0× a whole-history fit** (measured 0.95–1.04×
+per-audited-day refit costs **≈1.0× a whole-history fit** (measured 0.93–1.04×
 across runs), and that per-day cost grows **linearly with log volume** —
-~17 ms/day at 1825 logs, ~36 at 3650, ~71 at 7300. So recomputation really is
+~16 ms/day at 1825 logs, ~35 at 3650, ~69 at 7300 (2026-08-06 baseline; the ms
+are machine-specific, the doubling per volume doubling is not). So recomputation really is
 O(auditDays × totalLogVolume), and really does get worse every time the user
 logs anything.
 
@@ -2051,9 +2211,9 @@ opened analytics on — falls back to the live fit, i.e. the old behaviour, per 
 **Why stored rather than recomputed.** The fit as of day D is a pure function of
 the logs dated ≤ D, so it could be refitted instead — and that would fix history
 retroactively, which storing cannot. It is rejected on cost: refitting per
-audited day costs the WHOLE-history fit each time (measured 19 ms per day at the
-volume above, 570 ms for a 30-day audit, against 17.6 ms for one whole-history
-fit), so recomputation is O(auditDays × totalLogVolume) and grows every time the
+audited day costs the WHOLE-history fit each time (measured 16.4 ms per day at
+the volume above, 492.5 ms for a 30-day audit, against 17.7 ms for one
+whole-history fit — 2026-08-06), so recomputation is O(auditDays × totalLogVolume) and grows every time the
 user logs anything — the wrong direction for an instrument read on every visit to
 analytics. Storing is one `put` per day and one range read per report. The
 accepted cost is that the correction only accrues forward from 2026-08-03.
@@ -2073,9 +2233,13 @@ per day, ~60 ms each, loaded after the main view paints).
 The "Your model" card draws each fit's recorded history as a sparkline beside its
 value, over the last 30 **calendar** days. That is deliberately not the audit's
 window, which is the last ≤ 30 **worked** days and so reaches further back for
-anyone who skips days: the audited stretch always contains the plotted one, never
-the reverse, so the sparkline only ever shows movement the audit also scored — but
-the two are not the same span, and the snapshot read is widened past the plotted
+anyone who skips days: once the user has 30 finished logged days the audited
+stretch contains the plotted one, never the reverse, so the sparkline only ever
+shows movement the audit also scored. Before that a plotted day can sit outside
+it — a snapshot is stamped on any day analytics was opened, while an audited day
+must carry logged work, so 25 days of visits against 2 days of work plots wider
+than it audits. Either way the two are not the same span, and the snapshot read
+is widened past the plotted
 window precisely so an older audited day still gets its own recorded fit. The
 last point is the **live** fit rather than today's stored record, or the line
 would contradict the number printed next to it. The row default is inside the
@@ -2111,13 +2275,20 @@ space.** That is the method to reach for first next time.
 
   | ⚡ logs         | 0         | 1     | 5     | 20    | 200   |
   | --------------- | --------- | ----- | ----- | ----- | ----- |
-  | σ_ϕ (h), before | **0.000** | 0.194 | 0.072 | 0.023 | 0.003 |
-  | σ_ϕ (h), after  | **0.411** | 0.194 | 0.072 | 0.023 | 0.003 |
+  | σ_ϕ (h), before | **0.000** | 0.191 | 0.072 | 0.023 | 0.003 |
+  | σ_ϕ (h), after  | **0.411** | 0.191 | 0.072 | 0.023 | 0.003 |
+
+  (the same mid-scale task logged n times; the n = 0 entry is generator-free.
+  Re-measured 2026-08-06, `scripts/rv13-prior-posterior.probe.ts` — the n = 1
+  cell was quoted as 0.194)
 
   So logging your FIRST flow time made the model less confident than logging
   nothing — the priority score visibly dropped (17.90 → 17.80 on the probe
-  day), and the plan changed on 21.7% of random days at n = 1 versus 0% at
-  n = 0. Uncertainty must be monotone decreasing in data; it wasn't.
+  day), and the plan changed on **6.8%** of 1000 seeded random days at n = 1
+  versus 0% at n = 0 — while the prior posterior the fix installs at n = 0 moves
+  **26.3%** of them (2026-08-06; the 21.7% once quoted here is not reachable on
+  any generator I could build). Uncertainty must be monotone decreasing in data;
+  it wasn't.
 
 - **After:** every return carries a posterior. `priorPosterior()` is not a new
   model — it is literally the n = 0 limit of the fitted formulas (XᵀX = 0 ⇒
@@ -2125,7 +2296,8 @@ space.** That is the method to reach for first next time.
   code path to keep in sync. `fitted` is unchanged and still means "the data
   moved the constants", which is what the UI keys on.
 - **Consequence worth knowing:** a brand-new user now gets a hedged plan
-  (σ_ϕ ≈ 0.41h, ≈ 29% of a typical ϕ̂, capped at 0.5·ϕ̂ for short-ϕ tasks).
+  (σ_ϕ ≈ 0.41h, ≈ **24%** of the ϕ̂ at that task — 1.71h, the centre of both
+  sliders — capped at 0.5·ϕ̂ for short-ϕ tasks).
   That is the intended reading of "we know nothing about you yet", but it IS
   a behavior change for the zero-log case, not just a bookkeeping fix.
 
@@ -2143,6 +2315,16 @@ space.** That is the method to reach for first next time.
   | gain < 0, before     | 4%  | 4%  | 10% | 11% | 19% | 17% |
   | gain < 0, after      | 0%  | 0%  | 0%  | 0%  | 0%  | 0%  |
   | naive = 0 (999% cap) | 0%  | 0%  | 0%  | 7%  | 7%  | 14% |
+
+  The two "before" rows are the 2026-07-26 draw and its generator was not
+  committed; neither reproduces. A seeded continuous-baseline replica over 400
+  app-reachable days per count (2026-08-06,
+  `scripts/rv13-naive-lattice.probe.ts`) puts `gain < 0, before` at **4–8% flat**
+  across all six counts rather than rising with n, and `naive = 0` at
+  **0.0 / 1.8 / 6.3 / 8.5 / 12.5 / 15.8%** — that last row is fully determined by
+  P(budget < n·0.25h), so the shipped "0% at n = 3–4 then 7% at n = 5" cannot
+  come from one budget draw. The **after** row reproduces exactly: 0% at every
+  count on both the single-budget and pooled paths over 2400 days.
 
   §11.2 had recorded negative gains as "possible and honest, a consequence of
   the §0 objective". The sweep says otherwise: they were routine, and the
@@ -2163,8 +2345,9 @@ space.** That is the method to reach for first next time.
 - **Unchanged:** the `naive = 0 → GAIN_PERCENT_CAP` case. That is a real
   scenario — the naive planner attempts all n tasks and its switch overhead
   eats the whole budget — and the cap is the honest display for it. It still
-  dominates the MEAN gain at n ≥ 5, so read the mean with that in mind; the
-  typical non-capped day gains ~4–6%.
+  dominates the MEAN gain at n ≥ 5 (and already contributes 72% of it at n = 3),
+  so read the mean with that in mind; the typical non-capped day gains ~4–6% at
+  four tasks or more, and under 3% at two or three (2026-08-06).
 
 ### 13.3 The pooled allocator's "within 1–2%" was a curated-scenario claim (§4, §7)
 
@@ -2195,7 +2378,8 @@ space.** That is the method to reach for first next time.
 - **Measured after (same 1471 days): exact on 99.5%, p99 0.00%, worst 0.09%.**
   Cost 0.32 ms → 0.6 ms per pooled solve (n = 5–7, tight pools) — irrelevant.
 - **That 0.09% is the maximum of one draw, not an envelope** (added 2026-08-05).
-  It replicates exactly on the cited seed, but a fresh draw from the **same
+  It is not independently reproducible — the 1471-day generator was never
+  committed, and no seed was ever cited — but a fresh draw from the **same
   generator** reaches **6.03%** over 19,683 days, keeping the exact rate and the
   p99 — and the tail survives restriction to app-reachable inputs (worst 3.92%
   over 11,434 days). It also exceeds this section's own pre-fix worst of 5.46%:
@@ -2239,17 +2423,28 @@ space.** That is the method to reach for first next time.
   hours it appended the candidate block at the END of the day.
 - **The defect.** Block order changes a marginal through the reservoirs — not
   mainly via the new block's own output, but via what it does to everything
-  after it. The same probe step scored **0.65 appended last vs 0.37 inserted
-  first**, moving the day's indifference point by up to 0.087 in λ₀ units
-  (comparable to the documented +0.1 hi-side bias, and 35% of
-  `STOP_INVERSION_MARGIN`). Since `lo` is a max over all tasks, appending
-  systematically inflated it, biasing λ̂₀ up. None of this was in §8.10's
+  after it. Re-measured over 3182 seeded days carrying an unlogged task
+  (2026-08-06, `scripts/rv13-stop-insertion.probe.ts`): across their 2258
+  two-sided readings the convention moves the day's
+  indifference point by a median 0.0000, **0.070 at p99 and 0.196 at worst** —
+  79% of `STOP_INVERSION_MARGIN`, so the 0.087 once quoted here was the maximum
+  of one draw, not an envelope. (The "0.65 appended last vs 0.37 inserted first"
+  step is not identifiable: the day was never recorded, and on §8.10's own
+  fixture day inserting reads _higher_, 0.719 against 0.652.) And since `lo` is a
+  max over all tasks, appending moved it **either way** — deflating it on 734 of
+  the 939 affected days and inflating it on 205, mean signed midpoint shift
+  −0.002 — so λ̂₀ picked up a convention-dependent error with no reliable sign,
+  not a systematic upward bias. None of this was in §8.10's
   approximation list — the estimator depended on an implementation convention.
 - **After:** the canonical amplitude order is computed over ALL of the day's
   tasks and the candidate is inserted at its own rank. The estimator is now a
   function of the day, not of insertion convention. λ₀-invariance of the
-  extraction and the synthetic round-trip recovery are both unchanged
-  (true 0.3 → 0.297, 0.5 → 0.407, 0.9 → 0.966).
+  extraction and the synthetic round-trip recovery are both unchanged — both
+  conventions give bit-identical midpoints on every day of the §8.10 fixture
+  grid. The recovery trio once printed here (0.3 → 0.297, 0.5 → 0.407,
+  0.9 → 0.966) does not reproduce on the only committed synthetic generator:
+  true 0.9 → 0.892 over windows 8/10/12, true 0.5 yields one usable day, and
+  true 0.3 yields none — every day censored at the window edge (2026-08-06).
 - **Still an approximation, now documented as one:** this does not make the
   marginal order-free. Only knowing the real work order would, and the drain
   logs do not record it.
@@ -2260,7 +2455,8 @@ space.** That is the method to reach for first next time.
   roadmap; `FitPosterior.nEff` went with it.
 - **Two stated-range/comment corrections (no behavior change):**
   - **The stopping multiplier's lower end is 1.5194ϕ, not 1.5ϕ** (§3, §6
-    row 4, and three code comments). 1.5 is the r → 1 asymptote, and
+    row 4, and five code comments — three in `zenith.ts`, two in
+    `metric/calculation.ts`). 1.5 is the r → 1 asymptote, and
     `AMPLITUDE_RATIO_CAP = 0.9` forbids r → 1, so 1.5 was a bound the text
     invited you to read as attained. Nothing consumed the number.
   - **The GH-5 error claim pointed at the wrong term** (§5.1). "Error
@@ -2275,12 +2471,22 @@ space.** That is the method to reach for first next time.
     every tolerance in the model; not worth the churn of a computed constant.
   - `terminalBonus` averages the two reservoirs while Burnout Risk (§11.6)
     takes the min — see §13.6.
-- **Energy-model properties confirmed sound** (no change needed): break
-  "gaming" is bounded — at fixed 6h of work in a 12h window, raw output peaks
-  at 2 chunks (+17%, the intended Jaber–Neumann effect, §8.3) and falls
-  monotonically to 24 chunks; the optimizer matches exhaustive enumeration on
-  a small day; the calibration fits recover synthetic truth with the
-  documented shrinkage.
+- **Energy-model properties, re-scoped 2026-08-06.** Break "gaming" is bounded
+  _on the parameters probed_ — at fixed 6h of work in a 12h window with demand
+  0.8 on a difficulty-8 task, raw output peaks at 2 chunks (+19.5%, the intended
+  Jaber–Neumann effect, §8.3) and falls monotonically to 24 chunks — but it is
+  not bounded in general: at full demand the peak moves out to k = 3 (+70.1% at
+  difficulty 8), k = 4 (+99.2% at 5), k = 8 (+150.7% at 3) and k = 24 (+296.3%
+  at 1), so on an easy full-demand task chopping 6 h into 15-minute pieces
+  nearly quadruples raw output. One of those four is non-monotone after its
+  peak, and by +0.095% — quadrature noise, not a second gaming channel
+  (`scripts/enb-break-economics.probe.ts`, 2026-08-06). What actually pins
+  laundering is §8.4's monotone accumulator on
+  `satiatedOutput`, not this shape. "The optimizer matches exhaustive
+  enumeration" holds only for the small day checked here: over an input space it
+  is exact on 58 of 60 (§8.6, worst 0.5951%). The calibration fits do recover
+  synthetic truth with the documented shrinkage — with §13.4's stopping
+  round-trip the exception noted above.
 
 ### 13.6 The two end-of-day energy readings: a timing difference, not an aggregator one
 
@@ -2291,8 +2497,10 @@ carries two non-identical "how spent are you at the end of the day" numbers.
 
 **The aggregator is second-order — do NOT "fix" it.** Re-scoring plans with
 `min` in place of `avg` moves the objective by ≤ 0.08 and reorders nothing
-(probe 2026-07-26, 10h window, one pure-cognitive and one pure-physical task
-at matched difficulty/enjoyment):
+(probe 2026-07-26, re-measured 2026-08-06 by
+`scripts/rv13-terminal-timing.probe.ts` — every cell reproduces, worst |Δ|
+0.0767; 10h window, one pure-cognitive and one pure-physical task at
+difficulty 8 / enjoyment 6):
 
 | plan            | objective (avg) | objective (min) |
 | --------------- | --------------- | --------------- |
@@ -2400,10 +2608,14 @@ raise their cognitive pool is advising them to lie to the model. Per-task
 difficulty and enjoyment are excluded for the same reason.
 
 **A plan's value** is the model's own objective, Σᵢ P̄ᵢ(tᵢ) over the funded
-tasks (§0/§2) — and it is already computed. Probe 2026-07-27:
-`zenithGain.optimized` equals `Σ avgProductivity` over funded tasks to the
-last digit (6.531452631233891 both ways, n = 5), because
-`pooledProductivityGain` optimizes exactly that sum. So a candidate's cost is
+tasks (§0/§2) — and it is already computed. Measured
+(`scripts/adv1-plan-advice-frontier.probe.ts`, 2026-08-06):
+`zenithGain.optimized` and `Σ avgProductivity` over the funded tasks are the
+same sum on all 600 seeded days — bit-identical on 466 of them and 1–2 ulps
+apart on the rest, worst relative gap 3.5·10⁻¹⁶, because
+`calculateTotalProductivity` adds the terms in the tasks' own order while the
+plan comes back priority-sorted (the code comment says this; "to the last digit"
+here did not). So a candidate's cost is
 `ΔΣP̄ / ΣP̄` and no new quantity enters the model.
 
 **Axes and badness.** Nine readings are searchable, each with a _badness_
@@ -2477,8 +2689,11 @@ Alongside the frontiers the advice reports the active tasks the plan funds no
 hours for. That needs no search, and it is the one piece of advice that is
 purely a read of the existing plan.
 
-**Cost.** One `calculateDailyMetrics` per candidate, so `activeTasks + 3`
-full solves. Measured 2026-07-27 (default constants and pools, 8h budget):
+**Cost.** One `calculateDailyMetrics` per candidate — the deferrable active
+tasks plus at most 3 budget levers, one fewer whenever the dedup drops a
+candidate (14 on a 12-task day) — plus, since §14.2/§14.3, three further solves
+per run (one `calculateTaskPlan`, two `calculateZenithGain`).
+Measured 2026-07-27 (default constants and pools, 8h budget):
 1.6 ms per solve at 3 tasks, 3.9 at 6, 12.5 at 9, **95 at 12** — the 2ⁿ
 funded-subset enumeration of §4, which the linear candidate count amplifies
 into 12 ms for a 6-task day but **946 ms for a 12-task one**. Advice is
@@ -2562,12 +2777,15 @@ bite on.
 
 **1. `budget + 1` was an unpriced lever competing on the priced axis, and it
 evicted real alternatives.** Σ P̄ is monotone non-decreasing in the budget —
-probe: `budget + 1` raised plan value on 128 of 200 days and lowered it on
-**none** — so `budget + 1` holds the highest plan value of every candidate.
+probe (`scripts/adv1-plan-advice-frontier.probe.ts`, 2026-08-06): `budget + 1`
+raised plan value on **297 of 600** seeded days, left it flat on 303, and lowered
+it on **none** — so `budget + 1` holds the highest plan value of every candidate.
 Once the domination walk kept it, `bestValue` was maximal and every later
 candidate was discarded. Where it also had the largest improvement the frontier
 collapsed to it alone: **99 of 1580** frontiers were `budget + 1`-only, and in
-**75** of those an improving defer existed and was dominated off the menu. On
+**75** of those an improving defer existed and was dominated off the menu — both
+counts measured on the 2026-07-28 pre-fix sweep, since discarded; the mechanism
+is what the suite pins now. On
 those axes the card's entire advice was "work more".
 
 The domination test was never wrong about plan value; the lever was wrong about
@@ -2590,12 +2808,15 @@ have to make it parametric.
 **2. Quarter-rounding the budget levers broke the pure trim.** The hours were
 `Math.round(h * 4) / 4`, which this document never said. Switch cost steps in
 5-minute units while the budget steps in quarters and allocations come in 0.75 h
-blocks (§8.8), so `planSlack` is usually not quarter-aligned: **132 of 200**
-days had off-quarter slack. Two consequences, both reproduced. Rounding _down_
+blocks (§8.8), so `planSlack` is usually not quarter-aligned: **246 of 404**
+trim levers are off-quarter (re-measured 2026-08-06 on the same 600 seeded days
+as §14.1-2 below, `scripts/adv1-plan-advice-frontier.probe.ts`). Two
+consequences, both reproduced. Rounding _down_
 cut past the hours the plan actually spends — budget 1.5 with slack 0.15 gives
 1.35, rounded to 1.25, so 0.1 h of funded time went with it and the trim was no
-longer free (**58 of 200** days). Rounding _up_ to the budget made the dedup
-filter delete the lever outright (**50 of 200** days), silently losing one of
+longer free (**114** levers round down, **107** of them lose value). Rounding
+_up_ to the budget made the dedup
+filter delete the lever outright (**65 of 404**), silently losing one of
 the three candidates this section promises.
 
 Fix: drop the rounding from the model. `Math.ceil` was considered and rejected —
@@ -2634,19 +2855,22 @@ trim is the lever that keeps the plan **feasible**, not the lever that is free.
 **3. A zero-value baseline reported gains as free.** With `baseValue = 0` (a
 0 h budget, nothing funded) the guard returned `0` for every option, and the
 card renders 0 as "costs no plan value" — so a lever that _created_ value read
-as costless. Probe: at budget 0, `set-budget 1h` reached plan value 2.568 and
-displayed "costs no plan value". Fix: the delta is `null` there, and the card
+as costless. Probe: at budget 0, `set-budget 1h` reached a positive plan value
+and displayed "costs no plan value" (the 2.568 once quoted here has no recorded
+day; the suite's own budget-0 grind day gives 1.038). Fix: the delta is `null`
+there, and the card
 renders `null` as N/A. There is no ratio to a zero baseline, and saying so is
 cheaper than inventing one.
 
 **4. Card truncation dropped the end of the frontier this section exists to
 surface.** The walk keeps only strictly increasing plan values, so the frontier
-is monotone in plan value by construction — 0 of 1580 frontiers violated it —
+is monotone in plan value by construction — 0 of 4450 priced frontiers violate
+it (2026-08-06, `scripts/adv1-plan-advice-frontier.probe.ts`) —
 which makes the **last** row the cheapest option, the "most of the relief for a
 fraction of the cost" one. `slice(0, maxOptions)` therefore cut exactly that.
-Rare but exactly backwards when it fired: 16 of 1580 frontiers exceeded 3
-options, longest 5. Fix: keep both ends — `maxOptions − 1` from the front plus
-the last — and drop from the middle.
+Rare but exactly backwards when it fired: **15 of 4450** frontiers exceed 3
+options, longest **4** (2961 hold a single option). Fix: keep both ends —
+`maxOptions − 1` from the front plus the last — and drop from the middle.
 
 **5. The empty plan read as perfectly balanced, and the advisor chased it.**
 Found in live use the same day, not by the sweep — the sweep's budgets started
@@ -2694,8 +2918,10 @@ nothing completed the sum is the plan's own Σ P̄ rise exactly.
 
 The recipient is the **largest** gainer rather than the only one: the pooled
 path's transfer and admission moves (§13.3) can reshuffle several tasks to fit
-the new block in. Multi-gainer days are real but rare — 36 of 600 probe days,
-5 of them with gainers of differing size — which is why the tie-break is pinned
+the new block in. Multi-gainer days are real but rare — **22 of 400** probe days,
+**2** of them with gainers of differing size (re-measured 2026-08-06,
+`scripts/adv2-budget-marginal.probe.ts`; the 36-of-600 pair was the lost sweep's)
+— which is why the tie-break is pinned
 by a fixture found in that sweep rather than a curated day, where it never bites.
 
 **Why open-scoped, and not the whole plan.** The allocator is blind to
@@ -2732,31 +2958,39 @@ gain, and "goes to X · +0% plan value" is the same non-advice.
 0.25 h steps, switch cost 5–30 min in 5-min steps, **no completed tasks** (which
 is why the scoping above was found by review rather than by the sweep):
 
-- **On 35% of days another block buys nothing at all** (140/400: no recipient,
-  gain 0).
-- **On 100% of those days the card was still offering "work an extra hour."**
+- **On 54% of days another block buys nothing at all** (216/400: no recipient,
+  gain 0 — re-measured 2026-08-06; the 35% once printed here does not reproduce
+  under any reading of this space).
+- **On all but one of those days (215/216) the card was still offering "work an
+  extra hour."** The exception funds 3 tasks for 1 h inside a 7.75 h budget with
+  pools 5/0.5: both Load axes are rounded to whole percent, so on a pool-starved
+  day the wider budget moves no axis at all and no lever is offered.
   Not a defect in §14.1-1's split, which was about domination, not about
   suppression: Cognitive and Physical Load are `weightedHours / budget` (§11),
   so a wider budget lowers them by denominator mechanics with no allocation
   change whatsoever, and that reading is true. It is also, on those days, the
   entire content of the advice — the extra hour changes the ratio and buys no
   work. This line is what says so.
-- Where a block does buy something, it is worth a **median 3.0%** of plan value,
-  **p90 9.1%**.
-- The recipient is the **top-priority task only 33.5%** of the time, so the
+- Where a block does buy something, it is worth a **median 2.9%** of plan value,
+  **p90 10.3%**.
+- The recipient is the **top-priority task only 28.3%** of the time, so the
   reading is not a restatement of the priority column.
 
 **A per-task marginal column is still the wrong shape — but not for the reason
 this was planned under.** The plan record (and ROADMAP item 3) asserted that
 marginals equalize at the optimum, so a column would degenerate. **Measured, it
-does not.** Over the 257 multi-task days, the naive column — bump task _i_'s
+does not.** Over all 400 days (394 of which fund more than one task), the naive
+column — bump task _i_'s
 hours by one block on the curve, hold the rest — has relative spread
-`(max − min)/max` with **median 0.265, p90 0.803, max 0.994**; only **20.6%**
-fall under 0.10. Greedy marginal analysis (§4) equalizes only in the sense that
+`(max − min)/max` with **median 0.573, p90 0.977, max 1.061**; only **8.1%**
+fall under 0.10 (2026-08-06 — the old 0.265 / 0.803 / 20.6% trio is not
+reachable on this space under any column definition I could reconstruct, and the
+conclusion holds more strongly than it claimed). Greedy marginal analysis (§4) equalizes only in the sense that
 every funded task's next block sits _below_ the admission cutoff, and that is a
 wide band, not a point. The related guess that tasks run to `T*` would price at
-zero is also wrong: **0 of the funded tasks** sat at or past their peak, because
-the allocator stops admitting blocks well before a task's increment reaches 0.
+zero is also wrong, and only just: **15 of 1651 funded tasks** (0.9%) sat at or
+past their peak. Blocks are admitted while `Δ(j) > 0`, which can still hold a
+hair past `T*`, so "0 of the funded tasks" was too strong.
 
 Two reasons that do survive:
 
@@ -2766,14 +3000,19 @@ Two reasons that do survive:
    corresponds to.
 2. **The column is arithmetic on a curve, not a solve.** It ignores both
    capacity pools and the switch cost, so it is not a feasible plan. Its best
-   entry **overstates** what a wider budget actually delivers on **16.0%** of
-   days (mean overstatement 0.005 in Σ P̄ units). The budget marginal re-solves,
+   entry **overstates** what a wider budget actually delivers on **63.0%** of
+   days (mean overstatement 0.18 in Σ P̄ units; on the days the marginal is
+   non-zero, 21.9% and 0.10 — re-measured 2026-08-06,
+   `scripts/adv2-budget-marginal.probe.ts`, against the lost sweep's 16.0% and
+   0.005). The budget marginal re-solves,
    so what it reports is what the model would really produce.
 
 **A zero marginal does not retire the unpriced `budget + 1` lever, and must not
-be wired to suppress it.** The two co-occur constantly: on the **35%** of probe
-days where another block buys no Σ P̄, **every one** still offered the extra hour
-somewhere on the menu. That is not a contradiction, because the two readings
+be wired to suppress it.** The two co-occur constantly: on the **54%** of probe
+days where another block buys no Σ P̄, **all but one** still offered the extra
+hour somewhere on the menu (216/400 and 215/216, as measured above — this
+paragraph carried the superseded 35% and "every one" pair).
+That is not a contradiction, because the two readings
 measure different things. The marginal is Σ P̄ — output. The lever appears on any
 axis it improves, and Cognitive and Physical Load are `weightedHours / budget`
 (§11), so on precisely these days the numerator is frozen and the whole
@@ -2888,11 +3127,16 @@ sign is not a reading; it is §13.3's pooled greedy falling short at the other `
 stored budget, switch cost and pools, 0 of 298 days invert — an exact measurement
 that licenses nothing beyond itself. Move only the pool inputs or the budget onto
 other values the constraints bar itself offers and the sign flips both ways. Over
-178,800 grid configurations across the 298 days: **322 visible inversions, 181 of
-them past 1%, worst free arm −6.53%** (2026-05-14, budget 3 h, pools 0.5/2,
-`s = 5 min`) and **worst doubled arm +1.95%**. With both pools held at ≥ 1 h the
-worst is still −2.76%. **43 of them need no change to `s` at all** — budget and
-pools alone. Brute force over that day confirms the diagnosis: the `s = 5 min`
+71,520 grid configurations across the 298 days (budgets 1/2/3/4/6 h × pools
+{0.5, 1, 2, 4} × {0.5, 1, 2, 6} h × `s` 5/15/30 min): **112 visible inversions,
+70 of them past 1%, worst free arm −6.53%** (2026-05-14, budget 3 h, pools
+0.5/2, `s = 5 min`) and **worst doubled arm +1.36%**; with both pools held at
+≥ 1 h the worst free arm is −1.34%. **40 of them need no change to `s` at all** —
+budget and pools alone. (The original run quoted 322 / 181 / +1.95% / −2.76% over
+"178,800 configurations" without saying what the grid was; the rate is the same
+order — 0.16% of configurations here against 0.18% — and the −6.53% counterexample
+is exact on the same day and inputs. 2026-08-06,
+`scripts/adv2-switch-cost-price.probe.ts`.) Brute force over that day confirms the diagnosis: the `s = 5 min`
 plan is itself feasible at `s = 0` and already achieves the exact `s = 0`
 optimum, so the unclamped card told the user that making switching free would
 _cost_ them 6.5%.
@@ -2901,7 +3145,7 @@ The magnitude is **not** bounded by §13.3's "worst 0.09% short". That figure is
 the maximum of one draw, not an envelope (§13.3), so nothing here may rest on it.
 
 **Why a clamp and not a floor.** Flooring the delta rewrites 284 of 596 fixture
-alternatives (median −13.35%) to "0% plan value" and deletes the doubled arm's
+alternatives (median −13.26%) to "0% plan value" and deletes the doubled arm's
 entire message — that over-declaring is the expensive direction. The per-arm
 clamp moves only the provably impossible sign, and only to 0: every informative
 value passes through untouched. What it costs is exactness against the app rather
@@ -2909,7 +3153,7 @@ than against the model — on an inverting day the card now reads "0%" while
 actually typing `s = 0` would show the allocator's lower value. That trade is
 deliberate: a conservative reading in the provable direction misleads no one,
 while "switching free costs you 6.5%" is indistinguishable from a real reading
-and contradicts the model. The test pins both directions — a symmetric floor and
+and contradicts the model. Two tests pin both directions — a symmetric floor and
 a clamp applied the wrong way round each go red.
 
 Note the value is read through `calculateZenithGain` rather than by summing
@@ -2923,14 +3167,22 @@ the real `calculateZenithGain`. Relative change in Σ P̄ from `s = 0.25`:
 
 | days               | → `s = 0.5` median |   mean |    p90 | days moved | → `s = 0` median |
 | ------------------ | -----------------: | -----: | -----: | ---------: | ---------------: |
-| all (298)          |             12.56% | 11.75% | 19.97% |     95.30% |           10.95% |
-| 2–4 tasks (180)    |              8.51% |  9.04% | 16.71% |       100% |            7.50% |
-| 5+ tasks (104)     |             18.80% | 18.02% | 20.90% |       100% |           20.07% |
-| budget < 4 h (216) |             15.30% | 13.36% | 20.50% |     96.76% |           14.08% |
+| all (298)          |            −12.56% | 11.75% | 20.09% |     95.30% |           10.96% |
+| 2–4 tasks (180)    |             −8.47% |  9.04% | 17.00% |       100% |            7.58% |
+| 5+ tasks (104)     |            −18.77% | 18.02% | 20.91% |       100% |           20.15% |
+| budget < 4 h (216) |            −15.23% | 13.36% | 20.52% |     96.76% |           14.12% |
+
+The `→ s = 0.5` median is **negative** — doubling the declaration lowers plan
+value, as §14.3's own monotonicity says it must. It was printed unsigned here,
+which read as if raising `s` raised value; the mean and p90 columns are
+magnitudes. Re-measured 2026-08-06,
+`scripts/adv2-switch-cost-price.probe.ts` (every other cell reproduced to
+≤ 0.1 pp).
 
 - **It is not the constants.** Re-run under the fixture's own ground-truth
   `c₁ = 0.72, c₂ = −0.38, c₃ = 0.34` instead of the defaults, the 2–4-task median
-  moves from 8.51% to **8.54%** and the all-days median from 12.56% to 12.60%.
+  moves from 8.47% to **8.50%** and the all-days median from 12.56% to 12.54% —
+  it falls, where this line used to report a rise to 12.60% (2026-08-06).
   The reading is a property of the budget arithmetic, not of the ϕ fit.
 - **It survives on real days.** The author's four logged days (2–3 tasks, 2 h
   budgets) read a median **8.14%**, against the 1% kill threshold this item was
@@ -2963,10 +3215,13 @@ instrumentation and are not comparable to §14/§14.2's figures.
 
 **Not built: fitting `s` from the plan.** Estimating the user's switch cost from
 their observed funded-task count died on three measurements (ROADMAP item 17):
-`m(s)` is not monotone (609 violations over 400 days × 101 `s` values), the
-median one-day bracket is 0.39 h wide against a [0,1] h range with 14% of days
-consistent with the entire range, and one mis-counted task shifts the bracket
-edge by a median 0.34 h. The diagnostic reports what the declaration does; it
+`m(s)` is not monotone (195 violations on 115 of the 298 fixture days × 101 `s`
+values; the original 609-over-400-days count named no day set), the
+median one-day bracket is **0.50 h** wide against a [0,1] h range with **25%** of
+days consistent with the entire range, and one mis-counted task shifts the
+bracket edge by a median 0.34 h — all three worse than the 2026-08-04 figures,
+so the conclusion stands harder (2026-08-06,
+`scripts/adv2-switch-cost-price.probe.ts`). The diagnostic reports what the declaration does; it
 does not infer the declaration.
 
 ## 15. Two objectives, two modes (2026-07-29)
@@ -2977,26 +3232,37 @@ The gate is withdrawn: the two models are **peer modes**, and no evidence could
 have decided between them, because "better" is not a property either objective
 can report about the other.
 
-**Cross-scoring probe** (300 random days, 2–6 tasks, budget 3–11 h, default
-pools/switch cost/energy params, deterministic seed; both plans scored under
-both objectives — classic `Σ P̄` over per-task totals, energy `objective` from
+**Cross-scoring probe** (`scripts/mode-cross-scoring.probe.ts`, rebuilt and
+committed 2026-08-06, seed `0x290729`; 300 random days, 2–6 tasks, budget
+3–11 h, default pools/switch cost/energy params; both plans scored under both
+objectives — classic `Σ P̄` over per-task totals, energy `objective` from
 `evaluateSchedule` with the classic plan converted the Lab's way, interleaved
-order and switch costs as rest gaps):
+order and switch costs as rest gaps). The 2026-07-29 run recorded no seed, so
+its counts are a different draw, shown in brackets:
 
-| plan    | under classic `Σ P̄`                       | under the energy objective                |
-| ------- | ----------------------------------------- | ----------------------------------------- |
-| classic | **wins 276/300**, median +37.5%, p90 +90% | loses 0/300                               |
-| energy  | wins 24/300                               | **wins 300/300**, median +18.4%, p90 +43% |
+| plan    | under classic `Σ P̄`                             | under the energy objective                      |
+| ------- | ----------------------------------------------- | ----------------------------------------------- |
+| classic | **wins 283/300** [276], median +38.8%, p90 +97% | wins 2/300                                      |
+| energy  | wins 17/300 [24]                                | **wins 298/300** [300], median +17.4%, p90 +48% |
 
 Each model beats the other by tens of percent on its own scale. That is not a
 close call awaiting better data; it is two definitions of a good day.
 
-**The 24 exceptions are not an allocator defect.** Controlled by re-solving the
+The energy column is **not** a clean sweep, and the earlier "loses 0/300" was
+the same cell stated backwards. The classic plan wins the energy objective on
+2 of 300 days because it is laid out in 15-minute blocks while `optimizeSchedule`
+searches the 45-minute lattice (§8.8) — the energy plan is a maximum over that
+lattice, not over all schedules, so "never" was never a property of it.
+
+**The exceptions are not an allocator defect.** Controlled by re-solving the
 classic allocator with a budget that hands it exactly the energy plan's work
-hours (`(m−1)·switchCost` added back): 20 days still scored below the energy
-plan under `Σ P̄`, and **all 20 are infeasible for the classic allocator** —
-cognitive load 4.05–7.28 h against the 4 h pool, one at 7.57 h physical against
-6 h. The energy model has no pool constraint at all (§8 substitutes reservoir
+hours (`(m−1)·switchCost` added back): 16 of the 17 still scored below the
+energy plan under `Σ P̄` [2026-07-29: 20 of 24], and **every one of them is
+infeasible for the classic allocator** — cognitive load 4.35–7.20 h against the
+4 h pool, physical up to 7.20 h against 6 h. The load-bearing half of this
+paragraph is the "every one", and it reproduces on both draws; the counts do
+not, since the first draw recorded no seed. The energy model has no pool
+constraint at all (§8 substitutes reservoir
 dynamics), so it plans days the pooled allocator is forbidden to emit. On the
 plans it is allowed to emit, the classic allocator never loses its own
 objective.
@@ -3004,11 +3270,11 @@ objective.
 **How they differ, quantified.** The disagreement is systematic, and it is
 about concentration — the §0 spreading question, measured:
 
-- Funded tasks per day: energy **2.05** vs classic **3.88**. Energy funds
-  **more on 0 of 300 days** — not once.
-- Composition overlap `Σ min(share)`: mean 0.61, median 0.59, p10 0.36.
-  Identical funded set on **49/300 days (16%)**.
-- Work planned: energy **91%** of budget (median 94%) vs classic **81%**
+- Funded tasks per day: energy **1.97** vs classic **3.96** [2.05 / 3.88].
+  Energy funds **more on 0 of 300 days** — not once, on either draw.
+- Composition overlap `Σ min(share)`: mean 0.58, median 0.58, p10 0.33.
+  Identical funded set on **30/300 days (10%)** [49/300, 16%].
+- Work planned: energy **92%** of budget (median 94%) vs classic **81%**
   (median 83%), despite λ₀ pricing free time. Classic reserves
   `(m−1)·switchCost` as overhead and caps each task at `T*` (past `T*`, `Σ P̄`
   falls); the energy model pays no fixed switch cost and keeps going past `T*`
@@ -3020,8 +3286,11 @@ about concentration — the §0 spreading question, measured:
   behaviour tracks — not a promotion gate. It cannot separate "the model is
   right" from "the user was right and it learned to imitate them".
 - §13.6's two blockers (no peak-depletion term; `availableHours` meaning two
-  things) stay **latent, not fixed**: nothing outside `/energy` reads the
-  energy plan, and the Lab shows no metrics. They become live only if a metric
+  things) stay **latent, not fixed**: the only reader outside `/energy` is
+  §12's audit (`plan-audit.ts` runs `optimizeSchedule` per audited day, and
+  `/analytics` renders the overlap), and what that scores is composition
+  overlap — defined identically for both planners — while the Lab itself shows
+  no metrics. They become live only if a metric
   defined against the classic allocation is ever pointed at the energy plan.
   The second one's _input_ was merged the same day — one budget, written from
   either page — which is peer symmetry applied to the day's hours, not a step
@@ -3046,8 +3315,9 @@ reservoir law refills `C` at `r'·g·(1−C)` whenever the current task's demand
 that reservoir is low — which is precisely the effect alternation gropes for.
 The heuristic is a crude version of the same physics, not a rival to it.
 
-**Order-only probe** (300 random days, 3–8 tasks, budget 4–10 h, default
-pools/switch cost/energy params, deterministic seed). The classic allocation is
+**Order-only probe** (`scripts/mode-run-order.probe.ts`, rebuilt and committed
+2026-08-06, seeds `0x290716` / `0x160729`; 300 random days, 3–8 tasks, budget
+4–10 h, default pools/switch cost/energy params). The classic allocation is
 held **fixed** — same funded set, same hours, same `stretch = 1 + overhang /
 allocated` and switch-costs-as-rest that §11.6 applies — and only the sequence
 varies, scored by `evaluateSchedule().objective`. Exhaustive over all
@@ -3056,19 +3326,21 @@ above that.
 
 | comparison                     | median     | p90     | max     |
 | ------------------------------ | ---------- | ------- | ------- |
-| best ordering vs interleaved   | **+0.47%** | +2.03%  | +5.02%  |
-| best vs worst (whole spread)   | +7.31%     | +11.58% | +19.80% |
-| interleaved vs plain priority  | 0.00%      | +1.19%  | +3.35%  |
-| — on the 118 days it re-orders | +0.32%     | +2.12%  | +3.35%  |
+| best ordering vs interleaved   | **+0.47%** | +1.50%  | +3.96%  |
+| best vs worst (whole spread)   | +7.07%     | +11.25% | +17.74% |
+| interleaved vs plain priority  | 0.00%      | +1.10%  | +3.58%  |
+| — on the 123 days it re-orders | +0.32%     | +1.52%  | +3.58%  |
 
-Order matters (7.31% median spread between best and worst), and interleaved
-lands at the **6.24th percentile** of orderings (p90: 30th), outright optimal on
-**60/300** days. Because the fixed allocation is an upper bound on what any
-order-only change can win, **0.47% bounds the solver's own order too**.
+Order matters (7.07% median spread between best and worst), and interleaved
+lands at the **5.83th percentile** of orderings (p90: 23rd), outright optimal on
+**42/300** days (14%). Because the fixed allocation is an upper bound on what
+any order-only change can win, a **median 0.47% bounds the solver's own order
+too** — a median, not a ceiling: p90 1.50%, max 3.96%.
 
 **Alternation earns its keep, on the days it fires.** It changes the sequence on
-only **118/300 days (39%)** — 44% of tasks land `'balanced'` under the ±3
-threshold, and balanced contrasts with everything, so the greedy degenerates to
+only **123/300 days (41%)** — 44% of integer slider pairs land `'balanced'`
+under the ±3 threshold (47% of the probe's funded tasks), and balanced contrasts
+with everything, so the greedy degenerates to
 priority order. The 0.00% overall median is that no-op rate, not a null effect:
 where it fires it gains a median 0.32% over plain priority.
 
@@ -3077,16 +3349,20 @@ drain.** Burnout Risk (§11.6) under interleaved minus under the
 objective-maximizing order, in points:
 
 ```text
-min −26.95   p10 −7.47   median 0.00   mean −0.02   p90 +7.54   max +33.67
-|Δ| > 5 points on 101/300 days (34%)
+min −23   p10 −7   median 0   mean −0.54   p90 +7   max +23
+|Δ| > 5 points on 89/300 days (30%)
 ```
 
-Two-sided noise with no systematic direction. This is expected, not anomalous:
-in §8 drain is not a cost term — it enters the objective only through the
-reservoirs' effect on output, so a sequence chosen to maximize output has no
-reason to end the day rested. Adopting it would move a displayed health metric
-by >5 points on a third of days in an arbitrary direction to buy ≤0.47% on an
-objective the main page does not use.
+Whole points, because that is what the metric reports (`Math.round`, §11.6) —
+the decimals this block once carried could not have come from Burnout Risk at
+all. Two-sided noise with no systematic direction. This is expected, not
+anomalous: the energy objective's only energy term is
+`terminalBonus = terminalEnergyValue·(C_cog(T) + C_phys(T))/2`, the **mean** of
+the two end reservoirs, while Burnout Risk reads the **min**. A sequence that
+maximizes the objective is free to spend the reservoir the metric displays, so
+the Δ has no reason to take a side. Adopting it would move a displayed health
+metric by >5 points on a third of days in an arbitrary direction to buy a median
+0.47% (p90 1.5%) on an objective the main page does not use.
 
 **Consequences.**
 
@@ -3100,7 +3376,7 @@ objective the main page does not use.
 - §12 and §15's classic baseline keep their current sequencing, so their figures
   stand unrevised.
 - Caveat on generalization: uniform-random difficulties produce the 44% balanced
-  rate, so a real task list may re-order more or less often than 39% of days.
+  rate, so a real task list may re-order more or less often than 41% of days.
   The bound on the _gain_ does not depend on that rate.
 
 ## 17. Per-task ϕ offsets stay unbuilt (2026-08-04)
@@ -3158,8 +3434,9 @@ budget, scored the same way):
 | 0        | 4 h    | 6 logged           | −0.01% | 0.00%  | 20%   | −0.1    |
 
 `oracle` is the plan built from each task's TRUE ϕ — the ceiling on any
-per-task-ϕ work. The offsets capture 85–93% of that ceiling once data is
-plentiful, so the fit is not what limits this; **the ceiling is**. Plans do
+per-task-ϕ work. The offsets capture 84–93% of that ceiling at `τ_true = 0.6 h`
+once data is plentiful (72% at 1.0 h), so the fit is not what limits this;
+**the ceiling is**. Plans do
 move — a different block vector on 38% of days at plausible `τ_true` — by a
 mean 0.38 blocks (≈6 min), worth 0.4 equivalent budget-minutes. The funded set
 changes only at a 2 h budget (18–28% of days), which is also the only cell
@@ -3180,7 +3457,8 @@ plan):
 **Half an hour of per-task ϕ error costs ~0.3% of the day.** `P̄` is flat at
 `T*` (§3: `P̄′(T*) = 0`), so mis-timing is second-order — the loss is `O(ΔT²)`
 — and the only first-order decision, which tasks get funded at all, moves only
-when the budget is tight. The U-shape is that trade: at 1 h the funded set
+when the budget is tight. The U-shape (for `s ≥ 0.2 h`; the `s = 0.1 h` column
+is flat) is that trade: at 1 h the funded set
 decides everything, at 10 h each task sits near its own `T*` where a wrong
 `T*` wastes time no other task can use, and 4–6 h is the flat middle. **Price
 any future per-task-ϕ proposal against this table before building it.**
@@ -3193,7 +3471,9 @@ and computes the oracle in-probe (max over funded subsets of greedy on the
 true-ϕ menus — exact by §4, and now measured exact by
 `allocator-exactness.probe.ts`). At `s = 0` the oracle reproduces the shipped
 allocation to 5·10⁻¹⁵ on all 1000 (day, budget) pairs, which is what makes the
-rest readable. 400 days × 6 tasks, mean ΣT* = 18.6 h:
+rest readable. Everything else in §17 dated 2026-08-04 — the held-out-RMSE
+table, the plans table, the λ_δ→∞ pin and the σ_ϕ trio — rests on that same
+deleted sweep and has NOT been re-derived. 400 days × 6 tasks, mean ΣT* = 18.6 h:
 
 | budget | s = 0.1 h | 0.2 h | 0.4 h | 0.8 h | 1.6 h |
 | ------ | --------- | ----- | ----- | ----- | ----- |
@@ -3203,19 +3483,27 @@ rest readable. 400 days × 6 tasks, mean ΣT* = 18.6 h:
 | 6 h    | 0.01      | 0.04  | 0.15  | 0.61  | 8.22  |
 | 10 h   | 0.01      | 0.05  | 0.22  | 2.11  | 17.23 |
 
-Same U, same headline — half an hour of error costs a few tenths of a percent,
-and the small-`s` cells that headline rests on agree closely.
+Same U, same headline: half an hour of error costs a few tenths of a percent.
+Cell by cell the two grids agree to within **0.54 pp** everywhere at `s ≤ 0.4 h`
+— but the worst RATIOS sit exactly where the values are smallest, so "the small-`s`
+cells agree closely" was true in points and false in ratio: (10 h, 0.1 h) reads
+0.01 against 0.05 (**5.0×**), (10 h, 0.2 h) 0.05 against 0.16 (3.2×), (10 h,
+0.4 h) 0.22 against 0.59 (2.7×). At `s ≥ 0.8 h` the gaps are large in points too
+and reach 2.4×: 17.23 against 7.25 at 10 h, 8.22 against 3.58 at 6 h, 14.86
+against 11.61 at 1 h — while the `s = 0.8 h` column is the second-_best_-agreeing
+one — its worst ratio, 1.61×, is the smallest of all five columns — so the
+backed/unbacked split this section used to draw at `s = 0.8 h` is not where the
+disagreement lives at all.
 
-**The large-`s` cells do not, and the reason is not established.** At
-`s = 1.6 h` this grid reads 17.23 against 7.25 at a 10 h budget, 8.22 against
-3.58 at 6 h, and 14.86 against 11.61 at 1 h — up to 2.4× apart. The likeliest
-explanation is that the two synthetic grids differ (this one draws 6 tasks to a
+**Read either grid for the order of magnitude of a cell, never for its value.**
+What survives both is the shape — U-shaped in the budget, `O(s²)` at small `s` —
+and the headline. The likeliest cause of the spread is that the two synthetic
+grids differ (this one draws 6 tasks to a
 mean ΣT* of 18.6 h against the 2026-08-04 grid's stated 19.4 h, and a 1.6 h
 displacement is a large fraction of a short ϕ, so the tail is sensitive to the
 task mix). But that is a hypothesis, not a measurement, and the original grid
-is gone — so it cannot be checked by re-running it. Treat the small-`s` half of
-this table as backed and the `s ≥ 0.8 h` half as order-of-magnitude only. If a
-future proposal ever turns on a large-`s` cell, re-derive that cell first.
+is gone — so it cannot be checked by re-running it. If a
+future proposal ever turns on a specific cell, re-derive that cell first.
 
 The
 funded-set channel the paragraph credits for the U-shape is now measured
@@ -3292,8 +3580,10 @@ arithmetic.
 - **What it costs.** A task worked twice a day now produces two rows where it
   produced one, so multi-log days get commoner — and §8.7's fresh-start
   assumption is measurably harder on those: α̂ is unbiased at one 🪫 log per
-  day and drifts +17%/+15% (cog/phys) at two, +28%/+22% at three (probe
-  2026-08-04, ROADMAP item 18). That bias is not new and the upsert did not
+  day and drifts +17%/+15% (cog/phys) at two, +28%/+22% at three (measured
+  2026-08-04 with an **uncommitted** variant of `scripts/generate-fixture.mjs` —
+  the committed script hard-codes the 🪫 opt-in and cannot emit those cells, so
+  read the direction, not the percentages; ROADMAP item 18). That bias is not new and the upsert did not
   avoid it: it hid the second session instead, paying the same α cost the
   moment two DIFFERENT tasks were rated in a day while also corrupting the
   hours §8.10/§8.11/§12 read. The honest fix for the α side is chaining the

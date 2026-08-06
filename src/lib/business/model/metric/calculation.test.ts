@@ -282,6 +282,29 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		);
 	});
 
+	it('with NOTHING funded, one more dropped task does move the risk (§11.3 scope)', () => {
+		// §11.3 claimed the dropped-task invariance above without qualification.
+		// It only holds while the plan funds something: with nothing funded the
+		// reading simulates the declared budget at the task list's AVERAGE demands
+		// (§11.6), so another task moves the average and the number.
+		const unfunded = work({
+			suggestedHours: 0,
+		});
+
+		const dropped = makeSuggested({
+			id: 2,
+			title: 'gym',
+			mentalDifficulty: 1,
+			physicalDifficulty: 8,
+			enjoyment: 7,
+			suggestedHours: 0,
+		});
+
+		expect(calculateBurnoutRisk([unfunded], 10, 0.25)).not.toBe(
+			calculateBurnoutRisk([unfunded, dropped], 10, 0.25),
+		);
+	});
+
 	it('budget beyond the funded plan (intended overwork) raises the risk', () => {
 		// availableHours = hours the user INTENDS to work (§11.3 reading):
 		// the same plan under a bigger declared budget simulates more drain.

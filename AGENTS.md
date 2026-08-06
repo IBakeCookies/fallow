@@ -667,14 +667,18 @@ of its allocation code, so the main page is unaffected by changes here.
   `g = 1−(1−b)·w` (`b = microRecoveryFraction`, default 0.05) and
   `r' = recoveryRate·restRecoveryMultiplier` — closed-form exponential per
   block, no ODE solver. The gate keeps a full-demand (w = 1) task above the
-  floor `b·r'/(α+b·r')` instead of draining to zero; without it, demand 10 vs
-  9.5 flips the plan (knife edge). A `(1−w^q)` gate does **not** fix this
-  (still 0 at w = 1, probe-verified) — don't re-propose it. `b = 0` recovers
-  the pure `(1−w)` gate. §8.5.
+  floor `b·r'/(α+b·r')` instead of draining to zero; without it there is no
+  basal floor at all (the 2026-07-14 "demand 10 vs 9.5 flips the plan" cliff
+  does not reproduce under today's search — §8.5). A `(1−w^q)` gate does **not**
+  fix this (still 0 at w = 1, probe-verified) — don't re-propose it. `b = 0`
+  recovers the pure `(1−w)` gate. §8.5.
 - Output gate is Cobb-Douglas: `C_cog^wc · C_phys^wp`, demands
-  `w = dimensionDifficulty/10`. Block output uses composite Simpson with ≥16
-  nodes per fastest timescale (min of ϕ, 1/ρ) — relative error ~1e-6 even for
-  near-floor ϕ tasks in long blocks.
+  `w = dimensionDifficulty/10`. Block output uses composite Simpson with 16
+  nodes per fastest timescale (min of ϕ, 1/ρ), **capped at 1024 nodes** — so at
+  the 0.1h ϕ floor the density falls once a block exceeds 6.4h: relative error
+  is ~3e-7 up to 6h, 6.9e-7 at 8h, 1.7e-6 at 10h, 3.5e-6 at 12h and 5.6e-5 in a
+  24h block (`scripts/enb-simpson-error.probe.ts`). Under default constants
+  (min ϕ = 0.58h) the cap never binds.
 - The optimizer is a deterministic multi-seed steepest-ascent local search
   over (task|rest, duration) block schedules: not slot-greedy (myopic, never
   rests), not full DP. Pure single-step moves strand ~1% of the objective and
@@ -822,20 +826,42 @@ could not be re-checked and stayed in the document while being false.
 `MATH.md` carries a dated back-reference to its probe). A `MATH.md` number with
 no probe citation beside it is unbacked — that is the list to work down.
 
-| Probe (`scripts/`)               | Backs                                                            |
-| -------------------------------- | ---------------------------------------------------------------- |
-| `plan-advice.probe.ts`           | §14, §14.1-2 — priced-lever signs, the pure budget trim          |
-| `pool-allocator.probe.ts`        | §13.3, §4 — pooled suboptimality: there is no envelope to quote  |
-| `energy-search-gap.probe.ts`     | §8.6 — the search's residual gap against the enumerated optimum  |
-| `stop-advisor.probe.ts`          | §8.11 — session lookahead vs. the one-step marginal              |
-| `burnout-risk.probe.ts`          | §11.6 — the 87% ceiling, the plateau, the resolution ladder      |
-| `phi-uncertainty-cap.probe.ts`   | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation          |
-| `phi-cap-reachability.probe.ts`  | §5.1 — whether a real fit can reach the region that cap misses   |
-| `allocator-exactness.probe.ts`   | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level      |
-| `satiety-gaming.probe.ts`        | §8.4 — the monotone accumulator, and what a laundering one costs |
-| `stop-inversion-margin.probe.ts` | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split    |
-| `fit-snapshot-drift.probe.ts`    | §12.1 — as-of-day vs whole-history fit drift, and refit cost     |
-| `phi-error-price.probe.ts`       | §17 — the per-task-ϕ error pricing table                         |
+| Probe (`scripts/`)                      | Backs                                                                                     |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `plan-advice.probe.ts`                  | §14, §14.1-2 — priced-lever signs, the pure budget trim                                   |
+| `pool-allocator.probe.ts`               | §13.3, §4 — pooled suboptimality: there is no envelope to quote                           |
+| `energy-search-gap.probe.ts`            | §8.6 — the search's residual gap against the enumerated optimum                           |
+| `stop-advisor.probe.ts`                 | §8.11 — session lookahead vs. the one-step marginal                                       |
+| `burnout-risk.probe.ts`                 | §11.6 — the 87% ceiling, the plateau, the resolution ladder                               |
+| `phi-uncertainty-cap.probe.ts`          | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation                                   |
+| `phi-cap-reachability.probe.ts`         | §5.1 — whether a real fit can reach the region that cap misses                            |
+| `allocator-exactness.probe.ts`          | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level                               |
+| `satiety-gaming.probe.ts`               | §8.4 — the monotone accumulator, and what a laundering one costs                          |
+| `stop-inversion-margin.probe.ts`        | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split                             |
+| `fit-snapshot-drift.probe.ts`           | §12.1 — as-of-day vs whole-history fit drift, and refit cost                              |
+| `phi-error-price.probe.ts`              | §17 — the per-task-ϕ error pricing table                                                  |
+| `curve-marginal-facts.probe.ts`         | §2 — the r-cap boundary, the five curve properties, the three N facts                     |
+| `alloc-epsilon-methodology.probe.ts`    | §4 — block-rule vs hour-rule admissibility, the 49% artefact                              |
+| `post-recency-weighting.probe.ts`       | §5.2 — the recency weights, Σw vs n_eff, the ten-year logger                              |
+| `post-monotone-prefix-cost.probe.ts`    | §5.1 guard 2 — violation size, blocks dropped, which cut lost the value                   |
+| `post-quadrature-floor.probe.ts`        | §5.1 — GH moment exactness and the ϕ-floor mean shift                                     |
+| `enb-simpson-error.probe.ts`            | §8.1 / AGENTS §3 — Simpson error under the 1024-node cap                                  |
+| `enb-break-economics.probe.ts`          | §8 intro, §8.3–8.4, §13.5 — break economics pre/post fix, fragmentation cost, chunk sweep |
+| `sat-gate-floor.probe.ts`               | §8.5 — the w = 1 floor identity, the rejected (1−w^q) gate, the demand sweep              |
+| `sat-drain-identifiability.probe.ts`    | §8.7 — what ratings identify (r vs α), λ tuning, saturation                               |
+| `stp-lattice.probe.ts`                  | §8.8 — the 45-min lattice's quantization loss and enumerated optimum                      |
+| `stp-recovery-fit.probe.ts`             | §8.9 — the recovery fit's λ profile, range and identifiability limits                     |
+| `stp-stopping-identifiability.probe.ts` | §8.10 — V_T identifiability and the reconstruction's bracket                              |
+| `mtr2-carry-over.probe.ts`              | §11.6 demand arm, §11.9 carry-over levels, §12's Σ P̄ spread premise                       |
+| `rv13-prior-posterior.probe.ts`         | §13.1 — the σ_ϕ ladder and what the n = 0 posterior moves                                 |
+| `rv13-naive-lattice.probe.ts`           | §13.2 — the naive baseline's lattice handicap, before and after                           |
+| `rv13-stop-insertion.probe.ts`          | §13.4 — insertion convention: size and sign of the error                                  |
+| `rv13-terminal-timing.probe.ts`         | §13.6 — mean-vs-min re-scoring, and the timing difference                                 |
+| `adv1-plan-advice-frontier.probe.ts`    | §14, §14.1 — the Σ P̄ identity, budget monotonicity, rounding, frontier widths             |
+| `adv2-budget-marginal.probe.ts`         | §14.2 — the budget marginal, zero-marginal days, per-task spread                          |
+| `adv2-switch-cost-price.probe.ts`       | §14.3 — the fixture table, the inversion grid, m(s) and the bracket                       |
+| `mode-cross-scoring.probe.ts`           | §15 — both plans scored under both objectives                                             |
+| `mode-run-order.probe.ts`               | §16 — the order-only gain and the burnout noise it would buy                              |
 
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
@@ -1135,7 +1161,7 @@ Each was considered and decided. Re-deciding them is churn.
   column degenerates) is **false and measured false** — the two that hold are
   that no user lever corresponds to a per-task entry, and that the column is
   arithmetic on a curve that ignores the pools and the switch cost, overstating
-  the budget's yield on 16% of probe days. It lives in `suggestPlanAdjustments`,
+  the budget's yield on 63% of probe days. It lives in `suggestPlanAdjustments`,
   not `calculateDailyMetrics`: the latter runs in a `$derived` on every
   keystroke and every slider drag, where a second solve doubles dashboard cost.
 
@@ -1145,8 +1171,8 @@ Each was considered and decided. Re-deciding them is churn.
   same sentence, licenses them as instrument targets.
   `PlanAdvice.switchCostPrice` reports the `(m−1)·s` hours the plan reserves
   over **funded** tasks, that as a share of the budget, and Σ P̄ re-solved at
-  `s = 0` and `s = 2s`. Declaring it 2× too high costs a measured **8.51%** of
-  plan value on a 2–4-task day (18.80% at 5+ tasks), against 0.16% for the ϕ
+  `s = 0` and `s = 2s`. Declaring it 2× too high costs a measured **8.47%** of
+  plan value on a 2–4-task day (18.77% at 5+ tasks), against 0.16% for the ϕ
   oracle — this was the last model input with no reading anywhere. Four things
   it must keep, three of which invert the bullet directly above:
   - **Plan-scoped, not open-scoped**, because it is compared against

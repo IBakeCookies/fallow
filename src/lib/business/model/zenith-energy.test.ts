@@ -578,6 +578,39 @@ describe('Zenith Energy Model', () => {
 			expect(ev.blocks[0].physAfter).toBeLessThan(0.1);
 		});
 
+		// §8.5's floor is an identity, and the section's own justification now
+		// rests on it alone — the 2026-07-14 "demand 10 vs 9.5 flips the plan"
+		// cliff does not reproduce under today's search
+		// (scripts/sat-gate-floor.probe.ts, 2026-08-06).
+		it('the w = 1 floor is exactly b·r′/(α + b·r′), and 0 when b = 0', () => {
+			const {
+				microRecoveryFraction: b,
+				recoveryRate,
+				restRecoveryMultiplier,
+			} = DEFAULT_ENERGY_PARAMS;
+
+			const rPrime = recoveryRate * restRecoveryMultiplier;
+
+			const long = [
+				{
+					taskId: 1,
+					hours: 400,
+				},
+			];
+
+			const floorFor = (alpha: number) => (b * rPrime) / (alpha + b * rPrime);
+			const on = evaluateSchedule(long, day, 400);
+
+			expect(on.blocks[0].physAfter).toBeCloseTo(floorFor(DEFAULT_ENERGY_PARAMS.alphaPhys), 6);
+
+			const off = evaluateSchedule(long, day, 400, {
+				...DEFAULT_ENERGY_PARAMS,
+				microRecoveryFraction: 0,
+			});
+
+			expect(off.blocks[0].physAfter).toBeCloseTo(0, 6);
+		});
+
 		it('does not touch rest recovery (the gate is 1 at zero demand regardless of b)', () => {
 			const half = {
 				...DEFAULT_ENERGY_PARAMS,

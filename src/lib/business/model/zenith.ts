@@ -355,7 +355,9 @@ export function optimalStoppingX(r: number): number {
 // accuracy floor is NOT the rule's order: it is the ϕ-floor clamping of the
 // outer nodes (weight 0.0113 each), which makes the effective mixture
 // slightly narrower than N(ϕ̂, σ²) once ϕ̂ − √2σ·2.0202 drops below 0.1h.
-// Inside PHI_UNCERTAINTY_RELATIVE_CAP that is a sub-1% shift of the mean ϕ,
+// Inside PHI_UNCERTAINTY_RELATIVE_CAP that is a sub-1% shift of the mean ϕ for
+// ϕ̂ ≳ 0.31h — below that the inner nodes clamp too and the shift reaches 16.7%
+// at a floored ϕ̂ (MATH.md §5.1) —
 // and it is exactly the graceful degradation the cap exists to bound — a
 // Gaussian is the wrong posterior for a positive quantity out there anyway.
 // (An earlier comment called the error "~O(σ⁶)", which understated the rule
@@ -481,8 +483,9 @@ function expectedAvgProductivityDerivative(
  *
  * The mixture marginal is positive below every component's own optimum and
  * negative above all of them, so the root is bracketed by
- * [T*(ϕ_min), T*(ϕ_max)] with T*(ϕ) = x*(r)·ϕ/(1−r), and inside the σ-cap
- * regime it crosses zero exactly once (probe 2026-07-18). 60-step bisection,
+ * [T*(ϕ_min), T*(ϕ_max)] with T*(ϕ) = x*(r)·ϕ/(1−r), and inside the σ-cap it
+ * crosses zero exactly once for every ϕ̂ a default-constants user reaches — 7 of
+ * 1400 grid cells at ϕ̂ > 3h are the exception (MATH.md §5.1). 60-step bisection,
  * matching optimalStoppingX's tolerance. σ_ϕ = 0 reduces to the closed-form
  * classic T*.
  */
@@ -955,8 +958,9 @@ function bestPlanWithSwitchCost(
 	};
 
 	// Greedy + (only when a pool actually blocked a funding step) a second,
-	// ratio-ranked candidate plan and the resource-aware transfer pass on
-	// whichever candidate started higher. Pool-less plans skip both entirely,
+	// ratio-ranked candidate plan, with the resource-aware improvement pass run on
+	// BOTH candidates and the better end state kept — picking a start by its
+	// initial value is exactly what does not work (MATH.md §13.3). Pool-less plans skip both entirely,
 	// preserving plain greedy's exact-optimality on the single constraint.
 	const allocate = (subset: number[], budgetBlocks: number): number[] => {
 		const { blocks, poolBlocked } = greedyAllocateBlocks(
@@ -1362,7 +1366,8 @@ function gainPercentOf(optimized: number, naive: number): number {
  * Compare productivity gain from the dual-pool Zenith optimization vs a naive
  * equal time split, under the SAME constraints: the naive planner splits the
  * effective budget equally across all tasks (switching between every one), and
- * its plan is scaled down uniformly if it would overdraw a capacity pool. Both
+ * it skips any task whose next whole block would overdraw a capacity pool
+ * (`naiveBlockPlan`; nothing is scaled uniformly — MATH.md §13.2). Both
  * plans being pool-feasible makes the comparison about allocation quality, not
  * about one side ignoring constraints the other must respect.
  */

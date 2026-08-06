@@ -205,6 +205,25 @@ describe('calculateDailyMetrics', () => {
 		}
 	});
 
+	// §14 prices every lever as ΔΣP̄/ΣP̄ and reads ΣP̄ off zenithGain.optimized.
+	// The identity behind that had no fixture; §14 claimed the two agree "to the
+	// last digit" when they are 1–2 ulps apart on ~a fifth of days, because
+	// calculateTotalProductivity adds in the tasks' own order while the plan comes
+	// back priority-sorted (scripts/adv1-plan-advice-frontier.probe.ts, 2026-08-06).
+	it('zenithGain.optimized is Σ avgProductivity over the funded tasks (§14)', () => {
+		const metrics = calculateDailyMetrics(input(TASKS));
+
+		const summed = metrics.suggestedTasks
+			.filter((task) => task.suggestedHours > 0)
+			.reduce((total, task) => total + task.avgProductivity, 0);
+
+		expect(metrics.suggestedTasks.filter((task) => task.suggestedHours > 0).length).toBeGreaterThan(
+			1,
+		);
+
+		expect(metrics.zenithGain.optimized).toBeCloseTo(summed, 12);
+	});
+
 	it('hedges with the fit posterior without changing the shape of the plan', () => {
 		const plain = calculateDailyMetrics(input(TASKS));
 

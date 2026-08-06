@@ -104,8 +104,10 @@ export interface EnergyParams {
 	 * the same intermittent-effort regime as restRecoveryMultiplier). The
 	 * recovery gate becomes 1−(1−b)·w instead of 1−w, so a w = 1 task drains
 	 * toward the floor b·r′/(α + b·r′) > 0 instead of exactly 0. Without it,
-	 * full-demand tasks sit on a knife edge: demand 10 vs 9.5 flips the plan
-	 * (probe-verified 2026-07-14). 0 disables, recovering the pure (1−w) gate.
+	 * without it a full-demand task has no basal floor at all. (The "demand 10 vs
+	 * 9.5 flips the plan" cliff measured in 2026-07-14 does NOT reproduce under
+	 * today's search and lattice — MATH.md §8.5.) 0 disables, recovering the pure
+	 * (1−w) gate.
 	 * MATH.md §8.5.
 	 */
 	microRecoveryFraction: number;
@@ -416,8 +418,10 @@ function blockOutput(
 		hours,
 	);
 
-	// Simpson error ~ h⁴: 16 nodes per fastest timescale keeps relative error
-	// below ~1e-6 even for near-floor ϕ tasks inside long blocks (probe-verified).
+	// Simpson error ~ h⁴: 16 nodes per fastest timescale, capped at 1024. At the
+	// 0.1h ϕ floor the cap binds above a 6.4h block and the density then falls —
+	// relative error grows from ~3e-7 to 3.5e-6 at 12h and 5.6e-5 at 24h
+	// (scripts/enb-simpson-error.probe.ts). Never binds at default constants.
 	let n = Math.ceil(hours / (fastest / 16));
 	n = Math.min(Math.max(n, 16), 1024);
 
@@ -1108,8 +1112,9 @@ export interface DrainRateFit {
  *   Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²
  *
  * is exactly this penalized fit. Unlike the ϕ fit, the "design" here is the
- * SENSITIVITY dD/dα (≈ 0.3–0.9 per unit α for typical 1–3h full-demand
- * sessions, vanishing as w → 0), so λ is calibrated in those units, by probe
+ * SENSITIVITY dD/dα (≈ 0.7–1.0 per unit α at the default α for typical 1–3h
+ * full-demand sessions, ≈ 0.3–0.7 once α ≈ 0.5–0.8, vanishing as w → 0), so λ
+ * is calibrated in those units, by probe
  * (λ sweep, 2026-07-15): one consistent full-demand log moves α ~50% of the
  * way to what it implies, three ~70%, ten ~85%; a clean 8-log set recovers a
  * true α of 1.2 as 0.96 (the shortfall is drain saturation — the data barely
@@ -1516,7 +1521,8 @@ export const STOP_PRIOR_STRENGTH = 1;
 /**
  * Prior scale for indifference-point noise, in λ₀ units (output per hour).
  * Two sources add up: lattice quantization (the day's bracket is one 45-min
- * step wide — half-width ≈ 0.15 on the probe day) and day-to-day mood in the
+ * step wide — half-width a median 0.110 over 279 non-inverted days, measured
+ * 2026-08-06; the 0.15 this comment used to quote was one probe day) and day-to-day mood in the
  * stop decision itself, which no instrument separates. 0.25 ≈ a quarter of
  * the informative λ₀ band ([0.4, 1.5] on the probe day).
  */
@@ -1560,7 +1566,7 @@ export const STOP_FIT_MAX = 3;
  *     half-width median 0.110, summing to 0.110 — not 0.25.
  *
  * The constant is LEFT at 0.25 because tightening it censors more honest days
- * (6 of 1179 already) and the two populations overlap — censored random
+ * (6 of 1179 already) and the two populations overlap — INVERTED random
  * compositions gap a median 0.282 against honest mood days reaching 0.421 —
  * so there is no clean cut to move it to. Re-deriving it from the measured
  * distributions is open work, not a value to guess at.

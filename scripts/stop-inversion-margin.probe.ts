@@ -484,7 +484,7 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 
 		console.log(
 			`[§8.10 claim 2] optimizer days: ${rationalInverted}/${rationalDays} inverted ` +
-				`(MATH.md says zero)`,
+				`(MATH.md said zero until 2026-08-06)`,
 		);
 
 		console.log(
@@ -526,13 +526,13 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 		console.log(
 			`[§8.10 claim 3] hi-side loose-max bias over ${biases.length} optimizer days: ` +
 				`mean ${fmt(mean(biases))}, median ${fmt(quantile(biases, 0.5))}, ` +
-				`p90 ${fmt(quantile(biases, 0.9))} (MATH.md says ~+0.1)`,
+				`p90 ${fmt(quantile(biases, 0.9))} (MATH.md said ~+0.1 until 2026-08-06)`,
 		);
 
 		console.log(
 			`[§8.10 claim 3] bracket half-width over ${halfWidths.length} non-inverted days: ` +
 				`mean ${fmt(mean(halfWidths))}, median ${fmt(quantile(halfWidths, 0.5))}, ` +
-				`p90 ${fmt(quantile(halfWidths, 0.9))} (MATH.md says ~0.15)`,
+				`p90 ${fmt(quantile(halfWidths, 0.9))} (MATH.md said ~0.15 until 2026-08-06)`,
 		);
 
 		console.log(

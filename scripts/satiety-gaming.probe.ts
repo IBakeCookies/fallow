@@ -313,6 +313,7 @@ describe('MATH.md §8.4 — satiety keys on a monotone accumulator', () => {
 					sessions: 0,
 					topShare: 0,
 					trueValue: 0,
+					trueObjective: 0,
 					workHours: 0,
 				},
 			]),
@@ -365,9 +366,19 @@ describe('MATH.md §8.4 — satiety keys on a monotone accumulator', () => {
 
 				tally.sessions += shape.sessions;
 				tally.topShare += shape.topShare;
-				// Every plan re-scored under the SHIPPED objective: what the mutant's
-				// favourite plan is actually worth.
+				// Every plan re-scored under the SHIPPED rule: what the mutant's
+				// favourite plan is actually worth. Two scales, because MATH.md §8.4
+				// quoted the first one as "the true objective" and it is not — the
+				// optimizer maximizes satiatedOutput PLUS the leisure and terminal
+				// terms, and adding them reverses which mutant is worse.
 				tally.trueValue += accumulate(winner, kappas, 'cumulative');
+
+				const rescored = evaluateSchedule(winner, tasks, windowHours, PARAMS);
+
+				tally.trueObjective +=
+					accumulate(winner, kappas, 'cumulative') +
+					rescored.freeTimeBonus +
+					rescored.terminalBonus;
 
 				tally.workHours += winner
 					.filter((b) => b.taskId !== null)
@@ -376,6 +387,7 @@ describe('MATH.md §8.4 — satiety keys on a monotone accumulator', () => {
 		}
 
 		const shippedValue = stats.get('cumulative')!.trueValue;
+		const shippedObjective = stats.get('cumulative')!.trueObjective;
 
 		console.log(
 			`[§8.4 arm B] ${days} days × 2 tasks, every one of ${3 ** slots} lattice plans ` +
@@ -385,12 +397,14 @@ describe('MATH.md §8.4 — satiety keys on a monotone accumulator', () => {
 		for (const rule of ACCUMULATORS) {
 			const tally = stats.get(rule)!;
 			const lost = ((shippedValue - tally.trueValue) / shippedValue) * 100;
+			const lostObjective = ((shippedObjective - tally.trueObjective) / shippedObjective) * 100;
 
 			console.log(
 				`[§8.4 arm B] ${rule.padEnd(10)} argmax: ${(tally.sessions / days).toFixed(2)} sessions/day, ` +
 					`top task takes ${((tally.topShare / days) * 100).toFixed(1)}% of worked hours, ` +
 					`${(tally.workHours / days).toFixed(2)}h worked, ` +
-					`worth ${lost >= 0 ? '−' : '+'}${Math.abs(lost).toFixed(3)}% under the shipped objective`,
+					`worth ${lost >= 0 ? '−' : '+'}${Math.abs(lost).toFixed(3)}% of the satiety term Σ V(O), ` +
+					`${lostObjective >= 0 ? '−' : '+'}${Math.abs(lostObjective).toFixed(3)}% of the full objective`,
 			);
 		}
 	});
