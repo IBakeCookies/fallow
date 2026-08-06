@@ -689,7 +689,14 @@ describe('calculateTimeScarcity', () => {
 	// Plan family (MATH.md §11.8): the reading describes the day as designed, so
 	// checking a task done must not move it — its hours stay allocated.
 	it('does not move when a task is checked done', () => {
-		const done = [tasks[0], makeTask({ id: 2, title: 'b', completed: true })];
+		const done = [
+			tasks[0],
+			makeTask({
+				id: 2,
+				title: 'b',
+				completed: true,
+			}),
+		];
 
 		expect(calculateTimeScarcity(done, 4)).toBe(calculateTimeScarcity(tasks, 4));
 	});
@@ -697,11 +704,24 @@ describe('calculateTimeScarcity', () => {
 	// Σϕ runs over every listed task (MATH.md §11.8), and adding one raises the
 	// deficit and the denominator together — the direction is not self-evident.
 	it('never falls when a task is added', () => {
-		const readings = Array.from({ length: 5 }, (_, n) =>
-			calculateTimeScarcity(
-				Array.from({ length: n + 1 }, (_, i) => makeTask({ id: i + 1, title: `t${i}` })),
-				6,
-			),
+		const readings = Array.from(
+			{
+				length: 5,
+			},
+			(_, n) =>
+				calculateTimeScarcity(
+					Array.from(
+						{
+							length: n + 1,
+						},
+						(_, i) =>
+							makeTask({
+								id: i + 1,
+								title: `t${i}`,
+							}),
+					),
+					6,
+				),
 		);
 
 		for (let i = 1; i < readings.length; i++) {
@@ -712,7 +732,15 @@ describe('calculateTimeScarcity', () => {
 	});
 
 	it('bills n − 1 switches, not n', () => {
-		const three = [tasks[0], tasks[1], makeTask({ id: 3, title: 'c' })];
+		const three = [
+			tasks[0],
+			tasks[1],
+			makeTask({
+				id: 3,
+				title: 'c',
+			}),
+		];
+
 		const billed = calculateTimeScarcity(three, 3, 0.25);
 
 		// Charging (n − 1)·switchCost against the budget is the same day as that
@@ -743,7 +771,10 @@ describe('calculateTimeScarcity', () => {
 	// ϕ comes from the user's fitted constants (MATH.md §5, §5.2), not the
 	// defaults — a slower-to-flow user reads scarcer on the same day.
 	it('honours the fitted constants it is given', () => {
-		const slowToFlow = { ...DEFAULT_USER_CONSTANTS, c3: DEFAULT_USER_CONSTANTS.c3 + 1 };
+		const slowToFlow = {
+			...DEFAULT_USER_CONSTANTS,
+			c3: DEFAULT_USER_CONSTANTS.c3 + 1,
+		};
 
 		expect(calculateTimeScarcity(tasks, 4, 0.25, slowToFlow)).toBeGreaterThan(
 			calculateTimeScarcity(tasks, 4, 0.25, DEFAULT_USER_CONSTANTS),
