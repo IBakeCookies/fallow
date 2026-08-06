@@ -31,64 +31,69 @@ down, and it is why §2's concavity property reads the way it does.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~55k tokens; the largest single section is §8 at ~13k
-(§14 is ~10k), and most of the 45 leaf sections are under 2k. Ranges shift
+The whole document is ~59k tokens; the largest single section is §8 at ~13k
+(§14 is ~10k), and most of the 56 rows below are under 2k. Ranges shift
 whenever a section is inserted — reprint the headings with
 
     node -e 'require("fs").readFileSync("MATH.md","utf8").split("\n").forEach((l,i)=>/^#{2,3} /.test(l)&&console.log(i+1,l))'
 
 ```text
-§0           96-115  Objective
-§1          117-142  Inputs and parameter mappings (unchanged from the articl…
-§2          144-260  Productivity curve — v2 change
-§3          262-308  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          310-408  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          410-733  Personalization — v2 change: full Bayesian posterior
-  §5.2      459-544  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      546-733  Posterior-aware allocation (added 2026-07-18)
-§6          735-747  Summary of v1 → v2 changes
-§7          749-771  Known approximations and deliberate non-changes
-§8         773-1705  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      791-816  Intermittent-rest recovery correction
-  §8.2      818-838  Warm-up carryover instead of binary reset
-  §8.3      840-877  Verified consequences and an open calibration question
-  §8.4      879-980  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5     982-1041  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1043-1102  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1104-1234  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1236-1297  45-minute plan granularity (added 2026-07-18)
-  §8.9    1299-1373  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1375-1582  Stopping-value calibration from observed stop times (add…
-  §8.11   1584-1705  Live stop advisor — §8.10 run forward mid-day (added 202…
-§9        1707-1754  References
-§10       1756-1842  Revision log (doc-only corrections)
-§11       1844-2145  Metric-layer corrections (2026-07-18)
-  §11.1   1846-1860  Scope and principle
-  §11.2   1862-1879  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   1881-1904  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   1906-1920  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   1922-1937  Schedule Integrity: overhead share instead of the small-…
-  §11.6   1939-2027  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2029-2053  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2055-2091  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2093-2145  Overnight reservoir carry-over (2026-07-28)
-§12       2147-2271  Plan-adherence audit (2026-07-23)
-  §12.1   2188-2271  Per-day fit snapshots (2026-08-03)
-§13       2273-2602  Math review, 2026-07-26
-  §13.1   2290-2325  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2327-2374  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2376-2441  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2443-2479  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2481-2518  Also in this change
-  §13.6   2520-2602  The two end-of-day energy readings: a timing difference,…
-§14       2604-3256  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   2789-2925  Five corrections to the first cut (2026-07-28)
-  §14.2   2927-3070  The marginal of the budget (added 2026-08-03)
-  §14.3   3072-3256  The price of the switch cost (added 2026-08-04)
-§15       3258-3331  Two objectives, two modes (2026-07-29)
-§16       3333-3411  Run order stays a heuristic (2026-07-29)
-§17       3413-3571  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       3573-3641  Drain logs are one row per SESSION, not per task-day (20…
+§0          101-120  Objective
+§1          122-147  Inputs and parameter mappings (unchanged from the articl…
+§2          149-265  Productivity curve — v2 change
+§3          267-313  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          315-413  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          415-738  Personalization — v2 change: full Bayesian posterior
+  §5.2      464-549  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      551-738  Posterior-aware allocation (added 2026-07-18)
+§6          740-752  Summary of v1 → v2 changes
+§7          754-785  Known approximations and deliberate non-changes
+§8         787-1719  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      805-830  Intermittent-rest recovery correction
+  §8.2      832-852  Warm-up carryover instead of binary reset
+  §8.3      854-891  Verified consequences and an open calibration question
+  §8.4      893-994  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5     996-1055  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1057-1116  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1118-1248  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1250-1311  45-minute plan granularity (added 2026-07-18)
+  §8.9    1313-1387  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1389-1596  Stopping-value calibration from observed stop times (add…
+  §8.11   1598-1719  Live stop advisor — §8.10 run forward mid-day (added 202…
+§9        1721-1768  References
+§10       1770-1856  Revision log (doc-only corrections)
+§11       1858-2166  Metric-layer corrections (2026-07-18)
+  §11.1   1860-1874  Scope and principle
+  §11.2   1876-1900  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   1902-1925  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   1927-1941  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   1943-1958  Schedule Integrity: overhead share instead of the small-…
+  §11.6   1960-2048  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2050-2074  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2076-2112  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2114-2166  Overnight reservoir carry-over (2026-07-28)
+§12       2168-2292  Plan-adherence audit (2026-07-23)
+  §12.1   2209-2292  Per-day fit snapshots (2026-08-03)
+§13       2294-2648  Math review, 2026-07-26
+  §13.1   2311-2346  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2348-2420  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2422-2487  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2489-2525  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2527-2564  Also in this change
+  §13.6   2566-2648  The two end-of-day energy readings: a timing difference,…
+§14       2650-3302  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   2835-2971  Five corrections to the first cut (2026-07-28)
+  §14.2   2973-3116  The marginal of the budget (added 2026-08-03)
+  §14.3   3118-3302  The price of the switch cost (added 2026-08-04)
+§15       3304-3377  Two objectives, two modes (2026-07-29)
+§16       3379-3457  Run order stays a heuristic (2026-07-29)
+§17       3459-3617  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       3619-3687  Drain logs are one row per SESSION, not per task-day (20…
+§19       3689-3853  The gain's naive baseline paid for switches it never mad…
+  §19.1   3701-3760  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   3762-3790  Defect 2 — the displayed number moved with the order of …
+  §19.3   3792-3830  What this costs, and the one guarantee that weakened
+  §19.4   3832-3853  GAIN_PERCENT_CAP is not dead, but its documented trigger…
 ```
 
 <!-- section-index:end -->
@@ -752,7 +757,16 @@ negligible next to the subset enumeration.
   the naive split is now block-quantized like the optimized plan. The old
   reading ("quantization is part of what Zenith imposes") charged the lattice
   to one side of the comparison and made the reported gain negative on
-  4–19% of random days.
+  3.8–7.8% of random days (the "4–19%" first quoted here came from an
+  uncommitted draw that does not reproduce — §13.2, 2026-08-06).
+- **The naive baseline is rotation-averaged, not order-free.** §19 removed the
+  gain's dependence on task-list order by averaging over the n cyclic rotations.
+  That is EXACTLY permutation-invariant only while no pool binds — the objective
+  is a sum of per-task terms, so only each task's marginal frequency matters.
+  When a pool binds, the skips are not separable and a residue survives:
+  permutation-exact on 96.13% of 2400 days, worst baseline spread 1.61%, worst
+  reported-gain spread 3.4pp (2026-08-06, §19.2). A displayed metric that still
+  moves 3.4pp on a reorder is the kind of thing this list exists to name.
 - **Pooled greedy + ratio candidate + improvement pass + admission move is a
   heuristic** (multi-dimensional knapsack is NP-hard). There is no envelope to
   quote: five seeds × 2000 app-reachable days (2026-08-06, §13.3,
@@ -1871,11 +1885,18 @@ since v2, §3).
   exactly the scenario its drop-weak-tasks logic wins hardest. A capped value
   reads as "≥ 10× the naive plan"; beyond that the ratio carries no decision
   value.
+  **SUPERSEDED 2026-08-06 (§19).** The fix was right about the old guard being
+  wrong and about 0% being the wrong display. It was wrong about the cause: the
+  `naive = 0` it was displaying honestly was itself an artifact of billing the
+  baseline for switches its plan never made. That same 10-tasks-on-2h day now
+  seats 4 tasks over 5 blocks and reports a finite gain; `GAIN_PERCENT_CAP`
+  survives as a ratio guard with no reachable trigger left.
 - ~~**Noted, unchanged:** negative gains remain possible and honest.~~
   **SUPERSEDED 2026-07-26 (§13.2).** This entry called the negative readings a
   consequence of the §0 objective. They were mostly a consequence of the
   BASELINE having a finer grid than the optimizer: measured, the gain was
-  negative on 4–19% of random days. The naive split is now block-quantized
+  negative on 3.8–7.8% of random days (2026-08-06 replica; the 4–19% draw does
+  not reproduce — §13.2). The naive split is now block-quantized
   too, and the single-budget gain is provably ≥ 0.
 
 ### 11.3 Burnout Risk: overhang counts funded tasks' T* only (formula since superseded by §11.6; the `availableHours` = intended-work reading survives)
@@ -2333,11 +2354,12 @@ space.** That is the method to reach for first next time.
 - **The defect.** The metric was therefore measuring two things at once, and
   the handicap dominated the signal. Over 400 random days per task count:
 
-  | tasks                | 2   | 3   | 4   | 5   | 6   | 8   |
-  | -------------------- | --- | --- | --- | --- | --- | --- |
-  | gain < 0, before     | 4%  | 4%  | 10% | 11% | 19% | 17% |
-  | gain < 0, after      | 0%  | 0%  | 0%  | 0%  | 0%  | 0%  |
-  | naive = 0 (999% cap) | 0%  | 0%  | 0%  | 7%  | 7%  | 14% |
+  | tasks                          | 2   | 3   | 4   | 5   | 6   | 8   |
+  | ------------------------------ | --- | --- | --- | --- | --- | --- |
+  | gain < 0, before               | 4%  | 4%  | 10% | 11% | 19% | 17% |
+  | gain < 0, after                | 0%  | 0%  | 0%  | 0%  | 0%  | 0%  |
+  | naive = 0 (999% cap), pre-§19  | 0%  | 0%  | 0%  | 7%  | 7%  | 14% |
+  | naive = 0 (999% cap), post-§19 | 0%  | 0%  | 0%  | 0%  | 0%  | 0%  |
 
   The two "before" rows are the 2026-07-26 draw and its generator was not
   committed; neither reproduces. A seeded continuous-baseline replica over 400
@@ -2347,8 +2369,14 @@ space.** That is the method to reach for first next time.
   it — and `naive = 0` at
   **0.0 / 1.8 / 6.3 / 8.5 / 12.5 / 15.8%** — that last row is fully determined by
   P(budget < n·0.25h), so the shipped "0% at n = 3–4 then 7% at n = 5" cannot
-  come from one budget draw. The **after** row reproduces exactly: 0% at every
-  count on both the single-budget and pooled paths over 2400 days.
+  come from one budget draw. §19 later read that same P(budget < n·0.25h) as the
+  tell it is: the row measures the switch bill, not the planner, and it is 0.0%
+  at every count since (`rv14` arm B reproduces the figures above as its
+  "before" column).
+
+  The **after** row reproduces exactly on the single-budget path: 0% at every
+  count over 2400 days. The pooled row held at 0% only while the baseline was
+  over-billed — since §19 it reads 1 negative day in 2400 at −0.5% (§19.3).
 
   §11.2 had recorded negative gains as "possible and honest, a consequence of
   the §0 objective". The sweep says otherwise: they were routine, and the
@@ -2358,20 +2386,38 @@ space.** That is the method to reach for first next time.
   tasks (equal to within one block, ties toward the lower index like greedy),
   skipping any task whose next block would overdraw a pool. Both planners now
   face the same feasible set.
+  **AMENDED 2026-08-06 (§19):** it now takes an explicit `order`, `target` and
+  `maxFunded`, ties break toward the front of `order` rather than the lower
+  index, and it is called n times by `naiveBaselineValue` — once per cyclic
+  rotation. The reported baseline is the mean of those n plans, not this single
+  one.
 - **Why this reverses §7's decision.** The lattice is an accounting choice,
   not a cost Zenith imposes on the user — nobody executes 0.373h either way.
   Charging it to one side made the number unusable as a quality measure.
 - **New guarantee:** on the single-budget path the gain is provably ≥ 0,
   because the naive plan is one of the block distributions the exact greedy
-  maximizes over (Fox 1966, §4). The pooled path has no proof (its greedy is
-  a heuristic, §13.3) but found no counterexample in the sweep. Both are
-  test-locked.
-- **Unchanged:** the `naive = 0 → GAIN_PERCENT_CAP` case. That is a real
+  maximizes over (Fox 1966, §4). ~~The pooled path has no proof (its greedy is
+  a heuristic, §13.3) but found no counterexample in the sweep.~~ Both are
+  test-locked. **AMENDED 2026-08-06 (§19):** the single-budget theorem survives
+  §19's change of baseline. The pooled path's clean sweep does not — once the
+  baseline stopped being over-billed it is strong enough to expose §13.3's own
+  greedy gap, and reads negative on 1 day in 2400 at −0.5%. The test now allows
+  a small negative reading (a −6% tripwire sized clear of the −0.5% measured)
+  rather than asserting ≥ 0. Deliberately NOT derived from §13.3's shortfall:
+  that section has no envelope to quote and forbids citing its worsts as bounds.
+- ~~**Unchanged:** the `naive = 0 → GAIN_PERCENT_CAP` case. That is a real
   scenario — the naive planner attempts all n tasks and its switch overhead
   eats the whole budget — and the cap is the honest display for it. It still
   dominates the MEAN gain at n ≥ 5 (and already contributes 72% of it at n = 3),
   so read the mean with that in mind; the typical non-capped day gains ~4–6% at
-  four tasks or more, and under 3% at two or three (2026-08-06).
+  four tasks or more, and under 3% at two or three (2026-08-06).~~
+  **RETRACTED 2026-08-06 (§19).** It was not a scenario, it was the accounting:
+  the baseline was billed (n−1) switches for tasks its plan never seated, and
+  `naive = 0` fires exactly when `budget < n·BLOCK_HOURS`. Every firing in a
+  2400-day sweep disappears once the bill matches the plan, so the cap's
+  contribution to the mean is moot — there is no capped day left to contribute
+  on that generator. The cap itself is NOT dead; only this trigger is. See
+  §19.4 for the one that survives.
 
 ### 13.3 The pooled allocator's "within 1–2%" was a curated-scenario claim (§4, §7)
 
@@ -3639,3 +3685,169 @@ measurement that justifies keeping it; and the store-level split between the
 advisor's candidates and its reconstruction (§8.11), which was correct but
 untested at the only layer that decides it — now pinned with a completed task
 carrying today's hours beside an open one.
+
+## 19. The gain's naive baseline paid for switches it never made (2026-08-06)
+
+§13.2 fixed a handicap charged to ONE side of the Zenith Gain comparison — the
+block lattice — and closed with the naive baseline still carrying a second one
+of exactly the same shape. This section removes it, and retracts the §13.2
+bullet that had endorsed its most visible symptom as a real scenario.
+
+Measurements: `scripts/rv14-naive-switch-bill.probe.ts`, 400 days per task
+count over §13.2's own generator (integer sliders, pool weights tied to them,
+budget on the 0.25 h lattice), so every number below sits on the same draw as
+§13.2's table.
+
+### 19.1 Defect 1 — billed (n−1) switches, seated fewer than n tasks
+
+`pooledProductivityGain` docked `(n−1)·switchCost` from the budget for every
+LISTED task, then handed the surviving whole blocks out round-robin. When the
+leftover could not reach every task, the tail of the list got **zero hours** —
+so the baseline paid for n−1 switches and executed fewer. How often the plan
+seated fewer tasks than it was billed for:
+
+| tasks               | 2     | 3     | 4     | 5      | 6      | 8       |
+| ------------------- | ----- | ----- | ----- | ------ | ------ | ------- |
+| seated < n          | 3.3%  | 5.8%  | 16.8% | 20.3%  | 30.5%  | 39.3%   |
+| gain overstated p90 | 0.9pp | 1.8pp | 6.5pp | 16.8pp | 44.9pp | 102.9pp |
+| worst day           | 159pp | 297pp | 423pp | 558pp  | 422pp  | 627pp   |
+
+The median day is untouched (0.0–0.3pp): this is a tail defect, and the tail is
+precisely the small-budget/many-task regime §11.2 built the 999% cap for.
+
+**The cap was the artifact, not the scenario.** `naive = 0` requires the block
+target to reach 0, i.e. `budget < n·BLOCK_HOURS` — §13.2's own probe had already
+noticed the rate "is fully determined by P(budget < n·0.25h)" without reading
+what that implies. A planner billed for the switches it makes is never at 0
+there: with one task it pays no switch cost and gets the whole budget. Measured,
+the cap fires on **0.0% of days at every task count** after the fix, against
+0.0 / 1.8 / 6.3 / 8.5 / 12.5 / 15.8% before. So:
+
+- ~~**Unchanged:** the `naive = 0 → GAIN_PERCENT_CAP` case. That is a real
+  scenario — the naive planner attempts all n tasks and its switch overhead eats
+  the whole budget — and the cap is the honest display for it.~~
+  **RETRACTED 2026-08-06 (§19).** It was not a scenario at all; it was the
+  accounting. Every firing in a 2400-day sweep disappears once the bill matches
+  the plan. `GAIN_PERCENT_CAP` stays in the code as a saturation guard on the
+  ratio — `naive` can still be small — but its documented trigger was wrong.
+
+The rule the fix adopts is the one the switch-cost lever already used
+(`metric/plan-advice.ts`: "Funded, not listed: the allocator pays for the
+switches it actually makes"). The bill is the largest k the plan genuinely
+seats; the optimizer enumerates that subset size too, so neither side is
+charged for work the other is spared.
+
+**Affordable is not the same as seatable, and the first cut of this fix got
+that wrong.** Choosing k from the time budget alone — the largest k whose bill
+still leaves k whole blocks — over-charges whenever a capacity pool, not the
+clock, is what keeps a task out: measured on 18.9% of pool-bound days, and on a
+zeroed pool it withheld a full hour of the baseline's own budget (7.3% reported
+against 0% honest). Worse, pairing that k with a round-robin restricted to a
+WINDOW of k tasks let a window land entirely on pool-blocked tasks, produce the
+all-zero plan, and drag the rotation average down — which brought the 999% cap
+straight back through the pool door: 8 tasks on 0.25 h against a zeroed physical
+pool read **700%**, 12 tasks read the full **999%**, where the honest answer is
+0% (one task is seatable, and both planners give it the day). Both inputs are
+UI-reachable: the physical-capacity field accepts 0, and `physicalDifficulty` 0
+gives weight 0.
+
+So the scan validates k against the PLAN, not the budget: walk the whole
+rotation, cap the number of DISTINCT tasks opened at k, and accept the first k
+the plan actually seats. Pool-blocked tasks are passed over in favour of the
+next feasible one instead of costing a seat. Over 360 zeroed-pool cells the
+baseline now equals the honest "the one seatable task gets the day" value to
+within 1e-12 and the cap never fires (`arm H`, a regression test for exactly
+this).
+
+### 19.2 Defect 2 — the displayed number moved with the order of the task list
+
+`target` blocks rarely divide evenly among k tasks, and round-robin gave the
+remainder to whichever tasks sat earliest in the array. The array is the store's
+task list, and `addTask` **prepends** — so adding a task changed the reported
+gain of a plan that had not changed:
+
+| tasks                         | 2      | 3      | 4      | 5      | 6      | 8      |
+| ----------------------------- | ------ | ------ | ------ | ------ | ------ | ------ |
+| gain moves on reorder, before | 44.8%  | 68.0%  | 75.0%  | 75.0%  | 77.3%  | 73.5%  |
+| spread, before                | 84pp   | 355pp  | 483pp  | 439pp  | 554pp  | 603pp  |
+| gain moves, after             | 0.0%   | 5.3%   | 6.3%   | 5.8%   | 4.0%   | 2.0%   |
+| spread, after                 | 0.00pp | 1.40pp | 1.20pp | 3.40pp | 2.40pp | 1.00pp |
+
+Attribution is near-clean: on the same days the OPTIMIZED side moves on 0.00%
+(n = 3) to 0.25% (n = 8), worst spread 0.228% of the plan value — pooled greedy
+tie-breaking, §13.3. Essentially all of it was the baseline (`arm C`, which now
+prints both sides so the claim has a citation rather than an assumption).
+
+**Fix: average over the n cyclic rotations.** Each rotation funds the first
+`seated` tasks of that rotation, so every task receives the odd block equally
+often. Because the objective is a sum of per-task terms, only the marginal
+frequency matters and the average is **exactly** permutation-invariant — not
+merely rotation-invariant — whenever no pool binds. The residue is entirely the
+pool skips, which are not separable: permutation-exact on **96.13%** of 2400
+days (7.4% of them pool-bound), worst baseline spread 1.61%, worst reported-gain
+spread 3.4pp. Left as measured rather than chased: a pool-bound naive plan is
+order-sensitive in the same way the pooled allocator is (§13.3), and 3.4pp of
+residue against 603pp removed is not where the next fix belongs.
+
+### 19.3 What this costs, and the one guarantee that weakened
+
+**The ≥ 0 guarantee survives on the single-budget path.** Each rotation's plan
+is a block distribution over a subset of size k under budget `blocksFor(k)` —
+exactly a (subset, budget) pair `bestPlanWithSwitchCost` enumerates — so the
+exact greedy's value dominates it (Fox 1966, §4). Dominating every rotation is
+strictly stronger than dominating their average, so the average is covered too;
+measured, the average is strictly below the best rotation on 81.7% of days.
+0 negatives in 2400 days, asserted in the probe.
+
+**It is a theorem about the TRUNCATED menu, not about E[P̄], and §13.2 overstated
+it.** `buildBlockIncrements` cuts a task's menu at the first non-positive
+increment and — when σ_ϕ > 0 — at the first non-DECREASING one (§5.1). Blocks
+past the first cut lower the objective, so a naive plan that overshoots there
+only hurts itself and the guarantee holds. The σ_ϕ cut is different: it can fire
+while E[P̄] is still rising, leaving the naive plan free to place a value-adding
+block the optimizer was never offered. Constructed witness: one task at
+effective difficulty 1.3, ϕ̂ = 4.5 h, σ_ϕ/ϕ̂ = 0.35, budget 4 h → optimized
+0.886678 against naive 0.891116, a reported **−0.5%**. This is not new (at n = 1
+the §19 baseline is identical to the old one) and it is not reachable from the
+product: 0 monotonicity cuts in 156,000 cells with integer sliders and ϕ ≤ 6 h,
+against 8,806 of 919,968 with quarter-step sliders and ϕ up to 8 h, all at
+ϕ̂ ≥ 4 h with σ/ϕ ≥ 0.35 — the corner §5.1's σ-cap already calls dubious. Worth
+recording because "provably ≥ 0" was being read as unconditional.
+
+**The pooled path lost its clean sweep, honestly.** §13.2 reported "no
+counterexample" for the pooled gain; with the handicap removed the baseline is
+strong enough to expose the pooled greedy's own suboptimality. It now reads
+negative on **1 day in 2400 (−0.5%)**, and that day is pool-limited — i.e. it is
+§13.3's documented greedy gap (five seeds × 2000 app-reachable days: exact on
+93.55–94.50%, per-seed worsts 3.37–5.28%, and explicitly no envelope to quote)
+surfacing in the metric instead of being masked. That is the correct trade: the
+number is a measure of allocation quality, and the pooled allocator is not
+exact, so the metric should be able to say so.
+
+**Cost.** The baseline is now n rotations, each scanning down at most n
+candidate k's, plus n productivity sums instead of one. Measured at n = 12 with
+a posterior: the baseline goes from ~0.013 ms to 0.031 ms, against 41.7 ms for
+the 2ⁿ funded-subset solve in the same call — 0.04% of it.
+
+### 19.4 `GAIN_PERCENT_CAP` is not dead, but its documented trigger is
+
+§11.2 introduced the cap for `naive = 0`, and §19.1 retires that trigger. Both
+the constant's own doc comment and §11.2 then read as though the cap had no
+reachable trigger left. It has one, in the opposite regime:
+
+The baseline must spend its whole block target, so a long budget poured into few
+tasks pushes each past its own T*, where P̄ decays like C/T. The optimizer stops
+at T* and leaves the slack unused. The ratio therefore grows with budget and
+shrinks with ϕ and n — and with a **fitted short-ϕ user** it clears 10×. Measured
+on the single-budget path over the app's own budget slider (0.25–24 h, 0.25 h
+steps), ϕ̂ held at the 0.1 h floor `fitUserConstants` explicitly permits ("a
+fast-flow user logging 15–30m everywhere"): the gain first reads 999% at
+**4.25 h (n = 1)**, 8.5 h (n = 2), 13 h (n = 3), 17.25 h (n = 4), and never
+within 24 h at n = 6 (max 912%). At ϕ̂ = 0.17 h it needs 7 h (n = 1). At
+**default constants it is unreachable** — the 24 h maximum is 569% at n = 1 and
+41.6% on the pooled path.
+
+So the honest statement is: the cap guards the RATIO, for a personalized
+fast-flow user with few tasks and a budget far past their stopping time. Not the
+`naive = 0` jump it was written for — that arm now requires `budget <
+BLOCK_HOURS`, where the optimizer scores 0 too and `gainPercentOf` returns 0.

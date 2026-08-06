@@ -481,9 +481,9 @@ present:
 19. **Prequential ϕ scorecard** — the only reading the app could have that says
     whether the ϕ model has ever predicted anything, scored out-of-sample. Walk
     `flowObservations` in date order; for each log, fit on logs strictly before
-    its date via `fitUserConstants` (`zenith.ts:1609`) and record the residual
+    its date via `fitUserConstants` (`zenith.ts:1736`) and record the residual
     against the fitted plane, against `DEFAULT_USER_CONSTANTS`, and against the
-    ±1σ band from `phiPredictionStd` (`zenith.ts:1756` — exported, documented
+    ±1σ band from `phiPredictionStd` (`zenith.ts:1883` — exported, documented
     "intended for UI", and consumed by nothing outside its own test).
     Whole-history flow is already read once in `readModelReport`
     (`session-history.ts:453`), so this adds no read. **Two corrections that
@@ -749,10 +749,12 @@ What survives of the multi-day idea is two readings, not a solver:
     `toPooledInputs` (`metric/calculation.ts:123-131`).
     **The R3 hazard to price first:** `Σ P̄` has two independent
     implementations — the allocator's `planValue` over `buildBlockIncrements`
-    (`zenith.ts:905`, `:633`) and `calculateTotalProductivity`
-    (`zenith.ts:1255`), which is what Zenith Gain and the §12 audit score with.
+    (`zenith.ts:920`, `:649`) and `calculateTotalProductivity`
+    (`zenith.ts:1271`), which is what Zenith Gain and the §12 audit score with.
     A weight must land in both in lockstep or §13.2's "the gain is provably
-    ≥ 0" breaks and the audit starts comparing two objectives. Default `v = 1`
+    ≥ 0" — which since §19.3 holds on the SINGLE-BUDGET path only, while the
+    dashboard reads the pooled one — breaks and the audit starts comparing two
+    objectives. Default `v = 1`
     must be an exact no-op, or every worked percentage in
     §11.2/§13.2/§14/§14.2 becomes non-reproducible.
     **Probe — one command, and it can kill the item outright:** read the

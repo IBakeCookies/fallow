@@ -1846,12 +1846,14 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(gain.gainPercent).toBeGreaterThan(0);
 		});
 
-		it('caps the gain instead of reporting 0% when the naive plan achieves nothing (2026-07-18 fix)', () => {
-			// 10 tasks × 0.25h switch cost = 2.25h of naive overhead > the 2h
-			// budget: the naive planner's effective budget is 0 and its
-			// productivity 0. The old guard returned gainPercent 0 — hiding
-			// Zenith's advantage in exactly the scenario where dropping weak
-			// tasks helps most. Now the gain saturates at GAIN_PERCENT_CAP.
+		it('bills the naive baseline for the switches it makes, so 10 tasks on 2h is not "naive achieves nothing" (2026-08-06, §19)', () => {
+			// This day USED to report the 999% cap: 10 tasks × 0.25h = 2.25h of
+			// switch overhead exceeds the 2h budget, so the baseline's effective
+			// budget hit 0 and its productivity 0. But it was billed for 9 switches
+			// while the plan it produced seated no tasks at all — the same one-sided
+			// handicap §13.2 removed from the lattice. A naive planner with 2h does
+			// not achieve nothing: it spreads over as many tasks as it can seat and
+			// pays only those switches (here 4 tasks, 5 blocks).
 			const tasks = Array.from(
 				{
 					length: 10,
@@ -1864,11 +1866,11 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			);
 
 			const gain = productivityGain(tasks, 2, DEFAULT_USER_CONSTANTS, 0.25);
-			expect(gain.naive).toBe(0);
+			expect(gain.naive).toBeGreaterThan(0);
 			expect(gain.optimized).toBeGreaterThan(0);
-			expect(gain.gainPercent).toBe(GAIN_PERCENT_CAP);
+			expect(gain.gainPercent).toBeLessThan(GAIN_PERCENT_CAP);
 
-			// Same guard on the pooled variant (what the dashboard shows)
+			// Same on the pooled variant (what the dashboard shows).
 			const pooled = pooledProductivityGain(
 				tasks.map((t) => ({
 					...t,
@@ -1881,18 +1883,80 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 				0.25,
 			);
 
-			expect(pooled.naive).toBe(0);
-			expect(pooled.gainPercent).toBe(GAIN_PERCENT_CAP);
+			expect(pooled.naive).toBeGreaterThan(0);
+			expect(pooled.gainPercent).toBeLessThan(GAIN_PERCENT_CAP);
 		});
 
-		it('is never negative now that the naive baseline shares the block lattice (2026-07-26, §13.2)', () => {
+		it('reports the same gain however the task list is ordered (2026-08-06, §19)', () => {
+			// The remainder blocks of an equal split used to go to whichever tasks
+			// sat earliest in the array, and `addTask` PREPENDS — so adding a task
+			// moved the reported gain of a plan that had not changed (on 73.5% of
+			// days at n = 8, by up to 602.6pp). Averaging over the n cyclic
+			// rotations makes the baseline permutation-invariant; with no pool
+			// binding it is invariant EXACTLY, which is what this pins.
+			const tasks: PooledTaskInput[] = [
+				{
+					title: 'a',
+					difficulty: 9,
+					enjoyment: 2,
+					cognitiveWeight: 0,
+					physicalWeight: 0,
+				},
+				{
+					title: 'b',
+					difficulty: 4,
+					enjoyment: 8,
+					cognitiveWeight: 0,
+					physicalWeight: 0,
+				},
+				{
+					title: 'c',
+					difficulty: 6,
+					enjoyment: 5,
+					cognitiveWeight: 0,
+					physicalWeight: 0,
+				},
+			];
+
+			// 1.75h − 2 switches = 1.25h = 5 blocks over 3 tasks: the remainder is
+			// 2 blocks, so an order-sensitive baseline would move here.
+			const naiveOf = (order: PooledTaskInput[]) =>
+				pooledProductivityGain(order, 1.75, DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS, 0.25)
+					.naive;
+
+			const [a, b, c] = tasks;
+
+			for (const permutation of [
+				[a, c, b],
+				[b, a, c],
+				[b, c, a],
+				[c, a, b],
+				[c, b, a],
+			]) {
+				expect(naiveOf(permutation)).toBeCloseTo(naiveOf(tasks), 12);
+			}
+		});
+
+		it('is never negative on the single-budget path, and within the pooled greedy gap on the pooled one (2026-07-26 §13.2, tightened 2026-08-06 §19)', () => {
 			// The continuous baseline could hand every task a sub-block sliver and
 			// collect its ≈ p₀ activation bonus — something Zenith structurally
-			// cannot do — so the metric read NEGATIVE on 4% (n = 2) to 19%
-			// (n = 6) of random days. Quantized, the naive plan is one of the
-			// block distributions the exact greedy maximizes over (§4), so the
-			// single-budget gain is provably ≥ 0; the pooled path has no proof,
-			// but the sweep must not find a counterexample either.
+			// cannot do — so the metric read NEGATIVE on 3.8–7.8% of random days.
+			// Quantized, the naive plan is one of the block distributions the exact
+			// greedy maximizes over (§4), so the single-budget gain is ≥ 0 — over the
+			// TRUNCATED increment menu, which is the caveat §19.3 records for σ_ϕ > 0
+			// and integer sliders cannot reach.
+			//
+			// The POOLED path never had that proof, and since §19 stopped
+			// over-billing the baseline it is strong enough to expose the pooled
+			// greedy's own suboptimality: measured 1 day in 2400 at −0.5%. Asserting
+			// ≥ 0 there would be a latent flake.
+			//
+			// −6 is a REGRESSION TRIPWIRE, not a bound. §13.3 has no envelope to
+			// quote (per-seed worsts 3.37–5.28% app-reachable, 6.03% on a wide draw)
+			// and says in as many words that nothing downstream may cite its numbers
+			// as an error bound. This is sized clear of the −0.5% actually measured,
+			// so it catches a real regression without claiming the model guarantees
+			// anything (§19.3).
 			let seed = 12345;
 			const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
 
@@ -1922,7 +1986,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 				expect(
 					pooledProductivityGain(pooled, budget, DEFAULT_CAPACITY_POOLS).gainPercent,
-				).toBeGreaterThanOrEqual(0);
+				).toBeGreaterThanOrEqual(-6);
 			}
 		});
 
@@ -1958,6 +2022,8 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(naive).toBeCloseTo(calculateTotalProductivity(tasks, [1, 1]), 12);
 
 			// Odd block counts round-robin: 5 blocks over 2 tasks → 0.75h / 0.5h.
+			// Since §19 the value is averaged over both rotations — 0.75/0.5 and
+			// 0.5/0.75 — which for these two IDENTICAL tasks is the same number.
 			const odd = pooledProductivityGain(
 				tasks,
 				1.25,
@@ -1967,14 +2033,46 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			);
 
 			expect(odd.naive).toBeCloseTo(calculateTotalProductivity(tasks, [0.75, 0.5]), 12);
+
+			// With DIFFERENT tasks the average is what separates §19's baseline from
+			// the old order-sensitive one: strictly between the two rotations.
+			const mixed: PooledTaskInput[] = [
+				{
+					...tasks[0],
+					difficulty: 9,
+					enjoyment: 2,
+				},
+				{
+					...tasks[1],
+					difficulty: 3,
+					enjoyment: 9,
+				},
+			];
+
+			const { naive: averaged } = pooledProductivityGain(
+				mixed,
+				1.25,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				0,
+			);
+
+			expect(averaged).toBeCloseTo(
+				(calculateTotalProductivity(mixed, [0.75, 0.5]) +
+					calculateTotalProductivity(mixed, [0.5, 0.75])) /
+					2,
+				12,
+			);
 		});
 
 		it('never reports above the cap', () => {
-			// (A tiny-but-positive naive value cannot produce a huge FINITE ratio
-			// under the v2 curve: continuous slivers still collect ≈ p₀ per task
-			// via the activation bonus, so naive is either 0 or substantial —
-			// see MATH.md §11.2. The cap therefore mainly guards the naive = 0
-			// jump; this sweep just pins the invariant.)
+			// (Since §19 the naive = 0 arm needs a budget under one whole block,
+			// where the optimizer scores 0 too. What stays reachable is the RATIO
+			// clamp: the baseline must spend its whole block budget, so a long day
+			// poured into few short-ϕ tasks decays past T* while the optimizer stops
+			// — 999% from 4.25h at n = 1 with a ϕ̂ = 0.1h fit (MATH.md §19.4). This
+			// sweep sits at default constants, where the 24h maximum is 569%, so it
+			// pins the invariant from the other side.)
 			for (const budget of [0.5, 2, 2.5, 6, 12]) {
 				const tasks = Array.from(
 					{

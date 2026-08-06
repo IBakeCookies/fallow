@@ -140,7 +140,7 @@
 	"metric_band_caution": "Caution",
 	"metric_band_critical": "Critical",
 	"metric_zenith_gain": "Fallow Gain",
-	"metric_zenith_gain_desc": "Productivity improvement from Fallow optimization vs. a naive equal split of the same hours into the same 15-minute blocks. Saturates at +999% — with many tasks and few hours the naive plan achieves almost nothing.",
+	"metric_zenith_gain_desc": "Productivity improvement from Fallow optimization vs. a naive equal split of the same hours into the same 15-minute blocks. The split spreads over as many tasks as the day can fit and pays only for the switches it makes, so both plans face the same constraints.",
 	"metric_yield_index": "Yield Index",
 	"metric_yield_index_desc": "Did you complete the highest-priority tasks? Compares your completed work against the optimal selection.",
 	"metric_completion_rate": "Completion Rate",

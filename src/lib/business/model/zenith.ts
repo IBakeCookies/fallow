@@ -1285,23 +1285,44 @@ export function calculateTotalProductivity(
 /**
  * Display cap for the relative gain vs the naive baseline, in percent.
  *
- * WHY (2026-07-18 metric fix, MATH.md §11.2): the naive planner attempts all
- * n tasks and pays (n−1)·switchCost; with many tasks and a small budget its
- * effective budget hits 0, its productivity is 0, and the true relative gain
- * is unbounded. The old guard quietly reported 0% in exactly the scenario
- * where Zenith helps most (it funds fewer tasks and pays fewer switches).
- * Ratios above ~10× carry no extra decision value, so the gain saturates at
- * this cap; a capped value reads as "≥ 10× the naive plan".
+ * Ratios above ~10× carry no extra decision value, so the gain saturates here;
+ * a capped value reads as "≥ 10× the naive plan".
+ *
+ * WHY it fires (2026-08-06, MATH.md §19.4 — this REPLACES the §11.2 rationale).
+ * §11.2 added the cap for `naive = 0`, which it read as "many tasks, small
+ * budget, switch overhead eats everything". That was an artifact of billing the
+ * baseline for switches its plan never made, and §19 removed it: the `naive = 0`
+ * arm of `gainPercentOf` now needs a budget under one whole block, where the
+ * optimizer scores 0 too and the function returns 0 rather than the cap.
+ *
+ * What still reaches the cap is the opposite regime. The baseline must spend its
+ * whole block target, so a long budget poured into FEW tasks pushes each past
+ * its own T*, where P̄ decays like C/T, while the optimizer stops at T* and
+ * leaves the slack unused. With a fitted ϕ̂ at the 0.1h floor the single-budget
+ * gain reads 999% from 4.25h at n = 1 (8.5 / 13 / 17.25h at n = 2 / 3 / 4, never
+ * within 24h at n = 6). At DEFAULT constants it is unreachable — the 24h maximum
+ * is 569% at n = 1, and 41.6% on the pooled path the dashboard shows.
  */
 export const GAIN_PERCENT_CAP = 999;
 
 /**
- * The naive planner's plan: an equal split of the effective budget across ALL
- * tasks, on the SAME 15-minute lattice the optimizer is held to. Blocks are
- * handed out round-robin (so the split is equal to within one block, ties
- * toward the lower index like greedy), skipping any task whose next block
- * would overdraw a capacity pool. Pools of Infinity give the single-budget
- * baseline.
+ * The naive planner's plan: an equal split of `target` blocks across at most
+ * `maxFunded` of the tasks in `order`, on the SAME 15-minute lattice the
+ * optimizer is held to. Blocks are handed out round-robin (so the split is
+ * equal to within one block, ties toward the front of `order` like greedy),
+ * skipping any task whose next block would overdraw a capacity pool. Pools of
+ * Infinity give the single-budget baseline.
+ *
+ * `maxFunded` caps how many DISTINCT tasks may be opened, which is what keeps
+ * the switch bill honest (`naiveBaselineValue`) — but the walk still runs over
+ * the whole of `order`, so a pool-blocked task is passed over in favour of the
+ * next feasible one instead of costing the plan a seat. Restricting `order`
+ * itself to the first `maxFunded` entries is the tempting shortcut and it is
+ * wrong: a window that happens to hold only pool-blocked tasks yields an
+ * all-zero plan, which drags the rotation average down and resurrects the very
+ * `naive = 0 → GAIN_PERCENT_CAP` reading §19 removed (measured before this
+ * guard: 8 tasks at 0.25h against a zeroed physical pool reported 700%, and
+ * 12 tasks reported the full 999%, where the honest answer is 0%).
  *
  * WHY quantized (2026-07-26, MATH.md §13.2 — this REVERSES the §7 "naive
  * baselines stay continuous" decision). A continuous baseline can hand every
@@ -1315,33 +1336,35 @@ export const GAIN_PERCENT_CAP = 999;
  * lattice is an accounting choice rather than a cost Zenith imposes on the
  * user (nobody executes 0.373h either way), both planners now face the same
  * feasible set and the number isolates allocation quality.
- *
- * Consequence worth knowing: on the single-budget path the gain is now
- * provably ≥ 0, because this plan is one of the block distributions the
- * exact greedy maximizes over (Fox 1966, §4). The pooled path keeps no such
- * guarantee — its greedy is a heuristic (§13.3) — but negative readings there
- * are rare and small rather than routine.
  */
 function naiveBlockPlan(
 	weights: { cognitiveWeight: number; physicalWeight: number }[],
-	effectiveBudget: number,
+	order: number[],
+	target: number,
+	maxFunded: number,
 	poolCog: number,
 	poolPhys: number,
 ): number[] {
 	const blocks = new Array<number>(weights.length).fill(0);
-	const target = Math.floor(effectiveBudget / BLOCK_HOURS + 1e-9);
 	let remCog = poolCog;
 	let remPhys = poolPhys;
 	let placed = 0;
+	let funded = 0;
 
 	while (placed < target) {
 		let any = false;
 
-		for (let i = 0; i < weights.length && placed < target; i++) {
+		for (const i of order) {
+			if (placed >= target) break;
+
+			if (blocks[i] === 0 && funded >= maxFunded) continue;
+
 			const cog = BLOCK_HOURS * weights[i].cognitiveWeight;
 			const phys = BLOCK_HOURS * weights[i].physicalWeight;
 
 			if (cog > remCog + 1e-9 || phys > remPhys + 1e-9) continue;
+
+			if (blocks[i] === 0) funded++;
 
 			blocks[i]++;
 			remCog -= cog;
@@ -1356,6 +1379,90 @@ function naiveBlockPlan(
 	return blocks.map((b) => b * BLOCK_HOURS);
 }
 
+/**
+ * The naive baseline's productivity — the denominator of the reported gain.
+ *
+ * Two properties the plain round-robin above did not have on its own, both
+ * fixed here (2026-08-06, MATH.md §19):
+ *
+ * 1. **It pays for the switches it makes.** The baseline used to be billed
+ *    (n−1)·switchCost for ALL n listed tasks while the plan it produced seated
+ *    only as many as the leftover budget could reach — on 39.3% of days at
+ *    n = 8 and 3.3% at n = 2 (`scripts/rv14-naive-switch-bill.probe.ts` arm A,
+ *    2026-08-06). That is the same one-sided handicap §13.2 removed from the
+ *    lattice,
+ *    and it is the sole cause of the `naive = 0 → GAIN_PERCENT_CAP` reading
+ *    (which fires exactly when budget < n·BLOCK_HOURS). The bill is instead the
+ *    largest k the plan genuinely seats — the same "funded, not listed" rule the
+ *    switch-cost lever already uses (`metric/plan-advice.ts`).
+ *
+ *    Affordability is necessary but NOT sufficient, which is why the scan below
+ *    validates k against the plan rather than against the budget alone: a task
+ *    the pools cannot seat is one the baseline must not be charged a switch for
+ *    either. Budget-only, the bill over-charged on 18.9% of pool-bound days, and
+ *    on a zeroed pool it withheld a full hour of the baseline's own budget.
+ * 2. **It does not depend on the order of the task list.** `target` blocks
+ *    rarely divide evenly, so round-robin hands the remainder to whichever
+ *    tasks sit early in the array — and `addTask` PREPENDS, so adding a task
+ *    moved the reported gain of an unchanged plan (on 73.5% of days at n = 8,
+ *    by up to 602.6pp). Averaging over the n cyclic rotations gives every task
+ *    the odd block equally often; because the objective is a sum of per-task
+ *    terms, that average is EXACTLY permutation-invariant whenever no pool
+ *    binds. When one does the skips are not separable and a residue survives:
+ *    permutation-exact on 96.13% of 2400 days, worst baseline spread 1.61%,
+ *    worst reported-gain spread 3.4pp (2026-08-06, §19).
+ */
+function naiveBaselineValue(
+	tasks: PooledTaskInput[],
+	totalBudget: number,
+	switchCost: number,
+	poolCog: number,
+	poolPhys: number,
+	constants: UserConstants,
+	posterior?: FitPosterior,
+): number {
+	const n = tasks.length;
+
+	const blocksFor = (funded: number): number =>
+		Math.floor((totalBudget - (funded > 1 ? (funded - 1) * switchCost : 0)) / BLOCK_HOURS + 1e-9);
+
+	/**
+	 * The plan this rotation's naive planner ends up with: the largest k it can
+	 * both afford (k whole blocks left after k−1 switches) and actually seat
+	 * (the pools admit k distinct tasks). Scanning down accepts the first k that
+	 * survives both, so the bill and the plan always agree. All-zero when the
+	 * budget is under one block — the optimizer scores 0 there too.
+	 */
+	const planFrom = (start: number): number[] => {
+		const order = Array.from(
+			{
+				length: n,
+			},
+			(_, j) => (start + j) % n,
+		);
+
+		for (let k = n; k >= 1; k--) {
+			const target = blocksFor(k);
+
+			if (target < k) continue;
+
+			const hours = naiveBlockPlan(tasks, order, target, k, poolCog, poolPhys);
+
+			if (hours.filter((h) => h > 0).length === k) return hours;
+		}
+
+		return new Array<number>(n).fill(0);
+	};
+
+	let total = 0;
+
+	for (let start = 0; start < n; start++) {
+		total += calculateTotalProductivity(tasks, planFrom(start), constants, posterior);
+	}
+
+	return total / n;
+}
+
 function gainPercentOf(optimized: number, naive: number): number {
 	if (naive > 0) {
 		return Number(Math.min(GAIN_PERCENT_CAP, ((optimized - naive) / naive) * 100).toFixed(1));
@@ -1367,11 +1474,13 @@ function gainPercentOf(optimized: number, naive: number): number {
 /**
  * Compare productivity gain from the dual-pool Zenith optimization vs a naive
  * equal time split, under the SAME constraints: the naive planner splits the
- * effective budget equally across all tasks (switching between every one), and
- * it skips any task whose next whole block would overdraw a capacity pool
- * (`naiveBlockPlan`; nothing is scaled uniformly — MATH.md §13.2). Both
- * plans being pool-feasible makes the comparison about allocation quality, not
- * about one side ignoring constraints the other must respect.
+ * budget equally over as many tasks as the day can actually seat, pays only
+ * those switches, and skips any task whose next whole block would overdraw a
+ * capacity pool — averaged over the n cyclic rotations of the task list so the
+ * odd block is not an artifact of list order (`naiveBaselineValue`, MATH.md
+ * §19). Both plans being pool-feasible and billed for their own switches makes
+ * the comparison about allocation quality, not about one side carrying a
+ * constraint the other is spared.
  */
 export function pooledProductivityGain(
 	tasks: PooledTaskInput[],
@@ -1411,16 +1520,16 @@ export function pooledProductivityGain(
 				);
 
 	const optimized = calculateTotalProductivity(tasks, solvedHours, constants, posterior);
-	// Naive: equal split across ALL tasks (a naive planner attempts every task,
-	// so it pays n-1 switches), on the same block lattice and inside the same
-	// pools as the optimized plan — see naiveBlockPlan for why the baseline is
-	// no longer continuous.
-	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
-	const effectiveBudget = Math.max(0, totalBudget - switchOverhead);
 
-	const naive = calculateTotalProductivity(
+	// Naive: an equal split on the same block lattice and inside the same pools
+	// as the optimized plan, spread over as many tasks as the day can seat and
+	// billed for exactly those switches — see naiveBaselineValue.
+	const naive = naiveBaselineValue(
 		tasks,
-		naiveBlockPlan(tasks, effectiveBudget, pools.cognitiveHours, pools.physicalHours),
+		totalBudget,
+		switchCost,
+		pools.cognitiveHours,
+		pools.physicalHours,
 		constants,
 		posterior,
 	);
@@ -1433,8 +1542,12 @@ export function pooledProductivityGain(
 }
 
 /**
- * Compare productivity gain from Zenith optimization vs naive equal split
- * Both use the same effective budget (after context-switching overhead)
+ * Compare productivity gain from Zenith optimization vs a naive equal split,
+ * with both pools unbounded so the time budget is the only constraint.
+ *
+ * Each side is billed for the switches its OWN plan makes — the optimizer for
+ * its funded subset, the baseline for the tasks it seats (MATH.md §19) — so
+ * neither is handicapped by the other's task count.
  */
 export function productivityGain(
 	tasks: TaskInput[],
@@ -1451,10 +1564,6 @@ export function productivityGain(
 		};
 	}
 
-	// Calculate effective budget after context-switching
-	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
-	const effectiveBudget = Math.max(0, totalBudget - switchOverhead);
-
 	const optimizedAllocs = calculateTaskAllocations(
 		tasks,
 		totalBudget,
@@ -1470,19 +1579,18 @@ export function productivityGain(
 		posterior,
 	);
 
-	// Naive: equal split of the effective budget, block-quantized like the
-	// optimized plan (naiveBlockPlan explains why).
-	const naive = calculateTotalProductivity(
-		tasks,
-		naiveBlockPlan(
-			tasks.map(() => ({
-				cognitiveWeight: 0,
-				physicalWeight: 0,
-			})),
-			effectiveBudget,
-			Infinity,
-			Infinity,
-		),
+	// Naive: the same baseline as the pooled path with both pools unbounded, so
+	// the only constraint is the time budget (naiveBaselineValue explains it).
+	const naive = naiveBaselineValue(
+		tasks.map((task) => ({
+			...task,
+			cognitiveWeight: 0,
+			physicalWeight: 0,
+		})),
+		totalBudget,
+		switchCost,
+		Infinity,
+		Infinity,
 		constants,
 		posterior,
 	);

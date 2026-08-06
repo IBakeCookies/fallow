@@ -8,8 +8,18 @@
  * non-capped day gains ~4–6%". The section does not state the generator, so
  * this fixes a seeded app-reachable one (integer sliders, pool weights tied to
  * them, budget on the 0.25 h lattice) and runs both baselines side by side: the
- * shipped `naiveBlockPlan` and a replica of the pre-2026-07-26 CONTINUOUS equal
- * split, which is the only part of the "before" row that can still be measured.
+ * shipped baseline and a replica of the pre-2026-07-26 CONTINUOUS equal split,
+ * which is the only part of the "before" row that can still be measured.
+ *
+ * SCOPE NARROWED 2026-08-06 (§19). Two of the three claims this file was written
+ * to check have since been RETRACTED: §19 showed the `naive = 0` row was an
+ * artifact of the baseline's switch bill rather than a scenario, and the
+ * "~4–6% typical day" went with it. The cap counters below are consequently
+ * identically zero at every task count — kept as a one-line assertion that they
+ * stay zero, since that is now the claim worth guarding. What this probe still
+ * measures on its own is the continuous-vs-block "before" row and the
+ * single-budget ≥ 0 guarantee; §19's own numbers live in
+ * `rv14-naive-switch-bill.probe.ts`.
  *
  * The 0% row is the load-bearing half, and on the single-budget path it is a
  * theorem rather than a measurement (the block equal split is one of the
@@ -130,17 +140,20 @@ describe('MATH.md §13.2 — the naive baseline on the block lattice', () => {
 			}
 
 			nonCapped.sort((a, b) => a - b);
-			const nonCappedMean = nonCapped.reduce((sum, g) => sum + g, 0) / nonCapped.length;
+			const mean = nonCapped.reduce((sum, g) => sum + g, 0) / nonCapped.length;
 
-			const overallMean =
-				(nonCapped.reduce((sum, g) => sum + g, 0) + capped * GAIN_PERCENT_CAP) / DAYS_PER_COUNT;
+			// Since §19 there are no capped days, so the with-cap and without-cap
+			// means are the same number and the "cap contributes x% of the mean"
+			// line §13.2 quoted has no content left. What is worth guarding is that
+			// the count stays zero.
+			expect(capped).toBe(0);
 
 			console.log(
-				`n=${n}: MEAN gain ${overallMean.toFixed(1)}% with the cap included, ${nonCappedMean.toFixed(1)}% without it — the cap contributes ${((100 * capped * GAIN_PERCENT_CAP) / (overallMean * DAYS_PER_COUNT)).toFixed(0)}% of the mean`,
+				`n=${n}: MEAN gain ${mean.toFixed(1)}%, median ${nonCapped[Math.floor(nonCapped.length / 2)].toFixed(1)}%, p10 ${nonCapped[Math.floor(nonCapped.length * 0.1)].toFixed(1)}%, p90 ${nonCapped[Math.floor(nonCapped.length * 0.9)].toFixed(1)}% — no capped days since §19`,
 			);
 
 			console.log(
-				`n=${n}: gain < 0 before ${((100 * negativeBefore) / DAYS_PER_COUNT).toFixed(1)}%, after ${((100 * negativeAfter) / DAYS_PER_COUNT).toFixed(1)}% (pooled ${((100 * negativePooled) / DAYS_PER_COUNT).toFixed(1)}%); naive = 0 cap ${((100 * capped) / DAYS_PER_COUNT).toFixed(1)}%; sub-block sliver days ${((100 * sliverDays) / DAYS_PER_COUNT).toFixed(1)}%; non-capped gain median ${nonCapped[Math.floor(nonCapped.length / 2)].toFixed(1)}%, p10 ${nonCapped[Math.floor(nonCapped.length * 0.1)].toFixed(1)}%, p90 ${nonCapped[Math.floor(nonCapped.length * 0.9)].toFixed(1)}%`,
+				`n=${n}: gain < 0 before ${((100 * negativeBefore) / DAYS_PER_COUNT).toFixed(1)}%, after ${((100 * negativeAfter) / DAYS_PER_COUNT).toFixed(1)}% (pooled ${((100 * negativePooled) / DAYS_PER_COUNT).toFixed(1)}%); sub-block sliver days ${((100 * sliverDays) / DAYS_PER_COUNT).toFixed(1)}%`,
 			);
 		}
 	});

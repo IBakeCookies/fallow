@@ -140,7 +140,7 @@
 	"metric_band_caution": "Achtung",
 	"metric_band_critical": "Kritisch",
 	"metric_zenith_gain": "Fallow-Gewinn",
-	"metric_zenith_gain_desc": "Produktivitätsverbesserung durch Fallow-Optimierung gegenüber einer naiven Gleichverteilung derselben Stunden auf dieselben 15-Minuten-Blöcke. Sättigt bei +999 % — mit vielen Aufgaben und wenig Zeit erreicht der naive Plan fast nichts.",
+	"metric_zenith_gain_desc": "Produktivitätsverbesserung durch Fallow-Optimierung gegenüber einer naiven Gleichverteilung derselben Stunden auf dieselben 15-Minuten-Blöcke. Die Gleichverteilung erstreckt sich über so viele Aufgaben, wie der Tag zulässt, und zahlt nur die Wechsel, die sie tatsächlich vornimmt — beide Pläne unterliegen denselben Beschränkungen.",
 	"metric_yield_index": "Ertragsindex",
 	"metric_yield_index_desc": "Hast du die Aufgaben mit der höchsten Priorität erledigt? Vergleicht deine erledigte Arbeit mit der optimalen Auswahl.",
 	"metric_completion_rate": "Abschlussquote",
