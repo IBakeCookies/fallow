@@ -1285,13 +1285,23 @@ export function calculateTotalProductivity(
 /**
  * Display cap for the relative gain vs the naive baseline, in percent.
  *
- * WHY (2026-07-18 metric fix, MATH.md §11.2): the naive planner attempts all
- * n tasks and pays (n−1)·switchCost; with many tasks and a small budget its
- * effective budget hits 0, its productivity is 0, and the true relative gain
- * is unbounded. The old guard quietly reported 0% in exactly the scenario
- * where Zenith helps most (it funds fewer tasks and pays fewer switches).
- * Ratios above ~10× carry no extra decision value, so the gain saturates at
- * this cap; a capped value reads as "≥ 10× the naive plan".
+ * Ratios above ~10× carry no extra decision value, so the gain saturates here;
+ * a capped value reads as "≥ 10× the naive plan".
+ *
+ * WHY it fires (2026-08-06, MATH.md §19.4 — this REPLACES the §11.2 rationale).
+ * §11.2 added the cap for `naive = 0`, which it read as "many tasks, small
+ * budget, switch overhead eats everything". That was an artifact of billing the
+ * baseline for switches its plan never made, and §19 removed it: the `naive = 0`
+ * arm of `gainPercentOf` now needs a budget under one whole block, where the
+ * optimizer scores 0 too and the function returns 0 rather than the cap.
+ *
+ * What still reaches the cap is the opposite regime. The baseline must spend its
+ * whole block target, so a long budget poured into FEW tasks pushes each past
+ * its own T*, where P̄ decays like C/T, while the optimizer stops at T* and
+ * leaves the slack unused. With a fitted ϕ̂ at the 0.1h floor the single-budget
+ * gain reads 999% from 4.25h at n = 1 (8.5 / 13 / 17.25h at n = 2 / 3 / 4, never
+ * within 24h at n = 6). At DEFAULT constants it is unreachable — the 24h maximum
+ * is 569% at n = 1, and 41.6% on the pooled path the dashboard shows.
  */
 export const GAIN_PERCENT_CAP = 999;
 
@@ -1377,8 +1387,10 @@ function naiveBlockPlan(
  *
  * 1. **It pays for the switches it makes.** The baseline used to be billed
  *    (n−1)·switchCost for ALL n listed tasks while the plan it produced seated
- *    only as many as the leftover budget could reach — up to 39.3% of days at
- *    n = 8. That is the same one-sided handicap §13.2 removed from the lattice,
+ *    only as many as the leftover budget could reach — on 39.3% of days at
+ *    n = 8 and 3.3% at n = 2 (`scripts/rv14-naive-switch-bill.probe.ts` arm A,
+ *    2026-08-06). That is the same one-sided handicap §13.2 removed from the
+ *    lattice,
  *    and it is the sole cause of the `naive = 0 → GAIN_PERCENT_CAP` reading
  *    (which fires exactly when budget < n·BLOCK_HOURS). The bill is instead the
  *    largest k the plan genuinely seats — the same "funded, not listed" rule the
@@ -1462,11 +1474,13 @@ function gainPercentOf(optimized: number, naive: number): number {
 /**
  * Compare productivity gain from the dual-pool Zenith optimization vs a naive
  * equal time split, under the SAME constraints: the naive planner splits the
- * effective budget equally across all tasks (switching between every one), and
- * it skips any task whose next whole block would overdraw a capacity pool
- * (`naiveBlockPlan`; nothing is scaled uniformly — MATH.md §13.2). Both
- * plans being pool-feasible makes the comparison about allocation quality, not
- * about one side ignoring constraints the other must respect.
+ * budget equally over as many tasks as the day can actually seat, pays only
+ * those switches, and skips any task whose next whole block would overdraw a
+ * capacity pool — averaged over the n cyclic rotations of the task list so the
+ * odd block is not an artifact of list order (`naiveBaselineValue`, MATH.md
+ * §19). Both plans being pool-feasible and billed for their own switches makes
+ * the comparison about allocation quality, not about one side carrying a
+ * constraint the other is spared.
  */
 export function pooledProductivityGain(
 	tasks: PooledTaskInput[],
@@ -1528,8 +1542,12 @@ export function pooledProductivityGain(
 }
 
 /**
- * Compare productivity gain from Zenith optimization vs naive equal split
- * Both use the same effective budget (after context-switching overhead)
+ * Compare productivity gain from Zenith optimization vs a naive equal split,
+ * with both pools unbounded so the time budget is the only constraint.
+ *
+ * Each side is billed for the switches its OWN plan makes — the optimizer for
+ * its funded subset, the baseline for the tasks it seats (MATH.md §19) — so
+ * neither is handicapped by the other's task count.
  */
 export function productivityGain(
 	tasks: TaskInput[],

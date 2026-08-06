@@ -232,6 +232,8 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 			let movedNew = 0;
 			let worstOld = 0;
 			let worstNew = 0;
+			let movedOptimized = 0;
+			let worstOptimized = 0;
 
 			for (let day = 0; day < DAYS_PER_COUNT; day++) {
 				const { tasks, budget } = randomDay(rnd, n);
@@ -246,6 +248,8 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 				let hiOld = -Infinity;
 				let loNew = Infinity;
 				let hiNew = -Infinity;
+				let loOpt = Infinity;
+				let hiOpt = -Infinity;
 
 				for (let p = 0; p < 8; p++) {
 					const perm = p === 0 ? tasks : shuffled(tasks, rnd);
@@ -263,18 +267,27 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 						),
 					);
 
-					const newG = pooledProductivityGain(perm, budget).gainPercent;
+					const permuted = pooledProductivityGain(perm, budget);
 
 					loOld = Math.min(loOld, oldG);
 					hiOld = Math.max(hiOld, oldG);
-					loNew = Math.min(loNew, newG);
-					hiNew = Math.max(hiNew, newG);
+					loNew = Math.min(loNew, permuted.gainPercent);
+					hiNew = Math.max(hiNew, permuted.gainPercent);
+					// The OPTIMIZED side under the same permutations: the attribution
+					// claim in §19.2 needs a measured number, not an assumption.
+					loOpt = Math.min(loOpt, permuted.optimized);
+					hiOpt = Math.max(hiOpt, permuted.optimized);
 				}
 
 				// 0.05pp is the display resolution: gainPercent is rounded to 0.1.
 				if (hiOld - loOld > 0.05) movedOld++;
 
 				if (hiNew - loNew > 0.05) movedNew++;
+
+				if (hiOpt - loOpt > 1e-12) {
+					movedOptimized++;
+					worstOptimized = Math.max(worstOptimized, (hiOpt - loOpt) / loOpt);
+				}
 
 				worstOld = Math.max(worstOld, hiOld - loOld);
 				worstNew = Math.max(worstNew, hiNew - loNew);
@@ -284,6 +297,11 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 				`[C] n=${n}: reordering the same day moves the gain on ${pct(movedOld / DAYS_PER_COUNT)} of days before ` +
 					`(spread up to ${worstOld.toFixed(1)}pp), ${pct(movedNew / DAYS_PER_COUNT)} after ` +
 					`(up to ${worstNew.toFixed(2)}pp)`,
+			);
+
+			console.log(
+				`[C] n=${n}: the OPTIMIZED side moves on ${pct(movedOptimized / DAYS_PER_COUNT, 2)} of the same days ` +
+					`(worst ${pct(worstOptimized, 3)} of the plan value) — pooled greedy tie-breaking, §13.3`,
 			);
 		}
 	});
@@ -506,6 +524,63 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 
 		expect(worstBaselineError).toBeLessThan(1e-12);
 		expect(capped).toBe(0);
+	});
+
+	it('arm I — a starved pool cannot make the bill exceed the seats (§19.1)', () => {
+		// Choosing the switch bill from the TIME budget alone over-charges whenever a
+		// POOL, not the clock, is what keeps a task out — measured at 20% of days on
+		// the low-pool grid below, worst +14.35pp of reported gain. The shipped scan
+		// validates k against the plan instead, so `funded === k` holds by
+		// construction; the only escape is the all-zero fallback. This arm pins that
+		// the fallback fires ONLY where it should: no seatable task, or a budget
+		// under one block — never as a silent over-charge.
+		const rnd = mulberry32(8800);
+		let zeroBaseline = 0;
+		let zeroAndExplained = 0;
+		let days = 0;
+
+		for (let day = 0; day < 3000; day++) {
+			const n = 2 + Math.floor(rnd() * 9);
+
+			const tasks: PooledTaskInput[] = Array.from(
+				{
+					length: n,
+				},
+				(_, i) => ({
+					title: `t${i}`,
+					difficulty: 1 + Math.floor(rnd() * 10),
+					enjoyment: 1 + Math.floor(rnd() * 10),
+					cognitiveWeight: 0.5 + Math.round(rnd() * 5) / 10,
+					physicalWeight: Math.round(rnd() * 4) / 10,
+				}),
+			);
+
+			// The starved corner: pools dialled toward zero on the 0.5h UI step.
+			const pools = {
+				cognitiveHours: Math.round(rnd() * 6) / 2,
+				physicalHours: Math.round(rnd() * 8) / 2,
+			};
+
+			const budget = (1 + Math.floor(rnd() * 40)) * BLOCK_HOURS;
+			const { naive, optimized } = pooledProductivityGain(tasks, budget, pools);
+
+			days++;
+
+			if (naive > 0) continue;
+
+			zeroBaseline++;
+
+			// A zero baseline is honest only when the optimizer also scores zero —
+			// i.e. nothing was seatable at all. Otherwise it is the old defect back.
+			if (optimized <= 0) zeroAndExplained++;
+		}
+
+		console.log(
+			`[I] ${days} starved-pool days: baseline is 0 on ${zeroBaseline}, of which ${zeroAndExplained} ` +
+				`also have optimized = 0 (nothing seatable). Unexplained zeros: ${zeroBaseline - zeroAndExplained}`,
+		);
+
+		expect(zeroBaseline - zeroAndExplained).toBe(0);
 	});
 
 	it('arm G — a budget of one whole block is never "the naive plan achieves nothing"', () => {

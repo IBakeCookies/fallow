@@ -104,7 +104,11 @@ export function buildMetrics(
 			description: m.metric_zenith_gain_desc(),
 			...gated(
 				planned,
-				`+${zenithGain.gainPercent}%`,
+				// Signed from the value, not hardcoded '+': the dashboard reads the
+				// POOLED gain, which can be slightly negative when the pooled greedy
+				// is the suboptimal side (MATH.md §19.3) — a hardcoded plus rendered
+				// that as "+-0.5%".
+				`${zenithGain.gainPercent > 0 ? '+' : zenithGain.gainPercent < 0 ? '−' : ''}${Math.abs(zenithGain.gainPercent)}%`,
 				zenithGain.gainPercent >= 15
 					? 'success'
 					: zenithGain.gainPercent >= 5

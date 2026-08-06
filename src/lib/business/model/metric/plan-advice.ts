@@ -444,7 +444,7 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
  * priority-sorted, so a hand-rolled sum adds the same terms in a different order
  * and lands a few ulps off `planValueOf`. Reading the value from the function
  * that defines it makes the comparison exact by construction, and the naive
- * baseline it also builds is a linear pass against a 2ⁿ enumeration.
+ * baseline it also builds is n rotation passes (§19) against a 2ⁿ enumeration.
  *
  * PLAN-SCOPED, over every task and not just the open ones: it is compared
  * against `planValueOf(baseline)`, which `calculateDailyMetrics` builds from the

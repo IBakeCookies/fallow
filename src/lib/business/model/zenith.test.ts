@@ -1949,10 +1949,14 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// The POOLED path never had that proof, and since §19 stopped
 			// over-billing the baseline it is strong enough to expose the pooled
 			// greedy's own suboptimality: measured 1 day in 2400 at −0.5%. Asserting
-			// ≥ 0 there would be a latent flake. The honest bound follows from
-			// §13.3's measured worst-case shortfall: the naive plan is feasible, so
-			// naive ≤ optimum, and greedy lands within 5.46% of the optimum, hence
-			// gainPercent ≥ −5.46%.
+			// ≥ 0 there would be a latent flake.
+			//
+			// −6 is a REGRESSION TRIPWIRE, not a bound. §13.3 has no envelope to
+			// quote (per-seed worsts 3.37–5.28% app-reachable, 6.03% on a wide draw)
+			// and says in as many words that nothing downstream may cite its numbers
+			// as an error bound. This is sized clear of the −0.5% actually measured,
+			// so it catches a real regression without claiming the model guarantees
+			// anything (§19.3).
 			let seed = 12345;
 			const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
 
@@ -1982,7 +1986,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 				expect(
 					pooledProductivityGain(pooled, budget, DEFAULT_CAPACITY_POOLS).gainPercent,
-				).toBeGreaterThanOrEqual(-5.46);
+				).toBeGreaterThanOrEqual(-6);
 			}
 		});
 
@@ -2062,12 +2066,13 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		});
 
 		it('never reports above the cap', () => {
-			// (A tiny-but-positive naive value cannot produce a huge FINITE ratio
-			// under the v2 curve: whole blocks still collect ≈ p₀ per task via the
-			// activation bonus, so naive is substantial whenever it is non-zero —
-			// see MATH.md §11.2. Since §19 the naive = 0 case needs a budget under
-			// one whole block, where the optimizer scores 0 too, so the cap has no
-			// reachable trigger left; this sweep pins the invariant regardless.)
+			// (Since §19 the naive = 0 arm needs a budget under one whole block,
+			// where the optimizer scores 0 too. What stays reachable is the RATIO
+			// clamp: the baseline must spend its whole block budget, so a long day
+			// poured into few short-ϕ tasks decays past T* while the optimizer stops
+			// — 999% from 4.25h at n = 1 with a ϕ̂ = 0.1h fit (MATH.md §19.4). This
+			// sweep sits at default constants, where the 24h maximum is 569%, so it
+			// pins the invariant from the other side.)
 			for (const budget of [0.5, 2, 2.5, 6, 12]) {
 				const tasks = Array.from(
 					{
