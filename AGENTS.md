@@ -857,6 +857,7 @@ no probe citation beside it is unbacked — that is the list to work down.
 | `rv13-prior-posterior.probe.ts`         | §13.1 — the σ_ϕ ladder and what the n = 0 posterior moves                                                                    |
 | `rv13-naive-lattice.probe.ts`           | §13.2 — the naive baseline's lattice handicap, before and after                                                              |
 | `rv14-naive-switch-bill.probe.ts`       | §19 — the naive baseline's switch bill and order dependence, before and after; the ≥ 0 arms and the pool-starved regressions |
+| `rv15-gain-headroom.probe.ts`           | §21 — why an honest gain still reads ~3%: selection vs shape, the activation-bonus ceiling, what binds on a real day         |
 | `rv13-stop-insertion.probe.ts`          | §13.4 — insertion convention: size and sign of the error                                                                     |
 | `rv13-terminal-timing.probe.ts`         | §13.6 — mean-vs-min re-scoring, and the timing difference                                                                    |
 | `adv1-plan-advice-frontier.probe.ts`    | §14, §14.1 — the Σ P̄ identity, budget monotonicity, rounding, frontier widths, the budget-0 grind day                        |
