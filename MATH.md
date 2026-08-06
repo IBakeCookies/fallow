@@ -89,10 +89,10 @@ whenever a section is inserted — reprint the headings with
 §16       3352-3430  Run order stays a heuristic (2026-07-29)
 §17       3432-3590  Per-task ϕ offsets stay unbuilt (2026-08-04)
 §18       3592-3660  Drain logs are one row per SESSION, not per task-day (20…
-§19       3662-3763  The gain's naive baseline paid for switches it never mad…
-  §19.1   3674-3711  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   3713-3740  Defect 2 — the displayed number moved with the order of …
-  §19.3   3742-3763  What this costs, and the one guarantee that weakened
+§19       3662-3802  The gain's naive baseline paid for switches it never mad…
+  §19.1   3674-3733  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   3735-3762  Defect 2 — the displayed number moved with the order of …
+  §19.3   3764-3802  What this costs, and the one guarantee that weakened
 ```
 
 <!-- section-index:end -->
@@ -3706,9 +3706,31 @@ the cap fires on **0.0% of days at every task count** after the fix, against
 
 The rule the fix adopts is the one the switch-cost lever already used
 (`metric/plan-advice.ts`: "Funded, not listed: the allocator pays for the
-switches it actually makes"). `seated` is the largest k whose bill still leaves
-k whole blocks to hand out; the optimizer enumerates that subset size too, so
-neither side is charged for work the other is spared.
+switches it actually makes"). The bill is the largest k the plan genuinely
+seats; the optimizer enumerates that subset size too, so neither side is
+charged for work the other is spared.
+
+**Affordable is not the same as seatable, and the first cut of this fix got
+that wrong.** Choosing k from the time budget alone — the largest k whose bill
+still leaves k whole blocks — over-charges whenever a capacity pool, not the
+clock, is what keeps a task out: measured on 18.9% of pool-bound days, and on a
+zeroed pool it withheld a full hour of the baseline's own budget (7.3% reported
+against 0% honest). Worse, pairing that k with a round-robin restricted to a
+WINDOW of k tasks let a window land entirely on pool-blocked tasks, produce the
+all-zero plan, and drag the rotation average down — which brought the 999% cap
+straight back through the pool door: 8 tasks on 0.25 h against a zeroed physical
+pool read **700%**, 12 tasks read the full **999%**, where the honest answer is
+0% (one task is seatable, and both planners give it the day). Both inputs are
+UI-reachable: the physical-capacity field accepts 0, and `physicalDifficulty` 0
+gives weight 0.
+
+So the scan validates k against the PLAN, not the budget: walk the whole
+rotation, cap the number of DISTINCT tasks opened at k, and accept the first k
+the plan actually seats. Pool-blocked tasks are passed over in favour of the
+next feasible one instead of costing a seat. Over 360 zeroed-pool cells the
+baseline now equals the honest "the one seatable task gets the day" value to
+within 1e-12 and the cap never fires (`arm H`, a regression test for exactly
+this).
 
 ### 19.2 Defect 2 — the displayed number moved with the order of the task list
 
@@ -3741,12 +3763,28 @@ residue against 603pp removed is not where the next fix belongs.
 
 ### 19.3 What this costs, and the one guarantee that weakened
 
-**The ≥ 0 theorem survives on the single-budget path.** Each rotation's plan is
-a block distribution over a subset of size `seated` under budget
-`blocksFor(seated)` — exactly a (subset, budget) pair `bestPlanWithSwitchCost`
-enumerates — so the exact greedy's value dominates it (Fox 1966, §4), and
-therefore dominates the average. Measured 0 negatives in 2400 days, asserted in
-the probe.
+**The ≥ 0 guarantee survives on the single-budget path.** Each rotation's plan
+is a block distribution over a subset of size k under budget `blocksFor(k)` —
+exactly a (subset, budget) pair `bestPlanWithSwitchCost` enumerates — so the
+exact greedy's value dominates it (Fox 1966, §4). Dominating every rotation is
+strictly stronger than dominating their average, so the average is covered too;
+measured, the average is strictly below the best rotation on 81.7% of days.
+0 negatives in 2400 days, asserted in the probe.
+
+**It is a theorem about the TRUNCATED menu, not about E[P̄], and §13.2 overstated
+it.** `buildBlockIncrements` cuts a task's menu at the first non-positive
+increment and — when σ_ϕ > 0 — at the first non-DECREASING one (§5.1). Blocks
+past the first cut lower the objective, so a naive plan that overshoots there
+only hurts itself and the guarantee holds. The σ_ϕ cut is different: it can fire
+while E[P̄] is still rising, leaving the naive plan free to place a value-adding
+block the optimizer was never offered. Constructed witness: one task at
+effective difficulty 1.3, ϕ̂ = 4.5 h, σ_ϕ/ϕ̂ = 0.35, budget 4 h → optimized
+0.886678 against naive 0.891116, a reported **−0.5%**. This is not new (at n = 1
+the §19 baseline is identical to the old one) and it is not reachable from the
+product: 0 monotonicity cuts in 156,000 cells with integer sliders and ϕ ≤ 6 h,
+against 8,806 of 919,968 with quarter-step sliders and ϕ up to 8 h, all at
+ϕ̂ ≥ 4 h with σ/ϕ ≥ 0.35 — the corner §5.1's σ-cap already calls dubious. Worth
+recording because "provably ≥ 0" was being read as unconditional.
 
 **The pooled path lost its clean sweep, honestly.** §13.2 reported "no
 counterexample" for the pooled gain; with the handicap removed the baseline is
@@ -3757,6 +3795,7 @@ the metric instead of being masked. That is the correct trade: the number is a
 measure of allocation quality, and the pooled allocator is not exact, so the
 metric should be able to say so.
 
-**Cost.** The baseline is now n round-robin passes plus n productivity sums
-instead of one of each. Both are linear; the same call already runs the 2ⁿ
-funded-subset enumeration.
+**Cost.** The baseline is now n rotations, each scanning down at most n
+candidate k's, plus n productivity sums instead of one. Measured at n = 12 with
+a posterior: the baseline goes from ~0.013 ms to 0.031 ms, against 41.7 ms for
+the 2ⁿ funded-subset solve in the same call — 0.04% of it.

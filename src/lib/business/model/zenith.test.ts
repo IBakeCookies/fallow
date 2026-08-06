@@ -1942,7 +1942,9 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// collect its ≈ p₀ activation bonus — something Zenith structurally
 			// cannot do — so the metric read NEGATIVE on 3.8–7.8% of random days.
 			// Quantized, the naive plan is one of the block distributions the exact
-			// greedy maximizes over (§4), so the single-budget gain is provably ≥ 0.
+			// greedy maximizes over (§4), so the single-budget gain is ≥ 0 — over the
+			// TRUNCATED increment menu, which is the caveat §19.3 records for σ_ϕ > 0
+			// and integer sliders cannot reach.
 			//
 			// The POOLED path never had that proof, and since §19 stopped
 			// over-billing the baseline it is strong enough to expose the pooled

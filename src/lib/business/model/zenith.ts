@@ -1296,12 +1296,23 @@ export function calculateTotalProductivity(
 export const GAIN_PERCENT_CAP = 999;
 
 /**
- * The naive planner's plan: an equal split of `target` blocks across the tasks
- * in `order`, on the SAME 15-minute lattice the optimizer is held to. Blocks
- * are handed out round-robin (so the split is equal to within one block, ties
- * toward the front of `order` like greedy), skipping any task whose next block
- * would overdraw a capacity pool. Pools of Infinity give the single-budget
- * baseline.
+ * The naive planner's plan: an equal split of `target` blocks across at most
+ * `maxFunded` of the tasks in `order`, on the SAME 15-minute lattice the
+ * optimizer is held to. Blocks are handed out round-robin (so the split is
+ * equal to within one block, ties toward the front of `order` like greedy),
+ * skipping any task whose next block would overdraw a capacity pool. Pools of
+ * Infinity give the single-budget baseline.
+ *
+ * `maxFunded` caps how many DISTINCT tasks may be opened, which is what keeps
+ * the switch bill honest (`naiveBaselineValue`) — but the walk still runs over
+ * the whole of `order`, so a pool-blocked task is passed over in favour of the
+ * next feasible one instead of costing the plan a seat. Restricting `order`
+ * itself to the first `maxFunded` entries is the tempting shortcut and it is
+ * wrong: a window that happens to hold only pool-blocked tasks yields an
+ * all-zero plan, which drags the rotation average down and resurrects the very
+ * `naive = 0 → GAIN_PERCENT_CAP` reading §19 removed (measured before this
+ * guard: 8 tasks at 0.25h against a zeroed physical pool reported 700%, and
+ * 12 tasks reported the full 999%, where the honest answer is 0%).
  *
  * WHY quantized (2026-07-26, MATH.md §13.2 — this REVERSES the §7 "naive
  * baselines stay continuous" decision). A continuous baseline can hand every
@@ -1320,6 +1331,7 @@ function naiveBlockPlan(
 	weights: { cognitiveWeight: number; physicalWeight: number }[],
 	order: number[],
 	target: number,
+	maxFunded: number,
 	poolCog: number,
 	poolPhys: number,
 ): number[] {
@@ -1327,6 +1339,7 @@ function naiveBlockPlan(
 	let remCog = poolCog;
 	let remPhys = poolPhys;
 	let placed = 0;
+	let funded = 0;
 
 	while (placed < target) {
 		let any = false;
@@ -1334,10 +1347,14 @@ function naiveBlockPlan(
 		for (const i of order) {
 			if (placed >= target) break;
 
+			if (blocks[i] === 0 && funded >= maxFunded) continue;
+
 			const cog = BLOCK_HOURS * weights[i].cognitiveWeight;
 			const phys = BLOCK_HOURS * weights[i].physicalWeight;
 
 			if (cog > remCog + 1e-9 || phys > remPhys + 1e-9) continue;
+
+			if (blocks[i] === 0) funded++;
 
 			blocks[i]++;
 			remCog -= cog;
@@ -1360,13 +1377,18 @@ function naiveBlockPlan(
  *
  * 1. **It pays for the switches it makes.** The baseline used to be billed
  *    (n−1)·switchCost for ALL n listed tasks while the plan it produced seated
- *    only as many as the leftover budget could reach — up to 29.8% of days at
+ *    only as many as the leftover budget could reach — up to 39.3% of days at
  *    n = 8. That is the same one-sided handicap §13.2 removed from the lattice,
  *    and it is the sole cause of the `naive = 0 → GAIN_PERCENT_CAP` reading
- *    (which fires exactly when budget < n·BLOCK_HOURS). `seated` is instead the
- *    largest task count the day can actually seat with a whole block each, and
- *    the bill follows it — the same "funded, not listed" rule the switch-cost
- *    lever already uses (`metric/plan-advice.ts`).
+ *    (which fires exactly when budget < n·BLOCK_HOURS). The bill is instead the
+ *    largest k the plan genuinely seats — the same "funded, not listed" rule the
+ *    switch-cost lever already uses (`metric/plan-advice.ts`).
+ *
+ *    Affordability is necessary but NOT sufficient, which is why the scan below
+ *    validates k against the plan rather than against the budget alone: a task
+ *    the pools cannot seat is one the baseline must not be charged a switch for
+ *    either. Budget-only, the bill over-charged on 18.9% of pool-bound days, and
+ *    on a zeroed pool it withheld a full hour of the baseline's own budget.
  * 2. **It does not depend on the order of the task list.** `target` blocks
  *    rarely divide evenly, so round-robin hands the remainder to whichever
  *    tasks sit early in the array — and `addTask` PREPENDS, so adding a task
@@ -1392,36 +1414,38 @@ function naiveBaselineValue(
 	const blocksFor = (funded: number): number =>
 		Math.floor((totalBudget - (funded > 1 ? (funded - 1) * switchCost : 0)) / BLOCK_HOURS + 1e-9);
 
-	// Largest k whose switch bill still leaves k whole blocks to hand out, so the
-	// plan seats exactly the k tasks it paid to switch between. Monotone in k
-	// (the bill rises with k while the blocks needed rise too), so the first hit
-	// scanning down is the answer.
-	let seated = 1;
-
-	for (let k = n; k >= 1; k--) {
-		if (blocksFor(k) >= k) {
-			seated = k;
-			break;
-		}
-	}
-
-	const target = blocksFor(seated);
-	let total = 0;
-
-	for (let start = 0; start < n; start++) {
+	/**
+	 * The plan this rotation's naive planner ends up with: the largest k it can
+	 * both afford (k whole blocks left after k−1 switches) and actually seat
+	 * (the pools admit k distinct tasks). Scanning down accepts the first k that
+	 * survives both, so the bill and the plan always agree. All-zero when the
+	 * budget is under one block — the optimizer scores 0 there too.
+	 */
+	const planFrom = (start: number): number[] => {
 		const order = Array.from(
 			{
-				length: seated,
+				length: n,
 			},
 			(_, j) => (start + j) % n,
 		);
 
-		total += calculateTotalProductivity(
-			tasks,
-			naiveBlockPlan(tasks, order, target, poolCog, poolPhys),
-			constants,
-			posterior,
-		);
+		for (let k = n; k >= 1; k--) {
+			const target = blocksFor(k);
+
+			if (target < k) continue;
+
+			const hours = naiveBlockPlan(tasks, order, target, k, poolCog, poolPhys);
+
+			if (hours.filter((h) => h > 0).length === k) return hours;
+		}
+
+		return new Array<number>(n).fill(0);
+	};
+
+	let total = 0;
+
+	for (let start = 0; start < n; start++) {
+		total += calculateTotalProductivity(tasks, planFrom(start), constants, posterior);
 	}
 
 	return total / n;

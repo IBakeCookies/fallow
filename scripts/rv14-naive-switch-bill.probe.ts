@@ -13,11 +13,15 @@
  *      switches for, and what that did to the reported gain
  *   B  the 999% cap under both bills — is `naive = 0` a real day or an artifact?
  *   C  order dependence of the reported gain, before and after
- *   D  the properties the fix must not break: gain ≥ 0 (single-budget path is a
- *      theorem, Fox 1966 §4; pooled path is a measurement) and the optimizer
- *      never scoring below the naive plan
+ *   D  the properties the fix must not break: gain ≥ 0 (single-budget path is
+ *      Fox 1966 §4 over the truncated menu; pooled path is a measurement) and
+ *      the optimizer never scoring below the naive plan
  *   E  residual permutation dependence of the rotation average when a pool binds
  *      (exactly zero is only provable when none does — §19)
+ *   F  the affordability scan's monotonicity, exhaustively
+ *   H  regression: a pool the baseline cannot draw on must not inflate the gain.
+ *      The first cut of §19 windowed the round-robin to `seated` tasks, and a
+ *      window of only pool-blocked tasks brought the 999% cap back.
  *
  * The generator is `rv13-naive-lattice.probe.ts`'s, so the numbers here sit on
  * the same draw as §13.2's table: integer sliders, pool weights tied to them,
@@ -310,12 +314,14 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 
 				if (pooled.naive > pooled.optimized + 1e-9) optimizerBelow++;
 
-				// §13.2's THEOREM, re-asserted against the new baseline: on the
+				// §13.2's guarantee, re-asserted against the new baseline: on the
 				// single-budget path the naive plan is still one of the block
 				// distributions the exact greedy maximizes over (Fox 1966, §4), now
-				// under the smaller switch bill of a smaller funded subset. The pooled
-				// path never had this guarantee — its greedy is a heuristic (§13.3) —
-				// so its rate is measured, not asserted.
+				// under the smaller switch bill of a smaller funded subset. Exact over
+				// the TRUNCATED increment menu, which is the caveat §19.3 records — a
+				// σ_ϕ > 0 menu cut can leave the naive plan free to place a block the
+				// optimizer was never offered. Unreachable from integer sliders, which
+				// is the regime this generator draws.
 				expect(single.gainPercent).toBeGreaterThanOrEqual(0);
 			}
 
@@ -429,12 +435,77 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 		}
 
 		console.log(
-			`[F] ${cases} (budget, switchCost, n) cases: ${violations} self-consistency violations, ` +
-				`${nonMonotone} where a LARGER k was also seatable (scan-down would have missed it)`,
+			`[F] ${cases} (budget, switchCost, n) cases: ${violations} affordability violations, ` +
+				`${nonMonotone} where a LARGER k was also affordable (scan-down would have missed it)`,
 		);
 
 		expect(violations).toBe(0);
 		expect(nonMonotone).toBe(0);
+	});
+
+	it('arm H — a pool the baseline cannot draw on never inflates the gain (§19 regression)', () => {
+		// The first cut of §19 restricted the rotation's round-robin to a WINDOW of
+		// the first `seated` tasks. A window holding only pool-blocked tasks then
+		// produced an all-zero plan, dragged the rotation average down, and brought
+		// the 999% cap back through the pool door: 8 tasks at 0.25h against a zeroed
+		// physical pool read 700%, 12 tasks read the full 999%, where the honest
+		// answer is 0% — one task is seatable, the naive planner gives it the day,
+		// and so does the optimizer. Both are reachable from the UI (the physical
+		// capacity input allows 0, and physicalDifficulty 0 gives weight 0).
+		const zeroPoolDay = (n: number): PooledTaskInput[] =>
+			Array.from(
+				{
+					length: n,
+				},
+				(_, i) => ({
+					title: `t${i}`,
+					difficulty: 5,
+					enjoyment: 5,
+					cognitiveWeight: 0.5,
+					physicalWeight: i === n - 1 ? 0 : 0.5,
+				}),
+			);
+
+		// Exactly one task is seatable, so the honest baseline is "that task gets
+		// the whole budget, no switches paid". Asserting the VALUE rather than a
+		// 0% gain keeps the check independent of T*: past the seatable task's own
+		// optimal stopping point the naive planner keeps grinding and the optimizer
+		// stops, which is a real advantage the metric should report.
+		let worstGain = 0;
+		let worstBaselineError = 0;
+		let capped = 0;
+
+		for (const n of [2, 3, 4, 6, 8, 11, 12, 13, 16]) {
+			for (let blocks = 1; blocks <= 40; blocks++) {
+				const tasks = zeroPoolDay(n);
+				const budget = blocks * BLOCK_HOURS;
+
+				const { gainPercent, naive } = pooledProductivityGain(tasks, budget, {
+					cognitiveHours: 8,
+					physicalHours: 0,
+				});
+
+				const honest = calculateTotalProductivity(
+					tasks,
+					tasks.map((_, i) => (i === n - 1 ? budget : 0)),
+					DEFAULT_USER_CONSTANTS,
+				);
+
+				worstBaselineError = Math.max(worstBaselineError, Math.abs(naive - honest) / honest);
+				worstGain = Math.max(worstGain, gainPercent);
+
+				if (gainPercent === GAIN_PERCENT_CAP) capped++;
+			}
+		}
+
+		console.log(
+			`[H] 360 zeroed-physical-pool cells: baseline off the honest value by at most ` +
+				`${pct(worstBaselineError, 4)}; cap fires ${capped} times; worst gain ${worstGain.toFixed(1)}% ` +
+				`(the seatable task worked past its own T*, which is a real win)`,
+		);
+
+		expect(worstBaselineError).toBeLessThan(1e-12);
+		expect(capped).toBe(0);
 	});
 
 	it('arm G — a budget of one whole block is never "the naive plan achieves nothing"', () => {
