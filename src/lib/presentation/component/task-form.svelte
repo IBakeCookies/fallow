@@ -245,7 +245,7 @@
 
 		<TaskFormFields bind:draft {showMustDoToday}>
 			{#snippet footer()}
-			<Button type="submit">{m.form_deploy_task()}</Button>
+				<Button type="submit">{m.form_deploy_task()}</Button>
 			{/snippet}
 		</TaskFormFields>
 	</form>
