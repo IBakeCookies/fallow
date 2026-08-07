@@ -185,8 +185,19 @@ export interface ScheduleEvaluation {
 	terminalBonus: number;
 	/** satiatedOutput + freeTimeBonus + terminalBonus — what the optimizer maximizes */
 	objective: number;
+	/** Both reservoirs at the end of the WINDOW, after the trailing implicit rest —
+	 *  what `terminalBonus` is priced on (MATH.md §13.6). */
 	endCog: number;
 	endPhys: number;
+	/**
+	 * Both reservoirs at the end of the last WORKED block — how spent the plan
+	 * leaves you before the evening recovers you. The honest answer to "how
+	 * depleted does this day end", and the reading Burnout Risk (§11.6) takes;
+	 * `endCog/endPhys` answer a different question and read near-saturated
+	 * (MATH.md §13.6). Equal to the initial levels when nothing is worked.
+	 */
+	workEndCog: number;
+	workEndPhys: number;
 }
 
 export interface TrajectoryPoint {
@@ -512,6 +523,10 @@ function evaluateWithCurves(
 	let t = 0;
 	let totalOutput = 0;
 	let workHours = 0;
+	// The levels as of the last worked block — every work block overwrites them,
+	// so rest after the final one (explicit or the tail) cannot launder them.
+	let workEndCog = cog;
+	let workEndPhys = phys;
 	const evaluated: EvaluatedBlock[] = [];
 	// Per-task warm-up memory: session phase reached and the clock time it ended,
 	// so a later block on the same task can resume with decayed carryover.
@@ -549,6 +564,8 @@ function evaluateWithCurves(
 			workHours += b.hours;
 			cog = reservoirAt(cog, curve.lawC, b.hours);
 			phys = reservoirAt(phys, curve.lawP, b.hours);
+			workEndCog = cog;
+			workEndPhys = phys;
 
 			evaluated.push({
 				taskId: b.taskId,
@@ -593,6 +610,8 @@ function evaluateWithCurves(
 		objective: satiatedOutput + freeTimeBonus + terminalBonus,
 		endCog: cog,
 		endPhys: phys,
+		workEndCog,
+		workEndPhys,
 	};
 }
 

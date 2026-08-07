@@ -344,6 +344,52 @@ describe('Zenith Energy Model', () => {
 			expect(ev.leisureHours).toBe(8);
 			expect(ev.endCog).toBeCloseTo(1, 6);
 			expect(ev.endPhys).toBeCloseTo(1, 6);
+			// Nothing worked: "when you stop" is where you started (MATH.md §13.6).
+			expect(ev.workEndCog).toBeCloseTo(1, 12);
+			expect(ev.workEndPhys).toBeCloseTo(1, 12);
+		});
+
+		// MATH.md §13.6: the Lab's tile reads the end of WORK, terminalBonus the end
+		// of the window. Rest after the last work block must move one and not the other.
+		it('workEnd* read the last worked block, endCog/endPhys the end of the window', () => {
+			const deep = [makeTask(1, 'deep', 8, 6, 1, 0)];
+
+			const ev = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 6,
+					},
+				],
+				deep,
+				12,
+			);
+
+			const lastWorked = ev.blocks.findLast((b) => b.taskId !== null)!;
+			expect(ev.workEndCog).toBe(lastWorked.cogAfter);
+			expect(ev.workEndPhys).toBe(lastWorked.physAfter);
+			// Six hours of full-demand cognitive work leaves you spent; the six hours
+			// of implicit rest that follow refill the reservoir the terminal term sees.
+			expect(ev.workEndCog).toBeLessThan(0.3);
+			expect(ev.endCog).toBeGreaterThan(0.9);
+
+			// A trailing EXPLICIT rest launders nothing either.
+			const withRest = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: 6,
+					},
+					{
+						taskId: null,
+						hours: 3,
+					},
+				],
+				deep,
+				12,
+			);
+
+			expect(withRest.workEndCog).toBeCloseTo(ev.workEndCog, 12);
 		});
 	});
 

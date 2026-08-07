@@ -397,18 +397,28 @@ export class EnergyLabStore {
 		);
 	});
 
-	/** Percent more output than the classic plan, or null when incomparable. */
-	#outputVsClassic = $derived.by(() => {
+	/**
+	 * Percent more valuable than the classic plan under THIS model's objective —
+	 * satiated output plus the free-time and terminal-energy terms — or null when
+	 * incomparable (MATH.md §30).
+	 *
+	 * The objective and not raw `totalOutput`: the plan above this tile is the
+	 * argmax of the objective, so raw output is the one field of the evaluation it
+	 * was not chosen for, and scoring the comparison by it both overstates the
+	 * verdict (median +61% against the objective's +17%) and inverts its sign on
+	 * ~2% of days.
+	 */
+	#valueVsClassic = $derived.by(() => {
 		const classic = this.#classicEvaluation;
 
-		if (!classic || classic.totalOutput <= 0) return null;
+		if (!classic || classic.objective <= 0) return null;
 
 		return Math.round(
-			((this.#plan.evaluation.totalOutput - classic.totalOutput) / classic.totalOutput) * 100,
+			((this.#plan.evaluation.objective - classic.objective) / classic.objective) * 100,
 		);
 	});
-	get outputVsClassic() {
-		return this.#outputVsClassic;
+	get valueVsClassic() {
+		return this.#valueVsClassic;
 	}
 
 	// ----- Live stop advisor (MATH.md §8.11) -----

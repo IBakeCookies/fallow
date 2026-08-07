@@ -6,6 +6,7 @@ import {
 	BANDS,
 	bandLabel,
 	getBandBiggerBetter,
+	getBandDeepWork,
 	getBandSmallerBetter,
 	isOutOfBand,
 	type Band,
@@ -71,6 +72,26 @@ describe('band policy', () => {
 		[100, 'critical'],
 	])('smaller-better %s reads %s', (value, band) => {
 		expect(getBandSmallerBetter(value)).toBe(band);
+	});
+
+	// Deep Work has an interior optimum (MATH.md §26): more is not better, and
+	// the row never alarms — a shallow day is a shape, and depletion past the
+	// upper edge is Burnout Risk's call, not a second red row (§11.7).
+	it.each([
+		[0, 'neutral'],
+		[24.9, 'neutral'],
+		[25, 'success'],
+		[40, 'success'],
+		[60, 'success'],
+		[60.1, 'neutral'],
+		[100, 'neutral'],
+	])('deep work %s reads %s', (value, band) => {
+		expect(getBandDeepWork(value)).toBe(band);
+	});
+
+	it('never colours deep work as a problem', () => {
+		for (let value = 0; value <= 100; value += 0.5)
+			expect(['success', 'neutral'], `deep work at ${value}`).toContain(getBandDeepWork(value));
 	});
 
 	// Human Capacity is deliberately unclamped: a plan asking for more than the

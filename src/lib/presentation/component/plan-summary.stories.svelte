@@ -12,7 +12,7 @@
 			endCog: 0.42,
 			endPhys: 0.71,
 			workHours: 5.25,
-			outputVsClassic: 8,
+			valueVsClassic: 8,
 		},
 	});
 </script>
@@ -31,7 +31,7 @@
 
 		// The e2e reads this tile by preceding sibling, so the value must stay the
 		// label's previous element — a wrapper around either one breaks it silently
-		const label = canvas.getByText('Output vs the classic plan, judged by this model');
+		const label = canvas.getByText('Day value vs the classic plan, judged by this model');
 		await expect(label.previousElementSibling?.textContent?.trim()).toBe('+8%');
 	}}
 />
@@ -39,7 +39,7 @@
 <Story
 	name="Behind the classic plan"
 	args={{
-		outputVsClassic: -6,
+		valueVsClassic: -6,
 	}}
 	play={async ({ canvas }) => {
 		// Losing to the classic plan is the other reading: warning ink, minus sign
@@ -47,15 +47,43 @@
 	}}
 />
 
+<!-- A gap under half a point. `Math.round` hands the tile -0 for a small LOSS,
+     and -0 >= 0, so the old two-way sign painted a beaten plan green with a '+'. -->
+<Story
+	name="Level with the classic plan"
+	args={{
+		valueVsClassic: -0,
+	}}
+	play={async ({ canvas }) => {
+		const tie = canvas.getByText('0%');
+		await expect(tie).toHaveClass('text-ty-primary');
+		// No '+': a tie is not a win
+		await expect(tie.textContent?.trim()).toBe('0%');
+	}}
+/>
+
 <!-- The classic allocator has no plan today, so there is nothing to compare -->
 <Story
 	name="No comparison"
 	args={{
-		outputVsClassic: null,
+		valueVsClassic: null,
 	}}
 	play={async ({ canvas }) => {
 		// No rival plan is not "0% better"
 		await expect(canvas.getByText('—')).toBeInTheDocument();
 		await expect(canvas.getByText('No classic plan to compare')).toBeInTheDocument();
+	}}
+/>
+
+<!-- The energy reading floors rather than rounds: on a depletion number, 100%
+     has to mean untouched, and `Math.round` printed it from 0.995 up. -->
+<Story
+	name="Nearly, but not quite, untouched"
+	args={{
+		endCog: 0.9995,
+		endPhys: 1,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('99% / 100%')).toBeInTheDocument();
 	}}
 />

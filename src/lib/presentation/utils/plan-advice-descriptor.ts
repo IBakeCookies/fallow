@@ -277,12 +277,11 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 			after: after.text,
 			afterBand: after.band,
 			cost,
-			profileFlip:
-				option.quadrant === advice.quadrant
-					? null
-					: m.advice_profile_flip({
-							profile: QUADRANT_LABEL[option.quadrant](),
-						}),
+			profileFlip: option.quadrantFlip
+				? m.advice_profile_flip({
+						profile: QUADRANT_LABEL[option.quadrantFlip](),
+					})
+				: null,
 		};
 	};
 

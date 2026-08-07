@@ -42,6 +42,7 @@ function dailyMetrics(overrides: Partial<DailyMetrics> = {}): DailyMetrics {
 			limitType: 'none',
 		},
 		bottleneckTask: null,
+		longestWarmUp: null,
 		timeScarcity: 0,
 		burnoutRisk: 0,
 		cognitiveLoad: 0,
@@ -53,9 +54,12 @@ function dailyMetrics(overrides: Partial<DailyMetrics> = {}): DailyMetrics {
 		momentum: 0,
 		deepWorkRatio: 0,
 		quickWins: 0,
-		taskVariety: 0,
-		grindDensity: 0,
-		rewardDensity: 0,
+		grindDensity: {
+			grinds: 0,
+			funded: 0,
+			percent: 0,
+		},
+		rewardDensity: null,
 		recoveryRatio: null,
 		averagePhysicalDifficulty: 0,
 		averageMentalDifficulty: 0,
@@ -126,6 +130,33 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe('neutral');
 	});
 
+	// Tasks and a budget are not enough for the two allocation-shape readings: a
+	// budget too small to fund ANY task short-circuits both to the same 0
+	// sentinel, which reads as a red 0% schedule and a green 0% friction — an
+	// alarm and a promise about a plan that books nothing.
+	it.each([m.metric_schedule_integrity(), m.metric_friction_index()])(
+		'reads %s as N/A when the budget funds no task',
+		(label) => {
+			const row = reading(
+				dailyMetrics({
+					...plannedDay,
+					budgetHours: 0.25,
+					scheduleIntegrity: 0,
+					frictionIndex: 0,
+					grindDensity: {
+						grinds: 0,
+						funded: 0,
+						percent: 0,
+					},
+				}),
+				label,
+			);
+
+			expect(row.value).toBe(m.na_value());
+			expect(row.band).toBe('neutral');
+		},
+	);
+
 	// The gates are not interchangeable, and a swapped one is invisible on a day
 	// that satisfies all of them. A finished day is the case that separates them:
 	// tasks and a budget, but nothing left active. Only the next-up rows may go
@@ -144,8 +175,11 @@ describe('buildMetrics', () => {
 				total: 2,
 			},
 			quickWins: 0,
-			taskVariety: 67,
-			grindDensity: 50,
+			grindDensity: {
+				grinds: 1,
+				funded: 2,
+				percent: 50,
+			},
 			yieldIndex: 90,
 		});
 
@@ -153,14 +187,28 @@ describe('buildMetrics', () => {
 
 		for (const [label, value] of [
 			[m.metric_flow_coverage(), '2/2'],
-			[m.metric_task_variety(), '67%'],
-			[m.metric_grind_density(), '50%'],
+			[m.metric_grind_density(), '50% (1/2)'],
 			// And the two that are about the work already done.
 			[m.metric_completion_rate(), '100%'],
 			[m.metric_yield_index(), '90%'],
 		]) {
 			expect(reading(finished, label).value, label).toBe(value);
 		}
+	});
+
+	// Sustainable Work divides by the hours the plan books (MATH.md §27), so a
+	// plan that funded nothing has no denominator. 0% would call a day with no
+	// work a day of pure grind.
+	it.each([
+		[null, m.na_value()],
+		[66.67, '67%'],
+	])('reads a sustainable work of %s as %s', (rewardDensity, value) => {
+		const day = dailyMetrics({
+			...plannedDay,
+			rewardDensity,
+		});
+
+		expect(reading(day, m.metric_sustainable_work()).value).toBe(value);
 	});
 
 	// Yield Index divides by completed work, so it needs a completion, not a task.
@@ -252,6 +300,12 @@ describe('buildMetrics', () => {
 		const metrics = dailyMetrics({
 			...plannedDay,
 			...readings,
+			// Same reading, in the shape the model returns it (MATH.md §11.10).
+			grindDensity: {
+				grinds: 3,
+				funded: 10,
+				percent: readings.grindDensity,
+			},
 			humanCapacity: {
 				percent: 130,
 				limitType: 'cognitive',
@@ -281,6 +335,53 @@ describe('buildMetrics', () => {
 
 		expect(physical.description).toContain(String(pools.physicalHours));
 		expect(physical.description).not.toContain(String(pools.cognitiveHours));
+	});
+
+	// The bottleneck names ITS OWN axis, which is the one its (active) list
+	// binds — not Human Capacity's, which describes the day as planned. Mid-day
+	// the two can differ, and the row that would be wrong is this one (§23.1).
+	it('names the bottleneck against its own axis, not the capacity axis', () => {
+		const row = reading(
+			dailyMetrics({
+				...plannedDay,
+				humanCapacity: {
+					percent: 90,
+					limitType: 'physical',
+				},
+				bottleneckTask: {
+					title: 'Design error boundary',
+					limitType: 'cognitive',
+				},
+			}),
+			m.metric_bottleneck(),
+		);
+
+		expect(row.value).toBe('Design error boundary');
+		expect(row.description).toContain(m.metric_type_cognitive());
+		expect(row.description).not.toContain(m.metric_type_physical());
+	});
+
+	// The row reports the warm-up ϕ itself, and bands it on Flow Coverage's own
+	// criterion narrowed to this one task: the plan has to fund at least ϕ, or
+	// the hours booked never reach flow. Equality funds it exactly, so it passes.
+	it.each<[number, Band]>([
+		[2, 'success'],
+		[1.5, 'warning'],
+	])('reads a 2h warm-up funded with %sh as %s', (suggestedHours, band) => {
+		const row = reading(
+			dailyMetrics({
+				...plannedDay,
+				longestWarmUp: {
+					title: 'Design error boundary',
+					flowStateTime: 2,
+					suggestedHours,
+				},
+			}),
+			m.metric_longest_warm_up(),
+		);
+
+		expect(row.value).toBe('2.0h');
+		expect(row.band).toBe(band);
 	});
 
 	// A day funds its own recovery only if the easy tasks hold their own against

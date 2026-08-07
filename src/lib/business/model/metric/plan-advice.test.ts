@@ -8,9 +8,11 @@ import {
 	ADVICE_AXES,
 	suggestPlanAdjustments,
 	type AdviceAxis,
+	type AdviceLever,
 	type AdviceOption,
 	type PlanAdvice,
 } from '$lib/business/model/metric/plan-advice';
+import { calculateQuadrantMargin } from '$lib/business/model/metric/calculation';
 import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
@@ -85,6 +87,8 @@ function badnessOf(axis: AdviceAxis, value: number): number {
 /** The same nine readings the model searches over (MATH.md §14). */
 function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
 	if (axis === 'humanCapacity') return metrics.humanCapacity.percent;
+
+	if (axis === 'grindDensity') return metrics.grindDensity.percent;
 
 	return metrics[axis];
 }
@@ -242,7 +246,105 @@ describe('suggestPlanAdjustments', () => {
 
 		expect(applied.burnoutRisk).toBe(option!.after);
 		expect(applied.zenithGain.optimized).toBe(option!.planValue);
-		expect(applied.dailyQuadrant).toBe(option!.quadrant);
+	});
+
+	// MATH.md §29. The Day Profile is a hard cliff on two hour-weighted averages,
+	// so a flip is only worth printing when BOTH plans stand clear of it by
+	// `QUADRANT_FLIP_MARGIN` — a quarter of one slider point.
+	describe('the Day Profile a lever moves the day to', () => {
+		const resolve = (base: DailyMetricsInput, lever: AdviceLever) =>
+			calculateDailyMetrics(
+				lever.kind === 'defer-task'
+					? {
+							...base,
+							tasks: base.tasks.filter((task) => task.id !== lever.taskId),
+						}
+					: {
+							...base,
+							availableHours: lever.hours,
+						},
+			);
+
+		it('reports the re-solved profile when both sides clear the cliff', () => {
+			// A small enjoyable task beside a big joyless one: the day reads grind,
+			// and dropping the joyless one leaves nothing but cruise.
+			const base = input([
+				makeTask({
+					id: 1,
+					title: 'Sketching',
+					mentalDifficulty: 1,
+					physicalDifficulty: 1,
+					enjoyment: 7,
+				}),
+				makeTask({
+					id: 2,
+					title: 'Clear the garage',
+					mentalDifficulty: 5,
+					physicalDifficulty: 7,
+					enjoyment: 1,
+				}),
+			]);
+
+			const baseline = calculateDailyMetrics(base);
+			const advice = suggestPlanAdjustments(base, baseline);
+			const flips = everyOption(advice).filter((option) => option.quadrantFlip !== null);
+
+			expect(calculateQuadrantMargin(baseline.suggestedTasks)).toBeGreaterThanOrEqual(0.25);
+			expect(flips.length).toBeGreaterThan(0);
+
+			flips.forEach((option) => {
+				const applied = resolve(base, option.lever);
+
+				expect(option.quadrantFlip).toBe(applied.dailyQuadrant);
+				expect(option.quadrantFlip).not.toBe(baseline.dailyQuadrant);
+				expect(calculateQuadrantMargin(applied.suggestedTasks)).toBeGreaterThanOrEqual(0.25);
+			});
+		});
+
+		it('claims no flip from a baseline that straddles a cut', () => {
+			// 4.5 h at effective difficulty 7 + 0.3·5 = 8.5 and 1.5 h at 1 + 0.3·1 =
+			// 1.3 average 6.7, against the demanding cut of 5 + 0.3·5 = 6.5 (MATH.md
+			// §29): the day is grind by 0.2 of a slider point. Deferring the big task
+			// leaves a squarely routine plan — the CANDIDATE is 4.5 points clear — so
+			// only the baseline's thinness is keeping the flip off the card.
+			const base = input([
+				makeTask({
+					id: 1,
+					title: 'Sort the mail',
+					mentalDifficulty: 1,
+					physicalDifficulty: 1,
+					enjoyment: 1,
+				}),
+				makeTask({
+					id: 2,
+					title: 'Repaint the fence',
+					mentalDifficulty: 5,
+					physicalDifficulty: 7,
+					enjoyment: 5,
+				}),
+			]);
+
+			const baseline = calculateDailyMetrics(base);
+			const advice = suggestPlanAdjustments(base, baseline);
+
+			expect(calculateQuadrantMargin(baseline.suggestedTasks)).toBeLessThan(0.25);
+
+			const moved = everyOption(advice).filter(
+				(option) => resolve(base, option.lever).dailyQuadrant !== baseline.dailyQuadrant,
+			);
+
+			// Not vacuous: there are flips to report, and the days they land on are
+			// nowhere near a cut themselves.
+			expect(moved.length).toBeGreaterThan(0);
+
+			moved.forEach((option) =>
+				expect(
+					calculateQuadrantMargin(resolve(base, option.lever).suggestedTasks),
+				).toBeGreaterThanOrEqual(0.25),
+			);
+
+			expect(everyOption(advice).every((option) => option.quadrantFlip === null)).toBe(true);
+		});
 	});
 
 	it('only offers options that improve the axis they are filed under', () => {
@@ -1052,6 +1154,58 @@ describe('suggestPlanAdjustments', () => {
 
 			expect(emptyPlan?.after).toBe(0);
 			expect(emptyPlan?.planValueDeltaPercent).toBe(-100);
+		});
+	});
+
+	// MATH.md §14.1-5, extended to Schedule Integrity (2026-08-07). §11.5's
+	// guards hand the axis two sentinels for a plan that funds nothing — 100 (no
+	// tasks) and 0 (nothing funded) — and neither is an overhead share. The
+	// no-budget day is the one that reached the card: 0% reads `critical`, so
+	// the row appeared with an "add an hour" option on a day the user has not
+	// budgeted at all, the same alarm-about-nothing the dashboard row already
+	// gates on (`metric-descriptor.ts`).
+	describe('schedule integrity and the plan that funds nothing', () => {
+		it('generates no integrity advice from a no-budget baseline', () => {
+			const advice = suggestPlanAdjustments(
+				input(GRIND, {
+					availableHours: 0,
+				}),
+			);
+
+			expect(findingFor(advice, 'scheduleIntegrity')).toBeUndefined();
+		});
+
+		it('leaves the axis working on a day that does fund work', () => {
+			const advice = suggestPlanAdjustments(input(GRIND));
+			const finding = findingFor(advice, 'scheduleIntegrity');
+
+			expect(finding?.before).toBeGreaterThan(0);
+			expect(Number.isNaN(finding?.before)).toBe(false);
+		});
+	});
+
+	// MATH.md §14.1-5 again, for Grind Density (§11.10): `calculateGrindDensity`
+	// reports 0% for a plan that funds nothing, and 0% is this axis's global
+	// optimum — so an empty plan would win its frontier on a day of pure grind.
+	describe('grind density and the plan that funds nothing', () => {
+		it('never offers a plan that funds nothing as grind advice', () => {
+			// A budget of one hour, so `budget − 1` clamps to the empty plan — the
+			// same lever that surfaced this on Energy Balance.
+			const base = grindDay(1);
+			const baseline = calculateDailyMetrics(base);
+
+			// Not vacuous: every task this day funds is grind, so the empty plan
+			// reads 0 against a baseline of 100 and would top the frontier.
+			expect(baseline.grindDensity.percent).toBe(100);
+
+			expect(
+				calculateDailyMetrics({
+					...base,
+					availableHours: 0,
+				}).grindDensity.funded,
+			).toBe(0);
+
+			expect(findingFor(suggestPlanAdjustments(base, baseline), 'grindDensity')).toBeUndefined();
 		});
 	});
 });

@@ -26,7 +26,7 @@ function option(planValueDeltaPercent: number | null, lever: AdviceLever): Advic
 	return {
 		lever,
 		after: 50,
-		quadrant: 'grind',
+		quadrantFlip: null,
 		// Only the delta is read for the cost column; the absolute value is not.
 		planValue: 1,
 		planValueDeltaPercent,
@@ -74,7 +74,6 @@ function switchCostPrice(overrides: Partial<SwitchCostPrice> = {}): SwitchCostPr
 function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): PlanAdvice {
 	return {
 		planValue: 10,
-		quadrant: 'grind',
 		findings: [
 			{
 				axis: 'burnoutRisk',
@@ -154,7 +153,6 @@ describe('buildAdviceDisplay', () => {
 		const display = buildAdviceDisplay(
 			{
 				planValue: 10,
-				quadrant: 'grind',
 				findings: [
 					{
 						axis: 'humanCapacity',
@@ -230,13 +228,13 @@ describe('buildAdviceDisplay', () => {
 	it('names the Day Profile a lever flips the day to', () => {
 		const flipping = {
 			...defer(1, -30),
-			quadrant: 'cruise' as const,
+			quadrantFlip: 'cruise' as const,
 		};
 
 		const display = buildAdviceDisplay(advice([flipping, defer(2, -10)]), 'en-GB');
 
 		expect(display.rows[0].options[0].profileFlip).toBe('Day Profile → Cruise');
-		// Same quadrant as the plan — nothing to say.
+		// No flip, or one the model judged too thin to claim (MATH.md §29).
 		expect(display.rows[0].options[1].profileFlip).toBeNull();
 	});
 

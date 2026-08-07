@@ -12,7 +12,7 @@
 
 	let { metrics, momentum }: Props = $props();
 
-	// 23 equal rows is a spreadsheet: Fallow Gain read exactly like Avg Enjoyment.
+	// 23 equal rows is a spreadsheet: Burnout Risk read exactly like Avg Enjoyment.
 	// The headline four get tiles; the rest stay one click away rather than gone.
 	const headline = $derived(metrics.filter((item) => item.headline));
 	const rest = $derived(metrics.filter((item) => !item.headline));

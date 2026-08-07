@@ -18,6 +18,7 @@ import {
 	calculateAverageMentalDifficulty,
 	calculateAveragePhysicalDifficulty,
 	calculateBottleneckTask,
+	calculateLongestWarmUp,
 	calculateBurnoutRisk,
 	calculateCognitiveLoad,
 	calculateCompletionRate,
@@ -36,7 +37,6 @@ import {
 	calculateRewardDensity,
 	calculateScheduleIntegrity,
 	calculateTaskPlan,
-	calculateTaskVariety,
 	calculateTimeScarcity,
 	calculateYieldIndex,
 	calculateZenithGain,
@@ -76,21 +76,22 @@ export interface DailyMetrics {
 	yieldIndex: number;
 	flowCoverage: { reached: number; total: number };
 	humanCapacity: ReturnType<typeof calculateHumanCapacity>;
-	bottleneckTask: string | null;
+	bottleneckTask: ReturnType<typeof calculateBottleneckTask>;
+	longestWarmUp: ReturnType<typeof calculateLongestWarmUp>;
 	timeScarcity: number;
 	burnoutRisk: number;
 	cognitiveLoad: number;
 	physicalLoad: number;
 	energyBalance: number;
 	frictionIndex: number;
-	dailyQuadrant: DailyQuadrant;
+	/** `null` on a plan that books no hours — no allocated time, no character. */
+	dailyQuadrant: DailyQuadrant | null;
 	scheduleIntegrity: number;
 	momentum: number;
 	deepWorkRatio: number;
 	quickWins: number;
-	taskVariety: number;
-	grindDensity: number;
-	rewardDensity: number;
+	grindDensity: ReturnType<typeof calculateGrindDensity>;
+	rewardDensity: number | null;
 	recoveryRatio: { easy: number; hard: number } | null;
 	averagePhysicalDifficulty: number;
 	averageMentalDifficulty: number;
@@ -156,7 +157,12 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		yieldIndex: calculateYieldIndex(suggestedTasks),
 		flowCoverage: calculateFlowCoverage(suggestedTasks),
 		humanCapacity: calculateHumanCapacity(suggestedTasks, pools),
-		bottleneckTask: calculateBottleneckTask(activeTasks),
+		// Next-up (§11.8): both name something in the work still AHEAD, so both
+		// deplete as the day is checked off — axis included. The bottleneck solves
+		// its own binding pool from `activeTasks`, so it never points at a pool the
+		// remaining work no longer draws on (MATH.md §23.1).
+		bottleneckTask: calculateBottleneckTask(activeTasks, pools),
+		longestWarmUp: calculateLongestWarmUp(activeTasks),
 		timeScarcity: calculateTimeScarcity(tasks, availableHours, switchCost, constants),
 		// Simulates the planned day through the reservoir law (MATH.md §11.6).
 		burnoutRisk: calculateBurnoutRisk(suggestedTasks, availableHours, switchCost, energyParams),
@@ -164,7 +170,7 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		physicalLoad,
 		energyBalance: calculateEnergyBalance(cognitiveLoad, physicalLoad),
 		frictionIndex: calculateFrictionIndex(suggestedTasks),
-		dailyQuadrant: calculateDailyQuadrant(tasks),
+		dailyQuadrant: calculateDailyQuadrant(suggestedTasks),
 		scheduleIntegrity: calculateScheduleIntegrity(suggestedTasks, availableHours, switchCost),
 		// Momentum and quick wins are deliberately active-scoped ("what's ahead"):
 		// completing a task removes it, so they respond as the day progresses
@@ -172,9 +178,8 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		momentum: calculateMomentum(activeTasks),
 		deepWorkRatio: calculateDeepWorkRatio(suggestedTasks, availableHours),
 		quickWins: calculateQuickWins(activeTasks),
-		taskVariety: calculateTaskVariety(suggestedTasks),
 		grindDensity: calculateGrindDensity(suggestedTasks),
-		rewardDensity: calculateRewardDensity(suggestedTasks, availableHours),
+		rewardDensity: calculateRewardDensity(suggestedTasks),
 		recoveryRatio: calculateRecoveryRatio(suggestedTasks),
 		averagePhysicalDifficulty: calculateAveragePhysicalDifficulty(tasks),
 		averageMentalDifficulty: calculateAverageMentalDifficulty(tasks),

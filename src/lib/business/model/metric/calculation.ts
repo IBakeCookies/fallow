@@ -27,6 +27,10 @@ import type { Task } from '$lib/data/type';
 // peak (moving boxes: phys 8, mental 0 → 8). 0.3 keeps the secondary dimension
 // subordinate: it can never flip which dimension dominates.
 const DIFFICULTY_SPILLOVER = 0.3;
+// Deep Work's ramp over mental difficulty (MATH.md §26): nothing below 5, the
+// whole hour from 9 up, and the metric's former `>= 7` cut sits at half weight.
+const DEEP_WORK_FLOOR = 5;
+const DEEP_WORK_FULL = 9;
 
 /**
  * Derive effective difficulty for Zenith algorithm.
@@ -383,24 +387,83 @@ export function calculateHumanCapacity(
 }
 
 /**
- * Find the task with highest strain ratio (E/β)
+ * The task drawing most on the pool that BINDS the day (MATH.md §23).
  *
- * Uses mapped Zenith values for consistency with the productivity model.
- * Higher E/β means lower initial productivity (p₀ = β/E) and more draining.
+ * `calculateHumanCapacity` decides which of the two pools is the day's
+ * constraint and how saturated it is; this names the largest single term in
+ * that same saturation's numerator — `(difficulty/10)·hours`, the identical
+ * demand weight and the identical hours. So it carries no constant of its own:
+ * the axis comes from the capacity reading, the quantity is the one already
+ * summed there, and the row cannot name a pool that nothing on its list draws
+ * on.
  *
- * `null` when there is no task to blame — a sentinel title would collide with a
- * task actually called that, and it is presentation's word to choose anyway.
+ * The axis is solved HERE, off the same list, rather than taken as an argument
+ * (MATH.md §23.1, 2026-08-07): the caller passing the plan-scoped axis while
+ * passing the active list left the row pointed at a pool the remaining work no
+ * longer touched — checking off the day's only physical task blanked the row to
+ * "none" with five cognitive tasks still ahead, while DELETING that same task
+ * re-pointed it correctly. Same list in, same list out, and the pair cannot
+ * drift again. The returned `limitType` is what the display must name, which is
+ * Human Capacity's axis only while the day is untouched — that row judges the
+ * day AS PLANNED, this one points at what is left (§11.8).
+ *
+ * Ties keep the earlier task, which on the priority-sorted plan is the more
+ * valuable of two identical draws.
+ *
+ * `null` when nothing on the list draws on either pool — no task, or no funded
+ * hours. A sentinel title would collide with a task actually called that, and
+ * it is presentation's word to choose anyway.
  */
-export function calculateBottleneckTask(tasks: SuggestedTask[]): string | null {
+export function calculateBottleneckTask(
+	tasks: SuggestedTask[],
+	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
+): { title: string; limitType: 'cognitive' | 'physical' } | null {
+	const { limitType } = calculateHumanCapacity(tasks, pools);
+
+	if (limitType === 'none') return null;
+
+	const draw = (task: SuggestedTask): number =>
+		((limitType === 'cognitive' ? task.mentalDifficulty : task.physicalDifficulty) / 10) *
+		task.suggestedHours;
+
+	const worst = tasks.reduce<SuggestedTask | null>(
+		(acc, task) => (acc === null || draw(task) > draw(acc) ? task : acc),
+		null,
+	);
+
+	return worst !== null && draw(worst) > 0
+		? {
+				title: worst.title,
+				limitType,
+			}
+		: null;
+}
+
+/**
+ * The task that takes longest to reach flow: argmax ϕ (MATH.md §1, §23).
+ *
+ * ϕ is the model's own warm-up quantity, already solved per task and carried on
+ * the plan as `flowStateTime` — nothing is recomputed here. Paired with the
+ * hours the plan funded, so the display can say whether the warm-up is actually
+ * paid for; that comparison is Flow Coverage's criterion (`hours ≥ ϕ`) narrowed
+ * to the single worst task.
+ *
+ * `null` on an empty list — the reading needs a task to name.
+ */
+export function calculateLongestWarmUp(
+	tasks: SuggestedTask[],
+): { title: string; flowStateTime: number; suggestedHours: number } | null {
 	if (!tasks.length) return null;
 
-	return tasks.reduce((worst, current) => {
-		// Use Zenith mapped values (E/β) for consistency
-		const worstRatio = worst.trueEffort / worst.trueEnjoyability;
-		const currentRatio = current.trueEffort / current.trueEnjoyability;
+	const slowest = tasks.reduce((acc, task) =>
+		task.flowStateTime > acc.flowStateTime ? task : acc,
+	);
 
-		return currentRatio > worstRatio ? current : worst;
-	}).title;
+	return {
+		title: slowest.title,
+		flowStateTime: slowest.flowStateTime,
+		suggestedHours: slowest.suggestedHours,
+	};
 }
 
 /**
@@ -560,54 +623,73 @@ export function calculateBurnoutRisk(
 }
 
 /**
- * Calculate cognitive load: what % of your time budget is cognitive work?
+ * How packed the day is with cognitive work: `Σ hoursᵢ × (mentalᵢ/10) ÷ budget`,
+ * as a percent (MATH.md §25).
  *
- * Uses budget as denominator. Switch time is considered "not cognitive work"
- * (a form of mental break/transition), so more tasks = more switching =
+ * INTENSITY-weighted, not a share of the day's hours: 8h at mental difficulty 5
+ * in an 8h day reads 50%, though every hour of it is cognitive work. The
+ * numerator is exactly Human Capacity's cognitive draw (§20) — same sum, a
+ * different denominator, so the two rows cannot disagree about the same day.
+ *
+ * Uses the whole budget as denominator. Switch time is considered "not cognitive
+ * work" (a form of mental break/transition), so more tasks = more switching =
  * lower cognitive load per unit time. This is intentional.
  *
- * Weight by mentalDifficulty: high mental difficulty = more cognitive load.
+ * EXACT, not rounded: Energy Balance is a ratio of the two loads and the bands
+ * classify it at 40/60, so rounding here moved that classification on 49 of
+ * ~3000 seeded days, 1.6% (§25). Rounding is the display's, like Human
+ * Capacity's §20 split.
  */
 export function calculateCognitiveLoad(tasks: SuggestedTask[], availableHours: number): number {
-	const budget = Number(availableHours) || 0;
-
-	if (!tasks.length || !budget) return 0;
-
-	// Weight hours by mental difficulty (0-10 → 0-1)
-	const mentalHours = tasks.reduce(
-		(sum, t) => sum + t.suggestedHours * (t.mentalDifficulty / 10),
-		0,
-	);
-
-	return Math.min(100, Math.round((mentalHours / budget) * 100));
+	return weightedLoad(tasks, availableHours, (t) => t.mentalDifficulty);
 }
 
 /**
- * Calculate physical load: what % of your time budget is physical work?
- *
- * Uses budget as denominator (same rationale as cognitive load).
- * Weight by physicalDifficulty: high physical difficulty = more physical load.
+ * The same reading on the physical dimension (MATH.md §25) — weighted by
+ * `physicalDifficulty`, against the same whole-budget denominator. The two are
+ * separate systems, so their sum may exceed 100%.
  */
 export function calculatePhysicalLoad(tasks: SuggestedTask[], availableHours: number): number {
+	return weightedLoad(tasks, availableHours, (t) => t.physicalDifficulty);
+}
+
+/**
+ * `min(100, ·)` is provably slack for allocator output — Σ hours ≤ budget −
+ * overhead and every weight is ≤ 1, and a 3000-day sweep hit 100.000% exactly
+ * and never above (MATH.md §25) — and guards a hand-built task list whose hours
+ * exceed the budget it is measured against.
+ */
+function weightedLoad(
+	tasks: SuggestedTask[],
+	availableHours: number,
+	difficulty: (task: SuggestedTask) => number,
+): number {
 	const budget = Number(availableHours) || 0;
 
 	if (!tasks.length || !budget) return 0;
 
-	// Weight hours by physical difficulty (0-10 → 0-1)
-	const physicalHours = tasks.reduce(
-		(sum, t) => sum + t.suggestedHours * (t.physicalDifficulty / 10),
-		0,
-	);
+	const weightedHours = tasks.reduce((sum, t) => sum + t.suggestedHours * (difficulty(t) / 10), 0);
 
-	return Math.min(100, Math.round((physicalHours / budget) * 100));
+	return Math.min(100, (weightedHours / budget) * 100);
 }
 
+/**
+ * The cognitive share of the day's total load, 0–100 (50 = even split).
+ *
+ * Takes the EXACT loads above. Computed from percents already rounded to whole
+ * numbers it disagreed with the exact ratio by up to 4.17 pp and flipped the
+ * cognitive/physical/balanced classification on 49 of ~3000 seeded days, 1.6%
+ * (MATH.md §25).
+ *
+ * 50 on a zero-load plan is a display sentinel that is also the target, which is
+ * why the advisor reads that case as `NaN` instead (MATH.md §14.1 defect 5).
+ */
 export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: number): number {
 	const total = cognitiveLoad + physicalLoad;
 
 	if (!total) return 50;
 
-	return Math.round((cognitiveLoad / total) * 100);
+	return (cognitiveLoad / total) * 100;
 }
 
 /**
@@ -623,7 +705,8 @@ export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: numb
  * Friction = Σ max(0, diffᵤ - βᵤ) × hours, normalized by ALLOCATED time (not
  * budget): the index is the time-weighted average friction of the work you'll
  * actually do, so 100% is reachable — it means every allocated hour is
- * max-friction (difficulty 10, enjoyment 1 → gap 9) work.
+ * max-friction (EFFECTIVE difficulty 10, which spillover also reaches from
+ * 8/8, against enjoyment 1 → gap 9) work.
  */
 export function calculateFrictionIndex(tasks: SuggestedTask[]): number {
 	if (!tasks.length) return 0;
@@ -647,23 +730,73 @@ export function calculateFrictionIndex(tasks: SuggestedTask[]): number {
 export type DailyQuadrant = 'flow' | 'grind' | 'cruise' | 'routine';
 
 /**
- * Classify the day by average difficulty × enjoyment:
+ * The cut on each axis is the reading a day rated at the MIDPOINT of its input
+ * controls produces (MATH.md §29).
+ *
+ * Enjoyment is one slider over 1–10, so its midpoint is 5.5. Difficulty is NOT
+ * a slider: it is `max + 0.3·min` over two sliders that start at 0 (§11.4,
+ * §22), so a task at the midpoint of both reads 5 + 0.3×5. Judging that
+ * composite against 5.5 — the old cut, the midpoint of a scale difficulty does
+ * not live on — put 91.3% of seeded days above it and collapsed the 2×2 to a
+ * threshold on enjoyment alone.
+ */
+const DEMANDING_CUT = 5 + DIFFICULTY_SPILLOVER * 5;
+const ENJOYABLE_CUT = 5.5;
+
+/**
+ * The day's two axes, hour-weighted over the tasks the plan funds. `null` when
+ * the plan books no hours: a day with no allocated time has no character, and
+ * every label would be a claim about work that is not happening.
+ */
+function quadrantAxes(tasks: SuggestedTask[]): { diff: number; enj: number } | null {
+	const funded = tasks.filter((t) => t.suggestedHours > 0);
+	const hours = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
+
+	if (hours <= 0) return null;
+
+	return {
+		diff: funded.reduce((sum, t) => sum + getEffectiveDifficulty(t) * t.suggestedHours, 0) / hours,
+		enj: funded.reduce((sum, t) => sum + t.enjoyment * t.suggestedHours, 0) / hours,
+	};
+}
+
+/**
+ * Classify the day by its hour-weighted difficulty × enjoyment:
  * flow = challenging and engaging, grind = demanding but unenjoyable,
  * cruise = light and enjoyable, routine = low-key tasks.
+ *
+ * Weighted by allocated hours, over funded tasks only. Plan scope (§11.8) asks
+ * what the day looks like AS DESIGNED, and the design is the allocation: an
+ * unweighted count let a 15-minute task outvote a 6-hour one and gave the tasks
+ * the allocator deliberately declined to fund a vote on the character of the
+ * day it built without them (MATH.md §29).
  */
-export function calculateDailyQuadrant(tasks: Task[]): DailyQuadrant {
-	if (!tasks.length) return 'routine';
+export function calculateDailyQuadrant(tasks: SuggestedTask[]): DailyQuadrant | null {
+	const axes = quadrantAxes(tasks);
 
-	const diff = tasks.reduce((sum, t) => sum + getEffectiveDifficulty(t), 0) / tasks.length;
-	const enj = tasks.reduce((sum, t) => sum + t.enjoyment, 0) / tasks.length;
+	if (!axes) return null;
 
-	if (diff >= 5.5 && enj >= 5.5) return 'flow';
+	const enjoyable = axes.enj >= ENJOYABLE_CUT;
 
-	if (diff >= 5.5) return 'grind';
+	if (axes.diff >= DEMANDING_CUT) return enjoyable ? 'flow' : 'grind';
 
-	if (enj >= 5.5) return 'cruise';
+	return enjoyable ? 'cruise' : 'routine';
+}
 
-	return 'routine';
+/**
+ * How far the day sits from the nearer cut, in slider points — how much either
+ * average would have to move to relabel it. `null` where the quadrant is.
+ *
+ * The label is a hard cliff on two averages, so a reader cannot tell a day that
+ * is squarely one profile from a day that straddles two. Only the advisor asks
+ * (MATH.md §29): it may not sell a flip that a rounding-width move undoes.
+ */
+export function calculateQuadrantMargin(tasks: SuggestedTask[]): number | null {
+	const axes = quadrantAxes(tasks);
+
+	if (!axes) return null;
+
+	return Math.min(Math.abs(axes.diff - DEMANDING_CUT), Math.abs(axes.enj - ENJOYABLE_CUT));
 }
 
 /**
@@ -730,38 +863,38 @@ export function calculateMomentum(tasks: Task[]): number {
 	return Math.round(totalNetEnjoyment / tasks.length);
 }
 
+/**
+ * Deep Work: what share of the day's budget is time in sustained focus
+ * (MATH.md §26). Plan scope (§11.8), whole-budget denominator (§25), exact —
+ * `metric-descriptor` rounds for display.
+ *
+ * The hours are ramped, not cut at a threshold: mental difficulty below
+ * DEEP_WORK_FLOOR is not sustained focus, at or above DEEP_WORK_FULL the whole
+ * hour is, and the old `>= 7` cut is now the half-weight point instead of a
+ * step that swung a full block on one slider point.
+ */
 export function calculateDeepWorkRatio(tasks: SuggestedTask[], availableHours: number): number {
 	const budget = Number(availableHours) || 0;
 
 	if (!budget || !tasks.length) return 0;
 
-	// Deep work: high mental difficulty tasks (cognitive intensity ≥ 7)
-	const deepHours = tasks
-		.filter((t) => t.mentalDifficulty >= 7)
-		.reduce((sum, t) => sum + t.suggestedHours, 0);
+	const deepHours = tasks.reduce((sum, t) => sum + t.suggestedHours * deepWorkWeight(t), 0);
 
-	return Math.round((deepHours / budget) * 100);
+	// Slack on allocator output (Σ hᵢ ≤ B − overhead, weights ≤ 1), kept for the
+	// same reason as the Load clamp (§25): a hand-built list can break it.
+	return Math.min(100, (deepHours / budget) * 100);
+}
+
+function deepWorkWeight(task: Pick<Task, 'mentalDifficulty'>): number {
+	return Math.min(
+		1,
+		Math.max(0, (task.mentalDifficulty - DEEP_WORK_FLOOR) / (DEEP_WORK_FULL - DEEP_WORK_FLOOR)),
+	);
 }
 
 export function calculateQuickWins(tasks: SuggestedTask[]): number {
 	// Quick wins: low effective difficulty, decent enjoyment
 	return tasks.filter((t) => getEffectiveDifficulty(t) <= 3 && t.enjoyment >= 5).length;
-}
-
-/**
- * Calculate task variety: diversity of task characteristics
- *
- * Measures spread across cognitive/physical spectrum.
- * High variety = mix of mental and physical tasks (better for sustained energy).
- */
-export function calculateTaskVariety(tasks: SuggestedTask[]): number {
-	if (!tasks.length) return 0;
-
-	// Count tasks by their dominant characteristic
-	const natures = tasks.map((t) => getTaskNature(t));
-	const uniqueNatures = new Set(natures);
-
-	return Math.round((uniqueNatures.size / 3) * 100);
 }
 
 /**
@@ -819,45 +952,70 @@ export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask
 }
 
 /**
- * Calculate grind density: percentage of tasks where difficulty exceeds enjoyment
+ * Grind density: the share of the day's FUNDED tasks that feel like a chore —
+ * effective difficulty above enjoyment (MATH.md §11.10).
  *
- * Uses RAW user values (effective difficulty > enjoyment) because the Zenith mapped
- * ranges are asymmetric (E ∈ [1,5], β ∈ [1,2]) and would incorrectly flag
- * most tasks as "grinds" even when enjoyment > difficulty.
+ * Uses RAW user scales (effective difficulty vs enjoyment, both 1–10), like
+ * Momentum and Friction (§11.4): the mapped Zenith ranges are asymmetric
+ * (E ∈ [1,5], β ∈ [1,2]) and would flag most tasks as grinds even when
+ * enjoyment beats difficulty.
  *
- * A "grind" task is one where difficulty > enjoyment (feels like a chore).
+ * Counts only tasks the plan funds. A dropped task is work the day does not do,
+ * so it drains no willpower — and counting it made the advisor's cheapest fix
+ * "defer a task you were not going to touch", which improves the reading at
+ * Σ P̄ cost 0.00% without changing the day at all (§11.10).
+ *
+ * `grinds`/`funded` travel with the percent because the value is quantized to
+ * 100/`funded` while the band ladder cuts at 25/50/75: on a two-task plan the
+ * only readings are 0, 50 and 100, and the row says so instead of implying a
+ * precision the count cannot carry.
  */
-export function calculateGrindDensity(tasks: SuggestedTask[]): number {
-	if (!tasks.length) return 0;
+export function calculateGrindDensity(tasks: SuggestedTask[]): {
+	grinds: number;
+	funded: number;
+	percent: number;
+} {
+	const funded = tasks.filter((t) => t.suggestedHours > 0);
+	const grinds = funded.filter((t) => getEffectiveDifficulty(t) > t.enjoyment).length;
 
-	// Use raw values for intuitive user-facing metric
-	const grindTasks = tasks.filter((t) => getEffectiveDifficulty(t) > t.enjoyment);
-
-	return Math.round((grindTasks.length / tasks.length) * 100);
+	return {
+		grinds,
+		funded: funded.length,
+		percent: funded.length ? Math.round((grinds / funded.length) * 100) : 0,
+	};
 }
 
 /**
- * Calculate sustainable work %: time on tasks where enjoyment ≥ difficulty
+ * Sustainable Work: the share of the plan's WORKED time spent on tasks whose
+ * enjoyment covers their effective difficulty — work that gives back as much
+ * energy as it takes.
  *
- * Unlike Grind Density (which counts tasks), this measures TIME spent on
- * energizing vs draining work. A task where enjoyment ≥ difficulty is
- * "sustainable" — it gives back as much energy as it takes.
+ * Complements, and the denominator is what separates them (MATH.md §27):
+ * - Grind Density: the same predicate over the task COUNT
+ * - Friction Index: the size of the gap, not a threshold on it (§11.4)
+ * - This: the same predicate over ALLOCATED HOURS
  *
- * Complements:
- * - Avg Enjoyment: overall enjoyment level
- * - Grind Density: % of tasks that are grinds
- * - This: % of TIME that is sustainable
+ * Over Σh, not over the budget: unbooked slack and switch overhead are not
+ * grind, and pricing them here made 100% unreachable and put a grind-free day
+ * in the critical band. How much of the budget the plan commits is Schedule
+ * Integrity's and Time Scarcity's reading. Unlike Deep Work (§26), which kept
+ * the whole-budget denominator, this row IS bigger-better — so its top arm has
+ * to be reachable.
+ *
+ * Plan scope (§11.8), exact — `metric-descriptor` rounds for display (§25).
+ * `null` when the plan funds no hours: there is no worked time to take a share
+ * of, and 0 would report a day with no work as a day of pure grind.
  */
-export function calculateRewardDensity(tasks: SuggestedTask[], availableHours: number): number {
-	const budget = Number(availableHours) || 0;
+export function calculateRewardDensity(tasks: SuggestedTask[]): number | null {
+	const workedHours = tasks.reduce((sum, t) => sum + t.suggestedHours, 0);
 
-	if (!budget || !tasks.length) return 0;
+	if (workedHours <= 0) return null;
 
 	const sustainableHours = tasks
 		.filter((t) => t.enjoyment >= getEffectiveDifficulty(t))
 		.reduce((sum, t) => sum + t.suggestedHours, 0);
 
-	return Math.round((sustainableHours / budget) * 100);
+	return (sustainableHours / workedHours) * 100;
 }
 
 /**

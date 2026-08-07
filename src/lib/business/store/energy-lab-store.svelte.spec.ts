@@ -183,9 +183,17 @@ describe('EnergyLabStore', () => {
 
 		const store = await setup();
 		const blocks = store.plan.blocks;
-		const outputVsClassic = store.outputVsClassic;
+		const valueVsClassic = store.valueVsClassic;
 		expect(store.plannedHours).toBeGreaterThan(0);
-		expect(outputVsClassic).not.toBeNull();
+
+		// Exact, because WHICH field the tile divides is the claim (MATH.md §30).
+		// This fixture's plan works 7.5 h of the 8 (satiated 7.720 + free 0.250 +
+		// terminal 1.258 = 9.228) against classic's 7.75 h (7.942 + 0.125 + 1.095
+		// = 9.163): +0.72%, one per cent. Scored on raw `totalOutput` — 10.413
+		// against 10.809 — the same day reads −4%, so this is one of the days §30
+		// says the two scorings disagree on in SIGN, and the pin catches the old
+		// field rather than merely its size.
+		expect(valueVsClassic).toBe(1);
 
 		mockSession.tasks = mockSession.tasks.map((t) =>
 			t.id === 1
@@ -199,7 +207,7 @@ describe('EnergyLabStore', () => {
 		flushSync();
 
 		expect(store.plan.blocks).toEqual(blocks);
-		expect(store.outputVsClassic).toBe(outputVsClassic);
+		expect(store.valueVsClassic).toBe(valueVsClassic);
 	});
 
 	// The task list beside the plan reads this: without it the only place the plan

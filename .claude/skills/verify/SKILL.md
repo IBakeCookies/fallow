@@ -50,7 +50,8 @@ const { chromium } = require('playwright');
   the "Viewing a past day" banner and an amber date label in the nav.
 - Useful assertions: nav first item text (`Today` vs e.g. `Jul 10`),
   banner presence, task title visibility (note: a task title matches
-  twice — task list + "Primary Bottleneck" metric).
+  twice — task list + "Primary Bottleneck" metric — but only once the
+  budget funds it hours; with no budget that tile reads "None Detected").
 - Persistence probe: full page reload and re-check the task survived.
 - Midnight rollover ("today" is reactive via `src/lib/today.svelte.ts`): use
   Playwright's clock API — `page.clock.install({time})` ONCE per page,

@@ -78,6 +78,22 @@ export function getBandSmallerBetter(value: number): Band {
 }
 
 /**
+ * Deep Work has an interior optimum, so neither monotone band fits (MATH.md
+ * §26): a quarter to 60% of the budget in sustained focus is the shape the row
+ * is for — 60 is where Burnout Risk starts bending upward over seeded days —
+ * and `getBandBiggerBetter` used to colour a day that is three quarters deep
+ * work 'Optimal' beside a Cognitive Load warning about the same hours.
+ *
+ * It never warns. Outside the optimum the row goes quiet, because a shallow day
+ * is a shape rather than a defect, and depletion above it belongs to Burnout
+ * Risk — §11.7's split, which took the burnout claim off Momentum for the same
+ * reason.
+ */
+export function getBandDeepWork(value: number): Band {
+	return value >= 25 && value <= 60 ? 'success' : 'neutral';
+}
+
+/**
  * The band policy for every reading the plan advisor can search on, exported
  * because the advice card decides WHICH findings to surface from exactly the
  * good/bad call the metric rows are coloured by (AGENTS.md R3 — one definition,

@@ -213,7 +213,7 @@ test('the Lab plans the task deployed on the main page', async ({ page }) => {
 
 	// The comparison tile is the one reading switch cost and the pools reach, and
 	// it says so on demand rather than in a `title` no touch device shows.
-	await page.getByText('Output vs the classic plan, judged by this model').hover();
+	await page.getByText('Day value vs the classic plan, judged by this model').hover();
 
 	await expect(
 		page.getByText('It is the only reading here that uses your switch cost', {

@@ -71,7 +71,7 @@
 	// store consumes the same value but does not re-export it.
 	const windowHours = $derived(session.availableHours);
 	const trailingFreeHours = $derived(lab.trailingFreeHours);
-	const outputVsClassic = $derived(lab.outputVsClassic);
+	const valueVsClassic = $derived(lab.valueVsClassic);
 	const cogDrainFit = $derived(lab.cognitiveDrainFit);
 	const physDrainFit = $derived(lab.physicalDrainFit);
 	const recoveryFit = $derived(lab.recoveryFit);
@@ -464,10 +464,10 @@
 
 						<PlanSummary
 							totalOutput={decimal(plan.evaluation.totalOutput, 1)}
-							endCog={plan.evaluation.endCog}
-							endPhys={plan.evaluation.endPhys}
+							endCog={plan.evaluation.workEndCog}
+							endPhys={plan.evaluation.workEndPhys}
 							workHours={plan.evaluation.workHours}
-							{outputVsClassic}
+							{valueVsClassic}
 						/>
 					{/if}
 				</div>
