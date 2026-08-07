@@ -27,6 +27,39 @@
 	{/snippet}
 </Story>
 
+<!-- The invariant /analytics leans on (MATH.md §29): a day whose plan books no hours
+     has no profile and `countQuadrants` counts it nowhere, so the page passes the SUM
+     of the counts as the bar's 100% and not the days on record — here 11 profiled days
+     out of a longer range. With the two in step the segments tile the bar exactly. -->
+<Story
+	name="Segments tile the bar"
+	args={{
+		counts: {
+			flow: 5,
+			cruise: 3,
+			grind: 2,
+			routine: 1,
+		},
+		total: 11,
+	}}
+	play={async ({ canvasElement }) => {
+		const widths = [...canvasElement.querySelectorAll('div[title]')].map((segment) =>
+			Number.parseFloat((segment as HTMLElement).style.width),
+		);
+
+		await expect(widths).toHaveLength(4);
+		// Loose only because the CSSOM rounds each width to 5dp; a `total` counting
+		// the range's days rather than its profiled ones misses by tens of points.
+		await expect(widths.reduce((sum, width) => sum + width, 0)).toBeCloseTo(100, 3);
+	}}
+>
+	{#snippet template(args)}
+		<div class="card-shell max-w-3xl rounded-xl p-box-lg">
+			<QuadrantDistribution {...args} />
+		</div>
+	{/snippet}
+</Story>
+
 <!-- One profile fills the bar, and the other three still appear in the legend at 0:
      the reader has to be able to see which profiles exist, not only which they hit -->
 <Story

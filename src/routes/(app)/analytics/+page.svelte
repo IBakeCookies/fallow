@@ -6,6 +6,7 @@
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
 	import CompletionBarChart from '$lib/presentation/component/completion-bar-chart.svelte';
+	import MetricTrendChart from '$lib/presentation/component/metric-trend-chart.svelte';
 	import ParamTrend from '$lib/presentation/component/param-trend.svelte';
 	import QuadrantDistribution from '$lib/presentation/component/quadrant-distribution.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
@@ -14,6 +15,7 @@
 	import { calibrationRows } from '$lib/presentation/utils/calibration-descriptor';
 	import { adherenceVerdict } from '$lib/presentation/utils/plan-audit-descriptor';
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
+	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { fromISO } from '$lib/business/utils/date';
 	import {
 		ANALYTICS_RANGES,
@@ -58,6 +60,13 @@
 	const rateDelta = $derived(analytics.completionRateDelta);
 	const bestDay = $derived(analytics.bestDay);
 	const quadrantCounts = $derived(analytics.quadrantCounts);
+	// The bar's 100% is the days that HAVE a profile, not the days on record: a
+	// day that books no hours has no profile (MATH.md §29) and `countQuadrants`
+	// counts it nowhere, so `summaries.length` would leave the segments summing
+	// to less than the bar and understate every share.
+	const profiledDays = $derived(
+		Object.values(quadrantCounts).reduce((sum, count) => sum + count, 0),
+	);
 
 	const modelRows = $derived(calibrationRows(calibration, getDateLocale()));
 	const auditVerdict = $derived(adherenceVerdict(audit));
@@ -68,6 +77,19 @@
 			day: 'numeric',
 		});
 	}
+
+	// `null` while the calibrated energy params are still in flight — the card
+	// says so rather than drawing a series fitted to the defaults (MATH.md §31).
+	const trend = $derived(
+		analytics.metricTrend === null
+			? null
+			: metricTrendSeries({
+					trend: analytics.metricTrend,
+					rangeStart: analytics.rangeStart,
+					rangeDays: analytics.rangeDays,
+					locale: getDateLocale(),
+				}),
+	);
 
 	const chartPoints = $derived(
 		completionChartPoints({
@@ -119,11 +141,11 @@
 			</div>
 		{/each}
 	</div>
-	<!-- Bodies, in the four cards' order. The trend chart is a fixed 800×240
-	     viewBox at `w-full`, so its height is a function of the container's
-	     width and the ratio is the only thing that tracks it; the other three
-	     are the heights their content measures. -->
-	{#each ['aspect-[800/240]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
+	<!-- Bodies, in the five cards' order. Both charts are a fixed viewBox at
+	     `w-full`, so their height is a function of the container's width and the
+	     ratio is the only thing that tracks it; the other three are the heights
+	     their content measures. -->
+	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			<div class="skeleton-block h-5 w-40"></div>
 			<div class="skeleton-block mt-text-3xs h-4 w-64 max-w-full"></div>
@@ -238,6 +260,26 @@
 		/>
 	</div>
 
+	<!-- Load and burnout over the range (MATH.md §31) -->
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_load_trend()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_load_trend_hint()}</p>
+
+		{#if analytics.hasModelReportFailed}
+			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+		{:else if trend === null}
+			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+		{:else}
+			<MetricTrendChart
+				labels={trend.labels}
+				series={trend.series}
+				ariaLabel={m.ana_load_trend_aria({
+					range: RANGE_LABELS[analytics.range].label().toLowerCase(),
+				})}
+			/>
+		{/if}
+	</div>
+
 	<!-- Day profiles -->
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_day_profiles()}</h2>
@@ -245,7 +287,7 @@
 			{m.ana_day_profiles_hint()}
 		</p>
 
-		<QuadrantDistribution counts={quadrantCounts} total={analytics.summaries.length} />
+		<QuadrantDistribution counts={quadrantCounts} total={profiledDays} />
 	</div>
 
 	<!-- Plan adherence (MATH.md §12) -->
