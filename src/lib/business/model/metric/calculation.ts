@@ -51,11 +51,25 @@ export function getEffectiveDifficulty(
  * Determine if a task is primarily cognitive, physical, or balanced. Feeds the
  * interleaving metrics below and the task badge, which reads it off
  * `SuggestedTask.nature` — one definition of the ±3 threshold (AGENTS.md R3).
+ *
+ * ±3 is an absolute gap and it reads correctly across most of the range: at
+ * mental 10 / physical 8 the two dimensions really are comparable. It cannot
+ * carry the bottom of the range, because the sliders admit 0 (MATH.md §22). At
+ * mental 2 / physical 0 the same gap of 2 would call "balanced" a task with no
+ * physical component at all — the badge promising both capacity pools while
+ * `toEnergyTask` hands the reservoir law `physicalDemand: 0`. So a zero
+ * dimension settles the question before the gap is consulted.
+ *
+ * 0/0 stays balanced: that is an absence, not a mix, and nothing downstream
+ * reads it as a rating — `getEffectiveDifficulty` clamps it to 1.
  */
 export function getTaskNature(
 	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>,
 ): 'cognitive' | 'physical' | 'balanced' {
 	const diff = task.mentalDifficulty - task.physicalDifficulty;
+
+	if (diff !== 0 && Math.min(task.physicalDifficulty, task.mentalDifficulty) === 0)
+		return diff > 0 ? 'cognitive' : 'physical';
 
 	if (diff >= 3) return 'cognitive';
 

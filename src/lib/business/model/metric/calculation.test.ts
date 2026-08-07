@@ -51,7 +51,9 @@ function makeSuggested(
 }
 
 describe('getTaskNature', () => {
-	// ±3 is the threshold; the boundary belongs to the dominant side.
+	// ±3 is the threshold; the boundary belongs to the dominant side. A zero
+	// dimension outranks the gap, so the sub-threshold pairs the sliders reach
+	// at the bottom of the range are dominant, not balanced (MATH.md §22).
 	it.each([
 		[9, 2, 'cognitive'],
 		[8, 5, 'cognitive'],
@@ -60,6 +62,11 @@ describe('getTaskNature', () => {
 		[5, 5, 'balanced'],
 		[7, 5, 'balanced'],
 		[5, 7, 'balanced'],
+		[2, 0, 'cognitive'],
+		[1, 0, 'cognitive'],
+		[0, 2, 'physical'],
+		[0, 1, 'physical'],
+		[0, 0, 'balanced'],
 	] as const)('mental %s / physical %s is %s', (mentalDifficulty, physicalDifficulty, nature) => {
 		expect(
 			getTaskNature({
