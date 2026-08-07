@@ -2699,7 +2699,7 @@ extrapolation.
   `mustDoToday`. Completed tasks are not deferrable (and the plan keeps their
   hours either way, §11.8). Unfunded tasks are included: dropping one leaves
   the allocation untouched but does move Time Scarcity (Σϕ runs over all
-  tasks, §11.3) and the Day Profile averages.
+  tasks, §11.8) and the Day Profile averages.
 - **Set the budget to h** — three candidates: `budget − planSlack` (declare
   only the hours the plan actually spends), `budget − 1`, `budget + 1`.
   Clamped at 0, and any candidate within **one minute** of the current budget
@@ -3886,3 +3886,67 @@ So the honest statement is: the cap guards the RATIO, for a personalized
 fast-flow user with few tasks and a budget far past their stopping time. Not the
 `naive = 0` jump it was written for — that arm now requires `budget <
 BLOCK_HOURS`, where the optimizer scores 0 too and `gainPercentOf` returns 0.
+
+## 20. Human Capacity: the reading is the constraint, but it named the wrong pool (2026-08-06)
+
+Every other dashboard metric has a section here; Human Capacity — one of the
+four headline readings — had none. Its formula lived only in
+`metric/calculation.ts`, so nothing said what it measures, what it can read, or
+which of the two pools the row is allowed to blame. Written down and measured:
+
+```
+HC = round(100 · max(Σᵢ wcᵢ·tᵢ / poolcog, Σᵢ wpᵢ·tᵢ / poolphys)),   wᵢ = difficultyᵢ/10
+```
+
+over the **plan** (`suggestedTasks`, completed included — §11.8), with `tᵢ` the
+allocated hours. Those are not metric-layer weights invented for a display: they
+are the allocator's own, so the numerator is exactly the left-hand side of the
+capacity constraints in §4's pooled program (`Σᵢ wcᵢ × tᵢ ≤ cognitive pool`,
+`calculatePooledAllocations`). The reading is therefore not an estimate of how
+hard the day is — it is the share of the constraint the plan consumed, and
+`limitType` names which of the two is closer to binding.
+
+Measurements: `scripts/mtr-human-capacity.probe.ts`, 3000 seeded days over the
+UI-reachable space (integer sliders, 0.25 h budget lattice, 5-minute switch
+cost, both pools drawn from 0–8 h in 0.5 h steps).
+
+**The identity holds (2026-08-06).** Recomputing the formula from the returned
+plan reproduces the displayed `percent` on **3000 of 3000** days.
+
+**Over-100 and `Infinity` are unreachable from the app's own plan
+(2026-08-06).** The greedy skips any block that would overdraw a pool
+(`+1e-9`), the transfer pass keeps that invariant and the admission move is
+feasibility-checked, so the plan satisfies the very constraint this metric
+divides by: **0 days over 100%**, **0 non-finite readings**, maximum reading
+100%. The wall is real, not far away — **44.1%** of days read ≥ 99%.
+
+Both guards stay, and neither is decoration: `AXIS_BAND.humanCapacity`'s
+critical arm above 100 (`presentation/utils/band.ts`) and the N/A gate on a
+non-finite reading (§14.1 defect 2) fire on hours the allocator did not
+produce — `calculateHumanCapacity` is exported and unit-tested with
+hand-supplied hours, and a pool edited down after a plan was solved is the same
+situation. AGENTS.md's "Human Capacity is unclamped" is a statement about the
+metric, not a prediction about the dashboard.
+
+### 20.1 The tie went to cognitive, so the row blamed the wrong pool
+
+`saturation` rounded each pool's percentage and the limit was chosen by
+comparing the **rounded** pair, `cogSaturation >= physSaturation`. Any two
+saturations inside the same integer therefore tied, and the tie was awarded to
+cognitive. Measured on the sweep: **39 of 3000** days round to a tie, and on
+**17 of them (0.57%)** the physical pool was the one actually closer to binding
+— the widest swallowed gap being **cog 52.500% vs phys 53.333%**, and **2** days
+having a cognitive draw of exactly **0**, i.e. a purely physical day described
+as cognitively limited.
+
+The displayed number was never wrong: both members of a rounded tie print the
+same integer, so `percent` equals $\mathrm{round}(\max(\cdot))$ either way. What
+was wrong is the sentence beside it — `metric-descriptor.ts` names the pool from
+`limitType` and prints **that pool's configured hours** ("Cognitive limit
+(4h/day)"), so a mislabel misstates the constraint and its size at once.
+
+The fix decides on the exact saturations and rounds for display only; on the
+same 3000 days the fixed metric names the binding pool on every decidable day
+(ties within 1e-9 are float noise and keep the cognitive default). Pinned in the
+suite by one fixture — 60.00% cognitive against 60.25% physical, both rounding
+to 60 (`calculation.test.ts`, "names the pool that binds").

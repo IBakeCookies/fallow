@@ -347,25 +347,24 @@ export function calculateHumanCapacity(
 	// Pools are user-configurable (defaults: cognitive ~4h/day, physical ~6h/day).
 	// Note: since the allocator itself enforces these pools, suggested plans
 	// saturate near (not beyond) 100% — values >100% can only come from
-	// externally-supplied hours.
+	// externally-supplied hours (MATH.md §20).
 	// A pool of 0 is valid (e.g. injured → no physical capacity): the allocator
 	// keeps demand at 0, so saturation reads 0 rather than dividing by zero.
 	const saturation = (demand: number, pool: number): number =>
-		pool > 0 ? Math.round((demand / pool) * 100) : demand > 0.001 ? Infinity : 0;
+		pool > 0 ? (demand / pool) * 100 : demand > 0.001 ? Infinity : 0;
 
 	const cogSaturation = saturation(cogDemand, pools.cognitiveHours);
 	const physSaturation = saturation(physDemand, pools.physicalHours);
-
-	if (cogSaturation >= physSaturation) {
-		return {
-			percent: cogSaturation,
-			limitType: 'cognitive',
-		};
-	}
+	// Which pool BINDS is decided on the exact saturations; rounding is for
+	// display only. Rounding first made every pair inside the same integer a tie
+	// and gave the tie to cognitive, so the row named the wrong pool — and its
+	// wrong hour count — on 0.57% of days, twice with a cognitive draw of
+	// exactly 0 (MATH.md §20).
+	const cognitiveBinds = cogSaturation >= physSaturation;
 
 	return {
-		percent: physSaturation,
-		limitType: 'physical',
+		percent: Math.round(cognitiveBinds ? cogSaturation : physSaturation),
+		limitType: cognitiveBinds ? 'cognitive' : 'physical',
 	};
 }
 

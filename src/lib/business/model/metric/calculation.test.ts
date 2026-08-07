@@ -17,6 +17,7 @@ import {
 } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
+import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 
 function makeTask(overrides: Partial<Task> & { id: number; title: string }): Task {
 	return {
@@ -729,6 +730,37 @@ describe('calculateHumanCapacity', () => {
 			limitType: 'none',
 		});
 	});
+
+	// MATH.md §20: the pool that BINDS is decided on the exact saturations. The
+	// rounded pair below ties at 60%, and the tie used to go to cognitive — which
+	// put the wrong pool, and its wrong hour count, into the row's description.
+	it('names the pool that binds, not the one rounding ties toward', () => {
+		const mental = makeSuggested({
+			id: 1,
+			title: 'mental',
+			mentalDifficulty: 10,
+			physicalDifficulty: 0,
+			suggestedHours: 2.4, // 2.4 of 4 cognitive-hours → 60.00%
+		});
+
+		const physical = makeSuggested({
+			id: 2,
+			title: 'physical',
+			mentalDifficulty: 0,
+			physicalDifficulty: 10,
+			suggestedHours: 2.41, // 2.41 of 4 physical-hours → 60.25%
+		});
+
+		expect(
+			calculateHumanCapacity([mental, physical], {
+				cognitiveHours: 4,
+				physicalHours: 4,
+			}),
+		).toEqual({
+			percent: 60,
+			limitType: 'physical',
+		});
+	});
 });
 
 describe('calculateTimeScarcity', () => {
@@ -757,6 +789,101 @@ describe('calculateTimeScarcity', () => {
 			expect(s).toBeLessThanOrEqual(100);
 			prev = s;
 		}
+	});
+
+	// Plan family (MATH.md §11.8): the reading describes the day as designed, so
+	// checking a task done must not move it — its hours stay allocated.
+	it('does not move when a task is checked done', () => {
+		const done = [
+			tasks[0],
+			makeTask({
+				id: 2,
+				title: 'b',
+				completed: true,
+			}),
+		];
+
+		expect(calculateTimeScarcity(done, 4)).toBe(calculateTimeScarcity(tasks, 4));
+	});
+
+	// Σϕ runs over every listed task (MATH.md §11.8), and adding one raises the
+	// deficit and the denominator together — the direction is not self-evident.
+	it('never falls when a task is added', () => {
+		const readings = Array.from(
+			{
+				length: 5,
+			},
+			(_, n) =>
+				calculateTimeScarcity(
+					Array.from(
+						{
+							length: n + 1,
+						},
+						(_, i) =>
+							makeTask({
+								id: i + 1,
+								title: `t${i}`,
+							}),
+					),
+					6,
+				),
+		);
+
+		for (let i = 1; i < readings.length; i++) {
+			expect(readings[i]).toBeGreaterThanOrEqual(readings[i - 1]);
+		}
+
+		expect(readings.at(-1)).toBeGreaterThan(readings[0]);
+	});
+
+	it('bills n − 1 switches, not n', () => {
+		const three = [
+			tasks[0],
+			tasks[1],
+			makeTask({
+				id: 3,
+				title: 'c',
+			}),
+		];
+
+		const billed = calculateTimeScarcity(three, 3, 0.25);
+
+		// Charging (n − 1)·switchCost against the budget is the same day as that
+		// much less budget and no switching at all.
+		expect(billed).toBe(calculateTimeScarcity(three, 3 - 2 * 0.25, 0));
+		expect(billed).not.toBe(calculateTimeScarcity(three, 3 - 3 * 0.25, 0));
+	});
+
+	it('charges a single task no switch cost', () => {
+		const one = [tasks[0]];
+
+		expect(calculateTimeScarcity(one, 1, 2)).toBe(calculateTimeScarcity(one, 1, 0));
+	});
+
+	it('honours the switch cost it is given', () => {
+		const readings = [0, 0.25, 0.5, 0.75].map((switchCost) =>
+			calculateTimeScarcity(tasks, 4, switchCost),
+		);
+
+		for (let i = 1; i < readings.length; i++) {
+			expect(readings[i]).toBeGreaterThanOrEqual(readings[i - 1]);
+		}
+
+		// Strict at the ends, or a hardcoded switch cost would pass the above.
+		expect(readings.at(-1)).toBeGreaterThan(readings[0]);
+	});
+
+	// ϕ comes from the user's fitted constants (MATH.md §5, §5.2), not the
+	// defaults — a slower-to-flow user reads scarcer on the same day.
+	it('honours the fitted constants it is given', () => {
+		const slowToFlow = {
+			...DEFAULT_USER_CONSTANTS,
+			c3: DEFAULT_USER_CONSTANTS.c3 + 1,
+		};
+
+		expect(calculateTimeScarcity(tasks, 4, 0.25, slowToFlow)).toBeGreaterThan(
+			calculateTimeScarcity(tasks, 4, 0.25, DEFAULT_USER_CONSTANTS),
+		);
 	});
 });
 
