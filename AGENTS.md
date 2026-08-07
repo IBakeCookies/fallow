@@ -8,7 +8,7 @@ Other documentation, and nothing else:
 | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
 | [README.md](README.md)                                           | User-facing: what the app does and how to run it                    |
 | [MATH.md](MATH.md)                                               | **Authoritative** record of the implemented math — every derivation |
-| ↳ its `## Section index`                                         | 3.6k lines / ~55k tokens. Read the section you need, not the file   |
+| ↳ its `## Section index`                                         | 4.2k lines / ~64k tokens. Read the section you need, not the file   |
 | [ROADMAP.md](ROADMAP.md)                                         | Planned work in priority order — update when an item ships          |
 | [STYLE.md](src/lib/presentation/style/STYLE.md)                  | All styling rules — read before touching markup or classes          |
 | [zenith.md](zenith.md)                                           | Frozen copy of the source article. Historical only — never a spec   |
@@ -371,6 +371,11 @@ formula, a constant, a bound, or a fit's conditioning:
    MATH.md §10 (doc-only revision log) — do not imply a model change.
 4. Never "fix" the code to match `zenith.md`. The implementation deliberately
    deviates from the article; MATH.md §6 lists how and why.
+5. If you added or moved a section, run `node scripts/math-index.mjs` — never
+   retype a row of the section index. Its ranges are a fixed point (the index
+   sits above what it indexes, so a new row shifts its own numbers) and its
+   columns have truncation rules that are invisible in the output. `npm run
+lint` fails on a stale index.
 
 ### R8 — Changing the IndexedDB schema is a five-step change
 

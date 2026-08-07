@@ -31,78 +31,82 @@ down, and it is why §2's concavity property reads the way it does.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~63k tokens; the largest single section is §8 at ~13k
-(§14 is ~10k), and most of the 65 rows below are under 2k. Ranges shift
-whenever a section is inserted — reprint the headings with
+The whole document is ~64k tokens; the largest single section is §8 at ~13k
+(§14 is ~10k), and most of the 66 rows below are under 2k. Ranges shift
+whenever a section is inserted, and the table has alignment and truncation rules
+that are not evident from reading it — so never retype a row, regenerate:
 
-    node -e 'require("fs").readFileSync("MATH.md","utf8").split("\n").forEach((l,i)=>/^#{2,3} /.test(l)&&console.log(i+1,l))'
+    node scripts/math-index.mjs
+
+`npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0          110-129  Objective
-§1          131-156  Inputs and parameter mappings (unchanged from the articl…
-§2          158-274  Productivity curve — v2 change
-§3          276-322  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          324-422  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          424-747  Personalization — v2 change: full Bayesian posterior
-  §5.2      473-558  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      560-747  Posterior-aware allocation (added 2026-07-18)
-§6          749-761  Summary of v1 → v2 changes
-§7          763-794  Known approximations and deliberate non-changes
-§8         796-1728  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      814-839  Intermittent-rest recovery correction
-  §8.2      841-861  Warm-up carryover instead of binary reset
-  §8.3      863-900  Verified consequences and an open calibration question
-  §8.4     902-1003  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1005-1064  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1066-1125  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1127-1257  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1259-1320  45-minute plan granularity (added 2026-07-18)
-  §8.9    1322-1396  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1398-1605  Stopping-value calibration from observed stop times (add…
-  §8.11   1607-1728  Live stop advisor — §8.10 run forward mid-day (added 202…
-§9        1730-1777  References
-§10       1779-1865  Revision log (doc-only corrections)
-§11       1867-2207  Metric-layer corrections (2026-07-18)
-  §11.1   1869-1883  Scope and principle
-  §11.2   1885-1909  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   1911-1938  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   1940-1954  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   1956-1971  Schedule Integrity: overhead share instead of the small-…
-  §11.6   1973-2083  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2085-2109  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2111-2147  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2149-2207  Overnight reservoir carry-over (2026-07-28)
-§12       2209-2333  Plan-adherence audit (2026-07-23)
-  §12.1   2250-2333  Per-day fit snapshots (2026-08-03)
-§13       2335-2689  Math review, 2026-07-26
-  §13.1   2352-2387  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2389-2461  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2463-2528  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2530-2566  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2568-2605  Also in this change
-  §13.6   2607-2689  The two end-of-day energy readings: a timing difference,…
-§14       2691-3343  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   2876-3012  Five corrections to the first cut (2026-07-28)
-  §14.2   3014-3157  The marginal of the budget (added 2026-08-03)
-  §14.3   3159-3343  The price of the switch cost (added 2026-08-04)
-§15       3345-3418  Two objectives, two modes (2026-07-29)
-§16       3420-3501  Run order stays a heuristic (2026-07-29)
-§17       3503-3661  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       3663-3731  Drain logs are one row per SESSION, not per task-day (20…
-§19       3733-3897  The gain's naive baseline paid for switches it never mad…
-  §19.1   3745-3804  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   3806-3834  Defect 2 — the displayed number moved with the order of …
-  §19.3   3836-3874  What this costs, and the one guarantee that weakened
-  §19.4   3876-3897  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       3899-3961  Human Capacity: the reading is the constraint, but it na…
-  §20.1   3940-3961  The tie went to cognitive, so the row blamed the wrong p…
-§21       3963-4122  What the gain has room to report (2026-08-07)
-  §21.1   3985-4003  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4005-4028  Why shape has a low ceiling: the activation bonus
-  §21.3   4030-4050  Population distribution
-  §21.4   4052-4077  The number is a property of the comparison, not of the o…
-  §21.5   4079-4094  Under the total-output objective the ranking inverts
-  §21.6   4096-4122  Correction: on an ordinary day it is FLOW that binds, no…
+§0          114-133  Objective
+§1          135-160  Inputs and parameter mappings (unchanged from the articl…
+§2          162-278  Productivity curve — v2 change
+§3          280-326  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          328-426  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          428-751  Personalization — v2 change: full Bayesian posterior
+  §5.2      477-562  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      564-751  Posterior-aware allocation (added 2026-07-18)
+§6          753-765  Summary of v1 → v2 changes
+§7          767-798  Known approximations and deliberate non-changes
+§8         800-1732  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      818-843  Intermittent-rest recovery correction
+  §8.2      845-865  Warm-up carryover instead of binary reset
+  §8.3      867-904  Verified consequences and an open calibration question
+  §8.4     906-1007  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1009-1068  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1070-1129  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1131-1261  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1263-1324  45-minute plan granularity (added 2026-07-18)
+  §8.9    1326-1400  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1402-1609  Stopping-value calibration from observed stop times (add…
+  §8.11   1611-1732  Live stop advisor — §8.10 run forward mid-day (added 202…
+§9        1734-1781  References
+§10       1783-1869  Revision log (doc-only corrections)
+§11       1871-2211  Metric-layer corrections (2026-07-18)
+  §11.1   1873-1887  Scope and principle
+  §11.2   1889-1913  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   1915-1942  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   1944-1958  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   1960-1975  Schedule Integrity: overhead share instead of the small-…
+  §11.6   1977-2087  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2089-2113  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2115-2151  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2153-2211  Overnight reservoir carry-over (2026-07-28)
+§12       2213-2337  Plan-adherence audit (2026-07-23)
+  §12.1   2254-2337  Per-day fit snapshots (2026-08-03)
+§13       2339-2693  Math review, 2026-07-26
+  §13.1   2356-2391  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2393-2465  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2467-2532  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2534-2570  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2572-2609  Also in this change
+  §13.6   2611-2693  The two end-of-day energy readings: a timing difference,…
+§14       2695-3347  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   2880-3016  Five corrections to the first cut (2026-07-28)
+  §14.2   3018-3161  The marginal of the budget (added 2026-08-03)
+  §14.3   3163-3347  The price of the switch cost (added 2026-08-04)
+§15       3349-3422  Two objectives, two modes (2026-07-29)
+§16       3424-3511  Run order stays a heuristic (2026-07-29)
+§17       3513-3671  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       3673-3741  Drain logs are one row per SESSION, not per task-day (20…
+§19       3743-3907  The gain's naive baseline paid for switches it never mad…
+  §19.1   3755-3814  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   3816-3844  Defect 2 — the displayed number moved with the order of …
+  §19.3   3846-3884  What this costs, and the one guarantee that weakened
+  §19.4   3886-3907  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       3909-3971  Human Capacity: the reading is the constraint, but it na…
+  §20.1   3950-3971  The tie went to cognitive, so the row blamed the wrong p…
+§21       3973-4132  What the gain has room to report (2026-08-07)
+  §21.1   3995-4013  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4015-4038  Why shape has a low ceiling: the activation bonus
+  §21.3   4040-4060  Population distribution
+  §21.4   4062-4087  The number is a property of the comparison, not of the o…
+  §21.5   4089-4104  Under the total-output objective the ranking inverts
+  §21.6   4106-4132  Correction: on an ordinary day it is FLOW that binds, no…
+§22       4134-4192  Task nature: an absolute gap could not carry a range tha…
 ```
 
 <!-- section-index:end -->
@@ -3456,11 +3460,17 @@ any order-only change can win, a **median 0.47% bounds the solver's own order
 too** — a median, not a ceiling: p90 1.50%, max 3.96%.
 
 **Alternation earns its keep, on the days it fires.** It changes the sequence on
-only **123/300 days (41%)** — 44% of integer slider pairs land `'balanced'`
-under the ±3 threshold (47% of the probe's funded tasks), and balanced contrasts
-with everything, so the greedy degenerates to
+only **123/300 days (41%)** — 44% of the integer difficulty pairs this probe
+draws land `'balanced'` under the ±3 threshold (47% of the probe's funded
+tasks), and balanced contrasts with everything, so the greedy degenerates to
 priority order. The 0.00% overall median is that no-op rate, not a null effect:
 where it fires it gains a median 0.32% over plain priority.
+
+The 44% is over **1–10**, which is what `drawDays` samples — not over the slider
+range, which starts at 0. §22 gives the rate over the reachable 0–10 square
+(40.5% under this probe's rule, 37.2% after §22's zero gate) and shows why no
+cell of the table above moves: the four pairs §22 reclassifies all carry a zero,
+and this probe never draws one.
 
 **The decisive finding: the objective-optimal order is uncorrelated with
 drain.** Burnout Risk (§11.6) under interleaved minus under the
@@ -3496,9 +3506,9 @@ metric by >5 points on a third of days in an arbitrary direction to buy a median
   optimal, so the mismatch costs nothing measurable.
 - §12 and §15's classic baseline keep their current sequencing, so their figures
   stand unrevised.
-- Caveat on generalization: uniform-random difficulties produce the 44% balanced
-  rate, so a real task list may re-order more or less often than 41% of days.
-  The bound on the _gain_ does not depend on that rate.
+- Caveat on generalization: uniform-random difficulties over 1–10 produce the
+  44% balanced rate, so a real task list may re-order more or less often than
+  41% of days. The bound on the _gain_ does not depend on that rate.
 
 ## 17. Per-task ϕ offsets stay unbuilt (2026-08-04)
 
@@ -4120,3 +4130,63 @@ and buries the larger one. That is a presentation ordering question, not a model
 one, and it is deliberately left as such here — but any future work on "the gain
 looks too low" should start at this table, because the gain is not the metric
 that is under-reporting.
+
+## 22. Task nature: an absolute gap could not carry a range that starts at 0 (2026-08-07)
+
+`getTaskNature` splits a task into `'cognitive' | 'physical' | 'balanced'` on
+the signed gap alone, `d = mental − physical`, with `|d| ≥ 3` claiming the
+dominant side. Three consumers read it: the task badge (COG/PHY/HYB),
+`calculateTaskVariety`, and `calculateInterleavedOrder` — which is the run order
+behind both the `#N` badges and Burnout Risk's block sequence (§11.6).
+
+**The defect.** The threshold was written for a 1–10 rating, where a gap of 2
+does mean the two dimensions are comparable: mental 10 / physical 8 is a genuine
+mix. But the difficulty sliders admit **0** — deliberately, and unlike enjoyment,
+which starts at 1 because ϕ divides by it (§2). A 0 there is not a low rating,
+it is the absence of a dimension. At mental 2 / physical 0 the gap is 2, so the
+rule returned `'balanced'` for a task with no physical component whatsoever: the
+badge promised "draws on both capacity pools" while `toEnergyTask` handed the
+reservoir law `physicalDemand: 0`. The model and the badge disagreed about the
+same task, which is the R3 failure, not a wording problem.
+
+**The rule now.** A zero dimension settles the question before the gap is
+consulted; everything else keeps ±3 unchanged.
+
+```text
+if d ≠ 0 and min(mental, physical) = 0:  d > 0 ? cognitive : physical
+elif d ≥ 3:                              cognitive
+elif d ≤ −3:                             physical
+else:                                    balanced
+```
+
+0/0 stays `'balanced'`. It is an absence rather than a mix, but nothing
+downstream reads it as a rating — `getEffectiveDifficulty` clamps that task's
+Eᵤ to 1 (its domain is [1,10]), so there is no third label to invent.
+
+**What moves.** Exactly **4 of the 121** integer pairs on the 0–10 square:
+
+```text
+(m1,p0) (m2,p0)  balanced → cognitive
+(m0,p1) (m0,p2)  balanced → physical
+```
+
+The balanced rate over the reachable square falls from **49/121 = 40.5%** to
+**45/121 = 37.2%**. Over 1–10 it is 44% either way, which is why §16's table
+stands unrevised: `mode-run-order.probe.ts` draws `pick(1, 10, 1)` for both
+difficulties and never sampled a zero, so not one of its 300 days contains a
+pair this change touches. That the probe's day-space is narrower than the UI's
+is itself worth recording — it bounds what §16 measured, not what ships.
+
+**Why not a demand-share rule.** The obvious alternative replaces the gap with
+the dominant dimension's share of total demand, `max/(m+p) ≥ 0.65`. Rejected on
+its own numbers: it disagrees with the gap rule on 22 of the 121 pairs, and it
+is wrong at the end of the range the gap rule gets right — it calls mental 10 /
+physical 6 `'balanced'`, and mental 7 / physical 4 too. Normalizing away the
+magnitude discards the information that a 4-point spread at the top of the scale
+is a different claim from a 4-point spread at the bottom. The zero gate adds no
+constant and only encodes what `toEnergyTask` already asserts.
+
+**Left alone deliberately.** Mental 3 / physical 1 stays `'balanced'` even
+though the mental side is triple the physical one. There is a real physical
+component there, so both pools are drawn on and the badge is not lying. Only
+zero was.
