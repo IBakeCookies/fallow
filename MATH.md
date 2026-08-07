@@ -31,69 +31,78 @@ down, and it is why §2's concavity property reads the way it does.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~59k tokens; the largest single section is §8 at ~13k
-(§14 is ~10k), and most of the 56 rows below are under 2k. Ranges shift
+The whole document is ~63k tokens; the largest single section is §8 at ~13k
+(§14 is ~10k), and most of the 65 rows below are under 2k. Ranges shift
 whenever a section is inserted — reprint the headings with
 
     node -e 'require("fs").readFileSync("MATH.md","utf8").split("\n").forEach((l,i)=>/^#{2,3} /.test(l)&&console.log(i+1,l))'
 
 ```text
-§0          101-120  Objective
-§1          122-147  Inputs and parameter mappings (unchanged from the articl…
-§2          149-265  Productivity curve — v2 change
-§3          267-313  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          315-413  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          415-738  Personalization — v2 change: full Bayesian posterior
-  §5.2      464-549  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      551-738  Posterior-aware allocation (added 2026-07-18)
-§6          740-752  Summary of v1 → v2 changes
-§7          754-785  Known approximations and deliberate non-changes
-§8         787-1719  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      805-830  Intermittent-rest recovery correction
-  §8.2      832-852  Warm-up carryover instead of binary reset
-  §8.3      854-891  Verified consequences and an open calibration question
-  §8.4      893-994  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5     996-1055  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1057-1116  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1118-1248  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1250-1311  45-minute plan granularity (added 2026-07-18)
-  §8.9    1313-1387  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1389-1596  Stopping-value calibration from observed stop times (add…
-  §8.11   1598-1719  Live stop advisor — §8.10 run forward mid-day (added 202…
-§9        1721-1768  References
-§10       1770-1856  Revision log (doc-only corrections)
-§11       1858-2166  Metric-layer corrections (2026-07-18)
-  §11.1   1860-1874  Scope and principle
-  §11.2   1876-1900  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   1902-1925  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   1927-1941  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   1943-1958  Schedule Integrity: overhead share instead of the small-…
-  §11.6   1960-2048  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2050-2074  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2076-2112  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2114-2166  Overnight reservoir carry-over (2026-07-28)
-§12       2168-2292  Plan-adherence audit (2026-07-23)
-  §12.1   2209-2292  Per-day fit snapshots (2026-08-03)
-§13       2294-2648  Math review, 2026-07-26
-  §13.1   2311-2346  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2348-2420  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2422-2487  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2489-2525  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2527-2564  Also in this change
-  §13.6   2566-2648  The two end-of-day energy readings: a timing difference,…
-§14       2650-3302  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   2835-2971  Five corrections to the first cut (2026-07-28)
-  §14.2   2973-3116  The marginal of the budget (added 2026-08-03)
-  §14.3   3118-3302  The price of the switch cost (added 2026-08-04)
-§15       3304-3377  Two objectives, two modes (2026-07-29)
-§16       3379-3457  Run order stays a heuristic (2026-07-29)
-§17       3459-3617  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       3619-3687  Drain logs are one row per SESSION, not per task-day (20…
-§19       3689-3853  The gain's naive baseline paid for switches it never mad…
-  §19.1   3701-3760  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   3762-3790  Defect 2 — the displayed number moved with the order of …
-  §19.3   3792-3830  What this costs, and the one guarantee that weakened
-  §19.4   3832-3853  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§0          110-129  Objective
+§1          131-156  Inputs and parameter mappings (unchanged from the articl…
+§2          158-274  Productivity curve — v2 change
+§3          276-322  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          324-422  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          424-747  Personalization — v2 change: full Bayesian posterior
+  §5.2      473-558  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      560-747  Posterior-aware allocation (added 2026-07-18)
+§6          749-761  Summary of v1 → v2 changes
+§7          763-794  Known approximations and deliberate non-changes
+§8         796-1728  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      814-839  Intermittent-rest recovery correction
+  §8.2      841-861  Warm-up carryover instead of binary reset
+  §8.3      863-900  Verified consequences and an open calibration question
+  §8.4     902-1003  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1005-1064  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1066-1125  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1127-1257  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1259-1320  45-minute plan granularity (added 2026-07-18)
+  §8.9    1322-1396  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1398-1605  Stopping-value calibration from observed stop times (add…
+  §8.11   1607-1728  Live stop advisor — §8.10 run forward mid-day (added 202…
+§9        1730-1777  References
+§10       1779-1865  Revision log (doc-only corrections)
+§11       1867-2207  Metric-layer corrections (2026-07-18)
+  §11.1   1869-1883  Scope and principle
+  §11.2   1885-1909  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   1911-1938  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   1940-1954  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   1956-1971  Schedule Integrity: overhead share instead of the small-…
+  §11.6   1973-2083  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2085-2109  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2111-2147  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2149-2207  Overnight reservoir carry-over (2026-07-28)
+§12       2209-2333  Plan-adherence audit (2026-07-23)
+  §12.1   2250-2333  Per-day fit snapshots (2026-08-03)
+§13       2335-2689  Math review, 2026-07-26
+  §13.1   2352-2387  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2389-2461  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2463-2528  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2530-2566  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2568-2605  Also in this change
+  §13.6   2607-2689  The two end-of-day energy readings: a timing difference,…
+§14       2691-3343  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   2876-3012  Five corrections to the first cut (2026-07-28)
+  §14.2   3014-3157  The marginal of the budget (added 2026-08-03)
+  §14.3   3159-3343  The price of the switch cost (added 2026-08-04)
+§15       3345-3418  Two objectives, two modes (2026-07-29)
+§16       3420-3501  Run order stays a heuristic (2026-07-29)
+§17       3503-3661  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       3663-3731  Drain logs are one row per SESSION, not per task-day (20…
+§19       3733-3897  The gain's naive baseline paid for switches it never mad…
+  §19.1   3745-3804  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   3806-3834  Defect 2 — the displayed number moved with the order of …
+  §19.3   3836-3874  What this costs, and the one guarantee that weakened
+  §19.4   3876-3897  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       3899-3961  Human Capacity: the reading is the constraint, but it na…
+  §20.1   3940-3961  The tie went to cognitive, so the row blamed the wrong p…
+§21       3963-4122  What the gain has room to report (2026-08-07)
+  §21.1   3985-4003  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4005-4028  Why shape has a low ceiling: the activation bonus
+  §21.3   4030-4050  Population distribution
+  §21.4   4052-4077  The number is a property of the comparison, not of the o…
+  §21.5   4079-4094  Under the total-output objective the ranking inverts
+  §21.6   4096-4122  Correction: on an ordinary day it is FLOW that binds, no…
 ```
 
 <!-- section-index:end -->
@@ -3950,3 +3959,164 @@ same 3000 days the fixed metric names the binding pool on every decidable day
 (ties within 1e-9 are float noise and keep the cognitive default). Pinned in the
 suite by one fixture — 60.00% cognitive against 60.25% physical, both rounding
 to 60 (`calculation.test.ts`, "names the pool that binds").
+
+## 21. What the gain has room to report (2026-08-07)
+
+§19 made the Zenith Gain **honest** — it no longer bills the naive baseline for
+switches the baseline never makes. This section answers the question that comes
+next: honest and small, or honest and broken? It is the first. The reported
+number is ~2–3% on an ordinary day because the quantity being measured is
+genuinely that small, and this is written down so the next reader does not
+"fix" a correct number.
+
+**Nothing here changes a formula, a constant, or a bound.** It is a measurement
+section plus one scope correction (§21.6).
+
+Measurements: `scripts/rv15-gain-headroom.probe.ts`. Unlike §13.2/§19, whose
+tables come from a generator, the reference day here is a REAL reported one —
+piano (P1 M7 E7), Gym (P8 M1 E5), guitar (P0 M4 E9), network (P0 M5 E2) on a
+4 h budget. Arm A reproduces that screen exactly (plan `1h15 / 1h15 / 30m /
+15m`, stop-by `3h45 / 4h18 / 2h09 / 2h58`, gain **2.9%**), including the fit
+posterior: the app runs `fitUserConstants([])`, which returns default constants
+with the PRIOR as posterior (§13.1), and σ_ϕ > 0 shrinks every T*. Omitting the
+posterior moves piano's stop-by to 3h56 and the gain to 3.1% — small, but it is
+the difference between reproducing the product and reproducing a model of it.
+
+### 21.1 The edge is SELECTION at tight budgets and SHAPE at loose ones
+
+Decompose the optimizer's advantage over the equal split into two parts: which
+tasks get funded at all (**selection**), and how the hours divide among the
+funded ones (**shape**). Both baselines billed for their own switches, both on
+the 15-minute lattice, as a percentage of the equal-split value:
+
+| budget    | 0h30      | 1h00  | 1h30 | 2h00 | 3h00 | 4h00     | 6h00 | 8h00 | 12h00 |
+| --------- | --------- | ----- | ---- | ---- | ---- | -------- | ---- | ---- | ----- |
+| selection | **84.9%** | 13.6% | 8.5% | 0.0% | 0.0% | **0.0%** | 0.0% | 0.0% | 0.0%  |
+| shape     | 0.0%      | 0.0%  | 0.0% | 0.0% | 1.7% | **1.9%** | 1.9% | 1.9% | 0.7%  |
+
+The two are almost disjoint. Below ~2 h the optimizer wins by refusing to fund
+everything and the split is irrelevant; above it, every planner funds every
+task and only the split is left. The crossover is at `budget ≈ n·BLOCK_HOURS +
+(n−1)·switchCost` — the point where the whole list first becomes affordable.
+
+An ordinary day sits in the second regime, where the gain reports the smaller
+of the two effects.
+
+### 21.2 Why shape has a low ceiling: the activation bonus
+
+The shape term is bounded by how much P̄ can move once every task is open, and
+the v2 curve's discontinuity at t → 0⁺ (§0, `averageProductivity`) makes that
+very little. P̄ as a percentage of each task's own P̄(T*), on the reference day:
+
+| task    | ϕ    | T\*  | 15m | 30m | 1h  | 2h   |
+| ------- | ---- | ---- | --- | --- | --- | ---- |
+| guitar  | 1h21 | 2h09 | 64% | 76% | 90% | 100% |
+| network | 1h47 | 2h58 | 51% | 62% | 79% | 96%  |
+| piano   | 2h14 | 3h45 | 36% | 49% | 68% | 90%  |
+| Gym     | 2h32 | 4h18 | 31% | 43% | 62% | 85%  |
+
+The first block of guitar buys 64% of everything guitar will ever be worth.
+That is the activation bonus, and it is the model's own central claim:
+**starting** a task is most of its value. Any planner that opens all n tasks has
+therefore already banked the large term on all of them, and is left trading
+against the flat tops of n concave curves.
+
+This is why the equal split is a strong baseline rather than a strawman — it
+opens everything, so it collects every activation bonus. The gain is small
+because the model says the split does not matter much, not because the
+allocator is failing to exploit it. A metric that read larger here would be
+measuring against a baseline the model itself does not believe in.
+
+### 21.3 Population distribution
+
+2000 random app-reachable days per cell (integer sliders, `pooledProductivityGain`,
+default pools), reporting the gain in percent:
+
+| n   | budget | median | p90  | p99  | > 5% | > 10% | > 25% |
+| --- | ------ | ------ | ---- | ---- | ---- | ----- | ----- |
+| 2   | 4h     | 1.1    | 7.6  | 15.3 | 17%  | 6%    | 0%    |
+| 4   | 2h     | 3.4    | 8.2  | 12.6 | 31%  | 4%    | 0%    |
+| 4   | 4h     | 4.5    | 10.0 | 15.1 | 45%  | 9%    | 0%    |
+| 4   | 8h     | 2.4    | 6.8  | 10.3 | 19%  | 1%    | 0%    |
+| 6   | 2h     | 16.0   | 22.3 | 27.1 | 100% | 92%   | 3%    |
+| 8   | 2h     | 23.8   | 32.5 | 39.9 | 100% | 100%  | 42%   |
+| 8   | 8h     | 5.2    | 8.9  | 12.5 | 53%  | 5%    | 0%    |
+
+The large cells are exactly the ones where §21.1's selection term is live: many
+tasks, few hours. The gain also scales with how UNALIKE the tasks are — four
+identical tasks give exactly 0.0%, because there the equal split IS the
+optimum; a 4.1× ϕ spread at n = 4 / 4 h gives 11.1% against the reference day's
+2.9% at a 1.9× spread. The relationship is not monotone (a 5.3× spread gives
+5.9%), so ϕ spread is a driver, not a predictor.
+
+### 21.4 The number is a property of the comparison, not of the optimizer
+
+The same optimizer on the same day reports wildly different "value" depending
+on the reference set it is scored against. 20000 sampled plans, each spending
+its whole billed budget on the 15-minute lattice, at 4 h:
+
+| reference set                       | optimizer beats median by |
+| ----------------------------------- | ------------------------- |
+| random subset, random split         | **+62.6%**                |
+| all 4 funded, random split          | +4.2%                     |
+| all 4 funded, equal split (shipped) | **+1.9%**                 |
+
+Most of the first row is not planning skill. Σ P̄ sums per-task averages, so
+funding four tasks instead of two scores well almost regardless of the split —
+the sampler is being rewarded for breadth the user already chose by writing four
+tasks down. The third row is what the shipped metric reports, and it is the
+most conservative of the three.
+
+**A percentile does not rescue this.** The optimizer beat 100.00% of all 20000
+plans at every budget in both samplings — 0 ever beat it. A statistic that
+reads 100% every day is a constant, not a metric. Only the ratio-to-median
+varies usefully (40.7% at 2 h → 98.5% at 8 h), and that ratio is a free
+parameter of whichever sampling distribution one picks. Any replacement
+baseline would need the same defence §13.2 and §19 give the current one, and
+would be easier to attack. **Do not swap the equal-split baseline for a sampled
+one without reading this paragraph.**
+
+### 21.5 Under the total-output objective the ranking inverts
+
+The same plans, rescored under `∫p dt` — the objective §0 explicitly rejects and
+`zenith-energy.ts` keeps as a peer mode (§15):
+
+| plan               | vs Σ P̄      | vs total output |
+| ------------------ | ----------- | --------------- |
+| equal split        | +1.9%       | +15.0%          |
+| two tasks only     | +37.8%      | −32.8%          |
+| all day on task #1 | **+129.8%** | **−48.6%**      |
+
+A single-task grind is the worst plan on the shipped objective and the best on
+the rejected one. This is not a defect on either side — it is the whole content
+of §0's choice, restated as a number. It does mean a user whose intuition runs
+on total output will read the planner's advice as wrong, and that the 2.9%
+communicates none of the disagreement.
+
+### 21.6 Correction: on an ordinary day it is FLOW that binds, not stopping
+
+An earlier reading of these results held that per-task optimal stopping is the
+planner's most valuable output at a 4 h budget. That is **wrong for this task
+set**, and the probe's arm I says so directly — tasks at their T*, tasks
+reaching flow, and pool use, across the budget sweep:
+
+| budget             | 1h   | 2h   | 4h      | 6h   | 8h   | 10h  | 12h  |
+| ------------------ | ---- | ---- | ------- | ---- | ---- | ---- | ---- |
+| reach flow (≥ ϕ)   | 0/4  | 0/4  | **0/4** | 0/4  | 1/4  | 4/4  | 4/4  |
+| at their T\*       | 0/4  | 0/4  | 0/4     | 0/4  | 0/4  | 0/4  | 0/4  |
+| cognitive pool /4h | 0.45 | 0.60 | 1.32    | 2.17 | 2.95 | 3.82 | 4.00 |
+
+**No task is ever at its stopping time**, at any budget the slider allows: the
+cognitive pool saturates first (4.00/4 h at 12 h, §4's pooled path), so the
+stop-by figures are never the binding constraint for this list. What is binding
+is the row above — from 1 h through 6 h **not one task gets enough unbroken time
+to reach flow**, and the reference day's plan gives guitar 30m against a ϕ of
+1h21.
+
+That reading is already computed and already displayed: `calculateFlowCoverage`
+(plan-scoped, §11.8) renders **0/4** on this day. The gain is a headline metric
+and flow coverage is not, so the dashboard leads with the smaller true statement
+and buries the larger one. That is a presentation ordering question, not a model
+one, and it is deliberately left as such here — but any future work on "the gain
+looks too low" should start at this table, because the gain is not the metric
+that is under-reporting.
