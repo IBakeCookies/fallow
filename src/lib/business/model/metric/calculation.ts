@@ -484,8 +484,13 @@ export function calculateBurnoutRisk(
 	if (!suggestedTasks.length) return 0;
 
 	const budget = Number(availableHours) || 0;
+	// The allocator's own convention (`zenith.ts`: non-positive switch cost means
+	// no switching): a negative cost would otherwise GROW the overhang, and since
+	// the gap blocks below are only pushed when positive, the simulated span
+	// would exceed the declared budget with the difference counted as work.
+	const gap = Math.max(0, Number(switchCost) || 0);
 	const funded = calculateInterleavedOrder(suggestedTasks);
-	const overhead = funded.length > 1 ? (funded.length - 1) * switchCost : 0;
+	const overhead = funded.length > 1 ? (funded.length - 1) * gap : 0;
 	const allocated = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
 	const overhang = Math.max(0, budget - overhead - allocated);
 	const blocks: ScheduleBlock[] = [];
@@ -497,10 +502,10 @@ export function calculateBurnoutRisk(
 		const stretch = 1 + overhang / allocated;
 
 		funded.forEach((t, i) => {
-			if (i > 0 && switchCost > 0)
+			if (i > 0 && gap > 0)
 				blocks.push({
 					taskId: null,
-					hours: switchCost,
+					hours: gap,
 				});
 
 			blocks.push({

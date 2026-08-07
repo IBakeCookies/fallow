@@ -11,6 +11,7 @@ import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
+	simulateReservoirs,
 } from '$lib/business/model/zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 
@@ -266,19 +267,71 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 		expect(twoSessions.initialCog).toBeLessThan(bothLight.initialCog);
 	});
 
-	it('stays a valid level when the logs claim the whole cycle was worked', () => {
-		const seeded = seedMorningReservoirs(slowRecovery, [
+	it('gives an over-logged day NO rest at all, not a negative or mirrored gap', () => {
+		// §11.9's gap is max(0, 24 − Σh), so a 26 h day gets no rest block: the
+		// morning level must equal 26 h of straight work. Asserting only
+		// 0 < level < 1 (as this test once did) pins nothing — dropping the guard
+		// is bit-identical because `simulateReservoirs` already skips hours ≤ 0,
+		// and a sign slip (`Math.abs(24 − Σh)`, handing the day 2 h of BONUS rest)
+		// still lands inside the range while moving Burnout Risk 98 → 73.
+		const overLogged = [
 			drainRecord({
 				hours: 26,
 				cognitiveDemand: 1,
 				physicalDemand: 1,
 			}),
-		]);
+		];
 
+		const seeded = seedMorningReservoirs(slowRecovery, overLogged);
+
+		const pureWork = simulateReservoirs(
+			[
+				{
+					taskId: 0,
+					hours: 26,
+				},
+			],
+			[
+				{
+					id: 0,
+					cognitiveDemand: 1,
+					physicalDemand: 1,
+				},
+			],
+			{
+				...slowRecovery,
+				initialCog: 1,
+				initialPhys: 1,
+			},
+		);
+
+		expect(seeded.initialCog).toBe(pureWork.endCog);
+		expect(seeded.initialPhys).toBe(pureWork.endPhys);
+
+		// Still a valid level, and never above the day that DID get its night.
 		expect(seeded.initialCog).toBeGreaterThan(0);
 		expect(seeded.initialCog).toBeLessThan(1);
-		expect(seeded.initialPhys).toBeGreaterThan(0);
-		expect(seeded.initialPhys).toBeLessThan(1);
+
+		expect(seeded.initialCog).toBeLessThanOrEqual(
+			seedMorningReservoirs(slowRecovery, [
+				drainRecord({
+					hours: 24,
+					cognitiveDemand: 1,
+					physicalDemand: 1,
+				}),
+			]).initialCog,
+		);
+	});
+
+	it('anchors the cycle at 24 h — the constant itself, which no oracle pins', () => {
+		// §11.9 derives the 24 h cycle from work-start-to-work-start being the only
+		// anchor available (no clock times are stored). Every other test here is
+		// insensitive to it: the 12-decimal oracle above IMPORTS
+		// RESERVOIR_CYCLE_HOURS into its own expectation, the healing bound
+		// (> 0.999) tolerates cycles down to 17 h, and the store's carry-over test
+		// is directional and only gets stronger as the cycle shrinks — so 24 → 17
+		// and 24 → 48 both passed the full suite before this line existed.
+		expect(RESERVOIR_CYCLE_HOURS).toBe(24);
 	});
 });
 
