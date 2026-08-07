@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	calculateSuggestedTasks,
 	calculateDailyQuadrant,
+	calculateQuadrantMargin,
 	calculateFrictionIndex,
 	calculateBurnoutRisk,
 	calculateScheduleIntegrity,
@@ -10,8 +11,16 @@ import {
 	calculateHumanCapacity,
 	calculateTimeScarcity,
 	calculateFlowCoverage,
+	calculateBottleneckTask,
+	calculateLongestWarmUp,
 	calculateTaskPlan,
 	calculateZenithGain,
+	calculateCognitiveLoad,
+	calculatePhysicalLoad,
+	calculateEnergyBalance,
+	calculateDeepWorkRatio,
+	calculateGrindDensity,
+	calculateRewardDensity,
 	getTaskNature,
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
@@ -78,25 +87,69 @@ describe('getTaskNature', () => {
 });
 
 describe('calculateDailyQuadrant', () => {
-	// 5.5 splits both axes; effective difficulty is the dominant dimension
-	// plus 0.3 × the secondary one.
+	const day = (
+		specs: [mental: number, physical: number, enjoyment: number, hours: number][],
+	): SuggestedTask[] =>
+		specs.map(([mentalDifficulty, physicalDifficulty, enjoyment, suggestedHours], index) =>
+			makeSuggested({
+				id: index + 1,
+				title: `t${index + 1}`,
+				mentalDifficulty,
+				physicalDifficulty,
+				enjoyment,
+				suggestedHours,
+			}),
+		);
+
+	// Enjoyment cuts at 5.5, the midpoint of its 1–10 slider; difficulty at 6.5,
+	// what a task rated at the midpoint of BOTH 0–10 sliders reads through
+	// `max + 0.3·min` (MATH.md §29).
 	it.each([
 		[8, 8, 'flow'],
 		[8, 3, 'grind'],
 		[3, 8, 'cruise'],
 		[3, 3, 'routine'],
-	] as const)('difficulty %s / enjoyment %s is %s', (mentalDifficulty, enjoyment, quadrant) => {
-		expect(
-			calculateDailyQuadrant([
-				makeTask({
-					id: 1,
-					title: 'a',
-					mentalDifficulty,
-					physicalDifficulty: 0,
-					enjoyment,
-				}),
-			]),
-		).toBe(quadrant);
+	] as const)('difficulty %s / enjoyment %s is %s', (mental, enjoyment, quadrant) => {
+		expect(calculateDailyQuadrant(day([[mental, 0, enjoyment, 1]]))).toBe(quadrant);
+	});
+
+	// The cut is on the composite, so the spillover decides these two — the old
+	// fixtures all set physical 0, the one case where it contributes nothing.
+	it('reads the midpoint of both difficulty sliders as demanding, and one point under it as not', () => {
+		expect(calculateDailyQuadrant(day([[5, 5, 3, 1]]))).toBe('grind'); // 5 + 0.3×5 = 6.5
+		expect(calculateDailyQuadrant(day([[5, 4, 3, 1]]))).toBe('routine'); // 5 + 0.3×4 = 6.2
+	});
+
+	it('weights by allocated hours, not by task count', () => {
+		// Three short joys outnumber one long grind; the day is still the grind.
+		const tasks = day([
+			[9, 0, 2, 6],
+			[1, 0, 9, 0.5],
+			[1, 0, 9, 0.5],
+			[1, 0, 9, 0.5],
+		]);
+
+		expect(calculateDailyQuadrant(tasks)).toBe('grind');
+	});
+
+	it('gives a task the plan funded no hours for no vote', () => {
+		const funded = day([[2, 0, 9, 3]]);
+		const withUnfunded = [...funded, ...day([[10, 10, 1, 0]])];
+
+		expect(calculateDailyQuadrant(funded)).toBe('cruise');
+		expect(calculateDailyQuadrant(withUnfunded)).toBe('cruise');
+	});
+
+	it('has no reading for an empty list or a plan that books nothing', () => {
+		expect(calculateDailyQuadrant([])).toBeNull();
+		expect(calculateDailyQuadrant(day([[9, 9, 9, 0]]))).toBeNull();
+	});
+
+	it('reports the distance to the nearer cut, so the advisor can refuse a hairline flip', () => {
+		// Difficulty 6.5 sits ON its cut; enjoyment 5 is 0.5 under its own.
+		expect(calculateQuadrantMargin(day([[5, 5, 5, 1]]))).toBe(0);
+		expect(calculateQuadrantMargin(day([[3, 0, 8, 1]]))).toBeCloseTo(2.5, 10);
+		expect(calculateQuadrantMargin([])).toBeNull();
 	});
 });
 
@@ -257,6 +310,156 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 		});
 
 		expect(calculateFrictionIndex([mixed, easy])).toBe(22);
+	});
+
+	it('measures EFFECTIVE difficulty, so a two-dimensional task can outrun the enjoyment it beat on both sliders', () => {
+		// The §11.4 boundary is stated per-task ("difficulty you love is not
+		// friction"), but the left side is the spillover composite
+		// (max + 0.3·min = 9.1 here) and the right is the raw slider. Enjoyment 8
+		// beats BOTH difficulty dimensions and the task still reads friction —
+		// deliberate (a task demanding 7 of body AND mind demands more than
+		// either number says), and the only fixture that pins the interior of the
+		// scale: DIFFICULTY_SPILLOVER moves this number, the endpoints above
+		// hide it (both clamp).
+		const bothDimensions = makeSuggested({
+			id: 1,
+			title: 'competitive climbing',
+			mentalDifficulty: 7,
+			physicalDifficulty: 7,
+			enjoyment: 8,
+			suggestedHours: 2,
+		});
+
+		expect(calculateFrictionIndex([bothDimensions])).toBe(12);
+
+		// Single-dimension at the same peak: gap 0, and no friction at all.
+		expect(
+			calculateFrictionIndex([
+				{
+					...bothDimensions,
+					physicalDifficulty: 0,
+				},
+			]),
+		).toBe(0);
+	});
+});
+
+describe('calculateGrindDensity (MATH.md §11.10)', () => {
+	const chore = (overrides: Partial<SuggestedTask> = {}) =>
+		makeSuggested({
+			id: 1,
+			title: 'chore',
+			mentalDifficulty: 8,
+			physicalDifficulty: 0,
+			enjoyment: 2,
+			suggestedHours: 1,
+			...overrides,
+		});
+
+	const treat = (overrides: Partial<SuggestedTask> = {}) =>
+		makeSuggested({
+			id: 2,
+			title: 'treat',
+			mentalDifficulty: 3,
+			physicalDifficulty: 0,
+			enjoyment: 9,
+			suggestedHours: 1,
+			...overrides,
+		});
+
+	it('counts the funded plan, and reports what it counted', () => {
+		expect(
+			calculateGrindDensity([
+				chore(),
+				treat(),
+				treat({
+					id: 3,
+				}),
+			]),
+		).toEqual({
+			grinds: 1,
+			funded: 3,
+			percent: 33,
+		});
+	});
+
+	it('a dropped task does not vote', () => {
+		// A task the plan funds 0 h is work the day does not do, so it drains no
+		// willpower — and counting it made "defer a task you were not going to
+		// touch" the advisor's cheapest fix, at Σ P̄ cost 0.
+		const withDropped = calculateGrindDensity([
+			chore(),
+			treat(),
+			chore({
+				id: 3,
+				suggestedHours: 0,
+			}),
+		]);
+
+		expect(withDropped).toEqual(calculateGrindDensity([chore(), treat()]));
+		expect(withDropped.percent).toBe(50);
+	});
+
+	it('with nothing funded there is no share to report', () => {
+		// The 0 is a sentinel, not a clean day: the row gates on `funded` and the
+		// advisor reads NaN, so neither renders this as the best possible plan.
+		expect(
+			calculateGrindDensity([
+				chore({
+					suggestedHours: 0,
+				}),
+			]),
+		).toEqual({
+			grinds: 0,
+			funded: 0,
+			percent: 0,
+		});
+
+		expect(calculateGrindDensity([])).toEqual({
+			grinds: 0,
+			funded: 0,
+			percent: 0,
+		});
+	});
+
+	it('splits at strict > , so it partitions with Sustainable Work', () => {
+		// Effective difficulty 5 against enjoyment 5: not a grind, and the same
+		// task IS sustainable time (`enjoyment >= difficulty`). Every funded task
+		// belongs to exactly one of the two readings.
+		const tie = chore({
+			mentalDifficulty: 5,
+			physicalDifficulty: 0,
+			enjoyment: 5,
+		});
+
+		expect(calculateGrindDensity([tie]).grinds).toBe(0);
+		expect(calculateRewardDensity([tie])).toBe(100);
+	});
+
+	it('measures EFFECTIVE difficulty, so a two-dimensional task can grind on its own', () => {
+		// m7/p7 demands more than either slider says: 7 + 0.3·7 = 9.1 > 9. The
+		// interior of the scale, where `DIFFICULTY_SPILLOVER` is visible — the same
+		// boundary Friction Index reads as a magnitude (§11.4), here as a count.
+		expect(
+			calculateGrindDensity([
+				chore({
+					mentalDifficulty: 7,
+					physicalDifficulty: 7,
+					enjoyment: 9,
+				}),
+			]).grinds,
+		).toBe(1);
+
+		// One dimension at the same peak: 7 < 9, no grind.
+		expect(
+			calculateGrindDensity([
+				chore({
+					mentalDifficulty: 7,
+					physicalDifficulty: 0,
+					enjoyment: 9,
+				}),
+			]).grinds,
+		).toBe(0);
 	});
 });
 
@@ -930,6 +1133,170 @@ describe('calculateFlowCoverage', () => {
 	});
 });
 
+describe('calculateBottleneckTask', () => {
+	// Cognitive draw 0.9·1 = 0.9 vs physical 0.2·1 = 0.2 — the two axes disagree
+	// about which task is worst, so the binding pool decides (MATH.md §23).
+	const brainy = makeSuggested({
+		id: 1,
+		title: 'brainy',
+		mentalDifficulty: 9,
+		physicalDifficulty: 2,
+		suggestedHours: 1,
+	});
+
+	const heavy = makeSuggested({
+		id: 2,
+		title: 'heavy',
+		mentalDifficulty: 2,
+		physicalDifficulty: 9,
+		suggestedHours: 1,
+	});
+
+	// Tiny pool on one axis, huge on the other, so the binding pool is the one
+	// under test and not an accident of the demands.
+	const binds = (limitType: 'cognitive' | 'physical') => ({
+		cognitiveHours: limitType === 'cognitive' ? 0.1 : 100,
+		physicalHours: limitType === 'physical' ? 0.1 : 100,
+	});
+
+	it('names the largest draw on the pool that binds, per axis', () => {
+		expect(calculateBottleneckTask([brainy, heavy], binds('cognitive'))).toEqual({
+			title: 'brainy',
+			limitType: 'cognitive',
+		});
+
+		expect(calculateBottleneckTask([brainy, heavy], binds('physical'))).toEqual({
+			title: 'heavy',
+			limitType: 'physical',
+		});
+	});
+
+	it('weighs hours, not difficulty alone', () => {
+		const long = makeSuggested({
+			id: 3,
+			title: 'long',
+			mentalDifficulty: 4,
+			suggestedHours: 4,
+		});
+
+		// 0.4·4 = 1.6 beats 0.9·1 = 0.9: a mild task can still own the day.
+		expect(calculateBottleneckTask([brainy, long], binds('cognitive'))?.title).toBe('long');
+	});
+
+	// The defect this signature exists to prevent (MATH.md §23.1): the axis is
+	// read off the SAME list the task is picked from, so a list that loads only
+	// one system is named on that system — it does not report "none" because some
+	// other list bound the other pool.
+	it('reads its axis off the list it is given', () => {
+		const bodyOnly = makeSuggested({
+			id: 5,
+			title: 'pure body',
+			mentalDifficulty: 0,
+			physicalDifficulty: 8,
+			suggestedHours: 2,
+		});
+
+		// Pools where cognitive would bind on a mixed list — irrelevant here, since
+		// nothing on THIS list draws cognitively.
+		expect(calculateBottleneckTask([bodyOnly], binds('cognitive'))).toEqual({
+			title: 'pure body',
+			limitType: 'physical',
+		});
+	});
+
+	// The property that earns the name (MATH.md §23): the pool is fixed, so
+	// dropping a task lowers the binding saturation by exactly its own draw —
+	// the largest draw is therefore the largest available relief. Asserted
+	// through `calculateHumanCapacity` rather than by re-deriving the draw here,
+	// which would only restate the implementation.
+	it('names the task whose removal relieves the binding pool most', () => {
+		const pools = {
+			cognitiveHours: 8,
+			physicalHours: 8,
+		};
+
+		// Physical demand 0 throughout, so cognitive binds before and after any
+		// single removal and the comparison stays on one axis.
+		const plan = [
+			makeSuggested({
+				id: 1,
+				title: 'hard and short',
+				mentalDifficulty: 9,
+				physicalDifficulty: 0,
+				suggestedHours: 1,
+			}),
+			makeSuggested({
+				id: 2,
+				title: 'mild and long',
+				mentalDifficulty: 4,
+				physicalDifficulty: 0,
+				suggestedHours: 4,
+			}),
+			makeSuggested({
+				id: 3,
+				title: 'hardest',
+				mentalDifficulty: 10,
+				physicalDifficulty: 0,
+				suggestedHours: 1.5,
+			}),
+		];
+
+		const named = calculateBottleneckTask(plan, pools);
+		expect(named?.title).toBe('mild and long');
+
+		const without = (title: string) =>
+			calculateHumanCapacity(
+				plan.filter((t) => t.title !== title),
+				pools,
+			).percent;
+
+		expect(without(named!.title)).toBe(Math.min(...plan.map((t) => without(t.title))));
+	});
+
+	it('reports nothing when nothing draws at all', () => {
+		expect(calculateBottleneckTask([])).toBeNull();
+
+		// Funded no hours, so it draws nothing — the row must not blame it.
+		expect(
+			calculateBottleneckTask([
+				makeSuggested({
+					id: 4,
+					title: 'unfunded',
+					suggestedHours: 0,
+				}),
+			]),
+		).toBeNull();
+	});
+});
+
+describe('calculateLongestWarmUp', () => {
+	it('names the largest ϕ and carries the hours funded against it', () => {
+		const quick = makeSuggested({
+			id: 1,
+			title: 'quick',
+			flowStateTime: 0.4,
+			suggestedHours: 1,
+		});
+
+		const slow = makeSuggested({
+			id: 2,
+			title: 'slow',
+			flowStateTime: 2.2,
+			suggestedHours: 1,
+		});
+
+		expect(calculateLongestWarmUp([quick, slow])).toEqual({
+			title: 'slow',
+			flowStateTime: 2.2,
+			suggestedHours: 1,
+		});
+	});
+
+	it('is null on an empty list', () => {
+		expect(calculateLongestWarmUp([])).toBeNull();
+	});
+});
+
 describe('calculateZenithGain', () => {
 	it('guards empty inputs and reports a real gain otherwise', () => {
 		expect(calculateZenithGain([], 8)).toEqual({
@@ -1061,5 +1428,316 @@ describe('calculateTaskPlan', () => {
 			suggestedTasks: [],
 			allocatedHours: [],
 		});
+	});
+});
+
+describe('calculateCognitiveLoad / calculatePhysicalLoad (MATH.md §25)', () => {
+	const cognitive = (hours: number, mentalDifficulty: number) =>
+		makeSuggested({
+			id: 1,
+			title: 'thinking',
+			mentalDifficulty,
+			physicalDifficulty: 0,
+			suggestedHours: hours,
+		});
+
+	// The reading the locale copy used to misdescribe: INTENSITY-weighted, not a
+	// share of the day's hours. Every hour of this day is cognitive work.
+	it('weights by difficulty, so a full day of medium mental work reads 50%', () => {
+		expect(calculateCognitiveLoad([cognitive(8, 5)], 8)).toBe(50);
+	});
+
+	it('reads the full 100% only at maximum difficulty filling the budget', () => {
+		expect(calculateCognitiveLoad([cognitive(8, 10)], 8)).toBe(100);
+	});
+
+	// Same hours, same weights, the WHOLE budget as denominator — which is what
+	// makes a wider budget lower the reading with no allocation change (§14.2).
+	it('divides by the whole budget, switch overhead included', () => {
+		expect(calculateCognitiveLoad([cognitive(4, 10)], 10)).toBe(40);
+		expect(calculateCognitiveLoad([cognitive(4, 10)], 20)).toBe(20);
+	});
+
+	it('is exact, not rounded to whole percent', () => {
+		expect(calculateCognitiveLoad([cognitive(4, 10)], 12)).toBeCloseTo(33.3333, 4);
+	});
+
+	// Plan scope (§11.8): a completed task keeps its hours, so the reading holds.
+	it('counts completed tasks — their hours stay allocated', () => {
+		const done = makeSuggested({
+			id: 2,
+			title: 'done',
+			mentalDifficulty: 10,
+			physicalDifficulty: 0,
+			suggestedHours: 4,
+			completed: true,
+		});
+
+		expect(calculateCognitiveLoad([done], 10)).toBe(40);
+	});
+
+	it('reads the other dimension the same way', () => {
+		const physical = makeSuggested({
+			id: 1,
+			title: 'lifting',
+			mentalDifficulty: 0,
+			physicalDifficulty: 6,
+			suggestedHours: 5,
+		});
+
+		expect(calculatePhysicalLoad([physical], 10)).toBe(30);
+		expect(calculateCognitiveLoad([physical], 10)).toBe(0);
+	});
+
+	// The clamp is slack for allocator output (§25: 3000 days, max 100.000%) and
+	// exists for hand-built hours measured against a smaller budget.
+	it('clamps a task list whose weighted hours exceed the budget', () => {
+		expect(calculateCognitiveLoad([cognitive(12, 10)], 8)).toBe(100);
+	});
+
+	it.each([
+		['no tasks', [], 8],
+		['a zero budget', [cognitive(4, 10)], 0],
+		['a non-numeric budget', [cognitive(4, 10)], Number.NaN],
+	] as const)('reads 0 on %s', (_label, tasks, budget) => {
+		expect(calculateCognitiveLoad([...tasks], budget)).toBe(0);
+	});
+});
+
+describe('calculateEnergyBalance (MATH.md §25)', () => {
+	const day = (mentalHours: number, physicalHours: number) => [
+		makeSuggested({
+			id: 1,
+			title: 'thinking',
+			mentalDifficulty: 10,
+			physicalDifficulty: 0,
+			suggestedHours: mentalHours,
+		}),
+		makeSuggested({
+			id: 2,
+			title: 'lifting',
+			mentalDifficulty: 0,
+			physicalDifficulty: 10,
+			suggestedHours: physicalHours,
+		}),
+	];
+
+	const balanceOf = (tasks: SuggestedTask[], budget: number) =>
+		calculateEnergyBalance(
+			calculateCognitiveLoad(tasks, budget),
+			calculatePhysicalLoad(tasks, budget),
+		);
+
+	// 4h and 6h of full-demand work in a 12h day: loads 33.33/50, whose exact
+	// ratio is 40 — the band boundary, 'balanced'. Rounded to 33/50 first it
+	// reads 39.76, i.e. 'physical': the classification flip §25 measured on 1.6%
+	// of seeded days.
+	it('divides the exact loads, not their rounded percents', () => {
+		expect(balanceOf(day(4, 6), 12)).toBeCloseTo(40, 10);
+		expect(calculateEnergyBalance(33, 50)).toBeCloseTo(39.759, 3);
+	});
+
+	it('is 50 on an even split and 100 on a purely cognitive day', () => {
+		expect(balanceOf(day(3, 3), 10)).toBe(50);
+		expect(balanceOf(day(3, 0), 10)).toBe(100);
+	});
+
+	// The thin plan that used to round to 0/0 and take the zero-load sentinel,
+	// costing the advisor an axis the day really had (§25, §14.1 defect 5).
+	it('reports a load too thin to round to 1%', () => {
+		const thin = [
+			makeSuggested({
+				id: 1,
+				title: 'a short easy thing',
+				mentalDifficulty: 1,
+				physicalDifficulty: 0,
+				suggestedHours: 0.5,
+			}),
+		];
+
+		expect(calculateCognitiveLoad(thin, 12)).toBeCloseTo(0.4167, 4);
+		expect(balanceOf(thin, 12)).toBe(100);
+	});
+
+	// Genuinely loadless: the 50 sentinel, which is also the target — the reason
+	// the advisor reads this case as NaN instead of scoring it (§14.1 defect 5).
+	it('falls back to 50 when the day carries no load at all', () => {
+		expect(balanceOf(day(0, 0), 10)).toBe(50);
+		expect(calculateEnergyBalance(0, 0)).toBe(50);
+	});
+});
+
+describe('calculateDeepWorkRatio (MATH.md §26)', () => {
+	const focus = (hours: number, mentalDifficulty: number) =>
+		makeSuggested({
+			id: 1,
+			title: 'thinking',
+			mentalDifficulty,
+			physicalDifficulty: 0,
+			suggestedHours: hours,
+		});
+
+	// The ramp, not the old `>= 7` step: mental 5 is not sustained focus, 9 is
+	// entirely, and 7 — the threshold that used to swing a whole block — is half.
+	it.each([
+		[10, 100],
+		[9, 100],
+		[8, 75],
+		[7, 50],
+		[6, 25],
+		[5, 0],
+		[0, 0],
+	])('counts a full day of mental-%s work as %s%%', (mental, expected) => {
+		expect(calculateDeepWorkRatio([focus(8, mental)], 8)).toBeCloseTo(expected, 10);
+	});
+
+	// The defect the ramp removes: under the step cut these two days read 0% and
+	// 100%, so one slider point rewrote the row.
+	it('moves by a quarter of the block, not the whole of it, across the old cut', () => {
+		expect(
+			calculateDeepWorkRatio([focus(8, 7)], 8) - calculateDeepWorkRatio([focus(8, 6)], 8),
+		).toBe(25);
+	});
+
+	// Whole budget, switch overhead included — the §25 denominator, so unspent
+	// budget lowers the reading. That is why the band is not bigger-better.
+	it('divides by the whole budget', () => {
+		expect(calculateDeepWorkRatio([focus(4, 10)], 8)).toBe(50);
+		expect(calculateDeepWorkRatio([focus(4, 10)], 16)).toBe(25);
+	});
+
+	it('is exact, not rounded to whole percent', () => {
+		expect(calculateDeepWorkRatio([focus(4, 10)], 12)).toBeCloseTo(33.3333, 4);
+	});
+
+	// Plan scope (§11.8): finishing the deep task must not empty the row.
+	it('counts completed tasks — their hours stay allocated', () => {
+		expect(
+			calculateDeepWorkRatio(
+				[
+					makeSuggested({
+						id: 2,
+						title: 'done',
+						mentalDifficulty: 10,
+						physicalDifficulty: 0,
+						suggestedHours: 4,
+						completed: true,
+					}),
+				],
+				8,
+			),
+		).toBe(50);
+	});
+
+	it('clamps a task list whose deep hours exceed the budget', () => {
+		expect(calculateDeepWorkRatio([focus(12, 10)], 8)).toBe(100);
+	});
+
+	it.each([
+		['no tasks', [], 8],
+		['a zero budget', [focus(4, 10)], 0],
+		['a non-numeric budget', [focus(4, 10)], Number.NaN],
+	] as const)('reads 0 on %s', (_label, tasks, budget) => {
+		expect(calculateDeepWorkRatio([...tasks], budget)).toBe(0);
+	});
+});
+
+describe('calculateRewardDensity — Sustainable Work (MATH.md §27)', () => {
+	const hours = (
+		id: number,
+		suggestedHours: number,
+		difficulty: number,
+		enjoyment: number,
+	): SuggestedTask =>
+		makeSuggested({
+			id,
+			title: `t${id}`,
+			mentalDifficulty: difficulty,
+			physicalDifficulty: 0,
+			enjoyment,
+			suggestedHours,
+		});
+
+	// The §27 defect: the denominator is the hours the plan books, not the
+	// budget. 2 h of sustainable work is all of a 2 h plan whatever the budget
+	// was — unbooked time and switch overhead are not grind.
+	it('divides by worked hours, not by the time budget', () => {
+		expect(calculateRewardDensity([hours(1, 2, 3, 8)])).toBe(100);
+		expect(calculateRewardDensity([hours(1, 2, 3, 8), hours(2, 2, 8, 1)])).toBe(50);
+	});
+
+	// The reachability the bigger-better band needs: a plan with no grind in it
+	// reads 100, which the /B formula could not do once any hour went unbooked.
+	it('reads 100 on a grind-free plan and 0 when every hour is grind', () => {
+		expect(calculateRewardDensity([hours(1, 1, 2, 9), hours(2, 3, 5, 5)])).toBe(100);
+		expect(calculateRewardDensity([hours(1, 1, 9, 2), hours(2, 3, 8, 4)])).toBe(0);
+	});
+
+	// Hours, not tasks — this is what keeps it from restating Grind Density.
+	it('weighs a long grind above three short joys', () => {
+		expect(
+			calculateRewardDensity([
+				hours(1, 6, 9, 2),
+				hours(2, 0.5, 2, 9),
+				hours(3, 0.5, 2, 9),
+				hours(4, 0.5, 2, 9),
+			]),
+		).toBeCloseTo(20, 10);
+	});
+
+	// EFFECTIVE difficulty, the same composite Grind Density and Friction use
+	// (§11.4): 7/7 demands more than either slider says, so enjoyment 8 does not
+	// cover it (7 + 0.3·7 = 9.1).
+	it('measures EFFECTIVE difficulty, so a task hard in both dimensions is not covered by enjoyment 8', () => {
+		const both = makeSuggested({
+			id: 1,
+			title: 'both',
+			mentalDifficulty: 7,
+			physicalDifficulty: 7,
+			enjoyment: 8,
+			suggestedHours: 2,
+		});
+
+		expect(calculateRewardDensity([both])).toBe(0);
+
+		expect(
+			calculateRewardDensity([
+				{
+					...both,
+					physicalDifficulty: 0,
+				},
+			]),
+		).toBe(100);
+	});
+
+	// Ties are sustainable: the predicate is enjoyment ≥ difficulty, the exact
+	// complement of Grind Density's difficulty > enjoyment. No hour is neither.
+	it('counts a tie as sustainable, so the two rows partition the hours', () => {
+		expect(calculateRewardDensity([hours(1, 2, 6, 6)])).toBe(100);
+	});
+
+	// Plan scope (§11.8): a checked-off task keeps its hours, so the row holds.
+	it('counts completed tasks — their hours stay allocated', () => {
+		expect(
+			calculateRewardDensity([
+				{
+					...hours(1, 2, 3, 8),
+					completed: true,
+				},
+				hours(2, 2, 8, 1),
+			]),
+		).toBe(50);
+	});
+
+	it('is exact, not rounded to whole percent', () => {
+		expect(calculateRewardDensity([hours(1, 1, 3, 8), hours(2, 2, 8, 1)])).toBeCloseTo(33.3333, 4);
+	});
+
+	// Null, never 0: nothing booked is not a day of pure grind.
+	it.each([
+		['no tasks', []],
+		['a plan that funded nothing', [hours(1, 0, 3, 8), hours(2, 0, 8, 1)]],
+	] as const)('reads null on %s', (_label, tasks) => {
+		expect(calculateRewardDensity([...tasks])).toBeNull();
 	});
 });

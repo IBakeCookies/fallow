@@ -168,6 +168,70 @@ describe('calculateDailyMetrics', () => {
 		expect(after.runOrder.size).toBe(2);
 	});
 
+	// Regression (2026-08-07, MATH.md §23.1): checking off the day's only physical
+	// task used to blank the bottleneck to null with cognitive work still ahead —
+	// its axis came from the PLAN (still physical: the completed task keeps its
+	// hours) while its candidates came from what was LEFT (no physical draw at
+	// all). Deleting that same task re-pointed the row correctly, so the two
+	// gestures disagreed. Both are pinned here, against each other.
+	it('re-points the bottleneck when the last task on its axis is completed', () => {
+		const pools = {
+			cognitiveHours: 4,
+			physicalHours: 2,
+		};
+
+		const day = [
+			makeTask({
+				id: 1,
+				title: 'Design error boundary',
+				mentalDifficulty: 8,
+				physicalDifficulty: 0,
+			}),
+			makeTask({
+				id: 2,
+				title: 'Move the boxes',
+				mentalDifficulty: 0,
+				physicalDifficulty: 10,
+			}),
+			makeTask({
+				id: 3,
+				title: 'Code review',
+				mentalDifficulty: 5,
+				physicalDifficulty: 0,
+			}),
+		];
+
+		const bottleneck = (tasks: Task[]) =>
+			calculateDailyMetrics(
+				input(tasks, {
+					pools,
+				}),
+			).bottleneckTask;
+
+		expect(bottleneck(day)).toEqual({
+			title: 'Move the boxes',
+			limitType: 'physical',
+		});
+
+		const completed = bottleneck(
+			day.map((task) =>
+				task.id === 2
+					? {
+							...task,
+							completed: true,
+						}
+					: task,
+			),
+		);
+
+		expect(completed).toEqual({
+			title: 'Design error boundary',
+			limitType: 'cognitive',
+		});
+
+		expect(bottleneck(day.filter((task) => task.id !== 2))).toEqual(completed);
+	});
+
 	// The dashboard solves the allocation once and hands it to Zenith Gain, which
 	// used to re-solve it from the same inputs (2ⁿ enumeration, twice, inside a
 	// $derived). Reusing it may not move the number: hours are paired to tasks by

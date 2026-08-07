@@ -871,6 +871,15 @@ no probe citation beside it is unbacked — that is the list to work down.
 | `mode-cross-scoring.probe.ts`           | §15 — both plans scored under both objectives                                                                                |
 | `mode-run-order.probe.ts`               | §16 — the order-only gain and the burnout noise it would buy                                                                 |
 | `mtr-human-capacity.probe.ts`           | §20 — the reading-is-the-constraint identity, what the band's >100 and Infinity arms can reach, the pool the row names       |
+| `mtr-load-rounding.probe.ts`            | §25 — the Load clamp's slack, what rounding the two loads cost Energy Balance's classification and the advisor's ordering    |
+| `mtr-grind-density.probe.ts`            | §11.10 — the 100/m quantization against the band ladder, what unfunded tasks voted, §11.4's boundary as a hard count         |
+| `mtr-day-profile.probe.ts`              | §29 — the saturated difficulty axis under the old cut, what hour-weighting moved, the flip gate, history vs the dashboard    |
+| `mtr-metric-trend.probe.ts`             | §31 — which readings survive the switch-cost-free solve, the exact solve's cost by n, why the gain cannot be plotted         |
+| `rv16-output-vs-classic.probe.ts`       | §30 — the Lab comparison tile under raw output vs the objective, and the rival plan's exact fit to the window                |
+| `mtr-friction-index.probe.ts`           | §11.4 — the Friction Index's interior, which its two pinned endpoints say nothing about                                      |
+| `mtr-bottleneck-strain.probe.ts`        | §23 — why Primary Bottleneck stopped reading E/β, and what the binding-pool draw reads instead                               |
+| `mtr-deep-work.probe.ts`                | §26 — the hard `mentalDifficulty >= 7` cut, and the band that called a three-quarters-deep day optimal                       |
+| `mtr-sustainable-work.probe.ts`         | §27 — the budget denominator against Σh, the grind-free day, and whether the fixed row restates Grind Density                |
 
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),

@@ -20,6 +20,7 @@ import {
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
 import {
+	calculateQuadrantMargin,
 	calculateTaskPlan,
 	calculateZenithGain,
 	isPinned,
@@ -64,8 +65,12 @@ export interface AdviceOption {
 	lever: AdviceLever;
 	/** The axis reading this lever produces. */
 	after: number;
-	/** Day Profile under this lever, so a grind → cruise flip is visible. */
-	quadrant: DailyQuadrant;
+	/**
+	 * The Day Profile this lever moves the day TO, so a grind → cruise flip is
+	 * visible — `null` when it does not move it, or when the move is too thin to
+	 * claim (`quadrantFlipOf`).
+	 */
+	quadrantFlip: DailyQuadrant | null;
 	/** Σ P̄ of the resulting plan (MATH.md §14) and its signed change, in %. */
 	planValue: number;
 	/** Null when the current plan's Σ P̄ is 0: there is no ratio to report. */
@@ -162,7 +167,6 @@ export interface SwitchCostPrice {
 
 export interface PlanAdvice {
 	planValue: number;
-	quadrant: DailyQuadrant;
 	/** In `ADVICE_AXES` order; axes nothing can improve are omitted. */
 	findings: AdviceFinding[];
 	/** Active tasks the plan funds no hours for — a read, not a search. */
@@ -213,6 +217,9 @@ const AXIS: Record<
 		// wins the frontier (MATH.md §14.1 defect 5). NaN fails the improvement
 		// test in both directions, so zero-load candidates and baselines are
 		// silently excluded, like the Infinity Human Capacity reading.
+		// The test is exact because the loads now are (MATH.md §25): rounded to
+		// whole percent, a real but thin plan — 0.5h of difficulty-1 work in a 12h
+		// day, 0.42% — read as 0/0 and lost this axis as if it were loadless.
 		read: (metrics) =>
 			metrics.cognitiveLoad + metrics.physicalLoad === 0 ? NaN : metrics.energyBalance,
 		badness: (value) => Math.abs(value - 50),
@@ -222,7 +229,11 @@ const AXIS: Record<
 		badness: (value) => value,
 	},
 	grindDensity: {
-		read: (metrics) => metrics.grindDensity,
+		// A plan that funds nothing has no grind share; the metric returns 0 there,
+		// which is this axis's global optimum, so "defer the last funded task" would
+		// win its frontier. Same NaN treatment as Schedule Integrity below
+		// (MATH.md §11.10).
+		read: (metrics) => (metrics.grindDensity.funded ? metrics.grindDensity.percent : NaN),
 		badness: (value) => value,
 	},
 	timeScarcity: {
@@ -230,7 +241,18 @@ const AXIS: Record<
 		badness: (value) => value,
 	},
 	scheduleIntegrity: {
-		read: (metrics) => metrics.scheduleIntegrity,
+		// A plan that funds nothing has no overhead share: the metric's guards
+		// hand back the sentinels 100 (no tasks) and 0 (nothing funded), and the
+		// 100 is this axis's global optimum — so "defer the last task" would win
+		// the frontier on a day with no work left to measure. Same treatment as
+		// Energy Balance above (MATH.md §14.1 defect 5): NaN, which fails the
+		// improvement test in both directions and drops such candidates AND
+		// baselines silently. Until now this was safe only by circumstance — the
+		// frontier's Σ P̄ gate happened to reject the empty plan.
+		read: (metrics) =>
+			metrics.suggestedTasks.every((task) => task.suggestedHours <= 0)
+				? NaN
+				: metrics.scheduleIntegrity,
 		badness: (value) => -value,
 	},
 };
@@ -238,6 +260,36 @@ const AXIS: Record<
 /** Σ P̄ over funded tasks — the allocator's own objective (MATH.md §14). */
 function planValueOf(metrics: DailyMetrics): number {
 	return metrics.zenithGain.optimized;
+}
+
+/**
+ * A quarter of one slider point — the noise floor under a Day Profile flip
+ * (MATH.md §29).
+ *
+ * The label is a hard cliff on two hour-weighted averages with no hysteresis:
+ * 16.2% of seeded days sit within 0.25 of a cut, and one ±1 slider point on ONE
+ * task — re-solved, so the allocation moves with it — relabels 31.8%. "Day
+ * Profile → Cruise" is read as a change in the day's character, so a crossing
+ * this thin is a claim the metric cannot support.
+ */
+const QUADRANT_FLIP_MARGIN = 0.25;
+
+/**
+ * The profile a lever moves the day to, when the move is worth printing: both
+ * readings must exist, differ, and clear the cliff by `QUADRANT_FLIP_MARGIN` —
+ * a baseline already straddling a cut had no settled character for the lever to
+ * change.
+ */
+function quadrantFlipOf(baseline: DailyMetrics, candidate: DailyMetrics): DailyQuadrant | null {
+	if (candidate.dailyQuadrant === null || candidate.dailyQuadrant === baseline.dailyQuadrant)
+		return null;
+
+	const before = calculateQuadrantMargin(baseline.suggestedTasks);
+	const after = calculateQuadrantMargin(candidate.suggestedTasks);
+
+	if (before === null || after === null) return null;
+
+	return Math.min(before, after) >= QUADRANT_FLIP_MARGIN ? candidate.dailyQuadrant : null;
 }
 
 /**
@@ -332,7 +384,7 @@ function paretoOptions(
 				option: {
 					lever: candidate.lever,
 					after,
-					quadrant: candidate.metrics.dailyQuadrant,
+					quadrantFlip: quadrantFlipOf(baseline, candidate.metrics),
 					planValue,
 					// A zero baseline has no ratio, and reporting 0% there renders a
 					// real gain as costing nothing (MATH.md §14).
@@ -537,7 +589,6 @@ export function suggestPlanAdjustments(
 
 	return {
 		planValue: planValueOf(baseline),
-		quadrant: baseline.dailyQuadrant,
 		findings,
 		unfundedTaskIds: unfunded.filter((task) => !isPinned(task)).map((task) => task.id),
 		unfundedMustDoTaskIds: unfunded.filter(isPinned).map((task) => task.id),

@@ -53,6 +53,7 @@ const RESPONDS_TO_COMPLETION: ReadonlySet<string> = new Set<keyof DailyMetrics>(
 	'yieldIndex',
 	// Next-up scope — what is still ahead of you.
 	'bottleneckTask',
+	'longestWarmUp',
 	'momentum',
 	'quickWins',
 ]);

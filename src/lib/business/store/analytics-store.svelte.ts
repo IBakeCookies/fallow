@@ -14,14 +14,18 @@ import { logError } from '$lib/logger';
 import * as fitSnapshotRepository from '$lib/data/repository/fit-snapshot-repository';
 import {
 	averageCompletionRate,
+	calculateMetricTrend,
 	completionRateDelta,
 	countQuadrants,
 	currentStreak,
 	findBestDay,
 	monthlyCompletionRates,
 	type DaySummary,
+	type MetricTrendPoint,
 	type MonthlyCompletion,
 } from '$lib/business/model/metric/history';
+import type { EnergyParams } from '$lib/business/model/zenith-energy';
+import type { DrainObservationRecord } from '$lib/data/type';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
 import { addDays } from '$lib/business/utils/date';
@@ -64,6 +68,10 @@ export class AnalyticsStore {
 	#audit = $state<PlanAudit | null>(null);
 	/** Calibration snapshot ("Your model" card); null while loading or failed. */
 	#calibration = $state<CalibrationSnapshot | null>(null);
+	/** The fitted energy params the trend is read through (§31); null until they land. */
+	#energyParams = $state<EnergyParams | null>(null);
+	/** The 🪫 rows the trend seeds each morning from (§11.9); empty until they land. */
+	#drain = $state<DrainObservationRecord[]>([]);
 	/** A load failure must not leave the two cards on the loading string forever. */
 	#hasModelReportFailed = $state(false);
 
@@ -96,6 +104,23 @@ export class AnalyticsStore {
 
 		return currentStreak(active, this.#today);
 	});
+
+	/**
+	 * Burnout Risk and the two Loads per day in the viewed range (MATH.md §31).
+	 * `null` until the model report lands, because the series is read through the
+	 * user's own calibrated energy params and yesterday's 🪫 rows — a trend on the
+	 * defaults would contradict today's tile for a reason nothing on the page
+	 * explains.
+	 *
+	 * `$derived.by` and not a plain getter: the fold runs one energy simulation
+	 * per day in the range, and the page reads this twice per derivation (once to
+	 * test for null, once to build the series).
+	 */
+	#metricTrend = $derived.by(() =>
+		this.#energyParams === null
+			? null
+			: calculateMetricTrend(this.#summaries, this.#energyParams, this.#drain),
+	);
 
 	// Two reads, deliberately not one try block: they fail into different
 	// surfaces. A failed model report is already visible — #hasModelReportFailed
@@ -130,6 +155,8 @@ export class AnalyticsStore {
 			try {
 				const report = await readModelReport(today, AUDIT_DAY_CAP);
 				this.#calibration = report.calibration;
+				this.#energyParams = report.calibration.energy.params;
+				this.#drain = report.drain;
 				this.#audit = report.audit;
 				todaysFit = report.todaysFit;
 			} catch (e) {
@@ -234,6 +261,9 @@ export class AnalyticsStore {
 	/** Per-calendar-month averages for the year chart; empty months keep a slot. */
 	get monthlyRates(): MonthlyCompletion[] {
 		return monthlyCompletionRates(this.#summaries, this.#rangeStart, this.#today);
+	}
+	get metricTrend(): MetricTrendPoint[] | null {
+		return this.#metricTrend;
 	}
 
 	// ----- The model cards -----

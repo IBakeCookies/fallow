@@ -13,6 +13,8 @@ const summary = (date: string, completionRate: number, completedTasks = 1): DayS
 	completionRate,
 	quadrant: 'flow',
 	availableHours: 8,
+	switchCost: 0.25,
+	suggestedTasks: [],
 });
 
 const input = (over: Partial<CompletionChartInput> = {}): CompletionChartInput => ({

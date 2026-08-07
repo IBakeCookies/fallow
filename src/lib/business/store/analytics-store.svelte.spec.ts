@@ -7,6 +7,7 @@ import type { CalibrationSnapshot } from '$lib/business/session-history';
 import * as fitSnapshotRepository from '$lib/data/repository/fit-snapshot-repository';
 import type { AnalyticsStore } from '$lib/business/store/analytics-store.svelte';
 import type { DaySummary } from '$lib/business/model/metric/history';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
 import type { FitSnapshotRecord } from '$lib/data/type';
 
@@ -22,13 +23,17 @@ const EMPTY_AUDIT: PlanAudit = {
 	energyTaskSpread: 0,
 };
 
-// The store publishes the snapshot untouched, so a shallow stub suffices.
+// The store publishes the snapshot untouched, so a shallow stub suffices — plus
+// the fitted energy params, which it does read, for the metric trend (§31).
 const CALIBRATION = {
 	flow: {
 		fitted: false,
 		usedCount: 0,
 		phiHours: 0.5,
 		defaultPhiHours: 0.5,
+	},
+	energy: {
+		params: DEFAULT_ENERGY_PARAMS,
 	},
 } as CalibrationSnapshot;
 
@@ -63,6 +68,7 @@ vi.mock('$lib/business/session-history', () => ({
 		calibration: null,
 		audit: EMPTY_AUDIT,
 		todaysFit: TODAYS_FIT,
+		drain: [],
 	})),
 }));
 
@@ -82,6 +88,8 @@ const day = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
 	completionRate: 50,
 	quadrant: 'flow',
 	availableHours: 4,
+	switchCost: 0.25,
+	suggestedTasks: [],
 	...over,
 });
 
@@ -113,6 +121,7 @@ describe('AnalyticsStore', () => {
 			calibration: CALIBRATION,
 			audit: EMPTY_AUDIT,
 			todaysFit: TODAYS_FIT,
+			drain: [],
 		});
 	});
 
@@ -233,6 +242,7 @@ describe('AnalyticsStore', () => {
 			calibration: CALIBRATION,
 			audit,
 			todaysFit: TODAYS_FIT,
+			drain: [],
 		});
 
 		const store = await setup([day('2026-07-15')]);
@@ -242,6 +252,58 @@ describe('AnalyticsStore', () => {
 		expect(store.audit).toEqual(audit);
 		expect(store.hasModelReportFailed).toBe(false);
 		expect(readModelReportMock).toHaveBeenCalledWith(TODAY, 30);
+	});
+
+	// MATH.md §31: the trend is read through the user's own calibrated energy
+	// params, which arrive one read after the summaries — so it stays null until
+	// they do rather than publishing a series fitted to the defaults.
+	it('withholds the metric trend until the calibrated params arrive', async () => {
+		let resolveReport!: (
+			report: Awaited<ReturnType<typeof sessionHistory.readModelReport>>,
+		) => void;
+
+		readModelReportMock.mockReturnValue(
+			new Promise((resolve) => {
+				resolveReport = resolve;
+			}),
+		);
+
+		const store = await setup([day('2026-07-15'), day('2026-07-16')]);
+
+		expect(store.metricTrend).toBeNull();
+
+		resolveReport({
+			calibration: CALIBRATION,
+			audit: EMPTY_AUDIT,
+			todaysFit: TODAYS_FIT,
+			drain: [],
+		});
+
+		await vi.waitFor(() => expect(store.metricTrend).not.toBeNull());
+		expect(store.metricTrend?.map((point) => point.date)).toEqual(['2026-07-15', '2026-07-16']);
+	});
+
+	it('leaves the metric trend null when the model report fails', async () => {
+		readModelReportMock.mockRejectedValue(new Error('indexeddb is gone'));
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.hasModelReportFailed).toBe(true));
+		expect(store.metricTrend).toBeNull();
+	});
+
+	it('reslices the metric trend with the range', async () => {
+		// The same window `summaries` reads: a trend over the loaded year would
+		// plot 365 points into a card the toggle says holds 7.
+		const store = await setup([day('2026-06-01'), day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.metricTrend).not.toBeNull());
+		expect(store.metricTrend?.map((point) => point.date)).toEqual(['2026-07-15']);
+
+		store.range = 'year';
+		flushSync();
+
+		expect(store.metricTrend?.map((point) => point.date)).toEqual(['2026-06-01', '2026-07-15']);
 	});
 
 	// MATH.md §12: today's fit is recorded so a LATER visit audits today against

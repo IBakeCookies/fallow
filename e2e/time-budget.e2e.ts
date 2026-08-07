@@ -8,8 +8,21 @@ test('setting the time budget feeds the plan', async ({ page }) => {
 	// budget defaults to 0 so the card starts open
 	await setBudget(page, 8);
 
-	// metrics leave N/A once tasks + budget exist: Zenith Gain shows +X%
-	await expect(page.getByText(/^\+[\d.]+%$/).first()).toBeVisible();
+	// Metrics leave N/A once tasks + budget exist. Human Capacity is the witness:
+	// it is one of the four headline tiles, so it is on screen without opening
+	// anything, and it is undefined without both inputs. Fallow Gain used to
+	// stand in for this and no longer can — it judges the allocator rather than
+	// the day, so it is not a tile and renders hidden inside the disclosure.
+	const humanCapacity = page
+		.locator('div')
+		.filter({
+			has: page.getByText('Human Capacity', {
+				exact: true,
+			}),
+		})
+		.last();
+
+	await expect(humanCapacity.getByText(/^\d+%$/)).toBeVisible();
 
 	// summary renders only while the card is collapsed
 	await page

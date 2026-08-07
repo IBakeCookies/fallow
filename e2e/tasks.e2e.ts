@@ -16,7 +16,9 @@ test('added task appears and survives a reload', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 
-	// title also appears in the Bottleneck metric — scope to first match
+	// title also appears in the Bottleneck metric once the plan funds the task
+	// (MATH.md §23.1) — scope to first match, which is the task list: the metrics
+	// card renders after it, and Bottleneck sits inside the closed disclosure
 	await expect(page.getByText('Boxing training').first()).toBeVisible();
 	await expect(page.getByText('No tasks deployed yet')).not.toBeVisible();
 

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import type { DailySession, Task } from '$lib/data/type';
+import type { DailySession, DrainObservationRecord, Task } from '$lib/data/type';
 import {
 	averageCompletionRate,
+	calculateMetricTrend,
 	completionRateDelta,
 	countQuadrants,
 	currentStreak,
@@ -10,6 +11,7 @@ import {
 	summarizeSession,
 	type DaySummary,
 } from '$lib/business/model/metric/history';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import {
 	calculateCompletionRate,
 	calculateSuggestedTasks,
@@ -128,6 +130,115 @@ describe('summarizeSession', () => {
 	});
 });
 
+describe('calculateMetricTrend', () => {
+	// The trend reads the plan `summarizeSession` already solved (MATH.md §31),
+	// so these assert what the fold does with it — not the metrics themselves,
+	// which `calculation.test.ts` owns.
+	it('reads one point per day, in the order it was given them', () => {
+		const summaries = ['2026-07-09', '2026-07-10', '2026-07-11'].map((date) =>
+			summarizeSession({
+				...makeSession(3),
+				date,
+			}),
+		);
+
+		const trend = calculateMetricTrend(summaries, DEFAULT_ENERGY_PARAMS);
+
+		expect(trend.map((point) => point.date)).toEqual(['2026-07-09', '2026-07-10', '2026-07-11']);
+	});
+
+	it('prices Burnout Risk at the day own switch cost, not the plan zero', () => {
+		// `summarizeSession` solves at switchCost 0 because the exact allocator is
+		// 2ⁿ (§29), but the day's real cost is stored and Burnout Risk takes it as
+		// an argument — so the overhead is still charged even though the
+		// allocation could not afford to see it.
+		const cheap = summarizeSession({
+			...makeSession(4),
+			switchCost: 0,
+		});
+
+		const expensive = summarizeSession({
+			...makeSession(4),
+			switchCost: 0.5,
+		});
+
+		expect(cheap.suggestedTasks).toEqual(expensive.suggestedTasks);
+
+		const [cheapPoint] = calculateMetricTrend([cheap], DEFAULT_ENERGY_PARAMS);
+		const [expensivePoint] = calculateMetricTrend([expensive], DEFAULT_ENERGY_PARAMS);
+
+		expect(expensivePoint.burnoutRisk).not.toBe(cheapPoint.burnoutRisk);
+	});
+
+	it('reads Burnout Risk through the calibrated params it is handed', () => {
+		// Two tasks in eight hours: well clear of §11.6's plateau, where a fixture
+		// reads the same 58 under any α and would pass whether or not the params
+		// were wired through at all.
+		const summaries = [summarizeSession(makeSession(2))];
+
+		const drained = {
+			...DEFAULT_ENERGY_PARAMS,
+			alphaCog: DEFAULT_ENERGY_PARAMS.alphaCog * 3,
+		};
+
+		expect(calculateMetricTrend(summaries, drained)[0].burnoutRisk).toBeGreaterThan(
+			calculateMetricTrend(summaries, DEFAULT_ENERGY_PARAMS)[0].burnoutRisk,
+		);
+	});
+
+	it('seeds each morning from the PREVIOUS day 🪫 rows, not the point own', () => {
+		// At DEFAULT_ENERGY_PARAMS a night heals completely, so carry-over is
+		// invisible by construction — this is the fitted regime where it is not.
+		const slowRecovery = {
+			...DEFAULT_ENERGY_PARAMS,
+			recoveryRate: 0.1,
+		};
+
+		const drained: DrainObservationRecord = {
+			date: '2026-07-10',
+			taskId: 1,
+			taskTitle: 'deep work',
+			hours: 8,
+			cognitiveDemand: 1,
+			physicalDemand: 0.5,
+			mindDrain: 6,
+			bodyDrain: 2,
+			createdAt: 0,
+		};
+
+		const summaries = ['2026-07-10', '2026-07-11'].map((date) =>
+			summarizeSession({
+				...makeSession(2),
+				date,
+			}),
+		);
+
+		const rested = calculateMetricTrend(summaries, slowRecovery);
+		const carried = calculateMetricTrend(summaries, slowRecovery, [drained]);
+
+		// 07-11 starts the morning down a worked day, so it reads higher than the
+		// same day simulated from full reservoirs (MATH.md §11.9).
+		expect(carried[1].burnoutRisk).toBeGreaterThan(rested[1].burnoutRisk);
+
+		// 07-10 is unmoved by its OWN rows — that work is the plan it is already
+		// priced on — and its predecessor 07-09 logged nothing.
+		expect(carried[0].burnoutRisk).toBe(rested[0].burnoutRisk);
+	});
+
+	it('reports zero load on a day that booked no hours rather than NaN', () => {
+		const summaries = [summarizeSession(makeSession(3, 0))];
+		const [point] = calculateMetricTrend(summaries, DEFAULT_ENERGY_PARAMS);
+
+		expect(point.cognitiveLoad).toBe(0);
+		expect(point.physicalLoad).toBe(0);
+		expect(point.burnoutRisk).toBe(0);
+	});
+
+	it('is empty with no days rather than a row of zeroes', () => {
+		expect(calculateMetricTrend([], DEFAULT_ENERGY_PARAMS)).toEqual([]);
+	});
+});
+
 describe('currentStreak', () => {
 	const today = '2026-07-11';
 
@@ -161,6 +272,8 @@ function day(date: string, completionRate: number, completedTasks = 1): DaySumma
 		completionRate,
 		quadrant: 'flow',
 		availableHours: 4,
+		switchCost: 0.25,
+		suggestedTasks: [],
 	};
 }
 

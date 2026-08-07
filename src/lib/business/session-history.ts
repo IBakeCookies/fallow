@@ -437,6 +437,12 @@ export interface ModelReport {
 	calibration: CalibrationSnapshot;
 	audit: PlanAudit;
 	/**
+	 * Every sanitized 🪫 row, for the trend to seed each day's morning
+	 * reservoirs off its predecessor (MATH.md §11.9) exactly as the dashboard
+	 * does. Already read here for the fit, so surfacing it costs no second read.
+	 */
+	drain: DrainObservationRecord[];
+	/**
 	 * Today's fit, for the caller to persist with `$updateFitSnapshot` — a read
 	 * does not write, and a failed stamp must not take the two cards down with it.
 	 */
@@ -474,6 +480,7 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 
 	return {
 		calibration,
+		drain,
 		audit: auditPlanAdherence(
 			toPlanAuditDays(days, stops, fitByDate).slice(-auditDayCap),
 			calibration.energy.params,

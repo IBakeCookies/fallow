@@ -3,19 +3,27 @@
  * derivations the analytics screen reads off a range of them.
  *
  * A stored DailySession is summarized with the SAME model pipeline the daily
- * dashboard uses (calculateSuggestedTasks → priority-weighted completion
- * rate), so a day reads identically everywhere in the app.
+ * dashboard uses (calculateSuggestedTasks → priority-weighted completion rate).
+ * Identically for every reading that does not depend on the allocation, and to
+ * a measured and stated distance for the one that does — see
+ * `solveWithoutSwitchCost`, which is where a year of history stops being
+ * affordable to solve exactly.
  */
 
-import type { DailySession, Task } from '$lib/data/type';
+import type { DailySession, DrainObservationRecord, Task } from '$lib/data/type';
 import { addDays } from '$lib/business/utils/date';
+import { seedMorningReservoirs } from '$lib/business/model/energy-calibration';
 import {
 	type DailyQuadrant,
 	type SuggestedTask,
+	calculateBurnoutRisk,
+	calculateCognitiveLoad,
+	calculatePhysicalLoad,
 	calculateSuggestedTasks,
 	calculateCompletionRate,
 	calculateDailyQuadrant,
 } from '$lib/business/model/metric/calculation';
+import type { EnergyParams } from '$lib/business/model/zenith-energy';
 import {
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_USER_CONSTANTS,
@@ -31,36 +39,63 @@ export type DaySummary = {
 	completedTasks: number;
 	/** Priority-weighted completion rate (0–100), same as the dashboard metric. */
 	completionRate: number;
-	quadrant: DailyQuadrant;
+	/**
+	 * `null` on a day that booked no hours (MATH.md §29). Hour-weighted over a
+	 * switch-cost-free solve, which is what history can afford — see
+	 * `solveWithoutSwitchCost` for the cost and for how far it lands from the
+	 * dashboard's exact plan.
+	 */
+	quadrant: DailyQuadrant | null;
 	availableHours: number;
+	/** The day's stored switch cost — what `calculateMetricTrend` prices with. */
+	switchCost: number;
+	/**
+	 * The switch-cost-free plan every allocation-dependent reading above was
+	 * taken from, kept so the trend fold does not solve the year a second time.
+	 */
+	suggestedTasks: SuggestedTask[];
 };
 
 /**
- * Score each task on its own instead of solving the whole day's plan.
+ * Solve the day, but without its switch cost — the one term that costs 2ⁿ.
  *
- * The only thing the summary needs from the model is `completionRate`, which
- * weights tasks by `priorityScore` = P̄(T*)×10 — the task's INTRINSIC value,
- * a function of its own difficulty/enjoyment and the fit alone (see
- * calculation.ts). Solving the plan enumerates 2ⁿ funded subsets per day
- * (~55ms at n = 12), so summarizing a year of history cost ~20s of blocked
- * main thread for numbers that were then thrown away. A one-task list takes
- * the allocator's n = 1 short-circuit and yields bit-identical scores.
+ * What the exact allocator spends its time on is choosing which subset of tasks
+ * to fund once each additional session is charged an overhead; at `switchCost 0`
+ * that choice disappears and `bestPlanWithSwitchCost` takes a single
+ * marginal-value pass over all tasks. Measured over 365 seeded days: **60ms at
+ * n = 12 against tens of seconds** for the exact solve — the difference between
+ * a summary and a frozen tab. MATH.md §31 has the per-n table; a single figure
+ * is not quoted here because the cost is dominated by the largest n.
+ *
+ * The two readings this feeds are affected differently, which is why the
+ * approximation is drawn here and not somewhere cheaper:
+ *
+ * - `completionRate` weights by `priorityScore` = P̄(T*)×10, the task's
+ *   INTRINSIC value — a function of its own difficulty/enjoyment and the fit
+ *   alone. Unchanged by any allocation, so this is exact.
+ * - `quadrant` weights by allocated hours (§29), so it does depend on the
+ *   solve. Real budget, real pools, real marginal-value allocation, no subset
+ *   choice: it disagrees with the dashboard's exact plan on **7.5%** of seeded
+ *   days (`scripts/mtr-day-profile.probe.ts`, 2026-08-07). Scoring each task on
+ *   its own instead — the previous shortcut here — hands every task its full T*
+ *   as though it were the only one, and disagrees on 21.0%.
+ *
+ * `calculateMetricTrend` reads the same plan and carries the same caveat, sized
+ * per reading in MATH.md §31.
  */
-function scoreTasksIndividually(
+function solveWithoutSwitchCost(
 	session: DailySession,
 	pools: CapacityPools,
 	constants: UserConstants,
 	posterior?: FitPosterior,
 ): SuggestedTask[] {
-	return session.tasks.flatMap((task) =>
-		calculateSuggestedTasks(
-			[task],
-			session.availableHours,
-			session.switchCost,
-			pools,
-			constants,
-			posterior,
-		),
+	return calculateSuggestedTasks(
+		session.tasks,
+		session.availableHours,
+		0,
+		pools,
+		constants,
+		posterior,
 	);
 }
 
@@ -74,7 +109,7 @@ export function summarizeSession(
 		physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
 	};
 
-	const suggested = scoreTasksIndividually(session, pools, constants, posterior);
+	const suggested = solveWithoutSwitchCost(session, pools, constants, posterior);
 
 	return {
 		date: session.date,
@@ -82,9 +117,71 @@ export function summarizeSession(
 		totalTasks: session.tasks.length,
 		completedTasks: session.tasks.filter((t) => t.completed).length,
 		completionRate: calculateCompletionRate(suggested),
-		quadrant: calculateDailyQuadrant(session.tasks),
+		quadrant: calculateDailyQuadrant(suggested),
 		availableHours: session.availableHours,
+		switchCost: session.switchCost,
+		suggestedTasks: suggested,
 	};
+}
+
+/** One day of the analytics trend card (MATH.md §31). */
+export interface MetricTrendPoint {
+	date: string;
+	/** MATH.md §11.6, 0–100. */
+	burnoutRisk: number;
+	/** MATH.md §25, 0–100. The two are separate systems and may both be high. */
+	cognitiveLoad: number;
+	physicalLoad: number;
+}
+
+/**
+ * Three of the dashboard's readings, per day, for the analytics trend card
+ * (MATH.md §31): Burnout Risk (§11.6) and the two Loads (§25).
+ *
+ * Takes `params` rather than reading them because the calibrated energy fit
+ * arrives with the model report, one read after the summaries — and the fit is
+ * the same one Burnout Risk uses on the main page, so a trend fitted to the
+ * defaults would disagree with today's tile for a reason the user cannot see.
+ *
+ * `drain` is the same reason carried one step further: the dashboard seeds each
+ * morning's reservoirs from the PREVIOUS day's 🪫 rows (MATH.md §11.9), keyed to
+ * the viewed day, so a series simulated from full reservoirs would read a
+ * rested morning on every day the user actually started depleted — a gap that
+ * is not the allocation approximation §31 measures and would not shrink with a
+ * better solve. Keyed per point for the same reason the dashboard keys it to
+ * the viewed day: a past day reads with its own morning, not today's.
+ *
+ * Every point is read off `solveWithoutSwitchCost`'s plan, so the whole series
+ * inherits that approximation; the day's own `switchCost` is still what Burnout
+ * Risk is priced at, because it takes the cost as an argument separate from the
+ * allocation. §31 sizes both effects. Fallow Gain is deliberately absent — its
+ * approximation error is larger than the reading.
+ */
+export function calculateMetricTrend(
+	summaries: DaySummary[],
+	params: EnergyParams,
+	drain: DrainObservationRecord[] = [],
+): MetricTrendPoint[] {
+	const drainByDate = new Map<string, DrainObservationRecord[]>();
+
+	for (const row of drain) {
+		const rows = drainByDate.get(row.date);
+
+		if (rows) rows.push(row);
+		else drainByDate.set(row.date, [row]);
+	}
+
+	return summaries.map((summary) => ({
+		date: summary.date,
+		burnoutRisk: calculateBurnoutRisk(
+			summary.suggestedTasks,
+			summary.availableHours,
+			summary.switchCost,
+			seedMorningReservoirs(params, drainByDate.get(addDays(summary.date, -1)) ?? []),
+		),
+		cognitiveLoad: calculateCognitiveLoad(summary.suggestedTasks, summary.availableHours),
+		physicalLoad: calculatePhysicalLoad(summary.suggestedTasks, summary.availableHours),
+	}));
 }
 
 /**
@@ -140,7 +237,11 @@ export function findBestDay(summaries: DaySummary[]): DaySummary | null {
 	);
 }
 
-/** How many days in the range fell into each day profile. */
+/**
+ * How many days in the range fell into each day profile. A day that booked no
+ * hours has no profile (§29) and is counted nowhere rather than into `routine`,
+ * which is a reading about work that was planned.
+ */
 export function countQuadrants(summaries: DaySummary[]): Record<DailyQuadrant, number> {
 	const counts: Record<DailyQuadrant, number> = {
 		flow: 0,
@@ -149,7 +250,7 @@ export function countQuadrants(summaries: DaySummary[]): Record<DailyQuadrant, n
 		routine: 0,
 	};
 
-	for (const summary of summaries) counts[summary.quadrant]++;
+	for (const summary of summaries) if (summary.quadrant) counts[summary.quadrant]++;
 
 	return counts;
 }
