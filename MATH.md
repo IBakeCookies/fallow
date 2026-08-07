@@ -2667,7 +2667,7 @@ extrapolation.
   `mustDoToday`. Completed tasks are not deferrable (and the plan keeps their
   hours either way, §11.8). Unfunded tasks are included: dropping one leaves
   the allocation untouched but does move Time Scarcity (Σϕ runs over all
-  tasks, §11.3) and the Day Profile averages.
+  tasks, §11.8) and the Day Profile averages.
 - **Set the budget to h** — three candidates: `budget − planSlack` (declare
   only the hours the plan actually spends), `budget − 1`, `budget + 1`.
   Clamped at 0, and any candidate within **one minute** of the current budget
