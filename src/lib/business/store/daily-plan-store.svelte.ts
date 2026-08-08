@@ -35,8 +35,19 @@ export class DailyPlanStore {
 	// reads from the lab). Kept separate from the metric
 	// derivation below so it only refits when the logs change, not on every
 	// keystroke.
+	//
+	// Causal, on the same rule as the ϕ fit (MATH.md §33): strictly before the
+	// planned day. Today's 🪫/☕ still reach the day — through the SIMULATION, which
+	// is where a measurement of what happened belongs (the carry-over below, and
+	// the Lab's stop advisor reading today's worked hours). What the rule forbids
+	// is a log moving α and r under a plan the user is part-way through running.
+	#fitObservations = $derived({
+		rest: this.#observations.restObservations.filter((o) => o.date < this.#session.selectedDate),
+		drain: this.#observations.drainObservations.filter((o) => o.date < this.#session.selectedDate),
+	});
+
 	#calibratedParams = $derived(
-		fitEnergyParams(this.#observations.restObservations, this.#observations.drainObservations),
+		fitEnergyParams(this.#fitObservations.rest, this.#fitObservations.drain),
 	);
 
 	// Overnight carry-over (MATH.md §11.9): the previous day's 🪫 logs seed the

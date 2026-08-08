@@ -643,6 +643,18 @@ force). Do not change these without reading the derivation first.
   effective count, not a log count. The three energy fits (r, α, λ₀) are
   deliberately **not** weighted — §5.2 says why, and says to revisit them
   together or not at all.
+- **A plan for day D is fitted from logs dated strictly BEFORE D** (§33). The
+  constants are global, so one ⚡ re-times every task on the page — 33% on a
+  task the user never logged, 75% of it on the very first log — and landing
+  that on the day already in flight reshuffles a plan mid-execution. Applies to
+  every **identity** fit (c₁c₂c₃, α, r, λ₀) and to **none** of the **state**
+  reads: `simulateReservoirs`, the §11.9 carry-over and the §8.11 advisor take
+  today's logs immediately, because a gauge of the present that ignored them
+  would lie. `ageDays` runs against the planned day, not the live one. Any UI
+  that prints a log count must print the **counted** one and name the deferred
+  ones separately, or the ⚡ button reads as broken. Not yet true of
+  `session-history.ts`, which still applies one whole-history fit across a day
+  range — the fix there is to read §12.1's stored `fitSnapshots`, not to refit.
 - Three constraints: the time budget plus cognitive/physical capacity pools
   (task weight = dimension difficulty / 10). Context switches cost
   `switchCost` hours — attention residue, distinct from ramp-up, which ϕ
@@ -854,6 +866,7 @@ no probe citation beside it is unbacked — that is the list to work down.
 | `curve-marginal-facts.probe.ts`         | §2 — the r-cap boundary, the five curve properties, the three N facts                                                                                                  |
 | `alloc-epsilon-methodology.probe.ts`    | §4 — block-rule vs hour-rule admissibility, the 49% artefact                                                                                                           |
 | `post-recency-weighting.probe.ts`       | §5.2 — the recency weights, Σw vs n_eff, the ten-year logger                                                                                                           |
+| `causal-fit-window.probe.ts`            | §33 — how far one ⚡ moves an unlogged task, and what a one-day deferral costs                                                                                         |
 | `post-monotone-prefix-cost.probe.ts`    | §5.1 guard 2 — violation size, blocks dropped, which cut lost the value                                                                                                |
 | `post-quadrature-floor.probe.ts`        | §5.1 — GH moment exactness and the ϕ-floor mean shift                                                                                                                  |
 | `enb-simpson-error.probe.ts`            | §8.1 / AGENTS §3 — Simpson error under the 1024-node cap                                                                                                               |

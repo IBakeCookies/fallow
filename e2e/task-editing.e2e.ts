@@ -2,9 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { addTask, AUTOSAVE_MS, setBudget } from './helpers';
 
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
-   one place where editing a task changes the model rather than just the row. Both
-   the badge (stamped on the task, saved with the session) and the fit (its own
-   object store) have to come back after a reload. */
+   one place where editing a task changes the model rather than just the row —
+   from the NEXT day, since a plan reads only the logs that precede it (MATH.md
+   §33). Both the badge (stamped on the task, saved with the session) and the log
+   itself (its own object store) have to come back after a reload. */
 
 async function logFlow(page: Page, minutes: number) {
 	await page
@@ -22,7 +23,12 @@ async function logFlow(page: Page, minutes: number) {
 		.click();
 }
 
-test('logging time-to-flow badges the task and personalizes the model', async ({ page }) => {
+/* MATH.md §33: a plan for the viewed day reads only logs dated before it, so what
+   the UI can show today is the badge, the deferral, and that both survive a
+   reload. That the log then MOVES the constants is a unit claim
+   (`session-store.svelte.spec.ts`) rather than an e2e one, because ⚡ is
+   today-only and no UI path produces a log dated yesterday. */
+test('logging time-to-flow badges the task and defers the model update', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
@@ -30,13 +36,15 @@ test('logging time-to-flow badges the task and personalizes the model', async ({
 	await logFlow(page, 90);
 
 	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
-	await expect(page.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
+	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
+	// …and the invitation is gone, rather than asking for the log just made.
+	await expect(page.getByText(/to start personalizing/)).toHaveCount(0);
 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
 	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
-	await expect(page.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
+	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
 
 /* The ⚡ button is hover-revealed and the prompt for it sat behind the collapsed
@@ -76,9 +84,12 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 
 	await expect(page.getByText('⚡ 40m').first()).toBeVisible();
 
-	// The prompt has done its job and gets out of the way — a healthy fit is
-	// reassurance, so it stays inside the disclosure with the logs.
+	// The prompt has done its job and gets out of the way. What replaces it does
+	// NOT go quiet: the deferral is the line that answers "I logged that, why did
+	// nothing move?" (MATH.md §33), so unlike a settled fit it stays readable
+	// while collapsed — and is the log list's toggle once opened.
 	await expect(page.getByText(/Model uses default constants/)).toHaveCount(0);
+	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 
 	await page
 		.getByRole('button', {
@@ -86,7 +97,7 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 		})
 		.click();
 
-	await expect(page.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
+	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
 
 /* Every row owns its own ⚡ editor, so a second tick prompts as readily as the
@@ -142,12 +153,12 @@ test('resetting personalization reverts to the default constants', async ({ page
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 	await logFlow(page, 90);
-	await expect(page.getByText(/Model personalized from 1/)).toBeVisible();
+	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 
 	// The log list is collapsed until its status line is clicked.
 	await page
 		.getByRole('button', {
-			name: /Model personalized from 1/,
+			name: /1 ⚡ logged today/,
 		})
 		.click();
 
@@ -175,7 +186,7 @@ test('a single flow log is deletable from the list', async ({ page }) => {
 
 	await page
 		.getByRole('button', {
-			name: /Model personalized from 1/,
+			name: /1 ⚡ logged today/,
 		})
 		.click();
 

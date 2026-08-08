@@ -32,7 +32,7 @@ down, and it is why §2's concavity property reads the way it does.
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
 The whole document is ~64k tokens; the largest single section is §8 at ~13k
-(§14 is ~10k), and most of the 82 rows below are under 2k. Ranges shift
+(§14 is ~10k), and most of the 83 rows below are under 2k. Ranges shift
 whenever a section is inserted, and the table has alignment and truncation rules
 that are not evident from reading it — so never retype a row, regenerate:
 
@@ -41,88 +41,89 @@ that are not evident from reading it — so never retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0          130-149  Objective
-§1          151-176  Inputs and parameter mappings (unchanged from the articl…
-§2          178-294  Productivity curve — v2 change
-§3          296-342  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          344-442  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          444-767  Personalization — v2 change: full Bayesian posterior
-  §5.2      493-578  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      580-767  Posterior-aware allocation (added 2026-07-18)
-§6          769-781  Summary of v1 → v2 changes
-§7          783-814  Known approximations and deliberate non-changes
-§8         816-1941  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      834-859  Intermittent-rest recovery correction
-  §8.2      861-881  Warm-up carryover instead of binary reset
-  §8.3      883-920  Verified consequences and an open calibration question
-  §8.4     922-1023  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1025-1084  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1086-1145  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1147-1277  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1279-1340  45-minute plan granularity (added 2026-07-18)
-  §8.9    1342-1416  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1418-1625  Stopping-value calibration from observed stop times (add…
-  §8.11   1627-1748  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   1750-1941  The budget curve — what the day's LENGTH is worth (added…
-§9        1943-1990  References
-§10       1992-2078  Revision log (doc-only corrections)
-§11       2080-2608  Metric-layer corrections (2026-07-18)
-  §11.1   2082-2096  Scope and principle
-  §11.2   2098-2122  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2124-2151  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2153-2210  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2212-2227  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2229-2339  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2341-2365  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2367-2410  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2412-2470  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2472-2542  Grind Density: the share of the work the day actually fu…
-  §11.11  2544-2608  Grind Density is a row, not an objective (2026-08-08)
-§12       2610-2734  Plan-adherence audit (2026-07-23)
-  §12.1   2651-2734  Per-day fit snapshots (2026-08-03)
-§13       2736-3129  Math review, 2026-07-26
-  §13.1   2753-2788  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2790-2862  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2864-2929  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2931-2967  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2969-3006  Also in this change
-  §13.6   3008-3129  The two end-of-day energy readings: a timing difference,…
-§14       3131-3791  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3324-3460  Five corrections to the first cut (2026-07-28)
-  §14.2   3462-3605  The marginal of the budget (added 2026-08-03)
-  §14.3   3607-3791  The price of the switch cost (added 2026-08-04)
-§15       3793-3940  Two objectives, two modes (2026-07-29)
-  §15.1   3868-3940  The copy named the wrong objective for both modes (2026-…
-§16       3942-4029  Run order stays a heuristic (2026-07-29)
-§17       4031-4189  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4191-4259  Drain logs are one row per SESSION, not per task-day (20…
-§19       4261-4425  The gain's naive baseline paid for switches it never mad…
-  §19.1   4273-4332  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4334-4362  Defect 2 — the displayed number moved with the order of …
-  §19.3   4364-4402  What this costs, and the one guarantee that weakened
-  §19.4   4404-4425  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4427-4489  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4468-4489  The tie went to cognitive, so the row blamed the wrong p…
-§21       4491-4651  What the gain has room to report (2026-08-07)
-  §21.1   4513-4531  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4533-4556  Why shape has a low ceiling: the activation bonus
-  §21.3   4558-4578  Population distribution
-  §21.4   4580-4605  The number is a property of the comparison, not of the o…
-  §21.5   4607-4622  Under the total-output objective the ranking inverts
-  §21.6   4624-4651  Correction: on an ordinary day it is FLOW that binds, no…
-§22       4653-4714  Task nature: an absolute gap could not carry a range tha…
-§23       4716-4858  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   4757-4824  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   4826-4858  Longest Warm-Up: what E/β was actually tracking
-§24       4860-4923  Task Variety counted labels, and its repair was Energy B…
-§25       4925-5072  Cognitive and Physical Load: the definition, and what ro…
-§26       5074-5180  Deep Work: a step that swung whole blocks, under a band …
-§27       5182-5299  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5301-5355  Which four readings are headlines (2026-08-07)
-§29       5357-5530  Day Profile: one cut for two different scales, on a day …
-§30       5532-5612  The Lab's comparison tile scored the plan on the one thi…
-§31       5614-5795  What history can plot, and what it cannot (2026-08-07)
-§32       5797-5861  Two gates that read a sentinel as a verdict (2026-08-08)
+§0          131-150  Objective
+§1          152-177  Inputs and parameter mappings (unchanged from the articl…
+§2          179-295  Productivity curve — v2 change
+§3          297-343  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          345-443  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          445-768  Personalization — v2 change: full Bayesian posterior
+  §5.2      494-579  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      581-768  Posterior-aware allocation (added 2026-07-18)
+§6          770-782  Summary of v1 → v2 changes
+§7          784-815  Known approximations and deliberate non-changes
+§8         817-1942  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      835-860  Intermittent-rest recovery correction
+  §8.2      862-882  Warm-up carryover instead of binary reset
+  §8.3      884-921  Verified consequences and an open calibration question
+  §8.4     923-1024  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1026-1085  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1087-1146  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1148-1278  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1280-1341  45-minute plan granularity (added 2026-07-18)
+  §8.9    1343-1417  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1419-1626  Stopping-value calibration from observed stop times (add…
+  §8.11   1628-1749  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   1751-1942  The budget curve — what the day's LENGTH is worth (added…
+§9        1944-1991  References
+§10       1993-2079  Revision log (doc-only corrections)
+§11       2081-2609  Metric-layer corrections (2026-07-18)
+  §11.1   2083-2097  Scope and principle
+  §11.2   2099-2123  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2125-2152  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2154-2211  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2213-2228  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2230-2340  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2342-2366  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2368-2411  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2413-2471  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2473-2543  Grind Density: the share of the work the day actually fu…
+  §11.11  2545-2609  Grind Density is a row, not an objective (2026-08-08)
+§12       2611-2735  Plan-adherence audit (2026-07-23)
+  §12.1   2652-2735  Per-day fit snapshots (2026-08-03)
+§13       2737-3130  Math review, 2026-07-26
+  §13.1   2754-2789  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2791-2863  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2865-2930  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2932-2968  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2970-3007  Also in this change
+  §13.6   3009-3130  The two end-of-day energy readings: a timing difference,…
+§14       3132-3792  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3325-3461  Five corrections to the first cut (2026-07-28)
+  §14.2   3463-3606  The marginal of the budget (added 2026-08-03)
+  §14.3   3608-3792  The price of the switch cost (added 2026-08-04)
+§15       3794-3941  Two objectives, two modes (2026-07-29)
+  §15.1   3869-3941  The copy named the wrong objective for both modes (2026-…
+§16       3943-4030  Run order stays a heuristic (2026-07-29)
+§17       4032-4190  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4192-4260  Drain logs are one row per SESSION, not per task-day (20…
+§19       4262-4426  The gain's naive baseline paid for switches it never mad…
+  §19.1   4274-4333  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4335-4363  Defect 2 — the displayed number moved with the order of …
+  §19.3   4365-4403  What this costs, and the one guarantee that weakened
+  §19.4   4405-4426  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4428-4490  Human Capacity: the reading is the constraint, but it na…
+  §20.1   4469-4490  The tie went to cognitive, so the row blamed the wrong p…
+§21       4492-4652  What the gain has room to report (2026-08-07)
+  §21.1   4514-4532  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4534-4557  Why shape has a low ceiling: the activation bonus
+  §21.3   4559-4579  Population distribution
+  §21.4   4581-4606  The number is a property of the comparison, not of the o…
+  §21.5   4608-4623  Under the total-output objective the ranking inverts
+  §21.6   4625-4652  Correction: on an ordinary day it is FLOW that binds, no…
+§22       4654-4715  Task nature: an absolute gap could not carry a range tha…
+§23       4717-4859  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   4758-4825  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   4827-4859  Longest Warm-Up: what E/β was actually tracking
+§24       4861-4924  Task Variety counted labels, and its repair was Energy B…
+§25       4926-5073  Cognitive and Physical Load: the definition, and what ro…
+§26       5075-5181  Deep Work: a step that swung whole blocks, under a band …
+§27       5183-5300  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5302-5356  Which four readings are headlines (2026-08-07)
+§29       5358-5531  Day Profile: one cut for two different scales, on a day …
+§30       5533-5613  The Lab's comparison tile scored the plan on the one thi…
+§31       5615-5796  What history can plot, and what it cannot (2026-08-07)
+§32       5798-5862  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       5864-5966  A plan reads only the logs that precede it (2026-08-08)
 ```
 
 <!-- section-index:end -->
@@ -5859,3 +5860,107 @@ budget too small to fund one, beside the existing no-budget case.
 Unchanged: `calculateScheduleIntegrity`, `calculateFrictionIndex`,
 `countQuadrants` and `calculateDailyQuadrant` — every sentinel and every `null`
 is still what it was. This is a display-gate change on three cells.
+
+## 33. A plan reads only the logs that precede it (2026-08-08)
+
+**The behaviour.** A user with no ⚡ history plans a five-task day; the top task
+is allocated 2h30m against a predicted ϕ of 2h21m. They work it, reach flow in
+60 minutes, log that, and tick the task off. Every remaining task's ϕ roughly
+halves — 1h54m → 59m on a task they never touched — and three of the four
+surviving allocations grow. Nothing they did was about those tasks.
+
+**The mechanism, and why it is not a bug in any formula.** `fitUserConstants`
+fits c₁, c₂, c₃, which are **global**: ϕᵢ = c₁Eᵢ + c₂βᵢ + c₃ for every task. One
+log therefore re-times the whole list, and the allocator re-solves under the new
+ϕ. Every step is correct. What is wrong is only _when_ it lands.
+
+**The rule.**
+
+> A plan for day D is fitted from logs dated **strictly before** D.
+
+Same filter everywhere, three consequences:
+
+| Viewing      | D's own logs | Effect                                                  |
+| ------------ | ------------ | ------------------------------------------------------- |
+| today        | excluded     | the plan stops moving under the user mid-execution      |
+| a future day | included     | the preview already carries every log made so far       |
+| a past day   | excluded     | the day reads through the model **it** had, not today's |
+
+The third row was a second, quieter instance of the same defect: before this,
+logging one ⚡ silently changed the ϕ every past day's plan had been built from,
+and therefore every historical reading derived from it.
+
+**The timing is the whole fix; the magnitude is not the problem.** Measured on
+`scripts/causal-fit-window.probe.ts` (2026-08-08), against a bystander task
+(difficulty 4, enjoyment 3) that is never logged, re-timed only by logs on a
+different task (difficulty 5, enjoyment 2) each measuring 1h:
+
+| logs | ϕ(bystander) | vs the 90.8 min default |
+| ---: | -----------: | ----------------------: |
+|    1 |     60.8 min |                 −33.0 % |
+|    2 |     55.8 min |                 −38.5 % |
+|    3 |     53.7 min |                 −40.8 % |
+|    5 |     51.9 min |                 −42.9 % |
+|    8 |     50.8 min |                 −44.1 % |
+
+The **first log alone accounts for 75 %** of the whole eight-log move, and it
+moves tasks the user never logged: at one log, difficulty 1/enjoyment 5 goes
+42.8 → 24.5 min (−42.6 %), 3/3 goes 75.9 → 50.1 (−34.0 %), 5/1 goes 108.9 → 75.6
+(−30.6 %). That is the size of jump this section relocates. It does **not**
+shrink it, and deliberately so: a plan changing at the moment it is made is what
+making a plan means, and a plan changing while it is being executed is a broken
+promise. The same 33 % arrives either way; only one of the two moments can
+absorb it.
+
+Deferring by a day costs essentially nothing in fit quality, which is what makes
+the relocation free rather than a trade: under §5.2's H = 365 d half-life, the
+same log at age 1 d instead of age 0 d moves the prediction by **0.016 min**
+against a 30.0 min jump — three parts in ten thousand. Recency is not the
+mechanism here and the causal window does not fight it.
+
+**Scope: identity, never state.** A log does two jobs, and only one of them is
+deferred.
+
+- **Identity** — c₁c₂c₃ (§5), α and r (§8.7/§8.9), λ₀ (§8.10). Slow parameters
+  answering "who is this user". These are causal.
+- **State** — what happened today. `simulateReservoirs`, the §11.9 overnight
+  carry-over, the §8.11 stop advisor's worked hours. These read today's logs
+  immediately, and must: suppressing them would make a gauge of the present lie.
+
+The two already sit behind separate arguments to separate functions, so the
+filter lands on one without touching the other. Concretely: today's 🪫 stops
+moving α, and still drains the reservoirs and still feeds the stop advisor.
+
+`ageDays` runs against the **planned** day rather than the live one, since the
+§5.2 weights are part of "the fit as of day D" — a past day must not have its
+own logs discounted by however long ago that day was.
+
+**Cost: none worth measuring.** On the live path this is one `.filter` in front
+of a fit that already runs once per viewed day. §12.1 rejected recomputation at
+`O(auditDays × logVolume)`, but that was the cost of refitting **every audited
+day**; one day costs one fit.
+
+**What this does not do.** `session-history.ts` still applies one whole-history
+fit across a whole range of day summaries, so the calendar and analytics screens
+are not yet causal — the fix there is to read the `fitSnapshots` §12.1 already
+stores rather than to refit per day, and it is deliberately left for its own
+change. This section closes the live-plan half of §12.1's known approximation
+("it necessarily includes that day's own logs, so the fit is not strictly prior
+to the behaviour being scored"); the snapshot half stands.
+
+**The copy has to follow, or the rule reads as a broken button.** The budget
+bar's model line counts the logs the fit **used**, never the raw row count, and
+names the deferred ones separately: "1 ⚡ logged today — it re-times your model
+from tomorrow, so today's plan holds". On a day where nothing has been counted
+yet that sentence replaces the "log ⚡ to start personalizing" prompt rather
+than joining it, which would otherwise ask the user to do the thing they just
+did.
+
+### Pinned in the suite
+
+`session-store.svelte.spec.ts`: a log made on the viewed day leaves that day's
+constants untouched while the same log dated a day earlier moves them, and
+`pendingFlowLogCount` reports the gap. `daily-plan-store.svelte.spec.ts`: the
+same for the 🪫/☕ fits, with the §11.9 carry-over still reading yesterday's
+drain. `day-constraints-bar.stories.svelte`: the deferred-log line visible while
+collapsed, and the counted total excluding it.

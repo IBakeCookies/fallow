@@ -161,6 +161,7 @@
 				planSlackHours={daily.planSlackHours}
 				constantsFitted={session.constantsFit.fitted}
 				flowLogs={session.flowObservations}
+				pendingFlowLogs={session.pendingFlowLogCount}
 				{canLogFlow}
 				ondeletelog={(id) => session.deleteFlowLog(id)}
 				onresetlogs={() => session.resetFlowLogs()}

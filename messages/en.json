@@ -131,6 +131,8 @@
 	"model_status_implausible": "Your {count} flow logs produced an implausible fit (predicted flow times over 16h) — using default constants. Check the logs below for mistakes.",
 	"model_status_implausible_one": "Your 1 flow log produced an implausible fit (predicted flow times over 16h) — using default constants. Check the logs below for mistakes.",
 	"model_status_default": "Model uses default constants — log time-to-flow (⚡) on tasks to start personalizing",
+	"model_status_pending": "{count} ⚡ logged today — they re-time your model from tomorrow, so today's plan holds",
+	"model_status_pending_one": "1 ⚡ logged today — it re-times your model from tomorrow, so today's plan holds",
 	"banner_future_title": "Planning ahead:",
 	"banner_future_body": "tasks and budget you set here are saved to {date} — open it on that day to work the plan.",
 	"banner_past_title": "Viewing a past day:",

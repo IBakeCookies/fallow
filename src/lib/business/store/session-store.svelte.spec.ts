@@ -9,6 +9,7 @@ import * as flowObservationRepository from '$lib/data/repository/flow-observatio
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
 import { addDays } from '$lib/business/utils/date';
+import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
 import type { TitleRating } from '$lib/business/model/title-memory';
@@ -276,23 +277,24 @@ describe('SessionStore persistence', () => {
 		expect(store.userConstants.c1).not.toBeNaN();
 	});
 
+	const flowLog = (date: string) => ({
+		id: 1,
+		date,
+		taskId: 1,
+		taskTitle: 'a slow one',
+		difficulty: 5,
+		enjoyment: 5,
+		E: 3,
+		beta: 1.5,
+		phiHours: 4,
+		createdAt: 0,
+	});
+
 	// The store feeds the main page's allocator, so this is where a missing
 	// `ageDays` would do the most damage — and it would do it silently: the fit
-	// still succeeds, just over the person the user was a decade ago.
-	it('ages ⚡ logs against today, so a decade-old log no longer personalizes the plan', async () => {
-		const flowLog = (date: string) => ({
-			id: 1,
-			date,
-			taskId: 1,
-			taskTitle: 'a slow one',
-			difficulty: 5,
-			enjoyment: 5,
-			E: 3,
-			beta: 1.5,
-			phiHours: 4,
-			createdAt: 0,
-		});
-
+	// still succeeds, just over the person the user was a decade ago. Measured
+	// from age 1, the freshest a counted log can now be (§33).
+	it('ages ⚡ logs against the planned day, so a decade-old log no longer personalizes the plan', async () => {
 		const constantsFrom = async (ageDays: number) => {
 			const today = new Date().toISOString().slice(0, 10);
 			readAllFlowObservationsMock.mockResolvedValue([flowLog(addDays(today, -ageDays))]);
@@ -304,10 +306,54 @@ describe('SessionStore persistence', () => {
 			return c1 * 3 + c2 * 1.5 + c3;
 		};
 
-		const fresh = await constantsFrom(0);
+		const fresh = await constantsFrom(1);
 		const ancient = await constantsFrom(3650);
 
 		expect(fresh).toBeGreaterThan(ancient + 1);
+	});
+
+	/* MATH.md §33: a plan for day D is fitted from logs dated STRICTLY BEFORE D.
+	   The constants are global, so one ⚡ re-times every task on the page — 33% on
+	   a task the user never logged, most of it on the very first log. Landing that
+	   on the day already in flight is what made a plan reshuffle under someone
+	   halfway through running it. */
+	it('keeps the viewed day out of its own fit, and counts the log from the next day', async () => {
+		const today = new Date().toISOString().slice(0, 10);
+
+		readAllFlowObservationsMock.mockResolvedValue([flowLog(today)]);
+		const sameDay = await setup();
+
+		expect(sameDay.store.pendingFlowLogCount).toBe(1);
+		expect(sameDay.store.constantsFit.fitted).toBe(false);
+		expect(sameDay.store.userConstants).toEqual(DEFAULT_USER_CONSTANTS);
+
+		cleanup();
+
+		readAllFlowObservationsMock.mockResolvedValue([flowLog(addDays(today, -1))]);
+		const dayAfter = await setup();
+
+		expect(dayAfter.store.pendingFlowLogCount).toBe(0);
+		expect(dayAfter.store.constantsFit.fitted).toBe(true);
+		// The same log, one day older, is the whole difference.
+		expect(dayAfter.store.userConstants).not.toEqual(DEFAULT_USER_CONSTANTS);
+	});
+
+	// The rule is "before the day being PLANNED", not "before today" — so a day
+	// the user is previewing already carries every log made so far, and only the
+	// day in flight defers.
+	it("counts today's ⚡ when the viewed day is tomorrow", async () => {
+		const today = new Date().toISOString().slice(0, 10);
+
+		readAllFlowObservationsMock.mockResolvedValue([flowLog(today)]);
+		const { store } = await setup();
+
+		expect(store.constantsFit.fitted).toBe(false);
+
+		mockPage.url = new URL(`http://localhost/?date=${addDays(today, 1)}`);
+		await vi.waitFor(() => expect(store.selectedDate).toBe(addDays(today, 1)));
+
+		expect(store.pendingFlowLogCount).toBe(0);
+		expect(store.constantsFit.fitted).toBe(true);
 	});
 
 	it('gives every task its own integer id, even added in the same millisecond', async () => {
