@@ -1158,7 +1158,12 @@ Each was considered and decided. Re-deciding them is churn.
   is bad enough to act on is the band above. Options per axis are the Pareto
   frontier on (improvement ↑, plan value ↑) so there is no weight λ to
   defend — see MATH.md §14 for why "the single biggest improvement" is bad
-  advice.
+  advice. **Unconditionally includes the axes nothing improves**: one finding
+  per axis, empty menu and all (MATH.md §14.4). Filtering those out in the
+  model is a presentation decision taken where the bands are not visible, and
+  it made an unfixable warning — Energy Balance on a day of nothing but
+  cognitive work — indistinguishable from a day with no warning on it, which
+  the card then called fine. The card says the empty menu out loud instead.
 
 - **A budget _increase_ never enters that frontier** (MATH.md §14.1). Σ P̄
   prices deferring and trimming in full, but it does not price the extra

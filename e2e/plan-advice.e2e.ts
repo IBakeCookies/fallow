@@ -118,6 +118,57 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
 	await expect(page.getByText('Move “Tax return” off today')).toBeHidden();
 });
 
+/* Nothing but head work: Physical Diff 0 on every task makes Energy Balance read
+   100% cognitive, and NO lever moves it — deferring leaves the share at 100 and
+   both loads scale with the budget, so the ratio is invariant (MATH.md §14.4).
+   The reported day: the advisor dropped the axis for having no options, the card
+   read that absence as "every axis is in band", and printed "this day is fine"
+   under a dashboard row banded Caution. */
+async function addCognitiveTask(page: Page, title: string) {
+	const form = page.locator('form').filter({
+		has: page.getByPlaceholder('e.g., Boxing training'),
+	});
+
+	await form.getByPlaceholder('e.g., Boxing training').fill(title);
+	await form.getByLabel(/Mental Diff/).fill('8');
+	await form.getByLabel(/Physical Diff/).fill('0');
+	await form.getByLabel(/Enjoyment/).fill('5');
+
+	await form
+		.getByRole('button', {
+			name: 'Deploy Task',
+		})
+		.click();
+}
+
+test('an axis nothing can improve still reads, and the day is not called fine', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addCognitiveTask(page, 'Design the error boundary');
+	await addCognitiveTask(page, 'Write the PDF solution');
+
+	await setBudget(page, 8);
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	await expect(page.getByText('Adjust the plan')).toBeVisible();
+
+	// Twice on the page — the dashboard row and the advice row — which is the
+	// agreement the bug broke, both drawn from `energyBalanceReading`.
+	await expect(page.getByText('Cognitive Heavy 100%')).toHaveCount(2);
+
+	// Exactly one axis on this day has an empty menu; the rest are all improved by
+	// a wider budget at least, so the line is Energy Balance's.
+	await expect(page.getByText('No task move and no budget change improves this.')).toHaveCount(1);
+
+	await expect(page.getByText(/Nothing reads badly enough to act on/)).toBeHidden();
+});
+
 // The one advice the card can perform itself (MATH.md §14 / AGENTS.md §6):
 // the button names the task it moves, so the test reads it back rather than
 // assuming which lever survives the frontier.

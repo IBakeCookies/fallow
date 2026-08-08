@@ -111,7 +111,9 @@ describe('suggestPlanAdjustments', () => {
 			}),
 		);
 
-		expect(advice.findings).toEqual([]);
+		// The axes are still all reported (MATH.md §14.4). What an empty day has is
+		// nothing to DO about them — an empty menu everywhere, not a missing axis.
+		expect(everyOption(advice)).toEqual([]);
 		expect(advice.unfundedTaskIds).toEqual([]);
 		expect(advice.planValue).toBe(0);
 	});
@@ -540,16 +542,14 @@ describe('suggestPlanAdjustments', () => {
 		);
 	});
 
-	it('files every finding under a known axis, in axis order, with options', () => {
+	// Every axis, unconditionally and in order (MATH.md §14.4): the caller reads
+	// the menu to know what helps, and the axis's presence says only that it was
+	// asked. Dropping the ones nothing helps is what made an unfixable warning
+	// indistinguishable from a day with no warning on it.
+	it('files a finding for every axis, in axis order', () => {
 		const advice = suggestPlanAdjustments(grindDay());
-		const order = advice.findings.map((finding) => ADVICE_AXES.indexOf(finding.axis));
 
-		expect(order).toEqual([...order].sort((a, b) => a - b));
-		expect(order.every((index) => index >= 0)).toBe(true);
-
-		expect(
-			advice.findings.every((finding) => finding.options.length > 0 || finding.unpriced !== null),
-		).toBe(true);
+		expect(advice.findings.map((finding) => finding.axis)).toEqual([...ADVICE_AXES]);
 	});
 
 	// A zero pool with demand on it makes Human Capacity read Infinity
@@ -1136,7 +1136,14 @@ describe('suggestPlanAdjustments', () => {
 				}),
 			);
 
-			expect(findingFor(advice, 'energyBalance')).toBeUndefined();
+			const finding = findingFor(advice, 'energyBalance');
+
+			// The axis is reported and its menu is empty, which is the NaN sentinel
+			// failing every comparison (MATH.md §14.4) — the card drops a row that
+			// reads N/A with nothing under it.
+			expect(Number.isNaN(finding?.before)).toBe(true);
+			expect(finding?.options).toEqual([]);
+			expect(finding?.unpriced).toBeNull();
 		});
 
 		it('still offers the empty plan on the v-badness axes, priced honestly', () => {
@@ -1170,7 +1177,11 @@ describe('suggestPlanAdjustments', () => {
 				}),
 			);
 
-			expect(findingFor(advice, 'scheduleIntegrity')).toBeUndefined();
+			const finding = findingFor(advice, 'scheduleIntegrity');
+
+			expect(Number.isNaN(finding?.before)).toBe(true);
+			expect(finding?.options).toEqual([]);
+			expect(finding?.unpriced).toBeNull();
 		});
 
 		it('leaves the axis working on a day that does fund work', () => {
@@ -1179,6 +1190,47 @@ describe('suggestPlanAdjustments', () => {
 
 			expect(finding?.before).toBeGreaterThan(0);
 			expect(Number.isNaN(finding?.before)).toBe(false);
+		});
+	});
+
+	// MATH.md §14.4. The live day that surfaced it (2026-08-08): every task
+	// cognitive, so Energy Balance reads 100% and no lever moves it — the share is
+	// invariant under both — and the axis was dropped from `findings` entirely.
+	// The card read that absence as "every axis is in band" and printed "this day
+	// is fine" under a row the dashboard was banding Caution.
+	describe('an axis no lever can move', () => {
+		const COGNITIVE_ONLY = [
+			makeTask({
+				id: 1,
+				title: 'Design the error boundary',
+				mentalDifficulty: 8,
+				physicalDifficulty: 0,
+				enjoyment: 9,
+			}),
+			makeTask({
+				id: 2,
+				title: 'Write the PDF solution',
+				mentalDifficulty: 6,
+				physicalDifficulty: 0,
+				enjoyment: 7,
+			}),
+			makeTask({
+				id: 3,
+				title: 'Review the PR',
+				mentalDifficulty: 5,
+				physicalDifficulty: 0,
+				enjoyment: 4,
+			}),
+		];
+
+		it('still reports the reading, under an empty menu', () => {
+			const finding = findingFor(suggestPlanAdjustments(input(COGNITIVE_ONLY)), 'energyBalance');
+
+			// Not vacuous: 100 is the worst this axis reads, and every candidate ties
+			// it, which is why the menu below is empty rather than unsearched.
+			expect(finding?.before).toBe(100);
+			expect(finding?.options).toEqual([]);
+			expect(finding?.unpriced).toBeNull();
 		});
 	});
 

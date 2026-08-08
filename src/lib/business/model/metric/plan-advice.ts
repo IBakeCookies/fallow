@@ -92,7 +92,8 @@ export interface AdviceFinding {
 	before: number;
 	/**
 	 * Pareto-efficient Σ P̄-priced levers, biggest improvement first. Empty when
-	 * only `unpriced` improves this axis.
+	 * only `unpriced` improves this axis — and empty beside a null `unpriced`
+	 * when nothing does, which is a reading and not an omission (MATH.md §14.4).
 	 */
 	options: AdviceOption[];
 	/**
@@ -176,7 +177,7 @@ export interface SwitchCostPrice {
 
 export interface PlanAdvice {
 	planValue: number;
-	/** In `ADVICE_AXES` order; axes nothing can improve are omitted. */
+	/** One per axis, in `ADVICE_AXES` order — including the ones nothing improves. */
 	findings: AdviceFinding[];
 	/** Active tasks the plan funds no hours for — a read, not a search. */
 	unfundedTaskIds: number[];
@@ -580,11 +581,15 @@ export function suggestPlanAdjustments(
 		metrics: calculateDailyMetrics(applyLever(input, lever)),
 	}));
 
+	// Every axis, including the ones no lever moves (MATH.md §14.4). Dropping
+	// those made an unfixable warning indistinguishable from no warning at all,
+	// and the caller — which owns the bands, not this file — cannot tell the two
+	// apart from an absence.
 	const findings = ADVICE_AXES.map((axis) => ({
 		axis,
 		before: AXIS[axis].read(baseline),
 		...paretoOptions(candidates, axis, baseline),
-	})).filter((finding) => finding.options.length > 0 || finding.unpriced !== null);
+	}));
 
 	const unfunded = baseline.activeTasks.filter((task) => task.suggestedHours <= 0);
 

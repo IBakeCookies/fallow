@@ -100,66 +100,74 @@
 							>
 							{@render bandText(row.beforeBand)}
 						</div>
-						<ul class="mt-text-xs space-y-text-xs">
-							<!-- Keyed on the lever — one object per candidate — and never on the
-							     option's words: two tasks sharing a title spell the same
-							     sentence, and a duplicate key crashes the card outright. -->
-							{#each row.options as option (option.lever)}
-								{@const lever = option.lever}
-								<!-- The unpriced increase is ruled out of the frontier by the model
-								     (MATH.md §14), so it is not a fourth comparable option: ruled off
-								     from them, since its reading is worse than every option above it
-								     and its cost is denominated in something else entirely. -->
-								<li
-									class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
-									class:border-t={option.isUnpriced}
-									class:border-line-soft={option.isUnpriced}
-									class:pt-text-xs={option.isUnpriced}
-								>
-									<span class="min-w-0 text-xs text-ty-primary">{option.action}</span>
-									<span class="flex shrink-0 items-baseline gap-text-xs text-xs">
-										<span class="font-semibold {BAND_TEXT_CLASS[option.afterBand]}"
-											>{option.after}</span
-										>
-										{@render bandText(option.afterBand)}
-										<span class="text-ty-silent">· {option.cost}</span>
-										<!-- A deferral prices "off today" (MATH.md §14) while the button
-										     commits to a destination, so aria-label carries both, plus the
-										     title so the buttons stay apart. -->
-										{#if lever.kind === 'defer-task'}
-											<Button
-												variant="outline"
-												size="sm"
-												disabled={isBusy}
-												aria-label={m.advice_apply_label({
-													title: lever.title,
-												})}
-												onclick={() => onapply(lever.taskId)}
+						<!-- An axis the search came back empty on (MATH.md §14.4). Said out
+						     loud, because a reading with nothing under it otherwise reads as a
+						     rendering failure — and because the row is here precisely to stop
+						     the card from calling such a day fine. -->
+						{#if row.options.length === 0}
+							<p class="mt-text-xs text-xs text-ty-silent">{m.advice_no_lever()}</p>
+						{:else}
+							<ul class="mt-text-xs space-y-text-xs">
+								<!-- Keyed on the lever — one object per candidate — and never on the
+								     option's words: two tasks sharing a title spell the same
+								     sentence, and a duplicate key crashes the card outright. -->
+								{#each row.options as option (option.lever)}
+									{@const lever = option.lever}
+									<!-- The unpriced increase is ruled out of the frontier by the model
+									     (MATH.md §14), so it is not a fourth comparable option: ruled off
+									     from them, since its reading is worse than every option above it
+									     and its cost is denominated in something else entirely. -->
+									<li
+										class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
+										class:border-t={option.isUnpriced}
+										class:border-line-soft={option.isUnpriced}
+										class:pt-text-xs={option.isUnpriced}
+									>
+										<span class="min-w-0 text-xs text-ty-primary">{option.action}</span>
+										<span class="flex shrink-0 items-baseline gap-text-xs text-xs">
+											<span class="font-semibold {BAND_TEXT_CLASS[option.afterBand]}"
+												>{option.after}</span
 											>
-												{m.advice_apply()}
-											</Button>
-											<!-- Also performable, and §14 is why: the budget is a choice about
-											     the day, which is exactly what makes it a lever where the
-											     switch cost is only a diagnostic. Applies the lever's own
-											     unrounded hours, which the number field accepts and the
-											     slider's 0.25 step cannot express. -->
-										{:else}
-											<Button
-												variant="outline"
-												size="sm"
-												disabled={isBusy}
-												onclick={() => onapplybudget(lever.hours)}
-											>
-												{option.applyLabel}
-											</Button>
+											{@render bandText(option.afterBand)}
+											<span class="text-ty-silent">· {option.cost}</span>
+											<!-- A deferral prices "off today" (MATH.md §14) while the button
+											     commits to a destination, so aria-label carries both, plus the
+											     title so the buttons stay apart. -->
+											{#if lever.kind === 'defer-task'}
+												<Button
+													variant="outline"
+													size="sm"
+													disabled={isBusy}
+													aria-label={m.advice_apply_label({
+														title: lever.title,
+													})}
+													onclick={() => onapply(lever.taskId)}
+												>
+													{m.advice_apply()}
+												</Button>
+												<!-- Also performable, and §14 is why: the budget is a choice about
+												     the day, which is exactly what makes it a lever where the
+												     switch cost is only a diagnostic. Applies the lever's own
+												     unrounded hours, which the number field accepts and the
+												     slider's 0.25 step cannot express. -->
+											{:else}
+												<Button
+													variant="outline"
+													size="sm"
+													disabled={isBusy}
+													onclick={() => onapplybudget(lever.hours)}
+												>
+													{option.applyLabel}
+												</Button>
+											{/if}
+										</span>
+										{#if option.profileFlip}
+											<span class="basis-full text-xs text-ty-silent">{option.profileFlip}</span>
 										{/if}
-									</span>
-									{#if option.profileFlip}
-										<span class="basis-full text-xs text-ty-silent">{option.profileFlip}</span>
-									{/if}
-								</li>
-							{/each}
-						</ul>
+									</li>
+								{/each}
+							</ul>
+						{/if}
 					</li>
 				{/each}
 			</ul>

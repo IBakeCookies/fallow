@@ -196,6 +196,41 @@ describe('buildAdviceDisplay', () => {
 		expect(row.options[1].afterBand).toBe('success');
 	});
 
+	// MATH.md §14.4. The model reports every axis now, so "no options" no longer
+	// means "in band" — an axis that reads badly and has nothing to offer is the
+	// one the card must still show, since the day really is that lopsided.
+	it('keeps the row for an axis that reads badly and nothing improves', () => {
+		const display = buildAdviceDisplay(advice([]), 'en-GB');
+
+		expect(display.rows).toHaveLength(1);
+		expect(display.rows[0].before).toBe('90%');
+		expect(display.rows[0].options).toEqual([]);
+	});
+
+	// The other half of the same change: a NaN sentinel bands `critical` under
+	// `getBandBiggerBetter` (nothing about it is ≥ 25), so an unfiltered model
+	// would put "N/A · nothing improves this" on a day with no budget — the
+	// alarm-about-nothing MATH.md §14.1-5 introduced the sentinel to prevent.
+	// Infinity WITH options stays (the row above): there the levers are the point.
+	it('drops an axis whose reading is not a number and has nothing to offer', () => {
+		const display = buildAdviceDisplay(
+			{
+				...advice([]),
+				findings: [
+					{
+						axis: 'scheduleIntegrity',
+						before: NaN,
+						options: [],
+						unpriced: null,
+					},
+				],
+			},
+			'en-GB',
+		);
+
+		expect(display.rows).toEqual([]);
+	});
+
 	// Energy Balance reads as a direction AND the share behind it, through
 	// `energyBalanceReading` — the words come from the same `energyBalanceSkew`
 	// call `AXIS_BAND.energyBalance` bands the row with, and a second copy of

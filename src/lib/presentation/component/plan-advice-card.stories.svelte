@@ -327,6 +327,51 @@
 	}}
 />
 
+<!-- A day of nothing but cognitive tasks: Energy Balance reads 100% and no lever
+     moves it, since the share is invariant under both (MATH.md §14.4). The row
+     has to appear anyway — silence here is what let the card call such a day
+     fine while the dashboard banded the same reading Caution. -->
+<Story
+	name="An axis nothing can improve"
+	args={{
+		advice: {
+			rows: [
+				{
+					axis: 'energyBalance',
+					label: 'Energy Balance',
+					before: 'Cognitive Heavy 100%',
+					beforeBand: 'warning',
+					options: [],
+				},
+			],
+			unfunded: null,
+			unfundedMustDo: null,
+			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			switchCost: 'At 15m a switch, this plan pays for no switching.',
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('Cognitive Heavy 100%')).toBeVisible();
+		await expect(canvas.getByText('(Caution)')).toBeInTheDocument();
+
+		// Why the menu is empty, said out loud: an axis with a reading and no rows
+		// under it otherwise reads as a rendering failure.
+		await expect(
+			canvas.getByText('No task move and no budget change improves this.'),
+		).toBeVisible();
+
+		await expect(
+			canvas.queryByText(/Nothing reads badly enough to act on/),
+		).not.toBeInTheDocument();
+
+		expect(
+			canvas.queryAllByRole('button', {
+				name: /to tomorrow|Set |Add the hour/,
+			}),
+		).toEqual([]);
+	}}
+/>
+
 <!-- Identical words, distinct levers: the card renders both and applies each by
      its task id. -->
 <Story

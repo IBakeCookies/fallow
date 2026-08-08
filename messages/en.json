@@ -212,6 +212,7 @@
 	"advice_stale": "Your day has changed since this was calculated.",
 	"advice_error": "The check failed. Try again.",
 	"advice_clear": "Nothing reads badly enough to act on. This day is fine.",
+	"advice_no_lever": "No task move and no budget change improves this.",
 	"advice_action_defer": "Move “{title}” off today",
 	"advice_apply": "To tomorrow",
 	"advice_apply_label": "Move “{title}” to tomorrow",

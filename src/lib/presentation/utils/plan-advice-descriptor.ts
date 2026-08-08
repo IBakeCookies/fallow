@@ -324,7 +324,20 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 	};
 
 	const rows = advice.findings
-		.filter((finding) => isOutOfBand(finding.axis, finding.before))
+		.filter(
+			(finding) =>
+				isOutOfBand(finding.axis, finding.before) &&
+				// A reading that is not a number judges nothing — `readingOf` prints it
+				// N/A and bands it neutral — so it earns a row only when there is a
+				// lever under it. That is Human Capacity's Infinity, which real options
+				// bring down to a number. The two NaN sentinels (MATH.md §14.1-5) have
+				// none, and `getBandBiggerBetter(NaN)` calls Schedule Integrity's
+				// critical: a row reading "N/A · nothing improves this" on a day with no
+				// budget is the alarm-about-nothing the sentinel exists to prevent.
+				(Number.isFinite(finding.before) ||
+					finding.options.length > 0 ||
+					finding.unpriced !== null),
+		)
 		.map((finding) => {
 			const before = readingOf(finding.axis, finding.before);
 

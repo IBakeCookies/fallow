@@ -212,6 +212,7 @@
 	"advice_stale": "Dein Tag hat sich seit dieser Berechnung geändert.",
 	"advice_error": "Die Prüfung ist fehlgeschlagen. Versuch es noch einmal.",
 	"advice_clear": "Nichts liest sich schlecht genug, um etwas zu ändern. Dieser Tag passt.",
+	"advice_no_lever": "Weder Verschieben noch ein anderes Budget verbessert das.",
 	"advice_action_defer": "„{title}“ auf einen anderen Tag verschieben",
 	"advice_apply": "Auf morgen",
 	"advice_apply_label": "„{title}“ auf morgen verschieben",
