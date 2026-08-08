@@ -32,7 +32,7 @@ import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import * as m from '$lib/paraglide/messages.js';
 import {
 	AXIS_BAND,
-	energyBalanceSkew,
+	energyBalanceReading,
 	getBandBiggerBetter,
 	getBandDeepWork,
 	type Band,
@@ -272,13 +272,12 @@ export function buildMetrics(
 		{
 			label: m.metric_energy_balance(),
 			description: m.metric_energy_balance_desc(),
+			// The share as well as the word it falls in: the word alone is three
+			// buckets over a continuous reading, and the advice card's Energy Balance
+			// options moved inside one bucket on 61.6% of them (MATH.md §25).
 			...gated(
 				planned,
-				{
-					cognitive: m.metric_cognitive_heavy(),
-					physical: m.metric_physical_heavy(),
-					balanced: m.metric_balanced(),
-				}[energyBalanceSkew(energyBalance)],
+				energyBalanceReading(energyBalance),
 				AXIS_BAND.energyBalance(energyBalance),
 			),
 		},

@@ -15,9 +15,16 @@
 		oncheck: () => void;
 		/** Perform a defer-task option: move that task to tomorrow's plan. */
 		onapply: (taskId: number) => void;
+		/**
+		 * Perform a set-budget option: declare that many available hours. Takes the
+		 * lever's UNROUNDED hours, which is the point of the button — the trim lever
+		 * is `budget − planSlack` and only its label rounds (MATH.md §14.1-2), so a
+		 * user retyping what the card shows lands on a budget the model never priced.
+		 */
+		onapplybudget: (hours: number) => void;
 	}
 
-	let { advice, isBusy, isStale, hasError, oncheck, onapply }: Props = $props();
+	let { advice, isBusy, isStale, hasError, oncheck, onapply, onapplybudget }: Props = $props();
 </script>
 
 <!-- Until the user asks, this is one button and nothing else: a card advertising
@@ -99,8 +106,15 @@
 							     sentence, and a duplicate key crashes the card outright. -->
 							{#each row.options as option (option.lever)}
 								{@const lever = option.lever}
+								<!-- The unpriced increase is ruled out of the frontier by the model
+								     (MATH.md §14), so it is not a fourth comparable option: ruled off
+								     from them, since its reading is worse than every option above it
+								     and its cost is denominated in something else entirely. -->
 								<li
 									class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
+									class:border-t={option.isUnpriced}
+									class:border-line-soft={option.isUnpriced}
+									class:pt-text-xs={option.isUnpriced}
 								>
 									<span class="min-w-0 text-xs text-ty-primary">{option.action}</span>
 									<span class="flex shrink-0 items-baseline gap-text-xs text-xs">
@@ -109,9 +123,9 @@
 										>
 										{@render bandText(option.afterBand)}
 										<span class="text-ty-silent">· {option.cost}</span>
-										<!-- Only a deferral is performable: the reading prices "off
-										     today" (MATH.md §14), the button commits to a destination.
-										     aria-label carries the title so the buttons stay apart. -->
+										<!-- A deferral prices "off today" (MATH.md §14) while the button
+										     commits to a destination, so aria-label carries both, plus the
+										     title so the buttons stay apart. -->
 										{#if lever.kind === 'defer-task'}
 											<Button
 												variant="outline"
@@ -123,6 +137,20 @@
 												onclick={() => onapply(lever.taskId)}
 											>
 												{m.advice_apply()}
+											</Button>
+											<!-- Also performable, and §14 is why: the budget is a choice about
+											     the day, which is exactly what makes it a lever where the
+											     switch cost is only a diagnostic. Applies the lever's own
+											     unrounded hours, which the number field accepts and the
+											     slider's 0.25 step cannot express. -->
+										{:else}
+											<Button
+												variant="outline"
+												size="sm"
+												disabled={isBusy}
+												onclick={() => onapplybudget(lever.hours)}
+											>
+												{option.applyLabel}
 											</Button>
 										{/if}
 									</span>

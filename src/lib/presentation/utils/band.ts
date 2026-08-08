@@ -107,6 +107,37 @@ export function energyBalanceSkew(value: number): 'cognitive' | 'physical' | 'ba
 }
 
 /**
+ * That word AND the share behind it — "Cognitive Heavy 71%" — because the word
+ * alone is coarser than the number the advisor searches on, and both the metric
+ * row and the advice card print it.
+ *
+ * Measured, not assumed (MATH.md §25, `adv3-advice-display-resolution.probe.ts`,
+ * 2026-08-08): on 600 seeded days the advice card rendered 593 Energy Balance
+ * options, and 365 of them — 61.6% — printed the same word as the row they sat
+ * under, hiding a median 1.7 and up to 39.3 points of improvement. The worst
+ * case moved the share 0.0 → 39.3 and read "Physical Heavy" on both sides, an
+ * option that looks like a no-op and is not. No other axis lost a single option
+ * this way (0 of 803), because the rest print percentages already.
+ *
+ * Shown rather than suppressed: dropping those options would have emptied 99 of
+ * 274 Energy Balance rows outright, discarding the largest improvement the day
+ * had on the axis (median 6.2, max 39.3) on a day that still reads badly.
+ *
+ * One definition for both callers (AGENTS.md R3) — the three words were already
+ * spelled twice, which is how the card and the dashboard could have come apart.
+ */
+export function energyBalanceReading(value: number): string {
+	return m.metric_energy_balance_reading({
+		skew: {
+			cognitive: m.metric_cognitive_heavy(),
+			physical: m.metric_physical_heavy(),
+			balanced: m.metric_balanced(),
+		}[energyBalanceSkew(value)],
+		percent: Math.round(value),
+	});
+}
+
+/**
  * The band policy for every reading the plan advisor can search on, exported
  * because the advice card decides WHICH findings to surface from exactly the
  * good/bad call the metric rows are coloured by (AGENTS.md R3 — one definition,

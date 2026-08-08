@@ -189,6 +189,7 @@
 					hasError={plan.hasAdviceError}
 					oncheck={() => plan.computeAdvice()}
 					onapply={(id) => session.moveTaskToTomorrow(id)}
+					onapplybudget={(hours) => (session.availableHours = hours)}
 				/>
 			{/if}
 		</div>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, isoDate, setBudget } from './helpers';
+import { AUTOSAVE_MS, budgetField, isoDate, setBudget } from './helpers';
 
 /* The advice card is the one place the app says what to CHANGE rather than what
    the day reads. Every option it shows is a full re-solve of the day (MATH.md
@@ -165,6 +165,52 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 			name: `Mark ${title} complete`,
 		}),
 	).toBeVisible();
+});
+
+/* The other performable lever (MATH.md §14 rules the budget a choice about the
+   day, which is why it is a lever at all where the switch cost is only a
+   diagnostic). What the button buys over retyping the label: the trim lever is
+   `budget − planSlack` and carries UNROUNDED hours, so a user copying the two
+   decimals the card prints lands on a budget the model never priced. */
+test('applying a budget lever declares the hours the model priced', async ({ page }) => {
+	await page.goto('/');
+	await addDrainingTask(page, 'Write the spec');
+	await addDrainingTask(page, 'Migrate the database');
+
+	// More hours than this plan wants, so the slack the trim lever spends exists.
+	await setBudget(page, 10);
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	// Read the lever off the card rather than assuming which one survives the
+	// frontier — the label carries the same rounding the button must not.
+	const action = page.getByText(/Set the budget to [\d.]+h/).first();
+	await expect(action).toBeVisible();
+	const labelled = Number((await action.textContent())!.match(/([\d.]+)h/)![1]);
+
+	// `.first()`: the same trim lever wins on more than one axis, so the card draws
+	// the same button per row it improves. Identical words for an identical
+	// declaration, unlike two deferrals, which name their own task.
+	await page
+		.getByRole('button', {
+			name: `Set ${labelled}h`,
+		})
+		.first()
+		.click();
+
+	const applied = Number(await budgetField(page).inputValue());
+
+	expect(applied).not.toBe(10);
+	// The field took the lever's own hours: equal to the label once rounded the way
+	// the label rounds, and free to carry more decimals than it showed.
+	expect(Math.round(applied * 100) / 100).toBe(labelled);
+
+	// A declaration the day now reads from, so the last solve's numbers are stale.
+	await expect(page.getByText('Your day has changed since this was calculated.')).toBeVisible();
 });
 
 test('the advice card stays out of the way on a past day', async ({ page }) => {

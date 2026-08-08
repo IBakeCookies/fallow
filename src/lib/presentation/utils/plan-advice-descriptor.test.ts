@@ -124,6 +124,14 @@ describe('buildAdviceDisplay', () => {
 		expect(rows[1].action).toContain('9');
 		expect(rows[1].cost).toBe('costs an extra hour of your day');
 		expect(rows[1].cost).not.toContain('%');
+		// Flagged, so the card can rule it off the frontier instead of listing it as
+		// one more comparable option — and its button says what it spends rather than
+		// naming hours: every axis's unpriced lever is the same `budget + 1`.
+		expect(rows[1].isUnpriced).toBe(true);
+		expect(rows[1].applyLabel).toBe('Add the hour');
+		expect(rows[0].isUnpriced).toBe(false);
+		// A deferral's button needs the task title, which only the card has.
+		expect(rows[0].applyLabel).toBeNull();
 	});
 
 	it('renders an axis only the extra hour improves', () => {
@@ -188,18 +196,21 @@ describe('buildAdviceDisplay', () => {
 		expect(row.options[1].afterBand).toBe('success');
 	});
 
-	// Energy Balance reads as a direction, not a percentage, and the words come
-	// from `energyBalanceSkew` — the same call `AXIS_BAND.energyBalance` bands the
-	// row with. A second copy of `> 60 / < 40` here is how a day gets labelled
-	// "Balanced" and coloured a warning.
+	// Energy Balance reads as a direction AND the share behind it, through
+	// `energyBalanceReading` — the words come from the same `energyBalanceSkew`
+	// call `AXIS_BAND.energyBalance` bands the row with, and a second copy of
+	// `> 60 / < 40` here is how a day gets labelled "Balanced" and coloured a
+	// warning. The share is printed because the word alone is three buckets over a
+	// continuous reading: 61.6% of this axis's options moved inside one bucket and
+	// rendered as no change at all (MATH.md §25).
 	// The lever's `after` and not the row's `before`: only a skewed reading is out
 	// of band, so a balanced 50 never survives the row filter — reached as the
 	// reading a lever PRODUCES, which is where the third branch actually renders.
 	it.each([
-		[75, 'Cognitive Heavy'],
-		[25, 'Physical Heavy'],
-		[50, 'Balanced'],
-	])('reads an energy balance of %i as a direction', (after, expected) => {
+		[75, 'Cognitive Heavy 75%'],
+		[25, 'Physical Heavy 25%'],
+		[50, 'Balanced 50%'],
+	])('reads an energy balance of %i as a direction and a share', (after, expected) => {
 		const display = buildAdviceDisplay(
 			{
 				...advice([defer(1, -30)]),
@@ -512,6 +523,9 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options[0].action).toContain('7,67');
 		expect(display.rows[0].options[0].cost).toContain('8,7');
 		expect(display.rows[0].options[1].action).toContain('6h');
+		// Including the button's own words, which is why this file builds them: the
+		// card has no locale to round with.
+		expect(display.rows[0].options[0].applyLabel).toContain('7,67');
 	});
 
 	// MATH.md §14.1-2: the lever carries the exact trim; only the label rounds.
