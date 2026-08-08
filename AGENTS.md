@@ -630,8 +630,10 @@ force). Do not change these without reading the derivation first.
   so the objective is **not concave** — Lagrange/KKT solvers are invalid
   here. The allocator works on discrete 15-minute blocks (`BLOCK_HOURS`):
   greedy marginal analysis (exact for the single budget), exhaustive
-  funded-subset enumeration for switch costs (exact, n ≤ 12), plus a
-  resource-transfer pass when a capacity pool binds (near-exact heuristic).
+  funded-subset enumeration for switch costs (exact, n ≤ 12; past that,
+  bounded to the subset sizes the budget can fund — still exact wherever it
+  fits, §34), plus a resource-transfer pass when a capacity pool binds
+  (near-exact heuristic).
 - Allocated hours are exact multiples of 0.25h; budget below one block is left
   unplanned. There is no 0.01h rounding step.
 - `ϕ = c₁E + c₂β + c₃`, floored at 0.1h. Constants are personalized by
@@ -860,6 +862,7 @@ no probe citation beside it is unbacked — that is the list to work down.
 | `phi-uncertainty-cap.probe.ts`          | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation                                                                                                                |
 | `phi-cap-reachability.probe.ts`         | §5.1 — whether a real fit can reach the region that cap misses                                                                                                         |
 | `allocator-exactness.probe.ts`          | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level                                                                                                            |
+| `subset-search-bound.probe.ts`          | §34 — what the funded-subset search forfeits past n = 12, by budget band, and the size bound's wall clock                                                              |
 | `satiety-gaming.probe.ts`               | §8.4 — the monotone accumulator, and what a laundering one costs                                                                                                       |
 | `stop-inversion-margin.probe.ts`        | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split                                                                                                          |
 | `fit-snapshot-drift.probe.ts`           | §12.1 — as-of-day vs whole-history fit drift, and refit cost                                                                                                           |

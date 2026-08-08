@@ -130,8 +130,10 @@ export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
  */
 const AMPLITUDE_RATIO_CAP = 0.9;
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
-// tasks (4096 subsets — instant), greedy forward-selection beyond it.
+// tasks (4095 subsets — instant). Past it the same 4095-plan budget is spent on
+// the subset sizes the day can actually fund (MATH.md §34).
 const EXACT_SUBSET_LIMIT = 12;
+const SUBSET_SEARCH_BUDGET = (1 << EXACT_SUBSET_LIMIT) - 1;
 
 /**
  * Map user effort (1-10) to true effort E (1-5)
@@ -613,8 +615,9 @@ export function findOptimalSingleTaskTime(
 //
 // Switch cost makes "which tasks get funded at all" a fixed-charge decision
 // that greedy can't price (an (m)-task plan pays (m−1)·switchCost off the
-// budget). It is solved EXACTLY by enumerating funded subsets for n ≤ 12 —
-// v1's iterative count-resolution + greedy drop-search heuristic is gone.
+// budget). It is solved EXACTLY by enumerating funded subsets for n ≤ 12, and
+// past that for every subset size the budget can afford (MATH.md §34) — v1's
+// iterative count-resolution + greedy drop-search heuristic is gone.
 //
 // With capacity pools (calculatePooledAllocations) a block is only eligible
 // while both pools can absorb its weights. Multi-constraint greedy is no
@@ -938,9 +941,11 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
  * remains exact without special-casing. Ties prefer the plan funding more
  * tasks, preserving v1's "keep the more inclusive plan" behavior.
  *
- * n > EXACT_SUBSET_LIMIT: greedy forward selection on the funded set (add the
- * task whose admission most improves the total, stop when none improves) —
- * documented heuristic for a regime a daily todo list rarely reaches.
+ * n > EXACT_SUBSET_LIMIT: the same enumeration, bounded to subsets no larger
+ * than the budget can fund — still exact wherever it fits the same plan budget,
+ * and it fits on exactly the tight days where the subset choice matters most.
+ * Only a long day AND a long list falls through to greedy forward selection
+ * (MATH.md §4).
  */
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
@@ -1031,6 +1036,46 @@ function bestPlanWithSwitchCost(
 		return bestBlocks;
 	}
 
+	// Past the limit, the budget itself usually bounds the search back into
+	// range: a plan funding m tasks pays (m−1)·switchCost and still owes every
+	// member a block, so subsets larger than `maxFunded` are unaffordable — and
+	// were never optimal anyway (the subset greedy really funds gets the same
+	// blocks out of a bigger budget). Enumerating only up to that size is exact
+	// whenever it fits the same plan budget the n ≤ 12 path spends, which is
+	// every day tight enough for the choice of subset to be worth much.
+	//
+	// `budgetBlocksFor(m) − m` strictly decreases, so the affordable sizes are
+	// the interval [1, maxFunded] and stopping at the first failure finds it.
+	// A budget under one block affords nothing and leaves the empty plan.
+	let maxFunded = 0;
+
+	while (maxFunded < n && budgetBlocksFor(maxFunded + 1) >= maxFunded + 1) maxFunded++;
+
+	if (maxFunded === 0) return bestBlocks;
+
+	if (subsetCount(n, maxFunded) <= SUBSET_SEARCH_BUDGET) {
+		const subset: number[] = [];
+
+		const enumerateFrom = (start: number): void => {
+			for (let i = start; i < n; i++) {
+				subset.push(i);
+				consider(allocate(subset, budgetBlocksFor(subset.length)));
+
+				if (subset.length < maxFunded) enumerateFrom(i + 1);
+
+				subset.pop();
+			}
+		};
+
+		enumerateFrom(0);
+
+		return bestBlocks;
+	}
+
+	// Long day, long list: no bound brings the enumeration back, so fall back to
+	// greedy forward selection — add the task whose admission most improves the
+	// total, stop when none does. Documented heuristic, and the regime where it
+	// costs least (MATH.md §4).
 	const funded: number[] = [];
 
 	for (;;) {
@@ -1065,6 +1110,23 @@ function bestPlanWithSwitchCost(
 	}
 
 	return bestBlocks;
+}
+
+// Σⱼ₌₁ᵏ C(n, j) — how many plans a size-bounded enumeration costs. Stops at the
+// search budget rather than running the binomials up, which overflow long
+// before a task list this size is plausible.
+function subsetCount(n: number, maxSize: number): number {
+	let plans = 0;
+	let choose = 1;
+
+	for (let j = 1; j <= maxSize; j++) {
+		choose = (choose * (n + 1 - j)) / j;
+		plans += choose;
+
+		if (plans > SUBSET_SEARCH_BUDGET) return Infinity;
+	}
+
+	return plans;
 }
 
 // Per-task ϕ parameter-uncertainty stds; zeros (classic behavior) without a
@@ -1153,7 +1215,8 @@ function zeroAllocations(
  * where m is the number of tasks that actually receive time.
  *
  * v2: exact on the block grid (greedy marginal analysis per funded subset +
- * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12).
+ * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12, and
+ * bounded by what the budget can fund past that — MATH.md §34).
  * An abundant budget still leaves slack: blocks past a task's optimal
  * stopping time have negative increments and are never offered to greedy.
  *
