@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { LayoutProps } from './$types';
 	import '$lib/presentation/style/app.css';
-	import favicon from '$lib/assets/favicon.svg';
 	import { dev, browser } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
@@ -60,8 +59,6 @@
 		if (browser) document.documentElement.lang = activeLocale.value;
 	});
 </script>
-
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <!-- Theme scenery: fixed decorative layers behind the app. display:none by
      default; a theme opts in by styling the helpers in style/scenery/. The seeded

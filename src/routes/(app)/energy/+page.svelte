@@ -21,6 +21,7 @@
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
 	import PlanScheduleList from '$lib/presentation/component/plan-schedule-list.svelte';
 	import PlanSummary from '$lib/presentation/component/plan-summary.svelte';
+	import BudgetCurveCard from '$lib/presentation/component/budget-curve-card.svelte';
 	import StopAdvisorCard from '$lib/presentation/component/stop-advisor-card.svelte';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
@@ -130,35 +131,30 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// Which task the 🪫 editor is open for, and the rating it opened on. The fields are
-	// drain-log-form.svelte's to collect; what stays here is that there is only ever ONE
-	// open editor, because `completionPromptAction` refuses to prompt across any of them
-	// — a fact no single row can see.
-	let drainDraft = $state<{
-		taskId: number;
+	// The open 🪫 editors, by task. One per row, like the main page's ⚡ — ticking off
+	// two tasks ends two sessions, and each gets its prompt. The fields are
+	// drain-log-form.svelte's to collect; what stays here is which task each draft
+	// belongs to, because the calibration card's ✎ opens one from outside the row.
+	// A draft whose row is gone (delete, midnight rollover, visibility re-read) is
+	// inert: it is keyed by that task and nothing else reads it.
+	type DrainDraft = {
 		/** The row being corrected, or undefined when this is a new session */
 		recordId?: number;
 		minutes: number | null;
 		mind: number | null;
 		body: number | null;
-	} | null>(null);
+		/** Whether the caret goes to the editor — task-item.svelte's `flowSource`
+		 *  carries the full reasons, including why it cannot be an `autofocus`. */
+		focusMinutes: boolean;
+		/** Opened by the completion prompt, so un-completing withdraws it again. */
+		promptedByCompletion: boolean;
+	};
 
-	// Which of the two ways the editor was opened, because the caret and the withdraw
-	// both turn on it — task-item.svelte's `focusFlowInput` carries the full reasons,
-	// including why the focus cannot be an `autofocus` attribute.
-	let focusDrainInput = $state(false);
-	let drainPromptedByCompletion = $state(false);
+	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
-	// A draft only counts while its row is on screen. `session.tasks` is replaced
-	// wholesale by the midnight rollover and by the visibility re-read, so a draft can
-	// outlive its row — and it is the whole gate on the prompt below, so an orphan
-	// suppressed the prompt for every task with no form left to close. Derived rather
-	// than cleared per site, because a rollover has no site to hang it on.
-	const liveDrainDraft = $derived.by(() => {
-		const draft = drainDraft;
-
-		return draft && tasks.some((t) => t.id === draft.taskId) ? draft : null;
-	});
+	const closeDrainLog = (taskId: number) => {
+		delete drainDrafts[taskId];
+	};
 
 	// Whether the task carries a 🪫 rating for today at ALL — never "the" rating:
 	// a task worked in two sessions has two of them (MATH.md §8.7).
@@ -166,34 +162,30 @@
 		drainObservations.some((o) => o.date === session.today && o.taskId === taskId);
 
 	function openDrainLog(taskId: number, source: EditorSource) {
-		focusDrainInput = source === 'button';
-		drainPromptedByCompletion = source === 'completion';
-
 		// Always empty, never seeded from an earlier rating: each 🪫 log describes one
 		// session (MATH.md §18), so prefilling the last one invites re-saving hours the
 		// day already counts. Correcting a rating goes through `editDrainLog` below.
-		drainDraft = {
-			taskId,
+		drainDrafts[taskId] = {
 			minutes: null,
 			mind: null,
 			body: null,
+			focusMinutes: source === 'button',
+			promptedByCompletion: source === 'completion',
 		};
 	}
 
 	// The other way in: the ✎ on a rating in the calibration card, which re-opens THAT
-	// session in the same one editor. Only offered for today's rows whose task is still
+	// session in its task's editor. Only offered for today's rows whose task is still
 	// on the list, because the editor lives in the task row — a rating outlives its task
 	// (and the day it was logged on), and those stay delete-only.
 	function editDrainLog(log: Persisted<DrainObservationRecord>) {
-		focusDrainInput = true;
-		drainPromptedByCompletion = false;
-
-		drainDraft = {
-			taskId: log.taskId,
+		drainDrafts[log.taskId] = {
 			recordId: log.id,
 			minutes: Math.round(log.hours * 60),
 			mind: log.mindDrain,
 			body: log.bodyDrain,
+			focusMinutes: true,
+			promptedByCompletion: false,
 		};
 	}
 
@@ -201,11 +193,10 @@
 		log.date === session.today && tasks.some((t) => t.id === log.taskId);
 
 	// Ticking a task off is the end of the session the 🪫 rating describes, so ask
-	// here rather than behind the hover-revealed button. The draft is page-level, one
-	// editor at a time — so ANY open one blocks the prompt, including another task's,
-	// while the withdraw only ever touches this task's own.
+	// here rather than behind the hover-revealed button. Only this row's own editor is
+	// in the way — another task's is a session of its own, left alone.
 	function onCompletionChange(taskId: number, completed: boolean) {
-		const draft = liveDrainDraft;
+		const draft = drainDrafts[taskId];
 
 		const action = completionPromptAction({
 			// Never "already measured": ticking a task off ENDS a session, and every
@@ -214,23 +205,21 @@
 			// measured-once reading — time-to-flow is one number per day.
 			measured: false,
 			finishing: !completed,
-			anyEditorOpen: draft !== null,
-			promptOpenForThisTask: draft?.taskId === taskId && drainPromptedByCompletion,
+			editorOpenOnThisRow: draft !== undefined,
+			promptOpenForThisTask: draft?.promptedByCompletion ?? false,
 		});
 
 		session.toggleTask(taskId);
 
 		if (action === 'open') openDrainLog(taskId, 'completion');
 
-		if (action === 'withdraw') drainDraft = null;
+		if (action === 'withdraw') closeDrainLog(taskId);
 	}
 
-	// The rating itself is the editor's to validate; which task it belongs to is the
-	// page's, because the editor is one for the whole list.
-	function saveDrainLog(entry: { hours: number; mind: number; body: number }) {
-		if (!drainDraft) return;
-
-		const { taskId, recordId } = drainDraft;
+	// The rating itself is the editor's to validate; whether it is a new session or a
+	// correction is the page's, because only the draft remembers which ✎ opened it.
+	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
+		const recordId = drainDrafts[taskId]?.recordId;
 
 		if (recordId === undefined) {
 			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
@@ -238,7 +227,7 @@
 			observations.editDrainLog(recordId, taskId, entry.hours, entry.mind, entry.body);
 		}
 
-		drainDraft = null;
+		closeDrainLog(taskId);
 	}
 
 	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
@@ -324,15 +313,15 @@
 				color={colors.colorOf(task.id)}
 				plannedHours={plannedFor(task.id)}
 				measured={measuredToday(task.id)}
-				drainDraft={drainDraft?.taskId === task.id ? drainDraft : null}
-				focusDrainMinutes={focusDrainInput}
+				drainDraft={drainDrafts[task.id] ?? null}
+				focusDrainMinutes={drainDrafts[task.id]?.focusMinutes ?? false}
 				ontoggle={() => onCompletionChange(task.id, task.completed)}
 				onremove={() => removeTaskWithUndo(session, task.id)}
 				ondrainclick={() =>
-					drainDraft?.taskId === task.id ? (drainDraft = null) : openDrainLog(task.id, 'button')}
+					drainDrafts[task.id] ? closeDrainLog(task.id) : openDrainLog(task.id, 'button')}
 				onchange={(edit) => session.updateTask(task.id, edit)}
-				ondrainsave={saveDrainLog}
-				ondraincancel={() => (drainDraft = null)}
+				ondrainsave={(entry) => saveDrainLog(task.id, entry)}
+				ondraincancel={() => closeDrainLog(task.id)}
 			/>
 		</li>
 	{/each}
@@ -471,6 +460,21 @@
 						/>
 					{/if}
 				</div>
+
+				<!-- The day's LENGTH, priced (MATH.md §8.12). Deliberately outside the
+				     `windowHours > 0` gate above: the curve is the answer to "what window
+				     should I set", so a day with no window is exactly when it has
+				     something to say. -->
+				<BudgetCurveCard
+					curve={lab.budgetCurve}
+					isBusy={lab.isCurveBusy}
+					isStale={lab.isCurveStale}
+					hasError={lab.hasCurveError}
+					currentBudget={windowHours}
+					locale={getDateLocale()}
+					oncheck={() => lab.computeBudgetCurve()}
+					onapply={(hours) => (session.availableHours = hours)}
+				/>
 			{/if}
 		{/if}
 

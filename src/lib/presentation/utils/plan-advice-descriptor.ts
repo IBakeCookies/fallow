@@ -73,7 +73,6 @@ const AXIS_LABEL: Record<AdviceAxis, () => string> = {
 	physicalLoad: m.metric_physical_load,
 	energyBalance: m.metric_energy_balance,
 	frictionIndex: m.metric_friction_index,
-	grindDensity: m.metric_grind_density,
 	timeScarcity: m.metric_time_scarcity,
 	scheduleIntegrity: m.metric_schedule_integrity,
 };

@@ -1096,6 +1096,233 @@ function replaceAt(blocks: ScheduleBlock[], index: number, block: ScheduleBlock)
 	return next;
 }
 
+// ================== Budget curve (MATH.md §8.12) ==================
+
+/** Top of the swept range, in hours — a day window past this is not advice. */
+export const BUDGET_CURVE_MAX_HOURS = 12;
+
+/** One swept day window and what the model does with it. */
+export interface BudgetCurvePoint {
+	budgetHours: number;
+	/** Hours the optimizer books at this budget. */
+	workHours: number;
+	/**
+	 * This budget's plan scored on the COMMON horizon — `objective` under a window
+	 * of `maxBudgetHours` for every point, so the free-time term is
+	 * `λ₀·(horizon − work)`: a constant, minus λ₀ per hour of work. Comparable
+	 * across budgets, which `objective` at each point's own window is not.
+	 * Running-max'd (MATH.md §8.12).
+	 */
+	dayValue: number;
+	/**
+	 * What an hour of window is worth around here — the slope of the CONCAVE
+	 * MAJORANT of `dayValue`, not the raw step difference. Every point carries a
+	 * real marginal, including the first: the majorant runs from the DO-NOTHING
+	 * day (budget 0, scored on the same horizon), so the shortest window swept is
+	 * measured against not working rather than against nothing at all.
+	 *
+	 * The raw difference asks "did this particular 45-minute step happen to seat
+	 * another block", which is a question about the lattice and not about the
+	 * day: `plan(b)` books whole steps, so `dayValue` is a staircase and its
+	 * difference is a spike train that returns to zero and climbs back out — on
+	 * 34 of 60 seeded days, up to 11 times (MATH.md §8.12, and see
+	 * `scripts/curve-shape.probe.ts`). The hull slope asks the question the card
+	 * actually poses: over the stretch of window the lattice needed in order to
+	 * seat more work, what did an hour buy on average. It telescopes to the same
+	 * total, and it is **non-increasing by construction**, so the curve falls and
+	 * the LAST budget where it is still above zero is exactly `recommendedHours`.
+	 *
+	 * Net of λ₀, not gross: `dayValue`'s free-time term is `λ₀·(horizon − work)`,
+	 * so the free time an extra hour of window costs is ALREADY charged here.
+	 * Break-even is therefore **zero**. It must NOT be read against a λ₀ line —
+	 * that would charge λ₀ twice, and the two readings disagree wildly: on a
+	 * one-task day at the default λ₀ = 0.5 this crosses 0.5 at 3 h while the day's
+	 * value goes on rising to 8.25 h (MATH.md §8.12).
+	 */
+	valuePerHour: number;
+}
+
+export interface BudgetCurve {
+	points: BudgetCurvePoint[];
+	/**
+	 * Smallest budget reaching the best day value. Null in the two cases where
+	 * the sweep has no window to name (MATH.md §8.12):
+	 *
+	 * - the best is at the top of the swept range — the model would use every hour
+	 *   offered, so the answer is "the sweep ran out", not `maxBudgetHours`;
+	 * - no budget beats the DO-NOTHING day — at a high enough λ₀ free time
+	 *   outbids the whole board, and reading that off as the first swept step
+	 *   would advertise a 45-minute day that books no work at all.
+	 *
+	 * The two read differently to the user, and `points` tells them apart: the
+	 * second books zero work at every budget.
+	 */
+	recommendedHours: number | null;
+	/** The λ₀ the sweep charged per worked hour — already inside `valuePerHour`,
+	 *  so the card reports it as a price, never as a line to read the curve against. */
+	freeTimeValue: number;
+	/** Top of the swept range, so a null recommendation can name its own cap. */
+	maxBudgetHours: number;
+}
+
+export interface BudgetCurveOptions {
+	/** Top of the sweep. Default BUDGET_CURVE_MAX_HOURS. */
+	maxBudgetHours?: number;
+}
+
+/**
+ * Slopes of the least concave function that is ≥ `values` at every lattice
+ * point, one per step, with 0 first — the marginal `suggestBudgetCurve` reports.
+ *
+ * Monotone-chain upper hull over `(i·step, values[i])`, then the covering edge's
+ * slope for each step. Since `values` is non-decreasing, the slopes are ≥ 0 and
+ * non-increasing, and they telescope to `last − first` exactly as the raw
+ * differences do — the hull only redistributes the gain across the steps that
+ * the block lattice lumped it into (MATH.md §8.12).
+ */
+function concaveMajorantSlopes(values: number[], step: number): number[] {
+	const hull: number[] = [];
+
+	for (let i = 0; i < values.length; i++) {
+		// Drop the previous vertex whenever it sits on or below the chord that
+		// skips it — the majorant runs above the staircase, so only strict
+		// upward kinks survive.
+		while (hull.length >= 2) {
+			const a = hull[hull.length - 2];
+			const b = hull[hull.length - 1];
+
+			if ((values[b] - values[a]) * (i - a) <= (values[i] - values[a]) * (b - a)) hull.pop();
+			else break;
+		}
+
+		hull.push(i);
+	}
+
+	const slopes = new Array<number>(values.length).fill(0);
+
+	for (let edge = 1; edge < hull.length; edge++) {
+		const from = hull[edge - 1];
+		const to = hull[edge];
+		const slope = (values[to] - values[from]) / ((to - from) * step);
+
+		for (let i = from + 1; i <= to; i++) slopes[i] = slope;
+	}
+
+	return slopes;
+}
+
+/**
+ * How the day's value responds to the day's LENGTH: one full solve per budget on
+ * the step lattice, scored on a common horizon, plus the budget past which
+ * another hour of window buys less than the free time it costs (MATH.md §8.12).
+ *
+ * The budget is the one model input that is a choice about today rather than a
+ * measurement of the user, and it is the one the optimizer cannot pick for
+ * itself: `objective` pays λ₀ for every free hour INSIDE the window, so it rises
+ * with the window no matter what the day contains and its argmax is always "all
+ * of it". Scoring every budget's plan on one horizon is what removes that — an
+ * hour left free inside the window is worth λ₀ and so is the same hour outside
+ * it, so the free-time term becomes a constant and only committed work is
+ * charged.
+ *
+ * Deliberately NOT `objective − λ₀·budget`, which is the same idea applied to
+ * each point's own window: the terminal term is read after the trailing rest, so
+ * a longer window recovers more reservoir before it is valued and the reading
+ * climbs on days that got no better (§13.6). Measured, that artifact holds the
+ * knee at the top of the range on every day until λ₀ = 1.25
+ * (`scripts/budget-knee.probe.ts`).
+ *
+ * Running max on `dayValue`, for §14.2's reason and with its caveat: the true
+ * optimum is monotone in the budget (every plan feasible at `b` is feasible at
+ * `b + ε`), but `plan(b)` maximizes `objective` at its OWN window rather than
+ * this score, so the raw sweep can dip. The floor is in the direction
+ * monotonicity allows and only ever hides a value the model rules out.
+ *
+ * `valuePerHour` is then the slope of the concave majorant of that level, not
+ * its raw difference — see `BudgetCurvePoint.valuePerHour` and MATH.md §8.12.
+ * Both the level and the majorant start from the DO-NOTHING day rather than
+ * from the shortest window swept, which is also what lets `recommendedHours`
+ * stay null on a day the model declines to work at any length.
+ *
+ * Cost: one `optimizeSchedule` per step — 16 solves at the default cap, ~40 ms
+ * each on a small day. On-demand only; never a `$derived`.
+ */
+export function suggestBudgetCurve(
+	tasks: EnergyTaskInput[],
+	params: EnergyParams = DEFAULT_ENERGY_PARAMS,
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+	options: BudgetCurveOptions = {},
+): BudgetCurve {
+	const step = DEFAULT_STEP_HOURS;
+	const horizon = options.maxBudgetHours ?? BUDGET_CURVE_MAX_HOURS;
+
+	const curve: BudgetCurve = {
+		points: [],
+		recommendedHours: null,
+		freeTimeValue: params.freeTimeValue,
+		maxBudgetHours: horizon,
+	};
+
+	if (tasks.length === 0 || horizon < step) return curve;
+
+	// One curve build for the whole sweep, as `optimizeSchedule` does per solve —
+	// the common-horizon rescoring is what would otherwise rebuild them per point.
+	const curves = buildCurves(tasks, constants, params);
+	// The do-nothing day on the same horizon — budget 0, so the plan is empty by
+	// definition and this costs no solve. Every reading below is against THIS and
+	// not against the shortest window swept, which buys two things: the first
+	// swept budget gets a real marginal instead of a forced zero, and `knee` needs
+	// no sentinel. Seeded from `-Infinity` the first step always "rose", so a day
+	// the model declines to work at any length — reachable well inside the λ₀
+	// slider — came back recommending 45 minutes that book nothing (MATH.md §8.12).
+	const doNothing = evaluateWithCurves([], curves, horizon, params).objective;
+	let best = doNothing;
+	// The smallest budget reaching `best`, tracked as the sweep runs: since
+	// `dayValue` is the running max, that is exactly the last budget at which it
+	// rose. Read off the loop rather than searched for afterwards — a search has
+	// to state what it does when nothing matches, and the only answer that could
+	// ever be right is this one. Null while nothing has beaten `doNothing`.
+	let knee: number | null = null;
+
+	for (let budget = step; budget <= horizon + 1e-9; budget += step) {
+		const plan = optimizeSchedule(tasks, budget, params, constants);
+		const scored = evaluateWithCurves(plan.blocks, curves, horizon, params);
+
+		if (scored.objective > best) {
+			best = scored.objective;
+			knee = budget;
+		}
+
+		curve.points.push({
+			budgetHours: budget,
+			workHours: plan.evaluation.workHours,
+			dayValue: best,
+			// Filled once the whole level is known — the majorant is a property of
+			// the sweep, not of any one step.
+			valuePerHour: 0,
+		});
+	}
+
+	// Hulled WITH the do-nothing day in front, then that leading 0 dropped: the
+	// budget-0 value is a real predecessor, so the shortest window swept is priced
+	// against not working rather than left at 0 for want of one.
+	const slopes = concaveMajorantSlopes([doNothing, ...curve.points.map((p) => p.dayValue)], step);
+
+	for (let i = 0; i < curve.points.length; i++) curve.points[i].valuePerHour = slopes[i + 1];
+
+	// Null at the top of the SWEPT range, which is the last budget on the lattice
+	// and not `horizon` — they differ whenever the horizon is not a whole number of
+	// steps, and comparing against the horizon there recommends the last swept
+	// budget on a day that was still climbing when the sweep ran out. That is the
+	// one case this null exists to distinguish.
+	const last = curve.points[curve.points.length - 1];
+
+	if (knee !== null && last !== undefined && knee < last.budgetHours - 1e-9)
+		curve.recommendedHours = knee;
+
+	return curve;
+}
+
 // ================== Drain-rate calibration (α fit) ==================
 
 /**

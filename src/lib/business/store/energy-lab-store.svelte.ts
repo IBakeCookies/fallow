@@ -22,6 +22,8 @@ import {
 	fitStoppingValue,
 	optimizeSchedule,
 	sampleTrajectory,
+	suggestBudgetCurve,
+	type BudgetCurve,
 	type EnergyParams,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
@@ -419,6 +421,92 @@ export class EnergyLabStore {
 	});
 	get valueVsClassic() {
 		return this.#valueVsClassic;
+	}
+
+	// ----- Budget curve (MATH.md §8.12) -----
+
+	// Everything the sweep reads, as a value — the same reason DailyPlanStore
+	// fingerprints rather than compares identity: a `$derived` read from outside a
+	// reactive context is not guaranteed to hand back the same object twice, so
+	// the identity version reports stale on a day that never changed.
+	//
+	// Two things it deliberately leaves out. The BUDGET, because the curve is a
+	// statement about every budget, so dragging the window must not invalidate it —
+	// that is the whole point of sweeping the range instead of pricing one step of
+	// it. And the task TITLES, which ride along on `EnergyTaskInput` but which no
+	// part of the sweep reads and no field of `BudgetCurve` carries, so
+	// fingerprinting the whole mapped task greyed out a bit-identical curve and
+	// asked for a 16-solve re-run every time a row was renamed.
+	#curveFingerprint = $derived(
+		JSON.stringify({
+			tasks: this.#energyTasks.map(
+				({ id, difficulty, enjoyment, cognitiveDemand, physicalDemand }) => [
+					id,
+					difficulty,
+					enjoyment,
+					cognitiveDemand,
+					physicalDemand,
+				],
+			),
+			params: this.#params,
+			constants: this.#session.userConstants,
+		}),
+	);
+
+	#budgetCurve = $state<BudgetCurve | null>(null);
+	#isCurveBusy = $state(false);
+	#hasCurveError = $state(false);
+	#curveFor = $state<string | null>(null);
+
+	/** Null until the user asks: the sweep costs a full solve per step. */
+	get budgetCurve(): BudgetCurve | null {
+		return this.#budgetCurve;
+	}
+	get isCurveBusy(): boolean {
+		return this.#isCurveBusy;
+	}
+	/** The last sweep failed; the curve shown (if any) predates the failure. */
+	get hasCurveError(): boolean {
+		return this.#hasCurveError;
+	}
+	/** A curve exists but describes an older version of the day. */
+	get isCurveStale(): boolean {
+		return this.#budgetCurve !== null && this.#curveFor !== this.#curveFingerprint;
+	}
+
+	/**
+	 * One full solve per step of the swept range (MATH.md §8.12) — ~16 of them,
+	 * which is why this is a method and not a `$derived`. The yield before the
+	 * sweep lets the caller's busy state paint; the sweep itself blocks.
+	 */
+	async computeBudgetCurve(): Promise<void> {
+		if (this.#isCurveBusy) return;
+
+		this.#isCurveBusy = true;
+		this.#hasCurveError = false;
+
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			// Both read after the yield, in one tick, so the curve matches the
+			// fingerprint it was solved from.
+			const tasks = this.#energyTasks;
+
+			this.#budgetCurve = suggestBudgetCurve(
+				tasks,
+				$state.snapshot(this.#params),
+				this.#session.userConstants,
+			);
+
+			this.#curveFor = this.#curveFingerprint;
+		} catch (e) {
+			// The only caller is a fire-and-forget click handler; rethrowing would be
+			// an unhandled rejection, not a signal.
+			logError('Failed to compute the budget curve', e);
+			this.#hasCurveError = true;
+		} finally {
+			this.#isCurveBusy = false;
+		}
 	}
 
 	// ----- Live stop advisor (MATH.md §8.11) -----

@@ -89,6 +89,53 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 	await expect(page.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
 });
 
+/* Every row owns its own ⚡ editor, so a second tick prompts as readily as the
+   first — the invariant the Lab's 🪫 prompt had to be brought in line with. */
+test('completing a second task opens its own time-to-flow prompt', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 6);
+
+	const forms = page.locator('form').filter({
+		hasText: 'Minutes to reach flow',
+	});
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Boxing training complete',
+		})
+		.check();
+
+	await expect(forms).toHaveCount(1);
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		})
+		.check();
+
+	await expect(forms).toHaveCount(2);
+
+	// …and un-completing one withdraws only its own
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		})
+		.uncheck();
+
+	await expect(forms).toHaveCount(1);
+
+	await expect(
+		page
+			.locator('li')
+			.filter({
+				hasText: 'Boxing training',
+			})
+			.locator('form'),
+	).toBeVisible();
+});
+
 // The constants are always derived from the logs, never stored — so deleting the
 // logs is the only reset, and it has to take the badge with it.
 test('resetting personalization reverts to the default constants', async ({ page }) => {

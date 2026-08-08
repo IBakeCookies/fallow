@@ -614,6 +614,119 @@ describe('EnergyLabStore', () => {
 		expect(store.stopObservationCount).toBe(2);
 	});
 
+	// ----- Budget curve (MATH.md §8.12) -----
+
+	const twoTasks = (): Task[] => [
+		{
+			id: 1,
+			title: 'deep work',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 6,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+		{
+			id: 2,
+			title: 'boxing',
+			physicalDifficulty: 9,
+			mentalDifficulty: 2,
+			enjoyment: 5,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+	];
+
+	it('sweeps nothing until asked, then holds the curve', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		expect(store.budgetCurve).toBeNull();
+		expect(store.isCurveStale).toBe(false);
+		expect(store.hasCurveError).toBe(false);
+
+		await store.computeBudgetCurve();
+
+		expect(store.isCurveBusy).toBe(false);
+		expect(store.budgetCurve!.points.length).toBeGreaterThan(0);
+		expect(store.isCurveStale).toBe(false);
+	});
+
+	// The whole reason the sweep exists: it is a statement about EVERY budget, so
+	// the one input it must not depend on is the budget. A fingerprint that
+	// included it would grey the card out on the very drag it is there to inform.
+	it('does not go stale when the day window moves, only when the day does', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		mockSession.availableHours = 3;
+		flushSync();
+		expect(store.isCurveStale).toBe(false);
+
+		store.setParam('freeTimeValue', 1.5);
+		flushSync();
+		expect(store.isCurveStale).toBe(true);
+	});
+
+	// `title` rides along on `EnergyTaskInput`, but no part of the sweep reads it
+	// and no field of `BudgetCurve` carries one — so fingerprinting the whole
+	// mapped task greyed out a bit-identical curve and invited a 16-solve re-run
+	// every time a row was renamed (MATH.md §8.12).
+	it('survives renaming a task', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		const before = store.budgetCurve!;
+
+		mockSession.tasks = mockSession.tasks.map((t) =>
+			t.id === 1
+				? {
+						...t,
+						title: 'deep work (API)',
+					}
+				: t,
+		);
+
+		flushSync();
+
+		expect(store.isCurveStale).toBe(false);
+
+		await store.computeBudgetCurve();
+		expect(store.budgetCurve).toEqual(before);
+	});
+
+	// Plan-scoped, like every other reading on this page (MATH.md §11.8): the
+	// sweep asks what the day's WORK is worth at each length, and finishing a
+	// piece of it does not change the answer.
+	it('survives checking a task off', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		const before = store.budgetCurve!;
+
+		mockSession.tasks = mockSession.tasks.map((t) =>
+			t.id === 1
+				? {
+						...t,
+						completed: true,
+					}
+				: t,
+		);
+
+		flushSync();
+
+		expect(store.isCurveStale).toBe(false);
+
+		await store.computeBudgetCurve();
+		expect(store.budgetCurve).toEqual(before);
+	});
+
 	// ----- Live stop advisor (MATH.md §8.11) -----
 
 	it("prices the day so far from TODAY's drain logs only", async () => {

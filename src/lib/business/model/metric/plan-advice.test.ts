@@ -84,11 +84,9 @@ function badnessOf(axis: AdviceAxis, value: number): number {
 	return value;
 }
 
-/** The same nine readings the model searches over (MATH.md §14). */
+/** The same eight readings the model searches over (MATH.md §14). */
 function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
 	if (axis === 'humanCapacity') return metrics.humanCapacity.percent;
-
-	if (axis === 'grindDensity') return metrics.grindDensity.percent;
 
 	return metrics[axis];
 }
@@ -1184,28 +1182,22 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §14.1-5 again, for Grind Density (§11.10): `calculateGrindDensity`
-	// reports 0% for a plan that funds nothing, and 0% is this axis's global
-	// optimum — so an empty plan would win its frontier on a day of pure grind.
-	describe('grind density and the plan that funds nothing', () => {
-		it('never offers a plan that funds nothing as grind advice', () => {
-			// A budget of one hour, so `budget − 1` clamps to the empty plan — the
-			// same lever that surfaced this on Energy Balance.
-			const base = grindDay(1);
-			const baseline = calculateDailyMetrics(base);
+	// MATH.md §11.11: Grind Density counts tasks, but every lever the advisor can
+	// pull is priced in hours, so it paid ~3% of Σ P̄ to move the reading 15-33pp
+	// by deferring a 15-minute chore. Retired as an axis, kept as a row.
+	describe('grind density is not an axis', () => {
+		it('offers no advice on a day of pure grind', () => {
+			const base = grindDay();
 
-			// Not vacuous: every task this day funds is grind, so the empty plan
-			// reads 0 against a baseline of 100 and would top the frontier.
-			expect(baseline.grindDensity.percent).toBe(100);
+			// Not vacuous: every task this day funds is a grind, so the axis would
+			// read 100 — the worst value it has — and lead the frontier.
+			expect(calculateDailyMetrics(base).grindDensity.percent).toBe(100);
 
-			expect(
-				calculateDailyMetrics({
-					...base,
-					availableHours: 0,
-				}).grindDensity.funded,
-			).toBe(0);
+			expect(ADVICE_AXES).not.toContain('grindDensity');
 
-			expect(findingFor(suggestPlanAdjustments(base, baseline), 'grindDensity')).toBeUndefined();
+			expect(suggestPlanAdjustments(base).findings.map((finding) => finding.axis)).not.toContain(
+				'grindDensity',
+			);
 		});
 	});
 });

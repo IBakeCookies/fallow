@@ -3,7 +3,7 @@
  * allocator actually produces.
  *
  * The metric is one predicate over a count — `|{t funded : Eᵤ(t) > βᵤ(t)}| / m`,
- * plan-scoped (§11.8), unweighted by hours (MATH.md §11.10). Five questions:
+ * plan-scoped (§11.8), unweighted by hours (MATH.md §11.10). Six questions:
  *
  * 1. **Is the reading the formula?** Recompute from the returned plan.
  * 2. **What can it read, and how coarse is a step?** The value is quantized to
@@ -11,13 +11,20 @@
  *    one task crossing the threshold can cross two bands. This is why the row
  *    renders the fraction beside the percent.
  * 3. **What did unfunded tasks vote?** §11.10's fix: a 0 h task is work the plan
- *    does NOT do, where Friction (§11.4) and Reward weigh it 0 already. Both
- *    arms are measured — what counting them cost, and that the advisor's free
- *    defer-an-unfunded-task lever is gone.
+ *    does NOT do, where Friction (§11.4) and Reward weigh it 0 already. The
+ *    reading arm only: §11.10's companion figure — the 79 free
+ *    defer-an-unfunded-task options the advisor used to offer — was measured
+ *    against the pre-retirement advisor and cannot be re-run, because §11.11
+ *    retired the axis and no grind-density finding exists to carry a lever.
  * 4. **Where is the threshold?** `>` compares EFFECTIVE difficulty (a composite,
  *    dominant + 0.3·secondary) against the raw enjoyment slider — §11.4's zero
  *    boundary, but binary: a cell does not read "a little" grind, it counts.
  * 5. **Is it its own reading?** Same two inputs as Friction and Reward Density.
+ * 6. **What would hours have said, and why is this no longer an advice axis?**
+ *    §11.11: the count and the hour-weighted share of the same predicate split
+ *    bands on a quarter of days, that hour-weighted share is already Sustainable
+ *    Work's complement, and the count moves further than the hours a defer
+ *    actually gives up — a task-denominated axis under hour-priced levers.
  *
  * A probe, not a test: every rate below moves whenever the allocator moves.
  *
@@ -33,7 +40,7 @@ import {
 	getEffectiveDifficulty,
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
-import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
+import { ADVICE_AXES } from '$lib/business/model/metric/plan-advice';
 import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { Task } from '$lib/data/type';
 
@@ -190,7 +197,7 @@ describe('Grind Density over a day space', () => {
 		);
 	});
 
-	it('3. what unfunded (0 h) tasks used to vote, and what the advisor did with it', () => {
+	it('3. what unfunded (0 h) tasks used to vote', () => {
 		/** The pre-§11.10 rule: every task in the plan is one of `n`. */
 		const oldRule = (p: SuggestedTask[]) =>
 			p.length
@@ -232,51 +239,10 @@ describe('Grind Density over a day space', () => {
 			);
 		}
 
-		// A defer lever aimed at a task the plan funds 0 hours changes nothing about
-		// the day's work, so Σ P̄ barely moves: free advice. Should now be empty.
-		const freeAdvice = [];
-
-		for (const d of DAYS) {
-			const input = {
-				tasks: d.tasks,
-				availableHours: d.availableHours,
-				switchCost: d.switchCost,
-				capacityPools: DEFAULT_CAPACITY_POOLS,
-				constants: DEFAULT_USER_CONSTANTS,
-			};
-
-			const advice = suggestPlanAdjustments(input);
-			const finding = advice.findings.find((f) => f.axis === 'grindDensity');
-
-			if (!finding) continue;
-
-			for (const option of finding.options) {
-				if (option.lever.kind !== 'defer-task') continue;
-
-				if (!advice.unfundedTaskIds.includes(option.lever.taskId)) continue;
-
-				freeAdvice.push({
-					d,
-					before: finding.before,
-					after: option.after,
-					cost: option.planValueDeltaPercent,
-				});
-			}
-		}
-
-		const sorted = freeAdvice.sort((a, b) => b.before - b.after - (a.before - a.after));
-
-		console.log(
-			`   advisor: ${freeAdvice.length} grind-density options over ${DAYS.length} days defer a task the plan ` +
-				`funds 0 h (the same work, a better number — 79 before §11.10)`,
-		);
-
-		if (sorted[0]) {
-			console.log(
-				`   biggest: ${sorted[0].before}% → ${sorted[0].after}% at Σ P̄ cost ` +
-					`${sorted[0].cost === null ? 'n/a' : `${sorted[0].cost.toFixed(2)}%`} — ${dump(sorted[0].d)}`,
-			);
-		}
+		// The advisor's free "defer a task you were not going to touch" lever, which
+		// this fix removed, is moot from both ends now: §11.11 retired the axis
+		// outright, so no grind-density finding exists to carry any lever at all.
+		// Question 6 measures what replaced it.
 	});
 
 	it('4. the threshold: composite difficulty vs the raw enjoyment slider', () => {
@@ -403,6 +369,111 @@ describe('Grind Density over a day space', () => {
 				rows.map((r) => r.grind),
 				rows.map((r) => r.reward),
 			).toFixed(4)}`,
+		);
+	});
+
+	it('6. what hours would say instead, and why this is no longer an axis', () => {
+		/** The same predicate, weighted by allocated hours (MATH.md §11.11). */
+		const hourShare = (p: SuggestedTask[]) => {
+			const funded = p.filter((t) => t.suggestedHours > 0);
+			const hours = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
+
+			if (!hours) return null;
+
+			const grind = funded
+				.filter((t) => getEffectiveDifficulty(t) > t.enjoyment)
+				.reduce((sum, t) => sum + t.suggestedHours, 0);
+
+			return Math.round((grind / hours) * 100);
+		};
+
+		const rows = DAYS.map((d) => {
+			const p = plan(d);
+			const reading = calculateGrindDensity(p);
+
+			return {
+				d,
+				n: reading.funded,
+				count: reading.percent,
+				hours: hourShare(p),
+				reward: calculateRewardDensity(p),
+			};
+		}).filter((r): r is typeof r & { hours: number } => r.hours !== null);
+
+		const gaps = rows.map((r) => Math.abs(r.count - r.hours)).sort((a, b) => a - b);
+		const q = (f: number) => gaps[Math.floor(f * (gaps.length - 1))];
+		const bandSplit = rows.filter((r) => band(r.count) !== band(r.hours));
+
+		const worst = [...rows].sort(
+			(a, b) => Math.abs(b.count - b.hours) - Math.abs(a.count - a.hours),
+		)[0];
+
+		console.log(
+			`6. |count − hours| over ${rows.length} funded days: p50 ${q(0.5)}pp p90 ${q(0.9)}pp ` +
+				`max ${gaps[gaps.length - 1]}pp | exact agreement ${gaps.filter((g) => !g).length}, ` +
+				`count overstates ${rows.filter((r) => r.count > r.hours).length}, ` +
+				`understates ${rows.filter((r) => r.count < r.hours).length}`,
+		);
+
+		console.log(
+			`   ${bandSplit.length}/${rows.length} days land in a different BAND under the two — ` +
+				`worst: count ${worst.count}% ${band(worst.count)} (n=${worst.n}) vs hours ` +
+				`${worst.hours}% ${band(worst.hours)} — ${dump(worst.d)}`,
+		);
+
+		// Weighting this metric by hours would not add a reading, it would duplicate
+		// Sustainable Work: §27 measures the sustainable side of the same partition
+		// over the same hours, so `100 − reward` IS the hour-weighted grind share.
+		const duplicate = Math.max(
+			...rows.map((r) => (r.reward === null ? 0 : Math.abs(100 - r.reward - r.hours))),
+		);
+
+		console.log(
+			`   max |(100 − Sustainable Work) − hour-weighted grind| = ${duplicate}pp: ` +
+				`weighting this by hours is a duplicate row, not a repair`,
+		);
+
+		// Why it is not an advice axis: a count denominated in tasks, moved by levers
+		// priced in hours. Deferring the day's smallest funded grind moves the
+		// reading 100/n for its share of the booked time — the ratio the advisor
+		// was buying at ~3% of Σ P̄ a step (MATH.md §11.11).
+		const levers = [];
+
+		for (const d of DAYS) {
+			const p = plan(d).filter((t) => t.suggestedHours > 0);
+			const total = p.reduce((sum, t) => sum + t.suggestedHours, 0);
+			const grinds = p.filter((t) => getEffectiveDifficulty(t) > t.enjoyment);
+
+			if (!total || !grinds.length) continue;
+
+			const smallest = grinds.reduce((a, b) => (b.suggestedHours < a.suggestedHours ? b : a));
+
+			levers.push({
+				d,
+				share: (smallest.suggestedHours / total) * 100,
+				step: 100 / p.length,
+				hours: smallest.suggestedHours,
+			});
+		}
+
+		const mispriced = levers.filter((l) => l.step > 2 * l.share);
+		const byRatio = [...levers].sort((a, b) => b.step / b.share - a.step / a.share);
+
+		console.log(
+			`   ${mispriced.length}/${levers.length} days have a funded grind whose deferral moves the COUNT ` +
+				`more than twice as far as it moves the day's booked hours`,
+		);
+
+		if (byRatio[0]) {
+			console.log(
+				`   worst ratio: −${Math.round(byRatio[0].step)}pp for ${byRatio[0].hours}h = ` +
+					`${byRatio[0].share.toFixed(1)}% of booked time — ${dump(byRatio[0].d)}`,
+			);
+		}
+
+		console.log(
+			`   axis retired: ADVICE_AXES has ${ADVICE_AXES.length} axes and grindDensity is ` +
+				`${(ADVICE_AXES as readonly string[]).includes('grindDensity') ? 'still one' : 'not one'}`,
 		);
 	});
 });

@@ -94,13 +94,6 @@ export function getBandDeepWork(value: number): Band {
 }
 
 /**
- * The band policy for every reading the plan advisor can search on, exported
- * because the advice card decides WHICH findings to surface from exactly the
- * good/bad call the metric rows are coloured by (AGENTS.md R3 — one definition,
- * not two copies of the same thresholds). `satisfies` keeps it total over the
- * axes.
- */
-/**
  * Which pool the day leans on, from the cognitive share. The word on the row
  * and the colour behind it are the same call: two copies of `> 60 / < 40` drift
  * into a day labelled "Balanced" and banded a warning.
@@ -113,6 +106,17 @@ export function energyBalanceSkew(value: number): 'cognitive' | 'physical' | 'ba
 	return 'balanced';
 }
 
+/**
+ * The band policy for every reading the plan advisor can search on, exported
+ * because the advice card decides WHICH findings to surface from exactly the
+ * good/bad call the metric rows are coloured by (AGENTS.md R3 — one definition,
+ * not two copies of the same thresholds). `satisfies` keeps it total over the
+ * axes.
+ *
+ * Plus `grindDensity`, which the dashboard row bands but the advisor does not
+ * search on (MATH.md §11.11). The two sets came apart when that axis was
+ * retired; a row still needs a colour.
+ */
 export const AXIS_BAND = {
 	burnoutRisk: (value: number) => getBandSmallerBetter(value),
 	humanCapacity: (value: number): Band =>
@@ -127,7 +131,7 @@ export const AXIS_BAND = {
 	grindDensity: (value: number) => getBandSmallerBetter(value),
 	timeScarcity: (value: number) => getBandSmallerBetter(value),
 	scheduleIntegrity: (value: number) => getBandBiggerBetter(value),
-} satisfies Record<AdviceAxis, (value: number) => Band>;
+} satisfies Record<AdviceAxis | 'grindDensity', (value: number) => Band>;
 
 /** Whether a reading is bad enough to be worth advice about. */
 export function isOutOfBand(axis: AdviceAxis, value: number): boolean {

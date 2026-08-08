@@ -276,7 +276,8 @@
 </Story>
 
 <!-- ✎ opens the inline editor: named sliders, editable title — and the completion
-     prompt never fires over its unsaved draft -->
+     prompt opens BESIDE its unsaved draft rather than closing it. The two forms
+     answer different questions, so the row shows both, as the Lab's row does. -->
 <Story
 	name="Inline editor"
 	play={async ({ args, canvas, userEvent }) => {
@@ -315,7 +316,7 @@
 			}),
 		);
 
-		await expect(canvas.queryByPlaceholderText('min')).not.toBeInTheDocument();
+		await expect(canvas.getByPlaceholderText('min')).toBeInTheDocument();
 		await expect(title).toHaveValue('sparring');
 
 		await userEvent.click(

@@ -21,10 +21,15 @@ const AXES = [
 	'physicalLoad',
 	'energyBalance',
 	'frictionIndex',
-	'grindDensity',
 	'timeScarcity',
 	'scheduleIntegrity',
 ] as const;
+
+/**
+ * Plus the one reading the table bands for a dashboard row without the advisor
+ * searching on it (MATH.md §11.11).
+ */
+const BANDED = [...AXES, 'grindDensity'] as const;
 
 describe('band policy', () => {
 	// AGENTS.md R3: the advice card filters findings by exactly the call that
@@ -42,8 +47,8 @@ describe('band policy', () => {
 		}
 	});
 
-	it('covers every advice axis', () => {
-		expect(Object.keys(AXIS_BAND).sort()).toEqual([...AXES].sort());
+	it('covers every advice axis, and the one banded row that is not one', () => {
+		expect(Object.keys(AXIS_BAND).sort()).toEqual([...BANDED].sort());
 	});
 
 	// The boundaries are inclusive on the good side, which is what makes exactly
