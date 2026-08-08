@@ -584,11 +584,8 @@ export class EnergyLabStore {
 			(!this.#physicalDrainFit.fitted ||
 				Math.abs(this.#params.alphaPhys - round2(this.#physicalDrainFit.alpha)) < 1e-9),
 	);
-	get drainFitApplied() {
-		return this.#drainFitApplied;
-	}
 
-	applyDrainFit() {
+	#applyDrainFit() {
 		if (this.#cognitiveDrainFit.fitted) {
 			this.#params.alphaCog = round2(this.#cognitiveDrainFit.alpha);
 		}
@@ -622,11 +619,8 @@ export class EnergyLabStore {
 		!this.#recoveryFit.fitted ||
 			Math.abs(this.#params.recoveryRate - round2(this.#recoveryFit.rate)) < 1e-9,
 	);
-	get recoveryFitApplied() {
-		return this.#recoveryFitApplied;
-	}
 
-	applyRecoveryFit() {
+	#applyRecoveryFit() {
 		if (this.#recoveryFit.fitted) this.#params.recoveryRate = round2(this.#recoveryFit.rate);
 	}
 
@@ -657,12 +651,45 @@ export class EnergyLabStore {
 		!this.#stoppingFit.fitted ||
 			Math.abs(this.#params.freeTimeValue - round2(this.#stoppingFit.value)) < 1e-9,
 	);
-	get stoppingFitApplied() {
-		return this.#stoppingFitApplied;
+
+	#applyStoppingFit() {
+		if (this.#stoppingFit.fitted) this.#params.freeTimeValue = round2(this.#stoppingFit.value);
 	}
 
-	applyStoppingFit() {
-		if (this.#stoppingFit.fitted) this.#params.freeTimeValue = round2(this.#stoppingFit.value);
+	// ----- Adopting the fits (one operation, because the order is the math) -----
+
+	/** Any fit has something to offer — with none, "already applied" would be a lie. */
+	#hasFit = $derived(
+		this.#cognitiveDrainFit.fitted ||
+			this.#physicalDrainFit.fitted ||
+			this.#recoveryFit.fitted ||
+			this.#stoppingFit.fitted,
+	);
+	get hasFit() {
+		return this.#hasFit;
+	}
+
+	/** Every fitted parameter already sits at its fit — nothing left to adopt. */
+	#fitsApplied = $derived(
+		this.#recoveryFitApplied && this.#drainFitApplied && this.#stoppingFitApplied,
+	);
+	get fitsApplied() {
+		return this.#fitsApplied;
+	}
+
+	/**
+	 * Copy every fit into the sliders, in the ONE order the model admits (AGENTS.md
+	 * / MATH.md §8.7/§8.9/§8.10): r first, then α conditioned on it, then λ₀ on
+	 * both. The three used to be three buttons, and any order but this one left a
+	 * parameter stale — apply α then r and the α just adopted was fitted against
+	 * the old recovery, with nothing on screen to say so. Applying separately is no
+	 * longer reachable: each step reads the fits re-derived under the step before
+	 * it, so this lands on the fixed point in one press.
+	 */
+	applyFits() {
+		this.#applyRecoveryFit();
+		this.#applyDrainFit();
+		this.#applyStoppingFit();
 	}
 }
 

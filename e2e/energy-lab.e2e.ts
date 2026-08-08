@@ -374,7 +374,8 @@ test('a dated URL collapses to the canonical Lab', async ({ page }) => {
 });
 
 // AGENTS.md §3: "A fit never writes params silently." The whole point of the
-// Apply button is that the sliders stay the user's until it is pressed.
+// Apply button is that the sliders stay the user's until it is pressed — and
+// there is one button for all four fits, because their order is the math.
 test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -389,7 +390,7 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 
 	// The fit ran — but the parameter is untouched.
 	const apply = page.getByRole('button', {
-		name: 'Apply fitted rates',
+		name: 'Apply my fits',
 	});
 
 	await expect(apply).toBeEnabled();
@@ -397,7 +398,7 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 
 	await apply.click();
 	await expect(cognitiveDrain).not.toHaveValue(defaultDrain);
-	await expect(page.getByText('Fitted rates applied')).toBeVisible();
+	await expect(page.getByText('Fits applied')).toBeVisible();
 });
 
 /* 🪫 rates the session that just ended, and finishing the task is the commonest
@@ -731,14 +732,19 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
-	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), so its
-	// own Apply appears alongside the drain one.
-	await expect(
-		page.getByRole('button', {
-			name: 'Apply fitted rate',
-			exact: true,
-		}),
-	).toBeEnabled();
+	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), and the
+	// one Apply carries it — so this proves the reloaded pair reached the FIT, not
+	// just the list's count.
+	const recoveryRate = page.getByLabel('Recovery rate');
+	const defaultRecovery = await recoveryRate.inputValue();
+
+	await page
+		.getByRole('button', {
+			name: 'Apply my fits',
+		})
+		.click();
+
+	await expect(recoveryRate).not.toHaveValue(defaultRecovery);
 });
 
 // The params are model inputs, so R4 puts them in IndexedDB rather than
@@ -830,13 +836,14 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 		})
 		.click();
 
-	// The card falls back to its empty state, and with nothing left to fit the
-	// Apply button is gone rather than disabled.
+	// The card falls back to its empty state, and with no fit left anywhere the
+	// Apply beside the parameters is gone rather than disabled — disabled reads as
+	// "already applied", which would be a claim about a fit that no longer exists.
 	await expect(page.getByText(/No ratings yet\./)).toBeVisible();
 
 	await expect(
 		page.getByRole('button', {
-			name: 'Apply fitted rates',
+			name: 'Apply my fits',
 		}),
 	).toHaveCount(0);
 });

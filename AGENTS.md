@@ -699,8 +699,13 @@ of its allocation code, so the main page is unaffected by changes here.
   end-of-session ratings — don't try. λ₀ is fitted last, conditioned on
   everything else. Each fit is a 1-D ridge toward the **defaults**, not toward
   current inputs. Ratings with demand 0 carry no signal and are dropped.
-- A fit never writes params silently: the "Apply fitted rates" button copies
-  it into the manual inputs.
+- A fit never writes params silently: the "Apply my fits" button copies it into
+  the manual inputs. **One** button for all four fits, beside the Model
+  Parameters heading, because the order above is the math — three per-card
+  buttons let the user apply α before r, which adopts an α fitted against the
+  old recovery and leaves it stale with only a re-armed button as the tell.
+  `EnergyLabStore.applyFits()` is the only public way in; the per-fit setters
+  are private so that order cannot be reached.
 - `EnergyLabStore` never writes to the daily session. Its params live in
   IndexedDB (`settings` store, key `energyParams`) — see R4 — orchestrated by
   that store, not by the route. The **day window is not a param**: it is

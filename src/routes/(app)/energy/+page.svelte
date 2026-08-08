@@ -277,18 +277,6 @@
 
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
-{#snippet applyFitButton(label: string, disabled: boolean, title: string, onclick: () => void)}
-	<button
-		type="button"
-		class="mt-text-sm w-full rounded-lg border border-brand/30 bg-brand/10 px-box-sm py-box-3xs text-xs font-medium text-brand-strong transition hover:bg-brand/20 disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ty-silent"
-		{disabled}
-		{title}
-		{onclick}
-	>
-		{label}
-	</button>
-{/snippet}
-
 <!-- The list's two halves, handed to the shared card: the same form the main page
      puts at the top of it, and the rows this screen reads a task in. -->
 {#snippet addTaskForm()}
@@ -509,14 +497,34 @@
 									<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 										{m.energy_model_parameters()}
 									</h3>
-									<button
-										type="button"
-										class="text-xs text-ty-silent transition hover:text-ty-secondary"
-										title={m.energy_reset_defaults_title()}
-										onclick={() => lab.resetParams()}
-									>
-										{m.energy_reset_defaults()}
-									</button>
+									<div class="flex shrink-0 items-baseline gap-text-md">
+										<!-- The two opposite ways to fill these sliders, side by side: back to
+									     the model's defaults, or over to what this user's own logs fit. One
+									     button for all four fits because their ORDER is the math (MATH.md
+									     §8.7/§8.9/§8.10) — three buttons let the user apply them in an
+									     order that leaves a parameter stale. -->
+										{#if lab.hasFit}
+											<button
+												type="button"
+												class="text-xs transition {lab.fitsApplied
+													? 'cursor-default text-ty-silent'
+													: 'text-brand/90 hover:text-brand-strong'}"
+												disabled={lab.fitsApplied}
+												title={m.energy_apply_fits_title()}
+												onclick={() => lab.applyFits()}
+											>
+												{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
+											</button>
+										{/if}
+										<button
+											type="button"
+											class="text-xs text-ty-silent transition hover:text-ty-secondary"
+											title={m.energy_reset_defaults_title()}
+											onclick={() => lab.resetParams()}
+										>
+											{m.energy_reset_defaults()}
+										</button>
+									</div>
 								</div>
 								<div class="space-y-grid-md">
 									<!-- Not a model param like every row below it: the window IS the
@@ -656,15 +664,6 @@
 									/>
 								</div>
 
-								{#if cogDrainFit.fitted || physDrainFit.fitted}
-									{@render applyFitButton(
-										lab.drainFitApplied ? m.energy_fit_applied() : m.energy_apply_fit(),
-										lab.drainFitApplied,
-										m.energy_apply_fit_title(),
-										() => lab.applyDrainFit(),
-									)}
-								{/if}
-
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<LogList
 										label={m.energy_drain_log_count({
@@ -758,17 +757,6 @@
 									{/if}
 								</div>
 
-								{#if recoveryFit.fitted}
-									{@render applyFitButton(
-										lab.recoveryFitApplied
-											? m.energy_recovery_fit_applied()
-											: m.energy_apply_recovery_fit(),
-										lab.recoveryFitApplied,
-										m.energy_apply_recovery_fit_title(),
-										() => lab.applyRecoveryFit(),
-									)}
-								{/if}
-
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<LogList
 										label={m.energy_rest_log_count({
@@ -830,13 +818,6 @@
 										})}
 									</span>
 								</div>
-
-								{@render applyFitButton(
-									lab.stoppingFitApplied ? m.energy_stop_fit_applied() : m.energy_apply_stop_fit(),
-									lab.stoppingFitApplied,
-									m.energy_apply_stop_fit_title(),
-									() => lab.applyStoppingFit(),
-								)}
 							{/if}
 						</CalibrationCard>
 					</div>
