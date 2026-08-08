@@ -88,13 +88,22 @@ export function calibrationRows(
 		{
 			label: flowLabel,
 			value: flow.fitted ? `≈ ${minutes(flow.phiHours)}` : minutes(flow.phiHours),
-			note: m.ana_model_note_flow({
-				value: minutes(flow.defaultPhiHours),
-				// Σw, what the history is worth in FRESH logs (MATH.md §5.2) — a
-				// year-old log counts half. Printing the raw count beside a discounted
-				// fit would overstate what moved it.
-				count: formatDecimals(flow.usedCount, 1, locale),
-			}),
+			// Σw, what the history is worth in FRESH logs (MATH.md §5.2) — a
+			// year-old log counts half. Printing the raw count beside a discounted
+			// fit would overstate what moved it. Today's logs are in neither number:
+			// no fit has read them yet (§33), so they are named, not folded in — the
+			// row would otherwise read as though the ⚡ just logged had done nothing.
+			note:
+				flow.pendingCount > 0
+					? m.ana_model_note_flow_pending({
+							value: minutes(flow.defaultPhiHours),
+							count: formatDecimals(flow.usedCount, 1, locale),
+							pending: flow.pendingCount,
+						})
+					: m.ana_model_note_flow({
+							value: minutes(flow.defaultPhiHours),
+							count: formatDecimals(flow.usedCount, 1, locale),
+						}),
 			trend: trend(flowLabel, series.phiHours, flow.defaultPhiHours, minutes),
 		},
 		{

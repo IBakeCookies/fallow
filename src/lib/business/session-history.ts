@@ -101,15 +101,26 @@ interface UserFit {
 	fitted: boolean;
 	/** Σw: what the ⚡ history is worth in fresh logs, not its row count (§5.2). */
 	usedCount: number;
+	/** Logs dated on or after `day`, which this fit therefore did not read. Every
+	 *  surface that prints a log count owes the user this one too (§33). */
+	pendingCount: number;
 }
 
-function fitFrom(observations: FlowObservationRecord[], today: string): UserFit {
+/**
+ * The fit **as of** `day`: logs dated strictly before it, aged against it
+ * (MATH.md §33). Causal rather than whole-history, which is what makes the fit
+ * this returns the one that day actually planned under — and what stops a ⚡
+ * logged this afternoon from re-scoring a day the user finished in March.
+ */
+function fitFrom(observations: FlowObservationRecord[], day: string): UserFit {
+	const counted = observations.filter((o) => o.date < day);
+
 	const fit = fitUserConstants(
-		observations.map((o) => ({
+		counted.map((o) => ({
 			E: o.E,
 			beta: o.beta,
 			phi: o.phiHours,
-			ageDays: daysBetween(o.date, today),
+			ageDays: daysBetween(o.date, day),
 		})),
 	);
 
@@ -118,6 +129,7 @@ function fitFrom(observations: FlowObservationRecord[], today: string): UserFit 
 		posterior: fit.posterior,
 		fitted: fit.fitted,
 		usedCount: fit.effectiveCount,
+		pendingCount: observations.length - counted.length,
 	};
 }
 
@@ -126,21 +138,39 @@ async function readUserFit(): Promise<UserFit> {
 }
 
 /**
- * Every stored day that has tasks in the range, summarized with the user's own
- * fit, ascending by date. The calendar and the analytics screen must read a day
- * identically, so the fit read and the summarize call are composed here instead
- * of in each page (AGENTS.md R2). The fit is re-read per call — one small store
- * read — so no caller has to hold model state across a range change.
+ * Every stored day that has tasks in the range, summarized with the fit that day
+ * ran under, ascending by date. The calendar and the analytics screen must read
+ * a day identically, so the reads and the summarize call are composed here
+ * instead of in each page (AGENTS.md R2).
+ *
+ * Each day is scored against **its own** recorded fit (§12.1's `fitSnapshots`),
+ * not one whole-history fit applied across the range — which is what let a ⚡
+ * logged today silently move the completion rate of a day months past. Days with
+ * no snapshot (before the store existed, or a day the user never opened
+ * analytics on) fall back to the live fit, per day: refitting them instead is the
+ * `O(days × logVolume)` cost §12.1 rejected, and it is the reason the snapshots
+ * are stored at all.
  */
 export async function readDaySummaries(startDate: string, endDate: string): Promise<DaySummary[]> {
-	const [fit, sessions] = await Promise.all([
+	const [fit, sessions, recorded] = await Promise.all([
 		readUserFit(),
 		$readSessionsByDateRange(startDate, endDate).then(sanitizeSessions),
+		$readFitSnapshotsByDateRange(startDate, endDate).then(sanitizeFitSnapshots),
 	]);
+
+	const fitByDate = new Map(recorded.map((snapshot) => [snapshot.date, snapshot]));
 
 	return sessions
 		.filter((session) => session.tasks.length > 0)
-		.map((session) => summarizeSession(session, fit.constants, fit.posterior));
+		.map((session) => {
+			const snapshot = fitByDate.get(session.date);
+
+			return summarizeSession(
+				session,
+				snapshot?.constants ?? fit.constants,
+				snapshot?.posterior ?? fit.posterior,
+			);
+		});
 }
 
 /**
@@ -295,8 +325,16 @@ export interface FitTrend {
  * "over what period?" the same way.
  */
 export interface CalibrationSnapshot {
-	/** `usedCount` is ϕ's recency-weighted fresh-log equivalent, not a row count (§5.2). */
-	flow: { fitted: boolean; usedCount: number; phiHours: number; defaultPhiHours: number };
+	/** `usedCount` is ϕ's recency-weighted fresh-log equivalent, not a row count
+	 *  (§5.2); `pendingCount` is the raw rows dated today, which no fit has read
+	 *  yet (§33) and which the row therefore names rather than folds in. */
+	flow: {
+		fitted: boolean;
+		usedCount: number;
+		pendingCount: number;
+		phiHours: number;
+		defaultPhiHours: number;
+	};
 	energy: EnergyCalibration;
 	stopping: StoppingValueFit;
 	/** The defaults each fit is anchored to — every row shows one next to its fit. */
@@ -360,7 +398,15 @@ function calibrationSnapshotFrom(
 	today: string,
 	trendStart: string,
 ): CalibrationSnapshot {
-	const energy = calibrateEnergyParams(rest, drain);
+	// Causal on the same rule as the ϕ fit above (§33), and for the same reason
+	// the dashboard's copy of these fits is: the card reports the model the day is
+	// planning under, so including today's ☕/🪫 here would print an α the main
+	// page is not using. Only the FITS are filtered — `ModelReport.drain` still
+	// carries every row, because the §11.9 carry-over is a state read.
+	const energy = calibrateEnergyParams(
+		rest.filter((o) => o.date < today),
+		drain.filter((o) => o.date < today),
+	);
 
 	const stopping = fitStoppingValue(
 		stops,
@@ -372,6 +418,7 @@ function calibrationSnapshotFrom(
 	const flow = {
 		fitted: fit.fitted,
 		usedCount: fit.usedCount,
+		pendingCount: fit.pendingCount,
 		phiHours: referencePhi(fit.constants),
 		defaultPhiHours: referencePhi(DEFAULT_USER_CONSTANTS),
 	};

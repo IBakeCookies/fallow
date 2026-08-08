@@ -78,52 +78,52 @@ that are not evident from reading it — so never retype a row, regenerate:
   §11.9   2413-2471  Overnight reservoir carry-over (2026-07-28)
   §11.10  2473-2543  Grind Density: the share of the work the day actually fu…
   §11.11  2545-2609  Grind Density is a row, not an objective (2026-08-08)
-§12       2611-2735  Plan-adherence audit (2026-07-23)
-  §12.1   2652-2735  Per-day fit snapshots (2026-08-03)
-§13       2737-3130  Math review, 2026-07-26
-  §13.1   2754-2789  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2791-2863  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2865-2930  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2932-2968  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2970-3007  Also in this change
-  §13.6   3009-3130  The two end-of-day energy readings: a timing difference,…
-§14       3132-3792  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3325-3461  Five corrections to the first cut (2026-07-28)
-  §14.2   3463-3606  The marginal of the budget (added 2026-08-03)
-  §14.3   3608-3792  The price of the switch cost (added 2026-08-04)
-§15       3794-3941  Two objectives, two modes (2026-07-29)
-  §15.1   3869-3941  The copy named the wrong objective for both modes (2026-…
-§16       3943-4030  Run order stays a heuristic (2026-07-29)
-§17       4032-4190  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4192-4260  Drain logs are one row per SESSION, not per task-day (20…
-§19       4262-4426  The gain's naive baseline paid for switches it never mad…
-  §19.1   4274-4333  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4335-4363  Defect 2 — the displayed number moved with the order of …
-  §19.3   4365-4403  What this costs, and the one guarantee that weakened
-  §19.4   4405-4426  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4428-4490  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4469-4490  The tie went to cognitive, so the row blamed the wrong p…
-§21       4492-4652  What the gain has room to report (2026-08-07)
-  §21.1   4514-4532  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4534-4557  Why shape has a low ceiling: the activation bonus
-  §21.3   4559-4579  Population distribution
-  §21.4   4581-4606  The number is a property of the comparison, not of the o…
-  §21.5   4608-4623  Under the total-output objective the ranking inverts
-  §21.6   4625-4652  Correction: on an ordinary day it is FLOW that binds, no…
-§22       4654-4715  Task nature: an absolute gap could not carry a range tha…
-§23       4717-4859  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   4758-4825  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   4827-4859  Longest Warm-Up: what E/β was actually tracking
-§24       4861-4924  Task Variety counted labels, and its repair was Energy B…
-§25       4926-5073  Cognitive and Physical Load: the definition, and what ro…
-§26       5075-5181  Deep Work: a step that swung whole blocks, under a band …
-§27       5183-5300  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5302-5356  Which four readings are headlines (2026-08-07)
-§29       5358-5531  Day Profile: one cut for two different scales, on a day …
-§30       5533-5613  The Lab's comparison tile scored the plan on the one thi…
-§31       5615-5796  What history can plot, and what it cannot (2026-08-07)
-§32       5798-5862  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       5864-5966  A plan reads only the logs that precede it (2026-08-08)
+§12       2611-2748  Plan-adherence audit (2026-07-23)
+  §12.1   2652-2748  Per-day fit snapshots (2026-08-03)
+§13       2750-3143  Math review, 2026-07-26
+  §13.1   2767-2802  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2804-2876  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2878-2943  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2945-2981  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2983-3020  Also in this change
+  §13.6   3022-3143  The two end-of-day energy readings: a timing difference,…
+§14       3145-3805  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3338-3474  Five corrections to the first cut (2026-07-28)
+  §14.2   3476-3619  The marginal of the budget (added 2026-08-03)
+  §14.3   3621-3805  The price of the switch cost (added 2026-08-04)
+§15       3807-3954  Two objectives, two modes (2026-07-29)
+  §15.1   3882-3954  The copy named the wrong objective for both modes (2026-…
+§16       3956-4043  Run order stays a heuristic (2026-07-29)
+§17       4045-4203  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4205-4273  Drain logs are one row per SESSION, not per task-day (20…
+§19       4275-4439  The gain's naive baseline paid for switches it never mad…
+  §19.1   4287-4346  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4348-4376  Defect 2 — the displayed number moved with the order of …
+  §19.3   4378-4416  What this costs, and the one guarantee that weakened
+  §19.4   4418-4439  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4441-4503  Human Capacity: the reading is the constraint, but it na…
+  §20.1   4482-4503  The tie went to cognitive, so the row blamed the wrong p…
+§21       4505-4665  What the gain has room to report (2026-08-07)
+  §21.1   4527-4545  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4547-4570  Why shape has a low ceiling: the activation bonus
+  §21.3   4572-4592  Population distribution
+  §21.4   4594-4619  The number is a property of the comparison, not of the o…
+  §21.5   4621-4636  Under the total-output objective the ranking inverts
+  §21.6   4638-4665  Correction: on an ordinary day it is FLOW that binds, no…
+§22       4667-4728  Task nature: an absolute gap could not carry a range tha…
+§23       4730-4872  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   4771-4838  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   4840-4872  Longest Warm-Up: what E/β was actually tracking
+§24       4874-4937  Task Variety counted labels, and its repair was Energy B…
+§25       4939-5086  Cognitive and Physical Load: the definition, and what ro…
+§26       5088-5194  Deep Work: a step that swung whole blocks, under a band …
+§27       5196-5313  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5315-5369  Which four readings are headlines (2026-08-07)
+§29       5371-5544  Day Profile: one cut for two different scales, on a day …
+§30       5546-5626  The Lab's comparison tile scored the plan on the one thi…
+§31       5628-5809  What history can plot, and what it cannot (2026-08-07)
+§32       5811-5875  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       5877-5994  A plan reads only the logs that precede it (2026-08-08)
 ```
 
 <!-- section-index:end -->
@@ -2707,10 +2707,23 @@ accepted cost is that the correction only accrues forward from 2026-08-03.
 
 **Known approximations (deliberate).** Partial logging under-counts a
 task's true share exactly as it under-counts W in §8.10 — the audit is for
-users who log consistently. A day's snapshot is stamped whenever the user opened
-analytics that day, so it is the fit as of that moment rather than as of the
-morning they planned; and it necessarily includes that day's own logs, so the
-fit is not strictly prior to the behaviour being scored.
+users who log consistently.
+
+~~A day's snapshot is stamped whenever the user opened analytics that day, so it
+is the fit as of that moment rather than as of the morning they planned; and it
+necessarily includes that day's own logs, so the fit is not strictly prior to the
+behaviour being scored.~~ **Closed 2026-08-08 by §33**: `fitFrom` reads only logs
+dated strictly before the day it is asked for, so a snapshot for day D is a pure
+function of the logs preceding D. Both halves go together — the fit no longer
+depends on _when_ the user opened analytics (the same logs produce the same
+snapshot at any hour), and it is now strictly prior to the behaviour it scores.
+The energy fits behind the snapshot are filtered on the same rule, so the card's
+α and r agree with the dashboard's rather than running a day ahead of them.
+
+The remaining approximation is the **fallback**, not the snapshot: a finished day
+with no stored fit — before the store existed, or a day the user never opened
+analytics on — is still read through the live fit. Refitting it instead is the
+per-day cost rejected above, which is the whole reason snapshots are stored.
 
 **UI.** Analytics page, "Plan adherence" card: mean overlap per planner,
 the three spreads, and a verdict line (energy vs classic vs tie at a ±0.05
@@ -5940,13 +5953,19 @@ of a fit that already runs once per viewed day. §12.1 rejected recomputation at
 `O(auditDays × logVolume)`, but that was the cost of refitting **every audited
 day**; one day costs one fit.
 
-**What this does not do.** `session-history.ts` still applies one whole-history
-fit across a whole range of day summaries, so the calendar and analytics screens
-are not yet causal — the fix there is to read the `fitSnapshots` §12.1 already
-stores rather than to refit per day, and it is deliberately left for its own
-change. This section closes the live-plan half of §12.1's known approximation
-("it necessarily includes that day's own logs, so the fit is not strictly prior
-to the behaviour being scored"); the snapshot half stands.
+**History reads each day's own fit, never one fit spread across a range.**
+`readDaySummaries` used to apply a single whole-history fit to every day the
+calendar and analytics screens show, which is the same defect at the scale of the
+user's whole history: one ⚡ logged this afternoon silently moved the completion
+rate of a day finished in March. Each day is now scored under the fit
+**recorded** on it (§12.1's `fitSnapshots`), which is a read rather than a refit —
+the `O(days × logVolume)` recomputation §12.1 rejected is exactly why those
+snapshots are stored. `fitFrom` carries the causal window, so the same change
+makes the analytics "Your model" card, its energy fits, and the snapshot written
+each day all read logs strictly before their date. §12.1's known-approximation
+paragraph is closed by this; what survives is the **fallback** — a day with no
+stored snapshot is still read through the live fit, per day, and refitting it is
+the cost that was rejected.
 
 **The copy has to follow, or the rule reads as a broken button.** The budget
 bar's model line counts the logs the fit **used**, never the raw row count, and
@@ -5954,7 +5973,10 @@ names the deferred ones separately: "1 ⚡ logged today — it re-times your mod
 from tomorrow, so today's plan holds". On a day where nothing has been counted
 yet that sentence replaces the "log ⚡ to start personalizing" prompt rather
 than joining it, which would otherwise ask the user to do the thing they just
-did.
+did. The analytics "Your model" card owes the same: Σw is what the fit read, so
+today's rows are named beside it ("3.5 ⚡ logs, recency-weighted · 2 logged
+today, counted from tomorrow") rather than folded into a count that would then
+overstate what moved the fit.
 
 ### Pinned in the suite
 
@@ -5964,3 +5986,9 @@ constants untouched while the same log dated a day earlier moves them, and
 same for the 🪫/☕ fits, with the §11.9 carry-over still reading yesterday's
 drain. `day-constraints-bar.stories.svelte`: the deferred-log line visible while
 collapsed, and the counted total excluding it.
+
+`session-history.test.ts`: a report dated on the log's own day reads none of it
+and reports it pending, while the next day's does; and `readDaySummaries` moves
+only the day that has a snapshot, leaving the day without one on the live fit.
+`calibration-descriptor.test.ts`: the ϕ row naming the deferred logs beside Σw
+rather than adding them to it.

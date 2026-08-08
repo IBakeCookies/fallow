@@ -325,6 +325,7 @@
 	"ana_model_drain_phys": "Entleerungsrate (körperlich)",
 	"ana_model_stop": "Freizeitwert",
 	"ana_model_note_flow": "Standard {value} · {count} ⚡-Logs, nach Aktualität gewichtet",
+	"ana_model_note_flow_pending": "Standard {value} · {count} ⚡-Logs, nach Aktualität gewichtet · {pending} heute erfasst, zählen ab morgen",
 	"ana_model_note_ratings": "Standard {value} · {count} Bewertungen",
 	"ana_model_note_days": "Standard {value} · {count} Tage",
 	"ana_model_trend_aria": "{label} über die letzten {count} erfassten Tage: {from} bis {to}",

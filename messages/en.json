@@ -325,6 +325,7 @@
 	"ana_model_drain_phys": "Physical drain rate",
 	"ana_model_stop": "Free-time value",
 	"ana_model_note_flow": "default {value} · {count} ⚡ logs, recency-weighted",
+	"ana_model_note_flow_pending": "default {value} · {count} ⚡ logs, recency-weighted · {pending} logged today, counted from tomorrow",
 	"ana_model_note_ratings": "default {value} · {count} ratings",
 	"ana_model_note_days": "default {value} · {count} days",
 	"ana_model_trend_aria": "{label} over the last {count} recorded days: {from} to {to}",

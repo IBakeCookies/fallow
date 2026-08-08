@@ -652,9 +652,10 @@ force). Do not change these without reading the derivation first.
   today's logs immediately, because a gauge of the present that ignored them
   would lie. `ageDays` runs against the planned day, not the live one. Any UI
   that prints a log count must print the **counted** one and name the deferred
-  ones separately, or the ⚡ button reads as broken. Not yet true of
-  `session-history.ts`, which still applies one whole-history fit across a day
-  range — the fix there is to read §12.1's stored `fitSnapshots`, not to refit.
+  ones separately, or the ⚡ button reads as broken. History obeys the same rule
+  by **reading** §12.1's stored `fitSnapshots` per day rather than refitting:
+  `readDaySummaries` scores each day under the fit recorded on it, and falls back
+  to the live fit only for a day that has none.
 - Three constraints: the time budget plus cognitive/physical capacity pools
   (task weight = dimension difficulty / 10). Context switches cost
   `switchCost` hours — attention residue, distinct from ramp-up, which ϕ
