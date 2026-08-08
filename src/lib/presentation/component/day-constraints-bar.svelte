@@ -15,6 +15,10 @@
 		/** whether the personalized ϕ fit was accepted (implausible fits are not) */
 		constantsFitted: boolean;
 		flowLogs?: Persisted<FlowObservationRecord>[];
+		/** How many of `flowLogs` are dated on or after the planned day, so no fit
+		 *  has counted them yet (MATH.md §33). The status line must not quote the
+		 *  raw total against a fit that read fewer. */
+		pendingFlowLogs?: number;
 		/** whether the viewed day's tasks can be ⚡-logged at all — false off today,
 		 *  where the prompt would point at a button no task renders */
 		canLogFlow?: boolean;
@@ -38,6 +42,7 @@
 		planSlackHours,
 		constantsFitted,
 		flowLogs = [],
+		pendingFlowLogs = 0,
 		canLogFlow = true,
 		ondeletelog,
 		onresetlogs,
@@ -89,27 +94,57 @@
 		].join(' · '),
 	);
 
-	const modelStatus = $derived(
+	// What the fit actually read. Every sentence below counts these, never
+	// `flowLogs.length` — a log made today is on the page but not in the plan
+	// (MATH.md §33), and quoting it as though it were is the dishonesty the rule
+	// exists to remove.
+	const countedLogs = $derived(flowLogs.length - pendingFlowLogs);
+
+	const fitStatus = $derived(
 		constantsFitted
-			? flowLogs.length === 1
+			? countedLogs === 1
 				? m.model_status_personalized_one()
 				: m.model_status_personalized({
-						count: flowLogs.length,
+						count: countedLogs,
 					})
-			: flowLogs.length > 0
-				? flowLogs.length === 1
+			: countedLogs > 0
+				? countedLogs === 1
 					? m.model_status_implausible_one()
 					: m.model_status_implausible({
-							count: flowLogs.length,
+							count: countedLogs,
 						})
 				: m.model_status_default(),
 	);
 
-	// Two model states earn a line while collapsed: a rejected fit (a mistyped log to
-	// go fix) and no logs at all — `model_status_default` is the only sentence in the
-	// app that says ⚡ exists. A healthy fit is reassurance and stays inside; a future
-	// day gets neither, since no task there offers a ⚡ button.
-	const modelWarning = $derived(!constantsFitted && flowLogs.length > 0);
+	// The logs made today, named separately — a plan that ignores a measurement the
+	// user just made owes them the reason, or the ⚡ button reads as broken.
+	const pendingStatus = $derived(
+		pendingFlowLogs === 1
+			? m.model_status_pending_one()
+			: m.model_status_pending({
+					count: pendingFlowLogs,
+				}),
+	);
+
+	// Deferred logs are the WHOLE story on a day nothing has been counted yet:
+	// `model_status_default` would otherwise tell the user to go log the ⚡ they
+	// have just logged.
+	const modelStatus = $derived(
+		pendingFlowLogs === 0
+			? fitStatus
+			: countedLogs === 0
+				? pendingStatus
+				: `${fitStatus} · ${pendingStatus}`,
+	);
+
+	// Three model states earn a line while collapsed: a rejected fit (a mistyped log
+	// to go fix), no logs at all — `model_status_default` is the only sentence in the
+	// app that says ⚡ exists — and a log the plan has deferred, which is the one that
+	// answers "I logged that, why did nothing move?". A healthy settled fit is
+	// reassurance and stays inside; a future day gets no prompt, since no task there
+	// offers a ⚡ button.
+	const modelWarning = $derived(!constantsFitted && countedLogs > 0);
+	const modelPending = $derived(pendingFlowLogs > 0);
 	const modelPrompt = $derived(canLogFlow && flowLogs.length === 0);
 
 	function updateSwitchCost(minutes: number) {
@@ -137,7 +172,7 @@
 		</span>
 	</button>
 
-	{#if !open && (modelWarning || modelPrompt)}
+	{#if !open && (modelWarning || modelPending || modelPrompt)}
 		<p class={cn('mt-text-2xs text-xs', modelWarning ? 'text-warning-strong' : 'text-ty-silent')}>
 			{modelStatus}
 		</p>

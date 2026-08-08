@@ -32,7 +32,7 @@ down, and it is why §2's concavity property reads the way it does.
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
 The whole document is ~64k tokens; the largest single section is §8 at ~13k
-(§14 is ~10k), and most of the 80 rows below are under 2k. Ranges shift
+(§14 is ~10k), and most of the 84 rows below are under 2k. Ranges shift
 whenever a section is inserted, and the table has alignment and truncation rules
 that are not evident from reading it — so never retype a row, regenerate:
 
@@ -41,86 +41,90 @@ that are not evident from reading it — so never retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0          128-147  Objective
-§1          149-174  Inputs and parameter mappings (unchanged from the articl…
-§2          176-292  Productivity curve — v2 change
-§3          294-340  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          342-440  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          442-765  Personalization — v2 change: full Bayesian posterior
-  §5.2      491-576  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      578-765  Posterior-aware allocation (added 2026-07-18)
-§6          767-779  Summary of v1 → v2 changes
-§7          781-812  Known approximations and deliberate non-changes
-§8         814-1746  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      832-857  Intermittent-rest recovery correction
-  §8.2      859-879  Warm-up carryover instead of binary reset
-  §8.3      881-918  Verified consequences and an open calibration question
-  §8.4     920-1021  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1023-1082  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1084-1143  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1145-1275  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1277-1338  45-minute plan granularity (added 2026-07-18)
-  §8.9    1340-1414  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1416-1623  Stopping-value calibration from observed stop times (add…
-  §8.11   1625-1746  Live stop advisor — §8.10 run forward mid-day (added 202…
-§9        1748-1795  References
-§10       1797-1883  Revision log (doc-only corrections)
-§11       1885-2344  Metric-layer corrections (2026-07-18)
-  §11.1   1887-1901  Scope and principle
-  §11.2   1903-1927  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   1929-1956  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   1958-2015  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2017-2032  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2034-2144  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2146-2170  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2172-2215  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2217-2275  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2277-2344  Grind Density: the share of the work the day actually fu…
-§12       2346-2470  Plan-adherence audit (2026-07-23)
-  §12.1   2387-2470  Per-day fit snapshots (2026-08-03)
-§13       2472-2865  Math review, 2026-07-26
-  §13.1   2489-2524  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2526-2598  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2600-2665  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2667-2703  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2705-2742  Also in this change
-  §13.6   2744-2865  The two end-of-day energy readings: a timing difference,…
-§14       2867-3526  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3059-3195  Five corrections to the first cut (2026-07-28)
-  §14.2   3197-3340  The marginal of the budget (added 2026-08-03)
-  §14.3   3342-3526  The price of the switch cost (added 2026-08-04)
-§15       3528-3675  Two objectives, two modes (2026-07-29)
-  §15.1   3603-3675  The copy named the wrong objective for both modes (2026-…
-§16       3677-3764  Run order stays a heuristic (2026-07-29)
-§17       3766-3924  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       3926-3994  Drain logs are one row per SESSION, not per task-day (20…
-§19       3996-4160  The gain's naive baseline paid for switches it never mad…
-  §19.1   4008-4067  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4069-4097  Defect 2 — the displayed number moved with the order of …
-  §19.3   4099-4137  What this costs, and the one guarantee that weakened
-  §19.4   4139-4160  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4162-4224  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4203-4224  The tie went to cognitive, so the row blamed the wrong p…
-§21       4226-4386  What the gain has room to report (2026-08-07)
-  §21.1   4248-4266  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4268-4291  Why shape has a low ceiling: the activation bonus
-  §21.3   4293-4313  Population distribution
-  §21.4   4315-4340  The number is a property of the comparison, not of the o…
-  §21.5   4342-4357  Under the total-output objective the ranking inverts
-  §21.6   4359-4386  Correction: on an ordinary day it is FLOW that binds, no…
-§22       4388-4449  Task nature: an absolute gap could not carry a range tha…
-§23       4451-4593  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   4492-4559  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   4561-4593  Longest Warm-Up: what E/β was actually tracking
-§24       4595-4658  Task Variety counted labels, and its repair was Energy B…
-§25       4660-4762  Cognitive and Physical Load: the definition, and what ro…
-§26       4764-4870  Deep Work: a step that swung whole blocks, under a band …
-§27       4872-4989  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       4991-5045  Which four readings are headlines (2026-08-07)
-§29       5047-5220  Day Profile: one cut for two different scales, on a day …
-§30       5222-5302  The Lab's comparison tile scored the plan on the one thi…
-§31       5304-5485  What history can plot, and what it cannot (2026-08-07)
-§32       5487-5551  Two gates that read a sentinel as a verdict (2026-08-08)
+§0          132-151  Objective
+§1          153-178  Inputs and parameter mappings (unchanged from the articl…
+§2          180-296  Productivity curve — v2 change
+§3          298-344  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          346-444  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          446-769  Personalization — v2 change: full Bayesian posterior
+  §5.2      495-580  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      582-769  Posterior-aware allocation (added 2026-07-18)
+§6          771-783  Summary of v1 → v2 changes
+§7          785-816  Known approximations and deliberate non-changes
+§8         818-1943  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      836-861  Intermittent-rest recovery correction
+  §8.2      863-883  Warm-up carryover instead of binary reset
+  §8.3      885-922  Verified consequences and an open calibration question
+  §8.4     924-1025  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1027-1086  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1088-1147  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1149-1279  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1281-1342  45-minute plan granularity (added 2026-07-18)
+  §8.9    1344-1418  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1420-1627  Stopping-value calibration from observed stop times (add…
+  §8.11   1629-1750  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   1752-1943  The budget curve — what the day's LENGTH is worth (added…
+§9        1945-1992  References
+§10       1994-2080  Revision log (doc-only corrections)
+§11       2082-2610  Metric-layer corrections (2026-07-18)
+  §11.1   2084-2098  Scope and principle
+  §11.2   2100-2124  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2126-2153  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2155-2212  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2214-2229  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2231-2341  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2343-2367  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2369-2412  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2414-2472  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2474-2544  Grind Density: the share of the work the day actually fu…
+  §11.11  2546-2610  Grind Density is a row, not an objective (2026-08-08)
+§12       2612-2749  Plan-adherence audit (2026-07-23)
+  §12.1   2653-2749  Per-day fit snapshots (2026-08-03)
+§13       2751-3144  Math review, 2026-07-26
+  §13.1   2768-2803  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2805-2877  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2879-2944  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   2946-2982  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   2984-3021  Also in this change
+  §13.6   3023-3144  The two end-of-day energy readings: a timing difference,…
+§14       3146-3872  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3342-3478  Five corrections to the first cut (2026-07-28)
+  §14.2   3480-3623  The marginal of the budget (added 2026-08-03)
+  §14.3   3625-3809  The price of the switch cost (added 2026-08-04)
+  §14.4   3811-3872  An empty frontier is a reading (2026-08-08)
+§15       3874-4021  Two objectives, two modes (2026-07-29)
+  §15.1   3949-4021  The copy named the wrong objective for both modes (2026-…
+§16       4023-4110  Run order stays a heuristic (2026-07-29)
+§17       4112-4270  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4272-4340  Drain logs are one row per SESSION, not per task-day (20…
+§19       4342-4506  The gain's naive baseline paid for switches it never mad…
+  §19.1   4354-4413  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4415-4443  Defect 2 — the displayed number moved with the order of …
+  §19.3   4445-4483  What this costs, and the one guarantee that weakened
+  §19.4   4485-4506  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4508-4570  Human Capacity: the reading is the constraint, but it na…
+  §20.1   4549-4570  The tie went to cognitive, so the row blamed the wrong p…
+§21       4572-4732  What the gain has room to report (2026-08-07)
+  §21.1   4594-4612  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4614-4637  Why shape has a low ceiling: the activation bonus
+  §21.3   4639-4659  Population distribution
+  §21.4   4661-4686  The number is a property of the comparison, not of the o…
+  §21.5   4688-4703  Under the total-output objective the ranking inverts
+  §21.6   4705-4732  Correction: on an ordinary day it is FLOW that binds, no…
+§22       4734-4795  Task nature: an absolute gap could not carry a range tha…
+§23       4797-4939  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   4838-4905  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   4907-4939  Longest Warm-Up: what E/β was actually tracking
+§24       4941-5004  Task Variety counted labels, and its repair was Energy B…
+§25       5006-5153  Cognitive and Physical Load: the definition, and what ro…
+§26       5155-5261  Deep Work: a step that swung whole blocks, under a band …
+§27       5263-5380  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5382-5436  Which four readings are headlines (2026-08-07)
+§29       5438-5611  Day Profile: one cut for two different scales, on a day …
+§30       5613-5693  The Lab's comparison tile scored the plan on the one thi…
+§31       5695-5876  What history can plot, and what it cannot (2026-08-07)
+§32       5878-5942  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       5944-6061  A plan reads only the logs that precede it (2026-08-08)
 ```
 
 <!-- section-index:end -->
@@ -1745,6 +1749,199 @@ untouched — its bracket stays one-step, because discrete stationarity of an
 observed stop is a statement about the marginal step, not about hypothetical
 sessions.
 
+### 8.12 The budget curve — what the day's LENGTH is worth (added 2026-08-08)
+
+**The question.** Every other model input is a measurement of the user (§14
+rules `switchCost` and the pools out of the lever set for exactly this reason).
+The day window is not: it is the one number that is a choice about _today_, and
+`/energy` had no instrument for it at all — the Lab prices when to stop within a
+given window (§8.11) and never how long the window should be.
+
+**Two obvious objectives, both ill-posed.** Measured before building anything
+(`scripts/budget-advisor.probe.ts`, 120 seeded days, 2–6 tasks, budget
+0.75–14 h at 0.25 h):
+
+- **Maximizing `valueVsClassic` (§30) picks a median 2.25 h day** (p10 1.5, p90
+  3.25, max 5.25) — and taking it costs a **median 59%** of the day's own net
+  value (p10 46%, p90 68%). The argmax is a property of the **rival**, not of
+  the day: the classic allocator reserves `(m−1)·switchCost` out of the budget
+  and spreads across tasks, so a tiny window is where it is worst and the ratio
+  peaks there. This is §21.4's warning arriving on the other mode.
+- **Maximizing `objective` picks the top of the range on 99% of days.** It pays
+  λ₀ for every free hour _inside_ the window, so it rises with the window
+  whatever the day contains. This is the same monotonicity that keeps §14's
+  `budget + 1` lever deliberately **unpriced** (`isPriced` in `plan-advice.ts`);
+  the Lab differs only in having a λ₀ to charge against.
+
+**The definition that shipped.** One `optimizeSchedule` per budget on the §8.8
+lattice, each plan re-scored on a **common horizon** `W = maxBudgetHours`:
+
+```text
+dayValue(0) = evaluateSchedule([], tasks, W, params).objective        -- the do-nothing day
+dayValue(b) = runningMax over 0 ≤ b' ≤ b of
+              evaluateSchedule(plan(b').blocks, tasks, W, params).objective
+valuePerHour(b) = slope at b of the concave majorant of dayValue over {0, step, …, W}
+recommendedHours = smallest b > 0 maximizing dayValue, or null when that is W,
+                   or null when no b beats dayValue(0)
+```
+
+The common horizon is the whole trick, and it changes no formula: on one
+horizon the free-time term is `λ₀·(W − work)` — a constant, minus λ₀ per hour of
+**work** — so an hour left free inside the window and the same hour outside it
+are worth the same and cancel, leaving only committed work charged. The
+terminal term is likewise read at the same clock time for every budget. It is
+`objective` throughout, which is what keeps this clear of §30's mistake:
+nothing is scored on a field the optimizer was not aiming at.
+
+**Everything is read against the do-nothing day,** `dayValue(0)`: the same score
+on the same horizon with an empty schedule. It costs no solve — at budget 0 the
+plan is empty by definition — and it buys the two things the sweep cannot state
+without it. The shortest window swept gets a real marginal instead of a zero
+standing in for a missing predecessor; and "no budget is worth working" becomes
+expressible, where a sweep starting at `step` has to invent an answer. The first
+cut seeded the running max at `−∞`, so the first budget always "rose" and the
+knee fell back to `step` whenever nothing later did: on a day the model declines
+to work at any length — reachable from λ₀ ≈ 1 up, inside the 0–3 slider and
+inside §8.10's fit range — the card recommended a **45-minute day booking 0 h of
+work**, under copy saying an hour past it adds nothing. Those days are counted at
+each λ₀ in `scripts/curve-shape.probe.ts`: **0/60** at λ₀ ≤ 0.75, **9/60** at 1,
+**29/60** at 1.25, **57/60** at 1.5, **60/60** at 2 and 3 — every one of them a
+bogus recommendation before the fix. Caught in review; the baseline is the fix,
+and the second null below is what it makes sayable.
+
+**`valuePerHour` is therefore NET of λ₀, and its break-even is zero.** The
+free-time term above is already inside `dayValue`, so the free time an extra hour
+of window costs is charged before the difference is taken. Break-even is `0` — the
+card plots it against a **zero** baseline and reports λ₀ as a price in words.
+Reading this curve against a λ₀ **line** would charge λ₀ twice, and the error is
+not cosmetic: on the shipped e2e day (one task at the form defaults, λ₀ = 0.5,
+12 h cap) the curve passes 0.5 at **3 h** while the day's value goes on rising to
+**8.25 h** — a λ₀ line would have marked a window 5¼ hours short of the one the
+model recommends, and on a default two-task day it would have drawn the curve
+below the line at 13 of 16 points beside copy saying it never got there. The
+first cut of this card did exactly that; caught in review before it shipped.
+
+**Why the marginal is a hull slope and not a step difference.** `plan(b)` books
+whole §8.8 steps, so `dayValue` is a **staircase**: a 45-minute step of window
+either does or does not seat another block, and between the two it is flat. Its
+raw difference is therefore a spike train, not a marginal — it returns to zero
+wherever a step failed to seat work and then climbs back out. Measured on the
+raw definition over 60 seeded days at the defaults and the shipped 12 h cap
+(`scripts/curve-shape.probe.ts`, which reconstructs the raw difference from
+`dayValue` so both arms stay re-runnable): **0 of 60 days fell monotonically**,
+**34 of 60 returned above zero after touching it**, up to **11 zero-touches on
+one day**, and on **7 of the 8** days with a recommendation the first zero landed
+1–13 steps **before** it — as much as 9¾ h early. The first cut plotted that
+spike train under copy promising a falling curve whose zero is the answer.
+
+`valuePerHour` is instead the slope of the **concave majorant** of `dayValue` —
+the least concave function lying above it at every lattice point, computed as a
+monotone-chain upper hull in `concaveMajorantSlopes`. The raw difference answers
+"did _this_ 45 minutes happen to seat a block", which is a question about the
+lattice; the hull slope answers the one the card asks — over the stretch of
+window the lattice needed in order to seat more work, what did an hour buy on
+average. Formally it is the standard concavification: the majorant is the value
+of the best **mixture** of day lengths averaging `b`, which is the right object
+when the reader is choosing a habitual window rather than a single day.
+
+Three properties follow, and the card's copy rests on all three (pinned in
+`zenith-energy.test.ts`, re-measured over the same 60 days):
+
+- **Non-increasing** by construction — 60/60 days, so "it never rises as the
+  window grows" is now a true sentence.
+- **The last budget still above zero is exactly `recommendedHours`** — 8/8 days
+  with a recommendation, and the first zero is `recommendedHours + step` on all
+  of them. Note it is _not_ zero **at** the knee: `knee` is set only where the
+  running max rose, so `valuePerHour(recommendedHours) > 0` always. This is where
+  the do-nothing baseline earns itself a second time — hulled from `step` instead,
+  the first swept budget has no predecessor and its slope is a forced 0, so a knee
+  landing there would break the invariant on a day that is otherwise perfectly
+  well-posed. The copy therefore names the last positive step, never "where it
+  reaches zero".
+- **It invents nothing.** The slopes telescope to `dayValue(last) − dayValue(0)`
+  to 1.8e-15 — the hull only redistributes gain across the steps the block
+  lattice lumped it into.
+
+**Why not `objective − λ₀·budget`,** the same idea applied to each point's own
+window: the terminal term is valued after the trailing implicit rest, so a
+longer window recovers more reservoir before it is priced and the reading climbs
+on days that got no better (§13.6). Measured, that artifact pins the knee at the
+top of the range on **every one of 40 days until λ₀ = 1.25**
+(`scripts/budget-knee.probe.ts`, `kneeA`). Pricing the terminal term at
+`workEnd*` instead (`kneeB`) removes it but _is_ the §30 mistake — the optimizer
+never saw that field. The common horizon gets the same behaviour honestly:
+`kneeC` is interior on 3/40 days at λ₀ 0.5, 11/40 at 0.75, 25/40 at 1.0, 37/40
+at 1.25, 40/40 at 1.5.
+
+**Why the running max.** The true optimum is monotone in the budget — every plan
+feasible at `b` is feasible at `b + ε` — but `plan(b)` maximizes `objective` at
+its OWN window rather than this score, so the sweep is not a sup over a nested
+family and can dip. The two criteria differ only by the trailing-recovery term
+(§13.6: 0.034/h against λ₀'s 0.5/h), which bounds the disagreement in practice:
+**22 of 5040 swept steps dip (0.4%), worst 0.12 absolute / 0.97% relative**.
+Same argument and same direction as §14.2's floor — it only ever hides a value
+the model rules out.
+
+**The recommendation is usually absent, and that is the reading.** The model's
+gross value of one more hour of day is **1.23 / 1.01 / 0.76** output-per-hour at
+a 3 h / 6 h / 9 h day (λ₀ = 0, so this is the work side alone). It declines
+slowly, and the whole flip from "work all day" to "barely work" happens between
+λ₀ **0.75 and 1.0**. At the **default λ₀ = 0.5** the knee sits at the top of the
+range on **37 of those 40 days** — but that is a property of the draw, not of the
+default, and in two ways. Those days carry 2–6 tasks, and satiety is per-task
+(§8.4), so there is always another fresh task to move to; a **one-task** day
+satiates and does reach break-even, at 8 h 15 m on the shipped e2e fixture. The
+probe also swept to 14.25 h, above the shipped 12 h cap, so 37/40 understates how
+often the product returns null (a lower cap can only produce more of them) — the
+direction is conservative but the two numbers are not the same measurement. Both
+branches are reachable at the default; the multi-task one is simply the common
+one. A null is not a failure to report: it says the model would use every hour
+offered, because free time is priced at a default the user has not corrected.
+The card says so and names the §8.10 stopping calibration, which fits λ₀ from
+how the user's own days actually end — so the one parameter that sets day length
+is also the one the Lab already knows how to learn.
+
+**Two nulls, opposite readings.** `recommendedHours === null` is either "the sweep
+ran out before the model did" or "no window was worth working at this λ₀", and the
+copy for one is the exact inverse of the truth for the other — "it would use every
+hour you give it" is precisely wrong on a day the model declines to work at all.
+The curve tells them apart without a second field: the second books **zero work at
+every budget**, so its whole `valuePerHour` series sits at 0. The card branches on
+that and the chart drops the "the last window above zero is the suggested one"
+clause from its `aria-label` on both nulls, since on neither is there a suggested
+window to find. The second branch is not a corner case: it is the λ₀ ≥ 1.5 end of
+§8.3's ladder (12 h → 11.25 → 10.5 → 6 → 4.5 → **0**), reachable from the slider
+and from §8.10's fit, and "don't work today" is a real answer at that price.
+
+**Does it contradict the stop advisor (§8.11)?** They sit on the same page and
+price different marginals — the advisor asks what WORKING the next session is
+worth with the window held fixed, the curve asks what LENGTHENING the window is
+worth with the optimizer free to re-solve — so the two could disagree in
+principle. Measured on the day that raised the question (one task P0/M8/E9, 6 h
+window, λ₀ = 1.2, `scripts/advisor-curve-agreement.probe.ts`) they land on the
+same hour: the curve recommends **3 h**, and the advisor flips from continue to
+stop at exactly **3 h logged** (2.25 h at 1.4495/h against λ₀ = 1.2, then 0.75 h
+at 1.1615/h). The agreement is not forced by construction — it is what §8.11's
+λ₀ break-even and §8.12's zero break-even both being net of the same λ₀ buys.
+
+**`BUDGET_CURVE_MAX_HOURS = 12`** caps the sweep. A knee beyond it is reported
+as no recommendation rather than as 12 h — the sweep ran out before the model
+did, which is a different statement — and the copy names the cap it checked, so
+the bound is never silent (AGENTS.md §4). The same rule covers the reader's own
+window when it sits _above_ the cap: the chart cannot draw its locator there, and
+clamping it to the right edge would claim it stands at 12 h, so the legend names
+the window and the cap in words instead of quietly dropping the marker.
+
+**Cost.** 16 solves at the default cap, ~40 ms each on a small day — the
+do-nothing point makes 17 budgets, not 17 solves. It therefore lives behind an
+explicit click in `EnergyLabStore.computeBudgetCurve`, on
+`suggestPlanAdjustments`' on-demand contract, and is deliberately **not** a
+`$derived`. Its staleness fingerprint omits the budget on purpose: the curve is
+a statement about _every_ budget, so dragging the window must not grey out the
+card that exists to inform that drag. It omits the task **titles** for the
+narrower reason that the sweep never reads them and no field of `BudgetCurve`
+carries one, so a rename would otherwise grey out a bit-identical curve.
+
 ## 9. References
 
 - Fox, B. L. (1966). _Discrete optimization via marginal analysis._
@@ -2292,9 +2489,12 @@ by `calculateSuggestedTasks`).
   disagreed with the funded-only reading, **68 of those in a different band**;
   worst case it read **75%** where the work the user would actually do reads
   **0%** (`m/p/e 8/1/4 5/2/3 4/3/7 2/9/2 | 0.75h`). The advisor made that
-  concrete: over the same days it offered **79** grind-density options whose
-  lever was "defer a task the plan funds 0 h" — the identical day's work at a
-  better number, priced at Σ P̄ cost **0.00%**. After the fix: **0**. (§14 keeps
+  concrete, measured once against the pre-retirement advisor and not re-runnable
+  now that §11.11 has retired the axis: over the same days it offered **79**
+  grind-density options whose lever was "defer a task the plan funds 0 h" — the
+  identical day's work at a better number, priced at Σ P̄ cost **0.00%**. After
+  the fix: **0**. The probe's question 3 still measures the reading arm (the
+  91/600, 80 and 68 above), which is what remains reproducible. (§14 keeps
   unfunded tasks as defer candidates on purpose — they move Time Scarcity, whose
   Σϕ runs over the whole list, and the Day Profile averages. This axis simply
   should not have been one of them.)
@@ -2342,6 +2542,72 @@ with eight other axes.
   (Task Variety did not, §24). Kept for now because the unit is the part users
   act on — you defer a task, not an hour — and because the fix above was to the
   formula, not to the dashboard's inventory.
+
+### 11.11 Grind Density is a row, not an objective (2026-08-08)
+
+§11.10 left one question open — does the count earn its place beside the
+hour-weighted reading of the same predicate — and answered only the half about
+the formula. The other half is that the count was also one of §14's nine advice
+axes, and that is where being unweighted has a price. Measured over the same 600
+seeded days (`scripts/mtr-grind-density.probe.ts`, question 6).
+
+**The reading and its hour-weighted twin disagree more than §11.10's −0.9480
+suggests.** That is a rank correlation: the two orderings agree, the levels do
+not. Writing `H` for the same predicate weighted by allocated hours,
+`Σ_{grind} h / Σ h`:
+
+- `|count − H|` runs p50 **3pp**, p90 **16pp**, max **43pp**; exact agreement on
+  **250/600** days, count over-stating on 155 and under-stating on 195.
+- **153/600** days fall in a different `AXIS_BAND` band under the two.
+- Worst: `m/p/e 0/0/2 1/9/1 | 4h` reads **50% (1/2), neutral** on the count and
+  **93%, critical** on hours — one trivial task tied 1–1 against a physical slog
+  that eats the day.
+
+**`H` is not a metric worth adding, because it is already a row.**
+`100 − RewardDensity` **is** `H`, to within **0.5pp** of rounding over all 600
+days (§27 measures the sustainable side of the same partition over the same
+hours). So "weight Grind Density by hours" is not a repair, it is a duplicate:
+it would collapse the row onto Sustainable Work and the honest follow-up would be
+a deletion, not a weighting.
+
+**What the unweighted count did as an axis.** Every lever the advisor can pull —
+defer a task, move the budget — is priced in hours through Σ P̄, so an axis
+denominated in task count buys reading with the wrong currency. Deferring the
+smallest funded grind moves the count by its full `100/m` step whatever the task
+weighs: on **107/545** days that step is more than **twice** the share of booked
+hours it gives up, worst case **20pp for 0.25 h = 2.9%** of the day's time
+(`m/p/e 5/7/9 4/1/8 3/8/10 10/4/1 8/0/4 | 14.25h`). That ratio is question 6 and
+is reproducible.
+
+What the axis then did with it was measured once, against the pre-retirement
+advisor, and cannot be re-run now that the axis is gone: over the same 600 days
+it offered **332** defer options on funded tasks, **132** of them on a task
+holding under 15% of the booked hours, including
+
+```
+−33pp  for 0.25h = 11.1% of booked time  at Σ P̄ −2.40%   m/p/e 5/10/2 4/2/9 6/7/10 | 3h
+−15pp  for 0.25h =  2.9% of booked time  at Σ P̄ −3.00%   m/p/e 5/7/9 4/1/8 3/8/10 10/4/1 8/0/4 | 14.25h
+```
+
+Not free — §11.10 closed the 0.00% arm — but mispriced: three percent of the
+day's value for a headline move of 15 to 33 points, bought by dropping three
+percent of the work. On an hour-weighted axis the same defer moves the reading
+~3pp, in proportion to what was given up. The axis was rewarding cardinality,
+and cardinality is the one thing the allocator does not optimize.
+
+**The change.** `grindDensity` leaves `ADVICE_AXES` — nine axes become eight —
+and its `read`/`badness` entry goes with it, including the `funded === 0` → `NaN`
+guard §11.10 added, which existed only to keep the empty plan from winning this
+frontier. `frictionIndex` already reads the same two inputs (`Eᵤ`, `βᵤ`)
+hour-weighted _and_ by magnitude, so the affect dimension keeps an axis; note
+`rewardDensity` never was one, so the advisor's coverage here goes from
+friction + grind to friction alone, which is the better half of the pair.
+
+The dashboard row is unchanged, `% (X/Y)` render and all. "Two of your three
+jobs are chores" is a fair description of a day, and the unit is still the one
+users act on. It is just not a thing to optimize: `AXIS_BAND` now bands one
+reading the advisor does not search on, which is why its `satisfies` widened
+from `AdviceAxis` to `AdviceAxis | 'grindDensity'`.
 
 ## 12. Plan-adherence audit (2026-07-23)
 
@@ -2442,10 +2708,23 @@ accepted cost is that the correction only accrues forward from 2026-08-03.
 
 **Known approximations (deliberate).** Partial logging under-counts a
 task's true share exactly as it under-counts W in §8.10 — the audit is for
-users who log consistently. A day's snapshot is stamped whenever the user opened
-analytics that day, so it is the fit as of that moment rather than as of the
-morning they planned; and it necessarily includes that day's own logs, so the
-fit is not strictly prior to the behaviour being scored.
+users who log consistently.
+
+~~A day's snapshot is stamped whenever the user opened analytics that day, so it
+is the fit as of that moment rather than as of the morning they planned; and it
+necessarily includes that day's own logs, so the fit is not strictly prior to the
+behaviour being scored.~~ **Closed 2026-08-08 by §33**: `fitFrom` reads only logs
+dated strictly before the day it is asked for, so a snapshot for day D is a pure
+function of the logs preceding D. Both halves go together — the fit no longer
+depends on _when_ the user opened analytics (the same logs produce the same
+snapshot at any hour), and it is now strictly prior to the behaviour it scores.
+The energy fits behind the snapshot are filtered on the same rule, so the card's
+α and r agree with the dashboard's rather than running a day ahead of them.
+
+The remaining approximation is the **fallback**, not the snapshot: a finished day
+with no stored fit — before the store existed, or a day the user never opened
+analytics on — is still read through the live fit. Refitting it instead is the
+per-day cost rejected above, which is the whole reason snapshots are stored.
 
 **UI.** Analytics page, "Plan adherence" card: mean overlap per planner,
 the three spreads, and a verdict line (energy vs classic vs tie at a ±0.05
@@ -2910,14 +3189,15 @@ plan comes back priority-sorted (the code comment says this; "to the last digit"
 here did not). So a candidate's cost is
 `ΔΣP̄ / ΣP̄` and no new quantity enters the model.
 
-**Axes and badness.** Nine readings are searchable, each with a _badness_
-function so that lower is always better:
+**Axes and badness.** Eight readings are searchable, each with a _badness_
+function so that lower is always better (nine until §11.11 retired Grind
+Density — a count of tasks under levers priced in hours):
 
-| Axis                                                                                                      | badness     |
-| --------------------------------------------------------------------------------------------------------- | ----------- |
-| Burnout Risk, Human Capacity, Cognitive Load, Physical Load, Friction Index, Grind Density, Time Scarcity | `v`         |
-| Energy Balance                                                                                            | `abs(v−50)` |
-| Schedule Integrity                                                                                        | `−v`        |
+| Axis                                                                                       | badness     |
+| ------------------------------------------------------------------------------------------ | ----------- |
+| Burnout Risk, Human Capacity, Cognitive Load, Physical Load, Friction Index, Time Scarcity | `v`         |
+| Energy Balance                                                                             | `abs(v−50)` |
+| Schedule Integrity                                                                         | `−v`        |
 
 Energy Balance is a **target** between the two pools, not a maximum — both
 80% cognitive and 80% physical are worse than 50/50, which `v` alone cannot
@@ -2941,7 +3221,10 @@ presentation policy (AGENTS.md §5) — `presentation/utils/band.ts` owns them
 (`AXIS_BAND` + `isOutOfBand`) and both the card and the metric rows consult
 them. The model is threshold-free on purpose, and answers the
 same question for every axis unconditionally: what would help this, and what
-would it cost.
+would it cost. Including when the answer is _nothing does_ — that finding is
+returned too, empty menu and all, because "no lever helps" and "nothing is
+wrong" are the same absence to a caller and only the bands tell them apart
+(§14.4).
 
 **What is returned: the per-axis Pareto frontier.** For a given axis, a
 candidate qualifies iff its badness beats the current plan's. Returning only
@@ -3524,6 +3807,69 @@ bracket edge by a median 0.34 h — all three worse than the 2026-08-04 figures,
 so the conclusion stands harder (2026-08-06,
 `scripts/adv2-switch-cost-price.probe.ts`). The diagnostic reports what the declaration does; it
 does not infer the declaration.
+
+### 14.4 An empty frontier is a reading (2026-08-08)
+
+**The day.** Every task cognitive. The dashboard reads **Energy Balance
+Cognitive Heavy 100%**, banded Caution. The advice card, on the same day, says
+_"Nothing reads badly enough to act on. This day is fine."_ Adding a single
+physical task makes the Energy Balance row appear with four options — same
+code, different day, which is what made it look intermittent.
+
+**Why the axis has nothing to offer, provably.** Energy Balance is the
+cognitive **share**, `cog / (cog + phy)` (§25), and both loads are
+`weightedHours / budget` (§11). With no physical work on the list:
+
+- **every defer ties.** `phy = 0` for every subset of a cognitive-only list, so
+  the share reads 100 whatever is dropped — until the last task goes and the
+  plan is empty, which is §14.1-5's `NaN`.
+- **every budget lever cancels.** Both loads carry the same `1 / budget`, so
+  the ratio is invariant under the budget. (The `Math.min(100, ·)` clamp on each
+  load can break that invariance in general — not here, where one side is 0.)
+
+The improvement test is `> 0` (a candidate that merely ties is not an option,
+§14.1-5), so the frontier is empty, `unpriced` is null, and the search was
+right: nothing on today's levers moves this.
+
+**The defect was the deletion.** `suggestPlanAdjustments` ended with a
+`.filter(finding => finding.options.length > 0 || finding.unpriced !== null)`,
+so an axis nothing improves left no trace in `PlanAdvice`. The card then read
+`rows.length === 0` as _every axis is in band_ and printed the clear message —
+a claim the model never made, over a warning it had reported. The card already
+guards the mirror image of this (`unfunded` is a read, not a band, so
+"this day is fine" is suppressed under it); this was the same conflation one
+case short.
+
+That filter also contradicted §14's own division of labour: the model prices
+every axis unconditionally and **the bands decide what is worth saying**
+(`presentation/utils/band.ts`, AGENTS.md §5). A model-side drop is a
+presentation decision taken where the bands are not visible — and it cannot be
+taken correctly there, because "no lever helps" and "no problem" differ only by
+a threshold the model deliberately does not have. So the filter is gone:
+`findings` now carries one entry per axis in `ADVICE_AXES` order, always, and an
+empty menu is a reading the card states in words ("No task move and no budget
+change improves this") rather than an absence it has to interpret.
+
+**What that costs: nothing.** The candidates were already solved and every
+`before` was already read; only the array got shorter. The card renders at most
+the axes `isOutOfBand` selects, exactly as before.
+
+**The one exclusion the card keeps.** A `before` that is not a finite number
+judges nothing — `readingOf` prints N/A and bands it neutral — so it earns a row
+only when there is a lever under it. Human Capacity's `Infinity` (a pool of 0
+with demand on it) qualifies: real options bring it down to a number, and that
+row is worth showing. The two `NaN` sentinels are the case this excludes, and
+`AXIS_BAND` alone would not: `getBandBiggerBetter(NaN)` is `critical`, since
+`NaN >= 25` is false, so an unfiltered Schedule Integrity would put
+"N/A · nothing improves this" on every day with no budget declared — precisely
+the alarm-about-nothing §14.1-5 and its 2026-08-07 extension introduced those
+sentinels to prevent.
+
+**Reachability.** Energy Balance is the systematic case, because it is the one
+axis invariant in the budget: every other axis has `budget + 1` as an all but
+guaranteed improver, which keeps `unpriced` non-null and the finding alive under
+the old filter too. The rest of the reachable set is days where the levers run
+out — a single-task day, or one where every task is flagged `mustDoToday`.
 
 ## 15. Two objectives, two modes (2026-07-29)
 
@@ -4761,6 +5107,51 @@ full-demand work in a 12 h day: loads 33.33/50, whose exact ratio is the boundar
 40 and whose rounded one is 39.76), and the 0.42% thin plan whose balance is 100
 and not the sentinel.
 
+### The second rounding: the WORD was coarser than the number (2026-08-08)
+
+The model now decides on the exact balance, but the card and the dashboard both
+printed it as one of three words — `energyBalanceSkew`'s 40/60 buckets. The
+advisor ranks this axis on continuous badness `|value − 50|` (§14) and keeps a
+candidate only if that badness strictly falls, so an option could be a real
+improvement and still print the row's own reading back at the reader. The same
+defect class as the ratio above, one layer further out: a display coarser than
+the decision behind it.
+
+Measured over the standard 600 seeded days
+(`adv3-advice-display-resolution.probe.ts`, seed 42, 2026-08-08 — it reads the
+strings `buildAdviceDisplay` returns and matches each back to its model option by
+lever identity):
+
+- Energy Balance is the **most frequent row on the card — 274 of 600 days, 593
+  options**, just ahead of Time Scarcity's 268/628. Not a corner.
+- **365 of those 593 options (61.6%)** printed the same word as the row above
+  them, hiding a median **1.7** and up to **39.3 points** of improvement. Worst
+  case: a lever moving the share **0.0 → 39.3**, still under the 40 cut, so both
+  sides read "Physical Heavy".
+- **0 of 803** options on every other axis lost this way. The three-word bucket
+  is the whole mechanism; whole-percent rounding is not enough to collapse one.
+
+**Suppressing the word-identical options was the wrong fix, and the probe is why.**
+It would have emptied **99 of 274** Energy Balance rows outright — deleting the
+finding, with the largest improvement the day had on the axis (median **6.2**, max
+**39.3**), on a day whose balance still reads badly.
+
+So the share is printed beside the word: `energyBalanceReading` in
+`presentation/utils/band.ts`, ONE definition for both callers (the words had been
+spelled out twice, in `metric-descriptor.ts` and `plan-advice-descriptor.ts`,
+which is how the two could have come apart). Re-measured after the change: the
+invisible options fall to **111 of 593 (18.7%)** and every one of them is
+sub-percent — median **0.0**, p90 **0.4**, **max 0.9 points**, e.g. 33.6 → 34.5
+both printing "Physical Heavy 34%". That residue is the ordinary whole-percent
+rounding every other row on the card already carries, and the rows suppression
+would empty drop from 99 to **2**, both discarding 0.0 points.
+
+Unchanged: the 40/60 cuts, the bands, and the exact value the bands read.
+
+**Pinned in the suite**: `band.test.ts` fixes the three readings and that 100 and
+61 no longer print alike; `plan-advice-descriptor.test.ts` fixes the axis's three
+rendered strings.
+
 ## 26. Deep Work: a step that swung whole blocks, under a band that rewarded the wrong day (2026-08-07)
 
 Like the Loads in §25, this row had no entry in this document — the threshold,
@@ -5549,3 +5940,122 @@ budget too small to fund one, beside the existing no-budget case.
 Unchanged: `calculateScheduleIntegrity`, `calculateFrictionIndex`,
 `countQuadrants` and `calculateDailyQuadrant` — every sentinel and every `null`
 is still what it was. This is a display-gate change on three cells.
+
+## 33. A plan reads only the logs that precede it (2026-08-08)
+
+**The behaviour.** A user with no ⚡ history plans a five-task day; the top task
+is allocated 2h30m against a predicted ϕ of 2h21m. They work it, reach flow in
+60 minutes, log that, and tick the task off. Every remaining task's ϕ roughly
+halves — 1h54m → 59m on a task they never touched — and three of the four
+surviving allocations grow. Nothing they did was about those tasks.
+
+**The mechanism, and why it is not a bug in any formula.** `fitUserConstants`
+fits c₁, c₂, c₃, which are **global**: ϕᵢ = c₁Eᵢ + c₂βᵢ + c₃ for every task. One
+log therefore re-times the whole list, and the allocator re-solves under the new
+ϕ. Every step is correct. What is wrong is only _when_ it lands.
+
+**The rule.**
+
+> A plan for day D is fitted from logs dated **strictly before** D.
+
+Same filter everywhere, three consequences:
+
+| Viewing      | D's own logs | Effect                                                  |
+| ------------ | ------------ | ------------------------------------------------------- |
+| today        | excluded     | the plan stops moving under the user mid-execution      |
+| a future day | included     | the preview already carries every log made so far       |
+| a past day   | excluded     | the day reads through the model **it** had, not today's |
+
+The third row was a second, quieter instance of the same defect: before this,
+logging one ⚡ silently changed the ϕ every past day's plan had been built from,
+and therefore every historical reading derived from it.
+
+**The timing is the whole fix; the magnitude is not the problem.** Measured on
+`scripts/causal-fit-window.probe.ts` (2026-08-08), against a bystander task
+(difficulty 4, enjoyment 3) that is never logged, re-timed only by logs on a
+different task (difficulty 5, enjoyment 2) each measuring 1h:
+
+| logs | ϕ(bystander) | vs the 90.8 min default |
+| ---: | -----------: | ----------------------: |
+|    1 |     60.8 min |                 −33.0 % |
+|    2 |     55.8 min |                 −38.5 % |
+|    3 |     53.7 min |                 −40.8 % |
+|    5 |     51.9 min |                 −42.9 % |
+|    8 |     50.8 min |                 −44.1 % |
+
+The **first log alone accounts for 75 %** of the whole eight-log move, and it
+moves tasks the user never logged: at one log, difficulty 1/enjoyment 5 goes
+42.8 → 24.5 min (−42.6 %), 3/3 goes 75.9 → 50.1 (−34.0 %), 5/1 goes 108.9 → 75.6
+(−30.6 %). That is the size of jump this section relocates. It does **not**
+shrink it, and deliberately so: a plan changing at the moment it is made is what
+making a plan means, and a plan changing while it is being executed is a broken
+promise. The same 33 % arrives either way; only one of the two moments can
+absorb it.
+
+Deferring by a day costs essentially nothing in fit quality, which is what makes
+the relocation free rather than a trade: under §5.2's H = 365 d half-life, the
+same log at age 1 d instead of age 0 d moves the prediction by **0.016 min**
+against a 30.0 min jump — three parts in ten thousand. Recency is not the
+mechanism here and the causal window does not fight it.
+
+**Scope: identity, never state.** A log does two jobs, and only one of them is
+deferred.
+
+- **Identity** — c₁c₂c₃ (§5), α and r (§8.7/§8.9), λ₀ (§8.10). Slow parameters
+  answering "who is this user". These are causal.
+- **State** — what happened today. `simulateReservoirs`, the §11.9 overnight
+  carry-over, the §8.11 stop advisor's worked hours. These read today's logs
+  immediately, and must: suppressing them would make a gauge of the present lie.
+
+The two already sit behind separate arguments to separate functions, so the
+filter lands on one without touching the other. Concretely: today's 🪫 stops
+moving α, and still drains the reservoirs and still feeds the stop advisor.
+
+`ageDays` runs against the **planned** day rather than the live one, since the
+§5.2 weights are part of "the fit as of day D" — a past day must not have its
+own logs discounted by however long ago that day was.
+
+**Cost: none worth measuring.** On the live path this is one `.filter` in front
+of a fit that already runs once per viewed day. §12.1 rejected recomputation at
+`O(auditDays × logVolume)`, but that was the cost of refitting **every audited
+day**; one day costs one fit.
+
+**History reads each day's own fit, never one fit spread across a range.**
+`readDaySummaries` used to apply a single whole-history fit to every day the
+calendar and analytics screens show, which is the same defect at the scale of the
+user's whole history: one ⚡ logged this afternoon silently moved the completion
+rate of a day finished in March. Each day is now scored under the fit
+**recorded** on it (§12.1's `fitSnapshots`), which is a read rather than a refit —
+the `O(days × logVolume)` recomputation §12.1 rejected is exactly why those
+snapshots are stored. `fitFrom` carries the causal window, so the same change
+makes the analytics "Your model" card, its energy fits, and the snapshot written
+each day all read logs strictly before their date. §12.1's known-approximation
+paragraph is closed by this; what survives is the **fallback** — a day with no
+stored snapshot is still read through the live fit, per day, and refitting it is
+the cost that was rejected.
+
+**The copy has to follow, or the rule reads as a broken button.** The budget
+bar's model line counts the logs the fit **used**, never the raw row count, and
+names the deferred ones separately: "1 ⚡ logged today — it re-times your model
+from tomorrow, so today's plan holds". On a day where nothing has been counted
+yet that sentence replaces the "log ⚡ to start personalizing" prompt rather
+than joining it, which would otherwise ask the user to do the thing they just
+did. The analytics "Your model" card owes the same: Σw is what the fit read, so
+today's rows are named beside it ("3.5 ⚡ logs, recency-weighted · 2 logged
+today, counted from tomorrow") rather than folded into a count that would then
+overstate what moved the fit.
+
+### Pinned in the suite
+
+`session-store.svelte.spec.ts`: a log made on the viewed day leaves that day's
+constants untouched while the same log dated a day earlier moves them, and
+`pendingFlowLogCount` reports the gap. `daily-plan-store.svelte.spec.ts`: the
+same for the 🪫/☕ fits, with the §11.9 carry-over still reading yesterday's
+drain. `day-constraints-bar.stories.svelte`: the deferred-log line visible while
+collapsed, and the counted total excluding it.
+
+`session-history.test.ts`: a report dated on the log's own day reads none of it
+and reports it pending, while the next day's does; and `readDaySummaries` moves
+only the day that has a snapshot, leaving the day without one on the live fit.
+`calibration-descriptor.test.ts`: the ϕ row naming the deferred logs beside Σw
+rather than adding them to it.

@@ -161,6 +161,7 @@
 				planSlackHours={daily.planSlackHours}
 				constantsFitted={session.constantsFit.fitted}
 				flowLogs={session.flowObservations}
+				pendingFlowLogs={session.pendingFlowLogCount}
 				{canLogFlow}
 				ondeletelog={(id) => session.deleteFlowLog(id)}
 				onresetlogs={() => session.resetFlowLogs()}
@@ -189,6 +190,7 @@
 					hasError={plan.hasAdviceError}
 					oncheck={() => plan.computeAdvice()}
 					onapply={(id) => session.moveTaskToTomorrow(id)}
+					onapplybudget={(hours) => (session.availableHours = hours)}
 				/>
 			{/if}
 		</div>

@@ -177,6 +177,42 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.burnoutRisk).not.toBe(onDefaults);
 	});
 
+	/* MATH.md §33: the α and r fits read only logs dated strictly before the
+	   planned day, on the same rule as the ϕ fit — a 🪫 rating made mid-day must
+	   not move the parameters the day it is being executed under. The distinction
+	   that keeps this from being blunt is identity vs state: today's rating stops
+	   moving α, and still drains the reservoirs everywhere the simulation reads
+	   it (§11.9 below, §8.11's advisor). */
+	it('leaves the viewed day’s own 🪫/☕ logs out of its parameter fit', () => {
+		const store = setup();
+		mockSession.tasks = [task(1, 'deep work'), task(2, 'more deep work')];
+		mockSession.availableHours = 4;
+		flushSync();
+		const onDefaults = store.daily.burnoutRisk;
+
+		// The very records that moved the fit above, re-dated onto the planned day.
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: mockSession.selectedDate,
+			}),
+			drainRecord({
+				date: mockSession.selectedDate,
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
+		mockObservations.restObservations = [
+			restRecord({
+				date: mockSession.selectedDate,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.daily.burnoutRisk).toBe(onDefaults);
+	});
+
 	// Overnight carry-over (MATH.md §11.9): the viewed day's predecessor seeds
 	// the morning reservoirs. The same heavy log feeds the α fit identically from
 	// either date — only yesterday's carries into this morning.

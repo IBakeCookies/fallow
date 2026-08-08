@@ -31,6 +31,8 @@
 						afterBand: 'warning',
 						cost: '−6.2% plan value',
 						profileFlip: 'Day Profile → Cruise',
+						applyLabel: null,
+						isUnpriced: false,
 					},
 					{
 						lever: {
@@ -42,6 +44,8 @@
 						afterBand: 'warning',
 						cost: 'costs no plan value',
 						profileFlip: null,
+						applyLabel: 'Set 6.5h',
+						isUnpriced: false,
 					},
 				],
 			},
@@ -62,6 +66,8 @@
 						afterBand: 'success',
 						cost: '−18.4% plan value',
 						profileFlip: null,
+						applyLabel: null,
+						isUnpriced: false,
 					},
 					/* The unpriced lever, always last and costed in hours rather than in
 					   plan value: Σ P̄ rises with the budget, so a percentage here would
@@ -76,6 +82,8 @@
 						afterBand: 'warning',
 						cost: 'costs an extra hour of your day',
 						profileFlip: null,
+						applyLabel: 'Add the hour',
+						isUnpriced: true,
 					},
 				],
 			},
@@ -107,6 +115,8 @@
 						afterBand: 'warning',
 						cost: '−6.2% plan value',
 						profileFlip: null,
+						applyLabel: null,
+						isUnpriced: false,
 					},
 					{
 						lever: {
@@ -119,6 +129,8 @@
 						afterBand: 'warning',
 						cost: '−4.1% plan value',
 						profileFlip: null,
+						applyLabel: null,
+						isUnpriced: false,
 					},
 				],
 			},
@@ -136,6 +148,7 @@
 			hasError: false,
 			oncheck: fn(),
 			onapply: fn(),
+			onapplybudget: fn(),
 		},
 	});
 </script>
@@ -207,8 +220,9 @@
 			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
 		).toHaveClass('text-warning-strong');
 
-		// Only a deferral is performable — the budget lever is a slider the user
-		// already owns — and the button must say which task it moves.
+		// Both lever kinds are performable (MATH.md §14 rules the budget a choice
+		// about the day), and each button must say what it does: which task it
+		// moves, or which budget it sets.
 		expect(
 			canvas.getAllByRole('button', {
 				name: /to tomorrow/i,
@@ -223,6 +237,30 @@
 
 		await expect(args.onapply).toHaveBeenCalledOnce();
 		await expect(args.onapply).toHaveBeenCalledWith(1);
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Set 6.5h',
+			}),
+		);
+
+		// The lever's hours, not the label's: applying is the only way to reach the
+		// budget the model actually priced (MATH.md §14.1-2).
+		await expect(args.onapplybudget).toHaveBeenCalledOnce();
+		await expect(args.onapplybudget).toHaveBeenCalledWith(6.5);
+
+		// The unpriced increase is performable too — refusing to apply an option the
+		// card shows is worse — but it never reads as one more priced option: its own
+		// words, and a rule above it.
+		const hour = canvas.getByRole('button', {
+			name: 'Add the hour',
+		});
+
+		await expect(hour.closest('li')).toHaveClass('border-t');
+
+		await userEvent.click(hour);
+		await expect(args.onapplybudget).toHaveBeenCalledTimes(2);
+		await expect(args.onapplybudget).toHaveBeenLastCalledWith(9);
 	}}
 />
 
@@ -286,6 +324,51 @@
 		// The shadow price is a reading, not a finding: a day with nothing to fix
 		// still answers what the next block would buy (MATH.md §14.2).
 		await expect(canvas.getByText('Another 15 minutes would get nothing more done.')).toBeVisible();
+	}}
+/>
+
+<!-- A day of nothing but cognitive tasks: Energy Balance reads 100% and no lever
+     moves it, since the share is invariant under both (MATH.md §14.4). The row
+     has to appear anyway — silence here is what let the card call such a day
+     fine while the dashboard banded the same reading Caution. -->
+<Story
+	name="An axis nothing can improve"
+	args={{
+		advice: {
+			rows: [
+				{
+					axis: 'energyBalance',
+					label: 'Energy Balance',
+					before: 'Cognitive Heavy 100%',
+					beforeBand: 'warning',
+					options: [],
+				},
+			],
+			unfunded: null,
+			unfundedMustDo: null,
+			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			switchCost: 'At 15m a switch, this plan pays for no switching.',
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('Cognitive Heavy 100%')).toBeVisible();
+		await expect(canvas.getByText('(Caution)')).toBeInTheDocument();
+
+		// Why the menu is empty, said out loud: an axis with a reading and no rows
+		// under it otherwise reads as a rendering failure.
+		await expect(
+			canvas.getByText('No task move and no budget change improves this.'),
+		).toBeVisible();
+
+		await expect(
+			canvas.queryByText(/Nothing reads badly enough to act on/),
+		).not.toBeInTheDocument();
+
+		expect(
+			canvas.queryAllByRole('button', {
+				name: /to tomorrow|Set |Add the hour/,
+			}),
+		).toEqual([]);
 	}}
 />
 

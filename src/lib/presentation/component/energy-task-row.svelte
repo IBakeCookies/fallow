@@ -36,9 +36,8 @@
 		plannedHours: number | null;
 		/** A 🪫 rating for this task exists for today. */
 		measured: boolean;
-		/** The open 🪫 editor's draft, or null when it is closed. Owned by the page: it
-		 *  is one editor for the whole list, and the completion prompt refuses to open
-		 *  over any of them — see `completionPromptAction`. */
+		/** This row's open 🪫 editor draft, or null when it is closed. Owned by the
+		 *  page because the calibration card's ✎ opens one from outside the row. */
 		drainDraft: {
 			minutes: number | null;
 			mind: number | null;

@@ -86,6 +86,35 @@ describe('readDaySummaries', () => {
 	it('is empty when nothing is stored in the range', async () => {
 		expect(await readDaySummaries('1999-01-01', '1999-12-31')).toEqual([]);
 	});
+
+	/* MATH.md §33/§12.1: each day is scored under the fit RECORDED on it, not one
+	   whole-history fit spread across the range. Before this, logging a single ⚡
+	   today silently rewrote the completion rate of every day the calendar shows —
+	   the same defect as the mid-day re-plan, at the scale of the user's whole
+	   history. */
+	it('scores each day under its own recorded fit, and only that day', async () => {
+		await $updateSession(session('2026-02-10'));
+		await $updateSession(session('2026-02-11'));
+
+		const live = await readDaySummaries('2026-02-10', '2026-02-16');
+
+		await $updateFitSnapshot(
+			fitSnapshot('2026-02-10', {
+				// A plane no live fit could coincide with, so the day visibly reads
+				// through its own model rather than through today's.
+				c1: -0.3,
+				c2: 0.8,
+				c3: 0.4,
+			}),
+		);
+
+		const recorded = await readDaySummaries('2026-02-10', '2026-02-16');
+
+		expect(recorded.map((d) => d.date)).toEqual(live.map((d) => d.date));
+		expect(recorded[0]).not.toEqual(live[0]);
+		// The day with no snapshot still falls back to the live fit, unchanged.
+		expect(recorded[1]).toEqual(live[1]);
+	});
 });
 
 describe('readTitleRatings', () => {
@@ -210,23 +239,63 @@ describe('readModelReport', () => {
 			phiHours: 4,
 		});
 
-		const sameDay = await readModelReport('2016-03-04', 30);
+		// The day after is the freshest a counted log can be: the log's own day
+		// reads none of it (§33), which the case below this one pins.
+		const nextDay = await readModelReport('2016-03-05', 30);
 		const decadeLater = await readModelReport('2026-03-04', 30);
 
-		// The card's count is Σw — one fresh log is worth 1, the same log a decade
-		// later ≈ 2⁻¹⁰ of one (a hair under, since ten years is 3652 days).
-		expect(sameDay.calibration.flow.usedCount).toBeCloseTo(1, 9);
+		// The card's count is Σw — a one-day-old log is worth 2^(−1/365), the same
+		// log a decade later ≈ 2⁻¹⁰ of one.
+		expect(nextDay.calibration.flow.usedCount).toBeCloseTo(2 ** (-1 / 365), 9);
 		expect(decadeLater.calibration.flow.usedCount).toBeCloseTo(2 ** -10, 4);
 
 		// One 4h log pulls ϕ up while it is fresh; ten half-lives on, what is left
 		// of that pull is a twentieth of it — the fit has returned to the prior.
-		const fresh = sameDay.calibration.flow;
+		const fresh = nextDay.calibration.flow;
 		const stale = decadeLater.calibration.flow;
 		expect(fresh.phiHours).toBeGreaterThan(stale.phiHours);
 
 		expect(Math.abs(stale.phiHours - stale.defaultPhiHours)).toBeLessThan(
 			Math.abs(fresh.phiHours - fresh.defaultPhiHours) / 20,
 		);
+	});
+
+	/* MATH.md §33: the report is the model the day is PLANNING under, so it reads
+	   the same window the dashboard does — logs strictly before the report date.
+	   Without this the analytics card would print a ϕ moved by a log the main
+	   page's plan had not yet counted, which is the same dishonesty on a second
+	   screen. The deferred rows are reported rather than dropped, so the card can
+	   say "logged today" instead of appearing to have lost them. */
+	it('excludes the report date’s own ⚡ logs, and reports them as pending', async () => {
+		// Measured against this store's own baseline rather than against zero: the
+		// suite shares a database, so what matters is that the NEW log changes
+		// nothing on its own day and everything on the next.
+		const before = (await readModelReport('2026-05-01', 30)).calibration.flow;
+
+		await $updateFlowObservation({
+			date: '2026-05-01',
+			taskId: 901,
+			taskTitle: 'logged this morning',
+			difficulty: 5,
+			enjoyment: 5,
+			E: 3,
+			beta: 1.5,
+			phiHours: 4,
+		});
+
+		const sameDay = (await readModelReport('2026-05-01', 30)).calibration.flow;
+
+		expect(sameDay.usedCount).toBe(before.usedCount);
+		expect(sameDay.phiHours).toBe(before.phiHours);
+		expect(sameDay.pendingCount).toBe(1);
+
+		const nextDay = (await readModelReport('2026-05-02', 30)).calibration.flow;
+
+		expect(nextDay.pendingCount).toBe(0);
+		expect(nextDay.usedCount).toBeGreaterThan(before.usedCount + 0.9);
+		// A 4h log on a mid-scale task pulls the reference ϕ up, so the deferral is
+		// suppressing a real move rather than a no-op.
+		expect(nextDay.phiHours).toBeGreaterThan(before.phiHours);
 	});
 
 	it('audits a finished day once its worked hours are logged', async () => {

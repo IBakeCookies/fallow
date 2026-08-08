@@ -17,7 +17,12 @@ import type {
 } from '$lib/business/model/metric/plan-advice';
 import * as m from '$lib/paraglide/messages.js';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
-import { AXIS_BAND, energyBalanceSkew, isOutOfBand, type Band } from '$lib/presentation/utils/band';
+import {
+	AXIS_BAND,
+	energyBalanceReading,
+	isOutOfBand,
+	type Band,
+} from '$lib/presentation/utils/band';
 import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 /**
@@ -37,6 +42,14 @@ export interface AdviceRowOption {
 	cost: string;
 	/** Set only when this lever also changes the Day Profile. */
 	profileFlip: string | null;
+	/** The words on this lever's button, or null when the card supplies them. */
+	applyLabel: string | null;
+	/**
+	 * The budget increase Σ P̄ cannot price (MATH.md §14) — never a member of the
+	 * frontier above it, so the card sets it apart rather than listing it as a
+	 * fourth comparable option. Always the last option of a row when present.
+	 */
+	isUnpriced: boolean;
 }
 
 export interface AdviceRow {
@@ -73,7 +86,6 @@ const AXIS_LABEL: Record<AdviceAxis, () => string> = {
 	physicalLoad: m.metric_physical_load,
 	energyBalance: m.metric_energy_balance,
 	frictionIndex: m.metric_friction_index,
-	grindDensity: m.metric_grind_density,
 	timeScarcity: m.metric_time_scarcity,
 	scheduleIntegrity: m.metric_schedule_integrity,
 };
@@ -86,8 +98,8 @@ const QUADRANT_LABEL: Record<DailyQuadrant, () => string> = {
 };
 
 /**
- * A reading and the band it falls in. Energy Balance reads as a direction, not
- * a percentage — the metric row agrees.
+ * A reading and the band it falls in. Energy Balance reads as a direction AND
+ * the share behind it — the metric row agrees, through the same call.
  *
  * A non-reading gets no band: Human Capacity is `Infinity` when a pool holds 0
  * hours with demand on it (MATH.md §14), and `AXIS_BAND` would call that
@@ -102,19 +114,25 @@ function readingOf(axis: AdviceAxis, value: number): { text: string; band: Band 
 			band: 'neutral',
 		};
 
-	const text =
-		axis === 'energyBalance'
-			? {
-					cognitive: m.metric_cognitive_heavy(),
-					physical: m.metric_physical_heavy(),
-					balanced: m.metric_balanced(),
-				}[energyBalanceSkew(value)]
-			: `${Math.round(value)}%`;
+	const text = axis === 'energyBalance' ? energyBalanceReading(value) : `${Math.round(value)}%`;
 
 	return {
 		text,
 		band: AXIS_BAND[axis](value),
 	};
+}
+
+/**
+ * The lever carries unrounded hours on purpose (MATH.md §14); only the label
+ * rounds, and only to keep "6.4167h" out of the card. `maximumFractionDigits`
+ * rather than `formatDecimals`, which pads: a whole-hour lever reads "8h", not
+ * "8.00h". The locale owns the separator either way — a German card printing
+ * "6.42h" between two German dates is what `number-format.ts` exists to stop.
+ */
+function formatHours(hours: number, locale: string): string {
+	return hours.toLocaleString(locale, {
+		maximumFractionDigits: 2,
+	});
 }
 
 function formatAction(lever: AdviceLever, locale: string): string {
@@ -123,16 +141,29 @@ function formatAction(lever: AdviceLever, locale: string): string {
 			title: lever.title,
 		});
 
-	// The lever carries unrounded hours on purpose (MATH.md §14); only the label
-	// rounds, and only to keep "6.4167h" out of the card. `maximumFractionDigits`
-	// rather than `formatDecimals`, which pads: a whole-hour lever reads "8h", not
-	// "8.00h". The locale owns the separator either way — a German card printing
-	// "6.42h" between two German dates is what `number-format.ts` exists to stop.
 	return m.advice_action_budget({
-		hours: lever.hours.toLocaleString(locale, {
-			maximumFractionDigits: 2,
-		}),
+		hours: formatHours(lever.hours, locale),
 	});
+}
+
+/**
+ * The button's whole accessible name, built here because only this file has the
+ * locale that rounds the hours (WCAG 2.5.3 — the visible words ARE the name, so
+ * there is nothing for an `aria-label` to contradict). Null for a deferral,
+ * whose label the card owns: it needs the task title, not an hours reading.
+ *
+ * The unpriced increase names no hours. Two axes both offer `budget + 1`, so the
+ * hours would not tell those buttons apart, and what distinguishes this one is
+ * not its number but that it is paid for in an hour of the user's day.
+ */
+function formatApplyLabel(lever: AdviceLever, isUnpriced: boolean, locale: string): string | null {
+	if (lever.kind === 'defer-task') return null;
+
+	return isUnpriced
+		? m.advice_apply_budget_hour()
+		: m.advice_apply_budget({
+				hours: formatHours(lever.hours, locale),
+			});
 }
 
 /**
@@ -268,7 +299,12 @@ function cap(options: AdviceOption[]): AdviceOption[] {
 
 /** `locale` is a BCP-47 tag — `getDateLocale()` at the call site. */
 export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDisplay {
-	const toRow = (axis: AdviceAxis, option: AdviceOption, cost: string): AdviceRowOption => {
+	const toRow = (
+		axis: AdviceAxis,
+		option: AdviceOption,
+		cost: string,
+		isUnpriced = false,
+	): AdviceRowOption => {
 		const after = readingOf(axis, option.after);
 
 		return {
@@ -282,11 +318,26 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 						profile: QUADRANT_LABEL[option.quadrantFlip](),
 					})
 				: null,
+			applyLabel: formatApplyLabel(option.lever, isUnpriced, locale),
+			isUnpriced,
 		};
 	};
 
 	const rows = advice.findings
-		.filter((finding) => isOutOfBand(finding.axis, finding.before))
+		.filter(
+			(finding) =>
+				isOutOfBand(finding.axis, finding.before) &&
+				// A reading that is not a number judges nothing — `readingOf` prints it
+				// N/A and bands it neutral — so it earns a row only when there is a
+				// lever under it. That is Human Capacity's Infinity, which real options
+				// bring down to a number. The two NaN sentinels (MATH.md §14.1-5) have
+				// none, and `getBandBiggerBetter(NaN)` calls Schedule Integrity's
+				// critical: a row reading "N/A · nothing improves this" on a day with no
+				// budget is the alarm-about-nothing the sentinel exists to prevent.
+				(Number.isFinite(finding.before) ||
+					finding.options.length > 0 ||
+					finding.unpriced !== null),
+		)
 		.map((finding) => {
 			const before = readingOf(finding.axis, finding.before);
 
@@ -303,7 +354,7 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 					// the budget does, so showing that rise in the cost column would read
 					// as the extra hour being free (MATH.md §14).
 					...(finding.unpriced
-						? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour())]
+						? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour(), true)]
 						: []),
 				],
 			};

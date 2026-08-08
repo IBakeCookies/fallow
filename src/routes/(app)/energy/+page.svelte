@@ -21,6 +21,7 @@
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
 	import PlanScheduleList from '$lib/presentation/component/plan-schedule-list.svelte';
 	import PlanSummary from '$lib/presentation/component/plan-summary.svelte';
+	import BudgetCurveCard from '$lib/presentation/component/budget-curve-card.svelte';
 	import StopAdvisorCard from '$lib/presentation/component/stop-advisor-card.svelte';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
@@ -130,35 +131,30 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// Which task the 🪫 editor is open for, and the rating it opened on. The fields are
-	// drain-log-form.svelte's to collect; what stays here is that there is only ever ONE
-	// open editor, because `completionPromptAction` refuses to prompt across any of them
-	// — a fact no single row can see.
-	let drainDraft = $state<{
-		taskId: number;
+	// The open 🪫 editors, by task. One per row, like the main page's ⚡ — ticking off
+	// two tasks ends two sessions, and each gets its prompt. The fields are
+	// drain-log-form.svelte's to collect; what stays here is which task each draft
+	// belongs to, because the calibration card's ✎ opens one from outside the row.
+	// A draft whose row is gone (delete, midnight rollover, visibility re-read) is
+	// inert: it is keyed by that task and nothing else reads it.
+	type DrainDraft = {
 		/** The row being corrected, or undefined when this is a new session */
 		recordId?: number;
 		minutes: number | null;
 		mind: number | null;
 		body: number | null;
-	} | null>(null);
+		/** Whether the caret goes to the editor — task-item.svelte's `flowSource`
+		 *  carries the full reasons, including why it cannot be an `autofocus`. */
+		focusMinutes: boolean;
+		/** Opened by the completion prompt, so un-completing withdraws it again. */
+		promptedByCompletion: boolean;
+	};
 
-	// Which of the two ways the editor was opened, because the caret and the withdraw
-	// both turn on it — task-item.svelte's `focusFlowInput` carries the full reasons,
-	// including why the focus cannot be an `autofocus` attribute.
-	let focusDrainInput = $state(false);
-	let drainPromptedByCompletion = $state(false);
+	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
-	// A draft only counts while its row is on screen. `session.tasks` is replaced
-	// wholesale by the midnight rollover and by the visibility re-read, so a draft can
-	// outlive its row — and it is the whole gate on the prompt below, so an orphan
-	// suppressed the prompt for every task with no form left to close. Derived rather
-	// than cleared per site, because a rollover has no site to hang it on.
-	const liveDrainDraft = $derived.by(() => {
-		const draft = drainDraft;
-
-		return draft && tasks.some((t) => t.id === draft.taskId) ? draft : null;
-	});
+	const closeDrainLog = (taskId: number) => {
+		delete drainDrafts[taskId];
+	};
 
 	// Whether the task carries a 🪫 rating for today at ALL — never "the" rating:
 	// a task worked in two sessions has two of them (MATH.md §8.7).
@@ -166,34 +162,30 @@
 		drainObservations.some((o) => o.date === session.today && o.taskId === taskId);
 
 	function openDrainLog(taskId: number, source: EditorSource) {
-		focusDrainInput = source === 'button';
-		drainPromptedByCompletion = source === 'completion';
-
 		// Always empty, never seeded from an earlier rating: each 🪫 log describes one
 		// session (MATH.md §18), so prefilling the last one invites re-saving hours the
 		// day already counts. Correcting a rating goes through `editDrainLog` below.
-		drainDraft = {
-			taskId,
+		drainDrafts[taskId] = {
 			minutes: null,
 			mind: null,
 			body: null,
+			focusMinutes: source === 'button',
+			promptedByCompletion: source === 'completion',
 		};
 	}
 
 	// The other way in: the ✎ on a rating in the calibration card, which re-opens THAT
-	// session in the same one editor. Only offered for today's rows whose task is still
+	// session in its task's editor. Only offered for today's rows whose task is still
 	// on the list, because the editor lives in the task row — a rating outlives its task
 	// (and the day it was logged on), and those stay delete-only.
 	function editDrainLog(log: Persisted<DrainObservationRecord>) {
-		focusDrainInput = true;
-		drainPromptedByCompletion = false;
-
-		drainDraft = {
-			taskId: log.taskId,
+		drainDrafts[log.taskId] = {
 			recordId: log.id,
 			minutes: Math.round(log.hours * 60),
 			mind: log.mindDrain,
 			body: log.bodyDrain,
+			focusMinutes: true,
+			promptedByCompletion: false,
 		};
 	}
 
@@ -201,11 +193,10 @@
 		log.date === session.today && tasks.some((t) => t.id === log.taskId);
 
 	// Ticking a task off is the end of the session the 🪫 rating describes, so ask
-	// here rather than behind the hover-revealed button. The draft is page-level, one
-	// editor at a time — so ANY open one blocks the prompt, including another task's,
-	// while the withdraw only ever touches this task's own.
+	// here rather than behind the hover-revealed button. Only this row's own editor is
+	// in the way — another task's is a session of its own, left alone.
 	function onCompletionChange(taskId: number, completed: boolean) {
-		const draft = liveDrainDraft;
+		const draft = drainDrafts[taskId];
 
 		const action = completionPromptAction({
 			// Never "already measured": ticking a task off ENDS a session, and every
@@ -214,23 +205,21 @@
 			// measured-once reading — time-to-flow is one number per day.
 			measured: false,
 			finishing: !completed,
-			anyEditorOpen: draft !== null,
-			promptOpenForThisTask: draft?.taskId === taskId && drainPromptedByCompletion,
+			editorOpenOnThisRow: draft !== undefined,
+			promptOpenForThisTask: draft?.promptedByCompletion ?? false,
 		});
 
 		session.toggleTask(taskId);
 
 		if (action === 'open') openDrainLog(taskId, 'completion');
 
-		if (action === 'withdraw') drainDraft = null;
+		if (action === 'withdraw') closeDrainLog(taskId);
 	}
 
-	// The rating itself is the editor's to validate; which task it belongs to is the
-	// page's, because the editor is one for the whole list.
-	function saveDrainLog(entry: { hours: number; mind: number; body: number }) {
-		if (!drainDraft) return;
-
-		const { taskId, recordId } = drainDraft;
+	// The rating itself is the editor's to validate; whether it is a new session or a
+	// correction is the page's, because only the draft remembers which ✎ opened it.
+	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
+		const recordId = drainDrafts[taskId]?.recordId;
 
 		if (recordId === undefined) {
 			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
@@ -238,7 +227,7 @@
 			observations.editDrainLog(recordId, taskId, entry.hours, entry.mind, entry.body);
 		}
 
-		drainDraft = null;
+		closeDrainLog(taskId);
 	}
 
 	// ---------- Recovery calibration (r fit from pre/post-rest pairs) ----------
@@ -288,18 +277,6 @@
 
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
-{#snippet applyFitButton(label: string, disabled: boolean, title: string, onclick: () => void)}
-	<button
-		type="button"
-		class="mt-text-sm w-full rounded-lg border border-brand/30 bg-brand/10 px-box-sm py-box-3xs text-xs font-medium text-brand-strong transition hover:bg-brand/20 disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ty-silent"
-		{disabled}
-		{title}
-		{onclick}
-	>
-		{label}
-	</button>
-{/snippet}
-
 <!-- The list's two halves, handed to the shared card: the same form the main page
      puts at the top of it, and the rows this screen reads a task in. -->
 {#snippet addTaskForm()}
@@ -324,15 +301,15 @@
 				color={colors.colorOf(task.id)}
 				plannedHours={plannedFor(task.id)}
 				measured={measuredToday(task.id)}
-				drainDraft={drainDraft?.taskId === task.id ? drainDraft : null}
-				focusDrainMinutes={focusDrainInput}
+				drainDraft={drainDrafts[task.id] ?? null}
+				focusDrainMinutes={drainDrafts[task.id]?.focusMinutes ?? false}
 				ontoggle={() => onCompletionChange(task.id, task.completed)}
 				onremove={() => removeTaskWithUndo(session, task.id)}
 				ondrainclick={() =>
-					drainDraft?.taskId === task.id ? (drainDraft = null) : openDrainLog(task.id, 'button')}
+					drainDrafts[task.id] ? closeDrainLog(task.id) : openDrainLog(task.id, 'button')}
 				onchange={(edit) => session.updateTask(task.id, edit)}
-				ondrainsave={saveDrainLog}
-				ondraincancel={() => (drainDraft = null)}
+				ondrainsave={(entry) => saveDrainLog(task.id, entry)}
+				ondraincancel={() => closeDrainLog(task.id)}
 			/>
 		</li>
 	{/each}
@@ -471,6 +448,21 @@
 						/>
 					{/if}
 				</div>
+
+				<!-- The day's LENGTH, priced (MATH.md §8.12). Deliberately outside the
+				     `windowHours > 0` gate above: the curve is the answer to "what window
+				     should I set", so a day with no window is exactly when it has
+				     something to say. -->
+				<BudgetCurveCard
+					curve={lab.budgetCurve}
+					isBusy={lab.isCurveBusy}
+					isStale={lab.isCurveStale}
+					hasError={lab.hasCurveError}
+					currentBudget={windowHours}
+					locale={getDateLocale()}
+					oncheck={() => lab.computeBudgetCurve()}
+					onapply={(hours) => (session.availableHours = hours)}
+				/>
 			{/if}
 		{/if}
 
@@ -505,14 +497,34 @@
 									<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 										{m.energy_model_parameters()}
 									</h3>
-									<button
-										type="button"
-										class="text-xs text-ty-silent transition hover:text-ty-secondary"
-										title={m.energy_reset_defaults_title()}
-										onclick={() => lab.resetParams()}
-									>
-										{m.energy_reset_defaults()}
-									</button>
+									<div class="flex shrink-0 items-baseline gap-text-md">
+										<!-- The two opposite ways to fill these sliders, side by side: back to
+									     the model's defaults, or over to what this user's own logs fit. One
+									     button for all four fits because their ORDER is the math (MATH.md
+									     §8.7/§8.9/§8.10) — three buttons let the user apply them in an
+									     order that leaves a parameter stale. -->
+										{#if lab.hasFit}
+											<button
+												type="button"
+												class="text-xs transition {lab.fitsApplied
+													? 'cursor-default text-ty-silent'
+													: 'text-brand/90 hover:text-brand-strong'}"
+												disabled={lab.fitsApplied}
+												title={m.energy_apply_fits_title()}
+												onclick={() => lab.applyFits()}
+											>
+												{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
+											</button>
+										{/if}
+										<button
+											type="button"
+											class="text-xs text-ty-silent transition hover:text-ty-secondary"
+											title={m.energy_reset_defaults_title()}
+											onclick={() => lab.resetParams()}
+										>
+											{m.energy_reset_defaults()}
+										</button>
+									</div>
 								</div>
 								<div class="space-y-grid-md">
 									<!-- Not a model param like every row below it: the window IS the
@@ -652,15 +664,6 @@
 									/>
 								</div>
 
-								{#if cogDrainFit.fitted || physDrainFit.fitted}
-									{@render applyFitButton(
-										lab.drainFitApplied ? m.energy_fit_applied() : m.energy_apply_fit(),
-										lab.drainFitApplied,
-										m.energy_apply_fit_title(),
-										() => lab.applyDrainFit(),
-									)}
-								{/if}
-
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<LogList
 										label={m.energy_drain_log_count({
@@ -754,17 +757,6 @@
 									{/if}
 								</div>
 
-								{#if recoveryFit.fitted}
-									{@render applyFitButton(
-										lab.recoveryFitApplied
-											? m.energy_recovery_fit_applied()
-											: m.energy_apply_recovery_fit(),
-										lab.recoveryFitApplied,
-										m.energy_apply_recovery_fit_title(),
-										() => lab.applyRecoveryFit(),
-									)}
-								{/if}
-
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<LogList
 										label={m.energy_rest_log_count({
@@ -826,13 +818,6 @@
 										})}
 									</span>
 								</div>
-
-								{@render applyFitButton(
-									lab.stoppingFitApplied ? m.energy_stop_fit_applied() : m.energy_apply_stop_fit(),
-									lab.stoppingFitApplied,
-									m.energy_apply_stop_fit_title(),
-									() => lab.applyStoppingFit(),
-								)}
 							{/if}
 						</CalibrationCard>
 					</div>

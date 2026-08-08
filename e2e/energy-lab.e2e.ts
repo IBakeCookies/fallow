@@ -295,12 +295,66 @@ test('the stop advisor prices the fresh day and flips when logged hours fill the
 	// Fresh morning at the default free-time value: continuing wins, and the
 	// recommendation names the task it priced.
 	await expect(page.getByText('Worth continuing')).toBeVisible();
-	await expect(page.getByText(/of Deep work is worth/)).toBeVisible();
+	// "next session", not just a duration: the budget curve beside this card prices
+	// the whole WINDOW, so a bare "2h 15m of Deep work" reads as a rival day total.
+	await expect(page.getByText(/Your next session — .*of Deep work/)).toBeVisible();
 
 	// 7h45m logged: no whole 45-min block fits an 8-hour window any more.
 	await logDrain(page, 465, 5, 5);
 	await expect(page.getByText(/No whole work session fits/)).toBeVisible();
 	await expect(page.getByText('Worth continuing')).not.toBeVisible();
+});
+
+// The budget curve costs a solve per step, so it is a click and not a `$derived`
+// (MATH.md §8.12). What e2e can see that the store spec cannot: the button really
+// reaches the sweep, and the recommendation it prints writes the SHARED budget.
+// This fixture is ONE task, which satiates and so does cross — the multi-task
+// "no crossing" branch and the "no window is worth working" branch are covered by
+// budget-curve-card.stories.svelte, which can hand the card a curve directly.
+test('the budget curve stays unasked until clicked, then prices the day’s length', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	const check = page.getByRole('button', {
+		name: 'How long should today be?',
+	});
+
+	// One button and nothing else until asked
+	await expect(check).toBeVisible();
+	await expect(page.getByText(/re-solved by the same optimizer/)).not.toBeVisible();
+
+	await check.click();
+
+	// ONE task satiates, so this day's curve really does reach break-even — zero,
+	// NOT the λ₀ line, which `valuePerHour` already has charged out of it
+	// (MATH.md §8.12). Unlike the 2–6 task days of §8.12's probe, which mostly run
+	// to the cap.
+	// The recommendation names the window AND what that window books, because a
+	// window is not advice on its own.
+	await expect(page.getByText(/another hour of your day adds nothing/)).toBeVisible();
+
+	// The seam worth an e2e: the recommendation writes the SHARED budget, the same
+	// value the main page's Available Hours holds (settled 2026-07-29).
+	await page
+		.getByRole('button', {
+			name: /Set the day window/,
+		})
+		.click();
+
+	const window = page.locator('#window-hours');
+	await expect(window).not.toHaveValue('8');
+
+	const applied = await window.inputValue();
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/');
+	await expect(page.getByText(new RegExp(`${applied}h budget`))).toBeVisible();
 });
 
 // The session store's date reader belongs to the (app) layout and is route-blind,
@@ -320,7 +374,8 @@ test('a dated URL collapses to the canonical Lab', async ({ page }) => {
 });
 
 // AGENTS.md §3: "A fit never writes params silently." The whole point of the
-// Apply button is that the sliders stay the user's until it is pressed.
+// Apply button is that the sliders stay the user's until it is pressed — and
+// there is one button for all four fits, because their order is the math.
 test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -335,7 +390,7 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 
 	// The fit ran — but the parameter is untouched.
 	const apply = page.getByRole('button', {
-		name: 'Apply fitted rates',
+		name: 'Apply my fits',
 	});
 
 	await expect(apply).toBeEnabled();
@@ -343,7 +398,7 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 
 	await apply.click();
 	await expect(cognitiveDrain).not.toHaveValue(defaultDrain);
-	await expect(page.getByText('Fitted rates applied')).toBeVisible();
+	await expect(page.getByText('Fits applied')).toBeVisible();
 });
 
 /* 🪫 rates the session that just ended, and finishing the task is the commonest
@@ -417,9 +472,57 @@ test('un-completing a task withdraws its drain prompt', async ({ page }) => {
 	await expect(form).toHaveCount(0);
 });
 
-/* The draft is page-level, one editor at a time, so the prompt must yield to any
-   open one — including another task's. Completing B used to replace A's draft and
-   silently destroy a rating being typed into it. */
+/* Ticking off a second task ends a second session, so it gets its own prompt —
+   the same as the main page's ⚡, where every row owns its editor. The Lab's draft
+   used to be one for the whole list, so only the first tick ever prompted. */
+test('completing a second task opens its own drain rating', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await addTask(page, 'Gym session');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	const forms = page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		})
+		.check();
+
+	await expect(forms).toHaveCount(1);
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Gym session complete',
+		})
+		.check();
+
+	await expect(forms).toHaveCount(2);
+
+	// …and un-completing one withdraws only its own
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Gym session complete',
+		})
+		.uncheck();
+
+	await expect(forms).toHaveCount(1);
+
+	await expect(
+		page
+			.locator('li')
+			.filter({
+				hasText: 'Deep work',
+			})
+			.locator('form'),
+	).toBeVisible();
+});
+
+/* The prompt must never destroy a rating being typed — now by opening beside it
+   rather than by staying quiet. Completing B used to replace A's draft. */
 test('a rating being typed survives another task being completed', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -430,17 +533,17 @@ test('a rating being typed survives another task being completed', async ({ page
 	// Hand-open Deep work's rating and half-fill it. Named by its row, not `.first()`
 	// — `addTask` prepends, so the first 🪫 belongs to Gym session, the task this test
 	// then completes, and the cross-task invariant would go untested.
-	await page
-		.locator('li')
-		.filter({
-			hasText: 'Deep work',
-		})
+	const deepWork = page.locator('li').filter({
+		hasText: 'Deep work',
+	});
+
+	await deepWork
 		.getByRole('button', {
 			name: 'Log end-of-session drain',
 		})
 		.click();
 
-	const form = page.locator('form').filter({
+	const form = deepWork.locator('form').filter({
 		hasText: 'After the session',
 	});
 
@@ -456,7 +559,7 @@ test('a rating being typed survives another task being completed', async ({ page
 		})
 		.check();
 
-	await expect(form).toHaveCount(1);
+	// Gym's own prompt opens beside it; Deep work's draft is untouched
 	await expect(worked).toHaveValue('45');
 
 	// …and un-completing Gym must not close an editor that was never its prompt
@@ -629,14 +732,19 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
-	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), so its
-	// own Apply appears alongside the drain one.
-	await expect(
-		page.getByRole('button', {
-			name: 'Apply fitted rate',
-			exact: true,
-		}),
-	).toBeEnabled();
+	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), and the
+	// one Apply carries it — so this proves the reloaded pair reached the FIT, not
+	// just the list's count.
+	const recoveryRate = page.getByLabel('Recovery rate');
+	const defaultRecovery = await recoveryRate.inputValue();
+
+	await page
+		.getByRole('button', {
+			name: 'Apply my fits',
+		})
+		.click();
+
+	await expect(recoveryRate).not.toHaveValue(defaultRecovery);
 });
 
 // The params are model inputs, so R4 puts them in IndexedDB rather than
@@ -728,13 +836,14 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 		})
 		.click();
 
-	// The card falls back to its empty state, and with nothing left to fit the
-	// Apply button is gone rather than disabled.
+	// The card falls back to its empty state, and with no fit left anywhere the
+	// Apply beside the parameters is gone rather than disabled — disabled reads as
+	// "already applied", which would be a claim about a fit that no longer exists.
 	await expect(page.getByText(/No ratings yet\./)).toBeVisible();
 
 	await expect(
 		page.getByRole('button', {
-			name: 'Apply fitted rates',
+			name: 'Apply my fits',
 		}),
 	).toHaveCount(0);
 });

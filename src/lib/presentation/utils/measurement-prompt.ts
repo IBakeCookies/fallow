@@ -3,11 +3,14 @@
    button: ⚡ time-to-flow on the main page (task-item.svelte) and 🪫 end-of-session
    drain in the Energy Lab (`/energy`).
 
-   The policy is shared because the two copies had already disagreed (R3): the Lab's
-   declined to prompt only over the SAME task's open editor, so completing a second
-   task destroyed a rating being typed into the first — its draft is page-level, one
-   at a time. A predicate is also the only way the Lab's half gets a unit test; the
-   rest of it is a route, where nothing can reach it. */
+   The policy is shared because the two copies had already disagreed twice. First the
+   Lab destroyed a rating being typed into another task's editor (R3); the fix — one
+   page-level draft that any open editor blocks — then made the Lab's SECOND tick
+   never prompt at all, while the main page prompted on every row. Both screens now
+   hold one measurement editor per row and stack it with that row's ✎, so nothing but
+   this row's own open prompt can hold the question back. A predicate is also the only
+   way the Lab's half gets a unit test; the rest of it is a route, where nothing can
+   reach it. */
 
 /** How an editor was opened. The caret keys on it: a button press asked for the
  *  editor, so it gets focus; an editor that opened itself must not take it. */
@@ -22,15 +25,16 @@ export function completionPromptAction(input: {
 	 *  per-SESSION measurement like 🪫 drain, where finishing a task ends a
 	 *  session an earlier rating says nothing about (MATH.md §18) */
 	measured: boolean;
-	/** any editor is open that this prompt would replace — including one on
-	 *  another task, and including a different editor on the same row */
-	anyEditorOpen: boolean;
+	/** this prompt's own editor is already open on the row being toggled, where
+	 *  opening again would reseed the draft. Only that one: the ✎ editor stacks
+	 *  with it, and another row's is a session of its own. */
+	editorOpenOnThisRow: boolean;
 	/** an editor this prompt itself opened is showing for the task being toggled */
 	promptOpenForThisTask: boolean;
 }): CompletionPromptAction {
-	// Never over work in progress: opening REPLACES the page's one draft, so
-	// prompting across an open editor silently discards what was typed into it.
-	if (input.finishing) return input.measured || input.anyEditorOpen ? 'none' : 'open';
+	// Never over work in progress: the row holds one editor, so opening REPLACES
+	// what was being typed into the one already there.
+	if (input.finishing) return input.measured || input.editorOpenOnThisRow ? 'none' : 'open';
 
 	// Un-completing un-asks the question. Only the prompt's own editor — one the user
 	// opened by hand is theirs to keep.

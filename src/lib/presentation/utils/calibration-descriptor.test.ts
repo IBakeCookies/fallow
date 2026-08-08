@@ -26,6 +26,7 @@ const unfitted: CalibrationSnapshot = {
 	flow: {
 		fitted: false,
 		usedCount: 0,
+		pendingCount: 0,
 		phiHours: 0.5,
 		defaultPhiHours: 0.75,
 	},
@@ -89,6 +90,7 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 6,
+					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 				},
@@ -158,6 +160,7 @@ describe('calibrationRows', () => {
 				flow: {
 					fitted: true,
 					usedCount: 3.5,
+					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
 				},
@@ -166,6 +169,32 @@ describe('calibrationRows', () => {
 		);
 
 		expect(rows[0].note).toBe('default 45 min · 3.5 ⚡ logs, recency-weighted');
+		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
+	});
+
+	// MATH.md §33: a log made today is in neither count — Σw is what the fit read,
+	// and the fit has not read it. Naming it is the difference between "your ⚡ did
+	// nothing" and "your ⚡ lands tomorrow".
+	it('names the logs no fit has counted yet, rather than folding them in', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				flow: {
+					fitted: true,
+					usedCount: 3.5,
+					pendingCount: 2,
+					phiHours: 0.4,
+					defaultPhiHours: 0.75,
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[0].note).toBe(
+			'default 45 min · 3.5 ⚡ logs, recency-weighted · 2 logged today, counted from tomorrow',
+		);
+
+		// One row's concern only — the other four count whole observations.
 		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
 	});
 

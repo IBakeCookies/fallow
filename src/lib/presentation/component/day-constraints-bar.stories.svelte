@@ -255,3 +255,39 @@
 		onresetlogs: undefined,
 	}}
 />
+
+<!-- MATH.md §33: a log made today is on the page but not in the plan, so the row
+     count and the fit's count differ — the line has to print the one the fit
+     used, and name the other. This is the state that answers "I logged that, why
+     did nothing move?", so unlike a healthy fit it earns the collapsed line. -->
+<Story
+	name="A log the plan defers"
+	args={{
+		isOpen: false,
+		flowLogs: [...flowLogs, log(4, '2026-07-21', 'deep work', 1)],
+		pendingFlowLogs: 1,
+	}}
+	play={async ({ canvas }) => {
+		// Three, not the four rows the list below holds.
+		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
+		await expect(canvas.getByText(/1 ⚡ logged today/)).toBeVisible();
+		await expect(canvas.getByText(/today's plan holds/)).toBeVisible();
+	}}
+/>
+
+<!-- Day one: every log is deferred, so there is no fit to describe. The deferral
+     line REPLACES the "log ⚡ to start personalizing" prompt, which would
+     otherwise ask the user to do the thing they have just done. -->
+<Story
+	name="Every log deferred"
+	args={{
+		isOpen: false,
+		constantsFitted: false,
+		flowLogs: [flowLogs[0]],
+		pendingFlowLogs: 1,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText(/1 ⚡ logged today/)).toBeVisible();
+		await expect(canvas.queryByText(/to start personalizing/)).not.toBeInTheDocument();
+	}}
+/>

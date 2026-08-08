@@ -14,6 +14,7 @@ import {
 	sampleTrajectory,
 	simulateReservoirs,
 	STOP_INVERSION_MARGIN,
+	suggestBudgetCurve,
 	adviseStop,
 	stopIndifferencePoint,
 	type DrainObservation,
@@ -2244,6 +2245,206 @@ describe('Zenith Energy Model', () => {
 
 			const numeric = (sum * hours) / n;
 			expect(Math.abs(ev.blocks[0].output - numeric) / numeric).toBeLessThan(1e-4);
+		});
+	});
+
+	describe('budget curve (suggestBudgetCurve, MATH.md §8.12)', () => {
+		const tasks = [makeTask(1, 'A', 7, 5, 0.8, 0.2), makeTask(2, 'B', 4, 7, 0.2, 0.8)];
+
+		it('sweeps the whole range on the step lattice, one point per step', () => {
+			const curve = suggestBudgetCurve(tasks, DEFAULT_ENERGY_PARAMS, undefined, {
+				maxBudgetHours: 6,
+			});
+
+			expect(curve.points.map((p) => p.budgetHours)).toEqual([
+				0.75, 1.5, 2.25, 3, 3.75, 4.5, 5.25, 6,
+			]);
+
+			expect(curve.maxBudgetHours).toBe(6);
+			expect(curve.freeTimeValue).toBe(DEFAULT_ENERGY_PARAMS.freeTimeValue);
+
+			// Work never exceeds the budget it was solved under.
+			for (const point of curve.points)
+				expect(point.workHours).toBeLessThanOrEqual(point.budgetHours + 1e-9);
+		});
+
+		it('the recommendation is the SMALLEST budget reaching the best day value', () => {
+			// ONE task at the default λ₀, which is where an interior knee actually lives:
+			// satiety is per-task (§8.4), so a multi-task day always has a fresh task to
+			// move to and runs to the cap. This one recommends 7.5 h of a 12 h sweep, so
+			// nine points sit strictly below the best and seven tie it — both loops below
+			// run, which is what makes "smallest" a tested claim rather than a
+			// restatement. (The e2e's task, at the form's default sliders rather than
+			// this one's, crosses at 8.25 h — same shape, different day.)
+			const curve = suggestBudgetCurve([tasks[0]], DEFAULT_ENERGY_PARAMS);
+			const best = Math.max(...curve.points.map((p) => p.dayValue));
+
+			expect(curve.recommendedHours).toBe(7.5);
+
+			const below = curve.points.filter((p) => p.budgetHours < curve.recommendedHours!);
+			const atOrAbove = curve.points.filter((p) => p.budgetHours >= curve.recommendedHours!);
+
+			// Non-vacuity: both sides are populated, so neither loop is skipped.
+			expect(below.length).toBe(9);
+			expect(atOrAbove.length).toBe(7);
+
+			for (const point of below) expect(point.dayValue).toBeLessThan(best);
+
+			for (const point of atOrAbove) expect(point.dayValue).toBeCloseTo(best, 12);
+		});
+
+		it('reports no recommendation when the best value is at the top of the range', () => {
+			// λ₀ = 0 prices free time at nothing, so every extra hour is worth working
+			// and the day value is still climbing when the sweep runs out.
+			const curve = suggestBudgetCurve(
+				tasks,
+				{
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 0,
+				},
+				undefined,
+				{
+					maxBudgetHours: 6,
+				},
+			);
+
+			expect(curve.recommendedHours).toBeNull();
+		});
+
+		it('a high price on free time recommends a short day', () => {
+			// λ₀ = 0.75 is where this fixture's knee comes inside a 6 h cap. Pinned
+			// with the work and the marginal AT the recommendation, not just the
+			// hours: a recommendation that books nothing is the failure mode this
+			// test exists to catch, and `recommendedHours < 6` alone passes on it.
+			const curve = suggestBudgetCurve(
+				tasks,
+				{
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 0.75,
+				},
+				undefined,
+				{
+					maxBudgetHours: 6,
+				},
+			);
+
+			expect(curve.recommendedHours).toBe(4.5);
+
+			const at = curve.points.find((p) => p.budgetHours === curve.recommendedHours)!;
+
+			expect(at.workHours).toBeGreaterThan(0);
+			expect(at.valuePerHour).toBeGreaterThan(0);
+		});
+
+		it('recommends nothing when no window beats not working at all', () => {
+			// Priced above the whole board, the optimizer books nothing at any budget.
+			// `dayValue` is then flat at the do-nothing day, and the sweep must say so
+			// rather than name its first step: seeded from -Infinity the first budget
+			// always "rose", which advertised a 45-minute day booking 0 h of work
+			// under copy claiming an hour past it adds nothing (MATH.md §8.12).
+			const curve = suggestBudgetCurve(
+				tasks,
+				{
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 3,
+				},
+				undefined,
+				{
+					maxBudgetHours: 6,
+				},
+			);
+
+			expect(curve.recommendedHours).toBeNull();
+			expect(curve.points.every((p) => p.workHours === 0)).toBe(true);
+			expect(curve.points.every((p) => p.valuePerHour === 0)).toBe(true);
+		});
+
+		it('day value never falls as the budget grows — the running max (MATH.md §14.2)', () => {
+			// A fixture that ACTUALLY dips, found by search: `plan(b)` maximizes the
+			// objective at its own window rather than this score, so the raw
+			// common-horizon sweep falls 8.4906 → 8.4508 between 8.25 h and 9 h here.
+			// Most fixtures never dip at all (§8.12 measures 0.4% of steps) and pass this
+			// assertion with the running max deleted — mutation-verified, so keep THIS
+			// fixture: it is the one that fails when the floor goes.
+			const dipping = [makeTask(1, 'A', 6, 8, 0.9, 0.7), makeTask(2, 'B', 7, 6, 0.1, 0.8)];
+
+			const curve = suggestBudgetCurve(dipping, DEFAULT_ENERGY_PARAMS, undefined, {
+				maxBudgetHours: 9,
+			});
+
+			for (let i = 1; i < curve.points.length; i++)
+				expect(curve.points[i].dayValue).toBeGreaterThanOrEqual(curve.points[i - 1].dayValue);
+
+			// The flat step the floor produces, pinned by value: without it this point
+			// reads below its predecessor and `valuePerHour` goes negative.
+			const flat = curve.points.find((p) => p.budgetHours === 9)!;
+			expect(flat.valuePerHour).toBe(0);
+		});
+
+		// The three properties the card's copy rests on. `plan(b)` books whole
+		// steps, so `dayValue` is a staircase and its RAW difference is a spike
+		// train: zero wherever a step failed to seat another block, then back up.
+		// Measured on the raw definition, 0 of 60 seeded days fell monotonically
+		// and 34 returned above zero after touching it. The majorant slope is what
+		// makes "it never rises" and "the last positive step is the recommendation"
+		// true statements (MATH.md §8.12, scripts/curve-shape.probe.ts).
+		it('values an hour of window at the concave-majorant slope, which never rises', () => {
+			const curve = suggestBudgetCurve(tasks, DEFAULT_ENERGY_PARAMS, undefined, {
+				maxBudgetHours: 6,
+			});
+
+			// Every point, including the first: its predecessor is the do-nothing day,
+			// so the shortest window swept carries a real marginal rather than a zero
+			// standing in for a missing one.
+			expect(curve.points[0].valuePerHour).toBeGreaterThan(0);
+
+			for (let i = 0; i < curve.points.length; i++) {
+				expect(curve.points[i].valuePerHour).toBeGreaterThanOrEqual(0);
+
+				if (i > 0)
+					expect(curve.points[i].valuePerHour).toBeLessThanOrEqual(
+						curve.points[i - 1].valuePerHour + 1e-12,
+					);
+			}
+		});
+
+		it('redistributes the gain without inventing any: the slopes telescope to the level', () => {
+			const curve = suggestBudgetCurve(tasks, DEFAULT_ENERGY_PARAMS, undefined, {
+				maxBudgetHours: 6,
+			});
+
+			const summed = curve.points.reduce((sum, p) => sum + p.valuePerHour * DEFAULT_STEP_HOURS, 0);
+			// From the do-nothing day, which is where the majorant starts — the same
+			// score on the same horizon with an empty schedule, exactly as §8.12
+			// writes it.
+			const doNothing = evaluateSchedule([], tasks, 6, DEFAULT_ENERGY_PARAMS).objective;
+			const climbed = curve.points[curve.points.length - 1].dayValue - doNothing;
+
+			expect(summed).toBeCloseTo(climbed, 12);
+		});
+
+		it('is still above zero at the recommendation, and zero after it', () => {
+			// One task satiates, so this day has a recommendation inside the range.
+			const curve = suggestBudgetCurve([tasks[0]], DEFAULT_ENERGY_PARAMS);
+
+			expect(curve.recommendedHours).not.toBeNull();
+
+			for (const p of curve.points) {
+				if (p.budgetHours <= curve.recommendedHours! - DEFAULT_STEP_HOURS / 2) continue;
+
+				if (p.budgetHours < curve.recommendedHours! + DEFAULT_STEP_HOURS / 2)
+					expect(p.valuePerHour).toBeGreaterThan(0);
+				else expect(p.valuePerHour).toBe(0);
+			}
+		});
+
+		it('has nothing to sweep with no tasks', () => {
+			const curve = suggestBudgetCurve([], DEFAULT_ENERGY_PARAMS, undefined, {
+				maxBudgetHours: 6,
+			});
+
+			expect(curve.points).toEqual([]);
+			expect(curve.recommendedHours).toBeNull();
 		});
 	});
 

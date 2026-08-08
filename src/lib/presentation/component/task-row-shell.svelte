@@ -55,8 +55,9 @@
 		 *  strip fades out from under a form that is still being filled in — and the
 		 *  button that opened it is how you close it again. */
 		actionsPinned?: boolean;
-		/** ✎ is open. Its editor is the caller's: which other forms it may not share the
-		 *  row with is a policy only that screen knows. */
+		/** ✎ is open — so the strip stays pinned and the button reads as active. The
+		 *  editor itself is the caller's, rendered in `forms` alongside that screen's
+		 *  own; both rows stack the two rather than trading one for the other. */
 		editing?: boolean;
 		/** Toggles ✎. Absent on a read-only row, which then has no ✎ at all. */
 		onedit?: () => void;

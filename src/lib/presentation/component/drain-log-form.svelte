@@ -14,8 +14,8 @@
 			mind: number | null;
 			body: number | null;
 		};
-		/** Only when the row's own 🪫 button opened this. An editor that opened itself
-		 *  on completion must not yank the caret out of the task list. */
+		/** Only when the row's own 🪫 button (or the card's ✎) opened this. An editor
+		 *  that opened itself on completion must not yank the caret out of the list. */
 		focusMinutes?: boolean;
 		/** The end of a session, in the units MATH.md §8.8 fits α from. */
 		onsave: (entry: { hours: number; mind: number; body: number }) => void;
@@ -35,8 +35,8 @@
 
 	// Mounted only while open — the parent renders it behind an `{#if}` — so a fresh
 	// draft per opening is the mount, not a reset. What must NOT live here is whether
-	// the editor is open: the completion prompt refuses to open over any editor, on any
-	// task, and only the page can see all of them.
+	// the editor is open: the completion prompt yields to one already on the row, and
+	// the calibration card's ✎ opens one from outside it. Both are the page's to know.
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,

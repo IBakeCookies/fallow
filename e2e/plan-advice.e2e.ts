@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, isoDate, setBudget } from './helpers';
+import { AUTOSAVE_MS, budgetField, isoDate, setBudget } from './helpers';
 
 /* The advice card is the one place the app says what to CHANGE rather than what
    the day reads. Every option it shows is a full re-solve of the day (MATH.md
@@ -118,6 +118,57 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
 	await expect(page.getByText('Move “Tax return” off today')).toBeHidden();
 });
 
+/* Nothing but head work: Physical Diff 0 on every task makes Energy Balance read
+   100% cognitive, and NO lever moves it — deferring leaves the share at 100 and
+   both loads scale with the budget, so the ratio is invariant (MATH.md §14.4).
+   The reported day: the advisor dropped the axis for having no options, the card
+   read that absence as "every axis is in band", and printed "this day is fine"
+   under a dashboard row banded Caution. */
+async function addCognitiveTask(page: Page, title: string) {
+	const form = page.locator('form').filter({
+		has: page.getByPlaceholder('e.g., Boxing training'),
+	});
+
+	await form.getByPlaceholder('e.g., Boxing training').fill(title);
+	await form.getByLabel(/Mental Diff/).fill('8');
+	await form.getByLabel(/Physical Diff/).fill('0');
+	await form.getByLabel(/Enjoyment/).fill('5');
+
+	await form
+		.getByRole('button', {
+			name: 'Deploy Task',
+		})
+		.click();
+}
+
+test('an axis nothing can improve still reads, and the day is not called fine', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addCognitiveTask(page, 'Design the error boundary');
+	await addCognitiveTask(page, 'Write the PDF solution');
+
+	await setBudget(page, 8);
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	await expect(page.getByText('Adjust the plan')).toBeVisible();
+
+	// Twice on the page — the dashboard row and the advice row — which is the
+	// agreement the bug broke, both drawn from `energyBalanceReading`.
+	await expect(page.getByText('Cognitive Heavy 100%')).toHaveCount(2);
+
+	// Exactly one axis on this day has an empty menu; the rest are all improved by
+	// a wider budget at least, so the line is Energy Balance's.
+	await expect(page.getByText('No task move and no budget change improves this.')).toHaveCount(1);
+
+	await expect(page.getByText(/Nothing reads badly enough to act on/)).toBeHidden();
+});
+
 // The one advice the card can perform itself (MATH.md §14 / AGENTS.md §6):
 // the button names the task it moves, so the test reads it back rather than
 // assuming which lever survives the frontier.
@@ -165,6 +216,52 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 			name: `Mark ${title} complete`,
 		}),
 	).toBeVisible();
+});
+
+/* The other performable lever (MATH.md §14 rules the budget a choice about the
+   day, which is why it is a lever at all where the switch cost is only a
+   diagnostic). What the button buys over retyping the label: the trim lever is
+   `budget − planSlack` and carries UNROUNDED hours, so a user copying the two
+   decimals the card prints lands on a budget the model never priced. */
+test('applying a budget lever declares the hours the model priced', async ({ page }) => {
+	await page.goto('/');
+	await addDrainingTask(page, 'Write the spec');
+	await addDrainingTask(page, 'Migrate the database');
+
+	// More hours than this plan wants, so the slack the trim lever spends exists.
+	await setBudget(page, 10);
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	// Read the lever off the card rather than assuming which one survives the
+	// frontier — the label carries the same rounding the button must not.
+	const action = page.getByText(/Set the budget to [\d.]+h/).first();
+	await expect(action).toBeVisible();
+	const labelled = Number((await action.textContent())!.match(/([\d.]+)h/)![1]);
+
+	// `.first()`: the same trim lever wins on more than one axis, so the card draws
+	// the same button per row it improves. Identical words for an identical
+	// declaration, unlike two deferrals, which name their own task.
+	await page
+		.getByRole('button', {
+			name: `Set ${labelled}h`,
+		})
+		.first()
+		.click();
+
+	const applied = Number(await budgetField(page).inputValue());
+
+	expect(applied).not.toBe(10);
+	// The field took the lever's own hours: equal to the label once rounded the way
+	// the label rounds, and free to carry more decimals than it showed.
+	expect(Math.round(applied * 100) / 100).toBe(labelled);
+
+	// A declaration the day now reads from, so the last solve's numbers are stale.
+	await expect(page.getByText('Your day has changed since this was calculated.')).toBeVisible();
 });
 
 test('the advice card stays out of the way on a past day', async ({ page }) => {

@@ -415,7 +415,7 @@ describe('EnergyLabStore', () => {
 	});
 
 	// AGENTS.md §3: "A fit never writes params silently." The whole point of the
-	// Apply buttons is that the sliders stay the user's.
+	// Apply button is that the sliders stay the user's.
 	it('computes the fits without touching the params', async () => {
 		const store = await setup();
 
@@ -439,11 +439,11 @@ describe('EnergyLabStore', () => {
 		expect(store.params.alphaCog).toBe(DEFAULT_ENERGY_PARAMS.alphaCog);
 		expect(store.params.alphaPhys).toBe(DEFAULT_ENERGY_PARAMS.alphaPhys);
 		expect(store.params.recoveryRate).toBe(DEFAULT_ENERGY_PARAMS.recoveryRate);
-		expect(store.drainFitApplied).toBe(false);
-		expect(store.recoveryFitApplied).toBe(false);
+		expect(store.hasFit).toBe(true);
+		expect(store.fitsApplied).toBe(false);
 	});
 
-	it('copies a fit into the manual inputs only when its Apply is pressed', async () => {
+	it('copies every fit into the manual inputs when Apply is pressed', async () => {
 		const store = await setup();
 
 		mockObservations.drainObservations = [
@@ -461,24 +461,49 @@ describe('EnergyLabStore', () => {
 
 		const round2 = (x: number) => Math.round(x * 100) / 100;
 
-		store.applyDrainFit();
+		store.applyFits();
 		flushSync();
+
+		expect(store.params.recoveryRate).toBe(round2(store.recoveryFit.rate));
 		expect(store.params.alphaCog).toBe(round2(store.cognitiveDrainFit.alpha));
 		expect(store.params.alphaPhys).toBe(round2(store.physicalDrainFit.alpha));
-		expect(store.drainFitApplied).toBe(true);
-
-		store.applyRecoveryFit();
-		flushSync();
-		expect(store.params.recoveryRate).toBe(round2(store.recoveryFit.rate));
-		expect(store.recoveryFitApplied).toBe(true);
-
-		store.applyStoppingFit();
-		flushSync();
-		expect(store.stoppingFitApplied).toBe(true);
+		expect(store.fitsApplied).toBe(true);
 
 		if (store.stoppingFit.fitted) {
 			expect(store.params.freeTimeValue).toBe(round2(store.stoppingFit.value));
 		}
+	});
+
+	// The bug the single button exists to kill: α is only identifiable CONDITIONED
+	// on r (MATH.md §8.7), so an α adopted before r is an α fitted against the old
+	// recovery. Three buttons let the user reach exactly that, with a re-armed
+	// button as the only tell. `applyFits` lands on the fixed point in one press —
+	// α ends up at the value fitted under the ADOPTED r, not the default one.
+	it('adopts the drain rates under the fitted recovery, not the default one', async () => {
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord(),
+			drainRecord({
+				hours: 2,
+				mindDrain: 8,
+			}),
+		];
+
+		mockObservations.restObservations = [restRecord()];
+		flushSync();
+
+		expect(store.params.recoveryRate).toBe(DEFAULT_ENERGY_PARAMS.recoveryRate);
+		const alphaUnderDefaultRecovery = store.cognitiveDrainFit.alpha;
+
+		store.applyFits();
+		flushSync();
+
+		// The conditioning genuinely bites, so the fixed-point assertion is not vacuous.
+		expect(store.params.recoveryRate).not.toBe(DEFAULT_ENERGY_PARAMS.recoveryRate);
+		expect(store.cognitiveDrainFit.alpha).not.toBeCloseTo(alphaUnderDefaultRecovery, 3);
+
+		expect(store.fitsApplied).toBe(true);
 	});
 
 	// R3: the Lab and the Burnout Risk facade must read identical logs the same
@@ -612,6 +637,119 @@ describe('EnergyLabStore', () => {
 		resolveStale([stopObservation(4)]);
 		await vi.waitFor(() => expect(readStopObservationsMock).toHaveBeenCalledTimes(2));
 		expect(store.stopObservationCount).toBe(2);
+	});
+
+	// ----- Budget curve (MATH.md §8.12) -----
+
+	const twoTasks = (): Task[] => [
+		{
+			id: 1,
+			title: 'deep work',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 6,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+		{
+			id: 2,
+			title: 'boxing',
+			physicalDifficulty: 9,
+			mentalDifficulty: 2,
+			enjoyment: 5,
+			createdAt: '2026-07-20',
+			completed: false,
+		},
+	];
+
+	it('sweeps nothing until asked, then holds the curve', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		expect(store.budgetCurve).toBeNull();
+		expect(store.isCurveStale).toBe(false);
+		expect(store.hasCurveError).toBe(false);
+
+		await store.computeBudgetCurve();
+
+		expect(store.isCurveBusy).toBe(false);
+		expect(store.budgetCurve!.points.length).toBeGreaterThan(0);
+		expect(store.isCurveStale).toBe(false);
+	});
+
+	// The whole reason the sweep exists: it is a statement about EVERY budget, so
+	// the one input it must not depend on is the budget. A fingerprint that
+	// included it would grey the card out on the very drag it is there to inform.
+	it('does not go stale when the day window moves, only when the day does', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		mockSession.availableHours = 3;
+		flushSync();
+		expect(store.isCurveStale).toBe(false);
+
+		store.setParam('freeTimeValue', 1.5);
+		flushSync();
+		expect(store.isCurveStale).toBe(true);
+	});
+
+	// `title` rides along on `EnergyTaskInput`, but no part of the sweep reads it
+	// and no field of `BudgetCurve` carries one — so fingerprinting the whole
+	// mapped task greyed out a bit-identical curve and invited a 16-solve re-run
+	// every time a row was renamed (MATH.md §8.12).
+	it('survives renaming a task', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		const before = store.budgetCurve!;
+
+		mockSession.tasks = mockSession.tasks.map((t) =>
+			t.id === 1
+				? {
+						...t,
+						title: 'deep work (API)',
+					}
+				: t,
+		);
+
+		flushSync();
+
+		expect(store.isCurveStale).toBe(false);
+
+		await store.computeBudgetCurve();
+		expect(store.budgetCurve).toEqual(before);
+	});
+
+	// Plan-scoped, like every other reading on this page (MATH.md §11.8): the
+	// sweep asks what the day's WORK is worth at each length, and finishing a
+	// piece of it does not change the answer.
+	it('survives checking a task off', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		const before = store.budgetCurve!;
+
+		mockSession.tasks = mockSession.tasks.map((t) =>
+			t.id === 1
+				? {
+						...t,
+						completed: true,
+					}
+				: t,
+		);
+
+		flushSync();
+
+		expect(store.isCurveStale).toBe(false);
+
+		await store.computeBudgetCurve();
+		expect(store.budgetCurve).toEqual(before);
 	});
 
 	// ----- Live stop advisor (MATH.md §8.11) -----

@@ -84,11 +84,9 @@ function badnessOf(axis: AdviceAxis, value: number): number {
 	return value;
 }
 
-/** The same nine readings the model searches over (MATH.md §14). */
+/** The same eight readings the model searches over (MATH.md §14). */
 function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
 	if (axis === 'humanCapacity') return metrics.humanCapacity.percent;
-
-	if (axis === 'grindDensity') return metrics.grindDensity.percent;
 
 	return metrics[axis];
 }
@@ -113,7 +111,9 @@ describe('suggestPlanAdjustments', () => {
 			}),
 		);
 
-		expect(advice.findings).toEqual([]);
+		// The axes are still all reported (MATH.md §14.4). What an empty day has is
+		// nothing to DO about them — an empty menu everywhere, not a missing axis.
+		expect(everyOption(advice)).toEqual([]);
 		expect(advice.unfundedTaskIds).toEqual([]);
 		expect(advice.planValue).toBe(0);
 	});
@@ -542,16 +542,14 @@ describe('suggestPlanAdjustments', () => {
 		);
 	});
 
-	it('files every finding under a known axis, in axis order, with options', () => {
+	// Every axis, unconditionally and in order (MATH.md §14.4): the caller reads
+	// the menu to know what helps, and the axis's presence says only that it was
+	// asked. Dropping the ones nothing helps is what made an unfixable warning
+	// indistinguishable from a day with no warning on it.
+	it('files a finding for every axis, in axis order', () => {
 		const advice = suggestPlanAdjustments(grindDay());
-		const order = advice.findings.map((finding) => ADVICE_AXES.indexOf(finding.axis));
 
-		expect(order).toEqual([...order].sort((a, b) => a - b));
-		expect(order.every((index) => index >= 0)).toBe(true);
-
-		expect(
-			advice.findings.every((finding) => finding.options.length > 0 || finding.unpriced !== null),
-		).toBe(true);
+		expect(advice.findings.map((finding) => finding.axis)).toEqual([...ADVICE_AXES]);
 	});
 
 	// A zero pool with demand on it makes Human Capacity read Infinity
@@ -1138,7 +1136,14 @@ describe('suggestPlanAdjustments', () => {
 				}),
 			);
 
-			expect(findingFor(advice, 'energyBalance')).toBeUndefined();
+			const finding = findingFor(advice, 'energyBalance');
+
+			// The axis is reported and its menu is empty, which is the NaN sentinel
+			// failing every comparison (MATH.md §14.4) — the card drops a row that
+			// reads N/A with nothing under it.
+			expect(Number.isNaN(finding?.before)).toBe(true);
+			expect(finding?.options).toEqual([]);
+			expect(finding?.unpriced).toBeNull();
 		});
 
 		it('still offers the empty plan on the v-badness axes, priced honestly', () => {
@@ -1172,7 +1177,11 @@ describe('suggestPlanAdjustments', () => {
 				}),
 			);
 
-			expect(findingFor(advice, 'scheduleIntegrity')).toBeUndefined();
+			const finding = findingFor(advice, 'scheduleIntegrity');
+
+			expect(Number.isNaN(finding?.before)).toBe(true);
+			expect(finding?.options).toEqual([]);
+			expect(finding?.unpriced).toBeNull();
 		});
 
 		it('leaves the axis working on a day that does fund work', () => {
@@ -1184,28 +1193,63 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §14.1-5 again, for Grind Density (§11.10): `calculateGrindDensity`
-	// reports 0% for a plan that funds nothing, and 0% is this axis's global
-	// optimum — so an empty plan would win its frontier on a day of pure grind.
-	describe('grind density and the plan that funds nothing', () => {
-		it('never offers a plan that funds nothing as grind advice', () => {
-			// A budget of one hour, so `budget − 1` clamps to the empty plan — the
-			// same lever that surfaced this on Energy Balance.
-			const base = grindDay(1);
-			const baseline = calculateDailyMetrics(base);
+	// MATH.md §14.4. The live day that surfaced it (2026-08-08): every task
+	// cognitive, so Energy Balance reads 100% and no lever moves it — the share is
+	// invariant under both — and the axis was dropped from `findings` entirely.
+	// The card read that absence as "every axis is in band" and printed "this day
+	// is fine" under a row the dashboard was banding Caution.
+	describe('an axis no lever can move', () => {
+		const COGNITIVE_ONLY = [
+			makeTask({
+				id: 1,
+				title: 'Design the error boundary',
+				mentalDifficulty: 8,
+				physicalDifficulty: 0,
+				enjoyment: 9,
+			}),
+			makeTask({
+				id: 2,
+				title: 'Write the PDF solution',
+				mentalDifficulty: 6,
+				physicalDifficulty: 0,
+				enjoyment: 7,
+			}),
+			makeTask({
+				id: 3,
+				title: 'Review the PR',
+				mentalDifficulty: 5,
+				physicalDifficulty: 0,
+				enjoyment: 4,
+			}),
+		];
 
-			// Not vacuous: every task this day funds is grind, so the empty plan
-			// reads 0 against a baseline of 100 and would top the frontier.
-			expect(baseline.grindDensity.percent).toBe(100);
+		it('still reports the reading, under an empty menu', () => {
+			const finding = findingFor(suggestPlanAdjustments(input(COGNITIVE_ONLY)), 'energyBalance');
 
-			expect(
-				calculateDailyMetrics({
-					...base,
-					availableHours: 0,
-				}).grindDensity.funded,
-			).toBe(0);
+			// Not vacuous: 100 is the worst this axis reads, and every candidate ties
+			// it, which is why the menu below is empty rather than unsearched.
+			expect(finding?.before).toBe(100);
+			expect(finding?.options).toEqual([]);
+			expect(finding?.unpriced).toBeNull();
+		});
+	});
 
-			expect(findingFor(suggestPlanAdjustments(base, baseline), 'grindDensity')).toBeUndefined();
+	// MATH.md §11.11: Grind Density counts tasks, but every lever the advisor can
+	// pull is priced in hours, so it paid ~3% of Σ P̄ to move the reading 15-33pp
+	// by deferring a 15-minute chore. Retired as an axis, kept as a row.
+	describe('grind density is not an axis', () => {
+		it('offers no advice on a day of pure grind', () => {
+			const base = grindDay();
+
+			// Not vacuous: every task this day funds is a grind, so the axis would
+			// read 100 — the worst value it has — and lead the frontier.
+			expect(calculateDailyMetrics(base).grindDensity.percent).toBe(100);
+
+			expect(ADVICE_AXES).not.toContain('grindDensity');
+
+			expect(suggestPlanAdjustments(base).findings.map((finding) => finding.axis)).not.toContain(
+				'grindDensity',
+			);
 		});
 	});
 });

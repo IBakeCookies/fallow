@@ -84,30 +84,24 @@
 	let flowSource = $state<EditorSource>('button');
 
 	// Inline task editor (✎): re-tune the task after it is added. The fields are
-	// task-edit-form.svelte's, shared with the Lab's row.
+	// task-edit-form.svelte's, shared with the Lab's row. It stacks with the ⚡ editor
+	// rather than replacing it — they answer different questions, and closing one to
+	// open the other discarded a draft nobody asked to throw away.
 	let editing = $state(false);
-
-	function openEdit() {
-		loggingFlow = false;
-		editing = true;
-	}
 
 	function openFlowLog(source: EditorSource) {
 		flowMinutesInput = flowMinutes ?? null;
-		editing = false;
 		flowSource = source;
 		loggingFlow = true;
 	}
 
 	// Completing a task is the one moment the user still knows how long the ramp-up
 	// took. `completed` is a prop, so this reads the value BEFORE the parent flips it.
-	// The ✎ editor counts as open: `openFlowLog` closes it, and its draft is not
-	// persisted until Save.
 	function onCompletionChange() {
 		const action = completionPromptAction({
 			finishing: !completed,
 			measured: Boolean(flowMinutes),
-			anyEditorOpen: loggingFlow || editing,
+			editorOpenOnThisRow: loggingFlow,
 			promptOpenForThisTask: loggingFlow && flowSource === 'completion',
 		});
 
@@ -301,7 +295,7 @@
 		{actions}
 		actionsPinned={loggingFlow}
 		{editing}
-		onedit={onupdate && (() => (editing ? (editing = false) : openEdit()))}
+		onedit={onupdate && (() => (editing = !editing))}
 		onremove={onremove && (() => onremove(id))}
 		{forms}
 	/>

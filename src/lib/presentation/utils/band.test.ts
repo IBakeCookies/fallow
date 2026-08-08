@@ -5,6 +5,7 @@ import {
 	BAND_TEXT_CLASS,
 	BANDS,
 	bandLabel,
+	energyBalanceReading,
 	getBandBiggerBetter,
 	getBandDeepWork,
 	getBandSmallerBetter,
@@ -21,10 +22,15 @@ const AXES = [
 	'physicalLoad',
 	'energyBalance',
 	'frictionIndex',
-	'grindDensity',
 	'timeScarcity',
 	'scheduleIntegrity',
 ] as const;
+
+/**
+ * Plus the one reading the table bands for a dashboard row without the advisor
+ * searching on it (MATH.md §11.11).
+ */
+const BANDED = [...AXES, 'grindDensity'] as const;
 
 describe('band policy', () => {
 	// AGENTS.md R3: the advice card filters findings by exactly the call that
@@ -42,8 +48,8 @@ describe('band policy', () => {
 		}
 	});
 
-	it('covers every advice axis', () => {
-		expect(Object.keys(AXIS_BAND).sort()).toEqual([...AXES].sort());
+	it('covers every advice axis, and the one banded row that is not one', () => {
+		expect(Object.keys(AXIS_BAND).sort()).toEqual([...BANDED].sort());
 	});
 
 	// The boundaries are inclusive on the good side, which is what makes exactly
@@ -118,6 +124,19 @@ describe('band policy', () => {
 		expect(AXIS_BAND.energyBalance(60)).toBe('success');
 		expect(AXIS_BAND.energyBalance(61)).toBe('warning');
 		expect(AXIS_BAND.energyBalance(39)).toBe('warning');
+	});
+
+	// The share rides along with the word because the word is three buckets over a
+	// continuous reading: two readings a whole bucket apart in badness print the
+	// same words, which is what made an advice option look like a no-op on 61.6% of
+	// this axis's options (MATH.md §25).
+	it('reads a balance as its direction and its share, in one call', () => {
+		expect(energyBalanceReading(71)).toBe('Cognitive Heavy 71%');
+		expect(energyBalanceReading(50)).toBe('Balanced 50%');
+		expect(energyBalanceReading(0)).toBe('Physical Heavy 0%');
+
+		// The two the word cannot tell apart, which is the whole reason for the share.
+		expect(energyBalanceReading(100)).not.toBe(energyBalanceReading(61));
 	});
 
 	// A missing entry would render `class="undefined"` — a value with no colour,

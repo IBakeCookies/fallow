@@ -47,6 +47,16 @@ export type AdviceLever =
 			hours: number;
 	  };
 
+/**
+ * The readings the advisor searches over (MATH.md §14).
+ *
+ * Grind Density is deliberately NOT one of them (MATH.md §11.11). It counts
+ * tasks where every lever it can pull is priced in hours, so deferring a 0.25 h
+ * chore moved it 15–33pp for ~3% of Σ P̄ — the axis rewarded cardinality, which
+ * is not what the allocator optimizes. Friction Index reads the same two inputs
+ * hour-weighted and by magnitude, so nothing is lost. It stays a dashboard row:
+ * "2 of your 3 jobs are chores" is a fair description, just not an objective.
+ */
 export const ADVICE_AXES = [
 	'burnoutRisk',
 	'humanCapacity',
@@ -54,7 +64,6 @@ export const ADVICE_AXES = [
 	'physicalLoad',
 	'energyBalance',
 	'frictionIndex',
-	'grindDensity',
 	'timeScarcity',
 	'scheduleIntegrity',
 ] as const;
@@ -83,7 +92,8 @@ export interface AdviceFinding {
 	before: number;
 	/**
 	 * Pareto-efficient Σ P̄-priced levers, biggest improvement first. Empty when
-	 * only `unpriced` improves this axis.
+	 * only `unpriced` improves this axis — and empty beside a null `unpriced`
+	 * when nothing does, which is a reading and not an omission (MATH.md §14.4).
 	 */
 	options: AdviceOption[];
 	/**
@@ -167,7 +177,7 @@ export interface SwitchCostPrice {
 
 export interface PlanAdvice {
 	planValue: number;
-	/** In `ADVICE_AXES` order; axes nothing can improve are omitted. */
+	/** One per axis, in `ADVICE_AXES` order — including the ones nothing improves. */
 	findings: AdviceFinding[];
 	/** Active tasks the plan funds no hours for — a read, not a search. */
 	unfundedTaskIds: number[];
@@ -226,14 +236,6 @@ const AXIS: Record<
 	},
 	frictionIndex: {
 		read: (metrics) => metrics.frictionIndex,
-		badness: (value) => value,
-	},
-	grindDensity: {
-		// A plan that funds nothing has no grind share; the metric returns 0 there,
-		// which is this axis's global optimum, so "defer the last funded task" would
-		// win its frontier. Same NaN treatment as Schedule Integrity below
-		// (MATH.md §11.10).
-		read: (metrics) => (metrics.grindDensity.funded ? metrics.grindDensity.percent : NaN),
 		badness: (value) => value,
 	},
 	timeScarcity: {
@@ -579,11 +581,15 @@ export function suggestPlanAdjustments(
 		metrics: calculateDailyMetrics(applyLever(input, lever)),
 	}));
 
+	// Every axis, including the ones no lever moves (MATH.md §14.4). Dropping
+	// those made an unfixable warning indistinguishable from no warning at all,
+	// and the caller — which owns the bands, not this file — cannot tell the two
+	// apart from an absence.
 	const findings = ADVICE_AXES.map((axis) => ({
 		axis,
 		before: AXIS[axis].read(baseline),
 		...paretoOptions(candidates, axis, baseline),
-	})).filter((finding) => finding.options.length > 0 || finding.unpriced !== null);
+	}));
 
 	const unfunded = baseline.activeTasks.filter((task) => task.suggestedHours <= 0);
 

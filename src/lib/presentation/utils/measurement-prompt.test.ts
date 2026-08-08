@@ -7,7 +7,7 @@ import {
 const base = {
 	finishing: true,
 	measured: false,
-	anyEditorOpen: false,
+	editorOpenOnThisRow: false,
 	promptOpenForThisTask: false,
 };
 
@@ -29,16 +29,16 @@ describe('completionPromptAction', () => {
 		).toBe('none');
 	});
 
-	/* The divergence this module exists for: the Lab's draft is page-level, so
-	   prompting while ANY editor is open destroys the one being typed into —
-	   opening reseeds the draft from stored values. Not only the same task's, and
-	   not only the same kind (the main page's ✎ editor closes for the same
-	   reason). */
-	it('never prompts over an open editor, whosever it is', () => {
+	/* Opening again reseeds the draft, so the prompt yields to one already showing on
+	   the row. Scoped to the row on purpose: a draft on ANOTHER row used to block this
+	   too, which is why a second task ticked off in the Lab got no prompt at all.
+	   Nothing about another row reaches this predicate now, so neither screen can
+	   regrow that half of the divergence. */
+	it('never prompts over an editor open on the same row', () => {
 		expect(
 			completionPromptAction({
 				...base,
-				anyEditorOpen: true,
+				editorOpenOnThisRow: true,
 			}),
 		).toBe('none');
 	});
@@ -48,30 +48,20 @@ describe('completionPromptAction', () => {
 			completionPromptAction({
 				...base,
 				finishing: false,
-				anyEditorOpen: true,
+				editorOpenOnThisRow: true,
 				promptOpenForThisTask: true,
 			}),
 		).toBe('withdraw');
 	});
 
+	// An editor the user opened by hand is theirs to keep — and un-completing task A
+	// reaches nothing on task B's row, which is now true by construction.
 	it('leaves a hand-opened editor alone when the task is un-completed', () => {
 		expect(
 			completionPromptAction({
 				...base,
 				finishing: false,
-				anyEditorOpen: true,
-			}),
-		).toBe('none');
-	});
-
-	// Un-completing task A must not close an editor showing for task B
-	it('withdraws nothing when the open prompt belongs to another task', () => {
-		expect(
-			completionPromptAction({
-				...base,
-				finishing: false,
-				anyEditorOpen: true,
-				promptOpenForThisTask: false,
+				editorOpenOnThisRow: true,
 			}),
 		).toBe('none');
 	});
