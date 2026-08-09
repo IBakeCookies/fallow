@@ -22,6 +22,7 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_CAPACITY_POOLS,
 	BLOCK_HOURS,
+	DEFAULT_SWITCH_COST,
 	OPTIMAL_PHI_MULTIPLIER,
 	GAIN_PERCENT_CAP,
 	PHI_RECENCY_HALF_LIFE_DAYS,
@@ -633,7 +634,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('funds the exactly-optimal subset past the limit when the budget caps the count (§4)', () => {
+		it('funds the exactly-optimal subset past the limit when the budget caps the count (§34)', () => {
 			// The seam the "13 tasks" test below cannot reach: a budget so tight that
 			// only a couple of tasks can be funded at all. Greedy forward selection
 			// commits to the best SINGLE task first and can never reach a pair that
@@ -676,12 +677,10 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 				if (funded <= 0) continue;
 
-				const value = calculateTaskAllocations(
-					subset,
-					funded,
-					DEFAULT_USER_CONSTANTS,
+				const value = calculateTaskAllocations(subset, funded, DEFAULT_USER_CONSTANTS, 0).reduce(
+					(sum, a) => sum + a.avgProductivity,
 					0,
-				).reduce((sum, a) => sum + a.avgProductivity, 0);
+				);
 
 				if (value > brute) brute = value;
 			}
@@ -697,11 +696,17 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(achieved).toBeCloseTo(brute, 9);
 		});
 
-		it('never plans a worse day on a bigger budget, past the limit (§4)', () => {
+		it('never plans a worse day on a bigger budget while the bounded search runs (§34)', () => {
 			// Monotonicity is the observable consequence of searching a budget-indexed
 			// family properly: every plan affordable at B is affordable at B + a block.
 			// Forward selection broke it — its first pick changes with the budget, and
 			// a better anchor can lead to a worse day (measured 2026-08-08).
+			//
+			// Scoped to the bounded region ON PURPOSE. At 14 tasks and switchCost 0.5
+			// that is budgets up to 3.75h (maxFunded 5, 3472 plans); one block more
+			// admits a 6th task, 6475 plans, and the fallback takes over — which does
+			// not GUARANTEE this (§34 measures it breaking elsewhere), so asserting it
+			// there would pin luck rather than a property.
 			const switchCost = 0.5;
 
 			const tasks = [
@@ -736,7 +741,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 			let previous = 0;
 
-			for (let budget = BLOCK_HOURS; budget <= 6; budget += BLOCK_HOURS) {
+			for (let budget = BLOCK_HOURS; budget <= 3.75 + 1e-9; budget += BLOCK_HOURS) {
 				const value = valueAt(budget);
 
 				expect(value).toBeGreaterThanOrEqual(previous - 1e-9);
@@ -1669,14 +1674,19 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('prediction uncertainty shrinks as observations accumulate', () => {
+		it('prediction uncertainty shrinks as observations accumulate, and σ̂ is no floor', () => {
 			const few = fitUserConstants(obs(5)).posterior!;
 			const many = fitUserConstants(obs(100)).posterior!;
 			const stdFew = phiPredictionStd(3, 1.5, few);
 			const stdMany = phiPredictionStd(3, 1.5, many);
 			expect(stdMany).toBeLessThan(stdFew);
-			// ...but never below the irreducible stopwatch noise floor
+			// ...but never below that fit's own estimated observation noise
 			expect(stdMany).toBeGreaterThanOrEqual(Math.sqrt(many.sigma2));
+			// σ̂ itself is a weighted average in which the σ₀ = 0.25h prior holds
+			// only ν₀/(ν₀ + Σw) of the weight, so it decays with data rather than
+			// standing at 15 minutes. It anchors the first few logs; it is not a
+			// floor, and nothing may justify a hedging choice by claiming one.
+			expect(Math.sqrt(many.sigma2)).toBeLessThan(0.25);
 		});
 
 		it('no observations returns the PRIOR as a posterior, not none (2026-07-26, §13.1)', () => {
@@ -2275,6 +2285,45 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 					);
 				}
 			}
+		});
+
+		it('the hedged stop-by leaves the [1.5194, 1.7933]ϕ band, and can precede ϕ itself (§5.1)', () => {
+			// The band is a σ = 0 property of the §3 closed form. `optimalHours` is
+			// the hedged optimum, and `fitUserConstants([])` hands every user a
+			// prior posterior, so σ_ϕ > 0 from the first day — which is why no copy
+			// may quote the band for the number the task row renders. A task that is
+			// productive from minute one (r at the cap) stops before it reaches ϕ.
+			const { constants, posterior, fitted } = fitUserConstants([]);
+			expect(fitted).toBe(false);
+
+			const [alloc] = calculatePooledAllocations(
+				[
+					{
+						title: 'easy and loved',
+						difficulty: 1,
+						enjoyment: 10,
+						cognitiveWeight: 0.5,
+						physicalWeight: 0.5,
+					},
+				],
+				10,
+				DEFAULT_CAPACITY_POOLS,
+				constants,
+				DEFAULT_SWITCH_COST,
+				posterior,
+			);
+
+			expect(phiParameterStd(alloc.E, alloc.beta, posterior)).toBeGreaterThan(0);
+			expect(alloc.optimalHours).toBeLessThan(alloc.phi);
+
+			// ...while the unhedged closed form for the same task stays in the band.
+			expect(
+				findOptimalSingleTaskTime({
+					title: 'easy and loved',
+					difficulty: 1,
+					enjoyment: 10,
+				}) / alloc.phi,
+			).toBeGreaterThanOrEqual(1.5194);
 		});
 
 		it('mixture block increments stay positive and non-increasing across the domain (greedy precondition)', () => {

@@ -36,8 +36,9 @@
 		suggestedHours: number;
 		trueEffort: number;
 		flowStateTime: number;
-		// Per-task optimal stopping time T* from the allocator (model v2:
-		// task-dependent — no longer reconstructable as a fixed 1.79 × ϕ)
+		// Per-task optimal stopping time from the allocator (model v2:
+		// task-dependent — no longer reconstructable as a fixed 1.79 × ϕ, and
+		// hedged for ϕ-uncertainty, so it can land below ϕ itself — MATH.md §3)
 		optimalStopHours: number;
 		runOrder?: number;
 		flowMinutes?: number;

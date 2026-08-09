@@ -40,22 +40,26 @@ Each task is described by three things you feel intuitively:
 These shape the curve: enjoyable, low-effort tasks start productive (`p(0) = p₀`
 really holds — a v2 fix over the article's curve); hard, unpleasant ones start
 slow but peak higher. There's a mathematically optimal point to stop each task —
-between 1.5×ϕ and 1.79×ϕ depending on the task — because working past it makes
-your _average_ productivity for that task fall.
+between 1.5194×ϕ and 1.7933×ϕ depending on the task, and earlier still while
+Fallow is unsure of your ϕ — because working past it makes your _average_
+productivity for that task fall.
 
 Fallow takes your whole task list and finds the allocation `⟨t₁, t₂, … tₙ⟩` that
 maximizes the sum of average productivities. Plans are built in **15-minute
-blocks** and solved exactly: greedy marginal analysis over block values, with an
-exhaustive search over which tasks deserve funding at all once context-switch
-costs are charged — then Fallow reports how much better that is than an equal
-split. (Full derivations: [MATH.md](MATH.md).)
+blocks**: greedy marginal analysis over block values, with an exhaustive search
+over which tasks deserve funding at all once context-switch costs are charged.
+Against your hours alone that is exact for up to 12 tasks, and past that on any
+day short enough to bound the search; once the energy pools bind too it reaches
+the optimum on ~94% of days and lands within a few per cent on the rest. Then
+Fallow reports how much better that is than an equal split. (Full derivations:
+[MATH.md](MATH.md).)
 
 ## What Fallow adds on top of the article
 
 - **A revised curve and per-task stopping times (model v2).** The article's
   curve forced `p(0) = 0`, contradicting its own "initial productivity" story;
   v2 uses a curve where `p(0) = p₀` truly holds, which makes the optimal
-  stopping point task-dependent (1.5–1.79 × ϕ) instead of a universal
+  stopping point task-dependent (1.5194–1.7933 × ϕ) instead of a universal
   constant. See [MATH.md](MATH.md) §2–3.
 - **Dual energy pools.** Cognitive and physical fatigue are separate systems.
   "6h of coding" saturates your ~4h/day of intense mental work, but "4h coding +
@@ -65,10 +69,11 @@ split. (Full derivations: [MATH.md](MATH.md).)
 - **Context-switching costs.** Every task you juggle costs ~15 minutes of
   overhead (grounded in attention-residue research). Fallow charges switches
   only between tasks that actually get time, and will _drop_ a weak task when
-  the switch it costs outweighs its value — decided by exhaustively comparing
-  every funded-task subset. It also tells you what that charge is doing: how
-  many hours of today it reserves, and what the same day would be worth if your
-  switch cost were nothing, or double what you declared.
+  the switch it costs outweighs its value — decided by comparing funded-task
+  subsets exhaustively wherever that search is affordable. It also tells you
+  what that charge is doing: how many hours of today it reserves, and what the
+  same day would be worth if your switch cost were nothing, or double what you
+  declared.
 - **Personalization from your own data.** Log how long a task really took to
   reach flow (the ⚡ button, stopwatch-style) and Fallow refits your personal
   constants (`c₁, c₂, c₃`) with a Bayesian linear regression — anchored to the

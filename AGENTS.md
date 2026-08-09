@@ -623,8 +623,11 @@ force). Do not change these without reading the derivation first.
   solves `eˣ = 1 + x + x²/(1+r)`; the multiplier ranges over [1.5194, 1.7933]
   — 1.5 is the r → 1 asymptote and `AMPLITUDE_RATIO_CAP = 0.9` forbids it.
   `OPTIMAL_PHI_MULTIPLIER` (1.7933) is only the r→0 limit / upper bound (and
-  the energy model's seed) — use `TaskAllocation.optimalHours` for real
-  values. The allocator never assigns time meaningfully past a task's `T*`.
+  the energy model's seed) — use `findOptimalSingleTaskTime` for real values.
+  `TaskAllocation.optimalHours` is the ϕ-uncertainty-hedged optimum and sits
+  **outside** that band: every user carries a posterior from day one, so it
+  runs down to 0.72ϕ and can precede ϕ itself (§5.1). No copy may quote the
+  band for it. The allocator never assigns time meaningfully past a task's `T*`.
 - The objective is `Σᵢ P̄ᵢ(tᵢ)` — a sum of average productivity _rates_, not
   total output. `P̄` jumps from 0 to ≈`p₀` at `t = 0⁺` ("activation bonus"),
   so the objective is **not concave** — Lagrange/KKT solvers are invalid
@@ -1170,7 +1173,8 @@ Each was considered and decided. Re-deciding them is churn.
 
 - **A budget _increase_ never enters that frontier** (MATH.md §14.1). Σ P̄
   prices deferring and trimming in full, but it does not price the extra
-  hour — and Σ P̄ is monotone in the budget, so a `budget + 1` inside the
+  hour — and Σ P̄ is monotone in the budget at the true optimum (§34's fallback
+  can invert it), so a `budget + 1` inside the
   frontier out-values every defer and dominates the entire menu down to "work
   more". `plan-advice.ts` splits the candidates with `isPriced` and returns
   the increase as `AdviceFinding.unpriced`, which the card renders last and

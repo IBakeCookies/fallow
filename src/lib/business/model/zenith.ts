@@ -65,7 +65,9 @@ interface TaskAllocation extends TaskInput {
 	phi: number; // Time to flow state (hours)
 	peakProductivity: number; // p(ϕ) = a·e^(p₀/a − 1), the curve's actual maximum
 	avgProductivity: number; // Average productivity over allocated time
-	optimalHours: number; // Single-task optimal stopping time T* = x*(r)/k
+	// Optimal stopping time, HEDGED for ϕ-uncertainty (§5.1) — not the §3 closed
+	// form x*(r)/k, and outside its [1.5194, 1.7933]ϕ band whenever σ_ϕ > 0.
+	optimalHours: number;
 	optimalAvgProductivity: number; // P̄(T*): best achievable average — allocation-independent task value
 }
 
@@ -113,7 +115,8 @@ export const BLOCK_HOURS = 0.25;
  * T* = ϕ·x*(r)/(1−r) with multiplier in [1.5194, 1.7933], r = p₀/a — so this is now only
  * (a) the exact r → 0 limit, (b) a strict UPPER BOUND on every task's
  * multiplier, and (c) the seed/bracket for the per-task root solve. Use
- * findOptimalSingleTaskTime (or TaskAllocation.optimalHours) for real values.
+ * findOptimalSingleTaskTime for real values — NOT TaskAllocation.optimalHours,
+ * which hedges ϕ-uncertainty and falls outside the band (MATH.md §5.1).
  * Still consumed by the zenith-energy model, which intentionally remains on
  * the v1 curve (see MATH.md §7).
  */
@@ -524,12 +527,14 @@ export function expectedOptimalTime(a: number, p0: number, phi: number, sigmaPhi
  * Parameter-uncertainty std of ϕ at (E, β):  √(xᵀΣx),  x = [E, β, 1].
  *
  * This is deliberately NOT phiPredictionStd: the predictive std adds the
- * irreducible observation noise σ̂², which describes stopwatch error and
- * day-to-day scatter around the plane — it never shrinks below the 15-minute
- * noise floor, so using it would make the allocator hedge forever even for a
- * user with hundreds of consistent logs. Parameter uncertainty is the part
- * the data can actually remove; it vanishes as logs accumulate, and with it
- * the hedging — a well-measured user gets exactly the classic plan.
+ * observation noise σ̂², which describes stopwatch error and day-to-day scatter
+ * around the plane — a property of the user, not of how much we have measured
+ * them, so it converges to their own scatter rather than to zero, and using it
+ * would make the allocator hedge against tomorrow's scatter forever. Parameter
+ * uncertainty is the part the data can actually remove; it vanishes as logs
+ * accumulate, and with it the hedging — a well-measured user gets exactly the
+ * classic plan. (σ̂ is NOT floored at σ₀ = 0.25h: §5's estimator is a weighted
+ * average that the prior anchors only while n is small — MATH.md §10.)
  */
 export function phiParameterStd(E: number, beta: number, posterior: FitPosterior): number {
 	const x = [E, beta, 1];
@@ -943,9 +948,9 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
  *
  * n > EXACT_SUBSET_LIMIT: the same enumeration, bounded to subsets no larger
  * than the budget can fund — still exact wherever it fits the same plan budget,
- * and it fits on exactly the tight days where the subset choice matters most.
- * Only a long day AND a long list falls through to greedy forward selection
- * (MATH.md §4).
+ * and it fits on the tight days where the subset choice matters most (up to a
+ * 3h day at n = 13). Longer days fall through to greedy forward selection,
+ * which is where its residual forfeit is 2–3% (MATH.md §34).
  */
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
@@ -1036,8 +1041,8 @@ function bestPlanWithSwitchCost(
 		return bestBlocks;
 	}
 
-	// Past the limit, the budget itself usually bounds the search back into
-	// range: a plan funding m tasks pays (m−1)·switchCost and still owes every
+	// Past the limit, a tight budget bounds the search back into range on its
+	// own: a plan funding m tasks pays (m−1)·switchCost and still owes every
 	// member a block, so subsets larger than `maxFunded` are unaffordable — and
 	// were never optimal anyway (the subset greedy really funds gets the same
 	// blocks out of a bigger budget). Enumerating only up to that size is exact
@@ -1072,10 +1077,11 @@ function bestPlanWithSwitchCost(
 		return bestBlocks;
 	}
 
-	// Long day, long list: no bound brings the enumeration back, so fall back to
-	// greedy forward selection — add the task whose admission most improves the
-	// total, stop when none does. Documented heuristic, and the regime where it
-	// costs least (MATH.md §4).
+	// A long enough day funds everything, so no bound brings the enumeration
+	// back: greedy forward selection — add the task whose admission most improves
+	// the total, stop when none does. Documented heuristic, still 2–3% short and
+	// still non-monotone in the budget, in the regime where that costs least
+	// (MATH.md §34).
 	const funded: number[] = [];
 
 	for (;;) {
@@ -1112,9 +1118,7 @@ function bestPlanWithSwitchCost(
 	return bestBlocks;
 }
 
-// Σⱼ₌₁ᵏ C(n, j) — how many plans a size-bounded enumeration costs. Stops at the
-// search budget rather than running the binomials up, which overflow long
-// before a task list this size is plausible.
+// Σⱼ₌₁ᵏ C(n, j) — how many plans a size-bounded enumeration costs.
 function subsetCount(n: number, maxSize: number): number {
 	let plans = 0;
 	let choose = 1;
@@ -1122,8 +1126,6 @@ function subsetCount(n: number, maxSize: number): number {
 	for (let j = 1; j <= maxSize; j++) {
 		choose = (choose * (n + 1 - j)) / j;
 		plans += choose;
-
-		if (plans > SUBSET_SEARCH_BUDGET) return Infinity;
 	}
 
 	return plans;

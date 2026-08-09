@@ -78,6 +78,31 @@ function exhaustiveValue(tasks: ProbeTask[], budget: number, switchCost: number)
 	return best;
 }
 
+/**
+ * Which branch of `bestPlanWithSwitchCost` a day lands on, re-derived here from
+ * §34's rule rather than imported — the allocator does not report it, and a
+ * probe that asked the code under test which path it took would be measuring
+ * nothing. n > 12 only; below that the full enumeration always runs.
+ */
+function boundedSearchRuns(n: number, budget: number, switchCost: number): boolean {
+	const blocksFor = (funded: number) =>
+		Math.floor((budget - (funded - 1) * switchCost) / BLOCK_HOURS + 1e-9);
+
+	let maxFunded = 0;
+
+	while (maxFunded < n && blocksFor(maxFunded + 1) >= maxFunded + 1) maxFunded++;
+
+	let plans = 0;
+	let choose = 1;
+
+	for (let j = 1; j <= maxFunded; j++) {
+		choose = (choose * (n + 1 - j)) / j;
+		plans += choose;
+	}
+
+	return maxFunded > 0 && plans <= (1 << 12) - 1;
+}
+
 const BANDS = [
 	{
 		name: '≤2h',
@@ -153,6 +178,73 @@ describe('funded-subset search past the exact limit', () => {
 		}
 
 		writeFileSync('/tmp/subset-search-bound.json', JSON.stringify(rows, null, 2));
+	});
+
+	it('counts the budget-monotonicity violations the fallback still allows', () => {
+		// Every plan affordable at B is affordable at B + a block, so a search over
+		// a budget-indexed family cannot lose value as the day grows. Forward
+		// selection can: its first pick moves with the budget. The bounded
+		// enumeration cannot, so this counts what is LEFT — and where, because a
+		// violation inside the bounded region would be a real defect.
+		const violations: unknown[] = [];
+		let checks = 0;
+
+		// One day's whole budget ladder; hoisted so the sweep stays inside the
+		// repo's nesting limit.
+		const walkBudgets = (n: number, tasks: ProbeTask[], switchCost: number): void => {
+			let previous = 0;
+
+			for (let budget = BLOCK_HOURS; budget <= 10 + 1e-9; budget += BLOCK_HOURS) {
+				const value = planValue(
+					calculateTaskAllocations(tasks, budget, DEFAULT_USER_CONSTANTS, switchCost),
+				);
+
+				checks++;
+
+				if (value < previous - 1e-9)
+					violations.push({
+						n,
+						switchCost,
+						budget: Number(budget.toFixed(2)),
+						drop: Number((previous - value).toFixed(4)),
+						bounded: boundedSearchRuns(n, budget, switchCost),
+					});
+
+				previous = value;
+			}
+		};
+
+		for (const n of [13, 14, 16, 20]) {
+			const random = mulberry32(n * 7919);
+
+			for (let day = 0; day < 40; day++) {
+				const tasks: ProbeTask[] = Array.from(
+					{
+						length: n,
+					},
+					(_, i) => ({
+						title: `t${i}`,
+						difficulty: 1 + Math.floor(random() * 10),
+						enjoyment: 1 + Math.floor(random() * 10),
+					}),
+				);
+
+				walkBudgets(n, tasks, [0.1, 0.25, 0.33, 0.5][Math.floor(random() * 4)]);
+			}
+		}
+
+		writeFileSync(
+			'/tmp/subset-search-monotonicity.json',
+			JSON.stringify(
+				{
+					checks,
+					count: violations.length,
+					violations,
+				},
+				null,
+				2,
+			),
+		);
 	});
 
 	it('times the path the app actually calls, per (n, budget)', () => {
