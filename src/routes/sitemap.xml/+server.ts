@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/public';
 import { baseLocale, type Locale, locales, localizeUrl } from '$lib/paraglide/runtime';
 
-// Indexable app pages, de-localized. Every one exists in both locales.
+// Indexable app pages, de-localized. Every one exists in every locale.
 const PATHS = ['/', '/analytics', '/calendar', '/energy', '/imprint', '/privacy'];
 
 export const GET: RequestHandler = ({ url }) => {

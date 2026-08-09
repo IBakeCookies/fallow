@@ -26,11 +26,13 @@
 	const OG_LOCALES: Record<string, string> = {
 		en: 'en_US',
 		de: 'de_DE',
+		es: 'es_ES',
+		zh: 'zh_CN',
 	};
 
 	const origin = $derived((env.PUBLIC_SITE_URL ?? page.url.origin).replace(/\/$/, ''));
 
-	// Both locales are indexable (`/…` English, `/de/…` German), so each page
+	// Every locale is indexable (`/…` English, `/de/…`, `/es/…`, `/zh/…`), so each page
 	// declares its own URL as canonical and every sibling as an alternate.
 	// Without the pair they compete as duplicate content.
 	const basePath = $derived(deLocalizeHref(page.url.pathname));

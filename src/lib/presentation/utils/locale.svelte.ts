@@ -1,7 +1,8 @@
 /**
  * Reload-free locale switching.
  *
- * German is a real route now (`url` strategy → `/de/*`), so switching language
+ * Every non-base locale is a real route (`url` strategy → `/de/*`, `/es/*`,
+ * `/zh/*`), so switching language
  * is a navigation, not a cookie write. goto() keeps it client-side and the root
  * layout keys the app subtree on the locale, so every m.*() message re-resolves
  * without blanking the app.
@@ -54,6 +55,17 @@ const LOCALE_DISPLAY: Record<Locale, { label: string; dateTag: string; weekStart
 			label: 'Deutsch',
 			dateTag: 'de-DE',
 			weekStartsOn: 1,
+		},
+		es: {
+			label: 'Español',
+			dateTag: 'es-ES',
+			weekStartsOn: 1,
+		},
+		zh: {
+			label: '中文',
+			dateTag: 'zh-CN',
+			// CLDR puts mainland China on Sunday (日一二三四五六), like the US
+			weekStartsOn: 7,
 		},
 	};
 
