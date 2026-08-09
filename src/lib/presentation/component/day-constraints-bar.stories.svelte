@@ -209,7 +209,7 @@
 	name="Future day"
 	args={{
 		isOpen: false,
-		canLogFlow: false,
+		canLog: false,
 		constantsFitted: false,
 		flowLogs: [],
 	}}

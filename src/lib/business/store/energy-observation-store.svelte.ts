@@ -96,6 +96,24 @@ export class EnergyObservationStore {
 	get drainObservations() {
 		return this.#drainObservations;
 	}
+
+	/**
+	 * Which tasks carry a 🪫 rating for today — never "the" rating: a task worked in
+	 * two sessions has two (MATH.md §8.7), so this is membership and nothing more.
+	 * Owned here because `logDrain` is what stamps the date, and because both screens
+	 * light the same button from it; asking it twice is how the two drift.
+	 *
+	 * A plain `Set`, not a `SvelteSet`: it is rebuilt on every read from `$state`
+	 * observations, so the reactivity is already the array's — a reactive Set here
+	 * would be a second source of truth for a value nothing mutates in place.
+	 */
+	get drainMeasuredToday(): ReadonlySet<number> {
+		const today = liveToday.value;
+
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived, never mutated
+		return new Set(this.#drainObservations.filter((o) => o.date === today).map((o) => o.taskId));
+	}
+
 	get restObservations() {
 		return this.#restObservations;
 	}

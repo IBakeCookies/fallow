@@ -23,6 +23,11 @@
 			ontoggle: fn(),
 			onremove: fn(),
 			onlogflow: fn(),
+			drainDraft: null,
+			isDrainMeasured: false,
+			ondrainopen: fn(),
+			ondrainclose: fn(),
+			ondrainsave: fn(),
 			onupdate: fn(),
 		},
 	});
@@ -121,11 +126,16 @@
 	}}
 />
 
-<!-- A past day passes no callbacks: the ⚡ and ✎ editors and the inert ✕ are all withheld -->
+<!-- A past day passes no callbacks: both measurement editors, ✎ and the inert ✕ are all
+     withheld. 🪫 is gated by the same `canLog` as ⚡, and for the same reason — the store
+     stamps an observation with the LIVE clock's today, so one logged here would misdate
+     itself onto a day the user is only reading. -->
 <Story
 	name="Read only"
 	args={{
 		onlogflow: undefined,
+		ondrainopen: undefined,
+		ondrainsave: undefined,
 		onupdate: undefined,
 		onremove: undefined,
 	}}
@@ -147,6 +157,12 @@
 		await expect(
 			canvas.queryByRole('button', {
 				name: 'Log time to flow',
+			}),
+		).not.toBeInTheDocument();
+
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Log end-of-session drain',
 			}),
 		).not.toBeInTheDocument();
 	}}
@@ -367,5 +383,77 @@
 			enjoyment: 7,
 			mustDoToday: false,
 		});
+	}}
+/>
+
+<!-- 🪫 is on this row too, not only in the Lab. It is the app's ONLY source of worked
+     hours, and λ₀ (MATH.md §8.10), the §12 adherence audit and overnight carry-over
+     (§11.9) all read finished days off it — so while the button lived on `/energy`
+     alone, a user who never opened the Lab calibrated none of the three. -->
+<Story
+	name="Rating a session"
+	args={{
+		isDrainMeasured: false,
+		drainDraft: {
+			minutes: 45,
+			mind: 6,
+			body: 2,
+			focusMinutes: false,
+			promptedByCompletion: false,
+		},
+		ondrainopen: fn(),
+		ondrainclose: fn(),
+		ondrainsave: fn(),
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		// ✓ reports the session in hours, keyed by the task the row is
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: '✓',
+			}),
+		);
+
+		await expect(args.ondrainsave).toHaveBeenCalledExactlyOnceWith(1, {
+			hours: 0.75,
+			mind: 6,
+			body: 2,
+		});
+
+		// The button closes what it opened — the page owns the draft, so the row asks
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Log end-of-session drain',
+			}),
+		);
+
+		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
+	}}
+/>
+
+<!-- Completing a task is the moment both measurements are knowable, so the tick asks
+     both and the two editors stack. They keep their own policies: ⚡ is one number per
+     day and goes quiet once measured, 🪫 is one per session (MATH.md §18) and never
+     does. Neither takes the caret — ticking tasks off with the keyboard must not land
+     it in a number field. -->
+<Story
+	name="Completion asks both"
+	args={{
+		ondrainopen: fn(),
+		ondrainclose: fn(),
+		ondrainsave: fn(),
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await userEvent.click(
+			canvas.getByRole('checkbox', {
+				name: 'Mark write the calibration section complete',
+			}),
+		);
+
+		// ⚡'s editor is the row's own, so it is on screen; 🪫's draft is the page's, so
+		// the row reports the prompt and this story's mock leaves it unanswered
+		await expect(canvas.getByText('⚡ Minutes to reach flow:')).toBeInTheDocument();
+		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
+
+		await expect(canvas.getByPlaceholderText('min')).not.toHaveFocus();
 	}}
 />

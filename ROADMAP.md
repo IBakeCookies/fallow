@@ -95,16 +95,47 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    all but one of those the card was still offering "work an extra hour".
 
 Items 1–3 shipped and did not finish the thesis: the plan still cannot see the
-hours you have already spent.
+hours you have already spent. Item 11 shipped the instrument that records them
+from anywhere in the app; 12 is what makes the plan read them, and is now the
+next item here with plan value of its own.
 
-11. **Worked-hours instrument on `/`** — log "worked 50 min on this" from the
-    main page, so a `/`-only user stops being invisible to three calibrations.
-    Reuse `drain-log-form.svelte` and the `completionPromptAction` policy
-    already on `/`, and add today's logs to `DailyMetricsInput`
-    (`metric/daily-metrics.ts:48-58` has no worked-hours field at all);
-    `DailyPlanStore` already holds the observation store and reads drain logs
-    for fits and for `selectedDate − 1`. Zero plan value on its own — it is a
-    binary unlock (0 → n fitted days) and the prerequisite for 12–14.
+11. ~~**Worked-hours instrument on `/`**~~ — SHIPPED 2026-08-09, and it was a
+    smaller thing than this item claimed. Nothing about the data needed
+    building: `EnergyObservationStore` is created once in the `(app)` layout and
+    both pages already read it from context, so a 🪫 log has always been shared
+    across the two screens — the button was simply only ever rendered on
+    `/energy`. What shipped is the button, on both rows.
+    **The symmetric half was the real finding.** If 🪫 belongs on `/` because
+    the α, λ₀, §12 and §11.9 readings all run off worked hours, then ⚡ belongs
+    on `/energy` for the same reason: `zenith-energy.ts` takes `UserConstants`
+    in its curve builders, so the Lab's own plans are computed with ϕ constants
+    only the main page could calibrate. Each screen was withholding an
+    instrument the other's model consumes. Both measurements are now on both
+    rows.
+    **So it consolidated rather than added.** The two rows already shared
+    `task-row-shell.svelte`; with the same two actions on both, the `actions`
+    and `forms` snippets were identical in each caller, so the whole action
+    strip, both measurement editors and the ✎ editor moved into the shell.
+    `task-item.svelte` and `energy-task-row.svelte` are now their three reading
+    snippets and the prop mapping around them. `canLogFlow` became `canLog`: the
+    gate is `selectedDate === today` and both stores stamp an observation with
+    the live clock's today, so the hazard it guards is the same for either
+    measurement. `DrainDraft`/`newDrainDraft` moved to `measurement-prompt.ts`,
+    which is what stops the two pages' draft records drifting apart again.
+    **Completing a task now asks both questions**, stacked, each keeping its own
+    policy — ⚡ goes quiet once measured (one number per day), 🪫 never does (one
+    per session, MATH.md §18). The other change on `/energy` is the ⚡ badge,
+    which moved into the shell from `task-item.svelte`: with both instruments on
+    both rows and the strip hover-revealed, neither caller was saying at rest
+    what it had already measured. 🪫 cannot badge — a task worked twice has two
+    ratings — so it pins the strip open instead, which is what the Lab's row did
+    before and `/` now does too. The ✓/✕ pair likewise has one owner
+    (`measurement-form-actions.svelte`); the three editors had each grown their
+    own, two with a hover surface and one without.
+    **`DailyMetricsInput` was deliberately left alone.** This item planned to
+    add today's logs to it (`metric/daily-metrics.ts:48-58` still has no
+    worked-hours field), but nothing reads such a field until item 12 — it is
+    12's input, and adding it now would ship a prop with no consumer.
     **Hours provenance — SETTLED 2026-08-05 as option (a)** (MATH.md §18).
     `DrainObservationRecord.hours` stayed the α instrument (§8.7's one session
     `H`) and the store became **one row per session**: §8.10/§11.9/§12 read a
@@ -199,12 +230,14 @@ nobody's feature — which is why it is written down rather than remembered:
     are stale, and gating the buttons costs a user the one deferral they can
     still take honestly.
 
-_Decide before 11, not a roadmap item:_ `importFromDate` / `importYesterday`
-copy every stored task — completed ones included — into fresh incomplete tasks
-with no dedupe against today's list (`session-store.svelte.ts:616`, `:647`).
-Re-importing a finished task as fresh is plausibly the point of "import
-yesterday"; the missing dedupe is less clearly intended. Settle which it is
-before 11 adds a second write path to the same day.
+_Settled 2026-08-09, not a roadmap item:_ both halves of `importFromDate` /
+`importYesterday` are intended and stay. Copying a completed task in as a fresh
+incomplete one IS the point of "import yesterday", and importing a title that is
+already on today's list is allowed to produce two rows — no dedupe against the
+day's tasks, no filter on `completed` (`session-store.svelte.ts:638`, `:669`).
+The consequence to keep in mind, since 🪫 logs key on `taskId`: two rows with
+the same title are two tasks to every fit, and the hours logged against each
+stay separate.
 
 ## Phase 2 — declared inputs the app can already infer
 
@@ -504,7 +537,7 @@ present:
     ≈0 at small n _by construction_, since the ridge is anchored to the
     default — so gate the coverage row at n ≥ 10. Fold in the ~5-line display
     of `phiPredictionStd` as a ± band beside the point ϕ on the task card
-    (`task-item.svelte:261-265`), which that function's own docstring
+    (`task-item.svelte:118-129`), which that function's own docstring
     sanctions. Unpriced by design and outside §17's table — it is not an
     allocation-precision claim. MATH.md: a §5.3 note on the scoring convention.
 20. **Unfunded-task attribution** — name the binding reason a task got 0 h.
@@ -769,7 +802,7 @@ What survives of the multi-day idea is two readings, not a solver:
     scale.
     **Unpriced costs to settle before building:** `priorityScore = P̄(T*)·10`
     becomes v-scaled and is rendered as a bare number
-    (`task-item.svelte:295`); `SavedRoutine.tasks` shares `taskCore`
+    (`task-item.svelte:142-144`); `SavedRoutine.tasks` shares `taskCore`
     (`persisted.ts:68-76`), so decide whether importance travels with routines
     (`mustDoToday` deliberately does not); and the energy mode does not get the
     weight (`toEnergyTask`, `calculation.ts:94`), so §12's audit becomes

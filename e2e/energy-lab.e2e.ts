@@ -517,7 +517,10 @@ test('completing a second task opens its own drain rating', async ({ page }) => 
 			.filter({
 				hasText: 'Deep work',
 			})
-			.locator('form'),
+			.locator('form')
+			.filter({
+				hasText: 'After the session',
+			}),
 	).toBeVisible();
 });
 
@@ -813,6 +816,65 @@ test('correcting a rating edits its row, while a second session adds one', async
 	// The row's own button is the other path: an empty form, and a second row.
 	await logDrain(page, 90, 7, 4);
 	await expect(page.getByText('Drain ratings · 2')).toBeVisible();
+});
+
+// The ✎ has to win over an editor already open on that row, and both halves of the
+// draft have to move together: the fields the user sees AND the `recordId` that decides
+// whether ✓ appends a session or rewrites one. They did not — the form read its seed at
+// mount and the row never remounted it — so ✓ pointed at a stored rating while showing
+// the blank one, which is a wrong write, not a stale display.
+test('the ✎ re-seeds a drain editor the row already has open', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logDrain(page, 180, 9, 5);
+
+	// A second session, started and left open on the row
+	await page
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.first()
+		.click();
+
+	const form = page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+	const fields = form.locator('input[type="number"]');
+	await expect(fields.nth(0)).toHaveValue('');
+
+	// ✎ on the logged rating, while that blank editor is still up
+	await page
+		.getByRole('button', {
+			name: 'Drain ratings · 1',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Correct this drain rating',
+		})
+		.click();
+
+	// The open editor now reads the stored session, not the blank one it replaced
+	await expect(fields.nth(0)).toHaveValue('180');
+	await expect(fields.nth(1)).toHaveValue('9');
+	await expect(fields.nth(2)).toHaveValue('5');
+
+	await fields.nth(1).fill('6');
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	// Corrected in place — the ✎'s save path, not the button's
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(page.getByText('M6')).toBeVisible();
 });
 
 test('deleting the drain rating clears the calibration', async ({ page }) => {

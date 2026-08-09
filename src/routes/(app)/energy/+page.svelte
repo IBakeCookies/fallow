@@ -6,7 +6,8 @@
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
-		completionPromptAction,
+		newDrainDraft,
+		type DrainDraft,
 		type EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
@@ -131,48 +132,21 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// The open 🪫 editors, by task. One per row, like the main page's ⚡ — ticking off
-	// two tasks ends two sessions, and each gets its prompt. The fields are
-	// drain-log-form.svelte's to collect; what stays here is which task each draft
-	// belongs to, because the calibration card's ✎ opens one from outside the row.
-	// A draft whose row is gone (delete, midnight rollover, visibility re-read) is
-	// inert: it is keyed by that task and nothing else reads it.
-	type DrainDraft = {
-		/** The row being corrected, or undefined when this is a new session */
-		recordId?: number;
-		minutes: number | null;
-		mind: number | null;
-		body: number | null;
-		/** Whether the caret goes to the editor — task-item.svelte's `flowSource`
-		 *  carries the full reasons, including why it cannot be an `autofocus`. */
-		focusMinutes: boolean;
-		/** Opened by the completion prompt, so un-completing withdraws it again. */
-		promptedByCompletion: boolean;
-	};
-
+	// The open 🪫 editors, by task. One per row — ticking off two tasks ends two
+	// sessions, and each gets its prompt. The fields are drain-log-form.svelte's to
+	// collect and the prompt policy is the row shell's; what stays here is which task
+	// each draft belongs to, because the calibration card's ✎ opens one from outside
+	// the row. Same shape as the main page's, from the same module.
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
 	const closeDrainLog = (taskId: number) => {
 		delete drainDrafts[taskId];
 	};
 
-	// Whether the task carries a 🪫 rating for today at ALL — never "the" rating:
-	// a task worked in two sessions has two of them (MATH.md §8.7).
-	const measuredToday = (taskId: number) =>
-		drainObservations.some((o) => o.date === session.today && o.taskId === taskId);
+	const drainMeasured = $derived(observations.drainMeasuredToday);
 
-	function openDrainLog(taskId: number, source: EditorSource) {
-		// Always empty, never seeded from an earlier rating: each 🪫 log describes one
-		// session (MATH.md §18), so prefilling the last one invites re-saving hours the
-		// day already counts. Correcting a rating goes through `editDrainLog` below.
-		drainDrafts[taskId] = {
-			minutes: null,
-			mind: null,
-			body: null,
-			focusMinutes: source === 'button',
-			promptedByCompletion: source === 'completion',
-		};
-	}
+	const openDrainLog = (taskId: number, source: EditorSource) =>
+		(drainDrafts[taskId] = newDrainDraft(source));
 
 	// The other way in: the ✎ on a rating in the calibration card, which re-opens THAT
 	// session in its task's editor. Only offered for today's rows whose task is still
@@ -191,30 +165,6 @@
 
 	const editableDrainLog = (log: Persisted<DrainObservationRecord>) =>
 		log.date === session.today && tasks.some((t) => t.id === log.taskId);
-
-	// Ticking a task off is the end of the session the 🪫 rating describes, so ask
-	// here rather than behind the hover-revealed button. Only this row's own editor is
-	// in the way — another task's is a session of its own, left alone.
-	function onCompletionChange(taskId: number, completed: boolean) {
-		const draft = drainDrafts[taskId];
-
-		const action = completionPromptAction({
-			// Never "already measured": ticking a task off ENDS a session, and every
-			// session gets its own row (MATH.md §18), so an earlier rating is no reason
-			// to skip the one that just finished. The ⚡ caller on `/` keeps the
-			// measured-once reading — time-to-flow is one number per day.
-			measured: false,
-			finishing: !completed,
-			editorOpenOnThisRow: draft !== undefined,
-			promptOpenForThisTask: draft?.promptedByCompletion ?? false,
-		});
-
-		session.toggleTask(taskId);
-
-		if (action === 'open') openDrainLog(taskId, 'completion');
-
-		if (action === 'withdraw') closeDrainLog(taskId);
-	}
 
 	// The rating itself is the editor's to validate; whether it is a new session or a
 	// correction is the page's, because only the draft remembers which ✎ opened it.
@@ -300,16 +250,16 @@
 				mustDoToday={task.mustDoToday}
 				color={colors.colorOf(task.id)}
 				plannedHours={plannedFor(task.id)}
-				measured={measuredToday(task.id)}
+				flowMinutes={task.flowMinutes}
+				isDrainMeasured={drainMeasured.has(task.id)}
 				drainDraft={drainDrafts[task.id] ?? null}
-				focusDrainMinutes={drainDrafts[task.id]?.focusMinutes ?? false}
-				ontoggle={() => onCompletionChange(task.id, task.completed)}
+				ontoggle={() => session.toggleTask(task.id)}
 				onremove={() => removeTaskWithUndo(session, task.id)}
-				ondrainclick={() =>
-					drainDrafts[task.id] ? closeDrainLog(task.id) : openDrainLog(task.id, 'button')}
-				onchange={(edit) => session.updateTask(task.id, edit)}
+				onlogflow={(minutes) => session.logFlow(task.id, minutes)}
+				ondrainopen={(source) => openDrainLog(task.id, source)}
+				ondrainclose={() => closeDrainLog(task.id)}
 				ondrainsave={(entry) => saveDrainLog(task.id, entry)}
-				ondraincancel={() => closeDrainLog(task.id)}
+				onchange={(edit) => session.updateTask(task.id, edit)}
 			/>
 		</li>
 	{/each}

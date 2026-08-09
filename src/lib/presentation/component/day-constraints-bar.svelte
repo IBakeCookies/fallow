@@ -19,9 +19,9 @@
 		 *  has counted them yet (MATH.md §33). The status line must not quote the
 		 *  raw total against a fit that read fewer. */
 		pendingFlowLogs?: number;
-		/** whether the viewed day's tasks can be ⚡-logged at all — false off today,
+		/** whether the viewed day's tasks can be measured at all — false off today,
 		 *  where the prompt would point at a button no task renders */
-		canLogFlow?: boolean;
+		canLog?: boolean;
 		ondeletelog?: (id: number) => void;
 		onresetlogs?: () => void;
 		// Collapsed, the whole bar is one line carrying every constraint the plan
@@ -43,7 +43,7 @@
 		constantsFitted,
 		flowLogs = [],
 		pendingFlowLogs = 0,
-		canLogFlow = true,
+		canLog = true,
 		ondeletelog,
 		onresetlogs,
 		isOpen = false,
@@ -145,7 +145,7 @@
 	// offers a ⚡ button.
 	const modelWarning = $derived(!constantsFitted && countedLogs > 0);
 	const modelPending = $derived(pendingFlowLogs > 0);
-	const modelPrompt = $derived(canLogFlow && flowLogs.length === 0);
+	const modelPrompt = $derived(canLog && flowLogs.length === 0);
 
 	function updateSwitchCost(minutes: number) {
 		switchCost = minutes / 60;

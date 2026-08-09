@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
+	import MeasurementFormActions from '$lib/presentation/component/measurement-form-actions.svelte';
 	import {
 		MEASUREMENT_FORM_CLASS,
 		MEASUREMENT_MINUTES_CLASS,
@@ -33,10 +34,16 @@
 		oncancel,
 	}: Props = $props();
 
-	// Mounted only while open — the parent renders it behind an `{#if}` — so a fresh
-	// draft per opening is the mount, not a reset. What must NOT live here is whether
-	// the editor is open: the completion prompt yields to one already on the row, and
-	// the calibration card's ✎ opens one from outside it. Both are the page's to know.
+	// A copy, read once: typing must not reach the page's draft, since `recordId` on it
+	// decides whether ✓ appends a session or rewrites a stored one. That makes a fresh
+	// draft per opening the MOUNT — which is a promise the caller has to keep, not one
+	// this component can. `task-row-shell.svelte` keys this on the draft for exactly
+	// that reason; a caller that re-seeds without remounting gets stale fields against
+	// a switched save path. `focusMinutes` below is mount-only for the same reason.
+	//
+	// What must NOT live here is whether the editor is open: the completion prompt
+	// yields to one already on the row, and the calibration card's ✎ opens one from
+	// outside it. Both are the page's to know.
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,
@@ -126,15 +133,6 @@
 				<p>{m.energy_drain_body_title()}</p>
 			</Tooltip.Content>
 		</Tooltip.Root>
-		<span class="ml-auto flex items-center gap-grid-2xs">
-			<button type="submit" class="px-text-2xs text-flow hover:text-flow">✓</button>
-			<button
-				type="button"
-				class="px-text-2xs text-ty-silent hover:text-ty-secondary"
-				onclick={oncancel}
-			>
-				✕
-			</button>
-		</span>
+		<MeasurementFormActions {oncancel} />
 	</form>
 </Tooltip.Provider>

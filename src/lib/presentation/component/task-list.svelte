@@ -3,6 +3,7 @@
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
+	import type { DrainDraft, EditorSource } from '$lib/presentation/utils/measurement-prompt';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 
 	interface Props {
@@ -14,10 +15,31 @@
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
+		/** The 🪫 editors open on this list, by task — the page owns them, since a draft
+		 *  outlives the row it is keyed by. */
+		drainDrafts?: Record<number, DrainDraft>;
+		/** Task ids carrying at least one 🪫 rating for today. */
+		drainMeasured?: ReadonlySet<number>;
+		ondrainopen?: (id: number, source: EditorSource) => void;
+		ondrainclose?: (id: number) => void;
+		ondrainsave?: (id: number, entry: { hours: number; mind: number; body: number }) => void;
 		onupdate?: (id: number, changes: TaskEdit) => void;
 	}
 
-	let { suggestedTasks, runOrder, form, ontoggle, onremove, onlogflow, onupdate }: Props = $props();
+	let {
+		suggestedTasks,
+		runOrder,
+		form,
+		ontoggle,
+		onremove,
+		onlogflow,
+		drainDrafts = {},
+		drainMeasured = new Set(),
+		ondrainopen,
+		ondrainclose,
+		ondrainsave,
+		onupdate,
+	}: Props = $props();
 </script>
 
 {#snippet rows()}
@@ -42,6 +64,11 @@
 				{ontoggle}
 				{onremove}
 				{onlogflow}
+				drainDraft={drainDrafts[task.id] ?? null}
+				isDrainMeasured={drainMeasured.has(task.id)}
+				{ondrainopen}
+				{ondrainclose}
+				{ondrainsave}
 				{onupdate}
 			/>
 		</li>
