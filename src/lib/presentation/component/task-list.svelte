@@ -9,6 +9,13 @@
 	interface Props {
 		suggestedTasks: SuggestedTask[];
 		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
+		/** The mid-day re-plan (MATH.md §35), or null until today has logged hours. A
+		 *  task absent from `hoursByTask` is worth no more time today, so it reads 0 —
+		 *  the map's absence and a task's absence from it are different answers. */
+		remainingDay?: {
+			remainingHours: number;
+			hoursByTask: ReadonlyMap<number, number>;
+		} | null;
 		// The add-task form, rendered by the card above the list: adding and reading
 		// the plan are the same place, and it costs no second card.
 		form?: Snippet;
@@ -29,6 +36,7 @@
 	let {
 		suggestedTasks,
 		runOrder,
+		remainingDay = null,
 		form,
 		ontoggle,
 		onremove,
@@ -58,6 +66,12 @@
 				trueEffort={task.trueEffort}
 				flowStateTime={task.flowStateTime}
 				optimalStopHours={task.optimalHours}
+				remaining={remainingDay
+					? {
+							taskHours: remainingDay.hoursByTask.get(task.id) ?? 0,
+							dayHours: remainingDay.remainingHours,
+						}
+					: undefined}
 				runOrder={runOrder.get(task.id)}
 				flowMinutes={task.flowMinutes}
 				mustDoToday={task.mustDoToday}

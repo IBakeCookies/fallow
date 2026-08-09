@@ -16,9 +16,13 @@ import {
 class MockSession {
 	tasks = $state<Task[]>([]);
 	availableHours = $state(8);
+	// Reactive because the remaining-day reading (MATH.md §35) is gated on the
+	// viewed day BEING today, which a spec has to be able to drive. `today` stays
+	// fixed: moving `selectedDate` off it is exactly how the real store reports a
+	// past or future day.
+	selectedDate = $state('2026-07-20');
 
 	readonly today = '2026-07-20';
-	readonly selectedDate = '2026-07-20';
 	readonly switchCost = DEFAULT_SWITCH_COST;
 	readonly pools = DEFAULT_CAPACITY_POOLS;
 	readonly constantsFit = fitUserConstants([]);
@@ -27,6 +31,7 @@ class MockSession {
 	reset() {
 		this.tasks = [];
 		this.availableHours = 8;
+		this.selectedDate = '2026-07-20';
 	}
 }
 

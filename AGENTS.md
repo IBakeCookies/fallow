@@ -718,6 +718,15 @@ force). Do not change these without reading the derivation first.
   (task weight = dimension difficulty / 10). Context switches cost
   `switchCost` hours — attention residue, distinct from ramp-up, which ϕ
   already prices — and are charged only between tasks that receive time.
+- **A plan may be solved from a PREFIX of hours already worked** (§35): each
+  task's block menu continues from `hᵢ` instead of from zero, the pools enter
+  depleted by `Σ wᵢhᵢ` clamped at 0, and the switch bill is charged over the
+  **day's** funded set `{worked} ∪ {newly funded}` — a plan that abandons a
+  started task does not get its switch back. `hᵢ = 0` everywhere is
+  bit-identical to the cold solve, which is what keeps §4, §5.1 and §34
+  undisturbed. It feeds ONE next-up reading (`calculateRemainingDay`) and must
+  never reach `calculateDailyMetrics`: that would rescope every plan-family row
+  (§11.8) and double a per-keystroke `$derived` (§14.2's cost rule).
 
 ### Energy model (`business/model/zenith-energy.ts`, `/energy` only)
 
@@ -963,6 +972,7 @@ no probe citation beside it is unbacked — that is the list to work down.
 | `mtr-bottleneck-strain.probe.ts`        | §23 — why Primary Bottleneck stopped reading E/β, and what the binding-pool draw reads instead                                                                          |
 | `mtr-deep-work.probe.ts`                | §26 — the hard `mentalDifficulty >= 7` cut, and the band that called a three-quarters-deep day optimal                                                                  |
 | `mtr-sustainable-work.probe.ts`         | §27 — the budget denominator against Σh, the grind-free day, and whether the fixed row restates Grind Density                                                           |
+| `prefix-replan.probe.ts`                | §35 — the mid-day re-plan vs a cold re-solve and the morning plan, the on-plan control, the switch convention, the second solve's wall clock                            |
 
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),

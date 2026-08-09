@@ -2649,6 +2649,138 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		});
 	});
 
+	describe('Prefix-aware allocation (already-worked hours, MATH.md §35)', () => {
+		const pooledTask = (title: string, difficulty: number, enjoyment: number): PooledTaskInput => ({
+			title,
+			difficulty,
+			enjoyment,
+			cognitiveWeight: 0.5,
+			physicalWeight: 0.1,
+		});
+
+		it('is a no-op when nothing has been worked yet', () => {
+			const tasks = [pooledTask('spec', 8, 7), pooledTask('gym', 3, 4), pooledTask('email', 2, 2)];
+			const cold = calculatePooledAllocations(tasks, 6);
+
+			const zeroPrefix = calculatePooledAllocations(
+				tasks,
+				6,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				DEFAULT_SWITCH_COST,
+				undefined,
+				[0, 0, 0],
+			);
+
+			expect(zeroPrefix.map((a) => a.allocatedHours)).toEqual(cold.map((a) => a.allocatedHours));
+		});
+
+		it('offers nothing to a task already worked past its optimal stopping time', () => {
+			const task = pooledTask('spec', 8, 7);
+			const [cold] = calculatePooledAllocations([task], 6);
+
+			const [spent] = calculatePooledAllocations(
+				[task],
+				6,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				DEFAULT_SWITCH_COST,
+				undefined,
+				[cold.optimalHours + BLOCK_HOURS],
+			);
+
+			expect(cold.allocatedHours).toBeGreaterThan(0);
+			expect(spent.allocatedHours).toBe(0);
+		});
+
+		it('stops re-collecting the activation bonus on a task already started', () => {
+			// Two identical tasks, one already worked. A cold solve splits a
+			// one-block-each budget between them because both first blocks carry
+			// the p₀ jump; under a prefix only the untouched one still does.
+			const tasks = [pooledTask('a', 6, 5), pooledTask('b', 6, 5)];
+
+			const cold = calculatePooledAllocations(
+				tasks,
+				BLOCK_HOURS,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				0,
+			);
+
+			const started = calculatePooledAllocations(
+				tasks,
+				BLOCK_HOURS,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				0,
+				undefined,
+				[1, 0],
+			);
+
+			expect(cold[0].allocatedHours).toBe(BLOCK_HOURS);
+			expect(started[0].allocatedHours).toBe(0);
+			expect(started[1].allocatedHours).toBe(BLOCK_HOURS);
+		});
+
+		it('continues the same non-increasing sequence: the prefix plan is exact for one task', () => {
+			// The exactness premise (MATH.md §35): a prefix menu is a SUFFIX of the
+			// cold menu, so the best t under a prefix h maximizes P̄(h+t) over the
+			// lattice — checked here against exhaustive enumeration.
+			const task = pooledTask('spec', 7, 6);
+			const { a, p0, phi } = calculateTaskParams(task, DEFAULT_USER_CONSTANTS);
+			const budget = 2;
+
+			for (const worked of [0.5, 1, 1.75, 3]) {
+				const [alloc] = calculatePooledAllocations(
+					[task],
+					budget,
+					DEFAULT_CAPACITY_POOLS,
+					DEFAULT_USER_CONSTANTS,
+					DEFAULT_SWITCH_COST,
+					undefined,
+					[worked],
+				);
+
+				let best = 0;
+				let bestValue = expectedAverageProductivity(worked, a, p0, phi, 0);
+
+				for (let blocks = 1; blocks * BLOCK_HOURS <= budget + 1e-9; blocks++) {
+					const value = expectedAverageProductivity(worked + blocks * BLOCK_HOURS, a, p0, phi, 0);
+
+					if (value > bestValue + 1e-12) {
+						best = blocks * BLOCK_HOURS;
+						bestValue = value;
+					}
+				}
+
+				expect(alloc.allocatedHours).toBeCloseTo(best, 10);
+			}
+		});
+
+		it('keeps every task-intrinsic reading free of the prefix', () => {
+			// ϕ, T* and P̄(T*) are functions of (E, β) and the constants alone
+			// (MATH.md §3) — hours already worked must not move them.
+			const tasks = [pooledTask('spec', 8, 7), pooledTask('gym', 3, 4)];
+			const cold = calculatePooledAllocations(tasks, 6);
+
+			const mid = calculatePooledAllocations(
+				tasks,
+				2,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				DEFAULT_SWITCH_COST,
+				undefined,
+				[3, 1],
+			);
+
+			mid.forEach((alloc, i) => {
+				expect(alloc.phi).toBe(cold[i].phi);
+				expect(alloc.optimalHours).toBe(cold[i].optimalHours);
+				expect(alloc.optimalAvgProductivity).toBe(cold[i].optimalAvgProductivity);
+			});
+		});
+	});
+
 	describe('Bug Fixes', () => {
 		it('distributes time across all tasks with small budget (regression test)', () => {
 			// This test prevents the bug where only one task got all the time.

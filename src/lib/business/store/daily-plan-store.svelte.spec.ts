@@ -345,4 +345,123 @@ describe('DailyPlanStore', () => {
 		expect(store.hasAdviceError).toBe(false);
 		expect(store.advice).not.toBeNull();
 	});
+
+	// MATH.md §35. The plan stays the whole intended day; this is the other
+	// question, over the open tasks and the hours genuinely left.
+	describe('remaining day', () => {
+		// The mock's own clock, not the wall clock: the gate compares the viewed day
+		// against `SessionStore.today`, so the spec drives dates and never the time.
+		const today = mockSession.today;
+
+		it('says nothing until today has hours logged against it', () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'deep work'), task(2, 'inbox')];
+			flushSync();
+
+			expect(store.remainingDay).toBeNull();
+
+			// Ticking a box is not an hours instrument — only a 🪫 log is.
+			mockSession.tasks = mockSession.tasks.map((t) =>
+				t.id === 1
+					? {
+							...t,
+							completed: true,
+						}
+					: t,
+			);
+
+			flushSync();
+
+			expect(store.remainingDay).toBeNull();
+		});
+
+		it('has nothing to say about a day that is not today', () => {
+			// Today's own logs, read while a PAST day is on screen: a finished day
+			// has no remainder, and today's hours are not that day's. Only the date
+			// gate can produce null here — the logs themselves are current.
+			const store = setup();
+			mockSession.selectedDate = '2026-07-19';
+			mockSession.tasks = [task(1, 'deep work'), task(2, 'inbox')];
+
+			mockObservations.drainObservations = [
+				drainRecord({
+					date: today,
+					taskId: 1,
+					hours: 2,
+				}),
+			];
+
+			flushSync();
+
+			expect(store.remainingDay).toBeNull();
+		});
+
+		it('re-plans the open tasks over the hours the logs leave', () => {
+			const store = setup();
+			mockSession.availableHours = 6;
+
+			mockSession.tasks = [
+				task(1, 'deep work', {
+					completed: true,
+				}),
+				task(2, 'inbox', {
+					mentalDifficulty: 3,
+					physicalDifficulty: 1,
+					enjoyment: 2,
+				}),
+			];
+
+			mockObservations.drainObservations = [
+				drainRecord({
+					date: today,
+					taskId: 1,
+					hours: 4,
+				}),
+			];
+
+			flushSync();
+
+			expect(store.remainingDay?.workedHours).toBe(4);
+			expect(store.remainingDay?.remainingHours).toBe(2);
+			// The completed task spent the hours and is out of the running.
+			expect(store.remainingDay?.hoursByTask.has(1)).toBe(false);
+			expect(store.remainingDay?.hoursByTask.get(2) ?? 0).toBeGreaterThan(0);
+		});
+
+		// The item's own kill criterion (ROADMAP item 12): any plan-family row
+		// that moves mid-day means the reading was wired into the wrong scope.
+		it('moves no plan-scoped metric when hours are logged', () => {
+			const store = setup();
+			mockSession.availableHours = 6;
+
+			mockSession.tasks = [
+				task(1, 'deep work'),
+				task(2, 'inbox', {
+					mentalDifficulty: 3,
+					physicalDifficulty: 1,
+					enjoyment: 2,
+				}),
+			];
+
+			flushSync();
+
+			const frozen = planScoped(store.daily);
+			const allocation = store.daily.suggestedTasks.map((t) => [t.id, t.suggestedHours]);
+
+			mockObservations.drainObservations = [
+				drainRecord({
+					date: today,
+					taskId: 1,
+					hours: 3,
+				}),
+			];
+
+			flushSync();
+
+			expect(planScoped(store.daily)).toEqual(frozen);
+			expect(store.daily.suggestedTasks.map((t) => [t.id, t.suggestedHours])).toEqual(allocation);
+			// ...and the new reading did appear, so the freeze above is not vacuous.
+			expect(store.remainingDay?.workedHours).toBe(3);
+		});
+	});
 });
