@@ -34,10 +34,16 @@
 		oncancel,
 	}: Props = $props();
 
-	// Mounted only while open — the parent renders it behind an `{#if}` — so a fresh
-	// draft per opening is the mount, not a reset. What must NOT live here is whether
-	// the editor is open: the completion prompt yields to one already on the row, and
-	// the calibration card's ✎ opens one from outside it. Both are the page's to know.
+	// A copy, read once: typing must not reach the page's draft, since `recordId` on it
+	// decides whether ✓ appends a session or rewrites a stored one. That makes a fresh
+	// draft per opening the MOUNT — which is a promise the caller has to keep, not one
+	// this component can. `task-row-shell.svelte` keys this on the draft for exactly
+	// that reason; a caller that re-seeds without remounting gets stale fields against
+	// a switched save path. `focusMinutes` below is mount-only for the same reason.
+	//
+	// What must NOT live here is whether the editor is open: the completion prompt
+	// yields to one already on the row, and the calibration card's ✎ opens one from
+	// outside it. Both are the page's to know.
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,

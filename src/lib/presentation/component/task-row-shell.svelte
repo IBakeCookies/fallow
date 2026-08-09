@@ -349,13 +349,23 @@
 		</form>
 	{/if}
 
+	<!-- Keyed on the draft itself, which is what makes `seed` and `focusMinutes` mean
+	     what they say: both are read at MOUNT, and the page can replace a draft while
+	     its editor is open — the Lab's calibration card ✎ re-seeds an already-open row
+	     with a stored rating. Unkeyed, the fields kept the old draft while `recordId`
+	     switched the save path from "append a session" to "edit that record", so ✓
+	     overwrote a stored rating with whatever happened to be typed. Every opening
+	     assigns a fresh object, so identity change is exactly "a new opening"; reading
+	     the proxy's reference subscribes to no property, so typing cannot retrigger it. -->
 	{#if drainDraft && ondrainsave}
-		<DrainLogForm
-			seed={drainDraft}
-			focusMinutes={drainDraft.focusMinutes}
-			onsave={ondrainsave}
-			oncancel={() => ondrainclose?.()}
-		/>
+		{#key drainDraft}
+			<DrainLogForm
+				seed={drainDraft}
+				focusMinutes={drainDraft.focusMinutes}
+				onsave={ondrainsave}
+				oncancel={() => ondrainclose?.()}
+			/>
+		{/key}
 	{/if}
 
 	{#if editing && onupdate}
