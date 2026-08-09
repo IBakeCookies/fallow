@@ -210,7 +210,7 @@
 				{drainDrafts}
 				{drainMeasured}
 				ondrainopen={canLog ? openDrainLog : undefined}
-				ondrainclose={closeDrainLog}
+				ondrainclose={canLog ? closeDrainLog : undefined}
 				ondrainsave={canLog ? saveDrainLog : undefined}
 				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
 				form={isViewingPast ? undefined : addTaskForm}

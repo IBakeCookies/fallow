@@ -20,6 +20,11 @@
 import { logWarning } from '$lib/logger';
 
 const DB_NAME = 'zenith-db';
+// This TAB has spent its stale-build reload (`sessionStorage`), and the on-disk
+// schema version a reload has been proven not to fix (`localStorage`). Two
+// questions, two scopes — see `reloadStaleBuild`.
+const RELOAD_SPENT_KEY = 'fallow:schema-reload-spent';
+const FUTILE_RELOAD_KEY = 'fallow:futile-schema-reload';
 
 export const DB_VERSION = 6;
 
@@ -70,11 +75,116 @@ export function openDatabase(): Promise<IDBDatabase> {
 	return databasePromise;
 }
 
+/** Has a reload against exactly this on-disk version already been shown futile? */
+function isReloadFutile(version: number): boolean {
+	try {
+		return localStorage.getItem(FUTILE_RELOAD_KEY) === String(version);
+	} catch (e) {
+		logWarning('Failed to read the futile-reload marker', e);
+
+		// Unknown, so leave it to the per-tab guard to bound the attempt.
+		return false;
+	}
+}
+
+/** Spare every other tab a reload this one has just proven pointless. */
+function markReloadFutile(version: number): void {
+	try {
+		localStorage.setItem(FUTILE_RELOAD_KEY, String(version));
+	} catch (e) {
+		logWarning('Failed to record a futile stale-build reload', e);
+	}
+}
+
+/**
+ * Has this tab already reloaded against exactly this on-disk version? Keyed by
+ * version like the other marker, or a tab that reloaded for one release would sit
+ * out the next one — and worse, report ITS schema futile to every other tab.
+ * Unreadable storage counts as yes: a reload nothing can remember loops.
+ */
+function hasTabReloaded(version: number): boolean {
+	try {
+		return sessionStorage.getItem(RELOAD_SPENT_KEY) === String(version);
+	} catch (e) {
+		logWarning('Failed to read the stale-build reload marker', e);
+
+		return true;
+	}
+}
+
+/** False when the attempt cannot be recorded, which is the same reload loop. */
+function markTabReloaded(version: number): boolean {
+	try {
+		sessionStorage.setItem(RELOAD_SPENT_KEY, String(version));
+
+		return true;
+	} catch (e) {
+		logWarning('Failed to record a stale-build reload', e);
+
+		return false;
+	}
+}
+
+/**
+ * The on-disk schema is newer than this build: another tab has already run a
+ * newer build's upgrade. Opening at the on-disk version anyway is what this used
+ * to do, and it is silent corruption — old code reading records it has never
+ * seen, and writing old-shaped ones back into a migrated store, with nothing
+ * downstream able to tell.
+ *
+ * So reload into the build that did the upgrade. Two markers bound that. Both are
+ * keyed by the on-disk version; the scope is the whole difference, and either
+ * scope alone is a defect:
+ * - **Per tab** (`sessionStorage`), or a tab that comes back to the same stale
+ *   build reloads forever. It must not be browser-wide: EVERY stale tab has to
+ *   reload, and one tab's success says nothing about the three still holding the
+ *   old build in memory.
+ * - **Per browser** (`localStorage`), or every one of those tabs — and every tab
+ *   opened later — repeats a reload already known to change nothing. Reloading
+ *   proves futile when the schema outlives the build that wrote it: after a
+ *   **rollback**, and after the missing-store heal below, which leaves the disk
+ *   permanently a version ahead of the build that healed it (that one never even
+ *   costs the first reload — the heal records the verdict itself).
+ *
+ * Either way out lands on the old degraded behaviour: open at the on-disk
+ * version, now reached only once reloading has been proven not to help.
+ */
+async function reloadStaleBuild(): Promise<IDBDatabase> {
+	// Unversioned, because this is the only way to learn what is on disk:
+	// `VersionError` does not carry it, and both markers are per version.
+	const database = await open();
+	const { version } = database;
+
+	logWarning('zenith-db on-disk schema is newer than this build', undefined, {
+		version,
+	});
+
+	if (isReloadFutile(version)) return database;
+
+	if (hasTabReloaded(version)) {
+		// This tab reloaded and came back to the same stale build, so nothing newer
+		// is there to reach. Say so once, for every other tab.
+		markReloadFutile(version);
+
+		return database;
+	}
+
+	if (!markTabReloaded(version)) return database;
+
+	// Nothing may run against the newer schema, and a handle left open blocks the
+	// next tab's upgrade for as long as the unload takes.
+	database.close();
+	location.reload();
+
+	// Never settles: `reload()` only SCHEDULES the unload, so resolving would hand
+	// the caller a connection to write through before the page goes — the exact
+	// write this exists to prevent. Same shape as `onblocked` below.
+	return new Promise<never>(() => {});
+}
+
 async function openAndHeal(): Promise<IDBDatabase> {
 	const database = await open(DB_VERSION).catch((error) => {
-		// On-disk version is newer than the code (user opened an older build after
-		// a newer one upgraded the schema): open at the existing version.
-		if (error instanceof DOMException && error.name === 'VersionError') return open();
+		if (error instanceof DOMException && error.name === 'VersionError') return reloadStaleBuild();
 
 		throw error;
 	});
@@ -85,6 +195,11 @@ async function openAndHeal(): Promise<IDBDatabase> {
 	if (STORE_NAMES.some((name) => !database.objectStoreNames.contains(name))) {
 		const version = database.version + 1;
 		database.close();
+
+		// This build is the reason the disk ends up ahead of it, permanently — so
+		// record now that reloading for that version reaches nothing newer, and no
+		// tab spends one on it.
+		markReloadFutile(version);
 
 		return open(version);
 	}
