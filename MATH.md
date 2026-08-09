@@ -32,7 +32,7 @@ down, and it is why §2's concavity property reads the way it does.
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
 The whole document is ~64k tokens; the largest single section is §8 at ~13k
-(§14 is ~10k), and most of the 84 rows below are under 2k. Ranges shift
+(§14 is ~10k), and most of the 85 rows below are under 2k. Ranges shift
 whenever a section is inserted, and the table has alignment and truncation rules
 that are not evident from reading it — so never retype a row, regenerate:
 
@@ -41,90 +41,91 @@ that are not evident from reading it — so never retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0          132-151  Objective
-§1          153-178  Inputs and parameter mappings (unchanged from the articl…
-§2          180-296  Productivity curve — v2 change
-§3          298-344  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          346-444  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          446-769  Personalization — v2 change: full Bayesian posterior
-  §5.2      495-580  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      582-769  Posterior-aware allocation (added 2026-07-18)
-§6          771-783  Summary of v1 → v2 changes
-§7          785-816  Known approximations and deliberate non-changes
-§8         818-1943  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      836-861  Intermittent-rest recovery correction
-  §8.2      863-883  Warm-up carryover instead of binary reset
-  §8.3      885-922  Verified consequences and an open calibration question
-  §8.4     924-1025  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1027-1086  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1088-1147  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1149-1279  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1281-1342  45-minute plan granularity (added 2026-07-18)
-  §8.9    1344-1418  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1420-1627  Stopping-value calibration from observed stop times (add…
-  §8.11   1629-1750  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   1752-1943  The budget curve — what the day's LENGTH is worth (added…
-§9        1945-1992  References
-§10       1994-2080  Revision log (doc-only corrections)
-§11       2082-2610  Metric-layer corrections (2026-07-18)
-  §11.1   2084-2098  Scope and principle
-  §11.2   2100-2124  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2126-2153  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2155-2212  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2214-2229  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2231-2341  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2343-2367  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2369-2412  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2414-2472  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2474-2544  Grind Density: the share of the work the day actually fu…
-  §11.11  2546-2610  Grind Density is a row, not an objective (2026-08-08)
-§12       2612-2749  Plan-adherence audit (2026-07-23)
-  §12.1   2653-2749  Per-day fit snapshots (2026-08-03)
-§13       2751-3144  Math review, 2026-07-26
-  §13.1   2768-2803  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   2805-2877  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   2879-2944  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   2946-2982  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   2984-3021  Also in this change
-  §13.6   3023-3144  The two end-of-day energy readings: a timing difference,…
-§14       3146-3872  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3342-3478  Five corrections to the first cut (2026-07-28)
-  §14.2   3480-3623  The marginal of the budget (added 2026-08-03)
-  §14.3   3625-3809  The price of the switch cost (added 2026-08-04)
-  §14.4   3811-3872  An empty frontier is a reading (2026-08-08)
-§15       3874-4021  Two objectives, two modes (2026-07-29)
-  §15.1   3949-4021  The copy named the wrong objective for both modes (2026-…
-§16       4023-4110  Run order stays a heuristic (2026-07-29)
-§17       4112-4270  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4272-4340  Drain logs are one row per SESSION, not per task-day (20…
-§19       4342-4506  The gain's naive baseline paid for switches it never mad…
-  §19.1   4354-4413  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4415-4443  Defect 2 — the displayed number moved with the order of …
-  §19.3   4445-4483  What this costs, and the one guarantee that weakened
-  §19.4   4485-4506  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4508-4570  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4549-4570  The tie went to cognitive, so the row blamed the wrong p…
-§21       4572-4732  What the gain has room to report (2026-08-07)
-  §21.1   4594-4612  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4614-4637  Why shape has a low ceiling: the activation bonus
-  §21.3   4639-4659  Population distribution
-  §21.4   4661-4686  The number is a property of the comparison, not of the o…
-  §21.5   4688-4703  Under the total-output objective the ranking inverts
-  §21.6   4705-4732  Correction: on an ordinary day it is FLOW that binds, no…
-§22       4734-4795  Task nature: an absolute gap could not carry a range tha…
-§23       4797-4939  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   4838-4905  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   4907-4939  Longest Warm-Up: what E/β was actually tracking
-§24       4941-5004  Task Variety counted labels, and its repair was Energy B…
-§25       5006-5153  Cognitive and Physical Load: the definition, and what ro…
-§26       5155-5261  Deep Work: a step that swung whole blocks, under a band …
-§27       5263-5380  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5382-5436  Which four readings are headlines (2026-08-07)
-§29       5438-5611  Day Profile: one cut for two different scales, on a day …
-§30       5613-5693  The Lab's comparison tile scored the plan on the one thi…
-§31       5695-5876  What history can plot, and what it cannot (2026-08-07)
-§32       5878-5942  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       5944-6061  A plan reads only the logs that precede it (2026-08-08)
+§0          133-152  Objective
+§1          154-179  Inputs and parameter mappings (unchanged from the articl…
+§2          181-297  Productivity curve — v2 change
+§3          299-358  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          360-461  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          463-790  Personalization — v2 change: full Bayesian posterior
+  §5.2      512-597  Recency weighting of the ϕ fit (added 2026-08-04)
+  §5.1      599-790  Posterior-aware allocation (added 2026-07-18)
+§6          792-804  Summary of v1 → v2 changes
+§7          806-842  Known approximations and deliberate non-changes
+§8         844-1969  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      862-887  Intermittent-rest recovery correction
+  §8.2      889-909  Warm-up carryover instead of binary reset
+  §8.3      911-948  Verified consequences and an open calibration question
+  §8.4     950-1051  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1053-1112  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1114-1173  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1175-1305  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1307-1368  45-minute plan granularity (added 2026-07-18)
+  §8.9    1370-1444  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1446-1653  Stopping-value calibration from observed stop times (add…
+  §8.11   1655-1776  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   1778-1969  The budget curve — what the day's LENGTH is worth (added…
+§9        1971-2018  References
+§10       2020-2146  Revision log (doc-only corrections)
+§11       2148-2676  Metric-layer corrections (2026-07-18)
+  §11.1   2150-2164  Scope and principle
+  §11.2   2166-2190  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2192-2219  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2221-2278  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2280-2295  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2297-2407  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2409-2433  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2435-2478  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2480-2538  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2540-2610  Grind Density: the share of the work the day actually fu…
+  §11.11  2612-2676  Grind Density is a row, not an objective (2026-08-08)
+§12       2678-2815  Plan-adherence audit (2026-07-23)
+  §12.1   2719-2815  Per-day fit snapshots (2026-08-03)
+§13       2817-3210  Math review, 2026-07-26
+  §13.1   2834-2869  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   2871-2943  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   2945-3010  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3012-3048  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3050-3087  Also in this change
+  §13.6   3089-3210  The two end-of-day energy readings: a timing difference,…
+§14       3212-3940  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3408-3545  Five corrections to the first cut (2026-07-28)
+  §14.2   3547-3691  The marginal of the budget (added 2026-08-03)
+  §14.3   3693-3877  The price of the switch cost (added 2026-08-04)
+  §14.4   3879-3940  An empty frontier is a reading (2026-08-08)
+§15       3942-4089  Two objectives, two modes (2026-07-29)
+  §15.1   4017-4089  The copy named the wrong objective for both modes (2026-…
+§16       4091-4178  Run order stays a heuristic (2026-07-29)
+§17       4180-4338  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4340-4408  Drain logs are one row per SESSION, not per task-day (20…
+§19       4410-4574  The gain's naive baseline paid for switches it never mad…
+  §19.1   4422-4481  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4483-4511  Defect 2 — the displayed number moved with the order of …
+  §19.3   4513-4551  What this costs, and the one guarantee that weakened
+  §19.4   4553-4574  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4576-4638  Human Capacity: the reading is the constraint, but it na…
+  §20.1   4617-4638  The tie went to cognitive, so the row blamed the wrong p…
+§21       4640-4800  What the gain has room to report (2026-08-07)
+  §21.1   4662-4680  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4682-4705  Why shape has a low ceiling: the activation bonus
+  §21.3   4707-4727  Population distribution
+  §21.4   4729-4754  The number is a property of the comparison, not of the o…
+  §21.5   4756-4771  Under the total-output objective the ranking inverts
+  §21.6   4773-4800  Correction: on an ordinary day it is FLOW that binds, no…
+§22       4802-4863  Task nature: an absolute gap could not carry a range tha…
+§23       4865-5007  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   4906-4973  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   4975-5007  Longest Warm-Up: what E/β was actually tracking
+§24       5009-5072  Task Variety counted labels, and its repair was Energy B…
+§25       5074-5221  Cognitive and Physical Load: the definition, and what ro…
+§26       5223-5329  Deep Work: a step that swung whole blocks, under a band …
+§27       5331-5448  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5450-5504  Which four readings are headlines (2026-08-07)
+§29       5506-5679  Day Profile: one cut for two different scales, on a day …
+§30       5681-5761  The Lab's comparison tile scored the plan on the one thi…
+§31       5763-5944  What history can plot, and what it cannot (2026-08-07)
+§32       5946-6010  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6012-6129  A plan reads only the logs that precede it (2026-08-08)
+§34       6131-6312  The subset search gave up one task too early (2026-08-08)
 ```
 
 <!-- section-index:end -->
@@ -324,6 +325,19 @@ eˣ = 1 + x + x²/(1+r)
   `(0, 1.80]`; `q < 0` before the root and `> 0` after, and the root is
   ≤ 1.7933 for all r ≥ 0. `findOptimalSingleTaskTime` is now closed-form via
   this root — the v1 Newton-Raphson iteration is gone.
+- **The band belongs to this closed form and to nothing else.** It is a σ_ϕ = 0
+  statement. `TaskAllocation.optimalHours` — the field the task row renders as
+  "stop by" — is the ϕ-uncertainty-hedged optimum of §5.1, and every user
+  carries a posterior from their first day, so it sits **below** 1.5194ϕ on 23
+  of the 100 integer slider pairs and below ϕ itself on 6 of them, bottoming at
+  0.7219ϕ (difficulty 1 / enjoyment 10, default constants, zero ⚡ logs;
+  `scripts/hedged-stop-band.probe.ts`, 2026-08-09). The remaining 77 land
+  inside the band, and the closed form stays inside on all 100 (1.5194–1.7750)
+  — but nothing HOLDS the hedged value there, which is what bars it from copy.
+  That
+  is correct — hedging moves the optimum earlier, and a task already productive
+  at t = 0 has little to gain by waiting — but it means no code comment or UI
+  string may quote the band for that field. Two did until 2026-08-08 (§10).
 
 The best achievable average `P̄(T*)` is computed per task and exposed as
 `TaskAllocation.optimalAvgProductivity`; it replaced the v1 constant
@@ -383,8 +397,10 @@ tests, including under fast-flow fitted constants that hit the 0.1h ϕ floor.
   replaced v1's iterative count-resolution + greedy drop-search heuristic.
   A subset that leaves a member at 0 blocks is never strictly better than
   the smaller subset (which gets more budget), so enumeration stays exact
-  without special cases. For n > 12: greedy forward selection on the funded
-  set (documented heuristic; a daily planner rarely exceeds 12 tasks).
+  without special cases. For n > 12 the same enumeration runs **bounded to
+  subsets no larger than the day can fund** — exact while that fits, which is
+  the tight-budget region where the subset choice is worth most (up to a 3 h
+  day at n = 13). Longer days fall through to greedy forward selection — §34.
 - **Capacity pools:** same greedy, but a block is eligible only while both
   pools can absorb its weights. Multi-constraint greedy is not provably
   exact (multi-dimensional knapsack), and it has a known blind spot: it
@@ -404,7 +420,8 @@ tests, including under fast-flow fitted constants that hit the 0.1h ϕ floor.
   single-constraint path skips the pass entirely and keeps its exactness.
 
 The allocator's verified exactness claim, precisely stated: **with σ_ϕ = 0,
-for the single-budget problem with switch cost and n ≤ 12, the returned plan
+for the single-budget problem with switch cost and n ≤ 12 — or n > 12 on any
+day whose size bound fits `SUBSET_SEARCH_BUDGET` (§34) — the returned plan
 attains the true maximum of the objective over all block-quantized plans.**
 (Test: brute force over every block distribution × funded-subset overhead.)
 Under a fit posterior it does **not** hold: §5.1's monotone-prefix truncation
@@ -635,9 +652,13 @@ that survive the mixture untouched:
   (CVaR-style robust allocation), which is out of scope.
 
 **Why parameter std and not the predictive std.** `phiPredictionStd` adds the
-irreducible noise σ̂², which is floored at 15 minutes by construction (§5) —
-using it would make the allocator hedge forever, even for a user with
-hundreds of consistent logs. `phiParameterStd = √(xᵀΣx)` is the part the
+observation noise σ̂², which describes the user's own day-to-day scatter about
+the plane rather than how well we have measured them — it converges to that
+scatter instead of to zero, so using it would make the allocator hedge against
+tomorrow's realization forever, even for a user with hundreds of logs.
+(σ̂ is **not** floored at σ₀ = 0.25h; §5's estimator is a weighted average that
+the prior anchors only while n is small — corrected 2026-08-08, §10.)
+`phiParameterStd = √(xᵀΣx)` is the part the
 data can actually remove: it shrinks to 0 as logs accumulate (and grows with
 distance from the logged region), so a well-measured user recovers the
 classic plan exactly. That matches the §5 motivation — distinguishing the
@@ -804,8 +825,13 @@ negligible next to the subset enumeration.
   `scripts/pool-allocator.probe.ts`) come out exact on 93.55–94.50% with
   per-seed worst shortfalls 3.37–5.28%. The 99.5% / 0.09% pair once quoted here
   was one draw, not a bound. Single-budget remains exact (σ_ϕ = 0, §4).
-- **Forward selection for n > 12 funded-subset search** is a heuristic for a
-  regime a daily planner rarely reaches.
+- **Forward selection for the n > 12 funded-subset search** now runs only where
+  the size-bounded enumeration does not fit, and is exact everywhere else past
+  12 (§34). Where the boundary falls depends on BOTH the list and the switch
+  cost, so it is not simply "long days": at `switchCost` 0.25 it is a 3 h day
+  at n = 13, but at `switchCost` 0.1 it is 1.75 h at n = 14 and 1.25 h at
+  n = 20. A long enough list sends even a one-hour day to the fallback, which
+  is why §34's after-table still shows shortfalls in the ≤ 2 h band.
 - **Budgets below 0.25h are left unplanned** (v1 would allocate slivers).
 - **`zenith-energy.ts` intentionally still uses the v1 curve.** It is a
   standalone total-output model with its own fatigue dynamics (documented in
@@ -2078,6 +2104,46 @@ to contradict older commit messages or comments, this log is the current truth.
    baseline. §14 line "the improvement test is `<`" is correct for a direct
    badness comparison — the code subtracts, and the comment carried the reason
    across a form change where it stopped holding.
+
+### 2026-08-08 — three claims about ϕ that the numbers do not support
+
+1. **σ̂ is not "floored at 15 minutes by construction".** §5.1's justification
+   for feeding the allocator `phiParameterStd` rather than `phiPredictionStd`
+   rested on that floor, and the `phiParameterStd` comment in `zenith.ts`
+   repeated it. §5's own estimator is a weighted average,
+   `σ̂² = (ν₀σ₀² + Σwᵢrᵢ²)/(ν₀ + Σwᵢ)`, in which the σ₀ = 0.25h prior holds only
+   ν₀/(ν₀+Σw) of the weight and which carries no clamp — so σ̂ decays toward the
+   residual RMS and past σ₀ without bound. Measured: 200 fresh identical logs
+   give σ̂ = **2.10 min** = √(0.25/204) h, and 200 logs scattered ±3 min about
+   the plane give σ̂ = **3.58 min**, against the ≥ 15 min asserted. 15 minutes is
+   the n = 0 prior value, not a floor. The CHOICE is unaffected and stays:
+   σ̂ describes the user's own day-to-day scatter and converges to it rather
+   than to zero, so the predictive std would hedge against tomorrow's
+   realization forever, while parameter uncertainty is the part data removes.
+   Only the stated reason was wrong. Pinned in `zenith.test.ts`
+   ("σ̂ is no floor"); numbers from `scripts/hedged-stop-band.probe.ts`
+   (2026-08-09).
+2. **`TaskAllocation.optimalHours` was pointed at as the in-band value.**
+   `AGENTS.md` and the `OPTIMAL_PHI_MULTIPLIER` comment both said to use it
+   "for real values" of a multiplier documented as [1.5194, 1.7933]. It is the
+   hedged §5.1 optimum and is free to leave that band — 23 of 100 slider pairs
+   fall below it, 6 below ϕ itself, minimum 0.7219ϕ on the default zero-log
+   posterior. The other 77 do land inside, so the first correction here
+   overshot in turn ("outside the band whenever σ_ϕ > 0"); what is true is that
+   nothing holds them there, which is enough to bar the band from copy. Both
+   now point at `findOptimalSingleTaskTime` — which does stay in the band on
+   all 100 pairs, 1.5194–1.7750 — and name the field as hedged (§3). No formula
+   moved: `expectedOptimalTime` was already the argmax of E[P̄] and still is
+   (grid argmax 0.4187 h at a 0.36 s step vs bisection 0.41871 h).
+   `scripts/hedged-stop-band.probe.ts` (2026-08-09).
+3. **The UI quoted the band for the hedged number.** `task_derived_tooltip`,
+   `about_how_body_2` and `budget_unplanned_title` (en + de) all described the
+   rendered "stop by" as 1.52–1.79×ϕ, so a fresh user with a difficulty-1 /
+   enjoyment-10 task read `flow @ 35m · stop by 25m` under a tooltip promising
+   the opposite ordering. The copy now scopes the band to a measured ϕ and says
+   the model stops earlier while it is still unsure. `README.md` likewise.
+   Display-only; no plan changed. Pinned in `zenith.test.ts` ("the hedged
+   stop-by leaves the band, and can precede ϕ itself").
 
 ## 11. Metric-layer corrections (2026-07-18)
 
@@ -3358,7 +3424,8 @@ Randomize the sweep _and_ check that the invariant has more than one case to
 bite on.
 
 **1. `budget + 1` was an unpriced lever competing on the priced axis, and it
-evicted real alternatives.** Σ P̄ is monotone non-decreasing in the budget —
+evicted real alternatives.** Σ P̄ is monotone non-decreasing in the budget at
+the true optimum (the n > 12 fallback can invert it — §34) —
 probe (`scripts/adv1-plan-advice-frontier.probe.ts`, 2026-08-06): `budget + 1`
 raised plan value on **297 of 600** seeded days, left it flat on 303, and lowered
 it on **none** — so `budget + 1` holds the highest plan value of every candidate.
@@ -3521,7 +3588,8 @@ the sentence true; on a day with nothing completed the two readings coincide.
 
 **Why the floor.** Σ P̄ is monotone non-decreasing in the budget at the true
 optimum — every allocation feasible at `b` is feasible at `b + ε`. The pooled
-path is a near-exact heuristic (§13.3: exact on 99.5% of the cited draw), so two
+path is a near-exact heuristic (§13.3: exact on 99.5% of the cited draw), and so
+is the n > 12 fallback (§34: 4 inversions in 6400 steps), so two
 adjacent budgets can invert. `max(0, ·)` keeps the reading inside a claim the
 model actually makes. The size of a suppressed inversion is **not** bounded by
 §13.3's 0.09%, which is a single-draw maximum — but nothing here depends on that,
@@ -6059,3 +6127,186 @@ and reports it pending, while the next day's does; and `readDaySummaries` moves
 only the day that has a snapshot, leaving the day without one on the live fit.
 `calibration-descriptor.test.ts`: the ϕ row naming the deferred logs beside Σw
 rather than adding them to it.
+
+## 34. The subset search gave up one task too early (2026-08-08)
+
+§4 buys its exactness with an exhaustive enumeration of the funded subsets, and
+`EXACT_SUBSET_LIMIT = 12` is where it stopped: past 12 tasks the fixed-charge
+dimension fell to **greedy forward selection** — seat the best single task, then
+keep admitting whichever task most improves the total, stop when none does.
+§4 called that "a documented heuristic; a daily planner rarely exceeds 12 tasks"
+and attached no number to it, while the pooled path beside it prints its worsts
+to four decimals.
+
+Both halves of that sentence were wrong.
+
+**It is reachable.** `daily-plan-store` hands `calculateDailyMetrics` the day's
+whole task list and nothing trims it; `calculateTaskPlan` allocates over all of
+it, completed tasks included (deliberately — §11.8 plan scope). A 13-item
+backlog is an ordinary Tuesday, not an exotic input.
+
+**It is expensive, and expensive exactly where selection is the whole game.**
+Measured against exhaustive enumeration over 120 random days per n
+(`scripts/subset-search-bound.probe.ts`, seeded; budgets 0.25–10 h on the block
+lattice, `switchCost` ∈ {0.1, 0.25, 0.33, 0.5}, default constants, **single
+budget** — the fixed-charge dimension in isolation, with no pool to confound it;
+the pooled path carries §13.3's separate heuristic gap on top):
+
+| n   | days non-exact | mean forfeit | worst      | worst at ≤ 2 h |
+| --- | -------------- | ------------ | ---------- | -------------- |
+| 13  | 34/120         | 0.78%        | 14.93%     | **14.93%**     |
+| 14  | 33/120         | 0.80%        | **18.41%** | **18.41%**     |
+| 15  | 43/120         | 0.94%        | 13.39%     | 13.39%         |
+
+Every worst case sat in the tight-budget band — which is precisely where §21.1
+measures the optimizer's entire edge to be **selection** (84.9% of it at 0h30,
+0.0% from 2 h up). Forward selection fails at the one thing that matters at the
+one budget where it matters. The mechanism is its first move: with a 1 h budget
+and `switchCost` 0.33 it seats the best single task at four blocks, and no
+admission from that anchor can reach the pair `{(2,8), (2,9)}` — two cheap,
+enjoyable tasks each collecting its own activation bonus — which is 18.41%
+better and which enumeration finds immediately.
+
+It also **breaks monotonicity in the budget** — a day made 15 minutes longer
+planning _worse_ than the shorter one, **20 times in 6400 ladder steps, worst
+0.5565 P̄-units**. That cannot happen to a search over a budget-indexed family,
+because every plan affordable at B is affordable at B + δ; it happens to forward
+selection because its first pick moves with the budget and a better anchor can
+lead somewhere worse. Present tense on purpose: the fallback still exists, and
+so does a fifth of this — see "What it costs" below.
+
+### The bound
+
+A plan funding m tasks pays `(m−1)·switchCost` off the budget **and** still owes
+every member at least one block, so no plan can fund more than
+
+```text
+maxFunded = max { m : budgetBlocksFor(m) ≥ m },   budgetBlocksFor decreasing in m
+```
+
+`budgetBlocksFor(m) − m` strictly decreases in m, so the affordable sizes form
+the interval [1, `maxFunded`] and a scan that stops at the first failure finds
+it. A budget under one block affords no size at all, and the empty plan stands.
+
+Enumerating only subsets of size ≤ `maxFunded` loses nothing. Take a subset S
+with |S| > `maxFunded` and let F ⊆ S be the members the greedy actually funded
+out of `b = budgetBlocksFor(|S|)` blocks. Then |F| ≤ b, and since |F| ≤ |S|,
+`budgetBlocksFor(|F|) ≥ b ≥ |F|` — which by the interval above puts |F| inside
+`maxFunded`, so **F is enumerated in its own right**. It is solved with at least
+as many blocks as S was, and the S-plan restricted to F is a feasible F-plan, so
+its value is reached or beaten. This is §4's existing "a subset that leaves a
+member at 0 blocks is never strictly better" argument, applied one step further
+out — and like that one it inherits the greedy's exactness, so it is a proof on
+the single-budget path and carries §13.3's heuristic status on the pooled one.
+
+Σⱼ₌₁^maxFunded C(n, j) plans is the cost, and the search runs whenever that fits
+`SUBSET_SEARCH_BUDGET = 2¹² − 1 = 4095` — **the same plan budget the n ≤ 12 path
+already spends**, so the worst case does not move. Only when it does not fit
+does forward selection run.
+
+The two bounds pull against each other in the useful direction: a tight budget
+funds few tasks, which is what leaves room to enumerate a long list; a long day
+funds everything, which is what makes the choice cheap to get wrong. So the
+bounded search covers the tight band and the fallback keeps the loose one — the
+opposite of a compromise.
+
+**Where the crossover actually sits, because it is not "rarely".** At `n` = 13
+and the default `switchCost` 0.25 the bounded search runs up to a **3 h** day
+and the fallback takes everything above it (at 3 h, `maxFunded` = 6 and
+Σⱼ₌₁⁶ C(13, j) = 4095 exactly; a quarter-hour more pushes `maxFunded` to 7 and
+the count to 5811). Over the 6400-step sweep below, the bounded path ran on
+about a quarter of the solves. So the ordinary 8-hour day with 13 tasks is a
+_fallback_ day — the same day §34 opens by calling reachable. That is the design
+and not a shortfall in it: §21.1 measures selection at 0.0% of the optimizer's
+edge from 2 h up, so the region the bound reaches is the region where getting
+the subset wrong is expensive, and the region it cedes is the one where the
+remaining forfeit is 2.3–3.8%.
+
+### What it costs, measured
+
+Same sweep, after (2026-08-08):
+
+| n   | days non-exact  | mean forfeit     | worst             | worst at ≤ 2 h    |
+| --- | --------------- | ---------------- | ----------------- | ----------------- |
+| 13  | 34 → **9**/120  | 0.78 → **0.10%** | 14.93 → **3.26%** | 14.93 → **0.00%** |
+| 14  | 33 → **19**/120 | 0.80 → **0.18%** | 18.41 → **2.28%** | 18.41 → **1.89%** |
+| 15  | 43 → **32**/120 | 0.94 → **0.38%** | 13.39 → **3.77%** | 13.39 → **3.31%** |
+
+The tight band is now essentially exact (0/20, 2/28, 1/29 short, none of it
+above 3.31%), and the worst case across every band lands at 2.28–3.77% — beside
+the pooled path's own 3.37–5.28% (§13.3) rather than four times worse than it.
+
+**Monotonicity is repaired only where the bounded search runs.** Same ladder
+sweep — 15-minute steps from one block to 10 h over 160 random days at
+n ∈ {13, 14, 16, 20}, 6400 steps — **20 violations before, 4 after**, worst
+0.5565 → **0.1249** P̄-units. The fallback survives and so does its defect. All
+four survivors are on it — **0 inside the bounded region**, which is what the
+bound predicts and the only part of this the fix can claim — and every one sits
+at 4.25 h or longer, where selection is worth ~0% (§21.1). The tight budgets
+that used to break are clean.
+
+Wall clock, on the pooled path the app actually calls (default pools,
+`switchCost` 0.25, ms per solve, every row the probe measures):
+
+| n\B | 1h  | 2h  | 3h  | 4h  | 6h  | 8h  | 12h      |
+| --- | --- | --- | --- | --- | --- | --- | -------- |
+| 12  | 1.6 | 1.4 | 2.2 | 2.9 | 4.2 | 5.7 | **14.5** |
+| 13  | 0.1 | 0.5 | 2.1 | 0.1 | 0.1 | 0.1 | 0.2      |
+| 14  | 0.1 | 0.5 | 0.1 | 0.1 | 0.2 | 0.1 | 0.2      |
+| 16  | 0.1 | 0.9 | 0.1 | 0.1 | 0.1 | 0.2 | 0.3      |
+| 18  | 0.1 | 1.5 | 0.1 | 0.1 | 0.2 | 0.2 | 0.4      |
+| 20  | 0.1 | 0.1 | 0.1 | 0.1 | 0.2 | 0.3 | 0.6      |
+| 25  | 0.1 | 0.1 | 0.1 | 0.2 | 0.3 | 0.4 | 1.0      |
+
+No cell past n = 12 exceeds 2.1 ms, against the ~14.5 ms the unchanged n = 12
+path already spends — and this runs inside a `$derived`, on every keystroke in
+the budget field. Raising `EXACT_SUBSET_LIMIT` instead was the obvious move and
+is the one that does not fit: the cost doubles per task, so 13 would be ~29 ms
+and 15 ~116 ms on that same keystroke.
+
+### Rejected — rank a candidate POOL and enumerate that
+
+The first cut kept a fixed enumeration size by ranking tasks on their menu total
+(Σ increments ≈ P̄(T*)) and enumerating subsets of the top 12. It is worse, and
+measurably: at n = 14 above 5 h it went from 9/63 days short (worst 2.23%) to
+**59/63** (worst **13.94%**), because a pool of 12 cannot express "fund all 14"
+and a loose budget usually wants exactly that. Truncating the candidates trades
+the regime that was already fine for the one it was meant to fix. The size bound
+has no such failure mode — it never removes a task from consideration, only a
+subset the budget cannot pay for.
+
+### Reproducing the historical columns
+
+Neither the "before" column nor the rejected variant is measurable from HEAD, so
+both were re-measured against restored code on 2026-08-09 rather than quoted
+from memory, and both reproduce exactly:
+
+```text
+before:   git show 28e2e16:src/lib/business/model/zenith.ts > src/lib/business/model/zenith.ts
+rejected: replace the size bound with the pool ranking described above
+then:     npm run probe -- scripts/subset-search-bound.probe.ts     (and git restore after)
+```
+
+That is what backs 34/33/43 days short, the 0.78/0.80/0.94% means, the 14.93 /
+18.41 / 13.39% worsts and the 20-violation monotonicity figure above, and the
+rejected variant's 59/63 and 13.94%. The one number NOT from this probe is
+§21.1's selection/shape split, which has its own.
+
+The two lines are not equally strong, and the difference is worth stating. The
+`before` line is a command: anyone can run it and get the column back. The
+`rejected` line is a description, so its column rests on a variant that was
+hand-reconstructed from this section's own prose — reproducible in principle,
+but only as faithfully as the prose is read. It stays a description because
+committing dead code to keep a rejection auditable costs more than the
+rejection is worth; the number it yields is the argument for the size bound
+over the pool, not a load-bearing constant.
+
+### Pinned in the suite
+
+`zenith.test.ts`: the 14-task, 1 h, `switchCost` 0.33 day matches exhaustive
+subset enumeration exactly (the 18.41% fixture); and a 14-task day's value is
+non-decreasing across every budget from one block to 3.75 h — the top of the
+bounded region at 14 tasks and `switchCost` 0.5, above which the property is
+not guaranteed. The old
+"falls back to greedy forward selection" test keeps its feasibility and
+best-single-task floor, renamed for what it now guards.

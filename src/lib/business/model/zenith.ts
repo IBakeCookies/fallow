@@ -65,7 +65,10 @@ interface TaskAllocation extends TaskInput {
 	phi: number; // Time to flow state (hours)
 	peakProductivity: number; // p(ϕ) = a·e^(p₀/a − 1), the curve's actual maximum
 	avgProductivity: number; // Average productivity over allocated time
-	optimalHours: number; // Single-task optimal stopping time T* = x*(r)/k
+	// Optimal stopping time, HEDGED for ϕ-uncertainty (§5.1) — not the §3 closed
+	// form x*(r)/k, and free to fall below its [1.5194, 1.7933]ϕ band: on the
+	// zero-log posterior 23 of the 100 slider pairs do, 6 land under ϕ itself.
+	optimalHours: number;
 	optimalAvgProductivity: number; // P̄(T*): best achievable average — allocation-independent task value
 }
 
@@ -113,7 +116,8 @@ export const BLOCK_HOURS = 0.25;
  * T* = ϕ·x*(r)/(1−r) with multiplier in [1.5194, 1.7933], r = p₀/a — so this is now only
  * (a) the exact r → 0 limit, (b) a strict UPPER BOUND on every task's
  * multiplier, and (c) the seed/bracket for the per-task root solve. Use
- * findOptimalSingleTaskTime (or TaskAllocation.optimalHours) for real values.
+ * findOptimalSingleTaskTime for real values — NOT TaskAllocation.optimalHours,
+ * which hedges ϕ-uncertainty and falls outside the band (MATH.md §5.1).
  * Still consumed by the zenith-energy model, which intentionally remains on
  * the v1 curve (see MATH.md §7).
  */
@@ -130,8 +134,10 @@ export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
  */
 const AMPLITUDE_RATIO_CAP = 0.9;
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
-// tasks (4096 subsets — instant), greedy forward-selection beyond it.
+// tasks (4095 subsets — instant). Past it the same 4095-plan budget is spent on
+// the subset sizes the day can actually fund (MATH.md §34).
 const EXACT_SUBSET_LIMIT = 12;
+const SUBSET_SEARCH_BUDGET = (1 << EXACT_SUBSET_LIMIT) - 1;
 
 /**
  * Map user effort (1-10) to true effort E (1-5)
@@ -522,12 +528,14 @@ export function expectedOptimalTime(a: number, p0: number, phi: number, sigmaPhi
  * Parameter-uncertainty std of ϕ at (E, β):  √(xᵀΣx),  x = [E, β, 1].
  *
  * This is deliberately NOT phiPredictionStd: the predictive std adds the
- * irreducible observation noise σ̂², which describes stopwatch error and
- * day-to-day scatter around the plane — it never shrinks below the 15-minute
- * noise floor, so using it would make the allocator hedge forever even for a
- * user with hundreds of consistent logs. Parameter uncertainty is the part
- * the data can actually remove; it vanishes as logs accumulate, and with it
- * the hedging — a well-measured user gets exactly the classic plan.
+ * observation noise σ̂², which describes stopwatch error and day-to-day scatter
+ * around the plane — a property of the user, not of how much we have measured
+ * them, so it converges to their own scatter rather than to zero, and using it
+ * would make the allocator hedge against tomorrow's scatter forever. Parameter
+ * uncertainty is the part the data can actually remove; it vanishes as logs
+ * accumulate, and with it the hedging — a well-measured user gets exactly the
+ * classic plan. (σ̂ is NOT floored at σ₀ = 0.25h: §5's estimator is a weighted
+ * average that the prior anchors only while n is small — MATH.md §10.)
  */
 export function phiParameterStd(E: number, beta: number, posterior: FitPosterior): number {
 	const x = [E, beta, 1];
@@ -613,8 +621,9 @@ export function findOptimalSingleTaskTime(
 //
 // Switch cost makes "which tasks get funded at all" a fixed-charge decision
 // that greedy can't price (an (m)-task plan pays (m−1)·switchCost off the
-// budget). It is solved EXACTLY by enumerating funded subsets for n ≤ 12 —
-// v1's iterative count-resolution + greedy drop-search heuristic is gone.
+// budget). It is solved EXACTLY by enumerating funded subsets for n ≤ 12, and
+// past that for every subset size the budget can afford (MATH.md §34) — v1's
+// iterative count-resolution + greedy drop-search heuristic is gone.
 //
 // With capacity pools (calculatePooledAllocations) a block is only eligible
 // while both pools can absorb its weights. Multi-constraint greedy is no
@@ -938,9 +947,11 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
  * remains exact without special-casing. Ties prefer the plan funding more
  * tasks, preserving v1's "keep the more inclusive plan" behavior.
  *
- * n > EXACT_SUBSET_LIMIT: greedy forward selection on the funded set (add the
- * task whose admission most improves the total, stop when none improves) —
- * documented heuristic for a regime a daily todo list rarely reaches.
+ * n > EXACT_SUBSET_LIMIT: the same enumeration, bounded to subsets no larger
+ * than the budget can fund — still exact wherever it fits the same plan budget,
+ * and it fits on the tight days where the subset choice matters most (up to a
+ * 3h day at n = 13). Longer days fall through to greedy forward selection,
+ * which is where its residual forfeit is 2.3–3.8% (MATH.md §34).
  */
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
@@ -1031,6 +1042,53 @@ function bestPlanWithSwitchCost(
 		return bestBlocks;
 	}
 
+	// Past the limit, a tight budget bounds the search back into range on its
+	// own: a plan funding m tasks pays (m−1)·switchCost and still owes every
+	// member a block, so subsets larger than `maxFunded` are unaffordable — and
+	// were never optimal anyway (the subset greedy really funds gets the same
+	// blocks out of a bigger budget). Enumerating only up to that size is exact
+	// whenever it fits the same plan budget the n ≤ 12 path spends, which is
+	// every day tight enough for the choice of subset to be worth much.
+	//
+	// "Never optimal anyway" is a proof only here, against the single budget.
+	// Once pools bind, `improveWithTransfers` can admit a zero-block member and
+	// then empty a donor, so a task the greedy did not fund still shapes the
+	// plan and the step does not close; there the bound keeps §13.3's measured
+	// status (MATH.md §34).
+	//
+	// `budgetBlocksFor(m) − m` strictly decreases, so the affordable sizes are
+	// the interval [1, maxFunded] and stopping at the first failure finds it.
+	// A budget under one block affords nothing and leaves the empty plan.
+	let maxFunded = 0;
+
+	while (maxFunded < n && budgetBlocksFor(maxFunded + 1) >= maxFunded + 1) maxFunded++;
+
+	if (maxFunded === 0) return bestBlocks;
+
+	if (subsetCount(n, maxFunded) <= SUBSET_SEARCH_BUDGET) {
+		const subset: number[] = [];
+
+		const enumerateFrom = (start: number): void => {
+			for (let i = start; i < n; i++) {
+				subset.push(i);
+				consider(allocate(subset, budgetBlocksFor(subset.length)));
+
+				if (subset.length < maxFunded) enumerateFrom(i + 1);
+
+				subset.pop();
+			}
+		};
+
+		enumerateFrom(0);
+
+		return bestBlocks;
+	}
+
+	// A long enough day funds everything, so no bound brings the enumeration
+	// back: greedy forward selection — add the task whose admission most improves
+	// the total, stop when none does. Documented heuristic, still 2.3–3.8% short and
+	// still non-monotone in the budget, in the regime where that costs least
+	// (MATH.md §34).
 	const funded: number[] = [];
 
 	for (;;) {
@@ -1065,6 +1123,19 @@ function bestPlanWithSwitchCost(
 	}
 
 	return bestBlocks;
+}
+
+// Σⱼ₌₁ᵏ C(n, j) — how many plans a size-bounded enumeration costs.
+function subsetCount(n: number, maxSize: number): number {
+	let plans = 0;
+	let choose = 1;
+
+	for (let j = 1; j <= maxSize; j++) {
+		choose = (choose * (n + 1 - j)) / j;
+		plans += choose;
+	}
+
+	return plans;
 }
 
 // Per-task ϕ parameter-uncertainty stds; zeros (classic behavior) without a
@@ -1153,7 +1224,8 @@ function zeroAllocations(
  * where m is the number of tasks that actually receive time.
  *
  * v2: exact on the block grid (greedy marginal analysis per funded subset +
- * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12).
+ * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12, and
+ * bounded by what the budget can fund past that — MATH.md §34).
  * An abundant budget still leaves slack: blocks past a task's optimal
  * stopping time have negative increments and are never offered to greedy.
  *

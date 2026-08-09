@@ -128,7 +128,7 @@ export type SuggestedTask = Task & {
 	trueEnjoyability: number;
 	peakProductivity: number;
 	avgProductivity: number;
-	optimalHours: number; // Per-task optimal stopping time T* (model v2: task-dependent, no longer a fixed 1.79×ϕ)
+	optimalHours: number; // Per-task optimal stopping time, ϕ-uncertainty-hedged (MATH.md §3, §5.1)
 	nature: ReturnType<typeof getTaskNature>;
 };
 
