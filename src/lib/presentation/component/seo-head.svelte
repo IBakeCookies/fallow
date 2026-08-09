@@ -31,7 +31,7 @@
 		zh: 'zh_CN',
 	};
 
-	const origin = $derived((env.PUBLIC_SITE_URL ?? page.url.origin).replace(/\/$/, ''));
+	const origin = $derived((env.PUBLIC_SITE_URL || page.url.origin).replace(/\/$/, ''));
 
 	// Every locale is indexable (`/…` English, `/de/…`, `/es/…`, `/fr/…`, `/zh/…`), so each page
 	// declares its own URL as canonical and every sibling as an alternate.
