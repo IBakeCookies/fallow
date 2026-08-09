@@ -66,7 +66,8 @@ interface TaskAllocation extends TaskInput {
 	peakProductivity: number; // p(ϕ) = a·e^(p₀/a − 1), the curve's actual maximum
 	avgProductivity: number; // Average productivity over allocated time
 	// Optimal stopping time, HEDGED for ϕ-uncertainty (§5.1) — not the §3 closed
-	// form x*(r)/k, and outside its [1.5194, 1.7933]ϕ band whenever σ_ϕ > 0.
+	// form x*(r)/k, and free to fall below its [1.5194, 1.7933]ϕ band: on the
+	// zero-log posterior 23 of the 100 slider pairs do, 6 land under ϕ itself.
 	optimalHours: number;
 	optimalAvgProductivity: number; // P̄(T*): best achievable average — allocation-independent task value
 }
@@ -950,7 +951,7 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
  * than the budget can fund — still exact wherever it fits the same plan budget,
  * and it fits on the tight days where the subset choice matters most (up to a
  * 3h day at n = 13). Longer days fall through to greedy forward selection,
- * which is where its residual forfeit is 2–3% (MATH.md §34).
+ * which is where its residual forfeit is 2.3–3.8% (MATH.md §34).
  */
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
@@ -1049,6 +1050,12 @@ function bestPlanWithSwitchCost(
 	// whenever it fits the same plan budget the n ≤ 12 path spends, which is
 	// every day tight enough for the choice of subset to be worth much.
 	//
+	// "Never optimal anyway" is a proof only here, against the single budget.
+	// Once pools bind, `improveWithTransfers` can admit a zero-block member and
+	// then empty a donor, so a task the greedy did not fund still shapes the
+	// plan and the step does not close; there the bound keeps §13.3's measured
+	// status (MATH.md §34).
+	//
 	// `budgetBlocksFor(m) − m` strictly decreases, so the affordable sizes are
 	// the interval [1, maxFunded] and stopping at the first failure finds it.
 	// A budget under one block affords nothing and leaves the empty plan.
@@ -1079,7 +1086,7 @@ function bestPlanWithSwitchCost(
 
 	// A long enough day funds everything, so no bound brings the enumeration
 	// back: greedy forward selection — add the task whose admission most improves
-	// the total, stop when none does. Documented heuristic, still 2–3% short and
+	// the total, stop when none does. Documented heuristic, still 2.3–3.8% short and
 	// still non-monotone in the budget, in the regime where that costs least
 	// (MATH.md §34).
 	const funded: number[] = [];

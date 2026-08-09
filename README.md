@@ -48,9 +48,10 @@ Fallow takes your whole task list and finds the allocation `⟨t₁, t₂, … t
 maximizes the sum of average productivities. Plans are built in **15-minute
 blocks**: greedy marginal analysis over block values, with an exhaustive search
 over which tasks deserve funding at all once context-switch costs are charged.
-Against your hours alone that is exact for up to 12 tasks, and past that on any
-day short enough to bound the search; once the energy pools bind too it reaches
-the optimum on ~94% of days and lands within a few per cent on the rest. Then
+Against your hours alone that is exact for up to 12 tasks, and past that
+whenever your day, list and switch cost together keep the search bounded; once
+the energy pools bind too it reaches the optimum on ~94% of days and lands
+within a few per cent on the rest. Then
 Fallow reports how much better that is than an equal split. (Full derivations:
 [MATH.md](MATH.md).)
 
