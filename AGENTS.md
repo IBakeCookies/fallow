@@ -110,8 +110,11 @@ Each exists because it was broken before.
   task is rated on the 5/5/5 defaults it shipped with for a year — a banner would
   claim the day failed to load).
   Silent still means **logged** — `readStopObservations` was an unhandled
-  rejection until caught. `indexed-db.ts`'s `onblocked` is different again: the `open`
-  promise never settles — a data-layer hang with no store to report through.
+  rejection until caught. `indexed-db.ts` has two that never settle at all:
+  `onblocked` (a data-layer hang with no store to report through) and
+  `reloadStaleBuild`, where settling is the bug — the page is already on its way
+  out, and a connection handed back is a window for the very write the reload
+  exists to prevent.
   A count is not a surface: `importFromDate` returning 0 makes the header say
   "No tasks on that date", a claim about the user's data a failed read cannot
   support, so it raises the retryable banner instead.
@@ -255,17 +258,29 @@ Anything the model reads must survive a backup/restore round trip.
   per-day fit snapshots (`fitSnapshots`, MATH.md §12.1), and any setting that
   feeds a calculation — e.g. the Energy Lab's params (`settings` store, key
   `energyParams`).
-- **localStorage**: only preferences whose loss costs nothing and that have no
-  business in a backup (e.g. which tab of a card was open).
-- **sessionStorage**: one thing only — the toast queue that must outlive a
-  deliberate `location.reload()` (`showToastAfterReload` in
-  `presentation/utils/toast.ts`; import and delete are the callers, export
-  does not reload and toasts live). An IndexedDB store was considered and is
-  **wrong**: it would join `STORE_NAMES`, so backups would carry "Import
-  failed" and restoring an old one would replay stale toasts — a permanent
-  schema version (R8) for a string that lives four seconds. Nor is it a
-  store's to write: this tier is presentation's, like the Lab's view
-  preference.
+- **localStorage**: only values whose loss costs nothing and that have no
+  business in a backup — view preferences (e.g. which tab of a card was open),
+  and `fallow:futile-schema-reload` (`indexed-db.ts`, R8), the one entry in this
+  tier the data layer owns: the on-disk schema version a stale-build reload has
+  been proven not to fix. Browser-wide on purpose, because that verdict is about
+  the deployment and not about the tab that discovered it, and losing it costs
+  one extra reload. It records the version rather than a bare flag so a later
+  release still earns a reload of its own.
+- **sessionStorage**: two things, both of them about surviving exactly one
+  `location.reload()`. The toast queue that must outlive a deliberate one
+  (`showToastAfterReload` in `presentation/utils/toast.ts`; import and delete
+  are the callers, export does not reload and toasts live) — an IndexedDB store
+  was considered and is **wrong**: it would join `STORE_NAMES`, so backups would
+  carry "Import failed" and restoring an old one would replay stale toasts, a
+  permanent schema version (R8) for a string that lives four seconds. Nor is it
+  a store's to write: that tier is presentation's, like the Lab's view
+  preference. And `fallow:schema-reload-spent` (`indexed-db.ts`, R8), which is
+  the data layer's own and is per **tab** for the reason the other marker is
+  per browser: every stale tab has to reload, so one tab's success must not
+  answer for the tabs still holding the old build in memory. A module variable
+  cannot hold it — the reload it bounds is what resets the module. It records
+  the same on-disk version, so a tab left behind by two releases running still
+  reloads for the second.
 - **Cookies** (via `data/repository/appearance-repository.ts`): only what SSR
   must know before hydration — `hooks.server.ts` stamps the theme and scenery
   classes so the first paint is already correct. Nothing else.
@@ -417,6 +432,23 @@ Missing any one ships a broken upgrade or a lossy backup:
 5. If data is moving from somewhere else, write a migration in
    `data/migration/` that never lets the stale source win over what IndexedDB
    already owns, and drops unparseable input instead of retrying forever.
+
+A bump also **reloads other tabs** — every one of them. A tab still running the
+previous build gets `VersionError` the next time it reaches the database, and
+`reloadStaleBuild` reloads it into the build that ran the upgrade: reading a
+migrated schema with the old build's code, and writing old-shaped records back
+into it, is corruption nothing downstream can detect. Two markers bound that, and
+which storage each one lives in **is** the logic (R4). `fallow:schema-reload-spent`
+is per tab, because a tab that comes back to the same stale build must stop, while
+the three tabs that never reloaded still must not be spoken for. Only when a tab
+reloads and finds the same stale build does the reload stand proven futile, and
+that verdict goes browser-wide as `fallow:futile-schema-reload` — the case being a
+**rollback**, where the newer schema outlives the newer build. `openAndHeal`'s
+missing-store repair records the same verdict directly, for the version it is
+about to create: it leaves the disk permanently a version ahead of the build that
+healed it, and that build is not stale — it wrote the schema itself, so no tab
+should ever spend a reload on it. Every exit lands on the old degraded open at the
+on-disk version, what every build did before this guard existed.
 
 ---
 
