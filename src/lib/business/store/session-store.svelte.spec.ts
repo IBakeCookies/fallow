@@ -8,7 +8,13 @@ import * as sessionRepository from '$lib/data/repository/session-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
-import { addDays } from '$lib/business/utils/date';
+// `toISODate` because the store's "today" is the LOCAL wall clock (`liveToday`
+// → `toISODate()`), and a spec that dates its own fixtures with
+// `new Date().toISOString()` is using UTC instead. The two disagree between
+// local and UTC midnight, which made the §33 tests below pass in CI and fail
+// for two hours every night east of Greenwich — the exact off-by-one
+// `utils/date.ts` exists to prevent.
+import { addDays, toISODate } from '$lib/business/utils/date';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
@@ -296,7 +302,7 @@ describe('SessionStore persistence', () => {
 	// from age 1, the freshest a counted log can now be (§33).
 	it('ages ⚡ logs against the planned day, so a decade-old log no longer personalizes the plan', async () => {
 		const constantsFrom = async (ageDays: number) => {
-			const today = new Date().toISOString().slice(0, 10);
+			const today = toISODate();
 			readAllFlowObservationsMock.mockResolvedValue([flowLog(addDays(today, -ageDays))]);
 			const { store } = await setup();
 			const { c1, c2, c3 } = store.userConstants;
@@ -318,7 +324,7 @@ describe('SessionStore persistence', () => {
 	   on the day already in flight is what made a plan reshuffle under someone
 	   halfway through running it. */
 	it('keeps the viewed day out of its own fit, and counts the log from the next day', async () => {
-		const today = new Date().toISOString().slice(0, 10);
+		const today = toISODate();
 
 		readAllFlowObservationsMock.mockResolvedValue([flowLog(today)]);
 		const sameDay = await setup();
@@ -342,7 +348,7 @@ describe('SessionStore persistence', () => {
 	// the user is previewing already carries every log made so far, and only the
 	// day in flight defers.
 	it("counts today's ⚡ when the viewed day is tomorrow", async () => {
-		const today = new Date().toISOString().slice(0, 10);
+		const today = toISODate();
 
 		readAllFlowObservationsMock.mockResolvedValue([flowLog(today)]);
 		const { store } = await setup();
