@@ -125,7 +125,7 @@ that are not evident from reading it — so never retype a row, regenerate:
 §31       5752-5933  What history can plot, and what it cannot (2026-08-07)
 §32       5935-5999  Two gates that read a sentinel as a verdict (2026-08-08)
 §33       6001-6118  A plan reads only the logs that precede it (2026-08-08)
-§34       6120-6275  The subset search gave up one task too early (2026-08-08)
+§34       6120-6292  The subset search gave up one task too early (2026-08-08)
 ```
 
 <!-- section-index:end -->
@@ -6157,12 +6157,12 @@ enjoyable tasks each collecting its own activation bonus — which is 18.41%
 better and which enumeration finds immediately.
 
 It also **breaks monotonicity in the budget** — a day made 15 minutes longer
-planning _worse_ than the shorter one. That cannot happen to a search over a
-budget-indexed family, because every plan affordable at B is affordable at
-B + δ; it happens to forward selection because its first pick moves with the
-budget and a better anchor can lead somewhere worse. Present tense on purpose:
-the fallback still exists, and this is the defect that follows it — see
-"What it costs" below.
+planning _worse_ than the shorter one, **20 times in 6400 ladder steps, worst
+0.5565 P̄-units**. That cannot happen to a search over a budget-indexed family,
+because every plan affordable at B is affordable at B + δ; it happens to forward
+selection because its first pick moves with the budget and a better anchor can
+lead somewhere worse. Present tense on purpose: the fallback still exists, and
+so does a quarter of this — see "What it costs" below.
 
 ### The bound
 
@@ -6225,14 +6225,14 @@ The tight band is now essentially exact (0/20, 2/28, 1/29 short, none of it
 above 3.31%), and the worst case across every band lands at 2.28–3.77% — beside
 the pooled path's own 3.37–5.28% (§13.3) rather than four times worse than it.
 
-**Monotonicity is repaired only where the bounded search runs.** The fallback
-survives and so does its defect: sweeping the whole budget ladder in 15-minute
-steps from one block to 10 h, over 160 random days at n ∈ {13, 14, 16, 20},
-**4 of 6400 steps still lose value as the day grows** (worst 0.1249 P̄-units, at
-n = 13 / `switchCost` 0.33 / 4.25 h). All four are on the fallback — **0 inside
-the bounded region**, which is what the bound predicts and the only part of this
-the fix can claim. Every one sits at 4.25 h or longer, where selection is worth
-~0% (§21.1); the tight budgets that used to break are now clean.
+**Monotonicity is repaired only where the bounded search runs.** Same ladder
+sweep — 15-minute steps from one block to 10 h over 160 random days at
+n ∈ {13, 14, 16, 20}, 6400 steps — **20 violations before, 4 after**, worst
+0.5565 → **0.1249** P̄-units. The fallback survives and so does its defect. All
+four survivors are on it — **0 inside the bounded region**, which is what the
+bound predicts and the only part of this the fix can claim — and every one sits
+at 4.25 h or longer, where selection is worth ~0% (§21.1). The tight budgets
+that used to break are clean.
 
 Wall clock, on the pooled path the app actually calls (default pools,
 `switchCost` 0.25, ms per solve, every row the probe measures):
@@ -6263,6 +6263,23 @@ and a loose budget usually wants exactly that. Truncating the candidates trades
 the regime that was already fine for the one it was meant to fix. The size bound
 has no such failure mode — it never removes a task from consideration, only a
 subset the budget cannot pay for.
+
+### Reproducing the historical columns
+
+Neither the "before" column nor the rejected variant is measurable from HEAD, so
+both were re-measured against restored code on 2026-08-09 rather than quoted
+from memory, and both reproduce exactly:
+
+```text
+before:   git show 28e2e16:src/lib/business/model/zenith.ts > src/lib/business/model/zenith.ts
+rejected: replace the size bound with the pool ranking described above
+then:     npm run probe -- scripts/subset-search-bound.probe.ts     (and git restore after)
+```
+
+That is what backs 34/33/43 days short, the 0.78/0.80/0.94% means, the 14.93 /
+18.41 / 13.39% worsts and the 20-violation monotonicity figure above, and the
+rejected variant's 59/63 and 13.94%. The one number NOT from this probe is
+§21.1's selection/shape split, which has its own.
 
 ### Pinned in the suite
 
