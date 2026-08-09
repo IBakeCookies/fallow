@@ -6,7 +6,7 @@ import { baseLocale, type Locale, locales, localizeUrl } from '$lib/paraglide/ru
 const PATHS = ['/', '/analytics', '/calendar', '/energy', '/imprint', '/privacy'];
 
 export const GET: RequestHandler = ({ url }) => {
-	const origin = (env.PUBLIC_SITE_URL ?? url.origin).replace(/\/$/, '');
+	const origin = (env.PUBLIC_SITE_URL || url.origin).replace(/\/$/, '');
 
 	// A URL object, not a string: localizeUrl() only consults getUrlOrigin() for
 	// string input, and this endpoint runs outside any request-scoped origin.
