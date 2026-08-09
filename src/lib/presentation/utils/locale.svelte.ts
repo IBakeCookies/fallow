@@ -2,10 +2,9 @@
  * Reload-free locale switching.
  *
  * Every non-base locale is a real route (`url` strategy → `/de/*`, `/es/*`,
- * `/zh/*`), so switching language
- * is a navigation, not a cookie write. goto() keeps it client-side and the root
- * layout keys the app subtree on the locale, so every m.*() message re-resolves
- * without blanking the app.
+ * `/fr/*`, `/zh/*`), so switching language is a navigation, not a cookie write.
+ * goto() keeps it client-side and the root layout keys the app subtree on the
+ * locale, so every m.*() message re-resolves without blanking the app.
  *
  * The active locale is read back off `page.url` rather than tracked in module
  * state: the URL is the only thing that survives back/forward, a shared link and
@@ -59,6 +58,11 @@ const LOCALE_DISPLAY: Record<Locale, { label: string; dateTag: string; weekStart
 		es: {
 			label: 'Español',
 			dateTag: 'es-ES',
+			weekStartsOn: 1,
+		},
+		fr: {
+			label: 'Français',
+			dateTag: 'fr-FR',
 			weekStartsOn: 1,
 		},
 		zh: {

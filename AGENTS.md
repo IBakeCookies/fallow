@@ -1314,7 +1314,7 @@ Each was considered and decided. Re-deciding them is churn.
   where today's `/de/imprint` serves `class="abyss dark"` / `lang="de"` /
   `Impressum`, and a
   cold load gets the seed baked at build time, not the visitor's cookie.
-  Locale living in the URL makes the case stronger, not weaker: 24 indexable
+  Locale living in the URL makes the case stronger, not weaker: 30 indexable
   URLs, every one still cookie-personalised for theme and seed. Hydration
   repairs the class, the copy and (since 2026-08-01) the seed, so it costs a
   FOUC rather than a wrong page — but avoiding exactly that FOUC is why the
@@ -1365,7 +1365,8 @@ Each was considered and decided. Re-deciding them is churn.
   previews serve dynamic (not prerendered) crawler files, and their SEO tags
   point at themselves.
 
-- **`/de/*`, `/es/*`, `/zh/*` are real, indexable URLs, not a cookie state.**
+- **`/de/*`, `/es/*`, `/fr/*`, `/zh/*` are real, indexable URLs, not a cookie
+  state.**
   The paraglide strategy is `['url', 'cookie', 'baseLocale']`; `en` stays
   unprefixed. Two consequences that are easy to get wrong:
   - Every internal `href` goes through `localizeHref`, and every comparison

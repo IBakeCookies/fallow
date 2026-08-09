@@ -27,6 +27,7 @@ describe('locale', () => {
 		['http://localhost/de', 'de'],
 		['http://localhost/de/calendar', 'de'],
 		['http://localhost/es', 'es'],
+		['http://localhost/fr/calendar', 'fr'],
 		['http://localhost/zh/calendar', 'zh'],
 	])('reads %s as the %s locale', (url, locale) => {
 		mock.url = new URL(url);
@@ -40,6 +41,7 @@ describe('locale', () => {
 		['http://localhost/', 'en-US'],
 		['http://localhost/de', 'de-DE'],
 		['http://localhost/es', 'es-ES'],
+		['http://localhost/fr', 'fr-FR'],
 		['http://localhost/zh', 'zh-CN'],
 	])('formats dates for %s with %s', (url, tag) => {
 		mock.url = new URL(url);
@@ -53,6 +55,7 @@ describe('locale', () => {
 		['http://localhost/', 7],
 		['http://localhost/de', 1],
 		['http://localhost/es', 1],
+		['http://localhost/fr', 1],
 		['http://localhost/zh', 7],
 	])('starts the week for %s on ISO day %i', (url, day) => {
 		mock.url = new URL(url);
@@ -68,6 +71,7 @@ describe('locale', () => {
 		expect(localeLabel('en')).toBe('English');
 		expect(localeLabel('de')).toBe('Deutsch');
 		expect(localeLabel('es')).toBe('Español');
+		expect(localeLabel('fr')).toBe('Français');
 		expect(localeLabel('zh')).toBe('中文');
 	});
 });
