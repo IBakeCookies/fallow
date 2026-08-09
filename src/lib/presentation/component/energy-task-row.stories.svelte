@@ -16,15 +16,15 @@
 			mustDoToday: false,
 			color: 'var(--series-1)',
 			plannedHours: 1.75,
-			measured: false,
+			isDrainMeasured: false,
 			drainDraft: null,
-			focusDrainMinutes: false,
 			ontoggle: fn(),
 			onremove: fn(),
-			ondrainclick: fn(),
-			onchange: fn(),
+			onlogflow: fn(),
+			ondrainopen: fn(),
+			ondrainclose: fn(),
 			ondrainsave: fn(),
-			ondraincancel: fn(),
+			onchange: fn(),
 		},
 	});
 </script>
@@ -50,7 +50,9 @@
 		const dot = canvas.getByText(args.title).previousElementSibling;
 		await expect(dot).toHaveAttribute('style', expect.stringContaining('var(--series-1)'));
 
-		// The row reports its three controls to the page
+		// Both measurements are on this row now, not just the Lab's own 🪫: the energy
+		// model reads the ϕ constants ⚡ calibrates, so a Lab-only user could not feed
+		// the fit their own plans are built from.
 		await userEvent.click(
 			canvas.getByRole('checkbox', {
 				name: `Mark ${args.title} complete`,
@@ -58,6 +60,13 @@
 		);
 
 		await expect(args.ontoggle).toHaveBeenCalledOnce();
+
+		// Ticking a task off ends the session both measurements describe, so it asks
+		// both. ⚡'s editor is the row's own and opens here; 🪫's draft belongs to the
+		// page, so the row reports the prompt and this story's mock never answers it —
+		// which is why no 🪫 editor appears below.
+		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith('completion');
+		await expect(canvas.getByText('⚡ Minutes to reach flow:')).toBeInTheDocument();
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -67,16 +76,15 @@
 
 		await expect(args.onremove).toHaveBeenCalledOnce();
 
+		// The button is a second way in, and says so: the caret follows a press but not
+		// a prompt, which is what the source tells the page.
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Log end-of-session drain',
 			}),
 		);
 
-		await expect(args.ondrainclick).toHaveBeenCalledOnce();
-
-		// No draft from the page: no 🪫 editor under the row
-		await expect(canvas.queryByPlaceholderText('min')).not.toBeInTheDocument();
+		await expect(args.ondrainopen).toHaveBeenNthCalledWith(2, 'button');
 	}}
 >
 	{#snippet template(args)}
@@ -127,7 +135,7 @@
 	name="Completed and rated"
 	args={{
 		completed: true,
-		measured: true,
+		isDrainMeasured: true,
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.queryByText('1h 45m')).not.toBeInTheDocument();
@@ -199,11 +207,13 @@
 <Story
 	name="Rating the session"
 	args={{
-		measured: true,
+		isDrainMeasured: true,
 		drainDraft: {
 			minutes: 45,
 			mind: 6,
 			body: 2,
+			focusMinutes: false,
+			promptedByCompletion: false,
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {

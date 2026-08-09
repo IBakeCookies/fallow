@@ -1,36 +1,47 @@
-<script module lang="ts">
-	import { buttonVariants } from '$lib/presentation/component/ui/button';
-
-	/** What a row action looks like. Exported because each screen adds one action of its
-	 *  own — ⚡ on the main page, 🪫 in the Lab — and two buttons in one strip cannot be
-	 *  a different size from each other. */
-	export const ROW_ACTION_CLASS = buttonVariants({
-		variant: 'ghost',
-		size: 'icon-xs',
-	});
-</script>
-
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { buttonVariants } from '$lib/presentation/component/ui/button';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import X from '@lucide/svelte/icons/x';
+	import MeasurementFormActions from '$lib/presentation/component/measurement-form-actions.svelte';
+	import DrainLogForm from '$lib/presentation/component/drain-log-form.svelte';
+	import TaskEditForm from '$lib/presentation/component/task-edit-form.svelte';
+	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import { cn } from '$lib/presentation/utils';
+	import {
+		completionPromptAction,
+		MEASUREMENT_FORM_CLASS,
+		MEASUREMENT_MINUTES_CLASS,
+		type DrainDraft,
+		type EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 
 	/* Everything the two task rows say the same way: the frame and its hover surface,
 	   the completion checkbox, the title, the three model inputs under it, the action
-	   strip that appears on hover — including ✎ and ✕, which mean the same thing on
-	   both screens — and the editors that open below. Each screen fills the slots from
-	   its own reading of the task: `/` adds priority, T* and its allocation with the ⚡
-	   measurement, the Lab adds the schedule's hue and hours with the 🪫 one. That
-	   difference is the ONLY reason there are two components; if the two readings ever
-	   converge, merge the callers rather than adding a mode flag here.
+	   strip that appears on hover — ⚡, 🪫, ✎ and ✕, which mean the same thing on both
+	   screens — and the editors they open below. Each screen fills the slots from its
+	   own reading of the task: `/` adds priority, T* and its allocation, the Lab adds
+	   the schedule's hue and hours. That difference is the ONLY reason there are two
+	   components; if the two readings ever converge, merge the callers rather than
+	   adding a mode flag here.
+
+	   Both measurements are on both rows because both models read both fits: ϕ (⚡)
+	   feeds the Lab's own curves, and the α/λ₀/audit/carry-over readings all run off
+	   🪫 hours, which used to be reachable only from `/energy` — so a user who never
+	   opened the Lab calibrated nothing (ROADMAP item 11). An action is present when
+	   its callback is: a past day passes neither, and a read-only row no ✎ or ✕.
 
 	   Not an <li>: the list is what makes a row one (task-list.svelte, and the Lab
 	   page's rows snippet), and task-list-card.svelte is where the rule between them is
 	   drawn. No Tooltip.Provider either — the callers' snippets are full of tooltips,
 	   so the provider has to be theirs, above this. */
+
+	const ROW_ACTION_CLASS = buttonVariants({
+		variant: 'ghost',
+		size: 'icon-xs',
+	});
 
 	interface Props {
 		title: string;
@@ -41,7 +52,31 @@
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
+		/** Flagged as unmovable. Badged by the caller that reads it — but ✎ must
+		 *  round-trip it rather than clear it, on both screens. */
+		mustDoToday?: boolean;
+		/** Whether ✎ offers the must-do flag. The Lab hides it: the flag is read by the
+		 *  plan advisor, which is the main page's, so there it is a control with no
+		 *  consequence on screen. The seed still carries the stored value through. */
+		withMustDoToday?: boolean;
 		ontoggle: () => void;
+		/** Today's ⚡ time-to-flow, when one is measured. */
+		flowMinutes?: number;
+		/** Absent → no ⚡ action. */
+		onlogflow?: (minutes: number) => void;
+		/** This row's open 🪫 editor, or null. The page owns it — see `DrainDraft`. */
+		drainDraft?: DrainDraft | null;
+		/** A 🪫 rating for this task exists for today. Never "the" rating: a task worked
+		 *  in two sessions has two of them (MATH.md §8.7). */
+		isDrainMeasured?: boolean;
+		/** Absent → no 🪫 action. */
+		ondrainopen?: (source: EditorSource) => void;
+		ondrainclose?: () => void;
+		ondrainsave?: (entry: { hours: number; mind: number; body: number }) => void;
+		/** Absent → read-only row, which then has no ✎ at all. */
+		onupdate?: (edit: TaskEdit) => void;
+		/** Absent on a read-only row. */
+		onremove?: () => void;
 		/** Before the title, on its line: the nature and run-order badges on the main
 		 *  page, the plan's hue in the Lab. */
 		lead?: Snippet;
@@ -49,23 +84,6 @@
 		meta?: Snippet;
 		/** The right-hand column, before the actions: what the day gave the task. */
 		trailing?: Snippet;
-		/** The measurement this screen collects, first in the strip. */
-		actions?: Snippet;
-		/** True while an editor one of the actions opened is on screen. Without it the
-		 *  strip fades out from under a form that is still being filled in — and the
-		 *  button that opened it is how you close it again. */
-		actionsPinned?: boolean;
-		/** ✎ is open — so the strip stays pinned and the button reads as active. The
-		 *  editor itself is the caller's, rendered in `forms` alongside that screen's
-		 *  own; both rows stack the two rather than trading one for the other. */
-		editing?: boolean;
-		/** Toggles ✎. Absent on a read-only row, which then has no ✎ at all. */
-		onedit?: () => void;
-		/** Absent on a read-only row. */
-		onremove?: () => void;
-		/** The editors, under the row rather than inside its flex line: the strip has no
-		 *  room for a label, and an unlabelled number field is what nobody understood. */
-		forms?: Snippet;
 	}
 
 	let {
@@ -74,17 +92,93 @@
 		physicalDifficulty,
 		mentalDifficulty,
 		enjoyment,
+		mustDoToday = false,
+		withMustDoToday = true,
 		ontoggle,
+		flowMinutes,
+		onlogflow,
+		drainDraft = null,
+		isDrainMeasured = false,
+		ondrainopen,
+		ondrainclose,
+		ondrainsave,
+		onupdate,
+		onremove,
 		lead,
 		meta,
 		trailing,
-		actions,
-		actionsPinned = false,
-		editing = false,
-		onedit,
-		onremove,
-		forms,
 	}: Props = $props();
+
+	// Inline "log time-to-flow" editor (⚡): feeds the c₁,c₂,c₃ personalization. Local,
+	// unlike the 🪫 draft: nothing outside the row opens one.
+	let loggingFlow = $state(false);
+	let flowMinutesInput = $state<number | null>(null);
+	// How the editor was opened, which decides two things. The caret: auto-opening must
+	// not move it, or ticking tasks off with the keyboard lands it in a number field
+	// nobody asked for. And the close: un-completing withdraws a question completion
+	// asked, but must not discard an editor the user opened. Focus cannot be an
+	// `autofocus` attribute — the document's autofocus-processed flag is set at load, so
+	// it is inert on any node inserted afterwards, which is every editor in this app.
+	// Only meaningful while `loggingFlow`; every read is gated on it.
+	let flowSource = $state<EditorSource>('button');
+
+	// Inline task editor (✎): re-tune the task after it is added. It stacks with the
+	// measurement editors rather than replacing them — they answer different questions,
+	// and closing one to open another discarded a draft nobody asked to throw away.
+	let editing = $state(false);
+
+	function openFlowLog(source: EditorSource) {
+		flowMinutesInput = flowMinutes ?? null;
+		flowSource = source;
+		loggingFlow = true;
+	}
+
+	// Completing a task is the one moment the user still knows both how long the ramp-up
+	// took and how spent they are. `completed` is a prop, so this reads the value BEFORE
+	// the parent flips it. Both questions are asked; each keeps its own policy, and the
+	// only difference is `measured` — ⚡ is one number per day, 🪫 one per session, so an
+	// earlier rating silences the first and never the second (MATH.md §18).
+	function onCompletionChange() {
+		const flowAction = completionPromptAction({
+			finishing: !completed,
+			measured: Boolean(flowMinutes),
+			editorOpenOnThisRow: loggingFlow,
+			promptOpenForThisTask: loggingFlow && flowSource === 'completion',
+		});
+
+		const drainAction = completionPromptAction({
+			finishing: !completed,
+			measured: false,
+			editorOpenOnThisRow: drainDraft !== null,
+			promptOpenForThisTask: drainDraft?.promptedByCompletion ?? false,
+		});
+
+		ontoggle();
+
+		if (flowAction === 'open' && onlogflow) openFlowLog('completion');
+
+		if (flowAction === 'withdraw') loggingFlow = false;
+
+		if (drainAction === 'open') ondrainopen?.('completion');
+
+		if (drainAction === 'withdraw') ondrainclose?.();
+	}
+
+	function saveFlowLog() {
+		const minutes = Number(flowMinutesInput);
+
+		if (!minutes || minutes <= 0 || !onlogflow) return;
+
+		onlogflow(minutes);
+		loggingFlow = false;
+	}
+
+	// The strip stays put while any editor it opened is on screen. Without it it fades
+	// out from under a form that is still being filled in — and the button that opened
+	// it is how you close it again. A 🪫 rating pins it for a different reason: it is the
+	// one measurement no row badges, so the lit button is the only thing that says the
+	// session was rated, and a hover-revealed one says it to nobody.
+	const actionsPinned = $derived(loggingFlow || drainDraft !== null || editing || isDrainMeasured);
 </script>
 
 <div
@@ -94,7 +188,7 @@
 		<input
 			type="checkbox"
 			checked={completed}
-			onchange={ontoggle}
+			onchange={onCompletionChange}
 			aria-label={m.task_toggle_aria({
 				title,
 			})}
@@ -132,26 +226,77 @@
 					</Tooltip.Content>
 				</Tooltip.Root>
 				{@render meta?.()}
+				<!-- What the row has already measured, at rest: the strip is hover-revealed,
+					     so without this a logged session looks exactly like an unlogged one. ⚡
+					     reads as a badge because it is one number per day; 🪫 cannot — a task
+					     worked twice has two ratings (MATH.md §8.7) — so it pins the strip
+					     instead and the lit 🪫 is what says so. -->
+				{#if flowMinutes}
+					<Tooltip.Root>
+						<Tooltip.Trigger class="cursor-help font-medium text-flow">
+							⚡ {flowMinutes}m
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.task_flow_badge_tooltip()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
 			</div>
 		</div>
 
 		<div class="flex shrink-0 items-center gap-grid-xs">
 			{@render trailing?.()}
 			<div
-				class="flex items-center gap-grid-2xs transition-opacity {actionsPinned || editing
+				class="flex items-center gap-grid-2xs transition-opacity {actionsPinned
 					? 'opacity-100'
 					: 'hover-reveal'}"
 			>
-				{@render actions?.()}
+				{#if onlogflow}
+					<Tooltip.Root>
+						<Tooltip.Trigger
+							class={cn(
+								ROW_ACTION_CLASS,
+								flowMinutes || loggingFlow ? 'text-flow' : 'text-ty-silent hover:text-flow',
+							)}
+							onclick={() => (loggingFlow ? (loggingFlow = false) : openFlowLog('button'))}
+							aria-label={m.task_log_flow_aria()}
+						>
+							⚡
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.task_log_flow_tooltip()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
 
-				{#if onedit}
+				<!-- Deliberately NOT hidden on a completed task: finishing one is the
+				     commonest way a session ends, and rating it is what the button is for. -->
+				{#if ondrainopen}
+					<Tooltip.Root>
+						<Tooltip.Trigger
+							class={cn(
+								ROW_ACTION_CLASS,
+								isDrainMeasured || drainDraft ? 'text-flow' : 'text-ty-silent hover:text-flow',
+							)}
+							onclick={() => (drainDraft ? ondrainclose?.() : ondrainopen('button'))}
+							aria-label={m.energy_log_drain_aria()}
+						>
+							🪫
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.energy_log_drain_tooltip()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
+
+				{#if onupdate}
 					<Tooltip.Root>
 						<Tooltip.Trigger
 							class={cn(
 								ROW_ACTION_CLASS,
 								editing ? 'text-success' : 'text-ty-silent hover:text-success',
 							)}
-							onclick={onedit}
+							onclick={() => (editing = !editing)}
 							aria-label={m.task_edit_aria()}
 						>
 							<Pencil class="h-4 w-4" />
@@ -180,5 +325,54 @@
 		</div>
 	</div>
 
-	{@render forms?.()}
+	<!-- The editors, under the row rather than inside its flex line: the strip has no
+	     room for a label, and an unlabelled number field is what nobody understood. All
+	     three stack, so completing a task can ask both measurements at once. -->
+	{#if loggingFlow && onlogflow}
+		<form class={MEASUREMENT_FORM_CLASS} onsubmit={(e) => (e.preventDefault(), saveFlowLog())}>
+			<label class="flex items-center gap-grid-2xs">
+				<span class="text-ty-secondary">{m.task_flow_form_title()}</span>
+				<input
+					type="number"
+					min="1"
+					max="960"
+					placeholder={m.task_minutes_placeholder()}
+					{@attach (node) => {
+						if (flowSource === 'button') node.focus();
+					}}
+					bind:value={flowMinutesInput}
+					required
+					class={MEASUREMENT_MINUTES_CLASS}
+				/>
+			</label>
+			<MeasurementFormActions oncancel={() => (loggingFlow = false)} />
+		</form>
+	{/if}
+
+	{#if drainDraft && ondrainsave}
+		<DrainLogForm
+			seed={drainDraft}
+			focusMinutes={drainDraft.focusMinutes}
+			onsave={ondrainsave}
+			oncancel={() => ondrainclose?.()}
+		/>
+	{/if}
+
+	{#if editing && onupdate}
+		<TaskEditForm
+			seed={{
+				title,
+				physicalDifficulty,
+				mentalDifficulty,
+				enjoyment,
+				mustDoToday,
+			}}
+			showMustDoToday={withMustDoToday}
+			onsave={(edit) => {
+				onupdate(edit);
+				editing = false;
+			}}
+			oncancel={() => (editing = false)}
+		/>
+	{/if}
 </div>

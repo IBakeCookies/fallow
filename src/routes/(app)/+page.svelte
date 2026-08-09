@@ -9,6 +9,11 @@
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
 	import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
+	import {
+		newDrainDraft,
+		type DrainDraft,
+		type EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
@@ -38,11 +43,35 @@
 	const isViewingFuture = $derived(session.isViewingFuture);
 	const tasks = $derived(session.tasks);
 
-	// One value, two consumers that must agree: only today's session can be ⚡-logged,
-	// so the callback and the bar's prompt for it have to appear and vanish together
-	// — the whole point of `canLogFlow` is that the prompt never points at a button
-	// no task renders.
-	const canLogFlow = $derived(selectedDate === today);
+	// One value, three consumers that must agree: only today's session can be measured
+	// — both stores stamp an observation with the LIVE clock's today, never the viewed
+	// day, so a ⚡ or 🪫 logged while browsing a past day would misdate itself. The
+	// callbacks and the bar's prompt for them therefore appear and vanish together, so
+	// the prompt never points at a button no task renders.
+	const canLog = $derived(selectedDate === today);
+
+	// The open 🪫 editors, by task — one per row, like ⚡: ticking two tasks off ends two
+	// sessions, and each gets its prompt. Owned here rather than by the row for the
+	// reason in `DrainDraft`, and shaped exactly like the Lab's so the two screens
+	// cannot drift apart again. A draft whose row is gone (delete, date change, midnight
+	// rollover) is inert: it is keyed by that task and nothing else reads it.
+	let drainDrafts = $state<Record<number, DrainDraft>>({});
+
+	const openDrainLog = (id: number, source: EditorSource) =>
+		(drainDrafts[id] = newDrainDraft(source));
+
+	const closeDrainLog = (id: number) => {
+		delete drainDrafts[id];
+	};
+
+	// Correcting a rating is the Lab's calibration card, which is where the day's ratings
+	// are listed; this screen only adds sessions.
+	const drainMeasured = $derived(observations.drainMeasuredToday);
+
+	function saveDrainLog(id: number, entry: { hours: number; mind: number; body: number }) {
+		observations.logDrain(id, entry.hours, entry.mind, entry.body);
+		closeDrainLog(id);
+	}
 
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools));
@@ -162,7 +191,7 @@
 				constantsFitted={session.constantsFit.fitted}
 				flowLogs={session.flowObservations}
 				pendingFlowLogs={session.pendingFlowLogCount}
-				{canLogFlow}
+				{canLog}
 				ondeletelog={(id) => session.deleteFlowLog(id)}
 				onresetlogs={() => session.resetFlowLogs()}
 				isOpen={session.loadedDate !== null && session.availableHours <= 0}
@@ -177,7 +206,12 @@
 				runOrder={daily.runOrder}
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={isViewingPast ? undefined : (id) => removeTaskWithUndo(session, id)}
-				onlogflow={canLogFlow ? (id, minutes) => session.logFlow(id, minutes) : undefined}
+				onlogflow={canLog ? (id, minutes) => session.logFlow(id, minutes) : undefined}
+				{drainDrafts}
+				{drainMeasured}
+				ondrainopen={canLog ? openDrainLog : undefined}
+				ondrainclose={closeDrainLog}
+				ondrainsave={canLog ? saveDrainLog : undefined}
 				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
 				form={isViewingPast ? undefined : addTaskForm}
 			/>

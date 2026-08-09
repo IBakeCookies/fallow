@@ -1,16 +1,18 @@
 /* Ticking a task done is the end of the session its measurements describe, so both
    measurement editors open themselves there rather than behind a hover-revealed
-   button: ⚡ time-to-flow on the main page (task-item.svelte) and 🪫 end-of-session
-   drain in the Energy Lab (`/energy`).
+   button: ⚡ time-to-flow and 🪫 end-of-session drain. Both live on both screens'
+   rows now (task-row-shell.svelte), and completion asks both questions — they are
+   answered from the same moment and stack as two forms under the row.
 
    The policy is shared because the two copies had already disagreed twice. First the
    Lab destroyed a rating being typed into another task's editor (R3); the fix — one
    page-level draft that any open editor blocks — then made the Lab's SECOND tick
-   never prompt at all, while the main page prompted on every row. Both screens now
-   hold one measurement editor per row and stack it with that row's ✎, so nothing but
-   this row's own open prompt can hold the question back. A predicate is also the only
-   way the Lab's half gets a unit test; the rest of it is a route, where nothing can
-   reach it. */
+   never prompt at all, while the main page prompted on every row. Each row now holds
+   one editor PER MEASUREMENT and stacks them with that row's ✎, so nothing but this
+   row's own open prompt can hold its own question back. The two calls differ only in
+   `measured`, which is the real difference between the quantities: ⚡ is one number
+   per day, 🪫 one per session. A predicate is also the only way this gets a unit
+   test; the rest of it is a route, where nothing can reach it. */
 
 /** How an editor was opened. The caret keys on it: a button press asked for the
  *  editor, so it gets focus; an editor that opened itself must not take it. */
@@ -40,6 +42,33 @@ export function completionPromptAction(input: {
 	// opened by hand is theirs to keep.
 	return input.promptOpenForThisTask ? 'withdraw' : 'none';
 }
+
+/** One open 🪫 editor. Owned by the PAGE rather than the row on both screens, because
+ *  the Lab's calibration card opens one from outside the row — and a draft whose row
+ *  is gone (delete, midnight rollover, visibility re-read) is inert, since it is keyed
+ *  by that task and nothing else reads it. */
+export type DrainDraft = {
+	/** The stored rating being corrected, or undefined when this is a new session. */
+	recordId?: number;
+	minutes: number | null;
+	mind: number | null;
+	body: number | null;
+	/** Whether the caret goes to the editor — see `EditorSource`. */
+	focusMinutes: boolean;
+	/** Opened by the completion prompt, so un-completing withdraws it again. */
+	promptedByCompletion: boolean;
+};
+
+/** A draft for a new session. Always empty, never seeded from an earlier rating: each
+ *  🪫 log describes one session (MATH.md §18), so prefilling the last one invites
+ *  re-saving hours the day already counts. Corrections seed their own draft. */
+export const newDrainDraft = (source: EditorSource): DrainDraft => ({
+	minutes: null,
+	mind: null,
+	body: null,
+	focusMinutes: source === 'button',
+	promptedByCompletion: source === 'completion',
+});
 
 /* The two forms are the same object on screen, and their classes were already
    character-for-character identical under a comment saying "mirrors" — R3's own

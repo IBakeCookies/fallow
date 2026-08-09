@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
+	import MeasurementFormActions from '$lib/presentation/component/measurement-form-actions.svelte';
 	import {
 		MEASUREMENT_FORM_CLASS,
 		MEASUREMENT_MINUTES_CLASS,
@@ -126,15 +127,6 @@
 				<p>{m.energy_drain_body_title()}</p>
 			</Tooltip.Content>
 		</Tooltip.Root>
-		<span class="ml-auto flex items-center gap-grid-2xs">
-			<button type="submit" class="px-text-2xs text-flow hover:text-flow">✓</button>
-			<button
-				type="button"
-				class="px-text-2xs text-ty-silent hover:text-ty-secondary"
-				onclick={oncancel}
-			>
-				✕
-			</button>
-		</span>
+		<MeasurementFormActions {oncancel} />
 	</form>
 </Tooltip.Provider>

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, setBudget } from './helpers';
+import { addTask, AUTOSAVE_MS, logDrain, setBudget } from './helpers';
 
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
    one place where editing a task changes the model rather than just the row —
@@ -74,9 +74,21 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 		})
 		.check();
 
-	await page.getByPlaceholder('min').fill('40');
+	// Completing asks BOTH measurements, since it is the moment both are knowable —
+	// so every locator here has to name the editor it means.
+	const flowForm = page.locator('form').filter({
+		hasText: 'Minutes to reach flow',
+	});
 
-	await page
+	await expect(
+		page.locator('form').filter({
+			hasText: 'After the session',
+		}),
+	).toBeVisible();
+
+	await flowForm.getByPlaceholder('min').fill('40');
+
+	await flowForm
 		.getByRole('button', {
 			name: '✓',
 		})
@@ -143,7 +155,10 @@ test('completing a second task opens its own time-to-flow prompt', async ({ page
 			.filter({
 				hasText: 'Boxing training',
 			})
-			.locator('form'),
+			.locator('form')
+			.filter({
+				hasText: 'Minutes to reach flow',
+			}),
 	).toBeVisible();
 });
 
@@ -277,4 +292,34 @@ test('the Lab edits a task with the same editor as the main page', async ({ page
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/');
 	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+});
+
+/* Both measurements are on this page now, and the 🪫 half is the one that was
+   unreachable here: worked hours are what λ₀ (MATH.md §8.10), the §12 adherence
+   audit and overnight carry-over (§11.9) read finished days off, and every one of
+   them came up empty for a user who never opened the Lab (ROADMAP item 11). The
+   observations are one store, so what is logged here is what the Lab fits. */
+test('a drain rating logged from the main page feeds the Lab', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 6);
+
+	await logDrain(page, 120, 9, 5);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+
+	// …and it is a real fit, not just a stored row
+	const cognitiveDrain = page.getByLabel('Cognitive drain');
+	const defaultDrain = await cognitiveDrain.inputValue();
+
+	await page
+		.getByRole('button', {
+			name: 'Apply my fits',
+		})
+		.click();
+
+	await expect(cognitiveDrain).not.toHaveValue(defaultDrain);
 });

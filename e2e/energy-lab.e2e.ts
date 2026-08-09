@@ -517,7 +517,10 @@ test('completing a second task opens its own drain rating', async ({ page }) => 
 			.filter({
 				hasText: 'Deep work',
 			})
-			.locator('form'),
+			.locator('form')
+			.filter({
+				hasText: 'After the session',
+			}),
 	).toBeVisible();
 });
 

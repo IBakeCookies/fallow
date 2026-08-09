@@ -200,9 +200,28 @@ say the same way now:
   empty state, and the rule between rows (`divide-y`, so neither screen
   decides how its own list is separated).
 - `task-row-shell.svelte` — the row's frame and hover surface, the completion
-  checkbox, the title, the `P · M · E` line, ✎ and ✕, and the slot the editors
-  open in. Each screen adds one action of its own (⚡ / 🪫) through the
-  `actions` snippet and its readings through `lead` / `meta` / `trailing`.
+  checkbox, the title, the `P · M · E` line, the whole action strip (⚡, 🪫, ✎,
+  ✕) and every editor it opens, including the completion prompt that opens
+  both measurements at once. Each screen adds only its readings, through
+  `lead` / `meta` / `trailing`. An action is present when its callback is, so a
+  past day passes neither measurement and a read-only row no ✎ or ✕. The two
+  measurements were one-per-screen until 2026-08-09 and are not any more: both
+  models read both fits — ϕ (⚡) feeds the Lab's own curves, and the α, λ₀, §12
+  audit and §11.9 carry-over readings all run off 🪫 hours — so each screen was
+  withholding an instrument the other's model consumes (ROADMAP item 11).
+  The ⚡ editor is the shell's own state; the 🪫 draft is the PAGE's, because
+  the Lab's calibration card opens one from outside the row. `DrainDraft` and
+  `newDrainDraft` in `measurement-prompt.ts` are what keep the two pages'
+  copies one shape, and `EnergyObservationStore.drainMeasuredToday` is the one
+  answer to "is this task rated today" that both screens light 🪫 from.
+  What the row has already measured has to read at REST, since the strip is
+  hover-revealed: ⚡ is badged beside the `P · M · E` line (one number per day),
+  and 🪫 cannot be — a task worked twice has two ratings — so it pins the strip
+  open instead and the lit button is what says so.
+- `measurement-form-actions.svelte` — the ✓/✕ that closes ⚡, 🪫 and 😴. It
+  exists because those three editors were written separately and drifted into
+  two different button sizes, one with a hover surface and one without; the
+  instrument's hue on ✓ is the only real difference and is a prop.
 - `task-edit-form.svelte` — the editor, on both screens.
 - `task-form-fields.svelte` — the fields both task forms set: the three model
   input sliders (one loop over one table, so their labels, minimums and accents
@@ -217,10 +236,11 @@ say the same way now:
   the caller's own `space-y-*` is what sets the form's density.
 
 What is left in `task-item.svelte` and `energy-task-row.svelte` is one
-screen's reading of the task: priority, allocation, run order and T* on `/`,
-the schedule's hue and hours in the Lab. That is two readings of one task, not
-one thing duplicated — and it is the only reason there are two components. If
-the readings ever converge, merge the two callers; do not give the shell a mode
+screen's reading of the task and nothing else: priority, allocation, run order
+and T* on `/`, the schedule's hue and hours in the Lab — three snippets and the
+prop mapping around them. That is two readings of one task, not one thing
+duplicated — and it is the only reason there are two components. If the
+readings ever converge, merge the two callers; do not give the shell a mode
 flag.
 
 If you catch yourself writing "mirrors", "same as", or "keep in sync with" in
@@ -417,7 +437,7 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   called `open` or `fitted` says nothing about whether it asks a question or
   performs an action, which is how a caller ends up passing the wrong thing.
   `can` / `must` / `should` are the same shape where the modal is the accurate
-  verb (`canLogFlow`, `mustDoToday`). A component's own mount-time copy of such
+  verb (`canLog`, `mustDoToday`). A component's own mount-time copy of such
   a prop keeps the plain word (`isOpen` → `let open = $state(isOpen)`), so the
   two never shadow each other. Existing names are a baseline, not a to-do list:
   rename one when you touch it, in a change of its own.
@@ -554,10 +574,10 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `autofocus`.** The attribute is inert on any node inserted after load (the
   document's autofocus-processed flag), so all three editors that used it — ⚡,
   🪫, ☕ — silently never focused. The attachment also makes the choice
-  conditional, which matters where an editor opens itself: `task-item.svelte`
-  and `/energy` open theirs on task completion and deliberately do NOT focus,
-  so ticking tasks off with the keyboard cannot yank the caret into a number
-  field.
+  conditional, which matters where an editor opens itself: `task-row-shell.svelte`
+  opens both measurement editors on task completion and deliberately does NOT
+  focus either, so ticking tasks off with the keyboard cannot yank the caret
+  into a number field.
 - **A `DropdownMenu.Item` never contains a focusable child, and an input inside
   menu content stops the keys it needs.** Two separate bits-ui facts, both of
   which shipped as mouse-only UI in the header's routine rows. First: the menu's
