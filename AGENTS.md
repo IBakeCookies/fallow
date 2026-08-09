@@ -31,20 +31,179 @@ goes; do not let that turn into building for a future nobody has asked for.
   uncheck. Flags, live regions, extra guards and defensive branches that were
   not asked for are not free — every one is state to reason about, a comment to
   keep true, and a test to maintain.
-- **No speculative generality.** No abstraction for a second caller that does
-  not exist. Extract on the _second_ real duplication (R3), not in
-  anticipation of one.
+- **No speculative generality — but shape the interface at the first caller.**
+  No abstraction, parameter or branch for a second caller that does not exist;
+  extract a shared module on the _second_ real duplication (R3), not in
+  anticipation of one. What a function _takes and returns_ is the exception: it
+  is decided once, at the first caller, and waiting costs more than it saves.
+  Generality that keeps the same functionality and makes the caller shorter is
+  free (`delete(start, end)` over `backspace(cursor)`); generality that adds a
+  capability nobody asked for is the thing this rule bans. 0.4 and R3.
 - **Complexity needs a reachable failure to justify it.** If you cannot name
   the inputs and the wrong outcome, the branch does not go in. "Defensive" is
   not a reason; unreachable code is a lie about what can happen.
 - **Comments earn their length.** One or two lines saying _why_, where the code
-  cannot. A paragraph justifying a decision usually means the decision is too
-  clever — simplify the code instead of defending it.
+  cannot. A paragraph justifying a decision in a source file means one of two
+  things: the decision is too clever, so simplify the code instead of defending
+  it — or the justification is durable, in which case it belongs in §5 or
+  `MATH.md` and the comment is the one line that cites it. This file is long
+  for exactly that reason: an argument read once here is cheaper than the same
+  argument pasted into every file that inherits the decision.
 - **When you notice something unrelated, say it; do not fix it.** A finding
   reported costs a sentence. A finding fixed costs a review, a test, and a
   larger diff for the thing you were actually asked to do.
+- **Documentation is the exception to that: fix it, in the same change.** A
+  rule in this file, `MATH.md` or `STYLE.md` that your change makes false — or
+  that you discover was already false — is corrected in the diff that found it,
+  never reported as a note. R7 says so for math and it holds for every rule
+  here: a stale rule misleads every future reader until someone else pays to
+  rediscover it, and the fix is usually a line. Insert a section and sweep the
+  `file:line` citations that moved.
 
 Deleting code to satisfy this rule is progress, not lost work.
+
+0.1–0.5 are the design vocabulary the rest of this file uses, condensed from
+Ousterhout's _A Philosophy of Software Design_; 0.5 is where this repo parts
+ways with it. Read "class" as module — a file's exports, a store, a model, a
+component.
+
+### 0.1 — Name the complexity before removing it
+
+Three symptoms. **Change amplification**: one feature needs edits in several
+places. **Cognitive load**: how much you must know to finish the task.
+**Unknown unknowns**: you cannot tell which code the task touches, or what you
+needed to know — worst of the three, because nothing announces it.
+
+Two causes. **Dependencies** — code that cannot be understood or changed alone.
+**Obscurity** — important information that is not obvious.
+
+Complexity arrives in small increments, never in one commit, so the only policy
+that holds is zero tolerance per change. Note what is counted: complexity, not
+lines. Short code can be dense and obscure; the goal is neither direction for
+its own sake (0.5).
+
+### 0.2 — Depth is the interface measured against the implementation
+
+A module is **deep** when its interface is small relative to what it does, and
+**shallow** when the interface is large relative to what it does. Depth pays
+twice: a small interface imposes little on the rest of the system, and an
+implementation nothing exposes can be rewritten without touching a caller.
+
+- **Never split on line count. The test is interface arithmetic: a split pays
+  only if it removes more public surface than it adds.** A large file whose
+  helpers are private is a deep module; a small one exporting a member per
+  fifteen lines, most called from one place, is a wide facade in a small file's
+  clothes. Measure both sides before proposing one — §5 has the worked case.
+- **A pass-through method is a shallow module**: it forwards to the same-named
+  method one layer down and adds nothing. The interface to a piece of
+  functionality belongs in the module that implements it. Duplicating an
+  interface is fine only where the layer adds something — a dispatcher, or
+  several implementations behind one shape.
+- **A wrapper is shallow by default.** Before wrapping, ask whether the
+  behaviour belongs in the wrapped module, in the single caller that wants it,
+  or in a standalone module that wraps nothing. The honest case is adapting a
+  third-party interface you cannot change.
+- **Every function must be readable alone.** If you cannot understand one
+  without reading the other, that is a red flag — whether they share a file or
+  sit in different directories.
+- **Depth is not a licence to write more code.** "Invest in depth" is the
+  easiest idea here to abuse: it argues against false economy in interfaces,
+  never for volume. §0 wins the tie — a deeper version that removes no leak, no
+  unknown unknown and no duplicated decision does not go in on depth alone.
+
+### 0.3 — Information hiding, and the ways it leaks
+
+Hiding is what produces depth: a decision known to exactly one module can be
+changed in exactly one place. **Leakage** is a decision reflected in more than
+one. Anything in an interface is leaked by definition, which is why the
+interface is kept small. Four leaks worth recognising by name:
+
+- **Backdoor leakage** — two modules share a decision that appears in neither
+  interface: a stored format one writes and the other reads, a key layout, an
+  ordering assumption. Nothing marks the coupling, so one changes and the other
+  silently breaks. R3 is the standing defence.
+- **Temporal decomposition** — splitting modules by the order operations run
+  (read the URL, then parse it) leaks that order to the caller, who must now
+  call two things in sequence. Structure by what is known, not by when it
+  happens.
+- **Returning an internal structure** — hand back the map you store and the
+  representation _is_ the interface. Return the answer the caller asked for.
+- **Overexposure** — if using the common feature requires learning the rare
+  one, the common case pays for the rare one. Design the interface so the
+  common case is the simple one.
+
+A **pass-through variable** — a parameter threaded through functions that never
+read it — puts one caller's concern in every intermediate signature. Fold it
+into something the layers already share, or restructure so the layers that do
+not care never see it. Not into a global context bag (0.5).
+
+Hiding applies inside a module too: fewer exports, fewer module-level values,
+fewer things two functions must agree about.
+
+### 0.4 — General interface, specific functionality
+
+**Functionality reflects today's needs; the interface does not.** Build the
+module _somewhat_ general — broad enough that the next need is a new caller,
+not a new method.
+
+Prefer the general module. It is deeper, it hides more, and it is genuinely
+_less_ work than the pile of special-purpose methods it replaces — **on one
+condition: that you can name the domain's natural operations.** That condition
+is the rule, not a footnote on it. Find the operations that are about the
+_thing_ rather than about the caller's gesture, and cover today's needs with
+fewer of them; build those, even for a single caller. If you cannot find them —
+if every candidate set is a guess about callers who do not exist — write the
+specific thing and let the second caller show you where the seam really was.
+Generality you can name is cheap. Generality you are guessing at is
+speculation with better manners, and §0's first rule still applies to it.
+
+The example is a text buffer. `backspace(cursor)` and `delete(cursor)` are
+shallow and leak: the buffer now knows a UI decision (which characters a
+backspace removes), and every new editing gesture needs a new buffer method.
+Replace them with `insert(position, text)`, `delete(start, end)` and
+`changePosition(position, numChars)`, and both gestures become one line written
+by the UI, which is where the decision belongs. Note that this set reads as
+obvious only _after_ someone has found it — text, positions and ranges are the
+domain's own operations. That is what "naming the operations" means, and it is
+why the general version here costs less code rather than more.
+
+Three questions, asked at the **first** caller (R3 says why the first and not
+the second):
+
+1. **What is the simplest interface covering all my current needs?** Fewer
+   operations with no loss of functionality is a more general module.
+2. **In how many situations will this be used?** A method with one plausible
+   caller, named after that caller's gesture, is the red flag.
+3. **Is it easy to use for my current need?** If the caller needs glue — a loop
+   to delete a range one character at a time — the interface is general in the
+   wrong dimension. Generality that makes today's caller longer is a mistake,
+   not an investment.
+
+Two directions to push specialization out of a general core. **Up**: the buffer
+offers positions and ranges, the UI decides what backspace means — R1's layer
+direction is this argument at repo scale, and `task-row-shell.svelte` (R3) is
+one instance. **Down**: an OS defines "read a block" / "write a block" and each
+driver implements it with its device's peculiarities.
+
+**Eliminate special cases** so the common path handles them. A "text is
+selected" flag disappears once an empty selection is a selection whose start
+equals its end. Same move as "an action is present when its callback is" — no
+mode flag, no branch, nothing for a caller to get wrong.
+
+### 0.5 — Three the book gets wrong for this repo
+
+- **The context object is rejected.** A per-instance bag of global state cures
+  pass-through variables by making every dependency ambient and untypeable, and
+  it collides with R1, with R5 (stores take what they need as arguments) and
+  with models being pure functions of their inputs. Pass what is used; give a
+  named type to parameters that genuinely travel together.
+- **"Classitis" does not license fat components.** R1 and R2 are depth
+  boundaries — logic goes where it can be tested — not the small-classes reflex
+  the book warns about.
+- **The book is OOP-shaped and this repo is not.** A component's interface is
+  its props and snippets; a store's informal interface — what is reactive, who
+  may write, what must be loaded first — is the part that leaks, which is why
+  §2's store rules are as long as they are.
 
 ## 1. Hard rules
 
@@ -175,8 +334,10 @@ threshold policy — goes in a module:
 | Reactive state + persistence        | `business/store/*.svelte.ts`                         |
 | Labels, thresholds, colors, i18n    | `presentation/utils/*.ts`, `presentation/component/` |
 
-Rule of thumb: if you cannot write a `.test.ts` for it, it is in the wrong
-file.
+Rule of thumb: if you cannot test it at **any** level in R6's table, it is in
+the wrong file. Not "has no `.test.ts`" — a component is tested by a story
+`play` and a store by a `.svelte.spec.ts`, and both are in the right place.
+Untestable at every level is the signal.
 
 ### R3 — One definition per concept
 
@@ -249,6 +410,29 @@ flag.
 If you catch yourself writing "mirrors", "same as", or "keep in sync with" in
 a comment, export the thing instead.
 
+**The threshold — three questions, three different answers.** They get confused
+with each other, and the confusion is what produced both the mirrored mappings
+above and the shallow one-caller helpers.
+
+- _Should this fact live in one place?_ **At the first mirror.** A second copy
+  of a mapping, threshold, join or format is a defect the moment it exists —
+  nothing in either interface says the two agree, so they are free to drift
+  while auditing each other. This is the rule above.
+- _Should this code become a shared module?_ **At the second real caller** (§0).
+  One caller does not tell you where the seam is; guessing puts it in the wrong
+  place and the wrong place is harder to remove than the duplication.
+- _What shape should this function take and return?_ **At the first caller,
+  always.** Waiting is not caution here: an interface shaped around one caller's
+  gesture leaks that caller's decision into the callee, and that leak is
+  precisely why the second gesture arrives needing a second method rather than a
+  second line at the call site. §0.4 is the whole argument and the three
+  questions to ask; the short form is that generality is judged on whether the
+  one caller you already have got shorter.
+
+`task-row-shell.svelte` above is the shape this produces: the shell takes
+`lead` / `meta` / `trailing` and an action per callback — one general interface,
+two screens specializing above it — and not a `mode` flag naming its callers.
+
 ### R4 — Model inputs are persisted data, not preferences
 
 Anything the model reads must survive a backup/restore round trip.
@@ -260,12 +444,10 @@ Anything the model reads must survive a backup/restore round trip.
   `energyParams`).
 - **localStorage**: only values whose loss costs nothing and that have no
   business in a backup — view preferences (e.g. which tab of a card was open),
-  and `fallow:futile-schema-reload` (`indexed-db.ts`, R8), the one entry in this
-  tier the data layer owns: the on-disk schema version a stale-build reload has
-  been proven not to fix. Browser-wide on purpose, because that verdict is about
-  the deployment and not about the tab that discovered it, and losing it costs
-  one extra reload. It records the version rather than a bare flag so a later
-  release still earns a reload of its own.
+  and `fallow:futile-schema-reload` (`indexed-db.ts`), the one entry in this
+  tier the data layer owns — browser-wide because the verdict it records is
+  about the deployment, not about the tab that discovered it, and losing it
+  costs one extra reload. R8 owns what it means.
 - **sessionStorage**: two things, both of them about surviving exactly one
   `location.reload()`. The toast queue that must outlive a deliberate one
   (`showToastAfterReload` in `presentation/utils/toast.ts`; import and delete
@@ -274,13 +456,10 @@ Anything the model reads must survive a backup/restore round trip.
   carry "Import failed" and restoring an old one would replay stale toasts, a
   permanent schema version (R8) for a string that lives four seconds. Nor is it
   a store's to write: that tier is presentation's, like the Lab's view
-  preference. And `fallow:schema-reload-spent` (`indexed-db.ts`, R8), which is
-  the data layer's own and is per **tab** for the reason the other marker is
-  per browser: every stale tab has to reload, so one tab's success must not
-  answer for the tabs still holding the old build in memory. A module variable
-  cannot hold it — the reload it bounds is what resets the module. It records
-  the same on-disk version, so a tab left behind by two releases running still
-  reloads for the second.
+  preference. And `fallow:schema-reload-spent` (`indexed-db.ts`), the data
+  layer's own and per **tab** where the other marker is per browser — R8 says
+  why. A module variable cannot hold it: the reload it bounds is what resets
+  the module.
 - **Cookies** (via `data/repository/appearance-repository.ts`): only what SSR
   must know before hydration — `hooks.server.ts` stamps the theme and scenery
   classes so the first paint is already correct. Nothing else.
@@ -344,7 +523,11 @@ code — six were, across `SessionStore`, `EnergyLabStore` and
 
 ### R6 — Test first: write it, watch it fail, then implement
 
-No exceptions for "small". The test comes **before** the implementation, and
+No exceptions for "small" — where "small" means a small _behaviour_ change, not
+a small diff. A one-line fix to a model is a behaviour change and takes a test;
+retitling a card, adding a translation key or renaming a token is not, and
+takes none. §4's table draws the same line for the same reason. The test comes
+**before** the implementation, and
 you must **see it fail for the reason you expect** — not error out on a typo, a
 missing import, or a locator that never matched. A test written after the code
 is a description of whatever the code happens to do; only a test you watched go
@@ -443,7 +626,9 @@ is per tab, because a tab that comes back to the same stale build must stop, whi
 the three tabs that never reloaded still must not be spoken for. Only when a tab
 reloads and finds the same stale build does the reload stand proven futile, and
 that verdict goes browser-wide as `fallow:futile-schema-reload` — the case being a
-**rollback**, where the newer schema outlives the newer build. `openAndHeal`'s
+**rollback**, where the newer schema outlives the newer build. Both record the
+on-disk **version** rather than a bare flag, so a later release still earns a
+reload of its own and a tab left behind by two releases reloads for the second. `openAndHeal`'s
 missing-store repair records the same verdict directly, for the version it is
 about to create: it leaves the disk permanently a version ahead of the build that
 healed it, and that build is not stale — it wrote the schema itself, so no tab
@@ -806,23 +991,51 @@ of its allocation code, so the main page is unaffected by changes here.
 
 ## 4. Verification
 
-Before claiming a change works:
+These five define green, and CI (`.github/workflows/ci.yml`) runs all of them
+on every push/PR to `main`:
 
 ```sh
 npm run check      # svelte-check + tsc on the service worker — must be 0 errors
-npx eslint .       # includes the layer-boundary rules — 0 errors, warnings are a baseline
+npm run lint       # prettier --check, eslint (layer-boundary rules), and the two doc registries
 npm run depcheck   # dependency-cruiser: layer direction, no cycles, no orphans
 npm run test:unit -- --run
 npm run test:e2e
 ```
 
-Then, once those pass and **before reporting the work as done, dispatch a
-read-only reviewer subagent over the working diff** — every completed feature
-and every fixed bug, no exceptions for "small". The five commands prove a
-change compiles, lints and passes the tests it shipped with; none of them can
-tell you it is _right_. A reviewer reading the diff cold is the only step that
-catches a wrong invariant, a rule in this file quietly broken, or a test that
-asserts the implementation instead of the behaviour.
+**An agent does not run the full five — the user does, and CI does.** They cost
+minutes of tokens to sit through and they re-prove the whole tree to check one
+diff. What an agent runs instead is the narrow thing its own change needs:
+
+- **The test file you wrote or touched**, because R6 is not satisfiable
+  otherwise — you have to watch it fail and then pass
+  (`npm run test:unit -- --run path/to/file`).
+- **`npx prettier --write`** on the files you touched (never the tree).
+- Anything the change itself puts in doubt — `npm run check` after a type-level
+  change, `npm run depcheck` after moving a module across layers.
+
+Then hand the work over saying **what you ran and what you did not**. "Tests
+pass" means the file you ran; do not report a green tree you never saw. A
+change is not done until the five are green, but that gate is the user's to
+run, not the agent's to narrate.
+
+**Before reporting the work as done, dispatch a read-only reviewer subagent
+over the working diff.** Nothing mechanical can tell you a change is _right_; a
+reviewer reading the diff cold is the only step that catches a wrong invariant,
+a rule in this file quietly broken, or a test that asserts the implementation
+instead of the behaviour.
+
+**Scope it by blast radius, and say which you picked:**
+
+| The diff touches                                                           | Review                                   |
+| -------------------------------------------------------------------------- | ---------------------------------------- |
+| `business/model`, `business/store`, `data/`, or any user-visible behaviour | Full reviewer pass. No exceptions        |
+| Anything with a MATH.md section, a migration, or a persisted shape         | Full pass, and give it the MATH.md §     |
+| Copy, translations, comments, tokens, story fixtures, docs                 | None. Re-read the diff yourself and ship |
+
+The middle ground is the judgement call, and it resolves toward the full pass:
+if you are arguing about which row a diff falls in, it is the first row. A
+rename that crosses layers is not "copy"; a "styling" change that moves a
+conditional is not styling.
 
 - `/code-review` covers the working diff; any review-focused subagent does
   too. What matters is that a second pass reads the diff, not which one runs
@@ -857,16 +1070,15 @@ Then, on the way back:
   real but is not a bug in what was asked for is a note, not a task; §0 outranks
   it. Accepting every finding is how a small change turns into a large one, and
   that is the reviewer's job done badly by the person reading it.
-- **One review pass per change.** Fix what it found, re-run the five commands,
-  ship. Re-reviewing your own fixes invites a fresh set of suggestions on code
-  that was fine, and the loop does not converge — it accretes.
+- **One review pass per change.** Fix what it found, hand over, ship.
+  Re-reviewing your own fixes invites a fresh set of suggestions on code that
+  was fine, and the loop does not converge — it accretes.
 
-This is a step, not a suggestion: the checks above are all _mechanical_, and
-every rule in §1 exists because something mechanical passed while the change
-was still wrong.
+For everything in the table's first two rows this is a step, not a suggestion.
+The five commands are _mechanical_, and every rule in §1 exists because
+something mechanical passed while the change was still wrong.
 
-All five commands run in CI (`.github/workflows/ci.yml`) on every push/PR to
-`main`. Two notes on `check`: it also type-checks `src/service-worker.ts`
+Two notes on `check`: it also type-checks `src/service-worker.ts`
 through `tsconfig.worker.json`, because SvelteKit's generated tsconfig
 `exclude`s that file and it would otherwise never be checked. And
 `svelte.config.js` exists only so svelte-check and eslint compile in the same
@@ -874,9 +1086,11 @@ runes mode the build forces — `sveltekit()` takes its options inline in
 `vite.config.ts`, so the build ignores the file and says so. Keep `runes` in
 step across the two.
 
-`prettier --check` is not in CI, but it does pass and `npm run lint` runs it —
-keep it passing (`npx prettier --write` the files you touched, never the
-tree).
+`lint` is four checks, and the last two fail on documentation rather than code:
+`math-index.mjs --check` on MATH.md's section index (R7 step 5) and
+`probe-registry.mjs --check` on §4's probe table. Both exist because a
+hand-maintained index silently rots. `prettier --check` covers the whole tree,
+so format the files you touched (`npx prettier --write`) and never the tree.
 
 Warnings are a known baseline, not a to-do list: 18 `max-depth` (the scheduler
 loops in `business/model/zenith*.ts`, downgraded to `warn` in
@@ -915,64 +1129,72 @@ could not be re-checked and stayed in the document while being false.
 
 **Which probe backs what** (each file's header names its claim; each claim in
 `MATH.md` carries a dated back-reference to its probe). A `MATH.md` number with
-no probe citation beside it is unbacked — that is the list to work down.
+no probe citation beside it is unbacked — that is the list to work down. Adding
+a probe means adding its row: `node scripts/probe-registry.mjs --check` fails
+`npm run lint` when a committed probe has no row or a row has no file, which is
+how `adv3-advice-display-resolution` sat unlisted until 2026-08-10.
 
-| Probe (`scripts/`)                      | Backs                                                                                                                                                                   |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plan-advice.probe.ts`                  | §14, §14.1-2 — priced-lever signs, the pure budget trim                                                                                                                 |
-| `pool-allocator.probe.ts`               | §13.3, §4 — pooled suboptimality: there is no envelope to quote                                                                                                         |
-| `energy-search-gap.probe.ts`            | §8.6 — the search's residual gap against the enumerated optimum, and the rest-split audit on the worst day                                                              |
-| `stop-advisor.probe.ts`                 | §8.11 — session lookahead vs. the one-step marginal                                                                                                                     |
-| `burnout-risk.probe.ts`                 | §11.6 — the 87% ceiling, the plateau, the resolution ladder                                                                                                             |
-| `phi-uncertainty-cap.probe.ts`          | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation                                                                                                                 |
-| `phi-cap-reachability.probe.ts`         | §5.1 — whether a real fit can reach the region that cap misses                                                                                                          |
-| `allocator-exactness.probe.ts`          | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level                                                                                                             |
-| `subset-search-bound.probe.ts`          | §34 — what the funded-subset search forfeits past n = 12, by budget band, the budget-monotonicity violations the fallback still allows, and the size bound's wall clock |
-| `hedged-stop-band.probe.ts`             | §3, §10 — where the hedged stop time lands against the closed form's band, how far σ̂ falls, and `expectedOptimalTime` vs a grid argmax                                  |
-| `satiety-gaming.probe.ts`               | §8.4 — the monotone accumulator, and what a laundering one costs                                                                                                        |
-| `stop-inversion-margin.probe.ts`        | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split                                                                                                           |
-| `fit-snapshot-drift.probe.ts`           | §12.1 — as-of-day vs whole-history fit drift, and refit cost                                                                                                            |
-| `phi-error-price.probe.ts`              | §17 — the per-task-ϕ error pricing table                                                                                                                                |
-| `curve-marginal-facts.probe.ts`         | §2 — the r-cap boundary, the five curve properties, the three N facts                                                                                                   |
-| `alloc-epsilon-methodology.probe.ts`    | §4 — block-rule vs hour-rule admissibility, the 49% artefact                                                                                                            |
-| `post-recency-weighting.probe.ts`       | §5.2 — the recency weights, Σw vs n_eff, the ten-year logger                                                                                                            |
-| `causal-fit-window.probe.ts`            | §33 — how far one ⚡ moves an unlogged task, and what a one-day deferral costs                                                                                          |
-| `post-monotone-prefix-cost.probe.ts`    | §5.1 guard 2 — violation size, blocks dropped, which cut lost the value                                                                                                 |
-| `post-quadrature-floor.probe.ts`        | §5.1 — GH moment exactness and the ϕ-floor mean shift                                                                                                                   |
-| `enb-simpson-error.probe.ts`            | §8.1 / AGENTS §3 — Simpson error under the 1024-node cap                                                                                                                |
-| `enb-break-economics.probe.ts`          | §8 intro, §8.3–8.4, §13.5 — break economics pre/post fix, fragmentation cost, chunk sweep                                                                               |
-| `sat-gate-floor.probe.ts`               | §8.5 — the w = 1 floor identity and 8 h endpoint, the rejected (1−w^q) gate, the demand sweep                                                                           |
-| `sat-drain-identifiability.probe.ts`    | §8.7 — what ratings identify (r vs α), λ tuning, saturation                                                                                                             |
-| `stp-lattice.probe.ts`                  | §8.8 — the 45-min lattice's quantization loss and enumerated optimum                                                                                                    |
-| `stp-recovery-fit.probe.ts`             | §8.9 — the recovery fit's λ profile, range and identifiability limits; §8.7's ν₀ ≠ λ effect on the reported ±                                                           |
-| `stp-stopping-identifiability.probe.ts` | §8.10 — V_T identifiability and the reconstruction's bracket                                                                                                            |
-| `budget-advisor.probe.ts`               | §8.12 — why maximizing `valueVsClassic` or `objective` over the budget is ill-posed                                                                                     |
-| `budget-knee.probe.ts`                  | §8.12 — the three candidate scorings, the knee across λ₀, and the running max's dip rate                                                                                |
-| `curve-shape.probe.ts`                  | §8.12 — the raw difference's spike train, and the majorant's non-increasing / last-positive / telescoping properties                                                    |
-| `advisor-curve-agreement.probe.ts`      | §8.12 — the stop advisor (§8.11) and the curve priced on one day, and where they agree                                                                                  |
-| `mtr2-carry-over.probe.ts`              | §11.6 demand arm, §11.9 carry-over levels, §12's Σ P̄ spread premise                                                                                                     |
-| `rv13-prior-posterior.probe.ts`         | §13.1 — the σ_ϕ ladder and what the n = 0 posterior moves                                                                                                               |
-| `rv13-naive-lattice.probe.ts`           | §13.2 — the naive baseline's lattice handicap, before and after                                                                                                         |
-| `rv14-naive-switch-bill.probe.ts`       | §19 — the naive baseline's switch bill and order dependence, before and after; the ≥ 0 arms and the pool-starved regressions                                            |
-| `rv15-gain-headroom.probe.ts`           | §21 — why an honest gain still reads ~3%: selection vs shape, the activation-bonus ceiling, what binds on a real day                                                    |
-| `rv13-stop-insertion.probe.ts`          | §13.4 — insertion convention: size and sign of the error                                                                                                                |
-| `rv13-terminal-timing.probe.ts`         | §13.6 — mean-vs-min re-scoring, and the timing difference                                                                                                               |
-| `adv1-plan-advice-frontier.probe.ts`    | §14, §14.1 — the Σ P̄ identity, budget monotonicity, rounding, frontier widths, the budget-0 grind day                                                                   |
-| `adv2-budget-marginal.probe.ts`         | §14.2 — the budget marginal, zero-marginal days, per-task spread                                                                                                        |
-| `adv2-switch-cost-price.probe.ts`       | §14.3 — the fixture table, the inversion grid, m(s) and the bracket                                                                                                     |
-| `mode-cross-scoring.probe.ts`           | §15 — both plans scored under both objectives                                                                                                                           |
-| `mode-run-order.probe.ts`               | §16 — the order-only gain and the burnout noise it would buy                                                                                                            |
-| `mtr-human-capacity.probe.ts`           | §20 — the reading-is-the-constraint identity, what the band's >100 and Infinity arms can reach, the pool the row names                                                  |
-| `mtr-load-rounding.probe.ts`            | §25 — the Load clamp's slack, what rounding the two loads cost Energy Balance's classification and the advisor's ordering                                               |
-| `mtr-grind-density.probe.ts`            | §11.10 — the 100/m quantization against the band ladder, what unfunded tasks voted, §11.4's boundary as a hard count; §11.11 question 6 — count vs hour-weighted share  |
-| `mtr-day-profile.probe.ts`              | §29 — the saturated difficulty axis under the old cut, what hour-weighting moved, the flip gate, history vs the dashboard                                               |
-| `mtr-metric-trend.probe.ts`             | §31 — which readings survive the switch-cost-free solve, the exact solve's cost by n, why the gain cannot be plotted                                                    |
-| `rv16-output-vs-classic.probe.ts`       | §30 — the Lab comparison tile under raw output vs the objective, and the rival plan's exact fit to the window                                                           |
-| `mtr-friction-index.probe.ts`           | §11.4 — the Friction Index's interior, which its two pinned endpoints say nothing about                                                                                 |
-| `mtr-bottleneck-strain.probe.ts`        | §23 — why Primary Bottleneck stopped reading E/β, and what the binding-pool draw reads instead                                                                          |
-| `mtr-deep-work.probe.ts`                | §26 — the hard `mentalDifficulty >= 7` cut, and the band that called a three-quarters-deep day optimal                                                                  |
-| `mtr-sustainable-work.probe.ts`         | §27 — the budget denominator against Σh, the grind-free day, and whether the fixed row restates Grind Density                                                           |
-| `prefix-replan.probe.ts`                | §35 — the mid-day re-plan vs a cold re-solve and the morning plan, the on-plan control, the switch convention, the second solve's wall clock                            |
+<!-- probe-registry:start -->
+
+| Probe (`scripts/`)                        | Backs                                                                                                                                                                   |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan-advice.probe.ts`                    | §14, §14.1-2 — priced-lever signs, the pure budget trim                                                                                                                 |
+| `pool-allocator.probe.ts`                 | §13.3, §4 — pooled suboptimality: there is no envelope to quote                                                                                                         |
+| `energy-search-gap.probe.ts`              | §8.6 — the search's residual gap against the enumerated optimum, and the rest-split audit on the worst day                                                              |
+| `stop-advisor.probe.ts`                   | §8.11 — session lookahead vs. the one-step marginal                                                                                                                     |
+| `burnout-risk.probe.ts`                   | §11.6 — the 87% ceiling, the plateau, the resolution ladder                                                                                                             |
+| `phi-uncertainty-cap.probe.ts`            | §5.1 — the σ ≤ 0.5·ϕ̂ cap and monotone-prefix truncation                                                                                                                 |
+| `phi-cap-reachability.probe.ts`           | §5.1 — whether a real fit can reach the region that cap misses                                                                                                          |
+| `allocator-exactness.probe.ts`            | §4 — the n ≤ 12 exactness claim; §5.1 guard 2 at plan level                                                                                                             |
+| `subset-search-bound.probe.ts`            | §34 — what the funded-subset search forfeits past n = 12, by budget band, the budget-monotonicity violations the fallback still allows, and the size bound's wall clock |
+| `hedged-stop-band.probe.ts`               | §3, §10 — where the hedged stop time lands against the closed form's band, how far σ̂ falls, and `expectedOptimalTime` vs a grid argmax                                  |
+| `satiety-gaming.probe.ts`                 | §8.4 — the monotone accumulator, and what a laundering one costs                                                                                                        |
+| `stop-inversion-margin.probe.ts`          | §8.10 — inversion rates and the `STOP_INVERSION_MARGIN` split                                                                                                           |
+| `fit-snapshot-drift.probe.ts`             | §12.1 — as-of-day vs whole-history fit drift, and refit cost                                                                                                            |
+| `phi-error-price.probe.ts`                | §17 — the per-task-ϕ error pricing table                                                                                                                                |
+| `curve-marginal-facts.probe.ts`           | §2 — the r-cap boundary, the five curve properties, the three N facts                                                                                                   |
+| `alloc-epsilon-methodology.probe.ts`      | §4 — block-rule vs hour-rule admissibility, the 49% artefact                                                                                                            |
+| `post-recency-weighting.probe.ts`         | §5.2 — the recency weights, Σw vs n_eff, the ten-year logger                                                                                                            |
+| `causal-fit-window.probe.ts`              | §33 — how far one ⚡ moves an unlogged task, and what a one-day deferral costs                                                                                          |
+| `post-monotone-prefix-cost.probe.ts`      | §5.1 guard 2 — violation size, blocks dropped, which cut lost the value                                                                                                 |
+| `post-quadrature-floor.probe.ts`          | §5.1 — GH moment exactness and the ϕ-floor mean shift                                                                                                                   |
+| `enb-simpson-error.probe.ts`              | §8.1 / AGENTS §3 — Simpson error under the 1024-node cap                                                                                                                |
+| `enb-break-economics.probe.ts`            | §8 intro, §8.3–8.4, §13.5 — break economics pre/post fix, fragmentation cost, chunk sweep                                                                               |
+| `sat-gate-floor.probe.ts`                 | §8.5 — the w = 1 floor identity and 8 h endpoint, the rejected (1−w^q) gate, the demand sweep                                                                           |
+| `sat-drain-identifiability.probe.ts`      | §8.7 — what ratings identify (r vs α), λ tuning, saturation                                                                                                             |
+| `stp-lattice.probe.ts`                    | §8.8 — the 45-min lattice's quantization loss and enumerated optimum                                                                                                    |
+| `stp-recovery-fit.probe.ts`               | §8.9 — the recovery fit's λ profile, range and identifiability limits; §8.7's ν₀ ≠ λ effect on the reported ±                                                           |
+| `stp-stopping-identifiability.probe.ts`   | §8.10 — V_T identifiability and the reconstruction's bracket                                                                                                            |
+| `budget-advisor.probe.ts`                 | §8.12 — why maximizing `valueVsClassic` or `objective` over the budget is ill-posed                                                                                     |
+| `budget-knee.probe.ts`                    | §8.12 — the three candidate scorings, the knee across λ₀, and the running max's dip rate                                                                                |
+| `curve-shape.probe.ts`                    | §8.12 — the raw difference's spike train, and the majorant's non-increasing / last-positive / telescoping properties                                                    |
+| `advisor-curve-agreement.probe.ts`        | §8.12 — the stop advisor (§8.11) and the curve priced on one day, and where they agree                                                                                  |
+| `mtr2-carry-over.probe.ts`                | §11.6 demand arm, §11.9 carry-over levels, §12's Σ P̄ spread premise                                                                                                     |
+| `rv13-prior-posterior.probe.ts`           | §13.1 — the σ_ϕ ladder and what the n = 0 posterior moves                                                                                                               |
+| `rv13-naive-lattice.probe.ts`             | §13.2 — the naive baseline's lattice handicap, before and after                                                                                                         |
+| `rv14-naive-switch-bill.probe.ts`         | §19 — the naive baseline's switch bill and order dependence, before and after; the ≥ 0 arms and the pool-starved regressions                                            |
+| `rv15-gain-headroom.probe.ts`             | §21 — why an honest gain still reads ~3%: selection vs shape, the activation-bonus ceiling, what binds on a real day                                                    |
+| `rv13-stop-insertion.probe.ts`            | §13.4 — insertion convention: size and sign of the error                                                                                                                |
+| `rv13-terminal-timing.probe.ts`           | §13.6 — mean-vs-min re-scoring, and the timing difference                                                                                                               |
+| `adv1-plan-advice-frontier.probe.ts`      | §14, §14.1 — the Σ P̄ identity, budget monotonicity, rounding, frontier widths, the budget-0 grind day                                                                   |
+| `adv2-budget-marginal.probe.ts`           | §14.2 — the budget marginal, zero-marginal days, per-task spread                                                                                                        |
+| `adv2-switch-cost-price.probe.ts`         | §14.3 — the fixture table, the inversion grid, m(s) and the bracket                                                                                                     |
+| `mode-cross-scoring.probe.ts`             | §15 — both plans scored under both objectives                                                                                                                           |
+| `mode-run-order.probe.ts`                 | §16 — the order-only gain and the burnout noise it would buy                                                                                                            |
+| `mtr-human-capacity.probe.ts`             | §20 — the reading-is-the-constraint identity, what the band's >100 and Infinity arms can reach, the pool the row names                                                  |
+| `mtr-load-rounding.probe.ts`              | §25 — the Load clamp's slack, what rounding the two loads cost Energy Balance's classification and the advisor's ordering                                               |
+| `mtr-grind-density.probe.ts`              | §11.10 — the 100/m quantization against the band ladder, what unfunded tasks voted, §11.4's boundary as a hard count; §11.11 question 6 — count vs hour-weighted share  |
+| `mtr-day-profile.probe.ts`                | §29 — the saturated difficulty axis under the old cut, what hour-weighting moved, the flip gate, history vs the dashboard                                               |
+| `mtr-metric-trend.probe.ts`               | §31 — which readings survive the switch-cost-free solve, the exact solve's cost by n, why the gain cannot be plotted                                                    |
+| `rv16-output-vs-classic.probe.ts`         | §30 — the Lab comparison tile under raw output vs the objective, and the rival plan's exact fit to the window                                                           |
+| `mtr-friction-index.probe.ts`             | §11.4 — the Friction Index's interior, which its two pinned endpoints say nothing about                                                                                 |
+| `mtr-bottleneck-strain.probe.ts`          | §23 — why Primary Bottleneck stopped reading E/β, and what the binding-pool draw reads instead                                                                          |
+| `mtr-deep-work.probe.ts`                  | §26 — the hard `mentalDifficulty >= 7` cut, and the band that called a three-quarters-deep day optimal                                                                  |
+| `mtr-sustainable-work.probe.ts`           | §27 — the budget denominator against Σh, the grind-free day, and whether the fixed row restates Grind Density                                                           |
+| `prefix-replan.probe.ts`                  | §35 — the mid-day re-plan vs a cold re-solve and the morning plan, the on-plan control, the switch convention, the second solve's wall clock                            |
+| `adv3-advice-display-resolution.probe.ts` | §25 — how much of an advice option's improvement the card's rounding cannot show, and what suppressing a word-identical option would cost                               |
+
+<!-- probe-registry:end -->
 
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
 html report), `coverage/` (v8, always on, over `business`/`data`/`presentation`),
@@ -987,9 +1209,8 @@ you an hour otherwise:
   reproduce. Verify against `npm run build && npx vite preview`, or a
   freshly-started dev server.
 - All data is client-side IndexedDB, so a headless profile starts empty. Seed
-  through the UI and wait out the debounced autosave: `AUTOSAVE_DEBOUNCE_MS`
-  in-app, and `e2e/helpers.ts` exports `AUTOSAVE_MS = 1000` for Playwright —
-  wait on those, never a literal, so the margin moves with the constant.
+  through the UI and wait out the debounced autosave on §2's two constants,
+  never a literal.
 
 ---
 
@@ -1130,20 +1351,17 @@ Each was considered and decided. Re-deciding them is churn.
   0.25 h noise floor **and** a habitually ≤2 h budget.
 
 - **`zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
-  deliberately deep modules** — large implementations behind tiny interfaces.
-  A 2026-07-23 interface analysis found every proposed split would force
-  currently-private helpers (`amplitudeRatio`, `phiQuadratureNodes`,
-  `reservoirLaw`, date-routing state) into cross-module exports: more surface,
-  not less. Two seams were worth cutting and are cut: generic 3×3 linalg →
-  `linalg.ts`, and the drain/rest measurements →
-  `energy-observation-store.svelte.ts` (below). Don't split on line count —
-  **the test is interface arithmetic**:
-  a split pays only if it removes more public surface than it adds. Measure
-  before proposing one, and **re-measure rather than quoting these numbers** —
-  both files have grown since: on 2026-07-23 `session-store.svelte.ts` stood at
-  675 lines behind **39 public members** (~1 per 17 lines, against ~1 per 50 in
-  `zenith.ts`), 34 of them called from exactly one place — a wide facade, not a
-  deep module, so size was never the argument either way.
+  deliberately deep modules** (§0.2). A 2026-07-23 interface analysis ran the
+  arithmetic over every proposed split: each would force currently-private
+  helpers (`amplitudeRatio`, `phiQuadratureNodes`, `reservoirLaw`, date-routing
+  state) into cross-module exports — more surface, not less. Two seams were
+  worth cutting and are cut: generic 3×3 linalg → `linalg.ts`, and the
+  drain/rest measurements → `energy-observation-store.svelte.ts` (below).
+  **Re-measure rather than quoting these numbers**; both files have grown since
+  (`session-store.svelte.ts` was 675 lines, is 815 as of 2026-08-10). On
+  2026-07-23 it stood behind **39 public members** (~1 per 17 lines, against ~1
+  per 50 in `zenith.ts`), 34 of them called from exactly one place — a wide
+  facade, not a deep module, so size was never the argument either way.
 
 - **Drain and rest observations live in `EnergyObservationStore`**, not the
   session store (extracted 2026-07-27) — the one cluster whose extraction cost
