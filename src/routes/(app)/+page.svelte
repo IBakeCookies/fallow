@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { localizeHref } from '$lib/paraglide/runtime';
+	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
@@ -90,7 +90,7 @@
 		applicationCategory: 'ProductivityApplication',
 		operatingSystem: 'Any',
 		browserRequirements: 'Requires JavaScript',
-		inLanguage: ['en', 'de'],
+		inLanguage: [...locales],
 		offers: {
 			'@type': 'Offer',
 			price: '0',

@@ -1314,7 +1314,7 @@ Each was considered and decided. Re-deciding them is churn.
   where today's `/de/imprint` serves `class="abyss dark"` / `lang="de"` /
   `Impressum`, and a
   cold load gets the seed baked at build time, not the visitor's cookie.
-  Locale living in the URL makes the case stronger, not weaker: 12 indexable
+  Locale living in the URL makes the case stronger, not weaker: 30 indexable
   URLs, every one still cookie-personalised for theme and seed. Hydration
   repairs the class, the copy and (since 2026-08-01) the seed, so it costs a
   FOUC rather than a wrong page — but avoiding exactly that FOUC is why the
@@ -1355,7 +1355,7 @@ Each was considered and decided. Re-deciding them is churn.
   set** (`export const prerender = Boolean(env.PUBLIC_SITE_URL)`). Both must
   emit absolute URLs; an unconditional prerender bakes in SvelteKit's
   `http://sveltekit-prerender` placeholder. The sitemap lists every route in
-  **both** locales with `xhtml:link` alternates, `/imprint` and `/privacy`
+  **every** locale with `xhtml:link` alternates, `/imprint` and `/privacy`
   included.
 
 - **`PUBLIC_SITE_URL` is set on Vercel in the Production scope only** — the one
@@ -1365,12 +1365,20 @@ Each was considered and decided. Re-deciding them is churn.
   previews serve dynamic (not prerendered) crawler files, and their SEO tags
   point at themselves.
 
-- **`/de/*` is a real, indexable URL, not a cookie state.** The paraglide
-  strategy is `['url', 'cookie', 'baseLocale']`; `en` stays unprefixed. Two
-  consequences that are easy to get wrong:
+- **`/de/*`, `/es/*`, `/fr/*`, `/zh/*` are real, indexable URLs, not a cookie
+  state.**
+  The paraglide strategy is `['url', 'cookie', 'baseLocale']`; `en` stays
+  unprefixed. Two consequences that are easy to get wrong:
   - Every internal `href` goes through `localizeHref`, and every comparison
     against a pathname goes through `deLocalizeHref`. A raw `===` on
-    `page.url.pathname` is wrong on half the site.
+    `page.url.pathname` is wrong on every prefixed locale.
+  - Adding a locale is four edits and no new component: the catalogue
+    (`messages/<locale>.json`, key-for-key with `en.json`), `locales` in
+    `project.inlang/settings.json`, `LOCALE_DISPLAY` in
+    `presentation/utils/locale.svelte.ts` (total record — it fails to compile
+    until label, `Intl` tag and week start are filled in) and `OG_LOCALES` in
+    `seo-head.svelte`. Everything else — nav picker, sitemap, hreflang, the
+    offline shells — is derived from the runtime's `locales`.
   - The strategy is declared **twice** — in `vite.config.ts` for
     build/dev/vitest, and in the `paraglide` npm script for `check`/`prepare`.
     paraglide 2.x has no config file for it, so this is a deliberate,

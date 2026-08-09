@@ -61,13 +61,16 @@ describe('sitemap.xml', () => {
 		expect(body).toContain('<loc>https://fallow.app/privacy</loc>');
 	});
 
-	it('lists the German URLs too — /de/* is what makes them indexable', async () => {
+	it('lists the prefixed URLs too — /de/*, /es/*, /fr/*, /zh/* are what make them indexable', async () => {
 		env.PUBLIC_SITE_URL = 'https://fallow.app';
 
 		const body = await (await sitemap(request('https://preview.vercel.app'))).text();
 
 		expect(body).toContain('<loc>https://fallow.app/de/</loc>');
 		expect(body).toContain('<loc>https://fallow.app/de/privacy</loc>');
+		expect(body).toContain('<loc>https://fallow.app/es/</loc>');
+		expect(body).toContain('<loc>https://fallow.app/fr/</loc>');
+		expect(body).toContain('<loc>https://fallow.app/zh/privacy</loc>');
 	});
 
 	it('pairs every entry with the full hreflang alternate set', async () => {
@@ -76,14 +79,18 @@ describe('sitemap.xml', () => {
 		const body = await (await sitemap(request('https://preview.vercel.app'))).text();
 		const entries = body.match(/<url>[\s\S]*?<\/url>/g) ?? [];
 
-		expect(entries).toHaveLength(12);
+		// 6 indexable pages × 5 locales
+		expect(entries).toHaveLength(30);
 
 		for (const entry of entries) {
 			const href = (hreflang: string) =>
 				entry.match(new RegExp(`hreflang="${hreflang}" href="([^"]+)"`))?.[1];
 
-			expect(href('de')).toBe(href('en')?.replace('fallow.app/', 'fallow.app/de/'));
-			// x-default is the unprefixed base locale, never the German URL
+			for (const locale of ['de', 'es', 'fr', 'zh']) {
+				expect(href(locale)).toBe(href('en')?.replace('fallow.app/', `fallow.app/${locale}/`));
+			}
+
+			// x-default is the unprefixed base locale, never a prefixed URL
 			expect(href('x-default')).toBe(href('en'));
 		}
 	});
