@@ -85,6 +85,43 @@
 	}}
 />
 
+<!-- Mid-day (MATH.md §35): the re-plan reads BESIDE the plan, never over it. The
+     morning's 1h 45m is still there; the new column is what the hours still left
+     are worth on this task now. -->
+<Story
+	name="Mid-day re-plan"
+	args={{
+		runOrder: 1,
+		remaining: {
+			taskHours: 0.75,
+			dayHours: 2.5,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('45m')).toBeVisible();
+		await expect(canvas.getByText('more today')).toBeVisible();
+		// The plan column is untouched — that is the §11.8 scope split, on screen.
+		await expect(canvas.getByText('1h 45m')).toBeVisible();
+		await expect(canvas.getByText('prio 12.4')).toBeVisible();
+	}}
+/>
+
+<!-- A task the rest of the day is worth nothing on says so, rather than vanishing:
+     an absent row would read as "no answer" where the model has a definite one. -->
+<Story
+	name="Nothing more worth doing"
+	args={{
+		remaining: {
+			taskHours: 0,
+			dayHours: 2.5,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('0m')).toBeVisible();
+		await expect(canvas.getByText('more today')).toBeVisible();
+	}}
+/>
+
 <!-- The ⚡ badge shows the measurement, so completing does not ask for it again -->
 <Story
 	name="With a logged time-to-flow"

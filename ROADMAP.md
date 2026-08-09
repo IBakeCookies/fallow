@@ -94,10 +94,12 @@ The model is strong at 8am and silent at 2pm; these close that gap.
    justified shipping it: on **54%** of days another block buys nothing, and on
    all but one of those the card was still offering "work an extra hour".
 
-Items 1–3 shipped and did not finish the thesis: the plan still cannot see the
-hours you have already spent. Item 11 shipped the instrument that records them
-from anywhere in the app; 12 is what makes the plan read them, and is now the
-next item here with plan value of its own.
+Items 1–3 shipped and did not finish the thesis: the plan could not see the
+hours already spent. Item 11 shipped the instrument that records them from
+anywhere in the app and 12 made a reading consume them, so the thesis is closed
+and 13 and 14 are now display work on top of it — 13 names position 1 of the
+re-planned order, 14 turns the same pool depletion §35 already computes into a
+row. Neither needs a new solve.
 
 11. ~~**Worked-hours instrument on `/`**~~ — SHIPPED 2026-08-09, and it was a
     smaller thing than this item claimed. Nothing about the data needed
@@ -151,43 +153,44 @@ next item here with plan value of its own.
     is not needed; what remains true is the **sessions-per-day bias** in
     item 18's table, which this makes commoner and does not cause. New user
     input: yes, but only the `/`-side form.
-12. **Prefix-aware mid-day re-plan** — "it's 2pm, you're an hour behind and you
-    spent it on the wrong thing; here is the best use of the hours left". Pass
-    an optional per-task already-worked vector `h` into the allocation entry
-    points so `buildBlockIncrements` (`zenith.ts:634`) continues from the
-    prefix, `Δᵢ(j) = P̄ᵢ(hᵢ+jδ) − P̄ᵢ(hᵢ+(j−1)δ)`: a started task stops
-    re-collecting the ≈p₀ activation bonus and a task past `T*` is offered
-    nothing. A prefix menu is a suffix of the same non-increasing sequence when
-    `h` is on the block lattice, so the greedy's exactness is untouched. Pools
-    enter depleted at `Σ wᵢhᵢ`, **clamped at 0**, or an overrun day funds
-    nothing. Probed at median **+5.8% to +7.8%** of day `Σ P̄` against the cold
-    re-solve the budget slider gives today, **+8.9%** against sticking to the
-    morning plan, funded set differing on 81% of divergent days, and **+0.07%**
-    on a day executed exactly to plan — ≈**74 equivalent budget-minutes**
-    against the 0.4 that killed item 6. It escapes §17's flatness table
-    legitimately: it moves _which tasks are funded_, not block timing. Recalled
-    hours suffice (±15 min of recall error costs 0.00% median, ±30 min 0.36%
-    mean), which is why no timer appears anywhere in this roadmap.
-    **The shape is constrained before any code is written.** Twelve-plus
-    readings are plan-family (§11.8), whose rule is verbatim "completing a task
-    must not move them", so replacing the plan solve silently converts them
-    into remaining-day readings; and a second solve inside
-    `calculateDailyMetrics` doubles a `$derived` that re-runs on every
-    keystroke and slider drag at ~51 ms/solve at n = 12, which is the same cost
-    rule that kept `budgetMarginal` out of it (§14.2). The only legal shape is
-    a **next-up-family reading computed at store level or on demand** — the
-    shape `adviseStop` already uses. It follows that `suggestedHours` cannot
-    become "X more h"; remaining hours are a second column beside the plan.
-    The switch convention must be written down too: charging a re-entry switch
-    when the afternoon subset contains an already-started task gives median
-    +5.79%, free re-entry +7.79%; they differ by 1.71% of value and pick a
-    different funded set on only 8.2% of days, so the item survives its worst
-    case either way. **Probe** (the value is already measured; this one is
-    scope): instrument the chosen shape at n = 12 and **count plan-family rows
-    whose value changes mid-day on a day executed exactly to plan — any
-    non-zero count kills that shape.** Needs a new MATH.md section (the
-    objective under a prefix, the switch-re-entry convention, the pool clamp).
-    No new store; no new input beyond 11. **Prereq:** 11.
+12. ~~**Prefix-aware mid-day re-plan**~~ — SHIPPED 2026-08-10 (MATH.md §35).
+    `calculateRemainingDay` (`metric/remaining-day.ts`) re-plans the OPEN tasks
+    over the hours today's 🪫 logs leave, from a prefix: `buildBlockIncrements`
+    continues at `Δᵢ(j) = P̄ᵢ(hᵢ+jδ) − P̄ᵢ(hᵢ+(j−1)δ)`, pools enter depleted at
+    `Σ wᵢhᵢ` clamped at 0, and it renders as a second column beside the plan.
+    The shape is the one this item specified — a store-level `$derived` on
+    `DailyPlanStore`, gated on the viewed day being today AND on any hours
+    existing — and the kill criterion is pinned as a store spec: logging hours
+    moves no plan-scoped metric. `hᵢ = 0` is bit-identical to the cold solve,
+    so §4, §5.1 and §34 are undisturbed and no existing plan moved.
+    **The switch convention was the real finding, and BOTH options named above
+    were wrong.** Charging a re-entry double-charges a task that simply
+    continued; free re-entry _refunds_ the switches of a started task the
+    remainder abandons, letting it buy blocks with a bill the day still owes.
+    On days executed exactly to plan that manufactured a median **+6.67%** over
+    finishing the morning plan, against this item's own expected ≈0 — the kill
+    criterion caught it, one input wider than the plan-family test it was
+    written for. The rule that survives is neither: the bill is charged over the
+    **day's** funded set, `{worked} ∪ {newly funded}` (`AllocTask.isStarted`).
+    Under it the on-plan control reads median **0.00%**, mean 0.01%, funded set
+    differing on 6 of 400 days. The seam itself stays free, and that IS measured:
+    charged re-entry median 0.00% / mean −0.45% against free's +0.34% / +4.23%.
+    **The value is well below what this item hypothesised, and the gap is
+    methodological.** Against a feasibility-matched baseline
+    (`scripts/prefix-replan.probe.ts`, seed `0x9e12ab`, 400 days): median
+    **+1.76%** of day `Σ P̄` vs the cold re-solve the budget slider gives, mean
+    3.74%, p90 9.57%, never negative; median **+1.21%** vs the morning plan's
+    remainder; funded set differs from cold on **44.75%** of days. The +5.8–7.8%
+    and 81% quoted above reproduce only if the baselines are left **infeasible**
+    — `Σ P̄` prices neither pools nor switches, so an arm ignoring them outscores
+    one respecting them for free (§19, one level down). The strongest number is
+    not a percentage: over those 400 days the re-plan needed **0** feasibility
+    trims against the cold solve's 270 and the morning remainder's 359. The
+    alternatives mostly propose spending capacity the morning already burned.
+    Still ~24× §17's ϕ anchor and the same order as item 15's enjoyment default.
+    Cost measured at **12.4 ms**/solve at n = 12 and **0.001 ms** when nothing is
+    logged, which is what makes the gate rather than an on-demand method viable.
+    No new store, no new input beyond 11, no `DB_VERSION` bump.
 13. **"You are here" on the run order** — one line on `/` naming the task the
     next 15 minutes are worth most on. It must **label position 1 of the
     re-planned run order**, not an independent `argmax Δᵢ(1)`: subset

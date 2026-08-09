@@ -88,6 +88,8 @@
 	"task_derived_tooltip": "Ce que le modèle de Fallow a déduit de tes curseurs : l'effort réel E (1–5), le temps pour atteindre l'état de flow ϕ et le moment d'arrêt optimal au-delà duquel la productivité moyenne décline. Mieux Fallow connaît tes temps de flow, plus ce moment se rapproche de 1,52–1,79×ϕ ; moins il en est sûr, plus tôt il s'arrête — pour une tâche productive dès la première minute, même avant ϕ.",
 	"task_flow_badge_tooltip": "Minutes jusqu'au flow que tu as notées pour cette tâche — ces points de mesure personnalisent les constantes c₁, c₂, c₃ du modèle (ajustement par moindres carrés)",
 	"task_allocation_tooltip": "Temps suggéré pour aujourd'hui, et le score de priorité de la tâche (valeur intrinsèque × 10) qui le détermine",
+	"task_remaining_label": "encore aujourd'hui",
+	"task_remaining_tooltip": "Sur les {left} encore disponibles aujourd'hui, voici ce que le modèle consacrerait maintenant à cette tâche — replanifié à partir des heures enregistrées, si bien qu'une tâche déjà entamée ne perçoit plus sa prime de démarrage et qu'une tâche au-delà de son point d'arrêt ne reçoit rien. Le chiffre à côté est la journée entière telle que planifiée, et ne bouge pas pendant que vous travaillez.",
 	"task_priority": "prio {score}",
 	"task_minutes_placeholder": "min",
 	"task_toggle_aria": "Marquer {title} comme terminée",

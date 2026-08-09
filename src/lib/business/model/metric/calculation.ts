@@ -138,8 +138,11 @@ export type ZenithGain = {
 	gainPercent: number;
 };
 
-// Pool weights: how hard each clock hour of a task draws on the two energy systems
-function toPooledInputs(tasks: Task[]) {
+// Pool weights: how hard each clock hour of a task draws on the two energy
+// systems. Exported because the remaining-day reading (§35) charges the pools
+// for hours already worked and must charge them at the same weights the plan
+// spends them at (R3).
+export function toPooledInputs(tasks: Task[]) {
 	return tasks.map((task) => ({
 		title: task.title,
 		difficulty: getEffectiveDifficulty(task),

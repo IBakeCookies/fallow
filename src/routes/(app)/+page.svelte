@@ -204,6 +204,7 @@
 			<TaskList
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
+				remainingDay={plan.remainingDay}
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={isViewingPast ? undefined : (id) => removeTaskWithUndo(session, id)}
 				onlogflow={canLog ? (id, minutes) => session.logFlow(id, minutes) : undefined}

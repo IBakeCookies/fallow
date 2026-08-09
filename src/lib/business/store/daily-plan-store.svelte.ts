@@ -12,7 +12,9 @@ import { getContext, setContext } from 'svelte';
 import { logError } from '$lib/logger';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
+import { calculateRemainingDay, type RemainingDay } from '$lib/business/model/metric/remaining-day';
 import { fitEnergyParams, seedMorningReservoirs } from '$lib/business/model/energy-calibration';
+import { workedHoursByTask } from '$lib/business/model/zenith-energy';
 import { addDays } from '$lib/business/utils/date';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
@@ -76,6 +78,41 @@ export class DailyPlanStore {
 
 	#daily = $derived(calculateDailyMetrics(this.#input));
 
+	// What is left of today, re-planned from the hours already logged against it
+	// (MATH.md §35). A SECOND solve, deliberately outside `#daily`: folding it in
+	// would rescope the plan-family rows (§11.8) and double a `$derived` that
+	// re-runs on every keystroke.
+	//
+	// It costs nothing until there is something to re-plan. Only TODAY can have a
+	// remainder — a past day is finished and a future one has not started — and
+	// `calculateRemainingDay` returns before solving when no hours are logged,
+	// which is every morning, i.e. exactly when the day is being typed into.
+	#remainingDay = $derived.by((): RemainingDay | null => {
+		if (this.#session.selectedDate !== this.#session.today) return null;
+
+		const tasks = this.#session.tasks;
+
+		// The one definition of "hours per task, restricted to the day's tasks"
+		// (AGENTS.md R3). Today's logs reach this immediately: it is a gauge of the
+		// present, which §33 exempts from the causal fit window.
+		const worked = workedHoursByTask(
+			tasks,
+			this.#observations.drainObservations.filter((o) => o.date === this.#session.today),
+		);
+
+		if (worked.size === 0) return null;
+
+		return calculateRemainingDay({
+			tasks,
+			availableHours: this.#session.availableHours,
+			switchCost: this.#session.switchCost,
+			pools: this.#session.pools,
+			constants: this.#session.userConstants,
+			posterior: this.#session.constantsFit.posterior,
+			workedHours: worked,
+		});
+	});
+
 	// Everything the advice depends on, as a value. Not the identity of `#input`
 	// or `#daily`: a `$derived` read from outside a reactive context is not
 	// guaranteed to hand back the same object twice, so identity reports staleness
@@ -94,6 +131,11 @@ export class DailyPlanStore {
 
 	get daily(): DailyMetrics {
 		return this.#daily;
+	}
+
+	/** `null` until today has logged hours to re-plan from (MATH.md §35). */
+	get remainingDay(): RemainingDay | null {
+		return this.#remainingDay;
 	}
 
 	get advice(): PlanAdvice | null {

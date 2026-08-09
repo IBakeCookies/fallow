@@ -638,6 +638,9 @@ interface AllocTask {
 	increments: number[]; // Δ(j) for j = 1..len: positive, non-increasing, truncated at the optimum
 	cognitiveWeight: number;
 	physicalWeight: number;
+	// Already worked today, so the day pays its switch whether or not this plan
+	// funds it again (MATH.md §35). False everywhere on the cold path.
+	isStarted?: boolean;
 }
 
 /**
@@ -654,19 +657,35 @@ interface AllocTask {
  * premise of greedy exactness BY CONSTRUCTION instead of by sweep, at the
  * cost of a few low-value blocks in a corner where the fit is dubious anyway.
  * σ_ϕ = 0 never triggers the monotonicity cut (proved in MATH.md §2).
+ *
+ * `workedHours` continues the menu from a PREFIX (MATH.md §35): the j-th block
+ * is worth P̄(h+jδ) − P̄(h+(j−1)δ), which is the same non-increasing sequence
+ * from a later starting index. A started task therefore no longer re-collects
+ * the ≈p₀ activation bonus, and one already past T* gets an empty menu.
+ * h = 0 is the cold menu exactly — P̄(0) := 0, so `prev` starts where it did.
  */
-function buildBlockIncrements(a: number, p0: number, phi: number, sigmaPhi: number): number[] {
+function buildBlockIncrements(
+	a: number,
+	p0: number,
+	phi: number,
+	sigmaPhi: number,
+	workedHours = 0,
+): number[] {
 	const r = amplitudeRatio(a, p0);
 	const phiMax = Math.max(...phiQuadratureNodes(phi, sigmaPhi).map((n) => n.phi));
+
 	// No component has positive marginal past its own T*, so the mixture's
-	// stopping point is at most T*(ϕ_max).
-	const maxBlocks = Math.ceil((optimalStoppingX(r) * phiMax) / (1 - r) / BLOCK_HOURS) + 1;
+	// stopping point is at most T*(ϕ_max) — of which the prefix has already
+	// spent `workedHours`, so a spent task offers no blocks at all.
+	const maxBlocks =
+		Math.ceil(((optimalStoppingX(r) * phiMax) / (1 - r) - workedHours) / BLOCK_HOURS) + 1;
+
 	const increments: number[] = [];
-	let prev = 0;
+	let prev = expectedAverageProductivity(workedHours, a, p0, phi, sigmaPhi);
 	let prevDelta = Infinity;
 
 	for (let j = 1; j <= maxBlocks; j++) {
-		const value = expectedAverageProductivity(j * BLOCK_HOURS, a, p0, phi, sigmaPhi);
+		const value = expectedAverageProductivity(workedHours + j * BLOCK_HOURS, a, p0, phi, sigmaPhi);
 		const delta = value - prev;
 
 		if (delta <= 1e-12 || delta > prevDelta + 1e-12) break;
@@ -961,12 +980,24 @@ function bestPlanWithSwitchCost(
 	poolPhys: number,
 ): number[] {
 	const n = tasks.length;
+	// The day's funded set is `already started ∪ this plan's subset`, so a plan
+	// that abandons a started task does not get its switch back (MATH.md §35).
+	// Zero on every cold solve, where this reduces to the old (m−1)·switchCost.
+	const startedCount = tasks.filter((t) => t.isStarted).length;
 
 	const budgetBlocksFor = (fundedCount: number): number => {
 		const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
 
 		return Math.floor((totalBudget - overhead) / BLOCK_HOURS + 1e-9);
 	};
+
+	// How many tasks the whole DAY funds if this subset is the plan: the started
+	// ones, plus whichever members of the subset are not among them.
+	const dayFundedCount = (subset: number[]): number =>
+		startedCount + subset.reduce((fresh, i) => fresh + (tasks[i].isStarted ? 0 : 1), 0);
+
+	const budgetBlocksForSubset = (subset: number[]): number =>
+		budgetBlocksFor(dayFundedCount(subset));
 
 	// Greedy + (only when a pool actually blocked a funding step) a second,
 	// ratio-ranked candidate plan, with the resource-aware improvement pass run on
@@ -1010,7 +1041,7 @@ function bestPlanWithSwitchCost(
 	const allTasks = tasks.map((_, i) => i);
 
 	if (switchCost <= 0 || n === 1) {
-		return allocate(allTasks, budgetBlocksFor(1));
+		return allocate(allTasks, budgetBlocksForSubset(allTasks));
 	}
 
 	let bestBlocks = new Array<number>(n).fill(0);
@@ -1032,7 +1063,7 @@ function bestPlanWithSwitchCost(
 		for (let mask = 1; mask < 1 << n; mask++) {
 			const subset: number[] = [];
 			for (let i = 0; i < n; i++) if (mask & (1 << i)) subset.push(i);
-			const budgetBlocks = budgetBlocksFor(subset.length);
+			const budgetBlocks = budgetBlocksForSubset(subset);
 
 			if (budgetBlocks <= 0) continue;
 
@@ -1061,7 +1092,11 @@ function bestPlanWithSwitchCost(
 	// A budget under one block affords nothing and leaves the empty plan.
 	let maxFunded = 0;
 
-	while (maxFunded < n && budgetBlocksFor(maxFunded + 1) >= maxFunded + 1) maxFunded++;
+	// `max(startedCount, m)` is the SMALLEST day-funded count a size-m subset can
+	// have (every member already started), so this never bounds out a subset the
+	// budget could actually afford.
+	while (maxFunded < n && budgetBlocksFor(Math.max(startedCount, maxFunded + 1)) >= maxFunded + 1)
+		maxFunded++;
 
 	if (maxFunded === 0) return bestBlocks;
 
@@ -1071,7 +1106,7 @@ function bestPlanWithSwitchCost(
 		const enumerateFrom = (start: number): void => {
 			for (let i = start; i < n; i++) {
 				subset.push(i);
-				consider(allocate(subset, budgetBlocksFor(subset.length)));
+				consider(allocate(subset, budgetBlocksForSubset(subset)));
 
 				if (subset.length < maxFunded) enumerateFrom(i + 1);
 
@@ -1100,7 +1135,7 @@ function bestPlanWithSwitchCost(
 			if (funded.includes(i)) continue;
 
 			const trial = [...funded, i];
-			const budgetBlocks = budgetBlocksFor(trial.length);
+			const budgetBlocks = budgetBlocksForSubset(trial);
 
 			if (budgetBlocks <= 0) continue;
 
@@ -1300,6 +1335,13 @@ export interface PooledTaskInput extends TaskInput {
  * provably exact under multiple constraints (multi-dimensional knapsack), but
  * every plan it emits is feasible by construction, and the brute-force
  * regression tests hold it within a block of optimal; see MATH.md §4.
+ *
+ * `workedHours` (index-aligned with `tasks`) re-plans from a PREFIX — hours
+ * already spent today, so each task's menu continues from where it is rather
+ * than from zero (MATH.md §35). It moves only the menus: `totalBudget` is the
+ * budget the plan may still spend and `pools` the capacity it may still draw,
+ * both the caller's to deplete, because a task that no longer takes hours (a
+ * completed one) still spent them.
  */
 export function calculatePooledAllocations(
 	tasks: PooledTaskInput[],
@@ -1308,6 +1350,7 @@ export function calculatePooledAllocations(
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	switchCost: number = DEFAULT_SWITCH_COST,
 	posterior?: FitPosterior,
+	workedHours?: number[],
 ): TaskAllocation[] {
 	if (tasks.length === 0 || totalBudget <= 0) {
 		return zeroAllocations(tasks, constants, posterior);
@@ -1316,9 +1359,10 @@ export function calculatePooledAllocations(
 	const { params, phiStds, optimalTimes } = buildTaskParams(tasks, constants, posterior);
 
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
-		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
+		increments: buildBlockIncrements(a, p0, phi, phiStds[i], workedHours?.[i] ?? 0),
 		cognitiveWeight: tasks[i].cognitiveWeight,
 		physicalWeight: tasks[i].physicalWeight,
+		isStarted: (workedHours?.[i] ?? 0) > 0,
 	}));
 
 	const blocks = bestPlanWithSwitchCost(

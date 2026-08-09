@@ -31,6 +31,13 @@
 		// task-dependent — no longer reconstructable as a fixed 1.79 × ϕ, and
 		// hedged for ϕ-uncertainty, so it can land below ϕ itself — MATH.md §3)
 		optimalStopHours: number;
+		/** The mid-day re-plan (MATH.md §35): what the hours still left today are worth
+		 *  on this task, beside how many are left at all. Absent until today has 🪫
+		 *  hours logged against it — the plan alone answers a day nobody has worked. */
+		remaining?: {
+			taskHours: number;
+			dayHours: number;
+		};
 		runOrder?: number;
 		flowMinutes?: number;
 		/** Flagged as unmovable, so the plan advisor never offers to defer it. */
@@ -59,6 +66,7 @@
 		trueEffort,
 		flowStateTime,
 		optimalStopHours,
+		remaining,
 		runOrder,
 		flowMinutes,
 		mustDoToday = false,
@@ -131,6 +139,25 @@
 
 {#snippet trailing()}
 	{#if !completed}
+		<!-- Two columns, and the order is the point: the plan stays rightmost where it
+		     has always been, and the re-plan appears beside it rather than over it. -->
+		{#if remaining}
+			<Tooltip.Root>
+				<Tooltip.Trigger class="cursor-help text-right">
+					<span class="block text-sm font-semibold text-ty-secondary">
+						{formatDuration(remaining.taskHours)}
+					</span>
+					<span class="block text-2xs text-ty-silent">{m.task_remaining_label()}</span>
+				</Tooltip.Trigger>
+				<Tooltip.Content>
+					<p>
+						{m.task_remaining_tooltip({
+							left: formatDuration(remaining.dayHours),
+						})}
+					</p>
+				</Tooltip.Content>
+			</Tooltip.Root>
+		{/if}
 		<Tooltip.Root>
 			<!-- Spans, not divs: the trigger renders a <button>, whose content model is
 			     phrasing content only. -->
