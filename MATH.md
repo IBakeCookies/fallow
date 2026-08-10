@@ -126,7 +126,7 @@ that are not evident from reading it — so never retype a row, regenerate:
 §32       5947-6011  Two gates that read a sentinel as a verdict (2026-08-08)
 §33       6013-6130  A plan reads only the logs that precede it (2026-08-08)
 §34       6132-6315  The subset search gave up one task too early (2026-08-08)
-§35       6317-6502  The plan cannot see the hours you already spent (2026-08…
+§35       6317-6552  The plan cannot see the hours you already spent (2026-08…
 ```
 
 <!-- section-index:end -->
@@ -6335,7 +6335,9 @@ Let `hᵢ ≥ 0` be the hours already worked on task `i` (§18's 🪫 logs, summ
 task by `workedHoursByTask`). The remainder maximizes
 
 ```
-  max  Σᵢ P̄ᵢ(hᵢ + tᵢ)     over the still-OPEN tasks
+  max  Σᵢ P̄ᵢ(hᵢ + tᵢ)     over the candidate set: every task except those
+                          both completed AND logged (see "A checkbox is not
+                          an hours instrument" below)
   s.t. Σᵢ tᵢ + (|S| − 1)·switchCost ≤ B − Σᵢ hᵢ,   S = {i : hᵢ > 0} ∪ {i : tᵢ > 0}
        Σᵢ wcᵢ·(hᵢ + tᵢ) ≤ cognitive pool
        Σᵢ wpᵢ·(hᵢ + tᵢ) ≤ physical pool
@@ -6408,8 +6410,9 @@ The rule is therefore stated over the day's funded set: `S` above is
 `already worked ∪ newly funded`, so **a task with hours on it is funded whether
 or not the remainder gives it more**. `AllocTask.isStarted` carries the flag and
 `bestPlanWithSwitchCost` computes its overhead from `|S|`; a task that was
-worked and then ticked done never reaches the allocator as a candidate, so
-`calculateRemainingDay` charges those switches off the budget directly. With
+worked and then ticked done never reaches the allocator as a candidate (the next
+subsection is precise about which completions do), so `calculateRemainingDay`
+charges those switches off the budget directly. With
 `isStarted` false everywhere this is exactly `(m − 1)·switchCost` again, which
 is why no cold plan moved.
 
@@ -6424,6 +6427,51 @@ alternative and is not merely the cheaper code: charging it reads median
 median **+0.34%** / mean **+4.23%**, and the two pick a different funded set on
 76 of 400 days (19%). Charging twice for a task that simply continued is what
 the union rule already exists to prevent.
+
+### A checkbox is not an hours instrument
+
+The candidate set is every task except those that are **both** completed and
+logged. That second condition was missing from the first cut, which dropped any
+completed task, and it is a second refund of exactly the shape above: a task
+ticked done with nothing logged against it left the set, and its hours and its
+switch went back into the budget for everyone else to spend — on the evidence of
+a checkbox, which measures no hours at all.
+
+The user-visible symptom is that the afternoon moves when nothing about the day
+did. Three tasks, `B = 4.25`, plan 2 / 1.5 / 0.25 with one hour logged on the
+first: the remainder offers 2.25 and 1.0. Tick the middle task done without
+logging it and the last task jumps to its own `T*`, 1.75 — a 45-minute gift
+sourced from a box being checked.
+
+Priced over the same 400 days, the drop moved hours onto other tasks on **301 of
+400** days (75.25%), median **0.50 h**, mean 0.61 h, p90 1.50 h, worst 5.00 h,
+and it was a **net gain** on 297 of those 301 — a one-directional inflation, not
+noise.
+
+The fix is to leave such a task in the candidate set. It keeps drawing the share
+the solve gives it, which is the day's presumption that it cost roughly what was
+suggested; that share is solved but never reported, since it is an accounting
+device and not a recommendation to work a finished task. The presumption is
+sharper than it sounds: a task ticked done is one the user did, and the solve's
+own allocation is the only unbiased estimate of its cost the model has. Zero is
+the one value it is known not to be.
+
+The property this buys is exact rather than approximate. Ticking an unlogged box
+changes no input to the solve — same task list, same prefixes, same budget — so
+**every other task's hours are identical before and after**, and the §11.8
+invariant that the plan family already had now extends to the next-up family
+too. Hours are the only instrument that moves either.
+
+The alternative was to pin a presumed spend at the moment the 🪫 editor is
+dismissed. Rejected: it makes the day's arithmetic depend on a UI event firing
+(completion paths that never open the editor, an un-tick that has to withdraw
+the pin), and pinning a number means persisting it, which is a schema change
+(R8) for a quantity the solve already computes.
+
+One case survives, and no presumption rule can close it: a task the solve funds
+at **zero** — because the budget was too tight to offer it anything — is still
+presumed free if the user does it anyway without logging. Only the 🪫 log
+answers that one.
 
 ### What it is worth (measured 2026-08-10)
 
@@ -6491,10 +6539,12 @@ block to the untouched one; and the single-task prefix plan matches exhaustive
 enumeration over the lattice.
 
 `remaining-day.test.ts`: the reading is null before any hours are logged
-(including after a task is merely ticked done); a completed task leaves the
-candidate set while its hours still spend the budget and the pools; an exhausted
-pool funds nothing; and `worked + planned + (|S| − 1)·switchCost ≤ budget` holds
-on a binding budget for both the open and the ticked-done halves of `S`.
+(including after a task is merely ticked done); a completed task that was
+**logged** leaves the candidate set while its hours still spend the budget and
+the pools; ticking an **unlogged** task done leaves every other task's hours
+untouched to the digit; an exhausted pool funds nothing; and
+`worked + planned + (|S| − 1)·switchCost ≤ budget` holds on a binding budget for
+both the open and the ticked-done halves of `S`.
 
 `daily-plan-store.svelte.spec.ts`: logging hours moves **no** plan-scoped metric
 — ROADMAP item 12's own kill criterion, at the layer where §11.8 is decided —

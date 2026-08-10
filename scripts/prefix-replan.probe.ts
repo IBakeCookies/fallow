@@ -2,7 +2,8 @@
  * Measurements behind MATH.md §35 — the mid-day re-plan from a prefix of hours
  * already worked (ROADMAP item 12).
  *
- * Four questions, all of which had to be answered before the item shipped:
+ * Five questions, the first four of which had to be answered before the item
+ * shipped and the fifth of which was answered by a bug report against it:
  *
  *  1. What is the re-plan worth against the two things a user can do today —
  *     stick to the morning plan, or drag the budget slider down (a COLD
@@ -15,6 +16,9 @@
  *  4. What does the second solve cost in wall clock at n = 12 — the reason it
  *     is gated rather than folded into `calculateDailyMetrics` (§14.2's cost
  *     rule).
+ *  5. What was it worth to drop a task that was ticked done with nothing logged
+ *     against it? That is the refund the first version handed out, and it is
+ *     the reason a checkbox could reshuffle the afternoon.
  *
  * Scoring is the model's own objective over the WHOLE day: Σᵢ P̄ᵢ(hᵢ + tᵢ),
  * where hᵢ is what the user actually worked before the re-plan and tᵢ is what
@@ -534,6 +538,79 @@ describe('prefix-aware mid-day re-plan (MATH.md §35)', () => {
 		console.log(
 			`they pick a different funded set on ${differs}/${free.length} days (${pct(differs / free.length)})`,
 		);
+	});
+
+	it('prices the checkbox: what dropping an unlogged completion was worth', () => {
+		// Ticking a box is not an hours instrument. The first shipped version still
+		// dropped a completed task from the candidate set whether or not anything
+		// was logged against it, which refunded hours and a switch the day may well
+		// have spent. This prices that refund: tick one open, unlogged task done
+		// and measure how far it moved every OTHER task's allocation.
+		//
+		// The convention now in the code is inputs-identical either way, so its
+		// column is 0 by construction and there is nothing to sweep — the number
+		// worth quoting is what the drop was doing, which is what this prints.
+		const rand = mulberry32(SEED + 4);
+		const drift: number[] = [];
+		let moved = 0;
+		let gained = 0;
+
+		for (let d = 0; d < DAYS; d++) {
+			const day = makeDay(rand, false);
+
+			const untouched = day.tasks.find(
+				(t) => !day.completed.has(t.id) && !(day.worked.get(t.id) ?? 0),
+			);
+
+			if (!untouched) continue;
+
+			const before = calculateRemainingDay(remainingInput(day, day.budget));
+
+			if (!before || before.remainingHours <= 0) continue;
+
+			// The old convention, reproduced exactly: a completed task left the
+			// candidate set. With no hours on it, it also drew no pool, so striking
+			// it from the day's list is the same operation.
+			const dropped = calculateRemainingDay({
+				...remainingInput(day, day.budget),
+				tasks: day.tasks.filter((t) => t.id !== untouched.id),
+			});
+
+			if (!dropped) continue;
+
+			const others = day.tasks.filter((t) => t.id !== untouched.id);
+
+			const shift = others.reduce(
+				(sum, t) =>
+					sum +
+					Math.abs((dropped.hoursByTask.get(t.id) ?? 0) - (before.hoursByTask.get(t.id) ?? 0)),
+				0,
+			);
+
+			const net = others.reduce(
+				(sum, t) =>
+					sum + (dropped.hoursByTask.get(t.id) ?? 0) - (before.hoursByTask.get(t.id) ?? 0),
+				0,
+			);
+
+			drift.push(shift);
+
+			if (shift > 1e-9) moved++;
+
+			if (net > 1e-9) gained++;
+		}
+
+		console.log(`\n=== Ticking one unlogged task done (${drift.length} days) ===`);
+
+		console.log(
+			`hours moved onto other tasks by the DROP convention: median ${median(drift).toFixed(2)}h  mean ${mean(drift).toFixed(2)}h  p90 ${percentile(drift, 0.9).toFixed(2)}h  worst ${Math.max(...drift).toFixed(2)}h`,
+		);
+
+		console.log(
+			`it moved something on ${moved}/${drift.length} days (${pct(moved / drift.length)}), and handed the day a NET gain on ${gained} of them`,
+		);
+
+		console.log('the convention in the code moves nothing on any day, by construction');
 	});
 
 	it('measures the second solve, which is why it is gated', () => {

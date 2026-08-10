@@ -96,9 +96,46 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		expect(remaining?.plannedHours).toBe(0);
 	});
 
-	it('drops a completed task from the candidate set while keeping its hours spent', () => {
+	it('does not move another task when an unlogged task is ticked done', () => {
+		// Ticking a box is not an hours instrument, so it cannot be evidence that
+		// the day has time it did not have a moment ago. A task finished without a
+		// 🪫 log stays in the candidate set and keeps drawing its share, which is
+		// the day's presumption that it cost what was suggested — so every other
+		// row's number is unchanged, exactly, not approximately (MATH.md §35).
+		const day = [SPEC, GYM, EMAIL];
+
+		const before = calculateRemainingDay(
+			input(day, [[SPEC.id, 1]], {
+				availableHours: 4.25,
+			}),
+		);
+
+		const after = calculateRemainingDay(
+			input(
+				day.map((task) =>
+					task.id === GYM.id
+						? {
+								...task,
+								completed: true,
+							}
+						: task,
+				),
+				[[SPEC.id, 1]],
+				{
+					availableHours: 4.25,
+				},
+			),
+		);
+
+		expect(before?.hoursByTask.get(EMAIL.id)).toBeGreaterThan(0);
+		expect(after?.hoursByTask.get(EMAIL.id)).toBe(before?.hoursByTask.get(EMAIL.id));
+		expect(after?.remainingHours).toBe(before?.remainingHours);
+	});
+
+	it('drops a completed task that was logged, keeping its hours spent', () => {
 		// The plan said 2h; it took 4. The two open tasks are re-planned over the
-		// two hours that are genuinely left, not over the plan's remainder.
+		// two hours that are genuinely left, not over the plan's remainder. Logged
+		// is what earns the drop — the hours are known, so nothing is refunded.
 		const remaining = calculateRemainingDay(
 			input(
 				[
