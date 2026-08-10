@@ -98,11 +98,36 @@
 		},
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByText('45m')).toBeVisible();
-		await expect(canvas.getByText('more today')).toBeVisible();
-		// The plan column is untouched — that is the §11.8 scope split, on screen.
-		await expect(canvas.getByText('1h 45m')).toBeVisible();
+		// The delta leads, in the primary weight...
+		const delta = canvas.getByText('45m more');
+		await expect(delta).toBeVisible();
+		await expect(delta).toHaveClass(/text-ty-primary/);
+
+		// ...and the plan is still there, unchanged and muted beneath it. That the
+		// plan number survives mid-day IS the §11.8 scope split, on screen.
+		const plan = canvas.getByText('1h 45m · prio 12.4');
+		await expect(plan).toBeVisible();
+		await expect(plan).toHaveClass(/text-ty-silent/);
+	}}
+/>
+
+<!-- The delta landing on the planned figure prints it once, not twice — a row
+     reading "1h 45m more / 1h 45m · prio" looks like a bug. Not a claim that
+     nothing moved: the same coincidence happens on a task worked 30m whose day
+     just grew, which this row is given no way to distinguish. -->
+<Story
+	name="Re-plan lands on the planned hours"
+	args={{
+		remaining: {
+			taskHours: 1.75,
+			dayHours: 2.5,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('1h 45m more')).toBeVisible();
 		await expect(canvas.getByText('prio 12.4')).toBeVisible();
+		// The duplicate is gone; the survivor is the delta, which is the actionable one.
+		await expect(canvas.queryByText('1h 45m · prio 12.4')).not.toBeInTheDocument();
 	}}
 />
 
@@ -117,8 +142,7 @@
 		},
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByText('0m')).toBeVisible();
-		await expect(canvas.getByText('more today')).toBeVisible();
+		await expect(canvas.getByText('0m more')).toBeVisible();
 	}}
 />
 
