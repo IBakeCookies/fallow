@@ -92,13 +92,9 @@ export function sanitizeTask(raw: unknown, fallbackDate: string): Task | null {
 		completed: source.completed === true,
 	};
 
-	// Both optional flags stay absent unless they are meaningfully present: a
-	// non-positive flowMinutes is not a measurement, and mustDoToday is a
-	// statement about today that only `true` makes.
-	const flowMinutes = finite(source.flowMinutes);
-
-	if (flowMinutes !== null && flowMinutes > 0) task.flowMinutes = flowMinutes;
-
+	// The flag stays absent unless it is meaningfully present: mustDoToday is a
+	// statement about today that only `true` makes. A stored `flowMinutes` is read
+	// past, not repaired — the ⚡ badge is the day's observation since 2026-08-10.
 	if (source.mustDoToday === true) task.mustDoToday = true;
 
 	return task;

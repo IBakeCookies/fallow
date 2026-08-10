@@ -4,8 +4,8 @@ import { addTask, AUTOSAVE_MS, logDrain, setBudget } from './helpers';
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
    one place where editing a task changes the model rather than just the row —
    from the NEXT day, since a plan reads only the logs that precede it (MATH.md
-   §33). Both the badge (stamped on the task, saved with the session) and the log
-   itself (its own object store) have to come back after a reload. */
+   §33). The badge and the log are one record in one object store since 2026-08-10, and
+   it has to come back after a reload. */
 
 async function logFlow(page: Page, minutes: number) {
 	await page

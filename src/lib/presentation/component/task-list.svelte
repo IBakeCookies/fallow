@@ -29,7 +29,12 @@
 		/** The ⚡ editors open on this list, by task — the page owns them, like the 🪫
 		 *  ones, since a draft outlives the row it is keyed by. */
 		flowDrafts?: Record<number, EditorDraft>;
+		/** The viewed day's ⚡ readings in minutes, by task — one per task per day. */
+		flowLogs?: ReadonlyMap<number, number>;
 		onflowopen?: (id: number, source: EditorSource) => void;
+		/** Required, unlike the logging callbacks, for the reason `ondrainedit` is: a
+		 *  reading is correctable on every day the list renders. */
+		onflowedit: (id: number, source: EditorSource) => void;
 		onflowclose?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
 		onflowdelete?: (id: number) => void;
@@ -56,7 +61,9 @@
 		ontoggle,
 		onremove,
 		flowDrafts = {},
+		flowLogs,
 		onflowopen,
+		onflowedit,
 		onflowclose,
 		onlogflow,
 		onflowdelete,
@@ -94,12 +101,13 @@
 						}
 					: undefined}
 				runOrder={runOrder.get(task.id)}
-				flowMinutes={task.flowMinutes}
+				flowMinutes={flowLogs?.get(task.id)}
 				mustDoToday={task.mustDoToday}
 				{ontoggle}
 				{onremove}
 				flowDraft={flowDrafts[task.id] ?? null}
 				{onflowopen}
+				{onflowedit}
 				{onflowclose}
 				{onlogflow}
 				{onflowdelete}

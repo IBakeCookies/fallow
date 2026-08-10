@@ -237,12 +237,21 @@ describe('SessionStore persistence', () => {
 
 		updateFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
 		await store.logFlow(id, 25);
-		expect(store.tasks[0].flowMinutes).toBeUndefined();
+		expect(store.flowMinutesOn(store.today).get(id)).toBeUndefined();
 		expect(status.error).toBe('save-failed');
 
 		status.clear();
+
+		readAllFlowObservationsMock.mockResolvedValue([
+			{
+				...flowLog(store.today),
+				taskId: id,
+				phiHours: 25 / 60,
+			},
+		]);
+
 		await store.logFlow(id, 25);
-		expect(store.tasks[0].flowMinutes).toBe(25);
+		expect(store.flowMinutesOn(store.today).get(id)).toBe(25);
 		expect(status.error).toBeNull();
 	});
 
@@ -278,13 +287,106 @@ describe('SessionStore persistence', () => {
 		]);
 
 		await store.logFlow(id, 24);
-		expect(store.tasks[0].flowMinutes).toBe(24);
+		expect(store.flowMinutesOn(store.today).get(id)).toBe(24);
 
 		readAllFlowObservationsMock.mockResolvedValue([]);
 		await store.clearFlowLog(id);
 
 		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).toHaveBeenCalledWith(77);
-		expect(store.tasks[0].flowMinutes).toBeUndefined();
+		expect(store.flowMinutesOn(store.today).get(id)).toBeUndefined();
+	});
+
+	/* ⚡ became correctable on a past day on 2026-08-10. It could not be before, because
+	   the badge read a `flowMinutes` field stamped on the day's session and the auto-save
+	   deliberately never rewrites a past day — an amended one came back on the next load.
+	   The badge now reads the day's own observation, which is the only record a correction
+	   has to touch, and these three tests are that rule from its three sides. */
+	const pastDay = (date: string): DailySession => ({
+		date,
+		tasks: [
+			{
+				id: 3,
+				title: 'a slow one',
+				physicalDifficulty: 2,
+				mentalDifficulty: 8,
+				enjoyment: 5,
+				createdAt: '2000-01-01',
+				completed: false,
+			},
+		],
+		availableHours: 8,
+		switchCost: 0.25,
+		updatedAt: 0,
+	});
+
+	const viewing = async (date: string) => {
+		readSessionByDateMock.mockResolvedValue(pastDay(date));
+
+		const { store } = await setup();
+
+		mockPage.url = new URL(`http://localhost/?date=${date}`);
+		await vi.waitFor(() => expect(store.selectedDate).toBe(date));
+		updateFlowObservationMock.mockClear();
+
+		return store;
+	};
+
+	it('corrects a past day’s ⚡ reading, on that day', async () => {
+		const past = '2000-01-01';
+
+		readAllFlowObservationsMock.mockResolvedValue([
+			{
+				...flowLog(past),
+				taskId: 3,
+				phiHours: 0.5,
+			},
+		]);
+
+		const store = await viewing(past);
+
+		// What the row's badge shows, read off the observation and not the session.
+		expect(store.flowMinutesOn(past).get(3)).toBe(30);
+
+		await store.logFlow(3, 25);
+
+		expect(updateFlowObservationMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				date: past,
+				taskId: 3,
+				phiHours: 25 / 60,
+			}),
+		);
+	});
+
+	// The other side of the rule: a correction re-describes a measurement that exists,
+	// while a FIRST one on a past day is a measurement nobody took. Refused here rather
+	// than only hidden in the UI, because the store is what the date belongs to.
+	it('refuses a first ⚡ on a past day', async () => {
+		readAllFlowObservationsMock.mockResolvedValue([]);
+
+		const store = await viewing('2000-01-01');
+
+		await store.logFlow(3, 25);
+
+		expect(updateFlowObservationMock).not.toHaveBeenCalled();
+	});
+
+	it('drops the ⚡ reading a past day shows', async () => {
+		const past = '2000-01-01';
+
+		readAllFlowObservationsMock.mockResolvedValue([
+			{
+				...flowLog(past),
+				id: 77,
+				taskId: 3,
+			},
+		]);
+
+		const store = await viewing(past);
+
+		await store.clearFlowLog(3);
+
+		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).toHaveBeenCalledWith(77);
 	});
 
 	// Nothing to delete is not a failure: the ⚡ editor is open on an unmeasured task,
@@ -529,7 +631,7 @@ describe('SessionStore persistence', () => {
 
 		flushSync();
 		const id = store.tasks[0].id;
-		await store.logFlow(id, 25); // stamps flowMinutes, which must NOT travel
+		await store.logFlow(id, 25); // a measurement keyed to today, which must NOT travel
 		vi.clearAllMocks();
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
@@ -545,9 +647,11 @@ describe('SessionStore persistence', () => {
 			completed: false,
 		});
 
-		// A statement about today and a measurement keyed to today stay behind.
+		// A statement about today stays behind, and so does the measurement: it is keyed
+		// by (task, date) in its own store, and the move gives the task a fresh id in
+		// tomorrow's id space, so tomorrow reads no ⚡ for it.
 		expect(write.tasks[0].mustDoToday).toBeUndefined();
-		expect(write.tasks[0].flowMinutes).toBeUndefined();
+		expect(store.flowMinutesOn(addDays(store.today, 1)).size).toBe(0);
 	});
 
 	it('appends to tomorrow’s existing plan instead of replacing it', async () => {

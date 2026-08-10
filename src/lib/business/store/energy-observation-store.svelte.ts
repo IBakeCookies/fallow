@@ -34,8 +34,9 @@ export type ReadTasks = () => Task[];
  * owns no session state either. Failures go to the app-wide banner's own store,
  * not through the session's.
  *
- * Flow observations deliberately stay in the session store: logging one stamps
- * `flowMinutes` onto the task, which is persisted with the day's session.
+ * Flow observations deliberately stay in the session store: logging one reads the
+ * VIEWED day and that day's task to write it, which is this store's one blind spot —
+ * it has no notion of a viewed day and must not grow one.
  *
  * Created via context in the (app) layout — never at module scope, so no state
  * can leak between SSR requests.

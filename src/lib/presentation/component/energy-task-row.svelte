@@ -39,6 +39,9 @@
 		flowMinutes?: number;
 		flowDraft?: EditorDraft | null;
 		onflowopen: (source: EditorSource) => void;
+		/** The badge's own action. Required here, unlike on the main page: the Lab shows
+		 *  today and nothing else, so there is no day that withholds it. */
+		onflowedit: () => void;
 		onflowclose: () => void;
 		onlogflow: (minutes: number) => void;
 		onflowdelete: () => void;
@@ -67,6 +70,7 @@
 		flowMinutes,
 		flowDraft = null,
 		onflowopen,
+		onflowedit,
 		onflowclose,
 		onlogflow,
 		onflowdelete,
@@ -115,6 +119,7 @@
 		{flowMinutes}
 		{flowDraft}
 		{onflowopen}
+		{onflowedit}
 		{onflowclose}
 		{onlogflow}
 		{onflowdelete}

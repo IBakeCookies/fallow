@@ -48,6 +48,24 @@ describe('flow-observation-repository', () => {
 		expect(all[0].phiHours).toBe(0.9);
 	});
 
+	// The stamp says when the measurement was TAKEN, and a correction re-describes the
+	// same one — the same rule 🪫 corrections follow (MATH.md §18), and what the analytics
+	// history orders a day by. Reachable since ⚡ became correctable on a past day: a
+	// re-stamped log would sort as the newest thing in a day years old.
+	it('keeps the original stamp when a correction replaces a measurement', async () => {
+		const [before] = await $readAllFlowObservations();
+
+		await $updateFlowObservation(
+			observation({
+				phiHours: 0.2,
+			}),
+		);
+
+		const [after] = await $readAllFlowObservations();
+		expect(after.phiHours).toBe(0.2);
+		expect(after.createdAt).toBe(before.createdAt);
+	});
+
 	it('different taskId or date appends', async () => {
 		await $updateFlowObservation(
 			observation({
