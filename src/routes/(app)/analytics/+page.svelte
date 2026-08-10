@@ -102,15 +102,23 @@
 				}),
 	);
 
-	// Scoped by the same range toggle as every card above, so the history answers
-	// the question the page is already asking. `rangeStart` alone bounds it: a
+	// Scoped by the same range toggle as every card above by default, so the history
+	// answers the question the page is already asking. `rangeStart` alone bounds it: a
 	// measurement is stamped with the live clock, so none is ever dated ahead.
+	//
+	// But the range can be dropped, because this list is the only surface some
+	// measurements have. A ☕ belongs to no task's row, and NOTHING older than the widest
+	// range (a year) is reachable from anywhere else — so while the range bounded this
+	// unconditionally, a two-year-old mistyped break was permanently beyond both
+	// correcting and dropping while still feeding the recovery fit.
+	let allTime = $state(false);
+
 	const logRows = $derived(
 		logHistory({
 			flow: session.flowObservations,
 			drain: observations.drainObservations,
 			rest: observations.restObservations,
-			rangeStart: analytics.rangeStart,
+			rangeStart: allTime ? undefined : analytics.rangeStart,
 		}),
 	);
 
@@ -121,12 +129,57 @@
 	// Dropping a measurement routes back to the store that owns it — the list merges
 	// three id sequences, so the kind is half the address. No confirm, like the Lab's
 	// per-log ✕: one point out of a fit is not the wholesale reset, which keeps its
-	// two-step. Only ✕ lives here; a correction needs the day's task and belongs on
-	// that day's row (see `log-history-list.svelte`).
+	// two-step.
 	function deleteLog(kind: LogKind, id: number) {
 		if (kind === 'flow') session.deleteFlowLog(id);
 		else if (kind === 'drain') observations.deleteDrainLog(id);
 		else observations.deleteRestLog(id);
+
+		// A dropped row's editor has nothing left to correct. Closing on any drop rather
+		// than only the open row's is the same answer for less state: at most one row is
+		// ever open, so nothing else can be closed by mistake.
+		editingKey = null;
+	}
+
+	// Which row's ✎ is open, by the fold's own key — the PAGE's, because the three saves
+	// land in two stores, and because the list must be able to open a row without
+	// deciding what "open" outlives (a drop, a range change, a save all close it).
+	//
+	// One at a time. Not a policy the list could hold: the row's forms read their seed at
+	// mount, so two open rows would be two drafts over one keystroke's worth of state.
+	let editingKey = $state<string | null>(null);
+	const closeEditor = () => (editingKey = null);
+
+	function editLog(kind: LogKind, id: number) {
+		editingKey = `${kind}-${id}`;
+	}
+
+	// The three corrections. Each writes only the quantities its editor asked for and
+	// keeps the record's day, stamp and captured covariates — MATH.md §36, which is what
+	// lets this page correct at all: no day is in view here, and the task a measurement
+	// names may belong to a day this list is not showing or to no day at all.
+	function saveFlowLog(id: number, minutes: number) {
+		session.editFlowLog(id, minutes);
+		closeEditor();
+	}
+
+	function saveDrainLog(id: number, entry: { hours: number; mind: number; body: number }) {
+		observations.editDrainLog(id, entry.hours, entry.mind, entry.body);
+		closeEditor();
+	}
+
+	function saveRestLog(
+		id: number,
+		entry: {
+			hours: number;
+			mindBefore: number;
+			mindAfter: number;
+			bodyBefore: number;
+			bodyAfter: number;
+		},
+	) {
+		observations.editRestLog(id, entry);
+		closeEditor();
 	}
 
 	const chartPoints = $derived(
@@ -155,7 +208,13 @@
 	<SegmentedToggle
 		items={rangeItems}
 		value={analytics.range}
-		onchange={(range) => (analytics.range = range)}
+		onchange={(range) => {
+			analytics.range = range;
+			// Narrowing the range can take the open row out of the list, and `editingKey`
+			// would outlive it — switching back would re-open an editor nobody asked for a
+			// second time. Same reason the scope toggle below closes it.
+			closeEditor();
+		}}
 		label={m.ana_range_group()}
 	/>
 </div>
@@ -179,12 +238,12 @@
 			</div>
 		{/each}
 	</div>
-	<!-- Bodies, in the six cards' order. Both charts are a fixed viewBox at
+	<!-- Bodies, in the five GATED cards' order. Both charts are a fixed viewBox at
 	     `w-full`, so their height is a function of the container's width and the
-	     ratio is the only thing that tracks it; the other four are the heights
-	     their content measures. The logs list is the one whose real height depends
-	     on the user — `h-64` is the cap it stops growing at. -->
-	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33', 'h-64'] as body, i (i)}
+	     ratio is the only thing that tracks it; the other three are the heights
+	     their content measures. The logs card is not among them — it renders outside
+	     this gate and carries its own loading line. -->
+	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			<div class="skeleton-block h-5 w-40"></div>
 			<div class="skeleton-block mt-text-3xs h-4 w-64 max-w-full"></div>
@@ -410,18 +469,53 @@
 			</div>
 		{/if}
 	</div>
-
-	<!-- The range's raw measurements. Last on the page on purpose: everything above is
-	     a reading of these, so the list is where a figure that looks wrong gets checked
-	     against what was actually logged. -->
-	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
-		<h2 class="text-sm font-medium text-ty-primary">{m.ana_logs()}</h2>
-		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_logs_hint()}</p>
-
-		{#if areLogsLoading}
-			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
-		{:else}
-			<LogHistoryList rows={logRows} ondelete={deleteLog} />
-		{/if}
-	</div>
 {/if}
+
+<!-- The range's raw measurements. Last on the page on purpose: everything above is a
+     reading of these, so the list is where a figure that looks wrong gets checked against
+     what was actually logged.
+
+     OUTSIDE the load gate above, unlike every other card, for two reasons. Its `id` is
+     what "In your logs →" scrolls to, and that fragment scroll happens once, on arrival —
+     an element that appears only when IndexedDB answers is not there to be scrolled to,
+     and nothing retries. And it reads none of the analytics store: the logs come from the
+     session and observation stores, so `hasData` — which is about day SUMMARIES — would
+     otherwise replace a list of real measurements with "you have never used the app".
+     `areLogsLoading` below is this card's own gate, and the one that fits it. -->
+<div id="log-history" class="card-shell mt-grid-xl scroll-mt-grid-lg rounded-xl p-box-lg">
+	<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs gap-y-text-3xs">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_logs()}</h2>
+		<!-- A text toggle rather than a fourth entry in the range group above: the range
+		     belongs to every card on the page, and "all time" is a claim only this one
+		     can make — the charts read day summaries, which are loaded for a year. -->
+		<button
+			type="button"
+			class="hint-underline shrink-0 text-xs text-ty-silent transition hover:text-ty-secondary"
+			onclick={() => {
+				allTime = !allTime;
+				// A row that scrolls out of the list on the way is not a row anyone meant
+				// to keep correcting.
+				closeEditor();
+			}}
+		>
+			{allTime ? m.ana_logs_scope_range() : m.ana_logs_scope_all()}
+		</button>
+	</div>
+	<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_logs_hint()}</p>
+
+	{#if areLogsLoading}
+		<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+	{:else}
+		<LogHistoryList
+			rows={logRows}
+			{allTime}
+			{editingKey}
+			ondelete={deleteLog}
+			onedit={editLog}
+			oncancel={closeEditor}
+			onsaveflow={saveFlowLog}
+			onsavedrain={saveDrainLog}
+			onsaverest={saveRestLog}
+		/>
+	{/if}
+</div>

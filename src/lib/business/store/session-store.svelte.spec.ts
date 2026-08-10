@@ -39,6 +39,7 @@ vi.mock('$lib/data/repository/routine-repository', () => ({
 
 vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$updateFlowObservation: vi.fn(async () => {}),
+	$editFlowObservation: vi.fn(async () => {}),
 	$deleteFlowObservation: vi.fn(async () => {}),
 	$deleteAllFlowObservations: vi.fn(async () => {}),
 	$readAllFlowObservations: vi.fn(async () => []),
@@ -48,6 +49,7 @@ const readTitleRatingsMock = vi.mocked(sessionHistory.readTitleRatings);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
+const editFlowObservationMock = vi.mocked(flowObservationRepository.$editFlowObservation);
 const readAllFlowObservationsMock = vi.mocked(flowObservationRepository.$readAllFlowObservations);
 
 /**
@@ -358,6 +360,70 @@ describe('SessionStore persistence', () => {
 		);
 	});
 
+	// The row's ✎ is a correction too, and MATH.md §36's rule is about the correction and
+	// not about the address it arrived by: the covariates on the record were captured when
+	// the measurement was taken, so the task as it is NOW must not reach them. Without
+	// this, raising a task's difficulty on Friday and then fixing Monday's reading
+	// re-prices Monday's data point in the ϕ fit (MATH.md §5) — and so does re-saving the
+	// same number.
+	it('keeps the captured (E, β) when the row corrects a reading', async () => {
+		const past = '2000-01-01';
+
+		readAllFlowObservationsMock.mockResolvedValue([
+			{
+				...flowLog(past),
+				taskId: 3,
+				difficulty: 3,
+				enjoyment: 9,
+				E: 2,
+				beta: 1.8,
+			},
+		]);
+
+		const store = await viewing(past);
+
+		// The day's task reads 8/5 — nothing like the 3/9 the measurement was taken under.
+		await store.logFlow(3, 25);
+
+		expect(updateFlowObservationMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				difficulty: 3,
+				enjoyment: 9,
+				E: 2,
+				beta: 1.8,
+				phiHours: 25 / 60,
+			}),
+		);
+	});
+
+	// The other side: a FIRST measurement has no record to read covariates off, so it is
+	// the one write that derives them — that is the moment they are being observed.
+	it('derives (E, β) from the task when the measurement is new', async () => {
+		readAllFlowObservationsMock.mockResolvedValue([]);
+
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'deep work',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 6,
+		});
+
+		flushSync();
+
+		await store.logFlow(store.tasks[0].id, 25);
+
+		// 8.6, not the raw 8: `getEffectiveDifficulty` blends the physical channel in, and
+		// the whole point of freezing it is that it is derived rather than stored anywhere.
+		expect(updateFlowObservationMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				difficulty: 8.6,
+				enjoyment: 6,
+			}),
+		);
+	});
+
 	// The other side of the rule: a correction re-describes a measurement that exists,
 	// while a FIRST one on a past day is a measurement nobody took. Refused here rather
 	// than only hidden in the UI, because the store is what the date belongs to.
@@ -369,6 +435,40 @@ describe('SessionStore persistence', () => {
 		await store.logFlow(3, 25);
 
 		expect(updateFlowObservationMock).not.toHaveBeenCalled();
+	});
+
+	/* `logFlow` above is the ROW's verb: it reads the viewed day and that day's task,
+	   which is what lets it derive (E, β) for a first measurement and what confines it
+	   to a day the page is showing. `editFlowLog` is the same correction addressed the
+	   only other way a caller can address it — by the record — for the analytics
+	   history, which shows every day at once and so views none of them.
+
+	   It goes through the repository's edit-by-id rather than the row's upsert with the
+	   record spread back in. The two differ exactly when the record is already gone: the
+	   upsert's not-found branch would INSERT it again under its own id with a fresh
+	   `createdAt`, resurrecting a dropped measurement into the ϕ fit. */
+	it('corrects a ⚡ measurement by its record, with no day in view', async () => {
+		const { store } = await setup();
+
+		await store.editFlowLog(77, 25);
+
+		// Only the measured quantity. Everything that identifies the record — its day, its
+		// task, its captured (E, β) and its log moment — is the repository's to keep, and
+		// the payload type is what says so.
+		expect(editFlowObservationMock).toHaveBeenCalledWith(77, {
+			phiHours: 25 / 60,
+		});
+
+		expect(updateFlowObservationMock).not.toHaveBeenCalled();
+	});
+
+	it('reports a failed ⚡ correction as save-failed', async () => {
+		const { store, status } = await setup();
+		editFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
+
+		await store.editFlowLog(77, 25);
+
+		expect(status.error).toBe('save-failed');
 	});
 
 	it('drops the ⚡ reading a past day shows', async () => {

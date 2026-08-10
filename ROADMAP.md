@@ -141,15 +141,20 @@ row. Neither needs a new solve.
     and, being per-rating, is what let correcting and deleting one move onto the
     row it belongs to on both screens (AGENTS.md R3) — and, on 2026-08-10, let the
     cross-date reading the chips cannot give move to `/analytics`, which now prints
-    every ⚡, 🪫 and ☕ in the viewed range as one dated list, each droppable and
-    each ⚡/🪫 row linking to its own day: the row corrects, the list drops, the
-    card resets, and this answers "what did I log". The three calibration cards
+    every ⚡, 🪫 and ☕ as one dated list — the range it is viewed under by default,
+    or all of them — and both of a measurement's verbs sit on its row there: ✕
+    drops it, ✎ corrects it. The card resets the fit, the list holds the
+    measurements, and this answers "what did I log". The three calibration cards
     stopped listing their own kind the same day — three partial answers to one
     question — and kept the fit's two verbs (`fit-log-summary.svelte`). ⚡ joined
     🪫 in being correctable on a PAST day the same week: the badge
     reads the day's own observation instead of a `flowMinutes` field on its
     session, so an amendment lands somewhere the auto-save is not asked to
-    rewrite, and the field is gone. The ✓/✕ pair likewise has one owner
+    rewrite, and the field is gone. What let the ✎ leave the row at all is
+    MATH.md §36: a correction rewrites the quantities the user rated and re-derives
+    no covariate from the live task, so it needs no day in view — which is also the
+    first correction ☕ has ever had, having no task and so no row to carry one.
+    The ✓/✕ pair likewise has one owner
     (`measurement-form-actions.svelte`); the three editors had each grown their
     own, two with a hover surface and one without.
     **`DailyMetricsInput` was deliberately left alone.** This item planned to

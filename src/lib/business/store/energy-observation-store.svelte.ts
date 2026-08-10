@@ -190,24 +190,20 @@ export class EnergyObservationStore {
 
 	// Correct one already-logged session in place. Separate from logDrain
 	// because appending a corrected copy would count the session twice — the
-	// row IS the session now (MATH.md §18). Demands are re-captured from the
-	// task as they are on a fresh log: a correction is a re-rating.
+	// row IS the session now (MATH.md §18).
 	//
-	// It passes no `date`: unlike a fresh log, a correction re-describes a session
-	// that already happened, so it stays on the day it was logged even when that day
-	// is not today — which the main page's row can now reach.
-	async editDrainLog(recordId: number, id: number, hours: number, mind: number, body: number) {
-		const task = this.#readTasks().find((t) => t.id === id);
-
-		if (!task) return;
-
+	// It writes the three numbers the editor asked for and nothing else. No `date`,
+	// because a correction re-describes a session that already happened, so it stays
+	// on the day it was logged even when that day is not today. And no task lookup
+	// (2026-08-10): the demands on the record were captured at logging time precisely
+	// so a task edited afterwards cannot rewrite what an earlier session measured, and
+	// re-deriving them here is that rewrite by another route. Which is what makes a
+	// correction addressable by record id alone — the analytics history corrects a
+	// rating whose task no day in view holds, or that no day holds at all.
+	async editDrainLog(recordId: number, hours: number, mind: number, body: number) {
 		try {
 			await drainObservationRepository.$editDrainObservation(recordId, {
-				taskId: id,
-				taskTitle: task.title,
 				hours,
-				cognitiveDemand: task.mentalDifficulty / 10,
-				physicalDemand: task.physicalDifficulty / 10,
 				mindDrain: mind,
 				bodyDrain: body,
 			});
@@ -265,6 +261,31 @@ export class EnergyObservationStore {
 				bodyBefore,
 				bodyAfter,
 			});
+
+			this.#restObservations = await this.#readRest();
+		} catch (e) {
+			logError('Failed to save rest observation', e);
+			this.#reporter.report('save-failed');
+		}
+	}
+
+	// Correct one already-logged break in place, for the reason editDrainLog is not a
+	// re-log: appending would fit r twice off one recovery. A break has no task and so
+	// no row on either screen — the analytics history is the only place it can be
+	// corrected from, which is why this arrived with that list's ✎ (2026-08-10) while
+	// the other two kinds had a chip years earlier. The day it was taken stands.
+	async editRestLog(
+		recordId: number,
+		entry: {
+			hours: number;
+			mindBefore: number;
+			mindAfter: number;
+			bodyBefore: number;
+			bodyAfter: number;
+		},
+	) {
+		try {
+			await restObservationRepository.$editRestObservation(recordId, entry);
 
 			this.#restObservations = await this.#readRest();
 		} catch (e) {

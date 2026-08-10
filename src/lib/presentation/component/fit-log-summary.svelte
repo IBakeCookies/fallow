@@ -87,10 +87,14 @@
 			{:else}
 				<!-- No count in the link: `label` beside it already says how many logs this
 				     fit read, and the page it opens is scoped to a range the user picks, so a
-				     number here would be a promise about a screen this component cannot see. -->
+				     number here would be a promise about a screen this component cannot see.
+
+				     Anchored at the list, which is deliberately the LAST card on that page:
+				     everything above it is a reading OF these logs, so a link that stopped at
+				     the top would leave the thing it promised a page-length away. -->
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a
-					href={localizeHref(resolve('/analytics'))}
+					href={`${localizeHref(resolve('/analytics'))}#log-history`}
 					class="hint-underline text-ty-silent transition hover:text-ty-secondary"
 				>
 					{m.fit_logs_open_history()}

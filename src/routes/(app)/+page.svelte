@@ -129,7 +129,7 @@
 		if (recordId === undefined) {
 			observations.logDrain(id, entry.hours, entry.mind, entry.body);
 		} else {
-			observations.editDrainLog(recordId, id, entry.hours, entry.mind, entry.body);
+			observations.editDrainLog(recordId, entry.hours, entry.mind, entry.body);
 		}
 
 		closeDrainLog(id);

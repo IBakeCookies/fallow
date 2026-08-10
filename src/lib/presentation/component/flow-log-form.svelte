@@ -7,16 +7,20 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 
 	interface Props {
-		/** The viewed day's time-to-flow, when one is measured: ⚡ is one number per day
-		 *  (MATH.md §18), so re-opening the editor amends it rather than adding to it. */
+		/** The reading this editor opened on, when it opened on one: ⚡ is one number per
+		 *  day (MATH.md §18), so re-opening amends it rather than adding to it. The viewed
+		 *  day's from a task's row; from the analytics ✎, the record's own — that caller
+		 *  views no day. */
 		seed?: number | null;
-		/** Only when the row's own ⚡ button opened this. An editor that opened itself on
-		 *  completion must not yank the caret out of the list. */
+		/** Only when a click asked for this editor — the row's ⚡ button, or the analytics
+		 *  ✎. An editor that opened itself on completion must not yank the caret out of
+		 *  the list. */
 		focusMinutes?: boolean;
 		onsave: (minutes: number) => void;
 		oncancel: () => void;
-		/** Drop the measurement this editor opened on. Offered only when there IS one:
-		 *  the caller passes it unconditionally and the seed is what decides. */
+		/** Drop the measurement this editor opened on. A task's row passes it
+		 *  unconditionally and lets the seed decide; the analytics ✎ passes none, because
+		 *  the row it sits on carries its own ✕. */
 		ondelete?: () => void;
 	}
 

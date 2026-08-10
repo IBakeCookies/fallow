@@ -18,6 +18,7 @@ vi.mock('$lib/data/repository/drain-observation-repository', () => ({
 
 vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 	$createRestObservation: vi.fn(async () => {}),
+	$editRestObservation: vi.fn(async () => {}),
 	$deleteRestObservation: vi.fn(async () => {}),
 	$deleteAllRestObservations: vi.fn(async () => {}),
 	$readAllRestObservations: vi.fn(async () => []),
@@ -27,6 +28,7 @@ const addDrainMock = vi.mocked(drainObservationRepository.$addDrainObservation);
 const editDrainMock = vi.mocked(drainObservationRepository.$editDrainObservation);
 const readAllDrainMock = vi.mocked(drainObservationRepository.$readAllDrainObservations);
 const createRestMock = vi.mocked(restObservationRepository.$createRestObservation);
+const editRestMock = vi.mocked(restObservationRepository.$editRestObservation);
 const readAllRestMock = vi.mocked(restObservationRepository.$readAllRestObservations);
 
 const task = (over: Partial<Task> = {}): Task => ({
@@ -86,6 +88,7 @@ describe('EnergyObservationStore', () => {
 		addDrainMock.mockReset().mockResolvedValue(undefined);
 		editDrainMock.mockReset().mockResolvedValue(undefined);
 		createRestMock.mockReset().mockResolvedValue(undefined);
+		editRestMock.mockReset().mockResolvedValue(undefined);
 	});
 
 	afterEach(() => {
@@ -113,9 +116,39 @@ describe('EnergyObservationStore', () => {
 	it('leaves a corrected rating on the day it was logged', async () => {
 		const { store } = await setup();
 
-		await store.editDrainLog(7, 1, 2, 5, 3);
+		await store.editDrainLog(7, 2, 5, 3);
 
 		expect(editDrainMock.mock.calls[0][1]).not.toHaveProperty('date');
+	});
+
+	// A correction re-rates a session; it does not re-describe the task that session
+	// was worked on. The demands were captured at logging time on purpose (see the
+	// `logDrain` test below), so re-reading them from the task would let an edit made
+	// after the fact rewrite the covariates §8.7 fits α against — a difficulty raised
+	// on Friday would retroactively change what Monday's rating measured.
+	it('corrects the rating and leaves the captured demands alone', async () => {
+		const { store } = await setup();
+
+		await store.editDrainLog(7, 2, 5, 3);
+
+		expect(editDrainMock).toHaveBeenCalledWith(7, {
+			hours: 2,
+			mindDrain: 5,
+			bodyDrain: 3,
+		});
+	});
+
+	// Which is what makes a correction reachable off the row: the record carries every
+	// field the write does not touch, so no task has to be in view — the analytics
+	// history corrects a rating whose task belongs to a day it is not showing, or to no
+	// day at all because the task has since been deleted.
+	it('corrects a rating whose task the viewed day does not hold', async () => {
+		const { store, status } = await setup([]);
+
+		await store.editDrainLog(7, 2, 5, 3);
+
+		expect(editDrainMock).toHaveBeenCalledOnce();
+		expect(status.error).toBeNull();
 	});
 
 	// One row per session (MATH.md §8.7), so a task can hold several on one day and
@@ -204,6 +237,45 @@ describe('EnergyObservationStore', () => {
 		addDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		await store.logDrain(1, 3, 9, 4);
+
+		expect(status.error).toBe('save-failed');
+	});
+
+	// ☕ has no task and so no row to correct from; the analytics history is its only
+	// editor. Nothing is re-derived on the way in — a break is five numbers the user
+	// typed — so the correction is the record's id and the five fields, and the day it
+	// was taken stands for the reason a drain correction's does.
+	it('corrects a break in place, on the day it was taken', async () => {
+		const { store } = await setup();
+
+		await store.editRestLog(4, {
+			hours: 0.75,
+			mindBefore: 8,
+			mindAfter: 3,
+			bodyBefore: 6,
+			bodyAfter: 2,
+		});
+
+		expect(editRestMock).toHaveBeenCalledWith(4, {
+			hours: 0.75,
+			mindBefore: 8,
+			mindAfter: 3,
+			bodyBefore: 6,
+			bodyAfter: 2,
+		});
+	});
+
+	it('reports a failed rest correction as save-failed', async () => {
+		const { store, status } = await setup();
+		editRestMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
+
+		await store.editRestLog(4, {
+			hours: 0.5,
+			mindBefore: 9,
+			mindAfter: 2,
+			bodyBefore: 8,
+			bodyAfter: 1,
+		});
 
 		expect(status.error).toBe('save-failed');
 	});

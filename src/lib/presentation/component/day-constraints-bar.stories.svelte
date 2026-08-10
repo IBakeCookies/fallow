@@ -88,7 +88,8 @@
 		// none of them since 2026-08-10) and un-personalize it.
 		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
 
-		await expect(canvas.getByRole('link')).toHaveAttribute('href', '/analytics');
+		// Anchored: the list is the last card on that page, under every reading of it.
+		await expect(canvas.getByRole('link')).toHaveAttribute('href', '/analytics#log-history');
 		await expect(canvas.queryByRole('listitem')).not.toBeInTheDocument();
 
 		// All logs reset only after confirmation.

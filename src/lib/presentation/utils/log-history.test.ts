@@ -148,6 +148,25 @@ describe('logHistory', () => {
 		expect(rows.map((r) => r.key)).toEqual(['drain-1']);
 	});
 
+	// The list is the only place a ☕ can be corrected or dropped at all, and the only
+	// place any measurement older than the widest range (a year) can be reached — so it
+	// has to be able to stop bounding itself. No `rangeStart` is that: every measurement
+	// ever logged, which is what the card's "all time" reads.
+	//
+	// A CONTRACT pin, not a repaired defect: `date < undefined` is already false, so the
+	// bounded loops happened to pass everything through before the guard was explicit.
+	// What changed is that the type permits the call — this is what stops a later
+	// "simplification" back to `input.rangeStart!` or a `?? ''` sentinel.
+	it('reads every day when the range is left off', () => {
+		const rows = logHistory({
+			flow: [flow(1, '2019-01-01')],
+			drain: [drain(1, '2026-08-03')],
+			rest: [rest(1, '2020-06-15')],
+		});
+
+		expect(rows.map((r) => r.key)).toEqual(['drain-1', 'rest-1', 'flow-1']);
+	});
+
 	it('orders a day by when each measurement was logged, newest first', () => {
 		const rows = logHistory(
 			input({

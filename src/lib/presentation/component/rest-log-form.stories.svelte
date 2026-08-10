@@ -77,3 +77,52 @@
 		});
 	}}
 />
+
+<!-- Correcting a stored break, from the analytics history — ☕ has no task and so no
+     row on either screen, which makes that list its only editor (MATH.md §36). The
+     same form seeded; what it saves is the same shape, since a correction rewrites
+     exactly the five numbers this asks for. -->
+<Story
+	name="Correcting a stored break"
+	args={{
+		seed: {
+			minutes: 45,
+			mindBefore: 7,
+			mindAfter: 4,
+			bodyBefore: 5,
+			bodyAfter: 1,
+		},
+		onsave: fn(),
+		oncancel: fn(),
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		const minutes = canvas.getByPlaceholderText('min');
+		const [mindBefore, mindAfter] = canvas.getAllByLabelText('Mind');
+		const [bodyBefore, bodyAfter] = canvas.getAllByLabelText('Body');
+
+		await expect(minutes).toHaveValue(45);
+		await expect(mindBefore).toHaveValue(7);
+		await expect(mindAfter).toHaveValue(4);
+		await expect(bodyBefore).toHaveValue(5);
+		await expect(bodyAfter).toHaveValue(1);
+
+		// A 0 rating survives the seed: `mindAfter: 0` is "the break left me fine", and
+		// a form that read it as blank would refuse to save an unedited correction.
+		await userEvent.clear(mindAfter);
+		await userEvent.type(mindAfter, '0');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: '✓',
+			}),
+		);
+
+		await expect(args.onsave).toHaveBeenCalledExactlyOnceWith({
+			hours: 0.75,
+			mindBefore: 7,
+			mindAfter: 0,
+			bodyBefore: 5,
+			bodyAfter: 1,
+		});
+	}}
+/>

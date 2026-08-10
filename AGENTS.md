@@ -411,29 +411,47 @@ say the same way now:
   screens. The card's per-row ✎ went first: it could only reach today's rows whose
   task was still listed, a condition the chip removes rather than satisfies. Then
   the listing itself went (2026-08-10). **One screen lists logs: `/analytics`**,
-  which prints every ⚡, 🪫 and ☕ in the viewed range (`log-history.ts` folds the
-  three stores, `log-history-list.svelte` prints them). Three cards each listing
+  which prints every ⚡, 🪫 and ☕ — the range it is viewed under, or all of them
+  (`log-history.ts` folds the three stores, `log-history-list.svelte` prints them).
+  The range can be dropped because this list is the only surface some measurements
+  have: nothing older than the widest range (a year) is reachable from anywhere
+  else, so a bound that always held would put an old typo permanently beyond both
+  correcting and dropping while it still fed a fit. Three cards each listing
   their own kind was three partial answers to "what have I logged" — none could
   show a neighbouring kind or a day outside its own fit — so what stayed with each
   card is the two verbs a FIT has rather than a measurement:
   read what it was fitted from, and un-personalize it
   (`fit-log-summary.svelte`, which is `log-list.svelte` narrowed to those two,
   keeping its two-step reset and that reset's focus handling).
-  The history **drops but never corrects**, and links to the correction: ✕ on the
-  list, ✎ on the row — a correction says which SESSION it re-rates and re-reads
-  that day's task for its demands, so only the row on the day in question can make
-  one, while a drop is addressed by record id alone. A ⚡ or 🪫 row's date is
-  therefore a link to `/?date=<that day>`, where the badge and the chips open it
-  prefilled; ☕ belongs to no row and gets none. Hence
-  `ondelete(kind, id)` and not `ondelete(id)`: three kinds are three stores with
-  three id sequences (2026-08-10).
+  The history both **drops and corrects**: ✕ and ✎ on every row, each addressed by
+  `(kind, id)` and not `id` alone — three kinds are three stores with three id
+  sequences. A row's date is also a link to `/?date=<that day>` for ⚡ and 🪫,
+  which is navigation and not the correction path; ☕ belongs to no day's row and
+  gets no link (2026-08-10).
+  **A correction rewrites the quantities the user rated and nothing else** —
+  MATH.md §36, and the reason the ✎ can be there at all. Every measurement freezes
+  the covariates it was taken under (⚡ its `(E, β)`, 🪫 its reservoir demands, ☕
+  none) so that editing a task later cannot rewrite what an earlier session
+  measured, and every correction path used to re-derive them from the live task,
+  which is that same rewrite by another route. **The rule is about the correction,
+  not the address it arrived by**, so it binds all three of them: `logFlow` reads
+  the day's task only when there is no record to read instead, and `editDrainLog`
+  and `editFlowLog` read no task at all. A correction is therefore addressable **by
+  record id alone** — off any screen, with no day in view, and for a task since
+  deleted. ☕ got a correction at all on that account: it has no task, hence no row
+  on either screen, so this list is its only editor.
   **Both corrections are offered on any day the page shows, a new measurement
   only today** (⚡ joined this rule 2026-08-10). `logDrain` stamps the live clock
   (a rating browsed onto a past day would misdate itself), while `editDrainLog`
-  passes no `date` at all — §5's upsert bullet has the type-level reason. ⚡ is
-  the same rule in one verb: `logFlow` stamps the **viewed** day and refuses a
-  first measurement dated before today, so a correction lands and a back-dated
-  log cannot. It could not before, because the badge was ALSO a `flowMinutes`
+  passes no `date` at all — §5's upsert bullet has the type-level reason. ⚡ has
+  two writers rather than 🪫's two, split by ADDRESS and not by verb: `logFlow` is
+  the row's (keyed `(taskId, date)`, since a row has no record id) and
+  `editFlowLog` is the analytics list's. `logFlow` stamps the **viewed** day and
+  refuses a first measurement dated before today, so a correction lands and a
+  back-dated log cannot. The two are not interchangeable: handing the row's UPSERT
+  a record that has since been deleted re-creates it under its own id with a fresh
+  stamp, so the by-id path is a real `$editFlowObservation` and not the upsert with
+  the record spread back in. It could not before, because the badge was ALSO a `flowMinutes`
   field on the day's task and the autosave never rewrites a past day, so an
   amended one came back on the next load. **The observation is now the only place
   a ⚡ lives** — `SessionStore.flowMinutesOn(date)` is what the row reads, the

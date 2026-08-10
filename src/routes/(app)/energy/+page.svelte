@@ -197,7 +197,7 @@
 		if (recordId === undefined) {
 			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
 		} else {
-			observations.editDrainLog(recordId, taskId, entry.hours, entry.mind, entry.body);
+			observations.editDrainLog(recordId, entry.hours, entry.mind, entry.body);
 		}
 
 		closeDrainLog(taskId);
