@@ -645,6 +645,23 @@ test('deleting a task takes its open drain prompt with it', async ({ page }) => 
 
 	await expect(form).toHaveCount(0);
 
+	// And it does not come back with the task: the undo restores it under its ORIGINAL
+	// id, which is the one the draft was keyed by. The Lab holds its own copy of the
+	// drafts, so this is a second place the ✕ has to drop them.
+	await page
+		.getByRole('button', {
+			name: 'Undo',
+		})
+		.click();
+
+	await expect(
+		page.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		}),
+	).toBeVisible();
+
+	await expect(form).toHaveCount(0);
+
 	// The prompt still works for what is left — this is what an orphaned draft killed
 	await page
 		.getByRole('checkbox', {

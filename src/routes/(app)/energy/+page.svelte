@@ -7,7 +7,9 @@
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
 		newDrainDraft,
+		newEditorDraft,
 		type DrainDraft,
+		type EditorDraft,
 		type EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
@@ -132,16 +134,38 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// The open 🪫 editors, by task. One per row — ticking off two tasks ends two
-	// sessions, and each gets its prompt. The fields are drain-log-form.svelte's to
+	// The open editors, by task. One of each per row — ticking off two tasks ends two
+	// sessions, and each gets its prompts. The fields are the two form components' to
 	// collect and the prompt policy is the row shell's; what stays here is which task
 	// each draft belongs to, because the calibration card's ✎ opens one from outside
 	// the row. Same shape as the main page's, from the same module.
+	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
+
+	const openFlowLog = (taskId: number, source: EditorSource) =>
+		(flowDrafts[taskId] = newEditorDraft(source));
+
+	const closeFlowLog = (taskId: number) => {
+		delete flowDrafts[taskId];
+	};
+
+	function saveFlowLog(taskId: number, minutes: number) {
+		session.logFlow(taskId, minutes);
+		closeFlowLog(taskId);
+	}
 
 	const closeDrainLog = (taskId: number) => {
 		delete drainDrafts[taskId];
 	};
+
+	// A draft whose row leaves the screen is inert, since it is keyed by that task — but
+	// ✕ is not one of those: the undo puts the task back under its original id, so a
+	// surviving draft would re-open with it.
+	function removeTask(taskId: number) {
+		closeFlowLog(taskId);
+		closeDrainLog(taskId);
+		removeTaskWithUndo(session, taskId);
+	}
 
 	const drainMeasured = $derived(observations.drainMeasuredToday);
 
@@ -252,10 +276,13 @@
 				plannedHours={plannedFor(task.id)}
 				flowMinutes={task.flowMinutes}
 				isDrainMeasured={drainMeasured.has(task.id)}
+				flowDraft={flowDrafts[task.id] ?? null}
 				drainDraft={drainDrafts[task.id] ?? null}
 				ontoggle={() => session.toggleTask(task.id)}
-				onremove={() => removeTaskWithUndo(session, task.id)}
-				onlogflow={(minutes) => session.logFlow(task.id, minutes)}
+				onremove={() => removeTask(task.id)}
+				onflowopen={(source) => openFlowLog(task.id, source)}
+				onflowclose={() => closeFlowLog(task.id)}
+				onlogflow={(minutes) => saveFlowLog(task.id, minutes)}
 				ondrainopen={(source) => openDrainLog(task.id, source)}
 				ondrainclose={() => closeDrainLog(task.id)}
 				ondrainsave={(entry) => saveDrainLog(task.id, entry)}

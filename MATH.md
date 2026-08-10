@@ -6535,11 +6535,12 @@ day looks like as designed; the delta answers what is left of it, and it is time
 to spend ON TOP of the hours already worked — which is why they are not rendered
 as a was/now pair, whose arithmetic would understate the day.
 
-The plan figure is dropped from that second line when it happens to **equal**
-the delta, since printing one duration twice reads as a display bug. That is not
-a claim that nothing changed: the two coincide both on a task nobody touched and
-on one worked 30m whose day just grew, and the row cannot tell those apart. Only
-the duplicate goes; the line, its priority and its tooltip stay.
+The plan figure stays on that second line even when it happens to **equal** the
+delta, so the row keeps one shape all day. Equality is not a claim that nothing
+changed: the two coincide both on a task nobody touched and on one worked 30m
+whose day just grew, and the row cannot tell those apart — which is the reason
+it is not annotated either way. Only the tooltip splits on it, reading the line
+as the priority once the delta above has already said the hours.
 
 Completion is not an hours instrument — only a 🪫 log is — so ticking a box
 moves neither reading.

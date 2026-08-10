@@ -3,7 +3,11 @@
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
-	import type { DrainDraft, EditorSource } from '$lib/presentation/utils/measurement-prompt';
+	import type {
+		DrainDraft,
+		EditorDraft,
+		EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 
 	interface Props {
@@ -21,9 +25,13 @@
 		form?: Snippet;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
+		/** The ⚡ editors open on this list, by task — the page owns them, like the 🪫
+		 *  ones, since a draft outlives the row it is keyed by. */
+		flowDrafts?: Record<number, EditorDraft>;
+		onflowopen?: (id: number, source: EditorSource) => void;
+		onflowclose?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
-		/** The 🪫 editors open on this list, by task — the page owns them, since a draft
-		 *  outlives the row it is keyed by. */
+		/** The 🪫 editors open on this list, by task. */
 		drainDrafts?: Record<number, DrainDraft>;
 		/** Task ids carrying at least one 🪫 rating for today. */
 		drainMeasured?: ReadonlySet<number>;
@@ -40,6 +48,9 @@
 		form,
 		ontoggle,
 		onremove,
+		flowDrafts = {},
+		onflowopen,
+		onflowclose,
 		onlogflow,
 		drainDrafts = {},
 		drainMeasured = new Set(),
@@ -77,6 +88,9 @@
 				mustDoToday={task.mustDoToday}
 				{ontoggle}
 				{onremove}
+				flowDraft={flowDrafts[task.id] ?? null}
+				{onflowopen}
+				{onflowclose}
 				{onlogflow}
 				drainDraft={drainDrafts[task.id] ?? null}
 				isDrainMeasured={drainMeasured.has(task.id)}

@@ -4,7 +4,11 @@
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import TaskRowShell from '$lib/presentation/component/task-row-shell.svelte';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
-	import type { DrainDraft, EditorSource } from '$lib/presentation/utils/measurement-prompt';
+	import type {
+		DrainDraft,
+		EditorDraft,
+		EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 
 	/* The Lab's reading of a task: the plan's hue and the hours the schedule gave it.
 	   Same shell as the main page's row, filled from the other model — that difference
@@ -32,7 +36,10 @@
 		 *  hours" against every task would be a claim the optimizer never made. */
 		plannedHours: number | null;
 		flowMinutes?: number;
-		onlogflow?: (minutes: number) => void;
+		flowDraft?: EditorDraft | null;
+		onflowopen: (source: EditorSource) => void;
+		onflowclose: () => void;
+		onlogflow: (minutes: number) => void;
 		drainDraft?: DrainDraft | null;
 		isDrainMeasured?: boolean;
 		ontoggle: () => void;
@@ -54,6 +61,9 @@
 		color,
 		plannedHours,
 		flowMinutes,
+		flowDraft = null,
+		onflowopen,
+		onflowclose,
 		onlogflow,
 		drainDraft = null,
 		isDrainMeasured = false,
@@ -96,6 +106,9 @@
 		withMustDoToday={false}
 		{ontoggle}
 		{flowMinutes}
+		{flowDraft}
+		{onflowopen}
+		{onflowclose}
 		{onlogflow}
 		{drainDraft}
 		{isDrainMeasured}

@@ -22,6 +22,9 @@
 			optimalStopHours: 2.25,
 			ontoggle: fn(),
 			onremove: fn(),
+			flowDraft: null,
+			onflowopen: fn(),
+			onflowclose: fn(),
 			onlogflow: fn(),
 			drainDraft: null,
 			isDrainMeasured: false,
@@ -31,11 +34,6 @@
 			onupdate: fn(),
 		},
 	});
-</script>
-
-<script lang="ts">
-	// Only the "Withdrawn prompt" story: its parent must actually flip `completed`
-	let flippedCompleted = $state(false);
 </script>
 
 <!-- The cognitive badge, a checkbox named after the task, and the two callbacks
@@ -111,10 +109,10 @@
 	}}
 />
 
-<!-- The delta landing on the planned figure prints it once, not twice — a row
-     reading "1h 45m more / 1h 45m · prio" looks like a bug. Not a claim that
-     nothing moved: the same coincidence happens on a task worked 30m whose day
-     just grew, which this row is given no way to distinguish. -->
+<!-- The delta landing on the planned figure changes nothing about the layout: the
+     plan line is always printed, so the row keeps one shape all day. The two
+     coincide both on a task nobody touched and on one worked 30m whose day just
+     grew, and this row is given no way to distinguish them. -->
 <Story
 	name="Re-plan lands on the planned hours"
 	args={{
@@ -126,14 +124,12 @@
 	play={async ({ canvas, canvasElement, userEvent }) => {
 		await expect(canvas.getByText('1h 45m more')).toBeVisible();
 
-		const line = canvas.getByText('prio 12.4');
+		const line = canvas.getByText('1h 45m · prio 12.4');
 
 		await expect(line).toBeVisible();
-		// The duplicate is gone; the survivor is the delta, which is the actionable one.
-		await expect(canvas.queryByText('1h 45m · prio 12.4')).not.toBeInTheDocument();
 
-		// And the tooltip follows the line: with no allocation left on screen, the
-		// allocation tooltip would be describing a figure that is not there.
+		// The tooltip still splits on the equality: with the delta already saying the
+		// hours, the line beneath it is read as the priority.
 		await userEvent.hover(line);
 		const body = within(canvasElement.ownerDocument.body);
 
@@ -164,11 +160,11 @@
 		runOrder: 2,
 		flowMinutes: 40,
 	}}
-	play={async ({ canvas, userEvent }) => {
+	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.getByText('⚡ 40m')).toBeVisible();
 
 		await userEvent.click(canvas.getByRole('checkbox'));
-		await expect(canvas.queryByPlaceholderText('min')).not.toBeInTheDocument();
+		await expect(args.onflowopen).not.toHaveBeenCalled();
 	}}
 />
 
@@ -194,7 +190,8 @@
 		await expect(canvas.queryByText('prio 12.4')).not.toBeInTheDocument();
 
 		await userEvent.click(checkbox);
-		await expect(canvas.queryByPlaceholderText('min')).not.toBeInTheDocument();
+		await expect(args.onflowopen).not.toHaveBeenCalled();
+		await expect(args.ondrainopen).not.toHaveBeenCalled();
 	}}
 />
 
@@ -205,6 +202,7 @@
 <Story
 	name="Read only"
 	args={{
+		onflowopen: undefined,
 		onlogflow: undefined,
 		ondrainopen: undefined,
 		ondrainsave: undefined,
@@ -270,8 +268,9 @@
 	}}
 />
 
-<!-- ⚡ asked for the editor, so the caret lands in the minutes field; an empty
-     save is refused, a filled one logs minutes -->
+<!-- The ⚡ button is one way in and says so: the caret follows a press but not a
+     prompt, which is what the source tells the page. The editor itself is the page's
+     answer to that call, so nothing opens under this story's mock. -->
 <Story
 	name="Logging time to flow"
 	play={async ({ args, canvas, userEvent }) => {
@@ -281,65 +280,31 @@
 			}),
 		);
 
-		const minutes = canvas.getByPlaceholderText('min');
-		await waitFor(() => expect(minutes).toHaveFocus());
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: '✓',
-			}),
-		);
-
-		await expect(args.onlogflow).not.toHaveBeenCalled();
-
-		await userEvent.type(minutes, '25');
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: '✓',
-			}),
-		);
-
-		await expect(args.onlogflow).toHaveBeenCalledExactlyOnceWith(1, 25);
-	}}
-/>
-
-<!-- Completing is the one moment the user still knows the ramp-up: the prompt
-     opens itself, but must not pull the caret out of the task list -->
-<Story
-	name="Asks on completion"
-	play={async ({ args, canvas, userEvent }) => {
-		const checkbox = canvas.getByRole('checkbox');
-		await userEvent.click(checkbox);
-		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
-
-		const minutes = await canvas.findByPlaceholderText('min');
-		await expect(checkbox).toHaveFocus();
-
-		await userEvent.type(minutes, '25');
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: '✓',
-			}),
-		);
-
-		await expect(args.onlogflow).toHaveBeenCalledExactlyOnceWith(1, 25);
-	}}
-/>
-
-<!-- `completed` is a prop, so a mis-click is undone by the parent: the prompt
-     withdraws its own question, but never an editor the user opened by hand -->
-<Story
-	name="Withdrawn prompt"
-	play={async ({ canvas, userEvent }) => {
-		const checkbox = canvas.getByRole('checkbox');
-
-		await userEvent.click(checkbox);
-		await expect(canvas.getByPlaceholderText('min')).toBeInTheDocument();
-
-		await userEvent.click(checkbox);
+		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
 		await expect(canvas.queryByPlaceholderText('min')).not.toBeInTheDocument();
+	}}
+/>
+
+<!-- The draft answered: the editor hangs under the row, ✓ reports the minutes keyed
+     by the task the row is, and the lit ⚡ closes what it opened -->
+<Story
+	name="Flow editor open"
+	args={{
+		flowDraft: {
+			focusMinutes: false,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await userEvent.type(canvas.getByPlaceholderText('min'), '25');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: '✓',
+			}),
+		);
+
+		await expect(args.onlogflow).toHaveBeenCalledExactlyOnceWith(1, 25);
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -347,21 +312,60 @@
 			}),
 		);
 
-		await userEvent.type(canvas.getByPlaceholderText('min'), '25');
-
-		await userEvent.click(checkbox);
-		await userEvent.click(checkbox);
-		await expect(canvas.getByPlaceholderText('min')).toHaveValue(25);
+		await expect(args.onflowclose).toHaveBeenCalledExactlyOnceWith(1);
 	}}
->
-	{#snippet template(args)}
-		<TaskItem
-			{...args}
-			completed={flippedCompleted}
-			ontoggle={() => (flippedCompleted = !flippedCompleted)}
-		/>
-	{/snippet}
-</Story>
+/>
+
+<!-- Completing is the one moment the user still knows the ramp-up, so the tick asks
+     for it — and says the question was its own, which is what lets an un-tick take it
+     back. The caret stays on the checkbox: ticking tasks off with the keyboard must
+     not land it in a number field. -->
+<Story
+	name="Asks on completion"
+	play={async ({ args, canvas, userEvent }) => {
+		const checkbox = canvas.getByRole('checkbox');
+		await userEvent.click(checkbox);
+
+		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
+		await expect(checkbox).toHaveFocus();
+	}}
+/>
+
+<!-- `completed` is a prop, so a mis-click is undone by the parent: un-completing
+     withdraws the question completion asked -->
+<Story
+	name="Withdrawn prompt"
+	args={{
+		completed: true,
+		flowDraft: {
+			focusMinutes: false,
+			promptedByCompletion: true,
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await userEvent.click(canvas.getByRole('checkbox'));
+		await expect(args.onflowclose).toHaveBeenCalledExactlyOnceWith(1);
+	}}
+/>
+
+<!-- ...but never an editor the user opened by hand, which is theirs to keep -->
+<Story
+	name="Keeps a hand-opened editor"
+	args={{
+		completed: true,
+		flowDraft: {
+			focusMinutes: true,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await userEvent.click(canvas.getByRole('checkbox'));
+
+		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.onflowclose).not.toHaveBeenCalled();
+	}}
+/>
 
 <!-- ✎ opens the inline editor: named sliders, editable title — and the completion
      prompt opens BESIDE its unsaved draft rather than closing it. The two forms
@@ -404,7 +408,7 @@
 			}),
 		);
 
-		await expect(canvas.getByPlaceholderText('min')).toBeInTheDocument();
+		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
 		await expect(title).toHaveValue('sparring');
 
 		await userEvent.click(
@@ -503,16 +507,14 @@
 />
 
 <!-- Completing a task is the moment both measurements are knowable, so the tick asks
-     both and the two editors stack. They keep their own policies: ⚡ is one number per
-     day and goes quiet once measured, 🪫 is one per session (MATH.md §18) and never
-     does. Neither takes the caret — ticking tasks off with the keyboard must not land
-     it in a number field. -->
+     both, through one predicate and one shape of draft. They keep their own policies:
+     ⚡ is one number per day and goes quiet once measured, 🪫 is one per session
+     (MATH.md §18) and never does. Both drafts are the page's, so the row reports two
+     prompts and this story's mocks leave them unanswered. -->
 <Story
 	name="Completion asks both"
 	args={{
-		ondrainopen: fn(),
-		ondrainclose: fn(),
-		ondrainsave: fn(),
+		isDrainMeasured: true,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		await userEvent.click(
@@ -521,11 +523,7 @@
 			}),
 		);
 
-		// ⚡'s editor is the row's own, so it is on screen; 🪫's draft is the page's, so
-		// the row reports the prompt and this story's mock leaves it unanswered
-		await expect(canvas.getByText('⚡ Minutes to reach flow:')).toBeInTheDocument();
+		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
 		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
-
-		await expect(canvas.getByPlaceholderText('min')).not.toHaveFocus();
 	}}
 />

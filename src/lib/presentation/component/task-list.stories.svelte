@@ -60,6 +60,8 @@
 			]),
 			ontoggle: fn(),
 			onremove: fn(),
+			onflowopen: fn(),
+			onflowclose: fn(),
 			onlogflow: fn(),
 			onupdate: fn(),
 		},
