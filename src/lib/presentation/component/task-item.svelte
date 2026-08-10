@@ -139,42 +139,69 @@
 
 {#snippet trailing()}
 	{#if !completed}
-		<!-- Two columns, and the order is the point: the plan stays rightmost where it
-		     has always been, and the re-plan appears beside it rather than over it. -->
 		{#if remaining}
+			<!-- Mid-day (MATH.md §35): the delta leads and the plan drops beneath it,
+			     because at 2pm the actionable number is the one saying what to do next.
+			     Deliberately NOT a strikethrough on the plan. It is not superseded — it
+			     is the same number the plan-family rows on this page are still computed
+			     from (§11.8) — and the two are on different bases: this is time to spend
+			     ON TOP of the hours already worked, so pairing them as was/now would
+			     understate the day's real total. The word carries that; a struck pair
+			     could not. -->
+			<div class="text-right">
+				<Tooltip.Root>
+					<Tooltip.Trigger class="block cursor-help text-sm font-semibold text-ty-primary">
+						{m.task_remaining_more({
+							hours: formatDuration(remaining.taskHours),
+						})}
+					</Tooltip.Trigger>
+					<Tooltip.Content>
+						<p>
+							{m.task_remaining_tooltip({
+								left: formatDuration(remaining.dayHours),
+							})}
+						</p>
+					</Tooltip.Content>
+				</Tooltip.Root>
+				<Tooltip.Root>
+					<!-- The plan figure only when it differs from the delta above: printing
+					     the same duration twice reads as a display bug. It is NOT a claim
+					     that nothing changed — the two coincide both on a task nobody
+					     touched and on one worked 30m whose day just grew, and this row
+					     cannot tell those apart (it is handed no per-task worked hours).
+					     So the duplicate is what is dropped, never the line. -->
+					<Tooltip.Trigger class="block cursor-help text-2xs text-ty-silent">
+						{#if remaining.taskHours !== suggestedHours}
+							{formatDuration(suggestedHours)} ·
+						{/if}
+						{m.task_priority({
+							score: priorityScore,
+						})}
+					</Tooltip.Trigger>
+					<Tooltip.Content>
+						<p>{m.task_allocation_tooltip()}</p>
+					</Tooltip.Content>
+				</Tooltip.Root>
+			</div>
+		{:else}
 			<Tooltip.Root>
+				<!-- Spans, not divs: the trigger renders a <button>, whose content model is
+				     phrasing content only. -->
 				<Tooltip.Trigger class="cursor-help text-right">
-					<span class="block text-sm font-semibold text-ty-secondary">
-						{formatDuration(remaining.taskHours)}
+					<span class="block text-sm font-semibold text-ty-primary">
+						{formatDuration(suggestedHours)}
 					</span>
-					<span class="block text-2xs text-ty-silent">{m.task_remaining_label()}</span>
+					<span class="block text-2xs text-ty-silent">
+						{m.task_priority({
+							score: priorityScore,
+						})}
+					</span>
 				</Tooltip.Trigger>
 				<Tooltip.Content>
-					<p>
-						{m.task_remaining_tooltip({
-							left: formatDuration(remaining.dayHours),
-						})}
-					</p>
+					<p>{m.task_allocation_tooltip()}</p>
 				</Tooltip.Content>
 			</Tooltip.Root>
 		{/if}
-		<Tooltip.Root>
-			<!-- Spans, not divs: the trigger renders a <button>, whose content model is
-			     phrasing content only. -->
-			<Tooltip.Trigger class="cursor-help text-right">
-				<span class="block text-sm font-semibold text-ty-primary">
-					{formatDuration(suggestedHours)}
-				</span>
-				<span class="block text-2xs text-ty-silent">
-					{m.task_priority({
-						score: priorityScore,
-					})}
-				</span>
-			</Tooltip.Trigger>
-			<Tooltip.Content>
-				<p>{m.task_allocation_tooltip()}</p>
-			</Tooltip.Content>
-		</Tooltip.Root>
 	{/if}
 {/snippet}
 
