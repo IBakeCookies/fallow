@@ -248,10 +248,11 @@
 }
 
 /* One logged measurement in a list of them: the day and what it was measured on to
-   the left, the reading to the right. Shared by the Energy Lab's three calibration
-   lists (through `log-list.svelte`) and the analytics range history, which prints
-   all three kinds at once — the same record read in two places, so the row it reads
-   as is one definition (AGENTS.md R3). */
+   the left, the reading to the right. One list prints them now (the analytics range
+   history, all three kinds at once) — the three calibration cards each printed their
+   own kind until 2026-08-10. Kept a utility rather than folded back into that one
+   component because the shape is what made those three readable as one thing, and it
+   is what a fourth list would have to match (AGENTS.md R3). */
 @utility log-row {
 	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-card px-box-2xs py-text-2xs text-xs text-ty-secondary;
 }

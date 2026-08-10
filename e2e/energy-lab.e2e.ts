@@ -799,12 +799,6 @@ test('correcting a rating edits its row, while a second session adds one', async
 
 	await page
 		.getByRole('button', {
-			name: 'Drain ratings · 1',
-		})
-		.click();
-
-	await page
-		.getByRole('button', {
 			name: 'Correct this drain rating',
 		})
 		.click();
@@ -863,13 +857,7 @@ test('the ✎ re-seeds a drain editor the row already has open', async ({ page }
 	const fields = form.locator('input[type="number"]');
 	await expect(fields.nth(0)).toHaveValue('');
 
-	// ✎ on the logged rating, while that blank editor is still up
-	await page
-		.getByRole('button', {
-			name: 'Drain ratings · 1',
-		})
-		.click();
-
+	// The chip on the logged rating, while that blank editor is still up
 	await page
 		.getByRole('button', {
 			name: 'Correct this drain rating',
@@ -902,18 +890,18 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 
 	await logDrain(page, 120, 9, 5);
 
-	// The log list is collapsed until its count is clicked.
-	await page
-		.getByRole('button', {
-			name: 'Drain ratings · 1',
-		})
-		.click();
+	// Dropping one rating moved to /analytics with the listing (2026-08-10); this card
+	// keeps the fit's own verbs. Crossing the two screens is the point: the ✕ there has
+	// to take this calibration with it.
+	await page.goto('/analytics');
 
 	await page
 		.getByRole('button', {
-			name: 'Delete this drain rating',
+			name: /^Delete Session rating logged on/,
 		})
 		.click();
+
+	await page.goto('/energy');
 
 	// The card falls back to its empty state, and with no fit left anywhere the
 	// Apply beside the parameters is gone rather than disabled — disabled reads as

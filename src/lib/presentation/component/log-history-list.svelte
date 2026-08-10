@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import * as m from '$lib/paraglide/messages.js';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 	import type { LogHistoryRow, LogKind } from '$lib/presentation/utils/log-history';
 
@@ -7,16 +9,18 @@
 	   as one shape — day and task on the left, reading on the right — which is what
 	   makes a merged list readable; `logHistory` is what makes them one shape.
 
-	   Drops a measurement but never corrects one, which is the same split the Lab's
-	   lists already make (✕ on the list, ✎ on the task's row). A correction has to
-	   say which SESSION it re-rates and re-reads that day's task to capture its
-	   demands, so only the row on the day in question can make one — and ⚡ cannot be
-	   corrected on a past day at all, since it is half a session field the auto-save
-	   never rewrites. Dropping needs none of that: a record id is the whole address.
+	   Drops a measurement but never corrects one — it LINKS to the correction instead.
+	   A correction has to say which SESSION it re-rates, and re-reads that day's task
+	   for the demands it captures, so only the row on the day in question can make one;
+	   the day of a ⚡ or 🪫 row is therefore a link to that day on `/`, where the badge
+	   and the chips open it prefilled. Dropping needs none of that — a record id is the
+	   whole address — which is why the ✕ is here and the ✎ is not. ☕ belongs to no
+	   task's row and so gets no link.
 
-	   Not `log-list.svelte`: that one is a collapsed toggle over a fit's own logs
-	   with a two-step reset, and none of the three applies to a card whose whole
-	   body is the history. The row chrome they share is the `log-row` utility. */
+	   The three calibration cards each printed their own kind until 2026-08-10, which
+	   was three partial answers to one question; what stayed with each of them is the
+	   fit's own two verbs (`fit-log-summary.svelte`). The row chrome is the `log-row`
+	   utility, still shared with that card's ancestor. */
 
 	interface Props {
 		/** Already folded, filtered and ordered newest-first by `logHistory`. */
@@ -58,15 +62,32 @@
 					count: rows.length,
 				})}
 	</p>
-	<!-- Capped like the Lab's lists: a year holds hundreds of rows, and a card that
-	     grows with the history pushes every reading below it off the page. -->
+	<!-- Capped: a year holds hundreds of rows, and a card that grows with the history
+	     pushes every reading below it off the page. -->
 	<ul class="mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
 		{#each rows as row (row.key)}
 			<li class="log-row">
 				<span class="truncate">
-					<span class="text-ty-silent">{row.date}</span>
 					{#if row.taskTitle}
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+						<!-- Labelled as well as titled: the visible text is a bare date, which
+						     names the link for the eye and says nothing to a screen reader
+						     reading it out of the row's context. -->
+						<a
+							href={localizeHref(`${resolve('/')}?date=${row.date}`)}
+							aria-label={m.ana_logs_open_day({
+								date: row.date,
+							})}
+							title={m.ana_logs_open_day({
+								date: row.date,
+							})}
+							class="hint-underline text-ty-silent transition hover:text-ty-secondary"
+						>
+							{row.date}
+						</a>
 						<span class="capitalize"> · {row.taskTitle}</span>
+					{:else}
+						<span class="text-ty-silent">{row.date}</span>
 					{/if}
 				</span>
 				<span class="flex shrink-0 items-center gap-text-xs tabular-nums">

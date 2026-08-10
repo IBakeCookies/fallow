@@ -9,8 +9,9 @@
    in the model reads it — no fit, bound or plan is computed from this shape.
 
    The row carries numbers, not worded readings: the "M"/"B" letters and the
-   durations are the same glyphs the three existing log lists print in markup, and
-   a fourth spelling of them here is exactly R3's mirrors case. */
+   durations are what the three calibration cards printed in markup until this list
+   took over from them (2026-08-10), and re-wording them here would have made the
+   same reading read differently on two screens — R3's mirrors case. */
 
 import type {
 	DrainObservationRecord,

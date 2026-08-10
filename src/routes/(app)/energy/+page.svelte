@@ -31,7 +31,7 @@
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
 	import FitRow from '$lib/presentation/component/fit-row.svelte';
 	import RestLogForm from '$lib/presentation/component/rest-log-form.svelte';
-	import LogList from '$lib/presentation/component/log-list.svelte';
+	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
@@ -650,44 +650,18 @@
 								</div>
 
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
-									<LogList
+									<FitLogSummary
 										label={m.energy_drain_log_count({
 											count: drainObservations.length,
 										})}
-										items={drainObservations}
+										count={drainObservations.length}
 										confirmLabel={m.energy_reset_drain_confirm({
 											count: drainObservations.length,
 										})}
 										resetLabel={m.energy_reset_drain_logs()}
 										resetTitle={m.energy_reset_drain_title()}
 										onreset={() => observations.resetDrainLogs()}
-									>
-										{#snippet row(log)}
-											<span class="truncate">
-												<span class="text-ty-silent">{log.date}</span>
-												<span class="capitalize"> · {log.taskTitle}</span>
-											</span>
-											<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
-												<span class="text-ty-silent">{formatDuration(log.hours)}</span>
-												<span class="font-medium text-mind/90">M{log.mindDrain}</span>
-												<span class="font-medium text-body/90">B{log.bodyDrain}</span>
-												<!-- No ✎ here: correcting a rating is its own chip on the task's row, on
-											     both screens, which is the only place that can say WHICH session a
-											     correction means without also being restricted to the days and tasks
-											     still on screen. This list keeps what a flat history is for — reading
-											     the whole record, dropping a bad point, and resetting the fit. -->
-												<button
-													type="button"
-													aria-label={m.energy_delete_drain_log_aria()}
-													title={m.energy_delete_drain_log_title()}
-													class="text-ty-silent transition hover:text-danger"
-													onclick={() => observations.deleteDrainLog(log.id)}
-												>
-													✕
-												</button>
-											</span>
-										{/snippet}
-									</LogList>
+									/>
 								</div>
 							{/if}
 						</CalibrationCard>
@@ -734,40 +708,18 @@
 								</div>
 
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
-									<LogList
+									<FitLogSummary
 										label={m.energy_rest_log_count({
 											count: restObservations.length,
 										})}
-										items={restObservations}
+										count={restObservations.length}
 										confirmLabel={m.energy_reset_rest_confirm({
 											count: restObservations.length,
 										})}
 										resetLabel={m.energy_reset_rest_logs()}
 										resetTitle={m.energy_reset_rest_title()}
 										onreset={() => observations.resetRestLogs()}
-									>
-										{#snippet row(log)}
-											<span class="truncate text-ty-silent">{log.date}</span>
-											<span class="flex shrink-0 items-center gap-text-xs tabular-nums">
-												<span class="text-ty-silent">{formatDuration(log.hours)}</span>
-												<span class="font-medium text-mind/90">
-													M{log.mindBefore}→{log.mindAfter}
-												</span>
-												<span class="font-medium text-body/90">
-													B{log.bodyBefore}→{log.bodyAfter}
-												</span>
-												<button
-													type="button"
-													aria-label={m.energy_delete_rest_log_aria()}
-													title={m.energy_delete_rest_log_title()}
-													class="text-ty-silent transition hover:text-danger"
-													onclick={() => observations.deleteRestLog(log.id)}
-												>
-													✕
-												</button>
-											</span>
-										{/snippet}
-									</LogList>
+									/>
 								</div>
 							{/if}
 						</CalibrationCard>
