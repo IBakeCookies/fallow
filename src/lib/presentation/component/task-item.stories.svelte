@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn, waitFor, within } from 'storybook/test';
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 
 	const { Story } = defineMeta({
@@ -27,12 +28,29 @@
 			onflowclose: fn(),
 			onlogflow: fn(),
 			drainDraft: null,
-			isDrainMeasured: false,
+			drainLogs: [],
 			ondrainopen: fn(),
 			ondrainclose: fn(),
 			ondrainsave: fn(),
+			ondrainedit: fn(),
+			ondraindelete: fn(),
+			onflowdelete: fn(),
 			onupdate: fn(),
 		},
+	});
+
+	const drainLog = (over: Partial<Persisted<DrainObservationRecord>> = {}) => ({
+		id: 11,
+		date: '2026-08-10',
+		taskId: 1,
+		taskTitle: 'write the calibration section',
+		hours: 0.75,
+		cognitiveDemand: 0.8,
+		physicalDemand: 0.2,
+		mindDrain: 6,
+		bodyDrain: 2,
+		createdAt: 0,
+		...over,
 	});
 </script>
 
@@ -169,18 +187,34 @@
 	}}
 />
 
-<!-- The ⚡ badge shows the measurement, so completing does not ask for it again -->
+<!-- The ⚡ badge shows the measurement, so completing does not ask for it again — and it
+     re-opens the editor on it, exactly as a 🪫 chip re-opens its rating. There is only
+     one ⚡ per day, so this is the same editor the ⚡ button opens rather than a choice
+     between sessions; a reading you cannot click is the inconsistency, not the
+     duplication. -->
 <Story
 	name="With a logged time-to-flow"
 	args={{
 		runOrder: 2,
 		flowMinutes: 40,
 	}}
-	play={async ({ args, canvas, userEvent }) => {
-		await expect(canvas.getByText('⚡ 40m')).toBeVisible();
+	play={async ({ args, canvas, canvasElement, userEvent }) => {
+		const badge = canvas.getByRole('button', {
+			name: 'Correct this time to flow',
+		});
+
+		await expect(badge).toHaveTextContent('⚡ 40m');
+
+		// Explained by the same tooltip the whole row uses, not a native title
+		await userEvent.hover(badge);
+		const body = within(canvasElement.ownerDocument.body);
+		await waitFor(() => expect(body.getByText(/^Measured minutes-to-flow/)).toBeVisible());
+
+		await userEvent.click(badge);
+		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
 
 		await userEvent.click(canvas.getByRole('checkbox'));
-		await expect(args.onflowopen).not.toHaveBeenCalled();
+		await expect(args.onflowopen).toHaveBeenCalledOnce();
 	}}
 />
 
@@ -211,21 +245,30 @@
 	}}
 />
 
-<!-- A past day passes no callbacks: both measurement editors, ✎ and the inert ✕ are all
-     withheld. 🪫 is gated by the same `canLog` as ⚡, and for the same reason — the store
-     stamps an observation with the LIVE clock's today, so one logged here would misdate
-     itself onto a day the user is only reading. -->
+<!-- A past day: correct, never append. ✎ and the inert ✕ are withheld with both
+     LOGGING buttons — a new observation stamps the LIVE clock's today, so one logged
+     here would misdate itself onto a day the user is only reading — while the ratings
+     the day already holds stay correctable, because a correction carries no date and
+     re-describes the session where it happened.
+
+     ⚡ has no correction affordance here at all, and that asymmetry is the data model's:
+     a time-to-flow is half a session field (`flowMinutes`, persisted with the day) and
+     the session store deliberately never rewrites a past day, so an amended one would
+     read right until the next reload and then revert. 🪫 ratings are whole records of
+     their own and have no such half. -->
 <Story
-	name="Read only"
+	name="Past day"
 	args={{
+		flowMinutes: 40,
+		drainLogs: [drainLog()],
 		onflowopen: undefined,
 		onlogflow: undefined,
+		onflowdelete: undefined,
 		ondrainopen: undefined,
-		ondrainsave: undefined,
 		onupdate: undefined,
 		onremove: undefined,
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.getByRole('checkbox')).toBeVisible();
 
 		await expect(
@@ -251,6 +294,25 @@
 				name: 'Log end-of-session drain',
 			}),
 		).not.toBeInTheDocument();
+
+		// ⚡ still READS — a day's measurement is never hidden — but it opens nothing,
+		// because there is no editor to open: the same reason the ⚡ button is gone.
+		await expect(canvas.getByText('⚡ 40m')).toBeVisible();
+
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Correct this time to flow',
+			}),
+		).not.toBeInTheDocument();
+
+		// 🪫, by contrast, still reads AND still corrects
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Correct this drain rating',
+			}),
+		);
+
+		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[0]);
 	}}
 />
 
@@ -485,7 +547,7 @@
 <Story
 	name="Rating a session"
 	args={{
-		isDrainMeasured: false,
+		drainLogs: [],
 		drainDraft: {
 			minutes: 45,
 			mind: 6,
@@ -522,6 +584,210 @@
 	}}
 />
 
+<!-- Every rating the day holds for this task reads on the row, one chip each — which is
+     what a per-SESSION measurement needs and a badge cannot give it: two sessions are
+     two ratings (MATH.md §8.7), and correcting one has to say WHICH. The chip is that
+     answer, so it carries the whole session and reports the record it stands for. -->
+<Story
+	name="Rated sessions read on the row"
+	args={{
+		drainLogs: [
+			drainLog({
+				id: 11,
+				hours: 0.75,
+				mindDrain: 6,
+				bodyDrain: 2,
+			}),
+			drainLog({
+				id: 12,
+				hours: 2,
+				mindDrain: 9,
+				bodyDrain: 4,
+			}),
+		],
+	}}
+	play={async ({ args, canvas, canvasElement, userEvent }) => {
+		const chips = canvas.getAllByRole('button', {
+			name: 'Correct this drain rating',
+		});
+
+		await expect(chips).toHaveLength(2);
+		await expect(chips[0]).toHaveTextContent('45m');
+		await expect(chips[0]).toHaveTextContent('M6');
+		await expect(chips[0]).toHaveTextContent('B2');
+		await expect(chips[1]).toHaveTextContent('2h');
+
+		// The row's own tooltip, like every other explained reading on it
+		await userEvent.hover(chips[0]);
+		const body = within(canvasElement.ownerDocument.body);
+		await waitFor(() => expect(body.getByText(/^Re-open this session/)).toBeVisible());
+
+		// The second session, not the first: a page that could not tell them apart is
+		// the reason this had to leave the Lab's flat list.
+		await userEvent.click(chips[1]);
+		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[1]);
+	}}
+/>
+
+<!-- A rating re-opened from its chip is a correction, so the editor offers to remove
+     the session outright — the verb that used to live only on the Lab's card, next to
+     the fields that describe the same row.
+
+     And one rule governs every reading on the row: clicking the one the editor is
+     already open on closes it, clicking another switches to it. ⚡ is that rule with a
+     single reading, which is why its badge looked like a plain toggle. -->
+<Story
+	name="Correcting a rating"
+	args={{
+		drainLogs: [
+			drainLog({
+				id: 11,
+			}),
+			drainLog({
+				id: 12,
+				hours: 2,
+				mindDrain: 9,
+				bodyDrain: 4,
+			}),
+		],
+		drainDraft: {
+			recordId: 11,
+			minutes: 45,
+			mind: 6,
+			body: 2,
+			focusMinutes: true,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
+
+		const chips = canvas.getAllByRole('button', {
+			name: 'Correct this drain rating',
+		});
+
+		// The chip the editor is on: closes it, rather than re-seeding the fields under
+		// the caret with the values they already hold.
+		await userEvent.click(chips[0]);
+		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.ondrainedit).not.toHaveBeenCalled();
+
+		// Another session's chip: switches to it, which is the thing only a per-rating
+		// control can do and the reason these are not one toggle.
+		await userEvent.click(chips[1]);
+		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[1]);
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Delete this drain rating',
+			}),
+		);
+
+		await expect(args.ondraindelete).toHaveBeenCalledExactlyOnceWith(1, 11);
+
+		// 🪫 means "one more session", so over an open CORRECTION it switches to a blank
+		// editor rather than closing one it never opened. It closes only its own — see
+		// the story below.
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Log end-of-session drain',
+			}),
+		);
+
+		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
+	}}
+/>
+
+<!-- ...and over the editor it DID open, 🪫 closes it: an append editor is the one with
+     no `recordId`, which is exactly "the editor this button owns". -->
+<Story
+	name="Closing a new session"
+	args={{
+		drainDraft: {
+			minutes: null,
+			mind: null,
+			body: null,
+			focusMinutes: true,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Log end-of-session drain',
+			}),
+		);
+
+		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
+		await expect(args.ondrainopen).not.toHaveBeenCalled();
+	}}
+/>
+
+<!-- A new session is not a correction: nothing is stored yet, so there is nothing to
+     delete and the editor says so by offering no such button. -->
+<Story
+	name="Rating a new session offers no delete"
+	args={{
+		drainDraft: {
+			minutes: null,
+			mind: null,
+			body: null,
+			focusMinutes: true,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Delete this drain rating',
+			}),
+		).not.toBeInTheDocument();
+	}}
+/>
+
+<!-- ⚡ is one number per day, so its editor amends rather than appends — and the same
+     editor is where the measurement is dropped, which was reachable only from the
+     budget panel's list before. -->
+<Story
+	name="Clearing a time-to-flow"
+	args={{
+		flowMinutes: 40,
+		flowDraft: {
+			focusMinutes: true,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.getByPlaceholderText('min')).toHaveValue(40);
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Delete this flow log',
+			}),
+		);
+
+		await expect(args.onflowdelete).toHaveBeenCalledExactlyOnceWith(1);
+	}}
+/>
+
+<!-- Nothing measured yet: the ⚡ editor has no measurement to drop -->
+<Story
+	name="Logging a first time-to-flow offers no delete"
+	args={{
+		flowDraft: {
+			focusMinutes: true,
+			promptedByCompletion: false,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Delete this flow log',
+			}),
+		).not.toBeInTheDocument();
+	}}
+/>
+
 <!-- Completing a task is the moment both measurements are knowable, so the tick asks
      both, through one predicate and one shape of draft. They keep their own policies:
      ⚡ is one number per day and goes quiet once measured, 🪫 is one per session
@@ -530,7 +796,7 @@
 <Story
 	name="Completion asks both"
 	args={{
-		isDrainMeasured: true,
+		drainLogs: [drainLog()],
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		await userEvent.click(

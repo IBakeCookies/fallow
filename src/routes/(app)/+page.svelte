@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -10,6 +11,7 @@
 	import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
+		drainDraftFromLog,
 		newDrainDraft,
 		newEditorDraft,
 		type DrainDraft,
@@ -46,11 +48,17 @@
 	const isViewingFuture = $derived(session.isViewingFuture);
 	const tasks = $derived(session.tasks);
 
-	// One value, three consumers that must agree: only today's session can be measured
-	// — both stores stamp an observation with the LIVE clock's today, never the viewed
-	// day, so a ⚡ or 🪫 logged while browsing a past day would misdate itself. The
-	// callbacks and the bar's prompt for them therefore appear and vanish together, so
-	// the prompt never points at a button no task renders.
+	// Only today's session can be measured: both stores stamp a NEW observation with the
+	// LIVE clock's today, never the viewed day, so one logged while browsing a past day
+	// would misdate itself. The logging callbacks and the bar's prompt for them therefore
+	// appear and vanish together, so the prompt never points at a button no task renders.
+	//
+	// It gates logging, not correcting. A 🪫 correction carries no date — it re-describes
+	// the session where it happened — so the chips on a past day's rows stay editable and
+	// deletable. ⚡ has no such path: its measurement is half a session field
+	// (`flowMinutes`), and the auto-save never rewrites a past day, so an amended one
+	// would revert on the next load. `clearFlowLog` is gated with the rest of ⚡ for that
+	// reason and the store refuses any other day anyway.
 	const canLog = $derived(selectedDate === today);
 
 	// The open editors, by task — one of each per row: ticking two tasks off ends two
@@ -70,6 +78,13 @@
 	const openDrainLog = (id: number, source: EditorSource) =>
 		(drainDrafts[id] = newDrainDraft(source));
 
+	// The other way in: a 🪫 chip on the row, which re-opens THAT session's rating in
+	// the same editor. Offered on any day the page shows, unlike the 🪫 button beside
+	// it — a correction re-describes the session where it happened and carries no date,
+	// while a new log would stamp itself with the live clock's today.
+	const editDrainLog = (id: number, log: Persisted<DrainObservationRecord>) =>
+		(drainDrafts[id] = drainDraftFromLog(log));
+
 	const closeDrainLog = (id: number) => {
 		delete drainDrafts[id];
 	};
@@ -83,17 +98,39 @@
 		removeTaskWithUndo(session, id);
 	}
 
-	// Correcting a rating is the Lab's calibration card, which is where the day's ratings
-	// are listed; this screen only adds sessions.
-	const drainMeasured = $derived(observations.drainMeasuredToday);
+	// The ratings the VIEWED day holds, per task — a chip each on the row, which is where
+	// they are corrected. Read for any date the page can show: a rating is only loggable
+	// today, but reading back what a past day measured is what the ✎ on the chip needs
+	// and is the only way a user who never opens the Lab sees the day's own data.
+	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
 
 	function saveFlowLog(id: number, minutes: number) {
 		session.logFlow(id, minutes);
 		closeFlowLog(id);
 	}
 
+	function clearFlowLog(id: number) {
+		session.clearFlowLog(id);
+		closeFlowLog(id);
+	}
+
+	// Whether ✓ appends a session or rewrites a stored one is the DRAFT's to say, since
+	// only it remembers which chip opened the editor — re-logging a correction would
+	// count the session's hours twice (MATH.md §18).
 	function saveDrainLog(id: number, entry: { hours: number; mind: number; body: number }) {
-		observations.logDrain(id, entry.hours, entry.mind, entry.body);
+		const recordId = drainDrafts[id]?.recordId;
+
+		if (recordId === undefined) {
+			observations.logDrain(id, entry.hours, entry.mind, entry.body);
+		} else {
+			observations.editDrainLog(recordId, id, entry.hours, entry.mind, entry.body);
+		}
+
+		closeDrainLog(id);
+	}
+
+	function deleteDrainLog(id: number, recordId: number) {
+		observations.deleteDrainLog(recordId);
 		closeDrainLog(id);
 	}
 
@@ -240,11 +277,14 @@
 				onflowopen={canLog ? openFlowLog : undefined}
 				onflowclose={canLog ? closeFlowLog : undefined}
 				onlogflow={canLog ? saveFlowLog : undefined}
+				onflowdelete={canLog ? clearFlowLog : undefined}
 				{drainDrafts}
-				{drainMeasured}
+				{drainLogs}
 				ondrainopen={canLog ? openDrainLog : undefined}
-				ondrainclose={canLog ? closeDrainLog : undefined}
-				ondrainsave={canLog ? saveDrainLog : undefined}
+				ondrainclose={closeDrainLog}
+				ondrainsave={saveDrainLog}
+				ondrainedit={editDrainLog}
+				ondraindelete={deleteDrainLog}
 				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
 				form={isViewingPast ? undefined : addTaskForm}
 			/>

@@ -368,32 +368,74 @@ say the same way now:
   ✕) and every editor it opens, including the completion prompt that opens
   both measurements at once. Each screen adds only its readings, through
   `lead` / `meta` / `trailing`. An action is present when its callback is, so a
-  past day passes neither measurement and a read-only row no ✎ or ✕. The two
+  read-only row passes no ✎ or ✕ and a past day none of the **logging** ones.
+  The two
   measurements were one-per-screen until 2026-08-09 and are not any more: both
   models read both fits — ϕ (⚡) feeds the Lab's own curves, and the α, λ₀, §12
   audit and §11.9 carry-over readings all run off 🪫 hours — so each screen was
   withholding an instrument the other's model consumes (ROADMAP item 11).
   **Both editors are open only while the PAGE holds a draft for that task** —
   the shell renders the two forms and owns neither. 🪫 has to be the page's,
-  since the Lab's calibration card opens one from outside the row; ⚡ was the
+  since a chip opens one over a draft the row may already hold; ⚡ was the
   shell's own `$state` until 2026-08-10, and the split is what let the two
   answer the row's own lifecycle differently — ✕ then Undo restores the task
   under its original id (`removeTask`), so the surviving 🪫 draft re-opened
   while the row-local ⚡ one did not. `EditorDraft`, `newEditorDraft`,
-  `DrainDraft` and `newDrainDraft` in `measurement-prompt.ts` are what keep the
+  `DrainDraft`, `newDrainDraft` and `drainDraftFromLog` in
+  `measurement-prompt.ts` are what keep the
   two pages' four records one shape, `completionPromptAction` is the one
-  prompt policy both run, and `EnergyObservationStore.drainMeasuredToday` is
-  the one answer to "is this task rated today" that both screens light 🪫 from.
+  prompt policy both run, and `EnergyObservationStore.drainLogsOn(date)` is
+  the one answer to "what did this task measure that day" that both screens
+  read their chips from.
   A draft whose row leaves the screen is inert (it is keyed by a task nothing
   renders); a deleted task's is not, so ✕ drops both on both screens.
-  What the row has already measured has to read at REST, since the strip is
-  hover-revealed: ⚡ is badged beside the `P · M · E` line (one number per day),
-  and 🪫 cannot be — a task worked twice has two ratings — so it pins the strip
-  open instead and the lit button is what says so.
-- `measurement-form-actions.svelte` — the ✓/✕ that closes ⚡, 🪫 and 😴. It
+- **Each measurement is read, corrected and dropped on the row it belongs to**
+  (2026-08-10). Both had to read at REST — the action strip is hover-revealed,
+  so an unlogged session looked identical to a logged one — and the shapes
+  differ because the quantities do: ⚡ is one number per day and reads as a badge
+  beside the `P · M · E` line, 🪫 is one per session (§8.7) and reads as one chip
+  per rating. Both readings are buttons into their own editor, and both explain
+  themselves through the row's shadcn tooltip, never a native `title`.
+  **One click rule covers the whole strip: a control closes the editor it owns,
+  and otherwise opens its own.** A reading owns the editor seeded from it, so
+  clicking the reading the editor is open on closes it while clicking a different
+  chip switches to that session — the switch arm exists only for 🪫, since ⚡ has
+  one reading, which is why its badge reads as a plain toggle. The 🪫 button owns
+  the APPEND editor (the one with no `recordId`) and nothing else: over a
+  correction it opens a blank one rather than closing a rating the user is
+  amending. Each editor then drops
+  what it opened on (🗑, below), which is the half of each measurement's verbs
+  that lived on the other screen until this change: ⚡ logs were listed with a
+  delete only in `/`'s budget panel, 🪫 ratings only in `/energy`'s calibration
+  card, so logging on the page you were on and correcting it were two different
+  screens. The lists keep what a flat cross-date history is for — reading the
+  whole record, dropping a stale point, resetting a fit — and the card's per-row
+  ✎ is gone: it could only reach today's rows whose task was still listed, a
+  condition the chip removes rather than satisfies. That flat history now has a
+  home of its own: `/analytics` prints every ⚡, 🪫 and ☕ in the viewed range
+  (`log-history.ts` folds the three stores, `log-history-list.svelte` prints
+  them). It **drops but never corrects**, which is the split the lists already
+  made — ✕ on a list, ✎ on the row: a correction says which SESSION it re-rates
+  and re-reads that day's task for its demands, so only the row on the day in
+  question can make one, while a drop is addressed by record id alone. Hence
+  `ondelete(kind, id)` and not `ondelete(id)`: three kinds are three stores with
+  three id sequences (2026-08-10).
+  **A 🪫 correction is offered on any day the page shows, a new rating only
+  today.** `logDrain` stamps the live clock (a rating browsed onto a past day
+  would misdate itself), while `editDrainLog` passes no `date` at all — §5's
+  upsert bullet has the type-level reason. ⚡ has no correction path off today
+  and must not grow one: its measurement is half a session field
+  (`flowMinutes`, persisted with the day) and the autosave deliberately never
+  rewrites a past day, so an amended one would revert on the next load.
+  `SessionStore.clearFlowLog(taskId)` is the row's delete — the same delete as
+  `deleteFlowLog(recordId)`, addressed the way a row can address it — and is
+  today-only for that reason.
+- `measurement-form-actions.svelte` — the ✓/✕/🗑 that closes ⚡, 🪫 and 😴. It
   exists because those three editors were written separately and drifted into
   two different button sizes, one with a hover surface and one without; the
-  instrument's hue on ✓ is the only real difference and is a prop.
+  instrument's hue on ✓ is the only real difference and is a prop. 🗑 is the
+  caller's copy and absent unless it passes one, because what is being dropped
+  differs per editor and a first measurement has nothing to drop.
 - `task-edit-form.svelte` — the editor, on both screens.
 - `task-form-fields.svelte` — the fields both task forms set: the three model
   input sliders (one loop over one table, so their labels, minimums and accents
@@ -1287,11 +1329,18 @@ Each was considered and decided. Re-deciding them is churn.
   rows; the (`taskId`, `date`) upsert this used to do meant a second session
   overwrote the first and vanished from that sum (MATH.md §18). The row's 🪫
   button therefore always opens an EMPTY editor — one more session — while
-  correcting a rating goes through the ✎ beside it in the calibration card and
+  correcting a rating goes through **that rating's own chip** on the row and
   `$editDrainObservation`, which keeps that row's `createdAt`. Re-logging a
   correction would count the session twice. For the same reason the completion
   prompt passes `measured: false`: finishing a task ends a session that an
   earlier rating says nothing about.
+  `$editDrainObservation` takes no `date`, and that is a **type** error rather
+  than a convention because the row now corrects ratings on days it is only
+  viewing (2026-08-10). A correction re-describes a session that already
+  happened, so restamping it with the live clock would take those hours off the
+  day they were worked and credit them to a day nobody worked them — in every
+  per-day sum above, and in §33's causal window. `createdAt` is excluded for the
+  same reason and already was.
 
 - **The energy model is a peer mode, not a candidate to replace the main
   plan** (settled 2026-07-29, MATH.md §15). A 300-day cross-scoring probe:

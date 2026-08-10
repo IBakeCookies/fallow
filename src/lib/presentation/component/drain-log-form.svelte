@@ -9,18 +9,24 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 
 	interface Props {
-		/** Today's rating for this task, when there is one to re-open and amend. */
+		/** The rating this editor opened on, when it opened on a stored one. `recordId` is
+		 *  the tell: with one, ✓ rewrites that session and 🗑 can drop it; without, this
+		 *  is a session being rated for the first time. */
 		seed?: {
+			recordId?: number;
 			minutes: number | null;
 			mind: number | null;
 			body: number | null;
 		};
-		/** Only when the row's own 🪫 button (or the card's ✎) opened this. An editor
+		/** Only when the row's own 🪫 button (or a rating's chip) opened this. An editor
 		 *  that opened itself on completion must not yank the caret out of the list. */
 		focusMinutes?: boolean;
 		/** The end of a session, in the units MATH.md §8.8 fits α from. */
 		onsave: (entry: { hours: number; mind: number; body: number }) => void;
 		oncancel: () => void;
+		/** Drop the session this editor opened on. Offered only for a stored rating —
+		 *  see `seed.recordId`. */
+		ondelete?: () => void;
 	}
 
 	let {
@@ -32,6 +38,7 @@
 		focusMinutes = false,
 		onsave,
 		oncancel,
+		ondelete,
 	}: Props = $props();
 
 	// A copy, read once: typing must not reach the page's draft, since `recordId` on it
@@ -42,8 +49,8 @@
 	// a switched save path. `focusMinutes` below is mount-only for the same reason.
 	//
 	// What must NOT live here is whether the editor is open: the completion prompt
-	// yields to one already on the row, and the calibration card's ✎ opens one from
-	// outside it. Both are the page's to know.
+	// yields to one already on the row, and a chip opens one over a draft the row may
+	// already hold. Both are the page's to know.
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,
@@ -133,6 +140,11 @@
 				<p>{m.energy_drain_body_title()}</p>
 			</Tooltip.Content>
 		</Tooltip.Root>
-		<MeasurementFormActions {oncancel} />
+		<MeasurementFormActions
+			{oncancel}
+			ondelete={draft.recordId === undefined ? undefined : ondelete}
+			deleteLabel={m.energy_delete_drain_log_aria()}
+			deleteTitle={m.energy_delete_drain_log_title()}
+		/>
 	</form>
 </Tooltip.Provider>

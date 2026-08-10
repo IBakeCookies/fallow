@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
@@ -40,13 +41,16 @@
 		onflowopen: (source: EditorSource) => void;
 		onflowclose: () => void;
 		onlogflow: (minutes: number) => void;
+		onflowdelete: () => void;
 		drainDraft?: DrainDraft | null;
-		isDrainMeasured?: boolean;
+		drainLogs?: Persisted<DrainObservationRecord>[];
 		ontoggle: () => void;
 		onremove: () => void;
 		ondrainopen: (source: EditorSource) => void;
 		ondrainclose: () => void;
 		ondrainsave: (entry: { hours: number; mind: number; body: number }) => void;
+		ondrainedit: (log: Persisted<DrainObservationRecord>) => void;
+		ondraindelete: (recordId: number) => void;
 		/** The whole edit ✎ collected — the only way this row changes the task. */
 		onchange: (edit: TaskEdit) => void;
 	}
@@ -65,13 +69,16 @@
 		onflowopen,
 		onflowclose,
 		onlogflow,
+		onflowdelete,
 		drainDraft = null,
-		isDrainMeasured = false,
+		drainLogs = [],
 		ontoggle,
 		onremove,
 		ondrainopen,
 		ondrainclose,
 		ondrainsave,
+		ondrainedit,
+		ondraindelete,
 		onchange,
 	}: Props = $props();
 </script>
@@ -110,11 +117,14 @@
 		{onflowopen}
 		{onflowclose}
 		{onlogflow}
+		{onflowdelete}
 		{drainDraft}
-		{isDrainMeasured}
+		{drainLogs}
 		{ondrainopen}
 		{ondrainclose}
 		{ondrainsave}
+		{ondrainedit}
+		{ondraindelete}
 		onupdate={onchange}
 		{onremove}
 		{lead}

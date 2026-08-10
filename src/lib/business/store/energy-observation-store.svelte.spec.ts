@@ -10,6 +10,7 @@ import type { Persisted, Task, DrainObservationRecord } from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
 	$addDrainObservation: vi.fn(async () => {}),
+	$editDrainObservation: vi.fn(async () => {}),
 	$deleteDrainObservation: vi.fn(async () => {}),
 	$deleteAllDrainObservations: vi.fn(async () => {}),
 	$readAllDrainObservations: vi.fn(async () => []),
@@ -23,6 +24,7 @@ vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 }));
 
 const addDrainMock = vi.mocked(drainObservationRepository.$addDrainObservation);
+const editDrainMock = vi.mocked(drainObservationRepository.$editDrainObservation);
 const readAllDrainMock = vi.mocked(drainObservationRepository.$readAllDrainObservations);
 const createRestMock = vi.mocked(restObservationRepository.$createRestObservation);
 const readAllRestMock = vi.mocked(restObservationRepository.$readAllRestObservations);
@@ -82,6 +84,7 @@ describe('EnergyObservationStore', () => {
 		readAllDrainMock.mockReset().mockResolvedValue([]);
 		readAllRestMock.mockReset().mockResolvedValue([]);
 		addDrainMock.mockReset().mockResolvedValue(undefined);
+		editDrainMock.mockReset().mockResolvedValue(undefined);
 		createRestMock.mockReset().mockResolvedValue(undefined);
 	});
 
@@ -100,6 +103,57 @@ describe('EnergyObservationStore', () => {
 		expect(addDrainMock.mock.calls[0][0]).toMatchObject({
 			date: toISODate(),
 		});
+	});
+
+	// The row corrects a rating on whatever day it is showing, so a correction must
+	// re-describe the session where it happened. Restamping it with the live clock
+	// would move the measurement onto today: the day it was worked loses those hours
+	// and today gains hours nobody worked, in every per-day fit that reads them
+	// (MATH.md §8.7) and in the §33 causal window that scopes plans by date.
+	it('leaves a corrected rating on the day it was logged', async () => {
+		const { store } = await setup();
+
+		await store.editDrainLog(7, 1, 2, 5, 3);
+
+		expect(editDrainMock.mock.calls[0][1]).not.toHaveProperty('date');
+	});
+
+	// One row per session (MATH.md §8.7), so a task can hold several on one day and
+	// the row has to show which is which. Scoped to the day it is asked for, not to
+	// the live clock: the main page renders past days too.
+	it('groups a day’s ratings by task and reads no other day', async () => {
+		readAllDrainMock.mockResolvedValue([
+			drainRecord({
+				id: 1,
+				date: '2026-08-08',
+				taskId: 1,
+			}),
+			drainRecord({
+				id: 2,
+				date: '2026-08-08',
+				taskId: 1,
+				hours: 1,
+			}),
+			drainRecord({
+				id: 3,
+				date: '2026-08-08',
+				taskId: 2,
+			}),
+			drainRecord({
+				id: 4,
+				date: '2026-08-09',
+				taskId: 1,
+			}),
+		]);
+
+		const { store } = await setup();
+		await vi.waitFor(() => expect(store.drainObservations).toHaveLength(4));
+
+		const day = store.drainLogsOn('2026-08-08');
+
+		expect(day.get(1)?.map((log) => log.id)).toEqual([1, 2]);
+		expect(day.get(2)?.map((log) => log.id)).toEqual([3]);
+		expect(store.drainLogsOn('2026-08-10').size).toBe(0);
 	});
 
 	// MATH.md §8.7: the α fit reads the demands off the record, so they have to be
@@ -180,6 +234,37 @@ describe('EnergyObservationStore', () => {
 
 		await vi.waitFor(() => expect(store.drainObservations).toEqual([drainRecord()]));
 		expect(status.error).toBeNull();
+	});
+
+	// A screen listing these logs must not say "nothing logged in this range" over a
+	// read still in flight: an empty array is what loading and an empty history look
+	// like alike, so loaded-ness is a field (AGENTS.md).
+	it('says it is loading until the first read lands', async () => {
+		let landed!: (logs: Persisted<DrainObservationRecord>[]) => void;
+
+		readAllDrainMock.mockReturnValue(
+			new Promise((resolve) => {
+				landed = resolve;
+			}),
+		);
+
+		const { store } = await setup();
+
+		expect(store.isLoading).toBe(true);
+
+		landed([]);
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+	});
+
+	// Otherwise the banner says the read failed while the list beside it is still
+	// promising the logs are on their way.
+	it('stops loading when the first read fails', async () => {
+		readAllDrainMock.mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+		const { store, status } = await setup();
+
+		await vi.waitFor(() => expect(status.error).toBe('load-failed'));
+		expect(store.isLoading).toBe(false);
 	});
 
 	// The other recovery path, and the one only this store can take: a read that

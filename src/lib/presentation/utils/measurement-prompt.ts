@@ -14,6 +14,8 @@
    per day, 🪫 one per session. A predicate is also the only way this gets a unit
    test; the rest of it is a route, where nothing can reach it. */
 
+import type { Persisted, DrainObservationRecord } from '$lib/business/type';
+
 /** How an editor was opened. The caret keys on it: a button press asked for the
  *  editor, so it gets focus; an editor that opened itself must not take it. */
 export type EditorSource = 'button' | 'completion';
@@ -45,8 +47,8 @@ export function completionPromptAction(input: {
 
 /** One open row editor — an open editor IS its draft, so `null` is "closed", and this
  *  is everything a draft carries whichever measurement it asks for. Both are the
- *  PAGE's, keyed by task, on both screens: 🪫 must be, because the Lab's calibration
- *  card opens one from outside the row, and ⚡ is because one owner is what stops the
+ *  PAGE's, keyed by task, on both screens: 🪫 must be, because a chip opens one over a
+ *  draft the row may already hold, and ⚡ is because one owner is what stops the
  *  two answering the row's own lifecycle differently — which is what they did while ⚡
  *  was the row's own state (✕ then undo closed the ⚡ editor and brought the 🪫 one
  *  back). A draft whose row leaves the screen (midnight rollover, visibility re-read)
@@ -66,8 +68,8 @@ export const newEditorDraft = (source: EditorSource): EditorDraft => ({
 	promptedByCompletion: source === 'completion',
 });
 
-/** 🪫's draft carries the session as well, because the calibration card's ✎ opens one
- *  on a STORED rating — the only opening with values to put in the fields. */
+/** 🪫's draft carries the session as well, because a chip opens one on a STORED
+ *  rating — the only opening with values to put in the fields. */
 export type DrainDraft = EditorDraft & {
 	/** The stored rating being corrected, or undefined when this is a new session. */
 	recordId?: number;
@@ -84,6 +86,19 @@ export const newDrainDraft = (source: EditorSource): DrainDraft => ({
 	minutes: null,
 	mind: null,
 	body: null,
+});
+
+/** The correction: a draft over a STORED rating, opened from that rating's own chip on
+ *  the row. `recordId` is what makes ✓ rewrite the session instead of appending a
+ *  second one, so this is the only way to build a draft that carries it — both screens
+ *  offer the chip, and a page spelling the mapping itself is how the two would drift
+ *  about which fields a correction pre-fills. Focused like any button press. */
+export const drainDraftFromLog = (log: Persisted<DrainObservationRecord>): DrainDraft => ({
+	...newEditorDraft('button'),
+	recordId: log.id,
+	minutes: Math.round(log.hours * 60),
+	mind: log.mindDrain,
+	body: log.bodyDrain,
 });
 
 /* The two forms are the same object on screen, and their classes were already

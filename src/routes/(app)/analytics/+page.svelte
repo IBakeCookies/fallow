@@ -9,6 +9,7 @@
 	import MetricTrendChart from '$lib/presentation/component/metric-trend-chart.svelte';
 	import ParamTrend from '$lib/presentation/component/param-trend.svelte';
 	import QuadrantDistribution from '$lib/presentation/component/quadrant-distribution.svelte';
+	import LogHistoryList from '$lib/presentation/component/log-history-list.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
@@ -16,17 +17,27 @@
 	import { adherenceVerdict } from '$lib/presentation/utils/plan-audit-descriptor';
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
+	import { logHistory, type LogKind } from '$lib/presentation/utils/log-history';
 	import { fromISO } from '$lib/business/utils/date';
 	import {
 		ANALYTICS_RANGES,
 		setAnalyticsStore,
 		type AnalyticsRange,
 	} from '$lib/business/store/analytics-store.svelte';
+	import { getSessionStore } from '$lib/business/store/session-store.svelte';
+	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
 	// Everything on this page comes off the store — the folds and the load live
 	// there; this file is the range copy and the composition. Formatting policy
 	// lives in `presentation/utils`, the drawing in the components.
 	const analytics = setAnalyticsStore(() => showToast.danger(m.analytics_load_failed()));
+
+	// The two stores the logs card reads, both built in the (app) layout: ⚡ belongs
+	// to the session (it stamps `flowMinutes` onto the day's task), 🪫 and ☕ to the
+	// measurement store. Nothing is loaded for this card — it is a view of records
+	// the app already holds, which is why the merge is a fold and not a fourth read.
+	const session = getSessionStore();
+	const observations = getEnergyObservationStore();
 
 	/** Every decimal the markup prints is a task spread, to one place. */
 	const oneDecimal = (value: number) => formatDecimals(value, 1, getDateLocale());
@@ -91,6 +102,33 @@
 				}),
 	);
 
+	// Scoped by the same range toggle as every card above, so the history answers
+	// the question the page is already asking. `rangeStart` alone bounds it: a
+	// measurement is stamped with the live clock, so none is ever dated ahead.
+	const logRows = $derived(
+		logHistory({
+			flow: session.flowObservations,
+			drain: observations.drainObservations,
+			rest: observations.restObservations,
+			rangeStart: analytics.rangeStart,
+		}),
+	);
+
+	// Both reads, because the card is one list: either store still in flight would
+	// otherwise show as a range that holds fewer measurements than it does.
+	const areLogsLoading = $derived(session.isLoading || observations.isLoading);
+
+	// Dropping a measurement routes back to the store that owns it — the list merges
+	// three id sequences, so the kind is half the address. No confirm, like the Lab's
+	// per-log ✕: one point out of a fit is not the wholesale reset, which keeps its
+	// two-step. Only ✕ lives here; a correction needs the day's task and belongs on
+	// that day's row (see `log-history-list.svelte`).
+	function deleteLog(kind: LogKind, id: number) {
+		if (kind === 'flow') session.deleteFlowLog(id);
+		else if (kind === 'drain') observations.deleteDrainLog(id);
+		else observations.deleteRestLog(id);
+	}
+
 	const chartPoints = $derived(
 		completionChartPoints({
 			range: analytics.range,
@@ -141,11 +179,12 @@
 			</div>
 		{/each}
 	</div>
-	<!-- Bodies, in the five cards' order. Both charts are a fixed viewBox at
+	<!-- Bodies, in the six cards' order. Both charts are a fixed viewBox at
 	     `w-full`, so their height is a function of the container's width and the
-	     ratio is the only thing that tracks it; the other three are the heights
-	     their content measures. -->
-	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
+	     ratio is the only thing that tracks it; the other four are the heights
+	     their content measures. The logs list is the one whose real height depends
+	     on the user — `h-64` is the cap it stops growing at. -->
+	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33', 'h-64'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			<div class="skeleton-block h-5 w-40"></div>
 			<div class="skeleton-block mt-text-3xs h-4 w-64 max-w-full"></div>
@@ -369,6 +408,20 @@
 					</div>
 				{/each}
 			</div>
+		{/if}
+	</div>
+
+	<!-- The range's raw measurements. Last on the page on purpose: everything above is
+	     a reading of these, so the list is where a figure that looks wrong gets checked
+	     against what was actually logged. -->
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_logs()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_logs_hint()}</p>
+
+		{#if areLogsLoading}
+			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+		{:else}
+			<LogHistoryList rows={logRows} ondelete={deleteLog} />
 		{/if}
 	</div>
 {/if}

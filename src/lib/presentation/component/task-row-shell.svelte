@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import { buttonVariants } from '$lib/presentation/component/ui/button';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
@@ -10,6 +11,7 @@
 	import TaskEditForm from '$lib/presentation/component/task-edit-form.svelte';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import { cn } from '$lib/presentation/utils';
+	import { formatDuration } from '$lib/presentation/utils/duration-format';
 	import {
 		completionPromptAction,
 		type DrainDraft,
@@ -31,8 +33,15 @@
 	   Both measurements are on both rows because both models read both fits: ϕ (⚡)
 	   feeds the Lab's own curves, and the α/λ₀/audit/carry-over readings all run off
 	   🪫 hours, which used to be reachable only from `/energy` — so a user who never
-	   opened the Lab calibrated nothing (ROADMAP item 11). An action is present when
-	   its callback is: a past day passes neither, and a read-only row no ✎ or ✕.
+	   opened the Lab calibrated nothing (ROADMAP item 11). Both are also READ back
+	   here, and corrected here, which is what stopped the two screens each owning half
+	   of one measurement's verbs (2026-08-10): ⚡ as a badge, 🪫 as one chip per rating,
+	   and each editor drops what it opened on.
+
+	   An action is present when its callback is — a read-only row passes no ✎ or ✕, and
+	   a past day none of the LOGGING ones. Correcting is not one of those: a new
+	   observation stamps the live clock's today and would misdate itself onto a day
+	   being read, while a 🪫 correction carries no date at all.
 
 	   Not an <li>: the list is what makes a row one (task-list.svelte, and the Lab
 	   page's rows snippet), and task-list-card.svelte is where the rule between them is
@@ -70,15 +79,24 @@
 		onflowopen?: (source: EditorSource) => void;
 		onflowclose?: () => void;
 		onlogflow?: (minutes: number) => void;
+		/** Absent → the ⚡ editor cannot drop the measurement it opened on. */
+		onflowdelete?: () => void;
 		/** This row's open 🪫 editor, or null. The page owns it too. */
 		drainDraft?: DrainDraft | null;
-		/** A 🪫 rating for this task exists for today. Never "the" rating: a task worked
-		 *  in two sessions has two of them (MATH.md §8.7). */
-		isDrainMeasured?: boolean;
-		/** Absent → no 🪫 action. */
+		/** Every 🪫 rating the viewed day holds for this task — never "the" rating: a task
+		 *  worked in two sessions has two of them (MATH.md §8.7), so this is a list and
+		 *  the row shows one chip each. */
+		drainLogs?: Persisted<DrainObservationRecord>[];
+		/** Absent → no 🪫 action, which is what a day nothing may be logged on passes. */
 		ondrainopen?: (source: EditorSource) => void;
 		ondrainclose?: () => void;
 		ondrainsave?: (entry: { hours: number; mind: number; body: number }) => void;
+		/** Correct one stored rating — the chip's own action. Required, unlike the logging
+		 *  callbacks: a rating is correctable on every day this row can render, so there
+		 *  is no caller that withholds it and no read-only chip to build for. */
+		ondrainedit: (log: Persisted<DrainObservationRecord>) => void;
+		/** Drop the session the 🪫 editor opened on. Required for the same reason. */
+		ondraindelete: (recordId: number) => void;
 		/** Absent → read-only row, which then has no ✎ at all. */
 		onupdate?: (edit: TaskEdit) => void;
 		/** Absent on a read-only row. */
@@ -106,11 +124,14 @@
 		onflowopen,
 		onflowclose,
 		onlogflow,
+		onflowdelete,
 		drainDraft = null,
-		isDrainMeasured = false,
+		drainLogs = [],
 		ondrainopen,
 		ondrainclose,
 		ondrainsave,
+		ondrainedit,
+		ondraindelete,
 		onupdate,
 		onremove,
 		lead,
@@ -158,12 +179,10 @@
 
 	// The strip stays put while any editor it opened is on screen. Without it it fades
 	// out from under a form that is still being filled in — and the button that opened
-	// it is how you close it again. A 🪫 rating pins it for a different reason: it is the
-	// one measurement no row badges, so the lit button is the only thing that says the
-	// session was rated, and a hover-revealed one says it to nobody.
-	const actionsPinned = $derived(
-		flowDraft !== null || drainDraft !== null || editing || isDrainMeasured,
-	);
+	// it is how you close it again. A rated session used to pin it too, back when the
+	// lit 🪫 was the only thing that said so; the chips say it at rest now, so a rating
+	// no longer holds four buttons on screen for the rest of the day.
+	const actionsPinned = $derived(flowDraft !== null || drainDraft !== null || editing);
 </script>
 
 <div
@@ -180,11 +199,15 @@
 			class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
 		/>
 
-		<!-- The completed look dims the task's own identity and nothing else: it used to
-		     sit on the whole row in the Lab, which faded the 🪫 rating that only exists
-		     for a finished session into looking disabled. -->
-		<div class="min-w-0 flex-1" class:opacity-60={completed}>
-			<div class="flex flex-wrap items-center gap-text-xs">
+		<!-- The completed look dims the task's TITLE and nothing else: it used to sit on
+		     the whole row in the Lab, which faded the 🪫 rating that only exists for a
+		     finished session into looking disabled. It sat on this block until the
+		     readings moved into the line below (2026-08-10) and inherited exactly that
+		     fade — so it moved down one level. The whole meta line stays lit, not just
+		     the chips: the readings share a flex row with P·M·E, and dimming half a line
+		     reads as a rendering fault rather than a state. -->
+		<div class="min-w-0 flex-1">
+			<div class="flex flex-wrap items-center gap-text-xs" class:opacity-60={completed}>
 				{@render lead?.()}
 				<h3
 					class:text-ty-silent={completed}
@@ -211,21 +234,69 @@
 					</Tooltip.Content>
 				</Tooltip.Root>
 				{@render meta?.()}
-				<!-- What the row has already measured, at rest: the strip is hover-revealed,
-					     so without this a logged session looks exactly like an unlogged one. ⚡
-					     reads as a badge because it is one number per day; 🪫 cannot — a task
-					     worked twice has two ratings (MATH.md §8.7) — so it pins the strip
-					     instead and the lit 🪫 is what says so. -->
+				<!-- What the row has already measured, at rest: the strip of actions is
+					     hover-revealed, so without this a logged session looks exactly like an
+					     unlogged one. The shapes differ because the quantities do — ⚡ is one
+					     number per day, so one badge; 🪫 is one per session (MATH.md §8.7), so one
+					     chip per rating — but both are readings you can click into their own
+					     editor, and both explain themselves through the row's tooltip rather than
+					     a native title.
+					     One rule for every reading: clicking the one the editor is already open on
+					     CLOSES it, clicking another switches to it. ⚡ is that rule with a single
+					     reading, which is why its badge reads as a plain toggle and opens the same
+					     editor the ⚡ button does; a 🪫 chip is the only control that can say WHICH
+					     session a correction means, so the switch arm only ever fires there. -->
+
 				{#if flowMinutes}
 					<Tooltip.Root>
-						<Tooltip.Trigger class="cursor-help font-medium text-flow">
-							⚡ {flowMinutes}m
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								{#if onflowopen}
+									<button
+										{...props}
+										type="button"
+										onclick={() => (flowDraft ? onflowclose?.() : onflowopen('button'))}
+										aria-label={m.task_edit_flow_log_aria()}
+										class="font-medium text-flow transition hover:text-ty-primary"
+									>
+										⚡ {flowMinutes}m
+									</button>
+								{:else}
+									<span {...props} class="cursor-help font-medium text-flow">
+										⚡ {flowMinutes}m
+									</span>
+								{/if}
+							{/snippet}
 						</Tooltip.Trigger>
 						<Tooltip.Content>
 							<p>{m.task_flow_badge_tooltip()}</p>
 						</Tooltip.Content>
 					</Tooltip.Root>
 				{/if}
+				{#each drainLogs as log (log.id)}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									type="button"
+									onclick={() =>
+										drainDraft?.recordId === log.id ? ondrainclose?.() : ondrainedit(log)}
+									aria-label={m.energy_edit_drain_log_aria()}
+									class="flex items-center gap-text-3xs tabular-nums transition hover:text-ty-primary"
+								>
+									<span class="text-flow">🪫</span>
+									<span>{formatDuration(log.hours)}</span>
+									<span class="font-medium text-mind/90">M{log.mindDrain}</span>
+									<span class="font-medium text-body/90">B{log.bodyDrain}</span>
+								</button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.energy_edit_drain_log_title()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/each}
 			</div>
 		</div>
 
@@ -255,15 +326,24 @@
 				{/if}
 
 				<!-- Deliberately NOT hidden on a completed task: finishing one is the
-				     commonest way a session ends, and rating it is what the button is for. -->
+				     commonest way a session ends, and rating it is what the button is for.
+				     It closes only the editor it OWNS — the one with no `recordId`, i.e. a new
+				     session. Over a correction it opens a blank one instead, because "one more
+				     session" is what this button means, and a button that sometimes closes a
+				     chip's editor instead would answer for a reading it does not name. Either
+				     way the amendment goes: the blank draft replaces it. The chip it belongs
+				     to is what closes it. -->
 				{#if ondrainopen}
 					<Tooltip.Root>
 						<Tooltip.Trigger
 							class={cn(
 								ROW_ACTION_CLASS,
-								isDrainMeasured || drainDraft ? 'text-flow' : 'text-ty-silent hover:text-flow',
+								drainLogs.length > 0 || drainDraft ? 'text-flow' : 'text-ty-silent hover:text-flow',
 							)}
-							onclick={() => (drainDraft ? ondrainclose?.() : ondrainopen('button'))}
+							onclick={() =>
+								drainDraft && drainDraft.recordId === undefined
+									? ondrainclose?.()
+									: ondrainopen('button')}
 							aria-label={m.energy_log_drain_aria()}
 						>
 							🪫
@@ -315,8 +395,8 @@
 	     three stack, so completing a task can ask both measurements at once. -->
 	<!-- Both keyed on the draft itself, which is what makes `seed` and `focusMinutes`
 	     mean what they say: both are read at MOUNT, and the page can replace a draft
-	     while its editor is open — the Lab's calibration card ✎ re-seeds an already-open
-	     row with a stored rating. Unkeyed, the 🪫 fields kept the old draft while
+	     while its editor is open — a 🪫 chip re-seeds an already-open row with the
+	     stored rating it stands for. Unkeyed, the 🪫 fields kept the old draft while
 	     `recordId` switched the save path from "append a session" to "edit that record",
 	     so ✓ overwrote a stored rating with whatever happened to be typed. Every opening
 	     assigns a fresh object, so identity change is exactly "a new opening"; reading
@@ -328,17 +408,20 @@
 				focusMinutes={flowDraft.focusMinutes}
 				onsave={onlogflow}
 				oncancel={() => onflowclose?.()}
+				ondelete={onflowdelete}
 			/>
 		{/key}
 	{/if}
 
 	{#if drainDraft && ondrainsave}
 		{#key drainDraft}
+			{@const recordId = drainDraft.recordId}
 			<DrainLogForm
 				seed={drainDraft}
 				focusMinutes={drainDraft.focusMinutes}
 				onsave={ondrainsave}
 				oncancel={() => ondrainclose?.()}
+				ondelete={recordId === undefined ? undefined : () => ondraindelete(recordId)}
 			/>
 		{/key}
 	{/if}

@@ -15,9 +15,12 @@
 		focusMinutes?: boolean;
 		onsave: (minutes: number) => void;
 		oncancel: () => void;
+		/** Drop the measurement this editor opened on. Offered only when there IS one:
+		 *  the caller passes it unconditionally and the seed is what decides. */
+		ondelete?: () => void;
 	}
 
-	let { seed = null, focusMinutes = false, onsave, oncancel }: Props = $props();
+	let { seed = null, focusMinutes = false, onsave, oncancel, ondelete }: Props = $props();
 
 	// A copy, read once — same contract as drain-log-form.svelte: a fresh draft per
 	// opening is a fresh MOUNT, which is the caller's promise to keep, not this
@@ -50,5 +53,10 @@
 			class={MEASUREMENT_MINUTES_CLASS}
 		/>
 	</label>
-	<MeasurementFormActions {oncancel} />
+	<MeasurementFormActions
+		{oncancel}
+		ondelete={seed === null ? undefined : ondelete}
+		deleteLabel={m.budget_delete_log_aria()}
+		deleteTitle={m.budget_delete_log_title()}
+	/>
 </form>

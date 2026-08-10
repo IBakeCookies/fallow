@@ -9,11 +9,11 @@ import {
 } from '$lib/data/repository/drain-observation-repository';
 import type { DrainObservationRecord } from '$lib/data/type';
 
-function observation(
-	overrides: Partial<DrainObservationRecord> = {},
-): Omit<DrainObservationRecord, 'id' | 'createdAt'> {
+/** What a correction may set — everything but the keys that identify the session. */
+type DrainRating = Omit<DrainObservationRecord, 'id' | 'createdAt' | 'date'>;
+
+function rating(overrides: Partial<DrainRating> = {}): DrainRating {
 	return {
-		date: '2026-01-01',
 		taskId: 1,
 		taskTitle: 'Write tests',
 		hours: 2,
@@ -22,6 +22,17 @@ function observation(
 		mindDrain: 6,
 		bodyDrain: 2,
 		...overrides,
+	};
+}
+
+function observation(
+	overrides: Partial<DrainObservationRecord> = {},
+): Omit<DrainObservationRecord, 'id' | 'createdAt'> {
+	const { date = '2026-01-01', ...ratingOverrides } = overrides;
+
+	return {
+		date,
+		...rating(ratingOverrides),
 	};
 }
 
@@ -105,8 +116,7 @@ describe('drain-observation-repository', () => {
 
 		await $editDrainObservation(
 			target.id!,
-			observation({
-				date: '2026-01-05',
+			rating({
 				mindDrain: 5,
 			}),
 		);
@@ -119,10 +129,39 @@ describe('drain-observation-repository', () => {
 		expect(edited?.createdAt).toBe(loggedAt);
 	});
 
+	// The row's ✎ corrects a rating on whatever day it is showing, so `date` is not
+	// the caller's to pass: restamping it would move a measurement onto a day the
+	// user never worked that session, which every fit reads back per day (§8.7) and
+	// the §33 causal window scopes plans by.
+	it('keeps a corrected rating on its own day', async () => {
+		await $addDrainObservation(
+			observation({
+				date: '2026-01-07',
+				mindDrain: 3,
+			}),
+		);
+
+		// `id!`: a repository read is unsanitized, and the key IndexedDB just
+		// assigned is what an edit addresses.
+		const target = (await $readAllDrainObservations()).find((r) => r.date === '2026-01-07')!;
+
+		await $editDrainObservation(
+			target.id!,
+			rating({
+				mindDrain: 7,
+			}),
+		);
+
+		const edited = (await $readAllDrainObservations()).find((r) => r.id === target.id);
+
+		expect(edited?.date).toBe('2026-01-07');
+		expect(edited?.mindDrain).toBe(7);
+	});
+
 	it('ignores an edit to a row that is gone', async () => {
 		const before = await $readAllDrainObservations();
 
-		await $editDrainObservation(9999, observation());
+		await $editDrainObservation(9999, rating());
 
 		expect(await $readAllDrainObservations()).toHaveLength(before.length);
 	});
