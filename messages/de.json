@@ -88,6 +88,8 @@
 	"task_derived_tooltip": "Was das Fallow-Modell aus deinen Reglern ableitet: wahrer Aufwand E (1–5), Zeit bis zum Flow-Zustand ϕ und die optimale Stoppzeit, ab der die durchschnittliche Produktivität sinkt. Je besser Fallow deine Flow-Zeiten kennt, desto näher liegt diese Zeit am 1,52- bis 1,79-Fachen von ϕ; je unsicherer die Schätzung, desto früher — bei einer von der ersten Minute an produktiven Aufgabe sogar vor ϕ.",
 	"task_flow_badge_tooltip": "Gemessene Minuten bis zum Flow, die du für diese Aufgabe protokolliert hast — solche Datenpunkte personalisieren die Konstanten c₁,c₂,c₃ des Modells (Kleinste-Quadrate-Fit)",
 	"task_allocation_tooltip": "Vorgeschlagene Zeitzuteilung für heute und der Prioritätswert der Aufgabe (intrinsischer Wert × 10), der sie bestimmt",
+	"next_up_label": "Als Nächstes",
+	"next_up_tooltip": "Hier weitermachen: die erste Aufgabe der Reihenfolge, die aus den heute erfassten Stunden neu geplant wurde. Das #1-Abzeichen in der Liste darunter gehört zur Tagesplanung und bleibt die Antwort von heute Morgen. Es sagt nie, dass du für heute aufhören sollst — das bewertet der Stopp-Berater im Energie-Labor.",
 	"task_remaining_spend": "{hours} aufwenden",
 	"task_remaining_tooltip": "Von den {left}, die heute noch offen sind, würde das Modell diesen Anteil jetzt in diese Aufgabe stecken — neu geplant aus den erfassten Stunden, sodass eine bereits bearbeitete Aufgabe ihren Anlaufbonus nicht erneut erhält und eine über ihrem Stopppunkt nichts mehr bekommt. Es ist Zeit ZUSÄTZLICH zum bereits Geleisteten. Die Tagesplanung ist ein eigener Wert und ändert sich beim Arbeiten nicht.",
 	"task_plan_hours": "Plan {hours}",

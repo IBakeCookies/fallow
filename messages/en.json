@@ -88,6 +88,8 @@
 	"task_derived_tooltip": "What the Fallow model derived from your sliders: true effort E (1–5), time to reach flow state ϕ, and the optimal stopping time beyond which average productivity declines. The better Fallow knows your flow times, the closer that time sits to 1.52–1.79×ϕ; the less sure it is, the earlier it stops — for a task that is productive from the first minute, even before ϕ.",
 	"task_flow_badge_tooltip": "Measured minutes-to-flow you logged for this task — data points like this personalize the model's c₁,c₂,c₃ constants (least-squares fit)",
 	"task_allocation_tooltip": "Suggested time allocation for today, and the task's priority score (intrinsic value × 10) that drives it",
+	"next_up_label": "Next",
+	"next_up_tooltip": "Where to pick up now: first in the run order re-planned from the hours you have logged today. The #1 badge in the list below is the whole-day plan's order and stays the answer it was this morning. It never tells you to stop for the day — the Energy Lab's stop advisor is what prices that.",
 	"task_remaining_spend": "spend {hours}",
 	"task_remaining_tooltip": "Of the {left} still unspent today, this is what the model would spend on this task now — re-planned from the hours you have logged, so a task you already worked no longer collects its start-up bonus and one past its stopping time is offered nothing. It is time to spend ON TOP of what you have done. Your whole-day plan is a separate reading and does not change as you work.",
 	"task_plan_hours": "plan {hours}",

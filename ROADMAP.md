@@ -191,17 +191,28 @@ row. Neither needs a new solve.
     Cost measured at **12.4 ms**/solve at n = 12 and **0.001 ms** when nothing is
     logged, which is what makes the gate rather than an on-demand method viable.
     No new store, no new input beyond 11, no `DB_VERSION` bump.
-13. **"You are here" on the run order** — one line on `/` naming the task the
-    next 15 minutes are worth most on. It must **label position 1 of the
-    re-planned run order**, not an independent `argmax Δᵢ(1)`: subset
-    enumeration plus switch cost can disagree with the best single increment,
-    and two definitions of "next" is the R3 failure. The run order is already
-    next-up scoped and already re-forms on completion
-    (`daily-metrics.ts:133`) — what it lacks is awareness of hours worked,
-    which 12 supplies. It must never say "stop for the day": the classic
-    objective prices no leisure (§14.1), so day-ending stays λ₀ and §8.11. No
-    independent plan value; it is 12's user-visible surface and the reason to
-    open the app at 2pm. **Prereq:** 12.
+13. ~~**"You are here" on the run order**~~ — SHIPPED 2026-08-10 (MATH.md §35).
+    `RemainingDay.nextTask` is position 1 of `calculateInterleavedOrder` over the
+    funded remainder; `next-up-line.svelte` renders it above the list on `/`. It
+    labels, it does not recompute — `argmax Δᵢ(1)` is a different task, because
+    the allocator buys a funded _subset_ under a switch bill and two pools, and
+    two definitions of "next" is the R3 failure this item named. No new solve, no
+    store change: 12's `$derived` already had the allocations.
+    **The set it sequences is `hoursByTask`, not the candidate set** — the
+    accounting share of a task ticked done without a log is solved and never
+    reported (§35), so naming it would send the user back to work they just
+    finished. It never says "stop for the day", as specified.
+    **One caveat is written down rather than fixed** (§35): the alternation has
+    no memory of what was just worked, so the line can open with cognitive work a
+    moment after three hours of it were logged. The morning `#N` badges have the
+    same blind spot — hidden there because the sequence is read whole and the
+    previous task is the row above. The instrument to fix it exists (a 🪫 log
+    carries a task id), but conditioning position 1 on the last session is a
+    change to §16's heuristic and needs §16's probe re-run, not a patch.
+    The one code change outside the reading: `calculateInterleavedOrder` is now
+    generic over what it actually reads — two difficulties, hours, a rank — so
+    the remainder can be sequenced without mirroring `SuggestedTask`'s priority
+    formula. Its five existing callers are untouched.
 14. **Executed capacity burn-down** — "55 min of cognitive capacity left today"
     instead of an 8am percentage. `Σ (demandᵈ/10 · hoursWorked) / poolᵈ` from
     the logs' snapshotted demands — the same quantity 12 needs to deplete pools

@@ -20,6 +20,7 @@
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
+	import NextUpLine from '$lib/presentation/component/next-up-line.svelte';
 	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
@@ -224,6 +225,11 @@
 
 	<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
 		<div class="space-y-grid-lg lg:col-span-2">
+			<!-- Absent all morning and on any day but today: the re-plan is null until
+			     today has 🪫 hours, and the plan below is the whole answer until then. -->
+			{#if plan.remainingDay?.nextTask}
+				<NextUpLine title={plan.remainingDay.nextTask.title} />
+			{/if}
 			<TaskList
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
