@@ -77,6 +77,23 @@
 		// carries it visually reads as its own name or nothing at all.
 		await expect(canvas.getByText('Session rating')).toHaveClass('sr-only');
 
+		// The two measurements a task's row can correct link to the day that holds them —
+		// which is where a correction can say WHICH session it re-rates. ☕ belongs to no
+		// row, so its day is a date and nothing to open.
+		await expect(
+			canvas.getByRole('link', {
+				name: /Open 2026-08-09 to correct/,
+			}),
+		).toHaveAttribute('href', '/?date=2026-08-09');
+
+		await expect(
+			canvas.getByRole('link', {
+				name: /Open 2026-08-08 to correct/,
+			}),
+		).toHaveAttribute('href', '/?date=2026-08-08');
+
+		await expect(canvas.getAllByRole('link')).toHaveLength(2);
+
 		// 🪫 rates a session on one task; ☕ is a break, worked on nothing.
 		await expect(printed[1]).toHaveTextContent('writing');
 		await expect(printed[1]).toHaveTextContent('1h 30m');

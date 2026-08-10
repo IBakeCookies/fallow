@@ -3,7 +3,7 @@
 	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 	import { cn } from '$lib/presentation/utils';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
-	import LogList from '$lib/presentation/component/log-list.svelte';
+	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 
 	interface Props {
 		availableHours: number;
@@ -22,7 +22,6 @@
 		/** whether the viewed day's tasks can be measured at all — false off today,
 		 *  where the prompt would point at a button no task renders */
 		canLog?: boolean;
-		ondeletelog?: (id: number) => void;
 		onresetlogs?: () => void;
 		// Collapsed, the whole bar is one line carrying every constraint the plan
 		// reads. These are occasional-use inputs and the plan below them is what
@@ -44,7 +43,6 @@
 		flowLogs = [],
 		pendingFlowLogs = 0,
 		canLog = true,
-		ondeletelog,
 		onresetlogs,
 		isOpen = false,
 	}: Props = $props();
@@ -272,38 +270,17 @@
 		</div>
 
 		<div class="mt-text-lg border-t border-line-soft pt-box-sm">
-			<LogList
+			<FitLogSummary
 				label={modelStatus}
 				title={m.budget_model_tooltip()}
-				items={flowLogs}
+				count={flowLogs.length}
 				confirmLabel={m.budget_reset_confirm({
 					count: flowLogs.length,
 				})}
 				resetLabel={m.budget_reset_personalization()}
 				resetTitle={m.budget_reset_title()}
 				onreset={onresetlogs}
-			>
-				{#snippet row(log)}
-					<span class="truncate">
-						<span class="text-ty-silent">{log.date}</span>
-						<span class="capitalize"> · {log.taskTitle}</span>
-					</span>
-					<span class="flex shrink-0 items-center gap-text-xs">
-						<span class="font-medium text-flow/90">⚡ {Math.round(log.phiHours * 60)}m</span>
-						{#if ondeletelog}
-							<button
-								type="button"
-								aria-label={m.budget_delete_log_aria()}
-								title={m.budget_delete_log_title()}
-								class="text-ty-silent transition hover:text-danger"
-								onclick={() => ondeletelog(log.id)}
-							>
-								✕
-							</button>
-						{/if}
-					</span>
-				{/snippet}
-			</LogList>
+			/>
 		</div>
 	{/if}
 </div>

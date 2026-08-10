@@ -259,7 +259,6 @@
 				flowLogs={session.flowObservations}
 				pendingFlowLogs={session.pendingFlowLogCount}
 				{canLog}
-				ondeletelog={(id) => session.deleteFlowLog(id)}
 				onresetlogs={() => session.resetFlowLogs()}
 				isOpen={session.loadedDate !== null && session.availableHours <= 0}
 			/>

@@ -170,13 +170,8 @@ test('resetting personalization reverts to the default constants', async ({ page
 	await logFlow(page, 90);
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 
-	// The log list is collapsed until its status line is clicked.
-	await page
-		.getByRole('button', {
-			name: /1 ⚡ logged today/,
-		})
-		.click();
-
+	// The card states the fit and offers its two verbs directly: since 2026-08-10 it
+	// lists no logs, so there is nothing to expand first.
 	await page
 		.getByRole('button', {
 			name: 'Reset personalization',
@@ -194,24 +189,29 @@ test('resetting personalization reverts to the default constants', async ({ page
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
-test('a single flow log is deletable from the list', async ({ page }) => {
+/* Dropping one bad point moved to /analytics with the listing itself (2026-08-10): the
+   three calibration cards each listed their own kind, so none could show a neighbouring
+   kind or a day outside its own fit. Crossing the two screens is the test: the ✕ there
+   has to reach the fit here, which is the whole reason the reading lives in one place. */
+test('a single flow log is deletable from the analytics history', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 	await logFlow(page, 90);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/analytics');
 
 	await page
 		.getByRole('button', {
-			name: /1 ⚡ logged today/,
+			name: /^Delete Time to flow logged on/,
 		})
 		.click();
 
-	await page
-		.getByRole('button', {
-			name: 'Delete this flow log',
-		})
-		.click();
+	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
 
+	await page.goto('/');
 	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
+	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
 /* Re-tuning a task after it is added is a different path from creating one: the

@@ -692,9 +692,8 @@ export class SessionStore {
 	 * what its editor opens on. Minutes rather than `phiHours` because minutes is
 	 * the unit the measurement is taken and shown in; hours is the fit's (MATH.md
 	 * §2), and this converts between them the way `logFlow`'s `minutes / 60` does
-	 * backwards. The budget panel's flat ⚡ list spells the same conversion inline
-	 * (`day-constraints-bar.svelte`) because it prints records across days rather
-	 * than one day's readings — the two meet when that list moves to `/analytics`.
+	 * backwards — the only two places either direction is spelled, since the budget
+	 * panel stopped printing ⚡ records of its own (2026-08-10).
 	 *
 	 * Takes the day for the reason `drainLogsOn` does: the main page renders any
 	 * date, and a row must show the measurement of the day it is showing. It used

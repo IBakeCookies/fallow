@@ -37,15 +37,14 @@
 			planSlackHours: 0,
 			constantsFitted: true,
 			flowLogs,
-			ondeletelog: fn(),
 			onresetlogs: fn(),
 			isOpen: true,
 		},
 	});
 </script>
 
-<!-- Expanded: all four inputs with switch cost in minutes, and the log list
-     newest-first with per-row deletion and a two-step reset. -->
+<!-- Expanded: all four inputs with switch cost in minutes, and the ϕ fit's own summary
+     line — what it read, a link to the logs on /analytics, and a two-step reset. -->
 <Story
 	name="Open"
 	play={async ({ args, canvas, userEvent }) => {
@@ -84,29 +83,13 @@
 
 		await expect(canvas.getByLabelText('Switch Cost (per task change)')).toHaveValue(20);
 
-		// A healthy fit is stated inside, as the log-list toggle; the list opens
-		// newest-first with the measured flow minutes.
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: /Model personalized from 3 time-to-flow logs/,
-			}),
-		);
+		// A healthy fit is stated inside, beside the two verbs a fit has: read the logs
+		// it used (on /analytics, which prints every kind of log dated — this card lists
+		// none of them since 2026-08-10) and un-personalize it.
+		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
 
-		await expect(canvas.getByText('· boxing')).toBeVisible();
-		await expect(canvas.getByText('⚡ 30m')).toBeVisible();
-		const titles = canvas.getAllByRole('listitem').map((li) => li.textContent);
-		expect(titles[0]).toContain('inbox');
-		expect(titles[2]).toContain('boxing');
-
-		// The list is newest-first, so the first ✕ belongs to log id 3.
-		await userEvent.click(
-			canvas.getAllByRole('button', {
-				name: 'Delete this flow log',
-			})[0],
-		);
-
-		await expect(args.ondeletelog).toHaveBeenCalledOnce();
-		await expect(args.ondeletelog).toHaveBeenCalledWith(3);
+		await expect(canvas.getByRole('link')).toHaveAttribute('href', '/analytics');
+		await expect(canvas.queryByRole('listitem')).not.toBeInTheDocument();
 
 		// All logs reset only after confirmation.
 		await userEvent.click(
@@ -225,7 +208,7 @@
 />
 
 <!-- The healthy-fit status has a singular form; it too stays quiet while
-     collapsed and is stated inside as the log-list toggle. -->
+     collapsed and is stated inside, on the fit's own summary line. -->
 <Story
 	name="A single log"
 	args={{

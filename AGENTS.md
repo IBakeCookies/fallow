@@ -408,16 +408,23 @@ say the same way now:
   that lived on the other screen until this change: ⚡ logs were listed with a
   delete only in `/`'s budget panel, 🪫 ratings only in `/energy`'s calibration
   card, so logging on the page you were on and correcting it were two different
-  screens. The lists keep what a flat cross-date history is for — reading the
-  whole record, dropping a stale point, resetting a fit — and the card's per-row
-  ✎ is gone: it could only reach today's rows whose task was still listed, a
-  condition the chip removes rather than satisfies. That flat history now has a
-  home of its own: `/analytics` prints every ⚡, 🪫 and ☕ in the viewed range
-  (`log-history.ts` folds the three stores, `log-history-list.svelte` prints
-  them). It **drops but never corrects**, which is the split the lists already
-  made — ✕ on a list, ✎ on the row: a correction says which SESSION it re-rates
-  and re-reads that day's task for its demands, so only the row on the day in
-  question can make one, while a drop is addressed by record id alone. Hence
+  screens. The card's per-row ✎ went first: it could only reach today's rows whose
+  task was still listed, a condition the chip removes rather than satisfies. Then
+  the listing itself went (2026-08-10). **One screen lists logs: `/analytics`**,
+  which prints every ⚡, 🪫 and ☕ in the viewed range (`log-history.ts` folds the
+  three stores, `log-history-list.svelte` prints them). Three cards each listing
+  their own kind was three partial answers to "what have I logged" — none could
+  show a neighbouring kind or a day outside its own fit — so what stayed with each
+  card is the two verbs a FIT has rather than a measurement:
+  read what it was fitted from, and un-personalize it
+  (`fit-log-summary.svelte`, which is `log-list.svelte` narrowed to those two,
+  keeping its two-step reset and that reset's focus handling).
+  The history **drops but never corrects**, and links to the correction: ✕ on the
+  list, ✎ on the row — a correction says which SESSION it re-rates and re-reads
+  that day's task for its demands, so only the row on the day in question can make
+  one, while a drop is addressed by record id alone. A ⚡ or 🪫 row's date is
+  therefore a link to `/?date=<that day>`, where the badge and the chips open it
+  prefilled; ☕ belongs to no row and gets none. Hence
   `ondelete(kind, id)` and not `ondelete(id)`: three kinds are three stores with
   three id sequences (2026-08-10).
   **Both corrections are offered on any day the page shows, a new measurement

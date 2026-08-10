@@ -141,9 +141,11 @@ row. Neither needs a new solve.
     and, being per-rating, is what let correcting and deleting one move onto the
     row it belongs to on both screens (AGENTS.md R3) — and, on 2026-08-10, let the
     cross-date reading the chips cannot give move to `/analytics`, which now prints
-    every ⚡, 🪫 and ☕ in the viewed range as one dated list, each droppable: the
-    row corrects, the list drops, the Lab resets, and this answers "what did I
-    log". ⚡ joined 🪫 in being correctable on a PAST day the same week: the badge
+    every ⚡, 🪫 and ☕ in the viewed range as one dated list, each droppable and
+    each ⚡/🪫 row linking to its own day: the row corrects, the list drops, the
+    card resets, and this answers "what did I log". The three calibration cards
+    stopped listing their own kind the same day — three partial answers to one
+    question — and kept the fit's two verbs (`fit-log-summary.svelte`). ⚡ joined 🪫 in being correctable on a PAST day the same week: the badge
     reads the day's own observation instead of a `flowMinutes` field on its
     session, so an amendment lands somewhere the auto-save is not asked to
     rewrite, and the field is gone. The ✓/✕ pair likewise has one owner
