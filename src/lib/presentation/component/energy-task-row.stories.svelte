@@ -17,9 +17,12 @@
 			color: 'var(--series-1)',
 			plannedHours: 1.75,
 			isDrainMeasured: false,
+			flowDraft: null,
 			drainDraft: null,
 			ontoggle: fn(),
 			onremove: fn(),
+			onflowopen: fn(),
+			onflowclose: fn(),
 			onlogflow: fn(),
 			ondrainopen: fn(),
 			ondrainclose: fn(),
@@ -62,11 +65,10 @@
 		await expect(args.ontoggle).toHaveBeenCalledOnce();
 
 		// Ticking a task off ends the session both measurements describe, so it asks
-		// both. ⚡'s editor is the row's own and opens here; 🪫's draft belongs to the
-		// page, so the row reports the prompt and this story's mock never answers it —
-		// which is why no 🪫 editor appears below.
+		// both. Both drafts belong to the page, so the row reports the two prompts and
+		// this story's mocks never answer them — which is why no editor appears below.
+		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith('completion');
 		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith('completion');
-		await expect(canvas.getByText('⚡ Minutes to reach flow:')).toBeInTheDocument();
 
 		await userEvent.click(
 			canvas.getByRole('button', {

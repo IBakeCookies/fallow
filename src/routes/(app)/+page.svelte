@@ -11,7 +11,9 @@
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
 		newDrainDraft,
+		newEditorDraft,
 		type DrainDraft,
+		type EditorDraft,
 		type EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
@@ -50,12 +52,19 @@
 	// the prompt never points at a button no task renders.
 	const canLog = $derived(selectedDate === today);
 
-	// The open 🪫 editors, by task — one per row, like ⚡: ticking two tasks off ends two
-	// sessions, and each gets its prompt. Owned here rather than by the row for the
-	// reason in `DrainDraft`, and shaped exactly like the Lab's so the two screens
-	// cannot drift apart again. A draft whose row is gone (delete, date change, midnight
-	// rollover) is inert: it is keyed by that task and nothing else reads it.
+	// The open editors, by task — one of each per row: ticking two tasks off ends two
+	// sessions, and each gets its prompts. Owned here rather than by the row for the
+	// reason in `EditorDraft`, and shaped exactly like the Lab's so the two screens
+	// cannot drift apart again.
+	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
+
+	const openFlowLog = (id: number, source: EditorSource) =>
+		(flowDrafts[id] = newEditorDraft(source));
+
+	const closeFlowLog = (id: number) => {
+		delete flowDrafts[id];
+	};
 
 	const openDrainLog = (id: number, source: EditorSource) =>
 		(drainDrafts[id] = newDrainDraft(source));
@@ -64,9 +73,23 @@
 		delete drainDrafts[id];
 	};
 
+	// A draft whose row leaves the screen (date change, midnight rollover) is inert,
+	// since it is keyed by that task — but ✕ is not one of those: the undo puts the task
+	// back under its original id, so a surviving draft would re-open with it.
+	function removeTask(id: number) {
+		closeFlowLog(id);
+		closeDrainLog(id);
+		removeTaskWithUndo(session, id);
+	}
+
 	// Correcting a rating is the Lab's calibration card, which is where the day's ratings
 	// are listed; this screen only adds sessions.
 	const drainMeasured = $derived(observations.drainMeasuredToday);
+
+	function saveFlowLog(id: number, minutes: number) {
+		session.logFlow(id, minutes);
+		closeFlowLog(id);
+	}
 
 	function saveDrainLog(id: number, entry: { hours: number; mind: number; body: number }) {
 		observations.logDrain(id, entry.hours, entry.mind, entry.body);
@@ -206,8 +229,11 @@
 				runOrder={daily.runOrder}
 				remainingDay={plan.remainingDay}
 				ontoggle={(id) => session.toggleTask(id)}
-				onremove={isViewingPast ? undefined : (id) => removeTaskWithUndo(session, id)}
-				onlogflow={canLog ? (id, minutes) => session.logFlow(id, minutes) : undefined}
+				onremove={isViewingPast ? undefined : removeTask}
+				{flowDrafts}
+				onflowopen={canLog ? openFlowLog : undefined}
+				onflowclose={canLog ? closeFlowLog : undefined}
+				onlogflow={canLog ? saveFlowLog : undefined}
 				{drainDrafts}
 				{drainMeasured}
 				ondrainopen={canLog ? openDrainLog : undefined}

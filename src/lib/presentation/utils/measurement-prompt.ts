@@ -43,31 +43,47 @@ export function completionPromptAction(input: {
 	return input.promptOpenForThisTask ? 'withdraw' : 'none';
 }
 
-/** One open 🪫 editor. Owned by the PAGE rather than the row on both screens, because
- *  the Lab's calibration card opens one from outside the row — and a draft whose row
- *  is gone (delete, midnight rollover, visibility re-read) is inert, since it is keyed
- *  by that task and nothing else reads it. */
-export type DrainDraft = {
-	/** The stored rating being corrected, or undefined when this is a new session. */
-	recordId?: number;
-	minutes: number | null;
-	mind: number | null;
-	body: number | null;
+/** One open row editor — an open editor IS its draft, so `null` is "closed", and this
+ *  is everything a draft carries whichever measurement it asks for. Both are the
+ *  PAGE's, keyed by task, on both screens: 🪫 must be, because the Lab's calibration
+ *  card opens one from outside the row, and ⚡ is because one owner is what stops the
+ *  two answering the row's own lifecycle differently — which is what they did while ⚡
+ *  was the row's own state (✕ then undo closed the ⚡ editor and brought the 🪫 one
+ *  back). A draft whose row leaves the screen (midnight rollover, visibility re-read)
+ *  is inert, since it is keyed by that task; a DELETED task's is not, because the undo
+ *  restores it under its original id — so ✕ drops both drafts on both screens. */
+export type EditorDraft = {
 	/** Whether the caret goes to the editor — see `EditorSource`. */
 	focusMinutes: boolean;
 	/** Opened by the completion prompt, so un-completing withdraws it again. */
 	promptedByCompletion: boolean;
 };
 
+/** ⚡ asks for one number the row already reads today's value of, so its draft is the
+ *  policy above and nothing else: the editor seeds itself from the row. */
+export const newEditorDraft = (source: EditorSource): EditorDraft => ({
+	focusMinutes: source === 'button',
+	promptedByCompletion: source === 'completion',
+});
+
+/** 🪫's draft carries the session as well, because the calibration card's ✎ opens one
+ *  on a STORED rating — the only opening with values to put in the fields. */
+export type DrainDraft = EditorDraft & {
+	/** The stored rating being corrected, or undefined when this is a new session. */
+	recordId?: number;
+	minutes: number | null;
+	mind: number | null;
+	body: number | null;
+};
+
 /** A draft for a new session. Always empty, never seeded from an earlier rating: each
  *  🪫 log describes one session (MATH.md §18), so prefilling the last one invites
  *  re-saving hours the day already counts. Corrections seed their own draft. */
 export const newDrainDraft = (source: EditorSource): DrainDraft => ({
+	...newEditorDraft(source),
 	minutes: null,
 	mind: null,
 	body: null,
-	focusMinutes: source === 'button',
-	promptedByCompletion: source === 'completion',
 });
 
 /* The two forms are the same object on screen, and their classes were already

@@ -373,11 +373,19 @@ say the same way now:
   models read both fits — ϕ (⚡) feeds the Lab's own curves, and the α, λ₀, §12
   audit and §11.9 carry-over readings all run off 🪫 hours — so each screen was
   withholding an instrument the other's model consumes (ROADMAP item 11).
-  The ⚡ editor is the shell's own state; the 🪫 draft is the PAGE's, because
-  the Lab's calibration card opens one from outside the row. `DrainDraft` and
-  `newDrainDraft` in `measurement-prompt.ts` are what keep the two pages'
-  copies one shape, and `EnergyObservationStore.drainMeasuredToday` is the one
-  answer to "is this task rated today" that both screens light 🪫 from.
+  **Both editors are open only while the PAGE holds a draft for that task** —
+  the shell renders the two forms and owns neither. 🪫 has to be the page's,
+  since the Lab's calibration card opens one from outside the row; ⚡ was the
+  shell's own `$state` until 2026-08-10, and the split is what let the two
+  answer the row's own lifecycle differently — ✕ then Undo restores the task
+  under its original id (`removeTask`), so the surviving 🪫 draft re-opened
+  while the row-local ⚡ one did not. `EditorDraft`, `newEditorDraft`,
+  `DrainDraft` and `newDrainDraft` in `measurement-prompt.ts` are what keep the
+  two pages' four records one shape, `completionPromptAction` is the one
+  prompt policy both run, and `EnergyObservationStore.drainMeasuredToday` is
+  the one answer to "is this task rated today" that both screens light 🪫 from.
+  A draft whose row leaves the screen is inert (it is keyed by a task nothing
+  renders); a deleted task's is not, so ✕ drops both on both screens.
   What the row has already measured has to read at REST, since the strip is
   hover-revealed: ⚡ is badged beside the `P · M · E` line (one number per day),
   and 🪫 cannot be — a task worked twice has two ratings — so it pins the strip
@@ -791,10 +799,11 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `autofocus`.** The attribute is inert on any node inserted after load (the
   document's autofocus-processed flag), so all three editors that used it — ⚡,
   🪫, ☕ — silently never focused. The attachment also makes the choice
-  conditional, which matters where an editor opens itself: `task-row-shell.svelte`
-  opens both measurement editors on task completion and deliberately does NOT
-  focus either, so ticking tasks off with the keyboard cannot yank the caret
-  into a number field.
+  conditional, which matters where an editor opens itself: completing a task
+  asks for both measurements (`task-row-shell.svelte` reports the two prompts,
+  the page opens them) and a draft opened by the prompt leaves `focusMinutes`
+  false, so ticking tasks off with the keyboard cannot yank the caret into a
+  number field.
 - **A `DropdownMenu.Item` never contains a focusable child, and an input inside
   menu content stops the keys it needs.** Two separate bits-ui facts, both of
   which shipped as mouse-only UI in the header's routine rows. First: the menu's

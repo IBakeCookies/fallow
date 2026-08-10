@@ -6,7 +6,11 @@
 	import TaskRowShell from '$lib/presentation/component/task-row-shell.svelte';
 	import { natureBadge, type TaskNature } from '$lib/presentation/utils/task-nature';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
-	import type { DrainDraft, EditorSource } from '$lib/presentation/utils/measurement-prompt';
+	import type {
+		DrainDraft,
+		EditorDraft,
+		EditorSource,
+	} from '$lib/presentation/utils/measurement-prompt';
 
 	/* The main page's reading of a task: what the allocator made of it — priority, its
 	   share of the day, run order, T*. The row's frame, checkbox, action strip and every
@@ -44,6 +48,9 @@
 		mustDoToday?: boolean;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
+		flowDraft?: EditorDraft | null;
+		onflowopen?: (id: number, source: EditorSource) => void;
+		onflowclose?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
 		drainDraft?: DrainDraft | null;
 		isDrainMeasured?: boolean;
@@ -72,6 +79,9 @@
 		mustDoToday = false,
 		ontoggle,
 		onremove,
+		flowDraft = null,
+		onflowopen,
+		onflowclose,
 		onlogflow,
 		drainDraft = null,
 		isDrainMeasured = false,
@@ -164,23 +174,14 @@
 					</Tooltip.Content>
 				</Tooltip.Root>
 				<Tooltip.Root>
-					<!-- The plan figure only when it differs from the delta above: printing
-					     the same duration twice reads as a display bug. It is NOT a claim
-					     that nothing changed — the two coincide both on a task nobody
-					     touched and on one worked 30m whose day just grew, and this row
-					     cannot tell those apart (it is handed no per-task worked hours).
-					     So the duplicate is what is dropped, never the line. -->
 					<Tooltip.Trigger class="block cursor-help text-2xs text-ty-silent">
-						{#if remaining.taskHours !== suggestedHours}
-							{formatDuration(suggestedHours)} ·
-						{/if}
+						{formatDuration(suggestedHours)} ·
+
 						{m.task_priority({
 							score: priorityScore,
 						})}
 					</Tooltip.Trigger>
 					<Tooltip.Content>
-						<!-- The tooltip follows the line: with the duplicate dropped there is no
-						     allocation on screen for the allocation tooltip to be describing. -->
 						<p>
 							{remaining.taskHours === suggestedHours
 								? m.task_priority_tooltip()
@@ -191,8 +192,6 @@
 			</div>
 		{:else}
 			<Tooltip.Root>
-				<!-- Spans, not divs: the trigger renders a <button>, whose content model is
-				     phrasing content only. -->
 				<Tooltip.Trigger class="cursor-help text-right">
 					<span class="block text-sm font-semibold text-ty-primary">
 						{formatDuration(suggestedHours)}
@@ -221,6 +220,9 @@
 		{mustDoToday}
 		ontoggle={() => ontoggle(id)}
 		{flowMinutes}
+		{flowDraft}
+		onflowopen={onflowopen && ((source) => onflowopen(id, source))}
+		onflowclose={onflowclose && (() => onflowclose(id))}
 		onlogflow={onlogflow && ((minutes) => onlogflow(id, minutes))}
 		{drainDraft}
 		{isDrainMeasured}

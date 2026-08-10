@@ -106,6 +106,55 @@ test('a deleted task comes back from the undo toast', async ({ page }) => {
 	await expect(row).toBeVisible();
 });
 
+/* The row's editors are the PAGE's state, keyed by task id, and the undo restores the
+   task under its ORIGINAL id (`removeTask`) — so a draft the ✕ left behind is reachable
+   again, and comes back as an editor nobody opened. Both measurements in one test:
+   they are two paints of one editor policy and must not drift apart. */
+test('undo brings a deleted task back with no editor open', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Throwaway');
+
+	const row = page.locator('li').filter({
+		hasText: 'Throwaway',
+	});
+
+	await row
+		.getByRole('button', {
+			name: 'Log time to flow',
+		})
+		.click();
+
+	await row
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.click();
+
+	await expect(page.getByText('⚡ Minutes to reach flow:')).toBeVisible();
+	await expect(page.getByText('🪫 After the session:')).toBeVisible();
+
+	await row
+		.getByRole('button', {
+			name: 'Delete task',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Undo',
+		})
+		.click();
+
+	await expect(
+		page.getByRole('checkbox', {
+			name: 'Mark Throwaway complete',
+		}),
+	).toBeVisible();
+
+	await expect(page.getByText('⚡ Minutes to reach flow:')).toHaveCount(0);
+	await expect(page.getByText('🪫 After the session:')).toHaveCount(0);
+});
+
 // ROADMAP items 15 and 24. Only an e2e covers the whole path this feature is: a
 // stored day, the history read the store boots with, and the form that offers it
 // back as you type.

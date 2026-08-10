@@ -5,23 +5,24 @@
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import X from '@lucide/svelte/icons/x';
-	import MeasurementFormActions from '$lib/presentation/component/measurement-form-actions.svelte';
 	import DrainLogForm from '$lib/presentation/component/drain-log-form.svelte';
+	import FlowLogForm from '$lib/presentation/component/flow-log-form.svelte';
 	import TaskEditForm from '$lib/presentation/component/task-edit-form.svelte';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import { cn } from '$lib/presentation/utils';
 	import {
 		completionPromptAction,
-		MEASUREMENT_FORM_CLASS,
-		MEASUREMENT_MINUTES_CLASS,
 		type DrainDraft,
+		type EditorDraft,
 		type EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 
 	/* Everything the two task rows say the same way: the frame and its hover surface,
 	   the completion checkbox, the title, the three model inputs under it, the action
 	   strip that appears on hover — ⚡, 🪫, ✎ and ✕, which mean the same thing on both
-	   screens — and the editors they open below. Each screen fills the slots from its
+	   screens — and the editors that hang below it. ⚡ and 🪫 report rather than toggle:
+	   an editor is on screen while the page holds a draft for this row (`EditorDraft`),
+	   and ✎'s is the one that is this component's own. Each screen fills the slots from its
 	   own reading of the task: `/` adds priority, T* and its allocation, the Lab adds
 	   the schedule's hue and hours. That difference is the ONLY reason there are two
 	   components; if the two readings ever converge, merge the callers rather than
@@ -60,11 +61,16 @@
 		 *  consequence on screen. The seed still carries the stored value through. */
 		withMustDoToday?: boolean;
 		ontoggle: () => void;
-		/** Today's ⚡ time-to-flow, when one is measured. */
+		/** Today's ⚡ time-to-flow, when one is measured — the badge, and what the editor
+		 *  opens on. */
 		flowMinutes?: number;
+		/** This row's open ⚡ editor, or null. The page owns it — see `EditorDraft`. */
+		flowDraft?: EditorDraft | null;
 		/** Absent → no ⚡ action. */
+		onflowopen?: (source: EditorSource) => void;
+		onflowclose?: () => void;
 		onlogflow?: (minutes: number) => void;
-		/** This row's open 🪫 editor, or null. The page owns it — see `DrainDraft`. */
+		/** This row's open 🪫 editor, or null. The page owns it too. */
 		drainDraft?: DrainDraft | null;
 		/** A 🪫 rating for this task exists for today. Never "the" rating: a task worked
 		 *  in two sessions has two of them (MATH.md §8.7). */
@@ -96,6 +102,9 @@
 		withMustDoToday = true,
 		ontoggle,
 		flowMinutes,
+		flowDraft = null,
+		onflowopen,
+		onflowclose,
 		onlogflow,
 		drainDraft = null,
 		isDrainMeasured = false,
@@ -109,41 +118,24 @@
 		trailing,
 	}: Props = $props();
 
-	// Inline "log time-to-flow" editor (⚡): feeds the c₁,c₂,c₃ personalization. Local,
-	// unlike the 🪫 draft: nothing outside the row opens one.
-	let loggingFlow = $state(false);
-	let flowMinutesInput = $state<number | null>(null);
-	// How the editor was opened, which decides two things. The caret: auto-opening must
-	// not move it, or ticking tasks off with the keyboard lands it in a number field
-	// nobody asked for. And the close: un-completing withdraws a question completion
-	// asked, but must not discard an editor the user opened. Focus cannot be an
-	// `autofocus` attribute — the document's autofocus-processed flag is set at load, so
-	// it is inert on any node inserted afterwards, which is every editor in this app.
-	// Only meaningful while `loggingFlow`; every read is gated on it.
-	let flowSource = $state<EditorSource>('button');
-
 	// Inline task editor (✎): re-tune the task after it is added. It stacks with the
 	// measurement editors rather than replacing them — they answer different questions,
 	// and closing one to open another discarded a draft nobody asked to throw away.
+	// Local, unlike the two measurement drafts: it neither outlives the row (the task it
+	// edits is the row) nor opens from anywhere else.
 	let editing = $state(false);
-
-	function openFlowLog(source: EditorSource) {
-		flowMinutesInput = flowMinutes ?? null;
-		flowSource = source;
-		loggingFlow = true;
-	}
 
 	// Completing a task is the one moment the user still knows both how long the ramp-up
 	// took and how spent they are. `completed` is a prop, so this reads the value BEFORE
-	// the parent flips it. Both questions are asked; each keeps its own policy, and the
-	// only difference is `measured` — ⚡ is one number per day, 🪫 one per session, so an
-	// earlier rating silences the first and never the second (MATH.md §18).
+	// the parent flips it. Both questions are asked, off one predicate and one shape of
+	// draft; the only difference is `measured` — ⚡ is one number per day, 🪫 one per
+	// session, so an earlier rating silences the first and never the second (§18).
 	function onCompletionChange() {
 		const flowAction = completionPromptAction({
 			finishing: !completed,
 			measured: Boolean(flowMinutes),
-			editorOpenOnThisRow: loggingFlow,
-			promptOpenForThisTask: loggingFlow && flowSource === 'completion',
+			editorOpenOnThisRow: flowDraft !== null,
+			promptOpenForThisTask: flowDraft?.promptedByCompletion ?? false,
 		});
 
 		const drainAction = completionPromptAction({
@@ -155,22 +147,13 @@
 
 		ontoggle();
 
-		if (flowAction === 'open' && onlogflow) openFlowLog('completion');
+		if (flowAction === 'open') onflowopen?.('completion');
 
-		if (flowAction === 'withdraw') loggingFlow = false;
+		if (flowAction === 'withdraw') onflowclose?.();
 
 		if (drainAction === 'open') ondrainopen?.('completion');
 
 		if (drainAction === 'withdraw') ondrainclose?.();
-	}
-
-	function saveFlowLog() {
-		const minutes = Number(flowMinutesInput);
-
-		if (!minutes || minutes <= 0 || !onlogflow) return;
-
-		onlogflow(minutes);
-		loggingFlow = false;
 	}
 
 	// The strip stays put while any editor it opened is on screen. Without it it fades
@@ -178,7 +161,9 @@
 	// it is how you close it again. A 🪫 rating pins it for a different reason: it is the
 	// one measurement no row badges, so the lit button is the only thing that says the
 	// session was rated, and a hover-revealed one says it to nobody.
-	const actionsPinned = $derived(loggingFlow || drainDraft !== null || editing || isDrainMeasured);
+	const actionsPinned = $derived(
+		flowDraft !== null || drainDraft !== null || editing || isDrainMeasured,
+	);
 </script>
 
 <div
@@ -251,14 +236,14 @@
 					? 'opacity-100'
 					: 'hover-reveal'}"
 			>
-				{#if onlogflow}
+				{#if onflowopen}
 					<Tooltip.Root>
 						<Tooltip.Trigger
 							class={cn(
 								ROW_ACTION_CLASS,
-								flowMinutes || loggingFlow ? 'text-flow' : 'text-ty-silent hover:text-flow',
+								flowMinutes || flowDraft ? 'text-flow' : 'text-ty-silent hover:text-flow',
 							)}
-							onclick={() => (loggingFlow ? (loggingFlow = false) : openFlowLog('button'))}
+							onclick={() => (flowDraft ? onflowclose?.() : onflowopen('button'))}
 							aria-label={m.task_log_flow_aria()}
 						>
 							⚡
@@ -328,35 +313,25 @@
 	<!-- The editors, under the row rather than inside its flex line: the strip has no
 	     room for a label, and an unlabelled number field is what nobody understood. All
 	     three stack, so completing a task can ask both measurements at once. -->
-	{#if loggingFlow && onlogflow}
-		<form class={MEASUREMENT_FORM_CLASS} onsubmit={(e) => (e.preventDefault(), saveFlowLog())}>
-			<label class="flex items-center gap-grid-2xs">
-				<span class="text-ty-secondary">{m.task_flow_form_title()}</span>
-				<input
-					type="number"
-					min="1"
-					max="960"
-					placeholder={m.task_minutes_placeholder()}
-					{@attach (node) => {
-						if (flowSource === 'button') node.focus();
-					}}
-					bind:value={flowMinutesInput}
-					required
-					class={MEASUREMENT_MINUTES_CLASS}
-				/>
-			</label>
-			<MeasurementFormActions oncancel={() => (loggingFlow = false)} />
-		</form>
-	{/if}
-
-	<!-- Keyed on the draft itself, which is what makes `seed` and `focusMinutes` mean
-	     what they say: both are read at MOUNT, and the page can replace a draft while
-	     its editor is open — the Lab's calibration card ✎ re-seeds an already-open row
-	     with a stored rating. Unkeyed, the fields kept the old draft while `recordId`
-	     switched the save path from "append a session" to "edit that record", so ✓
-	     overwrote a stored rating with whatever happened to be typed. Every opening
+	<!-- Both keyed on the draft itself, which is what makes `seed` and `focusMinutes`
+	     mean what they say: both are read at MOUNT, and the page can replace a draft
+	     while its editor is open — the Lab's calibration card ✎ re-seeds an already-open
+	     row with a stored rating. Unkeyed, the 🪫 fields kept the old draft while
+	     `recordId` switched the save path from "append a session" to "edit that record",
+	     so ✓ overwrote a stored rating with whatever happened to be typed. Every opening
 	     assigns a fresh object, so identity change is exactly "a new opening"; reading
 	     the proxy's reference subscribes to no property, so typing cannot retrigger it. -->
+	{#if flowDraft && onlogflow}
+		{#key flowDraft}
+			<FlowLogForm
+				seed={flowMinutes ?? null}
+				focusMinutes={flowDraft.focusMinutes}
+				onsave={onlogflow}
+				oncancel={() => onflowclose?.()}
+			/>
+		{/key}
+	{/if}
+
 	{#if drainDraft && ondrainsave}
 		{#key drainDraft}
 			<DrainLogForm
