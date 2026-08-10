@@ -43,6 +43,8 @@ export type ReadTasks = () => Task[];
 export class EnergyObservationStore {
 	#drainObservations = $state<Persisted<DrainObservationRecord>[]>([]);
 	#restObservations = $state<Persisted<RestObservationRecord>[]>([]);
+	/** Whether the first read is still in flight — see the getter. */
+	#isLoading = $state(true);
 
 	#readTasks: ReadTasks;
 	#reporter: StorageReporter;
@@ -85,6 +87,10 @@ export class EnergyObservationStore {
 		} catch (e) {
 			logError('Failed to load energy observations', e);
 			this.#reporter.report('load-failed');
+		} finally {
+			// Also on the failing path: the banner already says the read failed, and a
+			// list still promising "loading" beside it contradicts it.
+			this.#isLoading = false;
 		}
 	}
 
@@ -93,25 +99,52 @@ export class EnergyObservationStore {
 		this.#load();
 	}
 
+	/**
+	 * Whether the first read is still in flight. A screen that LISTS the logs needs
+	 * it: both arrays read empty until the read lands, so "nothing logged" and "not
+	 * read yet" are the same value, and only this says which. The fits do not — an
+	 * unfitted parameter and a fitted one are already different states.
+	 *
+	 * Stays false through `retryLoad()`: a re-read replaces logs the screen is
+	 * already showing, and flipping it back would blank them to say so.
+	 */
+	get isLoading() {
+		return this.#isLoading;
+	}
+
 	get drainObservations() {
 		return this.#drainObservations;
 	}
 
 	/**
-	 * Which tasks carry a 🪫 rating for today — never "the" rating: a task worked in
-	 * two sessions has two (MATH.md §8.7), so this is membership and nothing more.
-	 * Owned here because `logDrain` is what stamps the date, and because both screens
-	 * light the same button from it; asking it twice is how the two drift.
+	 * One day's 🪫 ratings, per task — never "the" rating: a task worked in two
+	 * sessions has two (MATH.md §8.7), and the row shows them individually because
+	 * picking one is how a correction says which session it means. Owned here rather
+	 * than folded by each page, because both screens read it and asking it twice is
+	 * how the two drift.
 	 *
-	 * A plain `Set`, not a `SvelteSet`: it is rebuilt on every read from `$state`
-	 * observations, so the reactivity is already the array's — a reactive Set here
+	 * Takes the day rather than reading the live clock: the main page renders any
+	 * date, and a row must show the ratings of the day it is showing. Writes still
+	 * stamp `liveToday` — this store has no notion of a viewed day and must not.
+	 *
+	 * A plain `Map`, not a `SvelteMap`: it is rebuilt on every read from `$state`
+	 * observations, so the reactivity is already the array's — a reactive Map here
 	 * would be a second source of truth for a value nothing mutates in place.
 	 */
-	get drainMeasuredToday(): ReadonlySet<number> {
-		const today = liveToday.value;
-
+	drainLogsOn(date: string): ReadonlyMap<number, Persisted<DrainObservationRecord>[]> {
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived, never mutated
-		return new Set(this.#drainObservations.filter((o) => o.date === today).map((o) => o.taskId));
+		const byTask = new Map<number, Persisted<DrainObservationRecord>[]>();
+
+		for (const log of this.#drainObservations) {
+			if (log.date !== date) continue;
+
+			const logs = byTask.get(log.taskId);
+
+			if (logs) logs.push(log);
+			else byTask.set(log.taskId, [log]);
+		}
+
+		return byTask;
 	}
 
 	get restObservations() {
@@ -158,6 +191,10 @@ export class EnergyObservationStore {
 	// because appending a corrected copy would count the session twice — the
 	// row IS the session now (MATH.md §18). Demands are re-captured from the
 	// task as they are on a fresh log: a correction is a re-rating.
+	//
+	// It passes no `date`: unlike a fresh log, a correction re-describes a session
+	// that already happened, so it stays on the day it was logged even when that day
+	// is not today — which the main page's row can now reach.
 	async editDrainLog(recordId: number, id: number, hours: number, mind: number, body: number) {
 		const task = this.#readTasks().find((t) => t.id === id);
 
@@ -165,7 +202,6 @@ export class EnergyObservationStore {
 
 		try {
 			await drainObservationRepository.$editDrainObservation(recordId, {
-				date: liveToday.value,
 				taskId: id,
 				taskTitle: task.title,
 				hours,

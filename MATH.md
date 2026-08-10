@@ -4368,7 +4368,7 @@ arithmetic.
   `readFinishedDays` already computed. §8.7 is unchanged and gets cleaner
   data — each row is one session, so the fresh-start approximation applies per
   row as written. Correcting a rating is `$editDrainObservation` on that row
-  (the ✎ beside it in the calibration card), which keeps its original
+  (its own chip on the task's row, on either screen), which keeps its original
   `createdAt`; re-logging a correction would count the session twice, which is
   the same defect from the other side. One reader did NOT already sum:
   §11.9's `seedMorningReservoirs` passed one demand entry per log keyed by
@@ -4393,7 +4393,7 @@ arithmetic.
 
 **What the UI had to learn.** Per-session rows make two of its habits wrong.
 The 🪫 editor no longer prefills the last rating and no longer re-saves it:
-the row's button starts a session, and a ✎ on each stored rating corrects that
+the row's button starts a session, and a chip per stored rating corrects that
 one in place — without it, the typo correction the old upsert served would
 double-count the session, which is this defect from the other side. And the
 completion prompt now passes `measured: false`, because finishing a task ends

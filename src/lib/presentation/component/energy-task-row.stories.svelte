@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import EnergyTaskRow from '$lib/presentation/component/energy-task-row.svelte';
 
 	const { Story } = defineMeta({
@@ -16,7 +17,7 @@
 			mustDoToday: false,
 			color: 'var(--series-1)',
 			plannedHours: 1.75,
-			isDrainMeasured: false,
+			drainLogs: [],
 			flowDraft: null,
 			drainDraft: null,
 			ontoggle: fn(),
@@ -24,11 +25,28 @@
 			onflowopen: fn(),
 			onflowclose: fn(),
 			onlogflow: fn(),
+			onflowdelete: fn(),
 			ondrainopen: fn(),
 			ondrainclose: fn(),
 			ondrainsave: fn(),
+			ondrainedit: fn(),
+			ondraindelete: fn(),
 			onchange: fn(),
 		},
+	});
+
+	const drainLog = (over: Partial<Persisted<DrainObservationRecord>> = {}) => ({
+		id: 11,
+		date: '2026-08-10',
+		taskId: 1,
+		taskTitle: 'write the calibration section',
+		hours: 0.75,
+		cognitiveDemand: 0.8,
+		physicalDemand: 0.2,
+		mindDrain: 6,
+		bodyDrain: 2,
+		createdAt: 0,
+		...over,
 	});
 </script>
 
@@ -132,14 +150,15 @@
 </Story>
 
 <!-- Finished, and rated: the optimizer no longer plans it, so its hours go rather
-     than read "no hours" as a verdict — and the 🪫 stays lit -->
+     than read "no hours" as a verdict — and the rating reads on the row, in the Lab
+     exactly as on the main page, so a session is never rated invisibly. -->
 <Story
 	name="Completed and rated"
 	args={{
 		completed: true,
-		isDrainMeasured: true,
+		drainLogs: [drainLog()],
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.queryByText('1h 45m')).not.toBeInTheDocument();
 		await expect(canvas.queryByText('no hours')).not.toBeInTheDocument();
 
@@ -148,6 +167,20 @@
 				name: 'Log end-of-session drain',
 			}),
 		).toBeInTheDocument();
+
+		// The chip corrects that session — the verb this row had to leave for the
+		// calibration card below it until 2026-08-10.
+		const chip = canvas.getByRole('button', {
+			name: 'Correct this drain rating',
+		});
+
+		// And it is not inside the completed dim: a rating only EXISTS for a finished
+		// session, so the one state that always shows it must not grey it out.
+		await expect(chip.closest('.opacity-60')).toBeNull();
+
+		await userEvent.click(chip);
+
+		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(drainLog());
 	}}
 >
 	{#snippet template(args)}
@@ -205,12 +238,15 @@
 	{/snippet}
 </Story>
 
-<!-- The 🪫 editor open under the row, seeded with today's rating -->
+<!-- The 🪫 editor open under the row, on a stored rating: `recordId` is what makes ✓ a
+     correction, and it is also what puts 🗑 in the editor — the two verbs a rating needs
+     are both here now, on the row the session belongs to. -->
 <Story
 	name="Rating the session"
 	args={{
-		isDrainMeasured: true,
+		drainLogs: [drainLog()],
 		drainDraft: {
+			recordId: 11,
 			minutes: 45,
 			mind: 6,
 			body: 2,
@@ -219,7 +255,7 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
-		// Seeded with what was already logged today, not blank
+		// Seeded with what was already logged, not blank
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
 
 		// ✓ reports the amended session through the row, in hours
@@ -234,6 +270,14 @@
 			mind: 6,
 			body: 2,
 		});
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Delete this drain rating',
+			}),
+		);
+
+		await expect(args.ondraindelete).toHaveBeenCalledExactlyOnceWith(11);
 	}}
 >
 	{#snippet template(args)}

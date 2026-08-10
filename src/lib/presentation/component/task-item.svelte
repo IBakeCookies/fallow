@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Badge } from '$lib/presentation/component/ui/badge';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
@@ -54,11 +55,16 @@
 		onflowopen?: (id: number, source: EditorSource) => void;
 		onflowclose?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
+		onflowdelete?: (id: number) => void;
 		drainDraft?: DrainDraft | null;
-		isDrainMeasured?: boolean;
+		drainLogs?: Persisted<DrainObservationRecord>[];
 		ondrainopen?: (id: number, source: EditorSource) => void;
 		ondrainclose?: (id: number) => void;
 		ondrainsave?: (id: number, entry: { hours: number; mind: number; body: number }) => void;
+		/** Required, unlike the logging callbacks: a rating stays correctable on every day
+		 *  this row renders — see `task-row-shell.svelte`. */
+		ondrainedit: (id: number, log: Persisted<DrainObservationRecord>) => void;
+		ondraindelete: (id: number, recordId: number) => void;
 		onupdate?: (id: number, changes: TaskEdit) => void;
 	}
 
@@ -85,11 +91,14 @@
 		onflowopen,
 		onflowclose,
 		onlogflow,
+		onflowdelete,
 		drainDraft = null,
-		isDrainMeasured = false,
+		drainLogs = [],
 		ondrainopen,
 		ondrainclose,
 		ondrainsave,
+		ondrainedit,
+		ondraindelete,
 		onupdate,
 	}: Props = $props();
 
@@ -241,11 +250,14 @@
 		onflowopen={onflowopen && ((source) => onflowopen(id, source))}
 		onflowclose={onflowclose && (() => onflowclose(id))}
 		onlogflow={onlogflow && ((minutes) => onlogflow(id, minutes))}
+		onflowdelete={onflowdelete && (() => onflowdelete(id))}
 		{drainDraft}
-		{isDrainMeasured}
+		{drainLogs}
 		ondrainopen={ondrainopen && ((source) => ondrainopen(id, source))}
 		ondrainclose={ondrainclose && (() => ondrainclose(id))}
 		ondrainsave={ondrainsave && ((entry) => ondrainsave(id, entry))}
+		ondrainedit={(log) => ondrainedit(id, log)}
+		ondraindelete={(recordId) => ondraindelete(id, recordId)}
 		onupdate={onupdate && ((edit) => onupdate(id, edit))}
 		onremove={onremove && (() => onremove(id))}
 		{lead}

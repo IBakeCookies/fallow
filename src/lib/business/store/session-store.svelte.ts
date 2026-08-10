@@ -748,6 +748,20 @@ export class SessionStore {
 		}
 	}
 
+	// Drop the ⚡ measurement a row is showing. The same delete as above, addressed
+	// the way a row can address it — by its task — since the row has no record id and
+	// (taskId, date) is what the log is keyed by anyway. Today's, because ⚡ is
+	// today-only in both directions: the badge it clears lives in the day's session
+	// record, and the auto-save deliberately never rewrites a past day, so a cleared
+	// badge there would be back on the next load.
+	async clearFlowLog(id: number) {
+		const record = this.#flowObservations.find((o) => o.taskId === id && o.date === this.#today);
+
+		if (!record) return;
+
+		await this.deleteFlowLog(record.id);
+	}
+
 	// Delete all measured data points → model reverts to the article defaults.
 	async resetFlowLogs() {
 		try {

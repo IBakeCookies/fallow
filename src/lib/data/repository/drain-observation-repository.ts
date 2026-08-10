@@ -42,12 +42,18 @@ export async function $addDrainObservation(
  * instrument a future circadian modulation fit would condition on (MATH.md
  * §8.3) — and refreshing it on a next-morning fix would shift it by hours.
  *
+ * `date` is out of the payload for the same reason, and it is a type error
+ * rather than a convention because the caller now corrects ratings on days it
+ * is only viewing: every fit reads these hours per day (§8.7) and §33 scopes a
+ * plan by date, so restamping one would take hours off the day it was worked
+ * and credit them to a day nobody worked them.
+ *
  * A missing id is a no-op: the row can be deleted from the same card the
  * editor was opened from.
  */
 export async function $editDrainObservation(
 	id: number,
-	observation: Omit<DrainObservationRecord, 'id' | 'createdAt'>,
+	observation: Omit<DrainObservationRecord, 'id' | 'createdAt' | 'date'>,
 ): Promise<void> {
 	await withStore('drainObservations', 'readwrite', (store) => {
 		const existing = store.get(id);

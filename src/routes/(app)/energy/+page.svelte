@@ -6,6 +6,7 @@
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
+		drainDraftFromLog,
 		newDrainDraft,
 		newEditorDraft,
 		type DrainDraft,
@@ -137,8 +138,8 @@
 	// The open editors, by task. One of each per row — ticking off two tasks ends two
 	// sessions, and each gets its prompts. The fields are the two form components' to
 	// collect and the prompt policy is the row shell's; what stays here is which task
-	// each draft belongs to, because the calibration card's ✎ opens one from outside
-	// the row. Same shape as the main page's, from the same module.
+	// each draft belongs to, since a draft outlives the row it is keyed by. Same shape as
+	// the main page's, from the same module.
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
@@ -151,6 +152,11 @@
 
 	function saveFlowLog(taskId: number, minutes: number) {
 		session.logFlow(taskId, minutes);
+		closeFlowLog(taskId);
+	}
+
+	function clearFlowLog(taskId: number) {
+		session.clearFlowLog(taskId);
 		closeFlowLog(taskId);
 	}
 
@@ -167,31 +173,23 @@
 		removeTaskWithUndo(session, taskId);
 	}
 
-	const drainMeasured = $derived(observations.drainMeasuredToday);
+	// This route is today-only — a dated URL redirects (`energy/+page.ts`) — so the rows
+	// read the live day and nothing else can be on screen.
+	const drainLogs = $derived(observations.drainLogsOn(session.today));
 
 	const openDrainLog = (taskId: number, source: EditorSource) =>
 		(drainDrafts[taskId] = newDrainDraft(source));
 
-	// The other way in: the ✎ on a rating in the calibration card, which re-opens THAT
-	// session in its task's editor. Only offered for today's rows whose task is still
-	// on the list, because the editor lives in the task row — a rating outlives its task
-	// (and the day it was logged on), and those stay delete-only.
-	function editDrainLog(log: Persisted<DrainObservationRecord>) {
-		drainDrafts[log.taskId] = {
-			recordId: log.id,
-			minutes: Math.round(log.hours * 60),
-			mind: log.mindDrain,
-			body: log.bodyDrain,
-			focusMinutes: true,
-			promptedByCompletion: false,
-		};
-	}
-
-	const editableDrainLog = (log: Persisted<DrainObservationRecord>) =>
-		log.date === session.today && tasks.some((t) => t.id === log.taskId);
+	// The other way in: a 🪫 chip on the row, which re-opens THAT session's rating. It
+	// used to be the ✎ beside the rating in the calibration card below, which could only
+	// reach today's rows whose task was still listed — the editor lives in the row, and a
+	// rating outlives both its task and its day. The chip is on the row it belongs to, so
+	// that whole condition is gone rather than merely satisfied.
+	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
+		(drainDrafts[taskId] = drainDraftFromLog(log));
 
 	// The rating itself is the editor's to validate; whether it is a new session or a
-	// correction is the page's, because only the draft remembers which ✎ opened it.
+	// correction is the page's, because only the draft remembers which chip opened it.
 	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
 		const recordId = drainDrafts[taskId]?.recordId;
 
@@ -201,6 +199,11 @@
 			observations.editDrainLog(recordId, taskId, entry.hours, entry.mind, entry.body);
 		}
 
+		closeDrainLog(taskId);
+	}
+
+	function deleteDrainLog(taskId: number, recordId: number) {
+		observations.deleteDrainLog(recordId);
 		closeDrainLog(taskId);
 	}
 
@@ -275,7 +278,7 @@
 				color={colors.colorOf(task.id)}
 				plannedHours={plannedFor(task.id)}
 				flowMinutes={task.flowMinutes}
-				isDrainMeasured={drainMeasured.has(task.id)}
+				drainLogs={drainLogs.get(task.id) ?? []}
 				flowDraft={flowDrafts[task.id] ?? null}
 				drainDraft={drainDrafts[task.id] ?? null}
 				ontoggle={() => session.toggleTask(task.id)}
@@ -283,9 +286,12 @@
 				onflowopen={(source) => openFlowLog(task.id, source)}
 				onflowclose={() => closeFlowLog(task.id)}
 				onlogflow={(minutes) => saveFlowLog(task.id, minutes)}
+				onflowdelete={() => clearFlowLog(task.id)}
 				ondrainopen={(source) => openDrainLog(task.id, source)}
 				ondrainclose={() => closeDrainLog(task.id)}
 				ondrainsave={(entry) => saveDrainLog(task.id, entry)}
+				ondrainedit={(log) => editDrainLog(task.id, log)}
+				ondraindelete={(recordId) => deleteDrainLog(task.id, recordId)}
 				onchange={(edit) => session.updateTask(task.id, edit)}
 			/>
 		</li>
@@ -663,20 +669,11 @@
 												<span class="text-ty-silent">{formatDuration(log.hours)}</span>
 												<span class="font-medium text-mind/90">M{log.mindDrain}</span>
 												<span class="font-medium text-body/90">B{log.bodyDrain}</span>
-												<!-- Correcting a rating, never re-logging it: a second log of the same
-											     session would count its hours twice (MATH.md §18). Only today's rows
-											     whose task is still listed, because the editor lives in that row. -->
-												{#if editableDrainLog(log)}
-													<button
-														type="button"
-														aria-label={m.energy_edit_drain_log_aria()}
-														title={m.energy_edit_drain_log_title()}
-														class="text-ty-silent transition hover:text-ty-primary"
-														onclick={() => editDrainLog(log)}
-													>
-														✎
-													</button>
-												{/if}
+												<!-- No ✎ here: correcting a rating is its own chip on the task's row, on
+											     both screens, which is the only place that can say WHICH session a
+											     correction means without also being restricted to the days and tasks
+											     still on screen. This list keeps what a flat history is for — reading
+											     the whole record, dropping a bad point, and resetting the fit. -->
 												<button
 													type="button"
 													aria-label={m.energy_delete_drain_log_aria()}

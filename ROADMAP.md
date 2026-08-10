@@ -41,6 +41,11 @@ today:
   (`session-history.ts:180`, `:197`). A user who only ever opens `/` therefore
   contributes **zero** days to λ₀ (§8.10), the §12 audit and overnight
   carry-over (§11.9). Item 11 is the cheapest item here for that reason.
+  **Closed 2026-08-10 by item 11:** `logDrain` has a second caller on the main
+  page (`+page.svelte:124`), and every row on both screens now reads, corrects
+  and drops its own ⚡ and 🪫 measurements. The `readFinishedDays` half is
+  unchanged and still true — a day still qualifies only through a 🪫 log — so
+  what the reading measured is now reachable without `/energy`, not gone.
 - **The one constant the app fits is the cheapest one in the model.** §17
   measured the whole true-ϕ oracle at +0.16% of plan value. Nothing fits
   `switchCost` (`zenith.ts:92` is a bare literal with a CHI-2008 citation), the
@@ -130,8 +135,15 @@ row. Neither needs a new solve.
     which moved into the shell from `task-item.svelte`: with both instruments on
     both rows and the strip hover-revealed, neither caller was saying at rest
     what it had already measured. 🪫 cannot badge — a task worked twice has two
-    ratings — so it pins the strip open instead, which is what the Lab's row did
-    before and `/` now does too. The ✓/✕ pair likewise has one owner
+    ratings — so it pinned the strip open instead, which is what the Lab's row
+    did before and `/` then did too. **Superseded 2026-08-10:** a rating reads as
+    one chip per session, which says it at rest without holding the strip open —
+    and, being per-rating, is what let correcting and deleting one move onto the
+    row it belongs to on both screens (AGENTS.md R3) — and, on 2026-08-10, let the
+    cross-date reading the chips cannot give move to `/analytics`, which now prints
+    every ⚡, 🪫 and ☕ in the viewed range as one dated list, each droppable: the
+    row corrects, the list drops, the Lab resets, and this answers "what did I
+    log". The ✓/✕ pair likewise has one owner
     (`measurement-form-actions.svelte`); the three editors had each grown their
     own, two with a hover surface and one without.
     **`DailyMetricsInput` was deliberately left alone.** This item planned to

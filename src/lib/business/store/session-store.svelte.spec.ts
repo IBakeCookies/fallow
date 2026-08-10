@@ -246,6 +246,57 @@ describe('SessionStore persistence', () => {
 		expect(status.error).toBeNull();
 	});
 
+	// The row's own ⚡ editor drops the measurement it opened on, so it addresses the
+	// log the only way a row can — by its task — where the budget panel's list has a
+	// record id to hand. Both land on the same delete, badge clearing included.
+	it('clears a task’s ⚡ measurement without its record id', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'deep work',
+			physicalDifficulty: 2,
+			mentalDifficulty: 8,
+			enjoyment: 6,
+		});
+
+		flushSync();
+		const id = store.tasks[0].id;
+
+		readAllFlowObservationsMock.mockResolvedValue([
+			{
+				id: 77,
+				date: toISODate(),
+				taskId: id,
+				taskTitle: 'deep work',
+				difficulty: 5,
+				enjoyment: 6,
+				E: 3,
+				beta: 1.5,
+				phiHours: 0.4,
+				createdAt: 0,
+			},
+		]);
+
+		await store.logFlow(id, 24);
+		expect(store.tasks[0].flowMinutes).toBe(24);
+
+		readAllFlowObservationsMock.mockResolvedValue([]);
+		await store.clearFlowLog(id);
+
+		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).toHaveBeenCalledWith(77);
+		expect(store.tasks[0].flowMinutes).toBeUndefined();
+	});
+
+	// Nothing to delete is not a failure: the ⚡ editor is open on an unmeasured task,
+	// which is the ordinary case of logging one for the first time.
+	it('clears nothing when the task has no ⚡ measurement', async () => {
+		const { store } = await setup();
+
+		await store.clearFlowLog(4242);
+
+		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).not.toHaveBeenCalled();
+	});
+
 	// Stored JSON is user-reachable (devtools, a hand-edited backup, an older
 	// build), and nothing downstream defends itself: Math.max('abc', 3) is NaN,
 	// and the auto-save would then write that NaN straight back.
