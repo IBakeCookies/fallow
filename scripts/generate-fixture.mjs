@@ -371,8 +371,6 @@ for (const date of dates) {
 			const measured = Math.max(0.05, phi + gauss(TRUTH.phiNoiseHours));
 			const difficulty = effectiveDifficulty(task.physicalDifficulty, task.mentalDifficulty);
 
-			task.flowMinutes = Math.round(measured * 60);
-
 			flowObservations.push({
 				id: flowId++,
 				date,

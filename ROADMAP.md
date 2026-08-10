@@ -143,7 +143,10 @@ row. Neither needs a new solve.
     cross-date reading the chips cannot give move to `/analytics`, which now prints
     every ⚡, 🪫 and ☕ in the viewed range as one dated list, each droppable: the
     row corrects, the list drops, the Lab resets, and this answers "what did I
-    log". The ✓/✕ pair likewise has one owner
+    log". ⚡ joined 🪫 in being correctable on a PAST day the same week: the badge
+    reads the day's own observation instead of a `flowMinutes` field on its
+    session, so an amendment lands somewhere the auto-save is not asked to
+    rewrite, and the field is gone. The ✓/✕ pair likewise has one owner
     (`measurement-form-actions.svelte`); the three editors had each grown their
     own, two with a hover surface and one without.
     **`DailyMetricsInput` was deliberately left alone.** This item planned to

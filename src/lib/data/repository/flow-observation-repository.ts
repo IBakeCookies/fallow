@@ -27,11 +27,13 @@ export async function $updateFlowObservation(
 				(record) => record.taskId === observation.taskId,
 			);
 
+			// A replacement keeps the existing stamp: it re-describes the measurement
+			// already there rather than taking a new one, which is the rule 🪫
+			// corrections follow too (MATH.md §18). Only a first log is stamped now.
 			const record = existing
 				? {
 						...existing,
 						...observation,
-						createdAt: Date.now(),
 					}
 				: {
 						...observation,

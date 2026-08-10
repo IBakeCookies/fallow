@@ -25,6 +25,7 @@
 			onremove: fn(),
 			flowDraft: null,
 			onflowopen: fn(),
+			onflowedit: fn(),
 			onflowclose: fn(),
 			onlogflow: fn(),
 			drainDraft: null,
@@ -210,11 +211,16 @@
 		const body = within(canvasElement.ownerDocument.body);
 		await waitFor(() => expect(body.getByText(/^Measured minutes-to-flow/)).toBeVisible());
 
+		// The badge corrects the reading; it is not the logging verb, which a past day
+		// withholds while still offering this one.
 		await userEvent.click(badge);
-		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'button');
+		await expect(args.onflowedit).toHaveBeenCalledExactlyOnceWith(1, 'button');
+		await expect(args.onflowopen).not.toHaveBeenCalled();
 
+		// And completing an already-measured task asks for nothing: ⚡ is one number per
+		// day, so an earlier one silences the prompt.
 		await userEvent.click(canvas.getByRole('checkbox'));
-		await expect(args.onflowopen).toHaveBeenCalledOnce();
+		await expect(args.onflowopen).not.toHaveBeenCalled();
 	}}
 />
 
@@ -251,19 +257,18 @@
      the day already holds stay correctable, because a correction carries no date and
      re-describes the session where it happened.
 
-     ⚡ has no correction affordance here at all, and that asymmetry is the data model's:
-     a time-to-flow is half a session field (`flowMinutes`, persisted with the day) and
-     the session store deliberately never rewrites a past day, so an amended one would
-     read right until the next reload and then revert. 🪫 ratings are whole records of
-     their own and have no such half. -->
+     ⚡ reads the same way, and the asymmetry that used to be here is gone: a NEW
+     time-to-flow is a measurement of a session that is over, and the store
+     refuses one dated before today. Correcting the reading the day already holds is a
+     different verb and is offered here: since 2026-08-10 the badge IS that day's
+     observation rather than a field on the session, so an amendment has somewhere to
+     land that the auto-save is not required to rewrite. -->
 <Story
 	name="Past day"
 	args={{
 		flowMinutes: 40,
 		drainLogs: [drainLog()],
 		onflowopen: undefined,
-		onlogflow: undefined,
-		onflowdelete: undefined,
 		ondrainopen: undefined,
 		onupdate: undefined,
 		onremove: undefined,
@@ -295,17 +300,17 @@
 			}),
 		).not.toBeInTheDocument();
 
-		// ⚡ still READS — a day's measurement is never hidden — but it opens nothing,
-		// because there is no editor to open: the same reason the ⚡ button is gone.
-		await expect(canvas.getByText('⚡ 40m')).toBeVisible();
-
-		await expect(
-			canvas.queryByRole('button', {
+		// ⚡ reads AND corrects: what the button below it would have logged is a session
+		// that is over, but the reading on the row is a measurement that exists.
+		await userEvent.click(
+			canvas.getByRole('button', {
 				name: 'Correct this time to flow',
 			}),
-		).not.toBeInTheDocument();
+		);
 
-		// 🪫, by contrast, still reads AND still corrects
+		await expect(args.onflowedit).toHaveBeenCalledOnce();
+
+		// 🪫 the same, which is the point — one rule for both readings
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Correct this drain rating',

@@ -138,7 +138,6 @@ describe('sanitizeTask', () => {
 				id: 1,
 				createdAt: 42,
 				completed: 'yes',
-				flowMinutes: 'soon',
 				mustDoToday: 'yes',
 			},
 			'2026-07-01',
@@ -155,11 +154,10 @@ describe('sanitizeTask', () => {
 		});
 	});
 
-	it('keeps a real measurement and a real must-do flag', () => {
+	it('keeps a real must-do flag', () => {
 		const task = sanitizeTask(
 			{
 				id: 1,
-				flowMinutes: 25,
 				mustDoToday: true,
 				completed: true,
 			},
@@ -167,10 +165,26 @@ describe('sanitizeTask', () => {
 		);
 
 		expect(task).toMatchObject({
-			flowMinutes: 25,
 			mustDoToday: true,
 			completed: true,
 		});
+	});
+
+	// Every session stored before 2026-08-10 carries `flowMinutes`: the ⚡ badge was a
+	// field on the task as well as an observation, and a measurement in two places is
+	// one the row could only correct in one of them. The observation is now the only
+	// one, so the stored copy is read back as the unknown key it has become — kept out
+	// rather than resurrected into a second answer the app no longer writes.
+	it('drops the ⚡ minutes an older session stamped on the task', () => {
+		const task = sanitizeTask(
+			{
+				id: 1,
+				flowMinutes: 25,
+			},
+			'2026-07-01',
+		);
+
+		expect(task).not.toHaveProperty('flowMinutes');
 	});
 });
 

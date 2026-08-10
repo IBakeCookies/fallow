@@ -578,9 +578,9 @@ export class SessionStore {
 			const destTasks = dest?.tasks ?? [];
 
 			// Definition and provenance only: a fresh id in the destination day's
-			// id space (observation joins are per-date, so the old id keeps its
-			// logs here), no `mustDoToday` (a statement about today, not the task)
-			// and no `flowMinutes` (a measurement keyed to this date).
+			// id space (observation joins are per-date, so the old id keeps its ⚡ and
+			// 🪫 here — the measurements stay with the day that took them) and no
+			// `mustDoToday`, a statement about today rather than about the task.
 			const moved: Task = {
 				id: nextTaskId(destTasks),
 				title: task.title,
@@ -681,20 +681,69 @@ export class SessionStore {
 
 	// ----- Flow observations (model personalization) -----
 
-	// Log a measured "minutes until flow" for a task: stamps it on the task
-	// (shown as the ⚡ badge, persisted with the session) and upserts an
-	// (E, β, ϕ) data point that personalizes the model constants — re-logging
-	// the same task today REPLACES the earlier measurement (typo correction).
+	/** One task's ⚡ measurement for a day, or undefined. One per (task, date) by
+	 *  construction — `$updateFlowObservation` upserts on that key. */
+	#flowLogFor(taskId: number, date: string) {
+		return this.#flowObservations.find((o) => o.taskId === taskId && o.date === date);
+	}
+
+	/**
+	 * One day's ⚡ readings in MINUTES, per task — what the row's badge shows and
+	 * what its editor opens on. Minutes rather than `phiHours` because minutes is
+	 * the unit the measurement is taken and shown in; hours is the fit's (MATH.md
+	 * §2), and this converts between them the way `logFlow`'s `minutes / 60` does
+	 * backwards. The budget panel's flat ⚡ list spells the same conversion inline
+	 * (`day-constraints-bar.svelte`) because it prints records across days rather
+	 * than one day's readings — the two meet when that list moves to `/analytics`.
+	 *
+	 * Takes the day for the reason `drainLogsOn` does: the main page renders any
+	 * date, and a row must show the measurement of the day it is showing. It used
+	 * to be a `flowMinutes` field on the task instead — one measurement in two
+	 * places, of which only the observation could be corrected.
+	 *
+	 * A plain `Map`, not a `SvelteMap`: rebuilt on every read from `$state`
+	 * observations, so the reactivity is already the array's.
+	 */
+	flowMinutesOn(date: string): ReadonlyMap<number, number> {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived, never mutated
+		const byTask = new Map<number, number>();
+
+		for (const log of this.#flowObservations) {
+			if (log.date !== date) continue;
+
+			byTask.set(log.taskId, Math.round(log.phiHours * 60));
+		}
+
+		return byTask;
+	}
+
+	// Log a measured "minutes until flow" for a task: upserts an (E, β, ϕ) data
+	// point that personalizes the model constants, keyed by (task, date), which
+	// is also the ⚡ badge the row reads back. Re-logging the same task on the
+	// same day REPLACES the earlier measurement (typo correction).
+	//
+	// Stamped with the VIEWED day, not the live clock, and today is the only day
+	// a FIRST measurement may land on: a correction re-describes a measurement
+	// that exists, while a first one on a past day is a measurement nobody took.
+	// The guard is here rather than only in the UI because the date is the store's.
+	// Until 2026-08-10 the badge was a `flowMinutes` field on the day's task as
+	// well, and correcting a past one was impossible for that reason — the
+	// auto-save never rewrites a past day, so the amended field came back on the
+	// next load. The observation is now the only place it lives.
 	async logFlow(id: number, minutes: number) {
 		const task = this.#tasks.find((t) => t.id === id);
 
 		if (!task) return;
 
+		const date = this.#selectedDate;
+
+		if (date !== this.#today && !this.#flowLogFor(id, date)) return;
+
 		const difficulty = getEffectiveDifficulty(task);
 
 		try {
 			await flowObservationRepository.$updateFlowObservation({
-				date: this.#today,
+				date,
 				taskId: id,
 				taskTitle: task.title,
 				difficulty,
@@ -704,18 +753,9 @@ export class SessionStore {
 				phiHours: minutes / 60,
 			});
 
+			// The re-read IS the badge: it lands only once the write did, so the row
+			// never shows success for a failed persist.
 			this.#flowObservations = await this.#readFlowObservations();
-
-			// Stamp the ⚡ badge only once the write lands, so the UI never shows
-			// success for a failed persist.
-			this.#tasks = this.#tasks.map((t) =>
-				t.id === id
-					? {
-							...t,
-							flowMinutes: minutes,
-						}
-					: t,
-			);
 		} catch (e) {
 			logError('Failed to save flow observation', e);
 			this.#reporter.report('save-failed');
@@ -723,25 +763,12 @@ export class SessionStore {
 	}
 
 	// Remove one measured data point; the constants refit automatically since
-	// they are derived from the observations. Clears today's ⚡ badge if the
-	// deleted log belonged to a task in today's session.
+	// they are derived from the observations, and so does the ⚡ badge of whatever
+	// day it belonged to.
 	async deleteFlowLog(id: number) {
-		const record = this.#flowObservations.find((o) => o.id === id);
-
 		try {
 			await flowObservationRepository.$deleteFlowObservation(id);
 			this.#flowObservations = await this.#readFlowObservations();
-
-			if (record && record.date === this.#today) {
-				this.#tasks = this.#tasks.map((t) =>
-					t.id === record.taskId
-						? {
-								...t,
-								flowMinutes: undefined,
-							}
-						: t,
-				);
-			}
 		} catch (e) {
 			logError('Failed to delete flow observation', e);
 			this.#reporter.report('save-failed');
@@ -750,12 +777,11 @@ export class SessionStore {
 
 	// Drop the ⚡ measurement a row is showing. The same delete as above, addressed
 	// the way a row can address it — by its task — since the row has no record id and
-	// (taskId, date) is what the log is keyed by anyway. Today's, because ⚡ is
-	// today-only in both directions: the badge it clears lives in the day's session
-	// record, and the auto-save deliberately never rewrites a past day, so a cleared
-	// badge there would be back on the next load.
+	// (taskId, date) is what the log is keyed by anyway. The VIEWED day's, for the
+	// reason logFlow gives: the reading a past row shows is that day's observation,
+	// and dropping what is on screen is the one thing every row can do.
 	async clearFlowLog(id: number) {
-		const record = this.#flowObservations.find((o) => o.taskId === id && o.date === this.#today);
+		const record = this.#flowLogFor(id, this.#selectedDate);
 
 		if (!record) return;
 
@@ -767,15 +793,6 @@ export class SessionStore {
 		try {
 			await flowObservationRepository.$deleteAllFlowObservations();
 			this.#flowObservations = [];
-
-			this.#tasks = this.#tasks.map((t) =>
-				t.flowMinutes
-					? {
-							...t,
-							flowMinutes: undefined,
-						}
-					: t,
-			);
 		} catch (e) {
 			logError('Failed to reset flow observations', e);
 			this.#reporter.report('save-failed');

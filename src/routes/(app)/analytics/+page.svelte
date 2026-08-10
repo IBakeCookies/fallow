@@ -33,7 +33,7 @@
 	const analytics = setAnalyticsStore(() => showToast.danger(m.analytics_load_failed()));
 
 	// The two stores the logs card reads, both built in the (app) layout: ⚡ belongs
-	// to the session (it stamps `flowMinutes` onto the day's task), 🪫 and ☕ to the
+	// to the session, which owns the viewed day it is keyed to, 🪫 and ☕ to the
 	// measurement store. Nothing is loaded for this card — it is a view of records
 	// the app already holds, which is why the merge is a fold and not a fourth read.
 	const session = getSessionStore();

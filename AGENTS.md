@@ -420,16 +420,24 @@ say the same way now:
   question can make one, while a drop is addressed by record id alone. Hence
   `ondelete(kind, id)` and not `ondelete(id)`: three kinds are three stores with
   three id sequences (2026-08-10).
-  **A 🪫 correction is offered on any day the page shows, a new rating only
-  today.** `logDrain` stamps the live clock (a rating browsed onto a past day
-  would misdate itself), while `editDrainLog` passes no `date` at all — §5's
-  upsert bullet has the type-level reason. ⚡ has no correction path off today
-  and must not grow one: its measurement is half a session field
-  (`flowMinutes`, persisted with the day) and the autosave deliberately never
-  rewrites a past day, so an amended one would revert on the next load.
+  **Both corrections are offered on any day the page shows, a new measurement
+  only today** (⚡ joined this rule 2026-08-10). `logDrain` stamps the live clock
+  (a rating browsed onto a past day would misdate itself), while `editDrainLog`
+  passes no `date` at all — §5's upsert bullet has the type-level reason. ⚡ is
+  the same rule in one verb: `logFlow` stamps the **viewed** day and refuses a
+  first measurement dated before today, so a correction lands and a back-dated
+  log cannot. It could not before, because the badge was ALSO a `flowMinutes`
+  field on the day's task and the autosave never rewrites a past day, so an
+  amended one came back on the next load. **The observation is now the only place
+  a ⚡ lives** — `SessionStore.flowMinutesOn(date)` is what the row reads, the
+  field is gone from `Task`, and `sanitizeTask` reads a stored one past rather
+  than repairing it. Hence two callbacks on the row and not one:
+  `onflowopen` is the ⚡ BUTTON (a first measurement, today only) and
+  `onflowedit` is the badge (a correction, any day) — a past day passes the
+  second and withholds the first, exactly as it does for 🪫.
   `SessionStore.clearFlowLog(taskId)` is the row's delete — the same delete as
-  `deleteFlowLog(recordId)`, addressed the way a row can address it — and is
-  today-only for that reason.
+  `deleteFlowLog(recordId)`, addressed the way a row can address it — and drops
+  the viewed day's reading, since that is the one on screen.
 - `measurement-form-actions.svelte` — the ✓/✕/🗑 that closes ⚡, 🪫 and 😴. It
   exists because those three editors were written separately and drifted into
   two different button sizes, one with a hover surface and one without; the
@@ -1435,7 +1443,7 @@ Each was considered and decided. Re-deciding them is churn.
   | Stayed                        | Because                                                                     |
   | ----------------------------- | --------------------------------------------------------------------------- |
   | Day routing + load + autosave | One concern; task mutations work _because_ the autosave effect watches them |
-  | Flow observations             | `logFlow` stamps `flowMinutes` onto the task, persisted with the session    |
+  | Flow observations             | `logFlow` reads the viewed day and the task's tuned difficulty to write one |
   | Routines                      | 3 members, needs a `tasks` thunk — not worth a file                         |
 
 - **The banner is `StorageStatusStore`'s, not the session store's** (extracted
@@ -1736,7 +1744,8 @@ Each was considered and decided. Re-deciding them is churn.
   that order and without a transaction on purpose: the failure mode is a
   visible duplicate, never a vanished task. What travels is definition and
   provenance only — a fresh id in the destination day's id space (observation
-  joins are per-date), no `mustDoToday`, no `flowMinutes`. The method refuses
+  joins are per-date, so ⚡ and 🪫 stay with the day that measured them), no
+  `mustDoToday`. The method refuses
   completed and `mustDoToday` tasks, no-ops mid-navigation
   (`#loadedDate !== #selectedDate`) and serializes with itself (two
   overlapping read-modify-writes on tomorrow would drop one task). Destination

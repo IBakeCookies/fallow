@@ -53,6 +53,8 @@
 		onremove?: (id: number) => void;
 		flowDraft?: EditorDraft | null;
 		onflowopen?: (id: number, source: EditorSource) => void;
+		/** The badge's own action — see `task-row-shell.svelte`. */
+		onflowedit?: (id: number, source: EditorSource) => void;
 		onflowclose?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
 		onflowdelete?: (id: number) => void;
@@ -89,6 +91,7 @@
 		onremove,
 		flowDraft = null,
 		onflowopen,
+		onflowedit,
 		onflowclose,
 		onlogflow,
 		onflowdelete,
@@ -248,6 +251,7 @@
 		{flowMinutes}
 		{flowDraft}
 		onflowopen={onflowopen && ((source) => onflowopen(id, source))}
+		onflowedit={onflowedit && (() => onflowedit(id, 'button'))}
 		onflowclose={onflowclose && (() => onflowclose(id))}
 		onlogflow={onlogflow && ((minutes) => onlogflow(id, minutes))}
 		onflowdelete={onflowdelete && (() => onflowdelete(id))}

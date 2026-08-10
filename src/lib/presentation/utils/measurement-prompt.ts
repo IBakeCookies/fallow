@@ -61,7 +61,7 @@ export type EditorDraft = {
 	promptedByCompletion: boolean;
 };
 
-/** ⚡ asks for one number the row already reads today's value of, so its draft is the
+/** ⚡ asks for one number the row already reads the day's value of, so its draft is the
  *  policy above and nothing else: the editor seeds itself from the row. */
 export const newEditorDraft = (source: EditorSource): EditorDraft => ({
 	focusMinutes: source === 'button',

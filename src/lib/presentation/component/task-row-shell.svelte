@@ -70,13 +70,18 @@
 		 *  consequence on screen. The seed still carries the stored value through. */
 		withMustDoToday?: boolean;
 		ontoggle: () => void;
-		/** Today's ⚡ time-to-flow, when one is measured — the badge, and what the editor
-		 *  opens on. */
+		/** The VIEWED day's ⚡ time-to-flow, when one is measured — the badge, and what the
+		 *  editor opens on. The day's own observation, not a field on its session: that
+		 *  is what makes a past one correctable (`SessionStore.flowMinutesOn`). */
 		flowMinutes?: number;
 		/** This row's open ⚡ editor, or null. The page owns it — see `EditorDraft`. */
 		flowDraft?: EditorDraft | null;
-		/** Absent → no ⚡ action. */
+		/** Absent → no ⚡ BUTTON, which is what a day nothing may be logged on passes: a
+		 *  first measurement is today's only. */
 		onflowopen?: (source: EditorSource) => void;
+		/** Correct the reading — the badge's own action, offered on every day this row can
+		 *  render, exactly like a 🪫 chip's. Absent → the badge reads without opening. */
+		onflowedit?: () => void;
 		onflowclose?: () => void;
 		onlogflow?: (minutes: number) => void;
 		/** Absent → the ⚡ editor cannot drop the measurement it opened on. */
@@ -122,6 +127,7 @@
 		flowMinutes,
 		flowDraft = null,
 		onflowopen,
+		onflowedit,
 		onflowclose,
 		onlogflow,
 		onflowdelete,
@@ -245,17 +251,20 @@
 					     CLOSES it, clicking another switches to it. ⚡ is that rule with a single
 					     reading, which is why its badge reads as a plain toggle and opens the same
 					     editor the ⚡ button does; a 🪫 chip is the only control that can say WHICH
-					     session a correction means, so the switch arm only ever fires there. -->
+					     session a correction means, so the switch arm only ever fires there.
+					     Both readings correct on any day the row renders, and neither LOGS on any
+					     but today — which is why the badge takes its own callback rather than the
+					     button's: a past day passes the correction and withholds the log. -->
 
 				{#if flowMinutes}
 					<Tooltip.Root>
 						<Tooltip.Trigger>
 							{#snippet child({ props })}
-								{#if onflowopen}
+								{#if onflowedit}
 									<button
 										{...props}
 										type="button"
-										onclick={() => (flowDraft ? onflowclose?.() : onflowopen('button'))}
+										onclick={() => (flowDraft ? onflowclose?.() : onflowedit())}
 										aria-label={m.task_edit_flow_log_aria()}
 										class="font-medium text-flow transition hover:text-ty-primary"
 									>

@@ -176,6 +176,7 @@
 	// This route is today-only — a dated URL redirects (`energy/+page.ts`) — so the rows
 	// read the live day and nothing else can be on screen.
 	const drainLogs = $derived(observations.drainLogsOn(session.today));
+	const flowLogs = $derived(session.flowMinutesOn(session.today));
 
 	const openDrainLog = (taskId: number, source: EditorSource) =>
 		(drainDrafts[taskId] = newDrainDraft(source));
@@ -277,13 +278,14 @@
 				mustDoToday={task.mustDoToday}
 				color={colors.colorOf(task.id)}
 				plannedHours={plannedFor(task.id)}
-				flowMinutes={task.flowMinutes}
+				flowMinutes={flowLogs.get(task.id)}
 				drainLogs={drainLogs.get(task.id) ?? []}
 				flowDraft={flowDrafts[task.id] ?? null}
 				drainDraft={drainDrafts[task.id] ?? null}
 				ontoggle={() => session.toggleTask(task.id)}
 				onremove={() => removeTask(task.id)}
 				onflowopen={(source) => openFlowLog(task.id, source)}
+				onflowedit={() => openFlowLog(task.id, 'button')}
 				onflowclose={() => closeFlowLog(task.id)}
 				onlogflow={(minutes) => saveFlowLog(task.id, minutes)}
 				onflowdelete={() => clearFlowLog(task.id)}

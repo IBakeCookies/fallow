@@ -7,7 +7,7 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 
 	interface Props {
-		/** Today's time-to-flow, when one is measured: ⚡ is one number per day
+		/** The viewed day's time-to-flow, when one is measured: ⚡ is one number per day
 		 *  (MATH.md §18), so re-opening the editor amends it rather than adding to it. */
 		seed?: number | null;
 		/** Only when the row's own ⚡ button opened this. An editor that opened itself on

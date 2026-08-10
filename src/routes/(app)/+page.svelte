@@ -53,12 +53,12 @@
 	// would misdate itself. The logging callbacks and the bar's prompt for them therefore
 	// appear and vanish together, so the prompt never points at a button no task renders.
 	//
-	// It gates logging, not correcting. A 🪫 correction carries no date — it re-describes
-	// the session where it happened — so the chips on a past day's rows stay editable and
-	// deletable. ⚡ has no such path: its measurement is half a session field
-	// (`flowMinutes`), and the auto-save never rewrites a past day, so an amended one
-	// would revert on the next load. `clearFlowLog` is gated with the rest of ⚡ for that
-	// reason and the store refuses any other day anyway.
+	// It gates logging, not correcting — for both readings since 2026-08-10. A 🪫
+	// correction carries no date (it re-describes the session where it happened) and a ⚡
+	// one is the day's own observation, so the chips and the badge on a past day's rows
+	// stay editable and deletable while the two BUTTONS beside them are gone. The store
+	// refuses a first measurement dated before today either way, so the gate here is
+	// about not offering what would be refused.
 	const canLog = $derived(selectedDate === today);
 
 	// The open editors, by task — one of each per row: ticking two tasks off ends two
@@ -103,6 +103,12 @@
 	// today, but reading back what a past day measured is what the ✎ on the chip needs
 	// and is the only way a user who never opens the Lab sees the day's own data.
 	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
+
+	// And the ⚡ the viewed day holds, one per task — the badge on the row, read from the
+	// day's observation rather than a field on its session, which is what lets a past one
+	// be corrected there. Same reason as above: a measurement is only loggable today, but
+	// reading and amending one the day already holds is not logging.
+	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
 
 	function saveFlowLog(id: number, minutes: number) {
 		session.logFlow(id, minutes);
@@ -274,10 +280,12 @@
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={isViewingPast ? undefined : removeTask}
 				{flowDrafts}
+				{flowLogs}
 				onflowopen={canLog ? openFlowLog : undefined}
-				onflowclose={canLog ? closeFlowLog : undefined}
-				onlogflow={canLog ? saveFlowLog : undefined}
-				onflowdelete={canLog ? clearFlowLog : undefined}
+				onflowedit={openFlowLog}
+				onflowclose={closeFlowLog}
+				onlogflow={saveFlowLog}
+				onflowdelete={clearFlowLog}
 				{drainDrafts}
 				{drainLogs}
 				ondrainopen={canLog ? openDrainLog : undefined}
