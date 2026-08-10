@@ -6,8 +6,8 @@
  * today look like as designed", so completing a task must not move it (§11.8).
  * This is the other question — "it is 2pm and the morning did not go to plan;
  * what are the hours left worth?" — and it is a **next-up** reading: it is
- * solved over the OPEN tasks, from a prefix of hours the user actually worked,
- * against the budget and the capacity those hours have already spent.
+ * solved from a prefix of hours the user actually worked, against the budget and
+ * the capacity those hours have already spent.
  *
  * Deliberately not part of `calculateDailyMetrics`: folding it in there would
  * silently rescope twelve plan-family rows into remaining-day rows, and would
@@ -62,8 +62,8 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 	if (workedTotal <= 0) return null;
 
 	// Every task that was worked spent pool, whether or not it can still take
-	// hours — so the draw is over the whole day's list and the candidate set is
-	// only the open half.
+	// hours, so the draw is over the whole day's list — wider than the candidate
+	// set built below.
 	const drawn = toPooledInputs(tasks).reduce(
 		(draw, { cognitiveWeight, physicalWeight }, index) => ({
 			cognitiveHours: draw.cognitiveHours + cognitiveWeight * worked[index],
@@ -75,19 +75,27 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 		},
 	);
 
-	const open = tasks.filter((task) => !task.completed);
-
+	// Only a task that is BOTH finished and logged leaves the candidate set: its
+	// hours are known, they come off the budget below, and it cannot take more.
+	//
+	// A task finished WITHOUT a log stays in, and that is the whole point.
+	// Dropping it would refund hours and a switch the day may well have spent —
+	// on the evidence of a checkbox, which is not an hours instrument. Left in, it
+	// keeps drawing the share the plan gave it, which is the day's presumption
+	// that it cost roughly what was suggested. It also makes ticking a box
+	// inputs-identical to not ticking it, so no other task's number can move
+	// (MATH.md §35). Its own share is solved but never reported: the presumption
+	// is an accounting device, not a recommendation to work a finished task.
+	const isSpent = (task: Task) => task.completed && (workedHours.get(task.id) ?? 0) > 0;
+	const candidates = tasks.filter((task) => !isSpent(task));
 	// The day's switch bill is over the tasks the DAY funds — every task with
 	// hours on it, plus whatever the remainder newly starts (MATH.md §35).
-	// `calculatePooledAllocations` charges for the started tasks it can see, which
-	// is the open ones; a task that was worked and then ticked done is not a
-	// candidate and never reaches it, so its switch is charged off the budget here.
-	const finishedStarted = tasks.filter(
-		(task) => task.completed && (workedHours.get(task.id) ?? 0) > 0,
-	).length;
+	// `calculatePooledAllocations` charges for the started tasks it can see; a
+	// spent task never reaches it, so its switch is charged off the budget here.
+	const finishedStarted = tasks.length - candidates.length;
 
 	const allocations = calculatePooledAllocations(
-		toPooledInputs(open),
+		toPooledInputs(candidates),
 		Math.max(0, budget - workedTotal - finishedStarted * input.switchCost),
 		{
 			// Clamped: an overrun day funds nothing, it does not fund negatively.
@@ -97,13 +105,17 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 		input.constants,
 		input.switchCost,
 		input.posterior,
-		open.map((task) => workedHours.get(task.id) ?? 0),
+		candidates.map((task) => workedHours.get(task.id) ?? 0),
 	);
 
 	const hoursByTask = new Map<number, number>();
 
 	allocations.forEach((allocation, index) => {
-		if (allocation.allocatedHours > 0) hoursByTask.set(open[index].id, allocation.allocatedHours);
+		const task = candidates[index];
+
+		if (!task.completed && allocation.allocatedHours > 0) {
+			hoursByTask.set(task.id, allocation.allocatedHours);
+		}
 	});
 
 	return {
