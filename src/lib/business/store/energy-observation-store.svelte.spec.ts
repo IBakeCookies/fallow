@@ -9,8 +9,8 @@ import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { Persisted, Task, DrainObservationRecord } from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
-	$addDrainObservation: vi.fn(async () => {}),
-	$editDrainObservation: vi.fn(async () => {}),
+	$createDrainObservation: vi.fn(async () => {}),
+	$updateDrainObservation: vi.fn(async () => {}),
 	$deleteDrainObservation: vi.fn(async () => {}),
 	$deleteAllDrainObservations: vi.fn(async () => {}),
 	$readAllDrainObservations: vi.fn(async () => []),
@@ -18,17 +18,17 @@ vi.mock('$lib/data/repository/drain-observation-repository', () => ({
 
 vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 	$createRestObservation: vi.fn(async () => {}),
-	$editRestObservation: vi.fn(async () => {}),
+	$updateRestObservation: vi.fn(async () => {}),
 	$deleteRestObservation: vi.fn(async () => {}),
 	$deleteAllRestObservations: vi.fn(async () => {}),
 	$readAllRestObservations: vi.fn(async () => []),
 }));
 
-const addDrainMock = vi.mocked(drainObservationRepository.$addDrainObservation);
-const editDrainMock = vi.mocked(drainObservationRepository.$editDrainObservation);
+const createDrainMock = vi.mocked(drainObservationRepository.$createDrainObservation);
+const updateDrainMock = vi.mocked(drainObservationRepository.$updateDrainObservation);
 const readAllDrainMock = vi.mocked(drainObservationRepository.$readAllDrainObservations);
 const createRestMock = vi.mocked(restObservationRepository.$createRestObservation);
-const editRestMock = vi.mocked(restObservationRepository.$editRestObservation);
+const updateRestMock = vi.mocked(restObservationRepository.$updateRestObservation);
 const readAllRestMock = vi.mocked(restObservationRepository.$readAllRestObservations);
 
 const task = (over: Partial<Task> = {}): Task => ({
@@ -85,10 +85,10 @@ describe('EnergyObservationStore', () => {
 	beforeEach(() => {
 		readAllDrainMock.mockReset().mockResolvedValue([]);
 		readAllRestMock.mockReset().mockResolvedValue([]);
-		addDrainMock.mockReset().mockResolvedValue(undefined);
-		editDrainMock.mockReset().mockResolvedValue(undefined);
+		createDrainMock.mockReset().mockResolvedValue(undefined);
+		updateDrainMock.mockReset().mockResolvedValue(undefined);
 		createRestMock.mockReset().mockResolvedValue(undefined);
-		editRestMock.mockReset().mockResolvedValue(undefined);
+		updateRestMock.mockReset().mockResolvedValue(undefined);
 	});
 
 	afterEach(() => {
@@ -103,7 +103,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 3, 9, 4);
 
-		expect(addDrainMock.mock.calls[0][0]).toMatchObject({
+		expect(createDrainMock.mock.calls[0][0]).toMatchObject({
 			date: toISODate(),
 		});
 	});
@@ -118,7 +118,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.editDrainLog(7, 2, 5, 3);
 
-		expect(editDrainMock.mock.calls[0][1]).not.toHaveProperty('date');
+		expect(updateDrainMock.mock.calls[0][1]).not.toHaveProperty('date');
 	});
 
 	// A correction re-rates a session; it does not re-describe the task that session
@@ -131,7 +131,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.editDrainLog(7, 2, 5, 3);
 
-		expect(editDrainMock).toHaveBeenCalledWith(7, {
+		expect(updateDrainMock).toHaveBeenCalledWith(7, {
 			hours: 2,
 			mindDrain: 5,
 			bodyDrain: 3,
@@ -147,7 +147,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.editDrainLog(7, 2, 5, 3);
 
-		expect(editDrainMock).toHaveBeenCalledOnce();
+		expect(updateDrainMock).toHaveBeenCalledOnce();
 		expect(status.error).toBeNull();
 	});
 
@@ -201,7 +201,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 2.5, 9, 4);
 
-		expect(addDrainMock.mock.calls[0][0]).toMatchObject({
+		expect(createDrainMock.mock.calls[0][0]).toMatchObject({
 			taskId: 1,
 			taskTitle: 'deep work',
 			hours: 2.5,
@@ -217,7 +217,7 @@ describe('EnergyObservationStore', () => {
 
 		await store.logDrain(1, 3, 9, 4);
 
-		expect(addDrainMock).not.toHaveBeenCalled();
+		expect(createDrainMock).not.toHaveBeenCalled();
 		expect(status.error).toBeNull();
 	});
 
@@ -234,7 +234,7 @@ describe('EnergyObservationStore', () => {
 
 	it('reports a failed write as save-failed on the banner store', async () => {
 		const { store, status } = await setup();
-		addDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
+		createDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		await store.logDrain(1, 3, 9, 4);
 
@@ -256,7 +256,7 @@ describe('EnergyObservationStore', () => {
 			bodyAfter: 2,
 		});
 
-		expect(editRestMock).toHaveBeenCalledWith(4, {
+		expect(updateRestMock).toHaveBeenCalledWith(4, {
 			hours: 0.75,
 			mindBefore: 8,
 			mindAfter: 3,
@@ -267,7 +267,7 @@ describe('EnergyObservationStore', () => {
 
 	it('reports a failed rest correction as save-failed', async () => {
 		const { store, status } = await setup();
-		editRestMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
+		updateRestMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
 
 		await store.editRestLog(4, {
 			hours: 0.5,

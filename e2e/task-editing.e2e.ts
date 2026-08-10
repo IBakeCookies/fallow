@@ -254,6 +254,56 @@ test('a flow log is correctable from the analytics history', async ({ page }) =>
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
+/* Both records copy the task's title at logging time, and a rename left that copy
+   behind — the history printed a name the task no longer has, with nothing to say the
+   two rows were the same task. It reads the live title by `taskId` now (MATH.md §36),
+   off the year of days the page already loads. Crossing the screens is the test: the
+   rename happens on `/` and only the list can say which name it prints. */
+test('the log history follows a renamed task', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await logFlow(page, 90);
+	await logDrain(page, 60, 7, 3);
+
+	await page
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	const editor = page.locator('form').filter({
+		has: page.getByLabel('Title'),
+	});
+
+	await editor.getByLabel('Title').fill('Boxing sparring');
+
+	await editor
+		.getByRole('button', {
+			name: 'Save',
+		})
+		.click();
+
+	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/analytics');
+
+	// Both measurements, under the name the task carries now
+	await expect(page.getByText('2 measurements')).toBeVisible();
+
+	await expect(
+		page.getByRole('listitem').filter({
+			hasText: 'Boxing sparring',
+		}),
+	).toHaveCount(2);
+
+	await expect(
+		page.getByRole('listitem').filter({
+			hasText: 'Boxing training',
+		}),
+	).toHaveCount(0);
+});
+
 /* Re-tuning a task after it is added is a different path from creating one: the
    editor seeds its draft from the task, and the new values have to reach both the
    allocator's inputs and the persisted session. */

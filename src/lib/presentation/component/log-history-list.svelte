@@ -113,8 +113,10 @@
 				})}
 	</p>
 	<!-- Capped: a year holds hundreds of rows, and a card that grows with the history
-	     pushes every reading below it off the page. -->
-	<ul class="mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
+	     pushes every reading below it off the page. `nice-scrollbar` is the same slim,
+	     theme-aware bar the theme menu scrolls with — a native one is a grey slab that
+	     no palette reaches. -->
+	<ul class="nice-scrollbar mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
 		{#each rows as row (row.key)}
 			<li>
 				<div class="log-row">
@@ -138,7 +140,15 @@
 							</a>
 							<span class="capitalize"> · {row.taskTitle}</span>
 						{:else}
+							<!-- A ☕ is worked on nothing, so it has no task to name and the date
+							     stood alone in a column of "date · task" — read as a row missing its
+							     title rather than one that cannot have one. The kind fills the slot,
+							     and `aria-hidden` because the ✕/✎ labels and the reading beside them
+							     already say "Break" to a screen reader. -->
 							<span class="text-ty-silent">{row.date}</span>
+							<span aria-hidden="true" class="text-ty-silent">
+								· {KIND[row.kind].name()}
+							</span>
 						{/if}
 					</span>
 					<span class="flex shrink-0 items-center gap-text-xs tabular-nums">

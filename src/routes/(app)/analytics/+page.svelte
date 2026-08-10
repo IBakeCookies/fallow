@@ -113,18 +113,30 @@
 	// correcting and dropping while still feeding the recovery fit.
 	let allTime = $state(false);
 
+	// Named by what each task is CALLED now, not by the title copied onto the record
+	// when it was logged: renaming a task left every earlier measurement of it printing
+	// the old name, with nothing on the page to say the two were the same task. The
+	// year of days is already loaded for the charts, so the map costs no read.
 	const logRows = $derived(
 		logHistory({
 			flow: session.flowObservations,
 			drain: observations.drainObservations,
 			rest: observations.restObservations,
 			rangeStart: allTime ? undefined : analytics.rangeStart,
+			taskTitles: analytics.taskTitles,
 		}),
 	);
 
-	// Both reads, because the card is one list: either store still in flight would
-	// otherwise show as a range that holds fewer measurements than it does.
-	const areLogsLoading = $derived(session.isLoading || observations.isLoading);
+	// All three reads, because the card is one list. The first two would otherwise show
+	// as a range holding fewer measurements than it does; the third is subtler and was
+	// missed when `taskTitles` arrived — the session and observation stores live in the
+	// (app) layout and are already loaded on arrival, while this page's analytics store
+	// re-reads its year on every visit, so a list published before it lands prints
+	// exactly the stale name the map exists to replace and then swaps it out. A failed
+	// history read clears `isLoading` too, so the fallback still gets its chance.
+	const areLogsLoading = $derived(
+		session.isLoading || observations.isLoading || analytics.isLoading,
+	);
 
 	// Dropping a measurement routes back to the store that owns it — the list merges
 	// three id sequences, so the kind is half the address. No confirm, like the Lab's
@@ -478,10 +490,11 @@
      OUTSIDE the load gate above, unlike every other card, for two reasons. Its `id` is
      what "In your logs →" scrolls to, and that fragment scroll happens once, on arrival —
      an element that appears only when IndexedDB answers is not there to be scrolled to,
-     and nothing retries. And it reads none of the analytics store: the logs come from the
-     session and observation stores, so `hasData` — which is about day SUMMARIES — would
-     otherwise replace a list of real measurements with "you have never used the app".
-     `areLogsLoading` below is this card's own gate, and the one that fits it. -->
+     and nothing retries. And the gate's `{:else if}` is `hasData`, which is about day
+     SUMMARIES: a user with measurements but no summaries would be told they have never
+     used the app. `areLogsLoading` below is this card's own gate — it waits for all three
+     reads the rows are folded from, which since 2026-08-11 includes this page's own
+     store, for the live task names. -->
 <div id="log-history" class="card-shell mt-grid-xl scroll-mt-grid-lg rounded-xl p-box-lg">
 	<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs gap-y-text-3xs">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_logs()}</h2>

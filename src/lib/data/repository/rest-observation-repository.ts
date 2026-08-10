@@ -9,7 +9,7 @@ import { withStore } from '$lib/data/storage/indexed-db';
 /**
  * Append-only create: several breaks a day are normal, so every logged rest is
  * its own record — the same one-row-per-event shape drain ratings have carried
- * since MATH.md §18, minus their task. Correcting one is `$editRestObservation`
+ * since MATH.md §18, minus their task. Correcting one is `$updateRestObservation`
  * below, NOT re-logging: a second log of the same break would fit r twice off
  * one recovery.
  */
@@ -26,12 +26,12 @@ export async function $createRestObservation(
 
 /**
  * Correct one break in place, by its own key. Same contract as
- * `$editDrainObservation`: the `date` and the original `createdAt` both stand,
+ * `$updateDrainObservation`: the `date` and the original `createdAt` both stand,
  * because a correction re-describes the break that happened rather than taking a
  * new one. A break carries nothing derived from anything else — five numbers the
  * user typed — so those five are the whole of what an edit may touch.
  */
-export async function $editRestObservation(
+export async function $updateRestObservation(
 	id: number,
 	observation: Omit<RestObservationRecord, 'id' | 'createdAt' | 'date'>,
 ): Promise<void> {

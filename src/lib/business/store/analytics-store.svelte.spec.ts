@@ -9,7 +9,7 @@ import type { AnalyticsStore } from '$lib/business/store/analytics-store.svelte'
 import type { DaySummary } from '$lib/business/model/metric/history';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
-import type { FitSnapshotRecord } from '$lib/data/type';
+import type { FitSnapshotRecord, Task } from '$lib/data/type';
 
 const TODAY = '2026-07-20';
 
@@ -93,6 +93,16 @@ const day = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
 	...over,
 });
 
+const task = (id: number, title: string): Task => ({
+	id,
+	title,
+	physicalDifficulty: 3,
+	mentalDifficulty: 6,
+	enjoyment: 5,
+	createdAt: '2026-06-01',
+	completed: false,
+});
+
 // Stands in for the route's toast. Declared here so a spec can assert both that
 // the store raised it and — for the model-report half — that it did not.
 const notifyHistoryLoadFailed = vi.fn();
@@ -146,6 +156,28 @@ describe('AnalyticsStore', () => {
 		store.range = 'year';
 		flushSync();
 		expect(store.summaries).toHaveLength(3);
+	});
+
+	// The log history names measurements from this rather than from the title frozen
+	// onto each record, so it has to span the whole loaded year — the history's "all
+	// time" scope reads past the viewed range — and take the newest name for an id.
+	it('maps every loaded day’s task ids to their current titles', async () => {
+		const store = await setup([
+			day('2026-06-01', {
+				tasks: [task(4, 'writing'), task(5, 'boxing')],
+			}),
+			day('2026-07-15', {
+				tasks: [task(6, 'the chapter')],
+			}),
+		]);
+
+		expect(store.range).toBe('week');
+
+		expect([...store.taskTitles]).toEqual([
+			[4, 'writing'],
+			[5, 'boxing'],
+			[6, 'the chapter'],
+		]);
 	});
 
 	it('totals only the viewed range', async () => {
