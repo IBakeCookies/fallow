@@ -145,7 +145,8 @@ row. Neither needs a new solve.
     each ⚡/🪫 row linking to its own day: the row corrects, the list drops, the
     card resets, and this answers "what did I log". The three calibration cards
     stopped listing their own kind the same day — three partial answers to one
-    question — and kept the fit's two verbs (`fit-log-summary.svelte`). ⚡ joined 🪫 in being correctable on a PAST day the same week: the badge
+    question — and kept the fit's two verbs (`fit-log-summary.svelte`). ⚡ joined
+    🪫 in being correctable on a PAST day the same week: the badge
     reads the day's own observation instead of a `flowMinutes` field on its
     session, so an amendment lands somewhere the auto-save is not asked to
     rewrite, and the field is gone. The ✓/✕ pair likewise has one owner
