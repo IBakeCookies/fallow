@@ -882,6 +882,83 @@ test('the ✎ re-seeds a drain editor the row already has open', async ({ page }
 	await expect(page.getByText('M6')).toBeVisible();
 });
 
+/* A break is the one measurement with no row anywhere: it belongs to no task, so
+   neither screen's task list can carry its editor, and until 2026-08-10 it could only be
+   deleted and re-logged. The analytics ✎ is its only correction, which this crosses two
+   screens to prove: the fit the Lab applies has to move with what the list rewrote.
+
+   ☕ is also where a correction re-deriving anything would be least visible — it has no
+   covariates to re-derive — so the ⚡/🪫 cases are covered where their covariates are
+   (the store specs, MATH.md §36). */
+test('a break is correctable from the analytics history, and the fit follows', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	// A long break off a nearly-full drain recovers slowly; the correction below makes it
+	// a short break off the same drain, which is a much faster recovery rate.
+	await logRest(page, 120, 9, 8, 8, 7);
+
+	const recoveryRate = page.getByLabel('Recovery rate');
+
+	await page
+		.getByRole('button', {
+			name: 'Apply my fits',
+		})
+		.click();
+
+	const slowFit = await recoveryRate.inputValue();
+
+	await page.goto('/analytics');
+
+	await page
+		.getByRole('button', {
+			name: /^Correct Break logged on/,
+		})
+		.click();
+
+	const form = page.locator('form').filter({
+		hasText: 'rested',
+	});
+
+	// Seeded from the record: the same five numbers the row prints, so a correction only
+	// has to change the one that was wrong.
+	await expect(form.locator('input[type="number"]').first()).toHaveValue('120');
+
+	await form.locator('input[type="number"]').first().fill('15');
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	// The corrected reading, which is also what says the write landed — asserting the
+	// count alone would pass on a save that never happened, and navigating into the
+	// store's re-read aborts it.
+	await expect(
+		page.getByRole('listitem').filter({
+			hasText: '15m',
+		}),
+	).toBeVisible();
+
+	// Still ONE row: corrected in place, not appended. A second would fit r off the same
+	// recovery twice.
+	await expect(page.getByText('1 measurement')).toBeVisible();
+
+	await page.goto('/energy');
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Apply my fits',
+		})
+		.click();
+
+	await expect(recoveryRate).not.toHaveValue(slowFit);
+});
+
 test('deleting the drain rating clears the calibration', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -900,6 +977,11 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 			name: /^Delete Session rating logged on/,
 		})
 		.click();
+
+	// Wait for the drop to land before navigating. The store re-reads IndexedDB after the
+	// delete, and a `goto` fired into that gap aborts the transaction — so without this
+	// the test flaked on its own speed rather than on the behaviour it names.
+	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
 
 	await page.goto('/energy');
 

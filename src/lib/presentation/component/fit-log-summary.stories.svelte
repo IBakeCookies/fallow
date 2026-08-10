@@ -30,7 +30,7 @@
 		await expect(canvas.getByText('Personalized from 3 flow logs')).toBeVisible();
 
 		const link = canvas.getByRole('link');
-		await expect(link).toHaveAttribute('href', '/analytics');
+		await expect(link).toHaveAttribute('href', '/analytics#log-history');
 
 		// No count on the link: the card's own label carries it, and the page it opens
 		// shows a range the user picks rather than all of them.

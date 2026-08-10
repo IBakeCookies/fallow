@@ -214,6 +214,46 @@ test('a single flow log is deletable from the analytics history', async ({ page 
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
+/* The other half of that list's two verbs, added 2026-08-10: the ✎ corrects in place
+   rather than linking to the day, which is possible because a correction rewrites the
+   quantities the user rated and re-derives nothing from a task (MATH.md §36). Crossing
+   the screens is again the test — the badge on `/` reads the day's observation, so it is
+   what says the write landed on the right day and task. */
+test('a flow log is correctable from the analytics history', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await logFlow(page, 90);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/analytics');
+
+	await page
+		.getByRole('button', {
+			name: /^Correct Time to flow logged on/,
+		})
+		.click();
+
+	const minutes = page.locator('form input[type="number"]').first();
+
+	// Seeded with the reading, in the unit it was measured in
+	await expect(minutes).toHaveValue('90');
+
+	await minutes.fill('45');
+
+	await page
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	// One measurement still: ⚡ is one number per day, and a correction amends it
+	await expect(page.getByText('1 measurement')).toBeVisible();
+
+	await page.goto('/');
+	await expect(page.getByText('⚡ 45m')).toBeVisible();
+	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
+});
+
 /* Re-tuning a task after it is added is a different path from creating one: the
    editor seeds its draft from the task, and the new values have to reach both the
    allocator's inputs and the persisted session. */

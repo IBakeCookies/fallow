@@ -49,13 +49,18 @@ export interface LogHistoryInput {
 	flow: Persisted<FlowObservationRecord>[];
 	drain: Persisted<DrainObservationRecord>[];
 	rest: Persisted<RestObservationRecord>[];
-	/** First day of the viewed analytics range, inclusive. */
-	rangeStart: string;
+	/** First day of the viewed analytics range, inclusive. Left off for "all time",
+	 *  which the card offers because this list is the only surface some measurements
+	 *  have: a ☕ belongs to no task's row, and nothing older than the widest range (a
+	 *  year) appears anywhere else — so a range that always bounded it would put a
+	 *  two-year-old typo permanently beyond correcting. */
+	rangeStart?: string;
 }
 
 /**
- * The range's measurements, newest first — the order the list prints, so nothing
- * downstream re-sorts what a test has already pinned.
+ * The range's measurements — or all of them, with no `rangeStart` — newest first:
+ * the order the list prints, so nothing downstream re-sorts what a test has
+ * already pinned.
  *
  * Ordered by date and then by when each was logged, not by date alone: a day
  * holds several 🪫 sessions and several ☕ breaks, and their order is the only
@@ -70,7 +75,7 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 	const dated: { row: LogHistoryRow; createdAt: number }[] = [];
 
 	for (const log of input.flow) {
-		if (log.date < input.rangeStart) continue;
+		if (input.rangeStart !== undefined && log.date < input.rangeStart) continue;
 
 		dated.push({
 			row: {
@@ -90,7 +95,7 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 	}
 
 	for (const log of input.drain) {
-		if (log.date < input.rangeStart) continue;
+		if (input.rangeStart !== undefined && log.date < input.rangeStart) continue;
 
 		dated.push({
 			row: {
@@ -110,7 +115,7 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 	}
 
 	for (const log of input.rest) {
-		if (log.date < input.rangeStart) continue;
+		if (input.rangeStart !== undefined && log.date < input.rangeStart) continue;
 
 		dated.push({
 			row: {

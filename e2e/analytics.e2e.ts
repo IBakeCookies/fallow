@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, isoDate } from './helpers';
+import { addTask, AUTOSAVE_MS, isoDate, logDrain } from './helpers';
 
 /* The analytics screen reads a year of stored days through AnalyticsStore, whose
    whole job happens after hydration: load, slice by range, fold. None of it runs
@@ -29,6 +29,46 @@ test('empty profile shows the empty state, not a stuck spinner', async ({ page }
 	await page.goto('/analytics');
 	await expect(page.getByText('Nothing to analyze in this range yet.')).toBeVisible();
 	await expect(page.getByText('Loading…')).not.toBeVisible();
+
+	// The logs card is outside that empty state, because "nothing to analyze" is about day
+	// SUMMARIES and the logs come from two other stores. It is also the only place a ☕ can
+	// be corrected or dropped from at all — a user whose day summaries failed to load
+	// still has to be able to reach their measurements.
+	await expect(
+		page.getByRole('heading', {
+			name: 'Your logs',
+		}),
+	).toBeVisible();
+
+	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
+});
+
+/* The three calibration cards link to this list, not to the top of the page it is the last
+   card on. Worth an e2e because the failure is invisible to a unit test and to the eye on a
+   short page: the fragment scroll happens once, on arrival, so an element that appears only
+   when IndexedDB answers is not there to be scrolled to and nothing retries. */
+test('the calibration card’s link scrolls to the log list', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	// The Lab's drain card is the cheapest of the three to give a fit to. With no ☕ logged
+	// the recovery card offers no link, so there is exactly one to click.
+	await logDrain(page, 120, 9, 5);
+
+	await page
+		.getByRole('link', {
+			name: 'In your logs →',
+		})
+		.click();
+
+	const list = page.getByRole('heading', {
+		name: 'Your logs',
+	});
+
+	await expect(list).toBeVisible();
+	await expect(list).toBeInViewport();
 });
 
 test('stats and chart come off the stored days', async ({ page }) => {

@@ -3,7 +3,21 @@
 	import MeasurementFormActions from '$lib/presentation/component/measurement-form-actions.svelte';
 	import { RATING_INPUT_CLASS } from '$lib/presentation/utils/measurement-prompt';
 
+	/** The five numbers a break is, as this form holds them — minutes on the way in,
+	 *  hours on the way out, since MATH.md §8.9 fits r in hours. */
+	type RestDraft = {
+		minutes: number | null;
+		mindBefore: number | null;
+		mindAfter: number | null;
+		bodyBefore: number | null;
+		bodyAfter: number | null;
+	};
+
 	interface Props {
+		/** The break this editor opened on, when it opened on a stored one — the
+		 *  analytics history's ✎, which is ☕'s only editor (MATH.md §36). Omitted for a
+		 *  break being logged for the first time. */
+		seed?: RestDraft;
 		/** A completed pre/post pair, in the units MATH.md §8.9 fits r from: hours
 		 *  rested, and both capacities rated 0–10 before and after. */
 		onsave: (entry: {
@@ -16,22 +30,26 @@
 		oncancel: () => void;
 	}
 
-	let { onsave, oncancel }: Props = $props();
+	let {
+		seed = {
+			minutes: null,
+			mindBefore: null,
+			mindAfter: null,
+			bodyBefore: null,
+			bodyAfter: null,
+		},
+		onsave,
+		oncancel,
+	}: Props = $props();
 
 	// The ☕ editor's own draft, unlike the 🪫 one: a break has no task row to hang off
 	// and no completion that opens it, so nothing outside this form gates on it.
-	let draft = $state<{
-		minutes: number | null;
-		mindBefore: number | null;
-		mindAfter: number | null;
-		bodyBefore: number | null;
-		bodyAfter: number | null;
-	}>({
-		minutes: null,
-		mindBefore: null,
-		mindAfter: null,
-		bodyBefore: null,
-		bodyAfter: null,
+	//
+	// A copy read once, on the same contract the other two forms state: a fresh draft
+	// per opening is a fresh MOUNT, which the caller keys.
+	// svelte-ignore state_referenced_locally -- deliberately initial-value only
+	let draft = $state<RestDraft>({
+		...seed,
 	});
 
 	function save() {
@@ -66,7 +84,8 @@
 >
 	<label class="flex items-center gap-grid-2xs">
 		{m.energy_rest_rested_label()}
-		<!-- Always focuses: the ☕ button is the only way in, so the caret is always
+		<!-- Always focuses: both ways in are a click asking for this editor — the ☕ button
+		     and the analytics ✎ — so the caret is always
 		     asked for. Not `autofocus` — the document's autofocus-processed flag is set
 		     at load, so the attribute is inert on any node inserted afterwards. -->
 		<input

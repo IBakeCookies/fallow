@@ -10,8 +10,10 @@
 
 	interface Props {
 		/** The rating this editor opened on, when it opened on a stored one. `recordId` is
-		 *  the tell: with one, ✓ rewrites that session and 🗑 can drop it; without, this
-		 *  is a session being rated for the first time. */
+		 *  carried for the CALLER, not read here: the task-row pages key their own
+		 *  append-vs-rewrite choice off it, and pass their 🗑 on the same evidence. It is
+		 *  not what makes ✓ a rewrite — the analytics ✎ passes a seed without one and its
+		 *  ✓ corrects, because there the record id is the page's already. */
 		seed?: {
 			recordId?: number;
 			minutes: number | null;

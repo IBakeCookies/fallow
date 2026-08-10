@@ -9,8 +9,9 @@ import { withStore } from '$lib/data/storage/indexed-db';
 /**
  * Append-only create: several breaks a day are normal, so every logged rest is
  * its own record — the same one-row-per-event shape drain ratings have carried
- * since MATH.md §18, minus their task. Typo correction happens by deleting the
- * entry from the calibration list.
+ * since MATH.md §18, minus their task. Correcting one is `$editRestObservation`
+ * below, NOT re-logging: a second log of the same break would fit r twice off
+ * one recovery.
  */
 export async function $createRestObservation(
 	observation: Omit<RestObservationRecord, 'id' | 'createdAt'>,
@@ -20,6 +21,33 @@ export async function $createRestObservation(
 			...observation,
 			createdAt: Date.now(),
 		});
+	});
+}
+
+/**
+ * Correct one break in place, by its own key. Same contract as
+ * `$editDrainObservation`: the `date` and the original `createdAt` both stand,
+ * because a correction re-describes the break that happened rather than taking a
+ * new one. A break carries nothing derived from anything else — five numbers the
+ * user typed — so those five are the whole of what an edit may touch.
+ */
+export async function $editRestObservation(
+	id: number,
+	observation: Omit<RestObservationRecord, 'id' | 'createdAt' | 'date'>,
+): Promise<void> {
+	await withStore('restObservations', 'readwrite', (store) => {
+		const existing = store.get(id);
+
+		existing.onsuccess = () => {
+			const record = existing.result as RestObservationRecord | undefined;
+
+			if (record === undefined) return;
+
+			store.put({
+				...record,
+				...observation,
+			});
+		};
 	});
 }
 

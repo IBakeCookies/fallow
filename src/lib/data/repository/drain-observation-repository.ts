@@ -48,12 +48,20 @@ export async function $addDrainObservation(
  * plan by date, so restamping one would take hours off the day it was worked
  * and credit them to a day nobody worked them.
  *
+ * The task and its demands are out for a third reason (2026-08-10): they were
+ * captured at logging time so that editing a task later cannot rewrite what an
+ * earlier session measured, and re-deriving them on a correction is that same
+ * rewrite by another route — `mentalDifficulty` raised on Friday would change the
+ * `cognitiveDemand` §8.7 fits Monday's α against. What is left is exactly the
+ * three numbers the editor asks for, which is also what makes a correction
+ * addressable by record id alone, off any screen, with no task in view.
+ *
  * A missing id is a no-op: the row can be deleted from the same card the
  * editor was opened from.
  */
 export async function $editDrainObservation(
 	id: number,
-	observation: Omit<DrainObservationRecord, 'id' | 'createdAt' | 'date'>,
+	observation: Pick<DrainObservationRecord, 'hours' | 'mindDrain' | 'bodyDrain'>,
 ): Promise<void> {
 	await withStore('drainObservations', 'readwrite', (store) => {
 		const existing = store.get(id);

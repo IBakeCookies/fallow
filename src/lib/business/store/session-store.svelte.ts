@@ -735,25 +735,60 @@ export class SessionStore {
 		if (!task) return;
 
 		const date = this.#selectedDate;
+		const existing = this.#flowLogFor(id, date);
 
-		if (date !== this.#today && !this.#flowLogFor(id, date)) return;
+		if (date !== this.#today && !existing) return;
 
-		const difficulty = getEffectiveDifficulty(task);
+		// A CORRECTION keeps what the record froze; only a first measurement derives it.
+		// The rule is about the correction and not the address it arrived by (MATH.md §36),
+		// so the row obeys it as much as `editFlowLog` does: the covariates were captured
+		// when the measurement was taken, and re-deriving them here would let a difficulty
+		// raised on Friday re-price what Monday measured — including on a save that changes
+		// nothing but re-submits the same number.
+		const measured = existing ?? {
+			taskTitle: task.title,
+			difficulty: getEffectiveDifficulty(task),
+			enjoyment: task.enjoyment,
+			E: mapEffort(getEffectiveDifficulty(task)),
+			beta: mapEnjoyability(task.enjoyment),
+		};
 
 		try {
 			await flowObservationRepository.$updateFlowObservation({
 				date,
 				taskId: id,
-				taskTitle: task.title,
-				difficulty,
-				enjoyment: task.enjoyment,
-				E: mapEffort(difficulty),
-				beta: mapEnjoyability(task.enjoyment),
+				taskTitle: measured.taskTitle,
+				difficulty: measured.difficulty,
+				enjoyment: measured.enjoyment,
+				E: measured.E,
+				beta: measured.beta,
 				phiHours: minutes / 60,
 			});
 
 			// The re-read IS the badge: it lands only once the write did, so the row
 			// never shows success for a failed persist.
+			this.#flowObservations = await this.#readFlowObservations();
+		} catch (e) {
+			logError('Failed to save flow observation', e);
+			this.#reporter.report('save-failed');
+		}
+	}
+
+	// Correct one measurement by its RECORD rather than by its row (2026-08-10). The
+	// analytics history shows every day at once and therefore views none of them, so it
+	// has neither a viewed day to stamp nor that day's task to read — and needs neither,
+	// because a correction rewrites only what the user measured (MATH.md §36).
+	//
+	// Through the repository's edit-by-id and NOT through `logFlow`'s upsert with the
+	// record spread back in: those differ exactly when the record has been deleted since
+	// the list read it, where the upsert's not-found branch would re-insert it with a
+	// fresh stamp. `$editFlowObservation` no-ops instead.
+	async editFlowLog(recordId: number, minutes: number) {
+		try {
+			await flowObservationRepository.$editFlowObservation(recordId, {
+				phiHours: minutes / 60,
+			});
+
 			this.#flowObservations = await this.#readFlowObservations();
 		} catch (e) {
 			logError('Failed to save flow observation', e);

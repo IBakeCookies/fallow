@@ -9,11 +9,32 @@ import {
 } from '$lib/data/repository/drain-observation-repository';
 import type { DrainObservationRecord } from '$lib/data/type';
 
-/** What a correction may set — everything but the keys that identify the session. */
-type DrainRating = Omit<DrainObservationRecord, 'id' | 'createdAt' | 'date'>;
+/** What a correction may set: the three numbers the user rated, and nothing else. Not
+ *  the day, not the stamp, and since 2026-08-10 not the task or its demands either — those
+ *  were captured when the session was rated so that a task edited afterwards cannot
+ *  rewrite what it measured (MATH.md §36). Spelled as its own type so a payload that grows
+ *  one of them is a type error here rather than a passing test of a call no caller can
+ *  make. */
+type DrainRating = Pick<DrainObservationRecord, 'hours' | 'mindDrain' | 'bodyDrain'>;
 
 function rating(overrides: Partial<DrainRating> = {}): DrainRating {
 	return {
+		hours: 2,
+		mindDrain: 6,
+		bodyDrain: 2,
+		...overrides,
+	};
+}
+
+/** What a fresh LOG must set: everything, because it is the moment the session's
+ *  covariates are observed. It stopped being `rating()` plus a date on 2026-08-10, when a
+ *  correction narrowed to the rated numbers — the two payloads are two shapes now, and a
+ *  helper spanning both would type neither. */
+function observation(
+	overrides: Partial<DrainObservationRecord> = {},
+): Omit<DrainObservationRecord, 'id' | 'createdAt'> {
+	return {
+		date: '2026-01-01',
 		taskId: 1,
 		taskTitle: 'Write tests',
 		hours: 2,
@@ -22,17 +43,6 @@ function rating(overrides: Partial<DrainRating> = {}): DrainRating {
 		mindDrain: 6,
 		bodyDrain: 2,
 		...overrides,
-	};
-}
-
-function observation(
-	overrides: Partial<DrainObservationRecord> = {},
-): Omit<DrainObservationRecord, 'id' | 'createdAt'> {
-	const { date = '2026-01-01', ...ratingOverrides } = overrides;
-
-	return {
-		date,
-		...rating(ratingOverrides),
 	};
 }
 
