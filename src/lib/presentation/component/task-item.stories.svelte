@@ -97,22 +97,23 @@
 	}}
 	play={async ({ canvas }) => {
 		// The delta leads, in the primary weight...
-		const delta = canvas.getByText('45m more');
+		const delta = canvas.getByText('spend 45m');
 		await expect(delta).toBeVisible();
 		await expect(delta).toHaveClass(/text-ty-primary/);
 
 		// ...and the plan is still there, unchanged and muted beneath it. That the
 		// plan number survives mid-day IS the §11.8 scope split, on screen.
-		const plan = canvas.getByText('1h 45m · prio 12.4');
+		const plan = canvas.getByText('plan 1h 45m · prio 12.4');
 		await expect(plan).toBeVisible();
 		await expect(plan).toHaveClass(/text-ty-silent/);
 	}}
 />
 
-<!-- The delta landing on the planned figure changes nothing about the layout: the
-     plan line is always printed, so the row keeps one shape all day. The two
-     coincide both on a task nobody touched and on one worked 30m whose day just
-     grew, and this row is given no way to distinguish them. -->
+<!-- A re-plan that agrees with the plan is not shown at all: the row keeps the exact
+     shape it had all morning. Logging hours against ONE task re-plans every other
+     row, and on a day you spent them as asked the answer for those rows is the plan
+     again — so announcing the re-plan there would grow a line to repeat a number,
+     which reads as news where there is none. -->
 <Story
 	name="Re-plan lands on the planned hours"
 	args={{
@@ -122,19 +123,34 @@
 		},
 	}}
 	play={async ({ canvas, canvasElement, userEvent }) => {
-		await expect(canvas.getByText('1h 45m more')).toBeVisible();
+		const plan = canvas.getByText('1h 45m');
 
-		const line = canvas.getByText('1h 45m · prio 12.4');
+		await expect(plan).toHaveClass(/text-ty-primary/);
+		await expect(canvas.getByText('prio 12.4')).toBeVisible();
 
-		await expect(line).toBeVisible();
+		// Not merely unlabelled — there is no second reading on the row.
+		await expect(canvas.queryByText(/spend/)).not.toBeInTheDocument();
+		await expect(canvas.queryByText(/plan 1h 45m/)).not.toBeInTheDocument();
 
-		// The tooltip still splits on the equality: with the delta already saying the
-		// hours, the line beneath it is read as the priority.
-		await userEvent.hover(line);
+		await userEvent.hover(plan);
 		const body = within(canvasElement.ownerDocument.body);
 
-		await waitFor(() => expect(body.getByText(/priority score/)).toBeVisible());
-		await expect(body.queryByText(/^Suggested time allocation/)).not.toBeInTheDocument();
+		await waitFor(() => expect(body.getByText(/^Suggested time allocation/)).toBeVisible());
+	}}
+/>
+
+<!-- The guard is the PRINTED figure, not the raw hours: 1.7499h and 1.75h both render
+     "1h 45m", and comparing the numbers would put that duplicate back on screen. -->
+<Story
+	name="Re-plan differs below the printed minute"
+	args={{
+		remaining: {
+			taskHours: 1.7499,
+			dayHours: 2.5,
+		},
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.queryByText(/spend/)).not.toBeInTheDocument();
 	}}
 />
 
@@ -149,7 +165,7 @@
 		},
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByText('0m more')).toBeVisible();
+		await expect(canvas.getByText('spend 0m')).toBeVisible();
 	}}
 />
 

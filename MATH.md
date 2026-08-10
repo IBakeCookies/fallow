@@ -126,7 +126,7 @@ that are not evident from reading it — so never retype a row, regenerate:
 §32       5947-6011  Two gates that read a sentinel as a verdict (2026-08-08)
 §33       6013-6130  A plan reads only the logs that precede it (2026-08-08)
 §34       6132-6315  The subset search gave up one task too early (2026-08-08)
-§35       6317-6565  The plan cannot see the hours you already spent (2026-08…
+§35       6317-6587  The plan cannot see the hours you already spent (2026-08…
 ```
 
 <!-- section-index:end -->
@@ -6529,18 +6529,39 @@ exactly when the day is being typed into.
 
 It follows that `suggestedHours` is never overwritten with the remainder. The
 two are **separate readings of the same row**, stacked: the delta leads, reading
-"1h 45m more", and the plan sits under it with the priority, because at 2pm the
-actionable number is the one saying what to do next. The plan answers what the
-day looks like as designed; the delta answers what is left of it, and it is time
-to spend ON TOP of the hours already worked — which is why they are not rendered
-as a was/now pair, whose arithmetic would understate the day.
+"spend 45m", and the plan sits under it with the priority, reading
+"plan 1h 45m · prio 12.4", because at 2pm the actionable number is the one
+saying what to do next. The plan answers what the day looks like as designed;
+the delta answers what is left of it, and it is time to spend ON TOP of the
+hours already worked — which is why they are not rendered as a was/now pair,
+whose arithmetic would understate the day.
 
-The plan figure stays on that second line even when it happens to **equal** the
-delta, so the row keeps one shape all day. Equality is not a claim that nothing
-changed: the two coincide both on a task nobody touched and on one worked 30m
-whose day just grew, and the row cannot tell those apart — which is the reason
-it is not annotated either way. Only the tooltip splits on it, reading the line
-as the priority once the delta above has already said the hours.
+Neither line is phrased as a **comparison**, for the same reason. "45m more"
+invites reading the delta as a movement of the plan printed beneath it, which it
+is not — the two are on different bases — and the comparison only runs one way:
+a task worked past its share leaves the others _less_, so no single word covers
+both directions. Each line carries the label of the question it answers instead.
+
+The delta is shown **only where it disagrees with the plan**, and the guard is
+the _printed_ figure, not the raw hours — 1.7499 h and 1.75 h are the same "1h
+45m", and comparing the numbers would put that repetition back on screen.
+
+The reason is that this reading is global while the trigger for it is local.
+Hours logged against **one** task re-plan **every** row, so without the guard a
+single 🪫 log grows a second line on tasks nobody touched — and on a day whose
+hours went where the plan asked, that line repeats the plan figure. It reads as
+news, and its actual cause is nothing more than a drain log existing. The
+information is in the disagreement, so that is what is rendered: spend the hours
+as planned and the list keeps the shape it had all morning; overrun one task and
+the rows it took the hours from say so.
+
+This knowingly hides one case. Equality is not proof nothing moved — the delta
+matches the plan both on a task nobody touched and on one worked 30m whose day
+then grew by 30m, and the row is given no worked-hours input with which to tell
+those apart. The second is suppressed along with the first. What is lost there
+is only the fact that a re-plan happened, never an instruction: when the two
+figures agree, the hours to spend next are the plan's, which is the figure the
+row is already showing.
 
 Completion is not an hours instrument — only a 🪫 log is — so ticking a box
 moves neither reading.

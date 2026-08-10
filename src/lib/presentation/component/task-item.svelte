@@ -37,7 +37,9 @@
 		optimalStopHours: number;
 		/** The mid-day re-plan (MATH.md §35): what the hours still left today are worth
 		 *  on this task, beside how many are left at all. Absent until today has 🪫
-		 *  hours logged against it — the plan alone answers a day nobody has worked. */
+		 *  hours logged against it — the plan alone answers a day nobody has worked.
+		 *  Passed for every row once any hours exist, but only rendered where it says
+		 *  something the plan does not; see `replan`. */
 		remaining?: {
 			taskHours: number;
 			dayHours: number;
@@ -92,6 +94,18 @@
 	}: Props = $props();
 
 	const badge = $derived(natureBadge(nature));
+
+	/* The re-plan is shown only where it DISAGREES with the plan (MATH.md §35). Hours
+	   logged against one task re-plan every other row, and on a day spent as the plan
+	   asked, the answer for those rows is the plan again — a second line repeating it
+	   reads as news where there is none, and it would appear on nothing more than a
+	   drain log existing. Compared on the PRINTED figure, because what the guard is
+	   preventing is the same text twice; the raw hours differ below the minute. */
+	const replan = $derived(
+		remaining && formatDuration(remaining.taskHours) !== formatDuration(suggestedHours)
+			? remaining
+			: null,
+	);
 </script>
 
 {#snippet lead()}
@@ -149,44 +163,47 @@
 
 {#snippet trailing()}
 	{#if !completed}
-		{#if remaining}
+		{#if replan}
 			<!-- Mid-day (MATH.md §35): the delta leads and the plan drops beneath it,
 			     because at 2pm the actionable number is the one saying what to do next.
 			     Deliberately NOT a strikethrough on the plan. It is not superseded — it
 			     is the same number the plan-family rows on this page are still computed
 			     from (§11.8) — and the two are on different bases: this is time to spend
 			     ON TOP of the hours already worked, so pairing them as was/now would
-			     understate the day's real total. The word carries that; a struck pair
-			     could not. -->
+			     understate the day's real total. Which is also why neither line is
+			     phrased as a comparison ("15m more"): the delta is not measured against
+			     the plan printed under it, and a comparative word would invite exactly
+			     that reading — wrongly, and in only one direction, since a task you
+			     over-worked leaves the others LESS. Each line is labelled by what it
+			     answers instead, which is also what keeps the two legible as one row:
+			     they are never the same printed figure, but they are two figures. -->
 			<div class="text-right">
 				<Tooltip.Root>
 					<Tooltip.Trigger class="block cursor-help text-sm font-semibold text-ty-primary">
-						{m.task_remaining_more({
-							hours: formatDuration(remaining.taskHours),
+						{m.task_remaining_spend({
+							hours: formatDuration(replan.taskHours),
 						})}
 					</Tooltip.Trigger>
 					<Tooltip.Content>
 						<p>
 							{m.task_remaining_tooltip({
-								left: formatDuration(remaining.dayHours),
+								left: formatDuration(replan.dayHours),
 							})}
 						</p>
 					</Tooltip.Content>
 				</Tooltip.Root>
 				<Tooltip.Root>
 					<Tooltip.Trigger class="block cursor-help text-2xs text-ty-silent">
-						{formatDuration(suggestedHours)} ·
+						{m.task_plan_hours({
+							hours: formatDuration(suggestedHours),
+						})} ·
 
 						{m.task_priority({
 							score: priorityScore,
 						})}
 					</Tooltip.Trigger>
 					<Tooltip.Content>
-						<p>
-							{remaining.taskHours === suggestedHours
-								? m.task_priority_tooltip()
-								: m.task_allocation_tooltip()}
-						</p>
+						<p>{m.task_allocation_tooltip()}</p>
 					</Tooltip.Content>
 				</Tooltip.Root>
 			</div>
