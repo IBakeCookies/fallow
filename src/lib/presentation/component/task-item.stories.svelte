@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn, waitFor } from 'storybook/test';
+	import { expect, fn, waitFor, within } from 'storybook/test';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 
 	const { Story } = defineMeta({
@@ -85,9 +85,9 @@
 	}}
 />
 
-<!-- Mid-day (MATH.md §35): the re-plan reads BESIDE the plan, never over it. The
-     morning's 1h 45m is still there; the new column is what the hours still left
-     are worth on this task now. -->
+<!-- Mid-day (MATH.md §35): the re-plan reads WITH the plan, never over it. The
+     morning's 1h 45m is still there, stacked under the delta; the new figure is
+     what the hours still left are worth on this task now. -->
 <Story
 	name="Mid-day re-plan"
 	args={{
@@ -123,11 +123,22 @@
 			dayHours: 2.5,
 		},
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ canvas, canvasElement, userEvent }) => {
 		await expect(canvas.getByText('1h 45m more')).toBeVisible();
-		await expect(canvas.getByText('prio 12.4')).toBeVisible();
+
+		const line = canvas.getByText('prio 12.4');
+
+		await expect(line).toBeVisible();
 		// The duplicate is gone; the survivor is the delta, which is the actionable one.
 		await expect(canvas.queryByText('1h 45m · prio 12.4')).not.toBeInTheDocument();
+
+		// And the tooltip follows the line: with no allocation left on screen, the
+		// allocation tooltip would be describing a figure that is not there.
+		await userEvent.hover(line);
+		const body = within(canvasElement.ownerDocument.body);
+
+		await waitFor(() => expect(body.getByText(/priority score/)).toBeVisible());
+		await expect(body.queryByText(/^Suggested time allocation/)).not.toBeInTheDocument();
 	}}
 />
 

@@ -126,7 +126,7 @@ that are not evident from reading it — so never retype a row, regenerate:
 §32       5947-6011  Two gates that read a sentinel as a verdict (2026-08-08)
 §33       6013-6130  A plan reads only the logs that precede it (2026-08-08)
 §34       6132-6315  The subset search gave up one task too early (2026-08-08)
-§35       6317-6552  The plan cannot see the hours you already spent (2026-08…
+§35       6317-6565  The plan cannot see the hours you already spent (2026-08…
 ```
 
 <!-- section-index:end -->
@@ -6438,10 +6438,12 @@ switch went back into the budget for everyone else to spend — on the evidence 
 a checkbox, which measures no hours at all.
 
 The user-visible symptom is that the afternoon moves when nothing about the day
-did. Three tasks, `B = 4.25`, plan 2 / 1.5 / 0.25 with one hour logged on the
-first: the remainder offers 2.25 and 1.0. Tick the middle task done without
-logging it and the last task jumps to its own `T*`, 1.75 — a 45-minute gift
-sourced from a box being checked.
+did. The reported day, which reproduces: three purely cognitive tasks at
+(Mᵤ, βᵤ) = (6,7), (5,4), (2,2), `B = 4.25`, `s = 0.25`, default constants, so
+the plan is 2 / 1.5 / 0.25. Work half an hour on the first and tick it done, and
+the remainder offers 2.25 and 1.0. Now tick the **middle** task done without
+logging anything against it: the last task jumps to 1.75, its own `T*` of 1.688
+rounded up the lattice — a 45-minute gift sourced from a box being checked.
 
 Priced over the same 400 days, the drop moved hours onto other tasks on **301 of
 400** days (75.25%), median **0.50 h**, mean 0.61 h, p90 1.50 h, worst 5.00 h,
@@ -6525,11 +6527,22 @@ and on today having any 🪫 hours at all — and it returns before solving when
 there is nothing to re-plan, which costs **0.001 ms** and is every morning, i.e.
 exactly when the day is being typed into.
 
-It follows that `suggestedHours` never becomes "X more h". The remaining hours
-are a **second column beside** the plan: the plan column answers what the day
-looks like as designed, the new one answers what is left of it, and a user
-reading the row can see both. Completion is not an hours instrument — only a 🪫
-log is — so ticking a box moves neither column.
+It follows that `suggestedHours` is never overwritten with the remainder. The
+two are **separate readings of the same row**, stacked: the delta leads, reading
+"1h 45m more", and the plan sits under it with the priority, because at 2pm the
+actionable number is the one saying what to do next. The plan answers what the
+day looks like as designed; the delta answers what is left of it, and it is time
+to spend ON TOP of the hours already worked — which is why they are not rendered
+as a was/now pair, whose arithmetic would understate the day.
+
+The plan figure is dropped from that second line when it happens to **equal**
+the delta, since printing one duration twice reads as a display bug. That is not
+a claim that nothing changed: the two coincide both on a task nobody touched and
+on one worked 30m whose day just grew, and the row cannot tell those apart. Only
+the duplicate goes; the line, its priority and its tooltip stay.
+
+Completion is not an hours instrument — only a 🪫 log is — so ticking a box
+moves neither reading.
 
 ### Pinned in the suite
 

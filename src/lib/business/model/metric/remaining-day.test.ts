@@ -130,6 +130,12 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		expect(before?.hoursByTask.get(EMAIL.id)).toBeGreaterThan(0);
 		expect(after?.hoursByTask.get(EMAIL.id)).toBe(before?.hoursByTask.get(EMAIL.id));
 		expect(after?.remainingHours).toBe(before?.remainingHours);
+
+		// Its own share is the accounting device and is not reported: the row would
+		// otherwise be told to spend more hours on a task the user just finished.
+		expect(before?.hoursByTask.get(GYM.id)).toBeGreaterThan(0);
+		expect(after?.hoursByTask.has(GYM.id)).toBe(false);
+		expect(after!.plannedHours).toBeLessThan(before!.plannedHours);
 	});
 
 	it('drops a completed task that was logged, keeping its hours spent', () => {
