@@ -452,173 +452,170 @@
 		{/if}
 
 		<!-- One provider for the whole region: the task rows, the parameter labels
-			     and all three calibration headings. -->
+		     and all three calibration headings. -->
 		<Tooltip.Provider delayDuration={150}>
-			<div class="space-y-grid-lg">
-				<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-					<!-- Tasks: the same card the main page renders, over the same list. Only
-					     what a row says about a task is this screen's own. Full width on an
-					     empty day — there are no parameters or fits for it to sit beside, and
-					     two thirds of a card with a third of nothing reads as a layout bug. -->
-					<div class={hasTasks ? 'lg:col-span-2' : 'lg:col-span-3'}>
-						<TaskListCard form={addTaskForm} rows={hasTasks ? taskRows : null} />
-					</div>
-					{#if hasTasks}
-						<div class="space-y-grid-lg">
-							<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced
-							     against free time. In the side column so it never pushes the
-							     task list down. Absent whenever there is nothing to advise on —
-							     no window, no tasks, or every task checked off. -->
-							{#if stopAdvice !== null}
-								<StopAdvisorCard
-									advice={stopAdvice}
-									taskTitle={stopTaskTitle}
-									freeTimeValue={params.freeTimeValue}
-									locale={getDateLocale()}
-								/>
-							{/if}
-							<div class="card-shell p-box-md sm:p-box-xl">
-								<div class="mb-text-md flex items-baseline justify-between">
-									<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-										{m.energy_model_parameters()}
-									</h3>
-									<div class="flex shrink-0 items-baseline gap-text-md">
-										<!-- The two opposite ways to fill these sliders, side by side: back to
-									     the model's defaults, or over to what this user's own logs fit. One
-									     button for all four fits because their ORDER is the math (MATH.md
-									     §8.7/§8.9/§8.10) — three buttons let the user apply them in an
-									     order that leaves a parameter stale. -->
-										{#if lab.hasFit}
-											<button
-												type="button"
-												class="text-xs transition {lab.fitsApplied
-													? 'cursor-default text-ty-silent'
-													: 'text-brand/90 hover:text-brand-strong'}"
-												disabled={lab.fitsApplied}
-												title={m.energy_apply_fits_title()}
-												onclick={() => lab.applyFits()}
-											>
-												{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
-											</button>
-										{/if}
+			<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
+				<!-- Tasks: the same card the main page renders, over the same list. Only
+				     what a row says about a task is this screen's own. Full width on an
+				     empty day — there are no parameters or fits for it to sit beside, and
+				     two thirds of a card with a third of nothing reads as a layout bug. -->
+				<div class={hasTasks ? 'lg:col-span-2' : 'lg:col-span-3'}>
+					<TaskListCard form={addTaskForm} rows={hasTasks ? taskRows : null} />
+				</div>
+				{#if hasTasks}
+					<div class="space-y-grid-lg">
+						<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced
+						     against free time. In the side column so it never pushes the
+						     task list down. Absent whenever there is nothing to advise on —
+						     no window, no tasks, or every task checked off. -->
+						{#if stopAdvice !== null}
+							<StopAdvisorCard
+								advice={stopAdvice}
+								taskTitle={stopTaskTitle}
+								freeTimeValue={params.freeTimeValue}
+								locale={getDateLocale()}
+							/>
+						{/if}
+						<div class="card-shell p-box-md sm:p-box-xl">
+							<div class="mb-text-md flex items-baseline justify-between">
+								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+									{m.energy_model_parameters()}
+								</h3>
+								<div class="flex shrink-0 items-baseline gap-text-md">
+									<!-- The two opposite ways to fill these sliders, side by side: back to
+								     the model's defaults, or over to what this user's own logs fit. One
+								     button for all four fits because their ORDER is the math (MATH.md
+								     §8.7/§8.9/§8.10) — three buttons let the user apply them in an
+								     order that leaves a parameter stale. -->
+									{#if lab.hasFit}
 										<button
 											type="button"
-											class="text-xs text-ty-silent transition hover:text-ty-secondary"
-											title={m.energy_reset_defaults_title()}
-											onclick={() => lab.resetParams()}
+											class="text-xs transition {lab.fitsApplied
+												? 'cursor-default text-ty-silent'
+												: 'text-brand/90 hover:text-brand-strong'}"
+											disabled={lab.fitsApplied}
+											title={m.energy_apply_fits_title()}
+											onclick={() => lab.applyFits()}
 										>
-											{m.energy_reset_defaults()}
+											{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
 										</button>
-									</div>
-								</div>
-								<div class="space-y-grid-md">
-									<!-- Not a model param like every row below it: the window IS the
-								     session's budget, so this writes the shared value and the main
-								     page's Available Hours moves with it. Hence 0.25 and not the
-								     coarser 0.5 a lab-local slider could afford: the stepper rounds to
-								     its own step's decimals, so a 6.25h day set on the main page would
-								     come back 6.8 after one click here. -->
-									<ParamRow
-										id="window-hours"
-										label={m.energy_day_window()}
-										hint={m.energy_day_window_hint()}
-										value={windowHours}
-										onchange={(v) => (session.availableHours = v)}
-										min={0}
-										max={24}
-										step={0.25}
-										unit={m.unit_hours()}
-									/>
-									<ParamRow
-										id="alpha-cog"
-										label={m.energy_cognitive_drain()}
-										hint={m.energy_cognitive_drain_hint()}
-										value={params.alphaCog}
-										onchange={(v) => lab.setParam('alphaCog', v)}
-										min={0.05}
-										max={2}
-										step={0.05}
-										unit={m.unit_per_hour()}
-										accent="focus-within:border-mind/50"
-									/>
-									<ParamRow
-										id="alpha-phys"
-										label={m.energy_physical_drain()}
-										hint={m.energy_physical_drain_hint()}
-										value={params.alphaPhys}
-										onchange={(v) => lab.setParam('alphaPhys', v)}
-										min={0.05}
-										max={2}
-										step={0.05}
-										unit={m.unit_per_hour()}
-										accent="focus-within:border-body/50"
-									/>
-									<ParamRow
-										id="recovery-rate"
-										label={m.energy_recovery_rate()}
-										hint={m.energy_recovery_rate_hint()}
-										value={params.recoveryRate}
-										onchange={(v) => lab.setParam('recoveryRate', v)}
-										min={0.1}
-										max={3}
-										step={0.1}
-										unit={m.unit_per_hour()}
-									/>
-									<ParamRow
-										id="free-time-value"
-										label={m.energy_free_time_value()}
-										hint={m.energy_free_time_value_hint()}
-										value={params.freeTimeValue}
-										onchange={(v) => lab.setParam('freeTimeValue', v)}
-										min={0}
-										max={3}
-										step={0.1}
-										unit={m.unit_output_per_hour()}
-									/>
-									<ParamRow
-										id="terminal-value"
-										label={m.energy_evening_energy()}
-										hint={m.energy_evening_energy_hint()}
-										value={params.terminalEnergyValue}
-										onchange={(v) => lab.setParam('terminalEnergyValue', v)}
-										min={0}
-										max={5}
-										step={0.25}
-										unit={m.unit_output()}
-									/>
-									<ParamRow
-										id="satiety-scale"
-										label={m.energy_satiety()}
-										hint={m.energy_satiety_hint()}
-										value={params.satietyScale}
-										onchange={(v) => lab.setParam('satietyScale', v)}
-										min={0}
-										max={5}
-										step={0.25}
-										unit="×"
-									/>
-									<ParamRow
-										id="micro-recovery"
-										label={m.energy_micro_recovery()}
-										hint={m.energy_micro_recovery_hint()}
-										value={Number((params.microRecoveryFraction * 100).toFixed(1))}
-										onchange={(v) => lab.setParam('microRecoveryFraction', v / 100)}
-										min={0}
-										max={30}
-										step={1}
-										unit="%"
-									/>
+									{/if}
+									<button
+										type="button"
+										class="text-xs text-ty-silent transition hover:text-ty-secondary"
+										title={m.energy_reset_defaults_title()}
+										onclick={() => lab.resetParams()}
+									>
+										{m.energy_reset_defaults()}
+									</button>
 								</div>
 							</div>
+							<div class="space-y-grid-md">
+								<!-- Not a model param like every row below it: the window IS the
+							     session's budget, so this writes the shared value and the main
+							     page's Available Hours moves with it. Hence 0.25 and not the
+							     coarser 0.5 a lab-local slider could afford: the stepper rounds to
+							     its own step's decimals, so a 6.25h day set on the main page would
+							     come back 6.8 after one click here. -->
+								<ParamRow
+									id="window-hours"
+									label={m.energy_day_window()}
+									hint={m.energy_day_window_hint()}
+									value={windowHours}
+									onchange={(v) => (session.availableHours = v)}
+									min={0}
+									max={24}
+									step={0.25}
+									unit={m.unit_hours()}
+								/>
+								<ParamRow
+									id="alpha-cog"
+									label={m.energy_cognitive_drain()}
+									hint={m.energy_cognitive_drain_hint()}
+									value={params.alphaCog}
+									onchange={(v) => lab.setParam('alphaCog', v)}
+									min={0.05}
+									max={2}
+									step={0.05}
+									unit={m.unit_per_hour()}
+									accent="focus-within:border-mind/50"
+								/>
+								<ParamRow
+									id="alpha-phys"
+									label={m.energy_physical_drain()}
+									hint={m.energy_physical_drain_hint()}
+									value={params.alphaPhys}
+									onchange={(v) => lab.setParam('alphaPhys', v)}
+									min={0.05}
+									max={2}
+									step={0.05}
+									unit={m.unit_per_hour()}
+									accent="focus-within:border-body/50"
+								/>
+								<ParamRow
+									id="recovery-rate"
+									label={m.energy_recovery_rate()}
+									hint={m.energy_recovery_rate_hint()}
+									value={params.recoveryRate}
+									onchange={(v) => lab.setParam('recoveryRate', v)}
+									min={0.1}
+									max={3}
+									step={0.1}
+									unit={m.unit_per_hour()}
+								/>
+								<ParamRow
+									id="free-time-value"
+									label={m.energy_free_time_value()}
+									hint={m.energy_free_time_value_hint()}
+									value={params.freeTimeValue}
+									onchange={(v) => lab.setParam('freeTimeValue', v)}
+									min={0}
+									max={3}
+									step={0.1}
+									unit={m.unit_output_per_hour()}
+								/>
+								<ParamRow
+									id="terminal-value"
+									label={m.energy_evening_energy()}
+									hint={m.energy_evening_energy_hint()}
+									value={params.terminalEnergyValue}
+									onchange={(v) => lab.setParam('terminalEnergyValue', v)}
+									min={0}
+									max={5}
+									step={0.25}
+									unit={m.unit_output()}
+								/>
+								<ParamRow
+									id="satiety-scale"
+									label={m.energy_satiety()}
+									hint={m.energy_satiety_hint()}
+									value={params.satietyScale}
+									onchange={(v) => lab.setParam('satietyScale', v)}
+									min={0}
+									max={5}
+									step={0.25}
+									unit="×"
+								/>
+								<ParamRow
+									id="micro-recovery"
+									label={m.energy_micro_recovery()}
+									hint={m.energy_micro_recovery_hint()}
+									value={Number((params.microRecoveryFraction * 100).toFixed(1))}
+									onchange={(v) => lab.setParam('microRecoveryFraction', v / 100)}
+									min={0}
+									max={30}
+									step={1}
+									unit="%"
+								/>
+							</div>
 						</div>
-					{/if}
-				</div>
 
-				{#if hasTasks}
-					<!-- The three calibration cards used to stack under the parameters, in a
-				     third of the width — while the tasks card beside them ended far higher,
-				     leaving ~700px of empty column. -->
-					<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
+						<!-- The three fits, under the parameters they fit. They spent a day as a
+						     full-width row of their own: each printed its whole log history, which made
+						     them tall, while a third-width column left the tasks card beside them
+						     ending ~700px higher. The history moved to the analytics list (2026-08-10)
+						     and what is left of each card is two numbers, so the column is where they
+						     belong again — and a reading now sits beside the slider it answers for. -->
 						<!-- Drain calibration: fitted α from end-of-session ratings -->
 						<CalibrationCard title={m.energy_calibration()} hint={m.energy_calibration_hint()}>
 							{#if drainObservations.length === 0}
@@ -730,7 +727,9 @@
 							hint={m.energy_stop_calibration_hint()}
 						>
 							{#if lab.stopObservationCount === 0}
-								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_stop_calibration_empty()}</p>
+								<p class="mt-text-sm text-xs text-ty-silent">
+									{m.energy_stop_calibration_empty()}
+								</p>
 							{:else if !stopFit.fitted}
 								<p class="mt-text-sm text-xs text-ty-silent">
 									{m.energy_stop_calibration_censored()}

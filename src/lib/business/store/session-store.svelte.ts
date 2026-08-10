@@ -60,9 +60,11 @@ export type ReadDateParam = () => string | null;
  *
  * "Never recycled" is within a day: only the viewed day's tasks are in scope, so
  * across days it rests on `Date.now()`, and importing N tasks reserves ids up to
- * now+N−1. Adding a task on another day inside that window could reuse one —
- * harmless, because every observation join is per-date, and no UI reaches two
- * days that fast.
+ * now+N−1. Adding a task on another day inside that window could reuse one, which
+ * no UI reaches two days fast enough to do. Every join a FIT reads is per-date, so
+ * a collision could not move a measurement between days anyway; the one join that
+ * is by id alone is the log history's task NAME (`analytics-store`'s `taskTitles`),
+ * where the cost of a collision is a row printing the other day's title.
  */
 function nextTaskId(tasks: readonly Task[]): number {
 	return Math.max(Date.now(), ...tasks.map((task) => Math.floor(task.id) + 1));
@@ -682,7 +684,7 @@ export class SessionStore {
 	// ----- Flow observations (model personalization) -----
 
 	/** One task's ⚡ measurement for a day, or undefined. One per (task, date) by
-	 *  construction — `$updateFlowObservation` upserts on that key. */
+	 *  construction — `$createOrUpdateFlowObservation` upserts on that key. */
 	#flowLogFor(taskId: number, date: string) {
 		return this.#flowObservations.find((o) => o.taskId === taskId && o.date === date);
 	}
@@ -754,7 +756,7 @@ export class SessionStore {
 		};
 
 		try {
-			await flowObservationRepository.$updateFlowObservation({
+			await flowObservationRepository.$createOrUpdateFlowObservation({
 				date,
 				taskId: id,
 				taskTitle: measured.taskTitle,
@@ -782,10 +784,10 @@ export class SessionStore {
 	// Through the repository's edit-by-id and NOT through `logFlow`'s upsert with the
 	// record spread back in: those differ exactly when the record has been deleted since
 	// the list read it, where the upsert's not-found branch would re-insert it with a
-	// fresh stamp. `$editFlowObservation` no-ops instead.
+	// fresh stamp. `$updateFlowObservation` no-ops instead.
 	async editFlowLog(recordId: number, minutes: number) {
 		try {
-			await flowObservationRepository.$editFlowObservation(recordId, {
+			await flowObservationRepository.$updateFlowObservation(recordId, {
 				phiHours: minutes / 60,
 			});
 

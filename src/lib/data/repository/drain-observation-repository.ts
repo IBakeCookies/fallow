@@ -18,10 +18,10 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * summed per (date, taskId); the writer was the thing that could never let
  * them fire twice.
  *
- * Correcting a rating is `$editDrainObservation` below, NOT re-logging: a
+ * Correcting a rating is `$updateDrainObservation` below, NOT re-logging: a
  * second log of the same session would double-count it in that sum.
  */
-export async function $addDrainObservation(
+export async function $createDrainObservation(
 	observation: Omit<DrainObservationRecord, 'id' | 'createdAt'>,
 ): Promise<void> {
 	await withStore('drainObservations', 'readwrite', (store) => {
@@ -59,7 +59,7 @@ export async function $addDrainObservation(
  * A missing id is a no-op: the row can be deleted from the same card the
  * editor was opened from.
  */
-export async function $editDrainObservation(
+export async function $updateDrainObservation(
 	id: number,
 	observation: Pick<DrainObservationRecord, 'hours' | 'mindDrain' | 'bodyDrain'>,
 ): Promise<void> {

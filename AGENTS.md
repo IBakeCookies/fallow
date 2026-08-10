@@ -450,10 +450,11 @@ say the same way now:
   refuses a first measurement dated before today, so a correction lands and a
   back-dated log cannot. The two are not interchangeable: handing the row's UPSERT
   a record that has since been deleted re-creates it under its own id with a fresh
-  stamp, so the by-id path is a real `$editFlowObservation` and not the upsert with
-  the record spread back in. It could not before, because the badge was ALSO a `flowMinutes`
-  field on the day's task and the autosave never rewrites a past day, so an
-  amended one came back on the next load. **The observation is now the only place
+  stamp, so the by-id path is a real `$updateFlowObservation` and not
+  `$createOrUpdateFlowObservation` with the record spread back in. It could not
+  before, because the badge was ALSO a `flowMinutes` field on the day's task and
+  the autosave never rewrites a past day, so an amended one came back on the next
+  load. **The observation is now the only place
   a ⚡ lives** — `SessionStore.flowMinutesOn(date)` is what the row reads, the
   field is gone from `Task`, and `sanitizeTask` reads a stored one past rather
   than repairing it. Hence two callbacks on the row and not one:
@@ -742,7 +743,15 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   two never shadow each other. Existing names are a baseline, not a to-do list:
   rename one when you touch it, in a change of its own.
 - Data-layer controllers start with `$` + a CRUD verb: `$createX`, `$readX`,
-  `$updateX`, `$deleteX`. Inside `.svelte`/`.svelte.ts` the `$` prefix is
+  `$updateX`, `$deleteX`. An upsert is `$updateX` — most writers here are one
+  (`$updateSession`, `$updateFitSnapshot`, `$updateRoutine` all `put()` and
+  create if absent), and the doc comment says so. `$createOrUpdateX` is for the
+  one case where a store has **two** writers at different addresses and the plain
+  `$updateX` is the strict by-id one: `$createOrUpdateFlowObservation` upserts on
+  `(taskId, date)` while `$updateFlowObservation` corrects a record and no-ops if
+  it is gone. Do not reach for it otherwise — handing an upsert a deleted record
+  re-creates it (MATH.md §36), so which of the two a caller has is worth
+  spelling. Inside `.svelte`/`.svelte.ts` the `$` prefix is
   reserved for runes, so import the repository as a namespace:
   `import * as sessionRepository from '$lib/data/repository/session-repository'`.
 
@@ -1357,17 +1366,17 @@ Each was considered and decided. Re-deciding them is churn.
   can never match.
 
 - **🪫 drain ratings do NOT upsert — one row per session**
-  (`$addDrainObservation`). `hours` is one session's length for the §8.7 α
+  (`$createDrainObservation`). `hours` is one session's length for the §8.7 α
   fit, while §8.10/§8.11/§12 read a task's hours for a day as the sum of its
   rows; the (`taskId`, `date`) upsert this used to do meant a second session
   overwrote the first and vanished from that sum (MATH.md §18). The row's 🪫
   button therefore always opens an EMPTY editor — one more session — while
   correcting a rating goes through **that rating's own chip** on the row and
-  `$editDrainObservation`, which keeps that row's `createdAt`. Re-logging a
+  `$updateDrainObservation`, which keeps that row's `createdAt`. Re-logging a
   correction would count the session twice. For the same reason the completion
   prompt passes `measured: false`: finishing a task ends a session that an
   earlier rating says nothing about.
-  `$editDrainObservation` takes no `date`, and that is a **type** error rather
+  `$updateDrainObservation` takes no `date`, and that is a **type** error rather
   than a convention because the row now corrects ratings on days it is only
   viewing (2026-08-10). A correction re-describes a session that already
   happened, so restamping it with the live clock would take those hours off the

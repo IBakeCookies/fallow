@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-	$addDrainObservation,
-	$editDrainObservation,
+	$createDrainObservation,
+	$updateDrainObservation,
 	$readAllDrainObservations,
 	$deleteDrainObservation,
 	$deleteAllDrainObservations,
@@ -55,13 +55,13 @@ describe('drain-observation-repository', () => {
 	// so a second session REPLACED the first and vanished from the day's worked
 	// hours that §8.10/§8.11/§12 read back.
 	it('appends: a second session on the same task and day is its own row', async () => {
-		await $addDrainObservation(
+		await $createDrainObservation(
 			observation({
 				hours: 3,
 			}),
 		);
 
-		await $addDrainObservation(
+		await $createDrainObservation(
 			observation({
 				hours: 1.5,
 				mindDrain: 8,
@@ -84,7 +84,7 @@ describe('drain-observation-repository', () => {
 
 		vi.spyOn(Date, 'now').mockReturnValue(morning);
 
-		await $addDrainObservation(
+		await $createDrainObservation(
 			observation({
 				date: '2026-01-03',
 			}),
@@ -92,7 +92,7 @@ describe('drain-observation-repository', () => {
 
 		vi.spyOn(Date, 'now').mockReturnValue(evening);
 
-		await $addDrainObservation(
+		await $createDrainObservation(
 			observation({
 				date: '2026-01-03',
 			}),
@@ -110,7 +110,7 @@ describe('drain-observation-repository', () => {
 
 		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
 
-		await $addDrainObservation(
+		await $createDrainObservation(
 			observation({
 				date: '2026-01-05',
 				mindDrain: 4,
@@ -124,7 +124,7 @@ describe('drain-observation-repository', () => {
 
 		vi.spyOn(Date, 'now').mockReturnValue(fixedAt);
 
-		await $editDrainObservation(
+		await $updateDrainObservation(
 			target.id!,
 			rating({
 				mindDrain: 5,
@@ -144,7 +144,7 @@ describe('drain-observation-repository', () => {
 	// user never worked that session, which every fit reads back per day (§8.7) and
 	// the §33 causal window scopes plans by.
 	it('keeps a corrected rating on its own day', async () => {
-		await $addDrainObservation(
+		await $createDrainObservation(
 			observation({
 				date: '2026-01-07',
 				mindDrain: 3,
@@ -155,7 +155,7 @@ describe('drain-observation-repository', () => {
 		// assigned is what an edit addresses.
 		const target = (await $readAllDrainObservations()).find((r) => r.date === '2026-01-07')!;
 
-		await $editDrainObservation(
+		await $updateDrainObservation(
 			target.id!,
 			rating({
 				mindDrain: 7,
@@ -171,7 +171,7 @@ describe('drain-observation-repository', () => {
 	it('ignores an edit to a row that is gone', async () => {
 		const before = await $readAllDrainObservations();
 
-		await $editDrainObservation(9999, rating());
+		await $updateDrainObservation(9999, rating());
 
 		expect(await $readAllDrainObservations()).toHaveLength(before.length);
 	});

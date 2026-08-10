@@ -127,7 +127,7 @@ that are not evident from reading it — so never retype a row, regenerate:
 §33       6017-6134  A plan reads only the logs that precede it (2026-08-08)
 §34       6136-6319  The subset search gave up one task too early (2026-08-08)
 §35       6321-6632  The plan cannot see the hours you already spent (2026-08…
-§36       6634-6694  What a correction may touch (2026-08-10)
+§36       6634-6705  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -4346,9 +4346,9 @@ buys ≤ 0.06 pp of plan value over the mean-only channel.
 A review of the §8.11 advisor found the defect in its input, not in its
 arithmetic.
 
-- **Before.** `$updateDrainObservation` upserted on `(taskId, date)`:
-  re-rating a task the same day replaced the record, keeping the newest
-  `hours`. Typo-correction semantics, mirroring the ⚡ flow log.
+- **Before.** The 🪫 writer upserted on `(taskId, date)`: re-rating a task the
+  same day replaced the record, keeping the newest `hours`. Typo-correction
+  semantics, mirroring the ⚡ flow log.
 - **The defect.** `hours` is ONE session's `H` (§8.7 fits α from
   `d/10 = 1 − C(H)` off a full reservoir), but §8.10, §8.11 and §12 all read
   the day's hours per task as the SUM of that task's logs —
@@ -4366,11 +4366,11 @@ arithmetic.
   HIGHER, than an hour earlier. The true 4.5 h day prices at 0.372/h, i.e.
   `stop`. That night's λ₀ bracket and §12's audit then score the same
   truncated day.
-- **After.** The writer appends (`$addDrainObservation`); a task's hours for a
+- **After.** The writer appends (`$createDrainObservation`); a task's hours for a
   day are its rows summed, which is what `workedHoursByTask` and
   `readFinishedDays` already computed. §8.7 is unchanged and gets cleaner
   data — each row is one session, so the fresh-start approximation applies per
-  row as written. Correcting a rating is `$editDrainObservation` on that row
+  row as written. Correcting a rating is `$updateDrainObservation` on that row
   (its own chip on the task's row, on either screen, or the ✎ in the analytics
   history), which keeps its original `createdAt`; re-logging a correction would
   count the session twice, which is the same defect from the other side. One
@@ -6634,10 +6634,20 @@ logs exist.
 ## 36. What a correction may touch (2026-08-10)
 
 Every measurement freezes the covariates it was taken under: ⚡ stores
-`difficulty`, `enjoyment` and the mapped `(E, β)`; 🪫 stores `taskTitle` and the
-reservoir demands `(wc, wp)`; ☕ stores no covariate at all, being five numbers
-the user typed. §8.7 says why — "so later slider edits don't rewrite past
-measurements" — and §5's ϕ fit reads `(E, β)` off the record for the same reason.
+`difficulty`, `enjoyment` and the mapped `(E, β)`; 🪫 stores the reservoir demands
+`(wc, wp)`; ☕ stores no covariate at all, being five numbers the user typed. §8.7
+says why — "so later slider edits don't rewrite past measurements" — and §5's ϕ
+fit reads `(E, β)` off the record for the same reason.
+
+Both task-bound kinds also copy the task's `taskTitle`, which is **not** a
+covariate and is not protected by this section: no fit reads it, it is the row's
+label, and freezing a label only means printing a name the task no longer has.
+So the history names a measurement by what its `taskId` is called now
+(`analytics-store`'s `taskTitles`, a fold over the year of days it has already
+loaded) and falls back to the record's copy for a task that has been deleted or
+has aged out — the one case where the frozen name is the only name left. The
+record is never rewritten for a rename, so a title that drifted before
+2026-08-11 reads correctly too.
 
 **The defect.** Every correction path re-derived those frozen fields from the
 task **as it is now**, which is that same rewrite by another route. Raise a
@@ -6670,12 +6680,13 @@ path for the first time on that account — it has no task, hence no row on eith
 screen, so the history is the only surface that can offer one.
 
 **One writer per address, and they are not interchangeable.** 🪫 and ☕ correct
-through `$editDrainObservation` / `$editRestObservation`, keyed by record id; ⚡
-has both, because a task's row can only address a measurement as `(taskId, date)`
-while the analytics list can only address it as a record. The by-id path is a real
-`$editFlowObservation` and **not** the row's upsert with the record handed back to
-it: those differ exactly when the record has been deleted since the list read it
-(another tab, or a ✕ the click raced), where the upsert's not-found branch inserts
+through `$updateDrainObservation` / `$updateRestObservation`, keyed by record id;
+⚡ has both, because a task's row can only address a measurement as
+`(taskId, date)` while the analytics list can only address it as a record. The
+by-id path is a real `$updateFlowObservation` and **not**
+`$createOrUpdateFlowObservation` with the record handed back to it: those differ
+exactly when the record has been deleted since the list read it (another tab, or a
+✕ the click raced), where the create-or-update's not-found branch inserts
 it again under its own id with a fresh `createdAt` — resurrecting a dropped
 measurement into the fit and falsifying the one time-of-day instrument the data
 carries (§8.3).
@@ -6688,7 +6699,7 @@ record's `(E, β)` against a task that has since changed, a first measurement
 derives them, and `editFlowLog` sends only `phiHours`. The three repository tests
 are the other half — each edit keeps its day, its stamp and its covariates, and
 no-ops on a missing id, with ⚡'s pinning that a deleted record stays deleted. The
-types close it: `$editDrainObservation` takes
-`Pick<…, 'hours' | 'mindDrain' | 'bodyDrain'>` and `$editFlowObservation` takes
+types close it: `$updateDrainObservation` takes
+`Pick<…, 'hours' | 'mindDrain' | 'bodyDrain'>` and `$updateFlowObservation` takes
 `Pick<…, 'phiHours'>`, so re-capturing a covariate is a type error rather than a
 convention.

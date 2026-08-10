@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, vi } from 'vitest';
 import {
+	$createOrUpdateFlowObservation,
 	$updateFlowObservation,
-	$editFlowObservation,
 	$readAllFlowObservations,
 	$deleteFlowObservation,
 	$deleteAllFlowObservations,
@@ -31,14 +31,14 @@ describe('flow-observation-repository', () => {
 	});
 
 	it('creates a record with a generated id and createdAt', async () => {
-		await $updateFlowObservation(observation());
+		await $createOrUpdateFlowObservation(observation());
 		const [record] = await $readAllFlowObservations();
 		expect(record.id).toBeTypeOf('number');
 		expect(record.createdAt).toBeGreaterThan(0);
 	});
 
 	it('upserts: same taskId + date replaces instead of appending', async () => {
-		await $updateFlowObservation(
+		await $createOrUpdateFlowObservation(
 			observation({
 				phiHours: 0.9,
 			}),
@@ -56,7 +56,7 @@ describe('flow-observation-repository', () => {
 	it('keeps the original stamp when a correction replaces a measurement', async () => {
 		const [before] = await $readAllFlowObservations();
 
-		await $updateFlowObservation(
+		await $createOrUpdateFlowObservation(
 			observation({
 				phiHours: 0.2,
 			}),
@@ -68,13 +68,13 @@ describe('flow-observation-repository', () => {
 	});
 
 	it('different taskId or date appends', async () => {
-		await $updateFlowObservation(
+		await $createOrUpdateFlowObservation(
 			observation({
 				taskId: 2,
 			}),
 		);
 
-		await $updateFlowObservation(
+		await $createOrUpdateFlowObservation(
 			observation({
 				date: '2026-01-02',
 			}),
@@ -93,7 +93,7 @@ describe('flow-observation-repository', () => {
 
 		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
 
-		await $updateFlowObservation(
+		await $createOrUpdateFlowObservation(
 			observation({
 				date: '2026-02-01',
 				taskId: 42,
@@ -112,7 +112,7 @@ describe('flow-observation-repository', () => {
 		// what an edit addresses.
 		const target = before.find((r) => r.taskId === 42)!;
 
-		await $editFlowObservation(target.id!, {
+		await $updateFlowObservation(target.id!, {
 			phiHours: 0.75,
 		});
 
@@ -136,7 +136,7 @@ describe('flow-observation-repository', () => {
 
 	// The case the upsert cannot serve, and the reason this function exists.
 	it('ignores an edit to a record that is gone, rather than re-creating it', async () => {
-		await $updateFlowObservation(
+		await $createOrUpdateFlowObservation(
 			observation({
 				date: '2026-02-03',
 				taskId: 43,
@@ -150,7 +150,7 @@ describe('flow-observation-repository', () => {
 
 		const before = await $readAllFlowObservations();
 
-		await $editFlowObservation(target.id!, {
+		await $updateFlowObservation(target.id!, {
 			phiHours: 0.9,
 		});
 

@@ -170,7 +170,7 @@ export class EnergyObservationStore {
 		if (!task) return;
 
 		try {
-			await drainObservationRepository.$addDrainObservation({
+			await drainObservationRepository.$createDrainObservation({
 				date: liveToday.value,
 				taskId: id,
 				taskTitle: task.title,
@@ -202,7 +202,7 @@ export class EnergyObservationStore {
 	// rating whose task no day in view holds, or that no day holds at all.
 	async editDrainLog(recordId: number, hours: number, mind: number, body: number) {
 		try {
-			await drainObservationRepository.$editDrainObservation(recordId, {
+			await drainObservationRepository.$updateDrainObservation(recordId, {
 				hours,
 				mindDrain: mind,
 				bodyDrain: body,
@@ -285,7 +285,7 @@ export class EnergyObservationStore {
 		},
 	) {
 		try {
-			await restObservationRepository.$editRestObservation(recordId, entry);
+			await restObservationRepository.$updateRestObservation(recordId, entry);
 
 			this.#restObservations = await this.#readRest();
 		} catch (e) {

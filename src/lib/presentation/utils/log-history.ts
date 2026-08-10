@@ -33,7 +33,8 @@ export interface LogHistoryRow {
 	id: number;
 	kind: LogKind;
 	date: string;
-	/** The task measured; null for ☕, which is not worked on anything. */
+	/** The task measured, by its CURRENT name where the app still holds one; null for
+	 *  ☕, which is not worked on anything. */
 	taskTitle: string | null;
 	/** ⚡ is the measured time to flow, the other two the length of what was rated. */
 	hours: number;
@@ -55,6 +56,12 @@ export interface LogHistoryInput {
 	 *  year) appears anywhere else — so a range that always bounded it would put a
 	 *  two-year-old typo permanently beyond correcting. */
 	rangeStart?: string;
+	/** What each task is called NOW, by id. ⚡ and 🪫 records also carry the title
+	 *  they were logged under, which a rename leaves stale — so the live name wins
+	 *  wherever there is one, and the record's copy is the fallback for a task that
+	 *  has been deleted or has aged out of the loaded history. Left off entirely by a
+	 *  caller that holds no tasks; then every row reads its record. */
+	taskTitles?: ReadonlyMap<number, string>;
 }
 
 /**
@@ -74,6 +81,17 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 	// rating keeps its original stamp, so the two can disagree).
 	const dated: { row: LogHistoryRow; createdAt: number }[] = [];
 
+	// The task's name today, or the one the record froze at logging time. Not a
+	// measurement — MATH.md §36 freezes the covariates a fit reads, and a title is a
+	// LABEL, so nothing is protected by printing a name the task no longer has.
+	//
+	// `||`, not `??`: `sanitizeTask` keeps a task whose stored title is not a string as
+	// `''` (R4 — persisted data is hand-editable and restorable from old backups), and
+	// an empty live name is worse than a stale one. It would also take the row's day
+	// link with it, since an unnamed row is how a ☕ is drawn.
+	const titleOf = (log: { taskId: number; taskTitle: string }) =>
+		input.taskTitles?.get(log.taskId) || log.taskTitle;
+
 	for (const log of input.flow) {
 		if (input.rangeStart !== undefined && log.date < input.rangeStart) continue;
 
@@ -83,7 +101,7 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 				id: log.id,
 				kind: 'flow',
 				date: log.date,
-				taskTitle: log.taskTitle,
+				taskTitle: titleOf(log),
 				hours: log.phiHours,
 				mind: null,
 				mindAfter: null,
@@ -103,7 +121,7 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 				id: log.id,
 				kind: 'drain',
 				date: log.date,
-				taskTitle: log.taskTitle,
+				taskTitle: titleOf(log),
 				hours: log.hours,
 				mind: log.mindDrain,
 				mindAfter: null,

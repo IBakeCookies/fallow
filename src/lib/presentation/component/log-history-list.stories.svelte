@@ -72,7 +72,7 @@
 <!-- The analytics range's measurements in one list. Three kinds share one row shape:
      the day and what was measured on the left, the reading on the right. The play
      checks that the print order is the fold's, that the emoji is not the only thing
-     saying which kind a row is, and that ☕ names no task. -->
+     saying which kind a row is, and that a ☕ — which names no task — says so. -->
 <Story
 	name="Every kind of measurement"
 	play={async ({ canvas }) => {
@@ -105,6 +105,12 @@
 		).toHaveAttribute('href', '/?date=2026-08-08');
 
 		await expect(canvas.getAllByRole('link')).toHaveLength(2);
+
+		// A break is worked on nothing, so the name slot holds the kind instead of
+		// leaving the date alone in a column of "date · task" — which read as a row
+		// whose title failed to load. Hidden from the reader that already hears it
+		// from the sr-only kind above.
+		await expect(canvas.getByText('· Break')).toHaveAttribute('aria-hidden', 'true');
 
 		// 🪫 rates a session on one task; ☕ is a break, worked on nothing.
 		await expect(printed[1]).toHaveTextContent('writing');

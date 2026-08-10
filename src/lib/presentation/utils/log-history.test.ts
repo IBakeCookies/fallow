@@ -167,6 +167,70 @@ describe('logHistory', () => {
 		expect(rows.map((r) => r.key)).toEqual(['drain-1', 'rest-1', 'flow-1']);
 	});
 
+	// The record's own `taskTitle` is the name the task had when it was logged, so a
+	// rename left every earlier measurement of it printing the old one — two names for
+	// one task with nothing on the page to connect them.
+	it('names a measurement by what its task is called now', () => {
+		const rows = logHistory(
+			input({
+				flow: [
+					flow(1, '2026-08-02', {
+						taskId: 4,
+						taskTitle: 'writing',
+					}),
+				],
+				drain: [
+					drain(1, '2026-08-02', {
+						taskId: 4,
+						taskTitle: 'writing',
+					}),
+				],
+				taskTitles: new Map([[4, 'the chapter']]),
+			}),
+		);
+
+		expect(rows.map((r) => r.taskTitle)).toEqual(['the chapter', 'the chapter']);
+	});
+
+	// Deleted, or older than the loaded year: the frozen title is the only name the
+	// measurement has left, which is why the record still carries one.
+	it('falls back to the logged name for a task it can no longer find', () => {
+		const rows = logHistory(
+			input({
+				flow: [
+					flow(1, '2026-08-02', {
+						taskId: 4,
+						taskTitle: 'writing',
+					}),
+				],
+				rest: [rest(1, '2026-08-02')],
+				taskTitles: new Map([[99, 'some other task']]),
+			}),
+		);
+
+		// And a ☕ has no task to name either way.
+		expect(rows.map((r) => r.taskTitle)).toEqual(['writing', null]);
+	});
+
+	// `sanitizeTask` keeps a task whose stored title is not a string as `''` (R4), and a
+	// blank live name is worse than a stale one — it would also draw the row as a ☕,
+	// which is what an unnamed row means here, and drop its link to the day.
+	it('keeps the logged name when the live one is blank', () => {
+		const rows = logHistory(
+			input({
+				flow: [
+					flow(1, '2026-08-02', {
+						taskId: 4,
+						taskTitle: 'writing',
+					}),
+				],
+				taskTitles: new Map([[4, '']]),
+			}),
+		);
+
+		expect(rows[0].taskTitle).toBe('writing');
+	});
+
 	it('orders a day by when each measurement was logged, newest first', () => {
 		const rows = logHistory(
 			input({

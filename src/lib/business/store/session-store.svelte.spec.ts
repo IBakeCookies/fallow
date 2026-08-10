@@ -38,8 +38,8 @@ vi.mock('$lib/data/repository/routine-repository', () => ({
 }));
 
 vi.mock('$lib/data/repository/flow-observation-repository', () => ({
+	$createOrUpdateFlowObservation: vi.fn(async () => {}),
 	$updateFlowObservation: vi.fn(async () => {}),
-	$editFlowObservation: vi.fn(async () => {}),
 	$deleteFlowObservation: vi.fn(async () => {}),
 	$deleteAllFlowObservations: vi.fn(async () => {}),
 	$readAllFlowObservations: vi.fn(async () => []),
@@ -48,8 +48,8 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 const readTitleRatingsMock = vi.mocked(sessionHistory.readTitleRatings);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
+const createOrUpdateFlowObservationMock = vi.mocked(flowObservationRepository.$createOrUpdateFlowObservation);
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
-const editFlowObservationMock = vi.mocked(flowObservationRepository.$editFlowObservation);
 const readAllFlowObservationsMock = vi.mocked(flowObservationRepository.$readAllFlowObservations);
 
 /**
@@ -237,7 +237,7 @@ describe('SessionStore persistence', () => {
 		flushSync();
 		const id = store.tasks[0].id;
 
-		updateFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
+		createOrUpdateFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
 		await store.logFlow(id, 25);
 		expect(store.flowMinutesOn(store.today).get(id)).toBeUndefined();
 		expect(status.error).toBe('save-failed');
@@ -328,7 +328,7 @@ describe('SessionStore persistence', () => {
 
 		mockPage.url = new URL(`http://localhost/?date=${date}`);
 		await vi.waitFor(() => expect(store.selectedDate).toBe(date));
-		updateFlowObservationMock.mockClear();
+		createOrUpdateFlowObservationMock.mockClear();
 
 		return store;
 	};
@@ -351,7 +351,7 @@ describe('SessionStore persistence', () => {
 
 		await store.logFlow(3, 25);
 
-		expect(updateFlowObservationMock).toHaveBeenCalledWith(
+		expect(createOrUpdateFlowObservationMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				date: past,
 				taskId: 3,
@@ -385,7 +385,7 @@ describe('SessionStore persistence', () => {
 		// The day's task reads 8/5 — nothing like the 3/9 the measurement was taken under.
 		await store.logFlow(3, 25);
 
-		expect(updateFlowObservationMock).toHaveBeenCalledWith(
+		expect(createOrUpdateFlowObservationMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				difficulty: 3,
 				enjoyment: 9,
@@ -416,7 +416,7 @@ describe('SessionStore persistence', () => {
 
 		// 8.6, not the raw 8: `getEffectiveDifficulty` blends the physical channel in, and
 		// the whole point of freezing it is that it is derived rather than stored anywhere.
-		expect(updateFlowObservationMock).toHaveBeenCalledWith(
+		expect(createOrUpdateFlowObservationMock).toHaveBeenCalledWith(
 			expect.objectContaining({
 				difficulty: 8.6,
 				enjoyment: 6,
@@ -434,7 +434,7 @@ describe('SessionStore persistence', () => {
 
 		await store.logFlow(3, 25);
 
-		expect(updateFlowObservationMock).not.toHaveBeenCalled();
+		expect(createOrUpdateFlowObservationMock).not.toHaveBeenCalled();
 	});
 
 	/* `logFlow` above is the ROW's verb: it reads the viewed day and that day's task,
@@ -455,16 +455,16 @@ describe('SessionStore persistence', () => {
 		// Only the measured quantity. Everything that identifies the record — its day, its
 		// task, its captured (E, β) and its log moment — is the repository's to keep, and
 		// the payload type is what says so.
-		expect(editFlowObservationMock).toHaveBeenCalledWith(77, {
+		expect(updateFlowObservationMock).toHaveBeenCalledWith(77, {
 			phiHours: 25 / 60,
 		});
 
-		expect(updateFlowObservationMock).not.toHaveBeenCalled();
+		expect(createOrUpdateFlowObservationMock).not.toHaveBeenCalled();
 	});
 
 	it('reports a failed ⚡ correction as save-failed', async () => {
 		const { store, status } = await setup();
-		editFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
+		updateFlowObservationMock.mockRejectedValueOnce(new Error('write failed'));
 
 		await store.editFlowLog(77, 25);
 

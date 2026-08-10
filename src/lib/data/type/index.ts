@@ -62,6 +62,9 @@ export interface FlowObservationRecord {
 	id?: number; // autoIncrement key
 	date: string; // YYYY-MM-DD
 	taskId: number;
+	// The name it was logged under. Provenance and a FALLBACK, not the label to
+	// print: a rename leaves this stale, so the history reads the task's live title
+	// by `taskId` and comes back here only for a task it can no longer find.
 	taskTitle: string;
 	difficulty: number; // effective Eᵤ (1-10) when logged
 	enjoyment: number; // βᵤ (1-10) when logged
@@ -82,7 +85,7 @@ export interface DrainObservationRecord {
 	id?: number; // autoIncrement key
 	date: string; // YYYY-MM-DD
 	taskId: number;
-	taskTitle: string;
+	taskTitle: string; // the name it was logged under — provenance and a fallback, as on ⚡
 	hours: number; // this SESSION's length; a day's total per task is the sum of its rows
 	cognitiveDemand: number; // wc = mentalDifficulty/10 when logged (0-1)
 	physicalDemand: number; // wp = physicalDifficulty/10 when logged (0-1)

@@ -13,13 +13,14 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * doesn't silently pollute the fit.
  *
  * This is the ROW's writer, addressed by (taskId, date) because that is all a row
- * has. A correction addressed by record id goes through `$editFlowObservation`
- * below — not through here with the record spread back in, which looks equivalent
- * and is not: if the record has since been deleted, the not-found branch INSERTS
- * it again under its own id with a fresh stamp, so a stale ✎ would resurrect a
- * dropped measurement into the fit.
+ * has — hence `createOrUpdate`: the same call logs a day's first measurement and
+ * replaces it. A correction addressed by record id goes through
+ * `$updateFlowObservation` below — not through here with the record spread back
+ * in, which looks equivalent and is not: if the record has since been deleted,
+ * the not-found branch INSERTS it again under its own id with a fresh stamp, so a
+ * stale ✎ would resurrect a dropped measurement into the fit.
  */
-export async function $updateFlowObservation(
+export async function $createOrUpdateFlowObservation(
 	observation: Omit<FlowObservationRecord, 'id' | 'createdAt'>,
 ): Promise<void> {
 	await withStore('flowObservations', 'readwrite', (store) => {
@@ -54,15 +55,15 @@ export async function $updateFlowObservation(
 
 /**
  * Correct one measurement in place, by its own key — the analytics ✎, which has a
- * record id and no viewed day. Same contract as `$editDrainObservation` and
- * `$editRestObservation`: the `date`, the original `createdAt` and the covariates
+ * record id and no viewed day. Same contract as `$updateDrainObservation` and
+ * `$updateRestObservation`: the `date`, the original `createdAt` and the covariates
  * captured at logging time all stand, so the only field a correction may touch is
  * the quantity the user measured (MATH.md §36).
  *
  * A missing id is a no-op, and that is the whole reason this exists beside the
- * upsert above: the row's writer would re-create the record instead.
+ * create-or-update above: the row's writer would re-create the record instead.
  */
-export async function $editFlowObservation(
+export async function $updateFlowObservation(
 	id: number,
 	observation: Pick<FlowObservationRecord, 'phiHours'>,
 ): Promise<void> {

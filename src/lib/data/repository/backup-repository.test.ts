@@ -8,7 +8,7 @@ import {
 } from '$lib/data/repository/backup-repository';
 import { $updateSession, $readSessionByDate } from '$lib/data/repository/session-repository';
 import {
-	$updateFlowObservation,
+	$createOrUpdateFlowObservation,
 	$readAllFlowObservations,
 } from '$lib/data/repository/flow-observation-repository';
 import { DB_VERSION, STORE_NAMES } from '$lib/data/storage/indexed-db';
@@ -27,7 +27,7 @@ describe('backup-repository', () => {
 	it('exports every store with the schema version', async () => {
 		await $updateSession(session('2026-01-01'));
 
-		await $updateFlowObservation({
+		await $createOrUpdateFlowObservation({
 			date: '2026-01-01',
 			taskId: 1,
 			taskTitle: 'write',

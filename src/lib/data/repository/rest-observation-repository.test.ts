@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, vi } from 'vitest';
 import {
 	$createRestObservation,
-	$editRestObservation,
+	$updateRestObservation,
 	$readAllRestObservations,
 	$deleteRestObservation,
 	$deleteAllRestObservations,
@@ -79,7 +79,7 @@ describe('rest-observation-repository', () => {
 
 		vi.spyOn(Date, 'now').mockReturnValue(fixedAt);
 
-		await $editRestObservation(
+		await $updateRestObservation(
 			target.id!,
 			pair({
 				mindAfter: 1,
@@ -103,7 +103,7 @@ describe('rest-observation-repository', () => {
 	it('ignores an edit to a pair that is gone', async () => {
 		const before = await $readAllRestObservations();
 
-		await $editRestObservation(9999, pair());
+		await $updateRestObservation(9999, pair());
 
 		expect(await $readAllRestObservations()).toHaveLength(before.length);
 	});

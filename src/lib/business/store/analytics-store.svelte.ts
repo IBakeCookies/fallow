@@ -106,6 +106,34 @@ export class AnalyticsStore {
 	});
 
 	/**
+	 * What each task is CALLED now, by id, over the whole loaded year — how the log
+	 * history names a measurement instead of trusting the title frozen onto the
+	 * record when it was logged. Rename a task and that copy drifts; this one cannot,
+	 * and it repairs the ones that already drifted.
+	 *
+	 * Free rather than a fifth read: `#all` is the year of days and a `DaySummary`
+	 * carries its `tasks`, so this is a fold over what the page has already loaded.
+	 * One id is one task on one day — ids come off the clock and are not recycled
+	 * (`nextTaskId`), so a recurring task's Tuesday instance is a different id and
+	 * keeps Tuesday's name. This is the only join in the app addressed by `taskId`
+	 * with no date beside it; `#all` is ascending, so if two days ever did share an
+	 * id the newer name would win, and the cost is a misprinted label.
+	 *
+	 * Not exhaustive, deliberately: a task deleted since, or one older than the year,
+	 * is absent, and the frozen title is the only name its measurement has left.
+	 */
+	#taskTitles = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, never mutated after
+		const titles = new Map<number, string>();
+
+		for (const day of this.#all) {
+			for (const task of day.tasks) titles.set(task.id, task.title);
+		}
+
+		return titles;
+	});
+
+	/**
 	 * Burnout Risk and the two Loads per day in the viewed range (MATH.md §31).
 	 * `null` until the model report lands, because the series is read through the
 	 * user's own calibrated energy params and yesterday's 🪫 rows — a trend on the
@@ -204,6 +232,11 @@ export class AnalyticsStore {
 	/** The days in the viewed range that have tasks, ascending by date. */
 	get summaries(): DaySummary[] {
 		return this.#summaries;
+	}
+	/** Live task names by id, for the log history — the whole loaded year, not the
+	 *  viewed range: the history's "all time" scope reads past it. */
+	get taskTitles(): ReadonlyMap<number, string> {
+		return this.#taskTitles;
 	}
 
 	// ----- Load state -----
