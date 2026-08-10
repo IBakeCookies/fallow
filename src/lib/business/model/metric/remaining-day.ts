@@ -22,7 +22,7 @@ import {
 	type FitPosterior,
 	type UserConstants,
 } from '$lib/business/model/zenith';
-import { toPooledInputs } from '$lib/business/model/metric/calculation';
+import { calculateInterleavedOrder, toPooledInputs } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 
 export interface RemainingDayInput {
@@ -46,6 +46,14 @@ export interface RemainingDay {
 	hoursByTask: ReadonlyMap<number, number>;
 	/** Σ of `hoursByTask` — what the remaining hours are actually worth spending, which is not all of them. */
 	plannedHours: number;
+	/**
+	 * Where to go now: position 1 of the run order over the funded remainder, or
+	 * `null` when the remainder funds nothing. Sequenced by the one
+	 * `calculateInterleavedOrder` the `#N` badges use rather than an independent
+	 * `argmax Δᵢ(1)` — two definitions of "next" would be free to disagree
+	 * (AGENTS.md R3, MATH.md §35).
+	 */
+	nextTask: Task | null;
 }
 
 /**
@@ -109,12 +117,22 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 	);
 
 	const hoursByTask = new Map<number, number>();
+	// The same set, carrying what sequencing needs. Priority is the intrinsic
+	// P̄(T*) the plan rescales by 10 (MATH.md §3) — un-rescaled here so the formula
+	// stays defined in one place; ×10 orders identically.
+	const funded = [] as (Task & { suggestedHours: number; priorityScore: number })[];
 
 	allocations.forEach((allocation, index) => {
 		const task = candidates[index];
 
 		if (!task.completed && allocation.allocatedHours > 0) {
 			hoursByTask.set(task.id, allocation.allocatedHours);
+
+			funded.push({
+				...task,
+				suggestedHours: allocation.allocatedHours,
+				priorityScore: allocation.optimalAvgProductivity,
+			});
 		}
 	});
 
@@ -123,5 +141,9 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 		remainingHours: Math.max(0, budget - workedTotal),
 		hoursByTask,
 		plannedHours: [...hoursByTask.values()].reduce((sum, hours) => sum + hours, 0),
+		// Over `funded`, not `candidates`: a task ticked done without a log keeps an
+		// accounting share that is deliberately never reported, and naming it would
+		// send the user back to work they just finished.
+		nextTask: calculateInterleavedOrder(funded)[0] ?? null,
 	};
 }

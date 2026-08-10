@@ -126,7 +126,7 @@ that are not evident from reading it — so never retype a row, regenerate:
 §32       5947-6011  Two gates that read a sentinel as a verdict (2026-08-08)
 §33       6013-6130  A plan reads only the logs that precede it (2026-08-08)
 §34       6132-6315  The subset search gave up one task too early (2026-08-08)
-§35       6317-6587  The plan cannot see the hours you already spent (2026-08…
+§35       6317-6628  The plan cannot see the hours you already spent (2026-08…
 ```
 
 <!-- section-index:end -->
@@ -6566,6 +6566,44 @@ row is already showing.
 Completion is not an hours instrument — only a 🪫 log is — so ticking a box
 moves neither reading.
 
+### Where to pick up now (2026-08-10)
+
+The remainder's per-row hours answer "how much", and the row order on screen is
+the user's, not the model's. The one thing left to say is **which** row, so
+`RemainingDay.nextTask` carries position 1 of the run order over the funded
+remainder, rendered as one line above the list.
+
+It is **labelled, never recomputed**. The tempting definition is
+`argmax Δᵢ(1)` — the task whose first remaining block is worth most — and it is
+not the same task: the allocator picks a funded _subset_ under a switch bill and
+two pools (§4), so the block it actually buys next can belong to a task whose
+single best increment is not the largest. Two definitions of "next" would be
+free to disagree on screen, which is what R3 exists to prevent, so this is
+`calculateInterleavedOrder` — the same sequencer behind the `#N` badges and
+burnout's block sequence — run over the remainder instead of the plan.
+
+The set it sequences is `hoursByTask`, not the candidate set. A task ticked done
+without a log keeps an accounting share (above) that is deliberately never
+reported; naming it would send the user back to work they just finished.
+
+**The alternation has no memory of what was just worked.** §16's heuristic
+contrasts each task with the one _before it in the sequence it is building_, and
+it builds from an empty slate, so position 1 has no predecessor — the line can
+open with cognitive work a moment after the user logged three hours of it. This
+is not new and it is not the re-plan's: the morning `#N` badges have the same
+blind spot, and there it is hidden by the sequence being read whole, where the
+previous task is the row above. The instrument to fix it exists — a 🪫 log
+carries a task id and a timestamp, so "the nature of the last logged session" is
+available — but §16 settled that run order stays the nature-alternation
+heuristic, and its measured worth is a median 0.47% of the day. Conditioning
+position 1 on the last session is a change to that heuristic and would need
+§16's probe re-run, not a patch here.
+
+It never says **stop for the day**. The classic objective prices no leisure
+(§14.1), so it has no opinion on whether the next block is worth taking at all —
+only on where it goes if it is taken. Day-ending is λ₀'s question and the stop
+advisor's (§8.10, §8.11), which is a different reading on a different screen.
+
 ### Pinned in the suite
 
 `zenith.test.ts`: a zero prefix reproduces the cold plan exactly; a task worked
@@ -6579,7 +6617,10 @@ enumeration over the lattice.
 the pools; ticking an **unlogged** task done leaves every other task's hours
 untouched to the digit; an exhausted pool funds nothing; and
 `worked + planned + (|S| − 1)·switchCost ≤ budget` holds on a binding budget for
-both the open and the ticked-done halves of `S`.
+both the open and the ticked-done halves of `S`. For `nextTask`: it is null when
+the remainder funds nothing, it is never a task outside `hoursByTask` (the
+ticked-done accounting share included), and a task worked just past its own `T*`
+stops being named while still leading the morning order.
 
 `daily-plan-store.svelte.spec.ts`: logging hours moves **no** plan-scoped metric
 — ROADMAP item 12's own kill criterion, at the layer where §11.8 is decided —

@@ -132,6 +132,18 @@ export type SuggestedTask = Task & {
 	nature: ReturnType<typeof getTaskNature>;
 };
 
+/**
+ * All `calculateInterleavedOrder` needs of a task: the two dimensions its nature
+ * is read from, the hours a solve gave it, and a rank to break ties on.
+ * `SuggestedTask` is one; the mid-day re-plan's funded set is the other, ranked
+ * by the same intrinsic P̄(T*) before it is rescaled into a priority score
+ * (MATH.md §3, §35) — any monotone rescale orders identically.
+ */
+type OrderableTask = Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'> & {
+	suggestedHours: number;
+	priorityScore: number;
+};
+
 export type ZenithGain = {
 	optimized: number;
 	naive: number;
@@ -920,17 +932,23 @@ export function calculateQuickWins(tasks: SuggestedTask[]): number {
  * the only objective that reads order at all — this sequence lands within a
  * median 0.47% of the best possible ordering of the same allocation, and the
  * objective-maximizing order moves `calculateBurnoutRisk` by >5 points on a
- * third of days in no consistent direction. One definition for both consumers,
- * the `#N` badges and burnout's block sequence.
+ * third of days in no consistent direction. One definition for all three
+ * consumers: the `#N` badges, burnout's block sequence, and the mid-day
+ * re-plan's next-up task (MATH.md §35).
+ *
+ * The alternation has **no memory of what was just worked** — it starts from a
+ * clean slate every time, so on the re-plan it can open with the same nature the
+ * user finished a moment ago. Same limitation on the morning badges, where the
+ * sequence is read whole and the previous task is the row above.
  */
-export function calculateInterleavedOrder(tasks: SuggestedTask[]): SuggestedTask[] {
+export function calculateInterleavedOrder<T extends OrderableTask>(tasks: T[]): T[] {
 	const remaining = tasks
 		.filter((t) => t.suggestedHours > 0)
 		.sort((a, b) => b.priorityScore - a.priorityScore);
 
 	if (remaining.length <= 2) return remaining;
 
-	const order: SuggestedTask[] = [];
+	const order: T[] = [];
 	let prevNature: ReturnType<typeof getTaskNature> | null = null;
 
 	while (remaining.length > 0) {

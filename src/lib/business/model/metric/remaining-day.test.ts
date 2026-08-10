@@ -3,7 +3,10 @@ import {
 	calculateRemainingDay,
 	type RemainingDayInput,
 } from '$lib/business/model/metric/remaining-day';
-import { calculateSuggestedTasks } from '$lib/business/model/metric/calculation';
+import {
+	calculateInterleavedOrder,
+	calculateSuggestedTasks,
+} from '$lib/business/model/metric/calculation';
 import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { Task } from '$lib/data/type';
 
@@ -278,6 +281,61 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		expect(
 			(finished?.workedHours ?? 0) + (finished?.plannedHours ?? 0) + (dayFunded.size - 1) * 0.25,
 		).toBeLessThanOrEqual(4 + 1e-9);
+	});
+
+	it('names nothing to do next once the remainder funds nothing', () => {
+		const remaining = calculateRemainingDay(input([SPEC, GYM], [[SPEC.id, 7]]));
+
+		expect(remaining?.hoursByTask.size).toBe(0);
+		expect(remaining?.nextTask).toBeNull();
+	});
+
+	it('never names a task the remainder does not fund', () => {
+		// The accounting share of a task ticked done without a log is solved and
+		// never reported (MATH.md §35) — naming it would tell the user to go back to
+		// work they just finished.
+		const remaining = calculateRemainingDay(
+			input(
+				[
+					SPEC,
+					{
+						...GYM,
+						completed: true,
+					},
+					EMAIL,
+				],
+				[[SPEC.id, 1]],
+				{
+					availableHours: 4.25,
+				},
+			),
+		);
+
+		expect(remaining?.nextTask?.id).not.toBe(GYM.id);
+		expect(remaining?.hoursByTask.has(remaining!.nextTask!.id)).toBe(true);
+	});
+
+	it('names position 1 of the RE-PLANNED order, not of the morning plan', () => {
+		// The whole reason to open the app at 2pm: the plan's `#1` badge is the 8am
+		// answer and stays it (§11.8), so a task worked past its own stopping time is
+		// still first in the morning order while the remainder has nothing left to
+		// give it.
+		const day = [SPEC, GYM, EMAIL];
+		const morning = calculateSuggestedTasks(day, 12);
+		const [morningFirst] = calculateInterleavedOrder(morning);
+		const spec = morning.find((task) => task.id === SPEC.id)!;
+
+		const remaining = calculateRemainingDay(
+			// Just past T*, not far past: an hour over would also drain the cognitive
+			// pool, and then the remainder funds nothing at all for a different reason.
+			input(day, [[SPEC.id, spec.optimalHours + 0.25]], {
+				availableHours: 12,
+			}),
+		);
+
+		expect(morningFirst.id).toBe(SPEC.id);
+		expect(remaining?.hoursByTask.get(SPEC.id) ?? 0).toBe(0);
+		expect([GYM.id, EMAIL.id]).toContain(remaining?.nextTask?.id);
 	});
 
 	it('never plans more hours than are left', () => {
