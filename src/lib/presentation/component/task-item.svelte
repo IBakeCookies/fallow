@@ -179,7 +179,13 @@
 						})}
 					</Tooltip.Trigger>
 					<Tooltip.Content>
-						<p>{m.task_allocation_tooltip()}</p>
+						<!-- The tooltip follows the line: with the duplicate dropped there is no
+						     allocation on screen for the allocation tooltip to be describing. -->
+						<p>
+							{remaining.taskHours === suggestedHours
+								? m.task_priority_tooltip()
+								: m.task_allocation_tooltip()}
+						</p>
 					</Tooltip.Content>
 				</Tooltip.Root>
 			</div>
