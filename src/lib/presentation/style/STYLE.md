@@ -122,6 +122,13 @@ Read this before touching markup, classes, or anything under
   content"). A floating overlay must not sit on `--surface-card` — it carries
   alpha on 35 of the 37 themes and `terminal` pairs that with `--blur: 0`, so
   page text reads straight through the toast.
+- **`component/ui/tooltip/tooltip-provider.svelte` defaults `delayDuration` to
+  150 where the registry defaults it to 0, and `shadcn add tooltip` undoes
+  that** — check the file after re-running the CLI. Every call site wants the
+  same delay, and it was hand-copied at eleven of them while
+  `metrics-dashboard.svelte` was left on the registry default, so one card's
+  tooltips fired on a pointer that was only crossing the trigger on its way
+  somewhere else. Pass the prop only to deviate from the app's delay.
 - Checkboxes use `appearance-auto accent-brand`, not the `@tailwindcss/forms`
   look. The plugin paints a hardcoded `fill='white'` checkmark over
   `background-color: currentColor`, so the fill has to be dark — impossible

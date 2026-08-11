@@ -55,7 +55,7 @@
 			     the page, so it moves when they are edited elsewhere — hence the tooltip.
 			     `child` keeps the tile's <p>value</p><p>label</p> shape, which the e2e
 			     reads by preceding sibling. -->
-			<Tooltip.Provider delayDuration={150}>
+			<Tooltip.Provider>
 				<Tooltip.Root>
 					<Tooltip.Trigger>
 						{#snippet child({ props })}

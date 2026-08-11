@@ -38,9 +38,10 @@
 	</Tooltip.Provider>
 </Story>
 
-<!-- delayDuration on the provider; `child` lets the trigger be any element -->
+<!-- delayDuration on the provider, longer than its 150 default; `child` lets the
+     trigger be any element -->
 <Story name="Delayed, custom trigger element" asChild>
-	<Tooltip.Provider delayDuration={150}>
+	<Tooltip.Provider delayDuration={600}>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}

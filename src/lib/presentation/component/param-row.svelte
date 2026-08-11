@@ -27,7 +27,7 @@
 <div>
 	<!-- Its own provider, like every other explained label in the app: a row that only
 	     works under an ancestor provider is a row no story or spec can mount. -->
-	<Tooltip.Provider delayDuration={150}>
+	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}

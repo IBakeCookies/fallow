@@ -213,7 +213,7 @@
 	{/if}
 {/snippet}
 
-<Tooltip.Provider delayDuration={150}>
+<Tooltip.Provider>
 	<TaskRowShell
 		{title}
 		{completed}

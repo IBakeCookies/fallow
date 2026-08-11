@@ -21,7 +21,7 @@
      more per hour than free time? Renders only while there is one to price —
      the page hides the card when the store has nothing to advise on. -->
 <div class="card-shell p-box-md sm:p-box-xl">
-	<Tooltip.Provider delayDuration={150}>
+	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}

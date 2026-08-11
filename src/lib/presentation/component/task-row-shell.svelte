@@ -150,9 +150,10 @@
 					<!-- Truncates from `sm` up only: below it the title has the whole row to
 					     wrap into. -->
 					<h3
-						class:text-ty-silent={completed}
-						class:line-through={completed}
-						class="min-w-0 text-sm font-medium wrap-break-word text-ty-primary capitalize sm:truncate"
+						class={cn(
+							'min-w-0 text-sm font-medium wrap-break-word capitalize sm:truncate',
+							completed ? 'text-ty-silent line-through' : 'text-ty-primary',
+						)}
 					>
 						{title}
 					</h3>
