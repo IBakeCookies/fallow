@@ -1,4 +1,4 @@
-// Check every button variant's hover state in every theme:
+// Check every button variant that has a hover fill, in every theme:
 //   npm run storybook   # this one drives :6006, not the dev server
 //   node scripts/hover-contrast.mjs
 // Same chromium prerequisite as ink-contrast.mjs (see .claude/skills/verify/SKILL.md).
@@ -23,16 +23,20 @@
 // than the page on the light themes and darker on the dark ones, so "stronger"
 // means darker in one family and lighter in the other.
 //
-// Known residue at 23 findings, all of it a palette cap rather than a hover
-// token (see STYLE.md's hover and danger bullets): danger is a red ink on a red
-// fill, one shade apart, so nine light themes land in the 3.9–4.5 band and
-// `zenith` at 3.0 because its own `--danger-strong` is mid-luminance; `default`
-// sits at 4.0–4.3 on three themes for the same reason; `blueprint`'s near-white
-// primary caps secondary at 3.7. `glass-light outline` reports step 0 because a
-// 55%-white fill over a white region of that photo composites to white either
-// way — the single-pixel sample cannot see a change that does exist over the
-// rest of the image. Everything else passes: no invisible hovers, no fill that
-// sinks into its surface.
+// Known residue at 60 findings, none of it reachable by a hover token (see
+// STYLE.md's hover and danger bullets). 23 are a palette cap: danger is a red
+// ink on a red fill, one shade apart, so nine light themes land in the 3.9–4.5
+// band and `zenith` at 3.0 because its own `--danger-strong` is mid-luminance;
+// `default` sits at 4.0–4.3 on three themes for the same reason; `blueprint`'s
+// near-white primary caps secondary at 3.7; `glass-light outline` reports step 0
+// because a 55%-white fill over a white region of that photo composites to white
+// either way — the single-pixel sample cannot see a change that does exist over
+// the rest of the image. 33 are `ghost` on 19 dark themes, where a 6%
+// `surface-hover` tint moves a dark surface by only ΔL 0.004–0.014: it has no
+// rest fill, so `step` and `gap` measure the same pixel pair against two
+// thresholds. The last 4 are `orbit` and `breath`, whose moving scenery lands
+// under a translucent fill between the two shots (cr 1.1–1.7), and drift
+// between runs.
 import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 import { inflateSync } from 'node:zlib';
@@ -47,7 +51,8 @@ const THEMES = [
 	.map((m) => m[1])
 	.filter((n) => n !== 'ThemeName' && (!only.length || only.includes(n)));
 
-const VARIANTS = ['default', 'outline', 'secondary', 'destructive'];
+// `link` is excluded: it has no hover fill or border to step, only an underline.
+const VARIANTS = ['default', 'outline', 'secondary', 'ghost', 'destructive'];
 const BORDERED = new Set(['outline', 'destructive']);
 
 // 1x1 PNG -> [r,g,b]. Cheaper than a decoder dependency: inflate the IDATs and

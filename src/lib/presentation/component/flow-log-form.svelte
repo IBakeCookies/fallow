@@ -16,8 +16,8 @@
 
 	let { seed = null, focusMinutes = false, onsave, oncancel, ondelete }: Props = $props();
 
-	// A copy, read once: a fresh draft per opening is a fresh MOUNT, which the caller
-	// keeps, not this component. `focusMinutes` is mount-only for the same reason.
+	// Why a copy, and why re-opening is a remount: presentation/AGENTS.md, "A seeded editor
+	// copies its seed at mount".
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let minutes = $state<number | null>(seed);
 
@@ -48,7 +48,7 @@
 	</label>
 	<MeasurementFormActions
 		{oncancel}
-		ondelete={seed === null ? undefined : ondelete}
+		{ondelete}
 		deleteLabel={m.budget_delete_log_aria()}
 		deleteTitle={m.budget_delete_log_title()}
 	/>

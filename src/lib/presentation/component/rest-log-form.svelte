@@ -45,8 +45,8 @@
 	// The ☕ editor's own draft, unlike the 🪫 one: a break has no task row to hang off
 	// and no completion that opens it, so nothing outside this form gates on it.
 	//
-	// A copy read once, on the same contract the other two forms state: a fresh draft
-	// per opening is a fresh MOUNT, which the caller keys.
+	// Why a copy, and why re-opening is a remount: presentation/AGENTS.md, "A seeded editor
+	// copies its seed at mount".
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state<RestDraft>({
 		...seed,

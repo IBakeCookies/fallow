@@ -945,10 +945,10 @@ These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
 code turned out to be. The **F** ids are stable and never reused.
 
-All 65 were then triaged against the code they name: **34 dropped**, **16 open**
-below, and **15 fixed** on this branch — F8, F20, F24, F28, F31, F32, F39, F41,
-F42, F46, F47, F48, F49, F55 and F62, named here so a reference to one resolves
-to "done" rather than "lost".
+All 65 were then triaged against the code they name: **34 dropped**, **7 open**
+below, and **24 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
+F22, F23, F24, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55 and
+F62, named here so a reference to one resolves to "done" rather than "lost".
 
 One error dominated the raised set and is worth knowing before trusting anything
 here: "nothing enforces this", written without opening the story or e2e file that
@@ -958,86 +958,12 @@ test before believing that phrase.
 
 ### Open — make the contract enforced
 
-- **F2** `task-row-shell.svelte`, `drain-log-form.svelte`,
-  `flow-log-form.svelte`, `rest-log-form.svelte`, `task-edit-form.svelte` — the
-  forms copy `seed`/`focusMinutes` at mount and none rejects a re-seed in place,
-  so every re-open must be a fresh mount. Four component comments state that
-  contract and no rules file does, which is what a comment sweep erases. The
-  drain half is pinned (`e2e/energy-lab.e2e.ts`, "the ✎ re-seeds a drain editor
-  the row already has open") and log-history-list's `{#if editingKey === row.key}`
-  sits inside a keyed `{#each}`, so it cannot re-seed in place either. The fix is
-  one bullet in presentation/AGENTS.md's Components list and the four comments cut
-  to a citation of it — not a runtime guard.
-- **F4** `measurement-form-actions.svelte` — `ondelete?`, `deleteLabel?` and
-  `deleteTitle?` are three independent optionals, so the type permits a 🗑 Button
-  whose `aria-label` is `undefined`, named to a screen reader by the bare emoji.
-  All three callers pair them and presentation/AGENTS.md states the rule in prose,
-  but nothing mechanical holds it: no story queries the 🗑 by name, and axe cannot
-  flag it because the emoji supplies an accessible name. Replace the three
-  optionals with a union — one branch all-absent, one requiring both strings,
-  keeping `ondelete: (() => void) | undefined` so the `cond ? undefined : ondelete`
-  call sites still type-check.
-- **F11** `day-constraints-bar.svelte` — two counts on one panel: `modelStatus`
-  quotes `countedLogs` (fit-visible) while `FitLogSummary` gets `count`,
-  `confirmLabel` and the reset from `flowLogs.length` (all logs), and the rule
-  lives in a comment, not the types. Both are right today, but "Personalized from
-  3 logs · 1 pending" beside "Reset 4 logs?" looks like the bug it isn't. Add an
-  open-panel story with `pendingFlowLogs: 1` asserting both numbers, and name the
-  two locals so the rule reads off the props.
-- **F16** `day-constraints-bar.svelte`, `energy/+page.svelte` — one persisted
-  value with two independent bound declarations: `BUDGET_BOUNDS = { min: 0, max:
-24, step: 0.25 }` feeds the field and slider on the bar, while the Lab's
-  `window-hours` row hand-writes `min={0} max={24} step={0.25}` over the same
-  `session.availableHours`. Only `step` is tested (`e2e/energy-lab.e2e.ts`), and
-  `session-store.svelte.ts`'s setter neither clamps nor validates, so there is no
-  backstop below them. Change `BUDGET_BOUNDS.max` and the Lab keeps writing values
-  the main page can no longer display or correct. Export the one constant and
-  import it at both sites — which is what the comment above it already claims it
-  exists for, one caller short.
-- **F19** `budget-curve-chart.svelte`, `energy-chart.svelte` — each legend
-  restates by hand what the SVG draws: dash patterns written twice with no shared
-  source (`7 4` against `0 7px, transparent 7px 11px`; `5 3` against
-  `5px … 5px 8px`; `2 3` against `2px … 2px 5px`), and `bg-brand/20` against the
-  area's `fill-brand/20`. Retune a line and its swatch stays on the old pattern.
-  Export one dash spec per series from a presentation util, derive both the
-  `stroke-dasharray` and the `repeating-linear-gradient` from it, and assert in a
-  play that a swatch's on-length equals its line's dash-length.
-- **F21** `scripts/hover-contrast.mjs` — the script reads `THEMES` out of theme.ts
-  precisely so a hand-copied list cannot go stale, then hand-copies `VARIANTS`,
-  which already has: `ButtonVariant` and the `ui-button--variants` story both
-  carry six, and `ghost` and `link` are never measured. `ghost`'s entire visual
-  state is its hover fill (`hover:bg-surface-hover`) and no theme's is checked,
-  while the file's opening line claims it covers every button variant. Add
-  `ghost`, exclude `link` with a one-line reason, then correct the residue count
-  and the "× 4 variants" line in STYLE.md and the coverage sentence in
-  docs/testing.md.
-- **F22** `task-form.svelte` — `handleTitleInput` restores three `DEFAULT_RATING`
-  fields by hand; the set it must revert is exactly what `pick()` writes, and
-  nothing ties the two lists together. Add a fourth rating to `TitleRating` and
-  `pick()`, and clearing the title leaves that field at the picked value — the new
-  task deploys under a rating nobody gave it. Rebuild from `emptyDraft()` keeping
-  the live title and `mustDoToday` so the revert set is type-total, and add a story
-  that picks a suggestion, clears the field, and asserts all three sliders are 5.
-- **F23** `flow-log-form.svelte`, `drain-log-form.svelte` — whether 🗑 appears is
-  decided twice: the forms re-derive it (`seed === null`,
-  `draft.recordId === undefined`) after task-row-shell has already decided by
-  passing `ondelete` or `undefined`, and log-history-list passes none at all. The
-  two authorities agree only by accident. Pass `{ondelete}` straight to
-  `MeasurementFormActions` and move the ⚡ gate up to the shell; the behaviour is
-  already covered by five existing plays.
 - **F26** `analytics/+page.svelte` — `editLog` builds the row key as
   `${kind}-${id}` while `logHistory` builds `row.key` as `flow-${id}` /
   `drain-${id}` / `rest-${id}`, and `LogHistoryList` compares the two strings.
   Change the key format in log-history.ts and ✎ silently stops opening any row —
   same type, no error. Have `onedit` take `row.key`, the string the list already
   holds.
-- **F33** `fit-log-summary.svelte` — `confirmingReset` is declared outside the
-  `{#if count > 0}` block it is only meaningful inside, so an `$effect` exists
-  solely to zero it when `count` hits 0. Nothing misbehaves; the confirm step's
-  lifetime is enforced by a second mechanism instead of by the block that renders
-  it. The cheaper half is a spec that names the rule the effect encodes — render
-  at 3, open the confirm, rerender at 0 then 3, assert the confirm is gone and the
-  trigger is back — rather than extracting a child component.
 
 ### Open — refactors, one commit each
 
@@ -1082,6 +1008,33 @@ test before believing that phrase.
   reader enforcing the first sentence deletes the prop and un-hides the Lab's
   checkbox; a reader enforcing the second adds more pass-throughs. One of the two
   sources has to name the carve-out. Rewrites the same paragraph as F37.
+
+### Raised while working the list, not by the sweep
+
+No **F** id — these came out of fixing the findings above, and the ids belong to
+the sweep.
+
+- **`ghost` has never had a readable hover on a dark theme, and now it is
+  measured.** Adding `ghost` to `scripts/hover-contrast.mjs` (F21) took the
+  residue count from 23 to 60, and 33 of those are one fact: `surface-hover` is a
+  6% `ty-primary` tint, which over a dark surface moves WCAG luminance by ΔL
+  0.004–0.014 — under the script's `step` on 14 themes and under its `gap` on all
+  19 dark ones. Worst are `orbit` 0.0041 and `abyss` 0.0044; nearest miss is
+  `cathedral` 0.0143. Every light theme passes (`glass-light` 0.129), every dark
+  theme fails. So either dark themes need a stronger ghost hover than 6%, or the
+  thresholds are wrong for a variant that has no rest fill — with none, the rest
+  pixel _is_ the surface pixel, so `gap` re-tests the `step` number against a
+  stricter bound, which `BORDERED` already exempts `outline` and `destructive`
+  from. No token was touched: this is a design decision, and silencing it in the
+  script would have been the wrong half. Four of the 60 are known to drift run to
+  run (animated themes, single-pixel sample catching moving scenery under a
+  translucent fill); the script header says which.
+- **`drain-log-form.svelte`'s `seed.recordId` is now read by nothing.** F23 moved
+  the 🗑 decision up to the caller, which was the last reader. Deleting it would
+  make the double-decision unexpressible in the type — the enforcement F23 stopped
+  one step short of — but `task-row-shell.svelte` passes the whole `DrainDraft` as
+  `seed`, so it would still compile by structural width. Worth doing with F26,
+  which is the last of the same family.
 
 ### Dropped on triage
 

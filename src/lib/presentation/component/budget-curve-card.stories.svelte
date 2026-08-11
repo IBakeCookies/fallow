@@ -110,7 +110,7 @@
 <!-- The curve reaches break-even: there is a window to recommend, and it is applyable. -->
 <Story
 	name="Reaches break-even"
-	play={async ({ canvas, args }) => {
+	play={async ({ canvas, canvasElement, args }) => {
 		await expect(
 			canvas.getByText(/Past 3h 45m another hour of your day adds nothing/),
 		).toBeInTheDocument();
@@ -131,6 +131,17 @@
 		);
 
 		await expect(args.onapply).toHaveBeenCalledExactlyOnceWith(3.75);
+
+		const lineDashes = [...canvasElement.querySelectorAll('svg [stroke-dasharray]')]
+			.map((line) => Number(line.getAttribute('stroke-dasharray')?.split(' ')[0]))
+			.sort((a, b) => a - b);
+
+		const swatchDashes = [...canvasElement.querySelectorAll('[style*="repeating-linear-gradient"]')]
+			.map((swatch) => Number(swatch.getAttribute('style')?.match(/(\d+)px/)?.[1]))
+			.sort((a, b) => a - b);
+
+		await expect(lineDashes).toHaveLength(3);
+		await expect(swatchDashes).toEqual(lineDashes);
 	}}
 />
 

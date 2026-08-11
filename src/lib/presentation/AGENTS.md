@@ -83,6 +83,17 @@ Untestable at every level is the signal.
 - **A card whose reading costs a solve is its run button and nothing else until
   it has run** — `plan-advice-card`, `budget-curve-card`. A card advertising a
   feature it has not run yet is pure vertical cost above the plan.
+- **A seeded editor copies its seed at mount** — `flow-log-form`,
+  `drain-log-form`, `rest-log-form`, `task-edit-form` all read `seed` (and
+  `focusMinutes`) once and never again, so **every re-opening must be a fresh
+  mount**, never a re-seed of a live one, which would leave the old numbers in
+  the fields. The caller owns that, and two mechanisms give it:
+  `task-row-shell.svelte` wraps each measurement editor in a `{#key}` on the
+  page-owned draft, and `log-history-list.svelte`'s
+  `{#if editingKey === row.key}` sits inside a keyed `{#each}`, so a row's
+  editor cannot outlive the row. The forms carry no runtime guard;
+  `e2e/energy-lab.e2e.ts` ("the ✎ re-seeds a drain editor the row already has
+  open") is what holds the drain half.
 - Storybook stories live **beside their component** (`*.stories.svelte`), one
   file per component or primitive group, rendered as smoke tests by the
   `storybook` vitest project — see [docs/testing.md](../../../docs/testing.md)

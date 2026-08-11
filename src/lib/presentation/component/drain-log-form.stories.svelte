@@ -33,6 +33,13 @@
 		// Opened itself on completion, so it must not yank the caret out of the list
 		await expect(minutes).not.toHaveFocus();
 
+		// 🗑 is the caller's, and this caller passed none
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Delete this drain rating',
+			}),
+		).not.toBeInTheDocument();
+
 		// ✕ discards the draft without reporting it
 		await userEvent.type(minutes, '90');
 
@@ -100,11 +107,22 @@
 		},
 		onsave: fn(),
 		oncancel: fn(),
+		ondelete: fn(),
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
 		await expect(canvas.getByLabelText('Mind')).toHaveValue(6);
 		await expect(canvas.getByLabelText('Body')).toHaveValue(2);
+
+		// Whether 🗑 is offered is the caller's call, not re-derived from `seed` here,
+		// and it is named — the emoji alone tells a screen reader nothing
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Delete this drain rating',
+			}),
+		);
+
+		await expect(args.ondelete).toHaveBeenCalledOnce();
 	}}
 />
 

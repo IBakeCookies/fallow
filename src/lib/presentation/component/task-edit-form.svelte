@@ -14,7 +14,8 @@
 
 	let { seed, showMustDoToday = true, onsave, oncancel }: Props = $props();
 
-	// Every caller renders this behind an `{#if}`: opening is the mount, not a reset.
+	// Why a copy, and why re-opening is a remount: presentation/AGENTS.md, "A seeded editor
+	// copies its seed at mount".
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,

@@ -76,7 +76,8 @@ STYLE.md's ink note; the budget is measured by `scripts/ink-contrast.mjs`).
 Contrast stays enforced on every real component. Storybook is also what
 `scripts/hover-contrast.mjs` drives (on :6006, unlike the ink script): axe only
 ever sees a story's REST state, so every hover fill's step and label contrast
-is measured there instead, over all 37 themes.
+is measured there instead, over all 37 themes × the 5 button variants that carry
+a hover fill (`link` carries none, so it is not measured).
 
 ## The five commands
 

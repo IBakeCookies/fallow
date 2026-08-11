@@ -80,9 +80,12 @@
 		if (!fromPick || e.currentTarget.value.trim()) return;
 
 		fromPick = false;
-		draft.physicalDifficulty = DEFAULT_RATING;
-		draft.mentalDifficulty = DEFAULT_RATING;
-		draft.enjoyment = DEFAULT_RATING;
+
+		draft = {
+			...emptyDraft(),
+			title: e.currentTarget.value,
+			mustDoToday: draft.mustDoToday,
+		};
 	}
 
 	function handleTitleKeydown(e: KeyboardEvent) {

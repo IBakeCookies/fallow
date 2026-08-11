@@ -32,6 +32,7 @@
 	import BudgetCurveCard from '$lib/presentation/component/budget-curve-card.svelte';
 	import StopAdvisorCard from '$lib/presentation/component/stop-advisor-card.svelte';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
+	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
 	import FitRow from '$lib/presentation/component/fit-row.svelte';
 	import RestLogForm from '$lib/presentation/component/rest-log-form.svelte';
@@ -453,9 +454,9 @@
 									hint={m.energy_day_window_hint()}
 									value={windowHours}
 									onchange={(v) => (session.availableHours = v)}
-									min={0}
-									max={24}
-									step={0.25}
+									min={BUDGET_BOUNDS.min}
+									max={BUDGET_BOUNDS.max}
+									step={BUDGET_BOUNDS.step}
 									unit={m.unit_hours()}
 								/>
 								<ParamRow
