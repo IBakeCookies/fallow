@@ -6,6 +6,12 @@ import { expect, test, type Page } from '@playwright/test';
    (so the SSR'd theme and locale stay live) with the last cached copy, or the
    requested locale's shell, as the offline fallback. */
 
+// The config blocks service workers, so no other suite pays for an install it
+// never asserts on. This is the one suite that is about the worker.
+test.use({
+	serviceWorkers: 'allow',
+});
+
 /** Resolves once the worker has activated AND claimed this page. */
 async function waitForServiceWorker(page: Page) {
 	await page.waitForFunction(async () => {

@@ -32,8 +32,19 @@ export default defineConfig({
 		],
 	],
 	use: {
-		trace: 'retain-on-failure',
-		video: 'retain-on-failure',
+		// Recording both for every test, only to delete them on a green run, cost a
+		// third of the wall clock (45-test subset, 6 workers: 42s → 28s, measured
+		// 2026-08-11). It is a CONTENTION cost — six recorders on four cores — so it
+		// barely shows at `--workers=1`. On a retry the artefacts are still there,
+		// which covers CI (`retries: 2`); locally, re-run the failing file with
+		// `--trace on`.
+		trace: 'on-first-retry',
+		video: 'on-first-retry',
+		// The production build registers a service worker, so every test otherwise
+		// paid for an install and precache it never asserts on (~10% of the same
+		// subset). service-worker.e2e.ts opts back in — it is the only suite whose
+		// subject this is.
+		serviceWorkers: 'block',
 	},
 	projects: [
 		{
