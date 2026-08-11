@@ -180,7 +180,10 @@
 					<!-- `text-left` on every trigger, here and in `meta`: a trigger is a <button>,
 					     whose UA `text-align` is center, so a wrapped reading centres its last line. -->
 					{@render meta?.()}
-
+				</div>
+				<div
+					class="mt-text-2xs flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent"
+				>
 					{#if flowMinutes}
 						<Tooltip.Root>
 							<Tooltip.Trigger>
@@ -207,6 +210,7 @@
 							</Tooltip.Content>
 						</Tooltip.Root>
 					{/if}
+
 					{#each drainLogs as log (log.id)}
 						<Tooltip.Root>
 							<Tooltip.Trigger>
@@ -237,8 +241,9 @@
 
 		<!-- `ml-auto` and not `justify-between`: `trailing` is absent on a completed task,
 		     and the strip belongs at the right edge either way. -->
-		<div class="mt-text-2xs flex items-center gap-grid-xs sm:mt-0 sm:shrink-0">
+		<div class="mt-box-lg flex items-center gap-grid-xs sm:mt-0">
 			{@render trailing?.()}
+
 			<div
 				class="ml-auto flex items-center gap-grid-2xs transition-opacity {actionsPinned
 					? 'opacity-100'

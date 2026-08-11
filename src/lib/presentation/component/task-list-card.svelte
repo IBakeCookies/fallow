@@ -19,7 +19,7 @@
 		<div class="pb-text-md">{@render form()}</div>
 	{/if}
 	{#if rows}
-		<ul class="space-y-text-xs divide-y divide-line-soft">{@render rows()}</ul>
+		<ul class="divide-y divide-line-soft">{@render rows()}</ul>
 	{:else}
 		<div class="flex flex-col items-center justify-center py-empty-state text-center">
 			<div class="text-ty-silent mb-text-xs">
