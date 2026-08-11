@@ -46,7 +46,7 @@
 	// "Yesterday" is yesterday relative to `today`, not to the day on screen, so
 	// the shortcut only means what it says on today; every other day loads by
 	// date, which reaches the same session anyway.
-	const hasYesterday = $derived(isToday && !!yesterdaySession?.tasks.length);
+	const hasYesterday = $derived(isToday && Boolean(yesterdaySession?.tasks.length));
 	const hasRoutines = $derived(routines.length > 0);
 	const canSave = $derived(currentTasks.length > 0);
 

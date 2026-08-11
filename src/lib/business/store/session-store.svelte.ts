@@ -362,7 +362,7 @@ export class SessionStore {
 				this.#physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
 			}
 
-			this.#loadedHadSession = !!session;
+			this.#loadedHadSession = Boolean(session);
 			this.#loadedDate = date;
 
 			// Reading again worked, so the day is no longer unreachable — this is
