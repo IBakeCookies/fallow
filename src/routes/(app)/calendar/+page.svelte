@@ -228,12 +228,27 @@
 	</div>
 </div>
 
+<!-- The WEEK stacks into full-width day rows below `xl` and scrolls inside the fixed
+     viewport: seven columns of a day's readings need more width than a phone has, and a
+     week is short enough to scroll. The MONTH keeps its seven columns at every size —
+     thirty-one stacked rows is a list, and a month grid is what the view is for. -->
 <div
-	class="grid min-h-0 flex-1 grid-cols-7 gap-grid-2xs"
-	style="grid-template-rows: auto repeat({weeks.length}, minmax(0, 1fr));"
+	class="grid min-h-0 flex-1 gap-grid-2xs {view === 'week'
+		? 'nice-scrollbar grid-cols-1 auto-rows-min overflow-y-auto xl:grid-cols-7 xl:grid-rows-[auto_minmax(0,1fr)] xl:overflow-hidden'
+		: 'grid-cols-7'}"
+	style={view === 'month'
+		? `grid-template-rows: auto repeat(${weeks.length}, minmax(0, 1fr));`
+		: ''}
 >
 	{#each WEEKDAYS as day (day)}
-		<div class="px-box-2xs pb-text-2xs text-xs font-medium tracking-wide text-ty-silent">{day}</div>
+		<div
+			class="px-box-2xs pb-text-2xs text-xs font-medium tracking-wide text-ty-silent {view ===
+			'week'
+				? 'hidden xl:block'
+				: ''}"
+		>
+			{day}
+		</div>
 	{/each}
 
 	{#each weeks as week (week[0])}

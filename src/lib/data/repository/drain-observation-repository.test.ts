@@ -6,8 +6,9 @@ import {
 	$readAllDrainObservations,
 	$deleteDrainObservation,
 	$deleteAllDrainObservations,
+	$restoreDrainObservation,
 } from '$lib/data/repository/drain-observation-repository';
-import type { DrainObservationRecord } from '$lib/data/type';
+import type { DrainObservationRecord, Persisted } from '$lib/data/type';
 
 /** What a correction may set: the three numbers the user rated, and nothing else. Not
  *  the day, not the stamp, and since 2026-08-10 not the task or its demands either — those
@@ -182,6 +183,34 @@ describe('drain-observation-repository', () => {
 		// just assigned is this test's point.
 		await $deleteDrainObservation(all[0].id!);
 		expect(await $readAllDrainObservations()).toHaveLength(all.length - 1);
+	});
+
+	// Undo of a ✕ puts back the SAME row, not a copy of it: the id is what the list's
+	// ✎ and ✕ address it by, and the stamp is the only time-of-day signal the drain
+	// data carries — a restore that re-stamped would sort a months-old rating as the
+	// newest thing on its day and shift the instrument §8.3 would condition on.
+	it('restores a dropped row under its own id and stamp', async () => {
+		const loggedAt = Date.parse('2026-01-09T18:30:00Z');
+
+		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
+
+		await $createDrainObservation(
+			observation({
+				date: '2026-01-09',
+			}),
+		);
+
+		// `id!`: a repository read is unsanitized, and the key IndexedDB assigned is
+		// what the restore has to come back under.
+		const dropped = (await $readAllDrainObservations()).find((r) => r.date === '2026-01-09')!;
+
+		await $deleteDrainObservation(dropped.id!);
+
+		vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-01-10T09:00:00Z'));
+
+		await $restoreDrainObservation(dropped as Persisted<DrainObservationRecord>);
+
+		expect((await $readAllDrainObservations()).find((r) => r.id === dropped.id)).toEqual(dropped);
 	});
 
 	it('deletes all records', async () => {

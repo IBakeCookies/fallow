@@ -11,6 +11,10 @@
 	import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
+		removeFlowLogWithUndo,
+		removeLogWithUndo,
+	} from '$lib/presentation/utils/remove-log-with-undo';
+	import {
 		drainDraftFromLog,
 		newDrainDraft,
 		newEditorDraft,
@@ -115,8 +119,11 @@
 		closeFlowLog(id);
 	}
 
+	// The 🗑 in the editor drops what it opened on, and offers it back for as long as its
+	// toast lives — the same window the analytics list's ✕ opens, because it is the same
+	// verb on the same record.
 	function clearFlowLog(id: number) {
-		session.clearFlowLog(id);
+		removeFlowLogWithUndo(session, id);
 		closeFlowLog(id);
 	}
 
@@ -136,7 +143,7 @@
 	}
 
 	function deleteDrainLog(id: number, recordId: number) {
-		observations.deleteDrainLog(recordId);
+		removeLogWithUndo(session, observations, 'drain', recordId);
 		closeDrainLog(id);
 	}
 

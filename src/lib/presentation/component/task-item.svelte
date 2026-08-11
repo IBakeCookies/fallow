@@ -158,9 +158,12 @@
 {/snippet}
 
 {#snippet meta()}
-	<span class="text-ty-ghost">|</span>
+	<!-- The rule separates P·M·E from the derived readings only while the two share a
+	     line. Below `sm` they never do — the row is too narrow — and it hung off the end
+	     of the first line pointing at nothing. -->
+	<span class="hidden text-ty-ghost sm:inline">|</span>
 	<Tooltip.Root>
-		<Tooltip.Trigger class="cursor-help">
+		<Tooltip.Trigger class="cursor-help text-left">
 			{m.task_derived_values({
 				effort: trueEffort.toFixed(1),
 				flow: formatDuration(flowStateTime),
@@ -189,9 +192,16 @@
 			     over-worked leaves the others LESS. Each line is labelled by what it
 			     answers instead, which is also what keeps the two legible as one row:
 			     they are never the same printed figure, but they are two figures. -->
-			<div class="text-right">
+			<div>
 				<Tooltip.Root>
-					<Tooltip.Trigger class="block cursor-help text-sm font-semibold text-ty-primary">
+					<!-- Alignment on each TRIGGER, not the wrapper: a <button> carries its own
+					     UA `text-align: center`, so the shorter of the two lines sat centred
+					     under the longer instead of flush with it. Left below `sm`, where this
+					     reading leads a line of its own at the foot of the row rather than
+					     ending the row on the right. -->
+					<Tooltip.Trigger
+						class="block cursor-help text-left text-sm font-semibold text-ty-primary sm:text-right"
+					>
 						{m.task_remaining_spend({
 							hours: formatDuration(replan.taskHours),
 						})}
@@ -205,7 +215,9 @@
 					</Tooltip.Content>
 				</Tooltip.Root>
 				<Tooltip.Root>
-					<Tooltip.Trigger class="block cursor-help text-2xs text-ty-silent">
+					<Tooltip.Trigger
+						class="block cursor-help text-left text-2xs text-ty-silent sm:text-right"
+					>
 						{m.task_plan_hours({
 							hours: formatDuration(suggestedHours),
 						})} ·
@@ -221,7 +233,7 @@
 			</div>
 		{:else}
 			<Tooltip.Root>
-				<Tooltip.Trigger class="cursor-help text-right">
+				<Tooltip.Trigger class="cursor-help text-left sm:text-right">
 					<span class="block text-sm font-semibold text-ty-primary">
 						{formatDuration(suggestedHours)}
 					</span>

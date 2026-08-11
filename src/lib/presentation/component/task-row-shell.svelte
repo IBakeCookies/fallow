@@ -111,7 +111,10 @@
 		lead?: Snippet;
 		/** The rest of the readings, after the three inputs. */
 		meta?: Snippet;
-		/** The right-hand column, before the actions: what the day gave the task. */
+		/** What the day gave the task: the right-hand column from `sm` up, sharing one
+		 *  line with the action strip below it. Align it right from `sm` only — below
+		 *  that it LEADS its line instead of ending the row — and align it on the
+		 *  trigger, not a wrapper; see the note in the markup. */
 		trailing?: Snippet;
 	}
 
@@ -194,53 +197,73 @@
 <div
 	class="group rounded-lg border border-transparent p-box-sm transition hover:border-line-soft hover:bg-surface-hover"
 >
-	<div class="flex items-start gap-grid-xs">
-		<input
-			type="checkbox"
-			checked={completed}
-			onchange={onCompletionChange}
-			aria-label={m.task_toggle_aria({
-				title,
-			})}
-			class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
-		/>
+	<!-- Three columns from `sm` up — box, task, what the day gave it — and NOT a row at
+	     all below it. The columns cost the same width at every size, so on a phone the
+	     middle one was under half the row: the title truncated to nothing and
+	     "flow @ 2h 5m · stop by 3h 30m" wrapped three times. Stacked, the task gets the
+	     whole width and the day's reading takes a line of its own.
+	     The checkbox goes into a flex WITH the task rather than being a block of its own,
+	     or stacking would put it on a line above the title it ticks. -->
+	<div class="sm:flex sm:items-start sm:gap-grid-xs">
+		<div class="flex items-start gap-grid-xs sm:min-w-0 sm:flex-1">
+			<input
+				type="checkbox"
+				checked={completed}
+				onchange={onCompletionChange}
+				aria-label={m.task_toggle_aria({
+					title,
+				})}
+				class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
+			/>
 
-		<!-- The completed look dims the task's TITLE and nothing else: it used to sit on
-		     the whole row in the Lab, which faded the 🪫 rating that only exists for a
-		     finished session into looking disabled. It sat on this block until the
-		     readings moved into the line below (2026-08-10) and inherited exactly that
-		     fade — so it moved down one level. The whole meta line stays lit, not just
-		     the chips: the readings share a flex row with P·M·E, and dimming half a line
-		     reads as a rendering fault rather than a state. -->
-		<div class="min-w-0 flex-1">
-			<div class="flex flex-wrap items-center gap-text-xs" class:opacity-60={completed}>
-				{@render lead?.()}
-				<h3
-					class:text-ty-silent={completed}
-					class:line-through={completed}
-					class="truncate text-sm font-medium text-ty-primary capitalize"
+			<!-- The completed look dims the task's TITLE and nothing else: it used to sit on
+			     the whole row in the Lab, which faded the 🪫 rating that only exists for a
+			     finished session into looking disabled. It sat on this block until the
+			     readings moved into the line below (2026-08-10) and inherited exactly that
+			     fade — so it moved down one level. The whole meta line stays lit, not just
+			     the chips: the readings share a flex row with P·M·E, and dimming half a line
+			     reads as a rendering fault rather than a state. -->
+			<div class="min-w-0 flex-1">
+				<div class="flex flex-wrap items-center gap-text-xs" class:opacity-60={completed}>
+					{@render lead?.()}
+					<!-- Wraps on a narrow screen and truncates from `sm` up: the right-hand
+					     column costs the same width at every size, so at 390px the title had
+					     under half the row and read "write the quarterly report…". A wrapped
+					     second line is free here — the row is already two lines tall. -->
+					<h3
+						class:text-ty-silent={completed}
+						class:line-through={completed}
+						class="min-w-0 text-sm font-medium wrap-break-word text-ty-primary capitalize sm:truncate"
+					>
+						{title}
+					</h3>
+				</div>
+
+				<div
+					class="mt-text-2xs flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent"
 				>
-					{title}
-				</h3>
-			</div>
-
-			<div
-				class="mt-text-2xs flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent"
-			>
-				<Tooltip.Root>
-					<Tooltip.Trigger class="cursor-help">
-						<span class="font-medium text-body/80">P {physicalDifficulty}</span>
-						<span class="text-ty-ghost">·</span>
-						<span class="font-medium text-mind/80">M {mentalDifficulty}</span>
-						<span class="text-ty-ghost">·</span>
-						<span class="font-medium text-brand/80">E {enjoyment}</span>
-					</Tooltip.Trigger>
-					<Tooltip.Content>
-						<p>{m.task_inputs_tooltip()}</p>
-					</Tooltip.Content>
-				</Tooltip.Root>
-				{@render meta?.()}
-				<!-- What the row has already measured, at rest: the strip of actions is
+					<!-- Explained like every other reading on the row, and for the reason the
+					     derived ones are: three bare letters are the one thing on this line that
+					     says nothing for itself, and ✎ — where the values can be changed — is
+					     hover-revealed, so the row would otherwise never name them at all. -->
+					<Tooltip.Root>
+						<Tooltip.Trigger class="cursor-help text-left">
+							<span class="font-medium text-body/80">P {physicalDifficulty}</span>
+							<span class="text-ty-ghost">·</span>
+							<span class="font-medium text-mind/80">M {mentalDifficulty}</span>
+							<span class="text-ty-ghost">·</span>
+							<span class="font-medium text-brand/80">E {enjoyment}</span>
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.task_inputs_tooltip()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+					<!-- `text-left` on every TRIGGER in this line, here and in the callers'
+					     `meta`: a trigger is a <button>, whose UA `text-align` is center, so a
+					     reading long enough to wrap on a narrow row centred its last line
+					     underneath the rest of itself. -->
+					{@render meta?.()}
+					<!-- What the row has already measured, at rest: the strip of actions is
 					     hover-revealed, so without this a logged session looks exactly like an
 					     unlogged one. The shapes differ because the quantities do — ⚡ is one
 					     number per day, so one badge; 🪫 is one per session (MATH.md §8.7), so one
@@ -256,63 +279,69 @@
 					     but today — which is why the badge takes its own callback rather than the
 					     button's: a past day passes the correction and withholds the log. -->
 
-				{#if flowMinutes}
-					<Tooltip.Root>
-						<Tooltip.Trigger>
-							{#snippet child({ props })}
-								{#if onflowedit}
+					{#if flowMinutes}
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props })}
+									{#if onflowedit}
+										<button
+											{...props}
+											type="button"
+											onclick={() => (flowDraft ? onflowclose?.() : onflowedit())}
+											aria-label={m.task_edit_flow_log_aria()}
+											class="font-medium text-flow transition hover:text-ty-primary"
+										>
+											⚡ {flowMinutes}m
+										</button>
+									{:else}
+										<span {...props} class="cursor-help font-medium text-flow">
+											⚡ {flowMinutes}m
+										</span>
+									{/if}
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>{m.task_flow_badge_tooltip()}</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					{/if}
+					{#each drainLogs as log (log.id)}
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props })}
 									<button
 										{...props}
 										type="button"
-										onclick={() => (flowDraft ? onflowclose?.() : onflowedit())}
-										aria-label={m.task_edit_flow_log_aria()}
-										class="font-medium text-flow transition hover:text-ty-primary"
+										onclick={() =>
+											drainDraft?.recordId === log.id ? ondrainclose?.() : ondrainedit(log)}
+										aria-label={m.energy_edit_drain_log_aria()}
+										class="flex items-center gap-text-3xs tabular-nums transition hover:text-ty-primary"
 									>
-										⚡ {flowMinutes}m
+										<span class="text-flow">🪫</span>
+										<span>{formatDuration(log.hours)}</span>
+										<span class="font-medium text-mind/90">M{log.mindDrain}</span>
+										<span class="font-medium text-body/90">B{log.bodyDrain}</span>
 									</button>
-								{:else}
-									<span {...props} class="cursor-help font-medium text-flow">
-										⚡ {flowMinutes}m
-									</span>
-								{/if}
-							{/snippet}
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{m.task_flow_badge_tooltip()}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
-				{/if}
-				{#each drainLogs as log (log.id)}
-					<Tooltip.Root>
-						<Tooltip.Trigger>
-							{#snippet child({ props })}
-								<button
-									{...props}
-									type="button"
-									onclick={() =>
-										drainDraft?.recordId === log.id ? ondrainclose?.() : ondrainedit(log)}
-									aria-label={m.energy_edit_drain_log_aria()}
-									class="flex items-center gap-text-3xs tabular-nums transition hover:text-ty-primary"
-								>
-									<span class="text-flow">🪫</span>
-									<span>{formatDuration(log.hours)}</span>
-									<span class="font-medium text-mind/90">M{log.mindDrain}</span>
-									<span class="font-medium text-body/90">B{log.bodyDrain}</span>
-								</button>
-							{/snippet}
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{m.energy_edit_drain_log_title()}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
-				{/each}
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>{m.energy_edit_drain_log_title()}</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					{/each}
+				</div>
 			</div>
 		</div>
 
-		<div class="flex shrink-0 items-center gap-grid-xs">
+		<!-- The day's reading and the strip share the row's third column, and share one
+		     line of their own below `sm`. One strip, drawn once: a second copy for the
+		     narrow layout would make every action on the row addressable by two elements
+		     at once. `ml-auto` and not `justify-between` — the reading is absent on a
+		     completed task, and the strip belongs at the right edge either way. -->
+		<div class="mt-text-2xs flex items-center gap-grid-xs sm:mt-0 sm:shrink-0">
 			{@render trailing?.()}
 			<div
-				class="flex items-center gap-grid-2xs transition-opacity {actionsPinned
+				class="ml-auto flex items-center gap-grid-2xs transition-opacity {actionsPinned
 					? 'opacity-100'
 					: 'hover-reveal'}"
 			>
@@ -363,37 +392,34 @@
 					</Tooltip.Root>
 				{/if}
 
+				<!-- ✎ and ✕ carry their `aria-label` and no tooltip, unlike the two
+				     measurement buttons beside them: a pencil and a cross are the two icons
+				     nobody needs told, and hovering the strip to reach either one popped a
+				     panel over the row underneath. ⚡ and 🪫 keep theirs — an emoji for
+				     "time to flow" is not self-evident. -->
 				{#if onupdate}
-					<Tooltip.Root>
-						<Tooltip.Trigger
-							class={cn(
-								ROW_ACTION_CLASS,
-								editing ? 'text-success' : 'text-ty-silent hover:text-success',
-							)}
-							onclick={() => (editing = !editing)}
-							aria-label={m.task_edit_aria()}
-						>
-							<Pencil class="h-4 w-4" />
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{m.task_edit_tooltip()}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
+					<button
+						type="button"
+						class={cn(
+							ROW_ACTION_CLASS,
+							editing ? 'text-success' : 'text-ty-silent hover:text-success',
+						)}
+						onclick={() => (editing = !editing)}
+						aria-label={m.task_edit_aria()}
+					>
+						<Pencil class="h-4 w-4" />
+					</button>
 				{/if}
 
 				{#if onremove}
-					<Tooltip.Root>
-						<Tooltip.Trigger
-							class={cn(ROW_ACTION_CLASS, 'text-ty-silent hover:text-danger')}
-							onclick={onremove}
-							aria-label={m.task_remove_aria()}
-						>
-							<X class="h-4 w-4" />
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{m.task_remove_tooltip()}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
+					<button
+						type="button"
+						class={cn(ROW_ACTION_CLASS, 'text-ty-silent hover:text-danger')}
+						onclick={onremove}
+						aria-label={m.task_remove_aria()}
+					>
+						<X class="h-4 w-4" />
+					</button>
 				{/if}
 			</div>
 		</div>

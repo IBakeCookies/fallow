@@ -555,7 +555,7 @@ export class SessionStore {
 	 * Move one active task to tomorrow's plan: append it there, then drop it
 	 * here. The destination write is a read-modify-write against tomorrow's
 	 * stored session — the only write in this store that does not target the
-	 * viewed day (AGENTS.md §6). Ordered so the failure mode is a visible
+	 * viewed day (business/AGENTS.md). Ordered so the failure mode is a visible
 	 * duplicate, never a vanished task: the local removal (persisted by
 	 * auto-save) happens only after the destination write lands.
 	 */
@@ -801,12 +801,45 @@ export class SessionStore {
 	// Remove one measured data point; the constants refit automatically since
 	// they are derived from the observations, and so does the ⚡ badge of whatever
 	// day it belonged to.
-	async deleteFlowLog(id: number) {
+	//
+	// Hands back the way to put it back, as `removeTask` does: the list's ✕ drops the
+	// measurement at once and offers an undo for as long as its toast lives
+	// (`removeLogWithUndo`). A closure, because only the store knows what restoring
+	// means — the whole record under the id and stamp it was dropped with, a re-log
+	// being a second measurement rather than the same one (MATH.md §36).
+	//
+	// Nothing to offer back in two cases, and `undefined` says so for both: a record
+	// this store does not hold (a second click on a ✕ whose row is already gone, which
+	// must not delete blind either), and a delete that failed — the record is still
+	// there, and the banner already says the write did not land.
+	async deleteFlowLog(id: number): Promise<(() => Promise<void>) | undefined> {
+		const dropped = this.#flowObservations.find((observation) => observation.id === id);
+
+		if (!dropped) return undefined;
+
+		// Snapshotted before the delete, for the reason every write out of a store's
+		// state is: what reaches IndexedDB must be a plain record, not a proxy.
+		const record = $state.snapshot(dropped);
+
 		try {
 			await flowObservationRepository.$deleteFlowObservation(id);
 			this.#flowObservations = await this.#readFlowObservations();
 		} catch (e) {
 			logError('Failed to delete flow observation', e);
+			this.#reporter.report('save-failed');
+
+			return undefined;
+		}
+
+		return () => this.#restoreFlowLog(record);
+	}
+
+	async #restoreFlowLog(record: Persisted<FlowObservationRecord>) {
+		try {
+			await flowObservationRepository.$restoreFlowObservation(record);
+			this.#flowObservations = await this.#readFlowObservations();
+		} catch (e) {
+			logError('Failed to restore flow observation', e);
 			this.#reporter.report('save-failed');
 		}
 	}
@@ -816,12 +849,15 @@ export class SessionStore {
 	// (taskId, date) is what the log is keyed by anyway. The VIEWED day's, for the
 	// reason logFlow gives: the reading a past row shows is that day's observation,
 	// and dropping what is on screen is the one thing every row can do.
-	async clearFlowLog(id: number) {
+	//
+	// The undo comes back out with it, on the same contract: the address a drop arrived
+	// by is no reason for it to be reversible on one screen and permanent on the other.
+	async clearFlowLog(id: number): Promise<(() => Promise<void>) | undefined> {
 		const record = this.#flowLogFor(id, this.#selectedDate);
 
-		if (!record) return;
+		if (!record) return undefined;
 
-		await this.deleteFlowLog(record.id);
+		return this.deleteFlowLog(record.id);
 	}
 
 	// Delete all measured data points → model reverts to the article defaults.

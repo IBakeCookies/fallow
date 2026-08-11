@@ -69,6 +69,18 @@
 		await userEvent.click(checkbox);
 		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
 
+		// ✎ and ✕ are the two icons nobody needs told, so neither is a tooltip trigger:
+		// hovering the strip to reach either one popped a panel over the row underneath.
+		// Asserted on the attribute rather than by hovering and waiting for nothing —
+		// a tooltip that never opens and one that opens after a delay look alike.
+		for (const name of ['Edit task', 'Delete task']) {
+			await expect(
+				canvas.getByRole('button', {
+					name,
+				}),
+			).not.toHaveAttribute('data-slot', 'tooltip-trigger');
+		}
+
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Delete task',
@@ -85,7 +97,7 @@
 	args={{
 		runOrder: 1,
 	}}
-	play={async ({ args, canvas }) => {
+	play={async ({ args, canvas, canvasElement, userEvent }) => {
 		await expect(
 			canvas.getByRole('heading', {
 				name: args.title,
@@ -96,6 +108,18 @@
 		await expect(canvas.getByText('P 2')).toBeVisible();
 		await expect(canvas.getByText('M 8')).toBeVisible();
 		await expect(canvas.getByText('E 7')).toBeVisible();
+
+		// Three bare letters are the one reading on the line that says nothing for
+		// itself, so P·M·E is explained by the row's own tooltip like every other one.
+		await userEvent.hover(
+			canvas.getByRole('button', {
+				name: 'P 2 · M 8 · E 7',
+			}),
+		);
+
+		const body = within(canvasElement.ownerDocument.body);
+
+		await waitFor(() => expect(body.getByText(/^Your slider inputs/)).toBeVisible());
 		await expect(canvas.getByText('1h 45m')).toBeVisible();
 		await expect(canvas.getByText('prio 12.4')).toBeVisible();
 		await expect(canvas.getByText('effort 4.2 · flow @ 36m · stop by 2h 15m')).toBeVisible();

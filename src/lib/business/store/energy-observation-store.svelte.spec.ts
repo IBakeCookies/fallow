@@ -6,12 +6,18 @@ import * as restObservationRepository from '$lib/data/repository/rest-observatio
 import { toISODate } from '$lib/business/utils/date';
 import type { EnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
-import type { Persisted, Task, DrainObservationRecord } from '$lib/data/type';
+import type {
+	Persisted,
+	Task,
+	DrainObservationRecord,
+	RestObservationRecord,
+} from '$lib/data/type';
 
 vi.mock('$lib/data/repository/drain-observation-repository', () => ({
 	$createDrainObservation: vi.fn(async () => {}),
 	$updateDrainObservation: vi.fn(async () => {}),
 	$deleteDrainObservation: vi.fn(async () => {}),
+	$restoreDrainObservation: vi.fn(async () => {}),
 	$deleteAllDrainObservations: vi.fn(async () => {}),
 	$readAllDrainObservations: vi.fn(async () => []),
 }));
@@ -20,6 +26,7 @@ vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 	$createRestObservation: vi.fn(async () => {}),
 	$updateRestObservation: vi.fn(async () => {}),
 	$deleteRestObservation: vi.fn(async () => {}),
+	$restoreRestObservation: vi.fn(async () => {}),
 	$deleteAllRestObservations: vi.fn(async () => {}),
 	$readAllRestObservations: vi.fn(async () => []),
 }));
@@ -27,9 +34,12 @@ vi.mock('$lib/data/repository/rest-observation-repository', () => ({
 const createDrainMock = vi.mocked(drainObservationRepository.$createDrainObservation);
 const updateDrainMock = vi.mocked(drainObservationRepository.$updateDrainObservation);
 const readAllDrainMock = vi.mocked(drainObservationRepository.$readAllDrainObservations);
+const deleteDrainMock = vi.mocked(drainObservationRepository.$deleteDrainObservation);
+const restoreDrainMock = vi.mocked(drainObservationRepository.$restoreDrainObservation);
 const createRestMock = vi.mocked(restObservationRepository.$createRestObservation);
 const updateRestMock = vi.mocked(restObservationRepository.$updateRestObservation);
 const readAllRestMock = vi.mocked(restObservationRepository.$readAllRestObservations);
+const restoreRestMock = vi.mocked(restObservationRepository.$restoreRestObservation);
 
 const task = (over: Partial<Task> = {}): Task => ({
 	id: 1,
@@ -54,6 +64,20 @@ const drainRecord = (
 	physicalDemand: 0.3,
 	mindDrain: 9,
 	bodyDrain: 4,
+	createdAt: 0,
+	...over,
+});
+
+const restRecord = (
+	over: Partial<RestObservationRecord> = {},
+): Persisted<RestObservationRecord> => ({
+	id: 2,
+	date: toISODate(),
+	hours: 0.5,
+	mindBefore: 8,
+	mindAfter: 3,
+	bodyBefore: 5,
+	bodyAfter: 2,
 	createdAt: 0,
 	...over,
 });
@@ -89,6 +113,9 @@ describe('EnergyObservationStore', () => {
 		updateDrainMock.mockReset().mockResolvedValue(undefined);
 		createRestMock.mockReset().mockResolvedValue(undefined);
 		updateRestMock.mockReset().mockResolvedValue(undefined);
+		deleteDrainMock.mockReset().mockResolvedValue(undefined);
+		restoreDrainMock.mockReset().mockResolvedValue(undefined);
+		restoreRestMock.mockReset().mockResolvedValue(undefined);
 	});
 
 	afterEach(() => {
@@ -241,6 +268,72 @@ describe('EnergyObservationStore', () => {
 		expect(status.error).toBe('save-failed');
 	});
 
+	/* A dropped measurement is offered back for as long as its toast lives, the way a
+	   deleted task is (`removeTaskWithUndo`). The undo is a closure because only the
+	   store knows what putting it back means: the whole record, under the id and stamp
+	   it was dropped with — a re-log would be a second session for §8.7 to fit α
+	   against, and a second recovery for §8.9's r. */
+	it('hands back an undo that puts a dropped rating back', async () => {
+		readAllDrainMock.mockResolvedValue([drainRecord()]);
+
+		const { store } = await setup();
+		await vi.waitFor(() => expect(store.drainObservations).toHaveLength(1));
+
+		readAllDrainMock.mockResolvedValue([]);
+		const undo = await store.deleteDrainLog(1);
+
+		expect(deleteDrainMock).toHaveBeenCalledWith(1);
+		expect(store.drainObservations).toEqual([]);
+
+		readAllDrainMock.mockResolvedValue([drainRecord()]);
+		await undo?.();
+
+		expect(restoreDrainMock).toHaveBeenCalledWith(drainRecord());
+		expect(store.drainObservations).toEqual([drainRecord()]);
+	});
+
+	it('hands back an undo that puts a dropped break back', async () => {
+		readAllRestMock.mockResolvedValue([restRecord()]);
+
+		const { store } = await setup();
+		await vi.waitFor(() => expect(store.restObservations).toHaveLength(1));
+
+		readAllRestMock.mockResolvedValue([]);
+		const undo = await store.deleteRestLog(2);
+
+		expect(store.restObservations).toEqual([]);
+
+		readAllRestMock.mockResolvedValue([restRecord()]);
+		await undo?.();
+
+		expect(restoreRestMock).toHaveBeenCalledWith(restRecord());
+		expect(store.restObservations).toEqual([restRecord()]);
+	});
+
+	// A double-click on ✕: the second one addresses a record the store no longer holds,
+	// and must neither delete blind nor raise a toast offering to restore nothing.
+	it('drops nothing and offers no undo for a rating it does not hold', async () => {
+		const { store } = await setup();
+
+		expect(await store.deleteDrainLog(4242)).toBeUndefined();
+		expect(deleteDrainMock).not.toHaveBeenCalled();
+	});
+
+	// A delete that never landed leaves the record where it was, so there is nothing to
+	// undo — and an undo button over a failed delete would write the record back on top
+	// of itself while the banner says the storage is failing.
+	it('offers no undo when the delete failed', async () => {
+		readAllDrainMock.mockResolvedValue([drainRecord()]);
+
+		const { store, status } = await setup();
+		await vi.waitFor(() => expect(store.drainObservations).toHaveLength(1));
+
+		deleteDrainMock.mockRejectedValueOnce(new Error('QuotaExceededError'));
+
+		expect(await store.deleteDrainLog(1)).toBeUndefined();
+		expect(status.error).toBe('save-failed');
+	});
+
 	// ☕ has no task and so no row to correct from; the analytics history is its only
 	// editor. Nothing is re-derived on the way in — a break is five numbers the user
 	// typed — so the correction is the record's id and the five fields, and the day it
@@ -310,7 +403,7 @@ describe('EnergyObservationStore', () => {
 
 	// A screen listing these logs must not say "nothing logged in this range" over a
 	// read still in flight: an empty array is what loading and an empty history look
-	// like alike, so loaded-ness is a field (AGENTS.md).
+	// like alike, so loaded-ness is a field (business/AGENTS.md).
 	it('says it is loading until the first read lands', async () => {
 		let landed!: (logs: Persisted<DrainObservationRecord>[]) => void;
 
