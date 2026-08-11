@@ -2,7 +2,7 @@
  * The measurement behind MATH.md §15 — "two objectives, two modes": each model
  * beating the other by tens of percent on its own scale, which is the whole
  * reason the energy plan was NOT promoted to the main page (ROADMAP item, and
- * AGENTS.md §3's "neither mode is the better one, so neither owns the day's
+ * business/AGENTS.md's "neither mode is the better one, so neither owns the day's
  * hours").
  *
  * §15 quotes a cross-scoring probe run on 2026-07-29 that was never committed,
@@ -16,7 +16,7 @@
  * The two scorings, each through the shipped entry point for its own side:
  *
  *   - classic `Σ P̄`: `calculateTotalProductivity(tasks, hours)`, hours paired
- *     to tasks BY INDEX (AGENTS.md §5) — the classic plan's own
+ *     to tasks BY INDEX (business/model/AGENTS.md) — the classic plan's own
  *     `allocatedHours`, and the energy plan's per-task totals in the same
  *     order;
  *   - energy `objective`: `optimizeSchedule().evaluation` for the energy plan,

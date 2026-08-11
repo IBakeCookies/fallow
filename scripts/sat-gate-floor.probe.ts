@@ -25,7 +25,7 @@
  * should hold forever, so they assert. Arm C is a sweep whose numbers move with
  * the optimizer, the lattice and the objective — it prints, and the printed
  * numbers belong in MATH.md WITH THEIR DATE beside the claim they support
- * (AGENTS.md §4).
+ * (docs/testing.md).
  *
  * Usage: npm run probe
  */

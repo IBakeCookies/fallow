@@ -373,7 +373,7 @@ test('a dated URL collapses to the canonical Lab', async ({ page }) => {
 	await expect(page.getByText('Deep work').first()).toBeVisible();
 });
 
-// AGENTS.md §3: "A fit never writes params silently." The whole point of the
+// business/model/AGENTS.md: "A fit never writes params silently." The whole point of the
 // Apply button is that the sliders stay the user's until it is pressed — and
 // there is one button for all four fits, because their order is the math.
 test('a drain rating fits α but only applies on demand', async ({ page }) => {

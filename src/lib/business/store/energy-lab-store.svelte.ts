@@ -678,7 +678,7 @@ export class EnergyLabStore {
 	}
 
 	/**
-	 * Copy every fit into the sliders, in the ONE order the model admits (AGENTS.md
+	 * Copy every fit into the sliders, in the ONE order the model admits (business/model/AGENTS.md
 	 * / MATH.md §8.7/§8.9/§8.10): r first, then α conditioned on it, then λ₀ on
 	 * both. The three used to be three buttons, and any order but this one left a
 	 * parameter stale — apply α then r and the α just adopted was fitted against

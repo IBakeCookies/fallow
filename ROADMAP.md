@@ -6,7 +6,8 @@ Gradient allocator and the Energy Lab), a full calibration loop (⚡ time-to-flo
 PWA, en/de.
 
 The math behind every item lives in [MATH.md](MATH.md). Settled decisions are
-in [AGENTS.md §5](AGENTS.md) — notably the three roads deliberately not taken:
+in AGENTS.md §4's decision index — notably the three roads deliberately not
+taken:
 the energy model stays a peer mode, never a replacement (MATH.md §15), run
 order stays the nature-alternation heuristic (§16), and ϕ stays one plane for
 all tasks (§17). Do not re-open those here.
@@ -530,7 +531,8 @@ reach the form at all:
    costs a whole-history fit per audited day — 19 ms/day, 570 ms per 30-day
    audit — so it grows with everything the user ever logs. The accepted cost is
    that the correction only accrues forward.
-6. ~~**Per-task ϕ offsets**~~ — REJECTED 2026-08-04 (MATH.md §17, AGENTS.md §5).
+6. ~~**Per-task ϕ offsets**~~ — REJECTED 2026-08-04 (MATH.md §17,
+   `business/model/AGENTS.md`).
    Probed as planned, and the probe answered the gate: offsets move **blocks,
    not value**. The hierarchical fit works — held-out ϕ error −23% to −37% — but
    at a plausible 0.3 h per-task spread it buys **+0.09%** of plan value on a
@@ -600,7 +602,7 @@ defects it found without fixing.
 
 26. **Round-2 probes for the unbacked `MATH.md` claims** — **DONE 2026-08-06.**
     All four targets built, plus a fifth found while doing them. Each carries a
-    dated back-reference in `MATH.md`, a row in AGENTS.md §4's registry, and one
+    dated back-reference in `MATH.md`, a row in `scripts/PROBES.md`, and one
     suite fixture. The expectation that this round would correct more than it
     confirmed held for one of the five.
     (a) **§12.1's fit-snapshot numbers** → `scripts/fit-snapshot-drift.probe.ts`.
@@ -859,7 +861,7 @@ Only if Fallow grows users beyond its author.
 
 ## Considered on 2026-08-04 and not proposed
 
-Not settled decisions — those live in [AGENTS.md §5](AGENTS.md) and an item
+Not settled decisions — those live in AGENTS.md §4's index and an item
 here graduates there only if it is ever formally decided. This is a list of
 things that looked good, were measured or checked, and lost, so they do not
 have to be re-derived:

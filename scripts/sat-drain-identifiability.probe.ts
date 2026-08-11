@@ -5,7 +5,7 @@
  *   1. "Only α is fit. The fit conditions on the current `recoveryRate` … that
  *      conditioning is what makes α identifiable at all. `recoveryRate` itself
  *      cannot be recovered from end-of-session ratings: it enters the observable
- *      D only jointly with α through ρ and C_eq." (AGENTS.md §3 states it as a
+ *      D only jointly with α through ρ and C_eq." (business/model/AGENTS.md states it as a
  *      rule: "`recoveryRate` is _not_ identifiable from end-of-session ratings
  *      — don't try.")
  *   2. The λ = `DRAIN_PRIOR_STRENGTH` = 0.25 tuning: "one consistent full-demand
@@ -18,7 +18,7 @@
  *
  * A probe, not a test: arm A's numbers are a property of the law, but arms B and
  * C move with λ, σ₀, ν₀ and the defaults, and in the suite that is a red build
- * carrying no regression (AGENTS.md §4). The orderings that MUST hold are
+ * carrying no regression (docs/testing.md). The orderings that MUST hold are
  * already asserted in `zenith-energy.test.ts`; what this prints is the SIZE of
  * each effect, in the units the ratings are given in (one notch = 0.1 of D).
  *

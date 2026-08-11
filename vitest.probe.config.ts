@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
  * join `npm test`: a sweep prints numbers that legitimately move whenever the
  * allocator changes, and in the suite that is a red build carrying no
  * regression. Assertions are not required here — the output IS the result
- * (AGENTS.md §4).
+ * (docs/testing.md).
  */
 export default defineConfig({
 	resolve: {

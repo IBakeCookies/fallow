@@ -414,7 +414,7 @@ describe('EnergyLabStore', () => {
 		expect(notifyParamsLoadFailed).not.toHaveBeenCalled();
 	});
 
-	// AGENTS.md §3: "A fit never writes params silently." The whole point of the
+	// business/model/AGENTS.md: "A fit never writes params silently." The whole point of the
 	// Apply button is that the sliders stay the user's.
 	it('computes the fits without touching the params', async () => {
 		const store = await setup();

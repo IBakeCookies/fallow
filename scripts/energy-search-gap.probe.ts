@@ -33,7 +33,7 @@
  * story.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports (AGENTS.md §4).
+ * supports (docs/testing.md).
  *
  * Usage: npm run probe
  */

@@ -169,7 +169,7 @@ test('an axis nothing can improve still reads, and the day is not called fine', 
 	await expect(page.getByText(/Nothing reads badly enough to act on/)).toBeHidden();
 });
 
-// The one advice the card can perform itself (MATH.md §14 / AGENTS.md §6):
+// The one advice the card can perform itself (MATH.md §14 / business/AGENTS.md):
 // the button names the task it moves, so the test reads it back rather than
 // assuming which lever survives the frontier.
 test('applying a deferral moves the task to tomorrow’s plan', async ({ page }) => {
