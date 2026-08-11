@@ -97,7 +97,7 @@
 {#snippet trailing()}
 	{#if !completed && plannedHours !== null}
 		<span
-			class="text-right {plannedHours
+			class="text-left sm:text-right {plannedHours
 				? 'text-sm font-semibold text-ty-primary'
 				: 'text-2xs text-ty-silent italic'}"
 		>

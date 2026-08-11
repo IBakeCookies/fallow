@@ -18,6 +18,7 @@
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
 	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { logHistory, type LogKind } from '$lib/presentation/utils/log-history';
+	import { removeLogWithUndo } from '$lib/presentation/utils/remove-log-with-undo';
 	import { fromISO } from '$lib/business/utils/date';
 	import {
 		ANALYTICS_RANGES,
@@ -138,18 +139,17 @@
 		session.isLoading || observations.isLoading || analytics.isLoading,
 	);
 
-	// Dropping a measurement routes back to the store that owns it — the list merges
-	// three id sequences, so the kind is half the address. No confirm, like the Lab's
-	// per-log ✕: one point out of a fit is not the wholesale reset, which keeps its
-	// two-step.
+	// Dropping a measurement routes back to the store that owns it and offers it back
+	// while the toast lives, the way a deleted task does — both the routing and that
+	// window live in `removeLogWithUndo`, so neither is this page's to restate.
 	function deleteLog(kind: LogKind, id: number) {
-		if (kind === 'flow') session.deleteFlowLog(id);
-		else if (kind === 'drain') observations.deleteDrainLog(id);
-		else observations.deleteRestLog(id);
+		removeLogWithUndo(session, observations, kind, id);
 
 		// A dropped row's editor has nothing left to correct. Closing on any drop rather
 		// than only the open row's is the same answer for less state: at most one row is
-		// ever open, so nothing else can be closed by mistake.
+		// ever open, so nothing else can be closed by mistake. Not awaited: the editor
+		// belongs to a row that is already gone from the list, and an undo re-opens
+		// nothing — it puts the measurement back, not the correction of it.
 		editingKey = null;
 	}
 

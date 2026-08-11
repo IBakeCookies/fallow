@@ -6,8 +6,9 @@ import {
 	$readAllFlowObservations,
 	$deleteFlowObservation,
 	$deleteAllFlowObservations,
+	$restoreFlowObservation,
 } from '$lib/data/repository/flow-observation-repository';
-import type { FlowObservationRecord } from '$lib/data/type';
+import type { FlowObservationRecord, Persisted } from '$lib/data/type';
 
 function observation(
 	overrides: Partial<FlowObservationRecord> = {},
@@ -164,6 +165,67 @@ describe('flow-observation-repository', () => {
 		const all = await $readAllFlowObservations();
 		await $deleteFlowObservation(all[0].id!);
 		expect(await $readAllFlowObservations()).toHaveLength(all.length - 1);
+	});
+
+	// Undo of a ✕. Through its own writer and not the upsert, for the same reason
+	// `$updateFlowObservation` exists: the upsert is addressed by (taskId, date) and
+	// would re-insert under a fresh id and a fresh stamp, so a restored measurement
+	// would sort as the newest thing on a day years old.
+	it('restores a dropped record under its own id and stamp', async () => {
+		const loggedAt = Date.parse('2026-02-05T18:30:00Z');
+
+		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
+
+		await $createOrUpdateFlowObservation(
+			observation({
+				date: '2026-02-05',
+				taskId: 44,
+			}),
+		);
+
+		// `id!`: see above.
+		const dropped = (await $readAllFlowObservations()).find((r) => r.taskId === 44)!;
+
+		await $deleteFlowObservation(dropped.id!);
+
+		vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-02-06T09:00:00Z'));
+
+		await $restoreFlowObservation(dropped as Persisted<FlowObservationRecord>);
+
+		expect((await $readAllFlowObservations()).find((r) => r.id === dropped.id)).toEqual(dropped);
+	});
+
+	// Re-logging while the undo toast is still up wins: a task-day holds one ⚡, so
+	// the restore is dropped rather than duplicating the day's measurement.
+	it('drops a restore whose task-day was re-logged in the meantime', async () => {
+		await $createOrUpdateFlowObservation(
+			observation({
+				date: '2026-02-07',
+				taskId: 45,
+			}),
+		);
+
+		// `id!`: see above.
+		const dropped = (await $readAllFlowObservations()).find((r) => r.taskId === 45)!;
+
+		await $deleteFlowObservation(dropped.id!);
+
+		await $createOrUpdateFlowObservation(
+			observation({
+				date: '2026-02-07',
+				phiHours: 0.75,
+				taskId: 45,
+			}),
+		);
+
+		await $restoreFlowObservation(dropped as Persisted<FlowObservationRecord>);
+
+		const sameDay = (await $readAllFlowObservations()).filter(
+			(r) => r.date === '2026-02-07' && r.taskId === 45,
+		);
+
+		expect(sameDay).toHaveLength(1);
+		expect(sameDay[0].phiHours).toBe(0.75);
 	});
 
 	it('deletes all records', async () => {

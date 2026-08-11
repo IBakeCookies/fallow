@@ -6,6 +6,10 @@
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
+		removeFlowLogWithUndo,
+		removeLogWithUndo,
+	} from '$lib/presentation/utils/remove-log-with-undo';
+	import {
 		drainDraftFromLog,
 		newDrainDraft,
 		newEditorDraft,
@@ -155,8 +159,11 @@
 		closeFlowLog(taskId);
 	}
 
+	// The 🗑 in the editor drops what it opened on, and offers it back for as long as its
+	// toast lives — the same window the analytics list's ✕ opens, because it is the same
+	// verb on the same record.
 	function clearFlowLog(taskId: number) {
-		session.clearFlowLog(taskId);
+		removeFlowLogWithUndo(session, taskId);
 		closeFlowLog(taskId);
 	}
 
@@ -204,7 +211,7 @@
 	}
 
 	function deleteDrainLog(taskId: number, recordId: number) {
-		observations.deleteDrainLog(recordId);
+		removeLogWithUndo(session, observations, 'drain', recordId);
 		closeDrainLog(taskId);
 	}
 

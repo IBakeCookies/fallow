@@ -41,6 +41,7 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$createOrUpdateFlowObservation: vi.fn(async () => {}),
 	$updateFlowObservation: vi.fn(async () => {}),
 	$deleteFlowObservation: vi.fn(async () => {}),
+	$restoreFlowObservation: vi.fn(async () => {}),
 	$deleteAllFlowObservations: vi.fn(async () => {}),
 	$readAllFlowObservations: vi.fn(async () => []),
 }));
@@ -48,7 +49,11 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 const readTitleRatingsMock = vi.mocked(sessionHistory.readTitleRatings);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
-const createOrUpdateFlowObservationMock = vi.mocked(flowObservationRepository.$createOrUpdateFlowObservation);
+
+const createOrUpdateFlowObservationMock = vi.mocked(
+	flowObservationRepository.$createOrUpdateFlowObservation,
+);
+
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
 const readAllFlowObservationsMock = vi.mocked(flowObservationRepository.$readAllFlowObservations);
 
@@ -296,6 +301,71 @@ describe('SessionStore persistence', () => {
 
 		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).toHaveBeenCalledWith(77);
 		expect(store.flowMinutesOn(store.today).get(id)).toBeUndefined();
+	});
+
+	/* A dropped measurement is offered back for as long as its toast lives, the way a
+	   deleted task is (`removeTaskWithUndo`). The undo is a closure because only the
+	   store knows what putting it back means: the whole record, under the id and stamp
+	   it was dropped with — a re-log would be a second measurement. */
+	it('hands back an undo that puts a dropped ⚡ measurement back', async () => {
+		const record = {
+			...flowLog(toISODate()),
+			id: 77,
+			taskId: 5,
+		};
+
+		readAllFlowObservationsMock.mockResolvedValue([record]);
+
+		const { store } = await setup();
+
+		readAllFlowObservationsMock.mockResolvedValue([]);
+		const undo = await store.deleteFlowLog(77);
+
+		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).toHaveBeenCalledWith(77);
+		expect(store.flowMinutesOn(toISODate()).get(5)).toBeUndefined();
+
+		readAllFlowObservationsMock.mockResolvedValue([record]);
+		await undo?.();
+
+		expect(vi.mocked(flowObservationRepository.$restoreFlowObservation)).toHaveBeenCalledWith(
+			record,
+		);
+
+		expect(store.flowMinutesOn(toISODate()).get(5)).toBe(240);
+	});
+
+	/* The row addresses its ⚡ by TASK — it has no record id — and the 🗑 in its editor
+	   drops the same measurement the analytics ✕ does, so it must offer the same window.
+	   Forwarding the undo is what lets one helper cover both addresses. */
+	it('hands the row’s by-task delete the same undo', async () => {
+		const record = {
+			...flowLog(toISODate()),
+			id: 77,
+			taskId: 5,
+		};
+
+		readAllFlowObservationsMock.mockResolvedValue([record]);
+
+		const { store } = await setup();
+
+		readAllFlowObservationsMock.mockResolvedValue([]);
+		const undo = await store.clearFlowLog(5);
+
+		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).toHaveBeenCalledWith(77);
+
+		readAllFlowObservationsMock.mockResolvedValue([record]);
+		await undo?.();
+
+		expect(store.flowMinutesOn(toISODate()).get(5)).toBe(240);
+	});
+
+	// A double-click on ✕: the second one addresses a record the store no longer holds,
+	// and must neither delete blind nor raise a toast offering to restore nothing.
+	it('drops nothing and offers no undo for a ⚡ record it does not hold', async () => {
+		const { store } = await setup();
+
+		expect(await store.deleteFlowLog(4242)).toBeUndefined();
+		expect(vi.mocked(flowObservationRepository.$deleteFlowObservation)).not.toHaveBeenCalled();
 	});
 
 	/* ⚡ became correctable on a past day on 2026-08-10. It could not be before, because

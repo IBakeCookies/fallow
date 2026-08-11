@@ -3,7 +3,7 @@
  * time-to-flow data points that personalize the model's c₁,c₂,c₃ constants.
  */
 
-import type { FlowObservationRecord } from '$lib/data/type';
+import type { FlowObservationRecord, Persisted } from '$lib/data/type';
 import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
@@ -93,6 +93,36 @@ export async function $readAllFlowObservations(): Promise<FlowObservationRecord[
 export async function $deleteFlowObservation(id: number): Promise<void> {
 	return withStore('flowObservations', 'readwrite', (store) => {
 		store.delete(id);
+	});
+}
+
+/**
+ * Put a dropped measurement back exactly as it was — what the ✕'s undo writes.
+ * Same contract as `$restoreDrainObservation`, and the same reason it is not the
+ * writer above: the upsert is addressed by (taskId, date) and would re-insert
+ * under a fresh id and a fresh stamp.
+ *
+ * Unlike 🪫 and 😴, a task-day holds at most ONE ⚡ — so if the user re-logged
+ * that day while the undo toast was still up, the restore is dropped rather than
+ * put back beside it: the newer measurement is the one they meant, and a second
+ * record would feed two conflicting φ points for one task-day into the fit with
+ * no way for the row to address the older one again.
+ */
+export async function $restoreFlowObservation(
+	record: Persisted<FlowObservationRecord>,
+): Promise<void> {
+	await withStore('flowObservations', 'readwrite', (store) => {
+		const sameDay = store.index('date').getAll(record.date);
+
+		sameDay.onsuccess = () => {
+			const superseded = (sameDay.result as Persisted<FlowObservationRecord>[]).some(
+				(other) => other.taskId === record.taskId && other.id !== record.id,
+			);
+
+			if (superseded) return;
+
+			store.put(record);
+		};
 	});
 }
 

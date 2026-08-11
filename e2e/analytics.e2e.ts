@@ -71,6 +71,47 @@ test('the calibration card’s link scrolls to the log list', async ({ page }) =
 	await expect(list).toBeInViewport();
 });
 
+/* The ✕ has no confirmation step, so the toast is the whole of the safety net — and a
+   measurement is not a task: putting it back means the same record under the same id and
+   stamp, written into IndexedDB by a second write (`$restoreDrainObservation`). The
+   reload is what makes this worth an e2e: a restore that only patched the store's array
+   would look identical until the next visit, and the fits would have refit off the
+   dropped record in the meantime. */
+test('undo brings a dropped measurement back, past a reload', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await logDrain(page, 120, 9, 5);
+	await page.goto('/analytics');
+
+	const row = page.getByRole('button', {
+		name: /^Correct Session rating logged on/,
+	});
+
+	await expect(row).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: /^Delete Session rating logged on/,
+		})
+		.click();
+
+	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Undo',
+		})
+		.click();
+
+	await expect(row).toBeVisible();
+
+	await page.reload();
+
+	await expect(row).toBeVisible();
+});
+
 test('stats and chart come off the stored days', async ({ page }) => {
 	await seedDay(page, 0, ['write the calibration section', 'inbox sweep']);
 

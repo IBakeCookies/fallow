@@ -214,6 +214,47 @@ test('a single flow log is deletable from the analytics history', async ({ page 
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
+/* The 🗑 in the row's own editor is the other address the same record is dropped by, and
+   since 2026-08-11 it opens the same undo window: a drop reversible on /analytics and
+   permanent on the row is the two screens disagreeing about one verb. The reload is what
+   makes it worth an e2e — a restore that only patched the store's array would look
+   identical until the next visit, with the fits refitted without the record meanwhile. */
+test('a flow log dropped from its own row comes back on undo', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await logFlow(page, 90);
+
+	const badge = page.getByRole('button', {
+		name: 'Correct this time to flow',
+	});
+
+	await expect(badge).toBeVisible();
+
+	// The badge re-opens the editor on the measurement; 🗑 drops the one it opened on.
+	await badge.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Delete this flow log',
+		})
+		.click();
+
+	await expect(badge).toHaveCount(0);
+
+	await page
+		.getByRole('button', {
+			name: 'Undo',
+		})
+		.click();
+
+	await expect(badge).toBeVisible();
+
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.reload();
+
+	await expect(badge).toBeVisible();
+});
+
 /* The other half of that list's two verbs, added 2026-08-10: the ✎ corrects in place
    rather than linking to the day, which is possible because a correction rewrites the
    quantities the user rated and re-derives nothing from a task (MATH.md §36). Crossing

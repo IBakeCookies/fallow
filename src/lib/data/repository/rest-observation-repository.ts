@@ -3,7 +3,7 @@
  * drain rating pairs that calibrate the energy model's recovery rate.
  */
 
-import type { RestObservationRecord } from '$lib/data/type';
+import type { RestObservationRecord, Persisted } from '$lib/data/type';
 import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
@@ -61,6 +61,19 @@ export async function $readAllRestObservations(): Promise<RestObservationRecord[
 export async function $deleteRestObservation(id: number): Promise<void> {
 	return withStore('restObservations', 'readwrite', (store) => {
 		store.delete(id);
+	});
+}
+
+/**
+ * Put a dropped break back exactly as it was — what the ✕'s undo writes. Same
+ * contract as `$restoreDrainObservation`: a re-log would be a second recovery for
+ * §8.9 to fit r against, so the record comes back as itself, id and stamp included.
+ */
+export async function $restoreRestObservation(
+	record: Persisted<RestObservationRecord>,
+): Promise<void> {
+	await withStore('restObservations', 'readwrite', (store) => {
+		store.put(record);
 	});
 }
 

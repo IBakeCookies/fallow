@@ -3,7 +3,7 @@
  * drain ratings that calibrate the energy model's α drain rates.
  */
 
-import type { DrainObservationRecord } from '$lib/data/type';
+import type { DrainObservationRecord, Persisted } from '$lib/data/type';
 import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
@@ -89,6 +89,23 @@ export async function $readAllDrainObservations(): Promise<DrainObservationRecor
 export async function $deleteDrainObservation(id: number): Promise<void> {
 	await withStore('drainObservations', 'readwrite', (store) => {
 		store.delete(id);
+	});
+}
+
+/**
+ * Put a dropped rating back exactly as it was — what the ✕'s undo writes.
+ *
+ * A whole record and not a create, because a re-log is a DIFFERENT session as far
+ * as every fit is concerned: `$createDrainObservation` would append it under a new
+ * key with a new stamp, taking with it the id the list addresses it by and the log
+ * moment §8.3 would condition on. The key is free to reuse — `autoIncrement` never
+ * rewinds, so nothing has taken it in the meantime.
+ */
+export async function $restoreDrainObservation(
+	record: Persisted<DrainObservationRecord>,
+): Promise<void> {
+	await withStore('drainObservations', 'readwrite', (store) => {
+		store.put(record);
 	});
 }
 

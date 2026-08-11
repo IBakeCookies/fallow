@@ -217,12 +217,36 @@ export class EnergyObservationStore {
 
 	// Remove one drain rating; any fitted α values are derived from the
 	// observations, so consumers refit automatically.
-	async deleteDrainLog(id: number) {
+	//
+	// Hands back the way to put it back, on the contract `deleteFlowLog` documents:
+	// the whole record under its own id and stamp, `undefined` when there is nothing
+	// to offer back. A re-log would be a second session for §8.7 to fit α against.
+	async deleteDrainLog(id: number): Promise<(() => Promise<void>) | undefined> {
+		const dropped = this.#drainObservations.find((observation) => observation.id === id);
+
+		if (!dropped) return undefined;
+
+		const record = $state.snapshot(dropped);
+
 		try {
 			await drainObservationRepository.$deleteDrainObservation(id);
 			this.#drainObservations = await this.#readDrain();
 		} catch (e) {
 			logError('Failed to delete drain observation', e);
+			this.#reporter.report('save-failed');
+
+			return undefined;
+		}
+
+		return () => this.#restoreDrainLog(record);
+	}
+
+	async #restoreDrainLog(record: Persisted<DrainObservationRecord>) {
+		try {
+			await drainObservationRepository.$restoreDrainObservation(record);
+			this.#drainObservations = await this.#readDrain();
+		} catch (e) {
+			logError('Failed to restore drain observation', e);
 			this.#reporter.report('save-failed');
 		}
 	}
@@ -295,13 +319,34 @@ export class EnergyObservationStore {
 	}
 
 	// Remove one rest pair; the fitted recovery rate is derived from the
-	// observations, so consumers refit automatically.
-	async deleteRestLog(id: number) {
+	// observations, so consumers refit automatically. Undoable on the same contract as
+	// the two above — a re-log would be a second recovery for §8.9's r.
+	async deleteRestLog(id: number): Promise<(() => Promise<void>) | undefined> {
+		const dropped = this.#restObservations.find((observation) => observation.id === id);
+
+		if (!dropped) return undefined;
+
+		const record = $state.snapshot(dropped);
+
 		try {
 			await restObservationRepository.$deleteRestObservation(id);
 			this.#restObservations = await this.#readRest();
 		} catch (e) {
 			logError('Failed to delete rest observation', e);
+			this.#reporter.report('save-failed');
+
+			return undefined;
+		}
+
+		return () => this.#restoreRestLog(record);
+	}
+
+	async #restoreRestLog(record: Persisted<RestObservationRecord>) {
+		try {
+			await restObservationRepository.$restoreRestObservation(record);
+			this.#restObservations = await this.#readRest();
+		} catch (e) {
+			logError('Failed to restore rest observation', e);
 			this.#reporter.report('save-failed');
 		}
 	}

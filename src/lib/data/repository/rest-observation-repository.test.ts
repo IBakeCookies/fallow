@@ -6,8 +6,9 @@ import {
 	$readAllRestObservations,
 	$deleteRestObservation,
 	$deleteAllRestObservations,
+	$restoreRestObservation,
 } from '$lib/data/repository/rest-observation-repository';
-import type { RestObservationRecord } from '$lib/data/type';
+import type { RestObservationRecord, Persisted } from '$lib/data/type';
 
 function observation(
 	overrides: Partial<RestObservationRecord> = {},
@@ -112,6 +113,33 @@ describe('rest-observation-repository', () => {
 		const all = await $readAllRestObservations();
 		await $deleteRestObservation(all[0].id!);
 		expect(await $readAllRestObservations()).toHaveLength(all.length - 1);
+	});
+
+	// Undo of a ✕: the dropped break comes back as itself, id and stamp included. A
+	// re-log would be a second recovery for §8.9 to fit r against, and the analytics
+	// list is the only place a ☕ can be dropped from at all.
+	it('restores a dropped record under its own id and stamp', async () => {
+		const loggedAt = Date.parse('2026-01-09T13:00:00Z');
+
+		vi.spyOn(Date, 'now').mockReturnValue(loggedAt);
+
+		await $createRestObservation(
+			observation({
+				date: '2026-01-09',
+			}),
+		);
+
+		// `id!`: a repository read is unsanitized, and the assigned key is what the
+		// restore has to come back under.
+		const dropped = (await $readAllRestObservations()).find((r) => r.date === '2026-01-09')!;
+
+		await $deleteRestObservation(dropped.id!);
+
+		vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-01-10T09:00:00Z'));
+
+		await $restoreRestObservation(dropped as Persisted<RestObservationRecord>);
+
+		expect((await $readAllRestObservations()).find((r) => r.id === dropped.id)).toEqual(dropped);
 	});
 
 	it('deletes all records', async () => {
