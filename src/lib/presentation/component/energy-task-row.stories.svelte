@@ -31,7 +31,7 @@
 			ondrainsave: fn(),
 			ondrainedit: fn(),
 			ondraindelete: fn(),
-			onchange: fn(),
+			onupdate: fn(),
 		},
 	});
 
@@ -221,7 +221,7 @@
 
 		// The whole edit in one patch the page hands to the session store — with the
 		// flag it was seeded with, not the false a hidden checkbox would have reported
-		await expect(args.onchange).toHaveBeenCalledExactlyOnceWith({
+		await expect(args.onupdate).toHaveBeenCalledExactlyOnceWith({
 			title: 'write §8.11',
 			physicalDifficulty: args.physicalDifficulty,
 			mentalDifficulty: args.mentalDifficulty,

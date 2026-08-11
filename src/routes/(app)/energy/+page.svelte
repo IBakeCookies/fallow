@@ -250,7 +250,7 @@
 				ondrainsave={(entry) => saveDrainLog(task.id, entry)}
 				ondrainedit={(log) => editDrainLog(task.id, log)}
 				ondraindelete={(recordId) => deleteDrainLog(task.id, recordId)}
-				onchange={(edit) => session.updateTask(task.id, edit)}
+				onupdate={(edit) => session.updateTask(task.id, edit)}
 			/>
 		</li>
 	{/each}
