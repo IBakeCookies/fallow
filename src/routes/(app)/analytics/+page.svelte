@@ -120,13 +120,10 @@
 	}
 
 	// Which row's ✎ is open, by the fold's own key — the PAGE's, because the three saves
-	// land in two stores. One at a time: a row's form reads its seed at mount.
+	// land in two stores. One at a time: a row's form reads its seed at mount. The list
+	// hands the key back rather than the kind and id, so the format stays `logHistory`'s.
 	let editingKey = $state<string | null>(null);
 	const closeEditor = () => (editingKey = null);
-
-	function editLog(kind: LogKind, id: number) {
-		editingKey = `${kind}-${id}`;
-	}
 
 	function saveFlowLog(id: number, minutes: number) {
 		session.editFlowLog(id, minutes);
@@ -464,7 +461,7 @@
 			{allTime}
 			{editingKey}
 			ondelete={deleteLog}
-			onedit={editLog}
+			onedit={(key) => (editingKey = key)}
 			oncancel={closeEditor}
 			onsaveflow={saveFlowLog}
 			onsavedrain={saveDrainLog}

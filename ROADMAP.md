@@ -945,25 +945,16 @@ These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
 code turned out to be. The **F** ids are stable and never reused.
 
-All 65 were then triaged against the code they name: **34 dropped**, **7 open**
-below, and **24 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
-F22, F23, F24, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55 and
-F62, named here so a reference to one resolves to "done" rather than "lost".
+All 65 were then triaged against the code they name: **34 dropped**, **6 open**
+below, and **25 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
+F22, F23, F24, F26, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55
+and F62, named here so a reference to one resolves to "done" rather than "lost".
 
 One error dominated the raised set and is worth knowing before trusting anything
 here: "nothing enforces this", written without opening the story or e2e file that
 did. Of the seventeen "contracts held by convention only", eleven dropped, and
 seven of those went because a named test had pinned them all along. Look for the
 test before believing that phrase.
-
-### Open — make the contract enforced
-
-- **F26** `analytics/+page.svelte` — `editLog` builds the row key as
-  `${kind}-${id}` while `logHistory` builds `row.key` as `flow-${id}` /
-  `drain-${id}` / `rest-${id}`, and `LogHistoryList` compares the two strings.
-  Change the key format in log-history.ts and ✎ silently stops opening any row —
-  same type, no error. Have `onedit` take `row.key`, the string the list already
-  holds.
 
 ### Open — refactors, one commit each
 
@@ -1029,12 +1020,13 @@ the sweep.
   script would have been the wrong half. Four of the 60 are known to drift run to
   run (animated themes, single-pixel sample catching moving scenery under a
   translucent fill); the script header says which.
-- **`drain-log-form.svelte`'s `seed.recordId` is now read by nothing.** F23 moved
-  the 🗑 decision up to the caller, which was the last reader. Deleting it would
-  make the double-decision unexpressible in the type — the enforcement F23 stopped
-  one step short of — but `task-row-shell.svelte` passes the whole `DrainDraft` as
-  `seed`, so it would still compile by structural width. Worth doing with F26,
-  which is the last of the same family.
+- ~~**`drain-log-form.svelte`'s `seed.recordId` is now read by nothing.**~~ Done
+  with F26. Dropped from the form's seed rather than made load-bearing: expressing
+  the pairing in the type would take a union whose two arms `task-row-shell.svelte`
+  cannot select between — it derives `ondelete` from `recordId` in a ternary, which
+  TypeScript will not correlate with a sibling prop — so it would have bought an
+  `{#if}` split and a duplicated `{#key}` to restate a decision the form does not
+  take. `DrainDraft.recordId` remains the one statement of it.
 
 ### Dropped on triage
 

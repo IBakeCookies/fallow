@@ -9,10 +9,12 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 
 	interface Props {
-		/** The rating this editor opened on, when it opened on a stored one. `recordId` is the
-		 *  caller's append-vs-rewrite key; ✓ here emits the same entry either way. */
+		/** The rating this editor opened on, when it opened on a stored one. The fields and
+		 *  nothing else: append-vs-rewrite is `DrainDraft.recordId`, which the CALLER reads
+		 *  to decide both the save and whether there is a 🗑 at all, so a copy of it here
+		 *  would be a second statement of a decision this form does not take. ✓ emits the
+		 *  same entry either way. */
 		seed?: {
-			recordId?: number;
 			minutes: number | null;
 			mind: number | null;
 			body: number | null;
