@@ -167,6 +167,14 @@
 
 <SeoHead title={m.ana_title_head()} description={m.ana_meta_description()} />
 
+{#snippet reportFailed()}
+	<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+{/snippet}
+
+{#snippet pending()}
+	<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+{/snippet}
+
 <div class="mb-text-xl flex flex-wrap items-center justify-between gap-grid-xs">
 	<div>
 		<h1 class="text-2xl font-bold text-ty-primary">{m.ana_heading()}</h1>
@@ -324,9 +332,9 @@
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_load_trend_hint()}</p>
 
 		{#if analytics.hasModelReportFailed}
-			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+			{@render reportFailed()}
 		{:else if trend === null}
-			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+			{@render pending()}
 		{:else}
 			<MetricTrendChart
 				labels={trend.labels}
@@ -353,9 +361,9 @@
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
 
 		{#if analytics.hasModelReportFailed}
-			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+			{@render reportFailed()}
 		{:else if audit === null}
-			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+			{@render pending()}
 		{:else if audit.usedCount === 0}
 			<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
 		{:else}
@@ -401,9 +409,9 @@
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
 
 		{#if analytics.hasModelReportFailed}
-			<p class="mt-text-md text-sm text-danger-strong">{m.error_title()}</p>
+			{@render reportFailed()}
 		{:else if calibration === null}
-			<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+			{@render pending()}
 		{:else}
 			<div class="mt-text-md grid gap-text-xs">
 				{#each modelRows as row (row.label)}
@@ -449,7 +457,7 @@
 	<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_logs_hint()}</p>
 
 	{#if areLogsLoading}
-		<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
+		{@render pending()}
 	{:else}
 		<LogHistoryList
 			rows={logRows}

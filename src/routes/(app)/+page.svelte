@@ -54,59 +54,59 @@
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
-	const openFlowLog = (id: number, source: EditorSource) =>
-		(flowDrafts[id] = newEditorDraft(source));
+	const openFlowLog = (taskId: number, source: EditorSource) =>
+		(flowDrafts[taskId] = newEditorDraft(source));
 
-	const closeFlowLog = (id: number) => {
-		delete flowDrafts[id];
+	const closeFlowLog = (taskId: number) => {
+		delete flowDrafts[taskId];
 	};
 
-	const openDrainLog = (id: number, source: EditorSource) =>
-		(drainDrafts[id] = newDrainDraft(source));
+	const openDrainLog = (taskId: number, source: EditorSource) =>
+		(drainDrafts[taskId] = newDrainDraft(source));
 
-	const editDrainLog = (id: number, log: Persisted<DrainObservationRecord>) =>
-		(drainDrafts[id] = drainDraftFromLog(log));
+	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
+		(drainDrafts[taskId] = drainDraftFromLog(log));
 
-	const closeDrainLog = (id: number) => {
-		delete drainDrafts[id];
+	const closeDrainLog = (taskId: number) => {
+		delete drainDrafts[taskId];
 	};
 
 	// Undo restores the task under its original id, so a surviving draft re-opens with it.
-	function removeTask(id: number) {
-		closeFlowLog(id);
-		closeDrainLog(id);
-		removeTaskWithUndo(session, id);
+	function removeTask(taskId: number) {
+		closeFlowLog(taskId);
+		closeDrainLog(taskId);
+		removeTaskWithUndo(session, taskId);
 	}
 
 	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
 	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
 
-	function saveFlowLog(id: number, minutes: number) {
-		session.logFlow(id, minutes);
-		closeFlowLog(id);
+	function saveFlowLog(taskId: number, minutes: number) {
+		session.logFlow(taskId, minutes);
+		closeFlowLog(taskId);
 	}
 
-	function clearFlowLog(id: number) {
-		removeFlowLogWithUndo(session, id);
-		closeFlowLog(id);
+	function clearFlowLog(taskId: number) {
+		removeFlowLogWithUndo(session, taskId);
+		closeFlowLog(taskId);
 	}
 
 	// Re-logging a correction would count the session's hours twice (MATH.md §18).
-	function saveDrainLog(id: number, entry: { hours: number; mind: number; body: number }) {
-		const recordId = drainDrafts[id]?.recordId;
+	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
+		const recordId = drainDrafts[taskId]?.recordId;
 
 		if (recordId === undefined) {
-			observations.logDrain(id, entry.hours, entry.mind, entry.body);
+			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
 		} else {
 			observations.editDrainLog(recordId, entry.hours, entry.mind, entry.body);
 		}
 
-		closeDrainLog(id);
+		closeDrainLog(taskId);
 	}
 
-	function deleteDrainLog(id: number, recordId: number) {
+	function deleteDrainLog(taskId: number, recordId: number) {
 		removeLogWithUndo(session, observations, 'drain', recordId);
-		closeDrainLog(id);
+		closeDrainLog(taskId);
 	}
 
 	const daily = $derived(plan.daily);
@@ -253,7 +253,9 @@
 				ondrainsave={saveDrainLog}
 				ondrainedit={editDrainLog}
 				ondraindelete={deleteDrainLog}
-				onupdate={isViewingPast ? undefined : (id, changes) => session.updateTask(id, changes)}
+				onupdate={isViewingPast
+					? undefined
+					: (taskId, changes) => session.updateTask(taskId, changes)}
 				form={isViewingPast ? undefined : addTaskForm}
 			/>
 

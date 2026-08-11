@@ -66,14 +66,12 @@
 		if (mindBefore === null || mindAfter === null || bodyBefore === null || bodyAfter === null)
 			return;
 
-		const rating = (value: number) => Math.min(10, Math.max(0, value));
-
 		onsave({
 			hours: minutes / 60,
-			mindBefore: rating(mindBefore),
-			mindAfter: rating(mindAfter),
-			bodyBefore: rating(bodyBefore),
-			bodyAfter: rating(bodyAfter),
+			mindBefore,
+			mindAfter,
+			bodyBefore,
+			bodyAfter,
 		});
 	}
 </script>

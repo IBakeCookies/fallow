@@ -22,8 +22,6 @@
 	const plotW = $derived(width - PAD_L - PAD_R);
 	const plotH = $derived(height - PAD_T - PAD_B);
 
-	// Break-even is 0, not λ₀: `valuePerHour` already charges out the free time an
-	// extra hour costs, so a λ₀ line here would charge it twice (MATH.md §8.12).
 	const maxValue = $derived(Math.max(...curve.points.map((p) => p.valuePerHour), 1e-9) * 1.15);
 	// Headroom, not data: `valuePerHour` cannot go below zero, so without a floor
 	// break-even lands on `PAD_T + plotH` and reads as the x-axis, tail on top of it.
@@ -77,10 +75,14 @@
 	// One label per ~44px of plot, so a narrow axis thins out rather than
 	// overprinting its own numbers.
 	const hourTicks = $derived.by(() => {
-		const step = Math.max(1, Math.ceil(curve.maxBudgetHours / Math.max(1, Math.floor(plotW / 44))));
+		const tickStep = Math.max(
+			1,
+			Math.ceil(curve.maxBudgetHours / Math.max(1, Math.floor(plotW / 44))),
+		);
+
 		const ticks = [];
 
-		for (let h = step; h <= curve.maxBudgetHours; h += step) ticks.push(h);
+		for (let h = tickStep; h <= curve.maxBudgetHours; h += tickStep) ticks.push(h);
 
 		return ticks;
 	});
@@ -116,7 +118,9 @@
 
 		<path d={curvePath} fill="none" stroke-width="1.8" class="stroke-brand" />
 
-		<!-- Drawn AFTER the curve and DASHED: past the knee `valuePerHour` is exactly 0,
+		<!-- Break-even is 0, not λ₀: `valuePerHour` already charges out the free time an
+		     extra hour costs, so a λ₀ line here would charge it twice (MATH.md §8.12).
+		     Drawn AFTER the curve and DASHED: past the knee `valuePerHour` is exactly 0,
 		     so the two coincide and only the gaps keep the brand stroke visible. -->
 		<line
 			x1={PAD_L}

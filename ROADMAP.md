@@ -943,350 +943,185 @@ have to be re-derived:
 
 These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
-code turned out to be. None of it is a settled decision and none of it is
-committed work — it is a work list, taken one item at a time, and an item is
-dropped where it does not survive contact; the **F** ids are stable and never
-reused. The bug candidates were adversarially verified and none survived as
-reachable; nothing below was checked that way.
+code turned out to be. The **F** ids are stable and never reused.
 
-### Contracts held by convention only
+All 65 were then triaged against the code they name: **34 dropped**, **18 open**
+below, and **13 fixed** in the commit that carries this line — F8, F24, F28, F31,
+F32, F39, F41, F42, F46, F48, F49, F55 and F62, named here so a reference to one
+resolves to "done" rather than "lost".
 
-- **F1** `fit-log-summary.svelte` — `returningFromCancel` must stay a plain
-  `let` because the reset button's `{@attach}` reads it, and only a comment says
-  so. Converting it to `$state` (the reflex fix for a mutable `let` in a Svelte 5
-  component) makes the attachment re-run when the flag is cleared inside it, so
-  focus-back-to-trigger after Cancel breaks with no test naming the rule.
+One error dominated the raised set and is worth knowing before trusting anything
+here: "nothing enforces this", written without opening the story or e2e file that
+did. Of the seventeen "contracts held by convention only", eleven dropped, and
+seven of those went because a named test had pinned them all along. Look for the
+test before believing that phrase.
+
+### Open — make the contract enforced
+
 - **F2** `task-row-shell.svelte`, `drain-log-form.svelte`,
-  `flow-log-form.svelte` — both log forms copy `seed`/`focusMinutes` at mount
-  (`svelte-ignore state_referenced_locally -- deliberately initial-value only`)
-  and neither rejects a re-seed in place, so re-seed correctness rests entirely
-  on the shell's two `{#key}` blocks and on `log-history-list.svelte`'s
-  `{#if editingKey === row.key}`. Remove or reorder a key and the page silently
-  returns to the logged regression — ✓ on a switched draft overwrites a stored
-  rating with the previous form's numbers.
-- **F3** `task-edit-form.svelte` — `draft` copies `seed` at mount and is never
-  re-seeded; correctness rests on every caller mounting it behind
-  `{#if isEditing && onupdate}`, which nothing in the component enforces. A
-  caller that keeps it mounted across a `seed` change edits the previous task's
-  draft and saves it over the new one; the sibling editors in task-row-shell get
-  a `{#key}` for exactly this.
-- **F4** `measurement-form-actions.svelte` — `deleteLabel` is optional beside
-  `ondelete`, so the type permits a 🗑 Button whose `aria-label` is `undefined`,
-  named to a screen reader by the bare emoji. No caller hits it
-  (`drain-log-form.svelte` and `flow-log-form.svelte` pass `ondelete`,
-  `deleteLabel` and `deleteTitle` together, `rest-log-form.svelte` passes none),
-  so the pairing is convention and the type does not require the label the button
-  needs.
-- **F5** `utils/toast.ts` — the pending-toast queue is flushed only by the (app)
-  layout's `onMount` and nothing expires it. A reload that lands on
-  `routes/+error.svelte`, outside (app), leaves the entry queued, and the
-  import/delete confirmation pops on whatever (app) page the user opens next.
-- **F6** `energy-chart.svelte` — `viewBox="0 0 {width} {height}"` treats the
-  `bind:clientWidth` div as the svg's own width, which holds only while that div
-  stays padding-free. Adding any padding utility rescales the whole chart by the
-  padding at every card width, silently; nothing asserts it.
-- **F7** `(app)/+page.svelte` — `flowDrafts` and `drainDrafts` are two parallel
-  maps with four open/close helpers, and `removeTask` must remember to close both
-  before delegating. A third draft kind, or a second removal path, leaves a draft
-  keyed to the removed task's id, and undo restores the task under that id with
-  the stale editor re-opened on it.
-- **F8** `(app)/+page.svelte` — two neighbouring deletes address different id
-  spaces: `removeFlowLogWithUndo(session, id)` takes a task id,
-  `removeLogWithUndo(session, observations, kind, id)` a record id, and `'flow'`
-  is a valid kind for the latter. Only parameter naming keeps the call sites
-  right; a task id passed to `removeLogWithUndo(…, 'flow', id)` deletes whichever
-  flow record shares that number.
-- **F9** `(app)/+page.svelte`, `day-constraints-bar.svelte` —
-  `isOpen={session.loadedDate !== null && session.availableHours <= 0}` means
-  "ask once per loaded day" only because the bar samples `let open = $state(isOpen)`
-  once (`svelte-ignore state_referenced_locally`) and `{#key session.loadedDate}`
-  remounts it. Drop the key and the panel never re-opens on a day with no hours
-  set; make the child read `isOpen` reactively and it re-opens every time the
-  budget is dragged to 0.
-- **F10** `day-constraints-bar.svelte` — the budget field accepts off-quarter
-  values by design (MATH.md §14.1) but the slider binds
-  `step={BUDGET_BOUNDS.step}`, and a range input sanitizes its DOM value to the
-  nearest step. Type 6.4 h and the field reads 6.4 while the thumb sits at 6.5 —
-  two controls over one value disagreeing, with nothing enforcing quarter
-  alignment upstream.
+  `flow-log-form.svelte`, `rest-log-form.svelte`, `task-edit-form.svelte` — the
+  forms copy `seed`/`focusMinutes` at mount and none rejects a re-seed in place,
+  so every re-open must be a fresh mount. Four component comments state that
+  contract and no rules file does, which is what a comment sweep erases. The
+  drain half is pinned (`e2e/energy-lab.e2e.ts`, "the ✎ re-seeds a drain editor
+  the row already has open") and log-history-list's `{#if editingKey === row.key}`
+  sits inside a keyed `{#each}`, so it cannot re-seed in place either. The fix is
+  one bullet in presentation/AGENTS.md's Components list and the four comments cut
+  to a citation of it — not a runtime guard.
+- **F4** `measurement-form-actions.svelte` — `ondelete?`, `deleteLabel?` and
+  `deleteTitle?` are three independent optionals, so the type permits a 🗑 Button
+  whose `aria-label` is `undefined`, named to a screen reader by the bare emoji.
+  All three callers pair them and presentation/AGENTS.md states the rule in prose,
+  but nothing mechanical holds it: no story queries the 🗑 by name, and axe cannot
+  flag it because the emoji supplies an accessible name. Replace the three
+  optionals with a union — one branch all-absent, one requiring both strings,
+  keeping `ondelete: (() => void) | undefined` so the `cond ? undefined : ondelete`
+  call sites still type-check.
 - **F11** `day-constraints-bar.svelte` — two counts on one panel: `modelStatus`
   quotes `countedLogs` (fit-visible) while `FitLogSummary` gets `count`,
   `confirmLabel` and the reset from `flowLogs.length` (all logs), and the rule
   lives in a comment, not the types. Both are right today, but "Personalized from
-  3 logs · 1 pending" beside "Reset 4 logs?" looks like the bug it isn't, and a
-  future edit can pick the wrong one either way.
-- **F12** `param-trend.svelte` — `xAt` computes `index / (values.length - 1)`,
-  which is `0/0` for a one-element `values`, and the ≥2 precondition lives only
-  in the prop JSDoc. A caller that skips the guard renders `d="MNaN,…"` under an
-  aria-label that still announces a from→to trend; not reachable today, since the
-  sole caller `calibrationRows` returns `trend: null` below two points.
-- **F13** `log-history-list.stories.svelte` — six module-scope `fn()` mocks are
-  shared by every story and nothing resets them (`.storybook/preview.ts` has no
-  mock reset), so each play must `mockClear()` whatever it asserts on. Every play
-  currently does; a new one that asserts a call or a count without clearing first
-  inherits the previous story's calls, so story order decides pass or fail.
-- **F14** `budget-curve-card.svelte` — `recommended` matches the recommended
-  point by exact float equality (`p.budgetHours === curve.recommendedHours`), and
-  it holds only because `suggestBudgetCurve` assigns `knee` and `budgetHours`
-  from the same loop variable. Any rounding of `recommendedHours` in the model
-  makes the find miss: the card falls to the no-crossing text while
-  `BudgetCurveChart` still draws the "Suggested window" guide and its legend, so
-  the card contradicts its own chart and offers no Apply button.
-- **F15** `budget-curve-card.svelte` — an empty `curve.points` is excluded only
-  by the page's `hasTasks` gate, not by `BudgetCurve` or the card. A caller
-  mounting the card with a pointless curve gets an axis-only chart plus the
-  `booksNoWork` branch — "no window worth working" — because `every()` is
-  vacuously true on an empty sweep.
-- **F16** `energy/+page.svelte` — the `window-hours` row sits in the
-  model-parameters list but writes `session.availableHours` instead of
-  `lab.setParam`, and its `step={0.25}` is load-bearing: `NumberInput.stepBy`
-  rounds with `toFixed(stepDecimals)`, so under `step={0.5}` a 6.25 h budget set
-  on the main page becomes 6.8 after one + click. Nothing but the comment stops a
-  later edit from aligning this row's step with its neighbours.
-- **F17** `energy/+page.svelte` — `stopTaskTitle` covers a lookup miss
-  (`tasks.find(...)?.title ?? ''`) that cannot happen, since `stopAdvice`'s
-  candidates and `lab.scheduledTasks` both derive from `session.tasks`. If the
-  two sources ever diverge the miss is invisible: `StopAdvisorCard` renders
-  `energy_stop_continue_detail` with an empty task name rather than failing.
-
-### One fact, two sources
-
-- **F18** `task-row-shell.svelte` — presentation/AGENTS.md states the shell rule
-  twice and the two statements disagree: "do not give the shell a mode flag"
-  against the settled "must-do checkbox is hidden in both of the Lab's forms",
-  which is only reachable through `withMustDoToday`, a prop the doc never names.
-  A reader enforcing the first sentence deletes the prop and un-hides the Lab's
-  checkbox; a reader enforcing the second adds more pass-throughs. One of the two
-  sources has to name the carve-out — `withMustDoToday` forwards
-  `showMustDoToday`, nothing else.
+  3 logs · 1 pending" beside "Reset 4 logs?" looks like the bug it isn't. Add an
+  open-panel story with `pendingFlowLogs: 1` asserting both numbers, and name the
+  two locals so the rule reads off the props.
+- **F16** `day-constraints-bar.svelte`, `energy/+page.svelte` — one persisted
+  value with two independent bound declarations: `BUDGET_BOUNDS = { min: 0, max:
+24, step: 0.25 }` feeds the field and slider on the bar, while the Lab's
+  `window-hours` row hand-writes `min={0} max={24} step={0.25}` over the same
+  `session.availableHours`. Only `step` is tested (`e2e/energy-lab.e2e.ts`), and
+  `session-store.svelte.ts`'s setter neither clamps nor validates, so there is no
+  backstop below them. Change `BUDGET_BOUNDS.max` and the Lab keeps writing values
+  the main page can no longer display or correct. Export the one constant and
+  import it at both sites — which is what the comment above it already claims it
+  exists for, one caller short.
 - **F19** `budget-curve-chart.svelte`, `energy-chart.svelte` — each legend
   restates by hand what the SVG draws: dash patterns written twice with no shared
   source (`7 4` against `0 7px, transparent 7px 11px`; `5 3` against
   `5px … 5px 8px`; `2 3` against `2px … 2px 5px`), and `bg-brand/20` against the
-  area's `fill-brand/20`. Retune a line and its swatch stays on the old pattern,
-  so the key stops matching the line it keys; no test compares the two.
-- **F20** `plan-summary.svelte` — `delayDuration={150}` is hand-copied at ten
-  `Tooltip.Provider` call sites while `tooltip-provider.svelte` defaults the prop
-  to 0. Changing the app's hover delay means finding all ten, and a site that
-  misses the prop silently gets a 0 ms tooltip.
-- **F21** `scripts/hover-contrast.mjs` — the script reads `THEMES` out of
-  theme.ts precisely so a hand-copied list cannot go stale, then hand-copies
-  `VARIANTS`, which already has: `ButtonVariant` and the `ui-button--variants`
-  story both carry six, and `ghost` and `link` are never measured. `ghost`'s
-  entire visual state is its hover fill (`hover:bg-surface-hover`) and no theme's
-  is checked, while the file's opening line claims it covers every button
-  variant.
-- **F22** `task-form.svelte` — `handleTitleInput` restores three
-  `DEFAULT_RATING` fields by hand; the set it must revert is exactly what
-  `pick()` writes, and nothing ties the two lists together. Add a fourth rating
-  to `TitleRating` and `pick()`, and clearing the title leaves that field at the
-  picked value — the new task deploys under a rating nobody gave it.
+  area's `fill-brand/20`. Retune a line and its swatch stays on the old pattern.
+  Export one dash spec per series from a presentation util, derive both the
+  `stroke-dasharray` and the `repeating-linear-gradient` from it, and assert in a
+  play that a swatch's on-length equals its line's dash-length.
+- **F21** `scripts/hover-contrast.mjs` — the script reads `THEMES` out of theme.ts
+  precisely so a hand-copied list cannot go stale, then hand-copies `VARIANTS`,
+  which already has: `ButtonVariant` and the `ui-button--variants` story both
+  carry six, and `ghost` and `link` are never measured. `ghost`'s entire visual
+  state is its hover fill (`hover:bg-surface-hover`) and no theme's is checked,
+  while the file's opening line claims it covers every button variant. Add
+  `ghost`, exclude `link` with a one-line reason, then correct the residue count
+  and the "× 4 variants" line in STYLE.md and the coverage sentence in
+  docs/testing.md.
+- **F22** `task-form.svelte` — `handleTitleInput` restores three `DEFAULT_RATING`
+  fields by hand; the set it must revert is exactly what `pick()` writes, and
+  nothing ties the two lists together. Add a fourth rating to `TitleRating` and
+  `pick()`, and clearing the title leaves that field at the picked value — the new
+  task deploys under a rating nobody gave it. Rebuild from `emptyDraft()` keeping
+  the live title and `mustDoToday` so the revert set is type-total, and add a story
+  that picks a suggestion, clears the field, and asserts all three sliders are 5.
 - **F23** `flow-log-form.svelte`, `drain-log-form.svelte` — whether 🗑 appears is
   decided twice: the forms re-derive it (`seed === null`,
   `draft.recordId === undefined`) after task-row-shell has already decided by
   passing `ondelete` or `undefined`, and log-history-list passes none at all. The
-  two authorities agree only by accident: change the seeding convention on the
-  caller side and the button disappears with no error; add a caller that omits
-  `ondelete` on an amend and the component's own check does nothing.
-- **F24** `drain-log-form.svelte` — the 0–10 rating range is written twice, in
-  the inputs' `min`/`max` attributes and in the clamp in `save()`. Native
-  validation rejects out-of-range before `save()` runs, so the clamp never fires;
-  widen one bound and the two silently disagree about what a rating is.
-- **F25** `(app)/+page.svelte` — the today-only rule for a first flow measurement
-  is stated twice: `canLog = selectedDate === today` here, and
-  `if (date !== this.#today && !existing) return` in `SessionStore.logFlow`. A
-  change to the rule, a grace window say, has to land in both layers or the UI
-  and the store disagree about which days accept a first measurement.
+  two authorities agree only by accident. Pass `{ondelete}` straight to
+  `MeasurementFormActions` and move the ⚡ gate up to the shell; the behaviour is
+  already covered by five existing plays.
 - **F26** `analytics/+page.svelte` — `editLog` builds the row key as
   `${kind}-${id}` while `logHistory` builds `row.key` as `flow-${id}` /
   `drain-${id}` / `rest-${id}`, and `LogHistoryList` compares the two strings.
   Change the key format in log-history.ts and ✎ silently stops opening any row —
-  same type, no error.
-- **F27** `analytics/+page.svelte` — the loading skeleton hardcodes the five
-  gated cards' body heights in card order, two of them mirroring `CHART.w/h` in
-  completion-bar-chart (800×240) and metric-trend-chart (800×180). Adding,
-  reordering or resizing a gated card leaves the skeleton describing the old
-  page, and nothing fails.
-- **F28** `analytics/+page.svelte` — the
-  `{#if analytics.hasModelReportFailed} … {:else if X === null}` failure/loading
-  pair is written out verbatim in three cards (load trend, adherence, model), so
-  the failure copy and its styling have three sources and changing one card's
-  leaves the other two saying something else.
-- **F29** `theme.stories.svelte` — the Background story's height is set by
-  `h-[100rem]` and restated as the literal "100rem" in its two `<p>` captions;
-  change the class and the visible copy states the wrong height, with nothing to
-  catch it.
-- **F30** `energy/+page.svelte` — `focusDayWindow` hard-codes `'window-hours'` in
-  a `document.getElementById` call while the same string is passed as a
-  `ParamRow` id 240 lines lower. Rename the id and the empty-window prompt button
-  silently does nothing; nothing type-checks or tests the link, and the e2e
-  locators key off the same literal.
-
-### Dead code and inert directives
-
-- **F31** `log-history-list.svelte`, `nav.svelte`, `fit-log-summary.svelte` —
-  three copies of an `eslint-disable-next-line svelte/no-navigation-without-resolve`
-  for a rule that is `off` repo-wide (eslint.config.js:212). Verified inert —
-  ESLint reports nothing on those files, not even an unused directive — so each
-  one tells the next reader a live rule is being suppressed here, which is false,
-  and hides that the rule is off everywhere.
-- **F32** `task-edit-form.svelte` — `if (!title) return` in `save()` is
-  unreachable: `required` on the title input blocks an empty submit and
-  `disabled={!draft.title.trim()}` on Save blocks a whitespace-only one, since
-  Enter dispatches a click at the disabled default button and no submit event
-  fires. A dead third refusal of a rule already stated in two places; only the
-  early return is dead, the `trim()` above it is what normalizes the saved title.
-
-### Shape
-
+  same type, no error. Have `onedit` take `row.key`, the string the list already
+  holds.
 - **F33** `fit-log-summary.svelte` — `confirmingReset` is declared outside the
   `{#if count > 0}` block it is only meaningful inside, so an `$effect` exists
   solely to zero it when `count` hits 0. Nothing misbehaves; the confirm step's
   lifetime is enforced by a second mechanism instead of by the block that renders
-  it, and state owned by that block would need no effect.
-- **F34** `task-row-shell.svelte` — 24 props, ten of them two parallel
-  five-callback families (`onflowopen/edit/close/onlogflow/onflowdelete`,
-  `ondrainopen/close/save/edit/delete`), flat in one interface. The shape says
-  nothing about which callback belongs to which instrument, which is why the
-  trimmed JSDoc had to; one object per instrument would say it structurally.
-- **F35** `task-row-shell.svelte` — `ondrainedit` and `ondraindelete` are
-  required while `ondrainopen`, `ondrainsave`, `drainLogs` and every ⚡ callback
-  are optional. Deliberate, not an oversight: presentation/AGENTS.md's "Both
-  corrections are offered on any day the page shows", mirrored by both callers
-  (`task-item.svelte`, `energy-task-row.svelte`). A readability cost, not a hole.
-- **F36** `task-row-shell.svelte` — the 🪫 button's ownership test
-  (`drainDraft && drainDraft.recordId === undefined ? ondrainclose?.() : ondrainopen('button')`)
-  sits inline in the markup with a comment pointing at the rule it encodes.
-  Behaviour matches presentation/AGENTS.md's "🪫 owns the APPEND editor and
-  nothing else"; a named `$derived` would carry the meaning without the comment.
+  it. The cheaper half is a spec that names the rule the effect encodes — render
+  at 3, open the confirm, rerender at 0 then 3, assert the confirm is gone and the
+  trigger is back — rather than extracting a child component.
+
+### Open — refactors, one commit each
+
+- **F10** `day-constraints-bar.svelte` — the budget field accepts off-quarter
+  values by design (MATH.md §14.1) but the slider binds `step={BUDGET_BOUNDS.step}`,
+  and a range input sanitizes its DOM value to the nearest step. Type 6.4 h and the
+  field reads 6.4 while the thumb sits at 6.5 — two controls over one value
+  disagreeing. Decide where quarter alignment lives: `step="any"` on the range so
+  the thumb tracks the true budget, or round at the two `session.availableHours =`
+  apply sites. Pin it with a story on an off-quarter budget, and correct MATH.md
+  §14.1-2's "the card has no Apply for set-budget" sentence.
+- **F20** `tooltip-provider.svelte` and its callers — `delayDuration={150}` is
+  hand-copied at twelve `Tooltip.Provider` call sites (eleven in components and
+  routes, one in the tooltip story) while `tooltip-provider.svelte` defaults the
+  prop to 0. Changing the app's hover delay means finding all twelve, and a site
+  that misses the prop silently gets a 0 ms tooltip. Default it to 150 and drop
+  the prop everywhere, recording the deviation beside STYLE.md's `shadcn add
+sonner` note — `shadcn add tooltip` would revert it. No story or e2e asserts a
+  tooltip delay, so the one site that currently inherits 0 changes silently and
+  breaks nothing.
 - **F37** `task-row-shell.svelte` — one flag, two names: `withMustDoToday` on the
   shell, `showMustDoToday` on task-edit-form / task-form / task-form-fields, with
-  the shell translating in `showMustDoToday={withMustDoToday}`. Grepping either
-  name finds only half the chain from `withMustDoToday={false}` on the energy row
-  to the hidden checkbox.
-- **F38** `log-history-list.svelte` — three save props (`onsaveflow`,
-  `onsavedrain`, `onsaverest`) mirrored by the three-branch `row.kind` form
-  ladder. Structure only: the payloads genuinely differ (minutes vs
-  `{hours,mind,body}` vs before/after pairs), so a union would move the branch,
-  not remove it — but a fourth log kind means editing two places ten lines apart.
-- **F39** `log-history-list.svelte` — `m.ana_logs_open_day({ date: row.date })`
-  is spelled twice on the same anchor, once for `aria-label` and once for
-  `title`. Editing one argument and not the other silently gives the tooltip and
-  the accessible name different text.
-- **F40** `log-history-list.stories.svelte` — a task-less row prints its kind
-  three ways (visible emoji, sr-only name, aria-hidden `· {name}` filling the
-  empty task slot), and "Every kind of measurement" queries the aria-hidden span
-  by its literal separator glyph (`getByText('· Break')`). Changing or dropping
-  the `·` fails a story for punctuation rather than behaviour.
-- **F41** `budget-curve-chart.svelte` — `hourTicks` declares a local `step` (tick
-  spacing in hours) that shadows the module-level `step` (the lattice step
-  `curvePath` draws each riser from). No wrong output, the inner one is scoped to
-  the `$derived.by` callback; a reader tracing `step` meets two unrelated
-  quantities under one name.
-- **F42** `budget-curve-chart.svelte` — the "Break-even is 0, not λ₀" note sits
-  above `maxValue`, which computes the y-domain top, while the thing it explains
-  is the reference line drawn at `yAt(0)` in the markup. The line reads as
-  unexplained where it is drawn, and the domain calculation reads as if λ₀ were
-  an input to it.
-- **F43** `budget-curve-chart.svelte` — the headroom fraction in
-  `const floor = $derived(-maxValue * 0.12)` and the `1.15` in `maxValue` are
-  inline literals while every other layout quantity in the file is named
-  (PAD_L/PAD_R/PAD_T/PAD_B). The two numbers that set the chart's vertical
-  framing are the two that cannot be found by name.
-- **F44** `budget-curve-chart.svelte` — the three legend swatches each carry
-  their own inline
-  `style="background: repeating-linear-gradient(90deg, var(--X) 0 Npx, transparent Npx Mpx)"`,
-  where the repo's idiom for a repeated class/style cluster is one `@utility` in
-  tokens.css (`hint-underline`, `card-shell`, `log-row`). A fourth dashed series
-  copies the string a fourth time.
-- **F45** `budget-curve-card.svelte` — `recommendedHours: null` covers two
-  outcomes (sweep ran out, no window worth working), so the card reconstructs the
-  discriminator with `curve.points.every((p) => p.workHours === 0)`. Which
-  sentence the user gets is decided in the view from a proxy signal instead of
-  from the result the model already computed; a discriminated `BudgetCurve`
-  result would delete `booksNoWork`.
-- **F46** `plan-summary.svelte` — the vs-classic tile maps sign to colour with a
-  ternary inside the class string, a fourth colour policy beside
-  `BAND_TEXT_CLASS` and `AXIS_BAND` in band.ts. Readability only:
-  `valueVsClassic` is not a banded axis, so band.ts has no rule to reuse.
-- **F47** `plan-advice-card.svelte` — three `class:` directives (`border-t`,
-  `border-line-soft`, `pt-text-xs`) repeat the same `option.isUnpriced`
-  condition to apply one rule-off treatment, and can be edited apart so the rule
-  appears without its colour or its padding.
-- **F48** `task-form.svelte` — `dismissed = true; active = -1` is spelled at
-  three sites (`pick()`, the input's `onblur`, the Escape branch of
-  `handleTitleKeydown`) with no named close, so the intent is re-read at each
-  site and a fourth site can set one of the two and not the other.
-- **F49** `task-form.svelte` — the suggestion `<li>` uses `break-words` where
-  task-row-shell.svelte and calendar/+page.svelte use `wrap-break-word` for the
-  same effect. Nothing today — tailwindcss 4.3 still emits
-  `overflow-wrap: break-word` for the deprecated spelling — it is the odd one out
-  of the repo's three sites.
-- **F50** `task-form.stories.svelte` — the "Open" play asserts three
-  `getByRole('slider')` lookups with `toBeInTheDocument` and then re-runs one to
-  bind `physical`; `getByRole` already throws when the slider is missing, so six
-  queries stand in for three and the mental/enjoyment lookups are never used
-  again.
-- **F51** `task-form.stories.svelte` — in "A long title is shown whole",
-  `const [short, ...long] = canvas.getAllByRole('option')` is immediately
-  re-spread as `[short, ...long]` for the textContent assertion, rebuilding the
-  array it just destructured.
-- **F52** `task-form.stories.svelte` — three `latestRatingsByTitle` fixtures
-  (`rated`, `manyRuns`, `longRated`) repeat the same day wrapper — `date`,
-  `availableHours: 4`, `switchCost: 0.25`, `updatedAt: 0` — around their task
-  lists. None of the repeated fields is asserted on, so nothing can drift; a
-  local `day(tasks)` helper would just be shorter.
-- **F53** `task-item.svelte` — a stray blank line sits between
-  `{m.task_plan_hours(…)} ·` and `{m.task_priority(…)}` in the trailing snippet's
-  replan branch. Cosmetic: HTML collapses the whitespace and the line renders
-  identically.
-- **F54** `task-item.svelte` — both branches of the trailing snippet's
-  `{#if replan}` print the priority line and open `m.task_allocation_tooltip()`,
-  in two different trigger structures (two sibling triggers against one trigger
-  wrapping two spans), so a change to the small line has to be made twice.
-- **F55** `task-item.stories.svelte` — "Closing a new session" and "Rating a new
-  session offers no delete" each inline the identical five-field append
-  `drainDraft` literal; the file has a `drainLog()` factory but no draft
-  counterpart, so a change to what an append draft looks like has to be made
-  twice.
-- **F56** `task-item.stories.svelte` — four stories re-derive the tooltip portal
-  root inline with `within(canvasElement.ownerDocument.body)` and no shared
-  helper.
-- **F57** `drain-log-form.svelte` — `if (!minutes || minutes <= 0)` is two
-  predicates for one question; `!(minutes > 0)` says it once.
-- **F58** `drain-log-form.svelte`, `flow-log-form.svelte` — both spell
-  `onsubmit={(e) => (e.preventDefault(), save())}`, packing two statements into
-  an expression body with a comma sequence.
-- **F59** `(app)/+layout.svelte` — an irreversible wipe of every store is
-  confirmed with native `confirm()` under an `// eslint-disable-line no-alert`,
-  marked in the comment above it as a placeholder for an AlertDialog. Works
-  today; style debt, not a defect.
-- **F60** `(app)/+page.svelte` — `saveDrainLog` re-reads
-  `drainDrafts[id]?.recordId` to choose `logDrain` against `editDrainLog` instead
-  of being handed it by the form that holds it. Readability only: the draft map
-  is the single source of the open editor's state and the form renders only while
-  that entry exists.
+  the shell translating between them. Grepping either name finds only half the
+  chain from `withMustDoToday={false}` on the energy row to the hidden checkbox.
+  Rename inward to `withMustDoToday` (booleans are `is`/`has`/`with`), collapsing
+  the shell's forward to `{withMustDoToday}`. Lands with F18 — same doc paragraph.
+- **F54** `task-item.svelte` — both branches of the trailing snippet's `{#if replan}`
+  print the priority line and open `m.task_allocation_tooltip()`, in two different
+  trigger structures (two sibling triggers against one trigger wrapping two spans),
+  so a change to the small line has to be made twice. Collapse to one structure —
+  a primary span and one secondary span whose `plan … ·` prefix is conditional —
+  and re-point the four replan stories at it.
 - **F61** `analytics/+page.svelte` — `profiledDays` sums `quadrantCounts` in the
-  route and hands the sum to `QuadrantDistribution` as a `total` prop the
-  component could derive from the `counts` it already receives. Placement only,
-  with one caller; a second caller passing a `total` that disagrees with `counts`
-  would draw a bar whose segments miss 100%.
-- **F62** `energy/+page.svelte` — `{#if windowHours > 0}` is written three times
-  inside one card (header actions, timeline-vs-prompt, chart + summary). The card
-  has one state, window set or not, spelled three times, and a fourth element
-  added under the wrong copy shows on an unset window.
-- **F63** `energy/+page.svelte` — each of the three `CalibrationCard` bodies is
-  ~30 lines of empty/fitted/count branching inline in the page, told apart only
-  by an HTML comment naming α, r or λ₀. The three read as one wall, and the i18n
-  keys (`energy_calibration`, `energy_recovery_calibration`,
-  `energy_stop_calibration`) do not say which parameter each fits, so the
-  comments are the only labels.
-- **F64** `energy-task-row.svelte` — the row's edit callback is `onchange`
-  outward and `onupdate` inward, while task-item.svelte forwards the same shell
-  callback as `onupdate`. One callback under two names across the two task rows,
-  so a grep for `onupdate` misses the energy row; the energy page does spell its
-  other control callbacks `onchange`, so the name is not arbitrary.
-- **F65** `energy-task-row.svelte` — `plannedHours` carries three states (null =
-  no plan, 0 = planned nothing, >0 = hours) and the 0-vs-null split is decoded
-  twice inside `trailing`, once in the class ternary and once in the text.
-  Readability only; all three states are live and render correctly.
+  route and hands the sum to `QuadrantDistribution` as a `total` prop the component
+  could derive from the `counts` it already receives. One caller today; a second
+  passing a `total` that disagrees with `counts` would draw a bar whose segments
+  miss 100%. Drop the prop, derive inside, and "Segments tile the bar" then pins a
+  structural invariant.
+- **F64** `energy-task-row.svelte` — the row's edit callback is `onchange` outward
+  and `onupdate` inward, while task-item.svelte forwards the same shell callback as
+  `onupdate`. One callback under two names across the two task rows, so a grep for
+  `onupdate` misses the energy row. Rename to `onupdate`; the energy page's other
+  control callbacks stay `onchange`, which is why this one reads as arbitrary.
+
+### Open — needs a decision before it can be worked
+
+- **F18** `task-row-shell.svelte` — presentation/AGENTS.md states the shell rule
+  twice and the two statements disagree: "do not give the shell a mode flag"
+  against the settled "must-do checkbox is hidden in both of the Lab's forms",
+  which is only reachable through `withMustDoToday`, a prop the doc never names. A
+  reader enforcing the first sentence deletes the prop and un-hides the Lab's
+  checkbox; a reader enforcing the second adds more pass-throughs. One of the two
+  sources has to name the carve-out. Rewrites the same paragraph as F37.
+- **F47** `plan-advice-card.svelte` — three `class:` directives (`border-t`,
+  `border-line-soft`, `pt-text-xs`) repeat the same `option.isUnpriced` condition
+  to apply one rule-off treatment, and can be edited apart so the rule appears
+  without its colour or its padding. STYLE.md:206 points at `cn` for a conditional
+  cluster, but task-row-shell.svelte:153-154 uses the same multi-directive idiom —
+  so either this becomes the repo's second convention, or `class:` gets an explicit
+  carve-out in STYLE.md. Sweeping every site is a larger change than the finding.
+
+### Dropped on triage
+
+Not to be re-raised without new evidence beyond what the original text argued.
+
+- **Pinned by a test the finding did not look for** — F1 (`fit-log-summary.stories`
+  "Resetting" asserts focus returns to the trigger), F6 (`energy-chart.stories`
+  "Phone width" pins the viewBox to the rendered width), F9
+  (`day-constraints-bar.svelte.spec.ts` + `e2e/time-budget.e2e.ts`), F12 (the ≥2
+  guard lives in `calibration-descriptor.ts` and is tested), F14, F15, F17, F25
+  (`session-store.svelte.spec.ts`), F27, F30 (an e2e clicks the prompt and asserts
+  focus lands on the field).
+- **Premise false** — F13: Storybook's `resetAllMocksLoader` is in
+  `getCoreAnnotations()`, so `fn()` mocks are restored before every story and the
+  shared-mock hazard does not exist.
+- **True but the fix is churn** — F3 (a `{#key seed}` would remount on every parent
+  update and discard live typing, because `seed` is a fresh object literal), F5,
+  F7, F29, F34, F35, F36, F38, F40, F43, F44, F45, F50, F51, F52, F53, F56, F57,
+  F58, F59, F60, F63, F65.
+
+Two upheld drops left facts worth keeping. `budget-curve-chart.svelte`'s
+`bind:clientWidth` wrapper repeats the pattern F6 was dropped over but has no
+viewBox assertion in its story, so that enforcement covers one chart only. And
+F34's own text names a real hole — `{#if ondrainopen}` renders the 🪫 button while
+the editor needs `ondrainsave` — but the per-instrument object it proposes would
+not close it: `(app)/+page.svelte` deliberately passes open-without-save on past
+days, so that pairing is intended, not an accident.

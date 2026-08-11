@@ -65,7 +65,10 @@
 <Story
 	name="Title cleared"
 	play={async ({ args, canvas, userEvent }) => {
-		await userEvent.clear(canvas.getByRole('textbox'));
+		const title = canvas.getByRole('textbox');
+
+		await userEvent.clear(title);
+		await userEvent.type(title, '   ');
 
 		const save = canvas.getByRole('button', {
 			name: 'Save',

@@ -343,17 +343,7 @@
 							{trailingFreeHours}
 							{colors}
 						/>
-					{:else}
-						<button
-							type="button"
-							class="hint-underline cursor-default text-sm text-ty-secondary transition hover:text-ty-primary"
-							onclick={focusDayWindow}
-						>
-							{m.energy_set_window()}
-						</button>
-					{/if}
 
-					{#if windowHours > 0}
 						<div>
 							{#if planView === 'chart'}
 								<EnergyChart {trajectory} {windowHours} />
@@ -376,6 +366,14 @@
 							workHours={plan.evaluation.workHours}
 							{valueVsClassic}
 						/>
+					{:else}
+						<button
+							type="button"
+							class="hint-underline cursor-default text-sm text-ty-secondary transition hover:text-ty-primary"
+							onclick={focusDayWindow}
+						>
+							{m.energy_set_window()}
+						</button>
 					{/if}
 				</div>
 

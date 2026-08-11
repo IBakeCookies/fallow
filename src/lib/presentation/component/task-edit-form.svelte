@@ -23,8 +23,6 @@
 	function save() {
 		const title = draft.title.trim();
 
-		if (!title) return;
-
 		onsave({
 			...draft,
 			title,

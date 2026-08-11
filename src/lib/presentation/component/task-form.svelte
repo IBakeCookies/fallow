@@ -56,14 +56,18 @@
 	const listId = $props.id();
 	const optionId = (index: number) => `${listId}-option-${index}`;
 
+	function closeSuggestions() {
+		dismissed = true;
+		active = -1;
+	}
+
 	function pick(rating: TitleRating) {
 		draft.title = rating.title;
 		draft.physicalDifficulty = rating.physicalDifficulty;
 		draft.mentalDifficulty = rating.mentalDifficulty;
 		draft.enjoyment = rating.enjoyment;
 		fromPick = true;
-		dismissed = true;
-		active = -1;
+		closeSuggestions();
 	}
 
 	function handleTitleInput(e: Event & { currentTarget: HTMLInputElement }) {
@@ -106,8 +110,7 @@
 			e.preventDefault();
 			pick(suggestions[active]);
 		} else if (e.key === 'Escape') {
-			dismissed = true;
-			active = -1;
+			closeSuggestions();
 		}
 	}
 
@@ -157,8 +160,7 @@
 						onblur={() => {
 							// The list unmounts with the blur, so a highlight left behind would
 							// point aria-activedescendant at an id that is no longer there.
-							dismissed = true;
-							active = -1;
+							closeSuggestions();
 						}}
 						placeholder={m.form_task_placeholder()}
 						required
@@ -183,7 +185,7 @@
 								aria-selected={index === active}
 								onmousedown={(e) => e.preventDefault()}
 								onclick={() => pick(suggestion)}
-								class="cursor-pointer break-words px-box-md py-box-xs {index === active
+								class="cursor-pointer wrap-break-word px-box-md py-box-xs {index === active
 									? 'bg-surface-hover'
 									: ''} hover:bg-surface-hover"
 							>

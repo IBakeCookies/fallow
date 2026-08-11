@@ -152,7 +152,7 @@ export class AnalyticsStore {
 
 	// Two reads, deliberately not one try block: they fail into different
 	// surfaces. A failed model report is already visible — #hasModelReportFailed
-	// takes both of its cards out of their loading string, and each says the read
+	// takes every card it feeds out of its loading string, and each says the read
 	// failed rather than reporting a count. An audit of no days is a claim about
 	// the user's logs ("needs finished days with drain logs"), which a read that
 	// never returned cannot support. A failed history read is not visible at all:
@@ -307,7 +307,7 @@ export class AnalyticsStore {
 	get calibration(): CalibrationSnapshot | null {
 		return this.#calibration;
 	}
-	/** Covers both cards the report feeds: neither may report a count instead. */
+	/** Covers every card the report feeds: none may report a count instead. */
 	get hasModelReportFailed(): boolean {
 		return this.#hasModelReportFailed;
 	}
