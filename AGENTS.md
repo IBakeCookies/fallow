@@ -192,7 +192,9 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   verb (`canLog`, `mustDoToday`). A component's own mount-time copy of such a
   prop keeps the plain word (`isOpen` → `let open = $state(isOpen)`), so the two
   never shadow each other. Existing names are a baseline, not a to-do list:
-  rename one when you touch it, in a change of its own.
+  rename one when you touch it, in a change of its own. Coerce to a boolean
+  with `Boolean(x)`, never `!!x` — the same operation, but one of them is a
+  name and the other is punctuation read twice.
 - Data-layer controllers start with `$` + a CRUD verb: `$createX`, `$readX`,
   `$updateX`, `$deleteX`; an upsert is `$updateX`. Inside `.svelte`/`.svelte.ts`
   the `$` prefix is reserved for runes, so import the repository as a namespace.

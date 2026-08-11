@@ -26,6 +26,6 @@ export const load: LayoutServerLoad = async (event) => {
 		timezone: event.request.headers.get('x-vercel-ip-timezone') ?? undefined,
 		// the /_vercel/* analytics scripts only exist when hosted on Vercel;
 		// injecting them elsewhere (local preview, e2e) just 404s
-		isVercel: !!env.VERCEL,
+		isVercel: Boolean(env.VERCEL),
 	};
 };
