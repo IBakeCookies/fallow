@@ -945,10 +945,10 @@ These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
 code turned out to be. The **F** ids are stable and never reused.
 
-All 65 were then triaged against the code they name: **34 dropped**, **18 open**
-below, and **13 fixed** in the commit that carries this line — F8, F24, F28, F31,
-F32, F39, F41, F42, F46, F48, F49, F55 and F62, named here so a reference to one
-resolves to "done" rather than "lost".
+All 65 were then triaged against the code they name: **34 dropped**, **16 open**
+below, and **15 fixed** on this branch — F8, F20, F24, F28, F31, F32, F39, F41,
+F42, F46, F47, F48, F49, F55 and F62, named here so a reference to one resolves
+to "done" rather than "lost".
 
 One error dominated the raised set and is worth knowing before trusting anything
 here: "nothing enforces this", written without opening the story or e2e file that
@@ -1049,15 +1049,6 @@ test before believing that phrase.
   the thumb tracks the true budget, or round at the two `session.availableHours =`
   apply sites. Pin it with a story on an off-quarter budget, and correct MATH.md
   §14.1-2's "the card has no Apply for set-budget" sentence.
-- **F20** `tooltip-provider.svelte` and its callers — `delayDuration={150}` is
-  hand-copied at twelve `Tooltip.Provider` call sites (eleven in components and
-  routes, one in the tooltip story) while `tooltip-provider.svelte` defaults the
-  prop to 0. Changing the app's hover delay means finding all twelve, and a site
-  that misses the prop silently gets a 0 ms tooltip. Default it to 150 and drop
-  the prop everywhere, recording the deviation beside STYLE.md's `shadcn add
-sonner` note — `shadcn add tooltip` would revert it. No story or e2e asserts a
-  tooltip delay, so the one site that currently inherits 0 changes silently and
-  breaks nothing.
 - **F37** `task-row-shell.svelte` — one flag, two names: `withMustDoToday` on the
   shell, `showMustDoToday` on task-edit-form / task-form / task-form-fields, with
   the shell translating between them. Grepping either name finds only half the
@@ -1091,13 +1082,6 @@ sonner` note — `shadcn add tooltip` would revert it. No story or e2e asserts a
   reader enforcing the first sentence deletes the prop and un-hides the Lab's
   checkbox; a reader enforcing the second adds more pass-throughs. One of the two
   sources has to name the carve-out. Rewrites the same paragraph as F37.
-- **F47** `plan-advice-card.svelte` — three `class:` directives (`border-t`,
-  `border-line-soft`, `pt-text-xs`) repeat the same `option.isUnpriced` condition
-  to apply one rule-off treatment, and can be edited apart so the rule appears
-  without its colour or its padding. STYLE.md:206 points at `cn` for a conditional
-  cluster, but task-row-shell.svelte:153-154 uses the same multi-directive idiom —
-  so either this becomes the repo's second convention, or `class:` gets an explicit
-  carve-out in STYLE.md. Sweeping every site is a larger change than the finding.
 
 ### Dropped on triage
 

@@ -38,7 +38,7 @@
 		{#if hasError}
 			<p class="text-xs text-danger">{m.energy_curve_error()}</p>
 		{/if}
-		<Tooltip.Provider delayDuration={150}>
+		<Tooltip.Provider>
 			<Tooltip.Root>
 				<Tooltip.Trigger>
 					{#snippet child({ props })}

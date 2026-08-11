@@ -64,7 +64,7 @@
 <!-- Its own provider, like task-item.svelte's: a component that cannot mount without an
      ancestor providing one costs every caller a wrapper. Nesting is harmless — the inner
      one wins, with the same delay. -->
-<Tooltip.Provider delayDuration={150}>
+<Tooltip.Provider>
 	<form class={MEASUREMENT_FORM_CLASS} onsubmit={(e) => (e.preventDefault(), save())}>
 		<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>
 		<label class="flex items-center gap-grid-2xs">

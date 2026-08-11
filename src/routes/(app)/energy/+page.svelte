@@ -258,7 +258,7 @@
 <!-- Outside the load gate: the title reads nothing, and it is what keeps the route
      from painting blank for the frame before IndexedDB answers. -->
 <div class="mb-text-xl">
-	<Tooltip.Provider delayDuration={150}>
+	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}
@@ -392,7 +392,7 @@
 			{/if}
 		{/if}
 
-		<Tooltip.Provider delayDuration={150}>
+		<Tooltip.Provider>
 			<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
 				<!-- Full width on an empty day: two thirds of a card beside a third of
 				     nothing reads as a layout bug. -->

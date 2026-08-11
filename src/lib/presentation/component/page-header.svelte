@@ -120,7 +120,7 @@
 	<div class="flex items-center gap-grid-md">
 		<!-- The old under-title tagline lives in the title's tooltip now — the
 		     header stays one line so the content above the fold is the plan. -->
-		<Tooltip.Provider delayDuration={150}>
+		<Tooltip.Provider>
 			<Tooltip.Root>
 				<Tooltip.Trigger>
 					{#snippet child({ props })}

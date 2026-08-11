@@ -3,6 +3,7 @@
 	import type { AdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 	import { BAND_TEXT_CLASS, bandLabel, type Band } from '$lib/presentation/utils/band';
 	import { Button } from '$lib/presentation/component/ui/button';
+	import { cn } from '$lib/presentation/utils';
 
 	interface Props {
 		/** Null until the user asks: the search costs a full solve per candidate. */
@@ -105,10 +106,10 @@
 									<!-- Ruled off from the priced options: the unpriced increase is off the
 									     frontier (MATH.md §14) and its cost is denominated in something else. -->
 									<li
-										class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
-										class:border-t={option.isUnpriced}
-										class:border-line-soft={option.isUnpriced}
-										class:pt-text-xs={option.isUnpriced}
+										class={cn(
+											'flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs',
+											option.isUnpriced && 'border-t border-line-soft pt-text-xs',
+										)}
 									>
 										<span class="min-w-0 text-xs text-ty-primary">{option.action}</span>
 										<span class="flex shrink-0 items-baseline gap-text-xs text-xs">

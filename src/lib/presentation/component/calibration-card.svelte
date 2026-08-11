@@ -15,7 +15,7 @@
 <div class="card-shell p-box-md sm:p-box-xl">
 	<!-- Its own provider so the card stands alone; nesting inside a page-level one is
 	     harmless. -->
-	<Tooltip.Provider delayDuration={150}>
+	<Tooltip.Provider>
 		<div class="flex items-baseline justify-between gap-grid-xs">
 			<Tooltip.Root>
 				<Tooltip.Trigger>
