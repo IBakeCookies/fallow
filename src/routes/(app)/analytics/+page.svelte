@@ -62,11 +62,6 @@
 	const rateDelta = $derived(analytics.completionRateDelta);
 	const bestDay = $derived(analytics.bestDay);
 	const quadrantCounts = $derived(analytics.quadrantCounts);
-	// The bar's 100% is the days that HAVE a profile: a day that books no hours has none
-	// (MATH.md §29), so `summaries.length` would understate every share.
-	const profiledDays = $derived(
-		Object.values(quadrantCounts).reduce((sum, count) => sum + count, 0),
-	);
 
 	const modelRows = $derived(calibrationRows(calibration, getDateLocale()));
 	const auditVerdict = $derived(adherenceVerdict(audit));
@@ -349,7 +344,7 @@
 			{m.ana_day_profiles_hint()}
 		</p>
 
-		<QuadrantDistribution counts={quadrantCounts} total={profiledDays} />
+		<QuadrantDistribution counts={quadrantCounts} />
 	</div>
 
 	<!-- Plan adherence (MATH.md §12) -->

@@ -945,10 +945,10 @@ These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
 code turned out to be. The **F** ids are stable and never reused.
 
-All 65 were then triaged against the code they name: **34 dropped**, **6 open**
-below, and **25 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
-F22, F23, F24, F26, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55
-and F62, named here so a reference to one resolves to "done" rather than "lost".
+All 65 were then triaged against the code they name: **34 dropped**, **5 open**
+below, and **26 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
+F22, F23, F24, F26, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55,
+F61 and F62, named here so a reference to one resolves to "done" rather than "lost".
 
 One error dominated the raised set and is worth knowing before trusting anything
 here: "nothing enforces this", written without opening the story or e2e file that
@@ -978,12 +978,6 @@ test before believing that phrase.
   so a change to the small line has to be made twice. Collapse to one structure —
   a primary span and one secondary span whose `plan … ·` prefix is conditional —
   and re-point the four replan stories at it.
-- **F61** `analytics/+page.svelte` — `profiledDays` sums `quadrantCounts` in the
-  route and hands the sum to `QuadrantDistribution` as a `total` prop the component
-  could derive from the `counts` it already receives. One caller today; a second
-  passing a `total` that disagrees with `counts` would draw a bar whose segments
-  miss 100%. Drop the prop, derive inside, and "Segments tile the bar" then pins a
-  structural invariant.
 - **F64** `energy-task-row.svelte` — the row's edit callback is `onchange` outward
   and `onupdate` inward, while task-item.svelte forwards the same shell callback as
   `onupdate`. One callback under two names across the two task rows, so a grep for
