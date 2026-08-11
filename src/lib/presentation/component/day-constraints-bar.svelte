@@ -46,6 +46,9 @@
 
 	const switchCostMinutes = $derived(Math.round(switchCost * 60));
 
+	// What the slider's `step` used to do, moved to the drag: see the range input below.
+	const snapToStep = (hours: number) => Math.round(hours / BUDGET_BOUNDS.step) * BUDGET_BOUNDS.step;
+
 	// Below this, the slack is rounding noise from the 15-minute blocks rather than
 	// an hour anyone could spend — the summary and the warning must agree on it.
 	const MINIMUM_REPORTED_SLACK_HOURS = 0.05;
@@ -163,14 +166,21 @@
 					step={BUDGET_BOUNDS.step}
 					unit={m.unit_hours()}
 				/>
-				<!-- Dragging re-solves the whole plan live (~1–13 ms at realistic task counts). -->
+				<!-- Dragging re-solves the whole plan live (~1–13 ms at realistic task counts).
+				     `step="any"` with the quarter applied on the way IN, not by the input: a
+				     range sanitizes its DOM value to the nearest step, so a budget that is
+				     legitimately off-quarter — typed here, or applied from a plan-advice lever,
+				     which MATH.md §14.1-2 keeps exact — left the thumb reading a value the field
+				     beside it disagreed with. Snapping the drag keeps the quarters `step` was
+				     there for. -->
 				<input
 					type="range"
 					aria-label={m.budget_hours_slider()}
 					min={BUDGET_BOUNDS.min}
 					max={BUDGET_BOUNDS.max}
-					step={BUDGET_BOUNDS.step}
-					bind:value={availableHours}
+					step="any"
+					value={availableHours}
+					oninput={(e) => (availableHours = snapToStep(e.currentTarget.valueAsNumber))}
 					class="mt-text-xs h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset accent-brand"
 				/>
 				<p class="mt-text-xs text-xs text-ty-silent">
