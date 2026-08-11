@@ -945,10 +945,10 @@ These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
 code turned out to be. The **F** ids are stable and never reused.
 
-All 65 were then triaged against the code they name: **34 dropped**, **5 open**
-below, and **26 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
+All 65 were then triaged against the code they name: **34 dropped**, **4 open**
+below, and **27 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
 F22, F23, F24, F26, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55,
-F61 and F62, named here so a reference to one resolves to "done" rather than "lost".
+F61, F62 and F64, named here so a reference to one resolves to "done" rather than "lost".
 
 One error dominated the raised set and is worth knowing before trusting anything
 here: "nothing enforces this", written without opening the story or e2e file that
@@ -978,11 +978,6 @@ test before believing that phrase.
   so a change to the small line has to be made twice. Collapse to one structure —
   a primary span and one secondary span whose `plan … ·` prefix is conditional —
   and re-point the four replan stories at it.
-- **F64** `energy-task-row.svelte` — the row's edit callback is `onchange` outward
-  and `onupdate` inward, while task-item.svelte forwards the same shell callback as
-  `onupdate`. One callback under two names across the two task rows, so a grep for
-  `onupdate` misses the energy row. Rename to `onupdate`; the energy page's other
-  control callbacks stay `onchange`, which is why this one reads as arbitrary.
 
 ### Open — needs a decision before it can be worked
 

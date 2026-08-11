@@ -41,7 +41,10 @@
 		ondrainsave: (entry: { hours: number; mind: number; body: number }) => void;
 		ondrainedit: (log: Persisted<DrainObservationRecord>) => void;
 		ondraindelete: (recordId: number) => void;
-		onchange: (edit: TaskEdit) => void;
+		/** `onupdate`, like task-item.svelte's, because both rows forward it to the same
+		 *  shell prop. The Lab's other control callbacks are `onchange`; this one is not
+		 *  one of them. */
+		onupdate: (edit: TaskEdit) => void;
 	}
 
 	let {
@@ -69,7 +72,7 @@
 		ondrainsave,
 		ondrainedit,
 		ondraindelete,
-		onchange,
+		onupdate,
 	}: Props = $props();
 </script>
 
@@ -115,7 +118,7 @@
 		{ondrainsave}
 		{ondrainedit}
 		{ondraindelete}
-		onupdate={onchange}
+		{onupdate}
 		{onremove}
 		{lead}
 		{trailing}
