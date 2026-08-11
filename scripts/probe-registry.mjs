@@ -1,4 +1,4 @@
-// Check AGENTS.md §4's probe registry against the probes on disk:
+// Check scripts/PROBES.md's registry against the probes on disk:
 //   node scripts/probe-registry.mjs           report drift
 //   node scripts/probe-registry.mjs --check   exit 1 on drift (runs in `npm run lint`)
 //
@@ -19,7 +19,7 @@
 import { execFileSync } from 'child_process';
 import { readdirSync, readFileSync } from 'fs';
 
-const FILE = 'AGENTS.md';
+const FILE = 'scripts/PROBES.md';
 const CHECK = process.argv.includes('--check');
 const START = '<!-- probe-registry:start -->';
 const END = '<!-- probe-registry:end -->';
@@ -67,9 +67,9 @@ const unlisted = files.filter((name) => !rows.includes(name));
 const orphaned = rows.filter((name) => !present().includes(name));
 const duplicated = rows.filter((name, index) => rows.indexOf(name) !== index);
 
-for (const name of unlisted) console.error(`${name} is committed but has no row in ${FILE} §4`);
-for (const name of orphaned) console.error(`${FILE} §4 lists ${name}, which does not exist`);
-for (const name of duplicated) console.error(`${FILE} §4 lists ${name} twice`);
+for (const name of unlisted) console.error(`${name} is committed but has no row in ${FILE}`);
+for (const name of orphaned) console.error(`${FILE} lists ${name}, which does not exist`);
+for (const name of duplicated) console.error(`${FILE} lists ${name} twice`);
 
 if (unlisted.length || orphaned.length || duplicated.length) {
 	if (CHECK) process.exit(1);

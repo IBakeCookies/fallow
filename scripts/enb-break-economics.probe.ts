@@ -1,6 +1,6 @@
 /**
  * The break/fragmentation numbers MATH.md §8 (intro), §8.1–8.2 and §8.3 quote,
- * and AGENTS.md §3's "Fragmentation stays costly (probe-verified)". The probes
+ * and business/model/AGENTS.md's "Fragmentation stays costly (probe-verified)". The probes
  * they were measured on (2026-07-13/14) were never committed, so this file
  * rebuilds them against the shipped model:
  *

@@ -6,7 +6,7 @@
  * top-priority share, the multi-gainer counts, and the naive per-task column's
  * spread all came from a script that no longer exists. This is that sweep,
  * seeded, so every number in that subsection can be reproduced instead of
- * believed (AGENTS.md §4).
+ * believed (docs/testing.md).
  *
  * §14.2 also quotes the naive column's overstatement twice: over all multi-task
  * days, and restricted to the days whose budget marginal is non-zero (a zero

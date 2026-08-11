@@ -247,7 +247,7 @@ export class AnalyticsStore {
 	/**
 	 * Whether the range holds anything — a statement about the data, so it only
 	 * means what it says once `isLoading` is false. Read alone it reports "no
-	 * history" for a read still in flight (AGENTS.md, loaded-ness is a field).
+	 * history" for a read still in flight (business/AGENTS.md, loaded-ness is a field).
 	 */
 	get hasData(): boolean {
 		return this.#summaries.length > 0;
@@ -325,7 +325,7 @@ export class AnalyticsStore {
  *
  * The price is the empty window on the way in, and the page's placeholder frame
  * is what covers it. Not to be paid down with a lazy `load()` the route calls:
- * that hides from the caller that a fresh store is inert (AGENTS.md).
+ * that hides from the caller that a fresh store is inert (business/AGENTS.md).
  *
  * The context is the guard, not a sharing mechanism: `setContext` throws
  * outside component initialisation, so no store can be built in a `+page.ts`

@@ -29,7 +29,7 @@
  * the rendered strings; the numbers behind them come from the model advice the
  * display was built from, matched back by lever identity. Nothing here restates
  * a threshold or a format — `band.ts` owns the first and the descriptor the
- * second (AGENTS.md §4).
+ * second (docs/testing.md).
  *
  * Same generator, seed and day count as `plan-advice.probe.ts` and
  * `adv1-plan-advice-frontier.probe.ts` (600 days, seed 42), so these counts

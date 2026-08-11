@@ -1,5 +1,5 @@
 /**
- * The quadrature-accuracy claim behind `blockOutput` (MATH.md §8, AGENTS.md §3):
+ * The quadrature-accuracy claim behind `blockOutput` (MATH.md §8, business/model/AGENTS.md):
  * "composite Simpson with ≥16 nodes per fastest timescale (min of ϕ, 1/ρ) —
  * relative error ~1e-6 even for near-floor ϕ tasks in long blocks". The code
  * comment in `zenith-energy.ts` says "probe-verified"; the probe was never
@@ -107,7 +107,7 @@ function nodesUsed(phi: number, hours: number, rhoC: number, rhoP: number): numb
 	return n;
 }
 
-describe('block-output quadrature error at the ϕ floor (MATH.md §8, AGENTS.md §3)', () => {
+describe('block-output quadrature error at the ϕ floor (MATH.md §8, business/model/AGENTS.md)', () => {
 	it('measures relative error vs a refined reference as the block grows', () => {
 		const phi = calculateFlowStateTime(
 			mapEffort(FAST_TASK.difficulty),

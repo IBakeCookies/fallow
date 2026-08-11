@@ -76,7 +76,7 @@
 
 	// The reader's own window, when the sweep reached it. Past the cap there is no
 	// honest place to draw it — clamping to the right edge would claim it sits at
-	// `maxBudgetHours` — so the legend says so in words instead (AGENTS.md §4: the
+	// `maxBudgetHours` — so the legend says so in words instead (docs/testing.md: the
 	// bound is never silent).
 	const isBudgetOnScale = $derived(currentBudget > 0 && currentBudget <= curve.maxBudgetHours);
 

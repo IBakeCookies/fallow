@@ -115,7 +115,8 @@ The productivity math lives in
 dependency-free functions — derivations in [MATH.md](MATH.md)) and the
 task/dashboard logic in
 [`src/lib/business/model/metric/calculation.ts`](src/lib/business/model/metric/calculation.ts).
-Architecture, conventions and contribution rules: [AGENTS.md](AGENTS.md).
+Architecture, conventions and contribution rules: [AGENTS.md](AGENTS.md) —
+the brief, which routes to the per-area rule files.
 
 ## Getting started
 

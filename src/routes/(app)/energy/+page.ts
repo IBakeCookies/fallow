@@ -7,7 +7,7 @@ import type { PageLoad } from './$types';
  * such thing as the Lab "viewing" another day. The session store's date reader
  * belongs to the (app) layout and is route-blind, though, so a hand-typed or
  * stale `/energy?date=…` would load that day's tasks under copy that promises
- * today's session (AGENTS.md §3).
+ * today's session (business/model/AGENTS.md).
  *
  * Refused here rather than in the page: this runs BEFORE the layout hands the
  * store a date, so the wrong day is never read at all, nothing renders under the

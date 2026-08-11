@@ -9,7 +9,7 @@
  * number here is a real model output.
  *
  * Threshold-free on purpose: whether a reading is bad enough to act on is a
- * band, and bands are presentation policy (AGENTS.md §5) — this module answers
+ * band, and bands are presentation policy (presentation/AGENTS.md) — this module answers
  * the same question for every axis, unconditionally, and
  * `plan-advice-descriptor` decides which answers to surface.
  */
@@ -35,7 +35,7 @@ export type AdviceLever =
 			 * "Suppose this task were not on today's list" — a counterfactual, not an
 			 * operation. `applyLever` filters it out and re-solves; nothing is moved
 			 * and nothing is deleted, and the model has no opinion on where it goes.
-			 * Performing it is `SessionStore.moveTaskToTomorrow` (AGENTS.md §6),
+			 * Performing it is `SessionStore.moveTaskToTomorrow` (business/AGENTS.md),
 			 * which this module knows nothing about.
 			 */
 			kind: 'defer-task';

@@ -611,7 +611,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		// 2.75h stretches by 1.03 to fill 3.25h; the four-task plan's 2.25h already
 		// fills 3.5h with its gaps) and both reservoirs end higher. It is NOT min()
 		// swapping reservoirs — the cognitive one binds on both sides.
-		// AGENTS.md §5 settled this as INTENDED ("Burnout Risk is not monotone in
+		// business/model/AGENTS.md settled this as INTENDED ("Burnout Risk is not monotone in
 		// the declared budget, and that stays"), so this is a characterization
 		// test: an agent who reads the fall as a bug and smooths it gets a red
 		// build pointing at that decision instead of a silent semantic change.

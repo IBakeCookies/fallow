@@ -196,7 +196,7 @@
 
 <!-- The reader's window past the swept cap: there is no honest place to draw the
      locator, so the legend names the window and the cap in words rather than going
-     silently missing (AGENTS.md §4). -->
+     silently missing (docs/testing.md). -->
 <Story
 	name="Window past the cap"
 	args={{

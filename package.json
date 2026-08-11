@@ -14,7 +14,7 @@
 		"prepare": "npm run paraglide && (svelte-kit sync || echo '')",
 		"check": "npm run paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json --noEmit",
 		"check:watch": "npm run paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --check . && eslint . && node scripts/math-index.mjs --check && node scripts/probe-registry.mjs --check",
+		"lint": "prettier --check . && eslint . && node scripts/math-index.mjs --check && node scripts/probe-registry.mjs --check && node scripts/brief-size.mjs --check",
 		"lint:fix": "eslint . --fix",
 		"format": "prettier --write .",
 		"test:unit": "vitest",

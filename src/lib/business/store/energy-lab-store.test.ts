@@ -63,7 +63,7 @@ describe('sanitizeEnergyParams (R4: validate persisted params on read)', () => {
 	});
 
 	// Out-of-range is NOT clamped on purpose: satietyScale ≤ 0 is the documented
-	// way to recover pure total output (AGENTS.md §3), so a clamp would delete a
+	// way to recover pure total output (business/model/AGENTS.md), so a clamp would delete a
 	// supported configuration. Finiteness is the whole contract.
 	it('preserves out-of-range but finite values', () => {
 		expect(
