@@ -13,11 +13,16 @@
 
 	interface Props {
 		counts: Record<DailyQuadrant, number>;
-		/** Days in the range that have a profile at all — the bar's 100% */
-		total: number;
 	}
 
-	let { counts, total }: Props = $props();
+	let { counts }: Props = $props();
+
+	// The bar's 100% is the days that HAVE a profile, which is exactly what `counts`
+	// sums to: a day booking no hours has no profile and is counted nowhere (MATH.md
+	// §29), so the range's day count would understate every share. Derived here and
+	// not taken as a prop, because a `total` disagreeing with `counts` draws segments
+	// that miss 100% — "Segments tile the bar" then pins a shape rather than a caller.
+	const total = $derived(Object.values(counts).reduce((sum, count) => sum + count, 0));
 
 	const QUADRANTS: { key: DailyQuadrant; label: string; color: string }[] = [
 		{
