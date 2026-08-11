@@ -413,38 +413,39 @@
 							/>
 						{/if}
 						<div class="card-shell p-box-md sm:p-box-xl">
-							<div class="mb-text-md flex items-baseline justify-between">
+							<div class="gap-text-xs flex flex-wrap items-baseline justify-between">
 								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 									{m.energy_model_parameters()}
 								</h3>
-								<div class="flex shrink-0 items-baseline gap-text-md">
-									<!-- One button for all four fits because their ORDER is the math (MATH.md
-								     §8.7/§8.9/§8.10): separate buttons let the user apply them in an order
-								     that leaves a parameter stale. -->
-									{#if lab.hasFit}
-										<button
-											type="button"
-											class="text-xs transition {lab.fitsApplied
-												? 'cursor-default text-ty-silent'
-												: 'text-brand/90 hover:text-brand-strong'}"
-											disabled={lab.fitsApplied}
-											title={m.energy_apply_fits_title()}
-											onclick={() => lab.applyFits()}
-										>
-											{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
-										</button>
-									{/if}
-									<button
-										type="button"
-										class="text-xs text-ty-silent transition hover:text-ty-secondary"
-										title={m.energy_reset_defaults_title()}
-										onclick={() => lab.resetParams()}
-									>
-										{m.energy_reset_defaults()}
-									</button>
-								</div>
+
+								<button
+									type="button"
+									class="text-xs text-ty-silent transition hover:text-ty-secondary"
+									title={m.energy_reset_defaults_title()}
+									onclick={() => lab.resetParams()}
+								>
+									{m.energy_reset_defaults()}
+								</button>
 							</div>
-							<div class="space-y-grid-md">
+
+							<!-- One button for all four fits because their ORDER is the math (MATH.md
+								§8.7/§8.9/§8.10): separate buttons let the user apply them in an order
+								that leaves a parameter stale. -->
+							{#if lab.hasFit}
+								<button
+									type="button"
+									class="text-xs transition {lab.fitsApplied
+										? 'cursor-default text-ty-silent'
+										: 'text-brand/90 hover:text-brand-strong'}"
+									disabled={lab.fitsApplied}
+									title={m.energy_apply_fits_title()}
+									onclick={() => lab.applyFits()}
+								>
+									{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
+								</button>
+							{/if}
+
+							<div class="mt-text-md space-y-grid-md">
 								<!-- The window is the session's budget, not a lab param — hence step 0.25
 							     and not 0.5: the stepper rounds to its own step's decimals, so a 6.25h
 							     day set on the main page would come back 6.8 after one click here. -->

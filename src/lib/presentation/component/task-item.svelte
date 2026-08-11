@@ -166,9 +166,7 @@
 			<Tooltip.Root>
 				<!-- Why each reading triggers on itself: presentation/AGENTS.md, "The row's
 				     layout" -->
-				<Tooltip.Trigger
-					class="block cursor-help text-left text-sm font-semibold text-ty-primary sm:text-right"
-				>
+				<Tooltip.Trigger class="block cursor-help text-sm font-semibold text-ty-primary ">
 					{replan
 						? m.task_remaining_spend({
 								hours: formatDuration(replan.taskHours),
@@ -186,7 +184,7 @@
 				</Tooltip.Content>
 			</Tooltip.Root>
 			<Tooltip.Root>
-				<Tooltip.Trigger class="block cursor-help text-left text-2xs text-ty-silent sm:text-right">
+				<Tooltip.Trigger class="block cursor-help text-2xs text-ty-silent  ">
 					<!-- The plan reads beside the re-plan and only there: with no re-plan above
 					     it, the bold line already IS the plan. A ternary and not an `{#if}`
 					     because the separator has to live INSIDE the expression — Svelte trims a
