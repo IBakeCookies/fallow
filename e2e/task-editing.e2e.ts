@@ -290,6 +290,15 @@ test('a flow log is correctable from the analytics history', async ({ page }) =>
 	// One measurement still: ⚡ is one number per day, and a correction amends it
 	await expect(page.getByText('1 measurement')).toBeVisible();
 
+	// …and the row reads the new number. The count alone holds before the save too, while
+	// the reading comes off the store's re-read and so lands only once the write
+	// committed — the `goto` below aborts that transaction if it goes first.
+	await expect(
+		page.getByRole('listitem').filter({
+			hasText: 'Boxing training',
+		}),
+	).toContainText('45m');
+
 	await page.goto('/');
 	await expect(page.getByText('⚡ 45m')).toBeVisible();
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
