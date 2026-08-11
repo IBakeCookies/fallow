@@ -85,17 +85,15 @@
 				<div class="log-row">
 					<span class="truncate">
 						{#if row.taskTitle}
-							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+							{@const dayLabel = m.ana_logs_open_day({
+								date: row.date,
+							})}
 							<!-- Labelled as well as titled: the visible text is a bare date, which
 							     says nothing to a screen reader out of the row's context. -->
 							<a
 								href={localizeHref(`${resolve('/')}?date=${row.date}`)}
-								aria-label={m.ana_logs_open_day({
-									date: row.date,
-								})}
-								title={m.ana_logs_open_day({
-									date: row.date,
-								})}
+								aria-label={dayLabel}
+								title={dayLabel}
 								class="hint-underline text-ty-silent transition hover:text-ty-secondary"
 							>
 								{row.date}

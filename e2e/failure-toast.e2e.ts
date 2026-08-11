@@ -80,10 +80,10 @@ test('analytics says the empty charts are a failure, not an empty history', asyn
 });
 
 /* The other half of that load: the history lands and only the model report fails,
-   which raises no toast because both cards it feeds are already on screen. They
-   must both say so — "Needs finished days with 🪫 drain logs" is advice about the
+   which raises no toast because the cards it feeds are already on screen. They
+   must say so — "Needs finished days with 🪫 drain logs" is advice about the
    user's data, and the read that would have justified it never returned. */
-test('a failed model report says so on both cards, not "no logs yet"', async ({ page }) => {
+test('a failed model report says so, not "no logs yet"', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 	await page.waitForTimeout(AUTOSAVE_MS);

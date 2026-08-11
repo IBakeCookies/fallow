@@ -98,8 +98,6 @@
 		class="inline-flex items-center gap-text-2xs rounded-xl border bg-surface-card p-text-2xs backdrop-blur w-max"
 	>
 		{#each links as link (link.href)}
-			<!-- hrefs are resolve()d in the links array; the rule can't trace through it -->
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 			<a
 				href={localizeHref(link.href)}
 				aria-current={isActive(link.href) ? 'page' : undefined}

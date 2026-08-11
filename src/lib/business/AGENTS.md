@@ -37,8 +37,8 @@ reporting service would ship off-device. Plugging in Sentry or similar is one
 - **Transient and informational → a toast** (`presentation/utils/toast.ts`).
 - **Already visible in the failing component → nothing more**, but verify it
   really is visible: the `analytics-store` load is two `try` blocks — one per
-  read — because `#hasModelReportFailed` takes both cards that read feeds out
-  of their loading string and each then says so itself, while a failed
+  read — because `#hasModelReportFailed` takes every card that read feeds out
+  of its loading string and each then says so itself, while a failed
   **history** read renders every chart as an empty year — looks like a user
   with no data, so it toasts.
 

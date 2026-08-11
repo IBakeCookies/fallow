@@ -56,7 +56,6 @@
 					{m.common_cancel()}
 				</button>
 			{:else}
-				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 				<a
 					href={`${localizeHref(resolve('/analytics'))}#log-history`}
 					class="hint-underline text-ty-silent transition hover:text-ty-secondary"

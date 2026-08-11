@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
+	import { BAND_TEXT_CLASS } from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 	interface Props {
@@ -44,11 +45,9 @@
 			<!-- Three readings, not two: a rounded small LOSS arrives as -0, which `>= 0`
 			     reads as a win — the tile signed a beaten plan green. A tie is neither. -->
 			<p
-				class="text-lg font-semibold {valueVsClassic > 0
-					? 'text-success'
-					: valueVsClassic < 0
-						? 'text-warning'
-						: 'text-ty-primary'}"
+				class="text-lg font-semibold {BAND_TEXT_CLASS[
+					valueVsClassic > 0 ? 'success' : valueVsClassic < 0 ? 'warning' : 'neutral'
+				]}"
 			>
 				{valueVsClassic > 0 ? '+' : ''}{valueVsClassic}%
 			</p>

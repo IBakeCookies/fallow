@@ -55,8 +55,8 @@
 
 		onsave({
 			hours: minutes / 60,
-			mind: Math.min(10, Math.max(0, mind)),
-			body: Math.min(10, Math.max(0, body)),
+			mind,
+			body,
 		});
 	}
 </script>

@@ -3,6 +3,7 @@
 	import { expect, fn, waitFor, within } from 'storybook/test';
 	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
+	import { newDrainDraft } from '$lib/presentation/utils/measurement-prompt';
 
 	const { Story } = defineMeta({
 		title: 'Component/Task Item',
@@ -668,13 +669,7 @@
 <Story
 	name="Closing a new session"
 	args={{
-		drainDraft: {
-			minutes: null,
-			mind: null,
-			body: null,
-			focusMinutes: true,
-			promptedByCompletion: false,
-		},
+		drainDraft: newDrainDraft('button'),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		await userEvent.click(
@@ -692,13 +687,7 @@
 <Story
 	name="Rating a new session offers no delete"
 	args={{
-		drainDraft: {
-			minutes: null,
-			mind: null,
-			body: null,
-			focusMinutes: true,
-			promptedByCompletion: false,
-		},
+		drainDraft: newDrainDraft('button'),
 	}}
 	play={async ({ canvas }) => {
 		await expect(
