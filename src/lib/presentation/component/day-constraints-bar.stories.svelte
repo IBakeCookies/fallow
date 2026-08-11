@@ -112,6 +112,32 @@
 	}}
 />
 
+<!-- A budget the quarter step does not land on. Legitimate: typed in the field, and
+     what a plan-advice `set-budget` lever applies, which MATH.md §14.1-2 keeps exact.
+     A range sanitizes its DOM value to its own step, so with `step="0.25"` the thumb
+     read 6.5 beside a field reading 6.4 — two controls over one value disagreeing. -->
+<Story
+	name="Off-quarter budget"
+	args={{
+		availableHours: 6.4,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByLabelText('Available Hours')).toHaveValue(6.4);
+		await expect(canvas.getByRole('slider')).toHaveValue('6.4');
+
+		// A drag still lands on a quarter — that is what `step` was there for, and it
+		// now happens on the way in rather than by the input sanitizing what it shows.
+		await fireEvent.input(canvas.getByRole('slider'), {
+			target: {
+				value: '6.43',
+			},
+		});
+
+		await expect(canvas.getByLabelText('Available Hours')).toHaveValue(6.5);
+		await expect(canvas.getByRole('slider')).toHaveValue('6.5');
+	}}
+/>
+
 <!-- Slack above 0.05 h adds the unplanned-time warning line -->
 <Story
 	name="With unplanned time"
