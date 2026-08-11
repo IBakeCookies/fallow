@@ -67,7 +67,11 @@ export default defineConfig({
 			html: 'test-result/unit/index.html',
 		},
 		coverage: {
-			enabled: true,
+			// CI-only: instrumenting every module costs ~14s of a ~64s local
+			// run, and the report is a number to read occasionally, not on
+			// every watch cycle. CI still publishes it — `npm run
+			// test:coverage` when you want it here.
+			enabled: Boolean(process.env.CI),
 			provider: 'v8',
 			include: [
 				'src/lib/business/**/*.ts',
@@ -122,6 +126,12 @@ export default defineConfig({
 					browser: {
 						enabled: true,
 						headless: true,
+						// Reuse one page across story files instead of reloading
+						// per file (~8s of a ~28s project). Safe here because
+						// every story mounts its own component and `beforeEach`
+						// in .storybook/preview.ts restamps the theme and
+						// scenery — no story reads state a previous file left.
+						isolate: false,
 						provider: playwright({}),
 						instances: [
 							{

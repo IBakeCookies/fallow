@@ -18,6 +18,7 @@
 		"lint:fix": "eslint . --fix",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
+		"test:coverage": "vitest run --coverage.enabled",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
 		"test:e2e": "playwright test",
 		"probe": "vitest run --config vitest.probe.config.ts --disableConsoleIntercept",
