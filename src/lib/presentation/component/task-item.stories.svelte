@@ -158,6 +158,12 @@
 		await expect(plan).toHaveClass(/text-ty-primary/);
 		await expect(canvas.getByText('prio 12.4')).toBeVisible();
 
+		// The same two elements the re-plan reading uses, and each still its own trigger:
+		// the two modes were two structures, and the small line had to be edited twice.
+		for (const reading of [plan, canvas.getByText('prio 12.4')]) {
+			await expect(reading).toHaveAttribute('data-slot', 'tooltip-trigger');
+		}
+
 		// Not merely unlabelled — there is no second reading on the row.
 		await expect(canvas.queryByText(/spend/)).not.toBeInTheDocument();
 		await expect(canvas.queryByText(/plan 1h 45m/)).not.toBeInTheDocument();

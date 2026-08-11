@@ -155,61 +155,55 @@
 	</Tooltip.Root>
 {/snippet}
 
+<!-- Two readings, always the same two elements: the hours the row is asking for, and
+     the small line under them. Mid-day the first becomes the re-plan and the second
+     grows a `plan …` prefix (MATH.md §35), which is the ONLY thing a re-plan changes
+     here — written as one structure because it was written as two, and the small line
+     then had to be edited twice to change once. -->
 {#snippet trailing()}
 	{#if !completed}
-		{#if replan}
-			<div>
-				<Tooltip.Root>
-					<!-- Why: presentation/AGENTS.md, "The row's layout" -->
-					<Tooltip.Trigger
-						class="block cursor-help text-left text-sm font-semibold text-ty-primary sm:text-right"
-					>
-						{m.task_remaining_spend({
-							hours: formatDuration(replan.taskHours),
-						})}
-					</Tooltip.Trigger>
-					<Tooltip.Content>
-						<p>
-							{m.task_remaining_tooltip({
-								left: formatDuration(replan.dayHours),
-							})}
-						</p>
-					</Tooltip.Content>
-				</Tooltip.Root>
-				<Tooltip.Root>
-					<Tooltip.Trigger
-						class="block cursor-help text-left text-2xs text-ty-silent sm:text-right"
-					>
-						{m.task_plan_hours({
-							hours: formatDuration(suggestedHours),
-						})} ·
-
-						{m.task_priority({
-							score: priorityScore,
-						})}
-					</Tooltip.Trigger>
-					<Tooltip.Content>
-						<p>{m.task_allocation_tooltip()}</p>
-					</Tooltip.Content>
-				</Tooltip.Root>
-			</div>
-		{:else}
+		<div>
 			<Tooltip.Root>
-				<Tooltip.Trigger class="cursor-help text-left sm:text-right">
-					<span class="block text-sm font-semibold text-ty-primary">
-						{formatDuration(suggestedHours)}
-					</span>
-					<span class="block text-2xs text-ty-silent">
-						{m.task_priority({
-							score: priorityScore,
-						})}
-					</span>
+				<!-- Why each reading triggers on itself: presentation/AGENTS.md, "The row's
+				     layout" -->
+				<Tooltip.Trigger
+					class="block cursor-help text-left text-sm font-semibold text-ty-primary sm:text-right"
+				>
+					{replan
+						? m.task_remaining_spend({
+								hours: formatDuration(replan.taskHours),
+							})
+						: formatDuration(suggestedHours)}
+				</Tooltip.Trigger>
+				<Tooltip.Content>
+					<p>
+						{replan
+							? m.task_remaining_tooltip({
+									left: formatDuration(replan.dayHours),
+								})
+							: m.task_allocation_tooltip()}
+					</p>
+				</Tooltip.Content>
+			</Tooltip.Root>
+			<Tooltip.Root>
+				<Tooltip.Trigger class="block cursor-help text-left text-2xs text-ty-silent sm:text-right">
+					<!-- The plan reads beside the re-plan and only there: with no re-plan above
+					     it, the bold line already IS the plan. A ternary and not an `{#if}`
+					     because the separator has to live INSIDE the expression — Svelte trims a
+					     block's trailing whitespace, which ran the two readings together. -->
+					{replan
+						? `${m.task_plan_hours({
+								hours: formatDuration(suggestedHours),
+							})} · `
+						: ''}{m.task_priority({
+						score: priorityScore,
+					})}
 				</Tooltip.Trigger>
 				<Tooltip.Content>
 					<p>{m.task_allocation_tooltip()}</p>
 				</Tooltip.Content>
 			</Tooltip.Root>
-		{/if}
+		</div>
 	{/if}
 {/snippet}
 
