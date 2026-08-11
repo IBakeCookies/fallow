@@ -2,6 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import type { BudgetCurve } from '$lib/business/model/zenith-energy';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { DASH, dashArray, dashGradient } from '$lib/presentation/utils/dash';
 
 	interface Props {
 		curve: BudgetCurve;
@@ -112,7 +113,7 @@
 				y2={PAD_T + plotH}
 				class="stroke-ty-silent"
 				stroke-width="1.5"
-				stroke-dasharray="2 3"
+				stroke-dasharray={dashArray(DASH.currentBudget)}
 			/>
 		{/if}
 
@@ -129,7 +130,7 @@
 			y2={yAt(0)}
 			class="stroke-info"
 			stroke-width="1.5"
-			stroke-dasharray="7 4"
+			stroke-dasharray={dashArray(DASH.breakEven)}
 		/>
 		<text x={PAD_L - 6} y={yAt(0) + 3} class="fill-info-strong" font-size="9" text-anchor="end"
 			>0</text
@@ -143,7 +144,7 @@
 				y2={PAD_T + plotH}
 				class="stroke-brand"
 				stroke-width="1.5"
-				stroke-dasharray="5 3"
+				stroke-dasharray={dashArray(DASH.recommended)}
 			/>
 		{/if}
 	</svg>
@@ -154,27 +155,19 @@
 		{m.energy_curve_legend_value()}
 	</span>
 	<span class="flex items-center gap-grid-2xs">
-		<span
-			class="h-0.5 w-4"
-			style="background: repeating-linear-gradient(90deg, var(--info) 0 7px, transparent 7px 11px)"
-		></span>
+		<span class="h-0.5 w-4" style="background: {dashGradient(DASH.breakEven, '--info')}"></span>
 		{m.energy_curve_legend_break_even()}
 	</span>
 	{#if curve.recommendedHours !== null}
 		<span class="flex items-center gap-grid-2xs">
-			<!-- A raw var() names the unprefixed token, never the --color-* alias (STYLE.md). -->
-			<span
-				class="h-0.5 w-4"
-				style="background: repeating-linear-gradient(90deg, var(--brand) 0 5px, transparent 5px 8px)"
+			<span class="h-0.5 w-4" style="background: {dashGradient(DASH.recommended, '--brand')}"
 			></span>
 			{m.energy_curve_legend_recommended()}
 		</span>
 	{/if}
 	{#if isBudgetOnScale}
 		<span class="flex items-center gap-grid-2xs">
-			<span
-				class="h-0.5 w-4"
-				style="background: repeating-linear-gradient(90deg, var(--ty-silent) 0 2px, transparent 2px 5px)"
+			<span class="h-0.5 w-4" style="background: {dashGradient(DASH.currentBudget, '--ty-silent')}"
 			></span>
 			{m.energy_curve_legend_now({
 				hours: formatDuration(currentBudget),

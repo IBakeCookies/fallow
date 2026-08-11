@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import type { TrajectoryPoint } from '$lib/business/model/zenith-energy';
+	import { DASH, dashArray, dashGradient } from '$lib/presentation/utils/dash';
 
 	interface Props {
 		trajectory: TrajectoryPoint[];
@@ -81,7 +82,13 @@
 		<path d={cogPath} fill="none" stroke-width="1.8" class="stroke-mind" />
 		<!-- `terminal` maps --mind and --body to two greens of the same lightness,
 		     so the dash is the only thing separating the two lines there. -->
-		<path d={physPath} fill="none" stroke-width="1.8" stroke-dasharray="5 3" class="stroke-body" />
+		<path
+			d={physPath}
+			fill="none"
+			stroke-width="1.8"
+			stroke-dasharray={dashArray(DASH.physical)}
+			class="stroke-body"
+		/>
 	</svg>
 </div>
 <div class="mt-text-2xs flex flex-wrap gap-grid-md text-xs text-ty-silent">
@@ -90,11 +97,7 @@
 		{m.energy_legend_cognitive()}
 	</span>
 	<span class="flex items-center gap-grid-2xs">
-		<!-- Why: STYLE.md, "Two namespaces" — a raw var() names the unprefixed one. -->
-		<span
-			class="h-0.5 w-4"
-			style="background: repeating-linear-gradient(90deg, var(--body) 0 5px, transparent 5px 8px)"
-		></span>
+		<span class="h-0.5 w-4" style="background: {dashGradient(DASH.physical, '--body')}"></span>
 		{m.energy_legend_physical()}
 	</span>
 	<span class="flex items-center gap-grid-2xs">

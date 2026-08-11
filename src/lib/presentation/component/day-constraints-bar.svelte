@@ -2,6 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 	import { cn } from '$lib/presentation/utils';
+	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 
@@ -45,14 +46,6 @@
 
 	const switchCostMinutes = $derived(Math.round(switchCost * 60));
 
-	// Shared so the slider can never cap below a budget the field still accepts.
-	// `step` binds the slider only: off-quarter budgets are typed (MATH.md §14.1).
-	const BUDGET_BOUNDS = {
-		min: 0,
-		max: 24,
-		step: 0.25,
-	};
-
 	// Below this, the slack is rounding noise from the 15-minute blocks rather than
 	// an hour anyone could spend — the summary and the warning must agree on it.
 	const MINIMUM_REPORTED_SLACK_HOURS = 0.05;
@@ -79,21 +72,21 @@
 		].join(' · '),
 	);
 
-	// What the fit read: the status lines quote this, never `flowLogs.length`.
-	const countedLogs = $derived(flowLogs.length - pendingFlowLogs);
+	const fitCountedLogs = $derived(flowLogs.length - pendingFlowLogs);
+	const resettableLogs = $derived(flowLogs.length);
 
 	const fitStatus = $derived(
 		constantsFitted
-			? countedLogs === 1
+			? fitCountedLogs === 1
 				? m.model_status_personalized_one()
 				: m.model_status_personalized({
-						count: countedLogs,
+						count: fitCountedLogs,
 					})
-			: countedLogs > 0
-				? countedLogs === 1
+			: fitCountedLogs > 0
+				? fitCountedLogs === 1
 					? m.model_status_implausible_one()
 					: m.model_status_implausible({
-							count: countedLogs,
+							count: fitCountedLogs,
 						})
 				: m.model_status_default(),
 	);
@@ -111,7 +104,7 @@
 	const modelStatus = $derived(
 		pendingFlowLogs === 0
 			? fitStatus
-			: countedLogs === 0
+			: fitCountedLogs === 0
 				? pendingStatus
 				: `${fitStatus} · ${pendingStatus}`,
 	);
@@ -119,7 +112,7 @@
 	// Collapsed, only a state with something to do earns a line: a rejected fit, a
 	// deferred log, and no logs at all — `model_status_default` is the only sentence
 	// in the app that says ⚡ exists. A settled fit is reassurance and stays inside.
-	const modelWarning = $derived(!constantsFitted && countedLogs > 0);
+	const modelWarning = $derived(!constantsFitted && fitCountedLogs > 0);
 	const modelPending = $derived(pendingFlowLogs > 0);
 	const modelPrompt = $derived(canLog && flowLogs.length === 0);
 
@@ -249,9 +242,9 @@
 			<FitLogSummary
 				label={modelStatus}
 				title={m.budget_model_tooltip()}
-				count={flowLogs.length}
+				count={resettableLogs}
 				confirmLabel={m.budget_reset_confirm({
-					count: flowLogs.length,
+					count: resettableLogs,
 				})}
 				resetLabel={m.budget_reset_personalization()}
 				resetTitle={m.budget_reset_title()}

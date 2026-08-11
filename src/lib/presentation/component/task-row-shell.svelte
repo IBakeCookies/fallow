@@ -319,7 +319,7 @@
 				focusMinutes={flowDraft.focusMinutes}
 				onsave={onlogflow}
 				oncancel={() => onflowclose?.()}
-				ondelete={onflowdelete}
+				ondelete={flowMinutes === undefined ? undefined : onflowdelete}
 			/>
 		{/key}
 	{/if}

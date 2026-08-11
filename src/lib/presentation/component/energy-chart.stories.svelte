@@ -59,6 +59,19 @@
 		// one of the two lines must be dashed as well as coloured
 		const svg = canvasElement.querySelector('svg');
 		await expect(svg?.querySelectorAll('path[stroke-dasharray]')).toHaveLength(1);
+
+		const lineDash = Number(
+			svg?.querySelector('[stroke-dasharray]')?.getAttribute('stroke-dasharray')?.split(' ')[0],
+		);
+
+		const swatchDash = Number(
+			canvasElement
+				.querySelector('[style*="repeating-linear-gradient"]')
+				?.getAttribute('style')
+				?.match(/(\d+)px/)?.[1],
+		);
+
+		await expect(swatchDash).toBe(lineDash);
 	}}
 >
 	{#snippet template(args)}

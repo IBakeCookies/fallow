@@ -1,13 +1,21 @@
 <script lang="ts">
 	import { Button } from '$lib/presentation/component/ui/button';
 
-	interface Props {
+	type Props = {
 		accentClass?: string;
 		oncancel: () => void;
-		ondelete?: () => void;
-		deleteLabel?: string;
-		deleteTitle?: string;
-	}
+	} & (
+		| {
+				ondelete?: undefined;
+				deleteLabel?: undefined;
+				deleteTitle?: undefined;
+		  }
+		| {
+				ondelete: (() => void) | undefined;
+				deleteLabel: string;
+				deleteTitle: string;
+		  }
+	);
 
 	let { accentClass = 'text-flow', oncancel, ondelete, deleteLabel, deleteTitle }: Props = $props();
 </script>

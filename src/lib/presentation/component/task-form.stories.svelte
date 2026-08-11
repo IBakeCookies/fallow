@@ -270,6 +270,52 @@
 />
 
 <Story
+	name="Clearing a picked title resets every rating"
+	args={{
+		suggest: fn(suggestGym),
+	}}
+	play={async ({ canvas, userEvent }) => {
+		const title = canvas.getByLabelText('Task Definition');
+		const mustDo = canvas.getByLabelText("Don't move off today");
+
+		const physical = canvas.getByRole('slider', {
+			name: /Physical Diff/,
+		});
+
+		const mental = canvas.getByRole('slider', {
+			name: /Mental Diff/,
+		});
+
+		const enjoyment = canvas.getByRole('slider', {
+			name: /Enjoyment/,
+		});
+
+		await userEvent.type(title, 'gym');
+
+		await userEvent.click(
+			canvas.getByRole('option', {
+				name: 'Gym session',
+			}),
+		);
+
+		await userEvent.click(mustDo);
+
+		await expect(physical).toHaveValue('8');
+		await expect(mental).toHaveValue('2');
+		await expect(enjoyment).toHaveValue('3');
+
+		await userEvent.clear(title);
+
+		await expect(physical).toHaveValue('5');
+		await expect(mental).toHaveValue('5');
+		await expect(enjoyment).toHaveValue('5');
+
+		await expect(title).toHaveValue('');
+		await expect(mustDo).toBeChecked();
+	}}
+/>
+
+<Story
 	name="Keyboard"
 	args={{
 		suggest: fn(suggestGym),

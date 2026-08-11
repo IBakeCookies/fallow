@@ -259,6 +259,25 @@
 	}}
 />
 
+<Story
+	name="Open with a log the plan defers"
+	args={{
+		flowLogs: [...flowLogs, log(4, '2026-07-21', 'deep work', 1)],
+		pendingFlowLogs: 1,
+	}}
+	play={async ({ canvas, userEvent }) => {
+		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Reset personalization',
+			}),
+		);
+
+		await expect(canvas.getByText('Delete all 4 logs and revert to defaults?')).toBeVisible();
+	}}
+/>
+
 <!-- Day one: every log is deferred, so there is no fit to describe. The deferral
      line REPLACES the "log ⚡ to start personalizing" prompt, which would
      otherwise ask the user to do the thing they have just done. -->

@@ -36,8 +36,8 @@
 		ondelete,
 	}: Props = $props();
 
-	// A copy taken at MOUNT — as is `focusMinutes` below. A caller that re-seeds without
-	// remounting gets stale fields; `task-row-shell.svelte` keys this on the draft for that.
+	// Why a copy, and why re-opening is a remount: presentation/AGENTS.md, "A seeded editor
+	// copies its seed at mount".
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,
@@ -126,7 +126,7 @@
 		</Tooltip.Root>
 		<MeasurementFormActions
 			{oncancel}
-			ondelete={draft.recordId === undefined ? undefined : ondelete}
+			{ondelete}
 			deleteLabel={m.energy_delete_drain_log_aria()}
 			deleteTitle={m.energy_delete_drain_log_title()}
 		/>

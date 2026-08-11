@@ -30,6 +30,13 @@
 		// Opened itself on completion, so it must not yank the caret out of the list
 		await expect(minutes).not.toHaveFocus();
 
+		// 🗑 is the caller's, and this caller passed none
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Delete this flow log',
+			}),
+		).not.toBeInTheDocument();
+
 		// Nothing measured: nothing to report
 		await userEvent.click(save);
 		await expect(args.onsave).not.toHaveBeenCalled();
@@ -61,13 +68,24 @@
 		focusMinutes: true,
 		onsave: fn(),
 		oncancel: fn(),
+		ondelete: fn(),
 	}}
-	play={async ({ canvas }) => {
+	play={async ({ args, canvas, userEvent }) => {
 		const minutes = canvas.getByPlaceholderText('min');
 
 		await expect(minutes).toHaveValue(40);
 
 		// Opened by the row's own ⚡ button: the only opening that takes the caret
 		await expect(minutes).toHaveFocus();
+
+		// Whether 🗑 is offered is the caller's call, not re-derived from `seed` here,
+		// and it is named — the emoji alone tells a screen reader nothing
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Delete this flow log',
+			}),
+		);
+
+		await expect(args.ondelete).toHaveBeenCalledOnce();
 	}}
 />
