@@ -7,12 +7,12 @@
 
 	interface Props {
 		seed: TaskEdit;
-		showMustDoToday?: boolean;
+		withMustDoToday?: boolean;
 		onsave: (edit: TaskEdit) => void;
 		oncancel: () => void;
 	}
 
-	let { seed, showMustDoToday = true, onsave, oncancel }: Props = $props();
+	let { seed, withMustDoToday = true, onsave, oncancel }: Props = $props();
 
 	// Why a copy, and why re-opening is a remount: presentation/AGENTS.md, "A seeded editor
 	// copies its seed at mount".
@@ -45,7 +45,7 @@
 		/>
 	</label>
 
-	<TaskFormFields bind:draft {showMustDoToday}>
+	<TaskFormFields bind:draft {withMustDoToday}>
 		{#snippet footer()}
 			<span class="flex items-center gap-grid-xs">
 				<Button variant="ghost" size="xs" type="button" onclick={oncancel}>

@@ -125,7 +125,7 @@
 			enjoyment: 2,
 			mustDoToday: true,
 		},
-		showMustDoToday: false,
+		withMustDoToday: false,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.queryByRole('checkbox')).not.toBeInTheDocument();

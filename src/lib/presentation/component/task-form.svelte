@@ -10,10 +10,10 @@
 		onsubmit: (task: TaskEdit) => void;
 		suggest: (query: string) => TitleRating[];
 		isOpen?: boolean;
-		showMustDoToday?: boolean;
+		withMustDoToday?: boolean;
 	}
 
-	let { onsubmit, suggest, isOpen = true, showMustDoToday = true }: Props = $props();
+	let { onsubmit, suggest, isOpen = true, withMustDoToday = true }: Props = $props();
 
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let open = $state(isOpen);
@@ -209,7 +209,7 @@
 			</button>
 		</div>
 
-		<TaskFormFields bind:draft {showMustDoToday}>
+		<TaskFormFields bind:draft {withMustDoToday}>
 			{#snippet footer()}
 				<Button type="submit">{m.form_deploy_task()}</Button>
 			{/snippet}

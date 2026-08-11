@@ -945,10 +945,10 @@ These came out of a sweep that cut 946 comment lines across 30 files. A comment
 defending a design is evidence about the design, and this is what the defended
 code turned out to be. The **F** ids are stable and never reused.
 
-All 65 were then triaged against the code they name: **34 dropped**, **4 open**
-below, and **27 fixed** on this branch — F2, F4, F8, F11, F16, F19, F20, F21,
-F22, F23, F24, F26, F28, F31, F32, F33, F39, F41, F42, F46, F47, F48, F49, F55,
-F61, F62 and F64, named here so a reference to one resolves to "done" rather than "lost".
+All 65 were then triaged against the code they name: **34 dropped**, **3 open**
+below, and **29 fixed** on this branch — F2, F4, F8, F11, F16, F18, F19, F20,
+F21, F22, F23, F24, F26, F28, F31, F32, F33, F37, F39, F41, F42, F46, F47, F48,
+F49, F55, F61, F62 and F64, named here so a reference to one resolves to "done" rather than "lost".
 
 One error dominated the raised set and is worth knowing before trusting anything
 here: "nothing enforces this", written without opening the story or e2e file that
@@ -966,28 +966,12 @@ test before believing that phrase.
   the thumb tracks the true budget, or round at the two `session.availableHours =`
   apply sites. Pin it with a story on an off-quarter budget, and correct MATH.md
   §14.1-2's "the card has no Apply for set-budget" sentence.
-- **F37** `task-row-shell.svelte` — one flag, two names: `withMustDoToday` on the
-  shell, `showMustDoToday` on task-edit-form / task-form / task-form-fields, with
-  the shell translating between them. Grepping either name finds only half the
-  chain from `withMustDoToday={false}` on the energy row to the hidden checkbox.
-  Rename inward to `withMustDoToday` (booleans are `is`/`has`/`with`), collapsing
-  the shell's forward to `{withMustDoToday}`. Lands with F18 — same doc paragraph.
 - **F54** `task-item.svelte` — both branches of the trailing snippet's `{#if replan}`
   print the priority line and open `m.task_allocation_tooltip()`, in two different
   trigger structures (two sibling triggers against one trigger wrapping two spans),
   so a change to the small line has to be made twice. Collapse to one structure —
   a primary span and one secondary span whose `plan … ·` prefix is conditional —
   and re-point the four replan stories at it.
-
-### Open — needs a decision before it can be worked
-
-- **F18** `task-row-shell.svelte` — presentation/AGENTS.md states the shell rule
-  twice and the two statements disagree: "do not give the shell a mode flag"
-  against the settled "must-do checkbox is hidden in both of the Lab's forms",
-  which is only reachable through `withMustDoToday`, a prop the doc never names. A
-  reader enforcing the first sentence deletes the prop and un-hides the Lab's
-  checkbox; a reader enforcing the second adds more pass-throughs. One of the two
-  sources has to name the carve-out. Rewrites the same paragraph as F37.
 
 ### Raised while working the list, not by the sweep
 

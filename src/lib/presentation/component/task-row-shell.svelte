@@ -33,6 +33,9 @@
 		mentalDifficulty: number;
 		enjoyment: number;
 		mustDoToday?: boolean;
+		/** Whether the ✎ editor offers the must-do checkbox. The one carve-out from "no
+		 *  mode flag on the shell" — presentation/AGENTS.md says which reading it is and
+		 *  why the seeded value still round-trips. Same name all the way down. */
 		withMustDoToday?: boolean;
 		ontoggle: () => void;
 		flowMinutes?: number;
@@ -346,7 +349,7 @@
 				enjoyment,
 				mustDoToday,
 			}}
-			showMustDoToday={withMustDoToday}
+			{withMustDoToday}
 			onsave={(edit) => {
 				onupdate(edit);
 				isEditing = false;

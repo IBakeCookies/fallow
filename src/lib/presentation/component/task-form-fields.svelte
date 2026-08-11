@@ -15,11 +15,11 @@
 
 	interface Props {
 		draft: TaskEdit;
-		showMustDoToday?: boolean;
+		withMustDoToday?: boolean;
 		footer: Snippet;
 	}
 
-	let { draft = $bindable(), showMustDoToday = true, footer }: Props = $props();
+	let { draft = $bindable(), withMustDoToday = true, footer }: Props = $props();
 
 	// Enjoyment's minimum is 1 because ϕ divides by enjoyment (MATH.md §2): a 0 there is
 	// not a rating, it is a division by zero.
@@ -67,7 +67,7 @@
 <!-- `justify-end` with the flag pushed out by its own margin, so the buttons keep their
      corner in the mode that has no flag to show. -->
 <div class="flex flex-wrap items-center justify-end gap-grid-sm">
-	{#if showMustDoToday}
+	{#if withMustDoToday}
 		<label
 			class="mr-auto flex items-center gap-text-xs text-xs font-medium text-ty-secondary"
 			title={m.form_must_do_today_title()}

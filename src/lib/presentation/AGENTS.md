@@ -145,6 +145,14 @@ duplicated — and it is the only reason there are two components. If the
 readings ever converge, merge the two callers; do not give the shell a mode
 flag.
 
+**One prop is the carve-out, and it is not a mode flag: `withMustDoToday`.** It
+does not switch the shell between two screens' behaviours — it says whether the
+✎ editor offers one field, and the Lab passes `false` for the reason under "The
+Lab's row reads the three model inputs" below. Everything else that differs
+between the screens arrives as a snippet. A second prop of this shape is the
+signal that the readings have converged and the two callers should merge, not
+licence for a third.
+
 ### The row's layout
 
 **Three columns from `sm` up — box, task, what the day gave it — and stacked
@@ -362,9 +370,11 @@ params panel beside the list: `P`/`M`/`E` are a definition the user sets once
 when deploying a task, and the form already suggests them from history (ROADMAP
 item 24). So they read as text, exactly as `/` spells them, and ✎ re-tunes them.
 The must-do checkbox is hidden in both of the Lab's forms
-(`showMustDoToday={false}`) because `isPinned` is read by the plan advisor and
-by nothing in this mode — the seeded value still round-trips, so an edit here
-cannot clear a flag set there.
+(`withMustDoToday={false}` — the add form takes it directly, the row's ✎ through
+the shell) because `isPinned` is read by the plan advisor and by nothing in this
+mode. The seeded value still round-trips, so an edit here cannot clear a flag set
+there. This is the carve-out named under "R3 in the UI" above; the prop is one
+name from the Lab's page down to the checkbox.
 
 ### The calibration cards share a shell, not a body
 
