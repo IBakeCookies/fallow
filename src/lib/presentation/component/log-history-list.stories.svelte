@@ -149,7 +149,10 @@
 
 		await userEvent.click(correct[0]);
 
-		await expect(onedit).toHaveBeenCalledWith('rest', 4);
+		// The row's own key, not a kind and id the caller would have to re-join: the
+		// same string `editingKey` is compared against, so re-keying the fold cannot
+		// silently stop ✎ from opening anything.
+		await expect(onedit).toHaveBeenCalledWith('rest-4');
 	}}
 />
 

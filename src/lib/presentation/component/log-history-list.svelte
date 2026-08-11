@@ -16,7 +16,12 @@
 		 *  must not outlive — a drop, a range change, a scope change, a save. */
 		editingKey: string | null;
 		ondelete: (kind: LogKind, id: number) => void;
-		onedit: (kind: LogKind, id: number) => void;
+		/** Takes `row.key` and not the kind and id it is built from: `editingKey` is
+		 *  compared against `row.key`, so a caller re-deriving the string would have to
+		 *  match a format that lives in `logHistory` — same type, and no error when the
+		 *  two drift apart. A delete stays addressed by kind and id, which is what the
+		 *  two stores take. */
+		onedit: (key: string) => void;
 		oncancel: () => void;
 		onsaveflow: (id: number, minutes: number) => void;
 		onsavedrain: (id: number, entry: { hours: number; mind: number; body: number }) => void;
@@ -132,7 +137,7 @@
 							})}
 							title={m.ana_logs_edit_title()}
 							class="text-ty-silent transition hover:text-ty-secondary"
-							onclick={() => (editingKey === row.key ? oncancel() : onedit(row.kind, row.id))}
+							onclick={() => (editingKey === row.key ? oncancel() : onedit(row.key))}
 						>
 							✎
 						</button>
