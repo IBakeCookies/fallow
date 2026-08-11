@@ -136,9 +136,11 @@ publishes it as the `dependency-graph` artifact, so the current graph is a
 download away instead of a 500 KB file that goes stale between commits.
 
 Every test artefact lands under the gitignored `test-result/`: `unit/` (vitest
-html report), `coverage/` (v8, always on, over
-`business`/`data`/`presentation`), `e2e/` (playwright report and traces).
-Coverage is a number to read, not a gate — nothing fails on it.
+html report), `coverage/` (v8, over `business`/`data`/`presentation`), `e2e/`
+(playwright report and traces). Coverage is a number to read, not a gate —
+nothing fails on it, so it runs on CI and off locally (instrumenting every
+module costs a fifth of the run). `npm run test:coverage` when you want it
+here.
 
 ## The reviewer pass
 
