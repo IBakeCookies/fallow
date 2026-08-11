@@ -8,19 +8,14 @@
 	import { Button } from '$lib/presentation/component/ui/button';
 
 	interface Props {
-		/** Null until the user asks: the sweep costs a full solve per step. */
 		curve: BudgetCurve | null;
 		isBusy: boolean;
-		/** The day changed after this curve was calculated. */
 		isStale: boolean;
 		/** The last sweep failed; the curve shown (if any) predates the failure. */
 		hasError: boolean;
-		/** The window the day is set to now. */
 		currentBudget: number;
-		/** For λ₀, which the stop advisor beside this card also prints locale-formatted. */
 		locale: string;
 		oncheck: () => void;
-		/** Adopt the recommended window — writes the day's budget. */
 		onapply: (hours: number) => void;
 	}
 
@@ -33,23 +28,16 @@
 			: (curve.points.find((p) => p.budgetHours === curve.recommendedHours) ?? null),
 	);
 
-	// The other reason there is no recommendation: not that the sweep ran out, but
-	// that no window was worth working at this λ₀ (MATH.md §8.12). Same null,
-	// opposite reading — "it would use every hour you give it" is the exact
-	// inverse of the truth here, so the branch is on the points, not on the null.
+	// Two nulls, opposite readings: the sweep ran out, or no window was worth
+	// working at this λ₀ (MATH.md §8.12) — so branch on the points, not the null.
 	const booksNoWork = $derived(curve !== null && curve.points.every((p) => p.workHours === 0));
 </script>
 
-<!-- Until the user asks, this is one button and nothing else: a card advertising
-     a feature it has not run yet is pure vertical cost above the plan. -->
 {#if !curve}
 	<div class="flex items-baseline justify-end gap-grid-xs">
 		{#if hasError}
 			<p class="text-xs text-danger">{m.energy_curve_error()}</p>
 		{/if}
-		<!-- The same tooltip the rest of the app uses, not `title=`: what this
-		     button costs and what it does is two sentences, which a native tooltip
-		     truncates and touch never shows at all. `child` keeps the Button. -->
 		<Tooltip.Provider delayDuration={150}>
 			<Tooltip.Root>
 				<Tooltip.Trigger>
@@ -95,16 +83,10 @@
 			</p>
 		{/if}
 
-		<!-- No empty-curve branch: `suggestBudgetCurve` returns no points only for an
-		     empty task list, and this card is mounted inside the page's `hasTasks`
-		     gate — so is the button that runs the sweep. -->
+		<!-- No empty-curve branch: points are empty only for an empty task list, and
+		     the page's `hasTasks` gate is above this card. -->
 		<BudgetCurveChart {curve} {currentBudget} />
 
-		<!-- The verdict, in the three shapes the model can actually produce. The last
-		     two are both "no recommendation" and read in opposite directions — the
-		     sweep ran out, or free time outbid every window — and neither is a
-		     failure to report. The hint they share names the one parameter that
-		     moves either of them (MATH.md §8.12). -->
 		<div class="mt-grid-sm border-t border-line-soft pt-box-sm">
 			{#if recommended !== null}
 				<div class="flex flex-wrap items-baseline justify-between gap-grid-xs">

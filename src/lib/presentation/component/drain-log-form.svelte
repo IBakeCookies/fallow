@@ -9,25 +9,18 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 
 	interface Props {
-		/** The rating this editor opened on, when it opened on a stored one. `recordId` is
-		 *  carried for the CALLER, not read here: the task-row pages key their own
-		 *  append-vs-rewrite choice off it, and pass their 🗑 on the same evidence. It is
-		 *  not what makes ✓ a rewrite — the analytics ✎ passes a seed without one and its
-		 *  ✓ corrects, because there the record id is the page's already. */
+		/** The rating this editor opened on, when it opened on a stored one. `recordId` is the
+		 *  caller's append-vs-rewrite key; ✓ here emits the same entry either way. */
 		seed?: {
 			recordId?: number;
 			minutes: number | null;
 			mind: number | null;
 			body: number | null;
 		};
-		/** Only when the row's own 🪫 button (or a rating's chip) opened this. An editor
-		 *  that opened itself on completion must not yank the caret out of the list. */
 		focusMinutes?: boolean;
 		/** The end of a session, in the units MATH.md §8.8 fits α from. */
 		onsave: (entry: { hours: number; mind: number; body: number }) => void;
 		oncancel: () => void;
-		/** Drop the session this editor opened on. Offered only for a stored rating —
-		 *  see `seed.recordId`. */
 		ondelete?: () => void;
 	}
 
@@ -43,16 +36,8 @@
 		ondelete,
 	}: Props = $props();
 
-	// A copy, read once: typing must not reach the page's draft, since `recordId` on it
-	// decides whether ✓ appends a session or rewrites a stored one. That makes a fresh
-	// draft per opening the MOUNT — which is a promise the caller has to keep, not one
-	// this component can. `task-row-shell.svelte` keys this on the draft for exactly
-	// that reason; a caller that re-seeds without remounting gets stale fields against
-	// a switched save path. `focusMinutes` below is mount-only for the same reason.
-	//
-	// What must NOT live here is whether the editor is open: the completion prompt
-	// yields to one already on the row, and a chip opens one over a draft the row may
-	// already hold. Both are the page's to know.
+	// A copy taken at MOUNT — as is `focusMinutes` below. A caller that re-seeds without
+	// remounting gets stale fields; `task-row-shell.svelte` keys this on the draft for that.
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let draft = $state({
 		...seed,
@@ -64,10 +49,8 @@
 
 		if (!minutes || minutes <= 0) return;
 
-		// An empty rating is not a rating of 0 — `Number(null)` is a finite 0, so ✓ with
-		// only the minutes filled used to record "worked 90 minutes, felt entirely fresh"
-		// and bias the α fit toward no drain. 0 is legitimate, so the test is emptiness,
-		// not falsiness. `required` on the fields is what makes the refusal visible.
+		// `Number(null)` is a finite 0 and 0 is a legitimate rating, so the test is emptiness,
+		// not falsiness; `required` on the fields is what makes the silent refusal visible.
 		if (mind === null || body === null) return;
 
 		onsave({
@@ -78,10 +61,9 @@
 	}
 </script>
 
-<!-- Its own provider, like task-item.svelte's: the two rating labels are explained by
-     tooltip, and a component that cannot mount without an ancestor providing one is a
-     component every caller has to keep a wrapper for. Nesting inside the page's region
-     provider is harmless — the inner one wins, with the same delay. -->
+<!-- Its own provider, like task-item.svelte's: a component that cannot mount without an
+     ancestor providing one costs every caller a wrapper. Nesting is harmless — the inner
+     one wins, with the same delay. -->
 <Tooltip.Provider delayDuration={150}>
 	<form class={MEASUREMENT_FORM_CLASS} onsubmit={(e) => (e.preventDefault(), save())}>
 		<span class="text-ty-secondary">{m.energy_drain_form_title()}</span>

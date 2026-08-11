@@ -1,25 +1,15 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 
-	/* No component: these stories exist to look at a whole theme. The page
-	   background is bg-fixed and the scenery layers are position:fixed, so
-	   neither reads correctly inside the few hundred pixels a component story
-	   occupies — they need height, and the toolbar's theme picker does the rest.
-
-	   Deliberately NOT in style/: Tailwind's auto source detection skips the
-	   directory holding the CSS entry point, so a class only used there (the
-	   fixed height below) is never generated. */
+	/* Not in style/: the Tailwind scanner skips the directory holding the CSS
+	   entry point, so the h-[100rem] below would never be emitted (STYLE.md). */
 	const { Story } = defineMeta({
 		title: 'Theme',
 		parameters: {
 			layout: 'fullscreen',
-			/* This is a token swatch sheet, not a UI surface: it renders every
-			   fill/ink pair on purpose, including the 16 of 306 that STYLE.md
-			   records as unable to reach 4.5:1 with any ink (a mid-luminance
-			   chromatic fill caps out; worst case 4.28:1). That budget is measured
-			   by scripts/ink-contrast.mjs, not by axe — which would otherwise fail
-			   this page for the exact tradeoff the tokens document. Contrast stays
-			   enforced on every real component story. */
+			/* Renders every fill/ink pair on purpose, including the budgeted ones
+			   STYLE.md records as reaching no 4.5:1 ink — scripts/ink-contrast.mjs
+			   measures those, not axe. Real component stories keep the rule. */
 			a11y: {
 				config: {
 					rules: [
@@ -33,8 +23,7 @@
 		},
 	});
 
-	/* Literal class strings — Tailwind's scanner is textual, so anything
-	   assembled at runtime would not exist. */
+	/* Literal class strings — Tailwind's scanner is textual (STYLE.md). */
 	const surfaces = [
 		'bg-surface-page',
 		'bg-surface-card',
@@ -50,9 +39,6 @@
 		'bg-destructive-soft',
 		'bg-destructive-soft-hover',
 	];
-	/* Each fill with its paired ink, so the "Aa" doubles as the legibility check
-	   the ink tokens exist for — they are derived from the fill, so a theme that
-	   swaps a fill silently changes these and this row is where it shows. */
 	const states = [
 		['bg-brand', 'text-brand-ink'],
 		['bg-success', 'text-success-ink'],
@@ -78,8 +64,6 @@
 	];
 </script>
 
-<!-- Two viewports tall, so a gradient, a bg-fixed image and a drifting scenery
-     layer are all judgeable — and so scrolling shows they stay put. -->
 <Story name="Background">
 	{#snippet template()}
 		<div class="flex h-[100rem] flex-col justify-between p-page">
@@ -122,9 +106,6 @@
 			</div>
 		</section>
 
-		<!-- Deliberately not swapped per theme: the hues only stay apart if their
-		     lightness holds, so series-ink is the only label colour that survives
-		     on the fills — the "Aa" inside each swatch is that pairing. -->
 		<section class="space-y-text-sm">
 			<h2 class="text-lg font-bold text-ty-primary">Categorical series</h2>
 			<div class="flex flex-wrap gap-grid-sm">
@@ -146,7 +127,6 @@
 			{/each}
 		</section>
 
-		<!-- What every card in the app is: translucent surface + backdrop-blur -->
 		<section class="card-shell space-y-text-xs p-box-xl">
 			<h2 class="text-lg font-bold text-ty-primary">A card on this theme</h2>
 			<p class="text-sm text-ty-secondary">

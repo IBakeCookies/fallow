@@ -13,30 +13,21 @@
 
 	let { children, data }: LayoutProps = $props();
 
-	// Theme lives here, OUTSIDE the {#key} below — a language switch recreates
-	// the keyed subtree, and a store owned by it would reset to the load-time
-	// cookie snapshot. data.appearance is deliberately only init seeds.
-	// The layout is the environment-dual module, so reading the live cookies is
-	// its job: readClientAppearance() is empty under SSR and real after that.
+	// Outside the {#key} below: a language switch recreates that subtree, and a
+	// store owned by it would reset to the load-time cookie snapshot.
 	// svelte-ignore state_referenced_locally
 	const themeStore = setThemeStore(data.appearance, readClientAppearance());
 
-	// Not in dev: both inject a `script.debug.js` fetched from
-	// va.vercel-scripts.com on every page load, which measures nothing locally
-	// and sits on the critical path of an already slower dev load.
-	// Only on Vercel: the /_vercel/* scripts 404 anywhere else (e2e preview).
+	// The /_vercel/* scripts 404 anywhere but Vercel (e2e preview), and in dev
+	// both inject a remote `script.debug.js` that measures nothing locally.
 	// svelte-ignore state_referenced_locally
 	if (!dev && data.isVercel) {
 		injectAnalytics();
 		injectSpeedInsights();
 	}
 
-	// Clock-driven scenery state. SSR renders the request's IP-derived
-	// timezone; hydration never re-patches the SSR'd style attribute, so
-	// re-derive from the client's real clock once mounted (a state change
-	// after hydration does update the DOM), then keep it ticking — the
-	// scenery positions drift with the real clock, and a planner tab can
-	// stay open all day. A minute is finer than any var's visible rate.
+	// Hydration never re-patches the SSR'd style attribute, so the mount below
+	// re-derives from the client's real clock; a change after that does update it.
 	// svelte-ignore state_referenced_locally
 	let sceneryNow = $state(nowInTimeZone(data.timezone));
 
@@ -47,9 +38,8 @@
 		return () => clearInterval(id);
 	});
 
-	// Separately derived, not inlined into the style attribute: one expression
-	// there re-runs the whole seeded var table — and both of its SVG generators —
-	// on every minute tick, though nothing but the clock has changed.
+	// Two deriveds, not one expression in the style attribute: that re-runs the
+	// whole seeded var table and both its SVG generators on every minute tick.
 	const seedStyle = $derived(sceneryStyle(themeStore.scenerySeed));
 	const clockStyle = $derived(dataSceneryStyle(sceneryNow));
 
@@ -60,10 +50,8 @@
 	});
 </script>
 
-<!-- Theme scenery: fixed decorative layers behind the app. display:none by
-     default; a theme opts in by styling the helpers in style/scenery/. The seeded
-     vars vary each theme's arrangement per user (see utils/scenery-seed.ts);
-     the data vars set the clock-driven themes' state (utils/scenery-time.ts). -->
+<!-- Empty by design: display:none until a theme styles these helpers in
+     style/scenery/. -->
 <div class="theme-scenery" aria-hidden="true" style="{seedStyle}; {clockStyle}">
 	<div class="theme-helper-1"></div>
 	<div class="theme-helper-2"></div>

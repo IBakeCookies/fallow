@@ -16,10 +16,8 @@
 		/** Perform a defer-task option: move that task to tomorrow's plan. */
 		onapply: (taskId: number) => void;
 		/**
-		 * Perform a set-budget option: declare that many available hours. Takes the
-		 * lever's UNROUNDED hours, which is the point of the button — the trim lever
-		 * is `budget − planSlack` and only its label rounds (MATH.md §14.1-2), so a
-		 * user retyping what the card shows lands on a budget the model never priced.
+		 * Takes the lever's UNROUNDED hours: only the label rounds (MATH.md §14.1-2),
+		 * so a budget retyped from what the card shows is one the model never priced.
 		 */
 		onapplybudget: (hours: number) => void;
 	}
@@ -27,8 +25,6 @@
 	let { advice, isBusy, isStale, hasError, oncheck, onapply, onapplybudget }: Props = $props();
 </script>
 
-<!-- Until the user asks, this is one button and nothing else: a card advertising
-     a feature it has not run yet is pure vertical cost above the plan. -->
 {#if !advice}
 	<div class="flex items-baseline justify-end gap-grid-xs">
 		{#if hasError}
@@ -72,21 +68,17 @@
 			<p class="mt-grid-sm text-xs text-ty-secondary">{advice.unfunded}</p>
 		{/if}
 
-		<!-- Louder than the plain unfunded line: this one is a contradiction the user
-		     set up, and the menu below cannot offer to resolve it. -->
+		<!-- Louder than the plain unfunded line: the menu below has no lever for it. -->
 		{#if advice.unfundedMustDo}
 			<p class="mt-grid-sm text-xs text-warning-strong">{advice.unfundedMustDo}</p>
 		{/if}
 
-		<!-- The budget's shadow price (MATH.md §14.2): what one more block buys and
-		     who gets it. A day-level reading, so it sits above the per-axis menu
-		     rather than inside any one row's budget levers. -->
+		<!-- The budget's shadow price (MATH.md §14.2): a day-level reading, so it sits
+		     above the per-axis menu rather than inside one row's budget levers. -->
 		<p class="mt-grid-sm text-xs text-ty-silent">{advice.marginal}</p>
 
-		<!-- What the declared switch cost reserves, and what the plan would read at
-		     zero and at double (MATH.md §14.3). Same quiet register as the marginal
-		     above, and deliberately not a row in the menu below: §14 rules the switch
-		     cost a measurement of the user, so there is no lever to offer. -->
+		<!-- Not a row in the menu below: §14 rules the switch cost a measurement of
+		     the user (§14.3), so there is no lever to offer. -->
 		<p class="mt-text-xs text-xs text-ty-silent">{advice.switchCost}</p>
 
 		{#if advice.rows.length > 0}
@@ -100,23 +92,18 @@
 							>
 							{@render bandText(row.beforeBand)}
 						</div>
-						<!-- An axis the search came back empty on (MATH.md §14.4). Said out
-						     loud, because a reading with nothing under it otherwise reads as a
-						     rendering failure — and because the row is here precisely to stop
-						     the card from calling such a day fine. -->
+						<!-- An axis the search came back empty on (MATH.md §14.4), said out loud:
+						     a reading with nothing under it otherwise reads as a rendering failure. -->
 						{#if row.options.length === 0}
 							<p class="mt-text-xs text-xs text-ty-silent">{m.advice_no_lever()}</p>
 						{:else}
 							<ul class="mt-text-xs space-y-text-xs">
-								<!-- Keyed on the lever — one object per candidate — and never on the
-								     option's words: two tasks sharing a title spell the same
-								     sentence, and a duplicate key crashes the card outright. -->
+								<!-- Keyed on the lever, never the option's words: two tasks sharing a
+								     title spell the same sentence, and a duplicate key crashes the card. -->
 								{#each row.options as option (option.lever)}
 									{@const lever = option.lever}
-									<!-- The unpriced increase is ruled out of the frontier by the model
-									     (MATH.md §14), so it is not a fourth comparable option: ruled off
-									     from them, since its reading is worse than every option above it
-									     and its cost is denominated in something else entirely. -->
+									<!-- Ruled off from the priced options: the unpriced increase is off the
+									     frontier (MATH.md §14) and its cost is denominated in something else. -->
 									<li
 										class="flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs"
 										class:border-t={option.isUnpriced}
@@ -130,9 +117,8 @@
 											>
 											{@render bandText(option.afterBand)}
 											<span class="text-ty-silent">· {option.cost}</span>
-											<!-- A deferral prices "off today" (MATH.md §14) while the button
-											     commits to a destination, so aria-label carries both, plus the
-											     title so the buttons stay apart. -->
+											<!-- A deferral prices "off today" (MATH.md §14) while the button commits
+											     to a destination: the aria-label carries both, and the task title. -->
 											{#if lever.kind === 'defer-task'}
 												<Button
 													variant="outline"
@@ -145,11 +131,6 @@
 												>
 													{m.advice_apply()}
 												</Button>
-												<!-- Also performable, and §14 is why: the budget is a choice about
-												     the day, which is exactly what makes it a lever where the
-												     switch cost is only a diagnostic. Applies the lever's own
-												     unrounded hours, which the number field accepts and the
-												     slider's 0.25 step cannot express. -->
 											{:else}
 												<Button
 													variant="outline"
@@ -171,18 +152,15 @@
 					</li>
 				{/each}
 			</ul>
-			<!-- Every axis in band does NOT mean the day is fine: unfunded tasks are a
-			     read, not a band, so a day can read clean everywhere and still leave
-			     work with no hours. Saying "this day is fine" under either line above
-			     negates it. -->
+			<!-- Unfunded tasks are a read, not a band: a day can be in band everywhere
+			     and still leave work with no hours, which "this day is fine" negates. -->
 		{:else if !advice.unfunded && !advice.unfundedMustDo}
 			<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
 		{/if}
 	</div>
 {/if}
 
-<!-- The band a reading falls in is otherwise carried by colour alone (WCAG
-     1.4.1), the same reason the metrics dashboard renders this. Sibling of the
+<!-- The band is otherwise carried by colour alone (WCAG 1.4.1). Sibling of the
      value, never nested, so the value element's text stays exactly the reading. -->
 {#snippet bandText(band: Band)}
 	{@const judged = bandLabel(band)}

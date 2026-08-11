@@ -11,16 +11,7 @@
 		EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 
-	/* The Lab's reading of a task: the plan's hue and the hours the schedule gave it.
-	   Same shell as the main page's row, filled from the other model — that difference
-	   is the only reason there are two. Both measurements, every editor and the action
-	   strip are the shell's.
-
-	   The three model inputs used to be live sliders here, a second line on every row.
-	   They are a definition the user sets once when deploying the task (the form even
-	   suggests them from history), so they read as text like the main page spells them
-	   and ✎ re-tunes them. What re-optimizes live is the params panel beside the list,
-	   which is what the Lab is actually for. */
+	// Why: presentation/AGENTS.md, "R3 in the UI — the two task screens are one definition"
 
 	interface Props {
 		title: string;
@@ -28,19 +19,15 @@
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
-		/** Not badged here — the plan advisor is the main page's — but ✎ must round-trip
-		 *  it rather than clear it. */
+		/** Not badged here, but ✎ must round-trip it rather than clear it. */
 		mustDoToday?: boolean;
-		/** The plan's colour for this task — the same hue the timeline gives its blocks. */
 		color: string;
-		/** What the plan gave the task. Null when there is no plan to report on: "no
-		 *  hours" against every task would be a claim the optimizer never made. */
+		/** Null when there is no plan at all: "no hours" against every task would be a
+		 *  claim the optimizer never made. */
 		plannedHours: number | null;
 		flowMinutes?: number;
 		flowDraft?: EditorDraft | null;
 		onflowopen: (source: EditorSource) => void;
-		/** The badge's own action. Required here, unlike on the main page: the Lab shows
-		 *  today and nothing else, so there is no day that withholds it. */
 		onflowedit: () => void;
 		onflowclose: () => void;
 		onlogflow: (minutes: number) => void;
@@ -54,7 +41,6 @@
 		ondrainsave: (entry: { hours: number; mind: number; body: number }) => void;
 		ondrainedit: (log: Persisted<DrainObservationRecord>) => void;
 		ondraindelete: (recordId: number) => void;
-		/** The whole edit ✎ collected — the only way this row changes the task. */
 		onchange: (edit: TaskEdit) => void;
 	}
 
@@ -91,9 +77,8 @@
 	<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {color}"></span>
 {/snippet}
 
-<!-- What the plan gave this task, where the main page puts its own allocation. Hidden
-     on a completed task, which the optimizer no longer plans at all: "no hours" there
-     reads as a verdict when it only means the task is done. -->
+<!-- Hidden on a completed task, which the optimizer no longer plans at all: "no hours"
+     there reads as a verdict when it only means the task is done. -->
 {#snippet trailing()}
 	{#if !completed && plannedHours !== null}
 		<span

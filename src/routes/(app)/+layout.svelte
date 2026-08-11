@@ -29,11 +29,6 @@
 
 	let { children }: LayoutProps = $props();
 
-	// Every real route lives under (app), so a reload lands here and flushes. The
-	// one gap is `routes/+error.svelte`, which sits above this layout: a reload
-	// that errors out shows no confirmation, and the queued message then fires on
-	// the next page the user opens. Not worth a TTL — it costs one stale toast on
-	// a path that has already failed louder.
 	onMount(flushPendingToasts);
 
 	const themeStore = getThemeStore();
@@ -42,9 +37,8 @@
 
 	// The only one of the three that does not reload, so its toast can be live.
 	async function exportData() {
-		// The whole body is guarded, not just the read: `JSON.stringify` throws
-		// RangeError on a database past the string-length cap, and that failure
-		// looks identical to the user.
+		// `JSON.stringify` throws RangeError past the string-length cap, so the
+		// whole body is guarded, not just the read.
 		try {
 			const file = await backup.$exportAllStores();
 
@@ -83,14 +77,10 @@
 	}
 
 	async function deleteData() {
-		// This guards an irreversible delete of every store; it stays until an
-		// AlertDialog replaces it like-for-like. A toast is not a confirmation.
+		// An irreversible delete of every store: stays until an AlertDialog
+		// replaces it like-for-like.
 		if (!confirm(m.data_delete_confirm())) return; // eslint-disable-line no-alert
 
-		// $deleteAllStores rejects if the database will not open or the wipe
-		// transaction aborts — a second tab blocking an upgrade is enough. Without
-		// this the reload never happens, every record is still there, and the user
-		// has been shown nothing at all.
 		try {
 			await backup.$deleteAllStores();
 		} catch (e) {
@@ -104,39 +94,18 @@
 		location.reload();
 	}
 
-	// The one persistence banner for the whole app. Created first because every
-	// store below reports into it, and each registers its own re-read — so the
-	// retry button covers them without this layout keeping a list.
+	// Created first: every store below reports into it and registers its re-read.
 	const storageStatus = setStorageStatusStore();
 
-	// The shared daily session (tasks, budget, pools + persistence) lives in
-	// context, created per component tree — never at module scope, so nothing
-	// can leak across SSR requests. Pages grab it with getSessionStore().
-	// The routing dependency is the layout's, not the store's: the store is
-	// handed a reader for the viewed day instead of importing $app/state.
 	const session = setSessionStore(() => page.url.searchParams.get('date'), storageStatus);
 
-	// Drain/rest measurements key on the live clock, not the viewed day, so they
-	// are their own store — wired here because the layout owns what each store
-	// gets: a task lookup, and the banner they report into.
 	const observations = setEnergyObservationStore(() => session.tasks, storageStatus);
 
-	// Read by `/energy` alone, but created here so leaving the route and coming
-	// back finds a store that never unloaded — built per page it re-read its
-	// params on every visit, which cost a ~120ms placeholder each time. It can
-	// live here because the Lab is the only writer of what it reads, so an
-	// instance this long-lived cannot go stale; `AnalyticsStore` stays on its
-	// own route because the main page rewrites its data all day. The toast is
-	// injected from here for the reason every other store's is: raising one is
-	// presentation, and so is the copy (AGENTS.md R1).
+	// Why here and not on `/energy`: business/AGENTS.md, "Context is the creation rule".
 	setEnergyLabStore(session, observations, storageStatus, () =>
 		showToast.danger(m.energy_params_load_failed()),
 	);
 
-	// A failed read and a failed write need different copy: a read is retryable, a
-	// write has already lost the edit. Which message shows and whether Retry is
-	// offered are separate questions — with both kinds outstanding the lost edit is
-	// the more urgent thing to say, but the read still needs its way out.
 	const storageErrorMessage = $derived(
 		storageStatus.error === 'load-failed' ? m.error_body() : m.storage_error(),
 	);
@@ -196,9 +165,8 @@
 								<Dices class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 								{m.theme_reroll_scenery()}
 							</DropdownMenu.Item>
-							<!-- absent under prefers-reduced-motion: the CSS pauses scenery
-							     there no matter what the cookie says, so the control would
-							     only mislabel a state it cannot change -->
+							<!-- under prefers-reduced-motion the CSS pauses scenery whatever the
+							     cookie says, so the control would mislabel a state it cannot change -->
 							{#if themeStore.sceneryMotionToggleable}
 								<DropdownMenu.Item
 									class="cursor-pointer gap-grid-xs"
@@ -279,7 +247,6 @@
 
 <!--
 	Fixed-position overlay, so it sits outside the page's layout flow. The region
-	label is passed because sonner's default is hardcoded English, and it is the
-	accessible name of a live region on a site that serves /de/*.
+	label is passed because sonner's default is hardcoded English.
 -->
 <Toaster containerAriaLabel={m.toast_region_label()} />

@@ -36,14 +36,9 @@
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { fromISO } from '$lib/business/utils/date';
 
-	// Shared daily session (tasks, budget, pools + persistence) — set in the
-	// (app) layout, also consumed live by the Energy Lab.
 	const session = getSessionStore();
 	const observations = getEnergyObservationStore();
 
-	// The whole dashboard — plan and metrics — from the business layer. The
-	// per-metric task scoping and thresholds live there and in
-	// metric-descriptor; this page only renders what comes back.
 	const plan = setDailyPlanStore(session, observations);
 
 	const today = $derived(session.today);
@@ -52,23 +47,10 @@
 	const isViewingFuture = $derived(session.isViewingFuture);
 	const tasks = $derived(session.tasks);
 
-	// Only today's session can be measured: both stores stamp a NEW observation with the
-	// LIVE clock's today, never the viewed day, so one logged while browsing a past day
-	// would misdate itself. The logging callbacks and the bar's prompt for them therefore
-	// appear and vanish together, so the prompt never points at a button no task renders.
-	//
-	// It gates logging, not correcting — for both readings since 2026-08-10. A 🪫
-	// correction carries no date (it re-describes the session where it happened) and a ⚡
-	// one is the day's own observation, so the chips and the badge on a past day's rows
-	// stay editable and deletable while the two BUTTONS beside them are gone. The store
-	// refuses a first measurement dated before today either way, so the gate here is
-	// about not offering what would be refused.
+	// Gates logging, not correcting. Why: presentation/AGENTS.md, "Both corrections are
+	// offered on any day the page shows, a new measurement only today".
 	const canLog = $derived(selectedDate === today);
 
-	// The open editors, by task — one of each per row: ticking two tasks off ends two
-	// sessions, and each gets its prompts. Owned here rather than by the row for the
-	// reason in `EditorDraft`, and shaped exactly like the Lab's so the two screens
-	// cannot drift apart again.
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
@@ -82,10 +64,6 @@
 	const openDrainLog = (id: number, source: EditorSource) =>
 		(drainDrafts[id] = newDrainDraft(source));
 
-	// The other way in: a 🪫 chip on the row, which re-opens THAT session's rating in
-	// the same editor. Offered on any day the page shows, unlike the 🪫 button beside
-	// it — a correction re-describes the session where it happened and carries no date,
-	// while a new log would stamp itself with the live clock's today.
 	const editDrainLog = (id: number, log: Persisted<DrainObservationRecord>) =>
 		(drainDrafts[id] = drainDraftFromLog(log));
 
@@ -93,25 +71,14 @@
 		delete drainDrafts[id];
 	};
 
-	// A draft whose row leaves the screen (date change, midnight rollover) is inert,
-	// since it is keyed by that task — but ✕ is not one of those: the undo puts the task
-	// back under its original id, so a surviving draft would re-open with it.
+	// Undo restores the task under its original id, so a surviving draft re-opens with it.
 	function removeTask(id: number) {
 		closeFlowLog(id);
 		closeDrainLog(id);
 		removeTaskWithUndo(session, id);
 	}
 
-	// The ratings the VIEWED day holds, per task — a chip each on the row, which is where
-	// they are corrected. Read for any date the page can show: a rating is only loggable
-	// today, but reading back what a past day measured is what the ✎ on the chip needs
-	// and is the only way a user who never opens the Lab sees the day's own data.
 	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
-
-	// And the ⚡ the viewed day holds, one per task — the badge on the row, read from the
-	// day's observation rather than a field on its session, which is what lets a past one
-	// be corrected there. Same reason as above: a measurement is only loggable today, but
-	// reading and amending one the day already holds is not logging.
 	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
 
 	function saveFlowLog(id: number, minutes: number) {
@@ -119,17 +86,12 @@
 		closeFlowLog(id);
 	}
 
-	// The 🗑 in the editor drops what it opened on, and offers it back for as long as its
-	// toast lives — the same window the analytics list's ✕ opens, because it is the same
-	// verb on the same record.
 	function clearFlowLog(id: number) {
 		removeFlowLogWithUndo(session, id);
 		closeFlowLog(id);
 	}
 
-	// Whether ✓ appends a session or rewrites a stored one is the DRAFT's to say, since
-	// only it remembers which chip opened the editor — re-logging a correction would
-	// count the session's hours twice (MATH.md §18).
+	// Re-logging a correction would count the session's hours twice (MATH.md §18).
 	function saveDrainLog(id: number, entry: { hours: number; mind: number; body: number }) {
 		const recordId = drainDrafts[id]?.recordId;
 
@@ -152,8 +114,8 @@
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
 	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice, getDateLocale()) : null);
 
-	// /?date=<today> renders the same view as / — collapse to the canonical
-	// URL. Also fires when a viewed date BECOMES today at midnight rollover.
+	// /?date=<today> renders the same view as / — collapse to the canonical URL. Also
+	// fires when a viewed date BECOMES today at midnight rollover.
 	const dateParam = $derived(page.url.searchParams.get('date'));
 	$effect(() => {
 		if (browser && dateParam === today) {
@@ -217,9 +179,6 @@
 	ondeleteroutine={(id) => session.deleteRoutine(id)}
 />
 
-<!-- Lives in the task-list card so adding and reading the plan are one place;
-     passed as a snippet rather than imported there, per the components-take-props
-     rule. -->
 {#snippet addTaskForm()}
 	<TaskForm
 		onsubmit={(t) => session.addTask(t)}
@@ -228,9 +187,8 @@
 	/>
 {/snippet}
 
-<!-- The day's banner and constraints span both columns: they scope the whole
-     page, and full width is what lets the four inputs sit on one row instead of
-     stacking 2×2 inside the narrower task column. -->
+<!-- Outside the grid: full width is what lets the bar's four inputs sit on one
+     row instead of stacking 2×2 in the narrower task column. -->
 <div class="space-y-grid-lg min-h-screen">
 	{#if isViewingFuture}
 		<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong text-sm">
@@ -249,11 +207,9 @@
 			{m.banner_past_body()}
 		</div>
 	{:else}
-		<!-- Keyed on the loaded day, so each day gets a fresh bar that asks once whether
-		     it needs its constraints open. `loadedDate` is the only honest moment to ask:
-		     the hours read 0 until a day lands — forever on the server, which has no
-		     IndexedDB — and reading them any earlier opens the panel for every visitor,
-		     including the one whose day is already set. -->
+		<!-- Keyed so each day asks once whether it needs its constraints open: the hours
+		     read 0 until a day lands (forever on the server, which has no IndexedDB), so
+		     asking any earlier opens the panel for every visitor. -->
 		{#key session.loadedDate}
 			<DayConstraintsBar
 				bind:availableHours={session.availableHours}
@@ -274,8 +230,6 @@
 
 	<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
 		<div class="space-y-grid-lg lg:col-span-2">
-			<!-- Absent all morning and on any day but today: the re-plan is null until
-			     today has 🪫 hours, and the plan below is the whole answer until then. -->
 			{#if plan.remainingDay?.nextTask}
 				<NextUpLine title={plan.remainingDay.nextTask.title} />
 			{/if}
