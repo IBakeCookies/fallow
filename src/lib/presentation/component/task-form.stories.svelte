@@ -522,7 +522,7 @@
 <Story
 	name="Without the must-do flag"
 	args={{
-		showMustDoToday: false,
+		withMustDoToday: false,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.queryByLabelText("Don't move off today")).not.toBeInTheDocument();
