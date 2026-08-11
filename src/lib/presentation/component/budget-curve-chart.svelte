@@ -5,15 +5,13 @@
 
 	interface Props {
 		curve: BudgetCurve;
-		/** The window the day is set to now, marked so the reader can place themselves. */
 		currentBudget: number;
 	}
 
 	let { curve, currentBudget }: Props = $props();
 
-	// Same measured-viewBox rule as energy-chart.svelte: the viewBox is in real
-	// CSS pixels, so axis type and stroke widths are one size at every card width.
-	// Holds only while the measured wrapper stays padding-free.
+	// The viewBox is in real CSS pixels, so axis type and stroke widths are one size
+	// at every card width — holds only while the measured wrapper stays padding-free.
 	let width = $state(720);
 	const height = $derived(Math.min(260, Math.max(160, width * 0.22)));
 
@@ -24,33 +22,20 @@
 	const plotW = $derived(width - PAD_L - PAD_R);
 	const plotH = $derived(height - PAD_T - PAD_B);
 
-	// Break-even is 0 and NOT λ₀: `valuePerHour` already has the free time an extra
-	// hour costs charged out of it, so a λ₀ line here would charge it twice — and
-	// the two readings disagree by hours (MATH.md §8.12). The baseline below is the
-	// comparison; λ₀ is reported as a price in the copy instead.
+	// Break-even is 0, not λ₀: `valuePerHour` already charges out the free time an
+	// extra hour costs, so a λ₀ line here would charge it twice (MATH.md §8.12).
 	const maxValue = $derived(Math.max(...curve.points.map((p) => p.valuePerHour), 1e-9) * 1.15);
-	// `valuePerHour` cannot go below zero (it is the slope of a majorant of a
-	// non-decreasing level), so the domain floor is headroom, not data: without it
-	// break-even lands exactly on `PAD_T + plotH`, where every hour gridline ends,
-	// and the line the whole chart is read against renders as the x-axis with the
-	// post-knee tail lying on top of it.
+	// Headroom, not data: `valuePerHour` cannot go below zero, so without a floor
+	// break-even lands on `PAD_T + plotH` and reads as the x-axis, tail on top of it.
 	const floor = $derived(-maxValue * 0.12);
 	const xAt = (b: number) => PAD_L + (b / curve.maxBudgetHours) * plotW;
 	const yAt = (v: number) => PAD_T + (1 - (v - floor) / (maxValue - floor)) * plotH;
 
-	// A STEP series, not a polyline. `valuePerHour` is not a sample of a smooth
-	// function at `budgetHours` — it is the value of the whole lattice step
-	// `(b − step, b]` (MATH.md §8.12). Interpolating between the samples invents
-	// intermediate values the model never produced and, worse, puts the visual
-	// zero-crossing one step RIGHT of `recommendedHours`: the segment from the
-	// last positive point down to the first zero crosses at `knee + step`, beside
-	// a "Suggested window" guide drawn at `knee`. Drawn as steps, the drop to zero
-	// lands exactly on the guide, because the zero step BEGINS at `knee`.
-	//
-	// EVERY swept budget is drawn, the first included: its predecessor is the
-	// do-nothing day (MATH.md §8.12), so it carries a measured marginal rather than
-	// a zero standing in for a missing one — and it is the steepest step there is.
-	// Its own step therefore begins at budget 0, on the y-axis.
+	// A STEP series, not a polyline: `valuePerHour` is the value of the whole lattice
+	// step `(b − step, b]` (MATH.md §8.12), so interpolating would put the visual
+	// zero-crossing one step RIGHT of the "Suggested window" guide drawn at `knee`.
+	// The first point is drawn too, its step beginning at budget 0: its predecessor
+	// is the do-nothing day, so it carries a measured marginal.
 	const step = $derived(
 		curve.points.length > 1 ? curve.points[1].budgetHours - curve.points[0].budgetHours : 0,
 	);
@@ -67,23 +52,14 @@
 			.join(''),
 	);
 
-	// A vertical guide, not a dot on the line: the recommendation names the whole
-	// lattice step it ends, and the step series below draws the drop to zero
-	// beginning exactly there.
 	const recommendedX = $derived(
 		curve.recommendedHours === null ? null : xAt(curve.recommendedHours),
 	);
 
-	// The reader's own window, when the sweep reached it. Past the cap there is no
-	// honest place to draw it — clamping to the right edge would claim it sits at
-	// `maxBudgetHours` — so the legend says so in words instead (docs/testing.md: the
-	// bound is never silent).
+	// Past the cap there is no honest place to draw it — clamping to the right edge
+	// would claim it sits at `maxBudgetHours` — so the legend says so in words.
 	const isBudgetOnScale = $derived(currentBudget > 0 && currentBudget <= curve.maxBudgetHours);
 
-	// The suggestion sentence is only true when there IS one: on the two null
-	// branches nothing on this chart is "the suggested one", and on the
-	// no-window-is-worth-working branch the whole series sits at zero, so a
-	// screen reader would be told to look for a point above it that does not exist.
 	const ariaLabel = $derived.by(() => {
 		const shape = m.energy_curve_chart_aria({
 			max: formatDuration(curve.maxBudgetHours),
@@ -124,11 +100,8 @@
 				{h}h
 			</text>
 		{/each}
-		<!-- The window the day is set to now: quieter than the readings — it locates
-		     the reader, it does not claim anything — but on the ink token, not on
-		     `line-strong`. That resolves to `--border` (α 0.18–0.30 in every theme),
-		     which at the default 1px under a 40%-duty dash is ~1.4:1 against the
-		     card: a marker the reader has to hunt for is not a locator. -->
+		<!-- On the ink token, not `line-strong`: that resolves to `--border`, which
+		     under a dash is ~1.4:1 against the card (STYLE.md, the ink contrast budget). -->
 		{#if isBudgetOnScale}
 			<line
 				x1={xAt(currentBudget)}
@@ -143,15 +116,8 @@
 
 		<path d={curvePath} fill="none" stroke-width="1.8" class="stroke-brand" />
 
-		<!-- Break-even. The one line the curve IS read against: at zero, another hour
-		     of window adds exactly what the free time it costs was worth.
-
-		     Drawn AFTER the curve, and DASHED, because past the knee `valuePerHour`
-		     is exactly 0 and the two coincide for most of the width. Solid-under lost
-		     the reference; solid-over lost the curve, so the tail read as a chart that
-		     had simply stopped. A long dash keeps this reading as one continuous rule
-		     while the brand stroke shows through the gaps — which is the honest
-		     picture: the curve is not gone, it is resting on break-even. -->
+		<!-- Drawn AFTER the curve and DASHED: past the knee `valuePerHour` is exactly 0,
+		     so the two coincide and only the gaps keep the brand stroke visible. -->
 		<line
 			x1={PAD_L}
 			y1={yAt(0)}
@@ -192,8 +158,7 @@
 	</span>
 	{#if curve.recommendedHours !== null}
 		<span class="flex items-center gap-grid-2xs">
-			<!-- The dash pattern is the line's, so the swatch carries it too. A raw var()
-			     names the unprefixed token (STYLE.md), never the --color-* alias. -->
+			<!-- A raw var() names the unprefixed token, never the --color-* alias (STYLE.md). -->
 			<span
 				class="h-0.5 w-4"
 				style="background: repeating-linear-gradient(90deg, var(--brand) 0 5px, transparent 5px 8px)"
@@ -212,8 +177,7 @@
 			})}
 		</span>
 	{:else if currentBudget > 0}
-		<!-- No swatch: there is no line to key. Off the scale the reader still needs
-		     to know WHERE they are, or a chart with no locator reads as a bug. -->
+		<!-- Off the scale there is no line to key, but the reader still needs a locator. -->
 		<span>
 			{m.energy_curve_legend_now_offscale({
 				hours: formatDuration(currentBudget),

@@ -8,49 +8,16 @@
 	import DrainLogForm from '$lib/presentation/component/drain-log-form.svelte';
 	import RestLogForm from '$lib/presentation/component/rest-log-form.svelte';
 
-	/* Every measurement in the analytics range, one row each. The three kinds print
-	   as one shape — day and task on the left, reading on the right — which is what
-	   makes a merged list readable; `logHistory` is what makes them one shape.
-
-	   Both verbs a MEASUREMENT has, on every row: ✕ drops it and ✎ corrects it, each
-	   addressed by (kind, id) alone. That is possible because a correction rewrites the
-	   quantities the user rated and nothing else (MATH.md §36) — it re-derives nothing
-	   from a task, so this list needs no day in view and no task in hand, which is what
-	   it has: it shows every day at once and therefore views none of them. Until
-	   2026-08-10 both writers re-read the live task, and the ✎ had to be a LINK to the
-	   day instead. ☕ has no task and so no row on either screen, which makes this its
-	   only editor.
-
-	   The date is still a link for ⚡ and 🪫 — navigation to the day, not the way to
-	   correct it, and worded as that.
-
-	   The three calibration cards each printed their own kind until 2026-08-10, which
-	   was three partial answers to one question; what stayed with each of them is the
-	   fit's own two verbs (`fit-log-summary.svelte`). The row chrome is the `log-row`
-	   utility, still shared with that card's ancestor. */
-
 	interface Props {
 		/** Already folded, filtered and ordered newest-first by `logHistory`. */
 		rows: LogHistoryRow[];
-		/** Whether `rows` is the whole history rather than the page's range. Only the
-		 *  empty line reads it: "nothing in this range" and "nothing ever" are different
-		 *  claims, and with none logged there is no other way to tell them apart. */
 		allTime: boolean;
-		/** Which row's correction is open, by `row.key`, or null for none. The PAGE's, not
-		 *  this list's: the three saves land in two different stores, and the page is what
-		 *  knows the events an open editor must not outlive — a drop, a range change, a
-		 *  scope change, a save. */
+		/** The PAGE's, not this list's: the page is what knows the events an open editor
+		 *  must not outlive — a drop, a range change, a scope change, a save. */
 		editingKey: string | null;
-		/** Drop one measurement. Takes the kind as well as the id because the three
-		 *  kinds are three stores with three id sequences — the number alone names a
-		 *  different record in each. */
 		ondelete: (kind: LogKind, id: number) => void;
-		/** Ask for this row's correction. Same address as `ondelete` for the same reason. */
 		onedit: (kind: LogKind, id: number) => void;
 		oncancel: () => void;
-		/** One per kind rather than one union, because the three measurements are three
-		 *  different quantities: ⚡ is a duration, 🪫 a session with two ratings, ☕ a
-		 *  break with four. Each takes the record id and the units its own fit reads. */
 		onsaveflow: (id: number, minutes: number) => void;
 		onsavedrain: (id: number, entry: { hours: number; mind: number; body: number }) => void;
 		onsaverest: (
@@ -77,13 +44,11 @@
 		onsaverest,
 	}: Props = $props();
 
-	// Minutes is the unit every editor takes; `hours` is what the record and the fits
-	// hold. The forms convert back on save, so this is the only direction spelled here.
+	// Minutes is the unit every editor takes, `hours` what the record and the fits
+	// hold; the forms convert back on save, so only this direction is spelled here.
 	const toMinutes = (hours: number) => Math.round(hours * 60);
 
-	// The emoji is the fast read and the name is the only read for a screen
-	// reader — in a list of one kind an icon can carry it alone, in a merged one it
-	// is the column that says what the numbers beside it mean.
+	// The emoji is the fast read; the name is the only read for a screen reader.
 	const KIND: Record<LogKind, { icon: string; name: () => string }> = {
 		flow: {
 			icon: '⚡',
@@ -113,9 +78,7 @@
 				})}
 	</p>
 	<!-- Capped: a year holds hundreds of rows, and a card that grows with the history
-	     pushes every reading below it off the page. `nice-scrollbar` is the same slim,
-	     theme-aware bar the theme menu scrolls with — a native one is a grey slab that
-	     no palette reaches. -->
+	     pushes every reading below it off the page. -->
 	<ul class="nice-scrollbar mt-text-xs max-h-64 space-y-text-2xs overflow-y-auto">
 		{#each rows as row (row.key)}
 			<li>
@@ -124,8 +87,7 @@
 						{#if row.taskTitle}
 							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 							<!-- Labelled as well as titled: the visible text is a bare date, which
-							     names the link for the eye and says nothing to a screen reader
-							     reading it out of the row's context. -->
+							     says nothing to a screen reader out of the row's context. -->
 							<a
 								href={localizeHref(`${resolve('/')}?date=${row.date}`)}
 								aria-label={m.ana_logs_open_day({
@@ -140,11 +102,8 @@
 							</a>
 							<span class="capitalize"> · {row.taskTitle}</span>
 						{:else}
-							<!-- A ☕ is worked on nothing, so it has no task to name and the date
-							     stood alone in a column of "date · task" — read as a row missing its
-							     title rather than one that cannot have one. The kind fills the slot,
-							     and `aria-hidden` because the ✕/✎ labels and the reading beside them
-							     already say "Break" to a screen reader. -->
+							<!-- A ☕ has no task, so the kind fills the slot a task would; `aria-hidden`
+							     because the ✕/✎ labels already say ☕ to a screen reader. -->
 							<span class="text-ty-silent">{row.date}</span>
 							<span aria-hidden="true" class="text-ty-silent">
 								· {KIND[row.kind].name()}
@@ -165,9 +124,8 @@
 								B{row.body}{#if row.bodyAfter !== null}→{row.bodyAfter}{/if}
 							</span>
 						{/if}
-						<!-- Both verbs named by kind and day rather than "correct"/"delete": a
-						     screen reader listing a 40-row list's buttons would otherwise read the
-						     same two phrases forty times. -->
+						<!-- Named by kind and day: a screen reader listing a 40-row list's buttons
+						     would otherwise read the same two phrases forty times. -->
 						<button
 							type="button"
 							aria-label={m.ana_logs_edit_aria({
@@ -195,11 +153,8 @@
 					</span>
 				</div>
 
-				<!-- Each opening is a fresh mount, which is what the three forms require: they
-				     read their seed once and a re-seed without a remount would leave stale
-				     numbers over a live save path. The `{#if}` is what gives it — no `{#key}`
-				     needed, since `row.key` is this block's own `{#each}` key and cannot
-				     change while the block lives. -->
+				<!-- The forms read their seed once, so each opening must be a fresh mount: this
+				     `{#if}` is what gives it, and re-seeding a live one would leave stale numbers. -->
 				{#if editingKey === row.key}
 					{#if row.kind === 'flow'}
 						<FlowLogForm

@@ -55,10 +55,16 @@ goes; do not let that turn into building for a future nobody has asked for.
   the inputs and the wrong outcome, the branch does not go in. "Defensive" is
   not a reason; unreachable code is a lie about what can happen.
 - **Comments earn their length.** One or two lines saying _why_, where the code
-  cannot. A paragraph justifying a decision in a source file means one of two
-  things: the decision is too clever, so simplify the code instead of defending
-  it — or the justification is durable, in which case it belongs in a rules
-  file and the comment is the one line that cites it.
+  cannot — and only where the code cannot. Three kinds never earn it, however
+  true they are: **archaeology** (a date, "used to", what the code was before —
+  git holds that), **restatement** (what the signature, type, name or class
+  already says), and **a rule a rules file already holds** (cite it in one line,
+  or say nothing). Each arrives one plausible line at a time, which is how a
+  paragraph gets built without anyone writing one. A paragraph justifying a
+  decision means the decision is too clever — simplify the code — or the
+  justification is durable, and belongs in the rules file that owns it.
+  `scripts/comment-density.mjs --check` holds the volume; it counts lines, not
+  judgement, so the three above stay yours to catch.
 - **When you notice something unrelated, say it; do not fix it.** A finding
   reported costs a sentence. A finding fixed costs a review, a test, and a
   larger diff for the thing you were actually asked to do.
@@ -215,8 +221,9 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 - One responsibility per function. A function that _does_ something is an
   **action**; one that _reacts_ is a **handler**, named `onClick`,
   `onInputChange`. Handlers only handle — they compose actions.
-- Comments explain _why_, and pay for their line count. Match the density of
-  the file you are in.
+- Comments explain _why_, and pay for their line count — §0 names the three
+  kinds that never do. Density is budgeted, never inherited from the file you
+  are in: a file already over is a file to cut, not a licence.
 - **Imports**, in order: types → external libs → internal helpers → data layer →
   business layer → presentation (big/abstract to small/specific).
 

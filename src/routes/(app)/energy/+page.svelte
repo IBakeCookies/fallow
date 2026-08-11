@@ -43,41 +43,20 @@
 
 	const VIEW_KEY = 'zenith-energy-view';
 
-	/** Every decimal here is a fitted constant or an output total. */
 	const decimal = (value: number, digits: number) => formatDecimals(value, digits, getDateLocale());
 
-	// Tasks, budget, pools and personalized constants come live from the shared
-	// session store — edits here save to the same daily session as the main page,
-	// whether they come from a row's ✎ or from the parameter panel, and the
-	// schedule re-optimizes on each one.
 	const session = getSessionStore();
 	const activeTasks = $derived(session.activeTasks);
 
-	// A dated `/energy?date=…` never reaches this component: `+page.ts` redirects
-	// it to the canonical route before the layout hands the session store a date.
-
-	// The 🪫/☕ measurements that calibrate α and r — their own store, since they
-	// are stamped with today rather than the viewed day.
 	const observations = getEnergyObservationStore();
 
-	// Model parameters, the optimized plan and the three calibration fits are
-	// model orchestration, so they live in the lab store — this page renders
-	// them and edits them, nothing more. Params are the lab's own and never
-	// written back to the session, but they ARE persisted (IndexedDB, so backup
-	// covers them). Created in the (app) layout, so a second visit to this route
-	// reads nothing and paints no placeholder.
 	const lab = getEnergyLabStore();
 
-	// Aliases so the markup reads in the model's vocabulary
-	// The list reads in schedule order, snapshotted per visit (`resnapshotOrder`) — the
-	// membership is the session's either way, so every lookup below reads this one list.
 	const tasks = $derived(lab.scheduledTasks);
 	const hasTasks = $derived(tasks.length > 0);
 	const params = $derived(lab.params);
 	const plan = $derived(lab.plan);
 	const trajectory = $derived(lab.trajectory);
-	// Read from the session, which is also where the window row writes it — the lab
-	// store consumes the same value but does not re-export it.
 	const windowHours = $derived(session.availableHours);
 	const trailingFreeHours = $derived(lab.trailingFreeHours);
 	const valueVsClassic = $derived(lab.valueVsClassic);
@@ -86,18 +65,13 @@
 	const recoveryFit = $derived(lab.recoveryFit);
 	const stopFit = $derived(lab.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
-	// The advisor's ids come from the session's own tasks, so the lookup always
-	// resolves; '' only satisfies the type where the verdict carries no task.
+	// The lookup always resolves; '' only satisfies the type where the verdict carries no task.
 	const stopTaskTitle = $derived(
 		stopAdvice !== null && stopAdvice.verdict !== 'window-full'
 			? (tasks.find((t) => t.id === stopAdvice.taskId)?.title ?? '')
 			: '',
 	);
 
-	// The plan card's lower region: energy chart or the schedule detail list.
-	// The timeline bar and the summary stats stay visible in both views. A pure
-	// view preference, so localStorage is the right home — unlike the model
-	// params, losing it costs nothing and it has no place in a data backup.
 	let planView = $state<'chart' | 'schedule'>('chart');
 	const planViewItems = $derived([
 		{
@@ -121,9 +95,7 @@
 	}
 
 	onMount(() => {
-		// Re-sort the list to the plan as it stands. A fresh visit to the route is the
-		// one moment that can happen without moving a row out from under the cursor —
-		// see the store's `resnapshotOrder`.
+		// Why: presentation/AGENTS.md, "The Lab's task list reads in schedule order, snapshotted per visit"
 		lab.resnapshotOrder();
 
 		try {
@@ -139,11 +111,7 @@
 
 	const drainObservations = $derived(observations.drainObservations);
 
-	// The open editors, by task. One of each per row — ticking off two tasks ends two
-	// sessions, and each gets its prompts. The fields are the two form components' to
-	// collect and the prompt policy is the row shell's; what stays here is which task
-	// each draft belongs to, since a draft outlives the row it is keyed by. Same shape as
-	// the main page's, from the same module.
+	// Why: presentation/AGENTS.md, "Both editors are open only while the PAGE holds a draft for that task"
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
@@ -159,9 +127,6 @@
 		closeFlowLog(taskId);
 	}
 
-	// The 🗑 in the editor drops what it opened on, and offers it back for as long as its
-	// toast lives — the same window the analytics list's ✕ opens, because it is the same
-	// verb on the same record.
 	function clearFlowLog(taskId: number) {
 		removeFlowLogWithUndo(session, taskId);
 		closeFlowLog(taskId);
@@ -171,33 +136,24 @@
 		delete drainDrafts[taskId];
 	};
 
-	// A draft whose row leaves the screen is inert, since it is keyed by that task — but
-	// ✕ is not one of those: the undo puts the task back under its original id, so a
-	// surviving draft would re-open with it.
+	// ✕ then Undo restores the task under its original id, so a surviving draft re-opens with it.
 	function removeTask(taskId: number) {
 		closeFlowLog(taskId);
 		closeDrainLog(taskId);
 		removeTaskWithUndo(session, taskId);
 	}
 
-	// This route is today-only — a dated URL redirects (`energy/+page.ts`) — so the rows
-	// read the live day and nothing else can be on screen.
+	// This route is today-only — a dated URL redirects (`energy/+page.ts`).
 	const drainLogs = $derived(observations.drainLogsOn(session.today));
 	const flowLogs = $derived(session.flowMinutesOn(session.today));
 
 	const openDrainLog = (taskId: number, source: EditorSource) =>
 		(drainDrafts[taskId] = newDrainDraft(source));
 
-	// The other way in: a 🪫 chip on the row, which re-opens THAT session's rating. It
-	// used to be the ✎ beside the rating in the calibration card below, which could only
-	// reach today's rows whose task was still listed — the editor lives in the row, and a
-	// rating outlives both its task and its day. The chip is on the row it belongs to, so
-	// that whole condition is gone rather than merely satisfied.
 	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
 		(drainDrafts[taskId] = drainDraftFromLog(log));
 
-	// The rating itself is the editor's to validate; whether it is a new session or a
-	// correction is the page's, because only the draft remembers which chip opened it.
+	// Only the draft remembers whether a chip opened it, so new-vs-correction is the page's.
 	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
 		const recordId = drainDrafts[taskId]?.recordId;
 
@@ -219,8 +175,7 @@
 
 	const restObservations = $derived(observations.restObservations);
 
-	// Inline rest-pair editor (☕): lives in the calibration card — a break has no task
-	// row to hang off, and nothing outside it gates on the draft, so the form owns it.
+	// ☕ has no task row to hang off, and nothing outside the form gates on its draft.
 	let restFormOpen = $state(false);
 
 	function saveRestLog(entry: {
@@ -243,18 +198,13 @@
 
 	// ---------- Presentation helpers ----------
 
-	// One hue per task, in plan order, shared by the timeline, the schedule list and
-	// the task rows — so all three agree about which task is which.
+	// One hue per task, shared by the timeline, the schedule list and the rows.
 	const colors = $derived(seriesColors(lab.energyTasks.map((t) => t.id)));
 
-	// What the plan gave each task, for its row in the list below. Null when there
-	// is no plan to report on — "no hours" against every task would be a claim the
-	// optimizer never made.
+	// Null with no plan: "no hours" against every task would be a claim the optimizer never made.
 	const plannedFor = (taskId: number) =>
 		plan.evaluation.blocks.length === 0 ? null : (lab.allocatedHoursByTask.get(taskId) ?? 0);
 
-	// The window field is a card away on a desktop and three on a phone, so the
-	// prompt in the empty plan goes there instead of naming it.
 	function focusDayWindow() {
 		document.getElementById('window-hours')?.focus();
 	}
@@ -262,8 +212,6 @@
 
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
-<!-- The list's two halves, handed to the shared card: the same form the main page
-     puts at the top of it, and the rows this screen reads a task in. -->
 {#snippet addTaskForm()}
 	<TaskForm
 		onsubmit={(t) => session.addTask(t)}
@@ -307,12 +255,9 @@
 	{/each}
 {/snippet}
 
-<!-- Outside the load gate: the title depends on nothing that is read, and it is
-     what makes the route look like a page rather than a blank screen for the
-     one frame before IndexedDB answers. -->
+<!-- Outside the load gate: the title reads nothing, and it is what keeps the route
+     from painting blank for the frame before IndexedDB answers. -->
 <div class="mb-text-xl">
-	<!-- The intro paragraph lives in the title's tooltip now — the header
-	     stays one line so the plan is what fills the fold. -->
 	<Tooltip.Provider delayDuration={150}>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
@@ -336,11 +281,8 @@
 </div>
 
 {#if session.isLoading || !lab.isLoaded}
-	<!-- The body still waits, and the placeholders are why it can: everything
-	     under here is read from IndexedDB, and the pre-read state is not neutral
-	     — no tasks yet renders "no open tasks" over a plan the user has, and the
-	     parameter rows would show the defaults before their saved values arrive.
-	     The card frame is the honest thing to paint until both land. -->
+	<!-- The pre-read state is not neutral: an empty list reads as "no open tasks" over a plan
+	     the user has, and the parameter rows would show defaults before their saved values land. -->
 	<div class="space-y-grid-lg" aria-hidden="true">
 		<div class="card-shell p-box-md sm:p-box-xl">
 			<div class="skeleton-block h-4 w-44"></div>
@@ -359,27 +301,23 @@
 	</div>
 {:else}
 	<div class="space-y-grid-lg">
-		<!-- An empty day paints nothing above the list: the timeline, the parameters and
-		     the three fits all describe a plan with nothing in it. The list's card stays,
-		     because its form is where the first task gets typed. -->
+		<!-- Everything above the list describes a plan; only the list's card stays on an
+		     empty day, because its form is where the first task gets typed. -->
 		{#if hasTasks}
 			{#if activeTasks.length === 0}
-				<!-- All done: the optimizer needs an open task, but the list below
-				     stays visible so a task can be un-checked or added -->
+				<!-- The optimizer needs an open task; the list stays so one can be un-checked or added -->
 				<div class="card-shell p-box-2xl text-center">
 					<p class="text-ty-secondary">{m.energy_all_done()}</p>
 					<p class="mt-text-2xs text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
 				</div>
 			{:else}
-				<!-- Timeline -->
 				<div class="card-shell p-box-md sm:p-box-xl">
 					<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
 						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 							{m.energy_optimized_day()}
 						</h3>
-						<!-- Both read the plan, so neither belongs above a card that has none:
-						     "0m work · 0m free" and a chart/schedule switch over an empty region
-						     are furniture the day window has not earned yet. -->
+						<!-- "0m work · 0m free" and a view switch over an empty region are
+						     furniture the day window has not earned yet. -->
 						{#if windowHours > 0}
 							<div class="flex items-center gap-grid-xs">
 								<span class="text-xs text-ty-silent">
@@ -441,10 +379,8 @@
 					{/if}
 				</div>
 
-				<!-- The day's LENGTH, priced (MATH.md §8.12). Deliberately outside the
-				     `windowHours > 0` gate above: the curve is the answer to "what window
-				     should I set", so a day with no window is exactly when it has
-				     something to say. -->
+				<!-- The day's LENGTH, priced (MATH.md §8.12) — outside the `windowHours > 0`
+				     gate on purpose: the curve is the answer to "what window should I set". -->
 				<BudgetCurveCard
 					curve={lab.budgetCurve}
 					isBusy={lab.isCurveBusy}
@@ -458,23 +394,17 @@
 			{/if}
 		{/if}
 
-		<!-- One provider for the whole region: the task rows, the parameter labels
-		     and all three calibration headings. -->
 		<Tooltip.Provider delayDuration={150}>
 			<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-				<!-- Tasks: the same card the main page renders, over the same list. Only
-				     what a row says about a task is this screen's own. Full width on an
-				     empty day — there are no parameters or fits for it to sit beside, and
-				     two thirds of a card with a third of nothing reads as a layout bug. -->
+				<!-- Full width on an empty day: two thirds of a card beside a third of
+				     nothing reads as a layout bug. -->
 				<div class={hasTasks ? 'lg:col-span-2' : 'lg:col-span-3'}>
 					<TaskListCard form={addTaskForm} rows={hasTasks ? taskRows : null} />
 				</div>
 				{#if hasTasks}
 					<div class="space-y-grid-lg">
-						<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced
-						     against free time. In the side column so it never pushes the
-						     task list down. Absent whenever there is nothing to advise on —
-						     no window, no tasks, or every task checked off. -->
+						<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced against
+						     free time. In the side column so it never pushes the task list down. -->
 						{#if stopAdvice !== null}
 							<StopAdvisorCard
 								advice={stopAdvice}
@@ -489,11 +419,9 @@
 									{m.energy_model_parameters()}
 								</h3>
 								<div class="flex shrink-0 items-baseline gap-text-md">
-									<!-- The two opposite ways to fill these sliders, side by side: back to
-								     the model's defaults, or over to what this user's own logs fit. One
-								     button for all four fits because their ORDER is the math (MATH.md
-								     §8.7/§8.9/§8.10) — three buttons let the user apply them in an
-								     order that leaves a parameter stale. -->
+									<!-- One button for all four fits because their ORDER is the math (MATH.md
+								     §8.7/§8.9/§8.10): separate buttons let the user apply them in an order
+								     that leaves a parameter stale. -->
 									{#if lab.hasFit}
 										<button
 											type="button"
@@ -518,12 +446,9 @@
 								</div>
 							</div>
 							<div class="space-y-grid-md">
-								<!-- Not a model param like every row below it: the window IS the
-							     session's budget, so this writes the shared value and the main
-							     page's Available Hours moves with it. Hence 0.25 and not the
-							     coarser 0.5 a lab-local slider could afford: the stepper rounds to
-							     its own step's decimals, so a 6.25h day set on the main page would
-							     come back 6.8 after one click here. -->
+								<!-- The window is the session's budget, not a lab param — hence step 0.25
+							     and not 0.5: the stepper rounds to its own step's decimals, so a 6.25h
+							     day set on the main page would come back 6.8 after one click here. -->
 								<ParamRow
 									id="window-hours"
 									label={m.energy_day_window()}
@@ -617,12 +542,6 @@
 							</div>
 						</div>
 
-						<!-- The three fits, under the parameters they fit. They spent a day as a
-						     full-width row of their own: each printed its whole log history, which made
-						     them tall, while a third-width column left the tasks card beside them
-						     ending ~700px higher. The history moved to the analytics list (2026-08-10)
-						     and what is left of each card is two numbers, so the column is where they
-						     belong again — and a reading now sits beside the slider it answers for. -->
 						<!-- Drain calibration: fitted α from end-of-session ratings -->
 						<CalibrationCard title={m.energy_calibration()} hint={m.energy_calibration_hint()}>
 							{#if drainObservations.length === 0}

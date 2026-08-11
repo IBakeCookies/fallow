@@ -28,22 +28,13 @@
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 
-	// Everything on this page comes off the store — the folds and the load live
-	// there; this file is the range copy and the composition. Formatting policy
-	// lives in `presentation/utils`, the drawing in the components.
 	const analytics = setAnalyticsStore(() => showToast.danger(m.analytics_load_failed()));
 
-	// The two stores the logs card reads, both built in the (app) layout: ⚡ belongs
-	// to the session, which owns the viewed day it is keyed to, 🪫 and ☕ to the
-	// measurement store. Nothing is loaded for this card — it is a view of records
-	// the app already holds, which is why the merge is a fold and not a fourth read.
 	const session = getSessionStore();
 	const observations = getEnergyObservationStore();
 
-	/** Every decimal the markup prints is a task spread, to one place. */
 	const oneDecimal = (value: number) => formatDecimals(value, 1, getDateLocale());
 
-	// Copy for the range toggle; the day counts themselves are the store's.
 	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
 		week: {
 			label: () => m.ana_range_week(),
@@ -66,16 +57,13 @@
 		})),
 	);
 
-	// Thin aliases for the values the markup reads more than once
 	const calibration = $derived(analytics.calibration);
 	const audit = $derived(analytics.audit);
 	const rateDelta = $derived(analytics.completionRateDelta);
 	const bestDay = $derived(analytics.bestDay);
 	const quadrantCounts = $derived(analytics.quadrantCounts);
-	// The bar's 100% is the days that HAVE a profile, not the days on record: a
-	// day that books no hours has no profile (MATH.md §29) and `countQuadrants`
-	// counts it nowhere, so `summaries.length` would leave the segments summing
-	// to less than the bar and understate every share.
+	// The bar's 100% is the days that HAVE a profile: a day that books no hours has none
+	// (MATH.md §29), so `summaries.length` would understate every share.
 	const profiledDays = $derived(
 		Object.values(quadrantCounts).reduce((sum, count) => sum + count, 0),
 	);
@@ -103,21 +91,12 @@
 				}),
 	);
 
-	// Scoped by the same range toggle as every card above by default, so the history
-	// answers the question the page is already asking. `rangeStart` alone bounds it: a
-	// measurement is stamped with the live clock, so none is ever dated ahead.
-	//
-	// But the range can be dropped, because this list is the only surface some
-	// measurements have. A ☕ belongs to no task's row, and NOTHING older than the widest
-	// range (a year) is reachable from anywhere else — so while the range bounded this
-	// unconditionally, a two-year-old mistyped break was permanently beyond both
-	// correcting and dropping while still feeding the recovery fit.
+	// `rangeStart` alone bounds it: a measurement is stamped with the live clock, so
+	// none is ever dated ahead.
 	let allTime = $state(false);
 
 	// Named by what each task is CALLED now, not by the title copied onto the record
-	// when it was logged: renaming a task left every earlier measurement of it printing
-	// the old name, with nothing on the page to say the two were the same task. The
-	// year of days is already loaded for the charts, so the map costs no read.
+	// when it was logged.
 	const logRows = $derived(
 		logHistory({
 			flow: session.flowObservations,
@@ -128,37 +107,20 @@
 		}),
 	);
 
-	// All three reads, because the card is one list. The first two would otherwise show
-	// as a range holding fewer measurements than it does; the third is subtler and was
-	// missed when `taskTitles` arrived — the session and observation stores live in the
-	// (app) layout and are already loaded on arrival, while this page's analytics store
-	// re-reads its year on every visit, so a list published before it lands prints
-	// exactly the stale name the map exists to replace and then swaps it out. A failed
-	// history read clears `isLoading` too, so the fallback still gets its chance.
+	// `analytics.isLoading` too: the layout's stores are loaded on arrival while this page
+	// re-reads its year, so a list published first prints the names `taskTitles` replaces.
 	const areLogsLoading = $derived(
 		session.isLoading || observations.isLoading || analytics.isLoading,
 	);
 
-	// Dropping a measurement routes back to the store that owns it and offers it back
-	// while the toast lives, the way a deleted task does — both the routing and that
-	// window live in `removeLogWithUndo`, so neither is this page's to restate.
 	function deleteLog(kind: LogKind, id: number) {
 		removeLogWithUndo(session, observations, kind, id);
 
-		// A dropped row's editor has nothing left to correct. Closing on any drop rather
-		// than only the open row's is the same answer for less state: at most one row is
-		// ever open, so nothing else can be closed by mistake. Not awaited: the editor
-		// belongs to a row that is already gone from the list, and an undo re-opens
-		// nothing — it puts the measurement back, not the correction of it.
 		editingKey = null;
 	}
 
 	// Which row's ✎ is open, by the fold's own key — the PAGE's, because the three saves
-	// land in two stores, and because the list must be able to open a row without
-	// deciding what "open" outlives (a drop, a range change, a save all close it).
-	//
-	// One at a time. Not a policy the list could hold: the row's forms read their seed at
-	// mount, so two open rows would be two drafts over one keystroke's worth of state.
+	// land in two stores. One at a time: a row's form reads its seed at mount.
 	let editingKey = $state<string | null>(null);
 	const closeEditor = () => (editingKey = null);
 
@@ -166,10 +128,6 @@
 		editingKey = `${kind}-${id}`;
 	}
 
-	// The three corrections. Each writes only the quantities its editor asked for and
-	// keeps the record's day, stamp and captured covariates — MATH.md §36, which is what
-	// lets this page correct at all: no day is in view here, and the task a measurement
-	// names may belong to a day this list is not showing or to no day at all.
 	function saveFlowLog(id: number, minutes: number) {
 		session.editFlowLog(id, minutes);
 		closeEditor();
@@ -223,8 +181,7 @@
 		onchange={(range) => {
 			analytics.range = range;
 			// Narrowing the range can take the open row out of the list, and `editingKey`
-			// would outlive it — switching back would re-open an editor nobody asked for a
-			// second time. Same reason the scope toggle below closes it.
+			// would outlive it — switching back would re-open it.
 			closeEditor();
 		}}
 		label={m.ana_range_group()}
@@ -232,12 +189,8 @@
 </div>
 
 {#if analytics.isLoading}
-	<!-- The frame the history will land in, at the sizes it will take. The
-	     alternative is not a faster page but a less finished one: the readings
-	     come from IndexedDB after mount, so anything rendered here is either a
-	     placeholder or a claim — zeroed tiles say the range was empty, and the
-	     empty-state card below says the user has never used the app. The text
-	     stays for screen readers, which the bars tell nothing. -->
+	<!-- A placeholder, never a claim: zeroed tiles would say the range was empty, and the
+	     empty state below that the app was never used. The bars tell a screen reader nothing. -->
 	<p class="sr-only">{m.ana_loading()}</p>
 	<!-- Bar heights are the line-heights they stand in for: `text-xs` is h-4,
 	     `text-sm` h-5, the tile's `text-2xl` reading h-8. -->
@@ -250,11 +203,8 @@
 			</div>
 		{/each}
 	</div>
-	<!-- Bodies, in the five GATED cards' order. Both charts are a fixed viewBox at
-	     `w-full`, so their height is a function of the container's width and the
-	     ratio is the only thing that tracks it; the other three are the heights
-	     their content measures. The logs card is not among them — it renders outside
-	     this gate and carries its own loading line. -->
+	<!-- Bodies, in the five GATED cards' order — the logs card renders outside this gate.
+	     Both charts are a fixed viewBox at `w-full`, so a ratio is what tracks their height. -->
 	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			<div class="skeleton-block h-5 w-40"></div>
@@ -276,7 +226,6 @@
 		</p>
 	</div>
 {:else}
-	<!-- KPI tiles -->
 	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3">
 		<StatTile
 			label={m.ana_tasks_completed()}
@@ -355,7 +304,6 @@
 		</StatTile>
 	</div>
 
-	<!-- Completion trend -->
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">
@@ -390,7 +338,6 @@
 		{/if}
 	</div>
 
-	<!-- Day profiles -->
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_day_profiles()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">
@@ -449,7 +396,6 @@
 		{/if}
 	</div>
 
-	<!-- Your model (calibration visibility) -->
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
@@ -483,31 +429,17 @@
 	</div>
 {/if}
 
-<!-- The range's raw measurements. Last on the page on purpose: everything above is a
-     reading of these, so the list is where a figure that looks wrong gets checked against
-     what was actually logged.
-
-     OUTSIDE the load gate above, unlike every other card, for two reasons. Its `id` is
-     what "In your logs →" scrolls to, and that fragment scroll happens once, on arrival —
-     an element that appears only when IndexedDB answers is not there to be scrolled to,
-     and nothing retries. And the gate's `{:else if}` is `hasData`, which is about day
-     SUMMARIES: a user with measurements but no summaries would be told they have never
-     used the app. `areLogsLoading` below is this card's own gate — it waits for all three
-     reads the rows are folded from, which since 2026-08-11 includes this page's own
-     store, for the live task names. -->
+<!-- OUTSIDE the load gate, unlike every other card: "In your logs →" scrolls to this `id`
+     once on arrival and nothing retries, and the gate's `{:else if}` is `hasData`, which is
+     about day SUMMARIES — measurements without one would be told the app was never used. -->
 <div id="log-history" class="card-shell mt-grid-xl scroll-mt-grid-lg rounded-xl p-box-lg">
 	<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs gap-y-text-3xs">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_logs()}</h2>
-		<!-- A text toggle rather than a fourth entry in the range group above: the range
-		     belongs to every card on the page, and "all time" is a claim only this one
-		     can make — the charts read day summaries, which are loaded for a year. -->
 		<button
 			type="button"
 			class="hint-underline shrink-0 text-xs text-ty-silent transition hover:text-ty-secondary"
 			onclick={() => {
 				allTime = !allTime;
-				// A row that scrolls out of the list on the way is not a row anyone meant
-				// to keep correcting.
 				closeEditor();
 			}}
 		>

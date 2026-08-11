@@ -1,17 +1,12 @@
 <script lang="ts">
-	/* One calibrated parameter over the days its fit was recorded (MATH.md §12) —
-	   the sparkline beside each row of the "Your model" card.
-
-	   The DEFAULT is part of the drawn range, and drawn: auto-scaling to the data
-	   alone turns a fit that has barely moved into a dramatic climb, and there is
-	   no axis here to say otherwise. Dashed rather than a second hue, the way
-	   `energy-chart.svelte` separates its two lines. */
+	/* One calibrated parameter over the days its fit was recorded (MATH.md §12).
+	   The DEFAULT is part of the drawn range: scaling to the data alone turns a fit
+	   that has barely moved into a dramatic climb, and there is no axis to say so. */
 
 	interface Props {
 		/** Ascending by recorded day; at least two, or the caller renders nothing */
 		values: number[];
 		defaultValue: number;
-		/** An <svg role="img"> has no other accessible name */
 		ariaLabel: string;
 	}
 

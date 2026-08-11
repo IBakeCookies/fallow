@@ -13,47 +13,34 @@
 		EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 
-	/* The main page's reading of a task: what the allocator made of it — priority, its
-	   share of the day, run order, T*. The row's frame, checkbox, action strip and every
-	   editor are task-row-shell's, filled here; the Lab's row fills the same slots with
-	   the schedule's reading. Both measurements (⚡ and 🪫) are the shell's on both
-	   screens — this component only binds them to an id. */
-
 	interface Props {
 		id: number;
 		title: string;
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
-		/** Which system the task leans on — classified by the model, badged here. */
 		nature: TaskNature;
 		completed: boolean;
 		priorityScore: number;
 		suggestedHours: number;
 		trueEffort: number;
 		flowStateTime: number;
-		// Per-task optimal stopping time from the allocator (model v2:
-		// task-dependent — no longer reconstructable as a fixed 1.79 × ϕ, and
-		// hedged for ϕ-uncertainty, so it can land below ϕ itself — MATH.md §3)
+		// Not reconstructable from ϕ: task-dependent and hedged for ϕ-uncertainty,
+		// so it can land below ϕ itself (MATH.md §3).
 		optimalStopHours: number;
-		/** The mid-day re-plan (MATH.md §35): what the hours still left today are worth
-		 *  on this task, beside how many are left at all. Absent until today has 🪫
-		 *  hours logged against it — the plan alone answers a day nobody has worked.
-		 *  Passed for every row once any hours exist, but only rendered where it says
-		 *  something the plan does not; see `replan`. */
+		/** The mid-day re-plan (MATH.md §35): passed for every row once today has 🪫
+		 *  hours, rendered only where it disagrees with the plan — see `replan`. */
 		remaining?: {
 			taskHours: number;
 			dayHours: number;
 		};
 		runOrder?: number;
 		flowMinutes?: number;
-		/** Flagged as unmovable, so the plan advisor never offers to defer it. */
 		mustDoToday?: boolean;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
 		flowDraft?: EditorDraft | null;
 		onflowopen?: (id: number, source: EditorSource) => void;
-		/** The badge's own action — see `task-row-shell.svelte`. */
 		onflowedit?: (id: number, source: EditorSource) => void;
 		onflowclose?: (id: number) => void;
 		onlogflow?: (id: number, minutes: number) => void;
@@ -63,8 +50,6 @@
 		ondrainopen?: (id: number, source: EditorSource) => void;
 		ondrainclose?: (id: number) => void;
 		ondrainsave?: (id: number, entry: { hours: number; mind: number; body: number }) => void;
-		/** Required, unlike the logging callbacks: a rating stays correctable on every day
-		 *  this row renders — see `task-row-shell.svelte`. */
 		ondrainedit: (id: number, log: Persisted<DrainObservationRecord>) => void;
 		ondraindelete: (id: number, recordId: number) => void;
 		onupdate?: (id: number, changes: TaskEdit) => void;
@@ -107,12 +92,8 @@
 
 	const badge = $derived(natureBadge(nature));
 
-	/* The re-plan is shown only where it DISAGREES with the plan (MATH.md §35). Hours
-	   logged against one task re-plan every other row, and on a day spent as the plan
-	   asked, the answer for those rows is the plan again — a second line repeating it
-	   reads as news where there is none, and it would appear on nothing more than a
-	   drain log existing. Compared on the PRINTED figure, because what the guard is
-	   preventing is the same text twice; the raw hours differ below the minute. */
+	/* Shown only where it DISAGREES with the plan (MATH.md §35); compared on the PRINTED
+	   figure, because what the guard prevents is the same text twice. */
 	const replan = $derived(
 		remaining && formatDuration(remaining.taskHours) !== formatDuration(suggestedHours)
 			? remaining
@@ -158,9 +139,7 @@
 {/snippet}
 
 {#snippet meta()}
-	<!-- The rule separates P·M·E from the derived readings only while the two share a
-	     line. Below `sm` they never do — the row is too narrow — and it hung off the end
-	     of the first line pointing at nothing. -->
+	<!-- Below `sm` this rule's two sides never share a line, so it would point at nothing. -->
 	<span class="hidden text-ty-ghost sm:inline">|</span>
 	<Tooltip.Root>
 		<Tooltip.Trigger class="cursor-help text-left">
@@ -179,26 +158,9 @@
 {#snippet trailing()}
 	{#if !completed}
 		{#if replan}
-			<!-- Mid-day (MATH.md §35): the delta leads and the plan drops beneath it,
-			     because at 2pm the actionable number is the one saying what to do next.
-			     Deliberately NOT a strikethrough on the plan. It is not superseded — it
-			     is the same number the plan-family rows on this page are still computed
-			     from (§11.8) — and the two are on different bases: this is time to spend
-			     ON TOP of the hours already worked, so pairing them as was/now would
-			     understate the day's real total. Which is also why neither line is
-			     phrased as a comparison ("15m more"): the delta is not measured against
-			     the plan printed under it, and a comparative word would invite exactly
-			     that reading — wrongly, and in only one direction, since a task you
-			     over-worked leaves the others LESS. Each line is labelled by what it
-			     answers instead, which is also what keeps the two legible as one row:
-			     they are never the same printed figure, but they are two figures. -->
 			<div>
 				<Tooltip.Root>
-					<!-- Alignment on each TRIGGER, not the wrapper: a <button> carries its own
-					     UA `text-align: center`, so the shorter of the two lines sat centred
-					     under the longer instead of flush with it. Left below `sm`, where this
-					     reading leads a line of its own at the foot of the row rather than
-					     ending the row on the right. -->
+					<!-- Why: presentation/AGENTS.md, "The row's layout" -->
 					<Tooltip.Trigger
 						class="block cursor-help text-left text-sm font-semibold text-ty-primary sm:text-right"
 					>

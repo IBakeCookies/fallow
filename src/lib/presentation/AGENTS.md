@@ -49,6 +49,13 @@ Untestable at every level is the signal.
 
 - Components take snippets/props from the layout; they do not reach into stores
   themselves.
+- **A shell renders tooltips but never owns the `Tooltip.Provider`.** The
+  callers' `lead` / `meta` / `trailing` snippets are full of them too, so the
+  provider sits above the shell, in the page (`/energy` sets one for its whole
+  region). A component that owns every tooltip it renders — `calibration-card`,
+  `drain-log-form` — does carry its own: one that cannot mount without an
+  ancestor's costs every caller a wrapper, and nesting is harmless, since the
+  inner provider wins at the same delay.
 - **An inline editor focuses with `{@attach (node) => node.focus()}`, never
   `autofocus`.** The attribute is inert on any node inserted after load (the
   document's autofocus-processed flag), so all three editors that used it — ⚡,
@@ -73,6 +80,9 @@ Untestable at every level is the signal.
   listener sits on `document`, nor on the arrow that is the only way out of the
   field (menu content hands focus to its first tabbable on open, which is that
   input).
+- **A card whose reading costs a solve is its run button and nothing else until
+  it has run** — `plan-advice-card`, `budget-curve-card`. A card advertising a
+  feature it has not run yet is pure vertical cost above the plan.
 - Storybook stories live **beside their component** (`*.stories.svelte`), one
   file per component or primitive group, rendered as smoke tests by the
   `storybook` vitest project — see [docs/testing.md](../../../docs/testing.md)
@@ -146,6 +156,14 @@ for itself, and the ✎ that could show what they mean is hover-revealed. A stor
 waiting for nothing: a tooltip that never opens and one that opens after a
 delay look alike.
 
+### The mid-day re-plan reads beside the plan, not over it
+
+MATH.md §35. The re-plan leads the trailing column and the plan reads beneath
+it — **never a strikethrough on the plan**, which the plan-family rows (§11.8)
+are still computed from. The two sit on different bases: the re-plan is time to
+spend ON TOP of the hours already worked, so neither line may be phrased as a
+comparison ("15m more"); each is labelled by the question it answers.
+
 ### Each measurement is read, corrected and dropped on the row it belongs to
 
 Both had to read at REST — the action strip is hover-revealed, so an unlogged
@@ -166,7 +184,8 @@ chip switches to that session — the switch arm exists only for 🪫, since ⚡
 one reading, which is why its badge reads as a plain toggle. The 🪫 button owns
 the APPEND editor (the one with no `recordId`) and nothing else: over a
 correction it opens a blank one rather than closing a rating the user is
-amending. Each editor then drops what it opened on (🗑).
+amending. The button is **not** hidden on a completed task — finishing one is
+the commonest way a session ends. Each editor then drops what it opened on (🗑).
 
 **Both editors are open only while the PAGE holds a draft for that task** — the
 shell renders the two forms and owns neither. 🪫 has to be the page's, since a
@@ -335,3 +354,12 @@ The must-do checkbox is hidden in both of the Lab's forms
 (`showMustDoToday={false}`) because `isPinned` is read by the plan advisor and
 by nothing in this mode — the seeded value still round-trips, so an edit here
 cannot clear a flag set there.
+
+### The calibration cards share a shell, not a body
+
+`calibration-card.svelte` is the card, the explained heading and the action
+slot, and nothing else. The three bodies stay at the call sites because they are
+three different things: α has two fit rows and a fit summary, r adds the ☕
+editor, λ₀ has a censored state and no logs at all. No mode flag and no folding
+the bodies in — the same argument as the two task rows' shell: a component
+covering all three would be a config blob, not a card.

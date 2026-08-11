@@ -12,23 +12,16 @@
 		physicalPool: number;
 		remainingSuggestedHours: string;
 		planSlackHours: number;
-		/** whether the personalized ϕ fit was accepted (implausible fits are not) */
 		constantsFitted: boolean;
 		flowLogs?: Persisted<FlowObservationRecord>[];
-		/** How many of `flowLogs` are dated on or after the planned day, so no fit
-		 *  has counted them yet (MATH.md §33). The status line must not quote the
-		 *  raw total against a fit that read fewer. */
+		/** `flowLogs` dated on or after the planned day: no fit has counted them (MATH.md §33) */
 		pendingFlowLogs?: number;
-		/** whether the viewed day's tasks can be measured at all — false off today,
-		 *  where the prompt would point at a button no task renders */
+		/** false off today, where the prompt would point at a ⚡ button no task renders */
 		canLog?: boolean;
 		onresetlogs?: () => void;
-		// Collapsed, the whole bar is one line carrying every constraint the plan
-		// reads. These are occasional-use inputs and the plan below them is what
-		// the page is for, so expanding is opt-in. Sampled at mount and then the
-		// user's to control: the caller re-asks by remounting the bar (`{#key}` on
-		// the loaded day), because a live value would slam the panel shut the
-		// moment its own hours field stops reading 0.
+		// Sampled at mount and then the user's to control: the caller re-asks by
+		// remounting the bar (`{#key}` on the loaded day), because a live value would
+		// slam the panel shut the moment its own hours field stops reading 0.
 		isOpen?: boolean;
 	}
 
@@ -50,16 +43,10 @@
 	// svelte-ignore state_referenced_locally -- deliberately initial-value only
 	let open = $state(isOpen);
 
-	// Display switch cost in minutes but store in hours
 	const switchCostMinutes = $derived(Math.round(switchCost * 60));
 
 	// Shared so the slider can never cap below a budget the field still accepts.
-	// `step` binds only the slider: the field does not snap to it, and an
-	// off-quarter budget is a state the advice card's unrounded `set-budget`
-	// levers actively ask the user to type (MATH.md §14.1). Such a budget renders
-	// the thumb at the nearest quarter until the slider is next touched, which
-	// then snaps the value — under 0.5% of the track, and the field is the
-	// precise view.
+	// `step` binds the slider only: off-quarter budgets are typed (MATH.md §14.1).
 	const BUDGET_BOUNDS = {
 		min: 0,
 		max: 24,
@@ -92,10 +79,7 @@
 		].join(' · '),
 	);
 
-	// What the fit actually read. Every sentence below counts these, never
-	// `flowLogs.length` — a log made today is on the page but not in the plan
-	// (MATH.md §33), and quoting it as though it were is the dishonesty the rule
-	// exists to remove.
+	// What the fit read: the status lines quote this, never `flowLogs.length`.
 	const countedLogs = $derived(flowLogs.length - pendingFlowLogs);
 
 	const fitStatus = $derived(
@@ -114,8 +98,6 @@
 				: m.model_status_default(),
 	);
 
-	// The logs made today, named separately — a plan that ignores a measurement the
-	// user just made owes them the reason, or the ⚡ button reads as broken.
 	const pendingStatus = $derived(
 		pendingFlowLogs === 1
 			? m.model_status_pending_one()
@@ -124,9 +106,8 @@
 				}),
 	);
 
-	// Deferred logs are the WHOLE story on a day nothing has been counted yet:
-	// `model_status_default` would otherwise tell the user to go log the ⚡ they
-	// have just logged.
+	// With nothing counted yet, `model_status_default` would tell the user to go log
+	// the ⚡ they have just logged.
 	const modelStatus = $derived(
 		pendingFlowLogs === 0
 			? fitStatus
@@ -135,12 +116,9 @@
 				: `${fitStatus} · ${pendingStatus}`,
 	);
 
-	// Three model states earn a line while collapsed: a rejected fit (a mistyped log
-	// to go fix), no logs at all — `model_status_default` is the only sentence in the
-	// app that says ⚡ exists — and a log the plan has deferred, which is the one that
-	// answers "I logged that, why did nothing move?". A healthy settled fit is
-	// reassurance and stays inside; a future day gets no prompt, since no task there
-	// offers a ⚡ button.
+	// Collapsed, only a state with something to do earns a line: a rejected fit, a
+	// deferred log, and no logs at all — `model_status_default` is the only sentence
+	// in the app that says ⚡ exists. A settled fit is reassurance and stays inside.
 	const modelWarning = $derived(!constantsFitted && countedLogs > 0);
 	const modelPending = $derived(pendingFlowLogs > 0);
 	const modelPrompt = $derived(canLog && flowLogs.length === 0);
@@ -192,9 +170,7 @@
 					step={BUDGET_BOUNDS.step}
 					unit={m.unit_hours()}
 				/>
-				<!-- The whole plan is one `$derived`, so dragging re-solves the day live
-				     (~1–13 ms at realistic task counts) — which is what makes the advice
-				     card's budget levers explorable rather than just readable. -->
+				<!-- Dragging re-solves the whole plan live (~1–13 ms at realistic task counts). -->
 				<input
 					type="range"
 					aria-label={m.budget_hours_slider()}

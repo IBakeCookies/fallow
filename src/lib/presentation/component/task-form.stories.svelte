@@ -10,16 +10,14 @@
 		tags: ['autodocs'],
 		args: {
 			onsubmit: fn(),
-			// A profile with no history: nothing to suggest, so every task is rated by
-			// hand on the form's own defaults.
+			// A profile with no history: every task is rated by hand on the defaults.
 			suggest: fn(() => []),
 			isOpen: true,
 		},
 	});
 
-	// Two rated titles that share a word, through the real matcher rather than a
-	// hand-written stub, so the stories exercise the two-character floor and the
-	// ordering the store would actually answer with (ROADMAP item 24).
+	// Two rated titles sharing a word, through the real matcher rather than a stub,
+	// so the stories exercise the two-character floor and the store's own ordering.
 	const rated = latestRatingsByTitle([
 		{
 			date: '2026-08-01',
@@ -51,8 +49,7 @@
 
 	const suggestGym = (query: string) => suggestTitles(rated, query);
 
-	// More matches than the list can show at once: `max-h-56` is about five rows
-	// and `suggestTitles` caps nothing, so twelve is enough to arrow past the fold.
+	// `max-h-56` is about five rows and `suggestTitles` caps nothing, so twelve matches arrow past the fold.
 	const manyRuns = latestRatingsByTitle([
 		{
 			date: '2026-08-01',
@@ -73,9 +70,8 @@
 
 	const suggestRuns = (query: string) => suggestTitles(manyRuns, query);
 
-	// Two titles that differ only after the width of the field, plus a short one
-	// as the single-line yardstick. A row that clips renders the long pair as the
-	// same words and an ellipsis, and picking one is then a guess (ROADMAP 24).
+	// Two titles that differ only after the width of the field, plus a short one as
+	// the single-line yardstick: a clipped row renders the pair identically.
 	const sharedPrefix = [
 		'Gym',
 		'Morning gym session at the riverside club before the first meeting',
@@ -103,9 +99,6 @@
 	const suggestLong = (query: string) => suggestTitles(longRated, query);
 </script>
 
-<!-- The full form. The play walks the submit policy: every slider named by its
-     label, an empty title refused, the title trimmed and the draft reset, and the
-     must-do-today flag surviving the submit before resetting with the rest. -->
 <Story
 	name="Open"
 	play={async ({ args, canvas, userEvent }) => {
@@ -138,11 +131,9 @@
 			name: 'Deploy Task',
 		});
 
-		// An empty title is not a task
 		await userEvent.click(deploy);
 		await expect(args.onsubmit).not.toHaveBeenCalled();
 
-		// Trimmed title with the slider defaults, and the draft resets
 		await userEvent.type(title, '  Boxing training  ');
 		await userEvent.click(deploy);
 
@@ -156,8 +147,7 @@
 
 		await expect(title).toHaveValue('');
 
-		// The flag stops the plan advisor offering to move a task that cannot move,
-		// so it has to survive the submit — and reset with the rest of the draft
+		// The flag stops the advisor moving a task that cannot move, so it must survive the submit
 		const mustDo = canvas.getByLabelText("Don't move off today");
 		await userEvent.type(title, 'Tax return');
 		await userEvent.click(mustDo);
@@ -173,9 +163,8 @@
 
 		await expect(mustDo).not.toBeChecked();
 
-		// A rating the user set by hand is theirs: emptying the field undoes a pick,
-		// and this profile has nothing to pick from, so retyping a title they got
-		// wrong must not put the sliders back to the defaults.
+		// A rating set by hand is the user's: clearing the field undoes a pick, and
+		// this profile has none, so a retyped title must not reset the sliders.
 		await fireEvent.input(physical, {
 			target: {
 				value: '9',
@@ -189,9 +178,6 @@
 	}}
 />
 
-<!-- The suggestion list is the whole recall path: two characters open it, a
-     pick fills the title and all three sliders, and the sliders stay the user's
-     afterwards (ROADMAP item 24). -->
 <Story
 	name="Picking a suggestion fills the sliders"
 	args={{
@@ -222,7 +208,6 @@
 		await expect(canvas.getByRole('listbox')).toBeInTheDocument();
 		await expect(title).toHaveAttribute('aria-expanded', 'true');
 
-		// Both matches, alphabetically, and the stored spelling of each
 		await expect(canvas.getAllByRole('option').map((o) => o.textContent?.trim())).toEqual([
 			'Gym admin',
 			'Gym session',
@@ -245,8 +230,7 @@
 		// The list closes on the pick, though the chosen title still matches itself
 		await expect(canvas.queryByRole('listbox')).not.toBeInTheDocument();
 
-		// What the user came for: the recalled rating is a starting point they can
-		// still move, and nothing speaks over the drag
+		// What the user came for: the recalled rating is a starting point they can still move
 		await fireEvent.input(mental, {
 			target: {
 				value: '6',
@@ -267,13 +251,11 @@
 			mustDoToday: false,
 		});
 
-		// The next task starts from the defaults again, not from the last pick
 		await expect(physical).toHaveValue('5');
 		await expect(mental).toHaveValue('5');
 		await expect(enjoyment).toHaveValue('5');
 
-		// ...and it is not the last pick's rating any more either: a slider set by
-		// hand now survives the next cleared title, which a pick's would not
+		// ...and not the last pick's either: a hand-set slider survives the next cleared title
 		await fireEvent.input(physical, {
 			target: {
 				value: '9',
@@ -287,8 +269,6 @@
 	}}
 />
 
-<!-- Suggestions are reachable without a mouse, and Enter still deploys the task
-     when the user is typing a title the list does not have. -->
 <Story
 	name="Keyboard"
 	args={{
@@ -303,8 +283,7 @@
 
 		await userEvent.type(title, 'gym');
 
-		// Down through both options and round again, with the input naming the
-		// highlighted one for a screen reader
+		// Down through both options and round again — the wrap is why two more land back on the first
 		await userEvent.keyboard('{ArrowDown}');
 
 		await expect(title).toHaveAttribute(
@@ -331,17 +310,14 @@
 		await expect(physical).toHaveValue('8');
 		await expect(args.onsubmit).not.toHaveBeenCalled();
 
-		// The pick closes the list, so it takes the highlight with it
 		await expect(title).not.toHaveAttribute('aria-activedescendant');
 
-		// An emptied field starts over: a pick's rating goes with the title it was
-		// picked for, or the next, unrelated task is deployed wearing it
+		// An emptied field starts over, or the next unrelated task deploys wearing the pick's rating
 		await userEvent.clear(title);
 		await expect(physical).toHaveValue('5');
 
-		// A field holding nothing but spaces is an empty field — the guard trims —
-		// so typing a space over a picked title drops its rating too, without the
-		// value ever being ''
+		// A field of nothing but spaces is empty — the guard trims — so a space over a
+		// picked title drops its rating without the value ever being ''
 		await userEvent.type(title, 'gy');
 		await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
 		await expect(physical).toHaveValue('8');
@@ -351,7 +327,6 @@
 		await expect(title).toHaveValue(' ');
 		await expect(physical).toHaveValue('5');
 
-		// Escape closes the list without touching what was typed or rated
 		await userEvent.clear(title);
 		await userEvent.type(title, 'gym');
 		await userEvent.keyboard('{Escape}');
@@ -359,10 +334,8 @@
 		await expect(canvas.queryByRole('listbox')).not.toBeInTheDocument();
 		await expect(title).toHaveValue('gym');
 
-		// ...and an arrow key brings it back. The query still matches, so without this
-		// the only way to reopen what a keystroke closed is to edit the field — and it
-		// highlights the end it was opened from, so a suggestion is one keystroke away
-		// rather than two.
+		// ...and an arrow brings it back, from the end it was opened from: otherwise the
+		// only way to reopen what a keystroke closed is to edit the field
 		await userEvent.keyboard('{ArrowDown}');
 
 		await expect(canvas.getByRole('listbox')).toBeInTheDocument();
@@ -374,11 +347,9 @@
 			}).id,
 		);
 
-		// Escape drops the highlight along with the list that named it
 		await userEvent.keyboard('{Escape}');
 		await expect(title).not.toHaveAttribute('aria-activedescendant');
 
-		// ArrowUp reopens it too, from the other end
 		await userEvent.keyboard('{ArrowUp}');
 
 		await expect(title).toHaveAttribute(
@@ -388,15 +359,13 @@
 			}).id,
 		);
 
-		// Tabbing away takes the highlight with the list: aria-activedescendant may
-		// not outlive the element it names
+		// aria-activedescendant may not outlive the list it names, so tabbing drops both
 		await userEvent.tab();
 
 		await expect(canvas.queryByRole('listbox')).not.toBeInTheDocument();
 		await expect(title).not.toHaveAttribute('aria-activedescendant');
 
-		// Enter with nothing highlighted is the form's own submit, or the list would
-		// take the only keyboard way to deploy a task
+		// Enter with nothing highlighted is the form's own submit, or the list takes the only keyboard deploy
 		await userEvent.clear(title);
 		await userEvent.type(title, 'gym{Enter}');
 
@@ -410,8 +379,6 @@
 	}}
 />
 
-<!-- The list is uncapped, so it can be taller than the box that shows it: the
-     highlight has to bring its row into view or it is a highlight nobody sees. -->
 <Story
 	name="Arrowing past the fold scrolls the list"
 	args={{
@@ -424,7 +391,6 @@
 
 		const list = canvas.getByRole('listbox');
 
-		// The premise: twelve matches in a box that shows about seven
 		await expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
 		await expect(list.scrollTop).toBe(0);
 
@@ -438,9 +404,8 @@
 
 		await expect(list.scrollTop).toBeGreaterThan(0);
 
-		// Reopening from the other end highlights the last row — whose `<li>` does not
-		// exist yet at the moment the key is handled, so the scroll can only work if it
-		// waits for the patched DOM
+		// The last row's `<li>` does not exist yet when the key is handled, so the
+		// scroll works only if it waits for the patched DOM
 		await userEvent.keyboard('{Escape}');
 		await userEvent.keyboard('{ArrowUp}');
 
@@ -448,8 +413,6 @@
 	}}
 />
 
-<!-- A suggestion the user cannot read is a suggestion they cannot pick: titles
-     longer than the field wrap onto another line rather than clipping. -->
 <Story
 	name="A long title is shown whole"
 	args={{
@@ -464,10 +427,8 @@
 
 		await expect([short, ...long].map((o) => o.textContent?.trim())).toEqual(sharedPrefix);
 
-		// scrollWidth is what the text needs and clientWidth what it got, so equal
-		// means every character of the difference is on screen. The height says the
-		// premise held — these really are too long for one line at this width, and
-		// a clipped row would have ended both at the same word.
+		// scrollWidth is what the text needs and clientWidth what it got, so equal means
+		// nothing is clipped; the height says these really are too long for one line
 		for (const option of long) {
 			await expect(option.scrollWidth).toBe(option.clientWidth);
 			await expect(option.clientHeight).toBeGreaterThan(short.clientHeight);
@@ -475,8 +436,7 @@
 	}}
 >
 	{#snippet template(args)}
-		<!-- The form lives in a column, not across the viewport; the default canvas
-		     is wide enough to fit these titles and would prove nothing. -->
+		<!-- The default canvas is wide enough to fit these titles whole and would prove nothing -->
 		<div class="max-w-sm">
 			<TaskForm {...args} />
 		</div>
@@ -490,7 +450,6 @@
 		isOpen: false,
 	}}
 	play={async ({ canvas, userEvent }) => {
-		// The row expands into the form on click...
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: '+ Add Task',
@@ -499,7 +458,6 @@
 
 		await expect(canvas.getByLabelText('Task Definition')).toBeInTheDocument();
 
-		// ...and ▴ collapses it back to the add row
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Collapse task form',
@@ -514,8 +472,7 @@
 	}}
 />
 
-<!-- The Lab's copy of the form: same fields, no must-do flag. Deploying still reports
-     the task as unflagged, which is what a task nobody flagged is. -->
+<!-- The Lab's copy: same fields, no must-do flag, and deploying still reports unflagged -->
 <Story
 	name="Without the must-do flag"
 	args={{

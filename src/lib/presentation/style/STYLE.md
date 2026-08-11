@@ -131,6 +131,10 @@ Read this before touching markup, classes, or anything under
   dropped**: the two bare-`border` inputs in `page-header.svelte` inherit their
   border colour from its base layer. Give them explicit token borders first,
   then remove it.
+- **An overflowing panel scrolls with `nice-scrollbar` (`base.css`), never the
+  native bar** — the theme dropdown and the analytics log history are both it. No
+  palette reaches a UA scrollbar, so it renders as the same grey slab on all 37
+  themes.
 - Tailwind's scanner is **textual and runs at build time** — a name assembled
   at runtime does not exist. This bites twice: class names (`bg-{x}-500`), and
   `@theme` custom properties, which are tree-shaken to the ones the scanner

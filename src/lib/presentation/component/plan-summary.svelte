@@ -4,23 +4,19 @@
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 	interface Props {
-		/** Σ of the plan's block outputs, already formatted in the reader's locale */
 		totalOutput: string;
-		/** Both capacities as the last worked block leaves them, as fractions of full
-		 *  — before the evening's recovery, which is what the reader is asking about
-		 *  (MATH.md §13.6) */
+		/** Fractions of full as the last worked block leaves them, before the evening's
+		 *  recovery (MATH.md §13.6) */
 		endCog: number;
 		endPhys: number;
 		workHours: number;
-		/** How this plan compares with the classic allocator's under the model's own
-		 *  objective, in per cent. Null when there is no rival plan to compare against. */
+		/** This plan against the classic allocator's, under the model's own objective, in per cent */
 		valueVsClassic: number | null;
 	}
 
 	let { totalOutput, endCog, endPhys, workHours, valueVsClassic }: Props = $props();
 </script>
 
-<!-- The objective readout, visible under both the chart and the schedule -->
 <div
 	class="mt-text-lg grid grid-cols-2 gap-grid-md border-t border-line-soft pt-box-md sm:grid-cols-4"
 >
@@ -29,10 +25,8 @@
 		<p class="text-xs text-ty-silent">{m.energy_total_output()}</p>
 	</div>
 	<div>
-		<!-- Floor, not round: 100% has to mean untouched. Rounding printed it for
-		     anything from 99.5% up, so a day that had visibly drained you read as
-		     completely fresh. Erring down is the honest direction for a depletion
-		     reading. -->
+		<!-- Floor, not round: 100% has to mean untouched, and rounding printed it from
+		     99.5% up. Erring down is the honest direction for a depletion reading. -->
 		<p class="text-lg font-semibold text-ty-primary">
 			{Math.floor(endCog * 100)}% / {Math.floor(endPhys * 100)}%
 		</p>
@@ -47,9 +41,8 @@
 			<p class="text-lg font-semibold text-ty-silent">—</p>
 			<p class="text-xs text-ty-silent">{m.energy_no_classic()}</p>
 		{:else}
-			<!-- Three readings, not two: a gap under half a point rounds to 0, and
-			     `Math.round` returns -0 for a small LOSS, which `>= 0` reads as a win —
-			     the tile signed a beaten plan green. A tie is neither. -->
+			<!-- Three readings, not two: a rounded small LOSS arrives as -0, which `>= 0`
+			     reads as a win — the tile signed a beaten plan green. A tie is neither. -->
 			<p
 				class="text-lg font-semibold {valueVsClassic > 0
 					? 'text-success'
@@ -59,14 +52,10 @@
 			>
 				{valueVsClassic > 0 ? '+' : ''}{valueVsClassic}%
 			</p>
-			<!-- The only reading on this page that switch cost and the capacity pools reach
-			     at all: they constrain the rival plan, never the schedule above. Said out
-			     loud, or the number moves for no visible reason when those are edited on the
-			     main page.
-
-			     A tooltip and not `title=`: two sentences is past what a native tooltip
-			     shows, and touch shows one never. `child` keeps the tile's
-			     <p>value</p><p>label</p> shape, which the e2e reads by preceding sibling. -->
+			<!-- Switch cost and the capacity pools reach this number and nothing else on
+			     the page, so it moves when they are edited elsewhere — hence the tooltip.
+			     `child` keeps the tile's <p>value</p><p>label</p> shape, which the e2e
+			     reads by preceding sibling. -->
 			<Tooltip.Provider delayDuration={150}>
 				<Tooltip.Root>
 					<Tooltip.Trigger>

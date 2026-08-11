@@ -69,29 +69,20 @@
 	});
 </script>
 
-<!-- The analytics range's measurements in one list. Three kinds share one row shape:
-     the day and what was measured on the left, the reading on the right. The play
-     checks that the print order is the fold's, that the emoji is not the only thing
-     saying which kind a row is, and that a ☕ — which names no task — says so. -->
 <Story
 	name="Every kind of measurement"
 	play={async ({ canvas }) => {
 		const printed = canvas.getAllByRole('listitem');
 
-		// Newest first is the fold's order, printed as given — a component that
-		// re-sorts would make `logHistory`'s own test a claim about nothing.
 		await expect(printed).toHaveLength(3);
 		await expect(printed[0]).toHaveTextContent('Break');
 		await expect(printed[1]).toHaveTextContent('Session rating');
 		await expect(printed[2]).toHaveTextContent('Time to flow');
 
-		// A merged list is where the kind stops being obvious, and the emoji that
-		// carries it visually reads as its own name or nothing at all.
+		// The emoji carrying the kind reads as its own name or as nothing at all.
 		await expect(canvas.getByText('Session rating')).toHaveClass('sr-only');
 
-		// The day a task's measurement belongs to is a link to that day. Navigation, not
-		// the correction path — the ✎ below corrects in place — so it promises only to
-		// open the day. ☕ belongs to no day's row, so its date is a date.
+		// Why: presentation/AGENTS.md, "One screen lists logs: `/analytics`"
 		await expect(
 			canvas.getByRole('link', {
 				name: /2026-08-09/,
@@ -106,13 +97,10 @@
 
 		await expect(canvas.getAllByRole('link')).toHaveLength(2);
 
-		// A break is worked on nothing, so the name slot holds the kind instead of
-		// leaving the date alone in a column of "date · task" — which read as a row
-		// whose title failed to load. Hidden from the reader that already hears it
-		// from the sr-only kind above.
+		// A break names no task, so the kind fills the name slot — hidden, since the
+		// sr-only kind above already says it.
 		await expect(canvas.getByText('· Break')).toHaveAttribute('aria-hidden', 'true');
 
-		// 🪫 rates a session on one task; ☕ is a break, worked on nothing.
 		await expect(printed[1]).toHaveTextContent('writing');
 		await expect(printed[1]).toHaveTextContent('1h 30m');
 		await expect(printed[1]).toHaveTextContent('M6');
@@ -126,9 +114,6 @@
 	}}
 />
 
-<!-- Dropping one bad point. The kind travels with the id because the three kinds are
-     three stores: the same number names a different record in each, so a caller told
-     only "12" would delete whatever happened to be twelfth somewhere. -->
 <Story
 	name="Dropping a measurement"
 	play={async ({ canvas, userEvent }) => {
@@ -138,13 +123,10 @@
 			name: /^Delete /,
 		});
 
-		// Every row is droppable, including ☕ — a mistyped break poisons the recovery
-		// fit exactly as a mistyped session poisons the drain one.
 		await expect(drop).toHaveLength(3);
 
-		// Named by day and kind, not "delete": a screen reader listing the buttons of a
-		// 40-row list would otherwise read the same phrase forty times.
-		// The kind is the list's own name for it, interpolated rather than respelled.
+		// Named by day and kind: a reader listing a 40-row list's buttons would otherwise
+		// hear the same phrase forty times.
 		await expect(drop[1]).toHaveAccessibleName('Delete Session rating logged on 2026-08-09');
 
 		await userEvent.click(drop[1]);
@@ -153,10 +135,6 @@
 	}}
 />
 
-<!-- The ✎ opens a correction on the row itself. Every kind has one — ☕ included, which
-     is the only editor a break has, since it belongs to no task's row (MATH.md §36). The
-     list only asks; which row is open is the page's, because the page owns the stores the
-     save lands in. -->
 <Story
 	name="Asking to correct"
 	play={async ({ canvas, userEvent }) => {
@@ -169,17 +147,12 @@
 		await expect(correct).toHaveLength(3);
 		await expect(correct[0]).toHaveAccessibleName('Correct Break logged on 2026-08-09');
 
-		// Both verbs travel with the kind: three stores autoincrement independently, so
-		// "4" alone names a different record in each.
 		await userEvent.click(correct[0]);
 
 		await expect(onedit).toHaveBeenCalledWith('rest', 4);
 	}}
 />
 
-<!-- ⚡'s correction is one number, seeded with the reading the row prints — the same
-     editor the badge on a task's row opens, and the same conversion: minutes on screen,
-     hours in the fit. -->
 <Story
 	name="Correcting a time to flow"
 	args={{
@@ -206,9 +179,8 @@
 	}}
 />
 
-<!-- 🪫's is three, and it saves in the units the α fit reads (MATH.md §8.7): hours, and
-     the two 0–10 ratings. No 🗑 in the form — the row's own ✕ is the drop, and two of
-     them on one row would be R3's mirrors case. -->
+<!-- Minutes on screen, hours in the payload — the units the α fit reads (MATH.md §8.7).
+     No 🗑 in the form: the row's own ✕ is the drop. -->
 <Story
 	name="Correcting a session rating"
 	args={{
@@ -244,8 +216,6 @@
 	}}
 />
 
-<!-- ☕'s is five, and both sides of the pair are seeded: the row prints M7→3, so the
-     editor opens on 7 and 3. -->
 <Story
 	name="Correcting a break"
 	args={{
@@ -261,8 +231,6 @@
 		await expect(mindBefore).toHaveValue(7);
 		await expect(mindAfter).toHaveValue(3);
 
-		// ✕ closes without saving — the page is what holds the open row, so the form can
-		// only ask to be closed.
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: '✕',
@@ -274,8 +242,6 @@
 	}}
 />
 
-<!-- A range with nothing in it says so. Not the same claim as the page's own empty
-     state, which is about a user who has never logged anything. -->
 <Story
 	name="Nothing logged in the range"
 	args={{
@@ -287,9 +253,6 @@
 	}}
 />
 
-<!-- With the range dropped, an empty list is the other claim: nothing was ever logged.
-     Worth distinguishing because "all time" is what a user reaches for to find the old
-     row they came to fix, and "none in this range" would read as the range still biting. -->
 <Story
 	name="Nothing logged at all"
 	args={{

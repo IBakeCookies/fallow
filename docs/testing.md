@@ -114,15 +114,17 @@ only so svelte-check and eslint compile in the same runes mode the build forces
 — `sveltekit()` takes its options inline in `vite.config.ts`, so the build
 ignores the file and says so. Keep `runes` in step across the two.
 
-`lint` is five checks, and the last three fail on documentation rather than
-code: `math-index.mjs --check` on MATH.md's section index (R7 step 5),
+`lint` is six checks, and the last four fail on prose rather than code:
+`math-index.mjs --check` on MATH.md's section index (R7 step 5),
 `probe-registry.mjs --check` on [`scripts/PROBES.md`](../scripts/PROBES.md) —
-both because a hand-maintained index silently rots — and `brief-size.mjs
---check`, which fails when the root `AGENTS.md` grows past its line budget.
-That last one is the only mechanical defence the split has: nothing else
-notices an argument being pasted into the brief instead of into the file that
-owns it. `prettier --check`
-covers the whole tree, so format the files you touched
+both because a hand-maintained index silently rots — `brief-size.mjs --check`,
+which fails when the root `AGENTS.md` grows past its line budget, and
+`comment-density.mjs --check`, which fails when a component's comments do. The
+last two are the only mechanical defence the doc split has: nothing else
+notices an argument being pasted into the brief, or into a component's header,
+instead of into the file that owns it. Both count volume and neither can tell
+an earned _why_ from archaeology, so AGENTS.md §0 still governs. `prettier
+--check` covers the whole tree, so format the files you touched
 (`npx prettier --write`) and never the tree.
 
 Warnings are a known baseline, not a to-do list: 18 `max-depth` (the scheduler
@@ -141,6 +143,16 @@ html report), `coverage/` (v8, over `business`/`data`/`presentation`), `e2e/`
 nothing fails on it, so it runs on CI and off locally (instrumenting every
 module costs a fifth of the run). `npm run test:coverage` when you want it
 here.
+
+Traces and videos are `on-first-retry`, not `retain-on-failure`: recording every
+test only to delete the recording on a green run cost a third of the e2e wall
+clock (45-test subset, 6 workers: 42s → 28s; measured 2026-08-11). It is a
+contention cost — six recorders on four cores — so it is nearly free at
+`--workers=1`. CI retries twice, so a CI failure still ships both artefacts; a
+local failure does not, and the escape hatch is `npx playwright test <file>
+--trace on`. Service workers are blocked for the same reason (~10% of that
+subset): only `service-worker.e2e.ts` is about the worker, and it opts back in
+with `test.use`.
 
 ## The reviewer pass
 

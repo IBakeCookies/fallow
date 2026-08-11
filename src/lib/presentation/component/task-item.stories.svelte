@@ -55,8 +55,6 @@
 	});
 </script>
 
-<!-- The cognitive badge, a checkbox named after the task, and the two callbacks
-     wired to their controls -->
 <Story
 	name="Default"
 	play={async ({ args, canvas, userEvent }) => {
@@ -69,10 +67,8 @@
 		await userEvent.click(checkbox);
 		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
 
-		// ✎ and ✕ are the two icons nobody needs told, so neither is a tooltip trigger:
-		// hovering the strip to reach either one popped a panel over the row underneath.
-		// Asserted on the attribute rather than by hovering and waiting for nothing —
-		// a tooltip that never opens and one that opens after a delay look alike.
+		// ✎ and ✕ are no tooltip's trigger. Asserted on `data-slot` rather than by hovering
+		// and waiting for nothing: a tooltip that never opens and one delayed look alike.
 		for (const name of ['Edit task', 'Delete task']) {
 			await expect(
 				canvas.getByRole('button', {
@@ -91,7 +87,6 @@
 	}}
 />
 
-<!-- #1 in the suggested sequence — and the full row: inputs, allocation, derived values -->
 <Story
 	name="First in run order"
 	args={{
@@ -109,8 +104,6 @@
 		await expect(canvas.getByText('M 8')).toBeVisible();
 		await expect(canvas.getByText('E 7')).toBeVisible();
 
-		// Three bare letters are the one reading on the line that says nothing for
-		// itself, so P·M·E is explained by the row's own tooltip like every other one.
 		await userEvent.hover(
 			canvas.getByRole('button', {
 				name: 'P 2 · M 8 · E 7',
@@ -126,9 +119,7 @@
 	}}
 />
 
-<!-- Mid-day (MATH.md §35): the re-plan reads WITH the plan, never over it. The
-     morning's 1h 45m is still there, stacked under the delta; the new figure is
-     what the hours still left are worth on this task now. -->
+<!-- MATH.md §35: the re-plan reads WITH the plan, never over it -->
 <Story
 	name="Mid-day re-plan"
 	args={{
@@ -139,24 +130,19 @@
 		},
 	}}
 	play={async ({ canvas }) => {
-		// The delta leads, in the primary weight...
 		const delta = canvas.getByText('spend 45m');
 		await expect(delta).toBeVisible();
 		await expect(delta).toHaveClass(/text-ty-primary/);
 
-		// ...and the plan is still there, unchanged and muted beneath it. That the
-		// plan number survives mid-day IS the §11.8 scope split, on screen.
+		// The plan number surviving mid-day IS the §11.8 scope split, on screen.
 		const plan = canvas.getByText('plan 1h 45m · prio 12.4');
 		await expect(plan).toBeVisible();
 		await expect(plan).toHaveClass(/text-ty-silent/);
 	}}
 />
 
-<!-- A re-plan that agrees with the plan is not shown at all: the row keeps the exact
-     shape it had all morning. Logging hours against ONE task re-plans every other
-     row, and on a day you spent them as asked the answer for those rows is the plan
-     again — so announcing the re-plan there would grow a line to repeat a number,
-     which reads as news where there is none. -->
+<!-- A re-plan that agrees with the plan is not shown at all: a line grown to repeat a
+     number reads as news where there is none. -->
 <Story
 	name="Re-plan lands on the planned hours"
 	args={{
@@ -212,11 +198,6 @@
 	}}
 />
 
-<!-- The ⚡ badge shows the measurement, so completing does not ask for it again — and it
-     re-opens the editor on it, exactly as a 🪫 chip re-opens its rating. There is only
-     one ⚡ per day, so this is the same editor the ⚡ button opens rather than a choice
-     between sessions; a reading you cannot click is the inconsistency, not the
-     duplication. -->
 <Story
 	name="With a logged time-to-flow"
 	args={{
@@ -235,21 +216,18 @@
 		const body = within(canvasElement.ownerDocument.body);
 		await waitFor(() => expect(body.getByText(/^Measured minutes-to-flow/)).toBeVisible());
 
-		// The badge corrects the reading; it is not the logging verb, which a past day
-		// withholds while still offering this one.
+		// The badge corrects the reading; it is not the logging verb a past day withholds.
 		await userEvent.click(badge);
 		await expect(args.onflowedit).toHaveBeenCalledExactlyOnceWith(1, 'button');
 		await expect(args.onflowopen).not.toHaveBeenCalled();
 
-		// And completing an already-measured task asks for nothing: ⚡ is one number per
-		// day, so an earlier one silences the prompt.
+		// ⚡ is one number per day, so an earlier one silences the completion prompt.
 		await userEvent.click(canvas.getByRole('checkbox'));
 		await expect(args.onflowopen).not.toHaveBeenCalled();
 	}}
 />
 
-<!-- Struck through, allocation and run order hidden — and un-completing ends no
-     session, so it asks for no measurement -->
+<!-- Un-completing ends no session, so it asks for no measurement -->
 <Story
 	name="Completed"
 	args={{
@@ -275,18 +253,8 @@
 	}}
 />
 
-<!-- A past day: correct, never append. ✎ and the inert ✕ are withheld with both
-     LOGGING buttons — a new observation stamps the LIVE clock's today, so one logged
-     here would misdate itself onto a day the user is only reading — while the ratings
-     the day already holds stay correctable, because a correction carries no date and
-     re-describes the session where it happened.
-
-     ⚡ reads the same way, and the asymmetry that used to be here is gone: a NEW
-     time-to-flow is a measurement of a session that is over, and the store
-     refuses one dated before today. Correcting the reading the day already holds is a
-     different verb and is offered here: since 2026-08-10 the badge IS that day's
-     observation rather than a field on the session, so an amendment has somewhere to
-     land that the auto-save is not required to rewrite. -->
+<!-- A past day: correct, never append. A new observation stamps the LIVE clock's today,
+     so both LOGGING buttons are withheld while both corrections stay offered. -->
 <Story
 	name="Past day"
 	args={{
@@ -324,8 +292,6 @@
 			}),
 		).not.toBeInTheDocument();
 
-		// ⚡ reads AND corrects: what the button below it would have logged is a session
-		// that is over, but the reading on the row is a measurement that exists.
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Correct this time to flow',
@@ -364,7 +330,6 @@
 	}}
 />
 
-<!-- A balanced nature gets the hybrid badge -->
 <Story
 	name="Balanced"
 	args={{
@@ -375,9 +340,7 @@
 	}}
 />
 
-<!-- The ⚡ button is one way in and says so: the caret follows a press but not a
-     prompt, which is what the source tells the page. The editor itself is the page's
-     answer to that call, so nothing opens under this story's mock. -->
+<!-- The editor is the page's answer to the call, so nothing opens under this story's mock -->
 <Story
 	name="Logging time to flow"
 	play={async ({ args, canvas, userEvent }) => {
@@ -392,8 +355,6 @@
 	}}
 />
 
-<!-- The draft answered: the editor hangs under the row, ✓ reports the minutes keyed
-     by the task the row is, and the lit ⚡ closes what it opened -->
 <Story
 	name="Flow editor open"
 	args={{
@@ -423,10 +384,8 @@
 	}}
 />
 
-<!-- Completing is the one moment the user still knows the ramp-up, so the tick asks
-     for it — and says the question was its own, which is what lets an un-tick take it
-     back. The caret stays on the checkbox: ticking tasks off with the keyboard must
-     not land it in a number field. -->
+<!-- The caret stays on the checkbox: ticking tasks off with the keyboard must not land
+     it in a number field -->
 <Story
 	name="Asks on completion"
 	play={async ({ args, canvas, userEvent }) => {
@@ -439,8 +398,7 @@
 	}}
 />
 
-<!-- `completed` is a prop, so a mis-click is undone by the parent: un-completing
-     withdraws the question completion asked -->
+<!-- `completed` is a prop: un-completing withdraws the question completion asked -->
 <Story
 	name="Withdrawn prompt"
 	args={{
@@ -474,9 +432,8 @@
 	}}
 />
 
-<!-- ✎ opens the inline editor: named sliders, editable title — and the completion
-     prompt opens BESIDE its unsaved draft rather than closing it. The two forms
-     answer different questions, so the row shows both, as the Lab's row does. -->
+<!-- The completion prompt opens BESIDE the ✎ editor's unsaved draft rather than closing
+     it: the two forms answer different questions -->
 <Story
 	name="Inline editor"
 	play={async ({ args, canvas, userEvent }) => {
@@ -534,7 +491,6 @@
 	}}
 />
 
-<!-- Flagged unmovable: badged on the row, and the editor can clear the flag -->
 <Story
 	name="Must do today"
 	args={{
@@ -569,10 +525,6 @@
 	}}
 />
 
-<!-- 🪫 is on this row too, not only in the Lab. It is the app's ONLY source of worked
-     hours, and λ₀ (MATH.md §8.10), the §12 adherence audit and overnight carry-over
-     (§11.9) all read finished days off it — so while the button lived on `/energy`
-     alone, a user who never opened the Lab calibrated none of the three. -->
 <Story
 	name="Rating a session"
 	args={{
@@ -613,10 +565,7 @@
 	}}
 />
 
-<!-- Every rating the day holds for this task reads on the row, one chip each — which is
-     what a per-SESSION measurement needs and a badge cannot give it: two sessions are
-     two ratings (MATH.md §8.7), and correcting one has to say WHICH. The chip is that
-     answer, so it carries the whole session and reports the record it stands for. -->
+<!-- Two sessions are two ratings (MATH.md §8.7), and correcting one has to say WHICH -->
 <Story
 	name="Rated sessions read on the row"
 	args={{
@@ -646,25 +595,15 @@
 		await expect(chips[0]).toHaveTextContent('B2');
 		await expect(chips[1]).toHaveTextContent('2h');
 
-		// The row's own tooltip, like every other explained reading on it
 		await userEvent.hover(chips[0]);
 		const body = within(canvasElement.ownerDocument.body);
 		await waitFor(() => expect(body.getByText(/^Re-open this session/)).toBeVisible());
 
-		// The second session, not the first: a page that could not tell them apart is
-		// the reason this had to leave the Lab's flat list.
 		await userEvent.click(chips[1]);
 		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[1]);
 	}}
 />
 
-<!-- A rating re-opened from its chip is a correction, so the editor offers to remove
-     the session outright — the verb that used to live only on the Lab's card, next to
-     the fields that describe the same row.
-
-     And one rule governs every reading on the row: clicking the one the editor is
-     already open on closes it, clicking another switches to it. ⚡ is that rule with a
-     single reading, which is why its badge looked like a plain toggle. -->
 <Story
 	name="Correcting a rating"
 	args={{
@@ -695,14 +634,12 @@
 			name: 'Correct this drain rating',
 		});
 
-		// The chip the editor is on: closes it, rather than re-seeding the fields under
-		// the caret with the values they already hold.
+		// The chip the editor is on closes it, rather than re-seeding fields under the caret.
 		await userEvent.click(chips[0]);
 		await expect(args.ondrainclose).toHaveBeenCalledExactlyOnceWith(1);
 		await expect(args.ondrainedit).not.toHaveBeenCalled();
 
-		// Another session's chip: switches to it, which is the thing only a per-rating
-		// control can do and the reason these are not one toggle.
+		// Another session's chip switches to it — what only a per-rating control can do.
 		await userEvent.click(chips[1]);
 		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(1, args.drainLogs?.[1]);
 
@@ -714,9 +651,8 @@
 
 		await expect(args.ondraindelete).toHaveBeenCalledExactlyOnceWith(1, 11);
 
-		// 🪫 means "one more session", so over an open CORRECTION it switches to a blank
-		// editor rather than closing one it never opened. It closes only its own — see
-		// the story below.
+		// 🪫 means "one more session", so over an open CORRECTION it opens a blank editor
+		// rather than closing one it never opened. It closes only its own — story below.
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Log end-of-session drain',
@@ -727,8 +663,8 @@
 	}}
 />
 
-<!-- ...and over the editor it DID open, 🪫 closes it: an append editor is the one with
-     no `recordId`, which is exactly "the editor this button owns". -->
+<!-- Over the editor it DID open, 🪫 closes it: an append editor is the one with no
+     `recordId`, which is exactly "the editor this button owns" -->
 <Story
 	name="Closing a new session"
 	args={{
@@ -752,8 +688,7 @@
 	}}
 />
 
-<!-- A new session is not a correction: nothing is stored yet, so there is nothing to
-     delete and the editor says so by offering no such button. -->
+<!-- Nothing is stored yet, so there is nothing to delete and the editor offers no 🗑 -->
 <Story
 	name="Rating a new session offers no delete"
 	args={{
@@ -774,9 +709,7 @@
 	}}
 />
 
-<!-- ⚡ is one number per day, so its editor amends rather than appends — and the same
-     editor is where the measurement is dropped, which was reachable only from the
-     budget panel's list before. -->
+<!-- ⚡ is one number per day, so its editor amends rather than appends — and drops -->
 <Story
 	name="Clearing a time-to-flow"
 	args={{
@@ -799,7 +732,6 @@
 	}}
 />
 
-<!-- Nothing measured yet: the ⚡ editor has no measurement to drop -->
 <Story
 	name="Logging a first time-to-flow offers no delete"
 	args={{
@@ -817,11 +749,8 @@
 	}}
 />
 
-<!-- Completing a task is the moment both measurements are knowable, so the tick asks
-     both, through one predicate and one shape of draft. They keep their own policies:
-     ⚡ is one number per day and goes quiet once measured, 🪫 is one per session
-     (MATH.md §18) and never does. Both drafts are the page's, so the row reports two
-     prompts and this story's mocks leave them unanswered. -->
+<!-- The tick asks for both: 🪫 is one per session (MATH.md §18), so a rating the day
+     already holds does not silence its prompt the way ⚡ silences its own -->
 <Story
 	name="Completion asks both"
 	args={{
