@@ -967,6 +967,10 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 
 	await logDrain(page, 120, 9, 5);
 
+	// The count comes off the store's re-read, so it says the write committed — a `goto`
+	// fired into the gap before it aborts the transaction and nothing is there to drop.
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+
 	// Dropping one rating moved to /analytics with the listing (2026-08-10); this card
 	// keeps the fit's own verbs. Crossing the two screens is the point: the ✕ there has
 	// to take this calibration with it.

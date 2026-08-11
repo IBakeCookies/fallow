@@ -231,3 +231,10 @@ See the `verify` skill. Two gotchas that will cost you an hour otherwise:
 - All data is client-side IndexedDB, so a headless profile starts empty. Seed
   through the UI and wait out the debounced autosave on `AUTOSAVE_DEBOUNCE_MS`
   / `e2e/helpers.ts`'s `AUTOSAVE_MS`, never a literal.
+- A measurement's write is not debounced but it is still in flight, and
+  `page.goto` aborts an open transaction — so never navigate straight off a log
+  or a correction. Wait for the reading the store publishes from its re-read
+  (the row's chip, the card's count, the list's duration): it lands only once
+  the write committed. A count that held before the save proves nothing. This
+  loses the race on a FAST machine, so `--workers=1` reproduces what six
+  parallel workers hide, which is what CI runs.

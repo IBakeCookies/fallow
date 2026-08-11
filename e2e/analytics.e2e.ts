@@ -83,6 +83,16 @@ test('undo brings a dropped measurement back, past a reload', async ({ page }) =
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await logDrain(page, 120, 9, 5);
+
+	// The row's chip is drawn from the store's re-read, which lands only once the write
+	// committed — so it is what says the rating is in IndexedDB. A `goto` fired before
+	// it aborts that transaction, and the measurement never reaches the list.
+	await expect(
+		page.getByRole('button', {
+			name: 'Correct this drain rating',
+		}),
+	).toBeVisible();
+
 	await page.goto('/analytics');
 
 	const row = page.getByRole('button', {
