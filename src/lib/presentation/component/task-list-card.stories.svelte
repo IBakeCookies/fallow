@@ -10,26 +10,32 @@
 	});
 </script>
 
-<!-- The frame both screens mount. What the play covers is the one thing the card
-     decides for them: the form is above the list, never below it. -->
+<!-- The frame both screens mount. What the play covers is the two things the card
+     decides for them: the form is above the list, never below it, and the screen's
+     own heading content shares the heading's row rather than costing one of its own. -->
 <Story
 	name="Default"
 	play={async ({ canvas }) => {
-		const heading = canvas.getByRole('heading', {
+		const title = canvas.getByRole('heading', {
 			name: 'Tasks',
 		});
 
 		const form = canvas.getByText('add a task');
 		const list = canvas.getByRole('list');
 
-		expect(heading.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(title.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		expect(form.compareDocumentPosition(list)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		expect(canvas.getAllByRole('listitem')).toHaveLength(2);
+
+		// Inside the heading's row, not merely before the form: a sibling of the card's
+		// sections would be the block that pushed the list out of line with the metrics
+		// beside it, which is what moving it here undid.
+		expect(title.parentElement?.contains(canvas.getByText('beside the title'))).toBe(true);
 	}}
 >
 	{#snippet template()}
 		<div class="max-w-2xl">
-			<TaskListCard {rows} {form} />
+			<TaskListCard {rows} {form} {heading} />
 		</div>
 	{/snippet}
 </Story>
@@ -42,6 +48,10 @@
 		await expect(canvas.getByText('No tasks deployed yet')).toBeVisible();
 		await expect(canvas.getByText('Add a task above to begin tracking')).toBeVisible();
 		expect(canvas.queryByRole('list')).not.toBeInTheDocument();
+
+		// No `heading` passed: the row is the title alone, which is what the Lab
+		// mounts and what `/` shows before the day's first 🪫 log.
+		expect(canvas.queryByText('beside the title')).not.toBeInTheDocument();
 
 		// The form stays: the empty day is where the first task gets typed
 		await expect(canvas.getByText('add a task')).toBeVisible();
@@ -56,6 +66,10 @@
 
 {#snippet form()}
 	<p>add a task</p>
+{/snippet}
+
+{#snippet heading()}
+	<p>beside the title</p>
 {/snippet}
 
 {#snippet rows()}

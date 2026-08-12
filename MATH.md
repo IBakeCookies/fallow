@@ -6578,7 +6578,7 @@ moves neither reading.
 The remainder's per-row hours answer "how much", and the row order on screen is
 the user's, not the model's. The one thing left to say is **which** row, so
 `RemainingDay.nextTask` carries position 1 of the run order over the funded
-remainder, rendered as one line above the list.
+remainder, rendered on the list card's header row.
 
 It is **labelled, never recomputed**. The tempting definition is
 `argmax Δᵢ(1)` — the task whose first remaining block is worth most — and it is

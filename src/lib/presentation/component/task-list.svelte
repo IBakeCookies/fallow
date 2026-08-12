@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
+	import NextUpLine from '$lib/presentation/component/next-up-line.svelte';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import type {
 		DrainDraft,
@@ -21,6 +22,9 @@
 			remainingHours: number;
 			hoursByTask: ReadonlyMap<number, number>;
 		} | null;
+		/** Position 1 of that re-plan's run order, rendered on the card's header row.
+		 *  Undefined when there is nothing to pick up, which is every morning. */
+		nextTaskTitle?: string;
 		// The add-task form, rendered by the card above the list: adding and reading
 		// the plan are the same place, and it costs no second card.
 		form?: Snippet;
@@ -57,6 +61,7 @@
 		suggestedTasks,
 		runOrder,
 		remainingDay = null,
+		nextTaskTitle,
 		form,
 		ontoggle,
 		onremove,
@@ -124,4 +129,12 @@
 	{/each}
 {/snippet}
 
-<TaskListCard {form} rows={suggestedTasks.length ? rows : null} />
+<!-- Built here and not in the page: this list is `/`'s alone, and the card beneath
+     it is the Lab's too. -->
+{#snippet heading()}
+	{#if nextTaskTitle}
+		<NextUpLine title={nextTaskTitle} />
+	{/if}
+{/snippet}
+
+<TaskListCard {form} {heading} rows={suggestedTasks.length ? rows : null} />

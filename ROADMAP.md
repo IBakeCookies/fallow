@@ -217,11 +217,11 @@ row. Neither needs a new solve.
     No new store, no new input beyond 11, no `DB_VERSION` bump.
 13. ~~**"You are here" on the run order**~~ — SHIPPED 2026-08-10 (MATH.md §35).
     `RemainingDay.nextTask` is position 1 of `calculateInterleavedOrder` over the
-    funded remainder; `next-up-line.svelte` renders it above the list on `/`. It
-    labels, it does not recompute — `argmax Δᵢ(1)` is a different task, because
-    the allocator buys a funded _subset_ under a switch bill and two pools, and
-    two definitions of "next" is the R3 failure this item named. No new solve, no
-    store change: 12's `$derived` already had the allocations.
+    funded remainder; `next-up-line.svelte` renders it on the list card's header
+    row on `/`. It labels, it does not recompute — `argmax Δᵢ(1)` is a different
+    task, because the allocator buys a funded _subset_ under a switch bill and
+    two pools, and two definitions of "next" is the R3 failure this item named.
+    No new solve, no store change: 12's `$derived` already had the allocations.
     **The set it sequences is `hoursByTask`, not the candidate set** — the
     accounting share of a task ticked done without a log is solved and never
     reported (§35), so naming it would send the user back to work they just

@@ -86,8 +86,10 @@
 		await expect(canvas.getByText('#1')).toBeVisible();
 		await expect(canvas.getByText('#2')).toBeVisible();
 
-		// No form supplied, so nothing sits between the heading and the list
-		expect(heading.nextElementSibling).toBe(canvas.getByRole('list'));
+		// No form supplied, so nothing sits between the heading's row and the list.
+		// Read from the row, not the heading: the heading shares it with "Next", and
+		// with no next task the heading is that row's only child.
+		expect(heading.parentElement?.nextElementSibling).toBe(canvas.getByRole('list'));
 	}}
 />
 
