@@ -857,9 +857,9 @@ describe('EnergyLabStore', () => {
 		return advice.marginalValue;
 	};
 
-	// The split MATH.md §8.11 calls "the one deliberate asymmetry with §8.10" is
-	// decided HERE and nowhere else: candidates are the OPEN tasks, while every
-	// task's logged hours stay in the reconstruction. Both halves need a second
+	// Which tasks count as open is decided HERE for the live advisor (§8.11) and
+	// in `toStopObservations` for the fit (§8.10): candidates are the OPEN tasks,
+	// while every task's logged hours stay in the reconstruction. Both halves need a second
 	// task to be visible — with one task, filtering either way still reads null.
 	// The completed task is the STRONGER one on purpose (as in the model-level
 	// sibling, zenith-energy.test.ts): it wins the unfiltered max at every level
