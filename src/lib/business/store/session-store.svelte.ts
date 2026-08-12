@@ -20,8 +20,13 @@ import {
 	sanitizeRoutines,
 	sanitizeSession,
 } from '$lib/business/model/persisted';
-import { initializeStorage, readTitleRatings } from '$lib/business/session-history';
+import { initializeStorage, readHistoryPrefills } from '$lib/business/session-history';
 import { suggestTitles, type TitleRating } from '$lib/business/model/title-memory';
+import {
+	prefillBudgetFor,
+	summarizeBudgetHistory,
+	type BudgetHistory,
+} from '$lib/business/model/budget-memory';
 import { getEffectiveDifficulty, isPinned } from '$lib/business/model/metric/calculation';
 import {
 	DEFAULT_SWITCH_COST,
@@ -91,7 +96,10 @@ export class SessionStore {
 
 	// ----- Daily session state -----
 	#tasks = $state<Task[]>([]);
-	#availableHours = $state<number>(0);
+	// `null` is "this day has no hours of its own yet", which is what keeps a day
+	// the user only browsed pristine: the prefill below answers for it, the
+	// auto-save's dirty test reads this field, and the first edit assigns a number.
+	#availableHours = $state<number | null>(null);
 	#switchCost = $state<number>(DEFAULT_SWITCH_COST);
 	#cognitivePool = $state<number>(DEFAULT_CAPACITY_POOLS.cognitiveHours);
 	#physicalPool = $state<number>(DEFAULT_CAPACITY_POOLS.physicalHours);
@@ -101,11 +109,12 @@ export class SessionStore {
 	#flowObservations = $state<Persisted<FlowObservationRecord>[]>([]);
 	// `$state` but not a SvelteMap: it is replaced wholesale when the read lands and
 	// never mutated, so tracking the reference is the whole of it. Tracking it at all
-	// matters because the read is not awaited — the form is on screen and typed into
-	// while it is still in flight, and a plain field would leave a list that had
-	// already asked showing nothing until the next keystroke.
+	// matters because the banner's Retry lands a second read behind a form that is
+	// already on screen, and a plain field would leave a list that had already asked
+	// showing nothing until the next keystroke.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- read-only lookup, replaced not mutated
 	#titleRatings = $state(new Map<string, TitleRating>());
+	#budgetHistory = $state<BudgetHistory>(summarizeBudgetHistory([]));
 
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
@@ -133,6 +142,14 @@ export class SessionStore {
 	// stays today-only.
 	#isViewingPast = $derived(this.#selectedDate < this.#today);
 	#isViewingFuture = $derived(this.#selectedDate > this.#today);
+
+	// What a day with no hours of its own opens on (ROADMAP item 16). Derived
+	// rather than assigned at load, so every later day answers from the one boot
+	// fold. A past day gets nothing: a day the user did not plan has no budget, and
+	// filling one in would be a claim about their history.
+	#prefilledHours = $derived(
+		this.#isViewingPast ? 0 : prefillBudgetFor(this.#budgetHistory, this.#selectedDate),
+	);
 
 	#activeTasks = $derived(this.#tasks.filter((t) => !t.completed));
 
@@ -238,10 +255,12 @@ export class SessionStore {
 		// skipped so browsing ahead creates no empty records.
 		$effect(() => {
 			if (!this.#isLoading && !this.#isViewingPast && this.#loadedDate === this.#selectedDate) {
+				// The RAW field, never the prefill: a day whose hours the user has not
+				// touched is pristine, so browsing ahead still creates no records.
 				const dirty =
 					this.#loadedHadSession ||
 					this.#tasks.length > 0 ||
-					this.#availableHours > 0 ||
+					(this.#availableHours ?? 0) > 0 ||
 					this.#switchCost !== DEFAULT_SWITCH_COST ||
 					this.#cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
 					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
@@ -252,7 +271,9 @@ export class SessionStore {
 				this.#autoSave.schedule({
 					date: this.#selectedDate,
 					tasks: $state.snapshot(this.#tasks),
-					availableHours: this.#availableHours,
+					// The effective hours, so a day saved for another reason records
+					// the budget it was showing while that happened.
+					availableHours: this.availableHours,
 					switchCost: this.#switchCost,
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
@@ -282,13 +303,17 @@ export class SessionStore {
 	async #boot() {
 		try {
 			await initializeStorage();
+
+			// Started here and awaited before the day, so it overlaps the two reads
+			// below rather than landing behind the day it feeds: the budget an unseen
+			// day opens on is on screen, and the constraints panel snapshots whether
+			// that budget is 0 the moment the day lands (ROADMAP item 16).
+			const prefills = this.#readHistoryPrefills();
+
 			this.#routines = await this.#readRoutines();
 			this.#flowObservations = await this.#readFlowObservations();
+			await prefills;
 			await this.#loadSession(this.#selectedDate);
-
-			// Not awaited: it reads the whole history to prefill a form the user has
-			// not opened yet, and the day must not wait on it.
-			this.#readTitleRatings();
 		} catch (e) {
 			logError('Failed to load from IndexedDB', e);
 			this.#reporter.report('load-failed');
@@ -310,14 +335,19 @@ export class SessionStore {
 		return sanitizeSession(await sessionRepository.$readSessionByDate(date));
 	}
 
-	// What each title was last rated, for the add-task form's suggestions. Its own
-	// failure surface: the form falls back to its 5/5/5 defaults, which is what it
-	// did before this existed — so a failure is logged and never bannered. The
-	// banner's Retry does re-run it, via `#boot`, if it is raised for another read.
-	#readTitleRatings() {
-		readTitleRatings(this.#today)
-			.then((ratings) => (this.#titleRatings = ratings))
-			.catch((e) => logError('Failed to load title ratings', e));
+	// What each title was last rated and what each weekday is usually budgeted.
+	// Its own failure surface: the form falls back to its 5/5/5 defaults and the
+	// day to 0 hours, which is what both did before this existed — so a failure is
+	// logged and never bannered, and the caught chain is what lets `#boot` await
+	// this without a failed prefill taking the day down with it. The banner's
+	// Retry does re-run it, via `#boot`, if it is raised for another read.
+	#readHistoryPrefills(): Promise<void> {
+		return readHistoryPrefills(this.#today)
+			.then((prefills) => {
+				this.#titleRatings = prefills.titleRatings;
+				this.#budgetHistory = prefills.budgets;
+			})
+			.catch((e) => logError('Failed to load history prefills', e));
 	}
 
 	// Routine tasks are imported straight into the live plan, so their numbers
@@ -354,9 +384,10 @@ export class SessionStore {
 				this.#cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
 			} else {
-				// No data for this date
+				// No data for this date: the hours stay unanswered, so the day shows
+				// what its weekday usually gets until the user says otherwise.
 				this.#tasks = [];
-				this.#availableHours = 0;
+				this.#availableHours = null;
 				this.#switchCost = DEFAULT_SWITCH_COST;
 				this.#cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
@@ -426,8 +457,10 @@ export class SessionStore {
 
 	// ----- Budget scalars (settable so inputs can two-way bind) -----
 
+	/** The day's hours: the user's own where there are any, the weekday's usual
+	 *  reading where the day has none (ROADMAP item 16). */
 	get availableHours() {
-		return this.#availableHours;
+		return this.#availableHours ?? this.#prefilledHours;
 	}
 	set availableHours(v: number) {
 		this.#availableHours = v;
@@ -497,7 +530,7 @@ export class SessionStore {
 				await sessionRepository.$updateSession({
 					date: this.#selectedDate,
 					tasks: $state.snapshot(this.#tasks),
-					availableHours: this.#availableHours,
+					availableHours: this.availableHours,
 					switchCost: this.#switchCost,
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
@@ -596,7 +629,11 @@ export class SessionStore {
 			await sessionRepository.$updateSession({
 				date: tomorrow,
 				tasks: [moved, ...destTasks],
-				availableHours: dest?.availableHours ?? 0,
+				// A day this write creates is a day saved for a reason of its own, so it
+				// records the hours it will open on — the rule the auto-save payload
+				// follows. A 0 here would make the destination a STORED day at 0, which
+				// no prefill may speak for (ROADMAP item 16).
+				availableHours: dest?.availableHours ?? prefillBudgetFor(this.#budgetHistory, tomorrow),
 				switchCost: dest?.switchCost ?? DEFAULT_SWITCH_COST,
 				cognitivePool: dest?.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
 				physicalPool: dest?.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,

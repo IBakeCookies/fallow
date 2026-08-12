@@ -57,6 +57,7 @@ import {
 } from '$lib/business/model/plan-audit';
 import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
 import { latestRatingsByTitle, type TitleRating } from '$lib/business/model/title-memory';
+import { summarizeBudgetHistory, type BudgetHistory } from '$lib/business/model/budget-memory';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import {
 	sanitizeDrainObservations,
@@ -173,17 +174,32 @@ export async function readDaySummaries(startDate: string, endDate: string): Prom
 		});
 }
 
+/** What the stored days say about a day the user has not filled in yet. */
+export interface HistoryPrefills {
+	/** What each task title was last rated (the add-task form's suggestions). */
+	titleRatings: Map<string, TitleRating>;
+	/** What each weekday's budget usually is (an unseen day's hours). */
+	budgets: BudgetHistory;
+}
+
 /**
- * What each task title was last rated, over everything ever stored up to and
- * including `today` — a title used once a year is still the best guess there is,
- * so this deliberately has no lookback window. `date` is the store's keyPath and
- * ISO dates sort lexicographically, so a lower bound below any of them reads all
- * of history in one range query.
+ * Everything the boot read derives from the stored days, over everything ever
+ * stored up to and including `today` — a title or a weekday used once a year is
+ * still the best guess there is, so this deliberately has no lookback window.
+ * `date` is the store's keyPath and ISO dates sort lexicographically, so a lower
+ * bound below any of them reads all of history in one range query.
+ *
+ * Both folds run off that one scan: it grows with the user's whole history, and
+ * a second range read would double the read `SessionStore` deliberately does not
+ * wait for.
  */
-export async function readTitleRatings(today: string): Promise<Map<string, TitleRating>> {
-	return latestRatingsByTitle(
-		sanitizeSessions(await $readSessionsByDateRange(BEFORE_ANY_DATE, today)),
-	);
+export async function readHistoryPrefills(today: string): Promise<HistoryPrefills> {
+	const sessions = sanitizeSessions(await $readSessionsByDateRange(BEFORE_ANY_DATE, today));
+
+	return {
+		titleRatings: latestRatingsByTitle(sessions),
+		budgets: summarizeBudgetHistory(sessions),
+	};
 }
 
 interface FinishedDay {

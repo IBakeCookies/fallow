@@ -3,14 +3,15 @@ import { describe, it, expect, vi } from 'vitest';
 import {
 	EMPTY_PLAN_AUDIT,
 	readDaySummaries,
+	readHistoryPrefills,
 	readModelReport,
 	readStopObservations,
-	readTitleRatings,
 } from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $createDrainObservation } from '$lib/data/repository/drain-observation-repository';
 import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
 import { $createOrUpdateFlowObservation } from '$lib/data/repository/flow-observation-repository';
+import { prefillBudgetFor } from '$lib/business/model/budget-memory';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { DailySession, FitSnapshotRecord, Task } from '$lib/data/type';
@@ -118,7 +119,7 @@ describe('readDaySummaries', () => {
 	});
 });
 
-describe('readTitleRatings', () => {
+describe('readHistoryPrefills', () => {
 	it('reads every stored day up to today, so an old title is still recalled', async () => {
 		await $updateSession(
 			session('2020-03-04', {
@@ -133,9 +134,9 @@ describe('readTitleRatings', () => {
 			}),
 		);
 
-		const ratings = await readTitleRatings('2026-06-10');
+		const { titleRatings } = await readHistoryPrefills('2026-06-10');
 
-		expect(ratings.get('deep work')).toEqual({
+		expect(titleRatings.get('deep work')).toEqual({
 			title: 'Deep work',
 			physicalDifficulty: 1,
 			mentalDifficulty: 9,
@@ -171,7 +172,7 @@ describe('readTitleRatings', () => {
 			}),
 		);
 
-		expect((await readTitleRatings('2026-06-10')).get('gym')).toEqual({
+		expect((await readHistoryPrefills('2026-06-10')).titleRatings.get('gym')).toEqual({
 			title: 'Gym',
 			physicalDifficulty: 8,
 			mentalDifficulty: 2,
@@ -180,7 +181,7 @@ describe('readTitleRatings', () => {
 	});
 
 	it('is empty when nothing has ever been stored', async () => {
-		expect((await readTitleRatings('1999-12-31')).size).toBe(0);
+		expect((await readHistoryPrefills('1999-12-31')).titleRatings.size).toBe(0);
 	});
 
 	// This reads all of history in one range query, so one unreadable day is the
@@ -205,12 +206,40 @@ describe('readTitleRatings', () => {
 			}),
 		);
 
-		expect((await readTitleRatings('2026-06-10')).get('stretch')).toEqual({
+		expect((await readHistoryPrefills('2026-06-10')).titleRatings.get('stretch')).toEqual({
 			title: 'Stretch',
 			physicalDifficulty: 2,
 			mentalDifficulty: 1,
 			enjoyment: 8,
 		});
+	});
+
+	// Both derivations fold the same whole-history scan, which grows with the
+	// user's every stored day — a second range read for the budgets would double
+	// the one read `#boot` deliberately does not wait for.
+	it('derives the budget prefill from the same scan as the titles', async () => {
+		await $updateSession(
+			session('2026-06-03', {
+				availableHours: 5,
+				tasks: [
+					task(1, {
+						title: 'Deep work',
+					}),
+				],
+			}),
+		);
+
+		const transactions = vi.spyOn(IDBDatabase.prototype, 'transaction');
+
+		try {
+			const { titleRatings, budgets } = await readHistoryPrefills('2026-06-10');
+
+			expect(titleRatings.size).toBeGreaterThan(0);
+			expect(prefillBudgetFor(budgets, '2026-06-10')).toBeGreaterThan(0);
+			expect(transactions.mock.calls.length).toBe(1);
+		} finally {
+			transactions.mockRestore();
+		}
 	});
 });
 
