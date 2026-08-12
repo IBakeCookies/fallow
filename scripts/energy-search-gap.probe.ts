@@ -233,7 +233,9 @@ const percentile = (sorted: number[], q: number) =>
 
 /**
  * Shortfall is (reference − search)/reference in percent: positive means the
- * product search left objective on the table. A funded-set mismatch is the
+ * product search left objective on the table, and every quoted statistic —
+ * median, p99, worst — carries that sign, so a negative worst means the search
+ * beat the reference on every day. A funded-set mismatch is the
  * structural failure §8.6 calls the worse of the two — the reference funds a
  * task the search leaves at zero hours, or the search funds one the reference
  * does not — and is counted separately because a day can be within 0.01% of the
@@ -291,7 +293,7 @@ function searchGap(
 	const sorted = [...shortfalls].sort((x, y) => x - y);
 
 	console.log(
-		`${label}: ${days.length} days, ${exact} exact (within 1e-9), median shortfall ${percentile(sorted, 0.5).toFixed(4)}%, p99 ${percentile(sorted, 0.99).toFixed(4)}%, worst shortfall ${(-worst).toFixed(4)}%, funded-set mismatches ${mismatches} of ${days.length}`,
+		`${label}: ${days.length} days, ${exact} exact (within 1e-9), median shortfall ${percentile(sorted, 0.5).toFixed(4)}%, p99 ${percentile(sorted, 0.99).toFixed(4)}%, worst shortfall ${worst.toFixed(4)}%, funded-set mismatches ${mismatches} of ${days.length}`,
 	);
 
 	console.log(`${label} worst day: ${worstDump}`);
@@ -322,25 +324,34 @@ const merged = (blocks: ScheduleBlock[]): ScheduleBlock[] => {
 };
 
 /** Read off the numbers, so the sentence cannot outlive the day it describes. */
-function verdictOf(generated: boolean, incumbent: number, split: number): string {
+function verdictOf(generated: boolean, uphill: number): string {
 	if (!generated) return 'the split-around-rest move is NOT GENERATED — see the guards above';
 
-	if (split > incumbent + 1e-9)
+	if (uphill > 0)
 		return 'the move is GENERATED and IMPROVING — the search left it on the table, a real hill-climb defect';
 
-	return `no guard blocks the move, and the search leaves no improving move on the table: the optimum is two shipped moves away (midpoint split, then transfer) with the first ${(incumbent - split).toFixed(6)} downhill, so steepest ascent cannot take it`;
+	return 'no guard blocks the move and every interior split is downhill, so the residue is a steepest-ascent limit and not a missing candidate';
 }
 
 /**
  * Why the worst enumerated day stays short: it replays the shipped
  * split-around-rest move (`neighbors` in `zenith-energy.ts`) on the plan the
- * search returned, then every interior split of that block, then the transfer
- * step that finishes the job. `neighbors` is module-private, so the guards and
- * the halves are mirrored here — keep them in step with it.
+ * search returned — every interior lattice split, one step handed to rest.
+ * `neighbors` is module-private, so the guards are mirrored here — keep them in
+ * step with it.
  */
 function restSplitAudit(day: Day, search: ScheduleBlock[], reference: ScheduleBlock[]): void {
 	const step = DEFAULT_STEP_HOURS;
 	const block = search[0];
+	const optimum = merged(reference);
+	const incumbent = objectiveOf(day, search);
+	const target = objectiveOf(day, optimum);
+
+	if (target - incumbent <= 1e-9) {
+		console.log('REST-SPLIT AUDIT: skipped — the worst enumerated day is exactly optimal');
+
+		return;
+	}
 
 	if (search.length !== 1 || block.taskId === null) {
 		console.log(
@@ -350,32 +361,11 @@ function restSplitAudit(day: Day, search: ScheduleBlock[], reference: ScheduleBl
 		return;
 	}
 
-	const optimum = merged(reference);
-	const incumbent = objectiveOf(day, search);
-	const target = objectiveOf(day, optimum);
-	// The move's own arithmetic: rounded-midpoint halves, plus one step of rest,
-	// so it needs a spare step of window (`room`) to land.
+	// The move's own arithmetic: one step of rest on top of unchanged worked
+	// hours, so it needs a spare step of window (`room`) to land.
 	const avail = Math.floor((day.windowHours - block.hours) / step + 1e-9) * step;
 	const room = avail > step - 1e-9;
-	const firstHalf = Math.max(step, Math.round(block.hours / 2 / step) * step);
 	const generated = block.hours >= 2 * step && room;
-
-	const split = [
-		{
-			taskId: block.taskId,
-			hours: firstHalf,
-		},
-		{
-			taskId: null,
-			hours: step,
-		},
-		{
-			taskId: block.taskId,
-			hours: block.hours - firstHalf,
-		},
-	];
-
-	const splitValue = objectiveOf(day, split);
 	const steps = Math.round(block.hours / step);
 	const sweep: string[] = [];
 	let uphill = 0;
@@ -392,7 +382,7 @@ function restSplitAudit(day: Day, search: ScheduleBlock[], reference: ScheduleBl
 			},
 			{
 				taskId: block.taskId,
-				hours: (steps - k) * step,
+				hours: block.hours - k * step,
 			},
 		];
 
@@ -400,41 +390,22 @@ function restSplitAudit(day: Day, search: ScheduleBlock[], reference: ScheduleBl
 
 		if (value > incumbent + 1e-9) uphill++;
 
-		sweep.push(`${k * step}+${(steps - k) * step} ${value.toFixed(6)}`);
+		sweep.push(`${k * step}+${block.hours - k * step} ${value.toFixed(6)}`);
 	}
-
-	// One transfer move (shrink the second half, grow the first) out of the split.
-	const regrown = [
-		{
-			taskId: block.taskId,
-			hours: firstHalf + step,
-		},
-		split[1],
-		{
-			taskId: block.taskId,
-			hours: block.hours - firstHalf - step,
-		},
-	];
-
-	const regrownValue = objectiveOf(day, regrown);
 
 	console.log(
 		`REST-SPLIT AUDIT (worst enumerated day): window ${day.windowHours}h, search ${fmt(search)} = ${incumbent.toFixed(6)}, exhaustive optimum ${fmt(optimum)} = ${target.toFixed(6)}, shortfall ${(((target - incumbent) / target) * 100).toFixed(4)}%`,
 	);
 
 	console.log(
-		`  split-around-rest move: ${generated ? 'GENERATED' : 'NOT GENERATED'} (funded true, >= 2*step ${block.hours >= 2 * step}, room ${room} with ${avail}h spare) as ${fmt(split)} = ${splitValue.toFixed(6)} — ${splitValue > incumbent + 1e-9 ? 'IMPROVING' : 'rejected'}, ${(splitValue - incumbent).toFixed(6)} vs the incumbent`,
+		`  split-around-rest move: ${generated ? 'GENERATED' : 'NOT GENERATED'} (funded true, >= 2*step ${block.hours >= 2 * step}, room ${room} with ${avail}h spare)`,
 	);
 
 	console.log(
-		`  every interior split of that block: ${sweep.join(' | ')} — ${uphill} of ${steps - 1} beat the incumbent, and the move offers only the rounded midpoint ${firstHalf}+${block.hours - firstHalf}`,
+		`  every interior split it offers: ${sweep.join(' | ')} — ${uphill} of ${steps - 1} beat the incumbent`,
 	);
 
-	console.log(
-		`  one transfer step out of the rejected split: ${fmt(regrown)} = ${regrownValue.toFixed(6)} — ${(regrownValue - splitValue).toFixed(6)} uphill from the split, and ${Math.abs(regrownValue - target) <= 1e-9 ? 'IS' : 'is not'} the optimum`,
-	);
-
-	console.log(`  VERDICT: ${verdictOf(generated, incumbent, splitValue)}`);
+	console.log(`  VERDICT: ${verdictOf(generated, uphill)}`);
 }
 
 describe('energy search gap', () => {
