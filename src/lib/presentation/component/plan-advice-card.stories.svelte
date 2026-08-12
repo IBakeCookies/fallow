@@ -143,6 +143,9 @@
 		tags: ['autodocs'],
 		args: {
 			advice,
+			/* One reading for the card, not one per lever: every defer below sends the
+			   task to the same day (ROADMAP item 21). */
+			destination: 'Tomorrow: 4 tasks, 6h to spend — 3 of them funded.',
 			isBusy: false,
 			isStale: false,
 			hasError: false,
@@ -202,6 +205,12 @@
 			canvas.getByText(
 				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
 			),
+		).toHaveClass('text-ty-silent');
+
+		// Where the defer buttons send a task, in the same quiet register as the readings
+		// above it — never a claim about what the moved task would get there (item 21).
+		await expect(
+			canvas.getByText('Tomorrow: 4 tasks, 6h to spend — 3 of them funded.'),
 		).toHaveClass('text-ty-silent');
 
 		// A band is otherwise carried by colour alone (WCAG 1.4.1): both readings
@@ -323,6 +332,8 @@
 	}}
 />
 
+<!-- A destination read that answered nothing (refused, or failed) prints no line at
+     all — the advice beside it is priced on today and still correct. -->
 <Story
 	name="Nothing to fix"
 	args={{
@@ -333,11 +344,14 @@
 			marginal: 'Another 15 minutes would get nothing more done.',
 			switchCost: 'At 15m a switch, this plan pays for no switching.',
 		},
+		destination: null,
 	}}
 	play={async ({ canvas }) => {
 		await expect(
 			canvas.getByText('Nothing reads badly enough to act on. This day is fine.'),
 		).toBeVisible();
+
+		await expect(canvas.queryByText(/^Tomorrow:/)).not.toBeInTheDocument();
 
 		// The shadow price is a reading, not a finding: a day with nothing to fix
 		// still answers what the next block would buy (MATH.md §14.2).

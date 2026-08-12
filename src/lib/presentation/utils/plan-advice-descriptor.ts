@@ -15,6 +15,7 @@ import type {
 	PlanAdvice,
 	SwitchCostPrice,
 } from '$lib/business/model/metric/plan-advice';
+import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import * as m from '$lib/paraglide/messages.js';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 import {
@@ -295,6 +296,45 @@ function cap(options: AdviceOption[]): AdviceOption[] {
 	if (options.length <= MAX_OPTIONS) return options;
 
 	return [...options.slice(0, MAX_OPTIONS - 1), options[options.length - 1]];
+}
+
+/**
+ * Where every defer lever on the card sends a task, as tomorrow stands (ROADMAP
+ * item 21) — counts and hours, and nothing about what the deferred task itself
+ * would get there: that is the Δ% pair item 8 was superseded for, and after item
+ * 16 the destination's hours are frequently a weekday median rather than a
+ * declaration.
+ *
+ * Its own function and its own card prop rather than a field on `AdviceDisplay`:
+ * that object is built from `PlanAdvice`, which is contractually today's inputs
+ * alone (MATH.md §14), and this is a reading about another day.
+ */
+export function describeDeferDestination(destination: DeferDestination | null): string | null {
+	if (!destination) return null;
+
+	const hours = formatDuration(destination.budgetHours);
+
+	// Nothing on it and no hours to spend is nothing to say — the dead row item 21's
+	// own kill criterion names, which only a user with no budgeted day in history
+	// reaches (item 16). The pair, never the hours alone: an over-subscribed unseen
+	// day is the most useful thing this line says.
+	if (destination.taskCount === 0)
+		return destination.budgetHours === 0
+			? null
+			: m.advice_destination_empty({
+					hours,
+				});
+
+	return destination.taskCount === 1
+		? m.advice_destination_one({
+				hours,
+				funded: destination.fundedCount,
+			})
+		: m.advice_destination({
+				hours,
+				count: destination.taskCount,
+				funded: destination.fundedCount,
+			});
 }
 
 /** `locale` is a BCP-47 tag — `getDateLocale()` at the call site. */

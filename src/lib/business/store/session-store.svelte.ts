@@ -1,4 +1,5 @@
 import { getContext, setContext, onMount } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 import type {
 	Persisted,
 	Task,
@@ -28,6 +29,10 @@ import {
 	type BudgetHistory,
 } from '$lib/business/model/budget-memory';
 import { getEffectiveDifficulty, isPinned } from '$lib/business/model/metric/calculation';
+import {
+	summarizeDeferDestination,
+	type DeferDestination,
+} from '$lib/business/model/metric/defer-destination';
 import {
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
@@ -116,6 +121,13 @@ export class SessionStore {
 	#titleRatings = $state(new Map<string, TitleRating>());
 	#budgetHistory = $state<BudgetHistory>(summarizeBudgetHistory([]));
 
+	// Session writes, counted per date. A reading held about a day OTHER than the
+	// viewed one cannot key its freshness off that day's inputs — today → tomorrow
+	// (edit it) → today reads identically — so it keys off the count for the day it
+	// describes (`readDeferDestination`, ROADMAP item 21). Per date and not one
+	// counter: today's own auto-save withdrew a reading it cannot have affected.
+	#writeGenerations = new SvelteMap<string, number>();
+
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
 	// persisting one day's tasks under another day's key.
@@ -150,6 +162,10 @@ export class SessionStore {
 	#prefilledHours = $derived(
 		this.#isViewingPast ? 0 : prefillBudgetFor(this.#budgetHistory, this.#selectedDate),
 	);
+
+	// Where a defer sends: the one definition, read by the move, by the preview and
+	// by the freshness key the preview is held under (AGENTS.md R3).
+	#deferDestinationDate = $derived(addDays(this.#selectedDate, 1));
 
 	#activeTasks = $derived(this.#tasks.filter((t) => !t.completed));
 
@@ -206,7 +222,7 @@ export class SessionStore {
 
 		this.#autoSave = createDebouncedWrite(
 			async (session) => {
-				await sessionRepository.$updateSession(session);
+				await this.#persistSession(session);
 
 				// Guard: a late flush of a previous date must not mark the currently
 				// loaded (possibly pristine) day as having a session.
@@ -335,6 +351,69 @@ export class SessionStore {
 		return sanitizeSession(await sessionRepository.$readSessionByDate(date));
 	}
 
+	// Every session write goes through here, so the generation above cannot be
+	// forgotten at a new write site.
+	async #persistSession(session: DailySession) {
+		await sessionRepository.$updateSession(session);
+		this.#writeGenerations.set(session.date, this.writeGenerationFor(session.date) + 1);
+	}
+
+	/**
+	 * The destination day as it stands, with the fallbacks the destination write
+	 * uses — ONE definition for the move and for the preview it is shown under
+	 * (AGENTS.md R3), so the two can never disagree about the day being sent to.
+	 */
+	async #readDestination(date: string) {
+		const session = await this.#readSession(date);
+
+		return {
+			tasks: session?.tasks ?? [],
+			// A day this write creates is a day saved for a reason of its own, so it
+			// records the hours it will open on — the rule the auto-save payload
+			// follows. A 0 here would make the destination a STORED day at 0, which
+			// no prefill may speak for (ROADMAP item 16).
+			availableHours: session?.availableHours ?? prefillBudgetFor(this.#budgetHistory, date),
+			switchCost: session?.switchCost ?? DEFAULT_SWITCH_COST,
+			pools: {
+				cognitiveHours: session?.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
+				physicalHours: session?.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+			},
+		};
+	}
+
+	/**
+	 * What tomorrow already looks like, for the reading the advice card shows over
+	 * its defer levers (ROADMAP item 21). Read-only — nothing here touches the
+	 * destination record.
+	 *
+	 * `null` wherever the move would refuse, on the move's own guards: a reading
+	 * about a day no button can send to is worse than no reading. A failed read is
+	 * `null` too, on `#readHistoryPrefills`' policy — the advice it sits under is
+	 * priced on today and still correct, so the line goes and the banner stays down.
+	 */
+	async readDeferDestination(): Promise<DeferDestination | null> {
+		if (this.#loadedDate !== this.#selectedDate || this.#isViewingPast) return null;
+
+		try {
+			const destination = await this.#readDestination(this.#deferDestinationDate);
+
+			// Solved under the viewed day's fit: the constants are global, and refitting
+			// them for tomorrow (§33 would allow today's ⚡ there) is a second window
+			// definition for a reading that reports counts.
+			return summarizeDeferDestination({
+				...destination,
+				constants: this.#constantsFit.constants,
+				posterior: this.#constantsFit.posterior,
+			});
+		} catch (e) {
+			logError('Failed to read the defer destination', e, {
+				date: this.#selectedDate,
+			});
+
+			return null;
+		}
+	}
+
 	// What each title was last rated and what each weekday is usually budgeted.
 	// Its own failure surface: the form falls back to its 5/5/5 defaults and the
 	// day to 0 hours, which is what both did before this existed — so a failure is
@@ -429,6 +508,16 @@ export class SessionStore {
 	 *  loads, so it is the signal for "these hours describe this day". */
 	get loadedDate() {
 		return this.#loadedDate;
+	}
+	/** The day a defer sends to — `readDeferDestination`'s subject, and what the
+	 *  reading's holder keys its freshness on. */
+	get deferDestinationDate() {
+		return this.#deferDestinationDate;
+	}
+	/** How many session records have been written for `date` — the freshness key for
+	 *  a reading about a day other than the viewed one (`readDeferDestination`). */
+	writeGenerationFor(date: string): number {
+		return this.#writeGenerations.get(date) ?? 0;
 	}
 	get isViewingPast() {
 		return this.#isViewingPast;
@@ -527,7 +616,7 @@ export class SessionStore {
 		// toggles are saved explicitly under the viewed date.
 		if (this.#isViewingPast) {
 			try {
-				await sessionRepository.$updateSession({
+				await this.#persistSession({
 					date: this.#selectedDate,
 					tasks: $state.snapshot(this.#tasks),
 					availableHours: this.availableHours,
@@ -606,18 +695,17 @@ export class SessionStore {
 
 		this.#moving = true;
 
-		const tomorrow = addDays(this.#selectedDate, 1);
+		const tomorrow = this.#deferDestinationDate;
 
 		try {
-			const dest = await this.#readSession(tomorrow);
-			const destTasks = dest?.tasks ?? [];
+			const dest = await this.#readDestination(tomorrow);
 
 			// Definition and provenance only: a fresh id in the destination day's
 			// id space (observation joins are per-date, so the old id keeps its ⚡ and
 			// 🪫 here — the measurements stay with the day that took them) and no
 			// `mustDoToday`, a statement about today rather than about the task.
 			const moved: Task = {
-				id: nextTaskId(destTasks),
+				id: nextTaskId(dest.tasks),
 				title: task.title,
 				physicalDifficulty: task.physicalDifficulty,
 				mentalDifficulty: task.mentalDifficulty,
@@ -626,17 +714,13 @@ export class SessionStore {
 				completed: false,
 			};
 
-			await sessionRepository.$updateSession({
+			await this.#persistSession({
 				date: tomorrow,
-				tasks: [moved, ...destTasks],
-				// A day this write creates is a day saved for a reason of its own, so it
-				// records the hours it will open on — the rule the auto-save payload
-				// follows. A 0 here would make the destination a STORED day at 0, which
-				// no prefill may speak for (ROADMAP item 16).
-				availableHours: dest?.availableHours ?? prefillBudgetFor(this.#budgetHistory, tomorrow),
-				switchCost: dest?.switchCost ?? DEFAULT_SWITCH_COST,
-				cognitivePool: dest?.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
-				physicalPool: dest?.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+				tasks: [moved, ...dest.tasks],
+				availableHours: dest.availableHours,
+				switchCost: dest.switchCost,
+				cognitivePool: dest.pools.cognitiveHours,
+				physicalPool: dest.pools.physicalHours,
 				updatedAt: Date.now(),
 			});
 

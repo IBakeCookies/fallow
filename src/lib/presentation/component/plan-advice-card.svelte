@@ -17,6 +17,8 @@
 		 * longer describe the day the button would act on.
 		 */
 		isStale: boolean;
+		/** What the day every defer lever sends to already holds (ROADMAP item 21). */
+		destination: string | null;
 		/** The last check failed; the advice shown (if any) predates the failure. */
 		hasError: boolean;
 		oncheck: () => void;
@@ -29,7 +31,8 @@
 		onapplybudget: (hours: number) => void;
 	}
 
-	let { advice, isBusy, isStale, hasError, oncheck, onapply, onapplybudget }: Props = $props();
+	let { advice, isBusy, isStale, destination, hasError, oncheck, onapply, onapplybudget }: Props =
+		$props();
 </script>
 
 {#if !advice}
@@ -90,6 +93,12 @@
 		<!-- Not a row in the menu below: §14 rules the switch cost a measurement of
 		     the user (§14.3), so there is no lever to offer. -->
 		<p class="mt-text-xs text-xs text-ty-silent">{advice.switchCost}</p>
+
+		<!-- Day-level like the two above: every defer lever below sends the task to the
+		     same day, so it is one reading and not a row per lever (ROADMAP item 21). -->
+		{#if destination}
+			<p class="mt-text-xs text-xs text-ty-silent">{destination}</p>
+		{/if}
 
 		{#if advice.rows.length > 0}
 			<ul class="mt-grid-sm space-y-grid-sm">

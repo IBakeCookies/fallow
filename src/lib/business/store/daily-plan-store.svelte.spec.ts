@@ -366,6 +366,82 @@ describe('DailyPlanStore', () => {
 		expect(store.advice).not.toBeNull();
 	});
 
+	// ROADMAP item 21. Where every defer lever on the card sends a task, read once
+	// per advice run — day-level, so it is one reading for the card and not one per
+	// lever.
+	describe('the defer destination', () => {
+		const destinationDate = '2026-07-21'; // the mock's `selectedDate` + 1
+
+		const tomorrow = {
+			taskCount: 4,
+			budgetHours: 6,
+			fundedCount: 3,
+		};
+
+		it('reads the destination alongside the advice', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'tax return')];
+			mockSession.deferDestination = tomorrow;
+			flushSync();
+
+			expect(store.deferDestination).toBeNull();
+
+			await store.computeAdvice();
+
+			expect(store.deferDestination).toEqual(tomorrow);
+		});
+
+		// The advice is priced on today and still correct without it, so a refused or
+		// failed destination read costs the line and never the card.
+		it('keeps the advice when the destination read answers nothing', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'tax return')];
+			flushSync();
+			await store.computeAdvice();
+
+			expect(store.advice).not.toBeNull();
+			expect(store.hasAdviceError).toBe(false);
+			expect(store.deferDestination).toBeNull();
+		});
+
+		/* The advice fingerprint cannot cover a reading about ANOTHER day: it is a
+		   value over the VIEWED day's inputs, so today → tomorrow (edit it) → today
+		   fingerprints identically and the destination line would keep claiming a day
+		   the user just changed. The destination date's own write count is what sees
+		   that. */
+		it('withdraws the destination once its own day is written, with the advice still fresh', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'tax return')];
+			mockSession.deferDestination = tomorrow;
+			flushSync();
+			await store.computeAdvice();
+
+			mockSession.writeGenerations.set(destinationDate, 1);
+			flushSync();
+
+			expect(store.deferDestination).toBeNull();
+			expect(store.isAdviceStale).toBe(false);
+			expect(store.advice).not.toBeNull();
+		});
+
+		/* Only a write to the DESTINATION day can change what this line says. Keying it
+		   off every session write withdrew it on today's own autosave — so adding a task
+		   and pressing Check inside the 500 ms debounce silently produced no line at
+		   all, which is the common path. */
+		it('keeps the destination when the viewed day is the one written', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'tax return')];
+			mockSession.deferDestination = tomorrow;
+			flushSync();
+			await store.computeAdvice();
+
+			mockSession.writeGenerations.set(mockSession.selectedDate, 1);
+			flushSync();
+
+			expect(store.deferDestination).toEqual(tomorrow);
+		});
+	});
+
 	// MATH.md §35. The plan stays the whole intended day; this is the other
 	// question, over the open tasks and the hours genuinely left.
 	describe('remaining day', () => {

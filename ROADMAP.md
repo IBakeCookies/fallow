@@ -43,7 +43,7 @@ today:
   contributes **zero** days to λ₀ (§8.10), the §12 audit and overnight
   carry-over (§11.9). Item 11 is the cheapest item here for that reason.
   **Closed 2026-08-10 by item 11:** `logDrain` has a second caller on the main
-  page (`+page.svelte:99`), and every row on both screens now reads, corrects
+  page (`+page.svelte:101`), and every row on both screens now reads, corrects
   and drops its own ⚡ and 🪫 measurements. The `readFinishedDays` half is
   unchanged and still true — a day still qualifies only through a 🪫 log — so
   what the reading measured is now reachable without `/energy`, not gone.
@@ -275,7 +275,7 @@ nobody's feature — which is why it is written down rather than remembered:
     **Half (b) was a wider hole than this item claimed.** The item read it as
     advice surviving a day change and rendering with the stale banner plus dead
     buttons. But `selectedDate` falls back to the live clock
-    (`session-store.svelte.ts:136-138`) and `#loadSession` is async, so at a URL
+    (`session-store.svelte.ts:146-148`) and `#loadSession` is async, so at a URL
     navigation and at the midnight tick the day moves while the previous day's
     tasks are still in memory — and through that window the inputs are
     unchanged, so the fingerprint never moves and the card reads **fresh**, not
@@ -293,7 +293,7 @@ nobody's feature — which is why it is written down rather than remembered:
     single-step contract calls wrong. Gating is that contract rendered.
     **One path this does NOT close, found by the reviewer and left open on
     purpose.** If `#readSession` throws, `#loadSession` reports `load-failed`
-    and leaves `#loadedDate` behind (`session-store.svelte.ts:402-408`), so the
+    and leaves `#loadedDate` behind (`session-store.svelte.ts:475-481`), so the
     previous day's tasks stay on screen under the new date indefinitely. The
     card goes stale correctly, but Recheck is ungated and re-pins `#adviceFor`,
     so the defer buttons come back enabled and `moveTaskToTomorrow`'s
@@ -312,7 +312,7 @@ _Settled 2026-08-09, not a roadmap item:_ both halves of `importFromDate` /
 `importYesterday` are intended and stay. Copying a completed task in as a fresh
 incomplete one IS the point of "import yesterday", and importing a title that is
 already on today's list is allowed to produce two rows — no dedupe against the
-day's tasks, no filter on `completed` (`session-store.svelte.ts:683`, `:708`).
+day's tasks, no filter on `completed` (`session-store.svelte.ts:756`, `:781`).
 The consequence to keep in mind, since 🪫 logs key on `taskId`: two rows with
 the same title are two tasks to every fit, and the hours logged against each
 stay separate.
@@ -874,16 +874,87 @@ defects it found without fixing.
 
 What survives of the multi-day idea is two readings, not a solver:
 
-21. **Destination preview for a defer** — before you send a task to tomorrow,
-    see what tomorrow already looks like: the destination day's task count,
-    budget and funded set after the move, read-only, from the one extra session
-    read `moveTaskToTomorrow` effectively already needs. **No Δ% pair** — see
-    item 8. **Probe:** is the destination day non-empty often enough to earn a
-    row? **Kill if tomorrow has 0 tasks and 0 budget on >80% of real defer
-    moments** — item 16 is what makes it non-empty. **Prereq:** 16.
+21. ~~**Destination preview for a defer**~~ — SHIPPED 2026-08-12. One
+    **day-level** line on the advice card, above the axis menu and beside the
+    other day-level readings: tomorrow's active task count, the hours it opens
+    on, and how many of those tasks its own plan funds
+    (`business/model/metric/defer-destination.ts`, one classic solve;
+    `describeDeferDestination` in `plan-advice-descriptor.ts`). Read-only, and
+    one reading rather than a row per lever — every defer lever on the card
+    sends the task to the same day.
+    **No Δ% pair and no per-task funding claim** (item 8). "Your task would get
+    2.5 h tomorrow" is that superseded nudge one step removed, and after item 16
+    it is worse: tomorrow's budget is frequently a weekday **median** rather than
+    a declaration, so a per-task claim is a solve on a guess presented as a
+    promise. The line reports what tomorrow already is. It is no part of the
+    advice objective either, which is why `plan-advice.ts` is untouched and this
+    is a separate descriptor and card prop rather than a field on `AdviceDisplay`
+    — that object is built from `PlanAdvice`, contractually today's inputs alone
+    (MATH.md §14).
+    **The destination fallback turned out to be a shared definition.**
+    `moveTaskToTomorrow` already spelled "what tomorrow's record is, or will be"
+    — `dest?.availableHours ?? prefillBudgetFor(…)`, the switch cost, both pools
+    — and the preview has to show exactly those numbers or the line and the write
+    are free to disagree. `SessionStore.#readDestination` is now the one
+    definition both read through (R3); the preview adds nothing to it but the
+    solve.
+    **The advice fingerprint could not cover this reading, and that is the one
+    piece of machinery the item cost.** The fingerprint is a value over
+    `{date, input}`, so today → tomorrow (edit it) → today reads identically:
+    today's advice has no such hole because it prices today alone, and this is
+    the first reading that speaks about another day. So `SessionStore` counts its
+    landed session writes **per date** (`#writeGenerations`, one increment in the
+    one `#persistSession`; `writeGenerationFor(date)`) and the preview is keyed on
+    the destination day's own count, withdrawn rather than shown once that day has
+    been written. A stale-window-and-document-it was considered and refused: the
+    stale banner warns that numbers were priced on a day that moved, and this
+    would be a reading claiming to be fresh about a day the user had just edited.
+    **Per date, and one global counter was the first cut's bug** (review, same
+    day): only a write to the destination day can change what the line says, so a
+    single counter withdrew the reading on today's own auto-save — add a task,
+    press Check inside the 500 ms debounce, and the flush landed after
+    `computeAdvice` had snapshotted the key, so the line silently never appeared
+    on the commonest path there is. The counter is a `SvelteMap` because it is
+    mutated per write rather than replaced, which a plain `Map` would not
+    re-derive from. `deferDestinationDate` is one definition too — the move, the
+    preview and the key all read it rather than spelling `selectedDate + 1` three
+    times (R3).
+    **An empty and unbudgeted tomorrow prints nothing.** With no budgeted day in
+    history `prefillBudgetFor` returns 0, and "nothing planned yet, 0m to spend"
+    is exactly the dead row this item's own kill criterion names — the one state
+    the restated gate below excepts. `describeDeferDestination` returns `null` for
+    it: the reading is factually fine, there is simply no sentence worth printing,
+    which makes it a copy decision and puts it beside the plural split rather than
+    in the summarizer. Suppressed only as a PAIR — a 0-hour tomorrow that has
+    tasks on it is the most useful thing this line says.
+    **The gate was restated, not run** — item 15's and 16's precedent. The stated
+    kill criterion (0 tasks **and** 0 budget on >80% of real defer moments) is a
+    question about habit: real defer moments are not recorded, no exported
+    history exists on the author's machine, and `generate-fixture.mjs` can never
+    gate an item whose question is what the user habitually does. Item 16 also
+    closes the budget half **by construction** — with any budgeted day in
+    history an unseen tomorrow opens on a nonzero prefill — so only "0 tasks"
+    survives, and an empty tomorrow is information the user wants before
+    deferring, which is what the second copy is for. Run the original the moment
+    a real backup exists, jointly with item 15's and 24's gates.
+    Two things the plan expected that the code did not need. The reading carries
+    no `isStored` flag: item 16 already settled that a prefill IS the day's hours
+    everywhere else on screen (the constraints bar marks none), so a provenance
+    clause here would contradict the rest of the UI — the copy splits on the task
+    count instead. And the preview is solved under the **viewed** day's ϕ fit
+    rather than a second §33 window fitted for tomorrow: two window definitions
+    for a reading that reports counts.
+    **Known limit: the word "Tomorrow" is the button's, and on a future day it is
+    wrong while the counts are right.** The card renders on any non-past day and
+    `moveTaskToTomorrow` sends to `selectedDate + 1`, so viewed three days out the
+    line describes the right day by the wrong name. Inherited, not introduced —
+    `advice_apply` has read "To tomorrow" since the defer button shipped — but
+    this is the first time a factual COUNT rides on that word. Deliberately not
+    re-worded here: the copy and the five locales stay as they are, because
+    re-opening the button's wording re-opens ground item 25 settled.
 22. **Chronic-slide badge** — "this has been on your list 6 days".
     `moveTaskToTomorrow` copies `createdAt` verbatim
-    (`session-store.svelte.ts:625`), `Task.createdAt` is an ISO date string
+    (`session-store.svelte.ts:702`), `Task.createdAt` is an ISO date string
     already validated on read (`persisted.ts:91`), and nothing in presentation
     renders it — so slide age is `today − task.createdAt`: no title matching,
     no new read, no new concept. Cross with `unfundedTaskIds` for the "never

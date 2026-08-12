@@ -12,6 +12,7 @@ import { getContext, setContext } from 'svelte';
 import { logError } from '$lib/logger';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
+import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import { calculateRemainingDay, type RemainingDay } from '$lib/business/model/metric/remaining-day';
 import { fitEnergyParams, seedMorningReservoirs } from '$lib/business/model/energy-calibration';
 import { workedHoursByTask } from '$lib/business/model/zenith-energy';
@@ -133,10 +134,21 @@ export class DailyPlanStore {
 		}),
 	);
 
+	// The destination reading's own key, and it cannot be the fingerprint above:
+	// that is a value over the VIEWED day's inputs, so today → tomorrow (edit it) →
+	// today reads identically while the day this describes has moved. Today's advice
+	// has no such hole because it prices today alone. The write count is the
+	// DESTINATION day's: today's own auto-save cannot change what this reading says.
+	#destinationKey = $derived(
+		`${this.#session.deferDestinationDate}#${this.#session.writeGenerationFor(this.#session.deferDestinationDate)}`,
+	);
+
 	#advice = $state<PlanAdvice | null>(null);
 	#isAdviceBusy = $state(false);
 	#hasAdviceError = $state(false);
 	#adviceFor = $state<string | null>(null);
+	#deferDestination = $state<DeferDestination | null>(null);
+	#destinationFor = $state<string | null>(null);
 
 	constructor(session: SessionStore, observations: EnergyObservationStore) {
 		this.#session = session;
@@ -154,6 +166,16 @@ export class DailyPlanStore {
 
 	get advice(): PlanAdvice | null {
 		return this.#advice;
+	}
+
+	/**
+	 * What tomorrow already looks like, for the reading over the card's defer levers
+	 * (ROADMAP item 21). `null` where the destination read answered nothing — and
+	 * once a session write may have moved the day it describes, since a reading
+	 * refuted is worse than no reading.
+	 */
+	get deferDestination(): DeferDestination | null {
+		return this.#destinationFor === this.#destinationKey ? this.#deferDestination : null;
 	}
 
 	get isAdviceBusy(): boolean {
@@ -181,6 +203,12 @@ export class DailyPlanStore {
 		this.#isAdviceBusy = true;
 		this.#hasAdviceError = false;
 
+		// Started before the yield so the session read overlaps the solve (`#boot`'s
+		// pattern in `session-store`), and keyed on the state it was started against:
+		// a write landing while it is in flight leaves the reading withdrawn.
+		const destinationKey = this.#destinationKey;
+		const destination = this.#session.readDeferDestination();
+
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -189,6 +217,8 @@ export class DailyPlanStore {
 			// rather than solved a second time.
 			this.#advice = suggestPlanAdjustments(this.#input, this.#daily);
 			this.#adviceFor = this.#fingerprint;
+			this.#deferDestination = await destination;
+			this.#destinationFor = destinationKey;
 		} catch (e) {
 			// The only caller is a fire-and-forget click handler; rethrowing would
 			// be an unhandled rejection, not a signal.

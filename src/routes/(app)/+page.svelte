@@ -8,7 +8,10 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
-	import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
+	import {
+		buildAdviceDisplay,
+		describeDeferDestination,
+	} from '$lib/presentation/utils/plan-advice-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
 	import {
 		removeFlowLogWithUndo,
@@ -112,6 +115,7 @@
 	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
 	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice, getDateLocale()) : null);
+	const destination = $derived(describeDeferDestination(plan.deferDestination));
 
 	// /?date=<today> renders the same view as / — collapse to the canonical URL. Also
 	// fires when a viewed date BECOMES today at midnight rollover.
@@ -265,6 +269,7 @@
 					{advice}
 					isBusy={plan.isAdviceBusy}
 					isStale={plan.isAdviceStale}
+					{destination}
 					hasError={plan.hasAdviceError}
 					oncheck={() => plan.computeAdvice()}
 					onapply={(id) => session.moveTaskToTomorrow(id)}

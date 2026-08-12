@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
+import {
+	buildAdviceDisplay,
+	describeDeferDestination,
+} from '$lib/presentation/utils/plan-advice-descriptor';
 import type {
 	AdviceLever,
 	AdviceOption,
@@ -574,5 +577,71 @@ describe('buildAdviceDisplay', () => {
 			kind: 'set-budget',
 			hours: exact,
 		});
+	});
+});
+
+// ROADMAP item 21. Counts and hours only: no Δ% pair and nothing about what the
+// deferred task itself would get there (item 8).
+describe('describeDeferDestination', () => {
+	it('reads a populated destination as its counts and its hours', () => {
+		expect(
+			describeDeferDestination({
+				taskCount: 4,
+				budgetHours: 6,
+				fundedCount: 3,
+			}),
+		).toBe('Tomorrow: 4 tasks, 6h to spend — 3 of them funded.');
+	});
+
+	// An empty tomorrow is what the user wants to know before deferring, not a dead
+	// row — so it reads as a destination, and still says what it opens on.
+	it('reads an empty destination as the hours it opens on', () => {
+		expect(
+			describeDeferDestination({
+				taskCount: 0,
+				budgetHours: 6.5,
+				fundedCount: 0,
+			}),
+		).toBe('Tomorrow: nothing planned yet, 6h 30m to spend.');
+	});
+
+	/* Nothing on it and no hours is the dead row item 21's own kill criterion names,
+	   and only a user with no budgeted day in history can reach it (item 16). */
+	it('says nothing about a day that is empty and unbudgeted', () => {
+		expect(
+			describeDeferDestination({
+				taskCount: 0,
+				budgetHours: 0,
+				fundedCount: 0,
+			}),
+		).toBeNull();
+	});
+
+	// An over-subscribed unseen day is the most useful thing the line says, so the
+	// suppression above is the PAIR and never the hours alone.
+	it('still reads a day with tasks and no hours', () => {
+		expect(
+			describeDeferDestination({
+				taskCount: 2,
+				budgetHours: 0,
+				fundedCount: 0,
+			}),
+		).toBe('Tomorrow: 2 tasks, 0m to spend — 0 of them funded.');
+	});
+
+	it('does not pluralize a single task', () => {
+		expect(
+			describeDeferDestination({
+				taskCount: 1,
+				budgetHours: 2,
+				fundedCount: 1,
+			}),
+		).toBe('Tomorrow: 1 task, 2h to spend — 1 funded.');
+	});
+
+	// The read is refused mid-navigation, on a past day, and when it fails; the
+	// card prints no line at all rather than an empty one.
+	it('says nothing about a destination it has none of', () => {
+		expect(describeDeferDestination(null)).toBeNull();
 	});
 });
