@@ -962,21 +962,30 @@ test before believing that phrase.
 No **F** id — these came out of fixing the findings above, and the ids belong to
 the sweep.
 
-- **`ghost` has never had a readable hover on a dark theme, and now it is
-  measured.** Adding `ghost` to `scripts/hover-contrast.mjs` (F21) took the
-  residue count from 23 to 60, and 33 of those are one fact: `surface-hover` is a
-  6% `ty-primary` tint, which over a dark surface moves WCAG luminance by ΔL
-  0.004–0.014 — under the script's `step` on 14 themes and under its `gap` on all
-  19 dark ones. Worst are `orbit` 0.0041 and `abyss` 0.0044; nearest miss is
-  `cathedral` 0.0143. Every light theme passes (`glass-light` 0.129), every dark
-  theme fails. So either dark themes need a stronger ghost hover than 6%, or the
-  thresholds are wrong for a variant that has no rest fill — with none, the rest
-  pixel _is_ the surface pixel, so `gap` re-tests the `step` number against a
-  stricter bound, which `BORDERED` already exempts `outline` and `destructive`
-  from. No token was touched: this is a design decision, and silencing it in the
-  script would have been the wrong half. Four of the 60 are known to drift run to
-  run (animated themes, single-pixel sample catching moving scenery under a
-  translucent fill); the script header says which.
+- ~~**`ghost` has never had a readable hover on a dark theme, and now it is
+  measured.**~~ The measurement was wrong, not the token. Adding `ghost` to
+  `scripts/hover-contrast.mjs` (F21) took the residue from 23 to 60, and 33 of
+  those were one artefact of the instrument: `step` and `gap` were absolute
+  differences of WCAG relative luminance, which is compressed near black, so the
+  one unchanging 6% `surface-hover` tint measured ΔL 0.129 over white and 0.0048
+  over black — a 27× spread from a token that does not vary, and a threshold that
+  can only ever be calibrated for one end of the catalogue. Re-measured as a
+  contrast ratio, the dark themes' ghost hover is _stronger_ than the light
+  themes': dark 1.081–1.174 (median 1.122) against light 1.102–1.147 (median
+  1.116). The metric also under-reported — `glacier` ghost read 1.02, the
+  faintest in the catalogue, and the ΔL bound passed it at 0.0181 because it is a
+  light theme; a patch-mean sample showed that one was the single-pixel
+  sampler landing on corner antialiasing, and it reads 1.096 over its own area.
+  Three changes, all in the script, none to a token: step and gap became ratios
+  against one bound (1.03, sitting in the measured gap between the palette caps at
+  1.019 and the faintest shipped hover at 1.037); `ghost` joined the gap
+  exemption, because with no rest fill and a transparent border the pixel behind
+  it and its own rest pixel are one pixel, so `gap` there was `step` re-measured
+  against a stricter bound; and every sample became a patch mean rather than one
+  pixel. Residue 60 → 27. Left standing and worth knowing: four light themes'
+  `outline` and `bubblegum` secondary sit at 1.037–1.049, a near-white hover over
+  a near-white page, and are the faintest hovers the design ships — nothing was
+  changed for them, and a bound at 1.05 would report them.
 - ~~**`drain-log-form.svelte`'s `seed.recordId` is now read by nothing.**~~ Done
   with F26. Dropped from the form's seed rather than made load-bearing: expressing
   the pairing in the type would take a union whose two arms `task-row-shell.svelte`
