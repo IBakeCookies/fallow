@@ -4,18 +4,26 @@
    right. Nothing animates: it advances half a degree a minute with every
    recompute, which is a position and not a motion.
 
-   One tiled conic-gradient draws every vane, because a conic gradient turns
-   about the centre of each TILE — a transform would have rotated the grid along
-   with the blades and broken the alignment that makes the field read. The head
-   is a second tiled layer moved to the blade's tip with sin/cos of the same
-   angle, which works precisely because every tile is identical: one
-   background-position puts every head on its own blade. */
+   Tiled conic gradients draw every vane, because a conic gradient turns about
+   the centre of each TILE — a transform would have rotated the grid along with
+   the blades and broken the alignment that makes the field read. The head is a
+   second tiled layer, and its background-position moves its gradient's CENTRE
+   onto the shaft's tip: the same primitive that sweeps a shaft out of the pivot
+   then sweeps a point back out of the tip. Both work precisely because every
+   tile is identical — one background-position puts every head on its own
+   shaft. */
 .weathervane .theme-scenery {
 	display: block;
 
 	--vane-grid: 7rem;
 	--vane-len: 2.4rem;
 	--vane-ink: oklch(0.45 0.04 245 / 0.3);
+	/* the tip, in the angle's own convention: +sin east, -cos north. Named
+	   because the head's fill and the mask that ends it must land on the same
+	   point, and a second copy of this arithmetic is a second thing to keep
+	   right. */
+	--vane-tip-x: calc(sin(var(--vane-angle, 0) * 1deg) * var(--vane-len));
+	--vane-tip-y: calc(cos(var(--vane-angle, 0) * 1deg) * var(--vane-len) * -1);
 
 	.theme-helper-1,
 	.theme-helper-2,
@@ -25,16 +33,16 @@
 		background-size: var(--vane-grid) var(--vane-grid);
 	}
 
-	/* the blade, plus a fainter tail opposite it so the vane reads as a needle
-	   balanced on its pivot rather than as a spike. The mask cuts both to the
-	   same length, which is the one thing a single gradient cannot vary. */
+	/* the shaft: one-sided, and 3° thin on purpose. A conic wedge cannot taper
+	   the other way — its width IS proportional to radius — so the weight goes
+	   in the head instead, and a wedge this narrow reads as a line whose growth
+	   you cannot see (0.13rem at the tip). The mask cuts it to length, which is
+	   the one thing a gradient cannot vary. */
 	.theme-helper-1 {
 		background-image: conic-gradient(
-			from calc((var(--vane-angle, 0) - 4) * 1deg),
-			var(--vane-ink) 0 8deg,
-			transparent 8deg 172deg,
-			oklch(0.45 0.04 245 / 0.13) 172deg 188deg,
-			transparent 188deg
+			from calc((var(--vane-angle, 0) - 1.5) * 1deg),
+			var(--vane-ink) 0 3deg,
+			transparent 3deg
 		);
 		mask-image: radial-gradient(
 			circle at 50% 50%,
@@ -44,16 +52,21 @@
 		mask-size: var(--vane-grid) var(--vane-grid);
 	}
 
-	/* the head, carried to the tip: +sin east, -cos north, the same convention
-	   the angle is measured in */
+	/* the head: a 44° wedge opening BACKWARD from the tip (+158° to +202° about
+	   the bearing, so it straddles +180°), which puts its apex on the point and
+	   flares it back down the shaft. The mask is what ends it 0.6rem back —
+	   a wedge is unbounded, so without one it runs to the tile's corner — and it
+	   has to sit at the same offset as the fill or the two shapes come apart. */
 	.theme-helper-2 {
-		background-image: radial-gradient(
-			circle 0.3rem at 50% 50%,
-			oklch(0.45 0.04 245 / 0.32) 0 55%,
-			transparent 70%
+		background-image: conic-gradient(
+			from calc((var(--vane-angle, 0) + 158) * 1deg),
+			var(--vane-ink) 0 44deg,
+			transparent 44deg
 		);
-		background-position: calc(sin(var(--vane-angle, 0) * 1deg) * var(--vane-len))
-			calc(cos(var(--vane-angle, 0) * 1deg) * var(--vane-len) * -1);
+		background-position: var(--vane-tip-x) var(--vane-tip-y);
+		mask-image: radial-gradient(circle at 50% 50%, oklch(0 0 0) 0 0.5rem, transparent 0.6rem);
+		mask-size: var(--vane-grid) var(--vane-grid);
+		mask-position: var(--vane-tip-x) var(--vane-tip-y);
 	}
 
 	/* the pivots — the fixed lattice the blades turn on, and the only part of
