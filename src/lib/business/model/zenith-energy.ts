@@ -1831,16 +1831,17 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * V = satiatedOutput + terminalBonus (freeTimeValue never enters V — the
  * extraction is λ₀-free, no circularity):
  *
- *   stopped   ⇒  λ₀ ≥ max over tasks of Δ(one more step on t)/step
- *   worked    ⇒  λ₀ ≤ max over tasks of Δ(last step of t)/step
+ *   stopped   ⇒  λ₀ ≥ max over open tasks of Δ(one more step on t)/step
+ *   worked    ⇒  λ₀ ≤ max over worked tasks of Δ(last step of t)/step
  *
- * The first max is over ALL of the day's tasks (declining to extend AND
- * declining to start any unlogged task are both part of the stop decision);
- * the second over tasks with at least one whole step logged (SOME worked
- * step was worth ≥ λ₀ — with unknown work order, the loose max is the honest
- * bound). Returns the bracket midpoint, or null when the day is censored:
- * no room to extend (worked to the window edge — reveals only an
- * inequality), or nothing worked / all sessions shorter than one step.
+ * The first max is over the still-OPEN tasks (declining to extend AND
+ * declining to start any unlogged task are both part of the stop decision; a
+ * checked-off task is not, having no more of it to do); the second over tasks
+ * with at least one whole step logged, completed or not (SOME worked step was
+ * worth ≥ λ₀ — with unknown work order, the loose max is the honest bound).
+ * Returns the bracket midpoint, or null when the day is censored: no room to
+ * extend (worked to the window edge — reveals only an inequality), nothing
+ * left open to extend, or nothing worked / all sessions shorter than one step.
  *
  * The day is reconstructed as one session per logged task at its observed
  * hours, in canonical amplitude order, breaks unknown and omitted (probe
