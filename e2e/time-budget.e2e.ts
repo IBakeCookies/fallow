@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, budgetField, isoDate, setBudget } from './helpers';
+import { addTask, AUTOSAVE_MS, budgetField, isoDate, openTimeBudget, setBudget } from './helpers';
 
 test('setting the time budget feeds the plan', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 
-	// budget defaults to 0 so the card starts open
+	// a fresh profile has no history to prefill from, so the day opens on 0 — and
+	// the card, having something to ask for, opens with it
 	await setBudget(page, 8);
 
 	// Metrics leave N/A once tasks + budget exist. Human Capacity is the witness:
@@ -75,17 +76,32 @@ test.describe('server-rendered, before the day is read', () => {
 	});
 });
 
-/* The bar opens itself while the viewed day's hours are unset, so the input that
-   fixes that is never hidden behind a disclosure. That has to track the day on
-   screen: it used to be a snapshot of whichever day the tab booted on, which
-   outlived every date change for the life of the session. */
+/* The bar opens itself while the viewed day has no hours, so the input that fixes
+   that is never hidden behind a disclosure. That has to track the day on screen:
+   it used to be a snapshot of whichever day the tab booted on, which outlived
+   every date change for the life of the session.
+
+   Since ROADMAP item 16 a day with no session of its own is not such a day — it
+   opens on what that weekday's hours usually are — so the day that still has
+   something to ask for is one whose 0 the user typed. Staging it is what proves
+   the prefill reaches the page at all. */
 test('the bar follows the day on screen, not the day the tab booted on', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await setBudget(page, 8);
 	await page.waitForTimeout(AUTOSAVE_MS);
 
-	// Boot on a day with no session at all: hours unset, so the bar opens itself.
+	// Tomorrow has no session, so it opens on today's 8h and stays collapsed.
+	await page.goto(`/?date=${isoDate(1)}`);
+	await openTimeBudget(page, /8h budget/);
+	await expect(budgetField(page)).toHaveValue('8');
+
+	// A 0 the user typed, which no prefill overwrites.
+	await addTask(page, 'Nothing planned');
+	await setBudget(page, 0);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	// Boot on that day: hours at 0, so the bar opens itself.
 	await page.goto(`/?date=${isoDate(1)}`);
 	await expect(budgetField(page)).toHaveValue('0');
 
