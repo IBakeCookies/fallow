@@ -95,7 +95,7 @@
 
 <div class="sticky top-4 z-20 mb-text-xl flex items-start justify-between gap-grid-xs">
 	<nav
-		class="inline-flex items-center gap-text-2xs rounded-xl border bg-surface-card p-text-2xs backdrop-blur w-max"
+		class="inline-flex items-center gap-text-2xs rounded-xl border bg-surface-float p-text-2xs backdrop-blur w-max"
 	>
 		{#each links as link (link.href)}
 			<a

@@ -36,7 +36,7 @@
 // ink on a red fill, one shade apart, so nine light themes land in the 3.9–4.5
 // band and `zenith` at 3.0 because its own `--danger-strong` is mid-luminance;
 // `default` sits at 4.0–4.3 on five themes for the same reason; `blueprint`'s
-// near-white primary caps secondary at 3.7. The other 3 are step, and each is a
+// near-white primary caps secondary at 4.0. The other 3 are step, and each is a
 // palette with nowhere to go rather than a token: `glass-light` outline is a
 // 55%-white fill over a white region of that photo, which composites to white
 // either way; `blueprint` default hovers a near-white primary; and `dunes`

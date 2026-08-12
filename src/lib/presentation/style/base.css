@@ -1,20 +1,22 @@
 /* The default palette every theme overrides: :root (a complete light theme),
-   the element defaults in @layer base, and .dark.
+   the element defaults in @layer base, and .dark — plus the two classes that
+   turn those seeds into the classic themes, .solid-light and .solid-dark.
 
    Loaded between tokens.css and themes.css because the cascade order
    :root < .dark < theme class is load-bearing — see the .dark comment. */
 
 /* ============================================================
-   :root is a COMPLETE light theme (solid-light). Every token a
-   component can use resolves here, so a theme class is purely an
-   override and can never leave a token undefined.
+   :root is a COMPLETE light theme. Every token a component can
+   use resolves here, so a theme class is purely an override and
+   can never leave a token undefined.
 
    A theme provides SEEDS (surfaces, text, primary, background
    image); everything else derives via color-mix and only needs
    overriding for a deliberate effect.
    ============================================================ */
-/* .solid-light re-applies the defaults so a theme swatch can opt back
-   into them from inside a themed subtree (theme-selector previews) */
+/* .solid-light shares this block so a theme swatch can opt back into the
+   defaults from inside a themed subtree (theme-selector previews); what
+   makes it classic light rather than the seed is the second block below. */
 :root,
 .solid-light {
 	--spacer-2xs: 0.375rem; /* 6px */
@@ -71,8 +73,23 @@
 
 	/* seeds */
 	--surface-page: oklch(0.96 0.005 260);
-	--surface-card: oklch(0.995 0.002 260);
-	--surface-inset: oklch(0.91 0.008 260);
+	/* Translucent, like 33 of the 40 themes': separation for a nested
+	   `bg-surface-card` — the metric tiles, the task-definition panel — IS the
+	   alpha compositing a second time. The 7 themes that are
+	   opaque instead pay for it another way: three distinct surface inks and a
+	   heavier border (see `.solid-light` below and, in themes.css, "the
+	   square-cornered three"). */
+	--surface-card: oklch(1 0 0 / 0.7);
+	--surface-inset: oklch(0.25 0.02 260 / 0.08);
+
+	/* Chrome that floats OVER scrolling content — the sticky nav pill. A
+	   translucent card is only safe there because `backdrop-blur` smears what
+	   passes underneath — so on a `--blur: 0` theme, where that blur is a
+	   no-op, page text reads straight through the pill. The other 7 blur-0
+	   themes have an opaque `--surface-card` for exactly that reason and inherit this
+	   unchanged; `terminal` is the one that needs the split, because its
+	   scanlines showing THROUGH a card is the theme. */
+	--surface-float: var(--surface-card);
 	--ty-primary: oklch(0 0 0);
 	--primary: oklch(0.72 0.17 150);
 	--primary-foreground: oklch(0.18 0.03 155);
@@ -95,7 +112,7 @@
 
 	/* Every fill has a paired -hover, and for a TRANSLUCENT fill the step is more
 	   of its own alpha — not a tint mixed on top. Both alternatives were measured
-	   over all 37 themes (scripts/hover-contrast.mjs) and both failed:
+	   over all 40 themes (scripts/hover-contrast.mjs) and both failed:
 
 	   - `surface-hover` (a fixed 6% ty-primary on transparent) is right only
 	     where the rest state IS transparent (ghost, list rows) or where it
@@ -212,9 +229,9 @@
 	   enough to catch emerald-600 (l 0.596) and hand it a mid-grey ink, the worst
 	   of both.
 
-	   0.58 is measured, not chosen: sweeping the threshold over all 34 themes ×
+	   0.58 is measured, not chosen: sweeping the threshold over all 40 themes ×
 	   9 fills, it is the only value that picks the better of the two poles for
-	   every one of the 306 pairs. Worst case is then 4.28:1, and 16 of the 306
+	   every one of the 360 pairs. Worst case is then 4.28:1, and 21 of the 360
 	   cannot beat 4.5:1 with ANY ink — mid-luminance chromatic fills are simply
 	   capped. So this is sound for a short bold label on a solid chip; body copy
 	   wants the soft pattern instead (`bg-danger/5` + `text-danger-strong`).
@@ -245,6 +262,55 @@
 	--series-8: var(--color-orange-400);
 	--series-rest: var(--color-zinc-500);
 	--series-ink: oklch(0.22 0.01 260);
+}
+
+/* ============================================================
+   Classic light and dark, the catalogue's two plain themes, are the seeds
+   above made OPAQUE. They are the only themes with no `--background-image`
+   at all, so a translucent surface has nothing to reveal but the flat page
+   behind it and the blur has nothing to soften — it cost a full-viewport
+   filter pass to show grey through white. Solid instead, which also makes
+   the sticky nav genuinely solid.
+
+   What alpha was doing has to be paid for, and both halves are paid here
+   rather than argued away (same bargain as themes.css, "the square-cornered
+   three"):
+
+   - A `bg-surface-card` nested on another one — the metric tiles, the
+     task-definition panel — separated by compositing the same fill twice.
+     Here page/card/inset are three DISTINCT inks, so the rungs read by
+     value, and both of those also carry a border. A nested card WITHOUT one
+     has nothing left to separate it and must use the inset rung instead —
+     that is why `log-row` does (tokens.css).
+   - Both alpha-scaling hovers above (`--control-hover`, `--secondary-hover`)
+     are no-ops on an opaque fill, so each block sets that pair itself, as
+     the `--control-hover` comment says a theme with an opaque `--input`
+     must.
+
+   Same specificity as the block above and later in the file, so these win;
+   `.solid-dark` sits after `.dark` for the same reason.
+   ============================================================ */
+.solid-light {
+	--blur: 0;
+
+	/* The surfaces are the composite they replace, so nothing shifts colour: 70%
+	   white over the page IS 0.988, an 8% black well over that IS 0.928. Read
+	   off rendered pixels, not lerped in oklch — compositing happens in
+	   gamma-encoded sRGB, and the two disagree by ~0.03 L on this end of the
+	   ramp, which is a visibly heavier field. The near-zero chroma is that
+	   arithmetic too: white over a faintly blue page washes the hue out. */
+	--surface-card: oklch(0.988 0.001 286);
+	--surface-inset: oklch(0.928 0.001 286);
+
+	/* The exception: fields, dropdown triggers and neutral buttons are LIGHTER
+	   than the 10%-black composite (0.913) they replace. That value is a grey
+	   slab on a white card, and it only ever looked right because a translucent
+	   card let the page tint it. Opaque now, so the border draws the field and
+	   the fill only has to be a tint — which is what the rest of this block is
+	   about: print separates by rule, not by weight. */
+	--input: oklch(0.955 0.001 286);
+	--control-hover: oklch(0.9 0.001 286);
+	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 }
 
 @layer base {
@@ -306,17 +372,21 @@
 	}
 }
 
-/* Dark mode defaults (= solid-dark). Cascade order is load-bearing and must
-   mirror this file's structure: :root < .dark < theme classes — all equal
-   specificity, so the later block wins. Keep .dark above the theme blocks
-   (and never use a higher-specificity selector here). */
+/* Dark mode defaults: the seed the 21 themes that stamp `.dark` share, NOT a
+   theme of its own — classic dark adds `.solid-dark` below. Cascade order is
+   load-bearing and must mirror this file's structure: :root < .dark < theme
+   classes — all equal specificity, so the later block wins. Keep .dark above
+   the theme blocks (and never use a higher-specificity selector here). */
 .dark {
 	/* black-on-dark needs more weight to read as depth */
 	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.5);
 
 	--surface-page: oklch(0.2 0.015 285);
-	--surface-card: oklch(0.26 0.018 285);
-	--surface-inset: oklch(0.32 0.02 285);
+	/* translucent for the same reason as :root, and WHITE on both rungs: on a
+	   dark page the recessed surface is the lighter one, which is what the
+	   opaque pair it replaces (0.26 card, 0.32 inset) already said */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(1 0 0 / 0.12);
 	--ty-primary: oklch(1 0 0);
 	--primary: oklch(0.55 0.2 285);
 	--primary-foreground: var(--color-white);
@@ -347,4 +417,17 @@
 	--mixed: var(--color-violet-400);
 	--brand: var(--color-indigo-400);
 	--brand-strong: var(--color-indigo-300);
+}
+
+/* Classic dark — see `.solid-light` for the bargain. The three rungs climb
+   here where they descend there: on a dark page the recessed surface is the
+   lighter one, which is what the alpha pair this replaces already said. */
+.solid-dark {
+	--blur: 0;
+
+	--surface-card: oklch(0.26 0.015 285);
+	--surface-inset: oklch(0.363 0.012 286);
+	--input: oklch(0.347 0.012 286);
+	--control-hover: oklch(0.437 0.011 286);
+	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 }

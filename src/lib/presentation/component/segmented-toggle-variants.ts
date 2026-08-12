@@ -35,7 +35,7 @@ export const segmentedToggleVariants = tv({
 /**
  * The strip the buttons sit in. Its surface is per-tone and not decoration: a
  * toggle sitting on the page needs `backdrop-blur` (STYLE.md — `surface-card`
- * carries alpha in 35 of the 37 themes), while the `plan` one is nested inside an
+ * carries alpha in 33 of the 40 themes), while the `plan` one is nested inside an
  * already-blurred card, where a second blur is a no-op over a fill that has to be
  * a step off the card rather than the same `surface-card` again.
  */

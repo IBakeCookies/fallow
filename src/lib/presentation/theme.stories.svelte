@@ -28,6 +28,7 @@
 		'bg-surface-page',
 		'bg-surface-card',
 		'bg-surface-inset',
+		'bg-surface-float',
 		'bg-surface-hover',
 		'bg-input',
 		'bg-control',
@@ -130,7 +131,7 @@
 		<section class="card-shell space-y-text-xs p-box-xl">
 			<h2 class="text-lg font-bold text-ty-primary">A card on this theme</h2>
 			<p class="text-sm text-ty-secondary">
-				surface-card is translucent in about twenty themes — without backdrop-blur the background
+				surface-card is translucent in 33 of the 40 themes — without backdrop-blur the background
 				shows through unblurred here.
 			</p>
 			<hr class="border-line-soft" />

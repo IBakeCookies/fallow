@@ -44,6 +44,9 @@
 @custom-variant hourglass (&:is(.hourglass *));
 @custom-variant foliage (&:is(.foliage *));
 @custom-variant circuit (&:is(.circuit *));
+@custom-variant swiss (&:is(.swiss *));
+@custom-variant brutalist (&:is(.brutalist *));
+@custom-variant riso (&:is(.riso *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes.
@@ -123,6 +126,7 @@
 	--color-surface-page: var(--surface-page);
 	--color-surface-card: var(--surface-card);
 	--color-surface-inset: var(--surface-inset);
+	--color-surface-float: var(--surface-float);
 	--color-surface-hover: var(--surface-hover);
 
 	/* borders */
@@ -262,9 +266,17 @@
    history, all three kinds at once) — the three calibration cards each printed their
    own kind until 2026-08-10. Kept a utility rather than folded back into that one
    component because the shape is what made those three readable as one thing, and it
-   is what a fourth list would have to match (AGENTS.md R3). */
+   is what a fourth list would have to match (AGENTS.md R3).
+
+   `surface-inset` and not `surface-card`, because a row always sits INSIDE a
+   card and carries no border of its own: on the 32 translucent themes a card on
+   a card separated by compositing its alpha twice, but on the 8 opaque ones
+   (base.css `.solid-light`/`.solid-dark`, themes.css "the square-cornered
+   three", plus blueprint and parchment) it is the same flat ink and the rows
+   vanished. The recessed rung is what a well cut into a card is for, and it is
+   distinct from the card in all 40. */
 @utility log-row {
-	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-card px-box-2xs py-text-2xs text-xs text-ty-secondary;
+	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-inset px-box-2xs py-text-2xs text-xs text-ty-secondary;
 }
 
 /* One bar standing in for a reading that has not been read yet, so a page whose
