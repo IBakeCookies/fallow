@@ -61,7 +61,7 @@ describe('sceneryStyle', () => {
 		}
 	});
 
-	// The two whole-SVG vars are the one place the seed drives geometry rather
+	// The whole-SVG vars are the one place the seed drives geometry rather
 	// than timing, so a malformed path or an unescaped '#' would blank the layer.
 	it.each(['--meridian-ribbons', '--dunes-ridges'])('renders %s as an inline SVG url', (name) => {
 		const value = vars(987654321).get(name);

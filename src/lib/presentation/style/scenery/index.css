@@ -29,6 +29,7 @@
 @import './hourglass.css';
 @import './foliage.css';
 @import './circuit.css';
+@import './weathervane.css';
 
 .theme-scenery {
 	display: none;

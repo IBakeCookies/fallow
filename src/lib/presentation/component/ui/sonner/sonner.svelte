@@ -33,7 +33,7 @@
 	because "popovers float over arbitrary content", so it resolves to the same
 	value this writes. `--surface-page` is named directly only because a raw
 	`var()` should name the unprefixed token. Do not "fix" this to
-	`--surface-card`: it carries alpha on 33 of the 40 themes, and `terminal`
+	`--surface-card`: it carries alpha on most themes, and `terminal`
 	pairs that with `--blur: 0` on purpose, so page text shows straight through a
 	floating toast — verified by screenshot. An opaque fill also leaves nothing
 	for a `backdrop-blur` to blur, which is why there isn't one.

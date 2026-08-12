@@ -176,6 +176,17 @@ describe('dataSceneryStyle', () => {
 		expect(october['--foliage-buds']).toBe(0);
 	});
 
+	// The whole field is one hour hand, so it reads as a clock only if it keeps a
+	// clock's convention: up at 12, right at 3, and wrapping at noon rather than
+	// at midnight. The half-hour case is the one that would pass a step function.
+	it('turns the vanes to the hour hand', () => {
+		expect(vars(clock(12))['--vane-angle']).toBe(0);
+		expect(vars(clock(0))['--vane-angle']).toBe(0);
+		expect(vars(clock(3))['--vane-angle']).toBe(90);
+		expect(vars(clock(15))['--vane-angle']).toBe(90);
+		expect(vars(clock(4.5))['--vane-angle']).toBe(135);
+	});
+
 	// Monday 00:00 sits at the top of the dial; the outer planet laps once a week.
 	it('puts the orrery week hand at the top on Monday midnight', () => {
 		expect(

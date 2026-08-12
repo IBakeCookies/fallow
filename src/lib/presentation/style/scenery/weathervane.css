@@ -1,0 +1,68 @@
+/* Weathervane: a field of vanes on a fixed grid, all turned to one bearing —
+   the hour hand's. --vane-angle (utils/scenery-time.ts) is 30°/h clockwise from
+   12, so at noon the whole field points straight up and at 03:00 it points
+   right. Nothing animates: it advances half a degree a minute with every
+   recompute, which is a position and not a motion.
+
+   One tiled conic-gradient draws every vane, because a conic gradient turns
+   about the centre of each TILE — a transform would have rotated the grid along
+   with the blades and broken the alignment that makes the field read. The head
+   is a second tiled layer moved to the blade's tip with sin/cos of the same
+   angle, which works precisely because every tile is identical: one
+   background-position puts every head on its own blade. */
+.weathervane .theme-scenery {
+	display: block;
+
+	--vane-grid: 7rem;
+	--vane-len: 2.4rem;
+	--vane-ink: oklch(0.45 0.04 245 / 0.3);
+
+	.theme-helper-1,
+	.theme-helper-2,
+	.theme-helper-3 {
+		position: absolute;
+		inset: 0;
+		background-size: var(--vane-grid) var(--vane-grid);
+	}
+
+	/* the blade, plus a fainter tail opposite it so the vane reads as a needle
+	   balanced on its pivot rather than as a spike. The mask cuts both to the
+	   same length, which is the one thing a single gradient cannot vary. */
+	.theme-helper-1 {
+		background-image: conic-gradient(
+			from calc((var(--vane-angle, 0) - 4) * 1deg),
+			var(--vane-ink) 0 8deg,
+			transparent 8deg 172deg,
+			oklch(0.45 0.04 245 / 0.13) 172deg 188deg,
+			transparent 188deg
+		);
+		mask-image: radial-gradient(
+			circle at 50% 50%,
+			oklch(0 0 0) 0 calc(var(--vane-len) - 0.3rem),
+			transparent var(--vane-len)
+		);
+		mask-size: var(--vane-grid) var(--vane-grid);
+	}
+
+	/* the head, carried to the tip: +sin east, -cos north, the same convention
+	   the angle is measured in */
+	.theme-helper-2 {
+		background-image: radial-gradient(
+			circle 0.3rem at 50% 50%,
+			oklch(0.45 0.04 245 / 0.32) 0 55%,
+			transparent 70%
+		);
+		background-position: calc(sin(var(--vane-angle, 0) * 1deg) * var(--vane-len))
+			calc(cos(var(--vane-angle, 0) * 1deg) * var(--vane-len) * -1);
+	}
+
+	/* the pivots — the fixed lattice the blades turn on, and the only part of
+	   the field that never moves */
+	.theme-helper-3 {
+		background-image: radial-gradient(
+			circle 0.1rem at 50% 50%,
+			oklch(0.45 0.04 245 / 0.22) 0 55%,
+			transparent 70%
+		);
+	}
+}

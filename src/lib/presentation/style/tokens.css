@@ -44,9 +44,15 @@
 @custom-variant hourglass (&:is(.hourglass *));
 @custom-variant foliage (&:is(.foliage *));
 @custom-variant circuit (&:is(.circuit *));
-@custom-variant swiss (&:is(.swiss *));
 @custom-variant brutalist (&:is(.brutalist *));
 @custom-variant riso (&:is(.riso *));
+@custom-variant eink (&:is(.eink *));
+@custom-variant kintsugi (&:is(.kintsugi *));
+@custom-variant solarized-light (&:is(.solarized-light *));
+@custom-variant graph-pad (&:is(.graph-pad *));
+@custom-variant verdigris (&:is(.verdigris *));
+@custom-variant thermal (&:is(.thermal *));
+@custom-variant weathervane (&:is(.weathervane *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes.
@@ -269,12 +275,12 @@
    is what a fourth list would have to match (AGENTS.md R3).
 
    `surface-inset` and not `surface-card`, because a row always sits INSIDE a
-   card and carries no border of its own: on the 32 translucent themes a card on
-   a card separated by compositing its alpha twice, but on the 8 opaque ones
-   (base.css `.solid-light`/`.solid-dark`, themes.css "the square-cornered
-   three", plus blueprint and parchment) it is the same flat ink and the rows
-   vanished. The recessed rung is what a well cut into a card is for, and it is
-   distinct from the card in all 40. */
+   card and carries no border of its own: on a translucent theme a card on a
+   card separated by compositing its alpha twice, but on the opaque ones
+   (base.css `.solid-light`/`.solid-dark`, themes.css "the set-square themes"
+   and "the rounded opaque themes", plus blueprint and parchment) it is the same
+   flat ink and the rows vanished. The recessed rung is what a well cut into a
+   card is for, and it is distinct from the card on every theme. */
 @utility log-row {
 	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-inset px-box-2xs py-text-2xs text-xs text-ty-secondary;
 }

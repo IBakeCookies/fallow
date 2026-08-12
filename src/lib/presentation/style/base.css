@@ -73,20 +73,20 @@
 
 	/* seeds */
 	--surface-page: oklch(0.96 0.005 260);
-	/* Translucent, like 33 of the 40 themes': separation for a nested
+	/* Translucent, like most themes': separation for a nested
 	   `bg-surface-card` — the metric tiles, the task-definition panel — IS the
-	   alpha compositing a second time. The 7 themes that are
+	   alpha compositing a second time. The themes that are
 	   opaque instead pay for it another way: three distinct surface inks and a
 	   heavier border (see `.solid-light` below and, in themes.css, "the
-	   square-cornered three"). */
+	   set-square themes" and "the rounded opaque themes"). */
 	--surface-card: oklch(1 0 0 / 0.7);
 	--surface-inset: oklch(0.25 0.02 260 / 0.08);
 
 	/* Chrome that floats OVER scrolling content — the sticky nav pill. A
 	   translucent card is only safe there because `backdrop-blur` smears what
 	   passes underneath — so on a `--blur: 0` theme, where that blur is a
-	   no-op, page text reads straight through the pill. The other 7 blur-0
-	   themes have an opaque `--surface-card` for exactly that reason and inherit this
+	   no-op, page text reads straight through the pill. Every other blur-0
+	   theme has an opaque `--surface-card` for exactly that reason and inherits this
 	   unchanged; `terminal` is the one that needs the split, because its
 	   scanlines showing THROUGH a card is the theme. */
 	--surface-float: var(--surface-card);
@@ -112,13 +112,13 @@
 
 	/* Every fill has a paired -hover, and for a TRANSLUCENT fill the step is more
 	   of its own alpha — not a tint mixed on top. Both alternatives were measured
-	   over all 40 themes (scripts/hover-contrast.mjs) and both failed:
+	   over the whole catalogue (scripts/hover-contrast.mjs) and both failed:
 
 	   - `surface-hover` (a fixed 6% ty-primary on transparent) is right only
 	     where the rest state IS transparent (ghost, list rows) or where it
 	     composites over a parent's fill (the number-input steppers). On an
 	     element that already has a fill, a hover background REPLACES that fill,
-	     and 35 themes re-tint `--input` — half to a light value (glass-light →
+	     and most themes re-tint `--input` — often to a light value (glass-light →
 	     55% white) — so hover dropped to a 6% dark tint and the control receded.
 	   - mixing ty-primary INTO the fill fixes the direction but not the size:
 	     the same 7% moved a 0.09-alpha fill by ΔL 0.012 (invisible) and a
@@ -229,11 +229,12 @@
 	   enough to catch emerald-600 (l 0.596) and hand it a mid-grey ink, the worst
 	   of both.
 
-	   0.58 is measured, not chosen: sweeping the threshold over all 40 themes ×
+	   0.58 is measured, not chosen: sweeping the threshold over every theme ×
 	   9 fills, it is the only value that picks the better of the two poles for
-	   every one of the 360 pairs. Worst case is then 4.28:1, and 21 of the 360
-	   cannot beat 4.5:1 with ANY ink — mid-luminance chromatic fills are simply
-	   capped. So this is sound for a short bold label on a solid chip; body copy
+	   every pair in the catalogue. Worst case is then solarized-light's published
+	   red at 4.21:1, and a small share of pairs cannot beat 4.5:1 with ANY ink —
+	   mid-luminance chromatic fills are simply capped, which is most of what
+	   Solarized's published accents are. So this is sound for a short bold label on a solid chip; body copy
 	   wants the soft pattern instead (`bg-danger/5` + `text-danger-strong`).
 	   Re-run scripts/ink-contrast.mjs after changing a state or domain fill. */
 	--danger-ink: oklch(from var(--danger) clamp(0.16, (0.58 - l) * 10000, 0.97) 0.02 h / 1);
@@ -372,7 +373,7 @@
 	}
 }
 
-/* Dark mode defaults: the seed the 21 themes that stamp `.dark` share, NOT a
+/* Dark mode defaults: the seed every theme that stamps `.dark` shares, NOT a
    theme of its own — classic dark adds `.solid-dark` below. Cascade order is
    load-bearing and must mirror this file's structure: :root < .dark < theme
    classes — all equal specificity, so the later block wins. Keep .dark above

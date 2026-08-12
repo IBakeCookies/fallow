@@ -31,17 +31,26 @@
 // second opinion about the ratio the label checks use; it is the same instrument
 // asking the same question of a different pair of pixels.
 //
-// Known residue at 27 findings, none of it reachable by a hover token (see
-// STYLE.md's hover and danger bullets). 24 are a palette cap: danger is a red
-// ink on a red fill, one shade apart, so nine light themes land in the 3.9–4.5
-// band and `zenith` at 3.0 because its own `--danger-strong` is mid-luminance;
-// `default` sits at 4.0–4.3 on five themes for the same reason; `blueprint`'s
-// near-white primary caps secondary at 4.0. The other 3 are step, and each is a
+// This script prints a residue of known findings, none of it reachable by a
+// hover token (see STYLE.md's hover and danger bullets) — read the list, not a
+// count written here, which is stale the next time a theme lands.
+//
+// Nearly all of it is one palette cap: danger is a red ink on a red fill, one
+// shade apart, so the light themes land in the 3.9–4.5 band and `zenith` at 3.0
+// because its own `--danger-strong` is mid-luminance; `default` sits at 4.0–4.5
+// wherever primary is close to its own foreground; `blueprint`'s near-white
+// primary caps secondary at 4.0. Three findings are step instead, and each is a
 // palette with nowhere to go rather than a token: `glass-light` outline is a
 // 55%-white fill over a white region of that photo, which composites to white
 // either way; `blueprint` default hovers a near-white primary; and `dunes`
 // secondary moves in hue and not in luminance (231,207,197 -> 242,202,187),
-// which no luminance metric can see.
+// which no luminance metric can see. A finding outside those shapes is new.
+//
+// One shape is not a palette fact at all: an animated theme can flash something
+// bright across the sample patch mid-measurement. `orbit` destructive did that
+// once at step 16.5 / cr 1.92 and measured 1.34 / 8.6 on the three runs after
+// it. Re-run the one theme (`node scripts/hover-contrast.mjs orbit`) before
+// believing a wild reading on a theme whose scenery moves.
 import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
 

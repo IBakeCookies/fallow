@@ -142,9 +142,9 @@
 									<DropdownMenu.RadioItem value={theme.name} class="cursor-pointer gap-grid-xs">
 										<!-- theme classes scope that theme's CSS vars to the swatch,
 										     so the slices always match themes.css. Three slices, not two:
-										     `--brand` is the accent every theme tunes away from its
-										     primary (36 of 38 set it), so it is what tells the two
-										     one-signal-colour themes apart from the polychrome ones. -->
+										     `--brand` is the accent nearly every theme tunes away from
+										     its primary, so it is what tells the one-signal-colour
+										     themes apart from the polychrome ones. -->
 										<span
 											class="{theme.css.join(
 												' ',
