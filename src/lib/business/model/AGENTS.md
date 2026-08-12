@@ -140,6 +140,11 @@ its allocation code, so the main page is unaffected by changes here.
   end-of-session ratings — don't try. λ₀ is fitted last, conditioned on
   everything else. Each fit is a 1-D ridge toward the **defaults**, not toward
   current inputs. Ratings with demand 0 carry no signal and are dropped.
+- Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — price
+  the stop against `openTaskIds` only, a next-up-family scope (§11.8): a
+  checked-off task is no forgone step, though its hours still drained the
+  reservoirs and stay in the reconstruction. A day that ended with everything
+  ticked reveals no indifference and is censored.
 - A fit never writes params silently: the "Apply my fits" button copies it into
   the manual inputs. **One** button for all four fits, beside the Model
   Parameters heading, because the order above is the math — three per-card

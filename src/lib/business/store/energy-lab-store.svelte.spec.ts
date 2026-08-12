@@ -912,10 +912,10 @@ describe('EnergyLabStore', () => {
 							hours: 4.5,
 						},
 					],
+					openTaskIds: new Set([2]),
 				},
 				store.params,
 				mockSession.userConstants,
-				new Set([2]),
 			),
 		);
 
@@ -995,10 +995,10 @@ describe('EnergyLabStore', () => {
 							hours: 4.5,
 						},
 					],
+					openTaskIds: new Set([1]),
 				},
 				store.params,
 				mockSession.userConstants,
-				new Set([1]),
 			),
 		);
 
@@ -1014,10 +1014,10 @@ describe('EnergyLabStore', () => {
 							hours: 1.5,
 						},
 					],
+					openTaskIds: new Set([1]),
 				},
 				store.params,
 				mockSession.userConstants,
-				new Set([1]),
 			),
 		);
 	});

@@ -4,6 +4,7 @@ import {
 	EMPTY_PLAN_AUDIT,
 	readDaySummaries,
 	readModelReport,
+	readStopObservations,
 	readTitleRatings,
 } from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
@@ -522,5 +523,26 @@ describe('readModelReport fit snapshots', () => {
 		const { calibration } = await readModelReport('2026-11-04', 30);
 
 		expect(calibration.trend.alphaCog).toEqual([0.11, 0.22, calibration.energy.params.alphaCog]);
+	});
+});
+
+describe('readStopObservations', () => {
+	it('carries the day’s open tasks, so a finished one is no forgone step (MATH.md §8.10)', async () => {
+		await $updateSession(session('2026-03-02'));
+
+		await $createDrainObservation({
+			date: '2026-03-02',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 3,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		const [day] = await readStopObservations('2026-03-03');
+
+		expect([...day.openTaskIds!]).toEqual([1]);
 	});
 });

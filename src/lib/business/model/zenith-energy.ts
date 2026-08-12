@@ -1715,6 +1715,13 @@ export interface StopObservation {
 	windowHours: number;
 	/** Observed worked hours per task (one entry per logged task) */
 	workedHours: { taskId: number; hours: number }[];
+	/**
+	 * Tasks still open at the stop — the only ones another session could have
+	 * gone to (§11.8's next-up scope). A checked-off task's hours still shape
+	 * the reconstruction, because they drained the reservoirs. Omitted means
+	 * every task was open.
+	 */
+	openTaskIds?: ReadonlySet<number>;
 }
 
 /**
@@ -1866,7 +1873,9 @@ export function stopIndifferencePoint(
 	const step = DEFAULT_STEP_HOURS;
 
 	const lo =
-		day.total + step <= observation.windowHours + 1e-9 ? bestNextStep(day).marginalValue : null;
+		day.total + step <= observation.windowHours + 1e-9
+			? (bestNextStep(day)?.marginalValue ?? null)
+			: null;
 
 	let hi: number | null = null;
 
@@ -1903,11 +1912,10 @@ export function stopIndifferencePoint(
  * The reconstructed day the two stop readings share (§8.10/§8.11): one session
  * per logged task at its observed hours in canonical amplitude order, plus the
  * λ₀-free work value V = satiatedOutput + terminalBonus evaluated around it.
- * `tasks` is the day's full task list, non-empty by construction — which is
- * what lets `bestNextStep` promise a result.
  */
 interface StopDayReconstruction {
-	tasks: EnergyTaskInput[];
+	/** The tasks another session could have gone to (`openTaskIds`) */
+	candidates: EnergyTaskInput[];
 	sched: ScheduleBlock[];
 	byTask: Map<number, number>;
 	rank: Map<number, number>;
@@ -1921,7 +1929,7 @@ function reconstructStopDay(
 	params: EnergyParams,
 	constants: UserConstants,
 ): StopDayReconstruction | null {
-	const { tasks, windowHours } = observation;
+	const { tasks, windowHours, openTaskIds } = observation;
 
 	if (windowHours <= 0 || tasks.length === 0) return null;
 
@@ -1949,7 +1957,7 @@ function reconstructStopDay(
 	};
 
 	return {
-		tasks,
+		candidates: openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id)),
 		sched,
 		byTask,
 		rank,
@@ -1992,16 +2000,19 @@ function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): 
 }
 
 /**
- * max over ALL of the day's tasks of Δ(one more step on t)/step — §8.10's `lo`
- * bound. Declining to extend a logged task and declining to START an unlogged
- * one are both part of the stop decision, so both are probed. Callers
- * guarantee a whole step fits.
+ * max over the day's still-OPEN tasks of Δ(one more step on t)/step — §8.10's
+ * `lo` bound. Declining to extend a logged task and declining to START an
+ * unlogged one are both part of the stop decision, so both are probed; a task
+ * already checked off is not, because there was no more of it to do. Null when
+ * nothing was left open. Callers guarantee a whole step fits.
  */
-function bestNextStep(day: StopDayReconstruction): { taskId: number; marginalValue: number } {
+function bestNextStep(
+	day: StopDayReconstruction,
+): { taskId: number; marginalValue: number } | null {
 	const step = DEFAULT_STEP_HOURS;
 	let best: { taskId: number; marginalValue: number } | null = null;
 
-	for (const t of day.tasks) {
+	for (const t of day.candidates) {
 		const dNext = (day.workValue(growBy(day, t, step)) - day.base) / step;
 
 		if (best === null || dNext > best.marginalValue) {
@@ -2012,8 +2023,7 @@ function bestNextStep(day: StopDayReconstruction): { taskId: number; marginalVal
 		}
 	}
 
-	// day.tasks is non-empty by reconstruction, so the loop ran at least once.
-	return best!;
+	return best;
 }
 
 /**
@@ -2050,11 +2060,11 @@ export type StopAdvice =
  * own move shape (grow / T*-session insert), so at a rational stop no session
  * clears λ₀ and the verdicts still agree.
  *
- * `candidateTaskIds` limits which tasks may be RECOMMENDED — the store passes
- * the open tasks, because "one more session of a task you already checked
- * off" is no advice — while every logged task still shapes the reconstruction:
- * a completed task's hours drained the reservoirs the open ones must work
- * with. Omitted means all of the day's tasks.
+ * Only `openTaskIds` may be RECOMMENDED — "one more session of a task you
+ * already checked off" is no advice — while every logged task still shapes the
+ * reconstruction: a completed task's hours drained the reservoirs the open
+ * ones must work with. The retrospective fit reads the same set for the same
+ * reason (§8.10).
  *
  * Null when there is nothing to advise on (no window, no tasks, or no
  * candidate left); `window-full` when no whole step fits in what remains of
@@ -2064,17 +2074,10 @@ export function adviseStop(
 	observation: StopObservation,
 	params: EnergyParams,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-	candidateTaskIds?: ReadonlySet<number>,
 ): StopAdvice | null {
 	const day = reconstructStopDay(observation, params, constants);
 
-	if (day === null) return null;
-
-	const candidates = day.tasks.filter(
-		(t) => candidateTaskIds === undefined || candidateTaskIds.has(t.id),
-	);
-
-	if (candidates.length === 0) return null;
+	if (day === null || day.candidates.length === 0) return null;
 
 	const step = DEFAULT_STEP_HOURS;
 	const room = Math.floor((observation.windowHours - day.total) / step + 1e-9);
@@ -2087,7 +2090,7 @@ export function adviseStop(
 
 	let best: { taskId: number; sessionHours: number; marginalValue: number } | null = null;
 
-	for (const t of candidates) {
+	for (const t of day.candidates) {
 		for (let m = 1; m <= room; m++) {
 			const hours = m * step;
 			const avg = (day.workValue(growBy(day, t, hours)) - day.base) / hours;
