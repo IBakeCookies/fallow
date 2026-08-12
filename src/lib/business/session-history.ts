@@ -254,6 +254,7 @@ function toStopObservations(days: FinishedDay[]): StopObservation[] {
 		tasks: session.tasks.map(toEnergyTask),
 		windowHours: session.availableHours,
 		workedHours,
+		openTaskIds: new Set(session.tasks.filter((t) => !t.completed).map((t) => t.id)),
 	}));
 }
 

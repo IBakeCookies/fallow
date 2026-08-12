@@ -1399,6 +1399,66 @@ describe('Zenith Energy Model', () => {
 			);
 		});
 
+		it('prices the stop against OPEN work only — finished tasks are no forgone step', () => {
+			const worked = [
+				{
+					taskId: 1,
+					hours: 2.25,
+				},
+			];
+
+			const allOpen = stopIndifferencePoint(
+				{
+					tasks: day,
+					windowHours: 12,
+					workedHours: worked,
+				},
+				DEFAULT_ENERGY_PARAMS,
+			);
+
+			// The explicit full set is the same day: omitting the field means
+			// every task was still open.
+			expect(
+				stopIndifferencePoint(
+					{
+						tasks: day,
+						windowHours: 12,
+						workedHours: worked,
+						openTaskIds: new Set([1, 2, 3]),
+					},
+					DEFAULT_ENERGY_PARAMS,
+				),
+			).toBe(allOpen);
+
+			// Boxing done, the other two still open: the stop is priced against
+			// what was left, so the revealed leisure value is lower.
+			expect(
+				stopIndifferencePoint(
+					{
+						tasks: day,
+						windowHours: 12,
+						workedHours: worked,
+						openTaskIds: new Set([2, 3]),
+					},
+					DEFAULT_ENERGY_PARAMS,
+				)!,
+			).toBeLessThan(allOpen!);
+
+			// Everything checked off: the day forwent nothing, so it reveals no
+			// indifference at all and drops like a worked-to-the-edge day.
+			expect(
+				stopIndifferencePoint(
+					{
+						tasks: day,
+						windowHours: 12,
+						workedHours: worked,
+						openTaskIds: new Set(),
+					},
+					DEFAULT_ENERGY_PARAMS,
+				),
+			).toBeNull();
+		});
+
 		it('drops censored and uninformative days; all-dropped falls back', () => {
 			// Worked to the window edge: stopping reveals only an inequality.
 			const edge: StopObservation = {
@@ -1993,10 +2053,9 @@ describe('Zenith Energy Model', () => {
 								hours: 4.5,
 							},
 						],
+						openTaskIds: new Set([2]),
 					},
 					DEFAULT_ENERGY_PARAMS,
-					undefined,
-					new Set([2]),
 				),
 			);
 
@@ -2006,10 +2065,9 @@ describe('Zenith Energy Model', () => {
 						tasks: pair,
 						windowHours: 10,
 						workedHours: [],
+						openTaskIds: new Set([2]),
 					},
 					DEFAULT_ENERGY_PARAMS,
-					undefined,
-					new Set([2]),
 				),
 			);
 
@@ -2072,10 +2130,9 @@ describe('Zenith Energy Model', () => {
 							taskId: b.taskId!,
 							hours: b.hours,
 						})),
+						openTaskIds: new Set([2]),
 					},
 					DEFAULT_ENERGY_PARAMS,
-					undefined,
-					new Set([2]),
 				),
 			);
 
@@ -2088,7 +2145,15 @@ describe('Zenith Energy Model', () => {
 		});
 
 		it('returns null when no candidate is left to recommend', () => {
-			expect(adviseStop(singleDay(1.5), DEFAULT_ENERGY_PARAMS, undefined, new Set())).toBeNull();
+			expect(
+				adviseStop(
+					{
+						...singleDay(1.5),
+						openTaskIds: new Set(),
+					},
+					DEFAULT_ENERGY_PARAMS,
+				),
+			).toBeNull();
 		});
 
 		it('reports window-full when no whole step fits, including hours logged past the window', () => {

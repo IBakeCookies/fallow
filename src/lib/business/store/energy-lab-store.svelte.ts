@@ -523,21 +523,16 @@ export class EnergyLabStore {
 				hours: o.hours,
 			}));
 
-		// Open tasks only as candidates (next-up family, §11.8): a checked-off
-		// task is no recommendation — but its logged hours stay in the
-		// reconstruction above, because they drained the reservoirs.
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived lookup, rebuilt not mutated
-		const openTaskIds = new Set(this.#session.tasks.filter((t) => !t.completed).map((t) => t.id));
-
 		return adviseStop(
 			{
 				tasks: this.#energyTasks,
 				windowHours: this.#windowHours,
 				workedHours: worked,
+				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived lookup, rebuilt not mutated
+				openTaskIds: new Set(this.#session.tasks.filter((t) => !t.completed).map((t) => t.id)),
 			},
 			this.#params,
 			this.#session.userConstants,
-			openTaskIds,
 		);
 	});
 	get stopAdvice() {
