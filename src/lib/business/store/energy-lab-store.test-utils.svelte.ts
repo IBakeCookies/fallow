@@ -5,8 +5,11 @@
  * itself is not compiled with runes.
  */
 
+import { SvelteMap } from 'svelte/reactivity';
 import type { Task } from '$lib/business/type';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
+import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
+import { addDays } from '$lib/business/utils/date';
 import {
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
@@ -21,6 +24,11 @@ class MockSession {
 	// fixed: moving `selectedDate` off it is exactly how the real store reports a
 	// past or future day.
 	selectedDate = $state('2026-07-20');
+	// The destination preview and the key it is held fresh by: the real store reads
+	// tomorrow on demand and bumps the generation on every landed session write.
+	deferDestination = $state<DeferDestination | null>(null);
+	writeGenerations = new SvelteMap<string, number>();
+	deferDestinationDate = $derived(addDays(this.selectedDate, 1));
 
 	readonly today = '2026-07-20';
 	readonly switchCost = DEFAULT_SWITCH_COST;
@@ -28,10 +36,16 @@ class MockSession {
 	readonly constantsFit = fitUserConstants([]);
 	readonly userConstants = this.constantsFit.constants;
 
+	readDeferDestination = async () => this.deferDestination;
+
+	writeGenerationFor = (date: string) => this.writeGenerations.get(date) ?? 0;
+
 	reset() {
 		this.tasks = [];
 		this.availableHours = 8;
 		this.selectedDate = '2026-07-20';
+		this.deferDestination = null;
+		this.writeGenerations.clear();
 	}
 }
 

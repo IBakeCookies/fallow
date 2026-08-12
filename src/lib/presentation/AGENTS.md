@@ -91,6 +91,11 @@ Untestable at every level is the signal.
   and a run in flight is about to replace the one being held. Only the recheck
   button stays live: it is the way out. The stale banner is also the only
   statement of WHY, since a disabled button is not focusable.
+  **The one reading that is withdrawn instead of kept shows the rule's scope:**
+  the destination line (ROADMAP item 21) is about ANOTHER day, so a session write
+  refutes it rather than merely dating it — it carries its own key off
+  `SessionStore.writeGeneration` and the card simply drops the line. What stays
+  through staleness is the numbers priced on the day that was solved.
 - **A seeded editor copies its seed at mount** — `flow-log-form`,
   `drain-log-form`, `rest-log-form`, `task-edit-form` all read `seed` (and
   `focusMinutes`) once and never again, so **every re-opening must be a fresh

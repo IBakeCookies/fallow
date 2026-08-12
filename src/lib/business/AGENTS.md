@@ -379,3 +379,19 @@ and tomorrow is never the day on screen — an arbitrary-date move would have to
 answer that (YAGNI). The advice reading itself stays a counterfactual
 (MATH.md §14): the model prices "off today", only the button commits to a
 destination.
+
+The destination record is also **read** for a preview — the card's day-level
+"what tomorrow already holds" line (ROADMAP item 21) — and both go through
+`#readDestination`, which owns the fallbacks a day with no record opens on
+(R3: the line would otherwise print hours the write does not use). The preview
+refuses on the move's own guards and answers `null` on a failed read, which is
+`#readHistoryPrefills`' policy: the advice it sits under is priced on today and
+still correct.
+
+A reading about a day OTHER than the viewed one cannot key its freshness off
+that day's inputs — today → tomorrow (edit it) → today fingerprints
+identically — so `#writeGenerations` counts landed session writes **per date**
+(every session write goes through `#persistSession`) and anything held across
+days keys on `writeGenerationFor(that day)`. Not one counter: today's own
+auto-save then withdrew a reading it cannot have affected. Where a defer sends
+is `deferDestinationDate`, read by the move, the preview and that key.

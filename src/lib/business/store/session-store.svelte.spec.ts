@@ -909,6 +909,54 @@ describe('SessionStore persistence', () => {
 		expect(status.error).toBe('save-failed');
 	});
 
+	/* The destination line reads a day the card cannot send to on a past day, where
+	   the move itself refuses (ROADMAP item 21) — so both answer through the same
+	   guards, and the reading never describes a day no button can reach. */
+	it('previews no destination on a past day', async () => {
+		const { store } = await setup();
+		const lastWeek = addDays(store.today, -7);
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+
+		expect(await store.readDeferDestination()).toBeNull();
+	});
+
+	/* `readHistoryPrefills`' policy: the advice this line sits under is priced on
+	   today and still correct, so a failed destination read costs the line and
+	   never the card — and a banner would claim the day failed to load. */
+	it('drops the preview when the destination read fails, and raises no banner', async () => {
+		const { store, status } = await setup();
+		const tomorrow = addDays(store.today, 1);
+
+		readSessionByDateMock.mockImplementation(async (date: string) => {
+			if (date === tomorrow) throw new Error('InvalidStateError');
+
+			return null;
+		});
+
+		expect(await store.readDeferDestination()).toBeNull();
+		expect(status.error).toBeNull();
+	});
+
+	/* A reading about ANOTHER day cannot be kept fresh by the advice fingerprint,
+	   which is a value over the VIEWED day's inputs: today → tomorrow (edit it) →
+	   today fingerprints identically. The count is per DATE, because only a write to
+	   the day a reading describes can change what it says (ROADMAP item 21). */
+	it('counts a landed session write against the date it wrote', async () => {
+		const { store } = await setup();
+		useFakeTimers();
+		expect(store.writeGenerationFor(store.today)).toBe(0);
+
+		store.availableHours = 4;
+		flushSync();
+		setHidden(true); // flushes the pending write at once
+		vi.useRealTimers();
+
+		await vi.waitFor(() => expect(store.writeGenerationFor(store.today)).toBe(1));
+		expect(store.writeGenerationFor(addDays(store.today, 1))).toBe(0);
+	});
+
 	it('refuses to move a completed or must-do-today task', async () => {
 		const { store } = await setup();
 
@@ -1188,6 +1236,38 @@ describe('SessionStore budget prefill', () => {
 
 		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			date: addDays(today, 1),
+			availableHours: 3,
+		});
+	});
+
+	/* The preview and the move read tomorrow through ONE definition (AGENTS.md R3):
+	   the line would otherwise be free to print hours the write does not use, and
+	   nothing in either signature would say the two agree. Tomorrow's own weekday
+	   reads 3 here, today's 6, so the wrong day's fallback is visible. */
+	it('previews tomorrow on the hours the defer would write it with', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+
+		expect(await store.readDeferDestination()).toEqual({
+			taskCount: 0,
+			budgetHours: 3,
+			fundedCount: 0,
+		});
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+		});
+
+		flushSync();
+		useFakeTimers(); // freeze the auto-save so only the move writes
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
 			availableHours: 3,
 		});
 	});
