@@ -61,11 +61,14 @@ Read this before touching markup, classes, or anything under
   fixed tint in moved a 0.09-alpha fill by ΔL 0.012 while moving a 0.65-alpha one
   by 0.13. All three were measured and rejected — `node scripts/hover-contrast.mjs`
   (Storybook on :6006) re-runs it over all 37 themes × the 5 variants that carry
-  a hover fill (`link` carries none) and records the 60 findings of residue that
-  no hover token can reach — 33 of them `ghost` on the dark themes, where a 6%
-  tint over a dark surface is under the step the script asks for.
-  `hover:bg-surface-card` on an element already sitting on a card is a no-op —
-  easy to miss.
+  a hover fill (`link` carries none) and records the 27 findings of residue that
+  no hover token can reach, 24 of them the danger palette cap below. It judges a
+  step by CONTRAST RATIO and not by a difference of luminances, because relative
+  luminance is compressed near black: one 6% tint measures ΔL 0.129 over white
+  and 0.0048 over black, so a ΔL bound calls a token that does not vary broken on
+  every dark theme. As a ratio that same tint reads 1.14 and 1.10, and `ghost`
+  clears the bound on all 37. `hover:bg-surface-card` on an element already
+  sitting on a card is a no-op — easy to miss.
 - **`bg-control` is the neutral control fill; `bg-input` is a form field.** They
   hold the same value (`--control: var(--input)` — one per-theme knob, and 35
   themes turn it), but a button naming `input` was a lie that made every
