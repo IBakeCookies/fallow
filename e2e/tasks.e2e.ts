@@ -279,3 +279,54 @@ test('a long next-up title is clipped, never widening the page', async ({ page }
 
 	expect(width.content).toBeGreaterThan(width.box);
 });
+
+/* ROADMAP item 14. The row's own arithmetic is a unit test (`remaining-day`,
+   `metric-descriptor`); what only an e2e can see is the wiring — the page handing
+   the mid-day re-plan to `buildMetrics` at all — so both halves of the gate are
+   asserted here, before and after the day's first 🪫 log. */
+test('capacity left reads N/A until a session is rated, then names what is spent', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await setBudget(page, 6);
+
+	// A reference reading, not a headline tile, so it starts inside the disclosure.
+	await page.getByText(/more metrics/).click();
+
+	const row = page
+		.locator('div')
+		.filter({
+			has: page.getByText('Capacity Left', {
+				exact: true,
+			}),
+		})
+		.last();
+
+	await expect(row).toContainText('N/A');
+
+	const form = page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+	await page
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.click();
+
+	const fields = form.locator('input[type="number"]');
+
+	// 2 h on a 5/5 task draws 1 h of the 4-hour cognitive pool: three quarters left.
+	await fields.nth(0).fill('120');
+	await fields.nth(1).fill('5');
+	await fields.nth(2).fill('3');
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	await expect(row).toContainText('3h');
+});

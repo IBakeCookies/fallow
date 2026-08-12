@@ -356,6 +356,42 @@ export function calculateFlowCoverage(tasks: SuggestedTask[]): {
 	};
 }
 
+/**
+ * Which of the two pools a set of demand-weighted hours loads hardest, and how
+ * saturated it is. Two readings share it (AGENTS.md R3): Human Capacity, over
+ * the hours the plan books, and the remaining day's burn-down, over the hours
+ * already worked (MATH.md §20, §35).
+ *
+ * A pool of 0 is valid (e.g. injured → no physical capacity) and the two callers
+ * meet it differently. A plan cannot draw on it — the allocator holds that
+ * demand at 0, so saturation reads 0 rather than dividing by zero — but nothing
+ * stops the user logging hours against it, and that arm really does return
+ * Infinity, which the display gates on.
+ *
+ * Exact, and the caller rounds: rounding first made every pair inside the same
+ * integer a tie and gave the tie to cognitive, so the row named the wrong pool —
+ * and its wrong hour count — on 0.57% of days (MATH.md §20).
+ */
+export function calculatePoolSaturation(
+	draw: CapacityPools,
+	pools: CapacityPools,
+): {
+	percent: number;
+	limitType: 'cognitive' | 'physical';
+} {
+	const saturation = (demand: number, pool: number): number =>
+		pool > 0 ? (demand / pool) * 100 : demand > 0.001 ? Infinity : 0;
+
+	const cogSaturation = saturation(draw.cognitiveHours, pools.cognitiveHours);
+	const physSaturation = saturation(draw.physicalHours, pools.physicalHours);
+	const cognitiveBinds = cogSaturation >= physSaturation;
+
+	return {
+		percent: cognitiveBinds ? cogSaturation : physSaturation,
+		limitType: cognitiveBinds ? 'cognitive' : 'physical',
+	};
+}
+
 export function calculateHumanCapacity(
 	tasks: SuggestedTask[],
 	pools: CapacityPools = DEFAULT_CAPACITY_POOLS,
@@ -369,35 +405,27 @@ export function calculateHumanCapacity(
 			limitType: 'none',
 		};
 
-	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight)
-	const cogDemand = tasks.reduce((sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours, 0);
-
-	const physDemand = tasks.reduce(
-		(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
-		0,
+	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight).
+	// Since the allocator itself enforces these pools, suggested plans saturate
+	// near (not beyond) 100% — values >100% can only come from externally-supplied
+	// hours (MATH.md §20).
+	const { percent, limitType } = calculatePoolSaturation(
+		{
+			cognitiveHours: tasks.reduce(
+				(sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours,
+				0,
+			),
+			physicalHours: tasks.reduce(
+				(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
+				0,
+			),
+		},
+		pools,
 	);
 
-	// Pools are user-configurable (defaults: cognitive ~4h/day, physical ~6h/day).
-	// Note: since the allocator itself enforces these pools, suggested plans
-	// saturate near (not beyond) 100% — values >100% can only come from
-	// externally-supplied hours (MATH.md §20).
-	// A pool of 0 is valid (e.g. injured → no physical capacity): the allocator
-	// keeps demand at 0, so saturation reads 0 rather than dividing by zero.
-	const saturation = (demand: number, pool: number): number =>
-		pool > 0 ? (demand / pool) * 100 : demand > 0.001 ? Infinity : 0;
-
-	const cogSaturation = saturation(cogDemand, pools.cognitiveHours);
-	const physSaturation = saturation(physDemand, pools.physicalHours);
-	// Which pool BINDS is decided on the exact saturations; rounding is for
-	// display only. Rounding first made every pair inside the same integer a tie
-	// and gave the tie to cognitive, so the row named the wrong pool — and its
-	// wrong hour count — on 0.57% of days, twice with a cognitive draw of
-	// exactly 0 (MATH.md §20).
-	const cognitiveBinds = cogSaturation >= physSaturation;
-
 	return {
-		percent: Math.round(cognitiveBinds ? cogSaturation : physSaturation),
-		limitType: cognitiveBinds ? 'cognitive' : 'physical',
+		percent: Math.round(percent),
+		limitType,
 	};
 }
 

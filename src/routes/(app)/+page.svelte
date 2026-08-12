@@ -109,7 +109,7 @@
 	}
 
 	const daily = $derived(plan.daily);
-	const metrics = $derived(buildMetrics(daily, session.pools));
+	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
 	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice, getDateLocale()) : null);
 
