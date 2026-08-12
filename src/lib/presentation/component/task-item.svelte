@@ -104,9 +104,7 @@
 {#snippet lead()}
 	{#if runOrder !== undefined && !completed}
 		<Tooltip.Root>
-			<Tooltip.Trigger
-				class="cursor-help rounded-sm bg-flow/15 px-box-3xs py-text-3xs text-xs font-semibold text-flow"
-			>
+			<Tooltip.Trigger class="order-badge">
 				#{runOrder}
 			</Tooltip.Trigger>
 			<Tooltip.Content>

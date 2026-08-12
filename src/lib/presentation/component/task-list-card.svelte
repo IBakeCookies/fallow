@@ -4,17 +4,24 @@
 
 	interface Props {
 		form?: Snippet;
+		/** What the screen reads beside the heading — `/` puts its "Next" there and the
+		 *  Lab nothing. A snippet, like `form`: this card is the two screens' shared
+		 *  frame, so what only one of them says arrives from that one. */
+		heading?: Snippet;
 		/** Null, not an empty snippet: an empty `<ul>` announces "list, 0 items" over the empty-state copy. */
 		rows: Snippet | null;
 	}
 
-	let { form, rows }: Props = $props();
+	let { form, heading, rows }: Props = $props();
 </script>
 
 <div class="card-shell space-y-text-xs p-box-md sm:p-box-xl">
-	<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-		{m.list_title()}
-	</h3>
+	<div class="flex flex-wrap items-baseline justify-between gap-text-xs">
+		<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+			{m.list_title()}
+		</h3>
+		{@render heading?.()}
+	</div>
 	{#if form}
 		<div class="pb-text-md">{@render form()}</div>
 	{/if}

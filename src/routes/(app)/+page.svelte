@@ -26,7 +26,6 @@
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import PageHeader from '$lib/presentation/component/page-header.svelte';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
-	import NextUpLine from '$lib/presentation/component/next-up-line.svelte';
 	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
@@ -229,14 +228,16 @@
 	{/if}
 
 	<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-		<div class="space-y-grid-lg lg:col-span-2">
-			{#if plan.remainingDay?.nextTask}
-				<NextUpLine title={plan.remainingDay.nextTask.title} />
-			{/if}
+		<!-- `min-w-0`: a grid item's automatic minimum is its content's min-content
+		     width, and "Next" holds a `nowrap` title, so without this the column is
+		     sized by the longest task name and the whole page scrolls sideways on a
+		     phone. It is what lets that title's `truncate` fire at all. -->
+		<div class="space-y-grid-lg lg:col-span-2 min-w-0">
 			<TaskList
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
 				remainingDay={plan.remainingDay}
+				nextTaskTitle={plan.remainingDay?.nextTask?.title}
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={isViewingPast ? undefined : removeTask}
 				{flowDrafts}

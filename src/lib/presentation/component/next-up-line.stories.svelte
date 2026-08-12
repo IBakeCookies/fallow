@@ -20,8 +20,9 @@
 	}}
 />
 
-<!-- The list beneath is not width-bounded by anything this line controls, so a long
-     title truncates rather than wrapping the badge onto its own row. -->
+<!-- The card's header row bounds this line's width, so a long title truncates
+     rather than wrapping the badge onto its own row. Standalone here, there is
+     nothing to truncate against — what the story pins is that the badge stays put. -->
 <Story
 	name="Long title"
 	args={{
