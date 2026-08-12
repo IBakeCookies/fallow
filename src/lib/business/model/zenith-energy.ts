@@ -740,13 +740,13 @@ export interface OptimizeResult {
  * reassign its task (or turn it into rest), reassign the second half of a
  * block, transfer a step between two blocks, swap adjacent blocks, insert a
  * new task/rest block at any boundary (step-sized or a full T* session), and
- * split a block around a rest break. The compound moves (transfer,
- * half-reassign, T*-insert) exist because single-step paths to those states
- * pass through downhill intermediates — without them the search provably
+ * split a block around a rest break at any interior step. The compound moves
+ * (transfer, half-reassign, T*-insert) exist because single-step paths to those
+ * states pass through downhill intermediates — without them the search provably
  * strands ~1% of objective and can drop a fundable task (probe 2026-07-14).
  *
  * Every candidate the search visits stays on the step lattice: seeds, T*
- * sessions, and block halves are snapped to the step, and moves only add or
+ * sessions and every block cut are snapped to the step, and moves only add or
  * remove whole steps, so the invariant holds inductively (MATH.md §8.8).
  */
 export function optimizeSchedule(
@@ -988,25 +988,30 @@ function* neighbors(
 		const firstHalf = snapToStep(blocks[i].hours / 2, step);
 		const secondHalf = blocks[i].hours - firstHalf;
 
-		// Split around a rest break: tests whether a mid-session recovery pays
-		// for the warm-up it destroys.
+		// Split around a rest break at every interior lattice point, worked hours
+		// unchanged: tests whether a mid-session recovery pays for the warm-up it
+		// destroys, and where it pays is not the midpoint (MATH.md §8.6).
 		if (blocks[i].taskId !== null && blocks[i].hours >= 2 * step && room) {
-			yield [
-				...blocks.slice(0, i),
-				{
-					taskId: blocks[i].taskId,
-					hours: firstHalf,
-				},
-				{
-					taskId: null,
-					hours: step,
-				},
-				{
-					taskId: blocks[i].taskId,
-					hours: secondHalf,
-				},
-				...blocks.slice(i + 1),
-			];
+			const steps = Math.round(blocks[i].hours / step);
+
+			for (let worked = 1; worked < steps; worked++) {
+				yield [
+					...blocks.slice(0, i),
+					{
+						taskId: blocks[i].taskId,
+						hours: worked * step,
+					},
+					{
+						taskId: null,
+						hours: step,
+					},
+					{
+						taskId: blocks[i].taskId,
+						hours: blocks[i].hours - worked * step,
+					},
+					...blocks.slice(i + 1),
+				];
+			}
 		}
 
 		// Hand the second half of a block to another task: swaps time in at a

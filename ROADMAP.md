@@ -725,33 +725,20 @@ defects it found without fixing.
     across all three untested seams. Its arm B also produced the one genuinely
     new number of the round: §5.1's guard 2 costs nothing until σ/ϕ̂ reaches the
     0.5 cap, where it forfeits up to **5.26%** of a plan.
-27. **§8.6's missing off-midpoint rest split** — the energy search _can_ split a
-    funded block around an interior rest, but only at the rounded midpoint and
-    only when the window has a spare step (`neighbors`, 2026-08-06 audit); the
-    split it needs is off-midpoint, and splitting then re-growing is downhill in
-    between. Measured 2026-08-06 against the **exhaustive** optimum
-    on the same 45-min lattice (`scripts/energy-search-gap.probe.ts` — every
-    lattice plan enumerated, so a shortfall is a proven search defect and not a
-    better heuristic): 58 of 60 seeded days exact, median 0.0000%, **worst
-    −0.5951%**, on a single task over a 6 h window where the search returns one
-    5.25 h block and the optimum works the same 5.25 h as 3.75 + 1.5 around a
-    45-min rest. The fix is one more deterministic paired candidate beside the
-    existing transfer move: split a funded block at each interior lattice point,
-    hand one step to REST, keep total hours.
-    **The smallest item in this file, and the case against it is on the record
-    too:** 0.5951% on 1 day of 60, and **0 funded-set mismatches of 60** — so on
-    the tier that is proven, the structural failure §8.6 itself calls the worse
-    one does not occur — against a new candidate class in a ~60 ms search that
-    re-runs on every Lab solve. What keeps it alive at all is the harder tier,
-    where 12 days of 4–6 tasks × 8–12 h show **3 funded-set mismatches**; those
-    are **unattributable**, because the reference there is a 200-restart hill
-    climb and a lower bound, so either search can be the wrong one.
-    **Probe:** re-run that same probe with the move in. **Kill if it does not
-    take the worst day to exact**, or if wall time moves enough to be felt at
-    3 tasks / 8 h. If it does close the exhaustive tier, raise the harder tier to
-    an exhaustive reference before reading anything into those 3. Written down
-    rather than remembered because the probe already scores any fix in one
-    command.
+27. ~~**§8.6's missing off-midpoint rest split**~~ — SHIPPED 2026-08-13
+    (MATH.md §8.6). `neighbors` now yields every interior lattice split of a
+    funded block, one step to rest at unchanged worked hours, instead of the
+    rounded midpoint alone. The stated probe was run before and after and both
+    kill conditions were checked: the exhaustive tier went from 58 of 60 exact
+    (worst −0.5951%) to **60 of 60, worst 0.0000%**, and wall time did not move
+    — 9.0 → 8.9 ms at 3 tasks / 8 h, 94.2 → 94.4 ms at 6 tasks / 12 h on one
+    machine. The harder tier's funded-set mismatches went 3 → 2 of 12 and stay
+    **unattributable**, because its reference is still a 200-restart hill climb
+    and a lower bound; raising it to an exhaustive reference is the open
+    follow-up, and nothing should be read into those 2 until then. Not built:
+    the variant that takes the rest step out of the block rather than out of
+    spare `room`, which would survive a fully-spent window — the enumeration
+    covers fully-spent plans and no day of the 60 asked for it.
 28. **Re-derive `STOP_INVERSION_MARGIN` from measured distributions** — 26(c)
     left the constant standing on an arithmetic that does not hold. What is known
     now: the honest instrument slack is ~0.110, not 0.25; at 0.25 six near-
@@ -839,11 +826,11 @@ defects it found without fixing.
     outright ("no noise model") while printing one English verdict decided by
     that constant. Nothing shows it is wide enough to stop week-to-week flipping
     or narrow enough to ever name a planner.
-    (h) **Documentation defect, free to fix**: §8.6 and item 27 both read as if
-    the energy search has NO split-around-rest move. It has one — `neighbors`
-    splits at the snapped midpoint, gated on spare lattice room. The real gap is
-    "midpoint-only, and only with room", which changes item 27's premise. Fix
-    the wording wherever item 27 is next touched.
+    (h) ~~**Documentation defect, free to fix**: §8.6 and item 27 both read as
+    if the energy search has NO split-around-rest move.~~ Done 2026-08-13 with
+    item 27, which restated the gap as "midpoint-only, and only with room" and
+    then closed the midpoint half of it. The `room` gate stands and §8.6 records
+    why.
 
 ## Phase 4 — multi-day horizon
 

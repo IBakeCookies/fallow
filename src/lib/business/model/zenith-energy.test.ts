@@ -716,24 +716,17 @@ describe('Zenith Energy Model', () => {
 			expect(result.evaluation.objective).toBeGreaterThanOrEqual(handBuilt.objective - 1e-9);
 		});
 
-		it('KNOWN DEFECT: leaves 0.5951% on the table on the probe’s worst enumerated day (§8.6)', () => {
-			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: worst of 60
-			// enumerated days (2–3 tasks × 3–6 h), scored against the EXHAUSTIVE
-			// optimum on the same 45-min lattice, so the shortfall is a proven
-			// search defect and not quantization. §8.6 reads as if the compound
-			// moves removed the ~1% slack; they halved it.
-			//
-			// Search returns one 5.25 h block (objective 7.652129558455757). The
-			// lattice optimum works the SAME 5.25 h, split 3.75 + 1.5 around an
-			// interior 45-min rest (objective 7.697942316291558) — unreachable
-			// because splitting a block and re-growing it is downhill in between.
-			// The missing move is a REST-INSERT THAT PRESERVES TOTAL WORKED HOURS.
-			// Whoever adds it should expect this test to flip: that is the pin
-			// firing correctly, not a break.
+		it('reaches the off-midpoint interior rest on the probe’s worst enumerated day (§8.6)', () => {
+			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: this was the
+			// worst of 60 enumerated days (2–3 tasks × 3–6 h), 0.5951% below the
+			// EXHAUSTIVE lattice optimum. The search returned one 5.25 h block; the
+			// optimum works the SAME 5.25 h split 3.75 + 1.5 around an interior
+			// 45-min rest, which the midpoint-only split could not offer (its
+			// 3 + 2.25 is downhill, so steepest ascent stopped there).
 			const day = [makeTask(1, 'heavy', 10, 7, 0.5, 0.8), makeTask(2, 'light', 4, 8, 0.9, 0.1)];
 			const search = optimizeSchedule(day, 6);
 
-			const restInsert = evaluateSchedule(
+			const optimum = evaluateSchedule(
 				[
 					{
 						taskId: 1,
@@ -752,25 +745,7 @@ describe('Zenith Energy Model', () => {
 				6,
 			);
 
-			expect(search.blocks).toEqual([
-				{
-					taskId: 1,
-					hours: 5.25,
-				},
-			]);
-
-			expect(restInsert.objective).toBeGreaterThan(search.evaluation.objective);
-
-			const shortfallPercent =
-				((restInsert.objective - search.evaluation.objective) / restInsert.objective) * 100;
-
-			// Banded, not pinned to 4 dp: the finding is "the gap is ~0.6%, not
-			// gone", and any honest change to the curves, satiety or warm-up moves
-			// the last decimals without being a regression — the red build AGENTS.md
-			// §4 keeps sweeps out of the suite to avoid. The block shape above is
-			// what actually detects the defect; this sizes it. Probe: 0.5951%.
-			expect(shortfallPercent).toBeGreaterThan(0.4);
-			expect(shortfallPercent).toBeLessThan(0.8);
+			expect(search.evaluation.objective).toBeGreaterThanOrEqual(optimum.objective - 1e-9);
 		});
 
 		it('with zero leisure/terminal value it never leaves the window end idle', () => {
