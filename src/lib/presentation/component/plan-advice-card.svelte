@@ -9,7 +9,13 @@
 		/** Null until the user asks: the search costs a full solve per candidate. */
 		advice: AdviceDisplay | null;
 		isBusy: boolean;
-		/** The day changed after this advice was calculated. */
+		/**
+		 * The day changed after this advice was calculated. The numbers stay on
+		 * screen — it is a warning about them, not a reason to hide them — but every
+		 * lever below is withdrawn: each option is priced as the ONE next move on the
+		 * day that was solved (MATH.md §14), so once that day has moved they no
+		 * longer describe the day the button would act on.
+		 */
 		isStale: boolean;
 		/** The last check failed; the advice shown (if any) predates the failure. */
 		hasError: boolean;
@@ -57,6 +63,9 @@
 			</p>
 		{/if}
 
+		<!-- Also the only statement of WHY the levers below are disabled: a disabled
+		     button is not focusable, so it cannot carry that reason itself. It reads
+		     before them, and Recheck — the way out — stays enabled beside it. -->
 		{#if isStale}
 			<p
 				class="mt-grid-sm rounded-lg border border-warning/20 bg-warning/5 p-box-sm text-xs text-warning-strong"
@@ -124,7 +133,7 @@
 												<Button
 													variant="outline"
 													size="sm"
-													disabled={isBusy}
+													disabled={isBusy || isStale}
 													aria-label={m.advice_apply_label({
 														title: lever.title,
 													})}
@@ -136,7 +145,7 @@
 												<Button
 													variant="outline"
 													size="sm"
-													disabled={isBusy}
+													disabled={isBusy || isStale}
 													onclick={() => onapplybudget(lever.hours)}
 												>
 													{option.applyLabel}

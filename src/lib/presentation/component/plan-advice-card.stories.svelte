@@ -289,6 +289,24 @@
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('Your day has changed since this was calculated.')).toBeVisible();
 
+		// The numbers stay; the levers do not. Each option is priced as the ONE next
+		// move on the day that was solved (MATH.md §14), so on any other day they are
+		// wrong together — including the budget lever, which is priced the same way.
+		await expect(canvas.getByText('Move “Migrate the database” off today')).toBeVisible();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Move “Migrate the database” to tomorrow',
+			}),
+		).toBeDisabled();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Add the hour',
+			}),
+		).toBeDisabled();
+
+		// Recheck is the way out of stale, so it is the one button that stays live.
 		await expect(
 			canvas.getByRole('button', {
 				name: 'Recheck',

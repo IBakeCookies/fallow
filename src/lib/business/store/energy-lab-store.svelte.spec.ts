@@ -695,6 +695,23 @@ describe('EnergyLabStore', () => {
 		expect(store.isCurveStale).toBe(true);
 	});
 
+	// The calendar day is the other way it "does". This route is today-only, so
+	// the only move it sees is the midnight tick — and there `selectedDate`
+	// follows the live clock while the new day's tasks are still loading, which is
+	// exactly this: the day advances and every input the sweep reads stands still.
+	// Fingerprinting the inputs alone reports yesterday's curve as today's.
+	it('goes stale when the calendar day rolls over under an unchanged task list', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		await store.computeBudgetCurve();
+
+		mockSession.selectedDate = '2026-07-21';
+		flushSync();
+
+		expect(store.isCurveStale).toBe(true);
+	});
+
 	// `title` rides along on `EnergyTaskInput`, but no part of the sweep reads it
 	// and no field of `BudgetCurve` carries one — so fingerprinting the whole
 	// mapped task greyed out a bit-identical curve and invited a 16-solve re-run
