@@ -15,7 +15,8 @@
  * reader can take on it.
  *
  * A reading is gated on the inputs it needs: a metric that is undefined without
- * tasks, without active tasks or without a budget renders N/A, never 0. `gated`
+ * tasks, without active tasks, without a budget or — for the executed capacity
+ * burn-down — without a logged hour today renders N/A, never 0. `gated`
  * is that policy, one argument wide, because the same three-line ternary spelled
  * out 20 times is how a missing gate hides. The two rows the model can answer
  * with "nothing to report" — the bottleneck and the recovery ratio — say so in
@@ -29,7 +30,9 @@
 
 import type { Metric } from '$lib/presentation/type';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
+import type { RemainingDay } from '$lib/business/model/metric/remaining-day';
 import * as m from '$lib/paraglide/messages.js';
+import { formatDuration } from '$lib/presentation/utils/duration-format';
 import {
 	AXIS_BAND,
 	energyBalanceReading,
@@ -43,6 +46,7 @@ type Reading = Pick<Metric, 'value' | 'band'>;
 export function buildMetrics(
 	metrics: DailyMetrics,
 	pools: { cognitiveHours: number; physicalHours: number },
+	remainingDay: RemainingDay | null = null,
 ): Metric[] {
 	const notAvailable: Reading = {
 		value: m.na_value(),
@@ -97,6 +101,16 @@ export function buildMetrics(
 	// promising a frictionless day that was never planned. It is the case the
 	// advisor answers with NaN so it stays silent; the rows go N/A to match.
 	const funded = grindDensity.funded > 0;
+
+	// The hours already worked, against the pool they load hardest (MATH.md §35).
+	// Null on the three states the row cannot read: a day that is not today, a
+	// today with no 🪫 log, and a 0-hour pool carrying a draw, which saturates to
+	// Infinity and would print as "Infinity%" in the sentence below (§20). The
+	// unread copy names none of them — it says what makes the row read.
+	const capacity =
+		remainingDay && Number.isFinite(remainingDay.capacity.percentSpent)
+			? remainingDay.capacity
+			: null;
 
 	// The ratio has to hold, not merely be non-zero: one easy task against thirty
 	// hard ones is not a day that funds its own recovery.
@@ -190,6 +204,34 @@ export function buildMetrics(
 				planned && Number.isFinite(humanCapacity.percent),
 				`${humanCapacity.percent}%`,
 				AXIS_BAND.humanCapacity(humanCapacity.percent),
+			),
+		},
+		{
+			label: m.metric_capacity_left(),
+			// Next-up (§11.8): it counts the hours you WORKED, so it moves as the day
+			// is logged and names whichever pool those hours load hardest — which mid-day
+			// need not be the pool the plan leans on, the same split Primary Bottleneck
+			// is drawn along (§23.1). Like Human Capacity's, the sentence can only name a
+			// pool once one is measured.
+			description:
+				capacity === null
+					? m.metric_capacity_left_desc_none()
+					: m.metric_capacity_left_desc({
+							type:
+								capacity.limitType === 'cognitive'
+									? m.metric_type_cognitive_pool()
+									: m.metric_type_physical_pool(),
+							hours:
+								capacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours,
+							percent: Math.round(capacity.percentSpent),
+						}),
+			// Banded on the share SPENT, not on the time left, so it reads on Human
+			// Capacity's own thresholds — and reaches the critical band above 100% that
+			// allocator output cannot: the plan is held to the pools, worked hours are not.
+			...gated(
+				capacity !== null,
+				formatDuration(capacity?.hoursLeft ?? 0),
+				AXIS_BAND.humanCapacity(capacity?.percentSpent ?? 0),
 			),
 		},
 		{

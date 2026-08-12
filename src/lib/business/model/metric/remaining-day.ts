@@ -22,7 +22,11 @@ import {
 	type FitPosterior,
 	type UserConstants,
 } from '$lib/business/model/zenith';
-import { calculateInterleavedOrder, toPooledInputs } from '$lib/business/model/metric/calculation';
+import {
+	calculateInterleavedOrder,
+	calculatePoolSaturation,
+	toPooledInputs,
+} from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
 
 export interface RemainingDayInput {
@@ -54,6 +58,18 @@ export interface RemainingDay {
 	 * (AGENTS.md R3, MATH.md §35).
 	 */
 	nextTask: Task | null;
+	/**
+	 * What the hours already worked have spent of the pool they load hardest — the
+	 * executed counterpart to Human Capacity's planned saturation (MATH.md §35).
+	 * Exact; the display rounds.
+	 */
+	capacity: {
+		limitType: 'cognitive' | 'physical';
+		/** Over 100 on a day worked past its pool, which a plan can never be. */
+		percentSpent: number;
+		/** max(0, pool − drawn) on that pool: an overrun day has nothing left, not less than nothing. */
+		hoursLeft: number;
+	};
 }
 
 /**
@@ -101,15 +117,21 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 	// `calculatePooledAllocations` charges for the started tasks it can see; a
 	// spent task never reaches it, so its switch is charged off the budget here.
 	const finishedStarted = tasks.length - candidates.length;
+	// The pool those hours load hardest, on the same call Human Capacity names its
+	// axis with (MATH.md §20) — the burn-down reads it and the solve below spends
+	// against it, so the two cannot disagree about the day (AGENTS.md R3).
+	const binding = calculatePoolSaturation(drawn, pools);
+
+	// Clamped: an overrun day funds nothing, it does not fund negatively.
+	const poolsLeft = {
+		cognitiveHours: Math.max(0, pools.cognitiveHours - drawn.cognitiveHours),
+		physicalHours: Math.max(0, pools.physicalHours - drawn.physicalHours),
+	};
 
 	const allocations = calculatePooledAllocations(
 		toPooledInputs(candidates),
 		Math.max(0, budget - workedTotal - finishedStarted * input.switchCost),
-		{
-			// Clamped: an overrun day funds nothing, it does not fund negatively.
-			cognitiveHours: Math.max(0, pools.cognitiveHours - drawn.cognitiveHours),
-			physicalHours: Math.max(0, pools.physicalHours - drawn.physicalHours),
-		},
+		poolsLeft,
 		input.constants,
 		input.switchCost,
 		input.posterior,
@@ -145,5 +167,11 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 		// accounting share that is deliberately never reported, and naming it would
 		// send the user back to work they just finished.
 		nextTask: calculateInterleavedOrder(funded)[0] ?? null,
+		capacity: {
+			limitType: binding.limitType,
+			percentSpent: binding.percent,
+			hoursLeft:
+				binding.limitType === 'cognitive' ? poolsLeft.cognitiveHours : poolsLeft.physicalHours,
+		},
 	};
 }

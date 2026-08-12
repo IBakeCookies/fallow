@@ -32,7 +32,7 @@ today:
 
 - **The objective prices hour _quality_, never importance or completion.**
   `priorityScore = P̄(T*)·10` is _derived_ from difficulty × enjoyment
-  (`metric/calculation.ts:196`), so a task that matters and a task that is
+  (`metric/calculation.ts:229`), so a task that matters and a task that is
   pleasant are indistinguishable to the allocator. There is no importance
   input, no deadline, no task size. Item 23 is the only item that changes this,
   and it is deliberately last.
@@ -103,9 +103,9 @@ The model is strong at 8am and silent at 2pm; these close that gap.
 Items 1–3 shipped and did not finish the thesis: the plan could not see the
 hours already spent. Item 11 shipped the instrument that records them from
 anywhere in the app and 12 made a reading consume them, so the thesis is closed
-and 13 and 14 are now display work on top of it — 13 names position 1 of the
+and 13 and 14 were display work on top of it — 13 names position 1 of the
 re-planned order, 14 turns the same pool depletion §35 already computes into a
-row. Neither needs a new solve.
+row. Neither needed a new solve.
 
 11. ~~**Worked-hours instrument on `/`**~~ — SHIPPED 2026-08-09, and it was a
     smaller thing than this item claimed. Nothing about the data needed
@@ -237,16 +237,27 @@ row. Neither needs a new solve.
     generic over what it actually reads — two difficulties, hours, a rank — so
     the remainder can be sequenced without mirroring `SuggestedTask`'s priority
     formula. Its five existing callers are untouched.
-14. **Executed capacity burn-down** — "55 min of cognitive capacity left today"
-    instead of an 8am percentage. `Σ (demandᵈ/10 · hoursWorked) / poolᵈ` from
-    the logs' snapshotted demands — the same quantity 12 needs to deplete pools
-    with, so one computation serves both. It must be a **new next-up row**, not
-    a rescoping of the Human Capacity tile, which §11.8 names in the plan
-    family. `band.ts:102` does have a critical band above 100% that is
-    currently unreachable from allocator output (`calculation.ts:347-350`);
-    this reading makes it reachable, which is its honest pitch. A display item
-    with no probe and no plan risk — argue it as one. **Prereq:** 11; free
-    once 12 lands.
+14. ~~**Executed capacity burn-down**~~ — SHIPPED 2026-08-12 (MATH.md §35).
+    `RemainingDay.capacity` reports the pool today's logged hours load hardest,
+    the share of it spent and what is left of it; `buildMetrics` renders it as a
+    reference row beside Human Capacity. It was free, as this item predicted:
+    the draw and the clamped pools are the two quantities the §35 solve already
+    builds, and the row reads them rather than re-deriving anything.
+    **The one thing it cost was a shared function.** "Which pool binds, and how
+    saturated is it" was inside `calculateHumanCapacity`, and re-spelling it here
+    would have been R3's mirror case — the two rows would have been free to name
+    different pools off the same tie rule. It came out as
+    `calculatePoolSaturation` (exact, the caller rounds — §20's tie is decided
+    before rounding or the row names the wrong pool), and Human Capacity's own
+    behaviour is unchanged and still pinned by its existing tests.
+    **The pitch held**: the reading reaches `AXIS_BAND.humanCapacity`'s critical
+    band above 100%, which no plan-family reading can, because the allocator
+    enforces the pools and a 🪫 log does not. `hoursLeft` clamps at 0 — the
+    overrun is carried by the percentage, which is what the band reads. Two
+    display choices worth knowing: the row is gated on today having a log at all
+    (a full pool is a claim about a day that may be half gone), and on a finite
+    saturation, since a 0-hour pool carrying a draw would print "Infinity%" in
+    the tooltip the way §20 already gates Human Capacity's value.
 
 Found by the 2026-08-06 review of the advice card, and small enough to be
 nobody's feature — which is why it is written down rather than remembered:
@@ -845,7 +856,7 @@ What survives of the multi-day idea is two readings, not a solver:
     subset enumeration and the pool-ratio candidate all survive, and `T*` is
     **invariant** (`argmax v·P̄ = argmax P̄`) — so `v` changes only _which_
     tasks are funded, never how long a funded task runs. Entry point is
-    `toPooledInputs` (`metric/calculation.ts:123-131`).
+    `toPooledInputs` (`metric/calculation.ts:157-165`).
     **The R3 hazard to price first:** `Σ P̄` has two independent
     implementations — the allocator's `planValue` over `buildBlockIncrements`
     (`zenith.ts:920`, `:649`) and `calculateTotalProductivity`
@@ -871,7 +882,7 @@ What survives of the multi-day idea is two readings, not a solver:
     (`task-item.svelte:203-205`); `SavedRoutine.tasks` shares `taskCore`
     (`persisted.ts:68-76`), so decide whether importance travels with routines
     (`mustDoToday` deliberately does not); and the energy mode does not get the
-    weight (`toEnergyTask`, `calculation.ts:94`), so §12's audit becomes
+    weight (`toEnergyTask`, `calculation.ts:112`), so §12's audit becomes
     weighted against unweighted. One `Task` field plus one `sanitizeTask`
     line — **no `DB_VERSION` bump, since R8 governs stores, not shapes.** New
     user input: yes, per task. **MATH.md §0's objective changes**, same commit

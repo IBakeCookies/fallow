@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
+import type { RemainingDay } from '$lib/business/model/metric/remaining-day';
 import * as m from '$lib/paraglide/messages.js';
 import { AXIS_BAND, type Band } from '$lib/presentation/utils/band';
 import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
@@ -76,8 +77,16 @@ const plannedDay: Partial<DailyMetrics> = {
 	activeTasks: activeTasks(2),
 };
 
-function reading(metrics: DailyMetrics, label: string) {
-	const row = buildMetrics(metrics, pools).find((candidate) => candidate.label === label);
+/** Only the burn-down is read here; the rest of the re-plan renders on the task rows. */
+const remainingDay = (capacity: RemainingDay['capacity']) =>
+	({
+		capacity,
+	}) as RemainingDay;
+
+function reading(metrics: DailyMetrics, label: string, remainingDay: RemainingDay | null = null) {
+	const row = buildMetrics(metrics, pools, remainingDay).find(
+		(candidate) => candidate.label === label,
+	);
 
 	if (!row) throw new Error(`no metric row labelled ${label}`);
 
@@ -432,5 +441,61 @@ describe('buildMetrics', () => {
 
 		expect(row.value).toBe(value);
 		expect(row.band).toBe(band);
+	});
+
+	// Next-up (§11.8), and its input is a 🪫 log: before the first one nothing has
+	// been spent to report, and a full pool is a claim about a day that may be
+	// half gone. A pool of 0 carrying a draw saturates to Infinity (MATH.md §20),
+	// which the description would print as "Infinity%".
+	it.each([
+		['today has logged no hours', null],
+		[
+			'the drawn pool is 0 hours',
+			remainingDay({
+				limitType: 'cognitive',
+				percentSpent: Infinity,
+				hoursLeft: 0,
+			}),
+		],
+	])('reads capacity left as N/A when %s', (_case, remaining) => {
+		const row = reading(dailyMetrics(plannedDay), m.metric_capacity_left(), remaining);
+
+		expect(row.value).toBe(m.na_value());
+		expect(row.band).toBe('neutral');
+	});
+
+	it('reads what the logged hours left of the pool they load hardest', () => {
+		const row = reading(
+			dailyMetrics(plannedDay),
+			m.metric_capacity_left(),
+			remainingDay({
+				limitType: 'physical',
+				percentSpent: 62.5,
+				hoursLeft: 1.5,
+			}),
+		);
+
+		expect(row.value).toBe('1h 30m');
+		expect(row.band).toBe(AXIS_BAND.humanCapacity(62.5));
+		expect(row.description).toContain(String(pools.physicalHours));
+		expect(row.description).not.toContain(String(pools.cognitiveHours));
+	});
+
+	// The reading Human Capacity cannot give: the allocator enforces the pools, so
+	// a PLAN saturates at 100 and the critical band above it is unreachable from
+	// allocator output. Hours actually worked reach it (MATH.md §35).
+	it('bands a day worked past its pool critical, with nothing left', () => {
+		const row = reading(
+			dailyMetrics(plannedDay),
+			m.metric_capacity_left(),
+			remainingDay({
+				limitType: 'cognitive',
+				percentSpent: 128,
+				hoursLeft: 0,
+			}),
+		);
+
+		expect(row.value).toBe('0m');
+		expect(row.band).toBe('critical');
 	});
 });

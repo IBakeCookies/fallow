@@ -338,6 +338,53 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		expect([GYM.id, EMAIL.id]).toContain(remaining?.nextTask?.id);
 	});
 
+	it('burns the pool down at the weights the plan spends it at, and names the one loaded hardest', () => {
+		// SPEC is mental 8 / physical 1, so 3 h worked draws 2.4 of the 4-hour
+		// cognitive pool (60%) against 0.3 of the 6-hour physical one (5%).
+		const remaining = calculateRemainingDay(input([SPEC, GYM, EMAIL], [[SPEC.id, 3]]));
+
+		expect(remaining?.capacity.limitType).toBe('cognitive');
+		expect(remaining?.capacity.percentSpent).toBeCloseTo(60, 9);
+		expect(remaining?.capacity.hoursLeft).toBeCloseTo(1.6, 9);
+	});
+
+	it('reads past 100% on a day worked beyond its pool, with nothing left', () => {
+		// The reading Human Capacity cannot give: the allocator enforces the pools,
+		// so a PLAN saturates at 100 — hours actually worked do not (MATH.md §35).
+		const remaining = calculateRemainingDay(
+			input([SPEC, GYM, EMAIL], [[SPEC.id, 6]], {
+				availableHours: 12,
+			}),
+		);
+
+		expect(remaining?.capacity.percentSpent).toBeGreaterThan(100);
+		expect(remaining?.capacity.hoursLeft).toBe(0);
+	});
+
+	it('counts every logged task against the pools, including one ticked done', () => {
+		const remaining = calculateRemainingDay(
+			input(
+				[
+					{
+						...SPEC,
+						completed: true,
+					},
+					GYM,
+					EMAIL,
+				],
+				[
+					[SPEC.id, 2],
+					[GYM.id, 1],
+				],
+			),
+		);
+
+		// 0.8 × 2 + 0.1 × 1 = 1.7 cognitive against 0.1 × 2 + 0.8 × 1 = 1.0 physical.
+		expect(remaining?.capacity.limitType).toBe('cognitive');
+		expect(remaining?.capacity.percentSpent).toBeCloseTo(42.5, 9);
+		expect(remaining?.capacity.hoursLeft).toBeCloseTo(2.3, 9);
+	});
+
 	it('never plans more hours than are left', () => {
 		for (const worked of [0.25, 1, 2.5, 4, 5.75]) {
 			const remaining = calculateRemainingDay(input([SPEC, GYM, EMAIL], [[1, worked]]));
