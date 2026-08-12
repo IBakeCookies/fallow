@@ -180,10 +180,7 @@
 					<!-- `text-left` on every trigger, here and in `meta`: a trigger is a <button>,
 					     whose UA `text-align` is center, so a wrapped reading centres its last line. -->
 					{@render meta?.()}
-				</div>
-				<div
-					class="mt-text-2xs flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent"
-				>
+
 					{#if flowMinutes}
 						<Tooltip.Root>
 							<Tooltip.Trigger>
