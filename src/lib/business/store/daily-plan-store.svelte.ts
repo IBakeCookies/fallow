@@ -117,7 +117,21 @@ export class DailyPlanStore {
 	// or `#daily`: a `$derived` read from outside a reactive context is not
 	// guaranteed to hand back the same object twice, so identity reports staleness
 	// on a day that never changed.
-	#fingerprint = $derived(JSON.stringify(this.#input));
+	//
+	// The DATE rides along, wrapped rather than folded into `#input` — that object
+	// is `calculateDailyMetrics`' argument and the date is not a model input. It is
+	// here because the inputs alone cannot tell one day from another while the next
+	// day is still loading: `#selectedDate` falls back to the live clock, so a URL
+	// navigation and the midnight tick both move the day instantly while
+	// `#loadSession` is still in flight with the previous day's tasks in memory.
+	// Without it the advice reads FRESH in that window, and its buttons act on a
+	// day that is gone.
+	#fingerprint = $derived(
+		JSON.stringify({
+			date: this.#session.selectedDate,
+			input: this.#input,
+		}),
+	);
 
 	#advice = $state<PlanAdvice | null>(null);
 	#isAdviceBusy = $state(false);

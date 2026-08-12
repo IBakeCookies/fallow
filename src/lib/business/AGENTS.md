@@ -303,6 +303,15 @@ exposes `computeAdvice()` plus `isAdviceStale`, and staleness compares a
 context is not guaranteed to return the same object twice, so identity reports
 staleness on a day that never changed.
 
+**The fingerprint carries the DATE as well as the inputs**, and so does
+`EnergyLabStore`'s `#curveFingerprint`. The inputs alone cannot tell one day
+from another while the next one is still loading: `selectedDate` follows the
+live clock and the URL, `#loadSession` is async, so a navigation and the
+midnight tick both move the day with the previous day's tasks still in memory —
+and a held reading reports FRESH right through that window. Any future
+on-demand reading held across days needs the same field. What the two cards do
+with the flag is theirs: [presentation/AGENTS.md](../presentation/AGENTS.md).
+
 ### `EnergyLabStore` never writes to the daily session
 
 Its params live in IndexedDB (`settings` store, key `energyParams`) — see R4 —

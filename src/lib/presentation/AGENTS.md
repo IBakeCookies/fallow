@@ -83,6 +83,14 @@ Untestable at every level is the signal.
 - **A card whose reading costs a solve is its run button and nothing else until
   it has run** — `plan-advice-card`, `budget-curve-card`. A card advertising a
   feature it has not run yet is pure vertical cost above the plan.
+- **The same card, once stale, keeps its numbers and withdraws its levers.**
+  Both cards above: the reading stays on screen (it is a warning about the
+  numbers, not a reason to hide them), and every Apply button gates on
+  `isBusy || isStale` — each option is priced as the ONE next move on the day
+  that was solved (MATH.md §14), so on any other day they are wrong together,
+  and a run in flight is about to replace the one being held. Only the recheck
+  button stays live: it is the way out. The stale banner is also the only
+  statement of WHY, since a disabled button is not focusable.
 - **A seeded editor copies its seed at mount** — `flow-log-form`,
   `drain-log-form`, `rest-log-form`, `task-edit-form` all read `seed` (and
   `focusMinutes`) once and never again, so **every re-opening must be a fresh

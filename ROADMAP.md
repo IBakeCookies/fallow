@@ -251,22 +251,49 @@ row. Neither needs a new solve.
 Found by the 2026-08-06 review of the advice card, and small enough to be
 nobody's feature — which is why it is written down rather than remembered:
 
-25. **The advice card's buttons must not outlive the day they priced.** Two
-    halves of one rule, both reachable today. (a) `isStale` renders a banner
-    but every Apply button stays enabled on `isBusy` alone
-    (`plan-advice-card.svelte`), so after one deferral the remaining rows offer
-    single-step prices that no longer describe the day the button would act
-    on — §14's single-step contract is exactly what makes them wrong together.
-    (b) `DailyPlanStore`'s `#fingerprint` covers the seven model inputs but not
-    `selectedDate`, so advice survives a day change and renders on the new day
-    with the stale banner and buttons that silently do nothing. Not a wrong
-    move — ids are `Date.now()`-derived, so `moveTaskToTomorrow` finds no task
-    and returns `false` — but the click is swallowed and the return value has
-    no reader anywhere. **No probe:** this is a correctness fix, not a
-    measurement, and it makes no claim to establish. Argue it as one, or
-    decline it: the counter-case is that the banner already says the numbers
-    are stale, and gating the buttons costs a user the one deferral they can
-    still take honestly.
+25. ~~**The advice card's buttons must not outlive the day they priced.**~~ —
+    SHIPPED 2026-08-12, and it is **two cards, three buttons**: the advice
+    card's defer and budget levers, and the Energy Lab's "Set the window" on the
+    budget curve, which prices the same class of thing behind the same stale
+    flag. That third button had **no `disabled` at all** — not even `isBusy` —
+    so it was also clickable mid-sweep, holding a recommendation the run in
+    flight was about to replace. All three now gate on `isBusy || isStale`; the
+    recheck button stays live, because it is the way out.
+    **Half (b) was a wider hole than this item claimed.** The item read it as
+    advice surviving a day change and rendering with the stale banner plus dead
+    buttons. But `selectedDate` falls back to the live clock
+    (`session-store.svelte.ts:127-129`) and `#loadSession` is async, so at a URL
+    navigation and at the midnight tick the day moves while the previous day's
+    tasks are still in memory — and through that window the inputs are
+    unchanged, so the fingerprint never moves and the card reads **fresh**, not
+    stale. Both fingerprints now carry the date: `DailyPlanStore`'s wrapped
+    around `#input` rather than folded into it (that object is
+    `calculateDailyMetrics`' argument, and the date is not a model input), and
+    `EnergyLabStore`'s `#curveFingerprint` for the same reason one level down —
+    that store is layout-scoped, so it sees every day `/` selects, but `/energy`
+    refuses a dated URL, so the midnight tick is its whole exposure ON SCREEN.
+    Both directions are pinned by a store spec that fails without the field.
+    **The counter-case did not survive contact.** "Gating costs the user the one
+    deferral they can still take honestly" is answered by the sequence: the
+    first apply is taken from a fresh card and lands, and it is the _second_
+    row — priced against a day that first apply just changed — that §14's
+    single-step contract calls wrong. Gating is that contract rendered.
+    **One path this does NOT close, found by the reviewer and left open on
+    purpose.** If `#readSession` throws, `#loadSession` reports `load-failed`
+    and leaves `#loadedDate` behind (`session-store.svelte.ts:369-378`), so the
+    previous day's tasks stay on screen under the new date indefinitely. The
+    card goes stale correctly, but Recheck is ungated and re-pins `#adviceFor`,
+    so the defer buttons come back enabled and `moveTaskToTomorrow`'s
+    `#loadedDate !== #selectedDate` guard swallows the click. That is a
+    load-failure defect, not a staleness one, and it is bigger than these
+    buttons — the whole list is the wrong day's, with the storage banner up.
+    Fixing it here would have been fixing a different thing.
+    Two things left as they are. A disabled button is not focusable, so it
+    cannot carry its own reason; the stale banner is that reason, and it renders
+    before the rows. And clearing the reading instead of disabling it was
+    refused: stale is a warning about the numbers, not a reason to hide them
+    (`budget-curve-card.stories.svelte`). No probe, no MATH.md change — §14's
+    contract is enforced here, not restated.
 
 _Settled 2026-08-09, not a roadmap item:_ both halves of `importFromDate` /
 `importYesterday` are intended and stay. Copying a completed task in as a fresh

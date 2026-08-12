@@ -301,6 +301,26 @@ describe('DailyPlanStore', () => {
 		expect(store.isAdviceStale).toBe(false);
 	});
 
+	// The day can also change by being a different day, which the model inputs
+	// cannot see: `selectedDate` follows the live clock and the URL, and
+	// `loadSession` is async, so both a navigation and the midnight tick move the
+	// day while the previous day's tasks are still in memory. Fingerprinting the
+	// inputs alone reports FRESH through that window — advice priced for a day
+	// that is gone, with its buttons live.
+	it('marks advice stale when the viewed day moves under an unchanged task list', async () => {
+		const store = setup();
+
+		mockSession.tasks = [task(1, 'tax return')];
+		mockSession.availableHours = 10;
+		flushSync();
+		await store.computeAdvice();
+
+		mockSession.selectedDate = '2026-07-21';
+		flushSync();
+
+		expect(store.isAdviceStale).toBe(true);
+	});
+
 	// The busy guard drops a second request instead of queueing it — safe only
 	// because the in-flight run reads its input AFTER the pre-solve yield, so it
 	// solves the day as it stands, not as it stood when the button was clicked.

@@ -437,8 +437,21 @@ export class EnergyLabStore {
 	// part of the sweep reads and no field of `BudgetCurve` carries, so
 	// fingerprinting the whole mapped task greyed out a bit-identical curve and
 	// asked for a 16-solve re-run every time a row was renamed.
+	//
+	// The DATE is in for the opposite reason to those two: it is not an input to
+	// the sweep at all, it is WHICH DAY the sweep answers for. `#selectedDate`
+	// moves with the URL and the live clock while the new day's tasks are still
+	// loading, so through that window the inputs alone would report a curve swept
+	// on one day as fresh on another.
+	//
+	// This store is layout-scoped, so it stays alive on `/` and sees every day the
+	// main page selects — but `/energy` refuses a dated URL, so the only date
+	// change ever ON SCREEN here is the midnight tick. The field is cheap and the
+	// staleness is real either way; what it must not become is a claim that this
+	// store only ever sees one day.
 	#curveFingerprint = $derived(
 		JSON.stringify({
+			date: this.#session.selectedDate,
 			tasks: this.#energyTasks.map(
 				({ id, difficulty, enjoyment, cognitiveDemand, physicalDemand }) => [
 					id,

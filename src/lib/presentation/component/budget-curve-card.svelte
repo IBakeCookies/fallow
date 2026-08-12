@@ -10,6 +10,12 @@
 	interface Props {
 		curve: BudgetCurve | null;
 		isBusy: boolean;
+		/**
+		 * The day changed after this curve was swept. The chart stays — it is a
+		 * warning about the numbers, not a reason to hide them — but the
+		 * recommendation is withdrawn as a button: it names an hour count read off a
+		 * task set that has since moved.
+		 */
 		isStale: boolean;
 		/** The last sweep failed; the curve shown (if any) predates the failure. */
 		hasError: boolean;
@@ -75,6 +81,8 @@
 			</p>
 		{/if}
 
+		<!-- Also the only statement of WHY Set the window is disabled below: a
+		     disabled button is not focusable, so it cannot carry that reason itself. -->
 		{#if isStale}
 			<p
 				class="mt-grid-sm rounded-lg border border-warning/20 bg-warning/5 p-box-sm text-xs text-warning-strong"
@@ -96,9 +104,12 @@
 							work: formatDuration(recommended.workHours),
 						})}
 					</p>
+					<!-- `isBusy` too, which it never had: the sweep in flight is about to
+					     replace the recommendation this button is holding. -->
 					<Button
 						variant="outline"
 						size="sm"
+						disabled={isBusy || isStale}
 						onclick={() => onapply(recommended.budgetHours)}
 						aria-label={m.energy_curve_apply_label({
 							hours: formatDuration(recommended.budgetHours),

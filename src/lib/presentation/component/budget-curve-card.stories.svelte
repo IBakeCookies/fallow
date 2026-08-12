@@ -107,6 +107,25 @@
 	}}
 />
 
+<!-- Resweeping: the previous curve is still on screen, so unlike the first run
+     this state HAS an apply button — holding a recommendation the run in flight is
+     about to replace. The chart stays readable; the lever does not stay live. -->
+<Story
+	name="Resolving over a curve"
+	args={{
+		isBusy: true,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText(/Past 3h 45m/)).toBeInTheDocument();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: /Set the day window/,
+			}),
+		).toBeDisabled();
+	}}
+/>
+
 <!-- The curve reaches break-even: there is a window to recommend, and it is applyable. -->
 <Story
 	name="Reaches break-even"
@@ -234,6 +253,20 @@
 
 		// Stale is a warning about the numbers, not a reason to hide them
 		await expect(canvas.getByText(/Past 3h 45m/)).toBeInTheDocument();
+
+		// The lever is a different matter: it would set a window read off a task set
+		// that has since moved. Recheck is the way out, so it stays live.
+		await expect(
+			canvas.getByRole('button', {
+				name: /Set the day window/,
+			}),
+		).toBeDisabled();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Recheck',
+			}),
+		).toBeEnabled();
 	}}
 />
 
