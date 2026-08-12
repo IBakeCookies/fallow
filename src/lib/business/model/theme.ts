@@ -45,9 +45,15 @@ export type ThemeName =
 	| 'hourglass'
 	| 'foliage'
 	| 'circuit'
-	| 'swiss'
 	| 'brutalist'
-	| 'riso';
+	| 'riso'
+	| 'eink'
+	| 'kintsugi'
+	| 'solarized-light'
+	| 'graph-pad'
+	| 'verdigris'
+	| 'thermal'
+	| 'weathervane';
 
 export interface ThemeItem {
 	name: ThemeName;
@@ -67,7 +73,7 @@ export const themes: ThemeItem[] = [
 		label: 'Classic Light',
 		css: ['solid-light'],
 	},
-	/* Two classes, because `.dark` alone is the seed all 21 dark themes share:
+	/* Two classes, because `.dark` alone is the seed every dark theme shares:
 	   classic dark cannot BE it, so its opaque surfaces live in `.solid-dark`
 	   (base.css). Keep name/label/css adjacent — scripts/ink-contrast.mjs and
 	   hover-contrast.mjs parse this file rather than duplicate the list. */
@@ -247,11 +253,6 @@ export const themes: ThemeItem[] = [
 		css: ['circuit', 'dark'],
 	},
 	{
-		name: 'swiss',
-		label: 'Swiss',
-		css: ['swiss'],
-	},
-	{
 		name: 'brutalist',
 		label: 'Brutalist',
 		css: ['brutalist'],
@@ -260,6 +261,41 @@ export const themes: ThemeItem[] = [
 		name: 'riso',
 		label: 'Riso',
 		css: ['riso'],
+	},
+	{
+		name: 'eink',
+		label: 'E-ink',
+		css: ['eink'],
+	},
+	{
+		name: 'kintsugi',
+		label: 'Kintsugi',
+		css: ['kintsugi', 'dark'],
+	},
+	{
+		name: 'solarized-light',
+		label: 'Solarized Light',
+		css: ['solarized-light'],
+	},
+	{
+		name: 'graph-pad',
+		label: 'Graph Pad',
+		css: ['graph-pad'],
+	},
+	{
+		name: 'verdigris',
+		label: 'Verdigris',
+		css: ['verdigris', 'dark'],
+	},
+	{
+		name: 'thermal',
+		label: 'Thermal',
+		css: ['thermal', 'dark'],
+	},
+	{
+		name: 'weathervane',
+		label: 'Weathervane',
+		css: ['weathervane'],
 	},
 ] as const;
 

@@ -123,6 +123,11 @@ export function dataSceneryStyle(clock: WallClock): string {
 	/* circuit: the board's heat — cold at midnight, peaking at noon, cooling
 	   back toward the next midnight. The CSS maps it to hue and glow. */
 	const circuitHeat = Math.sin((Math.PI * hours) / 24);
+	/* weathervane: the hour hand's bearing in degrees, clockwise from 12 —
+	   30°/h, so 12:00 points straight up and 03:00 to the right. It wraps at
+	   noon and not at midnight, because that is what an hour hand does; every
+	   vane in the field is turned to this one number. */
+	const vaneAngle = ((hours % 12) / 12) * 360;
 	/* foliage: three leaf layers over the day of the year, each a plateau with
 	   linear on/off ramps (zero-based, non-leap: day 59 = Mar 1, 151 = Jun 1,
 	   243 = Sep 1, 334 = Dec 1). Buds carry spring, the full canopy carries
@@ -147,6 +152,7 @@ export function dataSceneryStyle(clock: WallClock): string {
 		`--polaris-vis: ${(1 - vis).toFixed(3)}`,
 		`--hourglass-level: ${hourglassLevel.toFixed(3)}`,
 		`--circuit-heat: ${circuitHeat.toFixed(3)}`,
+		`--vane-angle: ${vaneAngle.toFixed(2)}`,
 		`--foliage-buds: ${foliageBuds.toFixed(3)}`,
 		`--foliage-summer: ${foliageSummer.toFixed(3)}`,
 		`--foliage-autumn: ${foliageAutumn.toFixed(3)}`,

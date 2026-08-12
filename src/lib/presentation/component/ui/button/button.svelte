@@ -12,7 +12,7 @@
 			variant: {
 				default: 'bg-primary text-primary-foreground hover:bg-primary-hover',
 				// bg-control, not bg-background: --surface-page is opaque, and these sit
-				// on translucent glass cards in ~20 themes. --control is the per-theme
+				// on a translucent glass card in most themes. --control is the per-theme
 				// "control on this surface" tint, so it reads correctly on all of them.
 				// backdrop-blur because it IS translucent: these buttons sit straight
 				// on the page (toolbar, calendar arrows), so without it the background
@@ -25,7 +25,7 @@
 					'hover:bg-surface-hover hover:text-foreground aria-expanded:bg-surface-hover aria-expanded:text-foreground',
 				// The tinted-danger recipe, per STYLE.md: `-strong` text on a faint fill
 				// of the bare colour. Two fixes over what shadcn ships: `text-destructive`
-				// on that fill measured 1.97–3.42:1 across 20 themes (red ink on a red
+				// on that fill measured 1.97–3.42:1 (red ink on a red
 				// wash, the mush the colour-role rule warns about), and `bg-destructive/8`
 				// let the backdrop through, so the pairing depended on the wallpaper —
 				// `destructive-soft` is opaque, which is also why no backdrop-blur here.

@@ -1291,8 +1291,119 @@
 	--mixed: oklch(0.73 0.11 310);
 }
 
-/* ---- the square-cornered three ------------------------------------
-   Every other light theme here rounds; these three are drawn with a set
+.verdigris {
+	/* Bronze left out in the weather: a dark warm alloy under blooms of copper
+	   oxide. The blooms are why this one keeps its alpha — they are broad and
+	   soft, so a card over one shows a different green than the card beside it,
+	   which is the whole case for translucency. */
+	--background-image:
+		radial-gradient(ellipse 70% 50% at 18% 8%, oklch(0.55 0.09 178 / 0.3), transparent 68%),
+		radial-gradient(ellipse 60% 45% at 88% 32%, oklch(0.5 0.08 165 / 0.26), transparent 68%),
+		radial-gradient(ellipse 85% 55% at 55% 108%, oklch(0.45 0.07 190 / 0.28), transparent 68%),
+		linear-gradient(oklch(0.19 0.025 60), oklch(0.15 0.02 50));
+
+	--surface-page: oklch(0.17 0.022 55);
+	--surface-card: oklch(1 0 0 / 0.055);
+	--surface-inset: oklch(0 0 0 / 0.22);
+	--ty-primary: oklch(0.96 0.02 170);
+
+	--input: oklch(1 0 0 / 0.1);
+	--border: oklch(0.75 0.08 175 / 0.22);
+	--ring: oklch(0.75 0.1 175 / 0.5);
+
+	/* The patina itself, at l 0.72 rather than the 0.76 it reads best at: the
+	   secondary hover scales `--secondary`'s alpha, so a lighter primary lifts
+	   that composited fill until the pale label on it measured 4.29:1. */
+	--primary: oklch(0.72 0.115 175);
+	--primary-foreground: oklch(0.2 0.03 60);
+
+	--brand: oklch(0.76 0.1 175);
+	--brand-strong: oklch(0.85 0.09 178);
+	/* the metal under it, where the oxide has not reached */
+	--flow: oklch(0.78 0.11 65);
+	--mind: oklch(0.74 0.08 235);
+	--mind-strong: oklch(0.82 0.07 235);
+	--body: oklch(0.78 0.1 150);
+	--mixed: oklch(0.72 0.09 320);
+}
+
+.thermal {
+	/* A sequential colormap read as a room — indigo where nothing is happening,
+	   magenta and amber where it is. The one palette here taken off a data ramp
+	   rather than off a picture, so the domain inks are ORDERED along it
+	   (mind 285 → mixed 320 → body 355 → brand 40 → flow 80) instead of merely
+	   being far enough apart. */
+	--background-image:
+		radial-gradient(ellipse 65% 50% at 62% 10%, oklch(0.6 0.2 25 / 0.28), transparent 66%),
+		radial-gradient(ellipse 55% 40% at 32% 45%, oklch(0.55 0.22 330 / 0.26), transparent 66%),
+		radial-gradient(ellipse 80% 45% at 50% 112%, oklch(0.45 0.15 300 / 0.35), transparent 68%),
+		linear-gradient(oklch(0.16 0.045 285), oklch(0.12 0.04 290));
+
+	--surface-page: oklch(0.15 0.04 287);
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.24);
+	--ty-primary: oklch(0.95 0.015 60);
+
+	--input: oklch(1 0 0 / 0.11);
+	--border: oklch(0.8 0.08 45 / 0.22);
+	--ring: oklch(0.8 0.14 65 / 0.5);
+
+	/* the hot end */
+	--primary: oklch(0.82 0.15 70);
+	--primary-foreground: oklch(0.18 0.04 290);
+
+	--brand: oklch(0.8 0.15 40);
+	--brand-strong: oklch(0.87 0.13 45);
+	--flow: oklch(0.87 0.14 80);
+	--mind: oklch(0.7 0.12 285);
+	--mind-strong: oklch(0.79 0.11 285);
+	--body: oklch(0.75 0.13 355);
+	--mixed: oklch(0.72 0.15 320);
+}
+
+.weathervane {
+	/* A field of vanes on a fixed grid, every one turned to the same bearing:
+	   the hour hand's. Straight up at 12, right at 3, half a degree a minute —
+	   the page is the clock (see theme-scenery/weathervane.css).
+
+	   Translucent, against the usual verdict for a repeated motif. The grid is
+	   7rem and the blades 2.4rem, which is structure a 2rem blur softens but
+	   cannot average away, so a card over the field still shows which way the
+	   vanes beneath it point — and unlike a texture, this backdrop MOVES, which
+	   is the other half of the same test. */
+	--background-image: linear-gradient(oklch(0.975 0.007 235), oklch(0.93 0.016 240));
+
+	--radius: 0.5rem;
+
+	--surface-page: oklch(0.96 0.01 237);
+	--surface-card: oklch(1 0 0 / 0.62);
+	--surface-inset: oklch(0.4 0.03 245 / 0.08);
+	--ty-primary: oklch(0.26 0.02 250);
+
+	/* Slate-tinted rather than white, which is what every other pale theme uses:
+	   `--control-hover` scales this alpha, and 0.66 white over a near-white page
+	   scales to 1.0 and clamps — the hover measured step 1.029, invisible. A dark
+	   tint at low alpha has somewhere to go. */
+	--input: oklch(0.42 0.035 245 / 0.1);
+	--border: oklch(0.42 0.03 245 / 0.26);
+
+	/* the vane itself is brass on a slate-blue sky — the accent is the metal,
+	   which is also what keeps this off mist's slate */
+	--primary: oklch(0.52 0.1 65);
+	--primary-foreground: oklch(0.98 0.01 90);
+	--ring: oklch(0.52 0.1 65 / 0.5);
+
+	--brand: oklch(0.52 0.1 65);
+	--brand-strong: oklch(0.44 0.09 62);
+	--flow: oklch(0.55 0.12 75);
+	--mind: oklch(0.47 0.09 250);
+	--mind-strong: oklch(0.39 0.09 250);
+	--body: oklch(0.48 0.1 170);
+	--mixed: oklch(0.48 0.11 310);
+}
+
+/* ---- the set-square themes ----------------------------------------
+   Every other light theme here rounds; these are drawn with a set
    square. Every surface is a flat ink, `--blur: 0`, nothing shows through
    anything — they are print, not glass.
 
@@ -1302,8 +1413,8 @@
    card, so translucency buys nothing there and these themes are the same
    bargain — see those two, plus classic light/dark in base.css. Alpha earns
    its keep only where the backdrop has large soft structure or MOVES:
-   daybreak's sun, mist's drifting banks, moonphase's real phase. That is
-   the 32 themes that keep it.
+   daybreak's sun, mist's drifting banks, moonphase's real phase. Most of
+   the catalogue is on that side of the line.
 
    Two consequences of going opaque, both paid for below rather than argued
    away:
@@ -1325,48 +1436,6 @@
    `backdrop-blur` is a no-op, so a translucent fill there let page text
    read straight through it. `terminal` is the one theme that wants both,
    and splits the difference with `--surface-float`. */
-
-.swiss {
-	/* International Typographic Style: grey paper, white cards, hairline
-	   rules, one signal red. No backdrop at all — the grid is the decoration. */
-	--radius: 0;
-	--blur: 0;
-	/* paper does not float; the rules do the separating */
-	--card-shadow: 0 0 #0000;
-
-	/* three greys, three rungs: paper, the card laid on it, the well cut into it */
-	--surface-page: oklch(0.955 0 0);
-	--surface-card: oklch(1 0 0);
-	--surface-inset: oklch(0.925 0 0);
-	--ty-primary: oklch(0.17 0 0);
-
-	/* A field cut INTO the card, where the other light themes float a white one
-	   on top: the card is already white here, so a white field has no edge. */
-	--input: oklch(0.93 0 0);
-	--control-hover: oklch(0.87 0 0);
-	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
-	/* a printed hairline, not a wash: heavier than any other light theme's
-	   border, because with radius 0 and no shadow the line IS the card */
-	--border: oklch(0.17 0 0 / 0.55);
-	--line-soft: oklch(0.17 0 0 / 0.14);
-
-	/* signal red — the only saturated thing on the page */
-	--primary: oklch(0.55 0.22 27);
-	--primary-foreground: oklch(0.99 0 0);
-	/* the danger wash mixes into a page greyer than the other light themes',
-	   which held red-700 ink at 4.49:1 on the hover fill — deepen the ink */
-	--danger-strong: oklch(0.42 0.19 25);
-
-	--brand: oklch(0.55 0.22 27);
-	--brand-strong: oklch(0.46 0.2 27);
-	/* domain accents run near-grey at distinct hues (noir's trick): still
-	   separable in a chart, never competing with the red */
-	--mind: oklch(0.42 0.07 250);
-	--mind-strong: oklch(0.34 0.07 250);
-	--body: oklch(0.44 0.07 165);
-	--flow: oklch(0.5 0.08 80);
-	--mixed: oklch(0.44 0.07 310);
-}
 
 .brutalist {
 	/* béton brut: raw concrete, hard unblurred drop shadows, caution yellow.
@@ -1464,4 +1533,200 @@
 	--danger-strong: oklch(0.48 0.22 15);
 	--info: oklch(0.52 0.16 255);
 	--info-strong: oklch(0.44 0.16 255);
+}
+
+/* ---- the rounded opaque themes -------------------------------------
+   The same bargain as "the set-square themes" above and as classic
+   light/dark in base.css — flat inks on all three surface rungs, a border
+   that carries the separating, `--blur: 0` — taken here by themes that
+   still round their corners. Which side of the line a theme belongs on
+   is the backdrop test, not the corner radius: eink and kintsugi have no
+   backdrop at all, graph-pad's rule is a fine texture a 2rem blur averages
+   to one wash, and Solarized is a fixed palette rather than a picture.
+
+   So each of them sets `--control-hover` and `--secondary-hover`
+   itself, which base.css derives by scaling an alpha that is no longer
+   there, and each keeps `--surface-card` opaque so the sticky nav pill
+   does not turn into a window. */
+
+.eink {
+	/* Electrophoretic paper: the pigment sits IN the sheet. Nothing floats,
+	   nothing shows through, and there is no hue anywhere — one pigment and one
+	   lightness ramp. The closest this catalogue comes to no theme at all, which
+	   for a focus app is the whole idea. */
+	--radius: 0.25rem;
+	--blur: 0;
+	/* e-paper has no backlight and no depth; a shadow would be a lie */
+	--card-shadow: 0 0 #0000;
+
+	/* Chroma 0, exactly — every other neutral theme here still carries a trace
+	   of blue or warm, and this one cannot: the panel has no colour channel. */
+	--surface-page: oklch(0.9 0 0);
+	--surface-card: oklch(0.97 0 0);
+	--surface-inset: oklch(0.855 0 0);
+	/* e-ink black is a dark grey; the pigment never reaches ink black */
+	--ty-primary: oklch(0.22 0 0);
+
+	--input: oklch(0.925 0 0);
+	--control-hover: oklch(0.87 0 0);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
+	/* no shadow and no fill weight left, so the rule does all the separating */
+	--border: oklch(0.22 0 0 / 0.4);
+	--line-soft: oklch(0.22 0 0 / 0.12);
+
+	/* the accent is more pigment, not another colour */
+	--primary: oklch(0.28 0 0);
+	--primary-foreground: oklch(0.97 0 0);
+	/* `--destructive-soft` mixes danger into `--surface-page`, and this page is
+	   grey rather than white, so red-700 on that wash measured 4.18:1 — the same
+	   arithmetic brutalist ran into. The ink is the half with room. */
+	--danger-strong: oklch(0.36 0.16 25);
+
+	/* Near-grey at distinct hues — noir's trick. A panel could not
+	   render these anyway, but a domain badge still has to be told apart from
+	   its neighbour, and this way they read as ink weights, not as colour. */
+	--brand: oklch(0.35 0 0);
+	--brand-strong: oklch(0.25 0 0);
+	--mind: oklch(0.42 0.03 250);
+	--mind-strong: oklch(0.33 0.03 250);
+	--body: oklch(0.45 0.03 160);
+	--flow: oklch(0.5 0.035 80);
+	--mixed: oklch(0.44 0.03 310);
+	/* The four state colours keep the shared palette on purpose: greyscale is a
+	   fiction worth holding for a chart accent and not for an error. */
+}
+
+.kintsugi {
+	/* Black lacquer broken and rejoined with gold. The accent is the SEAM: this
+	   is the one theme whose `--border` carries the brand colour at full
+	   strength, drawn heavier than any other dark theme's, because the join is
+	   the ornament rather than the damage. */
+	--radius: 0.5rem;
+	--blur: 0;
+	/* lacquer is glossy — this one opaque theme keeps its shadow */
+	--card-shadow: 0 14px 34px -14px oklch(0 0 0 / 0.75);
+
+	/* the rungs climb on a dark page, as in `.solid-dark` */
+	--surface-page: oklch(0.15 0.012 40);
+	--surface-card: oklch(0.21 0.014 40);
+	--surface-inset: oklch(0.27 0.016 45);
+	--ty-primary: oklch(0.95 0.012 85);
+
+	--input: oklch(0.26 0.016 45);
+	--control-hover: oklch(0.33 0.018 50);
+	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
+	--border: oklch(0.75 0.11 85 / 0.45);
+	--line-soft: oklch(0.75 0.11 85 / 0.18);
+	--ring: oklch(0.8 0.12 85 / 0.55);
+
+	/* leaf gold */
+	--primary: oklch(0.8 0.12 85);
+	--primary-foreground: oklch(0.22 0.04 60);
+
+	--brand: oklch(0.82 0.12 85);
+	--brand-strong: oklch(0.89 0.1 88);
+	--flow: oklch(0.82 0.13 70);
+	--mind: oklch(0.75 0.08 245);
+	--mind-strong: oklch(0.83 0.07 245);
+	--body: oklch(0.78 0.09 160);
+	--mixed: oklch(0.74 0.09 330);
+}
+
+/* Solarized is a transcription, not an interpretation: Ethan
+   Schoonover's published hex values, converted to oklch so the rest of
+   this file's arithmetic still applies to them. Three deviations, each
+   forced and each marked below — the third surface rung (the palette
+   stops at two paper tones), `--ty-primary` (the ladder here derives
+   DOWN from it at 70/55/40%, so starting at the palette's own text tone
+   puts body copy under AA), and the primary. Only the light half is in
+   the catalogue; the dark one is `base03`/`base02` with the accents
+   lifted, if it is ever wanted. */
+
+.solarized-light {
+	--radius: 0.25rem;
+	--blur: 0;
+	--card-shadow: 0 0 #0000;
+
+	--surface-page: oklch(0.931 0.026 92); /* base2 */
+	--surface-card: oklch(0.974 0.026 90); /* base3 */
+	/* one rung below base2, extrapolated on the same ramp */
+	--surface-inset: oklch(0.898 0.028 92);
+	/* base02, not base01: base01 is the palette's emphasized text and reads
+	   5.4:1 here, so the derived secondary at 70% of it lands at 3.6:1 */
+	--ty-primary: oklch(0.309 0.052 220); /* base02 */
+
+	--input: oklch(0.898 0.028 92);
+	--control-hover: oklch(0.85 0.032 92);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
+	--border: oklch(0.523 0.028 219 / 0.4); /* base01 */
+	--line-soft: oklch(0.523 0.028 219 / 0.16);
+
+	/* blue, deepened: at its published l 0.615 a white label reads 3.1:1 on it */
+	--primary: oklch(0.5 0.15 245);
+	--primary-foreground: oklch(0.974 0.026 90);
+
+	--danger: oklch(0.586 0.206 27); /* red */
+	/* deeper than a straight step off the published red: the ink has to clear
+	   4.5:1 on the danger wash, which is the fill it is paired with */
+	--danger-strong: oklch(0.44 0.185 27);
+	--warning: oklch(0.581 0.173 40); /* orange */
+	--warning-strong: oklch(0.5 0.16 40);
+	--success: oklch(0.644 0.151 119); /* green */
+	--success-strong: oklch(0.55 0.14 122);
+	--info: oklch(0.644 0.102 187); /* cyan */
+	--info-strong: oklch(0.55 0.095 190);
+
+	--brand: oklch(0.592 0.202 356); /* magenta */
+	--brand-strong: oklch(0.5 0.19 356);
+	--mind: oklch(0.615 0.139 245); /* blue */
+	--mind-strong: oklch(0.52 0.13 245);
+	--body: oklch(0.644 0.151 119);
+	--flow: oklch(0.654 0.134 86); /* yellow */
+	--mixed: oklch(0.582 0.126 279); /* violet */
+}
+
+.graph-pad {
+	/* Engineer's quadrille: a 20px pale-green rule with every fifth line inked
+	   heavier, on cream stock. The textbook case for going opaque — the blur
+	   averages a grid this fine to one flat wash, so translucency would cost a
+	   full-viewport filter pass to reveal nothing. */
+	--background-image:
+		repeating-linear-gradient(0deg, oklch(0.55 0.08 152 / 0.3) 0 1px, transparent 1px 100px),
+		repeating-linear-gradient(90deg, oklch(0.55 0.08 152 / 0.3) 0 1px, transparent 1px 100px),
+		repeating-linear-gradient(0deg, oklch(0.68 0.07 152 / 0.24) 0 1px, transparent 1px 20px),
+		repeating-linear-gradient(90deg, oklch(0.68 0.07 152 / 0.24) 0 1px, transparent 1px 20px),
+		linear-gradient(oklch(0.96 0.022 95), oklch(0.94 0.028 92));
+
+	--radius: 0.25rem;
+	--blur: 0;
+	/* the sheet is flat; a card is an area of it, not a thing lying on it */
+	--card-shadow: 0 0 #0000;
+
+	/* the rule is printed on the stock, so it stops where a written-on area
+	   begins — same reason brutalist's form-board grain stops at a slab edge */
+	--surface-page: oklch(0.95 0.024 94);
+	--surface-card: oklch(0.985 0.014 95);
+	--surface-inset: oklch(0.925 0.028 94);
+	/* pencil, not ink */
+	--ty-primary: oklch(0.25 0.02 160);
+
+	--input: oklch(0.945 0.022 95);
+	--control-hover: oklch(0.895 0.028 95);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
+	--border: oklch(0.45 0.07 152 / 0.35);
+	--line-soft: oklch(0.45 0.07 152 / 0.14);
+
+	/* the rule colour, deepened until a cream label reads on it */
+	--primary: oklch(0.48 0.11 150);
+	--primary-foreground: oklch(0.97 0.02 95);
+	/* the danger wash lands on cream stock, not white */
+	--danger-strong: oklch(0.44 0.19 25);
+
+	--brand: oklch(0.5 0.11 150);
+	--brand-strong: oklch(0.42 0.1 152);
+	--mind: oklch(0.47 0.11 250);
+	--mind-strong: oklch(0.4 0.11 250);
+	--body: oklch(0.48 0.1 165);
+	--flow: oklch(0.55 0.12 70);
+	--mixed: oklch(0.48 0.12 305);
 }
