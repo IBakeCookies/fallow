@@ -134,6 +134,7 @@
 	--color-surface-inset: var(--surface-inset);
 	--color-surface-float: var(--surface-float);
 	--color-surface-hover: var(--surface-hover);
+	--color-surface-card-hover: var(--surface-card-hover);
 
 	/* borders */
 	--color-line-strong: var(--border);

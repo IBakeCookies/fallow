@@ -75,7 +75,34 @@ Read this before touching markup, classes, or anything under
   every theme whose `--input` is opaque sets that pair itself.
   `hover:bg-surface-card` on an element already sitting on a card is a no-op —
   easy to miss, and on an opaque theme it is a no-op even when the element is
-  NOT on a card, since nothing composites.
+  NOT on a card, since nothing composites. **`hover:border-line-strong` is the
+  same trap on the border side**: `--color-line-strong` IS `--border`, which is
+  what a bare `border` already resolves to, so it re-sets the colour the element
+  had — measured 1.000 on every theme. A border hover needs `border-line-soft`
+  at rest to have anywhere to go (soft -> strong measures 1.15–1.94). The
+  calendar's day cells hit both halves at once: filled, so their
+  `hover:bg-surface-hover` replaced the fill instead of tinting it, and
+  bare-bordered, so the border hover did nothing either — no hover at all on a
+  dark theme, and a panel vanishing to bare page on an opaque one. They now use
+  `hover:bg-surface-card-hover`, the card's own paired token.
+- **A card hovers by LIFTING, which is why `--surface-card-hover` is neither of
+  the two derivations above.** A card is lighter than its page on every theme, so
+  raising lightness is the only direction that always widens the separation
+  making a card read as a card; alpha carries the translucent ones, where L is
+  already 1. Tinting toward `ty-primary` — the intuitive choice — is worse here
+  than for a control: a light theme's card sits near the L ceiling, so a dark
+  tint walks it THROUGH its page (a 6% mix left `solarized-light` at 1.014 and
+  `parchment` at 1.031 against their own pages, i.e. a hovered card that stops
+  reading as filled). Alpha moves by its remaining headroom rather than by a
+  factor, since a factor overshoots — `alpha * 1.9` clamped 14 translucent cards
+  to opaque, a glass card losing its blur on hover. No theme hand-sets it, and
+  separation from the page rises on all 46, so a hovered card can never stop
+  reading as a card. **It cannot give an even step, though, and nothing can**: the
+  same delta swings 2.05 over a near-black page and 1.017 over a pale one,
+  because the step depends on the page luminance behind the card. A hover that
+  must be visible on every theme therefore needs a page-independent channel
+  alongside it — the calendar ramps its border, which is what carries the eight
+  light translucent themes.
 - **`bg-control` is the neutral control fill; `bg-input` is a form field.** They
   hold the same value (`--control: var(--input)` — one per-theme knob, and every
   theme turns it), but a button naming `input` was a lie that made every

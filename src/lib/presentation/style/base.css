@@ -132,6 +132,38 @@
 	   a theme that makes `--input` opaque must set `--control-hover` itself. */
 	--control-hover: oklch(from var(--control) l c h / calc(alpha * 1.7 + 0.04));
 
+	/* The card's own paired hover, and it LIFTS rather than tinting. A card is
+	   lighter than its page on every theme in the catalogue, so raising lightness
+	   is the one direction that always widens the separation which makes a card
+	   read as a card at all.
+
+	   Mixing ty-primary in is the obvious move and it fails the same way it failed
+	   for `--control` above, only more visibly: a light theme's card is already
+	   near the L ceiling, so a dark tint walks it straight THROUGH its page.
+	   Measured against their own pages, a 6% mix left solarized-light at 1.014 and
+	   parchment at 1.031 — a hovered card that stops reading as filled, which is
+	   the bug this token exists to avoid. Alpha carries the translucent cards,
+	   where L is already 1 and cannot lift.
+
+	   Alpha moves by its REMAINING HEADROOM and not by a factor, because a factor
+	   overshoots: `alpha * 1.9 + 0.06` clamped 14 translucent cards to fully
+	   opaque, which is a glass card losing its blur on hover. This form cannot
+	   reach 1, so a translucent card stays translucent.
+
+	   What this token CANNOT do is deliver an even step, and no version of it can:
+	   the same alpha delta swings 2.05 over meridian's near-black page and 1.017
+	   over weathervane's pale one, because the step depends on the page luminance
+	   behind the card and a token cannot see through the card. So a caller that
+	   needs a guaranteed-visible hover pairs this with a page-independent channel —
+	   the calendar ramps its border too, which is what holds the eight light
+	   translucent themes above 1.03. What this token does guarantee is direction:
+	   card-vs-page separation RISES on all 46, verified, so a hovered card can
+	   never stop reading as a card. Re-check that after retuning a
+	   `--surface-card`, since a white card at moderate alpha has little room. */
+	--surface-card-hover: oklch(
+		from var(--surface-card) calc(l + 0.07) c h / calc(alpha + (1 - alpha) * 0.22)
+	);
+
 	/* A SOLID fill has no alpha to scale, and its hover cannot chase ty-primary:
 	   on the themes where primary already sits at the text colour (terminal,
 	   blueprint) that mix is a no-op — measured ΔL 0.002 — and on solid-dark and

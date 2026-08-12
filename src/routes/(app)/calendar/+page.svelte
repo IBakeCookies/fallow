@@ -258,13 +258,29 @@
 			{@const isFuture = date > today}
 			{@const isToday = date === today}
 			{@const dayNum = fromISO(date).getDate()}
+			<!-- Each rest state pairs with its OWN hover, per STYLE.md's two hover families. A
+			     cell WITH tasks is filled, so it lifts its own fill; `hover:bg-surface-hover`
+			     REPLACED that fill with a 6% tint on transparent instead, which measured a
+			     1.00–1.03 step on every dark theme (no hover at all) and a panel vanishing to
+			     bare page on the opaque ones. An empty cell has no fill of its own, which is
+			     the case `surface-hover` is actually for.
+
+			     The border ramps as WELL, and it is not belt-and-braces: a fill lift moves a
+			     lot over a dark page and almost nothing over a light one (2.05 on meridian,
+			     1.017 on weathervane), because the step depends on the page luminance behind
+			     the card and no token can see that. The border is page-independent, so it is
+			     what holds the eight light translucent themes above the 1.03 bound. It has to
+			     rest on `line-soft` to move at all: `--color-line-strong` IS `--border`, which
+			     is what a bare `border` already resolves to. Today keeps its own border. -->
 			<a
 				href={localizeHref(date === today ? resolve('/') : `${resolve('/')}?date=${date}`)}
 				class="group flex min-h-0 flex-col overflow-hidden rounded-lg sm:rounded-xl border p-text-2xs sm:p-box-2xs transition-colors
-				       {isToday ? 'border-success/40' : s ? '' : 'border-line-soft'}
-				       {s ? 'backdrop-blur bg-surface-card' : 'bg-transparent'}
+				       {isToday ? 'border-success/40' : 'border-line-soft hover:border-line-strong'}
+				       {s
+					? 'backdrop-blur bg-surface-card hover:bg-surface-card-hover'
+					: 'bg-transparent hover:bg-surface-hover'}
 				       {inMonth ? '' : 'opacity-40'}
-				       cursor-pointer hover:border-line-strong hover:bg-surface-hover"
+				       cursor-pointer"
 			>
 				<div class="flex items-baseline justify-between gap-text-2xs">
 					<span
