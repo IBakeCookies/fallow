@@ -19,10 +19,11 @@ import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
 import type { TitleRating } from '$lib/business/model/title-memory';
+import { summarizeBudgetHistory } from '$lib/business/model/budget-memory';
 
 vi.mock('$lib/business/session-history', () => ({
 	initializeStorage: vi.fn(async () => {}),
-	readTitleRatings: vi.fn(async () => new Map()),
+	readHistoryPrefills: vi.fn(),
 }));
 
 vi.mock('$lib/data/repository/session-repository', () => ({
@@ -46,9 +47,15 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$readAllFlowObservations: vi.fn(async () => []),
 }));
 
-const readTitleRatingsMock = vi.mocked(sessionHistory.readTitleRatings);
+const readHistoryPrefillsMock = vi.mocked(sessionHistory.readHistoryPrefills);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
+
+/** What the boot read answers before any day has been budgeted or rated. */
+const noPrefills = () => ({
+	titleRatings: new Map<string, TitleRating>(),
+	budgets: summarizeBudgetHistory([]),
+});
 
 const createOrUpdateFlowObservationMock = vi.mocked(
 	flowObservationRepository.$createOrUpdateFlowObservation,
@@ -56,6 +63,12 @@ const createOrUpdateFlowObservationMock = vi.mocked(
 
 const updateFlowObservationMock = vi.mocked(flowObservationRepository.$updateFlowObservation);
 const readAllFlowObservationsMock = vi.mocked(flowObservationRepository.$readAllFlowObservations);
+
+// Installed here rather than in the mock factory, which is hoisted above the
+// imports and so cannot call the fold that defines an empty history.
+beforeEach(() => {
+	readHistoryPrefillsMock.mockImplementation(async () => noPrefills());
+});
 
 /**
  * Mount the store in a component context and wait for the initial load. The
@@ -1027,17 +1040,196 @@ describe('SessionStore persistence', () => {
 	});
 });
 
+describe('SessionStore budget prefill', () => {
+	const today = toISODate();
+	// A week apart is the same weekday, which is what the prefill keys on — so
+	// only the day's pastness, or a record of its own, can change these answers.
+	const lastWeek = addDays(today, -7);
+	const nextWeek = addDays(today, 7);
+
+	const budgeted = (date: string, availableHours: number): DailySession => ({
+		date,
+		tasks: [],
+		availableHours,
+		switchCost: 0.25,
+		updatedAt: 0,
+	});
+
+	// Today's weekday reads 6, tomorrow's 3, so an answer names which weekday it
+	// came from rather than falling out of one number for the whole history.
+	const prefilledBudgets = () =>
+		summarizeBudgetHistory([
+			budgeted(lastWeek, 6),
+			budgeted(addDays(lastWeek, -7), 6),
+			budgeted(addDays(today, -6), 3),
+		]);
+
+	beforeEach(() => {
+		mockPage.url = new URL('http://localhost/');
+
+		readHistoryPrefillsMock.mockImplementation(async () => ({
+			...noPrefills(),
+			budgets: prefilledBudgets(),
+		}));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		readSessionByDateMock.mockImplementation(async () => null);
+	});
+
+	it('opens a day with no stored session on the hours that weekday usually has', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+	});
+
+	/* The whole item turns on this one: the autosave's dirty test used to be the
+	   budget itself, so a prefill would write a phantom session for every future
+	   day the user merely looked at — a day that then appears in the calendar, in
+	   analytics' planned hours, and as a declared intent driving Burnout Risk. */
+	it('writes no session for a day the user only looked at', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+		useFakeTimers();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+	});
+
+	// A stored 0 is an answer — the day the user emptied, or has not budgeted yet
+	// but has already saved for another reason. The prefill speaks for unseen days.
+	it('leaves a stored budget of zero alone', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+		readSessionByDateMock.mockImplementation(async (date: string) => budgeted(date, 0));
+		mockPage.url = new URL(`http://localhost/?date=${nextWeek}`);
+
+		await vi.waitFor(() => {
+			expect(store.loadedDate).toBe(nextWeek);
+			expect(store.availableHours).toBe(0);
+		});
+	});
+
+	it('keeps a budget the user typed to zero', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+		store.availableHours = 0;
+		flushSync();
+
+		expect(store.availableHours).toBe(0);
+	});
+
+	// The day is saved for a reason of its own, so it records the hours it was
+	// showing while the task was added — not the 0 nobody was looking at.
+	it('persists the prefilled hours once the day is saved for another reason', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+		useFakeTimers();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock).toHaveBeenCalledTimes(1);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: today,
+			availableHours: 6,
+		});
+	});
+
+	// A past day with no record is history, and history had no budget. Filling
+	// one in would be the app making a claim about a day the user did not plan.
+	it('offers nothing on a past day with no record', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+
+		await vi.waitFor(() => {
+			expect(store.loadedDate).toBe(lastWeek);
+			expect(store.availableHours).toBe(0);
+		});
+	});
+
+	/* The day the deferred task lands on is being saved for a reason of its own,
+	   so it records the hours it will open on — the rule the autosave payload
+	   follows. A hard 0 here would make the destination a STORED day at 0, which
+	   no prefill may then speak for: the symptom item 16 exists to remove, and
+	   item 21's prereq. */
+	it('gives tomorrow the hours its own weekday usually has when a defer creates it', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+		});
+
+		flushSync();
+		const id = store.tasks[0].id;
+		useFakeTimers(); // freeze the auto-save so only the move writes
+
+		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: addDays(today, 1),
+			availableHours: 3,
+		});
+	});
+
+	/* The bar the constraints panel opens is remounted on `loadedDate` and
+	   snapshots its `isOpen` prop, so a day that lands before its hours do opens
+	   the panel against a budget of 0 and then fills in behind it. Deriving the
+	   prefill cannot win that race on its own — the boot read has to be in hand
+	   before the day is presented. */
+	it('does not present the day until its hours are known', async () => {
+		let land!: (prefills: ReturnType<typeof noPrefills>) => void;
+
+		readHistoryPrefillsMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
+
+		let store!: SessionStore;
+
+		render(Harness, {
+			onstore: (s: SessionStore) => (store = s),
+		});
+
+		await vi.waitFor(() => expect(readHistoryPrefillsMock).toHaveBeenCalled());
+
+		expect(store.loadedDate).toBeNull();
+
+		land({
+			...noPrefills(),
+			budgets: prefilledBudgets(),
+		});
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(today));
+
+		expect(store.availableHours).toBe(6);
+	});
+});
+
 describe('SessionStore title memory', () => {
 	beforeEach(() => {
 		mockPage.url = new URL('http://localhost/');
 		// The call log is what the date-scoping test reads, and `mount()` deliberately
 		// does not clear it — so without this that test could pass on a call another
 		// test made, and only fail for its own reason while it happens to run first.
-		readTitleRatingsMock.mockClear();
-	});
-
-	afterEach(() => {
-		readTitleRatingsMock.mockImplementation(async () => new Map());
+		readHistoryPrefillsMock.mockClear();
 	});
 
 	/** Mount without clearing the boot calls: the read itself is under test here. */
@@ -1063,16 +1255,17 @@ describe('SessionStore title memory', () => {
 
 		const { store } = mount();
 
-		await vi.waitFor(() => expect(readTitleRatingsMock).toHaveBeenCalled());
+		await vi.waitFor(() => expect(readHistoryPrefillsMock).toHaveBeenCalled());
 
 		expect(store.selectedDate).toBe('2099-01-01');
-		expect(readTitleRatingsMock).toHaveBeenCalledWith(store.today);
-		expect(readTitleRatingsMock).not.toHaveBeenCalledWith('2099-01-01');
+		expect(readHistoryPrefillsMock).toHaveBeenCalledWith(store.today);
+		expect(readHistoryPrefillsMock).not.toHaveBeenCalledWith('2099-01-01');
 	});
 
 	it('suggests the rated titles a part-typed one could be', async () => {
-		readTitleRatingsMock.mockResolvedValue(
-			new Map([
+		readHistoryPrefillsMock.mockResolvedValue({
+			...noPrefills(),
+			titleRatings: new Map([
 				[
 					'gym session',
 					{
@@ -1083,7 +1276,7 @@ describe('SessionStore title memory', () => {
 					},
 				],
 			]),
-		);
+		});
 
 		const { store } = mount();
 
@@ -1104,16 +1297,12 @@ describe('SessionStore title memory', () => {
 	});
 
 	/*
-	 * The read is not awaited — `isLoading` is already false while it is in flight,
-	 * so the form is on screen and being typed into. A subscriber that asked before
-	 * the history landed has to see it arrive; polling `suggestTitles` in a waitFor
-	 * cannot tell that apart from a field nothing ever invalidates.
+	 * A suggestion list on screen is a subscriber that has already asked, and a
+	 * re-read — the banner's retry, after a boot whose history read failed — has to
+	 * reach it. Polling `suggestTitles` in a waitFor cannot tell that apart from a
+	 * field nothing ever invalidates, so the answers are recorded in an effect.
 	 */
-	it('lets a suggestion list that already asked see the history land', async () => {
-		let land!: (ratings: Map<string, TitleRating>) => void;
-
-		readTitleRatingsMock.mockReturnValue(new Promise((resolve) => (land = resolve)));
-
+	it('lets a suggestion list that already asked see a later history land', async () => {
 		const { store } = mount();
 
 		await vi.waitFor(() => expect(store.isLoading).toBe(false));
@@ -1127,8 +1316,9 @@ describe('SessionStore title memory', () => {
 		flushSync();
 		expect(answers).toEqual([0]); // asked, and answered from an empty history
 
-		land(
-			new Map([
+		readHistoryPrefillsMock.mockResolvedValue({
+			...noPrefills(),
+			titleRatings: new Map([
 				[
 					'gym session',
 					{
@@ -1139,7 +1329,9 @@ describe('SessionStore title memory', () => {
 					},
 				],
 			]),
-		);
+		});
+
+		store.retryLoad();
 
 		await vi.waitFor(() => {
 			flushSync();
@@ -1152,7 +1344,7 @@ describe('SessionStore title memory', () => {
 	// The form falling back to 5/5 is the state the app shipped in for a year;
 	// raising the banner over it would tell the user their day failed to load.
 	it('leaves the banner clear when the ratings read fails', async () => {
-		readTitleRatingsMock.mockRejectedValue(new Error('IndexedDB unavailable'));
+		readHistoryPrefillsMock.mockRejectedValue(new Error('IndexedDB unavailable'));
 
 		const { store, status } = mount();
 

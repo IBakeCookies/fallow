@@ -39,7 +39,7 @@ today:
 - **Every calibration instrument lives behind `/energy`.** `logDrain` has
   exactly one caller (`energy/+page.svelte:161`), and `readFinishedDays` skips
   any date without a 🪫 log with `hours > 0`
-  (`session-history.ts:180`, `:197`). A user who only ever opens `/` therefore
+  (`session-history.ts:226`, `:243`). A user who only ever opens `/` therefore
   contributes **zero** days to λ₀ (§8.10), the §12 audit and overnight
   carry-over (§11.9). Item 11 is the cheapest item here for that reason.
   **Closed 2026-08-10 by item 11:** `logDrain` has a second caller on the main
@@ -275,7 +275,7 @@ nobody's feature — which is why it is written down rather than remembered:
     **Half (b) was a wider hole than this item claimed.** The item read it as
     advice surviving a day change and rendering with the stale banner plus dead
     buttons. But `selectedDate` falls back to the live clock
-    (`session-store.svelte.ts:127-129`) and `#loadSession` is async, so at a URL
+    (`session-store.svelte.ts:136-138`) and `#loadSession` is async, so at a URL
     navigation and at the midnight tick the day moves while the previous day's
     tasks are still in memory — and through that window the inputs are
     unchanged, so the fingerprint never moves and the card reads **fresh**, not
@@ -293,7 +293,7 @@ nobody's feature — which is why it is written down rather than remembered:
     single-step contract calls wrong. Gating is that contract rendered.
     **One path this does NOT close, found by the reviewer and left open on
     purpose.** If `#readSession` throws, `#loadSession` reports `load-failed`
-    and leaves `#loadedDate` behind (`session-store.svelte.ts:369-378`), so the
+    and leaves `#loadedDate` behind (`session-store.svelte.ts:402-408`), so the
     previous day's tasks stay on screen under the new date indefinitely. The
     card goes stale correctly, but Recheck is ungated and re-pins `#adviceFor`,
     so the defer buttons come back enabled and `moveTaskToTomorrow`'s
@@ -312,7 +312,7 @@ _Settled 2026-08-09, not a roadmap item:_ both halves of `importFromDate` /
 `importYesterday` are intended and stay. Copying a completed task in as a fresh
 incomplete one IS the point of "import yesterday", and importing a title that is
 already on today's list is allowed to produce two rows — no dedupe against the
-day's tasks, no filter on `completed` (`session-store.svelte.ts:638`, `:669`).
+day's tasks, no filter on `completed` (`session-store.svelte.ts:683`, `:708`).
 The consequence to keep in mind, since 🪫 logs key on `taskId`: two rows with
 the same title are two tasks to every fit, and the hours logged against each
 stay separate.
@@ -340,7 +340,8 @@ other.**
     item 24, which is the surface it ships behind. `normalizeTitle` and
     `latestRatingsByTitle` (`business/model/title-memory.ts`) fold every stored day
     into `Map<normalizedTitle, {title, physicalDifficulty, mentalDifficulty,
-enjoyment}>`; `readTitleRatings(today)` reads it once at boot and
+enjoyment}>`; `readHistoryPrefills(today)` (`readTitleRatings` until item 16
+    widened it) reads it once at boot and
     `SessionStore.suggestTitles` answers the add-task form. No store, no schema, no
     formula. **The fold walks each day's tasks backwards**, which a review caught:
     days sort ascending, but within a day `tasks` is newest-first — every writer in
@@ -391,26 +392,65 @@ enjoyment}>`; `readTitleRatings(today)` reads it once at boot and
     must not rewrite its ratings; and the whole-history read measured 47 ms at 3651
     stored days, unguarded by any budget in the repo.
 
-16. **Budget prefill for unseen days** — a new day opens with the hours that
-    weekday usually has, overwritable, instead of 0. Seed `#availableHours`
-    from the range read already available: same-weekday median → overall median
-    → 0. **The trap that makes this bigger than it looks:** the autosave dirty
-    test is literally `this.#availableHours > 0`
-    (`session-store.svelte.ts:220`), whose documented purpose is that pristine
-    never-saved days are skipped so browsing ahead creates no empty records. A
-    nonzero prefill therefore writes a phantom session for every future day the
-    user merely looks at — which then appears in the calendar, in `DaySummary`,
-    in analytics' `plannedHours`, and as a _declared intent_ driving Burnout
-    Risk (§11.3). It needs a separate `#prefilled` flag excluded from `dirty`
-    and cleared on the first user edit. AGENTS.md must record why this is not
-    §13.6's deliberately removed Lab `|| 8` fallback: history-derived,
-    user-overwritable, and not persisted until touched. **Probe:** weekday
-    median vs actual `availableHours` on real history — MAE in hours plus the
-    share of prefills overwritten; **kill if MAE > ~1.5 h**, and then just fix
-    the auto-open. Today 100% of unseen days read budget 0, so all four
-    headline tiles read N/A, the constraints bar auto-opens
-    (`+page.svelte:226`), and a deferred task lands in an unplanned day. Not a
-    precision claim — it is the instrument item 21 needs.
+16. ~~**Budget prefill for unseen days**~~ — SHIPPED 2026-08-12. A day with no
+    stored session opens on the hours that weekday usually has:
+    `summarizeBudgetHistory` / `prefillBudgetFor`
+    (`business/model/budget-memory.ts`) fold every stored day into a
+    same-weekday median → overall median → 0, and only days that declared a
+    budget count — a stored day the user never budgeted is not evidence of a
+    habit, and folding those in drags every median toward the 0 this replaces.
+    No store, no schema, no formula.
+    **The trap was real and it took one field, not two.** The item asked for a
+    separate `#prefilled` flag excluded from the autosave's dirty test;
+    `#availableHours` is `number | null` instead, and `null` IS "this day has no
+    hours of its own" (R3 — a flag beside a number is free to drift, and
+    nothing in either says the two agree). The dirty test reads the raw field,
+    so a merely-browsed day still writes no record; the payload reads the
+    effective getter, so a day saved for a reason of its own records the budget
+    it was showing. The setter clears the flag by assigning a number, which is
+    the whole of "cleared on the first user edit".
+    **Two things fell out of deriving rather than assigning it.** The prefill is
+    a `$derived` off the fold plus the viewed day, so every later day — a
+    navigation, the midnight tick, the banner's retry re-reading — answers
+    without a second read. And it is 0 on a **past** day: a day the user did not
+    plan has no budget, and back-filling one would be a claim about their
+    history. Nothing else moved — `+page.svelte`'s auto-open condition is
+    unchanged and simply fires less often, which is the point.
+    **Item 15's "do not await the history read" no longer covers this read, and
+    a review caught the display losing that race.** `#boot` now starts it right
+    after `initializeStorage()` and awaits it before `#loadSession`, so it
+    overlaps the routines and flow reads and the day lands with its hours
+    already known. Deriving cannot fix this on its own: `+page.svelte` remounts
+    the constraints bar on `{#key session.loadedDate}` and `DayConstraintsBar`
+    **snapshots** `isOpen` at mount, so a day presented before its budget opens
+    the panel against 0 and then fills in behind it. The read still feeds a form
+    nobody has opened yet — it just also feeds the day on screen, which is what
+    changed. Its failure surface is unchanged: caught, logged, never bannered,
+    and the catch is what lets `#boot` await it without a failed prefill taking
+    the day down.
+    **One read, two folds.** `readTitleRatings` was widened to
+    `readHistoryPrefills(today)` → `{ titleRatings, budgets }` rather than
+    adding a second whole-history scan beside it (business/AGENTS.md: a composed
+    read reads each store once); a test pins the single transaction.
+    **The stated probe was not run and the item shipped without it**, on item
+    15's precedent. Its gate — weekday median vs real `availableHours`, kill if
+    MAE > 1.5 h — is a question about habit, answerable only from a real
+    exported history, and there is none on the author's machine;
+    `scripts/generate-fixture.mjs` is disqualified for exactly this class of
+    question. So the reading is unmeasured: run the gate the moment a backup
+    exists, and if the weekday median turns out to be no better than 0, the
+    honest move is to delete this rather than to tune it.
+    Declared limits, none of them worth code today: the fold is a **boot
+    snapshot**, so hours entered today do not enter it until the next load; and
+    the median takes the **lower** of the two middles on an even count, so the
+    answer is always a number the user really declared.
+    **`moveTaskToTomorrow` writes the destination day's prefill, not 0.** A
+    defer is that day being saved for a reason of its own — the same rule the
+    auto-save payload follows — and a hard 0 there made the destination a
+    **stored** day that no prefill may then speak for, which is the "a deferred
+    task lands in an unplanned day" symptom this item claims to remove and the
+    prereq item 21 declares. It was also drift this change would have created:
+    "unset" is `null` in memory, and that write was the one place it stayed 0.
 17. ~~**Switch-cost price diagnostic**~~ — SHIPPED 2026-08-04 (MATH.md §14.3):
     `switchCostPrice` on `PlanAdvice`, two extra solves at `s = 0` and `s = 2s`
     inside `suggestPlanAdjustments`, one quiet line on the advice card. The
@@ -469,7 +509,7 @@ enjoyment}>`; `readTitleRatings(today)` reads it once at boot and
     the map ships.
     And it must be a **prefill of the per-day session
     field, never a change to `DEFAULT_CAPACITY_POOLS`**: that constant is the
-    fallback for every stored day with no pools (`session-history.ts:256`,
+    fallback for every stored day with no pools (`session-history.ts:303`,
     `history.ts:73`), so changing it re-scores history against §12.1's settled
     "a past day's fit is what the user had", and prefilling is also what "a fit
     never writes params silently" requires. **Probe:** the pool has no
@@ -490,10 +530,14 @@ reach the form at all:
     item 15's first two mechanisms rather than adding to them. `suggestTitles`
     (`business/model/title-memory.ts`) answers a part-typed title with every rated
     title it could be naming; `SessionStore.suggestTitles` hands that to the
-    add-task form, which shows them under the field. The history read is not
-    awaited — the day must not wait on it — so the Map it lands in is `$state`:
-    the form is on screen and typed into while the read is in flight, and a list
-    that asked before it landed has to see it arrive. **Picking one fills the title
+    add-task form, which shows them under the field. The Map it lands in is
+    `$state`, so a list that has already asked sees a later read arrive rather
+    than showing nothing until the next keystroke. **The reason for that changed
+    on 2026-08-12 with item 16:** the boot read now feeds the day's own hours, so
+    it is awaited before the day is presented and the form is no longer on screen
+    while the first one is in flight — what needs the reactivity is the banner's
+    Retry landing a second read behind an open form, which is what the spec
+    stages. **Picking one fills the title
     and moves all three sliders to what that title was last rated, and the user
     can then drag any of them.** Typing past the list and picking nothing leaves
     the sliders where they are — a task nobody picked is rated by hand.
@@ -598,9 +642,9 @@ present:
     ±1σ band from `phiPredictionStd` (`zenith.ts:1883` — exported, documented
     "intended for UI", and consumed by nothing outside its own test).
     Whole-history flow is already read once in `readModelReport`
-    (`session-history.ts:453`), so this adds no read. **Two corrections that
+    (`session-history.ts:528`), so this adds no read. **Two corrections that
     are easy to get wrong:** each backtest fit must pass `ageDays` relative to
-    _that log's_ date, not today (`session-history.ts:106-113` bases it on
+    _that log's_ date, not today (`session-history.ts:124`, `:138` base it on
     today, and §5.2 half-life-weights the ridge), or every historical fit is
     weighted with the future's clock; and the retained residuals should be
     grouped by `taskTitle` to report **between-title variance against
@@ -839,7 +883,7 @@ What survives of the multi-day idea is two readings, not a solver:
     moments** — item 16 is what makes it non-empty. **Prereq:** 16.
 22. **Chronic-slide badge** — "this has been on your list 6 days".
     `moveTaskToTomorrow` copies `createdAt` verbatim
-    (`session-store.svelte.ts:568`), `Task.createdAt` is an ISO date string
+    (`session-store.svelte.ts:625`), `Task.createdAt` is an ISO date string
     already validated on read (`persisted.ts:91`), and nothing in presentation
     renders it — so slide age is `today − task.createdAt`: no title matching,
     no new read, no new concept. Cross with `unfundedTaskIds` for the "never

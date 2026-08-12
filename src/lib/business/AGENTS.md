@@ -48,8 +48,8 @@ deliberately silent (re-proposing them is churn): yesterday's session
 `localStorage` view preference (loss costs nothing), its `readStopObservations`
 effect (any real outage also fails the `settings` read, which toasts for both;
 an isolated failure only empties a fit the card already labels "not fitted"),
-and `readTitleRatings` (the add-task form offers no title suggestions and every
-task is rated on the 5/5/5 defaults it shipped with for a year — a banner would
+and `readHistoryPrefills` (the add-task form offers no title suggestions and an
+unseen day opens on 0 hours — what the app did for a year, where a banner would
 claim the day failed to load). Silent still means **logged** —
 `readStopObservations` was an unhandled rejection until caught.
 
@@ -329,6 +329,35 @@ is a today-only instrument (🪫/☕ stamp the live clock, the λ₀ fit reads f
 days). That redirect belongs in `energy/+page.ts`, not in a `$effect`: a load
 redirect runs before the layout hands the session store a date, so the wrong
 day is never read, and it holds with JS disabled.
+
+### An unseen day's budget is prefilled, and that is not the Lab's `|| 8`
+
+ROADMAP item 16. A day with no stored session shows the median budget of its own
+weekday (`model/budget-memory.ts`), which the §13.6 removal above does **not**
+forbid: that fallback invented a window the main page did not have, while this
+is the user's own recorded hours and the two screens still read one value.
+
+Three properties are the whole of it, and none is optional. It is **derived, not
+assigned** — from the boot fold plus the viewed day, so every later day answers
+without a second read. It is **not persisted until the day is saved for a reason
+of its own**: `#availableHours` is `number | null`, `null` is the untouched
+state, and the autosave's dirty test reads that raw field — a prefill in the
+dirty test writes a phantom session for every future day the user merely looks
+at, which then drives the calendar, `DaySummary`, analytics' `plannedHours` and
+Burnout Risk from a budget nobody declared. The two writes that _are_ saves for a
+reason of their own — the autosave payload and `moveTaskToTomorrow`'s
+destination — record the effective hours, so "unset" is `null` in exactly one
+place. And it is **0 on a past day**, which no prefill may back-fill: an
+unplanned day had no budget, and saying otherwise is the app inventing the user's
+history.
+
+The boot read is **awaited before the day is presented** (`#boot`), started
+alongside the routines and flow reads so it costs no serial round trip. Deriving
+it does not make that optional: `+page.svelte` remounts the constraints bar on
+`{#key session.loadedDate}` and the bar snapshots `isOpen` at mount, so a day
+that lands before its budget opens the panel against 0 and fills in behind it.
+Awaiting is safe only because the read catches its own failure (above): the day
+must not wait on a history read that can take it down.
 
 ### A task moves between days only via `moveTaskToTomorrow`
 
