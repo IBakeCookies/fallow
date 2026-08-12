@@ -454,7 +454,6 @@ describe('buildMetrics', () => {
 			remainingDay({
 				limitType: 'cognitive',
 				percentSpent: Infinity,
-				hoursLeft: 0,
 			}),
 		],
 	])('reads capacity left as N/A when %s', (_case, remaining) => {
@@ -464,6 +463,8 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe('neutral');
 	});
 
+	// A share, not a duration: the pool is spent at the task's difficulty weight, so
+	// minutes of pool per hour worked read as clock time the user has left (§35).
 	it('reads what the logged hours left of the pool they load hardest', () => {
 		const row = reading(
 			dailyMetrics(plannedDay),
@@ -471,11 +472,13 @@ describe('buildMetrics', () => {
 			remainingDay({
 				limitType: 'physical',
 				percentSpent: 62.5,
-				hoursLeft: 1.5,
 			}),
 		);
 
-		expect(row.value).toBe('1h 30m');
+		expect(row.value).toBe('37%');
+		// One rounding for both halves: 62.5 spent must not read as 38% left over a
+		// sentence that says 63% is gone.
+		expect(row.description).toContain('63%');
 		expect(row.band).toBe(AXIS_BAND.humanCapacity(62.5));
 		expect(row.description).toContain(String(pools.physicalHours));
 		expect(row.description).not.toContain(String(pools.cognitiveHours));
@@ -491,11 +494,10 @@ describe('buildMetrics', () => {
 			remainingDay({
 				limitType: 'cognitive',
 				percentSpent: 128,
-				hoursLeft: 0,
 			}),
 		);
 
-		expect(row.value).toBe('0m');
+		expect(row.value).toBe('0%');
 		expect(row.band).toBe('critical');
 	});
 });

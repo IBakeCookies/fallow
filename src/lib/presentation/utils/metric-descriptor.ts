@@ -32,7 +32,6 @@ import type { Metric } from '$lib/presentation/type';
 import type { DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import type { RemainingDay } from '$lib/business/model/metric/remaining-day';
 import * as m from '$lib/paraglide/messages.js';
-import { formatDuration } from '$lib/presentation/utils/duration-format';
 import {
 	AXIS_BAND,
 	energyBalanceReading,
@@ -111,6 +110,8 @@ export function buildMetrics(
 		remainingDay && Number.isFinite(remainingDay.capacity.percentSpent)
 			? remainingDay.capacity
 			: null;
+
+	const spent = Math.round(capacity?.percentSpent ?? 0);
 
 	// The ratio has to hold, not merely be non-zero: one easy task against thirty
 	// hard ones is not a day that funds its own recovery.
@@ -223,14 +224,19 @@ export function buildMetrics(
 									: m.metric_type_physical_pool(),
 							hours:
 								capacity.limitType === 'cognitive' ? pools.cognitiveHours : pools.physicalHours,
-							percent: Math.round(capacity.percentSpent),
+							percent: spent,
 						}),
-			// Banded on the share SPENT, not on the time left, so it reads on Human
-			// Capacity's own thresholds — and reaches the critical band above 100% that
-			// allocator output cannot: the plan is held to the pools, worked hours are not.
+			// A share, not a duration: the pool is spent at wᵈ = difficultyᵈ/10, so an
+			// hour of easy work draws minutes of it (MATH.md §35) and rendering that as
+			// "12m" beside the clock-time rows reads as time the user can still work.
+			// Banded on the share SPENT, so it reads on Human Capacity's own thresholds
+			// — and reaches the critical band above 100% that allocator output cannot:
+			// the plan is held to the pools, worked hours are not.
+			// Both halves off the one rounded share, or a pool half spent reads "88%
+			// left" over a sentence saying 13% is gone. The band reads the exact one.
 			...gated(
 				capacity !== null,
-				formatDuration(capacity?.hoursLeft ?? 0),
+				`${Math.max(0, 100 - spent)}%`,
 				AXIS_BAND.humanCapacity(capacity?.percentSpent ?? 0),
 			),
 		},

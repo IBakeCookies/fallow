@@ -67,8 +67,6 @@ export interface RemainingDay {
 		limitType: 'cognitive' | 'physical';
 		/** Over 100 on a day worked past its pool, which a plan can never be. */
 		percentSpent: number;
-		/** max(0, pool − drawn) on that pool: an overrun day has nothing left, not less than nothing. */
-		hoursLeft: number;
 	};
 }
 
@@ -170,8 +168,6 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 		capacity: {
 			limitType: binding.limitType,
 			percentSpent: binding.percent,
-			hoursLeft:
-				binding.limitType === 'cognitive' ? poolsLeft.cognitiveHours : poolsLeft.physicalHours,
 		},
 	};
 }

@@ -238,9 +238,11 @@ row. Neither needed a new solve.
     the remainder can be sequenced without mirroring `SuggestedTask`'s priority
     formula. Its five existing callers are untouched.
 14. ~~**Executed capacity burn-down**~~ — SHIPPED 2026-08-12 (MATH.md §35).
-    `RemainingDay.capacity` reports the pool today's logged hours load hardest,
-    the share of it spent and what is left of it; `buildMetrics` renders it as a
-    reference row beside Human Capacity. It was free, as this item predicted:
+    `RemainingDay.capacity` reports the pool today's logged hours load hardest
+    and the share of it spent; `buildMetrics` renders the share LEFT as a
+    reference row beside Human Capacity — a share and not a duration, because
+    pool hours are weighted ones and "12m" beside the clock-time rows read as
+    time the user could still work (§35). It was free, as this item predicted:
     the draw and the clamped pools are the two quantities the §35 solve already
     builds, and the row reads them rather than re-deriving anything.
     **The one thing it cost was a shared function.** "Which pool binds, and how
@@ -252,7 +254,7 @@ row. Neither needed a new solve.
     behaviour is unchanged and still pinned by its existing tests.
     **The pitch held**: the reading reaches `AXIS_BAND.humanCapacity`'s critical
     band above 100%, which no plan-family reading can, because the allocator
-    enforces the pools and a 🪫 log does not. `hoursLeft` clamps at 0 — the
+    enforces the pools and a 🪫 log does not. The value floors at 0% — the
     overrun is carried by the percentage, which is what the band reads. Two
     display choices worth knowing: the row is gated on today having a log at all
     (a full pool is a claim about a day that may be half gone), and on a finite
