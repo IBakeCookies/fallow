@@ -126,8 +126,8 @@ that are not evident from reading it — so never retype a row, regenerate:
 §32       5981-6045  Two gates that read a sentinel as a verdict (2026-08-08)
 §33       6047-6164  A plan reads only the logs that precede it (2026-08-08)
 §34       6166-6349  The subset search gave up one task too early (2026-08-08)
-§35       6351-6696  The plan cannot see the hours you already spent (2026-08…
-§36       6698-6769  What a correction may touch (2026-08-10)
+§35       6351-6704  The plan cannot see the hours you already spent (2026-08…
+§36       6706-6777  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -6642,15 +6642,14 @@ advisor's (§8.10, §8.11), which is a different reading on a different screen.
 
 The pools enter the re-plan depleted by `Σ wᵢhᵢ` (above), and that draw is a
 reading in its own right — the one Human Capacity structurally cannot give.
-`RemainingDay.capacity` reports it: the pool the worked hours load hardest, the
-share of it spent, and `max(0, poolᵈ − Σ wᵢᵈhᵢ)` left on that pool.
+`RemainingDay.capacity` reports it: the pool the worked hours load hardest and
+the share of it spent.
 
 Nothing here is a second computation. The binding pool is
 `calculatePoolSaturation`, which is what §20 decides Human Capacity's axis with —
-the same weights `wᵈ = difficultyᵈ/10` and the same exact-before-rounding tie —
-and the hours left are the clamped pools the solve above already builds. Two
-definitions of "what is left of your capacity" would be free to disagree on one
-screen (R3).
+the same weights `wᵈ = difficultyᵈ/10` and the same exact-before-rounding tie.
+Two definitions of "what is left of your capacity" would be free to disagree on
+one screen (R3).
 
 **The two readings differ in scope, not in arithmetic.** Human Capacity is
 plan-family (§11.8): it saturates at 100% because the allocator enforces the
@@ -6661,9 +6660,17 @@ it names can differ from Human Capacity's for the same reason Primary
 Bottleneck's does (§23.1): one describes the day as designed, the other what has
 actually been spent.
 
-`hoursLeft` is clamped at 0, matching the pools the solve is given: an overrun
-day has nothing left, not less than nothing. The overrun itself is not lost — it
-is the percentage, which is what the display bands on.
+**The reading is a share, never a duration (2026-08-12).** The row first showed
+`max(0, poolᵈ − Σ wᵢᵈhᵢ)` — the clamped pool the solve already builds — formatted
+as hours and minutes. It is a weighted quantity wearing clock-time clothes: an
+hour logged on a 2/10 task spends 12 minutes of pool, so a user who logged an
+hour watched "Capacity Left" fall by twelve minutes and could not reconcile the
+two numbers, every other duration on that screen being real time. So the row
+reads `max(0, 100 − spent)`, which carries the same information given the pool
+size the tooltip states, in a unit that cannot be subtracted from a log. The
+overrun above 100% is carried by the percentage the display bands on; the value
+itself floors at 0%, because an overrun day has nothing left, not less than
+nothing.
 
 ### Pinned in the suite
 
@@ -6684,11 +6691,12 @@ ticked-done accounting share included), and a task worked just past its own `T*`
 stops being named while still leading the morning order. For `capacity`: the
 draw is at the plan's own weights and names the pool it loads hardest, a logged
 task ticked done still counts against the pools, and a day worked past its pool
-reads over 100% spent with nothing left.
+reads over 100% spent.
 
 `metric-descriptor.test.ts`: the burn-down row reads N/A before the first log of
-the day and on a 0-hour pool carrying a draw, and a day worked past its pool
-bands critical — the band no plan-family reading reaches.
+the day and on a 0-hour pool carrying a draw, reads the share left rather than a
+duration, and bands a day worked past its pool critical at 0% — the band no
+plan-family reading reaches.
 
 `daily-plan-store.svelte.spec.ts`: logging hours moves **no** plan-scoped metric
 — ROADMAP item 12's own kill criterion, at the layer where §11.8 is decided —

@@ -157,7 +157,7 @@
 	"metric_human_capacity_desc": "Limite {type} ({hours} h/jour, configurable dans Budget de temps). Le répartiteur respecte ces réservoirs, les plans suggérés restent donc ≤ 100 % — ceci montre quelle part de ta capacité soutenable le plan utilise.",
 	"metric_human_capacity_desc_none": "Quelle part de ta capacité soutenable le plan utilise. Sans tâche, aucun réservoir ne contraint — ajoute une tâche et ceci nommera celui qui contraint (les deux se configurent dans Budget de temps).",
 	"metric_capacity_left": "Capacité restante",
-	"metric_capacity_left_desc": "De ton réservoir {type} ({hours} h/jour, configurable dans Budget de temps), {percent} % sont déjà dépensés par les heures enregistrées aujourd'hui. Capacité humaine juge la journée telle qu'elle est planifiée et le répartiteur la maintient à ≤ 100 % ; ceci compte les heures réellement travaillées, et peut donc dépasser.",
+	"metric_capacity_left_desc": "La part de ton réservoir {type} ({hours} h/jour, configurable dans Budget de temps) que les heures enregistrées aujourd'hui n'ont pas dépensée — {percent} % en sont partis. Une heure compte selon la difficulté de la tâche : une heure sur une tâche 2/10 dépense 12 minutes du réservoir, pas une heure. Capacité humaine juge la journée telle qu'elle est planifiée et le répartiteur la maintient à ≤ 100 % ; ceci compte les heures réellement travaillées, et peut donc dépasser.",
 	"metric_capacity_left_desc_none": "Ce que les heures enregistrées aujourd'hui laissent de tes réservoirs de capacité. La lecture apparaît dès qu'une session est évaluée (🪫) sur un réservoir doté d'heures — le réservoir que ces heures chargent le plus, et ce qui en a été dépensé.",
 	"metric_type_cognitive": "cognitive",
 	"metric_type_physical": "physique",

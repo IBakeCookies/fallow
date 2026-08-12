@@ -345,10 +345,9 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 
 		expect(remaining?.capacity.limitType).toBe('cognitive');
 		expect(remaining?.capacity.percentSpent).toBeCloseTo(60, 9);
-		expect(remaining?.capacity.hoursLeft).toBeCloseTo(1.6, 9);
 	});
 
-	it('reads past 100% on a day worked beyond its pool, with nothing left', () => {
+	it('reads past 100% on a day worked beyond its pool', () => {
 		// The reading Human Capacity cannot give: the allocator enforces the pools,
 		// so a PLAN saturates at 100 — hours actually worked do not (MATH.md §35).
 		const remaining = calculateRemainingDay(
@@ -358,7 +357,6 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		);
 
 		expect(remaining?.capacity.percentSpent).toBeGreaterThan(100);
-		expect(remaining?.capacity.hoursLeft).toBe(0);
 	});
 
 	it('counts every logged task against the pools, including one ticked done', () => {
@@ -382,7 +380,6 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		// 0.8 × 2 + 0.1 × 1 = 1.7 cognitive against 0.1 × 2 + 0.8 × 1 = 1.0 physical.
 		expect(remaining?.capacity.limitType).toBe('cognitive');
 		expect(remaining?.capacity.percentSpent).toBeCloseTo(42.5, 9);
-		expect(remaining?.capacity.hoursLeft).toBeCloseTo(2.3, 9);
 	});
 
 	it('never plans more hours than are left', () => {

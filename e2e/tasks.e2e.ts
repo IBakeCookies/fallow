@@ -328,5 +328,6 @@ test('capacity left reads N/A until a session is rated, then names what is spent
 		})
 		.click();
 
-	await expect(row).toContainText('3h');
+	// A share, not a duration: pool hours are weighted ones (MATH.md §35).
+	await expect(row).toContainText('75%');
 });
