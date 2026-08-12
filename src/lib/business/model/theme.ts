@@ -44,7 +44,10 @@ export type ThemeName =
 	| 'mist'
 	| 'hourglass'
 	| 'foliage'
-	| 'circuit';
+	| 'circuit'
+	| 'swiss'
+	| 'brutalist'
+	| 'riso';
 
 export interface ThemeItem {
 	name: ThemeName;
@@ -64,10 +67,14 @@ export const themes: ThemeItem[] = [
 		label: 'Classic Light',
 		css: ['solid-light'],
 	},
+	/* Two classes, because `.dark` alone is the seed all 21 dark themes share:
+	   classic dark cannot BE it, so its opaque surfaces live in `.solid-dark`
+	   (base.css). Keep name/label/css adjacent — scripts/ink-contrast.mjs and
+	   hover-contrast.mjs parse this file rather than duplicate the list. */
 	{
 		name: 'solid-dark',
 		label: 'Classic Dark',
-		css: ['dark'],
+		css: ['dark', 'solid-dark'],
 	},
 	{
 		name: 'glass-light',
@@ -238,6 +245,21 @@ export const themes: ThemeItem[] = [
 		name: 'circuit',
 		label: 'Circuit',
 		css: ['circuit', 'dark'],
+	},
+	{
+		name: 'swiss',
+		label: 'Swiss',
+		css: ['swiss'],
+	},
+	{
+		name: 'brutalist',
+		label: 'Brutalist',
+		css: ['brutalist'],
+	},
+	{
+		name: 'riso',
+		label: 'Riso',
+		css: ['riso'],
 	},
 ] as const;
 

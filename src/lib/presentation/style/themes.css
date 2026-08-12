@@ -131,11 +131,22 @@
 	--card-shadow: 0 0 #0000;
 
 	--surface-page: oklch(0.12 0.014 155);
+	/* The one theme that keeps translucent cards WITHOUT a blur to hide behind:
+	   with `--blur: 0` the scanlines and the sweeping refresh line cross a panel
+	   crisply, which is the whole CRT. Everything that floats over scrolling
+	   content is opaque instead — `--surface-float` for the nav pill, an opaque
+	   `--input` for the dropdown triggers standing in it — because there a
+	   see-through fill is just page text read through chrome. Both are the
+	   composite they replace — read off rendered pixels, since compositing
+	   happens in gamma-encoded sRGB and an oklch lerp lands ~0.03 L darker. */
 	--surface-card: oklch(0.85 0.2 145 / 0.05);
+	--surface-float: oklch(0.173 0.025 149);
 	--surface-inset: oklch(0 0 0 / 0.35);
 	--ty-primary: oklch(0.87 0.19 145);
 
-	--input: oklch(0.85 0.2 145 / 0.08);
+	--input: oklch(0.237 0.044 147);
+	--control-hover: oklch(0.314 0.066 146);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.85 0.2 145 / 0.3);
 
 	--primary: oklch(0.85 0.21 145);
@@ -170,20 +181,34 @@
 		linear-gradient(oklch(0.42 0.09 255), oklch(0.36 0.09 258));
 
 	--radius: 0.25rem;
+	--blur: 0;
 	/* line work on a flat drafting sheet — no depth */
 	--card-shadow: 0 0 #0000;
 
+	/* Opaque, and it costs nothing to see: a 2rem blur over a 24px grid is a
+	   flatten, so the sheet under a panel already read as one wash of blue —
+	   this is that wash, named. Panels are areas masked off the drawing; the
+	   grid runs in the margins, where a drafting sheet shows it anyway.
+	   Each value is the composite it replaces, so nothing shifts colour — read
+	   off rendered pixels, since compositing happens in gamma-encoded sRGB and
+	   an oklch lerp lands ~0.03 L darker. */
 	--surface-page: oklch(0.4 0.09 256);
-	--surface-card: oklch(1 0 0 / 0.07);
-	--surface-inset: oklch(0 0 0 / 0.16);
+	--surface-card: oklch(0.445 0.083 255);
+	--surface-inset: oklch(0.394 0.072 256);
 	--ty-primary: oklch(0.98 0.008 240);
 
-	--input: oklch(1 0 0 / 0.12);
+	/* Half a step darker than the composite it replaces, which the white label
+	   is what pays for: at the literal composite (0.517, hovering to 0.589) it
+	   read 4.04:1 on the hover fill and pulled `secondary` — a wash of the
+	   near-white primary over this — down to 3.54. `--secondary-hover` is set
+	   further down, deepening for the same reason. */
+	--input: oklch(0.47 0.079 256);
+	--control-hover: oklch(0.52 0.072 256);
 	--border: oklch(1 0 0 / 0.3);
 
 	/* drafting-pen white. Note this is the one primary in the catalogue that is
 	   near-white, so `--secondary` (a wash of it) lands mid-luminance here and
-	   holds `ty-primary` label text at only 3.74:1 — a cap of this palette, not
+	   holds `ty-primary` label text at only 4.04:1 — a cap of this palette, not
 	   of the token: the flat 10% white it used to be measured 3.9:1, and going
 	   darker instead kills the hover, since the page is as dark as the fill. */
 	--primary: oklch(0.97 0.01 240);
@@ -312,13 +337,25 @@
 	font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
 
 	--radius: 0.125rem;
+	--blur: 0;
 
+	/* Opaque: vellum is not glass, and the only thing under a page of it is the
+	   vignette, which a 2rem blur was already averaging to a flat tone. This is
+	   that tone — each value is the composite it replaces, read off rendered
+	   pixels, since compositing happens in gamma-encoded sRGB and an oklch lerp
+	   lands ~0.03 L darker. */
 	--surface-page: oklch(0.92 0.03 83);
-	--surface-card: oklch(0.97 0.02 88 / 0.55);
-	--surface-inset: oklch(0.45 0.06 70 / 0.08);
+	--surface-card: oklch(0.948 0.024 86);
+	--surface-inset: oklch(0.91 0.025 81);
 	--ty-primary: oklch(0.3 0.04 60);
 
-	--input: oklch(1 0.01 90 / 0.6);
+	--input: oklch(0.978 0.015 94);
+	/* The one value here that is NOT its composite, because that composite is
+	   degenerate: this field was 60% white, and `alpha * 1.7 + 0.04` clamps at
+	   1, so the old hover was flat white one step off a near-white field. Darker
+	   instead, which is also the direction a pressed area of vellum goes. */
+	--control-hover: oklch(0.93 0.022 87);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.45 0.07 70 / 0.3);
 
 	/* wax-seal crimson */
@@ -1252,4 +1289,179 @@
 	--mind-strong: oklch(0.83 0.09 220);
 	--body: oklch(0.75 0.12 160);
 	--mixed: oklch(0.73 0.11 310);
+}
+
+/* ---- the square-cornered three ------------------------------------
+   Every other light theme here rounds; these three are drawn with a set
+   square. Every surface is a flat ink, `--blur: 0`, nothing shows through
+   anything — they are print, not glass.
+
+   Which side of that line a theme belongs on is not taste, it is what its
+   background does under a 2rem blur. That blur is a FLATTEN: a fine texture
+   (blueprint's 24px grid, parchment's vellum) averages to one wash under a
+   card, so translucency buys nothing there and these themes are the same
+   bargain — see those two, plus classic light/dark in base.css. Alpha earns
+   its keep only where the backdrop has large soft structure or MOVES:
+   daybreak's sun, mist's drifting banks, moonphase's real phase. That is
+   the 32 themes that keep it.
+
+   Two consequences of going opaque, both paid for below rather than argued
+   away:
+
+   - Alpha is what separates a `bg-surface-card` nested on another one (the
+     metric tiles, the task-definition panel) everywhere else. Here the three
+     surface rungs are three DISTINCT inks — page, card, inset — and the
+     border does the rest, which with `--radius: 0` and a heavy `--border` is
+     the whole visual language anyway. A nested card with no border of its own
+     has to take the inset rung instead, which is what `log-row` does.
+   - Both alpha-scaling hovers in base.css (`--control-hover`,
+     `--secondary-hover`) are no-ops on an opaque fill —
+     `scripts/hover-contrast.mjs` measured step 1.000 — so each theme sets
+     that pair itself, as base.css says a theme with an opaque `--input`
+     must.
+
+   In exchange, chrome that floats over scrolling content — the sticky nav
+   pill, its dropdown triggers — is genuinely solid. On a `--blur: 0` theme
+   `backdrop-blur` is a no-op, so a translucent fill there let page text
+   read straight through it. `terminal` is the one theme that wants both,
+   and splits the difference with `--surface-float`. */
+
+.swiss {
+	/* International Typographic Style: grey paper, white cards, hairline
+	   rules, one signal red. No backdrop at all — the grid is the decoration. */
+	--radius: 0;
+	--blur: 0;
+	/* paper does not float; the rules do the separating */
+	--card-shadow: 0 0 #0000;
+
+	/* three greys, three rungs: paper, the card laid on it, the well cut into it */
+	--surface-page: oklch(0.955 0 0);
+	--surface-card: oklch(1 0 0);
+	--surface-inset: oklch(0.925 0 0);
+	--ty-primary: oklch(0.17 0 0);
+
+	/* A field cut INTO the card, where the other light themes float a white one
+	   on top: the card is already white here, so a white field has no edge. */
+	--input: oklch(0.93 0 0);
+	--control-hover: oklch(0.87 0 0);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
+	/* a printed hairline, not a wash: heavier than any other light theme's
+	   border, because with radius 0 and no shadow the line IS the card */
+	--border: oklch(0.17 0 0 / 0.55);
+	--line-soft: oklch(0.17 0 0 / 0.14);
+
+	/* signal red — the only saturated thing on the page */
+	--primary: oklch(0.55 0.22 27);
+	--primary-foreground: oklch(0.99 0 0);
+	/* the danger wash mixes into a page greyer than the other light themes',
+	   which held red-700 ink at 4.49:1 on the hover fill — deepen the ink */
+	--danger-strong: oklch(0.42 0.19 25);
+
+	--brand: oklch(0.55 0.22 27);
+	--brand-strong: oklch(0.46 0.2 27);
+	/* domain accents run near-grey at distinct hues (noir's trick): still
+	   separable in a chart, never competing with the red */
+	--mind: oklch(0.42 0.07 250);
+	--mind-strong: oklch(0.34 0.07 250);
+	--body: oklch(0.44 0.07 165);
+	--flow: oklch(0.5 0.08 80);
+	--mixed: oklch(0.44 0.07 310);
+}
+
+.brutalist {
+	/* béton brut: raw concrete, hard unblurred drop shadows, caution yellow.
+	   The faint 45° hatch is form-board grain. */
+	--background-image:
+		repeating-linear-gradient(45deg, oklch(0 0 0 / 0.02) 0 2px, transparent 2px 7px),
+		linear-gradient(oklch(0.88 0.004 95), oklch(0.83 0.006 90));
+
+	--radius: 0;
+	--blur: 0;
+	/* offset, zero blur — a block casting a shadow, not a card floating */
+	--card-shadow: 5px 5px 0 oklch(0.15 0.004 95 / 0.9);
+
+	/* the hatch is form-board grain on the poured wall behind; a slab cast
+	   against it is its own smooth face, so the texture stops at the edge */
+	--surface-page: oklch(0.86 0.005 95);
+	--surface-card: oklch(0.965 0.004 95);
+	--surface-inset: oklch(0.895 0.005 95);
+	--ty-primary: oklch(0.15 0.004 95);
+
+	--input: oklch(0.925 0.004 95);
+	--control-hover: oklch(0.86 0.006 95);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
+	/* near-solid ink outline; the shadow lands on it, so anything fainter
+	   reads as a printing error rather than a rule */
+	--border: oklch(0.15 0.004 95 / 0.85);
+	--line-soft: oklch(0.15 0.004 95 / 0.22);
+
+	/* caution yellow, dark ink on it */
+	--primary: oklch(0.84 0.17 92);
+	--primary-foreground: oklch(0.16 0.03 95);
+	--ring: oklch(0.15 0.004 95 / 0.6);
+	/* The shared `--primary-hover` steps AWAY from the fill's ink, which for a
+	   dark ink means lighter — and a lighter yellow lands on top of a page this
+	   pale: measured gap 1.004 against the concrete, a hover that vanishes.
+	   Deepen instead; the label is dark, so it only gains. */
+	--primary-hover: oklch(0.73 0.17 88);
+
+	/* `--destructive-soft` mixes 12% of danger into `--surface-page`, and this
+	   page is the darkest of the light themes (l 0.86, vs 0.96–0.98) — so the
+	   wash lands dark enough that red-700 ink on it measured 3.70:1. The ink is
+	   the half with room, not the fill. */
+	--danger-strong: oklch(0.36 0.16 25);
+
+	--brand: oklch(0.72 0.16 60);
+	--brand-strong: oklch(0.6 0.16 50);
+	--flow: oklch(0.72 0.16 75);
+	--mind: oklch(0.45 0.16 265);
+	--mind-strong: oklch(0.38 0.15 265);
+	--body: oklch(0.5 0.14 155);
+	--mixed: oklch(0.48 0.19 320);
+}
+
+.riso {
+	/* risograph two-ink print: blue and fluoro pink on newsprint stock, with
+	   the misregistration you get from running the sheet through twice. */
+	--background-image:
+		repeating-linear-gradient(0deg, oklch(0.4 0.1 265 / 0.03) 0 1px, transparent 1px 4px),
+		repeating-linear-gradient(90deg, oklch(0.65 0.24 5 / 0.025) 0 1px, transparent 1px 4px),
+		linear-gradient(oklch(0.96 0.014 85), oklch(0.93 0.02 80));
+
+	--radius: 0;
+	--blur: 0;
+	/* the second pass, printed 3px off register */
+	--card-shadow: 3px 3px 0 oklch(0.65 0.24 5 / 0.28);
+
+	/* newsprint, then two flat passes of ink over it — a riso lays colour down,
+	   it does not tint what is underneath */
+	--surface-page: oklch(0.95 0.016 85);
+	--surface-card: oklch(0.985 0.008 85);
+	--surface-inset: oklch(0.915 0.024 85);
+	/* riso ink is never black — the darkest thing on the sheet is the blue */
+	--ty-primary: oklch(0.3 0.1 265);
+
+	--input: oklch(0.93 0.02 85);
+	--control-hover: oklch(0.87 0.03 80);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
+	--border: oklch(0.42 0.16 265 / 0.45);
+	--line-soft: oklch(0.42 0.16 265 / 0.16);
+
+	/* ink 1: federal blue */
+	--primary: oklch(0.47 0.18 265);
+	--primary-foreground: oklch(0.97 0.012 85);
+
+	/* ink 2: fluorescent pink — the whole accent budget */
+	--brand: oklch(0.62 0.24 5);
+	--brand-strong: oklch(0.53 0.23 5);
+	--mixed: oklch(0.62 0.24 5);
+	--mind: oklch(0.47 0.18 265);
+	--mind-strong: oklch(0.39 0.17 265);
+	--body: oklch(0.5 0.14 200);
+	--flow: oklch(0.62 0.19 40);
+	/* two inks can still say "wrong" and "right": pink runs hot, blue cool */
+	--danger: oklch(0.57 0.24 15);
+	--danger-strong: oklch(0.48 0.22 15);
+	--info: oklch(0.52 0.16 255);
+	--info-strong: oklch(0.44 0.16 255);
 }

@@ -65,18 +65,18 @@ chromium, `*.svelte.{test,spec}.ts`), `storybook`.
 
 `.storybook/preview.ts` builds the theme toolbar from the catalogue in
 `business/model/theme.ts` and stamps the theme classes onto `<html>` the way
-`hooks.server.ts` does, so a story is reviewable on any of the 37 themes.
+`hooks.server.ts` does, so a story is reviewable on any of the 40 themes.
 `presentation/theme.stories.svelte` is the componentless one: a tall page for
 judging a theme's background, scenery and token swatches, parked outside
 `style/` on purpose (STYLE.md's scanner note). `@storybook/addon-a11y` runs axe
 on every story with `test: 'error'` — an a11y violation **fails CI**.
 `theme.stories.svelte` opts out of `color-contrast` only: it renders every
-fill/ink pair on purpose, including the 18 of 333 that cannot reach 4.5:1 (see
+fill/ink pair on purpose, including the 21 of 360 that cannot reach 4.5:1 (see
 STYLE.md's ink note; the budget is measured by `scripts/ink-contrast.mjs`).
 Contrast stays enforced on every real component. Storybook is also what
 `scripts/hover-contrast.mjs` drives (on :6006, unlike the ink script): axe only
 ever sees a story's REST state, so every hover fill's step and label contrast
-is measured there instead, over all 37 themes × the 5 button variants that carry
+is measured there instead, over all 40 themes × the 5 button variants that carry
 a hover fill (`link` carries none, so it is not measured).
 
 ## The five commands

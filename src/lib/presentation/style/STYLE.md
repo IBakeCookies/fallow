@@ -19,11 +19,11 @@ Read this before touching markup, classes, or anything under
   (`text-zinc-400`) in components, including class strings built in `.ts`
   helpers.
 - **Never `dark:` in a component.** It does match — `@custom-variant dark
-(&:is(.dark *))` in `tokens.css`, and 21 of the 37 themes stamp `.dark`
+(&:is(.dark *))` in `tokens.css`, and 21 of the 40 themes stamp `.dark`
   (`abyss`, `noir`, `meridian`, `terminal` among them) — and that is the
-  problem: a **binary** over 37 distinct palettes bakes one hardcoded dark look
+  problem: a **binary** over 40 distinct palettes bakes one hardcoded dark look
   across all 21 (which `themes.css` then contradicts per theme) and does
-  nothing on the other 16. Any light/dark difference must come from a token the
+  nothing on the other 19. Any light/dark difference must come from a token the
   themes already swap. `-strong` is not "darker" — it means _more contrast
   against this theme's own background_: lighter on every dark theme, darker on
   every light one. Never use it as a fill under light-coloured content.
@@ -39,8 +39,8 @@ Read this before touching markup, classes, or anything under
   light theme white reads on `danger` but fails on `warning`) — so a theme that
   overrides a fill silently changes its ink, and `themes.css` overrides fills
   200+ times. After touching a state or domain fill, run
-  `node scripts/ink-contrast.mjs` (dev server on :5173): all 37 themes × 9
-  fills. Worst case in the catalogue is 4.28:1, and 18 of the 333 pairs cannot
+  `node scripts/ink-contrast.mjs` (dev server on :5173): all 40 themes × 9
+  fills. Worst case in the catalogue is 4.28:1, and 21 of the 360 pairs cannot
   reach 4.5:1 with _any_ ink (a mid-luminance chromatic fill caps out) — one
   more reason solid fills are for labels and the tinted recipe is for prose.
 - **Two hover families, chosen by what the rest state is.** `surface-hover` is a
@@ -60,18 +60,22 @@ Read this before touching markup, classes, or anything under
   (`hover:bg-primary/80`) moves the fill _toward_ the surface, and mixing a
   fixed tint in moved a 0.09-alpha fill by ΔL 0.012 while moving a 0.65-alpha one
   by 0.13. All three were measured and rejected — `node scripts/hover-contrast.mjs`
-  (Storybook on :6006) re-runs it over all 37 themes × the 5 variants that carry
+  (Storybook on :6006) re-runs it over all 40 themes × the 5 variants that carry
   a hover fill (`link` carries none) and records the 27 findings of residue that
   no hover token can reach, 24 of them the danger palette cap below. It judges a
   step by CONTRAST RATIO and not by a difference of luminances, because relative
   luminance is compressed near black: one 6% tint measures ΔL 0.129 over white
   and 0.0048 over black, so a ΔL bound calls a token that does not vary broken on
   every dark theme. As a ratio that same tint reads 1.14 and 1.10, and `ghost`
-  clears the bound on all 37. `hover:bg-surface-card` on an element already
-  sitting on a card is a no-op — easy to miss.
+  clears the bound on all 40. Both alpha-scaling hovers (`--control-hover`,
+  `--secondary-hover`) are no-ops on an OPAQUE fill — measured step 1.000 — so
+  each of the 8 themes whose `--input` is opaque sets that pair itself.
+  `hover:bg-surface-card` on an element already sitting on a card is a no-op —
+  easy to miss, and on those 8 it is a no-op even when the element is NOT on a
+  card, since nothing composites.
 - **`bg-control` is the neutral control fill; `bg-input` is a form field.** They
-  hold the same value (`--control: var(--input)` — one per-theme knob, and 35
-  themes turn it), but a button naming `input` was a lie that made every
+  hold the same value (`--control: var(--input)` — one per-theme knob, and all
+  40 turn it), but a button naming `input` was a lie that made every
   reader check, and a theme can now split them by overriding `--control` alone.
   Note `--color-control` also generates `border-control`/`outline-control`; only
   `bg-control` is meant.
@@ -101,18 +105,33 @@ Read this before touching markup, classes, or anything under
   neighbouring shade of the same hue, so over a light page anything past ~18%
   costs more contrast than it buys, while over a dark page 18% of a colour that
   dark is within ΔL 0.004 of the page — a fill and a hover you cannot see.
-- **A translucent surface sitting on the page needs `backdrop-blur`.** Both
-  `surface-card` and `input` are translucent in 35 of the 37 themes; without it
-  the background image shows through unblurred while every card around it is
-  frosted. Missed before on: the toolbar buttons, the calendar arrows, both
-  segmented-toggle pills. Controls _nested inside_ an already-blurred card do
-  not need their own — they sit on a blurred plane already. Bare
-  `backdrop-blur` is theme-aware (`terminal` → 0,
+- **A translucent surface sitting on the page needs `backdrop-blur`.**
+  `surface-card` carries alpha in 33 of the 40 themes and `input` in 32;
+  without it the background image shows through unblurred while every card
+  around it is frosted. Missed before on: the toolbar buttons, the calendar
+  arrows, both segmented-toggle pills. Controls _nested inside_ an
+  already-blurred card do not need their own — they sit on a blurred plane
+  already. Bare `backdrop-blur` is theme-aware (`terminal` → 0,
   `lantern-drift` → 2rem); `backdrop-blur-sm` is not.
+- **A borderless panel nested inside a card uses `surface-inset`, not
+  `surface-card`.** Card-on-card separates only by compositing the same alpha
+  twice, so on the 8 opaque themes it is one flat ink and the nested panel
+  disappears — `log-row` did, in the analytics log list. The nested cards that
+  keep `surface-card` (the metric tiles, the task-definition panel) all carry a
+  border, which is what still separates them there.
+- **Chrome that floats over scrolling content uses `surface-float`, not
+  `surface-card`.** One site today, the sticky nav pill. The two are the same
+  value in 39 themes; they differ where a theme is translucent _and_ sets
+  `--blur: 0`, which makes the blur a no-op and lets page text read straight
+  through the pill. `terminal` is that theme, on purpose — its scanlines
+  crossing a card is the theme — so it alone re-points `--surface-float` at an
+  opaque ink. The other 7 blur-0 themes avoid the trap by being opaque
+  throughout (base.css `.solid-light`/`.solid-dark`, and themes.css's "the
+  square-cornered three", which also covers blueprint and parchment).
 - **`component/ui/sonner/sonner.svelte` deviates from its registry version in
   four ways, and `shadcn add sonner` undoes all four** — check the file after
   ever re-running the CLI. (1) No `mode-watcher`: the registry passes
-  `theme={mode.current}`, a light/dark **binary** over 37 palettes — the same
+  `theme={mode.current}`, a light/dark **binary** over 40 palettes — the same
   mistake as `dark:`. Every colour comes from tokens instead, so sonner's own
   `theme` never shows and the dependency is not installed. (2) The four
   severity tints are added — the registry sets only `--normal-*`, and
@@ -126,7 +145,7 @@ Read this before touching markup, classes, or anything under
   `--color-popover` exists here and `tokens.css` already maps it to
   `--surface-page` for exactly this reason ("popovers float over arbitrary
   content"). A floating overlay must not sit on `--surface-card` — it carries
-  alpha on 35 of the 37 themes and `terminal` pairs that with `--blur: 0`, so
+  alpha on 33 of the 40 themes and `terminal` pairs that with `--blur: 0`, so
   page text reads straight through the toast.
 - **`component/ui/tooltip/tooltip-provider.svelte` defaults `delayDuration` to
   150 where the registry defaults it to 0, and `shadcn add tooltip` undoes
@@ -140,13 +159,13 @@ Read this before touching markup, classes, or anything under
   `background-color: currentColor`, so the fill has to be dark — impossible
   here: on a dark theme every accent token is light by design. `accent-color`
   hands checkmark contrast to the browser, the only thing that holds across all
-  37 themes. The plugin is still loaded in `app.css` and **cannot just be
+  40 themes. The plugin is still loaded in `app.css` and **cannot just be
   dropped**: the two bare-`border` inputs in `page-header.svelte` inherit their
   border colour from its base layer. Give them explicit token borders first,
   then remove it.
 - **An overflowing panel scrolls with `nice-scrollbar` (`base.css`), never the
   native bar** — the theme dropdown and the analytics log history are both it. No
-  palette reaches a UA scrollbar, so it renders as the same grey slab on all 37
+  palette reaches a UA scrollbar, so it renders as the same grey slab on all 40
   themes.
 - Tailwind's scanner is **textual and runs at build time** — a name assembled
   at runtime does not exist. This bites twice: class names (`bg-{x}-500`), and

@@ -141,16 +141,21 @@
 								{#each themeStore.themes as theme (theme.name)}
 									<DropdownMenu.RadioItem value={theme.name} class="cursor-pointer gap-grid-xs">
 										<!-- theme classes scope that theme's CSS vars to the swatch,
-										     so the slices always match themes.css -->
+										     so the slices always match themes.css. Three slices, not two:
+										     `--brand` is the accent every theme tunes away from its
+										     primary (36 of 38 set it), so it is what tells the two
+										     one-signal-colour themes apart from the polychrome ones. -->
 										<span
 											class="{theme.css.join(
 												' ',
-											)} border-line-strong flex h-3.5 w-3.5 shrink-0 overflow-hidden rounded-full border"
+											)} border-line-strong flex h-6 w-2 shrink-0 overflow-hidden rounded flex-col border"
 											aria-hidden="true"
 										>
-											<span class="h-full w-1/2" style="background: var(--surface-page)"></span>
-											<span class="h-full w-1/2" style="background: var(--primary)"></span>
+											<span class="h-full" style="background: var(--surface-page)"></span>
+											<span class="h-full" style="background: var(--primary)"></span>
+											<span class="h-full" style="background: var(--brand)"></span>
 										</span>
+
 										{theme.label}
 									</DropdownMenu.RadioItem>
 								{/each}
