@@ -17,6 +17,13 @@ Phases are priority order. Item numbers are stable and cited from elsewhere
 cited and were re-cut on 2026-08-04 when items 11–23 were added. Update this
 file when an item ships or is rejected.
 
+**A shipped item collapses to its date and a link.** What was decided, what was
+rejected and what the review caught go to `docs/features/<slug>.md`, frozen at
+land; this file stays the list of what is next and what was refused. An item
+here never describes how the code works today — that is MATH.md and the area
+`AGENTS.md`, and a claim about current behaviour written here is the one that
+rots (2026-08-13 sweep: 14 of 161).
+
 **Prettier renumbers a contiguous ordered list to increment from its first
 number**, so an out-of-sequence item dropped into the middle of a phase is
 silently rewritten — which, since numbers are cited, collides with a real item
@@ -107,115 +114,10 @@ and 13 and 14 were display work on top of it — 13 names position 1 of the
 re-planned order, 14 turns the same pool depletion §35 already computes into a
 row. Neither needed a new solve.
 
-11. ~~**Worked-hours instrument on `/`**~~ — SHIPPED 2026-08-09, and it was a
-    smaller thing than this item claimed. Nothing about the data needed
-    building: `EnergyObservationStore` is created once in the `(app)` layout and
-    both pages already read it from context, so a 🪫 log has always been shared
-    across the two screens — the button was simply only ever rendered on
-    `/energy`. What shipped is the button, on both rows.
-    **The symmetric half was the real finding.** If 🪫 belongs on `/` because
-    the α, λ₀, §12 and §11.9 readings all run off worked hours, then ⚡ belongs
-    on `/energy` for the same reason: `zenith-energy.ts` takes `UserConstants`
-    in its curve builders, so the Lab's own plans are computed with ϕ constants
-    only the main page could calibrate. Each screen was withholding an
-    instrument the other's model consumes. Both measurements are now on both
-    rows.
-    **So it consolidated rather than added.** The two rows already shared
-    `task-row-shell.svelte`; with the same two actions on both, the `actions`
-    and `forms` snippets were identical in each caller, so the whole action
-    strip, both measurement editors and the ✎ editor moved into the shell.
-    `task-item.svelte` and `energy-task-row.svelte` are now their three reading
-    snippets and the prop mapping around them. `canLogFlow` became `canLog`: the
-    gate is `selectedDate === today` and both stores stamp an observation with
-    the live clock's today, so the hazard it guards is the same for either
-    measurement. `DrainDraft`/`newDrainDraft` moved to `measurement-prompt.ts`,
-    which is what stops the two pages' draft records drifting apart again.
-    **Completing a task now asks both questions**, stacked, each keeping its own
-    policy — ⚡ goes quiet once measured (one number per day), 🪫 never does (one
-    per session, MATH.md §18). The other change on `/energy` is the ⚡ badge,
-    which moved into the shell from `task-item.svelte`: with both instruments on
-    both rows and the strip hover-revealed, neither caller was saying at rest
-    what it had already measured. 🪫 cannot badge — a task worked twice has two
-    ratings — so it pinned the strip open instead, which is what the Lab's row
-    did before and `/` then did too. **Superseded 2026-08-10:** a rating reads as
-    one chip per session, which says it at rest without holding the strip open —
-    and, being per-rating, is what let correcting and deleting one move onto the
-    row it belongs to on both screens (AGENTS.md R3) — and, on 2026-08-10, let the
-    cross-date reading the chips cannot give move to `/analytics`, which now prints
-    every ⚡, 🪫 and ☕ as one dated list — the range it is viewed under by default,
-    or all of them — and both of a measurement's verbs sit on its row there: ✕
-    drops it, ✎ corrects it. The card resets the fit, the list holds the
-    measurements, and this answers "what did I log". The three calibration cards
-    stopped listing their own kind the same day — three partial answers to one
-    question — and kept the fit's two verbs (`fit-log-summary.svelte`). ⚡ joined
-    🪫 in being correctable on a PAST day the same week: the badge
-    reads the day's own observation instead of a `flowMinutes` field on its
-    session, so an amendment lands somewhere the auto-save is not asked to
-    rewrite, and the field is gone. What let the ✎ leave the row at all is
-    MATH.md §36: a correction rewrites the quantities the user rated and re-derives
-    no covariate from the live task, so it needs no day in view — which is also the
-    first correction ☕ has ever had, having no task and so no row to carry one.
-    The ✓/✕ pair likewise has one owner
-    (`measurement-form-actions.svelte`); the three editors had each grown their
-    own, two with a hover surface and one without.
-    **`DailyMetricsInput` was deliberately left alone.** This item planned to
-    add today's logs to it (`metric/daily-metrics.ts:48-58` still has no
-    worked-hours field), but nothing reads such a field until item 12 — it is
-    12's input, and adding it now would ship a prop with no consumer.
-    **Hours provenance — SETTLED 2026-08-05 as option (a)** (MATH.md §18).
-    `DrainObservationRecord.hours` stayed the α instrument (§8.7's one session
-    `H`) and the store became **one row per session**: §8.10/§11.9/§12 read a
-    task's day as the sum of its rows, which is what `workedHoursByTask` and
-    `readFinishedDays` already computed. The `(taskId, date)` upsert that
-    forced the two readings onto one number is gone — it was deleting the
-    earlier session outright, not just blurring it — so there is no amendment
-    path that attaches an old rating to new hours: every session re-asks
-    mind/body, and correcting one edits that row in place. No schema change,
-    no R8.
-    Options (b) (worked hours as a `Task` field) and (c) (a new store) are
-    therefore moot, and the α-drift probe that would have chosen between them
-    is not needed; what remains true is the **sessions-per-day bias** in
-    item 18's table, which this makes commoner and does not cause. New user
-    input: yes, but only the `/`-side form.
+11. ~~**Worked-hours instrument on `/`**~~ — SHIPPED 2026-08-09 (MATH.md §18).
+    [docs/features/worked-hours-instrument.md](docs/features/worked-hours-instrument.md)
 12. ~~**Prefix-aware mid-day re-plan**~~ — SHIPPED 2026-08-10 (MATH.md §35).
-    `calculateRemainingDay` (`metric/remaining-day.ts`) re-plans the OPEN tasks
-    over the hours today's 🪫 logs leave, from a prefix: `buildBlockIncrements`
-    continues at `Δᵢ(j) = P̄ᵢ(hᵢ+jδ) − P̄ᵢ(hᵢ+(j−1)δ)`, pools enter depleted at
-    `Σ wᵢhᵢ` clamped at 0, and it renders as a second line stacked in the task
-    row — the delta leads, the plan sits under it (MATH.md §35).
-    The shape is the one this item specified — a store-level `$derived` on
-    `DailyPlanStore`, gated on the viewed day being today AND on any hours
-    existing — and the kill criterion is pinned as a store spec: logging hours
-    moves no plan-scoped metric. `hᵢ = 0` is bit-identical to the cold solve,
-    so §4, §5.1 and §34 are undisturbed and no existing plan moved.
-    **The switch convention was the real finding, and BOTH options named above
-    were wrong.** Charging a re-entry double-charges a task that simply
-    continued; free re-entry _refunds_ the switches of a started task the
-    remainder abandons, letting it buy blocks with a bill the day still owes.
-    On days executed exactly to plan that manufactured a median **+6.67%** over
-    finishing the morning plan, against this item's own expected ≈0 — the kill
-    criterion caught it, one input wider than the plan-family test it was
-    written for. The rule that survives is neither: the bill is charged over the
-    **day's** funded set, `{worked} ∪ {newly funded}` (`AllocTask.isStarted`).
-    Under it the on-plan control reads median **0.00%**, mean 0.01%, funded set
-    differing on 6 of 400 days. The seam itself stays free, and that IS measured:
-    charged re-entry median 0.00% / mean −0.45% against free's +0.34% / +4.23%.
-    **The value is well below what this item hypothesised, and the gap is
-    methodological.** Against a feasibility-matched baseline
-    (`scripts/prefix-replan.probe.ts`, seed `0x9e12ab`, 400 days): median
-    **+1.76%** of day `Σ P̄` vs the cold re-solve the budget slider gives, mean
-    3.74%, p90 9.57%, never negative; median **+1.21%** vs the morning plan's
-    remainder; funded set differs from cold on **44.75%** of days. The +5.8–7.8%
-    and 81% quoted above reproduce only if the baselines are left **infeasible**
-    — `Σ P̄` prices neither pools nor switches, so an arm ignoring them outscores
-    one respecting them for free (§19, one level down). The strongest number is
-    not a percentage: over those 400 days the re-plan needed **0** feasibility
-    trims against the cold solve's 270 and the morning remainder's 359. The
-    alternatives mostly propose spending capacity the morning already burned.
-    Still ~24× §17's ϕ anchor and the same order as item 15's enjoyment default.
-    Cost measured at **12.4 ms**/solve at n = 12 and **0.001 ms** when nothing is
-    logged, which is what makes the gate rather than an on-demand method viable.
-    No new store, no new input beyond 11, no `DB_VERSION` bump.
+    [docs/features/prefix-aware-mid-day-replan.md](docs/features/prefix-aware-mid-day-replan.md)
 13. ~~**"You are here" on the run order**~~ — SHIPPED 2026-08-10 (MATH.md §35).
     `RemainingDay.nextTask` is position 1 of `calculateInterleavedOrder` over the
     funded remainder; `next-up-line.svelte` renders it on the list card's header
@@ -239,75 +141,13 @@ row. Neither needed a new solve.
     the remainder can be sequenced without mirroring `SuggestedTask`'s priority
     formula. Its five existing callers are untouched.
 14. ~~**Executed capacity burn-down**~~ — SHIPPED 2026-08-12 (MATH.md §35).
-    `RemainingDay.capacity` reports the pool today's logged hours load hardest
-    and the share of it spent; `buildMetrics` renders the share LEFT as a
-    reference row beside Human Capacity — a share and not a duration, because
-    pool hours are weighted ones and "12m" beside the clock-time rows read as
-    time the user could still work (§35). It was free, as this item predicted:
-    the draw and the clamped pools are the two quantities the §35 solve already
-    builds, and the row reads them rather than re-deriving anything.
-    **The one thing it cost was a shared function.** "Which pool binds, and how
-    saturated is it" was inside `calculateHumanCapacity`, and re-spelling it here
-    would have been R3's mirror case — the two rows would have been free to name
-    different pools off the same tie rule. It came out as
-    `calculatePoolSaturation` (exact, the caller rounds — §20's tie is decided
-    before rounding or the row names the wrong pool), and Human Capacity's own
-    behaviour is unchanged and still pinned by its existing tests.
-    **The pitch held**: the reading reaches `AXIS_BAND.humanCapacity`'s critical
-    band above 100%, which no plan-family reading can, because the allocator
-    enforces the pools and a 🪫 log does not. The value floors at 0% — the
-    overrun is carried by the percentage, which is what the band reads. Two
-    display choices worth knowing: the row is gated on today having a log at all
-    (a full pool is a claim about a day that may be half gone), and on a finite
-    saturation, since a 0-hour pool carrying a draw would print "Infinity%" in
-    the tooltip the way §20 already gates Human Capacity's value.
+    [docs/features/executed-capacity-burn-down.md](docs/features/executed-capacity-burn-down.md)
 
 Found by the 2026-08-06 review of the advice card, and small enough to be
 nobody's feature — which is why it is written down rather than remembered:
 
-25. ~~**The advice card's buttons must not outlive the day they priced.**~~ —
-    SHIPPED 2026-08-12, and it is **two cards, three buttons**: the advice
-    card's defer and budget levers, and the Energy Lab's "Set the window" on the
-    budget curve, which prices the same class of thing behind the same stale
-    flag. That third button had **no `disabled` at all** — not even `isBusy` —
-    so it was also clickable mid-sweep, holding a recommendation the run in
-    flight was about to replace. All three now gate on `isBusy || isStale`; the
-    recheck button stays live, because it is the way out.
-    **Half (b) was a wider hole than this item claimed.** The item read it as
-    advice surviving a day change and rendering with the stale banner plus dead
-    buttons. But `selectedDate` falls back to the live clock
-    (`session-store.svelte.ts:146-148`) and `#loadSession` is async, so at a URL
-    navigation and at the midnight tick the day moves while the previous day's
-    tasks are still in memory — and through that window the inputs are
-    unchanged, so the fingerprint never moves and the card reads **fresh**, not
-    stale. Both fingerprints now carry the date: `DailyPlanStore`'s wrapped
-    around `#input` rather than folded into it (that object is
-    `calculateDailyMetrics`' argument, and the date is not a model input), and
-    `EnergyLabStore`'s `#curveFingerprint` for the same reason one level down —
-    that store is layout-scoped, so it sees every day `/` selects, but `/energy`
-    refuses a dated URL, so the midnight tick is its whole exposure ON SCREEN.
-    Both directions are pinned by a store spec that fails without the field.
-    **The counter-case did not survive contact.** "Gating costs the user the one
-    deferral they can still take honestly" is answered by the sequence: the
-    first apply is taken from a fresh card and lands, and it is the _second_
-    row — priced against a day that first apply just changed — that §14's
-    single-step contract calls wrong. Gating is that contract rendered.
-    **One path this does NOT close, found by the reviewer and left open on
-    purpose.** If `#readSession` throws, `#loadSession` reports `load-failed`
-    and leaves `#loadedDate` behind (`session-store.svelte.ts:475-481`), so the
-    previous day's tasks stay on screen under the new date indefinitely. The
-    card goes stale correctly, but Recheck is ungated and re-pins `#adviceFor`,
-    so the defer buttons come back enabled and `moveTaskToTomorrow`'s
-    `#loadedDate !== #selectedDate` guard swallows the click. That is a
-    load-failure defect, not a staleness one, and it is bigger than these
-    buttons — the whole list is the wrong day's, with the storage banner up.
-    Fixing it here would have been fixing a different thing.
-    Two things left as they are. A disabled button is not focusable, so it
-    cannot carry its own reason; the stale banner is that reason, and it renders
-    before the rows. And clearing the reading instead of disabling it was
-    refused: stale is a warning about the numbers, not a reason to hide them
-    (`budget-curve-card.stories.svelte`). No probe, no MATH.md change — §14's
-    contract is enforced here, not restated.
+25. ~~**The advice card's buttons must not outlive the day they priced**~~ — SHIPPED 2026-08-12.
+    [docs/features/advice-buttons-expire-with-their-day.md](docs/features/advice-buttons-expire-with-their-day.md)
 
 _Settled 2026-08-09, not a roadmap item:_ both halves of `importFromDate` /
 `importYesterday` are intended and stay. Copying a completed task in as a fresh
@@ -337,152 +177,13 @@ value argument against it was arithmetic, not evidence. **The constraint side is
 still where the money is; the difficulty and β sides are the same order as each
 other.**
 
-15. ~~**Title memory for the task sliders**~~ — SHIPPED 2026-08-05 together with
-    item 24, which is the surface it ships behind. `normalizeTitle` and
-    `latestRatingsByTitle` (`business/model/title-memory.ts`) fold every stored day
-    into `Map<normalizedTitle, {title, physicalDifficulty, mentalDifficulty,
-enjoyment}>`; `readHistoryPrefills(today)` (`readTitleRatings` until item 16
-    widened it) reads it once at boot and
-    `SessionStore.suggestTitles` answers the add-task form. No store, no schema, no
-    formula. **The fold walks each day's tasks backwards**, which a review caught:
-    days sort ascending, but within a day `tasks` is newest-first — every writer in
-    `SessionStore` prepends — so array order handed a title used twice in one day the
-    rating the user had already superseded. Reversed rather than sorted by `id`,
-    because an import assigns ids ascending across a batch it prepends as a block.
-    The test that should have caught it was pinning array position instead: its
-    fixture was written in an order the store cannot produce.
-    **Nothing infers which title the user means.** Two versions of this were built
-    before the shipped one, and both failed the same way: they moved the sliders
-    while the user was still typing. Applying a rating once per title and never
-    taking it back deployed `Gym session notes` at `gym session`'s 8/2, because
-    typing walks through every prefix and the recall fires on the way past.
-    Withdrawing it again on every keystroke fixed that and cost a per-slider
-    ownership flag to stop the memory speaking over a slider the user had dragged —
-    two mechanisms, both guessing. The pick in item 24 has neither, and the sliders
-    move only when the user names the title they mean.
-    **Two corrections to this item's own numbers, both the same unit error.** The
-    5.42% it quoted is all _three_ sliders at 5/5/5, so as first shipped — two
-    sliders — it overstated its reach 2.3×. Then excluding enjoyment was justified
-    with "0.052% per point", which is one point on **one** task, against a ϕ
-    anchor measured as +0.5 h on **every** task. Measured properly through the
-    real `calculateTaskPlan` (400 days, 3–7 tasks, budgets {2,4,4,6,8},
-    §17-style):
+15. ~~**Title memory for the task sliders**~~ — SHIPPED 2026-08-05.
+    [docs/features/title-memory-for-task-sliders.md](docs/features/title-memory-for-task-sliders.md)
 
-    | planned under                  |  mean | median |   p90 | days moved | days it helped |
-    | ------------------------------ | ----: | -----: | ----: | ---------: | -------------: |
-    | P/M at 5/5, enjoyment true     | 2.39% |  2.02% | 6.17% |      91.8% |      19 of 400 |
-    | enjoyment at 5, P/M true       | 2.02% |  1.16% | 4.90% |      90.8% |              0 |
-    | all three at 5/5/5             | 4.59% |  3.97% | 9.56% |      97.5% |      16 of 400 |
-    | one task, enjoyment off by one | 0.06% |      0 | 0.18% |      26.3% |       1 of 400 |
-
-    The last row reproduces the 0.052% that was used to exclude the third slider;
-    the second row is what excluding it actually cost. Enjoyment is 85% of the
-    difficulties by mean and the only arm that is never negative.
-    **The stated probe was not runnable and the item shipped without it.** Its
-    gate — the share of repeating titles already hand-rated — is a question about
-    habit, answerable only from real sessions, and there is no exported history on
-    the author's machine; the fixture generator is disqualified for exactly this
-    class of question (see above). So the ceiling is confirmed and the realized
-    fraction of it is still unmeasured: run the gate the moment a backup exists,
-    and if recurring titles turn out to be hand-rated already, the honest move is
-    to delete this, not to keep it.
-    Declared limits, none of them worth code today: the map is a **boot snapshot**,
-    so a title rated within one session is not suggested until the next load, and
-    it stays the boot day's answer while another date is viewed; the **task editor
-    deliberately offers no suggestions** — renaming a task the user already rated
-    must not rewrite its ratings; and the whole-history read measured 47 ms at 3651
-    stored days, unguarded by any budget in the repo.
-
-16. ~~**Budget prefill for unseen days**~~ — SHIPPED 2026-08-12. A day with no
-    stored session opens on the hours that weekday usually has:
-    `summarizeBudgetHistory` / `prefillBudgetFor`
-    (`business/model/budget-memory.ts`) fold every stored day into a
-    same-weekday median → overall median → 0, and only days that declared a
-    budget count — a stored day the user never budgeted is not evidence of a
-    habit, and folding those in drags every median toward the 0 this replaces.
-    No store, no schema, no formula.
-    **The trap was real and it took one field, not two.** The item asked for a
-    separate `#prefilled` flag excluded from the autosave's dirty test;
-    `#availableHours` is `number | null` instead, and `null` IS "this day has no
-    hours of its own" (R3 — a flag beside a number is free to drift, and
-    nothing in either says the two agree). The dirty test reads the raw field,
-    so a merely-browsed day still writes no record; the payload reads the
-    effective getter, so a day saved for a reason of its own records the budget
-    it was showing. The setter clears the flag by assigning a number, which is
-    the whole of "cleared on the first user edit".
-    **Two things fell out of deriving rather than assigning it.** The prefill is
-    a `$derived` off the fold plus the viewed day, so every later day — a
-    navigation, the midnight tick, the banner's retry re-reading — answers
-    without a second read. And it is 0 on a **past** day: a day the user did not
-    plan has no budget, and back-filling one would be a claim about their
-    history. Nothing else moved — `+page.svelte`'s auto-open condition is
-    unchanged and simply fires less often, which is the point.
-    **Item 15's "do not await the history read" no longer covers this read, and
-    a review caught the display losing that race.** `#boot` now starts it right
-    after `initializeStorage()` and awaits it before `#loadSession`, so it
-    overlaps the routines and flow reads and the day lands with its hours
-    already known. Deriving cannot fix this on its own: `+page.svelte` remounts
-    the constraints bar on `{#key session.loadedDate}` and `DayConstraintsBar`
-    **snapshots** `isOpen` at mount, so a day presented before its budget opens
-    the panel against 0 and then fills in behind it. The read still feeds a form
-    nobody has opened yet — it just also feeds the day on screen, which is what
-    changed. Its failure surface is unchanged: caught, logged, never bannered,
-    and the catch is what lets `#boot` await it without a failed prefill taking
-    the day down.
-    **One read, two folds.** `readTitleRatings` was widened to
-    `readHistoryPrefills(today)` → `{ titleRatings, budgets }` rather than
-    adding a second whole-history scan beside it (business/AGENTS.md: a composed
-    read reads each store once); a test pins the single transaction.
-    **The stated probe was not run and the item shipped without it**, on item
-    15's precedent. Its gate — weekday median vs real `availableHours`, kill if
-    MAE > 1.5 h — is a question about habit, answerable only from a real
-    exported history, and there is none on the author's machine;
-    `scripts/generate-fixture.mjs` is disqualified for exactly this class of
-    question. So the reading is unmeasured: run the gate the moment a backup
-    exists, and if the weekday median turns out to be no better than 0, the
-    honest move is to delete this rather than to tune it.
-    Declared limits, none of them worth code today: the fold is a **boot
-    snapshot**, so hours entered today do not enter it until the next load; and
-    the median takes the **lower** of the two middles on an even count, so the
-    answer is always a number the user really declared.
-    **`moveTaskToTomorrow` writes the destination day's prefill, not 0.** A
-    defer is that day being saved for a reason of its own — the same rule the
-    auto-save payload follows — and a hard 0 there made the destination a
-    **stored** day that no prefill may then speak for, which is the "a deferred
-    task lands in an unplanned day" symptom this item claims to remove and the
-    prereq item 21 declares. It was also drift this change would have created:
-    "unset" is `null` in memory, and that write was the one place it stayed 0.
-17. ~~**Switch-cost price diagnostic**~~ — SHIPPED 2026-08-04 (MATH.md §14.3):
-    `switchCostPrice` on `PlanAdvice`, two extra solves at `s = 0` and `s = 2s`
-    inside `suggestPlanAdjustments`, one quiet line on the advice card. The
-    gate cleared by 8×: the kill criterion was a median |Δ value| under ~1%
-    between `s = 0.25` and `s = 0.5` on 2–4-task days, and the measurement
-    through the real solver is **8.47%** over the fixture's 180 such days,
-    **8.14%** over the author's own four logged days (unrecorded — the only
-    figure here with nothing behind it), and **18.77%** on 5+-task
-    days. Constant-independent (8.50% under the fixture's own ground-truth ϕ
-    constants), and the reservation it reports is a median **23.08%** of the
-    day's budget.
-    Two things changed on contact with the measurement. The **framing had to
-    become conditional**: the planned copy ("halving it would buy X") priced a
-    quantity the app cannot compute, because the cost of _mis_-declaring `s`
-    needs to know which value is true, so each alternative now reads "if your
-    switch cost were X, this plan would read Y". And the old asymmetry figures
-    quoted below (2× too high 10.13%, too low 1.04%, ignoring it 1.18%) answer
-    that different question — the diagnostic's own numbers are the table in
-    §14.3, where `s → 0` reads **+10.95%** rather than 1.18%, because planning
-    as if switching were free _raises_ reported value while switching for
-    free-that-isn't lowers realized value. No floor, unlike §14.2 — but not
-    because inversions cannot happen: 0 of 298 fixture days invert at their
-    **stored** budget and pools, and off those values they do (§13.3's pooled
-    suboptimality). The floor is refused because it would zero the doubled arm,
-    which is the arm that carries the message.
-    _The estimator proposed alongside it stays unbuilt:_ fitting `s` from the
-    observed funded-task count died on three measurements — `m(s)` is not
-    monotone (195 violations on 115 of the 298 fixture days × 101 `s` values),
-    median one-day bracket width 0.50 h against a [0,1] h range with 25% of days
-    consistent with the entire range, and one mis-counted task shifts the
-    bracket edge by median 0.34 h off opt-in logs.
+16. ~~**Budget prefill for unseen days**~~ — SHIPPED 2026-08-12.
+    [docs/features/budget-prefill-for-unseen-days.md](docs/features/budget-prefill-for-unseen-days.md)
+17. ~~**Switch-cost price diagnostic**~~ — SHIPPED 2026-08-04 (MATH.md §14.3).
+    [docs/features/switch-cost-price-diagnostic.md](docs/features/switch-cost-price-diagnostic.md)
 18. **Capacity pools from the fitted drain rates** — your cognitive pool is
     what your own 🪫 logs say, not 4 hours. Invert the reservoir law at a
     shared floor: at defaults `C_cog(4 h) = 0.3042` and `C_phys(6 h) = 0.2516`,
@@ -530,75 +231,8 @@ enjoyment}>`; `readHistoryPrefills(today)` (`readTitleRatings` until item 16
 Item 15 shipped as one feature with the item below, which is how its ratings
 reach the form at all:
 
-24. ~~**Title suggestions as you type**~~ — SHIPPED 2026-08-05, and it replaced
-    item 15's first two mechanisms rather than adding to them. `suggestTitles`
-    (`business/model/title-memory.ts`) answers a part-typed title with every rated
-    title it could be naming; `SessionStore.suggestTitles` hands that to the
-    add-task form, which shows them under the field. The Map it lands in is
-    `$state`, so a list that has already asked sees a later read arrive rather
-    than showing nothing until the next keystroke. **The reason for that changed
-    on 2026-08-12 with item 16:** the boot read now feeds the day's own hours, so
-    it is awaited before the day is presented and the form is no longer on screen
-    while the first one is in flight — what needs the reactivity is the banner's
-    Retry landing a second read behind an open form, which is what the spec
-    stages. **Picking one fills the title
-    and moves all three sliders to what that title was last rated, and the user
-    can then drag any of them.** Typing past the list and picking nothing leaves
-    the sliders where they are — a task nobody picked is rated by hand.
-    **It is smaller than what it replaced.** The recall fires on one explicit
-    action instead of on every keystroke, so there is no prefix to walk through,
-    nothing to withdraw, and no per-slider ownership flag; the form lost both, and
-    the two stories that existed only to pin them. One rule survived contact with
-    its own story: **emptying the field returns the sliders to 5/5/5 — but only
-    when a pick put the numbers there** (`fromPick`). Both halves are a failure
-    somebody hit: without the reset, clearing a picked title and typing an
-    unrelated task deploys it wearing the picked rating; without the guard, a
-    typo in a hand-rated title costs the user the drags they made themselves, and
-    the flag has to clear on submit or the _next_ task's drags are lost the same
-    way. Editing short of empty keeps a pick on purpose — a renamed task is still
-    that task, and its three numbers are on screen. **One case is knowingly
-    unguarded**: selecting the whole field and typing over it never passes through
-    empty, so a pick's rating survives the replacement. It is rare, and every rule
-    that would catch it (reset when the field diverges from the picked title, or
-    stops being a prefix of it) breaks appending to a picked title, which is the
-    ordinary reason to keep typing after a pick. If it shows up in real use the fix
-    is to make the carried rating legible ("recalled from _Gym_" until a drag), not
-    to guess harder.
-    **Hand-rolled, and the library was read before it was refused.** `bits-ui` is
-    already a dependency and has a combobox, and the repo's `ui/` directory is
-    shadcn-svelte ports of exactly those primitives — but its combobox is
-    Select-shaped and this field is a free-text input that sometimes matches:
-    `Combobox.Input` strips `value` from its own attributes and drives it from the
-    root's `inputValue`, so `draft.title` would have two owners (R3); its
-    `onkeydown` calls `preventDefault()` on Enter and opens the menu instead, which
-    takes the form's only keyboard submit; and its `oninput` does not open the menu
-    at all, so `open` had to be driven here regardless. What shipped is the ARIA
-    1.2 combobox pattern inline in `task-form.svelte` — `role="combobox"` with
-    `aria-expanded`/`aria-controls`/`aria-activedescendant` over a `role="listbox"`
-    of `role="option"` rows, arrow keys and Enter and Escape on the input, and
-    `mousedown` prevented so a click does not blur the field before it picks. Three
-    of those details are the pattern's and were missing until a review asked for
-    them: an arrow key **reopens** a list that Escape or a blur closed and highlights
-    the end it was opened from (otherwise editing the field is the only way back, and
-    reaching a suggestion cost two keystrokes), Escape, a pick and a blur all **drop
-    the highlight** with the list it names (otherwise `aria-activedescendant` outlives
-    its element), and the highlighted row is **scrolled into view** — the list is
-    uncapped, so it can be taller than the box that shows it, and a highlight below
-    the fold is one nobody can see. The scroll is an `$effect` on `active` rather than
-    a call beside each assignment, because a reopen highlights a row whose `<li>` does
-    not exist until the DOM has been patched.
-    **Two characters, not three, and it is a judgement.** The match is a substring,
-    so one character finds most of a history and the list would cover the sliders
-    on every new task; two is the first length that discriminates and is shorter
-    than the shortest titles anyone writes (`Gym`, `Run`). Matching is substring
-    rather than prefix because the word the user reaches for is often not the first
-    one, ordering is alphabetical, and the list is **uncapped** — any ranking would
-    be invented and a cap would hide rated titles with no way to know.
-    **Item 15's gate still has not been run** (no exported history exists), and it
-    now gates both: if recurring titles turn out to be hand-rated already, this
-    goes with it. The one question this item adds — whether a real history holds so
-    many titles that alphabetical is unreadable — is answerable at the same moment,
-    from the same backup.
+24. ~~**Title suggestions as you type**~~ — SHIPPED 2026-08-05.
+    [docs/features/title-suggestions-as-you-type.md](docs/features/title-suggestions-as-you-type.md)
 
 ## Phase 3 — calibration trust
 
@@ -733,72 +367,10 @@ defects it found without fixing.
     across all three untested seams. Its arm B also produced the one genuinely
     new number of the round: §5.1's guard 2 costs nothing until σ/ϕ̂ reaches the
     0.5 cap, where it forfeits up to **5.26%** of a plan.
-27. ~~**§8.6's missing off-midpoint rest split**~~ — SHIPPED 2026-08-13
-    (MATH.md §8.6). `neighbors` now yields every interior lattice split of a
-    funded block, one step to rest at unchanged worked hours, instead of the
-    rounded midpoint alone. The stated probe was run before and after and both
-    kill conditions were checked: the exhaustive tier went from 58 of 60 exact
-    (worst −0.5951%) to **60 of 60, worst 0.0000%**, and wall time did not move
-    — 9.0 → 8.9 ms at 3 tasks / 8 h, 94.2 → 94.4 ms at 6 tasks / 12 h on one
-    machine. The harder tier's funded-set mismatches went 3 → 2 of 12.
-    **The stated follow-up — raising that tier to an exhaustive reference — is
-    closed as UNREACHABLE, 2026-08-13**: its two mismatch days enumerate to
-    6¹³ = 1.31·10¹⁰ and 7¹⁵ = 4.75·10¹² lattice plans at 35.5 / 39.8 µs per
-    `evaluateSchedule`, i.e. **129 h** and **6.0 years**, and the probe now
-    prints both so nobody re-proposes it. Three measurements replaced it. (i)
-    The mismatches are half-attributable after all, from the SIGN of their
-    shortfall: day 6 is 0.0540% behind the reference (a proven product-search
-    shortfall) and day 4 is 0.0840% ahead of it (a proven reference shortfall);
-    only which funded set the true optimum has stays open. (ii) A new FRONTIER
-    tier takes the exhaustive reference as far as it goes — 4 × 6.75 h,
-    5 × 6 h, 6 × 5.25 h, 3 days each, ~7 min — and 5 and 6 tasks are 3 of 3
-    exact, while 4 tasks holds a **proven 0.3075% funded-set defect** that
-    became item 30. (iii) The not-built variant below was swept rather than
-    argued: 0 uphill on all 12 harder-tier days and all 9 frontier days. Not
-    built:
-    the variant that takes the rest step out of the block rather than out of
-    spare `room`, which would survive a fully-spent window — the enumeration
-    covers fully-spent plans and no day of the 60 asked for it.
-28. ~~**Re-derive `STOP_INVERSION_MARGIN` from measured distributions**~~ —
-    SHIPPED 2026-08-13 (MATH.md §8.10,
-    `scripts/stop-margin-fit-error.probe.ts`). **The kill criterion fired, and
-    the constant is not derivable.** The stated sweep was run — λ₀ fit RMSE
-    against the margin over 90 simulated users (true λ₀ on {0.3 … 1.3}, 12 days
-    each) built from five day kinds: the optimizer's plan, a ±1-step mood
-    variant, TWO interruption shapes (a tail cut and an interior run dropped
-    mid-warm-up) and a grind on the weakest task, at n = 3 and n = 12 days per
-    user, with m = 0 and m = ∞ as controls. **RMSE is flat over [0.1, 0.5]** —
-    flat in MAGNITUDE, which is the defensible claim, not "the error bars
-    overlap": the largest movement anywhere is 0.0078 in λ₀ units (0.0012
-    honest and 0.0078 contaminated at n = 12; 0.0046 and 0.0049 at n = 3),
-    against the 0.110 bracket half-width the instrument already concedes and
-    σ₀ = 0.25 — 7.1% and 3.1% of them. The mechanism: over that whole range the
-    kept-day share (of all simulated days, structural censors included) moves
-    87.0% → 89.3% (honest) and 80.5% → 85.7% (contaminated), i.e. the margin
-    flips almost no verdicts. Both kill checks were run, not eyeballed: the flat
-    verdict holds under two interruption shapes (30.8% and 28.2% invert, only
-    18.5% / 22.0% past 0.25) and under a paired bootstrap of the a-priori
-    endpoint contrast RMSE(0.5) − RMSE(0.1). **The sharper result** is that the
-    margin cannot price the contamination it exists for: interrupted days really
-    do land at curve scale regardless of the truth (point p50 0.985 / 1.031
-    against 0.880 rational) and contamination really does cost fit error (RMSE
-    0.0875 honest → 0.1281 at n = 12), but most interrupted days never invert,
-    so no margin reaches them — censoring NOTHING wins all four cells, by up to
-    0.0104 at contaminated n = 12, the largest single movement in the sweep.
-    **Residue, honestly:** the drift is small but not zero and its SIGN is
-    consistent (wider censors less and fits slightly better; the endpoint
-    contrast is negative in all four arms and its CI excludes 0 in three), so
-    the probe's own suggestion is that inversion censoring buys the fit nothing.
-    That rests on one arm's margin and sits inside that arm's noise — recorded,
-    not acted on. **Not done, deliberately:** the constant and the censoring
-    rule are unchanged — a movement this far below the instrument's resolution
-    is no evidence to move either, and doing so would touch shipped behaviour
-    and two pinned tests. The
-    remaining value is in the **censored-likelihood fit** §8.10 already flags,
-    which is what would actually use the one-sided days instead of discarding
-    them. One suite fixture pins the new claim (an interrupted day whose bracket
-    does not invert at all, reading 1.47 against the λ₀ = 0.3 that generated
-    it); the sweep itself stays in the probe.
+27. ~~**§8.6's missing off-midpoint rest split**~~ — SHIPPED 2026-08-13 (MATH.md §8.6).
+    [docs/features/off-midpoint-rest-split.md](docs/features/off-midpoint-rest-split.md)
+28. ~~**Re-derive `STOP_INVERSION_MARGIN` from measured distributions**~~ — SHIPPED 2026-08-13 (MATH.md §8.10).
+    [docs/features/stop-inversion-margin-rederived.md](docs/features/stop-inversion-margin-rederived.md)
 29. **Round-3: what the 2026-08-06 agent sweep found and nobody built** — five
     agents swept disjoint `MATH.md` ranges to pick item 26's targets, and
     surfaced far more than the five that got probes. This is the residue. Three
@@ -903,32 +475,8 @@ Item 27's replacement follow-up — pushing the exhaustive reference to the
 largest task counts it reaches — then found one defect, at a size no proven
 reference had covered before.
 
-30. ~~**A funded-subset seed deeper than drop-one**~~ — SHIPPED 2026-08-13
-    (MATH.md §8.6, `scripts/energy-search-gap.probe.ts`). **Two** witnesses, not
-    one: widening the frontier tier from 3 days per size to 20 at 4 tasks and 8
-    at 5 found a second proven defect (5 tasks × 6 h, search funds {2} at
-    9.344081 against the optimum's {2,5} at 9.392388, **0.5143%**), and showed
-    the case is no corner — 14 of those 20 days and 8 of those 8 have an optimum
-    funding ≤ n − 2. Both are now suite fixtures, and both were watched failing
-    first. **The stated fix does not work, and the reason is worth keeping:** a
-    classic seed over the right subset is visited by the search today and lands
-    nowhere new, because its local search may still reach every task and the
-    steepest first move re-funds a dropped one. What ships is a seed per
-    **pair** of the three highest-amplitude tasks, round-robin over two and
-    searched
-    **within the pair**. Three cheaper shapes were measured and rejected: the
-    amplitude-prefix pair (5.399815 against 6.159566 on the 4-task witness), the
-    pair-dropped classic seed over the whole task list (both witnesses
-    unchanged), and the classic pair seed (fixes the 4-task witness, not the
-    5-task one). The cost gate is what capped the family at three tasks:
-    unbounded `C(n,2)` measured **12.5× / 13.1×** at 10 / 15 tasks × 12 h, while
-    `C(3,2)` costs **~1.3×–2.3×**, measured across two machines and two task
-    compositions (§8.6 carries both tables). The ratio is composition-dependent,
-    so that range is the number — no single cell of it is.
-    One knock-on, recorded in §8.8: the pair seeds also improve the 0.25 h-step
-    search, so the probe day's coarse and fine funded sets no longer agree at
-    8 h — the coarse plan is still the enumerated optimum of its own lattice, so
-    that is quantization, and the suite test says so now.
+30. ~~**A funded-subset seed deeper than drop-one**~~ — SHIPPED 2026-08-13 (MATH.md §8.6).
+    [docs/features/funded-subset-seed.md](docs/features/funded-subset-seed.md)
 
 ## Phase 4 — multi-day horizon
 
@@ -959,84 +507,8 @@ reference had covered before.
 
 What survives of the multi-day idea is two readings, not a solver:
 
-21. ~~**Destination preview for a defer**~~ — SHIPPED 2026-08-12. One
-    **day-level** line on the advice card, above the axis menu and beside the
-    other day-level readings: tomorrow's active task count, the hours it opens
-    on, and how many of those tasks its own plan funds
-    (`business/model/metric/defer-destination.ts`, one classic solve;
-    `describeDeferDestination` in `plan-advice-descriptor.ts`). Read-only, and
-    one reading rather than a row per lever — every defer lever on the card
-    sends the task to the same day.
-    **No Δ% pair and no per-task funding claim** (item 8). "Your task would get
-    2.5 h tomorrow" is that superseded nudge one step removed, and after item 16
-    it is worse: tomorrow's budget is frequently a weekday **median** rather than
-    a declaration, so a per-task claim is a solve on a guess presented as a
-    promise. The line reports what tomorrow already is. It is no part of the
-    advice objective either, which is why `plan-advice.ts` is untouched and this
-    is a separate descriptor and card prop rather than a field on `AdviceDisplay`
-    — that object is built from `PlanAdvice`, contractually today's inputs alone
-    (MATH.md §14).
-    **The destination fallback turned out to be a shared definition.**
-    `moveTaskToTomorrow` already spelled "what tomorrow's record is, or will be"
-    — `dest?.availableHours ?? prefillBudgetFor(…)`, the switch cost, both pools
-    — and the preview has to show exactly those numbers or the line and the write
-    are free to disagree. `SessionStore.#readDestination` is now the one
-    definition both read through (R3); the preview adds nothing to it but the
-    solve.
-    **The advice fingerprint could not cover this reading, and that is the one
-    piece of machinery the item cost.** The fingerprint is a value over
-    `{date, input}`, so today → tomorrow (edit it) → today reads identically:
-    today's advice has no such hole because it prices today alone, and this is
-    the first reading that speaks about another day. So `SessionStore` counts its
-    landed session writes **per date** (`#writeGenerations`, one increment in the
-    one `#persistSession`; `writeGenerationFor(date)`) and the preview is keyed on
-    the destination day's own count, withdrawn rather than shown once that day has
-    been written. A stale-window-and-document-it was considered and refused: the
-    stale banner warns that numbers were priced on a day that moved, and this
-    would be a reading claiming to be fresh about a day the user had just edited.
-    **Per date, and one global counter was the first cut's bug** (review, same
-    day): only a write to the destination day can change what the line says, so a
-    single counter withdrew the reading on today's own auto-save — add a task,
-    press Check inside the 500 ms debounce, and the flush landed after
-    `computeAdvice` had snapshotted the key, so the line silently never appeared
-    on the commonest path there is. The counter is a `SvelteMap` because it is
-    mutated per write rather than replaced, which a plain `Map` would not
-    re-derive from. `deferDestinationDate` is one definition too — the move, the
-    preview and the key all read it rather than spelling `selectedDate + 1` three
-    times (R3).
-    **An empty and unbudgeted tomorrow prints nothing.** With no budgeted day in
-    history `prefillBudgetFor` returns 0, and "nothing planned yet, 0m to spend"
-    is exactly the dead row this item's own kill criterion names — the one state
-    the restated gate below excepts. `describeDeferDestination` returns `null` for
-    it: the reading is factually fine, there is simply no sentence worth printing,
-    which makes it a copy decision and puts it beside the plural split rather than
-    in the summarizer. Suppressed only as a PAIR — a 0-hour tomorrow that has
-    tasks on it is the most useful thing this line says.
-    **The gate was restated, not run** — item 15's and 16's precedent. The stated
-    kill criterion (0 tasks **and** 0 budget on >80% of real defer moments) is a
-    question about habit: real defer moments are not recorded, no exported
-    history exists on the author's machine, and `generate-fixture.mjs` can never
-    gate an item whose question is what the user habitually does. Item 16 also
-    closes the budget half **by construction** — with any budgeted day in
-    history an unseen tomorrow opens on a nonzero prefill — so only "0 tasks"
-    survives, and an empty tomorrow is information the user wants before
-    deferring, which is what the second copy is for. Run the original the moment
-    a real backup exists, jointly with item 15's and 24's gates.
-    Two things the plan expected that the code did not need. The reading carries
-    no `isStored` flag: item 16 already settled that a prefill IS the day's hours
-    everywhere else on screen (the constraints bar marks none), so a provenance
-    clause here would contradict the rest of the UI — the copy splits on the task
-    count instead. And the preview is solved under the **viewed** day's ϕ fit
-    rather than a second §33 window fitted for tomorrow: two window definitions
-    for a reading that reports counts.
-    **Known limit: the word "Tomorrow" is the button's, and on a future day it is
-    wrong while the counts are right.** The card renders on any non-past day and
-    `moveTaskToTomorrow` sends to `selectedDate + 1`, so viewed three days out the
-    line describes the right day by the wrong name. Inherited, not introduced —
-    `advice_apply` has read "To tomorrow" since the defer button shipped — but
-    this is the first time a factual COUNT rides on that word. Deliberately not
-    re-worded here: the copy and the five locales stay as they are, because
-    re-opening the button's wording re-opens ground item 25 settled.
+21. ~~**Destination preview for a defer**~~ — SHIPPED 2026-08-12 (MATH.md §14).
+    [docs/features/defer-destination-preview.md](docs/features/defer-destination-preview.md)
 22. **Chronic-slide badge** — "this has been on your list 6 days".
     `moveTaskToTomorrow` copies `createdAt` verbatim
     (`session-store.svelte.ts:713`), `Task.createdAt` is an ISO date string

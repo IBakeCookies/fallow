@@ -20,7 +20,7 @@ missing, it is one hop away.
 | [docs/deployment.md](docs/deployment.md)                           | touching SSR, the service worker, locales, SEO, prerendering                                |
 | [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Read the section, not the file (`## Section index`) |
 | [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                    |
-| [ROADMAP.md](ROADMAP.md)                                           | planned work in priority order — update when an item ships                                  |
+| [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item is a date and a link to its spec          |
 | [docs/features/](docs/features/)                                   | one spec per feature, frozen at land — what was decided then, never how the code works now  |
 | [README.md](README.md)                                             | user-facing: what the app does and how to run it                                            |
 | [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                         |
