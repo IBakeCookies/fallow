@@ -1661,6 +1661,45 @@ describe('Zenith Energy Model', () => {
 			expect(stopIndifferencePoint(mood, params)).toBeNull();
 		});
 
+		it('an interrupted day NO margin can censor still reads far above the λ₀ that generated it (2026-08-13, §8.10)', () => {
+			// Pins the load-bearing finding of
+			// `scripts/stop-margin-fit-error.probe.ts`: the inversion margin cannot
+			// price the contamination it exists for, because most interrupted days
+			// never invert. This is the optimizer's own plan for a λ₀ = 0.3 user
+			// (boxing 3.75h, reading 2.25h, guitar 3.75h) with the last 2.25h of
+			// guitar interrupted away. Its bracket is [1.433, 1.499] — NOT inverted,
+			// so no margin at any width censors it — yet its midpoint sits at the
+			// task curves' characteristic marginal, ~5× the truth.
+			const params = {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: 0.3,
+			};
+
+			const interrupted: StopObservation = {
+				tasks: day,
+				windowHours: 10,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 3.75,
+					},
+					{
+						taskId: 3,
+						hours: 2.25,
+					},
+					{
+						taskId: 2,
+						hours: 1.5,
+					},
+				],
+			};
+
+			const point = stopIndifferencePoint(interrupted, params);
+
+			expect(point).not.toBeNull();
+			expect(point!).toBeGreaterThan(0.3 + 1);
+		});
+
 		it('prior profile is exact arithmetic: one day moves λ₀ halfway to its point', () => {
 			const obs = dayFromPlan(1.3, 10);
 			const point = stopIndifferencePoint(obs, DEFAULT_ENERGY_PARAMS)!;

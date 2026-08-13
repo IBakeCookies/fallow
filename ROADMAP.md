@@ -709,8 +709,9 @@ defects it found without fixing.
     ~0.1), half-width median 0.110 (not ~0.15), summing to 0.110 rather than
     0.25. `MATH.md` §8.10 and the two source docblocks are corrected; the
     constant is LEFT at 0.25 because the two populations overlap and there is no
-    clean cut to move it to. **Re-deriving it from the measured distributions is
-    now its own open item** — see 28.
+    clean cut to move it to. **Re-deriving it from the measured distributions**
+    became item 28, which measured it on 2026-08-13 and found the fit error flat
+    in the constant — it is not derivable, and it stays at 0.25.
     (d) **§17's ϕ-error table** → `scripts/phi-error-price.probe.ts`.
     **Confirmed.** Same U, same headline (half an hour costs a few tenths of a
     percent); large-`s` cells run hotter than 2026-08-04's and small-`s` cooler,
@@ -739,19 +740,46 @@ defects it found without fixing.
     the variant that takes the rest step out of the block rather than out of
     spare `room`, which would survive a fully-spent window — the enumeration
     covers fully-spent plans and no day of the 60 asked for it.
-28. **Re-derive `STOP_INVERSION_MARGIN` from measured distributions** — 26(c)
-    left the constant standing on an arithmetic that does not hold. What is known
-    now: the honest instrument slack is ~0.110, not 0.25; at 0.25 six near-
-    rational days in 1179 are still censored; and the inversion gap does not
-    separate the populations cleanly (censored random compositions gap a median
-    0.282 while honest mood days reach 0.421). So tightening toward 0.110 censors
-    MORE honest days, and widening keeps more contamination — the trade is real
-    and currently unpriced. The missing measurement is the one §8.10 actually
-    cares about: **λ₀ fit error as a function of the margin**, sweeping it over
-    a population mixing rational, mood-perturbed and genuinely interrupted days.
-    Kill criterion: if the fit's RMSE is flat across margins in [0.1, 0.5], the
-    constant does not matter and the paragraph should say so instead of
-    pretending to derive it.
+28. ~~**Re-derive `STOP_INVERSION_MARGIN` from measured distributions**~~ —
+    SHIPPED 2026-08-13 (MATH.md §8.10,
+    `scripts/stop-margin-fit-error.probe.ts`). **The kill criterion fired, and
+    the constant is not derivable.** The stated sweep was run — λ₀ fit RMSE
+    against the margin over 90 simulated users (true λ₀ on {0.3 … 1.3}, 12 days
+    each) built from five day kinds: the optimizer's plan, a ±1-step mood
+    variant, TWO interruption shapes (a tail cut and an interior run dropped
+    mid-warm-up) and a grind on the weakest task, at n = 3 and n = 12 days per
+    user, with m = 0 and m = ∞ as controls. **RMSE is flat over [0.1, 0.5]** —
+    flat in MAGNITUDE, which is the defensible claim, not "the error bars
+    overlap": the largest movement anywhere is 0.0078 in λ₀ units (0.0012
+    honest and 0.0078 contaminated at n = 12; 0.0046 and 0.0049 at n = 3),
+    against the 0.110 bracket half-width the instrument already concedes and
+    σ₀ = 0.25 — 7.1% and 3.1% of them. The mechanism: over that whole range the
+    kept-day share (of all simulated days, structural censors included) moves
+    87.0% → 89.3% (honest) and 80.5% → 85.7% (contaminated), i.e. the margin
+    flips almost no verdicts. Both kill checks were run, not eyeballed: the flat
+    verdict holds under two interruption shapes (30.8% and 28.2% invert, only
+    18.5% / 22.0% past 0.25) and under a paired bootstrap of the a-priori
+    endpoint contrast RMSE(0.5) − RMSE(0.1). **The sharper result** is that the
+    margin cannot price the contamination it exists for: interrupted days really
+    do land at curve scale regardless of the truth (point p50 0.985 / 1.031
+    against 0.880 rational) and contamination really does cost fit error (RMSE
+    0.0875 honest → 0.1281 at n = 12), but most interrupted days never invert,
+    so no margin reaches them — censoring NOTHING wins all four cells, by up to
+    0.0104 at contaminated n = 12, the largest single movement in the sweep.
+    **Residue, honestly:** the drift is small but not zero and its SIGN is
+    consistent (wider censors less and fits slightly better; the endpoint
+    contrast is negative in all four arms and its CI excludes 0 in three), so
+    the probe's own suggestion is that inversion censoring buys the fit nothing.
+    That rests on one arm's margin and sits inside that arm's noise — recorded,
+    not acted on. **Not done, deliberately:** the constant and the censoring
+    rule are unchanged — a movement this far below the instrument's resolution
+    is no evidence to move either, and doing so would touch shipped behaviour
+    and two pinned tests. The
+    remaining value is in the **censored-likelihood fit** §8.10 already flags,
+    which is what would actually use the one-sided days instead of discarding
+    them. One suite fixture pins the new claim (an interrupted day whose bracket
+    does not invert at all, reading 1.47 against the λ₀ = 0.3 that generated
+    it); the sweep itself stays in the probe.
 29. **Round-3: what the 2026-08-06 agent sweep found and nobody built** — five
     agents swept disjoint `MATH.md` ranges to pick item 26's targets, and
     surfaced far more than the five that got probes. This is the residue. Three
