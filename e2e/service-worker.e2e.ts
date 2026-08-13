@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { addTask, AUTOSAVE_MS } from './helpers';
 
 /* The service worker only exists in a production build, so `npm run check` is the
    only thing that has ever looked at it — it type-checks and is never executed.
@@ -21,7 +22,14 @@ async function waitForServiceWorker(page: Page) {
 	});
 }
 
-test('a visited page still renders after going offline', async ({ page, context }) => {
+test('a visited page still works after going offline', async ({ page, context }) => {
+	// Seeded first because every KPI on /analytics is folded out of IndexedDB, which
+	// the server cannot read: the cached HTML paints the empty state no matter what
+	// is stored, and only a hydrated page replaces it with the day's numbers.
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
 	await page.goto('/analytics');
 	await waitForServiceWorker(page);
 	// The fetch handler caches on the way through, so the copy it will fall back
@@ -34,6 +42,17 @@ test('a visited page still renders after going offline', async ({ page, context 
 	await expect(
 		page.getByRole('heading', {
 			name: 'Analytics',
+		}),
+	).toBeVisible();
+
+	// Painting is the cheap half: the cached HTML renders that heading whether or not
+	// a line of JS ran. The chart is drawn from the stored day, so it is what proves
+	// the precached bundle loaded. The failure it guards against is a live-looking
+	// page with dead controls — which `npm run dev` reproduces, since `build` is
+	// empty there and nothing that hydrates gets precached.
+	await expect(
+		page.getByRole('heading', {
+			name: 'Completion rate',
 		}),
 	).toBeVisible();
 });
@@ -52,11 +71,12 @@ test('a never-visited route falls back to the cached shell offline', async ({ pa
 
 	expect(response?.status()).toBe(200);
 
-	// Whatever the shell hydrates into, it is the app and not the browser's
-	// offline page: the nav is what proves the layout mounted.
+	// The shell is '/' HTML answering another URL, so its nav and planner paint
+	// before any JS runs — at that point the page is the WRONG route. Only the
+	// calendar's own heading proves the client router took the shell over.
 	await expect(
-		page.locator('nav').getByRole('link', {
-			name: 'Energy Lab',
+		page.getByRole('heading', {
+			name: 'Calendar',
 		}),
 	).toBeVisible();
 });

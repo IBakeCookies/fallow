@@ -2,6 +2,7 @@
 	import type { LayoutProps } from './$types';
 	import '$lib/presentation/style/app.css';
 	import { dev, browser } from '$app/environment';
+	import { goto } from '$app/navigation';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 	import { activeLocale } from '$lib/presentation/utils/locale.svelte';
@@ -32,6 +33,15 @@
 	let sceneryNow = $state(nowInTimeZone(data.timezone));
 
 	onMount(() => {
+		// The offline shell is a DIFFERENT route's cached HTML, so the app hydrates
+		// as that route under this URL — the planner showing at /calendar. The
+		// payload is all SvelteKit has to go on, so nothing else corrects it; this
+		// re-routes once, off the pathname the response was actually rendered for.
+		if (data.pathname !== location.pathname)
+			goto(location.href, {
+				replaceState: true,
+			});
+
 		sceneryNow = nowInTimeZone();
 		const id = setInterval(() => (sceneryNow = nowInTimeZone()), 60_000);
 
