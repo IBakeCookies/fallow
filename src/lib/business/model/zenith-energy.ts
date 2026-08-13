@@ -718,6 +718,14 @@ export function sampleTrajectory(
  */
 export const DEFAULT_STEP_HOURS = 0.75;
 
+/**
+ * How many of the highest-amplitude tasks the pair seeds below are drawn from:
+ * C(3,2) = 3 seeds, not C(n,2). The full pair family costs 13× at 15 tasks
+ * (measured 2026-08-13, MATH.md §8.6), because each pair seed starts fragmented
+ * and climbs long; capping it holds the whole family under a constant.
+ */
+const PAIR_SEED_TASKS = 3;
+
 export interface OptimizeOptions {
 	/**
 	 * Duration granularity of the plan (hours): every block is a multiple of
@@ -781,8 +789,8 @@ export function optimizeSchedule(
 
 	for (const seed of buildSeeds(tasks, windowHours, constants, step)) {
 		const result = localSearch(
-			seed,
-			tasks,
+			seed.blocks,
+			seed.tasks,
 			curves,
 			windowHours,
 			params,
@@ -821,12 +829,18 @@ function taskAmplitude(task: EnergyTaskInput): number {
 	return E * beta + beta / E;
 }
 
+/** A starting plan plus the tasks its local search may reach for. */
+interface Seed {
+	blocks: ScheduleBlock[];
+	tasks: EnergyTaskInput[];
+}
+
 function buildSeeds(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
 	constants: UserConstants,
 	step: number,
-): ScheduleBlock[][] {
+): Seed[] {
 	const phiOf = (task: EnergyTaskInput) =>
 		calculateFlowStateTime(mapEffort(task.difficulty), mapEnjoyability(task.enjoyment), constants);
 
@@ -867,30 +881,62 @@ function buildSeeds(
 
 	// Seed 3: round-robin step blocks (a deliberately fragmented start so the
 	// search also explores from the interleaved side).
-	const roundRobin: ScheduleBlock[] = [];
-	let left = usable;
+	const roundRobinOver = (list: EnergyTaskInput[]): ScheduleBlock[] => {
+		const seed: ScheduleBlock[] = [];
+		let left = usable;
 
-	for (let i = 0; left > step - 1e-9 && i < 24; i++) {
-		const task = byValue[i % byValue.length];
+		for (let i = 0; left > step - 1e-9 && i < 24; i++) {
+			seed.push({
+				taskId: list[i % list.length].id,
+				hours: step,
+			});
 
-		roundRobin.push({
-			taskId: task.id,
-			hours: step,
-		});
+			left -= step;
+		}
 
-		left -= step;
-	}
+		return seed;
+	};
 
 	// Seed 4: empty (all leisure) — lets the search justify every worked hour.
 	// Seeds 5+: classic with one task dropped. "Fund everything but X" optima
 	// are unreachable by uphill moves from the full-classic basin (dropping a
 	// funded task is downhill until its hours are redistributed), so each needs
 	// its own starting point (probe 2026-07-14).
-	const seeds: ScheduleBlock[][] = [classicOver(byValue), allIn, roundRobin, []];
+	const seeds: Seed[] = [classicOver(byValue), allIn, roundRobinOver(byValue), []].map(
+		(blocks) => ({
+			blocks,
+			tasks,
+		}),
+	);
 
 	if (byValue.length >= 2) {
 		for (const dropped of byValue) {
-			seeds.push(classicOver(byValue.filter((task) => task.id !== dropped.id)));
+			seeds.push({
+				blocks: classicOver(byValue.filter((task) => task.id !== dropped.id)),
+				tasks,
+			});
+		}
+	}
+
+	// Seeds after those: each PAIR among the top tasks, round-robin over the two
+	// and searched WITHIN the pair. Two enumerated days have an optimum funding
+	// two tasks that no seed above reaches (probe 2026-08-13, MATH.md §8.6), and
+	// neither a wider task pool nor a classic pair seed gets there: with the
+	// dropped tasks still on offer the steepest first move re-funds one and the
+	// climb leaves the pair's basin, while a classic pair seed's own basin misses
+	// the interleaved optimum on one witness. The top-2 pair alone is not enough
+	// — on neither witness is the winning pair the amplitude-prefix pair. Below
+	// three tasks the only pair is the whole list, which seed 3 already is.
+	const paired = byValue.length >= 3 ? Math.min(byValue.length, PAIR_SEED_TASKS) : 0;
+
+	for (let first = 0; first < paired; first++) {
+		for (let second = first + 1; second < paired; second++) {
+			const pair = [byValue[first], byValue[second]];
+
+			seeds.push({
+				blocks: roundRobinOver(pair),
+				tasks: pair,
+			});
 		}
 	}
 
@@ -1249,8 +1295,8 @@ function concaveMajorantSlopes(values: number[], step: number): number[] {
  * from the shortest window swept, which is also what lets `recommendedHours`
  * stay null on a day the model declines to work at any length.
  *
- * Cost: one `optimizeSchedule` per step — 16 solves at the default cap, ~40 ms
- * each on a small day. On-demand only; never a `$derived`.
+ * Cost: one `optimizeSchedule` per step — 16 solves at the default cap, each
+ * priced by MATH.md §8.6's table. On-demand only; never a `$derived`.
  */
 export function suggestBudgetCurve(
 	tasks: EnergyTaskInput[],

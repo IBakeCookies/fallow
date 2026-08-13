@@ -18,6 +18,9 @@ export default defineConfig({
 		name: 'probe',
 		environment: 'node',
 		include: ['scripts/**/*.probe.ts'],
-		testTimeout: 600_000,
+		// The search-gap probe's enumerated tiers land just over 10 minutes since
+		// the §8.6 pair seeds; a probe that reports a timeout instead of its
+		// numbers is worse than a slow one.
+		testTimeout: 1_200_000,
 	},
 });

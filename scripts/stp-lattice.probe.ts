@@ -1,8 +1,10 @@
 /**
  * Measurements behind MATH.md §8.8's 45-minute-lattice numbers — the price of
  * quantizing the energy optimizer's plans to `DEFAULT_STEP_HOURS`. The suite
- * pins the ≥ 97% bound and the funded-set match on two days; the quoted
- * figures themselves had no committed sweep:
+ * pins the ≥ 97% bound on two days and the funded-set match on the mixed day
+ * only — the probe day's coarse and fine funded sets diverge at 8 h since
+ * §8.6's pair seeds improved the fine-step search. The quoted figures
+ * themselves had no committed sweep:
  *
  *   (a) objective ratio coarse/fine (0.75 vs 0.25 step) 0.9865 / 0.9979 /
  *       0.9936 / 0.9886 "across the standard probe days";

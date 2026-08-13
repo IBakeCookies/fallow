@@ -76,6 +76,14 @@ interface Day {
 	windowHours: number;
 }
 
+/**
+ * Days per task count in the FRONTIER tier. The committed 3 keeps that tier at
+ * ~7 min of the file's ~10; the seeds are a prefix, so raising this line widens
+ * the same sequence. MATH.md §8.6's frequency numbers came from 20 days at 4
+ * tasks and 8 at 5 (~28 min), which is the sweep that found both witnesses.
+ */
+const FRONTIER_DAYS_PER_SIZE = 3;
+
 const task = (
 	id: number,
 	difficulty: number,
@@ -451,7 +459,13 @@ describe('energy search gap', () => {
 			[6, 5.25],
 		]) {
 			const label = `FRONTIER ${tasks} tasks x ${windowHours}h`;
-			const days = randomDays(3, 8700 + tasks, [tasks, tasks], [windowHours, windowHours]);
+
+			const days = randomDays(
+				FRONTIER_DAYS_PER_SIZE,
+				8700 + tasks,
+				[tasks, tasks],
+				[windowHours, windowHours],
+			);
 
 			searchGap(label, days, enumeratedOptimum);
 			days.forEach((day, index) => uphillAudit(`${label} day ${index}`, day));

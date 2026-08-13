@@ -130,8 +130,10 @@ its allocation code, so the main page is unaffected by changes here.
   (task|rest, duration) block schedules: not slot-greedy (myopic, never rests),
   not full DP. Pure single-step moves strand ~1% of the objective and can
   return the wrong plan **structure** — hence the compound moves (transfer
-  between blocks, half-block reassign, T*-session insert) and drop-one classic
-  seeds; keep those when touching the search. §8.6.
+  between blocks, half-block reassign, T*-session insert), the drop-one classic
+  seeds, and the pair seeds, each searched **within its pair** because a seed
+  whose search may reach every task climbs back out of the two-task basin it was
+  built for; keep those when touching the search. §8.6.
 - **Calibration order is load-bearing** (§8.7/§8.9/§8.10). Recovery `r` is
   fitted first from ☕ pre/post-rest pairs — during pure rest the law loses α
   entirely, so rest data identifies `r·m` on its own. The α drain rates are
