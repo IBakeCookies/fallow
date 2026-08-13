@@ -227,6 +227,11 @@ field three observation stores use as their foreign key); plain `max + 1` over
 the day's tasks recycles a deleted task's id, and a drain log — which outlives
 the task it rated — re-attaches to whatever new task inherits it.
 
+**A day's `tasks` array is newest-first** — every writer in `SessionStore`
+prepends — so anything wanting the later of two entries walks it backwards, and
+never sorts by `id`: an import assigns ids ascending across a batch it prepends
+as a block, which runs opposite to the array.
+
 ### A composed read reads each store once
 
 `session-history.ts`. Every read is a full store scan that grows with the
@@ -313,6 +318,13 @@ and a held reading reports FRESH right through that window. Any future
 on-demand reading held across days needs the same field. What the two cards do
 with the flag is theirs: [presentation/AGENTS.md](../presentation/AGENTS.md).
 
+The day's **second** solve goes the other way and stays a store-level
+`$derived`: `#remainingDay` re-plans what is left of today from the hours
+already logged against it (MATH.md §35), gated on the viewed day being today
+**and** on any hours existing. That gate, not an on-demand method, is what
+keeps it viable — 12.4 ms a solve at n = 12, but 0.001 ms while nothing is
+logged, which is every morning, i.e. exactly when the day is being typed into.
+
 ### `EnergyLabStore` never writes to the daily session
 
 Its params live in IndexedDB (`settings` store, key `energyParams`) — see R4 —
@@ -360,6 +372,11 @@ that lands before its budget opens the panel against 0 and fills in behind it.
 Awaiting is safe only because the read catches its own failure (above): the day
 must not wait on a history read that can take it down.
 
+The same read carries the title→rating map, which is a **boot snapshot**:
+`readHistoryPrefills(today)` runs once at load, so a title rated within the
+session is not suggested until the next load, and the map keeps the boot day's
+answer while another date is viewed.
+
 ### A task moves between days only via `moveTaskToTomorrow`
 
 Tasks live inside their day's `DailySession` record, so a move is two writes:
@@ -394,5 +411,7 @@ that day's inputs — today → tomorrow (edit it) → today fingerprints
 identically — so `#writeGenerations` counts landed session writes **per date**
 (every session write goes through `#persistSession`) and anything held across
 days keys on `writeGenerationFor(that day)`. Not one counter: today's own
-auto-save then withdrew a reading it cannot have affected. Where a defer sends
-is `deferDestinationDate`, read by the move, the preview and that key.
+auto-save then withdrew a reading it cannot have affected. A `SvelteMap` and not
+a `Map`, because it is mutated per write rather than replaced — a plain one
+would not re-derive its dependents. Where a defer sends is
+`deferDestinationDate`, read by the move, the preview and that key.

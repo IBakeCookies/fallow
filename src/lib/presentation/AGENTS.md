@@ -80,6 +80,24 @@ Untestable at every level is the signal.
   listener sits on `document`, nor on the arrow that is the only way out of the
   field (menu content hands focus to its first tabbable on open, which is that
   input).
+- **`task-form.svelte`'s title combobox is the ARIA 1.2 pattern hand-rolled
+  inline, not `bits-ui`'s combobox.** Three of that bit's habits fight a form:
+  `Combobox.Input` double-owns `value` (R3 — the bit's own state and the draft
+  are two answers to what the field holds), its `onkeydown` `preventDefault`s
+  Enter and so takes the form's only keyboard submit, and its `oninput` never
+  opens the menu, which is the whole of suggesting as the user types. What the
+  hand-rolled one owes back is the highlight, which is three rules: an arrow key
+  reopens a closed list (Enter and everything else must reach the form),
+  Escape, a pick and a blur drop the highlight — a stale
+  `aria-activedescendant` otherwise names an id that has unmounted — and an
+  `$effect` on `active` scrolls the highlighted row into view, since a reopened
+  list highlights an `<li>` that does not exist until the DOM is patched.
+- **Emptying the title field resets the three sliders to 5/5/5 only when a pick
+  put the numbers there.** `fromPick` in the same form: clearing the title and
+  typing an unrelated task would otherwise deploy it under a rating nobody
+  gave it, while sliders the user dragged are theirs and stay. Editing short of
+  empty keeps the pick, and the flag clears on submit — left set, the next
+  title being cleared would reset sliders no pick had touched.
 - **A card whose reading costs a solve is its run button and nothing else until
   it has run** — `plan-advice-card`, `budget-curve-card`. A card advertising a
   feature it has not run yet is pure vertical cost above the plan.
@@ -145,6 +163,9 @@ the same way:
   are otherwise not each other: `task-form.svelte` is a title combobox over
   rated history with a collapse and a reset, `task-edit-form.svelte` is a plain
   title input, which is ~150 lines of script the editor has no counterpart for.
+  **The editor offers no suggestions on purpose** — a pick rewrites the three
+  ratings, and renaming a task the user has already rated must not; only the
+  add form reads title memory.
   Do not push the title or the frame in here to make them look like one
   component; the callers keep both, so each frame and each field is defined
   once, whole, and the caller's own `space-y-*` is what sets the form's
