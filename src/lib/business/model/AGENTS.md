@@ -133,7 +133,18 @@ its allocation code, so the main page is unaffected by changes here.
   between blocks, half-block reassign, T*-session insert), the drop-one classic
   seeds, and the pair seeds, each searched **within its pair** because a seed
   whose search may reach every task climbs back out of the two-task basin it was
-  built for; keep those when touching the search. §8.6.
+  built for; keep those when touching the search. The pair family is capped at
+  the three highest-amplitude tasks (`C(3,2)`, ~1.3×–2.3×) — unbounded `C(n,2)`
+  measured 12.5× / 13.1× at 10 / 15 tasks over a 12 h window, because each pair
+  seed starts fragmented and climbs long, so do not unbound it. §8.6.
+- `neighbors` yields **every** interior lattice split of a funded block — one
+  step of rest at unchanged worked hours — not the rounded midpoint alone:
+  where a mid-session recovery pays for the warm-up it destroys is not the
+  middle. That rest step comes out of spare `room`, never out of the block.
+- The plan lattice is 45 minutes (`DEFAULT_STEP_HOURS`, §8.8), and the coarse
+  and the fine (0.25 h) searches may fund **different sets**. The coarse plan is
+  still the enumerated optimum of its own lattice, so a disagreement is
+  quantization, not a search defect.
 - **Calibration order is load-bearing** (§8.7/§8.9/§8.10). Recovery `r` is
   fitted first from ☕ pre/post-rest pairs — during pure rest the law loses α
   entirely, so rest data identifies `r·m` on its own. The α drain rates are
@@ -147,6 +158,13 @@ its allocation code, so the main page is unaffected by changes here.
   checked-off task is no forgone step, though its hours still drained the
   reservoirs and stay in the reconstruction. A day that ended with everything
   ticked reveals no indifference and is censored.
+- `STOP_INVERSION_MARGIN = 0.25` — the inversion past which a day is censored
+  too — is **stipulated, not derived**: λ₀ fit RMSE is flat in magnitude over
+  m ∈ [0.1, 0.5] (swept 2026-08-13), so neither the constant nor the
+  inversion-censoring rule moves without evidence above the instrument's 0.110
+  bracket half-width. What §8.10's stopping calibration has left is the
+  censored-likelihood fit, which would use the one-sided days instead of
+  discarding them; the margin is a dead end.
 - A fit never writes params silently: the "Apply my fits" button copies it into
   the manual inputs. **One** button for all four fits, beside the Model
   Parameters heading, because the order above is the math — three per-card
@@ -154,6 +172,22 @@ its allocation code, so the main page is unaffected by changes here.
   old recovery and leaves it stale with only a re-armed button as the tell.
   `EnergyLabStore.applyFits()` is the only public way in; the per-fit setters
   are private so that order cannot be reached.
+
+## History prefills (`budget-memory.ts`, `title-memory.ts`)
+
+Pure folds over the stored days, read once at boot by the state layer
+([business/AGENTS.md](../AGENTS.md)) — hours or a rating entered today do not
+enter either fold until the next load.
+
+- Only days that **declared** a budget count in the fold: a stored day the user
+  never budgeted is not evidence of a habit, and folding those in drags every
+  median toward the 0 the prefill exists to replace.
+- The budget median takes the **lower of the two middles** on an even count, so
+  the answer is always a number the user really declared.
+- Prefill order is same-weekday median → overall median → 0.
+- Title suggestions need at least `TITLE_QUERY_MIN` = 2 typed characters; the
+  match is a **substring**, not a prefix, the order is alphabetical, and the
+  list is uncapped — no ranking, no cap.
 
 ## Settled decisions — do not re-litigate
 
@@ -257,6 +291,15 @@ MATH.md §20). The reading is the share of §4's capacity constraint the plan
 consumed, on the allocator's own weights — so which pool it BLAMES is decided
 on the exact saturations, never the rounded ones (§20.1).
 
+`calculatePoolSaturation` is the one definition of "which pool binds, and how
+saturated is it" (R3): this row reads it over the hours the plan books and the
+executed burn-down (§35) over the hours already worked, and neither re-spells
+the tie rule — two spellings are free to name different pools off the same
+inputs. The burn-down reading is **withheld, not defaulted**: no 🪫 log today,
+or a non-finite saturation (a 0-hour pool carrying a draw), leaves the row
+unread rather than printing a 0 or an `Infinity` — the gate §20 already puts on
+Human Capacity's own value.
+
 ### Burnout Risk is not monotone in the declared budget, and that stays
 
 Settled 2026-08-06, MATH.md §11.6. Raising `availableHours` over a fixed task
@@ -280,6 +323,11 @@ presentation decision taken where the bands are not visible, and it made an
 unfixable warning — Energy Balance on a day of nothing but cognitive work —
 indistinguishable from a day with no warning on it, which the card then called
 fine. The card says the empty menu out loud instead.
+
+`PlanAdvice` is contractually today's inputs alone (MATH.md §14), and
+`AdviceDisplay` is built from it — so a reading about ANOTHER day, such as what
+the day a defer sends to already holds, is its own descriptor and its own card
+prop, never a field on either.
 
 ### A budget _increase_ never enters that frontier
 
