@@ -3,7 +3,7 @@
 Fallow sits at a stable V1: two peer planning modes (the default Zenith
 Gradient allocator and the Energy Lab), a full calibration loop (⚡ time-to-flow,
 ☕ recovery, 🪫 drain, stop-time λ₀), plan advice, the analytics audit, offline
-PWA, en/de.
+PWA, five locales (en/de/es/fr/zh).
 
 The math behind every item lives in [MATH.md](MATH.md). Settled decisions are
 in AGENTS.md §4's decision index — notably the three roads deliberately not
@@ -181,7 +181,8 @@ row. Neither needed a new solve.
     `calculateRemainingDay` (`metric/remaining-day.ts`) re-plans the OPEN tasks
     over the hours today's 🪫 logs leave, from a prefix: `buildBlockIncrements`
     continues at `Δᵢ(j) = P̄ᵢ(hᵢ+jδ) − P̄ᵢ(hᵢ+(j−1)δ)`, pools enter depleted at
-    `Σ wᵢhᵢ` clamped at 0, and it renders as a second column beside the plan.
+    `Σ wᵢhᵢ` clamped at 0, and it renders as a second line stacked in the task
+    row — the delta leads, the plan sits under it (MATH.md §35).
     The shape is the one this item specified — a store-level `$derived` on
     `DailyPlanStore`, gated on the viewed day being today AND on any hours
     existing — and the kill criterion is pinned as a store spec: logging hours
@@ -312,7 +313,7 @@ _Settled 2026-08-09, not a roadmap item:_ both halves of `importFromDate` /
 `importYesterday` are intended and stay. Copying a completed task in as a fresh
 incomplete one IS the point of "import yesterday", and importing a title that is
 already on today's list is allowed to produce two rows — no dedupe against the
-day's tasks, no filter on `completed` (`session-store.svelte.ts:756`, `:781`).
+day's tasks, no filter on `completed` (`session-store.svelte.ts:761`, `:792`).
 The consequence to keep in mind, since 🪫 logs key on `taskId`: two rows with
 the same title are two tasks to every fit, and the hours logged against each
 stay separate.
@@ -494,8 +495,11 @@ enjoyment}>`; `readHistoryPrefills(today)` (`readTitleRatings` until item 16
     0.05 sits inside that divergent region, so a clamp and a stated floor
     constant go in MATH.md before any code.
     **α̂ is biased upward, and by how much depends on how often the user logs**
-    (measured 2026-08-04 with `scripts/generate-fixture.mjs`, recovering known
-    ground truth through the real `fitEnergyParams`): the fit is **exactly
+    (measured 2026-08-04 with an **uncommitted** variant of
+    `scripts/generate-fixture.mjs`, recovering known ground truth through the
+    real `fitEnergyParams` — the committed script hard-codes the 🪫 opt-in and
+    cannot emit these cells, so read the direction, not the percentages;
+    MATH.md §18): the fit is **exactly
     unbiased at one 🪫 log per day** (α_cog −0%, α_phys −0%) and then drifts
     **+17%/+15% at two logs, +28%/+22% at three, +40%/+31% at five**, purely
     from §8.7's fresh-start assumption — each rating is read as a session from a
@@ -510,7 +514,7 @@ enjoyment}>`; `readHistoryPrefills(today)` (`readTitleRatings` until item 16
     And it must be a **prefill of the per-day session
     field, never a change to `DEFAULT_CAPACITY_POOLS`**: that constant is the
     fallback for every stored day with no pools (`session-history.ts:303`,
-    `history.ts:73`), so changing it re-scores history against §12.1's settled
+    `history.ts:108`), so changing it re-scores history against §12.1's settled
     "a past day's fit is what the user had", and prefilling is also what "a fit
     never writes params silently" requires. **Probe:** the pool has no
     observable, so use the only ground truth there is — does the α-derived pool
@@ -637,9 +641,9 @@ present:
 19. **Prequential ϕ scorecard** — the only reading the app could have that says
     whether the ϕ model has ever predicted anything, scored out-of-sample. Walk
     `flowObservations` in date order; for each log, fit on logs strictly before
-    its date via `fitUserConstants` (`zenith.ts:1736`) and record the residual
+    its date via `fitUserConstants` (`zenith.ts:1852`) and record the residual
     against the fitted plane, against `DEFAULT_USER_CONSTANTS`, and against the
-    ±1σ band from `phiPredictionStd` (`zenith.ts:1883` — exported, documented
+    ±1σ band from `phiPredictionStd` (`zenith.ts:1999` — exported, documented
     "intended for UI", and consumed by nothing outside its own test).
     Whole-history flow is already read once in `readModelReport`
     (`session-history.ts:528`), so this adds no read. **Two corrections that
@@ -656,7 +660,9 @@ present:
     advertises that), **or if coverage sits inside 60–75% at every n** (the
     band is already correct and unremarkable — then ship only the between-title
     variance). Two results the copy must not overpromise: coverage will
-    over-cover (σ̂² floored at 0.25 h, ν₀ = 4), and skill against the default is
+    over-cover at small n (σ̂² is the ν₀ = 4 blend toward σ₀ = 0.25 h,
+    `zenith.ts:1958` — a prior, not a floor: it decays as logs accumulate), and
+    skill against the default is
     ≈0 at small n _by construction_, since the ridge is anchored to the
     default — so gate the coverage row at n ≥ 10. Fold in the ~5-line display
     of `phiPredictionStd` as a ± band beside the point ϕ on the task card
@@ -670,7 +676,8 @@ present:
     funds this task" is a lookup over candidates already in hand; pool-bound is
     detectable by comparing the plan's `Σ hours·weight` against the declared
     pool with no solve at all; and the budget branch already ships as
-    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:537`) today says
+    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:599`, field at `:183`)
+    today says
     _that_ and never _why_, and §14.2 concedes that a bound pool, a task near
     `T*`, and a block landing on finished work "look identical from one solve".
     **Strip all prescription** from the pool and switch branches — §14 is
@@ -1032,7 +1039,7 @@ What survives of the multi-day idea is two readings, not a solver:
     re-opening the button's wording re-opens ground item 25 settled.
 22. **Chronic-slide badge** — "this has been on your list 6 days".
     `moveTaskToTomorrow` copies `createdAt` verbatim
-    (`session-store.svelte.ts:702`), `Task.createdAt` is an ISO date string
+    (`session-store.svelte.ts:713`), `Task.createdAt` is an ISO date string
     already validated on read (`persisted.ts:91`), and nothing in presentation
     renders it — so slide age is `today − task.createdAt`: no title matching,
     no new read, no new concept. Cross with `unfundedTaskIds` for the "never
@@ -1054,8 +1061,8 @@ What survives of the multi-day idea is two readings, not a solver:
     `toPooledInputs` (`metric/calculation.ts:157-165`).
     **The R3 hazard to price first:** `Σ P̄` has two independent
     implementations — the allocator's `planValue` over `buildBlockIncrements`
-    (`zenith.ts:920`, `:649`) and `calculateTotalProductivity`
-    (`zenith.ts:1271`), which is what Zenith Gain and the §12 audit score with.
+    (`zenith.ts:948`, `:667`) and `calculateTotalProductivity`
+    (`zenith.ts:1387`), which is what Zenith Gain and the §12 audit score with.
     A weight must land in both in lockstep or §13.2's "the gain is provably
     ≥ 0" — which since §19.3 holds on the SINGLE-BUDGET path only, while the
     dashboard reads the pooled one — breaks and the audit starts comparing two
@@ -1074,7 +1081,7 @@ What survives of the multi-day idea is two readings, not a solver:
     scale.
     **Unpriced costs to settle before building:** `priorityScore = P̄(T*)·10`
     becomes v-scaled and is rendered as a bare number
-    (`task-item.svelte:203-205`); `SavedRoutine.tasks` shares `taskCore`
+    (`task-item.svelte:194-196`); `SavedRoutine.tasks` shares `taskCore`
     (`persisted.ts:68-76`), so decide whether importance travels with routines
     (`mustDoToday` deliberately does not); and the energy mode does not get the
     weight (`toEnergyTask`, `calculation.ts:112`), so §12's audit becomes
@@ -1251,5 +1258,6 @@ Two upheld drops left facts worth keeping. `budget-curve-chart.svelte`'s
 viewBox assertion in its story, so that enforcement covers one chart only. And
 F34's own text names a real hole — `{#if ondrainopen}` renders the 🪫 button while
 the editor needs `ondrainsave` — but the per-instrument object it proposes would
-not close it: `(app)/+page.svelte` deliberately passes open-without-save on past
-days, so that pairing is intended, not an accident.
+not close it: `(app)/+page.svelte` deliberately passes save-without-open on past
+days (`ondrainopen` is withheld when `canLog` is false, `ondrainsave` always
+passed), so that pairing is intended, not an accident.
