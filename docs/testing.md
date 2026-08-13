@@ -128,6 +128,20 @@ an earned _why_ from archaeology, so AGENTS.md §0 still governs. `prettier
 --check` covers the whole tree, so format the files you touched
 (`npx prettier --write`) and never the tree.
 
+`depcheck` is the other half of R1's enforcement, and it catches what eslint
+cannot. `no-restricted-imports` in `eslint.config.js` matches the `$lib/...`
+**specifier string** — a dynamic `import('$lib/data/...')` crossing is invisible
+to it, and a relative one only cannot hide because relative specifiers are
+banned outright. `.dependency-cruiser.cjs` resolves modules to disk; its four
+directional rules — `data-not-to-upper-layers`, `business-not-to-presentation`,
+`presentation-not-to-data`, `presentation-not-to-business-model`, all
+`severity: 'error'` — catch those. `src/lib/paraglide` is generated and exempt.
+One gap worth knowing: the Svelte compiler strips `import type` before
+dependency-cruiser parses a `.svelte` file, so a type-only crossing from a
+component produces no edge to flag. Inside components that boundary is eslint's
+alone (it does flag `import type`) — hence the error severity, and hence
+persisted types coming from `$lib/business/type`.
+
 Warnings are a known baseline, not a to-do list: 18 `max-depth` (the scheduler
 loops in `business/model/zenith*.ts`, downgraded to `warn` in
 `eslint.config.js` because unnesting them is a test-covered refactor, not a
