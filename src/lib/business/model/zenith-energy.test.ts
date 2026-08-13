@@ -899,6 +899,11 @@ describe('Zenith Energy Model', () => {
 			}
 		});
 
+		// The slowest test in the suite: it runs the 0.25 h lattice twice, 32 slots
+		// deep, which is where the §8.6 pair seeds climb longest — this fixture went
+		// 813 ms → 1970 ms when they landed. That fits the 5 s default alone but not
+		// alongside the browser projects, so the timeout below is a hang detector,
+		// not a machine-speed gate.
 		it('quantization keeps ≥97% of the fine-step objective, and the mixed day’s structure', () => {
 			// Probe 2026-08-13: ratios 0.9831 (probeDay) and 0.9952 (mixedDay). The
 			// bound leaves slack for param drift but catches a structural regression
@@ -919,7 +924,7 @@ describe('Zenith Energy Model', () => {
 
 				if (tasks === mixedDay) expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
 			}
-		});
+		}, 20_000);
 
 		it('honors a stepHours override (blocks land on that lattice instead)', () => {
 			const { blocks } = optimizeSchedule(probeDay, 8, DEFAULT_ENERGY_PARAMS, undefined, {
