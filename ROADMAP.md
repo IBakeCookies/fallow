@@ -733,10 +733,22 @@ defects it found without fixing.
     kill conditions were checked: the exhaustive tier went from 58 of 60 exact
     (worst −0.5951%) to **60 of 60, worst 0.0000%**, and wall time did not move
     — 9.0 → 8.9 ms at 3 tasks / 8 h, 94.2 → 94.4 ms at 6 tasks / 12 h on one
-    machine. The harder tier's funded-set mismatches went 3 → 2 of 12 and stay
-    **unattributable**, because its reference is still a 200-restart hill climb
-    and a lower bound; raising it to an exhaustive reference is the open
-    follow-up, and nothing should be read into those 2 until then. Not built:
+    machine. The harder tier's funded-set mismatches went 3 → 2 of 12.
+    **The stated follow-up — raising that tier to an exhaustive reference — is
+    closed as UNREACHABLE, 2026-08-13**: its two mismatch days enumerate to
+    6¹³ = 1.31·10¹⁰ and 7¹⁵ = 4.75·10¹² lattice plans at 35.5 / 39.8 µs per
+    `evaluateSchedule`, i.e. **129 h** and **6.0 years**, and the probe now
+    prints both so nobody re-proposes it. Three measurements replaced it. (i)
+    The mismatches are half-attributable after all, from the SIGN of their
+    shortfall: day 6 is 0.0540% behind the reference (a proven product-search
+    shortfall) and day 4 is 0.0840% ahead of it (a proven reference shortfall);
+    only which funded set the true optimum has stays open. (ii) A new FRONTIER
+    tier takes the exhaustive reference as far as it goes — 4 × 6.75 h,
+    5 × 6 h, 6 × 5.25 h, 3 days each, ~7 min — and 5 and 6 tasks are 3 of 3
+    exact, while 4 tasks holds a **proven 0.3075% funded-set defect** that
+    became item 30. (iii) The not-built variant below was swept rather than
+    argued: 0 uphill on all 12 harder-tier days and all 9 frontier days. Not
+    built:
     the variant that takes the rest step out of the block rather than out of
     spare `room`, which would survive a fully-spent window — the enumeration
     covers fully-spent plans and no day of the 60 asked for it.
@@ -879,6 +891,31 @@ defects it found without fixing.
     item 27, which restated the gap as "midpoint-only, and only with room" and
     then closed the midpoint half of it. The `room` gate stands and §8.6 records
     why.
+
+Item 27's replacement follow-up — pushing the exhaustive reference to the
+largest task counts it reaches — then found one defect, at a size no proven
+reference had covered before.
+
+30. **A funded-subset seed deeper than drop-one** (MATH.md §8.6,
+    `scripts/energy-search-gap.probe.ts`, 2026-08-13). The energy search's seeds
+    reach `|funded| = n` (classic, all-in, round-robin) and `|funded| = n − 1`
+    (drop-one). The frontier tier has a day whose exhaustive optimum funds
+    **2 of 4** tasks, and the search lands **0.3075%** short of it with the wrong
+    funded set — the first PROVEN funded-set defect since §8.6 was written.
+    Witness, exactly: window **6.75 h**, tasks
+    `{id 1, d 6, e 3, c 0.5, p 0.2}`, `{id 2, d 5, e 8, c 0.9, p 0.9}`,
+    `{id 3, d 5, e 5, c 0.4, p 1}`, `{id 4, d 2, e 7, c 0.4, p 0.6}`; the search
+    returns `t3 1.5h + t1 3h + t4 1.5h` = 6.140624 funding {1,3,4}, the optimum
+    funds {1,2} = 6.159566. **No single move reaches it**: the uphill audit
+    finds 0 uphill candidates on that day across both families the search does
+    not generate, so this is a seed-depth problem, not a missing move —
+    dropping a second funded task is downhill until its hours are redistributed,
+    which is the argument that bought the drop-one seeds in the first place.
+    Build the `|funded| = n − 2` seeds (or a classic seed per funded subset up
+    to some size, which is `C(n,2)` more seeds at n ≤ 6), and price it against
+    the 94 ms the 6-task × 12 h search costs today. Kill condition: the frontier
+    tier's 4-task day still misses, or the cost stops being interactive. Pin the
+    witness as a suite fixture only once it passes — pinning it now pins the bug.
 
 ## Phase 4 — multi-day horizon
 
