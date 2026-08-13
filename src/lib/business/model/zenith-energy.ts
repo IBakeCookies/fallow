@@ -1822,11 +1822,14 @@ export const STOP_FIT_MAX = 3;
  *     add up: measured, the bias is median 0.000 / mean 0.045 and the
  *     half-width median 0.110, summing to 0.110 — not 0.25.
  *
- * The constant is LEFT at 0.25 because tightening it censors more honest days
- * (6 of 1179 already) and the two populations overlap — INVERTED random
- * compositions gap a median 0.282 against honest mood days reaching 0.421 —
- * so there is no clean cut to move it to. Re-deriving it from the measured
- * distributions is open work, not a value to guess at.
+ * RE-DERIVED 2026-08-13 (`scripts/stop-margin-fit-error.probe.ts`) and it is
+ * not derivable: over [0.1, 0.5] the whole range moves λ₀ fit RMSE by at most
+ * 0.0078 — 7.1% of the 0.110 bracket half-width above, 3.1% of σ₀ — because
+ * most interrupted days never invert at all (30.8% / 28.2% do, only 18.5% /
+ * 22.0% past 0.25), so censoring cannot reach the contamination it exists for.
+ * 0.25 is LEFT as an arbitrary point inside that flat region. The one real
+ * signal is a consistent SIGN, not a size: censoring nothing wins every arm,
+ * by up to 0.0104 — recorded in §8.10, not acted on.
  */
 export const STOP_INVERSION_MARGIN = 0.25;
 
