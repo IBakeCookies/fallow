@@ -208,6 +208,53 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 		expect(seeded.initialPhys).toBeGreaterThan(0.999);
 	});
 
+	// The scope §11.9 asserts for the ONE approximation behind both as-logged
+	// order and omitted intraday breaks (permuting the cycle's blocks): attenuated
+	// by the trailing rest, so invisible at defaults and worth ~9 points at the r
+	// fit floor. `scripts/mtr2-carry-over.probe.ts` sweeps the grid; these are its
+	// two ends.
+	it('reads block order only in proportion to the trailing rest', () => {
+		const asLogged = [
+			drainRecord({
+				hours: 8,
+				cognitiveDemand: 1,
+				physicalDemand: 0.1,
+			}),
+			drainRecord({
+				hours: 5,
+				cognitiveDemand: 0.2,
+				physicalDemand: 1,
+			}),
+			drainRecord({
+				hours: 3,
+				cognitiveDemand: 0.5,
+				physicalDemand: 0.5,
+			}),
+		];
+
+		const reversed = [...asLogged].reverse();
+		const gap = RESERVOIR_CYCLE_HOURS - 16;
+		const healed = seedMorningReservoirs(DEFAULT_ENERGY_PARAMS, asLogged);
+		const healedReversed = seedMorningReservoirs(DEFAULT_ENERGY_PARAMS, reversed);
+
+		// e^(−1.05·8) ≈ 2·10⁻⁴ of any end-of-work difference survives the gap.
+		expect(healedReversed.initialCog).toBeCloseTo(healed.initialCog, 3);
+
+		expect(healedReversed.initialPhys).toBeCloseTo(healed.initialPhys, 3);
+
+		// The same gap at the fit floor keeps e^(−0.15·8) ≈ 0.30 of it, and this
+		// day spends 9 points of that — the regime the section has to scope.
+		const slow = seedMorningReservoirs(slowRecovery, asLogged);
+		const slowReversed = seedMorningReservoirs(slowRecovery, reversed);
+		const moved = Math.abs(slowReversed.initialCog - slow.initialCog);
+
+		expect(moved).toBeGreaterThan(0.05);
+
+		expect(moved).toBeLessThan(
+			Math.exp(-slowRecovery.recoveryRate * slowRecovery.restRecoveryMultiplier * gap),
+		);
+	});
+
 	it('is monotone: a longer previous day starts the morning lower', () => {
 		const morningCog = (hours: number) =>
 			seedMorningReservoirs(slowRecovery, [
