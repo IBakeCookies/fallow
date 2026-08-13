@@ -716,6 +716,44 @@ describe('Zenith Energy Model', () => {
 			expect(result.evaluation.objective).toBeGreaterThanOrEqual(handBuilt.objective - 1e-9);
 		});
 
+		// The two enumerated frontier days whose optimum funds a set two smaller
+		// than the drop-one seeds reach (probe 2026-08-13, §8.6). Both optima are
+		// pinned VALUES from that enumeration, not re-enumerated here — enumerating
+		// either day is ~1 min.
+		const fundedIdsOf = (blocks: ScheduleBlock[]) =>
+			[...new Set(blocks.filter((b) => b.taskId !== null && b.hours > 0).map((b) => b.taskId))]
+				.sort((x, y) => x! - y!)
+				.join(',');
+
+		it('funds the 2-of-4 optimum the drop-one seeds cannot reach (§8.6)', () => {
+			const day = [
+				makeTask(1, 'a', 6, 3, 0.5, 0.2),
+				makeTask(2, 'b', 5, 8, 0.9, 0.9),
+				makeTask(3, 'c', 5, 5, 0.4, 1),
+				makeTask(4, 'd', 2, 7, 0.4, 0.6),
+			];
+
+			const search = optimizeSchedule(day, 6.75);
+
+			expect(search.evaluation.objective).toBeGreaterThanOrEqual(6.1595663228 - 1e-9);
+			expect(fundedIdsOf(search.blocks)).toBe('1,2');
+		});
+
+		it('funds the 2-of-5 optimum the drop-one seeds cannot reach (§8.6)', () => {
+			const day = [
+				makeTask(1, 'a', 9, 3, 0.6, 0.9),
+				makeTask(2, 'b', 8, 7, 0.1, 0),
+				makeTask(3, 'c', 6, 2, 0.2, 0.5),
+				makeTask(4, 'd', 2, 2, 0.6, 0),
+				makeTask(5, 'e', 7, 5, 0.8, 0.8),
+			];
+
+			const search = optimizeSchedule(day, 6);
+
+			expect(search.evaluation.objective).toBeGreaterThanOrEqual(9.3923880946 - 1e-9);
+			expect(fundedIdsOf(search.blocks)).toBe('2,5');
+		});
+
 		it('reaches the off-midpoint interior rest on the probe’s worst enumerated day (§8.6)', () => {
 			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: this was the
 			// worst of 60 enumerated days (2–3 tasks × 3–6 h), 0.5951% below the
@@ -861,10 +899,13 @@ describe('Zenith Energy Model', () => {
 			}
 		});
 
-		it('quantization keeps the funded-task structure and ≥97% of the fine-step objective', () => {
-			// Probe 2026-07-18: observed ratios 0.9865 (probeDay) and 0.9979
-			// (mixedDay); funded sets identical. The bound leaves slack for param
-			// drift but catches a structural regression outright.
+		it('quantization keeps ≥97% of the fine-step objective, and the mixed day’s structure', () => {
+			// Probe 2026-08-13: ratios 0.9831 (probeDay) and 0.9952 (mixedDay). The
+			// bound leaves slack for param drift but catches a structural regression
+			// outright. The probe day's funded set no longer survives the lattice —
+			// coarse funds 3 tasks, fine 2 — and that is quantization, not search
+			// slack: enumerating all 1 048 576 coarse plans of that day returns the
+			// same 3-task plan the search does (§8.8).
 			for (const tasks of [probeDay, mixedDay]) {
 				const coarse = optimizeSchedule(tasks, 8);
 
@@ -872,11 +913,11 @@ describe('Zenith Energy Model', () => {
 					stepHours: 0.25,
 				});
 
-				expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
-
 				expect(coarse.evaluation.objective).toBeGreaterThanOrEqual(
 					0.97 * fine.evaluation.objective,
 				);
+
+				if (tasks === mixedDay) expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
 			}
 		});
 

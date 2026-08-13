@@ -51,83 +51,83 @@ that are not evident from reading it — so never retype a row, regenerate:
   §5.1      601-792  Posterior-aware allocation (added 2026-07-18)
 §6          794-806  Summary of v1 → v2 changes
 §7          808-844  Known approximations and deliberate non-changes
-§8         846-2101  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         846-2192  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      864-889  Intermittent-rest recovery correction
   §8.2      891-911  Warm-up carryover instead of binary reset
   §8.3      913-950  Verified consequences and an open calibration question
   §8.4     952-1053  Per-task satiety — concave daily value (added 2026-07-14)
   §8.5    1055-1114  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1116-1223  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1225-1357  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1359-1421  45-minute plan granularity (added 2026-07-18)
-  §8.9    1423-1497  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1499-1785  Stopping-value calibration from observed stop times (add…
-  §8.11   1787-1908  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   1910-2101  The budget curve — what the day's LENGTH is worth (added…
-§9        2103-2150  References
-§10       2152-2278  Revision log (doc-only corrections)
-§11       2280-2859  Metric-layer corrections (2026-07-18)
-  §11.1   2282-2296  Scope and principle
-  §11.2   2298-2322  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2324-2351  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2353-2410  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2412-2427  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2429-2539  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2541-2565  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2567-2610  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2612-2721  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2723-2793  Grind Density: the share of the work the day actually fu…
-  §11.11  2795-2859  Grind Density is a row, not an objective (2026-08-08)
-§12       2861-2998  Plan-adherence audit (2026-07-23)
-  §12.1   2902-2998  Per-day fit snapshots (2026-08-03)
-§13       3000-3395  Math review, 2026-07-26
-  §13.1   3017-3052  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3054-3126  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3128-3193  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3195-3231  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3233-3270  Also in this change
-  §13.6   3272-3395  The two end-of-day energy readings: a timing difference,…
-§14       3397-4135  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3600-3740  Five corrections to the first cut (2026-07-28)
-  §14.2   3742-3886  The marginal of the budget (added 2026-08-03)
-  §14.3   3888-4072  The price of the switch cost (added 2026-08-04)
-  §14.4   4074-4135  An empty frontier is a reading (2026-08-08)
-§15       4137-4284  Two objectives, two modes (2026-07-29)
-  §15.1   4212-4284  The copy named the wrong objective for both modes (2026-…
-§16       4286-4373  Run order stays a heuristic (2026-07-29)
-§17       4375-4533  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4535-4604  Drain logs are one row per SESSION, not per task-day (20…
-§19       4606-4770  The gain's naive baseline paid for switches it never mad…
-  §19.1   4618-4677  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4679-4707  Defect 2 — the displayed number moved with the order of …
-  §19.3   4709-4747  What this costs, and the one guarantee that weakened
-  §19.4   4749-4770  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4772-4834  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4813-4834  The tie went to cognitive, so the row blamed the wrong p…
-§21       4836-4996  What the gain has room to report (2026-08-07)
-  §21.1   4858-4876  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4878-4901  Why shape has a low ceiling: the activation bonus
-  §21.3   4903-4923  Population distribution
-  §21.4   4925-4950  The number is a property of the comparison, not of the o…
-  §21.5   4952-4967  Under the total-output objective the ranking inverts
-  §21.6   4969-4996  Correction: on an ordinary day it is FLOW that binds, no…
-§22       4998-5059  Task nature: an absolute gap could not carry a range tha…
-§23       5061-5203  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5102-5169  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5171-5203  Longest Warm-Up: what E/β was actually tracking
-§24       5205-5268  Task Variety counted labels, and its repair was Energy B…
-§25       5270-5417  Cognitive and Physical Load: the definition, and what ro…
-§26       5419-5525  Deep Work: a step that swung whole blocks, under a band …
-§27       5527-5644  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5646-5700  Which four readings are headlines (2026-08-07)
-§29       5702-5875  Day Profile: one cut for two different scales, on a day …
-§30       5877-5957  The Lab's comparison tile scored the plan on the one thi…
-§31       5959-6140  What history can plot, and what it cannot (2026-08-07)
-§32       6142-6208  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6210-6327  A plan reads only the logs that precede it (2026-08-08)
-§34       6329-6512  The subset search gave up one task too early (2026-08-08)
-§35       6514-6867  The plan cannot see the hours you already spent (2026-08…
-§36       6869-6940  What a correction may touch (2026-08-10)
+  §8.6    1116-1305  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1307-1439  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1441-1512  45-minute plan granularity (added 2026-07-18)
+  §8.9    1514-1588  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1590-1876  Stopping-value calibration from observed stop times (add…
+  §8.11   1878-1999  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   2001-2192  The budget curve — what the day's LENGTH is worth (added…
+§9        2194-2241  References
+§10       2243-2369  Revision log (doc-only corrections)
+§11       2371-2950  Metric-layer corrections (2026-07-18)
+  §11.1   2373-2387  Scope and principle
+  §11.2   2389-2413  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2415-2442  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2444-2501  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2503-2518  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2520-2630  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2632-2656  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2658-2701  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2703-2812  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2814-2884  Grind Density: the share of the work the day actually fu…
+  §11.11  2886-2950  Grind Density is a row, not an objective (2026-08-08)
+§12       2952-3089  Plan-adherence audit (2026-07-23)
+  §12.1   2993-3089  Per-day fit snapshots (2026-08-03)
+§13       3091-3486  Math review, 2026-07-26
+  §13.1   3108-3143  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3145-3217  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3219-3284  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3286-3322  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3324-3361  Also in this change
+  §13.6   3363-3486  The two end-of-day energy readings: a timing difference,…
+§14       3488-4226  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3691-3831  Five corrections to the first cut (2026-07-28)
+  §14.2   3833-3977  The marginal of the budget (added 2026-08-03)
+  §14.3   3979-4163  The price of the switch cost (added 2026-08-04)
+  §14.4   4165-4226  An empty frontier is a reading (2026-08-08)
+§15       4228-4375  Two objectives, two modes (2026-07-29)
+  §15.1   4303-4375  The copy named the wrong objective for both modes (2026-…
+§16       4377-4464  Run order stays a heuristic (2026-07-29)
+§17       4466-4624  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4626-4695  Drain logs are one row per SESSION, not per task-day (20…
+§19       4697-4861  The gain's naive baseline paid for switches it never mad…
+  §19.1   4709-4768  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4770-4798  Defect 2 — the displayed number moved with the order of …
+  §19.3   4800-4838  What this costs, and the one guarantee that weakened
+  §19.4   4840-4861  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4863-4925  Human Capacity: the reading is the constraint, but it na…
+  §20.1   4904-4925  The tie went to cognitive, so the row blamed the wrong p…
+§21       4927-5087  What the gain has room to report (2026-08-07)
+  §21.1   4949-4967  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4969-4992  Why shape has a low ceiling: the activation bonus
+  §21.3   4994-5014  Population distribution
+  §21.4   5016-5041  The number is a property of the comparison, not of the o…
+  §21.5   5043-5058  Under the total-output objective the ranking inverts
+  §21.6   5060-5087  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5089-5150  Task nature: an absolute gap could not carry a range tha…
+§23       5152-5294  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5193-5260  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5262-5294  Longest Warm-Up: what E/β was actually tracking
+§24       5296-5359  Task Variety counted labels, and its repair was Energy B…
+§25       5361-5508  Cognitive and Physical Load: the definition, and what ro…
+§26       5510-5616  Deep Work: a step that swung whole blocks, under a band …
+§27       5618-5735  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5737-5791  Which four readings are headlines (2026-08-07)
+§29       5793-5966  Day Profile: one cut for two different scales, on a day …
+§30       5968-6048  The Lab's comparison tile scored the plan on the one thi…
+§31       6050-6231  What history can plot, and what it cannot (2026-08-07)
+§32       6233-6299  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6301-6418  A plan reads only the logs that precede it (2026-08-08)
+§34       6420-6603  The subset search gave up one task too early (2026-08-08)
+§35       6605-6958  The plan cannot see the hours you already spent (2026-08…
+§36       6960-7031  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -1138,6 +1138,19 @@ are uphill on their own:
   learned to grow by the sub-step window remainder (with worthless leisure,
   a stranded idle sliver is pure loss). Both were retired by §8.8: the
   T\*-insert is now snapped to the lattice and the remainder-grow is gone.
+- **Optima that fund only two tasks** (found and fixed 2026-08-13): the seeds
+  above reach funded sets of size n (classic, all-in, round-robin) and n − 1
+  (drop-one), and two enumerated frontier days have an optimum funding **two**
+  of their 4 and 5 tasks — reachable from no seed, because dropping the rest is
+  downhill the whole way. Fix: one seed per **pair** among the three
+  highest-amplitude tasks, round-robin over the two and searched **within the
+  pair**, i.e. that seed's local search may only reach those two tasks. All
+  three parts are load-bearing and each was measured on a witness below: with
+  the whole task list still on offer the steepest first move re-funds a dropped
+  task and the climb leaves the pair's basin (adding the seed alone changes
+  neither witness); a _classic_ pair seed converges to a single task on the
+  5-task witness, where the round-robin seed reaches the interleaved optimum;
+  and the pair cannot be chosen by amplitude order.
 - **Rest breaks only at the midpoint** (found 2026-08-06, fixed 2026-08-13):
   the split-around-rest move offered one split point, the rounded midpoint, and
   on the witness day below that split is downhill while two others are uphill —
@@ -1149,14 +1162,57 @@ All fixes are deterministic (the search stays reproducible; a test asserts
 this). Verification: both previously-failed probe cases now beat their
 hand-built witnesses, and the b = 0 legacy world's optimum improved too
 (10.70 vs 10.65) — meaning even pre-§8.5 results had mild search slack.
-Cost: 8.9 ms for 3 tasks / 8 h and 94.4 ms for 6 tasks / 12 h on the 45-min
-lattice, still interactive (re-measured 2026-08-13, means of repeated runs; the
-interior splits cost nothing measurable — 9.0 ms and 94.2 ms for the same two
-days without them, because they add O(block steps) candidates to a neighbourhood
-already quadratic in blocks, and a day that climbs further takes fewer
-iterations. ~13 ms for the 3-task day measured 2026-08-06 on other hardware;
-~60 ms when written, at the 0.25 h step and before the 2026-08-01 `buildCurves`
-hoist — 211 ms at that step today).
+Cost, and what the pair seeds add. Measured twice on 2026-08-13, both times one
+warm-up call then the mean of 3 in a fresh process, on two machines and two task
+compositions: **the pair seeds cost ~1.3×–2.3×, and the ratio itself depends on
+the day**, so neither a millisecond figure nor any single ratio here is the
+number — quote the range. Run A is seeded `randomDays` days (`8600 + n`, plus
+8606 and the §8.6 witness at 8 h); run B is a synthetic ladder
+(`difficulty = 1 + (i % 10)`, `enjoyment = 1 + (i * 3) % 10`, both demands 0.5)
+at one composition per size, which is why its 3-task ratio is the worst cell and
+run A's is not:
+
+| Day (12 h unless stated)      |   Before | With pair seeds | Ratio |
+| ----------------------------- | -------: | --------------: | ----: |
+| A: §8.6 witness, 3 tasks, 8 h |  16.3 ms |         30.0 ms | 1.84× |
+| A: 3 tasks                    | 118.3 ms |        220.0 ms | 1.86× |
+| A: 6 tasks                    | 231.7 ms |        351.8 ms | 1.52× |
+| A: 6 tasks (seed 8606)        | 237.9 ms |        350.5 ms | 1.47× |
+| A: 10 tasks                   | 120.2 ms |        181.5 ms | 1.51× |
+| A: 15 tasks                   | 307.1 ms |        412.4 ms | 1.34× |
+| B: 3 tasks                    |  38.0 ms |         88.5 ms | 2.33× |
+| B: 4 tasks                    |  54.7 ms |        116.8 ms | 2.14× |
+| B: 5 tasks                    |  61.7 ms |        114.4 ms | 1.85× |
+| B: 6 tasks                    |  71.1 ms |        125.3 ms | 1.76× |
+| B: 8 tasks                    |  42.1 ms |         86.6 ms | 2.06× |
+| B: 10 tasks                   |  41.8 ms |         78.1 ms | 1.87× |
+| B: 12 tasks                   |  56.1 ms |         90.6 ms | 1.62× |
+| B: 15 tasks                   |  65.8 ms |        103.8 ms | 1.58× |
+
+The two runs share no absolute figure — the same class of day reads 71 ms fresh
+and 172 ms in a loaded process, and machine A is ~2× machine B — so the ratios
+are what carry across, and even they move by a factor of 1.5 with composition
+alone.
+
+That is what forced the three-task cap: the **unbounded** C(n,2) pair family
+measured 219.2 / 812.4 / 1499.9 / 4019.5 ms on run A's four 12 h days —
+**1.85× / 3.51× / 12.5× / 13.1×**, the first cell being the capped family
+itself (at 3 tasks every pair is a top-three pair) — because a pair seed starts
+fragmented and climbs long, so it costs about two ordinary seeds rather than
+the fraction of one a 2-task neighbourhood suggests. Cost does not grow
+monotonically in n (a wide task list makes the window bind and the classic seed
+truncate), so the cap is stated in seeds, not in a task threshold: C(3,2) = 3
+seeds at every size. The three highest-amplitude tasks are enough for both
+witnesses below, whose winning pairs are the amplitude ranks {0,2} in each case.
+Three call sites pay it — `EnergyLabStore`'s `$derived` behind the parameter
+sliders, `plan-audit.ts` once per audited day under a 30-day cap, and
+`suggestBudgetCurve`, whose 16 solves per sweep make it the largest single
+multiplier (on demand, never a `$derived`). (Earlier figures for the 3-task
+day, each on its own hardware: ~13 ms on 2026-08-06,
+8.9 ms on 2026-08-13's first machine — where the interior-split move cost
+nothing measurable, 9.0 ms before it and 94.2 → 94.4 ms on a 6-task/12 h day —
+and ~60 ms when written, at the 0.25 h step and before the 2026-08-01
+`buildCurves` hoist.)
 
 **Residual gap, measured** (Probe 2026-08-13,
 `scripts/energy-search-gap.probe.ts`; the same probe read 58 of 60 and worst
@@ -1185,24 +1241,50 @@ all six windows 3–8 h.
 **The exhaustive frontier** (Probe 2026-08-13, same file). Enumeration was
 pushed to the largest task counts it reaches, one window per count so the
 lattice stays runnable: 4 tasks × 6.75 h (5⁹ = 1.95·10⁶ plans), 5 × 6 h
-(6⁸ = 1.68·10⁶), 6 × 5.25 h (7⁷ = 8.24·10⁵), 3 seeded days each, ~7 min in
-total. 5 and 6 tasks are **3 of 3 exact with 0 mismatches**. 4 tasks × 6.75 h
-carries the first PROVEN funded-set defect since this section was written: one
-day's optimum funds **2 of its 4** tasks ({1,2} at 6.159566) where the search
-returns `t3 1.5h + t1 3h + t4 1.5h` funding {1,3,4} at 6.140624 — **0.3075%**
-short, with the wrong structure. Diagnosis, as a hypothesis the witness supports
-rather than a proof (no seed over {1,2} was tried): the optimum's funded set has
-size n − 2, while the drop-one classic seeds above only reach n − 1, and
-dropping a second funded task is downhill until its hours are redistributed —
-the same argument that bought drop-one seeds. The uphill audit finds 0 uphill
-candidates on that day, so no single move reaches it either. ROADMAP item 30
-holds the fix; it is deliberately not pinned as a suite fixture until then,
-because that would pin the bug.
+(6⁸ = 1.68·10⁶), 6 × 5.25 h (7⁷ = 8.24·10⁵). `FRONTIER_DAYS_PER_SIZE` is the
+committed 3 days per size, ~7 min; the frequency sweep below raised that one
+line to 20 days at 4 tasks and 8 at 5 (~28 min), and the seeds (8700 + tasks)
+are a prefix, so the wide sweep contains the committed one.
+
+**A deep-funded optimum is the common case, not a corner** (2026-08-13, seeds
+8704 / 8705). Of 20 days at 4 tasks × 6.75 h, **14** have an exhaustive optimum
+funding ≤ n − 2 tasks; of 8 days at 5 × 6 h, **8 of 8** do. Those 28 days held
+**two proven defects** — the first funded-set defects since this section was
+written, and both are now suite fixtures:
+
+- **4 tasks × 6.75 h, day 1.** Tasks (difficulty, enjoyment, cognitive,
+  physical): (6, 3, 0.5, 0.2), (5, 8, 0.9, 0.9), (5, 5, 0.4, 1),
+  (2, 7, 0.4, 0.6). The search returned `t3 1.5h + t1 3h + t4 1.5h` funding
+  {1,3,4} at 6.140624; the optimum funds {1,2} at 6.159566 — **0.3075%** short,
+  with the wrong structure. The uphill audit finds 0 uphill candidates on it
+  across both families `neighbors` never generates, so no single move reaches it
+  either: a seed-depth problem, not a missing move.
+- **5 tasks × 6 h, day 7.** Tasks (9, 3, 0.6, 0.9), (8, 7, 0.1, 0),
+  (6, 2, 0.2, 0.5), (2, 2, 0.6, 0), (7, 5, 0.8, 0.8). The search returned one
+  6 h block on t2, funding {2} at 9.344081, against the optimum's
+  `t2 3h + t5 0.75h + t2 2.25h` funding {2,5} at 9.392388 — **0.5143%** short.
+
+**What was measured and rejected on the way to the pair seeds**, each on these
+two witnesses: seeding the **amplitude-prefix pair** (drop the two lowest
+amplitudes) reaches 5.399815 on the 4-task witness against the optimum's
+6.159566, because its winning pair is amplitude ranks {0,2} — as is the 5-task
+witness's, which is why three tasks feed the family and two do not. Seeding a
+**pair-dropped classic seed searched over the whole task list** leaves both
+witnesses exactly where they were (6.140624 / 9.344081): the seed is visited,
+and the climb walks straight out of the basin it was built for. A **classic**
+pair seed searched within the pair fixes the 4-task witness and not the 5-task
+one, where it converges to the single-task 9.344081 that the round-robin pair
+seed beats.
+
+**After the fix**, the same wide sweep is clean: all **31** frontier days — 20
+at 4 tasks, 8 at 5, 3 at 6 — are exact against the enumerated optimum (median,
+p99 and worst shortfall 0.0000%) with **0 funded-set mismatches**.
 
 On the harder tier the reference is only a 200-restart hill climb, a LOWER
 bound, so its numbers are evidence and not proof: 12 days of 4–6 tasks × 8–12 h,
 8 exact, worst 0.1104% below that reference (day 11, 4 tasks × 11 h, which has
-no mismatch), 2 funded-set mismatches (3 before the fix). Each mismatch's sign
+no mismatch), 2 funded-set mismatches (3 before the interior-split fix, and
+unchanged by the pair seeds). Each mismatch's sign
 attributes half of it, and both halves are proven: **day 6** (5 tasks × 10 h) is
 0.0540% BEHIND the reference and funds {3,4} against {2,3,4}, a proven
 product-search shortfall; **day 4** (6 tasks × 11.25 h) is 0.0840% AHEAD of it
@@ -1395,22 +1477,31 @@ price of quantization rather than a regression. The pre-existing "never
 leaves the window end idle" test keeps passing because its 12 h window is
 lattice-exact.
 
-**Probe results** (2026-07-18, re-measured 2026-08-06 with
-`scripts/stp-lattice.probe.ts`). (a) _Quantization loss is small:_ objective
-ratio coarse/fine (0.75 vs 0.25 step) is 0.9865 (probe day, 8 h) / 0.9979
-(mixed day, 8 h) / 0.9936 (probe day, 12 h) / 0.9759 (mixed day, 12 h) — the
-fourth cell was quoted as 0.9886 and no cell in a 12-point sweep produces that.
-Over windows 4–14 h the worst is **0.9693** (probe day, 4 h): a short window has
-too few lattice points to hide the remainder in. The suite's ≥ 0.97 bound is
-asserted at the 8 h window, which is where it was measured — it is not a lattice
-property. (b) _Structure survives:_ the funded-task set matched the fine-step
-optimum in all four cases, and in all 12 of the sweep. (c) _No new search
-slack:_ exhaustive enumeration of all 45-min plans on the 2026-07-14 probe day
-(every assignment of the 10 lattice slots to a task or to rest — 1 048 576
-evaluations, not the ~10⁴ once claimed) equals the search's 10.7331 exactly —
-locked in as a probe-time check, not a unit test (too slow). (d) _Faster:_
-~13 ms vs ~210 ms on the 3-task/8 h day, post-`buildCurves`-caching (the
-~55/~330 ms pair predates it). (e) A side benefit: fine-step optima at long
+**Probe results** (2026-07-18, re-measured 2026-08-13 with
+`scripts/stp-lattice.probe.ts`, after §8.6's pair seeds). (a) _Quantization loss
+is small:_ objective ratio coarse/fine (0.75 vs 0.25 step) is 0.9831 (probe day,
+8 h) / 0.9952 (mixed day, 8 h) / 0.9936 (probe day, 12 h) / 0.9759 (mixed day,
+12 h) — the fourth cell was once quoted as 0.9886 and no cell in a 12-point
+sweep produces that. Over windows 4–14 h the worst is **0.9693** (probe day,
+4 h): a
+short window has too few lattice points to hide the remainder in. The suite's
+≥ 0.97 bound is asserted at the 8 h window, which is where it was measured — it
+is not a lattice property. (b) _Structure survives, with one exception:_ the
+funded-task set matches the fine-step optimum in 11 of the 12 sweep cells. The
+exception is the probe day at 8 h, where the coarse plan funds all three tasks
+and the fine one funds two — and that is quantization, not search slack, because
+(c) enumerates the coarse lattice of exactly that day and returns the coarse
+plan. It appeared when §8.6's pair seeds improved the FINE-step search (10.8794
+→ 10.9175, funded {1,2,3} → {1,2}); the coarse side did not move. (c) _No new
+search slack:_ exhaustive enumeration of all 45-min plans on the 2026-07-14
+probe day (every assignment of the 10 lattice slots to a task or to rest —
+1 048 576 evaluations, not the ~10⁴ once claimed) equals the search's 10.7331
+exactly — locked in as a probe-time check, not a unit test (too slow).
+(d) _Faster:_ 28.5 ms vs 593.1 ms on the 3-task/8 h day (2026-08-13, one
+machine; ~13 ms vs ~210 ms on 2026-08-06's, and the ~55/~330 ms pair predates
+`buildCurves` caching). The gap widened with the pair seeds because the fine
+step gives every seed a longer climb — the ratio is a lattice figure, not a
+constant. (e) A side benefit: fine-step optima at long
 windows degenerate into 15-min rest confetti (five 0.25 h rests across the mixed
 day's 12 h); the coarse lattice returns one 45-min break — closer to what a
 human would actually do, at ~2.4% objective cost on that day.

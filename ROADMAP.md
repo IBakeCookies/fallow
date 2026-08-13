@@ -896,26 +896,32 @@ Item 27's replacement follow-up — pushing the exhaustive reference to the
 largest task counts it reaches — then found one defect, at a size no proven
 reference had covered before.
 
-30. **A funded-subset seed deeper than drop-one** (MATH.md §8.6,
-    `scripts/energy-search-gap.probe.ts`, 2026-08-13). The energy search's seeds
-    reach `|funded| = n` (classic, all-in, round-robin) and `|funded| = n − 1`
-    (drop-one). The frontier tier has a day whose exhaustive optimum funds
-    **2 of 4** tasks, and the search lands **0.3075%** short of it with the wrong
-    funded set — the first PROVEN funded-set defect since §8.6 was written.
-    Witness, exactly: window **6.75 h**, tasks
-    `{id 1, d 6, e 3, c 0.5, p 0.2}`, `{id 2, d 5, e 8, c 0.9, p 0.9}`,
-    `{id 3, d 5, e 5, c 0.4, p 1}`, `{id 4, d 2, e 7, c 0.4, p 0.6}`; the search
-    returns `t3 1.5h + t1 3h + t4 1.5h` = 6.140624 funding {1,3,4}, the optimum
-    funds {1,2} = 6.159566. **No single move reaches it**: the uphill audit
-    finds 0 uphill candidates on that day across both families the search does
-    not generate, so this is a seed-depth problem, not a missing move —
-    dropping a second funded task is downhill until its hours are redistributed,
-    which is the argument that bought the drop-one seeds in the first place.
-    Build the `|funded| = n − 2` seeds (or a classic seed per funded subset up
-    to some size, which is `C(n,2)` more seeds at n ≤ 6), and price it against
-    the 94 ms the 6-task × 12 h search costs today. Kill condition: the frontier
-    tier's 4-task day still misses, or the cost stops being interactive. Pin the
-    witness as a suite fixture only once it passes — pinning it now pins the bug.
+30. ~~**A funded-subset seed deeper than drop-one**~~ — SHIPPED 2026-08-13
+    (MATH.md §8.6, `scripts/energy-search-gap.probe.ts`). **Two** witnesses, not
+    one: widening the frontier tier from 3 days per size to 20 at 4 tasks and 8
+    at 5 found a second proven defect (5 tasks × 6 h, search funds {2} at
+    9.344081 against the optimum's {2,5} at 9.392388, **0.5143%**), and showed
+    the case is no corner — 14 of those 20 days and 8 of those 8 have an optimum
+    funding ≤ n − 2. Both are now suite fixtures, and both were watched failing
+    first. **The stated fix does not work, and the reason is worth keeping:** a
+    classic seed over the right subset is visited by the search today and lands
+    nowhere new, because its local search may still reach every task and the
+    steepest first move re-funds a dropped one. What ships is a seed per
+    **pair** of the three highest-amplitude tasks, round-robin over two and
+    searched
+    **within the pair**. Three cheaper shapes were measured and rejected: the
+    amplitude-prefix pair (5.399815 against 6.159566 on the 4-task witness), the
+    pair-dropped classic seed over the whole task list (both witnesses
+    unchanged), and the classic pair seed (fixes the 4-task witness, not the
+    5-task one). The cost gate is what capped the family at three tasks:
+    unbounded `C(n,2)` measured **12.5× / 13.1×** at 10 / 15 tasks × 12 h, while
+    `C(3,2)` costs **~1.3×–2.3×**, measured across two machines and two task
+    compositions (§8.6 carries both tables). The ratio is composition-dependent,
+    so that range is the number — no single cell of it is.
+    One knock-on, recorded in §8.8: the pair seeds also improve the 0.25 h-step
+    search, so the probe day's coarse and fine funded sets no longer agree at
+    8 h — the coarse plan is still the enumerated optimum of its own lattice, so
+    that is quantization, and the suite test says so now.
 
 ## Phase 4 — multi-day horizon
 
