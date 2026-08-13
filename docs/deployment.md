@@ -39,6 +39,14 @@ What a stale copy can then get wrong, and what fixes it:
   fallback, and the worker now caches one shell per locale (`SHELLS`, derived
   from the paraglide runtime's `locales`/`baseLocale`, never spelled by hand)
   and picks it by pathname prefix.
+- **The rendered route**, for the shell fallback only: that shell is another
+  route's HTML, and SvelteKit hydrates whatever the inlined payload describes,
+  so an offline `/calendar` came up as the planner — interactive, correct URL,
+  wrong page, and no client-side navigation fixed it (2026-08-14). The server
+  load stamps the `pathname` it rendered for; the root layout's mount compares
+  it to `location.pathname` and `goto`s the real URL once when they differ.
+  Pathname, not href: the worker's cache key is the pathname, so that is exactly
+  the granularity at which the payload can be the wrong one.
 
 Residual cost by design: a stale cached page repairs with a FOUC, and
 `x-vercel-ip-timezone` in the serialized payload is repaired by the layout's
