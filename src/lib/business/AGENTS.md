@@ -169,9 +169,10 @@ the trade runs the same way in each direction:
   `EnergyLabStore` registers without one anyway, on its own merits: a failed
   params read is a toast, not the banner.
 
-A single-consumer store's `getXStore()` may legitimately have no callers yet;
-it lets a child component read the store without the page threading it down, at
-one line.
+A single-consumer store's `getXStore()` may legitimately have no callers yet; it
+lets a second route read the store without the layout threading it down, at one
+line. Not a component: those take props and snippets
+([presentation/AGENTS.md](../presentation/AGENTS.md)).
 
 ### Loaded-ness is a field, never emptiness
 
@@ -287,7 +288,7 @@ move (re-proposing it is churn):
 | Flow observations             | `logFlow` reads the viewed day and the task's tuned difficulty to write one |
 | Routines                      | 3 members, needs a `tasks` thunk — not worth a file                         |
 
-`session-store.svelte.ts` is a deliberately deep module for the same
+`session-store.svelte.ts` is not worth splitting further, for the same
 interface-arithmetic reason as `zenith.ts` —
 [the measurement is in `model/AGENTS.md`](model/AGENTS.md).
 

@@ -183,7 +183,7 @@ the other fixtures happen to plan in input order.
 every evaluation (`evaluateWithCurves`); public `evaluateSchedule` still builds
 its own. Hoisting measured 2.6× (104 → 40 ms on a 4-task/8h solve).
 
-### `zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are deliberately deep modules
+### `zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are not worth splitting
 
 A 2026-07-23 interface analysis ran the arithmetic over every proposed split:
 each would force currently-private helpers (`amplitudeRatio`,
@@ -192,11 +192,12 @@ exports — more surface, not less. Two seams were worth cutting and are cut:
 generic 3×3 linalg → `linalg.ts`, and the drain/rest measurements →
 `energy-observation-store.svelte.ts`.
 
-**Re-measure rather than quoting these numbers**; both files have grown since
-(`session-store.svelte.ts` was 675 lines, is 815 as of 2026-08-10). On
-2026-07-23 it stood behind **39 public members** (~1 per 17 lines, against ~1
-per 50 in `zenith.ts`), 34 of them called from exactly one place — a wide
-facade, not a deep module, so size was never the argument either way.
+**The first two are deep; `session-store.svelte.ts` is not, and the decision
+does not rest on that.** It stands behind **39 public members** — 1 per 27
+lines, against ~1 per 51 in `zenith.ts` — a wide facade, so size was never the
+argument either way. What the arithmetic prices is the split, not the module.
+**Re-measure rather than quoting these numbers** (2026-08-13; 34 of the 39 were
+single-caller on 2026-07-23, when the same 39 sat behind 675 lines).
 
 ### The energy model is a peer mode, not a candidate to replace the main plan
 

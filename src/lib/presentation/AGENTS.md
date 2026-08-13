@@ -94,7 +94,7 @@ Untestable at every level is the signal.
   **The one reading that is withdrawn instead of kept shows the rule's scope:**
   the destination line (ROADMAP item 21) is about ANOTHER day, so a session write
   refutes it rather than merely dating it — it carries its own key off
-  `SessionStore.writeGeneration` and the card simply drops the line. What stays
+  `SessionStore.writeGenerationFor` and the card simply drops the line. What stays
   through staleness is the numbers priced on the day that was solved.
 - **A seeded editor copies its seed at mount** — `flow-log-form`,
   `drain-log-form`, `rest-log-form`, `task-edit-form` all read `seed` (and
@@ -130,7 +130,7 @@ the same way:
   `lead` / `meta` / `trailing`. **An action is present when its callback is**,
   so a read-only row passes no ✎ or ✕ and a past day none of the **logging**
   ones.
-- **`measurement-form-actions.svelte`** — the ✓/✕/🗑 that closes ⚡, 🪫 and 😴. It
+- **`measurement-form-actions.svelte`** — the ✓/✕/🗑 that closes ⚡, 🪫 and ☕. It
   exists because those three editors were written separately and drifted into
   two different button sizes, one with a hover surface and one without; the
   instrument's hue on ✓ is the only real difference and is a prop. 🗑 is the

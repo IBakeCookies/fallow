@@ -21,6 +21,7 @@ missing, it is one hop away.
 | [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Read the section, not the file (`## Section index`) |
 | [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                    |
 | [ROADMAP.md](ROADMAP.md)                                           | planned work in priority order — update when an item ships                                  |
+| [docs/features/](docs/features/)                                   | one spec per feature, frozen at land — what was decided then, never how the code works now  |
 | [README.md](README.md)                                             | user-facing: what the app does and how to run it                                            |
 | [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                         |
 
@@ -60,9 +61,9 @@ goes; do not let that turn into building for a future nobody has asked for.
   git holds that), **restatement** (what the signature, type, name or class
   already says), and **a rule a rules file already holds** (cite it in one line,
   or say nothing). Each arrives one plausible line at a time, which is how a
-  paragraph gets built without anyone writing one. A paragraph justifying a
-  decision means the decision is too clever — simplify the code — or the
-  justification is durable, and belongs in the rules file that owns it.
+  paragraph gets built without anyone writing one. A paragraph
+  justifying a decision means the decision is too clever — simplify the code —
+  or the justification is durable, and belongs in the rules file that owns it.
   `scripts/comment-density.mjs --check` holds the volume; it counts lines, not
   judgement, so the three above stay yours to catch.
 - **When you notice something unrelated, say it; do not fix it.** A finding
@@ -98,19 +99,10 @@ imports upward; model defaults a migration needs are passed in as parameters.
 [business](src/lib/business/AGENTS.md) (including the three user-facing failure
 surfaces), [presentation](src/lib/presentation/AGENTS.md).
 
-Enforced twice, and the two catch different things. `no-restricted-imports` in
-`eslint.config.js` matches the `$lib/...` **specifier string** — a dynamic
-`import('$lib/data/...')` crossing is invisible to it, and a relative one only
-cannot hide because relative specifiers are banned outright (see Code below).
-`.dependency-cruiser.cjs` resolves modules to disk; its four directional rules —
-`data-not-to-upper-layers`, `business-not-to-presentation`,
-`presentation-not-to-data`, `presentation-not-to-business-model`, all
-`severity: 'error'` — catch those. Run `npm run depcheck`; it is in CI.
-`src/lib/paraglide` is generated and exempt. One gap worth knowing: the Svelte
-compiler strips `import type` before dependency-cruiser parses a `.svelte`
-file, so a type-only crossing from a component produces no edge to flag. Inside
-components that boundary is eslint's alone (it does flag `import type`) — hence
-the error severity, and hence persisted types coming from `$lib/business/type`.
+Enforced twice, and the two catch different things — eslint on the specifier
+string, dependency-cruiser on disk (`npm run depcheck`, in CI). Which catches
+what, and the one gap a `.svelte` file opens:
+[docs/testing.md](docs/testing.md).
 
 **R2 — Routes and components hold no logic.** A `+page.svelte` may hold markup,
 UI-only state (draft editors, toggles, view preferences), formatters and thin
@@ -194,13 +186,12 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `withAutoLoad` — so the name reads as a claim and never as a command: a prop
   called `open` or `fitted` says nothing about whether it asks a question or
   performs an action, which is how a caller ends up passing the wrong thing.
-  `can` / `must` / `should` are the same shape where the modal is the accurate
-  verb (`canLog`, `mustDoToday`). A component's own mount-time copy of such a
-  prop keeps the plain word (`isOpen` → `let open = $state(isOpen)`), so the two
-  never shadow each other. Existing names are a baseline, not a to-do list:
-  rename one when you touch it, in a change of its own. Coerce to a boolean
-  with `Boolean(x)`, never `!!x` — the same operation, but one of them is a
-  name and the other is punctuation read twice.
+  `can` / `must` / `should` where the modal is the accurate verb (`canLog`,
+  `mustDoToday`). A component's own mount-time copy of such a prop keeps the
+  plain word (`isOpen` → `let open = $state(isOpen)`), so the two never shadow
+  each other. Existing names are a baseline, not a to-do list: rename one when
+  you touch it, in a change of its own. Coerce with `Boolean(x)`, never `!!x` —
+  the same operation, but one is a name and the other is punctuation read twice.
 - Data-layer controllers start with `$` + a CRUD verb: `$createX`, `$readX`,
   `$updateX`, `$deleteX`; an upsert is `$updateX`. Inside `.svelte`/`.svelte.ts`
   the `$` prefix is reserved for runes, so import the repository as a namespace.
@@ -237,31 +228,21 @@ stories — are in [presentation/AGENTS.md](src/lib/presentation/AGENTS.md).
 
 ## 3. Verification
 
-Five commands define green, and CI (`.github/workflows/ci.yml`) runs all of
-them on every push/PR to `main`:
-
-```sh
-npm run check      # svelte-check + tsc on the service worker — must be 0 errors
-npm run lint       # prettier --check, eslint (layer-boundary rules), and the three doc checks
-npm run depcheck   # dependency-cruiser: layer direction, no cycles, no orphans
-npm run test:unit -- --run
-npm run test:e2e
-```
-
-**An agent does not run the full five — the user does, and CI does.** They cost
-minutes of tokens to sit through and they re-prove the whole tree to check one
-diff. Run instead: the test file you touched (R6 is not satisfiable otherwise),
-`npx prettier --write` on the files you touched (never the tree), and anything
-the change itself puts in doubt — `npm run check` after a type-level change,
-`npm run depcheck` after moving a module across layers. Then hand over saying
+Five commands define green (`check`, `lint`, `depcheck`, `test:unit`,
+`test:e2e`) and CI runs all of them. **An agent does not run the full five —
+the user does, and CI does.** Run instead: the test file you touched (R6 is not
+satisfiable otherwise), `npx prettier --write` on the files you touched (never
+the tree), and anything the change itself puts in doubt. Then hand over saying
 **what you ran and what you did not**.
 
 **Before reporting the work as done, dispatch a read-only reviewer subagent
 over the working diff** — unless the diff is only copy, translations, comments,
 tokens, story fixtures or docs. Scope it to bugs and inconsistencies, give it
 this file plus the layer file for what the diff touches, and decline every
-finding that is not a bug, out loud, in one line each. The blast-radius table,
-the exact reviewer brief and the probe rules: [docs/testing.md](docs/testing.md).
+finding that is not a bug, out loud, in one line each.
+
+The commands in full, the blast-radius table, the reviewer brief and the probe
+rules: [docs/testing.md](docs/testing.md).
 
 ---
 
@@ -288,6 +269,7 @@ re-open one.
 - Plan advice is computed on demand, never in a `$derived`.
 - `EnergyLabStore` never writes the daily session, and the day window is
   `session.availableHours` — not a param.
+- An unseen day's budget is prefilled from its own weekday, derived and unsaved.
 - A task moves between days only via `moveTaskToTomorrow`.
 
 **Model** — [src/lib/business/model/AGENTS.md](src/lib/business/model/AGENTS.md)
@@ -295,8 +277,8 @@ re-open one.
 - The day's plan is solved once per `calculateDailyMetrics`, and the hours pass
   in input order.
 - `buildCurves` is built once per search or fit.
-- `zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are
-  deliberately deep modules — measured by interface arithmetic, not asserted.
+- `zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are not worth
+  splitting — measured by interface arithmetic, not asserted.
 - The energy model is a peer mode, not a candidate to replace the main plan.
 - Run order stays `calculateInterleavedOrder`'s nature alternation.
 - ϕ stays one plane for all tasks — no per-task offsets.
@@ -320,6 +302,7 @@ re-open one.
   and a view model carries a `Band`, never a class string.
 - The Lab's task list reads in schedule order, snapshotted per visit.
 - The Lab's row reads the three model inputs, it does not slide them.
+- The calibration cards share a shell, not a body.
 
 **Serving** — [docs/deployment.md](docs/deployment.md)
 

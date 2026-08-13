@@ -102,7 +102,7 @@ export async function $deleteFlowObservation(id: number): Promise<void> {
  * writer above: the upsert is addressed by (taskId, date) and would re-insert
  * under a fresh id and a fresh stamp.
  *
- * Unlike 🪫 and 😴, a task-day holds at most ONE ⚡ — so if the user re-logged
+ * Unlike 🪫 and ☕, a task-day holds at most ONE ⚡ — so if the user re-logged
  * that day while the undo toast was still up, the restore is dropped rather than
  * put back beside it: the newer measurement is the one they meant, and a second
  * record would feed two conflicting φ points for one task-day into the fit with

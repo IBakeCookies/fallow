@@ -1,4 +1,4 @@
-# Zenith — Mathematical Model, Derivations, and Change Log
+# Fallow — Mathematical Model, Derivations, and Change Log
 
 This document is the authoritative record of the math implemented in
 `src/lib/business/model/zenith.ts`: what the model is, how every formula is
