@@ -25,6 +25,18 @@ A **Claim** backed by a test is R6 like any other: red first. Only a
 probe-backed Claim is written afterwards, because a probe reports a number and
 there is no red to watch — add its `scripts/PROBES.md` row in the same change.
 
+Two Claims do not go red, and both are correct:
+
+- **a pin** — "unchanged to 12 decimals", "this case is still dropped". It
+  asserts what the change must _not_ move, so it passes on the first run against
+  the old code and that is its pass condition (the refactor row in
+  [docs/testing.md](../../../docs/testing.md)). Watch it pass, then leave it
+  alone: a pin you edited afterwards proves nothing.
+- **a probe-backed one**, as above.
+
+Say which Claims were pins when you report, so nobody reads a green suite as a
+suite that never ran red.
+
 ## 2. Dispatch
 
 One implementer subagent. Give it the spec path, the test command, the routing

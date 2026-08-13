@@ -48,6 +48,16 @@ areas. A spec that says "the model layer" has moved the search to the
 implementer and spent its context there; that was the whole point of writing it
 down.
 
+Cite the area `AGENTS.md` when the change adds or moves a **public export** —
+that is where this repo prices its interfaces, and it is the half that outlives
+the spec.
+
+**A roadmap item is a want, not a record of how the code works.** Some are years
+of edits old and assert mechanisms that have since moved. If routing disproves
+one, say so in **Decisions** and put the ROADMAP line in **Read before
+building** so `/build` corrects it in the landing commit. Do not quietly plan
+around it — the next reader believes it.
+
 ## Scenarios
 
 Write them with the user, in their words, then tighten:
@@ -57,6 +67,11 @@ Write them with the user, in their words, then tighten:
 - pick the test level from `docs/testing.md`'s table and name the file
 - math with no click gets a **Claim**, not a scenario — backed by a probe when
   the answer is a number that moves, by a test when it is a bound that holds
+- **mark a Claim that pins existing behaviour `(pin)`.** It goes green on its
+  first run, which is its pass condition and not a failure of R6 — `/build`
+  knows the rule and cannot be left guessing which ones they are. A pin is
+  phrased through the surface that exists TODAY, or it cannot run against the
+  old code at all
 
 If a scenario cannot be phrased as something observable, it is not acceptance
 criteria — it is implementation, and it belongs in **Decisions** or nowhere.
