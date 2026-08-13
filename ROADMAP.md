@@ -760,19 +760,39 @@ defects it found without fixing.
     are recorded with their numbers and marked unverified rather than trusted.
     Ranked by whether a shipped behaviour is wrong, not by effort.
     **(b)–(f) were settled by the MATH.md claim audit of 2026-08-06** — each
-    now has a committed probe and a corrected section, noted inline below. The
-    residue is (a), (g) and (h).
-    (a) **§11.9's "inherited approximations wash out exponentially through the
-    trailing rest" is probably false where the feature exists** (UNVERIFIED,
-    agent scratch probe). The claim covers block order and omitted intraday
-    breaks. At the default recovery rate the spread is ≤ 0.01 pt, but at
-    `RECOVERY_FIT_MIN = 0.1` — which §11.9 itself says is exactly when
-    carry-over becomes visible — reordering three blocks over a 16 h day moved
-    the morning level by **8.4 points**, and moving a 2 h break from the
-    trailing gap to mid-day by **2.4 points**. Same shape as §14.1-2: a claim
-    true at defaults, stated unconditionally, and load-bearing only in the
-    regime where it fails. Entry point `seedMorningReservoirs`; propagate
-    through `calculateBurnoutRisk` and report the spread in risk POINTS.
+    now has a committed probe and a corrected section, noted inline below; (a)
+    followed on 2026-08-13 and (h) shipped with item 27. The residue is (g).
+    (a) ~~**§11.9's "inherited approximations wash out exponentially through
+    the trailing rest" is probably false where the feature exists**~~ — SETTLED
+    2026-08-13 (MATH.md §11.9). Claimed, unverified, from an uncommitted scratch
+    probe: ≤ 0.01 pt at defaults, but **8.4 pt** of morning level from reordering
+    three blocks over a 16 h day at `RECOVERY_FIT_MIN`, and **2.4 pt** from
+    moving a 2 h break out of the trailing gap. Both **reproduced in direction
+    and understated in size**: `scripts/mtr2-carry-over.probe.ts` now sweeps
+    every permutation of 3- and 4-row asymmetric days at 8/12/16/19 h worked and
+    r ∈ {0.7, 0.3, 0.1}, and that cell measures **13.3 pt** and **7.4 pt** over
+    three rows (15.8 pt over a four-row day). Propagated to the DISPLAYED reading
+    through `calculateBurnoutRisk`: **11 risk points** at 16 h, **17** at 19 h
+    (34 % vs 51 % on a 1 h today-budget, where attenuation is weakest), 0–1 at
+    defaults. What §11.9 gained is a mechanism instead of an assurance: order
+    and omitted breaks are ONE approximation (`reservoirAt` is affine, so a cycle is a
+    composition of affine maps; walking a break out of the trailing gap permutes
+    the same multiset, and putting it back at the end is bit-identical), bounded
+    by e^(−ρ_rest·gap) — 0 breaches over 2 × 48 cells, worst 81 % of it — and
+    visible only while ρ_rest·gap ≲ ln 200 ≈ 5.3, i.e. past a 19 h logged day at
+    defaults. The "one-day lookback ≈ 0.8 %" bullet was scoped too: that bound
+    is the GAP's, and two 19 h days at the floor keep ~22 %. Pinned at both ends
+    in `energy-calibration.test.ts`. **Not built, deliberately:** the real fix is
+    ordered, timed logs, which is the shelved multi-day work §11.9's Scope bullet
+    already excludes — this is a documented approximation with a measured bound,
+    not a bug to re-open. **Left open, and now written down:** the displayed
+    reading swings up to 17 points on the order the 🪫 presses arrived, which is
+    an artefact of when someone tapped rather than of what they did, and it can
+    be made order-independent with no new instrument by seeding from the WORST
+    order instead of the logged one (conservative for a metric that warns).
+    §11.9 records it as an open alternative with its cost. It is a decision
+    about what the number means, not a measurement, so it needs a call rather
+    than another probe.
     (b) **§11.9's own exemplar may be arithmetically wrong** (UNVERIFIED): the
     doc says a 16 h day (8 h gap) starts the next morning near **74%**;
     recomputing §11.9's stated closed form at its stated constants gives

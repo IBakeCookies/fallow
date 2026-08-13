@@ -119,7 +119,8 @@ export const RESERVOIR_CYCLE_HOURS = 24;
  * is simulated from fresh reservoirs through the §8.1/§8.5 law, then rests
  * through the remainder of the 24 h cycle. Starting fresh is the one-day
  * lookback: the day before yesterday reaches this morning attenuated by two
- * nights of recovery (< 1 % even at the r fit floor), so recursing is noise.
+ * nights of recovery (< 1 % at the r fit floor after two 16 h gaps; the bound is
+ * the gap's, so a pair of 19 h days keeps ~22 %), so recursing is noise.
  *
  * No logs → `params` unchanged (a fresh morning, the previous behavior).
  * Under default recovery a full night heals completely — carry-over becomes
