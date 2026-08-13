@@ -101,6 +101,32 @@ Fallow reports how much better that is than an equal split. (Full derivations:
    and surfaces a live dashboard of what your day looks like.
 4. Optionally log your actual time-to-flow on tasks to personalize the model.
 
+## The app in one page
+
+Four screens, and the whole dataset is IndexedDB in your own browser — no
+account, no server, works offline.
+
+- **`/` — today.** The task list and the plan it produces: hours per task,
+  priority, suggested run order, stopping times, and the metric dashboard. Which
+  day you are looking at comes from the URL — `/?date=YYYY-MM-DD` opens a past
+  day read-only or a future one for planning ahead, and anything invalid falls
+  back to today. Deletions are undoable from a toast rather than guarded by a
+  confirm dialog.
+- **`/calendar` — the same days as a month or week grid**, each planned day
+  linking back to itself.
+- **`/analytics` — what actually happened.** Stats and charts across your stored
+  days, a range toggle, plan adherence against what was planned, and the
+  calibration history: every time-to-flow and drain measurement, correctable and
+  deletable.
+- **`/energy` — the Energy Lab.** The model with its lid off: the constants
+  fitted from your logs and how sure it is of them, per-task what-ifs against
+  the real plan, and the switch that resets personalization to the article's
+  defaults.
+
+The nav menu carries the data controls from any page — export a backup file,
+import one back, or delete everything. Theme, language (five translations) and
+the animated scenery are per-browser settings.
+
 ## Tech stack
 
 - [SvelteKit 2](https://svelte.dev/docs/kit) + [Svelte 5](https://svelte.dev/) (runes)
