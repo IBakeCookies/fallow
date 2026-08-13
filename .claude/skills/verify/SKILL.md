@@ -1,9 +1,9 @@
 ---
 name: verify
-description: How to build, launch, and drive the Zenith app to verify changes end-to-end in a real browser.
+description: How to build, launch, and drive the Fallow app to verify changes end-to-end in a real browser.
 ---
 
-# Verifying Zenith changes
+# Verifying Fallow changes
 
 ## Launch
 
