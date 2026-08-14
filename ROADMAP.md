@@ -478,6 +478,30 @@ reference had covered before.
 30. ~~**A funded-subset seed deeper than drop-one**~~ — SHIPPED 2026-08-13 (MATH.md §8.6).
     [docs/features/funded-subset-seed.md](docs/features/funded-subset-seed.md)
 
+Round-3 picked its targets with five agents over disjoint ranges. Round-4 swept
+every section instead, and its result is that the gap has moved: no shipped
+formula was found wrong, and what has drifted is what the document says about
+them.
+
+31. **Round-4: the 2026-08-14 whole-file `MATH.md` audit** — thirteen agents
+    over §0–§36, every claim checked three ways (cited from the code, backed by
+    a committed probe, formula still matching), then each finding handed to a
+    skeptic instructed to refute it, plus a second three-lens pass over §8.12,
+    which the first partition had left unread. **37 raised, 14 upheld**, ids
+    M1–M36 below. **It was a reading, not a measurement** — no probe, test or
+    solve was run and no number re-measured, so nothing below is established
+    until its own check is; the findings section states what that costs each
+    class of finding. The upheld set is seven statements the code has moved out
+    from under (M1–M6, M22), six numbers no probe reaches (M7–M12) and one
+    uncited mechanism (M13). Two structural holes produce most of the unbacked
+    set and are worth closing ahead of the individual items, since each kills
+    several at once: **nothing runs a fitted posterior** at σ_ϕ > 0 (M7 and M8
+    both rest on it) and **nothing sets `openTaskIds`** (M12, and §11.8's scope
+    families). A third — that nothing times the advisor path (M9, M10) — turned
+    out to be half closed already: §8.6's table prices `suggestBudgetCurve`, and
+    M22 is §8.12 not reading it. Ranked below by whether a shipped number is
+    wrong, not by effort.
+
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.
@@ -733,3 +757,220 @@ the editor needs `ondrainsave` — but the per-instrument object it proposes wou
 not close it: `(app)/+page.svelte` deliberately passes save-without-open on past
 days (`ondrainopen` is withheld when `canLog` is false, `ondrainsave` always
 passed), so that pairing is intended, not an accident.
+
+## Findings from the 2026-08-14 `MATH.md` audit
+
+Item 31's list. The **M** ids are stable and never reused. M1–M13 and M22 were
+each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M36
+were raised and not verified** — they are leads, and item 29's rule applies, so
+quote none of them as a result until its own check is run.
+
+**Nothing below was executed.** The audit read `MATH.md`, the code and the probe
+sources. It ran no probe, no test and no solve, and it re-measured nothing, so
+every figure quoted here is transcribed from `MATH.md` or from a probe source
+rather than reproduced. Three consequences, and they bound what the list is
+worth: "unbacked" means no committed probe reaches the claim, never that the
+claim is false; a drift finding names two expressions that differ on inspection,
+not two runs that disagreed — M1's n = 13 witness included, which is hand-derived
+and unexecuted; and a section reported clean is one whose text and code agree by
+reading, which is weaker than agreeing in a run. Confirming any of it by
+measurement is the next round's job. That is the same discipline item 26 was
+created to enforce and item 29 (a), (b) and (d) had to invoke after trusting
+numbers from probes nobody committed.
+
+Within that limit, nothing here says a formula is wrong. Every upheld drift is
+the document, a docblock or a form comment describing code that has since moved,
+which is the class R7 exists to prevent and the class a whole-file sweep is the
+only way to catch.
+
+### Upheld — the document disagrees with the code
+
+- **M1 §34** — `MATH.md:6473` gives the bound as `maxFunded = max { m :
+budgetBlocksFor(m) ≥ m }`; the code is `budgetBlocksFor(Math.max(startedCount,
+m)) ≥ m` (`zenith.ts:1098`), and the proof below it cannot express the
+  difference because its variable is `b = budgetBlocksFor(|S|)` (`MATH.md:6482`).
+  At n = 13, s = 0.25, B = 3.25 h, startedCount = 10 the doc gives 7 and the code
+  4 — a different search branch. The code's own comment argues its form is safe,
+  so this is §34 lagging §35's union rule: amend the bound and the proof variable
+  to `budgetBlocksFor(dayFundedCount(S))` and note it in §35. The one finding
+  where doc and code differ in a way that changes a plan.
+- **M2 §21.4** — `MATH.md:5026` labels the +1.9% row "(shipped)" and `:5031` says
+  it is what the metric reports, but the probe's `equal` arm is a single
+  largest-remainder split (`rv15-gain-headroom.probe.ts:544-550`) while the
+  shipped baseline averages n rotations (`zenith.ts:1573-1579`) — the same day
+  reads 2.9% at `MATH.md:4943`. Relabel the row and fix the probe's arm-D label.
+- **M3 §11.11** — `MATH.md:2915-2919` says a defer moves the count by its full
+  `100/m`; the metric rounds `grinds/funded·100` (`metric/calculation.ts:1033`),
+  so the step is `100·(m−g)/(m(m−1))` — 15 pp on the quoted day, which the table
+  at `:2929` already prints as −15 pp. Re-measure
+  `mtr-grind-density.probe.ts:454` (`step: 100 / p.length`) and the 107/545
+  ratio; the conclusion stands.
+- **M4 §2** — `MATH.md:204-209`, echoed at `:25`, says concavity and the decaying
+  tail are **not** asserted in `zenith.test.ts`. Both are, added in the same
+  commit c5f4ef1 (`zenith.test.ts:142`, `:161`, `productivity(200,…) < 1e-6` at
+  `:171`). `curve-marginal-facts.probe.ts:10-12` repeats the stale framing and
+  contradicts its own `:26-27`.
+- **M5 §8.9** — `zenith-energy.ts:1678-1679` still reads "≈ 0.2–0.4 … roughly
+  half the drain fit's lever arm"; `MATH.md:1562-1563` retracted that on
+  2026-08-06 (0.22–0.26 against dD/dα 0.6–0.9, a third). The 0.4 is unreachable:
+  dD/dr ≤ d_pre/(r·e) = 0.263. One comment edit; the probe back-reference at
+  `:1683` stays.
+- **M6 §2** — `task-form-fields.svelte:24-25` justifies `min: 1` as "ϕ divides by
+  enjoyment (MATH.md §2) … division by zero". Nothing divides by β (ϕ = c₁E +
+  c₂β + c₃, p₀ = β/E), and βᵤ = 0 → β = 8/9 is finite. The reason and the
+  citation both belong to §1's declared domain βᵤ ∈ [1,10].
+
+### Upheld — numbers no committed probe reaches
+
+- **M7 §19.4** — `MATH.md:4846-4856` (the 999% ladder at 4.25/8.5/13/17.25 h,
+  ϕ̂ = 0.17 h → 7 h, the 569% and 41.6% maxima). rv14 never imports the fit API
+  and stops at 10 h. Mirrored verbatim into `zenith.ts:1414-1420`, where it is
+  the sole justification for `GAIN_PERCENT_CAP`. Sweep 0.25–24 h at
+  ϕ̂ = 0.1/0.17 h, or label it unbacked.
+- **M8 §19.3** — `MATH.md:4807` (81.7% of days), `:4816-4818` (0.886678 against
+  0.891116), `:4820-4822` (0/156,000 against 8,806/919,968 cuts), `:4837-4838`
+  (0.013→0.031 ms against 41.7 ms). rv14's generator has σ_ϕ = 0, no
+  per-rotation max and no timing, so the header's "every number below sits on
+  the same draw" overclaims.
+- **M9 §14** — `MATH.md:3627-3634`, `:3637-3641` (1.6/3.9/12.5/95 ms; 12 ms and
+  946 ms per run; 103.6→51.2 ms; **421 ms**) and `:4143-4144` (7.3% / 2.9%). No
+  probe times `suggestPlanAdjustments`, yet the 421 ms is quoted as settled at
+  `metric/plan-advice.ts:567`, `store/daily-plan-store.svelte.ts:196` and
+  `src/lib/business/AGENTS.md:302-305`. Four probes already use
+  `performance.now()` for other sections.
+- **M10 §14.3** — `MATH.md:4020-4025` "+41.8%", the sole measurement behind
+  suppressing the reservation sentence and the bracket independently.
+  `adv2-switch-cost-price.probe.ts` never calls `suggestPlanAdjustments`; the
+  only executing `41.8` is a fixture literal
+  (`plan-advice-descriptor.test.ts:424`). The doc also under-specifies the day —
+  state its tasks and pools when the probe lands.
+- **M11 §13.6** — `MATH.md:3415-3431` cites `scratchpad/rv-energy-readouts.probe.ts`,
+  which exists nowhere in the tree or in git history; the 12 h worked-hours
+  ladder and the 0.890/0.469 pair are reproduced by nothing
+  (`rv13-terminal-timing.probe.ts` covers only the 10 h table and the 6 h/8 h
+  pair). Re-derive it there, or label it unbacked per §15.1's precedent.
+- **M12 §8.10** — `MATH.md:1642-1644`'s "1.32 → 1.16" for the 2026-08-12
+  open-task correction. No probe sets `openTaskIds` — both bracket replicas take
+  `lo` over every task (`stop-inversion-margin.probe.ts:186`,
+  `stop-margin-fit-error.probe.ts:164`), so they still model the superseded
+  scope, and the suite pins direction only (`zenith-energy.test.ts:1453-1480`).
+  This section has already had to retract one uncommitted pair (`MATH.md:3298-3305`).
+- **M22 §8.12** — `MATH.md:2184`'s "16 solves at the default cap, **~40 ms each**
+  on a small day" is contradicted by §8.6, which prices the same call site (it
+  names `suggestBudgetCurve` and its 16 solves at `MATH.md:1209`): 16.3 ms in the
+  table row at `:1177`, and `:1210-1215` records ~13 ms on 2026-08-06 and 8.9 ms
+  on 2026-08-13, with ~60 ms labelled as the pre-`buildCurves` figure. The
+  docblock over the same function was already corrected on 2026-08-13 —
+  `zenith-energy.ts:1298-1299` reads "each priced by MATH.md §8.6's table" — so
+  §8.12 is the only copy still quoting a number. Defer to §8.6's table and quote
+  its range rather than one figure (§8.6:1192-1195); the "16 solves" count and the
+  never-a-`$derived` conclusion both stand, and a higher true per-solve cost only
+  strengthens them. Raised as unbacked by one lens and **refuted in that framing**
+  — the defect is that the figure is stale, not that no probe reaches it.
+- **M13 §8.2** — the warm-up-carryover mechanism ships with no `MATH.md §8.2`
+  anywhere in `src/`: `zenith-energy.ts:113-120`, `:148-150`, `:386-400` (which
+  cites only Monk/Trafton), call sites `:554`, `:687`. §8.1 is likewise uncited
+  at `:92-100`, `:140-144`. The doc text is correct; only the citations are
+  missing (R7).
+
+### Raised and not verified
+
+- **M14 §3** — `MATH.md:347-348` calls the priority score the intrinsic value;
+  the code ships `intrinsicValue * 10` rounded to 1 dp
+  (`metric/calculation.ts:229`) while `metric/remaining-day.ts:154` passes the
+  raw value. Document the rescale and both scales.
+- **M15 §5** — `MATH.md:486-488` says robust allocation "is now implemented";
+  `zenith.ts:1995-1997` still says the allocator "currently consumes only the
+  posterior mean", contradicted by `:1184` and `:1282-1285`.
+- **M16 §5.2** — `MATH.md:598-599` "five rows (four fits)" against
+  `session-history.ts:341` "the four rows of the card" and
+  `calibration-descriptor.ts:8-11` "the other three". Settle the count once.
+- **M17 §13.4** — `zenith-energy.ts:2028-2029` still quotes the retracted "0.65
+  appended-last against 0.37 inserted-first"; `MATH.md:3299-3305` retracted it
+  (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
+  `rv13-stop-insertion.probe.ts`.
+- **M18 §28 / §31** — `MATH.md:5739` and `:6052` say twenty-three readings and
+  "the other nineteen"; `metric-descriptor.ts` now has 24 `label:` rows (Capacity
+  Left, commit 0519c17) and 4 headlines, and `metrics-dashboard.svelte:15`, `:69`
+  still say 23 / 19. Either restate as 24/20 or derive the count.
+- **M19 §28** — no `MATH.md §28` in the tree, yet `metric-descriptor.ts:10-15`
+  paraphrases its four-headline decision including the Fallow Gain exclusion, and
+  the four `headline: true` flags carry no citation.
+- **M20 §32** — no `MATH.md §32` in the tree. Defect 1's gate
+  (`metric-descriptor.ts:95-102`) cites nothing; defect 2's rule
+  (`metric/history.ts:240-242`) cites a bare `(§29)`, which states the null, not
+  the bar-sizing decision.
+- **M21 §16** — `MATH.md:4450-4454` says "both consumers"; there are three
+  (`metric/calculation.ts:963-965`, called from `daily-metrics.ts:134`,
+  `calculation.ts:612`, `remaining-day.ts:167`, `energy-lab-store.svelte.ts:373`).
+  Add the §35 next-up reader.
+- **M23 §8.10** — `MATH.md:1872-1874` "runs the full conditioning chain on ALL
+  logs", superseded by §33 and by `session-history.ts:418-426` (`date < today`).
+- **M24 §11.8** — `MATH.md:2690-2693` names `outputVsClassic`; the field is
+  `#valueVsClassic` (`energy-lab-store.svelte.ts:371-373`), the rename is
+  recorded at `MATH.md:6028`, and the old name greps empty.
+- **M25 §1** — the whole parameter map ships with no section reference
+  (`zenith.ts:83-85`, `:135`, `:146-148`, `:154-156`, `:164`, `:170-174`,
+  `:186-188`, `:198-200`); contrast `:215`.
+- **M26 §8.7** — `drain-log-form.svelte:23` cites §8.8 for the hours input, but
+  nothing cites §8.7's `d/10 = 1 − C(H)` reading (`rest-log-form.svelte:7` is the
+  correct sibling).
+- **M27 §22** — `MATH.md:5123`, `:5130-5131` (49/121 → 45/121) and `:5139` (22 of 121) have no registry row; the only mention is an aside at
+  `mtr-load-rounding.probe.ts:68`. A 121-pair enumeration is the cheapest probe
+  in the repo.
+- **M28 §18** — `MATH.md:4644-4650` (0.667/h → 1.099/h → true 0.372/h) has no
+  probe or registry row, and `energy-lab-store.svelte.spec.ts:972-1024` pins
+  equality without the marginal. It is a live §8.11 inversion.
+- **M29 §34** — `MATH.md:6506-6507` "the bounded path ran on about a quarter of
+  the solves"; `subset-search-bound.probe.ts` writes `{checks, count, violations}`
+  and tags `bounded` only inside violations, so the share is never emitted.
+- **M30 §7** — `MATH.md:833-835` (s = 0.1 → 1.75 h at n = 14, 1.25 h at n = 20),
+  undated, and `subset-search-bound.probe.ts` prints no crossover.
+- **M31 §8.2** — `MATH.md:905-906` (~85% over 5 min, ~2% over 2 h) carries no
+  back-reference, though `enb-break-economics.probe.ts:2` claims §8.1–8.2 scope.
+- **M32 §11.5** — `MATH.md:2517` (100% / 94% / 70%) is closed-form; cheaper as a
+  suite fixture than as a probe.
+- **M33 §8.12** — the shipped pseudocode at `MATH.md:2033` defines
+  `recommendedHours` as null "when that is W", the horizon; the code nulls on the
+  last budget of the lattice instead (`zenith-energy.ts:1364-1372`,
+  `knee < last.budgetHours - 1e-9`, and `:1338`). The two coincide only when the
+  lattice ends exactly at the horizon.
+- **M34 §8.12** — `MATH.md:2054-2056` says the pre-fix days that "recommended a
+  45-minute day booking 0 h of work" are counted at each λ₀ in
+  `curve-shape.probe.ts`. The probe's only measurement is
+  `if (curve.points.every((p) => p.workHours === 0)) noWork++` (`:262`); the
+  sentinel knee it names is asserted in a comment (`:242-246`), not
+  reconstructed, though the RAW arm at `:111` shows the probe knows how to.
+- **M35 §8.12** — the §8.11 agreement witness at `MATH.md:2169-2173` (one task
+  P0/M8/E9, 6 h, λ₀ = 1.2, curve 3 h, advisor flipping at 3 h logged) is run at
+  `alphaCog: 0.25, alphaPhys: 0.35, recoveryRate: 1`
+  (`advisor-curve-agreement.probe.ts:38-49`), which are not the defaults at
+  `zenith-energy.ts:138-143`; the doc does not say so. A skeptic **refuted the
+  drift framing** of this — the numbers reproduce — so what is left is that the
+  section states a witness without its constants.
+- **M36 §8.12** — `MATH.md:2126-2131`'s "22 of 5040 swept steps dip (0.4%), worst
+  0.12 absolute / 0.97% relative" names no probe, though
+  `budget-knee.probe.ts:241-245` prints exactly that line and `PROBES.md:51`
+  carries the row. A citation gap, not a measurement gap — the cheapest fix on
+  this list.
+
+**What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
+the 37 died under refutation, and they died in one direction: an auditor reading
+`scripts/PROBES.md` as the authority on what a probe covers, rather than the
+probe. A registry row names a section, not every claim inside it, and several
+probes reach claims filed under a heading they do not name. Search the probe
+bodies before believing an "unbacked" — M22 is the case worth studying, because
+the same figure was filed as unbacked by one lens and as stale by another, the
+unbacked framing was refuted, and only the stale one is real.
+
+The partition failed once. The thirteen ranges left §8.12 (`MATH.md:2001-2192`,
+sole owner of four registry probes) unread until the completeness pass caught it;
+M22 and M33–M36 come from a second three-lens pass over that section alone, which
+is why §8.12 is the only section here audited by lens rather than by range. That
+pass upheld 1 of 6 against 13 of 32 for the main sweep — a ratio worth reading as
+the cost of the wider sweep's shallower reading, not as §8.12 being cleaner.
+
+**Registry holes found alongside the above**, none of which
+`node scripts/probe-registry.mjs --check` can see, because it checks that rows
+and files pair up and not that a section has a row at all: §18, §22, §11.5 and
+§8.2 carry quantitative claims and have no row in `scripts/PROBES.md`.
