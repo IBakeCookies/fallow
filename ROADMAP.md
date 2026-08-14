@@ -500,7 +500,12 @@ them.
     families). A third — that nothing times the advisor path (M9, M10) — turned
     out to be half closed already: §8.6's table prices `suggestBudgetCurve`, and
     M22 is §8.12 not reading it. Ranked below by whether a shipped number is
-    wrong, not by effort.
+    wrong, not by effort. **M1 is closed** (2026-08-14,
+    [`subset-size-bound-under-a-prefix`](docs/features/subset-size-bound-under-a-prefix.md)) —
+    and closing it corrected two things in its own entry, which is the first
+    evidence of what "a reading, not a measurement" costs: the fix it prescribed
+    was wrong for half the change, and the witness it named turned out to cost
+    nothing on the day it named. Both only showed up under execution.
 
 ## Phase 4 — multi-day horizon
 
@@ -785,24 +790,33 @@ only way to catch.
 
 ### Upheld — the document disagrees with the code
 
-- **M1 §34** — `MATH.md:6473` gives the bound as `maxFunded = max { m :
-budgetBlocksFor(m) ≥ m }`; the code is `budgetBlocksFor(Math.max(startedCount,
-m)) ≥ m` (`zenith.ts:1098`), and the proof below it cannot express the
-  difference because its variable is `b = budgetBlocksFor(|S|)` (`MATH.md:6482`).
-  At n = 13, s = 0.25, B = 3.25 h, startedCount = 10 the doc gives 7 and the code
-  4 — a different search branch. The code's own comment argues its form is safe,
-  so this is §34 lagging §35's union rule: amend the bound and the proof variable
-  to `budgetBlocksFor(dayFundedCount(S))` and note it in §35. The one finding
-  where doc and code differ in a way that changes a plan.
-- **M2 §21.4** — `MATH.md:5026` labels the +1.9% row "(shipped)" and `:5031` says
+- **M1 §34 — fixed 2026-08-14,
+  [`subset-size-bound-under-a-prefix`](docs/features/subset-size-bound-under-a-prefix.md).**
+  §34 gave the bound as `maxFunded = max { m : budgetBlocksFor(m) ≥ m }`; the
+  code is `budgetBlocksFor(Math.max(startedCount, m)) ≥ m` (`zenith.ts:1098`),
+  and the proof could not express the difference because its variable was
+  `b = budgetBlocksFor(|S|)` — §34 (2026-08-08) lagging §35's union rule
+  (2026-08-10). Upheld, and the code was correct throughout. Two corrections to
+  this entry, both found by running it: the **bound** takes
+  `budgetBlocksFor(max(startedCount, m))`, not the
+  `budgetBlocksFor(dayFundedCount(S))` prescribed here — that expression is
+  right for the proof variable, where `S` is in hand, but the bound quantifies
+  over sizes with no `S` to name. And this entry's own witness (s = 0.25,
+  B = 3.25 h, startedCount = 10, doc 7 against code 4) flips the branch but
+  costs nothing on that day, because forward selection reaches the optimum there
+  anyway; the day that shows the cost is n = 13, B = 4 h, s = 0.33,
+  startedCount = 8, where the stale form forfeits 15.0%. So "changes a plan"
+  holds — it is the branch that changes it, not the bound, which is never
+  tighter than the shipped one.
+- **M2 §21.4** — `MATH.md:5046` labels the +1.9% row "(shipped)" and `:5051` says
   it is what the metric reports, but the probe's `equal` arm is a single
   largest-remainder split (`rv15-gain-headroom.probe.ts:544-550`) while the
   shipped baseline averages n rotations (`zenith.ts:1573-1579`) — the same day
-  reads 2.9% at `MATH.md:4943`. Relabel the row and fix the probe's arm-D label.
-- **M3 §11.11** — `MATH.md:2915-2919` says a defer moves the count by its full
+  reads 2.9% at `MATH.md:4963`. Relabel the row and fix the probe's arm-D label.
+- **M3 §11.11** — `MATH.md:2935-2939` says a defer moves the count by its full
   `100/m`; the metric rounds `grinds/funded·100` (`metric/calculation.ts:1033`),
   so the step is `100·(m−g)/(m(m−1))` — 15 pp on the quoted day, which the table
-  at `:2929` already prints as −15 pp. Re-measure
+  at `:2949` already prints as −15 pp. Re-measure
   `mtr-grind-density.probe.ts:454` (`step: 100 / p.length`) and the 107/545
   ratio; the conclusion stands.
 - **M4 §2** — `MATH.md:204-209`, echoed at `:25`, says concavity and the decaying
@@ -822,29 +836,29 @@ m)) ≥ m` (`zenith.ts:1098`), and the proof below it cannot express the
 
 ### Upheld — numbers no committed probe reaches
 
-- **M7 §19.4** — `MATH.md:4846-4856` (the 999% ladder at 4.25/8.5/13/17.25 h,
+- **M7 §19.4** — `MATH.md:4866-4876` (the 999% ladder at 4.25/8.5/13/17.25 h,
   ϕ̂ = 0.17 h → 7 h, the 569% and 41.6% maxima). rv14 never imports the fit API
   and stops at 10 h. Mirrored verbatim into `zenith.ts:1414-1420`, where it is
   the sole justification for `GAIN_PERCENT_CAP`. Sweep 0.25–24 h at
   ϕ̂ = 0.1/0.17 h, or label it unbacked.
-- **M8 §19.3** — `MATH.md:4807` (81.7% of days), `:4816-4818` (0.886678 against
-  0.891116), `:4820-4822` (0/156,000 against 8,806/919,968 cuts), `:4837-4838`
+- **M8 §19.3** — `MATH.md:4827` (81.7% of days), `:4836-4838` (0.886678 against
+  0.891116), `:4840-4842` (0/156,000 against 8,806/919,968 cuts), `:4857-4858`
   (0.013→0.031 ms against 41.7 ms). rv14's generator has σ_ϕ = 0, no
   per-rotation max and no timing, so the header's "every number below sits on
   the same draw" overclaims.
-- **M9 §14** — `MATH.md:3627-3634`, `:3637-3641` (1.6/3.9/12.5/95 ms; 12 ms and
-  946 ms per run; 103.6→51.2 ms; **421 ms**) and `:4143-4144` (7.3% / 2.9%). No
+- **M9 §14** — `MATH.md:3647-3653`, `:3657-3661` (1.6/3.9/12.5/95 ms; 12 ms and
+  946 ms per run; 103.6→51.2 ms; **421 ms**) and `:4163-4164` (7.3% / 2.9%). No
   probe times `suggestPlanAdjustments`, yet the 421 ms is quoted as settled at
   `metric/plan-advice.ts:567`, `store/daily-plan-store.svelte.ts:196` and
   `src/lib/business/AGENTS.md:302-305`. Four probes already use
   `performance.now()` for other sections.
-- **M10 §14.3** — `MATH.md:4020-4025` "+41.8%", the sole measurement behind
+- **M10 §14.3** — `MATH.md:4040-4045` "+41.8%", the sole measurement behind
   suppressing the reservation sentence and the bracket independently.
   `adv2-switch-cost-price.probe.ts` never calls `suggestPlanAdjustments`; the
   only executing `41.8` is a fixture literal
   (`plan-advice-descriptor.test.ts:424`). The doc also under-specifies the day —
   state its tasks and pools when the probe lands.
-- **M11 §13.6** — `MATH.md:3415-3431` cites `scratchpad/rv-energy-readouts.probe.ts`,
+- **M11 §13.6** — `MATH.md:3435-3451` cites `scratchpad/rv-energy-readouts.probe.ts`,
   which exists nowhere in the tree or in git history; the 12 h worked-hours
   ladder and the 0.890/0.469 pair are reproduced by nothing
   (`rv13-terminal-timing.probe.ts` covers only the 10 h table and the 6 h/8 h
@@ -854,7 +868,7 @@ m)) ≥ m` (`zenith.ts:1098`), and the proof below it cannot express the
   `lo` over every task (`stop-inversion-margin.probe.ts:186`,
   `stop-margin-fit-error.probe.ts:164`), so they still model the superseded
   scope, and the suite pins direction only (`zenith-energy.test.ts:1453-1480`).
-  This section has already had to retract one uncommitted pair (`MATH.md:3298-3305`).
+  This section has already had to retract one uncommitted pair (`MATH.md:3318-3325`).
 - **M22 §8.12** — `MATH.md:2184`'s "16 solves at the default cap, **~40 ms each**
   on a small day" is contradicted by §8.6, which prices the same call site (it
   names `suggestBudgetCurve` and its 16 solves at `MATH.md:1209`): 16.3 ms in the
@@ -886,10 +900,10 @@ m)) ≥ m` (`zenith.ts:1098`), and the proof below it cannot express the
   `session-history.ts:341` "the four rows of the card" and
   `calibration-descriptor.ts:8-11` "the other three". Settle the count once.
 - **M17 §13.4** — `zenith-energy.ts:2028-2029` still quotes the retracted "0.65
-  appended-last against 0.37 inserted-first"; `MATH.md:3299-3305` retracted it
+  appended-last against 0.37 inserted-first"; `MATH.md:3319-3325` retracted it
   (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
   `rv13-stop-insertion.probe.ts`.
-- **M18 §28 / §31** — `MATH.md:5739` and `:6052` say twenty-three readings and
+- **M18 §28 / §31** — `MATH.md:5759` and `:6072` say twenty-three readings and
   "the other nineteen"; `metric-descriptor.ts` now has 24 `label:` rows (Capacity
   Left, commit 0519c17) and 4 headlines, and `metrics-dashboard.svelte:15`, `:69`
   still say 23 / 19. Either restate as 24/20 or derive the count.
@@ -900,35 +914,35 @@ m)) ≥ m` (`zenith.ts:1098`), and the proof below it cannot express the
   (`metric-descriptor.ts:95-102`) cites nothing; defect 2's rule
   (`metric/history.ts:240-242`) cites a bare `(§29)`, which states the null, not
   the bar-sizing decision.
-- **M21 §16** — `MATH.md:4450-4454` says "both consumers"; there are three
+- **M21 §16** — `MATH.md:4470-4474` says "both consumers"; there are three
   (`metric/calculation.ts:963-965`, called from `daily-metrics.ts:134`,
   `calculation.ts:612`, `remaining-day.ts:167`, `energy-lab-store.svelte.ts:373`).
   Add the §35 next-up reader.
 - **M23 §8.10** — `MATH.md:1872-1874` "runs the full conditioning chain on ALL
   logs", superseded by §33 and by `session-history.ts:418-426` (`date < today`).
-- **M24 §11.8** — `MATH.md:2690-2693` names `outputVsClassic`; the field is
+- **M24 §11.8** — `MATH.md:2710-2713` names `outputVsClassic`; the field is
   `#valueVsClassic` (`energy-lab-store.svelte.ts:371-373`), the rename is
-  recorded at `MATH.md:6028`, and the old name greps empty.
+  recorded at `MATH.md:6048`, and the old name greps empty.
 - **M25 §1** — the whole parameter map ships with no section reference
   (`zenith.ts:83-85`, `:135`, `:146-148`, `:154-156`, `:164`, `:170-174`,
   `:186-188`, `:198-200`); contrast `:215`.
 - **M26 §8.7** — `drain-log-form.svelte:23` cites §8.8 for the hours input, but
   nothing cites §8.7's `d/10 = 1 − C(H)` reading (`rest-log-form.svelte:7` is the
   correct sibling).
-- **M27 §22** — `MATH.md:5123`, `:5130-5131` (49/121 → 45/121) and `:5139` (22 of 121) have no registry row; the only mention is an aside at
+- **M27 §22** — `MATH.md:5144`, `:5151-5152` (49/121 → 45/121) and `:5160` (22 of 121) have no registry row; the only mention is an aside at
   `mtr-load-rounding.probe.ts:68`. A 121-pair enumeration is the cheapest probe
   in the repo.
-- **M28 §18** — `MATH.md:4644-4650` (0.667/h → 1.099/h → true 0.372/h) has no
+- **M28 §18** — `MATH.md:4664-4670` (0.667/h → 1.099/h → true 0.372/h) has no
   probe or registry row, and `energy-lab-store.svelte.spec.ts:972-1024` pins
   equality without the marginal. It is a live §8.11 inversion.
-- **M29 §34** — `MATH.md:6506-6507` "the bounded path ran on about a quarter of
+- **M29 §34** — `MATH.md:6548-6549` "the bounded path ran on about a quarter of
   the solves"; `subset-search-bound.probe.ts` writes `{checks, count, violations}`
   and tags `bounded` only inside violations, so the share is never emitted.
 - **M30 §7** — `MATH.md:833-835` (s = 0.1 → 1.75 h at n = 14, 1.25 h at n = 20),
   undated, and `subset-search-bound.probe.ts` prints no crossover.
 - **M31 §8.2** — `MATH.md:905-906` (~85% over 5 min, ~2% over 2 h) carries no
   back-reference, though `enb-break-economics.probe.ts:2` claims §8.1–8.2 scope.
-- **M32 §11.5** — `MATH.md:2517` (100% / 94% / 70%) is closed-form; cheaper as a
+- **M32 §11.5** — `MATH.md:2537` (100% / 94% / 70%) is closed-form; cheaper as a
   suite fixture than as a probe.
 - **M33 §8.12** — the shipped pseudocode at `MATH.md:2033` defines
   `recommendedHours` as null "when that is W", the horizon; the code nulls on the

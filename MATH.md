@@ -65,69 +65,69 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.11   1878-1999  Live stop advisor — §8.10 run forward mid-day (added 202…
   §8.12   2001-2192  The budget curve — what the day's LENGTH is worth (added…
 §9        2194-2241  References
-§10       2243-2369  Revision log (doc-only corrections)
-§11       2371-2950  Metric-layer corrections (2026-07-18)
-  §11.1   2373-2387  Scope and principle
-  §11.2   2389-2413  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2415-2442  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2444-2501  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2503-2518  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2520-2630  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2632-2656  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2658-2701  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2703-2812  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2814-2884  Grind Density: the share of the work the day actually fu…
-  §11.11  2886-2950  Grind Density is a row, not an objective (2026-08-08)
-§12       2952-3089  Plan-adherence audit (2026-07-23)
-  §12.1   2993-3089  Per-day fit snapshots (2026-08-03)
-§13       3091-3486  Math review, 2026-07-26
-  §13.1   3108-3143  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3145-3217  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3219-3284  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3286-3322  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3324-3361  Also in this change
-  §13.6   3363-3486  The two end-of-day energy readings: a timing difference,…
-§14       3488-4226  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3691-3831  Five corrections to the first cut (2026-07-28)
-  §14.2   3833-3977  The marginal of the budget (added 2026-08-03)
-  §14.3   3979-4163  The price of the switch cost (added 2026-08-04)
-  §14.4   4165-4226  An empty frontier is a reading (2026-08-08)
-§15       4228-4375  Two objectives, two modes (2026-07-29)
-  §15.1   4303-4375  The copy named the wrong objective for both modes (2026-…
-§16       4377-4464  Run order stays a heuristic (2026-07-29)
-§17       4466-4624  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4626-4695  Drain logs are one row per SESSION, not per task-day (20…
-§19       4697-4861  The gain's naive baseline paid for switches it never mad…
-  §19.1   4709-4768  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4770-4798  Defect 2 — the displayed number moved with the order of …
-  §19.3   4800-4838  What this costs, and the one guarantee that weakened
-  §19.4   4840-4861  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4863-4925  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4904-4925  The tie went to cognitive, so the row blamed the wrong p…
-§21       4927-5087  What the gain has room to report (2026-08-07)
-  §21.1   4949-4967  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   4969-4992  Why shape has a low ceiling: the activation bonus
-  §21.3   4994-5014  Population distribution
-  §21.4   5016-5041  The number is a property of the comparison, not of the o…
-  §21.5   5043-5058  Under the total-output objective the ranking inverts
-  §21.6   5060-5087  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5089-5150  Task nature: an absolute gap could not carry a range tha…
-§23       5152-5294  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5193-5260  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5262-5294  Longest Warm-Up: what E/β was actually tracking
-§24       5296-5359  Task Variety counted labels, and its repair was Energy B…
-§25       5361-5508  Cognitive and Physical Load: the definition, and what ro…
-§26       5510-5616  Deep Work: a step that swung whole blocks, under a band …
-§27       5618-5735  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5737-5791  Which four readings are headlines (2026-08-07)
-§29       5793-5966  Day Profile: one cut for two different scales, on a day …
-§30       5968-6048  The Lab's comparison tile scored the plan on the one thi…
-§31       6050-6231  What history can plot, and what it cannot (2026-08-07)
-§32       6233-6299  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6301-6418  A plan reads only the logs that precede it (2026-08-08)
-§34       6420-6603  The subset search gave up one task too early (2026-08-08)
-§35       6605-6958  The plan cannot see the hours you already spent (2026-08…
-§36       6960-7031  What a correction may touch (2026-08-10)
+§10       2243-2389  Revision log (doc-only corrections)
+§11       2391-2970  Metric-layer corrections (2026-07-18)
+  §11.1   2393-2407  Scope and principle
+  §11.2   2409-2433  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2435-2462  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2464-2521  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2523-2538  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2540-2650  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2652-2676  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2678-2721  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2723-2832  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2834-2904  Grind Density: the share of the work the day actually fu…
+  §11.11  2906-2970  Grind Density is a row, not an objective (2026-08-08)
+§12       2972-3109  Plan-adherence audit (2026-07-23)
+  §12.1   3013-3109  Per-day fit snapshots (2026-08-03)
+§13       3111-3506  Math review, 2026-07-26
+  §13.1   3128-3163  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3165-3237  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3239-3304  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3306-3342  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3344-3381  Also in this change
+  §13.6   3383-3506  The two end-of-day energy readings: a timing difference,…
+§14       3508-4246  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3711-3851  Five corrections to the first cut (2026-07-28)
+  §14.2   3853-3997  The marginal of the budget (added 2026-08-03)
+  §14.3   3999-4183  The price of the switch cost (added 2026-08-04)
+  §14.4   4185-4246  An empty frontier is a reading (2026-08-08)
+§15       4248-4395  Two objectives, two modes (2026-07-29)
+  §15.1   4323-4395  The copy named the wrong objective for both modes (2026-…
+§16       4397-4484  Run order stays a heuristic (2026-07-29)
+§17       4486-4644  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4646-4715  Drain logs are one row per SESSION, not per task-day (20…
+§19       4717-4881  The gain's naive baseline paid for switches it never mad…
+  §19.1   4729-4788  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4790-4818  Defect 2 — the displayed number moved with the order of …
+  §19.3   4820-4858  What this costs, and the one guarantee that weakened
+  §19.4   4860-4881  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4883-4945  Human Capacity: the reading is the constraint, but it na…
+  §20.1   4924-4945  The tie went to cognitive, so the row blamed the wrong p…
+§21       4947-5107  What the gain has room to report (2026-08-07)
+  §21.1   4969-4987  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   4989-5012  Why shape has a low ceiling: the activation bonus
+  §21.3   5014-5034  Population distribution
+  §21.4   5036-5061  The number is a property of the comparison, not of the o…
+  §21.5   5063-5078  Under the total-output objective the ranking inverts
+  §21.6   5080-5107  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5109-5170  Task nature: an absolute gap could not carry a range tha…
+§23       5172-5314  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5213-5280  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5282-5314  Longest Warm-Up: what E/β was actually tracking
+§24       5316-5379  Task Variety counted labels, and its repair was Energy B…
+§25       5381-5528  Cognitive and Physical Load: the definition, and what ro…
+§26       5530-5636  Deep Work: a step that swung whole blocks, under a band …
+§27       5638-5755  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5757-5811  Which four readings are headlines (2026-08-07)
+§29       5813-5986  Day Profile: one cut for two different scales, on a day …
+§30       5988-6068  The Lab's comparison tile scored the plan on the one thi…
+§31       6070-6251  What history can plot, and what it cannot (2026-08-07)
+§32       6253-6319  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6321-6438  A plan reads only the logs that precede it (2026-08-08)
+§34       6440-6670  The subset search gave up one task too early (2026-08-08)
+§35       6672-7026  The plan cannot see the hours you already spent (2026-08…
+§36       7028-7099  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -2367,6 +2367,26 @@ to contradict older commit messages or comments, this log is the current truth.
    the model stops earlier while it is still unsure. `README.md` likewise.
    Display-only; no plan changed. Pinned in `zenith.test.ts` ("the hedged
    stop-by leaves the band, and can precede ϕ itself").
+
+### 2026-08-14 — §34's size bound lagged §35's union rule
+
+1. **The bound and its proof variable described a pre-§35 allocator.** §34 gave
+   the size bound as `max { m : budgetBlocksFor(m) ≥ m }` and proved it out of
+   `b = budgetBlocksFor(|S|)`, both billing the switches of the subset in hand
+   instead of the day's funded set — the accounting §35 introduced two days
+   later and that §34 never absorbed. The bound now reads
+   `budgetBlocksFor(max(startedCount, m))`, the proof carries
+   `b = budgetBlocksFor(dayFundedCount(S))`, the crossover figures are marked as
+   the cold-day numbers they always were, and `subset-search-bound.probe.ts`
+   says which case its re-derivation covers. The same lag had reached a code
+   comment: `zenith.ts:1090` justified the scan with the monotonicity of
+   `budgetBlocksFor(m) − m`, which is not the function that scan computes, and
+   now names `budgetBlocksFor(max(startedCount, m)) − m`. No formula, constant,
+   bound or fit in the CODE moved: `bestPlanWithSwitchCost` has scanned
+   `max(startedCount, m)` since 2026-08-10 (`d2fbe9e`, §35) and the shipped
+   bound was correct throughout — only this document's account of it was wrong.
+   Pinned in `zenith.test.ts` ("funds the exactly-optimal subset past the limit
+   on a day already worked").
 
 ## 11. Metric-layer corrections (2026-07-18)
 
@@ -6466,27 +6486,47 @@ so does a fifth of this — see "What it costs" below.
 
 ### The bound
 
-A plan funding m tasks pays `(m−1)·switchCost` off the budget **and** still owes
-every member at least one block, so no plan can fund more than
+A plan funding m tasks pays at least `(max(startedCount, m) − 1)·switchCost` off
+the budget — `startedCount` is the tasks the day has already worked, whose
+switches it owes whether or not the plan funds them again (§35) — **and** still
+owes every member at least one block, so no plan can fund more than
 
 ```text
-maxFunded = max { m : budgetBlocksFor(m) ≥ m },   budgetBlocksFor decreasing in m
+maxFunded = max { m : budgetBlocksFor(max(startedCount, m)) ≥ m },
+            budgetBlocksFor non-increasing in its argument
 ```
 
-`budgetBlocksFor(m) − m` strictly decreases in m, so the affordable sizes form
-the interval [1, `maxFunded`] and a scan that stops at the first failure finds
-it. A budget under one block affords no size at all, and the empty plan stands.
+Non-increasing and not decreasing: the floor to whole blocks lets two counts
+land on the same number — at `switchCost` 0.1 and B = 4 h, `budgetBlocksFor(2)`
+and `budgetBlocksFor(3)` are both 15. The `− m` below is what carries the
+strictness.
+
+`max(startedCount, m)` is the smallest day-funded count a size-m subset can
+have, which is what makes the result an upper bound.
+
+`g(m) = budgetBlocksFor(max(startedCount, m)) − m` is non-increasing on both
+sides of the junction at m = `startedCount` — below it `budgetBlocksFor` is
+pinned at the day's own count and only the `− m` moves, above it neither term
+rises — so the affordable sizes are still the interval [1, `maxFunded`] and a scan
+that stops at the first failure still finds it. A budget under one block affords
+no size at all, and the empty plan stands. With `startedCount` = 0, `max(0, m)`
+is m and the test is `budgetBlocksFor(m) ≥ m` exactly — the same expression, not
+a close one, so no cold day can tell the two apart.
 
 Enumerating only subsets of size ≤ `maxFunded` loses nothing. Take a subset S
 with |S| > `maxFunded` and let F ⊆ S be the members the greedy actually funded
-out of `b = budgetBlocksFor(|S|)` blocks. Then |F| ≤ b, and since |F| ≤ |S|,
-`budgetBlocksFor(|F|) ≥ b ≥ |F|` — which by the interval above puts |F| inside
-`maxFunded`, so **F is enumerated in its own right**. It is solved with at least
-as many blocks as S was, and the S-plan restricted to F is a feasible F-plan, so
-its value is reached or beaten. This is §4's existing "a subset that leaves a
-member at 0 blocks is never strictly better" argument, applied one step further
-out — and like that one it inherits the greedy's exactness, so it is a proof on
-the single-budget path and carries §13.3's heuristic status on the pooled one.
+out of `b = budgetBlocksFor(dayFundedCount(S))` blocks. Then |F| ≤ b, and since
+F ⊆ S gives `dayFundedCount(F) ≤ dayFundedCount(S)`,
+`budgetBlocksFor(dayFundedCount(F)) ≥ b ≥ |F|`; and
+`max(startedCount, |F|) ≤ dayFundedCount(F)`, so by the monotonicity above
+`budgetBlocksFor(max(startedCount, |F|)) ≥ budgetBlocksFor(dayFundedCount(F)) ≥
+|F|` — the bound's own test at |F|, which by the interval puts |F| inside
+`maxFunded`, so **F is enumerated in its own right**. It is solved with at least as many blocks as S
+was, and the S-plan restricted to F is a feasible F-plan, so its value is
+reached or beaten. This is §4's existing "a subset that leaves a member at 0
+blocks is never strictly better" argument, applied one step further out — and
+like that one it inherits the greedy's exactness, so it is a proof on the
+single-budget path and carries §13.3's heuristic status on the pooled one.
 
 Σⱼ₌₁^maxFunded C(n, j) plans is the cost, and the search runs whenever that fits
 `SUBSET_SEARCH_BUDGET = 2¹² − 1 = 4095` — **the same plan budget the n ≤ 12 path
@@ -6499,9 +6539,11 @@ funds everything, which is what makes the choice cheap to get wrong. So the
 bounded search covers the tight band and the fallback keeps the loose one — the
 opposite of a compromise.
 
-**Where the crossover actually sits, because it is not "rarely".** At `n` = 13
-and the default `switchCost` 0.25 the bounded search runs up to a **3 h** day
-and the fallback takes everything above it (at 3 h, `maxFunded` = 6 and
+**Where the crossover actually sits, because it is not "rarely".** At `n` = 13,
+the default `switchCost` 0.25 and a cold day — `startedCount` = 0, as every
+measured figure in this section is, its sweeps included — the bounded search
+runs up to a **3 h** day and the
+fallback takes everything above it (at 3 h, `maxFunded` = 6 and
 Σⱼ₌₁⁶ C(13, j) = 4095 exactly; a quarter-hour more pushes `maxFunded` to 7 and
 the count to 5811). Over the 6400-step sweep below, the bounded path ran on
 about a quarter of the solves. So the ordinary 8-hour day with 13 tasks is a
@@ -6510,6 +6552,28 @@ and not a shortfall in it: §21.1 measures selection at 0.0% of the optimizer's
 edge from 2 h up, so the region the bound reaches is the region where getting
 the subset wrong is expensive, and the region it cedes is the one where the
 remaining forfeit is 2.3–3.8%.
+
+**A prefix moves that line, and that is what the `startedCount` term buys.** At
+`n` = 13, B = 4 h, `switchCost` 0.33 and `startedCount` = 8, the subset-only
+form gives `maxFunded` = 7 → Σⱼ₌₁⁷ C(13, j) = 5811 > 4095 → forward selection;
+the shipped form gives 6 → Σⱼ₌₁⁶ C(13, j) = 4095 ≤ 4095 → the bounded exact
+search. On that day the subset-only form forfeits **0.4210 P̄-units, 15.0%**.
+
+`zenith.test.ts`'s "funds the exactly-optimal subset past the limit on a day
+already worked" pins that day's plan against exhaustive funded-subset
+enumeration, so the shipped half of the pair runs on every suite pass. The
+forfeit itself is not measurable from HEAD — the stale bound is gone — so, by
+the same standard the "before" column above holds itself to, here is the
+command rather than a description of one:
+
+```text
+mutate: zenith.ts:1098 → budgetBlocksFor(maxFunded + 1) >= maxFunded + 1
+then:   npx vitest run --project=server src/lib/business/model/zenith.test.ts \
+          -t "already worked"                            (and git restore after)
+```
+
+It fails with `expected 2.3770446424343907 to be close to 2.7980598746692573`,
+which is the 0.4210 above.
 
 ### What it costs, measured
 
@@ -6598,7 +6662,10 @@ non-decreasing across every budget from one block to 3.75 h — the top of the
 bounded region at 14 tasks and `switchCost` 0.5, above which the property is
 not guaranteed. The old
 "falls back to greedy forward selection" test keeps its feasibility and
-best-single-task floor, renamed for what it now guards.
+best-single-task floor, renamed for what it now guards. And the 13-task, 4 h,
+`switchCost` 0.33 day with eight tasks already worked matches exhaustive
+enumeration under the day's switch bill — the one fixture here that separates
+this bound from the subset-only one, which no cold day can.
 
 ---
 
@@ -6702,7 +6769,8 @@ worked and then ticked done never reaches the allocator as a candidate (the next
 subsection is precise about which completions do), so `calculateRemainingDay`
 charges those switches off the budget directly. With
 `isStarted` false everywhere this is exactly `(m − 1)·switchCost` again, which
-is why no cold plan moved.
+is why no cold plan moved. §34's size bound is quantified over that same
+day-funded set, so the two stay consistent.
 
 Under that rule the on-plan control reads **median 0.00%, mean 0.01%, p90
 0.00%**, with the funded set differing from the morning plan's remainder on

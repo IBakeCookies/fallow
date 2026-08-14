@@ -749,6 +749,105 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
+		it('funds the exactly-optimal subset past the limit on a day already worked (§34)', () => {
+			// The seam the other §34 fixtures cannot reach: every one of them solves a
+			// COLD day, where the size bound `budgetBlocksFor(max(startedCount, m)) ≥ m`
+			// is the same expression as the one without `startedCount`. Only a morning's
+			// worth of started tasks separates them — here into 6 against 7, which is
+			// 4095 plans against 5811 and so the bounded exact search rather than
+			// forward selection. Dropping `startedCount` forfeits 15.0% on this day
+			// (measured 2026-08-14).
+			//
+			// The oracle charges the switch bill on the DAY's funded set, `already
+			// worked ∪ this subset` (§35): billing `|S|` would refund the switches of
+			// the tasks a subset abandons and pick a plan the day cannot afford.
+			const switchCost = 0.33;
+			const budget = 4;
+
+			const tasks: PooledTaskInput[] = [
+				[8, 1],
+				[8, 1],
+				[10, 8],
+				[7, 3],
+				[9, 3],
+				[5, 4],
+				[3, 5],
+				[9, 5],
+				[6, 6],
+				[2, 6],
+				[9, 4],
+				[2, 6],
+				[3, 1],
+			].map(([difficulty, enjoyment], i) => ({
+				title: `t${i}`,
+				difficulty,
+				enjoyment,
+				cognitiveWeight: 0.5,
+				physicalWeight: 0.3,
+			}));
+
+			const workedHours = [0.75, 1, 0.5, 1, 0.5, 0.75, 0.5, 0.5, 0, 0, 0, 0, 0];
+			const startedCount = workedHours.filter((hours) => hours > 0).length;
+
+			// Pools wide enough that neither binds: the bound promises §4's exactness,
+			// and a binding pool would put the answer under §13.3's heuristic instead.
+			const pools = { cognitiveHours: 999, physicalHours: 999 };
+
+			// What the allocator maximizes under a prefix is the block increments ABOVE
+			// what the morning already earned — `avgProductivity` reads the remainder's
+			// own hours from zero, so summing it would score a different quantity.
+			const value = (hours: number[]) =>
+				tasks.reduce((sum, task, i) => {
+					const { a, p0, phi } = calculateTaskParams(task, DEFAULT_USER_CONSTANTS);
+
+					return (
+						sum +
+						expectedAverageProductivity(workedHours[i] + hours[i], a, p0, phi, 0) -
+						expectedAverageProductivity(workedHours[i], a, p0, phi, 0)
+					);
+				}, 0);
+
+			let brute = 0;
+
+			for (let mask = 1; mask < 1 << tasks.length; mask++) {
+				const members = tasks.map((_, i) => i).filter((i) => mask & (1 << i));
+				const fresh = members.filter((i) => workedHours[i] === 0).length;
+				const remaining = budget - (startedCount + fresh - 1) * switchCost;
+
+				if (remaining <= 0) continue;
+
+				// switchCost 0: the day's bill is already charged off `remaining` above.
+				const solved = calculatePooledAllocations(
+					members.map((i) => tasks[i]),
+					remaining,
+					pools,
+					DEFAULT_USER_CONSTANTS,
+					0,
+					undefined,
+					members.map((i) => workedHours[i]),
+				);
+
+				const hours = new Array<number>(tasks.length).fill(0);
+				members.forEach((taskIndex, j) => (hours[taskIndex] = solved[j].allocatedHours));
+
+				brute = Math.max(brute, value(hours));
+			}
+
+			const achieved = value(
+				calculatePooledAllocations(
+					tasks,
+					budget,
+					pools,
+					DEFAULT_USER_CONSTANTS,
+					switchCost,
+					undefined,
+					workedHours,
+				).map((a) => a.allocatedHours),
+			);
+
+			expect(achieved).toBeCloseTo(brute, 9);
+		});
+
 		it('stays feasible and beats the best single task past the exact-subset limit (13 tasks)', () => {
 			// n > EXACT_SUBSET_LIMIT (12) with a positive switch cost takes the
 			// bounded-pool path instead of full subset enumeration. Its floor: a
