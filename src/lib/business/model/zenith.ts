@@ -1087,9 +1087,10 @@ function bestPlanWithSwitchCost(
 	// plan and the step does not close; there the bound keeps §13.3's measured
 	// status (MATH.md §34).
 	//
-	// `budgetBlocksFor(m) − m` strictly decreases, so the affordable sizes are
-	// the interval [1, maxFunded] and stopping at the first failure finds it.
-	// A budget under one block affords nothing and leaves the empty plan.
+	// `budgetBlocksFor(max(startedCount, m)) − m` is non-increasing, so the
+	// affordable sizes are the interval [1, maxFunded] and stopping at the first
+	// failure finds it. A budget under one block affords nothing and leaves the
+	// empty plan.
 	let maxFunded = 0;
 
 	// `max(startedCount, m)` is the SMALLEST day-funded count a size-m subset can

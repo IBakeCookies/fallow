@@ -83,6 +83,10 @@ function exhaustiveValue(tasks: ProbeTask[], budget: number, switchCost: number)
  * §34's rule rather than imported — the allocator does not report it, and a
  * probe that asked the code under test which path it took would be measuring
  * nothing. n > 12 only; below that the full enumeration always runs.
+ *
+ * It re-derives the shipped rule at `startedCount` = 0 — every day this probe
+ * generates — where `max(0, m)` is `m` and the day-funded term of §34's bound
+ * drops out of the expression.
  */
 function boundedSearchRuns(n: number, budget: number, switchCost: number): boolean {
 	const blocksFor = (funded: number) =>
