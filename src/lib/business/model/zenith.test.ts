@@ -792,8 +792,9 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// Pools wide enough that neither binds: the bound promises §4's exactness,
 			// and a binding pool would put the answer under §13.3's heuristic instead.
 			const pools = {
- cognitiveHours: 999, physicalHours: 999, 
-};
+				cognitiveHours: 999,
+				physicalHours: 999,
+			};
 
 			// What the allocator maximizes under a prefix is the block increments ABOVE
 			// what the morning already earned — `avgProductivity` reads the remainder's
