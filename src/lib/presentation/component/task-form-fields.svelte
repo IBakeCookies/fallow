@@ -21,8 +21,8 @@
 
 	let { draft = $bindable(), withMustDoToday = true, footer }: Props = $props();
 
-	// Enjoyment's minimum is 1 because ϕ divides by enjoyment (MATH.md §2): a 0 there is
-	// not a rating, it is a division by zero.
+	// Enjoyment's minimum is 1 because MATH.md §1 declares βᵤ ∈ [1,10]: a 0 puts β
+	// outside [1,2], the range every fit was built on.
 	const sliders = [
 		{
 			key: 'physicalDifficulty',
