@@ -819,20 +819,28 @@ only way to catch.
   at `:2949` already prints as −15 pp. Re-measure
   `mtr-grind-density.probe.ts:454` (`step: 100 / p.length`) and the 107/545
   ratio; the conclusion stands.
-- **M4 §2** — `MATH.md:204-209`, echoed at `:25`, says concavity and the decaying
+- **M4 §2 — fixed 2026-08-14,
+  [`three-explanations-the-code-outgrew`](docs/features/three-explanations-the-code-outgrew.md).**
+  `MATH.md:204-209`, echoed at `:25`, says concavity and the decaying
   tail are **not** asserted in `zenith.test.ts`. Both are, added in the same
   commit c5f4ef1 (`zenith.test.ts:142`, `:161`, `productivity(200,…) < 1e-6` at
   `:171`). `curve-marginal-facts.probe.ts:10-12` repeats the stale framing and
   contradicts its own `:26-27`.
-- **M5 §8.9** — `zenith-energy.ts:1678-1679` still reads "≈ 0.2–0.4 … roughly
+- **M5 §8.9 — fixed 2026-08-14,
+  [`three-explanations-the-code-outgrew`](docs/features/three-explanations-the-code-outgrew.md).**
+  `zenith-energy.ts:1678-1679` still reads "≈ 0.2–0.4 … roughly
   half the drain fit's lever arm"; `MATH.md:1562-1563` retracted that on
   2026-08-06 (0.22–0.26 against dD/dα 0.6–0.9, a third). The 0.4 is unreachable:
   dD/dr ≤ d_pre/(r·e) = 0.263. One comment edit; the probe back-reference at
   `:1683` stays.
-- **M6 §2** — `task-form-fields.svelte:24-25` justifies `min: 1` as "ϕ divides by
+- **M6 §2 — fixed 2026-08-14,
+  [`three-explanations-the-code-outgrew`](docs/features/three-explanations-the-code-outgrew.md).**
+  `task-form-fields.svelte:24-25` justifies `min: 1` as "ϕ divides by
   enjoyment (MATH.md §2) … division by zero". Nothing divides by β (ϕ = c₁E +
   c₂β + c₃, p₀ = β/E), and βᵤ = 0 → β = 8/9 is finite. The reason and the
-  citation both belong to §1's declared domain βᵤ ∈ [1,10].
+  citation both belong to §1's declared domain βᵤ ∈ [1,10]. The same claim and
+  the same wrong citation sit in the document at `MATH.md:5120` (§22), found by
+  grepping `divides by` while routing this and corrected with it.
 
 ### Upheld — numbers no committed probe reaches
 

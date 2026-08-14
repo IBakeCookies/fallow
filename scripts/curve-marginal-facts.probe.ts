@@ -3,13 +3,9 @@
  * about `N(x)` under "Marginal of the average".
  *
  * §2 states the facts are "provable on paper — so the allocator's exactness does
- * not hang on a numeric sweep", and calls the five curve properties "all
- * verified in tests". Both sentences were unbacked: nothing in the repo checked
- * the differentiations themselves (`N' = e^(−x)·x·(1−r−x)`,
- * `D' = e^(−x)·x²·(x+r−2)`, `u(r) = N(2−r) = e^(r−2)·(7−2r) − (1+r)`), and two of
- * the five properties — concavity on the working range and the decaying tail —
- * are asserted by no test in `zenith.test.ts` (the suite checks p(0), the peak,
- * the closed-form average, the derivative and the activation bonus only).
+ * not hang on a numeric sweep", and nothing in the repo checked the
+ * differentiations themselves (`N' = e^(−x)·x·(1−r−x)`,
+ * `D' = e^(−x)·x²·(x+r−2)`, `u(r) = N(2−r) = e^(r−2)·(7−2r) − (1+r)`).
  *
  * A hand derivation that is wrong reads exactly like one that is right, and
  * §4's truncate-at-first-non-positive-increment rule and the greedy allocator's

@@ -1675,9 +1675,10 @@ export interface RecoveryRateFit {
 /**
  * Prior strength λ for the recovery-rate ridge — same construction as
  * DRAIN_PRIOR_STRENGTH but calibrated to THIS fit's sensitivity units
- * (dD/dr = m·g·d_pre·e^(−r·m·g) ≈ 0.2–0.4 for typical 30–60 min breaks from
- * half drain, roughly half the drain fit's lever arm; and one logged rest
- * contributes TWO observations, mind + body). Probe-tuned 2026-07-18 to match
+ * (dD/dr = m·g·d_pre·e^(−r·m·g), whose measured range is §8.9's; with
+ * x = r·m·g it is (d_pre/r)·x·e^(−x) and x·e^(−x) ≤ 1/e, so
+ * dD/dr ≤ d_pre/(r·e) = 0.263 at half drain and the default r; and one logged
+ * rest contributes TWO observations, mind + body). Probe-tuned 2026-07-18 to match
  * the α fit's behavior: one consistent logged rest moves r 53% of the way to
  * what it implies, three 71%, ten 88% (λ = 0.1 was too anchored at 39% for
  * the first log — re-measured 2026-08-06). MATH.md §8.9.
