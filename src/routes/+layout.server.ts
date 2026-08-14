@@ -21,6 +21,12 @@ export const load: LayoutServerLoad = async (event) => {
 			// then stable across visits (the reroll button rewrites the cookie)
 			scenerySeed: readOrMintScenerySeed(event.cookies),
 		} satisfies AppearanceSnapshot,
+		// The URL this response was rendered for. Offline, the service worker
+		// answers a never-visited route with another route's cached HTML, and
+		// SvelteKit hydrates whatever the payload describes — so this is the only
+		// thing that tells the client it is showing the wrong page (see the root
+		// layout's mount, and docs/deployment.md).
+		pathname: event.url.pathname,
 		// IP-derived visitor timezone (set by Vercel) so the SSR-inlined
 		// scenery clock state is the visitor's local time, not the server's
 		timezone: event.request.headers.get('x-vercel-ip-timezone') ?? undefined,
