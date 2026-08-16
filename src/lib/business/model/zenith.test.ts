@@ -2109,6 +2109,30 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(pooled.gainPercent).toBeLessThan(GAIN_PERCENT_CAP);
 		});
 
+		it('saturates at 4.25h for one task at the ϕ floor (2026-08-17, §19.4)', () => {
+			// The bottom rung of §19.4's ladder, and the whole justification for the
+			// cap: `gain-cap-trigger.probe.ts` swept 0.25–24h and found 4.25h to be
+			// the first budget that reads GAIN_PERCENT_CAP. One rung is pinned; the
+			// sweep stays in the probe.
+			const floorConstants = {
+				c1: 0,
+				c2: 0,
+				c3: 0,
+			};
+
+			const tasks = [
+				{
+					title: 't0',
+					difficulty: 5,
+					enjoyment: 5,
+				},
+			];
+
+			expect(productivityGain(tasks, 4, floorConstants).gainPercent).toBeLessThan(GAIN_PERCENT_CAP);
+
+			expect(productivityGain(tasks, 4.25, floorConstants).gainPercent).toBe(GAIN_PERCENT_CAP);
+		});
+
 		it('reports the same gain however the task list is ordered (2026-08-06, §19)', () => {
 			// The remainder blocks of an equal split used to go to whichever tasks
 			// sat earliest in the array, and `addTask` PREPENDS — so adding a task

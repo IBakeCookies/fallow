@@ -75,5 +75,6 @@ how `adv3-advice-display-resolution` sat unlisted until 2026-08-10.
 | `mtr-sustainable-work.probe.ts`           | §27 — the budget denominator against Σh, the grind-free day, and whether the fixed row restates Grind Density                                                           |
 | `prefix-replan.probe.ts`                  | §35 — the mid-day re-plan vs a cold re-solve and the morning plan, the on-plan control, the switch convention, the second solve's wall clock                            |
 | `adv3-advice-display-resolution.probe.ts` | §25 — how much of an advice option's improvement the card's rounding cannot show, and what suppressing a word-identical option would cost                               |
+| `gain-cap-trigger.probe.ts`               | §19.4 — the 999% ladder at ϕ̂ on the ϕ floor and its σ arm, the default-constants maxima, whether a fit reaches the floor, and the `naive = 0` arm's reachability        |
 
 <!-- probe-registry:end -->
