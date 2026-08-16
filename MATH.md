@@ -65,69 +65,69 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.11   1879-2000  Live stop advisor — §8.10 run forward mid-day (added 202…
   §8.12   2002-2193  The budget curve — what the day's LENGTH is worth (added…
 §9        2195-2242  References
-§10       2244-2418  Revision log (doc-only corrections)
-§11       2420-2999  Metric-layer corrections (2026-07-18)
-  §11.1   2422-2436  Scope and principle
-  §11.2   2438-2462  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2464-2491  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2493-2550  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2552-2567  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2569-2679  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2681-2705  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2707-2750  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2752-2861  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2863-2933  Grind Density: the share of the work the day actually fu…
-  §11.11  2935-2999  Grind Density is a row, not an objective (2026-08-08)
-§12       3001-3138  Plan-adherence audit (2026-07-23)
-  §12.1   3042-3138  Per-day fit snapshots (2026-08-03)
-§13       3140-3535  Math review, 2026-07-26
-  §13.1   3157-3192  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3194-3266  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3268-3333  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3335-3371  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3373-3410  Also in this change
-  §13.6   3412-3535  The two end-of-day energy readings: a timing difference,…
-§14       3537-4275  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3740-3880  Five corrections to the first cut (2026-07-28)
-  §14.2   3882-4026  The marginal of the budget (added 2026-08-03)
-  §14.3   4028-4212  The price of the switch cost (added 2026-08-04)
-  §14.4   4214-4275  An empty frontier is a reading (2026-08-08)
-§15       4277-4424  Two objectives, two modes (2026-07-29)
-  §15.1   4352-4424  The copy named the wrong objective for both modes (2026-…
-§16       4426-4513  Run order stays a heuristic (2026-07-29)
-§17       4515-4673  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4675-4744  Drain logs are one row per SESSION, not per task-day (20…
-§19       4746-4910  The gain's naive baseline paid for switches it never mad…
-  §19.1   4758-4817  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4819-4847  Defect 2 — the displayed number moved with the order of …
-  §19.3   4849-4887  What this costs, and the one guarantee that weakened
-  §19.4   4889-4910  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4912-4974  Human Capacity: the reading is the constraint, but it na…
-  §20.1   4953-4974  The tie went to cognitive, so the row blamed the wrong p…
-§21       4976-5136  What the gain has room to report (2026-08-07)
-  §21.1   4998-5016  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5018-5041  Why shape has a low ceiling: the activation bonus
-  §21.3   5043-5063  Population distribution
-  §21.4   5065-5090  The number is a property of the comparison, not of the o…
-  §21.5   5092-5107  Under the total-output objective the ranking inverts
-  §21.6   5109-5136  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5138-5200  Task nature: an absolute gap could not carry a range tha…
-§23       5202-5344  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5243-5310  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5312-5344  Longest Warm-Up: what E/β was actually tracking
-§24       5346-5409  Task Variety counted labels, and its repair was Energy B…
-§25       5411-5558  Cognitive and Physical Load: the definition, and what ro…
-§26       5560-5666  Deep Work: a step that swung whole blocks, under a band …
-§27       5668-5785  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5787-5841  Which four readings are headlines (2026-08-07)
-§29       5843-6016  Day Profile: one cut for two different scales, on a day …
-§30       6018-6098  The Lab's comparison tile scored the plan on the one thi…
-§31       6100-6281  What history can plot, and what it cannot (2026-08-07)
-§32       6283-6349  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6351-6468  A plan reads only the logs that precede it (2026-08-08)
-§34       6470-6700  The subset search gave up one task too early (2026-08-08)
-§35       6702-7056  The plan cannot see the hours you already spent (2026-08…
-§36       7058-7129  What a correction may touch (2026-08-10)
+§10       2244-2447  Revision log (doc-only corrections)
+§11       2449-3028  Metric-layer corrections (2026-07-18)
+  §11.1   2451-2465  Scope and principle
+  §11.2   2467-2491  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2493-2520  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2522-2579  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2581-2596  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2598-2708  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2710-2734  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2736-2779  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2781-2890  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2892-2962  Grind Density: the share of the work the day actually fu…
+  §11.11  2964-3028  Grind Density is a row, not an objective (2026-08-08)
+§12       3030-3167  Plan-adherence audit (2026-07-23)
+  §12.1   3071-3167  Per-day fit snapshots (2026-08-03)
+§13       3169-3564  Math review, 2026-07-26
+  §13.1   3186-3221  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3223-3295  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3297-3362  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3364-3400  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3402-3439  Also in this change
+  §13.6   3441-3564  The two end-of-day energy readings: a timing difference,…
+§14       3566-4304  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3769-3909  Five corrections to the first cut (2026-07-28)
+  §14.2   3911-4055  The marginal of the budget (added 2026-08-03)
+  §14.3   4057-4241  The price of the switch cost (added 2026-08-04)
+  §14.4   4243-4304  An empty frontier is a reading (2026-08-08)
+§15       4306-4453  Two objectives, two modes (2026-07-29)
+  §15.1   4381-4453  The copy named the wrong objective for both modes (2026-…
+§16       4455-4542  Run order stays a heuristic (2026-07-29)
+§17       4544-4702  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4704-4773  Drain logs are one row per SESSION, not per task-day (20…
+§19       4775-4989  The gain's naive baseline paid for switches it never mad…
+  §19.1   4787-4846  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4848-4876  Defect 2 — the displayed number moved with the order of …
+  §19.3   4878-4916  What this costs, and the one guarantee that weakened
+  §19.4   4918-4989  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       4991-5053  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5032-5053  The tie went to cognitive, so the row blamed the wrong p…
+§21       5055-5215  What the gain has room to report (2026-08-07)
+  §21.1   5077-5095  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5097-5120  Why shape has a low ceiling: the activation bonus
+  §21.3   5122-5142  Population distribution
+  §21.4   5144-5169  The number is a property of the comparison, not of the o…
+  §21.5   5171-5186  Under the total-output objective the ranking inverts
+  §21.6   5188-5215  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5217-5279  Task nature: an absolute gap could not carry a range tha…
+§23       5281-5423  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5322-5389  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5391-5423  Longest Warm-Up: what E/β was actually tracking
+§24       5425-5488  Task Variety counted labels, and its repair was Energy B…
+§25       5490-5637  Cognitive and Physical Load: the definition, and what ro…
+§26       5639-5745  Deep Work: a step that swung whole blocks, under a band …
+§27       5747-5864  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5866-5920  Which four readings are headlines (2026-08-07)
+§29       5922-6095  Day Profile: one cut for two different scales, on a day …
+§30       6097-6177  The Lab's comparison tile scored the plan on the one thi…
+§31       6179-6360  What history can plot, and what it cannot (2026-08-07)
+§32       6362-6428  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6430-6547  A plan reads only the logs that precede it (2026-08-08)
+§34       6549-6779  The subset search gave up one task too early (2026-08-08)
+§35       6781-7135  The plan cannot see the hours you already spent (2026-08…
+§36       7137-7208  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -2416,6 +2416,35 @@ to contradict older commit messages or comments, this log is the current truth.
    divides by it; at `βᵤ = 0`, `β = 8/9` is finite and `r = 1/E²` does not move.
    The constraint is §1's declared domain `βᵤ ∈ [1,10]`, which both now cite.
    `min: 1` is unchanged.
+
+### 2026-08-17 — §19.4's gain ladder was measured, not re-quoted
+
+1. **The 999% ladder now has a probe, and one of its figures was wrong.**
+   `gain-cap-trigger.probe.ts` swept the app's own budget slider at ϕ̂ on the
+   0.1 h floor. The rungs reproduce exactly (4.25 / 8.5 / 13 / 17.25 h at
+   n = 1–4, never within 24 h at n = 6, and 7 h at ϕ̂ = 0.17 h), as does the
+   pooled 41.6%; the n = 5 rung §19.4 skipped is 21.75 h and is now stated. The
+   **569%** default-constants maximum does not reproduce — the measured figure
+   is **291.7%** at n = 1 — and §19.4 now carries the measured one.
+   The cell is difficulty 5 / enjoyment 5, which the section now says: it is
+   **not** "the default sliders", whose 5/5 draft maps through
+   `getEffectiveDifficulty` to an effective difficulty of 6.5.
+2. **§19.4 said "fitted" and never said σ, and the silence hid a real effect.**
+   The ladder is a σ_ϕ = 0 statement. At the σ_ϕ a 15–30 min history actually
+   fits (0.0184 h), §5.1's monotone-prefix cut costs the optimizer more than the
+   baseline, so every rung arrives **one to four budget steps later** —
+   4.5 / 9 / 13.5 / 18.25 / 22.75 h at n = 1–5, n = 6 max 912.4% → 862.4%. No
+   rung is lost. The first draft of this entry recorded "no rung moves", which
+   was the fitted user's own ϕ̂ = 0.3599 h, not the ladder's 0.1 h; the review
+   caught it and the section now measures both.
+3. **The user §19.4 asserted is reachable, and that half had never been fit.**
+   97.3% of 14,400 seeded fast-flow histories, all `fitted: true`, put ϕ̂ on the
+   floor somewhere on the slider grid; of the 255,172 floored **grid cells**,
+   62.7% reach 999% at n = 1 within 24 h. The `naive = 0, optimized > 0` arm
+   found no witness in 6,576 swept days and is recorded as open — its
+   reachability does not follow from the ratio arm's, and removing the branch
+   would be a behaviour change. `GAIN_PERCENT_CAP`, `gainPercentOf` and every
+   formula are unchanged; the constant's docblock mirrors the corrected ladder.
 
 ## 11. Metric-layer corrections (2026-07-18)
 
@@ -4895,19 +4924,69 @@ reachable trigger left. It has one, in the opposite regime:
 The baseline must spend its whole block target, so a long budget poured into few
 tasks pushes each past its own T*, where P̄ decays like C/T. The optimizer stops
 at T* and leaves the slack unused. The ratio therefore grows with budget and
-shrinks with ϕ and n — and with a **fitted short-ϕ user** it clears 10×. Measured
-on the single-budget path over the app's own budget slider (0.25–24 h, 0.25 h
-steps), ϕ̂ held at the 0.1 h floor `fitUserConstants` explicitly permits ("a
-fast-flow user logging 15–30m everywhere"): the gain first reads 999% at
-**4.25 h (n = 1)**, 8.5 h (n = 2), 13 h (n = 3), 17.25 h (n = 4), and never
-within 24 h at n = 6 (max 912%). At ϕ̂ = 0.17 h it needs 7 h (n = 1). At
-**default constants it is unreachable** — the 24 h maximum is 569% at n = 1 and
-41.6% on the pooled path.
+shrinks with ϕ and n — and with a **fitted short-ϕ user** it clears 10×.
+
+Probe `gain-cap-trigger.probe.ts`, measured 2026-08-17 on the single-budget path
+over the app's own budget slider (0.25–24 h, 0.25 h steps), one task cell at
+**difficulty 5, enjoyment 5**, ϕ̂ held at the 0.1 h floor `fitUserConstants`
+explicitly permits ("a fast-flow user logging 15–30m everywhere"), **σ_ϕ = 0**:
+the gain first reads 999% at **4.25 h (n = 1)**, 8.5 h (n = 2), 13 h (n = 3),
+17.25 h (n = 4), 21.75 h (n = 5), and never within 24 h at n = 6 (max 912.4%).
+At ϕ̂ = 0.17 h it needs 7 h (n = 1).
+
+That cell is not "the default sliders", and the difference is worth a line: the
+form's 5/5/5 draft is physical 5 and mental 5, which `getEffectiveDifficulty`'s
+0.3 spillover maps to an **effective difficulty of 6.5**. Difficulty 5 is
+reachable — one dimension at 0 — and it is the cell that reproduces the ladder
+this section first quoted, which is why the sweep is stated there.
+
+At **default constants the cap is out of reach**: the 24 h maximum at that same
+cell is **291.7%** (n = 1), and 41.6% on the pooled path (n = 1, 8 h). The
+**569%** first quoted here reproduces under none of the four readings the probe
+prints — 291.7% at difficulty 5, **479.7%** over the whole 1–10 × 1–10 slider
+grid (d = 2, β = 10), 283.9% at the n = 0 prior posterior, 291.7% at a zero
+switch cost. Where it came from is not recoverable; it is replaced, not repaired.
+
+**The ladder is a σ = 0 statement, and σ > 0 moves it.** At ϕ̂ = 0.1 h a non-zero
+σ_ϕ fires §5.1's monotone-prefix cut and truncates the optimizer's menu, which
+costs the optimizer more than it costs the baseline, so the ratio needs a longer
+budget to saturate. Measured rather than assumed, and the assumption would have
+been wrong. Fitting the section's own user — 40 logs at 15–30 min spread over the
+slider grid — gives σ_ϕ = 0.0184 h (σ/ϕ̂ = 0.051 at that user's own ϕ̂ = 0.3599 h,
+far inside `PHI_UNCERTAINTY_RELATIVE_CAP`). Re-running **the ladder** under that
+posterior delays every rung by one to four budget steps — 4.5 / 9 / 13.5 /
+18.25 / 22.75 h at n = 1–5 — and drops the n = 6 maximum from 912.4% to 862.4%.
+The cap stays reachable at every n it was reachable at; it arrives later.
+
+At the fitted user's own ϕ̂ = 0.3599 h the ladder is a different object and the σ
+arm is free there: n = 1 saturates at 14.5 h under both arms, n = 2–6 have no
+rung within 24 h under either, and the maxima move by at most 1.0 pp. Quoting
+that as "no rung moves" would have described a ϕ̂ the ladder is not about.
+
+**The user is reachable.** 14,400 seeded synthetic histories from fast-flow
+truths (1–34 logs, three coverage shapes, σ ∈ {0, 0.05, 0.15}) all fitted —
+0 fell back to the defaults — and **14,013 of them (97.3%)** put ϕ̂ on the 0.1 h
+floor somewhere on the 1–10 × 1–10 slider grid, 255,172 floored cells of
+1,440,000. The floor alone is not enough: the ladder also depends on the cell's
+own a and p₀, and **160,100 of those 255,172 cells (62.7%)** reach 999% at n = 1
+within 24 h. Witness: single-point coverage, one log, σ = 0, difficulty 2,
+enjoyment 10, `fitted: true` — first 999% at **6.75 h**.
 
 So the honest statement is: the cap guards the RATIO, for a personalized
 fast-flow user with few tasks and a budget far past their stopping time. Not the
 `naive = 0` jump it was written for — that arm now requires `budget <
 BLOCK_HOURS`, where the optimizer scores 0 too and `gainPercentOf` returns 0.
+Swept 2026-08-17 for a counter-example: **0 of 576** ladder days, 0 of 3,000
+rv14 random days and 0 of 3,000 pool-starved days have `naive = 0` with
+`optimized > 0`.
+
+Two separate questions, and only the first is settled here. The **ratio** arm is
+reachable, so `GAIN_PERCENT_CAP` keeps a live trigger and the constant stays. The
+**`naive = 0`** arm has no witness in 6,576 swept days, and its reachability does
+not follow from the ratio's — they are different branches of `gainPercentOf`. A
+sweep that finds nothing is evidence, not a proof of unreachability, so the
+branch is left standing and recorded as open rather than argued away: removing it
+is a behaviour change and takes its own measurement, not this one's.
 
 ## 20. Human Capacity: the reading is the constraint, but it named the wrong pool (2026-08-06)
 

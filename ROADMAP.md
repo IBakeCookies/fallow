@@ -493,19 +493,28 @@ them.
     until its own check is; the findings section states what that costs each
     class of finding. The upheld set is seven statements the code has moved out
     from under (M1–M6, M22), six numbers no probe reaches (M7–M12) and one
-    uncited mechanism (M13). Two structural holes produce most of the unbacked
-    set and are worth closing ahead of the individual items, since each kills
-    several at once: **nothing runs a fitted posterior** at σ_ϕ > 0 (M7 and M8
-    both rest on it) and **nothing sets `openTaskIds`** (M12, and §11.8's scope
-    families). A third — that nothing times the advisor path (M9, M10) — turned
-    out to be half closed already: §8.6's table prices `suggestBudgetCurve`, and
-    M22 is §8.12 not reading it. Ranked below by whether a shipped number is
-    wrong, not by effort. **M1 is closed** (2026-08-14,
+    uncited mechanism (M13). One structural hole produces much of the unbacked
+    set and is worth closing ahead of the individual items, since it kills
+    several at once: **nothing sets `openTaskIds`** (M12, and §11.8's scope
+    families). The "**nothing runs a fitted posterior** at σ_ϕ > 0" hole this
+    entry also claimed was never real: `phi-cap-reachability.probe.ts` imports
+    `fitUserConstants` and `phiParameterStd` and fits synthetic histories at two
+    noise arms, and `gain-cap-trigger.probe.ts` now does the same for §19.4.
+    (`rv15-gain-headroom.probe.ts:51` fits only `fitUserConstants([])`, which
+    returns the defaults with the prior — that one is not a counter-example.)
+    The third hole named here — that nothing times the advisor path (M9, M10) —
+    turned out to be half closed already: §8.6's table prices
+    `suggestBudgetCurve`, and M22 is §8.12 not reading it. Ranked below by
+    whether a shipped number is wrong, not by effort. **M1 is closed**
+    (2026-08-14,
     [`subset-size-bound-under-a-prefix`](docs/features/subset-size-bound-under-a-prefix.md)) —
     and closing it corrected two things in its own entry, which is the first
     evidence of what "a reading, not a measurement" costs: the fix it prescribed
     was wrong for half the change, and the witness it named turned out to cost
-    nothing on the day it named. Both only showed up under execution.
+    nothing on the day it named. Both only showed up under execution. **M7 is
+    closed** (2026-08-17,
+    [`what-still-reaches-the-gain-cap`](docs/features/what-still-reaches-the-gain-cap.md)),
+    and it cost this entry a third correction — the fitted-posterior hole above.
 
 ## Phase 4 — multi-day horizon
 
@@ -844,11 +853,23 @@ only way to catch.
 
 ### Upheld — numbers no committed probe reaches
 
-- **M7 §19.4** — `MATH.md:4866-4876` (the 999% ladder at 4.25/8.5/13/17.25 h,
-  ϕ̂ = 0.17 h → 7 h, the 569% and 41.6% maxima). rv14 never imports the fit API
-  and stops at 10 h. Mirrored verbatim into `zenith.ts:1414-1420`, where it is
-  the sole justification for `GAIN_PERCENT_CAP`. Sweep 0.25–24 h at
-  ϕ̂ = 0.1/0.17 h, or label it unbacked.
+- **M7 §19.4 — closed 2026-08-17,
+  [`what-still-reaches-the-gain-cap`](docs/features/what-still-reaches-the-gain-cap.md).**
+  §19.4's 999% ladder at 4.25/8.5/13/17.25 h, ϕ̂ = 0.17 h → 7 h, and the 569% and
+  41.6% maxima (`MATH.md:4929-4958` after this change). rv14 never imports the
+  fit API and its budget draw (`0.5 + Math.floor(rnd() * 32) * 0.25`) stops at
+  **8.25 h**, not the 10 h this entry first said. Mirrored verbatim into
+  `zenith.ts:1415-1427`, where it is the sole justification for
+  `GAIN_PERCENT_CAP`. `gain-cap-trigger.probe.ts` swept 0.25–24 h at
+  ϕ̂ = 0.1/0.17 h: the σ = 0 rungs reproduce exactly, the **569% does not** (it is
+  291.7% at the measured cell, 479.7% anywhere on the slider grid), and the
+  fitted user §19.4 asserted is reachable — 97.3% of seeded fast-flow histories
+  — so the cap keeps its trigger. Two things only execution found: the ladder is
+  a difficulty-5 cell and not "the default sliders" (the form's 5/5 draft is
+  effective difficulty 6.5), and at σ > 0 every rung arrives one to four budget
+  steps later, where the first draft of this change had recorded "no rung
+  moves" — that reading was the fitted user's ϕ̂ = 0.36 h, not the ladder's 0.1 h.
+  The `naive = 0` arm found no witness in 6,576 days and stays open.
 - **M8 §19.3** — `MATH.md:4827` (81.7% of days), `:4836-4838` (0.886678 against
   0.891116), `:4840-4842` (0/156,000 against 8,806/919,968 cuts), `:4857-4858`
   (0.013→0.031 ms against 41.7 ms). rv14's generator has σ_ϕ = 0, no

@@ -1415,10 +1415,15 @@ export function calculateTotalProductivity(
  * What still reaches the cap is the opposite regime. The baseline must spend its
  * whole block target, so a long budget poured into FEW tasks pushes each past
  * its own T*, where P̄ decays like C/T, while the optimizer stops at T* and
- * leaves the slack unused. With a fitted ϕ̂ at the 0.1h floor the single-budget
- * gain reads 999% from 4.25h at n = 1 (8.5 / 13 / 17.25h at n = 2 / 3 / 4, never
- * within 24h at n = 6). At DEFAULT constants it is unreachable — the 24h maximum
- * is 569% at n = 1, and 41.6% on the pooled path the dashboard shows.
+ * leaves the slack unused. Measured 2026-08-17 (`gain-cap-trigger.probe.ts`) at
+ * difficulty 5 / enjoyment 5, σ_ϕ = 0: with a fitted ϕ̂ at the 0.1h floor the
+ * single-budget gain reads 999% from 4.25h at n = 1 (8.5 / 13 / 17.25 / 21.75h
+ * at n = 2 / 3 / 4 / 5, never within 24h at n = 6). At the σ_ϕ a 15–30m history
+ * fits, every rung is one to four budget steps LATER, none of them lost. At
+ * DEFAULT constants it is unreachable — the 24h maximum is 291.7% there and
+ * 479.7% anywhere on the slider grid, and 41.6% on the pooled path the dashboard
+ * shows. The user is reachable too: 97.3% of seeded fast-flow histories fit a ϕ̂
+ * onto the floor.
  */
 export const GAIN_PERCENT_CAP = 999;
 
