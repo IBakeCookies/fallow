@@ -46,88 +46,88 @@ that are not evident from reading it — so never retype a row, regenerate:
 §2          183-300  Productivity curve — v2 change
 §3          302-361  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          363-464  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          466-793  Personalization — v2 change: full Bayesian posterior
+§5          466-796  Personalization — v2 change: full Bayesian posterior
   §5.2      515-600  Recency weighting of the ϕ fit (added 2026-08-04)
-  §5.1      602-793  Posterior-aware allocation (added 2026-07-18)
-§6          795-807  Summary of v1 → v2 changes
-§7          809-845  Known approximations and deliberate non-changes
-§8         847-2193  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      865-890  Intermittent-rest recovery correction
-  §8.2      892-912  Warm-up carryover instead of binary reset
-  §8.3      914-951  Verified consequences and an open calibration question
-  §8.4     953-1054  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1056-1115  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1117-1306  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1308-1440  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1442-1513  45-minute plan granularity (added 2026-07-18)
-  §8.9    1515-1589  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1591-1877  Stopping-value calibration from observed stop times (add…
-  §8.11   1879-2000  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   2002-2193  The budget curve — what the day's LENGTH is worth (added…
-§9        2195-2242  References
-§10       2244-2447  Revision log (doc-only corrections)
-§11       2449-3028  Metric-layer corrections (2026-07-18)
-  §11.1   2451-2465  Scope and principle
-  §11.2   2467-2491  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2493-2520  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2522-2579  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2581-2596  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2598-2708  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2710-2734  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2736-2779  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2781-2890  Overnight reservoir carry-over (2026-07-28)
-  §11.10  2892-2962  Grind Density: the share of the work the day actually fu…
-  §11.11  2964-3028  Grind Density is a row, not an objective (2026-08-08)
-§12       3030-3167  Plan-adherence audit (2026-07-23)
-  §12.1   3071-3167  Per-day fit snapshots (2026-08-03)
-§13       3169-3564  Math review, 2026-07-26
-  §13.1   3186-3221  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3223-3295  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3297-3362  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3364-3400  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3402-3439  Also in this change
-  §13.6   3441-3564  The two end-of-day energy readings: a timing difference,…
-§14       3566-4304  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3769-3909  Five corrections to the first cut (2026-07-28)
-  §14.2   3911-4055  The marginal of the budget (added 2026-08-03)
-  §14.3   4057-4241  The price of the switch cost (added 2026-08-04)
-  §14.4   4243-4304  An empty frontier is a reading (2026-08-08)
-§15       4306-4453  Two objectives, two modes (2026-07-29)
-  §15.1   4381-4453  The copy named the wrong objective for both modes (2026-…
-§16       4455-4542  Run order stays a heuristic (2026-07-29)
-§17       4544-4702  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4704-4773  Drain logs are one row per SESSION, not per task-day (20…
-§19       4775-4989  The gain's naive baseline paid for switches it never mad…
-  §19.1   4787-4846  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   4848-4876  Defect 2 — the displayed number moved with the order of …
-  §19.3   4878-4916  What this costs, and the one guarantee that weakened
-  §19.4   4918-4989  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       4991-5053  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5032-5053  The tie went to cognitive, so the row blamed the wrong p…
-§21       5055-5215  What the gain has room to report (2026-08-07)
-  §21.1   5077-5095  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5097-5120  Why shape has a low ceiling: the activation bonus
-  §21.3   5122-5142  Population distribution
-  §21.4   5144-5169  The number is a property of the comparison, not of the o…
-  §21.5   5171-5186  Under the total-output objective the ranking inverts
-  §21.6   5188-5215  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5217-5279  Task nature: an absolute gap could not carry a range tha…
-§23       5281-5423  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5322-5389  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5391-5423  Longest Warm-Up: what E/β was actually tracking
-§24       5425-5488  Task Variety counted labels, and its repair was Energy B…
-§25       5490-5637  Cognitive and Physical Load: the definition, and what ro…
-§26       5639-5745  Deep Work: a step that swung whole blocks, under a band …
-§27       5747-5864  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       5866-5920  Which four readings are headlines (2026-08-07)
-§29       5922-6095  Day Profile: one cut for two different scales, on a day …
-§30       6097-6177  The Lab's comparison tile scored the plan on the one thi…
-§31       6179-6360  What history can plot, and what it cannot (2026-08-07)
-§32       6362-6428  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6430-6547  A plan reads only the logs that precede it (2026-08-08)
-§34       6549-6779  The subset search gave up one task too early (2026-08-08)
-§35       6781-7135  The plan cannot see the hours you already spent (2026-08…
-§36       7137-7208  What a correction may touch (2026-08-10)
+  §5.1      602-796  Posterior-aware allocation (added 2026-07-18)
+§6          798-810  Summary of v1 → v2 changes
+§7          812-848  Known approximations and deliberate non-changes
+§8         850-2196  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      868-893  Intermittent-rest recovery correction
+  §8.2      895-915  Warm-up carryover instead of binary reset
+  §8.3      917-954  Verified consequences and an open calibration question
+  §8.4     956-1057  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1059-1118  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1120-1309  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1311-1443  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1445-1516  45-minute plan granularity (added 2026-07-18)
+  §8.9    1518-1592  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1594-1880  Stopping-value calibration from observed stop times (add…
+  §8.11   1882-2003  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   2005-2196  The budget curve — what the day's LENGTH is worth (added…
+§9        2198-2245  References
+§10       2247-2476  Revision log (doc-only corrections)
+§11       2478-3057  Metric-layer corrections (2026-07-18)
+  §11.1   2480-2494  Scope and principle
+  §11.2   2496-2520  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2522-2549  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2551-2608  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2610-2625  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2627-2737  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2739-2763  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2765-2808  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   2810-2919  Overnight reservoir carry-over (2026-07-28)
+  §11.10  2921-2991  Grind Density: the share of the work the day actually fu…
+  §11.11  2993-3057  Grind Density is a row, not an objective (2026-08-08)
+§12       3059-3196  Plan-adherence audit (2026-07-23)
+  §12.1   3100-3196  Per-day fit snapshots (2026-08-03)
+§13       3198-3593  Math review, 2026-07-26
+  §13.1   3215-3250  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3252-3324  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3326-3391  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3393-3429  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3431-3468  Also in this change
+  §13.6   3470-3593  The two end-of-day energy readings: a timing difference,…
+§14       3595-4333  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   3798-3938  Five corrections to the first cut (2026-07-28)
+  §14.2   3940-4084  The marginal of the budget (added 2026-08-03)
+  §14.3   4086-4270  The price of the switch cost (added 2026-08-04)
+  §14.4   4272-4333  An empty frontier is a reading (2026-08-08)
+§15       4335-4482  Two objectives, two modes (2026-07-29)
+  §15.1   4410-4482  The copy named the wrong objective for both modes (2026-…
+§16       4484-4571  Run order stays a heuristic (2026-07-29)
+§17       4573-4731  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4733-4802  Drain logs are one row per SESSION, not per task-day (20…
+§19       4804-5075  The gain's naive baseline paid for switches it never mad…
+  §19.1   4822-4881  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   4883-4911  Defect 2 — the displayed number moved with the order of …
+  §19.3   4913-5002  What this costs, and the one guarantee that weakened
+  §19.4   5004-5075  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5077-5139  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5118-5139  The tie went to cognitive, so the row blamed the wrong p…
+§21       5141-5301  What the gain has room to report (2026-08-07)
+  §21.1   5163-5181  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5183-5206  Why shape has a low ceiling: the activation bonus
+  §21.3   5208-5228  Population distribution
+  §21.4   5230-5255  The number is a property of the comparison, not of the o…
+  §21.5   5257-5272  Under the total-output objective the ranking inverts
+  §21.6   5274-5301  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5303-5365  Task nature: an absolute gap could not carry a range tha…
+§23       5367-5509  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5408-5475  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5477-5509  Longest Warm-Up: what E/β was actually tracking
+§24       5511-5574  Task Variety counted labels, and its repair was Energy B…
+§25       5576-5723  Cognitive and Physical Load: the definition, and what ro…
+§26       5725-5831  Deep Work: a step that swung whole blocks, under a band …
+§27       5833-5950  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       5952-6006  Which four readings are headlines (2026-08-07)
+§29       6008-6181  Day Profile: one cut for two different scales, on a day …
+§30       6183-6263  The Lab's comparison tile scored the plan on the one thi…
+§31       6265-6446  What history can plot, and what it cannot (2026-08-07)
+§32       6448-6514  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6516-6633  A plan reads only the logs that precede it (2026-08-08)
+§34       6635-6865  The subset search gave up one task too early (2026-08-08)
+§35       6867-7221  The plan cannot see the hours you already spent (2026-08…
+§36       7223-7294  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -756,7 +756,10 @@ truncation. The guards:
    but not small relatively — up to **117%** of the preceding increment — and
    they are not one corner: 44 of 1540 grid cells, ϕ̂ 5–8h × σ/ϕ̂ 0.35–0.5, with
    the low outer node floor-clamped in every one (2026-08-06,
-   `scripts/post-monotone-prefix-cost.probe.ts`).
+   `scripts/post-monotone-prefix-cost.probe.ts`). Swept again in SLIDER space —
+   (a, p₀) from the form's two difficulty sliders rather than (r, ϕ̂) on a grid —
+   the cut cells start at **ϕ̂ 4.25h** at the same σ/ϕ̂ ≥ 0.35 (§19.3, 2026-08-17,
+   `naive-menu-cut-corner.probe.ts`); the σ/ϕ̂ bound is what the two agree on.
    Cutting the menu there restores Fox's diminishing-increments premise BY
    CONSTRUCTION rather than by sweep, at a cost that is a few low-value blocks
    in most of those cells and up to 44 blocks (11h, 26.53% of the task's value)
@@ -2445,6 +2448,32 @@ to contradict older commit messages or comments, this log is the current truth.
    reachability does not follow from the ratio arm's, and removing the branch
    would be a behaviour change. `GAIN_PERCENT_CAP`, `gainPercentOf` and every
    formula are unchanged; the constant's docblock mirrors the corrected ladder.
+
+### 2026-08-17 — §19.3's four unbacked groups, measured
+
+1. **§19's header claimed one draw for numbers that cannot be on it.** "Every
+   number below sits on the same draw as §13.2's table" was false for four of
+   §19.3's figure groups, two of them structurally: rv14's generator passes no
+   posterior (σ_ϕ = 0) and times nothing. The header now says which group comes
+   from which draw. Wording only.
+2. **The rotation gap was re-measured and moved.** The average sits strictly
+   below the best rotation on **75.9%** of 2400 days, not 81.7% — `rv14` arm J,
+   which computes the per-rotation values the shipped function never returns
+   (its average is asserted equal to the shipped baseline to 12 decimals).
+3. **The −0.5% witness reproduces exactly** (0.886678 against 0.891116) and is
+   now pinned in `zenith.test.ts` rather than only quoted.
+4. **"0 monotonicity cuts with integer sliders" is retracted.** 220 of 100,320
+   integer-slider cells are cut by the non-decreasing rule, all of them strictly
+   before the menu's own best block count; the witness cell is on that regime's
+   own axes, so the zero could not have been right. The new grid is stated with
+   its counts. What keeps the weakened guarantee unreachable is the other half,
+   which §5.1's 576,000-cell sweep already held: re-asked at ϕ̂ ≥ 4 h, **0 of
+   4,320** fitted histories reach σ_ϕ/ϕ̂ ≥ 0.35, largest 0.232.
+5. **The three millisecond figures are timed**, with the machine, the day and
+   the repetition count stated — 0.001–0.003 ms, 0.022–0.027 ms and 1.6–7.1 ms,
+   the baseline 0.4–1.4% of the solve. No formula, constant, bound or fit
+   changed; `buildBlockIncrements`' cut is untouched (its reachability is a §5.1
+   model question, deliberately not opened here).
 
 ## 11. Metric-layer corrections (2026-07-18)
 
@@ -4781,8 +4810,14 @@ bullet that had endorsed its most visible symptom as a real scenario.
 
 Measurements: `scripts/rv14-naive-switch-bill.probe.ts`, 400 days per task
 count over §13.2's own generator (integer sliders, pool weights tied to them,
-budget on the 0.25 h lattice), so every number below sits on the same draw as
-§13.2's table.
+budget on the 0.25 h lattice) — so §19.1's and §19.2's tables, and §19.3's
+rotation-gap and ≥ 0 figures, sit on the same draw as §13.2's table. **§19.3's
+other three groups cannot and do not**: that generator passes no posterior, so
+it draws σ_ϕ = 0 everywhere and never times anything. Its σ_ϕ witness and cut
+grid are `scripts/naive-menu-cut-corner.probe.ts`, and its wall-clock figures
+are one stated day on one stated machine (arm K). Each group below names its
+own draw; the sentence that once claimed one draw for all of them was written
+before four of these numbers had a probe at all (2026-08-17, §10).
 
 ### 19.1 Defect 1 — billed (n−1) switches, seated fewer than n tasks
 
@@ -4881,9 +4916,12 @@ residue against 603pp removed is not where the next fix belongs.
 is a block distribution over a subset of size k under budget `blocksFor(k)` —
 exactly a (subset, budget) pair `bestPlanWithSwitchCost` enumerates — so the
 exact greedy's value dominates it (Fox 1966, §4). Dominating every rotation is
-strictly stronger than dominating their average, so the average is covered too;
-measured, the average is strictly below the best rotation on 81.7% of days.
-0 negatives in 2400 days, asserted in the probe.
+strictly stronger than dominating their average, so the average is covered too —
+and that is not a vacuous gap: measured on the same draw, the average is
+strictly below the best rotation on **75.9%** of 2400 days, from 48.0% at n = 2
+to 90.5% at n = 8, worst gap 30.5–57.4% of the average (arm J, 2026-08-17; the
+81.7% quoted here before had no probe and does not reproduce). 0 negatives in
+2400 days, asserted in the probe (arm D).
 
 **It is a theorem about the TRUNCATED menu, not about E[P̄], and §13.2 overstated
 it.** `buildBlockIncrements` cuts a task's menu at the first non-positive
@@ -4893,12 +4931,52 @@ only hurts itself and the guarantee holds. The σ_ϕ cut is different: it can fi
 while E[P̄] is still rising, leaving the naive plan free to place a value-adding
 block the optimizer was never offered. Constructed witness: one task at
 effective difficulty 1.3, ϕ̂ = 4.5 h, σ_ϕ/ϕ̂ = 0.35, budget 4 h → optimized
-0.886678 against naive 0.891116, a reported **−0.5%**. This is not new (at n = 1
-the §19 baseline is identical to the old one) and it is not reachable from the
-product: 0 monotonicity cuts in 156,000 cells with integer sliders and ϕ ≤ 6 h,
-against 8,806 of 919,968 with quarter-step sliders and ϕ up to 8 h, all at
-ϕ̂ ≥ 4 h with σ/ϕ ≥ 0.35 — the corner §5.1's σ-cap already calls dubious. Worth
-recording because "provably ≥ 0" was being read as unconditional.
+0.886678 against naive 0.891116, a reported **−0.5%** — reproduced exactly
+(`naive-menu-cut-corner.probe.ts` arm 1, 2026-08-17; the same −0.5% at every
+enjoyment 1–10, and the menu is cut at 5 blocks where its own best is 21), and
+pinned in `zenith.test.ts`. This is not new: at n = 1 the §19 baseline is
+identical to the old one.
+
+**What "not reachable from the product" is worth, measured.** It is two
+assertions, and the one this section swept is now **false**; the corner rests
+entirely on the other, which §5.1 had already measured:
+
+- The **slider** half. Over a grid whose difficulty axis is what the form's two
+  difficulty sliders reach through `getEffectiveDifficulty` — which is how
+  effective difficulty 1.3 is integer-reachable at all — 220 of 100,320 integer
+  cells are cut by the non-decreasing rule (38 difficulties × 10 enjoyments ×
+  ϕ 0.25–6 h × 11 σ/ϕ steps to the cap), against 6,327 of 1,921,040 quarter-step
+  ones (ϕ 0.5–8 h at 0.5 h). So the old "0 monotonicity cuts in 156,000 cells
+  with integer sliders" is **retracted**: the witness cell is itself on that
+  regime's axes, and a zero count over a grid containing it could not have been
+  right. The ϕ̂ ≥ 4 h with σ/ϕ ≥ 0.35 range holds — cut cells occupy ϕ 4.25–6 h
+  and σ/ϕ 0.35–0.50 (integer), ϕ 4.5–8 h and the same σ/ϕ (quarter-step) — and
+  every one of them fires strictly before the menu's own best block count, so
+  none of these cuts is free: worst 0.71% of the cell's best value at integer
+  sliders, 28.00% at quarter-step. The grid is the probe's own and stated with
+  the counts; §19.3's original one is not recoverable from this text and
+  919,968 = 1369 × 672 is a factorization, not evidence (arm 2, 2026-08-17).
+- The **fit** half, and the one that holds. σ_ϕ is not a slider: it comes from
+  `phiParameterStd` on a fitted posterior, and §5.1 already reports **0 of
+  576,000** fitted (user × slider) cells in this corner one threshold lower
+  (ϕ̂ > 3.06 h), with the structural reason — the ridge's λ = 4 anchor shrinks ϕ̂
+  exactly when σ is large, so the two requirements are in opposition. Re-asked at
+  §19.3's own ϕ̂ ≥ 4 h it comes back the same: over 4,320 seeded histories drawn
+  toward the SLOW end (`phi-cap-reachability`'s `drawUser` ranges, three coverage
+  patterns × σ_log ∈ {0.05, 0.25, 0.5} × 8 log counts, every one `fitted: true`),
+  **0** reach σ_ϕ/ϕ̂ ≥ 0.35 at any slider cell with ϕ̂ ≥ 4 h. It is a bound, not a
+  bare zero: the largest ratio reached at ϕ̂ ≥ 4 h is **0.232**, while ratios
+  above 0.35 are common (74–96 histories per log count) only where ϕ̂ is small. A
+  fit that falls back to the defaults cannot reach it either — the default plane
+  tops out at ϕ(E = 5, β = 1) = 3.06 h (arm 3, 2026-08-17; §5.1's sweep is the
+  larger one and stays the bound to cite).
+
+So the weakened guarantee stays unreachable end-to-end, but for the second
+reason, not the first: the cut does fire at UI-reachable slider cells and it
+does cost value there; what no user has been shown to reach is the σ_ϕ/ϕ̂ the
+cut needs. Worth recording because "provably ≥ 0" was being read as
+unconditional — and because the margin between 0.232 and 0.35 is a measurement
+on one generator, not a proof.
 
 **The pooled path lost its clean sweep, honestly.** §13.2 reported "no
 counterexample" for the pooled gain; with the handicap removed the baseline is
@@ -4911,9 +4989,17 @@ number is a measure of allocation quality, and the pooled allocator is not
 exact, so the metric should be able to say so.
 
 **Cost.** The baseline is now n rotations, each scanning down at most n
-candidate k's, plus n productivity sums instead of one. Measured at n = 12 with
-a posterior: the baseline goes from ~0.013 ms to 0.031 ms, against 41.7 ms for
-the 2ⁿ funded-subset solve in the same call — 0.04% of it.
+candidate k's, plus n productivity sums instead of one. Timed at n = 12 with a
+σ_ϕ = 0.2 h posterior on one drawn day at three budgets (arm K, 2026-08-17;
+2000 calls after 500 warm-up, 20 for the solve, node 22.14 on an AMD Ryzen 7
+7800X3D): the baseline goes from **0.001–0.003 ms** — a microsecond-scale figure
+at the edge of what this harness resolves — to **0.022–0.027 ms**, against
+**1.6 / 3.5 / 7.1 ms** for the 2ⁿ funded-subset solve in the same call
+at 2 / 4 / 8.25 h — **1.4% / 0.7% / 0.4%** of it, quoted at the precision a
+second run of the same probe reproduces. A timing is a machine and a
+day, so the ratio is what transfers, not the milliseconds: the earlier
+"~0.013 ms to 0.031 ms against 41.7 ms, 0.04%" named neither, and its solve
+figure is out of reach of this generator, whose budget draw stops at 8.25 h.
 
 ### 19.4 `GAIN_PERCENT_CAP` is not dead, but its documented trigger is
 

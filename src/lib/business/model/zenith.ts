@@ -654,8 +654,11 @@ interface AllocTask {
  * are non-increasing everywhere the probe grid reaches, but at floor-clamped
  * extremes (ϕ̂ ≈ hours with σ̂ ≈ half of it) tiny convex wiggles of order
  * 10⁻⁴ appear; cutting the menu there guarantees the diminishing-increments
- * premise of greedy exactness BY CONSTRUCTION instead of by sweep, at the
- * cost of a few low-value blocks in a corner where the fit is dubious anyway.
+ * premise of greedy exactness BY CONSTRUCTION instead of by sweep, at a cost
+ * that is real where it fires — up to 0.71% of the cell's best value at
+ * slider-reachable cells and 28.00% on a wider grid, every cut landing before
+ * the menu's own best block count (MATH.md §19.3, 2026-08-17) — in a corner no
+ * fitted user has been shown to reach.
  * σ_ϕ = 0 never triggers the monotonicity cut (proved in MATH.md §2).
  *
  * `workedHours` continues the menu from a PREFIX (MATH.md §35): the j-th block
