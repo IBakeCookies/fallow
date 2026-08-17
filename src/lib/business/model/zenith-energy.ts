@@ -23,7 +23,7 @@
  *   restart. Because p(s) is hump-shaped, this one decay does double duty:
  *   below the peak it models lost warm-up (breaks hurt), above it models
  *   boredom relief (a break moves you back toward peak). Fragmentation is still
- *   costly, just no longer catastrophic the way a hard reset made it.
+ *   costly, just no longer catastrophic the way a hard reset made it. MATH.md §8.2.
  *
  * - Instantaneous output = p(s) · C_cog^wc · C_phys^wp (Cobb-Douglas gate):
  *   a drained reservoir throttles exactly the tasks that demand it.
@@ -96,6 +96,7 @@ export interface EnergyParams {
 	 * empirically faster than a single fixed rate predicts. This multiplies the
 	 * recovery coefficient; the (1−demand) gate concentrates the boost where the
 	 * reservoir is actually idle (full at rest, none at full demand). 1 disables it.
+	 * MATH.md §8.1.
 	 */
 	restRecoveryMultiplier: number;
 	/**
@@ -116,6 +117,7 @@ export interface EnergyParams {
 	 * gap g keeps a fraction e^(−g/resumptionTimeConstant) of the session phase
 	 * built up before — so a brief switch costs little warm-up while a long gap
 	 * approaches a cold restart. ≤0 reproduces the old binary reset.
+	 * MATH.md §8.2.
 	 */
 	resumptionTimeConstant: number;
 	/**
@@ -387,7 +389,7 @@ export function simulateReservoirs(
  * Session phase to resume a task at, given its last-seen memory and the current
  * clock time (Monk/Trafton): sEnd·e^(−gap/τ). No prior memory, or τ ≤ 0, means
  * a cold start at 0 (the old binary reset). Adjacent same-task blocks are merged
- * before this runs, so the gap here is always strictly positive.
+ * before this runs, so the gap here is always strictly positive. MATH.md §8.2.
  */
 function resumePhase(
 	last: { sEnd: number; tEnd: number } | undefined,
