@@ -22,10 +22,17 @@
  *   H  regression: a pool the baseline cannot draw on must not inflate the gain.
  *      The first cut of §19 windowed the round-robin to `seated` tasks, and a
  *      window of only pool-blocked tasks brought the 999% cap back.
+ *   J  §19.3's exactness argument dominates EVERY rotation, which is strictly
+ *      stronger than dominating their average — how often, and by how much, the
+ *      average really sits below the best rotation
+ *   K  what the rotation baseline costs in wall clock, against the pre-§19
+ *      baseline and against the 2ⁿ funded-subset solve it runs beside
  *
- * The generator is `rv13-naive-lattice.probe.ts`'s, so the numbers here sit on
- * the same draw as §13.2's table: integer sliders, pool weights tied to them,
- * budget on the 0.25h lattice.
+ * The generator is `rv13-naive-lattice.probe.ts`'s, so the day-sweep numbers
+ * here sit on the same draw as §13.2's table: integer sliders, pool weights tied
+ * to them, budget on the 0.25h lattice. Arm K is a timing, not a draw: it states
+ * its own day, machine and repetition count, because nothing else makes a
+ * millisecond reproducible.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -33,6 +40,7 @@
  * Usage: npm run probe
  */
 
+import { cpus } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import {
 	BLOCK_HOURS,
@@ -41,9 +49,11 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	GAIN_PERCENT_CAP,
 	calculatePooledAllocations,
+	calculateTaskAllocations,
 	calculateTotalProductivity,
 	pooledProductivityGain,
 	productivityGain,
+	type FitPosterior,
 	type PooledTaskInput,
 } from '$lib/business/model/zenith';
 
@@ -157,6 +167,50 @@ function seatedCount(n: number, budget: number, switchCost: number): number {
 
 function blockTarget(funded: number, budget: number, switchCost: number): number {
 	return Math.floor((budget - (funded > 1 ? (funded - 1) * switchCost : 0)) / BLOCK_HOURS + 1e-9);
+}
+
+/**
+ * ONE rotation of `naiveBaselineValue`'s plan, which is module-private and only
+ * ever returns the average of all n. With both pools Infinity — the
+ * single-budget path — `naiveBlockPlan`'s pool skips cannot fire, so the plan is
+ * `target` blocks round-robin over the first `k` tasks of the rotation order,
+ * `k` the largest count the budget can seat. Same relationship to the shipped
+ * code as `oldNaiveHours` has to the pre-§19 baseline; arm J asserts the average
+ * of these equals the shipped one to 12 decimals.
+ */
+function rotationHours(
+	tasks: PooledTaskInput[],
+	budget: number,
+	switchCost: number,
+	start: number,
+): number[] {
+	const n = tasks.length;
+	const k = seatedCount(n, budget, switchCost);
+	const target = blockTarget(k, budget, switchCost);
+	const blocks = new Array<number>(n).fill(0);
+
+	if (target < k) return blocks;
+
+	for (let placed = 0; placed < target; placed++) blocks[(start + (placed % k)) % n]++;
+
+	return blocks.map((b) => b * BLOCK_HOURS);
+}
+
+// 500, not 50: at 50 the FIRST closure timed in a run read 3× the same work
+// measured later, which is the JIT and not the code.
+const TIMING_WARMUP = 500;
+const TIMING_REPS = 2000;
+/** The 2ⁿ solve is ~1000× the cost of the pieces beside it; 20 calls is minutes' worth of the others. */
+const SOLVE_REPS = 20;
+
+function timePerCall(call: () => unknown, reps: number): number {
+	for (let i = 0; i < TIMING_WARMUP; i++) call();
+
+	const started = performance.now();
+
+	for (let i = 0; i < reps; i++) call();
+
+	return (performance.now() - started) / reps;
 }
 
 function shuffled(tasks: PooledTaskInput[], rnd: () => number) {
@@ -338,8 +392,9 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 				// under the smaller switch bill of a smaller funded subset. Exact over
 				// the TRUNCATED increment menu, which is the caveat §19.3 records — a
 				// σ_ϕ > 0 menu cut can leave the naive plan free to place a block the
-				// optimizer was never offered. Unreachable from integer sliders, which
-				// is the regime this generator draws.
+				// optimizer was never offered — which this generator cannot produce at
+				// all, since it passes no posterior and so draws σ_ϕ = 0. Whether a
+				// real user reaches that corner is `naive-menu-cut-corner.probe.ts`.
 				expect(single.gainPercent).toBeGreaterThanOrEqual(0);
 			}
 
@@ -598,5 +653,141 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 				expect(optimized).toBeGreaterThan(0);
 			}
 		}
+	});
+
+	it('arm J — the rotation average against the best rotation (§19.3)', () => {
+		// §19.3's exactness argument is that the optimizer dominates EVERY rotation,
+		// which is strictly stronger than dominating their average. The gap between
+		// the two is what makes that non-vacuous, and nothing measured it: the
+		// shipped function returns only the average.
+		let daysBelow = 0;
+		let days = 0;
+
+		for (const n of COUNTS) {
+			const rnd = mulberry32(5200 + n);
+			let below = 0;
+			let worstGap = 0;
+
+			for (let day = 0; day < DAYS_PER_COUNT; day++) {
+				const { tasks, budget } = randomDay(rnd, n);
+
+				const values = Array.from(
+					{
+						length: n,
+					},
+					(_, start) =>
+						calculateTotalProductivity(
+							tasks,
+							rotationHours(tasks, budget, DEFAULT_SWITCH_COST, start),
+							DEFAULT_USER_CONSTANTS,
+						),
+				);
+
+				const average = values.reduce((sum, value) => sum + value, 0) / n;
+				const best = Math.max(...values);
+
+				// The replica is only worth a number if it IS the shipped baseline.
+				expect(average).toBeCloseTo(productivityGain(tasks, budget).naive, 12);
+
+				days++;
+
+				if (best > average + 1e-12) {
+					below++;
+					daysBelow++;
+					worstGap = Math.max(worstGap, (best - average) / average);
+				}
+			}
+
+			console.log(
+				`[J] n=${n}: the rotation average is strictly below the best rotation on ${pct(below / DAYS_PER_COUNT)} of days, ` +
+					`worst gap ${pct(worstGap, 2)} of the average`,
+			);
+		}
+
+		console.log(`[J] pooled over ${days} days: ${pct(daysBelow / days)}`);
+	});
+
+	it('arm K — what the rotation baseline costs, timed (§19.3)', () => {
+		// §19.3 quotes three millisecond figures and `performance.now()` appears in
+		// six probes and never in this one. A 12-task day is the enumeration's own
+		// worst case (2¹² funded subsets, MATH.md §34), and σ_ϕ > 0 is what turns
+		// every P̄ evaluation into a 5-node quadrature — so the posterior is
+		// hand-built rather than fitted: the cost depends on σ_ϕ being non-zero, not
+		// on which user produced it.
+		// The generator's own 12-task day, re-timed at three budgets: the solve's
+		// cost is dominated by how many blocks each of the 2¹² subsets has to place,
+		// so a single budget would report the ratio of one day rather than a cost.
+		// 8.25h is this generator's maximum draw.
+		const { tasks } = randomDay(mulberry32(9100), 12);
+
+		const posterior: FitPosterior = {
+			covariance: [
+				[0, 0, 0],
+				[0, 0, 0],
+				[0, 0, 0.04],
+			],
+			sigma2: 0.04,
+		};
+
+		for (const budget of [2, 4, 8.25]) {
+			const solve = () =>
+				calculateTaskAllocations(
+					tasks,
+					budget,
+					DEFAULT_USER_CONSTANTS,
+					DEFAULT_SWITCH_COST,
+					posterior,
+				);
+
+			const solved = solve().map((allocation) => allocation.allocatedHours);
+
+			const score = () =>
+				calculateTotalProductivity(tasks, solved, DEFAULT_USER_CONSTANTS, posterior);
+
+			// One scoring of the optimized plan PLUS the rotation baseline: handing
+			// the solved hours in is the only way to reach `naiveBaselineValue`,
+			// which is module-private. Infinite pools make it the single-budget
+			// baseline.
+			const scoreAndBaseline = () =>
+				pooledProductivityGain(
+					tasks,
+					budget,
+					{
+						cognitiveHours: Infinity,
+						physicalHours: Infinity,
+					},
+					DEFAULT_USER_CONSTANTS,
+					DEFAULT_SWITCH_COST,
+					posterior,
+					solved,
+				);
+
+			const oldMs = timePerCall(
+				() =>
+					calculateTotalProductivity(
+						tasks,
+						oldNaiveHours(tasks, budget, Infinity, Infinity),
+						DEFAULT_USER_CONSTANTS,
+						posterior,
+					),
+				TIMING_REPS,
+			);
+
+			const scoreMs = timePerCall(score, TIMING_REPS);
+			const baselineMs = timePerCall(scoreAndBaseline, TIMING_REPS) - scoreMs;
+			const solveMs = timePerCall(solve, SOLVE_REPS);
+
+			console.log(
+				`[K] n=12, budget ${budget}h, σ_ϕ = 0.2h: pre-§19 baseline ${oldMs.toFixed(4)} ms/call ` +
+					`(one round-robin + one Σ P̄), §19 rotation baseline ${baselineMs.toFixed(4)} ms/call ` +
+					`(12 rotations × 12 Σ P̄ terms), 2ⁿ funded-subset solve ${solveMs.toFixed(2)} ms/call ` +
+					`— the baseline is ${pct(baselineMs / solveMs, 2)} of it`,
+			);
+		}
+
+		console.log(
+			`[K] ${TIMING_REPS} timed calls after ${TIMING_WARMUP} warm-up (${SOLVE_REPS} for the solve), ` +
+				`node ${process.version} on ${cpus()[0]?.model ?? 'unknown CPU'}`,
+		);
 	});
 });

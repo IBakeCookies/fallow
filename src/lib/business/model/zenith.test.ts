@@ -2189,8 +2189,10 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// cannot do — so the metric read NEGATIVE on 3.8–7.8% of random days.
 			// Quantized, the naive plan is one of the block distributions the exact
 			// greedy maximizes over (§4), so the single-budget gain is ≥ 0 — over the
-			// TRUNCATED increment menu, which is the caveat §19.3 records for σ_ϕ > 0
-			// and integer sliders cannot reach.
+			// TRUNCATED increment menu, which is the caveat §19.3 records for
+			// σ_ϕ > 0. This sweep passes no posterior, so σ_ϕ = 0 and the cut cannot
+			// fire; what keeps it off a real user is the fit, not the sliders (0 of
+			// 4,320 fitted histories reach σ_ϕ/ϕ̂ ≥ 0.35 at ϕ̂ ≥ 4h — §19.3).
 			//
 			// The POOLED path never had that proof, and since §19 stopped
 			// over-billing the baseline it is strong enough to expose the pooled
@@ -2234,6 +2236,51 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 					pooledProductivityGain(pooled, budget, DEFAULT_CAPACITY_POOLS).gainPercent,
 				).toBeGreaterThanOrEqual(-6);
 			}
+		});
+
+		it('reads −0.5% at the σ_ϕ menu cut, where the ≥ 0 guarantee weakens (2026-08-17, §19.3)', () => {
+			// The one cell where the single-budget gain goes NEGATIVE. §5.1 cuts a
+			// task's menu at the first non-DECREASING increment when σ_ϕ > 0, and
+			// there that cut fires while E[P̄] is still rising: the naive planner
+			// places a block the optimizer was never offered. Measured by
+			// `naive-menu-cut-corner.probe.ts`, which also found the corner needs a
+			// σ_ϕ/ϕ̂ ≥ 0.35 at ϕ̂ ≥ 4h that no fitted user in 4,320 histories reached —
+			// the sweep stays there, this pins the witness.
+			//
+			// Effective difficulty 1.3 is both integer sliders at 1 through
+			// `getEffectiveDifficulty`; c₁ = c₂ = 0 puts ϕ̂ at c₃ = 4.5h, and a
+			// covariance carrying only the [2][2] entry makes phiParameterStd
+			// (√(xᵀΣx), x = [E, β, 1]) exactly 0.35·ϕ̂.
+			const sigmaPhi = 0.35 * 4.5;
+
+			const { optimized, naive, gainPercent } = productivityGain(
+				[
+					{
+						title: 't0',
+						difficulty: 1.3,
+						enjoyment: 1,
+					},
+				],
+				4,
+				{
+					c1: 0,
+					c2: 0,
+					c3: 4.5,
+				},
+				DEFAULT_SWITCH_COST,
+				{
+					covariance: [
+						[0, 0, 0],
+						[0, 0, 0],
+						[0, 0, sigmaPhi * sigmaPhi],
+					],
+					sigma2: sigmaPhi * sigmaPhi,
+				},
+			);
+
+			expect(optimized).toBeCloseTo(0.886678, 6);
+			expect(naive).toBeCloseTo(0.891116, 6);
+			expect(gainPercent).toBe(-0.5);
 		});
 
 		it('the naive baseline is a whole-block equal split inside the pools', () => {

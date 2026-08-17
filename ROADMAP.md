@@ -515,6 +515,12 @@ them.
     closed** (2026-08-17,
     [`what-still-reaches-the-gain-cap`](docs/features/what-still-reaches-the-gain-cap.md)),
     and it cost this entry a third correction — the fitted-posterior hole above.
+    **M8 is closed** (2026-08-17,
+    [`what-the-rotation-baseline-costs`](docs/features/what-the-rotation-baseline-costs.md)),
+    and it is the second entry where execution refuted a number the reading had
+    only doubted: §19.3's "0 monotonicity cuts with integer sliders" is false,
+    and the guarantee it files as harmless is held up by a different half of the
+    same sentence.
 
 ## Phase 4 — multi-day horizon
 
@@ -870,11 +876,22 @@ only way to catch.
   steps later, where the first draft of this change had recorded "no rung
   moves" — that reading was the fitted user's ϕ̂ = 0.36 h, not the ladder's 0.1 h.
   The `naive = 0` arm found no witness in 6,576 days and stays open.
-- **M8 §19.3** — `MATH.md:4827` (81.7% of days), `:4836-4838` (0.886678 against
-  0.891116), `:4840-4842` (0/156,000 against 8,806/919,968 cuts), `:4857-4858`
-  (0.013→0.031 ms against 41.7 ms). rv14's generator has σ_ϕ = 0, no
-  per-rotation max and no timing, so the header's "every number below sits on
-  the same draw" overclaims.
+- **M8 §19.3 — closed 2026-08-17,
+  [`what-the-rotation-baseline-costs`](docs/features/what-the-rotation-baseline-costs.md).**
+  The four groups were `MATH.md:4918` (the rotation spread), `:4931` (0.886678
+  against 0.891116), `:4943-4955` (the cut counts), `:4988` (the timing), and
+  the header's "every number below sits on the same draw" now says which draw
+  each one comes from. Two new `rv14` arms (J, K) and a new probe,
+  `naive-menu-cut-corner.probe.ts`, back all four. The witness pair reproduces
+  exactly and is pinned; the 81.7% does not (**75.9%** of 2400 days); the timing
+  is restated as a ratio with its machine and day (0.4–1.4% of the solve). The
+  finding execution turned up: **"0 monotonicity cuts in 156,000 integer-slider
+  cells" is false** — 220 of 100,320, every one of them costing value, and the
+  witness cell sits on that regime's own axes. What keeps the weakened ≥ 0
+  guarantee unreachable is the σ_ϕ half, which §5.1's 576,000-cell sweep already
+  held and which arm 3 re-asks at ϕ̂ ≥ 4 h: 0 of 4,320 fitted histories reach
+  σ_ϕ/ϕ̂ ≥ 0.35 there, largest 0.232. §5.1's cut is untouched by design, and no
+  item is opened for it — the corner needs both halves and the fit half holds.
 - **M9 §14** — `MATH.md:3647-3653`, `:3657-3661` (1.6/3.9/12.5/95 ms; 12 ms and
   946 ms per run; 103.6→51.2 ms; **421 ms**) and `:4163-4164` (7.3% / 2.9%). No
   probe times `suggestPlanAdjustments`, yet the 421 ms is quoted as settled at
