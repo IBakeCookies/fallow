@@ -140,7 +140,8 @@ the same way:
 
 - **`task-list-card.svelte`** — the card, the heading, the form above the list,
   the empty state, and the rule between rows (`divide-y`, so neither screen
-  decides how its own list is separated).
+  decides how its own list is separated). `split` is how a caller reads its list
+  as two headed groups instead of one — `/` passes it, the Lab never does.
 - **`task-row-shell.svelte`** — the row's frame and hover surface, the
   completion checkbox, the title, the `P · M · E` line, the whole action strip
   (⚡, 🪫, ✎, ✕) and every editor it opens, including the completion prompt that
@@ -208,6 +209,26 @@ for itself, and the ✎ that could show what they mean is hover-revealed. A stor
 `play` pins both halves, the second on `data-slot` rather than by hovering and
 waiting for nothing: a tooltip that never opens and one that opens after a
 delay look alike.
+
+### `/` reads the day as the two groups the plan makes
+
+Settled 2026-08-17. Funded rows sit under "Today's sequence" in their `#N` order,
+the tasks the plan gave nothing under "No time today" in the priority order they
+arrive in, having no position at all. What made the single list read as a
+contradiction was not its order: a low-priority task collecting the last block is
+normal (the objective is Σ P̄ and a cheap task's average peaks almost at once —
+MATH.md §3), and with the two states unlabelled that looked like the plan funding
+the wrong task. The split appears only when both groups have a row — a heading
+over the only group there is says nothing about it.
+
+**Ordering rows by `#N` is what rescoped `#N`.** The badge was interleaved over
+ACTIVE tasks, so a sort on it sank a row to the foot of the group the moment it
+was ticked — out from under the 🪫 editor that completing it had just opened.
+Both properties (the sequence counting down the page, and a row that never moves
+under the cursor) hold only if the order is completion-invariant, which is
+MATH.md §11.8's 2026-08-18 rescope: the map covers the funded PLAN, a completed
+task keeps its slot, and `task-item` renders no badge on it — so the visible
+numbers can carry gaps, and a gap means "done", not "moved".
 
 ### The mid-day re-plan reads beside the plan, not over it
 

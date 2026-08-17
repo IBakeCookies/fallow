@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import TaskItem from '$lib/presentation/component/task-item.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
 	import NextUpLine from '$lib/presentation/component/next-up-line.svelte';
@@ -81,10 +82,31 @@
 		ondraindelete,
 		onupdate,
 	}: Props = $props();
+
+	// The plan's two answers about a task, read as two groups: hours today, or none.
+	// The funded group reads in its `#N` order so the sequence counts down the page;
+	// the rest keep the priority order they arrive in, having no position at all.
+	const funded = $derived(
+		suggestedTasks
+			.filter((task) => task.suggestedHours > 0)
+			.sort((a, b) => (runOrder.get(a.id) ?? 0) - (runOrder.get(b.id) ?? 0)),
+	);
+	const unfunded = $derived(suggestedTasks.filter((task) => task.suggestedHours === 0));
+	const isSplit = $derived(funded.length > 0 && unfunded.length > 0);
+	// One group when the other is empty — every row is then in the same state.
+	const listed = $derived(isSplit ? funded : [...funded, ...unfunded]);
 </script>
 
 {#snippet rows()}
-	{#each suggestedTasks as task (task.id)}
+	{@render taskRows(listed)}
+{/snippet}
+
+{#snippet unfundedRows()}
+	{@render taskRows(unfunded)}
+{/snippet}
+
+{#snippet taskRows(group: SuggestedTask[])}
+	{#each group as task (task.id)}
 		<li>
 			<TaskItem
 				id={task.id}
@@ -137,4 +159,15 @@
 	{/if}
 {/snippet}
 
-<TaskListCard {form} {heading} rows={suggestedTasks.length ? rows : null} />
+<TaskListCard
+	{form}
+	{heading}
+	rows={suggestedTasks.length ? rows : null}
+	split={isSplit
+		? {
+				firstLabel: m.list_group_sequence(),
+				restLabel: m.list_group_unfunded(),
+				rest: unfundedRows,
+			}
+		: undefined}
+/>

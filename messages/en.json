@@ -76,6 +76,8 @@
 	"list_title": "Tasks",
 	"list_empty": "No tasks deployed yet",
 	"list_empty_hint": "Add a task above to begin tracking",
+	"list_group_sequence": "Today's sequence",
+	"list_group_unfunded": "No time today",
 	"task_run_order_tooltip": "Suggested run order — alternates cognitive and physical work so the resting energy system recovers",
 	"task_nature_cognitive_label": "COG",
 	"task_nature_physical_label": "PHY",

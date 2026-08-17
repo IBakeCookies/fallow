@@ -76,6 +76,8 @@
 	"list_title": "任务",
 	"list_empty": "还没有部署任何任务",
 	"list_empty_hint": "在上方添加一项任务即可开始跟踪",
+	"list_group_sequence": "今日顺序",
+	"list_group_unfunded": "今日无时间",
 	"task_run_order_tooltip": "建议的执行顺序——交替进行认知型与体力型工作，让正在休息的那套能量系统恢复",
 	"task_nature_cognitive_label": "认知",
 	"task_nature_physical_label": "体力",

@@ -144,6 +144,10 @@ describe('calculateDailyMetrics', () => {
 		expect(after.physicalLoad).toBe(before.physicalLoad);
 		expect(after.humanCapacity.percent).toBe(before.humanCapacity.percent);
 		expect(after.deepWorkRatio).toBe(before.deepWorkRatio);
+		// The run order is one of them (§11.8, rescoped 2026-08-18): the `#N` badges are
+		// the plan's sequence, and the list renders rows in it, so a depleting order
+		// moved every row below the one just ticked off.
+		expect(after.runOrder).toEqual(before.runOrder);
 	});
 
 	it('moves active-scoped metrics when a task is completed', () => {
@@ -165,7 +169,6 @@ describe('calculateDailyMetrics', () => {
 		expect(after.activeTasks).toHaveLength(2);
 		expect(after.completedTasks).toBe(1);
 		expect(after.completionRate).toBeGreaterThan(before.completionRate);
-		expect(after.runOrder.size).toBe(2);
 	});
 
 	// Regression (2026-08-07, MATH.md §23.1): checking off the day's only physical

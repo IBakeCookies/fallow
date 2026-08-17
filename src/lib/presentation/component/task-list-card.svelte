@@ -10,10 +10,25 @@
 		heading?: Snippet;
 		/** Null, not an empty snippet: an empty `<ul>` announces "list, 0 items" over the empty-state copy. */
 		rows: Snippet | null;
+		/** Splits the list into two headed groups instead of one plain one — `/` reads the
+		 *  tasks the plan funded nothing in the second. Both labels arrive with it: a
+		 *  heading over the only group there is says nothing about it. */
+		split?: {
+			firstLabel: string;
+			restLabel: string;
+			rest: Snippet;
+		};
 	}
 
-	let { form, heading, rows }: Props = $props();
+	let { form, heading, rows, split }: Props = $props();
 </script>
+
+{#snippet group(label: string, items: Snippet)}
+	<div class="space-y-text-2xs">
+		<h4 class="text-2xs font-semibold tracking-wider text-ty-silent uppercase">{label}</h4>
+		<ul class="divide-y divide-line-soft">{@render items()}</ul>
+	</div>
+{/snippet}
 
 <div class="card-shell space-y-text-xs p-box-md sm:p-box-xl">
 	<div class="flex flex-wrap items-baseline justify-between gap-text-xs">
@@ -25,7 +40,10 @@
 	{#if form}
 		<div class="pb-text-md">{@render form()}</div>
 	{/if}
-	{#if rows}
+	{#if rows && split}
+		{@render group(split.firstLabel, rows)}
+		{@render group(split.restLabel, split.rest)}
+	{:else if rows}
 		<ul class="divide-y divide-line-soft">{@render rows()}</ul>
 	{:else}
 		<div class="flex flex-col items-center justify-center py-empty-state text-center">
