@@ -76,6 +76,8 @@
 	"list_title": "Tâches",
 	"list_empty": "Aucune tâche déployée pour l'instant",
 	"list_empty_hint": "Ajoute une tâche ci-dessus pour commencer le suivi",
+	"list_group_sequence": "Séquence du jour",
+	"list_group_unfunded": "Pas de temps aujourd'hui",
 	"task_run_order_tooltip": "Ordre d'exécution suggéré — alterne travail cognitif et physique pour que le système d'énergie au repos récupère",
 	"task_nature_cognitive_label": "COG",
 	"task_nature_physical_label": "PHY",

@@ -2976,7 +2976,8 @@ check a task done?":
   Recovery Ratio**. (Variety previously flashed a red 0 as the last tasks
   completed; coverage read the plan as "worse" when a flow-reaching task was
   checked off. Task Variety is retired outright in §24 — the scope rule below
-  outlived it.)
+  outlived it.) **The suggested run order joined them on 2026-08-18** — the
+  amendment below.
 - **Progress** ("how well am I executing the plan?") — all tasks by
   construction; completed tasks are the numerator, so these MUST move on
   completion. Completion Rate, Yield Index.
@@ -2985,8 +2986,7 @@ check a task done?":
   (§11.7 reading kept; over all tasks it would duplicate Day Profile, which
   classified the same two averages — §29 has since hour-weighted Day Profile
   over funded tasks, so the two now differ in weighting as well as in scope),
-  Quick Wins, Bottleneck, Longest Warm-Up,
-  suggested run order. (Bottleneck's parenthetical here — "tooltip now states
+  Quick Wins, Bottleneck, Longest Warm-Up. (Bottleneck's parenthetical here — "tooltip now states
   it may name an unfunded task" — is retired with the `E/β` formula: the
   binding-pool draw weighs allocated hours, so an unfunded task draws nothing
   and cannot be named. Its binding AXIS is next-up as well — it is solved on the
@@ -2997,6 +2997,26 @@ displayed), and the Energy Lab's classic-plan comparison no longer strips
 completed tasks from the classic side only — both plans simulate the full
 intended day, so `outputVsClassic` is no longer biased toward the energy
 plan once anything is checked off.
+
+**The `#N` run order is plan-scoped, not next-up (2026-08-18).** It sat under
+next-up on the reading that "what to grab next" is a question about what is left,
+and one thing settled that: the badges do not merely number the rows, the list
+**orders** rows by them, in `/`'s two-group reading
+(`presentation/AGENTS.md`). Interleaved over the ACTIVE tasks, the sequence
+re-greedied on every completion — so ticking a task off renumbered its
+neighbours and dropped its own row to the foot of the group, out from under the
+🪫 editor the completion had just opened on it. Over the funded PLAN
+(`calculateInterleavedOrder(suggestedTasks)`, completed included, since a
+completed task keeps its hours) the set is completion-invariant, so both the
+numbers and the row order hold for the whole day — which is what
+`next_up_tooltip` already promised the user ("stays the answer it was this
+morning"). A completed row's position is spent and its badge hidden, so the
+visible numbers can carry gaps; that is the honest reading, since the number
+names a slot in the day's sequence and not a rank.
+
+The remainder still has its own answer and it is a separate reading: §35's
+`RemainingDay.nextTask`, interleaved over the funded remainder, which is next-up
+by construction and depletes as it should. Nothing else consumed the map.
 
 **The display gate belongs to the same family (2026-07-30).** Scoping the
 calculation is only half of it: `buildMetrics` withholds a reading whose
@@ -4757,11 +4777,12 @@ metric by >5 points on a third of days in an arbitrary direction to buy a median
 **Consequences.**
 
 - `calculateInterleavedOrder` stays as it is, and stays the single definition
-  for both consumers — the `#N` badges (§11) and Burnout Risk's block sequence
-  (§11.6). Same definition, **different scope**: the two consumers pass
-  different task sets (§11.8) and the interleave is a greedy over the set it is
-  handed, so the rendered `#N` order need not equal the simulated block order.
-  One definition, not one output.
+  for every consumer — the `#N` badges (§11), Burnout Risk's block sequence
+  (§11.6), the Lab's schedule and §35's remainder. It is a greedy over the set
+  it is handed, so **one definition, not one output**: the badges and the
+  simulated blocks read the same funded plan since the 2026-08-18 rescope
+  (§11.8) and therefore agree, while §35's runs over the remainder and is free
+  to open with a different task.
 - The ontology mismatch is **acknowledged and accepted**: an order justified by
   dual-pool reasoning feeds an energy-model simulation. The probe is the
   justification — under §8's own scoring the heuristic is within 0.47% of

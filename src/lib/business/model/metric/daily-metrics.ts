@@ -130,8 +130,10 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		suggestedTasks,
 		activeTasks,
 		// Alternates cognitive/physical tasks so the resting energy system
-		// recovers (dual-pool model).
-		runOrder: new Map(calculateInterleavedOrder(activeTasks).map((task, i) => [task.id, i + 1])),
+		// recovers (dual-pool model). Over the FUNDED PLAN, completed tasks
+		// included: it is the sequence the list renders rows in, so an order that
+		// depleted as work got done moved rows out from under the user (§11.8).
+		runOrder: new Map(calculateInterleavedOrder(suggestedTasks).map((task, i) => [task.id, i + 1])),
 		planSlackHours,
 		remainingSuggestedHours: activeTasks.reduce((sum, task) => sum + task.suggestedHours, 0),
 		totalTasks: tasks.length,
