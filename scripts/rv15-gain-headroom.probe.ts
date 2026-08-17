@@ -20,6 +20,10 @@
  * AND collects a full activation bonus on sub-block crumbs, which is exactly
  * how the pre-§13.2 baseline beat plans that could actually be executed.
  *
+ * Those alternatives are each ONE split; none of them is the shipped baseline,
+ * which averages the n cyclic rotations of the list (§19). Arm J prices the
+ * difference, so a row quoted as "what the metric reports" comes from there.
+ *
  * Usage: npm run probe -- rv15-gain-headroom
  */
 
@@ -296,7 +300,7 @@ describe('Zenith Gain — is 2.9% the optimizer failing or the baseline being go
 
 		const rows: [string, number[]][] = [
 			[
-				'equal split (the shipped baseline)',
+				'equal split (ONE largest-remainder)',
 				feasible(
 					DAY.map(() => 1),
 					budget,
@@ -578,6 +582,47 @@ describe('Zenith Gain — is 2.9% the optimizer failing or the baseline being go
 				`${hm(budget).padStart(6)}  ${scores[0].toFixed(3)}  ${median.toFixed(3)}    ` +
 					`${equal.toFixed(3)}     ${opt.toFixed(3)}  |${pct(median)} ${pct(equal)}    ` +
 					`${((100 * scores.filter((s) => s <= opt).length) / scores.length).toFixed(2).padStart(6)}%`,
+			);
+		}
+	});
+
+	it('J. scores the optimizer against the baseline that actually ships', () => {
+		console.log(`\n=== J. one equal split vs the shipped rotation-averaged baseline ===`);
+
+		console.log(
+			`Every "equal split" above is ONE largest-remainder split, so the odd block always\n` +
+				`lands on the first task of the list. The shipped baseline averages the n cyclic\n` +
+				`rotations instead (naiveBaselineValue, §19) — a different reference set, and the\n` +
+				`only one the dashboard's gain is measured against.\n`,
+		);
+
+		console.log(`budget  oneEqualSplit  shippedNaive  optimized  | vs equal  vs shipped  gain%`);
+
+		for (const budget of [2, 3, 4, 6, 8]) {
+			const gain = pooledProductivityGain(
+				DAY,
+				budget,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				DEFAULT_SWITCH_COST,
+				POST,
+			);
+
+			const equal = value(
+				DAY,
+				feasible(
+					DAY.map(() => 1),
+					budget,
+				),
+			);
+
+			const pct = (from: number) =>
+				`${(((gain.optimized - from) / from) * 100).toFixed(1)}%`.padStart(8);
+
+			console.log(
+				`${hm(budget).padStart(6)}  ${equal.toFixed(3)}         ${gain.naive.toFixed(3)}        ` +
+					`${gain.optimized.toFixed(3)}  |${pct(equal)} ${pct(gain.naive)}    ` +
+					`${gain.gainPercent.toFixed(1).padStart(5)}`,
 			);
 		}
 	});

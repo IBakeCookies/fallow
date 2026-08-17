@@ -434,9 +434,13 @@ describe('Grind Density over a day space', () => {
 		);
 
 		// Why it is not an advice axis: a count denominated in tasks, moved by levers
-		// priced in hours. Deferring the day's smallest funded grind moves the
-		// reading 100/n for its share of the booked time — the ratio the advisor
-		// was buying at ~3% of Σ P̄ a step (MATH.md §11.11).
+		// priced in hours. Deferring the day's smallest funded grind drops it from
+		// BOTH the count and the denominator, so the step is the rounded reading's
+		// own difference, for the task's share of the booked time — the ratio the
+		// advisor was buying at ~3% of Σ P̄ a step (MATH.md §11.11).
+		const reading = (grinds: number, funded: number) =>
+			funded ? Math.round((grinds / funded) * 100) : 0;
+
 		const levers = [];
 
 		for (const d of DAYS) {
@@ -451,7 +455,7 @@ describe('Grind Density over a day space', () => {
 			levers.push({
 				d,
 				share: (smallest.suggestedHours / total) * 100,
-				step: 100 / p.length,
+				step: reading(grinds.length, p.length) - reading(grinds.length - 1, p.length - 1),
 				hours: smallest.suggestedHours,
 			});
 		}
@@ -466,7 +470,7 @@ describe('Grind Density over a day space', () => {
 
 		if (byRatio[0]) {
 			console.log(
-				`   worst ratio: −${Math.round(byRatio[0].step)}pp for ${byRatio[0].hours}h = ` +
+				`   worst ratio: −${byRatio[0].step}pp for ${byRatio[0].hours}h = ` +
 					`${byRatio[0].share.toFixed(1)}% of booked time — ${dump(byRatio[0].d)}`,
 			);
 		}

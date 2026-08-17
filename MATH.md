@@ -51,7 +51,7 @@ that are not evident from reading it — so never retype a row, regenerate:
   §5.1      602-796  Posterior-aware allocation (added 2026-07-18)
 §6          798-810  Summary of v1 → v2 changes
 §7          812-848  Known approximations and deliberate non-changes
-§8         850-2297  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         850-2301  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      868-893  Intermittent-rest recovery correction
   §8.2      895-915  Warm-up carryover instead of binary reset
   §8.3      917-954  Verified consequences and an open calibration question
@@ -63,71 +63,71 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.9    1518-1592  Recovery-rate calibration from pre/post-rest pairs (adde…
   §8.10   1594-1953  Stopping-value calibration from observed stop times (add…
   §8.11   1955-2104  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   2106-2297  The budget curve — what the day's LENGTH is worth (added…
-§9        2299-2346  References
-§10       2348-2627  Revision log (doc-only corrections)
-§11       2629-3208  Metric-layer corrections (2026-07-18)
-  §11.1   2631-2645  Scope and principle
-  §11.2   2647-2671  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2673-2700  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2702-2759  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2761-2776  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2778-2888  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2890-2914  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2916-2959  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   2961-3070  Overnight reservoir carry-over (2026-07-28)
-  §11.10  3072-3142  Grind Density: the share of the work the day actually fu…
-  §11.11  3144-3208  Grind Density is a row, not an objective (2026-08-08)
-§12       3210-3347  Plan-adherence audit (2026-07-23)
-  §12.1   3251-3347  Per-day fit snapshots (2026-08-03)
-§13       3349-3744  Math review, 2026-07-26
-  §13.1   3366-3401  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3403-3475  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3477-3542  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3544-3580  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3582-3619  Also in this change
-  §13.6   3621-3744  The two end-of-day energy readings: a timing difference,…
-§14       3746-4484  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   3949-4089  Five corrections to the first cut (2026-07-28)
-  §14.2   4091-4235  The marginal of the budget (added 2026-08-03)
-  §14.3   4237-4421  The price of the switch cost (added 2026-08-04)
-  §14.4   4423-4484  An empty frontier is a reading (2026-08-08)
-§15       4486-4633  Two objectives, two modes (2026-07-29)
-  §15.1   4561-4633  The copy named the wrong objective for both modes (2026-…
-§16       4635-4722  Run order stays a heuristic (2026-07-29)
-§17       4724-4882  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4884-4953  Drain logs are one row per SESSION, not per task-day (20…
-§19       4955-5226  The gain's naive baseline paid for switches it never mad…
-  §19.1   4973-5032  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5034-5062  Defect 2 — the displayed number moved with the order of …
-  §19.3   5064-5153  What this costs, and the one guarantee that weakened
-  §19.4   5155-5226  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       5228-5290  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5269-5290  The tie went to cognitive, so the row blamed the wrong p…
-§21       5292-5452  What the gain has room to report (2026-08-07)
-  §21.1   5314-5332  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5334-5357  Why shape has a low ceiling: the activation bonus
-  §21.3   5359-5379  Population distribution
-  §21.4   5381-5406  The number is a property of the comparison, not of the o…
-  §21.5   5408-5423  Under the total-output objective the ranking inverts
-  §21.6   5425-5452  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5454-5516  Task nature: an absolute gap could not carry a range tha…
-§23       5518-5660  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5559-5626  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5628-5660  Longest Warm-Up: what E/β was actually tracking
-§24       5662-5725  Task Variety counted labels, and its repair was Energy B…
-§25       5727-5874  Cognitive and Physical Load: the definition, and what ro…
-§26       5876-5982  Deep Work: a step that swung whole blocks, under a band …
-§27       5984-6101  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6103-6157  Which four readings are headlines (2026-08-07)
-§29       6159-6332  Day Profile: one cut for two different scales, on a day …
-§30       6334-6414  The Lab's comparison tile scored the plan on the one thi…
-§31       6416-6597  What history can plot, and what it cannot (2026-08-07)
-§32       6599-6665  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6667-6784  A plan reads only the logs that precede it (2026-08-08)
-§34       6786-7016  The subset search gave up one task too early (2026-08-08)
-§35       7018-7372  The plan cannot see the hours you already spent (2026-08…
-§36       7374-7445  What a correction may touch (2026-08-10)
+  §8.12   2106-2301  The budget curve — what the day's LENGTH is worth (added…
+§9        2303-2350  References
+§10       2352-2675  Revision log (doc-only corrections)
+§11       2677-3259  Metric-layer corrections (2026-07-18)
+  §11.1   2679-2693  Scope and principle
+  §11.2   2695-2719  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2721-2748  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2750-2807  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2809-2824  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2826-2936  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2938-2962  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   2964-3007  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   3009-3118  Overnight reservoir carry-over (2026-07-28)
+  §11.10  3120-3190  Grind Density: the share of the work the day actually fu…
+  §11.11  3192-3259  Grind Density is a row, not an objective (2026-08-08)
+§12       3261-3398  Plan-adherence audit (2026-07-23)
+  §12.1   3302-3398  Per-day fit snapshots (2026-08-03)
+§13       3400-3795  Math review, 2026-07-26
+  §13.1   3417-3452  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3454-3526  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3528-3593  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3595-3631  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3633-3670  Also in this change
+  §13.6   3672-3795  The two end-of-day energy readings: a timing difference,…
+§14       3797-4535  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4000-4140  Five corrections to the first cut (2026-07-28)
+  §14.2   4142-4286  The marginal of the budget (added 2026-08-03)
+  §14.3   4288-4472  The price of the switch cost (added 2026-08-04)
+  §14.4   4474-4535  An empty frontier is a reading (2026-08-08)
+§15       4537-4684  Two objectives, two modes (2026-07-29)
+  §15.1   4612-4684  The copy named the wrong objective for both modes (2026-…
+§16       4686-4773  Run order stays a heuristic (2026-07-29)
+§17       4775-4933  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       4935-5004  Drain logs are one row per SESSION, not per task-day (20…
+§19       5006-5277  The gain's naive baseline paid for switches it never mad…
+  §19.1   5024-5083  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5085-5113  Defect 2 — the displayed number moved with the order of …
+  §19.3   5115-5204  What this costs, and the one guarantee that weakened
+  §19.4   5206-5277  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5279-5341  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5320-5341  The tie went to cognitive, so the row blamed the wrong p…
+§21       5343-5511  What the gain has room to report (2026-08-07)
+  §21.1   5365-5385  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5387-5410  Why shape has a low ceiling: the activation bonus
+  §21.3   5412-5432  Population distribution
+  §21.4   5434-5465  The number is a property of the comparison, not of the o…
+  §21.5   5467-5482  Under the total-output objective the ranking inverts
+  §21.6   5484-5511  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5513-5575  Task nature: an absolute gap could not carry a range tha…
+§23       5577-5719  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5618-5685  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5687-5719  Longest Warm-Up: what E/β was actually tracking
+§24       5721-5784  Task Variety counted labels, and its repair was Energy B…
+§25       5786-5933  Cognitive and Physical Load: the definition, and what ro…
+§26       5935-6041  Deep Work: a step that swung whole blocks, under a band …
+§27       6043-6160  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6162-6216  Which four readings are headlines (2026-08-07)
+§29       6218-6391  Day Profile: one cut for two different scales, on a day …
+§30       6393-6473  The Lab's comparison tile scored the plan on the one thi…
+§31       6475-6656  What history can plot, and what it cannot (2026-08-07)
+§32       6658-6724  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6726-6843  A plan reads only the logs that precede it (2026-08-08)
+§34       6845-7075  The subset search gave up one task too early (2026-08-08)
+§35       7077-7431  The plan cannot see the hours you already spent (2026-08…
+§36       7433-7504  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -2286,11 +2286,15 @@ window when it sits _above_ the cap: the chart cannot draw its locator there, an
 clamping it to the right edge would claim it stands at 12 h, so the legend names
 the window and the cap in words instead of quietly dropping the marker.
 
-**Cost.** 16 solves at the default cap, ~40 ms each on a small day — the
-do-nothing point makes 17 budgets, not 17 solves. It therefore lives behind an
-explicit click in `EnergyLabStore.computeBudgetCurve`, on
-`suggestPlanAdjustments`' on-demand contract, and is deliberately **not** a
-`$derived`. Its staleness fingerprint omits the budget on purpose: the curve is
+**Cost.** 16 solves at the default cap — the do-nothing point makes 17 budgets,
+not 17 solves. Each is one `optimizeSchedule`, and §8.6's table prices it rather
+than a second copy of one cell here: on that table's run A, **30.0 ms** on the
+3-task 8 h witness up to **412.4 ms** at 15 tasks over 12 h. Quote the range and
+not a figure — §8.6's two runs share no absolute number, machine A being ~2×
+machine B. It therefore lives behind an explicit click in
+`EnergyLabStore.computeBudgetCurve`, on `suggestPlanAdjustments`' on-demand
+contract, and is deliberately **not** a `$derived` — a per-solve cost at the top
+of that range only strengthens that. Its staleness fingerprint omits the budget on purpose: the curve is
 a statement about _every_ budget, so dragging the window must not grey out the
 card that exists to inform that drag. It omits the task **titles** for the
 narrower reason that the sweep never reads them and no field of `BudgetCurve`
@@ -2625,6 +2629,50 @@ to contradict older commit messages or comments, this log is the current truth.
    section's whole backed set is how a change of this shape grows without adding
    evidence (the feature file's own out-of-scope list), and the figures above are
    what a future re-run should expect to see instead of the 2026-08-06 pairs.
+
+### 2026-08-17 — four baselines, steps and citations the code had moved past
+
+Item 31's M2, M3, M22 and M13, and each one is a comparison or a citation
+describing something the code no longer does. No formula, constant, bound or fit
+moves, and no executable line outside two probe arms.
+
+1. **§21.4's "(shipped)" row was a different baseline** (M2). The +1.9% came
+   from ONE largest-remainder equal split, whose odd block always lands on the
+   list's first task, while the shipped `naiveBaselineValue` averages the n
+   cyclic rotations (§19) — a lower reference, so a **larger** reported gain. The
+   row is relabelled, the shipped comparison added as its own row at **+2.9%**
+   (which is what §21's header and arm A already printed, so the section
+   contradicted itself), and `rv15` gains **arm J**, which prices the two side by
+   side: 4.575 against 4.621, optimizer 4.710, at 4 h. §21.1's selection/shape
+   decomposition is measured against the single split too, and now says so.
+2. **A defer moves Grind Density by `100·(m−g)/(m(m−1))`, not by `100/m`** (M3).
+   The metric rounds `grinds/funded·100` (`metric/calculation.ts:1033`), so
+   deferring a funded grind drops the task from **both** sides of the ratio — and
+   moves nothing at all on an all-grind plan. The probe's lever arm asserted the
+   full `100/m`, which is why §11.11's prose read **20pp** on the very day its own
+   table two paragraphs below printed **−15pp**. Re-measured
+   (`scripts/mtr-grind-density.probe.ts:458`): **10/545** days, not 107/545, move
+   the count more than twice as far as the booked hours. The section's conclusion
+   is untouched — it rests on the 153/600 band split, the `100 − RewardDensity`
+   duplication and the advisor's own 332/132 offers, none of which read the step.
+3. **§8.12 kept a per-solve cost §8.6 had superseded** (M22). "~40 ms each on a
+   small day" for `suggestBudgetCurve`'s 16 solves, where §8.6 prices that same
+   call site by name and instructs the reader to quote its range, because its two
+   runs share no absolute figure. §8.12 now defers to that table. The 16-solve
+   count, the 17-budget arithmetic and the never-a-`$derived` conclusion all
+   stand — a higher true per-solve cost only strengthens the last of them. Raised
+   by one lens as unbacked and **refuted in that framing**: the defect was
+   staleness, and the docblock over the same function had already been fixed on
+   2026-08-13.
+4. **The warm-up-carryover mechanism shipped with no §8.2 citation** (M13).
+   `MATH.md §8.2` appeared nowhere in `src/` and §8.1 was uncited too, though the
+   sibling bullets and sibling parameters in the same file all name their section.
+   §8.1 now sits on `restRecoveryMultiplier`, §8.2 on the header's warm-up
+   bullet, on `resumptionTimeConstant` and on `resumePhase` — whose docblock cited
+   only Monk/Trafton. Both sections' text was already correct (R7 citations only).
+   Two of the five sites the audit named are deliberately **not** cited: the
+   defaults-block comments, because this file's idiom puts the section on the
+   interface docblock and never on the default.
 
 ## 11. Metric-layer corrections (2026-07-18)
 
@@ -3170,12 +3218,15 @@ a deletion, not a weighting.
 
 **What the unweighted count did as an axis.** Every lever the advisor can pull —
 defer a task, move the budget — is priced in hours through Σ P̄, so an axis
-denominated in task count buys reading with the wrong currency. Deferring the
-smallest funded grind moves the count by its full `100/m` step whatever the task
-weighs: on **107/545** days that step is more than **twice** the share of booked
-hours it gives up, worst case **20pp for 0.25 h = 2.9%** of the day's time
-(`m/p/e 5/7/9 4/1/8 3/8/10 10/4/1 8/0/4 | 14.25h`). That ratio is question 6 and
-is reproducible.
+denominated in task count buys reading with the wrong currency. A defer drops
+the task from the count AND from its denominator, so with `g` grinds among `m`
+funded tasks it moves the reading by `100·(m−g)/(m(m−1))` — whatever the task
+weighs, and by 0 on an all-grind plan: on **10/545** days that step is more than
+**twice** the share of booked hours it gives up, worst case **15pp for 0.25 h =
+2.9%** of the day's time (`m/p/e 5/7/9 4/1/8 3/8/10 10/4/1 8/0/4 | 14.25h`,
+`m` = 5, `g` = 2). That ratio is question 6, is reproducible, and its worst case
+is the second row of the table below — the same **−15pp**, recorded there by the
+pre-retirement advisor itself.
 
 What the axis then did with it was measured once, against the pre-retirement
 advisor, and cannot be re-run now that the axis is gone: over the same 600 days
@@ -5329,7 +5380,9 @@ task and only the split is left. The crossover is at `budget ≈ n·BLOCK_HOURS 
 (n−1)·switchCost` — the point where the whole list first becomes affordable.
 
 An ordinary day sits in the second regime, where the gain reports the smaller
-of the two effects.
+of the two effects. Both terms are measured against ONE equal split, so they sum
+to that comparison's 1.9% and not to the 2.9% the screen reports; §21.4 prices
+the 1.0 pp between the two baselines.
 
 ### 21.2 Why shape has a low ceiling: the activation bonus
 
@@ -5381,20 +5434,26 @@ optimum; a 4.1× ϕ spread at n = 4 / 4 h gives 11.1% against the reference day'
 ### 21.4 The number is a property of the comparison, not of the optimizer
 
 The same optimizer on the same day reports wildly different "value" depending
-on the reference set it is scored against. 20000 sampled plans, each spending
-its whole billed budget on the 15-minute lattice, at 4 h:
+on the reference set it is scored against. The first two rows are 20000 sampled
+plans each, spending their whole billed budget on the 15-minute lattice (arms G
+and H); the last two are single reference plans (arms H and J). All at 4 h:
 
-| reference set                       | optimizer beats median by |
-| ----------------------------------- | ------------------------- |
-| random subset, random split         | **+62.6%**                |
-| all 4 funded, random split          | +4.2%                     |
-| all 4 funded, equal split (shipped) | **+1.9%**                 |
+| reference set                                        | optimizer beats it by |
+| ---------------------------------------------------- | --------------------- |
+| random subset, random split (median)                 | **+62.6%**            |
+| all 4 funded, random split (median)                  | +4.2%                 |
+| all 4 funded, ONE equal split                        | +1.9%                 |
+| all 4 funded, equal split over n rotations (shipped) | **+2.9%**             |
 
 Most of the first row is not planning skill. Σ P̄ sums per-task averages, so
 funding four tasks instead of two scores well almost regardless of the split —
 the sampler is being rewarded for breadth the user already chose by writing four
-tasks down. The third row is what the shipped metric reports, and it is the
-most conservative of the three.
+tasks down. The last row is what the shipped metric reports, and both sampled
+sets read higher than it — but it is not the smallest number here, because the
+shipped baseline averages the n cyclic rotations of the list (§19) and an average
+cannot exceed the best rotation. On this day it sits below the single
+largest-remainder split, whose odd block always lands on the first task: 4.575
+against 4.621, with the optimizer at 4.710 (arm J, 2026-08-17).
 
 **A percentile does not rescue this.** The optimizer beat 100.00% of all 20000
 plans at every budget in both samplings — 0 ever beat it. A statistic that

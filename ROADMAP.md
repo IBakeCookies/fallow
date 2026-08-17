@@ -533,7 +533,15 @@ them.
     and it is the second entry where execution refuted a number the reading had
     only doubted: §19.3's "0 monotonicity cuts with integer sliders" is false,
     and the guarantee it files as harmless is held up by a different half of the
-    same sentence.
+    same sentence. **M2, M3, M22 and M13 are closed** (2026-08-17,
+    [`four-descriptions-the-code-moved-past`](docs/features/four-descriptions-the-code-moved-past.md)) —
+    all four upheld, which is the first batch where the reading was right in
+    every particular it raised. What it still cost: M13's entry named five code
+    sites and got two of them wrong and missed the biggest one, and M2's fix
+    exposed a second copy of its own defect (§21.1's decomposition) that no
+    finding had named. **Eleven of the fourteen upheld findings are closed**; the
+    residue is M9/M10 (nothing calls `suggestPlanAdjustments` from a probe — one
+    probe closes both) and M11 (a cited probe that never existed).
 
 ## Phase 4 — multi-day horizon
 
@@ -836,17 +844,24 @@ only way to catch.
   startedCount = 8, where the stale form forfeits 15.0%. So "changes a plan"
   holds — it is the branch that changes it, not the bound, which is never
   tighter than the shipped one.
-- **M2 §21.4** — `MATH.md:5046` labels the +1.9% row "(shipped)" and `:5051` says
-  it is what the metric reports, but the probe's `equal` arm is a single
-  largest-remainder split (`rv15-gain-headroom.probe.ts:544-550`) while the
-  shipped baseline averages n rotations (`zenith.ts:1573-1579`) — the same day
-  reads 2.9% at `MATH.md:4963`. Relabel the row and fix the probe's arm-D label.
-- **M3 §11.11** — `MATH.md:2935-2939` says a defer moves the count by its full
-  `100/m`; the metric rounds `grinds/funded·100` (`metric/calculation.ts:1033`),
-  so the step is `100·(m−g)/(m(m−1))` — 15 pp on the quoted day, which the table
-  at `:2949` already prints as −15 pp. Re-measure
-  `mtr-grind-density.probe.ts:454` (`step: 100 / p.length`) and the 107/545
-  ratio; the conclusion stands.
+- **M2 §21.4 — fixed 2026-08-17,
+  [`four-descriptions-the-code-moved-past`](docs/features/four-descriptions-the-code-moved-past.md).**
+  The row labelled "(shipped)" was one largest-remainder equal split; the shipped
+  `naiveBaselineValue` averages the n cyclic rotations, which the audit found by
+  reading and `rv15`'s new arm J priced: 4.575 against 4.621 at 4 h, so the
+  shipped comparison is **+2.9%** and not +1.9%. Upheld exactly as framed, and
+  the entry understated it — §21 already printed 2.9% in its own header and arm A,
+  so the section contradicted itself, and §21.1's decomposition inherits the same
+  single-split scope. The `zenith.ts:1573-1579` citation had drifted to `:1584`.
+- **M3 §11.11 — fixed 2026-08-17,
+  [`four-descriptions-the-code-moved-past`](docs/features/four-descriptions-the-code-moved-past.md).**
+  Upheld, and the audit's `100·(m−g)/(m(m−1))` is right — a defer drops the task
+  from both sides of `grinds/funded` (`metric/calculation.ts:1033`, still the
+  current citation), so the step is 0 on an all-grind plan and 15 pp on the quoted
+  day, which the table below already printed as −15 pp. Re-measured at
+  `mtr-grind-density.probe.ts:458`: the mispriced-defer share is **10/545**, not
+  107/545 — the one figure execution moved beyond the step itself. The
+  conclusion stands, as the entry predicted.
 - **M4 §2 — fixed 2026-08-14,
   [`three-explanations-the-code-outgrew`](docs/features/three-explanations-the-code-outgrew.md).**
   `MATH.md:204-209`, echoed at `:25`, says concavity and the decaying
@@ -940,23 +955,26 @@ only way to catch.
   censoring category's share of the losses (item 4 above) and §8.11's filter
   rates. These two sections had already retracted one uncommitted pair —
   §8.11's 2026-08-05 append-last counts, which no probe reproduces either.
-- **M22 §8.12** — `MATH.md:2184`'s "16 solves at the default cap, **~40 ms each**
-  on a small day" is contradicted by §8.6, which prices the same call site (it
-  names `suggestBudgetCurve` and its 16 solves at `MATH.md:1209`): 16.3 ms in the
-  table row at `:1177`, and `:1210-1215` records ~13 ms on 2026-08-06 and 8.9 ms
-  on 2026-08-13, with ~60 ms labelled as the pre-`buildCurves` figure. The
-  docblock over the same function was already corrected on 2026-08-13 —
-  `zenith-energy.ts:1298-1299` reads "each priced by MATH.md §8.6's table" — so
-  §8.12 is the only copy still quoting a number. Defer to §8.6's table and quote
-  its range rather than one figure (§8.6:1192-1195); the "16 solves" count and the
-  never-a-`$derived` conclusion both stand, and a higher true per-solve cost only
-  strengthens them. Raised as unbacked by one lens and **refuted in that framing**
-  — the defect is that the figure is stale, not that no probe reaches it.
-- **M13 §8.2** — the warm-up-carryover mechanism ships with no `MATH.md §8.2`
-  anywhere in `src/`: `zenith-energy.ts:113-120`, `:148-150`, `:386-400` (which
-  cites only Monk/Trafton), call sites `:554`, `:687`. §8.1 is likewise uncited
-  at `:92-100`, `:140-144`. The doc text is correct; only the citations are
-  missing (R7).
+- **M22 §8.12 — fixed 2026-08-17,
+  [`four-descriptions-the-code-moved-past`](docs/features/four-descriptions-the-code-moved-past.md).**
+  "16 solves at the default cap, **~40 ms each** on a small day", against §8.6,
+  which prices the same call site by name and instructs the reader to quote its
+  range because its two runs share no absolute figure. §8.12 now defers to that
+  table; the 16-solve count, the 17-budget arithmetic and the
+  never-a-`$derived` conclusion all stand. Upheld as framed, including the part
+  of this entry that matters most: raised as unbacked by one lens and **refuted in
+  that framing** — the defect was staleness, and `suggestBudgetCurve`'s own
+  docblock had already been corrected on 2026-08-13.
+- **M13 §8.2 — fixed 2026-08-17,
+  [`four-descriptions-the-code-moved-past`](docs/features/four-descriptions-the-code-moved-past.md).**
+  `MATH.md §8.2` appeared nowhere in `src/` and §8.1 was uncited too; both
+  sections' text was already correct, so this was citations only (R7). Upheld with
+  two corrections, both from reading the file rather than the finding: the audit
+  **missed the largest site** (the file header's warm-up bullet, whose two
+  siblings cite §8.5 and §8.4), and **two of the five sites it named should not
+  carry a citation** — they are defaults-block comments, and this file's idiom
+  puts the section on the interface docblock, so following the entry literally
+  would have broken the pattern it asked to match.
 
 ### Raised and not verified
 
