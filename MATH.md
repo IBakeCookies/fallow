@@ -65,69 +65,69 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.11   1955-2104  Live stop advisor — §8.10 run forward mid-day (added 202…
   §8.12   2106-2301  The budget curve — what the day's LENGTH is worth (added…
 §9        2303-2350  References
-§10       2352-2675  Revision log (doc-only corrections)
-§11       2677-3259  Metric-layer corrections (2026-07-18)
-  §11.1   2679-2693  Scope and principle
-  §11.2   2695-2719  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2721-2748  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2750-2807  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2809-2824  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2826-2936  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2938-2962  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   2964-3007  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   3009-3118  Overnight reservoir carry-over (2026-07-28)
-  §11.10  3120-3190  Grind Density: the share of the work the day actually fu…
-  §11.11  3192-3259  Grind Density is a row, not an objective (2026-08-08)
-§12       3261-3398  Plan-adherence audit (2026-07-23)
-  §12.1   3302-3398  Per-day fit snapshots (2026-08-03)
-§13       3400-3795  Math review, 2026-07-26
-  §13.1   3417-3452  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3454-3526  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3528-3593  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3595-3631  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3633-3670  Also in this change
-  §13.6   3672-3795  The two end-of-day energy readings: a timing difference,…
-§14       3797-4535  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   4000-4140  Five corrections to the first cut (2026-07-28)
-  §14.2   4142-4286  The marginal of the budget (added 2026-08-03)
-  §14.3   4288-4472  The price of the switch cost (added 2026-08-04)
-  §14.4   4474-4535  An empty frontier is a reading (2026-08-08)
-§15       4537-4684  Two objectives, two modes (2026-07-29)
-  §15.1   4612-4684  The copy named the wrong objective for both modes (2026-…
-§16       4686-4773  Run order stays a heuristic (2026-07-29)
-§17       4775-4933  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       4935-5004  Drain logs are one row per SESSION, not per task-day (20…
-§19       5006-5277  The gain's naive baseline paid for switches it never mad…
-  §19.1   5024-5083  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5085-5113  Defect 2 — the displayed number moved with the order of …
-  §19.3   5115-5204  What this costs, and the one guarantee that weakened
-  §19.4   5206-5277  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       5279-5341  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5320-5341  The tie went to cognitive, so the row blamed the wrong p…
-§21       5343-5511  What the gain has room to report (2026-08-07)
-  §21.1   5365-5385  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5387-5410  Why shape has a low ceiling: the activation bonus
-  §21.3   5412-5432  Population distribution
-  §21.4   5434-5465  The number is a property of the comparison, not of the o…
-  §21.5   5467-5482  Under the total-output objective the ranking inverts
-  §21.6   5484-5511  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5513-5575  Task nature: an absolute gap could not carry a range tha…
-§23       5577-5719  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5618-5685  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5687-5719  Longest Warm-Up: what E/β was actually tracking
-§24       5721-5784  Task Variety counted labels, and its repair was Energy B…
-§25       5786-5933  Cognitive and Physical Load: the definition, and what ro…
-§26       5935-6041  Deep Work: a step that swung whole blocks, under a band …
-§27       6043-6160  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6162-6216  Which four readings are headlines (2026-08-07)
-§29       6218-6391  Day Profile: one cut for two different scales, on a day …
-§30       6393-6473  The Lab's comparison tile scored the plan on the one thi…
-§31       6475-6656  What history can plot, and what it cannot (2026-08-07)
-§32       6658-6724  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6726-6843  A plan reads only the logs that precede it (2026-08-08)
-§34       6845-7075  The subset search gave up one task too early (2026-08-08)
-§35       7077-7431  The plan cannot see the hours you already spent (2026-08…
-§36       7433-7504  What a correction may touch (2026-08-10)
+§10       2352-2723  Revision log (doc-only corrections)
+§11       2725-3327  Metric-layer corrections (2026-07-18)
+  §11.1   2727-2741  Scope and principle
+  §11.2   2743-2767  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2769-2796  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2798-2855  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2857-2872  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2874-2984  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   2986-3010  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   3012-3075  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   3077-3186  Overnight reservoir carry-over (2026-07-28)
+  §11.10  3188-3258  Grind Density: the share of the work the day actually fu…
+  §11.11  3260-3327  Grind Density is a row, not an objective (2026-08-08)
+§12       3329-3466  Plan-adherence audit (2026-07-23)
+  §12.1   3370-3466  Per-day fit snapshots (2026-08-03)
+§13       3468-3863  Math review, 2026-07-26
+  §13.1   3485-3520  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3522-3594  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3596-3661  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3663-3699  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3701-3738  Also in this change
+  §13.6   3740-3863  The two end-of-day energy readings: a timing difference,…
+§14       3865-4653  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4096-4236  Five corrections to the first cut (2026-07-28)
+  §14.2   4238-4382  The marginal of the budget (added 2026-08-03)
+  §14.3   4384-4590  The price of the switch cost (added 2026-08-04)
+  §14.4   4592-4653  An empty frontier is a reading (2026-08-08)
+§15       4655-4802  Two objectives, two modes (2026-07-29)
+  §15.1   4730-4802  The copy named the wrong objective for both modes (2026-…
+§16       4804-4892  Run order stays a heuristic (2026-07-29)
+§17       4894-5052  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5054-5123  Drain logs are one row per SESSION, not per task-day (20…
+§19       5125-5396  The gain's naive baseline paid for switches it never mad…
+  §19.1   5143-5202  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5204-5232  Defect 2 — the displayed number moved with the order of …
+  §19.3   5234-5323  What this costs, and the one guarantee that weakened
+  §19.4   5325-5396  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5398-5460  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5439-5460  The tie went to cognitive, so the row blamed the wrong p…
+§21       5462-5630  What the gain has room to report (2026-08-07)
+  §21.1   5484-5504  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5506-5529  Why shape has a low ceiling: the activation bonus
+  §21.3   5531-5551  Population distribution
+  §21.4   5553-5584  The number is a property of the comparison, not of the o…
+  §21.5   5586-5601  Under the total-output objective the ranking inverts
+  §21.6   5603-5630  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5632-5694  Task nature: an absolute gap could not carry a range tha…
+§23       5696-5838  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5737-5804  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5806-5838  Longest Warm-Up: what E/β was actually tracking
+§24       5840-5903  Task Variety counted labels, and its repair was Energy B…
+§25       5905-6052  Cognitive and Physical Load: the definition, and what ro…
+§26       6054-6160  Deep Work: a step that swung whole blocks, under a band …
+§27       6162-6279  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6281-6335  Which four readings are headlines (2026-08-07)
+§29       6337-6510  Day Profile: one cut for two different scales, on a day …
+§30       6512-6592  The Lab's comparison tile scored the plan on the one thi…
+§31       6594-6775  What history can plot, and what it cannot (2026-08-07)
+§32       6777-6843  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6845-6962  A plan reads only the logs that precede it (2026-08-08)
+§34       6964-7194  The subset search gave up one task too early (2026-08-08)
+§35       7196-7550  The plan cannot see the hours you already spent (2026-08…
+§36       7552-7623  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -2674,6 +2674,54 @@ moves, and no executable line outside two probe arms.
    defaults-block comments, because this file's idiom puts the section on the
    interface docblock and never on the default.
 
+### 2026-08-17 — what the advisor actually costs
+
+Item 31's M9 and M10. Both named the same gap: `suggestPlanAdjustments` was
+called by a probe (`plan-advice.probe.ts`) but **timed** by none, so every
+millisecond figure in §14 and §14.4 and the one percentage in §14.3 rested on
+sweeps that were never committed. Two probe arms now reach them through the
+shipped call site. No formula, constant or bound moves; five numbers do.
+
+1. **The advisor's ladder was ~10× high** (M9). §14 quoted 1.6/3.9/12.5/**95** ms
+   per solve at n = 3/6/9/12 and **946 ms** for the 12-task advice run
+   (2026-07-27, unnamed machine, pre-solve-once). Measured now: 0.02/0.11/~2.4/
+   **~9.3** ms per solve and **109–124 ms** for the run. The shape — super-linear
+   in the 2ⁿ enumeration — reproduces exactly, as does `candidatesEvaluated`
+   (14 on a 12-task day, `activeTasks + 3` less the dedup's one). **The
+   never-a-`$derived` rule is unaffected**: a tenth of a second per keystroke is
+   still a frozen main thread. What changed is that the number justifying it in
+   four places was 3.5× the truth.
+2. **The 421 ms was history quoted as current** (M9). It was the 2026-07-28
+   re-measurement, and it was cited as settled at `metric/plan-advice.ts`,
+   `store/daily-plan-store.svelte.ts` and `business/AGENTS.md`. Its "before" half
+   (103.6 ms) is the one figure in this batch that **cannot be re-run at all** —
+   the solve-once change it measures is shipped — so the ratio and the conclusion
+   are kept and the absolute is dated.
+3. **Advisor cost is non-monotone in n, which nothing had noticed.** At an 8 h
+   budget the §34 affordability test lets `maxFunded` reach n, so a 15-task day
+   exceeds `SUBSET_SEARCH_BUDGET` and takes the forward-selection fallback:
+   ~45 ms against the 12-task day's 109–124. **n = 12 is the worst case, not a
+   floor**, and "a longer backlog is worse" is wrong past it.
+4. **§14.4's "roughly a third" was the one claim measured false** (M9). The
+   doubled-`s` solve runs at **0.7–0.9×** the declared one, not a third; the pair's
+   share of the advisor is 9–11% at n = 8 and ~6% at n = 12, against 7.3% / 2.9%.
+   The direction the section argues — the share falls as the day grows, `s = 0` is
+   very nearly free — reproduces.
+5. **§14.3's +41.8% is +41.9%, and its day is the generic day** (M10). The only
+   executing copy of 41.8 was a hand-written fixture literal in a display test.
+   Read off the shipped `switchCostPrice`, the suppressed-reservation-with-bracket
+   state holds on **58 of 58** fixture 3-task days and **4560 of 4560** grid
+   triples at that budget and `s` — so the independent suppression guards the
+   whole configuration rather than a rare defect, which is a **stronger**
+   justification than the section claimed. The quoted 41.8 is reached by none of
+   the 4618 cases; the day is now named by value.
+
+Two figures moved that neither finding named: §14's frontier denominator (4450 →
+**4112** non-empty priced frontiers on the same seeded 600, the 0-positive claim
+intact), and the recognition that a wall clock re-run six times on one idle box
+spans 109.00–123.86 ms — which is why every timing figure above is a range and
+carries its machine, per §8.6.
+
 ## 11. Metric-layer corrections (2026-07-18)
 
 ### 11.1 Scope and principle
@@ -3930,8 +3978,10 @@ decrease can only be ≤ 0 by the monotonicity §14.1-1 rests on. So a positive
 cost is §13.3 suboptimality, exactly the kind of sign §14.2 floors and §14.3
 clamps per arm. This one is not clamped, for two reasons.
 
-The first is size. Measured (`scripts/plan-advice.probe.ts`, 2026-08-06): **0
-positive deltas over 4450** non-empty priced frontiers on 600 seeded days. Two
+The first is size. Measured (`scripts/plan-advice.probe.ts`, 2026-08-17): **0
+positive deltas over 4112** non-empty priced frontiers on 600 seeded days — the
+2026-08-06 reading of the same seeded set counted 4450 of them, so the
+denominator drifted while the claim it carries did not. Two
 independent draws during the same review each turned up exactly one, at +0.1%,
 so the rate is around 1 in 4000 and the damage is one wrong sign character on a
 cost that reads as small either way. §14.3 clamps because its inversions reach
@@ -3953,21 +4003,47 @@ purely a read of the existing plan.
 tasks plus at most 3 budget levers, one fewer whenever the dedup drops a
 candidate (14 on a 12-task day) — plus, since §14.2/§14.3, three further solves
 per run (one `calculateTaskPlan`, two `calculateZenithGain`).
-Measured 2026-07-27 (default constants and pools, 8h budget):
-1.6 ms per solve at 3 tasks, 3.9 at 6, 12.5 at 9, **95 at 12** — the 2ⁿ
-funded-subset enumeration of §4, which the linear candidate count amplifies
-into 12 ms for a 6-task day but **946 ms for a 12-task one**. Advice is
-therefore computed **on demand and never in a `$derived`**: a 12-task day
-would otherwise freeze the main thread on every keystroke in the budget
-field.
+Measured 2026-08-17 (`scripts/plan-advice.probe.ts`; default constants,
+`DEFAULT_CAPACITY_POOLS` 4/6 h, `switchCost` 0.25 h, 8 h budget; median of 11
+reps after a discarded warm-up, six runs on an idle AMD Ryzen 7 7800X3D under
+WSL2, node v22.14.0 — a wall clock is quotable only with its machine, §8.6):
+**0.02 ms** per solve at 3 tasks, **0.11** at 6, **~2.4** at 9, **~9.3 at 12**
+— the 2ⁿ funded-subset enumeration of §4, which the linear candidate count
+amplifies into 1.0 ms for a 6-task day but **109–124 ms for a 12-task one**.
+`candidatesEvaluated` is 5/8/11/14/17 at n = 3/6/9/12/15, so the dedup drops
+exactly one candidate on every day tested — §4's own trim lever, whose slack is
+0 at an 8 h budget on these mixes. Advice is therefore computed **on demand and
+never in a `$derived`**: a 12-task day would otherwise freeze the main thread
+for a tenth of a second on every keystroke in the budget field.
+
+The range is the reading, not sloppiness: the same measurement on the same box
+spans 109.00–123.86 ms across six runs, so a two-decimal figure here would be
+false precision of the kind §8.6 already warns about. The 2026-07-27 reading of
+this ladder was 1.6/3.9/12.5/**95** ms per solve and **946 ms** for the 12-task
+run, on an unnamed machine and before the solve-once change below; it is kept
+only as the order of magnitude the on-demand rule was adopted against, and it
+is not comparable with the numbers above.
+
+**Past n = 12 the cost falls, so n = 12 is the worst case and not a floor.** At
+an 8 h budget with s = 0.25 h the affordability test of §34 (`33 − m ≥ m`) lets
+`maxFunded` reach n, so at n = 15 the enumeration would be 32,767 subsets
+against `SUBSET_SEARCH_BUDGET = 4095` and the solve takes the greedy
+forward-selection fallback instead: **~2.4 ms per solve and ~45 ms for the whole
+advice run**, a third of the 12-task day's. Any "a longer backlog is worse"
+reading of this rule is therefore wrong past 12 (2026-08-17, same probe).
 
 Since 2026-07-28 each of those solves costs half what it did: a
 `calculateDailyMetrics` used to run the pooled allocator **twice** on identical
 inputs, once for the plan and once for Zenith Gain's optimized side, and the
 gain is now handed the plan's own allocation (`calculateTaskPlan`). Re-measured
 on one 12-task day, one solve went 103.6 ms → 51.2 ms and the whole advice run
-421 ms — the ratio is exactly 2, the absolute numbers are not comparable with
-the row above (different task mix). Nothing the gain reports changed: §13.2's
+421 ms — the ratio is exactly 2. Those absolute numbers are comparable with
+neither the ladder above (different task mix, different machine) nor today's
+code: the same 12-task measurement now reads **109–124 ms** (2026-08-17,
+`scripts/plan-advice.probe.ts`), and the halving's "before" half is the one
+figure here that cannot be re-run at all, since the change it measures is
+shipped. What survives is the ratio and the conclusion; **421 ms is history, and
+was cited as current in three places until this measurement**. Nothing the gain reports changed: §13.2's
 naive baseline is derived from the task list, not from the allocation, and the
 optimized side is the same Σ P̄ over the same hours — but only because they are
 passed in the tasks' own order, since `calculateTotalProductivity` pairs hours to
@@ -4349,9 +4425,27 @@ cases, which is why the descriptor suppresses the reservation sentence and the
 bracket **independently**. Unioning them was a real defect: a plan can reserve
 nothing precisely because the declaration priced every task but one out of it,
 and on a 3-task day at a 0.5 h budget with `s = 15 min` the suppressed bracket
-carried **+41.8%**. The bracket is dropped only when both arms would read 0 or
+carried **+41.9%**. The bracket is dropped only when both arms would read 0 or
 null, which is what a single-task list looks like and what a starved plan does
 not.
+
+**That day, finally stated by value, and it is the generic day rather than a
+corner** (2026-08-17, `scripts/adv2-switch-cost-price.probe.ts`, reading the
+shipped `switchCostPrice` through `suggestPlanAdjustments` rather than
+re-deriving it). At a 0.5 h budget with s = 0.25 h, `budgetBlocksFor(2)` is one
+block, so no plan can fund two tasks: `funded` = 1, `reservedHours` = 0, and both
+bracket arms survive the one-minute test. **Every 3-task case swept lands in that
+state — 58 of 58 fixture-year days and 4560 of 4560 grid triples, none of them
+unpriceable** — so the independent suppression is not guarding a rare defect, it
+is guarding the whole configuration. The s = 0 arm reads a median **+41.9%** over
+the fixture days (max +63.4%) and **+42.0%** over the grid (max +99.8%, three
+zero-difficulty tasks at pools 0.5/0.5 where one funded task at 2 blocks becomes
+two at 1 block each, both collecting the activation bonus). The witness nearest
+the figure this section has quoted since 2026-08-04 is
+`mentalDifficulty/physicalDifficulty/enjoyment` **5/0/2, 4/1/8, 9/0/7 at pools
+4/6**, Σ P̄ 1.1477 → 1.6286 = **+41.9%**. The **+41.8%** the section carried until
+today is reached by none of the 4618 cases; on this rounding lattice it is a
+0.1 pp miss, not a different phenomenon.
 
 **It stays a diagnostic.** It gets no `AdviceLever`, no `AdviceAxis`, no entry on
 any per-axis frontier, and no Apply button, because there is no honest action for
@@ -4470,15 +4564,19 @@ in `calculateDailyMetrics`, which runs inside a `$derived` on every keystroke an
 every drag of the budget slider.
 
 Both are **cheaper than the solve they are compared against**, and the pair costs
-a measured **7.3% of the advisor at n = 8 and 2.9% at n = 12** — the share
+a measured **9–11% of the advisor at n = 8 and ~6% at n = 12** — the share
 _falls_ as the day grows, because the declared solve's 2ⁿ funded-subset
 enumeration grows faster than either alternative's. `s = 0` is very nearly free
-(under 1 ms against the declared solve's tens to hundreds): `switchCost <= 0`
-short-circuits the enumeration entirely and allocates once. `s = 2s` runs at
-roughly a third of the declared solve, because the larger reservation drives
-`budgetBlocksFor` non-positive for most large subsets and they are skipped. The
-absolute milliseconds are not quoted here; they were taken under coverage
-instrumentation and are not comparable to §14/§14.2's figures.
+(0.05–0.08 ms against a declared solve of 4.0–4.5 ms at n = 8 and 9.0–10.0 at
+n = 12): `switchCost <= 0` short-circuits the enumeration entirely and allocates
+once. `s = 2s` runs at **0.7–0.9× the declared solve** (0.84–0.94× at n = 8,
+0.68–0.78× at n = 12), because the larger reservation drives `budgetBlocksFor`
+non-positive for most large subsets and they are skipped — **cheaper, but by a
+quarter and not by two thirds**, which is what "roughly a third of the declared
+solve" claimed here until 2026-08-17. These figures share §14's machine and
+method (`scripts/plan-advice.probe.ts`, six runs, median of 11 reps) and are
+comparable with its Cost paragraph; the 2026-08-04 pair of 7.3% / 2.9% was taken
+under coverage instrumentation and is not.
 
 **Not built: fitting `s` from the plan.** Estimating the user's switch cost from
 their observed funded-task count died on three measurements (ROADMAP item 17):

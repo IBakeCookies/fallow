@@ -539,9 +539,16 @@ them.
     every particular it raised. What it still cost: M13's entry named five code
     sites and got two of them wrong and missed the biggest one, and M2's fix
     exposed a second copy of its own defect (§21.1's decomposition) that no
-    finding had named. **Eleven of the fourteen upheld findings are closed**; the
-    residue is M9/M10 (nothing calls `suggestPlanAdjustments` from a probe — one
-    probe closes both) and M11 (a cited probe that never existed).
+    finding had named. **M9 and M10 are closed** (2026-08-17,
+    [`what-the-advisor-actually-costs`](docs/features/what-the-advisor-actually-costs.md)) —
+    both upheld, both by timing the advisor for the first time, and the batch that
+    most changed what the document says: the per-solve ladder was ~10× high, the
+    421 ms cited in three code sites was 3.5× the truth, §14.4's "roughly a third"
+    was measured **false**, and advisor cost turns out non-monotone in n, which no
+    finding had suspected. **Thirteen of the fourteen upheld findings are
+    closed**; the residue is **M11** alone (§13.6 cites a probe that never
+    existed — re-derive it in `rv13-terminal-timing.probe.ts` or label it unbacked
+    per §15.1's precedent).
 
 ## Phase 4 — multi-day horizon
 
@@ -920,18 +927,29 @@ only way to catch.
   held and which arm 3 re-asks at ϕ̂ ≥ 4 h: 0 of 4,320 fitted histories reach
   σ_ϕ/ϕ̂ ≥ 0.35 there, largest 0.232. §5.1's cut is untouched by design, and no
   item is opened for it — the corner needs both halves and the fit half holds.
-- **M9 §14** — `MATH.md:3647-3653`, `:3657-3661` (1.6/3.9/12.5/95 ms; 12 ms and
-  946 ms per run; 103.6→51.2 ms; **421 ms**) and `:4163-4164` (7.3% / 2.9%). No
-  probe times `suggestPlanAdjustments`, yet the 421 ms is quoted as settled at
-  `metric/plan-advice.ts:567`, `store/daily-plan-store.svelte.ts:196` and
-  `src/lib/business/AGENTS.md:302-305`. Four probes already use
-  `performance.now()` for other sections.
-- **M10 §14.3** — `MATH.md:4040-4045` "+41.8%", the sole measurement behind
-  suppressing the reservation sentence and the bracket independently.
-  `adv2-switch-cost-price.probe.ts` never calls `suggestPlanAdjustments`; the
-  only executing `41.8` is a fixture literal
-  (`plan-advice-descriptor.test.ts:424`). The doc also under-specifies the day —
-  state its tasks and pools when the probe lands.
+- **M9 §14 — closed 2026-08-17,
+  [`what-the-advisor-actually-costs`](docs/features/what-the-advisor-actually-costs.md).**
+  The finding was §14's and §14.4's millisecond figures (1.6/3.9/12.5/95 ms; 12 ms
+  and 946 ms per run; 103.6→51.2 ms; **421 ms**; 7.3% / 2.9%), none of them timed
+  by a probe, with the 421 ms quoted as settled in three code sites.
+  `plan-advice.probe.ts` now times the ladder, the whole run and §14.3's two extra
+  solves. **Upheld, and the ladder was ~10× high**: ~9.3 ms per solve and
+  **109–124 ms** for the 12-task run, against 95 and 946. Execution added three
+  things the finding did not predict — §14.4's "roughly a third" is the one claim
+  measured **false** (0.7–0.9×), **advisor cost is non-monotone in n** (a 15-task
+  day takes §34's fallback at ~45 ms, so n = 12 is the worst case and not a
+  floor), and the 421 ms's "before" half cannot be re-run at all. The
+  never-a-`$derived` conclusion stands in all three code sites and is unaffected.
+- **M10 §14.3 — closed 2026-08-17,
+  [`what-the-advisor-actually-costs`](docs/features/what-the-advisor-actually-costs.md).**
+  The finding was §14.3's "+41.8%", whose only executing copy was a fixture
+  literal, and the day it never stated. `adv2-switch-cost-price.probe.ts` now
+  reads the shipped `switchCostPrice` through `suggestPlanAdjustments` instead of
+  re-deriving it. **Upheld; the figure is +41.9%** and is reached by none of 4618
+  cases as quoted. The finding also asked for the day's tasks and pools, now named
+  by value — and the sweep showed the state is the **generic** 3-task day at that
+  budget (58/58 and 4560/4560), not the corner the section implied, which
+  strengthens the independent-suppression decision rather than weakening it.
 - **M11 §13.6** — `MATH.md:3435-3451` cites `scratchpad/rv-energy-readouts.probe.ts`,
   which exists nowhere in the tree or in git history; the 12 h worked-hours
   ladder and the 0.890/0.469 pair are reproduced by nothing

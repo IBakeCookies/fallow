@@ -564,8 +564,8 @@ function calculateSwitchCostPrice(
 /**
  * Re-solve the day under each lever and report, per axis, the efficient menu
  * of adjustments. Costs one full solve per candidate — `activeTasks + 3` of
- * them, measured at 421 ms for a 12-task day since the solve-once change halved
- * each one (MATH.md §14) — so call it on demand, never from a `$derived`.
+ * them, measured at 109-124 ms for a 12-task day, its worst case (MATH.md §14) —
+ * so call it on demand, never from a `$derived`.
  *
  * Pass `baseline` when the caller already has the current plan; it is only
  * recomputed here so the function stays usable on its own.

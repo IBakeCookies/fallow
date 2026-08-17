@@ -243,8 +243,9 @@ function formatSwitchCostPrice(price: SwitchCostPrice, locale: string): string {
 
 	// TWO INDEPENDENT SUPPRESSIONS, and unioning them was a defect: a plan can
 	// reserve nothing and still have a large bracket, because the declaration is
-	// *why* it funds too few tasks to switch between. Measured on a 3-task day at
-	// budget 0.5 h and s = 15 min, the model computes +41.8% at s = 0 and the
+	// *why* it funds too few tasks to switch between. That is the generic 3-task
+	// day at budget 0.5 h and s = 15 min, not a corner — every case swept lands in
+	// it, at a median +41.9% and up to +63.4% at s = 0 (MATH.md §14.3) — and the
 	// unioned version printed "pays for no switching" — discarding the reading
 	// both extra solves existed to produce, on precisely the day the constant did
 	// the most damage.
