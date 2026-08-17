@@ -300,10 +300,12 @@ interface-arithmetic reason as `zenith.ts` —
 ### Plan advice is computed on demand, never in a `$derived`
 
 MATH.md §14. `suggestPlanAdjustments` re-solves the whole day once per
-candidate, so cost scales with the 2ⁿ funded-subset enumeration: measured 12 ms
-for a 6-task day but **946 ms for a 12-task one** (2026-07-27, before
-solve-once halved it — conclusion unchanged). In a `$derived` that is a frozen
-main thread on every keystroke in the budget field. `DailyPlanStore` therefore
+candidate, so cost scales with the 2ⁿ funded-subset enumeration: measured 1 ms
+for a 6-task day but **109-124 ms for a 12-task one** (2026-08-17; 12 ms / 946 ms
+in the 2026-07-27 reading, before solve-once and on an unnamed machine —
+conclusion unchanged). In a `$derived` that is a frozen main thread on every
+keystroke in the budget field. A 12-task day is the **worst** case, not a floor:
+past `EXACT_SUBSET_LIMIT` the solve takes §34's fallback and gets cheaper. `DailyPlanStore` therefore
 exposes `computeAdvice()` plus `isAdviceStale`, and staleness compares a
 **fingerprint of the inputs** — a `$derived` read from outside a reactive
 context is not guaranteed to return the same object twice, so identity reports

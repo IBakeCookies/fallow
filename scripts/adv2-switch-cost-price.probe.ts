@@ -29,14 +29,17 @@ import {
 	calculateZenithGain,
 	getEffectiveDifficulty,
 } from '$lib/business/model/metric/calculation';
+import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
 import {
 	BLOCK_HOURS,
+	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_USER_CONSTANTS,
 	calculateTotalProductivity,
 	type CapacityPools,
 	type PooledTaskInput,
 	type UserConstants,
 } from '$lib/business/model/zenith';
+import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
 /** The fixture's own ground truth (`generate-fixture.mjs` TRUTH). */
@@ -121,6 +124,16 @@ const pooled = (tasks: Task[]): PooledTaskInput[] =>
 		cognitiveWeight: task.mentalDifficulty / 10,
 		physicalWeight: task.physicalDifficulty / 10,
 	}));
+
+const task = (id: number, mental: number, physical: number, enjoyment: number): Task => ({
+	id,
+	title: `t${id}`,
+	mentalDifficulty: mental,
+	physicalDifficulty: physical,
+	enjoyment,
+	createdAt: '2026-08-04',
+	completed: false,
+});
 
 /**
  * The exhaustive optimum over the same feasible set the allocator faces — every
@@ -546,5 +559,131 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 		console.log(
 			`[§14.3] one-day bracket for the observed funded count: median ${median(widths).toFixed(2)} h wide, consistent with the whole [0,1] h range on ${pct(wholeRange / widths.length)} of days; one mis-counted task shifts the lower edge by a median ${median(shifts).toFixed(2)} h`,
 		);
+	});
+
+	/**
+	 * §14.3 suppresses the reservation sentence and the bracket independently, and
+	 * justifies that with one number: +41.8% on "a 3-task day at a 0.5 h budget with
+	 * s = 15 min". Every arm above re-derives the reading through
+	 * `calculateZenithGain`; this one reads the SHIPPED field, which is only
+	 * reachable through `suggestPlanAdjustments` (`calculateSwitchCostPrice` is
+	 * module-private). The document states neither the day's tasks nor its pools, so
+	 * the space is swept and a witness printed by value.
+	 */
+	it('reads the suppressed bracket off suggestPlanAdjustments (MATH.md §14.3)', () => {
+		const BUDGET = 0.5;
+		const SWITCH_COST = 0.25;
+
+		const POOLS: CapacityPools[] = [
+			{
+				cognitiveHours: 0.5,
+				physicalHours: 0.5,
+			},
+			{
+				cognitiveHours: 0.5,
+				physicalHours: 2,
+			},
+			{
+				cognitiveHours: 1,
+				physicalHours: 1,
+			},
+			DEFAULT_CAPACITY_POOLS,
+		];
+
+		const scan = (label: string, cases: { tasks: Task[]; pools: CapacityPools }[]) => {
+			const deltas: number[] = [];
+			let suppressed = 0;
+			let unpriceable = 0;
+			let best = 0;
+			let bestAt = 'none';
+			let nearest = Infinity;
+			let nearestAt = 'none';
+
+			for (const { tasks, pools } of cases) {
+				const advice = suggestPlanAdjustments({
+					tasks,
+					availableHours: BUDGET,
+					switchCost: SWITCH_COST,
+					pools,
+					constants: DEFAULT_USER_CONSTANTS,
+					energyParams: DEFAULT_ENERGY_PARAMS,
+				});
+
+				const price = advice.switchCostPrice;
+
+				// The two suppressions §14.3 separated: no reservation to report, yet a
+				// bracket to print.
+				if (price.reservedHours !== 0 || price.alternatives.length === 0) continue;
+
+				suppressed++;
+
+				const free = price.alternatives[0];
+
+				if (free.planValueDeltaPercent === null) {
+					unpriceable++;
+
+					continue;
+				}
+
+				const delta = free.planValueDeltaPercent;
+
+				deltas.push(delta);
+
+				const where = `m/p/e ${tasks
+					.map((t) => `${t.mentalDifficulty}/${t.physicalDifficulty}/${t.enjoyment}`)
+					.join(
+						' ',
+					)}, pools ${pools.cognitiveHours}/${pools.physicalHours} → +${delta}% (declared Σ P̄ ${advice.planValue.toFixed(4)}, s = 0 Σ P̄ ${free.planValue.toFixed(4)})`;
+
+				if (delta > best) {
+					best = delta;
+					bestAt = where;
+				}
+
+				// §14.3's +41.8% has no executing copy: whether the space reaches it at
+				// all is the finding, so the closest value it does reach is reported.
+				if (Math.abs(delta - 41.8) < Math.abs(nearest - 41.8)) {
+					nearest = delta;
+					nearestAt = where;
+				}
+			}
+
+			console.log(
+				`[§14.3 bracket] ${label}: ${cases.length} cases at budget ${BUDGET} h, s = 15 min; suppressed reservation with a non-empty bracket on ${suppressed} (${unpriceable} of those unpriceable, Σ P̄ = 0); s = 0 arm median +${median(deltas)}%, max +${best}%, exactly +41.8% on ${deltas.filter((delta) => delta === 41.8).length}`,
+			);
+
+			console.log(`[§14.3 bracket] ${label} max witness: ${bestAt}`);
+
+			console.log(`[§14.3 bracket] ${label} nearest to +41.8%: ${nearestAt}`);
+		};
+
+		scan(
+			'fixture 3-task days, own pools',
+			DAYS.filter((day) => day.tasks.length === 3).map((day) => ({
+				tasks: day.tasks,
+				pools: day.pools,
+			})),
+		);
+
+		// A deterministic grid rather than a seed: the triple IS the reproduction, and
+		// §14.3 needs one stated by value.
+		const PROFILES = [0, 5, 10].flatMap((mental) =>
+			[0, 5, 10].flatMap((physical) => [2, 9].map((enjoyment) => [mental, physical, enjoyment])),
+		);
+
+		const triples = PROFILES.flatMap((first, i) =>
+			PROFILES.slice(i).flatMap((second, j) =>
+				PROFILES.slice(i + j).flatMap((third) =>
+					POOLS.map((pools) => ({
+						tasks: [first, second, third].map((profile, index) =>
+							task(index + 1, profile[0], profile[1], profile[2]),
+						),
+						pools,
+					})),
+				),
+			),
+		);
+
+		scan('grid triples × 4 pool settings', triples);
 	});
 });

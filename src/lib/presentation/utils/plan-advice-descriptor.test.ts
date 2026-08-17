@@ -409,8 +409,10 @@ describe('buildAdviceDisplay', () => {
 		// The defect the union condition shipped: a plan can reserve nothing BECAUSE
 		// the declaration priced every task but one out of it, and suppressing the
 		// bracket there discards the one reading both extra solves existed to
-		// produce, on the day the constant did the most damage. Measured on a 3-task
-		// day at budget 0.5 h and s = 15 min, the model computes +41.8% at s = 0.
+		// produce, on the day the constant did the most damage — which is the generic
+		// 3-task day at budget 0.5 h and s = 15 min, median +41.9% at s = 0 and up to
+		// +63.4% (MATH.md §14.3). The 41.8 below is a representative input, not a
+		// reading: this test's subject is the suppression, not the number.
 		it('keeps the bracket when the declaration starved the plan to one task', () => {
 			expect(
 				displayFor(

@@ -17,14 +17,20 @@
  * Usage: npm run probe
  */
 
+import { cpus } from 'node:os';
 import { describe, it } from 'vitest';
+import { calculateZenithGain } from '$lib/business/model/metric/calculation';
 import {
 	calculateDailyMetrics,
 	type DailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
-import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
+import {
+	DEFAULT_CAPACITY_POOLS,
+	DEFAULT_SWITCH_COST,
+	DEFAULT_USER_CONSTANTS,
+} from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
@@ -108,6 +114,63 @@ function randomDays(count: number, seed: number): DailyMetricsInput[] {
 		},
 	);
 }
+
+/** One seeded n-task day at the configuration §14's Cost paragraph quotes. */
+const timingDay = (n: number): DailyMetricsInput => {
+	const random = mulberry32(n * 104729);
+	const pick = () => Math.round(random() * 10);
+
+	return day(
+		Array.from(
+			{
+				length: n,
+			},
+			(_, index) => task(index + 1, pick(), pick(), pick()),
+		),
+		8,
+		DEFAULT_SWITCH_COST,
+		DEFAULT_CAPACITY_POOLS.cognitiveHours,
+		DEFAULT_CAPACITY_POOLS.physicalHours,
+	);
+};
+
+const REPS = 11;
+
+interface Timing {
+	median: number;
+	min: number;
+	max: number;
+}
+
+/**
+ * Median of `REPS` reps after one discarded warm-up. A lone mean is not quotable
+ * here: the first call pays JIT and the tail is what freezes a main thread.
+ */
+function timeMs(run: () => void): Timing {
+	run();
+
+	const samples = Array.from(
+		{
+			length: REPS,
+		},
+		() => {
+			const started = performance.now();
+
+			run();
+
+			return performance.now() - started;
+		},
+	).sort((a, b) => a - b);
+
+	return {
+		median: samples[Math.floor(REPS / 2)],
+		min: samples[0],
+		max: samples[REPS - 1],
+	};
+}
+
+const showMs = (timing: Timing) =>
+	`${timing.median.toFixed(2)} ms (min ${timing.min.toFixed(2)}, max ${timing.max.toFixed(2)})`;
 
 const percentOf = (value: number, base: number) =>
 	base > 0 ? Math.round(((value - base) / base) * 1000) / 10 : null;
@@ -210,5 +273,70 @@ describe('plan advice', () => {
 
 	it('measures priced-lever signs (MATH.md §14/§14.1)', () => {
 		pricedSigns(DAYS);
+	});
+
+	/**
+	 * §14's Cost paragraph and §14.3's quote a wall clock no probe reproduced. A
+	 * wall clock is only quotable with its machine attached (§8.6's "machine A is
+	 * ~2× machine B"), so the box and the runtime are printed once beside the
+	 * numbers, and nothing else may be running on it.
+	 */
+	it('times the solve, the advice run and the two extra solves (MATH.md §14, §14.3)', () => {
+		console.log(`[§14 cost] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);
+
+		for (const n of [3, 6, 9, 12, 15]) {
+			const input = timingDay(n);
+			const evaluated = suggestPlanAdjustments(input).candidatesEvaluated;
+
+			const solve = timeMs(() => {
+				calculateDailyMetrics(input);
+			});
+
+			const advice = timeMs(() => {
+				suggestPlanAdjustments(input);
+			});
+
+			// n > 12 at an 8 h budget does NOT continue the 2ⁿ ladder: `maxFunded` reaches
+			// n (the bound's test 33 − m ≥ m holds to m = 16), so the size bound cannot
+			// bring the enumeration under `SUBSET_SEARCH_BUDGET` = 4095 and the solve
+			// falls through to greedy forward selection (MATH.md §34).
+			const path = n > 12 ? ' — forward-selection fallback, NOT the 2ⁿ enumeration' : '';
+
+			console.log(
+				`[§14 cost] n = ${n}: one solve ${showMs(solve)}, whole advice run ${showMs(advice)}, candidatesEvaluated ${evaluated}${path}`,
+			);
+		}
+
+		for (const n of [8, 12]) {
+			const input = timingDay(n);
+			const { tasks, switchCost, pools, constants, posterior } = input;
+			const budget = calculateDailyMetrics(input).budgetHours;
+
+			// The expression `planValueAt` evaluates (`plan-advice.ts`), not a replica.
+			const planValueAt = (candidate: number) =>
+				calculateZenithGain(tasks, budget, candidate, pools, constants, posterior).optimized;
+
+			const free = timeMs(() => {
+				planValueAt(0);
+			});
+
+			const doubled = timeMs(() => {
+				planValueAt(switchCost * 2);
+			});
+
+			const declared = timeMs(() => {
+				planValueAt(switchCost);
+			});
+
+			const advice = timeMs(() => {
+				suggestPlanAdjustments(input);
+			});
+
+			const pair = free.median + doubled.median;
+
+			console.log(
+				`[§14.3 cost] n = ${n}: s = 0 arm ${showMs(free)}, s = 2s arm ${showMs(doubled)}, declared solve ${showMs(declared)}; the pair is ${((100 * pair) / advice.median).toFixed(1)}% of the advice run (${pair.toFixed(2)} of ${advice.median.toFixed(2)} ms), s = 2s is ${(doubled.median / declared.median).toFixed(2)}× the declared solve`,
+			);
+		}
 	});
 });
