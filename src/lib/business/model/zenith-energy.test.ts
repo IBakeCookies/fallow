@@ -1480,6 +1480,97 @@ describe('Zenith Energy Model', () => {
 			).toBeNull();
 		});
 
+		// Pinned 2026-08-17 from `scripts/stop-inversion-margin.probe.ts`'s witness
+		// arm: the one day the 2026-08-12 open-task correction was argued on. The
+		// sibling above asserts only that one is smaller, which cannot catch a
+		// change that moves both.
+		it('prices the §8.10 witness day at 1.321 over all tasks and 1.156 over the two left open', () => {
+			const observation: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 2.25,
+					},
+				],
+			};
+
+			const allOpen = stopIndifferencePoint(observation, DEFAULT_ENERGY_PARAMS)!;
+
+			const filtered = stopIndifferencePoint(
+				{
+					...observation,
+					openTaskIds: new Set([2, 3]),
+				},
+				DEFAULT_ENERGY_PARAMS,
+			)!;
+
+			expect(allOpen).toBeCloseTo(1.32147, 3);
+			expect(filtered).toBeCloseTo(1.15604, 3);
+			// 1.5× the 0.110 bracket half-width the instrument concedes — the
+			// comparison §8.10 makes of this pair.
+			expect(allOpen - filtered).toBeCloseTo(0.16543, 3);
+		});
+
+		// `lo` is a max over the open tasks, `hi` never reads them, and the censor
+		// fires on max(0, lo) > hi + margin — so shrinking the set can only lower
+		// the point and can only un-censor. The empty set is the sibling above.
+		it('narrowing the open set can only lower the point, never censor a kept day', () => {
+			const compositions = [
+				[
+					{
+						taskId: 1,
+						hours: 2.25,
+					},
+				],
+				[
+					{
+						taskId: 1,
+						hours: 3,
+					},
+					{
+						taskId: 2,
+						hours: 3,
+					},
+					{
+						taskId: 3,
+						hours: 1.5,
+					},
+				],
+			];
+
+			const subsets = [[1], [2], [3], [1, 2], [1, 3], [2, 3], [1, 2, 3]];
+
+			for (const workedHours of compositions) {
+				const allOpen = stopIndifferencePoint(
+					{
+						tasks: day,
+						windowHours: 12,
+						workedHours,
+					},
+					DEFAULT_ENERGY_PARAMS,
+				)!;
+
+				expect(allOpen).not.toBeNull();
+
+				for (const ids of subsets) {
+					const point = stopIndifferencePoint(
+						{
+							tasks: day,
+							windowHours: 12,
+							workedHours,
+							openTaskIds: new Set(ids),
+						},
+						DEFAULT_ENERGY_PARAMS,
+					);
+
+					expect(point).not.toBeNull();
+					expect(point!).toBeLessThanOrEqual(allOpen);
+				}
+			}
+		});
+
 		it('drops censored and uninformative days; all-dropped falls back', () => {
 			// Worked to the window edge: stopping reveals only an inequality.
 			const edge: StopObservation = {
