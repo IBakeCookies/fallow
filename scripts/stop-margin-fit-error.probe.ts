@@ -24,6 +24,12 @@
  * `stop-advisor.probe.ts` already use — and VALIDATED against the shipped
  * `fitStoppingValue` before any number below is believed.
  *
+ * THE OPEN-TASK SCOPE ARM. §8.10's `lo` prices the stop against the tasks still
+ * OPEN, and the replica takes that filter too. Completion there is drawn
+ * CAUSALLY — only tasks the day's own plan funded, at exactly the hours it gave
+ * them — so the generated day stays the true rational day and the shipped scope
+ * can be scored against the pre-correction all-tasks scope on a known λ₀.
+ *
  * The bracket does not depend on the margin, so it is computed ONCE per day and
  * every margin is a pure post-filter over the cached list: one `optimizeSchedule`
  * run per day, and the whole sweep is arithmetic after that.
@@ -91,9 +97,15 @@ interface Bracket {
 
 /** §8.10's bracket, rebuilt from exported parts. Null = structurally censored. */
 function bracketOf(observation: StopObservation, params: EnergyParams): Bracket | null {
-	const { tasks, windowHours } = observation;
+	const { tasks, windowHours, openTaskIds } = observation;
 
 	if (windowHours <= 0 || tasks.length === 0) return null;
+
+	// `reconstructStopDay`'s `candidates` (`zenith-energy.ts:2016`): omitted means
+	// every task was open, and nothing left open leaves no step to decline.
+	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
+
+	if (candidates.length === 0) return null;
 
 	const byTask = workedHoursByTask(tasks, observation.workedHours);
 
@@ -161,7 +173,7 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 
 	let lo = -Infinity;
 
-	for (const t of tasks) lo = Math.max(lo, (workValue(grown(t)) - base) / STEP);
+	for (const t of candidates) lo = Math.max(lo, (workValue(grown(t)) - base) / STEP);
 
 	let hi: number | null = null;
 
@@ -382,11 +394,13 @@ function cellsFor(user: SimulatedUser, kinds: Kind[], dayCount: number): DayCell
 	return user.days.slice(0, dayCount).map((day, d) => day[kinds[d]]);
 }
 
-function pointsOf(cells: DayCell[], margin: number): number[] {
-	return cells
-		.map((c) => (c.bracket === null ? null : pointAt(c.bracket, margin)))
+function pointsOf(brackets: (Bracket | null)[], margin: number): number[] {
+	return brackets
+		.map((b) => (b === null ? null : pointAt(b, margin)))
 		.filter((p): p is number => p !== null);
 }
+
+const bracketsOf = (cells: DayCell[]): (Bracket | null)[] => cells.map((c) => c.bracket);
 
 function quantile(values: number[], q: number): number {
 	if (values.length === 0) return NaN;
@@ -436,11 +450,11 @@ function buildArm(fixture: Omit<Fixture, 'arms'>, mix: MixName, dayCount: number
 	const total = cells.reduce((s, c) => s + c.length, 0);
 
 	const errors = MARGINS.map((margin) =>
-		cells.map((c, u) => fitFrom(pointsOf(c, margin)) - population[u].lambda),
+		cells.map((c, u) => fitFrom(pointsOf(bracketsOf(c), margin)) - population[u].lambda),
 	);
 
 	const kept = MARGINS.map(
-		(margin) => cells.reduce((s, c) => s + pointsOf(c, margin).length, 0) / total,
+		(margin) => cells.reduce((s, c) => s + pointsOf(bracketsOf(c), margin).length, 0) / total,
 	);
 
 	return {
@@ -489,17 +503,117 @@ function fixture(): Fixture {
 	return cached;
 }
 
+const COMPLETION_RATES = [0, 0.25, 0.5, 0.75];
+
+/**
+ * The finished subset, drawn CAUSALLY from the tasks this cell's own step list
+ * funded, at exactly the hours the plan gave them: the size cap binds nowhere
+ * the plan reached, so the day is still the true rational day and completion
+ * moves `openTaskIds` alone. A completion drawn independently of the plan cannot
+ * test the bias — at a rational stop `lo ≤ λ₀` already, so removing a maximizer
+ * only lowers it and the corrected scope would lose by construction.
+ */
+function openIdsOf(random: () => number, cell: DayCell, rate: number): ReadonlySet<number> {
+	const finished = new Set(
+		cell.observation.workedHours.filter(() => random() < rate).map((w) => w.taskId),
+	);
+
+	return new Set(cell.observation.tasks.filter((t) => !finished.has(t.id)).map((t) => t.id));
+}
+
+interface ScopeSide {
+	rmse: number;
+	bias: number;
+	usedDays: number;
+}
+
+interface ScopeArm {
+	mix: MixName;
+	rate: number;
+	dayCount: number;
+	corrected: ScopeSide;
+	allTasks: ScopeSide;
+}
+
+function sideOf(
+	population: SimulatedUser[],
+	brackets: (Bracket | null)[][],
+	dayCount: number,
+): ScopeSide {
+	let usedDays = 0;
+
+	const errors = population.map((user, u) => {
+		const points = pointsOf(brackets[u].slice(0, dayCount), STOP_INVERSION_MARGIN);
+
+		usedDays += points.length;
+
+		return fitFrom(points) - user.lambda;
+	});
+
+	return {
+		rmse: Math.sqrt(errors.reduce((s, x) => s + x * x, 0) / errors.length),
+		bias: errors.reduce((s, x) => s + x, 0) / errors.length,
+		usedDays,
+	};
+}
+
+function buildScopeArms(): ScopeArm[] {
+	const { population, assignment } = fixture();
+
+	return MIXES.flatMap((mix, m) =>
+		COMPLETION_RATES.flatMap((rate, r) => {
+			const random = mulberry32(0x51a040 + COMPLETION_RATES.length * m + r);
+			const cells = population.map((user, u) => cellsFor(user, assignment[mix][u], DAY_COUNT));
+
+			// Drawn once per (user, day) at the full DAY_COUNT so the n = 3 arm reads a
+			// PREFIX of the n = 12 arm's completions rather than a fresh roll.
+			const corrected = cells.map((row, u) =>
+				row.map((cell) =>
+					bracketOf(
+						{
+							...cell.observation,
+							openTaskIds: openIdsOf(random, cell, rate),
+						},
+						population[u].params,
+					),
+				),
+			);
+
+			// The pre-2026-08-12 scope never read the field, so completion is invisible
+			// to it and its bracket is the cell's own.
+			const allTasks = cells.map(bracketsOf);
+
+			return DAY_COUNTS.map((dayCount) => ({
+				mix,
+				rate,
+				dayCount,
+				corrected: sideOf(population, corrected, dayCount),
+				allTasks: sideOf(population, allTasks, dayCount),
+			}));
+		}),
+	);
+}
+
+let cachedScopeArms: ScopeArm[] | null = null;
+
+function scopeArms(): ScopeArm[] {
+	cachedScopeArms ??= buildScopeArms();
+
+	return cachedScopeArms;
+}
+
 const label = (arm: Arm) => `${arm.mix.padEnd(16)} n=${String(arm.dayCount).padStart(2)}`;
+const signed = (x: number) => `${x >= 0 ? '+' : ''}${fmt(x, 4)}`;
 
 const rmseOf = (errors: number[], sample: number[]) =>
 	Math.sqrt(sample.reduce((s, i) => s + errors[i] * errors[i], 0) / sample.length);
 
 describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MARGIN', () => {
 	it('validates the replica fit against the shipped fitStoppingValue', () => {
-		// The generated days carry no `openTaskIds`, so `reconstructStopDay`'s
-		// `candidates` filter is the identity — which is why the replica omits it.
 		const { population, assignment } = fixture();
+		const random = mulberry32(0x51a050);
 		let worst = 0;
+		let worstWithCompletions = 0;
 
 		for (const [u, user] of population.entries()) {
 			const cells = cellsFor(user, assignment['30%-interrupted'][u], DAY_COUNT);
@@ -513,7 +627,26 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 
 			worst = Math.max(
 				worst,
-				Math.abs(fitFrom(pointsOf(cells, STOP_INVERSION_MARGIN)) - shipped.value),
+				Math.abs(fitFrom(pointsOf(bracketsOf(cells), STOP_INVERSION_MARGIN)) - shipped.value),
+			);
+
+			const scoped = cells.map((cell) => ({
+				...cell.observation,
+				openTaskIds: openIdsOf(random, cell, 0.5),
+			}));
+
+			const shippedScoped = fitStoppingValue(scoped, FALLBACK, user.params, CONSTANTS);
+
+			const replicaScoped = fitFrom(
+				pointsOf(
+					scoped.map((observation) => bracketOf(observation, user.params)),
+					STOP_INVERSION_MARGIN,
+				),
+			);
+
+			worstWithCompletions = Math.max(
+				worstWithCompletions,
+				Math.abs(replicaScoped - shippedScoped.value),
 			);
 		}
 
@@ -523,7 +656,12 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 		);
 
 		console.log(
-			worst < 1e-9
+			`[§8.10 replica] the same days CARRYING completions at q=0.50: ` +
+				`worst |replica fit − shipped fit| ${worstWithCompletions.toExponential(3)}`,
+		);
+
+		console.log(
+			worst < 1e-9 && worstWithCompletions < 1e-9
 				? '[§8.10 replica] VALID — every number below reads the same bracket the shipped code does'
 				: '[§8.10 replica] INVALID — the arms below are measuring a different estimator',
 		);
@@ -633,6 +771,39 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 						'negligible, and it has a consistent SIGN: wider censors less and fits slightly better.'
 				: `[§8.10 verdict] KILL CRITERION DID NOT FIRE in ${verdicts.filter((v) => !v).length} arm(s) — ` +
 						'the margin moves the fit by an instrument-visible amount and 0.25 can be re-derived',
+		);
+	});
+
+	it('scores the corrected open-task scope against the pre-2026-08-12 all-tasks scope', () => {
+		console.log(
+			'[§8.10 scope] completion is CAUSAL: only tasks the day’s own plan funded are finished, at ' +
+				'exactly the hours the plan gave them. A completion drawn independently of the plan cannot ' +
+				'test this and would show the correction losing — at a rational stop lo ≤ λ₀ already, so ' +
+				'removing a maximizer only lowers it.',
+		);
+
+		for (const arm of scopeArms()) {
+			console.log(
+				`[§8.10 scope] ${arm.mix.padEnd(16)} q=${arm.rate.toFixed(2)} n=${String(arm.dayCount).padStart(2)}  ` +
+					`corrected RMSE ${fmt(arm.corrected.rmse, 4)} bias ${signed(arm.corrected.bias)} used ${arm.corrected.usedDays}  ` +
+					`all-tasks RMSE ${fmt(arm.allTasks.rmse, 4)} bias ${signed(arm.allTasks.bias)} used ${arm.allTasks.usedDays}  ` +
+					`RMSE gain ${signed(arm.allTasks.rmse - arm.corrected.rmse)}`,
+			);
+		}
+
+		// q = 0 is the identity: every task open is the same set the old scope read.
+		const live = scopeArms().filter((arm) => arm.rate > 0);
+		const best = Math.max(...live.map((arm) => arm.allTasks.rmse - arm.corrected.rmse));
+
+		console.log(
+			best > BRACKET_HALF_WIDTH
+				? `[§8.10 scope] the corrected scope beats the all-tasks scope by up to ${fmt(best, 4)} λ₀ RMSE, ` +
+						`past the ${BRACKET_HALF_WIDTH} bracket half-width — §8.10's "biased λ₀ up" is a measured bias`
+				: `[§8.10 scope] KILL LINE: the corrected scope's best RMSE gain over ${live.length} arms is ` +
+						`${fmt(best, 4)} λ₀, inside the ${BRACKET_HALF_WIDTH} bracket half-width, so §8.10's "biased ` +
+						'λ₀ up by the whole marginal of work that no longer existed" is a one-day witness and not a ' +
+						'measured bias. The scope rule does not move on it — it is settled behaviour and this is a ' +
+						'measurement.',
 		);
 	});
 });

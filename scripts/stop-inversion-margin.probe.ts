@@ -34,6 +34,14 @@
  * and a nonzero value invalidates the run — the two would no longer be reading
  * the same bracket.
  *
+ * THE OPEN-TASK ARMS. §8.10's `lo` prices the stop against the tasks still
+ * OPEN; the margin arms never set `openTaskIds`, the open-task arms below read
+ * every day both ways — that difference IS their measurement — and the replica
+ * takes the same filter, so the validation gate runs on days carrying
+ * completions too. Completion is drawn EXOGENOUSLY: the
+ * model has no task size, so "checked off" has no model correlate and the rate
+ * is an axis, never a measured frequency.
+ *
  * THE DECOMPOSITION ARM. `hi` is a LOOSE max: it takes the best over all
  * logged tasks of "remove one step from this task", because the real work
  * order is unknown. On an optimizer-generated day the order IS known, so the
@@ -112,9 +120,15 @@ function bracketOf(
 	params: EnergyParams,
 	lastWorkedTaskId?: number,
 ): Bracket | null {
-	const { tasks, windowHours } = observation;
+	const { tasks, windowHours, openTaskIds } = observation;
 
 	if (windowHours <= 0 || tasks.length === 0) return null;
+
+	// `reconstructStopDay`'s `candidates` (`zenith-energy.ts:2016`): omitted means
+	// every task was open, and nothing left open leaves no step to decline.
+	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
+
+	if (candidates.length === 0) return null;
 
 	const byTask = workedHoursByTask(tasks, observation.workedHours);
 
@@ -183,7 +197,7 @@ function bracketOf(
 
 	let lo = -Infinity;
 
-	for (const t of tasks) lo = Math.max(lo, (workValue(grown(t, step)) - base) / step);
+	for (const t of candidates) lo = Math.max(lo, (workValue(grown(t, step)) - base) / step);
 
 	let hi: number | null = null;
 
@@ -277,6 +291,36 @@ function paramsAt(lambda: number): EnergyParams {
 }
 
 const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
+/** The instrument's own resolution: the median bracket half-width claim 3 below measures. */
+const BRACKET_HALF_WIDTH = 0.11;
+
+/** §8.10's fixture day — the witness the 2026-08-12 open-task correction was argued on. */
+const FIXTURE_DAY: EnergyTaskInput[] = [
+	{
+		id: 1,
+		title: 'boxing',
+		difficulty: 10,
+		enjoyment: 10,
+		cognitiveDemand: 0.2,
+		physicalDemand: 1.0,
+	},
+	{
+		id: 2,
+		title: 'guitar',
+		difficulty: 6,
+		enjoyment: 9,
+		cognitiveDemand: 0.4,
+		physicalDemand: 0.3,
+	},
+	{
+		id: 3,
+		title: 'reading',
+		difficulty: 4,
+		enjoyment: 7,
+		cognitiveDemand: 0.5,
+		physicalDemand: 0.05,
+	},
+];
 
 function quantile(values: number[], q: number): number {
 	if (values.length === 0) return NaN;
@@ -288,6 +332,10 @@ function quantile(values: number[], q: number): number {
 
 function fmt(x: number): string {
 	return Number.isFinite(x) ? x.toFixed(3) : 'n/a';
+}
+
+function share(n: number, of: number): string {
+	return of > 0 ? ((100 * n) / of).toFixed(1) : 'n/a';
 }
 
 /** The optimizer's plan for a day, as a §8.10 observation plus its real work order. */
@@ -319,6 +367,129 @@ function optimizerDay(
 	};
 }
 
+const COMPLETION_RATES = [0, 0.25, 0.5, 0.75];
+
+/** One optimizer day re-read at one completion rate. */
+interface CompletionCell {
+	observation: StopObservation;
+	params: EnergyParams;
+	rate: number;
+	completed: Set<number>;
+	openTaskIds: Set<number>;
+}
+
+let cachedCompletionCells: CompletionCell[] | null = null;
+
+/**
+ * The open-task population: the same `drawDay`/`optimizerDay` generators the
+ * margin arms use, on this arm's own seed like every other arm here, each day
+ * re-read at every completion rate with each of its tasks independently ticked
+ * at probability q from a second stream.
+ */
+function completionCells(): CompletionCell[] {
+	if (cachedCompletionCells !== null) return cachedCompletionCells;
+
+	const random = mulberry32(0x51a005);
+	const ticks = mulberry32(0x51a006);
+
+	cachedCompletionCells = Array.from(
+		{
+			length: 120,
+		},
+		() => drawDay(random),
+	)
+		.flatMap((day) =>
+			LAMBDAS.map((lambda) => ({
+				...day,
+				lambda,
+			})),
+		)
+		.flatMap((cell) => {
+			const params = paramsAt(cell.lambda);
+			const built = optimizerDay(cell.tasks, cell.windowHours, params);
+
+			if (built === null) return [];
+
+			return COMPLETION_RATES.map((rate) => {
+				const completed = new Set(cell.tasks.filter(() => ticks() < rate).map((t) => t.id));
+
+				return {
+					observation: built.observation,
+					params,
+					rate,
+					completed,
+					openTaskIds: new Set(cell.tasks.filter((t) => !completed.has(t.id)).map((t) => t.id)),
+				};
+			});
+		});
+
+	return cachedCompletionCells;
+}
+
+/** Shipped against replica on one day: the verdict disagreement and the distance. */
+function replicaCheck(
+	observation: StopObservation,
+	params: EnergyParams,
+): { isMismatch: boolean; difference: number } {
+	const shipped = stopIndifferencePoint(observation, params, CONSTANTS);
+	const replica = bracketOf(observation, params);
+
+	// Null covers structural censors too, so only a replica that claims a usable
+	// midpoint is a real disagreement.
+	if (shipped === null)
+		return {
+			isMismatch: replica?.midpoint != null,
+			difference: 0,
+		};
+
+	if (replica?.midpoint == null)
+		return {
+			isMismatch: true,
+			difference: 0,
+		};
+
+	return {
+		isMismatch: false,
+		difference: Math.abs(replica.midpoint - shipped),
+	};
+}
+
+const LOSSES = ['all-ticked', 'nothing-worked', 'sub-step', 'window-edge', 'past-margin'] as const;
+
+type Loss = (typeof LOSSES)[number];
+
+/**
+ * Why §8.10 keeps no point from this day, or null when it does. Several censors
+ * can hold at once, so the precedence is fixed here — a share of the losses is
+ * only readable if every lost day counts to exactly one of them.
+ */
+function lossOf(cell: CompletionCell): Loss | null {
+	const { observation, params, openTaskIds } = cell;
+
+	if (openTaskIds.size === 0) return 'all-ticked';
+
+	const byTask = workedHoursByTask(observation.tasks, observation.workedHours);
+
+	if (byTask.size === 0) return 'nothing-worked';
+
+	const hours = [...byTask.values()];
+
+	if (!hours.some((h) => h >= DEFAULT_STEP_HOURS - 1e-9)) return 'sub-step';
+
+	if (hours.reduce((s, h) => s + h, 0) + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9)
+		return 'window-edge';
+
+	return bracketOf(
+		{
+			...observation,
+			openTaskIds,
+		},
+		params,
+	)?.censored
+		? 'past-margin'
+		: null;
+}
+
 describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 	it('validates the replica against the shipped stopIndifferencePoint', () => {
 		const random = mulberry32(0x51a001);
@@ -342,26 +513,33 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 					.filter((w) => w.hours > 0),
 			};
 
-			const shipped = stopIndifferencePoint(observation, params, CONSTANTS);
-			const replica = bracketOf(observation, params);
+			const check = replicaCheck(observation, params);
 
 			checked++;
 
-			if (shipped === null) {
-				// Null covers structural censors too, so only a replica that claims a
-				// usable midpoint is a real disagreement.
-				if (replica?.midpoint != null) mismatches++;
+			if (check.isMismatch) mismatches++;
 
-				continue;
-			}
+			worst = Math.max(worst, check.difference);
+		}
 
-			if (replica?.midpoint == null) {
-				mismatches++;
+		let ticked = 0;
+		let tickedMismatches = 0;
+		let tickedWorst = 0;
 
-				continue;
-			}
+		for (const cell of completionCells()) {
+			const check = replicaCheck(
+				{
+					...cell.observation,
+					openTaskIds: cell.openTaskIds,
+				},
+				cell.params,
+			);
 
-			worst = Math.max(worst, Math.abs(replica.midpoint - shipped));
+			ticked++;
+
+			if (check.isMismatch) tickedMismatches++;
+
+			tickedWorst = Math.max(tickedWorst, check.difference);
 		}
 
 		console.log(
@@ -370,7 +548,12 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 		);
 
 		console.log(
-			mismatches === 0 && worst < 1e-9
+			`[§8.10 replica] ${ticked} observations CARRYING completions: ${tickedMismatches} verdict ` +
+				`mismatches, worst midpoint difference ${tickedWorst.toExponential(3)}`,
+		);
+
+		console.log(
+			mismatches === 0 && worst < 1e-9 && tickedMismatches === 0 && tickedWorst < 1e-9
 				? '[§8.10 replica] VALID — every number below reads the same bracket the shipped code does'
 				: '[§8.10 replica] INVALID — the arms below are measuring a different estimator',
 		);
@@ -540,5 +723,154 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 				`${fmt(quantile(biases, 0.5) + quantile(halfWidths, 0.5))} against the shipped ` +
 				`STOP_INVERSION_MARGIN = ${STOP_INVERSION_MARGIN}`,
 		);
+	});
+
+	it('measures the open-task witness the 2026-08-12 correction was argued on', () => {
+		const observation: StopObservation = {
+			tasks: FIXTURE_DAY,
+			windowHours: 12,
+			workedHours: [
+				{
+					taskId: 1,
+					hours: 2.25,
+				},
+			],
+		};
+
+		const allOpen = stopIndifferencePoint(observation, DEFAULT_ENERGY_PARAMS, CONSTANTS);
+
+		const filtered = stopIndifferencePoint(
+			{
+				...observation,
+				openTaskIds: new Set([2, 3]),
+			},
+			DEFAULT_ENERGY_PARAMS,
+			CONSTANTS,
+		);
+
+		const shift = allOpen! - filtered!;
+
+		console.log(
+			`[§8.10 witness] fixture day, 2.25h on boxing: point over ALL tasks ${fmt(allOpen!)}, ` +
+				`over the two left open ${fmt(filtered!)} — shift ${fmt(shift)}, ` +
+				`${fmt(shift / BRACKET_HALF_WIDTH)}× the ${BRACKET_HALF_WIDTH} bracket half-width ` +
+				`(MATH.md said 1.32 → 1.16 until this run)`,
+		);
+	});
+
+	it('measures how far the open-task filter moves the day’s point', () => {
+		console.log(
+			'[§8.10 open-task] completion is drawn EXOGENOUSLY — the model has no task size, so ' +
+				'"checked off" has no model correlate and q is an axis, never a measured frequency',
+		);
+
+		for (const rate of COMPLETION_RATES) {
+			const shifts: number[] = [];
+			const loggedOnly: number[] = [];
+			const unloggedOnly: number[] = [];
+
+			for (const cell of completionCells().filter((c) => c.rate === rate)) {
+				const allOpen = stopIndifferencePoint(cell.observation, cell.params, CONSTANTS);
+
+				const filtered = stopIndifferencePoint(
+					{
+						...cell.observation,
+						openTaskIds: cell.openTaskIds,
+					},
+					cell.params,
+					CONSTANTS,
+				);
+
+				if (allOpen === null || filtered === null) continue;
+
+				shifts.push(allOpen - filtered);
+
+				const logged = workedHoursByTask(cell.observation.tasks, cell.observation.workedHours);
+				const completed = [...cell.completed];
+
+				if (completed.length === 0) continue;
+
+				if (completed.every((id) => logged.has(id))) loggedOnly.push(allOpen - filtered);
+				else if (completed.every((id) => !logged.has(id))) unloggedOnly.push(allOpen - filtered);
+			}
+
+			const over = shifts.filter((s) => s > BRACKET_HALF_WIDTH).length;
+			const exactlyZero = shifts.filter((s) => s <= 1e-9).length;
+
+			console.log(
+				`[§8.10 open-task] q=${rate.toFixed(2)}: ${shifts.length} days two-sided under BOTH scopes — ` +
+					`shift median ${fmt(quantile(shifts, 0.5))}, p90 ${fmt(quantile(shifts, 0.9))}, ` +
+					`max ${fmt(Math.max(...shifts))}; over the ${BRACKET_HALF_WIDTH} half-width ` +
+					`${share(over, shifts.length)}%, exactly zero ${share(exactlyZero, shifts.length)}%`,
+			);
+
+			console.log(
+				`[§8.10 open-task] q=${rate.toFixed(2)}: completions of LOGGED tasks only — median ` +
+					`${fmt(quantile(loggedOnly, 0.5))} over ${loggedOnly.length} days; of tasks with NO hours ` +
+					`logged — median ${fmt(quantile(unloggedOnly, 0.5))} over ${unloggedOnly.length} days`,
+			);
+		}
+	});
+
+	it('counts how many days the fifth censoring category discards', () => {
+		const tasksPerDay = completionCells().map((c) => c.observation.tasks.length);
+
+		console.log(
+			`[§8.10 fifth category] the category fires only when EVERY one of a day's tasks is ticked — ` +
+				`one task left open, funded or not, keeps the day alive. Days carry ` +
+				`${Math.min(...tasksPerDay)}–${Math.max(...tasksPerDay)} tasks, mean ` +
+				`${(tasksPerDay.reduce((s, n) => s + n, 0) / tasksPerDay.length).toFixed(2)}`,
+		);
+
+		for (const rate of COMPLETION_RATES) {
+			const cells = completionCells().filter((c) => c.rate === rate);
+
+			const counts: Record<Loss, number> = {
+				'all-ticked': 0,
+				'nothing-worked': 0,
+				'sub-step': 0,
+				'window-edge': 0,
+				'past-margin': 0,
+			};
+
+			let kept = 0;
+			let shippedKept = 0;
+
+			for (const cell of cells) {
+				const loss = lossOf(cell);
+
+				const point = stopIndifferencePoint(
+					{
+						...cell.observation,
+						openTaskIds: cell.openTaskIds,
+					},
+					cell.params,
+					CONSTANTS,
+				);
+
+				if (point !== null) shippedKept++;
+
+				if (loss === null) kept++;
+				else counts[loss]++;
+			}
+
+			const lost = cells.length - kept;
+
+			const breakdown = LOSSES.map(
+				(loss) =>
+					`${loss} ${counts[loss]} (${share(counts[loss], lost)}% of losses, ${share(counts[loss], cells.length)}% of days)`,
+			).join(', ');
+
+			console.log(
+				`[§8.10 fifth category] q=${rate.toFixed(2)}: ${cells.length} days, kept ${kept} ` +
+					`(${share(kept, cells.length)}%), lost ${lost} — ${breakdown}`,
+			);
+
+			console.log(
+				`[§8.10 fifth category] q=${rate.toFixed(2)}: cross-check — the shipped ` +
+					`stopIndifferencePoint keeps ${shippedKept}, this categorisation keeps ${kept}` +
+					`${shippedKept === kept ? '' : ' — MISMATCH, the shares above are fiction'}`,
+			);
+		}
 	});
 });

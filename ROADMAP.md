@@ -238,7 +238,15 @@ reach the form at all:
 
 4. **Censored-likelihood stopping fit** — worked-to-edge, zero-work and
    inverted days currently drop out of the §8.10 fit; a one-sided likelihood
-   term would use them. Build once real usage shows enough censored days.
+   term would use them. Build once real usage shows enough censored days. **Sized
+   2026-08-17** (M12's close, `stop-inversion-margin.probe.ts`): the
+   all-checked-off category §8.10 calls "not an edge case" is 7.7% / 40.5% /
+   73.1% of all dropped days at completion rates 0.25 / 0.50 / 0.75 and 0% at
+   0 — it needs **every** task on the day ticked, so it is ordinary from q ≈ 0.5
+   up and rare below. The window edge takes the rest. That share is what this
+   item would recover, and the completion rate is an axis, not a frequency: no
+   real history exists on this machine to place a user on it (the same block as
+   items 15 and 16).
 5. ~~**Fit-snapshot persistence**~~ — SHIPPED 2026-08-03 (MATH.md §12.1): a
    `fitSnapshots` store keyed by date, holding only what a fit can move (the ϕ
    plane with its posterior, α_cog/α_phys/r, λ₀); the §12 audit scores each day
@@ -496,7 +504,12 @@ them.
     uncited mechanism (M13). One structural hole produces much of the unbacked
     set and is worth closing ahead of the individual items, since it kills
     several at once: **nothing sets `openTaskIds`** (M12, and §11.8's scope
-    families). The "**nothing runs a fitted posterior** at σ_ϕ > 0" hole this
+    families). **Closed 2026-08-17, and "several at once" was wrong** — it was one
+    finding (M12) living in three probes, the §8.11 half being the same hole with
+    no id of its own. What closing it did buy beyond M12 was two numbers no
+    finding had raised: the fifth censoring category's share (item 4) and §8.11's
+    filter rates. It also refuted the sentence M12 was raised to defend — see its
+    entry. The "**nothing runs a fitted posterior** at σ_ϕ > 0" hole this
     entry also claimed was never real: `phi-cap-reachability.probe.ts` imports
     `fitUserConstants` and `phiParameterStd` and fits synthetic histories at two
     noise arms, and `gain-cap-trigger.probe.ts` now does the same for §19.4.
@@ -909,12 +922,24 @@ only way to catch.
   ladder and the 0.890/0.469 pair are reproduced by nothing
   (`rv13-terminal-timing.probe.ts` covers only the 10 h table and the 6 h/8 h
   pair). Re-derive it there, or label it unbacked per §15.1's precedent.
-- **M12 §8.10** — `MATH.md:1642-1644`'s "1.32 → 1.16" for the 2026-08-12
-  open-task correction. No probe sets `openTaskIds` — both bracket replicas take
-  `lo` over every task (`stop-inversion-margin.probe.ts:186`,
-  `stop-margin-fit-error.probe.ts:164`), so they still model the superseded
-  scope, and the suite pins direction only (`zenith-energy.test.ts:1453-1480`).
-  This section has already had to retract one uncommitted pair (`MATH.md:3318-3325`).
+- **M12 §8.10 — closed 2026-08-17,
+  [`what-the-open-task-scope-is-worth`](docs/features/what-the-open-task-scope-is-worth.md).**
+  The finding was §8.10's "1.32 → 1.16" for the 2026-08-12 open-task correction,
+  now `MATH.md:1645-1652`. No probe set `openTaskIds` — both bracket replicas took
+  `lo` over every task, so they modelled the superseded scope while validating
+  clean, and the suite pinned direction only. All three stop probes now read the
+  field, both replicas are validated on days carrying completions, and the
+  witness is pinned as a **pair**: it reproduces at **1.321 → 1.156**, a 0.165
+  shift, 1.5× the 0.110 half-width. What execution changed is the sentence
+  underneath it: across 90 users at a known λ₀ the corrected scope beats the
+  pre-correction one in 1 of 12 arms by +0.0054 λ₀ and loses the other 11, so
+  §8.10's "biased λ₀ up by the whole marginal of work that no longer existed" is
+  now stated as a **one-day witness, not a measured bias** — the rule itself is
+  settled and untouched, and it rests on an argument no synthetic day can make.
+  Two numbers nobody had asked for came free with the population: the fifth
+  censoring category's share of the losses (item 4 above) and §8.11's filter
+  rates. These two sections had already retracted one uncommitted pair —
+  §8.11's 2026-08-05 append-last counts, which no probe reproduces either.
 - **M22 §8.12** — `MATH.md:2184`'s "16 solves at the default cap, **~40 ms each**
   on a small day" is contradicted by §8.6, which prices the same call site (it
   names `suggestBudgetCurve` and its 16 solves at `MATH.md:1209`): 16.3 ms in the

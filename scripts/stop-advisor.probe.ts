@@ -30,6 +30,13 @@
  * nonzero count invalidates the whole run — the two arms would no longer be
  * the same search at two lookaheads.
  *
+ * THE CANDIDATE-FILTER ARM. §8.11 may only RECOMMEND a task still open
+ * (`openTaskIds`), and the one-step-vs-session arm never sets the field. The
+ * second arm runs the same walk with the filter on and off, deriving completion
+ * from the plan itself — a task is checked off exactly when the remaining plan
+ * holds no more blocks for it — so the rates above stay a draw with no
+ * completions in it.
+ *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
  *
@@ -139,6 +146,8 @@ const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
 /** A checkpoint on the optimizer's plan: the day so far, and what comes next. */
 interface Checkpoint {
 	workedHours: { taskId: number; hours: number }[];
+	/** Funded tasks the remaining plan holds no more blocks for */
+	finishedTaskIds: Set<number>;
 	/** The plan still has work after this point — truth says "continue" */
 	moreWork: boolean;
 	/** The very next thing in the plan is a rest block */
@@ -147,6 +156,12 @@ interface Checkpoint {
 
 function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
 	const totalWork = blocks.reduce((sum, b) => (b.taskId === null ? sum : sum + b.hours), 0);
+	const planned = new Map<number, number>();
+
+	for (const block of blocks)
+		if (block.taskId !== null)
+			planned.set(block.taskId, (planned.get(block.taskId) ?? 0) + block.hours);
+
 	const worked = new Map<number, number>();
 	let done = 0;
 
@@ -155,6 +170,11 @@ function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
 			taskId,
 			hours,
 		})),
+		finishedTaskIds: new Set(
+			[...worked]
+				.filter(([taskId, hours]) => hours >= planned.get(taskId)! - 1e-9)
+				.map(([taskId]) => taskId),
+		),
 		moreWork: done < totalWork - 1e-9,
 		restNext,
 	});
@@ -195,7 +215,13 @@ function searchMarginals(
 	params: EnergyParams,
 	constants: UserConstants,
 ): { oneStepValue: number; oneStepTaskId: number; bestOverAllM: number } | null {
-	const { tasks, windowHours } = observation;
+	const { tasks, windowHours, openTaskIds } = observation;
+	// `adviseStop` recommends only tasks still OPEN, and checks the empty set
+	// before the window (`zenith-energy.ts:2136`).
+	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
+
+	if (candidates.length === 0) return null;
+
 	const byTask = workedHoursByTask(tasks, observation.workedHours);
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
@@ -246,10 +272,10 @@ function searchMarginals(
 	};
 
 	let oneStepValue = -Infinity;
-	let oneStepTaskId = tasks[0].id;
+	let oneStepTaskId = candidates[0].id;
 	let bestOverAllM = -Infinity;
 
-	for (const t of tasks) {
+	for (const t of candidates) {
 		for (let m = 1; m <= room; m++) {
 			const hours = m * DEFAULT_STEP_HOURS;
 			const avg = (workValue(grown(t, hours)) - base) / hours;
@@ -284,10 +310,16 @@ const emptyScore = (): ArmScore => ({
 	maxLateness: 0,
 });
 
-const observe = (day: ProbeDay, workedHours: { taskId: number; hours: number }[]) => ({
+/** The one place `openTaskIds` enters this probe. */
+const observe = (
+	day: ProbeDay,
+	workedHours: { taskId: number; hours: number }[],
+	openTaskIds?: ReadonlySet<number>,
+) => ({
 	tasks: day.tasks,
 	windowHours: day.windowHours,
 	workedHours,
+	openTaskIds,
 });
 
 /**
@@ -300,6 +332,7 @@ function lateness(
 	worked: { taskId: number; hours: number }[],
 	params: EnergyParams,
 	oneStep: boolean,
+	openTaskIds?: ReadonlySet<number>,
 ): number {
 	const hours = new Map(worked.map((w) => [w.taskId, w.hours]));
 	let steps = 0;
@@ -313,13 +346,17 @@ function lateness(
 		let taskId: number;
 
 		if (oneStep) {
-			const marginals = searchMarginals(observe(day, list), params, DEFAULT_USER_CONSTANTS);
+			const marginals = searchMarginals(
+				observe(day, list, openTaskIds),
+				params,
+				DEFAULT_USER_CONSTANTS,
+			);
 
 			if (marginals === null || marginals.oneStepValue <= params.freeTimeValue) return steps;
 
 			taskId = marginals.oneStepTaskId;
 		} else {
-			const advice = adviseStop(observe(day, list), params, DEFAULT_USER_CONSTANTS);
+			const advice = adviseStop(observe(day, list, openTaskIds), params, DEFAULT_USER_CONSTANTS);
 
 			if (advice === null || advice.verdict !== 'continue') return steps;
 
@@ -438,23 +475,157 @@ function measure(label: string, days: ProbeDay[]): void {
 	);
 }
 
+interface ScopeTally {
+	comparable: number;
+	continueToStop: number;
+	stopToContinue: number;
+	otherTask: number;
+	/** Everything the plan funded is done and nothing unfunded is open */
+	noCandidate: number;
+	noCandidateAtStop: number;
+	windowFull: number;
+	mismatches: number;
+	atStopDays: number;
+	filtered: ArmScore;
+	unfiltered: ArmScore;
+}
+
+/**
+ * The same walk as `scoreDay`, with §8.11's candidate filter on and off instead
+ * of two lookaheads. Completion is DERIVED, never drawn: a task is checked off
+ * exactly when the remaining plan holds no more blocks for it, so a task the
+ * plan never funded stays open all day.
+ */
+function scoreScopeDay(day: ProbeDay, params: EnergyParams, tally: ScopeTally): void {
+	const plan = optimizeSchedule(day.tasks, day.windowHours, params, DEFAULT_USER_CONSTANTS);
+
+	for (const checkpoint of walkPlan(plan.blocks)) {
+		const open = new Set(
+			day.tasks.filter((t) => !checkpoint.finishedTaskIds.has(t.id)).map((t) => t.id),
+		);
+
+		const scoped = observe(day, checkpoint.workedHours, open);
+		const filtered = adviseStop(scoped, params, DEFAULT_USER_CONSTANTS);
+		const marginals = searchMarginals(scoped, params, DEFAULT_USER_CONSTANTS);
+
+		const unfiltered = adviseStop(
+			observe(day, checkpoint.workedHours),
+			params,
+			DEFAULT_USER_CONSTANTS,
+		);
+
+		if (filtered === null) {
+			tally.noCandidate++;
+			tally.noCandidateAtStop += checkpoint.moreWork ? 0 : 1;
+			continue;
+		}
+
+		if (
+			unfiltered === null ||
+			unfiltered.verdict === 'window-full' ||
+			filtered.verdict === 'window-full' ||
+			marginals === null
+		) {
+			tally.windowFull++;
+			continue;
+		}
+
+		if (Math.abs(marginals.bestOverAllM - filtered.marginalValue) > 1e-9) tally.mismatches++;
+
+		tally.comparable++;
+
+		const unfilteredContinues = unfiltered.verdict === 'continue';
+		const filteredContinues = filtered.verdict === 'continue';
+
+		if (unfilteredContinues && !filteredContinues) tally.continueToStop++;
+		else if (filteredContinues && !unfilteredContinues) tally.stopToContinue++;
+		else if (unfiltered.taskId !== filtered.taskId) tally.otherTask++;
+
+		if (checkpoint.moreWork) continue;
+
+		tally.atStopDays++;
+
+		scoreAtStop(tally.filtered, filteredContinues, () =>
+			lateness(day, checkpoint.workedHours, params, false, open),
+		);
+
+		scoreAtStop(tally.unfiltered, unfilteredContinues, () =>
+			lateness(day, checkpoint.workedHours, params, false),
+		);
+	}
+}
+
+function measureScope(label: string, days: ProbeDay[]): void {
+	let mismatches = 0;
+
+	for (const freeTimeValue of LAMBDAS) {
+		const params: EnergyParams = {
+			...DEFAULT_ENERGY_PARAMS,
+			freeTimeValue,
+		};
+
+		const tally: ScopeTally = {
+			comparable: 0,
+			continueToStop: 0,
+			stopToContinue: 0,
+			otherTask: 0,
+			noCandidate: 0,
+			noCandidateAtStop: 0,
+			windowFull: 0,
+			mismatches: 0,
+			atStopDays: 0,
+			filtered: emptyScore(),
+			unfiltered: emptyScore(),
+		};
+
+		for (const day of days) scoreScopeDay(day, params, tally);
+
+		mismatches += tally.mismatches;
+
+		const share = (n: number) =>
+			tally.comparable > 0 ? ((n / tally.comparable) * 100).toFixed(1) : 'n/a';
+
+		console.log(
+			`${label} λ₀ ${freeTimeValue.toFixed(1)}: verdict differs continue→stop ${share(tally.continueToStop)}% and stop→continue ${share(tally.stopToContinue)}% (of ${tally.comparable} comparable checkpoints), ` +
+				`same verdict different taskId ${share(tally.otherTask)}%, ` +
+				`filtered has no candidate left at ${tally.noCandidate} checkpoints (${tally.noCandidateAtStop} of them AT the plan's stop), ` +
+				`at-stop agreement filtered ${tally.filtered.atStopAgree}/${tally.atStopDays} vs unfiltered ${tally.unfiltered.atStopAgree}/${tally.atStopDays}, ` +
+				`max lateness filtered ${tally.filtered.maxLateness} vs unfiltered ${tally.unfiltered.maxLateness} steps, ` +
+				`${tally.windowFull} window-full checkpoints excluded`,
+		);
+	}
+
+	console.log(
+		`${label}: filtered one-step replica vs filtered adviseStop marginalValue — ${mismatches} mismatches (nonzero invalidates every rate above)`,
+	);
+}
+
+// Windows out to 18h: a fixture worked to the window edge has no stop to agree
+// ON (§8.10's censored day), and agreement is half the claim.
+const WARMUP_DAYS: ProbeDay[] = Array.from(
+	{
+		length: 13,
+	},
+	(_, index) => ({
+		tasks: WARMUP_HEAVY,
+		windowHours: 6 + index,
+	}),
+);
+
 describe('stop advisor', () => {
 	it('measures one-step vs session lookahead (MATH.md §8.11)', () => {
 		measure('72 seeded random days', randomDays(72, 42));
+		measure('warm-up-heavy fixture, 4 fresh high-amplitude tasks', WARMUP_DAYS);
+	});
 
-		measure(
-			'warm-up-heavy fixture, 4 fresh high-amplitude tasks',
-			Array.from(
-				{
-					length: 13,
-				},
-				// Windows out to 18h: a fixture worked to the window edge has no stop
-				// to agree ON (§8.10's censored day), and agreement is half the claim.
-				(_, index) => ({
-					tasks: WARMUP_HEAVY,
-					windowHours: 6 + index,
-				}),
-			),
+	it('measures the candidate filter against the unfiltered call (MATH.md §8.11)', () => {
+		console.log(
+			'[§8.11 scope] completion is DERIVED from the plan, never drawn: a task is checked off ' +
+				'exactly when the remaining plan holds no more blocks for it, and a task the plan never ' +
+				'funded stays open',
 		);
+
+		measureScope('72 seeded random days, plan-derived completions', randomDays(72, 42));
+		measureScope('warm-up-heavy fixture, plan-derived completions', WARMUP_DAYS);
 	});
 });
