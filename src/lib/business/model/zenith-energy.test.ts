@@ -339,6 +339,55 @@ describe('Zenith Energy Model', () => {
 			expect(shortGap.blocks[2].output).toBeGreaterThan(longGap.blocks[2].output);
 		});
 
+		it('§8.2 survival: 84.648% of warm-up survives 5 min away, 1.832% survives 2 h (2026-08-18)', () => {
+			// Zero demand makes the output gate C_cog^0·C_phys^0 = 1, so a block's
+			// output is a function of session phase alone: a fresh run of length x
+			// integrates p over [0, x], and a D-hour run resumed at phase s over
+			// [s, s+D] — which is the difference of two fresh runs.
+			const phaseOnly = [makeTask(1, 'A', 6, 6, 0, 0)];
+			const sEnd = 0.5;
+			const resumedHours = 0.1;
+
+			const fresh = (hours: number) =>
+				evaluateSchedule(
+					[
+						{
+							taskId: 1,
+							hours,
+						},
+					],
+					phaseOnly,
+					12,
+				).totalOutput;
+
+			/** What the resumed run is worth if `share` of the phase survived. */
+			const atShare = (share: number) => fresh(share * sEnd + resumedHours) - fresh(share * sEnd);
+
+			const resumedAfter = (gap: number) =>
+				evaluateSchedule(
+					[
+						{
+							taskId: 1,
+							hours: sEnd,
+						},
+						{
+							taskId: null,
+							hours: gap,
+						},
+						{
+							taskId: 1,
+							hours: resumedHours,
+						},
+					],
+					phaseOnly,
+					12,
+				).blocks[2].output;
+
+			expect(DEFAULT_ENERGY_PARAMS.resumptionTimeConstant).toBe(0.5);
+			expect(resumedAfter(5 / 60) / atShare(0.8464817)).toBeCloseTo(1, 5);
+			expect(resumedAfter(2) / atShare(0.0183156)).toBeCloseTo(1, 5);
+		});
+
 		it('an empty schedule earns only leisure + terminal value', () => {
 			const ev = evaluateSchedule([], tasks, 8);
 			expect(ev.totalOutput).toBe(0);
