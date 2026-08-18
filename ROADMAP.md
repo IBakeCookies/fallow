@@ -1132,11 +1132,22 @@ only way to catch.
   (`continue` at 0.562/h) — so the section demonstrated its headline flip at
   demands the app cannot produce. It flips at difficulty 7 with w = (0.7, 0), and
   that is what the suite now pins. Same class as M35, one section over.
-- **M29 §34** — `MATH.md:6548-6549` "the bounded path ran on about a quarter of
-  the solves"; `subset-search-bound.probe.ts` writes `{checks, count, violations}`
-  and tags `bounded` only inside violations, so the share is never emitted.
-- **M30 §7** — `MATH.md:833-835` (s = 0.1 → 1.75 h at n = 14, 1.25 h at n = 20),
-  undated, and `subset-search-bound.probe.ts` prints no crossover.
+- **M29 §34 — closed 2026-08-19, [`what-the-bounded-path-actually-ran-on`](docs/features/what-the-bounded-path-actually-ran-on.md).** The figure was never
+  wrong — 1587/6400 = **24.80%**, which is "about a quarter". The hole was
+  emission: `boundedSearchRuns` was called only inside the violation push, so
+  nothing in the repo could print the share. The monotonicity arm now hoists it
+  and writes `bounded` / `boundedShare`. The per-n and per-switchCost splits are
+  **declined** — artifacts of the sweep's uniform grid, not of days the app
+  produces, and quoting eight of them to two decimals would close one provenance
+  hole by opening six.
+- **M30 §7 — closed 2026-08-19, [`what-the-bounded-path-actually-ran-on`](docs/features/what-the-bounded-path-actually-ran-on.md).** Both crossovers hold to the
+  quarter-hour and a new arm now emits them. The lead missed the actual defect
+  one sentence later: the causal clause was **false**. A one-hour day needs
+  n = 30 at `switchCost` 0.1 and n = 91 at 0.25 and above, so the after-table's
+  ≤ 2 h shortfalls are the low-switch-cost corner instead. Execution also found
+  that `zenith.test.ts:699-748` is not the backstop it reads as — its sole
+  assertion is budget monotonicity, and running its own 14 days to 10 h at every
+  switch cost gives zero violations, so its 3.75 h ceiling detects nothing.
 - **M31 §8.2 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** Upheld: no committed probe reaches
   either figure. Both reproduce out of the shipped evaluator — **84.648%** and
   **1.832%**, agreeing with `e^(−g/τ)` to 4e-8 — and are pinned by fixture, not
