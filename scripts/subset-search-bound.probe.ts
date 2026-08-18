@@ -1,6 +1,7 @@
 /**
  * Measurements behind MATH.md §34: what the funded-subset search forfeits past
- * `EXACT_SUBSET_LIMIT`, and what the size bound costs in wall clock.
+ * `EXACT_SUBSET_LIMIT`, what the size bound costs in wall clock, and where the
+ * bounded path gives way to the fallback — the crossover §7 quotes.
  *
  * §4 claims exactness only for n ≤ 12, and until 2026-08-08 said nothing about
  * the size of the gap beyond it — while `daily-plan-store` feeds the allocator
@@ -79,16 +80,20 @@ function exhaustiveValue(tasks: ProbeTask[], budget: number, switchCost: number)
 }
 
 /**
- * Which branch of `bestPlanWithSwitchCost` a day lands on, re-derived here from
- * §34's rule rather than imported — the allocator does not report it, and a
- * probe that asked the code under test which path it took would be measuring
+ * `maxFunded` and the Σⱼ C(n, j) plan count §34's bound tests, re-derived here
+ * from §34's rule rather than imported — the allocator does not report them, and
+ * a probe that asked the code under test which path it took would be measuring
  * nothing. n > 12 only; below that the full enumeration always runs.
  *
  * It re-derives the shipped rule at `startedCount` = 0 — every day this probe
  * generates — where `max(0, m)` is `m` and the day-funded term of §34's bound
  * drops out of the expression.
  */
-function boundedSearchRuns(n: number, budget: number, switchCost: number): boolean {
+function boundedSearchSize(
+	n: number,
+	budget: number,
+	switchCost: number,
+): { maxFunded: number; plans: number } {
 	const blocksFor = (funded: number) =>
 		Math.floor((budget - (funded - 1) * switchCost) / BLOCK_HOURS + 1e-9);
 
@@ -103,6 +108,16 @@ function boundedSearchRuns(n: number, budget: number, switchCost: number): boole
 		choose = (choose * (n + 1 - j)) / j;
 		plans += choose;
 	}
+
+	return {
+		maxFunded,
+		plans,
+	};
+}
+
+/** Which branch of `bestPlanWithSwitchCost` a day lands on. */
+function boundedSearchRuns(n: number, budget: number, switchCost: number): boolean {
+	const { maxFunded, plans } = boundedSearchSize(n, budget, switchCost);
 
 	return maxFunded > 0 && plans <= (1 << 12) - 1;
 }
@@ -192,6 +207,7 @@ describe('funded-subset search past the exact limit', () => {
 		// violation inside the bounded region would be a real defect.
 		const violations: unknown[] = [];
 		let checks = 0;
+		let boundedCount = 0;
 
 		// One day's whole budget ladder; hoisted so the sweep stays inside the
 		// repo's nesting limit.
@@ -203,7 +219,11 @@ describe('funded-subset search past the exact limit', () => {
 					calculateTaskAllocations(tasks, budget, DEFAULT_USER_CONSTANTS, switchCost),
 				);
 
+				const bounded = boundedSearchRuns(n, budget, switchCost);
+
 				checks++;
+
+				if (bounded) boundedCount++;
 
 				if (value < previous - 1e-9)
 					violations.push({
@@ -211,7 +231,7 @@ describe('funded-subset search past the exact limit', () => {
 						switchCost,
 						budget: Number(budget.toFixed(2)),
 						drop: Number((previous - value).toFixed(4)),
-						bounded: boundedSearchRuns(n, budget, switchCost),
+						bounded,
 					});
 
 				previous = value;
@@ -242,8 +262,71 @@ describe('funded-subset search past the exact limit', () => {
 			JSON.stringify(
 				{
 					checks,
+					bounded: boundedCount,
+					boundedShare: Number((boundedCount / checks).toFixed(4)),
 					count: violations.length,
 					violations,
+				},
+				null,
+				2,
+			),
+		);
+	});
+
+	it('walks the bounded region, per (n, switchCost)', () => {
+		// §7 and §34 both quote where the bounded path gives way, and nothing in the
+		// repo emitted it. `steps` beside the last budget is what shows the region is
+		// an interval: they agree iff every budget below the crossover is bounded too.
+		// The one-hour column answers §7's other claim — how long the list must be
+		// before the LIST alone sends a one-hour day to the fallback.
+		const walkBoundedRegion = (n: number, switchCost: number): { last: number; steps: number } => {
+			let last = 0;
+			let steps = 0;
+
+			for (let budget = BLOCK_HOURS; budget <= 24 + 1e-9; budget += BLOCK_HOURS)
+				if (boundedSearchRuns(n, budget, switchCost)) {
+					last = budget;
+					steps++;
+				}
+
+			return {
+				last,
+				steps,
+			};
+		};
+
+		const crossovers: unknown[] = [];
+		const oneHour: unknown[] = [];
+
+		for (const switchCost of [0.1, 0.25, 0.33, 0.5]) {
+			for (const n of [13, 14, 15, 16, 20]) {
+				const { last, steps } = walkBoundedRegion(n, switchCost);
+
+				crossovers.push({
+					n,
+					switchCost,
+					lastBoundedBudget: Number(last.toFixed(2)),
+					steps,
+					...boundedSearchSize(n, last, switchCost),
+				});
+			}
+
+			let onset = 13;
+
+			while (onset < 200 && boundedSearchRuns(onset, 1, switchCost)) onset++;
+
+			oneHour.push({
+				switchCost,
+				fallbackFromN: onset,
+			});
+		}
+
+		writeFileSync(
+			'/tmp/subset-search-crossover.json',
+			JSON.stringify(
+				{
+					crossovers,
+					oneHour,
 				},
 				null,
 				2,
