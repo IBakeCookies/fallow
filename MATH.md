@@ -116,18 +116,18 @@ that are not evident from reading it — so never retype a row, regenerate:
   §23.1   5890-5957  Primary Bottleneck: the largest draw on the binding pool
   §23.2   5959-5991  Longest Warm-Up: what E/β was actually tracking
 §24       5993-6056  Task Variety counted labels, and its repair was Energy B…
-§25       6058-6205  Cognitive and Physical Load: the definition, and what ro…
-§26       6207-6313  Deep Work: a step that swung whole blocks, under a band …
-§27       6315-6432  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6434-6488  Which four readings are headlines (2026-08-07)
-§29       6490-6663  Day Profile: one cut for two different scales, on a day …
-§30       6665-6745  The Lab's comparison tile scored the plan on the one thi…
-§31       6747-6928  What history can plot, and what it cannot (2026-08-07)
-§32       6930-6996  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6998-7115  A plan reads only the logs that precede it (2026-08-08)
-§34       7117-7347  The subset search gave up one task too early (2026-08-08)
-§35       7349-7703  The plan cannot see the hours you already spent (2026-08…
-§36       7705-7776  What a correction may touch (2026-08-10)
+§25       6058-6207  Cognitive and Physical Load: the definition, and what ro…
+§26       6209-6315  Deep Work: a step that swung whole blocks, under a band …
+§27       6317-6434  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6436-6490  Which four readings are headlines (2026-08-07)
+§29       6492-6665  Day Profile: one cut for two different scales, on a day …
+§30       6667-6747  The Lab's comparison tile scored the plan on the one thi…
+§31       6749-6930  What history can plot, and what it cannot (2026-08-07)
+§32       6932-6998  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       7000-7117  A plan reads only the logs that precede it (2026-08-08)
+§34       7119-7349  The subset search gave up one task too early (2026-08-08)
+§35       7351-7705  The plan cannot see the hours you already spent (2026-08…
+§36       7707-7778  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -6180,8 +6180,10 @@ lever identity):
   them, hiding a median **1.7** and up to **39.3 points** of improvement. Worst
   case: a lever moving the share **0.0 → 39.3**, still under the 40 cut, so both
   sides read "Physical Heavy".
-- **0 of 803** options on every other axis lost this way. The three-word bucket
-  is the whole mechanism; whole-percent rounding is not enough to collapse one.
+- **0 of 811** options on every other axis lost this way (628 + 94 + 28 + 37 +
+  21 + 3, equivalently 1404 options in total − 593 Energy Balance). The
+  three-word bucket is the whole mechanism; whole-percent rounding is not enough
+  to collapse one.
 
 **Suppressing the word-identical options was the wrong fix, and the probe is why.**
 It would have emptied **99 of 274** Energy Balance rows outright — deleting the
