@@ -117,7 +117,7 @@ export function energyBalanceSkew(value: number): 'cognitive' | 'physical' | 'ba
  * under, hiding a median 1.7 and up to 39.3 points of improvement. The worst
  * case moved the share 0.0 → 39.3 and read "Physical Heavy" on both sides, an
  * option that looks like a no-op and is not. No other axis lost a single option
- * this way (0 of 803), because the rest print percentages already.
+ * this way (0 of 811), because the rest print percentages already.
  *
  * Shown rather than suppressed: dropping those options would have emptied 99 of
  * 274 Energy Balance rows outright, discarding the largest improvement the day
