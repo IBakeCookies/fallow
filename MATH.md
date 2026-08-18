@@ -92,42 +92,42 @@ that are not evident from reading it — so never retype a row, regenerate:
   §14.2   4372-4516  The marginal of the budget (added 2026-08-03)
   §14.3   4518-4724  The price of the switch cost (added 2026-08-04)
   §14.4   4726-4787  An empty frontier is a reading (2026-08-08)
-§15       4789-4936  Two objectives, two modes (2026-07-29)
-  §15.1   4864-4936  The copy named the wrong objective for both modes (2026-…
-§16       4938-5026  Run order stays a heuristic (2026-07-29)
-§17       5028-5186  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       5188-5270  Drain logs are one row per SESSION, not per task-day (20…
-§19       5272-5543  The gain's naive baseline paid for switches it never mad…
-  §19.1   5290-5349  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5351-5379  Defect 2 — the displayed number moved with the order of …
-  §19.3   5381-5470  What this costs, and the one guarantee that weakened
-  §19.4   5472-5543  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       5545-5607  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5586-5607  The tie went to cognitive, so the row blamed the wrong p…
-§21       5609-5777  What the gain has room to report (2026-08-07)
-  §21.1   5631-5651  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5653-5676  Why shape has a low ceiling: the activation bonus
-  §21.3   5678-5698  Population distribution
-  §21.4   5700-5731  The number is a property of the comparison, not of the o…
-  §21.5   5733-5748  Under the total-output objective the ranking inverts
-  §21.6   5750-5777  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5779-5847  Task nature: an absolute gap could not carry a range tha…
-§23       5849-5991  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5890-5957  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5959-5991  Longest Warm-Up: what E/β was actually tracking
-§24       5993-6056  Task Variety counted labels, and its repair was Energy B…
-§25       6058-6207  Cognitive and Physical Load: the definition, and what ro…
-§26       6209-6315  Deep Work: a step that swung whole blocks, under a band …
-§27       6317-6434  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6436-6490  Which four readings are headlines (2026-08-07)
-§29       6492-6665  Day Profile: one cut for two different scales, on a day …
-§30       6667-6747  The Lab's comparison tile scored the plan on the one thi…
-§31       6749-6930  What history can plot, and what it cannot (2026-08-07)
-§32       6932-6998  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       7000-7117  A plan reads only the logs that precede it (2026-08-08)
-§34       7119-7349  The subset search gave up one task too early (2026-08-08)
-§35       7351-7705  The plan cannot see the hours you already spent (2026-08…
-§36       7707-7778  What a correction may touch (2026-08-10)
+§15       4789-4947  Two objectives, two modes (2026-07-29)
+  §15.1   4875-4947  The copy named the wrong objective for both modes (2026-…
+§16       4949-5037  Run order stays a heuristic (2026-07-29)
+§17       5039-5197  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5199-5281  Drain logs are one row per SESSION, not per task-day (20…
+§19       5283-5554  The gain's naive baseline paid for switches it never mad…
+  §19.1   5301-5360  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5362-5390  Defect 2 — the displayed number moved with the order of …
+  §19.3   5392-5481  What this costs, and the one guarantee that weakened
+  §19.4   5483-5554  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5556-5618  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5597-5618  The tie went to cognitive, so the row blamed the wrong p…
+§21       5620-5788  What the gain has room to report (2026-08-07)
+  §21.1   5642-5662  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5664-5687  Why shape has a low ceiling: the activation bonus
+  §21.3   5689-5709  Population distribution
+  §21.4   5711-5742  The number is a property of the comparison, not of the o…
+  §21.5   5744-5759  Under the total-output objective the ranking inverts
+  §21.6   5761-5788  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5790-5858  Task nature: an absolute gap could not carry a range tha…
+§23       5860-6002  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5901-5968  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5970-6002  Longest Warm-Up: what E/β was actually tracking
+§24       6004-6067  Task Variety counted labels, and its repair was Energy B…
+§25       6069-6218  Cognitive and Physical Load: the definition, and what ro…
+§26       6220-6326  Deep Work: a step that swung whole blocks, under a band …
+§27       6328-6445  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6447-6501  Which four readings are headlines (2026-08-07)
+§29       6503-6676  Day Profile: one cut for two different scales, on a day …
+§30       6678-6758  The Lab's comparison tile scored the plan on the one thi…
+§31       6760-6941  What history can plot, and what it cannot (2026-08-07)
+§32       6943-7009  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       7011-7128  A plan reads only the logs that precede it (2026-08-08)
+§34       7130-7360  The subset search gave up one task too early (2026-08-08)
+§35       7362-7716  The plan cannot see the hours you already spent (2026-08…
+§36       7718-7789  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -4804,8 +4804,16 @@ its counts are a different draw, shown in brackets:
 
 | plan    | under classic `Σ P̄`                             | under the energy objective                      |
 | ------- | ----------------------------------------------- | ----------------------------------------------- |
-| classic | **wins 283/300** [276], median +38.8%, p90 +97% | wins 2/300                                      |
-| energy  | wins 17/300 [24]                                | **wins 298/300** [300], median +17.4%, p90 +48% |
+| classic | **wins 284/300** [276], median +39.5%, p90 +99% | wins 2/300                                      |
+| energy  | wins 16/300 [24]                                | **wins 298/300** [300], median +17.4%, p90 +48% |
+
+Re-measured 2026-08-18 at the same seed: the classic column read 283/300,
++38.8%, +97% and the energy column 17/300 when the probe was committed
+2026-08-06, and the two 2026-08-13 solver commits moved them — 282/300 at the
+tree between them, so that cell moved twice, in opposite directions. The
+composition overlap below moved 0.58 → 0.57 → 0.58 over the same two commits
+and so matches what is written here while never having stood still: a cell
+that reproduces is evidence about today's tree, not about its stability.
 
 Each model beats the other by tens of percent on its own scale. That is not a
 close call awaiting better data; it is two definitions of a good day.
@@ -4818,24 +4826,27 @@ lattice, not over all schedules, so "never" was never a property of it.
 
 **The exceptions are not an allocator defect.** Controlled by re-solving the
 classic allocator with a budget that hands it exactly the energy plan's work
-hours (`(m−1)·switchCost` added back): 16 of the 17 still scored below the
-energy plan under `Σ P̄` [2026-07-29: 20 of 24], and **every one of them is
-infeasible for the classic allocator** — cognitive load 4.35–7.20 h against the
-4 h pool, physical up to 7.20 h against 6 h. The load-bearing half of this
-paragraph is the "every one", and it reproduces on both draws; the counts do
-not, since the first draw recorded no seed. The energy model has no pool
-constraint at all (§8 substitutes reservoir
-dynamics), so it plans days the pooled allocator is forbidden to emit. On the
-plans it is allowed to emit, the classic allocator never loses its own
-objective.
+hours (`(m−1)·switchCost` added back): 15 of the 16 still scored below the
+energy plan under `Σ P̄` [2026-08-06: 16 of 17; 2026-07-29: 20 of 24], and
+**every one of them is infeasible for the classic allocator** — 15 of 15 —
+cognitive load 4.35–7.20 h against the 4 h pool, physical up to 6.68 h
+[2026-08-06: 7.20 h] against 6 h. The load-bearing half of this paragraph is
+the "every one", and it reproduces on all three draws; the counts do not — the
+first draw recorded no seed, and the 2026-08-13 solver commits moved the
+seeded ones. The energy model has no pool constraint at all (§8 substitutes
+reservoir dynamics), so it plans days the pooled allocator is forbidden to
+emit. On the plans it is allowed to emit, the classic allocator never loses
+its own objective.
 
 **How they differ, quantified.** The disagreement is systematic, and it is
 about concentration — the §0 spreading question, measured:
 
-- Funded tasks per day: energy **1.97** vs classic **3.96** [2.05 / 3.88].
-  Energy funds **more on 0 of 300 days** — not once, on either draw.
+- Funded tasks per day: energy **1.95** vs classic **3.96**
+  [2026-08-06: 1.97 / 3.96; 2026-07-29: 2.05 / 3.88]. Energy funds **more on
+  0 of 300 days** — not once, on any of the three draws.
 - Composition overlap `Σ min(share)`: mean 0.58, median 0.58, p10 0.33.
-  Identical funded set on **30/300 days (10%)** [49/300, 16%].
+  Identical funded set on **29/300 days (10%)** [2026-08-06: 30/300;
+  2026-07-29: 49/300, 16%].
 - Work planned: energy **92%** of budget (median 94%) vs classic **81%**
   (median 83%), despite λ₀ pricing free time. Classic reserves
   `(m−1)·switchCost` as overhead and caps each task at `T*` (past `T*`, `Σ P̄`

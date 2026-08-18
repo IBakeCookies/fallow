@@ -239,11 +239,11 @@ single-caller on 2026-07-23, when the same 39 sat behind 675 lines).
 
 Settled 2026-07-29, MATH.md §15. A 300-day cross-scoring probe: each model
 beats the other by tens of percent **on the other's objective** (classic wins
-`Σ P̄` on 283/300 days, energy wins its own on 298/300). The 17 exceptions are
+`Σ P̄` on 284/300 days, energy wins its own on 298/300). The 16 exceptions are
 plans the pooled allocator is forbidden to emit, so neither allocator is
 defective. No evidence can rank them; §12's audit is a descriptive signal, not
 a promotion gate. The user-facing difference the probe does establish: classic
-spreads (3.96 tasks/day), energy concentrates (1.97, and **never more** on
+spreads (3.96 tasks/day), energy concentrates (1.95, and **never more** on
 0/300 days). Keep both routes.
 
 ### Run order stays `calculateInterleavedOrder`'s nature alternation
