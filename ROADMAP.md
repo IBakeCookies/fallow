@@ -1057,6 +1057,15 @@ only way to catch.
   appended-last against 0.37 inserted-first"; `MATH.md:3319-3325` retracted it
   (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
   `rv13-stop-insertion.probe.ts`.
+  **Two of three sites fixed 2026-08-18,
+  [`what-the-retracted-step-still-said`](docs/features/what-the-retracted-step-still-said.md); does not close.** The third —
+  §8.10's own paragraph, which states the same pair as live fact — is held with
+  the reconstruction ruling and still reads it. Both of this entry's citations
+  are stale (`zenith-energy.ts:2028-2029` → `:2031-2032`; `MATH.md:3319-3325` →
+  the §13.4 retraction, several hundred lines down) and its prescription is
+  wrong: 0.8894/0.8840 are whole-day indifference midpoints, not a step
+  marginal, so the docblock drops the pair and cites §13.4 rather than
+  substituting them.
 - **M18 §28 / §31 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).** Upheld: 24 `label:` rows, 4
   headlines, Capacity Left the 24th. §28 and §31 now read twenty-four / twenty.
   Execution added that the count had rotted **twice**, across four sites holding
@@ -1163,6 +1172,17 @@ only way to catch.
   truth and nothing cited it. Direction unaffected: fewer dips, none larger.
   **This is the entry that argues cheapness is the wrong ranking axis** — the two
   drifted figures in the whole batch were both in the lead filed as citation-only.
+
+- **M37 §33** — the Energy Lab straddles the causal fit window.
+  `energy-lab-store.svelte.ts` has no date filter: the α fits read
+  `drainObservations` at `:569` and `:580` and the r fit reads
+  `restObservations` at `:615`, all unfiltered, while only λ₀ goes through
+  `readStopObservations(this.#session.today)` at `:200-201` — against §33's
+  rule that today's 🪫 stops moving the plan. Raised 2026-08-18 by the probe
+  sweep and confirmed by reading, but **not a doc edit**: it needs a ruling on
+  whether the Lab is "a plan for day D" at all, or a calibration surface that
+  should see every log the moment it lands. The only candidate wrong _shipped
+  behaviour_ either audit round turned up.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
