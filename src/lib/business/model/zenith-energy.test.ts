@@ -2650,7 +2650,7 @@ describe('Zenith Energy Model', () => {
 		// steps, so `dayValue` is a staircase and its RAW difference is a spike
 		// train: zero wherever a step failed to seat another block, then back up.
 		// Measured on the raw definition, 0 of 60 seeded days fell monotonically
-		// and 34 returned above zero after touching it. The majorant slope is what
+		// and 32 returned above zero after touching it. The majorant slope is what
 		// makes "it never rises" and "the last positive step is the recommendation"
 		// true statements (MATH.md §8.12, scripts/curve-shape.probe.ts).
 		it('values an hour of window at the concave-majorant slope, which never rises', () => {

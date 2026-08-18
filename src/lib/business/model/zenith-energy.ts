@@ -1178,7 +1178,7 @@ export interface BudgetCurvePoint {
 	 * another block", which is a question about the lattice and not about the
 	 * day: `plan(b)` books whole steps, so `dayValue` is a staircase and its
 	 * difference is a spike train that returns to zero and climbs back out — on
-	 * 34 of 60 seeded days, up to 11 times (MATH.md §8.12, and see
+	 * 32 of 60 seeded days, up to 11 times (MATH.md §8.12, and see
 	 * `scripts/curve-shape.probe.ts`). The hull slope asks the question the card
 	 * actually poses: over the stretch of window the lattice needed in order to
 	 * seat more work, what did an hour buy on average. It telescopes to the same
