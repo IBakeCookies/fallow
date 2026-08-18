@@ -545,10 +545,19 @@ them.
     most changed what the document says: the per-solve ladder was ~10× high, the
     421 ms cited in three code sites was 3.5× the truth, §14.4's "roughly a third"
     was measured **false**, and advisor cost turns out non-monotone in n, which no
-    finding had suspected. **Thirteen of the fourteen upheld findings are
-    closed**; the residue is **M11** alone (§13.6 cites a probe that never
-    existed — re-derive it in `rv13-terminal-timing.probe.ts` or label it unbacked
-    per §15.1's precedent).
+    finding had suspected. **M11 is closed** (2026-08-18,
+    [`what-the-lab-tile-was-measured-with`](docs/features/what-the-lab-tile-was-measured-with.md)) —
+    §13.6's two sets did not survive equally: the ladder reproduces on all twelve
+    cells because its prose pins its own fixture, while the shipped-optimum pair
+    needed a task set nobody wrote down and is withdrawn. **All fourteen upheld
+    findings are closed and item 31 is done.** Every one was upheld on execution,
+    and the pattern across them is worth keeping: the audit found claims wrong by
+    3.5× (421 ms) and ~10× (the per-solve ladder), one measured outright false
+    (§14.4's "roughly a third"), and two number-sets citing probe files that were
+    never committed (§13.6's here, §15.1's already labelled). Closing them also
+    turned up defects no finding had named — §21.1's second copy of M2's own
+    defect, §14's drifted frontier denominator — which is the argument for
+    executing an audit's findings rather than filing them.
 
 ## Phase 4 — multi-day horizon
 
@@ -813,6 +822,15 @@ each handed to a skeptic told to refute them and survived; **M14–M21 and M23�
 were raised and not verified** — they are leads, and item 29's rule applies, so
 quote none of them as a result until its own check is run.
 
+**Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
+some by hundreds of lines — closing the fourteen upheld findings added six §10
+entries and re-measured several sections, and §34's citation, for one, is now
+~600 lines further down. Grep the quoted text, not the line. They are not being
+swept: each lead has to be re-located when its own check is run anyway, and
+twenty re-guessed line numbers would read as verified when only the quoted text
+is. The same drift is what M1, M3 and M11 each found in `MATH.md`'s own
+citations, and it is the argument for citing text over position.
+
 **Nothing below was executed.** The audit read `MATH.md`, the code and the probe
 sources. It ran no probe, no test and no solve, and it re-measured nothing, so
 every figure quoted here is transcribed from `MATH.md` or from a probe source
@@ -950,11 +968,23 @@ only way to catch.
   by value — and the sweep showed the state is the **generic** 3-task day at that
   budget (58/58 and 4560/4560), not the corner the section implied, which
   strengthens the independent-suppression decision rather than weakening it.
-- **M11 §13.6** — `MATH.md:3435-3451` cites `scratchpad/rv-energy-readouts.probe.ts`,
-  which exists nowhere in the tree or in git history; the 12 h worked-hours
-  ladder and the 0.890/0.469 pair are reproduced by nothing
-  (`rv13-terminal-timing.probe.ts` covers only the 10 h table and the 6 h/8 h
-  pair). Re-derive it there, or label it unbacked per §15.1's precedent.
+- **M11 §13.6 — closed 2026-08-18,
+  [`what-the-lab-tile-was-measured-with`](docs/features/what-the-lab-tile-was-measured-with.md).**
+  The finding was that §13.6 cited `scratchpad/rv-energy-readouts.probe.ts`,
+  which exists nowhere in the tree or in git history, for two number-sets that
+  `rv13-terminal-timing.probe.ts` did not cover. **Upheld, and the two halves
+  did not survive equally** — which is what execution added. The 12 h ladder
+  reproduces on **all twelve cited cells**, because the fixture is pinned by the
+  section's own prose: `simulateReservoirs` reads the two demands and the params
+  and neither `difficulty` nor `enjoyment`, so nothing unstated could have moved
+  it. The 0.890/0.469 pair is **withdrawn**: an optimized plan reads difficulty
+  and enjoyment through the objective, no plausible task set reproduces it, and
+  it is unreachable from the ladder's shape at all. §13.6 now quotes the ladder's
+  own task optimized (0.9995/0.4542), which makes the paragraph's point by a
+  wider margin. §15.1's unbacked label was the fallback and was not needed.
+  One reported defect was rejected on checking and recorded as rejected: the
+  "fixed 2026-08-07" date is a timezone boundary (8f01ca8, authored 08-08 01:03
+  +0200, committed 08-07 23:03 UTC), not a wrong fact.
 - **M12 §8.10 — closed 2026-08-17,
   [`what-the-open-task-scope-is-worth`](docs/features/what-the-open-task-scope-is-worth.md).**
   The finding was §8.10's "1.32 → 1.16" for the 2026-08-12 open-task correction,
