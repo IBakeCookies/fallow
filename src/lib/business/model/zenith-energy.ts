@@ -2028,10 +2028,8 @@ function reconstructStopDay(
 /**
  * The reconstructed day grown by `hours` more on task `t`. An unlogged task
  * is inserted at ITS canonical position, not appended last: block order
- * changes the marginal through the reservoirs — the same step measured 0.65
- * appended-last vs 0.37 inserted-first on the probe day — so appending made
- * the reading depend on an arbitrary convention rather than on the day
- * (MATH.md §13.4).
+ * changes the marginal through the reservoirs, so appending made the reading
+ * depend on an arbitrary convention rather than on the day (MATH.md §13.4).
  */
 function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): ScheduleBlock[] {
 	if (day.byTask.has(t.id)) {
