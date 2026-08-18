@@ -835,7 +835,8 @@ each handed to a skeptic told to refute them and survived; **M14–M21 and M23�
 were raised and not verified** — they are leads, and item 29's rule applies, so
 quote none of them as a result until its own check is run. **M27, M28, M31, M32
 and M36 were closed on 2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), which took the four registry
-holes below with them; the remaining seventeen are still leads.
+holes below with them, and **M18–M21 the same day**
+([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); the remaining thirteen are still leads.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1055,21 +1056,29 @@ only way to catch.
   appended-last against 0.37 inserted-first"; `MATH.md:3319-3325` retracted it
   (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
   `rv13-stop-insertion.probe.ts`.
-- **M18 §28 / §31** — `MATH.md:5759` and `:6072` say twenty-three readings and
-  "the other nineteen"; `metric-descriptor.ts` now has 24 `label:` rows (Capacity
-  Left, commit 0519c17) and 4 headlines, and `metrics-dashboard.svelte:15`, `:69`
-  still say 23 / 19. Either restate as 24/20 or derive the count.
-- **M19 §28** — no `MATH.md §28` in the tree, yet `metric-descriptor.ts:10-15`
-  paraphrases its four-headline decision including the Fallow Gain exclusion, and
-  the four `headline: true` flags carry no citation.
-- **M20 §32** — no `MATH.md §32` in the tree. Defect 1's gate
-  (`metric-descriptor.ts:95-102`) cites nothing; defect 2's rule
-  (`metric/history.ts:240-242`) cites a bare `(§29)`, which states the null, not
-  the bar-sizing decision.
-- **M21 §16** — `MATH.md:4470-4474` says "both consumers"; there are three
-  (`metric/calculation.ts:963-965`, called from `daily-metrics.ts:134`,
-  `calculation.ts:612`, `remaining-day.ts:167`, `energy-lab-store.svelte.ts:373`).
-  Add the §35 next-up reader.
+- **M18 §28 / §31 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).** Upheld: 24 `label:` rows, 4
+  headlines, Capacity Left the 24th. §28 and §31 now read twenty-four / twenty.
+  Execution added that the count had rotted **twice**, across four sites holding
+  one fact with no check between them — so `metrics-dashboard.svelte` drops its
+  two literals instead of bumping them (the component filters an array it is
+  handed and cannot know the count), and `metric-descriptor.test.ts` pins 24 rows
+  and 4 headlines so a 25th fails the suite.
+- **M19 §28 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).** Premise held: §28 was cited
+  nowhere in `src`, `e2e`, `scripts` or `docs`. The docblock paragraph that
+  paraphrases the decision now cites it; the four `headline: true` flags stay
+  uncited, because the docblock is where this file puts sections and repeating
+  §28 four times restates it.
+- **M20 §32 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).** Premise held (`git grep 'MATH.md §32'`
+  returned only this lead). Defect 1's gate now cites §32. `history.ts` is
+  **declined**: §32's own defect-2 paragraph blesses that bare `(§29)`, and since
+  8babd94 the bar-sizing decision is made in `quadrant-distribution.svelte`, which
+  is where the `(§32)` went. Execution turned up that §32 itself was stale — its
+  fix paragraph and its "Pinned in the suite" line both described a `total` prop
+  8babd94 deleted on 2026-08-12; both now describe the shipped derivation.
+- **M21 §16 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).** Four callers, confirmed by grep.
+  `MATH.md` §16 had already been corrected to four by be1bc26 the same day; only
+  `calculateInterleavedOrder`'s docstring still said three, and it now names
+  `EnergyLabStore`'s classic schedule as the fourth.
 - **M23 §8.10** — `MATH.md:1872-1874` "runs the full conditioning chain on ALL
   logs", superseded by §33 and by `session-history.ts:418-426` (`date < today`).
 - **M24 §11.8** — `MATH.md:2710-2713` names `outputVsClassic`; the field is

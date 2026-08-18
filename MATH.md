@@ -6433,7 +6433,7 @@ denominators.
 
 ## 28. Which four readings are headlines (2026-08-07)
 
-Twenty-three readings, four tiles. The other nineteen sit behind a disclosure, so
+Twenty-four readings, four tiles. The other twenty sit behind a disclosure, so
 the choice of four is the whole of what a returning user sees. It had never been
 made against a stated test; §21 flagged the consequence and deliberately left it
 open. The test used here, applied to each reading:
@@ -6746,7 +6746,7 @@ that switch cost and the capacity pools reach at all.
 
 ## 31. What history can plot, and what it cannot (2026-08-07)
 
-Twenty-three readings exist for today and none of them for any other day. The
+Twenty-four readings exist for today and none of them for any other day. The
 analytics screen plots one — the priority-weighted completion rate — because
 that is the one §29 established as exact off the cheap solve: priority is
 intrinsic (§3), so it does not move with the allocation. Everything else on the
@@ -6970,10 +6970,10 @@ zero-budget day they sum to less than the bar's width and **every profile's
 share reads low**. A week of five recorded days with one zero-budget day filled
 the bar to 80% and understated each segment by a fifth.
 
-The component was never wrong: its prop doc already said "Days in the range that
-have a profile at all — the bar's 100%". The caller was not passing that. It now
-passes the sum of the counts, which is that quantity by construction and cannot
-drift from `countQuadrants` the way a second independent count would.
+The component no longer takes a denominator at all. It derives the bar's 100%
+from the `counts` it already receives, which is that quantity by construction,
+so no caller can put it out of step with the segments the way a second
+independent count would.
 
 Reachability, since it decides whether this is a real defect or a hypothetical:
 `SessionStore` autosaves as soon as `tasks.length > 0`, so adding a task before
@@ -6988,8 +6988,8 @@ reaches the store.
 
 `metric-descriptor.test.ts`: both rows reading N/A on a day with tasks and a
 budget too small to fund one, beside the existing no-budget case.
-`quadrant-distribution.stories.svelte`: the segments tiling the bar to 100% when
-`total` is the sum of the counts.
+`quadrant-distribution.stories.svelte`: the segments tiling the bar to 100%
+structurally, since the sum is derived from the counts the bar draws.
 
 Unchanged: `calculateScheduleIntegrity`, `calculateFrictionIndex`,
 `countQuadrants` and `calculateDailyQuadrant` — every sentinel and every `null`

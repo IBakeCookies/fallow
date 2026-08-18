@@ -7,12 +7,12 @@
  * (AGENTS.md R3). The numbers come from `calculateDailyMetrics`; nothing here
  * computes.
  *
- * Four readings carry `headline` and are promoted to tiles: the three that judge
- * whether today's plan is one a person can actually finish — Flow Coverage,
- * Human Capacity, Burnout Risk — and the one that answers how far through it you
- * are, Completion Rate. The rest are reference. Fallow Gain is deliberately not
- * among them: it judges the allocator, not the day, and there is no action a
- * reader can take on it.
+ * Four readings carry `headline` and are promoted to tiles (MATH.md §28): the
+ * three that judge whether today's plan is one a person can actually finish —
+ * Flow Coverage, Human Capacity, Burnout Risk — and the one that answers how far
+ * through it you are, Completion Rate. The rest are reference. Fallow Gain is
+ * deliberately not among them: it judges the allocator, not the day, and there
+ * is no action a reader can take on it.
  *
  * A reading is gated on the inputs it needs: a metric that is undefined without
  * tasks, without active tasks, without a budget or — for the executed capacity
@@ -92,9 +92,10 @@ export function buildMetrics(
 	const hasActive = metrics.activeTasks.length > 0;
 	const hasBudget = metrics.budgetHours > 0;
 	const planned = hasTasks && hasBudget;
-	// Tasks and a budget are not enough for the two allocation-shape readings:
-	// both short-circuit to a 0 sentinel when the plan funds NOTHING — a budget
-	// too small for any task to fit — and 0 is a verdict in both directions.
+	// Tasks and a budget are not enough for the two allocation-shape readings
+	// (MATH.md §32): both short-circuit to a 0 sentinel when the plan funds
+	// NOTHING — a budget too small for any task to fit — and 0 is a verdict in
+	// both directions.
 	// Schedule Integrity reads it critical (the alarm about nothing the comment
 	// below already claimed to prevent) and Friction Index reads it 'success',
 	// promising a frictionless day that was never planned. It is the case the

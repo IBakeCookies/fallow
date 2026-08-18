@@ -12,8 +12,9 @@
 
 	let { metrics, momentum }: Props = $props();
 
-	// 23 equal rows is a spreadsheet: Burnout Risk read exactly like Avg Enjoyment.
-	// The headline four get tiles; the rest stay one click away rather than gone.
+	// Every reading at equal weight is a spreadsheet: Burnout Risk read exactly
+	// like Avg Enjoyment. The headline four get tiles; the rest stay one click
+	// away rather than gone.
 	const headline = $derived(metrics.filter((item) => item.headline));
 	const rest = $derived(metrics.filter((item) => !item.headline));
 
@@ -67,7 +68,7 @@
 	</div>
 
 	<!-- The remaining readings are reference, not headline: one click away rather
-	     than 19 rows of equal weight burying the four that matter. -->
+	     than the rest at equal weight burying the four that matter. -->
 	{#if rest.length > 0}
 		<div class="border-t border-line-soft my-grid-sm"></div>
 
