@@ -87,47 +87,47 @@ that are not evident from reading it — so never retype a row, regenerate:
   §13.4   3763-3799  The stopping fit probed unlogged tasks at an arbitrary p…
   §13.5   3801-3838  Also in this change
   §13.6   3840-3997  The two end-of-day energy readings: a timing difference,…
-§14       3999-4787  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   4230-4370  Five corrections to the first cut (2026-07-28)
-  §14.2   4372-4516  The marginal of the budget (added 2026-08-03)
-  §14.3   4518-4724  The price of the switch cost (added 2026-08-04)
-  §14.4   4726-4787  An empty frontier is a reading (2026-08-08)
-§15       4789-4947  Two objectives, two modes (2026-07-29)
-  §15.1   4875-4947  The copy named the wrong objective for both modes (2026-…
-§16       4949-5037  Run order stays a heuristic (2026-07-29)
-§17       5039-5197  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       5199-5281  Drain logs are one row per SESSION, not per task-day (20…
-§19       5283-5554  The gain's naive baseline paid for switches it never mad…
-  §19.1   5301-5360  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5362-5390  Defect 2 — the displayed number moved with the order of …
-  §19.3   5392-5481  What this costs, and the one guarantee that weakened
-  §19.4   5483-5554  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       5556-5618  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5597-5618  The tie went to cognitive, so the row blamed the wrong p…
-§21       5620-5788  What the gain has room to report (2026-08-07)
-  §21.1   5642-5662  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5664-5687  Why shape has a low ceiling: the activation bonus
-  §21.3   5689-5709  Population distribution
-  §21.4   5711-5742  The number is a property of the comparison, not of the o…
-  §21.5   5744-5759  Under the total-output objective the ranking inverts
-  §21.6   5761-5788  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5790-5858  Task nature: an absolute gap could not carry a range tha…
-§23       5860-6002  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5901-5968  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5970-6002  Longest Warm-Up: what E/β was actually tracking
-§24       6004-6067  Task Variety counted labels, and its repair was Energy B…
-§25       6069-6218  Cognitive and Physical Load: the definition, and what ro…
-§26       6220-6326  Deep Work: a step that swung whole blocks, under a band …
-§27       6328-6445  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6447-6501  Which four readings are headlines (2026-08-07)
-§29       6503-6676  Day Profile: one cut for two different scales, on a day …
-§30       6678-6758  The Lab's comparison tile scored the plan on the one thi…
-§31       6760-6941  What history can plot, and what it cannot (2026-08-07)
-§32       6943-7009  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       7011-7128  A plan reads only the logs that precede it (2026-08-08)
-§34       7130-7360  The subset search gave up one task too early (2026-08-08)
-§35       7362-7716  The plan cannot see the hours you already spent (2026-08…
-§36       7718-7789  What a correction may touch (2026-08-10)
+§14       3999-4798  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4230-4376  Five corrections to the first cut (2026-07-28)
+  §14.2   4378-4527  The marginal of the budget (added 2026-08-03)
+  §14.3   4529-4735  The price of the switch cost (added 2026-08-04)
+  §14.4   4737-4798  An empty frontier is a reading (2026-08-08)
+§15       4800-4958  Two objectives, two modes (2026-07-29)
+  §15.1   4886-4958  The copy named the wrong objective for both modes (2026-…
+§16       4960-5048  Run order stays a heuristic (2026-07-29)
+§17       5050-5208  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5210-5292  Drain logs are one row per SESSION, not per task-day (20…
+§19       5294-5565  The gain's naive baseline paid for switches it never mad…
+  §19.1   5312-5371  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5373-5401  Defect 2 — the displayed number moved with the order of …
+  §19.3   5403-5492  What this costs, and the one guarantee that weakened
+  §19.4   5494-5565  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5567-5629  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5608-5629  The tie went to cognitive, so the row blamed the wrong p…
+§21       5631-5799  What the gain has room to report (2026-08-07)
+  §21.1   5653-5673  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5675-5698  Why shape has a low ceiling: the activation bonus
+  §21.3   5700-5720  Population distribution
+  §21.4   5722-5753  The number is a property of the comparison, not of the o…
+  §21.5   5755-5770  Under the total-output objective the ranking inverts
+  §21.6   5772-5799  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5801-5869  Task nature: an absolute gap could not carry a range tha…
+§23       5871-6013  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5912-5979  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5981-6013  Longest Warm-Up: what E/β was actually tracking
+§24       6015-6078  Task Variety counted labels, and its repair was Energy B…
+§25       6080-6229  Cognitive and Physical Load: the definition, and what ro…
+§26       6231-6337  Deep Work: a step that swung whole blocks, under a band …
+§27       6339-6456  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6458-6512  Which four readings are headlines (2026-08-07)
+§29       6514-6687  Day Profile: one cut for two different scales, on a day …
+§30       6689-6769  The Lab's comparison tile scored the plan on the one thi…
+§31       6771-6952  What history can plot, and what it cannot (2026-08-07)
+§32       6954-7020  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       7022-7139  A plan reads only the logs that precede it (2026-08-08)
+§34       7141-7371  The subset search gave up one task too early (2026-08-08)
+§35       7373-7727  The plan cannot see the hours you already spent (2026-08…
+§36       7729-7800  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -4340,13 +4340,19 @@ cheaper than inventing one.
 
 **4. Card truncation dropped the end of the frontier this section exists to
 surface.** The walk keeps only strictly increasing plan values, so the frontier
-is monotone in plan value by construction — 0 of 4450 priced frontiers violate
-it (2026-08-06, `scripts/adv1-plan-advice-frontier.probe.ts`) —
+is monotone in plan value by construction — 0 of 4112 priced frontiers violate
+it (re-measured 2026-08-18, `scripts/adv1-plan-advice-frontier.probe.ts`;
+[2026-08-06: the same 0, over 4450]) —
 which makes the **last** row the cheapest option, the "most of the relief for a
 fraction of the cost" one. `slice(0, maxOptions)` therefore cut exactly that.
-Rare but exactly backwards when it fired: **15 of 4450** frontiers exceed 3
-options, longest **4** (2961 hold a single option). Fix: keep both ends —
-`maxOptions − 1` from the front plus the last — and drop from the middle.
+Rare but exactly backwards when it fired: **27 of 4112** frontiers exceed 3
+options — 0.66%, against 0.34% on the 2026-08-06 draw — longest **5** (2468
+hold a single option). [2026-08-06: 15 of 4450, longest 4, 2961 single-option,
+and that last count was already one off when written: at `8f01ca8^` the probe
+prints 2960.] Fix: keep both ends — `maxOptions − 1` from the front plus the
+last — and drop from the middle. The longest frontier growing from 4 to 5 does
+not touch that fix: `cap()` (`plan-advice-descriptor.ts:296`) keeps both ends at
+any length.
 
 **5. The empty plan read as perfectly balanced, and the advisor chased it.**
 Found in live use the same day, not by the sweep — the sweep's budgets started
@@ -4438,10 +4444,14 @@ is why the scoping above was found by review rather than by the sweep):
 - **On 54% of days another block buys nothing at all** (216/400: no recipient,
   gain 0 — re-measured 2026-08-06; the 35% once printed here does not reproduce
   under any reading of this space).
-- **On all but one of those days (215/216) the card was still offering "work an
-  extra hour."** The exception funds 3 tasks for 1 h inside a 7.75 h budget with
-  pools 5/0.5: both Load axes are rounded to whole percent, so on a pool-starved
-  day the wider budget moves no axis at all and no lever is offered.
+- **On every one of those days (216/216) the card was still offering "work an
+  extra hour."** Re-measured 2026-08-18; [2026-08-06: 215/216, with one
+  exception — a day funding 3 tasks for 1 h inside a 7.75 h budget with pools
+  5/0.5, where both Load axes were still rounded to whole percent in the model,
+  so on a pool-starved day the wider budget moved no axis at all and no lever
+  was offered. That mechanism is still the right explanation of the day it
+  described; the day is what no longer exists, because `8f01ca8` (2026-08-08)
+  made the Loads exact and left the whole-percent rounding to display, §25.]
   Not a defect in §14.1-1's split, which was about domination, not about
   suppression: Cognitive and Physical Load are `weightedHours / budget` (§25),
   so a wider budget lowers them by denominator mechanics with no allocation
@@ -4486,9 +4496,10 @@ Two reasons that do survive:
 
 **A zero marginal does not retire the unpriced `budget + 1` lever, and must not
 be wired to suppress it.** The two co-occur constantly: on the **54%** of probe
-days where another block buys no Σ P̄, **all but one** still offered the extra
-hour somewhere on the menu (216/400 and 215/216, as measured above — this
-paragraph carried the superseded 35% and "every one" pair).
+days where another block buys no Σ P̄, **every one** still offered the extra
+hour somewhere on the menu (216/400 and 216/216, as measured above — the
+2026-08-06 draw read 215/216, and `8f01ca8` retired that one exception when it
+made both Load axes exact).
 That is not a contradiction, because the two readings
 measure different things. The marginal is Σ P̄ — output. The lever appears on any
 axis it improves, and Cognitive and Physical Load are `weightedHours / budget`

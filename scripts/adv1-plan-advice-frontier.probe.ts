@@ -22,7 +22,7 @@
  * reaches from a 0 h budget is measured here on the suite's own grind day.
  *
  * Same generator, seed and day count as `plan-advice.probe.ts` (600 days,
- * seed 42), so these counts compose with its 404 trim levers and 4450 priced
+ * seed 42), so these counts compose with its 404 trim levers and 4112 priced
  * frontiers rather than describing a different sample.
  *
  * Usage: npm run probe
