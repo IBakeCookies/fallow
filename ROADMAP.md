@@ -837,7 +837,9 @@ were raised and not verified** — they are leads, and item 29's rule applies, s
 quote none of them as a result until its own check is run. **M27, M28, M31, M32
 and M36 were closed on 2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), which took the four registry
 holes below with them, and **M18–M21 the same day**
-([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); the remaining thirteen are still leads.
+([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
+2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)). Six are still
+leads: M17 (two of its three sites landed), M23, M33, M34, M35 and M37.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1043,16 +1045,44 @@ only way to catch.
 
 ### Raised and not verified
 
-- **M14 §3** — `MATH.md:347-348` calls the priority score the intrinsic value;
-  the code ships `intrinsicValue * 10` rounded to 1 dp
-  (`metric/calculation.ts:229`) while `metric/remaining-day.ts:154` passes the
-  raw value. Document the rescale and both scales.
-- **M15 §5** — `MATH.md:486-488` says robust allocation "is now implemented";
-  `zenith.ts:1995-1997` still says the allocator "currently consumes only the
-  posterior mean", contradicted by `:1184` and `:1282-1285`.
-- **M16 §5.2** — `MATH.md:598-599` "five rows (four fits)" against
-  `session-history.ts:341` "the four rows of the card" and
-  `calibration-descriptor.ts:8-11` "the other three". Settle the count once.
+- **M14 §3 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).** Upheld: two scales ship and §3 named
+  one. §3 now states both — `SuggestedTask.priorityScore` is
+  `Number((P̄(T*)·10).toFixed(1))` at `metric/calculation.ts`, the printed figure,
+  the weight in `completionRate` and `yieldIndex`, and the key
+  `calculateSuggestedTasks` sorts by, against `metric/remaining-day.ts`, which
+  passes P̄(T*) un-rescaled and deliberately — and it says the ×10 is
+  order-preserving where the 1 dp rounding is not. **Every consequence figure was
+  left out.** The lead's headline "2.76% of days print an inverted list" measures
+  `calculateSuggestedTasks`'s array, not the page: `task-list.svelte` re-sorts
+  the funded group by `#N`, and its "1,2,5,4,3" example day funds all five tasks,
+  so the page prints 1,4,2,3,5. Nothing committed prints the rendered order;
+  quoting a percentage needs `scripts/priority-scale.probe.ts`, which nobody has
+  written, so §3 states the two scales and the rounding qualitatively.
+- **M15 §5 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).** Upheld in the docblock only, and **the
+  obvious repair was wrong.** §5 and §5.1 are true of the shipped allocator: it
+  consumes the posterior covariance through `phiParameterStd` whenever a
+  posterior is passed, which the store always does, and the prior posterior keeps
+  σ_ϕ > 0 from zero logs. The false clause sits on `phiPredictionStd` — a
+  function the allocator deliberately never consumes, because its σ̂² term is the
+  user's own day-to-day scatter rather than measurement debt — so "the allocator
+  consumes this now" would have swapped one false sentence for another. The
+  docblock now points at `phiParameterStd`, and §5 names which of the two shipped
+  so the `phiPredictionStd` two lines above it cannot be carried into the
+  allocator. Reported, not fixed: `phiPredictionStd` has **no production caller
+  at all**, and the ϕ row prints no ± band either. Execution turned up the
+  round's second transcribed figure, which the lead's own verdict had declared
+  clean: §13.1's σ_ϕ at n = 200 read **0.003**, a second rounding of the probe's
+  4 dp display 0.0025. `rv13-prior-posterior.probe.ts` now prints 6 dp and the
+  cell reads **0.002473**, in both table rows and in `zenith.ts`.
+- **M16 §5.2 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).** Upheld, and none of the three
+  phrasings was the right one: §5.2 had the row count right and the fit count
+  wrong, while both source comments were plain undercounts. Five fits reach the
+  card (ϕ, r, α_cog, α_phys, λ₀ — §8.7 calls α_cog/α_phys two independent fits),
+  so §5.2 now states the split it was reaching for, the recency-weighted ϕ row
+  against four unweighted fits, rather than a tally. The likeliest source of
+  "(four fits)" is §5.2's own "The three energy fits" eight lines up — ϕ plus
+  three, λ₀ forgotten — and the reword is needed under all three readings of it.
+  Doc and comments only; the shipped card and its count formatting were green.
 - **M17 §13.4** — `zenith-energy.ts:2028-2029` still quotes the retracted "0.65
   appended-last against 0.37 inserted-first"; `MATH.md:3319-3325` retracted it
   (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
@@ -1107,12 +1137,30 @@ only way to catch.
   they landed. Renaming `scripts/rv16-output-vs-classic.probe.ts` is
   **declined** — its subject is the `totalOutput` "before" row and the registry
   is intact at 60/60.
-- **M25 §1** — the whole parameter map ships with no section reference
-  (`zenith.ts:83-85`, `:135`, `:146-148`, `:154-156`, `:164`, `:170-174`,
-  `:186-188`, `:198-200`); contrast `:215`.
-- **M26 §8.7** — `drain-log-form.svelte:23` cites §8.8 for the hours input, but
-  nothing cites §8.7's `d/10 = 1 − C(H)` reading (`rest-log-form.svelte:7` is the
-  correct sibling).
+- **M25 §1 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).** Premise held at every site, and the
+  scoping did not. Nine `zenith.ts` definitions now cite §1 — including
+  `calculateTaskParams`, the site the lead missed, which assembles the whole map
+  and applies the cap — and §1 gained the back-references its own registry policy
+  asks for (`curve-marginal-facts.probe.ts` for the cap, `zenith.test.ts` for the
+  maps). The per-field comments, `amplitudeRatio` and the `UserConstants` fields
+  stay uncited, this file's idiom; `DEFAULT_SWITCH_COST` is uncited too but is
+  §4/§14, out of scope. Two corrections: §1 was **already cited six times**
+  elsewhere in the repo, so the map was uncited at its definitions rather than
+  un-findable, and **no rule was broken** — R7's citation clause fires on a
+  change to a formula, constant, bound or fit, and every one of these sites
+  predates it. At `AMPLITUDE_RATIO_CAP` the citation **replaced** a near-verbatim
+  restatement of §1's paragraph rather than sitting on top of it (AGENTS.md:62,
+  not the restatement clause at :61 the lead reached for).
+- **M26 §8.7 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).** Half upheld, and the wrong half was
+  the fix. The §8.8 citation is not incomplete but plainly wrong — §8.8 is the
+  45-minute plan lattice and fits nothing, and the form's 1-minute input is
+  deliberately off that lattice — so both sites now read §8.7 and the payload
+  docblock mirrors `rest-log-form`'s units sentence. The other half is
+  **refuted**: §8.7's `d/10 = 1 − C(H)` reading is cited from four places, and
+  the form does not implement it — it collects minutes and two raw 0–10 ratings,
+  and the `/10` map lives downstream in `energy-calibration`. The second site
+  (`drain-log-form.stories.svelte`) is one the lead did not name; landing either
+  alone would have left the two files disagreeing.
 - **M27 §22 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** The exhaustive
   121-pair enumeration upholds the four moved pairs and both balanced rates
   (49/121 = 40.5% → 45/121 = 37.2%, and 44/100 over 1–10 either way). "22 of

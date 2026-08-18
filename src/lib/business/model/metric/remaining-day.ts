@@ -138,8 +138,8 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 
 	const hoursByTask = new Map<number, number>();
 	// The same set, carrying what sequencing needs. Priority is the intrinsic
-	// P̄(T*) the plan rescales by 10 (MATH.md §3) — un-rescaled here so the formula
-	// stays defined in one place; ×10 orders identically.
+	// P̄(T*) the plan rescales to a printed 1 dp figure (MATH.md §3) — un-rescaled
+	// here, which is strictly finer: the rounding ties values this order separates.
 	const funded = [] as (Task & { suggestedHours: number; priorityScore: number })[];
 
 	allocations.forEach((allocation, index) => {

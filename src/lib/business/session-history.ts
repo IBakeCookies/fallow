@@ -338,7 +338,7 @@ export interface FitTrend {
  * legible number next to its default.
  *
  * Only the ϕ fit is recency-weighted (§5.2); r, α and λ₀ read their whole log
- * history at equal weight, so the four rows of the card do not all answer
+ * history at equal weight, so the five rows of the card do not all answer
  * "over what period?" the same way.
  */
 export interface CalibrationSnapshot {

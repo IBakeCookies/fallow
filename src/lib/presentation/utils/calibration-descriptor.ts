@@ -7,7 +7,7 @@
 
    The counts are each fit's OWN `usedCount` — informative observations, not raw
    log rows. The ϕ row's is additionally recency-weighted, so it is a fresh-log
-   equivalent and prints with a decimal (MATH.md §5.2); the other three are
+   equivalent and prints with a decimal (MATH.md §5.2); the other four are
    whole counts. */
 
 import * as m from '$lib/paraglide/messages.js';

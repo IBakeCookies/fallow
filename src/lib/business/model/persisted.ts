@@ -244,7 +244,7 @@ const SNAPSHOT_NUMBERS = [
 	'stoppingValue',
 ] as const;
 
-/** A 3×3 matrix of finite numbers, or null — the shape `phiPredictionStd` indexes. */
+/** A 3×3 matrix of finite numbers, or null — the shape σ_ϕ = √(xᵀΣx) indexes. */
 function covarianceOf(value: unknown): number[][] | null {
 	if (!Array.isArray(value) || value.length !== 3) return null;
 

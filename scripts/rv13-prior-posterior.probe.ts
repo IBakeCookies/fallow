@@ -122,7 +122,7 @@ describe('MATH.md §13.1 — the prior as a posterior', () => {
 
 		for (const n of [0, 1, 5, 20, 200]) {
 			const measured = phiParameterStd(E, BETA, fitUserConstants(logs(n)).posterior);
-			console.log(`n=${n}: σ_ϕ ${measured.toFixed(4)} h (closed form ${closed(n).toFixed(4)})`);
+			console.log(`n=${n}: σ_ϕ ${measured.toFixed(6)} h (closed form ${closed(n).toFixed(6)})`);
 			expect(measured).toBeCloseTo(closed(n), 9);
 			// The whole point of §13.1: uncertainty is monotone in data.
 			expect(measured).toBeLessThanOrEqual(previous);

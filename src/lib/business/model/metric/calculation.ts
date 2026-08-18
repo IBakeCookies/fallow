@@ -221,6 +221,7 @@ export function calculateTaskPlan(
 				// (MATH.md §3). (Model v2: T* and P̄(T*) are task-dependent, so the
 				// allocator computes them per task — the old
 				// (a+p₀)×OPTIMAL_AVG_FRACTION reconstruction no longer applies.)
+				// ×10 at 1 dp is the printed scale, applied once here (MATH.md §3).
 				const intrinsicValue = alloc.optimalAvgProductivity;
 
 				return {
