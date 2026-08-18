@@ -466,8 +466,9 @@ defects it found without fixing.
     SETTLED 2026-08-06: all three now have committed, seeded probes and the
     sections quote them. §14.3 is **112 inversions over 71,520** configurations
     with the grid stated (`scripts/adv2-switch-cost-price.probe.ts`); §15 is
-    **283/300** (`scripts/mode-cross-scoring.probe.ts`, seed `0x290729`); §16's
-    median holds at **+0.47%**, p90 +1.50%, max +3.96%
+    **284/300** (`scripts/mode-cross-scoring.probe.ts`, seed `0x290729`;
+    283/300 when settled, re-measured 2026-08-18); §16's median holds at
+    **+0.47%**, p90 +1.50%, max +3.96%
     (`scripts/mode-run-order.probe.ts`).
     (g) **§12's ±0.05 adherence verdict band has no noise model** — §12 says so
     outright ("no noise model") while printing one English verdict decided by
