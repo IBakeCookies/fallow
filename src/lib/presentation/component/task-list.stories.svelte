@@ -92,8 +92,17 @@
 	play={async ({ canvas }) => {
 		const [sequence, dropped] = canvas.getAllByRole('list');
 
-		await expect(canvas.getByRole('heading', { name: "Today's sequence" })).toBeVisible();
-		await expect(canvas.getByRole('heading', { name: 'No time today' })).toBeVisible();
+		await expect(
+			canvas.getByRole('heading', {
+				name: "Today's sequence",
+			}),
+		).toBeVisible();
+
+		await expect(
+			canvas.getByRole('heading', {
+				name: 'No time today',
+			}),
+		).toBeVisible();
 
 		// The sequence counts down the page, and the completed task holds position 2
 		// between the two active rows instead of sinking below them
@@ -102,6 +111,7 @@
 			expect.stringContaining('stretching'),
 			expect.stringContaining('write the calibration section'),
 		]);
+
 		await expect(canvas.getByText('#1')).toBeVisible();
 		await expect(canvas.getByText('#3')).toBeVisible();
 
@@ -131,7 +141,12 @@
 		// A list, so a screen reader announces how many tasks the day holds
 		expect(canvas.getAllByRole('list')).toHaveLength(1);
 		expect(canvas.getAllByRole('listitem')).toHaveLength(3);
-		expect(canvas.queryByRole('heading', { name: "Today's sequence" })).not.toBeInTheDocument();
+
+		expect(
+			canvas.queryByRole('heading', {
+				name: "Today's sequence",
+			}),
+		).not.toBeInTheDocument();
 
 		// No form supplied, so nothing sits between the heading's row and the list.
 		// Read from the row, not the heading: the heading shares it with "Next", and
