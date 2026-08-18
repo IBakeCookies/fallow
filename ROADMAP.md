@@ -550,7 +550,8 @@ them.
     §13.6's two sets did not survive equally: the ladder reproduces on all twelve
     cells because its prose pins its own fixture, while the shipped-optimum pair
     needed a task set nobody wrote down and is withdrawn. **All fourteen upheld
-    findings are closed and item 31 is done.** Every one was upheld on execution,
+    findings are closed**, which is the half of item 31 ranked by whether a
+    shipped number is wrong. Every one was upheld on execution,
     and the pattern across them is worth keeping: the audit found claims wrong by
     3.5× (421 ms) and ~10× (the per-solve ladder), one measured outright false
     (§14.4's "roughly a third"), and two number-sets citing probe files that were
@@ -558,6 +559,18 @@ them.
     turned up defects no finding had named — §21.1's second copy of M2's own
     defect, §14's drifted frontier denominator — which is the argument for
     executing an audit's findings rather than filing them.
+    **A second batch closed five of the leads on 2026-08-18** — M27, M28, M31,
+    M32 and M36, chosen as the cheapest on the list plus the four registry holes
+    this entry lists at the end
+    ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)).
+    It says something the upheld set could not, because that set was ranked by
+    whether a shipped number is wrong and this one was ranked by effort: **the
+    ranking by effort was worthless.** Four of the five were mis-scoped — a
+    fixture that already existed, a probe header lying where the registry told
+    the truth, a witness at demands the app cannot produce — and both figures
+    that had actually drifted (§8.12's dip rate and its `kneeC` ladder) sat in
+    the one lead filed as "a citation gap, not a measurement gap". Seventeen
+    leads remain and none of them is now safe to call cheap.
 
 ## Phase 4 — multi-day horizon
 
@@ -820,7 +833,9 @@ passed), so that pairing is intended, not an accident.
 Item 31's list. The **M** ids are stable and never reused. M1–M13 and M22 were
 each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M36
 were raised and not verified** — they are leads, and item 29's rule applies, so
-quote none of them as a result until its own check is run.
+quote none of them as a result until its own check is run. **M27, M28, M31, M32
+and M36 were closed on 2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), which took the four registry
+holes below with them; the remaining seventeen are still leads.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1066,21 +1081,49 @@ only way to catch.
 - **M26 §8.7** — `drain-log-form.svelte:23` cites §8.8 for the hours input, but
   nothing cites §8.7's `d/10 = 1 − C(H)` reading (`rest-log-form.svelte:7` is the
   correct sibling).
-- **M27 §22** — `MATH.md:5144`, `:5151-5152` (49/121 → 45/121) and `:5160` (22 of 121) have no registry row; the only mention is an aside at
-  `mtr-load-rounding.probe.ts:68`. A 121-pair enumeration is the cheapest probe
-  in the repo.
-- **M28 §18** — `MATH.md:4664-4670` (0.667/h → 1.099/h → true 0.372/h) has no
-  probe or registry row, and `energy-lab-store.svelte.spec.ts:972-1024` pins
-  equality without the marginal. It is a live §8.11 inversion.
+- **M27 §22 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** The exhaustive
+  121-pair enumeration upholds the four moved pairs and both balanced rates
+  (49/121 = 40.5% → 45/121 = 37.2%, and 44/100 over 1–10 either way). "22 of
+  121" holds only against the ±3 gap ALONE: against the rule as shipped the
+  demand-share alternative disagrees on **18**, because it reaches the zero
+  gate's verdict on all four pairs the gate moved. §22 now says which rule each
+  count is measured against, and `calculation.test.ts` pins the 45.
+- **M28 §18 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** Upheld to every digit:
+  `session-row-truncation.probe.ts` reads 0.6669 / 1.0986 / 0.3716 through the
+  shipped `adviseStop` at the shipped defaults, the `continue` → `stop` flip
+  reproduces, and the two-row day prices identically to one 4.5 h row. Two things
+  execution added. The example **understates** the defect — every split of that
+  day flips the verdict, 1.35× to 3.28× the true price, and the truncated reading
+  is higher on all of 200 seeded slider-drawn tasks, flipping 66.5%. And §18's
+  witness is **not app-reachable**: `toEnergyTask` reads w = (0.8, 0.2) off
+  sliders 8/2, effective difficulty 8.6, where the 4.5 h day does not flip at all
+  (`continue` at 0.562/h) — so the section demonstrated its headline flip at
+  demands the app cannot produce. It flips at difficulty 7 with w = (0.7, 0), and
+  that is what the suite now pins. Same class as M35, one section over.
 - **M29 §34** — `MATH.md:6548-6549` "the bounded path ran on about a quarter of
   the solves"; `subset-search-bound.probe.ts` writes `{checks, count, violations}`
   and tags `bounded` only inside violations, so the share is never emitted.
 - **M30 §7** — `MATH.md:833-835` (s = 0.1 → 1.75 h at n = 14, 1.25 h at n = 20),
   undated, and `subset-search-bound.probe.ts` prints no crossover.
-- **M31 §8.2** — `MATH.md:905-906` (~85% over 5 min, ~2% over 2 h) carries no
-  back-reference, though `enb-break-economics.probe.ts:2` claims §8.1–8.2 scope.
-- **M32 §11.5** — `MATH.md:2537` (100% / 94% / 70%) is closed-form; cheaper as a
-  suite fixture than as a probe.
+- **M31 §8.2 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** Upheld: no committed probe reaches
+  either figure. Both reproduce out of the shipped evaluator — **84.648%** and
+  **1.832%**, agreeing with `e^(−g/τ)` to 4e-8 — and are pinned by fixture, not
+  by a probe, because a closed form has nothing to sweep. The lead's own hedge
+  was backwards: that probe's header **claimed** §8.1–8.2 scope its arms never had
+  (it only _disables_ both to build its pre-fix arm), so the header was the defect
+  and its `PROBES.md` row was right all along — the header now matches the row. The
+  audit's standing failure was trusting the registry over the probe body; this is
+  the inverse, which means neither side is the authority on its own.
+- **M32 §11.5 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** All three cells and all three
+  guards hold. **Refuted on coverage**: the fixture this lead asks for already
+  existed (`calculation.test.ts`, dated to the 2026-07-18 redefinition), so what
+  was missing was the citation and not the test — the lead read one as the other.
+  Its judgement was still right, and no row was added: closed form gets a fixture
+  citation, which is now what the registry header says. Two real gaps underneath,
+  both found by mutating the shipped source: every assertion passed `0.25` as a
+  literal, so `DEFAULT_SWITCH_COST` could move without going red, and the
+  no-budget guard was pinned on a 0-hour task, where the nothing-funded guard
+  answers first. Three guards claimed, two pinned.
 - **M33 §8.12** — the shipped pseudocode at `MATH.md:2033` defines
   `recommendedHours` as null "when that is W", the horizon; the code nulls on the
   last budget of the lattice instead (`zenith-energy.ts:1364-1372`,
@@ -1099,11 +1142,17 @@ only way to catch.
   `zenith-energy.ts:138-143`; the doc does not say so. A skeptic **refuted the
   drift framing** of this — the numbers reproduce — so what is left is that the
   section states a witness without its constants.
-- **M36 §8.12** — `MATH.md:2126-2131`'s "22 of 5040 swept steps dip (0.4%), worst
-  0.12 absolute / 0.97% relative" names no probe, though
-  `budget-knee.probe.ts:241-245` prints exactly that line and `PROBES.md:51`
-  carries the row. A citation gap, not a measurement gap — the cheapest fix on
-  this list.
+- **M36 §8.12 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).** Filed as the cheapest fix on this
+  list and **partially refuted**: the citation gap was real and the "not a
+  measurement gap" was wrong. `budget-knee.probe.ts` does print the sentence
+  verbatim, but re-running it gives **17 of 5040 (0.3%)** against the quoted 22
+  (0.4%), and the same run puts `kneeC`'s interior count at λ₀ = 1.0 at
+  **24/40**, not 25 — a figure no finding had named. The worst dip is unmoved.
+  The probe is untouched since 28e2e16 (2026-08-08) and the allocator moved on
+  2026-08-13, so the numbers drifted for five days while a probe printed the
+  truth and nothing cited it. Direction unaffected: fewer dips, none larger.
+  **This is the entry that argues cheapness is the wrong ranking axis** — the two
+  drifted figures in the whole batch were both in the lead filed as citation-only.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
@@ -1121,7 +1170,14 @@ is why §8.12 is the only section here audited by lens rather than by range. Tha
 pass upheld 1 of 6 against 13 of 32 for the main sweep — a ratio worth reading as
 the cost of the wider sweep's shallower reading, not as §8.12 being cleaner.
 
-**Registry holes found alongside the above**, none of which
+**Registry holes found alongside the above** — §18, §22, §11.5 and §8.2 carried
+quantitative claims with no row in `scripts/PROBES.md`, none of which
 `node scripts/probe-registry.mjs --check` can see, because it checks that rows
-and files pair up and not that a section has a row at all: §18, §22, §11.5 and
-§8.2 carry quantitative claims and have no row in `scripts/PROBES.md`.
+and files pair up and not that a section has a row at all. **All four closed
+2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), and only two by adding a row:
+§22 got `mtr-task-nature.probe.ts` and §18 got `session-row-truncation.probe.ts`,
+while §8.2 and §11.5 are closed form and were never registry holes at all — they
+cite a suite fixture, because a row with no probe file fails that same check. The
+registry's own definition counted a fixture-cited number as unbacked and no
+longer does, which
+is the durable half of this: the hole was in the rule, not only in the table.

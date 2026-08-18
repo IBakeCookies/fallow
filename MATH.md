@@ -51,83 +51,83 @@ that are not evident from reading it — so never retype a row, regenerate:
   §5.1      602-796  Posterior-aware allocation (added 2026-07-18)
 §6          798-810  Summary of v1 → v2 changes
 §7          812-848  Known approximations and deliberate non-changes
-§8         850-2301  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         850-2303  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      868-893  Intermittent-rest recovery correction
-  §8.2      895-915  Warm-up carryover instead of binary reset
-  §8.3      917-954  Verified consequences and an open calibration question
-  §8.4     956-1057  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1059-1118  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1120-1309  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1311-1443  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1445-1516  45-minute plan granularity (added 2026-07-18)
-  §8.9    1518-1592  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1594-1953  Stopping-value calibration from observed stop times (add…
-  §8.11   1955-2104  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   2106-2301  The budget curve — what the day's LENGTH is worth (added…
-§9        2303-2350  References
-§10       2352-2768  Revision log (doc-only corrections)
-§11       2770-3372  Metric-layer corrections (2026-07-18)
-  §11.1   2772-2786  Scope and principle
-  §11.2   2788-2812  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2814-2841  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2843-2900  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2902-2917  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2919-3029  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   3031-3055  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   3057-3120  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   3122-3231  Overnight reservoir carry-over (2026-07-28)
-  §11.10  3233-3303  Grind Density: the share of the work the day actually fu…
-  §11.11  3305-3372  Grind Density is a row, not an objective (2026-08-08)
-§12       3374-3511  Plan-adherence audit (2026-07-23)
-  §12.1   3415-3511  Per-day fit snapshots (2026-08-03)
-§13       3513-3942  Math review, 2026-07-26
-  §13.1   3530-3565  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3567-3639  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3641-3706  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3708-3744  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3746-3783  Also in this change
-  §13.6   3785-3942  The two end-of-day energy readings: a timing difference,…
-§14       3944-4732  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   4175-4315  Five corrections to the first cut (2026-07-28)
-  §14.2   4317-4461  The marginal of the budget (added 2026-08-03)
-  §14.3   4463-4669  The price of the switch cost (added 2026-08-04)
-  §14.4   4671-4732  An empty frontier is a reading (2026-08-08)
-§15       4734-4881  Two objectives, two modes (2026-07-29)
-  §15.1   4809-4881  The copy named the wrong objective for both modes (2026-…
-§16       4883-4971  Run order stays a heuristic (2026-07-29)
-§17       4973-5131  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       5133-5202  Drain logs are one row per SESSION, not per task-day (20…
-§19       5204-5475  The gain's naive baseline paid for switches it never mad…
-  §19.1   5222-5281  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5283-5311  Defect 2 — the displayed number moved with the order of …
-  §19.3   5313-5402  What this costs, and the one guarantee that weakened
-  §19.4   5404-5475  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       5477-5539  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5518-5539  The tie went to cognitive, so the row blamed the wrong p…
-§21       5541-5709  What the gain has room to report (2026-08-07)
-  §21.1   5563-5583  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5585-5608  Why shape has a low ceiling: the activation bonus
-  §21.3   5610-5630  Population distribution
-  §21.4   5632-5663  The number is a property of the comparison, not of the o…
-  §21.5   5665-5680  Under the total-output objective the ranking inverts
-  §21.6   5682-5709  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5711-5773  Task nature: an absolute gap could not carry a range tha…
-§23       5775-5917  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5816-5883  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5885-5917  Longest Warm-Up: what E/β was actually tracking
-§24       5919-5982  Task Variety counted labels, and its repair was Energy B…
-§25       5984-6131  Cognitive and Physical Load: the definition, and what ro…
-§26       6133-6239  Deep Work: a step that swung whole blocks, under a band …
-§27       6241-6358  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6360-6414  Which four readings are headlines (2026-08-07)
-§29       6416-6589  Day Profile: one cut for two different scales, on a day …
-§30       6591-6671  The Lab's comparison tile scored the plan on the one thi…
-§31       6673-6854  What history can plot, and what it cannot (2026-08-07)
-§32       6856-6922  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6924-7041  A plan reads only the logs that precede it (2026-08-08)
-§34       7043-7273  The subset search gave up one task too early (2026-08-08)
-§35       7275-7629  The plan cannot see the hours you already spent (2026-08…
-§36       7631-7702  What a correction may touch (2026-08-10)
+  §8.2      895-917  Warm-up carryover instead of binary reset
+  §8.3      919-956  Verified consequences and an open calibration question
+  §8.4     958-1059  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1061-1120  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1122-1311  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1313-1445  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1447-1518  45-minute plan granularity (added 2026-07-18)
+  §8.9    1520-1594  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1596-1955  Stopping-value calibration from observed stop times (add…
+  §8.11   1957-2106  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   2108-2303  The budget curve — what the day's LENGTH is worth (added…
+§9        2305-2352  References
+§10       2354-2820  Revision log (doc-only corrections)
+§11       2822-3427  Metric-layer corrections (2026-07-18)
+  §11.1   2824-2838  Scope and principle
+  §11.2   2840-2864  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2866-2893  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2895-2952  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2954-2972  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2974-3084  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   3086-3110  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   3112-3175  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   3177-3286  Overnight reservoir carry-over (2026-07-28)
+  §11.10  3288-3358  Grind Density: the share of the work the day actually fu…
+  §11.11  3360-3427  Grind Density is a row, not an objective (2026-08-08)
+§12       3429-3566  Plan-adherence audit (2026-07-23)
+  §12.1   3470-3566  Per-day fit snapshots (2026-08-03)
+§13       3568-3997  Math review, 2026-07-26
+  §13.1   3585-3620  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3622-3694  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3696-3761  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3763-3799  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3801-3838  Also in this change
+  §13.6   3840-3997  The two end-of-day energy readings: a timing difference,…
+§14       3999-4787  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4230-4370  Five corrections to the first cut (2026-07-28)
+  §14.2   4372-4516  The marginal of the budget (added 2026-08-03)
+  §14.3   4518-4724  The price of the switch cost (added 2026-08-04)
+  §14.4   4726-4787  An empty frontier is a reading (2026-08-08)
+§15       4789-4936  Two objectives, two modes (2026-07-29)
+  §15.1   4864-4936  The copy named the wrong objective for both modes (2026-…
+§16       4938-5026  Run order stays a heuristic (2026-07-29)
+§17       5028-5186  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5188-5270  Drain logs are one row per SESSION, not per task-day (20…
+§19       5272-5543  The gain's naive baseline paid for switches it never mad…
+  §19.1   5290-5349  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5351-5379  Defect 2 — the displayed number moved with the order of …
+  §19.3   5381-5470  What this costs, and the one guarantee that weakened
+  §19.4   5472-5543  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5545-5607  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5586-5607  The tie went to cognitive, so the row blamed the wrong p…
+§21       5609-5777  What the gain has room to report (2026-08-07)
+  §21.1   5631-5651  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5653-5676  Why shape has a low ceiling: the activation bonus
+  §21.3   5678-5698  Population distribution
+  §21.4   5700-5731  The number is a property of the comparison, not of the o…
+  §21.5   5733-5748  Under the total-output objective the ranking inverts
+  §21.6   5750-5777  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5779-5847  Task nature: an absolute gap could not carry a range tha…
+§23       5849-5991  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5890-5957  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5959-5991  Longest Warm-Up: what E/β was actually tracking
+§24       5993-6056  Task Variety counted labels, and its repair was Energy B…
+§25       6058-6205  Cognitive and Physical Load: the definition, and what ro…
+§26       6207-6313  Deep Work: a step that swung whole blocks, under a band …
+§27       6315-6432  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6434-6488  Which four readings are headlines (2026-08-07)
+§29       6490-6663  Day Profile: one cut for two different scales, on a day …
+§30       6665-6745  The Lab's comparison tile scored the plan on the one thi…
+§31       6747-6928  What history can plot, and what it cannot (2026-08-07)
+§32       6930-6996  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6998-7115  A plan reads only the logs that precede it (2026-08-08)
+§34       7117-7347  The subset search gave up one task too early (2026-08-08)
+§35       7349-7703  The plan cannot see the hours you already spent (2026-08…
+§36       7705-7776  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -906,8 +906,10 @@ gap `g` resumes at
 s_resume = s_end · e^(−g/τ),   τ = resumptionTimeConstant   (default 0.5 h)
 ```
 
-With τ = 0.5 h, ~85% of task state survives a 5-minute break and ~2% survives
-a 2-hour gap. `blockOutput` integrates `p(s_resume + u)` over block-local time
+With τ = 0.5 h, **84.648%** of task state survives a 5-minute break and
+**1.832%** a 2-hour gap — recovered through the evaluator rather than from the
+closed form (`zenith-energy.test.ts`'s "§8.2 survival" fixture, not a probe;
+2026-08-18). `blockOutput` integrates `p(s_resume + u)` over block-local time
 `u`; the reservoirs stay indexed by `u` since they carry their own level.
 `resumptionTimeConstant ≤ 0` reproduces the old hard reset. Because `p(s)` is
 hump-shaped, one decay does double duty: below the peak it prices lost warm-up
@@ -2224,17 +2226,17 @@ top of the range on **every one of 40 days until λ₀ = 1.25**
 (`scripts/budget-knee.probe.ts`, `kneeA`). Pricing the terminal term at
 `workEnd*` instead (`kneeB`) removes it but _is_ the §30 mistake — the optimizer
 never saw that field. The common horizon gets the same behaviour honestly:
-`kneeC` is interior on 3/40 days at λ₀ 0.5, 11/40 at 0.75, 25/40 at 1.0, 37/40
-at 1.25, 40/40 at 1.5.
+`kneeC` is interior on 3/40 days at λ₀ 0.5, 11/40 at 0.75, 24/40 at 1.0, 37/40
+at 1.25, 40/40 at 1.5 (same probe, 2026-08-18).
 
 **Why the running max.** The true optimum is monotone in the budget — every plan
 feasible at `b` is feasible at `b + ε` — but `plan(b)` maximizes `objective` at
 its OWN window rather than this score, so the sweep is not a sup over a nested
 family and can dip. The two criteria differ only by the trailing-recovery term
 (§13.6: 0.034/h against λ₀'s 0.5/h), which bounds the disagreement in practice:
-**22 of 5040 swept steps dip (0.4%), worst 0.12 absolute / 0.97% relative**.
-Same argument and same direction as §14.2's floor — it only ever hides a value
-the model rules out.
+**17 of 5040 swept steps dip (0.3%), worst 0.12 absolute / 0.97% relative**
+(`budget-knee.probe.ts`, 2026-08-18). Same argument and same direction as
+§14.2's floor — it only ever hides a value the model rules out.
 
 **The recommendation is usually absent, and that is the reading.** The model's
 gross value of one more hour of day is **1.23 / 1.01 / 0.76** output-per-hour at
@@ -2767,6 +2769,56 @@ committed 2026-08-07 23:03 UTC. §13.6's "fixed 2026-08-07" sits on the far side
 of a date boundary from the repo's local-time convention, not on the wrong side
 of a fact, and it stays.
 
+### 2026-08-18 — the four registry holes and item 31's cheapest leads
+
+Item 31's M27, M28, M31, M32 and M36 — the leads filed as citation-only or
+cheap, plus the four sections `scripts/PROBES.md` carried no row for (§8.2,
+§11.5, §18, §22). Every figure was re-run. Four of the five were mis-scoped, in
+both directions, and the tail filed as cheap is where the drift was.
+
+1. **§8.12's dip rate was cited to nothing, and had drifted (M36).**
+   `budget-knee.probe.ts` prints that sentence verbatim, so only the
+   back-reference was missing — but re-running it gives **17 of 5040 (0.3%)**
+   against the quoted 22 (0.4%), and `kneeC`'s interior count at λ₀ = 1.0 is
+   **24/40**, not 25, which no finding had named. The worst dip is unmoved at
+   0.12 absolute / 0.97% relative. The probe is untouched since 28e2e16
+   (2026-08-08); the allocator moved on 2026-08-13 (rest-break placement, the
+   two-task seed), which is what an uncited probe number does. The argument is
+   unaffected and the drift runs its way: fewer dips, none larger.
+2. **§22's "22 of 121" was its own leftover (M27).** The four moved pairs, both
+   balanced rates and the 44/100 over 1–10 reproduce exactly. The demand-share
+   rule disagrees on 22 pairs against the ±3 gap **alone** and on **18** against
+   the rule as shipped, since it reaches the zero gate's verdict on all four
+   pairs the gate moved — a count measured against the rule §22 deletes, quoted
+   in the paragraph defending the rule §22 installs. Both named witnesses hold.
+3. **§18's three marginals hold to every digit, and its witness is not
+   app-reachable (M28).** 0.6669 / 1.0986 / 0.3716 through the shipped
+   `adviseStop` at the shipped defaults, verdict flip included, and the two-row
+   day prices identically to one 4.5 h row. Two things the finding did not name:
+   every split of that day flips, not just 3 + 1.5 (1.35× to 3.28×; 66.5% of 200
+   seeded slider-drawn tasks), and `toEnergyTask` cannot pair difficulty 7 with
+   w = (0.8, 0.2) — those demands are sliders 8/2, effective difficulty 8.6,
+   where the day does not flip at all. The section now says so, and the suite
+   pins the flip at the reachable neighbour instead.
+4. **§8.2 had no backer, and the probe that claimed it was wrong (M31).** No
+   committed probe reaches its two figures. `~85%` / `~2%` measure **84.648%**
+   / **1.832%**, recovered through the evaluator and agreeing with `e^(−g/τ)` to
+   4e-8. `enb-break-economics.probe.ts`'s header claimed §8.1–8.2 scope its arms
+   never had — it only _disables_ both to build its pre-fix arm — so the header
+   was corrected to match its registry row, which was right all along. The
+   sweep's usual failure runs the other way; this is the inverse.
+5. **§11.5's fixture already existed (M32).** All three cells and all three
+   guards hold; what was missing was the citation, not the test. Two gaps
+   underneath were real: every assertion passed `0.25` as a literal, so
+   `DEFAULT_SWITCH_COST` could move without going red — and rounding hides a
+   move inside sc ∈ [0.233, 0.278], so the constant is now asserted rather than
+   inferred from the reading. The no-budget guard was pinned on a 0-hour task,
+   where the nothing-funded guard answers first.
+
+Closed form cites a suite fixture and gets no `PROBES.md` row — §8.2 and §11.5
+both needed that, and the registry's header now says it. No formula, constant,
+bound or fit changed.
+
 ## 11. Metric-layer corrections (2026-07-18)
 
 ### 11.1 Scope and principle
@@ -2914,7 +2966,10 @@ since v2, §3).
   logic), so the metric punished exactly the behavior that protects schedule
   integrity. The new ratio measures fragmentation directly: the same 4
   worked hours read 100% as one session, 94% across two tasks, 70% across
-  eight.
+  eight. Closed form, so there is no sweep and no probe: the three cells and
+  the three guards are pinned in `calculation.test.ts`, which also reads the 94
+  cell at default arity and asserts the constant, since rounding alone holds 94
+  across sc ∈ [0.233, 0.278] (re-read 2026-08-18).
 
 ### 11.6 Burnout Risk v2: re-derived from the energy model (2026-07-20)
 
@@ -5155,6 +5210,19 @@ arithmetic.
   HIGHER, than an hour earlier. The true 4.5 h day prices at 0.372/h, i.e.
   `stop`. That night's λ₀ bracket and §12's audit then score the same
   truncated day.
+
+  All three re-measured 2026-08-18 through the shipped `adviseStop`
+  (`session-row-truncation.probe.ts`): **0.6669 / 1.0986 / 0.3716**, 45 min
+  each, and the two-row day prices identically to one 4.5 h row. The example
+  understates the defect — every split of that day flips the verdict, 1.35× to
+  3.28× the true price, and over 200 seeded slider-drawn tasks the truncated
+  reading is higher on all 200 and flips 66.5%, worst gap 1.07/h. The witness is
+  model-level and not app-reachable: `toEnergyTask` reads w = (0.8, 0.2) off
+  sliders 8/2, whose effective difficulty is 8.6, where the 4.5 h day still reads
+  `continue` at 0.562/h. Difficulty 7 at w = (0.7, 0) (sliders 7/0) does flip —
+  0.793 → 1.239 → `stop` at 0.461 — and is what
+  `energy-lab-store.svelte.spec.ts` pins.
+
 - **After.** The writer appends (`$createDrainObservation`); a task's hours for a
   day are its rows summed, which is what `workedHoursByTask` and
   `readFinishedDays` already computed. §8.7 is unchanged and gets cleaner
@@ -5744,7 +5812,8 @@ else:                                    balanced
 downstream reads it as a rating — `getEffectiveDifficulty` clamps that task's
 Eᵤ to 1 (its domain is [1,10]), so there is no third label to invent.
 
-**What moves.** Exactly **4 of the 121** integer pairs on the 0–10 square:
+**What moves.** Exactly **4 of the 121** integer pairs on the 0–10 square
+(enumerated 2026-08-18, `mtr-task-nature.probe.ts`):
 
 ```text
 (m1,p0) (m2,p0)  balanced → cognitive
@@ -5752,7 +5821,8 @@ Eᵤ to 1 (its domain is [1,10]), so there is no third label to invent.
 ```
 
 The balanced rate over the reachable square falls from **49/121 = 40.5%** to
-**45/121 = 37.2%**. Over 1–10 it is 44% either way, which is why §16's table
+**45/121 = 37.2%** on the same run, and those four pairs are the whole
+difference. Over 1–10 it is 44/100 = 44% either way, which is why §16's table
 stands unrevised: `mode-run-order.probe.ts` draws `pick(1, 10, 1)` for both
 difficulties and never sampled a zero, so not one of its 300 days contains a
 pair this change touches. That the probe's day-space is narrower than the UI's
@@ -5760,9 +5830,13 @@ is itself worth recording — it bounds what §16 measured, not what ships.
 
 **Why not a demand-share rule.** The obvious alternative replaces the gap with
 the dominant dimension's share of total demand, `max/(m+p) ≥ 0.65`. Rejected on
-its own numbers: it disagrees with the gap rule on 22 of the 121 pairs, and it
-is wrong at the end of the range the gap rule gets right — it calls mental 10 /
-physical 6 `'balanced'`, and mental 7 / physical 4 too. Normalizing away the
+its own numbers: it disagrees with the ±3 gap alone on 22 of the 121 pairs and
+with the rule as shipped on **18**, reaching the zero gate's verdict on all four
+pairs the gate moved (enumerated 2026-08-18, `mtr-task-nature.probe.ts`; of the
+18, six turn a sub-3 gap dominant at the bottom of the range and twelve turn a
+≥3 gap balanced). It is wrong at the end of the range the gap rule gets right —
+it calls mental 10 / physical 6 `'balanced'`, and mental 7 / physical 4 too.
+Normalizing away the
 magnitude discards the information that a 4-point spread at the top of the scale
 is a different claim from a 4-point spread at the bottom. The zero gate adds no
 constant and only encodes what `toEnergyTask` already asserts.

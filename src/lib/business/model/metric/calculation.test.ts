@@ -24,6 +24,7 @@ import {
 	getTaskNature,
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
+import { DEFAULT_SWITCH_COST } from '$lib/business/model/zenith';
 import type { Task } from '$lib/data/type';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
@@ -83,6 +84,28 @@ describe('getTaskNature', () => {
 				physicalDifficulty,
 			}),
 		).toBe(nature);
+	});
+
+	// The rate MATH.md §22 quotes, pinned from `mtr-task-nature.probe.ts`: 45 of
+	// the 121 pairs the sliders reach, down from 49 before the zero gate.
+	it('calls 45 of the 121 reachable pairs balanced', () => {
+		const square = Array.from(
+			{
+				length: 11,
+			},
+			(_, mentalDifficulty) =>
+				Array.from(
+					{
+						length: 11,
+					},
+					(_, physicalDifficulty) => ({
+						mentalDifficulty,
+						physicalDifficulty,
+					}),
+				),
+		).flat();
+
+		expect(square.filter((pair) => getTaskNature(pair) === 'balanced')).toHaveLength(45);
 	});
 });
 
@@ -773,6 +796,11 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 		// 4h over two tasks: 4/(4+0.25) ≈ 94%
 		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6, 0.25)).toBe(94);
 
+		// Same cell without the argument. Rounding alone would hold 94 across
+		// sc ∈ [0.233, 0.278], so the constant MATH.md §11.5 quotes is pinned here.
+		expect(DEFAULT_SWITCH_COST).toBe(0.25);
+		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6)).toBe(94);
+
 		// The same 4h over eight tasks: 4/(4+1.75) ≈ 70%
 		const eight = Array.from(
 			{
@@ -813,6 +841,16 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 
 		expect(calculateScheduleIntegrity([t], 0, 0.25)).toBe(0); // no budget set
 		expect(calculateScheduleIntegrity([t], 6, 0.25)).toBe(0); // budget set, nothing funded
+
+		// The no-budget guard only bites on a FUNDED list: at 0 hours the
+		// nothing-funded guard returns 0 anyway, so deleting it stays invisible.
+		const funded = makeSuggested({
+			id: 2,
+			title: 'funded',
+			suggestedHours: 4,
+		});
+
+		expect(calculateScheduleIntegrity([funded], 0, 0.25)).toBe(0);
 	});
 });
 

@@ -10,7 +10,9 @@ policy that governs writing one is in [docs/testing.md](../docs/testing.md).
 
 **Which probe backs what.** Each file's header names its claim; each claim in
 `MATH.md` carries a dated back-reference to its probe. A `MATH.md` number with
-no probe citation beside it is unbacked — that is the list to work down. Adding
+neither a probe nor a suite-fixture citation beside it is unbacked — that is the
+list to work down; a closed form has nothing to sweep, so it cites a fixture and
+gets no row here (§8.2, §11.5). Adding
 a probe means adding its row: `node scripts/probe-registry.mjs --check` fails
 `npm run lint` when a committed probe has no row or a row has no file, which is
 how `adv3-advice-display-resolution` sat unlisted until 2026-08-10.
@@ -54,6 +56,7 @@ how `adv3-advice-display-resolution` sat unlisted until 2026-08-10.
 | `mtr2-carry-over.probe.ts`                | §11.6 demand arm, §11.9 carry-over levels and the one-mechanism order/break bound, §12's Σ P̄ spread premise                                                                      |
 | `rv13-prior-posterior.probe.ts`           | §13.1 — the σ_ϕ ladder and what the n = 0 posterior moves                                                                                                                        |
 | `rv13-naive-lattice.probe.ts`             | §13.2 — the naive baseline's lattice handicap, before and after                                                                                                                  |
+| `session-row-truncation.probe.ts`         | §18 — the three marginals of the session-row inversion through the shipped advisor, what truncation was worth at every split, and whether the verdict flip is app-reachable      |
 | `rv14-naive-switch-bill.probe.ts`         | §19 — the naive baseline's switch bill and order dependence, before and after; the ≥ 0 arms and the pool-starved regressions; §19.3's rotation gap and its wall clock            |
 | `naive-menu-cut-corner.probe.ts`          | §19.3, §5.1 — the −0.5% σ_ϕ witness, how often the monotonicity cut fires by slider regime and what it costs, and whether a fit reaches the corner                               |
 | `rv15-gain-headroom.probe.ts`             | §21 — why an honest gain still reads ~3%: selection vs shape, the activation-bonus ceiling, what binds on a real day, the shipped rotation baseline against one equal split      |
@@ -71,6 +74,7 @@ how `adv3-advice-display-resolution` sat unlisted until 2026-08-10.
 | `mtr-metric-trend.probe.ts`               | §31 — which readings survive the switch-cost-free solve, the exact solve's cost by n, why the gain cannot be plotted                                                             |
 | `rv16-output-vs-classic.probe.ts`         | §30 — the Lab comparison tile under raw output vs the objective, and the rival plan's exact fit to the window                                                                    |
 | `mtr-friction-index.probe.ts`             | §11.4 — the Friction Index's interior, which its two pinned endpoints say nothing about                                                                                          |
+| `mtr-task-nature.probe.ts`                | §22 — the four pairs the zero gate moves, the balanced rate before and after it, and how far the rejected demand-share rule lands from both                                      |
 | `mtr-bottleneck-strain.probe.ts`          | §23 — why Primary Bottleneck stopped reading E/β, and what the binding-pool draw reads instead                                                                                   |
 | `mtr-deep-work.probe.ts`                  | §26 — the hard `mentalDifficulty >= 7` cut, and the band that called a three-quarters-deep day optimal                                                                           |
 | `mtr-sustainable-work.probe.ts`           | §27 — the budget denominator against Σh, the grind-free day, and whether the fixed row restates Grind Density                                                                    |

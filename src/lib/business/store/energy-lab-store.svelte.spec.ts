@@ -1038,4 +1038,71 @@ describe('EnergyLabStore', () => {
 			),
 		);
 	});
+
+	// §18's inversion itself, priced: the truncated day reads a HIGHER marginal
+	// than the true longer one, and the two verdicts differ. Probe
+	// `session-row-truncation.probe.ts` (2026-08-18) prices the section's own
+	// witness at 0.667 / 1.099 / 0.372 — difficulty 7 at w = (0.8, 0.2), which no
+	// task record reaches, since demands 0.8/0.2 are sliders 8/2 and difficulty
+	// 8 + 0.3·2. These are the same three states on the nearest task the sliders
+	// DO reach at difficulty 7.
+	it('reads the truncated day as worth MORE than the true longer one', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 0,
+				mentalDifficulty: 7,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		const logged = (...hours: number[]) => {
+			mockObservations.drainObservations = hours.map((h) =>
+				drainRecord({
+					date: '2026-07-20',
+					hours: h,
+				}),
+			);
+
+			flushSync();
+
+			return store.stopAdvice;
+		};
+
+		const first = logged(3);
+
+		expect(first).toMatchObject({
+			verdict: 'continue',
+			sessionHours: 0.75,
+		});
+
+		expect(marginalValue(first)).toBeCloseTo(0.79304, 4);
+
+		// What the upsert left behind after the second session: less worked, priced
+		// higher, still `continue`.
+		const truncated = logged(1.5);
+
+		expect(truncated).toMatchObject({
+			verdict: 'continue',
+			sessionHours: 0.75,
+		});
+
+		expect(marginalValue(truncated)).toBeCloseTo(1.23928, 4);
+
+		// The day that actually happened — two rows, summed.
+		const whole = logged(3, 1.5);
+
+		expect(whole).toMatchObject({
+			verdict: 'stop',
+			sessionHours: 0.75,
+		});
+
+		expect(marginalValue(whole)).toBeCloseTo(0.46104, 4);
+		expect(marginalValue(whole)).toBeLessThan(marginalValue(first));
+	});
 });
