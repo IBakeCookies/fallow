@@ -66,7 +66,7 @@
 		await userEvent.click(save);
 		await expect(args.onsave).not.toHaveBeenCalled();
 
-		// Minutes in, hours out: the store and the §8.8 α fit both work in hours
+		// Minutes in, hours out: the store and the §8.7 α fit both work in hours
 		await userEvent.type(mind, '7');
 		await userEvent.type(body, '3');
 		await userEvent.click(save);

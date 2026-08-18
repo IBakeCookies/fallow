@@ -78,7 +78,7 @@ export interface UserConstants {
 	c3: number; // Constant offset for flow state time
 }
 
-// Default constants (personalized via fitUserConstants on measured ⚡ logs)
+// Default constants (MATH.md §1; personalized via fitUserConstants on measured ⚡ logs)
 export const DEFAULT_USER_CONSTANTS: UserConstants = {
 	c1: 0.56, // Higher effort → longer time to flow
 	c2: -0.24, // Higher enjoyability → shorter time to flow
@@ -124,13 +124,9 @@ export const BLOCK_HOURS = 0.25;
 export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
 
 /**
- * Cap on r = p₀/a, the ratio of initial to peak-scale productivity.
- *
- * WHY: the v2 curve needs p₀ < a for k = (1 − p₀/a)/ϕ to stay positive. With
- * the article's parameter maps, p₀/a = (β/E)/(E·β) = 1/E², which hits exactly
- * 1 at E = 1 (user difficulty 1) — a degenerate flat curve with no flow
- * dynamics and no optimal stopping. Capping r at 0.9 only affects E < 1.054
- * (user difficulty below ≈1.12) and keeps every task's curve well-defined.
+ * Cap on r = p₀/a, the ratio of initial to peak-scale productivity: the v2
+ * curve needs p₀ < a for k = (1 − p₀/a)/ϕ to stay positive, and the article's
+ * maps give p₀ = a at user difficulty 1 (MATH.md §1).
  */
 const AMPLITUDE_RATIO_CAP = 0.9;
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
@@ -141,7 +137,7 @@ const SUBSET_SEARCH_BUDGET = (1 << EXACT_SUBSET_LIMIT) - 1;
 
 /**
  * Map user effort (1-10) to true effort E (1-5)
- * E = (4/9)Eᵤ + 5/9
+ * E = (4/9)Eᵤ + 5/9 (MATH.md §1)
  */
 export function mapEffort(Eu: number): number {
 	return (4 / 9) * Eu + 5 / 9;
@@ -149,7 +145,7 @@ export function mapEffort(Eu: number): number {
 
 /**
  * Map user enjoyability (1-10) to true enjoyability β (1-2)
- * β = (1/9)βᵤ + 8/9
+ * β = (1/9)βᵤ + 8/9 (MATH.md §1)
  */
 export function mapEnjoyability(betaU: number): number {
 	return (1 / 9) * betaU + 8 / 9;
@@ -158,14 +154,15 @@ export function mapEnjoyability(betaU: number): number {
 /**
  * Floor on ϕ (6 minutes): a fitted plane may extrapolate to ≈0 (or below) far
  * from the measured tasks. A strictly positive ϕ keeps k finite and the
- * productivity curve well-defined everywhere. Also clamps the ϕ-quadrature
- * nodes of the posterior-aware allocator (see expectedAverageProductivity).
+ * productivity curve well-defined everywhere (MATH.md §1). Also clamps the
+ * ϕ-quadrature nodes of the posterior-aware allocator (MATH.md §5.1, see
+ * expectedAverageProductivity).
  */
 const PHI_FLOOR_HOURS = 0.1;
 
 /**
  * Calculate time to reach flow state
- * ϕ = c₁E + c₂β + c₃
+ * ϕ = c₁E + c₂β + c₃ (MATH.md §1)
  */
 export function calculateFlowStateTime(E: number, beta: number, constants: UserConstants): number {
 	const phi = constants.c1 * E + constants.c2 * beta + constants.c3;
@@ -174,7 +171,7 @@ export function calculateFlowStateTime(E: number, beta: number, constants: UserC
 }
 
 /**
- * Initial productivity p₀ = β/E.
+ * Initial productivity p₀ = β/E (MATH.md §1).
  *
  * v2: with the new curve this genuinely IS the productivity at t = 0
  * (p(0) = p₀), fixing the v1 mismatch where the curve forced p(0) = 0 and p₀
@@ -188,7 +185,7 @@ function calculateInitialProductivity(E: number, beta: number): number {
 }
 
 /**
- * Peak productivity scaling factor a = E × β.
+ * Peak productivity scaling factor a = E × β (MATH.md §1).
  *
  * Higher effort tasks that we really enjoy correspond to higher peak
  * productivity. v2: the actual curve maximum is p(ϕ) = a·e^(p₀/a − 1), whose
@@ -551,7 +548,7 @@ export function phiParameterStd(E: number, beta: number, posterior: FitPosterior
 }
 
 /**
- * Calculate task parameters from user input.
+ * Calculate task parameters from user input (the whole map of MATH.md §1).
  *
  * v2: the effective p₀ is capped at AMPLITUDE_RATIO_CAP × a (only binds for
  * user difficulty below ≈1.12, where the article's maps give p₀ = a and the
@@ -1796,7 +1793,7 @@ export interface FitPosterior {
  * downstream — i.e. the allocator treated a user with ZERO ⚡ logs as
  * PERFECTLY certain, then started hedging the moment they logged their first
  * one. Measured at (E, β) = (2.78, 1.44): σ_ϕ was 0 at n = 0, 0.191h at n = 1,
- * 0.003h at n = 200. The honest sequence is 0.411 → 0.191 → 0.003, monotone
+ * 0.002473h at n = 200. The honest sequence is 0.411 → 0.191 → 0.002473, monotone
  * decreasing in data — which is exactly what §5.1's whole premise claims.
  * Returning the prior posterior restores that ordering; `fitted` still reports
  * whether the DATA moved the constants, which is what the UI keys on.
@@ -2001,9 +1998,10 @@ export function fitUserConstants(
  *
  * σ̂² is irreducible stopwatch noise; xᵀΣx is parameter uncertainty, which
  * shrinks as observations accumulate (and grows with distance from the logged
- * region of the E×β plane). Intended for UI ("ϕ ≈ 1.4h ± 0.4h") and for
- * future robust-allocation work; the allocator itself currently consumes only
- * the posterior mean.
+ * region of the E×β plane). For UI bands ("ϕ ≈ 1.4h ± 0.4h"). The allocator
+ * hedges with `phiParameterStd` instead — it has consumed the covariance, not
+ * just the mean, since 2026-07-18 (MATH.md §5.1), and the σ̂² term here is
+ * exactly the part it must not see.
  */
 export function phiPredictionStd(E: number, beta: number, posterior: FitPosterior): number {
 	const x = [E, beta, 1];

@@ -20,7 +20,8 @@
 			body: number | null;
 		};
 		focusMinutes?: boolean;
-		/** The end of a session, in the units MATH.md §8.8 fits α from. */
+		/** The end of a session, in the units MATH.md §8.7 fits α from: hours worked,
+		 *  and both capacities rated 0–10 as they feel now. */
 		onsave: (entry: { hours: number; mind: number; body: number }) => void;
 		oncancel: () => void;
 		ondelete?: () => void;
