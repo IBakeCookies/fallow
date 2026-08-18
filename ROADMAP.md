@@ -1091,9 +1091,22 @@ only way to catch.
   `EnergyLabStore`'s classic schedule as the fourth.
 - **M23 §8.10** — `MATH.md:1872-1874` "runs the full conditioning chain on ALL
   logs", superseded by §33 and by `session-history.ts:418-426` (`date < today`).
-- **M24 §11.8** — `MATH.md:2710-2713` names `outputVsClassic`; the field is
-  `#valueVsClassic` (`energy-lab-store.svelte.ts:371-373`), the rename is
-  recorded at `MATH.md:6048`, and the old name greps empty.
+- **M24 §11.8 — closed 2026-08-19, [`what-the-output-tile-was-scored-against`](docs/features/what-the-output-tile-was-scored-against.md).** The retired name is real
+  and §11.8 now annotates it in place. All four supporting facts were wrong: the
+  store field is at `energy-lab-store.svelte.ts:413`/`:422-423`, the rename is
+  recorded in §30's fix paragraph (`MATH.md:6779`, not `:6048`), the old name
+  does not grep empty (three tracked hits, one of them §30's own record of the
+  rename, which keeps it), and the rename was **not** name-only — §30 repointed
+  the tile from raw `totalOutput` to the `objective` the same day, so a token
+  swap would have rewritten a 2026-07-20 entry into a claim it never made.
+  Filed as a one-token rename, and the pass that verified it marked §30's
+  headline pair "transcribed — probe not run": that is where the round's only
+  measured drift was sitting. Four §30 figures moved (61.4 → **61.03**, 73.1 →
+  **73.20**, 45.8 → **45.65**, and the per-worked-hour 39.9 → **41.97**),
+  bisected to the two 2026-08-13 solver fixes — §30 was exact until the day
+  they landed. Renaming `scripts/rv16-output-vs-classic.probe.ts` is
+  **declined** — its subject is the `totalOutput` "before" row and the registry
+  is intact at 60/60.
 - **M25 §1** — the whole parameter map ships with no section reference
   (`zenith.ts:83-85`, `:135`, `:146-148`, `:154-156`, `:164`, `:170-174`,
   `:186-188`, `:198-200`); contrast `:215`.
