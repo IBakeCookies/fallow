@@ -101,7 +101,10 @@ describe('buildMetrics', () => {
 	it('shows no numbers at all, and no judgement, on an empty day', () => {
 		const rows = buildMetrics(dailyMetrics(), pools);
 
-		expect(rows.length).toBeGreaterThan(0);
+		// The shipped shape, pinned so a 25th reading fails here rather than silently
+		// rotting MATH.md §28 and §31, which both count these rows.
+		expect(rows).toHaveLength(24);
+		expect(rows.filter((row) => row.headline)).toHaveLength(4);
 
 		for (const row of rows) {
 			expect(row.value, row.label).not.toMatch(/\d/);
