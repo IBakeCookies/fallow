@@ -11,6 +11,10 @@
  * pure-physical task at matched difficulty/enjoyment"; this probe pins it to the
  * pair that reproduces the printed objectives, so the row can be re-derived.
  *
+ * §13.6 also carries a Lab-tile ladder and a shipped-optimum pair, both cited to
+ * a `scratchpad/rv-energy-readouts.probe.ts` that exists in neither the tree nor
+ * the history. The third arm re-derives them here.
+ *
  * `min` is applied here the way Burnout Risk applies it — to the reservoir
  * levels the SAME evaluation ends on — so the only thing that changes between
  * the columns is the aggregator, which is exactly §13.6's claim.
@@ -27,7 +31,9 @@
 import { describe, expect, it } from 'vitest';
 import {
 	DEFAULT_ENERGY_PARAMS,
+	DEFAULT_USER_CONSTANTS,
 	evaluateSchedule,
+	optimizeSchedule,
 	simulateReservoirs,
 	type EnergyTaskInput,
 	type ScheduleBlock,
@@ -183,5 +189,106 @@ describe('MATH.md §13.6 — timing, not aggregation', () => {
 		console.log(
 			`V_T's stopping pressure ${perHour.toFixed(4)} per hour against freeTimeValue ${DEFAULT_ENERGY_PARAMS.freeTimeValue} — ${((100 * perHour) / DEFAULT_ENERGY_PARAMS.freeTimeValue).toFixed(1)}% of it`,
 		);
+	});
+
+	// §13.6's Lab-tile table, re-derived from the shipped fields. The pre-fix tile
+	// printed `Math.round(100 * endCog)` (the post-tail reading); today's prints
+	// `Math.floor(100 * workEndCog)` (plan-summary.svelte:32 off +page.svelte:365).
+	// Both are arithmetic on fields evaluateSchedule still returns — no old code
+	// path is reinstated, and both were read off the code (8f01ca8^ and HEAD)
+	// rather than assumed. The ladder's fixture is pinned by §13.6's own words:
+	// simulateReservoirs reads only the two demands and the params, so
+	// difficulty/enjoyment cannot move those six rows.
+	//
+	// 8f01ca8 introduced `workEndCog` AND the fix that reads it, so the lost
+	// scratchpad probe cannot have taken column 1 from that field — it computed
+	// end-of-work depletion its own way, which is the R3 hazard.
+	it('reads the Lab tile before and after the workEndCog fix', () => {
+		const cognitive = task(1, 'cognitive', 1, 0);
+		const TILE_WINDOW_HOURS = 12;
+
+		for (const workHours of [2, 4, 6, 8, 10, 12]) {
+			const ev = evaluateSchedule(
+				[
+					{
+						taskId: 1,
+						hours: workHours,
+					},
+				],
+				[cognitive],
+				TILE_WINDOW_HOURS,
+				DEFAULT_ENERGY_PARAMS,
+			);
+
+			console.log(
+				`forced ${workHours}h pure-cognitive in a ${TILE_WINDOW_HOURS}h window: workEndCog ${ev.workEndCog.toFixed(4)}, endCog ${ev.endCog.toFixed(4)}, PRE-FIX tile round(100*endCog) ${Math.round(100 * ev.endCog)}%, TODAY's tile floor(100*workEndCog) ${Math.floor(100 * ev.workEndCog)}%`,
+			);
+		}
+
+		// The same tile on a plan the app would actually propose. optimizeSchedule
+		// maximizes the objective, which DOES read difficulty/enjoyment, so this
+		// pair depends on the task set — and §13.6 never stated one. None of the
+		// three plausible readings below reproduces its 0.890/0.469; the fixture
+		// behind that sentence is unrecorded, so MATH.md now quotes reading 1
+		// (the ladder's own task, optimized instead of forced) by value.
+		for (const [label, tasks] of [
+			['single full-cognitive task (the ladder’s), difficulty 8 / enjoyment 6', [cognitive]],
+			['PAIR (pure-cognitive + pure-physical, both 8/6)', PAIR],
+			[
+				'§8.10’s fixture day (boxing/guitar/reading)',
+				[
+					{
+						id: 1,
+						title: 'boxing',
+						difficulty: 10,
+						enjoyment: 10,
+						cognitiveDemand: 0.2,
+						physicalDemand: 1.0,
+					},
+					{
+						id: 2,
+						title: 'guitar',
+						difficulty: 6,
+						enjoyment: 9,
+						cognitiveDemand: 0.4,
+						physicalDemand: 0.3,
+					},
+					{
+						id: 3,
+						title: 'reading',
+						difficulty: 4,
+						enjoyment: 7,
+						cognitiveDemand: 0.5,
+						physicalDemand: 0.05,
+					},
+				],
+			],
+		] as [string, EnergyTaskInput[]][]) {
+			const opt = optimizeSchedule(
+				tasks,
+				TILE_WINDOW_HOURS,
+				DEFAULT_ENERGY_PARAMS,
+				DEFAULT_USER_CONSTANTS,
+			);
+
+			console.log(
+				`shipped optimum over ${label}, ${TILE_WINDOW_HOURS}h window: blocks [${opt.blocks.map((b) => `${b.taskId ?? 'rest'}:${b.hours}h`).join(', ')}], endCog ${opt.evaluation.endCog.toFixed(4)}, workEndCog ${opt.evaluation.workEndCog.toFixed(4)}`,
+			);
+		}
+
+		// §13.6's claim in property form: the post-tail reading always flatters.
+		const ev = evaluateSchedule(
+			[
+				{
+					taskId: 1,
+					hours: 6,
+				},
+			],
+			[cognitive],
+			TILE_WINDOW_HOURS,
+			DEFAULT_ENERGY_PARAMS,
+		);
+
+		expect(ev.endCog).toBeGreaterThan(ev.workEndCog);
 	});
 });

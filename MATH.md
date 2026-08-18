@@ -65,69 +65,69 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.11   1955-2104  Live stop advisor — §8.10 run forward mid-day (added 202…
   §8.12   2106-2301  The budget curve — what the day's LENGTH is worth (added…
 §9        2303-2350  References
-§10       2352-2723  Revision log (doc-only corrections)
-§11       2725-3327  Metric-layer corrections (2026-07-18)
-  §11.1   2727-2741  Scope and principle
-  §11.2   2743-2767  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   2769-2796  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   2798-2855  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   2857-2872  Schedule Integrity: overhead share instead of the small-…
-  §11.6   2874-2984  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   2986-3010  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   3012-3075  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   3077-3186  Overnight reservoir carry-over (2026-07-28)
-  §11.10  3188-3258  Grind Density: the share of the work the day actually fu…
-  §11.11  3260-3327  Grind Density is a row, not an objective (2026-08-08)
-§12       3329-3466  Plan-adherence audit (2026-07-23)
-  §12.1   3370-3466  Per-day fit snapshots (2026-08-03)
-§13       3468-3863  Math review, 2026-07-26
-  §13.1   3485-3520  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   3522-3594  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   3596-3661  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   3663-3699  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   3701-3738  Also in this change
-  §13.6   3740-3863  The two end-of-day energy readings: a timing difference,…
-§14       3865-4653  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   4096-4236  Five corrections to the first cut (2026-07-28)
-  §14.2   4238-4382  The marginal of the budget (added 2026-08-03)
-  §14.3   4384-4590  The price of the switch cost (added 2026-08-04)
-  §14.4   4592-4653  An empty frontier is a reading (2026-08-08)
-§15       4655-4802  Two objectives, two modes (2026-07-29)
-  §15.1   4730-4802  The copy named the wrong objective for both modes (2026-…
-§16       4804-4892  Run order stays a heuristic (2026-07-29)
-§17       4894-5052  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       5054-5123  Drain logs are one row per SESSION, not per task-day (20…
-§19       5125-5396  The gain's naive baseline paid for switches it never mad…
-  §19.1   5143-5202  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5204-5232  Defect 2 — the displayed number moved with the order of …
-  §19.3   5234-5323  What this costs, and the one guarantee that weakened
-  §19.4   5325-5396  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       5398-5460  Human Capacity: the reading is the constraint, but it na…
-  §20.1   5439-5460  The tie went to cognitive, so the row blamed the wrong p…
-§21       5462-5630  What the gain has room to report (2026-08-07)
-  §21.1   5484-5504  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   5506-5529  Why shape has a low ceiling: the activation bonus
-  §21.3   5531-5551  Population distribution
-  §21.4   5553-5584  The number is a property of the comparison, not of the o…
-  §21.5   5586-5601  Under the total-output objective the ranking inverts
-  §21.6   5603-5630  Correction: on an ordinary day it is FLOW that binds, no…
-§22       5632-5694  Task nature: an absolute gap could not carry a range tha…
-§23       5696-5838  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   5737-5804  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   5806-5838  Longest Warm-Up: what E/β was actually tracking
-§24       5840-5903  Task Variety counted labels, and its repair was Energy B…
-§25       5905-6052  Cognitive and Physical Load: the definition, and what ro…
-§26       6054-6160  Deep Work: a step that swung whole blocks, under a band …
-§27       6162-6279  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       6281-6335  Which four readings are headlines (2026-08-07)
-§29       6337-6510  Day Profile: one cut for two different scales, on a day …
-§30       6512-6592  The Lab's comparison tile scored the plan on the one thi…
-§31       6594-6775  What history can plot, and what it cannot (2026-08-07)
-§32       6777-6843  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       6845-6962  A plan reads only the logs that precede it (2026-08-08)
-§34       6964-7194  The subset search gave up one task too early (2026-08-08)
-§35       7196-7550  The plan cannot see the hours you already spent (2026-08…
-§36       7552-7623  What a correction may touch (2026-08-10)
+§10       2352-2768  Revision log (doc-only corrections)
+§11       2770-3372  Metric-layer corrections (2026-07-18)
+  §11.1   2772-2786  Scope and principle
+  §11.2   2788-2812  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   2814-2841  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   2843-2900  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   2902-2917  Schedule Integrity: overhead share instead of the small-…
+  §11.6   2919-3029  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   3031-3055  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   3057-3120  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   3122-3231  Overnight reservoir carry-over (2026-07-28)
+  §11.10  3233-3303  Grind Density: the share of the work the day actually fu…
+  §11.11  3305-3372  Grind Density is a row, not an objective (2026-08-08)
+§12       3374-3511  Plan-adherence audit (2026-07-23)
+  §12.1   3415-3511  Per-day fit snapshots (2026-08-03)
+§13       3513-3942  Math review, 2026-07-26
+  §13.1   3530-3565  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   3567-3639  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   3641-3706  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   3708-3744  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   3746-3783  Also in this change
+  §13.6   3785-3942  The two end-of-day energy readings: a timing difference,…
+§14       3944-4732  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4175-4315  Five corrections to the first cut (2026-07-28)
+  §14.2   4317-4461  The marginal of the budget (added 2026-08-03)
+  §14.3   4463-4669  The price of the switch cost (added 2026-08-04)
+  §14.4   4671-4732  An empty frontier is a reading (2026-08-08)
+§15       4734-4881  Two objectives, two modes (2026-07-29)
+  §15.1   4809-4881  The copy named the wrong objective for both modes (2026-…
+§16       4883-4971  Run order stays a heuristic (2026-07-29)
+§17       4973-5131  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5133-5202  Drain logs are one row per SESSION, not per task-day (20…
+§19       5204-5475  The gain's naive baseline paid for switches it never mad…
+  §19.1   5222-5281  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5283-5311  Defect 2 — the displayed number moved with the order of …
+  §19.3   5313-5402  What this costs, and the one guarantee that weakened
+  §19.4   5404-5475  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       5477-5539  Human Capacity: the reading is the constraint, but it na…
+  §20.1   5518-5539  The tie went to cognitive, so the row blamed the wrong p…
+§21       5541-5709  What the gain has room to report (2026-08-07)
+  §21.1   5563-5583  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   5585-5608  Why shape has a low ceiling: the activation bonus
+  §21.3   5610-5630  Population distribution
+  §21.4   5632-5663  The number is a property of the comparison, not of the o…
+  §21.5   5665-5680  Under the total-output objective the ranking inverts
+  §21.6   5682-5709  Correction: on an ordinary day it is FLOW that binds, no…
+§22       5711-5773  Task nature: an absolute gap could not carry a range tha…
+§23       5775-5917  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   5816-5883  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   5885-5917  Longest Warm-Up: what E/β was actually tracking
+§24       5919-5982  Task Variety counted labels, and its repair was Energy B…
+§25       5984-6131  Cognitive and Physical Load: the definition, and what ro…
+§26       6133-6239  Deep Work: a step that swung whole blocks, under a band …
+§27       6241-6358  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       6360-6414  Which four readings are headlines (2026-08-07)
+§29       6416-6589  Day Profile: one cut for two different scales, on a day …
+§30       6591-6671  The Lab's comparison tile scored the plan on the one thi…
+§31       6673-6854  What history can plot, and what it cannot (2026-08-07)
+§32       6856-6922  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       6924-7041  A plan reads only the logs that precede it (2026-08-08)
+§34       7043-7273  The subset search gave up one task too early (2026-08-08)
+§35       7275-7629  The plan cannot see the hours you already spent (2026-08…
+§36       7631-7702  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -2722,6 +2722,51 @@ intact), and the recognition that a wall clock re-run six times on one idle box
 spans 109.00–123.86 ms — which is why every timing figure above is a range and
 carries its machine, per §8.6.
 
+### 2026-08-18 — what the Lab tile was measured with
+
+Item 31's M11, the last of the fourteen upheld findings, and the smallest: §13.6
+cited `scratchpad/rv-energy-readouts.probe.ts` for two number-sets, and that file
+is in neither the tree nor the history. `rv13-terminal-timing.probe.ts` gains a
+third arm. The two sets did not survive equally, and the asymmetry is the point.
+
+1. **The worked-hours ladder reproduces on all twelve cited cells** — 0.5192 /
+   0.3043 / 0.2081 / 0.1652 / 0.1460 / 0.1374 at 2–12 h, printing 100 / 100 / 100
+   / 99 / 90 / 14%. **The lost file cost it nothing**, because the fixture is
+   pinned by the section's own words: `simulateReservoirs` takes the two demands
+   and the params and reads neither `difficulty` nor `enjoyment`, so "forced,
+   pure-cognitive, 12 h window" determines every row. A claim whose fixture its
+   own prose fully specifies is re-derivable without its probe; that is the
+   exception, not the rule.
+2. **The shipped-optimum pair is withdrawn, not corrected.** 0.890/0.469 is
+   reproduced by none of the three plausible task sets, and it is unreachable
+   from the ladder's shape — `endCog` 0.890 puts the end of work near 10 h, where
+   full cognitive demand leaves 0.146, not 0.469. The optimizer reads
+   difficulty and enjoyment through the objective, so this half needed a fixture
+   the sentence never named. §13.6 now quotes the ladder's own task, optimized:
+   **0.9995 against 0.4542**. The nearest miss found (three identical cognitive
+   tasks, 0.8883/0.4606) is recorded as a lead, and deliberately not adopted — a
+   fixture tuned until the target appears backs nothing.
+3. **The tile's two formulas were read, not assumed.** `git show 8f01ca8^` has
+   the summary passing `plan.evaluation.endCog` into `Math.round(endCog * 100)`;
+   HEAD passes `workEndCog` into `Math.floor`. So the pre-fix column is arithmetic
+   over a field the evaluation still returns, not a resurrected code path — which
+   is why it is re-derivable where §14's pre-solve-once 103.6 ms was not.
+4. **The lost probe carried the R3 hazard, and that is the likely asymmetry.**
+   8f01ca8 introduced `workEndCog` and the tile fix that reads it in one commit,
+   so the 2026-08-07 figures cannot have come from that field: something computed
+   end-of-work depletion privately. A second implementation agrees with the
+   shipped one on a forced single-task day and has every opportunity to diverge
+   once an optimizer and an unnamed task set are involved.
+5. **§13.6's two pre-existing arms are unmoved** — the four-plan avg/min table
+   to four decimals, worst |Δ| 0.0767 with the ranking preserved, C_cog 0.2081 at
+   6 h (risk 79%), and V_T's 0.0339 per hour against `freeTimeValue`'s 0.5.
+
+One reported defect did **not** survive checking, and is recorded so a later
+audit does not re-raise it: 8f01ca8 was authored 2026-08-08 01:03 +0200 and
+committed 2026-08-07 23:03 UTC. §13.6's "fixed 2026-08-07" sits on the far side
+of a date boundary from the repo's local-time convention, not on the wrong side
+of a fact, and it stays.
+
 ## 11. Metric-layer corrections (2026-07-18)
 
 ### 11.1 Scope and principle
@@ -3789,23 +3834,57 @@ only two lattice levels). Two facts recorded separately are the same fact.
 "End-of-day energy" may not. The `/energy` summary printed `endCog/endPhys`
 — the terminal term's own post-tail reading — so the tile answered "how
 rested will I be by bedtime", not the question its label asks. Forced
-pure-cognitive day, 12 h window (`scratchpad/rv-energy-readouts.probe.ts`,
-2026-08-07):
+pure-cognitive day, 12 h window (re-measured 2026-08-18 by
+`scripts/rv13-terminal-timing.probe.ts`, every cited cell reproducing; the
+`scratchpad/rv-energy-readouts.probe.ts` this table cited until then exists in
+neither the tree nor the history, which is the §14.1-2 failure again):
 
-| worked h | C_cog at end of work | tile printed |
-| -------- | -------------------- | ------------ |
-| 2        | 0.519                | 100%         |
-| 4        | 0.304                | 100%         |
-| 6        | 0.208                | 100%         |
-| 8        | 0.165                | 99%          |
-| 10       | 0.146                | 90%          |
-| 12       | 0.137                | 14%          |
+| worked h | C_cog at end of work | pre-fix tile | today's tile |
+| -------- | -------------------- | ------------ | ------------ |
+| 2        | 0.5192               | 100%         | 51%          |
+| 4        | 0.3043               | 100%         | 30%          |
+| 6        | 0.2081               | 100%         | 20%          |
+| 8        | 0.1652               | 99%          | 16%          |
+| 10       | 0.1460               | 90%          | 14%          |
+| 12       | 0.1374               | 14%          | 13%          |
+
+The lost file cost this table nothing, because the fixture is pinned by the
+words above it rather than by the file: `simulateReservoirs` reads the two
+demands and the params and **nothing else** — not `difficulty`, not
+`enjoyment` — so no unstated field can move the middle column, and "forced,
+pure-cognitive, 12 h window" determines all six rows exactly. Both tile columns
+are arithmetic on fields `evaluateSchedule` still returns, `round(100·endCog)`
+before the fix and `floor(100·workEndCog)` after, each read off the code at
+`8f01ca8^` and at HEAD rather than assumed. What the missing file does tell us
+is that it could not have taken the middle column from `workEndCog`: 8f01ca8
+introduced that field and the fix that reads it in one commit, so the
+2026-08-07 numbers came from a second, private implementation of end-of-work
+depletion — the R3 hazard, and the likeliest reason this half survived
+re-measurement while the next paragraph's did not.
 
 Six hours of full-demand deep work displayed as 100% while the same day is
 79% Burnout Risk on the main page — this is the §13.6 gap surfacing as a
 number a user reads, not as a latent inconsistency between two engines. Not
-confined to forced plans either: on the shipped optimum in a 12 h window the
-tile read 0.890 against 0.469 at the end of work.
+confined to forced plans either: on the shipped optimum over that same task in
+a 12 h window the tile read **0.9995 against 0.4542** at the end of work
+(2026-08-18, same probe).
+
+**The 0.890/0.469 this paragraph carried until that measurement is withdrawn,
+not corrected.** Unlike the ladder, an optimized plan depends on `difficulty`
+and `enjoyment` through the objective, so this pair needs a task set the
+sentence never named — and none of the three read out reproduces it: the
+ladder's own task (0.9995/0.4542), §13.6's own cognitive/physical pair
+(0.9998/0.9979, whose optimum ends on the physical blocks, so the cognitive
+reservoir has recovered by the time work stops), §8.10's fixture day
+(0.8391/0.8391, whose optimum runs to the end of the window so the two readings
+coincide). The pair is not even reachable from the ladder's shape: an `endCog`
+of 0.890 means work ended near the 10 h mark, where full cognitive demand
+leaves `workEndCog` at 0.146, not 0.469 — so the lost fixture was several
+milder tasks rather than one. Three identical full-cognitive tasks come nearest
+(0.8883/0.4606) and are recorded as a **lead, not a reading**: a fixture tuned
+until the target appears would prove nothing. The claim the paragraph makes
+survives the withdrawal by a wider margin than it had — a tile reading all but
+full on a day that ends at 45%.
 
 **The fix is a second reading, not a moved term.** `ScheduleEvaluation` now
 also carries `workEndCog/workEndPhys` — the reservoirs as the last WORKED
