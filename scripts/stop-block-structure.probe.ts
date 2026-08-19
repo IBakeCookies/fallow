@@ -29,6 +29,13 @@
  *   batch       — every row logged at day's end. Must be bit-identical to
  *                `summed`: it is the case where the fix silently does not apply
  *
+ * THE GRID reaches the LOW end of the Lab's own freeTimeValue range (slider
+ * [0, 3] step 0.1): the residual is worst where λ₀ is small, and a grid that
+ * starts at 0.5 samples none of it — which is how §8.10's headline came to be
+ * scoped to mid-range users without saying so. Every arm is reported per λ₀ as
+ * well as pooled, because the error is strongly λ₀-dependent and a pooled
+ * figure quoted without its scope is the defect this grid was widened to fix.
+ *
  * THE ORACLE ARM is the accuracy reference the bracket cannot be its own judge
  * of: the λ set on which the optimizer's plan for the day's own inputs works
  * exactly the observed hours (the envelope-theorem object §8.10 says it "cannot
@@ -79,7 +86,7 @@ function mulberry32(seed: number): () => number {
 const CONSTANTS = DEFAULT_USER_CONSTANTS;
 const STEP = DEFAULT_STEP_HOURS;
 const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
-const LAMBDAS = [0.5, 0.7, 0.9, 1.1];
+const LAMBDAS = [0.1, 0.3, 0.5, 0.7, 0.9, 1.1];
 const DAY_COUNT = 120;
 const SEED = 0x8_1019;
 /** The instrument's own resolution — `stop-inversion-margin`'s measured median. */
@@ -215,17 +222,17 @@ const mean = (values: number[]) => values.reduce((s, x) => s + x, 0) / values.le
 const share = (values: number[], over: number) =>
 	(100 * values.filter((x) => Math.abs(x) > over).length) / values.length;
 
-/** One cell's five readings into the five tallies: an error, or a censored day. */
+/** One cell's readings into whichever tallies were handed in: an error, or a censored day. */
 function record(
-	tallies: Record<Arm, Tally>,
+	tallies: Partial<Record<Arm, Tally>>,
 	points: Record<Arm, number | null>,
 	lambda: number,
 ): void {
-	for (const arm of ARMS) {
+	for (const [arm, tally] of Object.entries(tallies) as [Arm, Tally][]) {
 		const point = points[arm];
 
-		if (point === null) tallies[arm].censored++;
-		else tallies[arm].errors.push(point - lambda);
+		if (point === null) tally.censored++;
+		else tally.errors.push(point - lambda);
 	}
 }
 
@@ -259,12 +266,20 @@ function measurePopulation(): Record<Arm, Tally> {
 	);
 
 	const tallies = Object.fromEntries(ARMS.map((arm) => [arm, emptyTally()])) as Record<Arm, Tally>;
+	const byLambda = new Map<number, Partial<Record<Arm, Tally>>>();
 	let cells = 0;
 	let withBreaks = 0;
 	let batchMismatches = 0;
 
 	for (const lambda of LAMBDAS) {
 		const params = paramsAt(lambda);
+
+		const scoped: Partial<Record<Arm, Tally>> = {
+			logged: emptyTally(),
+			summed: emptyTally(),
+		};
+
+		byLambda.set(lambda, scoped);
 
 		for (const day of days) {
 			const plan = optimizeSchedule(day.tasks, day.windowHours, params, CONSTANTS).blocks;
@@ -298,6 +313,7 @@ function measurePopulation(): Record<Arm, Tally> {
 			if (points.batch !== points.summed) batchMismatches++;
 
 			record(tallies, points, lambda);
+			record(scoped, points, lambda);
 		}
 	}
 
@@ -308,6 +324,12 @@ function measurePopulation(): Record<Arm, Tally> {
 	);
 
 	for (const arm of ARMS) report(arm, tallies[arm]);
+
+	// Pooled hides the shape: the error is strongly λ₀-dependent, so a §8.10
+	// figure has to carry the λ₀ it was read at.
+	for (const [lambda, scoped] of byLambda)
+		for (const arm of ['logged', 'summed'] as const)
+			report(`λ₀ ${lambda.toFixed(1)} ${arm}`, scoped[arm]!);
 
 	console.log(
 		`[§8.10 structure] batch-logged vs summed: ${batchMismatches} days differ ` +
