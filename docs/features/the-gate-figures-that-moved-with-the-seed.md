@@ -102,14 +102,17 @@ and would have cost the next reader a probe run to rediscover.
 
 - **Mechanically bumping ROADMAP's `MATH.md:` citations is theatre, so it was
   not done.** This change inserts 4 lines at §8.5, which shifts every citation
-  below it. But no citation anywhere points _into_ §8.5, and every one below it
-  was already stale by hundreds of lines before this commit — `ROADMAP.md:917`
-  cites `MATH.md:1562-1563` for a retraction that now sits on a
-  `RECOVERY_PRIOR_STRENGTH` sentence, and M33 cites `:2033` for "shipped
-  pseudocode" that is now a curated-fixture paragraph. Adding 4 to a number
-  that is wrong by 300 makes it differently wrong. AGENTS.md's "sweep the
-  `file:line` citations that moved" is satisfied in spirit only by re-locating
-  by content, which is what this round's commits each do for their own targets.
+  below it. But no citation anywhere points _into_ §8.5, and the ones below it
+  were already stale when this commit landed — M5 cites `MATH.md:1562-1563` for
+  §8.9's retraction of the r lever arm, 11 lines below it at "roughly a THIRD of
+  its lever arm, not the half once claimed", and M33 cites `:2033` for §8.12's
+  `recommendedHours` pseudocode, 115 lines below it at "or null when that is W".
+  Both have drifted further since, which is the point: the numbers above are M5's
+  and M33's own, and what each should have pointed at is quoted rather than
+  re-guessed. Adding 4 to a number already wrong makes it differently wrong.
+  AGENTS.md's "sweep the `file:line` citations that moved" is satisfied in spirit
+  only by re-locating by content, which is what this round's commits each do for
+  their own targets.
   Whether ROADMAP should cite sections rather than lines is the real question,
   and it is a ROADMAP decision, not this commit's.
 - **Nothing tells a section that its sibling quotes the same sweep.** The

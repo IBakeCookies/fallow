@@ -467,7 +467,7 @@ defects it found without fixing.
     sections quote them. §14.3 is **112 inversions over 71,520** configurations
     with the grid stated (`scripts/adv2-switch-cost-price.probe.ts`); §15 is
     **284/300** (`scripts/mode-cross-scoring.probe.ts`, seed `0x290729`;
-    283/300 when settled, re-measured 2026-08-18); §16's median holds at
+    283/300 when settled, re-measured 2026-08-19); §16's median holds at
     **+0.47%**, p90 +1.50%, max +3.96%
     (`scripts/mode-run-order.probe.ts`).
     (g) **§12's ±0.05 adherence verdict band has no noise model** — §12 says so
@@ -832,14 +832,18 @@ passed), so that pairing is intended, not an accident.
 ## Findings from the 2026-08-14 `MATH.md` audit
 
 Item 31's list. The **M** ids are stable and never reused. M1–M13 and M22 were
-each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M36
+each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M41
 were raised and not verified** — they are leads, and item 29's rule applies, so
 quote none of them as a result until its own check is run. **M27, M28, M31, M32
 and M36 were closed on 2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), which took the four registry
 holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
-2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)). Seven are still
-leads: M17 (two of its three sites landed), M23, M33, M34, M35, M37 and M38.
+2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)). Ten are still
+leads: M17 (two of its three sites landed), M23, M33, M34, M35, M37, M38, and
+M39–M41, filed 2026-08-19 out of M38's measurement. M37–M41 came from probe
+sweeps rather than from the 2026-08-14 audit and carry the same rule: M38 has
+been measured twice since, which is not a verification while no committed
+instrument reproduces it.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1087,7 +1091,7 @@ only way to catch.
   appended-last against 0.37 inserted-first"; `MATH.md:3319-3325` retracted it
   (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
   `rv13-stop-insertion.probe.ts`.
-  **Two of three sites fixed 2026-08-18,
+  **Two of three sites fixed 2026-08-19,
   [`what-the-retracted-step-still-said`](docs/features/what-the-retracted-step-still-said.md); does not close.** The third —
   §8.10's own paragraph, which states the same pair as live fact — is held with
   the reconstruction ruling and still reads it. Both of this entry's citations
@@ -1251,7 +1255,7 @@ only way to catch.
   `drainObservations` at `:569` and `:580` and the r fit reads
   `restObservations` at `:615`, all unfiltered, while only λ₀ goes through
   `readStopObservations(this.#session.today)` at `:200-201` — against §33's
-  rule that today's 🪫 stops moving the plan. Raised 2026-08-18 by the probe
+  rule that today's 🪫 stops moving the plan. Raised 2026-08-19 by the probe
   sweep and confirmed by reading, but **not a doc edit**: it needs a ruling on
   whether the Lab is "a plan for day D" at all, or a calibration surface that
   should see every log the moment it lands. The only candidate wrong _shipped
@@ -1274,6 +1278,69 @@ only way to catch.
   design. Unlike M14–M36, this one was **found by measurement** — the probe was
   run, not read — so the "nothing below was executed" note above does not cover
   it.
+
+  **Measured twice since, independently, and both times "shipped defect"
+  (2026-08-19). Every figure below is scratch — no committed instrument
+  reproduces any of them, so item 29's rule still applies:**
+
+  - **The published cell is not app-reachable, so the witness above is a grid
+    artifact.** Its t2 (mental 4, physical 3) declares difficulty 6 where
+    `toEnergyTask` gives 4.90, and t3 needs a physical slider of 0.5. Legalising
+    the same demands removes the inversion entirely: 12 h reads 1.017, inside
+    tolerance.
+  - **The phenomenon is reachable.** A fully app-legal witness, built through the
+    app's own mappers and the app's own optimizer plan — tasks {mental 8,
+    physical 3, enjoyment 8} and {mental 0, physical 3, enjoyment 2}, 14 h
+    window, true λ₀ 0.7, plan t1 7.5 h — reads 0.407 with `lo` 0.469 above `hi`
+    0.345, gap 0.124, inverted and KEPT, error −0.293. Three more witnesses at
+    −0.322, −0.141, −0.210.
+  - **The mechanism is BREAK OMISSION, not the canonical reorder.** Re-bracketing
+    on the real block order barely moves the error (mean |err| 0.108 against
+    0.104 canonical), while keeping the breaks fixes every witness. 48.3% of the
+    app's own plans carry an interior rest break, and |err| > 0.13 on 42.3% of
+    those against 3.8% of break-free plans. §8.10's "absorbed as noise" is the
+    sentence that does not survive, and the bias is one-signed — the fit reads
+    LOW.
+  - **The real failure is CONTAINMENT, not inversion.** The bracket excludes the
+    true λ₀ on roughly a third of app-legal days (34.2% of 427 in one arm, 32–49%
+    across arms), p90 0.251, max 0.470 — and no censor flags any of them. That is
+    the first half of the same `zenith-energy.ts:1905-1906` sentence, not the
+    tolerance half. The 9-cell grid was too SMALL, not only off-surface.
+  - **The margin cannot be the fix.** The documented gap sits 6.9× inside it,
+    halving it to 0.1 still keeps both witnesses, and raising it censors more days
+    while §8.10's own margin sweep says censoring buys the fit nothing.
+  - **What the error costs.** A −0.2 λ₀ error moves the plan's worked hours on
+    64.4% of plans (mean 2.48 lattice steps) and flips the live advisor's verdict
+    on 77.1% of days; a repeating-day user at true 0.7 fits 0.414 ± 0.035, so the
+    posterior std printed beside it understates the error 8×. The population mean
+    signed error nearly cancels (+0.020 / −0.006), which is why a mean-based check
+    would have closed this wrongly.
+
+  The V_T half of this entry is superseded by M41, which measures the same claim
+  over app-legal days. Still awaiting the ruling, and still held out of the
+  round's edits.
+
+- **M39 §8.11** — `adviseStop` runs the same reconstruction with no inversion
+  censor at all (`zenith-energy.ts:2129-2168`), so `STOP_INVERSION_MARGIN` guards
+  the retrospective fit only and the in-day path is unguarded. Reachable by
+  construction. Same shape as M38: a code question, not a doc edit.
+- **M40 §8.10** — three committed probe generators are off the app's constraint
+  surface, so no day they generate is slider-reachable.
+  `stop-inversion-margin.probe.ts:237` and `stop-margin-fit-error.probe.ts:232`
+  build tasks with `difficulty = Math.max(mental, physical)`, skipping
+  `DIFFICULTY_SPILLOVER = 0.3`; `stp-stopping-identifiability.probe.ts`'s standard
+  day declares its difficulties outright (t2 at 6 where `getEffectiveDifficulty`
+  gives 4.90) and hands t3 a 0.05 physical demand, which is a slider of 0.5.
+  Every §8.10 population figure resting on them — the 39% inversion rate, 4/315,
+  44/1179, the median 0.110 half-width — is therefore unquotable in either
+  direction until the generators use `getEffectiveDifficulty`. This is the M28
+  class (a witness at demands the app cannot produce), now found in three
+  instruments rather than one section.
+- **M41 §8.10** — the V_T non-monotonicity claim is UNDERSTATED, not merely
+  mis-witnessed: over the UI's own V_T range on app-legal days, 18 of 200 cells
+  are non-monotone with up to 5 levels and a 4-step span, while §8.10 claims three
+  levels and `zenith-energy.ts:2188-2189` says "two lattice levels" (scratch,
+  2026-08-19). Inside the §8.10 hold — filed, with the text left alone.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading

@@ -1,6 +1,6 @@
 # What the retracted step still said
 
-**Status:** landed 2026-08-18 · **Roadmap:** closes nothing — advances M17
+**Status:** landed 2026-08-19 · **Roadmap:** closes nothing — advances M17
 (two of three sites) and files M37
 
 Frozen at land: this file says what was decided on the date it carries, never

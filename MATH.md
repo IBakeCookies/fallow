@@ -2915,10 +2915,23 @@ the cell reads 0.002473. The same double-rounding was in `zenith.ts`'s
 `priorPosterior` comment.
 
 **Every re-measurement stamp this round carries is 2026-08-19**, including the
-ones in §13.4, §13.6, §14.1, §14.2 and §15 that first landed reading
-2026-08-18. There was one draw against one tree; the commits straddled midnight,
-and five of them stamped the wall clock they were written at rather than the
-date the probes ran, which would read as two draws a day apart.
+ones in §13.4, §13.6, §14.1, §14.2 and §15 that first landed reading 2026-08-18,
+and ROADMAP's copy of §15's cross-scoring counts with them. There was one draw
+against one tree; the commits straddled midnight, and five of them stamped the
+wall clock they were written at rather than the date the probes ran, which would
+read as two draws a day apart. **A land date is not a draw date and keeps what it
+had**: the round's first two commits landed before midnight, so M18–M21's
+closures and those two feature files still read 2026-08-18. Three ROADMAP and
+feature-file stamps read it for commits that landed after it, and those are now
+2026-08-19 — which is what makes the sentence above checkable by grep rather than
+contradicted by its own siblings.
+
+**The citation sweep recorded beside that entry missed one**: 36 of the branch's
+40 `file:line` citations land at HEAD, not 37. The gate-figures feature file cited
+`ROADMAP.md:917` for a row that sits at `:919`, and described two of ROADMAP's own
+citations by what stood at those line numbers on the day it landed — true then,
+rotted three commits later. All three now name the text they mean, which is the
+address a later insertion cannot move.
 
 ## 11. Metric-layer corrections (2026-07-18)
 
