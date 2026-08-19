@@ -838,8 +838,8 @@ quote none of them as a result until its own check is run. **M27, M28, M31, M32
 and M36 were closed on 2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), which took the four registry
 holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
-2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)). Six are still
-leads: M17 (two of its three sites landed), M23, M33, M34, M35 and M37.
+2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)). Seven are still
+leads: M17 (two of its three sites landed), M23, M33, M34, M35, M37 and M38.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1124,11 +1124,12 @@ only way to catch.
 - **M24 §11.8 — closed 2026-08-19, [`what-the-output-tile-was-scored-against`](docs/features/what-the-output-tile-was-scored-against.md).** The retired name is real
   and §11.8 now annotates it in place. All four supporting facts were wrong: the
   store field is at `energy-lab-store.svelte.ts:413`/`:422-423`, the rename is
-  recorded in §30's fix paragraph (`MATH.md:6779`, not `:6048`), the old name
-  does not grep empty (three tracked hits, one of them §30's own record of the
-  rename, which keeps it), and the rename was **not** name-only — §30 repointed
-  the tile from raw `totalOutput` to the `objective` the same day, so a token
-  swap would have rewritten a 2026-07-20 entry into a claim it never made.
+  recorded in the first line of §30's "The fix" (`#outputVsClassic` →
+  `valueVsClassic`) and not at the cited `:6048`, the old name does not grep
+  empty (three tracked hits, one of them §30's own record of the rename, which
+  keeps it), and the rename was **not** name-only — §30 repointed the tile
+  from raw `totalOutput` to the `objective` the same day, so a token swap
+  would have rewritten a 2026-07-20 entry into a claim it never made.
   Filed as a one-token rename, and the pass that verified it marked §30's
   headline pair "transcribed — probe not run": that is where the round's only
   measured drift was sitting. Four §30 figures moved (61.4 → **61.03**, 73.1 →
@@ -1255,6 +1256,24 @@ only way to catch.
   whether the Lab is "a plan for day D" at all, or a calibration surface that
   should see every log the moment it lands. The only candidate wrong _shipped
   behaviour_ either audit round turned up.
+- **M38 §8.10** — the reconstruction's bracket inverts on a day it then keeps,
+  and the docblock's tolerance is the casualty. At true λ₀ = 0.9 over a 12 h
+  window `stp-stopping-identifiability.probe.ts` reads `lo` 0.7001 above `hi`
+  0.6637, so the bracket excludes truth by 0.236 and its midpoint enters the fit
+  0.218 low — against the "midpoints track it within ~0.13" that
+  `zenith-energy.ts:1905-1906` states as the reconstruction's contract. The day
+  is **not** censored: the inversion gap is 0.036, inside
+  `STOP_INVERSION_MARGIN` = 0.25, so it is kept as a biased point estimate
+  rather than dropped. The same cell kills the other half of §8.10's
+  feasibility-2 paragraph — the V_T sweep at (12 h, λ₀ = 0.9) walks 9 / 8.25 /
+  7.5, monotone non-increasing over a span of 2 steps, where the paragraph says
+  "through three levels non-monotonically". Awaiting a ruling and **held out of
+  the round's edits on purpose**: whether the margin should censor an inversion
+  this size, or the contract should be restated, is a code question, and
+  "correcting" ~0.13 to 0.218 in the document would write the defect down as the
+  design. Unlike M14–M36, this one was **found by measurement** — the probe was
+  run, not read — so the "nothing below was executed" note above does not cover
+  it.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
