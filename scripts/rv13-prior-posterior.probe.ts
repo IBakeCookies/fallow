@@ -46,6 +46,7 @@ import {
 	type FlowObservation,
 	type PooledTaskInput,
 } from '$lib/business/model/zenith';
+import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 
 /** Seeded so a quoted number can be reproduced, not just re-rolled. */
 function mulberry32(seed: number): () => number {
@@ -94,7 +95,10 @@ function randomDay(rnd: () => number): { tasks: PooledTaskInput[]; budget: numbe
 
 				return {
 					title: `t${i}`,
-					difficulty: Math.min(10, Math.max(mental, physical) + 0.3 * Math.min(mental, physical)),
+					difficulty: getEffectiveDifficulty({
+						mentalDifficulty: mental,
+						physicalDifficulty: physical,
+					}),
 					enjoyment: 1 + Math.floor(rnd() * 10),
 					cognitiveWeight: mental / 10,
 					physicalWeight: physical / 10,
