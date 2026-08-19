@@ -20,7 +20,8 @@
  * A probe, not a test: it answers "how much does this cost over a large input
  * space" with numbers that legitimately move whenever the allocator changes.
  * The suite keeps the two fixtures instead (`zenith.test.ts`: the tight-budget
- * subset optimum, and budget monotonicity).
+ * subset optimum, and budget monotonicity). The crossover arm is the exception
+ * that proves the rule — it asserts the SHAPES §7 argues from and never a digit.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -28,7 +29,7 @@
  * Usage: npm run probe
  */
 
-import { describe, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { writeFileSync } from 'node:fs';
 import {
 	BLOCK_HOURS,
@@ -56,6 +57,15 @@ interface ProbeTask {
 	title: string;
 	difficulty: number;
 	enjoyment: number;
+}
+
+interface Crossover {
+	n: number;
+	switchCost: number;
+	lastBoundedBudget: number;
+	steps: number;
+	maxFunded: number;
+	plans: number;
 }
 
 const planValue = (allocations: { avgProductivity: number }[]): number =>
@@ -295,7 +305,7 @@ describe('funded-subset search past the exact limit', () => {
 			};
 		};
 
-		const crossovers: unknown[] = [];
+		const crossovers: Crossover[] = [];
 		const oneHour: unknown[] = [];
 
 		for (const switchCost of [0.1, 0.25, 0.33, 0.5]) {
@@ -332,6 +342,45 @@ describe('funded-subset search past the exact limit', () => {
 				2,
 			),
 		);
+
+		// The digits above are §7's; these are the shapes §7 reasons with, and only
+		// the shapes can be asserted — `BLOCK_HOURS` or `SUBSET_SEARCH_BUDGET` moving
+		// would move every crossover legitimately without touching any of them.
+		for (const row of crossovers) {
+			// A crossover exists inside the ladder, and the bounded region below it is
+			// an interval: `steps` counts every bounded budget, so it equals the
+			// crossover's step index iff nothing below the crossover fell through.
+			expect(row.lastBoundedBudget).toBeGreaterThan(0);
+			expect(row.lastBoundedBudget).toBeLessThan(24);
+			expect(row.steps).toBe(Math.round(row.lastBoundedBudget / BLOCK_HOURS));
+		}
+
+		for (const switchCost of new Set(crossovers.map((row) => row.switchCost))) {
+			// A longer list crosses over no later: same `maxFunded`, more subsets.
+			const byN = crossovers.filter((row) => row.switchCost === switchCost);
+
+			for (let i = 1; i < byN.length; i++)
+				expect(byN[i].lastBoundedBudget).toBeLessThanOrEqual(byN[i - 1].lastBoundedBudget);
+		}
+
+		for (const n of new Set(crossovers.map((row) => row.n))) {
+			// A dearer switch crosses over no earlier: the charge holds `maxFunded`
+			// down, which is what leaves the enumeration affordable further up the
+			// ladder. This ordering is what lets §7 read every ≤ 2 h shortfall in
+			// §34's after-table as a `switchCost` 0.1 day.
+			const bySwitchCost = crossovers.filter((row) => row.n === n);
+
+			for (let i = 1; i < bySwitchCost.length; i++)
+				expect(bySwitchCost[i].lastBoundedBudget).toBeGreaterThanOrEqual(
+					bySwitchCost[i - 1].lastBoundedBudget,
+				);
+		}
+
+		// The same deduction's absolute half: from `switchCost` 0.25 up, no day at
+		// n ≤ 15 in the ≤ 2 h band reaches the fallback at all.
+		for (const row of crossovers)
+			if (row.switchCost >= 0.25 && row.n <= 15)
+				expect(row.lastBoundedBudget).toBeGreaterThanOrEqual(2);
 	});
 
 	it('times the path the app actually calls, per (n, budget)', () => {
