@@ -44,6 +44,7 @@ import {
 	pooledProductivityGain,
 	type PooledTaskInput,
 } from '$lib/business/model/zenith';
+import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 
 /**
  * What the app actually runs with. `fitUserConstants([])` returns the DEFAULT
@@ -54,15 +55,14 @@ import {
  */
 const FIT = fitUserConstants([]);
 const POST = FIT.posterior;
-const SPILLOVER = 0.3;
 
 function task(title: string, physical: number, mental: number, enjoyment: number): PooledTaskInput {
-	const dominant = Math.max(physical, mental);
-	const secondary = Math.min(physical, mental);
-
 	return {
 		title,
-		difficulty: Math.min(10, Math.max(1, dominant + SPILLOVER * secondary)),
+		difficulty: getEffectiveDifficulty({
+			mentalDifficulty: mental,
+			physicalDifficulty: physical,
+		}),
 		enjoyment,
 		cognitiveWeight: mental / 10,
 		physicalWeight: physical / 10,
