@@ -129,11 +129,15 @@ export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
  * maps give p₀ = a at user difficulty 1 (MATH.md §1).
  */
 const AMPLITUDE_RATIO_CAP = 0.9;
+
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
 // tasks (4095 subsets — instant). Past it the same 4095-plan budget is spent on
-// the subset sizes the day can actually fund (MATH.md §34).
-const EXACT_SUBSET_LIMIT = 12;
-const SUBSET_SEARCH_BUDGET = (1 << EXACT_SUBSET_LIMIT) - 1;
+// the subset sizes the day can actually fund (MATH.md §34). Exported because
+// `subset-search-bound.probe.ts` re-derives that branch rule and must compare
+// against the shipped cap, not a copy of it (R3).
+export const EXACT_SUBSET_LIMIT = 12;
+
+export const SUBSET_SEARCH_BUDGET = (1 << EXACT_SUBSET_LIMIT) - 1;
 
 /**
  * Map user effort (1-10) to true effort E (1-5)

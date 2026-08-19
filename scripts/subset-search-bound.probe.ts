@@ -21,7 +21,8 @@
  * space" with numbers that legitimately move whenever the allocator changes.
  * The suite keeps the two fixtures instead (`zenith.test.ts`: the tight-budget
  * subset optimum, and budget monotonicity). The crossover arm is the exception
- * that proves the rule — it asserts the SHAPES §7 argues from and never a digit.
+ * that proves the rule — it asserts the SHAPES §7 argues from, plus the one digit
+ * §7 reasons from directly, its ≤ 2 h band.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -35,6 +36,8 @@ import {
 	BLOCK_HOURS,
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_USER_CONSTANTS,
+	EXACT_SUBSET_LIMIT,
+	SUBSET_SEARCH_BUDGET,
 	calculatePooledAllocations,
 	calculateTaskAllocations,
 	type PooledTaskInput,
@@ -93,7 +96,9 @@ function exhaustiveValue(tasks: ProbeTask[], budget: number, switchCost: number)
  * `maxFunded` and the Σⱼ C(n, j) plan count §34's bound tests, re-derived here
  * from §34's rule rather than imported — the allocator does not report them, and
  * a probe that asked the code under test which path it took would be measuring
- * nothing. n > 12 only; below that the full enumeration always runs.
+ * nothing. The cap it compares against is the shipped `SUBSET_SEARCH_BUDGET`,
+ * so the derivation moves with the rule rather than with a copy of it. Runs past
+ * `EXACT_SUBSET_LIMIT` only; below that the full enumeration always runs.
  *
  * It re-derives the shipped rule at `startedCount` = 0 — every day this probe
  * generates — where `max(0, m)` is `m` and the day-funded term of §34's bound
@@ -129,7 +134,7 @@ function boundedSearchSize(
 function boundedSearchRuns(n: number, budget: number, switchCost: number): boolean {
 	const { maxFunded, plans } = boundedSearchSize(n, budget, switchCost);
 
-	return maxFunded > 0 && plans <= (1 << 12) - 1;
+	return maxFunded > 0 && plans <= SUBSET_SEARCH_BUDGET;
 }
 
 const BANDS = [
@@ -321,7 +326,7 @@ describe('funded-subset search past the exact limit', () => {
 				});
 			}
 
-			let onset = 13;
+			let onset = EXACT_SUBSET_LIMIT + 1;
 
 			while (onset < 200 && boundedSearchRuns(onset, 1, switchCost)) onset++;
 
@@ -343,9 +348,11 @@ describe('funded-subset search past the exact limit', () => {
 			),
 		);
 
-		// The digits above are §7's; these are the shapes §7 reasons with, and only
-		// the shapes can be asserted — `BLOCK_HOURS` or `SUBSET_SEARCH_BUDGET` moving
-		// would move every crossover legitimately without touching any of them.
+		// The digits above are §7's; these are the shapes §7 reasons with, plus §7's
+		// own ≤ 2 h band at the end. `BLOCK_HOURS` and `SUBSET_SEARCH_BUDGET` are
+		// imported and not restated, so a change to either moves every crossover
+		// legitimately, leaves the shapes standing, and turns that last assertion
+		// red.
 		for (const row of crossovers) {
 			// A crossover exists inside the ladder, and the bounded region below it is
 			// an interval: `steps` counts every bounded budget, so it equals the

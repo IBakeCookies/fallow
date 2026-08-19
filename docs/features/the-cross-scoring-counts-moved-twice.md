@@ -1,6 +1,6 @@
 # The cross-scoring counts moved twice
 
-**Status:** landed 2026-08-18 · **Roadmap:** closes nothing — a sweep finding
+**Status:** landed 2026-08-19 · **Roadmap:** closes nothing — a sweep finding
 from the 2026-08-13 solver-drift re-run of the frozen probe set
 
 Frozen at land: this file says what was decided on the date it carries, never
