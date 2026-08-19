@@ -851,10 +851,11 @@ holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
 2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)), and **M38 the
 same day** — its ruling shipped as a model change (MATH.md §8.10, §8.11, §10).
-Ten are still leads: M17 (two of its three sites landed), M23, M33, M34, M35,
-M37, and M39–M42, the last four filed 2026-08-19 out of M38's measurement and its
-fix. M37–M42 came from probe sweeps rather than from the 2026-08-14 audit and
-carry the same rule; M38 is the one exception, because its fix committed the
+Thirteen are still leads: M17 (two of its three sites landed), M23, M33, M34,
+M35, M37, and M39–M45 — M39–M42 filed 2026-08-19 out of M38's measurement and its
+fix, and M43–M45 the same day out of M40's first correction, which found the fault
+set wider than M40 recorded. M37–M45 came from probe sweeps rather than from the
+2026-08-14 audit and carry the same rule; M38 is the one exception, because its fix committed the
 instrument that reproduces it.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
@@ -1418,6 +1419,38 @@ only way to catch.
   hours, which is a code question and would move §8.11's `window-full` copy with
   it; nothing here says which way. Do not quote these numbers as a result until a
   committed instrument prints them (item 29's rule).
+- **M43 §13.4 — the witness names a day it no longer measures.** §13.4's argument
+  rests on "§8.10's own fixture day — 2.25 h of reading at a 12-hour window with
+  boxing and guitar unstarted … where inserting reads _higher_, midpoint 0.8894
+  against 0.8840. But the gap there is 0.005" (`MATH.md:4335`). The fixture that
+  produced 0.8894 was replaced on 2026-08-19 with the slider-reachable one, so
+  both midpoints — and the 0.005 gap, which is their subtraction — belong to a
+  day the repo no longer declares. Repairing it needs `stopIndifferencePoint`
+  re-read on the reachable triple under both insertion conventions; substituting
+  is not available, because the sentence's whole point is the size of the gap.
+- **M44 — one file declares one named day two ways.** `zenith-energy.test.ts`
+  aligned its §8.10 fixture to the probe at `:1389-1392` on 2026-08-19, but the
+  same boxing/guitar/reading triple is still declared with the unreachable values
+  at `:455-456` (satiety), `:641-642` (micro-recovery gate), `:742-743`
+  (optimizeSchedule) and `:926-927` (45-min granularity): `guitar 6, 9, 0.4, 0.3`
+  pins sliders 4/3, which `getEffectiveDifficulty` sends to 4.90 rather than the 6
+  declared, and reading's `0.05` physical demand is a slider of 0.5. Six probe
+  files build the day by hand too — `rv13-stop-insertion.probe.ts:304` and
+  `sat-gate-floor.probe.ts:139` with those literals outright, plus `stp-lattice`,
+  `stp-stopping-identifiability`, `rv13-terminal-timing` and
+  `enb-break-economics`. Aligning any one of them moves the figures its own
+  section quotes, so each is its own change. This is M40's remaining scope stated
+  as fixtures rather than as generators, and it is why M40 stays open.
+- **M45 — `stop-inversion-margin.probe.ts` reports, it does not guard.** Two
+  mutations of the behaviour it documents left it GREEN (2026-08-19): dropping
+  `DIFFICULTY_SPILLOVER` from `getEffectiveDifficulty`, and forcing every
+  recovered inter-session gap to zero so a day's breaks become invisible. It
+  prints the right populations and asserts nothing that binds them, so nothing
+  fails when the behaviour moves. The suite caught the second mutation from
+  2026-08-19 (`fit.value` must differ from the same days summed); the first has no
+  detector anywhere. A probe that cannot go red is a report, not an instrument —
+  which is the assumption item 29's rule rests on, so the rule is worth re-reading
+  against the other 60 registry rows rather than this one probe.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
