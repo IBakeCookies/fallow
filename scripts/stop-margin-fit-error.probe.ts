@@ -34,6 +34,15 @@
  * every margin is a pure post-filter over the cached list: one `optimizeSchedule`
  * run per day, and the whole sweep is arithmetic after that.
  *
+ * WHAT THE 2026-08-19 RE-RUN CHANGED, and why every number below moved. The step
+ * sequence used to DROP the plan's rest blocks, so no day this probe generated
+ * could carry a break and the whole sweep was computed on break-free
+ * reconstructions — which is how the break-omission bias stayed invisible to it.
+ * The sequence now keeps rest as a `null` step, `observationFrom` walks it on a
+ * wall clock and emits one row per session with the moment it ended, and the
+ * replica reads the structure back out of those moments exactly as the shipped
+ * `reconstructStopDay` does.
+ *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
  *
@@ -101,7 +110,7 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 
 	if (windowHours <= 0 || tasks.length === 0) return null;
 
-	// `reconstructStopDay`'s `candidates` (`zenith-energy.ts:2016`): omitted means
+	// `reconstructStopDay`'s `candidates` field: omitted means
 	// every task was open, and nothing left open leaves no step to decline.
 	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
 
@@ -113,18 +122,24 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
-
-	const sched: ScheduleBlock[] = canonical
-		.filter((t) => byTask.has(t.id))
-		.map((t) => ({
-			taskId: t.id,
-			hours: byTask.get(t.id)!,
-		}));
-
-	const total = sched.reduce((sum, b) => sum + b.hours, 0);
+	// WORKED hours, never the schedule's extent: the window censor must not turn
+	// on recovered structure (§8.10).
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
 
 	// No room to extend is a structural censor, not an inversion.
 	if (total + STEP > windowHours + 1e-9) return null;
+
+	const sched: ScheduleBlock[] =
+		loggedStructure(observation, byTask, total) ??
+		canonical
+			.filter((t) => byTask.has(t.id))
+			.map((t) => ({
+				taskId: t.id,
+				hours: byTask.get(t.id)!,
+			}));
+
+	const lastBlockOf = (taskId: number) =>
+		sched.reduce((last, b, i) => (b.taskId === taskId ? i : last), -1);
 
 	const workValue = (blocks: ScheduleBlock[]): number => {
 		const ev = evaluateSchedule(blocks, tasks, windowHours, params, CONSTANTS);
@@ -134,42 +149,67 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 
 	const base = workValue(sched);
 
-	// `growBy`: an unlogged task enters at ITS canonical rank, not appended.
+	// `growBy`: the LAST block of a logged task grows; an unlogged task enters at
+	// ITS canonical rank among the WORK blocks; the overhang is paid out of the
+	// day's latest rest rather than clipped off the probe.
 	const grown = (t: EnergyTaskInput): ScheduleBlock[] => {
 		if (byTask.has(t.id)) {
-			return sched.map((b) =>
-				b.taskId === t.id
-					? {
-							...b,
-							hours: b.hours + STEP,
-						}
-					: b,
+			const last = lastBlockOf(t.id);
+
+			return trimRest(
+				sched.map((b, i) =>
+					i === last
+						? {
+								...b,
+								hours: b.hours + STEP,
+							}
+						: b,
+				),
+				windowHours,
 			);
 		}
 
-		const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
+		const before = sched.filter(
+			(b) => b.taskId !== null && rank.get(b.taskId)! < rank.get(t.id)!,
+		).length;
 
-		return [
-			...sched.slice(0, at),
-			{
-				taskId: t.id,
-				hours: STEP,
-			},
-			...sched.slice(at),
-		];
+		let index = 0;
+
+		for (let seen = 0; seen < before; index++) if (sched[index].taskId !== null) seen++;
+
+		return trimRest(
+			[
+				...sched.slice(0, index),
+				{
+					taskId: t.id,
+					hours: STEP,
+				},
+				...sched.slice(index),
+			],
+			windowHours,
+		);
 	};
 
-	const shrunk = (taskId: number): ScheduleBlock[] =>
-		sched
-			.map((b) =>
-				b.taskId === taskId
-					? {
-							...b,
-							hours: b.hours - STEP,
-						}
-					: b,
-			)
-			.filter((b) => b.hours > 1e-9);
+	/** `shrinkBy`: one step off the END of that task's work, across its blocks. */
+	const shrunk = (taskId: number): ScheduleBlock[] => {
+		const out = [...sched];
+		let left = STEP;
+
+		for (let i = out.length - 1; i >= 0 && left > 1e-9; i--) {
+			if (out[i].taskId !== taskId) continue;
+
+			const take = Math.min(out[i].hours, left);
+
+			out[i] = {
+				...out[i],
+				hours: out[i].hours - take,
+			};
+
+			left -= take;
+		}
+
+		return out.filter((b) => b.hours > 1e-9);
+	};
 
 	let lo = -Infinity;
 
@@ -187,6 +227,78 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 		stopBound: Math.max(0, lo),
 		hi,
 	};
+}
+
+const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
+
+/**
+ * `reconstructStopDay`'s recovered block structure, replicated: rows in log
+ * order, the space before each one a break, all rest scaled to leave one step of
+ * room. Null on the days the shipped reader falls back on.
+ */
+function loggedStructure(
+	observation: StopObservation,
+	byTask: Map<number, number>,
+	total: number,
+): ScheduleBlock[] | null {
+	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
+
+	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
+
+	const sorted = [...rows].sort((x, y) => x.endedAt! - y.endedAt!);
+
+	const gaps = sorted.map((r, i) =>
+		i === 0
+			? 0
+			: Math.max(0, (r.endedAt! - r.hours * 3_600_000 - sorted[i - 1].endedAt!) / 3_600_000),
+	);
+
+	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
+	const room = Math.max(0, observation.windowHours - total - STEP);
+	const scale = Math.min(1, room / restTotal);
+
+	if (!(restTotal * scale > 1e-9)) return null;
+
+	const sched: ScheduleBlock[] = [];
+
+	sorted.forEach((r, i) => {
+		if (gaps[i] * scale > 1e-9)
+			sched.push({
+				taskId: null,
+				hours: gaps[i] * scale,
+			});
+
+		sched.push({
+			taskId: r.taskId,
+			hours: r.hours,
+		});
+	});
+
+	return sched;
+}
+
+/** `trimRest`: pay a counterfactual's overhang out of the latest rest first. */
+function trimRest(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
+	let over = blocks.reduce((sum, b) => sum + b.hours, 0) - windowHours;
+
+	if (over <= 1e-9) return blocks;
+
+	const out = [...blocks];
+
+	for (let i = out.length - 1; i >= 0 && over > 1e-9; i--) {
+		if (out[i].taskId !== null) continue;
+
+		const take = Math.min(out[i].hours, over);
+
+		out[i] = {
+			...out[i],
+			hours: out[i].hours - take,
+		};
+
+		over -= take;
+	}
+
+	return out.filter((b) => b.hours > 1e-9);
 }
 
 /** The day's indifference point, or null when this margin censors it. */
@@ -213,6 +325,8 @@ type Kind = (typeof KINDS)[number];
 interface DayCell {
 	observation: StopObservation;
 	bracket: Bracket | null;
+	/** The same day read the pre-2026-08-19 way — rows summed, breaks discarded */
+	summedBracket: Bracket | null;
 }
 
 interface SimulatedUser {
@@ -248,36 +362,64 @@ function drawDay(random: () => number): { tasks: EnergyTaskInput[]; windowHours:
 	};
 }
 
-/** The plan as the per-step work sequence a drain log would have produced. */
-function stepsOfPlan(blocks: ScheduleBlock[]): number[] {
-	return blocks
-		.filter((b) => b.taskId !== null)
-		.flatMap((b) =>
-			Array.from(
-				{
-					length: Math.round(b.hours / STEP),
-				},
-				() => b.taskId!,
-			),
-		);
+/**
+ * The plan as the per-step sequence a drain log would have produced — REST
+ * INCLUDED, as a `null` step. Dropping it is what made every day this probe
+ * generated break-free, and with it the whole sweep below.
+ */
+function stepsOfPlan(blocks: ScheduleBlock[]): (number | null)[] {
+	return blocks.flatMap((b) =>
+		Array.from(
+			{
+				length: Math.round(b.hours / STEP),
+			},
+			() => b.taskId,
+		),
+	);
 }
 
+/**
+ * The step sequence as the 🪫 log would hold it: one row per contiguous session,
+ * each carrying the wall-clock moment it ended, the rest steps passing on the
+ * clock without producing a row. That is what carries the day's breaks into the
+ * observation.
+ */
 function observationFrom(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
-	steps: number[],
+	steps: (number | null)[],
 ): StopObservation {
-	const byTask = new Map<number, number>();
+	const workedHours: StopObservation['workedHours'] = [];
+	let clock = 0;
 
-	for (const id of steps) byTask.set(id, (byTask.get(id) ?? 0) + STEP);
+	for (const id of steps) {
+		clock += STEP;
+
+		if (id === null) continue;
+
+		const last = workedHours[workedHours.length - 1];
+
+		if (
+			last &&
+			last.taskId === id &&
+			Math.abs(last.endedAt! - ORIGIN - (clock - STEP) * 3_600_000) < 1
+		) {
+			last.hours += STEP;
+			last.endedAt = ORIGIN + clock * 3_600_000;
+			continue;
+		}
+
+		workedHours.push({
+			taskId: id,
+			hours: STEP,
+			endedAt: ORIGIN + clock * 3_600_000,
+		});
+	}
 
 	return {
 		tasks,
 		windowHours,
-		workedHours: [...byTask].map(([taskId, hours]) => ({
-			taskId,
-			hours,
-		})),
+		workedHours,
 	};
 }
 
@@ -290,14 +432,16 @@ function variantSteps(
 	random: () => number,
 	tasks: EnergyTaskInput[],
 	windowHours: number,
-	steps: number[],
-): Record<Kind, number[]> {
+	steps: (number | null)[],
+): Record<Kind, (number | null)[]> {
 	const weakest = [...tasks].sort((x, y) => amplitude(x) - amplitude(y))[0].id;
 	const cut = 1 + Math.floor(random() * 3);
 	const at = 1 + Math.floor(random() * Math.max(1, steps.length - 2));
 	const added = tasks[Math.floor(random() * tasks.length)].id;
-	const dropped = Math.floor(random() * steps.length);
-	const grindSteps = Math.min(Math.max(3, steps.length), Math.floor(windowHours / STEP) - 1);
+	// A mood day works 45 min more or less, so the dropped step is a WORK step.
+	const workIndices = steps.map((id, i) => (id === null ? -1 : i)).filter((i) => i >= 0);
+	const dropped = workIndices[Math.floor(random() * workIndices.length)];
+	const grindSteps = Math.min(Math.max(3, workIndices.length), Math.floor(windowHours / STEP) - 1);
 
 	return {
 		rational: steps,
@@ -317,7 +461,7 @@ function buildDay(random: () => number, params: EnergyParams): Record<Kind, DayC
 	const { tasks, windowHours } = drawDay(random);
 	const steps = stepsOfPlan(optimizeSchedule(tasks, windowHours, params, CONSTANTS).blocks);
 
-	if (steps.length < 3) return null;
+	if (steps.filter((id) => id !== null).length < 3) return null;
 
 	const variants = variantSteps(random, tasks, windowHours, steps);
 
@@ -329,6 +473,16 @@ function buildDay(random: () => number, params: EnergyParams): Record<Kind, DayC
 			{
 				observation,
 				bracket: bracketOf(observation, params),
+				summedBracket: bracketOf(
+					{
+						...observation,
+						workedHours: observation.workedHours.map(({ taskId, hours }) => ({
+							taskId,
+							hours,
+						})),
+					},
+					params,
+				),
 			},
 		] as const;
 	});
@@ -425,7 +579,7 @@ const IN_RANGE = MARGINS.map((m, i) => ({
 /** n = 3 matters because §8.10's prior gives ONE day 50% of the fit — the only regime where the margin has leverage. */
 const DAY_COUNTS = [3, 12];
 /** The instrument's own resolution: median bracket half-width, `stop-inversion-margin.probe.ts` 2026-08-06. */
-const BRACKET_HALF_WIDTH = 0.11;
+const BRACKET_HALF_WIDTH = 0.134;
 
 interface Arm {
 	mix: MixName;
@@ -668,39 +822,44 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 	});
 
 	it('measures each day kind against the truth that generated it', () => {
-		for (const kind of KINDS) {
-			const rows = fixture().population.flatMap((user) =>
-				user.days
-					.map((day) => day[kind])
-					.filter((cell) => cell.bracket !== null)
-					.map((cell) => ({
-						gap: cell.bracket!.stopBound - cell.bracket!.hi,
-						point: (cell.bracket!.stopBound + cell.bracket!.hi) / 2,
-						lambda: user.lambda,
-					})),
-			);
+		// Both readings, because the inversion rate is what §8.10 values as a
+		// contamination DETECTOR: recovering a day's breaks makes it look more
+		// rational, so the detector's hit rate on interrupted and grind days is
+		// exactly the thing this change could cost.
+		for (const kind of KINDS)
+			for (const isSummed of [false, true]) {
+				const rows = fixture().population.flatMap((user) =>
+					user.days
+						.map((day) => (isSummed ? day[kind].summedBracket : day[kind].bracket))
+						.filter((bracket): bracket is Bracket => bracket !== null)
+						.map((bracket) => ({
+							gap: bracket.stopBound - bracket.hi,
+							point: (bracket.stopBound + bracket.hi) / 2,
+							lambda: user.lambda,
+						})),
+				);
 
-			const gaps = rows.filter((r) => r.gap > 0).map((r) => r.gap);
+				const gaps = rows.filter((r) => r.gap > 0).map((r) => r.gap);
 
-			console.log(
-				`[§8.10 per-kind] ${kind.padEnd(17)} days ${String(rows.length).padStart(4)}  ` +
-					`inverted ${fmt((100 * gaps.length) / rows.length, 1)}%  ` +
-					`past 0.25 ${fmt((100 * rows.filter((r) => r.gap > STOP_INVERSION_MARGIN).length) / rows.length, 1)}%  ` +
-					`gap p50 ${fmt(quantile(gaps, 0.5))} p90 ${fmt(quantile(gaps, 0.9))}  ` +
-					`point p50 ${fmt(
-						quantile(
-							rows.map((r) => r.point),
-							0.5,
-						),
-					)}  ` +
-					`|point−truth| p50 ${fmt(
-						quantile(
-							rows.map((r) => Math.abs(r.point - r.lambda)),
-							0.5,
-						),
-					)}`,
-			);
-		}
+				console.log(
+					`[§8.10 per-kind] ${kind.padEnd(17)} ${isSummed ? 'summed' : 'logged'}  days ${String(rows.length).padStart(4)}  ` +
+						`inverted ${fmt((100 * gaps.length) / rows.length, 1)}%  ` +
+						`past 0.25 ${fmt((100 * rows.filter((r) => r.gap > STOP_INVERSION_MARGIN).length) / rows.length, 1)}%  ` +
+						`gap p50 ${fmt(quantile(gaps, 0.5))} p90 ${fmt(quantile(gaps, 0.9))}  ` +
+						`point p50 ${fmt(
+							quantile(
+								rows.map((r) => r.point),
+								0.5,
+							),
+						)}  ` +
+						`|point−truth| p50 ${fmt(
+							quantile(
+								rows.map((r) => Math.abs(r.point - r.lambda)),
+								0.5,
+							),
+						)}`,
+				);
+			}
 	});
 
 	it('sweeps the margin against λ₀ fit RMSE', () => {
@@ -767,8 +926,10 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 				? `[§8.10 verdict] KILL CRITERION FIRED in ${verdicts.length}/${verdicts.length} arms — ` +
 						`the whole margin range moves λ₀ fit RMSE by less than a tenth of the ` +
 						`${BRACKET_HALF_WIDTH} bracket half-width the instrument already concedes, so the constant ` +
-						'does not matter over [0.1, 0.5] and §8.10 must say so. The drift is detectable but ' +
-						'negligible, and it has a consistent SIGN: wider censors less and fits slightly better.'
+						'does not matter over [0.1, 0.5] and §8.10 must say so. Read the per-arm endpoint ' +
+						'contrasts above for the sign: it was negative in all four arms while the ' +
+						"reconstruction discarded the days' breaks, and only the contaminated arms still say " +
+						'wider censors less and fits slightly better.'
 				: `[§8.10 verdict] KILL CRITERION DID NOT FIRE in ${verdicts.filter((v) => !v).length} arm(s) — ` +
 						'the margin moves the fit by an instrument-visible amount and 0.25 can be re-derived',
 		);

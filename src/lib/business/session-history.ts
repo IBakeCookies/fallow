@@ -204,7 +204,7 @@ export async function readHistoryPrefills(today: string): Promise<HistoryPrefill
 
 interface FinishedDay {
 	session: DailySession;
-	workedHours: { taskId: number; hours: number }[];
+	workedHours: { taskId: number; hours: number; endedAt?: number }[];
 }
 
 /**
@@ -215,18 +215,32 @@ interface FinishedDay {
  *
  * Takes the drain logs rather than reading them, so a caller that needs both
  * derivations pays for one read (and one sessions range read) instead of two.
+ *
+ * One row per SESSION, not one per task (§18) — summing them here is what
+ * destroyed the day's breaks before §8.10's estimator could read them. Each
+ * row's `createdAt` rides along as `endedAt`, and it is validated HERE rather
+ * than in `sanitizeDrainObservations`: one sanitizer feeds every consumer, and
+ * §8.7's α fit does not need the field, so a row failing this check must not
+ * disappear from that fit (AGENTS.md R4). A day with any unusable moment loses
+ * the field on every row and reads as summed.
  */
 async function readFinishedDays(
 	today: string,
 	drainLogs: DrainObservationRecord[],
 ): Promise<FinishedDay[]> {
-	const byDate = new Map<string, Map<number, number>>();
+	const byDate = new Map<string, FinishedDay['workedHours']>();
 
 	for (const log of drainLogs) {
 		if (log.date >= today || log.hours <= 0) continue;
 
-		const day = byDate.get(log.date) ?? new Map<number, number>();
-		day.set(log.taskId, (day.get(log.taskId) ?? 0) + log.hours);
+		const day = byDate.get(log.date) ?? [];
+
+		day.push({
+			taskId: log.taskId,
+			hours: log.hours,
+			endedAt: log.createdAt,
+		});
+
 		byDate.set(log.date, day);
 	}
 
@@ -242,12 +256,16 @@ async function readFinishedDays(
 
 		if (!session || session.tasks.length === 0 || session.availableHours <= 0) continue;
 
+		const rows = byDate.get(date)!;
+
 		days.push({
 			session,
-			workedHours: [...byDate.get(date)!].map(([taskId, hours]) => ({
-				taskId,
-				hours,
-			})),
+			workedHours: rows.every((row) => Number.isFinite(row.endedAt))
+				? rows
+				: rows.map(({ taskId, hours }) => ({
+						taskId,
+						hours,
+					})),
 		});
 	}
 

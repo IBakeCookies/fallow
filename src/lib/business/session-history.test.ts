@@ -574,4 +574,47 @@ describe('readStopObservations', () => {
 
 		expect([...day.openTaskIds!]).toEqual([1]);
 	});
+
+	// One row per SESSION, not one per task (§18): summing them here is what
+	// destroyed the day's breaks before §8.10's estimator could read them, so the
+	// join must carry each row's own log moment through (MATH.md §8.10).
+	it('carries one row per session with the moment it was logged (MATH.md §8.10)', async () => {
+		await $updateSession(session('2026-03-04'));
+
+		const row = (hours: number) => ({
+			date: '2026-03-04',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		// `$createDrainObservation` stamps `Date.now()`; fake timers would stall the
+		// IndexedDB round trip, so only the clock it reads is replaced.
+		const now = vi.spyOn(Date, 'now');
+		now.mockReturnValue(Date.parse('2026-03-04T10:00:00.000Z'));
+		await $createDrainObservation(row(2));
+		now.mockReturnValue(Date.parse('2026-03-04T13:00:00.000Z'));
+		await $createDrainObservation(row(1.5));
+		now.mockRestore();
+
+		const days = await readStopObservations('2026-03-05');
+		const day = days[days.length - 1];
+
+		expect(day.workedHours).toEqual([
+			{
+				taskId: 1,
+				hours: 2,
+				endedAt: Date.parse('2026-03-04T10:00:00.000Z'),
+			},
+			{
+				taskId: 1,
+				hours: 1.5,
+				endedAt: Date.parse('2026-03-04T13:00:00.000Z'),
+			},
+		]);
+	});
 });

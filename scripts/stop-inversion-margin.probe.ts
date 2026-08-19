@@ -42,6 +42,15 @@
  * model has no task size, so "checked off" has no model correlate and the rate
  * is an axis, never a measured frequency.
  *
+ * WHAT THE 2026-08-19 RE-RUN CHANGED. `optimizerDay` walks the plan on a WALL
+ * CLOCK and emits one row per session with the moment it ended, so a
+ * break-carrying day can be expressed at all — it could not before, and that is
+ * why the break-omission bias was invisible to this probe. `bracketOf` gained
+ * the same recovered structure the shipped `reconstructStopDay` reads, and every
+ * inversion figure below is the re-read. The random-composition arms stay
+ * untimed on purpose: an arbitrary composition is not a logged day, and the
+ * fallback (summed) reading is what such a day gets.
+ *
  * THE DECOMPOSITION ARM. `hi` is a LOOSE max: it takes the best over all
  * logged tasks of "remove one step from this task", because the real work
  * order is unknown. On an optimizer-generated day the order IS known, so the
@@ -98,6 +107,78 @@ function amplitude(t: EnergyTaskInput): number {
 	return E * beta + beta / E;
 }
 
+const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
+
+/**
+ * `reconstructStopDay`'s recovered block structure, replicated: rows in log
+ * order, the space before each one a break, all rest scaled to leave one step of
+ * room. Null on the days the shipped reader falls back on.
+ */
+function loggedStructure(
+	observation: StopObservation,
+	byTask: Map<number, number>,
+	total: number,
+): ScheduleBlock[] | null {
+	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
+
+	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
+
+	const sorted = [...rows].sort((x, y) => x.endedAt! - y.endedAt!);
+
+	const gaps = sorted.map((r, i) =>
+		i === 0
+			? 0
+			: Math.max(0, (r.endedAt! - r.hours * 3_600_000 - sorted[i - 1].endedAt!) / 3_600_000),
+	);
+
+	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
+	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
+	const scale = Math.min(1, room / restTotal);
+
+	if (!(restTotal * scale > 1e-9)) return null;
+
+	const sched: ScheduleBlock[] = [];
+
+	sorted.forEach((r, i) => {
+		if (gaps[i] * scale > 1e-9)
+			sched.push({
+				taskId: null,
+				hours: gaps[i] * scale,
+			});
+
+		sched.push({
+			taskId: r.taskId,
+			hours: r.hours,
+		});
+	});
+
+	return sched;
+}
+
+/** `trimRest`: pay a counterfactual's overhang out of the latest rest first. */
+function trimRest(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
+	let over = blocks.reduce((sum, b) => sum + b.hours, 0) - windowHours;
+
+	if (over <= 1e-9) return blocks;
+
+	const out = [...blocks];
+
+	for (let i = out.length - 1; i >= 0 && over > 1e-9; i--) {
+		if (out[i].taskId !== null) continue;
+
+		const take = Math.min(out[i].hours, over);
+
+		out[i] = {
+			...out[i],
+			hours: out[i].hours - take,
+		};
+
+		over -= take;
+	}
+
+	return out.filter((b) => b.hours > 1e-9);
+}
+
 interface Bracket {
 	lo: number;
 	hi: number;
@@ -124,7 +205,7 @@ function bracketOf(
 
 	if (windowHours <= 0 || tasks.length === 0) return null;
 
-	// `reconstructStopDay`'s `candidates` (`zenith-energy.ts:2016`): omitted means
+	// `reconstructStopDay`'s `candidates` field: omitted means
 	// every task was open, and nothing left open leaves no step to decline.
 	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
 
@@ -136,16 +217,21 @@ function bracketOf(
 
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
 
-	const sched: ScheduleBlock[] = canonical
-		.filter((t) => byTask.has(t.id))
-		.map((t) => ({
-			taskId: t.id,
-			hours: byTask.get(t.id)!,
-		}));
+	const sched: ScheduleBlock[] =
+		loggedStructure(observation, byTask, total) ??
+		canonical
+			.filter((t) => byTask.has(t.id))
+			.map((t) => ({
+				taskId: t.id,
+				hours: byTask.get(t.id)!,
+			}));
 
-	const total = sched.reduce((sum, b) => sum + b.hours, 0);
 	const step = DEFAULT_STEP_HOURS;
+
+	const lastBlockOf = (taskId: number) =>
+		sched.reduce((last, b, i) => (b.taskId === taskId ? i : last), -1);
 
 	const workValue = (blocks: ScheduleBlock[]): number => {
 		const ev = evaluateSchedule(blocks, tasks, windowHours, params, CONSTANTS);
@@ -155,42 +241,67 @@ function bracketOf(
 
 	const base = workValue(sched);
 
-	// `growBy`: an unlogged task enters at ITS canonical rank, not appended.
+	// `growBy`: the LAST block of a logged task grows; an unlogged task enters at
+	// ITS canonical rank among the WORK blocks; the overhang is paid out of the
+	// day's latest rest rather than clipped off the probe.
 	const grown = (t: EnergyTaskInput, hours: number): ScheduleBlock[] => {
 		if (byTask.has(t.id)) {
-			return sched.map((b) =>
-				b.taskId === t.id
-					? {
-							...b,
-							hours: b.hours + hours,
-						}
-					: b,
+			const last = lastBlockOf(t.id);
+
+			return trimRest(
+				sched.map((b, i) =>
+					i === last
+						? {
+								...b,
+								hours: b.hours + hours,
+							}
+						: b,
+				),
+				windowHours,
 			);
 		}
 
-		const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
+		const before = sched.filter(
+			(b) => b.taskId !== null && rank.get(b.taskId)! < rank.get(t.id)!,
+		).length;
 
-		return [
-			...sched.slice(0, at),
-			{
-				taskId: t.id,
-				hours,
-			},
-			...sched.slice(at),
-		];
+		let index = 0;
+
+		for (let seen = 0; seen < before; index++) if (sched[index].taskId !== null) seen++;
+
+		return trimRest(
+			[
+				...sched.slice(0, index),
+				{
+					taskId: t.id,
+					hours,
+				},
+				...sched.slice(index),
+			],
+			windowHours,
+		);
 	};
 
-	const shrunk = (taskId: number): ScheduleBlock[] =>
-		sched
-			.map((b) =>
-				b.taskId === taskId
-					? {
-							...b,
-							hours: b.hours - step,
-						}
-					: b,
-			)
-			.filter((b) => b.hours > 1e-9);
+	/** `shrinkBy`: one step off the END of that task's work, across its blocks. */
+	const shrunk = (taskId: number): ScheduleBlock[] => {
+		const out = [...sched];
+		let left = step;
+
+		for (let i = out.length - 1; i >= 0 && left > 1e-9; i--) {
+			if (out[i].taskId !== taskId) continue;
+
+			const take = Math.min(out[i].hours, left);
+
+			out[i] = {
+				...out[i],
+				hours: out[i].hours - take,
+			};
+
+			left -= take;
+		}
+
+		return out.filter((b) => b.hours > 1e-9);
+	};
 
 	// lo: no room to extend is a structural censor, not an inversion.
 	if (total + step > windowHours + 1e-9) return null;
@@ -254,25 +365,25 @@ function drawDay(random: () => number): { tasks: EnergyTaskInput[]; windowHours:
 }
 
 /**
- * Every ±1-lattice-step "mood" variant of a day: one logged task moved by one
- * step, everything else held. This is §8.10's own phrase for a near-rational
- * day — someone who worked 15 minutes more or less than the optimum would have
- * — and the population the doc claims never inverts.
+ * Every ±1-lattice-step "mood" variant of a day: one logged SESSION moved by one
+ * step, everything else held — its log moment stands, so the session that moved
+ * runs 45 min longer or shorter into the same break. This is §8.10's own phrase
+ * for a near-rational day, and the population the doc claims never inverts.
  */
 function moodVariants(
 	observation: StopObservation,
 ): Array<{ moved: StopObservation; label: string }> {
-	return observation.workedHours.flatMap((entry) =>
+	return observation.workedHours.flatMap((entry, index) =>
 		[-DEFAULT_STEP_HOURS, DEFAULT_STEP_HOURS]
 			.map((delta) => entry.hours + delta)
 			.filter((hours) => hours > 0)
 			.map((hours) => ({
 				moved: {
 					...observation,
-					workedHours: observation.workedHours.map((w) =>
-						w.taskId === entry.taskId
+					workedHours: observation.workedHours.map((w, i) =>
+						i === index
 							? {
-									taskId: w.taskId,
+									...w,
 									hours,
 								}
 							: w,
@@ -292,7 +403,7 @@ function paramsAt(lambda: number): EnergyParams {
 
 const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
 /** The instrument's own resolution: the median bracket half-width claim 3 below measures. */
-const BRACKET_HALF_WIDTH = 0.11;
+const BRACKET_HALF_WIDTH = 0.134;
 
 /** §8.10's fixture day — the witness the 2026-08-12 open-task correction was argued on. */
 const FIXTURE_DAY: EnergyTaskInput[] = [
@@ -338,7 +449,12 @@ function share(n: number, of: number): string {
 	return of > 0 ? ((100 * n) / of).toFixed(1) : 'n/a';
 }
 
-/** The optimizer's plan for a day, as a §8.10 observation plus its real work order. */
+/**
+ * The optimizer's plan for a day, as a §8.10 observation plus its real work
+ * order. Each session is one row carrying the wall-clock moment it ended — the
+ * plan's rest blocks pass on the clock, so the day's breaks survive into the
+ * observation exactly as a user logging each session would have recorded them.
+ */
 function optimizerDay(
 	tasks: EnergyTaskInput[],
 	windowHours: number,
@@ -349,19 +465,25 @@ function optimizerDay(
 
 	if (worked.length === 0) return null;
 
-	const byTask = new Map<number, number>();
+	const workedHours: StopObservation['workedHours'] = [];
+	let clock = 0;
 
-	for (const block of worked)
-		byTask.set(block.taskId!, (byTask.get(block.taskId!) ?? 0) + block.hours);
+	for (const block of plan.evaluation.blocks) {
+		clock += block.hours;
+
+		if (block.taskId !== null)
+			workedHours.push({
+				taskId: block.taskId,
+				hours: block.hours,
+				endedAt: ORIGIN + clock * 3_600_000,
+			});
+	}
 
 	return {
 		observation: {
 			tasks,
 			windowHours,
-			workedHours: [...byTask].map(([taskId, hours]) => ({
-				taskId,
-				hours,
-			})),
+			workedHours,
 		},
 		lastWorkedTaskId: worked[worked.length - 1].taskId!,
 	};

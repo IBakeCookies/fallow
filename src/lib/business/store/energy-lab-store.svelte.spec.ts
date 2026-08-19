@@ -1105,4 +1105,76 @@ describe('EnergyLabStore', () => {
 		expect(marginalValue(whole)).toBeCloseTo(0.46104, 4);
 		expect(marginalValue(whole)).toBeLessThan(marginalValue(first));
 	});
+
+	// The store is the ONLY `adviseStop` caller, so the row's log moment has to
+	// reach it or §8.10's recovered breaks never touch the live card (MATH.md
+	// §8.11). The two rows above logged 90 min apart are a day with a real break
+	// in it: the reservoirs recover across it, so the next session is worth more
+	// and the verdict comes back. `drainRecord`'s default `createdAt: 0` is what
+	// makes the pin above a batch-logged day, which reads summed.
+	it('reads today’s breaks off the 🪫 rows’ log moments', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 0,
+				mentalDifficulty: 7,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		const logged = (...rows: { hours: number; createdAt: number }[]) => {
+			mockObservations.drainObservations = rows.map(({ hours, createdAt }) =>
+				drainRecord({
+					date: '2026-07-20',
+					hours,
+					createdAt,
+				}),
+			);
+
+			flushSync();
+
+			return store.stopAdvice;
+		};
+
+		const hour = 3_600_000;
+
+		const batched = logged(
+			{
+				hours: 3,
+				createdAt: 0,
+			},
+			{
+				hours: 1.5,
+				createdAt: 0,
+			},
+		);
+
+		const spaced = logged(
+			{
+				hours: 3,
+				createdAt: 3 * hour,
+			},
+			{
+				hours: 1.5,
+				createdAt: 6 * hour,
+			},
+		);
+
+		expect(batched).toMatchObject({
+			verdict: 'stop',
+		});
+
+		expect(marginalValue(batched)).toBeCloseTo(0.46104, 4);
+
+		expect(spaced).toMatchObject({
+			verdict: 'continue',
+		});
+
+		expect(marginalValue(spaced)).toBeGreaterThan(marginalValue(batched));
+	});
 });

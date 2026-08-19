@@ -534,6 +534,10 @@ export class EnergyLabStore {
 			.map((o) => ({
 				taskId: o.taskId,
 				hours: o.hours,
+				// The row's log moment is what carries today's breaks into the
+				// reconstruction (MATH.md §8.10) — the only adviseStop caller, so
+				// without it the advisor prices the summed day.
+				endedAt: o.createdAt,
 			}));
 
 		return adviseStop(

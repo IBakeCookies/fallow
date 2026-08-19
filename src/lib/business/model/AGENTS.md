@@ -153,7 +153,16 @@ its allocation code, so the main page is unaffected by changes here.
   end-of-session ratings — don't try. λ₀ is fitted last, conditioned on
   everything else. Each fit is a 1-D ridge toward the **defaults**, not toward
   current inputs. Ratings with demand 0 carry no signal and are dropped.
-- Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — price
+- Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — read
+  the day from the 🪫 rows' own log moments: one block per session, in log order,
+  the space between them rest. Never re-sum the rows by task on the way in —
+  doing that discarded the day's breaks, which measured as the estimator's
+  dominant error term (§8.10, 2026-08-19). A day whose rows carry no usable
+  moment, or were all written down at once, falls back to one contiguous block
+  per task in canonical order, and that fallback must stay bit-identical. `total`
+  — hence §8.10's window censor and §8.11's `window-full` — reads WORKED hours,
+  never the recovered extent: a verdict may not turn on recovered structure.
+- Both stop readings price
   the stop against `openTaskIds` only, a next-up-family scope (§11.8): a
   checked-off task is no forgone step, though its hours still drained the
   reservoirs and stay in the reconstruction. A day that ended with everything
@@ -161,7 +170,7 @@ its allocation code, so the main page is unaffected by changes here.
 - `STOP_INVERSION_MARGIN = 0.25` — the inversion past which a day is censored
   too — is **stipulated, not derived**: λ₀ fit RMSE is flat in magnitude over
   m ∈ [0.1, 0.5] (swept 2026-08-13), so neither the constant nor the
-  inversion-censoring rule moves without evidence above the instrument's 0.110
+  inversion-censoring rule moves without evidence above the instrument's 0.134
   bracket half-width. What §8.10's stopping calibration has left is the
   censored-likelihood fit, which would use the one-sided days instead of
   discarding them; the margin is a dead end.

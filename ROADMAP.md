@@ -247,6 +247,18 @@ reach the form at all:
    item would recover, and the completion rate is an axis, not a frequency: no
    real history exists on this machine to place a user on it (the same block as
    items 15 and 16).
+   **Two things M38's fix added to this item (2026-08-19).** First, a surface
+   obligation it deliberately did not build: a batch-logged day reads its breaks
+   as nothing and degrades to the pre-2026-08-19 numbers, and `usedCount` cannot
+   tell a structure-recovered day from a collapsed one — the cheap honest version
+   is to count structure-recovered days and show that count on the Stopping
+   Calibration card, which is a copy decision in five locales. Second, a
+   contamination DETECTOR that does not depend on bracket inversion: the distance
+   between a day's observed per-task hours and the plan's. §8.10 values inversion
+   as a detector (39% against 3.7%) and M38's fix leaves its hit rate on
+   interrupted and grind days intact, so nothing forces this — but a censored
+   likelihood wants a cleaner signal than a bracket that has stopped inverting on
+   honest days.
 5. ~~**Fit-snapshot persistence**~~ — SHIPPED 2026-08-03 (MATH.md §12.1): a
    `fitSnapshots` store keyed by date, holding only what a fit can move (the ϕ
    plane with its posterior, α_cog/α_phys/r, λ₀); the §12 audit scores each day
@@ -1317,13 +1329,32 @@ only way to catch.
     would have closed this wrongly.
 
   The V_T half of this entry is superseded by M41, which measures the same claim
-  over app-legal days. Still awaiting the ruling, and still held out of the
-  round's edits.
+  over app-legal days.
+
+  **CLOSED 2026-08-19 — the ruling was "keep the breaks in the reconstruction,
+  fix the cause" and it shipped** (MATH.md §8.10, §8.11, §18 and §10's
+  2026-08-19 entry). `readFinishedDays` stopped summing the 🪫 rows by
+  `(date, taskId)`, so each row's own `createdAt` reaches the estimator and the
+  breaks between sessions are read rather than discarded; a day with no usable
+  moment, or one logged in a single batch, falls back bit-identically to the old
+  reading. Measured through the shipped function over 436 optimizer-funded days
+  drawn from integer sliders: |err| mean 0.106 → 0.065, past the bracket
+  half-width 28.3% → 7.9%, the witness −0.293 → +0.030 with its bracket
+  un-inverted, a repeating-day user 0.415 → 0.709. The margin was NOT touched and
+  no day was censored to achieve it. Two of this entry's own figures are
+  superseded by the committed instrument: 48.3% of plans carrying a break reads
+  63.5% on the slider-drawn population, and "the fit reads LOW" is now +0.032
+  signed rather than negative.
 
 - **M39 §8.11** — `adviseStop` runs the same reconstruction with no inversion
-  censor at all (`zenith-energy.ts:2129-2168`), so `STOP_INVERSION_MARGIN` guards
-  the retrospective fit only and the in-day path is unguarded. Reachable by
-  construction. Same shape as M38: a code question, not a doc edit.
+  censor at all, so `STOP_INVERSION_MARGIN` guards the retrospective fit only and
+  the in-day path is unguarded. Reachable by construction. Same shape as M38: a
+  code question, not a doc edit. **Half-closed 2026-08-19**: the unguarded path
+  is why the advisor was the more exposed reading, and M38's fix removes the bias
+  it was exposed to — measured, the session arm's mid-day false stops fall to
+  under 1% at every λ₀ and the warm-up fixture's at-stop agreement at λ₀ = 0.9
+  goes 1/13 → 11/13 (MATH.md §8.11). Whether the advisor should ALSO carry a
+  censor is untouched and still open.
 - **M40 §8.10** — three committed probe generators are off the app's constraint
   surface, so no day they generate is slider-reachable.
   `stop-inversion-margin.probe.ts:237` and `stop-margin-fit-error.probe.ts:232`
@@ -1335,7 +1366,13 @@ only way to catch.
   44/1179, the median 0.110 half-width — is therefore unquotable in either
   direction until the generators use `getEffectiveDifficulty`. This is the M28
   class (a witness at demands the app cannot produce), now found in three
-  instruments rather than one section.
+  instruments rather than one section. **Half-closed 2026-08-19**: M38's fix
+  committed `scripts/stop-block-structure.probe.ts`, which draws every task
+  through `toEnergyTask` from integer sliders, so §8.10 finally has an on-surface
+  instrument and its headline error figures come from that one. The three
+  generators above are UNCHANGED and their figures were re-read on the same
+  off-surface days, so this caveat still attaches to every number they back —
+  fixing them is its own change, and it moves that whole set again.
 - **M41 §8.10** — the V_T non-monotonicity claim is UNDERSTATED, not merely
   mis-witnessed: over the UI's own V_T range on app-legal days, 18 of 200 cells
   are non-monotone with up to 5 levels and a 4-step span, while §8.10 claims three

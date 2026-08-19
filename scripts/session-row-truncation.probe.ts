@@ -49,6 +49,7 @@ const WITNESS: EnergyTaskInput = {
 const WINDOW = 8;
 const DAYS = 200;
 const SEED = 0x18_0805;
+const ORIGIN = Date.parse('2026-08-18T08:00:00.000Z');
 /** Every two-session split of §18's 4.5 h day, plus the day itself. */
 const SPLITS: number[][] = [[4.5], [0.75, 3.75], [1.5, 3], [2.25, 2.25], [3, 1.5], [3.75, 0.75]];
 
@@ -64,21 +65,38 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-/** One task's stored rows for today, as the advisor's input sees them. */
-function observe(task: EnergyTaskInput, rows: number[]): StopObservation {
+/**
+ * One task's stored rows for today, as the advisor's input sees them. Each row
+ * carries the wall-clock moment it ended, `gapHours` apart — that spacing is
+ * what the reconstruction reads the day's breaks out of (MATH.md §8.10). Back
+ * to back (the default) the rows recover no break and the day reads summed,
+ * which is the reading §18's identity claim is about.
+ */
+function observe(task: EnergyTaskInput, rows: number[], gapHours = 0): StopObservation {
+	let clock = 0;
+
 	return {
 		tasks: [task],
 		windowHours: WINDOW,
-		workedHours: rows.map((hours) => ({
-			taskId: task.id,
-			hours,
-		})),
+		workedHours: rows.map((hours, i) => {
+			clock += (i === 0 ? 0 : gapHours) + hours;
+
+			return {
+				taskId: task.id,
+				hours,
+				endedAt: ORIGIN + clock * 3_600_000,
+			};
+		}),
 		openTaskIds: new Set([task.id]),
 	};
 }
 
-function price(task: EnergyTaskInput, rows: number[]) {
-	const advice = adviseStop(observe(task, rows), DEFAULT_ENERGY_PARAMS, DEFAULT_USER_CONSTANTS);
+function price(task: EnergyTaskInput, rows: number[], gapHours = 0) {
+	const advice = adviseStop(
+		observe(task, rows, gapHours),
+		DEFAULT_ENERGY_PARAMS,
+		DEFAULT_USER_CONSTANTS,
+	);
 
 	// No arm reaches either state, so this fails the probe rather than skipping.
 	if (advice === null || advice.verdict === 'window-full')
@@ -147,6 +165,20 @@ describe('§18 — one row per session, not per task-day', () => {
 				`${Math.abs(appended.marginalValue - single.marginalValue).toExponential(1)}` +
 				`, verdicts ${appended.verdict}/${single.verdict}`,
 		);
+
+		// Where §18's identity ENDS (2026-08-19). Two rows are only the same day
+		// as one when nothing happened between them; once their log moments are
+		// apart, the reconstruction rests through the gap and the same 4.5 h reads
+		// LOWER — recovered energy makes the next session cheaper to beat, so the
+		// verdict can also come back.
+		for (const gapHours of [0, 0.75, 1.5, 3]) {
+			const p = price(WITNESS, [3, 1.5], gapHours);
+
+			console.log(
+				`  two rows ${(gapHours * 60).toFixed(0)}min apart: ${p.verdict} at ` +
+					`${p.marginalValue.toFixed(4)}/h (one 4.5h row: ${single.marginalValue.toFixed(4)}/h)`,
+			);
+		}
 	});
 
 	it('prices every split of the same day, truncated against true', () => {
