@@ -156,8 +156,7 @@ its allocation code, so the main page is unaffected by changes here.
 - Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — read
   the day from the 🪫 rows' own log moments: one block per session, in log order,
   the space between them rest. Never re-sum the rows by task on the way in —
-  doing that discarded the day's breaks, which measured as the estimator's
-  dominant error term (§8.10, 2026-08-19). A day whose rows carry no usable
+  doing that discarded the day's breaks. A day whose rows carry no usable
   moment, or were all written down at once, falls back to one contiguous block
   per task in canonical order, and that fallback must stay bit-identical. `total`
   — hence §8.10's window censor and §8.11's `window-full` — reads WORKED hours,

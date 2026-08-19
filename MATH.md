@@ -1964,7 +1964,7 @@ machinery collapses to an exact closed form — no numeric minimizer:
 - **Breaks WERE omitted from the reconstruction, and calling that noise was the
   defect this section carried longest** (deleted 2026-08-19, not amended). The
   bullet read "reservoirs run slightly hotter than reality, understating late
-  marginals; absorbed as noise". Measured, it was the dominant error term and
+  marginals; absorbed as noise". Measured, it was
   one-signed — the fit read LOW — on roughly a third of the days the app itself
   plans, with no censor flagging any of them, and some of those days inverted
   their bracket inside the margin and entered the fit as biased point estimates
@@ -1987,7 +1987,7 @@ machinery collapses to an exact closed form — no numeric minimizer:
   measured (2026-08-19, scratch: no committed instrument prints these, so ROADMAP
   item 29's rule applies. Same 120 slider-drawn days × λ₀ 0.1 … 1.1 as above, the
   bracket rebuilt from exported parts and validated against `stopIndifferencePoint`
-  on every day). On the **112 of 441 priced days (25.4%)** whose extent — worked
+  on every day). On the **112 of 441 priced cells (25.4%)** whose extent — worked
   hours plus recovered breaks — leaves no room for another step, the signed error
   is **+0.124**, |err| mean 0.137, p90 0.290, and they carry **48 of the
   population's 61 bracket-excludes-truth failures, 47 of those reading HIGH**.
@@ -3258,7 +3258,7 @@ still missed some; a fourth would take the same sweep this entry is the argument
 against. Whether prose should carry line numbers at all is the open question, and
 it is the maintainer's to settle.
 
-### 2026-08-19 — break omission was the stopping fit's dominant error term
+### 2026-08-19 — break omission
 
 **This entry is NOT doc-only.** It records a model change and belongs here
 because §8.10 and §8.11 both carried a measured claim that was false, and the

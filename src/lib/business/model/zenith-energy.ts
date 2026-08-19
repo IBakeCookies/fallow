@@ -1918,7 +1918,7 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * optimizer-funded cells drawn through `toEnergyTask` at λ₀ 0.1 … 1.1
  * (`scripts/stop-block-structure.probe.ts`):
  * |midpoint − true λ₀| mean 0.086, p90 0.171, past the 0.134 bracket half-width
- * on 16.3% of 441 priced days, against 0.123 / 0.271 / 35.1% summed — and the
+ * on 16.3% of 441 priced cells, against 0.123 / 0.271 / 35.1% summed — and the
  * error is λ₀-DEPENDENT, mean 0.300 at λ₀ = 0.1 against 0.053 at 0.9, so a
  * figure from here carries the λ₀ it was read at. Containment is no
  * longer claimed — the error distribution is, because the bracket does miss on
