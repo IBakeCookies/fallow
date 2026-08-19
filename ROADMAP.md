@@ -1387,12 +1387,7 @@ only way to catch.
 - **M42 §8.10 — the residual after M38's fix is one-signed HIGH, and censoring it
   is a data-versus-accuracy call the maintainer makes.** Not a doc defect: §8.10
   now states this size, and this entry is the POLICY question it deliberately does
-  not answer. The class is the one §8.10's bullet head names — the days **where
-  that cap bites**: a day whose extent (worked hours plus the breaks recovered
-  from its own log moments) leaves no room for another 45-min step, while its
-  WORKED hours still leave room for one, so the rest is squeezed. A day already
-  within a step of the window edge on worked hours alone recovers no rest, reads
-  contiguously, and is not in the numbers below. Such a day ran out of wall clock,
+  not answer. Such a day ran out of wall clock,
   but `total` reads WORKED hours (§8.11, pinned), so the window-edge censor never
   fires and the day enters the fit as a voluntary stop; its `lo` sits at the truth
   (mean −0.016) while `hi` sits +0.264 above it, and the midpoint lands halfway up.

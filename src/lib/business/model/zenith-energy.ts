@@ -1914,9 +1914,8 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * row, in the order they were logged, the space between them rest. A day with
  * no usable moment, and a day logged in one batch, fall back to one contiguous
  * session per task in canonical amplitude order — the reading every day used to
- * get, whose omitted breaks were the estimator's DOMINANT error term rather
- * than the noise §8.10 called them. Measured 2026-08-19 over 676
- * optimizer-funded days drawn through `toEnergyTask` at λ₀ 0.1 … 1.1
+ * get. Measured 2026-08-19 over 676
+ * optimizer-funded cells drawn through `toEnergyTask` at λ₀ 0.1 … 1.1
  * (`scripts/stop-block-structure.probe.ts`):
  * |midpoint − true λ₀| mean 0.086, p90 0.171, past the 0.134 bracket half-width
  * on 16.3% of 441 priced days, against 0.123 / 0.271 / 35.1% summed — and the
