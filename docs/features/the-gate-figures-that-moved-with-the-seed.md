@@ -104,9 +104,9 @@ and would have cost the next reader a probe run to rediscover.
   not done.** This change inserts 4 lines at §8.5, which shifts every citation
   below it. But no citation anywhere points _into_ §8.5, and the ones below it
   were already stale when this commit landed — M5 cites `MATH.md:1562-1563` for
-  §8.9's retraction of the r lever arm, 11 lines below it at "roughly a THIRD of
+  §8.9's retraction of the r lever arm, 44 lines below it at "roughly a THIRD of
   its lever arm, not the half once claimed", and M33 cites `:2033` for §8.12's
-  `recommendedHours` pseudocode, 115 lines below it at "or null when that is W".
+  `recommendedHours` pseudocode, 149 lines below it at "or null when that is W".
   Both have drifted further since, which is the point: the numbers above are M5's
   and M33's own, and what each should have pointed at is quoted rather than
   re-guessed. Adding 4 to a number already wrong makes it differently wrong.
