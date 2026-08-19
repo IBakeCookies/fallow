@@ -1387,16 +1387,20 @@ only way to catch.
 - **M42 §8.10 — the residual after M38's fix is one-signed HIGH, and censoring it
   is a data-versus-accuracy call the maintainer makes.** Not a doc defect: §8.10
   now states this size, and this entry is the POLICY question it deliberately does
-  not answer. Such a day ran out of wall clock,
-  but `total` reads WORKED hours (§8.11, pinned), so the window-edge censor never
-  fires and the day enters the fit as a voluntary stop; its `lo` sits at the truth
-  (mean −0.016) while `hi` sits +0.264 above it, and the midpoint lands halfway up.
+  not answer. The class is the one §8.10's bullet head names — the days **where
+  that cap bites**: a day whose extent (worked hours plus the breaks recovered
+  from its own log moments) leaves no room for another 45-min step, while its
+  WORKED hours still leave room for one, so the rest is squeezed. Such a day ran
+  out of wall clock, but `total` reads WORKED hours (§8.11, pinned), so the
+  window-edge censor never fires and the day enters the fit as a voluntary stop;
+  its `lo` sits at the truth (mean −0.016) while `hi` sits +0.264 above it, and
+  the midpoint lands halfway up.
   **The trade, measured** (scratch, 2026-08-19, 120 slider-drawn days × λ₀ 0.1 …
   1.1, the bracket rebuilt from exported parts and validated against
   `stopIndifferencePoint` on every day): censoring the class takes the bracket's
   containment failure **13.8% → 4.0%** —
   it holds 48 of the 61 failures, 47 of them HIGH — at the cost of **25.4% of the
-  fit's priced days** (112 of 441; 17.6% over the {0.5 … 1.1} scope, consistent
+  fit's priced cells** (112 of 441; 17.6% over the {0.5 … 1.1} scope, consistent
   with the 19% §8.10 and §8.11 already quote). **The interesting part is the
   SIGN**: the bias this round fixed read LOW, and what is left reads HIGH, so the
   two do not stack and a mean-based check over both would cancel them — the same
