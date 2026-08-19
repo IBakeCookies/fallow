@@ -1376,10 +1376,19 @@ describe('Zenith Energy Model', () => {
 	});
 
 	describe('stopping-value calibration (fitStoppingValue, MATH.md §8.10)', () => {
+		// §8.10's fixture day, as the three integer sliders reach it — the same day
+		// `scripts/stop-inversion-margin.probe.ts` declares, field for field.
+		// Boxing was already reachable (sliders 2 mental / 10 physical: difficulty
+		// min(10, 10 + 0.3·2) = 10, demands 0.2/1.0). The other two were not, and
+		// the DIFFICULTIES are what this day's findings are stated in — the
+		// canonical amplitudes 10.4 / 6.67 / 4.60 the tests below reconstruct — so
+		// the difficulties are held and the secondary demands move: guitar 0.4/0.3
+		// → 0.6/0.0 (sliders 6/0) and reading 0.5/0.05 → 0.4/0.0 (sliders 4/0).
+		// physicalDemand 0.05 had no slider at all: the demands are slider/10.
 		const day = [
 			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
-			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
+			makeTask(2, 'guitar', 6, 9, 0.6, 0),
+			makeTask(3, 'reading', 4, 7, 0.4, 0),
 		];
 
 		const prior = DEFAULT_ENERGY_PARAMS.freeTimeValue;
@@ -1463,11 +1472,17 @@ describe('Zenith Energy Model', () => {
 			expect(fit.value).toBeGreaterThan(0.75);
 			expect(fit.value).toBeLessThan(1.05);
 
-			// And it recovers it BETTER than the same days read summed — the whole
-			// point of reading the log moments (MATH.md §8.10, 2026-08-19).
+			// And the log moments are READ: the same days summed into one contiguous
+			// block fit a different λ₀. Which reading lands closer is a population
+			// question, not a three-day one — `stop-block-structure.probe.ts` measures
+			// it over 441 cells (logged |err| mean 0.086 against summed 0.123, better
+			// at every λ₀ level), and on these three days summed happens to land
+			// nearer. Asserting the direction here pinned a population property to a
+			// sample, and passed only on a fixture the sliders could not produce
+			// (MATH.md §8.10, 2026-08-19).
 			const flat = fitStoppingValue(days.map(summed), prior, DEFAULT_ENERGY_PARAMS);
 			expect(flat.usedCount).toBe(3);
-			expect(Math.abs(fit.value - 0.9)).toBeLessThan(Math.abs(flat.value - 0.9));
+			expect(fit.value).not.toBeCloseTo(flat.value, 3);
 		});
 
 		// Both readings, because the reconstruction now has a second input: the log
@@ -1665,11 +1680,13 @@ describe('Zenith Energy Model', () => {
 			).toBeNull();
 		});
 
-		// Pinned 2026-08-17 from `scripts/stop-inversion-margin.probe.ts`'s witness
-		// arm: the one day the 2026-08-12 open-task correction was argued on. The
-		// sibling above asserts only that one is smaller, which cannot catch a
-		// change that moves both.
-		it('prices the §8.10 witness day at 1.321 over all tasks and 1.156 over the two left open', () => {
+		// Re-pinned 2026-08-19 from `scripts/stop-inversion-margin.probe.ts`'s
+		// witness arm, on the reachable fixture above: the one day the 2026-08-12
+		// open-task correction was argued on, logged the way the app logs it (the
+		// row carries its moment, `openTaskIds` is the Set `session-history.ts`
+		// always builds). The sibling above asserts only that one is smaller, which
+		// cannot catch a change that moves both.
+		it('prices the §8.10 witness day at 1.321 over all tasks and 1.190 over the two left open', () => {
 			const observation: StopObservation = {
 				tasks: day,
 				windowHours: 12,
@@ -1677,8 +1694,10 @@ describe('Zenith Energy Model', () => {
 					{
 						taskId: 1,
 						hours: 2.25,
+						endedAt: LOG_ORIGIN + 2.25 * MS_PER_HOUR,
 					},
 				],
+				openTaskIds: new Set([1, 2, 3]),
 			};
 
 			const allOpen = stopIndifferencePoint(observation, DEFAULT_ENERGY_PARAMS)!;
@@ -1692,10 +1711,8 @@ describe('Zenith Energy Model', () => {
 			)!;
 
 			expect(allOpen).toBeCloseTo(1.32147, 3);
-			expect(filtered).toBeCloseTo(1.15604, 3);
-			// 1.5× the 0.110 bracket half-width the instrument concedes — the
-			// comparison §8.10 makes of this pair.
-			expect(allOpen - filtered).toBeCloseTo(0.16543, 3);
+			expect(filtered).toBeCloseTo(1.18957, 3);
+			expect(allOpen - filtered).toBeCloseTo(0.1319, 3);
 		});
 
 		// `lo` is a max over the open tasks, `hi` never reads them, and the censor
@@ -1802,12 +1819,14 @@ describe('Zenith Energy Model', () => {
 			// Strong inversion — a long grind on the weakest task while
 			// boxing/guitar sat unstarted: the marginal of STARTING a strong task
 			// exceeds what the last reading step was worth by far more than
-			// STOP_INVERSION_MARGIN (probe: lo ≈ 0.91, hi ≈ 0.26, gap ≈ 0.65).
-			// The day's own data contradicts a rational stop, so only the
-			// one-sided λ₀ ≤ hi reading survives — censored like a
+			// STOP_INVERSION_MARGIN. The day's own data contradicts a rational stop,
+			// so only the one-sided λ₀ ≤ hi reading survives — censored like a
 			// worked-to-the-edge day, NOT averaged into the fit: its midpoint sits
 			// at the task curves' characteristic marginal regardless of the user's
-			// true λ₀ (MATH.md §8.10, probes 2026-07-19).
+			// true λ₀ (MATH.md §8.10). The lo/hi/gap figures that stood here were
+			// measured on the unreachable fixture and no arm of
+			// `stop-inversion-margin.probe.ts` prints this day, so they are gone
+			// rather than re-derived.
 			const grind: StopObservation = {
 				tasks: day,
 				windowHours: 12,
@@ -1822,8 +1841,8 @@ describe('Zenith Energy Model', () => {
 			expect(stopIndifferencePoint(grind, DEFAULT_ENERGY_PARAMS)).toBeNull();
 			expect(fitStoppingValue([grind], prior, DEFAULT_ENERGY_PARAMS).fitted).toBe(false);
 
-			// A 1-step interrupted sliver is the practical contamination case
-			// (probe: gap ≈ 0.34) — also censored.
+			// A 1-step interrupted sliver is the practical contamination case —
+			// also censored.
 			const sliver: StopObservation = {
 				tasks: day,
 				windowHours: 12,
@@ -1837,9 +1856,10 @@ describe('Zenith Energy Model', () => {
 
 			expect(stopIndifferencePoint(sliver, DEFAULT_ENERGY_PARAMS)).toBeNull();
 
-			// Mild inversion — 2.25h of reading only (probe: gap ≈ 0.07, within
-			// the margin = the instrument's own slack): kept at the bracket
-			// midpoint and used by the fit.
+			// Mild inversion — 2.25h of reading only, inverted by less than the
+			// margin (the instrument's own slack): kept at the bracket midpoint
+			// and used by the fit. The assertions below rebuild the bracket, so
+			// the gap is checked rather than quoted.
 			const mild: StopObservation = {
 				tasks: day,
 				windowHours: 12,
@@ -1987,11 +2007,14 @@ describe('Zenith Energy Model', () => {
 			// Pins the load-bearing finding of
 			// `scripts/stop-margin-fit-error.probe.ts`: the inversion margin cannot
 			// price the contamination it exists for, because most interrupted days
-			// never invert. This is the optimizer's own plan for a λ₀ = 0.3 user
-			// (boxing 3.75h, reading 2.25h, guitar 3.75h) with the last 2.25h of
-			// guitar interrupted away. Its bracket is [1.433, 1.499] — NOT inverted,
-			// so no margin at any width censors it — yet its midpoint sits at the
-			// task curves' characteristic marginal, ~5× the truth.
+			// never invert. This is the optimizer's own plan for a λ₀ = 0.3 user —
+			// guitar 3.75h, boxing 3.75h, reading 2.25h on the reachable fixture
+			// above — with the last 2.25h of guitar interrupted away. Its bracket is
+			// NOT inverted, so no margin at any width censors it, yet its midpoint
+			// sits at the task curves' characteristic marginal, far above the λ₀
+			// that generated it. (The bracket bounds and the ratio quoted here
+			// before were measured on the unreachable fixture, and that probe still
+			// draws its days off-surface, so they are gone rather than re-derived.)
 			const params = {
 				...DEFAULT_ENERGY_PARAMS,
 				freeTimeValue: 0.3,

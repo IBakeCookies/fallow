@@ -239,14 +239,14 @@ reach the form at all:
 4. **Censored-likelihood stopping fit** — worked-to-edge, zero-work and
    inverted days currently drop out of the §8.10 fit; a one-sided likelihood
    term would use them. Build once real usage shows enough censored days. **Sized
-   2026-08-17** (M12's close, `stop-inversion-margin.probe.ts`): the
-   all-checked-off category §8.10 calls "not an edge case" is 7.7% / 40.5% /
-   73.1% of all dropped days at completion rates 0.25 / 0.50 / 0.75 and 0% at
-   0 — it needs **every** task on the day ticked, so it is ordinary from q ≈ 0.5
-   up and rare below. The window edge takes the rest. That share is what this
-   item would recover, and the completion rate is an axis, not a frequency: no
-   real history exists on this machine to place a user on it (the same block as
-   items 15 and 16).
+   2026-08-17, re-read 2026-08-19** (M12's close,
+   `stop-inversion-margin.probe.ts`): the all-checked-off category §8.10 calls
+   "not an edge case" is 8.0% / 37.8% / 72.0% of all dropped days at completion
+   rates 0.25 / 0.50 / 0.75 and 0% at 0 — it needs **every** task on the day
+   ticked, so it is ordinary from q ≈ 0.5 up and rare below. The window edge
+   takes the rest. That share is what this item would recover, and the completion
+   rate is an axis, not a frequency: no real history exists on this machine to
+   place a user on it (the same block as items 15 and 16).
    **Two things M38's fix added to this item (2026-08-19).** First, a surface
    obligation it deliberately did not build: a batch-logged day reads its breaks
    as nothing and degrades to the pre-2026-08-19 numbers, and `usedCount` cannot
@@ -255,10 +255,9 @@ reach the form at all:
    Calibration card, which is a copy decision in five locales. Second, a
    contamination DETECTOR that does not depend on bracket inversion: the distance
    between a day's observed per-task hours and the plan's. §8.10 values inversion
-   as a detector (39% against 3.7%) and M38's fix leaves its hit rate on
-   interrupted and grind days intact, so nothing forces this — but a censored
-   likelihood wants a cleaner signal than a bracket that has stopped inverting on
-   honest days.
+   as a detector (148 of 368 against 68 of 1532) and M38's fix leaves its hit
+   rate on interrupted and grind days intact, so nothing forces this — but a censored likelihood wants a cleaner
+   signal than a bracket that has stopped inverting on honest days.
 5. ~~**Fit-snapshot persistence**~~ — SHIPPED 2026-08-03 (MATH.md §12.1): a
    `fitSnapshots` store keyed by date, holding only what a fit can move (the ϕ
    plane with its posterior, α_cog/α_phys/r, λ₀); the §12 audit scores each day
@@ -1024,14 +1023,15 @@ only way to catch.
 - **M12 §8.10 — closed 2026-08-17,
   [`what-the-open-task-scope-is-worth`](docs/features/what-the-open-task-scope-is-worth.md).**
   The finding was §8.10's "1.32 → 1.16" for the 2026-08-12 open-task correction,
-  now `MATH.md:1645-1652`. No probe set `openTaskIds` — both bracket replicas took
+  now `MATH.md:1688`. No probe set `openTaskIds` — both bracket replicas took
   `lo` over every task, so they modelled the superseded scope while validating
   clean, and the suite pinned direction only. All three stop probes now read the
   field, both replicas are validated on days carrying completions, and the
-  witness is pinned as a **pair**: it reproduces at **1.321 → 1.156**, a 0.165
-  shift, 1.5× the 0.110 half-width. What execution changed is the sentence
-  underneath it: across 90 users at a known λ₀ the corrected scope beats the
-  pre-correction one in 1 of 12 arms by +0.0054 λ₀ and loses the other 11, so
+  witness is pinned as a **pair**: it reproduces at **1.321 → 1.190**, a 0.132
+  shift, 1.022× the 0.129 half-width (re-read 2026-08-19). What execution changed
+  is the sentence underneath it: across 90 users at a known λ₀ the corrected
+  scope beats the pre-correction one in 2 of 12 arms, best +0.0084 λ₀, and loses
+  the other 10 (re-read 2026-08-19), so
   §8.10's "biased λ₀ up by the whole marginal of work that no longer existed" is
   now stated as a **one-day witness, not a measured bias** — the rule itself is
   settled and untouched, and it rests on an argument no synthetic day can make.
@@ -1362,8 +1362,8 @@ only way to catch.
   censor is untouched and still open.
 - **M40 §8.10** — three committed probe generators are off the app's constraint
   surface, so no day they generate is slider-reachable.
-  `stop-inversion-margin.probe.ts:237` and `stop-margin-fit-error.probe.ts:232`
-  build tasks with `difficulty = Math.max(mental, physical)`, skipping
+  `stop-margin-fit-error.probe.ts:346` builds tasks with
+  `difficulty = Math.max(mental, physical)`, skipping
   `DIFFICULTY_SPILLOVER = 0.3`; `stp-stopping-identifiability.probe.ts`'s standard
   day declares its difficulties outright (t2 at 6 where `getEffectiveDifficulty`
   gives 4.90) and hands t3 a 0.05 physical demand, which is a slider of 0.5.
@@ -1374,10 +1374,19 @@ only way to catch.
   instruments rather than one section. **Half-closed 2026-08-19**: M38's fix
   committed `scripts/stop-block-structure.probe.ts`, which draws every task
   through `toEnergyTask` from integer sliders, so §8.10 finally has an on-surface
-  instrument and its headline error figures come from that one. The three
-  generators above are UNCHANGED and their figures were re-read on the same
-  off-surface days, so this caveat still attaches to every number they back —
-  fixing them is its own change, and it moves that whole set again.
+  instrument and its headline error figures come from that one.
+  `stop-inversion-margin.probe.ts` is FIXED the same day: `drawTask` (`:362-376`)
+  and the §8.10 fixture both draw every task through `toEnergyTask` from integer
+  sliders, the probe measures its own reachability (30381 logged rows, 0 the app
+  could not hold), and its whole set moved — inversion rate 40.2%, optimizer days
+  0/299, mood days 68/1532, median half-width 0.129 — so those four are quotable
+  for the first time. The fault set was also wider than this entry recorded: the
+  declared-difficulty and 0.05-demand faults it pins on
+  `stp-stopping-identifiability` alone sat in this probe's own fixture and in
+  `zenith-energy.test.ts`'s mirror of it. The other two generators are UNCHANGED
+  and their figures were re-read on the same off-surface days, so this caveat
+  still attaches to every number they back — fixing them is its own change, and
+  it moves that whole set again.
 - **M41 §8.10** — the V_T non-monotonicity claim is UNDERSTATED, not merely
   mis-witnessed: over the UI's own V_T range on app-legal days, 18 of 200 cells
   are non-monotone with up to 5 levels and a 4-step span, while §8.10 claims three
