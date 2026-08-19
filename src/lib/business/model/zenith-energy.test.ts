@@ -26,6 +26,10 @@ import {
 } from '$lib/business/model/zenith-energy';
 import { calculateFlowStateTime, mapEffort, mapEnjoyability } from '$lib/business/model/zenith';
 
+const MS_PER_HOUR = 3_600_000;
+/** An arbitrary fixed wall clock: the day's breaks are DELTAS between moments. */
+const LOG_ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
+
 function makeTask(
 	id: number,
 	title: string,
@@ -1380,29 +1384,73 @@ describe('Zenith Energy Model', () => {
 
 		const prior = DEFAULT_ENERGY_PARAMS.freeTimeValue;
 
-		// Synthetic user: work the plan the optimizer builds at the TRUE λ₀,
-		// then log the per-task hours — what drain logs would record.
+		/**
+		 * MATH.md §8.10's break-omission witness: sliders 8/3/8 and 0/3/2 through
+		 * `toEnergyTask` (difficulty 8 + 0.3·3 and 3, demands slider/10), a 14 h
+		 * window, and the three sessions the app's own plan at λ₀ 0.7 works —
+		 * 45-minute breaks between them, which is what the log moments carry.
+		 */
+		const WITNESS_LOGGED: StopObservation = {
+			tasks: [makeTask(1, 'deep work', 8.9, 8, 0.8, 0.3), makeTask(2, 'errand', 3, 2, 0, 0.3)],
+			windowHours: 14,
+			workedHours: [
+				{
+					taskId: 1,
+					hours: 3.75,
+					endedAt: LOG_ORIGIN + 3.75 * MS_PER_HOUR,
+				},
+				{
+					taskId: 1,
+					hours: 2.25,
+					endedAt: LOG_ORIGIN + 6.75 * MS_PER_HOUR,
+				},
+				{
+					taskId: 1,
+					hours: 1.5,
+					endedAt: LOG_ORIGIN + 9 * MS_PER_HOUR,
+				},
+			],
+		};
+
+		// Synthetic user: work the plan the optimizer builds at the TRUE λ₀ and log
+		// each session as it finishes — one 🪫 row per session carrying the moment
+		// it ended (§18), which is what the day's breaks survive in. `summed`
+		// re-reads the same day with the moments dropped: the reading before
+		// 2026-08-19, and still what a batch-logged day gets.
 		const dayFromPlan = (trueLambda: number, windowHours: number): StopObservation => {
 			const { blocks } = optimizeSchedule(day, windowHours, {
 				...DEFAULT_ENERGY_PARAMS,
 				freeTimeValue: trueLambda,
 			});
 
-			const byTask = new Map<number, number>();
+			const workedHours: StopObservation['workedHours'] = [];
+			let clock = 0;
 
 			for (const b of blocks) {
-				if (b.taskId !== null) byTask.set(b.taskId, (byTask.get(b.taskId) ?? 0) + b.hours);
+				clock += b.hours;
+
+				if (b.taskId !== null)
+					workedHours.push({
+						taskId: b.taskId,
+						hours: b.hours,
+						endedAt: LOG_ORIGIN + clock * MS_PER_HOUR,
+					});
 			}
 
 			return {
 				tasks: day,
 				windowHours,
-				workedHours: [...byTask].map(([taskId, hours]) => ({
-					taskId,
-					hours,
-				})),
+				workedHours,
 			};
 		};
+
+		const summed = (observation: StopObservation): StopObservation => ({
+			...observation,
+			workedHours: observation.workedHours.map(({ taskId, hours }) => ({
+				taskId,
+				hours,
+			})),
+		});
 
 		it('recovers the generating λ₀ from synthetic days across windows', () => {
 			// Probe 2026-07-19: per-day brackets contain the true λ₀ = 0.9 and
@@ -1414,23 +1462,111 @@ describe('Zenith Energy Model', () => {
 			expect(fit.usedCount).toBe(3);
 			expect(fit.value).toBeGreaterThan(0.75);
 			expect(fit.value).toBeLessThan(1.05);
+
+			// And it recovers it BETTER than the same days read summed — the whole
+			// point of reading the log moments (MATH.md §8.10, 2026-08-19).
+			const flat = fitStoppingValue(days.map(summed), prior, DEFAULT_ENERGY_PARAMS);
+			expect(flat.usedCount).toBe(3);
+			expect(Math.abs(fit.value - 0.9)).toBeLessThan(Math.abs(flat.value - 0.9));
 		});
 
+		// Both readings, because the reconstruction now has a second input: the log
+		// moments. They are wall-clock numbers and no slider can reach them, so the
+		// recovered structure is λ₀-free by construction — this is the guard that
+		// the fallback predicate never acquires a λ₀ dependence either.
 		it('extraction is λ₀-free: the current freeTimeValue slider cannot bias it', () => {
-			const obs = dayFromPlan(0.9, 10);
+			for (const obs of [dayFromPlan(0.9, 10), summed(dayFromPlan(0.9, 10))]) {
+				const at0 = stopIndifferencePoint(obs, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 0,
+				});
 
-			const at0 = stopIndifferencePoint(obs, {
+				const at3 = stopIndifferencePoint(obs, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 3,
+				});
+
+				expect(at0).not.toBeNull();
+				expect(at0).toBe(at3);
+			}
+		});
+
+		// MATH.md §8.10: break omission was listed as absorbed noise and measured as
+		// the dominant, one-signed error term. The witness is the ruling's own —
+		// sliders 8/3/8 beside 0/3/2 through `toEnergyTask`, a 14 h window, and the
+		// app's own plan for it at λ₀ 0.7 (t1 3.75 / rest 0.75 / t1 2.25 / rest 0.75
+		// / t1 1.5). Pinned as the PAIR: summed reads 0.293 low and inverts its
+		// bracket (lo 0.469 > hi 0.345, kept because the gap is inside the margin),
+		// the logged reading lands 0.030 high and does not invert.
+		it('reads the day’s breaks off the 🪫 rows’ own log moments', () => {
+			const params = {
 				...DEFAULT_ENERGY_PARAMS,
-				freeTimeValue: 0,
-			});
+				freeTimeValue: 0.7,
+			};
 
-			const at3 = stopIndifferencePoint(obs, {
-				...DEFAULT_ENERGY_PARAMS,
-				freeTimeValue: 3,
-			});
+			expect(stopIndifferencePoint(WITNESS_LOGGED, params)!).toBeCloseTo(0.73042, 5);
+			expect(stopIndifferencePoint(summed(WITNESS_LOGGED), params)!).toBeCloseTo(0.40664, 5);
+		});
 
-			expect(at0).not.toBeNull();
-			expect(at0).toBe(at3);
+		// The fix cannot apply to a day whose sessions were all written down at once,
+		// and it must not pretend otherwise: no gap is recoverable, so the day reads
+		// exactly as it did before. Same for a row whose moment is unusable — a
+		// restored backup can carry one, and the whole DAY falls back, not the row.
+		it('falls back to the summed reading when no structure is recoverable', () => {
+			const flat = stopIndifferencePoint(summed(WITNESS_LOGGED), DEFAULT_ENERGY_PARAMS);
+
+			const batched: StopObservation = {
+				...WITNESS_LOGGED,
+				workedHours: WITNESS_LOGGED.workedHours.map((row) => ({
+					...row,
+					endedAt: LOG_ORIGIN + 20 * MS_PER_HOUR,
+				})),
+			};
+
+			const oneUnusable: StopObservation = {
+				...WITNESS_LOGGED,
+				workedHours: WITNESS_LOGGED.workedHours.map((row, i) =>
+					i === 1
+						? {
+								taskId: row.taskId,
+								hours: row.hours,
+							}
+						: row,
+				),
+			};
+
+			expect(stopIndifferencePoint(batched, DEFAULT_ENERGY_PARAMS)).toBe(flat);
+			expect(stopIndifferencePoint(oneUnusable, DEFAULT_ENERGY_PARAMS)).toBe(flat);
+		});
+
+		// Recovered rest is scaled to leave one step of room, so a day whose logged
+		// span runs past its declared window still prices — and `window-full` keeps
+		// reading WORKED hours, because a verdict must never be decided by recovered
+		// structure. 3 h worked inside a 9 h span of an 8 h window: room, not full.
+		it('keeps the window arithmetic on worked hours, not the recovered span', () => {
+			const overrun: StopObservation = {
+				tasks: [makeTask(1, 'deep work', 7, 6, 0.8, 0.2)],
+				windowHours: 8,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 1.5,
+						endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+						endedAt: LOG_ORIGIN + 9 * MS_PER_HOUR,
+					},
+				],
+				openTaskIds: new Set([1]),
+			};
+
+			expect(stopIndifferencePoint(overrun, DEFAULT_ENERGY_PARAMS)).toBeCloseTo(0.73342, 5);
+
+			expect(adviseStop(overrun, DEFAULT_ENERGY_PARAMS)).toMatchObject({
+				verdict: 'continue',
+			});
 		});
 
 		it('stopping earlier reveals a higher indifference price (diminishing marginals)', () => {
@@ -2000,6 +2136,47 @@ describe('Zenith Energy Model', () => {
 			expect(advice.taskId).toBe(1);
 			expect(advice.marginalValue).toBeCloseTo(expected, 12);
 			expect(advice.sessionHours).toBeCloseTo(expectedHours, 12);
+		});
+
+		// MATH.md §8.11 shares §8.10's reconstruction, and it applies no censor, so
+		// the recovered breaks reach the live card directly. Two things to hold: the
+		// day's own break is read, and a probed SESSION is priced at its full length
+		// rather than clipped by `normalizeSchedule` — the counterfactual pays its
+		// overhang out of the day's last rest instead.
+		it('prices a probed session on its full length, out of the recovered break', () => {
+			const errand = makeTask(1, 'errand', 3, 2, 0, 0.3);
+			const deep = makeTask(2, 'deep work', 9, 10, 0.9, 0.2);
+
+			const observation: StopObservation = {
+				tasks: [deep, errand],
+				windowHours: 8,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 0.75,
+						endedAt: LOG_ORIGIN + 0.75 * MS_PER_HOUR,
+					},
+					{
+						taskId: 1,
+						hours: 0.75,
+						endedAt: LOG_ORIGIN + 6 * MS_PER_HOUR,
+					},
+				],
+				openTaskIds: new Set([1, 2]),
+			};
+
+			const advice = priced(adviseStop(observation, DEFAULT_ENERGY_PARAMS));
+
+			// The day reads [errand 0.75, rest 4.5, errand 0.75]; the best session is
+			// 3 fresh steps of `deep`, inserted at its canonical rank ahead of the
+			// logged work, and 4.5 + 2.25 h does not fit an 8 h window — so 2.25 h of
+			// the break pays for it. Priced against the clipped schedule the same
+			// session reads 1.30025, and `normalizeSchedule` would have cut the
+			// logged work itself away to make room.
+			expect(advice.taskId).toBe(2);
+			expect(advice.sessionHours).toBe(2.25);
+			expect(advice.marginalValue).toBeCloseTo(1.35921, 5);
+			expect(advice.marginalValue).toBeGreaterThan(1.30026);
 		});
 
 		it('looks ahead past the warm-up ramp: continues when only a longer session clears λ₀ (probe 2026-08-03)', () => {

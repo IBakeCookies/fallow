@@ -15,10 +15,19 @@
  *
  * DESIGN. Ground truth is the optimizer's own plan under the day's λ₀, walked
  * chronologically in 45-min steps; at every checkpoint the advisor sees ONLY
- * the composition worked so far (a `StopObservation`, exactly what the store
- * hands it in-day). Truth says "continue" while the plan still has work and
- * "stop" at its last step, so a mid-day `stop` verdict is a FALSE STOP and a
- * `continue` at the plan's end is LATENESS.
+ * the day so far (a `StopObservation`, exactly what the store hands it in-day).
+ * Truth says "continue" while the plan still has work and "stop" at its last
+ * step, so a mid-day `stop` verdict is a FALSE STOP and a `continue` at the
+ * plan's end is LATENESS.
+ *
+ * The walk carries a WALL CLOCK (2026-08-19), which advances across the plan's
+ * rest blocks too, so each checkpoint's rows carry the log moment a user who
+ * logged each session as it finished would have written — and the advisor
+ * reconstructs the day's real breaks from them (§8.10). Without the clock the
+ * probe could only express a break-free day, which is why the break-omission
+ * bias was invisible here for five audit rounds. Every rate below is reported
+ * against the same walk read the pre-2026-08-19 way (`summed`), because the
+ * pair is the measurement.
  *
  * The one-step arm is the m = 1 slice of the advisor's search. It is not
  * implemented anywhere (the fit's `lo` bound is internal), so it is rebuilt
@@ -143,15 +152,43 @@ const WARMUP_HEAVY: EnergyTaskInput[] = [
 
 const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
 
+type Rows = StopObservation['workedHours'];
+
+const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
+const at = (clockHours: number) => ORIGIN + clockHours * 3_600_000;
+
 /** A checkpoint on the optimizer's plan: the day so far, and what comes next. */
 interface Checkpoint {
-	workedHours: { taskId: number; hours: number }[];
+	/** One row per session, each with the moment it ended — the 🪫 log's shape */
+	rows: Rows;
 	/** Funded tasks the remaining plan holds no more blocks for */
 	finishedTaskIds: Set<number>;
 	/** The plan still has work after this point — truth says "continue" */
 	moreWork: boolean;
 	/** The very next thing in the plan is a rest block */
 	restNext: boolean;
+}
+
+/** One more worked step at `endedAt`, extending the open session or starting one. */
+function logStep(rows: Rows, taskId: number, hours: number, endedAt: number): void {
+	const last = rows[rows.length - 1];
+
+	if (
+		last &&
+		last.taskId === taskId &&
+		Math.abs(last.endedAt! - (endedAt - hours * 3_600_000)) < 1
+	) {
+		last.hours += hours;
+		last.endedAt = endedAt;
+
+		return;
+	}
+
+	rows.push({
+		taskId,
+		hours,
+		endedAt,
+	});
 }
 
 function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
@@ -163,12 +200,13 @@ function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
 			planned.set(block.taskId, (planned.get(block.taskId) ?? 0) + block.hours);
 
 	const worked = new Map<number, number>();
+	const rows: Rows = [];
 	let done = 0;
+	let clock = 0;
 
 	const snapshot = (restNext: boolean): Checkpoint => ({
-		workedHours: [...worked].map(([taskId, hours]) => ({
-			taskId,
-			hours,
+		rows: rows.map((r) => ({
+			...r,
 		})),
 		finishedTaskIds: new Set(
 			[...worked]
@@ -186,14 +224,20 @@ function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
 	for (let i = 0; i < blocks.length; i++) {
 		const block = blocks[i];
 
-		if (block.taskId === null) continue;
+		// Rest still passes on the clock — that is the gap the rows record.
+		if (block.taskId === null) {
+			clock += block.hours;
+			continue;
+		}
 
 		let left = block.hours;
 
 		while (left > 1e-9) {
 			const hours = Math.min(DEFAULT_STEP_HOURS, left);
 
+			clock += hours;
 			worked.set(block.taskId, (worked.get(block.taskId) ?? 0) + hours);
+			logStep(rows, block.taskId, hours, at(clock));
 			left -= hours;
 			done += hours;
 			out.push(snapshot(left <= 1e-9 && blocks[i + 1]?.taskId === null));
@@ -201,6 +245,84 @@ function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
 	}
 
 	return out;
+}
+
+/** The same day read the pre-2026-08-19 way: rows summed, no moments. */
+const summed = (rows: Rows): Rows =>
+	rows.map(({ taskId, hours }) => ({
+		taskId,
+		hours,
+	}));
+
+/**
+ * `reconstructStopDay`'s recovered block structure, replicated: rows in log
+ * order, the space before each one a break, all rest scaled to leave one step of
+ * room. Null on the days the shipped reader falls back on — a row with no
+ * moment, or no gap to recover.
+ */
+function loggedStructure(
+	observation: StopObservation,
+	byTask: Map<number, number>,
+	total: number,
+): ScheduleBlock[] | null {
+	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
+
+	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
+
+	const sorted = [...rows].sort((x, y) => x.endedAt! - y.endedAt!);
+
+	const gaps = sorted.map((r, i) =>
+		i === 0
+			? 0
+			: Math.max(0, (r.endedAt! - r.hours * 3_600_000 - sorted[i - 1].endedAt!) / 3_600_000),
+	);
+
+	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
+	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
+	const scale = Math.min(1, room / restTotal);
+
+	if (!(restTotal * scale > 1e-9)) return null;
+
+	const sched: ScheduleBlock[] = [];
+
+	sorted.forEach((r, i) => {
+		if (gaps[i] * scale > 1e-9)
+			sched.push({
+				taskId: null,
+				hours: gaps[i] * scale,
+			});
+
+		sched.push({
+			taskId: r.taskId,
+			hours: r.hours,
+		});
+	});
+
+	return sched;
+}
+
+/** `trimRest`: pay a counterfactual's overhang out of the latest rest first. */
+function trimRest(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
+	let over = blocks.reduce((sum, b) => sum + b.hours, 0) - windowHours;
+
+	if (over <= 1e-9) return blocks;
+
+	const out = [...blocks];
+
+	for (let i = out.length - 1; i >= 0 && over > 1e-9; i--) {
+		if (out[i].taskId !== null) continue;
+
+		const take = Math.min(out[i].hours, over);
+
+		out[i] = {
+			...out[i],
+			hours: out[i].hours - take,
+		};
+
+		over -= take;
+	}
+
+	return out.filter((b) => b.hours > 1e-9);
 }
 
 /**
@@ -217,7 +339,8 @@ function searchMarginals(
 ): { oneStepValue: number; oneStepTaskId: number; bestOverAllM: number } | null {
 	const { tasks, windowHours, openTaskIds } = observation;
 	// `adviseStop` recommends only tasks still OPEN, and checks the empty set
-	// before the window (`zenith-energy.ts:2136`).
+	// before the window (`adviseStop`'s empty-candidate return precedes its `room`
+	// test), and a line number here would rot — name the code, not its address.
 	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
 
 	if (candidates.length === 0) return null;
@@ -225,15 +348,19 @@ function searchMarginals(
 	const byTask = workedHoursByTask(tasks, observation.workedHours);
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
+	// WORKED hours, never the schedule's extent: `room` and `window-full` must
+	// not turn on recovered structure (§8.10).
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
 
-	const sched: ScheduleBlock[] = canonical
-		.filter((t) => byTask.has(t.id))
-		.map((t) => ({
-			taskId: t.id,
-			hours: byTask.get(t.id)!,
-		}));
+	const sched: ScheduleBlock[] =
+		loggedStructure(observation, byTask, total) ??
+		canonical
+			.filter((t) => byTask.has(t.id))
+			.map((t) => ({
+				taskId: t.id,
+				hours: byTask.get(t.id)!,
+			}));
 
-	const total = sched.reduce((sum, b) => sum + b.hours, 0);
 	const room = Math.floor((windowHours - total) / DEFAULT_STEP_HOURS + 1e-9);
 
 	if (room < 1) return null;
@@ -246,29 +373,46 @@ function searchMarginals(
 
 	const base = workValue(sched);
 
-	// `growBy`: an unlogged task enters at ITS canonical rank, not appended.
+	// `growBy`: the LAST block of a logged task grows; an unlogged task enters at
+	// ITS canonical rank among the WORK blocks, not appended; and the grown
+	// schedule pays for its overhang out of the day's last rest (`trimRest`), or
+	// `normalizeSchedule` would clip the probed session instead.
 	const grown = (t: EnergyTaskInput, hours: number): ScheduleBlock[] => {
 		if (byTask.has(t.id)) {
-			return sched.map((b) =>
-				b.taskId === t.id
-					? {
-							...b,
-							hours: b.hours + hours,
-						}
-					: b,
+			const last = sched.reduce((seen, b, i) => (b.taskId === t.id ? i : seen), -1);
+
+			return trimRest(
+				sched.map((b, i) =>
+					i === last
+						? {
+								...b,
+								hours: b.hours + hours,
+							}
+						: b,
+				),
+				windowHours,
 			);
 		}
 
-		const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
+		const before = sched.filter(
+			(b) => b.taskId !== null && rank.get(b.taskId)! < rank.get(t.id)!,
+		).length;
 
-		return [
-			...sched.slice(0, at),
-			{
-				taskId: t.id,
-				hours,
-			},
-			...sched.slice(at),
-		];
+		let index = 0;
+
+		for (let seen = 0; seen < before; index++) if (sched[index].taskId !== null) seen++;
+
+		return trimRest(
+			[
+				...sched.slice(0, index),
+				{
+					taskId: t.id,
+					hours,
+				},
+				...sched.slice(index),
+			],
+			windowHours,
+		);
 	};
 
 	let oneStepValue = -Infinity;
@@ -310,12 +454,18 @@ const emptyScore = (): ArmScore => ({
 	maxLateness: 0,
 });
 
+const emptyTally = (): Tally => ({
+	one: emptyScore(),
+	session: emptyScore(),
+	summedSession: emptyScore(),
+	midCheckpoints: 0,
+	atStopDays: 0,
+	windowFull: 0,
+	mismatches: 0,
+});
+
 /** The one place `openTaskIds` enters this probe. */
-const observe = (
-	day: ProbeDay,
-	workedHours: { taskId: number; hours: number }[],
-	openTaskIds?: ReadonlySet<number>,
-) => ({
+const observe = (day: ProbeDay, workedHours: Rows, openTaskIds?: ReadonlySet<number>) => ({
 	tasks: day.tasks,
 	windowHours: day.windowHours,
 	workedHours,
@@ -329,25 +479,26 @@ const observe = (
  */
 function lateness(
 	day: ProbeDay,
-	worked: { taskId: number; hours: number }[],
+	worked: Rows,
 	params: EnergyParams,
 	oneStep: boolean,
 	openTaskIds?: ReadonlySet<number>,
 ): number {
-	const hours = new Map(worked.map((w) => [w.taskId, w.hours]));
+	const rows: Rows = worked.map((r) => ({
+		...r,
+	}));
+
+	// The extra steps are worked from here on, back to back, so they open no new
+	// gap: the day's recovered structure is the one it already had.
+	let clock = rows.reduce((latest, r) => Math.max(latest, r.endedAt ?? -Infinity), -Infinity);
 	let steps = 0;
 
 	for (;;) {
-		const list = [...hours].map(([taskId, h]) => ({
-			taskId,
-			hours: h,
-		}));
-
 		let taskId: number;
 
 		if (oneStep) {
 			const marginals = searchMarginals(
-				observe(day, list, openTaskIds),
+				observe(day, rows, openTaskIds),
 				params,
 				DEFAULT_USER_CONSTANTS,
 			);
@@ -356,14 +507,27 @@ function lateness(
 
 			taskId = marginals.oneStepTaskId;
 		} else {
-			const advice = adviseStop(observe(day, list, openTaskIds), params, DEFAULT_USER_CONSTANTS);
+			const advice = adviseStop(observe(day, rows, openTaskIds), params, DEFAULT_USER_CONSTANTS);
 
 			if (advice === null || advice.verdict !== 'continue') return steps;
 
 			taskId = advice.taskId;
 		}
 
-		hours.set(taskId, (hours.get(taskId) ?? 0) + DEFAULT_STEP_HOURS);
+		clock += DEFAULT_STEP_HOURS * 3_600_000;
+
+		if (Number.isFinite(clock)) logStep(rows, taskId, DEFAULT_STEP_HOURS, clock);
+		else {
+			const last = rows[rows.length - 1];
+
+			if (last && last.taskId === taskId) last.hours += DEFAULT_STEP_HOURS;
+			else
+				rows.push({
+					taskId,
+					hours: DEFAULT_STEP_HOURS,
+				});
+		}
+
 		steps++;
 	}
 }
@@ -371,6 +535,8 @@ function lateness(
 interface Tally {
 	one: ArmScore;
 	session: ArmScore;
+	/** The session arm on the SUMMED reading — the day with its breaks thrown away */
+	summedSession: ArmScore;
 	midCheckpoints: number;
 	atStopDays: number;
 	/** No whole step fits: the day filled the window, so neither arm has a verdict */
@@ -401,11 +567,19 @@ function scoreDay(day: ProbeDay, params: EnergyParams, tally: Tally): void {
 	const plan = optimizeSchedule(day.tasks, day.windowHours, params, DEFAULT_USER_CONSTANTS);
 
 	for (const checkpoint of walkPlan(plan.blocks)) {
-		const observation = observe(day, checkpoint.workedHours);
+		const observation = observe(day, checkpoint.rows);
 		const advice = adviseStop(observation, params, DEFAULT_USER_CONSTANTS);
 		const marginals = searchMarginals(observation, params, DEFAULT_USER_CONSTANTS);
+		const flatRows = summed(checkpoint.rows);
+		const flat = adviseStop(observe(day, flatRows), params, DEFAULT_USER_CONSTANTS);
 
-		if (advice === null || advice.verdict === 'window-full' || marginals === null) {
+		if (
+			advice === null ||
+			advice.verdict === 'window-full' ||
+			marginals === null ||
+			flat === null ||
+			flat.verdict === 'window-full'
+		) {
 			tally.windowFull++;
 			continue;
 		}
@@ -416,20 +590,24 @@ function scoreDay(day: ProbeDay, params: EnergyParams, tally: Tally): void {
 
 		const oneContinues = marginals.oneStepValue > params.freeTimeValue;
 		const sessionContinues = advice.verdict === 'continue';
+		const flatContinues = flat.verdict === 'continue';
 
 		if (checkpoint.moreWork) {
 			tally.midCheckpoints++;
 			scoreMidDay(tally.one, oneContinues, checkpoint.restNext);
 			scoreMidDay(tally.session, sessionContinues, checkpoint.restNext);
+			scoreMidDay(tally.summedSession, flatContinues, checkpoint.restNext);
 			continue;
 		}
 
 		tally.atStopDays++;
-		scoreAtStop(tally.one, oneContinues, () => lateness(day, checkpoint.workedHours, params, true));
+		scoreAtStop(tally.one, oneContinues, () => lateness(day, checkpoint.rows, params, true));
 
 		scoreAtStop(tally.session, sessionContinues, () =>
-			lateness(day, checkpoint.workedHours, params, false),
+			lateness(day, checkpoint.rows, params, false),
 		);
+
+		scoreAtStop(tally.summedSession, flatContinues, () => lateness(day, flatRows, params, false));
 	}
 }
 
@@ -443,14 +621,7 @@ function measure(label: string, days: ProbeDay[]): void {
 			freeTimeValue,
 		};
 
-		const tally: Tally = {
-			one: emptyScore(),
-			session: emptyScore(),
-			midCheckpoints: 0,
-			atStopDays: 0,
-			windowFull: 0,
-			mismatches: 0,
-		};
+		const tally = emptyTally();
 
 		for (const day of days) scoreDay(day, params, tally);
 
@@ -467,6 +638,14 @@ function measure(label: string, days: ProbeDay[]): void {
 				`at-stop agreement one-step ${tally.one.atStopAgree}/${tally.atStopDays} vs session ${tally.session.atStopAgree}/${tally.atStopDays}, ` +
 				`max lateness one-step ${tally.one.maxLateness} vs session ${tally.session.maxLateness} steps, ` +
 				`session false stops immediately before a planned rest ${tally.session.restAdjacentFalseStops}/${tally.session.falseStops}`,
+		);
+
+		console.log(
+			`${label} λ₀ ${freeTimeValue.toFixed(1)}: the SAME session arm on the summed reading — ` +
+				`mid-day false stops ${rate(tally.summedSession)}%, rest-adjacent ` +
+				`${tally.summedSession.restAdjacentFalseStops}/${tally.summedSession.falseStops}, ` +
+				`at-stop agreement ${tally.summedSession.atStopAgree}/${tally.atStopDays}, ` +
+				`max lateness ${tally.summedSession.maxLateness} steps`,
 		);
 	}
 
@@ -504,15 +683,10 @@ function scoreScopeDay(day: ProbeDay, params: EnergyParams, tally: ScopeTally): 
 			day.tasks.filter((t) => !checkpoint.finishedTaskIds.has(t.id)).map((t) => t.id),
 		);
 
-		const scoped = observe(day, checkpoint.workedHours, open);
+		const scoped = observe(day, checkpoint.rows, open);
 		const filtered = adviseStop(scoped, params, DEFAULT_USER_CONSTANTS);
 		const marginals = searchMarginals(scoped, params, DEFAULT_USER_CONSTANTS);
-
-		const unfiltered = adviseStop(
-			observe(day, checkpoint.workedHours),
-			params,
-			DEFAULT_USER_CONSTANTS,
-		);
+		const unfiltered = adviseStop(observe(day, checkpoint.rows), params, DEFAULT_USER_CONSTANTS);
 
 		if (filtered === null) {
 			tally.noCandidate++;
@@ -546,11 +720,11 @@ function scoreScopeDay(day: ProbeDay, params: EnergyParams, tally: ScopeTally): 
 		tally.atStopDays++;
 
 		scoreAtStop(tally.filtered, filteredContinues, () =>
-			lateness(day, checkpoint.workedHours, params, false, open),
+			lateness(day, checkpoint.rows, params, false, open),
 		);
 
 		scoreAtStop(tally.unfiltered, unfilteredContinues, () =>
-			lateness(day, checkpoint.workedHours, params, false),
+			lateness(day, checkpoint.rows, params, false),
 		);
 	}
 }

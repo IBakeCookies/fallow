@@ -230,7 +230,7 @@ const truePhi = (physical, mental, enjoyment) =>
  * Closed form of dC/dτ = −α·w·C + r'·g·(1−C) with g = 1−(1−b)·w (MATH.md §8.5).
  *
  * `r'` carries `restRecoveryMultiplier` during WORK too, not only during rest —
- * that is what `fitDrainRate` passes into `reservoirLaw` (zenith-energy.ts:1198),
+ * that is what `fitDrainRate` passes into `reservoirLaw` in `zenith-energy.ts`,
  * and dropping it here made α̂ come back +13% with noise-free data, because the
  * fit then had to raise α to explain a drain the generator produced with less
  * recovery than the model assumes.

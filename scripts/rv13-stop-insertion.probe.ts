@@ -23,6 +23,16 @@
  * is "unchanged" at true λ₀ 0.3/0.5/0.9 — on the only committed synthetic-day
  * generator (the `dayFromPlan` fixture in zenith-energy.test.ts), both ways.
  *
+ * Added 2026-08-19: the same question on a TIMESTAMPED day. §8.11 kept
+ * canonical placement partly because "`StopObservation` carries no order, so the
+ * reconstructed past is itself canonical, not chronological" — which is false
+ * once the 🪫 rows' log moments are read (§8.10), so the arm below prices both
+ * conventions on a day whose reconstruction carries its real breaks, and the
+ * replica gains the same structure so its validation gate still means something.
+ * Rest blocks also make the insertion INDEX reachable: `rank` has no entry for a
+ * rest block, so counting lower-ranked blocks and indexing into a schedule that
+ * contains rest are two different numbers.
+ *
  * A probe, not a test: the sweep prints numbers that move whenever the energy
  * model or the reconstruction changes, and it carries a pre-fix replica that
  * must not exist in shipped code. The suite pins the property instead — that
@@ -91,16 +101,21 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 	const probes = new Map<number, number>();
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
 
-	const sched: ScheduleBlock[] = canonical
-		.filter((t) => byTask.has(t.id))
-		.map((t) => ({
-			taskId: t.id,
-			hours: byTask.get(t.id)!,
-		}));
+	const sched: ScheduleBlock[] =
+		loggedStructure(observation, byTask, total) ??
+		canonical
+			.filter((t) => byTask.has(t.id))
+			.map((t) => ({
+				taskId: t.id,
+				hours: byTask.get(t.id)!,
+			}));
 
-	const total = sched.reduce((sum, b) => sum + b.hours, 0);
 	const step = DEFAULT_STEP_HOURS;
+
+	const lastBlockOf = (taskId: number) =>
+		sched.reduce((last, b, i) => (b.taskId === taskId ? i : last), -1);
 
 	const workValue = (blocks: ScheduleBlock[]): number => {
 		const ev = evaluateSchedule(blocks, tasks, windowHours, params, DEFAULT_USER_CONSTANTS);
@@ -111,15 +126,18 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 	const base = workValue(sched);
 
 	const grown = (t: EnergyTaskInput): ScheduleBlock[] => {
-		if (byTask.has(t.id))
-			return sched.map((b) =>
-				b.taskId === t.id
+		if (byTask.has(t.id)) {
+			const last = lastBlockOf(t.id);
+
+			return sched.map((b, i) =>
+				i === last
 					? {
 							...b,
 							hours: b.hours + step,
 						}
 					: b,
 			);
+		}
 
 		if (appendLast)
 			return [
@@ -130,7 +148,15 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 				},
 			];
 
-		const at = sched.filter((b) => rank.get(b.taskId!)! < rank.get(t.id)!).length;
+		// Count WORK blocks of lower rank, then walk `sched` past that many —
+		// rest blocks have no rank and must not shift the index.
+		const before = sched.filter(
+			(b) => b.taskId !== null && rank.get(b.taskId)! < rank.get(t.id)!,
+		).length;
+
+		let at = 0;
+
+		for (let seen = 0; seen < before; at++) if (sched[at].taskId !== null) seen++;
 
 		return [
 			...sched.slice(0, at),
@@ -153,20 +179,8 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 	let hi: number | null = null;
 
 	for (const t of tasks)
-		if ((byTask.get(t.id) ?? 0) >= step - 1e-9) {
-			const shrunk = sched
-				.map((b) =>
-					b.taskId === t.id
-						? {
-								...b,
-								hours: b.hours - step,
-							}
-						: b,
-				)
-				.filter((b) => b.hours > 1e-9);
-
-			hi = Math.max(hi ?? -Infinity, (base - workValue(shrunk)) / step);
-		}
+		if ((byTask.get(t.id) ?? 0) >= step - 1e-9)
+			hi = Math.max(hi ?? -Infinity, (base - workValue(shrinkLast(sched, t.id, step))) / step);
 
 	const stopBound = Math.max(0, lo);
 
@@ -177,6 +191,95 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 		point: censored ? null : (stopBound + hi!) / 2,
 		probes,
 	};
+}
+
+const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
+
+/** `shrinkBy`: `hours` off the END of that task's work, across its blocks. */
+function shrinkLast(sched: ScheduleBlock[], taskId: number, hours: number): ScheduleBlock[] {
+	const out = [...sched];
+	let left = hours;
+
+	for (let i = out.length - 1; i >= 0 && left > 1e-9; i--) {
+		if (out[i].taskId !== taskId) continue;
+
+		const take = Math.min(out[i].hours, left);
+
+		out[i] = {
+			...out[i],
+			hours: out[i].hours - take,
+		};
+
+		left -= take;
+	}
+
+	return out.filter((b) => b.hours > 1e-9);
+}
+
+/**
+ * `reconstructStopDay`'s recovered block structure, replicated: rows in log
+ * order, the space before each one a break, all rest scaled to leave one step
+ * of room. Null on the days the shipped reader falls back on — a row with no
+ * moment, or no gap to recover.
+ */
+function loggedStructure(
+	observation: StopObservation,
+	byTask: Map<number, number>,
+	total: number,
+): ScheduleBlock[] | null {
+	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
+
+	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
+
+	const sorted = [...rows].sort((x, y) => x.endedAt! - y.endedAt!);
+
+	const gaps = sorted.map((r, i) =>
+		i === 0
+			? 0
+			: Math.max(0, (r.endedAt! - r.hours * 3_600_000 - sorted[i - 1].endedAt!) / 3_600_000),
+	);
+
+	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
+	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
+	const scale = Math.min(1, room / restTotal);
+
+	if (!(restTotal * scale > 1e-9)) return null;
+
+	const sched: ScheduleBlock[] = [];
+
+	sorted.forEach((r, i) => {
+		if (gaps[i] * scale > 1e-9)
+			sched.push({
+				taskId: null,
+				hours: gaps[i] * scale,
+			});
+
+		sched.push({
+			taskId: r.taskId,
+			hours: r.hours,
+		});
+	});
+
+	return sched;
+}
+
+/** The plan's sessions as the 🪫 log holds them: one row each, with its end. */
+function sessionRows(blocks: ScheduleBlock[]): StopObservation['workedHours'] {
+	const rows: StopObservation['workedHours'] = [];
+	let clock = 0;
+
+	for (const b of blocks) {
+		clock += b.hours;
+
+		if (b.taskId !== null)
+			rows.push({
+				taskId: b.taskId,
+				hours: b.hours,
+				endedAt: ORIGIN + clock * 3_600_000,
+			});
+	}
+
+	return rows;
 }
 
 const task = (
@@ -220,41 +323,64 @@ const FIXTURE_DAY: StopObservation = {
 	],
 };
 
+/** `isTimed` logs the plan session by session; otherwise the day reads summed. */
 const dayFromPlan = (
 	tasks: EnergyTaskInput[],
 	trueLambda: number,
 	windowHours: number,
+	isTimed = false,
 ): StopObservation => {
 	const { blocks } = optimizeSchedule(tasks, windowHours, {
 		...DEFAULT_ENERGY_PARAMS,
 		freeTimeValue: trueLambda,
 	});
 
-	const byTask = new Map<number, number>();
-
-	for (const b of blocks)
-		if (b.taskId !== null) byTask.set(b.taskId, (byTask.get(b.taskId) ?? 0) + b.hours);
+	const rows = sessionRows(blocks);
 
 	return {
 		tasks,
 		windowHours,
-		workedHours: [...byTask].map(([taskId, hours]) => ({
-			taskId,
-			hours,
-		})),
+		workedHours: isTimed
+			? rows
+			: rows.map(({ taskId, hours }) => ({
+					taskId,
+					hours,
+				})),
 	};
 };
 
 describe('MATH.md §13.4 — the insertion convention', () => {
 	it('validates the replica against the shipped stopIndifferencePoint', () => {
-		for (const windowHours of [8, 10, 12])
-			for (const trueLambda of [0.5, 0.9, 1.3]) {
-				const obs = dayFromPlan(DAY, trueLambda, windowHours);
-				const mine = reading(obs, DEFAULT_ENERGY_PARAMS, false).point;
-				const shipped = stopIndifferencePoint(obs, DEFAULT_ENERGY_PARAMS);
+		const cells = [8, 10, 12].flatMap((windowHours) =>
+			[0.5, 0.9, 1.3].flatMap((trueLambda) =>
+				[false, true].map((isTimed) => dayFromPlan(DAY, trueLambda, windowHours, isTimed)),
+			),
+		);
 
-				if (mine === null) expect(shipped).toBeNull();
-				else expect(shipped!).toBeCloseTo(mine, 12);
+		for (const obs of cells) {
+			const mine = reading(obs, DEFAULT_ENERGY_PARAMS, false).point;
+			const shipped = stopIndifferencePoint(obs, DEFAULT_ENERGY_PARAMS);
+
+			if (mine === null) expect(shipped).toBeNull();
+			else expect(shipped!).toBeCloseTo(mine, 12);
+		}
+	});
+
+	it('prices both conventions on a day whose reconstruction carries its breaks', () => {
+		for (const trueLambda of [0.5, 0.9, 1.3])
+			for (const windowHours of [8, 10, 12]) {
+				const timed = dayFromPlan(DAY, trueLambda, windowHours, true);
+				const summed = dayFromPlan(DAY, trueLambda, windowHours, false);
+				const ins = reading(timed, DEFAULT_ENERGY_PARAMS, false);
+				const app = reading(timed, DEFAULT_ENERGY_PARAMS, true);
+				const flat = reading(summed, DEFAULT_ENERGY_PARAMS, false);
+				const show = (p: number | null) => (p === null ? 'censored' : p.toFixed(4));
+
+				console.log(
+					`§8.11 append-vs-canonical, true λ₀ ${trueLambda} at ${windowHours}h: ` +
+						`timed inserted ${show(ins.point)} appended ${show(app.point)} ` +
+						`(summed reading ${show(flat.point)})`,
+				);
 			}
 	});
 
@@ -416,11 +542,21 @@ describe('MATH.md §13.4 — the insertion convention', () => {
 	});
 
 	it('re-runs the synthetic round-trip both ways', () => {
+		// Timed days: what the app reads once the sessions are logged as they
+		// finish. The summed fit beside it is the same days read the pre-2026-08-19
+		// way, so the round-trip claim and the reconstruction change are separable.
 		for (const trueLambda of [0.3, 0.5, 0.9]) {
-			const days = [8, 10, 12].map((T) => dayFromPlan(DAY, trueLambda, T));
+			const days = [8, 10, 12].map((T) => dayFromPlan(DAY, trueLambda, T, true));
+			const summed = [8, 10, 12].map((T) => dayFromPlan(DAY, trueLambda, T));
 
 			const fit = fitStoppingValue(
 				days,
+				DEFAULT_ENERGY_PARAMS.freeTimeValue,
+				DEFAULT_ENERGY_PARAMS,
+			);
+
+			const flat = fitStoppingValue(
+				summed,
 				DEFAULT_ENERGY_PARAMS.freeTimeValue,
 				DEFAULT_ENERGY_PARAMS,
 			);
@@ -429,7 +565,7 @@ describe('MATH.md §13.4 — the insertion convention', () => {
 			const appended = days.map((d) => reading(d, DEFAULT_ENERGY_PARAMS, true).point);
 
 			console.log(
-				`true λ₀ ${trueLambda} → fitted ${fit.value.toFixed(4)} (fitted=${fit.fitted}, days used ${fit.usedCount}); per-day midpoints canonical [${points.map((p) => p?.toFixed(4) ?? 'censored').join(', ')}] append-last [${appended.map((p) => p?.toFixed(4) ?? 'censored').join(', ')}]`,
+				`true λ₀ ${trueLambda} → fitted ${fit.value.toFixed(4)} (fitted=${fit.fitted}, days used ${fit.usedCount}; summed reading ${flat.value.toFixed(4)} over ${flat.usedCount}); per-day midpoints canonical [${points.map((p) => p?.toFixed(4) ?? 'censored').join(', ')}] append-last [${appended.map((p) => p?.toFixed(4) ?? 'censored').join(', ')}]`,
 			);
 		}
 	});
