@@ -1915,14 +1915,17 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * no usable moment, and a day logged in one batch, fall back to one contiguous
  * session per task in canonical amplitude order — the reading every day used to
  * get, whose omitted breaks were the estimator's DOMINANT error term rather
- * than the noise §8.10 called them. Measured 2026-08-19 over 436
- * optimizer-funded days drawn through `toEnergyTask`, 63.5% of them carrying an
- * interior break (`scripts/stop-block-structure.probe.ts`):
- * |midpoint − true λ₀| mean 0.065, p90 0.126, past the 0.134 bracket half-width
- * on 7.9% of days, against 0.106 / 0.229 / 28.3% summed. Containment is no
+ * than the noise §8.10 called them. Measured 2026-08-19 over 676
+ * optimizer-funded days drawn through `toEnergyTask` across the Lab's own λ₀
+ * range 0.1 … 1.1 (`scripts/stop-block-structure.probe.ts`):
+ * |midpoint − true λ₀| mean 0.086, p90 0.171, past the 0.134 bracket half-width
+ * on 16.3% of 441 priced days, against 0.123 / 0.271 / 35.1% summed — and the
+ * error is λ₀-DEPENDENT, mean 0.300 at λ₀ = 0.1 against 0.053 at 0.9, so a
+ * figure from here carries the λ₀ it was read at. Containment is no
  * longer claimed — the error distribution is, because the bracket does miss on
- * days it used to be asserted to cover. The negative side of the stop bound is
- * floored at 0 — λ₀ ≥ (negative marginal) is vacuous.
+ * days it used to be asserted to cover, one-signed HIGH where the day's extent
+ * left no room for another step (§8.10's cap bullet). The negative side of the
+ * stop bound is floored at 0 — λ₀ ≥ (negative marginal) is vacuous.
  *
  * An IRRATIONAL day can invert the bracket (lo > hi: extending some task was
  * worth more per step than the best step actually worked — e.g. a session cut

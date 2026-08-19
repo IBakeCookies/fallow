@@ -844,18 +844,19 @@ passed), so that pairing is intended, not an accident.
 ## Findings from the 2026-08-14 `MATH.md` audit
 
 Item 31's list. The **M** ids are stable and never reused. M1–M13 and M22 were
-each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M41
+each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M42
 were raised and not verified** — they are leads, and item 29's rule applies, so
 quote none of them as a result until its own check is run. **M27, M28, M31, M32
 and M36 were closed on 2026-08-18** ([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)), which took the four registry
 holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
-2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)). Ten are still
-leads: M17 (two of its three sites landed), M23, M33, M34, M35, M37, M38, and
-M39–M41, filed 2026-08-19 out of M38's measurement. M37–M41 came from probe
-sweeps rather than from the 2026-08-14 audit and carry the same rule: M38 has
-been measured twice since, which is not a verification while no committed
-instrument reproduces it.
+2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)), and **M38 the
+same day** — its ruling shipped as a model change (MATH.md §8.10, §8.11, §10).
+Ten are still leads: M17 (two of its three sites landed), M23, M33, M34, M35,
+M37, and M39–M42, the last four filed 2026-08-19 out of M38's measurement and its
+fix. M37–M42 came from probe sweeps rather than from the 2026-08-14 audit and
+carry the same rule; M38 is the one exception, because its fix committed the
+instrument that reproduces it.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1338,10 +1339,14 @@ only way to catch.
   breaks between sessions are read rather than discarded; a day with no usable
   moment, or one logged in a single batch, falls back bit-identically to the old
   reading. Measured through the shipped function over 436 optimizer-funded days
-  drawn from integer sliders: |err| mean 0.106 → 0.065, past the bracket
-  half-width 28.3% → 7.9%, the witness −0.293 → +0.030 with its bracket
-  un-inverted, a repeating-day user 0.415 → 0.709. The margin was NOT touched and
-  no day was censored to achieve it. Two of this entry's own figures are
+  drawn from integer sliders **at λ₀ {0.5, 0.7, 0.9, 1.1}**: |err| mean
+  0.106 → 0.065, past the bracket half-width 28.3% → 7.9%, the witness
+  −0.293 → +0.030 with its bracket un-inverted, a repeating-day user
+  0.415 → 0.709. That grid is the scope, and it was the narrow half of the Lab's
+  own λ₀ range: widened to 0.1 … 1.1 on 2026-08-19 the same probe reads
+  0.123 → 0.086 and 35.1% → 16.3% over 676 cells, with the residual concentrated
+  at the low end (MATH.md §8.10, and M42 for what is left of it). The margin was
+  NOT touched and no day was censored to achieve it. Two of this entry's own figures are
   superseded by the committed instrument: 48.3% of plans carrying a break reads
   63.5% on the slider-drawn population, and "the fit reads LOW" is now +0.032
   signed rather than negative.
@@ -1376,8 +1381,31 @@ only way to catch.
 - **M41 §8.10** — the V_T non-monotonicity claim is UNDERSTATED, not merely
   mis-witnessed: over the UI's own V_T range on app-legal days, 18 of 200 cells
   are non-monotone with up to 5 levels and a 4-step span, while §8.10 claims three
-  levels and `zenith-energy.ts:2188-2189` says "two lattice levels" (scratch,
-  2026-08-19). Inside the §8.10 hold — filed, with the text left alone.
+  levels and `zenith-energy.ts:2349-2350` says "two lattice levels" (scratch,
+  2026-08-19; the citation was `:2188-2189` before the 2026-08-19 model change
+  moved it). Inside the §8.10 hold — filed, with the text left alone.
+- **M42 §8.10 — the residual after M38's fix is one-signed HIGH, and censoring it
+  is a data-versus-accuracy call the maintainer makes.** Not a doc defect: §8.10
+  now states this size, and this entry is the POLICY question it deliberately does
+  not answer. The class is exact — a day whose extent (worked hours plus the
+  breaks recovered from its own log moments) leaves no room for another 45-min
+  step. Such a day ran out of wall clock, but `total` reads WORKED hours (§8.11,
+  pinned), so the window-edge censor never fires and the day enters the fit as a
+  voluntary stop; its `lo` sits at the truth (mean −0.016) while `hi` sits +0.264
+  above it, and the midpoint lands halfway up. **The trade, measured** (scratch,
+  2026-08-19, 120 slider-drawn days × λ₀ 0.1 … 1.1, the bracket rebuilt from
+  exported parts and validated against `stopIndifferencePoint` on every day):
+  censoring the class takes the bracket's containment failure **13.8% → 4.0%** —
+  it holds 48 of the 61 failures, 47 of them HIGH — at the cost of **25.4% of the
+  fit's priced days** (112 of 441; 17.6% over the {0.5 … 1.1} scope, consistent
+  with the 19% §8.10 and §8.11 already quote). **The interesting part is the
+  SIGN**: the bias this round fixed read LOW, and what is left reads HIGH, so the
+  two do not stack and a mean-based check over both would cancel them — the same
+  failure mode that let "absorbed as noise" survive. Ruling needed on whether the
+  window censor should read the day's recovered extent instead of its worked
+  hours, which is a code question and would move §8.11's `window-full` copy with
+  it; nothing here says which way. Do not quote these numbers as a result until a
+  committed instrument prints them (item 29's rule).
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
