@@ -47,9 +47,22 @@
  * break-carrying day can be expressed at all — it could not before, and that is
  * why the break-omission bias was invisible to this probe. `bracketOf` gained
  * the same recovered structure the shipped `reconstructStopDay` reads, and every
- * inversion figure below is the re-read. The random-composition arms stay
- * untimed on purpose: an arbitrary composition is not a logged day, and the
- * fallback (summed) reading is what such a day gets.
+ * inversion figure below is the re-read.
+ *
+ * EVERY DAY HERE IS A DAY THE APP CAN PRODUCE (2026-08-19). Tasks come from the
+ * three integer sliders through the shipped `toEnergyTask`, so `difficulty`
+ * carries the 0.3 spillover and the [1, 10] floor `getEffectiveDifficulty`
+ * applies and the demands are slider/10 — the hand-built
+ * `difficulty: max(mental, physical)` this file drew before understated every
+ * mixed task and skipped the floor, and the fixture day carried three values no
+ * slider reaches (see `FIXTURE_DAY`). Rows carry the wall-clock moment they
+ * ended and `openTaskIds` is the Set `session-history.ts` always builds, because
+ * a row without a moment needs corrupt storage and an absent `openTaskIds` is a
+ * call the app never makes. The random-composition arms log their sessions BACK
+ * TO BACK: an arbitrary composition is not a planned day, no gap recovers from
+ * it, and the fallback (summed) reading is what such a day gets — the same
+ * reading as before, now from a day the 🪫 form could have written. The
+ * `[§8.10 surface]` line below counts what got measured.
  *
  * THE DECOMPOSITION ARM. `hi` is a LOOSE max: it takes the best over all
  * logged tasks of "remove one step from this task", because the real work
@@ -84,6 +97,8 @@ import {
 	mapEnjoyability,
 	type UserConstants,
 } from '$lib/business/model/zenith';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import type { Task } from '$lib/data/type';
 
 function mulberry32(seed: number): () => number {
 	let a = seed;
@@ -338,18 +353,67 @@ function bracketOf(
 	};
 }
 
+/**
+ * One task as the form holds it: the three sliders are integers (difficulty
+ * 0–10, enjoyment 1–10) and `toEnergyTask` derives everything the model reads,
+ * so nothing here can describe a task the user cannot enter. Drawn the same way
+ * `scripts/stop-block-structure.probe.ts` draws its days.
+ */
 function drawTask(random: () => number, id: number): EnergyTaskInput {
-	const mental = 1 + Math.floor(random() * 10);
-	const physical = 1 + Math.floor(random() * 10);
+	const slider = (min: number) => min + Math.floor(random() * (11 - min));
 
-	return {
+	const task: Task = {
 		id,
 		title: `t${id}`,
-		difficulty: Math.max(mental, physical),
-		enjoyment: 1 + Math.floor(random() * 10),
-		cognitiveDemand: mental / 10,
-		physicalDemand: physical / 10,
+		mentalDifficulty: slider(0),
+		physicalDifficulty: slider(0),
+		enjoyment: slider(1),
+		createdAt: '2026-08-19',
+		completed: false,
 	};
+
+	return toEnergyTask(task);
+}
+
+/**
+ * An arbitrary composition as the 🪫 form would hold it: the sessions logged
+ * back to back from the start of the window, each carrying the moment it ended.
+ * No gap recovers from that, so the reconstruction falls back to the summed
+ * reading — which is the reading an unplanned composition gets either way.
+ */
+function loggedBackToBack(
+	rows: Array<{ taskId: number; hours: number }>,
+): StopObservation['workedHours'] {
+	let clock = 0;
+
+	return rows.map((row) => {
+		clock += row.hours;
+
+		return {
+			...row,
+			endedAt: ORIGIN + clock * 3_600_000,
+		};
+	});
+}
+
+/**
+ * Rows and windows the app cannot hold: a 🪫 row is whole minutes in [1, 960]
+ * carrying its log moment, and the budget bar's window is (0, 24].
+ */
+function offSurfaceRows(observation: StopObservation): number {
+	if (!(observation.windowHours > 0 && observation.windowHours <= 24))
+		return observation.workedHours.length;
+
+	return observation.workedHours.filter((row) => {
+		const minutes = row.hours * 60;
+
+		return (
+			!Number.isFinite(row.endedAt) ||
+			minutes < 1 ||
+			minutes > 960 ||
+			Math.abs(minutes - Math.round(minutes)) > 1e-9
+		);
+	}).length;
 }
 
 function drawDay(random: () => number): { tasks: EnergyTaskInput[]; windowHours: number } {
@@ -402,36 +466,60 @@ function paramsAt(lambda: number): EnergyParams {
 }
 
 const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
-/** The instrument's own resolution: the median bracket half-width claim 3 below measures. */
-const BRACKET_HALF_WIDTH = 0.134;
+/**
+ * The instrument's own resolution: the median bracket half-width claim 3 below
+ * measures — 0.129 over 274 non-inverted days, every one of them a day the app
+ * can produce (2026-08-19). Re-read it whenever claim 3's median moves.
+ */
+const BRACKET_HALF_WIDTH = 0.129;
 
-/** §8.10's fixture day — the witness the 2026-08-12 open-task correction was argued on. */
-const FIXTURE_DAY: EnergyTaskInput[] = [
-	{
-		id: 1,
-		title: 'boxing',
-		difficulty: 10,
-		enjoyment: 10,
-		cognitiveDemand: 0.2,
-		physicalDemand: 1.0,
-	},
-	{
-		id: 2,
-		title: 'guitar',
-		difficulty: 6,
-		enjoyment: 9,
-		cognitiveDemand: 0.4,
-		physicalDemand: 0.3,
-	},
-	{
-		id: 3,
-		title: 'reading',
-		difficulty: 4,
-		enjoyment: 7,
-		cognitiveDemand: 0.5,
-		physicalDemand: 0.05,
-	},
-];
+/**
+ * §8.10's fixture day — the witness the 2026-08-12 open-task correction was
+ * argued on — re-declared from the sliders it takes to enter it, because three
+ * of the fields it used to carry by hand had no slider behind them: guitar's
+ * difficulty 6 (its demands 0.4/0.3 pin the sliders to 4/3, which
+ * `getEffectiveDifficulty` sends to 4.9), reading's difficulty 4 (below the 5.0
+ * floor of cognitiveDemand 0.5) and reading's physicalDemand 0.05 (the demands
+ * are slider/10, so tenths only). The three DIFFICULTIES are what the day's own
+ * findings are stated in — the canonical amplitudes 10.4 / 6.67 / 4.60 and the
+ * order they impose — so they are what is held here, and the secondary demands
+ * are what moves: guitar 0.4/0.3 → 0.6/0.0 (sliders 6 mental, 0 physical) and
+ * reading 0.5/0.05 → 0.4/0.0 (sliders 4 mental, 0 physical). Boxing was already
+ * reachable: sliders 2/10 give difficulty min(10, 10 + 0.3·2) = 10 with demands
+ * 0.2/1.0 exactly as declared. `zenith-energy.test.ts`'s §8.10 fixture declares
+ * the same three tasks field for field.
+ */
+const FIXTURE_DAY: EnergyTaskInput[] = (
+	[
+		{
+			id: 1,
+			title: 'boxing',
+			mentalDifficulty: 2,
+			physicalDifficulty: 10,
+			enjoyment: 10,
+		},
+		{
+			id: 2,
+			title: 'guitar',
+			mentalDifficulty: 6,
+			physicalDifficulty: 0,
+			enjoyment: 9,
+		},
+		{
+			id: 3,
+			title: 'reading',
+			mentalDifficulty: 4,
+			physicalDifficulty: 0,
+			enjoyment: 7,
+		},
+	] satisfies Array<Omit<Task, 'createdAt' | 'completed'>>
+).map((task) =>
+	toEnergyTask({
+		...task,
+		createdAt: '2026-08-19',
+		completed: false,
+	}),
+);
 
 function quantile(values: number[], q: number): number {
 	if (values.length === 0) return NaN;
@@ -484,6 +572,7 @@ function optimizerDay(
 			tasks,
 			windowHours,
 			workedHours,
+			openTaskIds: new Set(tasks.map((t) => t.id)),
 		},
 		lastWorkedTaskId: worked[worked.length - 1].taskId!,
 	};
@@ -618,6 +707,8 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 		let checked = 0;
 		let mismatches = 0;
 		let worst = 0;
+		let rows = 0;
+		let offSurface = 0;
 
 		for (let day = 0; day < 400; day++) {
 			const { tasks, windowHours } = drawDay(random);
@@ -626,17 +717,22 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 			const observation: StopObservation = {
 				tasks,
 				windowHours,
-				workedHours: tasks
-					.filter(() => random() < 0.8)
-					.map((t) => ({
-						taskId: t.id,
-						hours: Math.round(random() * 8) * DEFAULT_STEP_HOURS,
-					}))
-					.filter((w) => w.hours > 0),
+				workedHours: loggedBackToBack(
+					tasks
+						.filter(() => random() < 0.8)
+						.map((t) => ({
+							taskId: t.id,
+							hours: Math.round(random() * 8) * DEFAULT_STEP_HOURS,
+						}))
+						.filter((w) => w.hours > 0),
+				),
+				openTaskIds: new Set(tasks.map((t) => t.id)),
 			};
 
 			const check = replicaCheck(observation, params);
 
+			rows += observation.workedHours.length;
+			offSurface += offSurfaceRows(observation);
 			checked++;
 
 			if (check.isMismatch) mismatches++;
@@ -656,6 +752,14 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 				},
 				cell.params,
 			);
+
+			rows += cell.observation.workedHours.length;
+			offSurface += offSurfaceRows(cell.observation);
+
+			for (const variant of moodVariants(cell.observation)) {
+				rows += variant.moved.workedHours.length;
+				offSurface += offSurfaceRows(variant.moved);
+			}
 
 			ticked++;
 
@@ -679,6 +783,12 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 				? '[§8.10 replica] VALID — every number below reads the same bracket the shipped code does'
 				: '[§8.10 replica] INVALID — the arms below are measuring a different estimator',
 		);
+
+		console.log(
+			`[§8.10 surface] every task drawn from integer sliders through toEnergyTask; ${rows} ` +
+				`logged rows across the composition, optimizer and ±1-step days: ${offSurface} the app ` +
+				`could not hold (whole minutes in [1, 960] carrying a log moment, window in (0, 24])`,
+		);
 	});
 
 	it('claim 1: arbitrary random compositions invert about half the time', () => {
@@ -695,12 +805,15 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 			const observation: StopObservation = {
 				tasks,
 				windowHours,
-				workedHours: tasks
-					.filter(() => random() < 0.75)
-					.map((t) => ({
-						taskId: t.id,
-						hours: (1 + Math.floor(random() * 8)) * DEFAULT_STEP_HOURS,
-					})),
+				workedHours: loggedBackToBack(
+					tasks
+						.filter(() => random() < 0.75)
+						.map((t) => ({
+							taskId: t.id,
+							hours: (1 + Math.floor(random() * 8)) * DEFAULT_STEP_HOURS,
+						})),
+				),
+				openTaskIds: new Set(tasks.map((t) => t.id)),
 			};
 
 			const bracket = bracketOf(observation, params);
@@ -855,8 +968,10 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 				{
 					taskId: 1,
 					hours: 2.25,
+					endedAt: ORIGIN + 2.25 * 3_600_000,
 				},
 			],
+			openTaskIds: new Set(FIXTURE_DAY.map((t) => t.id)),
 		};
 
 		const allOpen = stopIndifferencePoint(observation, DEFAULT_ENERGY_PARAMS, CONSTANTS);

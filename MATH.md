@@ -51,7 +51,7 @@ that are not evident from reading it — so never retype a row, regenerate:
   §5.1      620-815  Posterior-aware allocation (added 2026-07-18)
 §6          817-829  Summary of v1 → v2 changes
 §7          831-882  Known approximations and deliberate non-changes
-§8         884-2672  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         884-2681  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      902-927  Intermittent-rest recovery correction
   §8.2      929-951  Warm-up carryover instead of binary reset
   §8.3      953-990  Verified consequences and an open calibration question
@@ -61,73 +61,73 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.7    1351-1483  Drain-rate calibration from end-of-session ratings (adde…
   §8.8    1485-1556  45-minute plan granularity (added 2026-07-18)
   §8.9    1558-1632  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1634-2209  Stopping-value calibration from observed stop times (add…
-  §8.11   2211-2463  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   2465-2672  The budget curve — what the day's LENGTH is worth (added…
-§9        2674-2721  References
-§10       2723-3363  Revision log (doc-only corrections)
-§11       3365-3973  Metric-layer corrections (2026-07-18)
-  §11.1   3367-3381  Scope and principle
-  §11.2   3383-3407  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   3409-3436  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   3438-3495  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   3497-3515  Schedule Integrity: overhead share instead of the small-…
-  §11.6   3517-3627  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   3629-3653  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   3655-3721  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   3723-3832  Overnight reservoir carry-over (2026-07-28)
-  §11.10  3834-3904  Grind Density: the share of the work the day actually fu…
-  §11.11  3906-3973  Grind Density is a row, not an objective (2026-08-08)
-§12       3975-4112  Plan-adherence audit (2026-07-23)
-  §12.1   4016-4112  Per-day fit snapshots (2026-08-03)
-§13       4114-4560  Math review, 2026-07-26
-  §13.1   4131-4169  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   4171-4243  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   4245-4310  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   4312-4352  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   4354-4391  Also in this change
-  §13.6   4393-4560  The two end-of-day energy readings: a timing difference,…
-§14       4562-5361  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   4793-4939  Five corrections to the first cut (2026-07-28)
-  §14.2   4941-5090  The marginal of the budget (added 2026-08-03)
-  §14.3   5092-5298  The price of the switch cost (added 2026-08-04)
-  §14.4   5300-5361  An empty frontier is a reading (2026-08-08)
-§15       5363-5521  Two objectives, two modes (2026-07-29)
-  §15.1   5449-5521  The copy named the wrong objective for both modes (2026-…
-§16       5523-5611  Run order stays a heuristic (2026-07-29)
-§17       5613-5771  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       5773-5876  Drain logs are one row per SESSION, not per task-day (20…
-§19       5878-6149  The gain's naive baseline paid for switches it never mad…
-  §19.1   5896-5955  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   5957-5985  Defect 2 — the displayed number moved with the order of …
-  §19.3   5987-6076  What this costs, and the one guarantee that weakened
-  §19.4   6078-6149  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       6151-6213  Human Capacity: the reading is the constraint, but it na…
-  §20.1   6192-6213  The tie went to cognitive, so the row blamed the wrong p…
-§21       6215-6383  What the gain has room to report (2026-08-07)
-  §21.1   6237-6257  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   6259-6282  Why shape has a low ceiling: the activation bonus
-  §21.3   6284-6304  Population distribution
-  §21.4   6306-6337  The number is a property of the comparison, not of the o…
-  §21.5   6339-6354  Under the total-output objective the ranking inverts
-  §21.6   6356-6383  Correction: on an ordinary day it is FLOW that binds, no…
-§22       6385-6453  Task nature: an absolute gap could not carry a range tha…
-§23       6455-6597  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   6496-6563  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   6565-6597  Longest Warm-Up: what E/β was actually tracking
-§24       6599-6662  Task Variety counted labels, and its repair was Energy B…
-§25       6664-6813  Cognitive and Physical Load: the definition, and what ro…
-§26       6815-6921  Deep Work: a step that swung whole blocks, under a band …
-§27       6923-7040  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       7042-7096  Which four readings are headlines (2026-08-07)
-§29       7098-7271  Day Profile: one cut for two different scales, on a day …
-§30       7273-7365  The Lab's comparison tile scored the plan on the one thi…
-§31       7367-7548  What history can plot, and what it cannot (2026-08-07)
-§32       7550-7616  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       7618-7735  A plan reads only the logs that precede it (2026-08-08)
-§34       7737-7967  The subset search gave up one task too early (2026-08-08)
-§35       7969-8323  The plan cannot see the hours you already spent (2026-08…
-§36       8325-8396  What a correction may touch (2026-08-10)
+  §8.10   1634-2218  Stopping-value calibration from observed stop times (add…
+  §8.11   2220-2472  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   2474-2681  The budget curve — what the day's LENGTH is worth (added…
+§9        2683-2730  References
+§10       2732-3372  Revision log (doc-only corrections)
+§11       3374-3982  Metric-layer corrections (2026-07-18)
+  §11.1   3376-3390  Scope and principle
+  §11.2   3392-3416  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   3418-3445  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   3447-3504  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   3506-3524  Schedule Integrity: overhead share instead of the small-…
+  §11.6   3526-3636  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   3638-3662  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   3664-3730  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   3732-3841  Overnight reservoir carry-over (2026-07-28)
+  §11.10  3843-3913  Grind Density: the share of the work the day actually fu…
+  §11.11  3915-3982  Grind Density is a row, not an objective (2026-08-08)
+§12       3984-4121  Plan-adherence audit (2026-07-23)
+  §12.1   4025-4121  Per-day fit snapshots (2026-08-03)
+§13       4123-4569  Math review, 2026-07-26
+  §13.1   4140-4178  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   4180-4252  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   4254-4319  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   4321-4361  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   4363-4400  Also in this change
+  §13.6   4402-4569  The two end-of-day energy readings: a timing difference,…
+§14       4571-5370  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4802-4948  Five corrections to the first cut (2026-07-28)
+  §14.2   4950-5099  The marginal of the budget (added 2026-08-03)
+  §14.3   5101-5307  The price of the switch cost (added 2026-08-04)
+  §14.4   5309-5370  An empty frontier is a reading (2026-08-08)
+§15       5372-5530  Two objectives, two modes (2026-07-29)
+  §15.1   5458-5530  The copy named the wrong objective for both modes (2026-…
+§16       5532-5620  Run order stays a heuristic (2026-07-29)
+§17       5622-5780  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5782-5885  Drain logs are one row per SESSION, not per task-day (20…
+§19       5887-6158  The gain's naive baseline paid for switches it never mad…
+  §19.1   5905-5964  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   5966-5994  Defect 2 — the displayed number moved with the order of …
+  §19.3   5996-6085  What this costs, and the one guarantee that weakened
+  §19.4   6087-6158  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       6160-6222  Human Capacity: the reading is the constraint, but it na…
+  §20.1   6201-6222  The tie went to cognitive, so the row blamed the wrong p…
+§21       6224-6392  What the gain has room to report (2026-08-07)
+  §21.1   6246-6266  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   6268-6291  Why shape has a low ceiling: the activation bonus
+  §21.3   6293-6313  Population distribution
+  §21.4   6315-6346  The number is a property of the comparison, not of the o…
+  §21.5   6348-6363  Under the total-output objective the ranking inverts
+  §21.6   6365-6392  Correction: on an ordinary day it is FLOW that binds, no…
+§22       6394-6462  Task nature: an absolute gap could not carry a range tha…
+§23       6464-6606  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   6505-6572  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   6574-6606  Longest Warm-Up: what E/β was actually tracking
+§24       6608-6671  Task Variety counted labels, and its repair was Energy B…
+§25       6673-6822  Cognitive and Physical Load: the definition, and what ro…
+§26       6824-6930  Deep Work: a step that swung whole blocks, under a band …
+§27       6932-7049  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       7051-7105  Which four readings are headlines (2026-08-07)
+§29       7107-7280  Day Profile: one cut for two different scales, on a day …
+§30       7282-7374  The Lab's comparison tile scored the plan on the one thi…
+§31       7376-7557  What history can plot, and what it cannot (2026-08-07)
+§32       7559-7625  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       7627-7744  A plan reads only the logs that precede it (2026-08-08)
+§34       7746-7976  The subset search gave up one task too early (2026-08-08)
+§35       7978-8332  The plan cannot see the hours you already spent (2026-08…
+§36       8334-8405  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -1685,9 +1685,9 @@ to run over every task on the day, which read "I finished my work" as "an
 hour of leisure was worth more than another hour of that work" and biased λ₀
 up by the whole marginal of work that no longer existed — on the §8.10
 fixture day, checking the strongest task off moves the day's point
-**1.321 → 1.156** (measured 2026-08-17,
+**1.321 → 1.190** (measured 2026-08-19,
 `scripts/stop-inversion-margin.probe.ts`, and test-pinned as a pair rather than
-as a direction), a 0.165 shift, 1.5× the 0.110 bracket half-width the
+as a direction), a 0.132 shift, 1.022× the 0.129 bracket half-width the
 instrument's slack is worth. What that is worth beyond this one day is measured
 below, and it is less than the argument implies. The scope is §11.8's
 next-up family, the same set §8.11's advisor already
@@ -1701,30 +1701,35 @@ loose max as the honest bound. The day's **indifference point** is the
 bracket midpoint `(max(0, lo) + hi)/2`; each bound costs one
 `evaluateSchedule` call, ~2n+1 per day, no optimizer runs.
 
-**What the open-task scope is worth** (Probe 2026-08-17,
+**What the open-task scope is worth** (Probe 2026-08-17, re-read 2026-08-19,
 `scripts/stop-inversion-margin.probe.ts` and
 `scripts/stop-margin-fit-error.probe.ts`). Until this run **no probe ever set
 `openTaskIds`**: both bracket replicas took `lo` over every task, so both still
 modelled the pre-correction scope and the witness above was the whole evidence.
 Both replicas now read the field and both are validated on days that carry
-completions — 0 verdict mismatches over 1488 such observations, and worst
-|replica fit − shipped fit| = 0 over 90 users × 12 days at q = 0.5.
+completions — 0 verdict mismatches over 1576 such observations, and worst
+|replica fit − shipped fit| = 0 over 90 users × 12 days at q = 0.5. Re-read
+2026-08-19 with every task drawn from integer sliders through `toEnergyTask`, so
+the population below is one the app can hold: of **30381** logged rows across
+the composition, optimizer and ±1-step days, **0** carry an hour count, a window
+or a log moment the app could not produce (whole minutes in [1, 960], a window
+in (0, 24]).
 
-- **Size, on a population.** 120 seeded days × 4 λ₀ = 480 cells, the 372 the
+- **Size, on a population.** 120 seeded days × 4 λ₀ = 480 cells, the 394 the
   optimizer funds, each re-read with each of its tasks independently ticked at
   probability q. (q is an **axis, not a frequency**: the model has no task size,
   so "checked off" has no model correlate, and no real history exists on this
   machine to calibrate it — §8.10's own partial-logging caveat.) The filter's
-  shift is **median 0.000 at q = 0.25 and 0.50, 0.001 at 0.75**, over the
-  281 / 246 / 171 days that stay
+  shift is **median 0.000 at q = 0.25 and 0.50, 0.007 at 0.75**, over the
+  281 / 246 / 151 days that stay
   two-sided under **both** scopes at q = 0.25 / 0.50 / 0.75: on
-  75.4% / 55.3% / 49.7% of those the ticked task was not the `lo` maximizer and
+  79.7% / 61.4% / 46.4% of those the ticked task was not the `lo` maximizer and
   the correction changes nothing (re-read 2026-08-19 with each day's breaks in
   the reconstruction; the break-free reading gave 80.1% / 55.3% / 52.0%). Where
-  it bites, it bites hard — p90 0.083 / 0.172 / 0.209, max
-  0.407 / 0.451 / 0.451, past the 0.134 half-width on
-  7.1% / 13.4% / 16.4% of them. The
-  larger effect is ticking a task **with hours logged** (median 0.027 at
+  it bites, it bites hard — p90 0.047 / 0.206 / 0.233, max
+  0.396 / 0.452 / 0.452, past the 0.129 half-width on
+  5.3% / 13.8% / 21.9% of them. The
+  larger effect is ticking a task **with hours logged** (median 0.028 at
   q = 0.5), not one that was never worked (median 0.000 wherever that bucket has
   a day in it) — the opposite of the expectation that removing a never-started
   candidate would dominate, and it follows from `lo`: an unworked task's first
@@ -1735,10 +1740,11 @@ completions — 0 verdict mismatches over 1488 such observations, and worst
   funded, declared finished at exactly the hours the plan gave them, a cap that
   binds nowhere the plan reached, so the generated day is still the true
   rational day. Scored against the pre-2026-08-12 all-tasks scope over 12
-  completion-carrying arms, the corrected scope's best RMSE gain is
-  **+0.0084 λ₀** (30%-interrupted, q = 0.25, n = 12) and it **loses the other
-  11**, by up to 0.0796 at q = 0.75 — everything inside or near the 0.134
-  half-width (re-read 2026-08-19; the break-free reading gave +0.0054 and
+  completion-carrying arms, the corrected scope **gains in 2** — best
+  **+0.0084 λ₀** (30%-interrupted, q = 0.25, n = 12), then +0.0023 — and
+  **loses the other 10**, by up to 0.0796 at q = 0.75 — everything inside or near the 0.134
+  half-width `stop-margin-fit-error` still prices against (re-read 2026-08-19;
+  the break-free reading gave +0.0054 and
   −0.0859). The signed error does move in the asserted direction where the old
   scope is biased up (+0.0908 → +0.0505 at q = 0.25, n = 12) and then
   overshoots down (+0.0083 at q = 0.5, −0.0467 at q = 0.75). The used-day counts
@@ -1800,8 +1806,10 @@ previous endedAt)`. Composition, order AND breaks are all read rather than
 `scripts/stop-block-structure.probe.ts` — the first committed instrument that
 draws its days the way the app does, through `toEnergyTask` from integer
 sliders. That absence is why the paragraph below was wrong for a year: neither
-`stop-inversion-margin` nor `stop-margin-fit-error` built its tasks through the
-app's own mapping, and `stop-margin-fit-error` flattened each plan to a
+`stop-inversion-margin` (until 2026-08-19 — it now draws every task from
+integer sliders through that mapping and gives every row a log moment) nor
+`stop-margin-fit-error` built its tasks through the app's own mapping, and
+`stop-margin-fit-error` flattened each plan to a
 work-step sequence that DROPPED rest, so no day either probe could generate
 carried a break.)
 
@@ -1917,20 +1925,19 @@ them is now discarded whole. That makes the censored likelihood open work
 rather than a settled no, and it is the case for it — nothing here says the
 days it would recover are numerous, only that they are ordinary.)
 
-**How many days the fifth category costs** (measured 2026-08-17,
-`scripts/stop-inversion-margin.probe.ts`, the same 372-day population and
+**How many days the fifth category costs** (measured 2026-08-19,
+`scripts/stop-inversion-margin.probe.ts`, the same 394-day population and
 completion axis as above; the categorisation's kept count is cross-checked
 against `stopIndifferencePoint`'s own at every q). At
-q = 0 / 0.25 / 0.50 / 0.75 it takes **0% / 7.7% / 40.5% / 73.1% of all dropped
-days** — 0.0% / 1.9% / 13.7% / 39.5% of the calendar — and it is the only censor
+q = 0 / 0.25 / 0.50 / 0.75 it takes **0.0% / 8.0% / 37.8% / 72.0% of all dropped
+days** — 0.0% / 2.3% / 14.2% / 44.4% of the calendar — and it is the only censor
 that grows with completion; the only other one that fires on this population is
-the window edge (84 / 84 / 75 / 54 days of 372). **Every one of those figures
-re-reads identically on 2026-08-19** with each day's breaks in the
-reconstruction, which was a prediction of that change rather than an assumption:
-the window censor reads WORKED hours, so recovered rest cannot reach it, and no
-day on this population inverts past the margin under either reading. It fires **only when every one
+the window edge (105 / 104 / 92 / 68 days of 394). With each day's breaks in the
+reconstruction the window censor still reads WORKED hours, so recovered rest
+cannot reach it, and no day on this population inverts past the margin. It fires
+**only when every one
 of a day's tasks is ticked**: one left open, funded or not, keeps the day alive,
-and these days carry 2–4 tasks (mean 2.96). So "an ordinary good day" is right
+and these days carry 2–4 tasks (mean 2.98). So "an ordinary good day" is right
 from q ≈ 0.5 up and rare below it, and that share is the size of what a censored
 likelihood would recover (ROADMAP item 4).
 
@@ -1947,7 +1954,7 @@ machinery collapses to an exact closed form — no numeric minimizer:
   matching the α and r fits' probe-tuned profiles by construction
   (test-pinned to 10 decimal places).
 - **Noise/posterior:** σ₀ = `STOP_NOISE_PRIOR_STD` = 0.25 in λ₀ units (the
-  lattice bracket's half-width — a median **0.134** over 286 non-inverted days
+  lattice bracket's half-width — a median **0.129** over 274 non-inverted days
   (`scripts/stop-inversion-margin.probe.ts`, 2026-08-19: the bracket gets WIDER
   once the day's breaks are in the reconstruction, where the break-free reading
   gave 0.110 over 279 days on 2026-08-06 and 0.109 over 281 on 2026-08-17 — see
@@ -2019,8 +2026,8 @@ machinery collapses to an exact closed form — no numeric minimizer:
   instrument's resolution. **Re-measured 2026-08-06 and smaller than that;
   re-read again 2026-08-19 with each day's breaks in the reconstruction**
   (`scripts/stop-inversion-margin.probe.ts`): against the honest `hi` (the
-  marginal of the step actually worked last) the bias over 286 days is **mean
-  0.026, median 0.000, p90 0.094**, where the break-free reconstruction read
+  marginal of the step actually worked last) the bias over 274 days is **mean
+  0.027, median 0.000, p90 0.111**, where the break-free reconstruction read
   mean 0.045 / p90 0.164 over 282. It is zero on most days and only occasionally
   reaches the quoted 0.1. The conclusion is unchanged and the direction is right;
   the magnitude was overstated twice. Note the justification has also weakened:
@@ -2045,18 +2052,18 @@ machinery collapses to an exact closed form — no numeric minimizer:
   rationalizes such a day (typical cases: a session cut short mid-warm-up,
   or a long grind on a weak, satiating task while a high-amplitude task sat
   unstarted). On arbitrary random compositions about HALF of days invert
-  (89/185; **re-measured 2026-08-06: 144/368 = 39%**, re-read 39.1% on
+  (89/185; **re-measured 2026-08-06: 144/368 = 39%**, re-read 148/368 = 40.2% on
   2026-08-19, `scripts/stop-inversion-margin.probe.ts`) — but on the estimator's
   intended regime they mostly don't. **"Zero" was too strong on the break-free
   reconstruction — optimizer days inverted on 4 of 315 — and it is TRUE again now
   that a day carries its own breaks** (2026-08-19): the optimizer's own plans
-  invert **0 of 317**. Their ±1-step "mood" variants still do, on **58 of 1603**,
-  of which **12 land past the margin and are censored** — worst gap **0.328**. So
+  invert **0 of 299**. Their ±1-step "mood" variants still do, on **68 of 1532**,
+  of which **14 land past the margin and are censored** — worst gap **0.399**. So
   a small number of genuinely near-rational days ARE discarded, and the inversion
   gap does not cleanly separate the two populations: inverted random compositions
-  gap a median 0.282 (p90 0.583, max 0.815) while honest mood days reach 0.328.
-  Inversion remains a
-  useful DETECTOR — 39% against 3.7% is a strong signal, and the contamination
+  gap a median 0.303 (p90 0.622, max 0.906) while honest mood days reach 0.399.
+  Inversion remains a useful DETECTOR — 148 of 368 against 68 of 1532 is a
+  strong signal, and the contamination
   it screens out is worse than the loss — but it is a noisy one, not the clean
   partition this paragraph used to assert. A day past the margin is therefore
   treated as a stop that was not a leisure choice
@@ -2075,16 +2082,14 @@ machinery collapses to an exact closed form — no numeric minimizer:
   before it is discarded. **Neither half of that decomposition survived
   re-measurement** (2026-08-06, re-read 2026-08-19,
   `scripts/stop-inversion-margin.probe.ts`): the loose-max bias is median
-  0.000 / mean 0.026, and the bracket half-width on non-inverted days is
-  median **0.134** (mean 0.133, p90 0.179) rather than 0.15. The two medians
-  sum to **0.134**, not 0.25 — so 0.25 is roughly twice the instrument slack
+  0.000 / mean 0.027, and the bracket half-width on non-inverted days is
+  median **0.129** (mean 0.129, p90 0.176) rather than 0.15. The two medians
+  sum to **0.129**, not 0.25 — so 0.25 is roughly twice the instrument slack
   it is described as, and the arithmetic in the parenthesis above should be
   read as a rationalization rather than a derivation. It is nonetheless not
   obviously mis-set: widening slack is what keeps mild inversions, and even at
-  0.25 twelve near-rational mood days out of 1603 are still censored, so tighten
-  it and that number grows. Probe on the standard
-  day: interruption slivers gap 0.33–0.65 (censored); a 2.25h reading-only
-  day gaps 0.07 (kept, midpoint 0.88). An earlier revision kept ALL inverted
+  0.25 fourteen near-rational mood days out of 1532 are still censored, so tighten
+  it and that number grows. An earlier revision kept ALL inverted
   midpoints, reasoning σ₀ would absorb the contradiction — the
   contamination probe above superseded that. Locked in as unit tests: a
   strongly inverted day is censored and a mildly inverted day still enters
@@ -2106,8 +2111,8 @@ machinery collapses to an exact closed form — no numeric minimizer:
   break-free reading of the same sweep gave 0.0872–0.0885, 0.1230–0.1308,
   0.1355–0.1401 and 0.1583–0.1632. **Flat here is a claim about MAGNITUDE, in λ₀
   units, not about error bars overlapping**: the largest movement anywhere in the
-  range is **0.0091**, which is 6.8% of the 0.134 bracket half-width this section
-  measured above and 3.6% of σ₀ = 0.25 — an order of magnitude below the
+  range is **0.0091**, which is 6.8% of the 0.134 bracket half-width that probe
+  still prices against and 3.6% of σ₀ = 0.25 — an order of magnitude below the
   instrument's own resolution. (Comparing that spread against the RMSE's
   sampling uncertainty would prove nothing: one user sample is scored at every
   margin, so that uncertainty is common to all of them.) The mechanism is that
@@ -2176,9 +2181,13 @@ under it.)
 
 **Probe results (2026-07-19, locked in as unit tests, re-read 2026-08-19):**
 synthetic user at λ₀ = 0.9 over three windows fits to within [0.75, 1.05]
-against the 0.5 prior — 0.7995 reading the sessions as logged against 0.7880
-summed, and the suite now pins that the logged reading lands CLOSER to the truth
-rather than merely inside the interval; extraction bit-identical under
+against the 0.5 prior — 0.8387 reading the sessions as logged against 0.8449
+summed, and the suite pins that the two readings DIFFER, not which of them lands
+closer: closeness is a population property, and on these three days the summed
+reading happens to land nearer. Over 441 cells
+`scripts/stop-block-structure.probe.ts` puts logged at |err| mean 0.086 against
+summed 0.123, past the half-width on 16.3% against 35.1%, and ahead at every one
+of the five λ₀ levels; extraction bit-identical under
 freeTimeValue 0 vs 3, on both readings (log moments are wall-clock numbers and no
 slider reaches them, so λ₀-freeness is structural); earlier stops yield higher
 indifference points; censored/empty/sliver days drop to `fitted: false`; std

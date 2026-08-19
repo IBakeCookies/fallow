@@ -1833,11 +1833,10 @@ export const STOP_PRIOR_STRENGTH = 1;
 /**
  * Prior scale for indifference-point noise, in λ₀ units (output per hour).
  * Two sources add up: lattice quantization (the day's bracket is one 45-min
- * step wide — half-width a median 0.134 over 286 non-inverted days, measured
- * 2026-08-19 with the days' own breaks in the reconstruction; it read 0.110
- * while they were discarded, and the 0.15 this comment first quoted was one
- * probe day) and day-to-day mood in the stop decision itself, which no
- * instrument separates. 0.25 ≈ a quarter of
+ * step wide — half-width a median 0.129 over 274 non-inverted days, measured
+ * 2026-08-19 with the days' own breaks in the reconstruction; the 0.15 this
+ * comment first quoted was one probe day) and day-to-day mood in the stop
+ * decision itself, which no instrument separates. 0.25 ≈ a quarter of
  * the informative λ₀ band ([0.4, 1.5] on the probe day).
  */
 export const STOP_NOISE_PRIOR_STD = 0.25;
@@ -1872,20 +1871,19 @@ export const STOP_FIT_MAX = 3;
  * grid, so do not re-derive 0.25 from them:
  *
  *   - "rational days and rational-±1-step 'mood' days never invert at all" is
- *     FALSE for mood days — 58 of 1603 invert, 12 of them censored, worst gap
- *     0.328 — so some honest days really are dropped. Re-read 2026-08-19 with
+ *     FALSE for mood days — 68 of 1532 invert, 14 of them censored, worst gap
+ *     0.399 — so some honest days really are dropped. Re-read 2026-08-19 with
  *     each day's own breaks in the reconstruction, where the optimizer's OWN
- *     plans stopped inverting entirely: 0 of 317, against 4 of 317 while the
- *     breaks were discarded.
+ *     plans do not invert at all: 0 of 299.
  *   - the "~+0.1 loose-max bias plus ~0.15 half-width" decomposition does not
- *     add up: measured, the bias is median 0.000 / mean 0.026 and the
- *     half-width median 0.134, summing to 0.134 — not 0.25.
+ *     add up: measured, the bias is median 0.000 / mean 0.027 and the
+ *     half-width median 0.129, summing to 0.129 — not 0.25.
  *
  * RE-DERIVED 2026-08-13 (`scripts/stop-margin-fit-error.probe.ts`) and it is
  * not derivable: over [0.1, 0.5] the whole range moves λ₀ fit RMSE by at most
- * 0.0078 — 7.1% of the 0.110 bracket half-width above, 3.1% of σ₀ — because
- * most interrupted days never invert at all (30.8% / 28.2% do, only 18.5% /
- * 22.0% past 0.25), so censoring cannot reach the contamination it exists for.
+ * 0.0078 — 3.1% of σ₀ — because most interrupted days never invert at all
+ * (30.8% / 28.2% do, only 18.5% / 22.0% past 0.25), so censoring cannot reach
+ * the contamination it exists for.
  * 0.25 is LEFT as an arbitrary point inside that flat region. The one real
  * signal is a consistent SIGN, not a size: censoring nothing wins every arm,
  * by up to 0.0104 — recorded in §8.10, not acted on.
@@ -1917,14 +1915,14 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * get. Measured 2026-08-19 over 676
  * optimizer-funded cells drawn through `toEnergyTask` at λ₀ 0.1 … 1.1
  * (`scripts/stop-block-structure.probe.ts`):
- * |midpoint − true λ₀| mean 0.086, p90 0.171, past the 0.134 bracket half-width
- * on 16.3% of 441 priced cells, against 0.123 / 0.271 / 35.1% summed — and the
- * error is λ₀-DEPENDENT, mean 0.300 at λ₀ = 0.1 against 0.053 at 0.9, so a
- * figure from here carries the λ₀ it was read at. Containment is no
- * longer claimed — the error distribution is, because the bracket does miss on
- * days it used to be asserted to cover, one-signed HIGH where the day's extent
- * left no room for another step (§8.10's cap bullet). The negative side of the
- * stop bound is floored at 0 — λ₀ ≥ (negative marginal) is vacuous.
+ * |midpoint − true λ₀| mean 0.086, p90 0.171 over 441 priced cells, against
+ * 0.123 / 0.271 summed — and the error is λ₀-DEPENDENT, mean 0.300 at λ₀ = 0.1
+ * against 0.053 at 0.9, so a figure from here carries the λ₀ it was read at.
+ * Containment is no longer claimed — the error distribution is, because the
+ * bracket does miss on days it used to be asserted to cover, one-signed HIGH
+ * where the day's extent left no room for another step (§8.10's cap bullet).
+ * The negative side of the stop bound is floored at 0 — λ₀ ≥ (negative
+ * marginal) is vacuous.
  *
  * An IRRATIONAL day can invert the bracket (lo > hi: extending some task was
  * worth more per step than the best step actually worked — e.g. a session cut
@@ -1936,8 +1934,8 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * days are dropped. Small inversions (within the margin, i.e. within the
  * instrument's own slack) keep the bracket midpoint as the compromise between
  * the two bounds. Near-rational days (±1 step of "mood") invert
- * RARELY but not never — 58 of 1603, 12 of them past the margin — while the
- * app's own plans, read with their breaks, invert 0 of 317 (2026-08-19, see
+ * RARELY but not never — 68 of 1532, 14 of them past the margin — while the
+ * app's own plans, read with their breaks, invert 0 of 299 (2026-08-19, see
  * STOP_INVERSION_MARGIN).
  */
 export function stopIndifferencePoint(
