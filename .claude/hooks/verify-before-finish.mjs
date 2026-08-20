@@ -46,7 +46,10 @@ const changed = execFileSync('git', ['status', '--porcelain'], {
 if (!changed.length) process.exit(0);
 
 const failures = [
-	run('npx', ['prettier', '--check', ...changed]),
+	// `--ignore-unknown`: `npm run lint` passes prettier a directory and it skips
+	// files it has no parser for; passing paths explicitly makes those a hard
+	// error instead, so a touched Dockerfile would block finishing on nothing.
+	run('npx', ['prettier', '--check', '--ignore-unknown', ...changed]),
 	changed.some((path) => LINTABLE.test(path))
 		? run('npx', ['eslint', '--no-warn-ignored', ...changed.filter((p) => LINTABLE.test(p))])
 		: null,

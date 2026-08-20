@@ -33,7 +33,9 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/home/agent/.local/bin:$PATH"
 
 # The dependency tree, outside the worktree mount point so the bind-mount
-# cannot shadow it. Each run symlinks it in as ./node_modules.
+# cannot shadow it. Each run copies it in as ./node_modules — a symlink leaves
+# the real tree outside vite's root, which breaks the `storybook` vitest
+# project (eval/sandbox.mjs, `setup`).
 # `npm ci` runs this repo's `prepare` (paraglide compile, then a `svelte-kit
 # sync` that is allowed to fail), so project.inlang has to be here too.
 WORKDIR /home/agent/deps
