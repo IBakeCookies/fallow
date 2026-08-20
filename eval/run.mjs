@@ -435,7 +435,7 @@ const main = async () => {
 		const docs = docsFor(testCase);
 
 		for (const condition of args.conditions) {
-			const context = await readContext(docs[condition]);
+			const context = await readContext(docs[condition], base);
 			const prompt = context ? `${context}\n\n---\n\n${testCase.prompt}` : testCase.prompt;
 
 			for (let rep = 1; rep <= args.reps; rep++) {

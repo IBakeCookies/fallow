@@ -2,8 +2,9 @@
 // ordered list of doc paths whose contents get concatenated into the prompt of
 // the agent under test. The point of the harness is the spread between them.
 
-import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -49,12 +50,21 @@ export const docsFor = (testCase) => ({
 	monolith: MONOLITH_DOCS,
 });
 
-export const readContext = async (docPaths) => {
+// Read out of `base`, never off the working tree. A sweep names the commit its
+// runs are scored against, and the rules corpus is half of what is being
+// measured — reading the live tree would let an edit to AGENTS.md change what
+// an agent was told while leaving the code it works on untouched, so two sweeps
+// pinned to the same base could still be measuring different rules. That
+// happened once: the first `--base` sweep pinned the code and not the docs.
+export const readContext = async (docPaths, base) => {
 	const parts = await Promise.all(
 		docPaths.map(async (rel) => {
-			const body = await readFile(path.join(REPO_ROOT, rel), 'utf8');
+			const { stdout } = await promisify(execFile)('git', ['show', `${base}:${rel}`], {
+				cwd: REPO_ROOT,
+				maxBuffer: 32 * 1024 * 1024,
+			});
 
-			return `===== ${rel} =====\n${body.trim()}`;
+			return `===== ${rel} =====\n${stdout.trim()}`;
 		}),
 	);
 
