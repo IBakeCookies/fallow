@@ -1509,9 +1509,20 @@ nobody was running.
   this is also the task `eval/cases/calendar-month-cache.md` sets, so its R1,
   R2, `store.context-setter` and `store.loaded-flag` traps are now answered by
   the surrounding code and the case is easier than the five sweeps behind it
-  measured. The question that bought it: agents follow the code they read over
-  the docs they are given, and this page taught the opposite of R2 — so the
-  8-run `none` arm on the new base is the measurement of which one moves them.
+  measured. What it bought, measured on an 8-run
+  `none` arm before and after: **21% (SD 8) to 77% (SD 15)**, Welch t = 9.30,
+  df = 10.4. Per rule, `store.context-setter` 0 to 100% (partly a check
+  artefact — the grep for `setContext` matches the store file the agent now
+  edits), `store.loaded-flag` 13 to 88%, R2 0 to 75%, R1 56 to 94%. Part of
+  that is the task getting easier, since the traps are pre-answered; the part
+  that is not is R6, and it is the interesting half. **Before, 8 of 8 runs
+  added no spec at all** — one reasoned "No page components have tests in this
+  codebase, so I..." and stopped. **After, 8 of 8 added a spec** in the right
+  file with the right harness, and **1 of 8 wrote it before the
+  implementation.** Agents imitate artefacts they can see and do not infer
+  process from them. For scale: handing an agent all nine rules docs bought 44
+  points on the old base at $5.29 a run, and fixing one file bought 56 at
+  $1.02.
 - **Do not trim the brief for tokens.** `targeted` (the owning docs only) scored
   no better than `monolith` (all nine) once within-cell variance was measured at
   SD 39 points, R8 scores 100% in every condition including no-rules-at-all, and
