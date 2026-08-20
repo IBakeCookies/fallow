@@ -59,8 +59,11 @@ const main = async () => {
 	for (const id of ids) {
 		const testCase = await parseCase(id);
 		const docs = docsFor(testCase);
-		const targetedText = await readContext(docs.targeted ?? testCase.owns);
-		const monolithText = await readContext(docs.monolith ?? MONOLITH_DOCS);
+		// `results.base` rather than HEAD: the question is whether the rule was
+		// stated in the corpus that sweep actually shipped, which a later edit to
+		// the docs would otherwise silently rewrite.
+		const targetedText = await readContext(docs.targeted ?? testCase.owns, results.base);
+		const monolithText = await readContext(docs.monolith ?? MONOLITH_DOCS, results.base);
 
 		for (const rule of testCase.rules) {
 			const p = PATTERNS[rule];
