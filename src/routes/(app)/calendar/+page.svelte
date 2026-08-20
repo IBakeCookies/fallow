@@ -1,9 +1,6 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
 	import { resolve } from '$app/paths';
 	import { localizeHref } from '$lib/paraglide/runtime';
-	import { onMount } from 'svelte';
-	import { logError } from '$lib/logger';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import * as m from '$lib/paraglide/messages.js';
@@ -17,9 +14,8 @@
 		getBandBiggerBetter,
 	} from '$lib/presentation/utils/band';
 	import { showToast } from '$lib/presentation/utils/toast';
-	import type { DaySummary } from '$lib/business/model/metric/history';
 	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
-	import { initializeStorage, readDaySummaries } from '$lib/business/session-history';
+	import { setCalendarStore } from '$lib/business/store/calendar-store.svelte';
 	import { liveToday } from '$lib/business/state/today.svelte';
 
 	const today = $derived(liveToday.value);
@@ -53,36 +49,6 @@
 			label: viewLabelOf(value),
 		})),
 	);
-	let summaries = $state<Map<string, DaySummary>>(new Map());
-	let ready = $state(false);
-	let isLoading = $state(true);
-
-	// The range load re-runs on every month/week step, and one broken database
-	// fails all of them. Report the first failure only, and re-arm on a success,
-	// so the user gets one toast per outage instead of one per click.
-	let loadFailureReported = false;
-
-	function reportLoadFailure(e: unknown, message: string) {
-		logError(message, e);
-
-		if (loadFailureReported) return;
-
-		loadFailureReported = true;
-		showToast.danger(m.calendar_load_failed());
-	}
-
-	onMount(async () => {
-		if (!browser) return;
-
-		try {
-			await initializeStorage();
-		} catch (e) {
-			reportLoadFailure(e, 'Failed to initialize calendar');
-		} finally {
-			ready = true;
-		}
-	});
-
 	const anchorDate = $derived(fromISO(anchor));
 	const weeks = $derived(
 		view === 'month'
@@ -98,6 +64,12 @@
 	);
 	const rangeStart = $derived(weeks[0][0]);
 	const rangeEnd = $derived(weeks[weeks.length - 1][6]);
+
+	// The grid is this page's; every read of it is the store's.
+	const calendar = setCalendarStore(
+		() => [rangeStart, rangeEnd],
+		() => showToast.danger(m.calendar_load_failed()),
+	);
 
 	const rangeLabel = $derived.by(() => {
 		if (view === 'month') {
@@ -124,41 +96,6 @@
 		return `${startFmt} – ${endFmt}`;
 	});
 
-	// Reload whenever the visible range changes; the version guard drops stale
-	// responses from rapid prev/next clicks.
-	let loadVersion = 0;
-	$effect(() => {
-		if (!ready) return;
-
-		const [start, end] = [rangeStart, rangeEnd];
-		const version = ++loadVersion;
-
-		// The R2 extraction this asks for is tracked in ROADMAP.md: a store, an
-		// injected failure reporter and a spec, not a passing edit.
-		// eslint-disable-next-line no-restricted-syntax -- predates the rule
-		readDaySummaries(start, end)
-			.then((days) => {
-				if (version !== loadVersion) return;
-
-				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local accumulator, assigned once
-				const map = new Map<string, DaySummary>();
-				for (const day of days) map.set(day.date, day);
-				summaries = map;
-				isLoading = false;
-				loadFailureReported = false;
-			})
-			.catch((e) => {
-				// Same guard as the success path: a stale rejection arriving after a
-				// newer range rendered would report a failure over a correct month.
-				if (version !== loadVersion) return;
-
-				// Cleared even on failure, or the empty-state copy stays suppressed and
-				// the four-second toast is the only explanation the user ever gets.
-				isLoading = false;
-				reportLoadFailure(e, 'Failed to load sessions');
-			});
-	});
-
 	function shiftMonth(iso: string, n: number): string {
 		const d = fromISO(iso);
 
@@ -174,8 +111,6 @@
 		anchor =
 			view === 'month' ? shiftMonth(anchor, 1) : addDays(startOfWeek(anchor, weekStartsOn), 7);
 	}
-
-	const hasAnyData = $derived(summaries.size > 0);
 </script>
 
 <SeoHead title={m.cal_title_head()} description={m.cal_meta_description()} />
@@ -256,7 +191,7 @@
 
 	{#each weeks as week (week[0])}
 		{#each week as date (date)}
-			{@const s = summaries.get(date)}
+			{@const s = calendar.summaryFor(date)}
 			{@const inMonth = view === 'week' || fromISO(date).getMonth() === anchorDate.getMonth()}
 			{@const isFuture = date > today}
 			{@const isToday = date === today}
@@ -383,7 +318,7 @@
 							{/each}
 						</ul>
 					{/if}
-				{:else if view === 'week' && !isLoading}
+				{:else if view === 'week' && !calendar.isLoading}
 					<!-- Same guard as the empty-state line below the grid: before the range
 					     lands every cell is summary-less, and "No tasks" is a claim about
 					     the user's day, not a description of a read that has not returned. -->
@@ -396,7 +331,7 @@
 	{/each}
 </div>
 
-{#if !isLoading && !hasAnyData}
+{#if !calendar.isLoading && !calendar.hasAnyData}
 	<p class="mt-text-xs text-center text-xs text-ty-silent">
 		{m.cal_empty_1({
 			view: viewLabel,

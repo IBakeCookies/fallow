@@ -27,8 +27,9 @@ an `await` or a `.then()` inside a `$effect` in `src/routes/**` or
 reads and holds their results is orchestrating. Read in a store and take the
 value. What the selector cannot see is a synchronous pile — a page of
 `$derived` chains computing policy is still legal and still wrong, which is
-what the rule of thumb below is for. `calendar/+page.svelte` carries the one
-`eslint-disable` for it, predating the rule.
+what the rule of thumb below is for. The tree carries no `eslint-disable` for
+it: `calendar/+page.svelte` was the one hit, and its read went to
+`CalendarStore`.
 
 Reads end at a store: `presentation-not-to-business-model` in
 `.dependency-cruiser.cjs` is an **error** when a route or component

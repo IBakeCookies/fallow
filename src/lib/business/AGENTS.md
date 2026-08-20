@@ -62,10 +62,11 @@ support, so it raises the retryable banner instead.
 Importing is doubly illegal (business → presentation, caught by both `eslint`
 and `depcruise`), and `svelte-sonner`'s `toast` is module-scope state, which no
 store may hold. Injection also keeps the store testable without module mocks —
-the same reason R5 exists. Two so far — `EnergyLabStore`'s
-`NotifyParamsLoadFailed`, `AnalyticsStore`'s `NotifyHistoryLoadFailed` — both
-wired by the `(app)` layout, which builds every store in the app even where
-only one route reads it: one purpose-named thunk per case, **not** a
+the same reason R5 exists. Three so far — `EnergyLabStore`'s
+`NotifyParamsLoadFailed`, `AnalyticsStore`'s `NotifyHistoryLoadFailed`,
+`CalendarStore`'s `NotifyCalendarLoadFailed`; the first two wired by the `(app)`
+layout, which builds every store in the app even where only one route reads it,
+the third by `/calendar` itself: one purpose-named thunk per case, **not** a
 `NotificationKind` union. Severity vocabulary and copy belong to presentation;
 an enum in business mirrors the message catalogue for no gain. A second site
 gets its own thunk; a union earns its keep at three. The banner is the
@@ -97,9 +98,9 @@ code — six were, across `SessionStore`, `EnergyLabStore` and
 
 ### Every store reaches a route through its `setXStore()`
 
-All seven (`ThemeStore`, `StorageStatusStore`, `SessionStore`,
-`EnergyObservationStore`, `DailyPlanStore`, `AnalyticsStore`,
-`EnergyLabStore`). Sole exception: a `*.test-harness.svelte`, which constructs
+All eight (`ThemeStore`, `StorageStatusStore`, `SessionStore`,
+`EnergyObservationStore`, `DailyPlanStore`, `AnalyticsStore`, `EnergyLabStore`,
+`CalendarStore`). Sole exception: a `*.test-harness.svelte`, which constructs
 directly because the store under test is the thing it hands back.
 
 A bare `new XStore(...)` in a route is not a shortcut, it is the hole:
@@ -119,7 +120,8 @@ derived from the environment (e.g. the clock), never user data.
 layout for `ThemeStore`, `(app)` for `StorageStatusStore`, `SessionStore`,
 `EnergyObservationStore` and `EnergyLabStore` (status store first, because the
 others report into it and register their re-reads), the route's own instance
-script for `setDailyPlanStore` in `/` and `setAnalyticsStore` in `/analytics`.
+script for `setDailyPlanStore` in `/`, `setAnalyticsStore` in `/analytics` and
+`setCalendarStore` in `/calendar`.
 **Every store loads at init** — in its constructor, so a caller holding one
 never has to know it is inert. Three questions place the call:
 
@@ -142,7 +144,11 @@ never has to know it is inert. Three questions place the call:
 For a single-route store whose constructor reads, both trees are defensible and
 the trade runs the same way in each direction:
 
-- **On the route, recreation is the refresh.** `AnalyticsStore` reads a year of
+- **On the route, recreation is the refresh.** Both single-route stores sit
+  here. `CalendarStore` follows the visible range through a `() => [start, end]`
+  thunk rather than exposing a `reload(range)` the page must remember to call —
+  same principle as loading at init, applied to a store whose input keeps
+  moving. `AnalyticsStore` reads a year of
   summaries plus a 30-day audit that runs both planners per day: at boot every
   other page would pay for it, and it reads day summaries the main page
   rewrites all day, so arriving with a fresh store is how the numbers stay
