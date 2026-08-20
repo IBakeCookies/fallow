@@ -1479,3 +1479,38 @@ cite a suite fixture, because a row with no probe file fails that same check. Th
 registry's own definition counted a fixture-cited number as unbacked and no
 longer does, which
 is the durable half of this: the hole was in the rule, not only in the table.
+
+## Findings from the 2026-08-20 rules eval
+
+The harness in [eval/](eval/) measures whether an agent given a slice of this
+brief follows it. Two of the three faults it has surfaced so far were in the
+harness, not the rules, and the one real finding is about enforcement rather
+than wording — the four worst-scoring rules were all reachable by a checker
+nobody was running.
+
+- ~~**A third of runs never ran the checks the rules name.**~~ Closed by
+  `.claude/hooks/verify-before-finish.mjs`, a `Stop` hook that blocks finishing
+  while prettier, eslint or the five doc scripts fail on the files the run
+  changed. `no-relative-import` and R1 are eslint errors and were still failing
+  about a third of the time, which is only possible if the linter never ran.
+- ~~**R2's placement half was enforced by nothing.**~~ Closed: an `await` or a
+  `.then()` inside a `$effect` under `src/routes/**` or `presentation/**` is now
+  `no-restricted-syntax`. The eval's dominant failure was one decision — keep
+  the read orchestration in `+page.svelte` — and that single decision failed R2,
+  R1, `store.loaded-flag`, `store.context-setter` and R6 together, which is why
+  six scored rows so often moved as one.
+- **`calendar/+page.svelte` holds the one `eslint-disable` for that rule, and
+  it is a true positive.** The page reads day summaries, guards stale responses
+  by version and holds the result map, which is exactly what R2 sends to a
+  store. Extracting it is a store, a failure reporter injected from
+  presentation (a business module importing `showToast` would fail R1) and a
+  `.svelte.spec.ts` — worth doing, and worth knowing that it is also the task
+  `eval/cases/calendar-month-cache.md` sets, so doing it retires the one eval
+  case with five sweeps of history behind it. Land the case's replacement first
+  or accept the loss deliberately.
+- **Do not trim the brief for tokens.** `targeted` (the owning docs only) scored
+  no better than `monolith` (all nine) once within-cell variance was measured at
+  SD 39 points, R8 scores 100% in every condition including no-rules-at-all, and
+  the only literal duplication in the corpus is R8's five steps appearing twice.
+  Size is not the problem; a properly powered condition comparison needs
+  n = 60 runs per arm.

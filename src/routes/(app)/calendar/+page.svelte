@@ -133,6 +133,9 @@
 		const [start, end] = [rangeStart, rangeEnd];
 		const version = ++loadVersion;
 
+		// The R2 extraction this asks for is tracked in ROADMAP.md: a store, an
+		// injected failure reporter and a spec, not a passing edit.
+		// eslint-disable-next-line no-restricted-syntax -- predates the rule
 		readDaySummaries(start, end)
 			.then((days) => {
 				if (version !== loadVersion) return;
