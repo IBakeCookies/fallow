@@ -233,6 +233,10 @@ satisfiable otherwise), `npx prettier --write` on the files you touched (never
 the tree), and anything the change itself puts in doubt. Then hand over saying
 **what you ran and what you did not**.
 
+A `Stop` hook holds the first of those: finishing is blocked while `prettier
+--check`, `eslint` or the five doc scripts fail on a file you changed. It is
+scoped to what changed, so a pre-existing failure elsewhere never blocks you.
+
 **Before reporting the work as done, dispatch a read-only reviewer subagent
 over the working diff** — unless the diff is only copy, translations, comments,
 tokens, story fixtures or docs. Scope it to bugs and inconsistencies, give it

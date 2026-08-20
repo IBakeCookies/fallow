@@ -335,12 +335,13 @@ export default defineConfig(
 		},
 	},
 	{
-		// The only three places `console` is allowed. `logger.ts` is the default
+		// The only four places `console` is allowed. `logger.ts` is the default
 		// sink — one that could not write to the console would leave the app
 		// silent until a reporting service is wired up. `scripts/` and `eval/`
 		// are Node CLI tools whose console output is the whole point of running
-		// them.
-		files: ['src/lib/logger.ts', 'scripts/**', 'eval/**'],
+		// them, and a `.claude/hooks/` script talks to the agent exclusively by
+		// writing stderr and exiting non-zero.
+		files: ['src/lib/logger.ts', 'scripts/**', 'eval/**', '.claude/hooks/**'],
 		rules: {
 			'no-console': 'off',
 		},
