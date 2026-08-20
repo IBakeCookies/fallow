@@ -2105,6 +2105,47 @@ describe('Zenith Energy Model', () => {
 			expect(new Set(worked.map((w) => w.toFixed(2))).size).toBeGreaterThanOrEqual(3);
 		});
 
+		/**
+		 * The SHIPPED default, which nothing measured until 2026-08-20: the ladder
+		 * above samples λ₀ ∈ {0.4, 0.8, 1.2, 1.5} and §8.3's probe
+		 * {0.2, 0.4, 0.8, 1.0, 1.2, 1.5}, so 0.5 — the value the app runs on — was
+		 * in neither. Pinned to the literal, not to
+		 * `DEFAULT_ENERGY_PARAMS.freeTimeValue`, so that moving the default shows
+		 * up here as the product decision it is. Both declarations of this day
+		 * (M44) give 11.25 h, so the figure does not depend on that ambiguity.
+		 */
+		it('plans 11.25 h of a 12-hour window at the shipped default λ₀', () => {
+			const { evaluation } = optimizeSchedule(day, 12, DEFAULT_ENERGY_PARAMS);
+			expect(DEFAULT_ENERGY_PARAMS.freeTimeValue).toBe(0.5);
+			expect(evaluation.workHours).toBeCloseTo(11.25, 9);
+		});
+
+		/**
+		 * …and what that default means is a property of the DAY, not of λ₀: the
+		 * same 0.5 fills 94% of the window above and 38% here. That is why the
+		 * default cannot be read off one probe day, and why raising it is not a
+		 * free tuning move — one slider notch to λ₀ = 1 (the Lab's range is
+		 * [0, 3] step 0.1) empties the plan on this portfolio entirely, and that
+		 * optimum is real: satiated output over 4.5 h of these tasks is worth less
+		 * than 12 h of leisure priced at 1 (§8.3, §15).
+		 */
+		it('the same default tapers to 4.5 h on a light day, and λ₀ = 1 empties it', () => {
+			const light = [makeTask(1, 'errand', 3, 5, 0.2, 0.2), makeTask(2, 'tidy', 2, 4, 0.1, 0.3)];
+
+			for (const windowHours of [8, 10, 12, 14]) {
+				expect(
+					optimizeSchedule(light, windowHours, DEFAULT_ENERGY_PARAMS).evaluation.workHours,
+				).toBeCloseTo(4.5, 9);
+			}
+
+			expect(
+				optimizeSchedule(light, 12, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 1,
+				}).evaluation.workHours,
+			).toBe(0);
+		});
+
 		it('is deterministic', () => {
 			const days = [dayFromPlan(0.9, 8), dayFromPlan(0.9, 12)];
 			const a = fitStoppingValue(days, prior, DEFAULT_ENERGY_PARAMS);
