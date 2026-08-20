@@ -8,5 +8,17 @@
 			"Bash(npx depcruise *)",
 			"Bash(git stash *)"
 		]
+	},
+	"hooks": {
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "cd \"$CLAUDE_PROJECT_DIR\" && node .claude/hooks/verify-before-finish.mjs"
+					}
+				]
+			}
+		]
 	}
 }

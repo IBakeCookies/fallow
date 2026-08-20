@@ -103,6 +103,16 @@ diff. What an agent runs instead is the narrow thing its own change needs:
 - Anything the change itself puts in doubt — `npm run check` after a type-level
   change, `npm run depcheck` after moving a module across layers.
 
+The second of those is also held by a `Stop` hook
+(`.claude/hooks/verify-before-finish.mjs`): finishing is blocked while
+`prettier --check`, `eslint` or the five doc scripts fail on a changed file, and
+the failure comes back as the text to fix rather than as advice. It exists
+because the rule-adherence eval found eslint-enforced rules broken in about a
+third of runs — an agent that had run the linter could not have broken them, so
+what was missing was never the wording. It is scoped to changed files, so a
+pre-existing failure elsewhere cannot block a finish, and it stands aside on a
+second stop so it can never loop.
+
 Then hand the work over saying **what you ran and what you did not**. "Tests
 pass" means the file you ran; do not report a green tree you never saw. A
 change is not done until the five are green, but that gate is the user's to
