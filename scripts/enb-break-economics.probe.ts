@@ -86,12 +86,12 @@ const FRAG = [task(1, 'deep', 6, 6, 0.7, 0.1)];
 /** The 12-hour probe day of §8.3/§8.10. */
 const PROBE_DAY = [
 	task(1, 'boxing', 10, 10, 0.2, 1.0),
-	task(2, 'guitar', 6, 9, 0.4, 0.3),
-	task(3, 'reading', 4, 7, 0.5, 0.05),
+	task(2, 'guitar', 6, 9, 0.6, 0),
+	task(3, 'reading', 4, 7, 0.4, 0),
 ];
 
 /** The §8.4 guitar task, alone, for the fragmentation ratios. */
-const GUITAR = [task(1, 'guitar', 6, 9, 0.4, 0.3)];
+const GUITAR = [task(1, 'guitar', 6, 9, 0.6, 0)];
 
 /** `work`h of work on one task, split into `breaks + 1` equal runs around `rest`h rests. */
 function chopped(breaks: number, rest = 0.25, work = 4): ScheduleBlock[] {

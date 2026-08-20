@@ -51,83 +51,83 @@ that are not evident from reading it — so never retype a row, regenerate:
   §5.1      620-815  Posterior-aware allocation (added 2026-07-18)
 §6          817-829  Summary of v1 → v2 changes
 §7          831-882  Known approximations and deliberate non-changes
-§8         884-2720  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         884-2749  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      902-927  Intermittent-rest recovery correction
   §8.2      929-951  Warm-up carryover instead of binary reset
-  §8.3     953-1027  Verified consequences and a calibration question, closed
-  §8.4    1029-1130  Per-task satiety — concave daily value (added 2026-07-14)
-  §8.5    1132-1195  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1197-1386  Optimizer reliability — compound moves and drop-one seed…
-  §8.7    1388-1520  Drain-rate calibration from end-of-session ratings (adde…
-  §8.8    1522-1593  45-minute plan granularity (added 2026-07-18)
-  §8.9    1595-1669  Recovery-rate calibration from pre/post-rest pairs (adde…
-  §8.10   1671-2255  Stopping-value calibration from observed stop times (add…
-  §8.11   2257-2511  Live stop advisor — §8.10 run forward mid-day (added 202…
-  §8.12   2513-2720  The budget curve — what the day's LENGTH is worth (added…
-§9        2722-2769  References
-§10       2771-3411  Revision log (doc-only corrections)
-§11       3413-4021  Metric-layer corrections (2026-07-18)
-  §11.1   3415-3429  Scope and principle
-  §11.2   3431-3455  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   3457-3484  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   3486-3543  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   3545-3563  Schedule Integrity: overhead share instead of the small-…
-  §11.6   3565-3675  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   3677-3701  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   3703-3769  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   3771-3880  Overnight reservoir carry-over (2026-07-28)
-  §11.10  3882-3952  Grind Density: the share of the work the day actually fu…
-  §11.11  3954-4021  Grind Density is a row, not an objective (2026-08-08)
-§12       4023-4160  Plan-adherence audit (2026-07-23)
-  §12.1   4064-4160  Per-day fit snapshots (2026-08-03)
-§13       4162-4618  Math review, 2026-07-26
-  §13.1   4179-4217  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   4219-4291  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   4293-4358  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   4360-4410  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   4412-4449  Also in this change
-  §13.6   4451-4618  The two end-of-day energy readings: a timing difference,…
-§14       4620-5419  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   4851-4997  Five corrections to the first cut (2026-07-28)
-  §14.2   4999-5148  The marginal of the budget (added 2026-08-03)
-  §14.3   5150-5356  The price of the switch cost (added 2026-08-04)
-  §14.4   5358-5419  An empty frontier is a reading (2026-08-08)
-§15       5421-5579  Two objectives, two modes (2026-07-29)
-  §15.1   5507-5579  The copy named the wrong objective for both modes (2026-…
-§16       5581-5669  Run order stays a heuristic (2026-07-29)
-§17       5671-5829  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       5831-5934  Drain logs are one row per SESSION, not per task-day (20…
-§19       5936-6207  The gain's naive baseline paid for switches it never mad…
-  §19.1   5954-6013  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   6015-6043  Defect 2 — the displayed number moved with the order of …
-  §19.3   6045-6134  What this costs, and the one guarantee that weakened
-  §19.4   6136-6207  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       6209-6271  Human Capacity: the reading is the constraint, but it na…
-  §20.1   6250-6271  The tie went to cognitive, so the row blamed the wrong p…
-§21       6273-6441  What the gain has room to report (2026-08-07)
-  §21.1   6295-6315  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   6317-6340  Why shape has a low ceiling: the activation bonus
-  §21.3   6342-6362  Population distribution
-  §21.4   6364-6395  The number is a property of the comparison, not of the o…
-  §21.5   6397-6412  Under the total-output objective the ranking inverts
-  §21.6   6414-6441  Correction: on an ordinary day it is FLOW that binds, no…
-§22       6443-6511  Task nature: an absolute gap could not carry a range tha…
-§23       6513-6655  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   6554-6621  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   6623-6655  Longest Warm-Up: what E/β was actually tracking
-§24       6657-6720  Task Variety counted labels, and its repair was Energy B…
-§25       6722-6871  Cognitive and Physical Load: the definition, and what ro…
-§26       6873-6979  Deep Work: a step that swung whole blocks, under a band …
-§27       6981-7098  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       7100-7154  Which four readings are headlines (2026-08-07)
-§29       7156-7329  Day Profile: one cut for two different scales, on a day …
-§30       7331-7423  The Lab's comparison tile scored the plan on the one thi…
-§31       7425-7606  What history can plot, and what it cannot (2026-08-07)
-§32       7608-7674  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       7676-7793  A plan reads only the logs that precede it (2026-08-08)
-§34       7795-8025  The subset search gave up one task too early (2026-08-08)
-§35       8027-8381  The plan cannot see the hours you already spent (2026-08…
-§36       8383-8454  What a correction may touch (2026-08-10)
+  §8.3     953-1036  Verified consequences and a calibration question, closed
+  §8.4    1038-1141  Per-task satiety — concave daily value (added 2026-07-14)
+  §8.5    1143-1210  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1212-1401  Optimizer reliability — compound moves and drop-one seed…
+  §8.7    1403-1535  Drain-rate calibration from end-of-session ratings (adde…
+  §8.8    1537-1614  45-minute plan granularity (added 2026-07-18)
+  §8.9    1616-1690  Recovery-rate calibration from pre/post-rest pairs (adde…
+  §8.10   1692-2284  Stopping-value calibration from observed stop times (add…
+  §8.11   2286-2540  Live stop advisor — §8.10 run forward mid-day (added 202…
+  §8.12   2542-2749  The budget curve — what the day's LENGTH is worth (added…
+§9        2751-2798  References
+§10       2800-3440  Revision log (doc-only corrections)
+§11       3442-4050  Metric-layer corrections (2026-07-18)
+  §11.1   3444-3458  Scope and principle
+  §11.2   3460-3484  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   3486-3513  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   3515-3572  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   3574-3592  Schedule Integrity: overhead share instead of the small-…
+  §11.6   3594-3704  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   3706-3730  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   3732-3798  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   3800-3909  Overnight reservoir carry-over (2026-07-28)
+  §11.10  3911-3981  Grind Density: the share of the work the day actually fu…
+  §11.11  3983-4050  Grind Density is a row, not an objective (2026-08-08)
+§12       4052-4189  Plan-adherence audit (2026-07-23)
+  §12.1   4093-4189  Per-day fit snapshots (2026-08-03)
+§13       4191-4650  Math review, 2026-07-26
+  §13.1   4208-4246  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   4248-4320  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   4322-4387  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   4389-4439  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   4441-4478  Also in this change
+  §13.6   4480-4650  The two end-of-day energy readings: a timing difference,…
+§14       4652-5451  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   4883-5029  Five corrections to the first cut (2026-07-28)
+  §14.2   5031-5180  The marginal of the budget (added 2026-08-03)
+  §14.3   5182-5388  The price of the switch cost (added 2026-08-04)
+  §14.4   5390-5451  An empty frontier is a reading (2026-08-08)
+§15       5453-5611  Two objectives, two modes (2026-07-29)
+  §15.1   5539-5611  The copy named the wrong objective for both modes (2026-…
+§16       5613-5701  Run order stays a heuristic (2026-07-29)
+§17       5703-5861  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       5863-5966  Drain logs are one row per SESSION, not per task-day (20…
+§19       5968-6239  The gain's naive baseline paid for switches it never mad…
+  §19.1   5986-6045  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   6047-6075  Defect 2 — the displayed number moved with the order of …
+  §19.3   6077-6166  What this costs, and the one guarantee that weakened
+  §19.4   6168-6239  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       6241-6303  Human Capacity: the reading is the constraint, but it na…
+  §20.1   6282-6303  The tie went to cognitive, so the row blamed the wrong p…
+§21       6305-6473  What the gain has room to report (2026-08-07)
+  §21.1   6327-6347  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   6349-6372  Why shape has a low ceiling: the activation bonus
+  §21.3   6374-6394  Population distribution
+  §21.4   6396-6427  The number is a property of the comparison, not of the o…
+  §21.5   6429-6444  Under the total-output objective the ranking inverts
+  §21.6   6446-6473  Correction: on an ordinary day it is FLOW that binds, no…
+§22       6475-6543  Task nature: an absolute gap could not carry a range tha…
+§23       6545-6687  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   6586-6653  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   6655-6687  Longest Warm-Up: what E/β was actually tracking
+§24       6689-6752  Task Variety counted labels, and its repair was Energy B…
+§25       6754-6903  Cognitive and Physical Load: the definition, and what ro…
+§26       6905-7011  Deep Work: a step that swung whole blocks, under a band …
+§27       7013-7130  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       7132-7186  Which four readings are headlines (2026-08-07)
+§29       7188-7361  Day Profile: one cut for two different scales, on a day …
+§30       7363-7455  The Lab's comparison tile scored the plan on the one thi…
+§31       7457-7638  What history can plot, and what it cannot (2026-08-07)
+§32       7640-7706  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       7708-7825  A plan reads only the logs that precede it (2026-08-08)
+§34       7827-8057  The subset search gave up one task too early (2026-08-08)
+§35       8059-8413  The plan cannot see the hours you already spent (2026-08…
+§36       8415-8486  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -974,9 +974,11 @@ concave (diminishing-returns) leisure value or a soft work-hour cap — not a
 retuned constant. Defaults were deliberately left alone pending that decision.
 (Those two hour figures are from the pre-§8.6 search and the pre-§8.8 lattice
 and no longer reproduce. Restoring only the pre-fix _dynamics_ under today's
-optimizer gives 12 h at λ₀ ≤ 0.5 and 10.5 h at every λ₀ from 0.8 through 1.5 —
-a two-step response, and no collapse to all-leisure anywhere in [0.2, 1.5]
-(`scripts/enb-break-economics.probe.ts`, 2026-08-06). So the bang-bang
+optimizer gives 12 h at every λ₀ from 0.2 through 1.2 and 9 h at 1.5 — a
+two-step response, and no collapse to all-leisure anywhere in [0.2, 1.5]
+(`scripts/enb-break-economics.probe.ts`, re-read 2026-08-21 on the
+slider-reachable probe day; 12 h at λ₀ ≤ 0.5 and 10.5 h from 0.8 through 1.5 on
+the unreachable one, 2026-08-06 — same two-step shape, same conclusion). So the bang-bang
 diagnosis was right about the _kind_ of response and wrong about where it
 lands: the pre-fix model never stopped working within the swept range.)
 
@@ -985,8 +987,10 @@ on the other side of the margin: satiety's concave V(O) makes the marginal
 value of late work hours _decline_, which is equivalent at the stopping
 margin to a concave leisure value. Re-probing the sweep above under the
 current model (satiety on, §8.5 gate, §8.8 lattice): W\*(λ₀) on the 12-hour
-probe day is monotone and **graded** — 12 h → 11.25 → 10.5 → 6 → 4.5 → 0
-across λ₀ ∈ [0.2, 1.5] — no longer bang-bang (locked in as a unit test).
+probe day is monotone and **graded** — 12 h → 12 → 9.75 → 6 → 4.5 → 0
+across λ₀ ∈ {0.2, 0.4, 0.8, 1.0, 1.2, 1.5} — no longer bang-bang (locked in as
+a unit test; re-read 2026-08-21, where the 0.4 and 0.8 cells moved off
+11.25/10.5 with the day's realignment and the shape did not).
 That well-posedness is what §8.10's calibration is built on.
 
 **What was resolved, and what §15 answered instead (2026-08-20).** §8.4 fixed
@@ -997,10 +1001,15 @@ one. Two facts close it.
 First, the shipped default had never been measured. The ladder above samples
 λ₀ ∈ {0.2, 0.4, 0.8, 1.0, 1.2, 1.5} and the suite fixture {0.4, 0.8, 1.2, 1.5},
 so 0.5 — the value the app runs on — was in neither. It is now in both, and it
-reads **11.25 h of the 12-hour window**, on a flat step that spans λ₀ 0.4
-through 0.6 (`scripts/enb-break-economics.probe.ts`, 2026-08-20). Both
-declarations of this day (see the note above) agree on that figure: the probe
-holds the older demands, the fixture the slider-derived ones. Four tests were
+reads **11.25 h of the 12-hour window** (`scripts/enb-break-economics.probe.ts`,
+2026-08-20, and unmoved on re-read 2026-08-21). Both declarations of this day
+agreed on that figure — the probe held the older demands, the fixture the
+slider-derived ones — which is why M44's realignment of the probe on 2026-08-21
+left it alone; the day is now declared one way, and 0.5 still plans 11.25 h. The
+flat step around it narrowed: it spanned λ₀ 0.4 through 0.6 on the old demands
+and spans **0.5 through 0.6** now, because λ₀ 0.4 plans the full 12 h on the
+reachable day. Nothing else in this paragraph or the next moved — the whole
+portfolio spread and the λ₀ = 1 reprice below re-read identically. Four tests were
 already incidentally sensitive to the default — a §8.6 funding optimum, §8.10's
 posterior-std pin, and two §14.2 budget-curve properties — but none said what it
 plans.
@@ -1102,10 +1111,12 @@ validated replica of this module, same multi-seed local search):
   ϕ keeps its exact meaning (time-to-peak) and §8.2's calibration story is
   unaffected. Probe: turns the 7h/1h winner-take-all plan into one session
   per task; fragmentation stays priced — the same 4 h chopped into 0.5 h slices
-  with 0.5 h gaps yields 1.45× less raw output (a ratio satiety cannot move,
+  with 0.5 h gaps yields 1.40× less raw output (a ratio satiety cannot move,
   since it lives outside the dynamics), and the objective still prefers
-  contiguous by 1.17×, against 1.28× before satiety (re-measured 2026-08-06 at
-  1.4511× / 1.1687× / 1.2750×, `scripts/enb-break-economics.probe.ts`); the
+  contiguous by 1.15×, against 1.24× before satiety (re-read 2026-08-21 at
+  1.3971× / 1.1475× / 1.2402× on the slider-reachable guitar,
+  `scripts/enb-break-economics.probe.ts`; 1.4511× / 1.1687× / 1.2750× on the
+  unreachable one, 2026-08-06); the
   plan responds
   _smoothly_ to a demand sweep that flips the unsatiated plan violently
   between opposite winner-take-all corners; introduces no new
@@ -1185,8 +1196,12 @@ sustainable indefinitely. The floor is where output stabilizes, not zero.
 - **Chosen — `1−(1−b)·w`.** Smooth and monotone in w, one parameter with a
   physical reading and a literature-anchored default, targeted where the
   problem is (eq at w = 0.5 moves ~1% at b = 0.05), exact opt-out at b = 0.
-  Probe: the demand sweep wp 1.0 → 0.7 runs 3.75 → 4.50 → 5.25 h at the 0.25 h
-  step in even ~0.5 objective increments [2026-08-06: 3.00 h at wp = 1.0] — but
+  Probe: the demand sweep wp 1.0 → 0.7 runs 3.25 → 4.50 → 5.25 → 5.50 h at the
+  0.25 h step, monotone throughout, in ~0.4–0.5 objective increments (re-read
+  2026-08-21 on the slider-reachable probe day, ROADMAP M44; the same sweep read
+  3.75 → 4.50 → 5.25 with a 0.50 h largest step on the unreachable demands, and
+  3.00 h at wp = 1.0 on 2026-08-06 — the ladder is coarser on the reachable day,
+  largest single step 1.25 h) — but
   the b = 0 sweep is monotone as well under today's search, so the gate's
   justification is the `w = 1` algebra and the floor below, not a smoothing
   effect. Long full-demand sessions do decay _toward_ the floor instead of
@@ -1559,27 +1574,33 @@ leaves the window end idle" test keeps passing because its 12 h window is
 lattice-exact.
 
 **Probe results** (2026-07-18, re-measured 2026-08-13 with
-`scripts/stp-lattice.probe.ts`, after §8.6's pair seeds). (a) _Quantization loss
-is small:_ objective ratio coarse/fine (0.75 vs 0.25 step) is 0.9831 (probe day,
-8 h) / 0.9952 (mixed day, 8 h) / 0.9936 (probe day, 12 h) / 0.9759 (mixed day,
-12 h) — the fourth cell was once quoted as 0.9886 and no cell in a 12-point
+`scripts/stp-lattice.probe.ts`, after §8.6's pair seeds; the probe day re-read
+2026-08-21 on the demands the sliders reach, ROADMAP M44). (a) _Quantization
+loss is small:_ objective ratio coarse/fine (0.75 vs 0.25 step) is 0.9843 (probe
+day, 8 h) / 0.9952 (mixed day, 8 h) / 0.9810 (probe day, 12 h) / 0.9759 (mixed
+day, 12 h) — the fourth cell was once quoted as 0.9886 and no cell in a 12-point
 sweep produces that. Over windows 4–14 h the worst is **0.9693** (probe day,
-4 h): a
+4 h), unmoved by the realignment: a
 short window has too few lattice points to hide the remainder in. The suite's
 ≥ 0.97 bound is asserted at the 8 h window, which is where it was measured — it
-is not a lattice property. (b) _Structure survives, with one exception:_ the
-funded-task set matches the fine-step optimum in 11 of the 12 sweep cells. The
-exception is the probe day at 8 h, where the coarse plan funds all three tasks
-and the fine one funds two — and that is quantization, not search slack, because
-(c) enumerates the coarse lattice of exactly that day and returns the coarse
-plan. It appeared when §8.6's pair seeds improved the FINE-step search (10.8794
-→ 10.9175, funded {1,2,3} → {1,2}); the coarse side did not move. (c) _No new
+is not a lattice property. (b) _Structure survives:_ the funded-task set matches the
+fine-step optimum in **all 12** of the sweep cells (2026-08-21). Until this day
+was put on the sliders it matched in 11: the probe day at 8 h funded three tasks
+coarse and two fine, and §8.8 carried that as a documented exception. It was a
+property of the unreachable demands — the same cell now reads {1,2,3} both ways
+with no rest either side — so the exception is withdrawn rather than
+re-explained, and the suite's funded-set assertion, which skipped the probe day
+because of it, now covers both days. (The history is still worth keeping: the
+mismatch appeared when §8.6's pair seeds improved the FINE-step search, 10.8794
+→ 10.9175, funded {1,2,3} → {1,2}, with the coarse side unmoved. Those two
+objectives belong to the old declaration of the day and are archaeology, not
+current readings.) (c) _No new
 search slack:_ exhaustive enumeration of all 45-min plans on the 2026-07-14
 probe day (every assignment of the 10 lattice slots to a task or to rest —
-1 048 576 evaluations, not the ~10⁴ once claimed) equals the search's 10.7331
-exactly — locked in as a probe-time check, not a unit test (too slow).
-(d) _Faster:_ 28.5 ms vs 593.1 ms on the 3-task/8 h day (2026-08-13, one
-machine; ~13 ms vs ~210 ms on 2026-08-06's, and the ~55/~330 ms pair predates
+1 048 576 evaluations, not the ~10⁴ once claimed) equals the search's 10.6274
+exactly (2026-08-21; 10.7331 on the old demands) — locked in as a probe-time check, not a unit test (too slow).
+(d) _Faster:_ 26.9 ms vs 500.7 ms on the 3-task/8 h day (2026-08-21, one
+machine; 28.5 ms vs 593.1 ms on 2026-08-13's declaration of it; ~13 ms vs ~210 ms on 2026-08-06's, and the ~55/~330 ms pair predates
 `buildCurves` caching). The gap widened with the pair seeds because the fine
 step gives every seed a longer climb — the ratio is a lattice figure, not a
 constant. (e) A side benefit: fine-step optima at long
@@ -1688,12 +1709,20 @@ gate the design:
    λ₀ uniquely at 0.1 resolution; ±0.5 h noise on the stops still recovers
    it exactly by least squares.
 2. **λ₀ dominates, but V_T is not free.** Sweeping V_T over [0, 6] (13 levels)
-   leaves the optimal stop on one or two 45-min lattice levels in 7 of 8
-   (window, λ₀) cells — but it can move the stop by 3 steps (2.25 h → 4.5 h at
-   an 8 h window, λ₀ = 1.3) and through three levels non-monotonically (12 h,
-   λ₀ = 0.9): re-measured 2026-08-06,
-   `scripts/stp-stopping-identifiability.probe.ts`, against the earlier
-   "almost constant in V_T". So the fit targets
+   across **300 seeded slider-reachable days** leaves the optimal stop on one or
+   two 45-min lattice levels on 236 of them — but the span is a median of 1 step,
+   **2 at p90 and 5 at worst** (a 4-task, 11-hour day at λ₀ 0.8, walking
+   10.5 → 6.75 h), and **25 of the 300 move non-monotonically** in V_T. V_T moves
+   the stop at all on 150 of the 300, so this is not a zero read off an
+   unreachable region (2026-08-21,
+   `scripts/stp-stopping-identifiability.probe.ts`). Until that date the claim
+   rested on ONE day — "one or two levels in 7 of 8 (window, λ₀) cells, but 3
+   steps at 8 h / λ₀ 1.3 (2.25 h → 4.5 h) and three levels non-monotonically at
+   12 h / λ₀ 0.9", 2026-08-06 — and both of those witnesses turned out to be
+   properties of demands no slider can produce: on the reachable declaration of
+   that same day every one of the 8 cells moves **at most one step** (ROADMAP
+   M44). The conclusion is unchanged and now rests on a distribution instead of a
+   witness. So the fit targets
    λ₀ alone and **conditions on** the user-owned V_T — a slider left far from
    the truth is a real unfitted error source, not a negligible one — completing the
    conditioning chain: r is fitted α-free (§8.9), α conditions on r (§8.7),
@@ -4494,14 +4523,16 @@ work vs 1.4233 at 8h, i.e. **0.034 of stopping pressure per hour against
 mechanism behind §8.10's independently-observed finding that **V_T is not
 identifiable from stop times**. What that finding is _not_ is a claim that the
 stop barely moves, which is what this paragraph said until now ("a 12× V_T
-sweep moved the optimal stop by only two lattice levels"). Re-measured
-2026-08-19, `scripts/stp-stopping-identifiability.probe.ts`: the sweep passes
-through **three distinct levels** at 12 h / λ₀ 0.9 (9 / 8.25 / 7.5 h, a 2-step
-span) and moves the stop **three steps** at 8 h / λ₀ 1.3 (2.25 h → 4.5 h).
-§8.10's own sibling reading — "one or two 45-min lattice levels in 7 of 8
-(window, λ₀) cells", 2026-08-06 — counts how many cells barely move; it is not
-the size of the move in the ones that do, and this paragraph was quoting it as
-if it were. The ~7% conclusion above is unaffected: the sweep is 12× wide, so a
+sweep moved the optimal stop by only two lattice levels"). Re-measured over 300
+seeded days on 2026-08-21, `scripts/stp-stopping-identifiability.probe.ts`: the
+sweep moves the stop by a median 1 step, **2 at p90 and 5 at worst**, and walks
+it non-monotonically on 25 of the 300. §8.10's own sibling reading — one or two
+45-min lattice levels on 236 of those days — counts how many days barely move;
+it is not the size of the move in the ones that do, and this paragraph was
+quoting the earlier 8-cell version of it as if it were. (The two single-day
+witnesses this cited until 2026-08-21 — three levels at 12 h / λ₀ 0.9 and three
+steps at 8 h / λ₀ 1.3 — were artifacts of that day's unreachable demands and are
+withdrawn; see §8.10 feasibility 2.) The ~7% conclusion above is unaffected: the sweep is 12× wide, so a
 weak per-unit pressure still walks the stop several steps. Two facts recorded
 separately are the same fact.
 
@@ -4552,8 +4583,9 @@ sentence never named — and none of the three read out reproduces it: the
 ladder's own task (0.9995/0.4542), §13.6's own cognitive/physical pair
 (0.9998/0.9979, whose optimum ends on the physical blocks, so the cognitive
 reservoir has recovered by the time work stops), §8.10's fixture day
-(0.8391/0.8391, whose optimum runs to the end of the window so the two readings
-coincide). The pair is not even reachable from the ladder's shape: an `endCog`
+(0.8408/0.8408 on the slider-reachable declaration of it, re-read 2026-08-21 —
+0.8391/0.8391 on the unreachable one; its optimum still runs to the end of the
+window, so the two readings coincide either way). The pair is not even reachable from the ladder's shape: an `endCog`
 of 0.890 means work ended near the 10 h mark, where full cognitive demand
 leaves `workEndCog` at 0.146, not 0.469 — so the lost fixture was several
 milder tasks rather than one. Three identical full-cognitive tasks come nearest

@@ -19,6 +19,15 @@
  * is what the reconstruction did before it read the moments. The second reading
  * is the falsified ~0.13 contract; the first is what replaced it.
  *
+ * Added 2026-08-21: the V_T sweep over SEEDED DAYS, not one. Aligning this
+ * probe's day onto the sliders (ROADMAP M44) deleted both witnesses §8.10 cited
+ * for "V_T is not free" — the 3-step move at 8 h / λ₀ 1.3 and the three-level
+ * walk at 12 h / λ₀ 0.9 were properties of demands no slider can produce, and on
+ * the reachable day every cell moves at most one step. One day cannot settle
+ * which reading is typical, and quoting one day is what put a retracted claim
+ * and then its retraction into this section, so the arm below sweeps V_T across
+ * seeded days and reports the DISTRIBUTION of the span.
+ *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
  *
@@ -51,11 +60,16 @@ const task = (
 	physicalDemand,
 });
 
-/** The standard probe day (boxing / guitar / reading). */
+/**
+ * The standard probe day (boxing / guitar / reading).
+ * Aligned 2026-08-21 (ROADMAP M44): guitar 0.4/0.3 → 0.6/0 and reading
+ * 0.5/0.05 → 0.4/0, the demands the three integer sliders actually reach at the
+ * difficulties this day is stated in.
+ */
 const DAY: EnergyTaskInput[] = [
 	task(1, 10, 10, 0.2, 1.0),
-	task(2, 6, 9, 0.4, 0.3),
-	task(3, 4, 7, 0.5, 0.05),
+	task(2, 6, 9, 0.6, 0),
+	task(3, 4, 7, 0.4, 0),
 ];
 
 const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
@@ -83,12 +97,53 @@ function sessionRows(blocks: ScheduleBlock[]): StopObservation['workedHours'] {
 	return rows;
 }
 
-const worked = (freeTimeValue: number, terminalEnergyValue: number, windowHours: number) =>
-	optimizeSchedule(DAY, windowHours, {
+function mulberry32(seed: number): () => number {
+	let a = seed;
+
+	return () => {
+		a = (a + 0x6d2b79f5) | 0;
+		let t = Math.imul(a ^ (a >>> 15), 1 | a);
+		t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+/** Slider-reachable by construction: demands are tenths, difficulty is Eᵤ. */
+function seededDay(rnd: () => number): EnergyTaskInput[] {
+	return Array.from(
+		{
+			length: 2 + Math.floor(rnd() * 3),
+		},
+		(_, i) => {
+			const mental = Math.floor(rnd() * 11);
+			const physical = Math.floor(rnd() * 11);
+
+			return task(
+				i + 1,
+				Math.min(10, Math.max(1, Math.max(mental, physical) + 0.3 * Math.min(mental, physical))),
+				1 + Math.floor(rnd() * 10),
+				mental / 10,
+				physical / 10,
+			);
+		},
+	);
+}
+
+const workedOn = (
+	tasks: EnergyTaskInput[],
+	freeTimeValue: number,
+	terminalEnergyValue: number,
+	windowHours: number,
+) =>
+	optimizeSchedule(tasks, windowHours, {
 		...DEFAULT_ENERGY_PARAMS,
 		freeTimeValue,
 		terminalEnergyValue,
 	}).blocks.reduce((sum, b) => (b.taskId === null ? sum : sum + b.hours), 0);
+
+const worked = (freeTimeValue: number, terminalEnergyValue: number, windowHours: number) =>
+	workedOn(DAY, freeTimeValue, terminalEnergyValue, windowHours);
 
 describe('stopping-value identifiability', () => {
 	it('sweeps V_T against λ₀ for the optimal stop (MATH.md §8.10 feasibility 2)', () => {
@@ -109,6 +164,58 @@ describe('stopping-value identifiability', () => {
 				);
 			}
 		}
+	});
+
+	it('sweeps V_T over seeded days, so the span has a distribution (§8.10)', () => {
+		const V_T = Array.from(
+			{
+				length: 13,
+			},
+			(_, i) => i * 0.5,
+		);
+
+		const rnd = mulberry32(810);
+		const spans: number[] = [];
+		let nonMonotone = 0;
+		let atMostTwoLevels = 0;
+		let worstSpan = 0;
+		let worstDesc = '';
+
+		for (let trial = 0; trial < 300; trial++) {
+			const tasks = seededDay(rnd);
+			const windowHours = 4 + Math.floor(rnd() * 11);
+			const lambda = 0.1 + Math.floor(rnd() * 15) * 0.1;
+			const hours = V_T.map((vt) => workedOn(tasks, lambda, vt, windowHours));
+			const span = (Math.max(...hours) - Math.min(...hours)) / DEFAULT_STEP_HOURS;
+
+			spans.push(span);
+
+			if (new Set(hours).size <= 2) atMostTwoLevels++;
+
+			if (hours.some((h, i) => i > 0 && h > hours[i - 1])) nonMonotone++;
+
+			if (span > worstSpan) {
+				worstSpan = span;
+				worstDesc = `n=${tasks.length} T=${windowHours} λ₀=${lambda.toFixed(1)}: ${hours.join('/')}`;
+			}
+		}
+
+		const sorted = [...spans].sort((x, y) => x - y);
+		const at = (q: number) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
+
+		console.log(
+			`[§8.10 V_T sweep] 300 seeded slider-reachable days, V_T over [0, 6] in 13 levels: ` +
+				`span in 45-min steps median ${at(0.5)}, p90 ${at(0.9)}, worst ${worstSpan}; ` +
+				`${atMostTwoLevels}/300 days at one or two levels; ${nonMonotone}/300 non-monotone in V_T`,
+		);
+
+		console.log(`[§8.10 V_T sweep] widest day — ${worstDesc}`);
+
+		const moved = spans.filter((x) => x > 0).length;
+
+		console.log(
+			`[§8.10 V_T sweep] V_T moves the stop at all on ${moved}/300 days (a zero here would make the arm empty)`,
+		);
 	});
 
 	it('tracks the true λ₀ through the bracket midpoint (MATH.md §8.10 reconstruction)', () => {
