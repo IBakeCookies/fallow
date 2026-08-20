@@ -59,6 +59,10 @@ export default defineConfig(
 					selector: 'ExportDefaultDeclaration',
 					message: 'Named exports only; default exports are for Svelte components.',
 				},
+				{
+					selector: 'UnaryExpression[operator="!"] > UnaryExpression[operator="!"]',
+					message: 'Coerce with Boolean(x), never !!x.',
+				},
 			],
 			'no-restricted-imports': [
 				'error',
@@ -186,9 +190,10 @@ export default defineConfig(
 		},
 	},
 	{
-		// Neither of these resolves `$lib`: Playwright runs the e2e specs through
-		// its own loader with no Vite aliases, and .storybook sits outside `src`.
-		files: ['e2e/**', '.storybook/**'],
+		// None of these resolves `$lib`: Playwright runs the e2e specs through its
+		// own loader with no Vite aliases, .storybook sits outside `src`, and
+		// `eval/` is a Node CLI that Vite never loads at all.
+		files: ['e2e/**', '.storybook/**', 'eval/**'],
 		rules: {
 			'no-restricted-imports': 'off',
 		},
@@ -252,6 +257,14 @@ export default defineConfig(
 							group: ['$lib/presentation/*', '$lib/presentation/**'],
 							message: 'The business layer must not import from the presentation layer.',
 						},
+						{
+							// R5. `$app/environment` is exempt: a module that genuinely runs
+							// in both places may read `browser` — but never in an `$effect`,
+							// which no selector can see.
+							group: ['$app/*', '$app/**', '!$app/environment'],
+							message:
+								'Business code does not import SvelteKit routing; take what you need as an argument.',
+						},
 					],
 				},
 			],
@@ -299,11 +312,12 @@ export default defineConfig(
 		},
 	},
 	{
-		// The only two places `console` is allowed. `logger.ts` is the default
+		// The only three places `console` is allowed. `logger.ts` is the default
 		// sink — one that could not write to the console would leave the app
-		// silent until a reporting service is wired up. `scripts/` are Node CLI
-		// tools whose console output is the whole point of running them.
-		files: ['src/lib/logger.ts', 'scripts/**'],
+		// silent until a reporting service is wired up. `scripts/` and `eval/`
+		// are Node CLI tools whose console output is the whole point of running
+		// them.
+		files: ['src/lib/logger.ts', 'scripts/**', 'eval/**'],
 		rules: {
 			'no-console': 'off',
 		},

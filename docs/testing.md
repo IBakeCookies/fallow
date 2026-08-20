@@ -57,8 +57,8 @@ Test the invariant, not the implementation: "completing a task must not move
 plan-scoped metrics" — a rule that has actually been violated — not that a
 function returns what it returns.
 
-`vitest.config` sets `expect.requireAssertions: true`; a test with no assertion
-fails.
+`vite.config.ts` sets `expect.requireAssertions: true`; a test with no assertion
+fails. `vitest.probe.config.ts` deliberately does not.
 
 Vitest has three projects: `server` (node, `*.test.ts`), `client` (real
 chromium, `*.svelte.{test,spec}.ts`), `storybook`.
@@ -86,7 +86,7 @@ every push/PR to `main`:
 
 ```sh
 npm run check      # svelte-check + tsc on the service worker — must be 0 errors
-npm run lint       # prettier --check, eslint (layer-boundary rules), and the three doc checks
+npm run lint       # prettier --check, eslint (layer-boundary rules), and the five script checks
 npm run depcheck   # dependency-cruiser: layer direction, no cycles, no orphans
 npm run test:unit -- --run
 npm run test:e2e
@@ -115,7 +115,7 @@ only so svelte-check and eslint compile in the same runes mode the build forces
 — `sveltekit()` takes its options inline in `vite.config.ts`, so the build
 ignores the file and says so. Keep `runes` in step across the two.
 
-`lint` is six checks, and the last four fail on prose rather than code:
+`lint` is seven checks, and four of them fail on prose rather than code:
 `math-index.mjs --check` on MATH.md's section index (R7 step 5),
 `probe-registry.mjs --check` on [`scripts/PROBES.md`](../scripts/PROBES.md) —
 both because a hand-maintained index silently rots — `brief-size.mjs --check`,
@@ -124,9 +124,10 @@ which fails when the root `AGENTS.md` grows past its line budget, and
 last two are the only mechanical defence the doc split has: nothing else
 notices an argument being pasted into the brief, or into a component's header,
 instead of into the file that owns it. Both count volume and neither can tell
-an earned _why_ from archaeology, so AGENTS.md §0 still governs. `prettier
---check` covers the whole tree, so format the files you touched
-(`npx prettier --write`) and never the tree.
+an earned _why_ from archaeology, so AGENTS.md §0 still governs. The seventh,
+`file-names.mjs --check`, holds §2's kebab-case rule. `prettier --check` covers
+the whole tree, so format the files you touched (`npx prettier --write`) and
+never the tree.
 
 `depcheck` is the other half of R1's enforcement, and it catches what eslint
 cannot. `no-restricted-imports` in `eslint.config.js` matches the `$lib/...`
@@ -135,7 +136,9 @@ to it, and a relative one only cannot hide because relative specifiers are
 banned outright. `.dependency-cruiser.cjs` resolves modules to disk; its four
 directional rules — `data-not-to-upper-layers`, `business-not-to-presentation`,
 `presentation-not-to-data`, `presentation-not-to-business-model`, all
-`severity: 'error'` — catch those. `src/lib/paraglide` is generated and exempt.
+`severity: 'error'` — catch those, `src/lib/paraglide` included: only its
+generated `messages` are excluded from the cruise, and the rest of the directory
+is exempt from `no-orphans` alone.
 One gap worth knowing: the Svelte compiler strips `import type` before
 dependency-cruiser parses a `.svelte` file, so a type-only crossing from a
 component produces no edge to flag. Inside components that boundary is eslint's

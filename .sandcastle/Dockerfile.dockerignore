@@ -1,0 +1,8 @@
+# The build context is the repo root (sandcastle passes it when --dockerfile is
+# given), and this image only needs the dependency manifests. Without this,
+# every build would ship 770 MB of node_modules and 66 MB of .git to the daemon.
+*
+!package.json
+!package-lock.json
+!project.inlang
+project.inlang/cache

@@ -14,7 +14,7 @@
 		"prepare": "npm run paraglide && (svelte-kit sync || echo '')",
 		"check": "npm run paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.worker.json --noEmit",
 		"check:watch": "npm run paraglide && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --check . && eslint . && node scripts/math-index.mjs --check && node scripts/probe-registry.mjs --check && node scripts/brief-size.mjs --check && node scripts/comment-density.mjs --check",
+		"lint": "prettier --check . && eslint . && node scripts/math-index.mjs --check && node scripts/probe-registry.mjs --check && node scripts/brief-size.mjs --check && node scripts/comment-density.mjs --check && node scripts/file-names.mjs --check",
 		"lint:fix": "eslint . --fix",
 		"format": "prettier --write .",
 		"test:unit": "vitest",
@@ -29,6 +29,7 @@
 		"depcheck": "depcruise src"
 	},
 	"devDependencies": {
+		"@ai-hero/sandcastle": "^0.12.0",
 		"@chromatic-com/storybook": "^5.2.1",
 		"@eslint/js": "^10.0.1",
 		"@fontsource-variable/inter": "^5.2.8",

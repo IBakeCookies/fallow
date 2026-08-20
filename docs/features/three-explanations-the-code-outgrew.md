@@ -125,7 +125,7 @@ The evidence and the landing chores:
   title; do not merge into M1's.
 - `scripts/math-index.mjs` — run it. §10's index rows carry line ranges
   (`MATH.md:32-36`), so inserting an entry shifts every section below it.
-- `AGENTS.md:238-242` — §3's reviewer rule and the "only … comments … or docs"
+- `AGENTS.md:236-240` — §3's reviewer rule and the "only … comments … or docs"
   exemption this diff falls under.
 - `ROADMAP.md`, the three item-31 lines beginning `- **M4 §2**`, `- **M5 §8.9**`
   and `- **M6 §2**` (822, 827 and 832 in the current tree). Mark each closed

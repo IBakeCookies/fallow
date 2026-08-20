@@ -64,8 +64,10 @@ goes; do not let that turn into building for a future nobody has asked for.
   paragraph gets built without anyone writing one. A paragraph
   justifying a decision means the decision is too clever — simplify the code —
   or the justification is durable, and belongs in the rules file that owns it.
-  `scripts/comment-density.mjs --check` holds the volume; it counts lines, not
-  judgement, so the three above stay yours to catch.
+  `scripts/comment-density.mjs --check` holds the volume — budgeted, never
+  inherited from the file you are in, so a file already over is a file to cut,
+  not a licence. It counts lines, not judgement, so the three above stay yours
+  to catch.
 - **When you notice something unrelated, say it; do not fix it.** A finding
   reported costs a sentence. A finding fixed costs a review, a test, and a
   larger diff for the thing you were actually asked to do.
@@ -95,7 +97,7 @@ is in the layer that owns it.
 including the toast API, which a store takes as an injected thunk. `data` never
 imports upward; model defaults a migration needs are passed in as parameters.
 `src/lib/logger.ts` sits below all three and is the only file allowed to touch
-`console`. Detail per layer: [data](src/lib/data/AGENTS.md),
+`console` (`scripts/` aside). Detail per layer: [data](src/lib/data/AGENTS.md),
 [business](src/lib/business/AGENTS.md) (including the three user-facing failure
 surfaces), [presentation](src/lib/presentation/AGENTS.md).
 
@@ -172,13 +174,13 @@ lossy backup — and a bump reloads every other tab.
 
 ## 2. Conventions
 
-Most are enforced by eslint/prettier — see the configs. The rest:
+Enforced by eslint, prettier and `scripts/file-names.mjs`, except
+abbreviations, boolean prefixes and import order:
 
 ### Naming
 
 - No abbreviations.
-- Files and folders: singular, `kebab-case`. (Exception: config files whose
-  name a tool dictates.)
+- Files and folders: singular, `kebab-case`.
 - Slot names and emitted events: `kebab-case`.
 - Functions: _imperative verb + object [+ from|to|by + target]_ — `getUser()`,
   `addItemToCart()`, `sortCompaniesByName()`.
@@ -190,8 +192,7 @@ Most are enforced by eslint/prettier — see the configs. The rest:
   `mustDoToday`). A component's own mount-time copy of such a prop keeps the
   plain word (`isOpen` → `let open = $state(isOpen)`), so the two never shadow
   each other. Existing names are a baseline, not a to-do list: rename one when
-  you touch it, in a change of its own. Coerce with `Boolean(x)`, never `!!x` —
-  the same operation, but one is a name and the other is punctuation read twice.
+  you touch it, in a change of its own. Coerce with `Boolean(x)`, never `!!x`.
 - Data-layer controllers start with `$` + a CRUD verb: `$createX`, `$readX`,
   `$updateX`, `$deleteX`; an upsert is `$updateX`. Inside `.svelte`/`.svelte.ts`
   the `$` prefix is reserved for runes, so import the repository as a namespace.
@@ -201,8 +202,8 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 ### Code
 
 - Named exports only; default exports are for Svelte components. Enforced by
-  `no-restricted-syntax` on `ExportDefaultDeclaration`; root `*.config.*` and
-  `.storybook/` are exempt because their tool dictates the default export.
+  `no-restricted-syntax` on `ExportDefaultDeclaration`; root `*.config.{js,ts}`
+  and `.storybook/` are exempt because their tool dictates the default export.
 - Import through `$lib`, never a relative path — including a sibling. Three
   exemptions, each because the alias genuinely does not resolve: `./$types`
   (generated per route by `svelte-kit sync`), `e2e/` (Playwright has no Vite
@@ -212,9 +213,6 @@ Most are enforced by eslint/prettier — see the configs. The rest:
 - One responsibility per function. A function that _does_ something is an
   **action**; one that _reacts_ is a **handler**, named `onClick`,
   `onInputChange`. Handlers only handle — they compose actions.
-- Comments explain _why_, and pay for their line count — §0 names the three
-  kinds that never do. Density is budgeted, never inherited from the file you
-  are in: a file already over is a file to cut, not a licence.
 - **Imports**, in order: types → external libs → internal helpers → data layer →
   business layer → presentation (big/abstract to small/specific).
 

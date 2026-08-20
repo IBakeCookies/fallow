@@ -37,3 +37,6 @@ screenshots/
 
 # Claude Code local (machine-specific) settings
 .claude/settings.local.json
+
+# Eval harness output
+eval/results/
