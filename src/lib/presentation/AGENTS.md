@@ -16,10 +16,19 @@ it before touching markup, classes, or anything under `style/`.**
 
 ## R2 — Routes and components hold no logic
 
-The lint rules enforce dependency _direction_, not code _placement_: a route
-importing business code is legal, so logic drifts into `+page.svelte` where
-nothing can unit-test it. Happened twice (a 518-line main page, a 1349-line
-Energy Lab); both had to be pulled back out.
+Direction is cheap to enforce and placement is not: a route importing business
+code is legal, so logic drifts into `+page.svelte` where nothing can unit-test
+it. Happened twice (a 518-line main page, a 1349-line Energy Lab); both had to
+be pulled back out.
+
+The commonest form of that drift is now an error rather than a judgement call:
+an `await` or a `.then()` inside a `$effect` in `src/routes/**` or
+`presentation/**` fails `no-restricted-syntax`, because a file that sequences
+reads and holds their results is orchestrating. Read in a store and take the
+value. What the selector cannot see is a synchronous pile — a page of
+`$derived` chains computing policy is still legal and still wrong, which is
+what the rule of thumb below is for. `calendar/+page.svelte` carries the one
+`eslint-disable` for it, predating the rule.
 
 Reads end at a store: `presentation-not-to-business-model` in
 `.dependency-cruiser.cjs` is an **error** when a route or component

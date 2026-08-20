@@ -254,6 +254,11 @@ excluded; the command runs inside the run's container, with the worktree as its
 cwd. `Traps` is for case authors —
 the harness never shows it to the agent or to the judge.
 
+A whole-linter row is not rule-isolated, whatever its `rule` says: `npx eslint`
+fails on any rule the diff breaks, and since R2's placement selector landed it
+can fail for R2 on a row labelled R1. Read a deterministic eslint row as
+"eslint is clean" and let the judge rows carry the attribution.
+
 ## Result schema
 
 `eval/results/<ISO-stamp>.json` is `{ base, canary, rows }`: the commit every

@@ -112,7 +112,8 @@ UI-only state (draft editors, toggles, view preferences), formatters and thin
 threshold policy go in a module — the table of which module is in
 [presentation/AGENTS.md](src/lib/presentation/AGENTS.md). Reads end at a store,
 and that is not a judgement call: `presentation-not-to-business-model` is an
-error. If you cannot test it at any level in R6's table, it is in the wrong
+error, and so is an `await` or a `.then()` inside a route or component
+`$effect`. If you cannot test it at any level in R6's table, it is in the wrong
 file.
 
 **R3 — One definition per concept.** A mapping, threshold, join or format used

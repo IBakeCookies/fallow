@@ -315,6 +315,28 @@ export default defineConfig(
 		},
 	},
 	{
+		// R2's other half. dependency-cruiser enforces direction — a route may not
+		// value-import `$lib/business/model/*` — but importing a store is legal, so
+		// the logic drifts into the `$effect` rather than into the import list, and
+		// that is the half no checker was watching. An `await` or a `.then()` inside
+		// a route or component effect is that drift in its commonest form: the file
+		// is now sequencing reads and holding the results, which nothing can
+		// unit-test. Read in a store and hand the page the value.
+		files: ['src/routes/**/*.svelte', 'src/lib/presentation/**/*.svelte'],
+		rules: {
+			'no-restricted-syntax': [
+				'error',
+				...restrictedSyntax,
+				{
+					selector:
+						"CallExpression[callee.name='$effect'] :matches(AwaitExpression, MemberExpression[property.name='then'])",
+					message:
+						'R2: a route or component effect does not read or persist. Move the sequencing into a store (business/store/*.svelte.ts) and give this file the result.',
+				},
+			],
+		},
+	},
+	{
 		// shadcn generates these barrels with relative re-exports and rewrites them
 		// on every `shadcn add`, so the alias rule would be undone by the CLI. The
 		// layer boundary still applies.
