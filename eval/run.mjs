@@ -282,6 +282,13 @@ const runCanary = async (base, token, maxTurns) =>
 
 // --- scoring ---------------------------------------------------------------
 
+// SvelteKit route groups are literal parentheses in the path
+// (`src/routes/(app)/+page.svelte`), so an unquoted `$CHANGED` is a shell
+// syntax error rather than an argument list. Every check on a case that touched
+// a route group died this way and recorded a plain `pass: false`, which reads as
+// the agent breaking the rule.
+const shellQuote = (arg) => `'${arg.replaceAll("'", String.raw`'\''`)}'`;
+
 const scoreDeterministic = async (check, sandbox, changed) => {
 	if (!changed.length)
 		return {
@@ -289,14 +296,20 @@ const scoreDeterministic = async (check, sandbox, changed) => {
 			evidence: 'no files changed',
 		};
 
-	const command = check.run.replaceAll('$CHANGED', changed.join(' '));
+	const command = check.run.replaceAll('$CHANGED', changed.map(shellQuote).join(' '));
 	const expected = Number(/exit\s+(\d+)/u.exec(check.expect ?? 'exit 0')[1]);
 	const { exitCode, stdout, stderr } = await sandbox.exec(command);
 	const output = `${stdout}${stderr}`.trim().split('\n').slice(0, 8).join('\n');
+	// A check that the shell could not parse, or whose tool was missing, says
+	// nothing about the rule. Reported as a harness fault so the row is excluded
+	// rather than counted against the agent — the same guard the quoting bug
+	// above needed and did not have.
+	const broken = /^sh: |Syntax error|command not found/mu.test(output);
 
 	return {
 		pass: exitCode === expected,
 		evidence: `exit ${exitCode} (expected ${expected}): ${output}`,
+		fault: broken ? `check could not run: ${output.split('\n')[0]}` : '',
 	};
 };
 
@@ -353,7 +366,7 @@ const executeRun = async (task, base, token, maxTurns) =>
 		const rows = [];
 
 		for (const check of task.testCase.deterministic) {
-			const { pass, evidence } = await scoreDeterministic(check, sandbox, changed);
+			const { pass, evidence, fault } = await scoreDeterministic(check, sandbox, changed);
 
 			rows.push({
 				...task.row,
@@ -362,7 +375,7 @@ const executeRun = async (task, base, token, maxTurns) =>
 				pass,
 				source: 'deterministic',
 				evidence,
-				notes,
+				notes: [notes, fault].filter(Boolean).join('; '),
 			});
 		}
 
