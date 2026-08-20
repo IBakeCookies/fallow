@@ -136,8 +136,8 @@ const task = (
 /** The 2026-07-14 probe day §8.5's knife-edge number was measured on. */
 const PROBE_DAY = [
 	task(1, 'boxing', 10, 10, 0.2, 1.0),
-	task(2, 'guitar', 6, 9, 0.4, 0.3),
-	task(3, 'reading', 4, 7, 0.5, 0.05),
+	task(2, 'guitar', 6, 9, 0.6, 0),
+	task(3, 'reading', 4, 7, 0.4, 0),
 ];
 
 const DEMANDS = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7];

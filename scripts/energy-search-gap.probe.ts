@@ -105,6 +105,12 @@ const task = (
  * lattice is still enumerable, because the sweep and the fixture answer
  * different questions — the sweep asks how common a gap is, the fixture asks
  * whether the one day known to break the search is now provably solved.
+ *
+ * DELIBERATELY NOT realigned onto the sliders with the other nine declarations
+ * of this day (ROADMAP M44, 2026-08-21): `guitar 0.4/0.3` and `reading 0.5/0.05`
+ * are unreachable demands, and here that is the point. This fixture is the
+ * historical day that broke the search, not a day a user could file — moving it
+ * would keep the name and lose the question.
  */
 const PROBE_DAY: EnergyTaskInput[] = [
 	task(1, 10, 10, 0.2, 1.0),

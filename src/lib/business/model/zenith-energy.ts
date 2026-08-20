@@ -2342,9 +2342,14 @@ export function adviseStop(
  * CONDITIONING: the extraction runs under the CURRENT dynamics
  * (α, r, m, b, satietyScale) and terminalEnergyValue — λ₀ absorbs the stop
  * data given everything else, mirroring how α conditions on r (§8.7). V_T is
- * deliberately NOT fit: stop times carry almost no signal about it (probe
- * 2026-07-19: a 12× V_T sweep moved the optimal stop across two lattice
- * levels). Calibrate r and α first; this fit inherits their quality.
+ * deliberately NOT fit, and NOT because stop times are blind to it — the
+ * 2026-07-19 "moved the stop across two lattice levels" reading is withdrawn.
+ * Over 300 seeded slider-reachable days the same sweep moves the stop by a
+ * median 1 step and 5 at worst, non-monotonically on 25 of them (§8.10
+ * feasibility 2, 2026-08-21). V_T stays user-owned because it is a preference
+ * the slider states, not because it is unidentifiable; a slider left far from
+ * the truth is a real unfitted error source. Calibrate r and α first; this fit
+ * inherits their quality.
  */
 export function fitStoppingValue(
 	observations: StopObservation[],

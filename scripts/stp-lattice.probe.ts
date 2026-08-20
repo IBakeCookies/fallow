@@ -70,11 +70,16 @@ const task = (
 	physicalDemand,
 });
 
-/** The 2026-07-14 probe day (boxing / guitar / reading), as in the suite. */
+/**
+ * The 2026-07-14 probe day (boxing / guitar / reading), as in the suite.
+ * Aligned 2026-08-21 (ROADMAP M44): guitar 0.4/0.3 → 0.6/0 and reading
+ * 0.5/0.05 → 0.4/0, the demands the three integer sliders actually reach at the
+ * difficulties this day is stated in.
+ */
 const PROBE_DAY: EnergyTaskInput[] = [
 	task(1, 10, 10, 0.2, 1.0),
-	task(2, 6, 9, 0.4, 0.3),
-	task(3, 4, 7, 0.5, 0.05),
+	task(2, 6, 9, 0.6, 0),
+	task(3, 4, 7, 0.4, 0),
 ];
 
 /** The suite's second §8.8 day: four tasks, mixed cognitive/physical. */

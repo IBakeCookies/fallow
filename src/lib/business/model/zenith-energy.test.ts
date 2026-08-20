@@ -47,6 +47,29 @@ function makeTask(
 	};
 }
 
+/**
+ * The 2026-07-14 probe day (boxing / guitar / reading), declared ONCE.
+ *
+ * As the three integer sliders reach it. Boxing was always reachable (sliders 2
+ * mental / 10 physical: difficulty min(10, 10 + 0.3·2) = 10, demands 0.2/1.0).
+ * The other two were not, and the DIFFICULTIES are what this day's findings are
+ * stated in — the canonical amplitudes 10.4 / 6.67 / 4.60 the tests below
+ * reconstruct — so the difficulties are held and the secondary demands move:
+ * guitar 0.4/0.3 → 0.6/0.0 (sliders 6/0) and reading 0.5/0.05 → 0.4/0.0
+ * (sliders 4/0). physicalDemand 0.05 had no slider at all: the demands are
+ * slider/10.
+ *
+ * Four describe blocks below declared their own copy of the pre-slider triple
+ * until 2026-08-21, which is how §8.10's fixture drifted from the rest of the
+ * file for two days (ROADMAP M44). One declaration is the guard: there is no
+ * longer a second place for it to drift from.
+ */
+const PROBE_DAY = [
+	makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
+	makeTask(2, 'guitar', 6, 9, 0.6, 0),
+	makeTask(3, 'reading', 4, 7, 0.4, 0),
+];
+
 describe('Zenith Energy Model', () => {
 	describe('normalizeSchedule', () => {
 		it('merges adjacent same-task blocks into one session', () => {
@@ -449,11 +472,7 @@ describe('Zenith Energy Model', () => {
 	describe('satiety (per-task diminishing daily returns)', () => {
 		// The winner-take-all probe scenario (2026-07-11/14): one dominant
 		// high-amplitude task plus two weaker ones.
-		const day = [
-			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
-			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
-		];
+		const day = PROBE_DAY;
 
 		const sched = [
 			{
@@ -635,11 +654,7 @@ describe('Zenith Energy Model', () => {
 	});
 
 	describe('micro-recovery gate (w = 1 reservoir floor)', () => {
-		const day = [
-			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
-			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
-		];
+		const day = PROBE_DAY;
 
 		it('a full-demand task drains toward a positive floor, not zero', () => {
 			// eq = b·r′/(α + b·r′) ≈ 0.149 with the defaults; the zero-floor law
@@ -736,11 +751,7 @@ describe('Zenith Energy Model', () => {
 			// The witness is off the 45-min lattice, so this guards SEARCH
 			// reliability at the fine step it was written for; quantization loss
 			// has its own tests below.
-			const day = [
-				makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
-				makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-				makeTask(3, 'reading', 4, 7, 0.5, 0.05),
-			];
+			const day = PROBE_DAY;
 
 			const handBuilt = evaluateSchedule(
 				[
@@ -920,11 +931,7 @@ describe('Zenith Energy Model', () => {
 	});
 
 	describe('45-min block granularity (MATH.md §8.8)', () => {
-		const probeDay = [
-			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
-			makeTask(2, 'guitar', 6, 9, 0.4, 0.3),
-			makeTask(3, 'reading', 4, 7, 0.5, 0.05),
-		];
+		const probeDay = PROBE_DAY;
 
 		const mixedDay = [
 			makeTask(1, 'write spec', 8, 6, 0.9, 0.1),
@@ -956,13 +963,13 @@ describe('Zenith Energy Model', () => {
 		// 813 ms → 1970 ms when they landed. That fits the 5 s default alone but not
 		// alongside the browser projects, so the timeout below is a hang detector,
 		// not a machine-speed gate.
-		it('quantization keeps ≥97% of the fine-step objective, and the mixed day’s structure', () => {
-			// Probe 2026-08-13: ratios 0.9831 (probeDay) and 0.9952 (mixedDay). The
+		it('quantization keeps ≥97% of the fine-step objective, and both days’ structure', () => {
+			// Probe 2026-08-21: ratios 0.9843 (probeDay) and 0.9952 (mixedDay). The
 			// bound leaves slack for param drift but catches a structural regression
-			// outright. The probe day's funded set no longer survives the lattice —
-			// coarse funds 3 tasks, fine 2 — and that is quantization, not search
-			// slack: enumerating all 1 048 576 coarse plans of that day returns the
-			// same 3-task plan the search does (§8.8).
+			// outright. The funded set now survives the lattice on BOTH days, so the
+			// assertion covers both: the probe day's 3-vs-2 mismatch was a property
+			// of the unreachable demands it carried until M44, not of the lattice
+			// (§8.8).
 			for (const tasks of [probeDay, mixedDay]) {
 				const coarse = optimizeSchedule(tasks, 8);
 
@@ -974,7 +981,7 @@ describe('Zenith Energy Model', () => {
 					0.97 * fine.evaluation.objective,
 				);
 
-				if (tasks === mixedDay) expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
+				expect(funded(coarse.blocks)).toEqual(funded(fine.blocks));
 			}
 		}, 20_000);
 
@@ -1389,21 +1396,9 @@ describe('Zenith Energy Model', () => {
 	});
 
 	describe('stopping-value calibration (fitStoppingValue, MATH.md §8.10)', () => {
-		// §8.10's fixture day, as the three integer sliders reach it — the same day
-		// `scripts/stop-inversion-margin.probe.ts` declares, field for field.
-		// Boxing was already reachable (sliders 2 mental / 10 physical: difficulty
-		// min(10, 10 + 0.3·2) = 10, demands 0.2/1.0). The other two were not, and
-		// the DIFFICULTIES are what this day's findings are stated in — the
-		// canonical amplitudes 10.4 / 6.67 / 4.60 the tests below reconstruct — so
-		// the difficulties are held and the secondary demands move: guitar 0.4/0.3
-		// → 0.6/0.0 (sliders 6/0) and reading 0.5/0.05 → 0.4/0.0 (sliders 4/0).
-		// physicalDemand 0.05 had no slider at all: the demands are slider/10.
-		const day = [
-			makeTask(1, 'boxing', 10, 10, 0.2, 1.0),
-			makeTask(2, 'guitar', 6, 9, 0.6, 0),
-			makeTask(3, 'reading', 4, 7, 0.4, 0),
-		];
-
+		// The same day `scripts/stop-inversion-margin.probe.ts` declares, field for
+		// field; the reachability reasoning is on `PROBE_DAY` itself.
+		const day = PROBE_DAY;
 		const prior = DEFAULT_ENERGY_PARAMS.freeTimeValue;
 
 		/**
@@ -2114,6 +2109,27 @@ describe('Zenith Energy Model', () => {
 		 * up here as the product decision it is. Both declarations of this day
 		 * (M44) give 11.25 h, so the figure does not depend on that ambiguity.
 		 */
+		/**
+		 * §8.10 feasibility 2: V_T is conditioned on, not fitted, BECAUSE it moves
+		 * the stop. The 300-day sweep behind that (2026-08-21) reports a median
+		 * 1-step span and 5 steps at worst; this pins the cheapest witness of the
+		 * mechanism on the day the file already declares, so a change that made V_T
+		 * stop mattering could not pass. Literals, not `terminalEnergyValue` — the
+		 * point is the gap between the two ends of the sweep, and reading the
+		 * default for one end would let both sides move together (ROADMAP M45).
+		 */
+		it('V_T moves the optimal stop, which is why the fit conditions on it', () => {
+			const stop = (terminalEnergyValue: number) =>
+				optimizeSchedule(PROBE_DAY, 8, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: 0.9,
+					terminalEnergyValue,
+				}).evaluation.workHours;
+
+			expect(stop(0)).toBeCloseTo(6.75, 9);
+			expect(stop(6)).toBeCloseTo(6, 9);
+		});
+
 		it('plans 11.25 h of a 12-hour window at the shipped default λ₀', () => {
 			const { evaluation } = optimizeSchedule(day, 12, DEFAULT_ENERGY_PARAMS);
 			expect(DEFAULT_ENERGY_PARAMS.freeTimeValue).toBe(0.5);

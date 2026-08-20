@@ -851,14 +851,19 @@ holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
 2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)), and **M38 the
 same day** — its ruling shipped as a model change (MATH.md §8.10, §8.11, §10).
-Eleven are still leads: M17 (two of its three sites landed), M23, M33, M34,
-M35, M37, M39–M42 and M44 — M39–M42 filed 2026-08-19 out of M38's measurement and its
+Nine are still leads: M17 (two of its three sites landed), M23, M33, M34,
+M35, M37, M39, M40 (one of three generators left) and M42 — M39–M42 filed 2026-08-19 out of M38's measurement and its
 fix, and M43–M45 the same day out of M40's first correction, which found the fault
 set wider than M40 recorded. M37–M45 came from probe sweeps rather than from the
 2026-08-14 audit and carry the same rule; M38 is the one exception, because its fix committed the
 instrument that reproduces it. **M45 closed on 2026-08-20** by pinning six
 model constants the suite had left unguarded, and **M43 the same day** by
-re-reading the insertion witness on the day the suite actually declares. **M46 was filed and closed the same
+re-reading the insertion witness on the day the suite actually declares.
+**M44 and M41 closed on 2026-08-21**: the named day is declared once instead of
+ten times, which moved figures in §8.3, §8.4, §8.5, §8.8, §8.10 and §13.6 and
+retired two §8.10 witnesses that turned out to be properties of demands no
+slider can reach — replaced by a 300-day sweep, which is also what made M41
+quotable and closable. **M46 was filed and closed the same
 day** and was never a lead: it came out of measuring the shipped default λ₀,
 which neither §8.3's probe nor its suite fixture had ever sampled.
 
@@ -1389,16 +1394,28 @@ only way to catch.
   for the first time. The fault set was also wider than this entry recorded: the
   declared-difficulty and 0.05-demand faults it pins on
   `stp-stopping-identifiability` alone sat in this probe's own fixture and in
-  `zenith-energy.test.ts`'s mirror of it. The other two generators are UNCHANGED
-  and their figures were re-read on the same off-surface days, so this caveat
-  still attaches to every number they back — fixing them is its own change, and
-  it moves that whole set again.
-- **M41 §8.10** — the V_T non-monotonicity claim is UNDERSTATED, not merely
-  mis-witnessed: over the UI's own V_T range on app-legal days, 18 of 200 cells
-  are non-monotone with up to 5 levels and a 4-step span, while §8.10 claims three
-  levels and `zenith-energy.ts:2349-2350` says "two lattice levels" (scratch,
-  2026-08-19; the citation was `:2188-2189` before the 2026-08-19 model change
-  moved it). Inside the §8.10 hold — filed, with the text left alone.
+  `zenith-energy.test.ts`'s mirror of it. **Second generator fixed 2026-08-21**
+  with M44: `stp-stopping-identifiability`'s standard day is on the sliders, both
+  faults this entry pins on it (declared difficulty, the 0.05 demand) are gone,
+  and its new V_T arm builds every seeded day from integer sliders through the Eᵤ
+  formula. Its whole figure set moved, as predicted. **One generator left**:
+  `stop-margin-fit-error.probe.ts:346` still takes
+  `difficulty = Math.max(mental, physical)` and skips the 0.3 spillover, so the
+  caveat still attaches to every number it backs and fixing it is still its own
+  change.
+- **M41 §8.10 — CLOSED 2026-08-21, confirmed in shape by a committed
+  instrument.** The lead read 18 of 200 cells non-monotone with up to 5 levels
+  and a 4-step span from SCRATCH, so under item 29's rule it was unquotable. The
+  V_T arm added to `stp-stopping-identifiability.probe.ts` with M44 measures the
+  same question on committed ground and agrees in shape: over 300 seeded
+  slider-reachable days the span is a median 1 step, 2 at p90 and **5 at worst**,
+  with **25 of 300 non-monotone**. Those are this arm's numbers, not the lead's —
+  different generator and sweep, so they confirm the shape and replace the
+  figures rather than reproducing them. The §8.10 hold that kept this filed
+  lifted when M38 shipped, so both stale texts are fixed: §8.10 and §13.6 now
+  quote the sweep, and `fitStoppingValue`'s docblock no longer says stop times
+  carry "almost no signal" about V_T — the reason V_T stays user-owned is that it
+  is a preference the slider states, not that it is unidentifiable.
 - **M42 §8.10 — the residual after M38's fix is one-signed HIGH, and censoring it
   is a data-versus-accuracy call the maintainer makes.** Not a doc defect: §8.10
   now states this size, and this entry is the POLICY question it deliberately does
@@ -1450,23 +1467,56 @@ only way to catch.
   behaviour. The general guard is item 29's rule made mechanical — a check that
   every figure MATH.md attributes to a probe still appears in that probe's
   output — which nothing does yet.
-- **M44 — one file declares one named day two ways.** `zenith-energy.test.ts`
-  aligned its §8.10 fixture to the probe at `:1389-1392` on 2026-08-19, but the
-  same boxing/guitar/reading triple is still declared with the unreachable values
-  at `:455-456` (satiety), `:641-642` (micro-recovery gate), `:742-743`
-  (optimizeSchedule) and `:926-927` (45-min granularity): `guitar 6, 9, 0.4, 0.3`
-  pins sliders 4/3, which `getEffectiveDifficulty` sends to 4.90 rather than the 6
-  declared, and reading's `0.05` physical demand is a slider of 0.5. Six probe
-  files build the day by hand too — `rv13-stop-insertion.probe.ts:304` and
-  `sat-gate-floor.probe.ts:139` with those literals outright, plus `stp-lattice`,
-  `stp-stopping-identifiability`, `rv13-terminal-timing` and
-  `enb-break-economics`. Aligning any one of them moves the figures its own
-  section quotes, so each is its own change. This is M40's remaining scope stated
-  as fixtures rather than as generators, and it is why M40 stays open.
-  **`rv13-stop-insertion.probe.ts:304` aligned 2026-08-20** with M43, which is
-  what M43's repair required; the remaining nine sites are each still their own
-  change. That first one cost two figures in §13.4 and re-dated one sentence in
-  §8.11, which is the per-site price to expect.
+- **M44 — CLOSED 2026-08-21. One named day was declared ten ways; it is now
+  declared once, and nine of the ten sites moved.** `zenith-energy.test.ts`
+  aligned its §8.10 fixture to the sliders on 2026-08-19 and left four other
+  copies of the pre-slider triple in the same file, plus six probe files holding
+  it by hand — `guitar 6, 9, 0.4, 0.3` pins sliders 4/3, which
+  `getEffectiveDifficulty` sends to 4.90 rather than the 6 declared, and
+  reading's 0.05 physical demand is a slider of 0.5. Difficulties held, secondary
+  demands moved: guitar 0.4/0.3 → 0.6/0 (sliders 6/0), reading 0.5/0.05 → 0.4/0
+  (sliders 4/0). The four suite copies are now ONE module-level `PROBE_DAY`,
+  which is the actual guard — there is no second place left to drift from.
+  **One site is deliberately held:** `energy-search-gap.probe.ts:112` keeps the
+  unreachable demands on purpose and now says so in its docblock, because it is
+  the historical day that broke the §8.6 search, and a realigned day would keep
+  the name and lose the question.
+  What the nine moves cost, by section:
+  - **§8.8** — the 8 h ratio 0.9831 → **0.9843**, 12 h 0.9936 → **0.9810**, worst
+    0.9693 at 4 h unmoved; the enumerated optimum 10.7331 → **10.6274** with the
+    search still exact on all 1 048 576 plans; timing 26.9 ms vs 500.7 ms. The
+    documented **exception disappeared**: the probe day at 8 h funded 3 coarse
+    against 2 fine, and now reads {1,2,3} both ways with no rest either side, so
+    structure matches in **12 of 12** cells and the suite's funded-set assertion,
+    which skipped the probe day because of the exception, now covers both days.
+    A documented quirk of the model was a quirk of demands no user can enter.
+  - **§8.5** — the demand ladder wp 1.0 → 0.7 goes 3.75 → 4.50 → 5.25 h to
+    **3.25 → 4.50 → 5.25 → 5.50**, still monotone, largest single step 0.50 h →
+    **1.25 h**. Arms A/B/D are parameter identities and did not move.
+  - **§8.3/§8.4** — the graded W\*(λ₀) ladder 12/11.25/10.5/6/4.5/0 →
+    **12/12/9.75/6/4.5/0**, same shape; the pre-fix-dynamics reading 12 h ≤ 0.5
+    and 10.5 h from 0.8 → **12 h through λ₀ 1.2 and 9 h at 1.5**, still two-step,
+    still no collapse; guitar's fragmentation trio 1.4511/1.1687/1.2750 →
+    **1.3971/1.1475/1.2402**. **M46 survives untouched**: λ₀ 0.5 still plans
+    11.25 h of 12, and the whole portfolio spread and λ₀ = 1 reprice re-read
+    identically — only its flat step narrows from λ₀ 0.4–0.6 to **0.5–0.6**,
+    because 0.4 now plans the full window.
+  - **§13.6** — the fixture day's shipped optimum 0.8391/0.8391 → **0.8408/0.8408**,
+    still ending at the window edge so the two readings still coincide.
+  - **§8.10 and §13.6 — the one that was not a figure swap.** BOTH witnesses
+    §8.10 cited for "V_T is not free" were artifacts of the unreachable demands:
+    the 3-step move at 8 h / λ₀ 1.3 and the three-level walk at 12 h / λ₀ 0.9
+    both vanish on the reachable day, where all 8 cells move at most **one**
+    step. Rather than restate the conclusion on one day a third time, the probe
+    gained a **300-seeded-day V_T sweep**: span median 1 step, **p90 2, worst 5**
+    (a 4-task 11 h day at λ₀ 0.8 walking 10.5 → 6.75 h), **25 of 300 non-monotone**,
+    236 of 300 at one or two levels, and V_T moves the stop at all on 150 of 300
+    — an occurrence counter, so a small number cannot be read off an empty
+    region. The conclusion is unchanged and now rests on a distribution instead
+    of a witness, and one suite fixture pins the mechanism against literals.
+    The lesson is the cheap one: four copies of a fixture in one file is not
+    duplication, it is four figures that can disagree, and the disagreement is
+    invisible to every gate the repo has.
 - **M45 — CLOSED 2026-08-20. The probe was never the guard; six suite pins were
   missing.** Two mutations of the behaviour `stop-inversion-margin.probe.ts`
   documents left it GREEN (2026-08-19): dropping `DIFFICULTY_SPILLOVER` from
