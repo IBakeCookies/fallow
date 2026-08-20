@@ -298,11 +298,18 @@ const task = (
 	physicalDemand,
 });
 
-/** §8.10's own fixture day (zenith-energy.test.ts), amplitude-descending by id. */
+/**
+ * §8.10's own fixture day (zenith-energy.test.ts), amplitude-descending by id,
+ * AS THE SLIDERS REACH IT. Aligned 2026-08-20 (ROADMAP M44): the suite moved
+ * this day to slider-reachable demands on 2026-08-19 — guitar 0.4/0.3 → 0.6/0
+ * and reading 0.5/0.05 → 0.4/0, difficulties held — and until now this probe
+ * still declared the old triple, so §13.4's sentence about "§8.10's own fixture
+ * day" described a day the repo no longer had.
+ */
 const DAY = [
 	task(1, 'boxing', 10, 10, 0.2, 1.0),
-	task(2, 'guitar', 6, 9, 0.4, 0.3),
-	task(3, 'reading', 4, 7, 0.5, 0.05),
+	task(2, 'guitar', 6, 9, 0.6, 0),
+	task(3, 'reading', 4, 7, 0.4, 0),
 ];
 
 /**
