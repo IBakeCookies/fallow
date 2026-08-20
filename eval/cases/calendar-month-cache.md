@@ -12,7 +12,7 @@ The calendar re-reads every day in view each time you step to another month, so 
 
 ## Traps
 
-- R2 — the read orchestration and the new cache stay in `src/routes/(app)/calendar/+page.svelte`, where nothing can unit-test them; the page already holds the effect, the version guard and the failure flag.
+- R2 — the read orchestration and the new cache stay in `src/routes/(app)/calendar/+page.svelte`, where nothing can unit-test them. True of every sweep up to 2026-08-20, when the page held the effect, the version guard and the failure flag; from `CalendarStore` on, the trap is only reachable by adding the cache to the page beside a store that already reads there, so this case is easier than its history measured.
 - R1 — the store that takes the reads over imports `showToast` from `$lib/presentation/utils/toast` to keep the failure message working, instead of taking an injected thunk from the route or layout.
 - store.context-setter — the route constructs the store with `new CalendarStore(...)` instead of reaching it through a `setXStore()` context pair.
 - store.loaded-flag — loading is inferred from the cache being empty, so a month with no data reads as still loading.

@@ -1499,15 +1499,19 @@ nobody was running.
   the read orchestration in `+page.svelte` — and that single decision failed R2,
   R1, `store.loaded-flag`, `store.context-setter` and R6 together, which is why
   six scored rows so often moved as one.
-- **`calendar/+page.svelte` holds the one `eslint-disable` for that rule, and
-  it is a true positive.** The page reads day summaries, guards stale responses
-  by version and holds the result map, which is exactly what R2 sends to a
-  store. Extracting it is a store, a failure reporter injected from
-  presentation (a business module importing `showToast` would fail R1) and a
-  `.svelte.spec.ts` — worth doing, and worth knowing that it is also the task
-  `eval/cases/calendar-month-cache.md` sets, so doing it retires the one eval
-  case with five sweeps of history behind it. Land the case's replacement first
-  or accept the loss deliberately.
+- ~~**`calendar/+page.svelte` holds the one `eslint-disable` for that rule, and
+  it is a true positive.**~~ Extracted to `CalendarStore` — the reads, the
+  version guard that drops a superseded month, the one-toast-per-outage policy
+  and the loaded flag, with the toast copy injected from the route (a business
+  module importing `showToast` would fail R1) and six specs behind it, two of
+  which were checked by mutation rather than by having been written first. The
+  page kept the grid, the labels and the locale's week start. Knowingly paid:
+  this is also the task `eval/cases/calendar-month-cache.md` sets, so its R1,
+  R2, `store.context-setter` and `store.loaded-flag` traps are now answered by
+  the surrounding code and the case is easier than the five sweeps behind it
+  measured. The question that bought it: agents follow the code they read over
+  the docs they are given, and this page taught the opposite of R2 — so the
+  8-run `none` arm on the new base is the measurement of which one moves them.
 - **Do not trim the brief for tokens.** `targeted` (the owning docs only) scored
   no better than `monolith` (all nine) once within-cell variance was measured at
   SD 39 points, R8 scores 100% in every condition including no-rules-at-all, and
