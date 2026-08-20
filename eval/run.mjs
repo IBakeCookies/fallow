@@ -5,6 +5,7 @@
 //
 //   node eval/run.mjs --cases '*.md' --conditions none,routed --reps 3
 //   node eval/run.mjs --cases 'a.md,b.md' --max-turns 150
+//   node eval/run.mjs --base 3fa78c9 --conditions none
 //   node eval/run.mjs --dry-run
 
 import { execFile } from 'node:child_process';
@@ -34,6 +35,7 @@ const parseArgs = (argv) => {
 		conditions: CONDITIONS.join(','),
 		reps: '1',
 		concurrency: '3',
+		base: 'HEAD',
 		'max-turns': '100',
 	};
 
@@ -56,6 +58,7 @@ const parseArgs = (argv) => {
 		conditions,
 		reps: Number(flags.reps),
 		concurrency: Number(flags.concurrency),
+		base: flags.base,
 		maxTurns: Number(flags['max-turns']),
 		dryRun,
 		skipCanary,
@@ -413,7 +416,12 @@ const main = async () => {
 	const args = parseArgs(process.argv.slice(2));
 	const token = args.dryRun ? null : await preflight();
 	const cases = await loadCases(args.cases);
-	const base = await git(['rev-parse', 'HEAD']);
+	// Defaults to HEAD, but a sweep meant to extend an earlier one has to name
+	// that sweep's base: several cases score a rule by running `eslint` over the
+	// whole changed file, so a commit that adds an unrelated eslint rule makes
+	// the same check stricter than it was and the two sweeps stop being
+	// comparable.
+	const base = await git(['rev-parse', args.base]);
 	const tasks = [];
 
 	for (const testCase of cases) {
