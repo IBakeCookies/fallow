@@ -851,12 +851,13 @@ holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
 2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)), and **M38 the
 same day** — its ruling shipped as a model change (MATH.md §8.10, §8.11, §10).
-Thirteen are still leads: M17 (two of its three sites landed), M23, M33, M34,
-M35, M37, and M39–M45 — M39–M42 filed 2026-08-19 out of M38's measurement and its
+Twelve are still leads: M17 (two of its three sites landed), M23, M33, M34,
+M35, M37, and M39–M44 — M39–M42 filed 2026-08-19 out of M38's measurement and its
 fix, and M43–M45 the same day out of M40's first correction, which found the fault
 set wider than M40 recorded. M37–M45 came from probe sweeps rather than from the
 2026-08-14 audit and carry the same rule; M38 is the one exception, because its fix committed the
-instrument that reproduces it.
+instrument that reproduces it. **M45 closed on 2026-08-20** by pinning six
+model constants the suite had left unguarded.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1441,16 +1442,34 @@ only way to catch.
   `enb-break-economics`. Aligning any one of them moves the figures its own
   section quotes, so each is its own change. This is M40's remaining scope stated
   as fixtures rather than as generators, and it is why M40 stays open.
-- **M45 — `stop-inversion-margin.probe.ts` reports, it does not guard.** Two
-  mutations of the behaviour it documents left it GREEN (2026-08-19): dropping
-  `DIFFICULTY_SPILLOVER` from `getEffectiveDifficulty`, and forcing every
-  recovered inter-session gap to zero so a day's breaks become invisible. It
-  prints the right populations and asserts nothing that binds them, so nothing
-  fails when the behaviour moves. The suite caught the second mutation from
-  2026-08-19 (`fit.value` must differ from the same days summed); the first has no
-  detector anywhere. A probe that cannot go red is a report, not an instrument —
-  which is the assumption item 29's rule rests on, so the rule is worth re-reading
-  against the other 60 registry rows rather than this one probe.
+- **M45 — CLOSED 2026-08-20. The probe was never the guard; six suite pins were
+  missing.** Two mutations of the behaviour `stop-inversion-margin.probe.ts`
+  documents left it GREEN (2026-08-19): dropping `DIFFICULTY_SPILLOVER` from
+  `getEffectiveDifficulty`, and forcing every recovered inter-session gap to zero
+  so a day's breaks become invisible. **That is the design, not a defect**, and
+  this lead's own framing — "a probe that cannot go red is a report, not an
+  instrument" — contradicts `scripts/PROBES.md`, which opens "Probes are
+  committed, and they are not tests" because a probe's number legitimately moves
+  whenever the allocator does. 39 of the 61 probes contain no `expect()`. The
+  rule that is testable is `docs/testing.md`'s "Pin what the probe found with one
+  fixture in the suite", so the sweep ran against the suite: all 40 module-level
+  model constants perturbed one at a time, 830 tests per run (2026-08-20). **31
+  caught, 9 survived** — eight of them a fit bound or a noise term, the ninth a
+  search seed count. Six were real and are now pinned to literals, taking the sweep to **37
+  of 40**: `ALPHA_FIT_MAX` (2 → 0.9 clamped fitted α 0.9627 → 0.9000 and widened
+  the worst prediction gap 1.236 → 2.024 notches) and `RECOVERY_FIT_MIN` (0.1 →
+  0.6 moved a rest set that already sat on the bound, 0.100000 → 0.600000) both
+  survived because their only assertions compared a bound against its own
+  constant, so both sides moved together; and the four noise terms behind the
+  Energy page's ± printed nothing anyone asserted — `DRAIN_NOISE_PRIOR_STD`,
+  `RECOVERY_NOISE_PRIOR_STD`, `STOP_NOISE_PRIOR_STD` (0.25 → 1 moved the stopping
+  ± 0.130403 → 0.332799) and `CALIBRATION_NOISE_PRIOR_WEIGHT`, which feeds two of
+  them. `STOP_FIT_MIN`/`STOP_FIT_MAX` are deliberately left unpinned: over 108
+  slider/window combinations 197 indifference points span [0.039, 1.609] and 98
+  fits span [0.299, 1.060], none at a bound, and the fitted mean is a weighted
+  average of those points with `value0` ≤ 3, so neither clamp can bind. The one
+  hole left open is small: `PAIR_SEED_TASKS` 3 → 2 costs 0.038620 objective over
+  60 seeded days, all of it on one day.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
