@@ -851,13 +851,14 @@ holes below with them, and **M18–M21 the same day**
 ([`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md)); **M24, M29 and M30 followed on
 2026-08-19**, and **M14, M15, M16, M25 and M26** with them ([`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md)), and **M38 the
 same day** — its ruling shipped as a model change (MATH.md §8.10, §8.11, §10).
-Twelve are still leads: M17 (two of its three sites landed), M23, M33, M34,
-M35, M37, and M39–M44 — M39–M42 filed 2026-08-19 out of M38's measurement and its
+Eleven are still leads: M17 (two of its three sites landed), M23, M33, M34,
+M35, M37, M39–M42 and M44 — M39–M42 filed 2026-08-19 out of M38's measurement and its
 fix, and M43–M45 the same day out of M40's first correction, which found the fault
 set wider than M40 recorded. M37–M45 came from probe sweeps rather than from the
 2026-08-14 audit and carry the same rule; M38 is the one exception, because its fix committed the
 instrument that reproduces it. **M45 closed on 2026-08-20** by pinning six
-model constants the suite had left unguarded. **M46 was filed and closed the same
+model constants the suite had left unguarded, and **M43 the same day** by
+re-reading the insertion witness on the day the suite actually declares. **M46 was filed and closed the same
 day** and was never a lead: it came out of measuring the shipped default λ₀,
 which neither §8.3's probe nor its suite fixture had ever sampled.
 
@@ -1116,7 +1117,8 @@ only way to catch.
   the §13.4 retraction, several hundred lines down) and its prescription is
   wrong: 0.8894/0.8840 are whole-day indifference midpoints, not a step
   marginal, so the docblock drops the pair and cites §13.4 rather than
-  substituting them.
+  substituting them. The pair itself has since moved to 0.9135/0.9112 (M43,
+  2026-08-20), so nothing should be substituted from this entry at all.
 - **M18 §28 / §31 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).** Upheld: 24 `label:` rows, 4
   headlines, Capacity Left the 24th. §28 and §31 now read twenty-four / twenty.
   Execution added that the count had rotted **twice**, across four sites holding
@@ -1422,15 +1424,32 @@ only way to catch.
   hours, which is a code question and would move §8.11's `window-full` copy with
   it; nothing here says which way. Do not quote these numbers as a result until a
   committed instrument prints them (item 29's rule).
-- **M43 §13.4 — the witness names a day it no longer measures.** §13.4's argument
-  rests on "§8.10's own fixture day — 2.25 h of reading at a 12-hour window with
-  boxing and guitar unstarted … where inserting reads _higher_, midpoint 0.8894
-  against 0.8840. But the gap there is 0.005" (`MATH.md:4335`). The fixture that
-  produced 0.8894 was replaced on 2026-08-19 with the slider-reachable one, so
-  both midpoints — and the 0.005 gap, which is their subtraction — belong to a
-  day the repo no longer declares. Repairing it needs `stopIndifferencePoint`
-  re-read on the reachable triple under both insertion conventions; substituting
-  is not available, because the sentence's whole point is the size of the gap.
+- **M43 — CLOSED 2026-08-20. The witness named a day it no longer measured, and
+  a second figure in the same section had rotted unnoticed.** §13.4 rested on
+  "§8.10's own fixture day … where inserting reads _higher_, midpoint 0.8894
+  against 0.8840. But the gap there is 0.005". The suite moved that day onto the
+  sliders on 2026-08-19 (guitar 0.4/0.3 → 0.6/0, reading 0.5/0.05 → 0.4/0,
+  difficulties held) while `rv13-stop-insertion.probe.ts:304` went on declaring
+  the old triple — so the probe still printed 0.8894/0.8840 and the section still
+  agreed with it, and both described a day the repo no longer had. Closed by
+  aligning that one M44 site and re-reading: **inserted 0.9135 against appended
+  0.9112, a gap of 0.0023** — the sign §13.4 needs survives, and the gap halves,
+  which makes the comparison against the retracted pair's implied 0.14 shift
+  stronger, not weaker. Its `lo` probes: boxing 0.9407/0.9361, guitar
+  0.8774/0.8612, reading 0.6126/0.6126 (unchanged, as the logged task must be).
+  §8.11's "the two agree to four decimals" re-checked on the aligned day and
+  holds on all seven uncensored cells. The 3182-day sweep is untouched: it draws
+  random tasks, not this day.
+  **Found while re-reading: §13.4's round-trip figure had drifted too, and
+  earlier.** "true 0.9 → 0.892 … (2026-08-06)" printed **0.7995** on the day the
+  probe still declared — it had been wrong since the timestamped-day rework of
+  2026-08-19, independently of the fixture question. Now **0.8387**, with true
+  0.5 → 0.5883 on its one usable day and 0.3 still fully censored. No new suite
+  pin: §13.4's property (the estimator is a function of the day, not of insertion
+  order) is already pinned, and what failed here is figure provenance, not
+  behaviour. The general guard is item 29's rule made mechanical — a check that
+  every figure MATH.md attributes to a probe still appears in that probe's
+  output — which nothing does yet.
 - **M44 — one file declares one named day two ways.** `zenith-energy.test.ts`
   aligned its §8.10 fixture to the probe at `:1389-1392` on 2026-08-19, but the
   same boxing/guitar/reading triple is still declared with the unreachable values
@@ -1444,6 +1463,10 @@ only way to catch.
   `enb-break-economics`. Aligning any one of them moves the figures its own
   section quotes, so each is its own change. This is M40's remaining scope stated
   as fixtures rather than as generators, and it is why M40 stays open.
+  **`rv13-stop-insertion.probe.ts:304` aligned 2026-08-20** with M43, which is
+  what M43's repair required; the remaining nine sites are each still their own
+  change. That first one cost two figures in §13.4 and re-dated one sentence in
+  §8.11, which is the per-site price to expect.
 - **M45 — CLOSED 2026-08-20. The probe was never the guard; six suite pins were
   missing.** Two mutations of the behaviour `stop-inversion-margin.probe.ts`
   documents left it GREEN (2026-08-19): dropping `DIFFICULTY_SPILLOVER` from
