@@ -162,18 +162,28 @@ there are dozens of them:
 | -------------------------------- | ----------------- | ------------------------------------------- |
 | mount the host tree              | ~0                | yes — the failure mode being designed out   |
 | `npm ci` per run                 | 1–2 min           | no                                          |
-| **bake into the image** (chosen) | one `ln -s`, ~0 s | no — it is never mounted                    |
+| **bake into the image** (chosen) | one `cp -a`, 22 s | no — it is never mounted                    |
 
 The image runs `npm ci` at `/home/agent/deps`, **outside** the worktree mount
-point so the bind-mount cannot shadow it, and each run symlinks it in as
-`./node_modules`. The symlink points into the container's own filesystem, so it
-is not a write path back to the host the way the old harness's was. `.gitignore`
-already covers `node_modules`, so it never reaches the diff.
+point so the bind-mount cannot shadow it, and each run copies it in as
+`./node_modules`. The copy is the container's own filesystem, so it is not a
+write path back to the host the way the old harness's was. `.gitignore` already
+covers `node_modules`, so it never reaches the diff.
 
 The cost is that the image must be rebuilt when `package-lock.json` changes.
 That is a once-per-dependency-change six minutes against a saving on every one
 of dozens of runs, and — unlike mounting — it is what makes the integrity
 assertion unnecessary rather than merely unlikely to fire.
+
+A symlink would be cheaper than the 22 s copy, and was the first design. It
+cost R6 every presentation case. `node_modules` pointing out of the worktree
+puts the real tree outside vite's root, and vitest's `storybook` project loads
+its setup file from `node_modules` by absolute path with no `/@fs/` prefix — so
+the dev server does not own that path, SvelteKit's catch-all answers 404, and
+every story file fails at import before a single `play` runs. The `client`
+project is browser-mode too and passed throughout, because its setup files live
+in the repo; that asymmetry is why the fault read as "storybook is broken" for
+several sweeps rather than as a harness bug.
 
 The image also carries Playwright's chromium, because vitest's `client` and
 `storybook` projects are browser projects. The gitignored generated trees

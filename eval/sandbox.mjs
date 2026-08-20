@@ -88,9 +88,15 @@ const isolationProbe = [
 ].join(' ');
 
 // Ordered, and every step matters:
-//  - the dependency tree is symlinked, never copied — it is 770 MB and there
-//    are dozens of runs. The target is inside the container's own filesystem,
-//    so this is not a write path back to the host checkout.
+//  - the dependency tree is copied in, not symlinked. A symlink is cheaper and
+//    was the first design, but it puts the real tree outside vite's root, and
+//    vitest's `storybook` project loads its setup file from `node_modules` by
+//    absolute path with no `/@fs/` prefix — so the dev server does not own that
+//    path, SvelteKit's catch-all answers 404, and every story file dies at
+//    import while the `client` project (setup files in the repo) passes. That
+//    made R6 unprovable on every presentation case. 22 s and 422 MB per run.
+//    The copy is the container's own filesystem, so it is still not a write
+//    path back to the host checkout.
 //  - the context strip is what makes `none` and `targeted` mean anything.
 //  - `prepare` regenerates the gitignored trees (paraglide, .svelte-kit) that a
 //    bare checkout lacks and every deterministic check needs.
@@ -98,7 +104,7 @@ const isolationProbe = [
 //    than the removal of nine rules files. The previous harness skipped this
 //    and fed deleted paths into `$CHANGED`, where `eslint` exited 2 on them.
 const setup = [
-	`ln -sfn ${DEPS} node_modules`,
+	`cp -a ${DEPS} node_modules`,
 	`git ls-files -z ${STRIPPED} | xargs -0 -r rm -f`,
 	'rm -rf .claude',
 	'npm run --silent prepare >/dev/null',
