@@ -20,9 +20,14 @@ data-layer hang with no store to report through) and `reloadStaleBuild`, where
 settling is the bug — the page is already on its way out, and a connection
 handed back is a window for the very write the reload exists to prevent.
 
-## Naming — `$` + a CRUD verb
+## Naming — `$` + a verb
 
-`$createX`, `$readX`, `$updateX`, `$deleteX`. An upsert is `$updateX` — most
+Enforced by eslint on `repository/**`: an exported repository function is `$`
+plus one of `create`, `read`, `update`, `delete`, `export`, `import`, `restore`.
+The last three are not CRUD — `$exportAllStores`/`$importAllStores` are the
+backup pair, and `$restoreX` is the undo path that puts a deleted record back.
+
+An upsert is `$updateX` — most
 writers here are one (`$updateSession`, `$updateFitSnapshot`, `$updateRoutine`
 all `put()` and create if absent), and the doc comment says so.
 `$createOrUpdateX` is for the one case where a store has **two** writers at
