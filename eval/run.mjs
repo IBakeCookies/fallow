@@ -13,7 +13,14 @@ import { randomUUID } from 'node:crypto';
 import { glob, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { CONDITIONS, REPO_ROOT, docsFor, estimateTokens, readContext } from './conditions.mjs';
+import {
+	CONDITIONS,
+	EFFORT_DIRECTIVE,
+	REPO_ROOT,
+	docsFor,
+	estimateTokens,
+	readContext,
+} from './conditions.mjs';
 import { judge } from './judge.mjs';
 import { IMAGE_NAME, invokeAgent, must, readOauthToken, withSandbox } from './sandbox.mjs';
 
@@ -448,7 +455,9 @@ const main = async () => {
 		const docs = docsFor(testCase);
 
 		for (const condition of args.conditions) {
-			const context = await readContext(docs[condition], base);
+			const context =
+				condition === 'effort' ? EFFORT_DIRECTIVE : await readContext(docs[condition], base);
+
 			const prompt = context ? `${context}\n\n---\n\n${testCase.prompt}` : testCase.prompt;
 
 			for (let rep = 1; rep <= args.reps; rep++) {
