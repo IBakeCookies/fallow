@@ -1,0 +1,6 @@
+# Secrets and per-run scratch. The eval harness injects the OAuth credential
+# straight into the container env and never writes it here, but the stock
+# sandcastle flow puts it in .env — keep it unignorable-by-accident.
+.env
+logs/
+worktrees/

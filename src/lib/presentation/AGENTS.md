@@ -12,8 +12,7 @@ families, backdrop-blur, sonner's four registry deviations, the Tailwind
 scanner gotchas, the CSS namespace split, the adding-a-theme checklist. **Read
 it before touching markup, classes, or anything under `style/`.**
 
-**Imports**, in order: types → external libs → internal helpers → data layer →
-business layer → presentation (big/abstract to small/specific).
+**Imports**: the order is [AGENTS.md](../../../AGENTS.md) §2's, not restated here.
 
 ## R2 — Routes and components hold no logic
 
