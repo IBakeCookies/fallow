@@ -15,6 +15,20 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 // below therefore have to re-state this alongside their own patterns.
 // `./$types` is generated per-route by `svelte-kit sync` and has no alias, so
 // it is the one relative specifier the app cannot write any other way.
+// `no-restricted-syntax` is not additive across flat-config blocks either, so a
+// block that adds one selector for a subtree has to re-state these or silently
+// drop them for those files.
+const restrictedSyntax = [
+	{
+		selector: 'ExportDefaultDeclaration',
+		message: 'Named exports only; default exports are for Svelte components.',
+	},
+	{
+		selector: 'UnaryExpression[operator="!"] > UnaryExpression[operator="!"]',
+		message: 'Coerce with Boolean(x), never !!x.',
+	},
+];
+
 const noRelativeImports = {
 	group: ['./*', '../*', '!./$types'],
 	message: 'Import through the $lib alias, not a relative path.',
@@ -53,17 +67,7 @@ export default defineConfig(
 			// AGENTS.md: named exports only, default exports are for Svelte
 			// components. `import/no-default-export` would mean a whole plugin for
 			// one rule; the core selector says the same thing.
-			'no-restricted-syntax': [
-				'error',
-				{
-					selector: 'ExportDefaultDeclaration',
-					message: 'Named exports only; default exports are for Svelte components.',
-				},
-				{
-					selector: 'UnaryExpression[operator="!"] > UnaryExpression[operator="!"]',
-					message: 'Coerce with Boolean(x), never !!x.',
-				},
-			],
+			'no-restricted-syntax': ['error', ...restrictedSyntax],
 			'no-restricted-imports': [
 				'error',
 				{
@@ -187,6 +191,25 @@ export default defineConfig(
 		files: ['*.config.{js,ts}', '.storybook/**'],
 		rules: {
 			'no-restricted-syntax': 'off',
+		},
+	},
+	{
+		// The `$` + verb convention (data/AGENTS.md), enforced rather than asserted.
+		// The verb set is the seven actually in use across the 36 exported
+		// repository functions, not the four CRUD ones the brief used to claim:
+		// backup adds `$export`/`$import`, and undo adds `$restore`. Constants are
+		// untouched — `ENERGY_PARAMS_SETTING` is not a writer.
+		files: ['src/lib/data/repository/**'],
+		rules: {
+			'no-restricted-syntax': [
+				'error',
+				...restrictedSyntax,
+				{
+					selector: String.raw`ExportNamedDeclaration > FunctionDeclaration[id.name!=/^\$(create|read|update|delete|export|import|restore)/]`,
+					message:
+						'Repository functions are `$` + a verb: $create, $read, $update, $delete, $export, $import, $restore.',
+				},
+			],
 		},
 	},
 	{

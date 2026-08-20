@@ -193,10 +193,10 @@ abbreviations, boolean prefixes and import order:
   plain word (`isOpen` → `let open = $state(isOpen)`), so the two never shadow
   each other. Existing names are a baseline, not a to-do list: rename one when
   you touch it, in a change of its own. Coerce with `Boolean(x)`, never `!!x`.
-- Data-layer controllers start with `$` + a CRUD verb: `$createX`, `$readX`,
-  `$updateX`, `$deleteX`; an upsert is `$updateX`. Inside `.svelte`/`.svelte.ts`
-  the `$` prefix is reserved for runes, so import the repository as a namespace.
-  The one `$createOrUpdateX` and why it exists:
+- Data-layer controllers start with `$` + a verb — `create`, `read`, `update`,
+  `delete`, `export`, `import`, `restore`; an upsert is `$updateX`. Inside
+  `.svelte`/`.svelte.ts` the `$` prefix is reserved for runes, so import the
+  repository as a namespace. The one `$createOrUpdateX` and why it exists:
   [data/AGENTS.md](src/lib/data/AGENTS.md).
 
 ### Code
