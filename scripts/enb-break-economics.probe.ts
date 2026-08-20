@@ -22,6 +22,11 @@
  *     work fills the window, split equally over the k−1 interior gaps.
  *  8. §8.4 — the fragmentation ratios (raw 1.45×, objective 1.17× with satiety
  *     and 1.28× without) on the §8.4 guitar task.
+ *  9. §8.3's SHIPPED DEFAULT, which no instrument had ever measured: the ladder
+ *     in (5) sampled λ₀ ∈ {0.2, 0.4, 0.8, 1.0, 1.2, 1.5} and the suite fixture
+ *     {0.4, 0.8, 1.2, 1.5}, so 0.5 — the value the app runs on — was skipped by
+ *     both. Added 2026-08-20 with the portfolio spread beside it, because the
+ *     default's effect is a property of the DAY, not of λ₀ alone.
  *
  * A probe, not a test: every number here moves when the optimizer, the lattice
  * or the reservoir law moves, legitimately. What the suite pins instead is the
@@ -268,7 +273,7 @@ describe('break economics (MATH.md §8 intro, §8.1–8.3)', () => {
 	});
 
 	it('W*(λ₀) on the 12-hour probe day', () => {
-		const ladder = [0.2, 0.4, 0.8, 1.0, 1.2, 1.5].map((lambda) => {
+		const ladder = [0.2, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.5].map((lambda) => {
 			const { evaluation } = optimizeSchedule(PROBE_DAY, 12, {
 				...CURRENT,
 				freeTimeValue: lambda,
@@ -300,6 +305,57 @@ describe('break economics (MATH.md §8 intro, §8.1–8.3)', () => {
 				? `pre-fix dynamics: collapses to all-leisure at λ₀ ${collapsed.lambda}`
 				: `pre-fix dynamics: no collapse to all-leisure anywhere in λ₀ ∈ [0.2, 1.5] (minimum ${Math.min(...sweep.map((s) => s.workHours))}h)`,
 		);
+	});
+
+	/**
+	 * Two ordinary days that are NOT the probe day: a cognitive desk pair and a
+	 * pair of low-difficulty errands. The probe day is demanding on both axes and
+	 * so answers only the demanding case.
+	 */
+	const DESK = [task(1, 'write spec', 8, 6, 0.9, 0.1), task(2, 'email', 3, 3, 0.4, 0.1)];
+	const LIGHT = [task(1, 'errand', 3, 5, 0.2, 0.2), task(2, 'tidy', 2, 4, 0.1, 0.3)];
+
+	const PORTFOLIOS: [string, EnergyTaskInput[]][] = [
+		['probe day', PROBE_DAY],
+		['desk pair', DESK],
+		['errand pair', LIGHT],
+	];
+
+	it('what the SHIPPED default plans, by portfolio and window', () => {
+		for (const [name, tasks] of PORTFOLIOS) {
+			const row = [8, 10, 12, 14].map((windowHours) => {
+				const { evaluation } = optimizeSchedule(tasks, windowHours, CURRENT);
+
+				return `T=${windowHours}: ${evaluation.workHours}h (${(evaluation.workHours / windowHours).toFixed(2)} of window)`;
+			});
+
+			console.log(`λ₀ = ${CURRENT.freeTimeValue} · ${name} — ${row.join('  |  ')}`);
+		}
+	});
+
+	/**
+	 * Why the default cannot simply be raised: the Lab's slider reaches 3 in
+	 * steps of 0.1, and one notch to λ₀ = 1 empties the plan on both light
+	 * portfolios. The rival re-pricing is the occurrence check — an empty plan
+	 * from a search that failed to find work would print the same 0h.
+	 */
+	it('λ₀ = 1 empties the plan on the light portfolios, and that optimum is real', () => {
+		for (const [name, tasks] of PORTFOLIOS) {
+			for (const windowHours of [8, 12]) {
+				const raised = {
+					...CURRENT,
+					freeTimeValue: 1,
+				};
+
+				const found = optimizeSchedule(tasks, windowHours, raised);
+				const rival = optimizeSchedule(tasks, windowHours, CURRENT).blocks;
+				const repriced = evaluateSchedule(rival, tasks, windowHours, raised);
+
+				console.log(
+					`λ₀ = 1 · ${name} T=${windowHours}: ${found.evaluation.workHours}h scoring ${found.evaluation.objective.toFixed(4)} — the default's plan repriced: ${repriced.workHours}h scoring ${repriced.objective.toFixed(4)}${repriced.objective > found.evaluation.objective + 1e-9 ? ' — RIVAL WINS, the 0h is a search failure' : ''}`,
+				);
+			}
+		}
 	});
 
 	it('raw output vs chunk count at a fixed 6h of work (MATH.md §13.5)', () => {

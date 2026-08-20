@@ -857,7 +857,9 @@ fix, and M43–M45 the same day out of M40's first correction, which found the f
 set wider than M40 recorded. M37–M45 came from probe sweeps rather than from the
 2026-08-14 audit and carry the same rule; M38 is the one exception, because its fix committed the
 instrument that reproduces it. **M45 closed on 2026-08-20** by pinning six
-model constants the suite had left unguarded.
+model constants the suite had left unguarded. **M46 was filed and closed the same
+day** and was never a lead: it came out of measuring the shipped default λ₀,
+which neither §8.3's probe nor its suite fixture had ever sampled.
 
 **Every `MATH.md:NNNN` below is as of 2026-08-14 and most have since drifted**,
 some by hundreds of lines — closing the fourteen upheld findings added six §10
@@ -1470,6 +1472,31 @@ only way to catch.
   average of those points with `value0` ≤ 3, so neither clamp can bind. The one
   hole left open is small: `PAIR_SEED_TASKS` 3 → 2 costs 0.038620 objective over
   60 seeded days, all of it on one day.
+
+- **M46 — CLOSED 2026-08-20. §8.3's open question was not a defaults question,
+  and no instrument had measured the default.** §8.3 carried "a humane default
+  day needs a structural change… Defaults were deliberately left alone pending
+  that decision", then a 2026-07-19 note declaring it "Resolved by §8.4". §8.4
+  resolved the response's SHAPE (W\*(λ₀) graded, not bang-bang) and the section
+  said so; the level half it left dangling, and the heading still advertised an
+  open question. Checked: the ladder in
+  `scripts/enb-break-economics.probe.ts` sampled λ₀ ∈ {0.2, 0.4, 0.8, 1.0, 1.2,
+  1.5} and the suite fixture {0.4, 0.8, 1.2, 1.5}, so **0.5, the value the app
+  ships, was in neither**. It reads **11.25 h of a 12-hour window**, on a flat
+  step spanning λ₀ 0.4–0.6, and both declarations of that day (M44) agree on the
+  figure. Four tests were already incidentally sensitive to the default and none
+  said what it plans. What the default means turns out to be a property of the
+  day, not of λ₀: 0.94 of the window on the demanding three-task day, 0.69 on a
+  cognitive desk pair at 12 h, 0.38 on a pair of errands, where it stops at 4.5 h
+  whether the window is 8 hours or 14. And it cannot be raised — one slider notch
+  to λ₀ = 1 empties the plan on both light portfolios (desk pair at 12 h scores
+  13.5000 idle against 11.3880 for the 8.25 h the default plans, so the empty day
+  is the true optimum, not a search failure). The level question was already
+  settled, in **§15**: peer modes, the energy objective plans a larger share of
+  the budget than the classic allocator by construction, and the energy model
+  carries no capacity-pool constraint at all. Closed by adding 0.5 to the probe
+  ladder, two suite fixtures, and the §8.3 paragraph that points at §15 — no
+  model change.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
