@@ -261,6 +261,13 @@ not be re-checked and stayed in the document while being false.
   code under it moved.
 - **Pin what the probe found with one fixture in the suite**, never the sweep
   itself — §14.2's multi-gainer tie-break is pinned exactly that way.
+- **Pin it against a literal, never against the constant it bounds.**
+  `expect(fit.alpha).toBeLessThanOrEqual(ALPHA_FIT_MAX)` moves with
+  `ALPHA_FIT_MAX`, so it holds at any value and pins none. Perturbing all 40
+  module-level model constants against the suite (2026-08-20, ROADMAP M45)
+  found 9 survivors, two of them surviving exactly this way and four more
+  because nothing asserted a ± the Energy page prints. That sweep is the only
+  check for this; nothing in `npm run lint` can see it.
 
 ## Driving the real app
 

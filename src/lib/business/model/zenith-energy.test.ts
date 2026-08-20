@@ -10,7 +10,6 @@ import {
 	fitStoppingValue,
 	normalizeSchedule,
 	optimizeSchedule,
-	RECOVERY_FIT_MIN,
 	sampleTrajectory,
 	simulateReservoirs,
 	STOP_INVERSION_MARGIN,
@@ -1165,7 +1164,10 @@ describe('Zenith Energy Model', () => {
 				lawParams,
 			);
 
-			expect(absurd.alpha).toBeCloseTo(ALPHA_FIT_MAX, 6);
+			// The literal, not ALPHA_FIT_MAX: asserting a bound against its own
+			// constant moves both sides together, so the VALUE stays unpinned —
+			// lowering it to 0.9 left the whole suite green (sweep 2026-08-20).
+			expect(absurd.alpha).toBeCloseTo(2, 6);
 		});
 
 		it('posterior std shrinks with data and grows with inconsistency', () => {
@@ -1191,6 +1193,11 @@ describe('Zenith Energy Model', () => {
 			const scattered = fitDrainRate(noisy, 0.35, lawParams);
 			expect(many.alphaStd!).toBeLessThan(few.alphaStd!);
 			expect(scattered.alphaStd!).toBeGreaterThan(many.alphaStd!);
+			// Literals for the same reason the ± above carries: DRAIN_NOISE_PRIOR_STD
+			// sets the floor these sit on and only a probe mentioned it, against its
+			// own value. The two orderings above hold whatever it is set to.
+			expect(many.alphaStd!).toBeCloseTo(0.032664, 6);
+			expect(scattered.alphaStd!).toBeCloseTo(0.090441, 6);
 		});
 
 		it('is deterministic', () => {
@@ -1319,10 +1326,16 @@ describe('Zenith Energy Model', () => {
 			);
 
 			expect(fit.fitted).toBe(true);
-			expect(fit.rate).toBeGreaterThanOrEqual(RECOVERY_FIT_MIN);
+			// The literal lower bound, for the reason ALPHA_FIT_MAX carries above:
+			// raising RECOVERY_FIT_MIN to 0.6 moved this fit 0.1 -> 0.6 and every
+			// other rate with it, and nothing went red.
+			expect(fit.rate).toBeCloseTo(0.1, 9);
 			expect(fit.rate).toBeLessThan(prior);
 			// The residuals are large, so the noise blend must report low confidence.
-			expect(fit.rateStd!).toBeGreaterThan(0.3);
+			// Pinned to the literal because this ± is what the Energy page prints:
+			// RECOVERY_NOISE_PRIOR_STD and CALIBRATION_NOISE_PRIOR_WEIGHT both feed
+			// it and neither had a fixture (sweep 2026-08-20).
+			expect(fit.rateStd!).toBeCloseTo(0.6149, 4);
 		});
 
 		it('fitting r first reduces the alpha fit bias it was built to remove (probe 2026-07-18)', () => {
@@ -2068,6 +2081,11 @@ describe('Zenith Energy Model', () => {
 			);
 
 			expect(eight.valueStd!).toBeLessThan(two.valueStd!);
+			// Both ± pinned to literals: STOP_NOISE_PRIOR_STD and
+			// CALIBRATION_NOISE_PRIOR_WEIGHT reach the Energy page through them and
+			// the shrinkage above holds whatever either is set to.
+			expect(two.valueStd!).toBeCloseTo(0.12588, 5);
+			expect(eight.valueStd!).toBeCloseTo(0.049596, 6);
 		});
 
 		it('W*(λ₀) is monotone with a graded response — §8.3’s bang-bang is gone (satiety fixed it)', () => {
