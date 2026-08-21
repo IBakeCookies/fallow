@@ -247,6 +247,8 @@
 	"form_must_do_today": "不要移出今天",
 	"form_must_do_today_title": "顾问永远不会建议把这项任务移出今天。但它也不会为此预留小时数。",
 	"task_must_do_badge": "留在今天",
+	"task_slide_badge": "第 {day} 天",
+	"task_slide_tooltip": "这项任务已经在清单上多少天了——添加它的那天算作第 1 天。只有“移到明天”会把任务带过一天的边界；从其他日期导入的任务会重新开始计数。",
 	"cal_title_head": "Fallow — 日历",
 	"cal_meta_description": "以月视图和周视图总览你的 Fallow 日子。",
 	"cal_heading": "日历",

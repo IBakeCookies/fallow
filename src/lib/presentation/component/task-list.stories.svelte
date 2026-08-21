@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn } from 'storybook/test';
+	import { expect, fn, within } from 'storybook/test';
 	import { getTaskNature, type SuggestedTask } from '$lib/business/model/metric/calculation';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
 
@@ -65,6 +65,9 @@
 		tags: ['autodocs'],
 		args: {
 			suggestedTasks: tasks,
+			// The fixture's own day, so the default list carries no slide badge: every
+			// task in it was added on the day being viewed.
+			viewedDate: '2026-07-20',
 			// Run order is not priority order — the alternation is a heuristic over the
 			// funded set (MATH.md §16) — so boxing leads a sequence it ranks second in.
 			// Every funded task holds a position, the completed one included (§11.8).
@@ -195,3 +198,51 @@
 		</TaskList>
 	{/snippet}
 </Story>
+
+<!-- Day 1 is the day the task was added, so three carried days reads DAY 4. The gate
+     keeps an ordinary deferral off the row, which already carries up to three badges. -->
+<Story
+	name="Chronic slides"
+	args={{
+		viewedDate: '2026-07-23',
+		suggestedTasks: [
+			task(1, 'tax return', {
+				createdAt: '2026-07-20',
+			}),
+			task(2, 'inbox', {
+				createdAt: '2026-07-23',
+			}),
+			task(3, 'call the dentist', {
+				createdAt: '2026-07-21',
+			}),
+			task(4, 'the shed', {
+				createdAt: '2026-07-20',
+				completed: true,
+			}),
+		],
+		runOrder: new Map([
+			[1, 1],
+			[2, 2],
+			[3, 3],
+			[4, 4],
+		]),
+	}}
+	play={async ({ canvas }) => {
+		const row = (title: string) =>
+			within(
+				canvas
+					.getByRole('heading', {
+						name: title,
+					})
+					.closest('li')!,
+			);
+
+		await expect(row('tax return').getByText('day 4')).toBeVisible();
+		expect(row('inbox').queryByText(/^day /)).not.toBeInTheDocument();
+		expect(row('call the dentist').queryByText(/^day /)).not.toBeInTheDocument();
+
+		// A fact about the task and not about the plan, so ticking the row off — which
+		// retires its `#N` — leaves the badge where it is.
+		await expect(row('the shed').getByText('day 4')).toBeVisible();
+	}}
+/>

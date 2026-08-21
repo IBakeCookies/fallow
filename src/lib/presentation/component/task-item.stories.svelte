@@ -532,6 +532,26 @@
 	}}
 />
 
+<!-- A statement about the task, not an alarm about the plan: the row names the day it
+     is on and the tooltip says where the count comes from. -->
+<Story
+	name="Carried for days"
+	args={{
+		slideDay: 6,
+	}}
+	play={async ({ canvas, canvasElement, userEvent }) => {
+		const badge = canvas.getByRole('button', {
+			name: 'day 6',
+		});
+
+		await expect(badge).toHaveAttribute('data-slot', 'tooltip-trigger');
+
+		await userEvent.hover(badge);
+		const body = within(canvasElement.ownerDocument.body);
+		await waitFor(() => expect(body.getByText(/^How many days/)).toBeVisible());
+	}}
+/>
+
 <Story
 	name="Rating a session"
 	args={{

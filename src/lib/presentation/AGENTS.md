@@ -239,6 +239,18 @@ MATH.md §11.8's 2026-08-18 rescope: the map covers the funded PLAN, a completed
 task keeps its slot, and `task-item` renders no badge on it — so the visible
 numbers can carry gaps, and a gap means "done", not "moved".
 
+### Slide age is a `/` reading, computed above the row
+
+`utils/slide-age.ts` — `getSlideDay(createdAt, viewedDate)` and
+`CHRONIC_SLIDE_MIN_DAYS`. The gate is display policy, so R2 keeps it out of the
+markup: `task-list.svelte` calls it once per row and `task-item` takes
+`slideDay?: number | null`, the same shape as `runOrder`. Age is measured against
+`viewedDate` — the day on screen, never the clock — so a browsed past day reads
+what the badge said then, and a story `play` needs no fake time. It renders
+through completion, unlike `#N`: the count is a fact about the task, not a
+next-up reading. `/energy` does not carry it
+([docs/features/chronic-slide-badge.md](../../../docs/features/chronic-slide-badge.md)).
+
 ### The mid-day re-plan reads beside the plan, not over it
 
 MATH.md §35. The re-plan leads the trailing column and the plan reads beneath

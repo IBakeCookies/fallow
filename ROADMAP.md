@@ -372,17 +372,8 @@ What survives of the multi-day idea is two readings, not a solver:
 
 21. ~~**Destination preview for a defer**~~ — SHIPPED 2026-08-12 (MATH.md §14).
     [docs/features/defer-destination-preview.md](docs/features/defer-destination-preview.md)
-22. **Chronic-slide badge** — "this has been on your list 6 days".
-    `moveTaskToTomorrow` copies `createdAt` verbatim
-    (`session-store.svelte.ts:713`), `Task.createdAt` is an ISO date string
-    already validated on read (`persisted.ts:91`), and nothing in presentation
-    renders it — so slide age is `today − task.createdAt`: no title matching,
-    no new read, no new concept. Cross with `unfundedTaskIds` for the "never
-    funded" half. Honest limit: `importTasks` restamps `createdAt` to the
-    selected date, so age accrues only along the deliberate "To tomorrow"
-    path — which is what "slide" means. **Hard ceiling: it stays a badge.** An
-    objective term, or auto-setting `mustDoToday`, re-opens settled ground
-    (§14: the flag promises the day, not the hours). Smallest item here.
+22. ~~**Chronic-slide badge**~~ — SHIPPED 2026-08-21.
+    [docs/features/chronic-slide-badge.md](docs/features/chronic-slide-badge.md)
 
 ## Phase 5 — the lever the objective lacks
 

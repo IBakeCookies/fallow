@@ -240,6 +240,7 @@
 			<TaskList
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
+				viewedDate={selectedDate}
 				remainingDay={plan.remainingDay}
 				nextTaskTitle={plan.remainingDay?.nextTask?.title}
 				ontoggle={(id) => session.toggleTask(id)}

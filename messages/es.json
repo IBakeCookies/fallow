@@ -247,6 +247,8 @@
 	"form_must_do_today": "No sacar de hoy",
 	"form_must_do_today_title": "El asesor nunca sugerirá sacar esta tarea de hoy. No le reserva horas.",
 	"task_must_do_badge": "Se queda hoy",
+	"task_slide_badge": "día {day}",
+	"task_slide_tooltip": "Cuántos días lleva esta tarea en la lista, contando como día 1 el día en que se añadió. Solo «A mañana» lleva una tarea al día siguiente; las tareas importadas de otro día reinician la cuenta.",
 	"cal_title_head": "Fallow — Calendario",
 	"cal_meta_description": "Vista mensual y semanal de tus días en Fallow.",
 	"cal_heading": "Calendario",

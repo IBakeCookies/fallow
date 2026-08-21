@@ -12,10 +12,13 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
+	import { getSlideDay } from '$lib/presentation/utils/slide-age';
 
 	interface Props {
 		suggestedTasks: SuggestedTask[];
 		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
+		/** The day on screen — every row's slide age is measured against it, not the clock. */
+		viewedDate: string;
 		/** The mid-day re-plan (MATH.md §35), or null until today has logged hours. A
 		 *  task absent from `hoursByTask` is worth no more time today, so it reads 0 —
 		 *  the map's absence and a task's absence from it are different answers. */
@@ -61,6 +64,7 @@
 	let {
 		suggestedTasks,
 		runOrder,
+		viewedDate,
 		remainingDay = null,
 		nextTaskTitle,
 		form,
@@ -128,6 +132,7 @@
 						}
 					: undefined}
 				runOrder={runOrder.get(task.id)}
+				slideDay={getSlideDay(task.createdAt, viewedDate)}
 				flowMinutes={flowLogs?.get(task.id)}
 				mustDoToday={task.mustDoToday}
 				{ontoggle}

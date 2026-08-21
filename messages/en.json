@@ -247,6 +247,8 @@
 	"form_must_do_today": "Don't move off today",
 	"form_must_do_today_title": "The advisor will never suggest moving this task off today. It does not reserve hours for it.",
 	"task_must_do_badge": "Stays today",
+	"task_slide_badge": "day {day}",
+	"task_slide_tooltip": "How many days this task has been on the list, counting the day it was added as day 1. Only “To tomorrow” carries a task across the boundary — tasks imported from another day start the count again.",
 	"cal_title_head": "Fallow — Calendar",
 	"cal_meta_description": "Month and week overview of your Fallow days.",
 	"cal_heading": "Calendar",

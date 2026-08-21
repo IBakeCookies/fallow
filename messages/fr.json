@@ -247,6 +247,8 @@
 	"form_must_do_today": "Ne pas sortir d'aujourd'hui",
 	"form_must_do_today_title": "Le conseiller ne suggérera jamais de sortir cette tâche d'aujourd'hui. Il ne lui réserve pas d'heures pour autant.",
 	"task_must_do_badge": "Reste aujourd'hui",
+	"task_slide_badge": "jour {day}",
+	"task_slide_tooltip": "Depuis combien de jours cette tâche est sur la liste, le jour de son ajout comptant comme jour 1. Seul « À demain » fait passer une tâche au jour suivant ; les tâches importées d'un autre jour repartent de zéro.",
 	"cal_title_head": "Fallow — Calendrier",
 	"cal_meta_description": "Vue mensuelle et hebdomadaire de tes journées Fallow.",
 	"cal_heading": "Calendrier",

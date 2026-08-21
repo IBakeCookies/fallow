@@ -247,6 +247,8 @@
 	"form_must_do_today": "Nicht verschieben",
 	"form_must_do_today_title": "Der Berater schlägt nie vor, diese Aufgabe auf einen anderen Tag zu verschieben. Stunden reserviert er dafür nicht.",
 	"task_must_do_badge": "Bleibt heute",
+	"task_slide_badge": "Tag {day}",
+	"task_slide_tooltip": "Wie viele Tage diese Aufgabe schon auf der Liste steht; der Tag, an dem sie hinzugefügt wurde, ist Tag 1. Nur „Auf morgen“ nimmt eine Aufgabe über die Tagesgrenze mit — von einem anderen Tag importierte Aufgaben beginnen die Zählung neu.",
 	"cal_title_head": "Fallow — Kalender",
 	"cal_meta_description": "Monats- und Wochenübersicht deiner Fallow-Tage.",
 	"cal_heading": "Kalender",
