@@ -1809,6 +1809,13 @@ export function workedHoursByTask(
 	return byTask;
 }
 
+export interface StopBracket {
+	/** λ₀ ≥ lo, floored at 0; null when no step could be declined */
+	lo: number | null;
+	/** λ₀ ≤ hi; null when nothing carried a whole step */
+	hi: number | null;
+}
+
 export interface StoppingValueFit {
 	/** MAP freeTimeValue λ₀ (the fallback when not fitted) */
 	value: number;
@@ -1891,7 +1898,7 @@ export const STOP_FIT_MAX = 3;
 export const STOP_INVERSION_MARGIN = 0.25;
 
 /**
- * A day's revealed indifference price of leisure, from discrete stationarity
+ * A day's revealed bracket on the price of leisure, from discrete stationarity
  * of the user's OWN day (MATH.md §8.10). With the work-side value
  * V = satiatedOutput + terminalBonus (freeTimeValue never enters V — the
  * extraction is λ₀-free, no circularity):
@@ -1904,9 +1911,12 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * checked-off task is not, having no more of it to do); the second over tasks
  * with at least one whole step logged, completed or not (SOME worked step was
  * worth ≥ λ₀ — with unknown work order, the loose max is the honest bound).
- * Returns the bracket midpoint, or null when the day is censored: no room to
- * extend (worked to the window edge — reveals only an inequality), nothing
- * left open to extend, or nothing worked / all sessions shorter than one step.
+ * Either side can be absent: no room to extend (worked to the window edge) or
+ * nothing left open leaves `lo` null, and nothing worked a whole step leaves
+ * `hi` null. Such a day carries only an inequality, so `fitStoppingValue` drops
+ * it — the two sides are exported for the probes that had to rebuild them.
+ * Null is the day that says nothing at all: neither bound, or a bracket
+ * inverted past the margin.
  *
  * The day is reconstructed from the 🪫 rows' own log moments: one session per
  * row, in the order they were logged, the space between them rest. A day with
@@ -1938,18 +1948,18 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * app's own plans, read with their breaks, invert 0 of 299 (2026-08-19, see
  * STOP_INVERSION_MARGIN).
  */
-export function stopIndifferencePoint(
+export function stopBracket(
 	observation: StopObservation,
 	params: EnergyParams,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
-): number | null {
+): StopBracket | null {
 	const day = reconstructStopDay(observation, params, constants);
 
 	if (day === null || day.byTask.size === 0) return null;
 
 	const step = DEFAULT_STEP_HOURS;
 
-	const lo =
+	const nextStep =
 		day.total + step <= observation.windowHours + 1e-9
 			? (bestNextStep(day)?.marginalValue ?? null)
 			: null;
@@ -1963,15 +1973,31 @@ export function stopIndifferencePoint(
 		}
 	}
 
-	if (lo === null || hi === null) return null;
+	const lo = nextStep === null ? null : Math.max(0, nextStep);
 
-	const stopBound = Math.max(0, lo);
+	if (lo === null && hi === null) return null;
 
 	// Interruption-censored: the day's data contradicts a rational stop by more
 	// than the instrument's slack — see STOP_INVERSION_MARGIN.
-	if (stopBound > hi + STOP_INVERSION_MARGIN) return null;
+	if (lo !== null && hi !== null && lo > hi + STOP_INVERSION_MARGIN) return null;
 
-	return (stopBound + hi) / 2;
+	return {
+		lo,
+		hi,
+	};
+}
+
+/** The bracket's midpoint, or null on a day that reveals only one side. */
+export function stopIndifferencePoint(
+	observation: StopObservation,
+	params: EnergyParams,
+	constants: UserConstants = DEFAULT_USER_CONSTANTS,
+): number | null {
+	const bracket = stopBracket(observation, params, constants);
+
+	if (bracket === null || bracket.lo === null || bracket.hi === null) return null;
+
+	return (bracket.lo + bracket.hi) / 2;
 }
 
 /**
@@ -2334,10 +2360,11 @@ export function adviseStop(
  *   minimize Σᵢ (mᵢ − λ₀)² + λ·(λ₀ − λ₀_default)²
  *
  * has the exact closed form below — same machinery as §8.7/§8.9 with
- * dD/dλ₀ = 1 (no numeric minimizer needed). Censored days (null point) are
- * dropped, like demand-0 drain logs: they reveal an inequality, not an
- * indifference, and keeping a one-sided reading as a point would bias the
- * mean.
+ * dD/dλ₀ = 1 (no numeric minimizer needed). A one-sided day is dropped, like
+ * demand-0 drain logs: it reveals an inequality, not an indifference, and
+ * keeping the bound as a point would bias the mean. Entering it as a censored
+ * likelihood term instead was built and MEASURED 2026-08-21, and does not pay
+ * — §8.10's censored-likelihood paragraph carries the numbers.
  *
  * CONDITIONING: the extraction runs under the CURRENT dynamics
  * (α, r, m, b, satietyScale) and terminalEnergyValue — λ₀ absorbs the stop

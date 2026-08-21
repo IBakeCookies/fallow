@@ -15,6 +15,7 @@ import {
 	STOP_INVERSION_MARGIN,
 	suggestBudgetCurve,
 	adviseStop,
+	stopBracket,
 	stopIndifferencePoint,
 	type DrainObservation,
 	type ScheduleBlock,
@@ -1429,6 +1430,65 @@ describe('Zenith Energy Model', () => {
 			],
 		};
 
+		/**
+		 * The three censored days §8.10 drops, declared once because two tests below
+		 * read them: `EDGE_DAY` worked its whole window so
+		 * no step was forgone (`hi` only), `SLIVER_DAY` carries less than one step
+		 * so no step can be undone (`lo` only), and `EMPTY_DAY` logged nothing at
+		 * all and so reveals neither.
+		 */
+		const EDGE_DAY: StopObservation = {
+			tasks: day,
+			windowHours: 6,
+			workedHours: [
+				{
+					taskId: 2,
+					hours: 6,
+				},
+			],
+		};
+
+		const EMPTY_DAY: StopObservation = {
+			tasks: day,
+			windowHours: 8,
+			workedHours: [],
+		};
+
+		const SLIVER_DAY: StopObservation = {
+			tasks: day,
+			windowHours: 8,
+			workedHours: [
+				{
+					taskId: 2,
+					hours: 0.5,
+				},
+			],
+		};
+
+		/**
+		 * A day that ended with every task ticked: hours logged, room left in the
+		 * window, and nothing open to extend, so `bestNextStep` has no candidate
+		 * and only `λ₀ ≤ hi` survives. §8.10 calls this the ordinary good day the
+		 * fit discards whole, and 2026-08-21 measured what using it would cost.
+		 */
+		const COMPLETED_DAY: StopObservation = {
+			tasks: day,
+			windowHours: 12,
+			workedHours: [
+				{
+					taskId: 1,
+					hours: 2.25,
+					endedAt: LOG_ORIGIN + 2.25 * MS_PER_HOUR,
+				},
+				{
+					taskId: 2,
+					hours: 1.5,
+					endedAt: LOG_ORIGIN + 4.5 * MS_PER_HOUR,
+				},
+			],
+			openTaskIds: new Set(),
+		};
+
 		// Synthetic user: work the plan the optimizer builds at the TRUE λ₀ and log
 		// each session as it finishes — one 🪫 row per session carrying the moment
 		// it ended (§18), which is what the day's breaks survive in. `summed`
@@ -1782,45 +1842,45 @@ describe('Zenith Energy Model', () => {
 		});
 
 		it('drops censored and uninformative days; all-dropped falls back', () => {
-			// Worked to the window edge: stopping reveals only an inequality.
-			const edge: StopObservation = {
-				tasks: day,
-				windowHours: 6,
-				workedHours: [
-					{
-						taskId: 2,
-						hours: 6,
-					},
-				],
-			};
+			for (const observation of [EDGE_DAY, EMPTY_DAY, SLIVER_DAY])
+				expect(stopIndifferencePoint(observation, DEFAULT_ENERGY_PARAMS)).toBeNull();
 
-			// Nothing worked, and sessions shorter than one 45-min step.
-			const empty: StopObservation = {
-				tasks: day,
-				windowHours: 8,
-				workedHours: [],
-			};
-
-			const sliver: StopObservation = {
-				tasks: day,
-				windowHours: 8,
-				workedHours: [
-					{
-						taskId: 2,
-						hours: 0.5,
-					},
-				],
-			};
-
-			expect(stopIndifferencePoint(edge, DEFAULT_ENERGY_PARAMS)).toBeNull();
-			expect(stopIndifferencePoint(empty, DEFAULT_ENERGY_PARAMS)).toBeNull();
-			expect(stopIndifferencePoint(sliver, DEFAULT_ENERGY_PARAMS)).toBeNull();
-
-			expect(fitStoppingValue([edge, empty, sliver], prior, DEFAULT_ENERGY_PARAMS)).toEqual({
+			expect(
+				fitStoppingValue([EDGE_DAY, EMPTY_DAY, SLIVER_DAY], prior, DEFAULT_ENERGY_PARAMS),
+			).toEqual({
 				value: prior,
 				fitted: false,
 				usedCount: 0,
 			});
+		});
+
+		/**
+		 * (pin) Which SIDE each censored category reveals, which the midpoint threw
+		 * away until `stopBracket` was exported for the probes that had to rebuild
+		 * it. Nothing asserted this before, and nothing about it moved: the fit still
+		 * reads the midpoint and still drops every day that has no midpoint.
+		 */
+		it('names the side a censored day reveals, and the midpoint is the bracket’s (pin)', () => {
+			// Worked to the window edge, and every task ticked: no forgone step, so
+			// only λ₀ ≤ hi. A sliver carries no whole step to undo, so only λ₀ ≥ lo.
+			for (const observation of [EDGE_DAY, COMPLETED_DAY]) {
+				const bracket = stopBracket(observation, DEFAULT_ENERGY_PARAMS)!;
+				expect(bracket.lo).toBeNull();
+				expect(bracket.hi).not.toBeNull();
+			}
+
+			const sliver = stopBracket(SLIVER_DAY, DEFAULT_ENERGY_PARAMS)!;
+			expect(sliver.hi).toBeNull();
+			expect(sliver.lo).not.toBeNull();
+
+			expect(stopBracket(EMPTY_DAY, DEFAULT_ENERGY_PARAMS)).toBeNull();
+
+			const twoSided = dayFromPlan(0.9, 10);
+			const bracket = stopBracket(twoSided, DEFAULT_ENERGY_PARAMS)!;
+
+			expect(stopIndifferencePoint(twoSided, DEFAULT_ENERGY_PARAMS)).toBe(
+				(bracket.lo! + bracket.hi!) / 2,
+			);
 		});
 
 		it('censors a strongly inverted day (interruption) but keeps a mild inversion at its midpoint', () => {

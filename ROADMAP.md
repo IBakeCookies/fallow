@@ -236,28 +236,42 @@ reach the form at all:
 
 ## Phase 3 — calibration trust
 
-4. **Censored-likelihood stopping fit** — worked-to-edge, zero-work and
-   inverted days currently drop out of the §8.10 fit; a one-sided likelihood
-   term would use them. Build once real usage shows enough censored days. **Sized
-   2026-08-17, re-read 2026-08-19** (M12's close,
-   `stop-inversion-margin.probe.ts`): the all-checked-off category §8.10 calls
-   "not an edge case" is 8.0% / 37.8% / 72.0% of all dropped days at completion
-   rates 0.25 / 0.50 / 0.75 and 0% at 0 — it needs **every** task on the day
-   ticked, so it is ordinary from q ≈ 0.5 up and rare below. The window edge
-   takes the rest. That share is what this item would recover, and the completion
-   rate is an axis, not a frequency: no real history exists on this machine to
-   place a user on it (the same block as items 15 and 16).
-   **Two things M38's fix added to this item (2026-08-19).** First, a surface
-   obligation it deliberately did not build: a batch-logged day reads its breaks
-   as nothing and degrades to the pre-2026-08-19 numbers, and `usedCount` cannot
-   tell a structure-recovered day from a collapsed one — the cheap honest version
-   is to count structure-recovered days and show that count on the Stopping
-   Calibration card, which is a copy decision in five locales. Second, a
-   contamination DETECTOR that does not depend on bracket inversion: the distance
-   between a day's observed per-task hours and the plan's. §8.10 values inversion
-   as a detector (148 of 368 against 68 of 1532) and M38's fix leaves its hit
-   rate on interrupted and grind days intact, so nothing forces this — but a censored likelihood wants a cleaner
-   signal than a bracket that has stopped inverting on honest days.
+4. ~~**Censored-likelihood stopping fit**~~ — DECIDED AGAINST 2026-08-21, built
+   and measured first.
+   [docs/features/censored-stopping-fit.md](docs/features/censored-stopping-fit.md),
+   MATH.md §8.10, `scripts/censored-stopping-fit.probe.ts`. **This item's own
+   sentence was wrong on two of its three categories** and read
+   "worked-to-edge, zero-work and inverted days currently drop out of the §8.10
+   fit; a one-sided likelihood term would use them": zero-work days never reach
+   the fit at all (`readFinishedDays` skips a log with `hours <= 0`, so such a day
+   is not an observation) and inverted-past-margin days stay dropped on purpose
+   (§8.10, item 28). The three reachable categories are worked-to-the-window-edge,
+   every-task-completed and sliver-only.
+   The Tobit-style term was implemented and scored against the shipped fit over 90
+   seeded users × 12 days at true λ₀ ∈ {0.3 … 1.3}. It gains **0.0437** λ₀ RMSE at
+   best on the mixed cell — 40% of the 0.110 bracket half-width the gate was set at
+   — while raising the used share from 60% to 88% of days. **The category that
+   motivated the item is worse alone:** all-completed days move RMSE 0.0974 → 0.1224
+   at n = 12 (bias −0.011 → −0.102), because their `λ₀ ≤ hi` is almost never
+   violated (0.2%) but sits far above the truth — ordinary is not informative. A
+   sliver day's `λ₀ ≥ lo` is violated **100%** of the time: a sub-step day is an
+   interruption, not a leisure choice.
+   What shipped is the instrument and one export: `stopBracket`, the two sides the
+   midpoint used to hide, so a probe can read them instead of rebuilding the
+   bracket the way the three existing stop probes still do. Re-open only
+   with a bound that is TIGHTER, not merely more numerous — the pre-2026-08-21
+   sizing (the fifth category is 8.0% / 37.8% / 72.0% of all dropped days at
+   completion rates 0.25 / 0.50 / 0.75) counted days, and days were never the
+   binding constraint.
+
+   **One obligation outlives the closure, and it is not the censored likelihood**
+   (recorded here by MATH.md §8.10's break-reading correction, 2026-08-19): a
+   batch-logged day reads its breaks as nothing and degrades to the
+   pre-2026-08-19 numbers, and `usedCount` cannot tell a structure-recovered day
+   from a collapsed one. The cheap honest version is to count structure-recovered
+   days and show that count on the Stopping Calibration card — a copy decision in
+   five locales, still not built.
+
 5. ~~**Fit-snapshot persistence**~~ — SHIPPED 2026-08-03 (MATH.md §12.1): a
    `fitSnapshots` store keyed by date, holding only what a fit can move (the ϕ
    plane with its posterior, α_cog/α_phys/r, λ₀); the §12 audit scores each day

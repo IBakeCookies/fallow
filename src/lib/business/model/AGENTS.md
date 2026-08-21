@@ -165,14 +165,21 @@ its allocation code, so the main page is unaffected by changes here.
   the stop against `openTaskIds` only, a next-up-family scope (§11.8): a
   checked-off task is no forgone step, though its hours still drained the
   reservoirs and stay in the reconstruction. A day that ended with everything
-  ticked reveals no indifference and is censored.
+  ticked reveals no indifference and is censored — and using its `λ₀ ≤ hi`
+  reading instead makes the fit WORSE, measured 2026-08-21 (below).
 - `STOP_INVERSION_MARGIN = 0.25` — the inversion past which a day is censored
   too — is **stipulated, not derived**: λ₀ fit RMSE is flat in magnitude over
   m ∈ [0.1, 0.5] (swept 2026-08-13), so neither the constant nor the
   inversion-censoring rule moves without evidence above the instrument's 0.134
-  bracket half-width. What §8.10's stopping calibration has left is the
-  censored-likelihood fit, which would use the one-sided days instead of
-  discarding them; the margin is a dead end.
+  bracket half-width. The margin is a dead end.
+- **The censored likelihood is a settled no** (built, measured and refused
+  2026-08-21, MATH.md §8.10, `scripts/censored-stopping-fit.probe.ts`). Using the
+  one-sided days instead of dropping them gains 0.0437 λ₀ RMSE at best — 40% of
+  the 0.110 gate — and the category that motivated it, the day with every task
+  ticked, is worse alone. `stopBracket` is what survives: the two sides, exported
+  so a probe can read them instead of rebuilding the bracket, which the three
+  older stop probes still do. Do not re-open without
+  a bound that is tighter, not merely more numerous.
 - A fit never writes params silently: the "Apply my fits" button copies it into
   the manual inputs. **One** button for all four fits, beside the Model
   Parameters heading, because the order above is the math — three per-card
