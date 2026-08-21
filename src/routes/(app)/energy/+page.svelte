@@ -64,6 +64,8 @@
 	const cogDrainFit = $derived(lab.cognitiveDrainFit);
 	const physDrainFit = $derived(lab.physicalDrainFit);
 	const recoveryFit = $derived(lab.recoveryFit);
+	const pendingDrainLogs = $derived(lab.pendingDrainLogCount);
+	const pendingRestLogs = $derived(lab.pendingRestLogCount);
 	const stopFit = $derived(lab.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
 	// The lookup always resolves; '' only satisfies the type where the verdict carries no task.
@@ -572,6 +574,16 @@
 									/>
 								</div>
 
+								{#if pendingDrainLogs > 0}
+									<p class="mt-text-sm text-xs text-ty-silent">
+										{pendingDrainLogs === 1
+											? m.energy_drain_pending_one()
+											: m.energy_drain_pending({
+													count: pendingDrainLogs,
+												})}
+									</p>
+								{/if}
+
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<FitLogSummary
 										label={m.energy_drain_log_count({
@@ -629,6 +641,16 @@
 										<span class="text-ty-silent">{m.energy_fit_no_signal()}</span>
 									{/if}
 								</div>
+
+								{#if pendingRestLogs > 0}
+									<p class="mt-text-sm text-xs text-ty-silent">
+										{pendingRestLogs === 1
+											? m.energy_rest_pending_one()
+											: m.energy_rest_pending({
+													count: pendingRestLogs,
+												})}
+									</p>
+								{/if}
 
 								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
 									<FitLogSummary

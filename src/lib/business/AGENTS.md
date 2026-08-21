@@ -351,6 +351,12 @@ days). That redirect belongs in `energy/+page.ts`, not in a `$effect`: a load
 redirect runs before the layout hands the session store a date, so the wrong
 day is never read, and it holds with JS disabled.
 
+Being a today-only instrument does not exempt its fits from the causal window:
+the three identity fits (α, r, λ₀) read only days **strictly before** today, like
+every other fit in the app (MATH.md §33), and the two pending counts name the
+rows they defer. The stop advisor is the one read that keeps today's rows — it
+prices the day in progress, which is §33's state half.
+
 ### An unseen day's budget is prefilled, and that is not the Lab's `|| 8`
 
 ROADMAP item 16. A day with no stored session shows the median budget of its own

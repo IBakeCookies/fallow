@@ -440,18 +440,25 @@ test('the Lab edits a task with the same editor as the main page', async ({ page
    them came up empty for a user who never opened the Lab (ROADMAP item 11). The
    observations are one store, so what is logged here is what the Lab fits. */
 test('a drain rating logged from the main page feeds the Lab', async ({ page }) => {
+	await page.clock.install();
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await setBudget(page, 6);
 
 	await logDrain(page, 120, 9, 5);
-	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.clock.runFor(AUTOSAVE_MS);
 
 	await page.goto('/energy');
 
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
-	// …and it is a real fit, not just a stored row
+	// …and it is a real fit, not just a stored row — which the rating reaches the
+	// day after it was logged (MATH.md §33), on a day with a task of its own.
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+
 	const cognitiveDrain = page.getByLabel('Cognitive drain');
 	const defaultDrain = await cognitiveDrain.inputValue();
 

@@ -124,10 +124,10 @@ that are not evident from reading it — so never retype a row, regenerate:
 §30       7404-7496  The Lab's comparison tile scored the plan on the one thi…
 §31       7498-7679  What history can plot, and what it cannot (2026-08-07)
 §32       7681-7747  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       7749-7866  A plan reads only the logs that precede it (2026-08-08)
-§34       7868-8098  The subset search gave up one task too early (2026-08-08)
-§35       8100-8454  The plan cannot see the hours you already spent (2026-08…
-§36       8456-8527  What a correction may touch (2026-08-10)
+§33       7749-7874  A plan reads only the logs that precede it (2026-08-08)
+§34       7876-8106  The subset search gave up one task too early (2026-08-08)
+§35       8108-8462  The plan cannot see the hours you already spent (2026-08…
+§36       8464-8535  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -7848,7 +7848,12 @@ than joining it, which would otherwise ask the user to do the thing they just
 did. The analytics "Your model" card owes the same: Σw is what the fit read, so
 today's rows are named beside it ("3.5 ⚡ logs, recency-weighted · 2 logged
 today, counted from tomorrow") rather than folded into a count that would then
-overstate what moved the fit.
+overstate what moved the fit. The Energy Lab's drain and recovery cards owe it
+for the same reason: they are labelled as the user's fitted α and r, so a rating
+logged today leaves the row unfitted and is named beside it ("1 rating logged today, counted from tomorrow") rather than
+moving a number the main page is not using. The advisor above them keeps every
+one of today's rows — that read is the state half of this rule, not a copy
+problem.
 
 ### Pinned in the suite
 
@@ -7863,7 +7868,10 @@ collapsed, and the counted total excluding it.
 and reports it pending, while the next day's does; and `readDaySummaries` moves
 only the day that has a snapshot, leaving the day without one on the live fit.
 `calibration-descriptor.test.ts`: the ϕ row naming the deferred logs beside Σw
-rather than adding them to it.
+rather than adding them to it. `energy-lab-store.svelte.spec.ts`: a rating or a
+break dated today leaves the Lab's α and r fits unfitted while the same row dated
+a day earlier fits, and `pendingDrainLogCount` / `pendingRestLogCount` report the
+gap.
 
 ## 34. The subset search gave up one task too early (2026-08-08)
 

@@ -53,7 +53,7 @@ test('the calibration card’s link scrolls to the log list', async ({ page }) =
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/energy');
 
-	// The Lab's drain card is the cheapest of the three to give a fit to. With no ☕ logged
+	// The Lab's drain card is the cheapest of the three to give a logged row to. With no ☕ logged
 	// the recovery card offers no link, so there is exactly one to click.
 	await logDrain(page, 120, 9, 5);
 

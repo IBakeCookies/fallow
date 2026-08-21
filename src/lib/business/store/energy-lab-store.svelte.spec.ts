@@ -532,6 +532,81 @@ describe('EnergyLabStore', () => {
 		);
 	});
 
+	// MATH.md §33: the α and r fits are identity, so they read logs dated strictly
+	// before the planned day — a rating logged today moves them from tomorrow. The
+	// stop advisor above keeps every row, which is the same rule's state half.
+	it('leaves the drain fit unmoved by a rating logged today', async () => {
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: mockSession.today,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.cognitiveDrainFit.fitted).toBe(false);
+		expect(store.physicalDrainFit.fitted).toBe(false);
+	});
+
+	it('fits the same rating once it is dated a day earlier', async () => {
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-19',
+			}),
+		];
+
+		flushSync();
+
+		expect(store.cognitiveDrainFit.fitted).toBe(true);
+	});
+
+	it('leaves the recovery fit unmoved by a break logged today', async () => {
+		const store = await setup();
+
+		mockObservations.restObservations = [
+			restRecord({
+				date: mockSession.today,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.recoveryFit.fitted).toBe(false);
+	});
+
+	it('counts the deferred drain and rest rows rather than dropping them', async () => {
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: mockSession.today,
+			}),
+			drainRecord({
+				date: mockSession.today,
+				hours: 2,
+				mindDrain: 8,
+			}),
+			drainRecord({
+				date: '2026-07-19',
+			}),
+		];
+
+		mockObservations.restObservations = [
+			restRecord({
+				date: mockSession.today,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.pendingDrainLogCount).toBe(2);
+		expect(store.pendingRestLogCount).toBe(1);
+	});
+
 	it('debounces the param autosave into a single write of the last value', async () => {
 		const store = await setup();
 		useFakeTimers();
