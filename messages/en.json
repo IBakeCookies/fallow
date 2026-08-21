@@ -485,6 +485,8 @@
 	"energy_stop_calibration_empty": "No finished days yet. Log 🪫 drain ratings (with worked minutes) on your tasks; every past day with ratings becomes one stop observation here.",
 	"energy_stop_calibration_censored": "No informative days yet — days worked to the window's edge (or barely at all), days that ended with every task checked off, and days that look cut short mid-session (an interruption, not a chosen stop), reveal only an inequality, not an indifference point.",
 	"energy_stop_fit_value": "≈ {value} ± {std} out/h · n={count}",
+	"energy_stop_out_of_clock_one": "1 day ran out of clock, so its stop is not counted",
+	"energy_stop_out_of_clock": "{count} days ran out of clock, so their stops are not counted",
 	"energy_rest_log_count": "Rest pairs · {count}",
 	"energy_reset_rest_logs": "Delete all pairs",
 	"energy_reset_rest_title": "Delete every rest pair — the calibration reverts to the defaults",

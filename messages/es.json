@@ -485,6 +485,8 @@
 	"energy_stop_calibration_empty": "Aún no hay días terminados. Registra valoraciones de desgaste 🪫 (con los minutos trabajados) en tus tareas; cada día pasado con valoraciones se convierte aquí en una observación de parada.",
 	"energy_stop_calibration_censored": "Aún no hay días informativos — los días trabajados hasta el borde de la ventana (o apenas trabajados), los que terminaron con todas las tareas marcadas como hechas, y los que parecen cortados a media sesión (una interrupción, no una parada elegida) solo revelan una desigualdad, no un punto de indiferencia.",
 	"energy_stop_fit_value": "≈ {value} ± {std} prod/h · n={count}",
+	"energy_stop_out_of_clock_one": "1 día se quedó sin reloj, así que su parada no cuenta",
+	"energy_stop_out_of_clock": "{count} días se quedaron sin reloj, así que sus paradas no cuentan",
 	"energy_rest_log_count": "Pares de descanso · {count}",
 	"energy_reset_rest_logs": "Eliminar todos los pares",
 	"energy_reset_rest_title": "Elimina todos los pares de descanso — la calibración vuelve a los valores por defecto",

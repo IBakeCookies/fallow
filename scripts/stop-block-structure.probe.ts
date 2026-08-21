@@ -61,6 +61,7 @@ import {
 	adviseStop,
 	fitStoppingValue,
 	optimizeSchedule,
+	stopBracket,
 	stopIndifferencePoint,
 	type EnergyParams,
 	type EnergyTaskInput,
@@ -333,18 +334,20 @@ function measurePopulation(): Record<Arm, Tally> {
 
 	console.log(
 		`[§8.10 structure] batch-logged vs summed: ${batchMismatches} days differ ` +
-			`(nonzero means a day with no recoverable gap stopped falling back); ` +
-			`recovering the structure kept ${tallies.logged.errors.length - tallies.summed.errors.length} ` +
-			`day(s) the summed reading censored`,
+			`(nonzero means a day with no recoverable gap stopped falling back); the logged reading ` +
+			`prices ${tallies.summed.errors.length - tallies.logged.errors.length} fewer cells than ` +
+			`the summed one, which is the clock censor: only a day whose span is recovered can run ` +
+			`out of it`,
 	);
 
 	// The finding, as gates. Absolute sizes move with the model; these do not.
 	const absOf = (arm: Arm) => tallies[arm].errors.map(Math.abs);
 
 	expect(batchMismatches).toBe(0);
-	// Recovering the structure may UN-censor a day (an inversion that was only
-	// there because the breaks were missing); it must not cost one.
-	expect(tallies.logged.errors.length).toBeGreaterThanOrEqual(tallies.summed.errors.length);
+	// The logged reading prices FEWER days than the summed one since 2026-08-21 —
+	// the clock censor needs a recovered span to fire, so it fires on this arm
+	// alone. The arm below prices what that costs; what must hold here is that the
+	// days it does price are read better, which is why the fix landed at all.
 	expect(mean(absOf('logged'))).toBeLessThan(0.75 * mean(absOf('summed')));
 
 	expect(share(absOf('logged'), BRACKET_HALF_WIDTH)).toBeLessThan(
@@ -404,9 +407,131 @@ function identifiedSet(day: ProbeDay, workedHours: number): { lo: number; hi: nu
 	};
 }
 
+/**
+ * The wall clock the day's own log moments describe: the first session's start to
+ * the last one's end — `reconstructStopDay`'s span (worked hours plus the
+ * UNCAPPED recovered breaks), read straight off the rows, which the generator
+ * never writes out of order.
+ */
+const spanHours = (rows: Rows): number =>
+	rows.length === 0
+		? 0
+		: (rows[rows.length - 1].endedAt! - (rows[0].endedAt! - rows[0].hours * 3_600_000)) / 3_600_000;
+
+/**
+ * `isClockCensored`'s class, from the probe's side: no room for another step
+ * inside the day's own span, AND a break recovered to read that span from. The
+ * second half separates this class from the window-edge censor the fit always
+ * had — a contiguous day worked to the edge is dropped by that one, not by this.
+ */
+const isOutOfClock = (rows: Rows, windowHours: number): boolean => {
+	const worked = rows.reduce((sum, r) => sum + r.hours, 0);
+	const span = spanHours(rows);
+
+	return span > worked + 1e-9 && span + STEP > windowHours + 1e-9;
+};
+
 describe('MATH.md §8.10 — the day’s block structure reaches the estimator', () => {
 	it('reads the same slider-drawn days five ways', () => {
 		measurePopulation();
+	});
+
+	/**
+	 * §8.10's clock censor (M42): the class is the day whose own span leaves no
+	 * room for another step, and the question is what censoring it buys and what
+	 * it costs. Class membership is the PROBE's own span test, so it is the same
+	 * set of cells whether or not the shipped reader censors them — which is what
+	 * makes the two runs of this arm comparable.
+	 *
+	 * Read it as a PAIR of runs, one before the censor and one after: what the
+	 * censor costs is the class's share of the priced cells, which only a run with
+	 * the censor off can print (with it on, the class prices nothing by
+	 * construction and the same cells return null instead) — and what it buys is
+	 * the containment line, which both runs print. Truth is the λ₀ each day was
+	 * PLANNED at, so containment is `lo ≤ λ₀ ≤ hi` on the shipped bracket.
+	 */
+	it('prices the clock censor: the class, containment, and the signed error it carries', () => {
+		const random = mulberry32(SEED);
+
+		const days = Array.from(
+			{
+				length: DAY_COUNT,
+			},
+			() => drawDay(random),
+		);
+
+		let cells = 0;
+		let priced = 0;
+		let inClass = 0;
+		let pricedInClass = 0;
+		let containmentFailures = 0;
+		const classErrors = new Map<number, number[]>();
+
+		for (const lambda of LAMBDAS) {
+			const params = paramsAt(lambda);
+			classErrors.set(lambda, []);
+
+			for (const day of days) {
+				const plan = optimizeSchedule(day.tasks, day.windowHours, params, CONSTANTS).blocks;
+				const rows = sessionRows(plan);
+
+				if (rows.reduce((sum, r) => sum + r.hours, 0) < 3 * STEP - 1e-9) continue;
+
+				cells++;
+				const isInClass = isOutOfClock(rows, day.windowHours);
+
+				if (isInClass) inClass++;
+
+				const observation: StopObservation = {
+					tasks: day.tasks,
+					windowHours: day.windowHours,
+					workedHours: rows,
+				};
+
+				const bracket = stopBracket(observation, params, CONSTANTS);
+
+				if (bracket === null || bracket.lo === null || bracket.hi === null) continue;
+
+				priced++;
+
+				if (bracket.lo > lambda + 1e-9 || bracket.hi < lambda - 1e-9) containmentFailures++;
+
+				if (isInClass) {
+					pricedInClass++;
+					classErrors.get(lambda)!.push((bracket.lo + bracket.hi) / 2 - lambda);
+				}
+			}
+		}
+
+		const pooled = [...classErrors.values()].flat();
+
+		console.log(
+			`[§8.10 clock censor] ${cells} optimizer-funded cells, ${inClass} of them in the class — a ` +
+				`day whose own span leaves no room for another step. The shipped reader prices ` +
+				`${priced} cells, ${pricedInClass} of them in the class ` +
+				`(${((100 * pricedInClass) / priced).toFixed(1)}% — what censoring the class costs, and ` +
+				`0 once it is censored)`,
+		);
+
+		console.log(
+			`[§8.10 clock censor] the bracket excludes the day's own λ₀ on ${containmentFailures} of ` +
+				`${priced} priced cells (${((100 * containmentFailures) / priced).toFixed(1)}%)`,
+		);
+
+		console.log(
+			`[§8.10 clock censor] signed error on the class, pooled ` +
+				`${pooled.length === 0 ? 'n/a (censored)' : `${mean(pooled) >= 0 ? '+' : ''}${mean(pooled).toFixed(3)} (n=${pooled.length})`}` +
+				`; per λ₀ ${[...classErrors]
+					.map(
+						([lambda, errors]) =>
+							`${lambda.toFixed(1)}: ${errors.length === 0 ? 'n/a' : `${mean(errors) >= 0 ? '+' : ''}${mean(errors).toFixed(3)} (n=${errors.length})`}`,
+					)
+					.join(' ')}`,
+		);
+
+		// The finding, as a gate: the class is censored, so none of it prices. What
+		// censoring costs is read off a run with the censor off, not from here.
+		expect(pricedInClass).toBe(0);
 	});
 
 	it('scores both readings against the identified set (oracle arm)', () => {

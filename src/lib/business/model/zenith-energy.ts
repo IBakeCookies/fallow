@@ -1824,6 +1824,8 @@ export interface StoppingValueFit {
 	valueStd?: number;
 	/** Days that yielded a two-sided indifference point */
 	usedCount: number;
+	/** Days dropped because their span left no room for another step (§8.10) */
+	clockCensoredCount: number;
 }
 
 /**
@@ -1840,9 +1842,9 @@ export const STOP_PRIOR_STRENGTH = 1;
 /**
  * Prior scale for indifference-point noise, in λ₀ units (output per hour).
  * Two sources add up: lattice quantization (the day's bracket is one 45-min
- * step wide — half-width a median 0.129 over 274 non-inverted days, measured
- * 2026-08-19 with the days' own breaks in the reconstruction; the 0.15 this
- * comment first quoted was one probe day) and day-to-day mood in the stop
+ * step wide — half-width a median 0.125 over 175 non-inverted days, measured
+ * 2026-08-21 past the clock censor, with the days' own breaks in the
+ * reconstruction; the 0.15 this comment first quoted was one probe day) and day-to-day mood in the stop
  * decision itself, which no instrument separates. 0.25 ≈ a quarter of
  * the informative λ₀ band ([0.4, 1.5] on the probe day).
  */
@@ -1878,24 +1880,40 @@ export const STOP_FIT_MAX = 3;
  * grid, so do not re-derive 0.25 from them:
  *
  *   - "rational days and rational-±1-step 'mood' days never invert at all" is
- *     FALSE for mood days — 68 of 1532 invert, 14 of them censored, worst gap
- *     0.399 — so some honest days really are dropped. Re-read 2026-08-19 with
- *     each day's own breaks in the reconstruction, where the optimizer's OWN
- *     plans do not invert at all: 0 of 299.
+ *     FALSE for mood days — 47 of 926 invert, 14 of them censored, worst gap
+ *     0.399 — so some honest days really are dropped. Re-read 2026-08-21 past
+ *     the clock censor, with each day's own breaks in the reconstruction, where
+ *     the optimizer's OWN plans do not invert at all: 0 of 191.
  *   - the "~+0.1 loose-max bias plus ~0.15 half-width" decomposition does not
- *     add up: measured, the bias is median 0.000 / mean 0.027 and the
- *     half-width median 0.129, summing to 0.129 — not 0.25.
+ *     add up: measured, the bias is median 0.000 / mean 0.019 and the
+ *     half-width median 0.125, summing to 0.125 — not 0.25.
  *
- * RE-DERIVED 2026-08-13 (`scripts/stop-margin-fit-error.probe.ts`) and it is
- * not derivable: over [0.1, 0.5] the whole range moves λ₀ fit RMSE by at most
- * 0.0078 — 3.1% of σ₀ — because most interrupted days never invert at all
- * (30.8% / 28.2% do, only 18.5% / 22.0% past 0.25), so censoring cannot reach
- * the contamination it exists for.
+ * RE-DERIVED 2026-08-13 (`scripts/stop-margin-fit-error.probe.ts`, re-read
+ * 2026-08-21) and it is not derivable: over [0.1, 0.5] the whole range moves λ₀
+ * fit RMSE by at most 0.0089 — 3.6% of σ₀ — because most interrupted days never
+ * invert at all (28.6% / 26.6% do, only 17.3% / 20.5% past 0.25), so censoring
+ * cannot reach the contamination it exists for.
  * 0.25 is LEFT as an arbitrary point inside that flat region. The one real
- * signal is a consistent SIGN, not a size: censoring nothing wins every arm,
- * by up to 0.0104 — recorded in §8.10, not acted on.
+ * signal is a SIGN, not a size: censoring nothing wins both contaminated arms,
+ * by up to 0.0159, and ties the honest ones — recorded in §8.10, not acted on.
  */
 export const STOP_INVERSION_MARGIN = 0.25;
+
+/**
+ * The day ran out of wall clock: worked hours plus the day's UNCAPPED recovered
+ * breaks leave no room for another step, so its stop prices no leisure and
+ * §8.10's fit drops it. A day with no recoverable break has no span to read.
+ */
+function isClockCensored(observation: StopObservation): boolean {
+	const byTask = workedHoursByTask(observation.tasks, observation.workedHours);
+	const rest = recoveredRest(observation, byTask);
+
+	if (rest === null) return false;
+
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+
+	return total + rest.restTotal + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9;
+}
 
 /**
  * A day's revealed bracket on the price of leisure, from discrete stationarity
@@ -1911,12 +1929,15 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * checked-off task is not, having no more of it to do); the second over tasks
  * with at least one whole step logged, completed or not (SOME worked step was
  * worth ≥ λ₀ — with unknown work order, the loose max is the honest bound).
- * Either side can be absent: no room to extend (worked to the window edge) or
- * nothing left open leaves `lo` null, and nothing worked a whole step leaves
- * `hi` null. Such a day carries only an inequality, so `fitStoppingValue` drops
+ * Either side can be absent: no room to extend (worked to the window edge, on a
+ * day whose rows recover no break — with one, the clock censor takes the day
+ * whole instead) or nothing left open leaves `lo` null, and nothing worked a
+ * whole step leaves `hi` null. Such a day carries only an inequality, so `fitStoppingValue` drops
  * it — the two sides are exported for the probes that had to rebuild them.
- * Null is the day that says nothing at all: neither bound, or a bracket
- * inverted past the margin.
+ * Null is the day that reveals nothing usable: neither bound, a bracket
+ * inverted past the margin, or a day that ran out of wall clock
+ * (`isClockCensored` — its own span left no room for another step, so the stop
+ * was the clock's; `fitStoppingValue` counts those).
  *
  * The day is reconstructed from the 🪫 rows' own log moments: one session per
  * row, in the order they were logged, the space between them rest. A day with
@@ -1925,12 +1946,13 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * get. Measured 2026-08-19 over 676
  * optimizer-funded cells drawn through `toEnergyTask` at λ₀ 0.1 … 1.1
  * (`scripts/stop-block-structure.probe.ts`):
- * |midpoint − true λ₀| mean 0.086, p90 0.171 over 441 priced cells, against
- * 0.123 / 0.271 summed — and the error is λ₀-DEPENDENT, mean 0.300 at λ₀ = 0.1
+ * |midpoint − true λ₀| mean 0.060, p90 0.116 over the 307 cells this reader
+ * prices SINCE the clock censor (2026-08-21), against 0.086 / 0.171 over the 441
+ * it priced before it and 0.123 / 0.271 summed — and the error is λ₀-DEPENDENT, mean 0.300 at λ₀ = 0.1
  * against 0.053 at 0.9, so a figure from here carries the λ₀ it was read at.
- * Containment is no longer claimed — the error distribution is, because the
- * bracket does miss on days it used to be asserted to cover, one-signed HIGH
- * where the day's extent left no room for another step (§8.10's cap bullet).
+ * Containment is measured rather than asserted: it failed on 61 of the 441
+ * pre-censor cells and on 1 of the 307 priced now, and the class carrying it — the day whose own span left no room
+ * for another step, one-signed HIGH — is censored since 2026-08-21 (§8.10).
  * The negative side of the stop bound is floored at 0 — λ₀ ≥ (negative
  * marginal) is vacuous.
  *
@@ -1940,12 +1962,12 @@ export const STOP_INVERSION_MARGIN = 0.25;
  * high-amplitude task sat unstarted). No λ₀ rationalizes such a day.
  * Inversions beyond STOP_INVERSION_MARGIN are censored (returned as null):
  * the contradiction is evidence the stop was not a leisure choice, so only
- * the one-sided λ₀ ≤ hi reading survives — the same reason worked-to-the-edge
- * days are dropped. Small inversions (within the margin, i.e. within the
+ * the one-sided λ₀ ≤ hi reading survives — the same reason a day worked to the
+ * window edge with no recovered break is dropped. Small inversions (within the margin, i.e. within the
  * instrument's own slack) keep the bracket midpoint as the compromise between
  * the two bounds. Near-rational days (±1 step of "mood") invert
- * RARELY but not never — 68 of 1532, 14 of them past the margin — while the
- * app's own plans, read with their breaks, invert 0 of 299 (2026-08-19, see
+ * RARELY but not never — 47 of 926, 14 of them past the margin — while the
+ * app's own plans, read with their breaks, invert 0 of 191 (2026-08-21, see
  * STOP_INVERSION_MARGIN).
  */
 export function stopBracket(
@@ -1953,6 +1975,8 @@ export function stopBracket(
 	params: EnergyParams,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): StopBracket | null {
+	if (isClockCensored(observation)) return null;
+
 	const day = reconstructStopDay(observation, params, constants);
 
 	if (day === null || day.byTask.size === 0) return null;
@@ -2004,9 +2028,11 @@ export function stopIndifferencePoint(
  * The reconstructed day the two stop readings share (§8.10/§8.11): the logged
  * sessions in the order and with the breaks their own log moments give, plus
  * the λ₀-free work value V = satiatedOutput + terminalBonus evaluated around
- * it. `total` is the WORKED hours, never the schedule's extent: it decides
- * §8.10's window-edge censor and §8.11's `window-full`, and a verdict must not
- * turn on recovered structure (MATH.md §8.10).
+ * it. `total` is the WORKED hours and `span` adds the day's UNCAPPED recovered
+ * breaks, `total` when none is recoverable. The two readings split there:
+ * §8.11's `window-full` verdict reads `total`, because a verdict must not turn
+ * on recovered structure, while §8.10's clock censor and the session lengths
+ * §8.11 prices read `span` (MATH.md §8.10/§8.11).
  */
 interface StopDayReconstruction {
 	/** The tasks another session could have gone to (`openTaskIds`) */
@@ -2016,6 +2042,7 @@ interface StopDayReconstruction {
 	rank: Map<number, number>;
 	windowHours: number;
 	total: number;
+	span: number;
 	base: number;
 	workValue: (blocks: ScheduleBlock[]) => number;
 }
@@ -2036,9 +2063,10 @@ function reconstructStopDay(
 	const canonical = [...tasks].sort((x, y) => taskAmplitude(y) - taskAmplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+	const rest = recoveredRest(observation, byTask);
 
 	const sched: ScheduleBlock[] =
-		loggedStructure(observation, byTask, total) ??
+		loggedStructure(rest, windowHours, total) ??
 		canonical
 			.filter((t) => byTask.has(t.id))
 			.map((t) => ({
@@ -2061,6 +2089,7 @@ function reconstructStopDay(
 		rank,
 		windowHours,
 		total,
+		span: total + (rest?.restTotal ?? 0),
 		base: workValue(sched),
 		workValue,
 	};
@@ -2069,27 +2098,29 @@ function reconstructStopDay(
 /** Milliseconds per hour: `endedAt` is a wall clock, `hours` is not. */
 const MS_PER_HOUR = 3_600_000;
 
+interface RecoveredRest {
+	/** The day's logged rows in log order */
+	rows: StopObservation['workedHours'];
+	/** The break before each row, `rows[0]`'s being 0 */
+	gaps: number[];
+	restTotal: number;
+}
+
 /**
- * The day's real block structure, read off the 🪫 rows' own log moments — one
- * row per session (§18), so `endedAt − hours` starts it and the space before it
- * is a break the summed reading used to throw away (MATH.md §8.10).
+ * The breaks the 🪫 rows' own log moments recover — one row per session (§18),
+ * so `endedAt − hours` starts it and the space before it is a break the summed
+ * reading used to throw away (MATH.md §8.10). Both stop readings need this
+ * before the reconstruction caps it, so it is its own function.
  *
- * Null when the timestamps cannot carry it, and then the caller falls back to
- * the contiguous canonical schedule for the WHOLE day: a row without a usable
- * moment (a restored backup can carry one — `sanitizeDrainObservations` does not
- * check the field, and must not, since §8.7's α fit does not need it), or a day
- * whose rows recover no gap at all, which is what batch logging looks like.
- *
- * Recovered rest is scaled down to leave one step of room. That keeps `total`'s
- * window arithmetic and `normalizeSchedule`'s clip behaving as they do on the
- * contiguous reading, at the price of understating breaks on days whose logged
- * span nearly fills the declared window.
+ * Null when the timestamps cannot carry it: a row without a usable moment (a
+ * restored backup can carry one — `sanitizeDrainObservations` does not check the
+ * field, and must not, since §8.7's α fit does not need it), or a day whose rows
+ * recover no gap at all, which is what batch logging looks like.
  */
-function loggedStructure(
+function recoveredRest(
 	observation: StopObservation,
 	byTask: Map<number, number>,
-	total: number,
-): ScheduleBlock[] | null {
+): RecoveredRest | null {
 	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
 
 	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
@@ -2105,14 +2136,43 @@ function loggedStructure(
 	);
 
 	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
-	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
+
+	if (!(restTotal > 1e-9)) return null;
+
+	return {
+		rows: sorted,
+		gaps,
+		restTotal,
+	};
+}
+
+/**
+ * The day's real block structure: the recovered sessions and the breaks between
+ * them, or null when the caller must fall back to the contiguous canonical
+ * schedule for the WHOLE day.
+ *
+ * Recovered rest is scaled down to leave one step of room. That keeps `total`'s
+ * window arithmetic and `normalizeSchedule`'s clip behaving as they do on the
+ * contiguous reading, at the price of understating breaks on days whose logged
+ * span nearly fills the declared window — which is why the clock censor reads
+ * the UNCAPPED span instead (MATH.md §8.10).
+ */
+function loggedStructure(
+	rest: RecoveredRest | null,
+	windowHours: number,
+	total: number,
+): ScheduleBlock[] | null {
+	if (rest === null) return null;
+
+	const { rows, gaps, restTotal } = rest;
+	const room = Math.max(0, windowHours - total - DEFAULT_STEP_HOURS);
 	const scale = Math.min(1, room / restTotal);
 
 	if (!(restTotal * scale > 1e-9)) return null;
 
 	const sched: ScheduleBlock[] = [];
 
-	sorted.forEach((r, i) => {
+	rows.forEach((r, i) => {
 		const gap = gaps[i] * scale;
 
 		if (gap > 1e-9)
@@ -2131,37 +2191,6 @@ function loggedStructure(
 }
 
 /**
- * A counterfactual trimmed back inside the window out of the day's recovered
- * rest, latest break first. Without it `normalizeSchedule` clips the probed
- * session instead (`Math.min(b.hours, windowHours - used)`) and the marginal is
- * priced on less work than it asked for — which biases §8.11's session
- * lookahead toward `stop` exactly where the lookahead is the point. A day with
- * no recovered rest has nothing to pay with and clips as it does today.
- */
-function trimRest(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
-	let over = blocks.reduce((sum, b) => sum + b.hours, 0) - windowHours;
-
-	if (over <= 1e-9) return blocks;
-
-	const out = [...blocks];
-
-	for (let i = out.length - 1; i >= 0 && over > 1e-9; i--) {
-		if (out[i].taskId !== null) continue;
-
-		const take = Math.min(out[i].hours, over);
-
-		out[i] = {
-			...out[i],
-			hours: out[i].hours - take,
-		};
-
-		over -= take;
-	}
-
-	return out.filter((b) => b.hours > 1e-9);
-}
-
-/**
  * The reconstructed day grown by `hours` more on task `t`, at the LAST of its
  * blocks — the day continues from where it stopped. An unlogged task is
  * inserted at ITS canonical position, not appended last: block order changes
@@ -2174,16 +2203,13 @@ function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): 
 	if (day.byTask.has(t.id)) {
 		const last = lastBlockOf(day.sched, t.id);
 
-		return trimRest(
-			day.sched.map((b, i) =>
-				i === last
-					? {
-							...b,
-							hours: b.hours + hours,
-						}
-					: b,
-			),
-			day.windowHours,
+		return day.sched.map((b, i) =>
+			i === last
+				? {
+						...b,
+						hours: b.hours + hours,
+					}
+				: b,
 		);
 	}
 
@@ -2195,17 +2221,14 @@ function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): 
 
 	for (let seen = 0; seen < before; at++) if (day.sched[at].taskId !== null) seen++;
 
-	return trimRest(
-		[
-			...day.sched.slice(0, at),
-			{
-				taskId: t.id,
-				hours,
-			},
-			...day.sched.slice(at),
-		],
-		day.windowHours,
-	);
+	return [
+		...day.sched.slice(0, at),
+		{
+			taskId: t.id,
+			hours,
+		},
+		...day.sched.slice(at),
+	];
 }
 
 /** Index of the last block on `taskId`; callers only ask about worked tasks. */
@@ -2309,6 +2332,9 @@ export type StopAdvice =
  * Null when there is nothing to advise on (no window, no tasks, or no
  * candidate left); `window-full` when no whole step fits in what remains of
  * the window — logged hours filled it, or the window is smaller than one step.
+ * That gate reads WORKED hours; only the session LENGTHS priced past it read the
+ * day's recovered span — `reconstructStopDay`'s own `span`, the quantity §8.10's
+ * clock censor tests (MATH.md §8.11).
  */
 export function adviseStop(
 	observation: StopObservation,
@@ -2328,10 +2354,18 @@ export function adviseStop(
 		};
 	}
 
+	// The session priced must fit the clock the day has LEFT, not the hours it
+	// worked (MATH.md §8.11). Floored at one step: a day already past its window
+	// is still advised on, at the smallest session there is.
+	const longest = Math.max(
+		1,
+		Math.min(room, Math.floor((observation.windowHours - day.span) / step + 1e-9)),
+	);
+
 	let best: { taskId: number; sessionHours: number; marginalValue: number } | null = null;
 
 	for (const t of day.candidates) {
-		for (let m = 1; m <= room; m++) {
+		for (let m = 1; m <= longest; m++) {
 			const hours = m * step;
 			const avg = (day.workValue(growBy(day, t, hours)) - day.base) / hours;
 
@@ -2388,11 +2422,14 @@ export function fitStoppingValue(
 		.map((o) => stopIndifferencePoint(o, params, constants))
 		.filter((p): p is number => p !== null);
 
+	const clockCensoredCount = observations.filter(isClockCensored).length;
+
 	if (points.length === 0) {
 		return {
 			value: fallbackValue,
 			fitted: false,
 			usedCount: 0,
+			clockCensoredCount,
 		};
 	}
 
@@ -2415,5 +2452,6 @@ export function fitStoppingValue(
 		fitted: true,
 		valueStd,
 		usedCount: n,
+		clockCensoredCount,
 	};
 }

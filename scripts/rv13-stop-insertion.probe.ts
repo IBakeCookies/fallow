@@ -33,6 +33,11 @@
  * rest block, so counting lower-ranked blocks and indexing into a schedule that
  * contains rest are two different numbers.
  *
+ * Added 2026-08-21: the replica takes the shipped clock censor (§8.10), so a
+ * TIMED day built from a plan that fills its window now reads `censored` — the
+ * plan's own breaks leave no room for another step. That is what moved the timed
+ * arm's figures below, not the conventions this file compares.
+ *
  * A probe, not a test: the sweep prints numbers that move whenever the energy
  * model or the reconstruction changes, and it carries a pre-fix replica that
  * must not exist in shipped code. The suite pins the property instead — that
@@ -102,9 +107,10 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+	const rest = recoveredRest(observation, byTask);
 
 	const sched: ScheduleBlock[] =
-		loggedStructure(observation, byTask, total) ??
+		loggedStructure(rest, windowHours, total) ??
 		canonical
 			.filter((t) => byTask.has(t.id))
 			.map((t) => ({
@@ -185,7 +191,11 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 	const stopBound = Math.max(0, lo);
 
 	const censored =
-		byTask.size === 0 || total + step > windowHours + 1e-9 || hi === null || stopBound > hi + 0.25;
+		byTask.size === 0 ||
+		isClockCensored(observation, rest, total) ||
+		total + step > windowHours + 1e-9 ||
+		hi === null ||
+		stopBound > hi + 0.25;
 
 	return {
 		point: censored ? null : (stopBound + hi!) / 2,
@@ -216,17 +226,11 @@ function shrinkLast(sched: ScheduleBlock[], taskId: number, hours: number): Sche
 	return out.filter((b) => b.hours > 1e-9);
 }
 
-/**
- * `reconstructStopDay`'s recovered block structure, replicated: rows in log
- * order, the space before each one a break, all rest scaled to leave one step
- * of room. Null on the days the shipped reader falls back on — a row with no
- * moment, or no gap to recover.
- */
-function loggedStructure(
+/** `recoveredRest`: the breaks the rows' own log moments recover, UNCAPPED. */
+function recoveredRest(
 	observation: StopObservation,
 	byTask: Map<number, number>,
-	total: number,
-): ScheduleBlock[] | null {
+): { rows: StopObservation['workedHours']; gaps: number[]; restTotal: number } | null {
 	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
 
 	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
@@ -240,14 +244,38 @@ function loggedStructure(
 	);
 
 	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
-	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
+
+	if (!(restTotal > 1e-9)) return null;
+
+	return {
+		rows: sorted,
+		gaps,
+		restTotal,
+	};
+}
+
+/**
+ * `reconstructStopDay`'s recovered block structure, replicated: rows in log
+ * order, the space before each one a break, all rest scaled to leave one step
+ * of room. Null on the days the shipped reader falls back on — a row with no
+ * moment, or no gap to recover.
+ */
+function loggedStructure(
+	rest: ReturnType<typeof recoveredRest>,
+	windowHours: number,
+	total: number,
+): ScheduleBlock[] | null {
+	if (rest === null) return null;
+
+	const { rows, gaps, restTotal } = rest;
+	const room = Math.max(0, windowHours - total - DEFAULT_STEP_HOURS);
 	const scale = Math.min(1, room / restTotal);
 
 	if (!(restTotal * scale > 1e-9)) return null;
 
 	const sched: ScheduleBlock[] = [];
 
-	sorted.forEach((r, i) => {
+	rows.forEach((r, i) => {
 		if (gaps[i] * scale > 1e-9)
 			sched.push({
 				taskId: null,
@@ -261,6 +289,23 @@ function loggedStructure(
 	});
 
 	return sched;
+}
+
+/**
+ * `isClockCensored`: the day's own span — worked hours plus the UNCAPPED
+ * recovered breaks — leaves no room for another step, so the stop was the
+ * clock's and the day reveals nothing (§8.10, censored since 2026-08-21). A
+ * TIMED plan that fills its window is exactly this day, which is why the timed
+ * arm below reads `censored` where it used to read a point.
+ */
+function isClockCensored(
+	observation: StopObservation,
+	rest: ReturnType<typeof recoveredRest>,
+	total: number,
+): boolean {
+	if (rest === null) return false;
+
+	return total + rest.restTotal + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9;
 }
 
 /** The plan's sessions as the 🪫 log holds them: one row each, with its end. */

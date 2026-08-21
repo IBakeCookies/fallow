@@ -247,6 +247,17 @@ function walkPlan(blocks: ScheduleBlock[]): Checkpoint[] {
 	return out;
 }
 
+/**
+ * The wall clock the day's own log moments describe: the first session's start to
+ * the last one's end. The same quantity `reconstructStopDay` calls the day's
+ * span (worked hours plus the UNCAPPED recovered breaks), read straight off the
+ * rows because the walk never logs a session out of order.
+ */
+const spanHours = (rows: Rows): number =>
+	rows.length === 0
+		? 0
+		: (rows[rows.length - 1].endedAt! - (rows[0].endedAt! - rows[0].hours * 3_600_000)) / 3_600_000;
+
 /** The same day read the pre-2026-08-19 way: rows summed, no moments. */
 const summed = (rows: Rows): Rows =>
 	rows.map(({ taskId, hours }) => ({
@@ -257,14 +268,15 @@ const summed = (rows: Rows): Rows =>
 /**
  * `reconstructStopDay`'s recovered block structure, replicated: rows in log
  * order, the space before each one a break, all rest scaled to leave one step of
- * room. Null on the days the shipped reader falls back on — a row with no
+ * room. `restTotal` is the UNCAPPED sum, which is what the day's span is measured
+ * from. Null on the days the shipped reader falls back on — a row with no
  * moment, or no gap to recover.
  */
 function loggedStructure(
 	observation: StopObservation,
 	byTask: Map<number, number>,
 	total: number,
-): ScheduleBlock[] | null {
+): { blocks: ScheduleBlock[]; restTotal: number } | null {
 	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
 
 	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
@@ -298,31 +310,10 @@ function loggedStructure(
 		});
 	});
 
-	return sched;
-}
-
-/** `trimRest`: pay a counterfactual's overhang out of the latest rest first. */
-function trimRest(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
-	let over = blocks.reduce((sum, b) => sum + b.hours, 0) - windowHours;
-
-	if (over <= 1e-9) return blocks;
-
-	const out = [...blocks];
-
-	for (let i = out.length - 1; i >= 0 && over > 1e-9; i--) {
-		if (out[i].taskId !== null) continue;
-
-		const take = Math.min(out[i].hours, over);
-
-		out[i] = {
-			...out[i],
-			hours: out[i].hours - take,
-		};
-
-		over -= take;
-	}
-
-	return out.filter((b) => b.hours > 1e-9);
+	return {
+		blocks: sched,
+		restTotal,
+	};
 }
 
 /**
@@ -351,9 +342,10 @@ function searchMarginals(
 	// WORKED hours, never the schedule's extent: `room` and `window-full` must
 	// not turn on recovered structure (§8.10).
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+	const structure = loggedStructure(observation, byTask, total);
 
 	const sched: ScheduleBlock[] =
-		loggedStructure(observation, byTask, total) ??
+		structure?.blocks ??
 		canonical
 			.filter((t) => byTask.has(t.id))
 			.map((t) => ({
@@ -365,6 +357,16 @@ function searchMarginals(
 
 	if (room < 1) return null;
 
+	// The session LENGTHS are capped by the day's span — worked hours plus the
+	// UNCAPPED recovered breaks — floored at one step, while `room` above keeps
+	// the `window-full` gate on worked hours (M42, §8.11).
+	const span = total + (structure?.restTotal ?? 0);
+
+	const longest = Math.max(
+		1,
+		Math.min(room, Math.floor((windowHours - span) / DEFAULT_STEP_HOURS + 1e-9)),
+	);
+
 	const workValue = (blocks: ScheduleBlock[]): number => {
 		const ev = evaluateSchedule(blocks, tasks, windowHours, params, constants);
 
@@ -373,24 +375,20 @@ function searchMarginals(
 
 	const base = workValue(sched);
 
-	// `growBy`: the LAST block of a logged task grows; an unlogged task enters at
-	// ITS canonical rank among the WORK blocks, not appended; and the grown
-	// schedule pays for its overhang out of the day's last rest (`trimRest`), or
-	// `normalizeSchedule` would clip the probed session instead.
+	// `growBy`: the LAST block of a logged task grows, and an unlogged task enters
+	// at ITS canonical rank among the WORK blocks rather than appended. No overhang
+	// to pay for since M42 — a session inside the day's own clock always fits.
 	const grown = (t: EnergyTaskInput, hours: number): ScheduleBlock[] => {
 		if (byTask.has(t.id)) {
 			const last = sched.reduce((seen, b, i) => (b.taskId === t.id ? i : seen), -1);
 
-			return trimRest(
-				sched.map((b, i) =>
-					i === last
-						? {
-								...b,
-								hours: b.hours + hours,
-							}
-						: b,
-				),
-				windowHours,
+			return sched.map((b, i) =>
+				i === last
+					? {
+							...b,
+							hours: b.hours + hours,
+						}
+					: b,
 			);
 		}
 
@@ -402,17 +400,14 @@ function searchMarginals(
 
 		for (let seen = 0; seen < before; index++) if (sched[index].taskId !== null) seen++;
 
-		return trimRest(
-			[
-				...sched.slice(0, index),
-				{
-					taskId: t.id,
-					hours,
-				},
-				...sched.slice(index),
-			],
-			windowHours,
-		);
+		return [
+			...sched.slice(0, index),
+			{
+				taskId: t.id,
+				hours,
+			},
+			...sched.slice(index),
+		];
 	};
 
 	let oneStepValue = -Infinity;
@@ -420,7 +415,7 @@ function searchMarginals(
 	let bestOverAllM = -Infinity;
 
 	for (const t of candidates) {
-		for (let m = 1; m <= room; m++) {
+		for (let m = 1; m <= longest; m++) {
 			const hours = m * DEFAULT_STEP_HOURS;
 			const avg = (workValue(grown(t, hours)) - base) / hours;
 
@@ -462,6 +457,11 @@ const emptyTally = (): Tally => ({
 	atStopDays: 0,
 	windowFull: 0,
 	mismatches: 0,
+	priced: 0,
+	overClock: 0,
+	overClockPastFloor: 0,
+	overClockContinue: 0,
+	overClockMidDay: 0,
 });
 
 /** The one place `openTaskIds` enters this probe. */
@@ -543,6 +543,16 @@ interface Tally {
 	windowFull: number;
 	/** Replica ≠ shipped search — see the file header */
 	mismatches: number;
+	/** Priced checkpoints at all — the denominator of the two counts below */
+	priced: number;
+	/** …whose session is longer than the wall clock the day's own log moments leave */
+	overClock: number;
+	/** …by more than the one-step floor, which is the part the cap removes */
+	overClockPastFloor: number;
+	/** …and printed under a `continue`, so the card invites a session the day cannot hold */
+	overClockContinue: number;
+	/** …of them mid-day rather than at the plan's own stop */
+	overClockMidDay: number;
 }
 
 function scoreMidDay(score: ArmScore, continues: boolean, restNext: boolean): void {
@@ -592,6 +602,27 @@ function scoreDay(day: ProbeDay, params: EnergyParams, tally: Tally): void {
 		const sessionContinues = advice.verdict === 'continue';
 		const flatContinues = flat.verdict === 'continue';
 
+		// §8.11's measured cost of pricing sessions out of WORKED hours: the clock
+		// the day has left is the window minus its span, and a session longer than
+		// that is one the day cannot hold.
+		tally.priced++;
+
+		const left = day.windowHours - spanHours(checkpoint.rows);
+
+		if (advice.sessionHours > left + 1e-9) {
+			tally.overClock++;
+
+			if (sessionContinues) tally.overClockContinue++;
+
+			if (checkpoint.moreWork) tally.overClockMidDay++;
+
+			// A day with less than a step of clock left is advised on at one step
+			// anyway — the deliberate floor (§8.11). Anything past that is what the
+			// cap removes.
+			if (advice.sessionHours > Math.max(left, DEFAULT_STEP_HOURS) + 1e-9)
+				tally.overClockPastFloor++;
+		}
+
 		if (checkpoint.moreWork) {
 			tally.midCheckpoints++;
 			scoreMidDay(tally.one, oneContinues, checkpoint.restNext);
@@ -615,6 +646,14 @@ function measure(label: string, days: ProbeDay[]): void {
 	let mismatches = 0;
 	let windowFull = 0;
 
+	const overClock = {
+		priced: 0,
+		total: 0,
+		pastFloor: 0,
+		continues: 0,
+		midDay: 0,
+	};
+
 	for (const freeTimeValue of LAMBDAS) {
 		const params: EnergyParams = {
 			...DEFAULT_ENERGY_PARAMS,
@@ -627,6 +666,11 @@ function measure(label: string, days: ProbeDay[]): void {
 
 		mismatches += tally.mismatches;
 		windowFull += tally.windowFull;
+		overClock.priced += tally.priced;
+		overClock.total += tally.overClock;
+		overClock.pastFloor += tally.overClockPastFloor;
+		overClock.continues += tally.overClockContinue;
+		overClock.midDay += tally.overClockMidDay;
 
 		const rate = (score: ArmScore) =>
 			tally.midCheckpoints > 0
@@ -651,6 +695,14 @@ function measure(label: string, days: ProbeDay[]): void {
 
 	console.log(
 		`${label}: one-step replica vs adviseStop marginalValue — ${mismatches} mismatches (nonzero invalidates every rate above), ${windowFull} window-full checkpoints excluded`,
+	);
+
+	console.log(
+		`${label}: the advisor prices a session longer than the day's remaining wall clock at ` +
+			`${overClock.total} of ${overClock.priced} priced checkpoints ` +
+			`(${overClock.midDay} of them mid-day), ${overClock.continues} of them under a ` +
+			`\`continue\`; ${overClock.pastFloor} of them by more than the one-step floor, which is ` +
+			`the part the cap removes (§8.11)`,
 	);
 }
 

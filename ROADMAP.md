@@ -666,31 +666,7 @@ reaches the claim, never that the claim is false.
   caveat still attaches to every number it backs and fixing it is still its own
   change.
 - **M41 §8.10 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
-- **M42 §8.10 — the residual after M38's fix is one-signed HIGH, and censoring it
-  is a data-versus-accuracy call the maintainer makes.** Not a doc defect: §8.10
-  now states this size, and this entry is the POLICY question it deliberately does
-  not answer. The class is the one §8.10's bullet head names — the days **where
-  that cap bites**: a day whose extent (worked hours plus the breaks recovered
-  from its own log moments) leaves no room for another 45-min step, while its
-  WORKED hours still leave room for one, so the rest is squeezed. Such a day ran
-  out of wall clock, but `total` reads WORKED hours (§8.11, pinned), so the
-  window-edge censor never fires and the day enters the fit as a voluntary stop;
-  its `lo` sits at the truth (mean −0.016) while `hi` sits +0.264 above it, and
-  the midpoint lands halfway up.
-  **The trade, measured** (scratch, 2026-08-19, 120 slider-drawn days × λ₀ 0.1 …
-  1.1, the bracket rebuilt from exported parts and validated against
-  `stopIndifferencePoint` on every day): censoring the class takes the bracket's
-  containment failure **13.8% → 4.0%** —
-  it holds 48 of the 61 failures, 47 of them HIGH — at the cost of **25.4% of the
-  fit's priced cells** (112 of 441; 17.6% over the {0.5 … 1.1} scope, consistent
-  with the 19% §8.10 and §8.11 already quote). **The interesting part is the
-  SIGN**: the bias this round fixed read LOW, and what is left reads HIGH, so the
-  two do not stack and a mean-based check over both would cancel them — the same
-  failure mode that let "absorbed as noise" survive. Ruling needed on whether the
-  window censor should read the day's recovered extent instead of its worked
-  hours, which is a code question and would move §8.11's `window-full` copy with
-  it; nothing here says which way. Do not quote these numbers as a result until a
-  committed instrument prints them (item 29's rule).
+- **M42 §8.10 — closed 2026-08-21, [`the-day-that-ran-out-of-clock`](docs/features/the-day-that-ran-out-of-clock.md).**
 - **M43 — closed 2026-08-20, [`the-insertion-witness-re-read`](docs/features/the-insertion-witness-re-read.md).**
 - **M44 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M45 — closed 2026-08-20, [`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md).**

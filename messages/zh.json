@@ -485,6 +485,8 @@
 	"energy_stop_calibration_empty": "还没有已结束的日子。在任务上记录 🪫 消耗评分（含工作分钟数）；每一个有评分的过去日子都会成为这里的一次收工观测。",
 	"energy_stop_calibration_censored": "还没有有信息量的日子——做满整个时间窗（或几乎没做）的日子、结束时所有任务都已勾掉的日子，以及看起来在中途被打断的日子（那是中断，不是主动选择收工），都只能给出一个不等式，而非无差异点。",
 	"energy_stop_fit_value": "≈ {value} ± {std} 产出/小时 · n={count}",
+	"energy_stop_out_of_clock_one": "有 1 天时间用尽，其收工不计入",
+	"energy_stop_out_of_clock": "有 {count} 天时间用尽，其收工不计入",
 	"energy_rest_log_count": "休息配对 · {count}",
 	"energy_reset_rest_logs": "删除所有配对",
 	"energy_reset_rest_title": "删除每一对休息记录——校准将恢复为默认值",
