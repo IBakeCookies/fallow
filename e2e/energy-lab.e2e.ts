@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { addTask, AUTOSAVE_MS, budgetField, logDrain, openTimeBudget, setBudget } from './helpers';
 
 /* The Energy Lab shares the daily session but owns its own params and
@@ -373,20 +373,108 @@ test('a dated URL collapses to the canonical Lab', async ({ page }) => {
 	await expect(page.getByText('Deep work').first()).toBeVisible();
 });
 
-// business/model/AGENTS.md: "A fit never writes params silently." The whole point of the
-// Apply button is that the sliders stay the user's until it is pressed — and
-// there is one button for all four fits, because their order is the math.
-test('a drain rating fits α but only applies on demand', async ({ page }) => {
+// A calibration card, by the title in its heading: both cards render the same
+// shell, and the drain rows' copy repeats between them.
+const calibrationCard = (page: Page, title: string) =>
+	page.locator('.card-shell').filter({
+		hasText: title,
+	});
+
+// The fitted-α row inside a card, which is the innermost div carrying its label.
+const cognitiveDrainRow = (card: Locator) =>
+	card
+		.locator('div')
+		.filter({
+			hasText: 'Cognitive drain',
+		})
+		.last();
+
+/* MATH.md §33: α and r are identity, so the cards fit logs dated strictly before
+   today — the rating just logged is named beside the fit instead of moving it,
+   and with no other log there is nothing to apply. */
+test('a drain rating logged today is named beside the fit, not folded into it', async ({
+	page,
+}) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/energy');
 
-	const cognitiveDrain = page.getByLabel('Cognitive drain');
-	const defaultDrain = await cognitiveDrain.inputValue();
+	await logDrain(page, 120, 9, 5);
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+
+	const drainCard = calibrationCard(page, 'Drain Calibration');
+
+	await expect(drainCard.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+
+	await expect(cognitiveDrainRow(drainCard)).toContainText('no informative ratings');
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Apply my fits',
+		}),
+	).toHaveCount(0);
+});
+
+test('that same rating fits once the clock has passed midnight', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+
+	// Midnight: the rating now has a day behind it, which is all the fit was waiting for.
+	// The new day needs a task of its own — the cards sit behind one.
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+
+	const drainCard = calibrationCard(page, 'Drain Calibration');
+
+	await expect(cognitiveDrainRow(drainCard)).toContainText('n=1');
+	await expect(drainCard.getByText(/counted from tomorrow/)).toHaveCount(0);
+});
+
+test('a break logged today is named beside the recovery fit', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logRest(page, 30, 9, 8, 3, 2);
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
+
+	await expect(
+		calibrationCard(page, 'Recovery Calibration').getByText(
+			'1 break logged today, counted from tomorrow',
+		),
+	).toBeVisible();
+});
+
+// business/model/AGENTS.md: "A fit never writes params silently." The whole point of the
+// Apply button is that the sliders stay the user's until it is pressed — and
+// there is one button for all four fits, because their order is the math.
+test('a drain rating fits α but only applies on demand', async ({ page }) => {
+	// Logged today, then carried past midnight: only a rating with a day behind it
+	// reaches the fit (§33), and this test is about what Apply does with one.
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logDrain(page, 120, 9, 5);
+	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+
+	const cognitiveDrain = page.getByLabel('Cognitive drain');
+	const defaultDrain = await cognitiveDrain.inputValue();
 
 	// The fit ran — but the parameter is untouched.
 	const apply = page.getByRole('button', {
@@ -736,9 +824,10 @@ test('the rest editor refuses a half-filled pair but accepts a rating of 0', asy
 // Both logs live in EnergyObservationStore now, which reads IndexedDB on its
 // own mount — so a reload is what proves that read is wired up.
 test('drain and rest logs survive a reload', async ({ page }) => {
+	await page.clock.install();
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.clock.runFor(AUTOSAVE_MS);
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
@@ -754,7 +843,13 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 
 	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), and the
 	// one Apply carries it — so this proves the reloaded pair reached the FIT, not
-	// just the list's count.
+	// just the list's count. Past midnight, because r reads pairs dated before
+	// today (§33), and the new day needs a task of its own to render the sliders.
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+
 	const recoveryRate = page.getByLabel('Recovery rate');
 	const defaultRecovery = await recoveryRate.inputValue();
 
@@ -891,14 +986,22 @@ test('the ✎ re-seeds a drain editor the row already has open', async ({ page }
    covariates to re-derive — so the ⚡/🪫 cases are covered where their covariates are
    (the store specs, MATH.md §36). */
 test('a break is correctable from the analytics history, and the fit follows', async ({ page }) => {
+	await page.clock.install();
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.clock.runFor(AUTOSAVE_MS);
 	await page.goto('/energy');
 
 	// A long break off a nearly-full drain recovers slowly; the correction below makes it
-	// a short break off the same drain, which is a much faster recovery rate.
+	// a short break off the same drain, which is a much faster recovery rate. Carried
+	// past midnight, because r only reads pairs dated before today (§33).
 	await logRest(page, 120, 9, 8, 8, 7);
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
 
 	const recoveryRate = page.getByLabel('Recovery rate');
 
@@ -960,9 +1063,10 @@ test('a break is correctable from the analytics history, and the fit follows', a
 });
 
 test('deleting the drain rating clears the calibration', async ({ page }) => {
+	await page.clock.install();
 	await page.goto('/');
 	await addTask(page, 'Deep work');
-	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.clock.runFor(AUTOSAVE_MS);
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
@@ -970,6 +1074,18 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 	// The count comes off the store's re-read, so it says the write committed — a `goto`
 	// fired into the gap before it aborts the transaction and nothing is there to drop.
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+
+	// Carried past midnight, so there is a fit to clear at all (§33).
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Apply my fits',
+		}),
+	).toBeVisible();
 
 	// Dropping one rating moved to /analytics with the listing (2026-08-10); this card
 	// keeps the fit's own verbs. Crossing the two screens is the point: the ✕ there has

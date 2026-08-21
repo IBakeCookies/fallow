@@ -622,16 +622,7 @@ reaches the claim, never that the claim is false.
   drift framing** of this — the numbers reproduce — so what is left is that the
   section states a witness without its constants.
 - **M36 §8.12 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
-- **M37 §33** — the Energy Lab straddles the causal fit window.
-  `energy-lab-store.svelte.ts` has no date filter: the α fits read
-  `drainObservations` at `:569` and `:580` and the r fit reads
-  `restObservations` at `:615`, all unfiltered, while only λ₀ goes through
-  `readStopObservations(this.#session.today)` at `:200-201` — against §33's
-  rule that today's 🪫 stops moving the plan. Raised 2026-08-19 by the probe
-  sweep and confirmed by reading, but **not a doc edit**: it needs a ruling on
-  whether the Lab is "a plan for day D" at all, or a calibration surface that
-  should see every log the moment it lands. The only candidate wrong _shipped
-  behaviour_ either audit round turned up.
+- **M37 §33 — closed 2026-08-21, [`the-lab-fit-that-read-todays-logs`](docs/features/the-lab-fit-that-read-todays-logs.md).**
 - **M38 §8.10 — closed 2026-08-19, [`the-bracket-that-inverted-on-a-day-it-kept`](docs/features/the-bracket-that-inverted-on-a-day-it-kept.md).** Shipped as a model change (MATH.md §8.10, §8.11, §10); the residual it left is M42.
 - **M39 §8.11** — `adviseStop` runs the same reconstruction with no inversion
   censor at all, so `STOP_INVERSION_MARGIN` guards the retrospective fit only and

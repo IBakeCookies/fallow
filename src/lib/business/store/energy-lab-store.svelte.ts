@@ -556,6 +556,27 @@ export class EnergyLabStore {
 		return this.#stopAdvice;
 	}
 
+	// ----- Deferred logs (MATH.md §33) -----
+
+	// The three identity fits below read only days strictly before today, like the
+	// main page's copy (daily-plan-store.svelte.ts:42) — the card names the α and
+	// r the app is planning under, so a log must not move them mid-day. The
+	// advisor above is the state read that keeps today's rows; these two counts
+	// name what is deferred, since a row silently dropped reads as a broken fit.
+	#pendingDrainLogCount = $derived(
+		this.#observations.drainObservations.filter((o) => o.date >= this.#session.today).length,
+	);
+	get pendingDrainLogCount() {
+		return this.#pendingDrainLogCount;
+	}
+
+	#pendingRestLogCount = $derived(
+		this.#observations.restObservations.filter((o) => o.date >= this.#session.today).length,
+	);
+	get pendingRestLogCount() {
+		return this.#pendingRestLogCount;
+	}
+
 	// ----- Drain calibration (α fit from end-of-session ratings) -----
 
 	// The fit conditions on the CURRENT recovery parameters (that conditioning
@@ -570,7 +591,9 @@ export class EnergyLabStore {
 
 	#cognitiveDrainFit = $derived(
 		fitDrainRate(
-			toCognitiveDrainObservations(this.#observations.drainObservations),
+			toCognitiveDrainObservations(
+				this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
+			),
 			DEFAULT_ENERGY_PARAMS.alphaCog,
 			this.#drainLawParams,
 		),
@@ -581,7 +604,9 @@ export class EnergyLabStore {
 
 	#physicalDrainFit = $derived(
 		fitDrainRate(
-			toPhysicalDrainObservations(this.#observations.drainObservations),
+			toPhysicalDrainObservations(
+				this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
+			),
 			DEFAULT_ENERGY_PARAMS.alphaPhys,
 			this.#drainLawParams,
 		),
@@ -616,7 +641,9 @@ export class EnergyLabStore {
 	// fitting r first makes that conditioning well-founded, not circular.
 	#recoveryFit = $derived(
 		fitRecoveryRate(
-			toRestObservations(this.#observations.restObservations),
+			toRestObservations(
+				this.#observations.restObservations.filter((o) => o.date < this.#session.today),
+			),
 			DEFAULT_ENERGY_PARAMS.recoveryRate,
 			{
 				restRecoveryMultiplier: this.#params.restRecoveryMultiplier,
