@@ -88,7 +88,7 @@ export function sanitizeTask(raw: unknown, fallbackDate: string): Task | null {
 	const task: Task = {
 		...taskCore(source),
 		id,
-		createdAt: typeof source.createdAt === 'string' ? source.createdAt : fallbackDate,
+		createdAt: isoDate(source.createdAt) ?? fallbackDate,
 		completed: source.completed === true,
 	};
 

@@ -95,6 +95,23 @@ describe('sanitizeTask', () => {
 		});
 	});
 
+	// The slide badge is the first reader that can print this corruption, and it would
+	// print `DAY NaN`.
+	it('reads a corrupt stored createdAt as the session’s own day', () => {
+		const task = sanitizeTask(
+			{
+				id: 1,
+				title: 'write',
+				createdAt: 'banana',
+			},
+			'2026-07-01',
+		);
+
+		expect(task).toMatchObject({
+			createdAt: '2026-07-01',
+		});
+	});
+
 	it('never lets a corrupt rating reach the model as NaN', () => {
 		const task = sanitizeTask(
 			{

@@ -721,6 +721,29 @@ describe('SessionStore persistence', () => {
 		expect(ids.every(Number.isInteger)).toBe(true);
 	});
 
+	it('restamps an imported task’s createdAt to the day in view', async () => {
+		const { store } = await setup();
+		const tomorrow = addDays(store.today, 1);
+
+		mockPage.url = new URL(`http://localhost/?date=${tomorrow}`);
+		await vi.waitFor(() => expect(store.selectedDate).toBe(tomorrow));
+
+		store.importTasks([
+			{
+				title: 'Tax return',
+				physicalDifficulty: 2,
+				mentalDifficulty: 10,
+				enjoyment: 1,
+			},
+		]);
+
+		flushSync();
+
+		// The honest limit the slide badge states: a copy is a new task on the day it
+		// lands, so age accrues along the deliberate "To tomorrow" path alone.
+		expect(store.tasks[0].createdAt).toBe(tomorrow);
+	});
+
 	it('surfaces a failed load instead of silently never saving again', async () => {
 		readSessionByDateMock.mockRejectedValue(new Error('IndexedDB unavailable'));
 		let store!: SessionStore;
@@ -814,6 +837,7 @@ describe('SessionStore persistence', () => {
 
 		flushSync();
 		const id = store.tasks[0].id;
+		const { createdAt } = store.tasks[0];
 		await store.logFlow(id, 25); // a measurement keyed to today, which must NOT travel
 		vi.clearAllMocks();
 		useFakeTimers(); // freeze the auto-save so only the move writes
@@ -835,6 +859,11 @@ describe('SessionStore persistence', () => {
 		// tomorrow's id space, so tomorrow reads no ⚡ for it.
 		expect(write.tasks[0].mustDoToday).toBeUndefined();
 		expect(store.flowMinutesOn(addDays(store.today, 1)).size).toBe(0);
+
+		// …but the day it was added travels verbatim, which is the whole reason the
+		// slide badge can count at all: a restamp here would reset the age on the
+		// exact gesture the badge exists to report.
+		expect(write.tasks[0].createdAt).toBe(createdAt);
 	});
 
 	it('appends to tomorrow’s existing plan instead of replacing it', async () => {

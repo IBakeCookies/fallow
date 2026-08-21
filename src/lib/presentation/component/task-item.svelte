@@ -37,6 +37,7 @@
 		runOrder?: number;
 		flowMinutes?: number;
 		mustDoToday?: boolean;
+		slideDay?: number | null;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
 		flowDraft?: EditorDraft | null;
@@ -72,6 +73,7 @@
 		runOrder,
 		flowMinutes,
 		mustDoToday = false,
+		slideDay,
 		ontoggle,
 		onremove,
 		flowDraft = null,
@@ -131,6 +133,20 @@
 			</Tooltip.Trigger>
 			<Tooltip.Content>
 				<p>{m.form_must_do_today_title()}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+	{/if}
+	{#if slideDay}
+		<Tooltip.Root>
+			<Tooltip.Trigger class="cursor-help">
+				<Badge class="border-transparent bg-info/20 uppercase tracking-wide text-info">
+					{m.task_slide_badge({
+						day: slideDay,
+					})}
+				</Badge>
+			</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>{m.task_slide_tooltip()}</p>
 			</Tooltip.Content>
 		</Tooltip.Root>
 	{/if}
