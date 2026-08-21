@@ -1,11 +1,30 @@
 # Censored-likelihood stopping fit
 
-**Status:** planning · **Roadmap:** item 4
+**Status:** decided against 2026-08-21 · **Roadmap:** item 4
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later
 work changes the behaviour, it writes its own feature file; it does not edit
 this one. Same status as [zenith.md](../../zenith.md), for the same reason.
+
+## Outcome — built, measured, refused (2026-08-21)
+
+The fit below was implemented and scored against the shipped drop-censored one by
+`scripts/censored-stopping-fit.probe.ts`. **The kill criterion at the bottom of
+the Scenarios list fired**, so the estimator was reverted and only the
+instrument, one export (`stopBracket`) and the measurement shipped. MATH.md
+§8.10 and [ROADMAP.md](../../ROADMAP.md) item 4 carry the numbers; the three that
+decided it:
+
+- mixed cell RMSE gain **0.0437** λ₀ at n = 12, 40% of the 0.110 gate
+- **all-completed days alone make the fit worse** (0.0974 → 0.1224, bias −0.011 →
+  −0.102): their `λ₀ ≤ hi` is violated on 0.2% of days but sits far above the
+  truth, so the term is loose, not informative — and that category being ordinary
+  was this item's entire case
+- a sliver day's `λ₀ ≥ lo` is violated **100%** of the time: a sub-step day is an
+  interruption, which the inversion censor already reads that way
+
+Everything below is what was decided on the planning date, unchanged.
 
 ## Goal
 
