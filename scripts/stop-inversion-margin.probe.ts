@@ -42,6 +42,12 @@
  * model has no task size, so "checked off" has no model correlate and the rate
  * is an axis, never a measured frequency.
  *
+ * WHAT THE 2026-08-21 RE-RUN CHANGED. `bracketOf` took the shipped
+ * `isClockCensored` — a day whose own span, breaks included, leaves no room for
+ * another step reveals nothing — and the shipped overhang trim it replicated went
+ * with it. The censor gets its own loss category below, read AFTER the
+ * worked-hours window edge, so it counts the days lost to their breaks alone.
+ *
  * WHAT THE 2026-08-19 RE-RUN CHANGED. `optimizerDay` walks the plan on a WALL
  * CLOCK and emits one row per session with the moment it ended, so a
  * break-carrying day can be expressed at all — it could not before, and that is
@@ -124,16 +130,11 @@ function amplitude(t: EnergyTaskInput): number {
 
 const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
 
-/**
- * `reconstructStopDay`'s recovered block structure, replicated: rows in log
- * order, the space before each one a break, all rest scaled to leave one step of
- * room. Null on the days the shipped reader falls back on.
- */
-function loggedStructure(
+/** `recoveredRest`: the breaks the rows' own log moments recover, UNCAPPED. */
+function recoveredRest(
 	observation: StopObservation,
 	byTask: Map<number, number>,
-	total: number,
-): ScheduleBlock[] | null {
+): { rows: StopObservation['workedHours']; gaps: number[]; restTotal: number } | null {
 	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
 
 	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
@@ -147,14 +148,37 @@ function loggedStructure(
 	);
 
 	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
-	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
+
+	if (!(restTotal > 1e-9)) return null;
+
+	return {
+		rows: sorted,
+		gaps,
+		restTotal,
+	};
+}
+
+/**
+ * `reconstructStopDay`'s recovered block structure, replicated: rows in log
+ * order, the space before each one a break, all rest scaled to leave one step of
+ * room. Null on the days the shipped reader falls back on.
+ */
+function loggedStructure(
+	rest: ReturnType<typeof recoveredRest>,
+	windowHours: number,
+	total: number,
+): ScheduleBlock[] | null {
+	if (rest === null) return null;
+
+	const { rows, gaps, restTotal } = rest;
+	const room = Math.max(0, windowHours - total - DEFAULT_STEP_HOURS);
 	const scale = Math.min(1, room / restTotal);
 
 	if (!(restTotal * scale > 1e-9)) return null;
 
 	const sched: ScheduleBlock[] = [];
 
-	sorted.forEach((r, i) => {
+	rows.forEach((r, i) => {
 		if (gaps[i] * scale > 1e-9)
 			sched.push({
 				taskId: null,
@@ -170,28 +194,19 @@ function loggedStructure(
 	return sched;
 }
 
-/** `trimRest`: pay a counterfactual's overhang out of the latest rest first. */
-function trimRest(blocks: ScheduleBlock[], windowHours: number): ScheduleBlock[] {
-	let over = blocks.reduce((sum, b) => sum + b.hours, 0) - windowHours;
+/**
+ * `isClockCensored`: the day's own span — worked hours plus the UNCAPPED
+ * recovered breaks — leaves no room for another step, so the stop was the
+ * clock's (§8.10, censored since 2026-08-21).
+ */
+function isClockCensored(
+	observation: StopObservation,
+	rest: ReturnType<typeof recoveredRest>,
+	total: number,
+): boolean {
+	if (rest === null) return false;
 
-	if (over <= 1e-9) return blocks;
-
-	const out = [...blocks];
-
-	for (let i = out.length - 1; i >= 0 && over > 1e-9; i--) {
-		if (out[i].taskId !== null) continue;
-
-		const take = Math.min(out[i].hours, over);
-
-		out[i] = {
-			...out[i],
-			hours: out[i].hours - take,
-		};
-
-		over -= take;
-	}
-
-	return out.filter((b) => b.hours > 1e-9);
+	return total + rest.restTotal + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9;
 }
 
 interface Bracket {
@@ -233,9 +248,14 @@ function bracketOf(
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+	const rest = recoveredRest(observation, byTask);
+
+	// The shipped `stopBracket`'s first line: a day that ran out of wall clock
+	// reveals nothing, before any bound is priced.
+	if (isClockCensored(observation, rest, total)) return null;
 
 	const sched: ScheduleBlock[] =
-		loggedStructure(observation, byTask, total) ??
+		loggedStructure(rest, windowHours, total) ??
 		canonical
 			.filter((t) => byTask.has(t.id))
 			.map((t) => ({
@@ -257,22 +277,20 @@ function bracketOf(
 	const base = workValue(sched);
 
 	// `growBy`: the LAST block of a logged task grows; an unlogged task enters at
-	// ITS canonical rank among the WORK blocks; the overhang is paid out of the
-	// day's latest rest rather than clipped off the probe.
+	// ITS canonical rank among the WORK blocks. Nothing trims the overhang: past
+	// the clock censor the grown day fits the window, which is why the shipped
+	// overhang trim was deleted too (2026-08-21).
 	const grown = (t: EnergyTaskInput, hours: number): ScheduleBlock[] => {
 		if (byTask.has(t.id)) {
 			const last = lastBlockOf(t.id);
 
-			return trimRest(
-				sched.map((b, i) =>
-					i === last
-						? {
-								...b,
-								hours: b.hours + hours,
-							}
-						: b,
-				),
-				windowHours,
+			return sched.map((b, i) =>
+				i === last
+					? {
+							...b,
+							hours: b.hours + hours,
+						}
+					: b,
 			);
 		}
 
@@ -284,17 +302,14 @@ function bracketOf(
 
 		for (let seen = 0; seen < before; index++) if (sched[index].taskId !== null) seen++;
 
-		return trimRest(
-			[
-				...sched.slice(0, index),
-				{
-					taskId: t.id,
-					hours,
-				},
-				...sched.slice(index),
-			],
-			windowHours,
-		);
+		return [
+			...sched.slice(0, index),
+			{
+				taskId: t.id,
+				hours,
+			},
+			...sched.slice(index),
+		];
 	};
 
 	/** `shrinkBy`: one step off the END of that task's work, across its blocks. */
@@ -468,10 +483,11 @@ function paramsAt(lambda: number): EnergyParams {
 const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
 /**
  * The instrument's own resolution: the median bracket half-width claim 3 below
- * measures — 0.129 over 274 non-inverted days, every one of them a day the app
- * can produce (2026-08-19). Re-read it whenever claim 3's median moves.
+ * measures — 0.125 over 175 non-inverted days, every one of them a day the app
+ * can produce, and every one of them past the clock censor (2026-08-21; 0.129
+ * over 274 days before it). Re-read it whenever claim 3's median moves.
  */
-const BRACKET_HALF_WIDTH = 0.129;
+const BRACKET_HALF_WIDTH = 0.125;
 
 /**
  * §8.10's fixture day — the witness the 2026-08-12 open-task correction was
@@ -665,7 +681,14 @@ function replicaCheck(
 	};
 }
 
-const LOSSES = ['all-ticked', 'nothing-worked', 'sub-step', 'window-edge', 'past-margin'] as const;
+const LOSSES = [
+	'all-ticked',
+	'nothing-worked',
+	'sub-step',
+	'window-edge',
+	'ran-out-of-clock',
+	'past-margin',
+] as const;
 
 type Loss = (typeof LOSSES)[number];
 
@@ -687,8 +710,14 @@ function lossOf(cell: CompletionCell): Loss | null {
 
 	if (!hours.some((h) => h >= DEFAULT_STEP_HOURS - 1e-9)) return 'sub-step';
 
-	if (hours.reduce((s, h) => s + h, 0) + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9)
-		return 'window-edge';
+	const total = hours.reduce((s, h) => s + h, 0);
+
+	if (total + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9) return 'window-edge';
+
+	// Read AFTER the worked-hours edge, so this counts the days lost to their
+	// BREAKS alone — the ones the summed reading could not see (§8.10, 2026-08-21).
+	if (isClockCensored(observation, recoveredRest(observation, byTask), total))
+		return 'ran-out-of-clock';
 
 	return bracketOf(
 		{
@@ -1067,6 +1096,7 @@ describe('MATH.md §8.10 — the inversion detector and its margin', () => {
 				'nothing-worked': 0,
 				'sub-step': 0,
 				'window-edge': 0,
+				'ran-out-of-clock': 0,
 				'past-margin': 0,
 			};
 

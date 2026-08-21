@@ -438,6 +438,86 @@ test('that same rating fits once the clock has passed midnight', async ({ page }
 	await expect(drainCard.getByText(/counted from tomorrow/)).toHaveCount(0);
 });
 
+/* MATH.md §8.10 (M42): a past day whose own 🪫 log moments describe a span with
+   no room for another 45-min step ran out of wall clock, so its stop is no
+   evidence about λ₀ — the fit drops it and the card says how many it dropped.
+   The Stopping Calibration card's body is inline in `+page.svelte` (the
+   calibration cards share a shell, not a body), so this copy is reachable here
+   and nowhere below. */
+test('a past day that ran out of clock is named on the stopping card, and never moves the fit', async ({
+	page,
+}) => {
+	// A fixed morning: the day that runs out of clock is built by advancing six
+	// hours between two ratings, which must not itself cross midnight.
+	await page.clock.install({
+		time: new Date('2026-08-19T08:00:00'),
+	});
+
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+	await logDrain(page, 90, 8, 4);
+
+	// One 90-min session inside an 8 h window leaves room for another step, so
+	// yesterday reveals a two-sided bracket and the fit has a value.
+	await page.clock.fastForward('20:00:00');
+	await page.goto('/');
+
+	// Both difficulty sliders at 0 put demand 0 on every rating this task carries,
+	// and §8.7's α fit drops those — so the day built below is the ONLY thing that
+	// differs between the two readings of λ₀ this test compares.
+	await page.getByPlaceholder('e.g., Boxing training').fill('Errand');
+
+	// Range inputs take keyboard steps, and `Home` is the minimum — 0 here.
+	for (const label of ['Physical Diff', 'Mental Diff']) {
+		await page.getByLabel(label).press('Home');
+	}
+
+	await page
+		.getByRole('button', {
+			name: 'Deploy Task',
+		})
+		.click();
+
+	await openTimeBudget(page, /8h budget/);
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	const stopCard = calibrationCard(page, 'Stopping Calibration');
+	const fitRow = stopCard.getByText(/out\/h · n=1/);
+
+	await expect(fitRow).toBeVisible();
+	const fitted = await fitRow.textContent();
+	await expect(stopCard.getByText(/ran out of clock/)).toHaveCount(0);
+
+	// 3 h worked across a 7.5 h span of an 8 h window: the wall clock ended it.
+	await logDrain(page, 90, 7, 3);
+	await page.clock.fastForward('06:00:00');
+	await logDrain(page, 90, 9, 5);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await page.clock.fastForward('20:00:00');
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await openTimeBudget(page, /8h budget/);
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	const stopCardToday = calibrationCard(page, 'Stopping Calibration');
+
+	await expect(
+		stopCardToday.getByText('1 day ran out of clock, so its stop is not counted'),
+	).toBeVisible();
+
+	// The dropped day moves nothing: same fitted value, still one day used.
+	await expect(stopCardToday.getByText(/out\/h · n=1/)).toHaveText(fitted!);
+});
+
 test('a break logged today is named beside the recovery fit', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');

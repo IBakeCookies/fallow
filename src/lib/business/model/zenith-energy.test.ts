@@ -71,6 +71,30 @@ const PROBE_DAY = [
 	makeTask(3, 'reading', 4, 7, 0.4, 0),
 ];
 
+/**
+ * The day that ran out of clock, declared ONCE because both stop readings below
+ * read it: 3 h worked in two sessions 6 h apart, so an 8 h window holds a 9 h
+ * logged span, and one task is still open. Its WORKED hours leave room for six
+ * more steps; its own log moments leave room for none.
+ */
+const OVERRUN_DAY: StopObservation = {
+	tasks: [makeTask(1, 'deep work', 7, 6, 0.8, 0.2)],
+	windowHours: 8,
+	workedHours: [
+		{
+			taskId: 1,
+			hours: 1.5,
+			endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
+		},
+		{
+			taskId: 1,
+			hours: 1.5,
+			endedAt: LOG_ORIGIN + 9 * MS_PER_HOUR,
+		},
+	],
+	openTaskIds: new Set([1]),
+};
+
 describe('Zenith Energy Model', () => {
 	describe('normalizeSchedule', () => {
 		it('merges adjacent same-task blocks into one session', () => {
@@ -1622,34 +1646,34 @@ describe('Zenith Energy Model', () => {
 			expect(stopIndifferencePoint(oneUnusable, DEFAULT_ENERGY_PARAMS)).toBe(flat);
 		});
 
-		// Recovered rest is scaled to leave one step of room, so a day whose logged
-		// span runs past its declared window still prices — and `window-full` keeps
-		// reading WORKED hours, because a verdict must never be decided by recovered
-		// structure. 3 h worked inside a 9 h span of an 8 h window: room, not full.
-		it('keeps the window arithmetic on worked hours, not the recovered span', () => {
-			const overrun: StopObservation = {
-				tasks: [makeTask(1, 'deep work', 7, 6, 0.8, 0.2)],
-				windowHours: 8,
-				workedHours: [
-					{
-						taskId: 1,
-						hours: 1.5,
-						endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
-					},
-					{
-						taskId: 1,
-						hours: 1.5,
-						endedAt: LOG_ORIGIN + 9 * MS_PER_HOUR,
-					},
-				],
-				openTaskIds: new Set([1]),
+		// A day whose own log moments describe a span with no room for another step
+		// ran out of wall clock, so its stop reveals no price for leisure and the
+		// fit censors it whole (MATH.md §8.10). The censor reads the UNCAPPED span:
+		// `loggedStructure` scales those 6 h of break down to the 4.25 h the window
+		// has left, so the reconstruction the bracket is built on never shows the
+		// overrun that drops the day.
+		it('censors a day whose logged span leaves no room for another step', () => {
+			expect(stopBracket(OVERRUN_DAY, DEFAULT_ENERGY_PARAMS)).toBeNull();
+			expect(stopIndifferencePoint(OVERRUN_DAY, DEFAULT_ENERGY_PARAMS)).toBeNull();
+		});
+
+		// The censor needs a span to read, and a batch-logged day has none: its rows
+		// recover no gap, so it falls back to the summed reading and prices exactly
+		// as it did before (MATH.md §8.10's fallback path).
+		it('leaves a batch-logged day alone — no span, no censor', () => {
+			const batched: StopObservation = {
+				...OVERRUN_DAY,
+				workedHours: OVERRUN_DAY.workedHours.map((row) => ({
+					...row,
+					endedAt: LOG_ORIGIN + 20 * MS_PER_HOUR,
+				})),
 			};
 
-			expect(stopIndifferencePoint(overrun, DEFAULT_ENERGY_PARAMS)).toBeCloseTo(0.73342, 5);
+			const bracket = stopBracket(batched, DEFAULT_ENERGY_PARAMS);
 
-			expect(adviseStop(overrun, DEFAULT_ENERGY_PARAMS)).toMatchObject({
-				verdict: 'continue',
-			});
+			expect(bracket).toEqual(stopBracket(summed(OVERRUN_DAY), DEFAULT_ENERGY_PARAMS));
+			expect(bracket!.lo).not.toBeNull();
+			expect(bracket!.hi).not.toBeNull();
 		});
 
 		it('stopping earlier reveals a higher indifference price (diminishing marginals)', () => {
@@ -1851,6 +1875,7 @@ describe('Zenith Energy Model', () => {
 				value: prior,
 				fitted: false,
 				usedCount: 0,
+				clockCensoredCount: 0,
 			});
 		});
 
@@ -2296,12 +2321,11 @@ describe('Zenith Energy Model', () => {
 			expect(advice.sessionHours).toBeCloseTo(expectedHours, 12);
 		});
 
-		// MATH.md §8.11 shares §8.10's reconstruction, and it applies no censor, so
-		// the recovered breaks reach the live card directly. Two things to hold: the
-		// day's own break is read, and a probed SESSION is priced at its full length
-		// rather than clipped by `normalizeSchedule` — the counterfactual pays its
-		// overhang out of the day's last rest instead.
-		it('prices a probed session on its full length, out of the recovered break', () => {
+		// MATH.md §8.11 shares §8.10's reconstruction and applies no censor, so the
+		// recovered breaks reach the live card directly: the day's own break is read,
+		// the fresh task enters at ITS canonical rank ahead of the logged work, and
+		// the session stops at the clock the day has left.
+		it('prices the best next session on the day’s own breaks, inside its clock', () => {
 			const errand = makeTask(1, 'errand', 3, 2, 0, 0.3);
 			const deep = makeTask(2, 'deep work', 9, 10, 0.9, 0.2);
 
@@ -2325,16 +2349,14 @@ describe('Zenith Energy Model', () => {
 
 			const advice = priced(adviseStop(observation, DEFAULT_ENERGY_PARAMS));
 
-			// The day reads [errand 0.75, rest 4.5, errand 0.75]; the best session is
-			// 3 fresh steps of `deep`, inserted at its canonical rank ahead of the
-			// logged work, and 4.5 + 2.25 h does not fit an 8 h window — so 2.25 h of
-			// the break pays for it. Priced against the clipped schedule the same
-			// session reads 1.30025, and `normalizeSchedule` would have cut the
-			// logged work itself away to make room.
+			// The day reads [errand 0.75, rest 4.5, errand 0.75], a 6 h span of an 8 h
+			// window: two steps is all the clock left, and the marginal is priced on
+			// exactly the session offered. Three steps was what this day priced until
+			// M42 (2026-08-21) — 2.25 h the day could not hold, and the schedule it
+			// was priced on had to pay 2.25 h out of the break to fit.
 			expect(advice.taskId).toBe(2);
-			expect(advice.sessionHours).toBe(2.25);
-			expect(advice.marginalValue).toBeCloseTo(1.35921, 5);
-			expect(advice.marginalValue).toBeGreaterThan(1.30026);
+			expect(advice.sessionHours).toBe(1.5);
+			expect(advice.marginalValue).toBeCloseTo(1.29167, 5);
 		});
 
 		it('looks ahead past the warm-up ramp: continues when only a longer session clears λ₀ (probe 2026-08-03)', () => {
@@ -2699,6 +2721,66 @@ describe('Zenith Energy Model', () => {
 			expect(adviseStop(singleDay(9), DEFAULT_ENERGY_PARAMS)).toEqual({
 				verdict: 'window-full',
 			});
+		});
+
+		// The session priced must fit the clock the day has LEFT, not the hours it
+		// worked (MATH.md §8.11): 3 h worked inside a 6 h logged span of an 8 h
+		// window leaves worked-hours room for six steps and span room for two. The
+		// second task is UNLOGGED and open, which is the only way a session longer
+		// than one step ever wins — growing a warm session has a falling marginal.
+		it('never prices a session past the day’s remaining clock', () => {
+			const squeezed: StopObservation = {
+				tasks: [...singleTask, makeTask(2, 'fresh work', 9, 10, 0.9, 0.2)],
+				windowHours: 8,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 1.5,
+						endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+						endedAt: LOG_ORIGIN + 6 * MS_PER_HOUR,
+					},
+				],
+				openTaskIds: new Set([1, 2]),
+			};
+
+			expect(priced(adviseStop(squeezed, DEFAULT_ENERGY_PARAMS)).sessionHours).toBeCloseTo(
+				2 * DEFAULT_STEP_HOURS,
+				12,
+			);
+
+			// Read summed, the same day has no span to read and keeps the longer
+			// session its worked hours have room for — the cap is the span's.
+			expect(
+				priced(
+					adviseStop(
+						{
+							...squeezed,
+							workedHours: [
+								{
+									taskId: 1,
+									hours: 3,
+								},
+							],
+						},
+						DEFAULT_ENERGY_PARAMS,
+					),
+				).sessionHours,
+			).toBeCloseTo(3 * DEFAULT_STEP_HOURS, 12);
+		});
+
+		// The gate is not the cap: `window-full` keeps reading WORKED hours, because
+		// a user who still has hours must not be told the window is full on the
+		// strength of a gap the reconstruction inferred. A day already past its
+		// window is still advised on, at one step — the last checkpoint of the day
+		// is the one a user reads to decide whether to keep going.
+		it('advises on a day whose span is already past the window, at one step', () => {
+			const advice = adviseStop(OVERRUN_DAY, DEFAULT_ENERGY_PARAMS);
+
+			expect(priced(advice).sessionHours).toBeCloseTo(DEFAULT_STEP_HOURS, 12);
 		});
 
 		it('returns null when there is nothing to advise on', () => {

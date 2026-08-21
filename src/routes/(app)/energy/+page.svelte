@@ -694,6 +694,16 @@
 									</span>
 								</div>
 							{/if}
+
+							{#if stopFit.clockCensoredCount > 0}
+								<p class="mt-text-sm text-xs text-ty-silent">
+									{stopFit.clockCensoredCount === 1
+										? m.energy_stop_out_of_clock_one()
+										: m.energy_stop_out_of_clock({
+												count: stopFit.clockCensoredCount,
+											})}
+								</p>
+							{/if}
 						</CalibrationCard>
 					</div>
 				{/if}

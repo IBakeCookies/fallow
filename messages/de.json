@@ -485,6 +485,8 @@
 	"energy_stop_calibration_empty": "Noch keine abgeschlossenen Tage. Bewerte Aufgaben mit 🪫 (inkl. gearbeiteter Minuten); jeder vergangene Tag mit Bewertungen wird hier zu einer Stopp-Beobachtung.",
 	"energy_stop_calibration_censored": "Noch keine aussagekräftigen Tage — Tage, die bis zum Rand des Zeitfensters (oder kaum) gearbeitet wurden, Tage, an deren Ende jede Aufgabe abgehakt war, sowie Tage, die mitten in einer Sitzung abgebrochen wirken (eine Unterbrechung, kein bewusster Stopp), verraten nur eine Ungleichung, keinen Indifferenzpunkt.",
 	"energy_stop_fit_value": "≈ {value} ± {std} /h · n={count}",
+	"energy_stop_out_of_clock_one": "1 Tag ist die Zeit ausgegangen, sein Stopp zählt daher nicht",
+	"energy_stop_out_of_clock": "{count} Tagen ist die Zeit ausgegangen, ihre Stopps zählen daher nicht",
 	"energy_rest_log_count": "Pausenpaare · {count}",
 	"energy_reset_rest_logs": "Alle Paare löschen",
 	"energy_reset_rest_title": "Alle Pausenpaare löschen — die Kalibrierung fällt auf die Standardwerte zurück",

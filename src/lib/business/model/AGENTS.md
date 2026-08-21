@@ -158,9 +158,17 @@ its allocation code, so the main page is unaffected by changes here.
   the space between them rest. Never re-sum the rows by task on the way in —
   doing that discarded the day's breaks. A day whose rows carry no usable
   moment, or were all written down at once, falls back to one contiguous block
-  per task in canonical order, and that fallback must stay bit-identical. `total`
-  — hence §8.10's window censor and §8.11's `window-full` — reads WORKED hours,
-  never the recovered extent: a verdict may not turn on recovered structure.
+  per task in canonical order, and that fallback must stay bit-identical.
+- **The two stop readings answer the window question differently, on purpose**
+  (M42, 2026-08-21). §8.10's fit CENSORS a day whose own span — worked hours plus
+  the day's UNCAPPED recovered breaks — leaves no room for another step: the
+  clock ended that day, so its stop is no evidence about λ₀, and
+  `fitStoppingValue` reports how many days it dropped for it. §8.11's
+  `window-full` still reads WORKED hours, because a verdict may not turn on
+  recovered structure — but the session LENGTHS it prices are capped by the span,
+  floored at one step, so the card never invites a session the day cannot hold.
+  A day with no recoverable break has no span to read and keeps the worked-hours
+  reading on both sides.
 - Both stop readings price
   the stop against `openTaskIds` only, a next-up-family scope (§11.8): a
   checked-off task is no forgone step, though its hours still drained the

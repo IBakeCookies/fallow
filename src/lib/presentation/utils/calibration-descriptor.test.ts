@@ -51,6 +51,7 @@ const unfitted: CalibrationSnapshot = {
 	stopping: {
 		fitted: false,
 		usedCount: 0,
+		clockCensoredCount: 0,
 		value: 0.44,
 	},
 	defaults,
@@ -112,6 +113,7 @@ describe('calibrationRows', () => {
 				stopping: {
 					fitted: true,
 					usedCount: 3,
+					clockCensoredCount: 0,
 					value: 0.6,
 					valueStd: 0.15,
 				},
@@ -133,6 +135,7 @@ describe('calibrationRows', () => {
 				stopping: {
 					fitted: true,
 					usedCount: 3,
+					clockCensoredCount: 0,
 					value: 0.6,
 				},
 			},

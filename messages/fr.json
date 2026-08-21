@@ -485,6 +485,8 @@
 	"energy_stop_calibration_empty": "Aucune journée terminée pour l'instant. Note des évaluations d'épuisement 🪫 (avec les minutes travaillées) sur tes tâches ; chaque jour passé avec des évaluations devient ici une observation d'arrêt.",
 	"energy_stop_calibration_censored": "Aucune journée informative pour l'instant — les jours travaillés jusqu'au bord de la fenêtre (ou à peine travaillés), ceux qui se sont terminés avec toutes les tâches cochées, et ceux qui semblent coupés en pleine session (une interruption, pas un arrêt choisi), ne révèlent qu'une inégalité, pas un point d'indifférence.",
 	"energy_stop_fit_value": "≈ {value} ± {std} prod/h · n={count}",
+	"energy_stop_out_of_clock_one": "1 journée a manqué de temps, son arrêt n'est donc pas compté",
+	"energy_stop_out_of_clock": "{count} journées ont manqué de temps, leurs arrêts ne sont donc pas comptés",
 	"energy_rest_log_count": "Paires de repos · {count}",
 	"energy_reset_rest_logs": "Supprimer toutes les paires",
 	"energy_reset_rest_title": "Supprime toutes les paires de repos — la calibration revient aux valeurs par défaut",
