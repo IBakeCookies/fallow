@@ -7,23 +7,23 @@ missing, it is one hop away.
 
 ## The documentation
 
-| File                                                               | Read it when                                                                                |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| **this file**                                                      | always                                                                                      |
-| [`src/lib/data/AGENTS.md`](src/lib/data/AGENTS.md)                 | touching repositories, IndexedDB, migrations, persisted shapes                              |
-| [`src/lib/business/AGENTS.md`](src/lib/business/AGENTS.md)         | touching stores, state, the business-layer root                                             |
-| [`business/model/AGENTS.md`](src/lib/business/model/AGENTS.md)     | touching the model — invariants and the settled model decisions                             |
-| [`src/lib/presentation/AGENTS.md`](src/lib/presentation/AGENTS.md) | touching routes, components, the task rows, the log history                                 |
-| [STYLE.md](src/lib/presentation/style/STYLE.md)                    | touching markup, classes, tokens, themes                                                    |
-| [docs/testing.md](docs/testing.md)                                 | writing a test, verifying, or dispatching the reviewer                                      |
-| [docs/design.md](docs/design.md)                                   | arguing about where code goes, a split, or an abstraction                                   |
-| [docs/deployment.md](docs/deployment.md)                           | touching SSR, the service worker, locales, SEO, prerendering                                |
-| [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Read the section, not the file (`## Section index`) |
-| [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                    |
-| [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item is a date and a link to its spec          |
-| [docs/features/](docs/features/)                                   | one spec per feature, frozen at land — what was decided then, never how the code works now  |
-| [README.md](README.md)                                             | user-facing: what the app does and how to run it                                            |
-| [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                         |
+| File                                                               | Read it when                                                                                         |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| **this file**                                                      | always                                                                                               |
+| [`src/lib/data/AGENTS.md`](src/lib/data/AGENTS.md)                 | touching repositories, IndexedDB, migrations, persisted shapes                                       |
+| [`src/lib/business/AGENTS.md`](src/lib/business/AGENTS.md)         | touching stores, state, the business-layer root                                                      |
+| [`business/model/AGENTS.md`](src/lib/business/model/AGENTS.md)     | touching the model — invariants and the settled model decisions                                      |
+| [`src/lib/presentation/AGENTS.md`](src/lib/presentation/AGENTS.md) | touching routes, components, the task rows, the log history                                          |
+| [STYLE.md](src/lib/presentation/style/STYLE.md)                    | touching markup, classes, tokens, themes                                                             |
+| [docs/testing.md](docs/testing.md)                                 | writing a test, verifying, or dispatching the reviewer                                               |
+| [docs/design.md](docs/design.md)                                   | arguing about where code goes, a split, or an abstraction                                            |
+| [docs/deployment.md](docs/deployment.md)                           | touching SSR, the service worker, locales, SEO, prerendering                                         |
+| [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Read the section, not the file (`## Section index`)          |
+| [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                             |
+| [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item or closed finding is a date and a link to its spec |
+| [docs/features/](docs/features/)                                   | one spec per feature, frozen at land — what was decided then, never how the code works now           |
+| [README.md](README.md)                                             | user-facing: what the app does and how to run it                                                     |
+| [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                                  |
 
 New durable knowledge goes in the file that owns the area, never in a new
 top-level `.md`. **This file keeps statements; every "because" longer than a

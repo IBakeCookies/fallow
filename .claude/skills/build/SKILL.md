@@ -77,8 +77,11 @@ Nothing here is optional, and the docs move in the same commit as the code:
 - `scripts/PROBES.md` row added for any new probe
 - a changed convention written into the area's `AGENTS.md`, not left in the
   feature file — the feature file is not where anyone looks it up
-- ROADMAP.md: mark the item shipped and link the feature file; never renumber,
-  and re-run `npx prettier --write ROADMAP.md` after (it renumbers lists)
+- ROADMAP.md: collapse the item — or the finding — to its date and a link to the
+  feature file, and write the record in that file, never in ROADMAP.md. A closure
+  with no feature of its own still gets one, or the record has nowhere to go but
+  the roadmap. Never renumber, and re-run `npx prettier --write ROADMAP.md` after
+  (it renumbers lists)
 - the spec's **Status** set to `landed <date>`, **Open questions** emptied
 
 The five-command gate is the user's to run, not yours. Report what shipped,
