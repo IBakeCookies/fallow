@@ -343,7 +343,8 @@ left the start with nothing to anchor but itself. The field, the label, the
 persisted key and the `formatClock`/`parseClock` pair went with it; every
 duration on the strip is an offset from the day's own zero (`formatOffset`),
 which is the only reading the model has
-([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)
+([the-anchor-that-held-only-itself.md](../../../docs/features/the-anchor-that-held-only-itself.md);
+[the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)
 records the version that had one).
 
 ### Each measurement is read, corrected and dropped on the row it belongs to
