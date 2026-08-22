@@ -7,6 +7,7 @@
 	import TaskRowShell from '$lib/presentation/component/task-row-shell.svelte';
 	import { natureBadge, type TaskNature } from '$lib/presentation/utils/task-nature';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { getTaskColumns } from '$lib/presentation/utils/ledger-column';
 	import type {
 		DrainDraft,
 		EditorDraft,
@@ -114,6 +115,9 @@
 			</Tooltip.Content>
 		</Tooltip.Root>
 	{/if}
+{/snippet}
+
+{#snippet badges()}
 	<Tooltip.Root>
 		<Tooltip.Trigger class="cursor-help">
 			<Badge class="border-transparent uppercase tracking-wide {badge.class}">
@@ -152,35 +156,57 @@
 	{/if}
 {/snippet}
 
+<!-- `Prio` renders an empty cell on a completed task rather than being dropped:
+     a row short of a cell breaks every column's width below it. -->
 {#snippet meta()}
-	<!-- Below `sm` this rule's two sides never share a line, so it would point at nothing. -->
-	<span class="hidden text-ty-ghost sm:inline">|</span>
-	<Tooltip.Root>
-		<Tooltip.Trigger class="cursor-help text-left">
-			{m.task_derived_values({
-				effort: trueEffort.toFixed(1),
-				flow: formatDuration(flowStateTime),
-				stop: formatDuration(optimalStopHours),
-			})}
-		</Tooltip.Trigger>
-		<Tooltip.Content>
-			<p>{m.task_derived_tooltip()}</p>
-		</Tooltip.Content>
-	</Tooltip.Root>
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+		<Tooltip.Root>
+			<Tooltip.Trigger class="cursor-help">{trueEffort.toFixed(1)}</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>{m.task_derived_tooltip()}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+	</td>
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+		{#if !completed}
+			<Tooltip.Root>
+				<!-- 1 dp even at .0: a column whose decimal points do not line up is what
+						`ledger-numeric` exists to prevent (MATH.md §3's printed scale). -->
+				<Tooltip.Trigger class="cursor-help">{priorityScore.toFixed(1)}</Tooltip.Trigger>
+				<Tooltip.Content>
+					<p>{m.task_allocation_tooltip()}</p>
+				</Tooltip.Content>
+			</Tooltip.Root>
+		{/if}
+	</td>
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+		<Tooltip.Root>
+			<Tooltip.Trigger class="cursor-help">{formatDuration(flowStateTime)}</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>{m.task_derived_tooltip()}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+	</td>
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+		<Tooltip.Root>
+			<Tooltip.Trigger class="cursor-help">{formatDuration(optimalStopHours)}</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>{m.task_derived_tooltip()}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+	</td>
 {/snippet}
 
-<!-- Two readings, always the same two elements: the hours the row is asking for, and
-     the small line under them. Mid-day the first becomes the re-plan and the second
-     grows a `plan …` prefix (MATH.md §35), which is the ONLY thing a re-plan changes
-     here — written as one structure because it was written as two, and the small line
-     then had to be edited twice to change once. -->
+<!-- Last column, as in the Lab's ledger: same reading, same place. Empty on a completed
+     task rather than dropped — a row short of a cell breaks every column's width below
+     it. -->
 {#snippet trailing()}
-	{#if !completed}
-		<div>
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+		{#if !completed}
 			<Tooltip.Root>
 				<!-- Why each reading triggers on itself: presentation/AGENTS.md, "The row's
 				     layout" -->
-				<Tooltip.Trigger class="block cursor-help text-sm font-semibold text-ty-primary ">
+				<Tooltip.Trigger class="block cursor-help text-right font-semibold text-ty-primary">
 					{replan
 						? m.task_remaining_spend({
 								hours: formatDuration(replan.taskHours),
@@ -197,26 +223,22 @@
 					</p>
 				</Tooltip.Content>
 			</Tooltip.Root>
-			<Tooltip.Root>
-				<Tooltip.Trigger class="block cursor-help text-2xs text-ty-silent  ">
-					<!-- The plan reads beside the re-plan and only there: with no re-plan above
-					     it, the bold line already IS the plan. A ternary and not an `{#if}`
-					     because the separator has to live INSIDE the expression — Svelte trims a
-					     block's trailing whitespace, which ran the two readings together. -->
-					{replan
-						? `${m.task_plan_hours({
-								hours: formatDuration(suggestedHours),
-							})} · `
-						: ''}{m.task_priority({
-						score: priorityScore,
-					})}
-				</Tooltip.Trigger>
-				<Tooltip.Content>
-					<p>{m.task_allocation_tooltip()}</p>
-				</Tooltip.Content>
-			</Tooltip.Root>
-		</div>
-	{/if}
+			<!-- The plan reads beneath the re-plan and only there (MATH.md §35): with no
+			     re-plan above it, the bold line already IS the plan. -->
+			{#if replan}
+				<Tooltip.Root>
+					<Tooltip.Trigger class="block cursor-help text-right text-2xs text-ty-silent">
+						{m.task_plan_hours({
+							hours: formatDuration(suggestedHours),
+						})}
+					</Tooltip.Trigger>
+					<Tooltip.Content>
+						<p>{m.task_allocation_tooltip()}</p>
+					</Tooltip.Content>
+				</Tooltip.Root>
+			{/if}
+		{/if}
+	</td>
 {/snippet}
 
 <Tooltip.Provider>
@@ -227,6 +249,7 @@
 		{mentalDifficulty}
 		{enjoyment}
 		{mustDoToday}
+		columnCount={getTaskColumns().length}
 		ontoggle={() => ontoggle(id)}
 		{flowMinutes}
 		{flowDraft}
@@ -245,6 +268,7 @@
 		onupdate={onupdate && ((edit) => onupdate(id, edit))}
 		onremove={onremove && (() => onremove(id))}
 		{lead}
+		{badges}
 		{meta}
 		{trailing}
 	/>

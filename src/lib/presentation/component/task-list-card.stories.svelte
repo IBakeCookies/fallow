@@ -2,6 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect } from 'storybook/test';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
+	import { getTaskColumns } from '$lib/presentation/utils/ledger-column';
 
 	const { Story } = defineMeta({
 		title: 'Component/Task List Card',
@@ -11,7 +12,7 @@
 </script>
 
 <!-- The frame both screens mount. What the play covers is the two things the card
-     decides for them: the form is above the list, never below it, and the screen's
+     decides for them: the form is above the ledger, never below it, and the screen's
      own heading content shares the heading's row rather than costing one of its own. -->
 <Story
 	name="Default"
@@ -21,11 +22,11 @@
 		});
 
 		const form = canvas.getByText('add a task');
-		const list = canvas.getByRole('list');
+		const table = canvas.getByRole('table');
 
 		expect(title.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect(form.compareDocumentPosition(list)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect(canvas.getAllByRole('listitem')).toHaveLength(2);
+		expect(form.compareDocumentPosition(table)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
 
 		// Inside the heading's row, not merely before the form: a sibling of the card's
 		// sections would be the block that pushed the list out of line with the metrics
@@ -35,19 +36,19 @@
 >
 	{#snippet template()}
 		<div class="max-w-2xl">
-			<TaskListCard {rows} {form} {heading} />
+			<TaskListCard columns={getTaskColumns()} {rows} {form} {heading} />
 		</div>
 	{/snippet}
 </Story>
 
-<!-- No rows: the empty state, and no <ul> at all — an empty one would announce
-     "list, 0 items" over the copy that explains the day is empty -->
+<!-- No rows: the empty state, and no <table> at all — a header row over nothing is a
+     grid of nothing, the same mistake an empty <ul> was -->
 <Story
 	name="Empty"
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('No tasks deployed yet')).toBeVisible();
 		await expect(canvas.getByText('Add a task above to begin tracking')).toBeVisible();
-		expect(canvas.queryByRole('list')).not.toBeInTheDocument();
+		expect(canvas.queryByRole('table')).not.toBeInTheDocument();
 
 		// No `heading` passed: the row is the title alone, which is what the Lab
 		// mounts and what `/` shows before the day's first 🪫 log.
@@ -59,7 +60,7 @@
 >
 	{#snippet template()}
 		<div class="max-w-2xl">
-			<TaskListCard rows={null} {form} />
+			<TaskListCard columns={getTaskColumns()} rows={null} {form} />
 		</div>
 	{/snippet}
 </Story>
@@ -73,6 +74,10 @@
 {/snippet}
 
 {#snippet rows()}
-	<li>write the calibration section</li>
-	<li>boxing</li>
+	<tbody>
+		<tr><td>write the calibration section</td></tr>
+	</tbody>
+	<tbody>
+		<tr><td>boxing</td></tr>
+	</tbody>
 {/snippet}

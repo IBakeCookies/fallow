@@ -13,6 +13,7 @@
 	import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import { getSlideDay } from '$lib/presentation/utils/slide-age';
+	import { getTaskColumns } from '$lib/presentation/utils/ledger-column';
 
 	interface Props {
 		suggestedTasks: SuggestedTask[];
@@ -32,6 +33,11 @@
 		// The add-task form, rendered by the card above the list: adding and reading
 		// the plan are the same place, and it costs no second card.
 		form?: Snippet;
+		/** The day's Load and Save, rendered on the card's header row beside "Next" —
+		 *  the page owns the callbacks behind them. Passed on every day, unlike `form`:
+		 *  what a past day withholds is inside `day-actions.svelte`, since both menus
+		 *  read the same guard. */
+		actions?: Snippet;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
 		/** The ⚡ editors open on this list, by task — the page owns them, like the 🪫
@@ -68,6 +74,7 @@
 		remainingDay = null,
 		nextTaskTitle,
 		form,
+		actions,
 		ontoggle,
 		onremove,
 		flowDrafts = {},
@@ -111,62 +118,66 @@
 
 {#snippet taskRows(group: SuggestedTask[])}
 	{#each group as task (task.id)}
-		<li>
-			<TaskItem
-				id={task.id}
-				title={task.title}
-				physicalDifficulty={task.physicalDifficulty}
-				mentalDifficulty={task.mentalDifficulty}
-				enjoyment={task.enjoyment}
-				nature={task.nature}
-				completed={task.completed}
-				priorityScore={task.priorityScore}
-				suggestedHours={task.suggestedHours}
-				trueEffort={task.trueEffort}
-				flowStateTime={task.flowStateTime}
-				optimalStopHours={task.optimalHours}
-				remaining={remainingDay
-					? {
-							taskHours: remainingDay.hoursByTask.get(task.id) ?? 0,
-							dayHours: remainingDay.remainingHours,
-						}
-					: undefined}
-				runOrder={runOrder.get(task.id)}
-				slideDay={getSlideDay(task.createdAt, viewedDate)}
-				flowMinutes={flowLogs?.get(task.id)}
-				mustDoToday={task.mustDoToday}
-				{ontoggle}
-				{onremove}
-				flowDraft={flowDrafts[task.id] ?? null}
-				{onflowopen}
-				{onflowedit}
-				{onflowclose}
-				{onlogflow}
-				{onflowdelete}
-				drainDraft={drainDrafts[task.id] ?? null}
-				drainLogs={drainLogs?.get(task.id) ?? []}
-				{ondrainopen}
-				{ondrainclose}
-				{ondrainsave}
-				{ondrainedit}
-				{ondraindelete}
-				{onupdate}
-			/>
-		</li>
+		<TaskItem
+			id={task.id}
+			title={task.title}
+			physicalDifficulty={task.physicalDifficulty}
+			mentalDifficulty={task.mentalDifficulty}
+			enjoyment={task.enjoyment}
+			nature={task.nature}
+			completed={task.completed}
+			priorityScore={task.priorityScore}
+			suggestedHours={task.suggestedHours}
+			trueEffort={task.trueEffort}
+			flowStateTime={task.flowStateTime}
+			optimalStopHours={task.optimalHours}
+			remaining={remainingDay
+				? {
+						taskHours: remainingDay.hoursByTask.get(task.id) ?? 0,
+						dayHours: remainingDay.remainingHours,
+					}
+				: undefined}
+			runOrder={runOrder.get(task.id)}
+			slideDay={getSlideDay(task.createdAt, viewedDate)}
+			flowMinutes={flowLogs?.get(task.id)}
+			mustDoToday={task.mustDoToday}
+			{ontoggle}
+			{onremove}
+			flowDraft={flowDrafts[task.id] ?? null}
+			{onflowopen}
+			{onflowedit}
+			{onflowclose}
+			{onlogflow}
+			{onflowdelete}
+			drainDraft={drainDrafts[task.id] ?? null}
+			drainLogs={drainLogs?.get(task.id) ?? []}
+			{ondrainopen}
+			{ondrainclose}
+			{ondrainsave}
+			{ondrainedit}
+			{ondraindelete}
+			{onupdate}
+		/>
 	{/each}
 {/snippet}
 
 <!-- Built here and not in the page: this list is `/`'s alone, and the card beneath
      it is the Lab's too. -->
 {#snippet heading()}
-	{#if nextTaskTitle}
-		<NextUpLine title={nextTaskTitle} />
-	{/if}
+	<!-- One group, so the buttons stay pinned right while the Next title grows
+	     leftward — and `items-center` because the card's row is `items-baseline`. -->
+	<div class="flex min-w-0 items-center gap-grid-md">
+		{#if nextTaskTitle}
+			<NextUpLine title={nextTaskTitle} />
+		{/if}
+		{@render actions?.()}
+	</div>
 {/snippet}
 
 <TaskListCard
 	{form}
 	{heading}
+	columns={getTaskColumns()}
 	rows={suggestedTasks.length ? rows : null}
 	split={isSplit
 		? {

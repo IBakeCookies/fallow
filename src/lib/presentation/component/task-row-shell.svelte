@@ -26,6 +26,12 @@
 		size: 'icon-xs',
 	});
 
+	/** A logged READING in the `Logged` cell. The recessed chip is what separates the two
+	 *  readings from the two bare-glyph triggers beside them: ⚡ and 🪫 open an editor, and
+	 *  "⚡ 🪫 2h Mind 0 Body 0 🪫" read as one run of glyphs while all four were bare. */
+	const READING_CHIP_CLASS =
+		'flex items-center gap-text-xs rounded-sm bg-surface-inset px-box-3xs py-text-3xs whitespace-nowrap tabular-nums';
+
 	interface Props {
 		title: string;
 		completed: boolean;
@@ -37,6 +43,9 @@
 		 *  mode flag on the shell" — presentation/AGENTS.md says which reading it is and
 		 *  why the seeded value still round-trips. Same name all the way down. */
 		withMustDoToday?: boolean;
+		/** How wide the caller's table is, for the editors' spanning row. Not a mode flag:
+		 *  it switches no behaviour, and each caller owns its own column list. */
+		columnCount: number;
 		ontoggle: () => void;
 		flowMinutes?: number;
 		flowDraft?: EditorDraft | null;
@@ -57,6 +66,7 @@
 		onupdate?: (edit: TaskEdit) => void;
 		onremove?: () => void;
 		lead?: Snippet;
+		badges?: Snippet;
 		meta?: Snippet;
 		trailing?: Snippet;
 	}
@@ -69,6 +79,7 @@
 		enjoyment,
 		mustDoToday = false,
 		withMustDoToday = true,
+		columnCount,
 		ontoggle,
 		flowMinutes,
 		flowDraft = null,
@@ -87,6 +98,7 @@
 		onupdate,
 		onremove,
 		lead,
+		badges,
 		meta,
 		trailing,
 	}: Props = $props();
@@ -123,129 +135,89 @@
 		if (drainAction === 'withdraw') ondrainclose?.();
 	}
 
-	// The strip stays put while an editor it opened is on screen: otherwise it fades out
-	// from under a form still being filled in, and its button is how you close it again.
-	const actionsPinned = $derived(flowDraft !== null || drainDraft !== null || isEditing);
+	const hasEditor = $derived(flowDraft !== null || drainDraft !== null || isEditing);
 </script>
 
-<div
-	class="group rounded-lg border border-transparent p-box-sm transition hover:border-line-soft hover:bg-surface-hover"
->
-	<!-- The checkbox goes into a flex WITH the task rather than being a block of its own,
-	     or stacking would put it on a line above the title it ticks. -->
-	<div class="sm:flex sm:items-start sm:gap-grid-xs">
-		<div class="flex items-start gap-grid-xs sm:min-w-0 sm:flex-1">
-			<input
-				type="checkbox"
-				checked={completed}
-				onchange={onCompletionChange}
-				aria-label={m.task_toggle_aria({
-					title,
-				})}
-				class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
-			/>
+<tbody class="text-sm">
+	<!-- `group`, because the two pinned cells paint their own opaque fill and so hide the
+	     row's hover — `ledger-pin` re-reads it from here. -->
+	<tr class="group transition hover:bg-surface-hover">
+		<td class="ledger-cell ledger-pin">{@render lead?.()}</td>
 
-			<!-- The dim is on the title line only: the meta line below holds the 🪫 rating a
-			     finished session exists for, and a faded reading reads as disabled. -->
-			<div class="min-w-0 flex-1">
+		<!-- The one flexible-width column, so the checkbox goes in a flex WITH the title
+		     rather than a cell of its own, which would be a column of ticks. Pinned with
+		     the lead: the task's name is what a scrolled-out reading needs beside it. -->
+		<td class="ledger-cell ledger-pin min-w-48">
+			<div class="flex items-start gap-grid-xs">
+				<input
+					type="checkbox"
+					checked={completed}
+					onchange={onCompletionChange}
+					aria-label={m.task_toggle_aria({
+						title,
+					})}
+					class="mt-text-3xs h-4 w-4 cursor-pointer appearance-auto accent-brand focus:ring-2 focus:ring-brand/40"
+				/>
+
+				<!-- The dim covers the title and its badges only: the `Logged` cell holds the
+				     🪫 rating a finished session exists for, and a faded reading reads as
+				     disabled. -->
 				<div class="flex flex-wrap items-center gap-text-xs" class:opacity-60={completed}>
-					{@render lead?.()}
-					<!-- Truncates from `sm` up only: below it the title has the whole row to
-					     wrap into. -->
 					<h3
 						class={cn(
-							'min-w-0 text-sm font-medium wrap-break-word capitalize sm:truncate',
+							'font-medium wrap-break-word capitalize',
 							completed ? 'text-ty-silent line-through' : 'text-ty-primary',
 						)}
 					>
 						{title}
 					</h3>
+					{@render badges?.()}
 				</div>
+			</div>
+		</td>
 
-				<div
-					class="mt-text-2xs flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent"
-				>
+		<!-- Bare numbers: the headed columns say what `P `/`M `/`E ` and a tooltip had to. -->
+		<td class="ledger-cell ledger-numeric">{physicalDifficulty}</td>
+		<td class="ledger-cell ledger-numeric">{mentalDifficulty}</td>
+		<td class="ledger-cell ledger-numeric">{enjoyment}</td>
+
+		{@render meta?.()}
+
+		<td class="ledger-cell">
+			<div class="flex flex-wrap items-center gap-x-text-xs gap-y-text-3xs text-2xs text-ty-silent">
+				{#if flowMinutes}
 					<Tooltip.Root>
-						<Tooltip.Trigger class="cursor-help text-left">
-							<span class="font-medium text-body/80">P {physicalDifficulty}</span>
-							<span class="text-ty-ghost">·</span>
-							<span class="font-medium text-mind/80">M {mentalDifficulty}</span>
-							<span class="text-ty-ghost">·</span>
-							<span class="font-medium text-brand/80">E {enjoyment}</span>
-						</Tooltip.Trigger>
-						<Tooltip.Content>
-							<p>{m.task_inputs_tooltip()}</p>
-						</Tooltip.Content>
-					</Tooltip.Root>
-					<!-- `text-left` on every trigger, here and in `meta`: a trigger is a <button>,
-					     whose UA `text-align` is center, so a wrapped reading centres its last line. -->
-					{@render meta?.()}
-
-					{#if flowMinutes}
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								{#snippet child({ props })}
-									{#if onflowedit}
-										<button
-											{...props}
-											type="button"
-											onclick={() => (flowDraft ? onflowclose?.() : onflowedit())}
-											aria-label={m.task_edit_flow_log_aria()}
-											class="font-medium text-flow transition hover:text-ty-primary"
-										>
-											⚡ {flowMinutes}m
-										</button>
-									{:else}
-										<span {...props} class="cursor-help font-medium text-flow">
-											⚡ {flowMinutes}m
-										</span>
-									{/if}
-								{/snippet}
-							</Tooltip.Trigger>
-							<Tooltip.Content>
-								<p>{m.task_flow_badge_tooltip()}</p>
-							</Tooltip.Content>
-						</Tooltip.Root>
-					{/if}
-
-					{#each drainLogs as log (log.id)}
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								{#snippet child({ props })}
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								{#if onflowedit}
 									<button
 										{...props}
 										type="button"
-										onclick={() =>
-											drainDraft?.recordId === log.id ? ondrainclose?.() : ondrainedit(log)}
-										aria-label={m.energy_edit_drain_log_aria()}
-										class="flex items-center gap-text-3xs tabular-nums transition hover:text-ty-primary"
+										onclick={() => (flowDraft ? onflowclose?.() : onflowedit())}
+										aria-label={m.task_edit_flow_log_aria()}
+										class={cn(
+											READING_CHIP_CLASS,
+											'font-medium text-flow transition hover:text-ty-primary',
+										)}
 									>
-										<span class="text-flow">🪫</span>
-										<span>{formatDuration(log.hours)}</span>
-										<span class="font-medium text-mind/90">M{log.mindDrain}</span>
-										<span class="font-medium text-body/90">B{log.bodyDrain}</span>
+										⚡ {flowMinutes}m
 									</button>
-								{/snippet}
-							</Tooltip.Trigger>
-							<Tooltip.Content>
-								<p>{m.energy_edit_drain_log_title()}</p>
-							</Tooltip.Content>
-						</Tooltip.Root>
-					{/each}
-				</div>
-			</div>
-		</div>
+								{:else}
+									<span
+										{...props}
+										class={cn(READING_CHIP_CLASS, 'cursor-help font-medium text-flow')}
+									>
+										⚡ {flowMinutes}m
+									</span>
+								{/if}
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.task_flow_badge_tooltip()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
 
-		<!-- `ml-auto` and not `justify-between`: `trailing` is absent on a completed task,
-		     and the strip belongs at the right edge either way. -->
-		<div class="mt-box-lg flex items-center gap-grid-xs sm:mt-0">
-			{@render trailing?.()}
-
-			<div
-				class="ml-auto flex items-center gap-grid-2xs transition-opacity {actionsPinned
-					? 'opacity-100'
-					: 'hover-reveal'}"
-			>
 				{#if onflowopen}
 					<Tooltip.Root>
 						<Tooltip.Trigger
@@ -264,8 +236,42 @@
 					</Tooltip.Root>
 				{/if}
 
+				{#each drainLogs as log (log.id)}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									type="button"
+									onclick={() =>
+										drainDraft?.recordId === log.id ? ondrainclose?.() : ondrainedit(log)}
+									aria-label={m.energy_edit_drain_log_aria()}
+									class={cn(READING_CHIP_CLASS, 'transition hover:text-ty-primary')}
+								>
+									<span class="text-flow">🪫</span>
+									<span>{formatDuration(log.hours)}</span>
+									<!-- Worded, not `M6`/`B4`: two bare initials beside a duration read as a code
+									     rather than as two ratings, and both words are already localized for the
+									     editor's own fields. -->
+									<span class="font-medium text-mind/90">
+										{m.energy_drain_mind_label()}
+										{log.mindDrain}
+									</span>
+									<span class="font-medium text-body/90">
+										{m.energy_drain_body_label()}
+										{log.bodyDrain}
+									</span>
+								</button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{m.energy_edit_drain_log_title()}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/each}
+
 				<!-- Why the `recordId === undefined` arm: presentation/AGENTS.md, "One click
-				     rule covers the whole strip" — 🪫 owns only the append editor. -->
+				     rule covers the whole `Logged` cell" — 🪫 owns only the append editor. -->
 				{#if ondrainopen}
 					<Tooltip.Root>
 						<Tooltip.Trigger
@@ -286,7 +292,13 @@
 						</Tooltip.Content>
 					</Tooltip.Root>
 				{/if}
+			</div>
+		</td>
 
+		{@render trailing?.()}
+
+		<td class="ledger-cell">
+			<div class="flex items-center gap-grid-2xs">
 				{#if onupdate}
 					<button
 						type="button"
@@ -312,51 +324,58 @@
 					</button>
 				{/if}
 			</div>
-		</div>
-	</div>
+		</td>
+	</tr>
 
-	<!-- Both keyed on the draft: `seed`/`focusMinutes` are read at MOUNT and the page can
-	     swap a draft while its editor is open — unkeyed, ✓ overwrote a stored rating. -->
-	{#if flowDraft && onlogflow}
-		{#key flowDraft}
-			<FlowLogForm
-				seed={flowMinutes ?? null}
-				focusMinutes={flowDraft.focusMinutes}
-				onsave={onlogflow}
-				oncancel={() => onflowclose?.()}
-				ondelete={flowMinutes === undefined ? undefined : onflowdelete}
-			/>
-		{/key}
-	{/if}
+	{#if hasEditor}
+		<tr>
+			<td colspan={columnCount} class="ledger-cell">
+				<!-- Both keyed on the draft: `seed`/`focusMinutes` are read at MOUNT and the page
+				     can swap a draft while its editor is open — unkeyed, ✓ overwrote a stored
+				     rating. -->
+				{#if flowDraft && onlogflow}
+					{#key flowDraft}
+						<FlowLogForm
+							seed={flowMinutes ?? null}
+							focusMinutes={flowDraft.focusMinutes}
+							onsave={onlogflow}
+							oncancel={() => onflowclose?.()}
+							ondelete={flowMinutes === undefined ? undefined : onflowdelete}
+						/>
+					{/key}
+				{/if}
 
-	{#if drainDraft && ondrainsave}
-		{#key drainDraft}
-			{@const recordId = drainDraft.recordId}
-			<DrainLogForm
-				seed={drainDraft}
-				focusMinutes={drainDraft.focusMinutes}
-				onsave={ondrainsave}
-				oncancel={() => ondrainclose?.()}
-				ondelete={recordId === undefined ? undefined : () => ondraindelete(recordId)}
-			/>
-		{/key}
-	{/if}
+				{#if drainDraft && ondrainsave}
+					{#key drainDraft}
+						{@const recordId = drainDraft.recordId}
+						<DrainLogForm
+							seed={drainDraft}
+							focusMinutes={drainDraft.focusMinutes}
+							onsave={ondrainsave}
+							oncancel={() => ondrainclose?.()}
+							ondelete={recordId === undefined ? undefined : () => ondraindelete(recordId)}
+						/>
+					{/key}
+				{/if}
 
-	{#if isEditing && onupdate}
-		<TaskEditForm
-			seed={{
-				title,
-				physicalDifficulty,
-				mentalDifficulty,
-				enjoyment,
-				mustDoToday,
-			}}
-			{withMustDoToday}
-			onsave={(edit) => {
-				onupdate(edit);
-				isEditing = false;
-			}}
-			oncancel={() => (isEditing = false)}
-		/>
+				{#if isEditing && onupdate}
+					<TaskEditForm
+						seed={{
+							title,
+							physicalDifficulty,
+							mentalDifficulty,
+							enjoyment,
+							mustDoToday,
+						}}
+						{withMustDoToday}
+						onsave={(edit) => {
+							onupdate(edit);
+							isEditing = false;
+						}}
+						oncancel={() => (isEditing = false)}
+					/>
+				{/if}
+			</td>
+		</tr>
 	{/if}
-</div>
+</tbody>
