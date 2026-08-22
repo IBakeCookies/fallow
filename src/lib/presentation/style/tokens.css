@@ -284,21 +284,13 @@
 
    Which of the two a cell is comes from `:first-child` rather than a second class,
    which is also what fixes the lead column's width: a table can pin one cell, so the
-   pair only lines up while `Task`'s offset and the lead's width are one value.
-
-   The fill has to be OPAQUE — the scrolling columns pass underneath — and
-   `--surface-card` carries alpha on most themes, so the card's own fill is LAYERED
-   over `--surface-page`, the one surface every theme keeps opaque (`--destructive-soft`
-   leans on the same fact). The row's hover tint is a third layer over that, driven by
-   the row's `group`, since a cell painting its own background hides the `<tr>`'s. */
+   pair only lines up while `Task`'s offset and the lead's width are one value. */
 @utility ledger-pin {
 	--ledger-lead-width: 3.25rem;
 
 	position: sticky;
 	left: var(--ledger-lead-width);
 	z-index: 1;
-	background-color: var(--surface-page);
-	background-image: linear-gradient(var(--surface-card), var(--surface-card));
 
 	/* `min-width` and not `width` alone: a `width` on a table cell is only a preferred
 	   one, and the lead column took its content's 44px instead — leaving 8px of the
@@ -308,13 +300,71 @@
 		min-width: var(--ledger-lead-width);
 	}
 
+	/* The fill rides a pseudo-element rather than the cell so it can be FADED IN, and
+	   it is only ever needed while the ledger is scrolled: a card is translucent and
+	   blurred, so an opaque patch two columns wide reads as a pale block over the
+	   scenery on a screen where nothing scrolls at all. `scroll()` ties it to the
+	   ledger's own scroll offset — invisible at rest, solid by the time a column has
+	   passed under it.
+
+	   The `opacity: 0` sits INSIDE the `@supports` with the animation, and the fade runs
+	   0 → 1 rather than the other way round, because a scroll timeline whose container
+	   cannot scroll is INACTIVE: its keyframes never apply and the cell renders the base
+	   style. Off by default, that is exactly right — a ledger wide enough to fit has no
+	   column passing underneath to hide. Declared the other way the fill was permanent
+	   from the width the table stopped overflowing (~1024px), which is most screens.
+	   Where scroll-driven animations are unsupported at all, the base style is the one
+	   outside the `@supports` and the fill stays on always: two texts overlapping is
+	   worse than a visible block.
+
+	   The fill has to be OPAQUE — the scrolling columns pass underneath — and
+	   `--surface-card` carries alpha on most themes, so the card's own fill is LAYERED
+	   over `--surface-page`, the one surface every theme keeps opaque (`--destructive-soft`
+	   leans on the same fact). The row's hover tint is a third layer over that, driven by
+	   the row's `group`, since a cell painting its own background hides the `<tr>`'s.
+
+	   `z-index: -1` and not a lower stacking order on the cell: the pinned cell is its
+	   own stacking context (`z-index: 1`), so a negative child paints under the cell's
+	   own text and still over every scrolling cell beside it. */
+	&::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background-color: var(--surface-page);
+		background-image: linear-gradient(var(--surface-card), var(--surface-card));
+
+		@supports (animation-timeline: scroll()) {
+			opacity: 0;
+			animation-name: ledger-pin-fill;
+			animation-timing-function: linear;
+			animation-fill-mode: both;
+			animation-timeline: scroll(nearest inline);
+			animation-range: 0 0.75rem;
+		}
+	}
+
 	/* `@variant`, not a hand-written `.group:hover &`: a bare nested selector inside
 	   `@utility` is flattened to the utility itself, so the hover fill became the rest
 	   one and the pinned pair was permanently tinted. */
 	@variant group-hover {
-		background-image:
-			linear-gradient(var(--surface-hover), var(--surface-hover)),
-			linear-gradient(var(--surface-card), var(--surface-card));
+		&::before {
+			background-image:
+				linear-gradient(var(--surface-hover), var(--surface-hover)),
+				linear-gradient(var(--surface-card), var(--surface-card));
+		}
+	}
+}
+
+/* Longhands above and not the `animation` shorthand: the shorthand would reset
+   `animation-duration` to `0s`, and a scroll-driven fill needs it left at `auto` to
+   span the range. */
+@keyframes ledger-pin-fill {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
 	}
 }
 
