@@ -46,6 +46,20 @@
 		...seed,
 	});
 
+	// The caret goes to the first question still open: the length when nothing has
+	// measured it, the first rating when something has (`/`'s stopped timer), and back
+	// to the length when a correction seeds all three — landing it on a rating that
+	// already reads 6 would turn a corrected 7 into 67. Decided at mount like the draft,
+	// or a field being typed in would lose focus mid-entry.
+	// svelte-ignore state_referenced_locally -- deliberately initial-value only
+	const focusField = !focusMinutes
+		? null
+		: seed.minutes === null
+			? 'minutes'
+			: seed.mind === null
+				? 'mind'
+				: 'minutes';
+
 	function save() {
 		const minutes = Number(draft.minutes);
 		const { mind, body } = draft;
@@ -78,7 +92,7 @@
 				max="960"
 				placeholder={m.task_minutes_placeholder()}
 				{@attach (node) => {
-					if (focusMinutes) node.focus();
+					if (focusField === 'minutes') node.focus();
 				}}
 				bind:value={draft.minutes}
 				required
@@ -95,6 +109,9 @@
 							min="0"
 							max="10"
 							step="1"
+							{@attach (node) => {
+								if (focusField === 'mind') node.focus();
+							}}
 							bind:value={draft.mind}
 							required
 							class={RATING_INPUT_CLASS.mind}

@@ -13,6 +13,7 @@ describe('day-constraints-bar.svelte', () => {
 		const props = {
 			availableHours: 6,
 			switchCost: 0.25,
+			startHour: 9,
 			cognitivePool: 4,
 			physicalPool: 3,
 			remainingSuggestedHours: '3.50',

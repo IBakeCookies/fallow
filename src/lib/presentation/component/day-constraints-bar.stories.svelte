@@ -31,6 +31,7 @@
 		args: {
 			availableHours: 6,
 			switchCost: 0.25,
+			startHour: 9,
 			cognitivePool: 8,
 			physicalPool: 4,
 			remainingSuggestedHours: '5.25',
@@ -109,6 +110,19 @@
 		);
 
 		await expect(args.onresetlogs).toHaveBeenCalledOnce();
+	}}
+/>
+
+<!-- Clearing the day's start — the time input's own clear affordance — is not an
+     answer: there is no such thing as a day with no start, and the strip beside it
+     would keep reading the old one. The field says what the day holds. -->
+<Story
+	name="Start time cleared"
+	play={async ({ canvas, userEvent }) => {
+		const field = canvas.getByLabelText('Day Starts');
+
+		await userEvent.clear(field);
+		await expect(field).toHaveValue('09:00');
 	}}
 />
 
