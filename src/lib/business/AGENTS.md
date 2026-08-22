@@ -229,8 +229,9 @@ record, so every field one of them does not carry is a field it erases.
 `#persistSession` cannot catch that: it takes the payload already built.
 Adding `startHour` reached two of the three, and ticking a task off on a past
 day then reset that day's start
-([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
-The destination write also reads its OWN day's value through `#readDestination`
+([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)) —
+that field has since been removed, but the trap it fell into has not.
+The destination write also reads its OWN day's values through `#readDestination`
 and defaults nothing: a fallback there stamps a value onto a day that never
 chose one.
 

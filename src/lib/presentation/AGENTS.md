@@ -305,10 +305,10 @@ plan beneath — **never a strikethrough on the plan**, which the plan-family ro
 spend ON TOP of the hours already worked, so neither line may be phrased as a
 comparison ("15m more"); each is labelled by the question it answers.
 
-### The day's strip reads above the ledger, and its clock is a label
+### The day's strip reads above the ledger, and carries no clock
 
 `utils/day-timeline.ts` builds
-`{ startLabel, totalHours, minimumBlockWidths, blocks }` from the funded plan,
+`{ totalHours, minimumBlockWidths, blocks }` from the funded plan,
 `runOrder` and the switch cost; `component/day-timeline.svelte` draws it.
 The geometry is a tested util rather than `$derived` in the markup (R2), a block
 carries a `Band`, and the gap between two blocks IS the switch cost — no number
@@ -324,20 +324,19 @@ dropped it — its run position and its hours — and the flow bar is pinned wit
 sentence and the blocks that did not. A day that then overflows scrolls sideways
 inside the strip's own container and the DOCUMENT does not — the ledger's
 pattern, `tabindex` included. It is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the
-energy optimizer's own blocks and shares only `formatClock`.
+energy optimizer's own blocks and shares only `formatDuration`.
 
-`DailySession.startHour` is the clock it reads against — per day, persisted, and
-read by no formula, fit or metric, which is why `DEFAULT_START_HOUR` lives in
-`utils/budget-bounds.ts` on the argument `band.ts` makes for its thresholds. The
-strip prints **that start and nothing else**: `availableHours` is intended work,
-not a span of the clock (MATH.md §11.3), so start-plus-budget is a finish time
-nobody computed, and a day that stored no start prints no clock at all — the
-default answers for the field alone, never for the label. The store hands out
-`number | null` so the auto-save's pristine-day check can still tell "unset"
-from a value, and `formatClock`/`parseClock`
-(`utils/duration-format.ts`) are the one spelling of a time of day, shared with
-the field that sets it
-([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
+The strip carries **no time of day at all**. It once read against a persisted
+`DailySession.startHour`, set by a "Day Starts" field, to print a `from 09:00`
+label — and that label was its only reader: no formula, fit or metric ever
+touched the value. `availableHours` is intended work, not a span of the clock
+(MATH.md §11.3), so start-plus-budget is a finish time nobody computed, which
+left the start with nothing to anchor but itself. The field, the label, the
+persisted key and the `formatClock`/`parseClock` pair went with it; every
+duration on the strip is an offset from the day's own zero (`formatOffset`),
+which is the only reading the model has
+([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)
+records the version that had one).
 
 ### Each measurement is read, corrected and dropped on the row it belongs to
 

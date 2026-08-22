@@ -7,7 +7,6 @@
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
-	import { DEFAULT_START_HOUR } from '$lib/presentation/utils/budget-bounds';
 	import { buildDayTimeline } from '$lib/presentation/utils/day-timeline';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
 	import {
@@ -148,16 +147,12 @@
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
-	// The field is the one place the presentation default answers for a day that chose
-	// no start; the strip prints no clock at all rather than this day's stand-in.
-	const startHour = $derived(session.startHour ?? DEFAULT_START_HOUR);
 	const timeline = $derived(
 		buildDayTimeline({
 			suggestedTasks: daily.suggestedTasks,
 			runOrder: daily.runOrder,
 			switchCost: session.switchCost,
 			availableHours: daily.budgetHours,
-			startHour: session.startHour,
 		}),
 	);
 	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice, getDateLocale()) : null);
@@ -257,7 +252,6 @@
 			<DayConstraintsBar
 				bind:availableHours={session.availableHours}
 				bind:switchCost={session.switchCost}
-				bind:startHour={() => startHour, (hours) => (session.startHour = hours)}
 				bind:cognitivePool={session.cognitivePool}
 				bind:physicalPool={session.physicalPool}
 				{remainingSuggestedHours}

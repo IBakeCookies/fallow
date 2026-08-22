@@ -5,7 +5,6 @@
 
 import type { SuggestedTask } from '$lib/business/model/metric/calculation';
 import type { Band } from '$lib/presentation/utils/band';
-import { formatClock } from '$lib/presentation/utils/duration-format';
 
 export type DayBlock = {
 	id: number;
@@ -20,8 +19,6 @@ export type DayBlock = {
 };
 
 export type DayTimeline = {
-	/** The day's start as a clock, or `null` on a day that stored none. */
-	startLabel: string | null;
 	/** The denominator of every width. */
 	totalHours: number;
 	/** The strip's floor, counted in minimum block widths: `totalHours` over the
@@ -36,7 +33,6 @@ export interface DayTimelineInput {
 	runOrder: Map<number, number>;
 	switchCost: number;
 	availableHours: number;
-	startHour: number | null;
 }
 
 export function buildDayTimeline(input: DayTimelineInput): DayTimeline {
@@ -67,7 +63,6 @@ export function buildDayTimeline(input: DayTimelineInput): DayTimeline {
 	});
 
 	return {
-		startLabel: input.startHour === null ? null : formatClock(input.startHour),
 		totalHours: input.availableHours,
 		minimumBlockWidths:
 			blocks.length === 0

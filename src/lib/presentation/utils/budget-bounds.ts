@@ -10,7 +10,3 @@ export const BUDGET_BOUNDS = {
 	max: 24,
 	step: 0.25,
 };
-
-// Presentation's, on the argument `band.ts` makes for its thresholds: no formula
-// reads a start time, so what a day with none opens on is a display decision.
-export const DEFAULT_START_HOUR = 9;

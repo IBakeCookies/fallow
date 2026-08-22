@@ -120,19 +120,16 @@ test('the bar follows the day on screen, not the day the tab booted on', async (
 	).toHaveAttribute('aria-expanded', 'false');
 });
 
-/* The day strip needs a clock the model does not have: Fallow allocates
-   durations, so the day carries a start time that anchors the strip and nothing
-   else (docs/features/the-plan-that-had-no-clock.md). The start is all it prints
-   — `availableHours` is intended work, not a span of the clock, so a finish time
-   read off it is one nobody computed (presentation/AGENTS.md). */
-test('the day strip prints no clock until the day is given a start', async ({ page }) => {
+/* Fallow allocates durations, not appointments: the model has no notion of when
+   the day begins, so the strip prints no time of day at all. It once carried a
+   per-day start time that anchored one label and nothing else
+   (docs/features/the-plan-that-had-no-clock.md); the field and the label are
+   both gone. `availableHours` is intended work, not a span of the clock, so any
+   clock read off the strip is one nobody computed (presentation/AGENTS.md). */
+test('the day strip prints no clock', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await setBudget(page, 8);
-
-	// The field answers with a default so it has something to show; the strip does not
-	// borrow it. A clock reads on the strip only once it is the user's own statement.
-	await expect(page.getByLabel('Day Starts')).toHaveValue('09:00');
 
 	const timeline = page.locator('section').filter({
 		has: page.getByRole('heading', {
@@ -143,27 +140,4 @@ test('the day strip prints no clock until the day is given a start', async ({ pa
 
 	await expect(timeline.getByText('#1 Deep work')).toBeVisible();
 	await expect(timeline.getByText(/\d{2}:\d{2}/)).toHaveCount(0);
-});
-
-test('the day’s start time moves the label', async ({ page }) => {
-	await page.goto('/');
-	await addTask(page, 'Deep work');
-	await setBudget(page, 8);
-
-	await page.getByLabel('Day Starts').fill('07:30');
-
-	await expect(page.getByText('from 07:30')).toBeVisible();
-});
-
-/* The auto-save skips a pristine day so browsing ahead creates no empty records.
-   A start time is the fourth field that makes a day non-pristine, and the only
-   one added since that guard was written. */
-test('a day whose only edit is its start time is still saved', async ({ page }) => {
-	await page.goto('/');
-	await page.getByLabel('Day Starts').fill('07:30');
-	await page.waitForTimeout(AUTOSAVE_MS);
-
-	await page.reload();
-
-	await expect(page.getByLabel('Day Starts')).toHaveValue('07:30');
 });
