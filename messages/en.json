@@ -79,7 +79,7 @@
 	"form_deploy_task": "Deploy Task",
 	"list_title": "Tasks",
 	"list_empty": "No tasks deployed yet",
-	"list_empty_hint": "Add a task above to begin tracking",
+	"list_empty_hint": "Add a task below to begin tracking",
 	"list_group_sequence": "Today's sequence",
 	"list_group_unfunded": "No time today",
 	"list_column_order": "#",

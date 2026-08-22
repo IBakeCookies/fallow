@@ -79,7 +79,7 @@
 	"form_deploy_task": "Aufgabe anlegen",
 	"list_title": "Aufgaben",
 	"list_empty": "Noch keine Aufgaben angelegt",
-	"list_empty_hint": "Füge oben eine Aufgabe hinzu, um zu starten",
+	"list_empty_hint": "Füge unten eine Aufgabe hinzu, um zu starten",
 	"list_group_sequence": "Heutige Reihenfolge",
 	"list_group_unfunded": "Heute keine Zeit",
 	"list_column_order": "#",

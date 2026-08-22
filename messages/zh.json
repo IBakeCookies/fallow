@@ -79,7 +79,7 @@
 	"form_deploy_task": "部署任务",
 	"list_title": "任务",
 	"list_empty": "还没有部署任何任务",
-	"list_empty_hint": "在上方添加一项任务即可开始跟踪",
+	"list_empty_hint": "在下方添加一项任务即可开始跟踪",
 	"list_group_sequence": "今日顺序",
 	"list_group_unfunded": "今日无时间",
 	"list_column_order": "#",

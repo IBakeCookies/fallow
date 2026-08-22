@@ -9,6 +9,8 @@
 
 	interface Props {
 		form?: Snippet;
+		/** What the caller draws between the heading and the ledger — `/` its day strip. */
+		strip?: Snippet;
 		/** What the screen reads beside the heading — both screens put the day's Load/Save
 		 *  there, and `/` its "Next" too. A snippet, like `form`: this card is the two
 		 *  screens' shared frame, so what only one of them says arrives from that one. */
@@ -27,7 +29,7 @@
 		};
 	}
 
-	let { form, heading, rows, columns, split }: Props = $props();
+	let { form, strip, heading, rows, columns, split }: Props = $props();
 </script>
 
 {#snippet groupHeading(label: string)}
@@ -53,9 +55,7 @@
 		</h3>
 		{@render heading?.()}
 	</div>
-	{#if form}
-		<div class="pb-text-md">{@render form()}</div>
-	{/if}
+	{@render strip?.()}
 	{#if rows}
 		<!-- The table's DIRECT parent: below `sm` the ledger scrolls sideways in here and
 		     the document does not, so no reading is unreachable on a phone. -->
@@ -119,5 +119,8 @@
 			<p class="text-sm text-ty-secondary">{m.list_empty()}</p>
 			<p class="text-xs text-ty-silent mt-text-2xs">{m.list_empty_hint()}</p>
 		</div>
+	{/if}
+	{#if form}
+		<div class="pt-text-md">{@render form()}</div>
 	{/if}
 </div>

@@ -11,9 +11,10 @@
 	});
 </script>
 
-<!-- The frame both screens mount. What the play covers is the two things the card
-     decides for them: the form is above the ledger, never below it, and the screen's
-     own heading content shares the heading's row rather than costing one of its own. -->
+<!-- The frame both screens mount. What the play covers is what the card decides for
+     them: the reading order — title, strip, ledger, form at the foot — and that the
+     screen's own heading content shares the heading's row rather than costing one of
+     its own. -->
 <Story
 	name="Default"
 	play={async ({ canvas }) => {
@@ -21,11 +22,13 @@
 			name: 'Tasks',
 		});
 
-		const form = canvas.getByText('add a task');
+		const strip = canvas.getByText('the day');
 		const table = canvas.getByRole('table');
+		const form = canvas.getByText('add a task');
 
-		expect(title.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		expect(form.compareDocumentPosition(table)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(title.compareDocumentPosition(strip)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(strip.compareDocumentPosition(table)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(table.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
 
 		// Inside the heading's row, not merely before the form: a sibling of the card's
@@ -36,7 +39,7 @@
 >
 	{#snippet template()}
 		<div class="max-w-2xl">
-			<TaskListCard columns={getTaskColumns()} {rows} {form} {heading} />
+			<TaskListCard columns={getTaskColumns()} {rows} {form} {strip} {heading} />
 		</div>
 	{/snippet}
 </Story>
@@ -47,7 +50,7 @@
 	name="Empty"
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('No tasks deployed yet')).toBeVisible();
-		await expect(canvas.getByText('Add a task above to begin tracking')).toBeVisible();
+		await expect(canvas.getByText('Add a task below to begin tracking')).toBeVisible();
 		expect(canvas.queryByRole('table')).not.toBeInTheDocument();
 
 		// No `heading` passed: the row is the title alone, which is what the Lab
@@ -56,6 +59,9 @@
 
 		// The form stays: the empty day is where the first task gets typed
 		await expect(canvas.getByText('add a task')).toBeVisible();
+
+		// No `strip` passed: the Lab mounts the card without one.
+		expect(canvas.queryByText('the day')).not.toBeInTheDocument();
 	}}
 >
 	{#snippet template()}
@@ -67,6 +73,10 @@
 
 {#snippet form()}
 	<p>add a task</p>
+{/snippet}
+
+{#snippet strip()}
+	<p>the day</p>
 {/snippet}
 
 {#snippet heading()}

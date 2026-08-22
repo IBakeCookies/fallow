@@ -30,9 +30,12 @@
 		/** Position 1 of that re-plan's run order, rendered on the card's header row.
 		 *  Undefined when there is nothing to pick up, which is every morning. */
 		nextTaskTitle?: string;
-		// The add-task form, rendered by the card above the list: adding and reading
+		// The add-task form, rendered by the card below the list: adding and reading
 		// the plan are the same place, and it costs no second card.
 		form?: Snippet;
+		/** The day's strip, rendered by the card between the heading and the ledger — a
+		 *  reading OF this list, so it sits in its card rather than in one of its own. */
+		strip?: Snippet;
 		/** The day's Load and Save, rendered on the card's header row beside "Next" —
 		 *  the page owns the callbacks behind them. Passed on every day, unlike `form`:
 		 *  what a past day withholds is inside `day-actions.svelte`, since both menus
@@ -74,6 +77,7 @@
 		remainingDay = null,
 		nextTaskTitle,
 		form,
+		strip,
 		actions,
 		ontoggle,
 		onremove,
@@ -176,6 +180,7 @@
 
 <TaskListCard
 	{form}
+	{strip}
 	{heading}
 	columns={getTaskColumns()}
 	rows={suggestedTasks.length ? rows : null}

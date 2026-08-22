@@ -9,16 +9,17 @@
 	const share = (hours: number) => hours / totalHours;
 </script>
 
-<section class="card-shell px-box-md py-box-sm sm:px-box-xl">
-	<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">
-		{m.day_timeline_title()}
-	</h3>
+<!-- No card and no visible title: the strip reads inside the Tasks card, under its
+     heading. The name stays for a screen reader — the scroll region below is
+     focusable, and it is the only thing that says what these blocks are. -->
+<section>
+	<h3 class="sr-only">{m.day_timeline_title()}</h3>
 	{#if blocks.length === 0}
-		<p class="mt-text-md text-sm text-ty-secondary">{m.day_timeline_empty()}</p>
+		<p class="text-sm text-ty-secondary">{m.day_timeline_empty()}</p>
 	{:else}
 		<!-- Inside the strip: the legend names marks, and a day with none reads a
 		     sentence about nothing. -->
-		<p class="mt-text-2xs text-xs text-ty-silent">{m.day_timeline_legend()}</p>
+		<p class="text-xs text-ty-silent">{m.day_timeline_legend()}</p>
 		<!-- The strip scrolls sideways in its own container and the DOCUMENT does not —
 		     the ledger's pattern (task-list-card.svelte). -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region has to be
