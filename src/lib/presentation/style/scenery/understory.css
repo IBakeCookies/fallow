@@ -1,0 +1,88 @@
+/* Understory — night forest floor. A static leaf-shade dapple mottles the
+   dark; three firefly glows wander the undergrowth, each drifting and
+   breathing on its own desynced periods so the pair never resyncs into an
+   obvious loop (same mechanism as abyss). Frozen under prefers-reduced-motion
+   they read as glowworms pinned to the dark. */
+.understory .theme-scenery {
+	display: block;
+
+	/* the canopy's shade, pooled on the ground — a static tile, both axes free */
+	.theme-helper-1 {
+		position: absolute;
+		inset: 0;
+		background-image:
+			radial-gradient(ellipse 45% 35% at 30% 30%, oklch(0.22 0.03 150 / 0.5), transparent 70%),
+			radial-gradient(ellipse 50% 40% at 75% 72%, oklch(0.24 0.03 145 / 0.4), transparent 70%);
+		background-repeat: repeat;
+		background-size: 34rem 28rem;
+		background-position: var(--understory-dapple, 0 0);
+	}
+
+	.theme-helper-2,
+	.theme-helper-3,
+	.theme-helper-4 {
+		position: absolute;
+		inset: 0;
+		filter: blur(40px);
+		/* seed lever: nudge each glow's origin per user (fallback = tuned look) */
+		background-position: var(--understory-pos, 0 0);
+		background-repeat: no-repeat;
+		animation:
+			understory-drift var(--understory-drift-dur, 44s) ease-in-out infinite alternate,
+			understory-breathe var(--understory-breathe-dur, 10s) ease-in-out infinite alternate;
+	}
+
+	/* firefly gold, upper left */
+	.theme-helper-2 {
+		background-image: radial-gradient(
+			circle 9rem at 25% 28%,
+			oklch(0.8 0.13 115 / 0.16),
+			transparent 70%
+		);
+		--understory-drift-dur: 46s;
+		--understory-breathe-dur: 11s;
+		animation-delay: var(--understory-drift-1, 0s), var(--understory-breathe-1, 0s);
+	}
+
+	/* honey fungus amber, right of centre */
+	.theme-helper-3 {
+		background-image: radial-gradient(
+			circle 7rem at 78% 55%,
+			oklch(0.82 0.12 95 / 0.12),
+			transparent 70%
+		);
+		--understory-drift-dur: 54s;
+		--understory-breathe-dur: 13s;
+		animation-delay: var(--understory-drift-2, 0s), var(--understory-breathe-2, 0s);
+	}
+
+	/* lichen pale green, low centre — nearest the primary's hue */
+	.theme-helper-4 {
+		background-image: radial-gradient(
+			circle 8rem at 48% 80%,
+			oklch(0.76 0.13 140 / 0.12),
+			transparent 70%
+		);
+		--understory-drift-dur: 49s;
+		--understory-breathe-dur: 10s;
+		animation-delay: var(--understory-drift-3, 0s), var(--understory-breathe-3, 0s);
+	}
+}
+
+@keyframes understory-drift {
+	from {
+		transform: translate(-6rem, 3rem);
+	}
+	to {
+		transform: translate(6rem, -3rem);
+	}
+}
+
+@keyframes understory-breathe {
+	from {
+		opacity: 0.55;
+	}
+	to {
+		opacity: 1;
+	}
+}
