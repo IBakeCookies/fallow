@@ -56,7 +56,6 @@
 			band: 'warning',
 		},
 		{
-			section: true,
 			label: 'Primary Bottleneck',
 			// A task title, so this is the row that stress-tests a long value against
 			// its label. Neutral on purpose: naming a task is not a verdict on it
@@ -78,8 +77,8 @@
 	});
 </script>
 
-<!-- Headline readings are tiles, immediately visible; the reference rows sit
-     behind the disclosure, served but not shown until it is opened -->
+<!-- Headline readings are tiles; the reference rows are a dense ruled grid one
+     click away, behind the disclosure -->
 <Story
 	name="Upward momentum"
 	play={async ({ canvas, canvasElement, userEvent }) => {
@@ -94,12 +93,13 @@
 		await expect(canvas.getByText('(Critical)')).toBeInTheDocument();
 		expect(canvasElement.querySelectorAll('.sr-only')).toHaveLength(5);
 
-		// Closed: the reference rows are served (crawlable, findable) but not shown.
-		// "4 more metrics", not "All 4": the disclosure holds only the readings that
-		// are not already tiles above it.
+		// Closed on first render: a returning user sees the four tiles, not twenty
+		// readings at equal weight.
 		expect(canvasElement.querySelector('details')!.open).toBe(false);
 		await expect(canvas.getByText('82%')).not.toBeVisible();
 
+		// The reference grid holds only the readings that are not already tiles
+		// above it, and opens on the disclosure.
 		await userEvent.click(canvas.getByText('4 more metrics'));
 		await expect(canvas.getByText('Yield Index')).toBeVisible();
 		await expect(canvas.getByText('82%')).toBeVisible();
@@ -154,6 +154,8 @@
 	}}
 	play={async ({ canvas, canvasElement }) => {
 		await expect(canvas.getByText('104%')).toBeVisible();
+		// The disclosure itself is absent, not merely empty: an empty `<details>`
+		// draws a summary that opens onto nothing.
 		expect(canvasElement.querySelector('details')).toBeNull();
 	}}
 />

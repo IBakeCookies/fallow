@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
+	import { expect, waitFor, within } from 'storybook/test';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import Nav from '$lib/presentation/component/nav.svelte';
 
@@ -23,7 +24,21 @@
 	});
 </script>
 
-<Story name="Today" />
+<!-- The brand mark answers "what is this app", on every route the nav renders on -->
+<Story
+	name="Today"
+	play={async ({ canvas, canvasElement, userEvent }) => {
+		await userEvent.hover(
+			canvas.getByRole('link', {
+				name: 'Fallow',
+			}),
+		);
+
+		const body = within(canvasElement.ownerDocument.body);
+
+		await waitFor(() => expect(body.getByText(/^Splits your daily time budget/)).toBeVisible());
+	}}
+/>
 
 <Story name="Analytics active" parameters={atUrl('/analytics')} />
 

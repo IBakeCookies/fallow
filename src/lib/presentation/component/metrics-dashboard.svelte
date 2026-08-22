@@ -3,7 +3,12 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import { Badge } from '$lib/presentation/component/ui/badge';
-	import { BAND_TEXT_CLASS, bandLabel, type Band } from '$lib/presentation/utils/band';
+	import {
+		BAND_BORDER_CLASS,
+		BAND_TEXT_CLASS,
+		bandLabel,
+		type Band,
+	} from '$lib/presentation/utils/band';
 
 	interface Props {
 		metrics: Metric[];
@@ -27,7 +32,7 @@
 	<!-- Momentum. tailwind-merge lets `class` win the fill and the ink, so the
 	     variant only picks tinted vs. plain: a `destructive` branch would style
 	     nothing and name a severity the warning fill contradicts. -->
-	<div class="flex items-center justify-between mb-text-md">
+	<div class="flex items-center justify-between mb-grid-sm">
 		{@render label(m.momentum_label(), m.momentum_tooltip())}
 		<Badge
 			variant={trend ? 'default' : 'outline'}
@@ -47,16 +52,15 @@
 		</Badge>
 	</div>
 
-	<div class="border-t border-line-soft my-grid-sm"></div>
-
-	<!-- Headline readings: large, first, unmissable. Two columns so four fit in the
-	     height one stacked column of three would take. -->
-	<div class="grid grid-cols-2 gap-grid-xs">
+	<!-- Headline readings: large, first, unmissable. Four across, each behind a
+	     rule in its own band colour — the rule is what makes an out-of-the-
+	     ordinary reading findable without reading any of the numbers. -->
+	<div class="grid grid-cols-1 gap-grid-sm sm:grid-cols-2 lg:grid-cols-4">
 		{#each headline as item (item.label)}
-			<div class="rounded-xl border border-line-soft px-box-sm py-box-xs">
+			<div class="border-l-2 pl-box-xs {BAND_BORDER_CLASS[item.band]}">
 				{@render label(item.label, item.description)}
 				<p
-					class="mt-text-2xs text-lg font-semibold leading-tight capitalize wrap-anywhere {BAND_TEXT_CLASS[
+					class="mt-text-3xs text-2xl font-medium leading-tight tabular-nums capitalize wrap-anywhere {BAND_TEXT_CLASS[
 						item.band
 					]}"
 				>
@@ -67,12 +71,13 @@
 		{/each}
 	</div>
 
-	<!-- The remaining readings are reference, not headline: one click away rather
-	     than the rest at equal weight burying the four that matter. -->
+	<!-- The rest are reference, not headline: one click away rather than the rest
+	     at equal weight burying the four that matter. Dense and multi-column once
+	     opened, and `columns` not a grid — column flow fills a column top to bottom
+	     before starting the next, so a reading's neighbours in the descriptor stay
+	     its neighbours on screen; a row-first grid scatters them across four. -->
 	{#if rest.length > 0}
-		<div class="border-t border-line-soft my-grid-sm"></div>
-
-		<details class="mt-grid-sm">
+		<details class="mt-grid-lg border-t border-line-soft pt-grid-sm">
 			<summary
 				class="cursor-pointer text-xs text-ty-secondary transition hover:text-ty-primary marker:text-ty-silent"
 			>
@@ -80,17 +85,16 @@
 					count: rest.length,
 				})}
 			</summary>
-			<div class="mt-grid-sm">
-				{#each rest as item, i (item.label)}
-					{#if i > 0 && item.section}
-						<div class="border-t border-line-soft my-grid-sm"></div>
-					{/if}
+			<div class="mt-grid-sm columns-1 gap-grid-lg sm:columns-2 lg:columns-4">
+				{#each rest as item (item.label)}
 					<div
-						class="px-box-sm py-box-2xs flex justify-between items-baseline rounded-lg transition hover:bg-surface-hover"
+						class="flex break-inside-avoid items-baseline justify-between gap-text-xs border-b border-line-soft py-text-2xs"
 					>
 						{@render label(item.label, item.description)}
-						<span class="text-sm font-semibold capitalize {BAND_TEXT_CLASS[item.band]}"
-							>{item.value}</span
+						<span
+							class="text-right text-sm font-semibold tabular-nums capitalize {BAND_TEXT_CLASS[
+								item.band
+							]}">{item.value}</span
 						>
 						{@render bandText(item.band)}
 					</div>

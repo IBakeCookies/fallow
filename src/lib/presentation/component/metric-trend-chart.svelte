@@ -161,7 +161,7 @@
 					<!-- The dash is what separates this line from the one above it on a
 					     theme that gives both the same lightness, so the swatch carries
 					     it too — as two segments rather than a raw gradient var(). -->
-					<span class="flex w-4 gap-grid-3xs">
+					<span class="flex w-4 gap-grid-2xs">
 						<span class="h-0.5 w-1.5 {line.swatchClass}"></span>
 						<span class="h-0.5 w-1.5 {line.swatchClass}"></span>
 					</span>
