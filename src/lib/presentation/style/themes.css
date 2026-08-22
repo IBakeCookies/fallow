@@ -134,7 +134,7 @@
 	/* The one theme that keeps translucent cards WITHOUT a blur to hide behind:
 	   with `--blur: 0` the scanlines and the sweeping refresh line cross a panel
 	   crisply, which is the whole CRT. Everything that floats over scrolling
-	   content is opaque instead — `--surface-float` for the nav pill, an opaque
+	   content is opaque instead — `--surface-float` for the nav bar, an opaque
 	   `--input` for the dropdown triggers standing in it — because there a
 	   see-through fill is just page text read through chrome. Both are the
 	   composite they replace — read off rendered pixels, since compositing
@@ -1402,6 +1402,45 @@
 	--mixed: oklch(0.48 0.11 310);
 }
 
+.understory {
+	/* night forest floor — moonlight filtered through the canopy above, moss
+	   glow pooling below; drifting fireflies and leaf-shade dapple are theme
+	   scenery (see theme-scenery/understory.css) */
+	--background-image:
+		radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.32 0.04 140 / 0.3), transparent 70%),
+		radial-gradient(ellipse 90% 45% at 50% 115%, oklch(0.34 0.05 150 / 0.35), transparent 70%),
+		linear-gradient(oklch(0.12 0.02 150), oklch(0.08 0.018 155));
+
+	--radius: 1rem;
+
+	--surface-page: oklch(0.11 0.018 152);
+	/* moss-lit glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.28);
+	--ty-primary: oklch(0.95 0.02 130);
+
+	--input: oklch(1 0 0 / 0.09);
+	--border: oklch(0.85 0.06 140 / 0.2);
+
+	/* lichen glow */
+	--primary: oklch(0.78 0.12 140);
+	--primary-foreground: oklch(0.15 0.03 150);
+	--ring: oklch(0.78 0.12 140 / 0.5);
+
+	/* moss and lichen, near the primary */
+	--brand: oklch(0.76 0.12 142);
+	--brand-strong: oklch(0.84 0.1 140);
+	/* firefly gold */
+	--flow: oklch(0.82 0.13 85);
+	/* moonlit slate */
+	--mind: oklch(0.76 0.09 250);
+	--mind-strong: oklch(0.84 0.07 252);
+	/* spruce teal — kept clear of the lichen primary */
+	--body: oklch(0.74 0.1 170);
+	/* night orchid */
+	--mixed: oklch(0.73 0.12 310);
+}
+
 /* ---- the set-square themes ----------------------------------------
    Every other light theme here rounds; these are drawn with a set
    square. Every surface is a flat ink, `--blur: 0`, nothing shows through
@@ -1420,11 +1459,11 @@
    away:
 
    - Alpha is what separates a `bg-surface-card` nested on another one (the
-     metric tiles, the task-definition panel) everywhere else. Here the three
-     surface rungs are three DISTINCT inks — page, card, inset — and the
-     border does the rest, which with `--radius: 0` and a heavy `--border` is
-     the whole visual language anyway. A nested card with no border of its own
-     has to take the inset rung instead, which is what `log-row` does.
+     task-definition panel) everywhere else. Here the three surface rungs are
+     three DISTINCT inks — page, card, inset — and the border does the rest,
+     which with `--radius: 0` and a heavy `--border` is the whole visual
+     language anyway. A nested card with no border of its own has to take the
+     inset rung instead, which is what `log-row` does.
    - Both alpha-scaling hovers in base.css (`--control-hover`,
      `--secondary-hover`) are no-ops on an opaque fill —
      `scripts/hover-contrast.mjs` measured step 1.000 — so each theme sets
@@ -1432,7 +1471,7 @@
      must.
 
    In exchange, chrome that floats over scrolling content — the sticky nav
-   pill, its dropdown triggers — is genuinely solid. On a `--blur: 0` theme
+   bar, its dropdown triggers — is genuinely solid. On a `--blur: 0` theme
    `backdrop-blur` is a no-op, so a translucent fill there let page text
    read straight through it. `terminal` is the one theme that wants both,
    and splits the difference with `--surface-float`. */
@@ -1546,7 +1585,7 @@
 
    So each of them sets `--control-hover` and `--secondary-hover`
    itself, which base.css derives by scaling an alpha that is no longer
-   there, and each keeps `--surface-card` opaque so the sticky nav pill
+   there, and each keeps `--surface-card` opaque so the sticky nav bar
    does not turn into a window. */
 
 .eink {
@@ -1729,4 +1768,41 @@
 	--body: oklch(0.48 0.1 165);
 	--flow: oklch(0.55 0.12 70);
 	--mixed: oklch(0.48 0.12 305);
+}
+
+.fallow-dark {
+	/* The same rested field as `.fallow`, after dark: a near-black green ground
+	   with one mint regrowth accent. Deliberately a small palette — neutral ink
+	   carries the ordinary, and colour is spent only where a reading is out of
+	   the ordinary, so the domain hues `.dark` seeds are left alone. Drawn as
+	   the root-page redesign, docs/redesign/Main.dc.html. */
+	--radius: 0.3rem;
+	--blur: 0;
+	/* a field is flat; nothing lies on it, so nothing casts */
+	--card-shadow: 0 0 #0000;
+
+	/* the rungs climb on a dark page, as in `.solid-dark` */
+	--surface-page: oklch(0.15 0.008 155);
+	--surface-card: oklch(0.185 0.008 155);
+	--surface-inset: oklch(0.215 0.008 155);
+	--ty-primary: oklch(0.97 0.006 155);
+
+	--input: oklch(0.24 0.008 155);
+	--control-hover: oklch(0.3 0.01 155);
+	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
+	--border: oklch(1 0 0 / 0.13);
+	--line-soft: oklch(1 0 0 / 0.07);
+
+	/* mint regrowth */
+	--primary: oklch(0.82 0.105 168);
+	--primary-foreground: oklch(0.2 0.03 168);
+
+	--brand: oklch(0.82 0.105 168);
+	--brand-strong: oklch(0.89 0.085 170);
+	/* the one warning colour on the artboard, and the flow accent is the same */
+	--warning: oklch(0.82 0.13 78);
+	--warning-strong: oklch(0.89 0.11 80);
+	--flow: oklch(0.82 0.13 78);
+	--danger: oklch(0.71 0.18 24);
+	--danger-strong: oklch(0.8 0.15 26);
 }

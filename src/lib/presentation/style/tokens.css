@@ -28,6 +28,7 @@
 @custom-variant cathedral (&:is(.cathedral *));
 @custom-variant orbit (&:is(.orbit *));
 @custom-variant fallow (&:is(.fallow *));
+@custom-variant fallow-dark (&:is(.fallow-dark *));
 @custom-variant lantern-drift (&:is(.lantern-drift *));
 @custom-variant canopy (&:is(.canopy *));
 @custom-variant meridian (&:is(.meridian *));
@@ -53,6 +54,7 @@
 @custom-variant verdigris (&:is(.verdigris *));
 @custom-variant thermal (&:is(.thermal *));
 @custom-variant weathervane (&:is(.weathervane *));
+@custom-variant understory (&:is(.understory *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes.
@@ -81,6 +83,9 @@
 
 	/* vertical padding of empty-state placeholder blocks */
 	--spacing-empty-state: var(--spacer-empty-state);
+
+	/* the day strip's narrowest block — the floor its track is scaled against */
+	--spacing-day-block: var(--spacer-day-block);
 
 	/* for cards, boxes paddings (-3xs/-2xs are the chip/pill insets below
 	   -xs, where the ladder used to run out and callers fell back to raw
@@ -250,13 +255,58 @@
 	@apply cursor-help rounded-sm bg-flow/15 px-box-3xs py-text-3xs text-xs font-semibold text-flow;
 }
 
-/* A row's actions, revealed by hovering the row (`group`) and always present where
-   hover does not exist. `focus-within` and not `focus`: the same utility sits on a
-   single button and on the strip that wraps several, and a focused button matches
-   its own `:focus-within`. The transition stays at the call site — a row that also
-   animates its colours needs `transition`, not `transition-opacity`. */
-@utility hover-reveal {
-	@apply opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100;
+/* One cell of either task screen's ledger. The rule between rows lives here rather
+   than on a wrapper, because a table's rows are separated by their cells. */
+@utility ledger-cell {
+	@apply border-b border-line-soft px-box-2xs py-box-xs align-middle;
+}
+
+/* A reading is only comparable down the column while its digits line up. */
+@utility ledger-numeric {
+	@apply text-right tabular-nums;
+}
+
+/* The two columns that say WHICH task a row is — the lead (`#N` or the Lab's hue) and
+   `Task` — pinned to the left edge, because `Planned` is the second-to-last of twelve
+   and on a phone it is only reachable by scrolling the ledger sideways. Goes on those
+   cells in the row and on their `<th>`, or the header stops naming the columns beneath
+   it while scrolled. Never on a spanning cell (the group headings, the editor row):
+   one cell as wide as the table holds no column still.
+
+   Which of the two a cell is comes from `:first-child` rather than a second class,
+   which is also what fixes the lead column's width: a table can pin one cell, so the
+   pair only lines up while `Task`'s offset and the lead's width are one value.
+
+   The fill has to be OPAQUE — the scrolling columns pass underneath — and
+   `--surface-card` carries alpha on most themes, so the card's own fill is LAYERED
+   over `--surface-page`, the one surface every theme keeps opaque (`--destructive-soft`
+   leans on the same fact). The row's hover tint is a third layer over that, driven by
+   the row's `group`, since a cell painting its own background hides the `<tr>`'s. */
+@utility ledger-pin {
+	--ledger-lead-width: 3.25rem;
+
+	position: sticky;
+	left: var(--ledger-lead-width);
+	z-index: 1;
+	background-color: var(--surface-page);
+	background-image: linear-gradient(var(--surface-card), var(--surface-card));
+
+	/* `min-width` and not `width` alone: a `width` on a table cell is only a preferred
+	   one, and the lead column took its content's 44px instead — leaving 8px of the
+	   scrolling columns showing between the two pinned cells. */
+	&:first-child {
+		left: 0;
+		min-width: var(--ledger-lead-width);
+	}
+
+	/* `@variant`, not a hand-written `.group:hover &`: a bare nested selector inside
+	   `@utility` is flattened to the utility itself, so the hover fill became the rest
+	   one and the pinned pair was permanently tinted. */
+	@variant group-hover {
+		background-image:
+			linear-gradient(var(--surface-hover), var(--surface-hover)),
+			linear-gradient(var(--surface-card), var(--surface-card));
+	}
 }
 
 /* The card surface every panel in the app sits on. Padding is deliberately not
