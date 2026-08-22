@@ -49,12 +49,12 @@
 
 	--spacer-empty-state: 3rem; /* 48px */
 
-	/* The day strip's narrowest block. Measured off its own content: the flow
-	   sentence is the widest of the four lines a block stacks (111px at
-	   `text-2xs`) plus 14px of border and inset. Below this the shortest
-	   allocation — which is always the one falling short of flow, so always the
-	   one carrying the diagnosis — truncates to nothing. */
-	--spacer-day-block: 8rem; /* 128px */
+	/* The day strip's narrowest block. Measured off its own content: the widest
+	   line a block always keeps is its duration (`12h 45m`, 48px at `text-2xs`)
+	   plus 14px of border and inset, which also leaves the title line its `#12`
+	   and the start of a name. The flow sentence needs far more and is what a
+	   block this narrow drops instead — `--container-day-flow` in tokens.css. */
+	--spacer-day-block: 4rem; /* 64px */
 
 	--spacer-grid-2xs: var(--spacer-2xs);
 	--spacer-grid-xs: var(--spacer-xs);
