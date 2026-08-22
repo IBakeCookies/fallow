@@ -5,6 +5,7 @@
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
 	import TaskRowShell from '$lib/presentation/component/task-row-shell.svelte';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { getEnergyTaskColumns } from '$lib/presentation/utils/ledger-column';
 	import type {
 		DrainDraft,
 		EditorDraft,
@@ -22,6 +23,8 @@
 		/** Not badged here, but ✎ must round-trip it rather than clear it. */
 		mustDoToday?: boolean;
 		color: string;
+		/** Read off the store, not computed here: R2, and it is the number `/` prints. */
+		trueEffort: number;
 		/** Null when there is no plan at all: "no hours" against every task would be a
 		 *  claim the optimizer never made. */
 		plannedHours: number | null;
@@ -55,6 +58,7 @@
 		enjoyment,
 		mustDoToday = false,
 		color,
+		trueEffort,
 		plannedHours,
 		flowMinutes,
 		flowDraft = null,
@@ -77,21 +81,27 @@
 </script>
 
 {#snippet lead()}
-	<span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {color}"></span>
+	<span class="block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {color}"></span>
 {/snippet}
 
-<!-- Hidden on a completed task, which the optimizer no longer plans at all: "no hours"
+{#snippet meta()}
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">{trueEffort.toFixed(1)}</td>
+{/snippet}
+
+<!-- Empty on a completed task, which the optimizer no longer plans at all: "no hours"
      there reads as a verdict when it only means the task is done. -->
 {#snippet trailing()}
-	{#if !completed && plannedHours !== null}
-		<span
-			class="text-left sm:text-right {plannedHours
-				? 'text-sm font-semibold text-ty-primary'
-				: 'text-2xs text-ty-silent italic'}"
-		>
-			{plannedHours ? formatDuration(plannedHours) : m.energy_no_hours()}
-		</span>
-	{/if}
+	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+		{#if !completed && plannedHours !== null}
+			<span
+				class={plannedHours
+					? 'text-sm font-semibold text-ty-primary'
+					: 'text-2xs text-ty-silent italic'}
+			>
+				{plannedHours ? formatDuration(plannedHours) : m.energy_no_hours()}
+			</span>
+		{/if}
+	</td>
 {/snippet}
 
 <Tooltip.Provider>
@@ -103,6 +113,7 @@
 		{enjoyment}
 		{mustDoToday}
 		withMustDoToday={false}
+		columnCount={getEnergyTaskColumns().length}
 		{ontoggle}
 		{flowMinutes}
 		{flowDraft}
@@ -121,6 +132,7 @@
 		{onupdate}
 		{onremove}
 		{lead}
+		{meta}
 		{trailing}
 	/>
 </Tooltip.Provider>

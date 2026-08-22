@@ -1,4 +1,5 @@
 <script module lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn, waitFor, within } from 'storybook/test';
 	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
@@ -8,6 +9,7 @@
 	const { Story } = defineMeta({
 		title: 'Component/Task Item',
 		component: TaskItem,
+		render: template,
 		tags: ['autodocs'],
 		args: {
 			id: 1,
@@ -41,6 +43,23 @@
 		},
 	});
 
+	/* `/`'s column order (task-list.stories.svelte pins the header). A row story renders
+	   no `<thead>`, so a cell's position is what says which column it is. */
+	const CELL = {
+		order: 0,
+		task: 1,
+		physical: 2,
+		mental: 3,
+		enjoyment: 4,
+		effort: 5,
+		priority: 6,
+		flow: 7,
+		stop: 8,
+		logged: 9,
+		planned: 10,
+		actions: 11,
+	};
+
 	const drainLog = (over: Partial<Persisted<DrainObservationRecord>> = {}) => ({
 		id: 11,
 		date: '2026-08-10',
@@ -55,6 +74,10 @@
 		...over,
 	});
 </script>
+
+{#snippet template(args: ComponentProps<typeof TaskItem>)}
+	<table class="w-full"><TaskItem {...args} /></table>
+{/snippet}
 
 <Story
 	name="Default"
@@ -101,22 +124,22 @@
 		).toBeVisible();
 
 		await expect(canvas.getByText('#1')).toBeVisible();
-		await expect(canvas.getByText('P 2')).toBeVisible();
-		await expect(canvas.getByText('M 8')).toBeVisible();
-		await expect(canvas.getByText('E 7')).toBeVisible();
 
-		await userEvent.hover(
-			canvas.getByRole('button', {
-				name: 'P 2 · M 8 · E 7',
-			}),
-		);
+		// The plan's three readings, each in the column that names it — no `prio`,
+		// `flow @` or `stop by` prefix left to spell out what the header says.
+		const cells = canvas.getAllByRole('cell');
+
+		expect(cells[CELL.planned].textContent?.trim()).toBe('1h 45m');
+		expect(cells[CELL.priority].textContent?.trim()).toBe('12.4');
+		expect(cells[CELL.flow].textContent?.trim()).toBe('36m');
+		expect(cells[CELL.stop].textContent?.trim()).toBe('2h 15m');
+
+		// A derived reading keeps its tooltip: no column word says what ϕ is.
+		await userEvent.hover(canvas.getByText('36m'));
 
 		const body = within(canvasElement.ownerDocument.body);
 
-		await waitFor(() => expect(body.getByText(/^Your slider inputs/)).toBeVisible());
-		await expect(canvas.getByText('1h 45m')).toBeVisible();
-		await expect(canvas.getByText('prio 12.4')).toBeVisible();
-		await expect(canvas.getByText('effort 4.2 · flow @ 36m · stop by 2h 15m')).toBeVisible();
+		await waitFor(() => expect(body.getByText(/^What the Fallow model derived/)).toBeVisible());
 	}}
 />
 
@@ -136,9 +159,13 @@
 		await expect(delta).toHaveClass(/text-ty-primary/);
 
 		// The plan number surviving mid-day IS the §11.8 scope split, on screen.
-		const plan = canvas.getByText('plan 1h 45m · prio 12.4');
+		const plan = canvas.getByText('plan 1h 45m');
 		await expect(plan).toBeVisible();
 		await expect(plan).toHaveClass(/text-ty-silent/);
+
+		// Both readings in the one cell the question is about, priority beside it
+		expect(canvas.getAllByRole('cell')[CELL.planned]).toContainElement(delta);
+		expect(canvas.getAllByRole('cell')[CELL.planned]).toContainElement(plan);
 	}}
 />
 
@@ -156,11 +183,11 @@
 		const plan = canvas.getByText('1h 45m');
 
 		await expect(plan).toHaveClass(/text-ty-primary/);
-		await expect(canvas.getByText('prio 12.4')).toBeVisible();
+		await expect(canvas.getByText('12.4')).toBeVisible();
 
 		// The same two elements the re-plan reading uses, and each still its own trigger:
 		// the two modes were two structures, and the small line had to be edited twice.
-		for (const reading of [plan, canvas.getByText('prio 12.4')]) {
+		for (const reading of [plan, canvas.getByText('12.4')]) {
 			await expect(reading).toHaveAttribute('data-slot', 'tooltip-trigger');
 		}
 
@@ -252,7 +279,7 @@
 		).toHaveClass('line-through');
 
 		await expect(canvas.queryByText('#1')).not.toBeInTheDocument();
-		await expect(canvas.queryByText('prio 12.4')).not.toBeInTheDocument();
+		await expect(canvas.queryByText('12.4')).not.toBeInTheDocument();
 
 		await userEvent.click(checkbox);
 		await expect(args.onflowopen).not.toHaveBeenCalled();
@@ -618,8 +645,8 @@
 
 		await expect(chips).toHaveLength(2);
 		await expect(chips[0]).toHaveTextContent('45m');
-		await expect(chips[0]).toHaveTextContent('M6');
-		await expect(chips[0]).toHaveTextContent('B2');
+		await expect(chips[0]).toHaveTextContent('Mind 6');
+		await expect(chips[0]).toHaveTextContent('Body 2');
 		await expect(chips[1]).toHaveTextContent('2h');
 
 		await userEvent.hover(chips[0]);
@@ -780,5 +807,174 @@
 
 		await expect(args.onflowopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
 		await expect(args.ondrainopen).toHaveBeenCalledExactlyOnceWith(1, 'completion');
+	}}
+/>
+
+<!-- One reading, one cell, so a column can be compared between tasks. -->
+<Story
+	name="Every reading in its own cell"
+	args={{
+		physicalDifficulty: 0,
+		mentalDifficulty: 8,
+		enjoyment: 9,
+		trueEffort: 4.1,
+		suggestedHours: 1.75,
+		priorityScore: 25.3,
+		flowStateTime: 2.23,
+		optimalStopHours: 3.92,
+	}}
+	play={async ({ canvas }) => {
+		const cells = canvas.getAllByRole('cell');
+
+		expect(cells[CELL.physical].textContent?.trim()).toBe('0');
+		expect(cells[CELL.mental].textContent?.trim()).toBe('8');
+		expect(cells[CELL.enjoyment].textContent?.trim()).toBe('9');
+		expect(cells[CELL.effort].textContent?.trim()).toBe('4.1');
+		expect(cells[CELL.priority].textContent?.trim()).toBe('25.3');
+
+		// Right-aligned with `tabular-nums` is the whole point of the column.
+		for (const column of [
+			CELL.physical,
+			CELL.mental,
+			CELL.enjoyment,
+			CELL.effort,
+			CELL.priority,
+			CELL.flow,
+			CELL.stop,
+			CELL.planned,
+		]) {
+			expect(getComputedStyle(cells[column]).textAlign).toBe('right');
+		}
+	}}
+/>
+
+<!-- 🪫 is one rating per session (MATH.md §8.7), so its chip count is unbounded and only
+     a flexible cell holds it — with the triggers, or the one-click rule breaks. -->
+<Story
+	name="Readings and triggers in the Logged cell"
+	args={{
+		flowMinutes: 95,
+		drainLogs: [
+			drainLog({
+				id: 11,
+			}),
+			drainLog({
+				id: 12,
+				hours: 2,
+				mindDrain: 9,
+				bodyDrain: 4,
+			}),
+		],
+	}}
+	play={async ({ canvas }) => {
+		const badge = canvas.getByRole('button', {
+			name: 'Correct this time to flow',
+		});
+
+		await expect(badge).toHaveTextContent('⚡ 95m');
+
+		const logged = canvas.getAllByRole('cell')[CELL.logged];
+
+		expect(logged).toContainElement(badge);
+
+		const chips = canvas.getAllByRole('button', {
+			name: 'Correct this drain rating',
+		});
+
+		expect(chips).toHaveLength(2);
+
+		for (const chip of chips) expect(logged).toContainElement(chip);
+
+		const append = canvas.getByRole('button', {
+			name: 'Log end-of-session drain',
+		});
+
+		expect(logged).toContainElement(append);
+
+		// `toBeVisible` walks the ancestors' opacity — what the old strip could never pass.
+		for (const reading of [badge, ...chips, append]) await expect(reading).toBeVisible();
+	}}
+/>
+
+<!-- Nothing logged is the state both instruments exist for, so both are offered -->
+<Story
+	name="Both instruments offered with nothing logged"
+	play={async ({ canvas }) => {
+		const logged = canvas.getAllByRole('cell')[CELL.logged];
+
+		expect(logged).toContainElement(
+			canvas.getByRole('button', {
+				name: 'Log time to flow',
+			}),
+		);
+
+		expect(logged).toContainElement(
+			canvas.getByRole('button', {
+				name: 'Log end-of-session drain',
+			}),
+		);
+	}}
+/>
+
+<!-- 114px reserved to show nothing is only redeemed by a narrower always-visible one -->
+<Story
+	name="Actions reachable without hovering"
+	play={async ({ canvas }) => {
+		for (const name of ['Edit task', 'Delete task']) {
+			await expect(
+				canvas.getByRole('button', {
+					name,
+				}),
+			).toBeVisible();
+		}
+	}}
+/>
+
+<!-- Completion opens both editors ("Completion asks both" pins that half); both land in
+     one spanning row under the task's own, which is why the shell is a `<tbody>`. -->
+<Story
+	name="Both measurement forms in one spanning row"
+	args={{
+		flowDraft: {
+			focusMinutes: false,
+			promptedByCompletion: true,
+		},
+		drainDraft: newDrainDraft('completion'),
+	}}
+	play={async ({ canvas }) => {
+		const rows = canvas.getAllByRole('row');
+
+		expect(rows).toHaveLength(2);
+
+		const editors = rows[1].querySelectorAll('td');
+
+		expect(editors).toHaveLength(1);
+		await expect(editors[0]).toHaveAttribute('colspan', '12');
+		expect(editors[0]).toContainElement(canvas.getByText('⚡ Minutes to reach flow:'));
+		expect(editors[0]).toContainElement(canvas.getByText('🪫 After the session:'));
+	}}
+/>
+
+<!-- ✎ stacks in the same spanning row, and the row keeps one line of cells -->
+<Story
+	name="The editor joins the spanning row"
+	args={{
+		flowDraft: {
+			focusMinutes: false,
+			promptedByCompletion: true,
+		},
+		drainDraft: newDrainDraft('completion'),
+	}}
+	play={async ({ canvas, userEvent }) => {
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Edit task',
+			}),
+		);
+
+		const rows = canvas.getAllByRole('row');
+
+		expect(rows).toHaveLength(2);
+		expect(rows[1].querySelector('td')).toContainElement(canvas.getByLabelText('Title'));
 	}}
 />

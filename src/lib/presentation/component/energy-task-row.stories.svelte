@@ -1,12 +1,16 @@
 <script module lang="ts">
+	import type { ComponentProps } from 'svelte';
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn } from 'storybook/test';
 	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import EnergyTaskRow from '$lib/presentation/component/energy-task-row.svelte';
+	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
+	import { getEnergyTaskColumns } from '$lib/presentation/utils/ledger-column';
 
 	const { Story } = defineMeta({
 		title: 'Component/Energy Task Row',
 		component: EnergyTaskRow,
+		render: template,
 		tags: ['autodocs'],
 		args: {
 			title: 'write the calibration section',
@@ -16,6 +20,7 @@
 			enjoyment: 7,
 			mustDoToday: false,
 			color: 'var(--series-1)',
+			trueEffort: 4.1,
 			plannedHours: 1.75,
 			drainLogs: [],
 			flowDraft: null,
@@ -35,6 +40,19 @@
 		},
 	});
 
+	/* The Lab's column order — a peer model, so it heads only what it computes. */
+	const CELL = {
+		hue: 0,
+		task: 1,
+		physical: 2,
+		mental: 3,
+		enjoyment: 4,
+		effort: 5,
+		logged: 6,
+		planned: 7,
+		actions: 8,
+	};
+
 	const drainLog = (over: Partial<Persisted<DrainObservationRecord>> = {}) => ({
 		id: 11,
 		date: '2026-08-10',
@@ -50,26 +68,68 @@
 	});
 </script>
 
+<!-- In the card the Lab mounts, with the Lab's own columns: the row is a `<tbody>`, so
+     it has to be read inside the table whose header names its cells. -->
+{#snippet template(args: ComponentProps<typeof EnergyTaskRow>)}
+	{#snippet rows()}
+		<EnergyTaskRow {...args} />
+	{/snippet}
+	<div class="max-w-4xl">
+		<TaskListCard columns={getEnergyTaskColumns()} {rows} />
+	</div>
+{/snippet}
+
 <!-- The row fills the shared shell with the Lab's reading: the plan's hue, the three
-     model inputs as text, the hours the schedule gave it, and three actions. -->
+     model inputs, the true effort they come to, and the hours the schedule gave it. -->
 <Story
 	name="Default"
+	args={{
+		plannedHours: 2.5,
+	}}
 	play={async ({ args, canvas, userEvent }) => {
-		// The three inputs read the same way the main page spells them — no sliders:
-		// they are a definition, and ✎ is what re-tunes them. Asserted span by span:
-		// `getByText` reads an element's own text nodes, and this line is five of them.
-		await expect(canvas.getByText('P 2')).toBeInTheDocument();
-		await expect(canvas.getByText('M 8')).toBeInTheDocument();
-		await expect(canvas.getByText('E 7')).toBeInTheDocument();
+		const headers = [...canvas.getByRole('table').querySelectorAll('thead th')];
+
+		// The hue swatch and the ✎/✕ strip show no heading and still carry an `sr-only`
+		// one, so nothing in the row reads as an unnamed column.
+		expect(headers.map((header) => header.textContent?.trim())).toEqual([
+			'Color',
+			'Task',
+			'Phys',
+			'Ment',
+			'Enjoy',
+			'Effort',
+			'Logged',
+			'Planned',
+			'Actions',
+		]);
+
+		const cells = canvas.getAllByRole('cell');
+
+		// One hue per task across the timeline, the schedule list and this row — it takes
+		// the narrow leading cell `#N` takes on `/`, so both screens share the grammar
+		await expect(cells[CELL.hue].firstElementChild).toHaveAttribute(
+			'style',
+			expect.stringContaining('var(--series-1)'),
+		);
+
+		// The three inputs read as text, and the number the three of them come to reads
+		// beside them: no sliders — they are a definition, and ✎ is what re-tunes them.
+		expect(cells[CELL.physical].textContent?.trim()).toBe('2');
+		expect(cells[CELL.mental].textContent?.trim()).toBe('8');
+		expect(cells[CELL.enjoyment].textContent?.trim()).toBe('7');
+		expect(cells[CELL.effort].textContent?.trim()).toBe('4.1');
 		await expect(canvas.queryByRole('slider')).not.toBeInTheDocument();
 
 		// What the plan gave the task, in the app's one duration spelling
-		await expect(canvas.getByText('1h 45m')).toBeInTheDocument();
+		expect(cells[CELL.planned].textContent?.trim()).toBe('2h 30m');
 
-		// One hue per task across the timeline, the schedule list and this row — the dot
-		// is the title's preceding sibling, with no text of its own to find
-		const dot = canvas.getByText(args.title).previousElementSibling;
-		await expect(dot).toHaveAttribute('style', expect.stringContaining('var(--series-1)'));
+		// `Planned` is reached by scrolling the ledger on a phone, so the identity pair —
+		// the hue and the title, the Lab's own leading columns — is pinned in the header
+		// and in the row alike, or the hours arrive with no task attached to them.
+		const isPinned = (cell: Element) => cell.classList.contains('ledger-pin');
+
+		expect(headers.filter(isPinned)).toEqual(headers.slice(0, CELL.physical));
+		expect(cells.filter(isPinned)).toEqual(cells.slice(0, CELL.physical));
 
 		// Both measurements are on this row now, not just the Lab's own 🪫: the energy
 		// model reads the ϕ constants ⚡ calibrates, so a Lab-only user could not feed
@@ -106,13 +166,10 @@
 
 		await expect(args.ondrainopen).toHaveBeenNthCalledWith(2, 'button');
 	}}
->
-	{#snippet template(args)}
-		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
-	{/snippet}
-</Story>
+/>
 
-<!-- Funded nothing this plan: said out loud, because the timeline cannot say it -->
+<!-- Funded nothing this plan: said out loud in the cell that would otherwise be blank,
+     because a blank cell reads as a reading the optimizer never took -->
 <Story
 	name="Unfunded"
 	args={{
@@ -124,13 +181,9 @@
 		color: 'var(--series-3)',
 	}}
 	play={async ({ canvas }) => {
-		await expect(canvas.getByText('no hours')).toBeInTheDocument();
+		expect(canvas.getAllByRole('cell')[CELL.planned].textContent?.trim()).toBe('no hours');
 	}}
->
-	{#snippet template(args)}
-		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
-	{/snippet}
-</Story>
+/>
 
 <!-- No plan at all is not "no hours for this task" — that would be a claim the
      optimizer never made, on every row at once -->
@@ -143,11 +196,7 @@
 		await expect(canvas.queryByText('no hours')).not.toBeInTheDocument();
 		await expect(canvas.getByText(args.title)).toBeInTheDocument();
 	}}
->
-	{#snippet template(args)}
-		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
-	{/snippet}
-</Story>
+/>
 
 <!-- Finished, and rated: the optimizer no longer plans it, so its hours go rather
      than read "no hours" as a verdict — and the rating reads on the row, in the Lab
@@ -182,11 +231,7 @@
 
 		await expect(args.ondrainedit).toHaveBeenCalledExactlyOnceWith(drainLog());
 	}}
->
-	{#snippet template(args)}
-		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
-	{/snippet}
-</Story>
+/>
 
 <!-- ✎ opens the same editor the main page's rows open, minus the must-do flag: the
      plan advisor is the main page's, so the checkbox would change nothing on screen
@@ -232,11 +277,7 @@
 		// Saving closes it
 		await expect(canvas.queryByLabelText('Title')).not.toBeInTheDocument();
 	}}
->
-	{#snippet template(args)}
-		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
-	{/snippet}
-</Story>
+/>
 
 <!-- The 🪫 editor open under the row, on a stored rating: `recordId` is what makes ✓ a
      correction, and it is also what puts 🗑 in the editor — the two verbs a rating needs
@@ -257,6 +298,14 @@
 	play={async ({ args, canvas, userEvent }) => {
 		// Seeded with what was already logged, not blank
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
+
+		// The editor is one cell as wide as the Lab's ledger, and unpinned: it holds no
+		// column, so a sticky offset would only slide it out of its own row.
+		const spanning = [...canvas.getByRole('table').querySelectorAll('td[colspan]')];
+
+		expect(spanning).toHaveLength(1);
+		await expect(spanning[0]).toHaveAttribute('colspan', '9');
+		expect(spanning[0]).not.toHaveClass('ledger-pin');
 
 		// ✓ reports the amended session through the row, in hours
 		await userEvent.click(
@@ -279,8 +328,4 @@
 
 		await expect(args.ondraindelete).toHaveBeenCalledExactlyOnceWith(11);
 	}}
->
-	{#snippet template(args)}
-		<ul class="max-w-2xl"><li><EnergyTaskRow {...args} /></li></ul>
-	{/snippet}
-</Story>
+/>
