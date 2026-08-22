@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { addTask, isoDate } from './helpers';
+import { addTask, AUTOSAVE_MS, isoDate, setBudget, taskRow } from './helpers';
 
 test('past day is read-only with a banner', async ({ page }) => {
 	await page.goto(`/?date=${isoDate(-3)}`);
@@ -19,6 +19,37 @@ test('past day is read-only with a banner', async ({ page }) => {
 			name: /return to today/,
 		}),
 	).toBeVisible();
+
+	// Neither day-action reads on a day that cannot be changed
+	await expect(
+		page.getByRole('button', {
+			name: 'Load',
+			exact: true,
+		}),
+	).toHaveCount(0);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Save',
+			exact: true,
+		}),
+	).toHaveCount(0);
+
+	// Nor the timer that fills a 🪫 editor: a new measurement is today's alone.
+	await expect(
+		page.getByRole('button', {
+			name: 'Start timer',
+		}),
+	).toHaveCount(0);
+
+	// The nav item is the only way back now, so it is the one this asserts through
+	await page
+		.getByRole('link', {
+			name: /return to today/,
+		})
+		.click();
+
+	await expect(page).toHaveURL('http://localhost:4173/');
 });
 
 test('future day shows the planning-ahead banner', async ({ page }) => {
@@ -61,9 +92,7 @@ test('a rollover leaves no editor open on the new day', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing');
 
-	const row = page.locator('li').filter({
-		hasText: 'Boxing',
-	});
+	const row = taskRow(page, 'Boxing');
 
 	await row
 		.getByRole('button', {
@@ -92,4 +121,120 @@ test('a rollover leaves no editor open on the new day', async ({ page }) => {
 
 	await expect(page.getByText('⚡ Minutes to reach flow:')).not.toBeVisible();
 	await expect(page.getByText('🪫 After the session:')).not.toBeVisible();
+});
+
+/* `today` is live, so a page left open crosses midnight with its timer still running —
+   and minutes counted yesterday cannot fill today's 🪫 log. Only a mounted page reaches
+   this: a reload drops the stored timer on read. */
+test('a rollover drops a timer left running overnight', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Boxing');
+
+	await page
+		.getByRole('button', {
+			name: 'Start timer',
+		})
+		.click();
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Stop timer',
+		}),
+	).toBeVisible();
+
+	await page.clock.fastForward('25:00:00');
+	await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Start timer',
+		}),
+	).toBeVisible();
+
+	// And it seeds nothing on the new day either.
+	await addTask(page, 'Inbox');
+
+	await taskRow(page, 'Inbox')
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.click();
+
+	await expect(
+		page
+			.locator('form')
+			.filter({
+				hasText: 'After the session',
+			})
+			.locator('input[type="number"]')
+			.first(),
+	).toHaveValue('');
+});
+
+/* The day strip is not a today-only reading — a past day draws the plan it was
+   made under, and offers no field to re-anchor it. Seeded through the clock,
+   since the only way onto a read-only day is to plan it while it is today. */
+test('a past day draws the strip it was planned under', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.getByLabel('Day Starts').fill('07:30');
+
+	// The autosave debounce runs on the page's own clock, which is now faked.
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto(`/?date=${isoDate(0)}`);
+	await expect(page.getByText('Viewing a past day:')).toBeVisible();
+
+	await expect(page.getByText('from 07:30')).toBeVisible();
+
+	// The strip is what has to redraw, so assert the block inside it — the ledger
+	// row would read the same on a day that funded nothing.
+	const timeline = page.locator('section').filter({
+		has: page.getByRole('heading', {
+			name: 'The day',
+			exact: true,
+		}),
+	});
+
+	await expect(timeline.getByText('#1 Deep work')).toBeVisible();
+	await expect(page.getByLabel('Day Starts')).toHaveCount(0);
+
+	// A past day saves its completions as a WHOLE record, so every field that
+	// write does not carry is a field it erases — the day's start included.
+	await taskRow(page, 'Deep work').getByRole('checkbox').check();
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.reload();
+
+	await expect(page.getByText('from 07:30')).toBeVisible();
+});
+
+/* The clock is a label, not a reading the strip can derive: a day that stored no
+   start gets no time printed on it, and no field to correct one either. */
+test('a past day that stored no start draws the strip without a clock', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto(`/?date=${isoDate(0)}`);
+	await expect(page.getByText('Viewing a past day:')).toBeVisible();
+
+	const timeline = page.locator('section').filter({
+		has: page.getByRole('heading', {
+			name: 'The day',
+			exact: true,
+		}),
+	});
+
+	await expect(timeline.getByText('#1 Deep work')).toBeVisible();
+	await expect(timeline.getByText(/\d{2}:\d{2}/)).toHaveCount(0);
 });

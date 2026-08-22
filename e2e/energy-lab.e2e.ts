@@ -1,5 +1,16 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, budgetField, logDrain, openTimeBudget, setBudget } from './helpers';
+import {
+	addTask,
+	AUTOSAVE_MS,
+	budgetField,
+	isoDate,
+	logDrain,
+	openTimeBudget,
+	saveRoutine,
+	setBudget,
+	taskCard,
+	taskRow,
+} from './helpers';
 
 /* The Energy Lab shares the daily session but owns its own params and
    measurements, so the flows worth covering here are the seams between them:
@@ -79,6 +90,78 @@ test('an empty day offers the task form, and deploying one reveals the Lab', asy
 	await expect(page.getByText('Set a day window above 0 hours.')).not.toBeVisible();
 });
 
+/* The Lab is where the day is actually tuned, so the day's two menus read on its
+   Tasks card as well — a routine saved on the main page had no way in here. */
+test('the day’s Load and Save read on the Lab’s Tasks card', async ({ page }) => {
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+
+	const card = taskCard(page);
+
+	await expect(
+		card.getByRole('button', {
+			name: 'Load',
+			exact: true,
+		}),
+	).toBeVisible();
+
+	await expect(
+		card.getByRole('button', {
+			name: 'Save',
+			exact: true,
+		}),
+	).toBeVisible();
+});
+
+test('a routine loads onto the Lab’s list', async ({ page }) => {
+	// Saved from a future day so today stays empty: routines are global, and loading
+	// tasks onto a day that already holds them would assert nothing.
+	await page.goto(`/?date=${isoDate(2)}`);
+	await addTask(page, 'Boxing training');
+	await addTask(page, 'Write report');
+
+	await saveRoutine(page, 'Morning block');
+
+	await page.goto('/energy');
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
+
+	await taskCard(page)
+		.getByRole('button', {
+			name: 'Load',
+			exact: true,
+		})
+		.click();
+
+	await page
+		.getByRole('menuitem', {
+			name: 'Morning block (2)',
+		})
+		.click();
+
+	await expect(taskRow(page, 'Boxing training')).toBeVisible();
+	await expect(taskRow(page, 'Write report')).toBeVisible();
+});
+
+// Load with nothing loaded yet is the whole point of the pair being here; Save is
+// what an empty day has nothing to offer.
+test('an empty Lab day offers Load and nothing to save', async ({ page }) => {
+	await page.goto('/energy');
+
+	await expect(
+		taskCard(page).getByRole('button', {
+			name: 'Load',
+			exact: true,
+		}),
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Save',
+			exact: true,
+		}),
+	).toHaveCount(0);
+});
+
 // The window field is the one thing standing between a fresh profile and a plan,
 // and it is a card away on a desktop and three on a phone. The prompt in the
 // empty plan card is the only thing pointing at it, so it has to go there.
@@ -151,7 +234,7 @@ test('re-tuning a task re-plans the day without reordering the list', async ({ p
 
 	// The one row the hour went to, pinned by name so it stays the same row after
 	// the plan moves off it.
-	const rows = page.locator('li').filter({
+	const rows = page.locator('table tbody').filter({
 		has: page.getByRole('checkbox'),
 	});
 
@@ -595,7 +678,7 @@ test('completing a task opens its drain rating', async ({ page }) => {
 	// that only exists for a finished session into looking disabled. Asserted on the
 	// ROW, not the form — `opacity` does not inherit, so a child of an `opacity-50`
 	// ancestor still computes 1 and an assertion on the form itself cannot fail.
-	await expect(form.locator('xpath=ancestor::li[1]')).toHaveCSS('opacity', '1');
+	await expect(form.locator('xpath=ancestor::tbody[1]')).toHaveCSS('opacity', '1');
 
 	const fields = form.locator('input[type="number"]');
 	await fields.nth(0).fill('90');
@@ -680,15 +763,9 @@ test('completing a second task opens its own drain rating', async ({ page }) => 
 	await expect(forms).toHaveCount(1);
 
 	await expect(
-		page
-			.locator('li')
-			.filter({
-				hasText: 'Deep work',
-			})
-			.locator('form')
-			.filter({
-				hasText: 'After the session',
-			}),
+		taskRow(page, 'Deep work').locator('form').filter({
+			hasText: 'After the session',
+		}),
 	).toBeVisible();
 });
 
@@ -704,9 +781,7 @@ test('a rating being typed survives another task being completed', async ({ page
 	// Hand-open Deep work's rating and half-fill it. Named by its row, not `.first()`
 	// — `addTask` prepends, so the first 🪫 belongs to Gym session, the task this test
 	// then completes, and the cross-task invariant would go untested.
-	const deepWork = page.locator('li').filter({
-		hasText: 'Deep work',
-	});
+	const deepWork = taskRow(page, 'Deep work');
 
 	await deepWork
 		.getByRole('button', {
@@ -801,11 +876,7 @@ test('deleting a task takes its open drain prompt with it', async ({ page }) => 
 
 	await expect(form).toHaveCount(1);
 
-	await page
-		.locator('li')
-		.filter({
-			hasText: 'Deep work',
-		})
+	await taskRow(page, 'Deep work')
 		.getByRole('button', {
 			name: 'Delete task',
 		})
@@ -995,9 +1066,9 @@ test('correcting a rating edits its row, while a second session adds one', async
 		})
 		.click();
 
-	// Corrected in place: still one row, now reading M6.
+	// Corrected in place: still one row, now reading Mind 6.
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
-	await expect(page.getByText('M6')).toBeVisible();
+	await expect(page.getByText('Mind 6')).toBeVisible();
 
 	// The row's own button is the other path: an empty form, and a second row.
 	await logDrain(page, 90, 7, 4);
@@ -1054,7 +1125,7 @@ test('the ✎ re-seeds a drain editor the row already has open', async ({ page }
 
 	// Corrected in place — the ✎'s save path, not the button's
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
-	await expect(page.getByText('M6')).toBeVisible();
+	await expect(page.getByText('Mind 6')).toBeVisible();
 });
 
 /* A break is the one measurement with no row anywhere: it belongs to no task, so
