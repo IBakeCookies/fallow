@@ -1,6 +1,6 @@
 /* Ticking a task done is the end of the session its measurements describe, so both
-   measurement editors open themselves there rather than behind a hover-revealed
-   button: ⚡ time-to-flow and 🪫 end-of-session drain. Both live on both screens'
+   measurement editors open themselves there rather than waiting to be found: ⚡
+   time-to-flow and 🪫 end-of-session drain. Both live on both screens'
    rows now (task-row-shell.svelte), and completion asks both questions — they are
    answered from the same moment and stack as two forms under the row.
 
@@ -78,15 +78,35 @@ export type DrainDraft = EditorDraft & {
 	body: number | null;
 };
 
-/** A draft for a new session. Always empty, never seeded from an earlier rating: each
- *  🪫 log describes one session (MATH.md §18), so prefilling the last one invites
+/** A draft for a new session, empty unless something measured THIS one — `/`'s stopped
+ *  timer hands in the minutes it counted. Never seeded from an earlier rating: each 🪫
+ *  log describes one session (MATH.md §18), so prefilling the last one invites
  *  re-saving hours the day already counts. Corrections seed their own draft. */
-export const newDrainDraft = (source: EditorSource): DrainDraft => ({
+export const newDrainDraft = (source: EditorSource, minutes: number | null = null): DrainDraft => ({
 	...newEditorDraft(source),
-	minutes: null,
+	minutes,
 	mind: null,
 	body: null,
 });
+
+const holdsPendingMinutes = (draft: DrainDraft) =>
+	draft.recordId === undefined && draft.minutes !== null;
+
+/** The minutes a newly opened 🪫 append editor may take from `/`'s stopped timer: the
+ *  reading, unless an editor already open holds it. One stop funds one log (MATH.md
+ *  §18) and a draft carries a COPY of the number, so the reading lives in exactly one
+ *  draft at a time — two rows ticked done each opened an editor holding the same 45,
+ *  and each funded a log. Closing that editor releases it again. */
+export const claimPendingMinutes = (
+	drafts: Record<number, DrainDraft>,
+	pendingMinutes: number | null,
+): number | null => (Object.values(drafts).some(holdsPendingMinutes) ? null : pendingMinutes);
+
+/** Whether saving this draft spends the reading: only the editor that claimed it, and
+ *  only while the reading is still there — a correction rewrites a session already
+ *  counted, and a clock counting again is a session of its own. */
+export const spendsPendingMinutes = (draft: DrainDraft, pendingMinutes: number | null) =>
+	pendingMinutes !== null && holdsPendingMinutes(draft);
 
 /** The correction: a draft over a STORED rating, opened from that rating's own chip on
  *  the row. `recordId` is what makes ✓ rewrite the session instead of appending a

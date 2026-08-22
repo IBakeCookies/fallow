@@ -301,9 +301,6 @@ export function buildMetrics(
 			...gated(planned, `${burnoutRisk}%`, AXIS_BAND.burnoutRisk(burnoutRisk)),
 		},
 		{
-			// Burnout Risk is a headline tile, so the energy group's separator starts
-			// here: `section` is a list-only marker and a promoted row never renders it.
-			section: true,
 			label: m.metric_cognitive_load(),
 			description: m.metric_cognitive_load_desc(),
 			// Both loads arrive exact and are rounded HERE (MATH.md §25, like
@@ -331,7 +328,6 @@ export function buildMetrics(
 			),
 		},
 		{
-			section: true,
 			label: m.metric_schedule_integrity(),
 			description: m.metric_schedule_integrity_desc(),
 			// Same as time scarcity: budget 0 short-circuits to 0%, an alarm about
@@ -349,7 +345,6 @@ export function buildMetrics(
 			...gated(planned && funded, `${frictionIndex}%`, AXIS_BAND.frictionIndex(frictionIndex)),
 		},
 		{
-			section: true,
 			label: m.metric_deep_work(),
 			description: m.metric_deep_work_desc(),
 			// Exact in, rounded here (MATH.md §26, like the Loads above).
@@ -361,7 +356,6 @@ export function buildMetrics(
 			...gated(hasActive, `${quickWins}`, quickWins > 0 ? 'success' : 'neutral'),
 		},
 		{
-			section: true,
 			label: m.metric_grind_density(),
 			description: m.metric_grind_density_desc(),
 			// Gated on FUNDED work, not on the task list: with nothing funded there
