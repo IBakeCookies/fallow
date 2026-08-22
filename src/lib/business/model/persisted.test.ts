@@ -259,6 +259,26 @@ describe('sanitizeSession', () => {
 		expect(session!.physicalPool).toBe(3);
 	});
 
+	// A start time is a label the strip draws from; no formula reads it, so an
+	// unreadable one becomes "unset" rather than a fabricated 09:00.
+	it('leaves a corrupt start hour unset', () => {
+		const session = sanitizeSession({
+			date: '2026-07-01',
+			startHour: 'nine',
+		});
+
+		expect(session!.startHour).toBeUndefined();
+	});
+
+	it('clamps a stored start hour into the calendar day', () => {
+		const session = sanitizeSession({
+			date: '2026-07-01',
+			startHour: 99,
+		});
+
+		expect(session!.startHour).toBe(24);
+	});
+
 	it('tolerates a non-array tasks field', () => {
 		expect(
 			sanitizeSession({

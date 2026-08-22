@@ -40,6 +40,8 @@ import { isISODate } from '$lib/business/utils/date';
 const DIFFICULTY_MIN = 0;
 const ENJOYMENT_MIN = 1;
 const RATING_MAX = 10;
+/** The day a `startHour` names an hour of — not the budget field's range. */
+const HOURS_IN_DAY = 24;
 
 function fields(value: unknown): Record<string, unknown> | null {
 	return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -133,6 +135,13 @@ export function sanitizeSession(raw: unknown): DailySession | null {
 	if (cognitivePool !== null) session.cognitivePool = Math.max(0, cognitivePool);
 
 	if (physicalPool !== null) session.physicalPool = Math.max(0, physicalPool);
+
+	// Same shape as the pools, plus an upper bound: `formatClock` wraps past
+	// midnight, so an unbounded 99 would not read as wrong — it labels the strip
+	// "03:00" and carries every hour of the day window with it.
+	const startHour = finite(source.startHour);
+
+	if (startHour !== null) session.startHour = Math.min(HOURS_IN_DAY, Math.max(0, startHour));
 
 	return session;
 }

@@ -917,6 +917,42 @@ describe('SessionStore persistence', () => {
 		});
 	});
 
+	/* The destination write is a WHOLE record, so every field it does not carry is
+	   a field it erases — and a start time it erased would move the day's strip on
+	   a day the user only sent a task to. */
+	it('keeps the destination day’s own start time', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'Migrate the database',
+			physicalDifficulty: 1,
+			mentalDifficulty: 9,
+			enjoyment: 2,
+		});
+
+		flushSync();
+		const id = store.tasks[0].id;
+		const tomorrow = addDays(store.today, 1);
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === tomorrow
+				? {
+						date,
+						tasks: [],
+						availableHours: 5,
+						switchCost: 0.25,
+						startHour: 6,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		useFakeTimers();
+
+		expect(await store.moveTaskToTomorrow(id)).toBe(true);
+		expect(updateSessionMock.mock.calls[0][0].startHour).toBe(6);
+	});
+
 	// Destination write first, removal after: the failure mode must be a visible
 	// duplicate, never a vanished task.
 	it('keeps the task and raises the banner when the destination write fails', async () => {

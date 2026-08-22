@@ -30,8 +30,10 @@ import {
 import {
 	calculateInterleavedOrder,
 	calculateSuggestedTasks,
+	getEffectiveDifficulty,
 	toEnergyTask,
 } from '$lib/business/model/metric/calculation';
+import { mapEffort } from '$lib/business/model/zenith';
 import {
 	toCognitiveDrainObservations,
 	toPhysicalDrainObservations,
@@ -345,11 +347,15 @@ export class EnergyLabStore {
 		// puts a new task first, so this is the row the user is looking for. Several of
 		// them keep the store's newest-first order — the sort is stable. Only the place
 		// is provisional; the row's own readings are live.
-		return [...this.#session.tasks].sort(
-			(a, b) => (position.get(a.id) ?? -1) - (position.get(b.id) ?? -1),
-		);
+		return [...this.#session.tasks]
+			.sort((a, b) => (position.get(a.id) ?? -1) - (position.get(b.id) ?? -1))
+			.map((task) => ({
+				...task,
+				trueEffort: mapEffort(getEffectiveDifficulty(task)),
+			}));
 	});
-	/** The day's tasks in the order the list shows them. */
+	/** The day's tasks in the order the list shows them, each with the effort E the main
+	 *  plan reports for it (MATH.md §1) — the Lab's `Effort` column prints one number. */
 	get scheduledTasks() {
 		return this.#scheduledTasks;
 	}

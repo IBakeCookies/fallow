@@ -106,6 +106,9 @@ export class SessionStore {
 	// auto-save's dirty test reads this field, and the first edit assigns a number.
 	#availableHours = $state<number | null>(null);
 	#switchCost = $state<number>(DEFAULT_SWITCH_COST);
+	// `null` for the same reason as the hours above: the raw field is what the
+	// pristine-day check reads, and presentation answers for a day with none.
+	#startHour = $state<number | null>(null);
 	#cognitivePool = $state<number>(DEFAULT_CAPACITY_POOLS.cognitiveHours);
 	#physicalPool = $state<number>(DEFAULT_CAPACITY_POOLS.physicalHours);
 	#isLoading = $state(true);
@@ -279,7 +282,8 @@ export class SessionStore {
 					(this.#availableHours ?? 0) > 0 ||
 					this.#switchCost !== DEFAULT_SWITCH_COST ||
 					this.#cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
-					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
+					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours ||
+					this.#startHour !== null;
 
 				if (!dirty) return;
 
@@ -293,6 +297,7 @@ export class SessionStore {
 					switchCost: this.#switchCost,
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
+					startHour: this.#startHour ?? undefined,
 					updatedAt: Date.now(),
 				});
 			}
@@ -378,6 +383,9 @@ export class SessionStore {
 				cognitiveHours: session?.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
 				physicalHours: session?.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
 			},
+			// No fallback: a default here would stamp a start time onto a day that
+			// never chose one.
+			startHour: session?.startHour,
 		};
 	}
 
@@ -462,6 +470,7 @@ export class SessionStore {
 				this.#switchCost = session.switchCost;
 				this.#cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
+				this.#startHour = session.startHour ?? null;
 			} else {
 				// No data for this date: the hours stay unanswered, so the day shows
 				// what its weekday usually gets until the user says otherwise.
@@ -470,6 +479,7 @@ export class SessionStore {
 				this.#switchCost = DEFAULT_SWITCH_COST;
 				this.#cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
+				this.#startHour = null;
 			}
 
 			this.#loadedHadSession = Boolean(session);
@@ -560,6 +570,13 @@ export class SessionStore {
 	set switchCost(v: number) {
 		this.#switchCost = v;
 	}
+	/** `null` where the day has none: the default is presentation's. */
+	get startHour(): number | null {
+		return this.#startHour;
+	}
+	set startHour(v: number | null) {
+		this.#startHour = v;
+	}
 	get cognitivePool() {
 		return this.#cognitivePool;
 	}
@@ -623,6 +640,7 @@ export class SessionStore {
 					switchCost: this.#switchCost,
 					cognitivePool: this.#cognitivePool,
 					physicalPool: this.#physicalPool,
+					startHour: this.#startHour ?? undefined,
 					updatedAt: Date.now(),
 				});
 			} catch (e) {
@@ -721,6 +739,7 @@ export class SessionStore {
 				switchCost: dest.switchCost,
 				cognitivePool: dest.pools.cognitiveHours,
 				physicalPool: dest.pools.physicalHours,
+				startHour: dest.startHour,
 				updatedAt: Date.now(),
 			});
 
