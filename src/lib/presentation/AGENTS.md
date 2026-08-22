@@ -146,8 +146,10 @@ sat, the rule between rows, and the ✎ editor, which only `/` had, so the Lab
 could not rename a task at all. Five components hold what the two screens say
 the same way:
 
-- **`task-list-card.svelte`** — the card, the heading, the form above the
-  ledger, the empty state, the `<table>` and its scroll container, and the header
+- **`task-list-card.svelte`** — the card, the heading, `strip` between the heading
+  and the ledger (`/` puts its day strip there, the Lab nothing), the form at the
+  card's FOOT — the plan is what the card is read for, and adding to it is the last
+  thing on it — the empty state, the `<table>` and its scroll container, and the header
   row it builds from the caller's column list (so neither screen decides how its
   own rows are separated: the rule is `ledger-cell`'s bottom border). `split` is
   how a caller reads its rows as two headed groups instead of one — `/`
@@ -313,11 +315,15 @@ plan beneath — **never a strikethrough on the plan**, which the plan-family ro
 spend ON TOP of the hours already worked, so neither line may be phrased as a
 comparison ("15m more"); each is labelled by the question it answers.
 
-### The day's strip reads above the ledger, and carries no clock
+### The day's strip reads inside the Tasks card, and carries no clock
 
 `utils/day-timeline.ts` builds
 `{ totalHours, minimumBlockWidths, blocks }` from the funded plan,
-`runOrder` and the switch cost; `component/day-timeline.svelte` draws it.
+`runOrder` and the switch cost; `component/day-timeline.svelte` draws it — no card
+and no visible title of its own, since it renders through `task-list-card`'s `strip`
+between the "Tasks" heading and the ledger it is a reading of. The name stays
+`sr-only`: the strip's scroll region is focusable and nothing else says what the
+blocks are.
 The geometry is a tested util rather than `$derived` in the markup (R2), a block
 carries a `Band`, and the gap between two blocks IS the switch cost — no number
 restates it. Every width is a share of the TRACK, and so is the floor:

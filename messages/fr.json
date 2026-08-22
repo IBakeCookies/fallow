@@ -79,7 +79,7 @@
 	"form_deploy_task": "Déployer la tâche",
 	"list_title": "Tâches",
 	"list_empty": "Aucune tâche déployée pour l'instant",
-	"list_empty_hint": "Ajoute une tâche ci-dessus pour commencer le suivi",
+	"list_empty_hint": "Ajoute une tâche ci-dessous pour commencer le suivi",
 	"list_group_sequence": "Séquence du jour",
 	"list_group_unfunded": "Pas de temps aujourd'hui",
 	"list_column_order": "#",

@@ -219,6 +219,12 @@
 	/>
 {/snippet}
 
+<!-- Withheld on an empty day: the card's own empty state already says there is
+     nothing, and the strip's "nothing is funded" would say it a second time. -->
+{#snippet dayStrip()}
+	<DayTimeline {...timeline} />
+{/snippet}
+
 {#snippet addTaskForm()}
 	<TaskForm
 		onsubmit={(t) => session.addTask(t)}
@@ -271,8 +277,6 @@
 	     after the plan, not beside it. -->
 	<div class="space-y-grid-xl">
 		<div class="space-y-grid-lg">
-			<DayTimeline {...timeline} />
-
 			<TaskList
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
@@ -299,6 +303,7 @@
 					? undefined
 					: (taskId, changes) => session.updateTask(taskId, changes)}
 				form={isViewingPast ? undefined : addTaskForm}
+				strip={daily.suggestedTasks.length ? dayStrip : undefined}
 				actions={dayActions}
 			/>
 

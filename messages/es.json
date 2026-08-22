@@ -79,7 +79,7 @@
 	"form_deploy_task": "Desplegar tarea",
 	"list_title": "Tareas",
 	"list_empty": "Aún no hay tareas desplegadas",
-	"list_empty_hint": "Añade una tarea arriba para empezar a hacer seguimiento",
+	"list_empty_hint": "Añade una tarea abajo para empezar a hacer seguimiento",
 	"list_group_sequence": "Secuencia de hoy",
 	"list_group_unfunded": "Hoy sin tiempo",
 	"list_column_order": "#",
