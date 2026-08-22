@@ -87,6 +87,15 @@
 	/* the day strip's narrowest block — the floor its track is scaled against */
 	--spacing-day-block: var(--spacer-day-block);
 
+	/* The width at which a day-strip block keeps its flow sentence. A literal, not
+	   `var(--spacer-…)`: a custom property is not valid inside an `@container`
+	   condition. This one is measured on the block's CONTENT box, which is what an
+	   inline-size query reads — the 14px inset is already outside it. 136px is the
+	   widest sentence the formatter produces, `short of flow by 12h 45m` at 135px
+	   and `text-2xs`; narrower, and it would truncate mid-duration and print a
+	   figure nothing computed, so the block drops it instead. */
+	--container-day-flow: 8.5rem;
+
 	/* for cards, boxes paddings (-3xs/-2xs are the chip/pill insets below
 	   -xs, where the ladder used to run out and callers fell back to raw
 	   numbers like px-1.5) */

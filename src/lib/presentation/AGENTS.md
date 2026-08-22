@@ -315,7 +315,13 @@ carries a `Band`, and the gap between two blocks IS the switch cost — no numbe
 restates it. Every width is a share of the TRACK, and so is the floor:
 `minimumBlockWidths` is the day over its shortest allocation, so scaling the
 track to that many minimum block widths lifts the narrowest block to legible
-without moving any width off scale. A day that then overflows scrolls sideways
+without moving any width off scale. What legible means is settled per block, not
+per day: each block is its own container query, and under `--container-day-flow`
+it sends the flow sentence to `sr-only` rather than truncate a duration into a
+figure nothing computed. So the floor is the width of a block that has already
+dropped it — its run position and its hours — and the flow bar is pinned with
+`mt-auto`, or it would step up and down between the blocks that kept the
+sentence and the blocks that did not. A day that then overflows scrolls sideways
 inside the strip's own container and the DOCUMENT does not — the ledger's
 pattern, `tabindex` included. It is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the
 energy optimizer's own blocks and shares only `formatClock`.

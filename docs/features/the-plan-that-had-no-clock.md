@@ -18,28 +18,28 @@ reads `success`, stopping short reads `warning`, so the diagnosis the ledger
 prints as two numeric columns is visible without reading them.
 
 The strip needs a clock the model does not have. Fallow allocates durations, so
-the day gets a **start time** the user sets per day beside its budget — 8.25 h
-from 09:00 reads `09:00 → 17:15`. It is a display anchor and nothing else: no
+the day gets a **start time** the user sets per day beside its budget, and the
+strip labels itself `from 09:00`. It is a display anchor and nothing else: no
 formula reads it, no fit reads it, and the plan is identical with or without
 it.
 
 ## Scenarios
 
-### Scenario — the strip reads the day's clock range
+### Scenario — the strip prints no clock until the day is given a start
 
 `e2e/time-budget.e2e.ts`
 
 - **Given** today, a fresh profile, one task, an 8 h budget
 - **When** the page loads
-- **Then** The day's range reads `09:00 → 17:00`
+- **Then** the strip prints no clock time
 
-### Scenario — the start time moves the range
+### Scenario — the start time moves the label
 
 `e2e/time-budget.e2e.ts`
 
 - **Given** today, one task, an 8 h budget
 - **When** the day's start time is set to `07:30`
-- **Then** The day's range reads `07:30 → 15:30`
+- **Then** the strip's label reads `from 07:30`
 
 ### Scenario — a day whose only edit is its start time is still saved
 
@@ -129,14 +129,14 @@ for it rather than printing a second copy of the number.
 - **When** the view model is built
 - **Then** the view model holds one block
 
-### Scenario — a day that funds nothing still states its range
+### Scenario — a day that funds nothing still states its start
 
 `src/lib/presentation/utils/day-timeline.test.ts`
 
 - **Given** no tasks, a start time of 09:00 and an 8 h budget
 - **When** the view model is built
 - **Then** the view model holds no blocks
-- **Then** its range reads `09:00 → 17:00`
+- **Then** its start label reads `09:00`
 
 ### Scenario — a block short of flow says so in words
 
@@ -154,10 +154,10 @@ metrics dashboard uses for the same reason).
 
 `src/lib/presentation/component/day-timeline.stories.svelte`
 
-- **Given** a strip with no blocks and an 8 h range
+- **Given** a strip with no blocks and an 8 h day
 - **When** the story renders
 - **Then** the card reads its nothing-funded line
-- **Then** the card reads its range
+- **Then** the card reads its start
 
 ### Claim — the funded plan always fits inside the day (pin)
 
@@ -176,7 +176,7 @@ its first run.
 ## Out of scope
 
 - **An hour axis.** The artboards draw `09 10 11 …` tick labels above the
-  strip. Block widths and the range header already carry the scale; ticks are a
+  strip. Each block's own duration already carries the scale; ticks are a
   second layout to keep in step with the first, for a reading the header makes.
 - **A footer sentence about flow coverage.** The artboards close the panel with
   "Four of five tasks stop before flow arrives. Flow coverage 1/5." That number
@@ -204,8 +204,8 @@ its first run.
   planned from its start time, which is what the ledger's `Hours` column and
   the metrics grid also read. A strip that slid under the user through the day
   is a different feature.
-- **Putting the start time in the collapsed budget summary.** The strip's range
-  header states it on screen already.
+- **Putting the start time in the collapsed budget summary.** The strip's own
+  label states it on screen already.
 
 ## Read before building
 
@@ -290,7 +290,7 @@ flowShare, band, ... }] }` from `suggestedTasks`, `runOrder`, `switchCost`,
   granularity; the instrument is §36's `createdAt` stamps under §8.3's
   boundary. Correct the citation and record the decision, the way items 1 and 6
   in the same file record theirs.
-- `messages/{en,de,es,fr,zh}.json` — the panel's title, its range line, its
+- `messages/{en,de,es,fr,zh}.json` — the panel's title, its start line, its
   legend, the two per-block flow lines, the nothing-funded line, and the
   start-time field's label. `budget_*` for the field, on the bar's existing
   keys.
@@ -336,7 +336,7 @@ flowShare, band, ... }] }` from `suggestedTasks`, `runOrder`, `switchCost`,
   public export for a sentence.
 - **The clock is 24-hour and locale-free** — `formatOffset` in the same file
   sets that precedent, `<input type="time">` needs `HH:MM` on the wire anyway,
-  and one function then serves the field, the range header and any label.
+  and one function then serves the field and the strip's own label.
   Rejected: `Intl.DateTimeFormat` per locale, which would render `9:00 AM` in
   `en` and split the format the input uses from the one the panel prints.
 - **The strip draws the morning plan all day** — it matches the ledger's

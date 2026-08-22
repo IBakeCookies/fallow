@@ -87,14 +87,31 @@
 		const track = shortest.parentElement!;
 		const strip = track.parentElement!;
 
-		// `#12` and its title are legible at the floor: 8rem, and `getByText` matched the
-		// line, which only holds while the title is a text node of its own.
-		await expect(shortest.getBoundingClientRect().width).toBeGreaterThanOrEqual(128);
+		// `#12`, its title and its duration are legible at the floor: 4rem, and
+		// `getByText` matched the line, which only holds while the title is a text node
+		// of its own.
+		await expect(shortest.getBoundingClientRect().width).toBeGreaterThanOrEqual(64);
 
 		// To scale, floor or no floor: 1.25h reads five times the 15-minute block.
 		await expect(
 			longest.getBoundingClientRect().width / shortest.getBoundingClientRect().width,
 		).toBeCloseTo(5, 1);
+
+		// The floor is the width of a block that has dropped its sentence, so the sentence
+		// is what the narrowest block trades for its two remaining lines — while the block
+		// five times its width keeps it. Both still carry it for a screen reader.
+		const sentence = (block: Element) => block.querySelectorAll('p')[2];
+
+		await expect(sentence(longest)).toBeVisible();
+		await expect(sentence(longest).getBoundingClientRect().width).toBeGreaterThan(100);
+		await expect(sentence(shortest).getBoundingClientRect().width).toBeLessThanOrEqual(1);
+		await expect(sentence(shortest).textContent?.trim()).toBe('short of flow by 45m');
+
+		// The bars are the reading blocks are compared on, so they sit on one line across
+		// the strip whether or not each block above them kept its sentence.
+		const bar = (block: Element) => block.querySelector('.mt-auto')!.getBoundingClientRect();
+
+		await expect(bar(shortest).top).toBeCloseTo(bar(longest).top, 0);
 
 		// The strip is what overflows; the page never scrolls sideways.
 		await expect(strip.scrollWidth).toBeGreaterThan(strip.clientWidth);
