@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, logDrain, setBudget } from './helpers';
+import { addTask, AUTOSAVE_MS, expectTaskInputs, logDrain, setBudget, taskRow } from './helpers';
 
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
    one place where editing a task changes the model rather than just the row —
@@ -47,11 +47,10 @@ test('logging time-to-flow badges the task and defers the model update', async (
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
 
-/* The ⚡ button is hover-revealed and the prompt for it sat behind the collapsed
-   Time Budget disclosure, so the measurement that personalizes the model was
-   reachable only by accident. Completing a task is when the user still knows the
-   answer — so the whole path from "nothing logged" to a personalized fit has to
-   work without ever pressing ⚡. */
+/* The prompt for the ⚡ button sat behind the collapsed Time Budget disclosure, so
+   the measurement that personalizes the model was reachable only by accident.
+   Completing a task is when the user still knows the answer — so the whole path
+   from "nothing logged" to a personalized fit has to work without ever pressing ⚡. */
 test('completing a task asks for its time-to-flow', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
@@ -150,15 +149,9 @@ test('completing a second task opens its own time-to-flow prompt', async ({ page
 	await expect(forms).toHaveCount(1);
 
 	await expect(
-		page
-			.locator('li')
-			.filter({
-				hasText: 'Boxing training',
-			})
-			.locator('form')
-			.filter({
-				hasText: 'Minutes to reach flow',
-			}),
+		taskRow(page, 'Boxing training').locator('form').filter({
+			hasText: 'Minutes to reach flow',
+		}),
 	).toBeVisible();
 });
 
@@ -333,7 +326,7 @@ test('the log history follows a renamed task', async ({ page }) => {
 		})
 		.click();
 
-	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+	await expect(taskRow(page, 'Boxing sparring')).toBeVisible();
 	await page.waitForTimeout(AUTOSAVE_MS);
 
 	await page.goto('/analytics');
@@ -360,7 +353,7 @@ test('the log history follows a renamed task', async ({ page }) => {
 test('editing a task rewrites its inputs and survives a reload', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
-	await expect(page.getByText('P 5 · M 5 · E 5')).toBeVisible();
+	await expectTaskInputs(page, 'Boxing training', [5, 5, 5]);
 
 	await page
 		.getByRole('button', {
@@ -384,14 +377,14 @@ test('editing a task rewrites its inputs and survives a reload', async ({ page }
 		})
 		.click();
 
-	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
-	await expect(page.getByText('P 5 · M 6 · E 5')).toBeVisible();
+	await expect(taskRow(page, 'Boxing sparring')).toBeVisible();
+	await expectTaskInputs(page, 'Boxing sparring', [5, 6, 5]);
 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
-	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
-	await expect(page.getByText('P 5 · M 6 · E 5')).toBeVisible();
+	await expect(taskRow(page, 'Boxing sparring')).toBeVisible();
+	await expectTaskInputs(page, 'Boxing sparring', [5, 6, 5]);
 });
 
 /* The same editor, opened from the Lab's row. It is the same task and the same
@@ -423,7 +416,7 @@ test('the Lab edits a task with the same editor as the main page', async ({ page
 		})
 		.click();
 
-	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+	await expect(taskRow(page, 'Boxing sparring')).toBeVisible();
 
 	// Saving closes the editor, and the rename reached the shared session — the main
 	// page reads it without a reload.
@@ -431,7 +424,7 @@ test('the Lab edits a task with the same editor as the main page', async ({ page
 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/');
-	await expect(page.getByText('Boxing sparring').first()).toBeVisible();
+	await expect(taskRow(page, 'Boxing sparring')).toBeVisible();
 });
 
 /* Both measurements are on this page now, and the 🪫 half is the one that was

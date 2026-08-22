@@ -3,12 +3,13 @@ import { expect, test } from '@playwright/test';
 test('nav reaches all four sections and back to Today', async ({ page }) => {
 	await page.goto('/');
 
+	// `/`'s <h1> is `sr-only`, so attached is all "the home page painted" can assert
 	await expect(
 		page.getByRole('heading', {
 			name: 'Fallow',
 			exact: true,
 		}),
-	).toBeVisible();
+	).toBeAttached();
 
 	await page
 		.getByRole('link', {
@@ -57,7 +58,7 @@ test('nav reaches all four sections and back to Today', async ({ page }) => {
 			name: 'Fallow',
 			exact: true,
 		}),
-	).toBeVisible();
+	).toBeAttached();
 });
 
 /* Raw HTML, so JS never runs: the path the nav matches on has to be a route path

@@ -36,12 +36,13 @@ test('an unknown URL renders the 404 page with a way home', async ({ page }) => 
 
 	await expect(page).toHaveURL('http://localhost:4173/');
 
+	// `/`'s <h1> is `sr-only`, so attached is all "the home page painted" can assert
 	await expect(
 		page.getByRole('heading', {
 			name: 'Fallow',
 			exact: true,
 		}),
-	).toBeVisible();
+	).toBeAttached();
 });
 
 // The error page is reached before any of the app's own routing runs, so its home

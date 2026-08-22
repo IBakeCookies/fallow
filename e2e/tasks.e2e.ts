@@ -1,5 +1,45 @@
-import { expect, test } from '@playwright/test';
-import { AUTOSAVE_MS, addTask, setBudget } from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+import {
+	AUTOSAVE_MS,
+	addTask,
+	expectTaskInputs,
+	isoDate,
+	logDrain,
+	setBudget,
+	taskCard,
+	taskRow,
+} from './helpers';
+
+/* A running timer with time already on it, written the way `session-timer.ts` reads
+   it back. The key is re-spelled here as an independent oracle (data/AGENTS.md's
+   note on R8 step 4); the only other route to a nonzero reading is 30 seconds of
+   wall clock per test, since the field takes whole minutes. */
+const plantRunningTimer = (page: Page, minutes: number) =>
+	page.evaluate((timer) => localStorage.setItem('fallow:session-timer', JSON.stringify(timer)), {
+		phase: 'running',
+		startedOn: isoDate(0),
+		runningSince: Date.now(),
+		accumulatedMs: minutes * 60_000,
+	});
+
+const drainForm = (page: Page) =>
+	page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+/* Row-scoped: two rows can hold an open editor at once, which `drainForm` would both
+   match. */
+const rowDrainForm = (page: Page, title: string) =>
+	taskRow(page, title).locator('form').filter({
+		hasText: 'After the session',
+	});
+
+const openDrainEditor = (page: Page, title: string) =>
+	taskRow(page, title)
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.click();
 
 test('fresh profile shows the empty state', async ({ page }) => {
 	await page.goto('/');
@@ -12,19 +52,32 @@ test('fresh profile shows the empty state', async ({ page }) => {
 	).toBeVisible();
 });
 
+test('the page keeps its heading without drawing one', async ({ page }) => {
+	await page.goto('/');
+
+	const heading = page.getByRole('heading', {
+		name: 'Fallow',
+		exact: true,
+	});
+
+	// The document needs an <h1> above the explainer's <h2> and the app bar already
+	// draws the name, so it is attached and unpainted — never a second title.
+	await expect(heading).toBeAttached();
+	await expect(heading).toHaveClass('sr-only');
+});
+
 test('added task appears and survives a reload', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 
-	// title also appears in the Bottleneck metric once the plan funds the task
-	// (MATH.md §23.1) — scope to first match, which is the task list: the metrics
-	// card renders after it, and Bottleneck sits inside the closed disclosure
-	await expect(page.getByText('Boxing training').first()).toBeVisible();
+	// The row, not the title: the Bottleneck metric names the same task once the plan
+	// funds it (MATH.md §23.1), from inside the collapsed disclosure above the ledger.
+	await expect(taskRow(page, 'Boxing training')).toBeVisible();
 	await expect(page.getByText('No tasks deployed yet')).not.toBeVisible();
 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
-	await expect(page.getByText('Boxing training').first()).toBeVisible();
+	await expect(taskRow(page, 'Boxing training')).toBeVisible();
 });
 
 test('completing a task persists across reload', async ({ page }) => {
@@ -53,7 +106,7 @@ test('completing a task persists across reload', async ({ page }) => {
 test('removing a task restores the empty state', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Throwaway');
-	await expect(page.getByText('Throwaway').first()).toBeVisible();
+	await expect(taskRow(page, 'Throwaway')).toBeVisible();
 
 	await page
 		.getByRole('button', {
@@ -64,8 +117,8 @@ test('removing a task restores the empty state', async ({ page }) => {
 	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
 });
 
-/* The ✕ is one hover-revealed click next to the ✎ and takes the task's sliders and
-   ⚡ logs with it, so the delete is immediate and the toast is the way back. */
+/* The ✕ is one click next to the ✎ and takes the task's sliders and ⚡ logs with
+   it, so the delete is immediate and the toast is the way back. */
 test('a deleted task comes back from the undo toast', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Throwaway');
@@ -76,11 +129,7 @@ test('a deleted task comes back from the undo toast', async ({ page }) => {
 		name: 'Mark Throwaway complete',
 	});
 
-	await page
-		.locator('li')
-		.filter({
-			hasText: 'Throwaway',
-		})
+	await taskRow(page, 'Throwaway')
 		.getByRole('button', {
 			name: 'Delete task',
 		})
@@ -96,7 +145,7 @@ test('a deleted task comes back from the undo toast', async ({ page }) => {
 		.click();
 
 	await expect(row).toBeVisible();
-	await expect(page.getByText('Keep me').first()).toBeVisible();
+	await expect(taskRow(page, 'Keep me')).toBeVisible();
 
 	// The restored task has to survive the autosave that follows it — the removal was
 	// already persisted by the time the undo ran.
@@ -114,9 +163,7 @@ test('undo brings a deleted task back with no editor open', async ({ page }) => 
 	await page.goto('/');
 	await addTask(page, 'Throwaway');
 
-	const row = page.locator('li').filter({
-		hasText: 'Throwaway',
-	});
+	const row = taskRow(page, 'Throwaway');
 
 	await row
 		.getByRole('button', {
@@ -182,13 +229,13 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 		})
 		.click();
 
-	await expect(page.getByText('P 8 · M 2 · E 8')).toBeVisible();
+	await expectTaskInputs(page, 'Gym session', [8, 2, 8]);
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
 	// The form is still open: it samples `isOpen` once, at mount, and the stored
 	// day has not landed yet at that point.
-	await expect(page.getByText('Gym session').first()).toBeVisible();
+	await expect(taskRow(page, 'Gym session')).toBeVisible();
 
 	// Typed, not filled: the suggestions answer to input events, and two
 	// characters of the wrong case are all it takes.
@@ -206,16 +253,16 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 	await expect(form.getByLabel('Enjoyment')).toHaveValue('8');
 });
 
-/* "Next" (MATH.md §35) carries a `nowrap` title, and a grid item's automatic
-   minimum is its content's min-content width — so before `min-w-0` on the task
-   column the longest task name sized the column and the whole page scrolled
-   sideways on a phone, with the title running off the card instead of eliding.
+/* "Next" (MATH.md §35) carries a `nowrap` title, and `next-up-line.svelte` is a
+   flex item of the card's header row — so without its `min-w-0` the longest task
+   name sizes the row and the whole page scrolls sideways on a phone, with the
+   title running off the card instead of eliding.
 
-   BOTH halves are asserted, and neither alone is the test. Drop the column's
-   `min-w-0` and the page widens, but the title is still clipped by its own
-   `truncate` — the first assertion is the only one that notices. Drop `truncate`
-   and the title wraps instead: a wrapping box's min-content is its longest WORD,
-   so the page stays 390 wide and the first assertion passes a line that no longer
+   BOTH halves are asserted, and neither alone is the test. Drop that `min-w-0`
+   and the page widens, but the title is still clipped by its own `truncate` —
+   the first assertion is the only one that notices. Drop `truncate` and the
+   title wraps instead: a wrapping box's min-content is its longest WORD, so the
+   page stays 390 wide and the first assertion passes a line that no longer
    elides at all. Together they pin the pair; either alone silently permits the
    other's removal. */
 test('a long next-up title is clipped, never widening the page', async ({ page }) => {
@@ -265,10 +312,11 @@ test('a long next-up title is clipped, never widening the page', async ({ page }
 	const overflow = await page.evaluate(() => document.body.scrollWidth - window.innerWidth);
 	expect(overflow).toBeLessThanOrEqual(0);
 
-	// First match is the header row's copy — the card's heading precedes its rows,
-	// and the task row below renders the same title again. Clipped, not merely
-	// narrow: a box only overflows its own content box while it refuses to wrap.
-	const title = page
+	// Scoped to the card, and its FIRST match there: the heading's next-up line precedes
+	// the rows, and the task row below renders the same title again. Page-wide, the
+	// metrics grid names the same task as its bottleneck. Clipped, not merely narrow: a
+	// box only overflows its own content box while it refuses to wrap.
+	const title = taskCard(page)
 		.getByText('re-derive the stopping-inversion margin from the measured distributions')
 		.first();
 
@@ -290,9 +338,6 @@ test('capacity left reads N/A until a session is rated, then names what is spent
 	await page.goto('/');
 	await addTask(page, 'Write report');
 	await setBudget(page, 6);
-
-	// A reference reading, not a headline tile, so it starts inside the disclosure.
-	await page.getByText(/more metrics/).click();
 
 	const row = page
 		.locator('div')
@@ -330,4 +375,262 @@ test('capacity left reads N/A until a session is rated, then names what is spent
 
 	// A share, not a duration: pool hours are weighted ones (MATH.md §35).
 	await expect(row).toContainText('75%');
+});
+
+/* Below `sm` the ledger scrolls sideways inside its card, and the DOCUMENT does not:
+   one markup tree at every width, so no reading is unreachable on a phone. Both halves
+   are the test — a table that overflows its container is only correct while the
+   container is the thing that scrolls, and the test above is the other direction:
+   a reading that widens the document instead. */
+test('the ledger scrolls sideways inside its card, and the page does not', async ({ page }) => {
+	await page.setViewportSize({
+		width: 390,
+		height: 900,
+	});
+
+	await page.goto('/');
+	await setBudget(page, 6);
+	await addTask(page, 'Design the error boundary');
+	await addTask(page, 'Write the PDF solution');
+	await addTask(page, 'Review 1 PR API');
+
+	const table = page.locator('table').first();
+	await expect(table).toBeVisible();
+
+	const scroller = await table.evaluate((element) => {
+		const container = element.parentElement!;
+
+		return {
+			overflowX: getComputedStyle(container).overflowX,
+			content: container.scrollWidth,
+			box: container.clientWidth,
+		};
+	});
+
+	expect(scroller.overflowX).toBe('auto');
+	expect(scroller.content).toBeGreaterThan(scroller.box);
+
+	const document = await page.evaluate(() => ({
+		content: window.document.documentElement.scrollWidth,
+		box: window.document.documentElement.clientWidth,
+	}));
+
+	expect(document.content).toBe(document.box);
+});
+
+/* The timer's whole point: the minutes reach the 🪫 form without being recalled.
+   Only an e2e sees the path — the control on the card's heading row, the reading
+   `localStorage` carries, and the editor on a row that never heard of either. */
+test('stopping the timer fills the next drain editor', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Write report');
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
+});
+
+/* MATH.md §18 — one 🪫 row per session. The reading funds the log that spends it and
+   no other, or the second row re-saves hours the day already counts. */
+test('one stop funds one log', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await addTask(page, 'Gym session');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Write report');
+	const fields = drainForm(page).locator('input[type="number"]');
+	await expect(fields.first()).toHaveValue('45');
+	await fields.nth(1).fill('5');
+	await fields.nth(2).fill('3');
+
+	await drainForm(page)
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Gym session');
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('');
+});
+
+/* The reading outlives the tab, which is why it is written at all: a session ends
+   with a reload as often as with a click. */
+test('the stopped reading survives a reload', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await page.reload();
+
+	await openDrainEditor(page, 'Write report');
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
+});
+
+/* Correcting a rating rewrites a session already counted (MATH.md §18), so it never
+   spends the timed one — the reading is still there for the log it belongs to. */
+test('a correction does not spend the stopped reading', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await logDrain(page, 60, 5, 3);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await taskRow(page, 'Write report')
+		.getByRole('button', {
+			name: 'Correct this drain rating',
+		})
+		.click();
+
+	await drainForm(page)
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Write report');
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
+});
+
+/* Several rows hold an open 🪫 editor at once — ticking two tasks done opens two — and
+   the stopped reading is one session's (MATH.md §18). The first editor opened claims it;
+   any other opens empty and spends nothing, and closing the claim hands it back. */
+test('a second drain editor opened over the reading opens empty', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await addTask(page, 'Gym session');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Write report');
+	await openDrainEditor(page, 'Gym session');
+
+	const claimed = rowDrainForm(page, 'Write report').locator('input[type="number"]');
+	const unclaimed = rowDrainForm(page, 'Gym session').locator('input[type="number"]');
+
+	await expect(claimed.first()).toHaveValue('45');
+	await expect(unclaimed.first()).toHaveValue('');
+
+	// The row that opened empty rates its own session and leaves the reading where it was.
+	await unclaimed.first().fill('30');
+	await unclaimed.nth(1).fill('5');
+	await unclaimed.nth(2).fill('3');
+
+	await rowDrainForm(page, 'Gym session')
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	await rowDrainForm(page, 'Write report')
+		.getByRole('button', {
+			name: '✕',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Write report');
+	await expect(claimed.first()).toHaveValue('45');
+});
+
+/* The ledger is what the page is for, so it reads before the day's readings: the metrics
+   grid above it put the table's header past the fold at every desktop size. */
+test('the ledger reads above the day metrics', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+
+	const ledger = await page
+		.getByRole('columnheader', {
+			name: 'Task',
+			exact: true,
+		})
+		.boundingBox();
+
+	const readings = await page
+		.getByText('Momentum', {
+			exact: true,
+		})
+		.boundingBox();
+
+	expect(ledger?.y).toBeLessThan(readings?.y ?? 0);
+});
+
+/* One reading, one rule, on both screens that hold a 🪫 editor: the Lab seeds from the
+   stopped reading and spends it, so a session rated there cannot be rated again here. */
+test('the Lab seeds and spends the same stopped reading', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await page.goto('/energy');
+	await openDrainEditor(page, 'Write report');
+
+	const fields = rowDrainForm(page, 'Write report').locator('input[type="number"]');
+	await expect(fields.first()).toHaveValue('45');
+	await fields.nth(1).fill('5');
+	await fields.nth(2).fill('3');
+
+	await rowDrainForm(page, 'Write report')
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+
+	await page.goto('/');
+	await openDrainEditor(page, 'Write report');
+
+	await expect(
+		rowDrainForm(page, 'Write report').locator('input[type="number"]').first(),
+	).toHaveValue('');
 });

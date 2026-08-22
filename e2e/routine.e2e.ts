@@ -1,30 +1,41 @@
-import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, addTask, isoDate } from './helpers';
+import { expect, test } from '@playwright/test';
+import { AUTOSAVE_MS, addTask, isoDate, saveRoutine, taskCard } from './helpers';
 
-/* Routines and day-imports are the header's whole reason to exist, and both cross
+/* Routines and day-imports are what the day's two menus exist for, and both cross
    a day boundary: what is saved on one date has to reappear on another, read back
    out of IndexedDB by a store that mounted on a different URL. */
 
 const ROUTINE_NAME = 'Morning block';
 
-async function saveRoutine(page: Page, name: string) {
-	// "Save" exact is the trigger; the form's own button is "Save routine".
-	await page
-		.getByRole('button', {
+test('the day’s Load and Save read on the Tasks card', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+
+	const card = taskCard(page);
+
+	await expect(
+		card.getByRole('button', {
+			name: 'Load',
+			exact: true,
+		}),
+	).toBeVisible();
+
+	await expect(
+		card.getByRole('button', {
 			name: 'Save',
 			exact: true,
-		})
-		.click();
+		}),
+	).toBeVisible();
 
-	await page.getByPlaceholder('Routine name...').fill(name);
-	await page.getByPlaceholder('Routine name...').press('Enter');
-
-	// The routine write is a real IndexedDB round trip, and navigating before it
-	// lands loses the routine — the menu then opens with nothing in it. Not the
-	// autosave debounce, but the same order of magnitude, so the constant moves
-	// with it.
-	await page.waitForTimeout(AUTOSAVE_MS);
-}
+	// One of each on the page: the card is where they read now, not a second copy of
+	// the pair the page header used to carry.
+	await expect(
+		page.getByRole('button', {
+			name: 'Load',
+			exact: true,
+		}),
+	).toHaveCount(1);
+});
 
 test('a routine saved today loads onto another day', async ({ page }) => {
 	await page.goto('/');

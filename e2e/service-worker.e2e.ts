@@ -113,12 +113,13 @@ test('coming back online serves the live page, not the cached copy', async ({ pa
 	await context.setOffline(true);
 	await page.reload();
 
+	// `/`'s <h1> is `sr-only`, so attached is all "the home page painted" can assert
 	await expect(
 		page.getByRole('heading', {
 			name: 'Fallow',
 			exact: true,
 		}),
-	).toBeVisible();
+	).toBeAttached();
 
 	await context.setOffline(false);
 

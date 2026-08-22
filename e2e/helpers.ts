@@ -16,6 +16,34 @@ export function isoDate(offsetDays: number): string {
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** A task's row in the ledger: the `<tbody>` holding its cells and any editor it has
+ *  open (`task-row-shell.svelte`). The ledger is the only table on either screen. */
+export const taskRow = (page: Page, title: string) =>
+	page.locator('table tbody').filter({
+		hasText: title,
+	});
+
+/** The Tasks card — `card-shell` is the documented card surface (tokens.css) and this
+ *  is the one that heads the ledger. Scoped, because the day's Load and Save read on
+ *  this card's heading row and nowhere else on the page. */
+export const taskCard = (page: Page) =>
+	page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Tasks',
+			exact: true,
+		}),
+	});
+
+/** The row's three model-input readings, one headed column each since the row became a
+ *  table row. Offset by 2: the `#`/hue lead and the `Task` cell come first. */
+export async function expectTaskInputs(page: Page, title: string, inputs: number[]) {
+	const cells = taskRow(page, title).getByRole('cell');
+
+	for (const [index, value] of inputs.entries()) {
+		await expect(cells.nth(index + 2)).toHaveText(String(value));
+	}
+}
+
 export async function addTask(page: Page, title: string) {
 	await page.getByPlaceholder('e.g., Boxing training').fill(title);
 
@@ -24,6 +52,27 @@ export async function addTask(page: Page, title: string) {
 			name: 'Deploy Task',
 		})
 		.click();
+}
+
+/** Save the day's whole list as a named routine, through the Tasks card's Save menu.
+ *  Shared because the Lab suite needs a routine saved on `/` before it can load one. */
+export async function saveRoutine(page: Page, name: string) {
+	// "Save" exact is the trigger; the form's own button is "Save routine".
+	await page
+		.getByRole('button', {
+			name: 'Save',
+			exact: true,
+		})
+		.click();
+
+	await page.getByPlaceholder('Routine name...').fill(name);
+	await page.getByPlaceholder('Routine name...').press('Enter');
+
+	// The routine write is a real IndexedDB round trip, and navigating before it
+	// lands loses the routine — the menu then opens with nothing in it. Not the
+	// autosave debounce, but the same order of magnitude, so the constant moves
+	// with it.
+	await page.waitForTimeout(AUTOSAVE_MS);
 }
 
 /** The day's budget field. Spelled once: `getByLabel` matches substrings, so the
@@ -51,7 +100,8 @@ export async function openTimeBudget(page: Page, loadedSummary: RegExp) {
 		.click();
 }
 
-/** Log an end-of-session drain rating (🪫) on /energy against the first task. */
+/** Log an end-of-session drain rating (🪫) against the first task on screen. Both
+ *  screens' rows carry the button, and both suites drive it. */
 export async function logDrain(page: Page, minutes: number, mind: number, body: number) {
 	await page
 		.getByRole('button', {
