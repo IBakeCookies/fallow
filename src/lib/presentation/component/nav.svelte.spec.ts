@@ -2,6 +2,7 @@ import { page } from 'vitest/browser';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import Nav from '$lib/presentation/component/nav.svelte';
+import { toISODate } from '$lib/business/utils/date';
 
 const mock = vi.hoisted(() => ({
 	url: new URL('http://localhost/'),
@@ -78,6 +79,30 @@ describe('nav.svelte', () => {
 		});
 
 		await expect.element(link).toHaveAttribute('title', 'Return to today');
+	});
+
+	it('links home from the brand mark', async () => {
+		render(Nav);
+
+		await expect
+			.element(
+				page.getByRole('link', {
+					name: 'Fallow',
+				}),
+			)
+			.toHaveAttribute('href', '/');
+	});
+
+	it('names the day in the chrome', async () => {
+		render(Nav);
+
+		await expect
+			.element(
+				page.getByText(toISODate(), {
+					exact: false,
+				}),
+			)
+			.toBeInTheDocument();
 	});
 
 	it('renders a language dropdown with the active locale checked', async () => {

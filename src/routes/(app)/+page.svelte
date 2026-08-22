@@ -7,6 +7,8 @@
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import * as m from '$lib/paraglide/messages.js';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
+	import { DEFAULT_START_HOUR } from '$lib/presentation/utils/budget-bounds';
+	import { buildDayTimeline } from '$lib/presentation/utils/day-timeline';
 	import { buildMetrics } from '$lib/presentation/utils/metric-descriptor';
 	import {
 		buildAdviceDisplay,
@@ -18,18 +20,27 @@
 		removeLogWithUndo,
 	} from '$lib/presentation/utils/remove-log-with-undo';
 	import {
+		getPendingMinutes,
+		readSessionTimer,
+		writeSessionTimer,
+		type SessionTimer,
+	} from '$lib/presentation/utils/session-timer';
+	import {
+		claimPendingMinutes,
 		drainDraftFromLog,
 		newDrainDraft,
 		newEditorDraft,
+		spendsPendingMinutes,
 		type DrainDraft,
 		type EditorDraft,
 		type EditorSource,
 	} from '$lib/presentation/utils/measurement-prompt';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
-	import PageHeader from '$lib/presentation/component/page-header.svelte';
+	import DayActions from '$lib/presentation/component/day-actions.svelte';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
 	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
+	import DayTimeline from '$lib/presentation/component/day-timeline.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
@@ -56,6 +67,22 @@
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
+	// The day's timer is this page's state, not a store's: the control on the Tasks
+	// card and the 🪫 editor its reading fills are both here.
+	// svelte-ignore state_referenced_locally -- the day the page opened on
+	let sessionTimer = $state<SessionTimer | null>(browser ? readSessionTimer(today) : null);
+
+	// `today` is live — midnight, or a tab refocused the next morning — and minutes
+	// counted yesterday cannot fill today's 🪫 log. The read at init cannot cover it: a
+	// page left open never reaches it again.
+	$effect(() => {
+		if (sessionTimer !== null && sessionTimer.startedOn !== today) sessionTimer = null;
+	});
+
+	$effect(() => {
+		writeSessionTimer(sessionTimer);
+	});
+
 	const openFlowLog = (taskId: number, source: EditorSource) =>
 		(flowDrafts[taskId] = newEditorDraft(source));
 
@@ -64,7 +91,10 @@
 	};
 
 	const openDrainLog = (taskId: number, source: EditorSource) =>
-		(drainDrafts[taskId] = newDrainDraft(source));
+		(drainDrafts[taskId] = newDrainDraft(
+			source,
+			claimPendingMinutes(drainDrafts, getPendingMinutes(sessionTimer)),
+		));
 
 	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
 		(drainDrafts[taskId] = drainDraftFromLog(log));
@@ -95,12 +125,16 @@
 
 	// Re-logging a correction would count the session's hours twice (MATH.md §18).
 	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
-		const recordId = drainDrafts[taskId]?.recordId;
+		const draft = drainDrafts[taskId];
 
-		if (recordId === undefined) {
+		if (draft.recordId === undefined) {
 			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
+
+			// One stop funds one log: the editor that claimed the reading is the one that
+			// spends it — no other row's append, and no correction.
+			if (spendsPendingMinutes(draft, getPendingMinutes(sessionTimer))) sessionTimer = null;
 		} else {
-			observations.editDrainLog(recordId, entry.hours, entry.mind, entry.body);
+			observations.editDrainLog(draft.recordId, entry.hours, entry.mind, entry.body);
 		}
 
 		closeDrainLog(taskId);
@@ -114,6 +148,18 @@
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay));
 	const remainingSuggestedHours = $derived(daily.remainingSuggestedHours.toFixed(2));
+	// The field is the one place the presentation default answers for a day that chose
+	// no start; the strip prints no clock at all rather than this day's stand-in.
+	const startHour = $derived(session.startHour ?? DEFAULT_START_HOUR);
+	const timeline = $derived(
+		buildDayTimeline({
+			suggestedTasks: daily.suggestedTasks,
+			runOrder: daily.runOrder,
+			switchCost: session.switchCost,
+			availableHours: daily.budgetHours,
+			startHour: session.startHour,
+		}),
+	);
 	const advice = $derived(plan.advice ? buildAdviceDisplay(plan.advice, getDateLocale()) : null);
 	const destination = $derived(describeDeferDestination(plan.deferDestination));
 
@@ -129,14 +175,6 @@
 			});
 		}
 	});
-
-	// Navigate to a day; the store follows the URL and loads it.
-	function gotoDate(newDate: string) {
-		goto(localizeHref(newDate === today ? resolve('/') : `${resolve('/')}?date=${newDate}`), {
-			noScroll: true,
-			keepFocus: true,
-		});
-	}
 
 	function formatDisplayDate(dateStr: string): string {
 		return fromISO(dateStr).toLocaleDateString(getDateLocale(), {
@@ -167,20 +205,24 @@
 	}}
 />
 
-<PageHeader
-	completedTasks={daily.completedTasks}
-	totalTasks={daily.totalTasks}
-	{selectedDate}
-	{today}
-	ondatechange={gotoDate}
-	yesterdaySession={session.yesterdaySession}
-	routines={session.routines}
-	currentTasks={tasks}
-	onimport={(t) => session.importTasks(t)}
-	onimportdate={(d) => session.importFromDate(d)}
-	onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
-	ondeleteroutine={(id) => session.deleteRoutine(id)}
-/>
+<!-- The app bar already draws the name, so this one is for the document: the
+     explainer below opens at `<h2>` and an indexed page needs an `<h1>` above it. -->
+<h1 class="sr-only">{m.app_name()}</h1>
+
+{#snippet dayActions()}
+	<DayActions
+		{selectedDate}
+		{today}
+		yesterdaySession={session.yesterdaySession}
+		routines={session.routines}
+		currentTasks={tasks}
+		bind:timer={sessionTimer}
+		onimport={(t) => session.importTasks(t)}
+		onimportdate={(d) => session.importFromDate(d)}
+		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+		ondeleteroutine={(id) => session.deleteRoutine(id)}
+	/>
+{/snippet}
 
 {#snippet addTaskForm()}
 	<TaskForm
@@ -190,8 +232,6 @@
 	/>
 {/snippet}
 
-<!-- Outside the grid: full width is what lets the bar's four inputs sit on one
-     row instead of stacking 2×2 in the narrower task column. -->
 <div class="space-y-grid-lg min-h-screen">
 	{#if isViewingFuture}
 		<div class="p-box-md rounded-xl border border-info/20 bg-info/5 text-info-strong text-sm">
@@ -217,6 +257,7 @@
 			<DayConstraintsBar
 				bind:availableHours={session.availableHours}
 				bind:switchCost={session.switchCost}
+				bind:startHour={() => startHour, (hours) => (session.startHour = hours)}
 				bind:cognitivePool={session.cognitivePool}
 				bind:physicalPool={session.physicalPool}
 				{remainingSuggestedHours}
@@ -231,12 +272,13 @@
 		{/key}
 	{/if}
 
-	<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-		<!-- `min-w-0`: a grid item's automatic minimum is its content's min-content
-		     width, and "Next" holds a `nowrap` title, so without this the column is
-		     sized by the longest task name and the whole page scrolls sideways on a
-		     phone. It is what lets that title's `truncate` fire at all. -->
-		<div class="space-y-grid-lg lg:col-span-2 min-w-0">
+	<!-- The ledger takes the whole width and the readings sit under it: twelve columns
+	     have nowhere to go in two thirds of a page, and the metrics are what you read
+	     after the plan, not beside it. -->
+	<div class="space-y-grid-xl">
+		<div class="space-y-grid-lg">
+			<DayTimeline {...timeline} />
+
 			<TaskList
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
@@ -263,7 +305,10 @@
 					? undefined
 					: (taskId, changes) => session.updateTask(taskId, changes)}
 				form={isViewingPast ? undefined : addTaskForm}
+				actions={dayActions}
 			/>
+
+			<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />
 
 			{#if !isViewingPast && tasks.length > 0}
 				<PlanAdviceCard
@@ -277,10 +322,6 @@
 					onapplybudget={(hours) => (session.availableHours = hours)}
 				/>
 			{/if}
-		</div>
-
-		<div class="space-y-grid-md lg:sticky lg:top-page">
-			<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />
 		</div>
 	</div>
 </div>

@@ -59,12 +59,12 @@ Untestable at every level is the signal.
 - Components take snippets/props from the layout; they do not reach into stores
   themselves.
 - **A shell renders tooltips but never owns the `Tooltip.Provider`.** The
-  callers' `lead` / `meta` / `trailing` snippets are full of them too, so the
-  provider sits above the shell, in the page (`/energy` sets one for its whole
-  region). A component that owns every tooltip it renders — `calibration-card`,
-  `drain-log-form` — does carry its own: one that cannot mount without an
-  ancestor's costs every caller a wrapper, and nesting is harmless, since the
-  inner provider wins at the same delay.
+  callers' `lead` / `badges` / `meta` / `trailing` snippets are full of them
+  too, so the provider sits above the shell, in the page (`/energy` sets one for
+  its whole region). A component that owns every tooltip it renders —
+  `calibration-card`, `drain-log-form` — does carry its own: one that cannot
+  mount without an ancestor's costs every caller a wrapper, and nesting is
+  harmless, since the inner provider wins at the same delay.
 - **An inline editor focuses with `{@attach (node) => node.focus()}`, never
   `autofocus`.** The attribute is inert on any node inserted after load (the
   document's autofocus-processed flag), so all three editors that used it — ⚡,
@@ -76,19 +76,18 @@ Untestable at every level is the signal.
   number field.
 - **A `DropdownMenu.Item` never contains a focusable child, and an input inside
   menu content stops the keys it needs.** Two separate bits-ui facts, both of
-  which shipped as mouse-only UI in the header's routine rows. First: the
-  menu's Tab handler `preventDefault`s and moves focus past the whole menu, so
-  a `<button>` nested in an item is unreachable, and Enter on the item
+  which shipped as mouse-only UI in `day-actions.svelte`'s routine rows. First:
+  the menu's Tab handler `preventDefault`s and moves focus past the whole menu,
+  so a `<button>` nested in an item is unreachable, and Enter on the item
   dispatches the click at the _item_ — an item with no `onclick` silently does
   nothing. A row of two actions is therefore two sibling items inside a
   `DropdownMenu.Group` (`role="group"` keeps the menu → menuitem ownership
-  valid), not one item with buttons in it. Second: the content's keydown
-  handler claims arrows/Home/End for roving focus and every single character
-  for typeahead **regardless of the event's target**, so an `<input>` in a menu
-  must `stopPropagation()` on the keys it owns — but never on Escape, whose
-  listener sits on `document`, nor on the arrow that is the only way out of the
-  field (menu content hands focus to its first tabbable on open, which is that
-  input).
+  valid), not one item with buttons in it. Second: the content's keydown handler
+  claims arrows/Home/End for roving focus and every single character for
+  typeahead **regardless of the event's target**, so an `<input>` in a menu must
+  `stopPropagation()` on the keys it owns — but never on Escape, whose listener
+  sits on `document`, nor on the arrow that is the only way out of the field
+  (menu content hands focus to its first tabbable on open, which is that input).
 - **`task-form.svelte`'s title combobox is the ARIA 1.2 pattern hand-rolled
   inline, not `bits-ui`'s combobox.** Three of that bit's habits fight a form:
   `Combobox.Input` double-owns `value` (R3 — the bit's own state and the draft
@@ -147,17 +146,24 @@ sat, the rule between rows, and the ✎ editor, which only `/` had, so the Lab
 could not rename a task at all. Five components hold what the two screens say
 the same way:
 
-- **`task-list-card.svelte`** — the card, the heading, the form above the list,
-  the empty state, and the rule between rows (`divide-y`, so neither screen
-  decides how its own list is separated). `split` is how a caller reads its list
-  as two headed groups instead of one — `/` passes it, the Lab never does.
-- **`task-row-shell.svelte`** — the row's frame and hover surface, the
-  completion checkbox, the title, the `P · M · E` line, the whole action strip
-  (⚡, 🪫, ✎, ✕) and every editor it opens, including the completion prompt that
-  opens both measurements at once. Each screen adds only its readings, through
-  `lead` / `meta` / `trailing`. **An action is present when its callback is**,
-  so a read-only row passes no ✎ or ✕ and a past day none of the **logging**
-  ones.
+- **`task-list-card.svelte`** — the card, the heading, the form above the
+  ledger, the empty state, the `<table>` and its scroll container, and the header
+  row it builds from the caller's column list (so neither screen decides how its
+  own rows are separated: the rule is `ledger-cell`'s bottom border). `split` is
+  how a caller reads its rows as two headed groups instead of one — `/`
+  passes it, the Lab never does. `heading` is the caller's own half of the card's
+  heading row: both screens put the day's Load/Save there — `/` through
+  `task-list`'s `actions` snippet, the Lab straight into `heading` — and `/` its
+  "Next" line too.
+- **`task-row-shell.svelte`** — the row's `<tbody>` and hover surface, the
+  completion checkbox, the title, the three input cells, the `Logged` cell (⚡ and
+  🪫, both readings and both triggers), the ✎/✕ cell, and every editor it opens
+  in the spanning row, including the completion prompt that opens both
+  measurements at once. Each screen adds only its readings, as `<td>`s through
+  `lead` / `badges` / `meta` / `trailing`. **An action is present when its
+  callback is**, so a read-only row passes no ✎ or ✕ and a past day none of the
+  **logging** ones — the cell is still drawn either way, or the row loses a
+  column.
 - **`measurement-form-actions.svelte`** — the ✓/✕/🗑 that closes ⚡, 🪫 and ☕. It
   exists because those three editors were written separately and drifted into
   two different button sizes, one with a hover surface and one without; the
@@ -183,47 +189,87 @@ the same way:
 
 What is left in `task-item.svelte` and `energy-task-row.svelte` is one screen's
 reading of the task and nothing else: priority, allocation, run order and T* on
-`/`, the schedule's hue and hours in the Lab — three snippets and the prop
-mapping around them. That is two readings of one task, not one thing
+`/`, the schedule's hue, effort and hours in the Lab — four snippets and the
+prop mapping around them. That is two readings of one task, not one thing
 duplicated — and it is the only reason there are two components. If the
 readings ever converge, merge the two callers; do not give the shell a mode
 flag.
 
-**One prop is the carve-out, and it is not a mode flag: `withMustDoToday`.** It
-does not switch the shell between two screens' behaviours — it says whether the
-✎ editor offers one field, and the Lab passes `false` for the reason under "The
-Lab's row reads the three model inputs" below. Everything else that differs
-between the screens arrives as a snippet. A second prop of this shape is the
-signal that the readings have converged and the two callers should merge, not
-licence for a third.
+**The shell is a `<tbody>`**, holding the task's `<tr>` and — while any of the
+three editors is open — ONE spanning `<tr>` beneath it. That is what makes a row
+group per task the unit: the two measurement editors and ✎'s stack together
+under the row they belong to, and a `<tbody>` is the only element that can own
+both without leaving the table. Each caller's own cells arrive as `<td>`s
+through `lead` (the narrow leading column), `badges` (beside the title), `meta`
+(before `Logged`) and `trailing` (after it).
+
+**Two props are the carve-outs, and neither is a mode flag.**
+`withMustDoToday` says whether the ✎ editor offers one field, and the Lab passes
+`false` for the reason under "The Lab's row reads the three model inputs" below.
+`columnCount` is the spanning row's `colspan` — one integer, and each caller
+knows its own column list (`utils/ledger-column.ts`); it switches no behaviour.
+An oversized `colspan` is not the shortcut it looks like: 99 ESTABLISHES 99
+columns in the HTML table model rather than clamping to the row's width, so the
+header's own widths are then computed against columns nothing fills, and HTML5
+dropped `colspan="0"`. Everything else that differs between the screens arrives
+as a snippet. A third prop of this shape is the signal that the readings have
+converged and the two callers should merge, not licence for a fourth.
 
 ### The row's layout
 
-**Three columns from `sm` up — box, task, what the day gave it — and stacked
-below it.** The columns cost the same width at every size, so on a phone the
-middle one was under half the row, the title truncated to nothing and the
-derived readings wrapped three times. Stacked, `trailing` and the strip share
-one line at the foot of the row; the strip is still drawn once, since a second
-copy for the narrow layout would make every action on the row addressable by
-two elements at once. A caller aligning a reading right does it from `sm` up
-only, and on its own **trigger** — a `Tooltip.Trigger` is a `<button>`, whose
-UA `text-align` is `center`, so a wrapped reading otherwise centres its last
-line under itself.
+**Every reading gets a headed column, and the row is one `<tr>` of them.** One
+markup tree at every width: below `sm` the ledger scrolls sideways inside its
+own `overflow-x-auto` container and the DOCUMENT does not — `e2e/tasks.e2e.ts`
+pins both halves, because a table that overflows is only correct while the
+container is the thing that scrolls. The ledger also takes `/`'s full width and
+the metrics read beneath it: twelve columns have nowhere to go in two thirds of
+a page. The column list is `utils/ledger-column.ts`, one function per
+screen, and it is the ONE definition of how wide the table is: the card heads it
+and the shell spans it. The hours the optimizer planned are `Planned`, the LAST
+column, on BOTH screens — one word and one place for one reading, so the two
+ledgers read the same way (`trailing`, not `meta`). Numeric cells are `ledger-numeric` — right-aligned and
+`tabular-nums`, because a column nobody can compare down is not worth a column.
+
+**Three header cells show no text and are named anyway** — the ✎/✕ strip on both
+screens and the Lab's hue lead. The column carries its label with
+`isLabelHidden`, the card renders that one `sr-only`, and nothing is asked to
+switch axe's `empty-table-header` off: a `<th>` with no accessible name
+announces an anonymous column, which is a reading lost, not a design decision.
+
+**A completed task renders its `Planned` and `Prio` cells EMPTY rather than
+dropping them.** A row short of a cell is a row whose columns no longer line up
+with the header's, so the `{#if !completed}` goes inside the `<td>`, never
+around it.
 
 ✎ and ✕ carry an `aria-label` and no tooltip: a pencil and a cross are the two
-icons nobody needs told, and hovering the strip to reach either one popped a
-panel over the row underneath. **Every reading keeps its tooltip**, `P · M · E`
-included — three bare letters are the one thing on that line that says nothing
-for itself, and the ✎ that could show what they mean is hover-revealed. A story
-`play` pins both halves, the second on `data-slot` rather than by hovering and
-waiting for nothing: a tooltip that never opens and one that opens after a
-delay look alike.
+icons nobody needs told. They sit in a narrow always-visible trailing column —
+the strip they replaced was hover-revealed and reserved 114px on every row to
+show nothing, which is the whole reason the row became a table
+([docs/features/the-row-that-became-a-table.md](../../../docs/features/the-row-that-became-a-table.md)).
+A story `play` pins that they read at rest and that neither is a tooltip's
+trigger, the second on `data-slot` rather than by hovering and waiting for
+nothing: a tooltip that never opens and one that opens after a delay look alike.
+
+**Every reading keeps its tooltip except the three input cells.** `P · M · E`
+had one because three bare letters said nothing for themselves; `Phys`, `Ment`
+and `Enjoy` at the head of their own columns do say it, so the cells read as
+bare numbers and the tooltip is gone. Everything the MODEL derived keeps its
+own — no column word can say what ϕ is — and it triggers on its own reading.
+Alignment is the `<td>`'s (`ledger-numeric`), not the trigger's; the one trigger
+that repeats `text-right` is the `Planned` cell's, whose two stacked lines are
+block-level buttons and would otherwise centre themselves (a `Tooltip.Trigger`
+is a `<button>`, whose UA `text-align` is `center`).
 
 ### `/` reads the day as the two groups the plan makes
 
-Settled 2026-08-17. Funded rows sit under "Today's sequence" in their `#N` order,
-the tasks the plan gave nothing under "No time today" in the priority order they
-arrive in, having no position at all. What made the single list read as a
+Settled 2026-08-17. Each heading is a spanning `<th>` with **no `scope`**: a task
+row is its own `<tbody>`, so `scope="rowgroup"` heads the row group the heading
+sits in — which holds nothing — while the implicit scope makes a header row of
+one spanning cell head the cells beneath it, down to the next such row.
+
+Funded rows sit under "Today's sequence" in their `#N` order, the tasks the plan
+gave nothing under "No time today" in the priority order they arrive in, having
+no position at all. What made the single list read as a
 contradiction was not its order: a low-priority task collecting the last block is
 normal (the objective is Σ P̄ and a cheap task's average peaks almost at once —
 MATH.md §3), and with the two states unlabelled that looked like the plan funding
@@ -253,27 +299,66 @@ next-up reading. `/energy` does not carry it
 
 ### The mid-day re-plan reads beside the plan, not over it
 
-MATH.md §35. The re-plan leads the trailing column and the plan reads beneath
-it — **never a strikethrough on the plan**, which the plan-family rows (§11.8)
-are still computed from. The two sit on different bases: the re-plan is time to
+MATH.md §35. Both readings stack in the one `Planned` cell, re-plan leading and
+plan beneath — **never a strikethrough on the plan**, which the plan-family rows
+(§11.8) are still computed from. The two sit on different bases: the re-plan is time to
 spend ON TOP of the hours already worked, so neither line may be phrased as a
 comparison ("15m more"); each is labelled by the question it answers.
 
+### The day's strip reads above the ledger, and its clock is a label
+
+`utils/day-timeline.ts` builds
+`{ startLabel, totalHours, minimumBlockWidths, blocks }` from the funded plan,
+`runOrder` and the switch cost; `component/day-timeline.svelte` draws it.
+The geometry is a tested util rather than `$derived` in the markup (R2), a block
+carries a `Band`, and the gap between two blocks IS the switch cost — no number
+restates it. Every width is a share of the TRACK, and so is the floor:
+`minimumBlockWidths` is the day over its shortest allocation, so scaling the
+track to that many minimum block widths lifts the narrowest block to legible
+without moving any width off scale. A day that then overflows scrolls sideways
+inside the strip's own container and the DOCUMENT does not — the ledger's
+pattern, `tabindex` included. It is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the
+energy optimizer's own blocks and shares only `formatClock`.
+
+`DailySession.startHour` is the clock it reads against — per day, persisted, and
+read by no formula, fit or metric, which is why `DEFAULT_START_HOUR` lives in
+`utils/budget-bounds.ts` on the argument `band.ts` makes for its thresholds. The
+strip prints **that start and nothing else**: `availableHours` is intended work,
+not a span of the clock (MATH.md §11.3), so start-plus-budget is a finish time
+nobody computed, and a day that stored no start prints no clock at all — the
+default answers for the field alone, never for the label. The store hands out
+`number | null` so the auto-save's pristine-day check can still tell "unset"
+from a value, and `formatClock`/`parseClock`
+(`utils/duration-format.ts`) are the one spelling of a time of day, shared with
+the field that sets it
+([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
+
 ### Each measurement is read, corrected and dropped on the row it belongs to
 
-Both had to read at REST — the action strip is hover-revealed, so an unlogged
-session looked identical to a logged one — and the shapes differ because the
-quantities do: ⚡ is one number per day and reads as a badge beside the
-`P · M · E` line, 🪫 is one per session (§8.7) and reads as one chip per rating.
-Both readings are buttons into their own editor, and both explain themselves
-through the row's shadcn tooltip, never a native `title`.
+Both read in the `Logged` cell, and so do both triggers: a control has to sit
+beside the reading whose editor it owns, or the one-click rule below has nothing
+to be about. The shapes differ because the quantities do: ⚡ is one number per
+day and reads as one badge, 🪫 is one per session (§8.7) and reads as one chip
+per rating — an unbounded list, which is why this is a flexible cell and not a
+fixed-width column of its own. Both readings are buttons into their own editor,
+and both explain themselves through the row's shadcn tooltip, never a native
+`title`.
+
+**A reading is a recessed chip, a trigger is a bare glyph** — `READING_CHIP_CLASS`
+in the shell, and the one thing that tells the cell's four controls apart. All
+four were bare, so a rated row read as one run of glyphs (`⚡ 🪫 2h M0 B0 🪫`)
+in which the instrument that OPENS the editor and the instrument that IS the
+reading were the same picture. For the same reason the 🪫 chip words its two
+ratings (`Mind 6`, `Body 2`, the editor's own localized labels) instead of the
+initials it carried: `M6 B4` beside a duration reads as a code, and two e2e
+assertions plus a story `play` read that text.
 
 Both models read both fits — ϕ (⚡) feeds the Lab's own curves, and the α, λ₀,
 §12 audit and §11.9 carry-over readings all run off 🪫 hours — so neither
 instrument may be withheld from a screen (ROADMAP item 11).
 
-**One click rule covers the whole strip: a control closes the editor it owns,
-and otherwise opens its own.** A reading owns the editor seeded from it, so
+**One click rule covers the whole `Logged` cell: a control closes the editor it
+owns, and otherwise opens its own.** A reading owns the editor seeded from it, so
 clicking the reading the editor is open on closes it while clicking a different
 chip switches to that session — the switch arm exists only for 🪫, since ⚡ has
 one reading, which is why its badge reads as a plain toggle. The 🪫 button owns
@@ -296,6 +381,20 @@ their chips from.
 
 A draft whose row leaves the screen is inert (it is keyed by a task nothing
 renders); a deleted task's is not, so ✕ drops both on both screens.
+
+The session timer is the third opening of the 🪫 APPEND editor, and the only
+one that arrives with a value: `newDrainDraft(source, minutes)` takes what a
+STOPPED timer counted (`getPendingMinutes` — a running clock offers nothing, or
+it would fund a second log from the same minutes), and `drain-log-form.svelte`
+then focuses the **first empty required field, falling back to the length when
+none is empty** — so a seeded `45` cannot become `456`, and a correction, which
+seeds all three, keeps the caret it always had. One stop funds one log
+(MATH.md §18) and several rows hold an open editor at once, so the reading is
+**claimed by the first editor opened** (`claimPendingMinutes`): every other row
+opens empty while that claim stands, closing the claiming editor releases it,
+and only that editor's append spends the reading (`spendsPendingMinutes`) —
+never a correction, and never while the clock still runs. Both screens seed and
+spend by that one rule; the timer's CONTROLS are `/`'s alone.
 
 ### One screen lists logs: `/analytics`
 
@@ -361,6 +460,15 @@ withholds the first, exactly as it does for 🪫.
 `deleteFlowLog(recordId)`, addressed the way a row can address it — and drops
 the viewed day's reading, since that is the one on screen.
 
+The timer that fills a 🪫 length is gated the same way, and it is the one control
+on `day-actions.svelte` that is: its neighbours read on any day that is not past,
+the timer on **today** alone. The state is `/`'s (`+page.svelte`), bound into the
+component, and `localStorage`'s
+([the-session-nobody-was-timing.md](../../../docs/features/the-session-nobody-was-timing.md)) —
+a timer whose `startedOn` is not today is dropped both on read and whenever
+`today` moves under a page left open, which is what disposes of one left running
+overnight.
+
 ## Settled decisions — do not re-litigate
 
 ### A deleted task is undone from its toast; only routines get a confirm step
@@ -368,9 +476,9 @@ the viewed day's reading, since that is the one on screen.
 The ✕ deletes at once and `removeTaskWithUndo` (`presentation/utils`) offers the
 task back for eight seconds. A second press would sit on the common path
 forever to save the rare mistake — deleting a task is frequent, and the row is
-gone either way when the user meant it. The header's routine rows
-arm-then-delete instead, for the opposite reason: nothing there can be handed
-back.
+gone either way when the user meant it. The routine rows in
+`day-actions.svelte` arm-then-delete instead, for the opposite reason: nothing
+there can be handed back.
 
 The undo restores the task at its original index (`/energy` renders the day in
 store order) with its original id — safe because `nextTaskId` never recycles

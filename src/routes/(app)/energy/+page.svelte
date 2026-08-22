@@ -10,9 +10,16 @@
 		removeLogWithUndo,
 	} from '$lib/presentation/utils/remove-log-with-undo';
 	import {
+		getPendingMinutes,
+		readSessionTimer,
+		writeSessionTimer,
+	} from '$lib/presentation/utils/session-timer';
+	import {
+		claimPendingMinutes,
 		drainDraftFromLog,
 		newDrainDraft,
 		newEditorDraft,
+		spendsPendingMinutes,
 		type DrainDraft,
 		type EditorDraft,
 		type EditorSource,
@@ -23,7 +30,9 @@
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
+	import DayActions from '$lib/presentation/component/day-actions.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
+	import { getEnergyTaskColumns } from '$lib/presentation/utils/ledger-column';
 	import EnergyChart from '$lib/presentation/component/energy-chart.svelte';
 	import EnergyTaskRow from '$lib/presentation/component/energy-task-row.svelte';
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
@@ -150,20 +159,28 @@
 	const drainLogs = $derived(observations.drainLogsOn(session.today));
 	const flowLogs = $derived(session.flowMinutesOn(session.today));
 
+	// `/`'s stopped timer seeds the 🪫 editors here too, under the same claim (one stop
+	// funds one log, MATH.md §18). Read per opening: the timer's controls stay on `/`.
 	const openDrainLog = (taskId: number, source: EditorSource) =>
-		(drainDrafts[taskId] = newDrainDraft(source));
+		(drainDrafts[taskId] = newDrainDraft(
+			source,
+			claimPendingMinutes(drainDrafts, getPendingMinutes(readSessionTimer(session.today))),
+		));
 
 	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
 		(drainDrafts[taskId] = drainDraftFromLog(log));
 
 	// Only the draft remembers whether a chip opened it, so new-vs-correction is the page's.
 	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
-		const recordId = drainDrafts[taskId]?.recordId;
+		const draft = drainDrafts[taskId];
 
-		if (recordId === undefined) {
+		if (draft.recordId === undefined) {
 			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
+
+			if (spendsPendingMinutes(draft, getPendingMinutes(readSessionTimer(session.today))))
+				writeSessionTimer(null);
 		} else {
-			observations.editDrainLog(recordId, entry.hours, entry.mind, entry.body);
+			observations.editDrainLog(draft.recordId, entry.hours, entry.mind, entry.body);
 		}
 
 		closeDrainLog(taskId);
@@ -215,6 +232,20 @@
 
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
+{#snippet dayActions()}
+	<DayActions
+		selectedDate={session.selectedDate}
+		today={session.today}
+		yesterdaySession={session.yesterdaySession}
+		routines={session.routines}
+		currentTasks={session.tasks}
+		onimport={(t) => session.importTasks(t)}
+		onimportdate={(d) => session.importFromDate(d)}
+		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+		ondeleteroutine={(id) => session.deleteRoutine(id)}
+	/>
+{/snippet}
+
 {#snippet addTaskForm()}
 	<TaskForm
 		onsubmit={(t) => session.addTask(t)}
@@ -226,35 +257,34 @@
 
 {#snippet taskRows()}
 	{#each tasks as task (task.id)}
-		<li>
-			<EnergyTaskRow
-				title={task.title}
-				completed={task.completed}
-				physicalDifficulty={task.physicalDifficulty}
-				mentalDifficulty={task.mentalDifficulty}
-				enjoyment={task.enjoyment}
-				mustDoToday={task.mustDoToday}
-				color={colors.colorOf(task.id)}
-				plannedHours={plannedFor(task.id)}
-				flowMinutes={flowLogs.get(task.id)}
-				drainLogs={drainLogs.get(task.id) ?? []}
-				flowDraft={flowDrafts[task.id] ?? null}
-				drainDraft={drainDrafts[task.id] ?? null}
-				ontoggle={() => session.toggleTask(task.id)}
-				onremove={() => removeTask(task.id)}
-				onflowopen={(source) => openFlowLog(task.id, source)}
-				onflowedit={() => openFlowLog(task.id, 'button')}
-				onflowclose={() => closeFlowLog(task.id)}
-				onlogflow={(minutes) => saveFlowLog(task.id, minutes)}
-				onflowdelete={() => clearFlowLog(task.id)}
-				ondrainopen={(source) => openDrainLog(task.id, source)}
-				ondrainclose={() => closeDrainLog(task.id)}
-				ondrainsave={(entry) => saveDrainLog(task.id, entry)}
-				ondrainedit={(log) => editDrainLog(task.id, log)}
-				ondraindelete={(recordId) => deleteDrainLog(task.id, recordId)}
-				onupdate={(edit) => session.updateTask(task.id, edit)}
-			/>
-		</li>
+		<EnergyTaskRow
+			title={task.title}
+			completed={task.completed}
+			physicalDifficulty={task.physicalDifficulty}
+			mentalDifficulty={task.mentalDifficulty}
+			enjoyment={task.enjoyment}
+			mustDoToday={task.mustDoToday}
+			color={colors.colorOf(task.id)}
+			trueEffort={task.trueEffort}
+			plannedHours={plannedFor(task.id)}
+			flowMinutes={flowLogs.get(task.id)}
+			drainLogs={drainLogs.get(task.id) ?? []}
+			flowDraft={flowDrafts[task.id] ?? null}
+			drainDraft={drainDrafts[task.id] ?? null}
+			ontoggle={() => session.toggleTask(task.id)}
+			onremove={() => removeTask(task.id)}
+			onflowopen={(source) => openFlowLog(task.id, source)}
+			onflowedit={() => openFlowLog(task.id, 'button')}
+			onflowclose={() => closeFlowLog(task.id)}
+			onlogflow={(minutes) => saveFlowLog(task.id, minutes)}
+			onflowdelete={() => clearFlowLog(task.id)}
+			ondrainopen={(source) => openDrainLog(task.id, source)}
+			ondrainclose={() => closeDrainLog(task.id)}
+			ondrainsave={(entry) => saveDrainLog(task.id, entry)}
+			ondrainedit={(log) => editDrainLog(task.id, log)}
+			ondraindelete={(recordId) => deleteDrainLog(task.id, recordId)}
+			onupdate={(edit) => session.updateTask(task.id, edit)}
+		/>
 	{/each}
 {/snippet}
 
@@ -282,6 +312,10 @@
 		</Tooltip.Root>
 	</Tooltip.Provider>
 </div>
+
+<!-- The level between the page title and the cards, which all head themselves at
+     `<h3>`: nothing in the design draws it, and without it the outline skips. -->
+<h2 class="sr-only">{m.energy_sections_heading()}</h2>
 
 {#if session.isLoading || !lab.isLoaded}
 	<!-- The pre-read state is not neutral: an empty list reads as "no open tasks" over a plan
@@ -400,7 +434,12 @@
 				<!-- Full width on an empty day: two thirds of a card beside a third of
 				     nothing reads as a layout bug. -->
 				<div class={hasTasks ? 'lg:col-span-2' : 'lg:col-span-3'}>
-					<TaskListCard form={addTaskForm} rows={hasTasks ? taskRows : null} />
+					<TaskListCard
+						form={addTaskForm}
+						heading={dayActions}
+						columns={getEnergyTaskColumns()}
+						rows={hasTasks ? taskRows : null}
+					/>
 				</div>
 				{#if hasTasks}
 					<div class="space-y-grid-lg">
