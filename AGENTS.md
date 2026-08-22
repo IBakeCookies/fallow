@@ -181,7 +181,9 @@ abbreviations, boolean prefixes and import order:
 ### Naming
 
 - No abbreviations.
-- Files and folders: singular, `kebab-case`.
+- Files and folders: singular, `kebab-case` — except where a tool dictates the
+  name (`+page.svelte`, `(app)/`, dot files, the uppercase `.md` rule files,
+  `.dc.html` design artboards).
 - Slot names and emitted events: `kebab-case`.
 - Functions: _imperative verb + object [+ from|to|by + target]_ — `getUser()`,
   `addItemToCart()`, `sortCompaniesByName()`.
@@ -305,6 +307,8 @@ re-open one.
   and a view model carries a `Band`, never a class string.
 - The Lab's task list reads in schedule order, snapshotted per visit.
 - The Lab's row reads the three model inputs, it does not slide them.
+- Both task screens are one `<table>` off one shell; a column list is one
+  definition per screen, and the shell takes a `columnCount`, never a mode flag.
 - The calibration cards share a shell, not a body.
 
 **Serving** — [docs/deployment.md](docs/deployment.md)

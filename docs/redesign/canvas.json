@@ -1,0 +1,54 @@
+{
+	"pages": [
+		{ "id": "page-1", "name": "Redesign" },
+		{ "id": "page-2", "name": "As shipped" }
+	],
+	"artboards": [
+		{
+			"file": "Main.dc.html",
+			"page": "page-1",
+			"x": 0,
+			"y": 0,
+			"w": 1440,
+			"h": 1520,
+			"title": "Fallow Dark — Today"
+		},
+		{
+			"file": "Light.dc.html",
+			"page": "page-1",
+			"x": 1560,
+			"y": 0,
+			"w": 1440,
+			"h": 1520,
+			"title": "Fallow Light — same design, paper palette"
+		},
+		{
+			"file": "Shipped.dc.html",
+			"page": "page-2",
+			"x": 0,
+			"y": 0,
+			"w": 1440,
+			"h": 1640,
+			"title": "Today — as it ships now, for comparison"
+		}
+	],
+	"annotations": [
+		{
+			"id": "premise",
+			"page": "page-1",
+			"x": 0,
+			"y": -240,
+			"w": 620,
+			"text": "The redesign's premise, from your own numbers: only task #1 is allocated more time than its flow-arrival — 2h30m against 2h14m. The other four all stop short (#2 by 4m, #3 by 9m, #4 by 26m, #5 by 45m). That is what Flow Coverage 1/5 means, and the old page rendered it as grey 11px text.\n\nSo the timeline is the centrepiece and each block's bar is how far its allocation gets toward flow. One mint bar, four amber.\n\nThe two artboards are the SAME markup — only the :root palette block differs. A design that needs different markup per theme is not one design, and this app ships 46 palettes."
+		},
+		{
+			"id": "shipped-note",
+			"page": "page-2",
+			"x": 0,
+			"y": -160,
+			"w": 480,
+			"text": "The root page as it ships today, at 1440px in the Fallow theme — kept for side-by-side comparison. Values lifted from tokens.css / themes.css and the component source, not eyeballed.\n\nThe metrics accordion is drawn open; its real default is closed behind \"20 more metrics\"."
+		}
+	],
+	"launch": { "view": "canvas", "page": "page-1" }
+}

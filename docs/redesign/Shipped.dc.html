@@ -1,0 +1,623 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* Fallow — the shipped `.fallow` theme, values lifted from
+       src/lib/presentation/style/{base,themes,tokens}.css. --radius is 1rem here,
+       so the radius ladder below is that ladder, not Tailwind's defaults. */
+    :root {
+      --surface-page: oklch(0.95 0.02 105);
+      --surface-card: oklch(1 0 0 / 0.55);
+      --surface-inset: oklch(0.45 0.06 110 / 0.08);
+      --surface-hover: oklch(0.31 0.045 130 / 0.06);
+      --ty-primary: oklch(0.31 0.045 130);
+      --ty-secondary: oklch(0.31 0.045 130 / 0.7);
+      --ty-silent: oklch(0.31 0.045 130 / 0.55);
+      --ty-ghost: oklch(0.31 0.045 130 / 0.4);
+      --border: oklch(0.45 0.07 115 / 0.25);
+      --line-soft: oklch(0.31 0.045 130 / 0.08);
+      --input: oklch(1 0 0 / 0.6);
+      --primary: oklch(0.55 0.11 130);
+      --brand: oklch(0.52 0.1 125);
+      --brand-strong: oklch(0.44 0.1 128);
+      --flow: oklch(0.65 0.13 85);
+      --body: oklch(0.5 0.12 175);
+      --mind: oklch(0.546 0.245 262.881);
+      --success: oklch(0.596 0.145 163.225);
+      --warning: oklch(0.666 0.179 58.318);
+      --warning-strong: oklch(0.555 0.163 48.998);
+      --card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ty-primary);
+      font-family: 'Inter', 'Inter Variable', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--surface-page);
+      background-image:
+        radial-gradient(ellipse 100% 55% at 50% -12%, oklch(0.94 0.025 225 / 0.55), transparent 68%),
+        radial-gradient(ellipse 85% 45% at 12% 112%, oklch(0.72 0.1 115 / 0.32), transparent 65%),
+        radial-gradient(ellipse 90% 50% at 88% 110%, oklch(0.82 0.1 90 / 0.45), transparent 65%),
+        linear-gradient(oklch(0.96 0.012 220), oklch(0.93 0.03 100));
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { color: var(--brand-strong); }
+
+    p, h1, h2, h3, h4, ul { margin: 0; padding: 0; }
+    ul { list-style: none; }
+
+    /* card-shell: rounded-2xl (radius * 1.8), border, translucent card, blur, shadow */
+    .card {
+      border-radius: 28.8px;
+      border: 1px solid var(--border);
+      background: var(--surface-card);
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(32px);
+    }
+
+    /* the uppercase card heading: text-xs / 600 / tracking-wider / ty-secondary */
+    .kick {
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ty-secondary);
+    }
+
+    /* "there is an explanation here" — hint-underline */
+    .hint {
+      text-decoration: underline dotted var(--ty-ghost);
+      text-underline-offset: 4px;
+      cursor: help;
+    }
+
+    .ic { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .navlink {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--ty-secondary);
+    }
+    .navlink-on { background: var(--surface-hover); color: var(--ty-primary); }
+
+    /* Button variant=outline size=sm — every dropdown trigger in the app */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--input);
+      backdrop-filter: blur(32px);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ty-secondary);
+    }
+    .btn-icon { width: 32px; padding: 0; }
+    /* Button variant=default size=default */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 12.8px;
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* Badge: h-5, rounded-4xl, px-2, py-0.5, text-xs/500 */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 2px 8px;
+      border: 1px solid transparent;
+      border-radius: 41.6px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-cog { background: oklch(0.546 0.245 262.881 / 0.2); color: var(--mind); text-transform: uppercase; letter-spacing: 0.025em; }
+    .badge-outline { border-color: var(--border); color: var(--ty-primary); }
+
+    /* order-badge: the run-order pill */
+    .ord {
+      border-radius: 9.6px;
+      background: oklch(0.65 0.13 85 / 0.15);
+      padding: 2px 6px;
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+      color: var(--flow);
+      cursor: help;
+    }
+
+    .lbl { font-size: 12px; line-height: 16px; color: var(--ty-silent); }
+    .hintlbl { font-size: 12px; line-height: 16px; color: var(--ty-secondary); }
+    .rule { border-top: 1px solid var(--line-soft); }
+
+    /* NumberInput */
+    .num {
+      display: flex;
+      align-items: stretch;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--input);
+    }
+    .num-step {
+      padding: 0 10px;
+      font-size: 14px;
+      color: var(--ty-silent);
+      display: flex;
+      align-items: center;
+      user-select: none;
+    }
+    .num-field {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      padding: 8px 36px 8px 4px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--ty-primary);
+    }
+    .num-unit {
+      position: absolute;
+      top: 50%;
+      right: 6px;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      text-transform: uppercase;
+      color: var(--ty-silent);
+    }
+
+    /* the two range inputs on the page: h-1, full width, inset track */
+    .track { height: 4px; border-radius: 9999px; background: var(--surface-inset); position: relative; }
+    .thumb { position: absolute; top: -6px; width: 16px; height: 16px; border-radius: 9999px; }
+
+    /* one task row — TaskRowShell at rest (its action strip is opacity-0 until hover) */
+    .trow { display: flex; align-items: flex-start; gap: 10px; border-radius: 16px; border: 1px solid transparent; padding: 12px; }
+    .tbox { width: 16px; height: 16px; margin-top: 2px; border-radius: 4px; border: 1px solid var(--border); background: var(--input); flex-shrink: 0; }
+    .ttitle { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--ty-primary); text-transform: capitalize; }
+    .tmeta { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 2px; margin-top: 4px; font-size: 11px; color: var(--ty-silent); }
+    .thours { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--ty-primary); }
+    .tprio { font-size: 11px; color: var(--ty-silent); }
+
+    /* metrics card */
+    .tile { border-radius: 22.4px; border: 1px solid var(--line-soft); padding: 10px 12px; }
+    .tileval { margin-top: 4px; font-size: 18px; line-height: 1.25; font-weight: 600; text-transform: capitalize; }
+    .mrow { display: flex; align-items: baseline; justify-content: space-between; border-radius: 16px; padding: 8px 12px; }
+    .mval { font-size: 14px; line-height: 20px; font-weight: 600; text-transform: capitalize; }
+  </style>
+</helmet>
+
+<!-- (app)/+layout.svelte: max-w-layout (90rem) · px-page (32px) · py-page (32px) -->
+<div style="width: 1440px; padding: 32px">
+
+  <!-- nav.svelte — the sticky nav pill, plus the layout's theme + data triggers -->
+  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 24px">
+    <nav style="display: inline-flex; align-items: center; gap: 4px; width: max-content; border-radius: 22.4px; border: 1px solid var(--border); background: var(--surface-card); padding: 4px; backdrop-filter: blur(32px)">
+      <span class="navlink navlink-on">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><rect x="3" y="4" width="6" height="6" rx="1"></rect></svg>
+        <span>Today</span>
+      </span>
+      <span class="navlink">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
+        <span>Calendar</span>
+      </span>
+      <span class="navlink">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg>
+        <span>Analytics</span>
+      </span>
+      <span class="navlink">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg>
+        <span>Energy Lab</span>
+      </span>
+      <div style="margin: 0 4px; height: 16px; width: 1px; background: var(--line-soft)"></div>
+      <span class="navlink">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>
+        <span>EN</span>
+      </span>
+    </nav>
+
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span class="btn">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"></path><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>
+        <span>Fallow</span>
+      </span>
+      <span class="btn btn-icon">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path></svg>
+      </span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 20px">
+
+    <!-- day-constraints-bar.svelte, open. Full width so its four fields sit on one row. -->
+    <div class="card" style="padding: 12px 24px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+        <span class="kick" style="flex-shrink: 0">Time Budget</span>
+        <span style="flex-shrink: 0; font-size: 18px; line-height: 1; color: var(--ty-silent)">&#9652;</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 32px; row-gap: 20px; margin-top: 16px">
+        <div>
+          <div class="lbl" style="margin-bottom: 4px">Available Hours</div>
+          <div class="num">
+            <span class="num-step">&#8722;</span>
+            <div class="num-field">8.25<span class="num-unit">hrs</span></div>
+            <span class="num-step">+</span>
+          </div>
+          <div class="track" style="margin-top: 8px">
+            <div style="position: absolute; inset: 0 49% 0 0; border-radius: 9999px; background: var(--brand)"></div>
+            <div class="thumb" style="left: 47%; background: var(--brand)"></div>
+          </div>
+          <p class="lbl" style="margin-top: 8px">Allocated: 7.25h</p>
+        </div>
+
+        <div>
+          <div class="lbl" style="margin-bottom: 4px">Switch Cost (per task change)</div>
+          <div class="num">
+            <span class="num-step">&#8722;</span>
+            <div class="num-field">15<span class="num-unit">min</span></div>
+            <span class="num-step">+</span>
+          </div>
+          <p class="lbl" style="margin-top: 8px">Context-switching overhead per transition</p>
+        </div>
+
+        <div>
+          <div class="lbl" style="margin-bottom: 4px">Cognitive Capacity</div>
+          <div class="num">
+            <span class="num-step">&#8722;</span>
+            <div class="num-field">6<span class="num-unit">hrs</span></div>
+            <span class="num-step">+</span>
+          </div>
+          <p class="lbl" style="margin-top: 8px">Intense mental work you sustain per day (~4h)</p>
+        </div>
+
+        <div>
+          <div class="lbl" style="margin-bottom: 4px">Physical Capacity</div>
+          <div class="num">
+            <span class="num-step">&#8722;</span>
+            <div class="num-field">6<span class="num-unit">hrs</span></div>
+            <span class="num-step">+</span>
+          </div>
+          <p class="lbl" style="margin-top: 8px">Intense physical work you sustain per day (~6h)</p>
+        </div>
+      </div>
+
+      <div class="rule" style="margin-top: 20px; padding-top: 12px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 10px; row-gap: 4px">
+          <p class="lbl">Model personalized from 4 time-to-flow logs (&#9889;) &mdash; recent ones count most, blended with the defaults</p>
+          <span style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 12px; line-height: 16px">
+            <a class="hint" style="color: var(--ty-silent)">In your logs &rarr;</a>
+            <span style="color: var(--ty-silent)">Reset personalization</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- the two-column plan grid: lg:grid-cols-3, the task column spanning two -->
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; align-items: start">
+
+      <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 20px; min-width: 0">
+
+        <!-- task-list-card.svelte -->
+        <div class="card" style="padding: 24px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px">
+            <h3 class="kick">Tasks</h3>
+
+            <!-- day-actions.svelte: the day's Load and Save read on this row -->
+            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0">
+              <span class="btn">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>
+                <span>Load</span>
+              </span>
+              <span class="btn">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg>
+                <span>Save</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- task-form.svelte, open (the add form lives inside the list card) -->
+          <div style="padding-bottom: 16px">
+            <form style="display: flex; flex-direction: column; gap: 20px; border-radius: 22.4px; border: 1px solid var(--line-soft); padding: 16px">
+              <div style="display: flex; align-items: flex-start; gap: 12px">
+                <label style="flex: 1; min-width: 0">
+                  <span style="display: block; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ty-secondary)">Task Definition</span>
+                  <div style="margin-top: 8px; width: 100%; border-radius: 16px; border: 1px solid var(--border); background: var(--input); padding: 10px 16px; font-size: 14px; line-height: 20px; color: var(--ty-silent)">e.g., Boxing training</div>
+                </label>
+                <span style="flex-shrink: 0; font-size: 18px; line-height: 1; color: var(--ty-silent)">&#9652;</span>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+                <label style="display: block">
+                  <span style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 500">
+                    <span style="color: var(--ty-secondary)">Physical Diff</span>
+                    <span style="color: var(--ty-primary)">5</span>
+                  </span>
+                  <div class="track" style="margin-top: 8px">
+                    <div class="thumb" style="left: calc(50% - 8px); background: var(--body)"></div>
+                  </div>
+                </label>
+                <label style="display: block">
+                  <span style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 500">
+                    <span style="color: var(--ty-secondary)">Mental Diff</span>
+                    <span style="color: var(--ty-primary)">5</span>
+                  </span>
+                  <div class="track" style="margin-top: 8px">
+                    <div class="thumb" style="left: calc(50% - 8px); background: var(--mind)"></div>
+                  </div>
+                </label>
+                <label style="display: block">
+                  <span style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 500">
+                    <span style="color: var(--ty-secondary)">Enjoyment</span>
+                    <span style="color: var(--ty-primary)">5</span>
+                  </span>
+                  <div class="track" style="margin-top: 8px">
+                    <div class="thumb" style="left: calc(44% - 8px); background: var(--brand)"></div>
+                  </div>
+                </label>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px">
+                <label style="margin-right: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ty-secondary)">
+                  <span style="width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); background: var(--input)"></span>
+                  <span>Don't move off today</span>
+                </label>
+                <span class="btn-primary">Deploy Task</span>
+              </div>
+            </form>
+          </div>
+
+          <!-- the plan, in run order. #N is the whole-day order (MATH.md §11.8). -->
+          <ul>
+            <li>
+              <div class="trow">
+                <span class="tbox"></span>
+                <div style="min-width: 0; flex: 1">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+                    <span class="ord">#1</span>
+                    <span class="badge badge-cog">COG</span>
+                    <h3 class="ttitle">Design Error boundary</h3>
+                  </div>
+                  <div class="tmeta">
+                    <span><span style="font-weight: 500; color: oklch(0.5 0.12 175 / 0.8)">P 0</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.546 0.245 262.881 / 0.8)">M 8</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.52 0.1 125 / 0.8)">E 9</span></span>
+                    <span style="color: var(--ty-ghost)">|</span>
+                    <span>effort 4.1 &middot; flow @ 2h 14m &middot; stop by 3h 55m</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div class="thours">2h 30m</div>
+                  <div class="tprio">prio 25.3</div>
+                </div>
+                <div style="width: 114px; flex-shrink: 0"></div>
+              </div>
+            </li>
+            <li class="rule">
+              <div class="trow">
+                <span class="tbox"></span>
+                <div style="min-width: 0; flex: 1">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+                    <span class="ord">#2</span>
+                    <span class="badge badge-cog">COG</span>
+                    <h3 class="ttitle">Write the PDF solution</h3>
+                  </div>
+                  <div class="tmeta">
+                    <span><span style="font-weight: 500; color: oklch(0.5 0.12 175 / 0.8)">P 0</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.546 0.245 262.881 / 0.8)">M 6</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.52 0.1 125 / 0.8)">E 7</span></span>
+                    <span style="color: var(--ty-ghost)">|</span>
+                    <span>effort 3.2 &middot; flow @ 1h 49m &middot; stop by 3h 10m</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div class="thours">1h 45m</div>
+                  <div class="tprio">prio 18.5</div>
+                </div>
+                <div style="width: 114px; flex-shrink: 0"></div>
+              </div>
+            </li>
+            <li class="rule">
+              <div class="trow">
+                <span class="tbox"></span>
+                <div style="min-width: 0; flex: 1">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+                    <span class="ord">#3</span>
+                    <span class="badge badge-cog">COG</span>
+                    <h3 class="ttitle">review 1 PR API</h3>
+                  </div>
+                  <div class="tmeta">
+                    <span><span style="font-weight: 500; color: oklch(0.5 0.12 175 / 0.8)">P 0</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.546 0.245 262.881 / 0.8)">M 5</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.52 0.1 125 / 0.8)">E 4</span></span>
+                    <span style="color: var(--ty-ghost)">|</span>
+                    <span>effort 2.8 &middot; flow @ 1h 39m &middot; stop by 2h 52m</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div class="thours">1h 30m</div>
+                  <div class="tprio">prio 13.4</div>
+                </div>
+                <div style="width: 114px; flex-shrink: 0"></div>
+              </div>
+            </li>
+            <li class="rule">
+              <div class="trow">
+                <span class="tbox"></span>
+                <div style="min-width: 0; flex: 1">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+                    <span class="ord">#4</span>
+                    <span class="badge badge-cog">COG</span>
+                    <h3 class="ttitle">Review 1 PR APP</h3>
+                  </div>
+                  <div class="tmeta">
+                    <span><span style="font-weight: 500; color: oklch(0.5 0.12 175 / 0.8)">P 0</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.546 0.245 262.881 / 0.8)">M 5</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.52 0.1 125 / 0.8)">E 3</span></span>
+                    <span style="color: var(--ty-ghost)">|</span>
+                    <span>effort 2.8 &middot; flow @ 1h 41m &middot; stop by 2h 55m</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div class="thours">1h 15m</div>
+                  <div class="tprio">prio 12.3</div>
+                </div>
+                <div style="width: 114px; flex-shrink: 0"></div>
+              </div>
+            </li>
+            <li class="rule">
+              <div class="trow">
+                <span class="tbox"></span>
+                <div style="min-width: 0; flex: 1">
+                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+                    <span class="ord">#5</span>
+                    <span class="badge badge-cog">COG</span>
+                    <h3 class="ttitle">Daily</h3>
+                  </div>
+                  <div class="tmeta">
+                    <span><span style="font-weight: 500; color: oklch(0.5 0.12 175 / 0.8)">P 0</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.546 0.245 262.881 / 0.8)">M 2</span> <span style="color: var(--ty-ghost)">&middot;</span> <span style="font-weight: 500; color: oklch(0.52 0.1 125 / 0.8)">E 2</span></span>
+                    <span style="color: var(--ty-ghost)">|</span>
+                    <span>effort 1.4 &middot; flow @ 1h &middot; stop by 1h 37m</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div class="thours">15m</div>
+                  <div class="tprio">prio 9.1</div>
+                </div>
+                <div style="width: 114px; flex-shrink: 0"></div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- plan-advice-card.svelte -->
+        <div class="card" style="padding: 24px">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px">
+            <div style="min-width: 0">
+              <h3 class="kick">Adjust the plan</h3>
+              <p class="lbl" style="margin-top: 8px">Each option is re-solved by the same optimizer that built your plan, so these are the numbers you would actually get.</p>
+            </div>
+            <span class="btn" style="flex-shrink: 0">Recheck</span>
+          </div>
+
+          <p class="lbl" style="margin-top: 12px">The next 15 minutes would go to &ldquo;Write the PDF solution&rdquo; &middot; +0.9% plan value</p>
+          <p class="lbl" style="margin-top: 8px">Switching reserves 1h of today, 12% of the budget, at 15m a switch. At no switch cost this plan reads +3.1% plan value; at 30m a switch, &minus;4.1% plan value.</p>
+          <p class="lbl" style="margin-top: 8px">Tomorrow: nothing planned yet, 8h to spend.</p>
+
+          <ul style="margin-top: 12px">
+            <li style="border-radius: 22.4px; border: 1px solid var(--line-soft); padding: 12px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+                <span style="font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ty-secondary)">Energy Balance</span>
+                <span style="font-size: 14px; line-height: 20px; font-weight: 600; color: var(--warning)">Cognitive Heavy 100%</span>
+              </div>
+              <p class="lbl" style="margin-top: 8px">No task move and no budget change improves this.</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- metrics-dashboard.svelte — sticky at lg, so it holds the top of the column -->
+      <div class="card" style="padding: 24px">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px">
+          <span class="hint hintlbl">Momentum</span>
+          <span class="badge badge-outline">Stable</span>
+        </div>
+
+        <div class="rule" style="margin: 12px 0"></div>
+
+        <!-- the headline four (MATH.md §28) -->
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <div class="tile">
+            <span class="hint hintlbl">Completion Rate</span>
+            <p class="tileval" style="color: var(--ty-primary)">0%</p>
+          </div>
+          <div class="tile">
+            <span class="hint hintlbl">Flow Coverage</span>
+            <p class="tileval" style="color: var(--warning)">1/5</p>
+          </div>
+          <div class="tile">
+            <span class="hint hintlbl">Human Capacity</span>
+            <p class="tileval" style="color: var(--success)">75%</p>
+          </div>
+          <div class="tile">
+            <span class="hint hintlbl">Burnout Risk</span>
+            <p class="tileval" style="color: var(--ty-primary)">42%</p>
+          </div>
+        </div>
+
+        <div class="rule" style="margin: 12px 0"></div>
+
+        <!-- the reference readings, one click away -->
+        <div style="margin-top: 12px">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 16px; color: var(--ty-secondary); cursor: pointer">
+            <span style="color: var(--ty-silent); font-size: 10px">&#9662;</span>
+            <span>20 more metrics</span>
+          </div>
+
+          <div style="margin-top: 12px">
+            <div class="mrow"><span class="hint hintlbl">Fallow Gain</span><span class="mval" style="color: var(--ty-primary)">+6.1%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Yield Index</span><span class="mval" style="color: var(--ty-primary)">N/A</span></div>
+            <div class="mrow"><span class="hint hintlbl">Capacity Left</span><span class="mval" style="color: var(--ty-primary)">N/A</span></div>
+            <div class="mrow"><span class="hint hintlbl">Time Scarcity</span><span class="mval" style="color: var(--success)">14%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Primary Bottleneck</span><span class="mval" style="color: var(--ty-primary)">Design Error boundary</span></div>
+            <div class="mrow"><span class="hint hintlbl">Longest Warm-Up</span><span class="mval" style="color: var(--success)">2.2h</span></div>
+
+            <div class="rule" style="margin: 12px 0"></div>
+            <div class="mrow"><span class="hint hintlbl">Cognitive Load</span><span class="mval" style="color: var(--success)">54%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Physical Load</span><span class="mval" style="color: var(--success)">0%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Energy Balance</span><span class="mval" style="color: var(--warning)">Cognitive Heavy 100%</span></div>
+
+            <div class="rule" style="margin: 12px 0"></div>
+            <div class="mrow"><span class="hint hintlbl">Schedule Integrity</span><span class="mval" style="color: var(--success)">88%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Friction Index</span><span class="mval" style="color: var(--success)">6%</span></div>
+
+            <div class="rule" style="margin: 12px 0"></div>
+            <div class="mrow"><span class="hint hintlbl">Deep Work</span><span class="mval" style="color: var(--success)">28%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Quick Wins</span><span class="mval" style="color: var(--ty-primary)">0</span></div>
+
+            <div class="rule" style="margin: 12px 0"></div>
+            <div class="mrow"><span class="hint hintlbl">Grind Density</span><span class="mval" style="color: var(--ty-primary)">40% (2/5)</span></div>
+            <div class="mrow"><span class="hint hintlbl">Sustainable Work</span><span class="mval" style="color: var(--ty-primary)">62%</span></div>
+            <div class="mrow"><span class="hint hintlbl">Recovery Ratio</span><span class="mval" style="color: var(--success)">1:1</span></div>
+            <div class="mrow"><span class="hint hintlbl">Day Profile</span><span class="mval" style="color: var(--ty-primary)">Cruise</span></div>
+            <div class="mrow"><span class="hint hintlbl">Avg Physical Diff</span><span class="mval" style="color: var(--ty-primary)">0/10</span></div>
+            <div class="mrow"><span class="hint hintlbl">Avg Mental Diff</span><span class="mval" style="color: var(--ty-primary)">5/10</span></div>
+            <div class="mrow"><span class="hint hintlbl">Avg Enjoyment</span><span class="mval" style="color: var(--ty-primary)">5/10</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

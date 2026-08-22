@@ -79,6 +79,13 @@ ever sees a story's REST state, so every hover fill's step and label contrast
 is measured there instead, over every theme × the 5 button variants that carry
 a hover fill (`link` carries none, so it is not measured).
 
+A component whose root is a `<tbody>` — both task rows, through
+`task-row-shell.svelte` — cannot be rendered bare: with no table around it every
+cell lays out as an inline box, so a visual or axe assertion reads the wrong DOM.
+Those stories set `render: template` in `defineMeta` and wrap the component once
+for the whole file (`{#snippet template(args: ComponentProps<typeof X>)}`, typed
+because a snippet referenced through a variable gets no contextual type).
+
 ## The five commands
 
 These define green, and CI (`.github/workflows/ci.yml`) runs all of them on
@@ -118,12 +125,20 @@ pass" means the file you ran; do not report a green tree you never saw. A
 change is not done until the five are green, but that gate is the user's to
 run, not the agent's to narrate.
 
-Two notes on `check`: it also type-checks `src/service-worker.ts` through
+Three notes on `check`. It also type-checks `src/service-worker.ts` through
 `tsconfig.worker.json`, because SvelteKit's generated tsconfig `exclude`s that
 file and it would otherwise never be checked. And `svelte.config.js` exists
 only so svelte-check and eslint compile in the same runes mode the build forces
 — `sveltekit()` takes its options inline in `vite.config.ts`, so the build
 ignores the file and says so. Keep `runes` in step across the two.
+
+The third is a trap in `messages/*.json`, not in code: **a message value must not
+end with `@`.** Paraglide inlines a no-input message's value into a JSDoc table
+(`| "Flow @" |`), where `@"` is an unterminated tag, so `check` fails inside
+generated code with `Identifier expected` at
+`src/lib/paraglide/messages/<key>.js`. A trailing space does not help — the value
+is trimmed before it is inlined. Mid-value is fine (`flow @ {flow}` has always
+shipped): only a `@` with no identifier after it breaks the parse.
 
 `lint` is seven checks, and four of them fail on prose rather than code:
 `math-index.mjs --check` on MATH.md's section index (R7 step 5),
