@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* Low-fi wireframe: structure only, in Fallow's own neutrals. */
+    :root {
+      --page: oklch(0.95 0.02 105);
+      --ink: oklch(0.31 0.045 130);
+      --pale: oklch(0.31 0.045 130 / 0.45);
+      --line: oklch(0.31 0.045 130 / 0.28);
+      --faint: oklch(0.31 0.045 130 / 0.1);
+      --go: oklch(0.55 0.11 130);
+      --warn: oklch(0.666 0.179 58.318);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    a { color: var(--go); } a:hover { color: oklch(0.44 0.1 128); }
+    p, h1, h2, h3, ul { margin: 0; padding: 0; }
+    ul { list-style: none; }
+    .cap-name { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+    .cap-line { font-size: 12px; color: var(--pale); }
+    .kick { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pale); }
+    .wf { border: 1px solid var(--line); border-radius: 10px; }
+    .dash { border: 1px dashed var(--line); border-radius: 10px; }
+    .bar { background: var(--faint); border-radius: 3px; }
+    .num { font-size: 11px; color: var(--pale); font-variant-numeric: tabular-nums; }
+    .qrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--faint); }
+  </style>
+</helmet>
+
+<div style="width: 880px; padding: 32px; display: flex; flex-direction: column; gap: 22px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div class="cap-name">Direction C &mdash; One thing at a time</div>
+    <p class="cap-line"><strong style="color: var(--ink)">Why:</strong> it is a focus app, so the plan is a queue and not a table. The task you are on owns the screen, with the two readings that govern it &mdash; when flow arrives and when to stop &mdash; drawn against elapsed time.</p>
+    <p class="cap-line"><strong style="color: var(--ink)">Trade-off:</strong> the whole-day overview is gone at a glance; comparing tasks, or noticing that the day is 100% cognitive, needs the queue or the drawer opened.</p>
+  </div>
+
+  <div class="bar" style="height: 1px"></div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <div class="wf" style="display: flex; align-items: center; gap: 14px; padding: 6px 12px; border-radius: 999px">
+      <span style="font-weight: 600">Today</span>
+      <span class="cap-line">Calendar</span>
+      <span class="cap-line">Analytics</span>
+      <span class="cap-line">Energy Lab</span>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span class="cap-line">8h 15m budget &middot; 7h 15m planned</span>
+      <span class="cap-line" style="text-decoration: underline dotted var(--line); text-underline-offset: 3px">adjust</span>
+    </div>
+  </div>
+
+  <!-- the hero: the task the plan says to be on -->
+  <div class="wf" style="padding: 22px; background: oklch(1 0 0 / 0.5)">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20px">
+      <div style="min-width: 0">
+        <div class="kick" style="color: var(--go)">now &middot; #1 of 5</div>
+        <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin-top: 6px">Design Error boundary</div>
+        <div class="cap-line" style="margin-top: 4px">Cognitive &middot; mental 8 &middot; enjoyment 9 &middot; effort 4.1</div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-shrink: 0">
+        <div style="height: 34px; padding: 0 16px; border-radius: 9px; background: var(--go); color: #fff; display: flex; align-items: center; font-size: 13px; font-weight: 600">Start</div>
+        <div class="wf" style="height: 34px; padding: 0 14px; display: flex; align-items: center; font-size: 13px">Done</div>
+      </div>
+    </div>
+
+    <!-- flow arrives at 2h 14m, stop by 3h 55m, 2h 30m allocated -->
+    <div style="margin-top: 22px">
+      <div style="height: 8px; border-radius: 4px; background: var(--faint); position: relative">
+        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 63%; border-radius: 4px; background: oklch(0.31 0.045 130 / 0.18)"></div>
+        <div style="position: absolute; left: 57%; top: -5px; width: 2px; height: 18px; background: var(--go)"></div>
+        <div style="position: absolute; left: 100%; top: -5px; width: 2px; height: 18px; background: var(--warn)"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 8px">
+        <span class="num">0m</span>
+        <span class="num" style="color: var(--go)">flow @ 2h 14m</span>
+        <span class="num">planned 2h 30m</span>
+        <span class="num" style="color: var(--warn)">stop by 3h 55m</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- the rest of the queue, one line each -->
+  <div class="wf">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px">
+      <span class="kick">then</span>
+      <span class="num">4 tasks &middot; 4h 45m</span>
+    </div>
+    <div class="qrow">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+        <span class="num" style="width: 16px">#2</span>
+        <span style="font-weight: 500">Write the PDF solution</span>
+      </div>
+      <span class="num">1h 45m</span>
+    </div>
+    <div class="qrow">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+        <span class="num" style="width: 16px">#3</span>
+        <span style="font-weight: 500">review 1 PR API</span>
+      </div>
+      <span class="num">1h 30m</span>
+    </div>
+    <div class="qrow">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+        <span class="num" style="width: 16px">#4</span>
+        <span style="font-weight: 500">Review 1 PR APP</span>
+      </div>
+      <span class="num">1h 15m</span>
+    </div>
+    <div class="qrow">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+        <span class="num" style="width: 16px">#5</span>
+        <span style="font-weight: 500">Daily</span>
+      </div>
+      <span class="num">15m</span>
+    </div>
+    <div class="qrow" style="color: var(--pale)">
+      <span class="cap-line">+ add a task</span>
+      <span class="num">&nbsp;</span>
+    </div>
+  </div>
+
+  <!-- the 24 readings, as one line with a drawer -->
+  <div class="dash" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px">
+    <div style="display: flex; align-items: center; gap: 14px">
+      <span class="kick">day health</span>
+      <span style="font-size: 12px">Stable &middot; capacity 75% &middot; burnout 42%</span>
+      <span style="font-size: 12px; color: var(--warn)">&#9651; cognitive heavy 100% &middot; flow 1/5</span>
+    </div>
+    <span class="num">24 readings &#9662;</span>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

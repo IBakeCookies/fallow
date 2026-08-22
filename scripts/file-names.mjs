@@ -13,8 +13,11 @@ import { execFileSync } from 'node:child_process';
 const DIRS = ['src', 'e2e', 'scripts', '.storybook', 'docs', 'eval'];
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 // Names a tool dictates: SvelteKit's `+page` and `(app)` route syntax, dot
-// files and dot directories, and the uppercase `.md` rule files.
-const isExempt = (name) => /^[+(.]/.test(name) || name.endsWith('.md');
+// files and dot directories, the uppercase `.md` rule files, and `.dc.html`
+// design artboards — the design tool derives an artboard's name from the
+// filename and looks for `Main.dc.html` by name, so kebab-casing one renames
+// the artboard and loses the entry point.
+const isExempt = (name) => /^[+(.]/.test(name) || name.endsWith('.md') || name.endsWith('.dc.html');
 const CHECK = process.argv.includes('--check');
 
 // Untracked-but-not-ignored too: a new file is the case this exists for.

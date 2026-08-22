@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* Low-fi wireframe: structure only, in Fallow's own neutrals. */
+    :root {
+      --page: oklch(0.95 0.02 105);
+      --ink: oklch(0.31 0.045 130);
+      --pale: oklch(0.31 0.045 130 / 0.45);
+      --line: oklch(0.31 0.045 130 / 0.28);
+      --faint: oklch(0.31 0.045 130 / 0.1);
+      --go: oklch(0.55 0.11 130);
+      --warn: oklch(0.666 0.179 58.318);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    a { color: var(--go); } a:hover { color: oklch(0.44 0.1 128); }
+    p, h1, h2, h3, ul { margin: 0; padding: 0; }
+    ul { list-style: none; }
+    .cap-name { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+    .cap-line { font-size: 12px; color: var(--pale); }
+    .kick { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pale); }
+    .wf { border: 1px solid var(--line); border-radius: 10px; }
+    .dash { border: 1px dashed var(--line); border-radius: 10px; }
+    .bar { background: var(--faint); border-radius: 3px; }
+    .chip { display: flex; align-items: baseline; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12px; }
+    .blk { border: 1px solid var(--line); border-left: 3px solid var(--pale); border-radius: 8px; padding: 8px 10px; background: oklch(1 0 0 / 0.4); }
+    .clock { font-size: 11px; color: var(--pale); font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 880px; padding: 32px; display: flex; flex-direction: column; gap: 24px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div class="cap-name">Direction A &mdash; Plan first</div>
+    <p class="cap-line"><strong style="color: var(--ink)">Why:</strong> the page answers &ldquo;what do I do next&rdquo; before it answers anything else. One column, the plan drawn to scale in the hours it will actually take, and the 24 readings folded to four chips.</p>
+    <p class="cap-line"><strong style="color: var(--ink)">Trade-off:</strong> the dials you tune the day with are behind a click, so re-planning becomes two steps instead of one.</p>
+  </div>
+
+  <div class="bar" style="height: 1px"></div>
+
+  <div class="wf" style="display: flex; align-items: center; gap: 14px; padding: 6px 12px; border-radius: 999px; width: max-content">
+    <span style="font-weight: 600">Today</span>
+    <span class="cap-line">Calendar</span>
+    <span class="cap-line">Analytics</span>
+    <span class="cap-line">Energy Lab</span>
+  </div>
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span style="font-size: 22px; font-weight: 700">Fallow</span>
+      <span class="cap-line">0 / 5 done</span>
+    </div>
+    <div class="dash" style="padding: 6px 12px; font-size: 12px; color: var(--pale)">Load &middot; Save</div>
+  </div>
+
+  <!-- the whole budget as one editable sentence -->
+  <div class="wf" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px">
+    <span style="font-size: 13px"><strong>8.25h</strong> today &middot; 7.25h allocated &middot; 15m a switch &middot; mind 6h / body 6h</span>
+    <span class="cap-line" style="text-decoration: underline dotted var(--line); text-underline-offset: 3px">adjust</span>
+  </div>
+
+  <!-- the four readings that judge the day; everything else on the analytics page -->
+  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+    <span class="chip"><span class="kick">flow</span><span>1/5</span></span>
+    <span class="chip"><span class="kick">capacity</span><span>75%</span></span>
+    <span class="chip"><span class="kick">burnout</span><span>42%</span></span>
+    <span class="chip" style="border-color: var(--warn)"><span class="kick" style="color: var(--warn)">balance</span><span style="color: var(--warn)">cognitive 100%</span></span>
+    <span class="chip" style="border-style: dashed; color: var(--pale)">20 more &rarr;</span>
+  </div>
+
+  <!-- the plan, drawn to scale: block height IS the allocated time -->
+  <div>
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px">
+      <span class="kick">the run, to scale</span>
+      <span class="cap-line">7h 15m of 8h 15m</span>
+    </div>
+
+    <div style="display: flex; gap: 12px">
+      <div style="width: 46px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0">
+        <div class="clock" style="height: 85px">09:00</div>
+        <div class="clock" style="height: 60px">11:30</div>
+        <div class="clock" style="height: 51px">13:15</div>
+        <div class="clock" style="height: 43px">14:45</div>
+        <div class="clock" style="height: 9px">16:00</div>
+      </div>
+
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+        <div class="blk" style="height: 85px; border-left-color: var(--go); display: flex; flex-direction: column; justify-content: space-between">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+            <span style="font-weight: 600">Design Error boundary</span>
+            <span class="clock">2h 30m</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <div class="bar" style="height: 4px; flex: 1; position: relative">
+              <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 89%; background: var(--pale); border-radius: 3px"></div>
+              <div style="position: absolute; left: 89%; top: -3px; width: 2px; height: 10px; background: var(--warn)"></div>
+            </div>
+            <span class="clock">flow 2h 14m &middot; stop 3h 55m</span>
+          </div>
+        </div>
+
+        <div class="blk" style="height: 60px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px">
+          <div>
+            <div style="font-weight: 600">Write the PDF solution</div>
+            <div class="clock">flow 1h 49m</div>
+          </div>
+          <span class="clock">1h 45m</span>
+        </div>
+
+        <div class="blk" style="height: 51px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px">
+          <div>
+            <div style="font-weight: 600">review 1 PR API</div>
+            <div class="clock">flow 1h 39m</div>
+          </div>
+          <span class="clock">1h 30m</span>
+        </div>
+
+        <div class="blk" style="height: 43px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px">
+          <div>
+            <div style="font-weight: 600">Review 1 PR APP</div>
+            <div class="clock">flow 1h 41m</div>
+          </div>
+          <span class="clock">1h 15m</span>
+        </div>
+
+        <div class="blk" style="height: 22px; padding: 2px 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px">
+          <span style="font-weight: 600; font-size: 12px">Daily</span>
+          <span class="clock">15m</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px">
+    <span class="cap-line">Next 15 min &rarr; Write the PDF solution &middot; +0.9% plan value</span>
+    <span class="cap-line">adjust the plan &rarr;</span>
+  </div>
+
+  <div class="dash" style="padding: 10px 14px; color: var(--pale); font-size: 12px">+ add a task</div>
+</div>
+</x-dc>
+</body>
+</html>

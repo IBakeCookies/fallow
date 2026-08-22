@@ -444,7 +444,12 @@ have to be re-derived:
   costs 0.00% median. Order is settled (§16) and `Σ P̄` is order-invariant
   anyway; time-of-day already has `createdAt` and §8.3 declines circadian until
   there is an instrument. Highest cost in the batch (R8 + a timer store + a
-  backup bump) for no plan-value number.
+  backup bump) for no plan-value number. **Built 2026-08-22 anyway, on the one
+  clause this never priced**: it costed recall ACCURACY, not how often a 🪫 log
+  gets written at all, and λ₀ (§8.10), the §12 audit and §11.9 carry-over reach a
+  day only through one. The quoted cost turned out avoidable and no plan-value
+  number is claimed —
+  [the-session-nobody-was-timing.md](docs/features/the-session-nobody-was-timing.md).
 - **Enjoyment inference of any kind** (revealed dread, completion-order
   regression). **The figure this was rejected on was mis-scoped** (see the phase
   framing): 0.052% is one point on one task, not the channel. A β oracle is worth

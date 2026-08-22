@@ -1,0 +1,234 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* Low-fi wireframe: structure only, in Fallow's own neutrals. */
+    :root {
+      --page: oklch(0.95 0.02 105);
+      --ink: oklch(0.31 0.045 130);
+      --pale: oklch(0.31 0.045 130 / 0.45);
+      --line: oklch(0.31 0.045 130 / 0.28);
+      --faint: oklch(0.31 0.045 130 / 0.1);
+      --go: oklch(0.55 0.11 130);
+      --warn: oklch(0.666 0.179 58.318);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    a { color: var(--go); } a:hover { color: oklch(0.44 0.1 128); }
+    p, h1, h2, h3, ul { margin: 0; padding: 0; }
+    ul { list-style: none; }
+    .cap-name { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+    .cap-line { font-size: 12px; color: var(--pale); }
+    .kick { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pale); }
+    .wf { border: 1px solid var(--line); border-radius: 10px; }
+    .dash { border: 1px dashed var(--line); border-radius: 10px; }
+    .bar { background: var(--faint); border-radius: 3px; }
+    .rail { display: flex; flex-direction: column; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .stub { height: 28px; border: 1px solid var(--line); border-radius: 8px; background: oklch(1 0 0 / 0.5); display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-size: 12px; }
+    .trk { height: 3px; background: var(--faint); border-radius: 3px; position: relative; }
+    .thm { position: absolute; top: -4px; width: 11px; height: 11px; border-radius: 999px; background: var(--pale); }
+    .row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--faint); }
+    .num { font-size: 11px; color: var(--pale); font-variant-numeric: tabular-nums; }
+    .read { display: flex; align-items: baseline; justify-content: space-between; padding: 5px 0; font-size: 12px; }
+  </style>
+</helmet>
+
+<div style="width: 880px; padding: 32px; display: flex; flex-direction: column; gap: 22px">
+
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div class="cap-name">Direction B &mdash; Cockpit</div>
+    <p class="cap-line"><strong style="color: var(--ink)">Why:</strong> three different jobs happen on this page &mdash; set the constraints, read the plan, judge the day. Each gets a fixed rail, so opening the budget or adding a task never pushes the plan down the screen.</p>
+    <p class="cap-line"><strong style="color: var(--ink)">Trade-off:</strong> it needs a wide screen to work at all, and the left rail sits idle for most of the day after the morning setup.</p>
+  </div>
+
+  <div class="bar" style="height: 1px"></div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <div class="wf" style="display: flex; align-items: center; gap: 14px; padding: 6px 12px; border-radius: 999px">
+      <span style="font-weight: 600">Today</span>
+      <span class="cap-line">Calendar</span>
+      <span class="cap-line">Analytics</span>
+      <span class="cap-line">Energy Lab</span>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span style="font-size: 20px; font-weight: 700">Fallow</span>
+      <span class="cap-line">0 / 5</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr) 190px; gap: 20px; align-items: start">
+
+    <!-- rail 1: the constraints -->
+    <div class="rail">
+      <div class="kick">the day you have</div>
+      <div class="field">
+        <span class="cap-line">Available</span>
+        <div class="stub"><span>8.25</span><span class="num">hrs</span></div>
+        <div class="trk"><div class="thm" style="left: 47%"></div></div>
+        <span class="num">7h 15m allocated &middot; 1h free</span>
+      </div>
+      <div class="field">
+        <span class="cap-line">Switch cost</span>
+        <div class="stub"><span>15</span><span class="num">min</span></div>
+      </div>
+      <div class="field">
+        <span class="cap-line">Mind / body capacity</span>
+        <div style="display: flex; gap: 8px">
+          <div class="stub" style="flex: 1"><span>6</span><span class="num">h</span></div>
+          <div class="stub" style="flex: 1"><span>6</span><span class="num">h</span></div>
+        </div>
+      </div>
+      <div class="dash" style="padding: 8px 10px">
+        <div class="num">Model fitted from 4 &#9889; logs</div>
+      </div>
+
+      <div class="bar" style="height: 1px; margin-top: 4px"></div>
+
+      <div class="kick">add work</div>
+      <div class="field">
+        <div class="stub" style="color: var(--pale)"><span>Task title</span></div>
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div class="trk"><div class="thm" style="left: 46%"></div></div>
+          <div class="trk"><div class="thm" style="left: 46%"></div></div>
+          <div class="trk"><div class="thm" style="left: 40%"></div></div>
+        </div>
+        <div style="height: 28px; border-radius: 8px; background: var(--go); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">Deploy</div>
+      </div>
+    </div>
+
+    <!-- rail 2: the plan itself, nothing else -->
+    <div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px">
+        <span class="kick">the run order</span>
+        <span class="num">next: Write the PDF solution</span>
+      </div>
+
+      <div class="row" style="border-top: none">
+        <div style="display: flex; gap: 9px; min-width: 0">
+          <span class="num" style="width: 16px">#1</span>
+          <div>
+            <div style="font-weight: 600">Design Error boundary</div>
+            <div class="num">COG &middot; M 8 &middot; E 9 &middot; flow @ 2h 14m &middot; stop by 3h 55m</div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0">
+          <div style="font-weight: 600">2h 30m</div>
+          <div class="num">prio 25.3</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="display: flex; gap: 9px; min-width: 0">
+          <span class="num" style="width: 16px">#2</span>
+          <div>
+            <div style="font-weight: 600">Write the PDF solution</div>
+            <div class="num">COG &middot; M 6 &middot; E 7 &middot; flow @ 1h 49m</div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0">
+          <div style="font-weight: 600">1h 45m</div>
+          <div class="num">prio 18.5</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="display: flex; gap: 9px; min-width: 0">
+          <span class="num" style="width: 16px">#3</span>
+          <div>
+            <div style="font-weight: 600">review 1 PR API</div>
+            <div class="num">COG &middot; M 5 &middot; E 4 &middot; flow @ 1h 39m</div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0">
+          <div style="font-weight: 600">1h 30m</div>
+          <div class="num">prio 13.4</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="display: flex; gap: 9px; min-width: 0">
+          <span class="num" style="width: 16px">#4</span>
+          <div>
+            <div style="font-weight: 600">Review 1 PR APP</div>
+            <div class="num">COG &middot; M 5 &middot; E 3 &middot; flow @ 1h 41m</div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0">
+          <div style="font-weight: 600">1h 15m</div>
+          <div class="num">prio 12.3</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="display: flex; gap: 9px; min-width: 0">
+          <span class="num" style="width: 16px">#5</span>
+          <div>
+            <div style="font-weight: 600">Daily</div>
+            <div class="num">COG &middot; M 2 &middot; E 2 &middot; flow @ 1h</div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0">
+          <div style="font-weight: 600">15m</div>
+          <div class="num">prio 9.1</div>
+        </div>
+      </div>
+
+      <div class="dash" style="margin-top: 14px; padding: 10px 12px">
+        <div class="kick" style="margin-bottom: 5px">adjust the plan</div>
+        <div class="num">Energy Balance &mdash; Cognitive Heavy 100%. No task move and no budget change improves this.</div>
+      </div>
+    </div>
+
+    <!-- rail 3: the verdict on the day -->
+    <div class="rail" style="gap: 10px">
+      <div class="kick">how the day reads</div>
+      <div class="wf" style="padding: 8px 10px">
+        <div class="cap-line">Momentum</div>
+        <div style="font-size: 15px; font-weight: 600">Stable</div>
+      </div>
+      <div class="wf" style="padding: 8px 10px">
+        <div class="cap-line">Flow coverage</div>
+        <div style="font-size: 15px; font-weight: 600; color: var(--warn)">1 / 5</div>
+      </div>
+      <div class="wf" style="padding: 8px 10px">
+        <div class="cap-line">Human capacity</div>
+        <div style="font-size: 15px; font-weight: 600; color: var(--go)">75%</div>
+      </div>
+      <div class="wf" style="padding: 8px 10px">
+        <div class="cap-line">Burnout risk</div>
+        <div style="font-size: 15px; font-weight: 600">42%</div>
+      </div>
+      <div class="wf" style="padding: 8px 10px">
+        <div class="cap-line">Completion</div>
+        <div style="font-size: 15px; font-weight: 600">0%</div>
+      </div>
+
+      <div class="bar" style="height: 1px; margin: 4px 0"></div>
+      <div class="read"><span class="cap-line">Cognitive load</span><span>54%</span></div>
+      <div class="read"><span class="cap-line">Deep work</span><span>28%</span></div>
+      <div class="read"><span class="cap-line">Schedule integrity</span><span>88%</span></div>
+      <div class="read"><span class="cap-line">Day profile</span><span>Cruise</span></div>
+      <div class="dash" style="padding: 7px 10px; text-align: center">
+        <span class="num">17 more &rarr;</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
