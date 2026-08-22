@@ -30,6 +30,7 @@
 @import './foliage.css';
 @import './circuit.css';
 @import './weathervane.css';
+@import './understory.css';
 
 .theme-scenery {
 	display: none;

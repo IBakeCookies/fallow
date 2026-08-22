@@ -288,6 +288,7 @@ export function sceneryStyle(seed: number): string {
 	const dunes = themeRandom(seed, 'dunes');
 	const sw = themeRandom(seed, 'synthwave');
 	const polaris = themeRandom(seed, 'polaris');
+	const understory = themeRandom(seed, 'understory');
 
 	const vars: Record<string, string> = {
 		/* abyss: glows wander via transform, so both position axes are free;
@@ -381,6 +382,19 @@ export function sceneryStyle(seed: number): string {
 		/* polaris: the field-star tile is static (both axes free, 30×24rem);
 		   constellations and trails are fixed geometry, never offset */
 		'--polaris-stars': polaris.tile(30, 24),
+
+		/* understory: the dapple tile is static (both axes free, 34×28rem);
+		   the fireflies wander via transform, so their position is free and
+		   drift/breathe are desynced per layer by negative delays (abyss's
+		   mechanism) */
+		'--understory-dapple': understory.tile(34, 28),
+		'--understory-pos': `${understory.rem(-8, 8)} ${understory.rem(-6, 6)}`,
+		'--understory-drift-1': understory.sec(-46, 0),
+		'--understory-breathe-1': understory.sec(-11, 0),
+		'--understory-drift-2': understory.sec(-54, 0),
+		'--understory-breathe-2': understory.sec(-13, 0),
+		'--understory-drift-3': understory.sec(-49, 0),
+		'--understory-breathe-3': understory.sec(-10, 0),
 	};
 
 	return Object.entries(vars)
