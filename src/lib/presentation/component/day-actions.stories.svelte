@@ -2,7 +2,8 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn, waitFor, within } from 'storybook/test';
 	import type { DailySession, SavedRoutine, Task } from '$lib/business/type';
-	import PageHeader from '$lib/presentation/component/page-header.svelte';
+	import type { SessionTimer } from '$lib/presentation/utils/session-timer';
+	import DayActions from '$lib/presentation/component/day-actions.svelte';
 
 	const task = (id: number, title: string): Task => ({
 		id,
@@ -21,6 +22,17 @@
 		switchCost: 0.25,
 		updatedAt: 1,
 	};
+
+	// Stopped with time on it, as the page reads it back after a reload: the reading
+	// is waiting for a 🪫 editor and nothing has been logged.
+	const stoppedTimer: SessionTimer = {
+		phase: 'stopped',
+		startedOn: '2026-07-20',
+		runningSince: null,
+		accumulatedMs: 45 * 60_000,
+	};
+
+	const pendingLine = 'waiting for a 🪫 drain rating';
 
 	const routines: SavedRoutine[] = [
 		{
@@ -47,18 +59,16 @@
 		waitFor(() => expect(getComputedStyle(el).pointerEvents).not.toBe('none'));
 
 	const { Story } = defineMeta({
-		title: 'Component/Page Header',
-		component: PageHeader,
+		title: 'Component/Day Actions',
+		component: DayActions,
 		tags: ['autodocs'],
 		args: {
-			completedTasks: 1,
-			totalTasks: 3,
 			selectedDate: '2026-07-20',
 			today: '2026-07-20',
 			yesterdaySession: null,
 			routines: [],
 			currentTasks: [],
-			ondatechange: fn(),
+			timer: null,
 			onimport: fn(),
 			onimportdate: fn(() => Promise.resolve(0)),
 			onsaveroutine: fn(),
@@ -72,15 +82,6 @@
 <Story
 	name="Today, empty"
 	play={async ({ args, canvas, canvasElement, userEvent }) => {
-		await expect(
-			canvas.getByRole('heading', {
-				name: 'Fallow',
-			}),
-		).toBeInTheDocument();
-
-		await expect(canvas.getByText(/tasks/)).toBeInTheDocument();
-		await expect(canvas.getByText('1')).toBeInTheDocument();
-
 		// Load stays available even with nothing saved — any past day can be
 		// imported by date. Save has nothing to offer.
 		const load = canvas.getByRole('button', {
@@ -262,18 +263,16 @@
 	}}
 />
 
-<!-- A past day hides both import menus — even with things to load and save —
-     and offers the return-to-today button -->
+<!-- A past day hides both import menus — even with things to load and save -->
 <Story
 	name="Viewing a past day"
 	args={{
 		selectedDate: '2026-07-14',
-		completedTasks: 3,
 		yesterdaySession,
 		routines,
 		currentTasks: [task(3, 'now')],
 	}}
-	play={async ({ args, canvas, userEvent }) => {
+	play={async ({ canvas }) => {
 		await expect(
 			canvas.queryByRole('button', {
 				name: 'Load',
@@ -285,15 +284,6 @@
 				name: 'Save',
 			}),
 		).not.toBeInTheDocument();
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Return to Today',
-			}),
-		);
-
-		await expect(args.ondatechange).toHaveBeenCalledTimes(1);
-		await expect(args.ondatechange).toHaveBeenCalledWith('2026-07-20');
 	}}
 />
 
@@ -315,6 +305,14 @@
 		const body = within(canvasElement.ownerDocument.body);
 		await waitFor(() => expect(body.getByLabelText('Load from a day')).toBeVisible());
 		await expect(body.queryByText(/Yesterday/)).not.toBeInTheDocument();
+
+		// Load and Save read on a day being planned; a 🪫 measurement is today's alone,
+		// so the timer that fills one is too.
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Start timer',
+			}),
+		).not.toBeInTheDocument();
 
 		await userEvent.keyboard('{Escape}');
 		await waitFor(() => expect(body.queryByRole('menu')).not.toBeInTheDocument());
@@ -388,5 +386,135 @@
 		await expect(args.onsaveroutine).toHaveBeenCalledTimes(1);
 		await expect(args.onsaveroutine).toHaveBeenCalledWith('Deep work');
 		await waitFor(() => expect(body.queryByRole('menu')).not.toBeInTheDocument());
+	}}
+/>
+
+<!-- The day's timer: start, pause, stop. Stopping logs nothing — it leaves the
+     minutes for the next 🪫 editor to open with. -->
+<Story
+	name="Timer, not started"
+	play={async ({ canvas, userEvent }) => {
+		// Nothing is waiting on an idle or a running clock, so the line that says
+		// what a reading waits for belongs to neither.
+		await expect(canvas.queryByText(pendingLine)).not.toBeInTheDocument();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Start timer',
+			}),
+		);
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Pause timer',
+			}),
+		).toBeInTheDocument();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Stop timer',
+			}),
+		).toBeInTheDocument();
+
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Start timer',
+			}),
+		).not.toBeInTheDocument();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Pause timer',
+			}),
+		);
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Resume timer',
+			}),
+		).toBeInTheDocument();
+
+		await expect(canvas.queryByText(pendingLine)).not.toBeInTheDocument();
+	}}
+/>
+
+<!-- A reading nobody wants: discarding it is the way back to a fresh timer, and
+     the only way — a stopped timer offers no Start of its own. -->
+<Story
+	name="A stopped reading"
+	args={{
+		timer: stoppedTimer,
+	}}
+	play={async ({ canvas, userEvent }) => {
+		await expect(canvas.getByText('45m')).toBeInTheDocument();
+
+		// The minutes alone say nothing about what holds them here.
+		await expect(canvas.getByText(pendingLine)).toBeVisible();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Discard timed session',
+			}),
+		);
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Start timer',
+			}),
+		).toBeInTheDocument();
+
+		await expect(canvas.queryByText(pendingLine)).not.toBeInTheDocument();
+	}}
+/>
+
+<!-- Every phase change keeps the keyboard on the control that made it: both buttons
+     outlive the transition they trigger, so Enter on Start does not drop focus to
+     <body> and send the next Tab back to the top of the document. -->
+<Story
+	name="The timer keeps the keyboard"
+	play={async ({ canvas, canvasElement, userEvent }) => {
+		canvas
+			.getByRole('button', {
+				name: 'Start timer',
+			})
+			.focus();
+
+		await userEvent.keyboard('{Enter}');
+
+		const pause = await waitFor(() =>
+			canvas.getByRole('button', {
+				name: 'Pause timer',
+			}),
+		);
+
+		await expect(canvasElement.ownerDocument.activeElement).toBe(pause);
+
+		await userEvent.keyboard('{Enter}');
+
+		await expect(canvasElement.ownerDocument.activeElement).toBe(
+			await waitFor(() =>
+				canvas.getByRole('button', {
+					name: 'Resume timer',
+				}),
+			),
+		);
+
+		// The terminal control is one button too: stopping leaves the keyboard on
+		// the Discard the same press produced.
+		canvas
+			.getByRole('button', {
+				name: 'Stop timer',
+			})
+			.focus();
+
+		await userEvent.keyboard('{Enter}');
+
+		await expect(canvasElement.ownerDocument.activeElement).toBe(
+			await waitFor(() =>
+				canvas.getByRole('button', {
+					name: 'Discard timed session',
+				}),
+			),
+		);
 	}}
 />

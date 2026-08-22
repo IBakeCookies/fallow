@@ -105,6 +105,7 @@
 			mind: 6,
 			body: 2,
 		},
+		focusMinutes: true,
 		onsave: fn(),
 		oncancel: fn(),
 		ondelete: fn(),
@@ -113,6 +114,10 @@
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
 		await expect(canvas.getByLabelText('Mind')).toHaveValue(6);
 		await expect(canvas.getByLabelText('Body')).toHaveValue(2);
+
+		// Nothing here is still open, so the caret stays on the length — landing it on a
+		// rating that already reads 6 would turn a corrected 7 into 67
+		await expect(canvas.getByPlaceholderText('min')).toHaveFocus();
 
 		// Whether 🗑 is offered is the caller's call, not re-derived from `seed` here,
 		// and it is named — the emoji alone tells a screen reader nothing
@@ -136,5 +141,25 @@
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByPlaceholderText('min')).toHaveFocus();
+	}}
+/>
+
+<!-- Opened on a stopped timer's reading: the length is already measured, so the caret
+     goes to the first question still open. A focused field holding 45 would turn the
+     first rating keystroke into 456. -->
+<Story
+	name="Opened with the timed minutes"
+	args={{
+		seed: {
+			minutes: 45,
+			mind: null,
+			body: null,
+		},
+		focusMinutes: true,
+		onsave: fn(),
+		oncancel: fn(),
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByLabelText('Mind')).toHaveFocus();
 	}}
 />

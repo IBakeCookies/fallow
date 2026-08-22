@@ -3,12 +3,15 @@
 	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
 	import { cn } from '$lib/presentation/utils';
 	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
+	import { formatClock, parseClock } from '$lib/presentation/utils/duration-format';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
 	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 
 	interface Props {
 		availableHours: number;
 		switchCost: number;
+		/** Already resolved: the page applies the presentation default. */
+		startHour: number;
 		cognitivePool: number;
 		physicalPool: number;
 		remainingSuggestedHours: string;
@@ -29,6 +32,7 @@
 	let {
 		availableHours = $bindable(),
 		switchCost = $bindable(),
+		startHour = $bindable(),
 		cognitivePool = $bindable(),
 		physicalPool = $bindable(),
 		remainingSuggestedHours,
@@ -122,6 +126,17 @@
 	function updateSwitchCost(minutes: number) {
 		switchCost = minutes / 60;
 	}
+
+	function onStartHourChange(event: Event & { currentTarget: HTMLInputElement }) {
+		const hours = parseClock(event.currentTarget.value);
+
+		// A cleared field is not an answer — there is no day without a start. The
+		// value has to go back on the DOM node: nothing changed, so the `value`
+		// attribute is not re-rendered and the field would sit blank over a start
+		// time the strip is still drawing.
+		if (hours === null) event.currentTarget.value = formatClock(startHour);
+		else startHour = hours;
+	}
 </script>
 
 <div class="card-shell px-box-md py-box-sm sm:px-box-xl">
@@ -151,8 +166,8 @@
 	{/if}
 
 	{#if open}
-		<!-- The bar spans both page columns, so all four fit on one row from lg up. -->
-		<div class="mt-text-md grid gap-x-grid-xl gap-y-text-lg sm:grid-cols-2 lg:grid-cols-4">
+		<!-- The bar spans both page columns, so all five fit on one row from lg up. -->
+		<div class="mt-text-md grid gap-x-grid-xl gap-y-text-lg sm:grid-cols-2 lg:grid-cols-5">
 			<div>
 				<label for="available-hours" class="mb-text-2xs block text-xs text-ty-silent">
 					{m.budget_available_hours()}
@@ -195,6 +210,20 @@
 						})}
 					</p>
 				{/if}
+			</div>
+
+			<div>
+				<label for="day-start" class="mb-text-2xs block text-xs text-ty-silent">
+					{m.budget_day_start()}
+				</label>
+				<input
+					id="day-start"
+					type="time"
+					value={formatClock(startHour)}
+					onchange={onStartHourChange}
+					class="w-full rounded-lg border border-line-strong bg-input px-box-2xs py-2 text-sm text-ty-primary outline-none focus:ring-1 focus:ring-brand"
+				/>
+				<p class="mt-text-xs text-xs text-ty-silent">{m.budget_day_start_hint()}</p>
 			</div>
 
 			<div>
