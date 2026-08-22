@@ -171,7 +171,7 @@
 				{today} &middot; {weekday}
 			</span>
 			<DropdownMenu.Root>
-				<DropdownMenu.Trigger variant="ghost" aria-label={m.nav_switch_language()}>
+				<DropdownMenu.Trigger aria-label={m.nav_switch_language()}>
 					<Languages class="h-4 w-4 shrink-0" />
 					<span class="hidden sm:inline">{localeLabel(activeLocale.value)}</span>
 				</DropdownMenu.Trigger>
