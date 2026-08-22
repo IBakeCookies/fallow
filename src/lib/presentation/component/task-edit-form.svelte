@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/presentation/component/ui/button';
+	import MustDoToggle from '$lib/presentation/component/must-do-toggle.svelte';
 	import TaskFormFields, {
 		type TaskEdit,
 	} from '$lib/presentation/component/task-form-fields.svelte';
@@ -45,16 +46,21 @@
 		/>
 	</label>
 
-	<TaskFormFields bind:draft {withMustDoToday}>
-		{#snippet footer()}
-			<span class="flex items-center gap-grid-xs">
-				<Button variant="ghost" size="xs" type="button" onclick={oncancel}>
-					{m.common_cancel()}
-				</Button>
-				<Button size="xs" type="submit" disabled={!draft.title.trim()}>
-					{m.common_save()}
-				</Button>
-			</span>
-		{/snippet}
-	</TaskFormFields>
+	<TaskFormFields bind:draft />
+
+	<!-- `justify-end` with the flag pushed out by its own margin, so the buttons keep their
+	     corner in the mode that has no flag to show. -->
+	<div class="flex flex-wrap items-center justify-end gap-grid-sm">
+		{#if withMustDoToday}
+			<MustDoToggle bind:mustDoToday={draft.mustDoToday} size="xs" class="mr-auto" />
+		{/if}
+		<span class="flex items-center gap-grid-xs">
+			<Button variant="ghost" size="xs" type="button" onclick={oncancel}>
+				{m.common_cancel()}
+			</Button>
+			<Button size="xs" type="submit" disabled={!draft.title.trim()}>
+				{m.common_save()}
+			</Button>
+		</span>
+	</div>
 </form>

@@ -148,7 +148,7 @@
 		await expect(title).toHaveValue('');
 
 		// The flag stops the advisor moving a task that cannot move, so it must survive the submit
-		const mustDo = canvas.getByLabelText("Don't move off today");
+		const mustDo = canvas.getByLabelText('Keep on today');
 		await userEvent.type(title, 'Tax return');
 		await userEvent.click(mustDo);
 		await userEvent.click(deploy);
@@ -276,7 +276,7 @@
 	}}
 	play={async ({ canvas, userEvent }) => {
 		const title = canvas.getByLabelText('Task Definition');
-		const mustDo = canvas.getByLabelText("Don't move off today");
+		const mustDo = canvas.getByLabelText('Keep on today');
 
 		const physical = canvas.getByRole('slider', {
 			name: /Physical Diff/,
@@ -525,7 +525,7 @@
 		withMustDoToday: false,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
-		await expect(canvas.queryByLabelText("Don't move off today")).not.toBeInTheDocument();
+		await expect(canvas.queryByLabelText('Keep on today')).not.toBeInTheDocument();
 
 		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Deep work');
 
@@ -542,5 +542,36 @@
 			enjoyment: 5,
 			mustDoToday: false,
 		});
+	}}
+/>
+
+<!-- Deploy shares the title's row but is reached last, because the sliders sit between
+     them in the DOM and only `order-*` moves it up. A positive `tabindex` cannot do
+     this: it would hoist the field ahead of every `tabindex=0` element on the page. -->
+<Story
+	name="The sliders are tabbed before Deploy"
+	play={async ({ canvas, userEvent }) => {
+		const expected = [
+			canvas.getByLabelText('Keep on today'),
+			canvas.getByRole('slider', {
+				name: /Physical Diff/,
+			}),
+			canvas.getByRole('slider', {
+				name: /Mental Diff/,
+			}),
+			canvas.getByRole('slider', {
+				name: /Enjoyment/,
+			}),
+			canvas.getByRole('button', {
+				name: 'Deploy Task',
+			}),
+		];
+
+		canvas.getByLabelText('Task Definition').focus();
+
+		for (const control of expected) {
+			await userEvent.tab();
+			await expect(control).toHaveFocus();
+		}
 	}}
 />

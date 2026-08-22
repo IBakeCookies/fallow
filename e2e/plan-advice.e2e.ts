@@ -22,7 +22,7 @@ async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
 	await form.getByLabel(/Physical Diff/).fill('2');
 	await form.getByLabel(/Enjoyment/).fill('1');
 
-	if (mustDoToday) await form.getByLabel("Don't move off today").check();
+	if (mustDoToday) await form.getByLabel('Keep on today').check();
 
 	await form
 		.getByRole('button', {

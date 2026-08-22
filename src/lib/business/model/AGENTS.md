@@ -442,7 +442,7 @@ allocator never sees it, so a flagged task can still be funded zero.
 `unfundedMustDoTaskIds` beside `unfundedTaskIds` — and the card gives it its own
 warning-coloured line, because the plain unfunded sentence reads as something
 the menu below can fix and for these tasks there is no lever left. The badge is
-worded "Stays today" and the checkbox "Don't move off today" for the same
+worded "Stays today" and the checkbox "Keep on today" for the same
 reason: "Must do" beside `0m` reads as a promise the model never made.
 
 ### The productivity curve deviates from the source article on purpose

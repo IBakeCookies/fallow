@@ -263,7 +263,7 @@
 	"advice_destination": "明天：{count} 项任务，可用 {hours}——其中 {funded} 项分到了小时数。",
 	"advice_destination_one": "明天：1 项任务，可用 {hours}——{funded} 项分到了小时数。",
 	"advice_destination_empty": "明天：还没有安排，可用 {hours}。",
-	"form_must_do_today": "不要移出今天",
+	"form_must_do_today": "保留在今天",
 	"form_must_do_today_title": "顾问永远不会建议把这项任务移出今天。但它也不会为此预留小时数。",
 	"task_must_do_badge": "留在今天",
 	"task_slide_badge": "第 {day} 天",

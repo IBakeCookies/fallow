@@ -355,16 +355,19 @@
 
           <!-- task-form.svelte, open (the add form lives inside the list card) -->
           <div style="padding-bottom: 16px">
-            <form style="display: flex; flex-direction: column; gap: 20px; border-radius: 22.4px; border: 1px solid var(--line-soft); padding: 16px">
-              <div style="display: flex; align-items: flex-start; gap: 12px">
-                <label style="flex: 1; min-width: 0">
-                  <span style="display: block; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ty-secondary)">Task Definition</span>
-                  <div style="margin-top: 8px; width: 100%; border-radius: 16px; border: 1px solid var(--border); background: var(--input); padding: 10px 16px; font-size: 14px; line-height: 20px; color: var(--ty-silent)">e.g., Boxing training</div>
-                </label>
-                <span style="flex-shrink: 0; font-size: 18px; line-height: 1; color: var(--ty-silent)">&#9652;</span>
-              </div>
+            <form style="position: relative; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 12px; border-radius: 22.4px; border: 1px solid var(--line-soft); padding: 16px">
+              <label style="flex: 1 1 0; min-width: 0">
+                <span style="display: block; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ty-secondary)">Task Definition</span>
+                <div style="margin-top: 8px; width: 100%; border-radius: 16px; border: 1px solid var(--border); background: var(--input); padding: 10px 16px; font-size: 14px; line-height: 20px; color: var(--ty-silent)">e.g., Boxing training</div>
+              </label>
 
-              <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+              <!-- must-do-toggle.svelte, unset: Button variant=outline size=default over a checkbox -->
+              <span style="display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 10px; border-radius: 12.8px; border: 1px solid var(--border); background: var(--input); backdrop-filter: blur(32px); font-size: 14px; font-weight: 500; color: var(--ty-primary)">Keep on today</span>
+              <span class="btn-primary">Deploy Task</span>
+
+              <span style="position: absolute; top: 4px; right: 4px; font-size: 18px; line-height: 1; color: var(--ty-silent)">&#9652;</span>
+
+              <div style="width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
                 <label style="display: block">
                   <span style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; font-weight: 500">
                     <span style="color: var(--ty-secondary)">Physical Diff</span>
@@ -392,14 +395,6 @@
                     <div class="thumb" style="left: calc(44% - 8px); background: var(--brand)"></div>
                   </div>
                 </label>
-              </div>
-
-              <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px">
-                <label style="margin-right: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ty-secondary)">
-                  <span style="width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border); background: var(--input)"></span>
-                  <span>Don't move off today</span>
-                </label>
-                <span class="btn-primary">Deploy Task</span>
               </div>
             </form>
           </div>
