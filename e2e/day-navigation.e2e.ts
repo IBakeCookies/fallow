@@ -173,14 +173,13 @@ test('a rollover drops a timer left running overnight', async ({ page }) => {
 });
 
 /* The day strip is not a today-only reading — a past day draws the plan it was
-   made under, and offers no field to re-anchor it. Seeded through the clock,
-   since the only way onto a read-only day is to plan it while it is today. */
+   made under. Seeded through the clock, since the only way onto a read-only day
+   is to plan it while it is today. */
 test('a past day draws the strip it was planned under', async ({ page }) => {
 	await page.clock.install();
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await setBudget(page, 8);
-	await page.getByLabel('Day Starts').fill('07:30');
 
 	// The autosave debounce runs on the page's own clock, which is now faked.
 	await page.clock.runFor(AUTOSAVE_MS);
@@ -189,8 +188,6 @@ test('a past day draws the strip it was planned under', async ({ page }) => {
 	await page.clock.fastForward('25:00:00');
 	await page.goto(`/?date=${isoDate(0)}`);
 	await expect(page.getByText('Viewing a past day:')).toBeVisible();
-
-	await expect(page.getByText('from 07:30')).toBeVisible();
 
 	// The strip is what has to redraw, so assert the block inside it — the ledger
 	// row would read the same on a day that funded nothing.
@@ -202,39 +199,16 @@ test('a past day draws the strip it was planned under', async ({ page }) => {
 	});
 
 	await expect(timeline.getByText('#1 Deep work')).toBeVisible();
-	await expect(page.getByLabel('Day Starts')).toHaveCount(0);
+
+	// The strip carries no time of day, on a past day as on today.
+	await expect(timeline.getByText(/\d{2}:\d{2}/)).toHaveCount(0);
 
 	// A past day saves its completions as a WHOLE record, so every field that
-	// write does not carry is a field it erases — the day's start included.
+	// write does not carry is a field it erases — the budget the strip is drawn
+	// against included.
 	await taskRow(page, 'Deep work').getByRole('checkbox').check();
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
-	await expect(page.getByText('from 07:30')).toBeVisible();
-});
-
-/* The clock is a label, not a reading the strip can derive: a day that stored no
-   start gets no time printed on it, and no field to correct one either. */
-test('a past day that stored no start draws the strip without a clock', async ({ page }) => {
-	await page.clock.install();
-	await page.goto('/');
-	await addTask(page, 'Deep work');
-	await setBudget(page, 8);
-
-	await page.clock.runFor(AUTOSAVE_MS);
-	await page.waitForTimeout(AUTOSAVE_MS);
-
-	await page.clock.fastForward('25:00:00');
-	await page.goto(`/?date=${isoDate(0)}`);
-	await expect(page.getByText('Viewing a past day:')).toBeVisible();
-
-	const timeline = page.locator('section').filter({
-		has: page.getByRole('heading', {
-			name: 'The day',
-			exact: true,
-		}),
-	});
-
 	await expect(timeline.getByText('#1 Deep work')).toBeVisible();
-	await expect(timeline.getByText(/\d{2}:\d{2}/)).toHaveCount(0);
 });

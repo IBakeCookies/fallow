@@ -4,24 +4,15 @@
 	import type { DayTimeline } from '$lib/presentation/utils/day-timeline';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 
-	let { startLabel, totalHours, minimumBlockWidths, blocks }: DayTimeline = $props();
+	let { totalHours, minimumBlockWidths, blocks }: DayTimeline = $props();
 
 	const share = (hours: number) => hours / totalHours;
 </script>
 
 <section class="card-shell px-box-md py-box-sm sm:px-box-xl">
-	<div class="flex items-baseline justify-between gap-grid-xs">
-		<h3 class="shrink-0 text-xs font-semibold text-ty-secondary uppercase tracking-wider">
-			{m.day_timeline_title()}
-		</h3>
-		{#if startLabel}
-			<span class="text-xs text-ty-silent tabular-nums">
-				{m.day_timeline_start({
-					start: startLabel,
-				})}
-			</span>
-		{/if}
-	</div>
+	<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">
+		{m.day_timeline_title()}
+	</h3>
 	{#if blocks.length === 0}
 		<p class="mt-text-md text-sm text-ty-secondary">{m.day_timeline_empty()}</p>
 	{:else}

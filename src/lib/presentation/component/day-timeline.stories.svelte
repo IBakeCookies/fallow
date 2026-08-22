@@ -41,7 +41,6 @@
 		runOrder: new Map(crowdedHours.map((_, index): [number, number] => [index + 1, index + 1])),
 		switchCost: 0.05,
 		availableHours: 8,
-		startHour: 9,
 	});
 
 	const { Story } = defineMeta({
@@ -49,7 +48,6 @@
 		component: DayTimeline,
 		tags: ['autodocs'],
 		args: {
-			startLabel: '09:00',
 			totalHours: 8,
 			minimumBlockWidths: 8 / 1.5,
 			blocks,
@@ -130,19 +128,5 @@
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('Nothing is funded today')).toBeInTheDocument();
-		await expect(canvas.getByText('from 09:00')).toBeInTheDocument();
-	}}
-/>
-
-<!-- The blocks are the day's own reading; the clock is only a label, so a day that
-     stored no start draws the strip and prints no time at all. -->
-<Story
-	name="No clock"
-	args={{
-		startLabel: null,
-	}}
-	play={async ({ canvas }) => {
-		await expect(canvas.getByText('Write the PDF')).toBeInTheDocument();
-		await expect(canvas.queryByText(/\d{2}:\d{2}/)).toBeNull();
 	}}
 />

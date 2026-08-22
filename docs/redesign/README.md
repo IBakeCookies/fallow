@@ -67,15 +67,16 @@ per-theme markup.
 
 ## Settled
 
-**The clock the timeline needed is a label, not model work.** `09:00 → 17:15`
-was invented — Fallow allocates _durations_ and had no day-start anchor. The day
-carries one now, per day and persisted beside its budget, and no formula, fit or
-metric reads it: the plan is identical with and without it. The strip prints that
-start and nothing else: the artboards' finish was `start + availableHours`, and
-`availableHours` is the hours the user intends to _work_ (MATH.md §11.3), so a
-clock time read off it omits every break and is a figure nobody computed. A day
-that stored no start prints no clock at all, rather than labelling itself with a
-default it never carried. That is what leaves
+**The clock the timeline needed turned out to be nothing at all.** `09:00 → 17:15`
+was invented — Fallow allocates _durations_ and has no day-start anchor. The
+artboards' finish was `start + availableHours`, and `availableHours` is the hours
+the user intends to _work_ (MATH.md §11.3), so a clock time read off it omits
+every break and is a figure nobody computed. That left only the start, which
+shipped for a while as a per-day persisted field labelling the strip `from 09:00`
+— and no formula, fit or metric ever read it: the plan was identical with and
+without it. A label anchored to nothing is not an anchor, so the field, the
+label and the stored key were removed; the strip now prints no time of day and
+every duration on it is an offset from the day's own zero. That is what leaves
 MATH.md §8.3's circadian boundary settled, rejected until there is an
 instrument, and the only time-of-day instrument the data carries is the
 `createdAt` stamp on 🪫 logs (§36).

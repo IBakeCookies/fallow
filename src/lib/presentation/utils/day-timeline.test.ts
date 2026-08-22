@@ -13,7 +13,6 @@ const input = (over: Partial<DayTimelineInput> = {}): DayTimelineInput => ({
 	runOrder: new Map(),
 	switchCost: 0,
 	availableHours: 8,
-	startHour: 9,
 	...over,
 });
 
@@ -113,33 +112,6 @@ describe('buildDayTimeline', () => {
 			}),
 		);
 
-		expect(timeline.blocks).toHaveLength(1);
-	});
-
-	it('labels the day by its start alone', () => {
-		const timeline = buildDayTimeline(
-			input({
-				switchCost: 0.25,
-			}),
-		);
-
-		expect(timeline.blocks).toEqual([]);
-		expect(timeline.startLabel).toBe('09:00');
-		expect(JSON.stringify(timeline)).not.toContain('17:00');
-	});
-
-	// A finish time nobody computed is worse than no finish time, and a day that
-	// stored no start has no clock to print either.
-	it('withholds the clock on a day that stored no start', () => {
-		const timeline = buildDayTimeline(
-			input({
-				suggestedTasks: [task(1, 2)],
-				runOrder: new Map([[1, 1]]),
-				startHour: null,
-			}),
-		);
-
-		expect(timeline.startLabel).toBeNull();
 		expect(timeline.blocks).toHaveLength(1);
 	});
 });
