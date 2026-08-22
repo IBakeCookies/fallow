@@ -43,6 +43,9 @@ export interface DailySession {
 	// fall back to DEFAULT_CAPACITY_POOLS on load)
 	cognitivePool?: number;
 	physicalPool?: number;
+	// When the day starts, for the strip's clock range (optional: a day saved
+	// before it was settable has none, and no formula reads it)
+	startHour?: number;
 	updatedAt: number; // timestamp
 }
 

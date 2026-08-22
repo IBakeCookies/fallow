@@ -50,10 +50,13 @@ Anything the model reads must survive a backup/restore round trip.
   per-day fit snapshots (`fitSnapshots`, MATH.md §12.1), and any setting that
   feeds a calculation — e.g. the Energy Lab's params (`settings` store, key
   `energyParams`).
-- **localStorage**: only values whose loss costs nothing and that have no
-  business in a backup — view preferences (e.g. which tab of a card was open),
-  and `fallow:futile-schema-reload` (`indexed-db.ts`), the one entry in this
-  tier the data layer owns — browser-wide because the verdict it records is
+- **localStorage**: values that have no business in a backup, and whose loss
+  costs at most a gesture. The second clause is the operative one — view
+  preferences (e.g. which tab of a card was open); `/`'s running session timer
+  (`presentation/utils/session-timer.ts`), whose loss costs a typed number but
+  which a restored three-week-old backup must never resurrect; and
+  `fallow:futile-schema-reload` (`indexed-db.ts`), the one entry in this tier
+  the data layer owns — browser-wide because the verdict it records is
   about the deployment, not about the tab that discovered it, and losing it
   costs one extra reload. R8 owns what it means.
 - **sessionStorage**: two things, both about surviving exactly one
@@ -108,9 +111,9 @@ either: it merges whatever the file holds (`backup-repository.ts` checks only
 Not IndexedDB, not `document.cookie`, not `localStorage`. Key names, cookie
 attributes and schema live in exactly one repository: they are read from the
 server and written from the browser, and would otherwise be spelled at four
-call sites. Store-scoped on purpose — the two presentation-tier keys are why:
-`toast.ts` and `/energy`'s `VIEW_KEY` reach `sessionStorage`/`localStorage`
-themselves. The one-place rule still binds them (each key declared in exactly
+call sites. Store-scoped on purpose — the three presentation-tier keys are why:
+`toast.ts`, `/energy`'s `VIEW_KEY` and `session-timer.ts` reach
+`sessionStorage`/`localStorage` themselves. The one-place rule still binds them (each key declared in exactly
 one module), but a repository would put a view preference in the data layer to
 no purpose. "One module" is about production code: a test may re-spell a key as
 an independent oracle, the way R8 step 4 keeps the store-name lists literal.

@@ -291,6 +291,40 @@ describe('calculateDailyMetrics', () => {
 		expect(metrics.zenithGain.optimized).toBeCloseTo(summed, 12);
 	});
 
+	/* The day strip lays its blocks out against the budget and carries no clamp for
+	   an overflow (docs/features/the-plan-that-had-no-clock.md, AGENTS.md §0):
+	   `bestPlanWithSwitchCost` buys blocks out of
+	   floor((budget − overhead) / BLOCK_HOURS), so the allocation plus the switch
+	   overhead cannot exceed the budget. `planSlackHours` reports the difference
+	   through a `Math.max(0, …)` that makes the overflow look representable; this
+	   is what says it is not. */
+	it('never allocates past the budget once the switch overhead is paid', () => {
+		const cases = [
+			input(TASKS),
+			input(TASKS, {
+				availableHours: 3,
+				switchCost: 0.5,
+			}),
+			input(TASKS, {
+				availableHours: 0.75,
+			}),
+			input([TASKS[0]], {
+				availableHours: 1.1,
+			}),
+		];
+
+		for (const metricsInput of cases) {
+			const funded = calculateDailyMetrics(metricsInput).suggestedTasks.filter(
+				(task) => task.suggestedHours > 0,
+			);
+
+			const overhead = funded.length > 1 ? (funded.length - 1) * metricsInput.switchCost : 0;
+			const allocated = funded.reduce((sum, task) => sum + task.suggestedHours, 0);
+
+			expect(allocated + overhead).toBeLessThanOrEqual(metricsInput.availableHours + 1e-9);
+		}
+	});
+
 	it('hedges with the fit posterior without changing the shape of the plan', () => {
 		const plain = calculateDailyMetrics(input(TASKS));
 

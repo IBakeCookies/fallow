@@ -21,7 +21,12 @@ import {
 	type StopAdvice,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
-import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import {
+	calculateSuggestedTasks,
+	getEffectiveDifficulty,
+	toEnergyTask,
+} from '$lib/business/model/metric/calculation';
+import { mapEffort } from '$lib/business/model/zenith';
 import { toCognitiveDrainObservations } from '$lib/business/model/energy-calibration';
 
 vi.mock('$lib/data/repository/settings-repository', () => ({
@@ -398,6 +403,39 @@ describe('EnergyLabStore', () => {
 		const scheduled = plannedOrder(store);
 		expect(scheduled.length).toBeGreaterThan(0);
 		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
+	});
+
+	/* The Lab's `Effort` column reads this, and it has to be the same number `/` prints
+	   for the same task: E = mapEffort(getEffectiveDifficulty(task)) and nothing else,
+	   so the two screens cannot disagree about a task's effort. */
+	it('carries the same true effort the main plan reports', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'write the calibration section',
+				physicalDifficulty: 0,
+				mentalDifficulty: 8,
+				enjoyment: 9,
+				createdAt: '2026-07-20',
+				completed: false,
+			},
+		];
+
+		mockSession.availableHours = 4;
+
+		const store = await setup();
+		flushSync();
+
+		// 37/9: mapEffort of an effective difficulty of 8 (no physical spillover)
+		expect(store.scheduledTasks[0].trueEffort).toBeCloseTo(4.111111111111, 12);
+
+		expect(store.scheduledTasks[0].trueEffort).toBe(
+			mapEffort(getEffectiveDifficulty(mockSession.tasks[0])),
+		);
+
+		expect(store.scheduledTasks[0].trueEffort).toBe(
+			calculateSuggestedTasks(mockSession.tasks, mockSession.availableHours)[0].trueEffort,
+		);
 	});
 
 	it('reports nothing when the params read succeeds', async () => {

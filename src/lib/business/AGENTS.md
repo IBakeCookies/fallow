@@ -221,6 +221,19 @@ becomes visible, which asks the writer for `pending` so an unlanded edit is not
 overwritten by the stored day — reachable because a hidden tab that rolls over
 midnight re-loads and re-arms the autosave.
 
+### Three write sites carry the whole day, so a new field lands in all three
+
+`SessionStore` writes a `DailySession` from the autosave payload, from
+`toggleTask`'s past-day branch and from `moveTaskToTomorrow` — each a whole
+record, so every field one of them does not carry is a field it erases.
+`#persistSession` cannot catch that: it takes the payload already built.
+Adding `startHour` reached two of the three, and ticking a task off on a past
+day then reset that day's start
+([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
+The destination write also reads its OWN day's value through `#readDestination`
+and defaults nothing: a fallback there stamps a value onto a day that never
+chose one.
+
 ## Settled decisions — do not re-litigate
 
 ### Task ids come from `nextTaskId` and nowhere else
@@ -356,6 +369,15 @@ the three identity fits (α, r, λ₀) read only days **strictly before** today,
 every other fit in the app (MATH.md §33), and the two pending counts name the
 rows they defer. The stop advisor is the one read that keeps today's rows — it
 prices the day in progress, which is §33's state half.
+
+### `scheduledTasks` carries the task's true effort
+
+The Lab's ledger heads an `Effort` column, so the row needs `E` — and R2 keeps
+the mapping out of the component: `#scheduledTasks` attaches
+`trueEffort: mapEffort(getEffectiveDifficulty(task))`, the same field name and
+the same number `SuggestedTask` already carries, so the two screens cannot print
+different efforts for one task. The public getter's shape is `Task & { trueEffort
+}`; nothing else about the snapshot order changed.
 
 ### An unseen day's budget is prefilled, and that is not the Lab's `|| 8`
 
