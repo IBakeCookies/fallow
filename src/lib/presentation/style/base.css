@@ -49,6 +49,13 @@
 
 	--spacer-empty-state: 3rem; /* 48px */
 
+	/* The day strip's narrowest block. Measured off its own content: the flow
+	   sentence is the widest of the four lines a block stacks (111px at
+	   `text-2xs`) plus 14px of border and inset. Below this the shortest
+	   allocation — which is always the one falling short of flow, so always the
+	   one carrying the diagnosis — truncates to nothing. */
+	--spacer-day-block: 8rem; /* 128px */
+
 	--spacer-grid-2xs: var(--spacer-2xs);
 	--spacer-grid-xs: var(--spacer-xs);
 	--spacer-grid-sm: var(--spacer-sm);
@@ -74,18 +81,18 @@
 	/* seeds */
 	--surface-page: oklch(0.96 0.005 260);
 	/* Translucent, like most themes': separation for a nested
-	   `bg-surface-card` — the metric tiles, the task-definition panel — IS the
-	   alpha compositing a second time. The themes that are
-	   opaque instead pay for it another way: three distinct surface inks and a
+	   `bg-surface-card` — the task-definition panel — IS the alpha compositing
+	   a second time. The themes that are opaque instead pay for it another way:
+	   three distinct surface inks and a
 	   heavier border (see `.solid-light` below and, in themes.css, "the
 	   set-square themes" and "the rounded opaque themes"). */
 	--surface-card: oklch(1 0 0 / 0.7);
 	--surface-inset: oklch(0.25 0.02 260 / 0.08);
 
-	/* Chrome that floats OVER scrolling content — the sticky nav pill. A
+	/* Chrome that floats OVER scrolling content — the sticky nav bar. A
 	   translucent card is only safe there because `backdrop-blur` smears what
 	   passes underneath — so on a `--blur: 0` theme, where that blur is a
-	   no-op, page text reads straight through the pill. Every other blur-0
+	   no-op, page text reads straight through the bar. Every other blur-0
 	   theme has an opaque `--surface-card` for exactly that reason and inherits this
 	   unchanged; `terminal` is the one that needs the split, because its
 	   scanlines showing THROUGH a card is the theme. */
@@ -157,7 +164,7 @@
 	   needs a guaranteed-visible hover pairs this with a page-independent channel —
 	   the calendar ramps its border too, which is what holds the eight light
 	   translucent themes above 1.03. What this token does guarantee is direction:
-	   card-vs-page separation RISES on all 46, verified, so a hovered card can
+	   card-vs-page separation RISES on every theme, verified, so a hovered card can
 	   never stop reading as a card. Re-check that after retuning a
 	   `--surface-card`, since a white card at moderate alpha has little room. */
 	--surface-card-hover: oklch(
@@ -309,11 +316,11 @@
    rather than argued away (same bargain as themes.css, "the square-cornered
    three"):
 
-   - A `bg-surface-card` nested on another one — the metric tiles, the
-     task-definition panel — separated by compositing the same fill twice.
-     Here page/card/inset are three DISTINCT inks, so the rungs read by
-     value, and both of those also carry a border. A nested card WITHOUT one
-     has nothing left to separate it and must use the inset rung instead —
+   - A `bg-surface-card` nested on another one — the task-definition panel —
+     separated by compositing the same fill twice. Here page/card/inset are
+     three DISTINCT inks, so the rungs read by value, and that panel also
+     carries a border. A nested card WITHOUT one has nothing left to separate
+     it and must use the inset rung instead —
      that is why `log-row` does (tokens.css).
    - Both alpha-scaling hovers above (`--control-hover`, `--secondary-hover`)
      are no-ops on an opaque fill, so each block sets that pair itself, as

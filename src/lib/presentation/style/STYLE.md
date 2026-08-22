@@ -96,7 +96,7 @@ Read this before touching markup, classes, or anything under
   reading as filled). Alpha moves by its remaining headroom rather than by a
   factor, since a factor overshoots — `alpha * 1.9` clamped 14 translucent cards
   to opaque, a glass card losing its blur on hover. No theme hand-sets it, and
-  separation from the page rises on all 46, so a hovered card can never stop
+  separation from the page rises on every theme, so a hovered card can never stop
   reading as a card. **It cannot give an even step, though, and nothing can**: the
   same delta swings 2.05 over a near-black page and 1.017 over a pale one,
   because the step depends on the page luminance behind the card. A hover that
@@ -146,14 +146,17 @@ Read this before touching markup, classes, or anything under
 - **A borderless panel nested inside a card uses `surface-inset`, not
   `surface-card`.** Card-on-card separates only by compositing the same alpha
   twice, so on an opaque theme it is one flat ink and the nested panel
-  disappears — `log-row` did, in the analytics log list. The nested cards that
-  keep `surface-card` (the metric tiles, the task-definition panel) all carry a
-  border, which is what still separates them there.
+  disappears — `log-row` did, in the analytics log list. A nested panel that
+  keeps `surface-card` (the task-definition panel) carries a border, which is
+  what still separates it there. The third way out is to drop the fill: the
+  metrics dashboard's headline tiles were bordered cards and are now bare, each
+  marked by a 2px rule down its left in its own band colour, so there is no
+  second surface to separate.
 - **Chrome that floats over scrolling content uses `surface-float`, not
-  `surface-card`.** One site today, the sticky nav pill. The two hold the same
+  `surface-card`.** One site today, the sticky nav bar. The two hold the same
   value everywhere but one theme; they differ where a theme is translucent _and_
   sets `--blur: 0`, which makes the blur a no-op and lets page text read straight
-  through the pill. `terminal` is that theme, on purpose — its scanlines
+  through the bar. `terminal` is that theme, on purpose — its scanlines
   crossing a card is the theme — so it alone re-points `--surface-float` at an
   opaque ink. Every other blur-0 theme avoids the trap by being opaque
   throughout (base.css `.solid-light`/`.solid-dark`, and themes.css's "the
@@ -191,13 +194,26 @@ Read this before touching markup, classes, or anything under
   here: on a dark theme every accent token is light by design. `accent-color`
   hands checkmark contrast to the browser, the only thing that holds across
   every theme. The plugin is still loaded in `app.css` and **cannot just be
-  dropped**: the two bare-`border` inputs in `page-header.svelte` inherit their
+  dropped**: the two bare-`border` inputs in `day-actions.svelte` inherit their
   border colour from its base layer. Give them explicit token borders first,
   then remove it.
 - **An overflowing panel scrolls with `nice-scrollbar` (`base.css`), never the
-  native bar** — the theme dropdown and the analytics log history are both it. No
-  palette reaches a UA scrollbar, so it renders as the same grey slab on every
-  theme.
+  native bar** — the theme dropdown, the analytics log history and the two task
+  screens' ledger are all it. No palette reaches a UA scrollbar, so it renders as
+  the same grey slab on every theme. The ledger's container also carries
+  `tabindex="0"`, because a region that only scrolls is unreachable by keyboard
+  otherwise (axe `scrollable-region-focusable`), which is why it holds a scoped
+  `svelte-ignore` for `a11y_no_noninteractive_tabindex`.
+- **A repeated cluster becomes an `@utility`, not a wrapper component** —
+  `ledger-cell` and `ledger-numeric` are the newest pair. A `<td>` cannot be
+  wrapped: an element between `<tr>` and its cells is not a table cell, so a
+  component per cell would either break the table model or add a `<div>` inside
+  every one of twelve columns. Same argument as `hint-underline`'s, arrived at
+  from the other direction — there the wrapper would cost the heading level or
+  the label association.
+  `ledger-numeric` is `text-right` + `tabular-nums` together on purpose: either
+  alone leaves a column that cannot be compared down its own length, which is
+  the only reason the ledger is a table.
 - Tailwind's scanner is **textual and runs at build time** — a name assembled
   at runtime does not exist. This bites twice: class names (`bg-{x}-500`), and
   `@theme` custom properties, which are tree-shaken to the ones the scanner

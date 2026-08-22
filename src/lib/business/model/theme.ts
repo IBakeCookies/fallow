@@ -9,6 +9,7 @@
 
 export type ThemeName =
 	| 'fallow'
+	| 'fallow-dark'
 	| 'solid-light'
 	| 'solid-dark'
 	| 'glass-light'
@@ -53,7 +54,8 @@ export type ThemeName =
 	| 'graph-pad'
 	| 'verdigris'
 	| 'thermal'
-	| 'weathervane';
+	| 'weathervane'
+	| 'understory';
 
 export interface ThemeItem {
 	name: ThemeName;
@@ -67,6 +69,11 @@ export const themes: ThemeItem[] = [
 		name: 'fallow',
 		label: 'Fallow',
 		css: ['fallow'],
+	},
+	{
+		name: 'fallow-dark',
+		label: 'Fallow Dark',
+		css: ['fallow-dark', 'dark'],
 	},
 	{
 		name: 'solid-light',
@@ -296,6 +303,11 @@ export const themes: ThemeItem[] = [
 		name: 'weathervane',
 		label: 'Weathervane',
 		css: ['weathervane'],
+	},
+	{
+		name: 'understory',
+		label: 'Understory',
+		css: ['understory', 'dark'],
 	},
 ] as const;
 
