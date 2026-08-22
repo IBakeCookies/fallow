@@ -28,6 +28,18 @@ export const BAND_TEXT_CLASS: Record<Band, string> = {
 	critical: 'text-danger',
 };
 
+/**
+ * The rule down the left of a headline tile. `neutral` is the plain card line
+ * and not a colour: the tile's rule is what marks a reading as out of the
+ * ordinary, so an ordinary one must not carry a hue of its own.
+ */
+export const BAND_BORDER_CLASS: Record<Band, string> = {
+	success: 'border-success',
+	neutral: 'border-line-strong',
+	warning: 'border-warning',
+	critical: 'border-danger',
+};
+
 /** Fill per band, for completion bars — the same bands, so the same thresholds. */
 export const BAND_BAR_CLASS: Record<Band, string> = {
 	success: 'bg-success',

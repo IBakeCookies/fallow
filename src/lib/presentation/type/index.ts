@@ -7,8 +7,6 @@ import type { Band } from '$lib/presentation/utils/band';
 
 /** One row/tile in the metrics dashboard. */
 export interface Metric {
-	/** starts a new visual section (rendered with a separator above) */
-	section?: boolean;
 	/** promoted out of the list to a large tile — the day's headline readings */
 	headline?: boolean;
 	label: string;
