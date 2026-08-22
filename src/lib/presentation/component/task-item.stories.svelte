@@ -539,7 +539,7 @@
 			}),
 		);
 
-		const flag = canvas.getByLabelText("Don't move off today");
+		const flag = canvas.getByLabelText('Keep on today');
 		await expect(flag).toBeChecked();
 		await userEvent.click(flag);
 

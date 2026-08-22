@@ -10,16 +10,13 @@
 </script>
 
 <script lang="ts">
-	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
 	interface Props {
 		draft: TaskEdit;
-		withMustDoToday?: boolean;
-		footer: Snippet;
 	}
 
-	let { draft = $bindable(), withMustDoToday = true, footer }: Props = $props();
+	let { draft = $bindable() }: Props = $props();
 
 	// Enjoyment's minimum is 1 because MATH.md §1 declares βᵤ ∈ [1,10]: a 0 puts β
 	// outside [1,2], the range every fit was built on.
@@ -62,23 +59,4 @@
 			/>
 		</label>
 	{/each}
-</div>
-
-<!-- `justify-end` with the flag pushed out by its own margin, so the buttons keep their
-     corner in the mode that has no flag to show. -->
-<div class="flex flex-wrap items-center justify-end gap-grid-sm">
-	{#if withMustDoToday}
-		<label
-			class="mr-auto flex items-center gap-text-xs text-xs font-medium text-ty-secondary"
-			title={m.form_must_do_today_title()}
-		>
-			<input
-				type="checkbox"
-				bind:checked={draft.mustDoToday}
-				class="size-4 appearance-auto accent-brand"
-			/>
-			{m.form_must_do_today()}
-		</label>
-	{/if}
-	{@render footer()}
 </div>

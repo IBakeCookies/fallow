@@ -253,7 +253,7 @@
 
 		// The editor is where the three inputs are set, and where this mode stops
 		await expect(canvas.getAllByRole('slider')).toHaveLength(3);
-		await expect(canvas.queryByLabelText("Don't move off today")).not.toBeInTheDocument();
+		await expect(canvas.queryByLabelText('Keep on today')).not.toBeInTheDocument();
 
 		await userEvent.clear(title);
 		await userEvent.type(title, 'write §8.11');

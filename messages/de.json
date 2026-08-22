@@ -263,7 +263,7 @@
 	"advice_destination": "Morgen: {count} Aufgaben, {hours} verfügbar — {funded} davon mit Stunden.",
 	"advice_destination_one": "Morgen: 1 Aufgabe, {hours} verfügbar — {funded} mit Stunden.",
 	"advice_destination_empty": "Morgen: noch nichts geplant, {hours} verfügbar.",
-	"form_must_do_today": "Nicht verschieben",
+	"form_must_do_today": "Heute behalten",
 	"form_must_do_today_title": "Der Berater schlägt nie vor, diese Aufgabe auf einen anderen Tag zu verschieben. Stunden reserviert er dafür nicht.",
 	"task_must_do_badge": "Bleibt heute",
 	"task_slide_badge": "Tag {day}",

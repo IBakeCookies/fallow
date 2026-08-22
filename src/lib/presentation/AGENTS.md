@@ -171,11 +171,19 @@ the same way:
   caller's copy and absent unless it passes one, because what is being dropped
   differs per editor and a first measurement has nothing to drop.
 - **`task-edit-form.svelte`** — the editor, on both screens.
-- **`task-form-fields.svelte`** — the fields both task forms set: the three
-  model input sliders (one loop over one table, so their labels, minimums and
-  accents are defined once) and the must-do flag, in the row the submit buttons
-  sit in. `TaskEdit` — the five fields a form can set — is this component's
-  type, since adding a task and re-tuning one emit the same thing. The forms
+- **`task-form-fields.svelte`** — the three model input sliders both task forms
+  set, one loop over one table, so their labels, minimums and accents are
+  defined once. `TaskEdit` — the five fields a form can set — is this
+  component's type, since adding a task and re-tuning one emit the same thing.
+  It holds the sliders and nothing else: each form owns its own action row,
+  because the add form puts the flag and Deploy on the title's line while the
+  editor keeps a footer under the fields.
+- **`must-do-toggle.svelte`** — the flag itself, a `<label>` carrying
+  `buttonVariants` over a transparent full-size `<input type="checkbox">`. It
+  reads as a button with a set state (`secondary`) and an unset one (`outline`),
+  and stays a real checkbox, which is what keeps its role, its space key and
+  `.check()` in a test. STYLE.md names it as the one carve-out from
+  `appearance-auto accent-brand`. The forms
   are otherwise not each other: `task-form.svelte` is a title combobox over
   rated history with a collapse and a reset, `task-edit-form.svelte` is a plain
   title input, which is ~150 lines of script the editor has no counterpart for.
@@ -184,8 +192,8 @@ the same way:
   add form reads title memory.
   Do not push the title or the frame in here to make them look like one
   component; the callers keep both, so each frame and each field is defined
-  once, whole, and the caller's own `space-y-*` is what sets the form's
-  density.
+  once, whole, and the caller's own spacing is what sets the form's density —
+  `space-y-*` in the editor, one wrapping flex line in the add form.
 
 What is left in `task-item.svelte` and `energy-task-row.svelte` is one screen's
 reading of the task and nothing else: priority, allocation, run order and T* on
@@ -558,12 +566,12 @@ theory that the Lab is where you watch the schedule react. It is, but to the
 params panel beside the list: `P`/`M`/`E` are a definition the user sets once
 when deploying a task, and the form already suggests them from history (ROADMAP
 item 24). So they read as text, exactly as `/` spells them, and ✎ re-tunes them.
-The must-do checkbox is hidden in both of the Lab's forms
+The must-do toggle is hidden in both of the Lab's forms
 (`withMustDoToday={false}` — the add form takes it directly, the row's ✎ through
 the shell) because `isPinned` is read by the plan advisor and by nothing in this
 mode. The seeded value still round-trips, so an edit here cannot clear a flag set
 there. This is the carve-out named under "R3 in the UI" above; the prop is one
-name from the Lab's page down to the checkbox.
+name from the Lab's page down to the form that renders the toggle.
 
 ### The calibration cards share a shell, not a body
 

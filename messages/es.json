@@ -263,7 +263,7 @@
 	"advice_destination": "Mañana: {count} tareas, {hours} disponibles — {funded} de ellas con horas.",
 	"advice_destination_one": "Mañana: 1 tarea, {hours} disponibles — {funded} con horas.",
 	"advice_destination_empty": "Mañana: nada planificado todavía, {hours} disponibles.",
-	"form_must_do_today": "No sacar de hoy",
+	"form_must_do_today": "Mantener hoy",
 	"form_must_do_today_title": "El asesor nunca sugerirá sacar esta tarea de hoy. No le reserva horas.",
 	"task_must_do_badge": "Se queda hoy",
 	"task_slide_badge": "día {day}",
