@@ -248,6 +248,20 @@ describe('sanitizeSession', () => {
 		expect(sanitizeSession('nope')).toBeNull();
 	});
 
+	/* The day's start was persisted for one day and read by nothing but a label
+	   (the-anchor-that-held-only-itself.md). Its removal needs no migration and this
+	   is why: the sanitizer builds a session from a fixed field list, so a stored key
+	   it no longer names is dropped on the way in — `flowMinutes` above is the same
+	   argument, one level up. */
+	it('drops the start hour a session stored while the strip had a clock', () => {
+		const session = sanitizeSession({
+			date: '2026-07-01',
+			startHour: 7,
+		});
+
+		expect(session).not.toHaveProperty('startHour');
+	});
+
 	it('leaves corrupt pools unset so readers fall back to the defaults', () => {
 		const session = sanitizeSession({
 			date: '2026-07-01',
