@@ -1441,6 +1441,47 @@
 	--mixed: oklch(0.73 0.12 310);
 }
 
+.vectorframe {
+	/* orbital-frame hangar: the deep-space ink meridian drifts in, cut by
+	   four dark conduit lines — two inset from each side — that carry a
+	   light-blue pulse; every chord mitred, every card sharp-edged
+	   (--radius: 0). The conduits and their pulse are theme scenery, see
+	   theme-scenery/vectorframe.css. */
+	--background-image:
+		radial-gradient(ellipse 55% 40% at 15% 10%, oklch(0.34 0.08 70 / 0.16), transparent 70%),
+		radial-gradient(ellipse 60% 45% at 88% 85%, oklch(0.28 0.09 195 / 0.14), transparent 72%),
+		radial-gradient(ellipse 45% 38% at 55% 45%, oklch(0.3 0.1 280 / 0.08), transparent 70%),
+		linear-gradient(oklch(0.15 0.032 245), oklch(0.05 0.016 240));
+
+	--radius: 0;
+
+	--surface-page: oklch(0.09 0.025 245);
+	/* deep-space glass */
+	--surface-card: oklch(1 0 0 / 0.06);
+	--surface-inset: oklch(0 0 0 / 0.3);
+	--ty-primary: oklch(0.95 0.02 80);
+
+	--input: oklch(1 0 0 / 0.08);
+	--border: oklch(0.8 0.07 75 / 0.2);
+
+	/* frame amber */
+	--primary: oklch(0.79 0.15 65);
+	--primary-foreground: oklch(0.16 0.04 60);
+	--ring: oklch(0.79 0.15 65 / 0.5);
+
+	--brand: oklch(0.76 0.14 62);
+	--brand-strong: oklch(0.85 0.11 68);
+	/* tracer cyan */
+	--flow: oklch(0.82 0.13 195);
+	/* runner violet */
+	--mind: oklch(0.74 0.15 300);
+	--mind-strong: oklch(0.82 0.11 300);
+	/* indigo depths */
+	--body: oklch(0.55 0.09 250);
+	/* alert rose */
+	--mixed: oklch(0.7 0.17 345);
+}
+
 /* ---- the set-square themes ----------------------------------------
    Every other light theme here rounds; these are drawn with a set
    square. Every surface is a flat ink, `--blur: 0`, nothing shows through

@@ -289,6 +289,7 @@ export function sceneryStyle(seed: number): string {
 	const sw = themeRandom(seed, 'synthwave');
 	const polaris = themeRandom(seed, 'polaris');
 	const understory = themeRandom(seed, 'understory');
+	const vectorframe = themeRandom(seed, 'vectorframe');
 
 	const vars: Record<string, string> = {
 		/* abyss: glows wander via transform, so both position axes are free;
@@ -395,6 +396,16 @@ export function sceneryStyle(seed: number): string {
 		'--understory-breathe-2': understory.sec(-13, 0),
 		'--understory-drift-3': understory.sec(-49, 0),
 		'--understory-breathe-3': understory.sec(-10, 0),
+
+		/* vectorframe: far tracers and glow-nodes are static (both axes free,
+		   38×26rem and 28×23rem tiles); breathe/sheen/twinkle only re-phase.
+		   The hero lines are fixed geometry — two vertical tracers per side,
+		   hardcoded in scenery CSS — so no stream lever drives geometry here */
+		'--vectorframe-lines-1': vectorframe.tile(38, 26),
+		'--vectorframe-breathe-phase': vectorframe.sec(-11, 0),
+		'--vectorframe-sheen-phase': vectorframe.sec(-13, 0),
+		'--vectorframe-nodes': vectorframe.tile(28, 23),
+		'--vectorframe-twinkle-phase': vectorframe.sec(-8, 0),
 	};
 
 	return Object.entries(vars)

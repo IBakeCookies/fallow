@@ -31,6 +31,7 @@
 @import './circuit.css';
 @import './weathervane.css';
 @import './understory.css';
+@import './vectorframe.css';
 
 .theme-scenery {
 	display: none;

@@ -55,6 +55,7 @@
 @custom-variant thermal (&:is(.thermal *));
 @custom-variant weathervane (&:is(.weathervane *));
 @custom-variant understory (&:is(.understory *));
+@custom-variant vectorframe (&:is(.vectorframe *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
    Themes swap the variables, not the classes.
