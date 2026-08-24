@@ -1821,7 +1821,12 @@ export interface StoppingValueFit {
 	/** MAP freeTimeValue λ₀ (the fallback when not fitted) */
 	value: number;
 	fitted: boolean;
-	/** Approximate posterior std of λ₀; only when fitted */
+	/**
+	 * Approximate posterior std of λ₀; only when fitted. WITHIN-MODEL, and that
+	 * is load-bearing: it prices the day points' scatter around the fit, and
+	 * every point was read under the SAME conditioning params, so a mis-set V_T
+	 * slider moves them together and this number never widens for it (§8.10).
+	 */
 	valueStd?: number;
 	/** Days that yielded a two-sided indifference point */
 	usedCount: number;
@@ -1955,7 +1960,10 @@ function isClockCensored(observation: StopObservation): boolean {
  * pre-censor cells and on 1 of the 307 priced now, and the class carrying it — the day whose own span left no room
  * for another step, one-signed HIGH — is censored since 2026-08-21 (§8.10).
  * The negative side of the stop bound is floored at 0 — λ₀ ≥ (negative
- * marginal) is vacuous.
+ * marginal) is vacuous, and 0 is the fit's own lower bound, so the floor
+ * projects onto the feasible set rather than inventing a bound. Such a day
+ * still reads TWO-SIDED: its midpoint is hi/2, half a parameter edge rather
+ * than two measured bounds, and it carries a full day's weight in the fit.
  *
  * An IRRATIONAL day can invert the bracket (lo > hi: extending some task was
  * worth more per step than the best step actually worked — e.g. a session cut
@@ -2410,8 +2418,11 @@ export function adviseStop(
  * median 1 step and 5 at worst, non-monotonically on 25 of them (§8.10
  * feasibility 2, 2026-08-21). V_T stays user-owned because it is a preference
  * the slider states, not because it is unidentifiable; a slider left far from
- * the truth is a real unfitted error source. Calibrate r and α first; this fit
- * inherits their quality.
+ * the truth is a real unfitted error source, and `valueStd` cannot see it —
+ * every day is read under the same slider, so a mis-set V_T slides the whole
+ * fit without widening the ±: up to 3.3× that ± over the slider's own range,
+ * `usedCount` unchanged (2026-08-24, `stp-stopping-identifiability.probe.ts`).
+ * Calibrate r and α first; this fit inherits their quality.
  */
 export function fitStoppingValue(
 	observations: StopObservation[],

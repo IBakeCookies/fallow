@@ -19,6 +19,13 @@
  * is what the reconstruction did before it read the moments. The second reading
  * is the falsified ~0.13 contract; the first is what replaced it.
  *
+ * Added 2026-08-24: what a mis-set V_T costs the FIT, and whether the posterior
+ * std beside it can tell. The two arms above price V_T in worked hours; this
+ * one prices it in λ₀, which is the unit §8.10 reports in. It is the same
+ * conditioning error read at the estimator instead of at the optimum, and the
+ * point of it is the RATIO: every day of a history shares the slider, so the
+ * error is common-mode and the i.i.d.-days posterior std cannot see it.
+ *
  * Added 2026-08-21: the V_T sweep over SEEDED DAYS, not one. Aligning this
  * probe's day onto the sliders (ROADMAP M44) deleted both witnesses §8.10 cited
  * for "V_T is not free" — the 3-step move at 8 h / λ₀ 1.3 and the three-level
@@ -38,6 +45,7 @@ import { describe, it } from 'vitest';
 import {
 	DEFAULT_ENERGY_PARAMS,
 	DEFAULT_STEP_HOURS,
+	fitStoppingValue,
 	optimizeSchedule,
 	stopIndifferencePoint,
 	type EnergyTaskInput,
@@ -250,6 +258,64 @@ describe('stopping-value identifiability', () => {
 			});
 
 			console.log(`[§8.10 midpoint] true λ₀ ${lambda}: ${rows.join(', ')}`);
+		}
+	});
+
+	it('prices a mis-set V_T in λ₀, against the std printed beside it (§8.10)', () => {
+		// The user's truth is the default V_T: their days are the plans at
+		// (true λ₀, 1.5). Only the READER's slider moves, which is the error the
+		// section calls "a real unfitted error source" — priced here in fit units.
+		const TRUTH = DEFAULT_ENERGY_PARAMS.terminalEnergyValue;
+		// The Energy Lab's own terminalEnergyValue range, so both ends are reachable.
+		const MISSET = [0, 5];
+		const rnd = mulberry32(824);
+
+		for (const lambda of [0.5, 0.7, 0.9, 1.1]) {
+			const days: StopObservation[] = [];
+
+			for (let d = 0; d < 12; d++) {
+				const tasks = seededDay(rnd);
+				const windowHours = 4 + Math.floor(rnd() * 11);
+
+				const { blocks } = optimizeSchedule(tasks, windowHours, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: lambda,
+					terminalEnergyValue: TRUTH,
+				});
+
+				days.push({
+					tasks,
+					windowHours,
+					workedHours: sessionRows(blocks),
+				});
+			}
+
+			const at = (terminalEnergyValue: number) =>
+				fitStoppingValue(days, DEFAULT_ENERGY_PARAMS.freeTimeValue, {
+					...DEFAULT_ENERGY_PARAMS,
+					freeTimeValue: lambda,
+					terminalEnergyValue,
+				});
+
+			const honest = at(TRUTH);
+
+			if (!honest.fitted) {
+				console.log(`[§8.10 V_T fit] true λ₀ ${lambda}: no day priced`);
+				continue;
+			}
+
+			const read = MISSET.map((vt) => {
+				const fit = at(vt);
+
+				return `V_T ${vt} → λ̂₀ ${fit.value.toFixed(3)} ± ${fit.valueStd!.toFixed(3)} (n ${fit.usedCount}, shift ${Math.abs(fit.value - honest.value).toFixed(3)})`;
+			});
+
+			const worst = Math.max(...MISSET.map((vt) => Math.abs(at(vt).value - honest.value)));
+
+			console.log(
+				`[§8.10 V_T fit] true λ₀ ${lambda}: honest λ̂₀ ${honest.value.toFixed(3)} ± ${honest.valueStd!.toFixed(3)} (n ${honest.usedCount}) — ` +
+					`${read.join(', ')}; worst shift ${(worst / honest.valueStd!).toFixed(1)}× the std it prints`,
+			);
 		}
 	});
 });
