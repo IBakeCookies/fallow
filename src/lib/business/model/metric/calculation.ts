@@ -779,7 +779,7 @@ export type DailyQuadrant = 'flow' | 'grind' | 'cruise' | 'routine';
  * a slider: it is `max + 0.3·min` over two sliders that start at 0 (§11.4,
  * §22), so a task at the midpoint of both reads 5 + 0.3×5. Judging that
  * composite against 5.5 — the old cut, the midpoint of a scale difficulty does
- * not live on — put 91.3% of seeded days above it and collapsed the 2×2 to a
+ * not live on — put 92.8% of seeded days above it and collapsed the 2×2 to a
  * threshold on enjoyment alone.
  */
 const DEMANDING_CUT = 5 + DIFFICULTY_SPILLOVER * 5;
