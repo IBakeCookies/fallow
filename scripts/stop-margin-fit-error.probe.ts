@@ -34,6 +34,13 @@
  * every margin is a pure post-filter over the cached list: one `optimizeSchedule`
  * run per day, and the whole sweep is arithmetic after that.
  *
+ * WHAT THE 2026-08-25 RE-RUN CHANGED, and why every number below moved again.
+ * Every task now comes from integer sliders through `toEnergyTask`, so the day
+ * is on the app's own constraint surface. It was not: `difficulty` was set to
+ * `max(mental, physical)` directly, skipping the 0.3 spillover the app applies,
+ * so no day this probe generated was one a user could have declared and no
+ * figure below was quotable in either direction (ROADMAP M40).
+ *
  * WHAT THE 2026-08-21 RE-RUN CHANGED. The replica took the shipped
  * `isClockCensored` — a day whose own span, breaks included, leaves no room for
  * another step is censored before either bound is priced, so no margin can reach
@@ -78,6 +85,8 @@ import {
 	mapEnjoyability,
 	type UserConstants,
 } from '$lib/business/model/zenith';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import type { Task } from '$lib/data/type';
 
 function mulberry32(seed: number): () => number {
 	let a = seed;
@@ -350,17 +359,19 @@ interface SimulatedUser {
 }
 
 function drawTask(random: () => number, id: number): EnergyTaskInput {
-	const mental = 1 + Math.floor(random() * 10);
-	const physical = 1 + Math.floor(random() * 10);
+	const slider = (min: number) => min + Math.floor(random() * (11 - min));
 
-	return {
+	const task: Task = {
 		id,
 		title: `t${id}`,
-		difficulty: Math.max(mental, physical),
-		enjoyment: 1 + Math.floor(random() * 10),
-		cognitiveDemand: mental / 10,
-		physicalDemand: physical / 10,
+		mentalDifficulty: slider(0),
+		physicalDifficulty: slider(0),
+		enjoyment: slider(1),
+		createdAt: '2026-08-25',
+		completed: false,
 	};
+
+	return toEnergyTask(task);
 }
 
 function drawDay(random: () => number): { tasks: EnergyTaskInput[]; windowHours: number } {

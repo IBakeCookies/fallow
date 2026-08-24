@@ -2106,8 +2106,8 @@ describe('Zenith Energy Model', () => {
 			// NOT inverted, so no margin at any width censors it, yet its midpoint
 			// sits at the task curves' characteristic marginal, far above the λ₀
 			// that generated it. (The bracket bounds and the ratio quoted here
-			// before were measured on the unreachable fixture, and that probe still
-			// draws its days off-surface, so they are gone rather than re-derived.)
+			// before were measured on the unreachable fixture, so they are gone
+			// rather than re-derived.)
 			const params = {
 				...DEFAULT_ENERGY_PARAMS,
 				freeTimeValue: 0.3,

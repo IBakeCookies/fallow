@@ -186,15 +186,11 @@ other.**
     sessions-per-day bias). **Prereq:** enough 🪫 logs for a credible α, i.e.
     item 11 in practice. The per-day prefill slot it requires now exists (item 32) — this item replaces the source of the pool prefill, not its wiring.
 
-19. ~~**Constraint carry-over for unseen days**~~ — SHIPPED 2026-08-24.
+Item 16 for the other two declared constraints, and the slot item 18 prefills
+into:
+
+32. ~~**Constraint carry-over for unseen days**~~ — SHIPPED 2026-08-24.
     [docs/features/constraint-carry-over-for-unseen-days.md](docs/features/constraint-carry-over-for-unseen-days.md)
-    Item 16 for the other two declared constraints: a day with no stored session
-    opens on the switch cost and pools the last day that declared them ran with,
-    instead of on `DEFAULT_SWITCH_COST` and `DEFAULT_CAPACITY_POOLS`. Last
-    declared rather than item 16's weekday median — a Saturday is a different
-    day, a switch cost and a capacity are not. Unmeasured for the same reason
-    item 16 is: the gate is a question about habit, answerable only from a real
-    exported history.
 
 Item 15 shipped as one feature with the item below, which is how its ratings
 reach the form at all:
@@ -675,11 +671,19 @@ reaches the claim, never that the claim is false.
   with M44: `stp-stopping-identifiability`'s standard day is on the sliders, both
   faults this entry pins on it (declared difficulty, the 0.05 demand) are gone,
   and its new V_T arm builds every seeded day from integer sliders through the Eᵤ
-  formula. Its whole figure set moved, as predicted. **One generator left**:
-  `stop-margin-fit-error.probe.ts:346` still takes
-  `difficulty = Math.max(mental, physical)` and skips the 0.3 spillover, so the
-  caveat still attaches to every number it backs and fixing it is still its own
-  change.
+  formula. Its whole figure set moved, as predicted. **Third generator fixed
+  2026-08-25**,
+  [`the-third-generator-off-the-sliders`](docs/features/the-third-generator-off-the-sliders.md):
+  `stop-margin-fit-error` draws every task through `toEnergyTask`, its whole set
+  moved again and §8.10 was re-read from that run. **The entry named three
+  generators and there are five.** The same hand-built `drawTask` — the identical
+  eleven lines — sits in `censored-stopping-fit.probe.ts:87` (§8.10's
+  rejected-alternative record, ROADMAP item 4) and `satiety-gaming.probe.ts:173`
+  (§8.4), so `MATH.md`'s figures for both carry this entry's caveat too and the
+  first is what ROADMAP item 4 was DECIDED AGAINST on. A grep for
+  `difficulty: Math.max` under `scripts/` is the current fault set; each is its
+  own change, for the same reason the first three were. **This entry does not
+  close until that grep is empty.**
 - **M41 §8.10 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M42 §8.10 — closed 2026-08-21, [`the-day-that-ran-out-of-clock`](docs/features/the-day-that-ran-out-of-clock.md).**
 - **M43 — closed 2026-08-20, [`the-insertion-witness-re-read`](docs/features/the-insertion-witness-re-read.md).**
