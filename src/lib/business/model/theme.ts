@@ -55,7 +55,8 @@ export type ThemeName =
 	| 'verdigris'
 	| 'thermal'
 	| 'weathervane'
-	| 'understory';
+	| 'understory'
+	| 'vectorframe';
 
 export interface ThemeItem {
 	name: ThemeName;
@@ -308,6 +309,11 @@ export const themes: ThemeItem[] = [
 		name: 'understory',
 		label: 'Understory',
 		css: ['understory', 'dark'],
+	},
+	{
+		name: 'vectorframe',
+		label: 'Vectorframe',
+		css: ['vectorframe', 'dark'],
 	},
 ] as const;
 
