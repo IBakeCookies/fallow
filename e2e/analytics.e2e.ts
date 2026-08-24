@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, isoDate, logDrain } from './helpers';
+import { addTask, AUTOSAVE_MS, isoDate, logDrain, logFlow } from './helpers';
 
 /* The analytics screen reads a year of stored days through AnalyticsStore, whose
    whole job happens after hydration: load, slice by range, fold. None of it runs
@@ -321,4 +321,233 @@ test('the calendar reads the same day summaries', async ({ page }) => {
 	).toBeVisible();
 
 	await expect(page.getByText('write the calibration section')).toBeVisible();
+});
+
+/* The all-time resets on the log card. Three kinds, three rows, each deleting every
+   record of its kind — the same store calls the root page's and the Lab's buttons make,
+   pressed from the screen that prints the ratings. Only a browser proves it: the counts
+   come from two stores that answer after hydration, and the delete is IndexedDB's. */
+
+/** A second ⚡ dated `date`, copied off the one already logged. No UI path dates a flow
+ *  log in the past — the record carries the viewed day and past days are read-only — so
+ *  the store is written directly, which is also all this needs: the row under test reads
+ *  the log back out. */
+async function copyFlowLogToDate(page: Page, date: string) {
+	await page.evaluate(
+		(date) =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.open('zenith-db');
+				request.onerror = () => reject(request.error);
+
+				request.onsuccess = () => {
+					const transaction = request.result.transaction('flowObservations', 'readwrite');
+					const store = transaction.objectStore('flowObservations');
+					const all = store.getAll();
+
+					all.onerror = () => reject(all.error);
+
+					all.onsuccess = () => {
+						const [first] = all.result as Record<string, unknown>[];
+						delete first.id;
+
+						store.add({
+							...first,
+							date,
+						});
+					};
+
+					transaction.onerror = () => reject(transaction.error);
+					transaction.oncomplete = () => resolve();
+				};
+			}),
+		date,
+	);
+}
+
+/** One ⚡ dated today and one dated 90 days ago — outside every range but `year`, and
+ *  outside `week`, which is what the page opens on. */
+async function seedTwoFlowLogs(page: Page) {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await logFlow(page, 90);
+
+	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
+
+	await copyFlowLogToDate(page, isoDate(-90));
+	await page.goto('/analytics');
+}
+
+const flowRow = (page: Page) =>
+	page.getByRole('button', {
+		name: /^Delete Time to flow logged on/,
+	});
+
+const drainRow = (page: Page) =>
+	page.getByRole('button', {
+		name: /^Delete Session rating logged on/,
+	});
+
+test('the log card resets one kind and leaves the others', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await logFlow(page, 90);
+
+	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
+
+	await logDrain(page, 120, 9, 5);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Correct this drain rating',
+		}),
+	).toBeVisible();
+
+	await page.goto('/analytics');
+	await expect(flowRow(page)).toBeVisible();
+	await expect(drainRow(page)).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Delete all logs',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Reset',
+			exact: true,
+		})
+		.click();
+
+	await expect(flowRow(page)).toHaveCount(0);
+
+	// The 🪫 is a different store and a different button; wiping ⚡ must not reach it.
+	await expect(drainRow(page)).toBeVisible();
+});
+
+test('a refused confirm leaves the ratings alone', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await logDrain(page, 120, 9, 5);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Correct this drain rating',
+		}),
+	).toBeVisible();
+
+	await page.goto('/analytics');
+	await expect(drainRow(page)).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Delete all ratings',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Cancel',
+		})
+		.click();
+
+	await expect(drainRow(page)).toBeVisible();
+});
+
+test('the ⚡ row counts every log, not the viewed range', async ({ page }) => {
+	await seedTwoFlowLogs(page);
+
+	// The list is on `week`, so it prints one of the two…
+	await expect(flowRow(page)).toHaveCount(1);
+
+	// …and the row still names what the button would delete.
+	await expect(page.getByText('Time to flow · 2 logs')).toBeVisible();
+});
+
+test('the ⚡ reset ignores the viewed range', async ({ page }) => {
+	await seedTwoFlowLogs(page);
+
+	await expect(flowRow(page)).toHaveCount(1);
+
+	await page
+		.getByRole('button', {
+			name: 'Delete all logs',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Reset',
+			exact: true,
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Show all time',
+		})
+		.click();
+
+	await expect(page.getByText('No measurements logged yet.')).toBeVisible();
+	await expect(flowRow(page)).toHaveCount(0);
+});
+
+test('a wipe closes an open correction', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await logDrain(page, 120, 9, 5);
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Correct this drain rating',
+		}),
+	).toBeVisible();
+
+	await page.goto('/analytics');
+
+	await page
+		.getByRole('button', {
+			name: /^Correct Session rating logged on/,
+		})
+		.click();
+
+	const save = page.getByRole('button', {
+		name: '✓',
+	});
+
+	await expect(save).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Delete all ratings',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Reset',
+			exact: true,
+		})
+		.click();
+
+	await expect(save).toHaveCount(0);
+});
+
+test('a fresh profile offers nothing to reset', async ({ page }) => {
+	await page.goto('/analytics');
+
+	// The loaded branch, not the pending one: three rows are absent while the card is
+	// still saying "Loading…" too, and that would pass for the wrong reason.
+	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
+
+	for (const name of ['Delete all logs', 'Delete all ratings', 'Delete all pairs'])
+		await expect(
+			page.getByRole('button', {
+				name,
+			}),
+		).toHaveCount(0);
 });

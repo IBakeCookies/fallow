@@ -438,14 +438,23 @@ Three cards each listing their own kind was three partial answers to "what have
 I logged" — none could show a neighbouring kind or a day outside its own fit —
 so what stays with each card is the two verbs a FIT has rather than a
 measurement: read what it was fitted from, and un-personalize it
-(`fit-log-summary.svelte`, which is `log-list.svelte` narrowed to those two,
-keeping its two-step reset and that reset's focus handling).
+(`fit-log-summary.svelte`, whose two-step reset and focus handling are the safety
+of every bulk delete in the app). The history card
+draws that same row once per kind, with `withHistoryLink={false}`: its link
+would point at the card it is drawn in.
 
-The history both **drops and corrects**: ✕ and ✎ on every row, each addressed by
-`(kind, id)` and not `id` alone — three kinds are three stores with three id
-sequences. A row's date is also a link to `/?date=<that day>` for ⚡ and 🪫,
-which is navigation and not the correction path; ☕ belongs to no day's row and
-gets no link.
+The history **drops, corrects and wipes**: ✕ and ✎ on every row, each addressed
+by `(kind, id)` and not `id` alone — three kinds are three stores with three id
+sequences — and, at the card's FOOT under the list, one reset per kind making the
+same store call that kind's fit card makes. Under, because the other three
+resets each sit on a card read for something else — ⚡'s on `/`'s calibration
+card, 🪫 and ☕ behind the Lab's folds — and these would otherwise be the app's
+most prominent destructive control, on a card opened to read the list. Their counts
+and their deletes are ALL-TIME while the list above them is ranged, because the
+stores expose no ranged delete — a count filtered to the viewed range would name
+less than the button removes. A row's date is also a link to `/?date=<that day>`
+for ⚡ and 🪫, which is navigation and not the correction path; ☕ belongs to no
+day's row and gets no link.
 
 ### A correction rewrites the quantities the user rated and nothing else
 

@@ -10,6 +10,7 @@
 	import ParamTrend from '$lib/presentation/component/param-trend.svelte';
 	import QuadrantDistribution from '$lib/presentation/component/quadrant-distribution.svelte';
 	import LogHistoryList from '$lib/presentation/component/log-history-list.svelte';
+	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
@@ -119,6 +120,16 @@
 	// hands the key back rather than the kind and id, so the format stays `logHistory`'s.
 	let editingKey = $state<string | null>(null);
 	const closeEditor = () => (editingKey = null);
+
+	const formatResetLabel = (kind: string, count: number) =>
+		count === 1
+			? m.ana_logs_reset_count_one({
+					kind,
+				})
+			: m.ana_logs_reset_count_other({
+					kind,
+					count,
+				});
 
 	function saveFlowLog(id: number, minutes: number) {
 		session.editFlowLog(id, minutes);
@@ -462,5 +473,49 @@
 			onsavedrain={saveDrainLog}
 			onsaverest={saveRestLog}
 		/>
+		<div class="mt-text-lg grid gap-text-2xs border-t border-line-soft pt-box-sm">
+			<FitLogSummary
+				label={formatResetLabel(m.ana_logs_kind_flow(), session.flowObservations.length)}
+				count={session.flowObservations.length}
+				confirmLabel={m.budget_reset_confirm({
+					count: session.flowObservations.length,
+				})}
+				resetLabel={m.ana_logs_reset_flow()}
+				resetTitle={m.budget_reset_title()}
+				withHistoryLink={false}
+				onreset={() => {
+					session.resetFlowLogs();
+					closeEditor();
+				}}
+			/>
+			<FitLogSummary
+				label={formatResetLabel(m.ana_logs_kind_drain(), observations.drainObservations.length)}
+				count={observations.drainObservations.length}
+				confirmLabel={m.energy_reset_drain_confirm({
+					count: observations.drainObservations.length,
+				})}
+				resetLabel={m.energy_reset_drain_logs()}
+				resetTitle={m.energy_reset_drain_title()}
+				withHistoryLink={false}
+				onreset={() => {
+					observations.resetDrainLogs();
+					closeEditor();
+				}}
+			/>
+			<FitLogSummary
+				label={formatResetLabel(m.ana_logs_kind_rest(), observations.restObservations.length)}
+				count={observations.restObservations.length}
+				confirmLabel={m.energy_reset_rest_confirm({
+					count: observations.restObservations.length,
+				})}
+				resetLabel={m.energy_reset_rest_logs()}
+				resetTitle={m.energy_reset_rest_title()}
+				withHistoryLink={false}
+				onreset={() => {
+					observations.resetRestLogs();
+					closeEditor();
+				}}
+			/>
+		</div>
 	{/if}
 </div>
