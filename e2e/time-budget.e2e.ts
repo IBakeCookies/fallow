@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { addTask, AUTOSAVE_MS, budgetField, isoDate, openTimeBudget, setBudget } from './helpers';
 
 test('setting the time budget feeds the plan', async ({ page }) => {
@@ -118,6 +118,36 @@ test('the bar follows the day on screen, not the day the tab booted on', async (
 			name: 'Time Budget',
 		}),
 	).toHaveAttribute('aria-expanded', 'false');
+});
+
+/** One of the bar's stepper fields, set the way the user does: type, then blur. */
+async function setConstraint(page: Page, id: string, value: number) {
+	const field = page.locator(id);
+
+	await field.fill(String(value));
+	await field.blur();
+}
+
+/* ROADMAP item 32: the switch cost and the pools carry over to a day with no
+   session of its own, the way item 16's hours do — from the last day that
+   declared them, not from that weekday. Staging a second day is what proves the
+   fold reaches the page, and the collapsed summary is where a day the user has
+   not opened shows all three. */
+test('an unseen day opens on the last declared switch cost and pools', async ({ page }) => {
+	await page.goto('/');
+	// No task: touching a constraint is itself what saves the day, which is the
+	// half of the rule the store's spec states as "saved for a reason of its own".
+	await setBudget(page, 8);
+	await setConstraint(page, '#switch-cost', 45);
+	await setConstraint(page, '#cognitive-pool', 3);
+	await setConstraint(page, '#physical-pool', 7);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	// Tomorrow has no session, so it opens on today's constraints and stays
+	// collapsed — 8h is the overall median, tomorrow's own weekday having none.
+	await page.goto(`/?date=${isoDate(1)}`);
+
+	await expect(page.getByText(/3h mind · 7h body · 45m switch/)).toBeVisible();
 });
 
 /* Fallow allocates durations, not appointments: the model has no notion of when

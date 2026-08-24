@@ -274,7 +274,8 @@ re-open one.
 - Plan advice is computed on demand, never in a `$derived`.
 - `EnergyLabStore` never writes the daily session, and the day window is
   `session.availableHours` — not a param.
-- An unseen day's budget is prefilled from its own weekday, derived and unsaved.
+- An unseen day's budget is prefilled from its own weekday, derived and unsaved;
+  its switch cost and pools carry over from the last day that declared them.
 - A task moves between days only via `moveTaskToTomorrow`.
 
 **Model** — [src/lib/business/model/AGENTS.md](src/lib/business/model/AGENTS.md)

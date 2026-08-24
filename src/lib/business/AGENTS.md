@@ -411,6 +411,28 @@ that lands before its budget opens the panel against 0 and fills in behind it.
 Awaiting is safe only because the read catches its own failure (above): the day
 must not wait on a history read that can take it down.
 
+The **switch cost and the capacity pools carry over the same way** (ROADMAP item
+32, `model/constraint-memory.ts`), with three differences that are the whole of
+that item. It is **last declared, not a weekday median** — hours are
+weekday-shaped, a switch cost and a capacity are properties of the person, and
+the calendar says nothing about those. Each field answers from **its own latest
+day**, because pools are optional in storage and the newest day may have none.
+And a **stored day keeps its own**: absent pools on a stored day are the
+constants that day ran with (`metric/history.ts`, `session-history.ts`), so
+carrying today's into it would re-score a day the user already worked — item 18
+depends on that, and only the no-session branch of `#loadSession` goes `null`.
+A **blur is not a declaration**, and that rule is one method for all four fields:
+`#declare(value, prefilled)` returns `null` while the field still says what it was
+already showing. `NumberInput` reports on blur whether or not the value moved, so
+without it a tab through the panel stores the day — the phantom session the `null`
+above exists to prevent, reached by a touch instead of by a look. It governs the
+hours field too, which is where the hole was open before the other three existed.
+There is **no past-day rule** here: an unseen past day is read-only, saves
+nothing, and showed an invented constant before this existed, so a branch would
+guard nothing. The one limit is storage's: `switchCost` is not optional in a
+stored session, so what carries is the cost the last stored day _ran with_, which
+is the only declaration there is.
+
 The same read carries the title→rating map, which is a **boot snapshot**:
 `readHistoryPrefills(today)` runs once at load, so a title rated within the
 session is not suggested until the next load, and the map keeps the boot day's

@@ -28,13 +28,16 @@ import {
 	summarizeBudgetHistory,
 	type BudgetHistory,
 } from '$lib/business/model/budget-memory';
+import {
+	summarizeDeclaredConstraints,
+	type DeclaredConstraints,
+} from '$lib/business/model/constraint-memory';
 import { getEffectiveDifficulty, isPinned } from '$lib/business/model/metric/calculation';
 import {
 	summarizeDeferDestination,
 	type DeferDestination,
 } from '$lib/business/model/metric/defer-destination';
 import {
-	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
 	fitUserConstants,
 	mapEffort,
@@ -105,9 +108,11 @@ export class SessionStore {
 	// the user only browsed pristine: the prefill below answers for it, the
 	// auto-save's dirty test reads this field, and the first edit assigns a number.
 	#availableHours = $state<number | null>(null);
-	#switchCost = $state<number>(DEFAULT_SWITCH_COST);
-	#cognitivePool = $state<number>(DEFAULT_CAPACITY_POOLS.cognitiveHours);
-	#physicalPool = $state<number>(DEFAULT_CAPACITY_POOLS.physicalHours);
+	// The same `null`, for the same reason, three more times: the carry-over below
+	// answers for an untouched day (ROADMAP item 32).
+	#switchCost = $state<number | null>(null);
+	#cognitivePool = $state<number | null>(null);
+	#physicalPool = $state<number | null>(null);
 	#isLoading = $state(true);
 	#yesterdaySession = $state<DailySession | null>(null);
 	#routines = $state<SavedRoutine[]>([]);
@@ -120,6 +125,7 @@ export class SessionStore {
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity -- read-only lookup, replaced not mutated
 	#titleRatings = $state(new Map<string, TitleRating>());
 	#budgetHistory = $state<BudgetHistory>(summarizeBudgetHistory([]));
+	#declaredConstraints = $state<DeclaredConstraints>(summarizeDeclaredConstraints([]));
 
 	// Session writes, counted per date. A reading held about a day OTHER than the
 	// viewed one cannot key its freshness off that day's inputs — today → tomorrow
@@ -171,8 +177,8 @@ export class SessionStore {
 
 	// Capacity pools, sanitized (empty/invalid inputs → 0, i.e. no capacity)
 	#pools = $derived({
-		cognitiveHours: Math.max(0, Number(this.#cognitivePool) || 0),
-		physicalHours: Math.max(0, Number(this.#physicalPool) || 0),
+		cognitiveHours: Math.max(0, Number(this.cognitivePool) || 0),
+		physicalHours: Math.max(0, Number(this.physicalPool) || 0),
 	});
 
 	// The logs a plan for the viewed day is allowed to read: dated STRICTLY BEFORE
@@ -277,9 +283,9 @@ export class SessionStore {
 					this.#loadedHadSession ||
 					this.#tasks.length > 0 ||
 					(this.#availableHours ?? 0) > 0 ||
-					this.#switchCost !== DEFAULT_SWITCH_COST ||
-					this.#cognitivePool !== DEFAULT_CAPACITY_POOLS.cognitiveHours ||
-					this.#physicalPool !== DEFAULT_CAPACITY_POOLS.physicalHours;
+					this.#switchCost !== null ||
+					this.#cognitivePool !== null ||
+					this.#physicalPool !== null;
 
 				if (!dirty) return;
 
@@ -290,9 +296,9 @@ export class SessionStore {
 					// The effective hours, so a day saved for another reason records
 					// the budget it was showing while that happened.
 					availableHours: this.availableHours,
-					switchCost: this.#switchCost,
-					cognitivePool: this.#cognitivePool,
-					physicalPool: this.#physicalPool,
+					switchCost: this.switchCost,
+					cognitivePool: this.cognitivePool,
+					physicalPool: this.physicalPool,
 					updatedAt: Date.now(),
 				});
 			}
@@ -373,10 +379,10 @@ export class SessionStore {
 			// follows. A 0 here would make the destination a STORED day at 0, which
 			// no prefill may speak for (ROADMAP item 16).
 			availableHours: session?.availableHours ?? prefillBudgetFor(this.#budgetHistory, date),
-			switchCost: session?.switchCost ?? DEFAULT_SWITCH_COST,
+			switchCost: session?.switchCost ?? this.#declaredConstraints.switchCost,
 			pools: {
-				cognitiveHours: session?.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
-				physicalHours: session?.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+				cognitiveHours: session?.cognitivePool ?? this.#declaredConstraints.pools.cognitiveHours,
+				physicalHours: session?.physicalPool ?? this.#declaredConstraints.pools.physicalHours,
 			},
 		};
 	}
@@ -425,6 +431,7 @@ export class SessionStore {
 			.then((prefills) => {
 				this.#titleRatings = prefills.titleRatings;
 				this.#budgetHistory = prefills.budgets;
+				this.#declaredConstraints = prefills.constraints;
 			})
 			.catch((e) => logError('Failed to load history prefills', e));
 	}
@@ -463,13 +470,14 @@ export class SessionStore {
 				this.#cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
 			} else {
-				// No data for this date: the hours stay unanswered, so the day shows
-				// what its weekday usually gets until the user says otherwise.
+				// No data for this date: nothing here is answered, so the day shows what
+				// its weekday usually gets and how the last stored day worked, until the
+				// user says otherwise.
 				this.#tasks = [];
 				this.#availableHours = null;
-				this.#switchCost = DEFAULT_SWITCH_COST;
-				this.#cognitivePool = DEFAULT_CAPACITY_POOLS.cognitiveHours;
-				this.#physicalPool = DEFAULT_CAPACITY_POOLS.physicalHours;
+				this.#switchCost = null;
+				this.#cognitivePool = null;
+				this.#physicalPool = null;
 			}
 
 			this.#loadedHadSession = Boolean(session);
@@ -548,29 +556,40 @@ export class SessionStore {
 
 	/** The day's hours: the user's own where there are any, the weekday's usual
 	 *  reading where the day has none (ROADMAP item 16). */
+	/**
+	 * What one of the four constraint fields holds after the user sets it: `null`
+	 * while it still says what it was already showing. `NumberInput` reports on blur
+	 * whether or not the value moved, so without this a tab through the panel
+	 * declares the day and stores it — the phantom session the prefill's `null`
+	 * exists to prevent (business/AGENTS.md).
+	 */
+	#declare(value: number, prefilled: number): number | null {
+		return value === prefilled ? null : value;
+	}
+
 	get availableHours() {
 		return this.#availableHours ?? this.#prefilledHours;
 	}
 	set availableHours(v: number) {
-		this.#availableHours = v;
+		this.#availableHours = this.#declare(v, this.#prefilledHours);
 	}
 	get switchCost() {
-		return this.#switchCost;
+		return this.#switchCost ?? this.#declaredConstraints.switchCost;
 	}
 	set switchCost(v: number) {
-		this.#switchCost = v;
+		this.#switchCost = this.#declare(v, this.#declaredConstraints.switchCost);
 	}
 	get cognitivePool() {
-		return this.#cognitivePool;
+		return this.#cognitivePool ?? this.#declaredConstraints.pools.cognitiveHours;
 	}
 	set cognitivePool(v: number) {
-		this.#cognitivePool = v;
+		this.#cognitivePool = this.#declare(v, this.#declaredConstraints.pools.cognitiveHours);
 	}
 	get physicalPool() {
-		return this.#physicalPool;
+		return this.#physicalPool ?? this.#declaredConstraints.pools.physicalHours;
 	}
 	set physicalPool(v: number) {
-		this.#physicalPool = v;
+		this.#physicalPool = this.#declare(v, this.#declaredConstraints.pools.physicalHours);
 	}
 
 	// ----- Task mutations -----
@@ -620,9 +639,9 @@ export class SessionStore {
 					date: this.#selectedDate,
 					tasks: $state.snapshot(this.#tasks),
 					availableHours: this.availableHours,
-					switchCost: this.#switchCost,
-					cognitivePool: this.#cognitivePool,
-					physicalPool: this.#physicalPool,
+					switchCost: this.switchCost,
+					cognitivePool: this.cognitivePool,
+					physicalPool: this.physicalPool,
 					updatedAt: Date.now(),
 				});
 			} catch (e) {
