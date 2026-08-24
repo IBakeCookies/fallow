@@ -58,6 +58,10 @@ import {
 import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
 import { latestRatingsByTitle, type TitleRating } from '$lib/business/model/title-memory';
 import { summarizeBudgetHistory, type BudgetHistory } from '$lib/business/model/budget-memory';
+import {
+	summarizeDeclaredConstraints,
+	type DeclaredConstraints,
+} from '$lib/business/model/constraint-memory';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import {
 	sanitizeDrainObservations,
@@ -180,6 +184,8 @@ export interface HistoryPrefills {
 	titleRatings: Map<string, TitleRating>;
 	/** What each weekday's budget usually is (an unseen day's hours). */
 	budgets: BudgetHistory;
+	/** What the last day that declared them says the switch cost and pools are. */
+	constraints: DeclaredConstraints;
 }
 
 /**
@@ -189,7 +195,7 @@ export interface HistoryPrefills {
  * `date` is the store's keyPath and ISO dates sort lexicographically, so a lower
  * bound below any of them reads all of history in one range query.
  *
- * Both folds run off that one scan: it grows with the user's whole history, and
+ * Every fold runs off that one scan: it grows with the user's whole history, and
  * a second range read would double the read `SessionStore` deliberately does not
  * wait for.
  */
@@ -199,6 +205,7 @@ export async function readHistoryPrefills(today: string): Promise<HistoryPrefill
 	return {
 		titleRatings: latestRatingsByTitle(sessions),
 		budgets: summarizeBudgetHistory(sessions),
+		constraints: summarizeDeclaredConstraints(sessions),
 	};
 }
 

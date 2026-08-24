@@ -15,11 +15,12 @@ import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte
 // for two hours every night east of Greenwich — the exact off-by-one
 // `utils/date.ts` exists to prevent.
 import { addDays, toISODate } from '$lib/business/utils/date';
-import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
+import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import type { DailySession } from '$lib/business/type';
 import type { TitleRating } from '$lib/business/model/title-memory';
 import { summarizeBudgetHistory } from '$lib/business/model/budget-memory';
+import { summarizeDeclaredConstraints } from '$lib/business/model/constraint-memory';
 
 vi.mock('$lib/business/session-history', () => ({
 	initializeStorage: vi.fn(async () => {}),
@@ -55,6 +56,7 @@ const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
 const noPrefills = () => ({
 	titleRatings: new Map<string, TitleRating>(),
 	budgets: summarizeBudgetHistory([]),
+	constraints: summarizeDeclaredConstraints([]),
 });
 
 const createOrUpdateFlowObservationMock = vi.mocked(
@@ -1226,6 +1228,24 @@ describe('SessionStore budget prefill', () => {
 		});
 	});
 
+	/* `NumberInput` reports on blur whether or not the value moved
+	   (`number-input.svelte`), so a field set to what it was already showing must
+	   not store the day: that is item 16's phantom session, reached by a tab
+	   through the panel instead of by a look. */
+	it('reads hours set to the prefill as no declaration', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(6));
+		useFakeTimers();
+
+		store.availableHours = 6;
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+		expect(store.availableHours).toBe(6);
+	});
+
 	// A past day with no record is history, and history had no budget. Filling
 	// one in would be the app making a claim about a day the user did not plan.
 	it('offers nothing on a past day with no record', async () => {
@@ -1329,6 +1349,180 @@ describe('SessionStore budget prefill', () => {
 		await vi.waitFor(() => expect(store.loadedDate).toBe(today));
 
 		expect(store.availableHours).toBe(6);
+	});
+});
+
+describe('SessionStore constraint carry-over', () => {
+	const today = toISODate();
+	const lastWeek = addDays(today, -7);
+	const nextWeek = addDays(today, 7);
+
+	const carried = () =>
+		summarizeDeclaredConstraints([
+			{
+				date: lastWeek,
+				tasks: [],
+				availableHours: 4,
+				switchCost: 0.5,
+				cognitivePool: 3,
+				physicalPool: 7,
+				updatedAt: 0,
+			},
+		]);
+
+	beforeEach(() => {
+		mockPage.url = new URL('http://localhost/');
+
+		readHistoryPrefillsMock.mockImplementation(async () => ({
+			...noPrefills(),
+			constraints: carried(),
+		}));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		readSessionByDateMock.mockImplementation(async () => null);
+	});
+
+	it('opens a day with no stored session on the last declared constraints', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		expect(store.cognitivePool).toBe(3);
+		expect(store.physicalPool).toBe(7);
+
+		expect(store.pools).toEqual({
+			cognitiveHours: 3,
+			physicalHours: 7,
+		});
+	});
+
+	/* Item 16's trap, once per field: the autosave's dirty test used to be
+	   "unequal to the constant", which a carried value is by construction — so a
+	   prefill in the dirty test writes a phantom session for every day the user
+	   merely looked at. */
+	it('writes no session for a day the user only looked at', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+		useFakeTimers();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+	});
+
+	// A stored day is answered by storage, pools included: its absent pools are
+	// the constants it ran with (`history.ts`, `session-history.ts`), and carrying
+	// today's into it would re-score a day the user already worked.
+	it('leaves a stored day on its own constraints', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		readSessionByDateMock.mockImplementation(async (date: string) => ({
+			date,
+			tasks: [],
+			availableHours: 4,
+			switchCost: 0.75,
+			updatedAt: 0,
+		}));
+
+		mockPage.url = new URL(`http://localhost/?date=${nextWeek}`);
+
+		await vi.waitFor(() => {
+			expect(store.loadedDate).toBe(nextWeek);
+			expect(store.switchCost).toBe(0.75);
+		});
+
+		expect(store.cognitivePool).toBe(DEFAULT_CAPACITY_POOLS.cognitiveHours);
+		expect(store.physicalPool).toBe(DEFAULT_CAPACITY_POOLS.physicalHours);
+	});
+
+	it('persists the carried constraints once the day is saved for another reason', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+		useFakeTimers();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: today,
+			switchCost: 0.5,
+			cognitivePool: 3,
+			physicalPool: 7,
+		});
+	});
+
+	// The same rule as the hours field's, for the same reason: a blur reports the
+	// value whether or not it moved.
+	it('reads a constraint set to what it was already showing as no declaration', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+		useFakeTimers();
+
+		store.switchCost = 0.5;
+		store.cognitivePool = 3;
+		store.physicalPool = 7;
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+		expect(store.switchCost).toBe(0.5);
+	});
+
+	// A value that did move is a declaration, and the day is stored for it alone.
+	it('stores the day for a constraint the user did move', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+		useFakeTimers();
+
+		store.switchCost = 0.25;
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: today,
+			switchCost: 0.25,
+		});
+	});
+
+	// The destination day is being saved for a reason of its own, so it records
+	// what it will open on — the rule the autosave payload follows (item 16).
+	it('gives tomorrow the carried constraints when a defer creates it', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+		});
+
+		flushSync();
+		useFakeTimers(); // freeze the auto-save so only the move writes
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: addDays(today, 1),
+			switchCost: 0.5,
+			cognitivePool: 3,
+			physicalPool: 7,
+		});
 	});
 });
 

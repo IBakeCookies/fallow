@@ -184,7 +184,17 @@ other.**
     is actually better than 4/6, which is exactly what the probe tests.
     MATH.md section required (the map, the pole, the clamp, and the
     sessions-per-day bias). **Prereq:** enough 🪫 logs for a credible α, i.e.
-    item 11 in practice.
+    item 11 in practice. The per-day prefill slot it requires now exists (item 32) — this item replaces the source of the pool prefill, not its wiring.
+
+19. ~~**Constraint carry-over for unseen days**~~ — SHIPPED 2026-08-24.
+    [docs/features/constraint-carry-over-for-unseen-days.md](docs/features/constraint-carry-over-for-unseen-days.md)
+    Item 16 for the other two declared constraints: a day with no stored session
+    opens on the switch cost and pools the last day that declared them ran with,
+    instead of on `DEFAULT_SWITCH_COST` and `DEFAULT_CAPACITY_POOLS`. Last
+    declared rather than item 16's weekday median — a Saturday is a different
+    day, a switch cost and a capacity are not. Unmeasured for the same reason
+    item 16 is: the gate is a question about habit, answerable only from a real
+    exported history.
 
 Item 15 shipped as one feature with the item below, which is how its ratings
 reach the form at all:
