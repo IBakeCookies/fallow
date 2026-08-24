@@ -62,17 +62,46 @@ describe('sanitizeEnergyParams (R4: validate persisted params on read)', () => {
 		expect(sanitizeEnergyParams(stored)).toEqual(stored);
 	});
 
-	// Out-of-range is NOT clamped on purpose: satietyScale ≤ 0 is the documented
-	// way to recover pure total output (business/model/AGENTS.md), so a clamp would delete a
-	// supported configuration. Finiteness is the whole contract.
-	it('preserves out-of-range but finite values', () => {
+	// A negative rate is the reachable NaN: rec·gate < 0 gives ρ > 0 with eq < 0,
+	// the reservoir goes negative, and level^wc is NaN — which silently returns
+	// the do-nothing plan (MATH.md §8.5).
+	it.each(['alphaCog', 'alphaPhys', 'recoveryRate', 'restRecoveryMultiplier'] as const)(
+		'clamps a negative %s to 0',
+		(key) => {
+			expect(
+				sanitizeEnergyParams({
+					[key]: -0.7,
+				})[key],
+			).toBe(0);
+		},
+	);
+
+	it('clamps microRecoveryFraction to [0, 1]', () => {
+		expect(
+			sanitizeEnergyParams({
+				microRecoveryFraction: -0.2,
+			}).microRecoveryFraction,
+		).toBe(0);
+
+		expect(
+			sanitizeEnergyParams({
+				microRecoveryFraction: 1.5,
+			}).microRecoveryFraction,
+		).toBe(1);
+	});
+
+	// The disabling configurations survive the clamp: satietyScale 0 still
+	// recovers pure total output, and nothing bounds a value from above.
+	it('clamps values to non-negative and leaves large ones alone', () => {
 		expect(
 			sanitizeEnergyParams({
 				satietyScale: -1,
+				freeTimeValue: -2,
 				terminalEnergyValue: 1e6,
 			}),
 		).toMatchObject({
-			satietyScale: -1,
+			satietyScale: 0,
+			freeTimeValue: 0,
 			terminalEnergyValue: 1e6,
 		});
 	});

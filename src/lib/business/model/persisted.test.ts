@@ -504,6 +504,32 @@ describe('observation sanitizers', () => {
 			).toHaveLength(1);
 		});
 
+		// A negative rate is outside the reservoir law's domain: it drives the
+		// level below zero and `level^wc` is NaN, which reaches the objective and
+		// makes the optimizer return the do-nothing plan. Dropped, not clamped —
+		// this file repairs by drop-or-keep, and a substituted rate would audit
+		// the day under params the user never had.
+		it('drops a record whose fitted rate is negative', () => {
+			for (const field of ['alphaCog', 'alphaPhys', 'recoveryRate']) {
+				expect(
+					sanitizeFitSnapshots([
+						fitSnapshot({
+							[field]: -0.7,
+						}),
+					]),
+				).toEqual([]);
+			}
+
+			// Zero is in the domain: a fitted rate can legitimately bottom out.
+			expect(
+				sanitizeFitSnapshots([
+					fitSnapshot({
+						recoveryRate: 0,
+					}),
+				]),
+			).toHaveLength(1);
+		});
+
 		// A MISSING posterior means σ_ϕ = 0 downstream — the allocator treats the
 		// user as perfectly certain (MATH.md §13.1) — so a snapshot that lost its
 		// covariance must leave the audit rather than silently harden the plan.
