@@ -174,6 +174,11 @@ export const AXIS_BAND = {
 	grindDensity: (value: number) => getBandSmallerBetter(value),
 	timeScarcity: (value: number) => getBandSmallerBetter(value),
 	scheduleIntegrity: (value: number) => getBandBiggerBetter(value),
+	// Anything short of full means some task in the plan never reaches ϕ — the
+	// condition the advisor searches on (MATH.md §14.5). Never critical: on 89% of
+	// seeded days this already bands warning, and a headline row that shouts daily
+	// is a row nobody reads.
+	flowCoverage: (value: number): Band => (value >= 100 ? 'success' : 'warning'),
 } satisfies Record<AdviceAxis | 'grindDensity', (value: number) => Band>;
 
 /** Whether a reading is bad enough to be worth advice about. */

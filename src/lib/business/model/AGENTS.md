@@ -337,7 +337,13 @@ Do not "fix" the fall.
 
 It reports every axis unconditionally with a lower-is-better badness function;
 whether a reading is bad enough to act on is the band
-([presentation's](../../presentation/AGENTS.md)). Options per axis are the
+([presentation's](../../presentation/AGENTS.md)). **Badness takes the metrics,
+not the reading, and one axis uses that**: Flow Coverage ranks on the COUNT of
+tasks reaching ϕ and displays the share (MATH.md §14.5), because a defer drops a
+task from the share's numerator and denominator at once and would improve it for
+free — §11.11's reason for retiring Grind Density, measured again here at 259 of
+664 defers. Badness only orders candidates, so what it consumes is free to differ
+from what the card prints; do not "simplify" it back into a function of `read`. Options per axis are the
 Pareto frontier on (improvement ↑, plan value ↑) so there is no weight λ to
 defend — see MATH.md §14 for why "the single biggest improvement" is bad
 advice. **Unconditionally includes the axes nothing improves**: one finding per

@@ -24,6 +24,7 @@ const AXES = [
 	'frictionIndex',
 	'timeScarcity',
 	'scheduleIntegrity',
+	'flowCoverage',
 ] as const;
 
 /**

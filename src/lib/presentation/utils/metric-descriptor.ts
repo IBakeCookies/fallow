@@ -174,11 +174,7 @@ export function buildMetrics(
 			...gated(
 				planned,
 				`${flowCoverage.reached}/${flowCoverage.total}`,
-				flowCoverage.reached === flowCoverage.total
-					? 'success'
-					: flowCoverage.reached >= flowCoverage.total / 2
-						? 'neutral'
-						: 'warning',
+				AXIS_BAND.flowCoverage((flowCoverage.reached / flowCoverage.total) * 100),
 			),
 		},
 		{

@@ -471,3 +471,56 @@
 		).not.toBeInTheDocument();
 	}}
 />
+
+<!-- MATH.md §14.5. A ninth axis, and no markup of its own. -->
+<Story
+	name="Flow coverage"
+	args={{
+		advice: {
+			rows: [
+				{
+					axis: 'flowCoverage',
+					label: 'Flow Coverage',
+					before: '60%',
+					beforeBand: 'warning',
+					options: [
+						{
+							lever: {
+								kind: 'defer-task',
+								taskId: 1,
+								title: 'Design error boundary',
+							},
+							action: 'Move “Design error boundary” off today',
+							after: '100%',
+							afterBand: 'success',
+							cost: '−26.4% plan value',
+							profileFlip: null,
+							applyLabel: null,
+							isUnpriced: false,
+						},
+					],
+				},
+			],
+			unfunded: null,
+			unfundedMustDo: null,
+			marginal: 'Another 15 minutes would get nothing more done.',
+			switchCost: 'At 15m a switch, this plan pays for no switching.',
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		await expect(canvas.getByText('Flow Coverage')).toBeVisible();
+		await expect(canvas.getByText('60%')).toBeVisible();
+		await expect(canvas.getByText('Move “Design error boundary” off today')).toBeVisible();
+		await expect(canvas.getByText('100%')).toBeVisible();
+		await expect(canvas.getByText('· −26.4% plan value')).toBeVisible();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Move “Design error boundary” to tomorrow',
+			}),
+		);
+
+		await expect(args.onapply).toHaveBeenCalledOnce();
+		await expect(args.onapply).toHaveBeenCalledWith(1);
+	}}
+/>

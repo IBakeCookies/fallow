@@ -94,6 +94,44 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 }
 
 describe('buildAdviceDisplay', () => {
+	// MATH.md §14.5. The axis label is the dashboard tile's own message key, and
+	// the reading is the share — the tile keeps the fraction, which is not
+	// recoverable from one number (the feature file records the trade).
+	it('labels the flow-coverage row and prints its share', () => {
+		const display = buildAdviceDisplay(
+			{
+				...advice([]),
+				findings: [
+					{
+						axis: 'flowCoverage',
+						before: 60,
+						options: [
+							{
+								lever: {
+									kind: 'defer-task',
+									taskId: 1,
+									title: 'Design error boundary',
+								},
+								after: 100,
+								quadrantFlip: null,
+								planValue: 7,
+								planValueDeltaPercent: -26.4,
+							},
+						],
+						unpriced: null,
+					},
+				],
+			},
+			'en-GB',
+		);
+
+		expect(display.rows).toHaveLength(1);
+		expect(display.rows[0].label).toBe('Flow Coverage');
+		expect(display.rows[0].before).toBe('60%');
+		expect(display.rows[0].options[0].after).toBe('100%');
+		expect(display.rows[0].options[0].cost).toBe('−26.4% plan value');
+	});
+
 	// MATH.md §14.1-4: the frontier rises in plan value, so its last row is the
 	// cheapest — the one a frontier exists to surface. Truncating from the end
 	// dropped exactly that.
