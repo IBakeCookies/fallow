@@ -753,8 +753,6 @@ export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: numb
  * 8/8, against enjoyment 1 → gap 9) work.
  */
 export function calculateFrictionIndex(tasks: SuggestedTask[]): number {
-	if (!tasks.length) return 0;
-
 	const totalAllocated = tasks.reduce((sum, t) => sum + t.suggestedHours, 0);
 
 	if (totalAllocated <= 0) return 0;

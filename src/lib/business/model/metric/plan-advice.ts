@@ -245,6 +245,9 @@ const AXIS: Record<
 		badness: (metrics) => Math.abs(readEnergyBalance(metrics) - 50),
 	},
 	frictionIndex: {
+		// No sentinel, unlike Energy Balance and Schedule Integrity: 0 friction on a
+		// plan that funds nothing is that day's true reading, not a stand-in, and the
+		// defer reaching it is priced at the whole plan's Σ P̄ (MATH.md §14).
 		read: (metrics) => metrics.frictionIndex,
 		badness: (metrics) => metrics.frictionIndex,
 	},

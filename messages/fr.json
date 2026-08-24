@@ -211,7 +211,7 @@
 	"metric_schedule_integrity": "Intégrité du planning",
 	"metric_schedule_integrity_desc": "Part du temps engagé par le plan qui est du travail productif plutôt que du surcoût de changement de contexte. Une longue session ≈ 100 % ; beaucoup de petites sessions font chuter le chiffre.",
 	"metric_friction_index": "Indice de friction",
-	"metric_friction_index_desc": "Part de ton temps alloué passée sur du travail plus dur qu'agréable (écart difficulté−plaisir pondéré par le temps, sur les échelles 1–10). 100 % = chaque heure planifiée est du travail de difficulté 10 et de plaisir 1.",
+	"metric_friction_index_desc": "Taille de l'écart entre difficulté et plaisir, moyennée sur tes heures allouées et rapportée au plus grand écart possible (9, sur les échelles 1–10). Une journée entière dont la difficulté dépasse le plaisir de 4 points affiche 44 %, pas les 100 % qu'indiquerait une part du temps. 100 % = chaque heure planifiée est du travail de plaisir 1 et de difficulté 10, ce qu'atteint aussi une tâche notée 8 dans les deux dimensions.",
 	"metric_deep_work": "Travail profond",
 	"metric_deep_work_desc": "Part de ton budget de temps en travail à concentration soutenue, pondérée par la difficulté mentale : rien ne compte en dessous de 5, une demi-heure de crédit à 7, l'heure entière à partir de 9. Entre un quart et 60 % de la journée est la forme à viser — au-delà, c'est le Risque de burn-out qui tranche.",
 	"metric_quick_wins": "Gains rapides",
