@@ -212,14 +212,18 @@ reach the form at all:
    (§8.10, item 28). The three reachable categories are worked-to-the-window-edge,
    every-task-completed and sliver-only.
    The Tobit-style term was implemented and scored against the shipped fit over 90
-   seeded users × 12 days at true λ₀ ∈ {0.3 … 1.3}. It gains **0.0437** λ₀ RMSE at
-   best on the mixed cell — 40% of the 0.110 bracket half-width the gate was set at
-   — while raising the used share from 60% to 88% of days. **The category that
-   motivated the item is worse alone:** all-completed days move RMSE 0.0974 → 0.1224
-   at n = 12 (bias −0.011 → −0.102), because their `λ₀ ≤ hi` is almost never
-   violated (0.2%) but sits far above the truth — ordinary is not informative. A
-   sliver day's `λ₀ ≥ lo` is violated **100%** of the time: a sub-step day is an
-   interruption, not a leisure choice.
+   seeded users × 12 days at true λ₀ ∈ {0.3 … 1.3}. Figures re-read 2026-08-25 on
+   the app's constraint surface (M40 below); the run that decided it was
+   off-surface, and MATH.md §8.10 carries all three readings. It gains **0.0403**
+   λ₀ RMSE at best on the mixed cell — 36.7% of the 0.110 bracket half-width the
+   gate was set at — while raising the used share from 52.7% to 80.9% of days.
+   **The category that motivated the item is worse alone:** all-completed days
+   move RMSE 0.1040 → 0.1302 at n = 12 (bias −0.014 → −0.113), because their
+   `λ₀ ≤ hi` is almost never violated (0.3%) but sits far above the truth —
+   ordinary is not informative. A sliver day's `λ₀ ≥ lo` is violated **100%** of
+   the time: a sub-step day is an interruption, not a leisure choice. The refusal
+   survived every re-reading and the on-surface gain is the smallest of them, so
+   nothing here is a near miss.
    What shipped is the instrument and one export: `stopBracket`, the two sides the
    midpoint used to hide, so a probe can read them instead of rebuilding the
    bracket the way the three existing stop probes still do. Re-open only
@@ -675,15 +679,21 @@ reaches the claim, never that the claim is false.
   2026-08-25**,
   [`the-third-generator-off-the-sliders`](docs/features/the-third-generator-off-the-sliders.md):
   `stop-margin-fit-error` draws every task through `toEnergyTask`, its whole set
-  moved again and §8.10 was re-read from that run. **The entry named three
-  generators and there are five.** The same hand-built `drawTask` — the identical
-  eleven lines — sits in `censored-stopping-fit.probe.ts:87` (§8.10's
-  rejected-alternative record, ROADMAP item 4) and `satiety-gaming.probe.ts:173`
-  (§8.4), so `MATH.md`'s figures for both carry this entry's caveat too and the
-  first is what ROADMAP item 4 was DECIDED AGAINST on. A grep for
-  `difficulty: Math.max` under `scripts/` is the current fault set; each is its
-  own change, for the same reason the first three were. **This entry does not
-  close until that grep is empty.**
+  moved again and §8.10 was re-read from that run. That change also found that
+  **the entry named three generators and there are five**: the same hand-built
+  `drawTask` — the identical eleven lines — also sat in
+  `censored-stopping-fit.probe.ts` and `satiety-gaming.probe.ts`.
+  **Fourth generator fixed 2026-08-25**,
+  [`the-refusal-redrawn-on-the-sliders`](docs/features/the-refusal-redrawn-on-the-sliders.md):
+  `censored-stopping-fit` draws every task through `toEnergyTask`, its whole set
+  moved, and §8.10's censored-likelihood record, item 4 above and
+  `business/model/AGENTS.md` were all re-read from that run. The refusal survives
+  — the mixed cell's gain falls 0.0492 → 0.0403, further from the 0.110 gate, not
+  nearer — so no decision changes, which is the outcome this had to establish
+  rather than assume. **One generator left**: `satiety-gaming.probe.ts:180`
+  (§8.4). A grep for `difficulty: Math.max` under `scripts/` is the current fault
+  set; it is its own change, for the same reason the first four were. **This
+  entry does not close until that grep is empty.**
 - **M41 §8.10 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M42 §8.10 — closed 2026-08-21, [`the-day-that-ran-out-of-clock`](docs/features/the-day-that-ran-out-of-clock.md).**
 - **M43 — closed 2026-08-20, [`the-insertion-witness-re-read`](docs/features/the-insertion-witness-re-read.md).**

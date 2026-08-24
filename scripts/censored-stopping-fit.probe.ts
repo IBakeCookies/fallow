@@ -24,9 +24,20 @@
  *
  * THE KILL CRITERION is the feature spec's, fixed before the run: the mixed cell
  * must improve RMSE by more than **0.110** λ₀ — the bracket half-width §8.10 read
- * on 2026-08-06, against σ₀ = 0.25. The half-width §8.10 carries TODAY is 0.129
- * (2026-08-19, with the days' own breaks in the reconstruction), so both gates are
- * printed and the 0.129 one is the stronger claim.
+ * on 2026-08-06, against σ₀ = 0.25. The second gate printed beside it is 0.129,
+ * §8.10's 2026-08-19 reading with the days' own breaks in the reconstruction;
+ * §8.10 has since read 0.125 (2026-08-21, past the clock censor), so the printed
+ * 0.129 is one reading stale and both it and 0.125 are stricter than the spec
+ * gate that decides. Only `SPEC_GATE` fires the kill criterion.
+ *
+ * WHAT THE 2026-08-25 RE-RUN CHANGED, and why every number below moved. Every
+ * task now comes from integer sliders through `toEnergyTask`, so the day is on
+ * the app's own constraint surface. It was not: `difficulty` was set to
+ * `max(mental, physical)` directly, skipping the 0.3 spillover the app applies,
+ * so no day this probe generated was one a user could have declared and no
+ * figure below was quotable in either direction — including the refusal
+ * (ROADMAP M40, item 4). The gate is untouched, so the verdict is re-decided at
+ * the level rather than re-explained.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -57,6 +68,8 @@ import {
 	mapEnjoyability,
 	type UserConstants,
 } from '$lib/business/model/zenith';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import type { Task } from '$lib/data/type';
 
 function mulberry32(seed: number): () => number {
 	let a = seed;
@@ -85,17 +98,19 @@ function amplitude(t: EnergyTaskInput): number {
 }
 
 function drawTask(random: () => number, id: number): EnergyTaskInput {
-	const mental = 1 + Math.floor(random() * 10);
-	const physical = 1 + Math.floor(random() * 10);
+	const slider = (min: number) => min + Math.floor(random() * (11 - min));
 
-	return {
+	const task: Task = {
 		id,
 		title: `t${id}`,
-		difficulty: Math.max(mental, physical),
-		enjoyment: 1 + Math.floor(random() * 10),
-		cognitiveDemand: mental / 10,
-		physicalDemand: physical / 10,
+		mentalDifficulty: slider(0),
+		physicalDifficulty: slider(0),
+		enjoyment: slider(1),
+		createdAt: '2026-08-25',
+		completed: false,
 	};
+
+	return toEnergyTask(task);
 }
 
 function drawDay(random: () => number): { tasks: EnergyTaskInput[]; windowHours: number } {
