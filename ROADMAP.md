@@ -686,6 +686,27 @@ reaches the claim, never that the claim is false.
 - **M44 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M45 — closed 2026-08-20, [`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md).**
 - **M46 — closed 2026-08-20, [`the-default-nobody-had-measured`](docs/features/the-default-nobody-had-measured.md).**
+- **M47 §8.6** — raised by the 2026-08-22 alpha review, open. The pair-seed cost
+  prose carries two timing tables and a `C(n,2)` ladder that no committed
+  instrument prints: grep `16.3 ms`, `219.2`, `1499.9` or `4019.5` across
+  `scripts/` and `src/` for zero hits. §8.6's registry row
+  (`energy-search-gap.probe.ts`) covers the optimality gap, not the wall clock,
+  and that probe's header names the same section's hand-built witnesses as the
+  evidence it superseded. The tables are not quotable as current: they carry
+  their own provenance (measured twice on 2026-08-13, two machines, one warm-up
+  then the mean of 3) and disclaim their own absolutes — "neither a millisecond
+  figure nor any single ratio here is the number — quote the range" — so this is
+  a provenance hole, not a wrong number, and the 2026-08-24 fix deleted only the
+  adjacent `10.70 vs 10.65` legacy pair, which had no such record. Closing it
+  means a timing arm on `energy-search-gap.probe.ts` over the shipped
+  `optimizeSchedule`, printing the box and node version beside the ratios the
+  way `plan-advice.probe.ts` does. **The blocker is that it needs a production
+  change**: `PAIR_SEED_TASKS` is a non-exported const in `zenith-energy.ts`, so
+  the "Before" (0 pair seeds) and unbounded-`C(n,2)` arms are unreachable
+  without making it injectable — surface added to a shipped module purely so a
+  doc figure can be re-run. Weigh that against deleting the tables, or against
+  §10's precedent of marking a non-re-runnable figure as history in one dated
+  sentence.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
