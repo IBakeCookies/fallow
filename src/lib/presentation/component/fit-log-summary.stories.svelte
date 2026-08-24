@@ -109,3 +109,23 @@
 		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
 	}}
 />
+
+<!-- On `/analytics` the link points at the card the row is drawn in, so those three rows
+     turn it off; the three fit cards that keep it pass nothing. -->
+<Story
+	name="Without link"
+	args={{
+		withHistoryLink: false,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
+
+		// The rest of the row still renders — otherwise the assertion above passes on
+		// a component that drew nothing.
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Reset personalization',
+			}),
+		).toBeVisible();
+	}}
+/>

@@ -10,10 +10,20 @@
 		confirmLabel: string;
 		resetLabel: string;
 		resetTitle?: string;
+		withHistoryLink?: boolean;
 		onreset?: () => void;
 	}
 
-	let { label, title, count, confirmLabel, resetLabel, resetTitle, onreset }: Props = $props();
+	let {
+		label,
+		title,
+		count,
+		confirmLabel,
+		resetLabel,
+		resetTitle,
+		withHistoryLink = true,
+		onreset,
+	}: Props = $props();
 
 	// Confirm focuses Cancel, so a stray Enter cannot wipe the logs; cancel hands focus
 	// back to the trigger. Plain `let`, not `$state`: it must not re-run the attachment.
@@ -58,12 +68,14 @@
 					{m.common_cancel()}
 				</button>
 			{:else}
-				<a
-					href={`${localizeHref(resolve('/analytics'))}#log-history`}
-					class="hint-underline text-ty-silent transition hover:text-ty-secondary"
-				>
-					{m.fit_logs_open_history()}
-				</a>
+				{#if withHistoryLink}
+					<a
+						href={`${localizeHref(resolve('/analytics'))}#log-history`}
+						class="hint-underline text-ty-silent transition hover:text-ty-secondary"
+					>
+						{m.fit_logs_open_history()}
+					</a>
+				{/if}
 				{#if onreset}
 					<button
 						type="button"
