@@ -181,8 +181,10 @@ its allocation code, so the main page is unaffected by changes here.
   inversion-censoring rule moves without evidence above the instrument's 0.134
   bracket half-width. The margin is a dead end.
 - **The censored likelihood is a settled no** (built, measured and refused
-  2026-08-21, MATH.md §8.10, `scripts/censored-stopping-fit.probe.ts`). Using the
-  one-sided days instead of dropping them gains 0.0437 λ₀ RMSE at best — 40% of
+  2026-08-21, MATH.md §8.10, `scripts/censored-stopping-fit.probe.ts`; re-read
+  2026-08-25 on the app's constraint surface, which moved every figure and left
+  the verdict further from the gate). Using the one-sided days instead of
+  dropping them gains 0.0403 λ₀ RMSE on the cell the gate is set on — 36.7% of
   the 0.110 gate — and the category that motivated it, the day with every task
   ticked, is worse alone. `stopBracket` is what survives: the two sides, exported
   so a probe can read them instead of rebuilding the bracket, which the three
