@@ -1,10 +1,7 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import type { Persisted, FlowObservationRecord } from '$lib/business/type';
-	import { cn } from '$lib/presentation/utils';
 	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
 	import { NumberInput } from '$lib/presentation/component/ui/number-input';
-	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 
 	interface Props {
 		availableHours: number;
@@ -13,13 +10,6 @@
 		physicalPool: number;
 		remainingSuggestedHours: string;
 		planSlackHours: number;
-		constantsFitted: boolean;
-		flowLogs?: Persisted<FlowObservationRecord>[];
-		/** `flowLogs` dated on or after the planned day: no fit has counted them (MATH.md §33) */
-		pendingFlowLogs?: number;
-		/** false off today, where the prompt would point at a ⚡ button no task renders */
-		canLog?: boolean;
-		onresetlogs?: () => void;
 		// Sampled at mount and then the user's to control: the caller re-asks by
 		// remounting the bar (`{#key}` on the loaded day), because a live value would
 		// slam the panel shut the moment its own hours field stops reading 0.
@@ -33,11 +23,6 @@
 		physicalPool = $bindable(),
 		remainingSuggestedHours,
 		planSlackHours,
-		constantsFitted,
-		flowLogs = [],
-		pendingFlowLogs = 0,
-		canLog = true,
-		onresetlogs,
 		isOpen = false,
 	}: Props = $props();
 
@@ -75,50 +60,6 @@
 		].join(' · '),
 	);
 
-	const fitCountedLogs = $derived(flowLogs.length - pendingFlowLogs);
-	const resettableLogs = $derived(flowLogs.length);
-
-	const fitStatus = $derived(
-		constantsFitted
-			? fitCountedLogs === 1
-				? m.model_status_personalized_one()
-				: m.model_status_personalized({
-						count: fitCountedLogs,
-					})
-			: fitCountedLogs > 0
-				? fitCountedLogs === 1
-					? m.model_status_implausible_one()
-					: m.model_status_implausible({
-							count: fitCountedLogs,
-						})
-				: m.model_status_default(),
-	);
-
-	const pendingStatus = $derived(
-		pendingFlowLogs === 1
-			? m.model_status_pending_one()
-			: m.model_status_pending({
-					count: pendingFlowLogs,
-				}),
-	);
-
-	// With nothing counted yet, `model_status_default` would tell the user to go log
-	// the ⚡ they have just logged.
-	const modelStatus = $derived(
-		pendingFlowLogs === 0
-			? fitStatus
-			: fitCountedLogs === 0
-				? pendingStatus
-				: `${fitStatus} · ${pendingStatus}`,
-	);
-
-	// Collapsed, only a state with something to do earns a line: a rejected fit, a
-	// deferred log, and no logs at all — `model_status_default` is the only sentence
-	// in the app that says ⚡ exists. A settled fit is reassurance and stays inside.
-	const modelWarning = $derived(!constantsFitted && fitCountedLogs > 0);
-	const modelPending = $derived(pendingFlowLogs > 0);
-	const modelPrompt = $derived(canLog && flowLogs.length === 0);
-
 	function updateSwitchCost(minutes: number) {
 		switchCost = minutes / 60;
 	}
@@ -143,12 +84,6 @@
 			<span class="shrink-0 text-lg leading-none">{open ? '▴' : '▾'}</span>
 		</span>
 	</button>
-
-	{#if !open && (modelWarning || modelPending || modelPrompt)}
-		<p class={cn('mt-text-2xs text-xs', modelWarning ? 'text-warning-strong' : 'text-ty-silent')}>
-			{modelStatus}
-		</p>
-	{/if}
 
 	{#if open}
 		<!-- The bar spans both page columns, so all five fit on one row from lg up. -->
@@ -246,20 +181,6 @@
 				/>
 				<p class="mt-text-xs text-xs text-ty-silent">{m.budget_physical_hint()}</p>
 			</div>
-		</div>
-
-		<div class="mt-text-lg border-t border-line-soft pt-box-sm">
-			<FitLogSummary
-				label={modelStatus}
-				title={m.budget_model_tooltip()}
-				count={resettableLogs}
-				confirmLabel={m.budget_reset_confirm({
-					count: resettableLogs,
-				})}
-				resetLabel={m.budget_reset_personalization()}
-				resetTitle={m.budget_reset_title()}
-				onreset={onresetlogs}
-			/>
 		</div>
 	{/if}
 </div>

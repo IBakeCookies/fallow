@@ -42,6 +42,7 @@
 	import DayTimeline from '$lib/presentation/component/day-timeline.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
+	import FlowCalibrationCard from '$lib/presentation/component/flow-calibration-card.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
 	import { setDailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
@@ -226,11 +227,15 @@
 {/snippet}
 
 {#snippet addTaskForm()}
-	<TaskForm
-		onsubmit={(t) => session.addTask(t)}
-		suggest={(query) => session.suggestTitles(query)}
-		isOpen={tasks.length === 0}
-	/>
+	<!-- Keyed like the constraints bar: the task count reads 0 until a day lands, so a
+	     form sampled any earlier opens for every visitor. -->
+	{#key session.loadedDate}
+		<TaskForm
+			onsubmit={(t) => session.addTask(t)}
+			suggest={(query) => session.suggestTitles(query)}
+			isOpen={session.loadedDate !== null && tasks.length === 0}
+		/>
+	{/key}
 {/snippet}
 
 <div class="space-y-grid-lg min-h-screen">
@@ -262,11 +267,6 @@
 				bind:physicalPool={session.physicalPool}
 				{remainingSuggestedHours}
 				planSlackHours={daily.planSlackHours}
-				constantsFitted={session.constantsFit.fitted}
-				flowLogs={session.flowObservations}
-				pendingFlowLogs={session.pendingFlowLogCount}
-				{canLog}
-				onresetlogs={() => session.resetFlowLogs()}
 				isOpen={session.loadedDate !== null && session.availableHours <= 0}
 			/>
 		{/key}
@@ -309,18 +309,32 @@
 
 			<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />
 
-			{#if !isViewingPast && tasks.length > 0}
-				<PlanAdviceCard
-					{advice}
-					isBusy={plan.isAdviceBusy}
-					isStale={plan.isAdviceStale}
-					{destination}
-					hasError={plan.hasAdviceError}
-					oncheck={() => plan.computeAdvice()}
-					onapply={(id) => session.moveTaskToTomorrow(id)}
-					onapplybudget={(hours) => (session.availableHours = hours)}
+			<!-- What the model was fitted from, then what it makes of today: the fit is a
+			     standing statement and reads first, the advice is the day's own reading.
+			     Half each. -->
+			<div class="grid gap-grid-lg lg:grid-cols-2">
+				<FlowCalibrationCard
+					constantsFitted={session.constantsFit.fitted}
+					logCount={session.flowObservations.length}
+					pendingLogs={session.pendingFlowLogCount}
+					onresetlogs={() => session.resetFlowLogs()}
 				/>
-			{/if}
+
+				{#if !isViewingPast && tasks.length > 0}
+					<div>
+						<PlanAdviceCard
+							{advice}
+							isBusy={plan.isAdviceBusy}
+							isStale={plan.isAdviceStale}
+							{destination}
+							hasError={plan.hasAdviceError}
+							oncheck={() => plan.computeAdvice()}
+							onapply={(id) => session.moveTaskToTomorrow(id)}
+							onapplybudget={(hours) => (session.availableHours = hours)}
+						/>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>

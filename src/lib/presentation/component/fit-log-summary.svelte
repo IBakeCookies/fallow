@@ -31,7 +31,9 @@
 	<p class="text-xs text-ty-silent" {title}>{label}</p>
 
 	{#if count > 0}
-		<span class="flex shrink-0 items-center gap-grid-xs text-xs">
+		<!-- Wraps rather than shrinks: the confirm sentence sits in a quarter-width
+		     card on the root page, and `shrink-0` pushed “Cancel” past its padding. -->
+		<span class="flex flex-wrap items-center gap-grid-xs text-xs">
 			{#if confirmingReset}
 				<span class="text-ty-silent">{confirmLabel}</span>
 				<button

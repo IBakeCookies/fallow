@@ -17,7 +17,6 @@ describe('day-constraints-bar.svelte', () => {
 			physicalPool: 3,
 			remainingSuggestedHours: '3.50',
 			planSlackHours: 0,
-			constantsFitted: false,
 		};
 
 		const { rerender } = render(DayConstraintsBar, {
