@@ -328,8 +328,9 @@ function reservoirLaw(
 	const gate = 1 - (1 - microRecovery) * demand;
 	const rho = alpha * demand + rec * gate;
 
-	// ρ = 0 only when both terms vanish; the reservoir then holds its level and
-	// eq is never used (reservoirAt short-circuits).
+	// On the valid domain (α, r, b ≥ 0 — sanitizeEnergyParams clamps persisted
+	// params there) ρ = 0 only when both terms vanish; the reservoir then holds
+	// its level and eq is never used (reservoirAt short-circuits).
 	return {
 		rho,
 		eq: rho > 0 ? (rec * gate) / rho : 0,

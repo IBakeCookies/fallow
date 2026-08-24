@@ -45,9 +45,34 @@ const CONTEXT_KEY = Symbol();
 const round2 = (x: number) => Math.round(x * 100) / 100;
 
 /**
+ * The domain each param must land in. Rates and values are non-negative
+ * because a negative one breaks the reservoir law: rec·gate < 0 gives ρ > 0
+ * with an equilibrium below 0, so a long enough block drives the reservoir
+ * negative and `level^wc` is NaN (MATH.md §8.5) — which reaches the objective
+ * and makes the optimizer return the do-nothing plan. `microRecoveryFraction`
+ * is a share of recovery capacity, so [0, 1]. Nothing is bounded above
+ * otherwise: the model admits any scale.
+ *
+ * The two omissions are deliberate. `initialCog`/`initialPhys` are clamped to
+ * [0, 1] at every entry point that reads them, and `resumptionTimeConstant`
+ * ≤ 0 is the documented binary reset (`resumePhase`), not a corrupt value.
+ */
+const PARAM_BOUNDS = {
+	alphaCog: [0, Infinity],
+	alphaPhys: [0, Infinity],
+	recoveryRate: [0, Infinity],
+	restRecoveryMultiplier: [0, Infinity],
+	microRecoveryFraction: [0, 1],
+	satietyScale: [0, Infinity],
+	freeTimeValue: [0, Infinity],
+	terminalEnergyValue: [0, Infinity],
+} as const satisfies Partial<Record<keyof EnergyParams, readonly [number, number]>>;
+
+/**
  * Persisted params are user-reachable JSON (edited by hand, or restored from
- * an older backup): accept only finite numbers for known keys, so corrupt-but-
- * parseable data (e.g. `{"recoveryRate":"abc"}`) can never reach the model.
+ * an older backup): accept only finite numbers for known keys and clamp them
+ * to their domain (R4's keep-and-clamp), so corrupt-but-parseable data (e.g.
+ * `{"recoveryRate":"abc"}` or `{"recoveryRate":-0.7}`) can never reach the model.
  */
 export function sanitizeEnergyParams(raw: unknown): EnergyParams {
 	const params: EnergyParams = {
@@ -58,7 +83,12 @@ export function sanitizeEnergyParams(raw: unknown): EnergyParams {
 		for (const key of Object.keys(params) as (keyof EnergyParams)[]) {
 			const value = (raw as Record<string, unknown>)[key];
 
-			if (typeof value === 'number' && Number.isFinite(value)) params[key] = value;
+			if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+
+			const bounds: readonly [number, number] | undefined =
+				PARAM_BOUNDS[key as keyof typeof PARAM_BOUNDS];
+
+			params[key] = bounds ? Math.min(Math.max(value, bounds[0]), bounds[1]) : value;
 		}
 	}
 

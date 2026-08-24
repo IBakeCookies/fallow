@@ -244,6 +244,15 @@ const SNAPSHOT_NUMBERS = [
 	'stoppingValue',
 ] as const;
 
+/**
+ * The subset of those that becomes `EnergyParams` and reaches the reservoir
+ * law, whose domain is non-negative: a negative rate makes rec·gate < 0, so a
+ * long enough block drives the reservoir below zero and `level^wc` is NaN
+ * (MATH.md §8.5). Dropped rather than clamped, unlike `sanitizeEnergyParams` —
+ * a substituted rate would report a plan under params the user never had.
+ */
+const SNAPSHOT_RATES = ['alphaCog', 'alphaPhys', 'recoveryRate'] as const;
+
 /** A 3×3 matrix of finite numbers, or null — the shape σ_ϕ = √(xᵀΣx) indexes. */
 function covarianceOf(value: unknown): number[][] | null {
 	if (!Array.isArray(value) || value.length !== 3) return null;
@@ -278,6 +287,8 @@ export function sanitizeFitSnapshots(raw: unknown): FitSnapshot[] {
 		if (!source || date === null || covariance === null) continue;
 
 		if (SNAPSHOT_NUMBERS.some((field) => finite(source[field]) === null)) continue;
+
+		if (SNAPSHOT_RATES.some((field) => (source[field] as number) < 0)) continue;
 
 		snapshots.push({
 			date,
