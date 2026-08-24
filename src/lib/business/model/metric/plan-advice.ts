@@ -66,6 +66,7 @@ export const ADVICE_AXES = [
 	'frictionIndex',
 	'timeScarcity',
 	'scheduleIntegrity',
+	'flowCoverage',
 ] as const;
 
 export type AdviceAxis = (typeof ADVICE_AXES)[number];
@@ -192,6 +193,16 @@ export interface PlanAdvice {
 	candidatesEvaluated: number;
 }
 
+// Named so `badness` can compose with the reading instead of respelling its
+// sentinel guard (AGENTS.md R3).
+const readEnergyBalance = (metrics: DailyMetrics): number =>
+	metrics.cognitiveLoad + metrics.physicalLoad === 0 ? NaN : metrics.energyBalance;
+
+const readScheduleIntegrity = (metrics: DailyMetrics): number =>
+	metrics.suggestedTasks.every((task) => task.suggestedHours <= 0)
+		? NaN
+		: metrics.scheduleIntegrity;
+
 /**
  * Raw reading and badness per axis, badness always lower-is-better. Energy
  * Balance is a target between the pools rather than a maximum, and Schedule
@@ -201,24 +212,24 @@ const AXIS: Record<
 	AdviceAxis,
 	{
 		read: (metrics: DailyMetrics) => number;
-		badness: (value: number) => number;
+		badness: (metrics: DailyMetrics) => number;
 	}
 > = {
 	burnoutRisk: {
 		read: (metrics) => metrics.burnoutRisk,
-		badness: (value) => value,
+		badness: (metrics) => metrics.burnoutRisk,
 	},
 	humanCapacity: {
 		read: (metrics) => metrics.humanCapacity.percent,
-		badness: (value) => value,
+		badness: (metrics) => metrics.humanCapacity.percent,
 	},
 	cognitiveLoad: {
 		read: (metrics) => metrics.cognitiveLoad,
-		badness: (value) => value,
+		badness: (metrics) => metrics.cognitiveLoad,
 	},
 	physicalLoad: {
 		read: (metrics) => metrics.physicalLoad,
-		badness: (value) => value,
+		badness: (metrics) => metrics.physicalLoad,
 	},
 	energyBalance: {
 		// A zero-load plan has no balance: `calculateEnergyBalance` returns the
@@ -230,17 +241,16 @@ const AXIS: Record<
 		// The test is exact because the loads now are (MATH.md §25): rounded to
 		// whole percent, a real but thin plan — 0.5h of difficulty-1 work in a 12h
 		// day, 0.42% — read as 0/0 and lost this axis as if it were loadless.
-		read: (metrics) =>
-			metrics.cognitiveLoad + metrics.physicalLoad === 0 ? NaN : metrics.energyBalance,
-		badness: (value) => Math.abs(value - 50),
+		read: readEnergyBalance,
+		badness: (metrics) => Math.abs(readEnergyBalance(metrics) - 50),
 	},
 	frictionIndex: {
 		read: (metrics) => metrics.frictionIndex,
-		badness: (value) => value,
+		badness: (metrics) => metrics.frictionIndex,
 	},
 	timeScarcity: {
 		read: (metrics) => metrics.timeScarcity,
-		badness: (value) => value,
+		badness: (metrics) => metrics.timeScarcity,
 	},
 	scheduleIntegrity: {
 		// A plan that funds nothing has no overhead share: the metric's guards
@@ -251,11 +261,18 @@ const AXIS: Record<
 		// improvement test in both directions and drops such candidates AND
 		// baselines silently. Until now this was safe only by circumstance — the
 		// frontier's Σ P̄ gate happened to reject the empty plan.
+		read: readScheduleIntegrity,
+		badness: (metrics) => -readScheduleIntegrity(metrics),
+	},
+	flowCoverage: {
+		// Ranks on the COUNT and displays the share (MATH.md §14.5): a defer shrinks
+		// numerator and denominator together, so a share-ranked axis would hand out
+		// free improvements for starving a task (MATH.md §11.11).
 		read: (metrics) =>
-			metrics.suggestedTasks.every((task) => task.suggestedHours <= 0)
+			metrics.flowCoverage.total === 0
 				? NaN
-				: metrics.scheduleIntegrity,
-		badness: (value) => -value,
+				: (100 * metrics.flowCoverage.reached) / metrics.flowCoverage.total,
+		badness: (metrics) => -metrics.flowCoverage.reached,
 	},
 };
 
@@ -374,7 +391,7 @@ function paretoOptions(
 ): Pick<AdviceFinding, 'options' | 'unpriced'> {
 	const { read, badness } = AXIS[axis];
 	const baseValue = planValueOf(baseline);
-	const baseBadness = badness(read(baseline));
+	const baseBadness = badness(baseline);
 
 	const improving = candidates
 		.map((candidate) => {
@@ -382,7 +399,7 @@ function paretoOptions(
 			const planValue = planValueOf(candidate.metrics);
 
 			return {
-				improvement: baseBadness - badness(after),
+				improvement: baseBadness - badness(candidate.metrics),
 				option: {
 					lever: candidate.lever,
 					after,

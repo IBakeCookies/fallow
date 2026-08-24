@@ -253,6 +253,110 @@ function pricedSigns(inputs: DailyMetricsInput[]): void {
 	);
 }
 
+/**
+ * One day's levers, split by what they do to Flow Coverage: whether any raises
+ * the COUNT the axis ranks on, and how many defers raise only the SHARE — the
+ * free improvements a ratio-ranked axis would have offered (MATH.md §11.11).
+ */
+function flowMoves(
+	input: DailyMetricsInput,
+	baseline: DailyMetrics,
+): { lifts: boolean; countDefers: number; freeRatioDefers: number } {
+	const { reached, total } = baseline.flowCoverage;
+	const share = (reached / total) * 100;
+
+	const candidates = [
+		...baseline.activeTasks.map((task) => ({
+			...input,
+			tasks: input.tasks.filter((other) => other.id !== task.id),
+		})),
+		{
+			...input,
+			availableHours: baseline.budgetHours + 1,
+		},
+	];
+
+	let lifts = false;
+	let countDefers = 0;
+	let freeRatioDefers = 0;
+
+	for (const candidate of candidates) {
+		const after = calculateDailyMetrics(candidate).flowCoverage;
+		const isDefer = candidate.tasks.length < input.tasks.length;
+		const raisesCount = after.total > 0 && after.reached > reached;
+
+		const raisesShareOnly =
+			after.total > 0 && !raisesCount && (after.reached / after.total) * 100 > share;
+
+		lifts = lifts || raisesCount;
+		countDefers += isDefer && raisesCount ? 1 : 0;
+		freeRatioDefers += isDefer && raisesShareOnly ? 1 : 0;
+	}
+
+	return {
+		lifts,
+		countDefers,
+		freeRatioDefers,
+	};
+}
+
+/**
+ * Where Flow Coverage's warning band belongs, and what the axis is worth
+ * (MATH.md §14.5).
+ *
+ * Three questions on one sweep. **Which threshold** — the reading counts every
+ * task in the plan, funded or not (§11.8), so a long backlog reads low
+ * permanently and a band set by assertion can pin most days amber; ROADMAP
+ * refused a week-feasibility reading for exactly that. **What the axis buys** —
+ * the share of days where some defer or budget lever raises the COUNT of tasks
+ * reaching ϕ, which is the only thing this axis ranks on. **What ranking on the
+ * share instead would have cost** — the §11.11 defect, counted: defers that lift
+ * the ratio without a single task reaching flow.
+ */
+function flowCoverageBand(inputs: DailyMetricsInput[]): void {
+	const thresholds = [50, 75, 80, 100];
+	const warned = thresholds.map(() => 0);
+	let readable = 0;
+	let liftsCount = 0;
+	let freeRatioDefers = 0;
+	let countDefers = 0;
+
+	for (const input of inputs) {
+		const baseline = calculateDailyMetrics(input);
+		const { reached, total } = baseline.flowCoverage;
+
+		if (total === 0) continue;
+
+		readable += 1;
+
+		const share = (reached / total) * 100;
+
+		thresholds.forEach((cut, index) => {
+			if (share < cut) warned[index] += 1;
+		});
+
+		const moves = flowMoves(input, baseline);
+
+		countDefers += moves.countDefers;
+		freeRatioDefers += moves.freeRatioDefers;
+
+		if (moves.lifts) liftsCount += 1;
+	}
+
+	const percent = (n: number) => ((n / readable) * 100).toFixed(1);
+
+	console.log(
+		`[§14.5 band] ${readable} readable days — warning share at ${thresholds
+			.map((cut, index) => `<${cut}: ${percent(warned[index])}%`)
+			.join(', ')}`,
+	);
+
+	console.log(
+		`[§14.5 value] a lever raises the flow COUNT on ${percent(liftsCount)}% of days; ` +
+			`${countDefers} defers do, against ${freeRatioDefers} that raise only the SHARE`,
+	);
+}
+
 const DAYS = randomDays(600, 42);
 
 describe('plan advice', () => {
@@ -273,6 +377,10 @@ describe('plan advice', () => {
 
 	it('measures priced-lever signs (MATH.md §14/§14.1)', () => {
 		pricedSigns(DAYS);
+	});
+
+	it('places the flow-coverage band and prices the axis (MATH.md §14.5)', () => {
+		flowCoverageBand(DAYS);
 	});
 
 	/**

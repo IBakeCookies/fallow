@@ -79,14 +79,32 @@ function findingFor(advice: PlanAdvice, axis: AdviceAxis) {
 function badnessOf(axis: AdviceAxis, value: number): number {
 	if (axis === 'energyBalance') return Math.abs(value - 50);
 
-	if (axis === 'scheduleIntegrity') return -value;
+	// Bigger-better, and correct for both of this axis's numbers: an option that
+	// raises the count raises the share with it (MATH.md §14.5).
+	if (axis === 'scheduleIntegrity' || axis === 'flowCoverage') return -value;
 
 	return value;
 }
 
-/** The same eight readings the model searches over (MATH.md §14). */
+/**
+ * What the model ORDERS each axis by (MATH.md §14). Flow Coverage is the one
+ * axis whose badness is not a function of the reading it prints: it ranks on the
+ * count of tasks that reach ϕ and displays the share (MATH.md §14.5).
+ */
 function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
 	if (axis === 'humanCapacity') return metrics.humanCapacity.percent;
+
+	if (axis === 'flowCoverage') return metrics.flowCoverage.reached;
+
+	// The two sentinels, or a day whose last task is deferred reads 50 and 100
+	// here while the model reads NaN and excludes it (MATH.md §14.1-5).
+	if (axis === 'energyBalance')
+		return metrics.cognitiveLoad + metrics.physicalLoad === 0 ? NaN : metrics.energyBalance;
+
+	if (axis === 'scheduleIntegrity')
+		return metrics.suggestedTasks.every((task) => task.suggestedHours <= 0)
+			? NaN
+			: metrics.scheduleIntegrity;
 
 	return metrics[axis];
 }
@@ -550,6 +568,7 @@ describe('suggestPlanAdjustments', () => {
 		const advice = suggestPlanAdjustments(grindDay());
 
 		expect(advice.findings.map((finding) => finding.axis)).toEqual([...ADVICE_AXES]);
+		expect([...ADVICE_AXES]).toContain('flowCoverage');
 	});
 
 	// A zero pool with demand on it makes Human Capacity read Infinity
@@ -612,9 +631,11 @@ describe('suggestPlanAdjustments', () => {
 					tasks: base.tasks.filter((other) => other.id !== task.id),
 				});
 
+				// Both sides through `readAxis`: `finding.before` is the PRINTED reading,
+				// which Flow Coverage does not rank on (MATH.md §14.5).
 				return (
 					badnessOf(finding.axis, readAxis(metrics, finding.axis)) <
-					badnessOf(finding.axis, finding.before)
+					badnessOf(finding.axis, readAxis(baseline, finding.axis))
 				);
 			}),
 		);
@@ -1251,5 +1272,159 @@ describe('suggestPlanAdjustments', () => {
 				'grindDensity',
 			);
 		});
+	});
+});
+
+/**
+ * MATH.md §14.5. Five cognitive tasks against a 10-hour day, at a 6 h cognitive
+ * pool: three of the five reach ϕ, and exactly one defer — the largest task —
+ * frees enough for a fourth to reach it, taking the day to 4/4.
+ *
+ * Deferring any of the OTHER four moves the reading 3/5 → 3/4 without a single
+ * task reaching flow: the share rises because the denominator fell. That is the
+ * move §11.11 retired Grind Density for offering, and the reason this axis ranks
+ * on the count.
+ */
+const FLOW = [
+	makeTask({
+		id: 1,
+		title: 'Design error boundary',
+		mentalDifficulty: 8,
+		physicalDifficulty: 0,
+		enjoyment: 9,
+	}),
+	makeTask({
+		id: 2,
+		title: 'Write the PDF solution',
+		mentalDifficulty: 6,
+		physicalDifficulty: 0,
+		enjoyment: 7,
+	}),
+	makeTask({
+		id: 3,
+		title: 'Review the API PR',
+		mentalDifficulty: 5,
+		physicalDifficulty: 0,
+		enjoyment: 4,
+	}),
+	makeTask({
+		id: 4,
+		title: 'Review the app PR',
+		mentalDifficulty: 5,
+		physicalDifficulty: 0,
+		enjoyment: 3,
+	}),
+	makeTask({
+		id: 5,
+		title: 'Daily',
+		mentalDifficulty: 2,
+		physicalDifficulty: 0,
+		enjoyment: 2,
+	}),
+];
+
+const flowDay = (tasks: Task[] = FLOW) =>
+	input(tasks, {
+		availableHours: 10,
+		pools: {
+			cognitiveHours: 6,
+			physicalHours: 4,
+		},
+	});
+
+const deferredIds = (finding: { options: AdviceOption[] } | undefined) =>
+	(finding?.options ?? [])
+		.map((option) => option.lever)
+		.filter((lever) => lever.kind === 'defer-task')
+		.map((lever) => (lever.kind === 'defer-task' ? lever.taskId : -1));
+
+// MATH.md §14.5. The headline whose remedy §28 puts in the reading — "2/5 means
+// drop tasks or add hours" — and which the advisor did not search on until now.
+describe('the flow-coverage axis', () => {
+	it('offers the defer that carries another task into flow', () => {
+		const advice = suggestPlanAdjustments(flowDay());
+		const finding = findingFor(advice, 'flowCoverage');
+
+		expect(calculateDailyMetrics(flowDay()).flowCoverage).toEqual({
+			reached: 3,
+			total: 5,
+		});
+
+		expect(deferredIds(finding)).toContain(1);
+	});
+
+	// The whole point of re-solving rather than guessing, on this axis: the share
+	// shown is the one the plan without that task actually reports.
+	it('reports the share the model reproduces once that defer is applied', () => {
+		const advice = suggestPlanAdjustments(flowDay());
+
+		const option = findingFor(advice, 'flowCoverage')!.options.find(
+			(candidate) => candidate.lever.kind === 'defer-task' && candidate.lever.taskId === 1,
+		);
+
+		const applied = calculateDailyMetrics(flowDay(FLOW.filter((task) => task.id !== 1)));
+
+		expect(applied.flowCoverage).toEqual({
+			reached: 4,
+			total: 4,
+		});
+
+		expect(option!.after).toBe(100);
+	});
+
+	// §11.11's defect, written as a test. Deferring any of these four takes the
+	// reading from 60% to 75% and no task reaches flow that did not before; if
+	// this goes green under a badness of −share, the axis was built on the ratio.
+	it('refuses a defer that raises the share without raising the count', () => {
+		const advice = suggestPlanAdjustments(flowDay());
+		const finding = findingFor(advice, 'flowCoverage');
+		const offered = deferredIds(finding);
+
+		// Or the loop below passes on an axis that does not exist yet.
+		expect(finding).toBeDefined();
+
+		for (const taskId of [2, 3, 4, 5]) {
+			const applied = calculateDailyMetrics(flowDay(FLOW.filter((task) => task.id !== taskId)));
+
+			expect(applied.flowCoverage, `task ${taskId}`).toEqual({
+				reached: 3,
+				total: 4,
+			});
+
+			expect(offered, `task ${taskId}`).not.toContain(taskId);
+		}
+	});
+
+	// Energy Balance and Schedule Integrity each needed a NaN sentinel to stop
+	// "defer the last task" winning their frontier (MATH.md §14.1-5). This axis
+	// needs none: an empty plan reaches flow zero times, which is the worst
+	// reading it has.
+	it('never offers to empty a plan whose only task reaches flow', () => {
+		const single = [FLOW[0]];
+		const advice = suggestPlanAdjustments(flowDay(single));
+
+		expect(calculateDailyMetrics(flowDay(single)).flowCoverage).toEqual({
+			reached: 1,
+			total: 1,
+		});
+
+		expect(findingFor(advice, 'flowCoverage')!.options).toEqual([]);
+	});
+
+	// Why this axis needs no counterpart to the Energy Balance display defect
+	// (MATH.md §25, `adv3-advice-display-resolution.probe.ts`): the smallest real
+	// improvement is one whole task's share, which the card's `Math.round` cannot
+	// swallow. A budget lever holds the denominator and raises the count; a defer
+	// lowers the denominator and cannot raise the count without freeing hours.
+	it('moves the share by at least one whole task', () => {
+		const advice = suggestPlanAdjustments(flowDay());
+		const finding = findingFor(advice, 'flowCoverage')!;
+		const baseline = calculateDailyMetrics(flowDay());
+		const step = 100 / baseline.flowCoverage.total;
+		const options = finding.unpriced ? [...finding.options, finding.unpriced] : finding.options;
+
+		expect(options.length).toBeGreaterThan(0);
+
+		options.forEach((option) => expect(option.after - finding.before).toBeGreaterThanOrEqual(step));
 	});
 });

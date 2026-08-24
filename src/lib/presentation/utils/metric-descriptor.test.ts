@@ -208,6 +208,45 @@ describe('buildMetrics', () => {
 		}
 	});
 
+	// MATH.md §14.5. The advice card decides which findings to surface from
+	// `isOutOfBand`, so Flow Coverage's thresholds move into `AXIS_BAND` when it
+	// becomes an axis — and this row must read them from there. Two spellings of
+	// one threshold is the R3 failure `band.ts` exists to prevent
+	// (presentation/AGENTS.md).
+	it.each([
+		[3, 5],
+		[2, 5],
+		[5, 5],
+		[1, 4],
+	])('bands a flow coverage of %i/%i from the same call the advice card uses', (reached, total) => {
+		const day = dailyMetrics({
+			...plannedDay,
+			flowCoverage: {
+				reached,
+				total,
+			},
+		});
+
+		expect(reading(day, m.metric_flow_coverage()).band).toBe(
+			AXIS_BAND.flowCoverage((reached / total) * 100),
+		);
+	});
+
+	// A pin (docs/features/the-headline-the-advisor-never-searched.md): the card
+	// prints this axis as a percentage and the tile must not follow it. Green on
+	// first run is this test's pass condition.
+	it('still prints the tile as a fraction, not the share the card shows', () => {
+		const day = dailyMetrics({
+			...plannedDay,
+			flowCoverage: {
+				reached: 3,
+				total: 5,
+			},
+		});
+
+		expect(reading(day, m.metric_flow_coverage()).value).toBe('3/5');
+	});
+
 	// Sustainable Work divides by the hours the plan books (MATH.md §27), so a
 	// plan that funded nothing has no denominator. 0% would call a day with no
 	// work a day of pure grind.

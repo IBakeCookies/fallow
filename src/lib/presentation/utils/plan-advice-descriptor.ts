@@ -89,6 +89,7 @@ const AXIS_LABEL: Record<AdviceAxis, () => string> = {
 	frictionIndex: m.metric_friction_index,
 	timeScarcity: m.metric_time_scarcity,
 	scheduleIntegrity: m.metric_schedule_integrity,
+	flowCoverage: m.metric_flow_coverage,
 };
 
 const QUADRANT_LABEL: Record<DailyQuadrant, () => string> = {
