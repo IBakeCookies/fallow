@@ -1895,13 +1895,13 @@ export const STOP_FIT_MAX = 3;
  *     half-width median 0.125, summing to 0.125 — not 0.25.
  *
  * RE-DERIVED 2026-08-13 (`scripts/stop-margin-fit-error.probe.ts`, re-read
- * 2026-08-21) and it is not derivable: over [0.1, 0.5] the whole range moves λ₀
- * fit RMSE by at most 0.0089 — 3.6% of σ₀ — because most interrupted days never
- * invert at all (28.6% / 26.6% do, only 17.3% / 20.5% past 0.25), so censoring
+ * 2026-08-25) and it is not derivable: over [0.1, 0.5] the whole range moves λ₀
+ * fit RMSE by at most 0.0072 — 2.9% of σ₀ — because most interrupted days never
+ * invert at all (26.6% / 19.6% do, only 12.8% / 12.4% past 0.25), so censoring
  * cannot reach the contamination it exists for.
  * 0.25 is LEFT as an arbitrary point inside that flat region. The one real
  * signal is a SIGN, not a size: censoring nothing wins both contaminated arms,
- * by up to 0.0159, and ties the honest ones — recorded in §8.10, not acted on.
+ * by up to 0.0161, and ties the honest ones — recorded in §8.10, not acted on.
  */
 export const STOP_INVERSION_MARGIN = 0.25;
 
