@@ -48,7 +48,7 @@
 	</tbody>
 {/snippet}
 
-<div class="card-shell space-y-text-xs p-box-md sm:p-box-xl">
+<div class="card-shell space-y-text-xs p-box-sm sm:p-box-xl">
 	<div class="flex flex-wrap items-baseline justify-between gap-text-xs">
 		<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 			{m.list_title()}
@@ -72,6 +72,7 @@
 								class={cn(
 									'ledger-cell text-2xs font-semibold tracking-wider whitespace-nowrap text-ty-silent uppercase',
 									column.isNumeric ? 'ledger-numeric' : 'text-left',
+									column.isWideOnly && 'ledger-wide',
 									// The header pins the same columns the row does, or it stops naming what
 									// is under it as soon as the ledger is scrolled.
 									isPinned && 'ledger-pin',

@@ -159,7 +159,7 @@
 <!-- `Prio` renders an empty cell on a completed task rather than being dropped:
      a row short of a cell breaks every column's width below it. -->
 {#snippet meta()}
-	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">
 		<Tooltip.Root>
 			<Tooltip.Trigger class="cursor-help">{trueEffort.toFixed(1)}</Tooltip.Trigger>
 			<Tooltip.Content>
@@ -167,7 +167,7 @@
 			</Tooltip.Content>
 		</Tooltip.Root>
 	</td>
-	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">
 		{#if !completed}
 			<Tooltip.Root>
 				<!-- 1 dp even at .0: a column whose decimal points do not line up is what
@@ -179,7 +179,7 @@
 			</Tooltip.Root>
 		{/if}
 	</td>
-	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">
 		<Tooltip.Root>
 			<Tooltip.Trigger class="cursor-help">{formatDuration(flowStateTime)}</Tooltip.Trigger>
 			<Tooltip.Content>
@@ -187,7 +187,7 @@
 			</Tooltip.Content>
 		</Tooltip.Root>
 	</td>
-	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">
 		<Tooltip.Root>
 			<Tooltip.Trigger class="cursor-help">{formatDuration(optimalStopHours)}</Tooltip.Trigger>
 			<Tooltip.Content>

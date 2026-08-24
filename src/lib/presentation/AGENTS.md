@@ -228,10 +228,10 @@ converged and the two callers should merge, not licence for a fourth.
 ### The row's layout
 
 **Every reading gets a headed column, and the row is one `<tr>` of them.** One
-markup tree at every width: below `sm` the ledger scrolls sideways inside its
-own `overflow-x-auto` container and the DOCUMENT does not — `e2e/tasks.e2e.ts`
-pins both halves, because a table that overflows is only correct while the
-container is the thing that scrolls. The ledger also takes `/`'s full width and
+markup tree at every width: when the ledger is wider than its column it scrolls
+sideways inside its own `overflow-x-auto` container and the DOCUMENT does not —
+`e2e/tasks.e2e.ts` pins both halves, because a table that overflows is only
+correct while the container is the thing that scrolls. The ledger also takes `/`'s full width and
 the metrics read beneath it: twelve columns have nowhere to go in two thirds of
 a page. The column list is `utils/ledger-column.ts`, one function per
 screen, and it is the ONE definition of how wide the table is: the card heads it
@@ -239,6 +239,15 @@ and the shell spans it. The hours the optimizer planned are `Planned`, the LAST
 column, on BOTH screens — one word and one place for one reading, so the two
 ledgers read the same way (`trailing`, not `meta`). Numeric cells are `ledger-numeric` — right-aligned and
 `tabular-nums`, because a column nobody can compare down is not worth a column.
+
+**A phone shows five of the columns, not all twelve.** `ledger-wide` drops
+`Phys`, `Ment`, `Enjoy` and every derived reading below `sm`, leaving the lead,
+`Task`, `Logged`, `Planned` and the ✎/✕ strip — the plan's answer and the two
+instruments, which is what fits without the ledger scrolling sideways at all.
+The flag lives on the column (`isWideOnly`) so the card heads it, and the SAME
+utility goes on the matching `<td>` — the shell's three rating cells and each
+screen's own `meta` snippet — or the header stops lining up with its cells.
+The dropped readings are not lost: `sm` is where they come back.
 
 **Three header cells show no text and are named anyway** — the ✎/✕ strip on both
 screens and the Lab's hue lead. The column carries its label with

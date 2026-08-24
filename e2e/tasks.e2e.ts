@@ -377,12 +377,15 @@ test('capacity left reads N/A until a session is rated, then names what is spent
 	await expect(row).toContainText('75%');
 });
 
-/* Below `sm` the ledger scrolls sideways inside its card, and the DOCUMENT does not:
-   one markup tree at every width, so no reading is unreachable on a phone. Both halves
-   are the test — a table that overflows its container is only correct while the
-   container is the thing that scrolls, and the test above is the other direction:
-   a reading that widens the document instead. */
-test('the ledger scrolls sideways inside its card, and the page does not', async ({ page }) => {
+/* Below `sm` the ledger drops the seven readings `ledger-wide` marks and keeps five —
+   the lead, `Task`, `Logged`, `Planned` and the ✎/✕ strip — so a phone reads the plan's
+   answer without dragging the table sideways. Both halves are the test: the columns are
+   gone AND the document still does not scroll, since hiding cells is only correct while
+   nothing else widens the page. The container keeps its `overflow-x: auto` — between
+   `sm` and the twelve columns' own width it is still the thing that scrolls. */
+test("a phone reads five of the ledger's columns, and the page does not scroll", async ({
+	page,
+}) => {
 	await page.setViewportSize({
 		width: 390,
 		height: 900,
@@ -397,18 +400,29 @@ test('the ledger scrolls sideways inside its card, and the page does not', async
 	const table = page.locator('table').first();
 	await expect(table).toBeVisible();
 
-	const scroller = await table.evaluate((element) => {
-		const container = element.parentElement!;
+	const header = table.locator('thead th');
 
-		return {
-			overflowX: getComputedStyle(container).overflowX,
-			content: container.scrollWidth,
-			box: container.clientWidth,
-		};
-	});
+	for (const label of ['Phys', 'Ment', 'Enjoy', 'Effort', 'Prio', 'Flow at', 'Stop by']) {
+		await expect(
+			header.getByText(label, {
+				exact: true,
+			}),
+		).toBeHidden();
+	}
 
-	expect(scroller.overflowX).toBe('auto');
-	expect(scroller.content).toBeGreaterThan(scroller.box);
+	for (const label of ['#', 'Task', 'Logged', 'Planned']) {
+		await expect(
+			header.getByText(label, {
+				exact: true,
+			}),
+		).toBeVisible();
+	}
+
+	const overflowX = await table.evaluate(
+		(element) => getComputedStyle(element.parentElement!).overflowX,
+	);
+
+	expect(overflowX).toBe('auto');
 
 	const document = await page.evaluate(() => ({
 		content: window.document.documentElement.scrollWidth,
