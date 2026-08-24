@@ -14,6 +14,11 @@ export interface LedgerColumn {
 	label: string;
 	/** Right-aligned and `tabular-nums`, which is what makes a column comparable. */
 	isNumeric?: boolean;
+	/** The column is dropped below `sm` (`ledger-wide`), so a phone reads the ledger
+	 *  without scrolling it sideways. The cell carrying the same reading takes the same
+	 *  utility — `task-row-shell.svelte` for the three ratings, each screen's own
+	 *  `meta` snippet for what it computes. */
+	isWideOnly?: boolean;
 	/** The column shows no heading by design — the Lab's hue lead and both ✎/✕ strips.
 	 *  The `<th>` still carries the label for a screen reader: a header cell with no
 	 *  accessible name announces an anonymous column (axe `empty-table-header`). */
@@ -40,30 +45,37 @@ export function getTaskColumns(): LedgerColumn[] {
 		},
 		{
 			label: m.list_column_physical(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_mental(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_enjoyment(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_effort(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_priority(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_flow(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_stop(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
@@ -96,18 +108,22 @@ export function getEnergyTaskColumns(): LedgerColumn[] {
 		},
 		{
 			label: m.list_column_physical(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_mental(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_enjoyment(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{
 			label: m.list_column_effort(),
+			isWideOnly: true,
 			isNumeric: true,
 		},
 		{

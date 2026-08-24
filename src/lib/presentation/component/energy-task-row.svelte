@@ -85,7 +85,7 @@
 {/snippet}
 
 {#snippet meta()}
-	<td class="ledger-cell ledger-numeric whitespace-nowrap">{trueEffort.toFixed(1)}</td>
+	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">{trueEffort.toFixed(1)}</td>
 {/snippet}
 
 <!-- Empty on a completed task, which the optimizer no longer plans at all: "no hours"

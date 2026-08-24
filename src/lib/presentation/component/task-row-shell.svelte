@@ -147,7 +147,7 @@
 		<!-- The one flexible-width column, so the checkbox goes in a flex WITH the title
 		     rather than a cell of its own, which would be a column of ticks. Pinned with
 		     the lead: the task's name is what a scrolled-out reading needs beside it. -->
-		<td class="ledger-cell ledger-pin min-w-48">
+		<td class="ledger-cell ledger-pin sm:min-w-48">
 			<div class="flex items-start gap-grid-xs">
 				<input
 					type="checkbox"
@@ -176,10 +176,12 @@
 			</div>
 		</td>
 
-		<!-- Bare numbers: the headed columns say what `P `/`M `/`E ` and a tooltip had to. -->
-		<td class="ledger-cell ledger-numeric">{physicalDifficulty}</td>
-		<td class="ledger-cell ledger-numeric">{mentalDifficulty}</td>
-		<td class="ledger-cell ledger-numeric">{enjoyment}</td>
+		<!-- Bare numbers: the headed columns say what `P `/`M `/`E ` and a tooltip had to.
+		     The hues stay, though — body/mind/brand are how every other reading of the same
+		     three names is written (`drain-log-form`, `log-history-list`, `fit-row`). -->
+		<td class="ledger-cell ledger-numeric ledger-wide text-body/80">{physicalDifficulty}</td>
+		<td class="ledger-cell ledger-numeric ledger-wide text-mind/80">{mentalDifficulty}</td>
+		<td class="ledger-cell ledger-numeric ledger-wide text-brand/80">{enjoyment}</td>
 
 		{@render meta?.()}
 

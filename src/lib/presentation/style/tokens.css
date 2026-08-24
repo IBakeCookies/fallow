@@ -268,12 +268,21 @@
 /* One cell of either task screen's ledger. The rule between rows lives here rather
    than on a wrapper, because a table's rows are separated by their cells. */
 @utility ledger-cell {
-	@apply border-b border-line-soft px-box-2xs py-box-xs align-middle;
+	@apply border-b border-line-soft px-box-3xs py-box-xs align-middle sm:px-box-2xs;
 }
 
 /* A reading is only comparable down the column while its digits line up. */
 @utility ledger-numeric {
 	@apply text-right tabular-nums;
+}
+
+/* A column a phone drops, so the ledger fits instead of scrolling sideways. What stays
+   is the plan's answer and the two instruments — the lead, `Task`, `Planned`, `Logged`
+   and the ✎/✕ strip; the ratings and the derived readings come back at `sm`. Goes on the
+   `<th>` (from the column list's `isWideOnly`) and on the matching `<td>`, or the header
+   stops lining up with its cells. */
+@utility ledger-wide {
+	@apply hidden sm:table-cell;
 }
 
 /* The two columns that say WHICH task a row is — the lead (`#N` or the Lab's hue) and
@@ -287,7 +296,13 @@
    which is also what fixes the lead column's width: a table can pin one cell, so the
    pair only lines up while `Task`'s offset and the lead's width are one value. */
 @utility ledger-pin {
-	--ledger-lead-width: 3.25rem;
+	/* `#12` and the Lab's swatch both fit 2.5rem; the wider rest is breathing room a
+	   phone's five columns cannot spare. */
+	--ledger-lead-width: 2.5rem;
+
+	@variant sm {
+		--ledger-lead-width: 3.25rem;
+	}
 
 	position: sticky;
 	left: var(--ledger-lead-width);
