@@ -16,6 +16,13 @@ After any theme/token change, run the committed sweep (needs the lib fix
 below): `node scripts/theme-screenshots.mjs` — screenshots every theme
 plus its open theme-dropdown into `screenshots/`, then Read them.
 
+## README hero shot
+
+`BASE_URL=http://localhost:4173 node scripts/readme-screenshot.mjs` — seeds a
+fixed three-task day through the app's import and writes
+`static/fallow-daily-time-allocation.png`. Run it against the production
+preview (`npm run build && npm run preview`), not the dev server.
+
 ## Drive (Playwright)
 
 Playwright is a devDependency; chromium is installed under
