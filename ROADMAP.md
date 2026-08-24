@@ -476,7 +476,7 @@ have to be re-derived:
   frequency threshold in place of the user's exact choice (§0).
 - **A sleep-quality slider feeding the pools.** Already built:
   `cognitivePool`/`physicalPool` are per-day, persisted, validated and
-  user-editable (`day-constraints-bar.svelte:213-224`). A sleep slider is a
+  user-editable (`day-constraints-bar.svelte:151-183`). A sleep slider is a
   second input for the same lever plus an invented mapping with no instrument.
 - **Deadlines as an urgency multiplier.** The date→weight curve is invented and
   nothing in the app can fit a discount rate; a user who wants Friday's task

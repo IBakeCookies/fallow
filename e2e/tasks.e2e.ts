@@ -5,6 +5,7 @@ import {
 	expectTaskInputs,
 	isoDate,
 	logDrain,
+	openTaskForm,
 	setBudget,
 	taskCard,
 	taskRow,
@@ -233,9 +234,10 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
-	// The form is still open: it samples `isOpen` once, at mount, and the stored
-	// day has not landed yet at that point.
 	await expect(taskRow(page, 'Gym session')).toBeVisible();
+
+	// The stored day has landed, so the form remounted closed behind its opener.
+	await openTaskForm(page);
 
 	// Typed, not filled: the suggestions answer to input events, and two
 	// characters of the wrong case are all it takes.

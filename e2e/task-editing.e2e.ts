@@ -1,27 +1,19 @@
-import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, expectTaskInputs, logDrain, setBudget, taskRow } from './helpers';
+import { expect, test } from '@playwright/test';
+import {
+	addTask,
+	AUTOSAVE_MS,
+	expectTaskInputs,
+	logDrain,
+	logFlow,
+	setBudget,
+	taskRow,
+} from './helpers';
 
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
    one place where editing a task changes the model rather than just the row —
    from the NEXT day, since a plan reads only the logs that precede it (MATH.md
    §33). The badge and the log are one record in one object store since 2026-08-10, and
    it has to come back after a reload. */
-
-async function logFlow(page: Page, minutes: number) {
-	await page
-		.getByRole('button', {
-			name: 'Log time to flow',
-		})
-		.click();
-
-	await page.getByPlaceholder('min').fill(String(minutes));
-
-	await page
-		.getByRole('button', {
-			name: '✓',
-		})
-		.click();
-}
 
 /* MATH.md §33: a plan for the viewed day reads only logs dated before it, so what
    the UI can show today is the badge, the deferral, and that both survive a
@@ -47,23 +39,15 @@ test('logging time-to-flow badges the task and defers the model update', async (
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
 
-/* The prompt for the ⚡ button sat behind the collapsed Time Budget disclosure, so
-   the measurement that personalizes the model was reachable only by accident.
-   Completing a task is when the user still knows the answer — so the whole path
+/* The prompt for the ⚡ button once sat behind the collapsed Time Budget disclosure,
+   so the measurement that personalizes the model was reachable only by accident; it
+   is a card of its own now. Completing a task is when the user still knows the answer — so the whole path
    from "nothing logged" to a personalized fit has to work without ever pressing ⚡. */
 test('completing a task asks for its time-to-flow', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 
-	// The bar opens itself while the day's hours are unset — collapse it, so the
-	// prompt is proving itself and not `isOpen`.
 	await setBudget(page, 6);
-
-	await page
-		.getByRole('button', {
-			name: /Time Budget/,
-		})
-		.click();
 
 	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
 
@@ -95,19 +79,9 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 
 	await expect(page.getByText('⚡ 40m').first()).toBeVisible();
 
-	// The prompt has done its job and gets out of the way. What replaces it does
-	// NOT go quiet: the deferral is the line that answers "I logged that, why did
-	// nothing move?" (MATH.md §33), so unlike a settled fit it stays readable
-	// while collapsed — and is the log list's toggle once opened.
+	// The prompt has done its job and gets out of the way. What replaces it is the
+	// line that answers "I logged that, why did nothing move?" (MATH.md §33).
 	await expect(page.getByText(/Model uses default constants/)).toHaveCount(0);
-	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
-
-	await page
-		.getByRole('button', {
-			name: /Time Budget/,
-		})
-		.click();
-
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
 

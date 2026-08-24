@@ -44,8 +44,44 @@ export async function expectTaskInputs(page: Page, title: string, inputs: number
 	}
 }
 
+/**
+ * Bring the add-task form on screen. The form is keyed on the loaded day
+ * (`+page.svelte`), so it REMOUNTS when that day lands — open on a day with no
+ * tasks, behind the opener on a day that has some. The opener is on screen before
+ * the day lands too, and nothing on the page distinguishes that one from the one
+ * that stays: a click on it is a click on an element the remount is about to
+ * replace. So open the form by retrying until it is really open, rather than by
+ * deciding once against a DOM that has not settled.
+ */
+export async function openTaskForm(page: Page) {
+	const field = page.getByPlaceholder('e.g., Boxing training');
+
+	await expect(async () => {
+		const opener = page.getByRole('button', {
+			name: '+ Add Task',
+		});
+
+		// Bounded: an unbounded click retries the detached button until it outlives
+		// this attempt, so the retry never gets its turn.
+		if (await opener.isVisible())
+			await opener.click({
+				timeout: 1_000,
+			});
+
+		await expect(field).toBeVisible({
+			timeout: 1_000,
+		});
+	}).toPass({
+		timeout: 10_000,
+	});
+
+	return field;
+}
+
 export async function addTask(page: Page, title: string) {
-	await page.getByPlaceholder('e.g., Boxing training').fill(title);
+	const field = await openTaskForm(page);
+
+	await field.fill(title);
 
 	await page
 		.getByRole('button', {
@@ -96,6 +132,25 @@ export async function openTimeBudget(page: Page, loadedSummary: RegExp) {
 	await page
 		.getByRole('button', {
 			name: 'Time Budget',
+		})
+		.click();
+}
+
+/** Log a time-to-flow measurement (⚡) against the first task on screen. Shared because
+ *  two suites drive it: the ⚡ editor on `/` and the ⚡ resets on `/analytics`. */
+export async function logFlow(page: Page, minutes: number) {
+	await page
+		.getByRole('button', {
+			name: 'Log time to flow',
+		})
+		.first()
+		.click();
+
+	await page.getByPlaceholder('min').fill(String(minutes));
+
+	await page
+		.getByRole('button', {
+			name: '✓',
 		})
 		.click();
 }
