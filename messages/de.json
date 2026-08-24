@@ -211,7 +211,7 @@
 	"metric_schedule_integrity": "Plan-Integrität",
 	"metric_schedule_integrity_desc": "Anteil der verplanten Zeit, der produktive Arbeit ist statt Kontextwechsel-Overhead. Eine lange Session ≈ 100 %; viele kleine Sessions drücken den Wert.",
 	"metric_friction_index": "Reibungsindex",
-	"metric_friction_index_desc": "Anteil deiner zugeteilten Zeit für Arbeit, die schwerer ist als sie Freude macht (zeitgewichtete Differenz Schwierigkeit−Freude auf den 1–10-Skalen). 100 % = jede geplante Stunde ist Arbeit mit Schwierigkeit 10 und Freude 1.",
+	"metric_friction_index_desc": "Größe der Lücke zwischen Schwierigkeit und Freude, gemittelt über deine zugeteilten Stunden und gemessen an der größtmöglichen Lücke (9, auf den 1–10-Skalen). Ein ganzer Tag, dessen Schwierigkeit die Freude um 4 Punkte übersteigt, ergibt 44 %, nicht die 100 %, die ein Zeitanteil melden würde. 100 % = jede geplante Stunde ist Arbeit mit Freude 1 und Schwierigkeit 10 – die auch eine in beiden Dimensionen mit 8 bewertete Aufgabe erreicht.",
 	"metric_deep_work": "Deep Work",
 	"metric_deep_work_desc": "Anteil deines Zeitbudgets für Arbeit in anhaltender Konzentration, gewichtet nach mentaler Schwierigkeit: unter 5 zählt nichts, bei 7 die halbe Stunde, ab 9 die ganze. Ein Viertel bis 60% des Tages ist die angestrebte Form — darüber urteilt das Burnout-Risiko.",
 	"metric_quick_wins": "Schnelle Erfolge",

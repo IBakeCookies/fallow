@@ -365,6 +365,26 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 			]),
 		).toBe(0);
 	});
+
+	it('returns the sentinel 0 when there are no allocated hours to average over', () => {
+		expect(calculateFrictionIndex([])).toBe(0);
+
+		// A max-gap task the plan does not fund reads 0, not 100: it is absent from
+		// both sides of a time-weighted average. §32 gates the row N/A there, so the
+		// sentinel never reaches the user as "a frictionless day".
+		expect(
+			calculateFrictionIndex([
+				makeSuggested({
+					id: 1,
+					title: 'unfunded grind',
+					mentalDifficulty: 10,
+					physicalDifficulty: 0,
+					enjoyment: 1,
+					suggestedHours: 0,
+				}),
+			]),
+		).toBe(0);
+	});
 });
 
 describe('calculateGrindDensity (MATH.md §11.10)', () => {

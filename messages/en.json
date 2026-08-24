@@ -211,7 +211,7 @@
 	"metric_schedule_integrity": "Schedule Integrity",
 	"metric_schedule_integrity_desc": "Share of the plan's committed time that is productive work rather than context-switch overhead. One long session ≈ 100%; many small sessions drive it down.",
 	"metric_friction_index": "Friction Index",
-	"metric_friction_index_desc": "Share of your allocated time spent on work that is harder than it is enjoyable (time-weighted difficulty−enjoyment gap on the 1–10 scales). 100% = every planned hour is difficulty-10, enjoyment-1 work.",
+	"metric_friction_index_desc": "Size of the gap between difficulty and enjoyment, averaged over your allocated hours and measured against the largest gap there is (9, on the 1–10 scales). A whole day running 4 points of difficulty past its enjoyment reads 44%, not the 100% a share-of-time reading would give. 100% = every planned hour is enjoyment-1 work at difficulty 10, which a task rated 8 in both dimensions reaches too.",
 	"metric_deep_work": "Deep Work",
 	"metric_deep_work_desc": "Share of your time budget in sustained-focus work, ramped by mental difficulty: nothing counts below 5, half an hour of credit at 7, the whole hour from 9 up. A quarter to 60% of the day is the shape to aim for — past that, Burnout Risk owns the verdict.",
 	"metric_quick_wins": "Quick Wins",
