@@ -30,6 +30,8 @@
 	play={async ({ args, canvas, userEvent }) => {
 		await expect(canvas.getByLabelText(args.label)).toHaveValue(args.value);
 		await expect(canvas.getByText(args.label)).toHaveClass('hint-underline');
+		// No logs behind the parameter is not "no signal": the row carries no reading at all.
+		await expect(canvas.queryByText('no informative ratings')).toBeNull();
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -55,6 +57,38 @@
 		hint: 'How fast physical work spends your body.',
 		value: 0.6,
 		accent: 'focus-within:border-body/50',
+	}}
+>
+	{#snippet template(args)}
+		<div class="max-w-xs"><ParamRow {...args} /></div>
+	{/snippet}
+</Story>
+
+<!-- What the user's own logs fit, beside the stepper it would replace, so `Apply my
+     fits` resolves a disagreement they can see -->
+<Story
+	name="With a fit"
+	args={{
+		fit: '≈ 1.21 ± 0.18 · n=18',
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('≈ 1.21 ± 0.18 · n=18')).toHaveClass('text-info-strong');
+	}}
+>
+	{#snippet template(args)}
+		<div class="max-w-xs"><ParamRow {...args} /></div>
+	{/snippet}
+</Story>
+
+<!-- Logged, but nothing in them separates this parameter from the default: a fit that
+     failed is not a fit of zero, so no number is printed to invite applying it -->
+<Story
+	name="No signal"
+	args={{
+		fit: null,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('no informative ratings')).toHaveClass('text-ty-silent');
 	}}
 >
 	{#snippet template(args)}

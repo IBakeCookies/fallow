@@ -107,8 +107,11 @@ Untestable at every level is the signal.
   empty keeps the pick, and the flag clears on submit — left set, the next
   title being cleared would reset sliders no pick had touched.
 - **A card whose reading costs a solve is its run button and nothing else until
-  it has run** — `plan-advice-card`, `budget-curve-card`. A card advertising a
-  feature it has not run yet is pure vertical cost above the plan.
+  it has run** — `plan-advice-card`, and `budget-curve-button.svelte`, which is
+  that button split off from `budget-curve-card.svelte` so the two can read in
+  different places: the button on the card holding the row it prices, the chart
+  it returns full width below. A shell and a heading around a feature nobody has
+  run yet claim a reading the card does not have.
 - **The same card, once stale, keeps its numbers and withdraws its levers.**
   Both cards above: the reading stays on screen (it is a warning about the
   numbers, not a reason to hide them), and every Apply button gates on
@@ -143,11 +146,16 @@ Untestable at every level is the signal.
 `/` and `/energy` render the same day's list, and everything they were free to
 disagree about had drifted: the card around the list, where the add-task form
 sat, the rule between rows, and the ✎ editor, which only `/` had, so the Lab
-could not rename a task at all. Five components hold what the two screens say
-the same way:
+could not rename a task at all. The page ORDER is not part of that agreement,
+and deliberately: on `/` the list is where the day gets typed, so it leads; on
+the Lab it is a read-out you annotate and the plan is the screen's answer, so the
+plan leads full width and the ledger heads the wide column under it. What both
+screens do hold is that the ledger and the parameters that move it are adjacent —
+the Lab buys that by stacking them in one column, not by ordering the page.
+Five components hold what the two screens say the same way:
 
 - **`task-list-card.svelte`** — the card, the heading, `strip` between the heading
-  and the ledger (`/` puts its day strip there, the Lab nothing), the form at the
+  and the ledger (`/` puts its day strip there, the Lab the ☕ editor), the form at the
   card's FOOT — the plan is what the card is read for, and adding to it is the last
   thing on it — the empty state, the `<table>` and its scroll container, and the header
   row it builds from the caller's column list (so neither screen decides how its
@@ -231,9 +239,10 @@ converged and the two callers should merge, not licence for a fourth.
 markup tree at every width: when the ledger is wider than its column it scrolls
 sideways inside its own `overflow-x-auto` container and the DOCUMENT does not —
 `e2e/tasks.e2e.ts` pins both halves, because a table that overflows is only
-correct while the container is the thing that scrolls. The ledger also takes `/`'s full width and
-the metrics read beneath it: twelve columns have nowhere to go in two thirds of
-a page. The column list is `utils/ledger-column.ts`, one function per
+correct while the container is the thing that scrolls. The ledger also takes each
+screen's full width and the readings sit beneath it — `/`'s metrics, the Lab's
+plan: twelve columns have nowhere to go in two thirds of a page. The column list
+is `utils/ledger-column.ts`, one function per
 screen, and it is the ONE definition of how wide the table is: the card heads it
 and the shell spans it. The hours the optimizer planned are `Planned`, the LAST
 column, on BOTH screens — one word and one place for one reading, so the two
@@ -620,8 +629,12 @@ name from the Lab's page down to the form that renders the toggle.
 ### The calibration cards share a shell, not a body
 
 `calibration-card.svelte` is the card, the explained heading and the action
-slot, and nothing else. The three bodies stay at the call sites because they are
-three different things: α has two fit rows and a fit summary, r adds the ☕
-editor, λ₀ has a censored state and no logs at all. No mode flag and no folding
-the bodies in — the same argument as the two task rows' shell: a component
-covering all three would be a config blob, not a card.
+slot, and nothing else. The fitted numbers read on the parameter rows they fit
+(`param-row.svelte`'s `fit`), so on the Lab all three cards are read-outs and
+none of them takes the action slot: ☕ is typed on the ledger's heading row with
+the day's other logs, which is also what makes it reachable on a day with no
+tasks. What is left is still three different things — α has a pending-log line
+and a fit summary, r has the same two, λ₀ has a censored state and a day count
+and no log store at all. No mode flag and no folding the bodies in — the same
+argument as the two task rows' shell: a component covering all three would be a
+config blob, not a card.

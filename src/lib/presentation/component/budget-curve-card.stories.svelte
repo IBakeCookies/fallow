@@ -73,40 +73,6 @@
 	});
 </script>
 
-<!-- Before the user asks: one button, no card. The sweep costs a solve per step. -->
-<Story
-	name="Unasked"
-	args={{
-		curve: null,
-	}}
-	play={async ({ canvas, args }) => {
-		const button = canvas.getByRole('button', {
-			name: 'How long should today be?',
-		});
-
-		await userEvent.click(button);
-		await expect(args.oncheck).toHaveBeenCalledOnce();
-
-		// No card until there is a curve to put in it
-		await expect(canvas.queryByText(/re-solved by the same optimizer/)).not.toBeInTheDocument();
-	}}
-/>
-
-<Story
-	name="Solving"
-	args={{
-		curve: null,
-		isBusy: true,
-	}}
-	play={async ({ canvas }) => {
-		await expect(
-			canvas.getByRole('button', {
-				name: 'Solving…',
-			}),
-		).toBeDisabled();
-	}}
-/>
-
 <!-- Resweeping: the previous curve is still on screen, so unlike the first run
      this state HAS an apply button — holding a recommendation the run in flight is
      about to replace. The chart stays readable; the lever does not stay live. -->

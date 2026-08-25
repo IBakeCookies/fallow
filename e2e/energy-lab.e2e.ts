@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
 	addTask,
 	AUTOSAVE_MS,
@@ -422,6 +422,25 @@ test('the budget curve stays unasked until clicked, then prices the day’s leng
 	// window is not advice on its own.
 	await expect(page.getByText(/another hour of your day adds nothing/)).toBeVisible();
 
+	// The button was in the parameters header; the chart it produced is too wide for
+	// that card, so it lands full width under everything.
+	const curve = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'How long should today be?',
+		}),
+	});
+
+	const drain = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Drain Calibration',
+		}),
+	});
+
+	const curveBox = (await curve.boundingBox())!;
+	const drainBox = (await drain.boundingBox())!;
+
+	expect(curveBox.y).toBeGreaterThan(drainBox.y + drainBox.height);
+
 	// The seam worth an e2e: the recommendation writes the SHARED budget, the same
 	// value the main page's Available Hours holds (settled 2026-07-29).
 	await page
@@ -456,6 +475,138 @@ test('a dated URL collapses to the canonical Lab', async ({ page }) => {
 	await expect(page.getByText('Deep work').first()).toBeVisible();
 });
 
+/* The Lab's page order: the plan is the screen's answer, so it reads first and full
+   width. The ledger's adjacency to the parameters is not paid for by that — both sit
+   in the wide column under it, the list directly above the rows that move it. */
+test('the plan reads above the ledger', async ({ page }) => {
+	await page.goto('/');
+
+	for (const title of ['Deep work', 'Emails', 'Errand', 'Reading']) await addTask(page, title);
+
+	await setBudget(page, 8);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	const chart = page.getByRole('img', {
+		name: 'Energy levels and output rate over the day',
+	});
+
+	await expect(chart).toBeVisible();
+
+	const row = await taskRow(page, 'Deep work').boundingBox();
+	const plot = await chart.boundingBox();
+
+	expect(plot!.y).toBeLessThan(row!.y);
+});
+
+/* One grid under the plan, not two: the ledger and the parameters share the wide
+   column so the row being edited and the parameter that moves it are one scroll
+   apart, and the four read-outs stack beside them rather than under. */
+test('the ledger and the parameters read beside the calibration boxes', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	const params = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Model Parameters',
+		}),
+	});
+
+	const drain = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Drain Calibration',
+		}),
+	});
+
+	const listBox = (await taskCard(page).boundingBox())!;
+	const paramsBox = (await params.boundingBox())!;
+	const drainBox = (await drain.boundingBox())!;
+
+	// The wide column: one left edge and one width for both of its cards.
+	expect(paramsBox.x).toBeCloseTo(listBox.x, 0);
+	expect(paramsBox.width).toBeCloseTo(listBox.width, 0);
+
+	// The narrow column starts where the wide one ends, and the parameters are
+	// directly under the list rather than beside it.
+	expect(drainBox.x).toBeGreaterThan(paramsBox.x + paramsBox.width - 1);
+	expect(paramsBox.y).toBeGreaterThan(listBox.y + listBox.height - 1);
+});
+
+// The curve is what the Day window row's number should be, so its button reads on
+// the card that holds that row — the same rule as the fits. Un-run it is a bare
+// button and not a card (presentation/AGENTS.md).
+test('the budget-curve button reads in the model parameters header', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	const params = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Model Parameters',
+		}),
+	});
+
+	const check = params.getByRole('button', {
+		name: 'How long should today be?',
+	});
+
+	await expect(check).toBeVisible();
+
+	// Above the rows it prices, not adrift among them.
+	const checkBox = (await check.boundingBox())!;
+	const window = (await page.locator('#window-hours').boundingBox())!;
+
+	expect(checkBox.y).toBeLessThan(window.y);
+});
+
+/* The nav's active link already draws the page's name, so the `<h1>` is the
+   document's and not the design's — it stays for the outline and takes no height. */
+test('the Lab draws no page title', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	const heading = page.getByRole('heading', {
+		name: 'Energy Lab',
+		exact: true,
+	});
+
+	await expect(heading).toBeAttached();
+
+	const box = await heading.boundingBox();
+
+	expect(box!.height).toBeLessThanOrEqual(1);
+});
+
+/* The route's only prose. In the heading tooltip it reached no crawler at all —
+   bits-ui mounts `Tooltip.Content` on open — under a meta description that promises
+   a day-value scheduler. Only the server response can catch that (`e2e/nav.e2e.ts`
+   makes the same argument for the nav). */
+test('the Lab’s explanation is server-rendered', async ({ request }) => {
+	const html = await (await request.get('/energy')).text();
+
+	expect(html).toContain('A different engine than the main page');
+});
+
+test('the Lab’s explanation reads with nothing hovered', async ({ page }) => {
+	await page.goto('/energy');
+
+	const intro = page.getByText(/A different engine than the main page/);
+
+	await intro.scrollIntoViewIfNeeded();
+	await expect(intro).toBeVisible();
+});
+
 // A calibration card, by the title in its heading: both cards render the same
 // shell, and the drain rows' copy repeats between them.
 const calibrationCard = (page: Page, title: string) =>
@@ -463,14 +614,9 @@ const calibrationCard = (page: Page, title: string) =>
 		hasText: title,
 	});
 
-// The fitted-α row inside a card, which is the innermost div carrying its label.
-const cognitiveDrainRow = (card: Locator) =>
-	card
-		.locator('div')
-		.filter({
-			hasText: 'Cognitive drain',
-		})
-		.last();
+// A parameter's fit reading, named off the stepper's own id — the fit sits on the
+// row it fits, not on the calibration card.
+const paramFit = (page: Page, id: string) => page.locator(`#${id}-fit`);
 
 /* α and r are identity, so the cards fit logs dated strictly before
    today — the rating just logged is named beside the fit instead of moving it,
@@ -490,13 +636,34 @@ test('a drain rating logged today is named beside the fit, not folded into it', 
 
 	await expect(drainCard.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
 
-	await expect(cognitiveDrainRow(drainCard)).toContainText('no informative ratings');
+	// The fit left the card; the count, the pending line and the reset did not.
+	await expect(
+		drainCard.getByRole('button', {
+			name: 'Delete all ratings',
+		}),
+	).toBeVisible();
+
+	await expect(paramFit(page, 'alpha-cog')).toHaveText('no informative ratings');
 
 	await expect(
 		page.getByRole('button', {
 			name: 'Apply my fits',
 		}),
 	).toHaveCount(0);
+});
+
+/* No logs at all is not "no signal": `no informative ratings` against a parameter
+   nobody has rated is a claim about ratings the user never made, so the row carries
+   no fit line until there is something to say. */
+test('a parameter with no ratings behind it carries no fit reading', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/energy');
+
+	await expect(page.getByLabel('Cognitive drain')).toBeVisible();
+	await expect(paramFit(page, 'alpha-cog')).toHaveCount(0);
 });
 
 test('that same rating fits once the clock has passed midnight', async ({ page }) => {
@@ -517,7 +684,7 @@ test('that same rating fits once the clock has passed midnight', async ({ page }
 
 	const drainCard = calibrationCard(page, 'Drain Calibration');
 
-	await expect(cognitiveDrainRow(drainCard)).toContainText('n=1');
+	await expect(paramFit(page, 'alpha-cog')).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
 	await expect(drainCard.getByText(/counted from tomorrow/)).toHaveCount(0);
 });
 
@@ -571,11 +738,15 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 	await page.goto('/energy');
 
 	const stopCard = calibrationCard(page, 'Stopping Calibration');
-	const fitRow = stopCard.getByText(/out\/h · n=1/);
+	const fitRow = paramFit(page, 'free-time-value');
 
-	await expect(fitRow).toBeVisible();
+	await expect(fitRow).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
 	const fitted = await fitRow.textContent();
 	await expect(stopCard.getByText(/ran out of clock/)).toHaveCount(0);
+
+	// The fit reads on the parameter row now; the card still has to say what it read,
+	// or a day with nothing censored leaves a heading over an empty body.
+	await expect(stopCard.getByText('Stop observations · 1')).toBeVisible();
 
 	// 3 h worked across a 7.5 h span of an 8 h window: the wall clock ended it.
 	await logDrain(page, 90, 7, 3);
@@ -598,7 +769,7 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 	).toBeVisible();
 
 	// The dropped day moves nothing: same fitted value, still one day used.
-	await expect(stopCardToday.getByText(/out\/h · n=1/)).toHaveText(fitted!);
+	await expect(paramFit(page, 'free-time-value')).toHaveText(fitted!);
 });
 
 test('a break logged today is named beside the recovery fit', async ({ page }) => {
@@ -615,6 +786,8 @@ test('a break logged today is named beside the recovery fit', async ({ page }) =
 			'1 break logged today, counted from tomorrow',
 		),
 	).toBeVisible();
+
+	await expect(paramFit(page, 'recovery-rate')).toHaveText('no informative ratings');
 });
 
 // business/model/AGENTS.md: "A fit never writes params silently." The whole point of the
@@ -647,8 +820,13 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	await expect(apply).toBeEnabled();
 	await expect(cognitiveDrain).toHaveValue(defaultDrain);
 
+	const shown = (await paramFit(page, 'alpha-cog').textContent())!.match(/≈ ([\d.]+)/)![1];
+
 	await apply.click();
 	await expect(cognitiveDrain).not.toHaveValue(defaultDrain);
+	// The row showed the number the button then wrote — `applyFits` rounds α to the
+	// same two decimals the reading prints, so the stepper holds exactly it.
+	await expect(cognitiveDrain).toHaveValue(String(Number(shown)));
 	await expect(page.getByText('Fits applied')).toBeVisible();
 });
 
@@ -909,6 +1087,54 @@ test('deleting a task takes its open drain prompt with it', async ({ page }) => 
 		.check();
 
 	await expect(form).toHaveCount(1);
+});
+
+/* ☕ is a log of the day, like ⏱ and 🪫 — so it is typed where they are, on the
+   ledger's heading row beside Load and Save, and the recovery card is left a
+   read-out like the other two. */
+test('a rest is logged from the ledger, not from the calibration card', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await expect(
+		taskCard(page).getByRole('button', {
+			name: 'Log a rest',
+		}),
+	).toBeVisible();
+
+	const recovery = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Recovery Calibration',
+		}),
+	});
+
+	await expect(
+		recovery.getByRole('button', {
+			name: 'Log a rest',
+		}),
+	).toHaveCount(0);
+
+	await logRest(page, 30, 9, 8, 3, 2);
+
+	// r reads pairs dated before today, so what the read-out card can say about a
+	// pair logged now is that it holds it.
+	await expect(recovery.getByText('Rest pairs · 1')).toBeVisible();
+});
+
+/* The day you are most likely to have rested is the day you booked nothing, and the
+   card the editor used to live on is inside the page's `hasTasks` gate. */
+test('a rest can be logged on a day with no tasks', async ({ page }) => {
+	await page.goto('/energy');
+
+	await logRest(page, 30, 9, 8, 3, 2);
+
+	// An empty Lab shows no calibration cards at all, so the task that brings them
+	// back is the proof the pair was stored without one.
+	await addTask(page, 'Deep work');
+
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 });
 
 // The ☕ editor is only ever opened by its own button, so it always takes the caret

@@ -38,12 +38,12 @@
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
 	import PlanScheduleList from '$lib/presentation/component/plan-schedule-list.svelte';
 	import PlanSummary from '$lib/presentation/component/plan-summary.svelte';
+	import BudgetCurveButton from '$lib/presentation/component/budget-curve-button.svelte';
 	import BudgetCurveCard from '$lib/presentation/component/budget-curve-card.svelte';
 	import StopAdvisorCard from '$lib/presentation/component/stop-advisor-card.svelte';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
 	import { BUDGET_BOUNDS } from '$lib/presentation/utils/budget-bounds';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
-	import FitRow from '$lib/presentation/component/fit-row.svelte';
 	import RestLogForm from '$lib/presentation/component/rest-log-form.svelte';
 	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
@@ -77,6 +77,7 @@
 	const pendingRestLogs = $derived(lab.pendingRestLogCount);
 	const stopFit = $derived(lab.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
+	const budgetCurve = $derived(lab.budgetCurve);
 	// The lookup always resolves; '' only satisfies the type where the verdict carries no task.
 	const stopTaskTitle = $derived(
 		stopAdvice !== null && stopAdvice.verdict !== 'window-full'
@@ -218,6 +219,46 @@
 
 	// ---------- Presentation helpers ----------
 
+	// Each fit, formatted for the parameter row it fits: `null` where the logs carry no
+	// signal, `undefined` where there are no logs to carry one.
+	const drainReading = (fit: typeof cogDrainFit) =>
+		drainObservations.length === 0
+			? undefined
+			: fit.fitted
+				? m.energy_fit_value({
+						value: decimal(fit.alpha, 2),
+						std: decimal(fit.alphaStd ?? 0, 2),
+						count: fit.usedCount,
+					})
+				: null;
+
+	const cogDrainReading = $derived(drainReading(cogDrainFit));
+	const physDrainReading = $derived(drainReading(physDrainFit));
+
+	const recoveryReading = $derived(
+		restObservations.length === 0
+			? undefined
+			: recoveryFit.fitted
+				? m.energy_fit_value({
+						value: decimal(recoveryFit.rate, 2),
+						std: decimal(recoveryFit.rateStd ?? 0, 2),
+						count: recoveryFit.usedCount,
+					})
+				: null,
+	);
+
+	const stopReading = $derived(
+		lab.stopObservationCount === 0
+			? undefined
+			: stopFit.fitted
+				? m.energy_fit_value({
+						value: decimal(stopFit.value, 2),
+						std: decimal(stopFit.valueStd ?? 0, 2),
+						count: stopFit.usedCount,
+					})
+				: null,
+	);
+
 	// One hue per task, shared by the timeline, the schedule list and the rows.
 	const colors = $derived(seriesColors(lab.energyTasks.map((t) => t.id)));
 
@@ -233,17 +274,36 @@
 <SeoHead title={m.energy_title_head()} description={m.energy_meta_description()} />
 
 {#snippet dayActions()}
-	<DayActions
-		selectedDate={session.selectedDate}
-		today={session.today}
-		yesterdaySession={session.yesterdaySession}
-		routines={session.routines}
-		currentTasks={session.tasks}
-		onimport={(t) => session.importTasks(t)}
-		onimportdate={(d) => session.importFromDate(d)}
-		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
-		ondeleteroutine={(id) => session.deleteRoutine(id)}
-	/>
+	<div class="flex flex-wrap items-center gap-grid-xs">
+		<!-- ☕ is a log of the day like ⏱ and 🪫, so it is typed here and not on the card
+		     that reads its fit — which also puts it outside `hasTasks`. -->
+		<button
+			type="button"
+			class="shrink-0 text-xs transition {restFormOpen
+				? 'text-ty-silent hover:text-ty-secondary'
+				: 'text-info/90 hover:text-info-strong'}"
+			onclick={() => (restFormOpen = !restFormOpen)}
+		>
+			{restFormOpen ? m.common_cancel() : `☕ ${m.energy_log_rest()}`}
+		</button>
+		<DayActions
+			selectedDate={session.selectedDate}
+			today={session.today}
+			yesterdaySession={session.yesterdaySession}
+			routines={session.routines}
+			currentTasks={session.tasks}
+			onimport={(t) => session.importTasks(t)}
+			onimportdate={(d) => session.importFromDate(d)}
+			onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+			ondeleteroutine={(id) => session.deleteRoutine(id)}
+		/>
+	</div>
+{/snippet}
+
+{#snippet restForm()}
+	{#if restFormOpen}
+		<RestLogForm onsave={saveRestLog} oncancel={() => (restFormOpen = false)} />
+	{/if}
 {/snippet}
 
 {#snippet addTaskForm()}
@@ -288,30 +348,10 @@
 	{/each}
 {/snippet}
 
-<!-- Outside the load gate: the title reads nothing, and it is what keeps the route
-     from painting blank for the frame before IndexedDB answers. -->
-<div class="mb-text-xl">
-	<Tooltip.Provider>
-		<Tooltip.Root>
-			<Tooltip.Trigger>
-				{#snippet child({ props })}
-					<h1 {...props} class="hint-underline inline-flex text-2xl font-bold text-ty-primary">
-						{m.energy_heading()}
-					</h1>
-				{/snippet}
-			</Tooltip.Trigger>
-			<Tooltip.Content side="bottom" align="start" class="max-w-md">
-				<p>
-					{m.energy_intro_1()}
-					<span class="font-medium text-ty-primary">{m.energy_intro_highlight_1()}</span>
-					{m.energy_intro_2()}
-					<span class="font-medium text-ty-primary">{m.energy_intro_highlight_2()}</span>
-					{m.energy_intro_3()}
-				</p>
-			</Tooltip.Content>
-		</Tooltip.Root>
-	</Tooltip.Provider>
-</div>
+<!-- The nav's active link already draws the page's name, so this one is for the
+     document: the explainer at the foot opens at `<h2>` and an indexed page needs an
+     `<h1>` above it. -->
+<h1 class="sr-only">{m.energy_heading()}</h1>
 
 <!-- The level between the page title and the cards, which all head themselves at
      `<h3>`: nothing in the design draws it, and without it the outline skips. -->
@@ -322,174 +362,179 @@
 	     the user has, and the parameter rows would show defaults before their saved values land. -->
 	<div class="space-y-grid-lg" aria-hidden="true">
 		<div class="card-shell p-box-md sm:p-box-xl">
-			<div class="skeleton-block h-4 w-44"></div>
-			<div class="skeleton-block mt-text-md h-124 w-full"></div>
+			<div class="skeleton-block h-4 w-24"></div>
+			<div class="skeleton-block mt-text-md h-102 w-full"></div>
 		</div>
 		<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-			<div class="card-shell p-box-md sm:p-box-xl lg:col-span-2">
-				<div class="skeleton-block h-4 w-24"></div>
-				<div class="skeleton-block mt-text-md h-70 w-full"></div>
+			<div class="space-y-grid-lg lg:col-span-2">
+				<div class="card-shell p-box-md sm:p-box-xl">
+					<div class="skeleton-block h-4 w-44"></div>
+					<div class="skeleton-block mt-text-md h-74 w-full"></div>
+				</div>
+				<div class="card-shell p-box-md sm:p-box-xl">
+					<div class="skeleton-block h-4 w-32"></div>
+					<div class="skeleton-block mt-text-md h-52 w-full"></div>
+				</div>
 			</div>
-			<div class="card-shell p-box-md sm:p-box-xl">
-				<div class="skeleton-block h-4 w-28"></div>
-				<div class="skeleton-block mt-text-md h-144 w-full"></div>
+			<div class="space-y-grid-lg">
+				{#each [0, 1, 2, 3] as index (index)}
+					<div class="card-shell p-box-md sm:p-box-xl">
+						<div class="skeleton-block h-4 w-28"></div>
+						<div class="skeleton-block mt-text-md h-11 w-full"></div>
+					</div>
+				{/each}
 			</div>
 		</div>
 	</div>
 {:else}
-	<div class="space-y-grid-lg">
-		<!-- Everything above the list describes a plan; only the list's card stays on an
-		     empty day, because its form is where the first task gets typed. -->
-		{#if hasTasks}
-			{#if activeTasks.length === 0}
-				<!-- The optimizer needs an open task; the list stays so one can be un-checked or added -->
-				<div class="card-shell p-box-2xl text-center">
-					<p class="text-ty-secondary">{m.energy_all_done()}</p>
-					<p class="mt-text-2xs text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
-				</div>
-			{:else}
-				<div class="card-shell p-box-md sm:p-box-xl">
-					<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
-						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-							{m.energy_optimized_day()}
-						</h3>
-						<!-- "0m work · 0m free" and a view switch over an empty region are
-						     furniture the day window has not earned yet. -->
-						{#if windowHours > 0}
-							<div class="flex items-center gap-grid-xs">
-								<span class="text-xs text-ty-silent">
-									{m.energy_work_free_summary({
-										work: formatDuration(plan.evaluation.workHours),
-										free: formatDuration(plan.evaluation.leisureHours),
-									})}
-								</span>
-								<SegmentedToggle
-									items={planViewItems}
-									value={planView}
-									onchange={setPlanView}
-									label={m.energy_view_group()}
-									tone="plan"
-								/>
-							</div>
-						{/if}
+	<Tooltip.Provider>
+		<div class="space-y-grid-lg">
+			<!-- The plan first and full width: it is the screen's answer, and the ledger
+			     keeps its adjacency to the parameters by sharing a column, not the page's
+			     top. An empty day has no plan and starts at the list. -->
+			{#if hasTasks}
+				{#if activeTasks.length === 0}
+					<!-- The optimizer needs an open task; the list below stays so one can be un-checked or added -->
+					<div class="card-shell p-box-2xl text-center">
+						<p class="text-ty-secondary">{m.energy_all_done()}</p>
+						<p class="mt-text-2xs text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
 					</div>
-					{#if windowHours > 0}
-						<PlanTimelineBar
-							blocks={plan.evaluation.blocks}
-							{windowHours}
-							{trailingFreeHours}
-							{colors}
-						/>
-
-						<div>
-							{#if planView === 'chart'}
-								<EnergyChart {trajectory} {windowHours} />
-							{:else}
-								<PlanScheduleList
-									blocks={plan.evaluation.blocks}
-									{windowHours}
-									{trailingFreeHours}
-									plannedHours={lab.plannedHours}
-									{colors}
-									locale={getDateLocale()}
-								/>
+				{:else}
+					<div class="card-shell p-box-md sm:p-box-xl">
+						<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
+							<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+								{m.energy_optimized_day()}
+							</h3>
+							<!-- "0m work · 0m free" and a view switch over an empty region are
+								     furniture the day window has not earned yet. -->
+							{#if windowHours > 0}
+								<div class="flex items-center gap-grid-xs">
+									<span class="text-xs text-ty-silent">
+										{m.energy_work_free_summary({
+											work: formatDuration(plan.evaluation.workHours),
+											free: formatDuration(plan.evaluation.leisureHours),
+										})}
+									</span>
+									<SegmentedToggle
+										items={planViewItems}
+										value={planView}
+										onchange={setPlanView}
+										label={m.energy_view_group()}
+										tone="plan"
+									/>
+								</div>
 							{/if}
 						</div>
+						{#if windowHours > 0}
+							<PlanTimelineBar
+								blocks={plan.evaluation.blocks}
+								{windowHours}
+								{trailingFreeHours}
+								{colors}
+							/>
 
-						<PlanSummary
-							totalOutput={decimal(plan.evaluation.totalOutput, 1)}
-							endCog={plan.evaluation.workEndCog}
-							endPhys={plan.evaluation.workEndPhys}
-							workHours={plan.evaluation.workHours}
-							{valueVsClassic}
-						/>
-					{:else}
-						<button
-							type="button"
-							class="hint-underline cursor-default text-sm text-ty-secondary transition hover:text-ty-primary"
-							onclick={focusDayWindow}
-						>
-							{m.energy_set_window()}
-						</button>
-					{/if}
-				</div>
+							<div>
+								{#if planView === 'chart'}
+									<EnergyChart {trajectory} {windowHours} />
+								{:else}
+									<PlanScheduleList
+										blocks={plan.evaluation.blocks}
+										{windowHours}
+										{trailingFreeHours}
+										plannedHours={lab.plannedHours}
+										{colors}
+										locale={getDateLocale()}
+									/>
+								{/if}
+							</div>
 
-				<!-- The day's LENGTH, priced (MATH.md §8.12) — outside the `windowHours > 0`
-				     gate on purpose: the curve is the answer to "what window should I set". -->
-				<BudgetCurveCard
-					curve={lab.budgetCurve}
-					isBusy={lab.isCurveBusy}
-					isStale={lab.isCurveStale}
-					hasError={lab.hasCurveError}
-					currentBudget={windowHours}
-					locale={getDateLocale()}
-					oncheck={() => lab.computeBudgetCurve()}
-					onapply={(hours) => (session.availableHours = hours)}
-				/>
+							<PlanSummary
+								totalOutput={decimal(plan.evaluation.totalOutput, 1)}
+								endCog={plan.evaluation.workEndCog}
+								endPhys={plan.evaluation.workEndPhys}
+								workHours={plan.evaluation.workHours}
+								{valueVsClassic}
+							/>
+						{:else}
+							<button
+								type="button"
+								class="hint-underline cursor-default text-sm text-ty-secondary transition hover:text-ty-primary"
+								onclick={focusDayWindow}
+							>
+								{m.energy_set_window()}
+							</button>
+						{/if}
+					</div>
+				{/if}
 			{/if}
-		{/if}
 
-		<Tooltip.Provider>
+			<!-- One grid and not two, so the read-outs stack at their own heights beside
+			     the wide column. With no tasks there is nothing to read out. -->
 			<div class="grid gap-grid-xl lg:grid-cols-3 items-start">
-				<!-- Full width on an empty day: two thirds of a card beside a third of
-				     nothing reads as a layout bug. -->
-				<div class={hasTasks ? 'lg:col-span-2' : 'lg:col-span-3'}>
+				<div class="space-y-grid-lg {hasTasks ? 'lg:col-span-2' : 'lg:col-span-3'}">
 					<TaskListCard
 						form={addTaskForm}
 						heading={dayActions}
+						strip={restForm}
 						columns={getEnergyTaskColumns()}
 						rows={hasTasks ? taskRows : null}
 					/>
-				</div>
-				{#if hasTasks}
-					<div class="space-y-grid-lg">
-						<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced against
-						     free time. In the side column so it never pushes the task list down. -->
-						{#if stopAdvice !== null}
-							<StopAdvisorCard
-								advice={stopAdvice}
-								taskTitle={stopTaskTitle}
-								freeTimeValue={params.freeTimeValue}
-								locale={getDateLocale()}
-							/>
-						{/if}
+
+					<!-- Everything past the list describes a plan, so an empty day stops here:
+					     the list's form is where the first task gets typed. -->
+					{#if hasTasks}
 						<div class="card-shell p-box-md sm:p-box-xl">
 							<div class="gap-text-xs flex flex-wrap items-baseline justify-between">
 								<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 									{m.energy_model_parameters()}
 								</h3>
 
-								<button
-									type="button"
-									class="text-xs text-ty-silent transition hover:text-ty-secondary"
-									title={m.energy_reset_defaults_title()}
-									onclick={() => lab.resetParams()}
-								>
-									{m.energy_reset_defaults()}
-								</button>
+								<div class="flex flex-wrap items-center gap-grid-xs">
+									<!-- The day's LENGTH, priced (MATH.md §8.12) — outside the `windowHours > 0`
+							     gate on purpose: it answers what that window should be, which is why it
+							     reads on the card holding the row. The chart it returns lands below. -->
+									{#if budgetCurve === null}
+										<BudgetCurveButton
+											isBusy={lab.isCurveBusy}
+											hasError={lab.hasCurveError}
+											oncheck={() => lab.computeBudgetCurve()}
+										/>
+									{/if}
+
+									<!-- One button for all four fits because their ORDER is the math (MATH.md
+						§8.7/§8.9/§8.10): separate buttons let the user apply them in an order
+						that leaves a parameter stale. -->
+									{#if lab.hasFit}
+										<button
+											type="button"
+											class="text-xs transition {lab.fitsApplied
+												? 'cursor-default text-ty-silent'
+												: 'text-brand/90 hover:text-brand-strong'}"
+											disabled={lab.fitsApplied}
+											title={m.energy_apply_fits_title()}
+											onclick={() => lab.applyFits()}
+										>
+											{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
+										</button>
+									{/if}
+
+									<button
+										type="button"
+										class="text-xs text-ty-silent transition hover:text-ty-secondary"
+										title={m.energy_reset_defaults_title()}
+										onclick={() => lab.resetParams()}
+									>
+										{m.energy_reset_defaults()}
+									</button>
+								</div>
 							</div>
 
-							<!-- One button for all four fits because their ORDER is the math (MATH.md
-								§8.7/§8.9/§8.10): separate buttons let the user apply them in an order
-								that leaves a parameter stale. -->
-							{#if lab.hasFit}
-								<button
-									type="button"
-									class="text-xs transition {lab.fitsApplied
-										? 'cursor-default text-ty-silent'
-										: 'text-brand/90 hover:text-brand-strong'}"
-									disabled={lab.fitsApplied}
-									title={m.energy_apply_fits_title()}
-									onclick={() => lab.applyFits()}
-								>
-									{lab.fitsApplied ? m.energy_fits_applied() : m.energy_apply_fits()}
-								</button>
-							{/if}
-
-							<div class="mt-text-md space-y-grid-md">
+							<!-- A grid and not `columns-*`: column flow can break a stepper across a
+					     column boundary, and a stepper is a control, not a paragraph. -->
+							<div class="mt-text-md grid gap-grid-md sm:grid-cols-2 xl:grid-cols-3">
 								<!-- The window is the session's budget, not a lab param — hence step 0.25
-							     and not 0.5: the stepper rounds to its own step's decimals, so a 6.25h
-							     day set on the main page would come back 6.8 after one click here. -->
+					     and not 0.5: the stepper rounds to its own step's decimals, so a 6.25h
+					     day set on the main page would come back 6.8 after one click here. -->
 								<ParamRow
 									id="window-hours"
 									label={m.energy_day_window()}
@@ -512,6 +557,7 @@
 									step={0.05}
 									unit={m.unit_per_hour()}
 									accent="focus-within:border-mind/50"
+									fit={cogDrainReading}
 								/>
 								<ParamRow
 									id="alpha-phys"
@@ -524,6 +570,7 @@
 									step={0.05}
 									unit={m.unit_per_hour()}
 									accent="focus-within:border-body/50"
+									fit={physDrainReading}
 								/>
 								<ParamRow
 									id="recovery-rate"
@@ -535,6 +582,7 @@
 									max={3}
 									step={0.1}
 									unit={m.unit_per_hour()}
+									fit={recoveryReading}
 								/>
 								<ParamRow
 									id="free-time-value"
@@ -546,6 +594,7 @@
 									max={3}
 									step={0.1}
 									unit={m.unit_output_per_hour()}
+									fit={stopReading}
 								/>
 								<ParamRow
 									id="terminal-value"
@@ -582,37 +631,27 @@
 								/>
 							</div>
 						</div>
+					{/if}
+				</div>
 
-						<!-- Drain calibration: fitted α from end-of-session ratings -->
+				{#if hasTasks}
+					<div class="space-y-grid-lg">
+						<!-- The live stop advisor (MATH.md §8.11): today's 🪫 logs priced against
+						     free time — first, as the only one of the four that reads on today. -->
+						{#if stopAdvice !== null}
+							<StopAdvisorCard
+								advice={stopAdvice}
+								taskTitle={stopTaskTitle}
+								freeTimeValue={params.freeTimeValue}
+								locale={getDateLocale()}
+							/>
+						{/if}
+
+						<!-- Drain calibration: the 🪫 ratings behind α, and what is not counted yet -->
 						<CalibrationCard title={m.energy_calibration()} hint={m.energy_calibration_hint()}>
 							{#if drainObservations.length === 0}
 								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_calibration_empty()}</p>
 							{:else}
-								<div class="mt-text-sm space-y-text-xs">
-									<FitRow
-										label={m.energy_cognitive_drain()}
-										tone="mind"
-										value={cogDrainFit.fitted
-											? m.energy_fit_value({
-													alpha: decimal(cogDrainFit.alpha, 2),
-													std: decimal(cogDrainFit.alphaStd ?? 0, 2),
-													count: cogDrainFit.usedCount,
-												})
-											: null}
-									/>
-									<FitRow
-										label={m.energy_physical_drain()}
-										tone="body"
-										value={physDrainFit.fitted
-											? m.energy_fit_value({
-													alpha: decimal(physDrainFit.alpha, 2),
-													std: decimal(physDrainFit.alphaStd ?? 0, 2),
-													count: physDrainFit.usedCount,
-												})
-											: null}
-									/>
-								</div>
-
 								{#if pendingDrainLogs > 0}
 									<p class="mt-text-sm text-xs text-ty-silent">
 										{pendingDrainLogs === 1
@@ -640,47 +679,16 @@
 							{/if}
 						</CalibrationCard>
 
-						<!-- Recovery calibration: fitted r from pre/post-rest rating pairs -->
+						<!-- Recovery calibration: the ☕ pairs behind r, and the editor that adds one -->
 						<CalibrationCard
 							title={m.energy_recovery_calibration()}
 							hint={m.energy_recovery_calibration_hint()}
 						>
-							{#snippet action()}
-								<button
-									type="button"
-									class="shrink-0 text-xs transition {restFormOpen
-										? 'text-ty-silent hover:text-ty-secondary'
-										: 'text-info/90 hover:text-info-strong'}"
-									onclick={() => (restFormOpen = !restFormOpen)}
-								>
-									{restFormOpen ? m.common_cancel() : `☕ ${m.energy_log_rest()}`}
-								</button>
-							{/snippet}
-
-							{#if restFormOpen}
-								<RestLogForm onsave={saveRestLog} oncancel={() => (restFormOpen = false)} />
-							{/if}
-
 							{#if restObservations.length === 0}
 								<p class="mt-text-sm text-xs text-ty-silent">
 									{m.energy_recovery_calibration_empty()}
 								</p>
 							{:else}
-								<div class="mt-text-sm flex items-baseline justify-between gap-text-xs text-xs">
-									<span class="text-ty-silent">{m.energy_recovery_rate()}</span>
-									{#if recoveryFit.fitted}
-										<span class="tabular-nums text-info-strong">
-											{m.energy_recovery_fit_value({
-												rate: decimal(recoveryFit.rate, 2),
-												std: decimal(recoveryFit.rateStd ?? 0, 2),
-												count: recoveryFit.usedCount,
-											})}
-										</span>
-									{:else}
-										<span class="text-ty-silent">{m.energy_fit_no_signal()}</span>
-									{/if}
-								</div>
-
 								{#if pendingRestLogs > 0}
 									<p class="mt-text-sm text-xs text-ty-silent">
 										{pendingRestLogs === 1
@@ -708,7 +716,7 @@
 							{/if}
 						</CalibrationCard>
 
-						<!-- Stopping calibration: fitted λ₀ from finished days' stop decisions -->
+						<!-- Stopping calibration: which past days λ₀ could read, and which it could not -->
 						<CalibrationCard
 							title={m.energy_stop_calibration()}
 							hint={m.energy_stop_calibration_hint()}
@@ -721,17 +729,6 @@
 								<p class="mt-text-sm text-xs text-ty-silent">
 									{m.energy_stop_calibration_censored()}
 								</p>
-							{:else}
-								<div class="mt-text-sm flex items-baseline justify-between gap-text-xs text-xs">
-									<span class="text-ty-silent">{m.energy_free_time_value()}</span>
-									<span class="tabular-nums text-info-strong">
-										{m.energy_stop_fit_value({
-											value: decimal(stopFit.value, 2),
-											std: decimal(stopFit.valueStd ?? 0, 2),
-											count: stopFit.usedCount,
-										})}
-									</span>
-								</div>
 							{/if}
 
 							{#if stopFit.clockCensoredCount > 0}
@@ -743,10 +740,51 @@
 											})}
 								</p>
 							{/if}
+
+							<!-- λ₀ has no log store of its own to count or reset, so the days it read are
+						     all this card has left once the fit reads on its parameter's row. -->
+							{#if lab.stopObservationCount > 0}
+								<p class="mt-text-sm border-t border-line-soft pt-box-sm text-xs text-ty-silent">
+									{m.energy_stop_observation_count({
+										count: lab.stopObservationCount,
+									})}
+								</p>
+							{/if}
 						</CalibrationCard>
 					</div>
 				{/if}
 			</div>
-		</Tooltip.Provider>
-	</div>
+
+			<!-- Full width and last: the sweep answers a question about the whole day, and
+			     its chart is wider than the parameters card its button reads on. -->
+			{#if budgetCurve !== null}
+				<BudgetCurveCard
+					curve={budgetCurve}
+					isBusy={lab.isCurveBusy}
+					isStale={lab.isCurveStale}
+					hasError={lab.hasCurveError}
+					currentBudget={windowHours}
+					locale={getDateLocale()}
+					oncheck={() => lab.computeBudgetCurve()}
+					onapply={(hours) => (session.availableHours = hours)}
+				/>
+			{/if}
+		</div>
+	</Tooltip.Provider>
 {/if}
+
+<!-- Outside the load gate, like `fallow-explainer.svelte` on `/` and for its reason:
+     this is the route's only prose, and in the heading's tooltip it reached no crawler
+     and no reader who did not hover, because bits-ui mounts tooltip content on open. -->
+<section class="card-shell mt-section-lg p-box-md text-ty-secondary sm:p-box-xl">
+	<div class="max-w-3xl space-y-text-sm">
+		<h2 class="text-xl font-bold text-ty-primary">{m.about_how_title()}</h2>
+		<p class="text-sm leading-relaxed">
+			{m.energy_intro_1()}
+			<span class="font-medium text-ty-primary">{m.energy_intro_highlight_1()}</span>
+			{m.energy_intro_2()}
+			<span class="font-medium text-ty-primary">{m.energy_intro_highlight_2()}</span>
+			{m.energy_intro_3()}
+		</p>
+	</div>
+</section>

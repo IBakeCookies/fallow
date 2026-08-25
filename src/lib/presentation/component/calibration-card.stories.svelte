@@ -2,7 +2,6 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, waitFor, within } from 'storybook/test';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
-	import FitRow from '$lib/presentation/component/fit-row.svelte';
 
 	const { Story } = defineMeta({
 		title: 'Component/Calibration Card',
@@ -11,11 +10,11 @@
 	});
 </script>
 
-<!-- The drain card's shape: two fitted constants under an explained heading.
-     The play function covers what the spec can't see rendered statically: hovering
-     the heading actually opens the hint tooltip (portalled to <body>). -->
+<!-- The drain card's shape: what has been logged, and what is not counted yet, under
+     an explained heading. The play function covers what the spec can't see rendered
+     statically: hovering the heading actually opens the hint tooltip (portalled to <body>). -->
 <Story
-	name="With fits"
+	name="With a log count"
 	args={{
 		title: 'Drain Calibration',
 		hint: 'Fits the two drain rates to your 🪫 end-of-session ratings, anchored to the defaults.',
@@ -35,9 +34,9 @@
 	{#snippet template(args)}
 		<div class="max-w-sm">
 			<CalibrationCard title={args.title} hint={args.hint}>
-				<div class="mt-text-sm space-y-text-xs">
-					<FitRow label="Cognitive Drain" value="0.42 ± 0.08 (n=7)" tone="mind" />
-					<FitRow label="Physical Drain" value="0.61 ± 0.11 (n=7)" tone="body" />
+				<div class="mt-text-sm space-y-text-xs text-xs text-ty-silent">
+					<p>1 rating logged today, counted from tomorrow</p>
+					<p>Drain ratings · 7</p>
 				</div>
 			</CalibrationCard>
 		</div>
@@ -90,9 +89,7 @@
 						☕ Log a rest
 					</button>
 				{/snippet}
-				<div class="mt-text-sm">
-					<FitRow label="Recovery Rate" value="1.20 ± 0.30 (n=4)" tone="info" />
-				</div>
+				<p class="mt-text-sm text-xs text-ty-silent">Rest pairs · 4</p>
 			</CalibrationCard>
 		</div>
 	{/snippet}

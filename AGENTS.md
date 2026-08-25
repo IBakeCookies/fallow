@@ -317,7 +317,8 @@ re-open one.
 - The Lab's row reads the three model inputs, it does not slide them.
 - Both task screens are one `<table>` off one shell; a column list is one
   definition per screen, and the shell takes a `columnCount`, never a mode flag.
-- The calibration cards share a shell, not a body.
+- The calibration cards share a shell, not a body; a fit reads on the parameter
+  row it fits, not on the card.
 
 **Serving** — [docs/deployment.md](docs/deployment.md)
 
