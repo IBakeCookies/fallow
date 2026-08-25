@@ -355,8 +355,12 @@ dropped it — its run position and its hours — and the flow bar is pinned wit
 `mt-auto`, or it would step up and down between the blocks that kept the
 sentence and the blocks that did not. A day that then overflows scrolls sideways
 inside the strip's own container and the DOCUMENT does not — the ledger's
-pattern, `tabindex` included. It is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the
-energy optimizer's own blocks and shares only `formatDuration`.
+pattern, `tabindex` included. The strip is its own scroll handle as well
+(`utils/drag-scroll.ts`), because `nice-scrollbar` keeps the bar invisible until
+hover: a mouse drag moves it, and touch and trackpad are left to the platform,
+which already scrolls the container with momentum the drag would cost them. It
+is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the energy
+optimizer's own blocks and shares only `formatDuration`.
 
 The strip carries **no time of day at all**. It once read against a persisted
 `DailySession.startHour`, set by a "Day Starts" field, to print a `from 09:00`

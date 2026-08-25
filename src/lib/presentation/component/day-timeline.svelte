@@ -2,6 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { BAND_BAR_CLASS, bandLabel } from '$lib/presentation/utils/band';
 	import type { DayTimeline } from '$lib/presentation/utils/day-timeline';
+	import { scrollByDrag } from '$lib/presentation/utils/drag-scroll';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 
 	let { totalHours, minimumBlockWidths, blocks }: DayTimeline = $props();
@@ -24,7 +25,11 @@
 		     the ledger's pattern (task-list-card.svelte). -->
 		<!-- svelte-ignore a11y_no_noninteractive_tabindex -- a scrollable region has to be
 		     scrollable by keyboard, and a block is not focusable -->
-		<div class="nice-scrollbar mt-text-md overflow-x-auto" tabindex="0">
+		<div
+			class="nice-scrollbar mt-text-md cursor-grab overflow-x-auto active:cursor-grabbing"
+			tabindex="0"
+			{@attach scrollByDrag}
+		>
 			<!-- The floor is the TRACK's width, so every block keeps its share of the day and
 			     the strip grows rather than a block shrinking below reading. It is the width
 			     the two lines a block never drops need — `--spacer-day-block`. -->

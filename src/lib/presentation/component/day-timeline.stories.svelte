@@ -117,6 +117,30 @@
 		await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
 			document.documentElement.clientWidth,
 		);
+
+		// And it drags: the scrollbar is thin and hidden until hover, so the strip
+		// itself has to be the handle.
+		const drag = (type: string, clientX: number) =>
+			(type === 'pointerdown' ? strip : window).dispatchEvent(
+				new PointerEvent(type, {
+					bubbles: true,
+					pointerType: 'mouse',
+					button: 0,
+					clientX,
+				}),
+			);
+
+		drag('pointerdown', 200);
+		drag('pointermove', 140);
+
+		await expect(strip.scrollLeft).toBe(60);
+
+		// Released, the pointer stops moving the strip — or the next mouse move
+		// anywhere on the page keeps dragging it.
+		drag('pointerup', 140);
+		drag('pointermove', 40);
+
+		await expect(strip.scrollLeft).toBe(60);
 	}}
 />
 
