@@ -798,3 +798,53 @@ nobody was running.
   the only literal duplication in the corpus is R8's five steps appearing twice.
   Size is not the problem; a properly powered condition comparison needs
   n = 60 runs per arm.
+
+## Findings from the 2026-08-25 `SessionStore` review
+
+A read-only review of [`session-store.svelte.ts`](src/lib/business/store/session-store.svelte.ts)
+and its collaborators. The **S** ids are stable and never reused. Six findings
+and one nit were raised; **S1, S2, S3 and S6 were upheld and closed on this
+branch**, S4 and the nit were dropped, and S5 was dropped as stated but left a
+real residue, which is the one open entry below.
+
+Two of the six did not survive being checked against the code, and both failure
+modes are worth knowing before trusting a review of this shape. **S4 asserted a
+cost model nobody measured** — `flowMinutesOn` was called "per rendered row",
+where both screens call it once inside a `$derived`. **S5 reported a settled
+decision as a defect** without reading the rules file that settles it, and the
+fix was written and landed before the contradiction surfaced; it had to be
+reverted. A finding that says a convention is violated has to name where the
+convention is written, because the exception is usually written in the same
+place.
+
+- ~~**S1 — the past-day invariant was asserted in a comment and enforced in
+  three of seven writers.**~~ Closed: one `#canEditPlan` getter, refused from
+  `addTask`, `updateTask`, `removeTask` and `importTasks`.
+- ~~**S2 — `logFlow` was the one direct write without the mid-navigation
+  guard.**~~ Closed: a ⚡ submit landing between a date change and the load
+  stamped the new date with the old day's task, title and covariates.
+- ~~**S3 — `retryLoad` re-ran the whole boot unserialized and with no loading
+  state.**~~ Closed: `#booting`, and `isLoading` back to true while it runs.
+- ~~**S6 — archaeology comments §0 bans.**~~ Closed by deletion; the
+  `nextTaskId` paragraph moved to the rules file that owns the decision.
+
+- **Pool absence does not survive a rewrite.** The residue of S5. A stored day
+  with no pool fields loads with the constants in raw state — deliberately, so
+  the store agrees with `metric/history.ts`, which reads absence the same way —
+  but the next write of that day then materializes them as explicit numbers, and
+  `constraint-memory.ts`'s pools branch takes the latest day carrying both
+  fields as the standing declaration. So a rewritten legacy day dated after the
+  user's last real pool declaration outranks it and pins untouched future days
+  to the constants. Bounded on both sides: autosave refuses past days, so the
+  rewritten day must be today or later, and every day written since pools
+  shipped already carries them, so only legacy records enter this path. Closing
+  it means writing `?? undefined` in the autosave payload so absence survives —
+  which changes the "a stored day keeps its own" decision rather than
+  implementing it, and needs deciding as one. Unmeasured: no probe has counted
+  how many legacy pool-less records a real profile holds, and the answer may be
+  zero.
+- **One predicate, three spellings.** `#canEditPlan` (loaded-date and
+  not-past) is still written out inline twice more in the same file — in
+  `readDeferDestination`, where it is the same refusal, and in the autosave
+  `$effect`, where it is the positive form. A refactor, not a bug; the risk is
+  the ordinary one of a rule changing in two places out of three.
