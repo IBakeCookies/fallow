@@ -162,7 +162,9 @@ reviewer pass: [docs/testing.md](docs/testing.md).
 the same commit, cite it from the code (`// MATH.md §8.7`), log
 explanation-only fixes in MATH.md §10, never "fix" the code to match
 `zenith.md`, and run `node scripts/math-index.mjs` after adding or moving a
-section. [business/model/AGENTS.md](src/lib/business/model/AGENTS.md).
+section. `scripts/math-citations.mjs --check` enforces the other direction:
+every `§`-citation in tracked source resolves to a heading that exists in
+MATH.md. [business/model/AGENTS.md](src/lib/business/model/AGENTS.md).
 
 **R8 — Changing the IndexedDB schema is a five-step change.** Bump
 `DB_VERSION`, add the store guarded inside `onupgradeneeded`, add it to
@@ -237,7 +239,7 @@ the tree), and anything the change itself puts in doubt. Then hand over saying
 **what you ran and what you did not**.
 
 A `Stop` hook holds the first of those: finishing is blocked while `prettier
---check`, `eslint` or the five doc scripts fail on a file you changed. It is
+--check`, `eslint` or the six doc scripts fail on a file you changed. It is
 scoped to what changed, so a pre-existing failure elsewhere never blocks you.
 
 **Before reporting the work as done, dispatch a read-only reviewer subagent

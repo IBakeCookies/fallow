@@ -284,7 +284,7 @@ present:
     of `phiPredictionStd` as a ± band beside the point ϕ on the task card
     (`task-item.svelte:144-155`), which that function's own docstring
     sanctions. Unpriced by design and outside §17's table — it is not an
-    allocation-precision claim. MATH.md: a §5.3 note on the scoring convention.
+    allocation-precision claim. MATH.md: a note on the scoring convention in §5.
 20. **Unfunded-task attribution** — name the binding reason a task got 0 h.
     **Zero extra solves:** `suggestPlanAdjustments` already computes a full
     `calculateDailyMetrics` per defer candidate, each carrying `activeTasks`
