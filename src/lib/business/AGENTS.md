@@ -249,6 +249,14 @@ field three observation stores use as their foreign key); plain `max + 1` over
 the day's tasks recycles a deleted task's id, and a drain log — which outlives
 the task it rated — re-attaches to whatever new task inherits it.
 
+**"Never recycled" is within a day.** Only the viewed day's tasks are in scope,
+so across days it rests on `Date.now()`, and importing N tasks reserves ids up to
+now+N−1: adding a task on another day inside that window could reuse one, which
+no UI reaches two days fast enough to do. Every join a fit reads is per-date, so
+a collision could not move a measurement between days anyway; the one join by id
+alone is the log history's task NAME (`analytics-store`'s `taskTitles`), where a
+collision costs a row printing the other day's title.
+
 **A day's `tasks` array is newest-first** — every writer in `SessionStore`
 prepends — so anything wanting the later of two entries walks it backwards, and
 never sorts by `id`: an import assigns ids ascending across a batch it prepends

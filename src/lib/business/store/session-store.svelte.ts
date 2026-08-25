@@ -62,23 +62,7 @@ const CONTEXT_KEY = Symbol();
  */
 export type ReadDateParam = () => string | null;
 
-/**
- * The next task id: monotonic and never recycled. `Date.now()` alone collided
- * for two tasks added in the same millisecond (and the import path used
- * `Date.now() + Math.random()`, putting fractions in a field three observation
- * stores use as their foreign key). Recycling ids is the other trap: `max + 1`
- * over the day's tasks alone would hand a new task the id of a deleted one, and
- * the deleted task's drain logs — measurements outlive their task — would
- * silently re-attach to it.
- *
- * "Never recycled" is within a day: only the viewed day's tasks are in scope, so
- * across days it rests on `Date.now()`, and importing N tasks reserves ids up to
- * now+N−1. Adding a task on another day inside that window could reuse one, which
- * no UI reaches two days fast enough to do. Every join a FIT reads is per-date, so
- * a collision could not move a measurement between days anyway; the one join that
- * is by id alone is the log history's task NAME (`analytics-store`'s `taskTitles`),
- * where the cost of a collision is a row printing the other day's title.
- */
+/** business/AGENTS.md, "Task ids come from `nextTaskId` and nowhere else". */
 function nextTaskId(tasks: readonly Task[]): number {
 	return Math.max(Date.now(), ...tasks.map((task) => Math.floor(task.id) + 1));
 }
@@ -323,6 +307,8 @@ export class SessionStore {
 	// because it is also the retry path: a boot that fails leaves the store
 	// unable to load or save anything until it is run again.
 	async #boot() {
+		this.#booting = true;
+
 		try {
 			await initializeStorage();
 
@@ -341,6 +327,7 @@ export class SessionStore {
 			this.#reporter.report('load-failed');
 		} finally {
 			this.#isLoading = false;
+			this.#booting = false;
 		}
 	}
 
@@ -442,8 +429,18 @@ export class SessionStore {
 		return sanitizeRoutines(await routineRepository.$readAllRoutines());
 	}
 
-	/** Re-run the initial read — registered as the banner's retry action. */
+	// Serializes #boot: a double-press would interleave two boots over the same
+	// state. Not $state — nothing renders it.
+	#booting = false;
+
+	/**
+	 * Re-run the initial read — registered as the banner's retry action. Back to
+	 * loading while it runs, so the stale day on screen is not read as loaded.
+	 */
 	retryLoad() {
+		if (this.#booting) return;
+
+		this.#isLoading = true;
 		this.#boot();
 	}
 
@@ -467,6 +464,8 @@ export class SessionStore {
 				this.#tasks = session.tasks;
 				this.#availableHours = session.availableHours;
 				this.#switchCost = session.switchCost;
+				// Absent pools on a stored day are the constants it ran with, never `null`
+				// (business/AGENTS.md, "a stored day keeps its own").
 				this.#cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
 				this.#physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
 			} else {
@@ -594,6 +593,13 @@ export class SessionStore {
 
 	// ----- Task mutations -----
 
+	// Structural edits are today-and-future only (the invariant `toggleTask`
+	// documents), and mid-navigation the in-memory tasks still belong to the
+	// previous day.
+	get #canEditPlan() {
+		return this.#loadedDate === this.#selectedDate && !this.#isViewingPast;
+	}
+
 	addTask(taskData: {
 		title: string;
 		physicalDifficulty: number;
@@ -601,6 +607,8 @@ export class SessionStore {
 		enjoyment: number;
 		mustDoToday?: boolean;
 	}) {
+		if (!this.#canEditPlan) return;
+
 		this.#tasks = [
 			{
 				id: nextTaskId(this.#tasks),
@@ -661,6 +669,8 @@ export class SessionStore {
 	 * row's position, and the day it was removed from.
 	 */
 	removeTask(id: number): { task: Task; undo: () => void } | undefined {
+		if (!this.#canEditPlan) return undefined;
+
 		const index = this.#tasks.findIndex((t) => t.id === id);
 
 		if (index === -1) return undefined;
@@ -701,15 +711,14 @@ export class SessionStore {
 	 * auto-save) happens only after the destination write lands.
 	 */
 	async moveTaskToTomorrow(id: number): Promise<boolean> {
-		// Same guard as toggleTask: loads are async, so mid-navigation the
-		// in-memory tasks still belong to the previous day. Past days are
-		// read-only history, and a completed task IS history.
-		if (this.#loadedDate !== this.#selectedDate || this.#isViewingPast) return false;
+		if (!this.#canEditPlan) return false;
 
 		if (this.#moving) return false;
 
 		const task = this.#tasks.find((t) => t.id === id);
 
+		// A completed task IS history, on the same footing as the past days
+		// `#canEditPlan` refuses.
 		if (!task || task.completed || isPinned(task)) return false;
 
 		this.#moving = true;
@@ -765,6 +774,8 @@ export class SessionStore {
 			Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment' | 'mustDoToday'>
 		>,
 	) {
+		if (!this.#canEditPlan) return;
+
 		this.#tasks = this.#tasks.map((t) =>
 			t.id === id
 				? {
@@ -782,18 +793,16 @@ export class SessionStore {
 			const session = await this.#readSession(date);
 			const tasks = session?.tasks ?? [];
 
-			if (tasks.length) {
-				this.importTasks(
-					tasks.map((t) => ({
-						title: t.title,
-						physicalDifficulty: t.physicalDifficulty,
-						mentalDifficulty: t.mentalDifficulty,
-						enjoyment: t.enjoyment,
-					})),
-				);
-			}
-
-			return tasks.length;
+			// The count the header reports is what actually landed, not what was read:
+			// the await above outlives a date change, and `importTasks` then refuses.
+			return this.importTasks(
+				tasks.map((t) => ({
+					title: t.title,
+					physicalDifficulty: t.physicalDifficulty,
+					mentalDifficulty: t.mentalDifficulty,
+					enjoyment: t.enjoyment,
+				})),
+			);
 		} catch (e) {
 			logError('Failed to load session for import', e, {
 				date,
@@ -808,7 +817,10 @@ export class SessionStore {
 		}
 	}
 
-	importTasks(imported: Omit<Task, 'id' | 'createdAt' | 'completed'>[]) {
+	/** Returns how many landed, so a caller reporting a count reports the truth. */
+	importTasks(imported: Omit<Task, 'id' | 'createdAt' | 'completed'>[]): number {
+		if (!this.#canEditPlan) return 0;
+
 		let id = nextTaskId(this.#tasks);
 
 		const newTasks = imported.map((t) => ({
@@ -819,6 +831,8 @@ export class SessionStore {
 		}));
 
 		this.#tasks = [...newTasks, ...this.#tasks];
+
+		return newTasks.length;
 	}
 
 	// ----- Flow observations (model personalization) -----
@@ -834,13 +848,10 @@ export class SessionStore {
 	 * what its editor opens on. Minutes rather than `phiHours` because minutes is
 	 * the unit the measurement is taken and shown in; hours is the fit's (MATH.md
 	 * §2), and this converts between them the way `logFlow`'s `minutes / 60` does
-	 * backwards — the only two places either direction is spelled, since the budget
-	 * panel stopped printing ⚡ records of its own (2026-08-10).
+	 * backwards — the only two places either direction is spelled.
 	 *
 	 * Takes the day for the reason `drainLogsOn` does: the main page renders any
-	 * date, and a row must show the measurement of the day it is showing. It used
-	 * to be a `flowMinutes` field on the task instead — one measurement in two
-	 * places, of which only the observation could be corrected.
+	 * date, and a row must show the measurement of the day it is showing.
 	 *
 	 * A plain `Map`, not a `SvelteMap`: rebuilt on every read from `$state`
 	 * observations, so the reactivity is already the array's.
@@ -867,11 +878,11 @@ export class SessionStore {
 	// a FIRST measurement may land on: a correction re-describes a measurement
 	// that exists, while a first one on a past day is a measurement nobody took.
 	// The guard is here rather than only in the UI because the date is the store's.
-	// Until 2026-08-10 the badge was a `flowMinutes` field on the day's task as
-	// well, and correcting a past one was impossible for that reason — the
-	// auto-save never rewrites a past day, so the amended field came back on the
-	// next load. The observation is now the only place it lives.
 	async logFlow(id: number, minutes: number) {
+		// Same guard as toggleTask: mid-navigation the task, its title and its
+		// covariates are the previous day's, and the record stamps #selectedDate.
+		if (this.#loadedDate !== this.#selectedDate) return;
+
 		const task = this.#tasks.find((t) => t.id === id);
 
 		if (!task) return;
