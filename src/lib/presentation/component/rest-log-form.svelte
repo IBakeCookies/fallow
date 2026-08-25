@@ -15,7 +15,7 @@
 
 	interface Props {
 		/** The break this editor opened on, when it opened on a stored one — the
-		 *  analytics history's ✎, which is ☕'s only editor (MATH.md §36). Omitted for a
+		 *  analytics history's ✎, which is ☕'s only editor. Omitted for a
 		 *  break being logged for the first time. */
 		seed?: RestDraft;
 		/** A completed pre/post pair, in the units MATH.md §8.9 fits r from: hours

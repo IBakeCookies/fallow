@@ -16,7 +16,7 @@ solver: the whole cause window is `8f01ca8` and `28e2e16`, both 2026-08-08, five
 days earlier. Nothing the user sees changes, and no formula, constant, bound or
 fit moves.
 
-The lesson is the propagation failure, not the drift. MATH.md:2721 already
+The lesson is the propagation failure, not the drift. MATH.md:2725 already
 records "§14's frontier denominator (4450 → **4112**)" and §14's own unclamped-
 delta paragraph already carries 4112 — while §14.1-4, two hundred lines below,
 still stated 4450 twice. A reader could not tell which paragraph was current.
@@ -52,7 +52,7 @@ it; none is transcribed.
 
 ## Out of scope
 
-- **MATH.md:2721's revision-log line.** `§14's frontier denominator (4450 →
+- **MATH.md:2725's revision-log line.** `§14's frontier denominator (4450 →
 4112)` is the historical record of this very correction and must keep both
   numbers.
 - **§14's already-correct 4112** in the unclamped-delta paragraph, and its note

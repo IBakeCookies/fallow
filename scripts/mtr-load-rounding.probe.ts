@@ -1,6 +1,6 @@
 /**
- * Measurements behind MATH.md §25: what rounding the two Load percents cost
- * Energy Balance, and why the `min(100, ·)` clamp is slack.
+ * What rounding the two Load percents cost Energy Balance, and why the
+ * `min(100, ·)` clamp is slack.
  *
  * Both claims are about a POPULATION of days, not a case: "the classification
  * flips on 1.6% of days" and "the clamp never binds" need the plan space the
@@ -65,8 +65,8 @@ function seedDays(seed: number, count: number): Day[] {
 			const n = 2 + Math.floor(rnd() * 6);
 
 			return {
-				// Difficulty spans 0 (the sliders admit it, MATH.md §22), so days with
-				// one dead dimension are in the sample.
+				// Difficulty spans 0 (the sliders admit it), so days with one dead
+				// dimension are in the sample.
 				tasks: Array.from(
 					{
 						length: n,
@@ -219,7 +219,7 @@ describe('the Load percents and Energy Balance', () => {
 		let compared = 0;
 		let orderingFlips = 0;
 		let worstRegret = 0;
-		// The advisor's badness on this axis: distance from the 50 target (§14).
+		// The advisor's badness on this axis: distance from the 50 target.
 		const badness = (value: number) => Math.abs(value - 50);
 
 		for (const day of days)

@@ -1,14 +1,14 @@
 /**
- * Measurements behind MATH.md §14.2's claims about the budget's shadow price.
+ * Measurements behind the claims about the budget's shadow price.
  *
- * §14.2 was added on 2026-08-03 quoting a 400-day sweep that was never
+ * They were added on 2026-08-03 quoting a 400-day sweep that was never
  * committed: the zero-marginal share, the median/p90 of a block's worth, the
  * top-priority share, the multi-gainer counts, and the naive per-task column's
  * spread all came from a script that no longer exists. This is that sweep,
- * seeded, so every number in that subsection can be reproduced instead of
- * believed (docs/testing.md).
+ * seeded, so every one of those numbers can be reproduced instead of believed
+ * (docs/testing.md).
  *
- * §14.2 also quotes the naive column's overstatement twice: over all multi-task
+ * They also quote the naive column's overstatement twice: over all multi-task
  * days, and restricted to the days whose budget marginal is non-zero (a zero
  * marginal makes every positive column entry an overstatement by construction,
  * which flatters the all-days rate). Both pairs come out of this one sweep.
@@ -60,7 +60,7 @@ const task = (id: number, mental: number, physical: number, enjoyment: number): 
 	completed: false,
 });
 
-/** §14.2's stated space: 2–7 tasks, budget 1–12 h, s 5–30 min, nothing completed. */
+/** The stated space: 2–7 tasks, budget 1–12 h, s 5–30 min, nothing completed. */
 function randomDays(count: number, seed: number): DailyMetricsInput[] {
 	const random = mulberry32(seed);
 
@@ -110,7 +110,7 @@ const offersExtraHour = (input: DailyMetricsInput, baseline: DailyMetrics) =>
 			finding.unpriced.lever.hours > baseline.budgetHours,
 	);
 
-describe('the marginal of the budget (MATH.md §14.2)', () => {
+describe('the marginal of the budget', () => {
 	it('measures what one more block buys, and how often it buys nothing', () => {
 		const days = randomDays(400, 42);
 		let zeroMarginal = 0;
@@ -145,7 +145,7 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 			});
 
 			// Nothing is completed here, so the open-scoped per-task decomposition
-			// must reproduce the plan's own Σ P̄ rise (§14.2), floor included.
+			// must reproduce the plan's own Σ P̄ rise, floor included.
 			const rise = wider.zenithGain.optimized - baseline.zenithGain.optimized;
 
 			worstDecomposition = Math.max(
@@ -153,8 +153,8 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 				Math.abs(budgetMarginal.planValueGain - Math.max(0, rise)),
 			);
 
-			// The floor's own frequency and size: §14.2 says Σ P̄ is monotone in the
-			// budget at the true optimum and the pooled heuristic can invert.
+			// The floor's own frequency and size: Σ P̄ is monotone in the budget at
+			// the true optimum and the pooled heuristic can invert.
 			if (rise < 0 && baseline.zenithGain.optimized > 0) {
 				inverted++;
 				worstInversion = Math.min(worstInversion, rise / baseline.zenithGain.optimized);
@@ -172,7 +172,7 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 			if (budgetMarginal.recipient) {
 				withRecipient++;
 
-				// §14.2: the floor can leave a recipient set beside a 0% gain, which the
+				// The floor can leave a recipient set beside a 0% gain, which the
 				// card prints as "goes to X · +0% plan value".
 				if (budgetMarginal.planValueGainPercent === 0) recipientWithoutGain++;
 
@@ -194,17 +194,17 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 				if (new Set(gainers.map((row) => row.extra)).size > 1) multiGainerDistinct++;
 			}
 
-			// The naive per-task column §14.2 rejected: bump task i's hours by one
-			// block on its own curve and hold the rest. Arithmetic, not a solve — it
-			// sees neither the pools nor the switch cost.
+			// The rejected naive per-task column: bump task i's hours by one block on
+			// its own curve and hold the rest. Arithmetic, not a solve — it sees
+			// neither the pools nor the switch cost.
 			const funded = baseline.suggestedTasks.filter((row) => row.suggestedHours > 0);
 
 			if (baseline.suggestedTasks.length < 2 || funded.length === 0) continue;
 
 			multiTask++;
 
-			// The restriction §14.2 quotes beside the all-days pair, counted on the
-			// same population and in the same pass.
+			// The restriction quoted beside the all-days pair, counted on the same
+			// population and in the same pass.
 			const marginalIsNonZero = budgetMarginal.planValueGain > 0;
 
 			if (marginalIsNonZero) nonZeroMarginalDays++;
@@ -250,40 +250,40 @@ describe('the marginal of the budget (MATH.md §14.2)', () => {
 		}
 
 		console.log(
-			`[§14.2] 400 seeded days: another block buys nothing on ${zeroMarginal} (${((zeroMarginal / 400) * 100).toFixed(1)}%), of which ${zeroStillOffered} still offer "work an extra hour"`,
+			`400 seeded days: another block buys nothing on ${zeroMarginal} (${((zeroMarginal / 400) * 100).toFixed(1)}%), of which ${zeroStillOffered} still offer "work an extra hour"`,
 		);
 
 		console.log(
-			`[§14.2] where it buys something (${gains.length} days): median ${median(gains).toFixed(1)}%, p90 ${quantile(gains, 0.9).toFixed(1)}% of plan value`,
+			`where it buys something (${gains.length} days): median ${median(gains).toFixed(1)}%, p90 ${quantile(gains, 0.9).toFixed(1)}% of plan value`,
 		);
 
 		console.log(
-			`[§14.2] recipient named on ${withRecipient} days, the top-priority task on ${topPriority} (${((topPriority / withRecipient) * 100).toFixed(1)}%), beside a 0% gain on ${recipientWithoutGain}`,
+			`recipient named on ${withRecipient} days, the top-priority task on ${topPriority} (${((topPriority / withRecipient) * 100).toFixed(1)}%), beside a 0% gain on ${recipientWithoutGain}`,
 		);
 
 		console.log(
-			`[§14.2] multi-gainer days ${multiGainer}, ${multiGainerDistinct} of them with gainers of differing size`,
+			`multi-gainer days ${multiGainer}, ${multiGainerDistinct} of them with gainers of differing size`,
 		);
 
 		console.log(
-			`[§14.2] floor: Σ P̄ fell at the wider budget on ${inverted} days, worst ${(worstInversion * 100).toFixed(2)}%; worst |gain − max(0, Σ P̄ rise)| = ${worstDecomposition.toExponential(3)}`,
+			`floor: Σ P̄ fell at the wider budget on ${inverted} days, worst ${(worstInversion * 100).toFixed(2)}%; worst |gain − max(0, Σ P̄ rise)| = ${worstDecomposition.toExponential(3)}`,
 		);
 
 		console.log(
-			`[§14.2] naive column over ${multiTask} multi-task days: relative spread median ${median(spreads).toFixed(3)}, p90 ${quantile(spreads, 0.9).toFixed(3)}, max ${Math.max(...spreads).toFixed(3)}, under 0.10 on ${((underTenth / spreads.length) * 100).toFixed(1)}%`,
+			`naive column over ${multiTask} multi-task days: relative spread median ${median(spreads).toFixed(3)}, p90 ${quantile(spreads, 0.9).toFixed(3)}, max ${Math.max(...spreads).toFixed(3)}, under 0.10 on ${((underTenth / spreads.length) * 100).toFixed(1)}%`,
 		);
 
 		console.log(
-			`[§14.2] ${atPeak} of ${fundedSeen} funded tasks sit at or past T*; the column's best entry overstates the marginal on ${((overstates / multiTask) * 100).toFixed(1)}% of days, mean overstatement ${(overstatement / Math.max(1, overstates)).toFixed(4)} Σ P̄`,
+			`${atPeak} of ${fundedSeen} funded tasks sit at or past T*; the column's best entry overstates the marginal on ${((overstates / multiTask) * 100).toFixed(1)}% of days, mean overstatement ${(overstatement / Math.max(1, overstates)).toFixed(4)} Σ P̄`,
 		);
 
 		console.log(
-			`[§14.2] restricted to the ${nonZeroMarginalDays} of ${multiTask} multi-task days whose budget marginal is non-zero: it overstates on ${((overstatesNonZero / nonZeroMarginalDays) * 100).toFixed(1)}% of them, mean overstatement ${(overstatementNonZero / Math.max(1, overstatesNonZero)).toFixed(4)} Σ P̄`,
+			`restricted to the ${nonZeroMarginalDays} of ${multiTask} multi-task days whose budget marginal is non-zero: it overstates on ${((overstatesNonZero / nonZeroMarginalDays) * 100).toFixed(1)}% of them, mean overstatement ${(overstatementNonZero / Math.max(1, overstatesNonZero)).toFixed(4)} Σ P̄`,
 		);
 
 		// The one genuine invariant in the sweep, and the reason the decomposition
 		// needs no second gain solve: with nothing completed, the open-scoped sum of
-		// per-task `avgProductivity` rises IS the plan's floored Σ P̄ rise (§14.2).
+		// per-task `avgProductivity` rises IS the plan's floored Σ P̄ rise.
 		expect(worstDecomposition).toBeLessThan(1e-12);
 
 		// The restriction is a subset of the same population, so both of its counts

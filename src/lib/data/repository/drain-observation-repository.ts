@@ -14,7 +14,7 @@ import { withStore } from '$lib/data/storage/indexed-db';
  * `hours` is one session's length (§8.7 reads it as `H` from a full
  * reservoir), so replacing the record deleted the earlier session from the
  * day's worked hours — exactly the sum §8.10's stopping fit, §8.11's live
- * advisor and §12's audit read back (MATH.md §8.7). Both accumulators already
+ * advisor and the audit read back (MATH.md §8.7). Both accumulators already
  * summed per (date, taskId); the writer was the thing that could never let
  * them fire twice.
  *
@@ -44,9 +44,9 @@ export async function $createDrainObservation(
  *
  * `date` is out of the payload for the same reason, and it is a type error
  * rather than a convention because the caller now corrects ratings on days it
- * is only viewing: every fit reads these hours per day (§8.7) and §33 scopes a
- * plan by date, so restamping one would take hours off the day it was worked
- * and credit them to a day nobody worked them.
+ * is only viewing: every fit reads these hours per day (§8.7) and the causal
+ * window scopes a plan by date, so restamping one would take hours off the day
+ * it was worked and credit them to a day nobody worked them.
  *
  * The task and its demands are out for a third reason (2026-08-10): they were
  * captured at logging time so that editing a task later cannot rewrite what an

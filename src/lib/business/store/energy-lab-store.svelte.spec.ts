@@ -120,7 +120,7 @@ describe('EnergyLabStore', () => {
 		expect(updateSettingMock).not.toHaveBeenCalled();
 	});
 
-	// Settled 2026-07-29 (MATH.md §13.6): one budget for both planners. The window
+	// Settled 2026-07-29: one budget for both planners. The window
 	// is a plain read of the session — there is no lab-local override to fork it
 	// with, and no `|| 8` fallback inventing a window the main page does not have.
 	it('takes the day window from the session budget, with no fallback and no fork', async () => {
@@ -158,7 +158,7 @@ describe('EnergyLabStore', () => {
 		expect(store.plannedHours).toBe(0);
 	});
 
-	// The Lab makes the main page's §11.8 call for itself (2026-07-20): both plans
+	// The Lab makes the main page's call for itself (2026-07-20): both plans
 	// simulate the full intended day, completed tasks included. `toEnergyTask`
 	// drops the flag and `calculateInterleavedOrder` ranks on hours, so the only
 	// way a completion can reach either plan is a `!t.completed` filter added
@@ -191,12 +191,12 @@ describe('EnergyLabStore', () => {
 		const valueVsClassic = store.valueVsClassic;
 		expect(store.plannedHours).toBeGreaterThan(0);
 
-		// Exact, because WHICH field the tile divides is the claim (MATH.md §30).
+		// Exact, because WHICH field the tile divides is the claim.
 		// This fixture's plan works 7.5 h of the 8 (satiated 7.720 + free 0.250 +
 		// terminal 1.258 = 9.228) against classic's 7.75 h (7.942 + 0.125 + 1.095
 		// = 9.163): +0.72%, one per cent. Scored on raw `totalOutput` — 10.413
-		// against 10.809 — the same day reads −4%, so this is one of the days §30
-		// says the two scorings disagree on in SIGN, and the pin catches the old
+		// against 10.809 — the same day reads −4%, so this is one of the days the
+		// two scorings disagree on in SIGN, and the pin catches the old
 		// field rather than merely its size.
 		expect(valueVsClassic).toBe(1);
 
@@ -570,7 +570,7 @@ describe('EnergyLabStore', () => {
 		);
 	});
 
-	// MATH.md §33: the α and r fits are identity, so they read logs dated strictly
+	// The α and r fits are identity, so they read logs dated strictly
 	// before the planned day — a rating logged today moves them from tomorrow. The
 	// stop advisor above keeps every row, which is the same rule's state half.
 	it('leaves the drain fit unmoved by a rating logged today', async () => {
@@ -854,7 +854,7 @@ describe('EnergyLabStore', () => {
 		expect(store.budgetCurve).toEqual(before);
 	});
 
-	// Plan-scoped, like every other reading on this page (MATH.md §11.8): the
+	// Plan-scoped, like every other reading on this page: the
 	// sweep asks what the day's WORK is worth at each length, and finishing a
 	// piece of it does not change the answer.
 	it('survives checking a task off', async () => {
@@ -949,7 +949,7 @@ describe('EnergyLabStore', () => {
 		expect(worn).not.toEqual(fresh);
 	});
 
-	// Next-up family (MATH.md §11.8): unlike the plan, the advisor DOES respond
+	// Next-up family: unlike the plan, the advisor DOES respond
 	// to completion — "one more session of a task you checked off" is no advice.
 	it('stops recommending a task the user checked off', async () => {
 		mockSession.tasks = [
@@ -1082,7 +1082,7 @@ describe('EnergyLabStore', () => {
 		expect(marginalValue(store.stopAdvice)).toBeGreaterThan(marginalValue(drained));
 	});
 
-	// The defect MATH.md §18 fixed, pinned where it was VISIBLE: the writer used to
+	// The defect that was fixed, pinned where it was VISIBLE: the writer used to
 	// upsert on (taskId, date), so a second session replaced the first and the day
 	// read short. Every layer between the rows and the advice has to sum them.
 	it("sums a task's sessions into the day so far", async () => {
@@ -1152,7 +1152,7 @@ describe('EnergyLabStore', () => {
 		);
 	});
 
-	// §18's inversion itself, priced: the truncated day reads a HIGHER marginal
+	// The inversion itself, priced: the truncated day reads a HIGHER marginal
 	// than the true longer one, and the two verdicts differ. Probe
 	// `session-row-truncation.probe.ts` (2026-08-18) prices the section's own
 	// witness at 0.667 / 1.099 / 0.372 — difficulty 7 at w = (0.8, 0.2), which no

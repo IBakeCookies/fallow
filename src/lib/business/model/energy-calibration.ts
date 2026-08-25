@@ -108,12 +108,12 @@ export function calibrateEnergyParams(
 /**
  * One work-start-to-work-start cycle. No clock times are stored, so this is
  * the only anchor available: everything not worked in the cycle recovers at
- * the §8.1 rest law (evening leisure and sleep alike — documented in §11.9).
+ * the §8.1 rest law (evening leisure and sleep alike).
  */
 export const RESERVOIR_CYCLE_HOURS = 24;
 
 /**
- * Overnight reservoir carry-over (MATH.md §11.9): seed a day's starting
+ * Overnight reservoir carry-over: seed a day's starting
  * reservoir levels from the previous day's 🪫 drain logs. Each log carries the
  * worked hours and the demands captured at logging time, so the previous day
  * is simulated from fresh reservoirs through the §8.1/§8.5 law, then rests
@@ -136,7 +136,7 @@ export function seedMorningReservoirs(
 
 	// One block per ROW, keyed by the row's position rather than its taskId.
 	// A task rated twice in a day is two sessions with their own demands
-	// captured at their own logging times (MATH.md §8.7/§18), and
+	// captured at their own logging times (MATH.md §8.7), and
 	// `simulateReservoirs` looks demands up by id — so sharing an id would let
 	// the later row's demands re-rate the earlier session, which is exactly
 	// what capturing demands at logging time exists to prevent. The id is only

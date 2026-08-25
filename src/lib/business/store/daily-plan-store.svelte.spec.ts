@@ -36,8 +36,8 @@ const task = (id: number, title: string, over: Partial<Task> = {}): Task => ({
 });
 
 /**
- * The `DailyMetrics` fields a completion is ALLOWED to move (MATH.md §11.8:
- * progress and next-up scope). Everything else is plan-scoped and frozen — so a
+ * The `DailyMetrics` fields a completion is ALLOWED to move (progress and
+ * next-up scope). Everything else is plan-scoped and frozen — so a
  * metric added to `DailyMetrics` is frozen until it is listed here deliberately.
  */
 const RESPONDS_TO_COMPLETION: ReadonlySet<string> = new Set<keyof DailyMetrics>([
@@ -101,7 +101,7 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.runOrder.size).toBe(2);
 	});
 
-	// The §11.8 scope split is DECIDED HERE, not in the model:
+	// The scope split is DECIDED HERE, not in the model:
 	// `calculateDailyMetrics` scopes each metric within whatever task list it is
 	// handed, and this store hands it `session.tasks` — the full day, completed
 	// included. `session.activeTasks` exists right next to it, so the slip is one
@@ -177,12 +177,12 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.burnoutRisk).not.toBe(onDefaults);
 	});
 
-	/* MATH.md §33: the α and r fits read only logs dated strictly before the
+	/* The α and r fits read only logs dated strictly before the
 	   planned day, on the same rule as the ϕ fit — a 🪫 rating made mid-day must
 	   not move the parameters the day it is being executed under. The distinction
 	   that keeps this from being blunt is identity vs state: today's rating stops
 	   moving α, and still drains the reservoirs everywhere the simulation reads
-	   it (§11.9 below, §8.11's advisor). */
+	   it (the carry-over below, §8.11's advisor). */
 	it('leaves the viewed day’s own 🪫/☕ logs out of its parameter fit', () => {
 		const store = setup();
 		mockSession.tasks = [task(1, 'deep work'), task(2, 'more deep work')];
@@ -213,7 +213,7 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.burnoutRisk).toBe(onDefaults);
 	});
 
-	// Overnight carry-over (MATH.md §11.9): the viewed day's predecessor seeds
+	// Overnight carry-over: the viewed day's predecessor seeds
 	// the morning reservoirs. The same heavy log feeds the α fit identically from
 	// either date — only yesterday's carries into this morning.
 	it('reads yesterday’s logged work into the morning, and only yesterday’s', () => {
@@ -222,7 +222,7 @@ describe('DailyPlanStore', () => {
 		mockSession.availableHours = 4;
 
 		// Rest pairs that barely recover pin the fitted r near its floor — the
-		// regime where a night does not fully heal (§11.9: default recovery does).
+		// regime where a night does not fully heal (default recovery does).
 		mockObservations.restObservations = [1, 2, 3].map((createdAt) =>
 			restRecord({
 				createdAt,
@@ -252,7 +252,7 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.burnoutRisk).toBeGreaterThan(freshMorning);
 	});
 
-	// Advice costs one full solve per candidate (MATH.md §14), so it is explicitly
+	// Advice costs one full solve per candidate, so it is explicitly
 	// requested and then goes stale rather than recomputing on every keystroke.
 	it('computes advice on demand only', async () => {
 		const store = setup();
@@ -442,7 +442,7 @@ describe('DailyPlanStore', () => {
 		});
 	});
 
-	// MATH.md §35. The plan stays the whole intended day; this is the other
+	// The plan stays the whole intended day; this is the other
 	// question, over the open tasks and the hours genuinely left.
 	describe('remaining day', () => {
 		// The mock's own clock, not the wall clock: the gate compares the viewed day

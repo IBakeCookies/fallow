@@ -2,7 +2,7 @@
  * What is true of the Deep Work row (`calculateDeepWorkRatio`) over a day space
  * the allocator actually produces.
  *
- * The metric had no MATH.md entry before §26, so nothing measured: (a) a hard
+ * The metric had no MATH.md entry at first, so nothing measured: (a) a hard
  * `mentalDifficulty >= 7` cut, which counts a full hour or none of it, and (b)
  * `getBandBiggerBetter`, which calls ≥75% of the day in high-mental work
  * "Optimal". Five questions:
@@ -98,7 +98,7 @@ function randomDays(count: number, seed: number): Day[] {
 
 const DAYS = randomDays(2000, 20260807);
 
-/** The reading as it was before §26: a full hour counts, or none of it. */
+/** The reading as it was before: a full hour counts, or none of it. */
 const stepReading = (p: SuggestedTask[], budget: number): number =>
 	!budget || !p.length
 		? 0

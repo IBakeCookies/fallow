@@ -25,7 +25,7 @@ function observation(
 }
 
 /** What a correction may set: the five numbers the user rated, and nothing that
- *  identifies the break (MATH.md §36). Its own type, so a payload growing a `date` or a
+ *  identifies the break. Its own type, so a payload growing a `date` or a
  *  stamp is a type error here and not a passing test of an impossible call. */
 function pair(
 	overrides: Partial<Omit<RestObservationRecord, 'id' | 'createdAt' | 'date'>> = {},
@@ -97,7 +97,7 @@ describe('rest-observation-repository', () => {
 		expect(edited?.hours).toBe(0.25);
 		expect(edited?.createdAt).toBe(loggedAt);
 		// The day it was taken. Restamping it would move a recovery onto a day it did not
-		// happen on, which §8.9's fit and §33's causal window both read back per day.
+		// happen on, which §8.9's fit and the causal window both read back per day.
 		expect(edited?.date).toBe('2026-01-05');
 	});
 

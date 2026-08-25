@@ -163,7 +163,7 @@ prose ("its real default is closed"). Nothing executable does.
 - `src/lib/presentation/utils/metric-descriptor.test.ts:104-107` — the 24-row /
   4-headline count pin, which is what makes MATH.md §28's and §31's numerals
   fail loudly when the descriptor grows.
-- `MATH.md:7318-7372` — §28, "Which four readings are headlines". Its opening
+- `MATH.md:7369-7423` — §28, "Which four readings are headlines". Its opening
   ("Twenty-four readings, four tiles. The other twenty sit behind a disclosure")
   is still what ships. Its closing sentence is not — see **Decisions**.
 - `src/lib/presentation/style/STYLE.md:146-154` — the "borderless panel nested
@@ -225,7 +225,7 @@ prose ("its real default is closed"). Nothing executable does.
   it is a documentation change under AGENTS.md:74-79 and belongs to whoever
   touches the file next.
 - **Known follow-up: MATH.md §28's closing sentence names a flag that no longer
-  exists.** `MATH.md:7371-7372` — "One knock-on: `section` is a list-only
+  exists.** `MATH.md:7422-7423` — "One knock-on: `section` is a list-only
   marker, so Burnout Risk's promotion moved the energy group's separator to
   Cognitive Load." Accurate history of §28's own decision, false as a statement
   about the code. The rest of §28 — the four-part test, the four tiles, the three

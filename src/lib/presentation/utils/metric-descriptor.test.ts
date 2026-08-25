@@ -102,7 +102,7 @@ describe('buildMetrics', () => {
 		const rows = buildMetrics(dailyMetrics(), pools);
 
 		// The shipped shape, pinned so a 25th reading fails here rather than silently
-		// rotting MATH.md §28 and §31, which both count these rows.
+		// rotting the docs that count these rows.
 		expect(rows).toHaveLength(24);
 		expect(rows.filter((row) => row.headline)).toHaveLength(4);
 
@@ -173,7 +173,7 @@ describe('buildMetrics', () => {
 	// that satisfies all of them. A finished day is the case that separates them:
 	// tasks and a budget, but nothing left active. Only the next-up rows may go
 	// quiet — a plan-scoped reading has to survive its last task being checked
-	// off (MATH.md §11.8), which is the entire reason those metrics are computed
+	// off, which is the entire reason those metrics are computed
 	// over the full plan rather than the remaining one.
 	it('keeps the plan-scoped readings once every task is done, silencing only next-up', () => {
 		const finished = dailyMetrics({
@@ -208,7 +208,7 @@ describe('buildMetrics', () => {
 		}
 	});
 
-	// MATH.md §14.5. The advice card decides which findings to surface from
+	// The advice card decides which findings to surface from
 	// `isOutOfBand`, so Flow Coverage's thresholds move into `AXIS_BAND` when it
 	// becomes an axis — and this row must read them from there. Two spellings of
 	// one threshold is the R3 failure `band.ts` exists to prevent
@@ -247,7 +247,7 @@ describe('buildMetrics', () => {
 		expect(reading(day, m.metric_flow_coverage()).value).toBe('3/5');
 	});
 
-	// Sustainable Work divides by the hours the plan books (MATH.md §27), so a
+	// Sustainable Work divides by the hours the plan books, so a
 	// plan that funded nothing has no denominator. 0% would call a day with no
 	// work a day of pure grind.
 	it.each([
@@ -273,7 +273,7 @@ describe('buildMetrics', () => {
 		expect(reading(untouched, m.metric_yield_index()).value).toBe(m.na_value());
 	});
 
-	// A pool of 0 hours carrying demand saturates to Infinity (MATH.md §14).
+	// A pool of 0 hours carrying demand saturates to Infinity.
 	// "Infinity%" is not a reading, and banding it critical judges a number that
 	// does not exist.
 	it('reads an infinite capacity as N/A rather than printing it', () => {
@@ -351,7 +351,7 @@ describe('buildMetrics', () => {
 		const metrics = dailyMetrics({
 			...plannedDay,
 			...readings,
-			// Same reading, in the shape the model returns it (MATH.md §11.10).
+			// Same reading, in the shape the model returns it.
 			grindDensity: {
 				grinds: 3,
 				funded: 10,
@@ -390,7 +390,7 @@ describe('buildMetrics', () => {
 
 	// The bottleneck names ITS OWN axis, which is the one its (active) list
 	// binds — not Human Capacity's, which describes the day as planned. Mid-day
-	// the two can differ, and the row that would be wrong is this one (§23.1).
+	// the two can differ, and the row that would be wrong is this one.
 	it('names the bottleneck against its own axis, not the capacity axis', () => {
 		const row = reading(
 			dailyMetrics({
@@ -485,9 +485,9 @@ describe('buildMetrics', () => {
 		expect(row.band).toBe(band);
 	});
 
-	// Next-up (§11.8), and its input is a 🪫 log: before the first one nothing has
+	// Next-up, and its input is a 🪫 log: before the first one nothing has
 	// been spent to report, and a full pool is a claim about a day that may be
-	// half gone. A pool of 0 carrying a draw saturates to Infinity (MATH.md §20),
+	// half gone. A pool of 0 carrying a draw saturates to Infinity,
 	// which the description would print as "Infinity%".
 	it.each([
 		['today has logged no hours', null],
@@ -506,7 +506,7 @@ describe('buildMetrics', () => {
 	});
 
 	// A share, not a duration: the pool is spent at the task's difficulty weight, so
-	// minutes of pool per hour worked read as clock time the user has left (§35).
+	// minutes of pool per hour worked read as clock time the user has left.
 	it('reads what the logged hours left of the pool they load hardest', () => {
 		const row = reading(
 			dailyMetrics(plannedDay),
@@ -528,7 +528,7 @@ describe('buildMetrics', () => {
 
 	// The reading Human Capacity cannot give: the allocator enforces the pools, so
 	// a PLAN saturates at 100 and the critical band above it is unreachable from
-	// allocator output. Hours actually worked reach it (MATH.md §35).
+	// allocator output. Hours actually worked reach it.
 	it('bands a day worked past its pool critical, with nothing left', () => {
 		const row = reading(
 			dailyMetrics(plannedDay),

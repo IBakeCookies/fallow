@@ -59,8 +59,8 @@
 	}}
 />
 
-<!-- Re-opened on a task already measured today: ⚡ is one number per day (MATH.md
-     §18), so the editor amends that number rather than adding a second one -->
+<!-- Re-opened on a task already measured today: ⚡ is one number per day, so the
+     editor amends that number rather than adding a second one -->
 <Story
 	name="Amending today's measurement"
 	args={{

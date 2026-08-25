@@ -117,10 +117,10 @@ is unreachable, which AGENTS.md §0 says is a lie about what can happen.
 
 Line numbers are as of planning. Sections and symbols are the durable address.
 
-- `MATH.md:4889-4912` — §19.4, the ladder (`:4898-4905`) and the "so the honest
+- `MATH.md:4940-4963` — §19.4, the ladder (`:4898-4905`) and the "so the honest
   statement is" paragraph (`:4907-4912`), which is where the `naive = 0` arm's
   retirement is argued. The section under test.
-- `MATH.md:2244` — §10, the doc-only revision log. R7 requires a dated entry
+- `MATH.md:2248` — §10, the doc-only revision log. R7 requires a dated entry
   when the correction is explanation-only; if the gate fires it is **not**
   explanation-only and §19.4 changes on its own terms instead.
 - `src/lib/business/model/zenith.ts:1405-1423` — `GAIN_PERCENT_CAP` and the

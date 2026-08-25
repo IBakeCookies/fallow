@@ -160,7 +160,7 @@
 	const flowLogs = $derived(session.flowMinutesOn(session.today));
 
 	// `/`'s stopped timer seeds the 🪫 editors here too, under the same claim (one stop
-	// funds one log, MATH.md §18). Read per opening: the timer's controls stay on `/`.
+	// funds one log). Read per opening: the timer's controls stay on `/`.
 	const openDrainLog = (taskId: number, source: EditorSource) =>
 		(drainDrafts[taskId] = newDrainDraft(
 			source,

@@ -1,17 +1,17 @@
 /**
- * The measurement behind MATH.md §15 — "two objectives, two modes": each model
+ * The measurement behind MATH.md's "two objectives, two modes": each model
  * beating the other by tens of percent on its own scale, which is the whole
  * reason the energy plan was NOT promoted to the main page (ROADMAP item, and
  * business/AGENTS.md's "neither mode is the better one, so neither owns the day's
  * hours").
  *
- * §15 quotes a cross-scoring probe run on 2026-07-29 that was never committed,
- * so none of its numbers could be re-checked — the §14.1-2 failure again. This
- * rebuild follows the description in §15 exactly (300 random days, 2–6 tasks,
- * budget 3–11 h, default pools/switch cost/energy params, both plans scored
- * under both objectives) with one thing the text does not give: the seed. The
- * numbers therefore reproduce from here on, and the 2026-07-29 figures cannot
- * be reproduced at all.
+ * MATH.md quotes a cross-scoring probe run on 2026-07-29 that was never
+ * committed, so none of its numbers could be re-checked. This rebuild follows
+ * the description exactly (300 random days, 2–6 tasks, budget 3–11 h, default
+ * pools/switch cost/energy params, both plans scored under both objectives)
+ * with one thing the text does not give: the seed. The numbers therefore
+ * reproduce from here on, and the 2026-07-29 figures cannot be reproduced at
+ * all.
  *
  * The two scorings, each through the shipped entry point for its own side:
  *
@@ -246,7 +246,7 @@ function score(day: ProbeDay): Scored {
 	};
 }
 
-describe('MATH.md §15 — two objectives, two modes', () => {
+describe('two objectives, two modes', () => {
 	it('cross-scores both plans under both objectives', () => {
 		const days = drawDays(DAYS, 0x2907_29);
 		const scored = days.map(score);
@@ -263,18 +263,16 @@ describe('MATH.md §15 — two objectives, two modes', () => {
 
 		const energyWinsOwn = scored.filter((s) => s.energyUnderEnergy > s.classicUnderEnergy).length;
 
-		console.log(
-			`[§15] ${DAYS} seeded days, 2–6 tasks, budget 3–11h, default pools/switch/energy params`,
-		);
+		console.log(`${DAYS} seeded days, 2–6 tasks, budget 3–11h, default pools/switch/energy params`);
 
 		console.log(
-			`[§15 classic plan] under Σ P̄: wins ${classicWinsOwn}/${DAYS}, ` +
+			`[classic plan] under Σ P̄: wins ${classicWinsOwn}/${DAYS}, ` +
 				`median ${quantile(classicAdvantage, 0.5).toFixed(1)}%, p90 ${quantile(classicAdvantage, 0.9).toFixed(0)}% | ` +
 				`under energy objective: wins ${DAYS - energyWinsOwn}/${DAYS}`,
 		);
 
 		console.log(
-			`[§15 energy plan] under Σ P̄: wins ${DAYS - classicWinsOwn}/${DAYS} | ` +
+			`[energy plan] under Σ P̄: wins ${DAYS - classicWinsOwn}/${DAYS} | ` +
 				`under energy objective: wins ${energyWinsOwn}/${DAYS}, ` +
 				`median ${quantile(energyAdvantage, 0.5).toFixed(1)}%, p90 ${quantile(energyAdvantage, 0.9).toFixed(0)}%`,
 		);
@@ -283,13 +281,13 @@ describe('MATH.md §15 — two objectives, two modes', () => {
 		const overlaps = scored.map((s) => s.overlap);
 
 		console.log(
-			`[§15 concentration] funded/day energy ${mean(scored.map((s) => s.energyFunded)).toFixed(2)} ` +
+			`[concentration] funded/day energy ${mean(scored.map((s) => s.energyFunded)).toFixed(2)} ` +
 				`vs classic ${mean(scored.map((s) => s.classicFunded)).toFixed(2)}; ` +
 				`energy funds MORE on ${scored.filter((s) => s.energyFunded > s.classicFunded).length}/${DAYS} days`,
 		);
 
 		console.log(
-			`[§15 overlap] Σ min(share) mean ${mean(overlaps).toFixed(2)}, median ${quantile(overlaps, 0.5).toFixed(2)}, ` +
+			`[overlap] Σ min(share) mean ${mean(overlaps).toFixed(2)}, median ${quantile(overlaps, 0.5).toFixed(2)}, ` +
 				`p10 ${quantile(overlaps, 0.1).toFixed(2)}; identical funded set on ` +
 				`${scored.filter((s) => s.isSameSet).length}/${DAYS} days`,
 		);
@@ -298,7 +296,7 @@ describe('MATH.md §15 — two objectives, two modes', () => {
 			scored.map((s, index) => (work(s) / days[index].budget) * 100);
 
 		console.log(
-			`[§15 work planned] energy ${mean(share((s) => s.energyWork)).toFixed(0)}% of budget ` +
+			`[work planned] energy ${mean(share((s) => s.energyWork)).toFixed(0)}% of budget ` +
 				`(median ${quantile(
 					share((s) => s.energyWork),
 					0.5,
@@ -309,10 +307,10 @@ describe('MATH.md §15 — two objectives, two modes', () => {
 				).toFixed(0)}%)`,
 		);
 
-		// The exceptions §15 controls for: days the energy plan wins Σ P̄. Re-solve
-		// the classic allocator with a budget that hands it exactly the energy
-		// plan's work hours plus its own switch overhead, then ask whether the
-		// remaining losses are days the pooled allocator was FORBIDDEN to plan.
+		// The exceptions MATH.md controls for: days the energy plan wins Σ P̄.
+		// Re-solve the classic allocator with a budget that hands it exactly the
+		// energy plan's work hours plus its own switch overhead, then ask whether
+		// the remaining losses are days the pooled allocator was FORBIDDEN to plan.
 		const exceptions = days.filter(
 			(_day, index) => !(scored[index].classicUnderClassic > scored[index].energyUnderClassic),
 		);
@@ -356,7 +354,7 @@ describe('MATH.md §15 — two objectives, two modes', () => {
 		});
 
 		console.log(
-			`[§15 exceptions] ${exceptions.length} days the energy plan is not beaten under Σ P̄; ` +
+			`[exceptions] ${exceptions.length} days the energy plan is not beaten under Σ P̄; ` +
 				`after the work-hour rematch ${stillBelow} still below, ${infeasible} of those infeasible for the ` +
 				`pooled allocator (cognitive ${Math.min(...cognitiveLoads).toFixed(2)}–${Math.max(...cognitiveLoads).toFixed(2)}h ` +
 				`vs ${DEFAULT_CAPACITY_POOLS.cognitiveHours}h pool, physical max ${Math.max(...physicalLoads).toFixed(2)}h ` +

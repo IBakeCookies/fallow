@@ -1,7 +1,6 @@
 /**
- * The measurements behind MATH.md §12.1 — the whole case for the `fitSnapshots`
- * store, and for rejecting the alternative that would have been strictly more
- * correct.
+ * The measurements behind MATH.md's whole case for the `fitSnapshots` store,
+ * and for rejecting the alternative that would have been strictly more correct.
  *
  * Two numbers, neither reproducible:
  *
@@ -18,7 +17,7 @@
  *   O(auditDays × totalLogVolume)".
  *
  * The drift number justifies storing snapshots at all. The cost number is the
- * ENTIRE rejection of per-day recomputation — which §12.1 itself concedes
+ * ENTIRE rejection of per-day recomputation — which MATH.md itself concedes
  * "would fix history retroactively, which storing cannot". A rejection that
  * strong deserves a measurement that exists. None of `0.3069`, `0.4973`,
  * `0.4809`, `0.4965`, `19 ms`, `570 ms` or `17.6 ms` appears anywhere in
@@ -40,7 +39,7 @@
  * Timing is reported as a median over repeats after a warm-up, because V8's
  * first pass through a fit is not the cost the user pays on their thousandth
  * analytics visit. Read the RATIO between the arms rather than the absolute
- * milliseconds: the ratio is the thing §12.1's argument actually rests on, and
+ * milliseconds: the ratio is the thing the argument actually rests on, and
  * it is the part that survives being run on a different machine.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
@@ -65,11 +64,11 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-/** §12.1's own logger: 730 ⚡ / 730 ☕ / 1095 🪫 over 365 days. */
+/** MATH.md's own logger: 730 ⚡ / 730 ☕ / 1095 🪫 over 365 days. */
 const DAYS = 365;
 const REST_PER_DAY = 2;
 const DRAIN_PER_DAY = 3;
-/** §12.1's drift: α 0.25 → 0.55 across the year. */
+/** MATH.md's drift: α 0.25 → 0.55 across the year. */
 const ALPHA_START = 0.25;
 const ALPHA_END = 0.55;
 /** The audit's window — the "does not show up in-window" half of the claim. */
@@ -79,7 +78,7 @@ const AS_OF_DAYS = [5, 10, 20, 30, 60, 120, 365];
 type DriftShape = 'linear' | 'step' | 'flat';
 
 const DRIFT_SHAPES: DriftShape[] = ['linear', 'step', 'flat'];
-/** Log-volume multipliers on §12.1's own rates, for the O(volume) claim. */
+/** Log-volume multipliers on MATH.md's own rates, for the O(volume) claim. */
 const VOLUME_MULTIPLIERS = [1, 2, 4];
 
 function alphaOn(day: number, shape: DriftShape): number {
@@ -202,10 +201,10 @@ function timeIt(run: () => void, repeats: number): number {
 	return median(samples);
 }
 
-describe('MATH.md §12.1 — per-day fit snapshots', () => {
+describe('per-day fit snapshots', () => {
 	it('drift: the as-of-day fit against the whole-history fit', () => {
 		console.log(
-			`[§12.1 drift] ${DAYS} days, ${REST_PER_DAY * DAYS} ☕ / ${DRAIN_PER_DAY * DAYS} 🪫 at 1×, ` +
+			`[drift] ${DAYS} days, ${REST_PER_DAY * DAYS} ☕ / ${DRAIN_PER_DAY * DAYS} 🪫 at 1×, ` +
 				`true α_cog ${ALPHA_START} → ${ALPHA_END}`,
 		);
 
@@ -220,7 +219,7 @@ describe('MATH.md §12.1 — per-day fit snapshots', () => {
 			});
 
 			console.log(
-				`[§12.1 drift] ${shape.padEnd(6)} whole-history α_cog ${whole.toFixed(4)}; ` +
+				`[drift] ${shape.padEnd(6)} whole-history α_cog ${whole.toFixed(4)}; ` +
 					`as-of-day fit and the whole-history fit's excess over it: ${cells.join(', ')}`,
 			);
 
@@ -229,14 +228,14 @@ describe('MATH.md §12.1 — per-day fit snapshots', () => {
 			// history up to that day — not a fit restricted to the window's own
 			// logs. That distinction is the claim: an auditor scoring all 30 days
 			// against today's fit is only wrong by however much the as-of-day fit
-			// moved ACROSS the window, and §12.1 says that is nearly nothing
+			// moved ACROSS the window, and MATH.md says that is nearly nothing
 			// (0.4809 → 0.4965) even while the day-10 gap is 62%.
 			const windowStart = DAYS - AUDIT_WINDOW_DAYS;
 			const inWindowEarly = alphaCogOf(upTo(history, windowStart));
 			const inWindowLate = alphaCogOf(upTo(history, DAYS));
 
 			console.log(
-				`[§12.1 drift] ${shape.padEnd(6)} inside the last ${AUDIT_WINDOW_DAYS} days: ` +
+				`[drift] ${shape.padEnd(6)} inside the last ${AUDIT_WINDOW_DAYS} days: ` +
 					`${inWindowEarly.toFixed(4)} → ${inWindowLate.toFixed(4)} ` +
 					`(${(((inWindowLate - inWindowEarly) / inWindowEarly) * 100).toFixed(1)}% apart)`,
 			);
@@ -265,7 +264,7 @@ describe('MATH.md §12.1 — per-day fit snapshots', () => {
 			}, 3);
 
 			console.log(
-				`[§12.1 cost] ${volume}× volume (${logs} logs): one whole-history fit ` +
+				`[cost] ${volume}× volume (${logs} logs): one whole-history fit ` +
 					`${once.toFixed(1)} ms; ${AUDIT_WINDOW_DAYS}-day refit ${perAudit.toFixed(1)} ms ` +
 					`(${(perAudit / AUDIT_WINDOW_DAYS).toFixed(1)} ms/day, ` +
 					`${(perAudit / AUDIT_WINDOW_DAYS / once).toFixed(2)}× the single fit)`,
@@ -273,7 +272,7 @@ describe('MATH.md §12.1 — per-day fit snapshots', () => {
 		}
 
 		console.log(
-			'[§12.1 cost] read the RATIOS, not the milliseconds — the O(auditDays × volume) ' +
+			'[cost] read the RATIOS, not the milliseconds — the O(auditDays × volume) ' +
 				'claim is what the per-day/single ratio and its growth across volumes test',
 		);
 	});

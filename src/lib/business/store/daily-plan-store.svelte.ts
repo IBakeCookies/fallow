@@ -39,7 +39,7 @@ export class DailyPlanStore {
 	// metric derivation below so it only refits when the logs change, not on every
 	// keystroke.
 	//
-	// Causal, on the same rule as the ϕ fit (MATH.md §33): strictly before the
+	// Causal, on the same rule as the ϕ fit: strictly before the
 	// planned day. Today's 🪫/☕ still reach the day — through the SIMULATION, which
 	// is where a measurement of what happened belongs (the carry-over below, and
 	// the Lab's stop advisor reading today's worked hours). What the rule forbids
@@ -53,7 +53,7 @@ export class DailyPlanStore {
 		fitEnergyParams(this.#fitObservations.rest, this.#fitObservations.drain),
 	);
 
-	// Overnight carry-over (MATH.md §11.9): the previous day's 🪫 logs seed the
+	// Overnight carry-over: the previous day's 🪫 logs seed the
 	// morning reservoir levels. Keyed to the VIEWED day's predecessor, so a past
 	// day reads with its own morning, not today's.
 	#energyParams = $derived(
@@ -79,10 +79,10 @@ export class DailyPlanStore {
 
 	#daily = $derived(calculateDailyMetrics(this.#input));
 
-	// What is left of today, re-planned from the hours already logged against it
-	// (MATH.md §35). A SECOND solve, deliberately outside `#daily`: folding it in
-	// would rescope the plan-family rows (§11.8) and double a `$derived` that
-	// re-runs on every keystroke.
+	// What is left of today, re-planned from the hours already logged against it.
+	// A SECOND solve, deliberately outside `#daily`: folding it in would rescope
+	// the plan-family rows and double a `$derived` that re-runs on every
+	// keystroke.
 	//
 	// It costs nothing until there is something to re-plan. Only TODAY can have a
 	// remainder — a past day is finished and a future one has not started — and
@@ -95,7 +95,7 @@ export class DailyPlanStore {
 
 		// The one definition of "hours per task, restricted to the day's tasks"
 		// (AGENTS.md R3). Today's logs reach this immediately: it is a gauge of the
-		// present, which §33 exempts from the causal fit window.
+		// present, which is exempt from the causal fit window.
 		const worked = workedHoursByTask(
 			tasks,
 			this.#observations.drainObservations.filter((o) => o.date === this.#session.today),
@@ -159,7 +159,7 @@ export class DailyPlanStore {
 		return this.#daily;
 	}
 
-	/** `null` until today has logged hours to re-plan from (MATH.md §35). */
+	/** `null` until today has logged hours to re-plan from. */
 	get remainingDay(): RemainingDay | null {
 		return this.#remainingDay;
 	}
@@ -193,8 +193,8 @@ export class DailyPlanStore {
 	}
 
 	/**
-	 * One full solve per candidate — measured 109-124 ms on a 12-task day (MATH.md
-	 * §14), which is why this is a method and not a `$derived`. The yield before
+	 * One full solve per candidate — measured 109-124 ms on a 12-task day, which
+	 * is why this is a method and not a `$derived`. The yield before
 	 * the search lets the caller's busy state paint; the search itself blocks.
 	 */
 	async computeAdvice(): Promise<void> {

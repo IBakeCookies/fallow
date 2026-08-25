@@ -6,8 +6,8 @@
 
 	interface Props {
 		totalOutput: string;
-		/** Fractions of full as the last worked block leaves them, before the evening's
-		 *  recovery (MATH.md §13.6) */
+		/** Fractions of full as the last worked block leaves them, before the
+		 *  evening's recovery */
 		endCog: number;
 		endPhys: number;
 		workHours: number;

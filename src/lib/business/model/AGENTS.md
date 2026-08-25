@@ -14,8 +14,9 @@ a constant, a bound, or a fit's conditioning:
 1. Update the relevant `MATH.md` section **in the same commit**.
 2. Cite the section from the code comment (`// MATH.md §8.7`) so the two stay
    findable from each other.
-3. If only the _explanation_ was wrong and the model did not change, log it in
-   MATH.md §10 (doc-only revision log) — do not imply a model change.
+3. If only the _explanation_ was wrong and the model did not change, fix the
+   explanation in place. There is no revision log to append to — git holds the
+   history, and a log of corrections is one more thing to keep in step.
 4. Never "fix" the code to match `zenith.md`. The implementation deliberately
    deviates from the article; MATH.md §6 lists how and why.
 5. If you added or moved a section, run `node scripts/math-index.mjs` — never
@@ -49,7 +50,7 @@ a constant, a bound, or a fit's conditioning:
   allocator works on discrete 15-minute blocks (`BLOCK_HOURS`): greedy marginal
   analysis (exact for the single budget), exhaustive funded-subset enumeration
   for switch costs (exact, n ≤ 12; past that, bounded to the subset sizes the
-  budget can fund — still exact wherever it fits, §34), plus a
+  budget can fund — still exact wherever it fits), plus a
   resource-transfer pass when a capacity pool binds (near-exact heuristic).
 - Allocated hours are exact multiples of 0.25h; budget below one block is left
   unplanned. There is no 0.01h rounding step.
@@ -62,32 +63,32 @@ a constant, a bound, or a fit's conditioning:
   effective count, not a log count. The three energy fits (r, α, λ₀) are
   deliberately **not** weighted — §5.2 says why, and says to revisit them
   together or not at all.
-- **A plan for day D is fitted from logs dated strictly BEFORE D** (§33). The
+- **A plan for day D is fitted from logs dated strictly BEFORE D**. The
   constants are global, so one ⚡ re-times every task on the page — 33% on a
   task the user never logged, 75% of it on the very first log — and landing
   that on the day already in flight reshuffles a plan mid-execution. Applies to
   every **identity** fit (c₁c₂c₃, α, r, λ₀) and to **none** of the **state**
-  reads: `simulateReservoirs`, the §11.9 carry-over and the §8.11 advisor take
+  reads: `simulateReservoirs`, the carry-over and the §8.11 advisor take
   today's logs immediately, because a gauge of the present that ignored them
   would lie. `ageDays` runs against the planned day, not the live one. Any UI
   that prints a log count must print the **counted** one and name the deferred
   ones separately, or the ⚡ button reads as broken. History obeys the same rule
-  by **reading** §12.1's stored `fitSnapshots` per day rather than refitting:
+  by **reading** the stored `fitSnapshots` per day rather than refitting:
   `readDaySummaries` scores each day under the fit recorded on it, and falls
   back to the live fit only for a day that has none.
 - Three constraints: the time budget plus cognitive/physical capacity pools
   (task weight = dimension difficulty / 10). Context switches cost `switchCost`
   hours — attention residue, distinct from ramp-up, which ϕ already prices —
   and are charged only between tasks that receive time.
-- **A plan may be solved from a PREFIX of hours already worked** (§35): each
+- **A plan may be solved from a PREFIX of hours already worked**: each
   task's block menu continues from `hᵢ` instead of from zero, the pools enter
   depleted by `Σ wᵢhᵢ` clamped at 0, and the switch bill is charged over the
   **day's** funded set `{worked} ∪ {newly funded}` — a plan that abandons a
   started task does not get its switch back. `hᵢ = 0` everywhere is
-  bit-identical to the cold solve, which is what keeps §4, §5.1 and §34
+  bit-identical to the cold solve, which is what keeps §4 and §5.1
   undisturbed. It feeds ONE next-up reading (`calculateRemainingDay`) and must
   never reach `calculateDailyMetrics`: that would rescope every plan-family row
-  (§11.8) and double a per-keystroke `$derived` (§14.2's cost rule).
+  and double a per-keystroke `$derived` (the cost rule).
 
 ## Energy model (`zenith-energy.ts`, `/energy` only)
 
@@ -170,7 +171,7 @@ its allocation code, so the main page is unaffected by changes here.
   A day with no recoverable break has no span to read and keeps the worked-hours
   reading on both sides.
 - Both stop readings price
-  the stop against `openTaskIds` only, a next-up-family scope (§11.8): a
+  the stop against `openTaskIds` only, a next-up-family scope: a
   checked-off task is no forgone step, though its hours still drained the
   reservoirs and stay in the reconstruction. A day that ended with everything
   ticked reveals no indifference and is censored — and using its `λ₀ ≤ hi`
@@ -225,7 +226,7 @@ n = 12) and used to run **twice** on identical inputs: the plan, then Zenith
 Gain's optimized side. `calculateTaskPlan` returns the plan plus its
 `allocatedHours`, and `calculateZenithGain` takes them — halving the dashboard
 `$derived` (which re-runs on every keystroke in the budget field) and the plan
-advice with it (MATH.md §14).
+advice with it.
 
 The hours are passed in **input order**, and that is not cosmetic: hours are
 paired to tasks **by index** all the way down
@@ -262,18 +263,19 @@ single-caller on 2026-07-23, when the same 39 sat behind 675 lines).
 
 ### The energy model is a peer mode, not a candidate to replace the main plan
 
-Settled 2026-07-29, MATH.md §15. A 300-day cross-scoring probe: each model
+Settled 2026-07-29. A 300-day cross-scoring probe: each model
 beats the other by tens of percent **on the other's objective** (classic wins
 `Σ P̄` on 284/300 days, energy wins its own on 298/300). The 16 exceptions are
 plans the pooled allocator is forbidden to emit, so neither allocator is
-defective. No evidence can rank them; §12's audit is a descriptive signal, not
+defective. No evidence can rank them; the plan-adherence audit (`plan-audit.ts`)
+is a descriptive signal, not
 a promotion gate. The user-facing difference the probe does establish: classic
 spreads (3.96 tasks/day), energy concentrates (1.95, and **never more** on
 0/300 days). Keep both routes.
 
 ### Run order stays `calculateInterleavedOrder`'s nature alternation
 
-Settled 2026-07-29, MATH.md §16. `Σ P̄` is order-invariant, so only the energy
+Settled 2026-07-29. `Σ P̄` is order-invariant, so only the energy
 model scores order at all — and under it the heuristic is a median 0.47% below
 the best ordering of the same allocation (p90 1.50%). Holding the allocation
 fixed bounds any order-only change, the solver's included. The swap is also
@@ -284,12 +286,12 @@ isn't "the optimizer should beat the heuristic".
 
 ### ϕ stays one plane for all tasks — no per-task offsets
 
-Settled 2026-08-04, MATH.md §17. Hierarchical partial pooling `ϕ = c·x + δ_task`
+Settled 2026-08-04. Hierarchical partial pooling `ϕ = c·x + δ_task`
 fits fine and cuts held-out ϕ error 23–37%, but it buys **+0.09%** of plan
 value — because the oracle that knows every task's true ϕ is itself worth only
 +0.16%. `P̄` is flat at `T*`, so ϕ error costs `O(ΔT²)`: **half an hour of
-per-task ϕ error costs ~0.3% of the day** (§17 has the table — price any
-per-task-ϕ proposal against it first). It also costs: 64–79% of logged titles
+per-task ϕ error costs ~0.3% of the day** (price any per-task-ϕ proposal
+against it first). It also costs: 64–79% of logged titles
 carry one log, so δ absorbs stopwatch noise and the displayed ϕ gets 68–98%
 worse for users with no per-task structure; a never-logged task's σ_ϕ rises
 0.058 → 0.259 h, which §5.1 turns into a permanent demotion of every task the
@@ -311,23 +313,23 @@ of conjured value for the few-log users the posterior exists to protect.
 ### Human Capacity is unclamped
 
 It may read over 100%, and the band above 100 stays even though the allocator's
-own plan cannot get there (0 of 3000 probed days; 44.1% touch ≥ 99%,
-MATH.md §20). The reading is the share of §4's capacity constraint the plan
-consumed, on the allocator's own weights — so which pool it BLAMES is decided
-on the exact saturations, never the rounded ones (§20.1).
+own plan cannot get there (0 of 3000 probed days; 44.1% touch ≥ 99%). The
+reading is the share of §4's capacity constraint the plan consumed, on the
+allocator's own weights — so which pool it BLAMES is decided on the exact
+saturations, never the rounded ones.
 
 `calculatePoolSaturation` is the one definition of "which pool binds, and how
 saturated is it" (R3): this row reads it over the hours the plan books and the
-executed burn-down (§35) over the hours already worked, and neither re-spells
+executed burn-down over the hours already worked, and neither re-spells
 the tie rule — two spellings are free to name different pools off the same
 inputs. The burn-down reading is **withheld, not defaulted**: no 🪫 log today,
 or a non-finite saturation (a 0-hour pool carrying a draw), leaves the row
-unread rather than printing a 0 or an `Infinity` — the gate §20 already puts on
+unread rather than printing a 0 or an `Infinity` — the gate already placed on
 Human Capacity's own value.
 
 ### Burnout Risk is not monotone in the declared budget or the switch cost, and that stays
 
-Settled 2026-08-06, MATH.md §11.6. Raising `availableHours` over a fixed task
+Settled 2026-08-06. Raising `availableHours` over a fixed task
 list makes the reading FALL on 3033 of 37800 probed steps, worst 29 points;
 walking the declared `switchCost` 0–60 m falls on 3603 of 7200 and rises on 402,
 worst rise 33 points (`scripts/burnout-risk.probe.ts`). Not a bug in the metric:
@@ -339,7 +341,7 @@ would report a plan the user is not being shown. Do not "fix" the fall.
 
 ### Time Scarcity is not monotone either, in the budget or the task count
 
-Settled 2026-08-25, MATH.md §37. Its switch bill is over the FUNDED set, so a
+Settled 2026-08-25. Its switch bill is over the FUNDED set, so a
 `BLOCK_HOURS` budget step that seats **k** more tasks bills `k·s`, and the reading
 RISES whenever `Δm·s > BLOCK_HOURS`. From a 20-minute switch cost up one new task
 clears that on its own: 2.5–4.1% of budget steps and 100% of probed days, worst
@@ -350,9 +352,9 @@ seam reversed: a task that makes the plan seat FEWER tasks drops the bill by mor
 than its ϕ adds, and the reading falls on 0.19% of add-a-task steps, worst 13
 points (`scripts/mtr-time-scarcity.probe.ts`). Same verdict as Burnout Risk's
 fall, and `calculation.test.ts` pins the `s = 45m` witness, so smoothing it gets a
-red build. Do not smooth either by billing the LISTED tasks again — that is
-§19.1's defect, and it pinned the row at exactly 100 on 10.8% of days, where a
-15-minute day and a 90-minute one read alike.
+red build. Do not smooth either by billing the LISTED tasks again — that is the
+defect that pinned the row at exactly 100 on 10.8% of days, where a 15-minute
+day and a 90-minute one read alike.
 
 ### Priority is not monotone in difficulty, and that stays
 
@@ -377,29 +379,29 @@ It reports every axis unconditionally with a lower-is-better badness function;
 whether a reading is bad enough to act on is the band
 ([presentation's](../../presentation/AGENTS.md)). **Badness takes the metrics,
 not the reading, and one axis uses that**: Flow Coverage ranks on the COUNT of
-tasks reaching ϕ and displays the share (MATH.md §14.5), because a defer drops a
+tasks reaching ϕ and displays the share, because a defer drops a
 task from the share's numerator and denominator at once and would improve it for
-free — §11.11's reason for retiring Grind Density, measured again here at 259 of
+free — the reason for retiring Grind Density, measured again here at 259 of
 664 defers. Badness only orders candidates, so what it consumes is free to differ
 from what the card prints; do not "simplify" it back into a function of `read`. Options per axis are the
 Pareto frontier on (improvement ↑, plan value ↑) so there is no weight λ to
-defend — see MATH.md §14 for why "the single biggest improvement" is bad
+defend — "the single biggest improvement" is bad
 advice. **Unconditionally includes the axes nothing improves**: one finding per
-axis, empty menu and all (MATH.md §14.4). Filtering those out in the model is a
+axis, empty menu and all. Filtering those out in the model is a
 presentation decision taken where the bands are not visible, and it made an
 unfixable warning — Energy Balance on a day of nothing but cognitive work —
 indistinguishable from a day with no warning on it, which the card then called
 fine. The card says the empty menu out loud instead.
 
-`PlanAdvice` is contractually today's inputs alone (MATH.md §14), and
+`PlanAdvice` is contractually today's inputs alone, and
 `AdviceDisplay` is built from it — so a reading about ANOTHER day, such as what
 the day a defer sends to already holds, is its own descriptor and its own card
 prop, never a field on either.
 
 ### A budget _increase_ never enters that frontier
 
-MATH.md §14.1. Σ P̄ prices deferring and trimming in full, but it does not price
-the extra hour — and Σ P̄ is monotone in the budget at the true optimum (§34's
+Σ P̄ prices deferring and trimming in full, but it does not price
+the extra hour — and Σ P̄ is monotone in the budget at the true optimum (the
 fallback can invert it), so a `budget + 1` inside the frontier out-values every
 defer and dominates the entire menu down to "work more". `plan-advice.ts`
 splits the candidates with `isPriced` and returns the increase as
@@ -408,21 +410,21 @@ not merge the two lists back together.
 
 ### The budget levers carry unrounded hours
 
-MATH.md §14.1. Rounding `budget − planSlack` to quarter-hours trimmed past the
+Rounding `budget − planSlack` to quarter-hours trimmed past the
 hours the plan actually spends, so the trim stopped even being feasible. The
 card has no Apply for `set-budget`, so there is nothing to align the hours to —
 the descriptor rounds the **label**, never the lever. The trim is **feasible,
 not free**: `allocate` is path-dependent on `budgetBlocks`, so on a pool-bound
 day the re-solve can land up to a measured **−0.9%** below the plan it trimmed
-(MATH.md §14.1-2, `scripts/plan-advice.probe.ts`). Do not clamp that to 0 — it
-is a plan the allocator really produces, and §14.1-3 forbids showing a real
-difference as costless.
+(`scripts/plan-advice.probe.ts`). Do not clamp that to 0 — it
+is a plan the allocator really produces, and a real difference must not be
+shown as costless.
 
 ### The budget's shadow price is a day-level reading, not a per-task column
 
-MATH.md §14.2. `PlanAdvice.budgetMarginal` re-solves at `budget + BLOCK_HOURS`
+`PlanAdvice.budgetMarginal` re-solves at `budget + BLOCK_HOURS`
 and reports what that block adds plus which task takes it. **Both halves are
-open-scoped** (§11.8): the allocator is blind to `completed`, so the
+open-scoped**: the allocator is blind to `completed`, so the
 plan-scoped reading named an already-ticked-off task as the recipient of the
 next 15 minutes, worth up to +33.4%. `recipient: null` means a wider budget
 buys no remaining work, and says nothing about why — a bound pool, tasks near
@@ -440,9 +442,9 @@ solve doubles dashboard cost.
 
 ### The switch cost is instrumented but never advised
 
-2026-08-04, MATH.md §14.3. MATH.md §14 rules `switchCost` and the pools
-"measurements of the user, not choices about the day" — that excludes them as
-levers and, by the same sentence, licenses them as instrument targets.
+2026-08-04. `switchCost` and the pools are ruled "measurements of the user, not
+choices about the day" — that excludes them as levers and, by the same
+sentence, licenses them as instrument targets.
 `PlanAdvice.switchCostPrice` reports the `(m−1)·s` hours the plan reserves over
 **funded** tasks, that as a share of the budget, and Σ P̄ re-solved at `s = 0`
 and `s = 2s`. Declaring it 2× too high costs a measured **8.47%** of plan value
@@ -450,15 +452,15 @@ on a 2–4-task day (18.77% at 5+ tasks), against 0.16% for the ϕ oracle. Four
 things it must keep, three of which invert the bullet above:
 
 - **Plan-scoped, not open-scoped**, because it is compared against
-  `planValueOf`, which is built from the whole task list (§11.8). Restricting
+  `planValueOf`, which is built from the whole task list. Restricting
   one side to open work reports a difference that is mostly the scope change.
 - **Clamped per arm, never floored.** The exact optimum is monotone
   non-increasing in `s`, so a lower declaration reads only ≥ 0 and a higher one
-  only ≤ 0; the opposite sign is §13.3 suboptimality, not the day. Inversions
+  only ≤ 0; the opposite sign is suboptimality, not the day. Inversions
   are reachable and large — 112 over 71,520 UI-grid configurations, worst free
   arm **−6.53%**, worst doubled arm **+1.36%**, and 40 of them without touching
-  `s`. Their magnitude is **not** bounded by §13.3's "worst 0.09%", which is a
-  single-draw maximum. Do **not** replace this with §14.2's floor: that zeroes
+  `s`. Their magnitude is **not** bounded by the "worst 0.09%", which is a
+  single-draw maximum. Do **not** replace this with a floor: that zeroes
   the doubled arm on 284 of 596 fixture alternatives, the arm that says
   over-declaring is the expensive direction. Tests pin both a symmetric floor
   and an inverted clamp.
@@ -480,7 +482,7 @@ wide against a [0,1] h range, and one mis-counted task moves the bracket edge
 
 ### `mustDoToday` promises the day, not the hours
 
-MATH.md §14. The flag only removes a task from the defer candidates; the
+The flag only removes a task from the defer candidates; the
 allocator never sees it, so a flagged task can still be funded zero.
 `suggestPlanAdjustments` therefore **partitions** the unfunded read —
 `unfundedMustDoTaskIds` beside `unfundedTaskIds` — and the card gives it its own

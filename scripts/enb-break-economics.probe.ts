@@ -1,5 +1,5 @@
 /**
- * The break/fragmentation numbers MATH.md §8 (intro), §8.3–8.4 and §13.5 quote,
+ * The break/fragmentation numbers MATH.md §8 (intro) and §8.3–8.4 quote,
  * and business/model/AGENTS.md's "Fragmentation stays costly (probe-verified)". The probes
  * they were measured on (2026-07-13/14) were never committed, so this file
  * rebuilds them against the shipped model:
@@ -15,7 +15,7 @@
  *  5. §8.3/§8.4 — the W*(λ₀) ladder on the 12-hour probe day.
  *  6. §8.3 — the same ladder under the pre-fix DYNAMICS ("10.25 h at λ₀ = 0.5,
  *     1.0 and 1.5 alike, with the collapse point above 1.5").
- *  7. §13.5 — raw output vs chunk count at a fixed 6 h of work in a 12-hour
+ *  7. Raw output vs chunk count at a fixed 6 h of work in a 12-hour
  *     window ("peaks at 2 chunks (+19%) … at full demand the peak moves to
  *     3–10 chunks and reaches +153%"). "demand d" is read as
  *     cognitiveDemand = physicalDemand = d, and the 6 h of rest that is not
@@ -358,13 +358,13 @@ describe('break economics (MATH.md §8 intro, §8.1–8.3)', () => {
 		}
 	});
 
-	it('raw output vs chunk count at a fixed 6h of work (MATH.md §13.5)', () => {
+	it('raw output vs chunk count at a fixed 6h of work', () => {
 		for (const [difficulty, enjoyment, demand] of [
 			[8, 6, 0.8],
 			[8, 6, 1.0],
 			[3, 8, 1.0],
 			[10, 10, 0.2],
-			// Two more low-difficulty/full-demand sets, because §13.5 claims a
+			// Two more low-difficulty/full-demand sets, because MATH.md claims a
 			// +153% peak and TWO non-monotone parameterizations.
 			[1, 8, 1.0],
 			[5, 6, 1.0],

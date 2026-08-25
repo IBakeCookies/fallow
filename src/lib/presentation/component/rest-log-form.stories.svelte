@@ -79,7 +79,7 @@
 />
 
 <!-- Correcting a stored break, from the analytics history — ☕ has no task and so no
-     row on either screen, which makes that list its only editor (MATH.md §36). The
+     row on either screen, which makes that list its only editor. The
      same form seeded; what it saves is the same shape, since a correction rewrites
      exactly the five numbers this asks for. -->
 <Story

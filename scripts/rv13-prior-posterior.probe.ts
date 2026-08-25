@@ -1,9 +1,9 @@
 /**
- * Measurements behind MATH.md §13.1: the σ_ϕ ladder that shows a zero-⚡-log
- * user is no longer treated as perfectly certain, and the two behaviour-change
- * numbers §13.1 quotes for it.
+ * Measurements behind the σ_ϕ ladder that shows a zero-⚡-log user is no longer
+ * treated as perfectly certain, and the two behaviour-change numbers MATH.md
+ * quotes for it.
  *
- * §13.1's table claims σ_ϕ at the mid-scale task (E = 2.78, β = 1.44) runs
+ * MATH.md's table claims σ_ϕ at the mid-scale task (E = 2.78, β = 1.44) runs
  * 0.411 → 0.194 → 0.072 → 0.023 → 0.003 for 0/1/5/20/200 logs (0.000 at n = 0
  * before the fix), that the prior's σ_ϕ is "≈ 29% of a typical ϕ̂", that the
  * priority score dropped 17.90 → 17.80 on its probe day, and that the plan
@@ -61,7 +61,7 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-/** §13.1's probe task: the centre of both sliders. */
+/** The probe task: the centre of both sliders. */
 const E = mapEffort(5);
 const BETA = mapEnjoyability(5);
 const PHI_HAT = calculateFlowStateTime(E, BETA, DEFAULT_USER_CONSTANTS);
@@ -109,7 +109,7 @@ function randomDay(rnd: () => number): { tasks: PooledTaskInput[]; budget: numbe
 	};
 }
 
-describe('MATH.md §13.1 — the prior as a posterior', () => {
+describe('The prior as a posterior', () => {
 	it('prints the σ_ϕ ladder against its closed form', () => {
 		// With n identical rows x = [E, β, 1] and no residual the whole ladder is
 		// closed-form: Σ = σ̂²(n·xxᵀ + λI)⁻¹ with σ̂² = ν₀σ₀²/(ν₀+n), so
@@ -128,7 +128,7 @@ describe('MATH.md §13.1 — the prior as a posterior', () => {
 			const measured = phiParameterStd(E, BETA, fitUserConstants(logs(n)).posterior);
 			console.log(`n=${n}: σ_ϕ ${measured.toFixed(6)} h (closed form ${closed(n).toFixed(6)})`);
 			expect(measured).toBeCloseTo(closed(n), 9);
-			// The whole point of §13.1: uncertainty is monotone in data.
+			// The whole point: uncertainty is monotone in data.
 			expect(measured).toBeLessThanOrEqual(previous);
 			previous = measured;
 		}

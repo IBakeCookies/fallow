@@ -58,8 +58,7 @@
 		{
 			label: 'Primary Bottleneck',
 			// A task title, so this is the row that stress-tests a long value against
-			// its label. Neutral on purpose: naming a task is not a verdict on it
-			// (MATH.md §23.1).
+			// its label. Neutral on purpose: naming a task is not a verdict on it.
 			value: 'Write the quarterly report',
 			description: 'Largest draw on the capacity pool that binds the day.',
 			band: 'neutral',
@@ -88,8 +87,8 @@
 
 		// Each judged band carries text a screen reader hears; the three neutral
 		// readings (Completion Rate, Flow Coverage, and Primary Bottleneck — which
-		// names a task rather than judging one, MATH.md §23.1) are the default value
-		// colour, make no claim, and stay silent.
+		// names a task rather than judging one) are the default value colour, make
+		// no claim, and stay silent.
 		await expect(canvas.getByText('(Critical)')).toBeInTheDocument();
 		expect(canvasElement.querySelectorAll('.sr-only')).toHaveLength(5);
 

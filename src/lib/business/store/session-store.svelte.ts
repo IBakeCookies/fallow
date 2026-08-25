@@ -166,7 +166,7 @@ export class SessionStore {
 	});
 
 	// The logs a plan for the viewed day is allowed to read: dated STRICTLY BEFORE
-	// it (MATH.md §33). A ⚡ log is a measurement of the day you are executing, and
+	// it. A ⚡ log is a measurement of the day you are executing, and
 	// letting it into that day's own fit re-times every task on the page mid-run —
 	// against a thin history one log can halve every ϕ, and the allocations move
 	// with it. It lands on the next day's plan instead, where a plan changing is
@@ -391,7 +391,7 @@ export class SessionStore {
 			const destination = await this.#readDestination(this.#deferDestinationDate);
 
 			// Solved under the viewed day's fit: the constants are global, and refitting
-			// them for tomorrow (§33 would allow today's ⚡ there) is a second window
+			// them for tomorrow (which would allow today's ⚡ there) is a second window
 			// definition for a reading that reports counts.
 			return summarizeDeferDestination({
 				...destination,
@@ -893,7 +893,7 @@ export class SessionStore {
 		if (date !== this.#today && !existing) return;
 
 		// A CORRECTION keeps what the record froze; only a first measurement derives it.
-		// The rule is about the correction and not the address it arrived by (MATH.md §36),
+		// The rule is about the correction and not the address it arrived by,
 		// so the row obeys it as much as `editFlowLog` does: the covariates were captured
 		// when the measurement was taken, and re-deriving them here would let a difficulty
 		// raised on Friday re-price what Monday measured — including on a save that changes
@@ -930,7 +930,7 @@ export class SessionStore {
 	// Correct one measurement by its RECORD rather than by its row (2026-08-10). The
 	// analytics history shows every day at once and therefore views none of them, so it
 	// has neither a viewed day to stamp nor that day's task to read — and needs neither,
-	// because a correction rewrites only what the user measured (MATH.md §36).
+	// because a correction rewrites only what the user measured.
 	//
 	// Through the repository's edit-by-id and NOT through `logFlow`'s upsert with the
 	// record spread back in: those differ exactly when the record has been deleted since
@@ -957,7 +957,7 @@ export class SessionStore {
 	// measurement at once and offers an undo for as long as its toast lives
 	// (`removeLogWithUndo`). A closure, because only the store knows what restoring
 	// means — the whole record under the id and stamp it was dropped with, a re-log
-	// being a second measurement rather than the same one (MATH.md §36).
+	// being a second measurement rather than the same one.
 	//
 	// Nothing to offer back in two cases, and `undefined` says so for both: a record
 	// this store does not hold (a second click on a ✕ whose row is already gone, which

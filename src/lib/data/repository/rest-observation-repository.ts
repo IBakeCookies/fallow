@@ -8,10 +8,9 @@ import { withStore } from '$lib/data/storage/indexed-db';
 
 /**
  * Append-only create: several breaks a day are normal, so every logged rest is
- * its own record — the same one-row-per-event shape drain ratings have carried
- * since MATH.md §18, minus their task. Correcting one is `$updateRestObservation`
- * below, NOT re-logging: a second log of the same break would fit r twice off
- * one recovery.
+ * its own record — the same one-row-per-event shape drain ratings have carried,
+ * minus their task. Correcting one is `$updateRestObservation` below, NOT
+ * re-logging: a second log of the same break would fit r twice off one recovery.
  */
 export async function $createRestObservation(
 	observation: Omit<RestObservationRecord, 'id' | 'createdAt'>,

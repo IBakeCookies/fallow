@@ -87,9 +87,9 @@
 	}}
 />
 
-<!-- MATH.md §33: a log made today is on the page but not in the plan, so the
-     headline count and the fit's count differ — the sentence has to print the one
-     the fit used, and name the other. -->
+<!-- A log made today is on the page but not in the plan, so the headline count
+     and the fit's count differ — the sentence has to print the one the fit
+     used, and name the other. -->
 <Story
 	name="A log the plan defers"
 	args={{

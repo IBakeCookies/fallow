@@ -18,7 +18,7 @@ missing, it is one hop away.
 | [docs/testing.md](docs/testing.md)                                 | writing a test, verifying, or dispatching the reviewer                                               |
 | [docs/design.md](docs/design.md)                                   | arguing about where code goes, a split, or an abstraction                                            |
 | [docs/deployment.md](docs/deployment.md)                           | touching SSR, the service worker, locales, SEO, prerendering                                         |
-| [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Read the section, not the file (`## Section index`)          |
+| [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Derivations only: the shape and why not the alternative      |
 | [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                             |
 | [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item or closed finding is a date and a link to its spec |
 | [docs/features/](docs/features/)                                   | one spec per feature, frozen at land — what was decided then, never how the code works now           |
@@ -76,7 +76,8 @@ goes; do not let that turn into building for a future nobody has asked for.
   was already false — is corrected in the diff that found it, never reported as
   a note. R7 says so for math and it holds everywhere: a stale rule misleads
   every future reader until someone else pays to rediscover it, and the fix is
-  usually a line. Sweep the `file:line` citations that moved.
+  usually a line. Cite a document by section, never by line: a `file:line`
+  address is stale the next time anything is inserted above it, and silently.
 
 Deleting code to satisfy this rule is progress, not lost work.
 
@@ -159,12 +160,16 @@ must see it fail for the reason you expect. Levels, the coverage rules and the
 reviewer pass: [docs/testing.md](docs/testing.md).
 
 **R7 — Math changes go in MATH.md, in the same change.** Update the section in
-the same commit, cite it from the code (`// MATH.md §8.7`), log
-explanation-only fixes in MATH.md §10, never "fix" the code to match
-`zenith.md`, and run `node scripts/math-index.mjs` after adding or moving a
-section. `scripts/math-citations.mjs --check` enforces the other direction:
-every `§`-citation in tracked source resolves to a heading that exists in
-MATH.md. [business/model/AGENTS.md](src/lib/business/model/AGENTS.md).
+the same commit, cite it from the code (`// MATH.md §8.7`), never "fix" the code
+to match `zenith.md`, and run `node scripts/math-index.mjs` after adding or
+moving a section. `scripts/math-citations.mjs --check` enforces the other
+direction: every `§`-citation in tracked source resolves to a heading that
+exists in MATH.md. **MATH.md holds derivations, not measurements** — the formula,
+why it has that shape, and why the alternative was rejected. A figure read off a
+run belongs in the probe that produced it, never quoted into prose that cannot
+re-run: that is what grew the file to 9,482 lines and left eleven of its numbers
+stale. There is no revision log; git holds the history.
+[business/model/AGENTS.md](src/lib/business/model/AGENTS.md).
 
 **R8 — Changing the IndexedDB schema is a five-step change.** Bump
 `DB_VERSION`, add the store guarded inside `onupgradeneeded`, add it to

@@ -1,9 +1,9 @@
 /**
- * Measurements behind MATH.md §13.3's open question: does the pooled
+ * Measurements behind MATH.md's open question: does the pooled
  * allocator's suboptimality have an ENVELOPE, or is every quoted worst case
  * just the maximum of one draw?
  *
- * §13.3 reports "exact on 99.5%, p99 0.00%, worst 0.09%" over 1471 random
+ * MATH.md reports "exact on 99.5%, p99 0.00%, worst 0.09%" over 1471 random
  * pool-bound days, then adds (2026-08-05) that a fresh draw from the same
  * generator reaches 6.03%. Two numbers from one generator that differ by 60×
  * are not an envelope, they are two samples of a tail — and §4:276 still
@@ -209,7 +209,7 @@ interface SweepResult {
 
 /**
  * Shortfall = (brute − achieved)/brute, per day. `over2` is §4:276's stated
- * "within 1–2%" being exceeded; `over009` is §13.3's 0.09% being used as a
+ * "within 1–2%" being exceeded; `over009` is the 0.09% being used as a
  * bound and failing. A count of 0 over a big sweep would itself be the result.
  */
 function sweep(label: string, days: ProbeDay[]): SweepResult {
@@ -338,7 +338,7 @@ function randomDays(count: number, seed: number, wide: boolean): ProbeDay[] {
 }
 
 /**
- * The structural blind spot §13.3 named: greedy ranks blocks by VALUE, so a
+ * The structural blind spot MATH.md named: greedy ranks blocks by VALUE, so a
  * high-value task that is expensive in the scarce pool crowds out cheap tasks
  * that the pool could afford several hours of. Curated rather than sampled
  * because a random sweep hits this shape rarely — the fixture asks "how bad is
@@ -392,7 +392,7 @@ const POOL_TRAP: PooledTaskInput[] = [
 	},
 ];
 
-describe('pooled allocator suboptimality (MATH.md §13.3)', () => {
+describe('pooled allocator suboptimality', () => {
 	it('sweeps app-reachable days on five seeds', () => {
 		summarize(
 			'app-reachable',

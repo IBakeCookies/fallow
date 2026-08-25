@@ -53,9 +53,9 @@ export const getElapsedMinutes = (timer: SessionTimer, now: number): number =>
 	toMinutes(totalMs(timer, now));
 
 /** The minutes a 🪫 log may be seeded from — a STOPPED timer's, and nothing else. A
- *  clock still counting would fund a second log from the same minutes (MATH.md §18),
- *  and the first log would take the rest of the session with it. Under half a minute is
- *  not a session, so it seeds nothing and the field stays empty. */
+ *  clock still counting would fund a second log from the same minutes, and the first
+ *  log would take the rest of the session with it. Under half a minute is not a
+ *  session, so it seeds nothing and the field stays empty. */
 export function getPendingMinutes(timer: SessionTimer | null): number | null {
 	if (timer === null || timer.phase !== 'stopped') return null;
 

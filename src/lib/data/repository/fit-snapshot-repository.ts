@@ -1,6 +1,6 @@
 /**
  * CRUD access to the `fitSnapshots` object store — one record per day holding
- * the model parameters fitted that day (MATH.md §12).
+ * the model parameters fitted that day.
  */
 
 import type { FitSnapshotRecord } from '$lib/data/type';

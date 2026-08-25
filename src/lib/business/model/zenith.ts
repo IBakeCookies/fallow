@@ -39,7 +39,7 @@
  *    noise estimate — so callers can quantify how certain a ϕ prediction is.
  *    The fallback paths return the PRIOR as a posterior rather than none, so
  *    "no data" reads as maximally uncertain instead of maximally confident
- *    (2026-07-26 fix, MATH.md §13.1).
+ *    (2026-07-26 fix).
  *
  * 5. POSTERIOR-AWARE ALLOCATION (2026-07-18, MATH.md §5.1). Given the fit
  *    posterior, the allocator maximizes the EXPECTED average productivity
@@ -132,7 +132,7 @@ const AMPLITUDE_RATIO_CAP = 0.9;
 
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
 // tasks (4095 subsets — instant). Past it the same 4095-plan budget is spent on
-// the subset sizes the day can actually fund (MATH.md §34). Exported because
+// the subset sizes the day can actually fund. Exported because
 // `subset-search-bound.probe.ts` re-derives that branch rule and must compare
 // against the shipped cap, not a copy of it (R3).
 export const EXACT_SUBSET_LIMIT = 12;
@@ -367,7 +367,7 @@ export function optimalStoppingX(r: number): number {
 // and it is exactly the graceful degradation the cap exists to bound — a
 // Gaussian is the wrong posterior for a positive quantity out there anyway.
 // (An earlier comment called the error "~O(σ⁶)", which understated the rule
-// and pointed at the wrong term entirely — MATH.md §13.5.)
+// and pointed at the wrong term entirely.)
 
 // Gauss–Hermite (n=5) abscissae ξ and probabilist weights w/√π: for
 // ϕ = ϕ̂ + √2·σ·ξ these integrate a N(ϕ̂, σ²) density exactly through the
@@ -535,7 +535,7 @@ export function expectedOptimalTime(a: number, p0: number, phi: number, sigmaPhi
  * uncertainty is the part the data can actually remove; it vanishes as logs
  * accumulate, and with it the hedging — a well-measured user gets exactly the
  * classic plan. (σ̂ is NOT floored at σ₀ = 0.25h: §5's estimator is a weighted
- * average that the prior anchors only while n is small — MATH.md §10.)
+ * average that the prior anchors only while n is small.)
  */
 export function phiParameterStd(E: number, beta: number, posterior: FitPosterior): number {
 	const x = [E, beta, 1];
@@ -622,7 +622,7 @@ export function findOptimalSingleTaskTime(
 // Switch cost makes "which tasks get funded at all" a fixed-charge decision
 // that greedy can't price (an (m)-task plan pays (m−1)·switchCost off the
 // budget). It is solved EXACTLY by enumerating funded subsets for n ≤ 12, and
-// past that for every subset size the budget can afford (MATH.md §34) — v1's
+// past that for every subset size the budget can afford — v1's
 // iterative count-resolution + greedy drop-search heuristic is gone.
 //
 // With capacity pools (calculatePooledAllocations) a block is only eligible
@@ -639,7 +639,7 @@ interface AllocTask {
 	cognitiveWeight: number;
 	physicalWeight: number;
 	// Already worked today, so the day pays its switch whether or not this plan
-	// funds it again (MATH.md §35). False everywhere on the cold path.
+	// funds it again. False everywhere on the cold path.
 	isStarted?: boolean;
 }
 
@@ -657,11 +657,11 @@ interface AllocTask {
  * premise of greedy exactness BY CONSTRUCTION instead of by sweep, at a cost
  * that is real where it fires — up to 0.71% of the cell's best value at
  * slider-reachable cells and 28.00% on a wider grid, every cut landing before
- * the menu's own best block count (MATH.md §19.3, 2026-08-17) — in a corner no
+ * the menu's own best block count (2026-08-17) — in a corner no
  * fitted user has been shown to reach.
  * σ_ϕ = 0 never triggers the monotonicity cut (proved in MATH.md §2).
  *
- * `workedHours` continues the menu from a PREFIX (MATH.md §35): the j-th block
+ * `workedHours` continues the menu from a PREFIX: the j-th block
  * is worth P̄(h+jδ) − P̄(h+(j−1)δ), which is the same non-increasing sequence
  * from a later starting index. A started task therefore no longer re-collects
  * the ≈p₀ activation bonus, and one already past T* gets an empty menu.
@@ -710,7 +710,7 @@ function buildBlockIncrements(
  *
  * `byPoolRatio` switches the ranking from raw increment to increment per unit
  * of SCARCE pool consumed — the multi-dimensional-knapsack ranking. It exists
- * only as a second candidate plan for pool-bound subsets (MATH.md §13.3); the
+ * only as a second candidate plan for pool-bound subsets; the
  * single-constraint path never sets it, so plain greedy's exactness (Fox 1966)
  * is untouched.
  */
@@ -825,8 +825,8 @@ function improveWithTransfers(
 			// Donate 1, 2, or ALL of the donor's blocks. One block is often too
 			// little to unlock the trade: freeing enough pool for a cheap task can
 			// need several hours off an expensive one, and every intermediate
-			// single-block state is downhill, so a one-block-at-a-time pass stalls
-			// (MATH.md §13.3). The all-blocks variant is the "wrong task got the
+			// single-block state is downhill, so a one-block-at-a-time pass stalls.
+			// The all-blocks variant is the "wrong task got the
 			// scarce pool" case in a single move.
 			for (const give of new Set([1, 2, blocks[donor]])) {
 				if (give > blocks[donor]) continue;
@@ -857,7 +857,7 @@ function improveWithTransfers(
 		// and no sequence of single-donor transfers reaches that plan, because
 		// the refill immediately re-buys the cheap blocks it just freed. Force
 		// one block in, evicting the lowest-value funded blocks until the budget
-		// and both pools allow, then refill around it (MATH.md §13.3).
+		// and both pools allow, then refill around it.
 		for (const newcomer of subset) {
 			if (blocks[newcomer] > 0 || tasks[newcomer].increments.length === 0) continue;
 
@@ -973,7 +973,7 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
  * than the budget can fund — still exact wherever it fits the same plan budget,
  * and it fits on the tight days where the subset choice matters most (up to a
  * 3h day at n = 13). Longer days fall through to greedy forward selection,
- * which is where its residual forfeit is 5.11–6.47% (MATH.md §34).
+ * which is where its residual forfeit is 5.11–6.47%.
  */
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
@@ -984,7 +984,7 @@ function bestPlanWithSwitchCost(
 ): number[] {
 	const n = tasks.length;
 	// The day's funded set is `already started ∪ this plan's subset`, so a plan
-	// that abandons a started task does not get its switch back (MATH.md §35).
+	// that abandons a started task does not get its switch back.
 	// Zero on every cold solve, where this reduces to the old (m−1)·switchCost.
 	const startedCount = tasks.filter((t) => t.isStarted).length;
 
@@ -1005,7 +1005,7 @@ function bestPlanWithSwitchCost(
 	// Greedy + (only when a pool actually blocked a funding step) a second,
 	// ratio-ranked candidate plan, with the resource-aware improvement pass run on
 	// BOTH candidates and the better end state kept — picking a start by its
-	// initial value is exactly what does not work (MATH.md §13.3). Pool-less plans skip both entirely,
+	// initial value is exactly what does not work. Pool-less plans skip both entirely,
 	// preserving plain greedy's exact-optimality on the single constraint.
 	const allocate = (subset: number[], budgetBlocks: number): number[] => {
 		const { blocks, poolBlocked } = greedyAllocateBlocks(
@@ -1087,8 +1087,8 @@ function bestPlanWithSwitchCost(
 	// "Never optimal anyway" is a proof only here, against the single budget.
 	// Once pools bind, `improveWithTransfers` can admit a zero-block member and
 	// then empty a donor, so a task the greedy did not fund still shapes the
-	// plan and the step does not close; there the bound keeps §13.3's measured
-	// status (MATH.md §34).
+	// plan and the step does not close; there the bound keeps the measured
+	// status.
 	//
 	// `budgetBlocksFor(max(startedCount, m)) − m` is non-increasing, so the
 	// affordable sizes are the interval [1, maxFunded] and stopping at the first
@@ -1126,8 +1126,7 @@ function bestPlanWithSwitchCost(
 	// A long enough day funds everything, so no bound brings the enumeration
 	// back: greedy forward selection — add the task whose admission most improves
 	// the total, stop when none does. Documented heuristic, still 5.11–6.47% short and
-	// still non-monotone in the budget, in the regime where that costs least
-	// (MATH.md §34).
+	// still non-monotone in the budget, in the regime where that costs least.
 	const funded: number[] = [];
 
 	for (;;) {
@@ -1264,7 +1263,7 @@ function zeroAllocations(
  *
  * v2: exact on the block grid (greedy marginal analysis per funded subset +
  * exhaustive subset enumeration for the switch-cost fixed charge, n ≤ 12, and
- * bounded by what the budget can fund past that — MATH.md §34).
+ * bounded by what the budget can fund past that).
  * An abundant budget still leaves slack: blocks past a task's optimal
  * stopping time have negative increments and are never offered to greedy.
  *
@@ -1342,7 +1341,7 @@ export interface PooledTaskInput extends TaskInput {
  *
  * `workedHours` (index-aligned with `tasks`) re-plans from a PREFIX — hours
  * already spent today, so each task's menu continues from where it is rather
- * than from zero (MATH.md §35). It moves only the menus: `totalBudget` is the
+ * than from zero. It moves only the menus: `totalBudget` is the
  * budget the plan may still spend and `pools` the capacity it may still draw,
  * both the caller's to deplete, because a task that no longer takes hours (a
  * completed one) still spent them.
@@ -1408,12 +1407,13 @@ export function calculateTotalProductivity(
  * Ratios above ~10× carry no extra decision value, so the gain saturates here;
  * a capped value reads as "≥ 10× the naive plan".
  *
- * WHY it fires (2026-08-06, MATH.md §19.4 — this REPLACES the §11.2 rationale).
- * §11.2 added the cap for `naive = 0`, which it read as "many tasks, small
+ * WHY it fires (2026-08-06 — this REPLACES the earlier rationale).
+ * The cap was added for `naive = 0`, which was read as "many tasks, small
  * budget, switch overhead eats everything". That was an artifact of billing the
- * baseline for switches its plan never made, and §19 removed it: the `naive = 0`
- * arm of `gainPercentOf` now needs a budget under one whole block, where the
- * optimizer scores 0 too and the function returns 0 rather than the cap.
+ * baseline for switches its plan never made, and that billing is gone: the
+ * `naive = 0` arm of `gainPercentOf` now needs a budget under one whole block,
+ * where the optimizer scores 0 too and the function returns 0 rather than the
+ * cap.
  *
  * What still reaches the cap is the opposite regime. The baseline must spend its
  * whole block target, so a long budget poured into FEW tasks pushes each past
@@ -1445,11 +1445,11 @@ export const GAIN_PERCENT_CAP = 999;
  * itself to the first `maxFunded` entries is the tempting shortcut and it is
  * wrong: a window that happens to hold only pool-blocked tasks yields an
  * all-zero plan, which drags the rotation average down and resurrects the very
- * `naive = 0 → GAIN_PERCENT_CAP` reading §19 removed (measured before this
+ * `naive = 0 → GAIN_PERCENT_CAP` reading that was removed (measured before this
  * guard: 8 tasks at 0.25h against a zeroed physical pool reported 700%, and
  * 12 tasks reported the full 999%, where the honest answer is 0%).
  *
- * WHY quantized (2026-07-26, MATH.md §13.2 — this REVERSES the §7 "naive
+ * WHY quantized (2026-07-26 — this REVERSES the §7 "naive
  * baselines stay continuous" decision). A continuous baseline can hand every
  * task a 0.373h sliver and collect its ≈ p₀ activation bonus (§2), something
  * Zenith structurally cannot do. The gain metric was therefore measuring two
@@ -1457,7 +1457,7 @@ export const GAIN_PERCENT_CAP = 999;
  * side only — and the handicap dominated: measured over random days the
  * reported gain was NEGATIVE on 3.8–7.8% of them, with no trend in n (the
  * "4% at n = 2 rising to 19% at n = 6" first quoted here came from a draw whose
- * generator was never committed and does not reproduce — §13.2). Since the
+ * generator was never committed and does not reproduce). Since the
  * lattice is an accounting choice rather than a cost Zenith imposes on the
  * user (nobody executes 0.373h either way), both planners now face the same
  * feasible set and the number isolates allocation quality.
@@ -1508,18 +1508,17 @@ function naiveBlockPlan(
  * The naive baseline's productivity — the denominator of the reported gain.
  *
  * Two properties the plain round-robin above did not have on its own, both
- * fixed here (2026-08-06, MATH.md §19):
+ * fixed here (2026-08-06):
  *
  * 1. **It pays for the switches it makes.** The baseline used to be billed
  *    (n−1)·switchCost for ALL n listed tasks while the plan it produced seated
  *    only as many as the leftover budget could reach — on 39.3% of days at
  *    n = 8 and 3.3% at n = 2 (`scripts/rv14-naive-switch-bill.probe.ts` arm A,
- *    2026-08-06). That is the same one-sided handicap §13.2 removed from the
- *    lattice,
- *    and it is the sole cause of the `naive = 0 → GAIN_PERCENT_CAP` reading
- *    (which fires exactly when budget < n·BLOCK_HOURS). The bill is instead the
- *    largest k the plan genuinely seats — the same "funded, not listed" rule the
- *    switch-cost lever already uses (`metric/plan-advice.ts`).
+ *    2026-08-06). That is the same one-sided handicap removed from the
+ *    lattice, and it is the sole cause of the `naive = 0 → GAIN_PERCENT_CAP`
+ *    reading (which fires exactly when budget < n·BLOCK_HOURS). The bill is
+ *    instead the largest k the plan genuinely seats — the same "funded, not
+ *    listed" rule the switch-cost lever already uses (`metric/plan-advice.ts`).
  *
  *    Affordability is necessary but NOT sufficient, which is why the scan below
  *    validates k against the plan rather than against the budget alone: a task
@@ -1535,7 +1534,7 @@ function naiveBlockPlan(
  *    terms, that average is EXACTLY permutation-invariant whenever no pool
  *    binds. When one does the skips are not separable and a residue survives:
  *    permutation-exact on 96.13% of 2400 days, worst baseline spread 1.61%,
- *    worst reported-gain spread 3.4pp (2026-08-06, §19).
+ *    worst reported-gain spread 3.4pp (2026-08-06).
  */
 function naiveBaselineValue(
 	tasks: PooledTaskInput[],
@@ -1602,8 +1601,8 @@ function gainPercentOf(optimized: number, naive: number): number {
  * budget equally over as many tasks as the day can actually seat, pays only
  * those switches, and skips any task whose next whole block would overdraw a
  * capacity pool — averaged over the n cyclic rotations of the task list so the
- * odd block is not an artifact of list order (`naiveBaselineValue`, MATH.md
- * §19). Both plans being pool-feasible and billed for their own switches makes
+ * odd block is not an artifact of list order (`naiveBaselineValue`). Both plans
+ * being pool-feasible and billed for their own switches makes
  * the comparison about allocation quality, not about one side carrying a
  * constraint the other is spared.
  */
@@ -1671,7 +1670,7 @@ export function pooledProductivityGain(
  * with both pools unbounded so the time budget is the only constraint.
  *
  * Each side is billed for the switches its OWN plan makes — the optimizer for
- * its funded subset, the baseline for the tasks it seats (MATH.md §19) — so
+ * its funded subset, the baseline for the tasks it seats — so
  * neither is handicapped by the other's task count.
  */
 export function productivityGain(
@@ -1791,7 +1790,7 @@ export interface FitPosterior {
  * data. It is literally the n = 0 limit of the fitted formulas — with no
  * observations XᵀX = 0, so Σ = σ̂²·(λI)⁻¹ = (σ₀²/λ)·I and σ̂² = σ₀².
  *
- * WHY this exists (2026-07-26 math-review fix, MATH.md §13.1): every fallback
+ * WHY this exists (2026-07-26 math-review fix): every fallback
  * path used to return NO posterior, and a missing posterior means σ_ϕ = 0
  * downstream — i.e. the allocator treated a user with ZERO ⚡ logs as
  * PERFECTLY certain, then started hedging the moment they logged their first
@@ -1855,7 +1854,7 @@ function priorPosterior(): FitPosterior {
  *
  * EVERY return carries a posterior, including the fallbacks: falling back
  * means "the prior is all we know", and the prior's own uncertainty is real
- * information the allocator must see (priorPosterior, MATH.md §13.1). Before
+ * information the allocator must see (priorPosterior). Before
  * 2026-07-26 the fallbacks returned none, which downstream read as certainty.
  */
 export function fitUserConstants(

@@ -8,7 +8,7 @@
  * fits recover the truth. That is a real test. It is NOT evidence about what a
  * user habitually does — a generator only ever replays its own assumptions, so
  * it can never gate an item whose question is "what does the user actually do"
- * (MATH.md §17 turns on real logs for exactly that reason).
+ * (MATH.md turns on real logs for exactly that reason).
  *
  * Usage:
  *   node scripts/generate-fixture.mjs [--days 365] [--seed 42] [--out path.json]
@@ -111,9 +111,9 @@ const weekdayOf = (iso) => new Date(`${iso}T00:00:00Z`).getUTCDay();
 
 /**
  * A realistic mix: a small recurring core (the routine), a mid-frequency set,
- * and a long tail of one-offs. §17 measured 64–79% of logged titles carrying a
- * single log, so the tail matters — a generator with only recurring titles
- * would make per-task structure look far more learnable than it is.
+ * and a long tail of one-offs. MATH.md measured 64–79% of logged titles
+ * carrying a single log, so the tail matters — a generator with only recurring
+ * titles would make per-task structure look far more learnable than it is.
  */
 const CATALOGUE = [
 	{
@@ -266,7 +266,7 @@ let flowId = 1;
 let drainId = 1;
 let restId = 1;
 // Which titles have ever been ⚡-logged. Once a title is measured the user
-// rarely re-measures it, which is what produces §17's single-log majority.
+// rarely re-measures it, which is what produces the single-log majority.
 const measuredTitles = new Set();
 
 for (const date of dates) {
@@ -306,7 +306,7 @@ for (const date of dates) {
 
 	// --- simulate the day being worked -------------------------------------
 
-	// Reservoirs start high but not always full (overnight carry-over, §11.9).
+	// Reservoirs start high but not always full (overnight carry-over).
 	let cognitive = clamp(between(0.85, 1), 0, 1);
 	let physical = clamp(between(0.85, 1), 0, 1);
 	// The user works a share of the declared budget — over-declaring is the norm.
@@ -451,10 +451,10 @@ const backup = {
 		drainObservations,
 		restObservations,
 		settings: [],
-		// Left empty on purpose: only today's snapshot is ever written (MATH.md
-		// §12.1), so fabricating a year of them would invent what the model
-		// "believed" on days it never ran. A day with no snapshot correctly
-		// falls back to the live fit.
+		// Left empty on purpose: only today's snapshot is ever written, so
+		// fabricating a year of them would invent what the model "believed" on
+		// days it never ran. A day with no snapshot correctly falls back to the
+		// live fit.
 		fitSnapshots: [],
 	},
 };

@@ -472,7 +472,7 @@ const cognitiveDrainRow = (card: Locator) =>
 		})
 		.last();
 
-/* MATH.md §33: α and r are identity, so the cards fit logs dated strictly before
+/* α and r are identity, so the cards fit logs dated strictly before
    today — the rating just logged is named beside the fit instead of moving it,
    and with no other log there is nothing to apply. */
 test('a drain rating logged today is named beside the fit, not folded into it', async ({
@@ -622,7 +622,7 @@ test('a break logged today is named beside the recovery fit', async ({ page }) =
 // there is one button for all four fits, because their order is the math.
 test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	// Logged today, then carried past midnight: only a rating with a day behind it
-	// reaches the fit (§33), and this test is about what Apply does with one.
+	// reaches the fit, and this test is about what Apply does with one.
 	await page.clock.install();
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -995,7 +995,7 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), and the
 	// one Apply carries it — so this proves the reloaded pair reached the FIT, not
 	// just the list's count. Past midnight, because r reads pairs dated before
-	// today (§33), and the new day needs a task of its own to render the sliders.
+	// today, and the new day needs a task of its own to render the sliders.
 	await page.clock.fastForward('25:00:00');
 	await page.goto('/energy');
 	await addTask(page, 'Deep work');
@@ -1032,7 +1032,7 @@ test('a changed parameter survives a reload', async ({ page }) => {
 
 // Deleting the last rating must take the calibration back to the defaults, not
 // leave a stale fit applied to the params.
-// MATH.md §18: a rating is one SESSION, so the row button always starts a new one
+// A rating is one SESSION, so the row button always starts a new one
 // and correcting an old one goes through its ✎. Logging the correction instead
 // would count the session twice — the defect this replaced, from the other side.
 test('correcting a rating edits its row, while a second session adds one', async ({ page }) => {
@@ -1135,7 +1135,7 @@ test('the ✎ re-seeds a drain editor the row already has open', async ({ page }
 
    ☕ is also where a correction re-deriving anything would be least visible — it has no
    covariates to re-derive — so the ⚡/🪫 cases are covered where their covariates are
-   (the store specs, MATH.md §36). */
+   (the store specs). */
 test('a break is correctable from the analytics history, and the fit follows', async ({ page }) => {
 	await page.clock.install();
 	await page.goto('/');
@@ -1145,7 +1145,7 @@ test('a break is correctable from the analytics history, and the fit follows', a
 
 	// A long break off a nearly-full drain recovers slowly; the correction below makes it
 	// a short break off the same drain, which is a much faster recovery rate. Carried
-	// past midnight, because r only reads pairs dated before today (§33).
+	// past midnight, because r only reads pairs dated before today.
 	await logRest(page, 120, 9, 8, 8, 7);
 	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
@@ -1226,7 +1226,7 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 	// fired into the gap before it aborts the transaction and nothing is there to drop.
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
-	// Carried past midnight, so there is a fit to clear at all (§33).
+	// Carried past midnight, so there is a fit to clear at all.
 	await page.clock.fastForward('25:00:00');
 	await page.goto('/energy');
 	await addTask(page, 'Deep work');

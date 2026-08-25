@@ -1,6 +1,6 @@
 /**
- * The measurement behind MATH.md §30 — what the `/energy` comparison tile
- * reports, against the objective the plan above it was chosen to maximize.
+ * What the `/energy` comparison tile reports, against the objective the plan
+ * above it was chosen to maximize.
  *
  * The tile divided `totalOutput` — raw Σ block output, the ONE field of
  * `ScheduleEvaluation` the optimizer does not maximize (§8.4: it maximizes
@@ -186,7 +186,7 @@ describe('output vs the classic plan (the /energy summary tile)', () => {
 			const objectiveGap = percent(energy.evaluation.objective, classic.objective);
 
 			// The tile compares two plans that work different amounts of the same
-			// window (§15: 92% vs 81% of budget). Per worked hour separates "works
+			// window (92% vs 81% of budget). Per worked hour separates "works
 			// better" from "works more".
 			perHourGaps.push(
 				percent(
@@ -232,7 +232,7 @@ describe('output vs the classic plan (the /energy summary tile)', () => {
 		console.log("\ntile vs the optimizer's own verdict:");
 
 		console.log(
-			`  objective losses (lattice, §15):        ${objectiveLosses}/${tileValues.length}`,
+			`  objective losses (lattice):             ${objectiveLosses}/${tileValues.length}`,
 		);
 
 		console.log(`  tile shows ≤ −1% while objective wins:  ${tileNegativeButObjectiveWins}`);

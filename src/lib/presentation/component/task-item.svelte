@@ -29,7 +29,7 @@
 		// Not reconstructable from ϕ: task-dependent and hedged for ϕ-uncertainty,
 		// so it can land below ϕ itself (MATH.md §3).
 		optimalStopHours: number;
-		/** The mid-day re-plan (MATH.md §35): passed for every row once today has 🪫
+		/** The mid-day re-plan: passed for every row once today has 🪫
 		 *  hours, rendered only where it disagrees with the plan — see `replan`. */
 		remaining?: {
 			taskHours: number;
@@ -95,7 +95,7 @@
 
 	const badge = $derived(natureBadge(nature));
 
-	/* Shown only where it DISAGREES with the plan (MATH.md §35); compared on the PRINTED
+	/* Shown only where it DISAGREES with the plan; compared on the PRINTED
 	   figure, because what the guard prevents is the same text twice. */
 	const replan = $derived(
 		remaining && formatDuration(remaining.taskHours) !== formatDuration(suggestedHours)
@@ -223,7 +223,7 @@
 					</p>
 				</Tooltip.Content>
 			</Tooltip.Root>
-			<!-- The plan reads beneath the re-plan and only there (MATH.md §35): with no
+			<!-- The plan reads beneath the re-plan and only there: with no
 			     re-plan above it, the bold line already IS the plan. -->
 			{#if replan}
 				<Tooltip.Root>

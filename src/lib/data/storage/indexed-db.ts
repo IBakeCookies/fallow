@@ -14,7 +14,7 @@
  *                     model parameters), so they are backed up with everything
  *                     else instead of living loose in localStorage
  * - fitSnapshots:     one day's fitted model parameters, keyed by date — the
- *                     record of what the model believed that day (MATH.md §12)
+ *                     record of what the model believed that day
  */
 
 import { logWarning } from '$lib/logger';

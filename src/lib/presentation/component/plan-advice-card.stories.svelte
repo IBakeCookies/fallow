@@ -71,7 +71,7 @@
 					},
 					/* The unpriced lever, always last and costed in hours rather than in
 					   plan value: Σ P̄ rises with the budget, so a percentage here would
-					   read as the extra hour being free (MATH.md §14.1). */
+					   read as the extra hour being free. */
 					{
 						lever: {
 							kind: 'set-budget',
@@ -192,15 +192,15 @@
 		await expect(canvas.getByText('· costs no plan value')).toBeVisible();
 
 		// The budget's shadow price: the yield side of the same statement the
-		// unpriced "+1h" lever below makes only the cost of (MATH.md §14.2).
+		// unpriced "+1h" lever below makes only the cost of.
 		await expect(
 			canvas.getByText('The next 15 minutes would go to “Tax return” · +2.4% plan value'),
 		).toBeVisible();
 
 		// The switch cost's price sits in the same quiet register as the marginal and
-		// NOT as a menu row: §14 rules it a measurement of the user, so it must never
-		// render as something to apply (MATH.md §14.3). The lever count below is what
-		// pins that it added none.
+		// NOT as a menu row: it is a measurement of the user, so it must never render
+		// as something to apply. The lever count below is what pins that it added
+		// none.
 		await expect(
 			canvas.getByText(
 				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
@@ -229,9 +229,9 @@
 			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
 		).toHaveClass('text-warning-strong');
 
-		// Both lever kinds are performable (MATH.md §14 rules the budget a choice
-		// about the day), and each button must say what it does: which task it
-		// moves, or which budget it sets.
+		// Both lever kinds are performable (the budget is a choice about the day),
+		// and each button must say what it does: which task it moves, or which
+		// budget it sets.
 		expect(
 			canvas.getAllByRole('button', {
 				name: /to tomorrow/i,
@@ -254,7 +254,7 @@
 		);
 
 		// The lever's hours, not the label's: applying is the only way to reach the
-		// budget the model actually priced (MATH.md §14.1-2).
+		// budget the model actually priced.
 		await expect(args.onapplybudget).toHaveBeenCalledOnce();
 		await expect(args.onapplybudget).toHaveBeenCalledWith(6.5);
 
@@ -299,8 +299,8 @@
 		await expect(canvas.getByText('Your day has changed since this was calculated.')).toBeVisible();
 
 		// The numbers stay; the levers do not. Each option is priced as the ONE next
-		// move on the day that was solved (MATH.md §14), so on any other day they are
-		// wrong together — including the budget lever, which is priced the same way.
+		// move on the day that was solved, so on any other day they are wrong
+		// together — including the budget lever, which is priced the same way.
 		await expect(canvas.getByText('Move “Migrate the database” off today')).toBeVisible();
 
 		await expect(
@@ -354,15 +354,15 @@
 		await expect(canvas.queryByText(/^Tomorrow:/)).not.toBeInTheDocument();
 
 		// The shadow price is a reading, not a finding: a day with nothing to fix
-		// still answers what the next block would buy (MATH.md §14.2).
+		// still answers what the next block would buy.
 		await expect(canvas.getByText('Another 15 minutes would get nothing more done.')).toBeVisible();
 	}}
 />
 
 <!-- A day of nothing but cognitive tasks: Energy Balance reads 100% and no lever
-     moves it, since the share is invariant under both (MATH.md §14.4). The row
-     has to appear anyway — silence here is what let the card call such a day
-     fine while the dashboard banded the same reading Caution. -->
+     moves it, since the share is invariant under both. The row has to appear
+     anyway — silence here is what let the card call such a day fine while the
+     dashboard banded the same reading Caution. -->
 <Story
 	name="An axis nothing can improve"
 	args={{
@@ -472,7 +472,7 @@
 	}}
 />
 
-<!-- MATH.md §14.5. A ninth axis, and no markup of its own. -->
+<!-- A ninth axis, and no markup of its own. -->
 <Story
 	name="Flow coverage"
 	args={{

@@ -72,7 +72,7 @@ test('added task appears and survives a reload', async ({ page }) => {
 	await addTask(page, 'Boxing training');
 
 	// The row, not the title: the Bottleneck metric names the same task once the plan
-	// funds it (MATH.md §23.1), from inside the collapsed disclosure above the ledger.
+	// funds it, from inside the collapsed disclosure above the ledger.
 	await expect(taskRow(page, 'Boxing training')).toBeVisible();
 	await expect(page.getByText('No tasks deployed yet')).not.toBeVisible();
 
@@ -255,10 +255,10 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 	await expect(form.getByLabel('Enjoyment')).toHaveValue('8');
 });
 
-/* "Next" (MATH.md §35) carries a `nowrap` title, and `next-up-line.svelte` is a
-   flex item of the card's header row — so without its `min-w-0` the longest task
-   name sizes the row and the whole page scrolls sideways on a phone, with the
-   title running off the card instead of eliding.
+/* "Next" carries a `nowrap` title, and `next-up-line.svelte` is a flex item of
+   the card's header row — so without its `min-w-0` the longest task name sizes
+   the row and the whole page scrolls sideways on a phone, with the title
+   running off the card instead of eliding.
 
    BOTH halves are asserted, and neither alone is the test. Drop that `min-w-0`
    and the page widens, but the title is still clipped by its own `truncate` —
@@ -375,7 +375,7 @@ test('capacity left reads N/A until a session is rated, then names what is spent
 		})
 		.click();
 
-	// A share, not a duration: pool hours are weighted ones (MATH.md §35).
+	// A share, not a duration: pool hours are weighted ones.
 	await expect(row).toContainText('75%');
 });
 
@@ -455,8 +455,8 @@ test('stopping the timer fills the next drain editor', async ({ page }) => {
 	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
 });
 
-/* MATH.md §18 — one 🪫 row per session. The reading funds the log that spends it and
-   no other, or the second row re-saves hours the day already counts. */
+/* One 🪫 row per session. The reading funds the log that spends it and no other, or
+   the second row re-saves hours the day already counts. */
 test('one stop funds one log', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Write report');
@@ -510,8 +510,8 @@ test('the stopped reading survives a reload', async ({ page }) => {
 	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
 });
 
-/* Correcting a rating rewrites a session already counted (MATH.md §18), so it never
-   spends the timed one — the reading is still there for the log it belongs to. */
+/* Correcting a rating rewrites a session already counted, so it never spends the
+   timed one — the reading is still there for the log it belongs to. */
 test('a correction does not spend the stopped reading', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Write report');
@@ -544,8 +544,8 @@ test('a correction does not spend the stopped reading', async ({ page }) => {
 });
 
 /* Several rows hold an open 🪫 editor at once — ticking two tasks done opens two — and
-   the stopped reading is one session's (MATH.md §18). The first editor opened claims it;
-   any other opens empty and spends nothing, and closing the claim hands it back. */
+   the stopped reading is one session's. The first editor opened claims it; any other
+   opens empty and spends nothing, and closing the claim hands it back. */
 test('a second drain editor opened over the reading opens empty', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Write report');

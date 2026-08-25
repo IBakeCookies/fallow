@@ -108,7 +108,7 @@
 	let isEditing = $state(false);
 
 	// `completed` is a prop, read BEFORE the parent flips it. `measured: false` for 🪫:
-	// a rating is per session, so an earlier one never silences the next prompt (§18).
+	// a rating is per session, so an earlier one never silences the next prompt.
 	function onCompletionChange() {
 		const flowAction = completionPromptAction({
 			finishing: !completed,

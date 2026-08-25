@@ -605,14 +605,14 @@ reaches the claim, never that the claim is false.
 - **M15 §5 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M16 §5.2 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M17 §13.4** — `zenith-energy.ts:2028-2029` still quotes the retracted "0.65
-  appended-last against 0.37 inserted-first"; `MATH.md:3319-3325` retracted it
+  appended-last against 0.37 inserted-first"; `MATH.md:3323-3329` retracted it
   (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
   `rv13-stop-insertion.probe.ts`.
   **Two of three sites fixed 2026-08-19,
   [`what-the-retracted-step-still-said`](docs/features/what-the-retracted-step-still-said.md); does not close.** The third —
   §8.10's own paragraph, which states the same pair as live fact — is held with
   the reconstruction ruling and still reads it. Both of this entry's citations
-  are stale (`zenith-energy.ts:2028-2029` → `:2031-2032`; `MATH.md:3319-3325` →
+  are stale (`zenith-energy.ts:2028-2029` → `:2031-2032`; `MATH.md:3323-3329` →
   the §13.4 retraction, several hundred lines down) and its prescription is
   wrong: 0.8894/0.8840 are whole-day indifference midpoints, not a step
   marginal, so the docblock drops the pair and cites §13.4 rather than
@@ -635,18 +635,18 @@ reaches the claim, never that the claim is false.
 - **M30 §7 — closed 2026-08-19, [`what-the-bounded-path-actually-ran-on`](docs/features/what-the-bounded-path-actually-ran-on.md).**
 - **M31 §8.2 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M32 §11.5 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
-- **M33 §8.12** — the shipped pseudocode at `MATH.md:2033` defines
+- **M33 §8.12** — the shipped pseudocode at `MATH.md:2037` defines
   `recommendedHours` as null "when that is W", the horizon; the code nulls on the
   last budget of the lattice instead (`zenith-energy.ts:1364-1372`,
   `knee < last.budgetHours - 1e-9`, and `:1338`). The two coincide only when the
   lattice ends exactly at the horizon.
-- **M34 §8.12** — `MATH.md:2054-2056` says the pre-fix days that "recommended a
+- **M34 §8.12** — `MATH.md:2058-2060` says the pre-fix days that "recommended a
   45-minute day booking 0 h of work" are counted at each λ₀ in
   `curve-shape.probe.ts`. The probe's only measurement is
   `if (curve.points.every((p) => p.workHours === 0)) noWork++` (`:262`); the
   sentinel knee it names is asserted in a comment (`:242-246`), not
   reconstructed, though the RAW arm at `:111` shows the probe knows how to.
-- **M35 §8.12** — the §8.11 agreement witness at `MATH.md:2169-2173` (one task
+- **M35 §8.12** — the §8.11 agreement witness at `MATH.md:2173-2177` (one task
   P0/M8/E9, 6 h, λ₀ = 1.2, curve 3 h, advisor flipping at 3 h logged) is run at
   `alphaCog: 0.25, alphaPhys: 0.35, recoveryRate: 1`
   (`advisor-curve-agreement.probe.ts:38-49`), which are not the defaults at
@@ -755,7 +755,7 @@ bodies before believing an "unbacked" — M22 is the case worth studying, becaus
 the same figure was filed as unbacked by one lens and as stale by another, the
 unbacked framing was refuted, and only the stale one is real.
 
-The partition failed once. The thirteen ranges left §8.12 (`MATH.md:2001-2192`,
+The partition failed once. The thirteen ranges left §8.12 (`MATH.md:2005-2196`,
 sole owner of four registry probes) unread until the completeness pass caught it;
 M22 and M33–M36 come from a second three-lens pass over that section alone, which
 is why §8.12 is the only section here audited by lens rather than by range. That

@@ -103,7 +103,7 @@ and would have cost the next reader a probe run to rediscover.
 - **Mechanically bumping ROADMAP's `MATH.md:` citations is theatre, so it was
   not done.** This change inserts 4 lines at §8.5, which shifts every citation
   below it. But no citation anywhere points _into_ §8.5, and the ones below it
-  were already stale when this commit landed — M5 cites `MATH.md:1562-1563` for
+  were already stale when this commit landed — M5 cites `MATH.md:1566-1567` for
   §8.9's retraction of the r lever arm, 44 lines below it at "roughly a THIRD of
   its lever arm, not the half once claimed", and M33 cites `:2033` for §8.12's
   `recommendedHours` pseudocode, 149 lines below it at "or null when that is W".

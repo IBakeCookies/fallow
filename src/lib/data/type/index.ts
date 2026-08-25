@@ -27,10 +27,9 @@ export type Task = {
 	createdAt: string;
 	completed: boolean;
 	// This task cannot move to another day (a deadline, someone else waiting).
-	// The plan advisor never offers to defer it (MATH.md §14) and
-	// `moveTaskToTomorrow` refuses it. A statement about TODAY, not about the
-	// task's definition, so routines, day-imports and a cross-day move
-	// deliberately do not carry it.
+	// The plan advisor never offers to defer it and `moveTaskToTomorrow`
+	// refuses it. A statement about TODAY, not about the task's definition, so
+	// routines, day-imports and a cross-day move deliberately do not carry it.
 	mustDoToday?: boolean;
 };
 
@@ -111,9 +110,9 @@ export interface SettingRecord {
 
 /**
  * One day's fitted model parameters — what the model believed about the user on
- * that date (MATH.md §12). Only the values a FIT can move are stored: the rest
- * of `EnergyParams` is model constants, and copying those would freeze a
- * constant into history rather than record a measurement.
+ * that date. Only the values a FIT can move are stored: the rest of
+ * `EnergyParams` is model constants, and copying those would freeze a constant
+ * into history rather than record a measurement.
  *
  * Flat numbers rather than the business layer's `UserConstants` / `FitPosterior`
  * / `EnergyParams` shapes, because the data layer never imports upward (R1) and
@@ -130,8 +129,8 @@ export interface FitSnapshotRecord {
 	c2: number;
 	c3: number;
 	// Posterior of that plane. Stored because a MISSING posterior means σ_ϕ = 0
-	// downstream — a user with one ⚡ log read as perfectly certain (§13.1) — so a
-	// snapshot without it would re-introduce exactly the bias it exists to remove.
+	// downstream — a user with one ⚡ log read as perfectly certain — so a snapshot
+	// without it would re-introduce exactly the bias it exists to remove.
 	covariance: number[][];
 	sigma2: number;
 	// The energy-model rates fitted from ☕ / 🪫 logs (§8.7/§8.9)

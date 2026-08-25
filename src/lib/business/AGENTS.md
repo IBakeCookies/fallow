@@ -329,13 +329,13 @@ interface-arithmetic reason as `zenith.ts` —
 
 ### Plan advice is computed on demand, never in a `$derived`
 
-MATH.md §14. `suggestPlanAdjustments` re-solves the whole day once per
+`suggestPlanAdjustments` re-solves the whole day once per
 candidate, so cost scales with the 2ⁿ funded-subset enumeration: measured 1 ms
 for a 6-task day but **109-124 ms for a 12-task one** (2026-08-17; 12 ms / 946 ms
 in the 2026-07-27 reading, before solve-once and on an unnamed machine —
 conclusion unchanged). In a `$derived` that is a frozen main thread on every
 keystroke in the budget field. A 12-task day is the **worst** case, not a floor:
-past `EXACT_SUBSET_LIMIT` the solve takes §34's fallback and gets cheaper. `DailyPlanStore` therefore
+past `EXACT_SUBSET_LIMIT` the solve takes the fallback and gets cheaper. `DailyPlanStore` therefore
 exposes `computeAdvice()` plus `isAdviceStale`, and staleness compares a
 **fingerprint of the inputs** — a `$derived` read from outside a reactive
 context is not guaranteed to return the same object twice, so identity reports
@@ -352,7 +352,7 @@ with the flag is theirs: [presentation/AGENTS.md](../presentation/AGENTS.md).
 
 The day's **second** solve goes the other way and stays a store-level
 `$derived`: `#remainingDay` re-plans what is left of today from the hours
-already logged against it (MATH.md §35), gated on the viewed day being today
+already logged against it, gated on the viewed day being today
 **and** on any hours existing. That gate, not an on-demand method, is what
 keeps it viable — 12.4 ms a solve at n = 12, but 0.001 ms while nothing is
 logged, which is every morning, i.e. exactly when the day is being typed into.
@@ -377,9 +377,9 @@ day is never read, and it holds with JS disabled.
 
 Being a today-only instrument does not exempt its fits from the causal window:
 the three identity fits (α, r, λ₀) read only days **strictly before** today, like
-every other fit in the app (MATH.md §33), and the two pending counts name the
+every other fit in the app, and the two pending counts name the
 rows they defer. The stop advisor is the one read that keeps today's rows — it
-prices the day in progress, which is §33's state half.
+prices the day in progress, which is the state half.
 
 ### `scheduledTasks` carries the task's true effort
 
@@ -393,7 +393,7 @@ different efforts for one task. The public getter's shape is `Task & { trueEffor
 ### An unseen day's budget is prefilled, and that is not the Lab's `|| 8`
 
 ROADMAP item 16. A day with no stored session shows the median budget of its own
-weekday (`model/budget-memory.ts`), which the §13.6 removal above does **not**
+weekday (`model/budget-memory.ts`), which the removal above does **not**
 forbid: that fallback invented a window the main page did not have, while this
 is the user's own recorded hours and the two screens still read one value.
 
@@ -463,9 +463,8 @@ serializes with itself (two overlapping read-modify-writes on tomorrow would
 drop one task). Destination is hard-coded to `selectedDate + 1`: the advice
 card's "To tomorrow" button is the only caller, it never means anything else,
 and tomorrow is never the day on screen — an arbitrary-date move would have to
-answer that (YAGNI). The advice reading itself stays a counterfactual
-(MATH.md §14): the model prices "off today", only the button commits to a
-destination.
+answer that (YAGNI). The advice reading itself stays a counterfactual: the
+model prices "off today", only the button commits to a destination.
 
 The destination record is also **read** for a preview — the card's day-level
 "what tomorrow already holds" line (ROADMAP item 21) — and both go through

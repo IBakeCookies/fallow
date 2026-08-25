@@ -85,7 +85,7 @@ written — the claim passes as stated, gap 0, identical hours vector:
 Every `MATH.md` line number below is **as of planning, before this change**;
 they moved when it landed. Sections, not lines, are the durable address.
 
-- `MATH.md:6467-6494` — §34 "The bound". Line 6473 is the formula to amend;
+- `MATH.md:6518-6545` — §34 "The bound". Line 6473 is the formula to amend;
   6480-6489 is the proof whose variable `b = budgetBlocksFor(|S|)` is the
   second half of the defect.
 - `MATH.md:6502-6512` — §34's crossover paragraph. Both figures reproduce
@@ -94,7 +94,7 @@ they moved when it landed. Sections, not lines, are the durable address.
   edit here.
 - `MATH.md:6697-6705` — §35's union rule, where `S` = worked ∪ newly funded is
   defined and where the note that the size bound reads the same set belongs.
-- `MATH.md:2243` — §10, the doc-only revision log. R7 requires a dated entry:
+- `MATH.md:2247` — §10, the doc-only revision log. R7 requires a dated entry:
   this changes no formula, constant, bound or fit **in the code**, only the
   document's account of one.
 - `src/lib/business/model/zenith.ts:986-1000` — `startedCount`,
@@ -169,7 +169,7 @@ dayFundedCount(S)`, so `budgetBlocksFor(dayFundedCount(F)) ≥ b ≥ |F|`; and
   uniformly, which is not a day, and neither has a committed probe behind it.
 - **The cold-day equivalence is stated as an identity, not a measurement.**
   `startedCount` = 0 makes `max(0, m)` = `m`, so the two forms are the same
-  expression — the same fact `model/AGENTS.md:87` and `MATH.md:6704-6705`
+  expression — the same fact `model/AGENTS.md:87` and `MATH.md:6755-6756`
   already state for the switch bill. Rejected: quoting the measured 0
   disagreements in 50,000 cold draws, which would dress an identity as evidence.
 - **The pin runs through `calculatePooledAllocations` with generous pools.**

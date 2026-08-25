@@ -51,7 +51,7 @@ describe('flow-observation-repository', () => {
 	});
 
 	// The stamp says when the measurement was TAKEN, and a correction re-describes the
-	// same one — the same rule 🪫 corrections follow (MATH.md §18), and what the analytics
+	// same one — the same rule 🪫 corrections follow, and what the analytics
 	// history orders a day by. Reachable since ⚡ became correctable on a past day: a
 	// re-stamped log would sort as the newest thing in a day years old.
 	it('keeps the original stamp when a correction replaces a measurement', async () => {
@@ -125,7 +125,7 @@ describe('flow-observation-repository', () => {
 		expect(after).toHaveLength(before.length);
 		expect(edited?.phiHours).toBe(0.75);
 		// Everything a correction may not touch: the day, the task, the covariates the ϕ
-		// fit reads (MATH.md §36), and the log moment.
+		// fit reads, and the log moment.
 		expect(edited?.date).toBe('2026-02-01');
 		expect(edited?.taskId).toBe(42);
 		expect(edited?.difficulty).toBe(9);

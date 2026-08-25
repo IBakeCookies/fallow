@@ -1,5 +1,5 @@
 /**
- * The measurement behind MATH.md §17's pricing table — the one number in the
+ * The measurement behind MATH.md's pricing table — the one number in the
  * document that exists specifically to price work nobody has built yet:
  *
  *   "Value lost to a per-task ϕ error of size `s` (400 days, ΣT* = 19.4 h,
@@ -11,17 +11,17 @@
  * a decision that has not been taken yet, which is the worst kind of stale
  * number to carry. And it is prose: none of the 25 values appears in `src/` or
  * `scripts/`, and the probe that produced them was never committed — the exact
- * failure §14.1-2 already burned this repo with.
+ * failure that already burned this repo.
  *
  * A probe, not a test: the table moves whenever the curve, the lattice or the
  * allocator moves.
  *
- * THE SEAM PROBLEM, AND WHY THIS DOES NOT NEED THE SEAM. §17 says "Per-task ϕ
- * and σ_ϕ were injected into the real allocator". No such injection point
- * exists on `main` — ϕ is `c₁E + c₂β + c₃` from ONE shared `UserConstants`,
- * mapped over every task by `buildTaskParams`. So the deleted probe had a seam
- * that is gone, and rebuilding it would mean editing shipped code to measure
- * it.
+ * THE SEAM PROBLEM, AND WHY THIS DOES NOT NEED THE SEAM. MATH.md says
+ * "Per-task ϕ and σ_ϕ were injected into the real allocator". No such injection
+ * point exists on `main` — ϕ is `c₁E + c₂β + c₃` from ONE shared
+ * `UserConstants`, mapped over every task by `buildTaskParams`. So the deleted
+ * probe had a seam that is gone, and rebuilding it would mean editing shipped
+ * code to measure it.
  *
  * It is not needed. The question is what a WRONG ϕ costs, so:
  *
@@ -230,7 +230,7 @@ function drawDay(random: () => number): ProbeTask[] {
 	);
 }
 
-describe('MATH.md §17 — what a per-task ϕ error costs', () => {
+describe('What a per-task ϕ error costs', () => {
 	it('self-check: at s = 0 the oracle reproduces the shipped allocation', () => {
 		const random = mulberry32(0x91700c);
 		let checked = 0;
@@ -255,14 +255,14 @@ describe('MATH.md §17 — what a per-task ϕ error costs', () => {
 		}
 
 		console.log(
-			`[§17 self-check] ${checked} (day, budget) pairs at s = 0: ${mismatches} mismatches, ` +
+			`[self-check] ${checked} (day, budget) pairs at s = 0: ${mismatches} mismatches, ` +
 				`worst |oracle − shipped| = ${worst.toExponential(3)}`,
 		);
 
 		console.log(
 			mismatches === 0
-				? '[§17 self-check] VALID — the oracle and the shipped allocator agree exactly with no error injected'
-				: '[§17 self-check] INVALID — the table below is not measuring what it claims',
+				? '[self-check] VALID — the oracle and the shipped allocator agree exactly with no error injected'
+				: '[self-check] INVALID — the table below is not measuring what it claims',
 		);
 	});
 
@@ -294,13 +294,11 @@ describe('MATH.md §17 — what a per-task ϕ error costs', () => {
 			) / DAYS;
 
 		console.log(
-			`[§17 table] ${DAYS} days × ${TASKS_PER_DAY} tasks, mean ΣT* = ${sumOptimal.toFixed(1)}h ` +
+			`[table] ${DAYS} days × ${TASKS_PER_DAY} tasks, mean ΣT* = ${sumOptimal.toFixed(1)}h ` +
 				`(MATH.md's grid says 19.4h), switchCost ${SWITCH_COST}h`,
 		);
 
-		console.log(
-			`[§17 table] budget | ${ERROR_SIZES.map((s) => `s=${s}h`.padStart(7)).join(' | ')}`,
-		);
+		console.log(`[table] budget | ${ERROR_SIZES.map((s) => `s=${s}h`.padStart(7)).join(' | ')}`);
 
 		for (const budget of BUDGETS) {
 			const cells = ERROR_SIZES.map((size) => {
@@ -314,7 +312,7 @@ describe('MATH.md §17 — what a per-task ϕ error costs', () => {
 
 					if (oracle.value > 0) lossTotal += ((oracle.value - shipped.value) / oracle.value) * 100;
 
-					// The first-order channel §17 says drives the U-shape: does the
+					// The first-order channel MATH.md says drives the U-shape: does the
 					// wrong ϕ change WHICH tasks get funded, not just for how long?
 					const sameSet =
 						oracle.funded.size === shipped.funded.size &&
@@ -330,13 +328,13 @@ describe('MATH.md §17 — what a per-task ϕ error costs', () => {
 			});
 
 			console.log(
-				`[§17 table] ${`${budget} h`.padStart(6)} | ${cells
+				`[table] ${`${budget} h`.padStart(6)} | ${cells
 					.map((cell) => cell.loss.toFixed(2).padStart(7))
 					.join(' | ')}`,
 			);
 
 			console.log(
-				`[§17 funded] ${`${budget} h`.padStart(6)} | ${cells
+				`[funded] ${`${budget} h`.padStart(6)} | ${cells
 					.map((cell) => `${((100 * cell.fundedSetChanges) / DAYS).toFixed(0)}%`.padStart(7))
 					.join(' | ')}`,
 			);

@@ -1,5 +1,5 @@
 /**
- * Measurements behind the 2026-08-08 §10 entry: where the HEDGED stopping time
+ * Measurements behind the 2026-08-08 MATH.md entry: where the HEDGED stopping time
  * actually lands relative to the §3 closed form's [1.5194, 1.7933]ϕ band, and
  * how far σ̂ falls once logs accumulate.
  *
@@ -199,7 +199,7 @@ describe('expectedOptimalTime is the argmax of E[P̄]', () => {
 	it('compares the bisection against a dense grid search', () => {
 		const { constants, posterior } = fitUserConstants([]);
 
-		// The pair §10 quotes: difficulty 1 / enjoyment 10, the deepest hedge.
+		// The pair MATH.md quotes: difficulty 1 / enjoyment 10, the deepest hedge.
 		const { a, p0, phi, E, beta } = calculateTaskParams(
 			{
 				title: 'probe',

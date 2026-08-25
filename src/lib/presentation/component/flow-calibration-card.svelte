@@ -7,7 +7,7 @@
 		constantsFitted: boolean;
 		/** Every ⚡ log, which is what a reset deletes */
 		logCount: number;
-		/** Logs dated on or after the planned day: no fit has counted them (MATH.md §33) */
+		/** Logs dated on or after the planned day: no fit has counted them */
 		pendingLogs?: number;
 		onresetlogs?: () => void;
 	}
@@ -53,7 +53,7 @@
 
 <CalibrationCard title={m.flow_calibration()} hint={m.budget_model_tooltip()}>
 	<!-- The headline counts every log; the sentence below says how many the fit used,
-	     which MATH.md §33 makes a different number on the day a log is made. -->
+	     which is a different number on the day a log is made. -->
 	<div class="mt-text-sm flex items-baseline gap-text-xs">
 		<span class="text-2xl leading-none font-medium tabular-nums text-ty-primary">{logCount}</span>
 		<span class="text-xs text-ty-silent">

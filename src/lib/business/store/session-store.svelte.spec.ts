@@ -11,7 +11,7 @@ import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte
 // `toISODate` because the store's "today" is the LOCAL wall clock (`liveToday`
 // → `toISODate()`), and a spec that dates its own fixtures with
 // `new Date().toISOString()` is using UTC instead. The two disagree between
-// local and UTC midnight, which made the §33 tests below pass in CI and fail
+// local and UTC midnight, which made the tests below pass in CI and fail
 // for two hours every night east of Greenwich — the exact off-by-one
 // `utils/date.ts` exists to prevent.
 import { addDays, toISODate } from '$lib/business/utils/date';
@@ -445,7 +445,7 @@ describe('SessionStore persistence', () => {
 		);
 	});
 
-	// The row's ✎ is a correction too, and MATH.md §36's rule is about the correction and
+	// The row's ✎ is a correction too, and the rule is about the correction and
 	// not about the address it arrived by: the covariates on the record were captured when
 	// the measurement was taken, so the task as it is NOW must not reach them. Without
 	// this, raising a task's difficulty on Friday and then fixing Monday's reading
@@ -637,7 +637,7 @@ describe('SessionStore persistence', () => {
 	// The store feeds the main page's allocator, so this is where a missing
 	// `ageDays` would do the most damage — and it would do it silently: the fit
 	// still succeeds, just over the person the user was a decade ago. Measured
-	// from age 1, the freshest a counted log can now be (§33).
+	// from age 1, the freshest a counted log can now be.
 	it('ages ⚡ logs against the planned day, so a decade-old log no longer personalizes the plan', async () => {
 		const constantsFrom = async (ageDays: number) => {
 			const today = toISODate();
@@ -656,7 +656,7 @@ describe('SessionStore persistence', () => {
 		expect(fresh).toBeGreaterThan(ancient + 1);
 	});
 
-	/* MATH.md §33: a plan for day D is fitted from logs dated STRICTLY BEFORE D.
+	/* A plan for day D is fitted from logs dated STRICTLY BEFORE D.
 	   The constants are global, so one ⚡ re-times every task on the page — 33% on
 	   a task the user never logged, most of it on the very first log. Landing that
 	   on the day already in flight is what made a plan reshuffle under someone

@@ -1,24 +1,23 @@
 /**
- * The §14/§14.1 numbers that had no committed sweep behind them.
+ * The plan-advice numbers that had no committed sweep behind them.
  *
  * `plan-advice.probe.ts` backs the priced-lever signs and the pure trim. Four
- * more numbers in the same two sections came from the 200-day sweep of
- * 2026-07-28, which was thrown away — the same failure mode that let "the trim
- * is free" survive:
+ * more numbers came from the 200-day sweep of 2026-07-28, which was thrown
+ * away — the same failure mode that let "the trim is free" survive:
  *
- *   - §14 — `zenithGain.optimized` equals Σ avgProductivity over the funded
- *     tasks "to the last digit" (quoted at n = 5). `plan-advice.ts` itself says
- *     the two agree only "to within float noise", so which is it.
- *   - §14.1-1 — Σ P̄ is monotone non-decreasing in the budget: `budget + 1`
- *     "raised plan value on 128 of 200 days and lowered it on none".
- *   - §14.1-2 — quarter-rounding the trim: "132 of 200" days had off-quarter
- *     slack, rounding down was no longer free on "58 of 200", rounding up let
- *     the dedup filter delete the lever on "50 of 200".
- *   - §14.1-4 — the frontier is monotone in plan value by construction ("0 of
- *     1580"), and "16 of 1580" frontiers exceeded 3 options, "longest 5".
+ *   - `zenithGain.optimized` equals Σ avgProductivity over the funded tasks
+ *     "to the last digit" (quoted at n = 5). `plan-advice.ts` itself says the
+ *     two agree only "to within float noise", so which is it.
+ *   - Σ P̄ is monotone non-decreasing in the budget: `budget + 1` "raised plan
+ *     value on 128 of 200 days and lowered it on none".
+ *   - Quarter-rounding the trim: "132 of 200" days had off-quarter slack,
+ *     rounding down was no longer free on "58 of 200", rounding up let the
+ *     dedup filter delete the lever on "50 of 200".
+ *   - The frontier is monotone in plan value by construction ("0 of 1580"),
+ *     and "16 of 1580" frontiers exceeded 3 options, "longest 5".
  *
- * And one number that never had a day at all: §14.1-3's zero-baseline defect
- * quoted a "2.568" with no recorded fixture, so the plan value `set-budget 1h`
+ * And one number that never had a day at all: the zero-baseline defect quoted
+ * a "2.568" with no recorded fixture, so the plan value `set-budget 1h`
  * reaches from a 0 h budget is measured here on the suite's own grind day.
  *
  * Same generator, seed and day count as `plan-advice.probe.ts` (600 days,
@@ -141,14 +140,14 @@ function ulpsApart(a: number, b: number): number {
 
 describe('plan advice — the frontier and the levers', () => {
 	/**
-	 * §14 derives the whole cost column from "a plan's value is Σ P̄ over the
-	 * funded tasks, and it is already computed". The advisor reads
-	 * `zenithGain.optimized`; §14.2's marginal instead sums per-task
+	 * The whole cost column derives from "a plan's value is Σ P̄ over the funded
+	 * tasks, and it is already computed". The advisor reads
+	 * `zenithGain.optimized`; the budget marginal instead sums per-task
 	 * `avgProductivity` differences, which is only sound if the two are the same
 	 * number. They are the same SUM, but not summed in the same order — the plan
 	 * comes back priority-sorted — so exactness is a measurement, not a given.
 	 */
-	it('measures Σ P̄ against the funded per-task sum (MATH.md §14)', () => {
+	it('measures Σ P̄ against the funded per-task sum', () => {
 		let exact = 0;
 		let counted = 0;
 		let worstUlps = 0;
@@ -178,20 +177,20 @@ describe('plan advice — the frontier and the levers', () => {
 		}
 
 		console.log(
-			`[§14 Σ P̄] ${counted} funded days: ${exact} bit-exact, worst ${worstUlps} ulps, worst relative ${worstRelative.toExponential(1)}`,
+			`[Σ P̄] ${counted} funded days: ${exact} bit-exact, worst ${worstUlps} ulps, worst relative ${worstRelative.toExponential(1)}`,
 		);
 
-		// The claim §14.2's per-task decomposition actually needs: the two agree
+		// The claim the per-task decomposition actually needs: the two agree
 		// far inside anything the card can render, whatever the summation order.
 		expect(worstRelative).toBeLessThan(1e-12);
 	});
 
 	/**
-	 * §14.1-1's premise for keeping `budget + 1` off the priced frontier. The
-	 * exact optimum is monotone non-decreasing in the budget; the pooled path is
-	 * a heuristic (§13.3), which is why §14.2 floors its own gain at 0.
+	 * The premise for keeping `budget + 1` off the priced frontier. The exact
+	 * optimum is monotone non-decreasing in the budget; the pooled path is a
+	 * heuristic, which is why the budget marginal floors its own gain at 0.
 	 */
-	it('measures Σ P̄ against one extra budget hour (MATH.md §14.1-1)', () => {
+	it('measures Σ P̄ against one extra budget hour', () => {
 		let raised = 0;
 		let lowered = 0;
 		let flat = 0;
@@ -216,15 +215,15 @@ describe('plan advice — the frontier and the levers', () => {
 		}
 
 		console.log(
-			`[§14.1-1] 600 seeded days: budget + 1 raised Σ P̄ on ${raised}, lowered on ${lowered} (worst ${worst}%), flat on ${flat}`,
+			`600 seeded days: budget + 1 raised Σ P̄ on ${raised}, lowered on ${lowered} (worst ${worst}%), flat on ${flat}`,
 		);
 	});
 
 	/**
-	 * §14.1-2's rounding defect, re-measured by re-applying the rounding the fix
+	 * The rounding defect, re-measured by re-applying the rounding the fix
 	 * removed: `Math.round(h * 4) / 4` on `budget − planSlack`.
 	 */
-	it('measures quarter-rounding the trim (MATH.md §14.1-2)', () => {
+	it('measures quarter-rounding the trim', () => {
 		let levers = 0;
 		let offQuarter = 0;
 		let roundedDown = 0;
@@ -263,17 +262,17 @@ describe('plan advice — the frontier and the levers', () => {
 		}
 
 		console.log(
-			`[§14.1-2 rounding] ${levers} trim levers: ${offQuarter} off-quarter, ${roundedDown} rounded down (${notFree} of them no longer free), ${deleted} deleted by the dedup`,
+			`[rounding] ${levers} trim levers: ${offQuarter} off-quarter, ${roundedDown} rounded down (${notFree} of them no longer free), ${deleted} deleted by the dedup`,
 		);
 	});
 
 	/**
-	 * §14.1-4: the walk keeps only strictly increasing plan values, so the
-	 * frontier is monotone by construction and its LAST row is the cheap option
-	 * the card must not truncate away. The length distribution is what says
-	 * whether truncation can fire at all.
+	 * The walk keeps only strictly increasing plan values, so the frontier is
+	 * monotone by construction and its LAST row is the cheap option the card must
+	 * not truncate away. The length distribution is what says whether truncation
+	 * can fire at all.
 	 */
-	it('measures frontier length and plan-value monotonicity (MATH.md §14.1-4)', () => {
+	it('measures frontier length and plan-value monotonicity', () => {
 		let frontiers = 0;
 		let violations = 0;
 		let overThree = 0;
@@ -301,7 +300,7 @@ describe('plan advice — the frontier and the levers', () => {
 			}
 
 		console.log(
-			`[§14.1-4] ${frontiers} priced frontiers: ${violations} not monotone in plan value, ${overThree} over 3 options (longest ${longest}), ${single} single-option`,
+			`${frontiers} priced frontiers: ${violations} not monotone in plan value, ${overThree} over 3 options (longest ${longest}), ${single} single-option`,
 		);
 
 		// By construction, not by measurement: the domination walk pushes an option
@@ -310,33 +309,33 @@ describe('plan advice — the frontier and the levers', () => {
 	});
 
 	/**
-	 * §14.1's own lesson — a curated fixture can make an ordering assertion pass
+	 * The lesson here — a curated fixture can make an ordering assertion pass
 	 * VACUOUSLY. The suite's grind day is the fixture in question: at 10 h every
 	 * priced frontier is a single option, so there is nothing to order, and the
 	 * test had to move to 6 h to have more than one case to bite on.
 	 */
-	it('measures frontier width on the suite grind fixture (MATH.md §14.1)', () => {
+	it('measures frontier width on the suite grind fixture', () => {
 		for (const budget of [6, 10]) {
 			const widths = suggestPlanAdjustments(grindDay(budget))
 				.findings.map((finding) => finding.options.length)
 				.filter((width) => width > 0);
 
 			console.log(
-				`[§14.1 grind ${budget}h] ${widths.length} priced frontiers, widths ${widths.join('/')}`,
+				`[grind ${budget}h] ${widths.length} priced frontiers, widths ${widths.join('/')}`,
 			);
 		}
 	});
 
 	/**
-	 * §14.1-3's zero-baseline defect needs a day, and the "2.568" once quoted for
-	 * it had none. At a 0 h budget nothing is funded, so Σ P̄ is 0 and every ratio
+	 * The zero-baseline defect needs a day, and the "2.568" once quoted for it
+	 * had none. At a 0 h budget nothing is funded, so Σ P̄ is 0 and every ratio
 	 * against it was rendered as 0% — "costs no plan value" for the one lever that
 	 * CREATES all the value there is. `set-budget 1h` is that lever by
 	 * construction: at budget 0 the trim and `budget − 1` both clamp onto the
 	 * budget and are deduplicated away, and 1 h is wider than the budget, so it
 	 * arrives unpriced beside each frontier rather than inside it.
 	 */
-	it('measures the plan value set-budget 1h reaches from a 0 h budget (MATH.md §14.1-3)', () => {
+	it('measures the plan value set-budget 1h reaches from a 0 h budget', () => {
 		const zero = grindDay(0);
 		const baseline = calculateDailyMetrics(zero);
 
@@ -356,7 +355,7 @@ describe('plan advice — the frontier and the levers', () => {
 		}).zenithGain.optimized;
 
 		console.log(
-			`[§14.1-3 grind 0h] baseline Σ P̄ ${baseline.zenithGain.optimized}, set-budget 1h reaches ${reached.toFixed(3)} on ${offers.length} axes (${offers.map((offer) => offer.axis).join('/')}), delta ${offers.map((offer) => String(offer.option.planValueDeltaPercent)).join('/')}`,
+			`[grind 0h] baseline Σ P̄ ${baseline.zenithGain.optimized}, set-budget 1h reaches ${reached.toFixed(3)} on ${offers.length} axes (${offers.map((offer) => offer.axis).join('/')}), delta ${offers.map((offer) => String(offer.option.planValueDeltaPercent)).join('/')}`,
 		);
 
 		// The defect and its fix, as signs and constructions: the baseline has no

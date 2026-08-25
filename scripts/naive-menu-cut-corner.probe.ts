@@ -1,8 +1,8 @@
 /**
- * MATH.md §19.3's σ_ϕ corner: the negative-gain witness, and whether the menu
- * cut behind it is reachable from the product.
+ * The σ_ϕ corner: the negative-gain witness, and whether the menu cut behind
+ * it is reachable from the product.
  *
- * §19.3 records one place the "gain ≥ 0 on the single-budget path" guarantee
+ * MATH.md records one place the "gain ≥ 0 on the single-budget path" guarantee
  * weakens: `buildBlockIncrements` cuts a task's menu at the first non-DECREASING
  * increment when σ_ϕ > 0 (§5.1), and that cut can fire while E[P̄] is still
  * rising — leaving the naive baseline free to place a value-adding block the
@@ -15,7 +15,7 @@
  *
  * Not an arm of `rv14-naive-switch-bill.probe.ts`: that generator is σ_ϕ = 0 by
  * construction (no posterior), so it cannot see any of this, and its docblock
- * promises §13.2's draw.
+ * promises a different draw.
  *
  * Arms:
  *   1  the witness cell itself — reproduced, or the smallest gain it reaches
@@ -25,8 +25,8 @@
  *   3  reachability of the corner by a FITTED posterior: σ_ϕ/ϕ̂ ≥ 0.35 at
  *      ϕ̂ ≥ 4h. §5.1 already swept the same corner one threshold lower (ϕ̂ > 3.06h,
  *      0 of 576,000 fitted cells — `phi-cap-reachability.probe.ts`); this asks it
- *      at §19.3's own ϕ̂ ≥ 4h and is the weaker of the two by cell count, so read
- *      it as a confirmation and §5.1's as the bound
+ *      at ϕ̂ ≥ 4h and is the weaker of the two by cell count, so read it as a
+ *      confirmation and §5.1's as the bound
  *
  * A probe, not a test: it answers "what is true of the model over a large input
  * space" and prints numbers. What it finds is pinned by one fixture in the
@@ -75,7 +75,7 @@ function mulberry32(seed: number): () => number {
  * menu's span is T*(ϕ_max), so reproducing `buildBlockIncrements`' cut needs the
  * largest node and nothing else of the quadrature.
  *
- * Then the corner §19.3 calls unreachable, and the ϕ̂ its witness sits at.
+ * Then the corner MATH.md calls unreachable, and the ϕ̂ its witness sits at.
  */
 const PHI_FLOOR_HOURS = 0.1;
 const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
@@ -171,11 +171,11 @@ function menuAt(a: number, p0: number, phi: number, sigmaPhi: number): Menu {
 	};
 }
 
-describe('MATH.md §19.3 — the σ_ϕ menu cut and its negative-gain corner', () => {
+describe('The σ_ϕ menu cut and its negative-gain corner', () => {
 	it('arm 1 — the constructed witness: one task, ϕ̂ = 4.5h, σ/ϕ̂ = 0.35, 4h budget', () => {
-		// §19.3's cell. Effective difficulty 1.3 is what the two integer sliders at
+		// The witness cell. Effective difficulty 1.3 is what the two integer sliders at
 		// 1 produce (`getEffectiveDifficulty`'s 0.3 spillover), so the cell is
-		// UI-reachable on the difficulty axis; §19.3 does not say which enjoyment it
+		// UI-reachable on the difficulty axis; the document does not say which enjoyment it
 		// used, so the whole integer row is swept and the worst cell reported.
 		const difficulty = getEffectiveDifficulty({
 			mentalDifficulty: 1,
@@ -259,11 +259,11 @@ interface Regime {
 }
 
 /**
- * The two regimes §19.3 contrasts. Its own grid is not recoverable from the
- * text — it gives the slider granularity and a ϕ bound, but neither the σ axis
- * nor the step counts, and 919,968 = 1369 × 672 is a factorization rather than
- * evidence — so these axes are this probe's, stated here and quoted with the
- * counts.
+ * The two regimes the document contrasts. Its own grid is not recoverable from
+ * the text — it gives the slider granularity and a ϕ bound, but neither the σ
+ * axis nor the step counts, and 919,968 = 1369 × 672 is a factorization rather
+ * than evidence — so these axes are this probe's, stated here and quoted with
+ * the counts.
  *
  * ϕ is an axis and not a slider consequence: the sliders set (a, p₀) and ϕ comes
  * from the fitted plane, which is a property of the USER. Reading it any other
@@ -403,7 +403,7 @@ function recordCell(
 
 	// A cut at or past the menu's own best block count forfeits nothing: greedy
 	// was never going to fund those blocks. Only a cut STRICTLY before it is the
-	// weakened guarantee §19.3 is about.
+	// weakened guarantee.
 	if (menu.blocks >= menu.bestBlocks) return;
 
 	tally.costlyCuts++;

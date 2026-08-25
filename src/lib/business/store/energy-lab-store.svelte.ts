@@ -438,7 +438,7 @@ export class EnergyLabStore {
 	/**
 	 * Percent more valuable than the classic plan under THIS model's objective —
 	 * satiated output plus the free-time and terminal-energy terms — or null when
-	 * incomparable (MATH.md §30).
+	 * incomparable.
 	 *
 	 * The objective and not raw `totalOutput`: the plan above this tile is the
 	 * argmax of the objective, so raw output is the one field of the evaluation it
@@ -592,7 +592,7 @@ export class EnergyLabStore {
 		return this.#stopAdvice;
 	}
 
-	// ----- Deferred logs (MATH.md §33) -----
+	// ----- Deferred logs -----
 
 	// The three identity fits below read only days strictly before today, like the
 	// main page's copy (daily-plan-store.svelte.ts:42) — the card names the α and

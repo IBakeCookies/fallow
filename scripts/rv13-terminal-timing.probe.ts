@@ -1,23 +1,24 @@
 /**
- * Measurements behind MATH.md §13.6: the two end-of-day energy readings differ
- * in WHEN they are taken, not in how they aggregate the two reservoirs.
+ * Measurements behind the two end-of-day energy readings: they differ in WHEN
+ * they are taken, not in how they aggregate the two reservoirs.
  *
- * §13.6 quotes three sets of numbers: an avg-vs-min re-scoring table over four
- * plans ("moves the objective by ≤ 0.08 and reorders nothing"), a same-day pair
- * showing work ending at C_cog = 0.21 (risk 79%) while `terminalBonus` reads
- * 1.491 after the trailing rest, and a V_T discrimination figure (1.4911 at 6 h
- * of work vs 1.4233 at 8 h, i.e. 0.034 per hour against `freeTimeValue`'s 0.5).
- * The table's fixture is stated only as "one pure-cognitive and one
- * pure-physical task at matched difficulty/enjoyment"; this probe pins it to the
- * pair that reproduces the printed objectives, so the row can be re-derived.
+ * The record quotes three sets of numbers: an avg-vs-min re-scoring table over
+ * four plans ("moves the objective by ≤ 0.08 and reorders nothing"), a same-day
+ * pair showing work ending at C_cog = 0.21 (risk 79%) while `terminalBonus`
+ * reads 1.491 after the trailing rest, and a V_T discrimination figure (1.4911
+ * at 6 h of work vs 1.4233 at 8 h, i.e. 0.034 per hour against
+ * `freeTimeValue`'s 0.5). The table's fixture is stated only as "one
+ * pure-cognitive and one pure-physical task at matched difficulty/enjoyment";
+ * this probe pins it to the pair that reproduces the printed objectives, so the
+ * row can be re-derived.
  *
- * §13.6 also carries a Lab-tile ladder and a shipped-optimum pair, both cited to
- * a `scratchpad/rv-energy-readouts.probe.ts` that exists in neither the tree nor
- * the history. The third arm re-derives them here.
+ * The record also carries a Lab-tile ladder and a shipped-optimum pair, both
+ * cited to a `scratchpad/rv-energy-readouts.probe.ts` that exists in neither
+ * the tree nor the history. The third arm re-derives them here.
  *
  * `min` is applied here the way Burnout Risk applies it — to the reservoir
  * levels the SAME evaluation ends on — so the only thing that changes between
- * the columns is the aggregator, which is exactly §13.6's claim.
+ * the columns is the aggregator, which is exactly the claim.
  *
  * A probe, not a test: the objectives move with the energy model. The suite pins
  * the property instead — that the aggregator does not reorder plans.
@@ -47,7 +48,7 @@ const task = (
 ): EnergyTaskInput => ({
 	id,
 	title,
-	// Matched across the pair, and the values that reproduce §13.6's table.
+	// Matched across the pair, and the values that reproduce the table.
 	difficulty: 8,
 	enjoyment: 6,
 	cognitiveDemand,
@@ -57,7 +58,7 @@ const task = (
 const WINDOW_HOURS = 10;
 const PAIR = [task(1, 'cognitive', 1, 0), task(2, 'physical', 0, 1)];
 
-describe('MATH.md §13.6 — timing, not aggregation', () => {
+describe('timing, not aggregation', () => {
 	it('re-scores four plans with min in place of avg', () => {
 		const plans: [string, ScheduleBlock[]][] = [
 			[
@@ -135,7 +136,7 @@ describe('MATH.md §13.6 — timing, not aggregation', () => {
 		const byMin = [...scored].sort((x, y) => y.min - x.min).map((r) => r.label);
 		console.log(`worst |delta| ${worst.toFixed(4)}; ranking by avg [${byAvg.join(' > ')}]`);
 		console.log(`                        ranking by min [${byMin.join(' > ')}]`);
-		// §13.6's actual conclusion: switching aggregator buys no behaviour change.
+		// The actual conclusion: switching aggregator buys no behaviour change.
 		expect(byMin).toEqual(byAvg);
 	});
 
@@ -191,13 +192,13 @@ describe('MATH.md §13.6 — timing, not aggregation', () => {
 		);
 	});
 
-	// §13.6's Lab-tile table, re-derived from the shipped fields. The pre-fix tile
+	// The Lab-tile table, re-derived from the shipped fields. The pre-fix tile
 	// printed `Math.round(100 * endCog)` (the post-tail reading); today's prints
 	// `Math.floor(100 * workEndCog)` (plan-summary.svelte:32 off +page.svelte:365).
 	// Both are arithmetic on fields evaluateSchedule still returns — no old code
 	// path is reinstated, and both were read off the code (8f01ca8^ and HEAD)
-	// rather than assumed. The ladder's fixture is pinned by §13.6's own words:
-	// simulateReservoirs reads only the two demands and the params, so
+	// rather than assumed. The ladder's fixture is pinned by the record's own
+	// words: simulateReservoirs reads only the two demands and the params, so
 	// difficulty/enjoyment cannot move those six rows.
 	//
 	// 8f01ca8 introduced `workEndCog` AND the fix that reads it, so the lost
@@ -227,10 +228,10 @@ describe('MATH.md §13.6 — timing, not aggregation', () => {
 
 		// The same tile on a plan the app would actually propose. optimizeSchedule
 		// maximizes the objective, which DOES read difficulty/enjoyment, so this
-		// pair depends on the task set — and §13.6 never stated one. None of the
-		// three plausible readings below reproduces its 0.890/0.469; the fixture
-		// behind that sentence is unrecorded, so MATH.md now quotes reading 1
-		// (the ladder's own task, optimized instead of forced) by value.
+		// pair depends on the task set — and the record never stated one. None
+		// of the three plausible readings below reproduces its 0.890/0.469; the
+		// fixture behind that sentence is unrecorded, so MATH.md now quotes
+		// reading 1 (the ladder's own task, optimized instead of forced) by value.
 		for (const [label, tasks] of [
 			['single full-cognitive task (the ladder’s), difficulty 8 / enjoyment 6', [cognitive]],
 			['PAIR (pure-cognitive + pure-physical, both 8/6)', PAIR],
@@ -276,7 +277,7 @@ describe('MATH.md §13.6 — timing, not aggregation', () => {
 			);
 		}
 
-		// §13.6's claim in property form: the post-tail reading always flatters.
+		// The claim in property form: the post-tail reading always flatters.
 		const ev = evaluateSchedule(
 			[
 				{

@@ -123,7 +123,7 @@
 		closeFlowLog(taskId);
 	}
 
-	// Re-logging a correction would count the session's hours twice (MATH.md §18).
+	// Re-logging a correction would count the session's hours twice.
 	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
 		const draft = drainDrafts[taskId];
 

@@ -271,7 +271,7 @@ function covarianceOf(value: unknown): number[][] | null {
  * snapshot records what the model believed on a past day, and a default
  * substituted for a corrupt field would report a plan the user never saw as the
  * plan they did. The posterior must survive whole — a snapshot missing its
- * covariance would leave σ_ϕ = 0 (MATH.md §13.1), i.e. an early day audited as
+ * covariance would leave σ_ϕ = 0, i.e. an early day audited as
  * though the user had been perfectly certain, which is the bias this fixes.
  */
 export function sanitizeFitSnapshots(raw: unknown): FitSnapshot[] {

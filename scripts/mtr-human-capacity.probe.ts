@@ -1,6 +1,6 @@
 /**
  * What is true of the Human Capacity reading (`calculateHumanCapacity`) over a
- * day space — the metric MATH.md never derived until §20.
+ * day space — the metric MATH.md did not derive until later.
  *
  * Three questions, none of them answerable by the suite (which pins four
  * hand-built fixtures with externally-supplied hours, so it never sees a plan
@@ -152,11 +152,11 @@ describe('human capacity', () => {
 		}
 
 		console.log(
-			`[§20 identity] percent = round(100·max(cog/pool, phys/pool)) on ${DAYS - mismatch} of ${DAYS} days${widest ? ` — first miss: ${widest}` : ''}`,
+			`[identity] percent = round(100·max(cog/pool, phys/pool)) on ${DAYS - mismatch} of ${DAYS} days${widest ? ` — first miss: ${widest}` : ''}`,
 		);
 
 		console.log(
-			`[§20 reachability] over 100%: ${over100} days · Infinity: ${infinite} days · max reading ${worstOverdraw}% · at or above 99%: ${poolBoundDays} days (${((poolBoundDays / DAYS) * 100).toFixed(1)}%)`,
+			`[reachability] over 100%: ${over100} days · Infinity: ${infinite} days · max reading ${worstOverdraw}% · at or above 99%: ${poolBoundDays} days (${((poolBoundDays / DAYS) * 100).toFixed(1)}%)`,
 		);
 	});
 
@@ -222,13 +222,13 @@ describe('human capacity', () => {
 		}
 
 		console.log(
-			`[§20 limitType] rounded pairs that tie: ${ties} of ${DAYS} days · old rule named the non-binding pool on ${oldWrong} (${((oldWrong / DAYS) * 100).toFixed(2)}%) · fixed metric: ${newWrong}`,
+			`[limitType] rounded pairs that tie: ${ties} of ${DAYS} days · old rule named the non-binding pool on ${oldWrong} (${((oldWrong / DAYS) * 100).toFixed(2)}%) · fixed metric: ${newWrong}`,
 		);
 
 		console.log(
-			`[§20 limitType] widest gap the old rule swallowed — ${worstCase} · zero-cognitive days it called cognitive: ${namedAnEmptyPool}`,
+			`[limitType] widest gap the old rule swallowed — ${worstCase} · zero-cognitive days it called cognitive: ${namedAnEmptyPool}`,
 		);
 
-		console.log(`[§20 limitType] examples: ${shown.join(' | ')}`);
+		console.log(`[limitType] examples: ${shown.join(' | ')}`);
 	});
 });

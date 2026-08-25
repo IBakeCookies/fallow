@@ -34,8 +34,8 @@ all `put()` and create if absent), and the doc comment says so.
 different addresses and the plain `$updateX` is the strict by-id one:
 `$createOrUpdateFlowObservation` upserts on (`taskId`, `date`) while
 `$updateFlowObservation` corrects a record and no-ops if it is gone. Do not
-reach for it otherwise — handing an upsert a deleted record re-creates it
-(MATH.md §36), so which of the two a caller has is worth spelling.
+reach for it otherwise — handing an upsert a deleted record re-creates it, so
+which of the two a caller has is worth spelling.
 
 Inside `.svelte`/`.svelte.ts` the `$` prefix is reserved for runes, so import
 the repository as a namespace:
@@ -47,7 +47,7 @@ Anything the model reads must survive a backup/restore round trip.
 
 - **IndexedDB** (via a repository, listed in `indexed-db.ts` `STORE_NAMES`,
   which `backup-repository.ts` imports): sessions, routines, observations, the
-  per-day fit snapshots (`fitSnapshots`, MATH.md §12.1), and any setting that
+  per-day fit snapshots (`fitSnapshots`), and any setting that
   feeds a calculation — e.g. the Energy Lab's params (`settings` store, key
   `energyParams`).
 - **localStorage**: values that have no business in a backup, and whose loss
@@ -179,9 +179,9 @@ for nothing; scanning the store reads years of history that can never match.
 ### 🪫 drain ratings do NOT upsert — one row per session
 
 `$createDrainObservation`. `hours` is one session's length for the §8.7 α fit,
-while §8.10/§8.11/§12 read a task's hours for a day as the sum of its rows; the
+while §8.10/§8.11 read a task's hours for a day as the sum of its rows; the
 (`taskId`, `date`) upsert this used to do meant a second session overwrote the
-first and vanished from that sum (MATH.md §18). The row's 🪫 button therefore
+first and vanished from that sum. The row's 🪫 button therefore
 always opens an EMPTY editor — one more session — while correcting a rating
 goes through that rating's own chip and `$updateDrainObservation`, which keeps
 that row's `createdAt`. Re-logging a correction would count the session twice.
@@ -193,18 +193,18 @@ than a convention because the row corrects ratings on days it is only viewing.
 A correction re-describes a session that already happened, so restamping it
 with the live clock would take those hours off the day they were worked and
 credit them to a day nobody worked them — in every per-day sum above, and in
-§33's causal window. `createdAt` is excluded for the same reason.
+the causal window. `createdAt` is excluded for the same reason.
 
 ### A day's fitted params are stored, not recomputed from the logs
 
-MATH.md §12.1. The fit as of day D _is_ a pure function of the observations
-dated ≤ D, so the §12 audit could refit per audited day instead of reading a
-`fitSnapshots` record — and that would fix history retroactively, which storing
-cannot. It loses on cost, and only on cost: each per-day refit costs a
-WHOLE-history fit (19 ms/day measured, 570 ms for a 30-day audit vs 17.6 ms for
-one), so recomputation is O(auditDays × totalLogVolume) and gets slower every
-time the user logs anything, on a screen that runs it on every visit. Do not
-re-propose refitting as a simplification; the trade was measured.
+The fit as of day D _is_ a pure function of the observations dated ≤ D, so the
+audit could refit per audited day instead of reading a `fitSnapshots` record —
+and that would fix history retroactively, which storing cannot. It loses on
+cost, and only on cost: each per-day refit costs a WHOLE-history fit (19 ms/day
+measured, 570 ms for a 30-day audit vs 17.6 ms for one), so recomputation is
+O(auditDays × totalLogVolume) and gets slower every time the user logs anything,
+on a screen that runs it on every visit. Do not re-propose refitting as a
+simplification; the trade was measured.
 
 Two consequences that follow and are intended: **only today's record is ever
 written** (a past day's fit is what the user had, so it is never rewritten —

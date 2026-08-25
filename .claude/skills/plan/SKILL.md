@@ -27,7 +27,7 @@ Worth asking about, in rough order:
 
 - the observable outcome — what the user sees or can do that they cannot now
 - the state it depends on: which day, which logs, which fits (almost nothing in
-  Fallow is stateless — the §33 causal window alone means the same click gives
+  Fallow is stateless — the causal fit window alone means the same click gives
   different output on different data)
 - the boundary — the nearby thing this is _not_
 - empty, failed and first-run cases, which is where scenarios go missing
@@ -79,7 +79,7 @@ criteria — it is implementation, and it belongs in **Decisions** or nowhere.
 ## Before finishing
 
 - MATH.md changes? Name the section in **Read before building**.
-- Does this re-open a settled decision (AGENTS.md §4, MATH.md §15/§16/§17, or
+- Does this re-open a settled decision (AGENTS.md §4, the model rules, or
   ROADMAP's not-proposed list)? Say so to the user and stop — those are closed.
 - On the roadmap already? Cite the item number; do not renumber anything.
 - Leave **Open questions** empty by answering them, or stop and ask.

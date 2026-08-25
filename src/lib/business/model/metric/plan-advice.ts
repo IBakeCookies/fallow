@@ -1,5 +1,5 @@
 /**
- * What to change when the day reads badly (MATH.md §14).
+ * What to change when the day reads badly.
  *
  * The dashboard reports that Burnout Risk is 82% and the Day Profile is
  * "Grind"; this answers what would help and what it would cost. Not a rule
@@ -28,7 +28,7 @@ import {
 } from '$lib/business/model/metric/calculation';
 import { BLOCK_HOURS } from '$lib/business/model/zenith';
 
-/** One honest change to today's inputs (MATH.md §14 — pools and switch cost are not levers). */
+/** One honest change to today's inputs (pools and switch cost are not levers). */
 export type AdviceLever =
 	| {
 			/**
@@ -48,9 +48,9 @@ export type AdviceLever =
 	  };
 
 /**
- * The readings the advisor searches over (MATH.md §14).
+ * The readings the advisor searches over.
  *
- * Grind Density is deliberately NOT one of them (MATH.md §11.11). It counts
+ * Grind Density is deliberately NOT one of them. It counts
  * tasks where every lever it can pull is priced in hours, so deferring a 0.25 h
  * chore moved it 15–33pp for ~3% of Σ P̄ — the axis rewarded cardinality, which
  * is not what the allocator optimizes. Friction Index reads the same two inputs
@@ -81,7 +81,7 @@ export interface AdviceOption {
 	 * claim (`quadrantFlipOf`).
 	 */
 	quadrantFlip: DailyQuadrant | null;
-	/** Σ P̄ of the resulting plan (MATH.md §14) and its signed change, in %. */
+	/** Σ P̄ of the resulting plan and its signed change, in %. */
 	planValue: number;
 	/** Null when the current plan's Σ P̄ is 0: there is no ratio to report. */
 	planValueDeltaPercent: number | null;
@@ -94,33 +94,33 @@ export interface AdviceFinding {
 	/**
 	 * Pareto-efficient Σ P̄-priced levers, biggest improvement first. Empty when
 	 * only `unpriced` improves this axis — and empty beside a null `unpriced`
-	 * when nothing does, which is a reading and not an omission (MATH.md §14.4).
+	 * when nothing does, which is a reading and not an omission.
 	 */
 	options: AdviceOption[];
 	/**
 	 * An improving budget *increase*, which Σ P̄ does not price — the extra hour
 	 * costs the user something plan value cannot see. It therefore neither
-	 * dominates `options` nor is ranked among them (MATH.md §14). At most one
+	 * dominates `options` nor is ranked among them. At most one
 	 * exists, because `budget + 1` is the only such lever.
 	 */
 	unpriced: AdviceOption | null;
 }
 
 /**
- * The time budget's shadow price (MATH.md §14.2): what the allocator would do
+ * The time budget's shadow price: what the allocator would do
  * with one more block, and what that block is worth in Σ P̄.
  *
  * A DAY-level diagnostic, deliberately not a per-task column: the budget is a
  * number the user owns, while which task receives a block is the allocator's
  * decision, and a per-task column is arithmetic on a curve that ignores both
  * pools and the switch cost. (It is NOT because per-task marginals equalize at
- * the optimum — that was the plan and the probe refuted it, §14.2.)
+ * the optimum — that was the plan and the probe refuted it.)
  */
 export interface BudgetMarginal {
 	/** One allocator block, in hours — what "the next block" means (MATH.md §4). */
 	blockHours: number;
 	/**
-	 * Σ P̄ that block adds across the tasks still OPEN (MATH.md §11.8/§14.2).
+	 * Σ P̄ that block adds across the tasks still OPEN.
 	 * Never negative: the true optimum is monotone in the budget, and the pooled
 	 * path's heuristic noise is floored away.
 	 */
@@ -147,9 +147,9 @@ export interface SwitchCostAlternative {
 }
 
 /**
- * What today's declared switch cost is doing to today's plan (MATH.md §14.3).
+ * What today's declared switch cost is doing to today's plan.
  *
- * A DIAGNOSTIC on a declared measurement, never advice: §14 rules `switchCost`
+ * A DIAGNOSTIC on a declared measurement, never advice: the model rules `switchCost`
  * "a measurement of the user, not a choice about the day", which is exactly why
  * it is not an `AdviceLever` — and by the same sentence why it may be
  * instrumented. `DEFAULT_SWITCH_COST` is a literal with a citation and no other
@@ -185,7 +185,7 @@ export interface PlanAdvice {
 	/**
 	 * The `mustDoToday` subset of that read, partitioned out of it: an unfunded
 	 * task the advisor is forbidden to defer is the one conflict the menu below
-	 * cannot express, since the flag removed its only per-task lever (MATH.md §14).
+	 * cannot express, since the flag removed its only per-task lever.
 	 */
 	unfundedMustDoTaskIds: number[];
 	budgetMarginal: BudgetMarginal;
@@ -206,7 +206,7 @@ const readScheduleIntegrity = (metrics: DailyMetrics): number =>
 /**
  * Raw reading and badness per axis, badness always lower-is-better. Energy
  * Balance is a target between the pools rather than a maximum, and Schedule
- * Integrity is bigger-better — the rest read directly (MATH.md §14).
+ * Integrity is bigger-better — the rest read directly.
  */
 const AXIS: Record<
 	AdviceAxis,
@@ -235,10 +235,10 @@ const AXIS: Record<
 		// A zero-load plan has no balance: `calculateEnergyBalance` returns the
 		// display sentinel 50 there, which is also the target — read as-is, an
 		// empty plan is this axis's global optimum and "set the budget to 0"
-		// wins the frontier (MATH.md §14.1 defect 5). NaN fails the improvement
+		// wins the frontier. NaN fails the improvement
 		// test in both directions, so zero-load candidates and baselines are
 		// silently excluded, like the Infinity Human Capacity reading.
-		// The test is exact because the loads now are (MATH.md §25): rounded to
+		// The test is exact because the loads now are: rounded to
 		// whole percent, a real but thin plan — 0.5h of difficulty-1 work in a 12h
 		// day, 0.42% — read as 0/0 and lost this axis as if it were loadless.
 		read: readEnergyBalance,
@@ -247,7 +247,7 @@ const AXIS: Record<
 	frictionIndex: {
 		// No sentinel, unlike Energy Balance and Schedule Integrity: 0 friction on a
 		// plan that funds nothing is that day's true reading, not a stand-in, and the
-		// defer reaching it is priced at the whole plan's Σ P̄ (MATH.md §14).
+		// defer reaching it is priced at the whole plan's Σ P̄.
 		read: (metrics) => metrics.frictionIndex,
 		badness: (metrics) => metrics.frictionIndex,
 	},
@@ -260,7 +260,7 @@ const AXIS: Record<
 		// hand back the sentinels 100 (no tasks) and 0 (nothing funded), and the
 		// 100 is this axis's global optimum — so "defer the last task" would win
 		// the frontier on a day with no work left to measure. Same treatment as
-		// Energy Balance above (MATH.md §14.1 defect 5): NaN, which fails the
+		// Energy Balance above: NaN, which fails the
 		// improvement test in both directions and drops such candidates AND
 		// baselines silently. Until now this was safe only by circumstance — the
 		// frontier's Σ P̄ gate happened to reject the empty plan.
@@ -268,9 +268,9 @@ const AXIS: Record<
 		badness: (metrics) => -readScheduleIntegrity(metrics),
 	},
 	flowCoverage: {
-		// Ranks on the COUNT and displays the share (MATH.md §14.5): a defer shrinks
+		// Ranks on the COUNT and displays the share: a defer shrinks
 		// numerator and denominator together, so a share-ranked axis would hand out
-		// free improvements for starving a task (MATH.md §11.11).
+		// free improvements for starving a task.
 		read: (metrics) =>
 			metrics.flowCoverage.total === 0
 				? NaN
@@ -279,14 +279,13 @@ const AXIS: Record<
 	},
 };
 
-/** Σ P̄ over funded tasks — the allocator's own objective (MATH.md §14). */
+/** Σ P̄ over funded tasks — the allocator's own objective. */
 function planValueOf(metrics: DailyMetrics): number {
 	return metrics.zenithGain.optimized;
 }
 
 /**
- * A quarter of one slider point — the noise floor under a Day Profile flip
- * (MATH.md §29).
+ * A quarter of one slider point — the noise floor under a Day Profile flip.
  *
  * The label is a hard cliff on two hour-weighted averages with no hysteresis:
  * 16.2% of seeded days sit within 0.25 of a cut, and one ±1 slider point on ONE
@@ -326,7 +325,7 @@ const MIN_HOUR_STEP = 1 / 60;
  * Whether Σ P̄ captures what this lever costs the user. Deferring and trimming
  * both pay in plan value; *adding* an hour pays in an hour, which the objective
  * does not see — and Σ P̄ is monotone in the budget, so a priced comparison
- * would let `budget + 1` dominate every real alternative (MATH.md §14).
+ * would let `budget + 1` dominate every real alternative.
  */
 function isPriced(lever: AdviceLever, budget: number): boolean {
 	return lever.kind === 'defer-task' || lever.hours < budget;
@@ -346,7 +345,7 @@ function buildLevers(baseline: DailyMetrics): AdviceLever[] {
 	// carries is not quarter-aligned, and rounding the trim to quarters would cut
 	// past the hours the plan actually spends — the one lever that must stay
 	// FEASIBLE. Feasible, not free: `allocate` is path-dependent on `budgetBlocks`,
-	// so on a pool-bound day the re-solve lands up to −0.9% below (MATH.md §14.1-2).
+	// so on a pool-bound day the re-solve lands up to −0.9% below.
 	// Clamped once, by the `.map` below — `planSlackHours` is itself floored at 0
 	// (`daily-metrics.ts`), so the subtraction cannot exceed the budget either way.
 	const trimmed = budget - baseline.planSlackHours;
@@ -409,7 +408,7 @@ function paretoOptions(
 					quadrantFlip: quadrantFlipOf(baseline, candidate.metrics),
 					planValue,
 					// A zero baseline has no ratio, and reporting 0% there renders a
-					// real gain as costing nothing (MATH.md §14).
+					// real gain as costing nothing.
 					planValueDeltaPercent:
 						baseValue > 0 ? Math.round(((planValue - baseValue) / baseValue) * 1000) / 10 : null,
 				},
@@ -418,7 +417,7 @@ function paretoOptions(
 		// `>` and not `>=` so a candidate that merely TIES the baseline is not
 		// offered as an option. The non-readings need no help from the operator:
 		// Infinity − Infinity and the zero-load NaN are both NaN, and every NaN
-		// comparison is false (MATH.md §14.1-5).
+		// comparison is false.
 		.filter((entry) => entry.improvement > 0)
 		.sort((a, b) => b.improvement - a.improvement || b.option.planValue - a.option.planValue);
 
@@ -441,7 +440,7 @@ function paretoOptions(
 }
 
 /**
- * One extra solve, one block wider than today's budget (MATH.md §14.2). Only the
+ * One extra solve, one block wider than today's budget. Only the
  * plan is needed, so this goes to the allocator directly instead of through
  * `calculateDailyMetrics` — the twenty other metrics would be computed and
  * thrown away.
@@ -459,7 +458,7 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 		posterior,
 	);
 
-	// Active-scoped, like every "what is still ahead" reading (MATH.md §11.8).
+	// Active-scoped, like every "what is still ahead" reading.
 	// The allocator is blind to `completed` — a task keeps its hours once ticked
 	// off — so a wider budget can spend its extra block on work already done:
 	// true about the plan, and useless as the next-up sentence this feeds.
@@ -473,7 +472,7 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 			return {
 				task,
 				extraHours: task.suggestedHours - before.suggestedHours,
-				// Σ P̄ is a per-task sum (MATH.md §14), so the day's rise restricted to
+				// Σ P̄ is a per-task sum, so the day's rise restricted to
 				// open work is just this sum — no second gain solve needed.
 				extraValue: task.avgProductivity - before.avgProductivity,
 			};
@@ -482,7 +481,7 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 	const baseValue = planValueOf(baseline);
 
 	// Floored: Σ P̄ is monotone in the budget at the true optimum, but the pooled
-	// path is a near-exact heuristic (MATH.md §13.3) and two adjacent budgets can
+	// path is a near-exact heuristic and two adjacent budgets can
 	// invert by a fraction of a percent. A negative shadow price is a claim the
 	// model does not make.
 	const gain = Math.max(
@@ -491,7 +490,7 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 	);
 
 	// The largest gainer, not the only one: the pooled transfer and admission
-	// moves can reshuffle several tasks to fit the new block in (MATH.md §13.3).
+	// moves can reshuffle several tasks to fit the new block in.
 	const [recipient] = gains
 		.filter((row) => row.extraHours > 0)
 		.sort((a, b) => b.extraHours - a.extraHours);
@@ -510,7 +509,7 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 }
 
 /**
- * Two extra solves, at a switch cost of zero and of double (MATH.md §14.3).
+ * Two extra solves, at a switch cost of zero and of double.
  *
  * Goes through `calculateZenithGain` and not through the allocator plus a sum
  * over `avgProductivity`, even though Σ P̄ is a per-task sum and the two agree to
@@ -518,11 +517,11 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
  * priority-sorted, so a hand-rolled sum adds the same terms in a different order
  * and lands a few ulps off `planValueOf`. Reading the value from the function
  * that defines it makes the comparison exact by construction, and the naive
- * baseline it also builds is n rotation passes (§19) against a 2ⁿ enumeration.
+ * baseline it also builds is n rotation passes against a 2ⁿ enumeration.
  *
  * PLAN-SCOPED, over every task and not just the open ones: it is compared
  * against `planValueOf(baseline)`, which `calculateDailyMetrics` builds from the
- * whole task list (MATH.md §11.8), and mixing the two scopes here would report
+ * whole task list, and mixing the two scopes here would report
  * a difference that is mostly the scope change.
  */
 function calculateSwitchCostPrice(
@@ -556,16 +555,16 @@ function calculateSwitchCostPrice(
 					switchCost: candidate,
 					planValue,
 					// CLAMPED TO THE DIRECTION THE OPTIMUM ALLOWS, and only that far.
-					// The exact optimum is monotone non-increasing in `s` (MATH.md §14.3):
+					// The exact optimum is monotone non-increasing in `s`:
 					// any allocation feasible at `s` is feasible at every smaller `s`, with
 					// the same pool draw and the same Σ P̄. So a lower declaration can only
-					// be worth ≥ 0 and a higher one ≤ 0, and the opposite sign is §13.3
+					// be worth ≥ 0 and a higher one ≤ 0, and the opposite sign is
 					// allocator suboptimality rather than anything about the day —
 					// measured to −6.5% on the free arm over inputs straight off the
 					// constraints bar's grid, which is a number no user can tell from a
 					// real one.
 					//
-					// This is NOT §14.2's floor, which would zero the doubled arm on 284 of
+					// This is NOT the budget marginal's floor, which would zero the doubled arm on 284 of
 					// 596 fixture alternatives and delete the one thing this reading exists
 					// to say: over-declaring is the expensive direction. Every informative
 					// value passes through untouched; only a provably impossible sign is
@@ -584,7 +583,7 @@ function calculateSwitchCostPrice(
 /**
  * Re-solve the day under each lever and report, per axis, the efficient menu
  * of adjustments. Costs one full solve per candidate — `activeTasks + 3` of
- * them, measured at 109-124 ms for a 12-task day, its worst case (MATH.md §14) —
+ * them, measured at 109-124 ms for a 12-task day, its worst case —
  * so call it on demand, never from a `$derived`.
  *
  * Pass `baseline` when the caller already has the current plan; it is only
@@ -601,7 +600,7 @@ export function suggestPlanAdjustments(
 		metrics: calculateDailyMetrics(applyLever(input, lever)),
 	}));
 
-	// Every axis, including the ones no lever moves (MATH.md §14.4). Dropping
+	// Every axis, including the ones no lever moves. Dropping
 	// those made an unfixable warning indistinguishable from no warning at all,
 	// and the caller — which owns the bands, not this file — cannot tell the two
 	// apart from an absence.

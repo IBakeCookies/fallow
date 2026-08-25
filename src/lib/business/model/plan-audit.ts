@@ -1,5 +1,5 @@
 /**
- * Plan-adherence audit (MATH.md §12): does the user's LOGGED behavior track
+ * Plan-adherence audit: does the user's LOGGED behavior track
  * the classic plan or the energy plan?
  *
  * The two planners disagree structurally: the classic Σ P̄ objective spreads
@@ -10,7 +10,7 @@
  * instrument — the same trick as the §8.10 stopping fit, pointed at the
  * planner itself. It is a READING, not a gate: the promotion it was originally
  * built to decide was withdrawn on 2026-07-29 — the two modes are peers, and
- * neither wins on the other's objective (MATH.md §15).
+ * neither wins on the other's objective.
  *
  * Compositions are compared as SHARES of worked time, not absolute hours:
  * how much total to work is the stop decision, priced separately by §8.10 —
@@ -31,7 +31,7 @@ import {
 	type EnergyTaskInput,
 } from '$lib/business/model/zenith-energy';
 
-/** The calibration one day was planned under — a recorded fit snapshot (§12). */
+/** The calibration one day was planned under — a recorded fit snapshot. */
 export interface PlanAuditFit {
 	/** Fitted energy params (the energy side) */
 	params: EnergyParams;
@@ -55,8 +55,8 @@ export interface PlanAuditDay {
 	/**
 	 * The fit recorded on that day. Absent for a day older than the snapshot
 	 * store, or one the user never opened the analytics screen on — those fall
-	 * back to the caller's live fit, which is what every day did before §12
-	 * started recording them.
+	 * back to the caller's live fit, which is what every day did before the
+	 * audit started recording them.
 	 */
 	fit?: PlanAuditFit;
 }
@@ -119,7 +119,7 @@ function taskSpreadOf(shares: number[]): number {
 /**
  * Compare each finished day's logged composition against what BOTH planners
  * would have suggested for that day, under the calibration that day was planned
- * under: `day.fit` when one was recorded (§12), otherwise the caller's live fit
+ * under: `day.fit` when one was recorded, otherwise the caller's live fit
  * (fit posterior for the classic side, fitted energy params for the energy side
  * — pass what the dashboard uses).
  *

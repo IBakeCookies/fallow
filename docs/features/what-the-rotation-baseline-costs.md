@@ -163,15 +163,15 @@ six probes and not in this one.
 
 Line numbers are as of planning. Sections and symbols are the durable address.
 
-- `MATH.md:4878-4916` — §19.3, the section under test. The four figure groups are
+- `MATH.md:4929-4967` — §19.3, the section under test. The four figure groups are
   at `:4885` (81.7%), `:4894-4896` (the witness pair and −0.5%), `:4897-4901`
   (the two cut counts and the ϕ̂ ≥ 4 h / σ/ϕ ≥ 0.35 range), `:4913-4916` (the
   timing). Each gets the measured number and its date.
-- `MATH.md:4782-4785` — §19's header: "so every number below sits on the same
+- `MATH.md:4833-4836` — §19's header: "so every number below sits on the same
   draw as §13.2's table". **False for §19.3 and part of this change** — the
   witness, the cut grid and the timing are not that draw and cannot be. Say
   which draw each group comes from instead of claiming one for all of them.
-- `MATH.md:2244` — §10, the doc-only revision log. R7 wants a dated entry: this
+- `MATH.md:2248` — §10, the doc-only revision log. R7 wants a dated entry: this
   change alters explanations and adds probes, and changes no behaviour.
 - `MATH.md:602` — §5.1, which owns the monotone-prefix cut and the σ ≤ 0.5·ϕ̂
   cap. Claims 3 and 4 measure its corner; they do not amend it.

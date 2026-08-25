@@ -1,12 +1,12 @@
 /**
- * Measurements behind MATH.md §21: how much headroom the Zenith Gain has to
- * report, and why a correct optimizer against a correct baseline still reads
- * ~2-3% on an ordinary day.
+ * How much headroom the Zenith Gain has to report, and why a correct optimizer
+ * against a correct baseline still reads ~2-3% on an ordinary day.
  *
- * §19 made the gain HONEST — it no longer bills the baseline for switches it
- * never makes. This probe asks the next question: honest and small, or honest
- * and broken? The answer is the first, and the reason is structural rather than
- * a defect, so it is worth writing down before someone "fixes" the number.
+ * An earlier fix made the gain HONEST — it no longer bills the baseline for
+ * switches it never makes. This probe asks the next question: honest and small,
+ * or honest and broken? The answer is the first, and the reason is structural
+ * rather than a defect, so it is worth writing down before someone "fixes" the
+ * number.
  *
  * The reference day is a real reported one — piano (P1 M7 E7), Gym (P8 M1 E5),
  * guitar (P0 M4 E9), network (P0 M5 E2) on a 4 h budget, which the dashboard
@@ -18,10 +18,10 @@
  * tasks may only spend budget − (m−1)·switchCost on work — and lands on the
  * 15-minute lattice. Both matter: an unbilled continuous split overruns the day
  * AND collects a full activation bonus on sub-block crumbs, which is exactly
- * how the pre-§13.2 baseline beat plans that could actually be executed.
+ * how the old baseline beat plans that could actually be executed.
  *
  * Those alternatives are each ONE split; none of them is the shipped baseline,
- * which averages the n cyclic rotations of the list (§19). Arm J prices the
+ * which averages the n cyclic rotations of the list. Arm J prices the
  * difference, so a row quoted as "what the metric reports" comes from there.
  *
  * Usage: npm run probe -- rv15-gain-headroom
@@ -48,7 +48,7 @@ import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 
 /**
  * What the app actually runs with. `fitUserConstants([])` returns the DEFAULT
- * constants together with the PRIOR as a posterior (§13.1) — so a user with no
+ * constants together with the PRIOR as a posterior — so a user with no
  * logged sessions is not modelled as certain, they are modelled as maximally
  * uncertain. Omitting this is not a rounding detail: σ_ϕ > 0 shrinks every T*
  * (piano 3h56 → 3h45 on screen) and moves the reported gain.
@@ -107,7 +107,7 @@ const output = (tasks: PooledTaskInput[], hours: number[]) =>
  *
  * The lattice is not a detail. A CONTINUOUS split is free to give every task a
  * 4-minute crumb and collect its full ≈ p₀ activation bonus, which is how the
- * pre-§13.2 baseline beat plans that were actually executable. Any task whose
+ * old baseline beat plans that were actually executable. Any task whose
  * proportional share rounds below one block is dropped, and the bill is
  * recomputed for the smaller m.
  */
@@ -592,7 +592,7 @@ describe('Zenith Gain — is 2.9% the optimizer failing or the baseline being go
 		console.log(
 			`Every "equal split" above is ONE largest-remainder split, so the odd block always\n` +
 				`lands on the first task of the list. The shipped baseline averages the n cyclic\n` +
-				`rotations instead (naiveBaselineValue, §19) — a different reference set, and the\n` +
+				`rotations instead (naiveBaselineValue) — a different reference set, and the\n` +
 				`only one the dashboard's gain is measured against.\n`,
 		);
 

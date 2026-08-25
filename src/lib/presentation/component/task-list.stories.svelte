@@ -39,7 +39,7 @@
 			priorityScore: 12.4,
 		}),
 		// Funded and already done: it keeps the hours the plan gave it, and its `#N` is
-		// gone — the run order is a next-up reading (MATH.md §11.8)
+		// gone — the run order is a next-up reading
 		task(3, 'stretching', {
 			physicalDifficulty: 6,
 			mentalDifficulty: 1,
@@ -69,8 +69,8 @@
 			// task in it was added on the day being viewed.
 			viewedDate: '2026-07-20',
 			// Run order is not priority order — the alternation is a heuristic over the
-			// funded set (MATH.md §16) — so boxing leads a sequence it ranks second in.
-			// Every funded task holds a position, the completed one included (§11.8).
+			// funded set — so boxing leads a sequence it ranks second in.
+			// Every funded task holds a position, the completed one included.
 			runOrder: new Map([
 				[2, 1],
 				[3, 2],
@@ -173,7 +173,7 @@
 
 <!-- The day the plan drops a task: two headed groups, the funded one in `#N` order.
      A completed task holds its slot in that sequence — the order is the plan's, not the
-     remainder's (MATH.md §11.8) — so ticking a row off never moves it out from under the
+     remainder's — so ticking a row off never moves it out from under the
      🪫 about to be logged on it.
 
      PIN: read through the row titles and the badges rather than the markup around them,

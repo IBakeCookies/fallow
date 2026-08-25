@@ -83,8 +83,8 @@ describe('RATING_INPUT_CLASS', () => {
 	});
 });
 
-/* One stop funds one log (MATH.md §18), and several rows can hold an open 🪫 editor at
-   once — two tasks ticked done each opened one, and each was handed the same 45. */
+/* One stop funds one log, and several rows can hold an open 🪫 editor at once — two
+   tasks ticked done each opened one, and each was handed the same 45. */
 describe('the pending reading is claimed by one editor', () => {
 	const claiming = () => newDrainDraft('completion', 45);
 

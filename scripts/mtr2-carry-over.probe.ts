@@ -1,31 +1,30 @@
 /**
- * The measurements behind three unbacked stretches of MATH.md §11.6, §11.9 and
- * §12 — every one a number the document states and nothing in `src/` or
- * `scripts/` reproduces.
+ * The measurements behind three unbacked stretches of MATH.md — every one a
+ * number the document states and nothing in `src/` or `scripts/` reproduces.
  *
- * §11.6, "Monotone in demand and duration, NOT in the declared budget (same
- *   probe)". `scripts/burnout-risk.probe.ts` measures the budget walk and the
- *   duration ladder; it never varies DEMAND, and the suite pins demand at one
- *   pair (mild 3 vs hard 9). The demand arm is measured here over the full 0–10
+ * "Monotone in demand and duration, NOT in the declared budget (same probe)".
+ *   `scripts/burnout-risk.probe.ts` measures the budget walk and the duration
+ *   ladder; it never varies DEMAND, and the suite pins demand at one pair
+ *   (mild 3 vs hard 9). The demand arm is measured here over the full 0–10
  *   scale at four durations.
  *
- * §11.6, the worst-drop decomposition — "their three switch gaps are 1.25h of
- *   REST against one gap's 0.42h, so the simulated WORK falls from 2.83h to
- *   2.25h", "both reservoirs end higher", "NOT min() swapping reservoirs — the
+ * The worst-drop decomposition — "their three switch gaps are 1.25h of REST
+ *   against one gap's 0.42h, so the simulated WORK falls from 2.83h to 2.25h",
+ *   "both reservoirs end higher", "NOT min() swapping reservoirs — the
  *   cognitive one binds on both sides". Those numbers live in a test COMMENT
  *   beside `expect(riskAt(3.25)).toBe(41)`; the test asserts the two readings
  *   and nothing about the mechanism claimed to produce them.
  *
- * §11.9, the carry-over levels — "at the fit floor, a fully-drained 8 h day
- *   starts the next morning near 92 %, and a 16 h day (8 h gap) near 71 %", and
+ * The carry-over levels — "at the fit floor, a fully-drained 8 h day starts
+ *   the next morning near 92 %, and a 16 h day (8 h gap) near 71 %", and
  *   "ρ_rest = 0.7·1.5 = 1.05/h leaves e^(−16.8) ≈ 5·10⁻⁸ of an 8 h day's
  *   deficit by morning". `energy-calibration.test.ts` pins the closed form, the
  *   no-logs identity, > 0.999 healing at defaults, monotonicity and the > 24 h
- *   guard — no percentage in §11.9 is asserted anywhere.
+ *   guard — no such percentage is asserted anywhere.
  *
- * §11.9, the inherited approximations — "breaks inside the worked day are
- *   omitted, and block order is taken as logged — both wash out exponentially
- *   through the trailing rest, which dominates the cycle". Stated
+ * The inherited approximations — "breaks inside the worked day are omitted,
+ *   and block order is taken as logged — both wash out exponentially through
+ *   the trailing rest, which dominates the cycle". Stated
  *   unconditionally for a feature whose own section says it is only visible when
  *   the ☕ fit is slow, which is where the trailing rest stops dominating. Both
  *   halves are ONE mechanism: `reservoirAt` is affine in the incoming level, so
@@ -36,7 +35,7 @@
  *   is printed beside every measured spread, and the displayed risk attenuates a
  *   second time through today's own simulation.
  *
- * §12, "probe 2026-07-11: two identical tasks on 1h score 1.955 split vs 1.58
+ * "probe 2026-07-11: two identical tasks on 1h score 1.955 split vs 1.58
  *   concentrated under Σ P̄". The framing of the whole audit rests on the
  *   classic objective preferring to spread; neither number appears in the repo.
  *
@@ -96,11 +95,11 @@ const plan = (tasks: Task[], availableHours: number, switchCost: number): Sugges
 		DEFAULT_USER_CONSTANTS,
 	);
 
-/** The §11.6 budget-walk worst case: 4 tasks at s = 25m, 3.25h → 3.5h. */
+/** The budget-walk worst case: 4 tasks at s = 25m, 3.25h → 3.5h. */
 const WORST_DROP_TASKS = [task(1, 9, 10, 6), task(2, 8, 5, 8), task(3, 3, 1, 0), task(4, 4, 8, 2)];
 const WORST_DROP_SWITCH_COST = 25 / 60;
 
-describe('MATH.md §11.6 — the demand arm and the worst-drop mechanism', () => {
+describe('The demand arm and the worst-drop mechanism', () => {
 	/**
 	 * Demand, the arm `burnout-risk.probe.ts` never walks. One pure cognitive
 	 * task whose budget equals its duration, so the plan funds the whole day and
@@ -124,14 +123,14 @@ describe('MATH.md §11.6 — the demand arm and the worst-drop mechanism', () =>
 			for (let i = 1; i < readings.length; i++) if (readings[i] < readings[i - 1]) falls++;
 
 			console.log(
-				`[§11.6 demand] ${hours}h, cognitive demand 0→10: ${readings.join('/')}% — ` +
+				`[demand] ${hours}h, cognitive demand 0→10: ${readings.join('/')}% — ` +
 					`${falls} of 10 steps FELL`,
 			);
 		}
 	});
 
 	/**
-	 * The mechanism §11.6 and `calculation.test.ts` both narrate but neither
+	 * The mechanism MATH.md and `calculation.test.ts` both narrate but neither
 	 * measures. The blocks are rebuilt exactly as `calculateBurnoutRisk` builds
 	 * them (interleaved order, switch costs as rest, overhang stretching the
 	 * funded blocks pro-rata); the risk it would report is printed beside the
@@ -174,7 +173,7 @@ describe('MATH.md §11.6 — the demand arm and the worst-drop mechanism', () =>
 			);
 
 			console.log(
-				`[§11.6 drop] ${budget}h: ${funded.length} funded, allocated ${allocated.toFixed(2)}h, ` +
+				`[drop] ${budget}h: ${funded.length} funded, allocated ${allocated.toFixed(2)}h, ` +
 					`stretch ${stretch.toFixed(3)}, WORK ${(allocated * stretch).toFixed(2)}h, ` +
 					`REST ${rest.toFixed(2)}h in ${gaps} gap(s); endCog ${endCog.toFixed(4)} / ` +
 					`endPhys ${endPhys.toFixed(4)} → binds ${endCog <= endPhys ? 'COG' : 'PHYS'}, ` +
@@ -185,7 +184,7 @@ describe('MATH.md §11.6 — the demand arm and the worst-drop mechanism', () =>
 	});
 });
 
-describe('MATH.md §11.9 — overnight carry-over levels', () => {
+describe('Overnight carry-over levels', () => {
 	const rho = (rate: number) => rate * DEFAULT_ENERGY_PARAMS.restRecoveryMultiplier;
 
 	const drainLog = (hours: number): DrainObservationRecord => ({
@@ -210,7 +209,7 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 			const seeded = seedMorningReservoirs(floor, [drainLog(hours)]);
 
 			console.log(
-				`[§11.9 floor] r = ${RECOVERY_FIT_MIN} (ρ_rest ${rho(RECOVERY_FIT_MIN).toFixed(2)}/h), ` +
+				`[floor] r = ${RECOVERY_FIT_MIN} (ρ_rest ${rho(RECOVERY_FIT_MIN).toFixed(2)}/h), ` +
 					`full-demand ${hours}h day, ${24 - hours}h gap: morning ` +
 					`${(seeded.initialCog * 100).toFixed(1)}% cog / ` +
 					`${(seeded.initialPhys * 100).toFixed(1)}% phys`,
@@ -220,7 +219,7 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 		const healed = seedMorningReservoirs(DEFAULT_ENERGY_PARAMS, [drainLog(8)]);
 
 		console.log(
-			`[§11.9 defaults] ρ_rest ${rho(DEFAULT_ENERGY_PARAMS.recoveryRate).toFixed(2)}/h, ` +
+			`[defaults] ρ_rest ${rho(DEFAULT_ENERGY_PARAMS.recoveryRate).toFixed(2)}/h, ` +
 				`full-demand 8h day: morning deficit ${(1 - healed.initialCog).toExponential(2)} cog ` +
 				`(e^(−16.8) = ${Math.exp(-16.8).toExponential(2)}), ` +
 				`two nights at the fit floor ≤ e^(−4.8) = ` +
@@ -228,7 +227,7 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 		);
 	});
 
-	// ---- §11.9's "inherited approximations wash out" claim (header) ----
+	// ---- The "inherited approximations wash out" claim (header) ----
 
 	const withRate = (rate: number): EnergyParams => ({
 		...DEFAULT_ENERGY_PARAMS,
@@ -441,7 +440,7 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 				const { bound, level, risk, overThreeRows } = cell(rate, total);
 
 				console.log(
-					`[§11.9 order] ${cellLine(rate, total, level, bound, risk)}, over ${level.orders} orders`,
+					`[order] ${cellLine(rate, total, level, bound, risk)}, over ${level.orders} orders`,
 				);
 
 				if (rate === RECOVERY_FIT_MIN && total === 16)
@@ -452,16 +451,14 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 			}
 
 		console.log(
-			`[§11.9 order] measured spread against the analytic bound: ${breaches} breaches, ` +
+			`[order] measured spread against the analytic bound: ${breaches} breaches, ` +
 				`worst ${(100 * overBound).toFixed(1)}% of the bound`,
 		);
 
-		console.log(
-			`[§11.9 order] worst DISPLAYED spread ${worstRisk.points} risk pt — ${worstRisk.detail}`,
-		);
+		console.log(`[order] worst DISPLAYED spread ${worstRisk.points} risk pt — ${worstRisk.detail}`);
 
 		console.log(
-			`[§11.9 claim] the uncommitted 2026-08-06 scratch probe claimed 8.4 pt from reordering ` +
+			`[claim] the uncommitted 2026-08-06 scratch probe claimed 8.4 pt from reordering ` +
 				`three blocks over a 16h day at r = ${RECOVERY_FIT_MIN}; committed measurement ${claim}`,
 		);
 	});
@@ -607,7 +604,7 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 				const { bound, level, risk, overThreeRows, tailSplit } = cell(rate, total);
 
 				console.log(
-					`[§11.9 break] ${cellLine(rate, total, level, bound, risk)}; putting the break back at ` +
+					`[break] ${cellLine(rate, total, level, bound, risk)}; putting the break back at ` +
 						`the end moves it ${tailSplit.toExponential(1)} on the worst of the four mixes`,
 				);
 
@@ -619,26 +616,24 @@ describe('MATH.md §11.9 — overnight carry-over levels', () => {
 			}
 
 		console.log(
-			`[§11.9 break] measured spread against the analytic bound: ${breaches} breaches, ` +
+			`[break] measured spread against the analytic bound: ${breaches} breaches, ` +
 				`worst ${(100 * overBound).toFixed(1)}% of the bound`,
 		);
 
-		console.log(
-			`[§11.9 break] worst DISPLAYED spread ${worstRisk.points} risk pt — ${worstRisk.detail}`,
-		);
+		console.log(`[break] worst DISPLAYED spread ${worstRisk.points} risk pt — ${worstRisk.detail}`);
 
 		console.log(
-			`[§11.9 claim] the same scratch probe claimed 2.4 pt from moving a 2h break to mid-day at ` +
+			`[claim] the same scratch probe claimed 2.4 pt from moving a 2h break to mid-day at ` +
 				`r = ${RECOVERY_FIT_MIN} over a 16h day; committed measurement ${claim}`,
 		);
 	});
 });
 
-describe('MATH.md §12 — the classic objective spreads', () => {
+describe('The classic objective spreads', () => {
 	/**
-	 * §12's premise, cited to a 2026-07-11 probe that is gone. The task spec is not
+	 * The premise, cited to a 2026-07-11 probe that is gone. The task spec is not
 	 * stated with it, so the whole 10×10 difficulty × enjoyment grid is swept: the
-	 * PROPERTY (Σ P̄ prefers the split) is what §12 rests on, and the two quoted
+	 * PROPERTY (Σ P̄ prefers the split) is what the claim rests on, and the two quoted
 	 * numbers have to come from one cell of this grid or from none of them.
 	 */
 	it('scores two identical tasks split against concentrated on a 1h budget', () => {
@@ -674,9 +669,9 @@ describe('MATH.md §12 — the classic objective spreads', () => {
 		}
 
 		console.log(
-			`[§12 spread] Σ P̄ prefers the split on ${spreads} of ${cells} difficulty × enjoyment cells`,
+			`[spread] Σ P̄ prefers the split on ${spreads} of ${cells} difficulty × enjoyment cells`,
 		);
 
-		console.log(`[§12 spread] closest cell to the quoted 1.955 — ${closest}`);
+		console.log(`[spread] closest cell to the quoted 1.955 — ${closest}`);
 	});
 });

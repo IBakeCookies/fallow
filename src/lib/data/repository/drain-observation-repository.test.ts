@@ -13,7 +13,7 @@ import type { DrainObservationRecord, Persisted } from '$lib/data/type';
 /** What a correction may set: the three numbers the user rated, and nothing else. Not
  *  the day, not the stamp, and since 2026-08-10 not the task or its demands either — those
  *  were captured when the session was rated so that a task edited afterwards cannot
- *  rewrite what it measured (MATH.md §36). Spelled as its own type so a payload that grows
+ *  rewrite what it measured. Spelled as its own type so a payload that grows
  *  one of them is a type error here rather than a passing test of a call no caller can
  *  make. */
 type DrainRating = Pick<DrainObservationRecord, 'hours' | 'mindDrain' | 'bodyDrain'>;
@@ -54,7 +54,7 @@ describe('drain-observation-repository', () => {
 
 	// The load-bearing one: this was an upsert on (taskId, date) until 2026-08-05,
 	// so a second session REPLACED the first and vanished from the day's worked
-	// hours that §8.10/§8.11/§12 read back.
+	// hours that §8.10/§8.11 read back.
 	it('appends: a second session on the same task and day is its own row', async () => {
 		await $createDrainObservation(
 			observation({
@@ -143,7 +143,7 @@ describe('drain-observation-repository', () => {
 	// The row's ✎ corrects a rating on whatever day it is showing, so `date` is not
 	// the caller's to pass: restamping it would move a measurement onto a day the
 	// user never worked that session, which every fit reads back per day (§8.7) and
-	// the §33 causal window scopes plans by.
+	// the causal window scopes plans by.
 	it('keeps a corrected rating on its own day', async () => {
 		await $createDrainObservation(
 			observation({

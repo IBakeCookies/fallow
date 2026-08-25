@@ -57,7 +57,7 @@ which is what the code exports today, so it runs against the old code unchanged.
 - **Then** the same day with `openTaskIds` = {2, 3} — `boxing`, the strongest
   task, checked off — reads 1.16
 - **Then** the gap between them is reported against the 0.110 bracket
-  half-width, which is the comparison §8.10 makes at `MATH.md:1648`
+  half-width, which is the comparison §8.10 makes at `MATH.md:1652`
 - **Then** the measured pair is pinned in
   `src/lib/business/model/zenith-energy.test.ts` beside the existing direction
   assertion, dated, citing §8.10 — one fixture, never a sweep
@@ -215,7 +215,7 @@ on completion matters more here than a fitted constant shifting.
   ROADMAP's not-proposed list, measured worse than item 12's re-plan, and no
   model input changes here.
 - **§8.11's canonical-rank over-pricing bound.** §8.11 records it with its own
-  reason (`MATH.md:1978-1985`); `growBy` is untouched.
+  reason (`MATH.md:1982-1989`); `growBy` is untouched.
 - **The other §8.10 and §8.11 numbers.** The inversion rates, the loose-max
   decomposition, the margin sweep and the session-vs-one-step table are backed
   and drawn without completions. Claim 6 is how that is verified rather than
@@ -233,18 +233,18 @@ on completion matters more here than a fitted constant shifting.
 
 Line numbers are as of planning. Sections and symbols are the durable address.
 
-- `MATH.md:1594` — §8.10's header, and `:1640-1652`, the open-task paragraph
+- `MATH.md:1598` — §8.10's header, and `:1640-1652`, the open-task paragraph
   under test. The witness is at `:1647` and the half-width comparison at `:1648`.
   Both get the measured figure and its date.
-- `MATH.md:1682-1700` — §8.10's **Censoring** paragraph. `:1687-1690` is the
+- `MATH.md:1686-1704` — §8.10's **Censoring** paragraph. `:1687-1690` is the
   fifth category, and the parenthetical at `:1692` is the case for item 4 that
   Claim 4 puts a number behind.
-- `MATH.md:1713`, `:1789-1791` — where the 0.110 bracket half-width is measured
+- `MATH.md:1717`, `:1789-1791` — where the 0.110 bracket half-width is measured
   and quoted. Claims 2 and 5 compare against it; neither re-measures it.
-- `MATH.md:1882` — §8.11's header, and `:1962-1971`, the **Candidates vs
+- `MATH.md:1886` — §8.11's header, and `:1962-1971`, the **Candidates vs
   reconstruction** paragraph. Its "test-pinned" claim is the suite's direction
   assertion; Claim 7's rates go here.
-- `MATH.md:2247` — §10, the doc-only revision log. R7 wants a dated entry: this
+- `MATH.md:2251` — §10, the doc-only revision log. R7 wants a dated entry: this
   change alters explanations and adds probe arms, and changes no behaviour.
 - `src/lib/business/model/zenith-energy.ts:1764-1777` — `StopObservation` and
   the `openTaskIds` docblock. "Omitted means every task was open" is the

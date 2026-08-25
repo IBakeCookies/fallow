@@ -94,7 +94,7 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 }
 
 describe('buildAdviceDisplay', () => {
-	// MATH.md §14.5. The axis label is the dashboard tile's own message key, and
+	// The axis label is the dashboard tile's own message key, and
 	// the reading is the share — the tile keeps the fraction, which is not
 	// recoverable from one number (the feature file records the trade).
 	it('labels the flow-coverage row and prints its share', () => {
@@ -132,7 +132,7 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options[0].cost).toBe('−26.4% plan value');
 	});
 
-	// MATH.md §14.1-4: the frontier rises in plan value, so its last row is the
+	// The frontier rises in plan value, so its last row is the
 	// cheapest — the one a frontier exists to surface. Truncating from the end
 	// dropped exactly that.
 	it('keeps the cheapest option when the frontier is longer than the cap', () => {
@@ -155,7 +155,7 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options).toHaveLength(2);
 	});
 
-	// MATH.md §14.1-1: Σ P̄ rises when the budget does, so printing that rise as
+	// Σ P̄ rises when the budget does, so printing that rise as
 	// the cost would read as the extra hour being free.
 	it('prices the unpriced budget increase in hours, last, not in plan value', () => {
 		const display = buildAdviceDisplay(advice([defer(1, -30)], setBudget(9, 4.2)), 'en-GB');
@@ -181,7 +181,6 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options).toHaveLength(1);
 	});
 
-	// MATH.md §14.1-3.
 	it('renders a null delta as N/A rather than as free', () => {
 		const display = buildAdviceDisplay(advice([defer(1, null)]), 'en-GB');
 
@@ -194,7 +193,7 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options[0].cost).toBe('costs no plan value');
 	});
 
-	// MATH.md §14: Human Capacity reads Infinity when a pool holds 0 hours with
+	// Human Capacity reads Infinity when a pool holds 0 hours with
 	// demand on it. "N/A" coloured red — and announced as critical to a screen
 	// reader — judges a number that does not exist; the metric rows render every
 	// N/A neutral for the same reason.
@@ -237,7 +236,7 @@ describe('buildAdviceDisplay', () => {
 		expect(row.options[1].afterBand).toBe('success');
 	});
 
-	// MATH.md §14.4. The model reports every axis now, so "no options" no longer
+	// The model reports every axis now, so "no options" no longer
 	// means "in band" — an axis that reads badly and has nothing to offer is the
 	// one the card must still show, since the day really is that lopsided.
 	it('keeps the row for an axis that reads badly and nothing improves', () => {
@@ -251,7 +250,7 @@ describe('buildAdviceDisplay', () => {
 	// The other half of the same change: a NaN sentinel bands `critical` under
 	// `getBandBiggerBetter` (nothing about it is ≥ 25), so an unfiltered model
 	// would put "N/A · nothing improves this" on a day with no budget — the
-	// alarm-about-nothing MATH.md §14.1-5 introduced the sentinel to prevent.
+	// alarm-about-nothing the sentinel was introduced to prevent.
 	// Infinity WITH options stays (the row above): there the levers are the point.
 	it('drops an axis whose reading is not a number and has nothing to offer', () => {
 		const display = buildAdviceDisplay(
@@ -278,7 +277,7 @@ describe('buildAdviceDisplay', () => {
 	// `> 60 / < 40` here is how a day gets labelled "Balanced" and coloured a
 	// warning. The share is printed because the word alone is three buckets over a
 	// continuous reading: 61.6% of this axis's options moved inside one bucket and
-	// rendered as no change at all (MATH.md §25).
+	// rendered as no change at all.
 	// The lever's `after` and not the row's `before`: only a skewed reading is out
 	// of band, so a balanced 50 never survives the row filter — reached as the
 	// reading a lever PRODUCES, which is where the third branch actually renders.
@@ -321,7 +320,7 @@ describe('buildAdviceDisplay', () => {
 		const display = buildAdviceDisplay(advice([flipping, defer(2, -10)]), 'en-GB');
 
 		expect(display.rows[0].options[0].profileFlip).toBe('Day Profile → Cruise');
-		// No flip, or one the model judged too thin to claim (MATH.md §29).
+		// No flip, or one the model judged too thin to claim.
 		expect(display.rows[0].options[1].profileFlip).toBeNull();
 	});
 
@@ -369,7 +368,7 @@ describe('buildAdviceDisplay', () => {
 		);
 	});
 
-	// MATH.md §14.3: the declared switch cost, priced. Conditional on purpose —
+	// The declared switch cost, priced. Conditional on purpose —
 	// each alternative is what the plan would be worth if the declaration were
 	// that number, never a claim the user can go and switch tasks faster.
 	describe('the price of the switch cost', () => {
@@ -429,8 +428,8 @@ describe('buildAdviceDisplay', () => {
 			).toBe('At 15m a switch, this plan pays for no switching.');
 		});
 
-		// A declared 0 collapses both candidates onto the declaration itself
-		// (MATH.md §14.3), so there is nothing left to bracket against.
+		// A declared 0 collapses both candidates onto the declaration itself, so
+		// there is nothing left to bracket against.
 		it('says the same when the day declares no switch cost at all', () => {
 			expect(
 				displayFor(
@@ -449,7 +448,7 @@ describe('buildAdviceDisplay', () => {
 		// bracket there discards the one reading both extra solves existed to
 		// produce, on the day the constant did the most damage — which is the generic
 		// 3-task day at budget 0.5 h and s = 15 min, median +41.9% at s = 0 and up to
-		// +63.4% (MATH.md §14.3). The 41.8 below is a representative input, not a
+		// +63.4%. The 41.8 below is a representative input, not a
 		// reading: this test's subject is the suppression, not the number.
 		it('keeps the bracket when the declaration starved the plan to one task', () => {
 			expect(
@@ -495,7 +494,7 @@ describe('buildAdviceDisplay', () => {
 		});
 
 		// A day with no hours entered yet. The two states arrive together and cannot
-		// be separated: a null percentage means Σ P̄ is 0 (MATH.md §14.1-3), which
+		// be separated: a null percentage means Σ P̄ is 0, which
 		// takes at most one funded task, which reserves nothing — so the sentence
 		// that has no share to report is the one that reports no switching either.
 		it('says the same on a day with no budget, which has no share to report', () => {
@@ -522,7 +521,7 @@ describe('buildAdviceDisplay', () => {
 		});
 	});
 
-	// MATH.md §14.2: the budget's shadow price, in the same "% plan value" the
+	// The budget's shadow price, in the same "% plan value" the
 	// cost column is spelled in — but signed +, because this one is a gain.
 	describe('the marginal of the budget', () => {
 		const displayFor = (budgetMarginal: BudgetMarginal) =>
@@ -540,7 +539,7 @@ describe('buildAdviceDisplay', () => {
 			);
 		});
 
-		// Scoped to output, not to the whole worth of the time (MATH.md §14.2): on
+		// Scoped to output, not to the whole worth of the time: on
 		// these same days the unpriced `budget + 1` lever is still correct advice,
 		// because Load is `weightedHours / budget` and slack is real relief. A
 		// sentence reading "the time is useless" would contradict the row below it.
@@ -557,7 +556,7 @@ describe('buildAdviceDisplay', () => {
 		});
 
 		// The pooled heuristic can hand a task the block while the day's value nets
-		// out flat (MATH.md §14.2/§13.3). "Goes to X · +0% plan value" is the same
+		// out flat. "Goes to X · +0% plan value" is the same
 		// non-advice as no recipient, so it reads as the same sentence.
 		it('says the same when a task takes the block but the value nets out flat', () => {
 			expect(
@@ -571,7 +570,7 @@ describe('buildAdviceDisplay', () => {
 		});
 
 		// A day with no hours entered yet: the block still goes somewhere, but
-		// there is no plan value to state it as a fraction of (MATH.md §14.1-3).
+		// there is no plan value to state it as a fraction of.
 		it('drops the percentage when the plan has no value to compare against', () => {
 			expect(
 				displayFor(
@@ -606,7 +605,7 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options[0].applyLabel).toContain('7,67');
 	});
 
-	// MATH.md §14.1-2: the lever carries the exact trim; only the label rounds.
+	// The lever carries the exact trim; only the label rounds.
 	it('rounds the budget label to two decimals without touching the lever', () => {
 		const exact = 8 - 1 / 3;
 		const display = buildAdviceDisplay(advice([setBudget(exact, 0)]), 'en-GB');

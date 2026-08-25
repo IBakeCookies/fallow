@@ -1,11 +1,11 @@
 /**
- * Measurements behind MATH.md §19: the naive baseline was billed for switches
- * it did not make, and the odd block landed wherever the task list happened to
- * be ordered.
+ * Measurements behind the naive baseline: it was billed for switches it did not
+ * make, and the odd block landed wherever the task list happened to be
+ * ordered.
  *
- * §13.2 removed a handicap charged to ONE side of the gain comparison — the
- * block lattice. This probe measures the same shape of handicap in the SWITCH
- * COST, which §13.2 left in place and its "Unchanged: the naive = 0 →
+ * An earlier fix removed a handicap charged to ONE side of the gain comparison
+ * — the block lattice. This probe measures the same shape of handicap in the
+ * SWITCH COST, which that fix left in place and its "Unchanged: the naive = 0 →
  * GAIN_PERCENT_CAP case ... is a real scenario" bullet endorsed.
  *
  * Arms:
@@ -17,22 +17,22 @@
  *      Fox 1966 §4 over the truncated menu; pooled path is a measurement) and
  *      the optimizer never scoring below the naive plan
  *   E  residual permutation dependence of the rotation average when a pool binds
- *      (exactly zero is only provable when none does — §19)
+ *      (exactly zero is only provable when none does)
  *   F  the affordability scan's monotonicity, exhaustively
  *   H  regression: a pool the baseline cannot draw on must not inflate the gain.
- *      The first cut of §19 windowed the round-robin to `seated` tasks, and a
+ *      The first cut windowed the round-robin to `seated` tasks, and a
  *      window of only pool-blocked tasks brought the 999% cap back.
- *   J  §19.3's exactness argument dominates EVERY rotation, which is strictly
+ *   J  the exactness argument dominates EVERY rotation, which is strictly
  *      stronger than dominating their average — how often, and by how much, the
  *      average really sits below the best rotation
- *   K  what the rotation baseline costs in wall clock, against the pre-§19
+ *   K  what the rotation baseline costs in wall clock, against the previous
  *      baseline and against the 2ⁿ funded-subset solve it runs beside
  *
  * The generator is `rv13-naive-lattice.probe.ts`'s, so the day-sweep numbers
- * here sit on the same draw as §13.2's table: integer sliders, pool weights tied
- * to them, budget on the 0.25h lattice. Arm K is a timing, not a draw: it states
- * its own day, machine and repetition count, because nothing else makes a
- * millisecond reproducible.
+ * here sit on the same draw as that probe's table: integer sliders, pool
+ * weights tied to them, budget on the 0.25h lattice. Arm K is a timing, not a
+ * draw: it states its own day, machine and repetition count, because nothing
+ * else makes a millisecond reproducible.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -142,7 +142,7 @@ const pct = (x: number, d = 1) => `${(100 * x).toFixed(d)}%`;
 /**
  * Did a pool, rather than the clock, stop the optimized plan? A plan that spent
  * its whole block budget was time-limited; one that left a block on the table
- * was held back by a capacity pool, which is where §13.3's greedy gap lives.
+ * was held back by a capacity pool, which is where the greedy gap lives.
  */
 function isPoolLimited(tasks: PooledTaskInput[], budget: number): boolean {
 	const plan = calculatePooledAllocations(tasks, budget);
@@ -175,8 +175,8 @@ function blockTarget(funded: number, budget: number, switchCost: number): number
  * single-budget path — `naiveBlockPlan`'s pool skips cannot fire, so the plan is
  * `target` blocks round-robin over the first `k` tasks of the rotation order,
  * `k` the largest count the budget can seat. Same relationship to the shipped
- * code as `oldNaiveHours` has to the pre-§19 baseline; arm J asserts the average
- * of these equals the shipped one to 12 decimals.
+ * code as `oldNaiveHours` has to the previous baseline; arm J asserts the
+ * average of these equals the shipped one to 12 decimals.
  */
 function rotationHours(
 	tasks: PooledTaskInput[],
@@ -225,7 +225,7 @@ function shuffled(tasks: PooledTaskInput[], rnd: () => number) {
 	return out;
 }
 
-describe('MATH.md §19 — the naive baseline pays for the switches it makes', () => {
+describe('the naive baseline pays for the switches it makes', () => {
 	it('arms A+B — seated tasks vs the switch bill, and what the 999% cap really was', () => {
 		for (const n of COUNTS) {
 			const rnd = mulberry32(100 + n);
@@ -328,7 +328,7 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 					loNew = Math.min(loNew, permuted.gainPercent);
 					hiNew = Math.max(hiNew, permuted.gainPercent);
 					// The OPTIMIZED side under the same permutations: the attribution
-					// claim in §19.2 needs a measured number, not an assumption.
+					// claim needs a measured number, not an assumption.
 					loOpt = Math.min(loOpt, permuted.optimized);
 					hiOpt = Math.max(hiOpt, permuted.optimized);
 				}
@@ -355,7 +355,7 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 
 			console.log(
 				`[C] n=${n}: the OPTIMIZED side moves on ${pct(movedOptimized / DAYS_PER_COUNT, 2)} of the same days ` +
-					`(worst ${pct(worstOptimized, 3)} of the plan value) — pooled greedy tie-breaking, §13.3`,
+					`(worst ${pct(worstOptimized, 3)} of the plan value) — pooled greedy tie-breaking`,
 			);
 		}
 	});
@@ -386,11 +386,11 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 
 				if (pooled.naive > pooled.optimized + 1e-9) optimizerBelow++;
 
-				// §13.2's guarantee, re-asserted against the new baseline: on the
+				// The earlier guarantee, re-asserted against the new baseline: on the
 				// single-budget path the naive plan is still one of the block
 				// distributions the exact greedy maximizes over (Fox 1966, §4), now
 				// under the smaller switch bill of a smaller funded subset. Exact over
-				// the TRUNCATED increment menu, which is the caveat §19.3 records — a
+				// the TRUNCATED increment menu, which is the caveat on record — a
 				// σ_ϕ > 0 menu cut can leave the naive plan free to place a block the
 				// optimizer was never offered — which this generator cannot produce at
 				// all, since it passes no posterior and so draws σ_ϕ = 0. Whether a
@@ -516,8 +516,8 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 		expect(nonMonotone).toBe(0);
 	});
 
-	it('arm H — a pool the baseline cannot draw on never inflates the gain (§19 regression)', () => {
-		// The first cut of §19 restricted the rotation's round-robin to a WINDOW of
+	it('arm H — a pool the baseline cannot draw on never inflates the gain (regression)', () => {
+		// The first cut restricted the rotation's round-robin to a WINDOW of
 		// the first `seated` tasks. A window holding only pool-blocked tasks then
 		// produced an all-zero plan, dragged the rotation average down, and brought
 		// the 999% cap back through the pool door: 8 tasks at 0.25h against a zeroed
@@ -581,7 +581,7 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 		expect(capped).toBe(0);
 	});
 
-	it('arm I — a starved pool cannot make the bill exceed the seats (§19.1)', () => {
+	it('arm I — a starved pool cannot make the bill exceed the seats', () => {
 		// Choosing the switch bill from the TIME budget alone over-charges whenever a
 		// POOL, not the clock, is what keeps a task out — measured at 20% of days on
 		// the low-pool grid below, worst +14.35pp of reported gain. The shipped scan
@@ -639,7 +639,7 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 	});
 
 	it('arm G — a budget of one whole block is never "the naive plan achieves nothing"', () => {
-		// The retracted §13.2 bullet held that naive = 0 is a real day. It is not:
+		// The retracted bullet held that naive = 0 is a real day. It is not:
 		// the only way to score 0 now is a budget under one block, where the
 		// OPTIMIZER scores 0 too and the ratio is 0/0, not a suppressed win.
 		for (const n of COUNTS) {
@@ -655,8 +655,8 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 		}
 	});
 
-	it('arm J — the rotation average against the best rotation (§19.3)', () => {
-		// §19.3's exactness argument is that the optimizer dominates EVERY rotation,
+	it('arm J — the rotation average against the best rotation', () => {
+		// The exactness argument is that the optimizer dominates EVERY rotation,
 		// which is strictly stronger than dominating their average. The gap between
 		// the two is what makes that non-vacuous, and nothing measured it: the
 		// shipped function returns only the average.
@@ -707,13 +707,13 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 		console.log(`[J] pooled over ${days} days: ${pct(daysBelow / days)}`);
 	});
 
-	it('arm K — what the rotation baseline costs, timed (§19.3)', () => {
-		// §19.3 quotes three millisecond figures and `performance.now()` appears in
+	it('arm K — what the rotation baseline costs, timed', () => {
+		// Three millisecond figures were quoted and `performance.now()` appears in
 		// six probes and never in this one. A 12-task day is the enumeration's own
-		// worst case (2¹² funded subsets, MATH.md §34), and σ_ϕ > 0 is what turns
-		// every P̄ evaluation into a 5-node quadrature — so the posterior is
-		// hand-built rather than fitted: the cost depends on σ_ϕ being non-zero, not
-		// on which user produced it.
+		// worst case (2¹² funded subsets), and σ_ϕ > 0 is what turns every P̄
+		// evaluation into a 5-node quadrature — so the posterior is hand-built
+		// rather than fitted: the cost depends on σ_ϕ being non-zero, not on which
+		// user produced it.
 		// The generator's own 12-task day, re-timed at three budgets: the solve's
 		// cost is dominated by how many blocks each of the 2¹² subsets has to place,
 		// so a single budget would report the ratio of one day rather than a cost.
@@ -778,8 +778,8 @@ describe('MATH.md §19 — the naive baseline pays for the switches it makes', (
 			const solveMs = timePerCall(solve, SOLVE_REPS);
 
 			console.log(
-				`[K] n=12, budget ${budget}h, σ_ϕ = 0.2h: pre-§19 baseline ${oldMs.toFixed(4)} ms/call ` +
-					`(one round-robin + one Σ P̄), §19 rotation baseline ${baselineMs.toFixed(4)} ms/call ` +
+				`[K] n=12, budget ${budget}h, σ_ϕ = 0.2h: previous baseline ${oldMs.toFixed(4)} ms/call ` +
+					`(one round-robin + one Σ P̄), rotation baseline ${baselineMs.toFixed(4)} ms/call ` +
 					`(12 rotations × 12 Σ P̄ terms), 2ⁿ funded-subset solve ${solveMs.toFixed(2)} ms/call ` +
 					`— the baseline is ${pct(baselineMs / solveMs, 2)} of it`,
 			);

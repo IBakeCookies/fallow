@@ -1,8 +1,8 @@
 /**
- * Measurements behind MATH.md §13.2: what quantizing the Zenith Gain's naive
- * baseline onto the block lattice did to the sign of the reported gain.
+ * Measurements behind what quantizing the Zenith Gain's naive baseline onto the
+ * block lattice did to the sign of the reported gain.
  *
- * §13.2's table claims the gain read NEGATIVE on 4% (n = 2) to 19% (n = 6) of
+ * MATH.md's table claims the gain read NEGATIVE on 4% (n = 2) to 19% (n = 6) of
  * 400 random days BEFORE the fix and 0% at every task count after, with the
  * `naive = 0 → GAIN_PERCENT_CAP` case at 0/0/0/7/7/14% and "the typical
  * non-capped day gains ~4–6%". The section does not state the generator, so
@@ -11,14 +11,14 @@
  * shipped baseline and a replica of the pre-2026-07-26 CONTINUOUS equal split,
  * which is the only part of the "before" row that can still be measured.
  *
- * SCOPE NARROWED 2026-08-06 (§19). Two of the three claims this file was written
- * to check have since been RETRACTED: §19 showed the `naive = 0` row was an
- * artifact of the baseline's switch bill rather than a scenario, and the
- * "~4–6% typical day" went with it. The cap counters below are consequently
- * identically zero at every task count — kept as a one-line assertion that they
- * stay zero, since that is now the claim worth guarding. What this probe still
- * measures on its own is the continuous-vs-block "before" row and the
- * single-budget ≥ 0 guarantee; §19's own numbers live in
+ * SCOPE NARROWED 2026-08-06. Two of the three claims this file was written to
+ * check have since been RETRACTED: the `naive = 0` row was an artifact of the
+ * baseline's switch bill rather than a scenario, and the "~4–6% typical day"
+ * went with it. The cap counters below are consequently identically zero at
+ * every task count — kept as a one-line assertion that they stay zero, since
+ * that is now the claim worth guarding. What this probe still measures on its
+ * own is the continuous-vs-block "before" row and the single-budget ≥ 0
+ * guarantee; the retraction's own numbers live in
  * `rv14-naive-switch-bill.probe.ts`.
  *
  * The 0% row is the load-bearing half, and on the single-budget path it is a
@@ -63,7 +63,7 @@ function mulberry32(seed: number): () => number {
 
 const DAYS_PER_COUNT = 400;
 
-describe('MATH.md §13.2 — the naive baseline on the block lattice', () => {
+describe('The naive baseline on the block lattice', () => {
 	it('prints the gain-sign rates before and after, per task count', () => {
 		for (const n of [2, 3, 4, 5, 6, 8]) {
 			const rnd = mulberry32(100 + n);
@@ -135,7 +135,7 @@ describe('MATH.md §13.2 — the naive baseline on the block lattice', () => {
 				if (after.gainPercent === GAIN_PERCENT_CAP) capped++;
 				else nonCapped.push(after.gainPercent);
 
-				// §13.2's guarantee on the single-budget path: the block equal split is
+				// The guarantee on the single-budget path: the block equal split is
 				// one of the distributions the exact greedy maximizes over.
 				expect(after.gainPercent).toBeGreaterThanOrEqual(0);
 			}
@@ -143,14 +143,14 @@ describe('MATH.md §13.2 — the naive baseline on the block lattice', () => {
 			nonCapped.sort((a, b) => a - b);
 			const mean = nonCapped.reduce((sum, g) => sum + g, 0) / nonCapped.length;
 
-			// Since §19 there are no capped days, so the with-cap and without-cap
-			// means are the same number and the "cap contributes x% of the mean"
-			// line §13.2 quoted has no content left. What is worth guarding is that
-			// the count stays zero.
+			// Since the retraction there are no capped days, so the with-cap and
+			// without-cap means are the same number and the "cap contributes x% of
+			// the mean" line MATH.md quoted has no content left. What is worth
+			// guarding is that the count stays zero.
 			expect(capped).toBe(0);
 
 			console.log(
-				`n=${n}: MEAN gain ${mean.toFixed(1)}%, median ${nonCapped[Math.floor(nonCapped.length / 2)].toFixed(1)}%, p10 ${nonCapped[Math.floor(nonCapped.length * 0.1)].toFixed(1)}%, p90 ${nonCapped[Math.floor(nonCapped.length * 0.9)].toFixed(1)}% — no capped days since §19`,
+				`n=${n}: MEAN gain ${mean.toFixed(1)}%, median ${nonCapped[Math.floor(nonCapped.length / 2)].toFixed(1)}%, p10 ${nonCapped[Math.floor(nonCapped.length * 0.1)].toFixed(1)}%, p90 ${nonCapped[Math.floor(nonCapped.length * 0.9)].toFixed(1)}% — no capped days`,
 			);
 
 			console.log(

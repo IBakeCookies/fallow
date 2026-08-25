@@ -188,15 +188,15 @@ export interface ScheduleEvaluation {
 	/** satiatedOutput + freeTimeBonus + terminalBonus — what the optimizer maximizes */
 	objective: number;
 	/** Both reservoirs at the end of the WINDOW, after the trailing implicit rest —
-	 *  what `terminalBonus` is priced on (MATH.md §13.6). */
+	 *  what `terminalBonus` is priced on. */
 	endCog: number;
 	endPhys: number;
 	/**
 	 * Both reservoirs at the end of the last WORKED block — how spent the plan
 	 * leaves you before the evening recovers you. The honest answer to "how
-	 * depleted does this day end", and the reading Burnout Risk (§11.6) takes;
-	 * `endCog/endPhys` answer a different question and read near-saturated
-	 * (MATH.md §13.6). Equal to the initial levels when nothing is worked.
+	 * depleted does this day end", and the reading Burnout Risk takes;
+	 * `endCog/endPhys` answer a different question and read near-saturated.
+	 * Equal to the initial levels when nothing is worked.
 	 */
 	workEndCog: number;
 	workEndPhys: number;
@@ -350,8 +350,8 @@ export type ReservoirDemand = Pick<EnergyTaskInput, 'id' | 'cognitiveDemand' | '
  * Evolve both reservoirs over a block schedule and return the end levels.
  * Drain-law only — no warm-up curves, no output quadrature — so it needs
  * neither UserConstants nor the tasks' difficulty/enjoyment. This is the
- * energy-model core behind the main page's Burnout Risk metric (MATH.md
- * §11.6), which has no use for the output side of evaluateSchedule.
+ * energy-model core behind the main page's Burnout Risk metric, which has no
+ * use for the output side of evaluateSchedule.
  */
 export function simulateReservoirs(
 	blocks: ScheduleBlock[],
@@ -1282,11 +1282,11 @@ function concaveMajorantSlopes(values: number[], step: number): number[] {
  * Deliberately NOT `objective − λ₀·budget`, which is the same idea applied to
  * each point's own window: the terminal term is read after the trailing rest, so
  * a longer window recovers more reservoir before it is valued and the reading
- * climbs on days that got no better (§13.6). Measured, that artifact holds the
+ * climbs on days that got no better. Measured, that artifact holds the
  * knee at the top of the range on every day until λ₀ = 1.25
  * (`scripts/budget-knee.probe.ts`).
  *
- * Running max on `dayValue`, for §14.2's reason and with its caveat: the true
+ * Running max on `dayValue`, with its own reason and caveat: the true
  * optimum is monotone in the budget (every plan feasible at `b` is feasible at
  * `b + ε`), but `plan(b)` maximizes `objective` at its OWN window rather than
  * this score, so the raw sweep can dip. The floor is in the direction
@@ -1769,7 +1769,7 @@ export interface StopObservation {
 	/** The day's declared window (availableHours) */
 	windowHours: number;
 	/**
-	 * One entry per logged SESSION (§18's per-session 🪫 rows), with the row's
+	 * One entry per logged SESSION (per-session 🪫 rows), with the row's
 	 * own log moment where it has one. `endedAt` is what carries the day's block
 	 * structure: consecutive rows' start/end times bracket the breaks between
 	 * sessions, which is the difference between reading the day and repacking it
@@ -1778,7 +1778,7 @@ export interface StopObservation {
 	workedHours: { taskId: number; hours: number; endedAt?: number }[];
 	/**
 	 * Tasks still open at the stop — the only ones another session could have
-	 * gone to (§11.8's next-up scope). A checked-off task's hours still shape
+	 * gone to (the next-up scope). A checked-off task's hours still shape
 	 * the reconstruction, because they drained the reservoirs. Omitted means
 	 * every task was open.
 	 */
@@ -1788,7 +1788,7 @@ export interface StopObservation {
 /**
  * Logged hours summed per task, keeping only positive entries whose task is
  * still part of the day. ONE definition (AGENTS.md R3): the §8.10 stopping fit
- * and the §12 adherence audit both read "what was actually worked" out of this
+ * and the adherence audit both read "what was actually worked" out of this
  * join, and they must agree about it or one of them is auditing a different day.
  *
  * Dropping unknown ids is the load-bearing part: a drain log outlives the task
@@ -2116,7 +2116,7 @@ interface RecoveredRest {
 }
 
 /**
- * The breaks the 🪫 rows' own log moments recover — one row per session (§18),
+ * The breaks the 🪫 rows' own log moments recover — one row per session,
  * so `endedAt − hours` starts it and the space before it is a break the summed
  * reading used to throw away (MATH.md §8.10). Both stop readings need this
  * before the reconstruction caps it, so it is its own function.
@@ -2204,7 +2204,7 @@ function loggedStructure(
  * blocks — the day continues from where it stopped. An unlogged task is
  * inserted at ITS canonical position, not appended last: block order changes
  * the marginal through the reservoirs, so appending made the reading depend on
- * an arbitrary convention rather than on the day (MATH.md §13.4). Where that
+ * an arbitrary convention rather than on the day. Where that
  * position falls beside a break, the session lands before the break, i.e.
  * directly after the last lower-ranked work block.
  */
