@@ -65,70 +65,70 @@ that are not evident from reading it — so never retype a row, regenerate:
   §8.11   2429-2700  Live stop advisor — §8.10 run forward mid-day (added 202…
   §8.12   2702-2909  The budget curve — what the day's LENGTH is worth (added…
 §9        2911-2958  References
-§10       2960-3792  Revision log (doc-only corrections)
-§11       3794-4415  Metric-layer corrections (2026-07-18)
-  §11.1   3796-3810  Scope and principle
-  §11.2   3812-3836  Zenith Gain: cap instead of a silent 0% when the naive p…
-  §11.3   3838-3865  Burnout Risk: overhang counts funded tasks' T* only (for…
-  §11.4   3867-3937  Friction Index: raw scales instead of the asymmetric map…
-  §11.5   3939-3957  Schedule Integrity: overhead share instead of the small-…
-  §11.6   3959-4069  Burnout Risk v2: re-derived from the energy model (2026-…
-  §11.7   4071-4095  Momentum: burnout claim removed, fed active tasks (2026-…
-  §11.8   4097-4163  Metric scope families: plan / progress / next-up (2026-0…
-  §11.9   4165-4274  Overnight reservoir carry-over (2026-07-28)
-  §11.10  4276-4346  Grind Density: the share of the work the day actually fu…
-  §11.11  4348-4415  Grind Density is a row, not an objective (2026-08-08)
-§12       4417-4554  Plan-adherence audit (2026-07-23)
-  §12.1   4458-4554  Per-day fit snapshots (2026-08-03)
-§13       4556-5018  Math review, 2026-07-26
-  §13.1   4573-4611  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
-  §13.2   4613-4685  Zenith Gain measured the block lattice, not allocation q…
-  §13.3   4687-4752  The pooled allocator's "within 1–2%" was a curated-scena…
-  §13.4   4754-4807  The stopping fit probed unlogged tasks at an arbitrary p…
-  §13.5   4809-4846  Also in this change
-  §13.6   4848-5018  The two end-of-day energy readings: a timing difference,…
-§14       5020-5941  Plan advice — priced counterfactuals over the day's leve…
-  §14.1   5272-5418  Five corrections to the first cut (2026-07-28)
-  §14.2   5420-5569  The marginal of the budget (added 2026-08-03)
-  §14.3   5571-5777  The price of the switch cost (added 2026-08-04)
-  §14.4   5779-5840  An empty frontier is a reading (2026-08-08)
-  §14.5   5842-5941  Flow Coverage becomes the ninth axis (2026-08-24)
-§15       5943-6101  Two objectives, two modes (2026-07-29)
-  §15.1   6029-6101  The copy named the wrong objective for both modes (2026-…
-§16       6103-6191  Run order stays a heuristic (2026-07-29)
-§17       6193-6351  Per-task ϕ offsets stay unbuilt (2026-08-04)
-§18       6353-6458  Drain logs are one row per SESSION, not per task-day (20…
-§19       6460-6731  The gain's naive baseline paid for switches it never mad…
-  §19.1   6478-6537  Defect 1 — billed (n−1) switches, seated fewer than n ta…
-  §19.2   6539-6567  Defect 2 — the displayed number moved with the order of …
-  §19.3   6569-6658  What this costs, and the one guarantee that weakened
-  §19.4   6660-6731  GAIN_PERCENT_CAP is not dead, but its documented trigger…
-§20       6733-6795  Human Capacity: the reading is the constraint, but it na…
-  §20.1   6774-6795  The tie went to cognitive, so the row blamed the wrong p…
-§21       6797-6965  What the gain has room to report (2026-08-07)
-  §21.1   6819-6839  The edge is SELECTION at tight budgets and SHAPE at loos…
-  §21.2   6841-6864  Why shape has a low ceiling: the activation bonus
-  §21.3   6866-6886  Population distribution
-  §21.4   6888-6919  The number is a property of the comparison, not of the o…
-  §21.5   6921-6936  Under the total-output objective the ranking inverts
-  §21.6   6938-6965  Correction: on an ordinary day it is FLOW that binds, no…
-§22       6967-7035  Task nature: an absolute gap could not carry a range tha…
-§23       7037-7179  Primary Bottleneck named the model's best task (2026-08-…
-  §23.1   7078-7145  Primary Bottleneck: the largest draw on the binding pool
-  §23.2   7147-7179  Longest Warm-Up: what E/β was actually tracking
-§24       7181-7244  Task Variety counted labels, and its repair was Energy B…
-§25       7246-7395  Cognitive and Physical Load: the definition, and what ro…
-§26       7397-7503  Deep Work: a step that swung whole blocks, under a band …
-§27       7505-7622  Sustainable Work billed unbooked time as grind (2026-08-…
-§28       7624-7676  Which four readings are headlines (2026-08-07)
-§29       7678-7851  Day Profile: one cut for two different scales, on a day …
-§30       7853-7945  The Lab's comparison tile scored the plan on the one thi…
-§31       7947-8128  What history can plot, and what it cannot (2026-08-07)
-§32       8130-8196  Two gates that read a sentinel as a verdict (2026-08-08)
-§33       8198-8323  A plan reads only the logs that precede it (2026-08-08)
-§34       8325-8555  The subset search gave up one task too early (2026-08-08)
-§35       8557-8911  The plan cannot see the hours you already spent (2026-08…
-§36       8913-8984  What a correction may touch (2026-08-10)
+§10       2960-3824  Revision log (doc-only corrections)
+§11       3826-4447  Metric-layer corrections (2026-07-18)
+  §11.1   3828-3842  Scope and principle
+  §11.2   3844-3868  Zenith Gain: cap instead of a silent 0% when the naive p…
+  §11.3   3870-3897  Burnout Risk: overhang counts funded tasks' T* only (for…
+  §11.4   3899-3969  Friction Index: raw scales instead of the asymmetric map…
+  §11.5   3971-3989  Schedule Integrity: overhead share instead of the small-…
+  §11.6   3991-4101  Burnout Risk v2: re-derived from the energy model (2026-…
+  §11.7   4103-4127  Momentum: burnout claim removed, fed active tasks (2026-…
+  §11.8   4129-4195  Metric scope families: plan / progress / next-up (2026-0…
+  §11.9   4197-4306  Overnight reservoir carry-over (2026-07-28)
+  §11.10  4308-4378  Grind Density: the share of the work the day actually fu…
+  §11.11  4380-4447  Grind Density is a row, not an objective (2026-08-08)
+§12       4449-4586  Plan-adherence audit (2026-07-23)
+  §12.1   4490-4586  Per-day fit snapshots (2026-08-03)
+§13       4588-5050  Math review, 2026-07-26
+  §13.1   4605-4643  Zero ⚡ logs was treated as perfect certainty (§5, §5.1)
+  §13.2   4645-4717  Zenith Gain measured the block lattice, not allocation q…
+  §13.3   4719-4784  The pooled allocator's "within 1–2%" was a curated-scena…
+  §13.4   4786-4839  The stopping fit probed unlogged tasks at an arbitrary p…
+  §13.5   4841-4878  Also in this change
+  §13.6   4880-5050  The two end-of-day energy readings: a timing difference,…
+§14       5052-5973  Plan advice — priced counterfactuals over the day's leve…
+  §14.1   5304-5450  Five corrections to the first cut (2026-07-28)
+  §14.2   5452-5601  The marginal of the budget (added 2026-08-03)
+  §14.3   5603-5809  The price of the switch cost (added 2026-08-04)
+  §14.4   5811-5872  An empty frontier is a reading (2026-08-08)
+  §14.5   5874-5973  Flow Coverage becomes the ninth axis (2026-08-24)
+§15       5975-6133  Two objectives, two modes (2026-07-29)
+  §15.1   6061-6133  The copy named the wrong objective for both modes (2026-…
+§16       6135-6223  Run order stays a heuristic (2026-07-29)
+§17       6225-6383  Per-task ϕ offsets stay unbuilt (2026-08-04)
+§18       6385-6490  Drain logs are one row per SESSION, not per task-day (20…
+§19       6492-6763  The gain's naive baseline paid for switches it never mad…
+  §19.1   6510-6569  Defect 1 — billed (n−1) switches, seated fewer than n ta…
+  §19.2   6571-6599  Defect 2 — the displayed number moved with the order of …
+  §19.3   6601-6690  What this costs, and the one guarantee that weakened
+  §19.4   6692-6763  GAIN_PERCENT_CAP is not dead, but its documented trigger…
+§20       6765-6827  Human Capacity: the reading is the constraint, but it na…
+  §20.1   6806-6827  The tie went to cognitive, so the row blamed the wrong p…
+§21       6829-6997  What the gain has room to report (2026-08-07)
+  §21.1   6851-6871  The edge is SELECTION at tight budgets and SHAPE at loos…
+  §21.2   6873-6896  Why shape has a low ceiling: the activation bonus
+  §21.3   6898-6918  Population distribution
+  §21.4   6920-6951  The number is a property of the comparison, not of the o…
+  §21.5   6953-6968  Under the total-output objective the ranking inverts
+  §21.6   6970-6997  Correction: on an ordinary day it is FLOW that binds, no…
+§22       6999-7067  Task nature: an absolute gap could not carry a range tha…
+§23       7069-7211  Primary Bottleneck named the model's best task (2026-08-…
+  §23.1   7110-7177  Primary Bottleneck: the largest draw on the binding pool
+  §23.2   7179-7211  Longest Warm-Up: what E/β was actually tracking
+§24       7213-7276  Task Variety counted labels, and its repair was Energy B…
+§25       7278-7427  Cognitive and Physical Load: the definition, and what ro…
+§26       7429-7535  Deep Work: a step that swung whole blocks, under a band …
+§27       7537-7654  Sustainable Work billed unbooked time as grind (2026-08-…
+§28       7656-7708  Which four readings are headlines (2026-08-07)
+§29       7710-7883  Day Profile: one cut for two different scales, on a day …
+§30       7885-7977  The Lab's comparison tile scored the plan on the one thi…
+§31       7979-8160  What history can plot, and what it cannot (2026-08-07)
+§32       8162-8228  Two gates that read a sentinel as a verdict (2026-08-08)
+§33       8230-8355  A plan reads only the logs that precede it (2026-08-08)
+§34       8357-8593  The subset search gave up one task too early (2026-08-08)
+§35       8595-8949  The plan cannot see the hours you already spent (2026-08…
+§36       8951-9022  What a correction may touch (2026-08-10)
 ```
 
 <!-- section-index:end -->
@@ -870,10 +870,10 @@ negligible next to the subset enumeration.
   be a `switchCost` 0.1 day: at n = 13 the crossover is 2.25 h and no budget in
   the band falls through at all, at n = 14 it is 1.75 h and only the 2 h day
   does, at n = 15 it is 1.5 h and both 1.75 h and 2 h do. That deduction names
-  WHICH budgets and prices none of them: §34's ≤ 2 h worsts (0.00%, 1.89%,
-  3.31%) are maxima over the whole band and all four switch costs, and its
-  counts there are 0/20, 2/28 and 1/29 short — no measurement attributes a
-  forfeit to a single fall-through budget.
+  WHICH budgets and prices none of them: §34's ≤ 2 h worsts (0.00%, 2.12%,
+  3.31%) are maxima over the whole band and all four switch costs, and the
+  120-day sample's counts there are 0/20, 2/28 and 1/29 short — no measurement
+  attributes a forfeit to a single fall-through budget.
 - **Budgets below 0.25h are left unplanned** (v1 would allocate slivers).
 - **`zenith-energy.ts` intentionally still uses the v1 curve.** It is a
   standalone total-output model with its own fatigue dynamics (documented in
@@ -957,15 +957,15 @@ the peak).
 Post-fix probes (the signs are locked in as unit tests, the numbers are
 `scripts/enb-break-economics.probe.ts`, 2026-08-06): the optimizer now inserts
 interior rest on long demanding windows — 1 rest block on the 10-hour probe at
-the §8.8 45-minute lattice (work 3 h, rest 45 min, work 2.25 h), 4 at a
-15-minute step; the "6 breaks, a Pomodoro-like pattern" once claimed here
-reproduces at no step size, and no test asserts a count. And a ~30-minute break
-placed mid-session _raises_ total output at equal work-hours (+5.1% on the deep
-8/5 task, +6.9% on the fragmentation fixture) — the Jaber–Neumann result the old
-model could not produce, and the one post-fix consequence with no suite fixture
-of its own. Fragmentation still costs (contiguous ≈ 1.5× confetti on the
-standard probe: 1.5500×, against 4.1839× under a hard reset), just no longer
-catastrophically.
+the §8.8 45-minute lattice (work 3 h, rest 45 min, work 2.25 h), 5 at a
+15-minute step (re-read 2026-08-25); the "6 breaks, a Pomodoro-like pattern"
+once claimed here reproduces at no step size, and no test asserts a count. And a
+~30-minute break placed mid-session _raises_ total output at equal work-hours
+(+5.1% on the deep 8/5 task, +6.9% on the fragmentation fixture) — the
+Jaber–Neumann result the old model could not produce, and the one post-fix
+consequence with no suite fixture of its own. Fragmentation still costs
+(contiguous ≈ 1.5× confetti on the standard probe: 1.5500×, against 4.1839×
+under a hard reset), just no longer catastrophically.
 
 **Open:** making sustained work efficient made it attractive. At the default
 `freeTimeValue = 0.5` the optimizer now recommends ≈ 9.9 h of work in a 12-hour
@@ -3790,6 +3790,38 @@ the last raw division. `k` reads `0.15151515151515144` where it read
 cell, not only on the `DOMAIN_GRID` it walks, and a new `zenith.test.ts` case
 pins the cell, which is off that grid.
 
+### 2026-08-25 — four audited defects behind a review that reported none
+
+**Explanation-only**; no formula, constant, bound or fit moved. What moved is
+what one probe measured. `alpha-review-zenith.md` audited `zenith.ts` and
+`zenith-energy.ts` against §0–§8 and found none of these; re-auditing that
+verdict upheld five, the fifth being the entry above.
+
+1. **`OPTIMAL_PHI_MULTIPLIER`'s docblock still called itself "(c) the
+   seed/bracket for the per-task root solve".** Nothing in `zenith.ts` solves
+   against it — every consumer is in `zenith-energy.ts`, which the same block
+   already says — so the clause is deleted rather than re-scoped.
+2. **The same block still said `TaskAllocation.optimalHours` "falls outside the
+   band (MATH.md §5.1)".** That is the reading §10's 2026-08-08 entry (item 2)
+   retracted, in favour of naming the field hedged and free to fall BELOW the
+   band (§3). That prescription has stood in this log since; the band clause
+   never caught up, and now carries it.
+3. **§8.3's interior-rest count at the 15-minute step was 4.**
+   `enb-break-economics.probe.ts` prints `current step 0.25h: 5 rest blocks`;
+   re-read and stamped in place. The 45-minute half of the same sentence still
+   reproduces exactly: `current step 0.75h: 1 rest blocks, 5.25h work`.
+4. **`subset-search-bound.probe.ts` bounded a worst case it had not swept.**
+   Its shortfall arm drew ONE (budget, `switchCost`) pair per day, so the worst
+   column was a maximum over 120 draws rather than over the grid the fallback
+   actually runs on. It now sweeps the whole grid on 8 days per n AND replays
+   the historical 120-day sample beside it, 1400 solves per n in the union, and
+   §34's after-table says which column comes from which population: the two
+   worst columns from the union, the count and the mean from the sample, where
+   they stay comparable to the before-table's own. The published fallback
+   forfeit rose to **5.11–6.47%**, and §7's ≤ 2 h worst at n = 14 to **2.12%**.
+   §34's tight-band sentence and the two `zenith.ts` comments that quoted the
+   range were re-read from the same run. The search is untouched — what moved
+   is what the probe measured.
 
 ## 11. Metric-layer corrections (2026-07-18)
 
@@ -8341,10 +8373,10 @@ backlog is an ordinary Tuesday, not an exotic input.
 
 **It is expensive, and expensive exactly where selection is the whole game.**
 Measured against exhaustive enumeration over 120 random days per n
-(`scripts/subset-search-bound.probe.ts`, seeded; budgets 0.25–10 h on the block
-lattice, `switchCost` ∈ {0.1, 0.25, 0.33, 0.5}, default constants, **single
-budget** — the fixed-charge dimension in isolation, with no pool to confound it;
-the pooled path carries §13.3's separate heuristic gap on top):
+(`scripts/subset-search-bound.probe.ts` at `e02bb3a`, seeded; budgets 0.25–10 h
+on the block lattice, `switchCost` ∈ {0.1, 0.25, 0.33, 0.5}, default constants,
+**single budget** — the fixed-charge dimension in isolation, with no pool to
+confound it; the pooled path carries §13.3's separate heuristic gap on top):
 
 | n   | days non-exact | mean forfeit | worst      | worst at ≤ 2 h |
 | --- | -------------- | ------------ | ---------- | -------------- |
@@ -8436,7 +8468,7 @@ is a _fallback_ day — the same day §34 opens by calling reachable. That is th
 design and not a shortfall in it: §21.1 measures selection at 0.0% of the
 optimizer's edge from 2 h up, so the region the bound reaches is the region where
 getting the subset wrong is expensive, and the region it cedes is the one where
-the remaining forfeit is 2.3–3.8%.
+the remaining forfeit is 5.11–6.47%.
 
 **A prefix moves that line, and that is what the `startedCount` term buys.** At
 `n` = 13, B = 4 h, `switchCost` 0.33 and `startedCount` = 8, the subset-only
@@ -8462,17 +8494,21 @@ which is the 0.4210 above.
 
 ### What it costs, measured
 
-Same sweep, after (2026-08-08):
+Same reference, over two populations — the whole
+(`switchCost` ∈ {0.1, 0.25, 0.33, 0.5}) × (0.25–10 h block lattice) grid swept on
+8 days per n, and the 120 sampled days above replayed beside it, 1400 solves per
+n in the union. The two worst columns are maxima over that union and cannot fall;
+a count and a mean can, so those two are the 120-day sample's own and read
+against the before-table's own column (2026-08-25):
 
-| n   | days non-exact  | mean forfeit     | worst             | worst at ≤ 2 h    |
-| --- | --------------- | ---------------- | ----------------- | ----------------- |
-| 13  | 34 → **9**/120  | 0.78 → **0.10%** | 14.93 → **3.26%** | 14.93 → **0.00%** |
-| 14  | 33 → **19**/120 | 0.80 → **0.18%** | 18.41 → **2.28%** | 18.41 → **1.89%** |
-| 15  | 43 → **32**/120 | 0.94 → **0.38%** | 13.39 → **3.77%** | 13.39 → **3.31%** |
+| n   | days non-exact | mean forfeit | worst     | worst at ≤ 2 h |
+| --- | -------------- | ------------ | --------- | -------------- |
+| 13  | **9**/120      | **0.1%**     | **5.27%** | **0.00%**      |
+| 14  | **19**/120     | **0.18%**    | **6.47%** | **2.12%**      |
+| 15  | **32**/120     | **0.38%**    | **5.11%** | **3.31%**      |
 
-The tight band is now essentially exact (0/20, 2/28, 1/29 short, none of it
-above 3.31%), and the worst case across every band lands at 2.28–3.77% — beside
-the pooled path's own 3.37–5.28% (§13.3) rather than four times worse than it.
+The tight band is 0/20, 2/28 and 1/29 short, and the worst case across
+every band lands at 5.11–6.47%.
 
 **Monotonicity is repaired only where the bounded search runs.** Same ladder
 sweep — 15-minute steps from one block to 10 h over 160 random days at
@@ -8527,7 +8563,9 @@ then:     npm run probe -- scripts/subset-search-bound.probe.ts     (and git res
 
 That is what backs 34/33/43 days short, the 0.78/0.80/0.94% means, the 14.93 /
 18.41 / 13.39% worsts and the 20-violation monotonicity figure above, and the
-rejected variant's 59/63 and 13.94%. The one number NOT from this probe is
+rejected variant's 59/63 and 13.94% — read them off the run's `sample`, since
+the top-level totals are the 2026-08-25 union. The one number NOT from this
+probe is
 §21.1's selection/shape split, which has its own.
 
 The two lines are not equally strong, and the difference is worth stating. The
