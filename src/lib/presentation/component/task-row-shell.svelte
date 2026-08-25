@@ -178,7 +178,7 @@
 
 		<!-- Bare numbers: the headed columns say what `P `/`M `/`E ` and a tooltip had to.
 		     The hues stay, though — body/mind/brand are how every other reading of the same
-		     three names is written (`drain-log-form`, `log-history-list`, `fit-row`). -->
+		     three names is written (`drain-log-form`, `log-history-list`). -->
 		<td class="ledger-cell ledger-numeric ledger-wide text-body/80">{physicalDifficulty}</td>
 		<td class="ledger-cell ledger-numeric ledger-wide text-mind/80">{mentalDifficulty}</td>
 		<td class="ledger-cell ledger-numeric ledger-wide text-brand/80">{enjoyment}</td>

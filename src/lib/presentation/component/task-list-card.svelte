@@ -9,7 +9,7 @@
 
 	interface Props {
 		form?: Snippet;
-		/** What the caller draws between the heading and the ledger — `/` its day strip. */
+		/** Between the heading and the ledger — `/` its day strip, the Lab its ☕ editor. */
 		strip?: Snippet;
 		/** What the screen reads beside the heading — both screens put the day's Load/Save
 		 *  there, and `/` its "Next" too. A snippet, like `form`: this card is the two
@@ -49,7 +49,7 @@
 {/snippet}
 
 <div class="card-shell space-y-text-xs p-box-sm sm:p-box-xl">
-	<div class="flex flex-wrap items-baseline justify-between gap-text-xs">
+	<div class="flex flex-wrap items-center justify-between gap-text-xs">
 		<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 			{m.list_title()}
 		</h3>
