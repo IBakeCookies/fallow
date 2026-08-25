@@ -648,9 +648,9 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 	});
 
 	it('MORE budget can read LOWER risk once the plan is re-solved (settled, not a bug)', () => {
-		// Pins the worst case found by scripts/burnout-risk.probe.ts (2026-08-06,
+		// Pins the worst case found by scripts/burnout-risk.probe.ts (2026-08-25,
 		// MATH.md §11.6): walking availableHours over a FIXED task list, the
-		// reading fell on 3006 of 37800 steps, worst 29 points — right here.
+		// reading fell on 3033 of 37800 steps, worst 29 points — right here.
 		// Mechanism: the bigger budget funds 4 tasks instead of 2, and their three
 		// 25-minute switch gaps are 1.25h of REST inside the day against one gap's
 		// 0.42h, so simulated WORK falls from 2.83h to 2.25h (the two-task plan's
@@ -658,7 +658,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		// fills 3.5h with its gaps) and both reservoirs end higher. It is NOT min()
 		// swapping reservoirs — the cognitive one binds on both sides.
 		// business/model/AGENTS.md settled this as INTENDED ("Burnout Risk is not monotone in
-		// the declared budget, and that stays"), so this is a characterization
+		// the declared budget or the switch cost, and that stays"), so this is a characterization
 		// test: an agent who reads the fall as a bug and smooths it gets a red
 		// build pointing at that decision instead of a silent semantic change.
 		const tasks = [
