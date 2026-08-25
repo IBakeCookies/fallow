@@ -9,6 +9,7 @@ import {
 } from '$lib/business/session-history';
 import { $updateSession } from '$lib/data/repository/session-repository';
 import { $createDrainObservation } from '$lib/data/repository/drain-observation-repository';
+import { $createRestObservation } from '$lib/data/repository/rest-observation-repository';
 import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
 import { $createOrUpdateFlowObservation } from '$lib/data/repository/flow-observation-repository';
 import { prefillBudgetFor } from '$lib/business/model/budget-memory';
@@ -89,11 +90,10 @@ describe('readDaySummaries', () => {
 		expect(await readDaySummaries('1999-01-01', '1999-12-31')).toEqual([]);
 	});
 
-	/* MATH.md §33/§12.1: each day is scored under the fit RECORDED on it, not one
-	   whole-history fit spread across the range. Before this, logging a single ⚡
-	   today silently rewrote the completion rate of every day the calendar shows —
-	   the same defect as the mid-day re-plan, at the scale of the user's whole
-	   history. */
+	/* Each day is scored under the fit RECORDED on it, not one whole-history fit
+	   spread across the range. Before this, logging a single ⚡ today silently
+	   rewrote the completion rate of every day the calendar shows — the same
+	   defect as the mid-day re-plan, at the scale of the user's whole history. */
 	it('scores each day under its own recorded fit, and only that day', async () => {
 		await $updateSession(session('2026-02-10'));
 		await $updateSession(session('2026-02-11'));
@@ -254,6 +254,28 @@ describe('readModelReport', () => {
 		expect(report.calibration.flow.defaultPhiHours).toBeGreaterThan(0);
 	});
 
+	// The report reads the rest store for the r fit, and the analytics screen's
+	// break totals fold the same rows — surfacing them costs no second read.
+	it('surfaces the ☕ rows it already read for the fit', async () => {
+		await $createRestObservation({
+			date: '2026-06-02',
+			hours: 0.5,
+			mindBefore: 8,
+			mindAfter: 5,
+			bodyBefore: 6,
+			bodyAfter: 4,
+		});
+
+		const report = await readModelReport('2026-06-10', 30);
+
+		expect(report.rest).toHaveLength(1);
+
+		expect(report.rest[0]).toMatchObject({
+			date: '2026-06-02',
+			mindAfter: 5,
+		});
+	});
+
 	// The §5.2 weights are only real if the facade dates them: passing no
 	// ageDays silently restores the unweighted fit, and nothing above would
 	// notice — the fit still succeeds, just over the wrong person.
@@ -270,7 +292,7 @@ describe('readModelReport', () => {
 		});
 
 		// The day after is the freshest a counted log can be: the log's own day
-		// reads none of it (§33), which the case below this one pins.
+		// reads none of it, which the case below this one pins.
 		const nextDay = await readModelReport('2016-03-05', 30);
 		const decadeLater = await readModelReport('2026-03-04', 30);
 
@@ -290,12 +312,12 @@ describe('readModelReport', () => {
 		);
 	});
 
-	/* MATH.md §33: the report is the model the day is PLANNING under, so it reads
-	   the same window the dashboard does — logs strictly before the report date.
-	   Without this the analytics card would print a ϕ moved by a log the main
-	   page's plan had not yet counted, which is the same dishonesty on a second
-	   screen. The deferred rows are reported rather than dropped, so the card can
-	   say "logged today" instead of appearing to have lost them. */
+	/* The report is the model the day is PLANNING under, so it reads the same
+	   window the dashboard does — logs strictly before the report date. Without
+	   this the analytics card would print a ϕ moved by a log the main page's plan
+	   had not yet counted, which is the same dishonesty on a second screen. The
+	   deferred rows are reported rather than dropped, so the card can say
+	   "logged today" instead of appearing to have lost them. */
 	it('excludes the report date’s own ⚡ logs, and reports them as pending', async () => {
 		// Measured against this store's own baseline rather than against zero: the
 		// suite shares a database, so what matters is that the NEW log changes
@@ -386,7 +408,7 @@ describe('readModelReport', () => {
 	});
 });
 
-// MATH.md §12: the audit scores a finished day against the fit recorded on that
+// The audit scores a finished day against the fit recorded on that
 // day, so the report hands back today's fit for the caller to record.
 describe('readModelReport fit snapshots', () => {
 	/** Two tasks the planners must rank differently, or a re-fit changes no share. */
@@ -430,7 +452,7 @@ describe('readModelReport fit snapshots', () => {
 		expect(todaysFit.alphaPhys).toBe(calibration.energy.params.alphaPhys);
 		expect(todaysFit.recoveryRate).toBe(calibration.energy.params.recoveryRate);
 		expect(todaysFit.stoppingValue).toBe(calibration.stopping.value);
-		// The posterior travels whole: without it σ_ϕ is 0 downstream (§13.1).
+		// The posterior travels whole: without it σ_ϕ is 0 downstream.
 		expect(todaysFit.covariance).toHaveLength(3);
 		expect(todaysFit.covariance.every((row) => row.length === 3)).toBe(true);
 		expect(Number.isFinite(todaysFit.sigma2)).toBe(true);
@@ -499,7 +521,7 @@ describe('readModelReport fit snapshots', () => {
 	// anyone who skips days reaches further back than `auditDayCap` CALENDAR days
 	// — the trend's window. The snapshot read is widened to cover them, and
 	// without that widening this day's recorded fit is silently ignored and the
-	// §12.1 correction is lost for exactly the sporadic loggers it matters most
+	// correction is lost for exactly the sporadic loggers it matters most
 	// for. Nothing else in this suite audits a day outside the trend window.
 	it('applies the recorded fit of a worked day older than the trend window', async () => {
 		await $updateSession(lopsided('2026-10-01'));
@@ -575,7 +597,7 @@ describe('readStopObservations', () => {
 		expect([...day.openTaskIds!]).toEqual([1]);
 	});
 
-	// One row per SESSION, not one per task (§18): summing them here is what
+	// One row per SESSION, not one per task: summing them here is what
 	// destroyed the day's breaks before §8.10's estimator could read them, so the
 	// join must carry each row's own log moment through (MATH.md §8.10).
 	it('carries one row per session with the moment it was logged (MATH.md §8.10)', async () => {

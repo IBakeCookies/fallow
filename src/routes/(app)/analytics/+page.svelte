@@ -35,6 +35,9 @@
 	const observations = getEnergyObservationStore();
 
 	const oneDecimal = (value: number) => formatDecimals(value, 1, getDateLocale());
+	// The lifts read positive when a break left the user fresher, so the sign is
+	// always shown — same convention as the completion-rate delta below.
+	const signedOneDecimal = (value: number) => `${value >= 0 ? '+' : ''}${oneDecimal(value)}`;
 
 	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
 		week: {
@@ -63,6 +66,14 @@
 	const rateDelta = $derived(analytics.completionRateDelta);
 	const bestDay = $derived(analytics.bestDay);
 	const quadrantCounts = $derived(analytics.quadrantCounts);
+	const loggedHours = $derived(analytics.loggedHours);
+	const restStats = $derived(analytics.restSummary);
+	// What the two hour tiles say instead of a reading, on the two states the
+	// model report leaves them without one. The cards below say it in their own
+	// markup; a tile has one note line, so it says it there.
+	const missingReading = $derived(
+		analytics.hasModelReportFailed ? m.error_title() : m.ana_loading(),
+	);
 
 	const modelRows = $derived(calibrationRows(calibration, getDateLocale()));
 	const auditVerdict = $derived(adherenceVerdict(audit));
@@ -75,7 +86,7 @@
 	}
 
 	// `null` while the calibrated energy params are still in flight — the card
-	// says so rather than drawing a series fitted to the defaults (MATH.md §31).
+	// says so rather than drawing a series fitted to the defaults.
 	const trend = $derived(
 		analytics.metricTrend === null
 			? null
@@ -206,7 +217,7 @@
 	<!-- Bar heights are the line-heights they stand in for: `text-xs` is h-4,
 	     `text-sm` h-5, the tile's `text-2xl` reading h-8. -->
 	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
-		{#each Array(6), i (i)}
+		{#each Array(9), i (i)}
 			<div class="card-shell rounded-xl p-box-md">
 				<div class="skeleton-block h-4 w-20"></div>
 				<div class="skeleton-block mt-text-2xs h-8 w-24"></div>
@@ -286,11 +297,56 @@
 		</StatTile>
 
 		<StatTile
+			label={m.ana_longest_streak()}
+			value={analytics.longestStreak}
+			suffix={analytics.longestStreak === 1 ? m.ana_day_one() : m.ana_day_other()}
+		>
+			{#snippet note()}{m.ana_streak_best_note()}{/snippet}
+		</StatTile>
+
+		<StatTile
 			label={m.ana_planned_hours()}
 			value={analytics.plannedHours.toLocaleString(getDateLocale())}
 			suffix={m.unit_hours()}
 		>
 			{#snippet note()}{m.ana_planned_hours_note()}{/snippet}
+		</StatTile>
+
+		<StatTile
+			label={m.ana_logged_hours()}
+			value={loggedHours === null ? '—' : loggedHours.toLocaleString(getDateLocale())}
+			suffix={loggedHours === null ? undefined : m.unit_hours()}
+			muted={loggedHours === null}
+		>
+			{#snippet note()}
+				{#if loggedHours === null}
+					{missingReading}
+				{:else}
+					{m.ana_logged_hours_note({
+						hours: analytics.plannedHours.toLocaleString(getDateLocale()),
+					})}
+				{/if}
+			{/snippet}
+		</StatTile>
+
+		<StatTile
+			label={m.ana_rest_hours()}
+			value={restStats === null ? '—' : restStats.hours.toLocaleString(getDateLocale())}
+			suffix={restStats === null ? undefined : m.unit_hours()}
+			muted={restStats === null || restStats.lift === null}
+		>
+			{#snippet note()}
+				{#if restStats === null}
+					{missingReading}
+				{:else if restStats.lift === null}
+					{m.ana_rest_hours_empty()}
+				{:else}
+					{m.ana_rest_lift_note({
+						mind: signedOneDecimal(restStats.lift.mind),
+						body: signedOneDecimal(restStats.lift.body),
+					})}
+				{/if}
+			{/snippet}
 		</StatTile>
 
 		<StatTile
@@ -329,7 +385,7 @@
 		/>
 	</div>
 
-	<!-- Load and burnout over the range (MATH.md §31) -->
+	<!-- Load and burnout over the range -->
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_load_trend()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_load_trend_hint()}</p>
@@ -358,7 +414,7 @@
 		<QuadrantDistribution counts={quadrantCounts} />
 	</div>
 
-	<!-- Plan adherence (MATH.md §12) -->
+	<!-- Plan adherence -->
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
 		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>

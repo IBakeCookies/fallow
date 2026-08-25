@@ -9,7 +9,12 @@ import type { AnalyticsStore } from '$lib/business/store/analytics-store.svelte'
 import type { DaySummary } from '$lib/business/model/metric/history';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
-import type { FitSnapshotRecord, Task } from '$lib/data/type';
+import type {
+	DrainObservationRecord,
+	FitSnapshotRecord,
+	RestObservationRecord,
+	Task,
+} from '$lib/data/type';
 
 const TODAY = '2026-07-20';
 
@@ -24,7 +29,7 @@ const EMPTY_AUDIT: PlanAudit = {
 };
 
 // The store publishes the snapshot untouched, so a shallow stub suffices — plus
-// the fitted energy params, which it does read, for the metric trend (§31).
+// the fitted energy params, which it does read, for the metric trend.
 const CALIBRATION = {
 	flow: {
 		fitted: false,
@@ -43,7 +48,7 @@ vi.mock('$lib/business/state/today.svelte', () => ({
 	},
 }));
 
-/** What §12 stamps for today; only its identity matters to the store. */
+/** What is stamped for today; only its identity matters to the store. */
 const TODAYS_FIT: Omit<FitSnapshotRecord, 'createdAt'> = {
 	date: TODAY,
 	c1: 0.56,
@@ -69,6 +74,7 @@ vi.mock('$lib/business/session-history', () => ({
 		audit: EMPTY_AUDIT,
 		todaysFit: TODAYS_FIT,
 		drain: [],
+		rest: [],
 	})),
 }));
 
@@ -132,6 +138,7 @@ describe('AnalyticsStore', () => {
 			audit: EMPTY_AUDIT,
 			todaysFit: TODAYS_FIT,
 			drain: [],
+			rest: [],
 		});
 	});
 
@@ -264,6 +271,151 @@ describe('AnalyticsStore', () => {
 		expect(store.plannedHours).toBe(5.8);
 	});
 
+	const drainRow = (date: string, hours: number): DrainObservationRecord => ({
+		id: 1,
+		date,
+		taskId: 1,
+		taskTitle: 'deep work',
+		hours,
+		cognitiveDemand: 0.8,
+		physicalDemand: 0.2,
+		mindDrain: 6,
+		bodyDrain: 2,
+		createdAt: 0,
+	});
+
+	const restRow = (over: Partial<RestObservationRecord> = {}): RestObservationRecord => ({
+		id: 1,
+		date: '2026-07-16',
+		hours: 0.5,
+		mindBefore: 8,
+		mindAfter: 5,
+		bodyBefore: 6,
+		bodyAfter: 4,
+		createdAt: 0,
+		...over,
+	});
+
+	it('sums the logged hours of the viewed range', async () => {
+		readModelReportMock.mockResolvedValue({
+			calibration: CALIBRATION,
+			audit: EMPTY_AUDIT,
+			todaysFit: TODAYS_FIT,
+			drain: [
+				drainRow('2026-07-15', 2),
+				drainRow('2026-07-16', 1.5),
+				drainRow('2026-06-01', 9), // outside the week
+			],
+			rest: [],
+		});
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.loggedHours).toBe(3.5));
+
+		store.range = 'year';
+		flushSync();
+		expect(store.loggedHours).toBe(12.5);
+	});
+
+	// Loaded-ness is a field, never emptiness (business/AGENTS.md): an empty ☕/🪫
+	// store and a read that has not returned are different answers, and 0 h
+	// standing beside a real Planned hours is a claim about the user's own logs.
+	it('withholds the logged and rest readings until the model report lands', async () => {
+		let resolveReport!: (
+			report: Awaited<ReturnType<typeof sessionHistory.readModelReport>>,
+		) => void;
+
+		readModelReportMock.mockReturnValue(
+			new Promise((resolve) => {
+				resolveReport = resolve;
+			}),
+		);
+
+		const store = await setup([day('2026-07-15')]);
+
+		expect(store.loggedHours).toBeNull();
+		expect(store.restSummary).toBeNull();
+
+		resolveReport({
+			calibration: CALIBRATION,
+			audit: EMPTY_AUDIT,
+			todaysFit: TODAYS_FIT,
+			drain: [drainRow('2026-07-15', 2)],
+			rest: [],
+		});
+
+		await vi.waitFor(() => expect(store.loggedHours).toBe(2));
+
+		// The ☕ store really is empty, which is the answer the tile prints.
+		expect(store.restSummary).toEqual({
+			hours: 0,
+			lift: null,
+		});
+	});
+
+	it('leaves the logged and rest readings null when the model report fails', async () => {
+		readModelReportMock.mockRejectedValue(new Error('indexeddb is gone'));
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.hasModelReportFailed).toBe(true));
+		expect(store.loggedHours).toBeNull();
+		expect(store.restSummary).toBeNull();
+	});
+
+	it('summarizes the breaks of the viewed range', async () => {
+		readModelReportMock.mockResolvedValue({
+			calibration: CALIBRATION,
+			audit: EMPTY_AUDIT,
+			todaysFit: TODAYS_FIT,
+			drain: [],
+			rest: [
+				restRow(),
+				restRow({
+					date: '2026-06-01',
+				}),
+			], // the second outside the week
+		});
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.restSummary?.lift).not.toBeNull());
+		expect(store.restSummary?.hours).toBe(0.5);
+
+		expect(store.restSummary?.lift).toEqual({
+			mind: 3,
+			body: 2,
+		});
+	});
+
+	// The subtle one, as for `streak`: a record run is not a property of whichever
+	// window happens to be open.
+	it('counts the longest streak across the whole loaded year', async () => {
+		const dates = [
+			...Array.from(
+				{
+					length: 10,
+				},
+				(_, i) => `2026-06-${String(i + 1).padStart(2, '0')}`,
+			),
+			'2026-07-13',
+			'2026-07-14',
+			'2026-07-15',
+			'2026-07-16',
+			'2026-07-17',
+			'2026-07-18',
+			'2026-07-19',
+		];
+
+		const store = await setup(dates.map((d) => day(d)));
+
+		// The current run ends yesterday — today has no completion yet…
+		expect(store.streak).toBe(7);
+		// …while June's ten-day run stays the record.
+		expect(store.longestStreak).toBe(10);
+	});
+
 	it('publishes the model report once it resolves', async () => {
 		const audit: PlanAudit = {
 			...EMPTY_AUDIT,
@@ -275,6 +427,7 @@ describe('AnalyticsStore', () => {
 			audit,
 			todaysFit: TODAYS_FIT,
 			drain: [],
+			rest: [],
 		});
 
 		const store = await setup([day('2026-07-15')]);
@@ -286,9 +439,9 @@ describe('AnalyticsStore', () => {
 		expect(readModelReportMock).toHaveBeenCalledWith(TODAY, 30);
 	});
 
-	// MATH.md §31: the trend is read through the user's own calibrated energy
-	// params, which arrive one read after the summaries — so it stays null until
-	// they do rather than publishing a series fitted to the defaults.
+	// The trend is read through the user's own calibrated energy params, which
+	// arrive one read after the summaries — so it stays null until they do rather
+	// than publishing a series fitted to the defaults.
 	it('withholds the metric trend until the calibrated params arrive', async () => {
 		let resolveReport!: (
 			report: Awaited<ReturnType<typeof sessionHistory.readModelReport>>,
@@ -309,6 +462,7 @@ describe('AnalyticsStore', () => {
 			audit: EMPTY_AUDIT,
 			todaysFit: TODAYS_FIT,
 			drain: [],
+			rest: [],
 		});
 
 		await vi.waitFor(() => expect(store.metricTrend).not.toBeNull());
@@ -338,8 +492,8 @@ describe('AnalyticsStore', () => {
 		expect(store.metricTrend?.map((point) => point.date)).toEqual(['2026-06-01', '2026-07-15']);
 	});
 
-	// MATH.md §12: today's fit is recorded so a LATER visit audits today against
-	// what the model believed today, not against months of subsequent logs.
+	// Today's fit is recorded so a LATER visit audits today against what the
+	// model believed today, not against months of subsequent logs.
 	it("records today's fit once the report resolves", async () => {
 		await setup([day('2026-07-15')]);
 

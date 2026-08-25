@@ -101,21 +101,21 @@ export async function initializeStorage(): Promise<void> {
  */
 interface UserFit {
 	constants: UserConstants;
-	/** Never absent: every `fitUserConstants` path returns one (MATH.md §13.1). */
+	/** Never absent: every `fitUserConstants` path returns one. */
 	posterior: FitPosterior;
 	fitted: boolean;
 	/** Σw: what the ⚡ history is worth in fresh logs, not its row count (§5.2). */
 	usedCount: number;
 	/** Logs dated on or after `day`, which this fit therefore did not read. Every
-	 *  surface that prints a log count owes the user this one too (§33). */
+	 *  surface that prints a log count owes the user this one too. */
 	pendingCount: number;
 }
 
 /**
- * The fit **as of** `day`: logs dated strictly before it, aged against it
- * (MATH.md §33). Causal rather than whole-history, which is what makes the fit
- * this returns the one that day actually planned under — and what stops a ⚡
- * logged this afternoon from re-scoring a day the user finished in March.
+ * The fit **as of** `day`: logs dated strictly before it, aged against it.
+ * Causal rather than whole-history, which is what makes the fit this returns
+ * the one that day actually planned under — and what stops a ⚡ logged this
+ * afternoon from re-scoring a day the user finished in March.
  */
 function fitFrom(observations: FlowObservationRecord[], day: string): UserFit {
 	const counted = observations.filter((o) => o.date < day);
@@ -148,12 +148,12 @@ async function readUserFit(): Promise<UserFit> {
  * a day identically, so the reads and the summarize call are composed here
  * instead of in each page (AGENTS.md R2).
  *
- * Each day is scored against **its own** recorded fit (§12.1's `fitSnapshots`),
+ * Each day is scored against **its own** recorded fit (`fitSnapshots`),
  * not one whole-history fit applied across the range — which is what let a ⚡
  * logged today silently move the completion rate of a day months past. Days with
  * no snapshot (before the store existed, or a day the user never opened
  * analytics on) fall back to the live fit, per day: refitting them instead is the
- * `O(days × logVolume)` cost §12.1 rejected, and it is the reason the snapshots
+ * `O(days × logVolume)` cost that was rejected, and it is the reason the snapshots
  * are stored at all.
  */
 export async function readDaySummaries(startDate: string, endDate: string): Promise<DaySummary[]> {
@@ -217,16 +217,16 @@ interface FinishedDay {
 /**
  * Finished days: each day before `today` with at least one 🪫 drain log,
  * joined with its stored session, chronologically ascending. Shared by the
- * stopping-value calibration (§8.10) and the plan-adherence audit (§12) —
- * both read "what was actually worked" out of the same join.
+ * stopping-value calibration (§8.10) and the plan-adherence audit — both read
+ * "what was actually worked" out of the same join.
  *
  * Takes the drain logs rather than reading them, so a caller that needs both
  * derivations pays for one read (and one sessions range read) instead of two.
  *
- * One row per SESSION, not one per task (§18) — summing them here is what
- * destroyed the day's breaks before §8.10's estimator could read them. Each
- * row's `createdAt` rides along as `endedAt`, and it is validated HERE rather
- * than in `sanitizeDrainObservations`: one sanitizer feeds every consumer, and
+ * One row per SESSION, not one per task — summing them here is what destroyed
+ * the day's breaks before §8.10's estimator could read them. Each row's
+ * `createdAt` rides along as `endedAt`, and it is validated HERE rather than in
+ * `sanitizeDrainObservations`: one sanitizer feeds every consumer, and
  * §8.7's α fit does not need the field, so a row failing this check must not
  * disappear from that fit (AGENTS.md R4). A day with any unusable moment loses
  * the field on every row and reads as summed.
@@ -300,11 +300,10 @@ function toStopObservations(days: FinishedDay[]): StopObservation[] {
 }
 
 /**
- * Finished days for the plan-adherence audit (MATH.md §12): the §8.10 join
- * plus each day's stored classic-planner inputs (switch cost, pools) and the
- * fit recorded on it, so the audit compares against the plan the user would
- * actually have seen that day. Chronologically ascending — `readModelReport`
- * caps the lookback.
+ * Finished days for the plan-adherence audit: the §8.10 join plus each day's
+ * stored classic-planner inputs (switch cost, pools) and the fit recorded on it,
+ * so the audit compares against the plan the user would actually have seen that
+ * day. Chronologically ascending — `readModelReport` caps the lookback.
  *
  * A day with no snapshot carries no `fit` and falls back to the live one: days
  * before the snapshot store existed, and days the user never opened analytics on.
@@ -355,7 +354,7 @@ export interface FitTrend {
 /**
  * Everything the user's logs currently say about their model, in one read —
  * the calibration-visibility snapshot (analytics "Your model" card). Runs the
- * full conditioning chain on the logs that precede today (§33): ϕ constants
+ * full conditioning chain on the logs that precede today: ϕ constants
  * from ⚡ flow logs, then r from ☕ rest pairs, α given r from 🪫 drain ratings
  * (§8.7/§8.9 — the same fit the main page's Burnout Risk uses), then λ₀ given
  * everything from finished days' stop decisions (§8.10). `flow` reports ϕ for a mid-scale
@@ -369,7 +368,7 @@ export interface FitTrend {
 export interface CalibrationSnapshot {
 	/** `usedCount` is ϕ's recency-weighted fresh-log equivalent, not a row count
 	 *  (§5.2); `pendingCount` is the raw rows dated today, which no fit has read
-	 *  yet (§33) and which the row therefore names rather than folds in. */
+	 *  yet and which the row therefore names rather than folds in. */
 	flow: {
 		fitted: boolean;
 		usedCount: number;
@@ -381,7 +380,7 @@ export interface CalibrationSnapshot {
 	stopping: StoppingValueFit;
 	/** The defaults each fit is anchored to — every row shows one next to its fit. */
 	defaults: EnergyParams;
-	/** How each fit has moved over the recorded days (MATH.md §12). */
+	/** How each fit has moved over the recorded days. */
 	trend: FitTrend;
 }
 
@@ -407,7 +406,7 @@ function referencePhi(constants: UserConstants): number {
  * stretch contains this one, never the reverse, so the sparkline only ever shows
  * movement the audit also scored. Before that it can be the wider of the two — a
  * snapshot is stamped on any day analytics was opened, an audited day needs
- * logged work (MATH.md §12.1).
+ * logged work.
  */
 function trendFrom(
 	snapshots: FitSnapshot[],
@@ -440,11 +439,11 @@ function calibrationSnapshotFrom(
 	today: string,
 	trendStart: string,
 ): CalibrationSnapshot {
-	// Causal on the same rule as the ϕ fit above (§33), and for the same reason
-	// the dashboard's copy of these fits is: the card reports the model the day is
+	// Causal on the same rule as the ϕ fit above, and for the same reason the
+	// dashboard's copy of these fits is: the card reports the model the day is
 	// planning under, so including today's ☕/🪫 here would print an α the main
 	// page is not using. Only the FITS are filtered — `ModelReport.drain` still
-	// carries every row, because the §11.9 carry-over is a state read.
+	// carries every row, because the carry-over is a state read.
 	const energy = calibrateEnergyParams(
 		rest.filter((o) => o.date < today),
 		drain.filter((o) => o.date < today),
@@ -479,9 +478,9 @@ function calibrationSnapshotFrom(
 }
 
 /**
- * Today's fit as a storable record (MATH.md §12). Only what a fit can move: the
- * rest of `EnergyParams` is model constants, so `sanitizeFitSnapshots` restores
- * them from the defaults on the way back in.
+ * Today's fit as a storable record. Only what a fit can move: the rest of
+ * `EnergyParams` is model constants, so `sanitizeFitSnapshots` restores them
+ * from the defaults on the way back in.
  */
 function toFitSnapshotRecord(
 	date: string,
@@ -527,10 +526,16 @@ export interface ModelReport {
 	audit: PlanAudit;
 	/**
 	 * Every sanitized 🪫 row, for the trend to seed each day's morning
-	 * reservoirs off its predecessor (MATH.md §11.9) exactly as the dashboard
-	 * does. Already read here for the fit, so surfacing it costs no second read.
+	 * reservoirs off its predecessor exactly as the dashboard does. Already read
+	 * here for the fit, so surfacing it costs no second read.
 	 */
 	drain: DrainObservationRecord[];
+	/**
+	 * Every sanitized ☕ row, for the analytics screen's break totals — same
+	 * shape of reason as `drain`: the r fit reads them here, so surfacing them
+	 * costs no second whole-store scan.
+	 */
+	rest: RestObservationRecord[];
 	/**
 	 * Today's fit, for the caller to persist with `$updateFitSnapshot` — a read
 	 * does not write, and a failed stamp must not take the two cards down with it.
@@ -570,6 +575,7 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 	return {
 		calibration,
 		drain,
+		rest,
 		audit: auditPlanAdherence(
 			toPlanAuditDays(days, stops, fitByDate).slice(-auditDayCap),
 			calibration.energy.params,
