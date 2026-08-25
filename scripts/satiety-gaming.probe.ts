@@ -48,6 +48,15 @@
  * private. Solving S = κ·ln(1 + O/κ) for κ off a single-block evaluation gives
  * it exactly, and arm A's agreement is what proves the recovery correct.
  *
+ * WHAT THE 2026-08-25 RE-RUN CHANGED, and why arm B's numbers below all moved.
+ * Every task now comes from integer sliders through `toEnergyTask`, so the day
+ * is on the app's own constraint surface. It was not: `difficulty` was set to
+ * `max(mental, physical)` directly, skipping the 0.3 spillover the app applies,
+ * so no day this probe generated was one a user could have declared and no arm
+ * B figure was quotable in either direction (ROADMAP M40, the last of five
+ * generators). Arm A is an identity and survives untouched, which is the point
+ * of keeping the two arms apart.
+ *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
  *
@@ -63,6 +72,8 @@ import {
 	type EvaluatedBlock,
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import type { Task } from '$lib/data/type';
 
 function mulberry32(seed: number): () => number {
 	let a = seed;
@@ -171,17 +182,19 @@ function accumulate(
 }
 
 function drawTask(random: () => number, id: number): EnergyTaskInput {
-	const mental = 1 + Math.floor(random() * 10);
-	const physical = 1 + Math.floor(random() * 10);
+	const slider = (min: number) => min + Math.floor(random() * (11 - min));
 
-	return {
+	const task: Task = {
 		id,
 		title: `t${id}`,
-		difficulty: Math.max(mental, physical),
-		enjoyment: 1 + Math.floor(random() * 10),
-		cognitiveDemand: mental / 10,
-		physicalDemand: physical / 10,
+		mentalDifficulty: slider(0),
+		physicalDifficulty: slider(0),
+		enjoyment: slider(1),
+		createdAt: '2026-08-25',
+		completed: false,
 	};
+
+	return toEnergyTask(task);
 }
 
 /** Sessions a task was worked in, and the largest share of work any one task took. */
@@ -370,7 +383,9 @@ describe('MATH.md §8.4 — satiety keys on a monotone accumulator', () => {
 				// favourite plan is actually worth. Two scales, because MATH.md §8.4
 				// quoted the first one as "the true objective" and it is not — the
 				// optimizer maximizes satiatedOutput PLUS the leisure and terminal
-				// terms, and adding them reverses which mutant is worse.
+				// terms, and the two scales price the mutants differently. They
+				// reversed which mutant was worse on the off-surface population; on
+				// the sliders they agree and only the size of the gap changes.
 				tally.trueValue += accumulate(winner, kappas, 'cumulative');
 
 				const rescored = evaluateSchedule(winner, tasks, windowHours, PARAMS);
