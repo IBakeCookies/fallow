@@ -228,6 +228,10 @@ export class EnergyLabStore {
 
 		$effect(() => {
 			void this.#observations.drainObservations;
+			// A finished day's stored session carries its open scope and its window into
+			// `toStopObservations`, and `toggleTask` reaches back into past days — so the
+			// logs alone do not say when this reading is out of date.
+			void this.#session.pastWriteGeneration;
 			const version = ++this.#stopLoadVersion;
 
 			readStopObservations(this.#session.today)
@@ -772,13 +776,13 @@ export class EnergyLabStore {
  * Read by `/energy` alone, but created in the (app) layout so re-entering the
  * route does not re-read the params it already holds — a ~120ms skeleton on
  * every visit to a page the user tabs in and out of is what that cost. What
- * makes the long lifetime safe is who writes the data: the params and stopping
- * observations are written by the Lab and nothing else, so an instance that
- * survives the navigation cannot fall behind a change made elsewhere, and needs
- * no refresh on the way back in. Affordable there for the second reason —
- * the constructor's work is two small reads, and the optimizer behind `plan` is
- * a `$derived` that stays unrun until the Lab's markup asks for it, since no
- * `$effect` here touches it.
+ * makes the long lifetime safe is who writes the data: the params are the Lab's
+ * alone, and the stopping observations — which a completion toggle on a past day
+ * DOES move from outside — are re-read by an effect keyed on the session store's
+ * past-write generation, so neither needs a refresh on the way back in.
+ * Affordable there for the second reason — the constructor's work is two small
+ * reads, and the optimizer behind `plan` is a `$derived` that stays unrun until
+ * the Lab's markup asks for it, since no `$effect` here touches it.
  *
  * The auto-save's `onDestroy` flush now fires on app teardown rather than on
  * leaving the route, which is not a loss — the store outliving the navigation

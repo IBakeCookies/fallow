@@ -156,16 +156,17 @@ the trade runs the same way in each direction:
   placeholder frame covers. Do **not** reach for a lazy `load()` to get cheap
   boot without that price — an inert store whose correctness depends on the
   caller remembering a second call is worse than the re-read it saves.
-- **In the layout when nothing outside can make it stale.** `EnergyLabStore`
-  moved there: its params and stop observations are written by the Lab alone,
-  so a surviving instance cannot fall behind, and the optimizer behind `plan`
-  is a `$derived` no `$effect` touches, so it stays unrun on the five routes
-  that never show it. What it buys is the ~120 ms of placeholder a page-scoped
-  store spent re-reading on every visit. Hoisting one that _can_ go stale means
-  a named refresh per staleness reason, called by whoever knows the reason —
-  `SessionStore` has two, `retryLoad()` for the banner's button and a
-  `visibilitychange` re-read for a returning tab. A refresh is not the `load()`
-  above: it leaves the store valid, only less current.
+- **In the layout when every staleness reason has a key.** `EnergyLabStore`
+  moved there: its params are the Lab's alone, but its stop observations are
+  not — a completion toggle on a past day moves them — so the effect that folds
+  the finished days keys on `SessionStore`'s past-write generation and re-reads.
+  The optimizer behind `plan` is a `$derived` no `$effect` touches, so it stays
+  unrun on the five routes that never show it. What it buys is the ~120 ms of
+  placeholder a page-scoped store spent re-reading on every visit. A staleness
+  reason with no such key means a named refresh instead, called by whoever knows
+  the reason — `SessionStore` has two, `retryLoad()` for the banner's button and
+  a `visibilitychange` re-read for a returning tab. A refresh is not the
+  `load()` above: it leaves the store valid, only less current.
 - **A layout-scoped debounced write flushes on app teardown, not route
   teardown**, and that is not a loss: the pending timer stays alive to fire on
   its own precisely _because_ the store did, and `visibilitychange` still
@@ -483,3 +484,8 @@ auto-save then withdrew a reading it cannot have affected. A `SvelteMap` and not
 a `Map`, because it is mutated per write rather than replaced — a plain one
 would not re-derive its dependents. Where a defer sends is
 `deferDestinationDate`, read by the move, the preview and that key.
+
+Its whole-past sibling is `pastWriteGeneration`, one counter over every day
+already past, because the reading it keeps fresh folds all of them in a single
+pass: no per-date count can withdraw it, since the write that invalidates it may
+land on any finished day.

@@ -28,6 +28,8 @@ class MockSession {
 	// tomorrow on demand and bumps the generation on every landed session write.
 	deferDestination = $state<DeferDestination | null>(null);
 	writeGenerations = new SvelteMap<string, number>();
+	// The λ₀ read's other freshness key: one count over every day already past.
+	pastWriteGeneration = $state(0);
 	deferDestinationDate = $derived(addDays(this.selectedDate, 1));
 
 	readonly today = '2026-07-20';
@@ -46,6 +48,7 @@ class MockSession {
 		this.selectedDate = '2026-07-20';
 		this.deferDestination = null;
 		this.writeGenerations.clear();
+		this.pastWriteGeneration = 0;
 	}
 }
 
