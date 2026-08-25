@@ -665,52 +665,31 @@ reaches the claim, never that the claim is false.
   under 1% at every λ₀ and the warm-up fixture's at-stop agreement at λ₀ = 0.9
   goes 1/13 → 11/13 (MATH.md §8.11). Whether the advisor should ALSO carry a
   censor is untouched and still open.
-- **M40 §8.10** — three committed probe generators are off the app's constraint
-  surface, so no day they generate is slider-reachable.
-  `stop-margin-fit-error.probe.ts:346` builds tasks with
-  `difficulty = Math.max(mental, physical)`, skipping
-  `DIFFICULTY_SPILLOVER = 0.3`; `stp-stopping-identifiability.probe.ts`'s standard
-  day declares its difficulties outright (t2 at 6 where `getEffectiveDifficulty`
-  gives 4.90) and hands t3 a 0.05 physical demand, which is a slider of 0.5.
-  Every §8.10 population figure resting on them — the 39% inversion rate, 4/315,
-  44/1179, the median 0.110 half-width — is therefore unquotable in either
-  direction until the generators use `getEffectiveDifficulty`. This is the M28
-  class (a witness at demands the app cannot produce), now found in three
-  instruments rather than one section. **Half-closed 2026-08-19**: M38's fix
-  committed `scripts/stop-block-structure.probe.ts`, which draws every task
-  through `toEnergyTask` from integer sliders, so §8.10 finally has an on-surface
-  instrument and its headline error figures come from that one.
-  `stop-inversion-margin.probe.ts` is FIXED the same day: `drawTask` (`:362-376`)
-  and the §8.10 fixture both draw every task through `toEnergyTask` from integer
-  sliders, the probe measures its own reachability (30381 logged rows, 0 the app
-  could not hold), and its whole set moved — inversion rate 40.2%, optimizer days
-  0/299, mood days 68/1532, median half-width 0.129 — so those four are quotable
-  for the first time. The fault set was also wider than this entry recorded: the
-  declared-difficulty and 0.05-demand faults it pins on
-  `stp-stopping-identifiability` alone sat in this probe's own fixture and in
-  `zenith-energy.test.ts`'s mirror of it. **Second generator fixed 2026-08-21**
-  with M44: `stp-stopping-identifiability`'s standard day is on the sliders, both
-  faults this entry pins on it (declared difficulty, the 0.05 demand) are gone,
-  and its new V_T arm builds every seeded day from integer sliders through the Eᵤ
-  formula. Its whole figure set moved, as predicted. **Third generator fixed
-  2026-08-25**,
-  [`the-third-generator-off-the-sliders`](docs/features/the-third-generator-off-the-sliders.md):
-  `stop-margin-fit-error` draws every task through `toEnergyTask`, its whole set
-  moved again and §8.10 was re-read from that run. That change also found that
-  **the entry named three generators and there are five**: the same hand-built
-  `drawTask` — the identical eleven lines — also sat in
-  `censored-stopping-fit.probe.ts` and `satiety-gaming.probe.ts`.
-  **Fourth generator fixed 2026-08-25**,
-  [`the-refusal-redrawn-on-the-sliders`](docs/features/the-refusal-redrawn-on-the-sliders.md):
-  `censored-stopping-fit` draws every task through `toEnergyTask`, its whole set
-  moved, and §8.10's censored-likelihood record, item 4 above and
-  `business/model/AGENTS.md` were all re-read from that run. The refusal survives
-  — the mixed cell's gain falls 0.0492 → 0.0403, further from the 0.110 gate, not
-  nearer — so no decision changes, which is the outcome this had to establish
-  rather than assume. **One generator left**: `satiety-gaming.probe.ts:180`
-  (§8.4). A grep for `difficulty: Math.max` under `scripts/` is the current fault
-  set; it is its own change, for the same reason the first four were. **This
-  entry does not close until that grep is empty.**
+- **M40 §8.10 + §8.4 — closed 2026-08-25,
+  [`the-satiety-price-on-the-sliders`](docs/features/the-satiety-price-on-the-sliders.md).**
+  `grep 'difficulty: Math.max' scripts/` is empty, which is the close condition
+  this entry carried. The entry named three off-surface probe generators and
+  there were **five**, found one at a time as each fix read the next probe: the
+  identical hand-built `drawTask` had been copied around. All five now draw every
+  task from integer sliders through `toEnergyTask`, and each fix re-read its own
+  section from its own run rather than editing figures in place —
+  `stop-block-structure` and `stop-inversion-margin` on 2026-08-19 with M38
+  ([`the-bracket-that-inverted-on-a-day-it-kept`](docs/features/the-bracket-that-inverted-on-a-day-it-kept.md)),
+  `stp-stopping-identifiability` on 2026-08-21 with M44
+  ([`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md)),
+  `stop-margin-fit-error` on 2026-08-25
+  ([`the-third-generator-off-the-sliders`](docs/features/the-third-generator-off-the-sliders.md)),
+  `censored-stopping-fit` the same day
+  ([`the-refusal-redrawn-on-the-sliders`](docs/features/the-refusal-redrawn-on-the-sliders.md)),
+  and `satiety-gaming` last. **Every figure moved and no verdict did** — §8.10's
+  headline error figures, its censored-likelihood refusal (item 4 above, which
+  had a DECISION resting on the off-surface run) and §8.4's satiety price were
+  all re-decided at their new levels. Two prose claims died on the way, both
+  properties of the unreachable population rather than of the model: §8.10's
+  endpoint contrast that said wider censors fit better, and §8.4's reversal
+  between its two scoring scales. The residue is **M48**, which is a different
+  fault: witnesses the app cannot produce that are deliberately unreachable and
+  do not say so.
 - **M41 §8.10 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M42 §8.10 — closed 2026-08-21, [`the-day-that-ran-out-of-clock`](docs/features/the-day-that-ran-out-of-clock.md).**
 - **M43 — closed 2026-08-20, [`the-insertion-witness-re-read`](docs/features/the-insertion-witness-re-read.md).**
@@ -738,6 +717,34 @@ reaches the claim, never that the claim is false.
   doc figure can be re-run. Weigh that against deleting the tables, or against
   §10's precedent of marking a non-re-runnable figure as history in one dated
   sentence.
+
+- **M48 §8.1** — raised 2026-08-25 while closing M40, open. M40 fixed five probe
+  generators that DREW unreachable days; this is the residue it leaves — hand-built
+  witnesses that are unreachable **on purpose**, where the repo has never written
+  down when that is allowed. The live instance carries quoted numbers:
+  `enb-simpson-error.probe.ts:47`'s `FAST_TASK` declares `difficulty: 1` beside
+  demands `0.9/0.1`, where `getEffectiveDifficulty` on those sliders gives 9.3, and
+  §8.1's five quadrature-error figures (`~3e-7`, `6.9e-7`, `1.7e-6`, `3.5e-6`,
+  `5.6e-5`) are read off it. Unlike M40 the direction is knowable: it is the ϕ-floor
+  worst case for the 1024-node cap, so an unreachable extreme makes the error bound
+  CONSERVATIVE rather than wrong. That is a defensible witness and the probe's
+  docblock does not say it — the gap M44 closed for `energy-search-gap.probe.ts`,
+  whose "DELIBERATELY NOT realigned onto the sliders … here that is the point"
+  paragraph is the pattern, as is §18's declaration for
+  `session-row-truncation.probe.ts`. Closing it means either that one declaration,
+  or an on-surface ϕ-floor witness if one exists — which needs low difficulty AND
+  low demands together, an open question rather than a known substitution, and if
+  it exists the five figures move and §8.1 needs the re-read.
+  **The rule is the more valuable half.** A scan of `zenith-energy.test.ts` on
+  2026-08-25 found 64 of its 70 `makeTask` calls off the surface, which is not 64
+  defects — it is the suite's deliberate convention that `difficulty` and the two
+  demands are independent knobs of the MODEL's input type, and the app's projection
+  onto it is `toEnergyTask`'s own business. So the rule is not "every task must be
+  reachable". It is closer to: reachability is required wherever a day's numbers are
+  QUOTED, or where the day witnesses app-level behaviour; it is optional, and
+  sometimes the whole point, for model-level property and bound tests — which must
+  then declare themselves. Nothing states this, which is why M40's five generators
+  were found one at a time, each by the fix before it.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
