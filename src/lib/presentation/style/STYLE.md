@@ -254,6 +254,12 @@ Read this before touching markup, classes, or anything under
   per-task chart series, deliberately _not_ swapped per theme: the hues only
   stay distinguishable if their lightness holds. Label them with `series-ink`,
   never `ty-primary`, which flips to white and vanishes on the fills.
+- **A categorical scale needs hues that differ in every theme, which the state
+  and domain accents do not guarantee.** `--flow` and `--warning` are both amber
+  in `base.css` and stay amber through most of `themes.css`, so a chart giving
+  two categories those two tokens draws one colour twice on a dozen themes (that
+  is why the day profiles colour Grind `--danger`). Check a new pairing against
+  `themes.css`, not against the token names.
 - Adding a theme touches four places: the catalogue in
   `business/model/theme.ts`, a `@custom-variant` in `tokens.css`, a palette
   block in `themes.css`, and (if animated) a file under `style/scenery/`. A
