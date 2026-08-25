@@ -304,9 +304,6 @@ export class AnalyticsStore {
 	get longestStreak(): number {
 		return this.#longestStreak;
 	}
-	get activeDaysWithCompletion(): number {
-		return this.#summaries.filter((s) => s.completedTasks > 0).length;
-	}
 	get bestDay(): DaySummary | null {
 		return findBestDay(this.#summaries);
 	}

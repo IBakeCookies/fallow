@@ -16,7 +16,7 @@ async function seedDay(page: Page, offset: number, titles: string[]) {
 	await page.waitForTimeout(AUTOSAVE_MS);
 }
 
-/** The "Active days" KPI tile — its denominator is the viewed range's length. */
+/** The "Active days" fold row — its denominator is the viewed range's length. */
 function activeDaysTile(page: Page) {
 	return page
 		.locator('div', {
@@ -138,27 +138,34 @@ test('stats and chart come off the stored days', async ({ page }) => {
 
 	await page.goto('/analytics');
 
-	for (const tile of [
-		'Tasks completed',
-		'Avg completion rate',
-		'Active days',
-		'Current streak',
-		'Longest streak',
-		'Planned hours',
-		'Logged hours',
-		'Rest hours',
-		'Best day',
-	]) {
+	for (const tile of ['Tasks completed', 'Avg completion rate', 'Current streak', 'Logged hours'])
 		await expect(
 			page.getByText(tile, {
 				exact: true,
 			}),
 		).toBeVisible();
-	}
+
+	// The other five are one click away, not gone.
+	const folded = ['Active days', 'Longest streak', 'Planned hours', 'Rest hours', 'Best day'];
+
+	for (const tile of folded)
+		await expect(
+			page.getByText(tile, {
+				exact: true,
+			}),
+		).not.toBeVisible();
+
+	await page.getByText('5 more metrics').click();
+
+	for (const tile of folded)
+		await expect(
+			page.getByText(tile, {
+				exact: true,
+			}),
+		).toBeVisible();
 
 	// One of two tasks done, priority-weighted — a real percentage reaches the copy
 	await expect(page.getByText(/\d+% of planned tasks/)).toBeVisible();
-	await expect(page.getByText(/1 with at least one task done/)).toBeVisible();
 
 	// The chart drew a bar for the seeded day
 	await expect(
