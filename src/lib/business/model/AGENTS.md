@@ -325,15 +325,17 @@ or a non-finite saturation (a 0-hour pool carrying a draw), leaves the row
 unread rather than printing a 0 or an `Infinity` — the gate §20 already puts on
 Human Capacity's own value.
 
-### Burnout Risk is not monotone in the declared budget, and that stays
+### Burnout Risk is not monotone in the declared budget or the switch cost, and that stays
 
 Settled 2026-08-06, MATH.md §11.6. Raising `availableHours` over a fixed task
-list makes the reading FALL on 3006 of 37800 probed steps, worst 29 points
-(`scripts/burnout-risk.probe.ts`). Not a bug in the metric: the larger budget
-funds more tasks, and their switch gaps are real rest, so the simulated day
-contains less work. Documented rather than smoothed — holding the funded set
-fixed while walking the budget would report a plan the user is not being shown.
-Do not "fix" the fall.
+list makes the reading FALL on 3033 of 37800 probed steps, worst 29 points;
+walking the declared `switchCost` 0–60 m falls on 3603 of 7200 and rises on 402,
+worst rise 33 points (`scripts/burnout-risk.probe.ts`). Not a bug in the metric:
+either lever buys more switch gaps, and a gap is a demand-0 block recovering
+both reservoirs at full `r′`. Less simulated work is often part of it but never
+the whole of it — the fall reproduces with worked hours held fixed. Documented
+rather than smoothed — holding the funded set fixed while walking the budget
+would report a plan the user is not being shown. Do not "fix" the fall.
 
 ### Time Scarcity is not monotone either, in the budget or the task count
 

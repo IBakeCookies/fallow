@@ -290,7 +290,7 @@ re-open one.
 - ϕ stays one plane for all tasks — no per-task offsets.
 - `PHI_UNCERTAINTY_RELATIVE_CAP` stays 0.5.
 - Human Capacity is unclamped; Burnout Risk is not monotone in the declared
-  budget, and that stays.
+  budget or the declared switch cost, and that stays.
 - The advisor ranks, it does not judge; a budget increase never enters the
   frontier; the budget levers carry unrounded hours; the budget's shadow price
   is a day-level reading, not a per-task column; the switch cost is

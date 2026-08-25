@@ -4,7 +4,9 @@
  * that a full-demand cognitive day "tops out near 87% at defaults", that
  * sustained moderate work plateaus (an 8h and a 16h demand-0.5 day read alike),
  * and that the scale is "monotone and discriminating" — the 25/41/57/63/66%
- * ladder for 1/2/4/6/8h of demand-0.9 cognitive work.
+ * ladder for 1/2/4/6/8h of demand-0.9 cognitive work. The switch-cost arm asks
+ * what §11.6's monotonicity sentence leaves out: which way the declared `s`
+ * moves the reading, over the domain the day's own input allows.
  *
  * A probe, not a test: every number here is a property of the model over a
  * large input space, not a binary "does this still hold". The ceiling, the
@@ -92,6 +94,11 @@ const plan = (d: Day): SuggestedTask[] =>
 const atBudget = (d: Day, availableHours: number): Day => ({
 	...d,
 	availableHours,
+});
+
+const atSwitchCost = (d: Day, switchCostMinutes: number): Day => ({
+	...d,
+	switchCost: switchCostMinutes / 60,
 });
 
 const risk = (d: Day, params: EnergyParams): number =>
@@ -259,6 +266,58 @@ function budgetMonotonicity(label: string, days: Day[]): void {
 	);
 }
 
+/**
+ * (c) The declared switch cost, which §11.6's monotonicity sentence does not
+ * name at all. `s` is user-set on the same screen as the reading, and re-solving
+ * at every step moves what the allocator funds; a switch gap simulates as
+ * full-rate rest (demand 0, gate 1), which is why the movement is mostly down.
+ */
+function switchCostWalk(label: string, days: Day[]): void {
+	const costs = Array.from(
+		{
+			length: 13,
+		},
+		(_, index) => index * 5,
+	);
+
+	let steps = 0;
+	let decreases = 0;
+	let increases = 0;
+	let worstFall = 0;
+	let worstRise = 0;
+	let rose = '';
+
+	for (const d of days) {
+		const readings = costs.map((minutes) => risk(atSwitchCost(d, minutes), DEFAULT_ENERGY_PARAMS));
+
+		for (let i = 1; i < readings.length; i++) {
+			const change = readings[i] - readings[i - 1];
+
+			steps++;
+
+			if (change < 0) {
+				decreases++;
+				worstFall = Math.max(worstFall, -change);
+
+				continue;
+			}
+
+			if (change <= 0) continue;
+
+			increases++;
+
+			if (change <= worstRise) continue;
+
+			worstRise = change;
+			rose = `${dump(atSwitchCost(d, costs[i]))}: ${readings[i - 1]}% → ${readings[i]}%`;
+		}
+	}
+
+	console.log(
+		`switch-cost walk ${label}: ${days.length} days × ${costs.length - 1} steps = ${steps}, DECREASED at ${decreases}, INCREASED at ${increases}, worst fall ${worstFall} points, worst rise ${worstRise} points [${rose}]`,
+	);
+}
+
 const DAYS = randomDays(600, 42);
 
 describe('burnout risk', () => {
@@ -295,5 +354,9 @@ describe('burnout risk', () => {
 				.map((h) => risk(pure(9, h), DEFAULT_ENERGY_PARAMS))
 				.join('/')}%`,
 		);
+	});
+
+	it('measures the switch-cost walk (MATH.md §11.6)', () => {
+		switchCostWalk('600 seeded random days, s = 0–60m step 5m', DAYS);
 	});
 });

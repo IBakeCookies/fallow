@@ -61,8 +61,9 @@ export function getEffectiveDifficulty(
  * `toEnergyTask` hands the reservoir law `physicalDemand: 0`. So a zero
  * dimension settles the question before the gap is consulted.
  *
- * 0/0 stays balanced: that is an absence, not a mix, and nothing downstream
- * reads it as a rating — `getEffectiveDifficulty` clamps it to 1.
+ * 0/0 stays balanced: that is an absence, not a mix, and the ALLOCATOR never
+ * reads it as a rating — `getEffectiveDifficulty` clamps it to 1. Burnout Risk
+ * does, off the raw sliders, so a funded 0/0 task simulates as rest (§22, §11.6).
  */
 export function getTaskNature(
 	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>,
