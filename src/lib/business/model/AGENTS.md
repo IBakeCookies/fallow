@@ -354,6 +354,23 @@ red build. Do not smooth either by billing the LISTED tasks again — that is
 §19.1's defect, and it pinned the row at exactly 100 on 10.8% of days, where a
 15-minute day and a 90-minute one read alike.
 
+### Priority is not monotone in difficulty, and that stays
+
+Settled 2026-08-25, MATH.md §3. Swept over effective difficulty 1 → 10, `P̄(T*)`
+rises to an interior local max at 1.12, falls to a trough at 2.27 — **9.53% below
+the difficulty-1 value**, and β-free — and first regains it at 3.92; on the
+integer sliders the worst a harder task falls below an easier one on the PRINTED
+score is **1.7 points** (`m/p/e 1/0/10` prints 18.1, the harder `1/2/10` prints
+16.4). The shape is the closed form `P̄/β = E·h(r(E))` with `r = 1/E²`: `a = Eβ`
+grows the whole way up while `h(r)` falls with r, and the two cross.
+**`AMPLITUDE_RATIO_CAP` is NOT the cause, and lowering or removing it makes the
+dip WORSE** — the cap binds only to effective difficulty 1.1217, the trough sits
+1.15 outside that band, h is flat inside it (spread 1.44e-15) and monotone on
+887/887 steps outside it, and uncapped the same trough would be an **18.25%**
+drop instead of 9.53% (`scripts/mtr-priority-monotonicity.probe.ts`). Same
+verdict as the two rows above: do not smooth it, and do not reach for the cap to
+do it.
+
 ### The advisor ranks, it does not judge
 
 It reports every axis unconditionally with a lower-is-better badness function;
