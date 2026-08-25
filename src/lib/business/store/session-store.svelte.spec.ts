@@ -988,6 +988,59 @@ describe('SessionStore persistence', () => {
 		expect(store.writeGenerationFor(addDays(store.today, 1))).toBe(0);
 	});
 
+	/* The λ₀ fit reads EVERY finished day at once, so it cannot key on one date's
+	   count: any write to a day already past is a reason to re-read it. Ticking a
+	   task off a past day is the only such write, and it shrinks that day's open
+	   scope (`EnergyLabStore`'s stop-observation effect). */
+	it('counts a past-day completion toggle on the whole-past generation', async () => {
+		const { store } = await setup();
+		const lastWeek = addDays(store.today, -7);
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === lastWeek
+				? {
+						date,
+						tasks: [
+							{
+								id: 1,
+								title: 'what happened',
+								physicalDifficulty: 3,
+								mentalDifficulty: 3,
+								enjoyment: 5,
+								createdAt: lastWeek,
+								completed: false,
+							},
+						],
+						availableHours: 5,
+						switchCost: 0.25,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+		expect(store.pastWriteGeneration).toBe(0);
+
+		await store.toggleTask(1);
+
+		expect(store.pastWriteGeneration).toBe(1);
+	});
+
+	it('leaves the whole-past generation alone when today is written', async () => {
+		const { store } = await setup();
+		useFakeTimers();
+
+		store.availableHours = 4;
+		flushSync();
+		setHidden(true); // flushes the pending write at once
+		vi.useRealTimers();
+
+		await vi.waitFor(() => expect(store.writeGenerationFor(store.today)).toBe(1));
+		expect(store.pastWriteGeneration).toBe(0);
+	});
+
 	it('refuses to move a completed or must-do-today task', async () => {
 		const { store } = await setup();
 

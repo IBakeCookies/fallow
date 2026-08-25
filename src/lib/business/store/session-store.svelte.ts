@@ -118,6 +118,12 @@ export class SessionStore {
 	// counter: today's own auto-save withdrew a reading it cannot have affected.
 	#writeGenerations = new SvelteMap<string, number>();
 
+	// Session writes landed on a day already past. One counter and not a per-date
+	// one, unlike the map above: its consumer reads EVERY finished day in a single
+	// pass (`readStopObservations`), so any past-day write is a reason to re-read
+	// and none of them can be told apart by the reading it withdraws.
+	#pastWriteGeneration = $state(0);
+
 	// Which date the in-memory state belongs to. Loads are async, so this lags
 	// selectedDate during navigation — the auto-save guard uses it to avoid
 	// persisting one day's tasks under another day's key.
@@ -349,6 +355,8 @@ export class SessionStore {
 	async #persistSession(session: DailySession) {
 		await sessionRepository.$updateSession(session);
 		this.#writeGenerations.set(session.date, this.writeGenerationFor(session.date) + 1);
+
+		if (session.date < this.#today) this.#pastWriteGeneration += 1;
 	}
 
 	/**
@@ -525,6 +533,12 @@ export class SessionStore {
 	 *  a reading about a day other than the viewed one (`readDeferDestination`). */
 	writeGenerationFor(date: string): number {
 		return this.#writeGenerations.get(date) ?? 0;
+	}
+	/** How many session records have been written for days already past — the
+	 *  freshness key for a reading that folds all of them at once (the Lab's λ₀
+	 *  fit), which a completion toggle on any past day can move. */
+	get pastWriteGeneration() {
+		return this.#pastWriteGeneration;
 	}
 	get isViewingPast() {
 		return this.#isViewingPast;

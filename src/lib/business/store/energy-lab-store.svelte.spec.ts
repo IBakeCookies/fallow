@@ -752,6 +752,20 @@ describe('EnergyLabStore', () => {
 		expect(store.stopObservationCount).toBe(2);
 	});
 
+	/* A finished day's λ₀ inputs come from its STORED session too — the open scope
+	   and the window `toStopObservations` reads — and completion can be toggled on
+	   any past day, so the read keys on the session store's past-write count as
+	   well as on the drain logs. */
+	it('re-reads the stop observations when a past day is written', async () => {
+		const store = await setup();
+
+		readStopObservationsMock.mockResolvedValue([stopObservation(8), stopObservation(6)]);
+		mockSession.pastWriteGeneration += 1;
+		flushSync();
+
+		await vi.waitFor(() => expect(store.stopObservationCount).toBe(2));
+	});
+
 	// ----- Budget curve (MATH.md §8.12) -----
 
 	const twoTasks = (): Task[] => [
