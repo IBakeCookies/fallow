@@ -335,6 +335,20 @@ contains less work. Documented rather than smoothed — holding the funded set
 fixed while walking the budget would report a plan the user is not being shown.
 Do not "fix" the fall.
 
+### Time Scarcity is not monotone either, in the budget or the task count
+
+Settled 2026-08-25, MATH.md §37. Its switch bill is over the FUNDED set, so one
+more funded task costs `s` of overhead against a `BLOCK_HOURS` budget step: above
+a 15-minute switch cost the reading RISES on 4.14% of budget steps and on every
+probed day, worst +19 points at 60 minutes. At the default 15 minutes it never
+does — one funded task costs exactly the block the budget grew by. The count has
+the same seam reversed: a task that makes the plan seat FEWER tasks drops the
+bill by more than its ϕ adds, and the reading falls on 0.19% of add-a-task steps,
+worst 13 points (`scripts/mtr-time-scarcity.probe.ts`). Same verdict as Burnout
+Risk's fall. Do not smooth either by billing the LISTED tasks again — that is
+§19.1's defect, and it pinned the row at exactly 100 on 10.8% of days, where a
+20-minute day and a 90-minute one read alike.
+
 ### The advisor ranks, it does not judge
 
 It reports every axis unconditionally with a lower-is-better badness function;

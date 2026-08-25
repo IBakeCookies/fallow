@@ -1,9 +1,6 @@
 import {
 	calculatePooledAllocations,
 	pooledProductivityGain,
-	mapEffort,
-	mapEnjoyability,
-	calculateFlowStateTime,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
@@ -511,44 +508,48 @@ export function calculateLongestWarmUp(
 }
 
 /**
- * Calculate time scarcity: how constrained is the time budget?
+ * Calculate time scarcity: how constrained is the time budget? (MATH.md §37)
  *
  * Question: "Can you reach flow state (ϕ) on each task?"
+ *
+ *   scarcity = max(0, (Σϕ − max(0, budget − (m−1)·s)) / Σϕ) × 100,  m = funded tasks
+ *
+ * 0% = the budget covers flow state time for every task
+ * 100% = the switches and the demand leave nothing
  *
  * Uses ϕ (flow state time) as the baseline demand per task, NOT T* ≈ 1.52–1.79×ϕ (optimal).
  * This is more realistic because:
  * - T* would mean several hours per task (humans only have ~4 productive hours/day)
  * - ϕ represents the minimum meaningful engagement (reaching flow state)
  *
- * Scarcity = max(0, (total ϕ demand + switch overhead - budget) / total ϕ demand) × 100
- * 0% = budget covers flow state time for all tasks
- * 100% = budget is severely insufficient
+ * DEMAND runs over the whole list and SWITCHES over the funded set. The two
+ * scopes are not an inconsistency: the row scores the day's intent against its
+ * clock, so a task the plan could not seat still asks for its ϕ — but nobody
+ * switches to it, and billing that switch priced a schedule the plan does not
+ * merely leave unplanned but cannot run (MATH.md §37, the rule §19.1 adopted for
+ * the gain's baseline). ϕ is read off the plan rather than recomputed, so the
+ * fitted constants reach it the way they reach every other reading (R3).
+ *
+ * NOT monotone in the declared budget once the switch cost exceeds a block: one
+ * more funded task costs `s` of overhead against a `BLOCK_HOURS` budget step, so
+ * the reading can RISE as the budget grows. Documented, not smoothed — the same
+ * call Burnout Risk's fall got (MATH.md §37, §11.6).
  */
 export function calculateTimeScarcity(
-	tasks: Task[],
+	tasks: SuggestedTask[],
 	availableHours: number,
 	switchCost: number = DEFAULT_SWITCH_COST,
-	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): number {
 	const budget = Number(availableHours) || 0;
 
 	if (!tasks.length) return 0;
 
-	if (budget === 0) return 100;
-
-	// Calculate total flow state time demand (Σϕ) using the shared Zenith model
-	const totalFlowDemand = tasks.reduce((sum, t) => {
-		const E = mapEffort(getEffectiveDifficulty(t));
-		const beta = mapEnjoyability(t.enjoyment);
-		const phi = calculateFlowStateTime(E, beta, constants);
-
-		return sum + phi;
-	}, 0);
-
-	// Context-switching overhead (uses passed parameter, not hardcoded!)
-	const switchOverhead = tasks.length > 1 ? (tasks.length - 1) * switchCost : 0;
+	// Σϕ ≥ tasks.length · PHI_FLOOR_HOURS > 0, so the ratio below is always
+	// defined, and a zero budget falls out of it as 100 with no branch of its own.
+	const totalFlowDemand = tasks.reduce((sum, t) => sum + t.flowStateTime, 0);
+	const fundedCount = tasks.filter((task) => task.suggestedHours > 0).length;
+	const switchOverhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
 	const effectiveBudget = Math.max(0, budget - switchOverhead);
-	// Scarcity: how much demand exceeds budget
 	const deficit = totalFlowDemand - effectiveBudget;
 	const scarcity = deficit > 0 ? (deficit / totalFlowDemand) * 100 : 0;
 

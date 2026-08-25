@@ -165,7 +165,10 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		// remaining work no longer draws on (MATH.md §23.1).
 		bottleneckTask: calculateBottleneckTask(activeTasks, pools),
 		longestWarmUp: calculateLongestWarmUp(activeTasks),
-		timeScarcity: calculateTimeScarcity(tasks, availableHours, switchCost, constants),
+		// Plan-scoped like the rest of this family — the plan holds every task,
+		// completed included — but it reads the ALLOCATION and not the bare list:
+		// its switch bill is over the tasks the plan funds (MATH.md §37).
+		timeScarcity: calculateTimeScarcity(suggestedTasks, availableHours, switchCost),
 		// Simulates the planned day through the reservoir law (MATH.md §11.6).
 		burnoutRisk: calculateBurnoutRisk(suggestedTasks, availableHours, switchCost, energyParams),
 		cognitiveLoad,
