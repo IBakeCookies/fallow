@@ -35,9 +35,6 @@
 	const observations = getEnergyObservationStore();
 
 	const oneDecimal = (value: number) => formatDecimals(value, 1, getDateLocale());
-	// The lifts read positive when a break left the user fresher, so the sign is
-	// always shown — same convention as the completion-rate delta below.
-	const signedOneDecimal = (value: number) => `${value >= 0 ? '+' : ''}${oneDecimal(value)}`;
 
 	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
 		week: {
@@ -68,8 +65,8 @@
 	const quadrantCounts = $derived(analytics.quadrantCounts);
 	const loggedHours = $derived(analytics.loggedHours);
 	const restStats = $derived(analytics.restSummary);
-	// What the two hour tiles say instead of a reading, on the two states the
-	// model report leaves them without one. The cards below say it in their own
+	// What the Logged hours tile says instead of a reading, on the two states the
+	// model report leaves it without one. The cards below say it in their own
 	// markup; a tile has one note line, so it says it there.
 	const missingReading = $derived(
 		analytics.hasModelReportFailed ? m.error_title() : m.ana_loading(),
@@ -84,6 +81,36 @@
 			day: 'numeric',
 		});
 	}
+
+	// The five reference readings, folded under the headline four: label, value and
+	// suffix, no note line — a note is what makes a reading read as headline.
+	const foldedReadings = $derived([
+		{
+			label: m.ana_active_days(),
+			value: analytics.summaries.length,
+			suffix: `/ ${analytics.rangeDays}`,
+		},
+		{
+			label: m.ana_longest_streak(),
+			value: analytics.longestStreak,
+			suffix: analytics.longestStreak === 1 ? m.ana_day_one() : m.ana_day_other(),
+		},
+		{
+			label: m.ana_planned_hours(),
+			value: analytics.plannedHours.toLocaleString(getDateLocale()),
+			suffix: m.unit_hours(),
+		},
+		{
+			label: m.ana_rest_hours(),
+			value: restStats === null ? '—' : restStats.hours.toLocaleString(getDateLocale()),
+			suffix: restStats === null ? '' : m.unit_hours(),
+		},
+		{
+			label: m.ana_best_day(),
+			value: bestDay ? formatDay(bestDay.date) : '—',
+			suffix: '',
+		},
+	]);
 
 	// `null` while the calibrated energy params are still in flight — the card
 	// says so rather than drawing a series fitted to the defaults.
@@ -189,6 +216,12 @@
 	<p class="mt-text-md text-sm text-ty-silent">{m.ana_loading()}</p>
 {/snippet}
 
+{#snippet skeletonBody(body: string)}
+	<div class="skeleton-block h-5 w-40"></div>
+	<div class="skeleton-block mt-text-3xs h-4 w-64 max-w-full"></div>
+	<div class="skeleton-block mt-text-md w-full {body}"></div>
+{/snippet}
+
 <div class="mb-text-xl flex flex-wrap items-center justify-between gap-grid-xs">
 	<div>
 		<h1 class="text-2xl font-bold text-ty-primary">{m.ana_heading()}</h1>
@@ -216,8 +249,8 @@
 	<p class="sr-only">{m.ana_loading()}</p>
 	<!-- Bar heights are the line-heights they stand in for: `text-xs` is h-4,
 	     `text-sm` h-5, the tile's `text-2xl` reading h-8. -->
-	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
-		{#each Array(9), i (i)}
+	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
+		{#each Array(4), i (i)}
 			<div class="card-shell rounded-xl p-box-md">
 				<div class="skeleton-block h-4 w-20"></div>
 				<div class="skeleton-block mt-text-2xs h-8 w-24"></div>
@@ -225,15 +258,23 @@
 			</div>
 		{/each}
 	</div>
-	<!-- Bodies, in the five GATED cards' order — the logs card renders outside this gate.
-	     Both charts are a fixed viewBox at `w-full`, so a ratio is what tracks their height. -->
-	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
+	<!-- The fold's summary line, on the rule it sits under when the readings land. -->
+	<div class="mt-grid-lg border-t border-line-soft pt-grid-sm" aria-hidden="true">
+		<div class="skeleton-block h-4 w-28"></div>
+	</div>
+	<!-- Bodies, in the three full-width GATED cards' order, then the paired adherence/model
+	     row — the logs card renders outside this gate. Both charts are a fixed viewBox at
+	     `w-full`, so a ratio is what tracks their height. -->
+	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
-			<div class="skeleton-block h-5 w-40"></div>
-			<div class="skeleton-block mt-text-3xs h-4 w-64 max-w-full"></div>
-			<div class="skeleton-block mt-text-md w-full {body}"></div>
+			{@render skeletonBody(body)}
 		</div>
 	{/each}
+	<div class="mt-grid-xl grid gap-grid-lg lg:grid-cols-2" aria-hidden="true">
+		{#each ['h-5', 'h-33'] as body, i (i)}
+			<div class="card-shell rounded-xl p-box-lg">{@render skeletonBody(body)}</div>
+		{/each}
+	</div>
 {:else if !analytics.hasData}
 	<div class="card-shell rounded-xl p-box-2xl text-center">
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
@@ -248,7 +289,9 @@
 		</p>
 	</div>
 {:else}
-	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-3">
+	<!-- One tile per question the range answers — volume, trend, consistency, load; the
+	     other five fold. `metrics-dashboard.svelte` holds why. -->
+	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-4">
 		<StatTile
 			label={m.ana_tasks_completed()}
 			value={analytics.completedTasks}
@@ -277,39 +320,11 @@
 		</StatTile>
 
 		<StatTile
-			label={m.ana_active_days()}
-			value={analytics.summaries.length}
-			suffix="/ {analytics.rangeDays}"
-		>
-			{#snippet note()}
-				{m.ana_with_completion({
-					count: analytics.activeDaysWithCompletion,
-				})}
-			{/snippet}
-		</StatTile>
-
-		<StatTile
 			label={m.ana_current_streak()}
 			value={analytics.streak}
 			suffix={analytics.streak === 1 ? m.ana_day_one() : m.ana_day_other()}
 		>
 			{#snippet note()}{m.ana_streak_note()}{/snippet}
-		</StatTile>
-
-		<StatTile
-			label={m.ana_longest_streak()}
-			value={analytics.longestStreak}
-			suffix={analytics.longestStreak === 1 ? m.ana_day_one() : m.ana_day_other()}
-		>
-			{#snippet note()}{m.ana_streak_best_note()}{/snippet}
-		</StatTile>
-
-		<StatTile
-			label={m.ana_planned_hours()}
-			value={analytics.plannedHours.toLocaleString(getDateLocale())}
-			suffix={m.unit_hours()}
-		>
-			{#snippet note()}{m.ana_planned_hours_note()}{/snippet}
 		</StatTile>
 
 		<StatTile
@@ -328,48 +343,33 @@
 				{/if}
 			{/snippet}
 		</StatTile>
-
-		<StatTile
-			label={m.ana_rest_hours()}
-			value={restStats === null ? '—' : restStats.hours.toLocaleString(getDateLocale())}
-			suffix={restStats === null ? undefined : m.unit_hours()}
-			muted={restStats === null || restStats.lift === null}
-		>
-			{#snippet note()}
-				{#if restStats === null}
-					{missingReading}
-				{:else if restStats.lift === null}
-					{m.ana_rest_hours_empty()}
-				{:else}
-					{m.ana_rest_lift_note({
-						mind: signedOneDecimal(restStats.lift.mind),
-						body: signedOneDecimal(restStats.lift.body),
-					})}
-				{/if}
-			{/snippet}
-		</StatTile>
-
-		<StatTile
-			label={m.ana_best_day()}
-			value={bestDay ? formatDay(bestDay.date) : '—'}
-			muted={bestDay === null}
-		>
-			{#snippet note()}
-				{#if bestDay === null}
-					{m.ana_no_completed()}
-				{:else if bestDay.completedTasks === 1}
-					{m.ana_best_day_note_one({
-						rate: bestDay.completionRate,
-					})}
-				{:else}
-					{m.ana_best_day_note({
-						rate: bestDay.completionRate,
-						count: bestDay.completedTasks,
-					})}
-				{/if}
-			{/snippet}
-		</StatTile>
 	</div>
+
+	<!-- The same fold as `metrics-dashboard.svelte`'s, minus the colour: none of these
+	     readings is judged, so there is no band to carry. -->
+	<details class="mt-grid-lg border-t border-line-soft pt-grid-sm">
+		<summary
+			class="cursor-pointer text-xs text-ty-secondary transition hover:text-ty-primary marker:text-ty-silent"
+		>
+			{m.metrics_more({
+				count: foldedReadings.length,
+			})}
+		</summary>
+		<div class="mt-grid-sm columns-1 gap-grid-lg sm:columns-2 lg:columns-4">
+			{#each foldedReadings as reading (reading.label)}
+				<div
+					class="flex break-inside-avoid items-baseline justify-between gap-text-xs border-b border-line-soft py-text-2xs"
+				>
+					<span class="text-xs text-ty-silent">{reading.label}</span>
+					<span class="text-right text-sm font-semibold tabular-nums text-ty-primary">
+						{reading.value}
+						{#if reading.suffix}<span class="font-normal text-ty-silent">{reading.suffix}</span
+							>{/if}
+					</span>
+				</div>
+			{/each}
+		</div>
+	</details>
 
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
@@ -414,85 +414,88 @@
 		<QuadrantDistribution counts={quadrantCounts} />
 	</div>
 
-	<!-- Plan adherence -->
-	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
-		<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
-		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
+	<!-- Both read as what the model makes of the range, and both are short. Half each. -->
+	<div class="mt-grid-xl grid gap-grid-lg lg:grid-cols-2">
+		<!-- Plan adherence -->
+		<div class="card-shell rounded-xl p-box-lg">
+			<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
+			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
 
-		{#if analytics.hasModelReportFailed}
-			{@render reportFailed()}
-		{:else if audit === null}
-			{@render pending()}
-		{:else if audit.usedCount === 0}
-			<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
-		{:else}
-			<div class="mt-text-md grid gap-grid-xs sm:grid-cols-3">
-				<div>
-					<p class="text-xs text-ty-silent">{m.ana_adherence_classic()}</p>
-					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-						{Math.round(audit.classicOverlap * 100)}%
-					</p>
-				</div>
-				<div>
-					<p class="text-xs text-ty-silent">{m.ana_adherence_energy()}</p>
-					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-						{Math.round(audit.energyOverlap * 100)}%
-					</p>
-				</div>
-				<div>
-					<p class="text-xs text-ty-silent">{m.ana_adherence_spread()}</p>
-					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-						{oneDecimal(audit.actualTaskSpread)}
-					</p>
-					<p class="mt-text-3xs text-xs text-ty-silent">
-						{m.ana_adherence_spread_note({
-							actual: oneDecimal(audit.actualTaskSpread),
-							classic: oneDecimal(audit.classicTaskSpread),
-							energy: oneDecimal(audit.energyTaskSpread),
-						})}
-					</p>
-				</div>
-			</div>
-			<p class="mt-text-sm text-xs text-ty-secondary">
-				{auditVerdict} · {audit.usedCount === 1
-					? m.ana_adherence_days_one()
-					: m.ana_adherence_days_other({
-							count: audit.usedCount,
-						})}
-			</p>
-		{/if}
-	</div>
-
-	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
-		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
-		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
-
-		{#if analytics.hasModelReportFailed}
-			{@render reportFailed()}
-		{:else if calibration === null}
-			{@render pending()}
-		{:else}
-			<div class="mt-text-md grid gap-text-xs">
-				{#each modelRows as row (row.label)}
-					<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
-						<span class="text-xs text-ty-silent">{row.label}</span>
-						<span class="flex items-baseline gap-grid-2xs text-sm">
-							{#if row.trend}
-								<ParamTrend
-									values={row.trend.values}
-									defaultValue={row.trend.defaultValue}
-									ariaLabel={row.trend.ariaLabel}
-								/>
-							{/if}
-							<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums"
-								>{row.value}</span
-							>
-							<span class="text-xs text-ty-silent"> · {row.note}</span>
-						</span>
+			{#if analytics.hasModelReportFailed}
+				{@render reportFailed()}
+			{:else if audit === null}
+				{@render pending()}
+			{:else if audit.usedCount === 0}
+				<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
+			{:else}
+				<div class="mt-text-md grid gap-grid-xs sm:grid-cols-3">
+					<div>
+						<p class="text-xs text-ty-silent">{m.ana_adherence_classic()}</p>
+						<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+							{Math.round(audit.classicOverlap * 100)}%
+						</p>
 					</div>
-				{/each}
-			</div>
-		{/if}
+					<div>
+						<p class="text-xs text-ty-silent">{m.ana_adherence_energy()}</p>
+						<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+							{Math.round(audit.energyOverlap * 100)}%
+						</p>
+					</div>
+					<div>
+						<p class="text-xs text-ty-silent">{m.ana_adherence_spread()}</p>
+						<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+							{oneDecimal(audit.actualTaskSpread)}
+						</p>
+						<p class="mt-text-3xs text-xs text-ty-silent">
+							{m.ana_adherence_spread_note({
+								actual: oneDecimal(audit.actualTaskSpread),
+								classic: oneDecimal(audit.classicTaskSpread),
+								energy: oneDecimal(audit.energyTaskSpread),
+							})}
+						</p>
+					</div>
+				</div>
+				<p class="mt-text-sm text-xs text-ty-secondary">
+					{auditVerdict} · {audit.usedCount === 1
+						? m.ana_adherence_days_one()
+						: m.ana_adherence_days_other({
+								count: audit.usedCount,
+							})}
+				</p>
+			{/if}
+		</div>
+
+		<div class="card-shell rounded-xl p-box-lg">
+			<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
+			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
+
+			{#if analytics.hasModelReportFailed}
+				{@render reportFailed()}
+			{:else if calibration === null}
+				{@render pending()}
+			{:else}
+				<div class="mt-text-md grid gap-text-xs">
+					{#each modelRows as row (row.label)}
+						<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
+							<span class="text-xs text-ty-silent">{row.label}</span>
+							<span class="flex items-baseline gap-grid-2xs text-sm">
+								{#if row.trend}
+									<ParamTrend
+										values={row.trend.values}
+										defaultValue={row.trend.defaultValue}
+										ariaLabel={row.trend.ariaLabel}
+									/>
+								{/if}
+								<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums"
+									>{row.value}</span
+								>
+								<span class="text-xs text-ty-silent"> · {row.note}</span>
+							</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</div>
 {/if}
 
