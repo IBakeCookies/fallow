@@ -38,7 +38,6 @@
 	import PlanTimelineBar from '$lib/presentation/component/plan-timeline-bar.svelte';
 	import PlanScheduleList from '$lib/presentation/component/plan-schedule-list.svelte';
 	import PlanSummary from '$lib/presentation/component/plan-summary.svelte';
-	import BudgetCurveButton from '$lib/presentation/component/budget-curve-button.svelte';
 	import BudgetCurveCard from '$lib/presentation/component/budget-curve-card.svelte';
 	import StopAdvisorCard from '$lib/presentation/component/stop-advisor-card.svelte';
 	import ParamRow from '$lib/presentation/component/param-row.svelte';
@@ -490,17 +489,6 @@
 								</h3>
 
 								<div class="flex flex-wrap items-center gap-grid-xs">
-									<!-- The day's LENGTH, priced (MATH.md §8.12) — outside the `windowHours > 0`
-							     gate on purpose: it answers what that window should be, which is why it
-							     reads on the card holding the row. The chart it returns lands below. -->
-									{#if budgetCurve === null}
-										<BudgetCurveButton
-											isBusy={lab.isCurveBusy}
-											hasError={lab.hasCurveError}
-											oncheck={() => lab.computeBudgetCurve()}
-										/>
-									{/if}
-
 									<!-- One button for all four fits because their ORDER is the math (MATH.md
 						§8.7/§8.9/§8.10): separate buttons let the user apply them in an order
 						that leaves a parameter stale. -->
@@ -756,8 +744,10 @@
 			</div>
 
 			<!-- Full width and last: the sweep answers a question about the whole day, and
-			     its chart is wider than the parameters card its button reads on. -->
-			{#if budgetCurve !== null}
+			     its chart is wider than the column beside it. Gated on `hasTasks` because
+			     an always-rendered card would otherwise offer a sweep on a day with
+			     nothing to sweep. -->
+			{#if hasTasks}
 				<BudgetCurveCard
 					curve={budgetCurve}
 					isBusy={lab.isCurveBusy}

@@ -37,15 +37,17 @@ test('advice prices real adjustments and goes stale when the day changes', async
 
 	await setBudget(page, 10);
 
-	// Nothing is computed until the user asks for it — and until then the feature
-	// is one button, not a card with a heading advertising an empty panel.
+	// The card is on screen from the first paint, with one control in its own
+	// header; nothing is computed until the user asks, so the reading is what waits.
+	await expect(page.getByText('Adjust the plan')).toBeVisible();
+	await expect(page.getByText('Nothing has been priced for this day yet.')).toBeVisible();
+
 	await expect(
 		page.getByRole('button', {
 			name: 'Check my day',
 		}),
 	).toBeVisible();
 
-	await expect(page.getByText('Adjust the plan')).toBeHidden();
 	await expect(page.getByText(/plan value/)).toBeHidden();
 
 	await page

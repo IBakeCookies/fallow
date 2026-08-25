@@ -405,12 +405,12 @@ test('the budget curve stays unasked until clicked, then prices the day’s leng
 	await page.goto('/energy');
 
 	const check = page.getByRole('button', {
-		name: 'How long should today be?',
+		name: 'Check the window',
 	});
 
-	// One button and nothing else until asked
+	// The card is on screen from the first paint; what waits is the reading.
 	await expect(check).toBeVisible();
-	await expect(page.getByText(/re-solved by the same optimizer/)).not.toBeVisible();
+	await expect(page.getByText(/re-solved by the same optimizer/)).toBeVisible();
 
 	await check.click();
 
@@ -422,8 +422,8 @@ test('the budget curve stays unasked until clicked, then prices the day’s leng
 	// window is not advice on its own.
 	await expect(page.getByText(/another hour of your day adds nothing/)).toBeVisible();
 
-	// The button was in the parameters header; the chart it produced is too wide for
-	// that card, so it lands full width under everything.
+	// The chart is too wide for the parameters card, so its card lands full width
+	// under everything.
 	const curve = page.locator('.card-shell').filter({
 		has: page.getByRole('heading', {
 			name: 'How long should today be?',
@@ -537,10 +537,10 @@ test('the ledger and the parameters read beside the calibration boxes', async ({
 	expect(paramsBox.y).toBeGreaterThan(listBox.y + listBox.height - 1);
 });
 
-// The curve is what the Day window row's number should be, so its button reads on
-// the card that holds that row — the same rule as the fits. Un-run it is a bare
-// button and not a card (presentation/AGENTS.md).
-test('the budget-curve button reads in the model parameters header', async ({ page }) => {
+// One control in one place: the card is on screen before the first click, so the
+// sweep is asked for from the card's own header and the parameters card holds no
+// second button for it (presentation/AGENTS.md).
+test('the Lab opens with the curve card already on screen', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await setBudget(page, 8);
@@ -548,23 +548,66 @@ test('the budget-curve button reads in the model parameters header', async ({ pa
 
 	await page.goto('/energy');
 
+	const curve = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'How long should today be?',
+		}),
+	});
+
+	const drain = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Drain Calibration',
+		}),
+	});
+
+	await expect(page.getByText('No window has been priced for this day yet.')).toBeVisible();
+
+	const curveBox = (await curve.boundingBox())!;
+	const drainBox = (await drain.boundingBox())!;
+
+	expect(curveBox.y).toBeGreaterThan(drainBox.y + drainBox.height);
+
 	const params = page.locator('.card-shell').filter({
 		has: page.getByRole('heading', {
 			name: 'Model Parameters',
 		}),
 	});
 
-	const check = params.getByRole('button', {
-		name: 'How long should today be?',
-	});
+	await expect(
+		params.getByRole('button', {
+			name: 'Check the window',
+		}),
+	).toHaveCount(0);
 
-	await expect(check).toBeVisible();
+	// One control, and one only: the defect being fixed was two buttons for one sweep.
+	await expect(
+		page.getByRole('button', {
+			name: 'Check the window',
+		}),
+	).toHaveCount(1);
 
-	// Above the rows it prices, not adrift among them.
-	const checkBox = (await check.boundingBox())!;
-	const window = (await page.locator('#window-hours').boundingBox())!;
+	await curve
+		.getByRole('button', {
+			name: 'Check the window',
+		})
+		.click();
 
-	expect(checkBox.y).toBeLessThan(window.y);
+	await expect(page.getByText('No window has been priced for this day yet.')).toBeHidden();
+	await expect(curve.getByRole('img')).toBeVisible();
+});
+
+// The card offers a sweep, so it sits behind the same gate as everything else that
+// describes a plan: a day with nothing to sweep stops at the task form.
+test('an empty day stops before the curve card', async ({ page }) => {
+	await page.goto('/energy');
+
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'How long should today be?',
+		}),
+	).toHaveCount(0);
 });
 
 /* The nav's active link already draws the page's name, so the `<h1>` is the

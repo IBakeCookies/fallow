@@ -73,6 +73,50 @@
 	});
 </script>
 
+<!-- Before the sweep: the card reads as itself, with a line saying the reading
+     has not been taken and its run button in its own header. No chart, because a
+     placeholder shape is a claim about an answer nobody has computed. -->
+<Story
+	name="Unasked"
+	args={{
+		curve: null,
+	}}
+	play={async ({ args, canvas }) => {
+		await expect(canvas.getByText('How long should today be?')).toBeVisible();
+		await expect(canvas.getByText('No window has been priced for this day yet.')).toBeVisible();
+
+		await expect(canvas.queryByRole('img')).not.toBeInTheDocument();
+
+		const check = canvas.getByRole('button', {
+			name: 'Check the window',
+		});
+
+		await expect(check).toBeEnabled();
+		await userEvent.click(check);
+
+		await expect(args.oncheck).toHaveBeenCalledOnce();
+	}}
+/>
+
+<!-- The first sweep threw, so there is no curve behind the banner, and the
+     banner reads inside the card. -->
+<Story
+	name="First sweep failed"
+	args={{
+		curve: null,
+		hasError: true,
+	}}
+	play={async ({ canvas }) => {
+		await expect(canvas.getByText('The sweep failed. Try again.')).toBeVisible();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Check the window',
+			}),
+		).toBeEnabled();
+	}}
+/>
+
 <!-- Resweeping: the previous curve is still on screen, so unlike the first run
      this state HAS an apply button — holding a recommendation the run in flight is
      about to replace. The chart stays readable; the lever does not stay live. -->

@@ -9,13 +9,7 @@
 		/** Null until the user asks: the search costs a full solve per candidate. */
 		advice: AdviceDisplay | null;
 		isBusy: boolean;
-		/**
-		 * The day changed after this advice was calculated. The numbers stay on
-		 * screen — it is a warning about them, not a reason to hide them — but every
-		 * lever below is withdrawn: each option is priced as the ONE next move on the
-		 * day that was solved, so once that day has moved they no longer describe the
-		 * day the button would act on.
-		 */
+		/** The day moved after this was calculated (presentation/AGENTS.md, Components). */
 		isStale: boolean;
 		/** What the day every defer lever sends to already holds (ROADMAP item 21). */
 		destination: string | null;
@@ -35,37 +29,30 @@
 		$props();
 </script>
 
-{#if !advice}
-	<div class="flex items-baseline justify-end gap-grid-xs">
-		{#if hasError}
-			<p class="text-xs text-danger">{m.advice_error()}</p>
-		{/if}
-		<Button variant="outline" size="sm" disabled={isBusy} onclick={oncheck} title={m.advice_desc()}>
-			{isBusy ? m.advice_working() : m.advice_check()}
+<div class="card-shell p-box-md sm:p-box-xl">
+	<div class="flex items-start justify-between gap-grid-xs">
+		<div class="min-w-0">
+			<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">
+				{m.advice_title()}
+			</h3>
+			<p class="mt-text-xs text-xs text-ty-silent">{m.advice_desc()}</p>
+		</div>
+		<Button variant="outline" size="sm" disabled={isBusy} onclick={oncheck}>
+			{isBusy ? m.advice_working() : advice === null ? m.advice_check() : m.advice_recheck()}
 		</Button>
 	</div>
-{:else}
-	<div class="card-shell p-box-md sm:p-box-xl">
-		<div class="flex items-start justify-between gap-grid-xs">
-			<div class="min-w-0">
-				<h3 class="text-xs font-semibold text-ty-secondary uppercase tracking-wider">
-					{m.advice_title()}
-				</h3>
-				<p class="mt-text-xs text-xs text-ty-silent">{m.advice_desc()}</p>
-			</div>
-			<Button variant="outline" size="sm" disabled={isBusy} onclick={oncheck}>
-				{isBusy ? m.advice_working() : m.advice_recheck()}
-			</Button>
-		</div>
 
-		{#if hasError}
-			<p
-				class="mt-grid-sm rounded-lg border border-danger/20 bg-danger/5 p-box-sm text-xs text-danger-strong"
-			>
-				{m.advice_error()}
-			</p>
-		{/if}
+	{#if hasError}
+		<p
+			class="mt-grid-sm rounded-lg border border-danger/20 bg-danger/5 p-box-sm text-xs text-danger-strong"
+		>
+			{m.advice_error()}
+		</p>
+	{/if}
 
+	{#if advice === null}
+		<p class="mt-grid-sm text-sm text-ty-secondary">{m.advice_unrun()}</p>
+	{:else}
 		<!-- Also the only statement of WHY the levers below are disabled: a disabled
 		     button is not focusable, so it cannot carry that reason itself. It reads
 		     before them, and Recheck — the way out — stays enabled beside it. -->
@@ -176,8 +163,8 @@
 		{:else if !advice.unfunded && !advice.unfundedMustDo}
 			<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
 		{/if}
-	</div>
-{/if}
+	{/if}
+</div>
 
 <!-- The band is otherwise carried by colour alone (WCAG 1.4.1). Sibling of the
      value, never nested, so the value element's text stays exactly the reading. -->

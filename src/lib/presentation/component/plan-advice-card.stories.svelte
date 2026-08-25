@@ -156,23 +156,24 @@
 	});
 </script>
 
-<!-- Before the user asks: the search costs a full solve per candidate, so this
-     is one button and no card — a heading over an empty panel is pure vertical
-     cost above the plan. -->
+<!-- The search costs a full solve per candidate, so the reading waits, not the card. -->
 <Story
 	name="Not calculated yet"
 	args={{
 		advice: null,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
-		await expect(canvas.queryByText('Burnout Risk')).not.toBeInTheDocument();
-		await expect(canvas.queryByText('Adjust the plan')).not.toBeInTheDocument();
+		await expect(canvas.getByText('Adjust the plan')).toBeVisible();
+		await expect(canvas.getByText('Nothing has been priced for this day yet.')).toBeVisible();
 
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Check my day',
-			}),
-		);
+		await expect(canvas.queryByText('Burnout Risk')).not.toBeInTheDocument();
+
+		const check = canvas.getByRole('button', {
+			name: 'Check my day',
+		});
+
+		await expect(check).toBeEnabled();
+		await userEvent.click(check);
 
 		await expect(args.oncheck).toHaveBeenCalledOnce();
 	}}
@@ -286,6 +287,29 @@
 				name: 'Solving…',
 			}),
 		).toBeDisabled();
+
+		await expect(canvas.getByText('Nothing has been priced for this day yet.')).toBeVisible();
+	}}
+/>
+
+<!-- The first check threw: the banner reads inside the card, with no reading behind it. -->
+<Story
+	name="First check failed"
+	args={{
+		advice: null,
+		hasError: true,
+	}}
+	play={async ({ canvas }) => {
+		const banner = canvas.getByText('The check failed. Try again.');
+
+		await expect(banner).toBeVisible();
+		expect(banner.closest('.card-shell')).not.toBeNull();
+
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Check my day',
+			}),
+		).toBeEnabled();
 	}}
 />
 
