@@ -888,7 +888,7 @@ function buildSeeds(
 		const seed: ScheduleBlock[] = [];
 		let left = usable;
 
-		for (let i = 0; left > step - 1e-9 && i < 24; i++) {
+		for (let i = 0; left > step - 1e-9; i++) {
 			seed.push({
 				taskId: list[i % list.length].id,
 				hours: step,
