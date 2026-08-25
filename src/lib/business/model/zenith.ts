@@ -200,8 +200,7 @@ function calculatePeakScaling(E: number, beta: number): number {
 	return E * beta;
 }
 
-// r = p₀/a clamped to [0, AMPLITUDE_RATIO_CAP]. Defensive: calculateTaskParams
-// already caps p₀, but the curve helpers accept raw (a, p₀) from tests/callers.
+// r = p₀/a clamped to [0, AMPLITUDE_RATIO_CAP] — the one definition of r.
 function amplitudeRatio(a: number, p0: number): number {
 	if (a <= 0) return 0;
 
@@ -575,7 +574,7 @@ export function calculateTaskParams(
 	const phi = calculateFlowStateTime(E, beta, constants);
 	const a = calculatePeakScaling(E, beta);
 	const p0 = Math.min(calculateInitialProductivity(E, beta), AMPLITUDE_RATIO_CAP * a);
-	const k = (1 - p0 / a) / phi;
+	const k = (1 - amplitudeRatio(a, p0)) / phi;
 
 	return {
 		E,
@@ -1224,7 +1223,7 @@ function toAllocations(
 			phi,
 			// The peak height a·e^(r−1) does not depend on ϕ — uncertainty moves
 			// WHEN the peak happens, not how high it is — so no expectation needed.
-			peakProductivity: a * Math.exp(p0 / a - 1),
+			peakProductivity: a * Math.exp(amplitudeRatio(a, p0) - 1),
 			avgProductivity: expectedAverageProductivity(hours, a, p0, phi, phiStds[i]),
 			optimalHours: optimalTimes[i],
 			optimalAvgProductivity: expectedAverageProductivity(optimalTimes[i], a, p0, phi, phiStds[i]),
