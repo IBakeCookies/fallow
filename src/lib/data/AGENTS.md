@@ -95,7 +95,9 @@ either: it merges whatever the file holds (`backup-repository.ts` checks only
   are the user's own content: keep them, clamp the numbers, default a
   non-number to the least-effort end of its scale so corruption can never
   inflate a plan. Observations are measurements: a corrupt number cannot be
-  repaired without inventing data, so the record is dropped. A record with no
+  repaired without inventing data, so the record is dropped — and corrupt means
+  out of its documented range as much as non-finite, since a rating no input can
+  produce is not a measurement (the fits clamp, but the log list prints). A record with no
   usable key (a session with no ISO `date`, a task or observation with no
   finite `id`) is always dropped — nothing can address it.
 - Settings and appearance own their validators, next to the shape they know:
