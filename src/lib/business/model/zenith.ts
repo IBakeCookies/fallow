@@ -115,9 +115,9 @@ export const BLOCK_HOURS = 0.25;
  * v2 NOTE: with the new curve the multiplier is task-dependent —
  * T* = ϕ·x*(r)/(1−r) with multiplier in [1.5194, 1.7933], r = p₀/a — so this is now only
  * (a) the exact r → 0 limit, (b) a strict UPPER BOUND on every task's
- * multiplier, and (c) the seed/bracket for the per-task root solve. Use
- * findOptimalSingleTaskTime for real values — NOT TaskAllocation.optimalHours,
- * which hedges ϕ-uncertainty and falls outside the band (MATH.md §5.1).
+ * multiplier. Use findOptimalSingleTaskTime for real values — NOT
+ * TaskAllocation.optimalHours, hedged for ϕ-uncertainty and free to fall
+ * below the band (§3).
  * Still consumed by the zenith-energy model, which intentionally remains on
  * the v1 curve (see MATH.md §7).
  */
@@ -973,7 +973,7 @@ function planValue(tasks: AllocTask[], blocks: number[]): number {
  * than the budget can fund — still exact wherever it fits the same plan budget,
  * and it fits on the tight days where the subset choice matters most (up to a
  * 3h day at n = 13). Longer days fall through to greedy forward selection,
- * which is where its residual forfeit is 2.3–3.8% (MATH.md §34).
+ * which is where its residual forfeit is 5.11–6.47% (MATH.md §34).
  */
 function bestPlanWithSwitchCost(
 	tasks: AllocTask[],
@@ -1125,7 +1125,7 @@ function bestPlanWithSwitchCost(
 
 	// A long enough day funds everything, so no bound brings the enumeration
 	// back: greedy forward selection — add the task whose admission most improves
-	// the total, stop when none does. Documented heuristic, still 2.3–3.8% short and
+	// the total, stop when none does. Documented heuristic, still 5.11–6.47% short and
 	// still non-monotone in the budget, in the regime where that costs least
 	// (MATH.md §34).
 	const funded: number[] = [];

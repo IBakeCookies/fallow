@@ -62,6 +62,13 @@ interface ProbeTask {
 	enjoyment: number;
 }
 
+/** One population's running totals; the sample replay feeds two of them. */
+interface Totals {
+	bands: { band: string; solves: number; short: number; worstPercent: number }[];
+	shortfallSum: number;
+	solves: number;
+}
+
 interface Crossover {
 	n: number;
 	switchCost: number;
@@ -152,25 +159,39 @@ const BANDS = [
 	},
 ];
 
+const emptyTotals = (): Totals => ({
+	bands: BANDS.map((band) => ({
+		band: band.name,
+		solves: 0,
+		short: 0,
+		worstPercent: 0,
+	})),
+	shortfallSum: 0,
+	solves: 0,
+});
+
+/** Rounded at emit, so a figure quoted in MATH.md is one this file printed. */
+const emitTotals = (totals: Totals) => ({
+	solves: totals.solves,
+	short: totals.bands.reduce((sum, band) => sum + band.short, 0),
+	meanPercent: Number((totals.shortfallSum / totals.solves).toFixed(2)),
+	worstPercent: Number(Math.max(...totals.bands.map((b) => b.worstPercent)).toFixed(2)),
+	bands: totals.bands.map((band) => ({
+		...band,
+		worstPercent: Number(band.worstPercent.toFixed(2)),
+	})),
+});
+
 describe('funded-subset search past the exact limit', () => {
 	it('prices the shortfall against exhaustive enumeration, by budget band', () => {
 		const rows: unknown[] = [];
 
 		for (const n of [13, 14, 15]) {
-			const random = mulberry32(n * 104729);
+			const union = emptyTotals();
+			const sample = emptyTotals();
 
-			const bands = BANDS.map((band) => ({
-				band: band.name,
-				days: 0,
-				short: 0,
-				worstPercent: 0,
-			}));
-
-			let shortfallSum = 0;
-			let days = 0;
-
-			for (let day = 0; day < 120; day++) {
-				const tasks: ProbeTask[] = Array.from(
+			const drawTasks = (random: () => number): ProbeTask[] =>
+				Array.from(
 					{
 						length: n,
 					},
@@ -181,9 +202,12 @@ describe('funded-subset search past the exact limit', () => {
 					}),
 				);
 
-				const budget = Math.max(BLOCK_HOURS, Math.round(random() * 40) * BLOCK_HOURS);
-				const switchCost = [0.1, 0.25, 0.33, 0.5][Math.floor(random() * 4)];
-
+			const price = (
+				tasks: ProbeTask[],
+				budget: number,
+				switchCost: number,
+				into: Totals[],
+			): void => {
 				const achieved = planValue(
 					calculateTaskAllocations(tasks, budget, DEFAULT_USER_CONSTANTS, switchCost),
 				);
@@ -191,23 +215,50 @@ describe('funded-subset search past the exact limit', () => {
 				const best = exhaustiveValue(tasks, budget, switchCost);
 				const percent = best > 0 ? (100 * (best - achieved)) / best : 0;
 
-				days++;
-				shortfallSum += percent;
+				for (const totals of into) {
+					totals.solves++;
+					totals.shortfallSum += percent;
 
-				const row = bands[BANDS.findIndex((band) => band.holds(budget))];
-				row.days++;
+					const row = totals.bands[BANDS.findIndex((band) => band.holds(budget))];
+					row.solves++;
 
-				if (percent > 1e-6) row.short++;
+					if (percent > 1e-6) row.short++;
 
-				if (percent > row.worstPercent) row.worstPercent = percent;
+					if (percent > row.worstPercent) row.worstPercent = percent;
+				}
+			};
+
+			// One day against the whole (switchCost, budget) grid; hoisted so the
+			// sweep stays inside the repo's nesting limit.
+			const sweepDay = (tasks: ProbeTask[]): void => {
+				for (const switchCost of [0.1, 0.25, 0.33, 0.5])
+					for (let budget = BLOCK_HOURS; budget <= 10 + 1e-9; budget += BLOCK_HOURS)
+						price(tasks, budget, switchCost, [union]);
+			};
+
+			const swept = mulberry32(n * 31337);
+
+			for (let day = 0; day < 8; day++) sweepDay(drawTasks(swept));
+
+			// The grid alone bounds a worst case only over the days it swept, so the
+			// historical 120-day sample runs beside it, into two sets of totals. Only
+			// `worstPercent` is a max and cannot fall, so §34 takes its two worsts from
+			// the union and its count and mean from `sample`, where they stay
+			// comparable to its 120-day before-table. The sample's seed and draw order
+			// are e02bb3a's exactly, so it reproduces that population.
+			const sampled = mulberry32(n * 104729);
+
+			for (let day = 0; day < 120; day++) {
+				const tasks = drawTasks(sampled);
+				const budget = Math.max(BLOCK_HOURS, Math.round(sampled() * 40) * BLOCK_HOURS);
+
+				price(tasks, budget, [0.1, 0.25, 0.33, 0.5][Math.floor(sampled() * 4)], [union, sample]);
 			}
 
 			rows.push({
 				n,
-				days,
-				meanPercent: shortfallSum / days,
-				worstPercent: Math.max(...bands.map((b) => b.worstPercent)),
-				bands,
+				...emitTotals(union),
+				sample: emitTotals(sample),
 			});
 		}
 
