@@ -9,7 +9,7 @@ import {
 	sanitizeSessions,
 	sanitizeTask,
 } from '$lib/business/model/persisted';
-import { DEFAULT_SWITCH_COST } from '$lib/business/model/zenith';
+import { DEFAULT_SWITCH_COST, mapEffort, mapEnjoyability } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import { getEffectiveDifficulty } from '$lib/business/model/metric/calculation';
 
@@ -397,6 +397,82 @@ describe('observation sanitizers', () => {
 				}),
 			]),
 		).toEqual([]);
+	});
+
+	// A rating no input can produce is corrupt in the same way a NaN one is, and the
+	// same rule applies: drop it. The fits clamp such a value away, but the log list
+	// prints what it is handed.
+	it('drop a record with a measurement outside its range', () => {
+		expect(
+			sanitizeDrainObservations([
+				drain({
+					mindDrain: 42,
+				}),
+				drain({
+					bodyDrain: -3,
+				}),
+				drain({
+					cognitiveDemand: 8,
+				}),
+				drain({
+					hours: -1,
+				}),
+			]),
+		).toEqual([]);
+
+		expect(
+			sanitizeRestObservations([
+				rest({
+					mindAfter: 11,
+				}),
+			]),
+		).toEqual([]);
+
+		expect(
+			sanitizeFlowObservations([
+				flow({
+					enjoyment: 0,
+				}),
+				flow({
+					E: 9,
+				}),
+				flow({
+					beta: 2.5,
+				}),
+			]),
+		).toEqual([]);
+	});
+
+	// The ends of the sliders are measurements, not corruption.
+	it('keep a record at the edges of every range', () => {
+		const spent = drain({
+			hours: 0,
+			cognitiveDemand: 0,
+			physicalDemand: 1,
+			mindDrain: 0,
+			bodyDrain: 10,
+		});
+
+		expect(sanitizeDrainObservations([spent])).toEqual([spent]);
+
+		const hardest = flow({
+			difficulty: 10,
+			enjoyment: 10,
+			E: mapEffort(10),
+			beta: mapEnjoyability(10),
+			phiHours: 0,
+		});
+
+		expect(sanitizeFlowObservations([hardest])).toEqual([hardest]);
+
+		const easiest = flow({
+			difficulty: 1,
+			enjoyment: 1,
+			E: mapEffort(1),
+			beta: mapEnjoyability(1),
+		});
+
+		expect(sanitizeFlowObservations([easiest])).toEqual([easiest]);
 	});
 
 	it('drop a record with no date or no id', () => {

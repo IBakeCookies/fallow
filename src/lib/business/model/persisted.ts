@@ -15,7 +15,8 @@
  *   numbers, defaulting a non-number to the least-effort end of its scale so a
  *   corrupt field can never inflate a plan. Losing a task would lose writing.
  * - Observations are MEASUREMENTS: a corrupt number cannot be repaired without
- *   inventing data, so the record is dropped from the fit entirely.
+ *   inventing data, so the record is dropped from the fit entirely. Corrupt
+ *   includes out of range: a rating no slider can produce is not a measurement.
  */
 
 import type {
@@ -30,6 +31,8 @@ import type {
 } from '$lib/data/type';
 import {
 	DEFAULT_SWITCH_COST,
+	mapEffort,
+	mapEnjoyability,
 	type FitPosterior,
 	type UserConstants,
 } from '$lib/business/model/zenith';
@@ -174,12 +177,30 @@ export function sanitizeRoutines(raw: unknown): SavedRoutine[] {
 	return raw.map(sanitizeRoutine).filter((routine): routine is SavedRoutine => routine !== null);
 }
 
+/** The inclusive range a well-formed value of one measured field falls in. */
+type Range = readonly [min: number, max: number];
+
+/** Ids and durations: bounded below only. */
+const NON_NEGATIVE: Range = [0, Infinity];
+/** A 0-10 drain rating (the two log forms' inputs): 0 = fresh, 10 = spent. */
+const DRAIN_RATING: Range = [0, RATING_MAX];
+/** wc/wp, frozen as a difficulty slider over 10. */
+const DEMAND: Range = [0, 1];
+/** The 1-10 sliders a flow log freezes — `getEffectiveDifficulty` clamps from 1. */
+const SCORE: Range = [ENJOYMENT_MIN, RATING_MAX];
+
 /**
- * Drop-or-keep for measurements: every listed field must be a finite number and
- * `date` an ISO day, and `id` must be usable or the user could never delete the
- * record from the calibration list.
+ * Drop-or-keep for measurements: every listed field must be a finite number
+ * INSIDE the range its record type documents, and `date` an ISO day, and `id`
+ * usable or the user could never delete the record from the calibration list.
+ *
+ * Range and not just finiteness, because a rating of 42 is as corrupt as a NaN
+ * one and this module's rule for a corrupt measurement is to drop it. The fits
+ * would survive one (they clamp their inputs), but the log list prints what it
+ * is given (`log-history.ts`), so a value the sliders cannot produce must not
+ * reach it.
  */
-function sanitizeObservations<T>(raw: unknown, numberFields: readonly string[]): T[] {
+function sanitizeObservations<T>(raw: unknown, ranges: Record<string, Range>): T[] {
 	if (!Array.isArray(raw)) return [];
 
 	return raw.filter((record) => {
@@ -187,36 +208,56 @@ function sanitizeObservations<T>(raw: unknown, numberFields: readonly string[]):
 
 		if (!source || isoDate(source.date) === null || finite(source.id) === null) return false;
 
-		return numberFields.every((field) => finite(source[field]) !== null);
+		return Object.entries(ranges).every(([field, [min, max]]) => {
+			const value = finite(source[field]);
+
+			return value !== null && value >= min && value <= max;
+		});
 	}) as T[];
 }
 
-const FLOW_NUMBERS = ['taskId', 'difficulty', 'enjoyment', 'E', 'beta', 'phiHours'] as const;
+// E and β through the maps that produced them (AGENTS.md R3) rather than the
+// 1-5 / 1-2 the type documents: the stored value IS `mapEffort(difficulty)`, so
+// the bound is the same expression at the ends of the slider and cannot drift.
+const FLOW_RANGES: Record<string, Range> = {
+	taskId: NON_NEGATIVE,
+	difficulty: SCORE,
+	enjoyment: SCORE,
+	E: [mapEffort(ENJOYMENT_MIN), mapEffort(RATING_MAX)],
+	beta: [mapEnjoyability(ENJOYMENT_MIN), mapEnjoyability(RATING_MAX)],
+	phiHours: NON_NEGATIVE,
+};
 
-const DRAIN_NUMBERS = [
-	'taskId',
-	'hours',
-	'cognitiveDemand',
-	'physicalDemand',
-	'mindDrain',
-	'bodyDrain',
-] as const;
+const DRAIN_RANGES: Record<string, Range> = {
+	taskId: NON_NEGATIVE,
+	hours: NON_NEGATIVE,
+	cognitiveDemand: DEMAND,
+	physicalDemand: DEMAND,
+	mindDrain: DRAIN_RATING,
+	bodyDrain: DRAIN_RATING,
+};
 
-const REST_NUMBERS = ['hours', 'mindBefore', 'mindAfter', 'bodyBefore', 'bodyAfter'] as const;
+const REST_RANGES: Record<string, Range> = {
+	hours: NON_NEGATIVE,
+	mindBefore: DRAIN_RATING,
+	mindAfter: DRAIN_RATING,
+	bodyBefore: DRAIN_RATING,
+	bodyAfter: DRAIN_RATING,
+};
 
 // `Persisted<…>` rather than the bare record, and the only place that upgrade is
 // made: the id filter above is what earns it, so the callers keying a list or
 // deleting a row need no `id!`.
 export function sanitizeFlowObservations(raw: unknown): Persisted<FlowObservationRecord>[] {
-	return sanitizeObservations<Persisted<FlowObservationRecord>>(raw, FLOW_NUMBERS);
+	return sanitizeObservations<Persisted<FlowObservationRecord>>(raw, FLOW_RANGES);
 }
 
 export function sanitizeDrainObservations(raw: unknown): Persisted<DrainObservationRecord>[] {
-	return sanitizeObservations<Persisted<DrainObservationRecord>>(raw, DRAIN_NUMBERS);
+	return sanitizeObservations<Persisted<DrainObservationRecord>>(raw, DRAIN_RANGES);
 }
 
 export function sanitizeRestObservations(raw: unknown): Persisted<RestObservationRecord>[] {
-	return sanitizeObservations<Persisted<RestObservationRecord>>(raw, REST_NUMBERS);
+	return sanitizeObservations<Persisted<RestObservationRecord>>(raw, REST_RANGES);
 }
 
 /**
