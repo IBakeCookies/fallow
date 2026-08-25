@@ -249,18 +249,20 @@
 	<p class="sr-only">{m.ana_loading()}</p>
 	<!-- Bar heights are the line-heights they stand in for: `text-xs` is h-4,
 	     `text-sm` h-5, the tile's `text-2xl` reading h-8. -->
-	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
-		{#each Array(4), i (i)}
-			<div class="card-shell rounded-xl p-box-md">
-				<div class="skeleton-block h-4 w-20"></div>
-				<div class="skeleton-block mt-text-2xs h-8 w-24"></div>
-				<div class="skeleton-block mt-text-3xs h-4 w-28"></div>
-			</div>
-		{/each}
-	</div>
-	<!-- The fold's summary line, on the rule it sits under when the readings land. -->
-	<div class="mt-grid-lg border-t border-line-soft pt-grid-sm" aria-hidden="true">
-		<div class="skeleton-block h-4 w-28"></div>
+	<div class="card-shell rounded-xl p-box-lg" aria-hidden="true">
+		<div class="grid gap-grid-sm sm:grid-cols-2 lg:grid-cols-4">
+			{#each Array(4), i (i)}
+				<div>
+					<div class="skeleton-block h-4 w-20"></div>
+					<div class="skeleton-block mt-text-2xs h-8 w-24"></div>
+					<div class="skeleton-block mt-text-3xs h-4 w-28"></div>
+				</div>
+			{/each}
+		</div>
+		<!-- The fold's summary line, on the rule it sits under when the readings land. -->
+		<div class="mt-grid-lg border-t border-line-soft pt-grid-sm">
+			<div class="skeleton-block h-4 w-28"></div>
+		</div>
 	</div>
 	<!-- Bodies, in the three full-width GATED cards' order, then the paired adherence/model
 	     row — the logs card renders outside this gate. Both charts are a fixed viewBox at
@@ -289,87 +291,90 @@
 		</p>
 	</div>
 {:else}
-	<!-- One tile per question the range answers — volume, trend, consistency, load; the
-	     other five fold. `metrics-dashboard.svelte` holds why. -->
-	<div class="grid gap-grid-xs sm:grid-cols-2 lg:grid-cols-4">
-		<StatTile
-			label={m.ana_tasks_completed()}
-			value={analytics.completedTasks}
-			suffix="/ {analytics.totalTasks}"
-		>
-			{#snippet note()}
-				{m.ana_of_planned({
-					percent: analytics.completedShare,
-				})}
-			{/snippet}
-		</StatTile>
-
-		<StatTile label={m.ana_avg_rate()} value="{analytics.averageCompletionRate}%">
-			{#snippet note()}
-				{#if rateDelta !== null}
-					<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
-						{rateDelta >= 0 ? '+' : ''}{rateDelta}%
-					</span>
-					{m.ana_vs_prev({
-						period: RANGE_LABELS[analytics.range].prevLabel(),
+	<!-- One card holding every reading, as on `/`: four answer a question the range
+	     asks — volume, trend, consistency, load — and the other five sit under the
+	     rule. A card each said the four were four independent facts. -->
+	<div class="card-shell rounded-xl p-box-lg">
+		<div class="grid gap-grid-sm sm:grid-cols-2 lg:grid-cols-4">
+			<StatTile
+				label={m.ana_tasks_completed()}
+				value={analytics.completedTasks}
+				suffix="/ {analytics.totalTasks}"
+			>
+				{#snippet note()}
+					{m.ana_of_planned({
+						percent: analytics.completedShare,
 					})}
-				{:else}
-					{m.ana_rate_note()}
-				{/if}
-			{/snippet}
-		</StatTile>
+				{/snippet}
+			</StatTile>
 
-		<StatTile
-			label={m.ana_current_streak()}
-			value={analytics.streak}
-			suffix={analytics.streak === 1 ? m.ana_day_one() : m.ana_day_other()}
-		>
-			{#snippet note()}{m.ana_streak_note()}{/snippet}
-		</StatTile>
+			<StatTile label={m.ana_avg_rate()} value="{analytics.averageCompletionRate}%">
+				{#snippet note()}
+					{#if rateDelta !== null}
+						<span class={rateDelta >= 0 ? 'text-success' : 'text-danger'}>
+							{rateDelta >= 0 ? '+' : ''}{rateDelta}%
+						</span>
+						{m.ana_vs_prev({
+							period: RANGE_LABELS[analytics.range].prevLabel(),
+						})}
+					{:else}
+						{m.ana_rate_note()}
+					{/if}
+				{/snippet}
+			</StatTile>
 
-		<StatTile
-			label={m.ana_logged_hours()}
-			value={loggedHours === null ? '—' : loggedHours.toLocaleString(getDateLocale())}
-			suffix={loggedHours === null ? undefined : m.unit_hours()}
-			muted={loggedHours === null}
-		>
-			{#snippet note()}
-				{#if loggedHours === null}
-					{missingReading}
-				{:else}
-					{m.ana_logged_hours_note({
-						hours: analytics.plannedHours.toLocaleString(getDateLocale()),
-					})}
-				{/if}
-			{/snippet}
-		</StatTile>
-	</div>
+			<StatTile
+				label={m.ana_current_streak()}
+				value={analytics.streak}
+				suffix={analytics.streak === 1 ? m.ana_day_one() : m.ana_day_other()}
+			>
+				{#snippet note()}{m.ana_streak_note()}{/snippet}
+			</StatTile>
 
-	<!-- The same fold as `metrics-dashboard.svelte`'s, minus the colour: none of these
-	     readings is judged, so there is no band to carry. -->
-	<details class="mt-grid-lg border-t border-line-soft pt-grid-sm">
-		<summary
-			class="cursor-pointer text-xs text-ty-secondary transition hover:text-ty-primary marker:text-ty-silent"
-		>
-			{m.metrics_more({
-				count: foldedReadings.length,
-			})}
-		</summary>
-		<div class="mt-grid-sm columns-1 gap-grid-lg sm:columns-2 lg:columns-4">
-			{#each foldedReadings as reading (reading.label)}
-				<div
-					class="flex break-inside-avoid items-baseline justify-between gap-text-xs border-b border-line-soft py-text-2xs"
-				>
-					<span class="text-xs text-ty-silent">{reading.label}</span>
-					<span class="text-right text-sm font-semibold tabular-nums text-ty-primary">
-						{reading.value}
-						{#if reading.suffix}<span class="font-normal text-ty-silent">{reading.suffix}</span
-							>{/if}
-					</span>
-				</div>
-			{/each}
+			<StatTile
+				label={m.ana_logged_hours()}
+				value={loggedHours === null ? '—' : loggedHours.toLocaleString(getDateLocale())}
+				suffix={loggedHours === null ? undefined : m.unit_hours()}
+				muted={loggedHours === null}
+			>
+				{#snippet note()}
+					{#if loggedHours === null}
+						{missingReading}
+					{:else}
+						{m.ana_logged_hours_note({
+							hours: analytics.plannedHours.toLocaleString(getDateLocale()),
+						})}
+					{/if}
+				{/snippet}
+			</StatTile>
 		</div>
-	</details>
+
+		<!-- The same fold as `metrics-dashboard.svelte`'s, minus the colour: none of these
+		     readings is judged, so there is no band to carry. -->
+		<details class="mt-grid-lg border-t border-line-soft pt-grid-sm">
+			<summary
+				class="cursor-pointer text-xs text-ty-secondary transition hover:text-ty-primary marker:text-ty-silent"
+			>
+				{m.metrics_more({
+					count: foldedReadings.length,
+				})}
+			</summary>
+			<div class="mt-grid-sm columns-1 gap-grid-lg sm:columns-2 lg:columns-4">
+				{#each foldedReadings as reading (reading.label)}
+					<div
+						class="flex break-inside-avoid items-baseline justify-between gap-text-xs border-b border-line-soft py-text-2xs"
+					>
+						<span class="text-xs text-ty-silent">{reading.label}</span>
+						<span class="text-right text-sm font-semibold tabular-nums text-ty-primary">
+							{reading.value}
+							{#if reading.suffix}<span class="font-normal text-ty-silent">{reading.suffix}</span
+								>{/if}
+						</span>
+					</div>
+				{/each}
+			</div>
+		</details>
+	</div>
 
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
