@@ -312,7 +312,7 @@ export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
 	const byPriority = [...suggestedTasks].sort((a, b) => b.priorityScore - a.priorityScore);
 
 	const maxPossiblePriority = byPriority
-		.slice(0, Math.max(1, completedTasks))
+		.slice(0, completedTasks)
 		.reduce((sum, t) => sum + t.priorityScore, 0);
 
 	const actualCompletedPriority = suggestedTasks
@@ -321,7 +321,7 @@ export function calculateYieldIndex(suggestedTasks: SuggestedTask[]): number {
 
 	if (!maxPossiblePriority) return 0;
 
-	return Math.min(100, Math.round((actualCompletedPriority / maxPossiblePriority) * 100));
+	return Math.round((actualCompletedPriority / maxPossiblePriority) * 100);
 }
 
 /**

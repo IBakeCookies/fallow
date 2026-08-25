@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	calculateSuggestedTasks,
+	toPooledInputs,
 	calculateDailyQuadrant,
 	calculateQuadrantMargin,
 	calculateFrictionIndex,
@@ -25,6 +26,8 @@ import {
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
 import {
+	calculatePooledAllocations,
+	mapEnjoyability,
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_USER_CONSTANTS,
@@ -211,6 +214,31 @@ describe('calculateSuggestedTasks', () => {
 		expect(physicalOut.suggestedHours).toBeGreaterThan(0);
 		expect(mentalOut.priorityScore).toBe(physicalOut.priorityScore);
 		expect(mentalOut.priorityScore).toBeGreaterThan(0);
+	});
+
+	// P̄(T*) = β·E·h(r(E)) and r = p₀/a = 1/E² depends on the difficulty slider
+	// alone, so at fixed difficulty the intrinsic value is exactly linear in
+	// enjoyment. Pinned on the raw value, not the 1 dp `priorityScore`.
+	it('is exactly linear in enjoyment at fixed difficulty', () => {
+		const valuePerBeta = [1, 3, 5, 7, 10].map((enjoyment) => {
+			const task = makeTask({
+				id: enjoyment,
+				title: `e${enjoyment}`,
+				enjoyment,
+			});
+
+			const [allocation] = calculatePooledAllocations(
+				toPooledInputs([task]),
+				8,
+				DEFAULT_CAPACITY_POOLS,
+				DEFAULT_USER_CONSTANTS,
+				DEFAULT_SWITCH_COST,
+			);
+
+			return allocation.optimalAvgProductivity / mapEnjoyability(enjoyment);
+		});
+
+		for (const ratio of valuePerBeta) expect(ratio).toBeCloseTo(valuePerBeta[0], 12);
 	});
 
 	// The task badge reads `nature` off the plan instead of re-classifying in the
