@@ -10,7 +10,12 @@
  * affordable to solve exactly.
  */
 
-import type { DailySession, DrainObservationRecord, Task } from '$lib/data/type';
+import type {
+	DailySession,
+	DrainObservationRecord,
+	RestObservationRecord,
+	Task,
+} from '$lib/data/type';
 import { addDays } from '$lib/business/utils/date';
 import { seedMorningReservoirs } from '$lib/business/model/energy-calibration';
 import {
@@ -40,10 +45,9 @@ export type DaySummary = {
 	/** Priority-weighted completion rate (0–100), same as the dashboard metric. */
 	completionRate: number;
 	/**
-	 * `null` on a day that booked no hours (MATH.md §29). Hour-weighted over a
-	 * switch-cost-free solve, which is what history can afford — see
-	 * `solveWithoutSwitchCost` for the cost and for how far it lands from the
-	 * dashboard's exact plan.
+	 * `null` on a day that booked no hours. Hour-weighted over a switch-cost-free
+	 * solve, which is what history can afford — see `solveWithoutSwitchCost` for
+	 * the cost and for how far it lands from the dashboard's exact plan.
 	 */
 	quadrant: DailyQuadrant | null;
 	availableHours: number;
@@ -64,8 +68,9 @@ export type DaySummary = {
  * that choice disappears and `bestPlanWithSwitchCost` takes a single
  * marginal-value pass over all tasks. Measured over 365 seeded days: **60ms at
  * n = 12 against tens of seconds** for the exact solve — the difference between
- * a summary and a frozen tab. MATH.md §31 has the per-n table; a single figure
- * is not quoted here because the cost is dominated by the largest n.
+ * a summary and a frozen tab. `scripts/mtr-metric-trend.probe.ts` has the cost
+ * by n; a single figure is not quoted here because the cost is dominated by the
+ * largest n.
  *
  * The two readings this feeds are affected differently, which is why the
  * approximation is drawn here and not somewhere cheaper:
@@ -73,15 +78,14 @@ export type DaySummary = {
  * - `completionRate` weights by `priorityScore` = P̄(T*)×10, the task's
  *   INTRINSIC value — a function of its own difficulty/enjoyment and the fit
  *   alone. Unchanged by any allocation, so this is exact.
- * - `quadrant` weights by allocated hours (§29), so it does depend on the
- *   solve. Real budget, real pools, real marginal-value allocation, no subset
- *   choice: it disagrees with the dashboard's exact plan on **7.5%** of seeded
- *   days (`scripts/mtr-day-profile.probe.ts`, 2026-08-07). Scoring each task on
- *   its own instead — the previous shortcut here — hands every task its full T*
- *   as though it were the only one, and disagrees on 21.0%.
+ * - `quadrant` weights by allocated hours, so it does depend on the solve. Real
+ *   budget, real pools, real marginal-value allocation, no subset choice: it
+ *   disagrees with the dashboard's exact plan on **7.5%** of seeded days
+ *   (`scripts/mtr-day-profile.probe.ts`, 2026-08-07). Scoring each task on its
+ *   own instead — the previous shortcut here — hands every task its full T* as
+ *   though it were the only one, and disagrees on 21.0%.
  *
- * `calculateMetricTrend` reads the same plan and carries the same caveat, sized
- * per reading in MATH.md §31.
+ * `calculateMetricTrend` reads the same plan and carries the same caveat.
  */
 function solveWithoutSwitchCost(
 	session: DailySession,
@@ -124,19 +128,19 @@ export function summarizeSession(
 	};
 }
 
-/** One day of the analytics trend card (MATH.md §31). */
+/** One day of the analytics trend card. */
 export interface MetricTrendPoint {
 	date: string;
-	/** MATH.md §11.6, 0–100. */
+	/** 0–100. */
 	burnoutRisk: number;
-	/** MATH.md §25, 0–100. The two are separate systems and may both be high. */
+	/** 0–100. The two are separate systems and may both be high. */
 	cognitiveLoad: number;
 	physicalLoad: number;
 }
 
 /**
- * Three of the dashboard's readings, per day, for the analytics trend card
- * (MATH.md §31): Burnout Risk (§11.6) and the two Loads (§25).
+ * Three of the dashboard's readings, per day, for the analytics trend card:
+ * Burnout Risk and the two Loads.
  *
  * Takes `params` rather than reading them because the calibrated energy fit
  * arrives with the model report, one read after the summaries — and the fit is
@@ -144,18 +148,20 @@ export interface MetricTrendPoint {
  * defaults would disagree with today's tile for a reason the user cannot see.
  *
  * `drain` is the same reason carried one step further: the dashboard seeds each
- * morning's reservoirs from the PREVIOUS day's 🪫 rows (MATH.md §11.9), keyed to
- * the viewed day, so a series simulated from full reservoirs would read a
- * rested morning on every day the user actually started depleted — a gap that
- * is not the allocation approximation §31 measures and would not shrink with a
- * better solve. Keyed per point for the same reason the dashboard keys it to
- * the viewed day: a past day reads with its own morning, not today's.
+ * morning's reservoirs from the PREVIOUS day's 🪫 rows, keyed to the viewed day,
+ * so a series simulated from full reservoirs would read a rested morning on
+ * every day the user actually started depleted — a gap that is not the
+ * allocation approximation and would not shrink with a better solve
+ * (`scripts/mtr2-carry-over.probe.ts` sizes the carry-over). Keyed per point for
+ * the same reason the dashboard keys it to the viewed day: a past day reads with
+ * its own morning, not today's.
  *
  * Every point is read off `solveWithoutSwitchCost`'s plan, so the whole series
  * inherits that approximation; the day's own `switchCost` is still what Burnout
  * Risk is priced at, because it takes the cost as an argument separate from the
- * allocation. §31 sizes both effects. Fallow Gain is deliberately absent — its
- * approximation error is larger than the reading.
+ * allocation. `scripts/mtr-metric-trend.probe.ts` sizes both effects, and is
+ * also why Fallow Gain is deliberately absent — its approximation error is
+ * larger than the reading.
  */
 export function calculateMetricTrend(
 	summaries: DaySummary[],
@@ -201,6 +207,78 @@ export function currentStreak(datesWithCompletion: Set<string>, today: string): 
 	return streak;
 }
 
+/**
+ * The longest run of consecutive dates anywhere in the set — unlike
+ * `currentStreak`'s backward walk from today, so an old record survives a
+ * broken week. ISO dates sort lexicographically.
+ */
+export function longestStreak(datesWithCompletion: Set<string>): number {
+	let longest = 0;
+	let run = 0;
+	let previous: string | null = null;
+
+	for (const date of [...datesWithCompletion].sort()) {
+		run = previous !== null && addDays(previous, 1) === date ? run + 1 : 1;
+		longest = Math.max(longest, run);
+		previous = date;
+	}
+
+	return longest;
+}
+
+// `+ 0` normalises -0, which `Math.round` returns for any small negative mean
+// and `Intl` prints as "-0.0" — under the "+" the rest tile adds for a reading
+// it tests as non-negative.
+const roundToTenth = (value: number): number => Math.round(value * 10) / 10 + 0;
+
+/**
+ * Total 🪫-logged session hours on or after `rangeStart` — the logged side of
+ * the analytics screen's logged-vs-declared hours reading. A row counts at a
+ * positive length, the one rule every other reader of 🪫 hours shares
+ * (`readFinishedDays`).
+ */
+export function loggedHours(drain: DrainObservationRecord[], rangeStart: string): number {
+	const total = drain.reduce(
+		(sum, row) => (row.date >= rangeStart && row.hours > 0 ? sum + row.hours : sum),
+		0,
+	);
+
+	return roundToTenth(total);
+}
+
+/**
+ * The ☕ fold behind the analytics screen's rest tile. `lift` is how far each of
+ * the two drain ratings dropped across the breaks on average — positive means
+ * the user came out fresher. One nullable field and not two, because the two
+ * averages are one fact: they exist over the same rows or not at all.
+ */
+export type RestSummary = {
+	hours: number;
+	/** `null` when nothing was rested: no breaks is no average, not a zero lift. */
+	lift: { mind: number; body: number } | null;
+};
+
+export function restSummary(rest: RestObservationRecord[], rangeStart: string): RestSummary {
+	const rows = rest.filter((row) => row.date >= rangeStart);
+
+	if (rows.length === 0)
+		return {
+			hours: 0,
+			lift: null,
+		};
+
+	const meanLift = (before: 'bodyBefore' | 'mindBefore', after: 'bodyAfter' | 'mindAfter') =>
+		roundToTenth(rows.reduce((sum, row) => sum + (row[before] - row[after]), 0) / rows.length);
+
+	return {
+		hours: roundToTenth(rows.reduce((sum, row) => sum + row.hours, 0)),
+		lift: {
+			mind: meanLift('mindBefore', 'mindAfter'),
+			body: meanLift('bodyBefore', 'bodyAfter'),
+		},
+	};
+}
+
 /** Mean priority-weighted completion rate over the given days, 0 when empty. */
 export function averageCompletionRate(summaries: DaySummary[]): number {
 	if (summaries.length === 0) return 0;
@@ -239,7 +317,7 @@ export function findBestDay(summaries: DaySummary[]): DaySummary | null {
 
 /**
  * How many days in the range fell into each day profile. A day that booked no
- * hours has no profile (§29) and is counted nowhere rather than into `routine`,
+ * hours has no profile and is counted nowhere rather than into `routine`,
  * which is a reading about work that was planned.
  */
 export function countQuadrants(summaries: DaySummary[]): Record<DailyQuadrant, number> {

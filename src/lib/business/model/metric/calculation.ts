@@ -24,7 +24,7 @@ import type { Task } from '$lib/data/type';
 // peak (moving boxes: phys 8, mental 0 → 8). 0.3 keeps the secondary dimension
 // subordinate: it can never flip which dimension dominates.
 const DIFFICULTY_SPILLOVER = 0.3;
-// Deep Work's ramp over mental difficulty (MATH.md §26): nothing below 5, the
+// Deep Work's ramp over mental difficulty: nothing below 5, the
 // whole hour from 9 up, and the metric's former `>= 7` cut sits at half weight.
 const DEEP_WORK_FLOOR = 5;
 const DEEP_WORK_FULL = 9;
@@ -55,7 +55,7 @@ export function getEffectiveDifficulty(
  *
  * ±3 is an absolute gap and it reads correctly across most of the range: at
  * mental 10 / physical 8 the two dimensions really are comparable. It cannot
- * carry the bottom of the range, because the sliders admit 0 (MATH.md §22). At
+ * carry the bottom of the range, because the sliders admit 0. At
  * mental 2 / physical 0 the same gap of 2 would call "balanced" a task with no
  * physical component at all — the badge promising both capacity pools while
  * `toEnergyTask` hands the reservoir law `physicalDemand: 0`. So a zero
@@ -63,7 +63,7 @@ export function getEffectiveDifficulty(
  *
  * 0/0 stays balanced: that is an absence, not a mix, and the ALLOCATOR never
  * reads it as a rating — `getEffectiveDifficulty` clamps it to 1. Burnout Risk
- * does, off the raw sliders, so a funded 0/0 task simulates as rest (§22, §11.6).
+ * does, off the raw sliders, so a funded 0/0 task simulates as rest.
  */
 export function getTaskNature(
 	task: Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'>,
@@ -81,7 +81,7 @@ export function getTaskNature(
 }
 
 /**
- * Flagged "don't move off today" (MATH.md §14). Lives here, beside the other
+ * Flagged "don't move off today". Lives here, beside the other
  * facts read straight off a task record, because three unrelated callers must
  * agree on it: the advisor's defer candidates, its unfunded partition, and
  * `SessionStore.moveTaskToTomorrow` — otherwise a task reported as
@@ -135,7 +135,7 @@ export type SuggestedTask = Task & {
  * is read from, the hours a solve gave it, and a rank to break ties on.
  * `SuggestedTask` is one; the mid-day re-plan's funded set is the other, ranked
  * by the same intrinsic P̄(T*) before it is rescaled into a priority score
- * (MATH.md §3, §35) — any monotone rescale orders identically.
+ * (MATH.md §3) — any monotone rescale orders identically.
  */
 type OrderableTask = Pick<Task, 'physicalDifficulty' | 'mentalDifficulty'> & {
 	suggestedHours: number;
@@ -149,7 +149,7 @@ export type ZenithGain = {
 };
 
 // Pool weights: how hard each clock hour of a task draws on the two energy
-// systems. Exported because the remaining-day reading (§35) charges the pools
+// systems. Exported because the remaining-day reading charges the pools
 // for hours already worked and must charge them at the same weights the plan
 // spends them at (R3).
 export function toPooledInputs(tasks: Task[]) {
@@ -289,7 +289,7 @@ export function calculateZenithGain(
 export function calculateCompletionRate(suggestedTasks: SuggestedTask[]): number {
 	const completedTasks = suggestedTasks.filter((t) => t.completed).length;
 
-	if (!completedTasks || !suggestedTasks.length) return 0;
+	if (!completedTasks) return 0;
 
 	const totalPossiblePriority = suggestedTasks.reduce((sum, t) => sum + t.priorityScore, 0);
 
@@ -359,7 +359,7 @@ export function calculateFlowCoverage(tasks: SuggestedTask[]): {
  * Which of the two pools a set of demand-weighted hours loads hardest, and how
  * saturated it is. Two readings share it (AGENTS.md R3): Human Capacity, over
  * the hours the plan books, and the remaining day's burn-down, over the hours
- * already worked (MATH.md §20, §35).
+ * already worked.
  *
  * A pool of 0 is valid (e.g. injured → no physical capacity) and the two callers
  * meet it differently. A plan cannot draw on it — the allocator holds that
@@ -369,7 +369,7 @@ export function calculateFlowCoverage(tasks: SuggestedTask[]): {
  *
  * Exact, and the caller rounds: rounding first made every pair inside the same
  * integer a tie and gave the tie to cognitive, so the row named the wrong pool —
- * and its wrong hour count — on 0.57% of days (MATH.md §20).
+ * and its wrong hour count — on 0.57% of days.
  */
 export function calculatePoolSaturation(
 	draw: CapacityPools,
@@ -407,7 +407,7 @@ export function calculateHumanCapacity(
 	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight).
 	// Since the allocator itself enforces these pools, suggested plans saturate
 	// near (not beyond) 100% — values >100% can only come from externally-supplied
-	// hours (MATH.md §20).
+	// hours.
 	const { percent, limitType } = calculatePoolSaturation(
 		{
 			cognitiveHours: tasks.reduce(
@@ -429,7 +429,7 @@ export function calculateHumanCapacity(
 }
 
 /**
- * The task drawing most on the pool that BINDS the day (MATH.md §23).
+ * The task drawing most on the pool that BINDS the day.
  *
  * `calculateHumanCapacity` decides which of the two pools is the day's
  * constraint and how saturated it is; this names the largest single term in
@@ -439,15 +439,14 @@ export function calculateHumanCapacity(
  * summed there, and the row cannot name a pool that nothing on its list draws
  * on.
  *
- * The axis is solved HERE, off the same list, rather than taken as an argument
- * (MATH.md §23.1, 2026-08-07): the caller passing the plan-scoped axis while
- * passing the active list left the row pointed at a pool the remaining work no
- * longer touched — checking off the day's only physical task blanked the row to
- * "none" with five cognitive tasks still ahead, while DELETING that same task
- * re-pointed it correctly. Same list in, same list out, and the pair cannot
- * drift again. The returned `limitType` is what the display must name, which is
+ * The axis is solved HERE, off the same list, rather than taken as an argument:
+ * the caller passing the plan-scoped axis while passing the active list left the
+ * row pointed at a pool the remaining work no longer touched — checking off the
+ * day's only physical task blanked the row to "none" with five cognitive tasks
+ * still ahead, while DELETING that same task re-pointed it correctly. Same list
+ * in, same list out, and the pair cannot drift again. The returned `limitType` is what the display must name, which is
  * Human Capacity's axis only while the day is untouched — that row judges the
- * day AS PLANNED, this one points at what is left (§11.8).
+ * day AS PLANNED, this one points at what is left.
  *
  * Ties keep the earlier task, which on the priority-sorted plan is the more
  * valuable of two identical draws.
@@ -482,7 +481,7 @@ export function calculateBottleneckTask(
 }
 
 /**
- * The task that takes longest to reach flow: argmax ϕ (MATH.md §1, §23).
+ * The task that takes longest to reach flow: argmax ϕ (MATH.md §1).
  *
  * ϕ is the model's own warm-up quantity, already solved per task and carried on
  * the plan as `flowStateTime` — nothing is recomputed here. Paired with the
@@ -509,14 +508,14 @@ export function calculateLongestWarmUp(
 }
 
 /**
- * Calculate time scarcity: how constrained is the time budget? (MATH.md §37)
+ * Calculate time scarcity: how constrained is the time budget?
  *
  * Question: "Can you reach flow state (ϕ) on each task?"
  *
  *   scarcity = max(0, (Σϕ − max(0, budget − (m−1)·s)) / Σϕ) × 100,  m = funded tasks
  *
  * DEMAND over the whole list, SWITCHES over the funded set: an unseated task
- * still asks for its ϕ, but nobody switches to it (MATH.md §37, §19.1).
+ * still asks for its ϕ, but nobody switches to it.
  *
  * ϕ and not T* ≈ 1.52–1.79ϕ, which would ask several hours of a day that holds
  * about four productive ones: the row measures the minimum meaningful
@@ -525,8 +524,7 @@ export function calculateLongestWarmUp(
  *
  * NOT monotone in the declared budget, and that stays: a budget step that seats
  * `k` more tasks bills `k·s` against a `BLOCK_HOURS` increment, so the reading
- * can RISE as the budget grows (MATH.md §37, and §11.6 for the same call on
- * Burnout Risk's fall).
+ * can RISE as the budget grows (Burnout Risk makes the same call on its fall).
  */
 export function calculateTimeScarcity(
 	tasks: SuggestedTask[],
@@ -550,7 +548,7 @@ export function calculateTimeScarcity(
 }
 
 /**
- * Burnout risk, derived from the energy model (2026-07-20, MATH.md §11.6).
+ * Burnout risk, derived from the energy model.
  *
  * The metric simulates the day the user actually intends: the funded tasks in
  * their interleaved run order, switch costs as rest gaps, evolved through the
@@ -570,13 +568,13 @@ export function calculateTimeScarcity(
  *   own 🪫/☕ logs enter via `params` — the capacity connection the heuristic
  *   never had.
  * - Overwork without a magic 2× weight: budget hours beyond the funded plan
- *   (availableHours = hours the user INTENDS to work — the documented §11.3
+ *   (availableHours = hours the user INTENDS to work — the documented
  *   reading) stretch the funded blocks pro-rata and drain the reservoirs by
  *   simulation.
  * - SEMANTIC CHANGE: enjoyment no longer enters. In the energy model drain is
  *   f(demand, duration); enjoyment shapes output value (warm-up, satiety),
  *   not depletion. Loved-hard and hated-hard days now read the same risk —
- *   the §11.4 "difficulty you love is not friction" boundary, applied here.
+ *   the "difficulty you love is not friction" boundary, applied here.
  * - 100% is unreachable by design: micro-recovery (§8.5) floors each
  *   reservoir at eq > 0 (defaults: ≈ 87% max for a full cognitive day, sweep
  *   max 82% — probed 2026-08-06, `scripts/burnout-risk.probe.ts`), and a
@@ -585,10 +583,10 @@ export function calculateTimeScarcity(
  *   probe reads exactly 100% at microRecoveryFraction = 0, which the energy
  *   lab permits.
  *
- * Funded tasks only, as before: a dropped task is one the user won't work
- * (§11.3). If NOTHING is funded but a budget is declared, the intended hours
- * are simulated at the task list's average demands, preserving the old
- * "budget with no plan still warns" behavior.
+ * Funded tasks only, as before: a dropped task is one the user won't work. If
+ * NOTHING is funded but a budget is declared, the intended hours are simulated
+ * at the task list's average demands, preserving the old "budget with no plan
+ * still warns" behavior.
  */
 export function calculateBurnoutRisk(
 	suggestedTasks: SuggestedTask[],
@@ -662,11 +660,11 @@ export function calculateBurnoutRisk(
 
 /**
  * How packed the day is with cognitive work: `Σ hoursᵢ × (mentalᵢ/10) ÷ budget`,
- * as a percent (MATH.md §25).
+ * as a percent.
  *
  * INTENSITY-weighted, not a share of the day's hours: 8h at mental difficulty 5
  * in an 8h day reads 50%, though every hour of it is cognitive work. The
- * numerator is exactly Human Capacity's cognitive draw (§20) — same sum, a
+ * numerator is exactly Human Capacity's cognitive draw — same sum, a
  * different denominator, so the two rows cannot disagree about the same day.
  *
  * Uses the whole budget as denominator. Switch time is considered "not cognitive
@@ -675,15 +673,15 @@ export function calculateBurnoutRisk(
  *
  * EXACT, not rounded: Energy Balance is a ratio of the two loads and the bands
  * classify it at 40/60, so rounding here moved that classification on 49 of
- * ~3000 seeded days, 1.6% (§25). Rounding is the display's, like Human
- * Capacity's §20 split.
+ * ~3000 seeded days, 1.6%. Rounding is the display's, like Human
+ * Capacity's split.
  */
 export function calculateCognitiveLoad(tasks: SuggestedTask[], availableHours: number): number {
 	return weightedLoad(tasks, availableHours, (t) => t.mentalDifficulty);
 }
 
 /**
- * The same reading on the physical dimension (MATH.md §25) — weighted by
+ * The same reading on the physical dimension — weighted by
  * `physicalDifficulty`, against the same whole-budget denominator. The two are
  * separate systems, so their sum may exceed 100%.
  */
@@ -694,7 +692,7 @@ export function calculatePhysicalLoad(tasks: SuggestedTask[], availableHours: nu
 /**
  * `min(100, ·)` is provably slack for allocator output — Σ hours ≤ budget −
  * overhead and every weight is ≤ 1, and a 3000-day sweep hit 100.000% exactly
- * and never above (MATH.md §25) — and guards a hand-built task list whose hours
+ * and never above — and guards a hand-built task list whose hours
  * exceed the budget it is measured against.
  */
 function weightedLoad(
@@ -716,11 +714,10 @@ function weightedLoad(
  *
  * Takes the EXACT loads above. Computed from percents already rounded to whole
  * numbers it disagreed with the exact ratio by up to 4.17 pp and flipped the
- * cognitive/physical/balanced classification on 49 of ~3000 seeded days, 1.6%
- * (MATH.md §25).
+ * cognitive/physical/balanced classification on 49 of ~3000 seeded days, 1.6%.
  *
  * 50 on a zero-load plan is a display sentinel that is also the target, which is
- * why the advisor reads that case as `NaN` instead (MATH.md §14.1 defect 5).
+ * why the advisor reads that case as `NaN` instead.
  */
 export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: number): number {
 	const total = cognitiveLoad + physicalLoad;
@@ -734,11 +731,11 @@ export function calculateEnergyBalance(cognitiveLoad: number, physicalLoad: numb
  * Calculate friction index: resistance from unenjoyable high-effort tasks
  *
  * Uses RAW user scales (effective difficulty vs enjoyment, both 1-10), like
- * Momentum and Grind Density — and for the same reason (2026-07-18 fix,
- * MATH.md §11.4): the mapped Zenith ranges are asymmetric (E ∈ [1,5],
- * β ∈ [1,2]), so the old mapped gap E − β read a maximum-difficulty task at
- * MAXIMUM enjoyment as 75% friction (E=5, β=2 → gap 3 of 4). Difficulty you
- * love isn't friction; on raw scales that task has gap 0.
+ * Momentum and Grind Density — and for the same reason: the mapped Zenith
+ * ranges are asymmetric (E ∈ [1,5], β ∈ [1,2]), so the old mapped
+ * gap E − β read a maximum-difficulty task at MAXIMUM enjoyment as 75% friction
+ * (E=5, β=2 → gap 3 of 4). Difficulty you love isn't friction; on raw scales
+ * that task has gap 0.
  *
  * Friction = Σ max(0, diffᵤ - βᵤ) × hours, normalized by ALLOCATED time (not
  * budget): the index is the time-weighted average friction of the work you'll
@@ -767,14 +764,14 @@ export type DailyQuadrant = 'flow' | 'grind' | 'cruise' | 'routine';
 
 /**
  * The cut on each axis is the reading a day rated at the MIDPOINT of its input
- * controls produces (MATH.md §29).
+ * controls produces.
  *
  * Enjoyment is one slider over 1–10, so its midpoint is 5.5. Difficulty is NOT
- * a slider: it is `max + 0.3·min` over two sliders that start at 0 (§11.4,
- * §22), so a task at the midpoint of both reads 5 + 0.3×5. Judging that
- * composite against 5.5 — the old cut, the midpoint of a scale difficulty does
- * not live on — put 92.8% of seeded days above it and collapsed the 2×2 to a
- * threshold on enjoyment alone.
+ * a slider: it is `max + 0.3·min` over two sliders that start at 0, so a task
+ * at the midpoint of both reads 5 + 0.3×5. Judging that composite against 5.5 —
+ * the old cut, the midpoint of a scale difficulty does not live on — put 92.8%
+ * of seeded days above it and collapsed the 2×2 to a threshold on enjoyment
+ * alone.
  */
 const DEMANDING_CUT = 5 + DIFFICULTY_SPILLOVER * 5;
 const ENJOYABLE_CUT = 5.5;
@@ -801,11 +798,11 @@ function quadrantAxes(tasks: SuggestedTask[]): { diff: number; enj: number } | n
  * flow = challenging and engaging, grind = demanding but unenjoyable,
  * cruise = light and enjoyable, routine = low-key tasks.
  *
- * Weighted by allocated hours, over funded tasks only. Plan scope (§11.8) asks
+ * Weighted by allocated hours, over funded tasks only. Plan scope asks
  * what the day looks like AS DESIGNED, and the design is the allocation: an
  * unweighted count let a 15-minute task outvote a 6-hour one and gave the tasks
  * the allocator deliberately declined to fund a vote on the character of the
- * day it built without them (MATH.md §29).
+ * day it built without them.
  */
 export function calculateDailyQuadrant(tasks: SuggestedTask[]): DailyQuadrant | null {
 	const axes = quadrantAxes(tasks);
@@ -824,8 +821,8 @@ export function calculateDailyQuadrant(tasks: SuggestedTask[]): DailyQuadrant | 
  * average would have to move to relabel it. `null` where the quadrant is.
  *
  * The label is a hard cliff on two averages, so a reader cannot tell a day that
- * is squarely one profile from a day that straddles two. Only the advisor asks
- * (MATH.md §29): it may not sell a flip that a rounding-width move undoes.
+ * is squarely one profile from a day that straddles two. Only the advisor asks:
+ * it may not sell a flip that a rounding-width move undoes.
  */
 export function calculateQuadrantMargin(tasks: SuggestedTask[]): number | null {
 	const axes = quadrantAxes(tasks);
@@ -841,8 +838,8 @@ export function calculateQuadrantMargin(tasks: SuggestedTask[]): number | null {
  *
  *   convergence = worked / (worked + (m−1)·switchCost) × 100,  m = funded tasks
  *
- * 2026-07-18 redefinition (MATH.md §11.5). The old rule counted tasks with
- * suggestedHours < switchCost as "fragmented" — but the minimum funded
+ * The old rule counted tasks with suggestedHours < switchCost as
+ * "fragmented" — but the minimum funded
  * allocation is one 15-minute block, which equals the default switch cost, so
  * at default settings the only tasks it could ever flag were DROPPED ones
  * (0 hours). A drop is the opposite of fragmentation: the allocator
@@ -877,7 +874,7 @@ export function calculateScheduleIntegrity(
  * Callers pass ACTIVE (uncompleted) tasks, so the metric responds as the day
  * progresses: finish the draining tasks and momentum ticks upward. It is pure
  * affect — no hours, no demand-over-time. Physiological depletion is Burnout
- * Risk's job (§11.6); this measures whether the work ahead motivates.
+ * Risk's job; this measures whether the work ahead motivates.
  *
  * Uses RAW user values (enjoyment - effective difficulty) because the Zenith mapped
  * ranges are asymmetric (E ∈ [1,5], β ∈ [1,2]) and would almost always
@@ -900,9 +897,9 @@ export function calculateMomentum(tasks: Task[]): number {
 }
 
 /**
- * Deep Work: what share of the day's budget is time in sustained focus
- * (MATH.md §26). Plan scope (§11.8), whole-budget denominator (§25), exact —
- * `metric-descriptor` rounds for display.
+ * Deep Work: what share of the day's budget is time in sustained focus. Plan
+ * scope, whole-budget denominator, exact — `metric-descriptor` rounds for
+ * display.
  *
  * The hours are ramped, not cut at a threshold: mental difficulty below
  * DEEP_WORK_FLOOR is not sustained focus, at or above DEEP_WORK_FULL the whole
@@ -917,7 +914,7 @@ export function calculateDeepWorkRatio(tasks: SuggestedTask[], availableHours: n
 	const deepHours = tasks.reduce((sum, t) => sum + t.suggestedHours * deepWorkWeight(t), 0);
 
 	// Slack on allocator output (Σ hᵢ ≤ B − overhead, weights ≤ 1), kept for the
-	// same reason as the Load clamp (§25): a hand-built list can break it.
+	// same reason as the Load clamp: a hand-built list can break it.
 	return Math.min(100, (deepHours / budget) * 100);
 }
 
@@ -949,13 +946,13 @@ export function calculateQuickWins(tasks: SuggestedTask[]): number {
  * Only tasks with allocated time are sequenced — a 0h task has no session
  * to schedule.
  *
- * Deliberately still a heuristic (MATH.md §16): scored under the energy model —
+ * Deliberately still a heuristic: scored under the energy model —
  * the only objective that reads order at all — this sequence lands within a
  * median 0.47% of the best possible ordering of the same allocation, and the
  * objective-maximizing order moves `calculateBurnoutRisk` by >5 points on a
  * third of days in no consistent direction. One definition for all four
  * consumers: the `#N` badges, burnout's block sequence, the mid-day re-plan's
- * next-up task (MATH.md §35) and `EnergyLabStore`'s classic schedule.
+ * next-up task and `EnergyLabStore`'s classic schedule.
  *
  * The alternation has **no memory of what was just worked** — it starts from a
  * clean slate every time, so on the re-plan it can open with the same nature the
@@ -995,17 +992,17 @@ export function calculateInterleavedOrder<T extends OrderableTask>(tasks: T[]): 
 
 /**
  * Grind density: the share of the day's FUNDED tasks that feel like a chore —
- * effective difficulty above enjoyment (MATH.md §11.10).
+ * effective difficulty above enjoyment.
  *
  * Uses RAW user scales (effective difficulty vs enjoyment, both 1–10), like
- * Momentum and Friction (§11.4): the mapped Zenith ranges are asymmetric
+ * Momentum and Friction: the mapped Zenith ranges are asymmetric
  * (E ∈ [1,5], β ∈ [1,2]) and would flag most tasks as grinds even when
  * enjoyment beats difficulty.
  *
  * Counts only tasks the plan funds. A dropped task is work the day does not do,
  * so it drains no willpower — and counting it made the advisor's cheapest fix
  * "defer a task you were not going to touch", which improves the reading at
- * Σ P̄ cost 0.00% without changing the day at all (§11.10).
+ * Σ P̄ cost 0.00% without changing the day at all.
  *
  * `grinds`/`funded` travel with the percent because the value is quantized to
  * 100/`funded` while the band ladder cuts at 25/50/75: on a two-task plan the
@@ -1032,19 +1029,19 @@ export function calculateGrindDensity(tasks: SuggestedTask[]): {
  * enjoyment covers their effective difficulty — work that gives back as much
  * energy as it takes.
  *
- * Complements, and the denominator is what separates them (MATH.md §27):
+ * Complements, and the denominator is what separates them:
  * - Grind Density: the same predicate over the task COUNT
- * - Friction Index: the size of the gap, not a threshold on it (§11.4)
+ * - Friction Index: the size of the gap, not a threshold on it
  * - This: the same predicate over ALLOCATED HOURS
  *
  * Over Σh, not over the budget: unbooked slack and switch overhead are not
  * grind, and pricing them here made 100% unreachable and put a grind-free day
  * in the critical band. How much of the budget the plan commits is Schedule
- * Integrity's and Time Scarcity's reading. Unlike Deep Work (§26), which kept
+ * Integrity's and Time Scarcity's reading. Unlike Deep Work, which kept
  * the whole-budget denominator, this row IS bigger-better — so its top arm has
  * to be reachable.
  *
- * Plan scope (§11.8), exact — `metric-descriptor` rounds for display (§25).
+ * Plan scope, exact — `metric-descriptor` rounds for display.
  * `null` when the plan funds no hours: there is no worked time to take a share
  * of, and 0 would report a day with no work as a day of pure grind.
  */

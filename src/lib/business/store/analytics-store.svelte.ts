@@ -19,13 +19,17 @@ import {
 	countQuadrants,
 	currentStreak,
 	findBestDay,
+	loggedHours,
+	longestStreak,
 	monthlyCompletionRates,
+	restSummary,
 	type DaySummary,
 	type MetricTrendPoint,
 	type MonthlyCompletion,
+	type RestSummary,
 } from '$lib/business/model/metric/history';
 import type { EnergyParams } from '$lib/business/model/zenith-energy';
-import type { DrainObservationRecord } from '$lib/data/type';
+import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 import type { DailyQuadrant } from '$lib/business/model/metric/calculation';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
 import { addDays } from '$lib/business/utils/date';
@@ -64,14 +68,23 @@ export class AnalyticsStore {
 	/** Every stored day with tasks in the last year, ascending by date. */
 	#all = $state<DaySummary[]>([]);
 	#isLoading = $state(true);
-	/** Plan-adherence audit (MATH.md §12); null while loading or failed. */
+	/** Plan-adherence audit; null while loading or failed. */
 	#audit = $state<PlanAudit | null>(null);
 	/** Calibration snapshot ("Your model" card); null while loading or failed. */
 	#calibration = $state<CalibrationSnapshot | null>(null);
-	/** The fitted energy params the trend is read through (§31); null until they land. */
+	/** The fitted energy params the trend is read through; null until they land. */
 	#energyParams = $state<EnergyParams | null>(null);
-	/** The 🪫 rows the trend seeds each morning from (§11.9); empty until they land. */
+	/** The 🪫 rows the trend seeds each morning from; empty until they land. */
 	#drain = $state<DrainObservationRecord[]>([]);
+	/** The ☕ rows the rest totals fold; empty until they land. */
+	#rest = $state<RestObservationRecord[]>([]);
+	/**
+	 * Whether the 🪫/☕ rows above are an answer or an absence of one — the two
+	 * hour readings they feed are the only ones on the page that cannot tell an
+	 * empty log store from an unfinished read, and 0 h beside a real declared
+	 * budget is a claim about the user's own logs.
+	 */
+	#isModelReportLoaded = $state(false);
 	/** A load failure must not leave the two cards on the loading string forever. */
 	#hasModelReportFailed = $state(false);
 
@@ -96,14 +109,21 @@ export class AnalyticsStore {
 	#plannedHours = $derived(
 		Math.round(this.#summaries.reduce((sum, s) => sum + s.availableHours, 0) * 10) / 10,
 	);
+	/** 🪫 hours over the viewed range — the logged side of planned vs logged. */
+	#loggedHours = $derived(
+		this.#isModelReportLoaded ? loggedHours(this.#drain, this.#rangeStart) : null,
+	);
+	#restStats = $derived(
+		this.#isModelReportLoaded ? restSummary(this.#rest, this.#rangeStart) : null,
+	);
 	// Reads the whole loaded year, not the viewed range — a streak is not a
 	// property of whichever window happens to be open.
-	#streak = $derived.by(() => {
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local lookup, never mutated after
-		const active = new Set(this.#all.filter((s) => s.completedTasks > 0).map((s) => s.date));
-
-		return currentStreak(active, this.#today);
+	#activeDates = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- rebuilt whole, never mutated after
+		return new Set(this.#all.filter((s) => s.completedTasks > 0).map((s) => s.date));
 	});
+	#streak = $derived(currentStreak(this.#activeDates, this.#today));
+	#longestStreak = $derived(longestStreak(this.#activeDates));
 
 	/**
 	 * What each task is CALLED now, by id, over the whole loaded year — how the log
@@ -134,7 +154,7 @@ export class AnalyticsStore {
 	});
 
 	/**
-	 * Burnout Risk and the two Loads per day in the viewed range (MATH.md §31).
+	 * Burnout Risk and the two Loads per day in the viewed range.
 	 * `null` until the model report lands, because the series is read through the
 	 * user's own calibrated energy params and yesterday's 🪫 rows — a trend on the
 	 * defaults would contradict today's tile for a reason nothing on the page
@@ -185,7 +205,9 @@ export class AnalyticsStore {
 				this.#calibration = report.calibration;
 				this.#energyParams = report.calibration.energy.params;
 				this.#drain = report.drain;
+				this.#rest = report.rest;
 				this.#audit = report.audit;
+				this.#isModelReportLoaded = true;
 				todaysFit = report.todaysFit;
 			} catch (e) {
 				logError('Failed to load the analytics model report', e);
@@ -197,10 +219,10 @@ export class AnalyticsStore {
 			// Stamping today's fit fails silently — the quietest case of R1's third
 			// surface, "already visible in the failing component", except that here
 			// there is nothing to be visible: losing it costs one point of the trend
-			// and one day the audit will score on the live fit instead (MATH.md
-			// §12.1), so the screen is identical either way. Its own try so a failed
-			// WRITE never puts the two cards, which have already published, into the
-			// state that says their READ failed.
+			// and one day the audit will score on the live fit instead, so the screen
+			// is identical either way. Its own try so a failed WRITE never puts the
+			// two cards, which have already published, into the state that says their
+			// READ failed.
 			try {
 				await fitSnapshotRepository.$updateFitSnapshot(todaysFit);
 			} catch (e) {
@@ -279,11 +301,25 @@ export class AnalyticsStore {
 	get streak(): number {
 		return this.#streak;
 	}
+	get longestStreak(): number {
+		return this.#longestStreak;
+	}
 	get activeDaysWithCompletion(): number {
 		return this.#summaries.filter((s) => s.completedTasks > 0).length;
 	}
 	get bestDay(): DaySummary | null {
 		return findBestDay(this.#summaries);
+	}
+	/**
+	 * 🪫 hours logged in the viewed range, beside `plannedHours` (logged vs
+	 * declared); `null` until the model report lands, and on a failed one.
+	 */
+	get loggedHours(): number | null {
+		return this.#loggedHours;
+	}
+	/** `null` on the same two states as `loggedHours`, for the same reason. */
+	get restSummary(): RestSummary | null {
+		return this.#restStats;
 	}
 
 	// ----- Distributions -----

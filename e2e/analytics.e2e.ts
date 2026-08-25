@@ -143,7 +143,10 @@ test('stats and chart come off the stored days', async ({ page }) => {
 		'Avg completion rate',
 		'Active days',
 		'Current streak',
+		'Longest streak',
 		'Planned hours',
+		'Logged hours',
+		'Rest hours',
 		'Best day',
 	]) {
 		await expect(
@@ -253,10 +256,10 @@ test('plan adherence and the model card resolve without calibration logs', async
 	await expect(page.getByText('Something went wrong')).not.toBeVisible();
 });
 
-/* Visiting analytics stamps today's fit (MATH.md §12.1). Read back out of the
-   real IndexedDB rather than off the screen: today is the FIRST recorded day, so
-   there is no second point to draw a sparkline from yet, and the write is the
-   half that has to work for any of the history to accumulate.
+/* Visiting analytics stamps today's fit. Read back out of the real IndexedDB
+   rather than off the screen: today is the FIRST recorded day, so there is no
+   second point to draw a sparkline from yet, and the write is the half that has
+   to work for any of the history to accumulate.
 
    A Playwright profile starts empty, so this exercises store CREATION at v6, not
    the v5 → v6 upgrade an existing user takes — that path is pinned in
@@ -294,7 +297,7 @@ test("visiting analytics records today's fitted params", async ({ page }) => {
 	});
 
 	// Every value a fit can move, plus the posterior — a record missing the
-	// covariance is dropped on read (§13.1), so it would never reach the audit.
+	// covariance is dropped on read, so it would never reach the audit.
 	for (const field of [
 		'c1',
 		'c2',

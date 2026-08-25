@@ -1,10 +1,10 @@
 <script lang="ts">
 	/* One reading on the analytics grid: a quiet label, the number, and a note line
-	   under it. Six of these were written out longhand in `analytics/+page.svelte`.
+	   under it.
 
-	   `note` is a snippet rather than a string because one of the six is markup —
-	   the completion-rate delta colours its own sign — and a string prop would have
-	   forced either `{@html}` or a second "note colour" prop. */
+	   `note` is a snippet rather than a string because one of the readings is
+	   markup — the completion-rate delta colours its own sign — and a string prop
+	   would have forced either `{@html}` or a second "note colour" prop. */
 
 	import type { Snippet } from 'svelte';
 

@@ -7,6 +7,7 @@ import {
 	calculateFrictionIndex,
 	calculateBurnoutRisk,
 	calculateScheduleIntegrity,
+	calculateCompletionRate,
 	calculateYieldIndex,
 	calculateInterleavedOrder,
 	calculateHumanCapacity,
@@ -69,7 +70,7 @@ function makeSuggested(
 describe('getTaskNature', () => {
 	// ±3 is the threshold; the boundary belongs to the dominant side. A zero
 	// dimension outranks the gap, so the sub-threshold pairs the sliders reach
-	// at the bottom of the range are dominant, not balanced (MATH.md §22).
+	// at the bottom of the range are dominant, not balanced.
 	it.each([
 		[9, 2, 'cognitive'],
 		[8, 5, 'cognitive'],
@@ -92,7 +93,7 @@ describe('getTaskNature', () => {
 		).toBe(nature);
 	});
 
-	// The rate MATH.md §22 quotes, pinned from `mtr-task-nature.probe.ts`: 45 of
+	// The rate MATH.md quotes, pinned from `mtr-task-nature.probe.ts`: 45 of
 	// the 121 pairs the sliders reach, down from 49 before the zero gate.
 	it('calls 45 of the 121 reachable pairs balanced', () => {
 		const square = Array.from(
@@ -132,7 +133,7 @@ describe('calculateDailyQuadrant', () => {
 
 	// Enjoyment cuts at 5.5, the midpoint of its 1–10 slider; difficulty at 6.5,
 	// what a task rated at the midpoint of BOTH 0–10 sliders reads through
-	// `max + 0.3·min` (MATH.md §29).
+	// `max + 0.3·min`.
 	it.each([
 		[8, 8, 'flow'],
 		[8, 3, 'grind'],
@@ -367,7 +368,7 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 	});
 
 	it('measures EFFECTIVE difficulty, so a two-dimensional task can outrun the enjoyment it beat on both sliders', () => {
-		// The §11.4 boundary is stated per-task ("difficulty you love is not
+		// The boundary is stated per-task ("difficulty you love is not
 		// friction"), but the left side is the spillover composite
 		// (max + 0.3·min = 9.1 here) and the right is the raw slider. Enjoyment 8
 		// beats BOTH difficulty dimensions and the task still reads friction —
@@ -401,7 +402,7 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 		expect(calculateFrictionIndex([])).toBe(0);
 
 		// A max-gap task the plan does not fund reads 0, not 100: it is absent from
-		// both sides of a time-weighted average. §32 gates the row N/A there, so the
+		// both sides of a time-weighted average. The row is gated N/A there, so the
 		// sentinel never reaches the user as "a frictionless day".
 		expect(
 			calculateFrictionIndex([
@@ -418,7 +419,7 @@ describe('calculateFrictionIndex (2026-07-18 fix: raw scales)', () => {
 	});
 });
 
-describe('calculateGrindDensity (MATH.md §11.10)', () => {
+describe('calculateGrindDensity', () => {
 	const chore = (overrides: Partial<SuggestedTask> = {}) =>
 		makeSuggested({
 			id: 1,
@@ -513,7 +514,7 @@ describe('calculateGrindDensity (MATH.md §11.10)', () => {
 	it('measures EFFECTIVE difficulty, so a two-dimensional task can grind on its own', () => {
 		// m7/p7 demands more than either slider says: 7 + 0.3·7 = 9.1 > 9. The
 		// interior of the scale, where `DIFFICULTY_SPILLOVER` is visible — the same
-		// boundary Friction Index reads as a magnitude (§11.4), here as a count.
+		// boundary Friction Index reads as a magnitude, here as a count.
 		expect(
 			calculateGrindDensity([
 				chore({
@@ -537,7 +538,7 @@ describe('calculateGrindDensity (MATH.md §11.10)', () => {
 	});
 });
 
-describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation, MATH.md §11.6)', () => {
+describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation)', () => {
 	const work = (overrides: Partial<SuggestedTask> = {}) =>
 		makeSuggested({
 			id: 1,
@@ -550,7 +551,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		});
 
 	it('a dropped task (0 hours) does not change the risk', () => {
-		// §11.3 property, preserved by construction in v2: a dropped task
+		// Property preserved by construction in v2: a dropped task
 		// contributes no schedule block, and the overhang it used to absorb
 		// stretches the funded blocks instead.
 		const dropped = makeSuggested({
@@ -567,11 +568,11 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		);
 	});
 
-	it('with NOTHING funded, one more dropped task does move the risk (§11.3 scope)', () => {
-		// §11.3 claimed the dropped-task invariance above without qualification.
+	it('with NOTHING funded, one more dropped task does move the risk', () => {
+		// The dropped-task invariance above was claimed without qualification.
 		// It only holds while the plan funds something: with nothing funded the
-		// reading simulates the declared budget at the task list's AVERAGE demands
-		// (§11.6), so another task moves the average and the number.
+		// reading simulates the declared budget at the task list's AVERAGE
+		// demands, so another task moves the average and the number.
 		const unfunded = work({
 			suggestedHours: 0,
 		});
@@ -585,7 +586,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 			suggestedHours: 0,
 		});
 
-		// The exact pair §11.3 quotes. Pinned by value, not by `not.toBe`: the
+		// The exact pair MATH.md quotes. Pinned by value, not by `not.toBe`: the
 		// inequality alone survives swapping the mean for a max (32 → 48), a sum
 		// (32 → 48), or the cognitive/physical demands (28 → 18) — every mutant
 		// still moves the reading, just not to the mean's number.
@@ -594,7 +595,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 	});
 
 	it('budget beyond the funded plan (intended overwork) raises the risk', () => {
-		// availableHours = hours the user INTENDS to work (§11.3 reading):
+		// availableHours = hours the user INTENDS to work:
 		// the same plan under a bigger declared budget simulates more drain.
 		// SCOPE: the plan here is hand-built, so the funded set is HELD FIXED
 		// across the two budgets. It says nothing about a re-solved day — where
@@ -604,8 +605,8 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		expect(high).toBeGreaterThan(low);
 	});
 
-	it('overwork stretches the funded blocks PRO-RATA, not evenly (§11.6)', () => {
-		// §11.6's "stretching the funded blocks pro-rata" was previously pinned by
+	it('overwork stretches the funded blocks PRO-RATA, not evenly', () => {
+		// MATH.md's "stretching the funded blocks pro-rata" was previously pinned by
 		// nothing: the other multi-task fixtures sit where pro-rata and an equal
 		// split coincide, so an equal-split regression passed the whole suite.
 		// This fixture separates them by 33 points. It works because the plan ends
@@ -616,7 +617,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 		// Mutant readings at this fixture (scratch-probed 2026-08-07), all killed:
 		//   pro-rata (shipped)  41   ← the physical reservoir binds, 0.593 vs 0.833
 		//   equal split          8
-		//   gaps stretched too  33   (§11.6 stretches the FUNDED blocks only)
+		//   gaps stretched too  33   (only the FUNDED blocks stretch)
 		//   gaps omitted        53
 		//   overhang ignored    43
 		const plan = [
@@ -676,9 +677,9 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 	});
 
 	it('MORE budget can read LOWER risk once the plan is re-solved (settled, not a bug)', () => {
-		// Pins the worst case found by scripts/burnout-risk.probe.ts (2026-08-25,
-		// MATH.md §11.6): walking availableHours over a FIXED task list, the
-		// reading fell on 3033 of 37800 steps, worst 29 points — right here.
+		// Pins the worst case found by scripts/burnout-risk.probe.ts (2026-08-25):
+		// walking availableHours over a FIXED task list, the reading fell on 3033
+		// of 37800 steps, worst 29 points — right here.
 		// Mechanism: the bigger budget funds 4 tasks instead of 2, and their three
 		// 25-minute switch gaps are 1.25h of REST inside the day against one gap's
 		// 0.42h, so simulated WORK falls from 2.83h to 2.25h (the two-task plan's
@@ -781,7 +782,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 	});
 
 	it('enjoyment does not enter: drain is f(demand, duration) in the energy model', () => {
-		// Deliberate v2 semantic change (the §11.4 boundary applied here):
+		// Deliberate v2 semantic change (the boundary applied here):
 		// loved-hard and hated-hard days drain the reservoirs identically.
 		const loved = work({
 			enjoyment: 10,
@@ -848,7 +849,7 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6, 0.25)).toBe(94);
 
 		// Same cell without the argument. Rounding alone would hold 94 across
-		// sc ∈ [0.233, 0.278], so the constant MATH.md §11.5 quotes is pinned here.
+		// sc ∈ [0.233, 0.278], so the constant MATH.md quotes is pinned here.
 		expect(DEFAULT_SWITCH_COST).toBe(0.25);
 		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6)).toBe(94);
 
@@ -902,6 +903,26 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 		});
 
 		expect(calculateScheduleIntegrity([funded], 0, 0.25)).toBe(0);
+	});
+});
+
+// Characterization pin for the refactor that removes a redundant guard: the
+// empty-list path must keep reading 0 through `!completedTasks` alone.
+describe('calculateCompletionRate', () => {
+	it('reads 0 on an empty list', () => {
+		expect(calculateCompletionRate([])).toBe(0);
+	});
+
+	it('is the completed share of the total priority', () => {
+		const t = (id: number, priorityScore: number, completed: boolean) =>
+			makeSuggested({
+				id,
+				title: `t${id}`,
+				priorityScore,
+				completed,
+			});
+
+		expect(calculateCompletionRate([t(1, 9, false), t(2, 6, true)])).toBe(40);
 	});
 });
 
@@ -1030,7 +1051,7 @@ describe('calculateHumanCapacity', () => {
 		});
 	});
 
-	// MATH.md §20: the pool that BINDS is decided on the exact saturations. The
+	// The pool that BINDS is decided on the exact saturations. The
 	// rounded pair below ties at 60%, and the tie used to go to cognitive — which
 	// put the wrong pool, and its wrong hour count, into the row's description.
 	it('names the pool that binds, not the one rounding ties toward', () => {
@@ -1076,7 +1097,7 @@ describe('calculateTimeScarcity', () => {
 	];
 
 	// The same day plus a task the plan seats no hours in: Σϕ = 3h over three
-	// listed tasks, against the ONE switch the plan makes (MATH.md §37).
+	// listed tasks, against the ONE switch the plan makes.
 	const withUnfunded = [
 		...tasks,
 		makeSuggested({
@@ -1108,7 +1129,7 @@ describe('calculateTimeScarcity', () => {
 
 	// The covering end is tight: Σϕ = 3h plus the one switch the plan pays.
 	// Billing the unfunded task's switch too would read 8 on this budget. The
-	// zero end is what did not move (MATH.md §37) — nothing is funded, so there
+	// zero end is what did not move — nothing is funded, so there
 	// is no bill and the whole Σϕ is the deficit.
 	it('is 0 when the budget covers flow time for every task and 100 with no budget', () => {
 		expect(calculateTimeScarcity(withUnfunded, 3.25)).toBe(0);
@@ -1118,14 +1139,14 @@ describe('calculateTimeScarcity', () => {
 	// Pins the readings this ladder walks, not a law. A budget step that seats k
 	// more tasks bills k·s, so a rise needs Δm·s > BLOCK_HOURS — which Δm = 2
 	// satisfies at the default 15-minute cost. Measured, the default never fires
-	// over 19200 budget steps (MATH.md §37), but that is an empirical result,
+	// over 19200 budget steps, but that is an empirical result,
 	// not a guarantee; the rise above the block is pinned below. The tight two
 	// steps here seat 2 then 1 of the 3 tasks, so they also pin the bill's scope.
 	it('grows as the budget shrinks and stays in [0, 100]', () => {
 		expect([10, 4, 2, 1, 0.5].map((budget) => day(3, budget))).toEqual([0, 44, 76, 88, 92]);
 	});
 
-	// Plan family (MATH.md §11.8): the reading describes the day as designed, so
+	// Plan family: the reading describes the day as designed, so
 	// checking a task done must not move it — its hours stay allocated.
 	it('does not move when a task is checked done', () => {
 		const done = [
@@ -1140,12 +1161,12 @@ describe('calculateTimeScarcity', () => {
 		expect(calculateTimeScarcity(done, 2)).toBe(calculateTimeScarcity(tasks, 2));
 	});
 
-	// Σϕ runs over every listed task (MATH.md §11.8), and adding one raises the
+	// Σϕ runs over every listed task, and adding one raises the
 	// deficit and the denominator together — the direction is not self-evident.
 	// This budget seats everything it is given (m = n), so these readings are the
 	// demand side alone and say nothing about the bill's scope, which is pinned
 	// below. Not a law either: a task that makes the plan seat FEWER tasks drops
-	// the switch bill by more than its ϕ adds, on 0.19% of probed steps (§37).
+	// the switch bill by more than its ϕ adds, on 0.19% of probed steps.
 	it('rises as tasks are added to a budget that seats them', () => {
 		const readings = Array.from(
 			{
@@ -1161,7 +1182,7 @@ describe('calculateTimeScarcity', () => {
 		expect(readings.at(-1)).toBeGreaterThan(readings[0]);
 	});
 
-	// The switch bill is over the FUNDED set (MATH.md §37, §19.1): a task the
+	// The switch bill is over the FUNDED set: a task the
 	// plan seats no hours in is switched to by nobody, so it brings its ϕ to the
 	// demand and no overhead with it.
 	it('bills the funded tasks, not the listed ones', () => {
@@ -1178,19 +1199,19 @@ describe('calculateTimeScarcity', () => {
 	it('does not pin at 100 on a day the plan can still run', () => {
 		// The listed bill read 100 at BOTH budgets: (n − 1)·s = 1.75h swallowed
 		// every budget at or under it, so a 15-minute day and a 90-minute day were
-		// indistinguishable (MATH.md §37).
+		// indistinguishable.
 		expect([day(8, 0.25), day(8, 1.5)]).toEqual([98, 94]);
 	});
 
 	it('MORE budget can read HIGHER scarcity once the plan is re-solved (settled, not a bug)', () => {
-		// The seam MATH.md §37 accepted when the bill moved to the funded set: a
+		// The seam MATH.md accepted when the bill moved to the funded set: a
 		// BLOCK_HOURS budget step that seats k more tasks bills k·s, so the
 		// reading RISES whenever Δm·s > BLOCK_HOURS — at s = 45m one new task
 		// clears it, on 4.14% of probed steps and every day touched, worst +13
 		// points. Here 1.5h funds ONE task and pays no switch, 1.75h
 		// funds two and hands 45 of those 15 new minutes to the switch between
-		// them, so the effective budget FALLS from 1.5h to 1h. §37 settled it as
-		// INTENDED ("It stays"), for §11.6's reason: holding the funded set fixed
+		// them, so the effective budget FALLS from 1.5h to 1h. It was settled as
+		// INTENDED ("It stays"), for this reason: holding the funded set fixed
 		// while walking the budget would report a plan the user is not being
 		// shown, and smoothing it is the listed bill again, which cost the whole
 		// 100 pin. So this is a characterization test: an agent who reads the
@@ -1238,7 +1259,7 @@ describe('calculateTimeScarcity', () => {
 
 	// One charge per switch the plan makes: the ladder steps by s/Σϕ = 8.3 points
 	// per 15 minutes on this day, not the 16.7 the listed bill's two switches
-	// took (MATH.md §37).
+	// took.
 	it('honours the switch cost it is given', () => {
 		expect(
 			[0, 0.25, 0.5, 0.75].map((switchCost) => calculateTimeScarcity(withUnfunded, 2, switchCost)),
@@ -1318,7 +1339,7 @@ describe('calculateFlowCoverage', () => {
 
 describe('calculateBottleneckTask', () => {
 	// Cognitive draw 0.9·1 = 0.9 vs physical 0.2·1 = 0.2 — the two axes disagree
-	// about which task is worst, so the binding pool decides (MATH.md §23).
+	// about which task is worst, so the binding pool decides.
 	const brainy = makeSuggested({
 		id: 1,
 		title: 'brainy',
@@ -1366,7 +1387,7 @@ describe('calculateBottleneckTask', () => {
 		expect(calculateBottleneckTask([brainy, long], binds('cognitive'))?.title).toBe('long');
 	});
 
-	// The defect this signature exists to prevent (MATH.md §23.1): the axis is
+	// The defect this signature exists to prevent: the axis is
 	// read off the SAME list the task is picked from, so a list that loads only
 	// one system is named on that system — it does not report "none" because some
 	// other list bound the other pool.
@@ -1387,7 +1408,7 @@ describe('calculateBottleneckTask', () => {
 		});
 	});
 
-	// The property that earns the name (MATH.md §23): the pool is fixed, so
+	// The property that earns the name: the pool is fixed, so
 	// dropping a task lowers the binding saturation by exactly its own draw —
 	// the largest draw is therefore the largest available relief. Asserted
 	// through `calculateHumanCapacity` rather than by re-deriving the draw here,
@@ -1614,7 +1635,7 @@ describe('calculateTaskPlan', () => {
 	});
 });
 
-describe('calculateCognitiveLoad / calculatePhysicalLoad (MATH.md §25)', () => {
+describe('calculateCognitiveLoad / calculatePhysicalLoad', () => {
 	const cognitive = (hours: number, mentalDifficulty: number) =>
 		makeSuggested({
 			id: 1,
@@ -1635,7 +1656,7 @@ describe('calculateCognitiveLoad / calculatePhysicalLoad (MATH.md §25)', () => 
 	});
 
 	// Same hours, same weights, the WHOLE budget as denominator — which is what
-	// makes a wider budget lower the reading with no allocation change (§14.2).
+	// makes a wider budget lower the reading with no allocation change.
 	it('divides by the whole budget, switch overhead included', () => {
 		expect(calculateCognitiveLoad([cognitive(4, 10)], 10)).toBe(40);
 		expect(calculateCognitiveLoad([cognitive(4, 10)], 20)).toBe(20);
@@ -1645,7 +1666,7 @@ describe('calculateCognitiveLoad / calculatePhysicalLoad (MATH.md §25)', () => 
 		expect(calculateCognitiveLoad([cognitive(4, 10)], 12)).toBeCloseTo(33.3333, 4);
 	});
 
-	// Plan scope (§11.8): a completed task keeps its hours, so the reading holds.
+	// Plan scope: a completed task keeps its hours, so the reading holds.
 	it('counts completed tasks — their hours stay allocated', () => {
 		const done = makeSuggested({
 			id: 2,
@@ -1672,7 +1693,7 @@ describe('calculateCognitiveLoad / calculatePhysicalLoad (MATH.md §25)', () => 
 		expect(calculateCognitiveLoad([physical], 10)).toBe(0);
 	});
 
-	// The clamp is slack for allocator output (§25: 3000 days, max 100.000%) and
+	// The clamp is slack for allocator output (3000 days, max 100.000%) and
 	// exists for hand-built hours measured against a smaller budget.
 	it('clamps a task list whose weighted hours exceed the budget', () => {
 		expect(calculateCognitiveLoad([cognitive(12, 10)], 8)).toBe(100);
@@ -1687,7 +1708,7 @@ describe('calculateCognitiveLoad / calculatePhysicalLoad (MATH.md §25)', () => 
 	});
 });
 
-describe('calculateEnergyBalance (MATH.md §25)', () => {
+describe('calculateEnergyBalance', () => {
 	const day = (mentalHours: number, physicalHours: number) => [
 		makeSuggested({
 			id: 1,
@@ -1713,7 +1734,7 @@ describe('calculateEnergyBalance (MATH.md §25)', () => {
 
 	// 4h and 6h of full-demand work in a 12h day: loads 33.33/50, whose exact
 	// ratio is 40 — the band boundary, 'balanced'. Rounded to 33/50 first it
-	// reads 39.76, i.e. 'physical': the classification flip §25 measured on 1.6%
+	// reads 39.76, i.e. 'physical': the classification flip measured on 1.6%
 	// of seeded days.
 	it('divides the exact loads, not their rounded percents', () => {
 		expect(balanceOf(day(4, 6), 12)).toBeCloseTo(40, 10);
@@ -1726,7 +1747,7 @@ describe('calculateEnergyBalance (MATH.md §25)', () => {
 	});
 
 	// The thin plan that used to round to 0/0 and take the zero-load sentinel,
-	// costing the advisor an axis the day really had (§25, §14.1 defect 5).
+	// costing the advisor an axis the day really had.
 	it('reports a load too thin to round to 1%', () => {
 		const thin = [
 			makeSuggested({
@@ -1743,14 +1764,14 @@ describe('calculateEnergyBalance (MATH.md §25)', () => {
 	});
 
 	// Genuinely loadless: the 50 sentinel, which is also the target — the reason
-	// the advisor reads this case as NaN instead of scoring it (§14.1 defect 5).
+	// the advisor reads this case as NaN instead of scoring it.
 	it('falls back to 50 when the day carries no load at all', () => {
 		expect(balanceOf(day(0, 0), 10)).toBe(50);
 		expect(calculateEnergyBalance(0, 0)).toBe(50);
 	});
 });
 
-describe('calculateDeepWorkRatio (MATH.md §26)', () => {
+describe('calculateDeepWorkRatio', () => {
 	const focus = (hours: number, mentalDifficulty: number) =>
 		makeSuggested({
 			id: 1,
@@ -1782,8 +1803,8 @@ describe('calculateDeepWorkRatio (MATH.md §26)', () => {
 		).toBe(25);
 	});
 
-	// Whole budget, switch overhead included — the §25 denominator, so unspent
-	// budget lowers the reading. That is why the band is not bigger-better.
+	// Whole budget, switch overhead included, so unspent budget lowers the
+	// reading. That is why the band is not bigger-better.
 	it('divides by the whole budget', () => {
 		expect(calculateDeepWorkRatio([focus(4, 10)], 8)).toBe(50);
 		expect(calculateDeepWorkRatio([focus(4, 10)], 16)).toBe(25);
@@ -1793,7 +1814,7 @@ describe('calculateDeepWorkRatio (MATH.md §26)', () => {
 		expect(calculateDeepWorkRatio([focus(4, 10)], 12)).toBeCloseTo(33.3333, 4);
 	});
 
-	// Plan scope (§11.8): finishing the deep task must not empty the row.
+	// Plan scope: finishing the deep task must not empty the row.
 	it('counts completed tasks — their hours stay allocated', () => {
 		expect(
 			calculateDeepWorkRatio(
@@ -1825,7 +1846,7 @@ describe('calculateDeepWorkRatio (MATH.md §26)', () => {
 	});
 });
 
-describe('calculateRewardDensity — Sustainable Work (MATH.md §27)', () => {
+describe('calculateRewardDensity — Sustainable Work', () => {
 	const hours = (
 		id: number,
 		suggestedHours: number,
@@ -1841,7 +1862,7 @@ describe('calculateRewardDensity — Sustainable Work (MATH.md §27)', () => {
 			suggestedHours,
 		});
 
-	// The §27 defect: the denominator is the hours the plan books, not the
+	// The defect: the denominator is the hours the plan books, not the
 	// budget. 2 h of sustainable work is all of a 2 h plan whatever the budget
 	// was — unbooked time and switch overhead are not grind.
 	it('divides by worked hours, not by the time budget', () => {
@@ -1868,9 +1889,9 @@ describe('calculateRewardDensity — Sustainable Work (MATH.md §27)', () => {
 		).toBeCloseTo(20, 10);
 	});
 
-	// EFFECTIVE difficulty, the same composite Grind Density and Friction use
-	// (§11.4): 7/7 demands more than either slider says, so enjoyment 8 does not
-	// cover it (7 + 0.3·7 = 9.1).
+	// EFFECTIVE difficulty, the same composite Grind Density and Friction use:
+	// 7/7 demands more than either slider says, so enjoyment 8 does not cover it
+	// (7 + 0.3·7 = 9.1).
 	it('measures EFFECTIVE difficulty, so a task hard in both dimensions is not covered by enjoyment 8', () => {
 		const both = makeSuggested({
 			id: 1,
@@ -1899,7 +1920,7 @@ describe('calculateRewardDensity — Sustainable Work (MATH.md §27)', () => {
 		expect(calculateRewardDensity([hours(1, 2, 6, 6)])).toBe(100);
 	});
 
-	// Plan scope (§11.8): a checked-off task keeps its hours, so the row holds.
+	// Plan scope: a checked-off task keeps its hours, so the row holds.
 	it('counts completed tasks — their hours stay allocated', () => {
 		expect(
 			calculateRewardDensity([

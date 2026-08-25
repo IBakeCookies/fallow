@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { DailySession, DrainObservationRecord, Task } from '$lib/data/type';
+import type {
+	DailySession,
+	DrainObservationRecord,
+	RestObservationRecord,
+	Task,
+} from '$lib/data/type';
 import {
 	averageCompletionRate,
 	calculateMetricTrend,
@@ -7,7 +12,10 @@ import {
 	countQuadrants,
 	currentStreak,
 	findBestDay,
+	loggedHours,
+	longestStreak,
 	monthlyCompletionRates,
+	restSummary,
 	summarizeSession,
 	type DaySummary,
 } from '$lib/business/model/metric/history';
@@ -131,7 +139,7 @@ describe('summarizeSession', () => {
 });
 
 describe('calculateMetricTrend', () => {
-	// The trend reads the plan `summarizeSession` already solved (MATH.md §31),
+	// The trend reads the plan `summarizeSession` already solved,
 	// so these assert what the fold does with it — not the metrics themselves,
 	// which `calculation.test.ts` owns.
 	it('reads one point per day, in the order it was given them', () => {
@@ -149,7 +157,7 @@ describe('calculateMetricTrend', () => {
 
 	it('prices Burnout Risk at the day own switch cost, not the plan zero', () => {
 		// `summarizeSession` solves at switchCost 0 because the exact allocator is
-		// 2ⁿ (§29), but the day's real cost is stored and Burnout Risk takes it as
+		// 2ⁿ, but the day's real cost is stored and Burnout Risk takes it as
 		// an argument — so the overhead is still charged even though the
 		// allocation could not afford to see it.
 		const cheap = summarizeSession({
@@ -171,9 +179,9 @@ describe('calculateMetricTrend', () => {
 	});
 
 	it('reads Burnout Risk through the calibrated params it is handed', () => {
-		// Two tasks in eight hours: well clear of §11.6's plateau, where a fixture
-		// reads the same 58 under any α and would pass whether or not the params
-		// were wired through at all.
+		// Two tasks in eight hours: well clear of the Burnout Risk plateau, where
+		// a fixture reads the same 58 under any α and would pass whether or not
+		// the params were wired through at all.
 		const summaries = [summarizeSession(makeSession(2))];
 
 		const drained = {
@@ -217,7 +225,7 @@ describe('calculateMetricTrend', () => {
 		const carried = calculateMetricTrend(summaries, slowRecovery, [drained]);
 
 		// 07-11 starts the morning down a worked day, so it reads higher than the
-		// same day simulated from full reservoirs (MATH.md §11.9).
+		// same day simulated from full reservoirs.
 		expect(carried[1].burnoutRisk).toBeGreaterThan(rested[1].burnoutRisk);
 
 		// 07-10 is unmoved by its OWN rows — that work is the plan it is already
@@ -260,6 +268,125 @@ describe('currentStreak', () => {
 	it('is zero with no recent completions', () => {
 		expect(currentStreak(new Set(['2026-07-01']), today)).toBe(0);
 		expect(currentStreak(new Set(), today)).toBe(0);
+	});
+});
+
+describe('longestStreak', () => {
+	it('finds the longest run anywhere in the dates, not the one ending today', () => {
+		const dates = new Set(['2026-06-01', '2026-06-02', '2026-06-03', '2026-07-09', '2026-07-10']);
+		expect(longestStreak(dates)).toBe(3);
+	});
+
+	it('crosses a month boundary', () => {
+		expect(longestStreak(new Set(['2026-06-30', '2026-07-01']))).toBe(2);
+	});
+
+	it('is zero with no completions', () => {
+		expect(longestStreak(new Set())).toBe(0);
+	});
+});
+
+describe('loggedHours', () => {
+	const start = '2026-07-14';
+
+	const drain = (date: string, hours: number): DrainObservationRecord => ({
+		id: 1,
+		date,
+		taskId: 1,
+		taskTitle: 'deep work',
+		hours,
+		cognitiveDemand: 0.8,
+		physicalDemand: 0.2,
+		mindDrain: 6,
+		bodyDrain: 2,
+		createdAt: 0,
+	});
+
+	it('sums the sessions on or after rangeStart, to one decimal', () => {
+		const rows = [drain('2026-06-01', 5), drain('2026-07-15', 2), drain('2026-07-16', 1.25)];
+		expect(loggedHours(rows, start)).toBe(3.3);
+	});
+
+	it('counts only positive session lengths, like every other reader of 🪫 hours', () => {
+		expect(loggedHours([drain('2026-07-15', 0), drain('2026-07-15', 2)], start)).toBe(2);
+	});
+
+	it('is zero with no logged work in the range', () => {
+		expect(loggedHours([], start)).toBe(0);
+	});
+});
+
+describe('restSummary', () => {
+	const start = '2026-07-14';
+
+	const rest = (over: Partial<RestObservationRecord> = {}): RestObservationRecord => ({
+		id: 1,
+		date: '2026-07-15',
+		hours: 0.5,
+		mindBefore: 8,
+		mindAfter: 5,
+		bodyBefore: 6,
+		bodyAfter: 4,
+		createdAt: 0,
+		...over,
+	});
+
+	it('totals the break hours and averages how far each rating dropped', () => {
+		const summary = restSummary(
+			[
+				rest(),
+				rest({
+					date: '2026-07-16',
+					hours: 0.25,
+					mindBefore: 4,
+					mindAfter: 4,
+					bodyBefore: 2,
+					bodyAfter: 0,
+				}),
+				rest({
+					date: '2026-06-01',
+				}), // outside the range
+			],
+			start,
+		);
+
+		expect(summary.hours).toBe(0.8);
+
+		expect(summary.lift).toEqual({
+			mind: 1.5,
+			body: 2,
+		});
+	});
+
+	it('reports no lift when nothing was rested in the range', () => {
+		expect(restSummary([], start)).toEqual({
+			hours: 0,
+			lift: null,
+		});
+	});
+
+	// `toBe` is `Object.is`, so this fails on -0 — which `Math.round` returns for
+	// any small negative mean and `Intl` prints as "-0.0", under the "+" the
+	// caller adds for a reading it reads as non-negative.
+	it('rounds a tiny net loss to zero rather than to negative zero', () => {
+		const rows = [
+			rest({
+				mindBefore: 4,
+				mindAfter: 5,
+			}),
+			...Array.from(
+				{
+					length: 29,
+				},
+				() =>
+					rest({
+						mindBefore: 4,
+						mindAfter: 4,
+					}),
+			),
+		];
+
+		expect(restSummary(rows, start).lift?.mind).toBe(0);
 	});
 });
 
