@@ -36,9 +36,12 @@
 			color: 'var(--info)',
 		},
 		{
+			// Not `--warning`, the token the name asks for: `--flow` is an amber domain
+			// accent and so is `--warning`, in base.css and in most of themes.css, which
+			// left two of the four segments the same colour (identical on a dozen themes).
 			key: 'grind',
 			label: m.quadrant_grind(),
-			color: 'var(--warning)',
+			color: 'var(--danger)',
 		},
 		{
 			key: 'routine',
