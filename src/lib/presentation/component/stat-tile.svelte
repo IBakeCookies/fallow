@@ -1,6 +1,7 @@
 <script lang="ts">
-	/* One reading on the analytics grid: a quiet label, the number, and a note line
-	   under it.
+	/* One reading in the analytics readings card: a quiet label, the number, and a
+	   note line under it. The card is the shell — a shell each said the readings
+	   beside it were separate things.
 
 	   `note` is a snippet rather than a string because one of the readings is
 	   markup — the completion-rate delta colours its own sign — and a string prop
@@ -22,7 +23,7 @@
 	let { label, value, suffix, muted = false, note }: Props = $props();
 </script>
 
-<div class="card-shell rounded-xl p-box-md">
+<div>
 	<p class="text-xs text-ty-silent">{label}</p>
 	<p class="mt-text-2xs text-2xl font-semibold {muted ? 'text-ty-silent' : 'text-ty-primary'}">
 		{value}

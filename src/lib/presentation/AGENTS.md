@@ -456,16 +456,21 @@ less than the button removes. A row's date is also a link to `/?date=<that day>`
 for ⚡ and 🪫, which is navigation and not the correction path; ☕ belongs to no
 day's row and gets no link.
 
-### The range readings are four headline tiles and a fold
+### The range readings are one card: four headline, five folded
 
-Tasks completed, Avg completion rate, Current streak and Logged hours keep their
-tiles and their notes — volume, trend, consistency, load, one tile per question.
-Active days, Longest streak, Planned hours, Rest hours and Best day fold beneath
-them as label, value and suffix; the five notes are what the hierarchy cost.
-`metrics-dashboard.svelte`'s own comment holds why there is a headline set at
-all, and its `metrics_more` labels this summary too (R3 — one key for one
-concept). The fold carries no `Band`: none of these readings is judged, so no
-colour and no tooltip.
+Tasks completed, Avg completion rate, Current streak and Logged hours keep the
+large reading and the note — volume, trend, consistency, load, one per question
+the range asks. Active days, Longest streak, Planned hours, Rest hours and Best
+day fold under a rule in the same card as label, value and suffix; the five
+notes are what the hierarchy cost. `metrics-dashboard.svelte`'s own comment
+holds why there is a headline set at all, and its `metrics_more` labels this
+summary too (R3 — one key for one concept). The fold carries no `Band`: none of
+these readings is judged, so no colour and no tooltip.
+
+**One card, not one per reading** — `/`'s shape. `stat-tile.svelte` therefore
+draws no shell of its own: four shells side by side said the four readings were
+four independent facts, when they are one answer to how the range went, and the
+fold had nowhere to sit but the page background.
 
 Plan adherence and Your model sit half-and-half under the three full-width
 cards. Both are short, and both read as what the model makes of the range.
