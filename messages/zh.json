@@ -358,7 +358,7 @@
 	"ana_adherence_spread_note": "你 {actual} · 经典 {classic} · 能量 {energy}",
 	"ana_adherence_days_one": "基于 1 个有记录的日子",
 	"ana_adherence_days_other": "基于 {count} 个有记录的日子",
-	"ana_adherence_verdict_energy": "你的日子更贴近能量模型——这是把它推出实验室的证据。",
+	"ana_adherence_verdict_energy": "你的日子更贴近能量模型。",
 	"ana_adherence_verdict_classic": "你的日子更贴近经典计划。",
 	"ana_adherence_verdict_tie": "到目前为止，两个规划器对你日子的描述差不多好。",
 	"ana_model": "你的模型",
