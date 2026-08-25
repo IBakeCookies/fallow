@@ -2411,6 +2411,22 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
+		it('collapses exactly at σ = 0 where clamped p₀/a exceeds the cap', () => {
+			// Every cap-binding DOMAIN_GRID cell divides back to 0.9 exactly;
+			// this one is the only integer difficulty-1 cell landing above it.
+			const { a, p0, phi, k } = calculateTaskParams({
+				title: '',
+				difficulty: 1,
+				enjoyment: 7,
+			});
+
+			for (const T of [0.25, 1, 2.5, 5]) {
+				expect(expectedAverageProductivity(T, a, p0, phi, 0)).toBe(
+					averageProductivity(T, a, p0, k),
+				);
+			}
+		});
+
 		it('uncertainty strictly lowers the best achievable average (no free lunch)', () => {
 			// Every ϕ-component has the same peak height, so no single T can sit
 			// at the optimum of all of them at once.
