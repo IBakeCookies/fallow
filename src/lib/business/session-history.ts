@@ -355,15 +355,15 @@ export interface FitTrend {
 /**
  * Everything the user's logs currently say about their model, in one read —
  * the calibration-visibility snapshot (analytics "Your model" card). Runs the
- * full conditioning chain on ALL logs: ϕ constants from ⚡ flow logs, then
- * r from ☕ rest pairs, α given r from 🪫 drain ratings (§8.7/§8.9 — the same
- * fit the main page's Burnout Risk uses), then λ₀ given everything from
- * finished days' stop decisions (§8.10). `flow` reports ϕ for a mid-scale
+ * full conditioning chain on the logs that precede today (§33): ϕ constants
+ * from ⚡ flow logs, then r from ☕ rest pairs, α given r from 🪫 drain ratings
+ * (§8.7/§8.9 — the same fit the main page's Burnout Risk uses), then λ₀ given
+ * everything from finished days' stop decisions (§8.10). `flow` reports ϕ for a mid-scale
  * reference task (difficulty 5, enjoyment 5) so the fitted plane reads as one
  * legible number next to its default.
  *
- * Only the ϕ fit is recency-weighted (§5.2); r, α and λ₀ read their whole log
- * history at equal weight, so the five rows of the card do not all answer
+ * Only the ϕ fit is recency-weighted (§5.2); r, α and λ₀ read every log the
+ * window admits at equal weight, so the five rows of the card do not all answer
  * "over what period?" the same way.
  */
 export interface CalibrationSnapshot {
