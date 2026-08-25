@@ -412,7 +412,7 @@ describe('SessionStore persistence', () => {
 		const { store } = await setup();
 
 		mockPage.url = new URL(`http://localhost/?date=${date}`);
-		await vi.waitFor(() => expect(store.selectedDate).toBe(date));
+		await vi.waitFor(() => expect(store.loadedDate).toBe(date));
 		createOrUpdateFlowObservationMock.mockClear();
 
 		return store;
@@ -728,7 +728,7 @@ describe('SessionStore persistence', () => {
 		const tomorrow = addDays(store.today, 1);
 
 		mockPage.url = new URL(`http://localhost/?date=${tomorrow}`);
-		await vi.waitFor(() => expect(store.selectedDate).toBe(tomorrow));
+		await vi.waitFor(() => expect(store.loadedDate).toBe(tomorrow));
 
 		store.importTasks([
 			{
@@ -1082,6 +1082,95 @@ describe('SessionStore persistence', () => {
 				date: '2000-01-01',
 			}),
 		);
+	});
+
+	/* The other half of the invariant the toggle tests above pin: completion is the
+	   truth about any day, but add/edit/remove/import rewrite a plan, and a past
+	   day's plan is history. */
+	it('refuses a structural edit on a past day', async () => {
+		const { store } = await setup();
+		const lastWeek = addDays(store.today, -7);
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === lastWeek
+				? {
+						date,
+						tasks: [
+							{
+								id: 1,
+								title: 'what happened',
+								physicalDifficulty: 3,
+								mentalDifficulty: 3,
+								enjoyment: 5,
+								createdAt: lastWeek,
+								completed: false,
+							},
+						],
+						availableHours: 5,
+						switchCost: 0.25,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+
+		store.addTask({
+			title: 'rewrite history',
+			physicalDifficulty: 1,
+			mentalDifficulty: 1,
+			enjoyment: 1,
+		});
+
+		store.updateTask(1, {
+			title: 'renamed',
+		});
+
+		expect(store.removeTask(1)).toBeUndefined();
+
+		store.importTasks([
+			{
+				title: 'imported',
+				physicalDifficulty: 1,
+				mentalDifficulty: 1,
+				enjoyment: 1,
+			},
+		]);
+
+		flushSync();
+		expect(store.tasks.map((t) => t.title)).toEqual(['what happened']);
+	});
+
+	/* A FUTURE day, so only the loaded-date half of the guard can refuse: the edit
+	   would land on tasks that still belong to the day being left. */
+	it('refuses a structural edit while a date change is still loading', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+
+		readSessionByDateMock.mockImplementationOnce(() => new Promise(() => {}));
+		mockPage.url = new URL(`http://localhost/?date=${addDays(store.today, 1)}`);
+		flushSync();
+
+		store.addTask({
+			title: 'tomorrow',
+			physicalDifficulty: 1,
+			mentalDifficulty: 1,
+			enjoyment: 1,
+		});
+
+		expect(store.removeTask(store.tasks[0].id)).toBeUndefined();
+		flushSync();
+		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
 	});
 
 	it('re-reads yesterday after a midnight rollover', async () => {
