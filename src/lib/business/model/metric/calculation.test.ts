@@ -1047,6 +1047,17 @@ describe('calculateTimeScarcity', () => {
 		}),
 	];
 
+	// The same day plus a task the plan seats no hours in: Σϕ = 3h over three
+	// listed tasks, against the ONE switch the plan makes (MATH.md §37).
+	const withUnfunded = [
+		...tasks,
+		makeSuggested({
+			id: 3,
+			title: 'c',
+			suggestedHours: 0,
+		}),
+	];
+
 	const day = (count: number, budget: number, switchCost = DEFAULT_SWITCH_COST) =>
 		calculateTimeScarcity(
 			calculateSuggestedTasks(
@@ -1067,24 +1078,23 @@ describe('calculateTimeScarcity', () => {
 			switchCost,
 		);
 
+	// The covering end is tight: Σϕ = 3h plus the one switch the plan pays.
+	// Billing the unfunded task's switch too would read 8 on this budget. The
+	// zero end is what did not move (MATH.md §37) — nothing is funded, so there
+	// is no bill and the whole Σϕ is the deficit.
 	it('is 0 when the budget covers flow time for every task and 100 with no budget', () => {
-		expect(calculateTimeScarcity(tasks, 24)).toBe(0);
-		expect(calculateTimeScarcity(tasks, 0)).toBe(100);
+		expect(calculateTimeScarcity(withUnfunded, 3.25)).toBe(0);
+		expect(calculateTimeScarcity(withUnfunded, 0)).toBe(100);
 	});
 
-	// At the DEFAULT switch cost the reading is monotone in the budget: one more
-	// funded task costs exactly the one block the budget grew by. It is not
-	// monotone above that, and that stays (MATH.md §37).
+	// Pins the readings this ladder walks, not a law. A budget step that seats k
+	// more tasks bills k·s, so a rise needs Δm·s > BLOCK_HOURS — which Δm = 2
+	// satisfies at the default 15-minute cost. Measured, the default never fires
+	// over 19200 budget steps (MATH.md §37), but that is an empirical result,
+	// not a guarantee; the rise above the block is pinned below. The tight two
+	// steps here seat 2 then 1 of the 3 tasks, so they also pin the bill's scope.
 	it('grows as the budget shrinks and stays in [0, 100]', () => {
-		let prev = 0;
-
-		for (const budget of [10, 4, 2, 1, 0.5]) {
-			const s = day(3, budget);
-
-			expect(s).toBeGreaterThanOrEqual(prev);
-			expect(s).toBeLessThanOrEqual(100);
-			prev = s;
-		}
+		expect([10, 4, 2, 1, 0.5].map((budget) => day(3, budget))).toEqual([0, 44, 76, 88, 92]);
 	});
 
 	// Plan family (MATH.md §11.8): the reading describes the day as designed, so
@@ -1104,8 +1114,10 @@ describe('calculateTimeScarcity', () => {
 
 	// Σϕ runs over every listed task (MATH.md §11.8), and adding one raises the
 	// deficit and the denominator together — the direction is not self-evident.
-	// Not a law: a task that makes the plan seat FEWER tasks drops the switch bill
-	// by more than its ϕ adds, on 0.19% of probed steps (MATH.md §37).
+	// This budget seats everything it is given (m = n), so these readings are the
+	// demand side alone and say nothing about the bill's scope, which is pinned
+	// below. Not a law either: a task that makes the plan seat FEWER tasks drops
+	// the switch bill by more than its ϕ adds, on 0.19% of probed steps (§37).
 	it('rises as tasks are added to a budget that seats them', () => {
 		const readings = Array.from(
 			{
@@ -1125,15 +1137,6 @@ describe('calculateTimeScarcity', () => {
 	// plan seats no hours in is switched to by nobody, so it brings its ϕ to the
 	// demand and no overhead with it.
 	it('bills the funded tasks, not the listed ones', () => {
-		const withUnfunded = [
-			...tasks,
-			makeSuggested({
-				id: 3,
-				title: 'c',
-				suggestedHours: 0,
-			}),
-		];
-
 		// Σϕ = 3h, two funded tasks, one switch: (3 − (2 − 0.25)) / 3.
 		expect(calculateTimeScarcity(withUnfunded, 2, 0.25)).toBe(42);
 		// Charging its switch too would read the day as (3 − 1.5) / 3.
@@ -1142,10 +1145,61 @@ describe('calculateTimeScarcity', () => {
 
 	// The listed bill saturated at exactly 100 as soon as (n − 1)·s reached the
 	// budget — eight tasks at the default cost did it to every budget under
-	// 1.75h, making a 20-minute day and a 90-minute one indistinguishable.
+	// 1.75h, pinning a 15-minute day and a 90-minute one at the same reading.
+	// The funded bill reads 98 against 94 and still separates them.
 	it('does not pin at 100 on a day the plan can still run', () => {
-		expect(day(8, 1)).toBeLessThan(100);
-		expect(day(8, 1)).toBeGreaterThan(day(8, 1.5));
+		// The listed bill read 100 at BOTH budgets: (n − 1)·s = 1.75h swallowed
+		// every budget at or under it, so a 15-minute day and a 90-minute day were
+		// indistinguishable (MATH.md §37).
+		expect([day(8, 0.25), day(8, 1.5)]).toEqual([98, 94]);
+	});
+
+	it('MORE budget can read HIGHER scarcity once the plan is re-solved (settled, not a bug)', () => {
+		// The seam MATH.md §37 accepted when the bill moved to the funded set: a
+		// BLOCK_HOURS budget step that seats k more tasks bills k·s, so the
+		// reading RISES whenever Δm·s > BLOCK_HOURS — at s = 45m one new task
+		// clears it, on 4.14% of probed steps and every day touched, worst +13
+		// points. Here 1.5h funds ONE task and pays no switch, 1.75h
+		// funds two and hands 45 of those 15 new minutes to the switch between
+		// them, so the effective budget FALLS from 1.5h to 1h. §37 settled it as
+		// INTENDED ("It stays"), for §11.6's reason: holding the funded set fixed
+		// while walking the budget would report a plan the user is not being
+		// shown, and smoothing it is the listed bill again, which cost the whole
+		// 100 pin. So this is a characterization test: an agent who reads the
+		// rise as a bug gets a red build pointing at that decision instead of a
+		// silent semantic change.
+		const pair = [
+			makeTask({
+				id: 1,
+				title: 't1',
+				mentalDifficulty: 5,
+				physicalDifficulty: 4,
+				enjoyment: 10,
+			}),
+			makeTask({
+				id: 2,
+				title: 't2',
+				mentalDifficulty: 5,
+				physicalDifficulty: 4,
+				enjoyment: 5,
+			}),
+		];
+
+		const switchCost = 0.75;
+
+		// [funded tasks, reading] — the count rides along so a failure names the
+		// mechanism and not just the number.
+		const reading = (availableHours: number) => {
+			const plan = calculateSuggestedTasks(pair, availableHours, switchCost);
+
+			return [
+				plan.filter((task) => task.suggestedHours > 0).length,
+				calculateTimeScarcity(plan, availableHours, switchCost),
+			];
+		};
+
+		expect(reading(1.5)).toEqual([1, 61]);
+		expect(reading(1.75)).toEqual([2, 74]);
 	});
 
 	it('charges a single funded task no switch cost', () => {
@@ -1154,17 +1208,13 @@ describe('calculateTimeScarcity', () => {
 		expect(calculateTimeScarcity(one, 1, 2)).toBe(calculateTimeScarcity(one, 1, 0));
 	});
 
+	// One charge per switch the plan makes: the ladder steps by s/Σϕ = 8.3 points
+	// per 15 minutes on this day, not the 16.7 the listed bill's two switches
+	// took (MATH.md §37).
 	it('honours the switch cost it is given', () => {
-		const readings = [0, 0.25, 0.5, 0.75].map((switchCost) =>
-			calculateTimeScarcity(tasks, 2, switchCost),
-		);
-
-		for (let i = 1; i < readings.length; i++) {
-			expect(readings[i]).toBeGreaterThanOrEqual(readings[i - 1]);
-		}
-
-		// Strict at the ends, or a hardcoded switch cost would pass the above.
-		expect(readings.at(-1)).toBeGreaterThan(readings[0]);
+		expect(
+			[0, 0.25, 0.5, 0.75].map((switchCost) => calculateTimeScarcity(withUnfunded, 2, switchCost)),
+		).toEqual([33, 42, 50, 58]);
 	});
 
 	// ϕ is read off the plan, so the user's fitted constants (MATH.md §5, §5.2)

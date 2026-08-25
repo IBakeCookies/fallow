@@ -515,26 +515,18 @@ export function calculateLongestWarmUp(
  *
  *   scarcity = max(0, (Σϕ − max(0, budget − (m−1)·s)) / Σϕ) × 100,  m = funded tasks
  *
- * 0% = the budget covers flow state time for every task
- * 100% = the switches and the demand leave nothing
+ * DEMAND over the whole list, SWITCHES over the funded set: an unseated task
+ * still asks for its ϕ, but nobody switches to it (MATH.md §37, §19.1).
  *
- * Uses ϕ (flow state time) as the baseline demand per task, NOT T* ≈ 1.52–1.79×ϕ (optimal).
- * This is more realistic because:
- * - T* would mean several hours per task (humans only have ~4 productive hours/day)
- * - ϕ represents the minimum meaningful engagement (reaching flow state)
+ * ϕ and not T* ≈ 1.52–1.79ϕ, which would ask several hours of a day that holds
+ * about four productive ones: the row measures the minimum meaningful
+ * engagement, and reads it off the plan rather than recomputing it, so the
+ * user's fitted constants reach it through the solve (R3).
  *
- * DEMAND runs over the whole list and SWITCHES over the funded set. The two
- * scopes are not an inconsistency: the row scores the day's intent against its
- * clock, so a task the plan could not seat still asks for its ϕ — but nobody
- * switches to it, and billing that switch priced a schedule the plan does not
- * merely leave unplanned but cannot run (MATH.md §37, the rule §19.1 adopted for
- * the gain's baseline). ϕ is read off the plan rather than recomputed, so the
- * fitted constants reach it the way they reach every other reading (R3).
- *
- * NOT monotone in the declared budget once the switch cost exceeds a block: one
- * more funded task costs `s` of overhead against a `BLOCK_HOURS` budget step, so
- * the reading can RISE as the budget grows. Documented, not smoothed — the same
- * call Burnout Risk's fall got (MATH.md §37, §11.6).
+ * NOT monotone in the declared budget, and that stays: a budget step that seats
+ * `k` more tasks bills `k·s` against a `BLOCK_HOURS` increment, so the reading
+ * can RISE as the budget grows (MATH.md §37, and §11.6 for the same call on
+ * Burnout Risk's fall).
  */
 export function calculateTimeScarcity(
 	tasks: SuggestedTask[],
