@@ -24,10 +24,13 @@ import {
 	getTaskNature,
 	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
-import { DEFAULT_SWITCH_COST } from '$lib/business/model/zenith';
+import {
+	DEFAULT_CAPACITY_POOLS,
+	DEFAULT_SWITCH_COST,
+	DEFAULT_USER_CONSTANTS,
+} from '$lib/business/model/zenith';
 import type { Task } from '$lib/data/type';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
-import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 
 function makeTask(overrides: Partial<Task> & { id: number; title: string }): Task {
 	return {
@@ -1032,27 +1035,52 @@ describe('calculateHumanCapacity', () => {
 });
 
 describe('calculateTimeScarcity', () => {
+	// ϕ = 1h each and both funded, so Σϕ = 2h against one switch.
 	const tasks = [
-		makeTask({
+		makeSuggested({
 			id: 1,
 			title: 'a',
 		}),
-		makeTask({
+		makeSuggested({
 			id: 2,
 			title: 'b',
 		}),
 	];
+
+	const day = (count: number, budget: number, switchCost = DEFAULT_SWITCH_COST) =>
+		calculateTimeScarcity(
+			calculateSuggestedTasks(
+				Array.from(
+					{
+						length: count,
+					},
+					(_, i) =>
+						makeTask({
+							id: i + 1,
+							title: `t${i}`,
+						}),
+				),
+				budget,
+				switchCost,
+			),
+			budget,
+			switchCost,
+		);
 
 	it('is 0 when the budget covers flow time for every task and 100 with no budget', () => {
 		expect(calculateTimeScarcity(tasks, 24)).toBe(0);
 		expect(calculateTimeScarcity(tasks, 0)).toBe(100);
 	});
 
+	// At the DEFAULT switch cost the reading is monotone in the budget: one more
+	// funded task costs exactly the one block the budget grew by. It is not
+	// monotone above that, and that stays (MATH.md §37).
 	it('grows as the budget shrinks and stays in [0, 100]', () => {
 		let prev = 0;
 
 		for (const budget of [10, 4, 2, 1, 0.5]) {
-			const s = calculateTimeScarcity(tasks, budget);
+			const s = day(3, budget);
+
 			expect(s).toBeGreaterThanOrEqual(prev);
 			expect(s).toBeLessThanOrEqual(100);
 			prev = s;
@@ -1064,37 +1092,26 @@ describe('calculateTimeScarcity', () => {
 	it('does not move when a task is checked done', () => {
 		const done = [
 			tasks[0],
-			makeTask({
+			makeSuggested({
 				id: 2,
 				title: 'b',
 				completed: true,
 			}),
 		];
 
-		expect(calculateTimeScarcity(done, 4)).toBe(calculateTimeScarcity(tasks, 4));
+		expect(calculateTimeScarcity(done, 2)).toBe(calculateTimeScarcity(tasks, 2));
 	});
 
 	// Σϕ runs over every listed task (MATH.md §11.8), and adding one raises the
 	// deficit and the denominator together — the direction is not self-evident.
-	it('never falls when a task is added', () => {
+	// Not a law: a task that makes the plan seat FEWER tasks drops the switch bill
+	// by more than its ϕ adds, on 0.19% of probed steps (MATH.md §37).
+	it('rises as tasks are added to a budget that seats them', () => {
 		const readings = Array.from(
 			{
 				length: 5,
 			},
-			(_, n) =>
-				calculateTimeScarcity(
-					Array.from(
-						{
-							length: n + 1,
-						},
-						(_, i) =>
-							makeTask({
-								id: i + 1,
-								title: `t${i}`,
-							}),
-					),
-					6,
-				),
+			(_, n) => day(n + 1, 6),
 		);
 
 		for (let i = 1; i < readings.length; i++) {
@@ -1104,25 +1121,34 @@ describe('calculateTimeScarcity', () => {
 		expect(readings.at(-1)).toBeGreaterThan(readings[0]);
 	});
 
-	it('bills n − 1 switches, not n', () => {
-		const three = [
-			tasks[0],
-			tasks[1],
-			makeTask({
+	// The switch bill is over the FUNDED set (MATH.md §37, §19.1): a task the
+	// plan seats no hours in is switched to by nobody, so it brings its ϕ to the
+	// demand and no overhead with it.
+	it('bills the funded tasks, not the listed ones', () => {
+		const withUnfunded = [
+			...tasks,
+			makeSuggested({
 				id: 3,
 				title: 'c',
+				suggestedHours: 0,
 			}),
 		];
 
-		const billed = calculateTimeScarcity(three, 3, 0.25);
-
-		// Charging (n − 1)·switchCost against the budget is the same day as that
-		// much less budget and no switching at all.
-		expect(billed).toBe(calculateTimeScarcity(three, 3 - 2 * 0.25, 0));
-		expect(billed).not.toBe(calculateTimeScarcity(three, 3 - 3 * 0.25, 0));
+		// Σϕ = 3h, two funded tasks, one switch: (3 − (2 − 0.25)) / 3.
+		expect(calculateTimeScarcity(withUnfunded, 2, 0.25)).toBe(42);
+		// Charging its switch too would read the day as (3 − 1.5) / 3.
+		expect(calculateTimeScarcity(withUnfunded, 2, 0.25)).not.toBe(50);
 	});
 
-	it('charges a single task no switch cost', () => {
+	// The listed bill saturated at exactly 100 as soon as (n − 1)·s reached the
+	// budget — eight tasks at the default cost did it to every budget under
+	// 1.75h, making a 20-minute day and a 90-minute one indistinguishable.
+	it('does not pin at 100 on a day the plan can still run', () => {
+		expect(day(8, 1)).toBeLessThan(100);
+		expect(day(8, 1)).toBeGreaterThan(day(8, 1.5));
+	});
+
+	it('charges a single funded task no switch cost', () => {
 		const one = [tasks[0]];
 
 		expect(calculateTimeScarcity(one, 1, 2)).toBe(calculateTimeScarcity(one, 1, 0));
@@ -1130,7 +1156,7 @@ describe('calculateTimeScarcity', () => {
 
 	it('honours the switch cost it is given', () => {
 		const readings = [0, 0.25, 0.5, 0.75].map((switchCost) =>
-			calculateTimeScarcity(tasks, 4, switchCost),
+			calculateTimeScarcity(tasks, 2, switchCost),
 		);
 
 		for (let i = 1; i < readings.length; i++) {
@@ -1141,17 +1167,38 @@ describe('calculateTimeScarcity', () => {
 		expect(readings.at(-1)).toBeGreaterThan(readings[0]);
 	});
 
-	// ϕ comes from the user's fitted constants (MATH.md §5, §5.2), not the
-	// defaults — a slower-to-flow user reads scarcer on the same day.
-	it('honours the fitted constants it is given', () => {
+	// ϕ is read off the plan, so the user's fitted constants (MATH.md §5, §5.2)
+	// reach the reading through the allocator — a slower-to-flow user reads
+	// scarcer on the same day, with no second ϕ of this metric's own (R3).
+	it('reads the ϕ the plan was solved on', () => {
 		const slowToFlow = {
 			...DEFAULT_USER_CONSTANTS,
 			c3: DEFAULT_USER_CONSTANTS.c3 + 1,
 		};
 
-		expect(calculateTimeScarcity(tasks, 4, 0.25, slowToFlow)).toBeGreaterThan(
-			calculateTimeScarcity(tasks, 4, 0.25, DEFAULT_USER_CONSTANTS),
-		);
+		const plan = (constants: typeof DEFAULT_USER_CONSTANTS) =>
+			calculateTimeScarcity(
+				calculateSuggestedTasks(
+					[
+						makeTask({
+							id: 1,
+							title: 'a',
+						}),
+						makeTask({
+							id: 2,
+							title: 'b',
+						}),
+					],
+					4,
+					0.25,
+					DEFAULT_CAPACITY_POOLS,
+					constants,
+				),
+				4,
+				0.25,
+			);
+
+		expect(plan(slowToFlow)).toBeGreaterThan(plan(DEFAULT_USER_CONSTANTS));
 	});
 });
 
