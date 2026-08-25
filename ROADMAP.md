@@ -362,6 +362,23 @@ them.
     were mis-scoped, and both figures that had actually drifted sat in the one
     filed as a citation gap.
 
+Item 4's outstanding obligation is the Stopping Calibration card learning to
+explain its own count; the analytics card has the same gap on a different
+number:
+
+33. **The "Your model" card names deferred logs for ϕ only** — raised
+    2026-08-25 while closing M23, verified in the code, not measured. The §33
+    causal window defers today's logs on all four legs, but only ϕ reports how
+    many: `pendingCount` is computed at `session-history.ts:137`
+    (`observations.length - counted.length`) and surfaced at `:463`, and the
+    energy (r, α_cog, α_phys) and stopping (λ₀) legs carry no equivalent — they
+    print `usedCount` alone. So a user who logs a ☕ or a 🪫 today watches the
+    count sit still with nothing on screen saying the log was read and held for
+    tomorrow, which reads as a dropped log rather than a deferred one. This is
+    the gap M37 closed for the Energy Lab's two calibration cards, still open on
+    the analytics card. Cost is a count per leg plus copy in five locales (en,
+    de, es, fr, zh).
+
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.
@@ -607,8 +624,8 @@ reaches the claim, never that the claim is false.
 - **M21 §16 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**
 - **M22 §8.12 — fixed 2026-08-17,
   [`four-descriptions-the-code-moved-past`](docs/features/four-descriptions-the-code-moved-past.md).**
-- **M23 §8.10** — `MATH.md:1872-1874` "runs the full conditioning chain on ALL
-  logs", superseded by §33 and by `session-history.ts:418-426` (`date < today`).
+- **M23 §8.10 — closed 2026-08-25, MATH.md §10 (2026-08-25).** Doc-only; the
+  record is the revision-log entry.
 - **M24 §11.8 — closed 2026-08-19, [`what-the-output-tile-was-scored-against`](docs/features/what-the-output-tile-was-scored-against.md).**
 - **M25 §1 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M26 §8.7 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
