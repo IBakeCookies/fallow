@@ -321,18 +321,16 @@
 				/>
 
 				{#if !isViewingPast && tasks.length > 0}
-					<div>
-						<PlanAdviceCard
-							{advice}
-							isBusy={plan.isAdviceBusy}
-							isStale={plan.isAdviceStale}
-							{destination}
-							hasError={plan.hasAdviceError}
-							oncheck={() => plan.computeAdvice()}
-							onapply={(id) => session.moveTaskToTomorrow(id)}
-							onapplybudget={(hours) => (session.availableHours = hours)}
-						/>
-					</div>
+					<PlanAdviceCard
+						{advice}
+						isBusy={plan.isAdviceBusy}
+						isStale={plan.isAdviceStale}
+						{destination}
+						hasError={plan.hasAdviceError}
+						oncheck={() => plan.computeAdvice()}
+						onapply={(id) => session.moveTaskToTomorrow(id)}
+						onapplybudget={(hours) => (session.availableHours = hours)}
+					/>
 				{/if}
 			</div>
 		</div>

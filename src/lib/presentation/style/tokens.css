@@ -76,7 +76,7 @@
 	--spacing-page-md: var(--spacer-page-md);
 	--spacing-page: var(--spacer-page);
 
-	--container-layout: 90rem;
+	--container-layout: var(--spacer-layout);
 
 	/* rhythm between major page sections (-lg: app UI ↔ below-the-fold content) */
 	--spacing-section: var(--spacer-section);
