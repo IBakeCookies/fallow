@@ -44,6 +44,12 @@
 	--spacer-page-md: var(--spacer-xl);
 	--spacer-page: var(--spacer-2xl);
 
+	/* The content column's width (tokens.css aliases it `--container-layout`),
+	   and the left edge of the transparent gutter beside it where a theme's
+	   focal scenery is drawn — STYLE.md, the scenery gutter. */
+	--spacer-layout: 90rem; /* 1440px */
+	--spacer-gutter: calc(50% + var(--spacer-layout) / 2 - var(--spacer-page) + 1rem);
+
 	--spacer-section: 2.5rem; /* 40px */
 	--spacer-section-lg: 4rem; /* 64px */
 
