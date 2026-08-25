@@ -358,7 +358,7 @@
 	"ana_adherence_spread_note": "toi {actual} · classique {classic} · énergie {energy}",
 	"ana_adherence_days_one": "d'après 1 journée notée",
 	"ana_adherence_days_other": "d'après {count} journées notées",
-	"ana_adherence_verdict_energy": "Tes journées suivent de plus près le modèle d'énergie — un argument pour le sortir du labo.",
+	"ana_adherence_verdict_energy": "Tes journées suivent de plus près le modèle d'énergie.",
 	"ana_adherence_verdict_classic": "Tes journées suivent de plus près le plan classique.",
 	"ana_adherence_verdict_tie": "Jusqu'ici, les deux planificateurs décrivent tes journées à peu près aussi bien.",
 	"ana_model": "Ton modèle",
