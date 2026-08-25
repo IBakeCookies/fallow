@@ -112,7 +112,7 @@ diff. What an agent runs instead is the narrow thing its own change needs:
 
 The second of those is also held by a `Stop` hook
 (`.claude/hooks/verify-before-finish.mjs`): finishing is blocked while
-`prettier --check`, `eslint` or the five doc scripts fail on a changed file, and
+`prettier --check`, `eslint` or the six doc scripts fail on a changed file, and
 the failure comes back as the text to fix rather than as advice. It exists
 because the rule-adherence eval found eslint-enforced rules broken in about a
 third of runs — an agent that had run the linter could not have broken them, so
@@ -140,8 +140,11 @@ generated code with `Identifier expected` at
 is trimmed before it is inlined. Mid-value is fine (`flow @ {flow}` has always
 shipped): only a `@` with no identifier after it breaks the parse.
 
-`lint` is seven checks, and four of them fail on prose rather than code:
+`lint` is eight checks, and five of them fail on prose rather than code:
 `math-index.mjs --check` on MATH.md's section index (R7 step 5),
+`math-citations.mjs --check`, which resolves every MATH.md `§`-citation in
+tracked source and prose against MATH.md's actual headings — the direction
+`math-index.mjs` doesn't cover — skipping the `§12-14`-style range form,
 `probe-registry.mjs --check` on [`scripts/PROBES.md`](../scripts/PROBES.md) —
 both because a hand-maintained index silently rots — `brief-size.mjs --check`,
 which fails when the root `AGENTS.md` grows past its line budget, and
@@ -149,7 +152,7 @@ which fails when the root `AGENTS.md` grows past its line budget, and
 last two are the only mechanical defence the doc split has: nothing else
 notices an argument being pasted into the brief, or into a component's header,
 instead of into the file that owns it. Both count volume and neither can tell
-an earned _why_ from archaeology, so AGENTS.md §0 still governs. The seventh,
+an earned _why_ from archaeology, so AGENTS.md §0 still governs. The eighth,
 `file-names.mjs --check`, holds §2's kebab-case rule. `prettier --check` covers
 the whole tree, so format the files you touched (`npx prettier --write`) and
 never the tree.

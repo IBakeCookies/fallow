@@ -239,8 +239,9 @@ session with no 🪫 log at all — which is the only way a day reaches λ₀
 - `src/lib/presentation/AGENTS.md` — the public-export half, in lines not
   paragraphs: `newDrainDraft`'s new argument, the drain form's focus rule, and
   `day-actions.svelte` holding a control that is `isToday`-gated where its
-  neighbours are `!isViewingPast`-gated. §302-350 ("Each measurement is read,
-  corrected and dropped on the row it belongs to") is the section that owns the
+  neighbours are `!isViewingPast`-gated. Lines 302-350 ("Each measurement is
+  read, corrected and dropped on the row it belongs to") is the section that
+  owns the
   🪫 editor's openings and gains the third one.
 - `messages/{en,de,es,fr,zh}.json` — five new keys, all five files:
   `timer_start`, `timer_pause`, `timer_resume`, `timer_stop`,
