@@ -13,17 +13,28 @@
  * B  How much of the listed bill's range was the 100 it pinned at as soon as
  *    (n−1)·s reached the budget, making a 20-minute day and a 90-minute one
  *    indistinguishable?
- * C  Monotonicity in the declared budget, per switch cost. Funding one more
- *    task costs `s` against a budget that grew by one block, so above a
- *    15-minute switch the reading can RISE as the budget grows. Deliberate,
- *    following Burnout Risk (`business/model/AGENTS.md`) — measured here, not
- *    judged.
+ * C  Monotonicity in the declared budget, over every switch cost the field can
+ *    declare. A budget step that seats Δm more tasks bills Δm·s against a budget
+ *    that grew by one BLOCK_HOURS, so a rise needs Δm·s > BLOCK_HOURS: the rate
+ *    is neither constant in `s` nor monotone in it, and it fires BELOW the block.
+ *    Printed with the Δm distribution of the rising steps, which is why the
+ *    default 15m reads 0 here — a rise needs Δm ≥ 2 at that cost and this sample
+ *    drew none, so the default is unprotected, not immune. Deliberate, following
+ *    Burnout Risk (`business/model/AGENTS.md`) — measured here, not judged.
  * D  Monotonicity in the task count: one more task asks for one more ϕ against
  *    the same clock, so the reading must not fall.
- * E  What the phantom switch was worth to the advisor. §14's defer lever drops
- *    a task from the input and re-solves; under the listed bill, deferring an
- *    UNFUNDED task freed a switch nobody was making, which is the axis bias
- *    the fix removes.
+ * E  What the phantom switch was worth to ONE defer: the highest-priority
+ *    unfunded task dropped from the input and re-solved. Under the listed bill
+ *    that freed a switch nobody was making, which is the axis bias the fix
+ *    removes. Not §14's lever, which emits a candidate per active
+ *    non-`mustDoToday` task — funded ones included — and reports a Pareto
+ *    frontier; this arm prices a single candidate.
+ *
+ * Parameters, since the rates are read off them: seed 20260825; 1200 days for
+ * arms A, B, D and E, the first 200 of them for arm C's lattice walk; n ∈ [2, 8]
+ * tasks with integer 1–10 sliders; the declared budget on `BUDGET_BOUNDS.step`
+ * but capped at 16h, NOT the 24h `BUDGET_BOUNDS.max` allows, because the space is
+ * days a person declares; switch cost on the field's own 5-minute step.
  *
  * A probe, not a test: every rate below moves whenever the allocator moves.
  *
@@ -54,10 +65,20 @@ function mulberry32(seed: number): () => number {
 
 const SEED = 20260825;
 const CELL_COUNT = 1200;
-/** Arm C costs 97 budgets × 4 switch costs of 2ⁿ solves per day, so it draws fewer. */
+/** Arm C costs 97 budgets × 12 switch costs of 2ⁿ solves per day, so it draws fewer. */
 const LATTICE_DAY_COUNT = 200;
-/** The switch-cost field moves in 5-minute steps over 0–60. */
-const SWITCH_COST_MINUTES = [15, 30, 45, 60];
+
+/**
+ * The switch-cost field is 0–60 minutes in 5-minute steps
+ * (`presentation/component/day-constraints-bar.svelte`), and a declared 0 is no
+ * switching at all, so the ladder arm C sweeps is every cost that bills one.
+ */
+const SWITCH_COST_MINUTES = Array.from(
+	{
+		length: 12,
+	},
+	(_, step) => 5 * (step + 1),
+);
 
 interface Day {
 	tasks: Task[];
@@ -131,8 +152,9 @@ function randomDays(count: number, seed: number): Day[] {
 
 /**
  * One day's walk up the budget lattice at a fixed switch cost, and where the
- * reading RISES as the budget grows — what funding one more task costs when `s`
- * exceeds the block the budget grew by (arm C).
+ * reading RISES as the budget grows — what seating Δm more tasks costs when Δm·s
+ * exceeds the block the budget grew by (arm C). `riseDeltas` carries that Δm for
+ * each rising step, so the rate can be read as the mechanism.
  */
 function budgetWalk(tasks: Task[], switchCost: number, budgets: number[]) {
 	const readings = budgets.map((budget) => {
@@ -145,7 +167,7 @@ function budgetWalk(tasks: Task[], switchCost: number, budgets: number[]) {
 		};
 	});
 
-	let rises = 0;
+	const riseDeltas: number[] = [];
 	let worstRise = 0;
 	let witness = '';
 
@@ -154,7 +176,7 @@ function budgetWalk(tasks: Task[], switchCost: number, budgets: number[]) {
 
 		if (rise <= 0) continue;
 
-		rises++;
+		riseDeltas.push(readings[i].funded - readings[i - 1].funded);
 
 		if (rise > worstRise) {
 			worstRise = rise;
@@ -166,7 +188,7 @@ function budgetWalk(tasks: Task[], switchCost: number, budgets: number[]) {
 	}
 
 	return {
-		rises,
+		riseDeltas,
 		worstRise,
 		witness,
 	};
@@ -217,7 +239,7 @@ describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () 
 		);
 	});
 
-	it('C — monotonicity in the declared budget, per switch cost', () => {
+	it('C — monotonicity in the declared budget, over the switch-cost ladder', () => {
 		const budgets = Array.from(
 			{
 				length: (BUDGET_BOUNDS.max - BUDGET_BOUNDS.min) / BUDGET_BOUNDS.step + 1,
@@ -231,13 +253,16 @@ describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () 
 		for (const minutes of SWITCH_COST_MINUTES) {
 			const switchCost = minutes / 60;
 			const walks = days.map((day) => budgetWalk(day.tasks, switchCost, budgets));
-			const rises = walks.reduce((sum, walk) => sum + walk.rises, 0);
-			const touched = walks.filter((walk) => walk.rises > 0).length;
+			const deltas = walks.flatMap((walk) => walk.riseDeltas);
+			const touched = walks.filter((walk) => walk.riseDeltas.length > 0).length;
 			const worst = walks.reduce((best, walk) => (walk.worstRise > best.worstRise ? walk : best));
 
 			console.log(
-				`[C] s=${minutes}m: the reading RISES on ${rises}/${steps} budget steps (${percent(rises / steps, 2)}), ` +
-					`touching ${percent(touched / days.length)} of ${days.length} days, worst rise +${worst.worstRise} pts`,
+				`[C] s=${minutes}m: the reading RISES on ${deltas.length}/${steps} budget steps ` +
+					`(${percent(deltas.length / steps, 2)}), touching ${percent(touched / days.length)} of ${days.length} days, ` +
+					`worst rise +${worst.worstRise} pts; Δm on the rising steps: ` +
+					`1 on ${deltas.filter((delta) => delta === 1).length}, 2 on ${deltas.filter((delta) => delta === 2).length}, ` +
+					`3+ on ${deltas.filter((delta) => delta >= 3).length}`,
 			);
 
 			if (worst.witness) console.log(`[C] s=${minutes}m witness: ${worst.witness}`);
@@ -288,9 +313,10 @@ describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () 
 		if (witness) console.log(`[D] witness: ${witness}`);
 	});
 
-	it('E — what the phantom switch was worth to the advisor', () => {
-		// §14's defer lever drops one task from the input and re-solves. The first
-		// unfunded task is the one the listed bill charged a switch it never made.
+	it('E — what the phantom switch was worth to one highest-priority-unfunded defer', () => {
+		// The plan comes back priority-sorted, so its first `suggestedHours <= 0` is
+		// the highest-priority unfunded task — the one the listed bill charged a
+		// switch it never made. ONE candidate, not §14's lever.
 		const cells = SWEEP.filter((cell) => cell.funded < cell.day.tasks.length);
 		const fundedGains: number[] = [];
 		const listedGains: number[] = [];
@@ -311,16 +337,21 @@ describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () 
 
 		const stats = (gains: number[]) => {
 			const sorted = [...gains].sort((a, b) => a - b);
+			const moved = gains.filter((gain) => gain !== 0).length;
+			const still = gains.length - moved;
 
 			return (
 				`p50 ${quantile(sorted, 0.5)} p90 ${quantile(sorted, 0.9)} max ${sorted.at(-1)} pts, ` +
-				`moves the reading at all on ${percent(gains.filter((gain) => gain !== 0).length / gains.length)}`
+				`moves the reading at all on ${percent(moved / gains.length)} and leaves it exactly where it was on ` +
+				`${still}/${gains.length} days (${percent(still / gains.length)})`
 			);
 		};
 
 		console.log(
 			`[E] ${cells.length}/${CELL_COUNT} days (${percent(cells.length / CELL_COUNT)}) hold at least one unfunded task; ` +
-				`deferring the first one improves the FUNDED reading by ${stats(fundedGains)}`,
+				`deferring the HIGHEST-PRIORITY UNFUNDED one — one candidate, not §14's lever, which emits a candidate per ` +
+				`active non-mustDoToday task, funded ones included, and reports a Pareto frontier — improves the FUNDED ` +
+				`reading by ${stats(fundedGains)}`,
 		);
 
 		console.log(`[E] the same defer improves the LISTED reading by ${stats(listedGains)}`);
