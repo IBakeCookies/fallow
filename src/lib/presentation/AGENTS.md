@@ -106,12 +106,12 @@ Untestable at every level is the signal.
   gave it, while sliders the user dragged are theirs and stay. Editing short of
   empty keeps the pick, and the flag clears on submit — left set, the next
   title being cleared would reset sliders no pick had touched.
-- **A card whose reading costs a solve is its run button and nothing else until
-  it has run** — `plan-advice-card`, and `budget-curve-button.svelte`, which is
-  that button split off from `budget-curve-card.svelte` so the two can read in
-  different places: the button on the card holding the row it prices, the chart
-  it returns full width below. A shell and a heading around a feature nobody has
-  run yet claim a reading the card does not have.
+- **A card whose reading costs a solve renders with a prompt line where the
+  reading will go** — `plan-advice-card` and `budget-curve-card`: the heading,
+  the description and the card's own run button from the first paint, and one
+  line saying the reading has not been taken. That line is what stops the shell
+  claiming a reading nobody has computed; a skeleton would claim its shape
+  instead. One control, in one place, discoverable before the first click.
 - **The same card, once stale, keeps its numbers and withdraws its levers.**
   Both cards above: the reading stays on screen (it is a warning about the
   numbers, not a reason to hide them), and every Apply button gates on

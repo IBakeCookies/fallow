@@ -7,7 +7,8 @@
 	import { Button } from '$lib/presentation/component/ui/button';
 
 	interface Props {
-		curve: BudgetCurve;
+		/** Null until the user asks: the sweep costs a full solve per candidate window. */
+		curve: BudgetCurve | null;
 		isBusy: boolean;
 		/**
 		 * The day changed after this curve was swept. The chart stays — it is a
@@ -28,14 +29,14 @@
 		$props();
 
 	const recommended = $derived(
-		curve.recommendedHours === null
+		curve === null || curve.recommendedHours === null
 			? null
 			: (curve.points.find((p) => p.budgetHours === curve.recommendedHours) ?? null),
 	);
 
 	// Two nulls, opposite readings: the sweep ran out, or no window was worth
 	// working at this λ₀ (MATH.md §8.12) — so branch on the points, not the null.
-	const booksNoWork = $derived(curve.points.every((p) => p.workHours === 0));
+	const booksNoWork = $derived(curve !== null && curve.points.every((p) => p.workHours === 0));
 </script>
 
 <div class="card-shell p-box-md sm:p-box-xl">
@@ -47,7 +48,11 @@
 			<p class="mt-text-xs text-xs text-ty-silent">{m.energy_curve_desc()}</p>
 		</div>
 		<Button variant="outline" size="sm" disabled={isBusy} onclick={oncheck}>
-			{isBusy ? m.energy_curve_working() : m.energy_curve_recheck()}
+			{isBusy
+				? m.energy_curve_working()
+				: curve === null
+					? m.energy_curve_check()
+					: m.energy_curve_recheck()}
 		</Button>
 	</div>
 
@@ -69,50 +74,54 @@
 		</p>
 	{/if}
 
-	<!-- No empty-curve branch: points are empty only for an empty task list, and
-	     the page's `hasTasks` gate is above this card. -->
-	<BudgetCurveChart {curve} {currentBudget} />
+	{#if curve === null}
+		<p class="mt-grid-sm text-sm text-ty-secondary">{m.energy_curve_unrun()}</p>
+	{:else}
+		<!-- No empty-curve branch: points are empty only for an empty task list, and
+		     the page's `hasTasks` gate is above this card. -->
+		<BudgetCurveChart {curve} {currentBudget} />
 
-	<div class="mt-grid-sm border-t border-line-soft pt-box-sm">
-		{#if recommended !== null}
-			<div class="flex flex-wrap items-baseline justify-between gap-grid-xs">
+		<div class="mt-grid-sm border-t border-line-soft pt-box-sm">
+			{#if recommended !== null}
+				<div class="flex flex-wrap items-baseline justify-between gap-grid-xs">
+					<p class="text-sm text-ty-secondary">
+						{m.energy_curve_recommendation({
+							hours: formatDuration(recommended.budgetHours),
+							work: formatDuration(recommended.workHours),
+						})}
+					</p>
+					<!-- `isBusy` too, which it never had: the sweep in flight is about to
+				     replace the recommendation this button is holding. -->
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={isBusy || isStale}
+						onclick={() => onapply(recommended.budgetHours)}
+						aria-label={m.energy_curve_apply_label({
+							hours: formatDuration(recommended.budgetHours),
+						})}
+					>
+						{m.energy_curve_apply()}
+					</Button>
+				</div>
+			{:else}
 				<p class="text-sm text-ty-secondary">
-					{m.energy_curve_recommendation({
-						hours: formatDuration(recommended.budgetHours),
-						work: formatDuration(recommended.workHours),
+					{#if booksNoWork}
+						{m.energy_curve_no_work({
+							max: formatDuration(curve.maxBudgetHours),
+						})}
+					{:else}
+						{m.energy_curve_no_crossing({
+							max: formatDuration(curve.maxBudgetHours),
+						})}
+					{/if}
+				</p>
+				<p class="mt-text-2xs text-xs text-ty-silent">
+					{m.energy_curve_no_crossing_hint({
+						value: formatDecimals(curve.freeTimeValue, 2, locale),
 					})}
 				</p>
-				<!-- `isBusy` too, which it never had: the sweep in flight is about to
-				     replace the recommendation this button is holding. -->
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={isBusy || isStale}
-					onclick={() => onapply(recommended.budgetHours)}
-					aria-label={m.energy_curve_apply_label({
-						hours: formatDuration(recommended.budgetHours),
-					})}
-				>
-					{m.energy_curve_apply()}
-				</Button>
-			</div>
-		{:else}
-			<p class="text-sm text-ty-secondary">
-				{#if booksNoWork}
-					{m.energy_curve_no_work({
-						max: formatDuration(curve.maxBudgetHours),
-					})}
-				{:else}
-					{m.energy_curve_no_crossing({
-						max: formatDuration(curve.maxBudgetHours),
-					})}
-				{/if}
-			</p>
-			<p class="mt-text-2xs text-xs text-ty-silent">
-				{m.energy_curve_no_crossing_hint({
-					value: formatDecimals(curve.freeTimeValue, 2, locale),
-				})}
-			</p>
-		{/if}
-	</div>
+			{/if}
+		</div>
+	{/if}
 </div>
