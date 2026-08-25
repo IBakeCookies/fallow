@@ -41,10 +41,14 @@
  * families `neighbors` does NOT generate. It needs no reference: `localSearch`
  * stops at a local optimum over generated candidates, so anything uphill from
  * the returned plan is a candidate the search cannot reach, and finding one is
- * a proven defect.
+ * a proven defect. It has found none: 0 uphill candidates over 21 days, 16 of
+ * them with a fully-spent window, where CARVE-FROM-BLOCK is the only one of the
+ * two families still available. Three of those 16 hold a mid-block rest anyway
+ * — the split is generated while the plan still has room and the plan grows into
+ * the window afterwards, so a full window does not strand that structure.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports (docs/testing.md).
+ * Whatever it prints stays here, beside the run that produced it, never in
+ * MATH.md — which holds derivations only (R7, docs/testing.md).
  *
  * Usage: npm run probe
  */
