@@ -11,7 +11,7 @@
  *   netB(b) = satiatedOutput − λ₀·work + terminalEnergyValue·(workEndCog+workEndPhys)/2
  *
  * netA keeps rising after the window stops binding, because a longer window
- * recovers more of the reservoir before the terminal valuation (§13.6) — an
+ * recovers more of the reservoir before the terminal valuation — an
  * artifact of where the window edge is drawn, not a day that got better. netB
  * prices the terminal term at the end of the last WORKED block instead, so it
  * is exactly flat once work stops growing and its argmin-argmax IS the knee.
@@ -21,14 +21,14 @@
  * netC is the one that shipped. It is the OBJECTIVE, unmodified — every budget's
  * plan re-scored on a COMMON horizon W instead of on its own window, which is
  * what removes netA's artifact without netB's rescoring onto a field the
- * optimizer never saw (the §30 mistake). On a common horizon the free-time term
- * is λ₀·(W − work): a constant minus λ₀ per worked hour, so only committed work
- * is charged, and the terminal term is read at the same clock time for every
- * budget. `plan(b)` maximizes `objective` at its OWN window rather than netC, so
- * netC is not a sup over a nested family and can dip; the two criteria differ
- * only by the trailing-recovery term (§13.6: 0.034/h against λ₀'s 0.5/h), which
- * is why the dip is small and one-directional. This probe measures it — the
- * shipped `suggestBudgetCurve` takes a running max, on §14.2's argument.
+ * optimizer never saw. On a common horizon the free-time term is λ₀·(W − work):
+ * a constant minus λ₀ per worked hour, so only committed work is charged, and
+ * the terminal term is read at the same clock time for every budget. `plan(b)`
+ * maximizes `objective` at its OWN window rather than netC, so netC is not a sup
+ * over a nested family and can dip; the two criteria differ only by the
+ * trailing-recovery term (0.034/h against λ₀'s 0.5/h), which is why the dip is
+ * small and one-directional. This probe measures it — the shipped
+ * `suggestBudgetCurve` takes a running max.
  *
  * Usage: npx vitest run --config vitest.probe.config.ts --disableConsoleIntercept scripts/budget-knee.probe.ts
  */

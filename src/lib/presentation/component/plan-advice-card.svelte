@@ -13,8 +13,8 @@
 		 * The day changed after this advice was calculated. The numbers stay on
 		 * screen — it is a warning about them, not a reason to hide them — but every
 		 * lever below is withdrawn: each option is priced as the ONE next move on the
-		 * day that was solved (MATH.md §14), so once that day has moved they no
-		 * longer describe the day the button would act on.
+		 * day that was solved, so once that day has moved they no longer describe the
+		 * day the button would act on.
 		 */
 		isStale: boolean;
 		/** What the day every defer lever sends to already holds (ROADMAP item 21). */
@@ -25,8 +25,8 @@
 		/** Perform a defer-task option: move that task to tomorrow's plan. */
 		onapply: (taskId: number) => void;
 		/**
-		 * Takes the lever's UNROUNDED hours: only the label rounds (MATH.md §14.1-2),
-		 * so a budget retyped from what the card shows is one the model never priced.
+		 * Takes the lever's UNROUNDED hours: only the label rounds, so a budget
+		 * retyped from what the card shows is one the model never priced.
 		 */
 		onapplybudget: (hours: number) => void;
 	}
@@ -86,12 +86,12 @@
 			<p class="mt-grid-sm text-xs text-warning-strong">{advice.unfundedMustDo}</p>
 		{/if}
 
-		<!-- The budget's shadow price (MATH.md §14.2): a day-level reading, so it sits
-		     above the per-axis menu rather than inside one row's budget levers. -->
+		<!-- The budget's shadow price: a day-level reading, so it sits above the
+		     per-axis menu rather than inside one row's budget levers. -->
 		<p class="mt-grid-sm text-xs text-ty-silent">{advice.marginal}</p>
 
-		<!-- Not a row in the menu below: §14 rules the switch cost a measurement of
-		     the user (§14.3), so there is no lever to offer. -->
+		<!-- Not a row in the menu below: the switch cost is a measurement of the
+		     user, so there is no lever to offer. -->
 		<p class="mt-text-xs text-xs text-ty-silent">{advice.switchCost}</p>
 
 		<!-- Day-level like the two above: every defer lever below sends the task to the
@@ -111,8 +111,8 @@
 							>
 							{@render bandText(row.beforeBand)}
 						</div>
-						<!-- An axis the search came back empty on (MATH.md §14.4), said out loud:
-						     a reading with nothing under it otherwise reads as a rendering failure. -->
+						<!-- An axis the search came back empty on, said out loud: a reading with
+						     nothing under it otherwise reads as a rendering failure. -->
 						{#if row.options.length === 0}
 							<p class="mt-text-xs text-xs text-ty-silent">{m.advice_no_lever()}</p>
 						{:else}
@@ -122,7 +122,7 @@
 								{#each row.options as option (option.lever)}
 									{@const lever = option.lever}
 									<!-- Ruled off from the priced options: the unpriced increase is off the
-									     frontier (MATH.md §14) and its cost is denominated in something else. -->
+									     frontier and its cost is denominated in something else. -->
 									<li
 										class={cn(
 											'flex flex-wrap items-baseline justify-between gap-x-text-md gap-y-text-xs',
@@ -136,8 +136,8 @@
 											>
 											{@render bandText(option.afterBand)}
 											<span class="text-ty-silent">· {option.cost}</span>
-											<!-- A deferral prices "off today" (MATH.md §14) while the button commits
-											     to a destination: the aria-label carries both, and the task title. -->
+											<!-- A deferral prices "off today" while the button commits to a
+											     destination: the aria-label carries both, and the task title. -->
 											{#if lever.kind === 'defer-task'}
 												<Button
 													variant="outline"

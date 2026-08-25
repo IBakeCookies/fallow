@@ -37,7 +37,7 @@ export async function $createOrUpdateFlowObservation(
 
 			// A replacement keeps the existing stamp: it re-describes the measurement
 			// already there rather than taking a new one, which is the rule 🪫
-			// corrections follow too (MATH.md §18). Only a first log is stamped now.
+			// corrections follow too. Only a first log is stamped now.
 			const record = existing
 				? {
 						...existing,
@@ -58,7 +58,7 @@ export async function $createOrUpdateFlowObservation(
  * record id and no viewed day. Same contract as `$updateDrainObservation` and
  * `$updateRestObservation`: the `date`, the original `createdAt` and the covariates
  * captured at logging time all stand, so the only field a correction may touch is
- * the quantity the user measured (MATH.md §36).
+ * the quantity the user measured.
  *
  * A missing id is a no-op, and that is the whole reason this exists beside the
  * create-or-update above: the row's writer would re-create the record instead.

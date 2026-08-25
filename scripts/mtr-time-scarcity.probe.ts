@@ -1,12 +1,12 @@
 /**
- * What is true of Time Scarcity (`calculateTimeScarcity`, MATH.md §37) over a
+ * What is true of Time Scarcity (`calculateTimeScarcity`) over a
  * day space the allocator actually produces, and what moving its switch bill
  * from the LISTED tasks to the FUNDED ones changed.
  *
  * The row reads `max(0, (Σϕ − max(0, budget − (m−1)·s)) / Σϕ) × 100`: demand
  * over the whole list, switches over the m tasks the plan funds. Billing
  * (n−1)·s instead priced a schedule the plan does not merely leave unplanned
- * but cannot run — the defect §19.1 already removed from the gain's naive
+ * but cannot run — the defect already removed from the gain's naive
  * baseline. Five questions:
  *
  * A  How far apart are the two bills on a day the allocator produced?
@@ -26,7 +26,7 @@
  * E  What the phantom switch was worth to ONE defer: the highest-priority
  *    unfunded task dropped from the input and re-solved. Under the listed bill
  *    that freed a switch nobody was making, which is the axis bias the fix
- *    removes. Not §14's lever, which emits a candidate per active
+ *    removes. Not the advice lever, which emits a candidate per active
  *    non-`mustDoToday` task — funded ones included — and reports a Pareto
  *    frontier; this arm prices a single candidate.
  *
@@ -209,7 +209,7 @@ const SWEEP = CELLS.map((day) => {
 	};
 });
 
-describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () => {
+describe('Time Scarcity bills the switches the plan makes', () => {
 	it('A — the listed bill against the funded one', () => {
 		const gaps = SWEEP.map((cell) => cell.listedBill - cell.fundedBill);
 		const differing = gaps.filter((gap) => gap !== 0).length;
@@ -316,7 +316,7 @@ describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () 
 	it('E — what the phantom switch was worth to one highest-priority-unfunded defer', () => {
 		// The plan comes back priority-sorted, so its first `suggestedHours <= 0` is
 		// the highest-priority unfunded task — the one the listed bill charged a
-		// switch it never made. ONE candidate, not §14's lever.
+		// switch it never made. ONE candidate, not the advice lever.
 		const cells = SWEEP.filter((cell) => cell.funded < cell.day.tasks.length);
 		const fundedGains: number[] = [];
 		const listedGains: number[] = [];
@@ -349,7 +349,7 @@ describe('MATH.md §37 — Time Scarcity bills the switches the plan makes', () 
 
 		console.log(
 			`[E] ${cells.length}/${CELL_COUNT} days (${percent(cells.length / CELL_COUNT)}) hold at least one unfunded task; ` +
-				`deferring the HIGHEST-PRIORITY UNFUNDED one — one candidate, not §14's lever, which emits a candidate per ` +
+				`deferring the HIGHEST-PRIORITY UNFUNDED one — one candidate, not the advice lever, which emits a candidate per ` +
 				`active non-mustDoToday task, funded ones included, and reports a Pareto frontier — improves the FUNDED ` +
 				`reading by ${stats(fundedGains)}`,
 		);

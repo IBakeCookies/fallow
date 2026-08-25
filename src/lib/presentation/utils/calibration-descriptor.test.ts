@@ -175,7 +175,7 @@ describe('calibrationRows', () => {
 		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
 	});
 
-	// MATH.md §33: a log made today is in neither count — Σw is what the fit read,
+	// A log made today is in neither count — Σw is what the fit read,
 	// and the fit has not read it. Naming it is the difference between "your ⚡ did
 	// nothing" and "your ⚡ lands tomorrow".
 	it('names the logs no fit has counted yet, rather than folding them in', () => {
@@ -205,7 +205,7 @@ describe('calibrationRows', () => {
 		expect(calibrationRows(unfitted, 'de-DE')[1].value).toBe('0,11 /h');
 	});
 
-	// The sparkline of each fit over the recorded days (MATH.md §12).
+	// The sparkline of each fit over the recorded days.
 	describe('trend', () => {
 		it('offers no line until there are two recorded days to join', () => {
 			expect(calibrationRows(unfitted, 'en-US').map((row) => row.trend)).toEqual([

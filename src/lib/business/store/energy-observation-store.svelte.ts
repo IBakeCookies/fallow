@@ -190,7 +190,7 @@ export class EnergyObservationStore {
 
 	// Correct one already-logged session in place. Separate from logDrain
 	// because appending a corrected copy would count the session twice — the
-	// row IS the session now (MATH.md §18).
+	// row IS the session now.
 	//
 	// It writes the three numbers the editor asked for and nothing else. No `date`,
 	// because a correction re-describes a session that already happened, so it stays

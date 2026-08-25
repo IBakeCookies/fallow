@@ -1,6 +1,6 @@
 /**
- * Measurements behind MATH.md §35 — the mid-day re-plan from a prefix of hours
- * already worked (ROADMAP item 12).
+ * Measurements behind the mid-day re-plan from a prefix of hours already worked
+ * (ROADMAP item 12).
  *
  * Five questions, the first four of which had to be answered before the item
  * shipped and the fifth of which was answered by a bug report against it:
@@ -14,8 +14,7 @@
  *     context switch to be charged, or free? The shipped answer is FREE, and
  *     this prices the alternative it was chosen over.
  *  4. What does the second solve cost in wall clock at n = 12 — the reason it
- *     is gated rather than folded into `calculateDailyMetrics` (§14.2's cost
- *     rule).
+ *     is gated rather than folded into `calculateDailyMetrics` (the cost rule).
  *  5. What was it worth to drop a task that was ticked done with nothing logged
  *     against it? That is the refund the first version handed out, and it is
  *     the reason a checkbox could reshuffle the afternoon.
@@ -135,7 +134,7 @@ function lastBlockValue(t: Task, worked: number, planned: number): number {
 /**
  * Σ P̄ prices neither the pools nor the switch bill — they are CONSTRAINTS, not
  * terms — so an arm that ignores them outscores one that respects them for free.
- * (§19 is the same trap, one level down: the gain's naive baseline paid for
+ * (The same trap appears one level down: the gain's naive baseline paid for
  * switches it never made.) Every arm is therefore trimmed to the same
  * feasibility before it is scored: drop the cheapest funded block until the
  * remaining budget, its switch reservation, and both depleted pools all hold.
@@ -157,9 +156,9 @@ function trimToFeasible(
 		const funded = [...out.keys()];
 		const hours = [...out.values()].reduce((a, b) => a + b, 0);
 		// The DAY's switch bill, not the afternoon's: a task with hours on it is
-		// funded whether or not this plan gives it more (MATH.md §35). Charging the
-		// afternoon's own count instead is what let a plan abandon two started
-		// tasks and pocket their switches.
+		// funded whether or not this plan gives it more. Charging the afternoon's
+		// own count instead is what let a plan abandon two started tasks and
+		// pocket their switches.
 		const dayFunded = new Set(funded);
 
 		for (const [id, h] of worked) if (h > 0) dayFunded.add(id);
@@ -392,7 +391,7 @@ function scoreArm(day: Day, plan: Map<number, number>, budgetLeft: number) {
 	};
 }
 
-describe('prefix-aware mid-day re-plan (MATH.md §35)', () => {
+describe('prefix-aware mid-day re-plan', () => {
 	it('prices the re-plan against the morning plan and against a cold re-solve', () => {
 		const rand = mulberry32(SEED);
 		const vsCold: number[] = [];

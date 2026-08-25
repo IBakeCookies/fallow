@@ -445,12 +445,12 @@ describe('Zenith Energy Model', () => {
 			expect(ev.leisureHours).toBe(8);
 			expect(ev.endCog).toBeCloseTo(1, 6);
 			expect(ev.endPhys).toBeCloseTo(1, 6);
-			// Nothing worked: "when you stop" is where you started (MATH.md §13.6).
+			// Nothing worked: "when you stop" is where you started.
 			expect(ev.workEndCog).toBeCloseTo(1, 12);
 			expect(ev.workEndPhys).toBeCloseTo(1, 12);
 		});
 
-		// MATH.md §13.6: the Lab's tile reads the end of WORK, terminalBonus the end
+		// The Lab's tile reads the end of WORK, terminalBonus the end
 		// of the window. Rest after the last work block must move one and not the other.
 		it('workEnd* read the last worked block, endCog/endPhys the end of the window', () => {
 			const deep = [makeTask(1, 'deep', 8, 6, 1, 0)];
@@ -1515,7 +1515,7 @@ describe('Zenith Energy Model', () => {
 
 		// Synthetic user: work the plan the optimizer builds at the TRUE λ₀ and log
 		// each session as it finishes — one 🪫 row per session carrying the moment
-		// it ended (§18), which is what the day's breaks survive in. `summed`
+		// it ended, which is what the day's breaks survive in. `summed`
 		// re-reads the same day with the moments dropped: the reading before
 		// 2026-08-19, and still what a batch-logged day gets.
 		const dayFromPlan = (trueLambda: number, windowHours: number): StopObservation => {
@@ -1979,8 +1979,8 @@ describe('Zenith Energy Model', () => {
 				},
 			]);
 
-			// Unlogged tasks are probed at their CANONICAL amplitude position
-			// (MATH.md §13.4). Boxing (10.4) and guitar (6.67) both outrank
+			// Unlogged tasks are probed at their CANONICAL amplitude position.
+			// Boxing (10.4) and guitar (6.67) both outrank
 			// reading (4.60), so their probe block goes BEFORE it, not appended.
 			const lo = Math.max(
 				(workValue([
@@ -2228,7 +2228,7 @@ describe('Zenith Energy Model', () => {
 		 * free tuning move — one slider notch to λ₀ = 1 (the Lab's range is
 		 * [0, 3] step 0.1) empties the plan on this portfolio entirely, and that
 		 * optimum is real: satiated output over 4.5 h of these tasks is worth less
-		 * than 12 h of leisure priced at 1 (§8.3, §15).
+		 * than 12 h of leisure priced at 1 (§8.3).
 		 */
 		it('the same default tapers to 4.5 h on a light day, and λ₀ = 1 empties it', () => {
 			const light = [makeTask(1, 'errand', 3, 5, 0.2, 0.2), makeTask(2, 'tidy', 2, 4, 0.1, 0.3)];
@@ -2637,7 +2637,7 @@ describe('Zenith Energy Model', () => {
 		});
 
 		// The sibling above ranks the LOGGED task first, so its probe lands last
-		// either way. This is the other branch of `growBy` (MATH.md §13.4): a
+		// either way. This is the other branch of `growBy`: a
 		// candidate probed AHEAD of logged work, which is what makes the forward
 		// reading order-dependent (MATH.md §8.11's bounds). Three tasks, with the
 		// candidate at rank 1, so the position is the MIDDLE — insert-first,
@@ -3041,7 +3041,7 @@ describe('Zenith Energy Model', () => {
 			expect(curve.points.every((p) => p.valuePerHour === 0)).toBe(true);
 		});
 
-		it('day value never falls as the budget grows — the running max (MATH.md §14.2)', () => {
+		it('day value never falls as the budget grows — the running max', () => {
 			// A fixture that ACTUALLY dips, found by search: `plan(b)` maximizes the
 			// objective at its own window rather than this score, so the raw
 			// common-horizon sweep falls 8.4906 → 8.4508 between 8.25 h and 9 h here.

@@ -1,7 +1,7 @@
 /**
  * How much of an advice option's improvement the CARD cannot show.
  *
- * The advisor searches on continuous badness (§14 — Energy Balance on
+ * The advisor searches on continuous badness (Energy Balance on
  * `|value − 50|`, the rest on the reading itself) and keeps a candidate only if
  * that badness strictly falls. What renders is coarser, so an option can be a
  * real improvement and still print the reading of the row it sits under, which
@@ -13,7 +13,7 @@
  * that is measured too — the rows that would lose every option, and the relief
  * that would be thrown away with them.
  *
- * WHAT IT FOUND, and what the numbers mean now (MATH.md §25, 2026-08-08). Energy
+ * WHAT IT FOUND, and what the numbers mean now (2026-08-08). Energy
  * Balance used to render as one of three words alone, and 365 of its 593 options
  * (61.6%) printed the row's own word back, hiding up to 39.3 points — worst case
  * a share moved 0.0 → 39.3 with "Physical Heavy" on both sides. Suppressing them
@@ -129,8 +129,8 @@ const DAYS = randomDays(600, 42);
 const LOCALE = 'en-GB';
 
 /**
- * Badness, lower-is-better, as §14 ranks it: Energy Balance is a target between
- * the pools, every other axis reads directly. The one duplicated rule in this
+ * Badness, lower-is-better, as the advisor ranks it: Energy Balance is a target
+ * between the pools, every other axis reads directly. The one duplicated rule in this
  * file, and unavoidable — `plan-advice.ts` keeps its `AXIS` table private, and
  * the probe's whole question is the size of an improvement the display drops.
  */
@@ -210,7 +210,7 @@ describe('advice display resolution', () => {
 	 * without the rows that could have produced one, and Energy Balance only
 	 * renders when the day is skewed at all.
 	 */
-	it('counts the rows and options the card renders (MATH.md §14)', () => {
+	it('counts the rows and options the card renders', () => {
 		const rows = new Map<AdviceAxis, number>();
 		const options = new Map<AdviceAxis, number>();
 
@@ -240,7 +240,7 @@ describe('advice display resolution', () => {
 	 * axis's own badness points (percentage points for every axis but Energy
 	 * Balance, where it is distance from the 50 target).
 	 */
-	it('measures options whose printed reading equals the row’s (MATH.md §14/§25)', () => {
+	it('measures options whose printed reading equals the row’s', () => {
 		const axes = new Set(ALL.flat().map((option) => option.axis));
 
 		for (const axis of [...axes].sort()) {
@@ -271,7 +271,7 @@ describe('advice display resolution', () => {
 	 * deletes the finding with them, along with the largest improvement the day
 	 * had to offer on that axis.
 	 */
-	it('measures the rows suppression would empty (MATH.md §14)', () => {
+	it('measures the rows suppression would empty', () => {
 		const byRow = new Map<string, Priced[]>();
 
 		ALL.forEach((day, index) =>

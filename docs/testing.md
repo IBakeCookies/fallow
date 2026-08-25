@@ -272,13 +272,15 @@ not be re-checked and stayed in the document while being false.
   re-rollable — and a curated fixture and a random sweep answer different
   questions, so keep both (600 random days show the trim free on all 404
   levers; the pool-bound fixture beside them is non-free on 103 of 126).
-- **Date the number where it is quoted.** `MATH.md` already does this ("Probe
-  2026-07-27", "measured 2026-08-04"). `scripts/` is linted but sits outside
-  `tsconfig.json`, and nothing runs a probe on a schedule, so one rots quietly;
-  the date is what tells a reader whether the figure has been re-run since the
-  code under it moved.
+- **Quote the number in the probe, not in prose.** A figure belongs in the file
+  that can re-derive it — the probe's header, beside the run that produced it.
+  Nothing runs a probe on a schedule, so a figure copied into a document that
+  cannot re-run rots silently and the copy is the last thing anyone checks. This
+  used to be handled by hand-dating every quoted number; MATH.md carried 182 of
+  those stamps in one section and eleven of its figures were stale anyway. So
+  MATH.md now holds derivations only (R7) and the dating rule is gone with them.
 - **Pin what the probe found with one fixture in the suite**, never the sweep
-  itself — §14.2's multi-gainer tie-break is pinned exactly that way.
+  itself.
 - **Pin it against a literal, never against the constant it bounds.**
   `expect(fit.alpha).toBeLessThanOrEqual(ALPHA_FIT_MAX)` moves with
   `ALPHA_FIT_MAX`, so it holds at any value and pins none. Perturbing all 40

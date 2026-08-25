@@ -8,10 +8,10 @@
  * budget is frequently a weekday median rather than a declaration, so a per-task
  * funding claim would be a solve on a guess presented as a promise — the same
  * defect that superseded item 8. It is no part of the advice objective either
- * (MATH.md §14) and prices nothing.
+ * and prices nothing.
  *
  * One solve, through the classic allocator alone: the funded set needs no energy
- * params, and the §11.9 carry-over seed belongs to the VIEWED day's predecessor,
+ * params, and the carry-over seed belongs to the VIEWED day's predecessor,
  * so `calculateDailyMetrics` would have to invent one for another day.
  */
 
@@ -39,7 +39,7 @@ export interface DeferDestination {
 }
 
 export function summarizeDeferDestination(input: DeferDestinationInput): DeferDestination {
-	// Solved over the whole stored list, plan scope (MATH.md §11.8), and counted
+	// Solved over the whole stored list, plan scope, and counted
 	// over the open ones: the allocator is blind to `completed`, so a ticked-off
 	// task keeps its hours — the rule `unfundedTaskIds` reads by.
 	const plan = calculateSuggestedTasks(

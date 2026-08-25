@@ -3,28 +3,28 @@
  * allocator actually produces.
  *
  * The metric is one predicate over a count — `|{t funded : Eᵤ(t) > βᵤ(t)}| / m`,
- * plan-scoped (§11.8), unweighted by hours (MATH.md §11.10). Six questions:
+ * plan-scoped, unweighted by hours. Six questions:
  *
  * 1. **Is the reading the formula?** Recompute from the returned plan.
  * 2. **What can it read, and how coarse is a step?** The value is quantized to
  *    100/m, and `AXIS_BAND.grindDensity` cuts at 25/50/75 — so on a small plan
  *    one task crossing the threshold can cross two bands. This is why the row
  *    renders the fraction beside the percent.
- * 3. **What did unfunded tasks vote?** §11.10's fix: a 0 h task is work the plan
- *    does NOT do, where Friction (§11.4) and Reward weigh it 0 already. The
- *    reading arm only: §11.10's companion figure — the 79 free
- *    defer-an-unfunded-task options the advisor used to offer — was measured
- *    against the pre-retirement advisor and cannot be re-run, because §11.11
- *    retired the axis and no grind-density finding exists to carry a lever.
+ * 3. **What did unfunded tasks vote?** The fix: a 0 h task is work the plan
+ *    does NOT do, where Friction and Reward weigh it 0 already. The reading arm
+ *    only: the fix's companion figure — the 79 free defer-an-unfunded-task
+ *    options the advisor used to offer — was measured against the
+ *    pre-retirement advisor and cannot be re-run, because the axis was retired
+ *    and no grind-density finding exists to carry a lever.
  * 4. **Where is the threshold?** `>` compares EFFECTIVE difficulty (a composite,
- *    dominant + 0.3·secondary) against the raw enjoyment slider — §11.4's zero
+ *    dominant + 0.3·secondary) against the raw enjoyment slider — the zero
  *    boundary, but binary: a cell does not read "a little" grind, it counts.
  * 5. **Is it its own reading?** Same two inputs as Friction and Reward Density.
  * 6. **What would hours have said, and why is this no longer an advice axis?**
- *    §11.11: the count and the hour-weighted share of the same predicate split
- *    bands on a quarter of days, that hour-weighted share is already Sustainable
- *    Work's complement, and the count moves further than the hours a defer
- *    actually gives up — a task-denominated axis under hour-priced levers.
+ *    The count and the hour-weighted share of the same predicate split bands on
+ *    a quarter of days, that hour-weighted share is already Sustainable Work's
+ *    complement, and the count moves further than the hours a defer actually
+ *    gives up — a task-denominated axis under hour-priced levers.
  *
  * A probe, not a test: every rate below moves whenever the allocator moves.
  *
@@ -198,7 +198,7 @@ describe('Grind Density over a day space', () => {
 	});
 
 	it('3. what unfunded (0 h) tasks used to vote', () => {
-		/** The pre-§11.10 rule: every task in the plan is one of `n`. */
+		/** The old rule: every task in the plan is one of `n`. */
 		const oldRule = (p: SuggestedTask[]) =>
 			p.length
 				? Math.round(
@@ -240,7 +240,7 @@ describe('Grind Density over a day space', () => {
 		}
 
 		// The advisor's free "defer a task you were not going to touch" lever, which
-		// this fix removed, is moot from both ends now: §11.11 retired the axis
+		// this fix removed, is moot from both ends now: the axis was retired
 		// outright, so no grind-density finding exists to carry any lever at all.
 		// Question 6 measures what replaced it.
 	});
@@ -373,7 +373,7 @@ describe('Grind Density over a day space', () => {
 	});
 
 	it('6. what hours would say instead, and why this is no longer an axis', () => {
-		/** The same predicate, weighted by allocated hours (MATH.md §11.11). */
+		/** The same predicate, weighted by allocated hours. */
 		const hourShare = (p: SuggestedTask[]) => {
 			const funded = p.filter((t) => t.suggestedHours > 0);
 			const hours = funded.reduce((sum, t) => sum + t.suggestedHours, 0);
@@ -422,8 +422,9 @@ describe('Grind Density over a day space', () => {
 		);
 
 		// Weighting this metric by hours would not add a reading, it would duplicate
-		// Sustainable Work: §27 measures the sustainable side of the same partition
-		// over the same hours, so `100 − reward` IS the hour-weighted grind share.
+		// Sustainable Work, which measures the sustainable side of the same
+		// partition over the same hours, so `100 − reward` IS the hour-weighted
+		// grind share.
 		const duplicate = Math.max(
 			...rows.map((r) => (r.reward === null ? 0 : Math.abs(100 - r.reward - r.hours))),
 		);
@@ -437,7 +438,7 @@ describe('Grind Density over a day space', () => {
 		// priced in hours. Deferring the day's smallest funded grind drops it from
 		// BOTH the count and the denominator, so the step is the rounded reading's
 		// own difference, for the task's share of the booked time — the ratio the
-		// advisor was buying at ~3% of Σ P̄ a step (MATH.md §11.11).
+		// advisor was buying at ~3% of Σ P̄ a step.
 		const reading = (grinds: number, funded: number) =>
 			funded ? Math.round((grinds / funded) * 100) : 0;
 

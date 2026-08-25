@@ -1,5 +1,5 @@
 /**
- * Measurements behind MATH.md §34: what the funded-subset search forfeits past
+ * Measurements behind the funded-subset search: what it forfeits past
  * `EXACT_SUBSET_LIMIT`, what the size bound costs in wall clock, and where the
  * bounded path gives way to the fallback — the crossover §7 quotes.
  *
@@ -8,9 +8,9 @@
  * every task in the day, so 13+ is an ordinary backlog, not an exotic input.
  * This probe prices that gap: for each random day it runs the allocator and,
  * beside it, an exhaustive enumeration of the funded-subset dimension, and
- * reports the shortfall by budget band. The band split is the point — §21.1
- * shows selection is where the whole edge lives below ~2 h, so a selection
- * search that fails there fails where it matters.
+ * reports the shortfall by budget band. The band split is the point —
+ * selection is where the whole edge lives below ~2 h, so a selection search
+ * that fails there fails where it matters.
  *
  * The reference enumerates every subset and leaves each subset's block split to
  * the single-budget greedy, which §4 proves exact. That isolates the fixed-charge
@@ -100,15 +100,15 @@ function exhaustiveValue(tasks: ProbeTask[], budget: number, switchCost: number)
 }
 
 /**
- * `maxFunded` and the Σⱼ C(n, j) plan count §34's bound tests, re-derived here
- * from §34's rule rather than imported — the allocator does not report them, and
+ * `maxFunded` and the Σⱼ C(n, j) plan count the bound tests, re-derived here
+ * from that rule rather than imported — the allocator does not report them, and
  * a probe that asked the code under test which path it took would be measuring
  * nothing. The cap it compares against is the shipped `SUBSET_SEARCH_BUDGET`,
  * so the derivation moves with the rule rather than with a copy of it. Runs past
  * `EXACT_SUBSET_LIMIT` only; below that the full enumeration always runs.
  *
  * It re-derives the shipped rule at `startedCount` = 0 — every day this probe
- * generates — where `max(0, m)` is `m` and the day-funded term of §34's bound
+ * generates — where `max(0, m)` is `m` and the day-funded term of the bound
  * drops out of the expression.
  */
 function boundedSearchSize(
@@ -242,8 +242,8 @@ describe('funded-subset search past the exact limit', () => {
 
 			// The grid alone bounds a worst case only over the days it swept, so the
 			// historical 120-day sample runs beside it, into two sets of totals. Only
-			// `worstPercent` is a max and cannot fall, so §34 takes its two worsts from
-			// the union and its count and mean from `sample`, where they stay
+			// `worstPercent` is a max and cannot fall, so MATH.md takes its two worsts
+			// from the union and its count and mean from `sample`, where they stay
 			// comparable to its 120-day before-table. The sample's seed and draw order
 			// are e02bb3a's exactly, so it reproduces that population.
 			const sampled = mulberry32(n * 104729);
@@ -340,7 +340,7 @@ describe('funded-subset search past the exact limit', () => {
 	});
 
 	it('walks the bounded region, per (n, switchCost)', () => {
-		// §7 and §34 both quote where the bounded path gives way, and nothing in the
+		// §7 quotes where the bounded path gives way, and nothing in the
 		// repo emitted it. `steps` beside the last budget is what shows the region is
 		// an interval: they agree iff every budget below the crossover is bounded too.
 		// The one-hour column answers §7's other claim — how long the list must be
@@ -425,7 +425,7 @@ describe('funded-subset search past the exact limit', () => {
 			// A dearer switch crosses over no earlier: the charge holds `maxFunded`
 			// down, which is what leaves the enumeration affordable further up the
 			// ladder. This ordering is what lets §7 read every ≤ 2 h shortfall in
-			// §34's after-table as a `switchCost` 0.1 day.
+			// the after-table as a `switchCost` 0.1 day.
 			const bySwitchCost = crossovers.filter((row) => row.n === n);
 
 			for (let i = 1; i < bySwitchCost.length; i++)

@@ -1,7 +1,7 @@
 /**
  * Plan advice → display rows.
  *
- * The model prices every axis unconditionally (MATH.md §14); deciding which of
+ * The model prices every axis unconditionally; deciding which of
  * those answers is worth showing is a band, and bands are presentation policy —
  * so the filter here is `isOutOfBand`, the same call that colors the metric
  * rows. Nothing in this file computes a reading.
@@ -46,7 +46,7 @@ export interface AdviceRowOption {
 	/** The words on this lever's button, or null when the card supplies them. */
 	applyLabel: string | null;
 	/**
-	 * The budget increase Σ P̄ cannot price (MATH.md §14) — never a member of the
+	 * The budget increase Σ P̄ cannot price — never a member of the
 	 * frontier above it, so the card sets it apart rather than listing it as a
 	 * fourth comparable option. Always the last option of a row when present.
 	 */
@@ -70,11 +70,11 @@ export interface AdviceDisplay {
 	 * promises the day, not the hours — and the menu below has no lever for them.
 	 */
 	unfundedMustDo: string | null;
-	/** The budget's shadow price as a sentence (MATH.md §14.2) — always a reading. */
+	/** The budget's shadow price as a sentence — always a reading. */
 	marginal: string;
 	/**
 	 * What the day's declared switch cost reserves, and what the plan would be
-	 * worth at zero and at double (MATH.md §14.3) — always a reading, and never
+	 * worth at zero and at double — always a reading, and never
 	 * phrased as something to act on.
 	 */
 	switchCost: string;
@@ -104,7 +104,7 @@ const QUADRANT_LABEL: Record<DailyQuadrant, () => string> = {
  * the share behind it — the metric row agrees, through the same call.
  *
  * A non-reading gets no band: Human Capacity is `Infinity` when a pool holds 0
- * hours with demand on it (MATH.md §14), and `AXIS_BAND` would call that
+ * hours with demand on it, and `AXIS_BAND` would call that
  * critical — colouring "N/A" red, and announcing it as critical to a screen
  * reader, is a judgement about a number that does not exist. The metric rows
  * render every N/A neutral for the same reason.
@@ -125,7 +125,7 @@ function readingOf(axis: AdviceAxis, value: number): { text: string; band: Band 
 }
 
 /**
- * The lever carries unrounded hours on purpose (MATH.md §14); only the label
+ * The lever carries unrounded hours on purpose; only the label
  * rounds, and only to keep "6.4167h" out of the card. `maximumFractionDigits`
  * rather than `formatDecimals`, which pads: a whole-hour lever reads "8h", not
  * "8.00h". The locale owns the separator either way — a German card printing
@@ -170,7 +170,7 @@ function formatApplyLabel(lever: AdviceLever, isUnpriced: boolean, locale: strin
 
 /**
  * A change in plan value, signed: "+3.1% plan value", "−6.2% plan value", or
- * "N/A" when there is no Σ P̄ to compare against (MATH.md §14.1-3).
+ * "N/A" when there is no Σ P̄ to compare against.
  *
  * An explicit sign both ways, because "+3.1%" and "−6.2%" have to be told apart
  * at a glance and a bare "6.2%" reads as a gain. One signing for all three
@@ -200,7 +200,7 @@ function formatCost(deltaPercent: number | null, locale: string): string {
 }
 
 /**
- * The block the budget would buy, and who gets it (MATH.md §14.2). Priced in the
+ * The block the budget would buy, and who gets it. Priced in the
  * same "% plan value" as the cost column — `advice_cost` spells that half — but
  * signed +, because a wider budget can only add.
  */
@@ -208,13 +208,13 @@ function formatMarginal(marginal: BudgetMarginal, locale: string): string {
 	const minutes = Math.round(marginal.blockHours * 60);
 
 	// Keyed on the gain as well as the recipient: the pooled heuristic can hand a
-	// task the block while the day's value nets out flat (MATH.md §14.2), and
+	// task the block while the day's value nets out flat, and
 	// "goes to X · +0% plan value" is the same non-advice as no recipient at all.
 	//
 	// The sentence is scoped to output, not to the worth of the time: on these
 	// same days the unpriced `budget + 1` lever below is still right, because Load
 	// is `weightedHours / budget` and a longer day for the same work is real
-	// relief (MATH.md §14.2). "Adds nothing to this plan" contradicted that row.
+	// relief. "Adds nothing to this plan" contradicted that row.
 	if (!marginal.recipient || marginal.planValueGainPercent === 0)
 		return m.advice_marginal_none({
 			minutes,
@@ -228,25 +228,24 @@ function formatMarginal(marginal: BudgetMarginal, locale: string): string {
 }
 
 /**
- * What the declared switch cost is doing to today, bracketed by zero and double
- * (MATH.md §14.3).
+ * What the declared switch cost is doing to today, bracketed by zero and double.
  *
  * Conditional on purpose: each alternative is what this plan would be worth *if*
  * the declaration were that number, and never "switch faster and gain this". The
  * user cannot decide to switch tasks more cheaply, only report how cheaply they
- * do — which is the same reason §14 refuses to make this a lever.
+ * do — which is the same reason the model refuses to make this a lever.
  */
 function formatSwitchCostPrice(price: SwitchCostPrice, locale: string): string {
 	const declared = formatDuration(price.declared);
 	// Both arms or neither: `plan-advice.ts` drops them on the same test, |s| under
-	// a minute, so a length-1 `alternatives` does not exist (MATH.md §14.3).
+	// a minute, so a length-1 `alternatives` does not exist.
 	const [free, doubled] = price.alternatives;
 
 	// TWO INDEPENDENT SUPPRESSIONS, and unioning them was a defect: a plan can
 	// reserve nothing and still have a large bracket, because the declaration is
 	// *why* it funds too few tasks to switch between. That is the generic 3-task
 	// day at budget 0.5 h and s = 15 min, not a corner — every case swept lands in
-	// it, at a median +41.9% and up to +63.4% at s = 0 (MATH.md §14.3) — and the
+	// it, at a median +41.9% and up to +63.4% at s = 0 — and the
 	// unioned version printed "pays for no switching" — discarding the reading
 	// both extra solves existed to produce, on precisely the day the constant did
 	// the most damage.
@@ -258,14 +257,14 @@ function formatSwitchCostPrice(price: SwitchCostPrice, locale: string): string {
 			: m.advice_switch_cost({
 					reserved: formatDuration(price.reservedHours),
 					// Non-null by the branch: the share is null only at budget 0, where
-					// the allocator funds nothing and `reservedHours` is 0 (MATH.md §14.3).
+					// the allocator funds nothing and `reservedHours` is 0.
 					share: Math.round(price.reservedShare! * 100),
 					declared,
 				});
 
 	// The bracket is dropped only when it would say nothing, and that is read off
 	// the numbers rather than guessed from the day's shape: a null delta means the
-	// plan's Σ P̄ is 0 and there is no ratio to state (MATH.md §14.1-3), and two
+	// plan's Σ P̄ is 0 and there is no ratio to state, and two
 	// zero deltas mean both declarations reproduce this exact plan — which is what
 	// a day with a single task on the list looks like, as against a day the
 	// declaration starved down to one funded task, where the free arm is large.
@@ -290,7 +289,7 @@ function formatSwitchCostPrice(price: SwitchCostPrice, locale: string): string {
 
 /**
  * The frontier rises in plan value, so its *last* option is the cheapest one —
- * the "most of the relief for a fraction of the cost" row §14 returns a whole
+ * the "most of the relief for a fraction of the cost" row the model returns a whole
  * frontier to surface. Truncating from the end would drop exactly that, so drop
  * from the middle and keep both ends.
  */
@@ -309,7 +308,7 @@ function cap(options: AdviceOption[]): AdviceOption[] {
  *
  * Its own function and its own card prop rather than a field on `AdviceDisplay`:
  * that object is built from `PlanAdvice`, which is contractually today's inputs
- * alone (MATH.md §14), and this is a reading about another day.
+ * alone, and this is a reading about another day.
  */
 export function describeDeferDestination(destination: DeferDestination | null): string | null {
 	if (!destination) return null;
@@ -372,7 +371,7 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 				// A reading that is not a number judges nothing — `readingOf` prints it
 				// N/A and bands it neutral — so it earns a row only when there is a
 				// lever under it. That is Human Capacity's Infinity, which real options
-				// bring down to a number. The two NaN sentinels (MATH.md §14.1-5) have
+				// bring down to a number. The two NaN sentinels have
 				// none, and `getBandBiggerBetter(NaN)` calls Schedule Integrity's
 				// critical: a row reading "N/A · nothing improves this" on a day with no
 				// budget is the alarm-about-nothing the sentinel exists to prevent.
@@ -394,7 +393,7 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 					),
 					// Last, and priced in hours rather than plan value: Σ P̄ *rises* when
 					// the budget does, so showing that rise in the cost column would read
-					// as the extra hour being free (MATH.md §14).
+					// as the extra hour being free.
 					...(finding.unpriced
 						? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour(), true)]
 						: []),

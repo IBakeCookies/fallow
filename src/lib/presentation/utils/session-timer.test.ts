@@ -59,7 +59,7 @@ describe('getPendingMinutes', () => {
 		expect(getPendingMinutes(stopped(45 * 60_000))).toBe(45);
 	});
 
-	// A clock still counting would fund a second log from the same minutes (MATH.md §18),
+	// A clock still counting would fund a second log from the same minutes,
 	// and the first log would take the rest of the session with it.
 	it('offers nothing while the timer is still running', () => {
 		expect(getPendingMinutes(runTimer(null, TODAY, START))).toBeNull();

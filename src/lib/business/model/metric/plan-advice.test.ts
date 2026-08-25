@@ -75,21 +75,21 @@ function findingFor(advice: PlanAdvice, axis: AdviceAxis) {
 	return advice.findings.find((finding) => finding.axis === axis);
 }
 
-/** The same lower-is-better reading the model orders candidates by (MATH.md §14). */
+/** The same lower-is-better reading the model orders candidates by. */
 function badnessOf(axis: AdviceAxis, value: number): number {
 	if (axis === 'energyBalance') return Math.abs(value - 50);
 
 	// Bigger-better, and correct for both of this axis's numbers: an option that
-	// raises the count raises the share with it (MATH.md §14.5).
+	// raises the count raises the share with it.
 	if (axis === 'scheduleIntegrity' || axis === 'flowCoverage') return -value;
 
 	return value;
 }
 
 /**
- * What the model ORDERS each axis by (MATH.md §14). Flow Coverage is the one
+ * What the model ORDERS each axis by. Flow Coverage is the one
  * axis whose badness is not a function of the reading it prints: it ranks on the
- * count of tasks that reach ϕ and displays the share (MATH.md §14.5).
+ * count of tasks that reach ϕ and displays the share.
  */
 function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
 	if (axis === 'humanCapacity') return metrics.humanCapacity.percent;
@@ -97,7 +97,7 @@ function readAxis(metrics: DailyMetrics, axis: AdviceAxis): number {
 	if (axis === 'flowCoverage') return metrics.flowCoverage.reached;
 
 	// The two sentinels, or a day whose last task is deferred reads 50 and 100
-	// here while the model reads NaN and excludes it (MATH.md §14.1-5).
+	// here while the model reads NaN and excludes it.
 	if (axis === 'energyBalance')
 		return metrics.cognitiveLoad + metrics.physicalLoad === 0 ? NaN : metrics.energyBalance;
 
@@ -129,7 +129,7 @@ describe('suggestPlanAdjustments', () => {
 			}),
 		);
 
-		// The axes are still all reported (MATH.md §14.4). What an empty day has is
+		// The axes are still all reported. What an empty day has is
 		// nothing to DO about them — an empty menu everywhere, not a missing axis.
 		expect(everyOption(advice)).toEqual([]);
 		expect(advice.unfundedTaskIds).toEqual([]);
@@ -169,7 +169,7 @@ describe('suggestPlanAdjustments', () => {
 		expect(deferred.length).toBeGreaterThan(0);
 	});
 
-	// The one thing the model knows about obligation (MATH.md §14): a flagged task
+	// The one thing the model knows about obligation: a flagged task
 	// is not a candidate at all. Nothing else about it changes.
 	it('never offers to defer a task flagged mustDoToday', () => {
 		const advice = suggestPlanAdjustments(
@@ -266,7 +266,7 @@ describe('suggestPlanAdjustments', () => {
 		expect(applied.zenithGain.optimized).toBe(option!.planValue);
 	});
 
-	// MATH.md §29. The Day Profile is a hard cliff on two hour-weighted averages,
+	// The Day Profile is a hard cliff on two hour-weighted averages,
 	// so a flip is only worth printing when BOTH plans stand clear of it by
 	// `QUADRANT_FLIP_MARGIN` — a quarter of one slider point.
 	describe('the Day Profile a lever moves the day to', () => {
@@ -321,8 +321,8 @@ describe('suggestPlanAdjustments', () => {
 
 		it('claims no flip from a baseline that straddles a cut', () => {
 			// 4.5 h at effective difficulty 7 + 0.3·5 = 8.5 and 1.5 h at 1 + 0.3·1 =
-			// 1.3 average 6.7, against the demanding cut of 5 + 0.3·5 = 6.5 (MATH.md
-			// §29): the day is grind by 0.2 of a slider point. Deferring the big task
+			// 1.3 average 6.7, against the demanding cut of 5 + 0.3·5 = 6.5:
+			// the day is grind by 0.2 of a slider point. Deferring the big task
 			// leaves a squarely routine plan — the CANDIDATE is 4.5 points clear — so
 			// only the baseline's thinness is keeping the flip off the card.
 			const base = input([
@@ -432,7 +432,7 @@ describe('suggestPlanAdjustments', () => {
 
 	// On a budget-bound day the trim changes no allocation, so it costs nothing —
 	// the case that proves the cost figure is not a fudge. It is NOT the general
-	// property: see the pool-bound day below (MATH.md §14.1-2).
+	// property: see the pool-bound day below.
 	it('prices a pure budget trim at zero plan value', () => {
 		const base = grindDay(14);
 		const baseline = calculateDailyMetrics(base);
@@ -446,8 +446,8 @@ describe('suggestPlanAdjustments', () => {
 		expect(trim?.planValueDeltaPercent).toBe(0);
 	});
 
-	// The counter-case, pinned from `scripts/plan-advice.probe.ts` (MATH.md
-	// §14.1-2): the trim keeps the plan FEASIBLE — same funded count, same
+	// The counter-case, pinned from `scripts/plan-advice.probe.ts`:
+	// the trim keeps the plan FEASIBLE — same funded count, same
 	// allocated hours — but `allocate` is path-dependent on `budgetBlocks`, so a
 	// pool-bound day re-solves to a different distribution of those hours and the
 	// lever is not free. Guards against anyone "fixing" the residual with a clamp.
@@ -496,7 +496,7 @@ describe('suggestPlanAdjustments', () => {
 		const allocated = (metrics: DailyMetrics) =>
 			metrics.suggestedTasks.reduce((sum, task) => sum + task.suggestedHours, 0);
 
-		// Feasible: nothing was cut, so this is not §14.1-2's rounding defect.
+		// Feasible: nothing was cut, so this is not the rounding defect.
 		expect(funded(trimmed)).toBe(funded(baseline));
 		expect(allocated(trimmed)).toBeCloseTo(allocated(baseline), 10);
 
@@ -526,7 +526,7 @@ describe('suggestPlanAdjustments', () => {
 
 	// A flagged task has no per-task lever left, so an unfunded one is the single
 	// conflict the menu cannot express — reported apart from the plain unfunded
-	// read rather than counted in it (MATH.md §14).
+	// read rather than counted in it.
 	it('partitions the unfunded read by the must-do flag', () => {
 		const starved = calculateDailyMetrics(grindDay(0.5))
 			.activeTasks.filter((task) => task.suggestedHours <= 0)
@@ -560,7 +560,7 @@ describe('suggestPlanAdjustments', () => {
 		);
 	});
 
-	// Every axis, unconditionally and in order (MATH.md §14.4): the caller reads
+	// Every axis, unconditionally and in order: the caller reads
 	// the menu to know what helps, and the axis's presence says only that it was
 	// asked. Dropping the ones nothing helps is what made an unfixable warning
 	// indistinguishable from a day with no warning on it.
@@ -596,7 +596,7 @@ describe('suggestPlanAdjustments', () => {
 		expect(suggestPlanAdjustments(grindDay())).toEqual(suggestPlanAdjustments(grindDay()));
 	});
 
-	// MATH.md §14.1-1. Σ P̄ rises with the budget, so a budget increase inside the
+	// Σ P̄ rises with the budget, so a budget increase inside the
 	// frontier would out-value every defer and dominate the whole menu — which on
 	// 99 of 1580 probe frontiers reduced the advice to "work an extra hour".
 	it('never files a budget increase inside the priced frontier', () => {
@@ -632,7 +632,7 @@ describe('suggestPlanAdjustments', () => {
 				});
 
 				// Both sides through `readAxis`: `finding.before` is the PRINTED reading,
-				// which Flow Coverage does not rank on (MATH.md §14.5).
+				// which Flow Coverage does not rank on.
 				return (
 					badnessOf(finding.axis, readAxis(metrics, finding.axis)) <
 					badnessOf(finding.axis, readAxis(baseline, finding.axis))
@@ -644,7 +644,7 @@ describe('suggestPlanAdjustments', () => {
 		expect(deferrable.every((finding) => finding.options.length > 0)).toBe(true);
 	});
 
-	// MATH.md §14.1-2. A 5-minute switch cost puts the slack off the quarter-hour
+	// A 5-minute switch cost puts the slack off the quarter-hour
 	// grid; rounding the trim to quarters cut into funded time (58/200 probe days)
 	// or deleted the lever (50/200).
 	it('trims to exactly the hours the plan spends, unrounded', () => {
@@ -689,7 +689,7 @@ describe('suggestPlanAdjustments', () => {
 		).toEqual([]);
 	});
 
-	// MATH.md §14.1-3. With no baseline value there is no ratio; reporting 0 made
+	// With no baseline value there is no ratio; reporting 0 made
 	// the card render a real gain as "costs no plan value".
 	it('reports a null delta rather than 0% when the plan has no value to lose', () => {
 		const base = input(GRIND, {
@@ -707,7 +707,7 @@ describe('suggestPlanAdjustments', () => {
 		expect(gains.every((option) => option.planValueDeltaPercent === null)).toBe(true);
 	});
 
-	// MATH.md §14.2. The budget's shadow price: what one more block is worth and
+	// The budget's shadow price: what one more block is worth and
 	// which task the allocator hands it to.
 	describe('the marginal of the budget', () => {
 		const hoursOf = (metrics: DailyMetrics, taskId: number) =>
@@ -743,8 +743,8 @@ describe('suggestPlanAdjustments', () => {
 			rows.forEach((row) => expect(row.gain).toBeCloseTo(Math.max(0, row.delta), 12));
 		});
 
-		// The allocator is blind to `completed` (a ticked-off task keeps its hours,
-		// MATH.md §11.8), so the wider plan can spend its extra block on work
+		// The allocator is blind to `completed` (a ticked-off task keeps its hours),
+		// so the wider plan can spend its extra block on work
 		// already done. Naming it would answer "what next?" with "the thing you
 		// just finished".
 		it('never spends the block on a task that is already done', () => {
@@ -774,7 +774,7 @@ describe('suggestPlanAdjustments', () => {
 			expect(budgetMarginal.planValueGain).toBe(0);
 		});
 
-		// MATH.md §14.2 says "largest gainer, not the only one". Multi-gainer days
+		// The rule is "largest gainer, not the only one". Multi-gainer days
 		// exist but are rare (36 of 600 probe days, 5 of them with gainers of
 		// different size), so the rule needs the fixture that produces one — on a
 		// curated day it never bites and the tie-break is untested.
@@ -869,7 +869,7 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §14.3. `switchCost` is a measurement of the user, so this prices
+	// `switchCost` is a measurement of the user, so this prices
 	// the declared number rather than advising a different one.
 	describe('the price of the switch cost', () => {
 		const resolveAt = (base: DailyMetricsInput, switchCost: number) =>
@@ -912,12 +912,12 @@ describe('suggestPlanAdjustments', () => {
 
 			// …and the doubled arm has to be genuinely NEGATIVE somewhere, or the
 			// unfloored contract below is untested: flooring the delta at 0 the way
-			// §14.2's marginal does would then still pass (MATH.md §14.3).
+			// the budget marginal does would then still pass.
 			expect(rows.filter((row) => row.expectedDeltas[1] < 0).length).toBeGreaterThan(0);
 
 			// Exactly, not floored: both numbers are the Σ P̄ of a plan the
 			// allocator really solved, so this is a comparison and not a shadow
-			// price (MATH.md §14.3). Asserted on the percentages too, not only the
+			// price. Asserted on the percentages too, not only the
 			// values — a floor lands on the percentage, and pinning the values
 			// alone left the whole unfloored contract green under it.
 			rows.forEach((row) => {
@@ -964,7 +964,7 @@ describe('suggestPlanAdjustments', () => {
 
 			// Plan-scoped: the value is the whole list's, and the active-only solve is
 			// a genuinely different number here rather than a float-noise apart —
-			// which is what makes this a scope test (MATH.md §11.8/§14.3).
+			// which is what makes this a scope test.
 			const activeOnly = calculateDailyMetrics({
 				...base,
 				tasks: base.tasks.filter((task) => !task.completed),
@@ -993,10 +993,10 @@ describe('suggestPlanAdjustments', () => {
 			);
 		});
 
-		// MATH.md §14.3 proves the exact optimum is monotone non-increasing in `s`:
+		// The exact optimum is monotone non-increasing in `s`:
 		// any allocation feasible at `s` is feasible at every smaller `s`, with the
 		// same pool draw and the same Σ P̄. So a LOWER declaration can only read ≥ 0
-		// and a higher one ≤ 0, and the opposite sign is §13.3 allocator error rather
+		// and a higher one ≤ 0, and the opposite sign is allocator error rather
 		// than a fact about the day.
 		//
 		// The fixture that produces one, found by sweeping the generated year rather
@@ -1105,7 +1105,7 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §14.1-5. A zero-load plan reads the display sentinel 50, which is
+	// A zero-load plan reads the display sentinel 50, which is
 	// also the axis target — read as a balance, "set the budget to 0" becomes
 	// the axis's global optimum and the advisor chases the budget to nothing.
 	describe('energy balance and the empty plan', () => {
@@ -1160,7 +1160,7 @@ describe('suggestPlanAdjustments', () => {
 			const finding = findingFor(advice, 'energyBalance');
 
 			// The axis is reported and its menu is empty, which is the NaN sentinel
-			// failing every comparison (MATH.md §14.4) — the card drops a row that
+			// failing every comparison — the card drops a row that
 			// reads N/A with nothing under it.
 			expect(Number.isNaN(finding?.before)).toBe(true);
 			expect(finding?.options).toEqual([]);
@@ -1183,7 +1183,7 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §14.1-5, extended to Schedule Integrity (2026-08-07). §11.5's
+	// The same defect, extended to Schedule Integrity (2026-08-07). The metric's
 	// guards hand the axis two sentinels for a plan that funds nothing — 100 (no
 	// tasks) and 0 (nothing funded) — and neither is an overhead share. The
 	// no-budget day is the one that reached the card: 0% reads `critical`, so
@@ -1214,7 +1214,7 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §14.4. The live day that surfaced it (2026-08-08): every task
+	// The live day that surfaced it (2026-08-08): every task
 	// cognitive, so Energy Balance reads 100% and no lever moves it — the share is
 	// invariant under both — and the axis was dropped from `findings` entirely.
 	// The card read that absence as "every axis is in band" and printed "this day
@@ -1255,7 +1255,7 @@ describe('suggestPlanAdjustments', () => {
 		});
 	});
 
-	// MATH.md §11.11: Grind Density counts tasks, but every lever the advisor can
+	// Grind Density counts tasks, but every lever the advisor can
 	// pull is priced in hours, so it paid ~3% of Σ P̄ to move the reading 15-33pp
 	// by deferring a 15-minute chore. Retired as an axis, kept as a row.
 	describe('grind density is not an axis', () => {
@@ -1276,13 +1276,13 @@ describe('suggestPlanAdjustments', () => {
 });
 
 /**
- * MATH.md §14.5. Five cognitive tasks against a 10-hour day, at a 6 h cognitive
+ * Five cognitive tasks against a 10-hour day, at a 6 h cognitive
  * pool: three of the five reach ϕ, and exactly one defer — the largest task —
  * frees enough for a fourth to reach it, taking the day to 4/4.
  *
  * Deferring any of the OTHER four moves the reading 3/5 → 3/4 without a single
  * task reaching flow: the share rises because the denominator fell. That is the
- * move §11.11 retired Grind Density for offering, and the reason this axis ranks
+ * move that retired Grind Density for offering, and the reason this axis ranks
  * on the count.
  */
 const FLOW = [
@@ -1338,8 +1338,8 @@ const deferredIds = (finding: { options: AdviceOption[] } | undefined) =>
 		.filter((lever) => lever.kind === 'defer-task')
 		.map((lever) => (lever.kind === 'defer-task' ? lever.taskId : -1));
 
-// MATH.md §14.5. The headline whose remedy §28 puts in the reading — "2/5 means
-// drop tasks or add hours" — and which the advisor did not search on until now.
+// The headline whose remedy is in the reading — "2/5 means drop tasks or add
+// hours" — and which the advisor did not search on until now.
 describe('the flow-coverage axis', () => {
 	it('offers the defer that carries another task into flow', () => {
 		const advice = suggestPlanAdjustments(flowDay());
@@ -1372,9 +1372,10 @@ describe('the flow-coverage axis', () => {
 		expect(option!.after).toBe(100);
 	});
 
-	// §11.11's defect, written as a test. Deferring any of these four takes the
-	// reading from 60% to 75% and no task reaches flow that did not before; if
-	// this goes green under a badness of −share, the axis was built on the ratio.
+	// The Grind Density defect, written as a test. Deferring any of these four
+	// takes the reading from 60% to 75% and no task reaches flow that did not
+	// before; if this goes green under a badness of −share, the axis was built on
+	// the ratio.
 	it('refuses a defer that raises the share without raising the count', () => {
 		const advice = suggestPlanAdjustments(flowDay());
 		const finding = findingFor(advice, 'flowCoverage');
@@ -1396,7 +1397,7 @@ describe('the flow-coverage axis', () => {
 	});
 
 	// Energy Balance and Schedule Integrity each needed a NaN sentinel to stop
-	// "defer the last task" winning their frontier (MATH.md §14.1-5). This axis
+	// "defer the last task" winning their frontier. This axis
 	// needs none: an empty plan reaches flow zero times, which is the worst
 	// reading it has.
 	it('never offers to empty a plan whose only task reaches flow', () => {
@@ -1412,7 +1413,7 @@ describe('the flow-coverage axis', () => {
 	});
 
 	// Why this axis needs no counterpart to the Energy Balance display defect
-	// (MATH.md §25, `adv3-advice-display-resolution.probe.ts`): the smallest real
+	// (`adv3-advice-display-resolution.probe.ts`): the smallest real
 	// improvement is one whole task's share, which the card's `Math.round` cannot
 	// swallow. A budget lever holds the denominator and raises the count; a defer
 	// lowers the denominator and cannot raise the count without freeing hours.

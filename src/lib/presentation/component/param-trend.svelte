@@ -1,5 +1,5 @@
 <script lang="ts">
-	/* One calibrated parameter over the days its fit was recorded (MATH.md §12).
+	/* One calibrated parameter over the days its fit was recorded.
 	   The DEFAULT is part of the drawn range: scaling to the data alone turns a fit
 	   that has barely moved into a dramatic climb, and there is no axis to say so. */
 

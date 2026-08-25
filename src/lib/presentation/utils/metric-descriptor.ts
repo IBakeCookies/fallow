@@ -7,7 +7,7 @@
  * (AGENTS.md R3). The numbers come from `calculateDailyMetrics`; nothing here
  * computes.
  *
- * Four readings carry `headline` and are promoted to tiles (MATH.md §28): the
+ * Four readings carry `headline` and are promoted to tiles: the
  * three that judge whether today's plan is one a person can actually finish —
  * Flow Coverage, Human Capacity, Burnout Risk — and the one that answers how far
  * through it you are, Completion Rate. The rest are reference. Fallow Gain is
@@ -22,10 +22,10 @@
  * with "nothing to report" — the bottleneck and the recovery ratio — say so in
  * their own words instead.
  *
- * The gate has to match the metric's scope family (MATH.md §11.8): only a
+ * The gate has to match the metric's scope family: only a
  * next-up reading may be gated on active tasks. Gating a plan-scoped one that
  * way blanks it the moment the last task is checked done — the same defect as
- * the red 0 that §11.8 rescoped these metrics to remove.
+ * the red 0 these metrics were rescoped to remove.
  */
 
 import type { Metric } from '$lib/presentation/type';
@@ -92,20 +92,19 @@ export function buildMetrics(
 	const hasActive = metrics.activeTasks.length > 0;
 	const hasBudget = metrics.budgetHours > 0;
 	const planned = hasTasks && hasBudget;
-	// Tasks and a budget are not enough for the two allocation-shape readings
-	// (MATH.md §32): both short-circuit to a 0 sentinel when the plan funds
-	// NOTHING — a budget too small for any task to fit — and 0 is a verdict in
-	// both directions.
+	// Tasks and a budget are not enough for the two allocation-shape readings:
+	// both short-circuit to a 0 sentinel when the plan funds NOTHING — a budget
+	// too small for any task to fit — and 0 is a verdict in both directions.
 	// Schedule Integrity reads it critical (the alarm about nothing the comment
 	// below already claimed to prevent) and Friction Index reads it 'success',
 	// promising a frictionless day that was never planned. It is the case the
 	// advisor answers with NaN so it stays silent; the rows go N/A to match.
 	const funded = grindDensity.funded > 0;
 
-	// The hours already worked, against the pool they load hardest (MATH.md §35).
+	// The hours already worked, against the pool they load hardest.
 	// Null on the three states the row cannot read: a day that is not today, a
 	// today with no 🪫 log, and a 0-hour pool carrying a draw, which saturates to
-	// Infinity and would print as "Infinity%" in the sentence below (§20). The
+	// Infinity and would print as "Infinity%" in the sentence below. The
 	// unread copy names none of them — it says what makes the row read.
 	const capacity =
 		remainingDay && Number.isFinite(remainingDay.capacity.percentSpent)
@@ -137,7 +136,7 @@ export function buildMetrics(
 				planned,
 				// Signed from the value, not hardcoded '+': the dashboard reads the
 				// POOLED gain, which can be slightly negative when the pooled greedy
-				// is the suboptimal side (MATH.md §19.3) — a hardcoded plus rendered
+				// is the suboptimal side — a hardcoded plus rendered
 				// that as "+-0.5%".
 				`${zenithGain.gainPercent > 0 ? '+' : zenithGain.gainPercent < 0 ? '−' : ''}${Math.abs(zenithGain.gainPercent)}%`,
 				zenithGain.gainPercent >= 15
@@ -169,7 +168,7 @@ export function buildMetrics(
 			headline: true,
 			label: m.metric_flow_coverage(),
 			description: m.metric_flow_coverage_desc(),
-			// Plan-scoped (§11.8): "3/3 reached flow" is the answer a finished day
+			// Plan-scoped: "3/3 reached flow" is the answer a finished day
 			// earns, so this is gated on the plan, not on what is left of it.
 			...gated(
 				planned,
@@ -197,7 +196,7 @@ export function buildMetrics(
 									: pools.physicalHours,
 						}),
 			// Finite as well as planned: a pool of 0 hours carrying demand saturates
-			// to Infinity (MATH.md §14), which renders literally as "Infinity%".
+			// to Infinity, which renders literally as "Infinity%".
 			...gated(
 				planned && Number.isFinite(humanCapacity.percent),
 				`${humanCapacity.percent}%`,
@@ -206,10 +205,10 @@ export function buildMetrics(
 		},
 		{
 			label: m.metric_capacity_left(),
-			// Next-up (§11.8): it counts the hours you WORKED, so it moves as the day
+			// Next-up: it counts the hours you WORKED, so it moves as the day
 			// is logged and names whichever pool those hours load hardest — which mid-day
 			// need not be the pool the plan leans on, the same split Primary Bottleneck
-			// is drawn along (§23.1). Like Human Capacity's, the sentence can only name a
+			// is drawn along. Like Human Capacity's, the sentence can only name a
 			// pool once one is measured.
 			description:
 				capacity === null
@@ -224,7 +223,7 @@ export function buildMetrics(
 							percent: spent,
 						}),
 			// A share, not a duration: the pool is spent at wᵈ = difficultyᵈ/10, so an
-			// hour of easy work draws minutes of it (MATH.md §35) and rendering that as
+			// hour of easy work draws minutes of it and rendering that as
 			// "12m" beside the clock-time rows reads as time the user can still work.
 			// Banded on the share SPENT, so it reads on Human Capacity's own thresholds
 			// — and reaches the critical band above 100% that allocator output cannot:
@@ -249,8 +248,7 @@ export function buildMetrics(
 			// Names the pool the reading itself read the draw on — NOT Human
 			// Capacity's. The two agree while the day is untouched and may part once
 			// it is half done: that row judges the day as planned, this one points at
-			// what is left, so its axis is whichever pool the remaining work loads
-			// (MATH.md §23.1).
+			// what is left, so its axis is whichever pool the remaining work loads.
 			description:
 				bottleneckTask === null
 					? m.metric_bottleneck_desc_none()
@@ -268,7 +266,7 @@ export function buildMetrics(
 			// Neutral either way, deliberately: this row names a task, and naming is
 			// not a judgement of it. Banding it 'warning' whenever one existed made
 			// the row a constant — every non-empty list warned, so the colour said
-			// nothing (MATH.md §23). How over-drawn the pool is, is Human Capacity's
+			// nothing. How over-drawn the pool is, is Human Capacity's
 			// reading, and it is banded there.
 			band: 'neutral',
 		},
@@ -279,7 +277,7 @@ export function buildMetrics(
 						task: longestWarmUp.title,
 					})
 				: m.metric_longest_warm_up_desc_none(),
-			// Next-up (§11.8), so gating on active tasks is the matching gate.
+			// Next-up, so gating on active tasks is the matching gate.
 			// Banded on Flow Coverage's own criterion — hours ≥ ϕ — narrowed to this
 			// one task, so the two rows cannot disagree about it.
 			...gated(
@@ -299,11 +297,10 @@ export function buildMetrics(
 		{
 			label: m.metric_cognitive_load(),
 			description: m.metric_cognitive_load_desc(),
-			// Both loads arrive exact and are rounded HERE (MATH.md §25, like
-			// §20's capacity split). The band still reads the exact value — the
-			// plan advisor bands the same number, and a card that warns about an
-			// axis the row below it colours 'success' is the defect
-			// `plan-advice-descriptor` pins.
+			// Both loads arrive exact and are rounded HERE, like the capacity
+			// split. The band still reads the exact value — the plan advisor bands
+			// the same number, and a card that warns about an axis the row below it
+			// colours 'success' is the defect `plan-advice-descriptor` pins.
 			...gated(planned, `${Math.round(cognitiveLoad)}%`, AXIS_BAND.cognitiveLoad(cognitiveLoad)),
 		},
 		{
@@ -316,7 +313,7 @@ export function buildMetrics(
 			description: m.metric_energy_balance_desc(),
 			// The share as well as the word it falls in: the word alone is three
 			// buckets over a continuous reading, and the advice card's Energy Balance
-			// options moved inside one bucket on 61.6% of them (MATH.md §25).
+			// options moved inside one bucket on 61.6% of them.
 			...gated(
 				planned,
 				energyBalanceReading(energyBalance),
@@ -343,7 +340,7 @@ export function buildMetrics(
 		{
 			label: m.metric_deep_work(),
 			description: m.metric_deep_work_desc(),
-			// Exact in, rounded here (MATH.md §26, like the Loads above).
+			// Exact in, rounded here, like the Loads above.
 			...gated(planned, `${Math.round(deepWorkRatio)}%`, getBandDeepWork(deepWorkRatio)),
 		},
 		{
@@ -355,10 +352,10 @@ export function buildMetrics(
 			label: m.metric_grind_density(),
 			description: m.metric_grind_density_desc(),
 			// Gated on FUNDED work, not on the task list: with nothing funded there
-			// is no grind share to report, and 0% would read as a clean day
-			// (MATH.md §11.10). The fraction rides along because the percent is
-			// quantized to 100/funded — "50% (1/2)" is the honest form of a reading
-			// one task can swing by 50 points.
+			// is no grind share to report, and 0% would read as a clean day. The
+			// fraction rides along because the percent is quantized to 100/funded —
+			// "50% (1/2)" is the honest form of a reading one task can swing by 50
+			// points.
 			...gated(
 				grindDensity.funded > 0,
 				`${grindDensity.percent}% (${grindDensity.grinds}/${grindDensity.funded})`,
@@ -368,7 +365,7 @@ export function buildMetrics(
 		{
 			label: m.metric_sustainable_work(),
 			description: m.metric_sustainable_work_desc(),
-			// Exact in, rounded here (MATH.md §27). Null when the plan funds no
+			// Exact in, rounded here. Null when the plan funds no
 			// hours: there is no worked time to take a share of, and 0% would
 			// report a day with no work as a day of pure grind.
 			...gated(
@@ -387,7 +384,7 @@ export function buildMetrics(
 			description: m.metric_day_profile_desc(),
 			// Gated on the reading, not on the task list: the profile is hour-weighted
 			// over funded tasks, so a plan that books nothing has no character to
-			// name and must not render as "Routine" (MATH.md §29).
+			// name and must not render as "Routine".
 			...gated(
 				dailyQuadrant !== null,
 				dailyQuadrant === null

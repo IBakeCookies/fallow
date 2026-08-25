@@ -1,6 +1,6 @@
 /**
- * Measurements behind MATH.md §23: why Primary Bottleneck stopped reading E/β,
- * and what the binding-pool draw reads instead.
+ * Why Primary Bottleneck stopped reading E/β, and what the binding-pool draw
+ * reads instead.
  *
  * The retired formula's defect is a claim about a RANKING over the whole slider
  * domain — "the biggest drag on your list" — so it can only be shown by sweeping
@@ -175,7 +175,7 @@ describe('the retired E/β reading', () => {
 		);
 
 		console.log(
-			`  difficulty − enjoyment (§11.4) ${f(
+			`  difficulty − enjoyment         ${f(
 				spearmanAgainstRatio((c) => c.Eu - c.betaU),
 				4,
 			)}`,

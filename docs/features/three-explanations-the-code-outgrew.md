@@ -43,7 +43,7 @@ is `AGENTS.md` §3's stated exemption from the reviewer pass.
   what runs, it is not this spec.
 - **A new probe or test for any of the three.** M4's numbers are reached by
   `curve-marginal-facts.probe.ts` and by the two fixtures above; M5's are
-  reached by `stp-recovery-fit.probe.ts` and quoted at `MATH.md:1561-1564`;
+  reached by `stp-recovery-fit.probe.ts` and quoted at `MATH.md:1565-1568`;
   M6 has no number. The finding is that the prose disagrees with artefacts that
   already exist, so building a new one measures nothing.
 - **The `0.263` ceiling as a committed assertion.** It is closed form (below),
@@ -65,7 +65,7 @@ is `AGENTS.md` §3's stated exemption from the reviewer pass.
 
 Every `file:line` below was read on 2026-08-14 **against a tree carrying M1's
 uncommitted edits**. `MATH.md` citations above §10 and every `.ts`/`.svelte`
-citation are stable; `MATH.md:5120` and the three `ROADMAP.md` lines will shift
+citation are stable; `MATH.md:5171` and the three `ROADMAP.md` lines will shift
 if M1 lands first, so each is quoted here well enough to grep.
 
 The six edits:
@@ -90,7 +90,7 @@ The six edits:
   docblock, "≈ 0.2–0.4 for typical 30–60 min breaks from half drain, roughly
   half the drain fit's lever arm". Retracted; see the next line. The `MATH.md
 §8.9` back-reference at `:1683` and the λ profile (53%/71%/88%) stay.
-- `MATH.md:1561-1564` — §8.9's retraction, the text the docblock must agree
+- `MATH.md:1565-1568` — §8.9's retraction, the text the docblock must agree
   with: "dD/dr ≈ 0.22–0.26 here against the drain fit's dD/dα ≈ 0.6–0.9 —
   roughly a THIRD of its lever arm, not the half once claimed", re-measured
   2026-08-06 by `stp-recovery-fit.probe.ts`. Correct as written. **No edit** —
@@ -99,7 +99,7 @@ The six edits:
   minimum is 1 because ϕ divides by enjoyment (MATH.md §2): a 0 there is not a
   rating, it is a division by zero." Both halves are false; the reason and the
   citation are §1's declared domain (first decision below).
-- `MATH.md:5120` — §22, "unlike enjoyment, which starts at 1 because ϕ divides
+- `MATH.md:5171` — §22, "unlike enjoyment, which starts at 1 because ϕ divides
   by it (§2)". The same false claim, the same wrong citation, in the document.
   Found by grepping `divides by` while routing M6; corrected here under
   `AGENTS.md` §0's documentation exception. §22's own argument — that a
@@ -112,13 +112,13 @@ The evidence and the landing chores:
   wrong about, and their own comment at `:138-141` explaining that they were
   added because §2 once claimed the opposite. That comment is why §2 was
   over-corrected; leave it alone, it is accurate.
-- `MATH.md:155-172` — §1's parameter map. `βᵤ ∈ [1,10]` at `:158`;
+- `MATH.md:158-175` — §1's parameter map. `βᵤ ∈ [1,10]` at `:158`;
   `ϕ = c₁E + c₂β + c₃` and `p₀ = β/E` at `:162-165`. This is the section M6's
   comment should cite.
 - `src/lib/business/model/zenith.ts:154-199` — `mapEnjoyability`,
   `calculateFlowStateTime`, `calculateInitialProductivity`, `calculatePeakScaling`.
   The shipped mappings; nothing divides by `beta`.
-- `MATH.md:2243-2251` — §10's preamble, and `:2371` — its most recent dated
+- `MATH.md:2247-2255` — §10's preamble, and `:2371` — its most recent dated
   entry, which is M1's. R7 requires an entry for this change: it corrects the
   document's and three comments' account of the model without moving a formula,
   constant, bound or fit. Append a **second** 2026-08-14 heading with its own

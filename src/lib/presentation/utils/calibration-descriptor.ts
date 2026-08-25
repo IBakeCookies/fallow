@@ -14,7 +14,7 @@ import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
 
-/** One fit's history as a sparkline (MATH.md §12). */
+/** One fit's history as a sparkline. */
 export interface RowTrend {
 	/** Ascending by recorded day, ending in the value this row prints */
 	values: number[];
@@ -91,7 +91,7 @@ export function calibrationRows(
 			// Σw, what the history is worth in FRESH logs (MATH.md §5.2) — a
 			// year-old log counts half. Printing the raw count beside a discounted
 			// fit would overstate what moved it. Today's logs are in neither number:
-			// no fit has read them yet (§33), so they are named, not folded in — the
+			// no fit has read them yet, so they are named, not folded in — the
 			// row would otherwise read as though the ⚡ just logged had done nothing.
 			note:
 				flow.pendingCount > 0

@@ -44,7 +44,7 @@ per-theme markup.
    UI; and `16m of it left` on a block that overshoots, a third number on a
    block that has two.
 3. **A "binding constraint" panel** promotes what `plan-advice-card.svelte`
-   already computes (MATH.md §14) out of small grey text.
+   already computes out of small grey text.
 4. **The twenty non-headline readings** become a dense four-column grid instead
    of an accordion.
 5. Instrument Sans for text, IBM Plex Mono + `tabular-nums` for every number.
@@ -70,7 +70,7 @@ per-theme markup.
 **The clock the timeline needed turned out to be nothing at all.** `09:00 → 17:15`
 was invented — Fallow allocates _durations_ and has no day-start anchor. The
 artboards' finish was `start + availableHours`, and `availableHours` is the hours
-the user intends to _work_ (MATH.md §11.3), so a clock time read off it omits
+the user intends to _work_, so a clock time read off it omits
 every break and is a figure nobody computed. That left only the start, which
 shipped for a while as a per-day persisted field labelling the strip `from 09:00`
 — and no formula, fit or metric ever read it: the plan was identical with and
@@ -79,7 +79,7 @@ label and the stored key were removed; the strip now prints no time of day and
 every duration on it is an offset from the day's own zero. That is what leaves
 MATH.md §8.3's circadian boundary settled, rejected until there is an
 instrument, and the only time-of-day instrument the data carries is the
-`createdAt` stamp on 🪫 logs (§36).
+`createdAt` stamp on 🪫 logs.
 
 **The table's two additions:** the artboards' table had no completion cell and no
 ⚡/🪫 affordance, and both mattered — completion is what opens the two

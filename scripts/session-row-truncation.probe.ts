@@ -1,6 +1,6 @@
 /**
- * §18's worked inversion, priced through the shipped advisor. The section
- * justifies making the 🪫 writer APPEND with one witness — window 8 h, one task
+ * The worked inversion, priced through the shipped advisor. The case for
+ * making the 🪫 writer APPEND rests on one witness — window 8 h, one task
  * (difficulty 7, enjoyment 6, w = (0.8, 0.2)), λ₀ = 0.5 — and three marginals
  * off it: 3 h logged reads `continue` at 0.667/h, the pre-fix upsert's stored
  * 1.5 h reads `continue` at 1.099/h (less worked, priced HIGHER), and the true
@@ -14,7 +14,7 @@
  * constructed at the advisor's input: one stored row, exactly what the upsert
  * left behind.
  *
- * Then two things §18 states as one example: how far the truncation moves the
+ * Then two things stated as one example: how far the truncation moves the
  * price at every split of the day (`SPLITS`), and whether the verdict flip is
  * reachable on APP tasks at all — the witness is a model-level
  * `EnergyTaskInput`, and `toEnergyTask` cannot pair difficulty 7 with
@@ -36,7 +36,7 @@ import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import type { EnergyTaskInput, StopObservation } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
-/** §18's witness, verbatim. Every parameter below is a shipped default. */
+/** The witness, verbatim. Every parameter below is a shipped default. */
 const WITNESS: EnergyTaskInput = {
 	id: 1,
 	title: 'Deep work',
@@ -50,7 +50,7 @@ const WINDOW = 8;
 const DAYS = 200;
 const SEED = 0x18_0805;
 const ORIGIN = Date.parse('2026-08-18T08:00:00.000Z');
-/** Every two-session split of §18's 4.5 h day, plus the day itself. */
+/** Every two-session split of the 4.5 h day, plus the day itself. */
 const SPLITS: number[][] = [[4.5], [0.75, 3.75], [1.5, 3], [2.25, 2.25], [3, 1.5], [3.75, 0.75]];
 
 function mulberry32(seed: number): () => number {
@@ -70,7 +70,7 @@ function mulberry32(seed: number): () => number {
  * carries the wall-clock moment it ended, `gapHours` apart — that spacing is
  * what the reconstruction reads the day's breaks out of (MATH.md §8.10). Back
  * to back (the default) the rows recover no break and the day reads summed,
- * which is the reading §18's identity claim is about.
+ * which is the reading the identity claim is about.
  */
 function observe(task: EnergyTaskInput, rows: number[], gapHours = 0): StopObservation {
 	let clock = 0;
@@ -142,15 +142,15 @@ function drawTasks(count: number, seed: number): EnergyTaskInput[] {
 	);
 }
 
-describe('§18 — one row per session, not per task-day', () => {
-	it("prices the three states §18's advisor bullet quotes", () => {
+describe('one row per session, not per task-day', () => {
+	it('prices the three states the advisor bullet quotes', () => {
 		console.log(
 			`witness: difficulty ${WITNESS.difficulty}, enjoyment ${WITNESS.enjoyment}, ` +
 				`w = (${WITNESS.cognitiveDemand}, ${WITNESS.physicalDemand}), window ${WINDOW}h, ` +
 				`λ₀ = ${DEFAULT_ENERGY_PARAMS.freeTimeValue} (all shipped defaults)`,
 		);
 
-		console.log('§18 bullet "Why the advisor is where it bites":');
+		console.log('Bullet "Why the advisor is where it bites":');
 		line('claim 1: 3h, continue 0.667/h', WITNESS, [3]);
 		line('claim 2: upsert, continue 1.099/h', WITNESS, [1.5]);
 		line('claim 3: true 4.5h day, stop 0.372/h', WITNESS, [3, 1.5]);
@@ -166,7 +166,7 @@ describe('§18 — one row per session, not per task-day', () => {
 				`, verdicts ${appended.verdict}/${single.verdict}`,
 		);
 
-		// Where §18's identity ENDS (2026-08-19). Two rows are only the same day
+		// Where the identity ENDS (2026-08-19). Two rows are only the same day
 		// as one when nothing happened between them; once their log moments are
 		// apart, the reconstruction rests through the gap and the same 4.5 h reads
 		// LOWER — recovered energy makes the next session cheaper to beat, so the
@@ -209,7 +209,7 @@ describe('§18 — one row per session, not per task-day', () => {
 		let worstGap = 0;
 		let worstTask = '';
 
-		// The same 3h-then-1.5h day §18 quotes, on each drawn task.
+		// The same 3h-then-1.5h day quoted, on each drawn task.
 		for (const task of tasks) {
 			const truth = price(task, [4.5]);
 			const truncated = price(task, [1.5]);
@@ -231,7 +231,7 @@ describe('§18 — one row per session, not per task-day', () => {
 				`worst absolute gap ${worstGap.toFixed(4)}/h on ${worstTask}`,
 		);
 
-		// §18's own witness demands, at the difficulty `toEnergyTask` gives them.
+		// The witness's own demands, at the difficulty `toEnergyTask` gives them.
 		const reachable = toEnergyTask({
 			id: 1,
 			title: 'sliders 8/2',

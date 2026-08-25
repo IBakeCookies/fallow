@@ -139,7 +139,7 @@ describe('calibrateEnergyParams', () => {
 	});
 });
 
-describe('seedMorningReservoirs (MATH.md §11.9)', () => {
+describe('seedMorningReservoirs', () => {
 	// Slow enough that a night does not fully heal — the regime where
 	// carry-over is visible at all.
 	const slowRecovery = {
@@ -208,7 +208,7 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 		expect(seeded.initialPhys).toBeGreaterThan(0.999);
 	});
 
-	// The scope §11.9 asserts for the ONE approximation behind both as-logged
+	// The scope for the ONE approximation behind both as-logged
 	// order and omitted intraday breaks (permuting the cycle's blocks): attenuated
 	// by the trailing rest, so invisible at defaults and worth ~9 points at the r
 	// fit floor. `scripts/mtr2-carry-over.probe.ts` sweeps the grid; these are its
@@ -271,7 +271,7 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 		}
 	});
 
-	// Two rows for ONE task became possible with MATH.md §18's per-session rows,
+	// Two rows for ONE task became possible with per-session rows,
 	// and the demands go into `simulateReservoirs` keyed by id — so sharing the
 	// taskId let the later row's demands re-rate the earlier session, which is
 	// what capturing demands at logging time exists to prevent (§8.7).
@@ -315,7 +315,7 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 	});
 
 	it('gives an over-logged day NO rest at all, not a negative or mirrored gap', () => {
-		// §11.9's gap is max(0, 24 − Σh), so a 26 h day gets no rest block: the
+		// The gap is max(0, 24 − Σh), so a 26 h day gets no rest block: the
 		// morning level must equal 26 h of straight work. Asserting only
 		// 0 < level < 1 (as this test once did) pins nothing — dropping the guard
 		// is bit-identical because `simulateReservoirs` already skips hours ≤ 0,
@@ -371,7 +371,7 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 	});
 
 	it('anchors the cycle at 24 h — the constant itself, which no oracle pins', () => {
-		// §11.9 derives the 24 h cycle from work-start-to-work-start being the only
+		// The 24 h cycle derives from work-start-to-work-start being the only
 		// anchor available (no clock times are stored). Every other test here is
 		// insensitive to it: the 12-decimal oracle above IMPORTS
 		// RESERVOIR_CYCLE_HOURS into its own expectation, the healing bound
@@ -382,8 +382,8 @@ describe('seedMorningReservoirs (MATH.md §11.9)', () => {
 	});
 });
 
-describe('as-of-day vs whole-history fit (MATH.md §12.1)', () => {
-	// Pins `scripts/fit-snapshot-drift.probe.ts`. §12.1's entire case for the
+describe('as-of-day vs whole-history fit', () => {
+	// Pins `scripts/fit-snapshot-drift.probe.ts`. The entire case for the
 	// `fitSnapshots` store is that an early day audited against the CURRENT fit
 	// is audited against a drain rate its own logs never supported. Nothing in
 	// the suite measured that; the numbers behind it (0.3069 / 0.4973) were

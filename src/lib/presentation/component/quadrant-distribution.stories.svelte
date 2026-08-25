@@ -26,8 +26,8 @@
 	{/snippet}
 </Story>
 
-<!-- The invariant /analytics leans on (MATH.md §29): a day whose plan books no hours
-     has no profile and `countQuadrants` counts it nowhere, so the bar's 100% is the SUM
+<!-- The invariant /analytics leans on: a day whose plan books no hours has no
+     profile and `countQuadrants` counts it nowhere, so the bar's 100% is the SUM
      of the counts and not the days on record — here 11 profiled days out of a longer
      range. Structural since the sum moved inside: nothing a caller passes can put the
      denominator out of step with the segments. -->

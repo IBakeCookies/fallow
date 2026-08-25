@@ -11,11 +11,11 @@ import {
 
 /* The ⚡ flow log is the only user input that feeds fitUserConstants, so it is the
    one place where editing a task changes the model rather than just the row —
-   from the NEXT day, since a plan reads only the logs that precede it (MATH.md
-   §33). The badge and the log are one record in one object store since 2026-08-10, and
-   it has to come back after a reload. */
+   from the NEXT day, since a plan reads only the logs that precede it. The badge and
+   the log are one record in one object store since 2026-08-10, and it has to come back
+   after a reload. */
 
-/* MATH.md §33: a plan for the viewed day reads only logs dated before it, so what
+/* A plan for the viewed day reads only logs dated before it, so what
    the UI can show today is the badge, the deferral, and that both survive a
    reload. That the log then MOVES the constants is a unit claim
    (`session-store.svelte.spec.ts`) rather than an e2e one, because ⚡ is
@@ -80,7 +80,7 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 	await expect(page.getByText('⚡ 40m').first()).toBeVisible();
 
 	// The prompt has done its job and gets out of the way. What replaces it is the
-	// line that answers "I logged that, why did nothing move?" (MATH.md §33).
+	// line that answers "I logged that, why did nothing move?"
 	await expect(page.getByText(/Model uses default constants/)).toHaveCount(0);
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
@@ -224,9 +224,9 @@ test('a flow log dropped from its own row comes back on undo', async ({ page }) 
 
 /* The other half of that list's two verbs, added 2026-08-10: the ✎ corrects in place
    rather than linking to the day, which is possible because a correction rewrites the
-   quantities the user rated and re-derives nothing from a task (MATH.md §36). Crossing
-   the screens is again the test — the badge on `/` reads the day's observation, so it is
-   what says the write landed on the right day and task. */
+   quantities the user rated and re-derives nothing from a task. Crossing the screens is
+   again the test — the badge on `/` reads the day's observation, so it is what says the
+   write landed on the right day and task. */
 test('a flow log is correctable from the analytics history', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
@@ -273,9 +273,9 @@ test('a flow log is correctable from the analytics history', async ({ page }) =>
 
 /* Both records copy the task's title at logging time, and a rename left that copy
    behind — the history printed a name the task no longer has, with nothing to say the
-   two rows were the same task. It reads the live title by `taskId` now (MATH.md §36),
-   off the year of days the page already loads. Crossing the screens is the test: the
-   rename happens on `/` and only the list can say which name it prints. */
+   two rows were the same task. It reads the live title by `taskId` now, off the year of
+   days the page already loads. Crossing the screens is the test: the rename happens on
+   `/` and only the list can say which name it prints. */
 test('the log history follows a renamed task', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
@@ -402,10 +402,10 @@ test('the Lab edits a task with the same editor as the main page', async ({ page
 });
 
 /* Both measurements are on this page now, and the 🪫 half is the one that was
-   unreachable here: worked hours are what λ₀ (MATH.md §8.10), the §12 adherence
-   audit and overnight carry-over (§11.9) read finished days off, and every one of
-   them came up empty for a user who never opened the Lab (ROADMAP item 11). The
-   observations are one store, so what is logged here is what the Lab fits. */
+   unreachable here: worked hours are what λ₀ (MATH.md §8.10), the adherence audit
+   and overnight carry-over read finished days off, and every one of them came up
+   empty for a user who never opened the Lab (ROADMAP item 11). The observations
+   are one store, so what is logged here is what the Lab fits. */
 test('a drain rating logged from the main page feeds the Lab', async ({ page }) => {
 	await page.clock.install();
 	await page.goto('/');
@@ -420,7 +420,7 @@ test('a drain rating logged from the main page feeds the Lab', async ({ page }) 
 	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
 	// …and it is a real fit, not just a stored row — which the rating reaches the
-	// day after it was logged (MATH.md §33), on a day with a task of its own.
+	// day after it was logged, on a day with a task of its own.
 	await page.clock.fastForward('25:00:00');
 	await page.goto('/energy');
 	await addTask(page, 'Deep work');

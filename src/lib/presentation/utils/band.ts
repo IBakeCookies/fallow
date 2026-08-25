@@ -90,15 +90,15 @@ export function getBandSmallerBetter(value: number): Band {
 }
 
 /**
- * Deep Work has an interior optimum, so neither monotone band fits (MATH.md
- * §26): a quarter to 60% of the budget in sustained focus is the shape the row
- * is for — 60 is where Burnout Risk starts bending upward over seeded days —
- * and `getBandBiggerBetter` used to colour a day that is three quarters deep
- * work 'Optimal' beside a Cognitive Load warning about the same hours.
+ * Deep Work has an interior optimum, so neither monotone band fits: a quarter
+ * to 60% of the budget in sustained focus is the shape the row is for — 60 is
+ * where Burnout Risk starts bending upward over seeded days — and
+ * `getBandBiggerBetter` used to colour a day that is three quarters deep work
+ * 'Optimal' beside a Cognitive Load warning about the same hours.
  *
  * It never warns. Outside the optimum the row goes quiet, because a shallow day
  * is a shape rather than a defect, and depletion above it belongs to Burnout
- * Risk — §11.7's split, which took the burnout claim off Momentum for the same
+ * Risk — the split that took the burnout claim off Momentum for the same
  * reason.
  */
 export function getBandDeepWork(value: number): Band {
@@ -123,7 +123,7 @@ export function energyBalanceSkew(value: number): 'cognitive' | 'physical' | 'ba
  * alone is coarser than the number the advisor searches on, and both the metric
  * row and the advice card print it.
  *
- * Measured, not assumed (MATH.md §25, `adv3-advice-display-resolution.probe.ts`,
+ * Measured, not assumed (`adv3-advice-display-resolution.probe.ts`,
  * 2026-08-08): on 600 seeded days the advice card rendered 593 Energy Balance
  * options, and 365 of them — 61.6% — printed the same word as the row they sat
  * under, hiding a median 1.7 and up to 39.3 points of improvement. The worst
@@ -157,7 +157,7 @@ export function energyBalanceReading(value: number): string {
  * axes.
  *
  * Plus `grindDensity`, which the dashboard row bands but the advisor does not
- * search on (MATH.md §11.11). The two sets came apart when that axis was
+ * search on. The two sets came apart when that axis was
  * retired; a row still needs a colour.
  */
 export const AXIS_BAND = {
@@ -175,7 +175,7 @@ export const AXIS_BAND = {
 	timeScarcity: (value: number) => getBandSmallerBetter(value),
 	scheduleIntegrity: (value: number) => getBandBiggerBetter(value),
 	// Anything short of full means some task in the plan never reaches ϕ — the
-	// condition the advisor searches on (MATH.md §14.5). Never critical: on 89% of
+	// condition the advisor searches on. Never critical: on 89% of
 	// seeded days this already bands warning, and a headline row that shouts daily
 	// is a row nobody reads.
 	flowCoverage: (value: number): Band => (value >= 100 ? 'success' : 'warning'),

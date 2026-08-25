@@ -1,25 +1,25 @@
 /**
- * Measurements behind MATH.md §13.4: what the pre-2026-07-26 append-last
- * convention actually did to §8.10's `lo` bound, and whether the numbers §13.4
- * quotes for it are envelopes or single draws.
+ * Measurements behind the insertion convention: what the pre-2026-07-26
+ * append-last convention actually did to §8.10's `lo` bound, and whether the
+ * numbers quoted for it are envelopes or single draws.
  *
- * §13.4 says the old code appended an UNLOGGED task's probe block at the END of
- * the reconstructed day instead of at its own canonical amplitude rank, that
- * "the same probe step scored 0.65 appended last vs 0.37 inserted first", that
- * the convention moved the day's indifference point "by up to 0.087 in λ₀
+ * The record says the old code appended an UNLOGGED task's probe block at the
+ * END of the reconstructed day instead of at its own canonical amplitude rank,
+ * that "the same probe step scored 0.65 appended last vs 0.37 inserted first",
+ * that the convention moved the day's indifference point "by up to 0.087 in λ₀
  * units", and that "appending systematically inflated" `lo`, biasing λ̂₀ up.
  * Three of those four are numbers, and a max-of-one-draw is not a bound (the
- * lesson §13.3 had to learn twice), so this measures the SIGN and the SPREAD
- * over a seeded sweep instead of one day.
+ * lesson learned twice), so this measures the SIGN and the SPREAD over a
+ * seeded sweep instead of one day.
  *
  * The "0.65 appended last vs 0.37 inserted first" step is from a day that was
- * never recorded, so it cannot be reproduced — but §13.4's fallback claim, that
+ * never recorded, so it cannot be reproduced — but the fallback claim, that
  * inserting reads HIGHER on §8.10's own fixture day, is about a day that still
  * exists, so it is measured here: both midpoints, on the one fixture day whose
  * logged task is last in canonical rank (the rest cannot tell the conventions
  * apart).
  *
- * It also re-runs §13.4's third claim — that the synthetic round-trip recovery
+ * It also re-runs the third claim — that the synthetic round-trip recovery
  * is "unchanged" at true λ₀ 0.3/0.5/0.9 — on the only committed synthetic-day
  * generator (the `dayFromPlan` fixture in zenith-energy.test.ts), both ways.
  *
@@ -96,9 +96,9 @@ interface Reading {
 
 /**
  * §8.10's bracket rebuilt from exported parts, with `appendLast` selecting the
- * PRE-§13.4 convention: an unlogged task's probe block goes at the end of the
- * day rather than at its canonical rank. `appendLast: false` must agree with
- * the shipped `stopIndifferencePoint` — asserted below.
+ * PRE-2026-07-26 convention: an unlogged task's probe block goes at the end of
+ * the day rather than at its canonical rank. `appendLast: false` must agree
+ * with the shipped `stopIndifferencePoint` — asserted below.
  */
 function reading(observation: StopObservation, params: EnergyParams, appendLast: boolean): Reading {
 	const { tasks, windowHours } = observation;
@@ -348,7 +348,7 @@ const task = (
  * AS THE SLIDERS REACH IT. Aligned 2026-08-20 (ROADMAP M44): the suite moved
  * this day to slider-reachable demands on 2026-08-19 — guitar 0.4/0.3 → 0.6/0
  * and reading 0.5/0.05 → 0.4/0, difficulties held — and until now this probe
- * still declared the old triple, so §13.4's sentence about "§8.10's own fixture
+ * still declared the old triple, so the sentence about "§8.10's own fixture
  * day" described a day the repo no longer had.
  */
 const DAY = [
@@ -401,7 +401,7 @@ const dayFromPlan = (
 	};
 };
 
-describe('MATH.md §13.4 — the insertion convention', () => {
+describe('the insertion convention', () => {
 	it('validates the replica against the shipped stopIndifferencePoint', () => {
 		const cells = [8, 10, 12].flatMap((windowHours) =>
 			[0.5, 0.9, 1.3].flatMap((trueLambda) =>
@@ -448,11 +448,11 @@ describe('MATH.md §13.4 — the insertion convention', () => {
 		expect(app.probes.get(2)).not.toBe(ins.probes.get(2));
 		expect(app.probes.get(3)).toBe(ins.probes.get(3));
 
-		// The SIGN §13.4 claims for this day: inserting reads higher.
+		// The SIGN claimed for this day: inserting reads higher.
 		expect(ins.point!).toBeGreaterThan(app.point!);
 
 		console.log(
-			`§13.4 on §8.10's own fixture day (2.25 h of reading at T=12, boxing and guitar unstarted): indifference midpoint inserted-at-rank ${ins.point!.toFixed(4)} vs appended-last ${app.point!.toFixed(4)} — INSERTING reads higher, by ${(ins.point! - app.point!).toFixed(4)}`,
+			`On §8.10's own fixture day (2.25 h of reading at T=12, boxing and guitar unstarted): indifference midpoint inserted-at-rank ${ins.point!.toFixed(4)} vs appended-last ${app.point!.toFixed(4)} — INSERTING reads higher, by ${(ins.point! - app.point!).toFixed(4)}`,
 		);
 
 		console.log(
@@ -569,7 +569,7 @@ describe('MATH.md §13.4 — the insertion convention', () => {
 		shifts.sort((a, b) => a - b);
 
 		console.log(
-			`§13.4 append-last vs canonical, ${days} days with at least one unlogged task, ${probesCompared} unlogged probes:`,
+			`Append-last vs canonical, ${days} days with at least one unlogged task, ${probesCompared} unlogged probes:`,
 		);
 
 		console.log(

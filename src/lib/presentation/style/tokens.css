@@ -255,11 +255,11 @@
 	@apply cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4;
 }
 
-/* The run order's badge: `#N` on a task row (the whole-day plan's position,
-   MATH.md §11.8) and "Next" on the list's heading (position 1 of the mid-day
-   re-plan, §35). Both are their own tooltip trigger, and the filled pill is the
-   affordance — which is why `cursor-help` is in here and `hint-underline` is not:
-   a dotted underline under a pill reads as damage. The worded one adds its own
+/* The run order's badge: `#N` on a task row (the whole-day plan's position) and
+   "Next" on the list's heading (position 1 of the mid-day re-plan). Both are
+   their own tooltip trigger, and the filled pill is the affordance — which is
+   why `cursor-help` is in here and `hint-underline` is not: a dotted underline
+   under a pill reads as damage. The worded one adds its own
    `uppercase tracking-wide`; `#1` would be nothing but noise in caps. */
 @utility order-badge {
 	@apply cursor-help rounded-sm bg-flow/15 px-box-3xs py-text-3xs text-xs font-semibold text-flow;

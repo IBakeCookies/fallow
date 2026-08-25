@@ -61,9 +61,9 @@
 />
 
 <!-- A budget the quarter step does not land on. Legitimate: typed in the field, and
-     what a plan-advice `set-budget` lever applies, which MATH.md §14.1-2 keeps exact.
-     A range sanitizes its DOM value to its own step, so with `step="0.25"` the thumb
-     read 6.5 beside a field reading 6.4 — two controls over one value disagreeing. -->
+     what a plan-advice `set-budget` lever applies. A range sanitizes its DOM value
+     to its own step, so with `step="0.25"` the thumb read 6.5 beside a field reading
+     6.4 — two controls over one value disagreeing. -->
 <Story
 	name="Off-quarter budget"
 	args={{

@@ -27,7 +27,7 @@ export function completionPromptAction(input: {
 	finishing: boolean;
 	/** the task already carries the measurement being asked for — false for a
 	 *  per-SESSION measurement like 🪫 drain, where finishing a task ends a
-	 *  session an earlier rating says nothing about (MATH.md §18) */
+	 *  session an earlier rating says nothing about */
 	measured: boolean;
 	/** this prompt's own editor is already open on the row being toggled, where
 	 *  opening again would reseed the draft. Only that one: the ✎ editor stacks
@@ -80,7 +80,7 @@ export type DrainDraft = EditorDraft & {
 
 /** A draft for a new session, empty unless something measured THIS one — `/`'s stopped
  *  timer hands in the minutes it counted. Never seeded from an earlier rating: each 🪫
- *  log describes one session (MATH.md §18), so prefilling the last one invites
+ *  log describes one session, so prefilling the last one invites
  *  re-saving hours the day already counts. Corrections seed their own draft. */
 export const newDrainDraft = (source: EditorSource, minutes: number | null = null): DrainDraft => ({
 	...newEditorDraft(source),
@@ -93,10 +93,10 @@ const holdsPendingMinutes = (draft: DrainDraft) =>
 	draft.recordId === undefined && draft.minutes !== null;
 
 /** The minutes a newly opened 🪫 append editor may take from `/`'s stopped timer: the
- *  reading, unless an editor already open holds it. One stop funds one log (MATH.md
- *  §18) and a draft carries a COPY of the number, so the reading lives in exactly one
- *  draft at a time — two rows ticked done each opened an editor holding the same 45,
- *  and each funded a log. Closing that editor releases it again. */
+ *  reading, unless an editor already open holds it. One stop funds one log and a draft
+ *  carries a COPY of the number, so the reading lives in exactly one draft at a time —
+ *  two rows ticked done each opened an editor holding the same 45, and each funded a
+ *  log. Closing that editor releases it again. */
 export const claimPendingMinutes = (
 	drafts: Record<number, DrainDraft>,
 	pendingMinutes: number | null,

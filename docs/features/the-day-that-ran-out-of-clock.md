@@ -161,14 +161,14 @@ scratch. This arm makes the count committed, and it must read 0 after the cap.
 
 ## Read before building
 
-- MATH.md §8.10 — the rest-cap bullet at `MATH.md:2097`, which states the class,
+- MATH.md §8.10 — the rest-cap bullet at `MATH.md:2101`, which states the class,
   both scratch figures, and that the ruling is filed rather than taken. This is
   the section the change rewrites, same commit (R7).
-- MATH.md §8.11 — the worked-hours `room` rule at `MATH.md:2565` and the
+- MATH.md §8.11 — the worked-hours `room` rule at `MATH.md:2569` and the
   measured cost paragraph under it. The rule survives for `window-full` and
   stops applying to the session lengths priced.
 - MATH.md §10 — the revision-log entry the correction adds; the 2026-08-19
-  entry at `MATH.md:3437` is the one that filed M42.
+  entry at `MATH.md:3441` is the one that filed M42.
 - `src/lib/business/model/zenith-energy.ts:1951` — `stopBracket`, whose
   `nextStep` guard (`day.total + step <= observation.windowHours`) is the
   window-edge censor.

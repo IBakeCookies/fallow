@@ -1,19 +1,19 @@
 /**
- * What is true of the Friction Index (`calculateFrictionIndex`, MATH.md §11.4)
- * over a day space the allocator actually produces.
+ * What is true of the Friction Index (`calculateFrictionIndex`) over a day
+ * space the allocator actually produces.
  *
- * §11.4 fixed the metric's asymmetry (mapped E ∈ [1,5] vs β ∈ [1,2]) by moving
- * to raw 1–10 scales, and pinned the two endpoints by fixture: loved-hard = 0,
- * difficulty-10/enjoyment-1 = 100. Neither the fix nor the suite says anything
- * about the INTERIOR, which is what the dashboard renders and what
- * `AXIS_BAND.frictionIndex` bands. Four questions:
+ * A fix removed the metric's asymmetry (mapped E ∈ [1,5] vs β ∈ [1,2]) by
+ * moving to raw 1–10 scales, and pinned the two endpoints by fixture:
+ * loved-hard = 0, difficulty-10/enjoyment-1 = 100. Neither the fix nor the
+ * suite says anything about the INTERIOR, which is what the dashboard renders
+ * and what `AXIS_BAND.frictionIndex` bands. Four questions:
  *
  * 1. **Is the reading the formula?** Recompute
  *    `Σ max(0, Eᵤ − β)·h / (9·Σh)` independently from the returned plan.
  * 2. **What is reachable?** The band has a warning arm above 50 and a critical
  *    arm above 75. Can a plan the app itself builds land there?
- * 3. **Is the zero boundary where §11.4 says it is?** "Difficulty you love is
- *    not friction" — but the comparison is EFFECTIVE difficulty (dominant +
+ * 3. **Is the zero boundary where the math says it is?** "Difficulty you love
+ *    is not friction" — but the comparison is EFFECTIVE difficulty (dominant +
  *    0.3·secondary) against a raw slider, so a task the user rated MORE
  *    enjoyable than either difficulty dimension can still carry a gap.
  *    Measured over the reachable 0–10 cube.

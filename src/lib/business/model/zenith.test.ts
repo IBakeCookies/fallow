@@ -216,7 +216,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 		it('findOptimalSingleTaskTime maximizes P̄, with T*/ϕ ∈ [1.5194, 1.7933] across the domain', () => {
 			// The lower end is 1.5194, not 1.5: 1.5 is the r → 1 asymptote and
-			// AMPLITUDE_RATIO_CAP stops r at 0.9 (MATH.md §3, §13.5).
+			// AMPLITUDE_RATIO_CAP stops r at 0.9 (MATH.md §3).
 			for (const task of DOMAIN_GRID) {
 				const { a, p0, k, phi } = calculateTaskParams({
 					title: '',
@@ -598,9 +598,9 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('the cost of a ϕ error is second-order — doubling it ~quadruples the loss (2026-08-06, §17)', () => {
+		it('the cost of a ϕ error is second-order — doubling it ~quadruples the loss (2026-08-06)', () => {
 			// Pins the MECHANISM behind `scripts/phi-error-price.probe.ts`'s table
-			// and §17's whole conclusion: P̄′(T*) = 0, so mis-timing loses O(ΔT²).
+			// and its whole conclusion: P̄′(T*) = 0, so mis-timing loses O(ΔT²).
 			// That, not the table's magnitudes, is why per-task ϕ offsets were
 			// declined — and it is what a future change would have to break.
 			//
@@ -634,7 +634,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('funds the exactly-optimal subset past the limit when the budget caps the count (§34)', () => {
+		it('funds the exactly-optimal subset past the limit when the budget caps the count', () => {
 			// The seam the "13 tasks" test below cannot reach: a budget so tight that
 			// only a couple of tasks can be funded at all. Greedy forward selection
 			// commits to the best SINGLE task first and can never reach a pair that
@@ -696,7 +696,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(achieved).toBeCloseTo(brute, 9);
 		});
 
-		it('never plans a worse day on a bigger budget while the bounded search runs (§34)', () => {
+		it('never plans a worse day on a bigger budget while the bounded search runs', () => {
 			// Monotonicity is the observable consequence of searching a budget-indexed
 			// family properly: every plan affordable at B is affordable at B + a block.
 			// Forward selection broke it — its first pick changes with the budget, and
@@ -705,7 +705,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// Scoped to the bounded region ON PURPOSE. At 14 tasks and switchCost 0.5
 			// that is budgets up to 3.75h (maxFunded 5, 3472 plans); one block more
 			// admits a 6th task, 6475 plans, and the fallback takes over — which does
-			// not GUARANTEE this (§34 measures it breaking elsewhere), so asserting it
+			// not GUARANTEE this (it is measured breaking elsewhere), so asserting it
 			// there would pin luck rather than a property.
 			const switchCost = 0.5;
 
@@ -749,8 +749,8 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('funds the exactly-optimal subset past the limit on a day already worked (§34)', () => {
-			// The seam the other §34 fixtures cannot reach: every one of them solves a
+		it('funds the exactly-optimal subset past the limit on a day already worked', () => {
+			// The seam the other fixtures cannot reach: every one of them solves a
 			// COLD day, where the size bound `budgetBlocksFor(max(startedCount, m)) ≥ m`
 			// is the same expression as the one without `startedCount`. Only a morning's
 			// worth of started tasks separates them — here into 6 against 7, which is
@@ -759,7 +759,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			// (measured 2026-08-14).
 			//
 			// The oracle charges the switch bill on the DAY's funded set, `already
-			// worked ∪ this subset` (§35): billing `|S|` would refund the switches of
+			// worked ∪ this subset`: billing `|S|` would refund the switches of
 			// the tasks a subset abandons and pick a plan the day cannot afford.
 			const switchCost = 0.33;
 			const budget = 4;
@@ -790,7 +790,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			const startedCount = workedHours.filter((hours) => hours > 0).length;
 
 			// Pools wide enough that neither binds: the bound promises §4's exactness,
-			// and a binding pool would put the answer under §13.3's heuristic instead.
+			// and a binding pool would put the answer under the heuristic instead.
 			const pools = {
 				cognitiveHours: 999,
 				physicalHours: 999,
@@ -1104,7 +1104,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		// knapsack has no exact greedy); these tests pin it within a whisker of the
 		// brute-force optimum on the scenarios that broke earlier heuristics.
 
-		it('holds an envelope over RANDOM pool-bound days, not just the hand-picked ones (2026-07-26, §13.3)', () => {
+		it('holds an envelope over RANDOM pool-bound days, not just the hand-picked ones (2026-07-26)', () => {
 			// The "within 1–2%" claim used to rest on a handful of curated
 			// scenarios. A 400-day randomized sweep found the real tail was 5.5%
 			// worst-case, which motivated the ratio-ranked second candidate plan.
@@ -1217,7 +1217,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(worst).toBeLessThan(0.005);
 		});
 
-		it('is 5.3% short on the worst APP-REACHABLE day — 0.09% is not an envelope (2026-08-06, §13.3)', () => {
+		it('is 5.3% short on the worst APP-REACHABLE day — 0.09% is not an envelope (2026-08-06)', () => {
 			// scripts/pool-allocator.probe.ts ran the sweep above over app-reachable
 			// days instead (integer sliders, weights tied to them): per-seed worsts
 			// 4.56%, 3.37%, 4.81%, 3.83%, 5.28% over 5 × 2000 days, 18 of the 10,000
@@ -1791,7 +1791,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(Math.sqrt(many.sigma2)).toBeLessThan(0.25);
 		});
 
-		it('no observations returns the PRIOR as a posterior, not none (2026-07-26, §13.1)', () => {
+		it('no observations returns the PRIOR as a posterior, not none (2026-07-26)', () => {
 			// The fallback used to return no posterior, which downstream reads as
 			// σ_ϕ = 0 — a user with zero ⚡ logs was treated as perfectly certain
 			// and then started hedging on their first log. Uncertainty must be
@@ -2068,12 +2068,12 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(gain.gainPercent).toBeGreaterThan(0);
 		});
 
-		it('bills the naive baseline for the switches it makes, so 10 tasks on 2h is not "naive achieves nothing" (2026-08-06, §19)', () => {
+		it('bills the naive baseline for the switches it makes, so 10 tasks on 2h is not "naive achieves nothing" (2026-08-06)', () => {
 			// This day USED to report the 999% cap: 10 tasks × 0.25h = 2.25h of
 			// switch overhead exceeds the 2h budget, so the baseline's effective
 			// budget hit 0 and its productivity 0. But it was billed for 9 switches
 			// while the plan it produced seated no tasks at all — the same one-sided
-			// handicap §13.2 removed from the lattice. A naive planner with 2h does
+			// handicap removed from the lattice. A naive planner with 2h does
 			// not achieve nothing: it spreads over as many tasks as it can seat and
 			// pays only those switches (here 4 tasks, 5 blocks).
 			const tasks = Array.from(
@@ -2109,8 +2109,8 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(pooled.gainPercent).toBeLessThan(GAIN_PERCENT_CAP);
 		});
 
-		it('saturates at 4.25h for one task at the ϕ floor (2026-08-17, §19.4)', () => {
-			// The bottom rung of §19.4's ladder, and the whole justification for the
+		it('saturates at 4.25h for one task at the ϕ floor (2026-08-17)', () => {
+			// The bottom rung of the ladder, and the whole justification for the
 			// cap: `gain-cap-trigger.probe.ts` swept 0.25–24h and found 4.25h to be
 			// the first budget that reads GAIN_PERCENT_CAP. One rung is pinned; the
 			// sweep stays in the probe.
@@ -2133,7 +2133,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(productivityGain(tasks, 4.25, floorConstants).gainPercent).toBe(GAIN_PERCENT_CAP);
 		});
 
-		it('reports the same gain however the task list is ordered (2026-08-06, §19)', () => {
+		it('reports the same gain however the task list is ordered (2026-08-06)', () => {
 			// The remainder blocks of an equal split used to go to whichever tasks
 			// sat earliest in the array, and `addTask` PREPENDS — so adding a task
 			// moved the reported gain of a plan that had not changed (on 73.5% of
@@ -2183,28 +2183,27 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('is never negative on the single-budget path, and within the pooled greedy gap on the pooled one (2026-07-26 §13.2, tightened 2026-08-06 §19)', () => {
+		it('is never negative on the single-budget path, and within the pooled greedy gap on the pooled one (2026-07-26, tightened 2026-08-06)', () => {
 			// The continuous baseline could hand every task a sub-block sliver and
 			// collect its ≈ p₀ activation bonus — something Zenith structurally
 			// cannot do — so the metric read NEGATIVE on 3.8–7.8% of random days.
 			// Quantized, the naive plan is one of the block distributions the exact
 			// greedy maximizes over (§4), so the single-budget gain is ≥ 0 — over the
-			// TRUNCATED increment menu, which is the caveat §19.3 records for
+			// TRUNCATED increment menu, which is the caveat recorded for
 			// σ_ϕ > 0. This sweep passes no posterior, so σ_ϕ = 0 and the cut cannot
 			// fire; what keeps it off a real user is the fit, not the sliders (0 of
-			// 4,320 fitted histories reach σ_ϕ/ϕ̂ ≥ 0.35 at ϕ̂ ≥ 4h — §19.3).
+			// 4,320 fitted histories reach σ_ϕ/ϕ̂ ≥ 0.35 at ϕ̂ ≥ 4h).
 			//
-			// The POOLED path never had that proof, and since §19 stopped
-			// over-billing the baseline it is strong enough to expose the pooled
+			// The POOLED path never had that proof, and since the baseline
+			// stopped being over-billed it is strong enough to expose the pooled
 			// greedy's own suboptimality: measured 1 day in 2400 at −0.5%. Asserting
 			// ≥ 0 there would be a latent flake.
 			//
-			// −6 is a REGRESSION TRIPWIRE, not a bound. §13.3 has no envelope to
+			// −6 is a REGRESSION TRIPWIRE, not a bound. There is no envelope to
 			// quote (per-seed worsts 3.37–5.28% app-reachable, 6.03% on a wide draw)
-			// and says in as many words that nothing downstream may cite its numbers
-			// as an error bound. This is sized clear of the −0.5% actually measured,
-			// so it catches a real regression without claiming the model guarantees
-			// anything (§19.3).
+			// and nothing downstream may cite those numbers as an error bound. This
+			// is sized clear of the −0.5% actually measured, so it catches a real
+			// regression without claiming the model guarantees anything.
 			let seed = 12345;
 			const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
 
@@ -2238,7 +2237,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			}
 		});
 
-		it('reads −0.5% at the σ_ϕ menu cut, where the ≥ 0 guarantee weakens (2026-08-17, §19.3)', () => {
+		it('reads −0.5% at the σ_ϕ menu cut, where the ≥ 0 guarantee weakens (2026-08-17)', () => {
 			// The one cell where the single-budget gain goes NEGATIVE. §5.1 cuts a
 			// task's menu at the first non-DECREASING increment when σ_ϕ > 0, and
 			// there that cut fires while E[P̄] is still rising: the naive planner
@@ -2315,7 +2314,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(naive).toBeCloseTo(calculateTotalProductivity(tasks, [1, 1]), 12);
 
 			// Odd block counts round-robin: 5 blocks over 2 tasks → 0.75h / 0.5h.
-			// Since §19 the value is averaged over both rotations — 0.75/0.5 and
+			// The value is averaged over both rotations — 0.75/0.5 and
 			// 0.5/0.75 — which for these two IDENTICAL tasks is the same number.
 			const odd = pooledProductivityGain(
 				tasks,
@@ -2327,7 +2326,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 			expect(odd.naive).toBeCloseTo(calculateTotalProductivity(tasks, [0.75, 0.5]), 12);
 
-			// With DIFFERENT tasks the average is what separates §19's baseline from
+			// With DIFFERENT tasks the average is what separates the new baseline from
 			// the old order-sensitive one: strictly between the two rotations.
 			const mixed: PooledTaskInput[] = [
 				{
@@ -2359,11 +2358,11 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		});
 
 		it('never reports above the cap', () => {
-			// (Since §19 the naive = 0 arm needs a budget under one whole block,
+			// (The naive = 0 arm needs a budget under one whole block,
 			// where the optimizer scores 0 too. What stays reachable is the RATIO
 			// clamp: the baseline must spend its whole block budget, so a long day
 			// poured into few short-ϕ tasks decays past T* while the optimizer stops
-			// — 999% from 4.25h at n = 1 with a ϕ̂ = 0.1h fit (MATH.md §19.4). This
+			// — 999% from 4.25h at n = 1 with a ϕ̂ = 0.1h fit. This
 			// sweep sits at default constants, where the 24h maximum is 569%, so it
 			// pins the invariant from the other side.)
 			for (const budget of [0.5, 2, 2.5, 6, 12]) {
@@ -2838,7 +2837,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		});
 	});
 
-	describe('Prefix-aware allocation (already-worked hours, MATH.md §35)', () => {
+	describe('Prefix-aware allocation (already-worked hours)', () => {
 		const pooledTask = (title: string, difficulty: number, enjoyment: number): PooledTaskInput => ({
 			title,
 			difficulty,
@@ -2912,7 +2911,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 		});
 
 		it('continues the same non-increasing sequence: the prefix plan is exact for one task', () => {
-			// The exactness premise (MATH.md §35): a prefix menu is a SUFFIX of the
+			// The exactness premise: a prefix menu is a SUFFIX of the
 			// cold menu, so the best t under a prefix h maximizes P̄(h+t) over the
 			// lattice — checked here against exhaustive enumeration.
 			const task = pooledTask('spec', 7, 6);

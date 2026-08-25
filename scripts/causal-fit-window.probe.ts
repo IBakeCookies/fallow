@@ -1,7 +1,7 @@
 /**
- * The measurements behind MATH.md §33, the causal fit window (added 2026-08-08).
+ * The measurements behind the causal fit window in MATH.md (added 2026-08-08).
  *
- * §33's central claim is about MAGNITUDE, not sign: that a single ⚡ log against
+ * The central claim is about MAGNITUDE, not sign: that a single ⚡ log against
  * a thin history re-times EVERY task on the page, by enough that a user watching
  * their own plan reshuffle mid-day reads it as a bug. The section quotes these:
  *
@@ -73,7 +73,7 @@ const history = (n: number, measuredHours: number, ageDays = 1): FlowObservation
 		}),
 	);
 
-describe('§33 — what one ⚡ log does to a plan', () => {
+describe('what one ⚡ log does to a plan', () => {
 	it('re-times a task the user never logged, most of it on the first log', () => {
 		const base = phiOf(BYSTANDER, DEFAULT_USER_CONSTANTS);
 		// The user's own case: the model predicted ~2h20m and they reached flow in 1h.
@@ -113,7 +113,7 @@ describe('§33 — what one ⚡ log does to a plan', () => {
 
 		// The claim under test is that the move is large, not that it is any
 		// particular size — a loose floor so the probe fails only if the effect
-		// stops being the thing §33 is about.
+		// stops being the thing the causal fit window is about.
 		expect(Math.abs((first - base) / base)).toBeGreaterThan(0.1);
 		expect(firstShare).toBeGreaterThan(50);
 	});

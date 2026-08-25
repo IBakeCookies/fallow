@@ -18,7 +18,7 @@
  * THE ARMS, all the same day read five ways:
  *
  *   logged     — one 🪫 row per session with the moment it ended (what the app
- *                stores since §18), so the reconstruction recovers the breaks
+ *                stores today), so the reconstruction recovers the breaks
  *   summed      — the rows with no moments: the pre-2026-08-19 reading
  *   order-only  — the rows in their real order, logged back to back, so the
  *                gaps recover to nothing. This is the arm that decides WHICH

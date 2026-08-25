@@ -139,7 +139,7 @@ describe('EnergyObservationStore', () => {
 	// re-describe the session where it happened. Restamping it with the live clock
 	// would move the measurement onto today: the day it was worked loses those hours
 	// and today gains hours nobody worked, in every per-day fit that reads them
-	// (MATH.md §8.7) and in the §33 causal window that scopes plans by date.
+	// (MATH.md §8.7) and in the causal window that scopes plans by date.
 	it('leaves a corrected rating on the day it was logged', async () => {
 		const { store } = await setup();
 

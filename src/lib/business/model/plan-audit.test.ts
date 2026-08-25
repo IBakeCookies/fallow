@@ -184,7 +184,7 @@ describe('auditPlanAdherence', () => {
 		expect(audit.classicOverlap).toBe(0);
 	});
 
-	// MATH.md §12: a finished day is scored against the fit recorded THAT day, so
+	// A finished day is scored against the fit recorded THAT day, so
 	// an early day is not compared against plans built from months of later logs.
 	describe('per-day fit', () => {
 		/** Nothing like the defaults, so a plan built on it cannot coincide with one. */
@@ -243,7 +243,7 @@ describe('auditPlanAdherence', () => {
 
 		// The posterior is what makes the classic allocator hedge ϕ-uncertainty
 		// (§5.1), and a snapshot that dropped it would audit an early day as though
-		// the user had been perfectly certain (§13.1) — the bias, restored.
+		// the user had been perfectly certain — the bias, restored.
 		//
 		// A TIGHT window is what makes the hedge visible: with 8 h every task is
 		// funded near its T* either way, so the shares — and the overlap — coincide.

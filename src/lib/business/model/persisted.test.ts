@@ -531,7 +531,7 @@ describe('observation sanitizers', () => {
 		});
 
 		// A MISSING posterior means σ_ϕ = 0 downstream — the allocator treats the
-		// user as perfectly certain (MATH.md §13.1) — so a snapshot that lost its
+		// user as perfectly certain — so a snapshot that lost its
 		// covariance must leave the audit rather than silently harden the plan.
 		it('drops a record whose posterior is not a 3×3 matrix of finite numbers', () => {
 			expect(

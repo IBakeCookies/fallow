@@ -1,13 +1,13 @@
 /**
- * What the analytics metric trend (MATH.md §31) costs and how far it lands from
- * the dashboard, over a day space the allocator actually produces.
+ * What the analytics metric trend costs and how far it lands from the
+ * dashboard, over a day space the allocator actually produces.
  *
  * The card was asked to plot four of the readings the dashboard shows for today
- * — Burnout Risk (§11.6), Cognitive and Physical Load (§25), Fallow Gain (§21)
- * — across the viewed range. History cannot afford the dashboard's plan: the
- * exact allocator enumerates 2ⁿ funded subsets, so every point is read off
- * `solveWithoutSwitchCost` (§29) instead. This measures which of the four
- * survive that, and it is why the shipped card plots three:
+ * — Burnout Risk, Cognitive and Physical Load, Fallow Gain — across the viewed
+ * range. History cannot afford the dashboard's plan: the exact allocator
+ * enumerates 2ⁿ funded subsets, so every point is read off
+ * `solveWithoutSwitchCost` instead. This measures which of the four survive
+ * that, and it is why the shipped card plots three:
  *
  * 1. **What does a year cost?** The fold runs an energy simulation per day for
  *    Burnout Risk; the year view is 365 of them on the main thread.
@@ -19,8 +19,9 @@
  * 4. **Which term is responsible?** Burnout Risk and the gain take `switchCost`
  *    as an argument separate from the solve, so the approximation is the
  *    ALLOCATION alone — measured against passing 0 for both.
- * 5. **Is the exact solve really unaffordable?** §31's per-n table starts at n = 8; a year
- *    is only unaffordable for a heavy user, so the cost is taken per n.
+ * 5. **Is the exact solve really unaffordable?** The per-n table starts at
+ *    n = 8; a year is only unaffordable for a heavy user, so the cost is taken
+ *    per n.
  * 6. **What does the gap actually depend on?** The dropped term is the switch
  *    bill, so the gap is read against what that bill was worth on the day.
  *
@@ -188,7 +189,7 @@ describe('the analytics metric trend', () => {
 	it('1. what a year of points costs on the main thread', () => {
 		// A year view is 365 days; the seeded space is drawn from the same
 		// generator the other metric probes use, so n runs 1–7 rather than the
-		// n = 12 that §31's per-n table tops out at.
+		// n = 12 that the per-n table tops out at.
 		const year = DAYS.slice(0, 365);
 		const solved = year.map((day) => solve(day, 0));
 		const startFold = performance.now();
@@ -247,7 +248,7 @@ describe('the analytics metric trend', () => {
 
 		// A gap only means something against the spread of the reading itself: a
 		// p95 of 13 points is small on Burnout Risk and enormous on a gain whose
-		// own median is ~3% (§21).
+		// own median is ~3%.
 		for (const key of KEYS) {
 			const xs = deltas[key];
 			const exact = xs.filter((d) => d === 0).length;
@@ -395,7 +396,7 @@ describe('the analytics metric trend', () => {
 			);
 		}
 
-		// §31's per-n table runs n = 8–12; the space above runs n = 1–7. What the
+		// The per-n table runs n = 8–12; the space above runs n = 1–7. What the
 		// exact solve costs is 2ⁿ in the task count, so the worst realistic day
 		// is what decides whether a year is affordable, not the mean.
 		const byCount = new Map<number, number[]>();
@@ -420,7 +421,7 @@ describe('the analytics metric trend', () => {
 		}
 
 		// A year AT a fixed n, which is what a user with a standing task list
-		// actually has. This is the table §31 quotes: the seeded space above
+		// actually has. This is the quoted table: the seeded space above
 		// averages over n = 1–7 and so understates the day that decides it.
 		const standing = (count: number): Day => ({
 			tasks: Array.from(

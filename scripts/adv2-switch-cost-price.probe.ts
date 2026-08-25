@@ -1,7 +1,7 @@
 /**
- * Measurements behind MATH.md §14.3's claims about the price of the switch cost.
+ * Measurements behind the claims about the price of the switch cost.
  *
- * §14.3 was added on 2026-08-04 quoting a fixture sweep that was never
+ * They were added on 2026-08-04 quoting a fixture sweep that was never
  * committed: the 298-day table, the inversion counts off the constraints bar's
  * grid, the flooring counts, the reservation shares and the "not built" fit
  * measurements all came from a script that no longer exists. This is that sweep.
@@ -13,7 +13,7 @@
  * "the fixture year" must be running on the same year the generator defines.
  *
  * A probe, not a test: every number moves when the allocator changes. The one
- * assertion is on the monotonicity §14.3's per-arm clamp rests on, checked
+ * assertion is on the monotonicity the per-arm clamp rests on, checked
  * against brute force rather than against the allocator that might be wrong.
  *
  * Usage: npm run probe
@@ -139,7 +139,7 @@ const task = (id: number, mental: number, physical: number, enjoyment: number): 
  * The exhaustive optimum over the same feasible set the allocator faces — every
  * block distribution under both pools and the (m−1)·switchCost funded-count
  * overhead, scored by the model's own objective (mirrors
- * `pool-allocator.probe.ts`, which is where §13.3's brute force lives).
+ * `pool-allocator.probe.ts`, which is where the brute force lives).
  */
 function bruteForceOptimum(
 	tasks: PooledTaskInput[],
@@ -227,7 +227,7 @@ function bruteForceOptimum(
 
 const DAYS = fixtureDays();
 
-describe('the price of the switch cost (MATH.md §14.3)', () => {
+describe('the price of the switch cost', () => {
 	it('measures the fixture year at each day’s own inputs', () => {
 		const dist = new Map<number, number>();
 
@@ -255,12 +255,12 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 			}
 
 			console.log(
-				`[§14.3 table] ${label} (${days.length}): → s = 0.5 median ${pct(median(doubled))}, mean ${pct(mean(doubled))}, p90-by-magnitude ${pct(quantile(doubled.map(Math.abs), 0.9))}, days moved ${pct(moved / days.length)}; → s = 0 median ${pct(median(free))}`,
+				`[table] ${label} (${days.length}): → s = 0.5 median ${pct(median(doubled))}, mean ${pct(mean(doubled))}, p90-by-magnitude ${pct(quantile(doubled.map(Math.abs), 0.9))}, days moved ${pct(moved / days.length)}; → s = 0 median ${pct(median(free))}`,
 			);
 		};
 
 		console.log(
-			`[§14.3] ${DAYS.length} worked days, task-count distribution ${[...dist.keys()]
+			`${DAYS.length} worked days, task-count distribution ${[...dist.keys()]
 				.sort((a, b) => a - b)
 				.map((count) => `${count}:${dist.get(count)}`)
 				.join(' ')}, budget < 4 h on ${DAYS.filter((day) => day.budget < 4).length}`,
@@ -319,8 +319,8 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 				allocatedHours,
 			).optimized;
 
-			// §14.3's note on reading the value through `calculateZenithGain` rather
-			// than summing the priority-sorted plan.
+			// The note on reading the value through `calculateZenithGain` rather than
+			// summing the priority-sorted plan.
 			const summed = suggestedTasks.reduce((sum, task) => sum + task.avgProductivity, 0);
 
 			if (summed !== base) {
@@ -354,20 +354,20 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 		}
 
 		console.log(
-			`[§14.3] at each day's own inputs: ${invertedDays} of ${DAYS.length} days invert; flooring at 0 would rewrite ${negativeArms} of ${arms} alternatives (median ${pct(median(negatives))})`,
+			`at each day's own inputs: ${invertedDays} of ${DAYS.length} days invert; flooring at 0 would rewrite ${negativeArms} of ${arms} alternatives (median ${pct(median(negatives))})`,
 		);
 
 		console.log(
-			`[§14.3] reservation: counterfactual over the task list median ${pct(median(counterfactualShares))}, p90 ${pct(quantile(counterfactualShares, 0.9))}; shipped over funded tasks p90 ${pct(quantile(shippedShares, 0.9))}`,
+			`reservation: counterfactual over the task list median ${pct(median(counterfactualShares))}, p90 ${pct(quantile(counterfactualShares, 0.9))}; shipped over funded tasks p90 ${pct(quantile(shippedShares, 0.9))}`,
 		);
 
 		console.log(
-			`[§14.3] Σ avgProductivity ≠ calculateZenithGain on ${ulpDays} of ${DAYS.length} days, worst ${worstUlps.toFixed(1)} ulps`,
+			`Σ avgProductivity ≠ calculateZenithGain on ${ulpDays} of ${DAYS.length} days, worst ${worstUlps.toFixed(1)} ulps`,
 		);
 	});
 
 	/**
-	 * §14.3's clamp rests on the exact optimum being monotone non-increasing in
+	 * The clamp rests on the exact optimum being monotone non-increasing in
 	 * `s`, and its "inversions are reachable" claim on the shipped allocator
 	 * breaking that at inputs the constraints bar offers. Both are measured here:
 	 * the grid is budgets and pools the bar's own steps produce, and the quoted
@@ -455,11 +455,11 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 		}
 
 		console.log(
-			`[§14.3 grid] ${configurations.length} configurations across ${DAYS.length} days: ${visible} visible inversions (${visibleDoubled} on the doubled arm), ${pastOnePercent} past 1%, ${atDeclaredSwitchCost} of them at the day's own s`,
+			`[grid] ${configurations.length} configurations across ${DAYS.length} days: ${visible} visible inversions (${visibleDoubled} on the doubled arm), ${pastOnePercent} past 1%, ${atDeclaredSwitchCost} of them at the day's own s`,
 		);
 
 		console.log(
-			`[§14.3 grid] worst free arm ${pct(worstFree)} (${worstFreeAt}), worst doubled arm +${pct(worstDoubled)} (${worstDoubledAt || 'none'}), worst free arm with both pools ≥ 1 h ${pct(worstBigPools)}`,
+			`[grid] worst free arm ${pct(worstFree)} (${worstFreeAt}), worst doubled arm +${pct(worstDoubled)} (${worstDoubledAt || 'none'}), worst free arm with both pools ≥ 1 h ${pct(worstBigPools)}`,
 		);
 
 		// The quoted counterexample, brute-forced: the s = 5 min plan is feasible at
@@ -478,7 +478,7 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 		const brute = bruteForceOptimum(inputs, 3, pools, 0);
 
 		console.log(
-			`[§14.3] 2026-05-14 at budget 3 h, pools 0.5/2: s = 5 min plan ${declared.toFixed(6)}, s = 0 plan ${atFree.toFixed(6)} (${pct((atFree - declared) / declared)}), exact s = 0 optimum ${brute.toFixed(6)}`,
+			`2026-05-14 at budget 3 h, pools 0.5/2: s = 5 min plan ${declared.toFixed(6)}, s = 0 plan ${atFree.toFixed(6)} (${pct((atFree - declared) / declared)}), exact s = 0 optimum ${brute.toFixed(6)}`,
 		);
 
 		// The monotonicity the clamp rests on, checked against brute force and not
@@ -487,7 +487,7 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 	});
 
 	/**
-	 * §14.3's "not built: fitting `s` from the plan" rests on the funded count
+	 * The "not built: fitting `s` from the plan" item rests on the funded count
 	 * m(s) not being monotone in `s`. Same fixture days, `s` swept across the
 	 * [0,1] h range the item would have inverted over.
 	 */
@@ -553,24 +553,24 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 		}
 
 		console.log(
-			`[§14.3] m(s) over ${DAYS.length} days × ${steps} values of s in [0,1] h: ${violations} monotonicity violations on ${daysWithViolation} days`,
+			`m(s) over ${DAYS.length} days × ${steps} values of s in [0,1] h: ${violations} monotonicity violations on ${daysWithViolation} days`,
 		);
 
 		console.log(
-			`[§14.3] one-day bracket for the observed funded count: median ${median(widths).toFixed(2)} h wide, consistent with the whole [0,1] h range on ${pct(wholeRange / widths.length)} of days; one mis-counted task shifts the lower edge by a median ${median(shifts).toFixed(2)} h`,
+			`one-day bracket for the observed funded count: median ${median(widths).toFixed(2)} h wide, consistent with the whole [0,1] h range on ${pct(wholeRange / widths.length)} of days; one mis-counted task shifts the lower edge by a median ${median(shifts).toFixed(2)} h`,
 		);
 	});
 
 	/**
-	 * §14.3 suppresses the reservation sentence and the bracket independently, and
-	 * justifies that with one number: +41.8% on "a 3-task day at a 0.5 h budget with
-	 * s = 15 min". Every arm above re-derives the reading through
+	 * The reservation sentence and the bracket are suppressed independently, and
+	 * that was justified with one number: +41.8% on "a 3-task day at a 0.5 h budget
+	 * with s = 15 min". Every arm above re-derives the reading through
 	 * `calculateZenithGain`; this one reads the SHIPPED field, which is only
 	 * reachable through `suggestPlanAdjustments` (`calculateSwitchCostPrice` is
-	 * module-private). The document states neither the day's tasks nor its pools, so
+	 * module-private). The claim states neither the day's tasks nor its pools, so
 	 * the space is swept and a witness printed by value.
 	 */
-	it('reads the suppressed bracket off suggestPlanAdjustments (MATH.md §14.3)', () => {
+	it('reads the suppressed bracket off suggestPlanAdjustments', () => {
 		const BUDGET = 0.5;
 		const SWITCH_COST = 0.25;
 
@@ -611,7 +611,7 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 
 				const price = advice.switchCostPrice;
 
-				// The two suppressions §14.3 separated: no reservation to report, yet a
+				// The two suppressions, separated: no reservation to report, yet a
 				// bracket to print.
 				if (price.reservedHours !== 0 || price.alternatives.length === 0) continue;
 
@@ -640,7 +640,7 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 					bestAt = where;
 				}
 
-				// §14.3's +41.8% has no executing copy: whether the space reaches it at
+				// The quoted +41.8% has no executing copy: whether the space reaches it at
 				// all is the finding, so the closest value it does reach is reported.
 				if (Math.abs(delta - 41.8) < Math.abs(nearest - 41.8)) {
 					nearest = delta;
@@ -649,12 +649,12 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 			}
 
 			console.log(
-				`[§14.3 bracket] ${label}: ${cases.length} cases at budget ${BUDGET} h, s = 15 min; suppressed reservation with a non-empty bracket on ${suppressed} (${unpriceable} of those unpriceable, Σ P̄ = 0); s = 0 arm median +${median(deltas)}%, max +${best}%, exactly +41.8% on ${deltas.filter((delta) => delta === 41.8).length}`,
+				`[bracket] ${label}: ${cases.length} cases at budget ${BUDGET} h, s = 15 min; suppressed reservation with a non-empty bracket on ${suppressed} (${unpriceable} of those unpriceable, Σ P̄ = 0); s = 0 arm median +${median(deltas)}%, max +${best}%, exactly +41.8% on ${deltas.filter((delta) => delta === 41.8).length}`,
 			);
 
-			console.log(`[§14.3 bracket] ${label} max witness: ${bestAt}`);
+			console.log(`[bracket] ${label} max witness: ${bestAt}`);
 
-			console.log(`[§14.3 bracket] ${label} nearest to +41.8%: ${nearestAt}`);
+			console.log(`[bracket] ${label} nearest to +41.8%: ${nearestAt}`);
 		};
 
 		scan(
@@ -666,7 +666,7 @@ describe('the price of the switch cost (MATH.md §14.3)', () => {
 		);
 
 		// A deterministic grid rather than a seed: the triple IS the reproduction, and
-		// §14.3 needs one stated by value.
+		// one has to be stated by value.
 		const PROFILES = [0, 5, 10].flatMap((mental) =>
 			[0, 5, 10].flatMap((physical) => [2, 9].map((enjoyment) => [mental, physical, enjoyment])),
 		);

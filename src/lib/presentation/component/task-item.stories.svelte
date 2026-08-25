@@ -143,7 +143,7 @@
 	}}
 />
 
-<!-- MATH.md §35: the re-plan reads WITH the plan, never over it -->
+<!-- The re-plan reads WITH the plan, never over it -->
 <Story
 	name="Mid-day re-plan"
 	args={{
@@ -158,7 +158,7 @@
 		await expect(delta).toBeVisible();
 		await expect(delta).toHaveClass(/text-ty-primary/);
 
-		// The plan number surviving mid-day IS the §11.8 scope split, on screen.
+		// The plan number surviving mid-day IS the scope split, on screen.
 		const plan = canvas.getByText('plan 1h 45m');
 		await expect(plan).toBeVisible();
 		await expect(plan).toHaveClass(/text-ty-silent/);
@@ -791,7 +791,7 @@
 	}}
 />
 
-<!-- The tick asks for both: 🪫 is one per session (MATH.md §18), so a rating the day
+<!-- The tick asks for both: 🪫 is one per session, so a rating the day
      already holds does not silence its prompt the way ⚡ silences its own -->
 <Story
 	name="Completion asks both"

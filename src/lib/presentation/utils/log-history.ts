@@ -82,8 +82,8 @@ export function logHistory(input: LogHistoryInput): LogHistoryRow[] {
 	const dated: { row: LogHistoryRow; createdAt: number }[] = [];
 
 	// The task's name today, or the one the record froze at logging time. Not a
-	// measurement — MATH.md §36 freezes the covariates a fit reads, and a title is a
-	// LABEL, so nothing is protected by printing a name the task no longer has.
+	// measurement — the covariates a fit reads are frozen, and a title is a LABEL, so
+	// nothing is protected by printing a name the task no longer has.
 	//
 	// `||`, not `??`: `sanitizeTask` keeps a task whose stored title is not a string as
 	// `''` (R4 — persisted data is hand-editable and restorable from old backups), and

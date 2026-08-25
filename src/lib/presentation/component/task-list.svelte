@@ -20,7 +20,7 @@
 		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
 		/** The day on screen — every row's slide age is measured against it, not the clock. */
 		viewedDate: string;
-		/** The mid-day re-plan (MATH.md §35), or null until today has logged hours. A
+		/** The mid-day re-plan, or null until today has logged hours. A
 		 *  task absent from `hoursByTask` is worth no more time today, so it reads 0 —
 		 *  the map's absence and a task's absence from it are different answers. */
 		remainingDay?: {

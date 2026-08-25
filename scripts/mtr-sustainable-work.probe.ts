@@ -1,10 +1,10 @@
 /**
- * What is true of Sustainable Work (`calculateRewardDensity`, MATH.md §27) over
- * a day space the allocator actually produces.
+ * What is true of Sustainable Work (`calculateRewardDensity`) over a day space
+ * the allocator actually produces.
  *
  * The metric had no entry in MATH.md and divided by the TIME BUDGET:
  * `Σ_{e ≥ Eᵤ} hᵢ / B`, where its siblings normalize differently — Grind Density
- * over the task COUNT, Friction Index over Σh (§11.4). §27 moved it to Σh. Both
+ * over the task COUNT, Friction Index over Σh. A fix moved it to Σh. Both
  * are computed side by side below (`before` = /B, `after` = the shipped /Σh) so
  * the comparison survives the change. Six questions:
  *
@@ -21,7 +21,7 @@
  *    complementary predicate, banded smaller-better. Census of days where one
  *    reads `success` and the other `warning`/`critical`.
  * 6. **Is the fixed reading still its own?** Or a restatement of Grind Density
- *    (§24's test) — the two differ only by hour- vs count-weighting.
+ *    — the two differ only by hour- vs count-weighting.
  *
  * A probe, not a test: every rate below moves whenever the allocator moves.
  *
@@ -92,7 +92,7 @@ function read(d: Day) {
 	return {
 		d,
 		worked,
-		/** The pre-§27 formula: sustainable hours over the time budget. */
+		/** The old formula: sustainable hours over the time budget. */
 		before: worked > 0 ? Math.round((good / d.availableHours) * 100) : 0,
 		/** What ships: sustainable hours over worked hours. */
 		after: calculateRewardDensity(p) ?? 0,

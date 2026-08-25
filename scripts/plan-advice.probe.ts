@@ -1,5 +1,5 @@
 /**
- * Measurements behind MATH.md §14's claims about the priced levers.
+ * Measurements behind MATH.md's claims about the priced levers.
  *
  * A probe, not a test: it answers "what is true of the model over a large input
  * space" and prints numbers, where a test answers "does this still hold" and is
@@ -10,9 +10,9 @@
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports. An undated number in that document is unfalsifiable: the sweep that
- * produced §14.1-2's "the trim is free" was thrown away, which is exactly how
- * that claim stayed in the document while being false (see the trim
- * measurement below, which is what corrected it).
+ * produced "the trim is free" was thrown away, which is exactly how that claim
+ * stayed in the document while being false (see the trim measurement below,
+ * which is what corrected it).
  *
  * Usage: npm run probe
  */
@@ -115,7 +115,7 @@ function randomDays(count: number, seed: number): DailyMetricsInput[] {
 	);
 }
 
-/** One seeded n-task day at the configuration §14's Cost paragraph quotes. */
+/** One seeded n-task day at the configuration the Cost paragraph quotes. */
 const timingDay = (n: number): DailyMetricsInput => {
 	const random = mulberry32(n * 104729);
 	const pick = () => Math.round(random() * 10);
@@ -182,16 +182,16 @@ const allocated = (metrics: DailyMetrics) =>
 	metrics.suggestedTasks.reduce((sum, task) => sum + task.suggestedHours, 0);
 
 /**
- * §14.1-2 said `budget − planSlack` was free — it changes no allocation, so it
+ * MATH.md said `budget − planSlack` was free — it changes no allocation, so it
  * costs no Σ P̄. Corrected 2026-08-06 by this measurement: the trim keeps the
- * plan FEASIBLE, but `allocate` is path-dependent on `budgetBlocks` (§13.3), so
- * the re-solve can land on a different, lower-valued distribution of the same
+ * plan FEASIBLE, but `allocate` is path-dependent on `budgetBlocks`, so the
+ * re-solve can land on a different, lower-valued distribution of the same
  * hours.
  *
  * `reshaped` is what separates the two claims, and is why it is counted here
  * rather than asserted on one day: a non-free trim that also funds fewer tasks
- * or spends fewer hours would be §14.1-2's original rounding defect coming back,
- * not path-dependence.
+ * or spends fewer hours would be the original rounding defect coming back, not
+ * path-dependence.
  */
 function trimFreeness(label: string, inputs: DailyMetricsInput[]): void {
 	let levers = 0;
@@ -234,8 +234,8 @@ function trimFreeness(label: string, inputs: DailyMetricsInput[]): void {
 
 /**
  * Both priced levers are provably ≤ 0 at the exact optimum — a defer contributes
- * P̄ᵢ(0) = 0 and Σ P̄ is monotone non-decreasing in the budget (§14.1-1) — so a
- * positive cost on the frontier is §13.3 suboptimality reaching the card.
+ * P̄ᵢ(0) = 0 and Σ P̄ is monotone non-decreasing in the budget — so a positive
+ * cost on the frontier is suboptimality reaching the card.
  */
 function pricedSigns(inputs: DailyMetricsInput[]): void {
 	const frontiers = inputs
@@ -256,7 +256,7 @@ function pricedSigns(inputs: DailyMetricsInput[]): void {
 /**
  * One day's levers, split by what they do to Flow Coverage: whether any raises
  * the COUNT the axis ranks on, and how many defers raise only the SHARE — the
- * free improvements a ratio-ranked axis would have offered (MATH.md §11.11).
+ * free improvements a ratio-ranked axis would have offered.
  */
 function flowMoves(
 	input: DailyMetricsInput,
@@ -301,17 +301,16 @@ function flowMoves(
 }
 
 /**
- * Where Flow Coverage's warning band belongs, and what the axis is worth
- * (MATH.md §14.5).
+ * Where Flow Coverage's warning band belongs, and what the axis is worth.
  *
  * Three questions on one sweep. **Which threshold** — the reading counts every
- * task in the plan, funded or not (§11.8), so a long backlog reads low
- * permanently and a band set by assertion can pin most days amber; ROADMAP
- * refused a week-feasibility reading for exactly that. **What the axis buys** —
+ * task in the plan, funded or not, so a long backlog reads low permanently and
+ * a band set by assertion can pin most days amber; ROADMAP refused a
+ * week-feasibility reading for exactly that. **What the axis buys** —
  * the share of days where some defer or budget lever raises the COUNT of tasks
  * reaching ϕ, which is the only thing this axis ranks on. **What ranking on the
- * share instead would have cost** — the §11.11 defect, counted: defers that lift
- * the ratio without a single task reaching flow.
+ * share instead would have cost** — the ratio-ranking defect, counted: defers
+ * that lift the ratio without a single task reaching flow.
  */
 function flowCoverageBand(inputs: DailyMetricsInput[]): void {
 	const thresholds = [50, 75, 80, 100];
@@ -346,13 +345,13 @@ function flowCoverageBand(inputs: DailyMetricsInput[]): void {
 	const percent = (n: number) => ((n / readable) * 100).toFixed(1);
 
 	console.log(
-		`[§14.5 band] ${readable} readable days — warning share at ${thresholds
+		`[band] ${readable} readable days — warning share at ${thresholds
 			.map((cut, index) => `<${cut}: ${percent(warned[index])}%`)
 			.join(', ')}`,
 	);
 
 	console.log(
-		`[§14.5 value] a lever raises the flow COUNT on ${percent(liftsCount)}% of days; ` +
+		`[value] a lever raises the flow COUNT on ${percent(liftsCount)}% of days; ` +
 			`${countDefers} defers do, against ${freeRatioDefers} that raise only the SHARE`,
 	);
 }
@@ -360,7 +359,7 @@ function flowCoverageBand(inputs: DailyMetricsInput[]): void {
 const DAYS = randomDays(600, 42);
 
 describe('plan advice', () => {
-	it('measures the pure trim (MATH.md §14.1-2)', () => {
+	it('measures the pure trim', () => {
 		trimFreeness('600 seeded random days', DAYS);
 
 		for (const switchCost of [5, 10, 15, 20, 30])
@@ -375,22 +374,22 @@ describe('plan advice', () => {
 			);
 	});
 
-	it('measures priced-lever signs (MATH.md §14/§14.1)', () => {
+	it('measures priced-lever signs', () => {
 		pricedSigns(DAYS);
 	});
 
-	it('places the flow-coverage band and prices the axis (MATH.md §14.5)', () => {
+	it('places the flow-coverage band and prices the axis', () => {
 		flowCoverageBand(DAYS);
 	});
 
 	/**
-	 * §14's Cost paragraph and §14.3's quote a wall clock no probe reproduced. A
-	 * wall clock is only quotable with its machine attached (§8.6's "machine A is
-	 * ~2× machine B"), so the box and the runtime are printed once beside the
-	 * numbers, and nothing else may be running on it.
+	 * The Cost paragraphs quote a wall clock no probe reproduced. A wall clock is
+	 * only quotable with its machine attached (§8.6's "machine A is ~2× machine
+	 * B"), so the box and the runtime are printed once beside the numbers, and
+	 * nothing else may be running on it.
 	 */
-	it('times the solve, the advice run and the two extra solves (MATH.md §14, §14.3)', () => {
-		console.log(`[§14 cost] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);
+	it('times the solve, the advice run and the two extra solves', () => {
+		console.log(`[cost] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);
 
 		for (const n of [3, 6, 9, 12, 15]) {
 			const input = timingDay(n);
@@ -407,11 +406,11 @@ describe('plan advice', () => {
 			// n > 12 at an 8 h budget does NOT continue the 2ⁿ ladder: `maxFunded` reaches
 			// n (the bound's test 33 − m ≥ m holds to m = 16), so the size bound cannot
 			// bring the enumeration under `SUBSET_SEARCH_BUDGET` = 4095 and the solve
-			// falls through to greedy forward selection (MATH.md §34).
+			// falls through to greedy forward selection.
 			const path = n > 12 ? ' — forward-selection fallback, NOT the 2ⁿ enumeration' : '';
 
 			console.log(
-				`[§14 cost] n = ${n}: one solve ${showMs(solve)}, whole advice run ${showMs(advice)}, candidatesEvaluated ${evaluated}${path}`,
+				`[cost] n = ${n}: one solve ${showMs(solve)}, whole advice run ${showMs(advice)}, candidatesEvaluated ${evaluated}${path}`,
 			);
 		}
 
@@ -443,7 +442,7 @@ describe('plan advice', () => {
 			const pair = free.median + doubled.median;
 
 			console.log(
-				`[§14.3 cost] n = ${n}: s = 0 arm ${showMs(free)}, s = 2s arm ${showMs(doubled)}, declared solve ${showMs(declared)}; the pair is ${((100 * pair) / advice.median).toFixed(1)}% of the advice run (${pair.toFixed(2)} of ${advice.median.toFixed(2)} ms), s = 2s is ${(doubled.median / declared.median).toFixed(2)}× the declared solve`,
+				`[cost] n = ${n}: s = 0 arm ${showMs(free)}, s = 2s arm ${showMs(doubled)}, declared solve ${showMs(declared)}; the pair is ${((100 * pair) / advice.median).toFixed(1)}% of the advice run (${pair.toFixed(2)} of ${advice.median.toFixed(2)} ms), s = 2s is ${(doubled.median / declared.median).toFixed(2)}× the declared solve`,
 			);
 		}
 	});

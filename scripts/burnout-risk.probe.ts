@@ -1,11 +1,11 @@
 /**
- * Measurements behind MATH.md §11.6's claims about the Burnout Risk scale:
+ * Measurements behind MATH.md's claims about the Burnout Risk scale:
  * that 100% is unreachable (micro-recovery floors each reservoir at eq > 0),
  * that a full-demand cognitive day "tops out near 87% at defaults", that
  * sustained moderate work plateaus (an 8h and a 16h demand-0.5 day read alike),
  * and that the scale is "monotone and discriminating" — the 25/41/57/63/66%
  * ladder for 1/2/4/6/8h of demand-0.9 cognitive work. The switch-cost arm asks
- * what §11.6's monotonicity sentence leaves out: which way the declared `s`
+ * what the monotonicity sentence leaves out: which way the declared `s`
  * moves the reading, over the domain the day's own input allows.
  *
  * A probe, not a test: every number here is a property of the model over a
@@ -267,7 +267,7 @@ function budgetMonotonicity(label: string, days: Day[]): void {
 }
 
 /**
- * (c) The declared switch cost, which §11.6's monotonicity sentence does not
+ * (c) The declared switch cost, which the monotonicity sentence does not
  * name at all. `s` is user-set on the same screen as the reading, and re-solving
  * at every step moves what the allocator funds; a switch gap simulates as
  * full-rate rest (demand 0, gate 1), which is why the movement is mostly down.
@@ -321,7 +321,7 @@ function switchCostWalk(label: string, days: Day[]): void {
 const DAYS = randomDays(600, 42);
 
 describe('burnout risk', () => {
-	it('measures the ceiling and the plateau (MATH.md §11.6)', () => {
+	it('measures the ceiling and the plateau', () => {
 		for (const set of PARAM_SETS) ceiling(set.label, set.params, DAYS);
 
 		console.log(
@@ -336,7 +336,7 @@ describe('burnout risk', () => {
 		);
 	});
 
-	it('measures budget monotonicity and the resolution ladder (MATH.md §11.6)', () => {
+	it('measures budget monotonicity and the resolution ladder', () => {
 		budgetMonotonicity('600 seeded random days', DAYS);
 
 		for (const switchCost of [5, 15, 30])
@@ -356,7 +356,7 @@ describe('burnout risk', () => {
 		);
 	});
 
-	it('measures the switch-cost walk (MATH.md §11.6)', () => {
+	it('measures the switch-cost walk', () => {
 		switchCostWalk('600 seeded random days, s = 0–60m step 5m', DAYS);
 	});
 });

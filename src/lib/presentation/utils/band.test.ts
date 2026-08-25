@@ -29,7 +29,7 @@ const AXES = [
 
 /**
  * Plus the one reading the table bands for a dashboard row without the advisor
- * searching on it (MATH.md §11.11).
+ * searching on it.
  */
 const BANDED = [...AXES, 'grindDensity'] as const;
 
@@ -81,9 +81,9 @@ describe('band policy', () => {
 		expect(getBandSmallerBetter(value)).toBe(band);
 	});
 
-	// Deep Work has an interior optimum (MATH.md §26): more is not better, and
+	// Deep Work has an interior optimum: more is not better, and
 	// the row never alarms — a shallow day is a shape, and depletion past the
-	// upper edge is Burnout Risk's call, not a second red row (§11.7).
+	// upper edge is Burnout Risk's call, not a second red row.
 	it.each([
 		[0, 'neutral'],
 		[24.9, 'neutral'],
@@ -130,7 +130,7 @@ describe('band policy', () => {
 	// The share rides along with the word because the word is three buckets over a
 	// continuous reading: two readings a whole bucket apart in badness print the
 	// same words, which is what made an advice option look like a no-op on 61.6% of
-	// this axis's options (MATH.md §25).
+	// this axis's options.
 	it('reads a balance as its direction and its share, in one call', () => {
 		expect(energyBalanceReading(71)).toBe('Cognitive Heavy 71%');
 		expect(energyBalanceReading(50)).toBe('Balanced 50%');

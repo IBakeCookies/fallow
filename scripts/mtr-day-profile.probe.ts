@@ -1,10 +1,10 @@
 /**
- * What is true of the Day Profile (`calculateDailyQuadrant`, MATH.md §29) over
- * a day space the allocator actually produces, and what §29 changed.
+ * What is true of the Day Profile (`calculateDailyQuadrant`) over a day space
+ * the allocator actually produces, and what changed.
  *
- * Before §29 the label classified two UNWEIGHTED averages over the raw task
- * list against a single cut at 5.5. After it, both averages are weighted by
- * allocated hours over funded tasks, and the difficulty cut is 6.5 — what a
+ * Before the change the label classified two UNWEIGHTED averages over the raw
+ * task list against a single cut at 5.5. After it, both averages are weighted
+ * by allocated hours over funded tasks, and the difficulty cut is 6.5 — what a
  * task rated at the midpoint of both 0–10 sliders reads through `max + 0.3·min`.
  * Six questions:
  *
@@ -83,7 +83,7 @@ const plan = (d: Day): SuggestedTask[] =>
 		DEFAULT_USER_CONSTANTS,
 	);
 
-/** The cut the code ships (§29), and the one it replaced. */
+/** The cut the code ships, and the one it replaced. */
 const DEMANDING_CUT = 6.5;
 const OLD_CUT = 5.5;
 const ENJOYABLE_CUT = 5.5;
@@ -97,7 +97,7 @@ function label(diff: number, enj: number, cut: number): DailyQuadrant {
 	return enjoyable ? 'cruise' : 'routine';
 }
 
-/** The pre-§29 reading: unweighted over the raw list, both cuts at 5.5. */
+/** The old reading: unweighted over the raw list, both cuts at 5.5. */
 function oldQuadrant(tasks: Task[]): DailyQuadrant {
 	if (!tasks.length) return 'routine';
 

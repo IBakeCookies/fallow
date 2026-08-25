@@ -86,7 +86,7 @@ section, and because either one alone moves the other's line numbers.
   left in place — it sits inside the held paragraph.
 - **M17 cannot close, and its prescription was wrong twice over.** Both of its
   citations are stale (`zenith-energy.ts:2028-2029` → `:2031-2032`;
-  `MATH.md:3319-3325` no longer reaches the retraction), and its fix —
+  `MATH.md:3323-3329` no longer reaches the retraction), and its fix —
   0.8894/0.8840 — is the wrong kind of number. The row stays in "Raised and not
   verified" with a dated note saying which two sites are fixed and why the third
   is held.

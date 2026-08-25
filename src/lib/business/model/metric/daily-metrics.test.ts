@@ -119,7 +119,7 @@ describe('calculateDailyMetrics', () => {
 		expect(allocated + overhead + metrics.planSlackHours).toBeCloseTo(8, 6);
 	});
 
-	// The scope split is load-bearing (MATH.md §11.7/§11.8): plan-scoped metrics
+	// The scope split is load-bearing: plan-scoped metrics
 	// describe the day you committed to, so checking a task off must not move
 	// them — its hours stay allocated. Getting this wrong made burnout risk RISE
 	// when work got done.
@@ -144,7 +144,7 @@ describe('calculateDailyMetrics', () => {
 		expect(after.physicalLoad).toBe(before.physicalLoad);
 		expect(after.humanCapacity.percent).toBe(before.humanCapacity.percent);
 		expect(after.deepWorkRatio).toBe(before.deepWorkRatio);
-		// The run order is one of them (§11.8, rescoped 2026-08-18): the `#N` badges are
+		// The run order is one of them (rescoped 2026-08-18): the `#N` badges are
 		// the plan's sequence, and the list renders rows in it, so a depleting order
 		// moved every row below the one just ticked off.
 		expect(after.runOrder).toEqual(before.runOrder);
@@ -171,7 +171,7 @@ describe('calculateDailyMetrics', () => {
 		expect(after.completionRate).toBeGreaterThan(before.completionRate);
 	});
 
-	// Regression (2026-08-07, MATH.md §23.1): checking off the day's only physical
+	// Regression (2026-08-07): checking off the day's only physical
 	// task used to blank the bottleneck to null with cognitive work still ahead —
 	// its axis came from the PLAN (still physical: the completed task keeps its
 	// hours) while its candidates came from what was LEFT (no physical draw at
@@ -272,12 +272,12 @@ describe('calculateDailyMetrics', () => {
 		}
 	});
 
-	// §14 prices every lever as ΔΣP̄/ΣP̄ and reads ΣP̄ off zenithGain.optimized.
-	// The identity behind that had no fixture; §14 claimed the two agree "to the
+	// The model prices every lever as ΔΣP̄/ΣP̄ and reads ΣP̄ off zenithGain.optimized.
+	// The identity behind that had no fixture; MATH.md claimed the two agree "to the
 	// last digit" when they are 1–2 ulps apart on ~a fifth of days, because
 	// calculateTotalProductivity adds in the tasks' own order while the plan comes
 	// back priority-sorted (scripts/adv1-plan-advice-frontier.probe.ts, 2026-08-06).
-	it('zenithGain.optimized is Σ avgProductivity over the funded tasks (§14)', () => {
+	it('zenithGain.optimized is Σ avgProductivity over the funded tasks', () => {
 		const metrics = calculateDailyMetrics(input(TASKS));
 
 		const summed = metrics.suggestedTasks

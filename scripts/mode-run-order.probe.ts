@@ -1,22 +1,21 @@
 /**
- * The measurement behind MATH.md §16 — "run order stays a heuristic": the
- * ~0.47% median gap between `calculateInterleavedOrder` and the best possible
- * ordering of the SAME allocation, and the two-sided Burnout Risk noise the
+ * The measurement behind "run order stays a heuristic": the ~0.47% median gap
+ * between `calculateInterleavedOrder` and the best possible ordering of the
+ * SAME allocation, and the two-sided Burnout Risk noise the
  * objective-maximizing order would inject. Those two numbers are why
  * model-derived run order is unbuilt, and they are quoted in
- * `calculation.ts`'s `calculateInterleavedOrder` docstring as well as in §16.
+ * `calculation.ts`'s `calculateInterleavedOrder` docstring.
  *
- * §16 describes a probe run on 2026-07-29 that was never committed, so no cell
- * of its table could be re-checked — the §14.1-2 failure again. This rebuild
- * follows §16's description (300 random days, 3–8 tasks, budget 4–10 h, default
- * pools/switch cost/energy params; the classic allocation held FIXED — same
- * funded set, same hours, same `stretch = 1 + overhang/allocated` and
- * switch-costs-as-rest that §11.6 applies — with only the sequence varying,
- * scored by `evaluateSchedule().objective`; exhaustive over all permutations up
- * to 6 funded tasks, 720 sampled orderings above that) plus the one input the
- * text omits: the seed.
+ * A probe run on 2026-07-29 was never committed, so no cell of its table could
+ * be re-checked. This rebuild follows its description (300 random days, 3–8
+ * tasks, budget 4–10 h, default pools/switch cost/energy params; the classic
+ * allocation held FIXED — same funded set, same hours, same
+ * `stretch = 1 + overhang/allocated` and switch-costs-as-rest — with only the
+ * sequence varying, scored by `evaluateSchedule().objective`; exhaustive over
+ * all permutations up to 6 funded tasks, 720 sampled orderings above that) plus
+ * the one input the text omits: the seed.
  *
- * The block construction is §11.6's, rebuilt here from exported parts because
+ * The block construction is rebuilt here from exported parts because
  * `calculateBurnoutRisk` computes its own order internally and takes no
  * sequence — which is precisely the seam an order probe needs.
  *
@@ -133,7 +132,7 @@ function shuffled<T>(items: T[], random: () => number): T[] {
 }
 
 /**
- * §11.6's day: the funded tasks in the given sequence, switch costs as rest
+ * The scored day: the funded tasks in the given sequence, switch costs as rest
  * gaps, intended overwork spread pro-rata over the funded blocks.
  */
 function blocksFor(order: SuggestedTask[], stretch: number, switchCost: number): ScheduleBlock[] {
@@ -162,7 +161,7 @@ const demandsFor = (order: SuggestedTask[]): ReservoirDemand[] =>
 		physicalDemand: task.physicalDifficulty / 10,
 	}));
 
-/** §11.6's risk, on an arbitrary sequence: 100 × (1 − min end reservoir). */
+/** Burnout Risk, on an arbitrary sequence: 100 × (1 − min end reservoir). */
 function riskOf(order: SuggestedTask[], stretch: number, switchCost: number): number {
 	const { endCog, endPhys } = simulateReservoirs(
 		blocksFor(order, stretch, switchCost),
@@ -267,7 +266,7 @@ function measure(day: ProbeDay, random: () => number): DayResult | null {
 	};
 }
 
-describe('MATH.md §16 — run order stays a heuristic', () => {
+describe('run order stays a heuristic', () => {
 	it('prices every ordering of a fixed classic allocation', () => {
 		const random = mulberry32(0x160729);
 
@@ -279,14 +278,14 @@ describe('MATH.md §16 — run order stays a heuristic', () => {
 
 		const row = (label: string, values: number[]) =>
 			console.log(
-				`[§16] ${label.padEnd(32)} median ${quantile(values, 0.5).toFixed(2)}% | ` +
+				`${label.padEnd(32)} median ${quantile(values, 0.5).toFixed(2)}% | ` +
 					`p90 ${quantile(values, 0.9).toFixed(2)}% | max ${Math.max(...values).toFixed(2)}%`,
 			);
 
 		const fundedTasks = results.reduce((sum, r) => sum + r.fundedCount, 0);
 
 		console.log(
-			`[§16] ${results.length}/${DAYS} days with ≥2 funded tasks, 3–8 tasks, budget 4–10h; ` +
+			`${results.length}/${DAYS} days with ≥2 funded tasks, 3–8 tasks, budget 4–10h; ` +
 				`exhaustive ≤${EXHAUSTIVE_LIMIT} funded, ${SAMPLES} sampled on the ` +
 				`${results.filter((r) => r.fundedCount > EXHAUSTIVE_LIMIT).length} days above that; ` +
 				`${((100 * results.reduce((sum, r) => sum + r.balancedCount, 0)) / fundedTasks).toFixed(0)}% of ` +
@@ -318,7 +317,7 @@ describe('MATH.md §16 — run order stays a heuristic', () => {
 		const ranks = column((r) => r.percentileRank);
 
 		console.log(
-			`[§16] interleaved sits at the ${quantile(ranks, 0.5).toFixed(2)}th percentile of orderings ` +
+			`interleaved sits at the ${quantile(ranks, 0.5).toFixed(2)}th percentile of orderings ` +
 				`(p90: ${quantile(ranks, 0.9).toFixed(0)}th), outright optimal on ` +
 				`${results.filter((r) => r.isInterleavedOptimal).length}/${results.length} days; ` +
 				`re-orders on ${reordered.length}/${results.length} days`,
@@ -327,7 +326,7 @@ describe('MATH.md §16 — run order stays a heuristic', () => {
 		const deltas = column((r) => r.riskDelta);
 
 		console.log(
-			`[§16 burnout Δ points, interleaved − objective-maximizing] min ${Math.min(...deltas).toFixed(2)} ` +
+			`[burnout Δ points, interleaved − objective-maximizing] min ${Math.min(...deltas).toFixed(2)} ` +
 				`p10 ${quantile(deltas, 0.1).toFixed(2)} median ${quantile(deltas, 0.5).toFixed(2)} ` +
 				`mean ${mean(deltas).toFixed(2)} p90 ${quantile(deltas, 0.9).toFixed(2)} ` +
 				`max ${Math.max(...deltas).toFixed(2)}; |Δ| > 5 on ` +

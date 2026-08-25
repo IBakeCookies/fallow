@@ -4,7 +4,7 @@
  *
  * This exists so the main page doesn't have to. Each metric below is scoped to
  * a specific task set (all tasks vs. only the open ones) and that choice is
- * load-bearing math (MATH.md §11.7/§11.8) — a page that wires up twenty-five
+ * load-bearing math — a page that wires up twenty-five
  * calls by hand can silently mix the two, and nothing can unit-test it there.
  * Numbers only: labels, thresholds and colors are presentation policy and live
  * in `$lib/presentation/utils/metric-descriptor`.
@@ -105,7 +105,7 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 	// it is handed the allocation rather than re-deriving it: the enumeration is
 	// ~55ms at n = 12 and this runs inside a `$derived`, i.e. on every keystroke
 	// in the budget field — and once more per candidate when the advisor
-	// re-solves the day (MATH.md §14).
+	// re-solves the day.
 	const { suggestedTasks, allocatedHours } = calculateTaskPlan(
 		tasks,
 		availableHours,
@@ -132,7 +132,7 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		// Alternates cognitive/physical tasks so the resting energy system
 		// recovers (dual-pool model). Over the FUNDED PLAN, completed tasks
 		// included: it is the sequence the list renders rows in, so an order that
-		// depleted as work got done moved rows out from under the user (§11.8).
+		// depleted as work got done moved rows out from under the user.
 		runOrder: new Map(calculateInterleavedOrder(suggestedTasks).map((task, i) => [task.id, i + 1])),
 		planSlackHours,
 		remainingSuggestedHours: activeTasks.reduce((sum, task) => sum + task.suggestedHours, 0),
@@ -159,17 +159,17 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		yieldIndex: calculateYieldIndex(suggestedTasks),
 		flowCoverage: calculateFlowCoverage(suggestedTasks),
 		humanCapacity: calculateHumanCapacity(suggestedTasks, pools),
-		// Next-up (§11.8): both name something in the work still AHEAD, so both
+		// Next-up: both name something in the work still AHEAD, so both
 		// deplete as the day is checked off — axis included. The bottleneck solves
 		// its own binding pool from `activeTasks`, so it never points at a pool the
-		// remaining work no longer draws on (MATH.md §23.1).
+		// remaining work no longer draws on.
 		bottleneckTask: calculateBottleneckTask(activeTasks, pools),
 		longestWarmUp: calculateLongestWarmUp(activeTasks),
 		// Plan-scoped like the rest of this family — the plan holds every task,
 		// completed included — but it reads the ALLOCATION and not the bare list:
-		// its switch bill is over the tasks the plan funds (MATH.md §37).
+		// its switch bill is over the tasks the plan funds.
 		timeScarcity: calculateTimeScarcity(suggestedTasks, availableHours, switchCost),
-		// Simulates the planned day through the reservoir law (MATH.md §11.6).
+		// Simulates the planned day through the reservoir law.
 		burnoutRisk: calculateBurnoutRisk(suggestedTasks, availableHours, switchCost, energyParams),
 		cognitiveLoad,
 		physicalLoad,
@@ -179,7 +179,7 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		scheduleIntegrity: calculateScheduleIntegrity(suggestedTasks, availableHours, switchCost),
 		// Momentum and quick wins are deliberately active-scoped ("what's ahead"):
 		// completing a task removes it, so they respond as the day progresses
-		// (2026-07-20, MATH.md §11.7).
+		// (2026-07-20).
 		momentum: calculateMomentum(activeTasks),
 		deepWorkRatio: calculateDeepWorkRatio(suggestedTasks, availableHours),
 		quickWins: calculateQuickWins(activeTasks),

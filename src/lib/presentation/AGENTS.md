@@ -113,7 +113,7 @@ Untestable at every level is the signal.
   Both cards above: the reading stays on screen (it is a warning about the
   numbers, not a reason to hide them), and every Apply button gates on
   `isBusy || isStale` — each option is priced as the ONE next move on the day
-  that was solved (MATH.md §14), so on any other day they are wrong together,
+  that was solved, so on any other day they are wrong together,
   and a run in flight is about to replace the one being held. Only the recheck
   button stays live: it is the way out. The stale banner is also the only
   statement of WHY, since a disabled button is not focusable.
@@ -300,9 +300,9 @@ ACTIVE tasks, so a sort on it sank a row to the foot of the group the moment it
 was ticked — out from under the 🪫 editor that completing it had just opened.
 Both properties (the sequence counting down the page, and a row that never moves
 under the cursor) hold only if the order is completion-invariant, which is
-MATH.md §11.8's 2026-08-18 rescope: the map covers the funded PLAN, a completed
-task keeps its slot, and `task-item` renders no badge on it — so the visible
-numbers can carry gaps, and a gap means "done", not "moved".
+the 2026-08-18 rescope: the map covers the funded PLAN, a completed task keeps
+its slot, and `task-item` renders no badge on it — so the visible numbers can
+carry gaps, and a gap means "done", not "moved".
 
 ### Slide age is a `/` reading, computed above the row
 
@@ -318,11 +318,11 @@ next-up reading. `/energy` does not carry it
 
 ### The mid-day re-plan reads beside the plan, not over it
 
-MATH.md §35. Both readings stack in the one `Planned` cell, re-plan leading and
-plan beneath — **never a strikethrough on the plan**, which the plan-family rows
-(§11.8) are still computed from. The two sit on different bases: the re-plan is time to
-spend ON TOP of the hours already worked, so neither line may be phrased as a
-comparison ("15m more"); each is labelled by the question it answers.
+Both readings stack in the one `Planned` cell, re-plan leading and plan beneath
+— **never a strikethrough on the plan**, which the plan-family rows are still
+computed from. The two sit on different bases: the re-plan is time to spend ON
+TOP of the hours already worked, so neither line may be phrased as a comparison
+("15m more"); each is labelled by the question it answers.
 
 ### The day's strip reads inside the Tasks card, and carries no clock
 
@@ -352,8 +352,8 @@ energy optimizer's own blocks and shares only `formatDuration`.
 The strip carries **no time of day at all**. It once read against a persisted
 `DailySession.startHour`, set by a "Day Starts" field, to print a `from 09:00`
 label — and that label was its only reader: no formula, fit or metric ever
-touched the value. `availableHours` is intended work, not a span of the clock
-(MATH.md §11.3), so start-plus-budget is a finish time nobody computed, which
+touched the value. `availableHours` is intended work, not a span of the clock,
+so start-plus-budget is a finish time nobody computed, which
 left the start with nothing to anchor but itself. The field, the label, the
 persisted key and the `formatClock`/`parseClock` pair went with it; every
 duration on the strip is an offset from the day's own zero (`formatOffset`),
@@ -383,8 +383,8 @@ initials it carried: `M6 B4` beside a duration reads as a code, and two e2e
 assertions plus a story `play` read that text.
 
 Both models read both fits — ϕ (⚡) feeds the Lab's own curves, and the α, λ₀,
-§12 audit and §11.9 carry-over readings all run off 🪫 hours — so neither
-instrument may be withheld from a screen (ROADMAP item 11).
+audit and carry-over readings all run off 🪫 hours — so neither instrument may
+be withheld from a screen (ROADMAP item 11).
 
 **One click rule covers the whole `Logged` cell: a control closes the editor it
 owns, and otherwise opens its own.** A reading owns the editor seeded from it, so
@@ -417,8 +417,8 @@ STOPPED timer counted (`getPendingMinutes` — a running clock offers nothing, o
 it would fund a second log from the same minutes), and `drain-log-form.svelte`
 then focuses the **first empty required field, falling back to the length when
 none is empty** — so a seeded `45` cannot become `456`, and a correction, which
-seeds all three, keeps the caret it always had. One stop funds one log
-(MATH.md §18) and several rows hold an open editor at once, so the reading is
+seeds all three, keeps the caret it always had. One stop funds one log and
+several rows hold an open editor at once, so the reading is
 **claimed by the first editor opened** (`claimPendingMinutes`): every other row
 opens empty while that claim stands, closing the claiming editor releases it,
 and only that editor's append spends the reading (`spendsPendingMinutes`) —
@@ -458,7 +458,7 @@ day's row and gets no link.
 
 ### A correction rewrites the quantities the user rated and nothing else
 
-MATH.md §36, and the reason the ✎ can be there at all. Every measurement
+This is the reason the ✎ can be there at all. Every measurement
 freezes the covariates it was taken under (⚡ its `(E, β)`, 🪫 its reservoir
 demands, ☕ none) so that editing a task later cannot rewrite what an earlier
 session measured, and every correction path used to re-derive them from the

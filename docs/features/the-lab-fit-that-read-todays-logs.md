@@ -105,7 +105,7 @@ made the Lab's α disagree with the same fit on `/` and on `/analytics`.
 
 ## Read before building
 
-- MATH.md §33 (`MATH.md:7749`) — the rule, its identity/state split, and the
+- MATH.md §33 (`MATH.md:7800`) — the rule, its identity/state split, and the
   copy paragraph at `:7842` that this change extends to the Lab's two cards. The
   `### Pinned in the suite` list at `:7853` gains the Lab's spec.
 - `src/lib/business/store/energy-lab-store.svelte.ts:573`, `:584`, `:619` — the

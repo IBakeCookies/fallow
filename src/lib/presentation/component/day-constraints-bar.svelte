@@ -104,10 +104,9 @@
 				<!-- Dragging re-solves the whole plan live (~1–13 ms at realistic task counts).
 				     `step="any"` with the quarter applied on the way IN, not by the input: a
 				     range sanitizes its DOM value to the nearest step, so a budget that is
-				     legitimately off-quarter — typed here, or applied from a plan-advice lever,
-				     which MATH.md §14.1-2 keeps exact — left the thumb reading a value the field
-				     beside it disagreed with. Snapping the drag keeps the quarters `step` was
-				     there for. -->
+				     legitimately off-quarter — typed here, or applied from a plan-advice
+				     lever — left the thumb reading a value the field beside it disagreed
+				     with. Snapping the drag keeps the quarters `step` was there for. -->
 				<input
 					type="range"
 					aria-label={m.budget_hours_slider()}

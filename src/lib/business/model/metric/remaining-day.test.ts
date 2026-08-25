@@ -61,7 +61,7 @@ const EMAIL = makeTask({
 	enjoyment: 2,
 });
 
-describe('calculateRemainingDay (MATH.md §35)', () => {
+describe('calculateRemainingDay', () => {
 	it('has nothing to say before any hours are logged', () => {
 		// Completion is not an hours instrument: only a 🪫 log is. A day with no
 		// logs is a day the plan already describes.
@@ -104,7 +104,7 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		// the day has time it did not have a moment ago. A task finished without a
 		// 🪫 log stays in the candidate set and keeps drawing its share, which is
 		// the day's presumption that it cost what was suggested — so every other
-		// row's number is unchanged, exactly, not approximately (MATH.md §35).
+		// row's number is unchanged, exactly, not approximately.
 		const day = [SPEC, GYM, EMAIL];
 
 		const before = calculateRemainingDay(
@@ -222,7 +222,7 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 		// A task with hours on it is one the DAY ran, so abandoning it mid-day does
 		// not refund its switch. Without this the remainder buys extra blocks with a
 		// bill it never pays, and the re-plan invents a gain on a day that went
-		// perfectly (MATH.md §35).
+		// perfectly.
 		for (const worked of [
 			[[1, 1] as [number, number]],
 			[
@@ -292,7 +292,7 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 
 	it('never names a task the remainder does not fund', () => {
 		// The accounting share of a task ticked done without a log is solved and
-		// never reported (MATH.md §35) — naming it would tell the user to go back to
+		// never reported — naming it would tell the user to go back to
 		// work they just finished.
 		const remaining = calculateRemainingDay(
 			input(
@@ -317,7 +317,7 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 
 	it('names position 1 of the RE-PLANNED order, not of the morning plan', () => {
 		// The whole reason to open the app at 2pm: the plan's `#1` badge is the 8am
-		// answer and stays it (§11.8), so a task worked past its own stopping time is
+		// answer and stays it, so a task worked past its own stopping time is
 		// still first in the morning order while the remainder has nothing left to
 		// give it.
 		const day = [SPEC, GYM, EMAIL];
@@ -349,7 +349,7 @@ describe('calculateRemainingDay (MATH.md §35)', () => {
 
 	it('reads past 100% on a day worked beyond its pool', () => {
 		// The reading Human Capacity cannot give: the allocator enforces the pools,
-		// so a PLAN saturates at 100 — hours actually worked do not (MATH.md §35).
+		// so a PLAN saturates at 100 — hours actually worked do not.
 		const remaining = calculateRemainingDay(
 			input([SPEC, GYM, EMAIL], [[SPEC.id, 6]], {
 				availableHours: 12,
