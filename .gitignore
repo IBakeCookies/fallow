@@ -40,3 +40,8 @@ screenshots/
 
 # Eval harness output
 eval/results/
+
+# Throwaway driver scripts — a probe of the running app, written to be deleted.
+# Ignored so the Stop hook's `git status` scope does not read one session's
+# scratch file as another's unformatted change.
+*.tmp.mjs
