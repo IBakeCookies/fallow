@@ -3027,8 +3027,8 @@ describe('Zenith Energy Model', () => {
 			// Priced above the whole board, the optimizer books nothing at any budget.
 			// `dayValue` is then flat at the do-nothing day, and the sweep must say so
 			// rather than name its first step: seeded from -Infinity the first budget
-			// always "rose", which advertised a 45-minute day booking 0 h of work
-			// under copy claiming an hour past it adds nothing (MATH.md §8.12).
+			// always "rises", which names a 45-minute day booking 0 h of work under
+			// copy claiming an hour past it adds nothing (MATH.md §8.12).
 			const curve = suggestBudgetCurve(
 				tasks,
 				{

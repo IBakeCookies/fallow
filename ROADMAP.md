@@ -637,12 +637,14 @@ reaches the claim, never that the claim is false.
 - **M32 §11.5 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M33 §8.12 — closed 2026-08-26,
   [`the-cap-the-sweep-never-reached`](docs/features/the-cap-the-sweep-never-reached.md).**
-- **M34 §8.12** — `MATH.md:2058-2060` says the pre-fix days that "recommended a
-  45-minute day booking 0 h of work" are counted at each λ₀ in
-  `curve-shape.probe.ts`. The probe's only measurement is
-  `if (curve.points.every((p) => p.workHours === 0)) noWork++` (`:262`); the
-  sentinel knee it names is asserted in a comment (`:242-246`), not
-  reconstructed, though the RAW arm at `:111` shows the probe knows how to.
+- **M34 §8.12 — closed 2026-08-26,
+  [`the-seeding-the-probe-never-re-ran`](docs/features/the-seeding-the-probe-never-re-ran.md).**
+  The entry's `MATH.md` address died with the 2026-08-25 cut to derivations, and
+  the claim it named survived only in comments. `curve-shape.probe.ts` now
+  reconstructs the `-Infinity`-seeded level per λ₀ as a third arm: on all 215
+  days whose level never leaves the do-nothing floor it names the first swept
+  step booking 0 h, and on the other 265 it names the shipped knee. The claim
+  held; nothing shipped moved.
 - **M35 §8.12** — the §8.11 agreement witness at `MATH.md:2173-2177` (one task
   P0/M8/E9, 6 h, λ₀ = 1.2, curve 3 h, advisor flipping at 3 h logged) is run at
   `alphaCog: 0.25, alphaPhys: 0.35, recoveryRate: 1`
