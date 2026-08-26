@@ -222,6 +222,14 @@ Read this before touching markup, classes, or anything under
   `ledger-numeric` is `text-right` + `tabular-nums` together on purpose: either
   alone leaves a column that cannot be compared down its own length, which is
   the only reason the ledger is a table.
+- **The hand cursor marks anything clickable** — Tailwind v4's Preflight gives
+  buttons `cursor: default` (the spec reading, where the hand means "link");
+  `base.css` puts `cursor: pointer` back on every enabled `button` and
+  `[role=button]`, uniformly, so no component argues about whether its own hover
+  state is loud enough. Two `cursor-*` utilities on one element are resolved by
+  Tailwind's sort order, not the class attribute's, so never fix a wrong cursor
+  by adding a second one — `hint-underline` scopes its `cursor: help` to
+  `:not(:any-link, button, [role=button])` for exactly that reason.
 - Tailwind's scanner is **textual and runs at build time** — a name assembled
   at runtime does not exist. This bites twice: class names (`bg-{x}-500`), and
   `@theme` custom properties, which are tree-shaken to the ones the scanner

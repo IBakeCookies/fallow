@@ -457,7 +457,7 @@
 						{:else}
 							<button
 								type="button"
-								class="hint-underline cursor-default text-sm text-ty-secondary transition hover:text-ty-primary"
+								class="hint-underline text-sm text-ty-secondary transition hover:text-ty-primary"
 								onclick={focusDayWindow}
 							>
 								{m.energy_set_window()}
