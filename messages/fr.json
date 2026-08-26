@@ -294,6 +294,7 @@
 	"cal_budget": "{hours} h de budget",
 	"cal_nothing_planned": "Rien de planifié",
 	"cal_no_tasks": "Aucune tâche",
+	"cal_loading": "Chargement…",
 	"cal_empty_1": "Pas encore de données sur ce/cette {view} — les jours que tu planifies sur la page",
 	"cal_empty_2": "apparaîtront ici.",
 	"ana_title_head": "Fallow — Analyses",

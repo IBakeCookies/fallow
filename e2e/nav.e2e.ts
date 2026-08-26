@@ -3,7 +3,10 @@ import { expect, test } from '@playwright/test';
 test('nav reaches all four sections and back to Today', async ({ page }) => {
 	await page.goto('/');
 
-	// `/`'s <h1> is `sr-only`, so attached is all "the home page painted" can assert
+	// Every section's <h1> is `sr-only` — the nav's active link draws the page's
+	// name, so the heading is there for the document outline only. Attached is all
+	// "the section painted" can assert; a 1px clipped box would satisfy `toBeVisible`
+	// and prove nothing.
 	await expect(
 		page.getByRole('heading', {
 			name: 'Fallow',
@@ -21,7 +24,7 @@ test('nav reaches all four sections and back to Today', async ({ page }) => {
 		page.getByRole('heading', {
 			name: 'Calendar',
 		}),
-	).toBeVisible();
+	).toBeAttached();
 
 	await page
 		.getByRole('link', {
@@ -33,7 +36,7 @@ test('nav reaches all four sections and back to Today', async ({ page }) => {
 		page.getByRole('heading', {
 			name: 'Analytics',
 		}),
-	).toBeVisible();
+	).toBeAttached();
 
 	await page
 		.getByRole('link', {
@@ -45,7 +48,7 @@ test('nav reaches all four sections and back to Today', async ({ page }) => {
 		page.getByRole('heading', {
 			name: 'Energy Lab',
 		}),
-	).toBeVisible();
+	).toBeAttached();
 
 	await page
 		.getByRole('link', {

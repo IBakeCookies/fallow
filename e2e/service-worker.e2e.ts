@@ -73,12 +73,13 @@ test('a never-visited route falls back to the cached shell offline', async ({ pa
 
 	// The shell is '/' HTML answering another URL, so its nav and planner paint
 	// before any JS runs — at that point the page is the WRONG route. Only the
-	// calendar's own heading proves the client router took the shell over.
+	// calendar's own heading proves the client router took the shell over. It is
+	// `sr-only`, like every section's — attached, not visible.
 	await expect(
 		page.getByRole('heading', {
 			name: 'Calendar',
 		}),
-	).toBeVisible();
+	).toBeAttached();
 });
 
 /* The shell is per-locale: locale lives in the URL, so an offline '/de/*'

@@ -294,6 +294,7 @@
 	"cal_budget": "预算 {hours} 小时",
 	"cal_nothing_planned": "没有安排",
 	"cal_no_tasks": "没有任务",
+	"cal_loading": "加载中…",
 	"cal_empty_1": "这个{view}还没有数据——你在",
 	"cal_empty_2": "页面规划的日子会出现在这里。",
 	"ana_title_head": "Fallow — 分析",
