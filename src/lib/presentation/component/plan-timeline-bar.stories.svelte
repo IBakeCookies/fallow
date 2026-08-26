@@ -59,12 +59,12 @@
 		// Rest takes the rest colour, a lighter fill than worked time
 		await expect(canvas.getByTitle(/^rest/)).toHaveAttribute(
 			'style',
-			expect.stringContaining('color-mix(in oklch, var(--series-rest) 40%, transparent)'),
+			expect.stringContaining('var(--series-rest)'),
 		);
 
 		await expect(canvas.getByTitle(/boxing/)).toHaveAttribute(
 			'style',
-			expect.stringContaining('color-mix(in oklch, var(--series-1) 70%, transparent)'),
+			expect.stringContaining('var(--series-1)'),
 		);
 
 		// The axis is elapsed hours from the start of the window, not wall-clock times

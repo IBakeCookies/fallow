@@ -292,21 +292,21 @@
 	--mixed-ink: oklch(from var(--mixed) clamp(0.16, (0.58 - l) * 10000, 0.97) 0.02 h / 1);
 	--brand-ink: oklch(from var(--brand) clamp(0.16, (0.58 - l) * 10000, 0.97) 0.02 h / 1);
 
-	/* Categorical scale for the energy plan's per-task series. Unlike every
-	   other colour here, these are NOT re-declared by .dark or by a theme:
-	   the eight hues only stay mutually distinguishable if they keep their
-	   spacing, and `series-ink` (the label colour drawn on top of them) is
-	   only legible because their lightness never changes. Using `ty-primary`
-	   here instead would flip to white on dark themes and vanish. */
-	--series-1: var(--color-indigo-400);
-	--series-2: var(--color-emerald-400);
-	--series-3: var(--color-amber-400);
-	--series-4: var(--color-rose-400);
-	--series-5: var(--color-sky-400);
-	--series-6: var(--color-fuchsia-400);
-	--series-7: var(--color-lime-400);
-	--series-8: var(--color-orange-400);
-	--series-rest: var(--color-zinc-500);
+	/* Categorical scale for the energy plan's per-task series, in two values and
+	   only two: no THEME re-declares these, only `.dark` does (below). The eight
+	   hues stay mutually distinguishable only while they keep their spacing, and
+	   `series-ink` (the label drawn on them) is fixed per side, legible only while
+	   the fills are fixed too — which is why alpha on a labelled fill is the same
+	   bug as a new hue. See STYLE.md, "a series fill under a label is opaque". */
+	--series-1: var(--color-indigo-300);
+	--series-2: var(--color-emerald-300);
+	--series-3: var(--color-amber-300);
+	--series-4: var(--color-rose-300);
+	--series-5: var(--color-sky-300);
+	--series-6: var(--color-fuchsia-300);
+	--series-7: var(--color-lime-300);
+	--series-8: var(--color-orange-300);
+	--series-rest: var(--color-zinc-300);
 	--series-ink: oklch(0.22 0.01 260);
 }
 
@@ -463,6 +463,20 @@
 	--mixed: var(--color-violet-400);
 	--brand: var(--color-indigo-400);
 	--brand-strong: var(--color-indigo-300);
+
+	/* The categorical scale's dark half — a pale pastel is a plate of light on
+	   a dark page. The same eight hues at 900, ink to white, and `rest` tracking
+	   the middle of the band as it does above. What the tier costs: STYLE.md. */
+	--series-1: var(--color-indigo-900);
+	--series-2: var(--color-emerald-900);
+	--series-3: var(--color-amber-900);
+	--series-4: var(--color-rose-900);
+	--series-5: var(--color-sky-900);
+	--series-6: var(--color-fuchsia-900);
+	--series-7: var(--color-lime-900);
+	--series-8: var(--color-orange-900);
+	--series-rest: var(--color-zinc-700);
+	--series-ink: oklch(0.98 0 0);
 }
 
 /* Classic dark — see `.solid-light` for the bargain. The three rungs climb

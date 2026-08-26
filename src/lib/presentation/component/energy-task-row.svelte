@@ -81,7 +81,10 @@
 </script>
 
 {#snippet lead()}
-	<span class="block h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {color}"></span>
+	<span
+		class="block h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-series-ink/40"
+		style="background-color: {color}"
+	></span>
 {/snippet}
 
 {#snippet meta()}

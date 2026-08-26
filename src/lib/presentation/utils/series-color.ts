@@ -23,21 +23,13 @@ const PALETTE = Array.from(
 export interface SeriesColors {
 	/** `null` is a rest block — not one of the tasks, and never given a hue. */
 	colorOf: (taskId: number | null) => string;
-	colorOfAlpha: (taskId: number | null, percent: number) => string;
 }
 
 /** Colours for one plan's tasks, assigned in plan order and wrapping past eight. */
 export function seriesColors(taskIds: number[]): SeriesColors {
 	const byTask = new Map(taskIds.map((id, i) => [id, PALETTE[i % PALETTE.length]]));
 
-	const colorOf = (taskId: number | null) =>
-		taskId === null ? REST : (byTask.get(taskId) ?? REST);
-
 	return {
-		colorOf,
-		// Alpha has to be applied with color-mix now that the colours are var()
-		// references — a hex-suffix like `${colour}B3` only works on literal hex.
-		colorOfAlpha: (taskId, percent) =>
-			`color-mix(in oklch, ${colorOf(taskId)} ${percent}%, transparent)`,
+		colorOf: (taskId: number | null) => (taskId === null ? REST : (byTask.get(taskId) ?? REST)),
 	};
 }

@@ -33,10 +33,7 @@
 	{#each blocks as block (block.start)}
 		<div
 			class="flex min-w-0 items-center justify-center border-r border-series-ink/40 last:border-r-0"
-			style="{width(block.hours)}; background-color: {colors.colorOfAlpha(
-				block.taskId,
-				block.taskId === null ? 40 : 70,
-			)}"
+			style="{width(block.hours)}; background-color: {colors.colorOf(block.taskId)}"
 			title={m.energy_block_tooltip({
 				title: block.title,
 				start: formatOffset(block.start),
@@ -45,9 +42,9 @@
 			})}
 		>
 			{#if share(block.hours) > LABEL_MIN_SHARE}
-				<!-- series-ink, not ty-primary: ty-primary flips to white on the 31 dark
-				     themes and disappears on these fixed pastel fills. Capitalized like
-				     the task list — one title, one casing. -->
+				<!-- series-ink, not ty-primary: the ink is paired with the fill, which
+				     each theme's own text colour is not. Capitalized like the task list
+				     — one title, one casing. -->
 				<span class="truncate px-box-3xs text-xs font-medium capitalize text-series-ink">
 					{block.title}
 				</span>
