@@ -44,9 +44,12 @@
 			color: 'var(--danger)',
 		},
 		{
+			// Not `--series-rest`: that one is paired with `series-ink` and sits close to
+			// its surface by design (STYLE.md), which on a bare dot is a dot you cannot
+			// see. `--ty-secondary` is the neutral bar fill the bands already use.
 			key: 'routine',
 			label: m.quadrant_routine(),
-			color: 'var(--series-rest)',
+			color: 'var(--ty-secondary)',
 		},
 	];
 

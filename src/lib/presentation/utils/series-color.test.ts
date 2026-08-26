@@ -31,13 +31,4 @@ describe('seriesColors', () => {
 
 		expect(colorOf(taskId)).toBe('var(--series-rest)');
 	});
-
-	// A hex suffix would be silently dropped on a var() reference, leaving the block
-	// fully opaque — the fills below the labels are meant to be washed out.
-	it('mixes alpha into the task colour rather than suffixing it', () => {
-		const { colorOfAlpha } = seriesColors([1]);
-
-		expect(colorOfAlpha(1, 70)).toBe('color-mix(in oklch, var(--series-1) 70%, transparent)');
-		expect(colorOfAlpha(null, 40)).toBe('color-mix(in oklch, var(--series-rest) 40%, transparent)');
-	});
 });

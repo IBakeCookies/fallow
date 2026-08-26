@@ -251,9 +251,34 @@ Read this before touching markup, classes, or anything under
   (they are), or they bake in Tailwind's v3-compat literals (`0.25rem`, `8px`)
   and no theme can reach them.
 - `--series-1…8` + `--series-rest` (`base.css`) are the categorical scale for
-  per-task chart series, deliberately _not_ swapped per theme: the hues only
-  stay distinguishable if their lightness holds. Label them with `series-ink`,
-  never `ty-primary`, which flips to white and vanishes on the fills.
+  per-task chart series, and the one token family with **exactly two values and
+  no per-theme swap**: the `:root` half (the hues at 300, dark ink) and the
+  `.dark` half (the same eight at 900, white ink). Label them with `series-ink`,
+  never `ty-primary` — the ink is paired with the fill, and a theme's own text
+  colour is not. A theme that re-declares a series colour breaks the pairing
+  for every reading below; `node scripts/series-ink-contrast.mjs` (dev server
+  on :5173) fails on a third scale and prints both halves' ratios.
+- **A series fill under a label is opaque.** `series-ink` is fixed per side
+  rather than derived per fill (the `-ink` recipe above), which only works
+  because the fill under it is fixed too — so alpha on it is the same bug as a
+  new hue: a translucent fill composites toward the theme's surface, and the
+  pair goes under 4.5:1 on the dark themes while still reading on the light
+  ones. That is what the timeline bar shipped (blocks at 70%, rest at 40%).
+  Wash out a fill only where nothing is written on it.
+- **Each half's tier trades three readings against each other**, and both halves
+  are tuned the same way: away from the page. Going further from the ink (300
+  lighter, 900 darker) buys label contrast and spends two things — the block's
+  contrast against the surface behind it, and the spacing between the eight hues,
+  which is the whole point of a categorical scale. Amber and orange are the
+  tightest pair and set that budget: against the shipped light half, 700 keeps
+  about half their separation and 900 about a quarter, so on a dark theme a plan
+  funding all eight tasks has two blocks that are hard to tell apart. 700 is the
+  dark floor regardless — the lightest tier where white clears 4.5:1 on all nine
+  (600 fails on five, lime worst). `rest` tracks the middle of its band rather
+  than an end (`zinc-300` / `zinc-700`), so it stays a block rather than a hole.
+  Both halves' fills now sit close to their surface — under 2:1 for most of them
+  — so the container border and the `series-ink/40` dividers, not the fill, are
+  what make a block an edge. Keep them.
 - **A categorical scale needs hues that differ in every theme, which the state
   and domain accents do not guarantee.** `--flow` and `--warning` are both amber
   in `base.css` and stay amber through most of `themes.css`, so a chart giving
