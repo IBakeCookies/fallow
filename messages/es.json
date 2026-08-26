@@ -68,6 +68,7 @@
 	"timer_stop": "Detener el temporizador",
 	"timer_discard": "Descartar la sesión medida",
 	"timer_pending_drain": "esperando una valoración de desgaste 🪫",
+	"timer_under_a_minute": "<1m",
 	"form_add_task": "+ Añadir tarea",
 	"form_add_task_title": "Añadir tarea",
 	"form_task_definition": "Definición de la tarea",

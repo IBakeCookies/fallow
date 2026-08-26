@@ -68,6 +68,7 @@
 	"timer_stop": "Arrêter le minuteur",
 	"timer_discard": "Abandonner la session chronométrée",
 	"timer_pending_drain": "en attente d'une évaluation d'épuisement 🪫",
+	"timer_under_a_minute": "<1m",
 	"form_add_task": "+ Ajouter une tâche",
 	"form_add_task_title": "Ajouter une tâche",
 	"form_task_definition": "Définition de la tâche",

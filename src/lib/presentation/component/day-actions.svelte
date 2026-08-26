@@ -169,9 +169,12 @@
 	     but a new 🪫 measurement is today's alone, and this reading fills one. -->
 	{#if isToday && timer !== undefined}
 		<div class="flex shrink-0 items-center gap-grid-2xs">
+			<!-- Full ink only while it counts: paused and stopped are otherwise a glyph
+			     apart, and the minutes look the same either way. "<1m" because the first
+			     minute rounds to "0m", which reads as a clock that never started. -->
 			{#if timer}
-				<span class="text-xs tabular-nums text-ty-secondary">
-					{formatDuration(elapsedMinutes / 60)}
+				<span class="text-xs tabular-nums {isRunning ? 'text-ty-primary' : 'text-ty-silent'}">
+					{elapsedMinutes === 0 ? m.timer_under_a_minute() : formatDuration(elapsedMinutes / 60)}
 				</span>
 			{/if}
 
@@ -190,12 +193,22 @@
 			<!-- No Start on a stopped timer: the reading cannot be silently replaced by a
 			     second run, and discarding it is the only way back to a fresh clock. -->
 			{#if !isStopped}
-				<Button variant="ghost" size="icon-xs" aria-label={primaryLabel} onclick={onPrimaryClick}>
+				<!-- A word until there is a reading, weighted like the two menus beside it: a
+				     bare 24px glyph is the whole invitation to measure a session. The label
+				     lives inside the one button rather than in an idle button of its own,
+				     which is the rule above. -->
+				<Button
+					variant={timer ? 'ghost' : 'outline'}
+					size={timer ? 'icon-xs' : 'sm'}
+					aria-label={primaryLabel}
+					onclick={onPrimaryClick}
+				>
 					{#if isRunning}
 						<Pause class="h-4 w-4" />
 					{:else}
 						<Play class="h-4 w-4" />
 					{/if}
+					{#if !timer}{m.timer_start()}{/if}
 				</Button>
 			{/if}
 
