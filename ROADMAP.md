@@ -635,11 +635,8 @@ reaches the claim, never that the claim is false.
 - **M30 §7 — closed 2026-08-19, [`what-the-bounded-path-actually-ran-on`](docs/features/what-the-bounded-path-actually-ran-on.md).**
 - **M31 §8.2 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M32 §11.5 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
-- **M33 §8.12** — the shipped pseudocode at `MATH.md:2037` defines
-  `recommendedHours` as null "when that is W", the horizon; the code nulls on the
-  last budget of the lattice instead (`zenith-energy.ts:1364-1372`,
-  `knee < last.budgetHours - 1e-9`, and `:1338`). The two coincide only when the
-  lattice ends exactly at the horizon.
+- **M33 §8.12 — closed 2026-08-26,
+  [`the-cap-the-sweep-never-reached`](docs/features/the-cap-the-sweep-never-reached.md).**
 - **M34 §8.12** — `MATH.md:2058-2060` says the pre-fix days that "recommended a
   45-minute day booking 0 h of work" are counted at each λ₀ in
   `curve-shape.probe.ts`. The probe's only measurement is

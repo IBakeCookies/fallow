@@ -2977,7 +2977,11 @@ describe('Zenith Energy Model', () => {
 
 		it('reports no recommendation when the best value is at the top of the range', () => {
 			// λ₀ = 0 prices free time at nothing, so every extra hour is worth working
-			// and the day value is still climbing when the sweep runs out.
+			// and the day value is still climbing when the sweep runs out. The cap is
+			// deliberately not a whole number of steps: the top of the LATTICE is then
+			// 4.5 h and not the 5 h cap, and reading the null against the cap would name
+			// that last swept budget as a recommendation on a day that never stopped
+			// climbing (MATH.md §8.12).
 			const curve = suggestBudgetCurve(
 				tasks,
 				{
@@ -2986,10 +2990,11 @@ describe('Zenith Energy Model', () => {
 				},
 				undefined,
 				{
-					maxBudgetHours: 6,
+					maxBudgetHours: 5,
 				},
 			);
 
+			expect(curve.points[curve.points.length - 1].budgetHours).toBe(4.5);
 			expect(curve.recommendedHours).toBeNull();
 		});
 
