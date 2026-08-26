@@ -226,16 +226,14 @@
 	<DayTimeline {...timeline} />
 {/snippet}
 
+<!-- No `{#key}` and no "is it open" reading of the day: the card mounts this in a
+     dialog, which renders it only while open, so every opening is already a fresh
+     form and nothing has to know whether the day has landed. -->
 {#snippet addTaskForm()}
-	<!-- Keyed like the constraints bar: the task count reads 0 until a day lands, so a
-	     form sampled any earlier opens for every visitor. -->
-	{#key session.loadedDate}
-		<TaskForm
-			onsubmit={(t) => session.addTask(t)}
-			suggest={(query) => session.suggestTitles(query)}
-			isOpen={session.loadedDate !== null && tasks.length === 0}
-		/>
-	{/key}
+	<TaskForm
+		onsubmit={(t) => session.addTask(t)}
+		suggest={(query) => session.suggestTitles(query)}
+	/>
 {/snippet}
 
 <div class="space-y-grid-lg min-h-screen">

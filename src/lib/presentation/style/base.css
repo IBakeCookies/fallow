@@ -103,6 +103,12 @@
 	   unchanged; `terminal` is the one that needs the split, because its
 	   scanlines showing THROUGH a card is the theme. */
 	--surface-float: var(--surface-card);
+
+	/* The modal scrim. One value for all 31 themes and no per-theme override: a
+	   scrim dims toward black on light and dark alike, so unlike every other
+	   surface here it is NOT derived from `--ty-primary` — an ink-derived wash
+	   would brighten the dark themes instead of dimming them. */
+	--scrim: oklch(0 0 0 / 0.5);
 	--ty-primary: oklch(0 0 0);
 	--primary: oklch(0.72 0.17 150);
 	--primary-foreground: oklch(0.18 0.03 155);

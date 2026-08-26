@@ -3,8 +3,10 @@ import {
 	addTask,
 	AUTOSAVE_MS,
 	budgetField,
+	closeTaskForm,
 	isoDate,
 	logDrain,
+	openTaskForm,
 	openTimeBudget,
 	saveRoutine,
 	setBudget,
@@ -762,6 +764,7 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 	// Both difficulty sliders at 0 put demand 0 on every rating this task carries,
 	// and §8.7's α fit drops those — so the day built below is the ONLY thing that
 	// differs between the two readings of λ₀ this test compares.
+	await openTaskForm(page);
 	await page.getByPlaceholder('e.g., Boxing training').fill('Errand');
 
 	// Range inputs take keyboard steps, and `Home` is the minimum — 0 here.
@@ -774,6 +777,8 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 			name: 'Deploy Task',
 		})
 		.click();
+
+	await closeTaskForm(page);
 
 	await openTimeBudget(page, /8h budget/);
 	await setBudget(page, 8);

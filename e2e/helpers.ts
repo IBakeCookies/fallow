@@ -45,39 +45,29 @@ export async function expectTaskInputs(page: Page, title: string, inputs: number
 }
 
 /**
- * Bring the add-task form on screen. The form is keyed on the loaded day
- * (`+page.svelte`), so it REMOUNTS when that day lands — open on a day with no
- * tasks, behind the opener on a day that has some. The opener is on screen before
- * the day lands too, and nothing on the page distinguishes that one from the one
- * that stays: a click on it is a click on an element the remount is about to
- * replace. So open the form by retrying until it is really open, rather than by
- * deciding once against a DOM that has not settled.
+ * Open the add-task dialog. The `+` in the Tasks heading is always mounted and never
+ * remounts, which is what this used to have to retry around: the form was keyed on
+ * the loaded day, so a click could land on an opener the remount was about to
+ * replace. Nothing here samples the day any more.
  */
 export async function openTaskForm(page: Page) {
+	await page
+		.getByRole('button', {
+			name: 'Add task',
+			exact: true,
+		})
+		.click();
+
 	const field = page.getByPlaceholder('e.g., Boxing training');
 
-	await expect(async () => {
-		const opener = page.getByRole('button', {
-			name: '+ Add Task',
-		});
-
-		// Bounded: an unbounded click retries the detached button until it outlives
-		// this attempt, so the retry never gets its turn.
-		if (await opener.isVisible())
-			await opener.click({
-				timeout: 1_000,
-			});
-
-		await expect(field).toBeVisible({
-			timeout: 1_000,
-		});
-	}).toPass({
-		timeout: 10_000,
-	});
+	await expect(field).toBeVisible();
 
 	return field;
 }
 
+/** Deploy one task and close the dialog again. Deploying does NOT close it — a day is
+ *  typed in one sitting — so the close is here, or every caller would go on to click a
+ *  page the scrim is over. */
 export async function addTask(page: Page, title: string) {
 	const field = await openTaskForm(page);
 
@@ -88,6 +78,14 @@ export async function addTask(page: Page, title: string) {
 			name: 'Deploy Task',
 		})
 		.click();
+
+	await closeTaskForm(page);
+}
+
+export async function closeTaskForm(page: Page) {
+	await page.keyboard.press('Escape');
+
+	await expect(page.getByRole('dialog')).toBeHidden();
 }
 
 /** Save the day's whole list as a named routine, through the Tasks card's Save menu.

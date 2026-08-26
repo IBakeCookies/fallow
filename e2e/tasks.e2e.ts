@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
 	AUTOSAVE_MS,
 	addTask,
+	closeTaskForm,
 	expectTaskInputs,
 	isoDate,
 	logDrain,
@@ -215,6 +216,7 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 		has: page.getByLabel('Task Definition'),
 	});
 
+	await openTaskForm(page);
 	await form.getByLabel('Task Definition').fill('Gym session');
 
 	// Range inputs take keyboard steps; fill() refuses them.
@@ -230,13 +232,16 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 		})
 		.click();
 
+	await closeTaskForm(page);
+
 	await expectTaskInputs(page, 'Gym session', [8, 2, 8]);
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
 	await expect(taskRow(page, 'Gym session')).toBeVisible();
 
-	// The stored day has landed, so the form remounted closed behind its opener.
+	// The dialog is gone with the reload; the title it stored is what the reopened
+	// form has to offer back.
 	await openTaskForm(page);
 
 	// Typed, not filled: the suggestions answer to input events, and two
@@ -253,6 +258,28 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 	await expect(form.getByLabel('Physical Diff')).toHaveValue('8');
 	await expect(form.getByLabel('Mental Diff')).toHaveValue('2');
 	await expect(form.getByLabel('Enjoyment')).toHaveValue('8');
+
+	// Two Escapes, two different closes — the list first, the dialog second. One
+	// Escape taking the whole form is what an unstopped keydown does, since bits-ui
+	// listens for it on `document`.
+	await form.getByLabel('Task Definition').pressSequentially('X');
+	await expect(form.getByRole('option')).toHaveCount(0);
+	await form.getByLabel('Task Definition').press('Backspace');
+
+	await expect(
+		form.getByRole('option', {
+			name: 'Gym session',
+		}),
+	).toBeVisible();
+
+	await page.keyboard.press('Escape');
+
+	await expect(form.getByRole('option')).toHaveCount(0);
+	await expect(page.getByRole('dialog')).toBeVisible();
+
+	await page.keyboard.press('Escape');
+
+	await expect(page.getByRole('dialog')).toBeHidden();
 });
 
 /* "Next" carries a `nowrap` title, and `next-up-line.svelte` is a flex item of

@@ -4,7 +4,15 @@ import { addTask, AUTOSAVE_MS, isoDate, setBudget, taskRow } from './helpers';
 test('past day is read-only with a banner', async ({ page }) => {
 	await page.goto(`/?date=${isoDate(-3)}`);
 	await expect(page.getByText('Viewing a past day:')).toBeVisible();
-	await expect(page.getByPlaceholder('e.g., Boxing training')).not.toBeVisible();
+
+	// No `form` reaches the card on a past day, so there is no way IN to assert
+	// against — not a closed form, no `+` at all.
+	await expect(
+		page.getByRole('button', {
+			name: 'Add task',
+			exact: true,
+		}),
+	).toHaveCount(0);
 
 	// nav label switches from "Today" to the viewed date
 	await expect(
@@ -56,9 +64,12 @@ test('future day shows the planning-ahead banner', async ({ page }) => {
 	await page.goto(`/?date=${isoDate(3)}`);
 	await expect(page.getByText('Planning ahead:')).toBeVisible();
 
-	// planning is allowed: form stays available
+	// planning is allowed: the way into the form stays on the card
 	await expect(
-		page.getByText('+ Add Task').or(page.getByPlaceholder('e.g., Boxing training')),
+		page.getByRole('button', {
+			name: 'Add task',
+			exact: true,
+		}),
 	).toBeVisible();
 });
 

@@ -1,5 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
-import { AUTOSAVE_MS, budgetField, isoDate, setBudget } from './helpers';
+import {
+	AUTOSAVE_MS,
+	budgetField,
+	closeTaskForm,
+	isoDate,
+	openTaskForm,
+	setBudget,
+} from './helpers';
 
 /* The advice card is the one place the app says what to CHANGE rather than what
    the day reads. Every option it shows is a full re-solve of the day, which is
@@ -12,6 +19,8 @@ import { AUTOSAVE_MS, budgetField, isoDate, setBudget } from './helpers';
    free" — on a pool-bound day the trim re-solves the same hours into a worse
    arrangement.) */
 async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
+	await openTaskForm(page);
+
 	const form = page.locator('form').filter({
 		has: page.getByPlaceholder('e.g., Boxing training'),
 	});
@@ -28,6 +37,8 @@ async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
 			name: 'Deploy Task',
 		})
 		.click();
+
+	await closeTaskForm(page);
 }
 
 test('advice prices real adjustments and goes stale when the day changes', async ({ page }) => {
@@ -126,6 +137,8 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
    as "every axis is in band", and printed "this day is fine" under a dashboard
    row banded Caution. */
 async function addCognitiveTask(page: Page, title: string) {
+	await openTaskForm(page);
+
 	const form = page.locator('form').filter({
 		has: page.getByPlaceholder('e.g., Boxing training'),
 	});
@@ -140,6 +153,8 @@ async function addCognitiveTask(page: Page, title: string) {
 			name: 'Deploy Task',
 		})
 		.click();
+
+	await closeTaskForm(page);
 }
 
 test('an axis nothing can improve still reads, and the day is not called fine', async ({
