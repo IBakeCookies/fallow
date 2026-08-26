@@ -1,11 +1,13 @@
 /* Eclipse: the corona breathes; its streamers wheel around the black moon.
-   Both helpers center on the background's moon (50%, -3rem). */
+   Both helpers center on that moon, whose address is --eclipse-disc-y in the
+   .eclipse block of themes.css — the gradient there paints the disc, these two
+   ring it, and one property keeps the three in register. */
 .eclipse .theme-scenery {
 	display: block;
 
 	.theme-helper-1 {
 		position: absolute;
-		top: -3rem;
+		top: var(--eclipse-disc-y);
 		left: 50%;
 		width: 13.5rem;
 		aspect-ratio: 1;
@@ -17,7 +19,7 @@
 
 	.theme-helper-2 {
 		position: absolute;
-		top: -3rem;
+		top: var(--eclipse-disc-y);
 		left: 50%;
 		width: 42rem;
 		aspect-ratio: 1;

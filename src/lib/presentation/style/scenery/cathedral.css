@@ -5,7 +5,9 @@
 
 	.theme-helper-1 {
 		position: absolute;
-		top: -3rem;
+		/* themes.css .cathedral owns this — the halo in its gradient reads the
+		   same property, so the two cannot drift apart */
+		top: var(--cathedral-window-y);
 		left: 50%;
 		width: 20rem;
 		aspect-ratio: 1;
