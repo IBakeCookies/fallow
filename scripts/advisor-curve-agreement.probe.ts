@@ -35,7 +35,10 @@ const REPORTED: Task = {
 	completed: false,
 };
 
-// The Model Parameters panel exactly as reported.
+// The Model Parameters panel exactly as reported. DELIBERATELY NOT the defaults
+// — alphaCog, alphaPhys and recoveryRate are the reporter's, not
+// DEFAULT_ENERGY_PARAMS' 0.35/0.3/0.7 — because the question was raised about
+// this day, and re-running it at the defaults would answer a different one.
 const PARAMS: EnergyParams = {
 	...DEFAULT_ENERGY_PARAMS,
 	alphaCog: 0.25,
