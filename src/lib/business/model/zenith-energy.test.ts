@@ -2867,7 +2867,10 @@ describe('Zenith Energy Model', () => {
 
 		it('Simpson block output matches an independent fine midpoint integration at the ϕ floor', () => {
 			// Near-floor ϕ inside a long block is the worst case for the quadrature's
-			// 1024-node cap (probe 2026-07-23: rel. error 6.9e-7; headroom kept here).
+			// 1024-node cap. Difficulty 1 beside demands 0.9/0.1 is DELIBERATELY off
+			// the sliders — those demands project to difficulty 9.3 — because this
+			// pins a bound, not a day: `enb-simpson-error.probe.ts` measures the
+			// worst reachable task under it at every block length (ROADMAP M48).
 			const fast = makeTask(1, 'fast', 1, 10, 0.9, 0.1);
 
 			const constants = {

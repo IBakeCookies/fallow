@@ -715,33 +715,13 @@ reaches the claim, never that the claim is false.
   §10's precedent of marking a non-re-runnable figure as history in one dated
   sentence.
 
-- **M48 §8.1** — raised 2026-08-25 while closing M40, open. M40 fixed five probe
-  generators that DREW unreachable days; this is the residue it leaves — hand-built
-  witnesses that are unreachable **on purpose**, where the repo has never written
-  down when that is allowed. The live instance carries quoted numbers:
-  `enb-simpson-error.probe.ts:47`'s `FAST_TASK` declares `difficulty: 1` beside
-  demands `0.9/0.1`, where `getEffectiveDifficulty` on those sliders gives 9.3, and
-  §8.1's five quadrature-error figures (`~3e-7`, `6.9e-7`, `1.7e-6`, `3.5e-6`,
-  `5.6e-5`) are read off it. Unlike M40 the direction is knowable: it is the ϕ-floor
-  worst case for the 1024-node cap, so an unreachable extreme makes the error bound
-  CONSERVATIVE rather than wrong. That is a defensible witness and the probe's
-  docblock does not say it — the gap M44 closed for `energy-search-gap.probe.ts`,
-  whose "DELIBERATELY NOT realigned onto the sliders … here that is the point"
-  paragraph is the pattern, as is §18's declaration for
-  `session-row-truncation.probe.ts`. Closing it means either that one declaration,
-  or an on-surface ϕ-floor witness if one exists — which needs low difficulty AND
-  low demands together, an open question rather than a known substitution, and if
-  it exists the five figures move and §8.1 needs the re-read.
-  **The rule is the more valuable half.** A scan of `zenith-energy.test.ts` on
-  2026-08-25 found 64 of its 70 `makeTask` calls off the surface, which is not 64
-  defects — it is the suite's deliberate convention that `difficulty` and the two
-  demands are independent knobs of the MODEL's input type, and the app's projection
-  onto it is `toEnergyTask`'s own business. So the rule is not "every task must be
-  reachable". It is closer to: reachability is required wherever a day's numbers are
-  QUOTED, or where the day witnesses app-level behaviour; it is optional, and
-  sometimes the whole point, for model-level property and bound tests — which must
-  then declare themselves. Nothing states this, which is why M40's five generators
-  were found one at a time, each by the fix before it.
+- **M48 §8.1 — closed 2026-08-27,
+  [`the-extreme-that-had-never-declared-itself`](docs/features/the-extreme-that-had-never-declared-itself.md).**
+  The open question had an answer: the ϕ floor IS reachable (both difficulty
+  sliders at 0 clamp to difficulty 1 and land on it), and the worst error over
+  all 1,210 slider combinations is 5.001e-5 against `FAST_TASK`'s 5.561e-5 — so
+  the extreme is conservative, measured pointwise rather than argued, and both
+  witnesses now run in the probe. The rule landed in `docs/testing.md`.
 
 **What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
 the 37 died under refutation, and they died in one direction: an auditor reading
