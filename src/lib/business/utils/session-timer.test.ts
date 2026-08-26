@@ -6,7 +6,7 @@ import {
 	runTimer,
 	sanitizeSessionTimer,
 	stopTimer,
-} from '$lib/presentation/utils/session-timer';
+} from '$lib/business/utils/session-timer';
 
 const TODAY = '2026-08-22';
 const START = 1_800_000_000_000;

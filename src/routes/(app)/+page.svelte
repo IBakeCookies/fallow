@@ -19,12 +19,6 @@
 		removeLogWithUndo,
 	} from '$lib/presentation/utils/remove-log-with-undo';
 	import {
-		getPendingMinutes,
-		readSessionTimer,
-		writeSessionTimer,
-		type SessionTimer,
-	} from '$lib/presentation/utils/session-timer';
-	import {
 		claimPendingMinutes,
 		drainDraftFromLog,
 		newDrainDraft,
@@ -47,10 +41,13 @@
 	import { setDailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
+	import { getSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
 	import { fromISO } from '$lib/business/utils/date';
+	import { getPendingMinutes } from '$lib/business/utils/session-timer';
 
 	const session = getSessionStore();
 	const observations = getEnergyObservationStore();
+	const timerStore = getSessionTimerStore();
 
 	const plan = setDailyPlanStore(session, observations);
 
@@ -67,22 +64,6 @@
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
 
-	// The day's timer is this page's state, not a store's: the control on the Tasks
-	// card and the 🪫 editor its reading fills are both here.
-	// svelte-ignore state_referenced_locally -- the day the page opened on
-	let sessionTimer = $state<SessionTimer | null>(browser ? readSessionTimer(today) : null);
-
-	// `today` is live — midnight, or a tab refocused the next morning — and minutes
-	// counted yesterday cannot fill today's 🪫 log. The read at init cannot cover it: a
-	// page left open never reaches it again.
-	$effect(() => {
-		if (sessionTimer !== null && sessionTimer.startedOn !== today) sessionTimer = null;
-	});
-
-	$effect(() => {
-		writeSessionTimer(sessionTimer);
-	});
-
 	const openFlowLog = (taskId: number, source: EditorSource) =>
 		(flowDrafts[taskId] = newEditorDraft(source));
 
@@ -93,7 +74,7 @@
 	const openDrainLog = (taskId: number, source: EditorSource) =>
 		(drainDrafts[taskId] = newDrainDraft(
 			source,
-			claimPendingMinutes(drainDrafts, getPendingMinutes(sessionTimer)),
+			claimPendingMinutes(drainDrafts, getPendingMinutes(timerStore.timer)),
 		));
 
 	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
@@ -132,7 +113,7 @@
 
 			// One stop funds one log: the editor that claimed the reading is the one that
 			// spends it — no other row's append, and no correction.
-			if (spendsPendingMinutes(draft, getPendingMinutes(sessionTimer))) sessionTimer = null;
+			if (spendsPendingMinutes(draft, getPendingMinutes(timerStore.timer))) timerStore.timer = null;
 		} else {
 			observations.editDrainLog(draft.recordId, entry.hours, entry.mind, entry.body);
 		}
@@ -212,7 +193,7 @@
 		yesterdaySession={session.yesterdaySession}
 		routines={session.routines}
 		currentTasks={tasks}
-		bind:timer={sessionTimer}
+		bind:timer={timerStore.timer}
 		onimport={(t) => session.importTasks(t)}
 		onimportdate={(d) => session.importFromDate(d)}
 		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}

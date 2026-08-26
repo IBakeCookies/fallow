@@ -153,6 +153,32 @@ export async function logFlow(page: Page, minutes: number) {
 		.click();
 }
 
+/* A running timer with time already on it, written the way `readSessionTimer` reads
+   it back. The key is re-spelled here as an independent oracle (data/AGENTS.md's
+   note on R8 step 4); the only other route to a nonzero reading is 30 seconds of
+   wall clock per test, since the field takes whole minutes. */
+export const plantRunningTimer = (page: Page, minutes: number) =>
+	page.evaluate((timer) => localStorage.setItem('fallow:session-timer', JSON.stringify(timer)), {
+		phase: 'running',
+		startedOn: isoDate(0),
+		runningSince: Date.now(),
+		accumulatedMs: minutes * 60_000,
+	});
+
+/** The 🪫 append/correct editor, wherever a row has one open. */
+export const drainForm = (page: Page) =>
+	page.locator('form').filter({
+		hasText: 'After the session',
+	});
+
+/** Open one task's 🪫 editor. Row-scoped: both screens can hold several open at once. */
+export const openDrainEditor = (page: Page, title: string) =>
+	taskRow(page, title)
+		.getByRole('button', {
+			name: 'Log end-of-session drain',
+		})
+		.click();
+
 /** Log an end-of-session drain rating (🪫) against the first task on screen. Both
  *  screens' rows carry the button, and both suites drive it. */
 export async function logDrain(page: Page, minutes: number, mind: number, body: number) {

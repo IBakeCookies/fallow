@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { LayoutProps } from './$types';
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { logError } from '$lib/logger';
 	import Nav from '$lib/presentation/component/nav.svelte';
@@ -19,8 +20,10 @@
 	import { setSessionStore } from '$lib/business/store/session-store.svelte';
 	import { setEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { setEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import { setSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
 	import * as backup from '$lib/business/backup';
+	import { readSessionTimer, writeSessionTimer } from '$lib/presentation/utils/session-timer';
 	import {
 		flushPendingToasts,
 		showToast,
@@ -105,6 +108,11 @@
 	setEnergyLabStore(session, observations, storageStatus, () =>
 		showToast.danger(m.energy_params_load_failed()),
 	);
+
+	// Both screens that offer the clock's controls read it here, so the layout owns the
+	// SSR guard and both storage calls (business/AGENTS.md, "A store never imports the
+	// toast API; it takes an injected thunk").
+	setSessionTimerStore(browser ? readSessionTimer(session.today) : null, writeSessionTimer);
 
 	const storageErrorMessage = $derived(
 		storageStatus.error === 'load-failed' ? m.error_body() : m.storage_error(),

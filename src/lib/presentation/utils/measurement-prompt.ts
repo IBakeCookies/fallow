@@ -78,7 +78,7 @@ export type DrainDraft = EditorDraft & {
 	body: number | null;
 };
 
-/** A draft for a new session, empty unless something measured THIS one — `/`'s stopped
+/** A draft for a new session, empty unless something measured THIS one — the stopped
  *  timer hands in the minutes it counted. Never seeded from an earlier rating: each 🪫
  *  log describes one session, so prefilling the last one invites
  *  re-saving hours the day already counts. Corrections seed their own draft. */
@@ -92,7 +92,7 @@ export const newDrainDraft = (source: EditorSource, minutes: number | null = nul
 const holdsPendingMinutes = (draft: DrainDraft) =>
 	draft.recordId === undefined && draft.minutes !== null;
 
-/** The minutes a newly opened 🪫 append editor may take from `/`'s stopped timer: the
+/** The minutes a newly opened 🪫 append editor may take from the stopped timer: the
  *  reading, unless an editor already open holds it. One stop funds one log and a draft
  *  carries a COPY of the number, so the reading lives in exactly one draft at a time —
  *  two rows ticked done each opened an editor holding the same 45, and each funded a

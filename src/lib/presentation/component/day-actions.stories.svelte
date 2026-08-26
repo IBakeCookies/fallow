@@ -2,7 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fn, waitFor, within } from 'storybook/test';
 	import type { DailySession, SavedRoutine, Task } from '$lib/business/type';
-	import type { SessionTimer } from '$lib/presentation/utils/session-timer';
+	import type { SessionTimer } from '$lib/business/utils/session-timer';
 	import DayActions from '$lib/presentation/component/day-actions.svelte';
 
 	const task = (id: number, title: string): Task => ({

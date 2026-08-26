@@ -74,6 +74,11 @@ counter-example that shows the line: a business-owned _state_ with no copy in
 it (`'load-failed'` is a machine value the layout localizes), so it is a store
 the others take, not a thunk they are handed.
 
+A thunk is the shape for any collaborator a store may not import, not for
+notifications alone: `SessionTimerStore` takes the `writeSessionTimer` the
+`(app)` layout hands it, because R4 forbids a store touching a storage API and
+the key stays declared in presentation.
+
 ## R5 — Business code does not import SvelteKit routing
 
 Stores take what they need as arguments. `SessionStore` reads the viewed day
@@ -98,10 +103,11 @@ code — six were, across `SessionStore`, `EnergyLabStore` and
 
 ### Every store reaches a route through its `setXStore()`
 
-All eight (`ThemeStore`, `StorageStatusStore`, `SessionStore`,
-`EnergyObservationStore`, `DailyPlanStore`, `AnalyticsStore`, `EnergyLabStore`,
-`CalendarStore`). Sole exception: a `*.test-harness.svelte`, which constructs
-directly because the store under test is the thing it hands back.
+All nine (`ThemeStore`, `StorageStatusStore`, `SessionStore`,
+`EnergyObservationStore`, `SessionTimerStore`, `DailyPlanStore`,
+`AnalyticsStore`, `EnergyLabStore`, `CalendarStore`). Sole exception: a
+`*.test-harness.svelte`, which constructs directly because the store under test
+is the thing it hands back.
 
 A bare `new XStore(...)` in a route is not a shortcut, it is the hole:
 `setContext` **throws outside component initialisation**, which is what makes
@@ -118,10 +124,11 @@ derived from the environment (e.g. the clock), never user data.
 
 `setXStore()` runs in whichever component's tree needs the store — the root
 layout for `ThemeStore`, `(app)` for `StorageStatusStore`, `SessionStore`,
-`EnergyObservationStore` and `EnergyLabStore` (status store first, because the
-others report into it and register their re-reads), the route's own instance
-script for `setDailyPlanStore` in `/`, `setAnalyticsStore` in `/analytics` and
-`setCalendarStore` in `/calendar`.
+`EnergyObservationStore`, `EnergyLabStore` and `SessionTimerStore` (status store
+first, because the three that report into it register their re-reads there; the
+timer reports nothing — R4's `localStorage` tier), the
+route's own instance script for `setDailyPlanStore` in `/`, `setAnalyticsStore`
+in `/analytics` and `setCalendarStore` in `/calendar`.
 **Every store loads at init** — in its constructor, so a caller holding one
 never has to know it is inert. Three questions place the call:
 
