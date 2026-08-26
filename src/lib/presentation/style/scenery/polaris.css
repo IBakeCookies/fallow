@@ -9,10 +9,17 @@
 	display: block;
 	opacity: calc(0.3 + 0.7 * var(--polaris-vis, 1));
 
-	/* the pole point both rotating sheets are centered on — high in the sky,
-	   above the content column, so the star clock stays visible */
+	/* The pole point both rotating sheets and Polaris itself are centered on.
+	   Dead centre of the viewport — a stylisation, not a sky: the real pole
+	   stands at the observer's latitude and is never overhead. It was `9%`, a
+	   percentage of viewport height, while every occluder above it is a fixed
+	   pixel height — a 65px bar, and a card whose top edge is at 97px — so the
+	   taller the window, the deeper the pole sank behind that card. Centre is
+	   behind the column rather than clear of it, which a 1.5rem glow with a
+	   1.5px core can afford where a lit disc could not (STYLE.md, the scenery
+	   gutter). */
 	--pole-x: 50%;
-	--pole-y: 9%;
+	--pole-y: 50%;
 
 	/* rotating field stars: a square sheet big enough that its corners never
 	   leave the viewport at any angle (pole-to-corner < 1.42 * vmax) */
