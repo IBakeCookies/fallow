@@ -47,7 +47,7 @@
 	});
 
 	// The caret goes to the first question still open: the length when nothing has
-	// measured it, the first rating when something has (`/`'s stopped timer), and back
+	// measured it, the first rating when something has (the stopped timer), and back
 	// to the length when a correction seeds all three — landing it on a rating that
 	// already reads 6 would turn a corrected 7 into 67. Decided at mount like the draft,
 	// or a field being typed in would lose focus mid-entry.

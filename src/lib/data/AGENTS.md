@@ -52,7 +52,7 @@ Anything the model reads must survive a backup/restore round trip.
   `energyParams`).
 - **localStorage**: values that have no business in a backup, and whose loss
   costs at most a gesture. The second clause is the operative one — view
-  preferences (e.g. which tab of a card was open); `/`'s running session timer
+  preferences (e.g. which tab of a card was open); the running session timer
   (`presentation/utils/session-timer.ts`), whose loss costs a typed number but
   which a restored three-week-old backup must never resurrect; and
   `fallow:futile-schema-reload` (`indexed-db.ts`), the one entry in this tier

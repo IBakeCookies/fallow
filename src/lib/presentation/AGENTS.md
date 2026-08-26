@@ -456,7 +456,7 @@ several rows hold an open editor at once, so the reading is
 opens empty while that claim stands, closing the claiming editor releases it,
 and only that editor's append spends the reading (`spendsPendingMinutes`) —
 never a correction, and never while the clock still runs. Both screens seed and
-spend by that one rule; the timer's CONTROLS are `/`'s alone.
+spend by that one rule, and both offer the timer's CONTROLS.
 
 ### One screen lists logs: `/analytics`
 
@@ -552,12 +552,15 @@ the viewed day's reading, since that is the one on screen.
 
 The timer that fills a 🪫 length is gated the same way, and it is the one control
 on `day-actions.svelte` that is: its neighbours read on any day that is not past,
-the timer on **today** alone. The state is `/`'s (`+page.svelte`), bound into the
-component, and `localStorage`'s
-([the-session-nobody-was-timing.md](../../../docs/features/the-session-nobody-was-timing.md)) —
-a timer whose `startedOn` is not today is dropped both on read and whenever
-`today` moves under a page left open, which is what disposes of one left running
-overnight.
+the timer on **today** alone. The state is `SessionTimerStore`'s, bound into the
+component by both screens that render it (`bind:timer`), and `localStorage`'s —
+`business/utils/session-timer.ts` owns the shape, the transitions and
+`getPendingMinutes`, and `presentation/utils/session-timer.ts` is the storage
+call and the key
+([the-clock-that-only-one-screen-could-start.md](../../../docs/features/the-clock-that-only-one-screen-could-start.md)).
+A timer whose `startedOn` is not today is dropped both on read and by the
+store's getter, which reads `liveToday.value` — so one left running overnight is
+disposed of under a page left open too.
 
 ## Settled decisions — do not re-litigate
 

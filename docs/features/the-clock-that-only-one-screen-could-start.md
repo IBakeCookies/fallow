@@ -1,6 +1,6 @@
 # The clock that only one screen could start
 
-**Kind:** feature · **Status:** planning · **Roadmap:** item `none` (a follow-on to
+**Kind:** feature · **Status:** landed 2026-08-26 · **Roadmap:** item `none` (a follow-on to
 the timer bullet already dated in ROADMAP's not-proposed list — nothing re-opens)
 
 Frozen at land: this file says what was decided on the date it carries, never

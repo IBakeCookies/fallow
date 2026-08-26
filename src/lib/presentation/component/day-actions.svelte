@@ -15,7 +15,7 @@
 		runTimer,
 		stopTimer,
 		type SessionTimer,
-	} from '$lib/presentation/utils/session-timer';
+	} from '$lib/business/utils/session-timer';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import * as DropdownMenu from '$lib/presentation/component/ui/dropdown-menu';
 	import type { Task, DailySession, SavedRoutine } from '$lib/business/type';
@@ -27,10 +27,10 @@
 		yesterdaySession: DailySession | null;
 		routines: SavedRoutine[];
 		currentTasks: Task[];
-		/** The day's session clock — `undefined` on a screen that offers none, the way a
-		 *  missing callback withholds any other control. Bindable: the page owns it,
-		 *  because the 🪫 editor a stopped reading fills is the page's too. */
-		timer?: SessionTimer | null;
+		/** The day's session clock. Bindable: `SessionTimerStore`'s, so a session
+		 *  started on one screen is still counting on the other, and the 🪫 editor a
+		 *  stopped reading fills is still the page's. */
+		timer: SessionTimer | null;
 		onimport: (tasks: Omit<Task, 'id' | 'createdAt' | 'completed'>[]) => void;
 		onimportdate: (date: string) => Promise<number>;
 		onsaveroutine: (name: string) => void;
@@ -86,7 +86,7 @@
 
 	function onPrimaryClick() {
 		if (isRunning && timer) timer = pauseTimer(timer, Date.now());
-		else timer = runTimer(timer ?? null, today, Date.now());
+		else timer = runTimer(timer, today, Date.now());
 	}
 
 	function onTerminalClick() {
@@ -167,7 +167,7 @@
 <div class="flex flex-wrap items-center justify-end gap-grid-xs">
 	<!-- Today only, unlike its neighbours: a day being planned can be loaded and saved,
 	     but a new 🪫 measurement is today's alone, and this reading fills one. -->
-	{#if isToday && timer !== undefined}
+	{#if isToday}
 		<div class="flex shrink-0 items-center gap-grid-2xs">
 			<!-- Full ink only while it counts: paused and stopped are otherwise a glyph
 			     apart, and the minutes look the same either way. "<1m" because the first

@@ -4,10 +4,13 @@ import {
 	AUTOSAVE_MS,
 	budgetField,
 	closeTaskForm,
+	drainForm,
 	isoDate,
 	logDrain,
+	openDrainEditor,
 	openTaskForm,
 	openTimeBudget,
+	plantRunningTimer,
 	saveRoutine,
 	setBudget,
 	taskCard,
@@ -111,6 +114,145 @@ test('the day’s Load and Save read on the Lab’s Tasks card', async ({ page }
 		card.getByRole('button', {
 			name: 'Save',
 			exact: true,
+		}),
+	).toBeVisible();
+});
+
+/* The session clock is one clock across both screens: the Lab is where a session is
+   actually worked from, and the reading a stop leaves funds the 🪫 editor on whichever
+   screen opens one first. Only an e2e sees the navigation, which is the whole point. */
+test('the Lab’s Tasks card offers the timer', async ({ page }) => {
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+
+	await expect(
+		taskCard(page).getByRole('button', {
+			name: 'Start timer',
+		}),
+	).toBeVisible();
+});
+
+test('a session started on / is still counting on the Lab', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page
+		.getByRole('button', {
+			name: 'Start timer',
+		})
+		.click();
+
+	await page.goto('/energy');
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Pause timer',
+		}),
+	).toBeVisible();
+
+	// Not merely "a control is there": a fresh clock would offer this one instead.
+	await expect(
+		page.getByRole('button', {
+			name: 'Start timer',
+		}),
+	).toHaveCount(0);
+});
+
+test('a session started on the Lab is still counting on /', async ({ page }) => {
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page
+		.getByRole('button', {
+			name: 'Start timer',
+		})
+		.click();
+
+	// The nav link, not a fresh load: a client-side navigation keeps the layout — and
+	// so the store — mounted, which is the path a person actually takes between the
+	// two screens, and the one no re-read of storage covers.
+	await page
+		.getByRole('link', {
+			name: 'Today',
+		})
+		.click();
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Pause timer',
+		}),
+	).toBeVisible();
+});
+
+test('stopping on the Lab fills the Lab’s own drain editor', async ({ page }) => {
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	// Planted rather than clocked: the length field takes whole minutes.
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await openDrainEditor(page, 'Deep work');
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('45');
+});
+
+/* One stop funds one log, and the two screens are one ledger: the log saved on `/`
+   spends the reading, so the Lab's editor opens empty afterwards. */
+test('a reading spent on / is gone on the Lab', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await logDrain(page, 45, 5, 3);
+
+	await page.goto('/energy');
+	await openDrainEditor(page, 'Deep work');
+	await expect(drainForm(page).locator('input[type="number"]').first()).toHaveValue('');
+});
+
+test('a reading discarded on the Lab is gone on /', async ({ page }) => {
+	await page.goto('/energy');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await plantRunningTimer(page, 45);
+	await page.reload();
+
+	await page
+		.getByRole('button', {
+			name: 'Stop timer',
+		})
+		.click();
+
+	await page
+		.getByRole('button', {
+			name: 'Discard timed session',
+		})
+		.click();
+
+	await page.goto('/');
+
+	await expect(
+		page.getByRole('button', {
+			name: 'Start timer',
 		}),
 	).toBeVisible();
 });

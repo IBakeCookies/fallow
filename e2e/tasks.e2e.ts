@@ -3,31 +3,16 @@ import {
 	AUTOSAVE_MS,
 	addTask,
 	closeTaskForm,
+	drainForm,
 	expectTaskInputs,
-	isoDate,
 	logDrain,
+	openDrainEditor,
 	openTaskForm,
+	plantRunningTimer,
 	setBudget,
 	taskCard,
 	taskRow,
 } from './helpers';
-
-/* A running timer with time already on it, written the way `session-timer.ts` reads
-   it back. The key is re-spelled here as an independent oracle (data/AGENTS.md's
-   note on R8 step 4); the only other route to a nonzero reading is 30 seconds of
-   wall clock per test, since the field takes whole minutes. */
-const plantRunningTimer = (page: Page, minutes: number) =>
-	page.evaluate((timer) => localStorage.setItem('fallow:session-timer', JSON.stringify(timer)), {
-		phase: 'running',
-		startedOn: isoDate(0),
-		runningSince: Date.now(),
-		accumulatedMs: minutes * 60_000,
-	});
-
-const drainForm = (page: Page) =>
-	page.locator('form').filter({
-		hasText: 'After the session',
-	});
 
 /* Row-scoped: two rows can hold an open editor at once, which `drainForm` would both
    match. */
@@ -35,13 +20,6 @@ const rowDrainForm = (page: Page, title: string) =>
 	taskRow(page, title).locator('form').filter({
 		hasText: 'After the session',
 	});
-
-const openDrainEditor = (page: Page, title: string) =>
-	taskRow(page, title)
-		.getByRole('button', {
-			name: 'Log end-of-session drain',
-		})
-		.click();
 
 test('fresh profile shows the empty state', async ({ page }) => {
 	await page.goto('/');

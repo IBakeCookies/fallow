@@ -10,11 +10,6 @@
 		removeLogWithUndo,
 	} from '$lib/presentation/utils/remove-log-with-undo';
 	import {
-		getPendingMinutes,
-		readSessionTimer,
-		writeSessionTimer,
-	} from '$lib/presentation/utils/session-timer';
-	import {
 		claimPendingMinutes,
 		drainDraftFromLog,
 		newDrainDraft,
@@ -48,6 +43,8 @@
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
 	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
+	import { getSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
+	import { getPendingMinutes } from '$lib/business/utils/session-timer';
 	import type { DrainObservationRecord, Persisted } from '$lib/business/type';
 
 	const VIEW_KEY = 'zenith-energy-view';
@@ -60,6 +57,8 @@
 	const observations = getEnergyObservationStore();
 
 	const lab = getEnergyLabStore();
+
+	const timerStore = getSessionTimerStore();
 
 	const tasks = $derived(lab.scheduledTasks);
 	const hasTasks = $derived(tasks.length > 0);
@@ -159,12 +158,12 @@
 	const drainLogs = $derived(observations.drainLogsOn(session.today));
 	const flowLogs = $derived(session.flowMinutesOn(session.today));
 
-	// `/`'s stopped timer seeds the 🪫 editors here too, under the same claim (one stop
-	// funds one log). Read per opening: the timer's controls stay on `/`.
+	// The stopped timer seeds the 🪫 editors here under the same claim (one stop funds
+	// one log), whichever screen stopped it.
 	const openDrainLog = (taskId: number, source: EditorSource) =>
 		(drainDrafts[taskId] = newDrainDraft(
 			source,
-			claimPendingMinutes(drainDrafts, getPendingMinutes(readSessionTimer(session.today))),
+			claimPendingMinutes(drainDrafts, getPendingMinutes(timerStore.timer)),
 		));
 
 	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
@@ -177,8 +176,7 @@
 		if (draft.recordId === undefined) {
 			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
 
-			if (spendsPendingMinutes(draft, getPendingMinutes(readSessionTimer(session.today))))
-				writeSessionTimer(null);
+			if (spendsPendingMinutes(draft, getPendingMinutes(timerStore.timer))) timerStore.timer = null;
 		} else {
 			observations.editDrainLog(draft.recordId, entry.hours, entry.mind, entry.body);
 		}
@@ -291,6 +289,7 @@
 			yesterdaySession={session.yesterdaySession}
 			routines={session.routines}
 			currentTasks={session.tasks}
+			bind:timer={timerStore.timer}
 			onimport={(t) => session.importTasks(t)}
 			onimportdate={(d) => session.importFromDate(d)}
 			onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
