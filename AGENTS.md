@@ -21,7 +21,7 @@ missing, it is one hop away.
 | [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Derivations only: the shape and why not the alternative      |
 | [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                             |
 | [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item or closed finding is a date and a link to its spec |
-| [docs/features/](docs/features/)                                   | one spec per feature, frozen at land — what was decided then, never how the code works now           |
+| [docs/features/](docs/features/)                                   | one file per planned change — kind `feature`, `model`, `repair` or `audit`; frozen at land           |
 | [README.md](README.md)                                             | user-facing: what the app does and how to run it                                                     |
 | [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                                  |
 

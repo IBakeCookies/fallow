@@ -1,6 +1,6 @@
 # What the metric sections stopped describing
 
-**Status:** landed 2026-08-18 · **Roadmap:** item 31, findings M18, M19, M20,
+**Kind:** repair · **Status:** landed 2026-08-18 · **Roadmap:** item 31, findings M18, M19, M20,
 M21
 
 Frozen at land: this file says what was decided on the date it carries, never

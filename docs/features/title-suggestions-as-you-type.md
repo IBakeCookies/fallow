@@ -1,6 +1,6 @@
 # Title suggestions as you type
 
-**Status:** landed 2026-08-05 · **Roadmap:** item 24
+**Kind:** feature · **Status:** landed 2026-08-05 · **Roadmap:** item 24
 
 Backfilled 2026-08-14 from ROADMAP item 24, whose text was written at land. Not
 a pre-implementation spec.

@@ -1,6 +1,6 @@
 # Budget prefill for unseen days
 
-**Status:** landed 2026-08-12 · **Roadmap:** item 16
+**Kind:** feature · **Status:** landed 2026-08-12 · **Roadmap:** item 16
 
 Backfilled 2026-08-14 from ROADMAP item 16, whose text was written at land. Not
 a pre-implementation spec.

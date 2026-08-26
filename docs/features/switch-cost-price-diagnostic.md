@@ -1,6 +1,6 @@
 # Switch-cost price diagnostic
 
-**Status:** landed 2026-08-04 · **Roadmap:** item 17
+**Kind:** feature · **Status:** landed 2026-08-04 · **Roadmap:** item 17
 
 Backfilled 2026-08-14 from ROADMAP item 17, whose text was written at land. Not
 a pre-implementation spec.

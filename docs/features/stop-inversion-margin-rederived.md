@@ -1,6 +1,6 @@
 # Re-derive `STOP_INVERSION_MARGIN` from measured distributions
 
-**Status:** landed 2026-08-13 · **Roadmap:** item 28
+**Kind:** model · **Status:** landed 2026-08-13 · **Roadmap:** item 28
 
 Backfilled 2026-08-14 from ROADMAP item 28, whose text was written at land. Not
 a pre-implementation spec.

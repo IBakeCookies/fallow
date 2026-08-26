@@ -1,6 +1,6 @@
 # The bracket that inverted on a day it kept
 
-**Status:** landed 2026-08-19 · **Roadmap:** item 31, finding M38
+**Kind:** audit · **Status:** landed 2026-08-19 · **Roadmap:** item 31, finding M38
 
 Backfilled 2026-08-21 from ROADMAP.md's M38 entry, whose text was written at land, and
 moved here verbatim so the roadmap can hold a line and a link. Not a

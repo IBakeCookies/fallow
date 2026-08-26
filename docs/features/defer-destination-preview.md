@@ -1,6 +1,6 @@
 # Destination preview for a defer
 
-**Status:** landed 2026-08-12 · **Roadmap:** item 21
+**Kind:** feature · **Status:** landed 2026-08-12 · **Roadmap:** item 21
 
 Backfilled 2026-08-14 from ROADMAP item 21, whose text was written at land. Not
 a pre-implementation spec.

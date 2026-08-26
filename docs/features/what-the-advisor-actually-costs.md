@@ -1,6 +1,6 @@
 # What the advisor actually costs
 
-**Status:** landed 2026-08-17 · **Roadmap:** item 31, findings M9 and M10
+**Kind:** repair · **Status:** landed 2026-08-17 · **Roadmap:** item 31, findings M9 and M10
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

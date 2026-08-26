@@ -1,6 +1,6 @@
 # Title memory for the task sliders
 
-**Status:** landed 2026-08-05 · **Roadmap:** item 15
+**Kind:** feature · **Status:** landed 2026-08-05 · **Roadmap:** item 15
 
 Backfilled 2026-08-14 from ROADMAP item 15, whose text was written at land. Not
 a pre-implementation spec.

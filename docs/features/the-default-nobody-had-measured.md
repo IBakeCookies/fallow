@@ -1,6 +1,6 @@
 # The default nobody had measured
 
-**Status:** landed 2026-08-20 · **Roadmap:** finding M46
+**Kind:** audit · **Status:** landed 2026-08-20 · **Roadmap:** finding M46
 
 Backfilled 2026-08-21 from ROADMAP.md's M46 entry, whose text was written at land, and
 moved here verbatim so the roadmap can hold a line and a link. Not a

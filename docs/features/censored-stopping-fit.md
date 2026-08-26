@@ -1,6 +1,6 @@
 # Censored-likelihood stopping fit
 
-**Status:** decided against 2026-08-21 · **Roadmap:** item 4
+**Kind:** model · **Status:** decided against 2026-08-21 · **Roadmap:** item 4
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

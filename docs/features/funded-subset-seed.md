@@ -1,6 +1,6 @@
 # A funded-subset seed deeper than drop-one
 
-**Status:** landed 2026-08-13 · **Roadmap:** item 30
+**Kind:** model · **Status:** landed 2026-08-13 · **Roadmap:** item 30
 
 Backfilled 2026-08-14 from ROADMAP item 30, whose text was written at land. Not
 a pre-implementation spec.

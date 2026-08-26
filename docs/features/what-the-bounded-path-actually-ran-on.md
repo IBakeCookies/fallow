@@ -1,6 +1,6 @@
 # What the bounded path actually ran on
 
-**Status:** landed 2026-08-19 · **Roadmap:** closes M29 (§34), M30 (§7)
+**Kind:** repair · **Status:** landed 2026-08-19 · **Roadmap:** closes M29 (§34), M30 (§7)
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

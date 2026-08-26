@@ -1,6 +1,6 @@
 # The advice card’s buttons must not outlive the day they priced
 
-**Status:** landed 2026-08-12 · **Roadmap:** item 25
+**Kind:** feature · **Status:** landed 2026-08-12 · **Roadmap:** item 25
 
 Backfilled 2026-08-14 from ROADMAP item 25, whose text was written at land. Not
 a pre-implementation spec.

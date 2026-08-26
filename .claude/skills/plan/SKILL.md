@@ -17,6 +17,20 @@ a rule here; route to it.
 The spec exists so the build phase can start cold. Assume its reader has none
 of this conversation.
 
+## Kind is the first decision
+
+TEMPLATE.md opens with four. Pick one, put it in the header: it decides whose
+language **Goal** is written in and whether **Scenarios** are required.
+
+`/plan` writes `feature`, `model` and `repair`. An `audit` records an
+investigation that already happened — no interview, no build phase.
+
+The test, applied to the Goal once it is written: **if it cannot be said in the
+user's own words, it is not a `feature`.** Do not stretch one. A `repair`
+dressed as a feature invents a user the change does not have, and every scenario
+under it is fiction. Most of this directory is `model` and `repair` — that is
+the honest count, not a gap to close.
+
 ## Interview
 
 Ask the user; do not infer. Batch questions with `AskUserQuestion` rather than
@@ -60,6 +74,9 @@ around it — the next reader believes it.
 
 ## Scenarios
 
+A `feature`'s section, and required there. A `model` or `repair` has no click:
+it writes Claims, and only the Claim bullets below apply.
+
 Write them with the user, in their words, then tighten:
 
 - split every `and` into its own **Then**
@@ -78,6 +95,7 @@ criteria — it is implementation, and it belongs in **Decisions** or nowhere.
 
 ## Before finishing
 
+- Kind set, and **Goal** written in that kind's voice?
 - MATH.md changes? Name the section in **Read before building**.
 - Does this re-open a settled decision (AGENTS.md §4, the model rules, or
   ROADMAP's not-proposed list)? Say so to the user and stop — those are closed.

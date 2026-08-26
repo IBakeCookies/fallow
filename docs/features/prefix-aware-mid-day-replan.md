@@ -1,6 +1,6 @@
 # Prefix-aware mid-day re-plan
 
-**Status:** landed 2026-08-10 · **Roadmap:** item 12
+**Kind:** feature · **Status:** landed 2026-08-10 · **Roadmap:** item 12
 
 Backfilled 2026-08-14 from ROADMAP item 12, whose text was written at land. Not
 a pre-implementation spec.

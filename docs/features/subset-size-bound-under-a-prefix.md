@@ -1,6 +1,6 @@
 # The subset size bound under a prefix
 
-**Status:** landed 2026-08-14 · **Roadmap:** item 31, finding M1
+**Kind:** repair · **Status:** landed 2026-08-14 · **Roadmap:** item 31, finding M1
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

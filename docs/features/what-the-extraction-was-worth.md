@@ -1,6 +1,6 @@
 # What the extraction was worth, in one measured arm
 
-**Status:** landed 2026-08-20 · **Roadmap:** the 2026-08-20 rules eval
+**Kind:** audit · **Status:** landed 2026-08-20 · **Roadmap:** the 2026-08-20 rules eval
 
 Backfilled 2026-08-21 from ROADMAP.md's rules-eval findings, whose text was written at land, and
 moved here verbatim so the roadmap can hold a line and a link. Not a
