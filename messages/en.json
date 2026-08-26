@@ -294,6 +294,7 @@
 	"cal_budget": "{hours}h budget",
 	"cal_nothing_planned": "Nothing planned",
 	"cal_no_tasks": "No tasks",
+	"cal_loading": "Loading…",
 	"cal_empty_1": "No data in this {view} yet — days you plan on the",
 	"cal_empty_2": "page will show up here.",
 	"ana_title_head": "Fallow — Analytics",

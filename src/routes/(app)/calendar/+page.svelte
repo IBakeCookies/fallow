@@ -118,24 +118,18 @@
 <!-- Proton-calendar-style: the layout puts this page in a no-scroll full-viewport
      flex column — the grid's rows split the leftover height and cell content
      clips instead of growing -->
+
+<!-- The nav's active link already draws the page's name, so this one is for the
+     document: the grid below heads nothing, and an indexed page needs an `<h1>`.
+     `sr-only` and not printed because this is the one page the layout pins to
+     `h-dvh` — a title here is 32px the grid rows can never scroll back. -->
+<h1 class="sr-only">{m.cal_heading()}</h1>
+
+<!-- Stepping left, view right: with the title gone the range IS the heading, so it
+     takes the reading position. Neither group needs a margin of its own — the row's
+     `justify-between` is what separates them and the gaps space them within. -->
 <div class="mb-text-md flex flex-wrap items-center justify-between gap-grid-xs">
-	<h1 class="text-2xl font-bold text-ty-primary">{m.cal_heading()}</h1>
-
 	<div class="flex flex-wrap items-center gap-grid-xs">
-		{#if anchor !== today}
-			<Button variant="outline" size="sm" class="ml-text-2xs" onclick={() => (anchor = today)}>
-				{m.link_today()}
-			</Button>
-		{/if}
-		<SegmentedToggle
-			items={viewItems}
-			value={view}
-			onchange={(next) => (view = next)}
-			label={m.cal_view_group()}
-			class="ml-auto"
-			itemClass="capitalize"
-		/>
-
 		<div class="flex items-center gap-grid-2xs">
 			<Button
 				variant="outline"
@@ -163,8 +157,25 @@
 				<ChevronRight class="h-4 w-4" />
 			</Button>
 		</div>
+		{#if anchor !== today}
+			<Button variant="outline" size="sm" onclick={() => (anchor = today)}>
+				{m.link_today()}
+			</Button>
+		{/if}
 	</div>
+
+	<SegmentedToggle
+		items={viewItems}
+		value={view}
+		onchange={(next) => (view = next)}
+		label={m.cal_view_group()}
+		itemClass="capitalize"
+	/>
 </div>
+
+{#if calendar.isLoading}
+	<p class="sr-only">{m.cal_loading()}</p>
+{/if}
 
 <!-- The WEEK stacks into full-width day rows below `xl` and scrolls inside the fixed
      viewport: seven columns of a day's readings need more width than a phone has, and a
@@ -247,7 +258,20 @@
 					{/if}
 				</div>
 
-				{#if s}
+				{#if calendar.isLoading}
+					<!-- A placeholder, never a claim: an unread range paints forty-two bare
+					     day numbers, which is pixel-identical to a month that holds nothing.
+					     Bars where the readings land — the completion rail, then the task
+					     lines — so the frame is the same shape the summaries arrive into. -->
+					<div aria-hidden="true">
+						<div class="skeleton-block mt-grid-2xs h-1 w-full"></div>
+						<div class="mt-grid-2xs space-y-text-3xs">
+							{#each ['w-full', 'w-4/5', 'w-3/5'] as width (width)}
+								<div class="skeleton-block h-3 {width}"></div>
+							{/each}
+						</div>
+					</div>
+				{:else if s}
 					<!-- Future days are plans: nothing is completable yet, so no bar -->
 					{#if !isFuture}
 						<div
@@ -318,10 +342,10 @@
 							{/each}
 						</ul>
 					{/if}
-				{:else if view === 'week' && !calendar.isLoading}
-					<!-- Same guard as the empty-state line below the grid: before the range
-					     lands every cell is summary-less, and "No tasks" is a claim about
-					     the user's day, not a description of a read that has not returned. -->
+				{:else if view === 'week'}
+					<!-- Reachable only past the loading branch above: before the range lands
+					     every cell is summary-less, and "No tasks" is a claim about the
+					     user's day, not a description of a read that has not returned. -->
 					<p class="mt-text-xs text-xs text-ty-silent">
 						{isFuture ? m.cal_nothing_planned() : m.cal_no_tasks()}
 					</p>

@@ -222,13 +222,14 @@
 	<div class="skeleton-block mt-text-md w-full {body}"></div>
 {/snippet}
 
+<!-- The nav's active link already draws the page's name, so this one is for the
+     document: the cards below open at `<h2>` and an indexed page needs an `<h1>`
+     above them. The subtitle stays printed — it says what the readings are, which
+     a one-word nav item does not. -->
+<h1 class="sr-only">{m.ana_heading()}</h1>
+
 <div class="mb-text-xl flex flex-wrap items-center justify-between gap-grid-xs">
-	<div>
-		<h1 class="text-2xl font-bold text-ty-primary">{m.ana_heading()}</h1>
-		<p class="mt-text-2xs text-sm text-ty-silent">
-			{m.ana_subtitle()}
-		</p>
-	</div>
+	<p class="text-sm text-ty-silent">{m.ana_subtitle()}</p>
 
 	<SegmentedToggle
 		items={rangeItems}
