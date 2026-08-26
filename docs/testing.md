@@ -300,6 +300,21 @@ not be re-checked and stayed in the document while being false.
   used to be handled by hand-dating every quoted number; MATH.md carried 182 of
   those stamps in one section and eleven of its figures were stale anyway. So
   MATH.md now holds derivations only (R7) and the dating rule is gone with them.
+- **Reachability: required where a number is quoted, optional where a bound is
+  pinned — but then declared.** `EnergyTaskInput.difficulty` and its two demands
+  are independent knobs of the MODEL's input type; the app's projection onto it
+  is `toEnergyTask`'s business, and `getEffectiveDifficulty` couples them
+  (sliders 9/1 give demands 0.9/0.1 and difficulty **9.3**, never 1). So most
+  fixtures are legitimately off the surface — 64 of `zenith-energy.test.ts`'s 70
+  `makeTask` calls are — and "every task must be reachable" is the wrong rule.
+  The rule is: a day whose numbers get QUOTED, or that witnesses APP-level
+  behaviour, has to be one `toEnergyTask` could produce. A model-level property
+  or bound test may sit off the surface and often should, and then it says so in
+  a sentence — which extreme it is, and why the reading survives it. See
+  `energy-search-gap.probe.ts` ("here that is the point"),
+  `session-row-truncation.probe.ts` and `enb-simpson-error.probe.ts`, whose
+  off-surface extreme is measured against the worst reachable task rather than
+  argued (ROADMAP M40, M44, M48).
 - **Pin what the probe found with one fixture in the suite**, never the sweep
   itself.
 - **Pin it against a literal, never against the constant it bounds.**

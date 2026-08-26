@@ -21,6 +21,19 @@
  * error is believed: doubling it to 800k must not move it by more than 1e-9
  * relative, and the check is asserted below. Without that, a drifting
  * reference would masquerade as quadrature error.
+ *
+ * TWO WITNESSES, and `FAST_TASK` is DELIBERATELY off the sliders (ROADMAP M48,
+ * 2026-08-27). Its `difficulty: 1` cannot sit beside demands `0.9/0.1`: those
+ * demands come from sliders 9/1, which `getEffectiveDifficulty` projects to
+ * 9.3, and at 9.3 ϕ leaves its floor entirely. It is the model-level extreme —
+ * the lowest difficulty the model's [1,10] domain admits, paired with the
+ * demands that make the reservoir move fastest — kept because a bound measured
+ * on it bounds the shipped app too. `REACHABLE_WORST` is what proves that
+ * rather than asserting it: it is the worst error over ALL 1,210 slider
+ * combinations (mental and physical 0–10, enjoyment 1–10) projected through
+ * `toEnergyTask` at these constants, and it comes in UNDER `FAST_TASK`. The ϕ
+ * floor itself is reachable — both difficulty sliders at 0 clamp to difficulty
+ * 1 and land on it — so the off-surface part is only the demand pairing.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -51,6 +64,16 @@ const FAST_TASK: EnergyTaskInput = {
 	enjoyment: 10,
 	cognitiveDemand: 0.9,
 	physicalDemand: 0.1,
+};
+
+/** Sliders mental 2 / physical 0 / enjoyment 10, through `toEnergyTask`. */
+const REACHABLE_WORST: EnergyTaskInput = {
+	id: 2,
+	title: 'worst a user can file',
+	difficulty: 2,
+	enjoyment: 10,
+	cognitiveDemand: 0.2,
+	physicalDemand: 0,
 };
 
 /** Independent replica of ∫₀ᴰ p(u)·C_cog(u)^wc·C_phys(u)^wp du, Simpson at n intervals. */
@@ -109,56 +132,63 @@ function nodesUsed(phi: number, hours: number, rhoC: number, rhoP: number): numb
 
 describe('block-output quadrature error at the ϕ floor (MATH.md §8, business/model/AGENTS.md)', () => {
 	it('measures relative error vs a refined reference as the block grows', () => {
-		const phi = calculateFlowStateTime(
-			mapEffort(FAST_TASK.difficulty),
-			mapEnjoyability(FAST_TASK.enjoyment),
-			FLOOR_CONSTANTS,
-		);
-
 		const rec = p.recoveryRate * p.restRecoveryMultiplier;
-		const rhoC = p.alphaCog * 0.9 + rec * (1 - (1 - p.microRecoveryFraction) * 0.9);
-		const rhoP = p.alphaPhys * 0.1 + rec * (1 - (1 - p.microRecoveryFraction) * 0.1);
 
-		console.log(
-			`ϕ = ${phi}h (floor), 1/ρ_cog = ${(1 / rhoC).toFixed(3)}h, 1/ρ_phys = ${(1 / rhoP).toFixed(3)}h`,
-		);
+		const rho = (w: number, alpha: number) =>
+			alpha * w + rec * (1 - (1 - p.microRecoveryFraction) * w);
 
-		console.log(
-			'fastest timescale is ϕ, so 16 nodes/timescale wants n = 160·hours; the cap is 1024',
-		);
-
-		let worstRel = 0;
-
-		for (const hours of [1, 2, 4, 6, 8, 10, 12, 16, 24]) {
-			const output = evaluateSchedule(
-				[
-					{
-						taskId: FAST_TASK.id,
-						hours,
-					},
-				],
-				[FAST_TASK],
-				24,
-				p,
+		for (const task of [FAST_TASK, REACHABLE_WORST]) {
+			const phi = calculateFlowStateTime(
+				mapEffort(task.difficulty),
+				mapEnjoyability(task.enjoyment),
 				FLOOR_CONSTANTS,
-			).blocks[0].output;
+			);
 
-			const ref = reference(FAST_TASK, FLOOR_CONSTANTS, hours, 400_000);
-			const refFiner = reference(FAST_TASK, FLOOR_CONSTANTS, hours, 800_000);
-			const refRel = Math.abs(refFiner - ref) / ref;
-			const rel = Math.abs(output - ref) / ref;
-			const n = nodesUsed(phi, hours, rhoC, rhoP);
-
-			// The reference must be converged, or the "error" below is its own.
-			expect(refRel).toBeLessThan(1e-9);
-
-			worstRel = Math.max(worstRel, rel);
+			const rhoC = rho(task.cognitiveDemand, p.alphaCog);
+			const rhoP = rho(task.physicalDemand, p.alphaPhys);
 
 			console.log(
-				`hours ${String(hours).padStart(2)}: n = ${String(n).padStart(4)} (${(n / (hours / phi)).toFixed(2)} nodes/ϕ)  simpson ${output.toPrecision(12)}  ref ${ref.toPrecision(12)}  rel err ${rel.toExponential(3)}`,
+				`\n${task.title} (difficulty ${task.difficulty}, w = ${task.cognitiveDemand}/${task.physicalDemand}): ` +
+					`ϕ = ${phi}h (floor), 1/ρ_cog = ${(1 / rhoC).toFixed(3)}h, 1/ρ_phys = ${(1 / rhoP).toFixed(3)}h`,
 			);
-		}
 
-		console.log(`worst relative error over the sweep: ${worstRel.toExponential(3)}`);
+			console.log(
+				'fastest timescale is ϕ, so 16 nodes/timescale wants n = 160·hours; the cap is 1024',
+			);
+
+			let worstRel = 0;
+
+			for (const hours of [1, 2, 4, 6, 8, 10, 12, 16, 24]) {
+				const output = evaluateSchedule(
+					[
+						{
+							taskId: task.id,
+							hours,
+						},
+					],
+					[task],
+					24,
+					p,
+					FLOOR_CONSTANTS,
+				).blocks[0].output;
+
+				const ref = reference(task, FLOOR_CONSTANTS, hours, 400_000);
+				const refFiner = reference(task, FLOOR_CONSTANTS, hours, 800_000);
+				const refRel = Math.abs(refFiner - ref) / ref;
+				const rel = Math.abs(output - ref) / ref;
+				const n = nodesUsed(phi, hours, rhoC, rhoP);
+
+				// The reference must be converged, or the "error" below is its own.
+				expect(refRel).toBeLessThan(1e-9);
+
+				worstRel = Math.max(worstRel, rel);
+
+				console.log(
+					`hours ${String(hours).padStart(2)}: n = ${String(n).padStart(4)} (${(n / (hours / phi)).toFixed(2)} nodes/ϕ)  simpson ${output.toPrecision(12)}  ref ${ref.toPrecision(12)}  rel err ${rel.toExponential(3)}`,
+				);
+			}
+
+			console.log(`worst relative error over the sweep: ${worstRel.toExponential(3)}`);
+		}
 	});
 });
