@@ -59,7 +59,7 @@ retype a row, regenerate:
   §5.1      519-628  Posterior-aware allocation
 §6          630-642  Summary of v1 → v2 changes
 §7          644-668  Known approximations and deliberate non-changes
-§8         670-1562  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         670-1570  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      682-704  Intermittent-rest recovery correction
   §8.2      706-725  Warm-up carryover instead of binary reset
   §8.3      727-745  Verified consequences and a calibration question, closed
@@ -71,8 +71,8 @@ retype a row, regenerate:
   §8.9    1042-1089  Recovery-rate calibration from pre/post-rest pairs
   §8.10   1091-1303  Stopping-value calibration from observed stop times
   §8.11   1305-1416  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1418-1562  The budget curve — what the day's LENGTH is worth
-§9        1564-1611  References
+  §8.12   1418-1570  The budget curve — what the day's LENGTH is worth
+§9        1572-1619  References
 ```
 
 <!-- section-index:end -->
@@ -1438,12 +1438,13 @@ given window (§8.11) and never how long the window should be.
 lattice, each plan re-scored on a **common horizon** `W = maxBudgetHours`:
 
 ```text
+lattice     = {0, step, 2·step, …}, up to the largest multiple of step ≤ W
 dayValue(0) = evaluateSchedule([], tasks, W, params).objective        -- the do-nothing day
 dayValue(b) = runningMax over 0 ≤ b' ≤ b of
               evaluateSchedule(plan(b').blocks, tasks, W, params).objective
-valuePerHour(b) = slope at b of the concave majorant of dayValue over {0, step, …, W}
-recommendedHours = smallest b > 0 maximizing dayValue, or null when that is W,
-                   or null when no b beats dayValue(0)
+valuePerHour(b) = slope at b of the concave majorant of dayValue over the lattice
+recommendedHours = smallest b > 0 maximizing dayValue, or null when that is the
+                   TOP OF THE LATTICE, or null when no b beats dayValue(0)
 ```
 
 The common horizon is the whole trick, and it changes no formula: on one
@@ -1549,6 +1550,13 @@ the bound is never silent (AGENTS.md §4). The same rule covers the reader's own
 window when it sits _above_ the cap: the chart cannot draw its locator there, and
 clamping it to the right edge would claim it stands at 12 h, so the legend names
 the window and the cap in words instead of quietly dropping the marker.
+
+The cap tops the sweep; the LATTICE tops out at the last multiple of the step at
+or below it, so the two coincide at the default (12 h is 16 steps) and part
+whenever the cap is not a whole number of steps. The knee is compared against the
+lattice: compared against the cap, a day still climbing when the sweep ran out
+gets its last swept budget recommended instead, which is the one statement that
+null exists to prevent.
 
 **Cost.** 16 solves at the default cap — the do-nothing point makes 17 budgets,
 not 17 solves. Each is one `optimizeSchedule`, priced by §8.6's table rather
