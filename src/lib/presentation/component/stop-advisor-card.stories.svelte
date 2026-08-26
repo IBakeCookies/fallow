@@ -21,10 +21,10 @@
 	});
 </script>
 
-<!-- The live verdict on the day so far: one more session, or call it a day -->
 <Story
 	name="Worth continuing"
 	play={async ({ canvas }) => {
+		// The live verdict on the day so far: one more session, or call it a day
 		await expect(canvas.getByText('Worth continuing')).toBeInTheDocument();
 
 		// The priced recommendation: duration, task, both sides of the comparison

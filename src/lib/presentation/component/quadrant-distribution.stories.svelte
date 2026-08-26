@@ -26,11 +26,6 @@
 	{/snippet}
 </Story>
 
-<!-- The invariant /analytics leans on: a day whose plan books no hours has no
-     profile and `countQuadrants` counts it nowhere, so the bar's 100% is the SUM
-     of the counts and not the days on record — here 11 profiled days out of a longer
-     range. Structural since the sum moved inside: nothing a caller passes can put the
-     denominator out of step with the segments. -->
 <Story
 	name="Segments tile the bar"
 	args={{
@@ -42,6 +37,10 @@
 		},
 	}}
 	play={async ({ canvasElement }) => {
+		// The invariant /analytics leans on: a day whose plan books no hours has no profile and
+		// `countQuadrants` counts it nowhere, so the bar's 100% is the SUM of the counts and not the
+		// days on record — here 11 profiled days out of a longer range. Structural since the sum moved
+		// inside: nothing a caller passes can put the denominator out of step with the segments.
 		const widths = [...canvasElement.querySelectorAll('div[title]')].map((segment) =>
 			Number.parseFloat((segment as HTMLElement).style.width),
 		);
@@ -59,8 +58,6 @@
 	{/snippet}
 </Story>
 
-<!-- One profile fills the bar, and the other three still appear in the legend at 0:
-     the reader has to be able to see which profiles exist, not only which they hit -->
 <Story
 	name="One profile only"
 	args={{
@@ -72,6 +69,8 @@
 		},
 	}}
 	play={async ({ canvas, canvasElement }) => {
+		// One profile fills the bar, and the other three still appear in the legend at 0: the reader
+		// has to be able to see which profiles exist, not only which they hit
 		// Every profile appears in the legend, days or not
 		for (const label of ['Flow Zone', 'Cruise', 'Grind Mode', 'Routine']) {
 			await expect(canvas.getByText(label)).toBeInTheDocument();
@@ -92,7 +91,6 @@
 	{/snippet}
 </Story>
 
-<!-- A single day per profile: the count copy goes singular -->
 <Story
 	name="One day each"
 	args={{
@@ -104,6 +102,7 @@
 		},
 	}}
 	play={async ({ canvasElement }) => {
+		// A single day per profile: the count copy goes singular
 		// Each segment is titled with its share, singular here, and a quarter wide
 		const segments = [...canvasElement.querySelectorAll('div[title]')];
 
@@ -126,8 +125,6 @@
 	{/snippet}
 </Story>
 
-<!-- No day has a profile yet: an empty bar, a legend of zeros, and no division by
-     `total` reaching the width -->
 <Story
 	name="No days"
 	args={{
@@ -139,6 +136,8 @@
 		},
 	}}
 	play={async ({ canvas, canvasElement }) => {
+		// No day has a profile yet: an empty bar, a legend of zeros, and no division by `total`
+		// reaching the width
 		// No segment reaches the `/ total` division, which would be `width: NaN%`
 		await expect(canvasElement.querySelectorAll('div[title]')).toHaveLength(0);
 		await expect(canvas.getByText('Flow Zone')).toBeInTheDocument();

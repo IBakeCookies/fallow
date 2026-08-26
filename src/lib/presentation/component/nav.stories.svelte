@@ -22,12 +22,15 @@
 		tags: ['autodocs'],
 		parameters: atUrl('/'),
 	});
+
+	// <Story name="Viewing a past day"> — Viewing another day: the first item shows that date instead
+	// of "Today", amber for the past and sky for a future plan
 </script>
 
-<!-- The brand mark answers "what is this app", on every route the nav renders on -->
 <Story
 	name="Today"
 	play={async ({ canvas, canvasElement, userEvent }) => {
+		// The brand mark answers "what is this app", on every route the nav renders on
 		await userEvent.hover(
 			canvas.getByRole('link', {
 				name: 'Fallow',
@@ -42,8 +45,6 @@
 
 <Story name="Analytics active" parameters={atUrl('/analytics')} />
 
-<!-- Viewing another day: the first item shows that date instead of "Today",
-     amber for the past and sky for a future plan -->
 <Story name="Viewing a past day" parameters={atUrl('/?date=2020-01-01')} />
 
 <Story name="Viewing a future day" parameters={atUrl('/?date=2099-01-01')} />

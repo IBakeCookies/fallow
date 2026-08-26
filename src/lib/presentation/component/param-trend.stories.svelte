@@ -10,8 +10,6 @@
 	});
 </script>
 
-<!-- A drain rate climbing away from its default. The label is the only accessible
-     name an <svg role="img"> has, so the play function pins it. -->
 <Story
 	name="Rising"
 	args={{
@@ -20,6 +18,8 @@
 		ariaLabel: 'Cognitive drain rate over the last 6 recorded days: 0.30 /h to 0.47 /h',
 	}}
 	play={async ({ args, canvas }) => {
+		// A drain rate climbing away from its default. The label is the only accessible name an <svg
+		// role="img"> has, so the play function pins it.
 		const plot = canvas.getByRole('img', {
 			name: args.ariaLabel,
 		});
@@ -33,8 +33,6 @@
 	}}
 />
 
-<!-- The edge case that would otherwise divide by a zero range: a fit that has
-     never moved off its default. It must still draw a line, not `d="MNaN,NaN"`. -->
 <Story
 	name="Never moved"
 	args={{
@@ -43,6 +41,8 @@
 		ariaLabel: 'Cognitive drain rate over the last 3 recorded days: 0.35 /h to 0.35 /h',
 	}}
 	play={async ({ args, canvas }) => {
+		// The edge case that would otherwise divide by a zero range: a fit that has never moved off its
+		// default. It must still draw a line, not `d="MNaN,NaN"`.
 		const plot = canvas.getByRole('img', {
 			name: args.ariaLabel,
 		});
@@ -52,8 +52,6 @@
 	}}
 />
 
-<!-- Every measured value under the default, so the dashed reference must still sit
-     inside the box — that is what stops the line from reading as "on target". -->
 <Story
 	name="Below the default"
 	args={{
@@ -62,6 +60,8 @@
 		ariaLabel: 'Recovery rate over the last 3 recorded days: 0.20 /h to 0.14 /h',
 	}}
 	play={async ({ args, canvas }) => {
+		// Every measured value under the default, so the dashed reference must still sit inside the box
+		// — that is what stops the line from reading as "on target".
 		const plot = canvas.getByRole('img', {
 			name: args.ariaLabel,
 		});

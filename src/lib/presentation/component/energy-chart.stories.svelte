@@ -81,12 +81,11 @@
 	{/snippet}
 </Story>
 
-<!-- The hour ticks thin out to fit: one label per ~44px of plot, so a 16 h day
-     steps by 2 at this width -->
-
 <Story
 	name="Sixteen hour window"
 	args={{
+		// The hour ticks thin out to fit: one label per ~44px of plot, so a 16 h day steps by 2 at this
+		// width
 		trajectory: buildTrajectory(16),
 		windowHours: 16,
 	}}
@@ -98,12 +97,11 @@
 	{/snippet}
 </Story>
 
-<!-- The viewBox is measured in CSS pixels, so at a phone width the plot keeps one
-     unit per pixel and the 9px axis type renders at 9px — a fixed viewBox scaled
-     to the element squashed both -->
 <Story
 	name="Phone width"
 	play={async ({ canvasElement }) => {
+		// The viewBox is measured in CSS pixels, so at a phone width the plot keeps one unit per pixel
+		// and the 9px axis type renders at 9px — a fixed viewBox scaled to the element squashed both
 		const svg = canvasElement.querySelector('svg');
 
 		await waitFor(() => {

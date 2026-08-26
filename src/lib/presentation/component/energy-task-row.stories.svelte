@@ -66,10 +66,12 @@
 		createdAt: 0,
 		...over,
 	});
+
+	// The shared `template` snippet mounts the row in the card the Lab uses, with the Lab's own
+	// columns: the row is a `<tbody>`, so it has to be read inside the table whose header names its
+	// cells.
 </script>
 
-<!-- In the card the Lab mounts, with the Lab's own columns: the row is a `<tbody>`, so
-     it has to be read inside the table whose header names its cells. -->
 {#snippet template(args: ComponentProps<typeof EnergyTaskRow>)}
 	{#snippet rows()}
 		<EnergyTaskRow {...args} />
@@ -79,14 +81,14 @@
 	</div>
 {/snippet}
 
-<!-- The row fills the shared shell with the Lab's reading: the plan's hue, the three
-     model inputs, the true effort they come to, and the hours the schedule gave it. -->
 <Story
 	name="Default"
 	args={{
 		plannedHours: 2.5,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The row fills the shared shell with the Lab's reading: the plan's hue, the three model
+		// inputs, the true effort they come to, and the hours the schedule gave it.
 		const headers = [...canvas.getByRole('table').querySelectorAll('thead th')];
 
 		// The hue swatch and the ✎/✕ strip show no heading and still carry an `sr-only`
@@ -168,8 +170,6 @@
 	}}
 />
 
-<!-- Funded nothing this plan: said out loud in the cell that would otherwise be blank,
-     because a blank cell reads as a reading the optimizer never took -->
 <Story
 	name="Unfunded"
 	args={{
@@ -181,26 +181,25 @@
 		color: 'var(--series-3)',
 	}}
 	play={async ({ canvas }) => {
+		// Funded nothing this plan: said out loud in the cell that would otherwise be blank, because a
+		// blank cell reads as a reading the optimizer never took
 		expect(canvas.getAllByRole('cell')[CELL.planned].textContent?.trim()).toBe('no hours');
 	}}
 />
 
-<!-- No plan at all is not "no hours for this task" — that would be a claim the
-     optimizer never made, on every row at once -->
 <Story
 	name="No plan"
 	args={{
 		plannedHours: null,
 	}}
 	play={async ({ args, canvas }) => {
+		// No plan at all is not "no hours for this task" — that would be a claim the optimizer never
+		// made, on every row at once
 		await expect(canvas.queryByText('no hours')).not.toBeInTheDocument();
 		await expect(canvas.getByText(args.title)).toBeInTheDocument();
 	}}
 />
 
-<!-- Finished, and rated: the optimizer no longer plans it, so its hours go rather
-     than read "no hours" as a verdict — and the rating reads on the row, in the Lab
-     exactly as on the main page, so a session is never rated invisibly. -->
 <Story
 	name="Completed and rated"
 	args={{
@@ -208,6 +207,9 @@
 		drainLogs: [drainLog()],
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Finished, and rated: the optimizer no longer plans it, so its hours go rather than read "no
+		// hours" as a verdict — and the rating reads on the row, in the Lab exactly as on the main
+		// page, so a session is never rated invisibly.
 		await expect(canvas.queryByText('1h 45m')).not.toBeInTheDocument();
 		await expect(canvas.queryByText('no hours')).not.toBeInTheDocument();
 
@@ -233,15 +235,15 @@
 	}}
 />
 
-<!-- ✎ opens the same editor the main page's rows open, minus the must-do flag: the
-     plan advisor is the main page's, so the checkbox would change nothing on screen
-     here. The flag still has to survive the round trip. -->
 <Story
 	name="Editing"
 	args={{
 		mustDoToday: true,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// ✎ opens the same editor the main page's rows open, minus the must-do flag: the plan advisor
+		// is the main page's, so the checkbox would change nothing on screen here. The flag still has
+		// to survive the round trip.
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Edit task',
@@ -279,9 +281,6 @@
 	}}
 />
 
-<!-- The 🪫 editor open under the row, on a stored rating: `recordId` is what makes ✓ a
-     correction, and it is also what puts 🗑 in the editor — the two verbs a rating needs
-     are both here now, on the row the session belongs to. -->
 <Story
 	name="Rating the session"
 	args={{
@@ -296,6 +295,9 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The 🪫 editor open under the row, on a stored rating: `recordId` is what makes ✓ a correction,
+		// and it is also what puts 🗑 in the editor — the two verbs a rating needs are both here now, on
+		// the row the session belongs to.
 		// Seeded with what was already logged, not blank
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
 

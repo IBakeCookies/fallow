@@ -11,13 +11,13 @@
 	});
 </script>
 
-<!-- Content is portalled to `document.body`, so every query for it goes through
-     `within(document.body)` and not the story's own canvas — and every play that opens
-     one CLOSES it and waits for the body lock to lift: stories in a file share the
-     document, and an open dialog leaves `pointer-events: none` on the body behind it. -->
 <Story
 	name="Default"
 	play={async ({ canvas, userEvent }) => {
+		// Content is portalled to `document.body`, so every query for it goes through
+		// `within(document.body)` and not the story's own canvas — and every play that opens one CLOSES
+		// it and waits for the body lock to lift: stories in a file share the document, and an open
+		// dialog leaves `pointer-events: none` on the body behind it.
 		const body = within(document.body);
 
 		// The body's `pointer-events: none` is lifted on a TIMEOUT after the last lock

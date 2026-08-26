@@ -37,8 +37,6 @@
 	});
 </script>
 
-<!-- The schedule behind the timeline bar: what to run, when, and what it is worth.
-     The 1e-9 tail is the optimizer's floating-point dust, not a free-time row. -->
 <Story
 	name="A planned day"
 	args={{
@@ -51,6 +49,8 @@
 		trailingFreeHours: 1e-9,
 	}}
 	play={async ({ canvas }) => {
+		// The schedule behind the timeline bar: what to run, when, and what it is worth. The 1e-9 tail
+		// is the optimizer's floating-point dust, not a free-time row.
 		// Offsets and a spelled-out length, not wall-clock times
 		await expect(canvas.getByText('0h–2h 15m')).toBeVisible();
 		await expect(canvas.getByText('3h–6h')).toBeVisible();
@@ -72,8 +72,6 @@
 	{/snippet}
 </Story>
 
-<!-- The optimizer stopped early: the tail is free time, from where the plan ended
-     — not from the last block, which differ when the plan leaves an unscheduled gap -->
 <Story
 	name="Stopping early"
 	args={{
@@ -86,6 +84,8 @@
 		trailingFreeHours: 3,
 	}}
 	play={async ({ canvas }) => {
+		// The optimizer stopped early: the tail is free time, from where the plan ended — not from the
+		// last block, which differ when the plan leaves an unscheduled gap
 		await expect(canvas.getByText('5h–8h')).toBeVisible();
 		await expect(canvas.getByText('Free time')).toBeVisible();
 	}}
@@ -95,8 +95,6 @@
 	{/snippet}
 </Story>
 
-<!-- Free time is worth more than any task's output, so the optimizer planned
-     nothing — explained, rather than rendered as an empty list -->
 <Story
 	name="Nothing scheduled"
 	args={{
@@ -105,6 +103,8 @@
 		trailingFreeHours: 0,
 	}}
 	play={async ({ canvas }) => {
+		// Free time is worth more than any task's output, so the optimizer planned nothing — explained,
+		// rather than rendered as an empty list
 		await expect(canvas.getByText(/Nothing scheduled/)).toBeVisible();
 		expect(canvas.queryByRole('listitem')).not.toBeInTheDocument();
 	}}
@@ -114,7 +114,6 @@
 	{/snippet}
 </Story>
 
-<!-- The decimal separator follows the reader, like every date beside it -->
 <Story
 	name="German locale"
 	args={{
@@ -127,6 +126,7 @@
 		locale: 'de-DE',
 	}}
 	play={async ({ canvas }) => {
+		// The decimal separator follows the reader, like every date beside it
 		await expect(canvas.getByText('3,40 out')).toBeVisible();
 	}}
 >

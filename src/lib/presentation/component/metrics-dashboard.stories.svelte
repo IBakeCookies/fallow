@@ -76,11 +76,11 @@
 	});
 </script>
 
-<!-- Headline readings are tiles; the reference rows are a dense ruled grid one
-     click away, behind the disclosure -->
 <Story
 	name="Upward momentum"
 	play={async ({ canvas, canvasElement, userEvent }) => {
+		// Headline readings are tiles; the reference rows are a dense ruled grid one click away, behind
+		// the disclosure
 		await expect(canvas.getByText('Burnout Risk')).toBeVisible();
 		await expect(canvas.getByText('104%')).toBeVisible();
 		await expect(canvas.getByText('Upward')).toBeVisible();
@@ -126,13 +126,13 @@
 	}}
 />
 
-<!-- No history yet: the badge reads N/A -->
 <Story
 	name="No momentum"
 	args={{
 		momentum: null,
 	}}
 	play={async ({ canvas }) => {
+		// No history yet: the badge reads N/A
 		await expect(canvas.getByText('N/A')).toBeVisible();
 	}}
 />
@@ -145,13 +145,13 @@
 	}}
 />
 
-<!-- Every reading is a headline: nothing left over, so no disclosure at all -->
 <Story
 	name="Headlines only"
 	args={{
 		metrics: metrics.filter((metric) => metric.headline),
 	}}
 	play={async ({ canvas, canvasElement }) => {
+		// Every reading is a headline: nothing left over, so no disclosure at all
 		await expect(canvas.getByText('104%')).toBeVisible();
 		// The disclosure itself is absent, not merely empty: an empty `<details>`
 		// draws a summary that opens onto nothing.

@@ -10,10 +10,6 @@
 	});
 </script>
 
-<!-- The ⚡ editor as it hangs under a task row: how long the ramp-up to flow took,
-     which is what personalizes ϕ. Blank, as it opens on a task with no measurement
-     today. The play walks the save policy: an editor that opened itself leaves the
-     caret alone, ✕ discards without reporting, and an empty length refuses. -->
 <Story
 	name="Blank"
 	args={{
@@ -21,6 +17,10 @@
 		oncancel: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The ⚡ editor as it hangs under a task row: how long the ramp-up to flow took, which is what
+		// personalizes ϕ. Blank, as it opens on a task with no measurement today. The play walks the
+		// save policy: an editor that opened itself leaves the caret alone, ✕ discards without
+		// reporting, and an empty length refuses.
 		const minutes = canvas.getByPlaceholderText('min');
 
 		const save = canvas.getByRole('button', {
@@ -59,8 +59,6 @@
 	}}
 />
 
-<!-- Re-opened on a task already measured today: ⚡ is one number per day, so the
-     editor amends that number rather than adding a second one -->
 <Story
 	name="Amending today's measurement"
 	args={{
@@ -71,6 +69,8 @@
 		ondelete: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Re-opened on a task already measured today: ⚡ is one number per day, so the editor amends
+		// that number rather than adding a second one
 		const minutes = canvas.getByPlaceholderText('min');
 
 		await expect(minutes).toHaveValue(40);

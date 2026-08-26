@@ -32,10 +32,10 @@
 	{/snippet}
 </Story>
 
-<!-- A unit rather than a denominator: no slash -->
 <Story
 	name="With a unit"
 	args={{
+		// A unit rather than a denominator: no slash
 		label: 'Planned hours',
 		value: '31.5',
 		suffix: 'h',
@@ -48,8 +48,6 @@
 	{/snippet}
 </Story>
 
-<!-- The note carries its own colour here, which is why it is a snippet: the sign
-     of the delta is the reading, and green-vs-red must survive every theme -->
 <Story
 	name="Note with a coloured delta"
 	args={{
@@ -58,6 +56,8 @@
 		suffix: undefined,
 	}}
 	play={async ({ canvas, canvasElement }) => {
+		// The note carries its own colour here, which is why it is a snippet: the sign of the delta is
+		// the reading, and green-vs-red must survive every theme
 		// No unit: no empty suffix span may be left behind as a stray space
 		await expect(canvas.getByText('71%')).toBeInTheDocument();
 		await expect(canvasElement.querySelectorAll('.text-base')).toHaveLength(0);
@@ -77,7 +77,6 @@
 	{/snippet}
 </Story>
 
-<!-- Nothing to report: the placeholder must not read as loud as a real number -->
 <Story
 	name="Muted placeholder"
 	args={{
@@ -87,6 +86,7 @@
 		muted: true,
 	}}
 	play={async ({ canvas }) => {
+		// Nothing to report: the placeholder must not read as loud as a real number
 		// The em-dash must not carry the ink weight of a real reading
 		await expect(canvas.getByText('—')).toHaveClass('text-ty-silent');
 	}}

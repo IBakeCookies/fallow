@@ -19,10 +19,10 @@
 	});
 </script>
 
-<!-- Expanded: all four inputs with switch cost in minutes. -->
 <Story
 	name="Open"
 	play={async ({ canvas, userEvent }) => {
+		// Expanded: all four inputs with switch cost in minutes.
 		await expect(canvas.getByLabelText('Available Hours')).toHaveValue(6);
 		await expect(canvas.getByLabelText('Switch Cost (per task change)')).toHaveValue(15);
 		await expect(canvas.getByLabelText('Cognitive Capacity')).toHaveValue(8);
@@ -60,16 +60,16 @@
 	}}
 />
 
-<!-- A budget the quarter step does not land on. Legitimate: typed in the field, and
-     what a plan-advice `set-budget` lever applies. A range sanitizes its DOM value
-     to its own step, so with `step="0.25"` the thumb read 6.5 beside a field reading
-     6.4 — two controls over one value disagreeing. -->
 <Story
 	name="Off-quarter budget"
 	args={{
 		availableHours: 6.4,
 	}}
 	play={async ({ canvas }) => {
+		// A budget the quarter step does not land on. Legitimate: typed in the field, and what a plan-
+		// advice `set-budget` lever applies. A range sanitizes its DOM value to its own step, so with
+		// `step="0.25"` the thumb read 6.5 beside a field reading 6.4 — two controls over one value
+		// disagreeing.
 		await expect(canvas.getByLabelText('Available Hours')).toHaveValue(6.4);
 		await expect(canvas.getByRole('slider')).toHaveValue('6.4');
 
@@ -86,16 +86,15 @@
 	}}
 />
 
-<!-- Slack above 0.05 h adds the unplanned-time warning line -->
 <Story
 	name="With unplanned time"
 	args={{
+		// Slack above 0.05 h adds the unplanned-time warning line
 		remainingSuggestedHours: '4.00',
 		planSlackHours: 2,
 	}}
 />
 
-<!-- Collapsed it is one line: budget · planned · slack · pools · switch -->
 <Story
 	name="Collapsed"
 	args={{
@@ -104,6 +103,7 @@
 		planSlackHours: 2,
 	}}
 	play={async ({ canvas }) => {
+		// Collapsed it is one line: budget · planned · slack · pools · switch
 		await expect(
 			canvas.getByText('6h budget · 4.00h planned · 2.00h free · 8h mind · 4h body · 15m switch'),
 		).toBeVisible();

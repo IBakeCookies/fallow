@@ -79,6 +79,15 @@ ever sees a story's REST state, so every hover fill's step and label contrast
 is measured there instead, over every theme × the 5 button variants that carry
 a hover fill (`link` carries none, so it is not measured).
 
+A note in a story file never goes in an HTML comment. `addon-svelte-csf` takes the
+last markup comment it walked past and writes it into the next story's
+`parameters.docs.description.story`, so the note becomes prose on the autodocs page —
+first line as a paragraph, the indented rest as a code block, which is what broke the
+Dialog page. A blank line does not detach it; only moving it out of the markup does.
+The note goes at the top of the story's `play` body, or inside its `args` object when
+it has no play, or — for an `asChild` story with neither — in the module script,
+labelled `// <Story name="…"> — …`.
+
 A story that opens a **dialog** has three things working against it, and all three
 bit before they were handled. Content is portalled to `document.body`, so it is
 reached through `within(document.body)` and never the story's `canvas`. It enters on

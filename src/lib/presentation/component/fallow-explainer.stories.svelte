@@ -10,12 +10,11 @@
 	});
 </script>
 
-<!-- The home page's crawlable content: pitch, FAQ, and the external links.
-     (The FAQPage JSON-LD it emits into <head> is asserted in the spec — a story
-     canvas can't reach head injection.) -->
 <Story
 	name="Default"
 	play={async ({ canvas, canvasElement }) => {
+		// The home page's crawlable content: pitch, FAQ, and the external links. (The FAQPage JSON-LD
+		// it emits into <head> is asserted in the spec — a story canvas can't reach head injection.)
 		await expect(
 			canvas.getByRole('heading', {
 				level: 2,

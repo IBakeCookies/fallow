@@ -24,13 +24,13 @@
 	};
 </script>
 
-<!-- The frame both screens mount. What the play covers is what the card decides for
-     them: the reading order — title, strip, ledger — that the screen's own heading
-     content shares the heading's row rather than costing one of its own, and that the
-     form is off the card entirely until the `+` asks for it. -->
 <Story
 	name="Default"
 	play={async ({ canvas, userEvent }) => {
+		// The frame both screens mount. What the play covers is what the card decides for them: the
+		// reading order — title, strip, ledger — that the screen's own heading content shares the
+		// heading's row rather than costing one of its own, and that the form is off the card entirely
+		// until the `+` asks for it.
 		const title = canvas.getByRole('heading', {
 			name: 'Tasks',
 		});
@@ -72,11 +72,11 @@
 	{/snippet}
 </Story>
 
-<!-- No rows: the empty state, and no <table> at all — a header row over nothing is a
-     grid of nothing, the same mistake an empty <ul> was -->
 <Story
 	name="Empty"
 	play={async ({ canvas, userEvent }) => {
+		// No rows: the empty state, and no <table> at all — a header row over nothing is a grid of
+		// nothing, the same mistake an empty <ul> was
 		await expect(canvas.getByText('No tasks deployed yet')).toBeVisible();
 		await expect(canvas.getByText('Add a task to begin tracking')).toBeVisible();
 		expect(canvas.queryByRole('table')).not.toBeInTheDocument();

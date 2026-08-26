@@ -28,6 +28,9 @@
 			},
 		},
 	});
+
+	// <Story name="Momentum tones"> — How the metrics dashboard tints momentum: variant for the
+	// shape, tokens for the tone
 </script>
 
 <Story name="Default">Upward</Story>
@@ -40,7 +43,6 @@
 	</div>
 </Story>
 
-<!-- How the metrics dashboard tints momentum: variant for the shape, tokens for the tone -->
 <Story name="Momentum tones" asChild>
 	<div class="flex flex-wrap items-center gap-grid-sm">
 		<Badge class="bg-success/20 text-success-strong">Upward</Badge>

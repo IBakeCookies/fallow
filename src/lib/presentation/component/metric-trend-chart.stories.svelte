@@ -41,10 +41,10 @@
 	});
 </script>
 
-<!-- The ordinary week: three unbroken lines and a legend that names them -->
 <Story
 	name="Week"
 	play={async ({ args, canvas, canvasElement }) => {
+		// The ordinary week: three unbroken lines and a legend that names them
 		// The aria-label is the plot's only accessible name
 		await expect(
 			canvas.getByRole('img', {
@@ -95,8 +95,6 @@
 	{/snippet}
 </Story>
 
-<!-- Days the user never opened the app. The line has to BREAK there: joining
-     across the gap invents a reading, and drawing a 0 invents a good day. -->
 <Story
 	name="Unrecorded days"
 	args={{
@@ -104,6 +102,8 @@
 		ariaLabel: 'Burnout risk and load over the last 7 days',
 	}}
 	play={async ({ canvasElement }) => {
+		// Days the user never opened the app. The line has to BREAK there: joining across the gap
+		// invents a reading, and drawing a 0 invents a good day.
 		// Three runs — [12], [21, 30], [38] — so two paths and one lone dot
 		await expect(canvasElement.querySelectorAll('path.stroke-danger')).toHaveLength(1);
 		await expect(canvasElement.querySelectorAll('circle.fill-danger')).toHaveLength(2);
@@ -120,7 +120,6 @@
 	{/snippet}
 </Story>
 
-<!-- The month axis: 30 slots, and only the ticks the util asked for are printed -->
 <Story
 	name="Month"
 	args={{
@@ -145,6 +144,7 @@
 		ariaLabel: 'Burnout risk over the last 30 days',
 	}}
 	play={async ({ canvasElement }) => {
+		// The month axis: 30 slots, and only the ticks the util asked for are printed
 		const printed = [...canvasElement.querySelectorAll('text')].map((node) =>
 			node.textContent?.trim(),
 		);
@@ -164,8 +164,6 @@
 	{/snippet}
 </Story>
 
-<!-- Nothing recorded anywhere in the range: the axis stays, so the plot reads as
-     empty rather than broken -->
 <Story
 	name="No data in any slot"
 	args={{
@@ -176,6 +174,8 @@
 		ariaLabel: 'Burnout risk and load over the last 7 days',
 	}}
 	play={async ({ canvasElement }) => {
+		// Nothing recorded anywhere in the range: the axis stays, so the plot reads as empty rather
+		// than broken
 		await expect(canvasElement.querySelectorAll('path[stroke-width]')).toHaveLength(0);
 		await expect(canvasElement.querySelectorAll('circle')).toHaveLength(0);
 
@@ -194,8 +194,6 @@
 	{/snippet}
 </Story>
 
-<!-- One recorded day. There is no line to draw, so the reading has to survive as
-     a dot — the case a polyline-only chart renders as an empty plot. -->
 <Story
 	name="Single day"
 	args={{
@@ -204,6 +202,8 @@
 		ariaLabel: 'Burnout risk',
 	}}
 	play={async ({ canvasElement }) => {
+		// One recorded day. There is no line to draw, so the reading has to survive as a dot — the case
+		// a polyline-only chart renders as an empty plot.
 		await expect(canvasElement.querySelectorAll('path.stroke-danger')).toHaveLength(0);
 
 		const dot = canvasElement.querySelector('circle.fill-danger');

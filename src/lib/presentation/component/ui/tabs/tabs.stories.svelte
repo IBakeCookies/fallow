@@ -8,6 +8,9 @@
 		component: TabsRoot,
 		tags: ['autodocs'],
 	});
+
+	// <Story name="Line"> — variant="line" swaps the filled pill for an underline on the active
+	// trigger
 </script>
 
 <Story name="Default" asChild>
@@ -27,7 +30,6 @@
 	</Tabs.Root>
 </Story>
 
-<!-- variant="line" swaps the filled pill for an underline on the active trigger -->
 <Story name="Line" asChild>
 	<Tabs.Root value="energy" class="max-w-md">
 		<Tabs.List variant="line">
