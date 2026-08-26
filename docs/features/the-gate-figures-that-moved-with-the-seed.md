@@ -1,6 +1,6 @@
 # The gate figures that moved with the seed
 
-**Status:** landed 2026-08-19 · **Roadmap:** closes nothing (a sweep finding,
+**Kind:** repair · **Status:** landed 2026-08-19 · **Roadmap:** closes nothing (a sweep finding,
 not a filed lead)
 
 Frozen at land: this file says what was decided on the date it carries, never

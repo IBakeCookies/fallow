@@ -1,6 +1,6 @@
 # Worked-hours instrument on `/`
 
-**Status:** landed 2026-08-09 · **Roadmap:** item 11
+**Kind:** feature · **Status:** landed 2026-08-09 · **Roadmap:** item 11
 
 Backfilled 2026-08-14 from ROADMAP item 11, whose text was written at land. Not
 a pre-implementation spec.

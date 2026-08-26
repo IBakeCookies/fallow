@@ -1,6 +1,6 @@
 # The Lab fit that read today's logs
 
-**Status:** landed 2026-08-21 · **Roadmap:** M37 (§33)
+**Kind:** feature · **Status:** landed 2026-08-21 · **Roadmap:** M37 (§33)
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

@@ -1,6 +1,6 @@
 # The day that ran out of clock
 
-**Status:** landed 2026-08-21 · **Roadmap:** M42 (ROADMAP.md:669)
+**Kind:** feature · **Status:** landed 2026-08-21 · **Roadmap:** M42 (ROADMAP.md:669)
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

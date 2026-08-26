@@ -1,6 +1,6 @@
 # One named day, declared once instead of ten times
 
-**Status:** landed 2026-08-21 · **Roadmap:** findings M44 and M41
+**Kind:** audit · **Status:** landed 2026-08-21 · **Roadmap:** findings M44 and M41
 
 Backfilled 2026-08-21 from ROADMAP.md's M44 and M41 entries, whose text was written at land, and
 moved here verbatim so the roadmap can hold a line and a link. Not a

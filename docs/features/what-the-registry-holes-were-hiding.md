@@ -1,6 +1,6 @@
 # What the registry holes were hiding
 
-**Status:** landed 2026-08-18 · **Roadmap:** item 31, findings M27, M28, M31,
+**Kind:** repair · **Status:** landed 2026-08-18 · **Roadmap:** item 31, findings M27, M28, M31,
 M32, M36
 
 Frozen at land: this file says what was decided on the date it carries, never

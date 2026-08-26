@@ -1,6 +1,6 @@
 # The third generator off the sliders
 
-**Status:** landed 2026-08-25 · **Roadmap:** finding M40 (third of five)
+**Kind:** audit · **Status:** landed 2026-08-25 · **Roadmap:** finding M40 (third of five)
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

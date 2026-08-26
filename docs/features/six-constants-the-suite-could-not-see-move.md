@@ -1,6 +1,6 @@
 # Six constants the suite could not see move
 
-**Status:** landed 2026-08-20 · **Roadmap:** finding M45
+**Kind:** audit · **Status:** landed 2026-08-20 · **Roadmap:** finding M45
 
 Backfilled 2026-08-21 from ROADMAP.md's M45 entry, whose text was written at land, and
 moved here verbatim so the roadmap can hold a line and a link. Not a

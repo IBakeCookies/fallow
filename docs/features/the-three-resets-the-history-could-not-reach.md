@@ -1,6 +1,6 @@
 # The three resets the history could not reach
 
-**Status:** landed 2026-08-22 · **Roadmap:** none
+**Kind:** feature · **Status:** landed 2026-08-22 · **Roadmap:** none
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

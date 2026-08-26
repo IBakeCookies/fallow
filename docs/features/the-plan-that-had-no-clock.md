@@ -1,6 +1,6 @@
 # The plan that had no clock
 
-**Status:** landed 2026-08-22 · **Roadmap:** item `none`
+**Kind:** feature · **Status:** landed 2026-08-22 · **Roadmap:** item `none`
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

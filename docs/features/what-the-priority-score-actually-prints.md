@@ -1,6 +1,6 @@
 # What the priority score actually prints
 
-**Status:** landed 2026-08-19 · **Roadmap:** item 31, findings M14, M15, M16,
+**Kind:** repair · **Status:** landed 2026-08-19 · **Roadmap:** item 31, findings M14, M15, M16,
 M25, M26
 
 Frozen at land: this file says what was decided on the date it carries, never

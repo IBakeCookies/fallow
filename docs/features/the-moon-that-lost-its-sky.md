@@ -1,6 +1,6 @@
 # The moon that lost its sky
 
-**Status:** planning · **Roadmap:** item `none`
+**Kind:** feature · **Status:** planning · **Roadmap:** item `none`
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later

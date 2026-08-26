@@ -1,6 +1,6 @@
 # The session nobody was timing
 
-**Status:** landed 2026-08-22 · **Roadmap:** item `none` (re-opens a not-proposed
+**Kind:** feature · **Status:** landed 2026-08-22 · **Roadmap:** item `none` (re-opens a not-proposed
 entry — see **Decisions**)
 
 Frozen at land: this file says what was decided on the date it carries, never

@@ -1,6 +1,6 @@
 # Constraint carry-over for unseen days
 
-**Status:** landed 2026-08-24 · **Roadmap:** item 32
+**Kind:** feature · **Status:** landed 2026-08-24 · **Roadmap:** item 32
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is the area `AGENTS.md`. When later work changes

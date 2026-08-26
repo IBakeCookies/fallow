@@ -1,6 +1,6 @@
 # §8.6's missing off-midpoint rest split
 
-**Status:** landed 2026-08-13 · **Roadmap:** item 27
+**Kind:** model · **Status:** landed 2026-08-13 · **Roadmap:** item 27
 
 Backfilled 2026-08-14 from ROADMAP item 27, whose text was written at land. Not
 a pre-implementation spec.
