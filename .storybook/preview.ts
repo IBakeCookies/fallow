@@ -63,6 +63,14 @@ const preview: Preview = {
 	beforeEach: ({ globals }) => {
 		document.documentElement.className = getClassesToAdd(globals.theme as ThemeName).join(' ');
 
+		// Every story runs against the same document, and an open dialog puts
+		// `pointer-events: none` on the body (bits-ui's body scroll lock, lifted on a
+		// timeout). A play that ends with one open — or fails before closing it — hands
+		// the NEXT story a page it cannot click, in whatever file that story is in. Each
+		// story starts from a clickable body instead of inheriting one.
+		document.body.style.pointerEvents = '';
+		document.body.style.overflow = '';
+
 		mountScenery().setAttribute(
 			'style',
 			`${sceneryStyle(SCENERY_SEED)}; ${dataSceneryStyle(new Date())}`,

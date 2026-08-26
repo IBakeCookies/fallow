@@ -309,7 +309,6 @@
 	<TaskForm
 		onsubmit={(t) => session.addTask(t)}
 		suggest={(query) => session.suggestTitles(query)}
-		isOpen={!hasTasks}
 		withMustDoToday={false}
 	/>
 {/snippet}

@@ -162,6 +162,13 @@ Read this before touching markup, classes, or anything under
   throughout (base.css `.solid-light`/`.solid-dark`, and themes.css's "the
   set-square themes" and "the rounded opaque themes", which between them also
   cover blueprint and parchment).
+- **`scrim` is the one surface NOT derived from `--ty-primary`, and has no
+  per-theme override.** A modal scrim dims toward black on a light and a dark
+  theme alike, so an ink-derived wash — the recipe every other surface here
+  follows — would brighten the 31 dark themes instead of dimming them. One
+  value in base.css, and `dialog-overlay.svelte` is its only caller. The dialog
+  PANEL is a separate question and follows the toast: `bg-popover`
+  (→ `--surface-page`), never `surface-card`, for the reason under sonner below.
 - **`component/ui/sonner/sonner.svelte` deviates from its registry version in
   four ways, and `shadcn add sonner` undoes all four** — check the file after
   ever re-running the CLI. (1) No `mode-watcher`: the registry passes

@@ -12,7 +12,6 @@
 			onsubmit: fn(),
 			// A profile with no history: every task is rated by hand on the defaults.
 			suggest: fn(() => []),
-			isOpen: true,
 		},
 	});
 
@@ -100,7 +99,7 @@
 </script>
 
 <Story
-	name="Open"
+	name="Default"
 	play={async ({ args, canvas, userEvent }) => {
 		// The wrapping label is what names each range input
 		await expect(
@@ -146,6 +145,10 @@
 		});
 
 		await expect(title).toHaveValue('');
+
+		// The dialog around this form stays open on deploy, so the caret goes back to
+		// where the next task starts — a click on Deploy left it on the button.
+		await expect(title).toHaveFocus();
 
 		// The flag stops the advisor moving a task that cannot move, so it must survive the submit
 		const mustDo = canvas.getByLabelText('Keep on today');
@@ -489,35 +492,6 @@
 	{/snippet}
 </Story>
 
-<!-- Collapsed it is a single "+ Add Task" row, so the task list stays above the fold -->
-<Story
-	name="Collapsed"
-	args={{
-		isOpen: false,
-	}}
-	play={async ({ canvas, userEvent }) => {
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: '+ Add Task',
-			}),
-		);
-
-		await expect(canvas.getByLabelText('Task Definition')).toBeInTheDocument();
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Collapse task form',
-			}),
-		);
-
-		await expect(
-			canvas.getByRole('button', {
-				name: '+ Add Task',
-			}),
-		).toBeInTheDocument();
-	}}
-/>
-
 <!-- The Lab's copy: same fields, no must-do flag, and deploying still reports unflagged -->
 <Story
 	name="Without the must-do flag"
@@ -545,14 +519,13 @@
 	}}
 />
 
-<!-- Deploy shares the title's row but is reached last, because the sliders sit between
-     them in the DOM and only `order-*` moves it up. A positive `tabindex` cannot do
-     this: it would hoist the field ahead of every `tabindex=0` element on the page. -->
+<!-- Reading order and tab order are now the same list, top to bottom, because the
+     dialog gave the form the room to be a plain stack — the `order-*` that used to
+     hoist Deploy onto the title's line is gone, and this is what says so. -->
 <Story
-	name="The sliders are tabbed before Deploy"
+	name="The controls are tabbed in reading order"
 	play={async ({ canvas, userEvent }) => {
 		const expected = [
-			canvas.getByLabelText('Keep on today'),
 			canvas.getByRole('slider', {
 				name: /Physical Diff/,
 			}),
@@ -562,6 +535,7 @@
 			canvas.getByRole('slider', {
 				name: /Enjoyment/,
 			}),
+			canvas.getByLabelText('Keep on today'),
 			canvas.getByRole('button', {
 				name: 'Deploy Task',
 			}),

@@ -65,6 +65,27 @@ Untestable at every level is the signal.
   `calibration-card`, `drain-log-form` — does carry its own: one that cannot
   mount without an ancestor's costs every caller a wrapper, and nesting is
   harmless, since the inner provider wins at the same delay.
+- **The add-task form lives in a dialog the CARD owns, and no page decides when a
+  form is on screen.** `task-list-card.svelte` holds the `Dialog.Root`, both triggers
+  — the `+` BESIDE the `<h3>` and never inside it, since a button in the heading joins
+  its accessible name and the card would stop being "Tasks", plus the empty state's own
+  button, because a 24px glyph in the corner is not the call to action an empty day
+  is — and renders the caller's `form` snippet inside `Dialog.Content`. Three things fall out and none of them may
+  come back: the form has no open/closed state and no collapse control; neither page
+  reads the day to decide whether to open it, so the `{#key session.loadedDate}` that
+  used to wrap it is gone (the constraints bar still needs its own — that one asks a
+  question about the day, this one only needed a fresh draft, and Content already
+  remounts on every open); and the ledger keeps the height the form used to take.
+  **Deploying does NOT close the dialog** — a day gets typed in one sitting — so the
+  form puts the caret back in the title field itself, which is the one focus move
+  `{@attach}` cannot make, since that field never unmounts between deploys.
+- **A combobox inside a dialog must `stopPropagation()` on the Escape that closes its
+  own list.** bits-ui's escape layer listens on `document`, so an unstopped Escape
+  closes the whole form while the user was only dismissing the suggestions. Stop it in
+  the list-open branch ONLY: the Escape that arrives with no list open is the one that
+  is supposed to close the dialog. Same family as the `DropdownMenu` key-ownership
+  rule below, opposite conclusion, because there the document listener was the wanted
+  behaviour.
 - **An inline editor focuses with `{@attach (node) => node.focus()}`, never
   `autofocus`.** The attribute is inert on any node inserted after load (the
   document's autofocus-processed flag), so all three editors that used it — ⚡,
@@ -155,9 +176,9 @@ the Lab buys that by stacking them in one column, not by ordering the page.
 Five components hold what the two screens say the same way:
 
 - **`task-list-card.svelte`** — the card, the heading, `strip` between the heading
-  and the ledger (`/` puts its day strip there, the Lab the ☕ editor), the form at the
-  card's FOOT — the plan is what the card is read for, and adding to it is the last
-  thing on it — the empty state, the `<table>` and its scroll container, and the header
+  and the ledger (`/` puts its day strip there, the Lab the ☕ editor), the ADD-TASK
+  DIALOG the `form` snippet is mounted in and both ways into it, the empty state, the
+  `<table>` and its scroll container, and the header
   row it builds from the caller's column list (so neither screen decides how its
   own rows are separated: the rule is `ledger-cell`'s bottom border). `split` is
   how a caller reads its rows as two headed groups instead of one — `/`
@@ -186,8 +207,8 @@ Five components hold what the two screens say the same way:
   defined once. `TaskEdit` — the five fields a form can set — is this
   component's type, since adding a task and re-tuning one emit the same thing.
   It holds the sliders and nothing else: each form owns its own action row,
-  because the add form puts the flag and Deploy on the title's line while the
-  editor keeps a footer under the fields.
+  because each is a stack whose footer is its own — they happen to agree on the
+  shape (flag pushed out by `mr-auto`, submit in the corner) and not on the copy.
 - **`must-do-toggle.svelte`** — the flag itself, a `<label>` carrying
   `buttonVariants` over a transparent full-size `<input type="checkbox">`. It
   reads as a button with a set state (`secondary`) and an unset one (`outline`),
@@ -195,15 +216,14 @@ Five components hold what the two screens say the same way:
   `.check()` in a test. STYLE.md names it as the one carve-out from
   `appearance-auto accent-brand`. The forms
   are otherwise not each other: `task-form.svelte` is a title combobox over
-  rated history with a collapse and a reset, `task-edit-form.svelte` is a plain
+  rated history with a pick-reset, `task-edit-form.svelte` is a plain
   title input, which is ~150 lines of script the editor has no counterpart for.
   **The editor offers no suggestions on purpose** — a pick rewrites the three
   ratings, and renaming a task the user has already rated must not; only the
   add form reads title memory.
   Do not push the title or the frame in here to make them look like one
   component; the callers keep both, so each frame and each field is defined
-  once, whole, and the caller's own spacing is what sets the form's density —
-  `space-y-*` in the editor, one wrapping flex line in the add form.
+  once, whole, and the caller's own spacing is what sets the form's density.
 
 What is left in `task-item.svelte` and `energy-task-row.svelte` is one screen's
 reading of the task and nothing else: priority, allocation, run order and T* on

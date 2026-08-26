@@ -305,13 +305,13 @@
 	}}
 	play={async ({ canvas }) => {
 		await expect(canvas.getByText('No tasks deployed yet')).toBeVisible();
-		await expect(canvas.getByText('Add a task below to begin tracking')).toBeVisible();
+		await expect(canvas.getByText('Add a task to begin tracking')).toBeVisible();
 		expect(canvas.queryByRole('table')).not.toBeInTheDocument();
 	}}
 />
 
-<!-- The add-task form lives in this card, at its foot below the ledger: adding and
-     reading the plan are one place, and the plan is what the card is read for -->
+<!-- The form this list is handed goes into the card's dialog, so passing one adds a
+     way IN beside the heading and costs the ledger no height -->
 <Story
 	name="With form"
 	play={async ({ canvas }) => {
@@ -320,11 +320,15 @@
 		});
 
 		const table = canvas.getByRole('table');
-		const form = canvas.getByText('add a task');
 
 		expect(heading.compareDocumentPosition(table)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		expect(canvas.queryByText('add a task')).not.toBeInTheDocument();
 
-		expect(table.compareDocumentPosition(form)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		await expect(
+			canvas.getByRole('button', {
+				name: 'Add task',
+			}),
+		).toBeVisible();
 	}}
 >
 	{#snippet template(args)}

@@ -79,6 +79,18 @@ ever sees a story's REST state, so every hover fill's step and label contrast
 is measured there instead, over every theme × the 5 button variants that carry
 a hover fill (`link` carries none, so it is not measured).
 
+A story that opens a **dialog** has three things working against it, and all three
+bit before they were handled. Content is portalled to `document.body`, so it is
+reached through `within(document.body)` and never the story's `canvas`. It enters on
+a `fade-in-0`, so `toBeVisible` on something inside it races the opacity it starts
+at — assert `toBeInTheDocument` instead. And bits-ui's body scroll lock puts
+`pointer-events: none` on the body, lifted on a TIMEOUT after the last lock goes, so
+a play that ends with a dialog open — or fails before closing one — hands the next
+story a page it cannot click, in whatever file that story lives in. Each play still
+closes what it opens (waiting for both the unmount and the lock), and
+`.storybook/preview.ts`'s `beforeEach` clears the body's `pointerEvents`/`overflow`
+so no story can inherit another's lock.
+
 A component whose root is a `<tbody>` — both task rows, through
 `task-row-shell.svelte` — cannot be rendered bare: with no table around it every
 cell lays out as an inline box, so a visual or axe assertion reads the wrong DOM.
