@@ -313,6 +313,26 @@ Read this before touching markup, classes, or anything under
   that theme's scenery shifts for every existing seed (palette unchanged, but
   drifts and phases move), or leave it and the key stops matching the
   catalogue. Neither is wrong; pick one deliberately.
+- **The scenery gutter: a theme's focal object goes beside the content column,
+  never behind it.** `.theme-scenery` is `position: fixed; inset: 0`, so a theme
+  anchoring a bright, hard-edged object to viewport top-centre draws it under
+  the app bar and the first card — bisected, and washing out the labels over it.
+  The transparent strip beside the column is where such an object belongs. Its
+  left edge is `--spacer-gutter` in `base.css` (`50% + 43rem`, the card's edge,
+  plus a rem), which is one property rather than a `calc()` per scenery file;
+  `50%` and not `50vw` because the layer is fixed, so they agree except that
+  `50vw` counts the scrollbar and sits ~8px right of true centre. **Below the
+  width where the gutter fits the object, do not draw it.** Shrinking it to fit
+  is the tempting answer and the wrong one: an object small enough for a narrow
+  gutter no longer carries what it was drawn to carry, and bleeding it off the
+  right edge leaves a sliver. No gutter means nowhere unoccluded on screen, so
+  none is the honest output — `moonphase` degrades to sky and starfield, which
+  is still a coherent theme. Two exemptions, both deliberate: an object that is
+  a soft low-alpha wash with no edge to cut (`hourglass`, `sundial`) overlaps
+  the column on purpose, and a light theme's ink survives a bright backdrop that
+  a dark theme's does not. `scripts/ink-contrast.mjs` cannot police any of this
+  — it samples token fills, not scenery — so the gate is the boundingBox
+  scenarios in `e2e/scenery.e2e.ts`.
 - **No catalogue tallies in prose.** Comments and docs here say "most themes",
   "every theme", "an opaque theme" — never "33 of the 44" or "the opaque four".
   Every such count was a lie one theme later, and the sweep to correct them

@@ -1,7 +1,11 @@
 /* Moonphase: tonight's actual moon. A lit disc with a sky-colored shadow
    disc slid across it by the real lunar phase (--moon-shadow, in moon radii:
    0 = new, ±2 = full — set from the clock in utils/scenery-time.ts). Changes
-   night to night; nothing animates. */
+   night to night; nothing animates.
+
+   The moon is drawn in the transparent gutter beside the content column, never
+   over it, and not at all below the width where the gutter fits it — STYLE.md,
+   the scenery gutter. */
 .moonphase .theme-scenery {
 	--moon-size: 7rem;
 
@@ -25,10 +29,15 @@
 
 	/* the moon: lit disc with faint maria; overflow clips the shadow disc */
 	.theme-helper-2 {
+		/* Narrower than the gutter there is nowhere to put it: over the column it
+		   washes out the labels behind it, and shrunk to fit it conveys no phase.
+		   The gutter query below is the only thing that draws it. */
+		display: none;
 		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
-		top: 1.5rem;
+		left: var(--spacer-gutter);
+		/* clear of the app bar's right cluster — a disc tight to the top-right
+		   corner reads as a UI badge rather than sky */
+		top: 10rem;
 		width: var(--moon-size);
 		height: var(--moon-size);
 		border-radius: 50%;
@@ -45,14 +54,28 @@
 			);
 	}
 
-	/* the shadow disc — must stay the exact color of the sky's flat top band
-	   (layout.css .moonphase --background-image first stop) */
+	/* the shadow disc — the sky's own flat-band color, shared with the gradient
+	   that paints it (themes.css .moonphase) rather than copied */
 	.theme-helper-2::before {
 		content: '';
 		position: absolute;
 		inset: -6%;
 		border-radius: 50%;
-		background: oklch(0.14 0.03 265);
+		background: var(--moonphase-sky-band);
 		translate: calc(var(--moon-shadow, -2) * var(--moon-size) / 2) 0;
+	}
+
+	/* 102rem: the narrowest viewport whose gutter takes a 7rem moon one rem clear
+	   of the card. 110rem: the narrowest that takes 11rem, where the moon reads as
+	   sky rather than a token. Both are 50% + 43rem (the card's edge) + 1rem +
+	   --moon-size — see STYLE.md, the scenery gutter. */
+	@media (min-width: 102rem) {
+		.theme-helper-2 {
+			display: block;
+		}
+	}
+
+	@media (min-width: 110rem) {
+		--moon-size: 11rem;
 	}
 }

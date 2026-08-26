@@ -474,7 +474,7 @@
 .mist {
 	/* fog on a still morning — the world reduced to soft gray-blue layers; two
 	   banks drift at walking pace and nothing else moves (see
-	   theme-scenery/mist.css) */
+	   scenery/mist.css) */
 	--background-image:
 		radial-gradient(ellipse 90% 40% at 50% 110%, oklch(0.86 0.012 240 / 0.6), transparent 70%),
 		radial-gradient(ellipse 80% 30% at 18% 40%, oklch(0.93 0.008 235 / 0.5), transparent 70%),
@@ -544,7 +544,7 @@
 	   the lanterns you release are the only light, doubled as wavering warm
 	   reflections on the water below. Lanterns, reflections, reeds, fireflies,
 	   a ripple sheen and low mist are theme scenery — see
-	   theme-scenery/lantern-drift.css. The day is released downstream; the mind
+	   scenery/lantern-drift.css. The day is released downstream; the mind
 	   quiets, the ground rests. */
 	--background-image:
 		/* far-shore lantern light gathered to a thin bright line at the water */
@@ -612,7 +612,7 @@
 	/* under a sunlit forest canopy: warm gold sunlight breaking through the
 	   leaves from above, a soft green ambience, deepening to moss at the
 	   forest floor. Dappled shade, god-rays and drifting pollen are theme
-	   scenery — see theme-scenery/canopy.css. */
+	   scenery — see scenery/canopy.css. */
 	--background-image:
 		radial-gradient(ellipse 60% 45% at 70% 0%, oklch(0.97 0.05 95 / 0.6), transparent 70%),
 		radial-gradient(ellipse 90% 55% at 50% 100%, oklch(0.85 0.06 145 / 0.35), transparent 65%),
@@ -649,7 +649,7 @@
 .meridian {
 	/* deep-space ink: indigo shading to teal-black, lit only by quiet distant
 	   glows — the flow-lines and their traveling light are the real subject,
-	   see theme-scenery/meridian.css. */
+	   see scenery/meridian.css. */
 	--background-image:
 		radial-gradient(ellipse 55% 40% at 15% 10%, oklch(0.32 0.08 230 / 0.16), transparent 70%),
 		radial-gradient(ellipse 60% 45% at 88% 85%, oklch(0.28 0.09 195 / 0.14), transparent 72%),
@@ -687,7 +687,7 @@
 .dunes {
 	/* midday desert: bottom-to-top the page itself carries pale warm sky
 	   sinking through sun-gold haze into deep terracotta sand, so the rounded
-	   dune silhouettes (theme-scenery/dunes.css) land on matching ground
+	   dune silhouettes (scenery/dunes.css) land on matching ground
 	   instead of a flat wash. One soft sun glow sits high above the dune line;
 	   heat shimmer, dune ridges and drifting sand grains are theme scenery. */
 	--background-image:
@@ -731,7 +731,7 @@
 .synthwave {
 	/* neon dusk: deep violet sky sinking to near-black, a sunset glow low at
 	   center — the banded sun and perspective grid are theme scenery, see
-	   theme-scenery/synthwave.css. */
+	   scenery/synthwave.css. */
 	--background-image:
 		radial-gradient(ellipse 65% 40% at 50% 88%, oklch(0.6 0.2 45 / 0.4), transparent 65%),
 		radial-gradient(ellipse 80% 55% at 50% 100%, oklch(0.45 0.18 340 / 0.25), transparent 60%),
@@ -801,10 +801,19 @@
 
 .eclipse {
 	/* totality — where zenith meets nadir: the black moon crowned by a blazing
-	   corona, and the 360° sunset that rings the horizon only during an eclipse */
+	   corona, and the 360° sunset that rings the horizon only during an eclipse.
+
+	   The black moon's centre. Declared here rather than in the scenery file
+	   because it is a property that has to reach BOTH: this gradient paints the
+	   disc, and scenery/eclipse.css hangs the corona and the streamer wheel on
+	   it. Custom properties inherit downward only, so the shared one has to sit
+	   on the theme class, above both — a copy on `.theme-scenery` cannot be
+	   seen from up here. Move the disc by editing this and nothing else. */
+	--eclipse-disc-y: 12rem;
+
 	--background-image:
 		radial-gradient(
-			circle at 50% -3rem,
+			circle at 50% var(--eclipse-disc-y),
 			oklch(0.08 0.015 285) 0 6.55rem,
 			oklch(0.99 0.04 90) 6.85rem 7.1rem,
 			oklch(0.92 0.08 85 / 0.55) 7.5rem,
@@ -850,12 +859,24 @@
 .cathedral {
 	/* gothic nave at vespers: a stained-glass rose window burning above the door.
 	   The window itself is theme scenery (SVG tracery + god rays + jewel light
-	   pooling on the floor) — see theme-scenery/cathedral.css. */
+	   pooling on the floor) — see scenery/cathedral.css.
+
+	   The window's top edge, and so the halo's centre one 10rem radius below it.
+	   Same reason as `eclipse`: the window is drawn in the scenery layer and its
+	   halo in this gradient, and a halo that does not follow the window is a
+	   bloom around nothing. Declared here because custom properties inherit
+	   downward only, so the shared one has to sit above both readers. */
+	--cathedral-window-y: -5rem;
+
 	--background-image:
 		/* candle glow rising from the nave floor */
 		radial-gradient(ellipse 90% 35% at 50% 112%, oklch(0.7 0.12 65 / 0.22), transparent 70%),
 		/* halo blooming over the stone around the window */
-		radial-gradient(ellipse 55% 30% at 50% 2%, oklch(0.85 0.09 85 / 0.16), transparent 70%),
+		radial-gradient(
+				ellipse 55% 30% at 50% calc(var(--cathedral-window-y) + 10rem),
+				oklch(0.85 0.09 85 / 0.16),
+				transparent 70%
+			),
 		linear-gradient(oklch(0.16 0.016 300), oklch(0.12 0.012 290));
 
 	--radius: 0.75rem;
@@ -891,7 +912,7 @@
 	   orbit. The planet is the bottom quarter of the viewport: night side dark,
 	   a thin electric-blue atmosphere ring, first sunlight blooming on the limb.
 	   City lights, clouds, stars and aurora are theme scenery — see
-	   theme-scenery/orbit.css. */
+	   scenery/orbit.css. */
 	--background-image:
 		/* haze in front of the limb where the rising light scatters forward —
 		   the only sunrise layer painted over the planet, and it's faint */
@@ -956,7 +977,7 @@
 .sundial {
 	/* a limestone terrace at whatever hour it is — the scenery's sun and
 	   light gradient stand where the real sun stands (see
-	   theme-scenery/sundial.css); the palette stays warm neutral stone */
+	   scenery/sundial.css); the palette stays warm neutral stone */
 	--background-image:
 		radial-gradient(
 			ellipse 80% 50% at 50% 115%,
@@ -995,11 +1016,16 @@
 
 .moonphase {
 	/* tonight's actual moon, rendered at its real phase in the scenery (see
-	   theme-scenery/moonphase.css). The sky's top band is flat so the
-	   scenery's shadow disc can match it exactly. */
+	   scenery/moonphase.css). The sky's top band is flat so the scenery's
+	   shadow disc can match it exactly — one color, read by both, because two
+	   copies of it is a mismatch waiting for whichever one gets retuned. The
+	   band ends in a length rather than a percentage so it covers the moon at
+	   every viewport height, not only tall ones. */
+	--moonphase-sky-band: oklch(0.14 0.03 265);
+
 	--background-image:
 		radial-gradient(ellipse 100% 55% at 50% 120%, oklch(0.38 0.06 260 / 0.55), transparent 70%),
-		linear-gradient(oklch(0.14 0.03 265) 0 28%, oklch(0.22 0.045 260));
+		linear-gradient(var(--moonphase-sky-band) 0 22rem, oklch(0.22 0.045 260));
 
 	--radius: 0.875rem;
 
@@ -1028,7 +1054,7 @@
 
 .tide {
 	/* a pale coastal morning; the sea below is scenery whose waterline
-	   stands at the day's remaining hours (see theme-scenery/tide.css) */
+	   stands at the day's remaining hours (see scenery/tide.css) */
 	--background-image:
 		radial-gradient(ellipse 70% 40% at 50% -8%, oklch(0.97 0.02 90 / 0.7), transparent 70%),
 		linear-gradient(oklch(0.93 0.02 220), oklch(0.88 0.03 210));
@@ -1062,7 +1088,7 @@
 
 .breath {
 	/* a dark, still room; one glow breathing at a calm-exercise cadence is
-	   the only motion (see theme-scenery/breath.css) */
+	   the only motion (see scenery/breath.css) */
 	--background-image: linear-gradient(oklch(0.16 0.03 280), oklch(0.12 0.025 270));
 
 	--radius: 1.25rem;
@@ -1092,7 +1118,7 @@
 
 .polaris {
 	/* the northern sky as a clock — the scenery's circumpolar starfield stands
-	   at its real rotation around the pole star (see theme-scenery/polaris.css);
+	   at its real rotation around the pole star (see scenery/polaris.css);
 	   the palette is polar-night steel with star-white accents */
 	--background-image:
 		radial-gradient(ellipse 90% 45% at 50% 118%, oklch(0.32 0.05 250 / 0.5), transparent 70%),
@@ -1126,7 +1152,7 @@
 
 .city-windows {
 	/* dusk over a skyline whose windows light with the sky's darkness
-	   (see theme-scenery/city-windows.css) */
+	   (see scenery/city-windows.css) */
 	--background-image:
 		radial-gradient(ellipse 100% 45% at 50% 118%, oklch(0.4 0.07 55 / 0.35), transparent 70%),
 		linear-gradient(oklch(0.13 0.03 265), oklch(0.2 0.05 275));
@@ -1158,7 +1184,7 @@
 
 .orrery {
 	/* a clockwork sky — the scenery's planets stand at their real day/week
-	   angles around a brass sun (see theme-scenery/orrery.css) */
+	   angles around a brass sun (see scenery/orrery.css) */
 	--background-image:
 		radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.3 0.05 265 / 0.5), transparent 70%),
 		linear-gradient(oklch(0.14 0.025 260), oklch(0.19 0.035 265));
@@ -1192,7 +1218,7 @@
 
 .hourglass {
 	/* sand through glass — the scenery's hourglass drains over each hour and
-	   flips itself on the :00 (see theme-scenery/hourglass.css). Warm sand,
+	   flips itself on the :00 (see scenery/hourglass.css). Warm sand,
 	   pale glass. */
 	--background-image:
 		radial-gradient(ellipse 80% 45% at 78% -5%, oklch(0.93 0.035 80 / 0.5), transparent 68%),
@@ -1226,7 +1252,7 @@
 .foliage {
 	/* the year on a branch — the scenery's bough buds in spring, fills through
 	   summer, turns in autumn and stands bare by December (see
-	   theme-scenery/foliage.css). */
+	   scenery/foliage.css). */
 	--background-image:
 		radial-gradient(ellipse 90% 45% at 80% -10%, oklch(0.9 0.05 130 / 0.35), transparent 68%),
 		radial-gradient(ellipse 80% 45% at 10% 112%, oklch(0.9 0.04 95 / 0.4), transparent 65%),
@@ -1260,7 +1286,7 @@
 .circuit {
 	/* a board waking with the day — the scenery's traces run cool blue at
 	   night and heat toward ember as the day peaks, cooling again by midnight
-	   (see theme-scenery/circuit.css). Solder-mask dark, copper accents. */
+	   (see scenery/circuit.css). Solder-mask dark, copper accents. */
 	--background-image:
 		radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.28 0.04 210 / 0.4), transparent 70%),
 		linear-gradient(oklch(0.17 0.02 215), oklch(0.13 0.025 225));
@@ -1364,7 +1390,7 @@
 .weathervane {
 	/* A field of vanes on a fixed grid, every one turned to the same bearing:
 	   the hour hand's. Straight up at 12, right at 3, half a degree a minute —
-	   the page is the clock (see theme-scenery/weathervane.css).
+	   the page is the clock (see scenery/weathervane.css).
 
 	   Translucent, against the usual verdict for a repeated motif. The grid is
 	   7rem and the blades 2.4rem, which is structure a 2rem blur softens but
@@ -1405,7 +1431,7 @@
 .understory {
 	/* night forest floor — moonlight filtered through the canopy above, moss
 	   glow pooling below; drifting fireflies and leaf-shade dapple are theme
-	   scenery (see theme-scenery/understory.css) */
+	   scenery (see scenery/understory.css) */
 	--background-image:
 		radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.32 0.04 140 / 0.3), transparent 70%),
 		radial-gradient(ellipse 90% 45% at 50% 115%, oklch(0.34 0.05 150 / 0.35), transparent 70%),
@@ -1446,7 +1472,7 @@
 	   four dark conduit lines — two inset from each side — that carry a
 	   light-blue pulse; every chord mitred, every card sharp-edged
 	   (--radius: 0). The conduits and their pulse are theme scenery, see
-	   theme-scenery/vectorframe.css. */
+	   scenery/vectorframe.css. */
 	--background-image:
 		radial-gradient(ellipse 55% 40% at 15% 10%, oklch(0.34 0.08 70 / 0.16), transparent 70%),
 		radial-gradient(ellipse 60% 45% at 88% 85%, oklch(0.28 0.09 195 / 0.14), transparent 72%),

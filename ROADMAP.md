@@ -848,3 +848,23 @@ place.
   `readDeferDestination`, where it is the same refusal, and in the autosave
   `$effect`, where it is the positive form. A refactor, not a bug; the risk is
   the ordinary one of a rule changing in two places out of three.
+
+## Findings from the 2026-08-26 scenery gutter
+
+- **`cathedral`'s rose window still needs a redraw, and until it gets one it is
+  the worst-lit thing on `/`.** The gutter that fixed `moonphase` cannot take
+  it: the window is 20rem _of detail_ — twelve lancet petals, a roundel ring,
+  eight jewel circles, a hub — and at the ~11rem a gutter allows, the petals are
+  ~30px and the jewels ~13px. It also cannot take the `hourglass` treatment of
+  becoming a low-alpha wash, because it is a hard-edged SVG over an opaque
+  `#17121f` backing circle. Measured on `/` at both 1440px and 1888px, seven
+  labels sit over it and all seven fail WCAG AA; five of them read **1.00:1** —
+  the label's own colour, exactly, against the jewel behind it. That is the
+  highest-severity contrast failure the app currently ships, and it is invisible
+  to `scripts/ink-contrast.mjs`, which samples token fills rather than scenery.
+  The price is design work — fewer, larger elements and thicker strokes at a
+  size that fits — not a relocation, which is why
+  [the-moon-that-lost-its-sky](docs/features/the-moon-that-lost-its-sky.md) left
+  it out. Moving the window vertically mitigates without closing: the brightest
+  ring hides behind the app bar and the two mid-range labels recover to ~1.9:1,
+  while the five at 1.00:1 do not move.
