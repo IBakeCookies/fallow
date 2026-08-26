@@ -373,6 +373,15 @@
 		@apply font-sans;
 	}
 
+	/* Tailwind v4's Preflight gives buttons `cursor: default` — the spec reading,
+	   where the hand means "link". This app takes the other side: the hand marks
+	   anything clickable, uniformly, so no component has to re-argue whether its
+	   own affordance is loud enough. Disabled keeps the arrow. */
+	button:not(:disabled),
+	[role='button']:not(:disabled) {
+		cursor: pointer;
+	}
+
 	/* Number inputs: hide the native spinner arrows everywhere — stepping is
 	   provided by the NumberInput component's custom −/+ buttons instead. */
 	input[type='number']::-webkit-outer-spin-button,

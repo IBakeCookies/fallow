@@ -246,13 +246,22 @@
 	/* shadcn end */
 }
 
-/* The "there is an explanation here" affordance: a dotted underline plus the help
-   cursor, on every tooltip-explained label in the app. A utility rather than a
-   component because the sites are an <h1>, an <h3>, a <label for>, a <p> and a
-   <button> — one wrapper element would cost the heading level, the label
-   association, or the button. */
+/* The "there is an explanation here" affordance: a dotted underline, plus the help
+   cursor where the element is only an explanation, on every tooltip-explained label
+   in the app. A utility rather than a component because the sites are an <h1>, an
+   <h3>, a <label for>, a <p>, an <a> and a <button> — one wrapper element would cost
+   the heading level, the label association, or the button. */
 @utility hint-underline {
-	@apply cursor-help underline decoration-ty-ghost decoration-dotted underline-offset-4;
+	@apply underline decoration-ty-ghost decoration-dotted underline-offset-4;
+	/* The help cursor only where the element is nothing BUT an explanation. Four
+	   of the sites are a link or a button that also carries a tooltip, and there
+	   the action owns the cursor — `?` over "Show all time" said the control did
+	   nothing. Scoped in here rather than overridden per site because two
+	   `cursor-*` utilities on one element are decided by Tailwind's sort order,
+	   not by the class attribute's. */
+	&:not(:any-link, button, [role='button']) {
+		cursor: help;
+	}
 }
 
 /* The run order's badge: `#N` on a task row (the whole-day plan's position) and
