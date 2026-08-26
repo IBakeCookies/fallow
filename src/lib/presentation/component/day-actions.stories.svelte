@@ -33,6 +33,7 @@
 	};
 
 	const pendingLine = 'waiting for a 🪫 drain rating';
+	const underMinute = '<1m';
 
 	const routines: SavedRoutine[] = [
 		{
@@ -398,17 +399,27 @@
 		// what a reading waits for belongs to neither.
 		await expect(canvas.queryByText(pendingLine)).not.toBeInTheDocument();
 
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Start timer',
-			}),
-		);
+		// A clock nobody has started reads as a word, beside the two labelled menus;
+		// once there is a reading to look at, the label is what the readout says.
+		const start = canvas.getByRole('button', {
+			name: 'Start timer',
+		});
 
-		await expect(
-			canvas.getByRole('button', {
-				name: 'Pause timer',
-			}),
-		).toBeInTheDocument();
+		await expect(start).toHaveTextContent('Start timer');
+
+		await userEvent.click(start);
+
+		// The first minute has nothing to count, and "0m" reads as a clock that did
+		// not start.
+		await expect(canvas.getByText(underMinute)).toBeVisible();
+		await expect(canvas.getByText(underMinute)).toHaveClass('text-ty-primary');
+
+		const pause = canvas.getByRole('button', {
+			name: 'Pause timer',
+		});
+
+		await expect(pause).toBeInTheDocument();
+		await expect(pause).toHaveTextContent('');
 
 		await expect(
 			canvas.getByRole('button', {
@@ -422,17 +433,16 @@
 			}),
 		).not.toBeInTheDocument();
 
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Pause timer',
-			}),
-		);
+		await userEvent.click(pause);
 
 		await expect(
 			canvas.getByRole('button', {
 				name: 'Resume timer',
 			}),
 		).toBeInTheDocument();
+
+		// A paused clock counts nothing, and the readout says so on its own.
+		await expect(canvas.getByText(underMinute)).toHaveClass('text-ty-silent');
 
 		await expect(canvas.queryByText(pendingLine)).not.toBeInTheDocument();
 	}}
@@ -446,7 +456,7 @@
 		timer: stoppedTimer,
 	}}
 	play={async ({ canvas, userEvent }) => {
-		await expect(canvas.getByText('45m')).toBeInTheDocument();
+		await expect(canvas.getByText('45m')).toHaveClass('text-ty-silent');
 
 		// The minutes alone say nothing about what holds them here.
 		await expect(canvas.getByText(pendingLine)).toBeVisible();

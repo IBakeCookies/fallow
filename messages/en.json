@@ -68,6 +68,7 @@
 	"timer_stop": "Stop timer",
 	"timer_discard": "Discard timed session",
 	"timer_pending_drain": "waiting for a 🪫 drain rating",
+	"timer_under_a_minute": "<1m",
 	"form_add_task": "+ Add Task",
 	"form_add_task_title": "Add task",
 	"form_task_definition": "Task Definition",

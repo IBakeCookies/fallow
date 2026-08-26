@@ -68,6 +68,7 @@
 	"timer_stop": "停止计时",
 	"timer_discard": "丢弃计时的会话",
 	"timer_pending_drain": "等待一条 🪫 消耗评分",
+	"timer_under_a_minute": "<1m",
 	"form_add_task": "+ 添加任务",
 	"form_add_task_title": "添加任务",
 	"form_task_definition": "任务定义",

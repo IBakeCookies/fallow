@@ -68,6 +68,7 @@
 	"timer_stop": "Timer stoppen",
 	"timer_discard": "Gemessene Sitzung verwerfen",
 	"timer_pending_drain": "wartet auf eine 🪫 Erschöpfungs-Bewertung",
+	"timer_under_a_minute": "<1m",
 	"form_add_task": "+ Aufgabe hinzufügen",
 	"form_add_task_title": "Aufgabe hinzufügen",
 	"form_task_definition": "Aufgabenbeschreibung",
