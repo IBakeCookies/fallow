@@ -42,8 +42,10 @@
 		await expect(dialog).toHaveAccessibleName('Add task');
 
 		// Content hands focus to its first tabbable, which is what puts the caret in the
-		// field with no `autofocus` anywhere — the attribute is inert on a late insert.
-		await expect(within(dialog).getByLabelText('Title')).toHaveFocus();
+		// field with no `autofocus` anywhere — the attribute is inert on a late insert. The
+		// handover lands a tick after the dialog mounts, so it needs waiting for: assert it
+		// on mount and focus is still on the trigger.
+		await waitFor(() => expect(within(dialog).getByLabelText('Title')).toHaveFocus());
 
 		await userEvent.click(
 			within(dialog).getByRole('button', {
