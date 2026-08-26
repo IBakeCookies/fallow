@@ -645,13 +645,11 @@ reaches the claim, never that the claim is false.
   days whose level never leaves the do-nothing floor it names the first swept
   step booking 0 h, and on the other 265 it names the shipped knee. The claim
   held; nothing shipped moved.
-- **M35 §8.12** — the §8.11 agreement witness at `MATH.md:2173-2177` (one task
-  P0/M8/E9, 6 h, λ₀ = 1.2, curve 3 h, advisor flipping at 3 h logged) is run at
-  `alphaCog: 0.25, alphaPhys: 0.35, recoveryRate: 1`
-  (`advisor-curve-agreement.probe.ts:38-49`), which are not the defaults at
-  `zenith-energy.ts:138-143`; the doc does not say so. A skeptic **refuted the
-  drift framing** of this — the numbers reproduce — so what is left is that the
-  section states a witness without its constants.
+- **M35 §8.12 — closed 2026-08-27,
+  [`the-witness-that-outlived-its-section`](docs/features/the-witness-that-outlived-its-section.md).**
+  The 2026-08-25 cut deleted the witness from §8.12 along with every other
+  measurement, so the section no longer states it; the probe's off-default
+  constants are now declared there instead. Re-run on 2026-08-27 and it holds.
 - **M36 §8.12 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M37 §33 — closed 2026-08-21, [`the-lab-fit-that-read-todays-logs`](docs/features/the-lab-fit-that-read-todays-logs.md).**
 - **M38 §8.10 — closed 2026-08-19, [`the-bracket-that-inverted-on-a-day-it-kept`](docs/features/the-bracket-that-inverted-on-a-day-it-kept.md).** Shipped as a model change (MATH.md §8.10, §8.11, §10); the residual it left is M42.
