@@ -182,14 +182,14 @@
 	}}
 />
 
-<!-- Minutes on screen, hours in the payload — the units the α fit reads (MATH.md §8.7).
-     No 🗑 in the form: the row's own ✕ is the drop. -->
 <Story
 	name="Correcting a session rating"
 	args={{
 		editingKey: 'drain-12',
 	}}
 	play={async ({ canvas, userEvent }) => {
+		// Minutes on screen, hours in the payload — the units the α fit reads (MATH.md §8.7). No 🗑 in
+		// the form: the row's own ✕ is the drop.
 		onsavedrain.mockClear();
 
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(90);

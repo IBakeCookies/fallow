@@ -13,11 +13,11 @@
 	});
 </script>
 
-<!-- A button to look at and a checkbox to operate: the whole point of the component is
-     that dressing it as a button costs neither the role nor the keyboard. -->
 <Story
 	name="A button that is still a checkbox"
 	play={async ({ canvas, userEvent }) => {
+		// A button to look at and a checkbox to operate: the whole point of the component is that
+		// dressing it as a button costs neither the role nor the keyboard.
 		const toggle = canvas.getByRole('checkbox', {
 			name: 'Keep on today',
 		});
@@ -35,14 +35,14 @@
 	}}
 />
 
-<!-- The set state is the `secondary` rung of STYLE.md's emphasis ladder, so it reads as
-     accent without becoming a second solid button beside the form's submit. -->
 <Story
 	name="Set"
 	args={{
 		mustDoToday: true,
 	}}
 	play={async ({ canvas }) => {
+		// The set state is the `secondary` rung of STYLE.md's emphasis ladder, so it reads as accent
+		// without becoming a second solid button beside the form's submit.
 		await expect(
 			canvas.getByRole('checkbox', {
 				name: 'Keep on today',

@@ -113,9 +113,6 @@
 	];
 </script>
 
-<!-- Every reading gets a headed column, so the numbers line up down the page and can
-     be compared between tasks. The trailing column heads the ✎/✕ strip: its name is
-     `sr-only`, so the column shows nothing and still announces as itself. -->
 <Story
 	name="Headed columns"
 	args={{
@@ -129,6 +126,9 @@
 		]),
 	}}
 	play={async ({ canvas }) => {
+		// Every reading gets a headed column, so the numbers line up down the page and can be compared
+		// between tasks. The trailing column heads the ✎/✕ strip: its name is `sr-only`, so the column
+		// shows nothing and still announces as itself.
 		expect(canvas.getAllByRole('table')).toHaveLength(1);
 
 		const table = canvas.getByRole('table');
@@ -171,16 +171,15 @@
 	}}
 />
 
-<!-- The day the plan drops a task: two headed groups, the funded one in `#N` order.
-     A completed task holds its slot in that sequence — the order is the plan's, not the
-     remainder's — so ticking a row off never moves it out from under the
-     🪫 about to be logged on it.
-
-     PIN: read through the row titles and the badges rather than the markup around them,
-     so it holds across the row becoming a table row. -->
 <Story
 	name="Default"
 	play={async ({ canvas }) => {
+		// The day the plan drops a task: two headed groups, the funded one in `#N` order. A completed
+		// task holds its slot in that sequence — the order is the plan's, not the remainder's — so
+		// ticking a row off never moves it out from under the 🪫 about to be logged on it.
+		//
+		// PIN: read through the row titles and the badges rather than the markup around them, so it
+		// holds across the row becoming a table row.
 		// The sequence counts down the page, and the completed task holds position 2
 		// between the two active rows instead of sinking below them. The task the plan
 		// funded nothing comes last, having no position at all. The card's own title
@@ -210,9 +209,6 @@
 	}}
 />
 
-<!-- The plan's two answers about a task read as two row groups of one table, so the
-     columns stay aligned across the split instead of becoming two tables' worth of
-     independently-sized ones. -->
 <Story
 	name="Two headed groups"
 	args={{
@@ -236,6 +232,8 @@
 		]),
 	}}
 	play={async ({ canvas }) => {
+		// The plan's two answers about a task read as two row groups of one table, so the columns stay
+		// aligned across the split instead of becoming two tables' worth of independently-sized ones.
 		const sequence = canvas.getByText("Today's sequence");
 		const dropped = canvas.getByText('No time today');
 
@@ -266,14 +264,14 @@
 	}}
 />
 
-<!-- Nothing dropped is the common day: one plain group, and a heading over every row
-     saying the same thing about all of them would say nothing -->
 <Story
 	name="Nothing dropped"
 	args={{
 		suggestedTasks: tasks.filter((task) => task.suggestedHours > 0),
 	}}
 	play={async ({ canvas }) => {
+		// Nothing dropped is the common day: one plain group, and a heading over every row saying the
+		// same thing about all of them would say nothing
 		const heading = canvas.getByRole('heading', {
 			name: 'Tasks',
 		});
@@ -295,8 +293,6 @@
 	}}
 />
 
-<!-- An empty <table> is the same mistake an empty <ul> was: a grid of nothing,
-     announced over the copy that explains the day is empty -->
 <Story
 	name="Empty"
 	args={{
@@ -304,17 +300,19 @@
 		runOrder: new Map(),
 	}}
 	play={async ({ canvas }) => {
+		// An empty <table> is the same mistake an empty <ul> was: a grid of nothing, announced over the
+		// copy that explains the day is empty
 		await expect(canvas.getByText('No tasks deployed yet')).toBeVisible();
 		await expect(canvas.getByText('Add a task to begin tracking')).toBeVisible();
 		expect(canvas.queryByRole('table')).not.toBeInTheDocument();
 	}}
 />
 
-<!-- The form this list is handed goes into the card's dialog, so passing one adds a
-     way IN beside the heading and costs the ledger no height -->
 <Story
 	name="With form"
 	play={async ({ canvas }) => {
+		// The form this list is handed goes into the card's dialog, so passing one adds a way IN beside
+		// the heading and costs the ledger no height
 		const heading = canvas.getByRole('heading', {
 			name: 'Tasks',
 		});
@@ -340,8 +338,6 @@
 	{/snippet}
 </Story>
 
-<!-- Day 1 is the day the task was added, so three carried days reads DAY 4. The gate
-     keeps an ordinary deferral off the row, which already carries up to three badges. -->
 <Story
 	name="Chronic slides"
 	args={{
@@ -369,6 +365,8 @@
 		]),
 	}}
 	play={async ({ canvas }) => {
+		// Day 1 is the day the task was added, so three carried days reads DAY 4. The gate keeps an
+		// ordinary deferral off the row, which already carries up to three badges.
 		const row = (title: string) =>
 			within(
 				canvas

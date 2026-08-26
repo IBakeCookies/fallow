@@ -10,11 +10,6 @@
 	});
 </script>
 
-<!-- The 🪫 editor as it hangs under a task row: how long the session ran, and how
-     spent each capacity feels now. Blank, as it opens on an unrated task. The play
-     walks the save policy: an editor that opened itself leaves the caret alone, ✕
-     discards without reporting, no length and blank ratings both refuse (an empty
-     rating is not a rating of 0), minutes report as hours, and 0 is legitimate. -->
 <Story
 	name="Blank"
 	args={{
@@ -22,6 +17,11 @@
 		oncancel: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The 🪫 editor as it hangs under a task row: how long the session ran, and how spent each
+		// capacity feels now. Blank, as it opens on an unrated task. The play walks the save policy: an
+		// editor that opened itself leaves the caret alone, ✕ discards without reporting, no length and
+		// blank ratings both refuse (an empty rating is not a rating of 0), minutes report as hours,
+		// and 0 is legitimate.
 		const minutes = canvas.getByPlaceholderText('min');
 		const mind = canvas.getByLabelText('Mind');
 		const body = canvas.getByLabelText('Body');
@@ -95,8 +95,6 @@
 	}}
 />
 
-<!-- Re-opened from the ✎ on a stored rating: correcting THAT session, not
-     starting a new one — the row 🪫 button opens the empty form instead -->
 <Story
 	name="Amending today's rating"
 	args={{
@@ -111,6 +109,8 @@
 		ondelete: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Re-opened from the ✎ on a stored rating: correcting THAT session, not starting a new one —
+		// the row 🪫 button opens the empty form instead
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(45);
 		await expect(canvas.getByLabelText('Mind')).toHaveValue(6);
 		await expect(canvas.getByLabelText('Body')).toHaveValue(2);
@@ -131,7 +131,6 @@
 	}}
 />
 
-<!-- Opened by the row's own 🪫 button: the only opening that takes the caret -->
 <Story
 	name="Opened by the row"
 	args={{
@@ -140,13 +139,11 @@
 		oncancel: fn(),
 	}}
 	play={async ({ canvas }) => {
+		// Opened by the row's own 🪫 button: the only opening that takes the caret
 		await expect(canvas.getByPlaceholderText('min')).toHaveFocus();
 	}}
 />
 
-<!-- Opened on a stopped timer's reading: the length is already measured, so the caret
-     goes to the first question still open. A focused field holding 45 would turn the
-     first rating keystroke into 456. -->
 <Story
 	name="Opened with the timed minutes"
 	args={{
@@ -160,6 +157,9 @@
 		oncancel: fn(),
 	}}
 	play={async ({ canvas }) => {
+		// Opened on a stopped timer's reading: the length is already measured, so the caret goes to the
+		// first question still open. A focused field holding 45 would turn the first rating keystroke
+		// into 456.
 		await expect(canvas.getByLabelText('Mind')).toHaveFocus();
 	}}
 />

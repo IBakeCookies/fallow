@@ -18,6 +18,8 @@
 			},
 		},
 	});
+
+	// <Story name="Compact"> — size="sm" tightens --card-spacing, which every slot reads
 </script>
 
 <Story name="Full" asChild>
@@ -38,7 +40,6 @@
 	</Card.Root>
 </Story>
 
-<!-- size="sm" tightens --card-spacing, which every slot reads -->
 <Story name="Compact" asChild>
 	<Card.Root size="sm" class="max-w-sm">
 		<Card.Header>

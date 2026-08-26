@@ -69,10 +69,10 @@
 	}}>Deploy task</Story
 >
 
-<!-- href renders an <a>; disabled then only marks it, it cannot swallow clicks -->
 <Story
 	name="As link"
 	args={{
+		// href renders an <a>; disabled then only marks it, it cannot swallow clicks
 		href: '/energy',
 		variant: 'link',
 	}}>Energy Lab</Story

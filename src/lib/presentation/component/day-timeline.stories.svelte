@@ -55,11 +55,11 @@
 	});
 </script>
 
-<!-- Colour is the only thing separating the two bands on the strip, so the band
-     has to be readable without it (WCAG 1.4.1) -->
 <Story
 	name="A block short of flow"
 	play={async ({ canvas }) => {
+		// Colour is the only thing separating the two bands on the strip, so the band has to be
+		// readable without it (WCAG 1.4.1)
 		await expect(canvas.getByText('Caution')).toBeInTheDocument();
 
 		// A day that fits is untouched by the floor: the track is the container's own
@@ -72,14 +72,14 @@
 	}}
 />
 
-<!-- The day the strip exists for. The 15-minute allocation is BY CONSTRUCTION the
-     block short of flow, and proportionally it is a colour sliver, so the strip
-     carries a floor and scrolls inside its own container — never the document
-     (task-list-card.svelte's ledger is the same pattern). -->
 <Story
 	name="More than fits"
 	args={crowdedDay}
 	play={async ({ canvas }) => {
+		// The day the strip exists for. The 15-minute allocation is BY CONSTRUCTION the block short of
+		// flow, and proportionally it is a colour sliver, so the strip carries a floor and scrolls
+		// inside its own container — never the document (task-list-card.svelte's ledger is the same
+		// pattern).
 		const shortest = canvas.getByText('Expense report 12').parentElement!;
 		const longest = canvas.getByText('Expense report 1').parentElement!;
 		const track = shortest.parentElement!;
@@ -144,13 +144,13 @@
 	}}
 />
 
-<!-- A day with no funded task still has a start and something to say -->
 <Story
 	name="Nothing funded"
 	args={{
 		blocks: [],
 	}}
 	play={async ({ canvas }) => {
+		// A day with no funded task still has a start and something to say
 		await expect(canvas.getByText('Nothing is funded today')).toBeInTheDocument();
 	}}
 />

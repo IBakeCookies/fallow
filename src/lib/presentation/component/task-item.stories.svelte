@@ -143,7 +143,6 @@
 	}}
 />
 
-<!-- The re-plan reads WITH the plan, never over it -->
 <Story
 	name="Mid-day re-plan"
 	args={{
@@ -154,6 +153,7 @@
 		},
 	}}
 	play={async ({ canvas }) => {
+		// The re-plan reads WITH the plan, never over it
 		const delta = canvas.getByText('spend 45m');
 		await expect(delta).toBeVisible();
 		await expect(delta).toHaveClass(/text-ty-primary/);
@@ -169,8 +169,6 @@
 	}}
 />
 
-<!-- A re-plan that agrees with the plan is not shown at all: a line grown to repeat a
-     number reads as news where there is none. -->
 <Story
 	name="Re-plan lands on the planned hours"
 	args={{
@@ -180,6 +178,8 @@
 		},
 	}}
 	play={async ({ canvas, canvasElement, userEvent }) => {
+		// A re-plan that agrees with the plan is not shown at all: a line grown to repeat a number
+		// reads as news where there is none.
 		const plan = canvas.getByText('1h 45m');
 
 		await expect(plan).toHaveClass(/text-ty-primary/);
@@ -202,8 +202,6 @@
 	}}
 />
 
-<!-- The guard is the PRINTED figure, not the raw hours: 1.7499h and 1.75h both render
-     "1h 45m", and comparing the numbers would put that duplicate back on screen. -->
 <Story
 	name="Re-plan differs below the printed minute"
 	args={{
@@ -213,12 +211,12 @@
 		},
 	}}
 	play={async ({ canvas }) => {
+		// The guard is the PRINTED figure, not the raw hours: 1.7499h and 1.75h both render "1h 45m",
+		// and comparing the numbers would put that duplicate back on screen.
 		await expect(canvas.queryByText(/spend/)).not.toBeInTheDocument();
 	}}
 />
 
-<!-- A task the rest of the day is worth nothing on says so, rather than vanishing:
-     an absent row would read as "no answer" where the model has a definite one. -->
 <Story
 	name="Nothing more worth doing"
 	args={{
@@ -228,6 +226,8 @@
 		},
 	}}
 	play={async ({ canvas }) => {
+		// A task the rest of the day is worth nothing on says so, rather than vanishing: an absent row
+		// would read as "no answer" where the model has a definite one.
 		await expect(canvas.getByText('spend 0m')).toBeVisible();
 	}}
 />
@@ -261,7 +261,6 @@
 	}}
 />
 
-<!-- Un-completing ends no session, so it asks for no measurement -->
 <Story
 	name="Completed"
 	args={{
@@ -269,6 +268,7 @@
 		runOrder: 1,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Un-completing ends no session, so it asks for no measurement
 		const checkbox = canvas.getByRole('checkbox');
 		await expect(checkbox).toBeChecked();
 
@@ -287,8 +287,6 @@
 	}}
 />
 
-<!-- A past day: correct, never append. A new observation stamps the LIVE clock's today,
-     so both LOGGING buttons are withheld while both corrections stay offered. -->
 <Story
 	name="Past day"
 	args={{
@@ -300,6 +298,8 @@
 		onremove: undefined,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// A past day: correct, never append. A new observation stamps the LIVE clock's today, so both
+		// LOGGING buttons are withheld while both corrections stay offered.
 		await expect(canvas.getByRole('checkbox')).toBeVisible();
 
 		await expect(
@@ -374,10 +374,10 @@
 	}}
 />
 
-<!-- The editor is the page's answer to the call, so nothing opens under this story's mock -->
 <Story
 	name="Logging time to flow"
 	play={async ({ args, canvas, userEvent }) => {
+		// The editor is the page's answer to the call, so nothing opens under this story's mock
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Log time to flow',
@@ -418,11 +418,11 @@
 	}}
 />
 
-<!-- The caret stays on the checkbox: ticking tasks off with the keyboard must not land
-     it in a number field -->
 <Story
 	name="Asks on completion"
 	play={async ({ args, canvas, userEvent }) => {
+		// The caret stays on the checkbox: ticking tasks off with the keyboard must not land it in a
+		// number field
 		const checkbox = canvas.getByRole('checkbox');
 		await userEvent.click(checkbox);
 
@@ -432,7 +432,6 @@
 	}}
 />
 
-<!-- `completed` is a prop: un-completing withdraws the question completion asked -->
 <Story
 	name="Withdrawn prompt"
 	args={{
@@ -443,12 +442,12 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// `completed` is a prop: un-completing withdraws the question completion asked
 		await userEvent.click(canvas.getByRole('checkbox'));
 		await expect(args.onflowclose).toHaveBeenCalledExactlyOnceWith(1);
 	}}
 />
 
-<!-- ...but never an editor the user opened by hand, which is theirs to keep -->
 <Story
 	name="Keeps a hand-opened editor"
 	args={{
@@ -459,6 +458,7 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// ...but never an editor the user opened by hand, which is theirs to keep
 		await userEvent.click(canvas.getByRole('checkbox'));
 
 		await expect(args.ontoggle).toHaveBeenCalledExactlyOnceWith(1);
@@ -466,11 +466,11 @@
 	}}
 />
 
-<!-- The completion prompt opens BESIDE the ✎ editor's unsaved draft rather than closing
-     it: the two forms answer different questions -->
 <Story
 	name="Inline editor"
 	play={async ({ args, canvas, userEvent }) => {
+		// The completion prompt opens BESIDE the ✎ editor's unsaved draft rather than closing it: the
+		// two forms answer different questions
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Edit task',
@@ -559,14 +559,14 @@
 	}}
 />
 
-<!-- A statement about the task, not an alarm about the plan: the row names the day it
-     is on and the tooltip says where the count comes from. -->
 <Story
 	name="Carried for days"
 	args={{
 		slideDay: 6,
 	}}
 	play={async ({ canvas, canvasElement, userEvent }) => {
+		// A statement about the task, not an alarm about the plan: the row names the day it is on and
+		// the tooltip says where the count comes from.
 		const badge = canvas.getByRole('button', {
 			name: 'day 6',
 		});
@@ -619,7 +619,6 @@
 	}}
 />
 
-<!-- Two sessions are two ratings (MATH.md §8.7), and correcting one has to say WHICH -->
 <Story
 	name="Rated sessions read on the row"
 	args={{
@@ -639,6 +638,7 @@
 		],
 	}}
 	play={async ({ args, canvas, canvasElement, userEvent }) => {
+		// Two sessions are two ratings (MATH.md §8.7), and correcting one has to say WHICH
 		const chips = canvas.getAllByRole('button', {
 			name: 'Correct this drain rating',
 		});
@@ -717,14 +717,14 @@
 	}}
 />
 
-<!-- Over the editor it DID open, 🪫 closes it: an append editor is the one with no
-     `recordId`, which is exactly "the editor this button owns" -->
 <Story
 	name="Closing a new session"
 	args={{
 		drainDraft: newDrainDraft('button'),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Over the editor it DID open, 🪫 closes it: an append editor is the one with no `recordId`,
+		// which is exactly "the editor this button owns"
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Log end-of-session drain',
@@ -736,13 +736,13 @@
 	}}
 />
 
-<!-- Nothing is stored yet, so there is nothing to delete and the editor offers no 🗑 -->
 <Story
 	name="Rating a new session offers no delete"
 	args={{
 		drainDraft: newDrainDraft('button'),
 	}}
 	play={async ({ canvas }) => {
+		// Nothing is stored yet, so there is nothing to delete and the editor offers no 🗑
 		await expect(
 			canvas.queryByRole('button', {
 				name: 'Delete this drain rating',
@@ -751,7 +751,6 @@
 	}}
 />
 
-<!-- ⚡ is one number per day, so its editor amends rather than appends — and drops -->
 <Story
 	name="Clearing a time-to-flow"
 	args={{
@@ -762,6 +761,7 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// ⚡ is one number per day, so its editor amends rather than appends — and drops
 		await expect(canvas.getByPlaceholderText('min')).toHaveValue(40);
 
 		await userEvent.click(
@@ -791,14 +791,14 @@
 	}}
 />
 
-<!-- The tick asks for both: 🪫 is one per session, so a rating the day
-     already holds does not silence its prompt the way ⚡ silences its own -->
 <Story
 	name="Completion asks both"
 	args={{
 		drainLogs: [drainLog()],
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The tick asks for both: 🪫 is one per session, so a rating the day already holds does not
+		// silence its prompt the way ⚡ silences its own
 		await userEvent.click(
 			canvas.getByRole('checkbox', {
 				name: 'Mark write the calibration section complete',
@@ -810,7 +810,6 @@
 	}}
 />
 
-<!-- One reading, one cell, so a column can be compared between tasks. -->
 <Story
 	name="Every reading in its own cell"
 	args={{
@@ -824,6 +823,7 @@
 		optimalStopHours: 3.92,
 	}}
 	play={async ({ canvas }) => {
+		// One reading, one cell, so a column can be compared between tasks.
 		const cells = canvas.getAllByRole('cell');
 
 		expect(cells[CELL.physical].textContent?.trim()).toBe('0');
@@ -848,8 +848,6 @@
 	}}
 />
 
-<!-- 🪫 is one rating per session (MATH.md §8.7), so its chip count is unbounded and only
-     a flexible cell holds it — with the triggers, or the one-click rule breaks. -->
 <Story
 	name="Readings and triggers in the Logged cell"
 	args={{
@@ -867,6 +865,8 @@
 		],
 	}}
 	play={async ({ canvas }) => {
+		// 🪫 is one rating per session (MATH.md §8.7), so its chip count is unbounded and only a
+		// flexible cell holds it — with the triggers, or the one-click rule breaks.
 		const badge = canvas.getByRole('button', {
 			name: 'Correct this time to flow',
 		});
@@ -896,10 +896,10 @@
 	}}
 />
 
-<!-- Nothing logged is the state both instruments exist for, so both are offered -->
 <Story
 	name="Both instruments offered with nothing logged"
 	play={async ({ canvas }) => {
+		// Nothing logged is the state both instruments exist for, so both are offered
 		const logged = canvas.getAllByRole('cell')[CELL.logged];
 
 		expect(logged).toContainElement(
@@ -916,10 +916,10 @@
 	}}
 />
 
-<!-- 114px reserved to show nothing is only redeemed by a narrower always-visible one -->
 <Story
 	name="Actions reachable without hovering"
 	play={async ({ canvas }) => {
+		// 114px reserved to show nothing is only redeemed by a narrower always-visible one
 		for (const name of ['Edit task', 'Delete task']) {
 			await expect(
 				canvas.getByRole('button', {
@@ -930,8 +930,6 @@
 	}}
 />
 
-<!-- Completion opens both editors ("Completion asks both" pins that half); both land in
-     one spanning row under the task's own, which is why the shell is a `<tbody>`. -->
 <Story
 	name="Both measurement forms in one spanning row"
 	args={{
@@ -942,6 +940,8 @@
 		drainDraft: newDrainDraft('completion'),
 	}}
 	play={async ({ canvas }) => {
+		// Completion opens both editors ("Completion asks both" pins that half); both land in one
+		// spanning row under the task's own, which is why the shell is a `<tbody>`.
 		const rows = canvas.getAllByRole('row');
 
 		expect(rows).toHaveLength(2);
@@ -955,7 +955,6 @@
 	}}
 />
 
-<!-- ✎ stacks in the same spanning row, and the row keeps one line of cells -->
 <Story
 	name="The editor joins the spanning row"
 	args={{
@@ -966,6 +965,7 @@
 		drainDraft: newDrainDraft('completion'),
 	}}
 	play={async ({ canvas, userEvent }) => {
+		// ✎ stacks in the same spanning row, and the row keeps one line of cells
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Edit task',

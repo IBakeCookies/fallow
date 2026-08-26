@@ -21,12 +21,12 @@
 	});
 </script>
 
-<!-- The two verbs a FIT has: read what it was fitted from (on /analytics, which prints
-     every kind of log dated), and un-personalize it. The logs themselves are not here —
-     three cards listing their own kind was three partial answers to one question. -->
 <Story
 	name="With logs"
 	play={async ({ canvas }) => {
+		// The two verbs a FIT has: read what it was fitted from (on /analytics, which prints every kind
+		// of log dated), and un-personalize it. The logs themselves are not here — three cards listing
+		// their own kind was three partial answers to one question.
 		await expect(canvas.getByText('Personalized from 3 flow logs')).toBeVisible();
 
 		const link = canvas.getByRole('link');
@@ -38,8 +38,6 @@
 	}}
 />
 
-<!-- Nothing logged: the label is the whole card. No link, because there is nothing to
-     look at, and no reset, because there is nothing to un-personalize. -->
 <Story
 	name="Empty"
 	args={{
@@ -47,17 +45,19 @@
 		count: 0,
 	}}
 	play={async ({ canvas }) => {
+		// Nothing logged: the label is the whole card. No link, because there is nothing to look at,
+		// and no reset, because there is nothing to un-personalize.
 		await expect(canvas.getByText('Model uses default constants')).toBeVisible();
 		await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
 		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
 	}}
 />
 
-<!-- The reset is two steps, and the second one is what calls back. Cancel takes focus on
-     the way in, so a stray Enter after the first click lands on the safe half. -->
 <Story
 	name="Resetting"
 	play={async ({ args, canvas, userEvent }) => {
+		// The reset is two steps, and the second one is what calls back. Cancel takes focus on the way
+		// in, so a stray Enter after the first click lands on the safe half.
 		onreset.mockClear();
 
 		await userEvent.click(
@@ -97,27 +97,27 @@
 	}}
 />
 
-<!-- Omitting onreset leaves the reading and nothing else: the Lab's cards pass one, a
-     card with no fit of its own would not. -->
 <Story
 	name="Without reset"
 	args={{
 		onreset: undefined,
 	}}
 	play={async ({ canvas }) => {
+		// Omitting onreset leaves the reading and nothing else: the Lab's cards pass one, a card with
+		// no fit of its own would not.
 		await expect(canvas.getByRole('link')).toBeVisible();
 		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
 	}}
 />
 
-<!-- On `/analytics` the link points at the card the row is drawn in, so those three rows
-     turn it off; the three fit cards that keep it pass nothing. -->
 <Story
 	name="Without link"
 	args={{
 		withHistoryLink: false,
 	}}
 	play={async ({ canvas }) => {
+		// On `/analytics` the link points at the card the row is drawn in, so those three rows turn it
+		// off; the three fit cards that keep it pass nothing.
 		await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
 
 		// The rest of the row still renders — otherwise the assertion above passes on

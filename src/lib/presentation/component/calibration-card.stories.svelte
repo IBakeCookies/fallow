@@ -10,9 +10,6 @@
 	});
 </script>
 
-<!-- The drain card's shape: what has been logged, and what is not counted yet, under
-     an explained heading. The play function covers what the spec can't see rendered
-     statically: hovering the heading actually opens the hint tooltip (portalled to <body>). -->
 <Story
 	name="With a log count"
 	args={{
@@ -20,6 +17,9 @@
 		hint: 'Fits the two drain rates to your 🪫 end-of-session ratings, anchored to the defaults.',
 	}}
 	play={async ({ args, canvas, canvasElement, userEvent }) => {
+		// The drain card's shape: what has been logged, and what is not counted yet, under an explained
+		// heading. The play function covers what the spec can't see rendered statically: hovering the
+		// heading actually opens the hint tooltip (portalled to <body>).
 		const heading = canvas.getByRole('heading', {
 			name: args.title,
 		});
@@ -43,7 +43,6 @@
 	{/snippet}
 </Story>
 
-<!-- Nothing logged: the card says so and offers nothing to apply -->
 <Story
 	name="Empty"
 	args={{
@@ -51,6 +50,7 @@
 		hint: 'Fits the value of free time to the days you chose to stop.',
 	}}
 	play={async ({ canvas }) => {
+		// Nothing logged: the card says so and offers nothing to apply
 		await expect(canvas.getByText(/No finished days yet/)).toBeVisible();
 		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
 	}}
@@ -66,7 +66,6 @@
 	{/snippet}
 </Story>
 
-<!-- The recovery card is the only one with an action: ☕ opens the rest editor -->
 <Story
 	name="With an action"
 	args={{
@@ -74,6 +73,7 @@
 		hint: 'Fits the recovery rate to your ☕ pre/post-rest rating pairs.',
 	}}
 	play={async ({ canvas }) => {
+		// The recovery card is the only one with an action: ☕ opens the rest editor
 		await expect(
 			canvas.getByRole('button', {
 				name: /log a rest/i,

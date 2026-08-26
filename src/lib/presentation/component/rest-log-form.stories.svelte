@@ -10,11 +10,6 @@
 	});
 </script>
 
-<!-- The ☕ editor, as it appears inside the recovery calibration card: minutes rested
-     and both capacities rated before and after. Every field is required — a blank
-     "after" would enter the §8.9 fit as a break that left you at zero. The play walks
-     the policy: the caret starts in the length field, ✕ discards without reporting,
-     no length and blank afters both refuse, and minutes report as hours. -->
 <Story
 	name="Open"
 	args={{
@@ -22,6 +17,11 @@
 		oncancel: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The ☕ editor, as it appears inside the recovery calibration card: minutes rested and both
+		// capacities rated before and after. Every field is required — a blank "after" would enter the
+		// §8.9 fit as a break that left you at zero. The play walks the policy: the caret starts in the
+		// length field, ✕ discards without reporting, no length and blank afters both refuse, and
+		// minutes report as hours.
 		const minutes = canvas.getByPlaceholderText('min');
 		// "before"/"after" is visual grouping, not accessible grouping, so both Mind
 		// fields answer to the same name — first is before, second after
@@ -78,10 +78,6 @@
 	}}
 />
 
-<!-- Correcting a stored break, from the analytics history — ☕ has no task and so no
-     row on either screen, which makes that list its only editor. The
-     same form seeded; what it saves is the same shape, since a correction rewrites
-     exactly the five numbers this asks for. -->
 <Story
 	name="Correcting a stored break"
 	args={{
@@ -96,6 +92,9 @@
 		oncancel: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Correcting a stored break, from the analytics history — ☕ has no task and so no row on either
+		// screen, which makes that list its only editor. The same form seeded; what it saves is the
+		// same shape, since a correction rewrites exactly the five numbers this asks for.
 		const minutes = canvas.getByPlaceholderText('min');
 		const [mindBefore, mindAfter] = canvas.getAllByLabelText('Mind');
 		const [bodyBefore, bodyAfter] = canvas.getAllByLabelText('Body');

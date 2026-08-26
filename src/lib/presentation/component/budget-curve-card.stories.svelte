@@ -73,15 +73,15 @@
 	});
 </script>
 
-<!-- Before the sweep: the card reads as itself, with a line saying the reading
-     has not been taken and its run button in its own header. No chart, because a
-     placeholder shape is a claim about an answer nobody has computed. -->
 <Story
 	name="Unasked"
 	args={{
 		curve: null,
 	}}
 	play={async ({ args, canvas }) => {
+		// Before the sweep: the card reads as itself, with a line saying the reading has not been taken
+		// and its run button in its own header. No chart, because a placeholder shape is a claim about
+		// an answer nobody has computed.
 		await expect(canvas.getByText('How long should today be?')).toBeVisible();
 		await expect(canvas.getByText('No window has been priced for this day yet.')).toBeVisible();
 
@@ -98,8 +98,6 @@
 	}}
 />
 
-<!-- The first sweep threw, so there is no curve behind the banner, and the
-     banner reads inside the card. -->
 <Story
 	name="First sweep failed"
 	args={{
@@ -107,6 +105,8 @@
 		hasError: true,
 	}}
 	play={async ({ canvas }) => {
+		// The first sweep threw, so there is no curve behind the banner, and the banner reads inside
+		// the card.
 		await expect(canvas.getByText('The sweep failed. Try again.')).toBeVisible();
 
 		await expect(
@@ -117,15 +117,15 @@
 	}}
 />
 
-<!-- Resweeping: the previous curve is still on screen, so unlike the first run
-     this state HAS an apply button — holding a recommendation the run in flight is
-     about to replace. The chart stays readable; the lever does not stay live. -->
 <Story
 	name="Resolving over a curve"
 	args={{
 		isBusy: true,
 	}}
 	play={async ({ canvas }) => {
+		// Resweeping: the previous curve is still on screen, so unlike the first run this state HAS an
+		// apply button — holding a recommendation the run in flight is about to replace. The chart
+		// stays readable; the lever does not stay live.
 		await expect(canvas.getByText(/Past 3h 45m/)).toBeInTheDocument();
 
 		await expect(
@@ -136,10 +136,10 @@
 	}}
 />
 
-<!-- The curve reaches break-even: there is a window to recommend, and it is applyable. -->
 <Story
 	name="Reaches break-even"
 	play={async ({ canvas, canvasElement, args }) => {
+		// The curve reaches break-even: there is a window to recommend, and it is applyable.
 		await expect(
 			canvas.getByText(/Past 3h 45m another hour of your day adds nothing/),
 		).toBeInTheDocument();
@@ -174,14 +174,14 @@
 	}}
 />
 
-<!-- The honest branch, and the common one at an uncalibrated λ₀: break-even is never
-     reached inside the swept range, and the hint names the parameter that moves it. -->
 <Story
 	name="Never reaches break-even"
 	args={{
 		curve: noCrossing,
 	}}
 	play={async ({ canvas }) => {
+		// The honest branch, and the common one at an uncalibrated λ₀: break-even is never reached
+		// inside the swept range, and the hint names the parameter that moves it.
 		await expect(canvas.getByText(/would use every hour you give it/)).toBeInTheDocument();
 		// λ₀ is reported as a price the curve already charges — never as a line to
 		// read the curve against, which would charge it twice (MATH.md §8.12).
@@ -199,16 +199,16 @@
 	}}
 />
 
-<!-- The other null, and the exact inverse reading of the one above: at this λ₀ the
-     model books nothing at any length. Told apart from "still climbing" by the zero
-     work, never by the null alone — seeded from -Infinity this branch used to come
-     back recommending 45 minutes that book 0h of work (MATH.md §8.12). -->
 <Story
 	name="No window is worth working"
 	args={{
 		curve: noWork,
 	}}
 	play={async ({ canvas }) => {
+		// The other null, and the exact inverse reading of the one above: at this λ₀ the model books
+		// nothing at any length. Told apart from "still climbing" by the zero work, never by the null
+		// alone — seeded from -Infinity this branch used to come back recommending 45 minutes that book
+		// 0h of work (MATH.md §8.12).
 		await expect(canvas.getByText(/no day window is worth working/)).toBeInTheDocument();
 		await expect(canvas.getByText(/books nothing at any length/)).toBeInTheDocument();
 
@@ -234,15 +234,15 @@
 	}}
 />
 
-<!-- The reader's window past the swept cap: there is no honest place to draw the
-     locator, so the legend names the window and the cap in words rather than going
-     silently missing (docs/testing.md). -->
 <Story
 	name="Window past the cap"
 	args={{
 		currentBudget: 9,
 	}}
 	play={async ({ canvas }) => {
+		// The reader's window past the swept cap: there is no honest place to draw the locator, so the
+		// legend names the window and the cap in words rather than going silently missing
+		// (docs/testing.md).
 		await expect(
 			canvas.getByText('Your window now is 9h, past the 6h checked here'),
 		).toBeInTheDocument();

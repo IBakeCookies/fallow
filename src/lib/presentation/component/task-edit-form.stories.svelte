@@ -21,11 +21,11 @@
 	});
 </script>
 
-<!-- Opened on a task: seeded with what is stored, and Save reports every field at
-     once — the two screens that mount this both hand the result to `updateTask`. -->
 <Story
 	name="Default"
 	play={async ({ args, canvas, userEvent }) => {
+		// Opened on a task: seeded with what is stored, and Save reports every field at once — the two
+		// screens that mount this both hand the result to `updateTask`.
 		const title = canvas.getByRole('textbox');
 		await expect(title).toHaveValue(args.seed.title);
 
@@ -61,10 +61,10 @@
 	}}
 />
 
-<!-- A blank title is not an edit: Save is out of reach until there is one back -->
 <Story
 	name="Title cleared"
 	play={async ({ args, canvas, userEvent }) => {
+		// A blank title is not an edit: Save is out of reach until there is one back
 		const title = canvas.getByRole('textbox');
 
 		await userEvent.clear(title);
@@ -87,7 +87,6 @@
 	}}
 />
 
-<!-- The flag round-trips: an edit that never touches it must not clear it -->
 <Story
 	name="Must-do task"
 	args={{
@@ -100,6 +99,7 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The flag round-trips: an edit that never touches it must not clear it
 		await expect(canvas.getByRole('checkbox')).toBeChecked();
 
 		await userEvent.click(
@@ -112,9 +112,6 @@
 	}}
 />
 
-<!-- In the Energy Lab: no must-do checkbox, because the plan advisor that reads the
-     flag is the main page's. The seeded value still has to reach `onsave` — a hidden
-     control is not the user answering "no". -->
 <Story
 	name="Without the must-do flag"
 	args={{
@@ -128,6 +125,9 @@
 		withMustDoToday: false,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// In the Energy Lab: no must-do checkbox, because the plan advisor that reads the flag is the
+		// main page's. The seeded value still has to reach `onsave` — a hidden control is not the user
+		// answering "no".
 		await expect(canvas.queryByRole('checkbox')).not.toBeInTheDocument();
 
 		await userEvent.click(

@@ -41,11 +41,11 @@
 	});
 </script>
 
-<!-- The week view, with both of the cases that read alike if the geometry is wrong:
-     Sunday is a real 0% (a 2px stub) and Tuesday is unrecorded (nothing at all) -->
 <Story
 	name="Week"
 	play={async ({ args, canvas, canvasElement }) => {
+		// The week view, with both of the cases that read alike if the geometry is wrong: Sunday is a
+		// real 0% (a 2px stub) and Tuesday is unrecorded (nothing at all)
 		// The aria-label is the plot's only accessible name
 		await expect(
 			canvas.getByRole('img', {
@@ -80,8 +80,6 @@
 	{/snippet}
 </Story>
 
-<!-- 30 slots: the bars narrow to the 65%-of-slot rule and only every fifth label
-     is drawn, which is the width this axis was tuned for -->
 <Story
 	name="Month"
 	args={{
@@ -89,6 +87,8 @@
 		ariaLabel: 'Completion rate over the last 30 days',
 	}}
 	play={async ({ canvasElement }) => {
+		// 30 slots: the bars narrow to the 65%-of-slot rule and only every fifth label is drawn, which
+		// is the width this axis was tuned for
 		// Only the labels the axis asked for are printed
 		const labels = [...canvasElement.querySelectorAll('text')].map((node) =>
 			node.textContent?.trim(),
@@ -106,10 +106,10 @@
 	{/snippet}
 </Story>
 
-<!-- Wide slots cap the bar at 24px rather than letting it become a block -->
 <Story
 	name="Two slots"
 	args={{
+		// Wide slots cap the bar at 24px rather than letting it become a block
 		points: week([80, 45]).slice(0, 2),
 		ariaLabel: 'Completion rate',
 	}}
@@ -121,11 +121,10 @@
 	{/snippet}
 </Story>
 
-<!-- Nothing recorded anywhere: the axis stays, so the plot reads as empty rather
-     than broken -->
 <Story
 	name="No data in any slot"
 	args={{
+		// Nothing recorded anywhere: the axis stays, so the plot reads as empty rather than broken
 		points: week([null, null, null, null, null, null, null]),
 		ariaLabel: 'Completion rate over the last 7 days',
 	}}
@@ -137,7 +136,6 @@
 	{/snippet}
 </Story>
 
-<!-- No slots at all — the range has not resolved yet -->
 <Story
 	name="Empty"
 	args={{
@@ -145,6 +143,7 @@
 		ariaLabel: 'Completion rate',
 	}}
 	play={async ({ canvasElement }) => {
+		// No slots at all — the range has not resolved yet
 		await expect(canvasElement.querySelectorAll('path.fill-brand')).toHaveLength(0);
 		await expect(canvasElement.querySelectorAll('rect')).toHaveLength(0);
 

@@ -156,13 +156,13 @@
 	});
 </script>
 
-<!-- The search costs a full solve per candidate, so the reading waits, not the card. -->
 <Story
 	name="Not calculated yet"
 	args={{
 		advice: null,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The search costs a full solve per candidate, so the reading waits, not the card.
 		await expect(canvas.getByText('Adjust the plan')).toBeVisible();
 		await expect(canvas.getByText('Nothing has been priced for this day yet.')).toBeVisible();
 
@@ -179,11 +179,11 @@
 	}}
 />
 
-<!-- Every option must show the reading it produces AND what it costs — an
-     improvement with its price hidden is the advice this feature exists to avoid. -->
 <Story
 	name="Findings"
 	play={async ({ args, canvas, userEvent }) => {
+		// Every option must show the reading it produces AND what it costs — an improvement with its
+		// price hidden is the advice this feature exists to avoid.
 		await expect(canvas.getByText('Burnout Risk')).toBeVisible();
 		await expect(canvas.getByText('82%')).toBeVisible();
 		await expect(canvas.getByText('Move “Tax return” off today')).toBeVisible();
@@ -274,7 +274,6 @@
 	}}
 />
 
-<!-- A second request is blocked while the search is running. -->
 <Story
 	name="Solving"
 	args={{
@@ -282,6 +281,7 @@
 		isBusy: true,
 	}}
 	play={async ({ canvas }) => {
+		// A second request is blocked while the search is running.
 		await expect(
 			canvas.getByRole('button', {
 				name: 'Solving…',
@@ -292,7 +292,6 @@
 	}}
 />
 
-<!-- The first check threw: the banner reads inside the card, with no reading behind it. -->
 <Story
 	name="First check failed"
 	args={{
@@ -300,6 +299,7 @@
 		hasError: true,
 	}}
 	play={async ({ canvas }) => {
+		// The first check threw: the banner reads inside the card, with no reading behind it.
 		const banner = canvas.getByText('The check failed. Try again.');
 
 		await expect(banner).toBeVisible();
@@ -313,13 +313,13 @@
 	}}
 />
 
-<!-- The day was edited after the advice was calculated. -->
 <Story
 	name="Stale"
 	args={{
 		isStale: true,
 	}}
 	play={async ({ canvas }) => {
+		// The day was edited after the advice was calculated.
 		await expect(canvas.getByText('Your day has changed since this was calculated.')).toBeVisible();
 
 		// The numbers stay; the levers do not. Each option is priced as the ONE next
@@ -348,16 +348,14 @@
 	}}
 />
 
-<!-- The last check threw; the advice shown predates the failure. -->
 <Story
 	name="Error"
 	args={{
+		// The last check threw; the advice shown predates the failure.
 		hasError: true,
 	}}
 />
 
-<!-- A destination read that answered nothing (refused, or failed) prints no line at
-     all — the advice beside it is priced on today and still correct. -->
 <Story
 	name="Nothing to fix"
 	args={{
@@ -371,6 +369,8 @@
 		destination: null,
 	}}
 	play={async ({ canvas }) => {
+		// A destination read that answered nothing (refused, or failed) prints no line at all — the
+		// advice beside it is priced on today and still correct.
 		await expect(
 			canvas.getByText('Nothing reads badly enough to act on. This day is fine.'),
 		).toBeVisible();
@@ -383,10 +383,6 @@
 	}}
 />
 
-<!-- A day of nothing but cognitive tasks: Energy Balance reads 100% and no lever
-     moves it, since the share is invariant under both. The row has to appear
-     anyway — silence here is what let the card call such a day fine while the
-     dashboard banded the same reading Caution. -->
 <Story
 	name="An axis nothing can improve"
 	args={{
@@ -407,6 +403,9 @@
 		},
 	}}
 	play={async ({ canvas }) => {
+		// A day of nothing but cognitive tasks: Energy Balance reads 100% and no lever moves it, since
+		// the share is invariant under both. The row has to appear anyway — silence here is what let
+		// the card call such a day fine while the dashboard banded the same reading Caution.
 		await expect(canvas.getByText('Cognitive Heavy 100%')).toBeVisible();
 		await expect(canvas.getByText('(Caution)')).toBeInTheDocument();
 
@@ -428,14 +427,13 @@
 	}}
 />
 
-<!-- Identical words, distinct levers: the card renders both and applies each by
-     its task id. -->
 <Story
 	name="Two tasks share a title"
 	args={{
 		advice: sharedTitle,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Identical words, distinct levers: the card renders both and applies each by its task id.
 		const applies = canvas.getAllByRole('button', {
 			name: 'Move “Email” to tomorrow',
 		});
@@ -448,8 +446,6 @@
 	}}
 />
 
-<!-- Unfunded is a read, not a band: every axis can be in band (`rows: []`) while
-     work still gets no hours — and "this day is fine" printed under that negates it. -->
 <Story
 	name="Only an unfunded read"
 	args={{
@@ -463,6 +459,8 @@
 		},
 	}}
 	play={async ({ canvas }) => {
+		// Unfunded is a read, not a band: every axis can be in band (`rows: []`) while work still gets
+		// no hours — and "this day is fine" printed under that negates it.
 		await expect(canvas.getByText('2 tasks get no hours in this plan.')).toBeVisible();
 
 		await expect(
@@ -471,8 +469,6 @@
 	}}
 />
 
-<!-- Each read alone, because the gate must check both: a day whose only unfunded
-     task is pinned reports nothing in `unfunded`. -->
 <Story
 	name="Only a pinned unfunded read"
 	args={{
@@ -486,6 +482,8 @@
 		},
 	}}
 	play={async ({ canvas }) => {
+		// Each read alone, because the gate must check both: a day whose only unfunded task is pinned
+		// reports nothing in `unfunded`.
 		await expect(
 			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
 		).toBeVisible();
@@ -496,7 +494,6 @@
 	}}
 />
 
-<!-- A ninth axis, and no markup of its own. -->
 <Story
 	name="Flow coverage"
 	args={{
@@ -532,6 +529,7 @@
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// A ninth axis, and no markup of its own.
 		await expect(canvas.getByText('Flow Coverage')).toBeVisible();
 		await expect(canvas.getByText('60%')).toBeVisible();
 		await expect(canvas.getByText('Move “Design error boundary” off today')).toBeVisible();

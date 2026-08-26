@@ -10,11 +10,11 @@
 	});
 </script>
 
-<!-- Imprint and privacy must be directly reachable from every page (§5 DDG);
-     the Ko-fi link leaves the app, so it opens a new tab -->
 <Story
 	name="Default"
 	play={async ({ canvas }) => {
+		// Imprint and privacy must be directly reachable from every page (§5 DDG); the Ko-fi link
+		// leaves the app, so it opens a new tab
 		await expect(
 			canvas.getByRole('link', {
 				name: 'Imprint',

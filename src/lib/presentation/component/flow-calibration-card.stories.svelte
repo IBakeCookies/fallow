@@ -15,11 +15,11 @@
 	});
 </script>
 
-<!-- A healthy fit, beside the two verbs a fit has: read the logs it used (on
-     /analytics, which prints every kind of log dated) and un-personalize it. -->
 <Story
 	name="Personalized"
 	play={async ({ args, canvas, userEvent }) => {
+		// A healthy fit, beside the two verbs a fit has: read the logs it used (on /analytics, which
+		// prints every kind of log dated) and un-personalize it.
 		await expect(canvas.getByText('3')).toBeVisible();
 		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
 
@@ -46,32 +46,29 @@
 	}}
 />
 
-<!-- The healthy-fit status has a singular form, and so does the headline's label. -->
 <Story
 	name="A single log"
 	args={{
 		logCount: 1,
 	}}
 	play={async ({ canvas }) => {
+		// The healthy-fit status has a singular form, and so does the headline's label.
 		await expect(canvas.getByText('time-to-flow log')).toBeVisible();
 		await expect(canvas.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
 	}}
 />
 
-<!-- Logs present but the fit was rejected: the loud state. -->
 <Story
 	name="A rejected fit"
 	args={{
 		constantsFitted: false,
 	}}
 	play={async ({ canvas }) => {
+		// Logs present but the fit was rejected: the loud state.
 		await expect(canvas.getByText(/Your 3 flow logs produced an implausible fit/)).toBeVisible();
 	}}
 />
 
-<!-- Nothing is wrong, there is just nothing logged. This line is the only place in
-     the app that says ⚡ exists, so it has to be legible at `text-ty-silent` on a
-     card in every theme — which is what the a11y addon checks here. -->
 <Story
 	name="Nothing logged"
 	args={{
@@ -80,6 +77,9 @@
 		onresetlogs: undefined,
 	}}
 	play={async ({ canvas }) => {
+		// Nothing is wrong, there is just nothing logged. This line is the only place in the app that
+		// says ⚡ exists, so it has to be legible at `text-ty-silent` on a card in every theme — which
+		// is what the a11y addon checks here.
 		await expect(canvas.getByText(/Model uses default constants/)).toHaveClass('text-ty-silent');
 
 		// Nothing to reset, so neither verb is offered.
@@ -87,9 +87,6 @@
 	}}
 />
 
-<!-- A log made today is on the page but not in the plan, so the headline count
-     and the fit's count differ — the sentence has to print the one the fit
-     used, and name the other. -->
 <Story
 	name="A log the plan defers"
 	args={{
@@ -97,6 +94,8 @@
 		pendingLogs: 1,
 	}}
 	play={async ({ canvas, userEvent }) => {
+		// A log made today is on the page but not in the plan, so the headline count and the fit's
+		// count differ — the sentence has to print the one the fit used, and name the other.
 		// Three, not the four the headline counts.
 		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
 		await expect(canvas.getByText(/1 ⚡ logged today/)).toBeVisible();
@@ -112,9 +111,6 @@
 	}}
 />
 
-<!-- Day one: every log is deferred, so there is no fit to describe. The deferral
-     line REPLACES the "log ⚡ to start personalizing" prompt, which would
-     otherwise ask the user to do the thing they have just done. -->
 <Story
 	name="Every log deferred"
 	args={{
@@ -123,6 +119,9 @@
 		pendingLogs: 1,
 	}}
 	play={async ({ canvas }) => {
+		// Day one: every log is deferred, so there is no fit to describe. The deferral line REPLACES
+		// the "log ⚡ to start personalizing" prompt, which would otherwise ask the user to do the thing
+		// they have just done.
 		await expect(canvas.getByText(/1 ⚡ logged today/)).toBeVisible();
 		await expect(canvas.queryByText(/to start personalizing/)).not.toBeInTheDocument();
 	}}

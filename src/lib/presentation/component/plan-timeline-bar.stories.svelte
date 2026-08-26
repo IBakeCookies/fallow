@@ -29,8 +29,6 @@
 	});
 </script>
 
-<!-- A worked day: two sessions around a break, planned to the end of the window.
-     The 1e-9 tail is the optimizer's floating-point dust, not free time. -->
 <Story
 	name="Full window"
 	args={{
@@ -45,6 +43,8 @@
 		colors,
 	}}
 	play={async ({ canvas }) => {
+		// A worked day: two sessions around a break, planned to the end of the window. The 1e-9 tail is
+		// the optimizer's floating-point dust, not free time.
 		// A block's width IS its share of the day window, named by offsets and duration
 		await expect(canvas.getByTitle('boxing — 0h–2h 15m (2h 15m)')).toHaveAttribute(
 			'style',
@@ -76,7 +76,6 @@
 	}}
 />
 
-<!-- The optimizer stopped before the day did: the tail is free time, unfilled -->
 <Story
 	name="With free time"
 	args={{
@@ -86,13 +85,12 @@
 		colors,
 	}}
 	play={async ({ canvas }) => {
+		// The optimizer stopped before the day did: the tail is free time, unfilled
 		await expect(canvas.getByTitle('Free time — 3h')).toBeInTheDocument();
 		await expect(canvas.getByText('free')).toBeVisible();
 	}}
 />
 
-<!-- Blocks under ~7% of the day carry no label — it would render as an ellipsis.
-     The tooltip still names them. -->
 <Story
 	name="Slivers"
 	args={{
@@ -106,6 +104,8 @@
 		colors,
 	}}
 	play={async ({ canvas }) => {
+		// Blocks under ~7% of the day carry no label — it would render as an ellipsis. The tooltip
+		// still names them.
 		expect(canvas.queryByText('boxing')).not.toBeInTheDocument();
 		expect(canvas.queryByText('inbox')).not.toBeInTheDocument();
 		await expect(canvas.getByTitle(/inbox/)).toBeInTheDocument();

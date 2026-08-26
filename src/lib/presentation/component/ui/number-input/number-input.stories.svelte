@@ -32,8 +32,6 @@
 	{/snippet}
 </Story>
 
-<!-- The steppers report in the field's own increments; the component is controlled,
-     so with nothing writing the value back both steps start from the same 6 -->
 <Story
 	name="Stepping"
 	args={{
@@ -42,6 +40,8 @@
 		onchange: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The steppers report in the field's own increments; the component is controlled, so with
+		// nothing writing the value back both steps start from the same 6
 		await userEvent.click(
 			canvas.getByRole('button', {
 				name: 'Increase',
@@ -61,10 +61,10 @@
 	}}
 />
 
-<!-- At the minimum the − stepper disables; the field itself stays editable -->
 <Story
 	name="At minimum"
 	args={{
+		// At the minimum the − stepper disables; the field itself stays editable
 		min: 0,
 		max: 60,
 		step: 5,

@@ -8,9 +8,16 @@
 		component: TooltipRoot,
 		tags: ['autodocs'],
 	});
+
+	// <Story name="Default"> — The metric-label pattern: a dotted-underline trigger, tooltip to the
+	// side
+
+	// <Story name="Open"> — Open on mount, so the content itself is reviewable without hovering
+
+	// <Story name="Delayed, custom trigger element"> — delayDuration on the provider, longer than its
+	// 150 default; `child` lets the trigger be any element
 </script>
 
-<!-- The metric-label pattern: a dotted-underline trigger, tooltip to the side -->
 <Story name="Default" asChild>
 	<Tooltip.Provider>
 		<Tooltip.Root>
@@ -24,7 +31,6 @@
 	</Tooltip.Provider>
 </Story>
 
-<!-- Open on mount, so the content itself is reviewable without hovering -->
 <Story name="Open" asChild>
 	<Tooltip.Provider>
 		<Tooltip.Root open>
@@ -38,8 +44,6 @@
 	</Tooltip.Provider>
 </Story>
 
-<!-- delayDuration on the provider, longer than its 150 default; `child` lets the
-     trigger be any element -->
 <Story name="Delayed, custom trigger element" asChild>
 	<Tooltip.Provider delayDuration={600}>
 		<Tooltip.Root>

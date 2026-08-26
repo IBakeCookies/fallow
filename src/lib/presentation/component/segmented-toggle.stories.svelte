@@ -29,10 +29,10 @@
 	});
 </script>
 
-<!-- The analytics range picker: on the page, so its own backdrop-blur -->
 <Story
 	name="Segment tone"
 	play={async ({ args, canvas, userEvent }) => {
+		// The analytics range picker: on the page, so its own backdrop-blur
 		// A named group, so the buttons are not three unrelated switches
 		await expect(
 			canvas.getByRole('group', {
@@ -73,21 +73,21 @@
 	}}
 />
 
-<!-- axe only ever sees a story's REST state, so the middle option being selected is
-     not cosmetic: it puts an inactive pill on either side of an active one, which is
-     the pairing whose contrast the addon then checks on every theme. -->
 <Story
 	name="Segment tone, middle selected"
 	args={{
+		// axe only ever sees a story's REST state, so the middle option being selected is not cosmetic:
+		// it puts an inactive pill on either side of an active one, which is the pairing whose contrast
+		// the addon then checks on every theme.
 		value: 'month',
 	}}
 />
 
-<!-- The Energy Lab's chart/schedule switch: nested inside an already-blurred card,
-     so a step off the card fill rather than a second blur -->
 <Story
 	name="Plan tone"
 	args={{
+		// The Energy Lab's chart/schedule switch: nested inside an already-blurred card, so a step off
+		// the card fill rather than a second blur
 		tone: 'plan',
 		label: 'Plan view',
 		value: 'chart',
@@ -104,8 +104,6 @@
 	}}
 />
 
-<!-- The calendar's view names are lowercase copy, capitalized in the markup:
-     `itemClass` reaches every option's button -->
 <Story
 	name="Two options, capitalized"
 	args={{
@@ -124,6 +122,8 @@
 		],
 	}}
 	play={async ({ canvas }) => {
+		// The calendar's view names are lowercase copy, capitalized in the markup: `itemClass` reaches
+		// every option's button
 		for (const name of [/^month$/i, /^week$/i]) {
 			await expect(
 				canvas.getByRole('button', {

@@ -17,10 +17,10 @@
 	});
 </script>
 
-<!-- The readout under the chart: what the plan is worth, and what it cost -->
 <Story
 	name="Ahead of the classic plan"
 	play={async ({ canvas }) => {
+		// The readout under the chart: what the plan is worth, and what it cost
 		// The objective the plan was optimized for: output, end energy, work time
 		await expect(canvas.getByText('12.4')).toBeInTheDocument();
 		await expect(canvas.getByText('42% / 71%')).toBeInTheDocument();
@@ -47,14 +47,14 @@
 	}}
 />
 
-<!-- A gap under half a point. `Math.round` hands the tile -0 for a small LOSS,
-     and -0 >= 0, so the old two-way sign painted a beaten plan green with a '+'. -->
 <Story
 	name="Level with the classic plan"
 	args={{
 		valueVsClassic: -0,
 	}}
 	play={async ({ canvas }) => {
+		// A gap under half a point. `Math.round` hands the tile -0 for a small LOSS, and -0 >= 0, so
+		// the old two-way sign painted a beaten plan green with a '+'.
 		const tie = canvas.getByText('0%');
 		await expect(tie).toHaveClass('text-ty-primary');
 		// No '+': a tie is not a win
@@ -62,21 +62,19 @@
 	}}
 />
 
-<!-- The classic allocator has no plan today, so there is nothing to compare -->
 <Story
 	name="No comparison"
 	args={{
 		valueVsClassic: null,
 	}}
 	play={async ({ canvas }) => {
+		// The classic allocator has no plan today, so there is nothing to compare
 		// No rival plan is not "0% better"
 		await expect(canvas.getByText('—')).toBeInTheDocument();
 		await expect(canvas.getByText('No classic plan to compare')).toBeInTheDocument();
 	}}
 />
 
-<!-- The energy reading floors rather than rounds: on a depletion number, 100%
-     has to mean untouched, and `Math.round` printed it from 0.995 up. -->
 <Story
 	name="Nearly, but not quite, untouched"
 	args={{
@@ -84,6 +82,8 @@
 		endPhys: 1,
 	}}
 	play={async ({ canvas }) => {
+		// The energy reading floors rather than rounds: on a depletion number, 100% has to mean
+		// untouched, and `Math.round` printed it from 0.995 up.
 		await expect(canvas.getByText('99% / 100%')).toBeInTheDocument();
 	}}
 />

@@ -14,10 +14,13 @@
 	// Story-local so the checked/selected states are actually clickable
 	let includeCompleted = $state(true);
 	let range = $state('7d');
+
+	// <Story name="Trigger"> — The trigger IS a Button: `variant` and `size` are Button's own, and
+	// default to outline/sm so every dropdown in the app matches.
+
+	// <Story name="Icon trigger"> — Icon-only, as the layout's data menu
 </script>
 
-<!-- The trigger IS a Button: `variant` and `size` are Button's own, and
-     default to outline/sm so every dropdown in the app matches. -->
 <Story name="Trigger" asChild>
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger>Load</DropdownMenu.Trigger>
@@ -34,7 +37,6 @@
 	</DropdownMenu.Root>
 </Story>
 
-<!-- Icon-only, as the layout's data menu -->
 <Story name="Icon trigger" asChild>
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger size="icon-sm" aria-label="Data menu">☰</DropdownMenu.Trigger>

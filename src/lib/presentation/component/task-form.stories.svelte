@@ -468,6 +468,7 @@
 		suggest: fn(suggestLong),
 	}}
 	play={async ({ canvas, userEvent }) => {
+		// The default canvas is wide enough to fit these titles whole and would prove nothing
 		const title = canvas.getByLabelText('Task Definition');
 
 		await userEvent.type(title, 'gym');
@@ -485,20 +486,19 @@
 	}}
 >
 	{#snippet template(args)}
-		<!-- The default canvas is wide enough to fit these titles whole and would prove nothing -->
 		<div class="max-w-sm">
 			<TaskForm {...args} />
 		</div>
 	{/snippet}
 </Story>
 
-<!-- The Lab's copy: same fields, no must-do flag, and deploying still reports unflagged -->
 <Story
 	name="Without the must-do flag"
 	args={{
 		withMustDoToday: false,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// The Lab's copy: same fields, no must-do flag, and deploying still reports unflagged
 		await expect(canvas.queryByLabelText('Keep on today')).not.toBeInTheDocument();
 
 		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Deep work');
@@ -519,12 +519,12 @@
 	}}
 />
 
-<!-- Reading order and tab order are now the same list, top to bottom, because the
-     dialog gave the form the room to be a plain stack — the `order-*` that used to
-     hoist Deploy onto the title's line is gone, and this is what says so. -->
 <Story
 	name="The controls are tabbed in reading order"
 	play={async ({ canvas, userEvent }) => {
+		// Reading order and tab order are now the same list, top to bottom, because the dialog gave the
+		// form the room to be a plain stack — the `order-*` that used to hoist Deploy onto the title's
+		// line is gone, and this is what says so.
 		const expected = [
 			canvas.getByRole('slider', {
 				name: /Physical Diff/,
