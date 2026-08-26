@@ -2,16 +2,19 @@
  * The SHAPE of what `suggestBudgetCurve` hands the chart — the measurement
  * behind §8.12's "why the marginal is a hull slope and not a step difference".
  *
- * `plan(b)` books whole §8.8 steps, so `dayValue` is a staircase. Both arms are
+ * `plan(b)` books whole §8.8 steps, so `dayValue` is a staircase. Every arm is
  * measured here over the same 60 days, so the comparison is reproducible rather
  * than remembered:
  *
- *   RAW      — the step difference of `dayValue`, which is what first shipped.
- *              Reconstructed here from `dayValue` itself; the model no longer
- *              computes it.
+ *   RAW      — the step difference of `dayValue`, the marginal the majorant
+ *              replaced. Reconstructed from `dayValue` itself; the model no
+ *              longer computes it.
  *   MAJORANT — the shipped `valuePerHour`, and the three properties §8.12's copy
  *              rests on: non-increasing, last-positive-step == recommendation,
  *              and telescoping to the level.
+ *   SENTINEL — the rejected seeding of the level, `-Infinity` in place of the
+ *              do-nothing day, run per λ₀ off its own sweep: what it recommends
+ *              on the days it disagrees, and that it disagrees nowhere else.
  *
  * It also re-measures the two λ₀-line figures §8.12 quotes, and how often each λ₀
  * lands on the "no window is worth working" branch.
@@ -23,11 +26,14 @@ import { describe, it } from 'vitest';
 import {
 	BUDGET_CURVE_MAX_HOURS,
 	DEFAULT_ENERGY_PARAMS,
+	DEFAULT_STEP_HOURS,
 	evaluateSchedule,
+	optimizeSchedule,
 	suggestBudgetCurve,
 } from '$lib/business/model/zenith-energy';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import type { EnergyParams, EnergyTaskInput } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
 function mulberry32(seed: number): () => number {
@@ -42,7 +48,7 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-const STEP = 0.75;
+const STEP = DEFAULT_STEP_HOURS;
 
 function drawDays(count: number, seed: number): Task[][] {
 	const random = mulberry32(seed);
@@ -68,6 +74,48 @@ function drawDays(count: number, seed: number): Task[][] {
 				}),
 			),
 	);
+}
+
+/**
+ * The SENTINEL arm's sweep: the same lattice and the same common-horizon
+ * scoring as `suggestBudgetCurve`, with the level seeded from `-Infinity`
+ * rather than from the do-nothing day, and the budget it names. The shipped
+ * level floors at do-nothing, so this cannot be read back off `dayValue` the
+ * way the RAW arm is — it takes its own solves.
+ */
+function reconstructSeededKnee(
+	tasks: EnergyTaskInput[],
+	params: EnergyParams,
+): {
+	budgetHours: number | null;
+	workHours: number;
+} {
+	let best = -Infinity;
+	let budgetHours: number | null = null;
+	let workHours = 0;
+
+	for (let budget = STEP; budget <= BUDGET_CURVE_MAX_HOURS + 1e-9; budget += STEP) {
+		const plan = optimizeSchedule(tasks, budget, params, DEFAULT_USER_CONSTANTS);
+
+		const scored = evaluateSchedule(
+			plan.blocks,
+			tasks,
+			BUDGET_CURVE_MAX_HOURS,
+			params,
+			DEFAULT_USER_CONSTANTS,
+		).objective;
+
+		if (scored > best) {
+			best = scored;
+			budgetHours = budget;
+			workHours = plan.evaluation.workHours;
+		}
+	}
+
+	return {
+		budgetHours,
+		workHours,
+	};
 }
 
 describe('budget curve shape', () => {
@@ -241,25 +289,66 @@ describe('budget curve shape', () => {
 		// `energy_free_time_value_hint` slider copy.
 		// `noWork` is the second null: the day value never leaves the do-nothing
 		// level, so the card says "no window is worth working" instead of "it would
-		// use every hour you give it". Counted here because it is what sets how often
-		// the pre-fix sentinel knee fired — every one of these days used to come back
-		// recommending the first swept step with 0 h of work on it.
+		// use every hour you give it".
+		// SENTINEL arm, the second reconstruction: the rejected seeding, `best` from
+		// -Infinity instead of the do-nothing day, run off its own sweep because the
+		// shipped level floors at do-nothing and cannot be read back through. On a
+		// FLAT day — the level never leaves that floor — it names a budget the
+		// shipped rule refuses; everywhere else the two must agree, and that control
+		// is what says the seeding costs nothing but this branch.
 		for (const l of [0.2, 0.5, 0.75, 1, 1.25, 1.5, 2, 3]) {
+			const params = {
+				...DEFAULT_ENERGY_PARAMS,
+				freeTimeValue: l,
+			};
+
 			let interior = 0;
 			let kneeSum = 0;
 			let noWork = 0;
+			let flat = 0;
+			let sentinelFirstStep = 0;
+			let sentinelNoWork = 0;
+			let elsewhereAgreed = 0;
+			let elsewhere = 0;
 
 			for (const day of drawDays(60, 20260808)) {
-				const curve = suggestBudgetCurve(
-					day.map(toEnergyTask),
-					{
-						...DEFAULT_ENERGY_PARAMS,
-						freeTimeValue: l,
-					},
+				const tasks = day.map(toEnergyTask);
+				const curve = suggestBudgetCurve(tasks, params, DEFAULT_USER_CONSTANTS);
+
+				const doNothing = evaluateSchedule(
+					[],
+					tasks,
+					BUDGET_CURVE_MAX_HOURS,
+					params,
 					DEFAULT_USER_CONSTANTS,
-				);
+				).objective;
+
+				const seeded = reconstructSeededKnee(tasks, params);
+				// Same top-of-range null as the shipped rule: only the seed differs.
+				const lastSwept = curve.points[curve.points.length - 1].budgetHours;
+
+				const sentinel =
+					seeded.budgetHours !== null && seeded.budgetHours < lastSwept - 1e-9
+						? seeded.budgetHours
+						: null;
+
+				const isFlat = curve.points.every((p) => Math.abs(p.dayValue - doNothing) < 1e-12);
+
+				const agrees =
+					sentinel === null || curve.recommendedHours === null
+						? sentinel === curve.recommendedHours
+						: Math.abs(sentinel - curve.recommendedHours) < 1e-9;
 
 				if (curve.points.every((p) => p.workHours === 0)) noWork++;
+
+				if (isFlat) {
+					flat++;
+					sentinelFirstStep += sentinel !== null && Math.abs(sentinel - STEP) < 1e-9 ? 1 : 0;
+					sentinelNoWork += sentinel !== null && seeded.workHours === 0 ? 1 : 0;
+				} else {
+					elsewhere++;
+					elsewhereAgreed += agrees ? 1 : 0;
+				}
 
 				if (curve.recommendedHours === null) continue;
 
@@ -271,6 +360,12 @@ describe('budget curve shape', () => {
 
 			console.log(
 				`λ₀=${l}: recommendation on ${interior}/60 days${mean}; no work at any budget on ${noWork}/60`,
+			);
+
+			console.log(
+				`  -Infinity seed: flat days ${flat}/60, of which it names the first swept step on ` +
+					`${sentinelFirstStep}/${flat} and books 0h there on ${sentinelNoWork}/${flat}; ` +
+					`agrees with the shipped knee on ${elsewhereAgreed}/${elsewhere} of the rest`,
 			);
 		}
 

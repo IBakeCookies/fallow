@@ -59,7 +59,7 @@ retype a row, regenerate:
   §5.1      519-628  Posterior-aware allocation
 §6          630-642  Summary of v1 → v2 changes
 §7          644-668  Known approximations and deliberate non-changes
-§8         670-1570  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         670-1572  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      682-704  Intermittent-rest recovery correction
   §8.2      706-725  Warm-up carryover instead of binary reset
   §8.3      727-745  Verified consequences and a calibration question, closed
@@ -71,8 +71,8 @@ retype a row, regenerate:
   §8.9    1042-1089  Recovery-rate calibration from pre/post-rest pairs
   §8.10   1091-1303  Stopping-value calibration from observed stop times
   §8.11   1305-1416  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1418-1570  The budget curve — what the day's LENGTH is worth
-§9        1572-1619  References
+  §8.12   1418-1572  The budget curve — what the day's LENGTH is worth
+§9        1574-1621  References
 ```
 
 <!-- section-index:end -->
@@ -1460,7 +1460,9 @@ on the same horizon with an empty schedule. It costs no solve — at budget 0 th
 plan is empty by definition — and it buys the two things the sweep cannot state
 without it. The shortest window swept gets a real marginal instead of a zero
 standing in for a missing predecessor; and "no budget is worth working" becomes
-expressible, where a sweep starting at `step` has to invent an answer.
+expressible, where a sweep seeded from `-Infinity` at `step` has to invent an
+answer — its first budget always improves on nothing, so it recommends one step
+of window with no work on it.
 
 **`valuePerHour` is therefore NET of λ₀, and its break-even is zero.** The
 free-time term above is already inside `dayValue`, so the free time an extra hour

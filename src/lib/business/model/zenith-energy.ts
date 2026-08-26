@@ -1326,9 +1326,10 @@ export function suggestBudgetCurve(
 	// definition and this costs no solve. Every reading below is against THIS and
 	// not against the shortest window swept, which buys two things: the first
 	// swept budget gets a real marginal instead of a forced zero, and `knee` needs
-	// no sentinel. Seeded from `-Infinity` the first step always "rose", so a day
+	// no sentinel. Seeded from `-Infinity` the first step always "rises", so a day
 	// the model declines to work at any length — reachable well inside the λ₀
-	// slider — came back recommending 45 minutes that book nothing (MATH.md §8.12).
+	// slider — is recommended 45 minutes that book nothing, on every such day
+	// measured (MATH.md §8.12, `scripts/curve-shape.probe.ts`).
 	const doNothing = evaluateWithCurves([], curves, horizon, params).objective;
 	let best = doNothing;
 	// The smallest budget reaching `best`, tracked as the sweep runs: since
