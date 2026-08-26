@@ -264,19 +264,14 @@
 			<div class="skeleton-block h-4 w-28"></div>
 		</div>
 	</div>
-	<!-- Bodies, in the three full-width GATED cards' order, then the paired adherence/model
-	     row — the logs card renders outside this gate. Both charts are a fixed viewBox at
-	     `w-full`, so a ratio is what tracks their height. -->
-	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10'] as body, i (i)}
+	<!-- Bodies, in the five full-width GATED cards' order — the logs card renders outside
+	     this gate. Both charts are a fixed viewBox at `w-full`, so a ratio is what tracks
+	     their height. -->
+	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			{@render skeletonBody(body)}
 		</div>
 	{/each}
-	<div class="mt-grid-xl grid gap-grid-lg lg:grid-cols-2" aria-hidden="true">
-		{#each ['h-5', 'h-33'] as body, i (i)}
-			<div class="card-shell rounded-xl p-box-lg">{@render skeletonBody(body)}</div>
-		{/each}
-	</div>
 {:else if !analytics.hasData}
 	<div class="card-shell rounded-xl p-box-2xl text-center">
 		<p class="text-ty-secondary">{m.ana_empty()}</p>
@@ -419,88 +414,85 @@
 		<QuadrantDistribution counts={quadrantCounts} />
 	</div>
 
-	<!-- Both read as what the model makes of the range, and both are short. Half each. -->
-	<div class="mt-grid-xl grid gap-grid-lg lg:grid-cols-2">
-		<!-- Plan adherence -->
-		<div class="card-shell rounded-xl p-box-lg">
-			<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
-			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
+	<!-- Plan adherence -->
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_adherence()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_adherence_hint()}</p>
 
-			{#if analytics.hasModelReportFailed}
-				{@render reportFailed()}
-			{:else if audit === null}
-				{@render pending()}
-			{:else if audit.usedCount === 0}
-				<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
-			{:else}
-				<div class="mt-text-md grid gap-grid-xs sm:grid-cols-3">
-					<div>
-						<p class="text-xs text-ty-silent">{m.ana_adherence_classic()}</p>
-						<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-							{Math.round(audit.classicOverlap * 100)}%
-						</p>
-					</div>
-					<div>
-						<p class="text-xs text-ty-silent">{m.ana_adherence_energy()}</p>
-						<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-							{Math.round(audit.energyOverlap * 100)}%
-						</p>
-					</div>
-					<div>
-						<p class="text-xs text-ty-silent">{m.ana_adherence_spread()}</p>
-						<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
-							{oneDecimal(audit.actualTaskSpread)}
-						</p>
-						<p class="mt-text-3xs text-xs text-ty-silent">
-							{m.ana_adherence_spread_note({
-								actual: oneDecimal(audit.actualTaskSpread),
-								classic: oneDecimal(audit.classicTaskSpread),
-								energy: oneDecimal(audit.energyTaskSpread),
-							})}
-						</p>
-					</div>
+		{#if analytics.hasModelReportFailed}
+			{@render reportFailed()}
+		{:else if audit === null}
+			{@render pending()}
+		{:else if audit.usedCount === 0}
+			<p class="mt-text-md text-sm text-ty-secondary">{m.ana_adherence_empty()}</p>
+		{:else}
+			<div class="mt-text-md grid gap-grid-xs sm:grid-cols-3">
+				<div>
+					<p class="text-xs text-ty-silent">{m.ana_adherence_classic()}</p>
+					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+						{Math.round(audit.classicOverlap * 100)}%
+					</p>
 				</div>
-				<p class="mt-text-sm text-xs text-ty-secondary">
-					{auditVerdict} · {audit.usedCount === 1
-						? m.ana_adherence_days_one()
-						: m.ana_adherence_days_other({
-								count: audit.usedCount,
-							})}
-				</p>
-			{/if}
-		</div>
-
-		<div class="card-shell rounded-xl p-box-lg">
-			<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
-			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
-
-			{#if analytics.hasModelReportFailed}
-				{@render reportFailed()}
-			{:else if calibration === null}
-				{@render pending()}
-			{:else}
-				<div class="mt-text-md grid gap-text-xs">
-					{#each modelRows as row (row.label)}
-						<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
-							<span class="text-xs text-ty-silent">{row.label}</span>
-							<span class="flex items-baseline gap-grid-2xs text-sm">
-								{#if row.trend}
-									<ParamTrend
-										values={row.trend.values}
-										defaultValue={row.trend.defaultValue}
-										ariaLabel={row.trend.ariaLabel}
-									/>
-								{/if}
-								<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums"
-									>{row.value}</span
-								>
-								<span class="text-xs text-ty-silent"> · {row.note}</span>
-							</span>
-						</div>
-					{/each}
+				<div>
+					<p class="text-xs text-ty-silent">{m.ana_adherence_energy()}</p>
+					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+						{Math.round(audit.energyOverlap * 100)}%
+					</p>
 				</div>
-			{/if}
-		</div>
+				<div>
+					<p class="text-xs text-ty-silent">{m.ana_adherence_spread()}</p>
+					<p class="mt-text-2xs text-2xl font-semibold text-ty-primary">
+						{oneDecimal(audit.actualTaskSpread)}
+					</p>
+					<p class="mt-text-3xs text-xs text-ty-silent">
+						{m.ana_adherence_spread_note({
+							actual: oneDecimal(audit.actualTaskSpread),
+							classic: oneDecimal(audit.classicTaskSpread),
+							energy: oneDecimal(audit.energyTaskSpread),
+						})}
+					</p>
+				</div>
+			</div>
+			<p class="mt-text-sm text-xs text-ty-secondary">
+				{auditVerdict} · {audit.usedCount === 1
+					? m.ana_adherence_days_one()
+					: m.ana_adherence_days_other({
+							count: audit.usedCount,
+						})}
+			</p>
+		{/if}
+	</div>
+
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_model()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_model_hint()}</p>
+
+		{#if analytics.hasModelReportFailed}
+			{@render reportFailed()}
+		{:else if calibration === null}
+			{@render pending()}
+		{:else}
+			<div class="mt-text-md grid gap-text-xs">
+				{#each modelRows as row (row.label)}
+					<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
+						<span class="text-xs text-ty-silent">{row.label}</span>
+						<span class="flex items-baseline gap-grid-2xs text-sm">
+							{#if row.trend}
+								<ParamTrend
+									values={row.trend.values}
+									defaultValue={row.trend.defaultValue}
+									ariaLabel={row.trend.ariaLabel}
+								/>
+							{/if}
+							<span class="font-medium text-ty-primary" style="font-variant-numeric: tabular-nums"
+								>{row.value}</span
+							>
+							<span class="text-xs text-ty-silent"> · {row.note}</span>
+						</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 {/if}
 
