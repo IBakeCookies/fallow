@@ -201,7 +201,7 @@
      task rather than dropped — a row short of a cell breaks every column's width below
      it. -->
 {#snippet trailing()}
-	<td class="ledger-cell ledger-numeric whitespace-nowrap">
+	<td class="ledger-cell ledger-numeric whitespace-nowrap justify-items-end">
 		{#if !completed}
 			<Tooltip.Root>
 				<!-- Why each reading triggers on itself: presentation/AGENTS.md, "The row's
