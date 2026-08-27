@@ -66,16 +66,17 @@
  * proposal anyway — withhold the card wherever `stopBracket` would refuse the
  * day — against the same optimizer ground truth.
  *
- * It found the censor strictly harmful mid-day and unhelpful at the stop. The
- * inverted cell is 8.3–16.4% of every checkpoint the card speaks on, and the
+ * It found the censor strictly harmful mid-day and inert at the stop. The
+ * inverted cell is 7.8–16.2% of every checkpoint the card speaks on, and the
  * advisor's mid-day false-stop count in it is ZERO at all four λ₀ on both
- * populations — 0 of 118, 110, 88 and 23 random-day checkpoints and 0 of 16,
- * 17, 27 and 16 on the warm-up fixture, against 8 of 1,811 and 4 of 587
+ * populations — 0 of 119, 111, 88 and 23 random-day checkpoints and 0 of 16,
+ * 17, 27 and 16 on the warm-up fixture, against 8 of 1,809 and 4 of 587
  * everywhere else. Censoring therefore removes no wrong verdict and silences
- * 339 + 76 correct `continue`s. At the stop moment the signal is real but tiny
- * and split: agreement on the inverted cell is 8/20 against 213/232 elsewhere,
- * so censoring converts 8 right and 12 wrong verdicts into 20 silences without
- * fixing the 12. Nothing shipped moved.
+ * 341 + 76 correct `continue`s. At the stop moment the inverted cell is EMPTY
+ * in all eight rows — an inverted bracket is a day with work still left in it —
+ * and agreement across the 252 stop moments it would keep is 222, which is the
+ * at-stop agreement the arms above read on the same eight populations. Nothing
+ * shipped moved.
  *
  * Usage: npm run probe
  */
@@ -297,18 +298,23 @@ const summed = (rows: Rows): Rows =>
 		hours,
 	}));
 
+interface RecoveredRest {
+	rows: Rows;
+	/** The break before each row, `rows[0]`'s being 0 */
+	gaps: number[];
+	/** UNCAPPED — the quantity the day's span and the clock censor are read from */
+	restTotal: number;
+}
+
 /**
- * `reconstructStopDay`'s recovered block structure, replicated: rows in log
- * order, the space before each one a break, all rest scaled to leave one step of
- * room. `restTotal` is the UNCAPPED sum, which is what the day's span is measured
- * from. Null on the days the shipped reader falls back on — a row with no
+ * `recoveredRest`, replicated: rows in log order, the space before each one a
+ * break. Null on the days the shipped reader falls back on — a row with no
  * moment, or no gap to recover.
  */
-function loggedStructure(
+function recoveredRest(
 	observation: StopObservation,
 	byTask: Map<number, number>,
-	total: number,
-): { blocks: ScheduleBlock[]; restTotal: number } | null {
+): RecoveredRest | null {
 	const rows = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
 
 	if (rows.some((r) => !Number.isFinite(r.endedAt))) return null;
@@ -322,18 +328,42 @@ function loggedStructure(
 	);
 
 	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
-	const room = Math.max(0, observation.windowHours - total - DEFAULT_STEP_HOURS);
-	const scale = Math.min(1, room / restTotal);
 
-	if (!(restTotal * scale > 1e-9)) return null;
+	if (!(restTotal > 1e-9)) return null;
+
+	return {
+		rows: sorted,
+		gaps,
+		restTotal,
+	};
+}
+
+/**
+ * `loggedStructure`, replicated: the recovered sessions with all rest scaled to
+ * leave one step of room, or null where the shipped reader falls back to the
+ * contiguous canonical schedule for the whole day. Split from `recoveredRest`
+ * as the shipped pair is: the cap belongs to the block structure alone, and a
+ * span or a clock censor read off it makes a full window look like an empty one.
+ */
+function loggedStructure(
+	rest: RecoveredRest | null,
+	windowHours: number,
+	total: number,
+): ScheduleBlock[] | null {
+	if (rest === null) return null;
+
+	const room = Math.max(0, windowHours - total - DEFAULT_STEP_HOURS);
+	const scale = Math.min(1, room / rest.restTotal);
+
+	if (!(rest.restTotal * scale > 1e-9)) return null;
 
 	const sched: ScheduleBlock[] = [];
 
-	sorted.forEach((r, i) => {
-		if (gaps[i] * scale > 1e-9)
+	rest.rows.forEach((r, i) => {
+		if (rest.gaps[i] * scale > 1e-9)
 			sched.push({
 				taskId: null,
-				hours: gaps[i] * scale,
+				hours: rest.gaps[i] * scale,
 			});
 
 		sched.push({
@@ -342,10 +372,7 @@ function loggedStructure(
 		});
 	});
 
-	return {
-		blocks: sched,
-		restTotal,
-	};
+	return sched;
 }
 
 /**
@@ -374,10 +401,10 @@ function searchMarginals(
 	// WORKED hours, never the schedule's extent: `room` and `window-full` must
 	// not turn on recovered structure (§8.10).
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
-	const structure = loggedStructure(observation, byTask, total);
+	const rest = recoveredRest(observation, byTask);
 
 	const sched: ScheduleBlock[] =
-		structure?.blocks ??
+		loggedStructure(rest, windowHours, total) ??
 		canonical
 			.filter((t) => byTask.has(t.id))
 			.map((t) => ({
@@ -392,7 +419,7 @@ function searchMarginals(
 	// The session LENGTHS are capped by the day's span — worked hours plus the
 	// UNCAPPED recovered breaks — floored at one step, while `room` above keeps
 	// the `window-full` gate on worked hours (M42, §8.11).
-	const span = total + (structure?.restTotal ?? 0);
+	const span = total + (rest?.restTotal ?? 0);
 
 	const longest = Math.max(
 		1,
@@ -878,14 +905,16 @@ const WARMUP_DAYS: ProbeDay[] = Array.from(
  * card wherever the retrospective reader would refuse the day — scored against
  * the same optimizer ground truth as the arms above.
  *
- * The REASON is derived, not exported. `stopBracket` returns one null for four
- * causes, and three of them are structural and computable here from parts this
- * file already replicates: the clock censor (worked hours plus the UNCAPPED
- * recovered breaks leave no room for a step), no `lo` (no room to extend), no
- * `hi` (nothing worked a whole step yet — every day's first checkpoint). What
- * is left over is the inversion M39 names. The arm prints all four, because a
- * censor the advisor "also carries" cannot pick one of its function's refusals
- * and ignore the rest.
+ * The REASON is derived, not exported, and in `stopBracket`'s OWN order of
+ * tests, because the first refusal reached is the one the day gets: the clock
+ * censor (worked hours plus the UNCAPPED recovered breaks leave no room for a
+ * step), nothing logged yet (every day's first checkpoint), NEITHER bound —
+ * nothing worked a whole step AND no room to extend, since either side alone
+ * still returns a one-sided bracket and is no refusal at all — and what is left
+ * over, the inversion M39 names. The neither-bound cell stays empty on a
+ * lattice plan, where every logged row is a whole step, and is printed anyway
+ * because a censor the advisor "also carries" cannot pick one of its function's
+ * refusals and ignore the rest.
  */
 interface CensorCell {
 	checkpoints: number;
@@ -895,8 +924,8 @@ interface CensorCell {
 interface CensorTally {
 	verdicts: number;
 	clock: number;
-	noLo: number;
-	noHi: number;
+	nothingLogged: number;
+	neitherBound: number;
 	inverted: number;
 	kept: CensorCell;
 	invertedCell: CensorCell;
@@ -909,8 +938,8 @@ interface CensorTally {
 const emptyCensorTally = (): CensorTally => ({
 	verdicts: 0,
 	clock: 0,
-	noLo: 0,
-	noHi: 0,
+	nothingLogged: 0,
+	neitherBound: 0,
 	inverted: 0,
 	kept: {
 		checkpoints: 0,
@@ -930,19 +959,23 @@ const emptyCensorTally = (): CensorTally => ({
 function censorReason(
 	observation: StopObservation,
 	params: EnergyParams,
-): 'clock' | 'no-lo' | 'no-hi' | 'inverted' | null {
+): 'clock' | 'nothing-logged' | 'neither-bound' | 'inverted' | null {
 	if (stopBracket(observation, params, DEFAULT_USER_CONSTANTS) !== null) return null;
 
 	const byTask = workedHoursByTask(observation.tasks, observation.workedHours);
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
-	const rest = loggedStructure(observation, byTask, total)?.restTotal ?? 0;
+	const rest = recoveredRest(observation, byTask);
 
-	if (byTask.size > 0 && total + rest + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9)
+	if (rest !== null && total + rest.restTotal + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9)
 		return 'clock';
 
-	if (![...byTask.values()].some((hours) => hours >= DEFAULT_STEP_HOURS - 1e-9)) return 'no-hi';
+	if (byTask.size === 0) return 'nothing-logged';
 
-	if (total + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9) return 'no-lo';
+	if (
+		total + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9 &&
+		![...byTask.values()].some((hours) => hours >= DEFAULT_STEP_HOURS - 1e-9)
+	)
+		return 'neither-bound';
 
 	return 'inverted';
 }
@@ -963,8 +996,8 @@ function scoreCensorDay(day: ProbeDay, params: EnergyParams, tally: CensorTally)
 		const reason = censorReason(observation, params);
 
 		if (reason === 'clock') tally.clock++;
-		else if (reason === 'no-lo') tally.noLo++;
-		else if (reason === 'no-hi') tally.noHi++;
+		else if (reason === 'nothing-logged') tally.nothingLogged++;
+		else if (reason === 'neither-bound') tally.neitherBound++;
 		else if (reason === 'inverted') tally.inverted++;
 
 		const continues = advice.verdict === 'continue';
@@ -1008,8 +1041,8 @@ function measureCensor(label: string, days: ProbeDay[]): void {
 
 		console.log(
 			`${label} λ₀ ${freeTimeValue.toFixed(1)}: of ${tally.verdicts} checkpoints the card speaks on, ` +
-				`\`stopBracket\` refuses ${tally.clock + tally.noLo + tally.noHi + tally.inverted} — ` +
-				`clock ${tally.clock}, no lo ${tally.noLo}, no hi ${tally.noHi}, ` +
+				`\`stopBracket\` refuses ${tally.clock + tally.nothingLogged + tally.neitherBound + tally.inverted} — ` +
+				`clock ${tally.clock}, nothing logged ${tally.nothingLogged}, neither bound ${tally.neitherBound}, ` +
 				`INVERTED ${tally.inverted} (${pct(tally.inverted, tally.verdicts)})`,
 		);
 

@@ -2358,7 +2358,7 @@ export type StopAdvice =
  * contradiction it is retrospectively — there is no stop yet to rationalize,
  * only a better step available than the one last worked, which is when
  * `continue` is RIGHT. Measured 2026-08-27 (`stop-advisor.probe.ts`): the
- * inverted cell is 8.3–16.4% of the checkpoints the card speaks on and carries
+ * inverted cell is 7.8–16.2% of the checkpoints the card speaks on and carries
  * zero mid-day false stops at every λ₀ on both populations, so carrying the
  * censor would silence hundreds of correct verdicts and remove none that were
  * wrong.
