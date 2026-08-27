@@ -333,7 +333,9 @@ re-checked and stayed in `MATH.md` while being false.
   `energy-search-gap.probe.ts` ("here that is the point"),
   `session-row-truncation.probe.ts` and `enb-simpson-error.probe.ts`, whose
   off-surface extreme is measured against the worst reachable task rather than
-  argued (ROADMAP M40, M44, M48).
+  argued — and measured PER BLOCK LENGTH, because a global maximum over cells and
+  lengths together hid that the same witness is exceeded at eight of the thirteen
+  lengths it prints (ROADMAP M40, M44, M48, M55).
 - **Pin what the probe found with one fixture in the suite**, never the sweep
   itself.
 - **Pin it against a literal, never against the constant it bounds.**
