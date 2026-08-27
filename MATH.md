@@ -37,7 +37,7 @@ lines before it was cut back to its math.
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
 The whole document is ~24k tokens at 4 chars/token; the largest
-single section is §8 at ~13k (§5 is ~3k), and most of the 24 rows below are
+single section is §8 at ~14k (§5 is ~3k), and most of the 24 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -59,20 +59,20 @@ retype a row, regenerate:
   §5.1      519-628  Posterior-aware allocation
 §6          630-642  Summary of v1 → v2 changes
 §7          644-668  Known approximations and deliberate non-changes
-§8         670-1594  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         670-1595  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      682-704  Intermittent-rest recovery correction
   §8.2      706-725  Warm-up carryover instead of binary reset
   §8.3      727-745  Verified consequences and a calibration question, closed
   §8.4      747-817  Per-task satiety — concave daily value
   §8.5      819-859  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      861-906  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     908-1005  Drain-rate calibration from end-of-session ratings
-  §8.8    1007-1042  45-minute plan granularity
-  §8.9    1044-1091  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1093-1305  Stopping-value calibration from observed stop times
-  §8.11   1307-1438  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1440-1594  The budget curve — what the day's LENGTH is worth
-§9        1596-1643  References
+  §8.6      861-907  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     909-1006  Drain-rate calibration from end-of-session ratings
+  §8.8    1008-1043  45-minute plan granularity
+  §8.9    1045-1092  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1094-1306  Stopping-value calibration from observed stop times
+  §8.11   1308-1439  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1441-1595  The budget curve — what the day's LENGTH is worth
+§9        1597-1644  References
 ```
 
 <!-- section-index:end -->
@@ -882,7 +882,7 @@ Steepest ascent only takes single moves that are uphill on their own:
   size n (classic, all-in, round-robin) and n − 1 (drop-one), and two
   enumerated frontier days have an optimum funding **two** of their 4 and 5
   tasks — reachable from no seed, because dropping the rest is downhill the
-  whole way. Fix: one seed per **pair** among the three highest-amplitude
+  whole way. Fix: one seed per **pair** among the four highest-amplitude
   tasks, round-robin over the two and searched **within the pair**, i.e. that
   seed's local search may only reach those two tasks.
 - **Rest breaks only at the midpoint:** the split-around-rest move offered one
@@ -897,9 +897,10 @@ A pair seed starts fragmented and climbs long, so it costs about two ordinary
 seeds rather than the fraction of one a 2-task neighbourhood suggests. Cost
 does not grow monotonically in n (a wide task list makes the window bind and
 the classic seed truncate), so the cap is stated in seeds, not in a task
-threshold: C(3,2) = 3 seeds at every size. `energy-search-gap.probe.ts` prices
-that cap against both ends — no pair seeds, and unbounded C(n,2) — and measures
-what it forfeits. Three call sites pay it —
+threshold: C(4,2) = 6 seeds at every size, so the family's cost is flat in n
+where C(n,2)'s is quadratic. `energy-search-gap.probe.ts` prices the cap
+against its neighbours and against both ends — no pair seeds, and unbounded
+C(n,2) — and measures what each forfeits. Three call sites pay it —
 `EnergyLabStore`'s `$derived` behind the parameter sliders, `plan-audit.ts`
 once per audited day under a 30-day cap, and `suggestBudgetCurve`, whose 16
 solves per sweep make it the largest single multiplier (on demand, never a

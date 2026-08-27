@@ -723,11 +723,13 @@ export const DEFAULT_STEP_HOURS = 0.75;
 
 /**
  * How many of the highest-amplitude tasks the pair seeds below are drawn from:
- * C(3,2) = 3 seeds, not C(n,2), because each pair seed starts fragmented and
- * climbs long. What the cap costs and saves is measured in
+ * C(4,2) = 6 seeds, not C(n,2), because each pair seed starts fragmented and
+ * climbs long. Was 3 until ROADMAP M54 measured what the third task left on the
+ * table — on 6 of 7 days in 2000 a cap of 4 changes the funded SET, not the
+ * hours. What every cap costs and saves is measured in
  * `scripts/energy-search-gap.probe.ts`.
  */
-const PAIR_SEED_TASKS = 3;
+const PAIR_SEED_TASKS = 4;
 
 export interface OptimizeOptions {
 	/**
@@ -740,8 +742,9 @@ export interface OptimizeOptions {
 	maxIterations?: number;
 	/**
 	 * How many top-amplitude tasks the pair seeds are drawn from. Default
-	 * `PAIR_SEED_TASKS`; 0 removes the family. An instrument knob — the cap is
-	 * only priced against 0 and n (`scripts/energy-search-gap.probe.ts`).
+	 * `PAIR_SEED_TASKS`; 0 removes the family. An instrument knob — no product
+	 * caller sets it, and it exists so the cap can be priced against its
+	 * neighbours (`scripts/energy-search-gap.probe.ts`).
 	 */
 	pairSeedTasks?: number;
 }
