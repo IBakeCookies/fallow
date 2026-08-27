@@ -25,9 +25,6 @@
  * suite keeps the structural half ("45-min block granularity (MATH.md §8.8)" in
  * `zenith-energy.test.ts`).
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

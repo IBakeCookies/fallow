@@ -44,9 +44,6 @@
  * allocator move. What it FINDS is pinned by one cheap fixture in the suite,
  * never by the sweep.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

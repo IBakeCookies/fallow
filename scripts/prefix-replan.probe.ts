@@ -25,8 +25,7 @@
  * way over the same prefix, so the only difference is the afternoon.
  *
  * A probe, not a test: the numbers move whenever the allocator changes, which
- * is a legitimate model change and not a regression. Whatever it prints belongs
- * in MATH.md WITH ITS DATE.
+ * is a legitimate model change and not a regression.
  *
  * Usage: npm run probe
  */

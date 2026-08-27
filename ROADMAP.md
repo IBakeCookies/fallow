@@ -558,11 +558,11 @@ test before believing that phrase.
 ## Findings from the 2026-08-14 `MATH.md` audit
 
 Item 31's list. The **M** ids are stable and never reused. M1–M13 and M22 were
-each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M46
+each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M53
 were raised and not verified** — the open ones are leads, and item 29's rule
-applies, so quote none of them as a result until its own check is run. M37–M46
-came from probe sweeps rather than from the 2026-08-14 audit and carry the same
-rule.
+applies, so quote none of them as a result until its own check is run. M37 and
+later came from probe sweeps and later reviews rather than from the 2026-08-14
+audit and carry the same rule.
 
 **Every `MATH.md:NNNN` below is as of the date its entry carries and most have
 since drifted**, some by hundreds of lines. Grep the quoted text, not the line:
@@ -733,6 +733,31 @@ reaches the claim, never that the claim is false.
   a pure-cognitive and a pure-physical task at MATCHED difficulty, is
   unreachable BY CONSTRUCTION, which is what the missing sentence had to say.
   Declared; nothing moved, all three arms still pass.
+- **M52 — raised and closed 2026-08-27 while closing M17,
+  [`the-rule-that-outlived-its-document`](docs/features/the-rule-that-outlived-its-document.md).**
+  `e61d207` (2026-08-25) deleted the hand-dating rule — `docs/testing.md:302`,
+  "the dating rule is gone with them"; `PROBES.md`, the probe's header "is the
+  only home for a measured number" — and touched 44 files including `scripts/`
+  while removing **zero** instances of the rule from the probes. **34 of the 64
+  still told the reader "Whatever it prints belongs in MATH.md WITH ITS DATE",**
+  four adding "an undated number in that document is unfalsifiable"; following
+  that header today violates R7. The first count was 32: `adv2-budget-marginal`
+  and `prefix-replan` wrap it as a clause rather than a paragraph, so only
+  `WITH ITS DATE` — the phrase re-wrapping cannot hide — finds all 34. Deleted,
+  nothing substituted (`AGENTS.md:62`), and `plan-advice`'s longer tail is not
+  lost: `docs/testing.md:287-290` opens the probe rules with the same lesson.
+  Fixed in the same pass: that file's own `§14.1-2` citation, dangling since
+  §10–§37 went, which `math-citations.mjs` skips because its regex reads the
+  trailing `-2` as a line range.
+- **M53 — raised 2026-08-27, NOT verified.** Same cause, larger population:
+  **19 probe headers make 27 references to MATH.md that name no section**, so
+  `math-citations.mjs` cannot see them, and after `e61d207` some point at
+  narrative that no longer exists ("MATH.md's claims about the Burnout Risk
+  scale", "the 2026-08-08 MATH.md entry", "MATH.md quoted 569% here"). The
+  count is a count, not a check — at least one (`energy-search-gap.probe.ts`,
+  "MATH.md — which holds derivations only") is correct as written, so the
+  population is mixed and each reference has to be read against today's
+  document. Item 29's rule applies: quote none of this as a result.
 - **M40 §8.10 + §8.4 — closed 2026-08-25,
   [`the-satiety-price-on-the-sliders`](docs/features/the-satiety-price-on-the-sliders.md).**
   `grep 'difficulty: Math.max' scripts/` is empty, which is the close condition

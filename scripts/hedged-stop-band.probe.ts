@@ -20,9 +20,6 @@
  * the prior. The suite pins the DIRECTION instead (`zenith.test.ts`: the hedged
  * stop-by leaves the band and can precede ϕ; σ̂ is no floor).
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

@@ -42,9 +42,6 @@
  * milliseconds: the ratio is the thing the argument actually rests on, and
  * it is the part that survives being run on a different machine.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

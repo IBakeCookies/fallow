@@ -22,9 +22,6 @@
  * already asserted in `zenith-energy.test.ts`; what this prints is the SIZE of
  * each effect, in the units the ratings are given in (one notch = 0.1 of D).
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

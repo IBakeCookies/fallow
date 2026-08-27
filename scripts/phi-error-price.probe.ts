@@ -45,9 +45,6 @@
  * sides are not the same objective and every cell below is noise. A mismatch
  * count above zero invalidates the run.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

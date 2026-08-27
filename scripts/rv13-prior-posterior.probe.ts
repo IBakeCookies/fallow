@@ -22,9 +22,6 @@
  * property instead — that every `fitUserConstants` return carries a posterior
  * and that σ_ϕ is non-increasing in the data.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

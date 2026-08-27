@@ -13,9 +13,6 @@
  * found is pinned by fixture in `calculation.test.ts` — the four pairs that
  * moved, and the 45 the shipped rule calls balanced.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports. An undated number in that document is unfalsifiable.
- *
  * Usage: npm run probe -- scripts/mtr-task-nature.probe.ts
  */
 

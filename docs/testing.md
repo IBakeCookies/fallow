@@ -286,8 +286,8 @@ something mechanical passed while the change was still wrong.
 
 The registry itself is [`scripts/PROBES.md`](../scripts/PROBES.md). Probes are
 committed because the alternative is the failure `MATH.md` already shows: the
-sweep behind §14.1-2's "the trim is free" was thrown away, so the claim could
-not be re-checked and stayed in the document while being false.
+sweep behind "the trim is free" was thrown away, so the claim could not be
+re-checked and stayed in the document while being false.
 
 - **Seed the randomness.** A quoted number must be reproducible, not
   re-rollable — and a curated fixture and a random sweep answer different

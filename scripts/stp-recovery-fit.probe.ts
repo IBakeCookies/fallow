@@ -47,9 +47,6 @@
  * (`stdAtNu0`) and validated the same way at the shipped ν₀ before any pre-fix
  * ± is believed.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

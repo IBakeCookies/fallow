@@ -35,9 +35,6 @@
  * and then its retraction into this section, so the arm below sweeps V_T across
  * seeded days and reports the DISTRIBUTION of the span.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

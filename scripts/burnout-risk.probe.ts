@@ -21,9 +21,6 @@
  * interleaved run order, switch costs as rest gaps, budget overhang stretching
  * the funded blocks pro-rata.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports. An undated number in that document is unfalsifiable.
- *
  * Usage: npm run probe
  */
 

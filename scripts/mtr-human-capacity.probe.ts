@@ -27,9 +27,6 @@
  * What it finds is pinned by one cheap fixture in the suite
  * (`calculation.test.ts`, "names the pool that binds"), never by the sweep.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

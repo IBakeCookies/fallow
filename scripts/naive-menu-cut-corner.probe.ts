@@ -32,9 +32,6 @@
  * space" and prints numbers. What it finds is pinned by one fixture in the
  * suite, never by the sweep itself.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe -- naive-menu-cut-corner
  */
 

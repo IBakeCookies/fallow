@@ -14,9 +14,6 @@
  *
  * Deterministic: seeded days, no randomness a re-run can reroll.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports. An undated number in that document is unfalsifiable.
- *
  * Usage: npm run probe
  */
 

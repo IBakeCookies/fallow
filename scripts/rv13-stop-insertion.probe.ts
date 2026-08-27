@@ -44,9 +44,6 @@
  * the estimator is a function of the day, i.e. of the canonical rank and not of
  * insertion order.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

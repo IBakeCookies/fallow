@@ -8,12 +8,6 @@
  * a sweep in the suite goes red on every honest model change while its real
  * signal, the size of the number, is not a regression at all.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports. An undated number in that document is unfalsifiable: the sweep that
- * produced "the trim is free" was thrown away, which is exactly how that claim
- * stayed in the document while being false (see the trim measurement below,
- * which is what corrected it).
- *
  * Usage: npm run probe
  */
 
