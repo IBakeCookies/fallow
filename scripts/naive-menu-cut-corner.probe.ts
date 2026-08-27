@@ -2,16 +2,13 @@
  * The σ_ϕ corner: the negative-gain witness, and whether the menu cut behind
  * it is reachable from the product.
  *
- * MATH.md records one place the "gain ≥ 0 on the single-budget path" guarantee
- * weakens: `buildBlockIncrements` cuts a task's menu at the first non-DECREASING
+ * One place the "gain ≥ 0 on the single-budget path" guarantee weakens:
+ * `buildBlockIncrements` cuts a task's menu at the first non-DECREASING
  * increment when σ_ϕ > 0 (§5.1), and that cut can fire while E[P̄] is still
  * rising — leaving the naive baseline free to place a value-adding block the
- * optimizer was never offered. It quotes a constructed witness (optimized
- * 0.886678 against naive 0.891116, −0.5%) and files it as harmless because the
- * corner is "not reachable from the product": 0 cuts in 156,000 integer-slider
- * cells against 8,806 of 919,968 quarter-step ones, all at ϕ̂ ≥ 4h with
- * σ/ϕ ≥ 0.35. None of those numbers had a probe, and the grid behind the two
- * counts is not recoverable from the text, so this states its own.
+ * optimizer was never offered. The corner was filed as harmless on a
+ * constructed witness and two grid counts that had no probe behind them and no
+ * recoverable grid, so this states its own.
  *
  * Not an arm of `rv14-naive-switch-bill.probe.ts`: that generator is σ_ϕ = 0 by
  * construction (no posterior), so it cannot see any of this, and its docblock
@@ -72,7 +69,7 @@ function mulberry32(seed: number): () => number {
  * menu's span is T*(ϕ_max), so reproducing `buildBlockIncrements`' cut needs the
  * largest node and nothing else of the quadrature.
  *
- * Then the corner MATH.md calls unreachable, and the ϕ̂ its witness sits at.
+ * Then the corner that was called unreachable, and the ϕ̂ its witness sits at.
  */
 const PHI_FLOOR_HOURS = 0.1;
 const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;

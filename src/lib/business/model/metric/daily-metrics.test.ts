@@ -273,8 +273,8 @@ describe('calculateDailyMetrics', () => {
 	});
 
 	// The model prices every lever as ΔΣP̄/ΣP̄ and reads ΣP̄ off zenithGain.optimized.
-	// The identity behind that had no fixture; MATH.md claimed the two agree "to the
-	// last digit" when they are 1–2 ulps apart on ~a fifth of days, because
+	// The identity behind that had no fixture, and the two were claimed to agree
+	// "to the last digit" when they are 1–2 ulps apart on ~a fifth of days, because
 	// calculateTotalProductivity adds in the tasks' own order while the plan comes
 	// back priority-sorted (scripts/adv1-plan-advice-frontier.probe.ts, 2026-08-06).
 	it('zenithGain.optimized is Σ avgProductivity over the funded tasks', () => {

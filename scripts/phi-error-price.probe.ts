@@ -1,6 +1,6 @@
 /**
- * The measurement behind MATH.md's pricing table — the one number in the
- * document that exists specifically to price work nobody has built yet:
+ * The per-task-ϕ pricing table — the one figure set that exists specifically to
+ * price work nobody has built yet:
  *
  *   "Value lost to a per-task ϕ error of size `s` (400 days, ΣT* = 19.4 h,
  *    mean % below the oracle plan)" — 5 budgets × 5 error sizes, ending
@@ -9,16 +9,16 @@
  *
  * It is also ROADMAP item 6's re-open gate. A wrong cell therefore mis-prices
  * a decision that has not been taken yet, which is the worst kind of stale
- * number to carry. And it is prose: none of the 25 values appears in `src/` or
- * `scripts/`, and the probe that produced them was never committed — the exact
- * failure that already burned this repo.
+ * number to carry — and it was prose, with none of the 25 values in `src/` or
+ * `scripts/` and the probe that produced them never committed. This file is
+ * where the table lives now.
  *
  * A probe, not a test: the table moves whenever the curve, the lattice or the
  * allocator moves.
  *
- * THE SEAM PROBLEM, AND WHY THIS DOES NOT NEED THE SEAM. MATH.md says
- * "Per-task ϕ and σ_ϕ were injected into the real allocator". No such injection
- * point exists on `main` — ϕ is `c₁E + c₂β + c₃` from ONE shared
+ * THE SEAM PROBLEM, AND WHY THIS DOES NOT NEED THE SEAM. The table was said to
+ * come from "per-task ϕ and σ_ϕ injected into the real allocator". No such
+ * injection point exists on `main` — ϕ is `c₁E + c₂β + c₃` from ONE shared
  * `UserConstants`, mapped over every task by `buildTaskParams`. So the deleted
  * probe had a seam that is gone, and rebuilding it would mean editing shipped
  * code to measure it.
@@ -292,7 +292,7 @@ describe('What a per-task ϕ error costs', () => {
 
 		console.log(
 			`[table] ${DAYS} days × ${TASKS_PER_DAY} tasks, mean ΣT* = ${sumOptimal.toFixed(1)}h ` +
-				`(MATH.md's grid says 19.4h), switchCost ${SWITCH_COST}h`,
+				`(the original grid said 19.4h), switchCost ${SWITCH_COST}h`,
 		);
 
 		console.log(`[table] budget | ${ERROR_SIZES.map((s) => `s=${s}h`.padStart(7)).join(' | ')}`);
@@ -309,8 +309,8 @@ describe('What a per-task ϕ error costs', () => {
 
 					if (oracle.value > 0) lossTotal += ((oracle.value - shipped.value) / oracle.value) * 100;
 
-					// The first-order channel MATH.md says drives the U-shape: does the
-					// wrong ϕ change WHICH tasks get funded, not just for how long?
+					// The first-order channel said to drive the U-shape: does the wrong
+					// ϕ change WHICH tasks get funded, not just for how long?
 					const sameSet =
 						oracle.funded.size === shipped.funded.size &&
 						[...oracle.funded].every((i) => shipped.funded.has(i));

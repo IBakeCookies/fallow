@@ -1,17 +1,22 @@
 /**
  * Measurements behind the σ_ϕ ladder that shows a zero-⚡-log user is no longer
- * treated as perfectly certain, and the two behaviour-change numbers MATH.md
- * quotes for it.
+ * treated as perfectly certain, and the two behaviour-change numbers quoted for
+ * it.
  *
- * MATH.md's table claims σ_ϕ at the mid-scale task (E = 2.78, β = 1.44) runs
- * 0.411 → 0.194 → 0.072 → 0.023 → 0.003 for 0/1/5/20/200 logs (0.000 at n = 0
- * before the fix), that the prior's σ_ϕ is "≈ 29% of a typical ϕ̂", that the
- * priority score dropped 17.90 → 17.80 on its probe day, and that the plan
- * changed on 21.7% of random days at n = 1. Only the n = 0 entry is
- * generator-free — the rest depend on WHICH logs the user made, which the
- * section does not state — so this fixes the most natural generator (the same
- * mid-scale task logged n times, no residual) and prints the ladder beside its
- * closed form, then measures the two rates on a seeded day generator.
+ * The ladder was stated as 0.411 → 0.194 → 0.072 → 0.023 → 0.003 for 0/1/5/20/200
+ * logs at the mid-scale task (E = 2.78, β = 1.44), the prior's σ_ϕ as "≈ 29% of
+ * a typical ϕ̂", the priority score as dropping 17.90 → 17.80, and the plan as
+ * changing on 21.7% of random days at n = 1. Only the n = 0 entry was
+ * generator-free — the rest depend on WHICH logs the user made, which was never
+ * stated — so this fixes the most natural generator (the same mid-scale task
+ * logged n times, no residual) and prints the ladder beside its closed form,
+ * then measures the two rates on a seeded day generator.
+ *
+ * This file's own run (2026-08-27): the ladder is 0.410839 / 0.191020 /
+ * 0.071920 / 0.022613 / 0.002473, each equal to its closed form; the prior's
+ * σ_ϕ is 24.0% of the slider-centre ϕ̂, not 29%; priority reads 17.9 → 17.8 at
+ * one log; and the plan differs from the certainty plan on 6.8% of 1000 seeded
+ * days at n = 1, not 21.7% — 26.3% at the n = 0 prior.
  *
  * (E, β) = (2.78, 1.44) is not an arbitrary point: it is `mapEffort(5)` and
  * `mapEnjoyability(5)` — the exact centre of both sliders — so "typical ϕ̂" and

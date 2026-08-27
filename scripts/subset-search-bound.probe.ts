@@ -167,7 +167,7 @@ const emptyTotals = (): Totals => ({
 	solves: 0,
 });
 
-/** Rounded at emit, so a figure quoted in MATH.md is one this file printed. */
+/** Rounded at emit, so a figure quoted anywhere is one this file printed. */
 const emitTotals = (totals: Totals) => ({
 	solves: totals.solves,
 	short: totals.bands.reduce((sum, band) => sum + band.short, 0),
@@ -239,9 +239,9 @@ describe('funded-subset search past the exact limit', () => {
 
 			// The grid alone bounds a worst case only over the days it swept, so the
 			// historical 120-day sample runs beside it, into two sets of totals. Only
-			// `worstPercent` is a max and cannot fall, so MATH.md takes its two worsts
-			// from the union and its count and mean from `sample`, where they stay
-			// comparable to its 120-day before-table. The sample's seed and draw order
+			// `worstPercent` is a max and cannot fall, so the two worsts read from the
+			// union while count and mean read from `sample`, where they stay
+			// comparable to the 120-day population. The sample's seed and draw order
 			// are e02bb3a's exactly, so it reproduces that population.
 			const sampled = mulberry32(n * 104729);
 

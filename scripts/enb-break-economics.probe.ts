@@ -364,8 +364,8 @@ describe('break economics (MATH.md §8 intro, §8.1–8.3)', () => {
 			[8, 6, 1.0],
 			[3, 8, 1.0],
 			[10, 10, 0.2],
-			// Two more low-difficulty/full-demand sets, because MATH.md claims a
-			// +153% peak and TWO non-monotone parameterizations.
+			// Two more low-difficulty/full-demand sets: that is the corner the
+			// claimed peak and the non-monotone parameterizations sat in.
 			[1, 8, 1.0],
 			[5, 6, 1.0],
 		] as const) {

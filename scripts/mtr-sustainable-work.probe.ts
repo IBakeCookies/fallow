@@ -2,7 +2,7 @@
  * What is true of Sustainable Work (`calculateRewardDensity`) over a day space
  * the allocator actually produces.
  *
- * The metric had no entry in MATH.md and divided by the TIME BUDGET:
+ * The metric divided by the TIME BUDGET:
  * `Σ_{e ≥ Eᵤ} hᵢ / B`, where its siblings normalize differently — Grind Density
  * over the task COUNT, Friction Index over Σh. A fix moved it to Σh. Both
  * are computed side by side below (`before` = /B, `after` = the shipped /Σh) so

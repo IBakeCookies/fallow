@@ -293,8 +293,14 @@ re-checked and stayed in the document while being false.
   re-rollable — and a curated fixture and a random sweep answer different
   questions, so keep both (600 random days show the trim free on all 404
   levers; the pool-bound fixture beside them is non-free on 103 of 126).
-- **Quote the number in the probe, not in prose.** A figure belongs in the file
-  that can re-derive it — the probe's header, beside the run that produced it.
+- **Quote the number in the probe, not in prose. And do not describe what
+  MATH.md says about it.** A figure belongs in the file that can re-derive it —
+  the probe's header, beside the run that produced it. The reverse direction is
+  the same rule read backwards: a header that says "MATH.md claims X" outlives
+  the section it quotes, and `math-citations.mjs` cannot see the rot — it
+  resolves `§N` to a heading, never to what that heading still says, and an
+  unnumbered "MATH.md says" it cannot see at all. State the claim; the probe is
+  what answers it.
   Nothing runs a probe on a schedule, so a figure copied into a document that
   cannot re-run rots silently and the copy is the last thing anyone checks. This
   used to be handled by hand-dating every quoted number; MATH.md carried 182 of

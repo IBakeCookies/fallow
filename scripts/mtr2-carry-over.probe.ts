@@ -1,6 +1,6 @@
 /**
- * The measurements behind three unbacked stretches of MATH.md — every one a
- * number the document states and nothing in `src/` or `scripts/` reproduces.
+ * The measurements behind a set of unbacked claims — every one a number stated
+ * in prose that nothing in `src/` or `scripts/` reproduces.
  *
  * "Monotone in demand and duration, NOT in the declared budget (same probe)".
  *   `scripts/burnout-risk.probe.ts` measures the budget walk and the duration
@@ -25,8 +25,8 @@
  * The inherited approximations — "breaks inside the worked day are omitted,
  *   and block order is taken as logged — both wash out exponentially through
  *   the trailing rest, which dominates the cycle". Stated
- *   unconditionally for a feature whose own section says it is only visible when
- *   the ☕ fit is slow, which is where the trailing rest stops dominating. Both
+ *   unconditionally for a feature that is only visible when the ☕ fit is slow,
+ *   which is where the trailing rest stops dominating. Both
  *   halves are ONE mechanism: `reservoirAt` is affine in the incoming level, so
  *   a cycle is a composition of affine maps, permuting blocks leaves the total
  *   contraction e^(−Σρᵢhᵢ) alone and moves only the offset, and walking a break
@@ -127,8 +127,7 @@ describe('The demand arm and the worst-drop mechanism', () => {
 	});
 
 	/**
-	 * The mechanism MATH.md and `calculation.test.ts` both narrate but neither
-	 * measures. The blocks are rebuilt exactly as `calculateBurnoutRisk` builds
+	 * The mechanism `calculation.test.ts` narrates but does not measure. The blocks are rebuilt exactly as `calculateBurnoutRisk` builds
 	 * them (interleaved order, switch costs as rest, overhang stretching the
 	 * funded blocks pro-rata); the risk it would report is printed beside the
 	 * reading the metric actually returns, so the reconstruction is checked

@@ -2,7 +2,7 @@
  * What is true of the Deep Work row (`calculateDeepWorkRatio`) over a day space
  * the allocator actually produces.
  *
- * The metric had no MATH.md entry at first, so nothing measured: (a) a hard
+ * Two things nothing had measured: (a) a hard
  * `mentalDifficulty >= 7` cut, which counts a full hour or none of it, and (b)
  * `getBandBiggerBetter`, which calls ≥75% of the day in high-mental work
  * "Optimal". Five questions:

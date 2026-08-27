@@ -1,17 +1,13 @@
 /**
- * The measurement behind MATH.md's "two objectives, two modes": each model
- * beating the other by tens of percent on its own scale, which is the whole
- * reason the energy plan was NOT promoted to the main page (ROADMAP item, and
- * business/AGENTS.md's "neither mode is the better one, so neither owns the day's
- * hours").
+ * The measurement behind "two objectives, two modes": each model beating the
+ * other by tens of percent on its own scale, which is the whole reason the
+ * energy plan was NOT promoted to the main page (ROADMAP item, and
+ * business/AGENTS.md's "neither mode is the better one, so neither owns the
+ * day's hours").
  *
- * MATH.md quotes a cross-scoring probe run on 2026-07-29 that was never
- * committed, so none of its numbers could be re-checked. This rebuild follows
- * the description exactly (300 random days, 2–6 tasks, budget 3–11 h, default
- * pools/switch cost/energy params, both plans scored under both objectives)
- * with one thing the text does not give: the seed. The numbers therefore
- * reproduce from here on, and the 2026-07-29 figures cannot be reproduced at
- * all.
+ * 300 random days, 2–6 tasks, budget 3–11 h, default pools/switch cost/energy
+ * params, both plans scored under both objectives — and seeded, which is what
+ * makes the numbers reproduce from here rather than only re-roll.
  *
  * The two scorings, each through the shipped entry point for its own side:
  *
@@ -307,7 +303,7 @@ describe('two objectives, two modes', () => {
 				).toFixed(0)}%)`,
 		);
 
-		// The exceptions MATH.md controls for: days the energy plan wins Σ P̄.
+		// The exceptions: days the energy plan wins Σ P̄.
 		// Re-solve the classic allocator with a budget that hands it exactly the
 		// energy plan's work hours plus its own switch overhead, then ask whether
 		// the remaining losses are days the pooled allocator was FORBIDDEN to plan.

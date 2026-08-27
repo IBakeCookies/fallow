@@ -111,8 +111,8 @@ const weekdayOf = (iso) => new Date(`${iso}T00:00:00Z`).getUTCDay();
 
 /**
  * A realistic mix: a small recurring core (the routine), a mid-frequency set,
- * and a long tail of one-offs. MATH.md measured 64–79% of logged titles
- * carrying a single log, so the tail matters — a generator with only recurring
+ * and a long tail of one-offs. 64–79% of logged titles carry a single log
+ * (business/model/AGENTS.md's per-task-ϕ decision), so the tail matters — a generator with only recurring
  * titles would make per-task structure look far more learnable than it is.
  */
 const CATALOGUE = [

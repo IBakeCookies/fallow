@@ -2,14 +2,19 @@
  * Measurements behind what quantizing the Zenith Gain's naive baseline onto the
  * block lattice did to the sign of the reported gain.
  *
- * MATH.md's table claims the gain read NEGATIVE on 4% (n = 2) to 19% (n = 6) of
- * 400 random days BEFORE the fix and 0% at every task count after, with the
+ * The gain was said to read NEGATIVE on 4% (n = 2) to 19% (n = 6) of 400 random
+ * days BEFORE the fix and 0% at every task count after, with the
  * `naive = 0 → GAIN_PERCENT_CAP` case at 0/0/0/7/7/14% and "the typical
- * non-capped day gains ~4–6%". The section does not state the generator, so
- * this fixes a seeded app-reachable one (integer sliders, pool weights tied to
- * them, budget on the 0.25 h lattice) and runs both baselines side by side: the
- * shipped baseline and a replica of the pre-2026-07-26 CONTINUOUS equal split,
- * which is the only part of the "before" row that can still be measured.
+ * non-capped day gains ~4–6%". No generator was stated, so this fixes a seeded
+ * app-reachable one (integer sliders, pool weights tied to them, budget on the
+ * 0.25 h lattice) and runs both baselines side by side: the shipped baseline
+ * and a replica of the pre-2026-07-26 CONTINUOUS equal split, which is the only
+ * part of the "before" row that can still be measured.
+ *
+ * This file's own run (2026-08-27): the before-fix negative rate runs 7.8%
+ * (n = 2), 3.8%, 5.0%, 4.5%, 4.3% (n = 6), 6.8% (n = 8) — a band, not the
+ * rising 4% → 19% ladder — and after the fix it is 0.0% at every task count,
+ * pooled included.
  *
  * SCOPE NARROWED 2026-08-06. Two of the three claims this file was written to
  * check have since been RETRACTED: the `naive = 0` row was an artifact of the
@@ -142,8 +147,8 @@ describe('The naive baseline on the block lattice', () => {
 
 			// Since the retraction there are no capped days, so the with-cap and
 			// without-cap means are the same number and the "cap contributes x% of
-			// the mean" line MATH.md quoted has no content left. What is worth
-			// guarding is that the count stays zero.
+			// the mean" line has no content left. What is worth guarding is that
+			// the count stays zero.
 			expect(capped).toBe(0);
 
 			console.log(

@@ -1,12 +1,12 @@
 /**
- * Measurements behind MATH.md's claims about the Burnout Risk scale:
- * that 100% is unreachable (micro-recovery floors each reservoir at eq > 0),
- * that a full-demand cognitive day "tops out near 87% at defaults", that
- * sustained moderate work plateaus (an 8h and a 16h demand-0.5 day read alike),
- * and that the scale is "monotone and discriminating" — the 25/41/57/63/66%
- * ladder for 1/2/4/6/8h of demand-0.9 cognitive work. The switch-cost arm asks
- * what the monotonicity sentence leaves out: which way the declared `s`
- * moves the reading, over the domain the day's own input allows.
+ * Measurements behind four claims about the Burnout Risk scale: that 100% is
+ * unreachable (micro-recovery floors each reservoir at eq > 0), that a
+ * full-demand cognitive day tops out near 87% at defaults, that sustained
+ * moderate work plateaus (an 8h and a 16h demand-0.5 day read alike), and that
+ * the scale is monotone and discriminating — the 25/41/57/63/66% ladder for
+ * 1/2/4/6/8h of demand-0.9 cognitive work. The switch-cost arm asks what
+ * monotonicity leaves out: which way the declared `s` moves the reading, over
+ * the domain the day's own input allows.
  *
  * A probe, not a test: every number here is a property of the model over a
  * large input space, not a binary "does this still hold". The ceiling, the

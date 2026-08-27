@@ -749,15 +749,28 @@ reaches the claim, never that the claim is false.
   Fixed in the same pass: that file's own `§14.1-2` citation, dangling since
   §10–§37 went, which `math-citations.mjs` skips because its regex reads the
   trailing `-2` as a line range.
-- **M53 — raised 2026-08-27, NOT verified.** Same cause, larger population:
-  **19 probe headers make 27 references to MATH.md that name no section**, so
-  `math-citations.mjs` cannot see them, and after `e61d207` some point at
-  narrative that no longer exists ("MATH.md's claims about the Burnout Risk
-  scale", "the 2026-08-08 MATH.md entry", "MATH.md quoted 569% here"). The
-  count is a count, not a check — at least one (`energy-search-gap.probe.ts`,
-  "MATH.md — which holds derivations only") is correct as written, so the
-  population is mixed and each reference has to be read against today's
-  document. Item 29's rule applies: quote none of this as a result.
+- **M53 — closed 2026-08-27,
+  [`the-references-the-checker-could-not-see`](docs/features/the-references-the-checker-could-not-see.md).**
+  Filed as a count of 27 in 19 files; scanning every `MATH.md` occurrence not
+  followed by a `§` finds **54 in 24 files** — the filed number came from
+  headers alone. Two are correct as written (`curve-marginal-facts`,
+  `energy-search-gap`) and **every other one was stale**, in three kinds: a
+  claim attributed to a deleted section, archaeology printed into a run log
+  (`stop-inversion-margin` emitted "(MATH.md said zero until 2026-08-06)" beside
+  its own numbers), and an M52 survivor — `sat-gate-floor` wraps the dating rule
+  as "WITH THEIR DATE", which that sweep's `WITH ITS DATE` grep could not see.
+  The same fault reached seven test and fixture comments outside the probes.
+  Four headers carried the deleted document's FIGURES rather than their own and
+  were re-run: `pool-allocator` (no envelope — five seeds spread 1.91%),
+  `fit-snapshot-drift` (day-10 fit 52% high; 30-day refit 500.1 ms), and two
+  that came back **different** — `rv13-prior-posterior` (the prior's σ_ϕ is 24.0%
+  of ϕ̂, not 29%; the plan changes on 6.8% of days at n = 1, not 21.7%) and
+  `rv13-naive-lattice` (the before-fix negative rate is a 3.8–7.8% band, not a
+  rising 4% → 19% ladder). One dangling NUMBERED citation turned up on the way:
+  `hedged-stop-band` cited "§4's own rule" for what makes a number unbacked; §4
+  is the allocator. The rule went into `docs/testing.md` rather than a checker —
+  `math-citations.mjs` resolves `§N` to a heading, never to what it still says.
+
 - **M40 §8.10 + §8.4 — closed 2026-08-25,
   [`the-satiety-price-on-the-sliders`](docs/features/the-satiety-price-on-the-sliders.md).**
   `grep 'difficulty: Math.max' scripts/` is empty, which is the close condition

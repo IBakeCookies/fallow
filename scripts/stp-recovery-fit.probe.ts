@@ -272,7 +272,7 @@ describe('recovery-rate calibration', () => {
 		const dDdr = (g: number, dPre: number) => M * g * dPre * Math.exp(-PRIOR * M * g);
 
 		console.log(
-			`[§8.9 lever] dD/dr from half drain: 30 min ${f3(dDdr(0.5, 0.5))}, 45 min ${f3(dDdr(0.75, 0.5))}, 60 min ${f3(dDdr(1, 0.5))} (MATH.md now says 0.22–0.26 against dD/dα 0.6–0.9)`,
+			`[§8.9 lever] dD/dr from half drain: 30 min ${f3(dDdr(0.5, 0.5))}, 45 min ${f3(dDdr(0.75, 0.5))}, 60 min ${f3(dDdr(1, 0.5))}`,
 		);
 
 		// The drain law's own sensitivity, for the "roughly half" comparison:
