@@ -26,6 +26,9 @@
 		title: 'Component/Plan Timeline Bar',
 		component: PlanTimelineBar,
 		tags: ['autodocs'],
+		args: {
+			completedTaskIds: [],
+		},
 	});
 </script>
 
@@ -110,5 +113,57 @@
 		expect(canvas.queryByText('inbox')).not.toBeInTheDocument();
 		await expect(canvas.getByTitle(/inbox/)).toBeInTheDocument();
 		await expect(canvas.getByText('writing')).toBeVisible();
+	}}
+/>
+
+<Story
+	name="A finished task"
+	args={{
+		blocks: [
+			block(1, 'boxing', 0, 2.25),
+			block(null, 'rest', 2.25, 0.75),
+			block(2, 'writing', 3, 3),
+		],
+		windowHours: 8,
+		trailingFreeHours: 2,
+		colors,
+		completedTaskIds: [1],
+	}}
+	play={async ({ canvas }) => {
+		// Ticked off, and the plan did not move: the allocator never sees `completed`
+		// (business/model/AGENTS.md), so this is a reading laid over the blocks that were
+		// already there.
+		// The bar marks — it does not dim
+		const label = canvas.getByText('✓boxing');
+		await expect(label).toHaveClass('line-through');
+
+		// Same width, same hue: alpha on a series fill is the contrast bug STYLE.md settled
+		const finished = canvas.getByTitle('boxing (done) — 0h–2h 15m (2h 15m)');
+		await expect(finished).toHaveAttribute('style', expect.stringContaining('width: 28.125%'));
+
+		await expect(finished).toHaveAttribute(
+			'style',
+			expect.stringContaining('background-color: var(--series-1)'),
+		);
+
+		// Rest is nobody's task to finish
+		await expect(canvas.getByTitle('rest — 2h 15m–3h (45m)')).toBeInTheDocument();
+	}}
+/>
+
+<Story
+	name="A finished sliver"
+	args={{
+		blocks: [block(3, 'inbox', 0, 1 / 3)],
+		windowHours: 8,
+		trailingFreeHours: 8 - 1 / 3,
+		colors,
+		completedTaskIds: [3],
+	}}
+	play={async ({ canvas }) => {
+		// Under the label floor there is no label to mark, so the tooltip carries the whole
+		// reading. The schedule list gives every block a row whatever its width.
+		await expect(canvas.getByTitle('inbox (done) — 0h–20m (20m)')).toBeInTheDocument();
+		expect(canvas.queryByText(/inbox/)).not.toBeInTheDocument();
 	}}
 />

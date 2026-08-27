@@ -13,9 +13,12 @@
 		/** The tail the optimizer left unplanned — it stopped before the day did. */
 		trailingFreeHours: number;
 		colors: SeriesColors;
+		/** Ticked-off tasks. A reading over the plan: the allocator never sees
+		 *  `completed` (business/model/AGENTS.md), so no block moves. */
+		completedTaskIds: number[];
 	}
 
-	let { blocks, windowHours, trailingFreeHours, colors }: Props = $props();
+	let { blocks, windowHours, trailingFreeHours, colors, completedTaskIds }: Props = $props();
 
 	// Under this share a title truncates to an ellipsis, which reads as a rendering
 	// fault rather than as a short block. The tooltip still names it.
@@ -31,22 +34,27 @@
 
 <div class="flex h-12 w-full overflow-hidden rounded-lg border">
 	{#each blocks as block (block.start)}
+		{@const isDone = block.taskId !== null && completedTaskIds.includes(block.taskId)}
+		{@const tooltip = {
+			title: block.title,
+			start: formatOffset(block.start),
+			end: formatOffset(block.start + block.hours),
+			duration: formatDuration(block.hours),
+		}}
 		<div
 			class="flex min-w-0 items-center justify-center border-r border-series-ink/40 last:border-r-0"
 			style="{width(block.hours)}; background-color: {colors.colorOf(block.taskId)}"
-			title={m.energy_block_tooltip({
-				title: block.title,
-				start: formatOffset(block.start),
-				end: formatOffset(block.start + block.hours),
-				duration: formatDuration(block.hours),
-			})}
+			title={isDone ? m.energy_block_tooltip_done(tooltip) : m.energy_block_tooltip(tooltip)}
 		>
 			{#if share(block.hours) > LABEL_MIN_SHARE}
 				<!-- series-ink, not ty-primary: the ink is paired with the fill, which
 				     each theme's own text colour is not. Capitalized like the task list
 				     — one title, one casing. -->
-				<span class="truncate px-box-3xs text-xs font-medium capitalize text-series-ink">
-					{block.title}
+				<span
+					class="truncate px-box-3xs text-xs font-medium capitalize text-series-ink"
+					class:line-through={isDone}
+				>
+					{isDone ? `✓${block.title}` : block.title}
 				</span>
 			{/if}
 		</div>

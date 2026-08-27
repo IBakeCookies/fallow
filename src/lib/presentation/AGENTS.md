@@ -395,6 +395,37 @@ which is the only reading the model has
 [the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)
 records the version that had one).
 
+### A finished task's blocks read as finished, and the plan does not move
+
+`plan-timeline-bar.svelte` and `plan-schedule-list.svelte` both take
+`completedTaskIds: number[]` — required and not defaulted, because `/energy`
+derives it from `session.tasks` and is the only caller, and a plan that silently
+marks nothing is the reading this exists to fix. The route derives the ids
+because neither existing split of the same field is a view of completion to
+reuse (R3): `session-store`'s `activeTasks` gates whether there is a plan at
+all, and `energy-lab-store`'s `openTaskIds` is the stop advisor's model input. Completion stays a PROP and
+never a field on `EvaluatedBlock`: the optimizer runs over every task, completed
+ones included, so a block carrying the flag would imply the plan read it
+([business/model/AGENTS.md](../business/model/AGENTS.md), "the budget's shadow
+price is a day-level reading"). Nothing here enters a number, and the mark is per
+TASK — a task interleaved into two blocks marks both, since the plan carries no
+time of day to tell the block already run from the one still ahead.
+
+**The bar marks, the list dims**, and STYLE.md settles which is which rather than
+taste. A bar label sits on a series fill, which is opaque so `series-ink` can be
+fixed, so a finished block takes a `✓` prefix and `line-through` and keeps its
+hue, its width and its opacity. The list's mark is a 10px dot with nothing
+written on it — the half of the same rule that allows a wash — so its row takes
+`opacity-60` and its title `text-ty-silent line-through`, the ledger row's own
+vocabulary (`task-row-shell.svelte`). "Done" is ANNOUNCED in the list alone,
+`sr-only`: the bar's blocks are non-semantic `<div>`s whose `title` is not a
+reliable accessible name, so the bar says it in a message of its own
+(`energy_block_tooltip_done`) rather than a "(done)" concatenated onto the
+tooltip string, which is a word no translator could place — the `✓` concatenates
+in markup precisely because a glyph is not one. Under `LABEL_MIN_SHARE` there is no label to mark at
+all, and the list's row is the reading for that block
+([the-block-that-was-already-done.md](../../../docs/features/the-block-that-was-already-done.md)).
+
 ### Each measurement is read, corrected and dropped on the row it belongs to
 
 Both read in the `Logged` cell, and so do both triggers: a control has to sit

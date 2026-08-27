@@ -410,6 +410,8 @@
 	"energy_stop_window_full": "No whole work session fits in what's left of your day window.",
 	"energy_work_free_summary": "{work} work · {free} free",
 	"energy_block_tooltip": "{title} — {start}–{end} ({duration})",
+	"energy_block_tooltip_done": "{title} (done) — {start}–{end} ({duration})",
+	"energy_block_done": "done",
 	"energy_free": "free",
 	"energy_free_time": "Free time",
 	"energy_free_time_tooltip": "Free time — {duration}",

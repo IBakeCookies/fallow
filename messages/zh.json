@@ -410,6 +410,8 @@
 	"energy_stop_window_full": "你今天剩下的时间里已经放不下一整段工作了。",
 	"energy_work_free_summary": "工作 {work} · 空闲 {free}",
 	"energy_block_tooltip": "{title} — {start}–{end}（{duration}）",
+	"energy_block_tooltip_done": "{title}（已完成） — {start}–{end}（{duration}）",
+	"energy_block_done": "已完成",
 	"energy_free": "空闲",
 	"energy_free_time": "空闲时间",
 	"energy_free_time_tooltip": "空闲时间 — {duration}",
