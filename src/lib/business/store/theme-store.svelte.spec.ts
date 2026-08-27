@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { flushSync } from 'svelte';
 import { render } from 'vitest-browser-svelte';
 import Harness from '$lib/business/store/theme-store.test-harness.svelte';
 import * as appearanceRepository from '$lib/data/repository/appearance-repository';
@@ -117,6 +118,11 @@ describe('ThemeStore appearance reconciliation', () => {
 	});
 });
 
+const motionClasses = () =>
+	['scenery-paused', 'scenery-motion-on'].filter((name) =>
+		document.documentElement.classList.contains(name),
+	);
+
 describe('ThemeStore reduced-motion seeding', () => {
 	const stubReducedMotion = (matches: boolean) =>
 		vi.spyOn(window, 'matchMedia').mockReturnValue({
@@ -132,12 +138,39 @@ describe('ThemeStore reduced-motion seeding', () => {
 	it('pauses scenery when the OS prefers reduced motion and no preference is stored', () => {
 		stubReducedMotion(true);
 
-		const store = mount({
+		expect(
+			mount({
+				theme: 'fallow',
+			}).sceneryPaused,
+		).toBe(true);
+	});
+
+	/* No recorded choice stamps NEITHER class, leaving the guarded media query in
+	   style/scenery/index.css as the only thing deciding. A store that collapsed
+	   "no choice" to "not paused" would stamp the override here and unfreeze the
+	   scenery for the moment before the OS reading corrects it. */
+	it('stamps neither motion class when nothing is stored', () => {
+		stubReducedMotion(true);
+
+		mount({
 			theme: 'fallow',
 		});
 
-		expect(store.sceneryPaused).toBe(true);
-		expect(store.sceneryMotionToggleable).toBe(false);
+		flushSync();
+
+		expect(motionClasses()).toEqual([]);
+	});
+
+	it('stamps the override once motion is resumed against the OS preference', () => {
+		stubReducedMotion(true);
+
+		mount({
+			theme: 'fallow',
+		}).toggleSceneryMotion();
+
+		flushSync();
+
+		expect(motionClasses()).toEqual(['scenery-motion-on']);
 	});
 
 	it('keeps a stored preference over the OS setting', () => {

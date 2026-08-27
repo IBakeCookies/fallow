@@ -313,6 +313,18 @@ Read this before touching markup, classes, or anything under
   that theme's scenery shifts for every existing seed (palette unchanged, but
   drifts and phases move), or leave it and the key stops matching the
   catalogue. Neither is wrong; pick one deliberately.
+- **`scenery-motion-on` on `<html>` is how a recorded choice outranks the OS**,
+  which is why `scenery/index.css`'s `@media (prefers-reduced-motion: reduce)`
+  block is _guarded_ by `html:not(.scenery-motion-on)` instead of deleted in
+  favour of `.scenery-paused` alone. Deleting it is the smaller diff and an
+  accessibility regression: the query is the only gate left for a visitor who
+  has recorded nothing — with JavaScript off, no cookie is read and no store
+  mounts — and for an OS setting that flips mid-session. The guard repeats flat
+  across the three selectors, matching the `.scenery-paused` triple below them,
+  so the Tailwind pipeline is never handed a nested `@media`. Both classes come
+  from `getSceneryMotionClasses` in `business/model/theme.ts` — the server
+  stamp and the store's toggle are one mapping — and a visit with nothing
+  recorded stamps neither, which is what leaves the query deciding.
 - **The scenery gutter: a theme's focal object goes beside the content column,
   never behind it.** `.theme-scenery` is `position: fixed; inset: 0`, so a theme
   anchoring a bright, hard-edged object to viewport top-centre draws it under

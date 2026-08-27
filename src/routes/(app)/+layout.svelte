@@ -175,23 +175,19 @@
 							<Dices class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 							{m.theme_reroll_scenery()}
 						</DropdownMenu.Item>
-						<!-- under prefers-reduced-motion the CSS pauses scenery whatever the
-						     cookie says, so the control would mislabel a state it cannot change -->
-						{#if themeStore.sceneryMotionToggleable}
-							<DropdownMenu.Item
-								class="cursor-pointer gap-grid-xs"
-								closeOnSelect={false}
-								onclick={() => themeStore.toggleSceneryMotion()}
-							>
-								{#if themeStore.sceneryPaused}
-									<Play class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-									{m.theme_resume_animations()}
-								{:else}
-									<Pause class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-									{m.theme_pause_animations()}
-								{/if}
-							</DropdownMenu.Item>
-						{/if}
+						<DropdownMenu.Item
+							class="cursor-pointer gap-grid-xs"
+							closeOnSelect={false}
+							onclick={() => themeStore.toggleSceneryMotion()}
+						>
+							{#if themeStore.sceneryPaused}
+								<Play class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+								{m.theme_resume_animations()}
+							{:else}
+								<Pause class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+								{m.theme_pause_animations()}
+							{/if}
+						</DropdownMenu.Item>
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
 				<DropdownMenu.Root>

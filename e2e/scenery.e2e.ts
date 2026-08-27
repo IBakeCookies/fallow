@@ -21,6 +21,17 @@ async function readCookie(context: BrowserContext, name: string) {
 	return cookies.find((cookie) => cookie.name === name)?.value;
 }
 
+/* Appearance is stamped into the HTML from these cookies server-side, so seeding
+   one puts the class on the FIRST paint and nothing waits for hydration. */
+const seedCookie = (context: BrowserContext, name: string, value: string) =>
+	context.addCookies([
+		{
+			name,
+			value,
+			url: ORIGIN,
+		},
+	]);
+
 /* One seeded var stands in for the whole arrangement: they all come off the same
    PRNG stream, and asserting on the full style attribute compares ~4KB of inline
    SVG that differs by a trailing semicolon between SSR and client renders. */
@@ -109,51 +120,124 @@ test('pausing scenery motion stamps the class, persists, and reverses', async ({
 	expect(await readCookie(context, 'sceneryMotion')).toBe('on');
 });
 
-/* style/scenery/index.css pauses motion under prefers-reduced-motion with
-   !important, so the toggle could not honor a resume — it is hidden rather than
-   left to mislabel a state it cannot change. The reroll is unaffected: a static
-   arrangement still varies per user. */
-test('under prefers-reduced-motion the motion toggle is absent, the reroll is not', async ({
-	page,
-}) => {
-	await page.emulateMedia({
+/* An OS asking for reduced motion decides the FIRST visit and no more: the
+   guarded media query in style/scenery/index.css stands aside once a choice is
+   recorded, so the control is offered to everyone and honored both ways.
+
+   Each abyss glow runs two animations (drift and breathe), so the computed value
+   is a comma-separated list — the distinct set is what these assert on. */
+const sceneryPlayState = async (page: Page) => {
+	const raw = await page
+		.locator('.theme-scenery .theme-helper-1')
+		.evaluate((element) => getComputedStyle(element).animationPlayState);
+
+	return [...new Set(raw.split(', '))];
+};
+
+const reduceMotion = (page: Page) =>
+	page.emulateMedia({
 		reducedMotion: 'reduce',
 	});
 
+test('the motion control is offered on a reduced-motion browser', async ({ page }) => {
+	await reduceMotion(page);
 	await page.goto('/');
 
 	await openThemeMenu(page);
 
+	// Frozen for them right now, so the control offers the way out of it.
+	await expect(
+		page.getByRole('menuitem', {
+			name: 'Resume animations',
+		}),
+	).toBeVisible();
+
+	// The reroll never depended on motion: a static arrangement still varies.
 	await expect(
 		page.getByRole('menuitem', {
 			name: 'Reroll scenery',
 		}),
 	).toBeVisible();
+});
 
-	await expect(
-		page.getByRole('menuitem', {
-			name: /animations/,
-		}),
-	).toHaveCount(0);
+test('resuming motion overrules the OS preference and records the choice', async ({
+	page,
+	context,
+}) => {
+	await reduceMotion(page);
+	await page.goto('/');
+
+	await openThemeMenu(page);
+
+	await page
+		.getByRole('menuitem', {
+			name: 'Resume animations',
+		})
+		.click();
+
+	await expect(page.locator('html')).toHaveClass(/scenery-motion-on/);
+	expect(await readCookie(context, 'sceneryMotion')).toBe('on');
+});
+
+test('a recorded resume animates the scenery on a reduced-motion browser', async ({
+	page,
+	context,
+}) => {
+	await reduceMotion(page);
+	await seedCookie(context, 'theme', 'abyss');
+	await seedCookie(context, 'sceneryMotion', 'on');
+
+	await page.goto('/');
+
+	expect(await sceneryPlayState(page)).toEqual(['running']);
+});
+
+test('pausing still works on a reduced-motion browser', async ({ page, context }) => {
+	await reduceMotion(page);
+	await seedCookie(context, 'sceneryMotion', 'on');
+
+	await page.goto('/');
+
+	await openThemeMenu(page);
+
+	await page
+		.getByRole('menuitem', {
+			name: 'Pause animations',
+		})
+		.click();
+
+	await expect(page.locator('html')).toHaveClass(/scenery-paused/);
+});
+
+/* Both pins. What must not move is whether a visit that has recorded nothing
+   animates; the class on <html> for that visit does move, which is why these
+   read the computed play state instead. */
+test('a first visit on a reduced-motion browser is still frozen', async ({ page, context }) => {
+	await reduceMotion(page);
+	await seedCookie(context, 'theme', 'abyss');
+
+	await page.goto('/');
+
+	expect(await sceneryPlayState(page)).toEqual(['paused']);
+});
+
+test('a first visit on an ordinary browser animates', async ({ page, context }) => {
+	await page.emulateMedia({
+		reducedMotion: 'no-preference',
+	});
+
+	await seedCookie(context, 'theme', 'abyss');
+
+	await page.goto('/');
+
+	expect(await sceneryPlayState(page)).toEqual(['running']);
 });
 
 /* The focal object of a theme that anchors one — `moonphase`'s moon — is drawn in
    the transparent gutter beside the content column, or not drawn at all. Both
    halves need a real layout at a real viewport width, which is the one thing
    only a browser has; and `.theme-scenery` is `display: none` until a theme class
-   sits on an ancestor, so there is no story to hang a `play` function on.
-
-   The theme comes from the cookie the server reads, so the class is on the first
-   paint and nothing waits for hydration. */
-const seedTheme = (context: BrowserContext, theme: string) =>
-	context.addCookies([
-		{
-			name: 'theme',
-			value: theme,
-			url: ORIGIN,
-		},
-	]);
-
+   sits on an ancestor, so there is no story to hang a `play` function on. */
 const moon = (page: Page) => page.locator('.theme-scenery .theme-helper-2');
 
 test.describe('the moon in the gutter', () => {
@@ -170,7 +254,7 @@ test.describe('the moon in the gutter', () => {
 		page,
 		context,
 	}) => {
-		await seedTheme(context, 'moonphase');
+		await seedCookie(context, 'theme', 'moonphase');
 		await page.goto('/');
 
 		const box = await moon(page).boundingBox();
@@ -209,7 +293,7 @@ test.describe('the moon below the gutter breakpoint', () => {
 	// 112px disc that is not occluded, so the honest output is none — not a
 	// shrunken moon (16px conveys no phase) and not a bisected one.
 	test('is not drawn at all', async ({ page, context }) => {
-		await seedTheme(context, 'moonphase');
+		await seedCookie(context, 'theme', 'moonphase');
 		await page.goto('/');
 
 		await expect(page.locator('.theme-scenery')).toBeAttached();

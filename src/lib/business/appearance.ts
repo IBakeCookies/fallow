@@ -24,7 +24,7 @@ export interface RequestAppearance {
 	theme: ThemeName | undefined;
 	/** Classes to stamp into the HTML pre-paint; falls back to the default. */
 	themeClass: string;
-	/** Undefined means "no preference" — the client uses prefers-reduced-motion. */
+	/** Undefined means "no choice recorded" — the reduced-motion query decides. */
 	sceneryPaused: boolean | undefined;
 }
 
