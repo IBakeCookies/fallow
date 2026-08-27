@@ -29,6 +29,19 @@
  * against the same walk read the pre-2026-08-19 way (`summed`), because the
  * pair is the measurement.
  *
+ * EVERY DAY IS ON THE SLIDER SURFACE (ROADMAP M49, 2026-08-27). Both
+ * generators — `randomDays` and the `WARMUP_HEAVY` fixture — draw their tasks
+ * from the three integer sliders through the shipped `toEnergyTask`, so
+ * `difficulty` is never a free knob beside the two demands but
+ * `getEffectiveDifficulty`'s dominant + 0.3·secondary. Until this date they
+ * were hand-built and off that surface, which is why the rates below are all
+ * re-read and none is the pre-2026-08-27 figure. What the re-reading changed:
+ * every number moved and no verdict did — the session arm still beats the
+ * one-step arm at every λ₀ and by MORE (λ₀ 1.3 goes 19.1% → 0.6% off-surface
+ * to 28.1% → 0.0% on it), at-stop agreement is still identical between the two
+ * in every row, the day's own breaks still beat the summed reading everywhere,
+ * and the candidate filter still helps in the same direction.
+ *
  * The one-step arm is the m = 1 slice of the advisor's search. It is not
  * implemented anywhere (the fit's `lo` bound is internal), so it is rebuilt
  * here out of exported parts only — `workedHoursByTask`, the canonical
@@ -45,6 +58,24 @@
  * from the plan itself — a task is checked off exactly when the remaining plan
  * holds no more blocks for it — so the rates above stay a draw with no
  * completions in it.
+ *
+ * THE CENSOR ARM (ROADMAP M39, 2026-08-27). §8.10 drops a day whose bracket
+ * inverts past `STOP_INVERSION_MARGIN`; `adviseStop` reads the same
+ * reconstruction and refuses nothing. MATH.md §8.11 argues the censor's
+ * premise does not survive the change of direction; this arm prices the
+ * proposal anyway — withhold the card wherever `stopBracket` would refuse the
+ * day — against the same optimizer ground truth.
+ *
+ * It found the censor strictly harmful mid-day and unhelpful at the stop. The
+ * inverted cell is 8.3–16.4% of every checkpoint the card speaks on, and the
+ * advisor's mid-day false-stop count in it is ZERO at all four λ₀ on both
+ * populations — 0 of 118, 110, 88 and 23 random-day checkpoints and 0 of 16,
+ * 17, 27 and 16 on the warm-up fixture, against 8 of 1,811 and 4 of 587
+ * everywhere else. Censoring therefore removes no wrong verdict and silences
+ * 339 + 76 correct `continue`s. At the stop moment the signal is real but tiny
+ * and split: agreement on the inverted cell is 8/20 against 213/232 elsewhere,
+ * so censoring converts 8 right and 12 wrong verdicts into 20 silences without
+ * fixing the 12. Nothing shipped moved.
  *
  * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
  * supports.
@@ -65,12 +96,15 @@ import {
 	DEFAULT_STEP_HOURS,
 	evaluateSchedule,
 	optimizeSchedule,
+	stopBracket,
 	workedHoursByTask,
 	type EnergyParams,
 	type EnergyTaskInput,
 	type ScheduleBlock,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
+import { toEnergyTask } from '$lib/business/model/metric/calculation';
+import type { Task } from '$lib/data/type';
 
 /** Seeded so a quoted number can be reproduced, not just re-rolled. */
 function mulberry32(seed: number): () => number {
@@ -90,20 +124,24 @@ interface ProbeDay {
 	windowHours: number;
 }
 
-const task = (
-	id: number,
-	difficulty: number,
-	enjoyment: number,
-	cognitiveDemand: number,
-	physicalDemand: number,
-): EnergyTaskInput => ({
-	id,
-	title: `t${id}`,
-	difficulty,
-	enjoyment,
-	cognitiveDemand,
-	physicalDemand,
-});
+/**
+ * One task as the form holds it: the three sliders are integers (mental and
+ * physical difficulty 0–10, enjoyment 1–10) and `toEnergyTask` derives
+ * everything the model reads, so nothing here describes a task the user cannot
+ * enter. `difficulty` is NOT a free knob beside the demands — it is
+ * `getEffectiveDifficulty`'s dominant + 0.3·secondary, which is why the
+ * high-amplitude fixture below carries values like 9.6.
+ */
+const draw = (id: number, mental: number, physical: number, enjoyment: number): EnergyTaskInput =>
+	toEnergyTask({
+		id,
+		title: `t${id}`,
+		mentalDifficulty: mental,
+		physicalDifficulty: physical,
+		enjoyment,
+		createdAt: '2026-08-19',
+		completed: false,
+	} as Task);
 
 /** `taskAmplitude` is internal; §8.11's canonical order is this expression. */
 const amplitude = (t: EnergyTaskInput): number => {
@@ -115,9 +153,7 @@ const amplitude = (t: EnergyTaskInput): number => {
 
 function randomDays(count: number, seed: number): ProbeDay[] {
 	const random = mulberry32(seed);
-
-	const pick = (min: number, max: number, step: number) =>
-		min + Math.round((random() * (max - min)) / step) * step;
+	const slider = (min: number) => min + Math.floor(random() * (11 - min));
 
 	return Array.from(
 		{
@@ -126,12 +162,11 @@ function randomDays(count: number, seed: number): ProbeDay[] {
 		() => ({
 			tasks: Array.from(
 				{
-					length: pick(2, 4, 1),
+					length: 2 + Math.floor(random() * 3),
 				},
-				(_, index) =>
-					task(index + 1, pick(1, 10, 1), pick(1, 10, 1), pick(0, 10, 1) / 10, pick(0, 10, 1) / 10),
+				(_, index) => draw(index + 1, slider(0), slider(0), slider(1)),
 			),
-			windowHours: pick(6, 12, 0.25),
+			windowHours: 6 + Math.floor(random() * 25) * 0.25,
 		}),
 	);
 }
@@ -144,10 +179,10 @@ function randomDays(count: number, seed: number): ProbeDay[] {
  * the optimizer's stop (the half of the table it could lose).
  */
 const WARMUP_HEAVY: EnergyTaskInput[] = [
-	task(1, 9, 10, 0.9, 0.2),
-	task(2, 10, 9, 0.8, 0.3),
-	task(3, 8, 10, 0.85, 0.25),
-	task(4, 9, 8, 0.75, 0.35),
+	draw(1, 9, 2, 10),
+	draw(2, 8, 3, 9),
+	draw(3, 8, 2, 10),
+	draw(4, 7, 4, 8),
 ];
 
 const LAMBDAS = [0.3, 0.5, 0.9, 1.3];
@@ -838,10 +873,176 @@ const WARMUP_DAYS: ProbeDay[] = Array.from(
 	}),
 );
 
+/**
+ * Why §8.10's censor stops at the fit and the advisor carries none (ROADMAP
+ * M39). `stopBracket` refuses a finished day whose own data contradicts a
+ * rational stop; `adviseStop` reads the same reconstruction and refuses
+ * nothing. The proposal this arm prices is the obvious symmetry — withhold the
+ * card wherever the retrospective reader would refuse the day — scored against
+ * the same optimizer ground truth as the arms above.
+ *
+ * The REASON is derived, not exported. `stopBracket` returns one null for four
+ * causes, and three of them are structural and computable here from parts this
+ * file already replicates: the clock censor (worked hours plus the UNCAPPED
+ * recovered breaks leave no room for a step), no `lo` (no room to extend), no
+ * `hi` (nothing worked a whole step yet — every day's first checkpoint). What
+ * is left over is the inversion M39 names. The arm prints all four, because a
+ * censor the advisor "also carries" cannot pick one of its function's refusals
+ * and ignore the rest.
+ */
+interface CensorCell {
+	checkpoints: number;
+	falseStops: number;
+}
+
+interface CensorTally {
+	verdicts: number;
+	clock: number;
+	noLo: number;
+	noHi: number;
+	inverted: number;
+	kept: CensorCell;
+	invertedCell: CensorCell;
+	atStopKept: number;
+	atStopKeptAgree: number;
+	atStopInverted: number;
+	atStopInvertedAgree: number;
+}
+
+const emptyCensorTally = (): CensorTally => ({
+	verdicts: 0,
+	clock: 0,
+	noLo: 0,
+	noHi: 0,
+	inverted: 0,
+	kept: {
+		checkpoints: 0,
+		falseStops: 0,
+	},
+	invertedCell: {
+		checkpoints: 0,
+		falseStops: 0,
+	},
+	atStopKept: 0,
+	atStopKeptAgree: 0,
+	atStopInverted: 0,
+	atStopInvertedAgree: 0,
+});
+
+/** Which of `stopBracket`'s four refusals this checkpoint hit, or null if none. */
+function censorReason(
+	observation: StopObservation,
+	params: EnergyParams,
+): 'clock' | 'no-lo' | 'no-hi' | 'inverted' | null {
+	if (stopBracket(observation, params, DEFAULT_USER_CONSTANTS) !== null) return null;
+
+	const byTask = workedHoursByTask(observation.tasks, observation.workedHours);
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+	const rest = loggedStructure(observation, byTask, total)?.restTotal ?? 0;
+
+	if (byTask.size > 0 && total + rest + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9)
+		return 'clock';
+
+	if (![...byTask.values()].some((hours) => hours >= DEFAULT_STEP_HOURS - 1e-9)) return 'no-hi';
+
+	if (total + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9) return 'no-lo';
+
+	return 'inverted';
+}
+
+function scoreCensorDay(day: ProbeDay, params: EnergyParams, tally: CensorTally): void {
+	const plan = optimizeSchedule(day.tasks, day.windowHours, params, DEFAULT_USER_CONSTANTS);
+
+	for (const checkpoint of walkPlan(plan.blocks)) {
+		const observation = observe(day, checkpoint.rows);
+		const advice = adviseStop(observation, params, DEFAULT_USER_CONSTANTS);
+
+		// Only checkpoints the card would actually speak on: a censor can silence
+		// nothing the advisor already declines to say.
+		if (advice === null || advice.verdict === 'window-full') continue;
+
+		tally.verdicts++;
+
+		const reason = censorReason(observation, params);
+
+		if (reason === 'clock') tally.clock++;
+		else if (reason === 'no-lo') tally.noLo++;
+		else if (reason === 'no-hi') tally.noHi++;
+		else if (reason === 'inverted') tally.inverted++;
+
+		const continues = advice.verdict === 'continue';
+
+		if (checkpoint.moreWork) {
+			const cell = reason === 'inverted' ? tally.invertedCell : tally.kept;
+
+			cell.checkpoints++;
+
+			if (!continues) cell.falseStops++;
+
+			continue;
+		}
+
+		if (reason === 'inverted') {
+			tally.atStopInverted++;
+
+			if (!continues) tally.atStopInvertedAgree++;
+
+			continue;
+		}
+
+		tally.atStopKept++;
+
+		if (!continues) tally.atStopKeptAgree++;
+	}
+}
+
+function measureCensor(label: string, days: ProbeDay[]): void {
+	for (const freeTimeValue of LAMBDAS) {
+		const params: EnergyParams = {
+			...DEFAULT_ENERGY_PARAMS,
+			freeTimeValue,
+		};
+
+		const tally = emptyCensorTally();
+
+		for (const day of days) scoreCensorDay(day, params, tally);
+
+		const pct = (n: number, of: number) => (of > 0 ? `${((100 * n) / of).toFixed(1)}%` : 'n/a');
+
+		console.log(
+			`${label} λ₀ ${freeTimeValue.toFixed(1)}: of ${tally.verdicts} checkpoints the card speaks on, ` +
+				`\`stopBracket\` refuses ${tally.clock + tally.noLo + tally.noHi + tally.inverted} — ` +
+				`clock ${tally.clock}, no lo ${tally.noLo}, no hi ${tally.noHi}, ` +
+				`INVERTED ${tally.inverted} (${pct(tally.inverted, tally.verdicts)})`,
+		);
+
+		console.log(
+			`${label} λ₀ ${freeTimeValue.toFixed(1)}: mid-day false stops on the inverted cell ` +
+				`${tally.invertedCell.falseStops}/${tally.invertedCell.checkpoints} ` +
+				`(${pct(tally.invertedCell.falseStops, tally.invertedCell.checkpoints)}) vs everywhere else ` +
+				`${tally.kept.falseStops}/${tally.kept.checkpoints} ` +
+				`(${pct(tally.kept.falseStops, tally.kept.checkpoints)}); ` +
+				`at-stop agreement inverted ${tally.atStopInvertedAgree}/${tally.atStopInverted} vs ` +
+				`else ${tally.atStopKeptAgree}/${tally.atStopKept}`,
+		);
+
+		console.log(
+			`${label} λ₀ ${freeTimeValue.toFixed(1)}: what the censor would COST — ` +
+				`${tally.invertedCell.checkpoints - tally.invertedCell.falseStops} correct mid-day continues ` +
+				`and ${tally.atStopInvertedAgree} correct stops silenced`,
+		);
+	}
+}
+
 describe('stop advisor', () => {
 	it('measures one-step vs session lookahead (MATH.md §8.11)', () => {
 		measure('72 seeded random days', randomDays(72, 42));
 		measure('warm-up-heavy fixture, 4 fresh high-amplitude tasks', WARMUP_DAYS);
+	});
+
+	it("prices carrying §8.10's inversion censor in the advisor (ROADMAP M39)", () => {
+		measureCensor('72 seeded random days', randomDays(72, 42));
+		measureCensor('warm-up-heavy fixture, 4 fresh high-amplitude tasks', WARMUP_DAYS);
 	});
 
 	it('measures the candidate filter against the unfiltered call (MATH.md §8.11)', () => {

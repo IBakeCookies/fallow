@@ -2413,8 +2413,9 @@ describe('Zenith Energy Model', () => {
 
 		it('continues at a mid-day checkpoint where the one-step arm would cry stop (λ₀ = 0.9, probe 2026-08-06)', () => {
 			// scripts/stop-advisor.probe.ts measured the one-step arm false-stopping
-			// on 19.7% of mid-day checkpoints at λ₀ = 0.9 against the session arm's
-			// 6.6% (MATH.md §8.11). A rate is the sweep; this pins the MECHANISM on
+			// on 14.2% of mid-day checkpoints at λ₀ = 0.9 against the session arm's
+			// 1.3% (MATH.md §8.11; re-read 2026-08-27 on the slider surface, ROADMAP
+			// M49 — it was 19.7% against 6.6% off it). A rate is the sweep; this pins the MECHANISM on
 			// one checkpoint of a day built the probe's WAY (not one of its 72
 			// seeded days — the probe prints rates and dumps no exemplar) — ground
 			// truth is the
@@ -2781,6 +2782,38 @@ describe('Zenith Energy Model', () => {
 			const advice = adviseStop(OVERRUN_DAY, DEFAULT_ENERGY_PARAMS);
 
 			expect(priced(advice).sessionHours).toBeCloseTo(DEFAULT_STEP_HOURS, 12);
+		});
+
+		// The censor asymmetry §8.11 argues for, pinned as a witness (ROADMAP M39).
+		// Both tasks come off the sliders — mental 1 / physical 0 / enjoyment 1 and
+		// mental 9 / physical 2 / enjoyment 9 through `toEnergyTask`, which is where
+		// the 9.6 comes from — because this witnesses APP-level behaviour.
+		it('advises on a day whose bracket §8.10 censors for inverting', () => {
+			const day: StopObservation = {
+				tasks: [
+					makeTask(1, 'weak errand', 1, 1, 0.1, 0),
+					makeTask(2, 'the good work, unstarted', 9.6, 9, 0.9, 0.2),
+				],
+				windowHours: 8,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 2.25,
+					},
+				],
+			};
+
+			// The whole morning went to the weak task while the good one sat
+			// unstarted: no λ₀ rationalizes stopping HERE, so the retrospective
+			// reader refuses the day.
+			expect(stopBracket(day, DEFAULT_ENERGY_PARAMS)).toBeNull();
+
+			// …and that is exactly when the live card has something worth saying.
+			const advice = priced(adviseStop(day, DEFAULT_ENERGY_PARAMS));
+
+			expect(advice.verdict).toBe('continue');
+			expect(advice.taskId).toBe(2);
+			expect(advice.marginalValue).toBeGreaterThan(DEFAULT_ENERGY_PARAMS.freeTimeValue);
 		});
 
 		it('returns null when there is nothing to advise on', () => {

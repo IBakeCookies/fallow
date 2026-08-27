@@ -2327,9 +2327,11 @@ export type StopAdvice =
  *
  * Sessions, not single steps, on purpose: a fresh task's first 45 min is
  * mostly warm-up ramp, so its one-step marginal sits below a λ₀ the full
- * session clears — probe 2026-08-06: the one-step verdict cried stop mid-day
- * on 19.7% of checkpoints at λ₀ = 0.9 and 24.7% at 1.3, session-lookahead on
- * 6.6% and 6.2%, with at-stop agreement unchanged (§8.11). The duration axis is the optimizer's
+ * session clears — probe 2026-08-06, re-read 2026-08-27 once its days were
+ * drawn on the slider surface (ROADMAP M49): the one-step verdict cries stop
+ * mid-day on 14.2% of checkpoints at λ₀ = 0.9 and 28.1% at 1.3,
+ * session-lookahead on 1.3% and 0.0%, with at-stop agreement identical between
+ * the two arms in every row (§8.11). The duration axis is the optimizer's
  * own move shape (grow / T*-session insert), so at a rational stop no session
  * clears λ₀ and the verdicts still agree.
  *
@@ -2338,6 +2340,17 @@ export type StopAdvice =
  * reconstruction: a completed task's hours drained the reservoirs the open
  * ones must work with. The retrospective fit reads the same set for the same
  * reason (§8.10).
+ *
+ * NO INVERSION CENSOR, deliberately (MATH.md §8.11). §8.10's `stopBracket`
+ * drops a day whose bracket inverts past `STOP_INVERSION_MARGIN`; this reads
+ * the same reconstruction and refuses no day. Mid-day `lo > hi` is not the
+ * contradiction it is retrospectively — there is no stop yet to rationalize,
+ * only a better step available than the one last worked, which is when
+ * `continue` is RIGHT. Measured 2026-08-27 (`stop-advisor.probe.ts`): the
+ * inverted cell is 8.3–16.4% of the checkpoints the card speaks on and carries
+ * zero mid-day false stops at every λ₀ on both populations, so carrying the
+ * censor would silence hundreds of correct verdicts and remove none that were
+ * wrong.
  *
  * Null when there is nothing to advise on (no window, no tasks, or no
  * candidate left); `window-full` when no whole step fits in what remains of
