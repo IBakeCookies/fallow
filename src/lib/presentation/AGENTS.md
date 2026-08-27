@@ -289,6 +289,15 @@ dropping them.** A row short of a cell is a row whose columns no longer line up
 with the header's, so the `{#if !completed}` goes inside the `<td>`, never
 around it.
 
+**A day with every task ticked renders its plan, struck through, on BOTH
+screens.** The plan is a reading of what the day was for, not a queue that
+empties as it is worked, so nothing replaces it: `/energy` had a card saying the
+planner needed an open task and no longer does, and `/`'s day strip drew a
+finished block as work ahead and no longer does
+([the-planner-that-said-it-needed-an-open-task.md](../../../docs/features/the-planner-that-said-it-needed-an-open-task.md);
+[the-strip-that-read-as-all-ahead.md](../../../docs/features/the-strip-that-read-as-all-ahead.md)).
+Which mark each screen uses is "the bar marks, the list dims", below.
+
 ✎ and ✕ carry an `aria-label` and no tooltip: a pencil and a cross are the two
 icons nobody needs told. They sit in a narrow always-visible trailing column —
 the strip they replaced was hover-revealed and reserved 114px on every row to
@@ -331,7 +340,11 @@ Both properties (the sequence counting down the page, and a row that never moves
 under the cursor) hold only if the order is completion-invariant, which is
 the 2026-08-18 rescope: the map covers the funded PLAN, a completed task keeps
 its slot, and `task-item` renders no badge on it — so the visible numbers can
-carry gaps, and a gap means "done", not "moved".
+carry gaps, and a gap means "done", not "moved". The strip's block prints its
+position under the same rule and drops it the same way: it sits inches above the
+ledger, so a `#2` beside a title the rows had already stopped numbering
+contradicted the reading
+([the-strip-that-read-as-all-ahead.md](../../../docs/features/the-strip-that-read-as-all-ahead.md)).
 
 ### Slide age is a `/` reading, computed above the row
 
@@ -382,6 +395,19 @@ which already scrolls the container with momentum the drag would cost them. It
 is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the energy
 optimizer's own blocks and shares only `formatDuration`.
 
+**The strip's finished block reads as finished, and the plan does not move.**
+`opacity-60` on the block and `text-ty-silent line-through` on its title — the
+ledger row's own vocabulary (`task-row-shell.svelte`), because the strip and the
+rows it is a reading of sit inches apart — plus an `sr-only` `day_timeline_done`,
+and no `#N`. Every width, offset and band still reads the full intended day: the
+allocator is blind to `completed`, so a block that moved when a box was ticked
+would be a picture of a plan nothing computed. `isCompleted` is a field on
+`DayBlock` and not a prop, the opposite of `/energy`'s `completedTaskIds`: the
+optimizer owns `EvaluatedBlock`, while `DayBlock` is a view model whose input
+`SuggestedTask` already carries the flag, so a prop would move the policy back
+into the markup
+([the-strip-that-read-as-all-ahead.md](../../../docs/features/the-strip-that-read-as-all-ahead.md)).
+
 The strip carries **no time of day at all**. It once read against a persisted
 `DailySession.startHour`, set by a "Day Starts" field, to print a `from 09:00`
 label — and that label was its only reader: no formula, fit or metric ever
@@ -402,8 +428,9 @@ records the version that had one).
 derives it from `session.tasks` and is the only caller, and a plan that silently
 marks nothing is the reading this exists to fix. The route derives the ids
 because neither existing split of the same field is a view of completion to
-reuse (R3): `session-store`'s `activeTasks` gates whether there is a plan at
-all, and `energy-lab-store`'s `openTaskIds` is the stop advisor's model input. Completion stays a PROP and
+reuse (R3): `session-store`'s `activeTasks` drops the completed tasks instead of
+naming them, and `energy-lab-store`'s `openTaskIds` is the stop advisor's model
+input. Completion stays a PROP and
 never a field on `EvaluatedBlock`: the optimizer runs over every task, completed
 ones included, so a block carrying the flag would imply the plan read it
 ([business/model/AGENTS.md](../business/model/AGENTS.md), "the budget's shadow

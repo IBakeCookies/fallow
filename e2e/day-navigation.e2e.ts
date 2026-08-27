@@ -221,5 +221,6 @@ test('a past day draws the strip it was planned under', async ({ page }) => {
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
-	await expect(timeline.getByText('#1 Deep work')).toBeVisible();
+	// The title alone: a finished block prints no `#N` (presentation/AGENTS.md).
+	await expect(timeline.getByText('Deep work')).toBeVisible();
 });

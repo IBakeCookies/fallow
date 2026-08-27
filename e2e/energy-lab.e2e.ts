@@ -351,9 +351,8 @@ test('every task row reports the hours the plan gave it', async ({ page }) => {
 	await expect(page.getByText('no hours')).toHaveCount(2);
 });
 
-/* Ticking a task off is the one edit that must mark the plan without moving it: the
-   allocator never sees `completed`. Two tasks, because an all-completed day replaces
-   the whole plan card with "all done" and there is no bar left to read. */
+// Ticking a task off is the one edit that must mark the plan without moving it: the
+// allocator never sees `completed`.
 test('ticking a task off marks its block in the plan', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -396,6 +395,71 @@ test('un-ticking a task restores its block', async ({ page }) => {
 
 	await checkbox.uncheck();
 	await expect(page.getByTitle(/^Deep work/).first()).toHaveText('Deep work');
+});
+
+/* A day with every task ticked is the day you finished, not a day with nothing on
+   it: the plan stays, struck through, and the ledger below is the un-check. */
+const setUpAllDoneDay = async (page: Page) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await page.getByLabel('Day window').fill('8');
+	await page.getByLabel('Day window').blur();
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		})
+		.check();
+};
+
+test('an all-done day still draws its plan', async ({ page }) => {
+	await setUpAllDoneDay(page);
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Optimized Day',
+		}),
+	).toBeVisible();
+});
+
+test('an all-done day reads its block as finished', async ({ page }) => {
+	await setUpAllDoneDay(page);
+
+	await expect(page.getByTitle(/^Deep work \(done\)/).first()).toHaveText('\u2713Deep work');
+});
+
+test('an all-done day still reports its hours', async ({ page }) => {
+	await setUpAllDoneDay(page);
+
+	await expect(page.getByText(/work \u00b7 /).first()).toBeVisible();
+});
+
+// Pin: the ledger is the affordance the deleted hint pointed at, so it stays.
+test('an all-done day keeps the ledger to un-check from', async ({ page }) => {
+	await setUpAllDoneDay(page);
+
+	await expect(
+		page.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		}),
+	).toBeChecked();
+});
+
+// Pin: nothing to plan is a different emptiness from a plan you finished.
+test('a day with no tasks at all still shows no plan', async ({ page }) => {
+	await page.goto('/energy');
+	// The skeleton behind `isLoading` has no heading either, so read the loaded
+	// empty state first or the count below resolves before the stores land.
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Optimized Day',
+		}),
+	).toHaveCount(0);
 });
 
 /* The list reads in schedule order, but the sort is a snapshot per visit: a live one

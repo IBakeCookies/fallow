@@ -6,7 +6,36 @@ const task = (id: number, suggestedHours: number, flowStateTime = 1) => ({
 	title: `Task ${id}`,
 	suggestedHours,
 	flowStateTime,
+	completed: false,
 });
+
+/* A ticked-off task in the middle of a funded day. The allocator is blind to
+   `completed` (business/model/AGENTS.md), so the day around it is what the plan
+   already said. */
+const dayWithCompleted = () =>
+	input({
+		suggestedTasks: [
+			{
+				...task(1, 2),
+				title: 'Write the PDF',
+			},
+			{
+				...task(2, 1.5),
+				title: 'Boxing training',
+				completed: true,
+			},
+			{
+				...task(3, 1),
+				title: 'Read the brief',
+			},
+		],
+		runOrder: new Map([
+			[1, 1],
+			[2, 2],
+			[3, 3],
+		]),
+		switchCost: 0.25,
+	});
 
 const input = (over: Partial<DayTimelineInput> = {}): DayTimelineInput => ({
 	suggestedTasks: [],
@@ -113,5 +142,23 @@ describe('buildDayTimeline', () => {
 		);
 
 		expect(timeline.blocks).toHaveLength(1);
+	});
+
+	it('marks the block of a task the day has finished', () => {
+		const timeline = buildDayTimeline(dayWithCompleted());
+
+		expect(timeline.blocks.map((block) => block.isCompleted)).toEqual([false, true, false]);
+	});
+
+	it('keeps a finished block at the width the plan gave it', () => {
+		const timeline = buildDayTimeline(dayWithCompleted());
+
+		expect(timeline.blocks[1].hours).toBe(1.5);
+	});
+
+	it('leaves the block after a finished one where the plan put it', () => {
+		const timeline = buildDayTimeline(dayWithCompleted());
+
+		expect(timeline.blocks[2].startOffset).toBe(4);
 	});
 });

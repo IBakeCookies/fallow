@@ -83,6 +83,40 @@ test('completing a task persists across reload', async ({ page }) => {
 	).toBeChecked();
 });
 
+/* The strip sits inches above the ledger, so a box ticked in one has to read in the
+   other — otherwise the strip is a picture of the work ahead that includes work
+   already done. */
+test("ticking a task off marks its block in the day's strip", async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Write report');
+	await setBudget(page, 8);
+
+	const timeline = page.locator('section').filter({
+		has: page.getByRole('heading', {
+			name: 'The day',
+			exact: true,
+		}),
+	});
+
+	const title = timeline.getByText('Write report');
+
+	await expect(title).toBeVisible();
+
+	const checkbox = page.getByRole('checkbox', {
+		name: 'Mark Write report complete',
+	});
+
+	await checkbox.check();
+	await expect(title).toHaveClass(/line-through/);
+
+	// A day with everything ticked still draws its plan: the strip reads what the day
+	// was for, struck through, rather than emptying as it is worked.
+	await expect(title).toBeVisible();
+
+	await checkbox.uncheck();
+	await expect(title).not.toHaveClass(/line-through/);
+});
+
 test('removing a task restores the empty state', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Throwaway');

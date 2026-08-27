@@ -52,7 +52,6 @@
 	const decimal = (value: number, digits: number) => formatDecimals(value, digits, getDateLocale());
 
 	const session = getSessionStore();
-	const activeTasks = $derived(session.activeTasks);
 	const completedTaskIds = $derived(session.tasks.filter((t) => t.completed).map((t) => t.id));
 
 	const observations = getEnergyObservationStore();
@@ -391,81 +390,73 @@
 			     keeps its adjacency to the parameters by sharing a column, not the page's
 			     top. An empty day has no plan and starts at the list. -->
 			{#if hasTasks}
-				{#if activeTasks.length === 0}
-					<!-- The optimizer needs an open task; the list below stays so one can be un-checked or added -->
-					<div class="card-shell p-box-2xl text-center">
-						<p class="text-ty-secondary">{m.energy_all_done()}</p>
-						<p class="mt-text-2xs text-sm text-ty-silent">{m.energy_all_done_hint()}</p>
-					</div>
-				{:else}
-					<div class="card-shell p-box-md sm:p-box-xl">
-						<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
-							<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
-								{m.energy_optimized_day()}
-							</h3>
-							<!-- "0m work · 0m free" and a view switch over an empty region are
-								     furniture the day window has not earned yet. -->
-							{#if windowHours > 0}
-								<div class="flex items-center gap-grid-xs">
-									<span class="text-xs text-ty-silent">
-										{m.energy_work_free_summary({
-											work: formatDuration(plan.evaluation.workHours),
-											free: formatDuration(plan.evaluation.leisureHours),
-										})}
-									</span>
-									<SegmentedToggle
-										items={planViewItems}
-										value={planView}
-										onchange={setPlanView}
-										label={m.energy_view_group()}
-										tone="plan"
-									/>
-								</div>
-							{/if}
-						</div>
+				<div class="card-shell p-box-md sm:p-box-xl">
+					<div class="mb-text-sm flex flex-wrap items-center justify-between gap-grid-xs">
+						<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
+							{m.energy_optimized_day()}
+						</h3>
+						<!-- "0m work · 0m free" and a view switch over an empty region are
+						     furniture the day window has not earned yet. -->
 						{#if windowHours > 0}
-							<PlanTimelineBar
-								blocks={plan.evaluation.blocks}
-								{windowHours}
-								{trailingFreeHours}
-								{colors}
-								{completedTaskIds}
-							/>
-
-							<div>
-								{#if planView === 'chart'}
-									<EnergyChart {trajectory} {windowHours} />
-								{:else}
-									<PlanScheduleList
-										blocks={plan.evaluation.blocks}
-										{windowHours}
-										{trailingFreeHours}
-										plannedHours={lab.plannedHours}
-										{colors}
-										locale={getDateLocale()}
-										{completedTaskIds}
-									/>
-								{/if}
+							<div class="flex items-center gap-grid-xs">
+								<span class="text-xs text-ty-silent">
+									{m.energy_work_free_summary({
+										work: formatDuration(plan.evaluation.workHours),
+										free: formatDuration(plan.evaluation.leisureHours),
+									})}
+								</span>
+								<SegmentedToggle
+									items={planViewItems}
+									value={planView}
+									onchange={setPlanView}
+									label={m.energy_view_group()}
+									tone="plan"
+								/>
 							</div>
-
-							<PlanSummary
-								totalOutput={decimal(plan.evaluation.totalOutput, 1)}
-								endCog={plan.evaluation.workEndCog}
-								endPhys={plan.evaluation.workEndPhys}
-								workHours={plan.evaluation.workHours}
-								{valueVsClassic}
-							/>
-						{:else}
-							<button
-								type="button"
-								class="hint-underline text-sm text-ty-secondary transition hover:text-ty-primary"
-								onclick={focusDayWindow}
-							>
-								{m.energy_set_window()}
-							</button>
 						{/if}
 					</div>
-				{/if}
+					{#if windowHours > 0}
+						<PlanTimelineBar
+							blocks={plan.evaluation.blocks}
+							{windowHours}
+							{trailingFreeHours}
+							{colors}
+							{completedTaskIds}
+						/>
+
+						<div>
+							{#if planView === 'chart'}
+								<EnergyChart {trajectory} {windowHours} />
+							{:else}
+								<PlanScheduleList
+									blocks={plan.evaluation.blocks}
+									{windowHours}
+									{trailingFreeHours}
+									plannedHours={lab.plannedHours}
+									{colors}
+									locale={getDateLocale()}
+									{completedTaskIds}
+								/>
+							{/if}
+						</div>
+
+						<PlanSummary
+							totalOutput={decimal(plan.evaluation.totalOutput, 1)}
+							endCog={plan.evaluation.workEndCog}
+							endPhys={plan.evaluation.workEndPhys}
+							workHours={plan.evaluation.workHours}
+							{valueVsClassic}
+						/>
+					{:else}
+						<button
+							type="button"
+							class="hint-underline text-sm text-ty-secondary transition hover:text-ty-primary"
+							onclick={focusDayWindow}
+						>
+							{m.energy_set_window()}
+						</button>
+					{/if}
+				</div>
 			{/if}
 
 			<!-- One grid and not two, so the read-outs stack at their own heights beside
