@@ -477,10 +477,13 @@ describe('the insertion convention', () => {
 		for (let trial = 0; trial < 4000; trial++) {
 			const n = 2 + Math.floor(rnd() * 4);
 
-			// DELIBERATELY off the sliders: difficulty is drawn independently of the
-			// two demands, so this population is a strict superset of the surface
-			// `getEffectiveDifficulty` admits. What the arm reports is a worst case
-			// and a sign, and a superset's worst bounds the reachable worst
+			// DELIBERATELY off the sliders, and NOT a superset of them: difficulty is
+			// drawn independently of the two demands, but only as an integer, where 37
+			// of the surface's 47 difficulties are not (sliders 9/1 give 9.3). So the
+			// two populations are incomparable, and no bound transfers either way.
+			// What the arm reports is the SIZE and SIGN of an insertion-order error,
+			// which is a property of how blocks compose through the reservoirs rather
+			// than of any difficulty value, and this population exercises it widely
 			// (docs/testing.md).
 			const tasks: EnergyTaskInput[] = Array.from(
 				{

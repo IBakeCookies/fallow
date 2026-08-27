@@ -255,11 +255,11 @@ describe('45-min lattice', () => {
 		let offLattice = 0;
 
 		for (let day = 0; day < 150; day++) {
-			// DELIBERATELY off the sliders: difficulty is drawn independently of the
-			// demands, so this is a strict superset of the surface
-			// `getEffectiveDifficulty` admits. What the arm pins is an INVARIANT, and
-			// one that holds over the superset holds over the surface — here the wider
-			// population is the stronger test (docs/testing.md).
+			// DELIBERATELY off the sliders, and not a superset of them either — the
+			// draw is integer where most surface difficulties are not. It does not need
+			// to be: what the arm pins is an INVARIANT of `optimizeSchedule`'s move set
+			// that holds for ANY `EnergyTaskInput`, so the population only has to be
+			// wide, and difficulty is not what the lattice reads (docs/testing.md).
 			const tasks = Array.from(
 				{
 					length: 1 + Math.floor(random() * 4),

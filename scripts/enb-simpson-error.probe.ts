@@ -2,8 +2,9 @@
  * What the 1024-node cap costs `blockOutput` (MATH.md §8,
  * business/model/AGENTS.md). Composite Simpson with 16 nodes per fastest
  * timescale (min of ϕ, 1/ρ) holds a block's output to a relative error under
- * 1.1e-6 out to a 9h block; past there the cap thins the node density and the
- * error grows with the block. Over every task the app can produce the worst is
+ * 1.1e-6 out to a 9h block ON THE TASKS THE APP CAN REACH — the cap itself
+ * starts thinning the node density at 6.4h, and past 9h the error grows with
+ * the block on every witness here. Over every task the app can produce the worst is
  * 5.0015e-5, in a 24h block at sliders mental 2 / physical 0 / enjoyment 10,
  * and no reachable cell at any block length reads above that. The suite fixture
  * pins 1e-4.

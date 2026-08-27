@@ -574,11 +574,12 @@ applies, so quote none of them as a result until its own check is run. M37 and
 later came from probe sweeps and later reviews rather than from the 2026-08-14
 audit and carry the same rule.
 
-**Every `MATH.md:NNNN` below is as of the date its entry carries and most have
-since drifted**, some by hundreds of lines. Grep the quoted text, not the line:
-each lead has to be re-located when its own check is run anyway, and re-guessed
-line numbers would read as verified when only the quoted text is. That drift is
-what M1, M3 and M11 each found in `MATH.md`'s own citations.
+**A lead below that quotes a `MATH.md` line number quotes it as of the date its
+entry carries**, and the 2026-08-27 collapse left none. Grep the quoted text,
+never the line: each lead has to be re-located when its own check is run anyway,
+and a re-guessed line number reads as verified when only the quoted text is.
+That drift is what M1, M3 and M11 each found in `MATH.md`'s own citations, and
+AGENTS.md §0 now bans the shape outright.
 
 **No open lead below was executed.** The audit read `MATH.md`, the code and the
 probe sources; it ran no probe, no test and no solve, so every figure in an open
@@ -896,3 +897,23 @@ and what it cost is in the spec.
   [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
 - **M70 — a rule-mandated declaration giving the wrong reason — fixed 2026-08-27,
   [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M92 — two declarations claiming a superset of the surface that is not one —
+  fixed 2026-08-27,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+- **M93 — an off-surface declaration with the direction wrong for one task —
+  fixed 2026-08-27,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+- **M94 — a worked example mis-describing its own evidence — fixed 2026-08-27,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+- **M95 — a census wrong in two of its three cells — closed 2026-08-27, not
+  fixed,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+- **M96 — a collapse that deleted the only text a surviving rule referred to —
+  fixed 2026-08-27,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+- **M97 — a line-count reduction describing a size the file never had — closed
+  2026-08-27, not fixed,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+- **M98 §8.1 — an unscoped bound over the ϕ-floor regime, in the file M55
+  rewrote to stop it — fixed 2026-08-27,
+  [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
