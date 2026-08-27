@@ -123,9 +123,11 @@ its allocation code, so the main page is unaffected by changes here.
 - Output gate is Cobb-Douglas: `C_cog^wc · C_phys^wp`, demands
   `w = dimensionDifficulty/10`. Block output uses composite Simpson with 16
   nodes per fastest timescale (min of ϕ, 1/ρ), **capped at 1024 nodes** — so at
-  the 0.1h ϕ floor the density falls once a block exceeds 6.4h: relative error
-  is ~3e-7 up to 6h, 6.9e-7 at 8h, 1.7e-6 at 10h, 3.5e-6 at 12h and 5.6e-5 in a
-  24h block (`scripts/enb-simpson-error.probe.ts`). Under default constants
+  the 0.1h ϕ floor the density falls once a block exceeds 6.4h: the probe's
+  off-surface witness reads ~3e-7 up to 6h, 6.9e-7 at 8h, 1.7e-6 at 10h, 3.5e-6
+  at 12h and 5.6e-5 in a 24h block, and every task the app can REACH at that
+  floor stays under it — the box corner does not
+  (`scripts/enb-simpson-error.probe.ts`). Under default constants
   (min ϕ = 0.58h) the cap never binds.
 - The optimizer is a deterministic multi-seed steepest-ascent local search over
   (task|rest, duration) block schedules: not slot-greedy (myopic, never rests),

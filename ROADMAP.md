@@ -857,3 +857,6 @@ and what it cost is in the spec.
   [`the-citations-the-section-sign-hid`](docs/features/the-citations-the-section-sign-hid.md).**
 - **M74 — M53's own describing sentence — fixed 2026-08-27,
   [`the-citations-the-section-sign-hid`](docs/features/the-citations-the-section-sign-hid.md).**
+- **M91 §8.1 — one witness's curve read as a bound over the ϕ floor — fixed
+  2026-08-27,
+  [`the-witness-read-as-a-bound`](docs/features/the-witness-read-as-a-bound.md).**
