@@ -604,20 +604,23 @@ reaches the claim, never that the claim is false.
 - **M14 §3 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M15 §5 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M16 §5.2 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
-- **M17 §13.4** — `zenith-energy.ts:2028-2029` still quotes the retracted "0.65
-  appended-last against 0.37 inserted-first"; `MATH.md:3323-3329` retracted it
-  (the gap is 0.005). Replace with the 0.8894/0.8840 pair from
-  `rv13-stop-insertion.probe.ts`.
-  **Two of three sites fixed 2026-08-19,
-  [`what-the-retracted-step-still-said`](docs/features/what-the-retracted-step-still-said.md); does not close.** The third —
-  §8.10's own paragraph, which states the same pair as live fact — is held with
-  the reconstruction ruling and still reads it. Both of this entry's citations
-  are stale (`zenith-energy.ts:2028-2029` → `:2031-2032`; `MATH.md:3323-3329` →
-  the §13.4 retraction, several hundred lines down) and its prescription is
-  wrong: 0.8894/0.8840 are whole-day indifference midpoints, not a step
-  marginal, so the docblock drops the pair and cites §13.4 rather than
-  substituting them. The pair itself has since moved to 0.9135/0.9112 (M43,
-  2026-08-20), so nothing should be substituted from this entry at all.
+- **M17 §13.4 — closed 2026-08-27, not fixed,
+  [`the-third-site-deleted-with-its-section`](docs/features/the-third-site-deleted-with-its-section.md).**
+  Raised against the retracted "0.65 appended-last against 0.37 inserted-first"
+  quoted as live fact in three places. Two were fixed 2026-08-19
+  ([`what-the-retracted-step-still-said`](docs/features/what-the-retracted-step-still-said.md));
+  the third — §8.10's feasibility-2 paragraph — was held with the reconstruction
+  ruling. The hold was never lifted: `e61d207` (2026-08-25) cut MATH.md to
+  derivations only, deleting §10–§37 and, with §13.4, both the retraction and
+  the pair inside §8.10's paragraph. Verified across every tracked file: neither
+  figure survives as live text, and the only quotes left are
+  `rv13-stop-insertion.probe.ts:8,15`, which state the claim as the
+  unreproducible record they measure against. What replaced the pair re-derives
+  today — fixture day inserted **0.9135** vs appended **0.9112** (gap 0.0023),
+  appending reads higher on 19.7% of 6,232 probes and shifts the indifference
+  point on 552 of 2,258 two-sided days (worst 0.1964, 79% of the margin), and
+  §8.11's "agree to four decimals" holds on every uncensored timed cell. This
+  entry's prescription stays wrong and nothing was substituted from it.
 - **M18 §28 / §31 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**
 - **M19 §28 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**
 - **M20 §32 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**

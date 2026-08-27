@@ -2205,9 +2205,9 @@ function loggedStructure(
  * blocks — the day continues from where it stopped. An unlogged task is
  * inserted at ITS canonical position, not appended last: block order changes
  * the marginal through the reservoirs, so appending made the reading depend on
- * an arbitrary convention rather than on the day. Where that
- * position falls beside a break, the session lands before the break, i.e.
- * directly after the last lower-ranked work block.
+ * an arbitrary convention rather than on the day. Where that position falls
+ * beside a break, the session lands before the break, i.e. directly after the
+ * last lower-ranked work block.
  */
 function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): ScheduleBlock[] {
 	if (day.byTask.has(t.id)) {
