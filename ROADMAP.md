@@ -885,7 +885,7 @@ and what it cost is in the spec.
 - **M66 §8.6 — two ledger rows asserting two values for one measurement — raised
   and closed 2026-08-27 by M90,
   [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
-- **M67 — three probe generators off the surface with no declaration, and a
+- **M67 — four probe generators off the surface with no declaration, and a
   fixture declaring the opposite — fixed 2026-08-27,
   [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
 - **M68 §8.6 — three statements restating their own code wrongly — fixed
