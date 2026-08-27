@@ -1,6 +1,6 @@
 /**
  * What is true of the Human Capacity reading (`calculateHumanCapacity`) over a
- * day space — the metric MATH.md did not derive until later.
+ * day space.
  *
  * Three questions, none of them answerable by the suite (which pins four
  * hand-built fixtures with externally-supplied hours, so it never sees a plan

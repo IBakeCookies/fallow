@@ -1,27 +1,22 @@
 /**
- * The measurements behind MATH.md's whole case for the `fitSnapshots` store,
- * and for rejecting the alternative that would have been strictly more correct.
+ * The measurements behind the whole case for the `fitSnapshots` store, and for
+ * rejecting the alternative that would have been strictly more correct — per-day
+ * recomputation, which would fix history retroactively where storing cannot.
  *
- * Two numbers, neither reproducible:
+ * Both numbers the case rests on, read off this file's own run (2026-08-27), on
+ * a synthetic year of a heavy logger whose true rates drift (α 0.25 → 0.55 over
+ * 365 days, 730 ⚡ / 730 ☕ / 1095 🪫):
  *
- *   DRIFT — "Measured on a synthetic year of a heavy logger whose true rates
- *   drift (α 0.25 → 0.55 over 365 days, 730 ⚡ / 730 ☕ / 1095 🪫): α_cog fitted
- *   from logs up to day 10 is 0.3069, the whole-history fit is 0.4973 — the
- *   day-10 plan was audited against a drain rate 62 % higher than that day's
- *   own logs supported. The bias is an early-history bias and it does not show
- *   up inside the 30-day audit window (0.4809 → 0.4965 there)."
+ *   DRIFT — α_cog fitted from logs up to day 10 is 0.3447 against a
+ *   whole-history 0.5240, so the day-10 plan would be audited against a drain
+ *   rate 52% higher than that day's own logs supported. It is an EARLY-history
+ *   bias: inside the 30-day audit window the same fit moves 0.5075 → 0.5240,
+ *   3.3% apart, and on a flat year the day-10 gap is 1%.
  *
- *   COST — "refitting per audited day costs the WHOLE-history fit each time
- *   (measured 19 ms per day at the volume above, 570 ms for a 30-day audit,
- *   against 17.6 ms for one whole-history fit), so recomputation is
- *   O(auditDays × totalLogVolume)".
- *
- * The drift number justifies storing snapshots at all. The cost number is the
- * ENTIRE rejection of per-day recomputation — which MATH.md itself concedes
- * "would fix history retroactively, which storing cannot". A rejection that
- * strong deserves a measurement that exists. None of `0.3069`, `0.4973`,
- * `0.4809`, `0.4965`, `19 ms`, `570 ms` or `17.6 ms` appears anywhere in
- * `src/` or `scripts/`; they are prose from a probe that was thrown away.
+ *   COST — one whole-history fit 18.6 ms at that volume; refitting per audited
+ *   day costs 500.1 ms for a 30-day audit, 16.7 ms/day, 0.89× the single fit —
+ *   and the per-day cost tracks volume (33.8 ms/day at 2×, 73.6 at 4×), which
+ *   is the O(auditDays × totalLogVolume) claim.
  *
  * A probe, not a test. The drift arm sweeps a space (drift shape × log volume
  * × as-of day) that one synthetic year samples once, and the cost arm is
@@ -61,11 +56,11 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-/** MATH.md's own logger: 730 ⚡ / 730 ☕ / 1095 🪫 over 365 days. */
+/** The logger the case was made on: 730 ⚡ / 730 ☕ / 1095 🪫 over 365 days. */
 const DAYS = 365;
 const REST_PER_DAY = 2;
 const DRAIN_PER_DAY = 3;
-/** MATH.md's drift: α 0.25 → 0.55 across the year. */
+/** The drift it was made against: α 0.25 → 0.55 across the year. */
 const ALPHA_START = 0.25;
 const ALPHA_END = 0.55;
 /** The audit's window — the "does not show up in-window" half of the claim. */
@@ -75,7 +70,7 @@ const AS_OF_DAYS = [5, 10, 20, 30, 60, 120, 365];
 type DriftShape = 'linear' | 'step' | 'flat';
 
 const DRIFT_SHAPES: DriftShape[] = ['linear', 'step', 'flat'];
-/** Log-volume multipliers on MATH.md's own rates, for the O(volume) claim. */
+/** Log-volume multipliers on those rates, for the O(volume) claim. */
 const VOLUME_MULTIPLIERS = [1, 2, 4];
 
 function alphaOn(day: number, shape: DriftShape): number {
@@ -225,8 +220,8 @@ describe('per-day fit snapshots', () => {
 			// history up to that day — not a fit restricted to the window's own
 			// logs. That distinction is the claim: an auditor scoring all 30 days
 			// against today's fit is only wrong by however much the as-of-day fit
-			// moved ACROSS the window, and MATH.md says that is nearly nothing
-			// (0.4809 → 0.4965) even while the day-10 gap is 62%.
+			// moved ACROSS the window, which is nearly nothing even while the
+			// day-10 gap is tens of percent.
 			const windowStart = DAYS - AUDIT_WINDOW_DAYS;
 			const inWindowEarly = alphaCogOf(upTo(history, windowStart));
 			const inWindowLate = alphaCogOf(upTo(history, DAYS));

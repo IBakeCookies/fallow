@@ -237,9 +237,9 @@ describe('timing, not aggregation', () => {
 		// The same tile on a plan the app would actually propose. optimizeSchedule
 		// maximizes the objective, which DOES read difficulty/enjoyment, so this
 		// pair depends on the task set — and the record never stated one. None
-		// of the three plausible readings below reproduces its 0.890/0.469; the
-		// fixture behind that sentence is unrecorded, so MATH.md now quotes
-		// reading 1 (the ladder's own task, optimized instead of forced) by value.
+		// of the three plausible readings below reproduces its 0.890/0.469, so the
+		// fixture behind that sentence is unrecoverable; reading 1 (the ladder's
+		// own task, optimized instead of forced) is the one this file quotes.
 		for (const [label, tasks] of [
 			['single full-cognitive task (the ladder’s), difficulty 8 / enjoyment 6', [cognitive]],
 			['PAIR (pure-cognitive + pure-physical, both 8/6)', PAIR],

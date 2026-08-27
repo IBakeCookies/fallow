@@ -1,5 +1,5 @@
 /**
- * Measurements behind MATH.md's claims about the priced levers.
+ * Measurements behind the priced levers.
  *
  * A probe, not a test: it answers "what is true of the model over a large input
  * space" and prints numbers, where a test answers "does this still hold" and is
@@ -176,11 +176,10 @@ const allocated = (metrics: DailyMetrics) =>
 	metrics.suggestedTasks.reduce((sum, task) => sum + task.suggestedHours, 0);
 
 /**
- * MATH.md said `budget − planSlack` was free — it changes no allocation, so it
- * costs no Σ P̄. Corrected 2026-08-06 by this measurement: the trim keeps the
- * plan FEASIBLE, but `allocate` is path-dependent on `budgetBlocks`, so the
- * re-solve can land on a different, lower-valued distribution of the same
- * hours.
+ * The trim `budget − planSlack` was taken to be free — it changes no
+ * allocation, so it costs no Σ P̄. It is not: the trim keeps the plan FEASIBLE,
+ * but `allocate` is path-dependent on `budgetBlocks`, so the re-solve can land
+ * on a different, lower-valued distribution of the same hours.
  *
  * `reshaped` is what separates the two claims, and is why it is counted here
  * rather than asserted on one day: a non-free trim that also funds fewer tasks

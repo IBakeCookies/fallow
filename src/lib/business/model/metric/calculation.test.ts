@@ -93,7 +93,7 @@ describe('getTaskNature', () => {
 		).toBe(nature);
 	});
 
-	// The rate MATH.md quotes, pinned from `mtr-task-nature.probe.ts`: 45 of
+	// The rate `mtr-task-nature.probe.ts` measures, pinned here: 45 of
 	// the 121 pairs the sliders reach, down from 49 before the zero gate.
 	it('calls 45 of the 121 reachable pairs balanced', () => {
 		const square = Array.from(
@@ -586,7 +586,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 			suggestedHours: 0,
 		});
 
-		// The exact pair MATH.md quotes. Pinned by value, not by `not.toBe`: the
+		// The exact pair, pinned by value rather than by `not.toBe`: the
 		// inequality alone survives swapping the mean for a max (32 → 48), a sum
 		// (32 → 48), or the cognitive/physical demands (28 → 18) — every mutant
 		// still moves the reading, just not to the mean's number.
@@ -606,7 +606,7 @@ describe('calculateBurnoutRisk (2026-07-20 v2: energy-model reservoir simulation
 	});
 
 	it('overwork stretches the funded blocks PRO-RATA, not evenly', () => {
-		// MATH.md's "stretching the funded blocks pro-rata" was previously pinned by
+		// "Stretching the funded blocks pro-rata" was previously pinned by
 		// nothing: the other multi-task fixtures sit where pro-rata and an equal
 		// split coincide, so an equal-split regression passed the whole suite.
 		// This fixture separates them by 33 points. It works because the plan ends
@@ -849,7 +849,7 @@ describe('calculateScheduleIntegrity (2026-07-18 redefinition: overhead share)',
 		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6, 0.25)).toBe(94);
 
 		// Same cell without the argument. Rounding alone would hold 94 across
-		// sc ∈ [0.233, 0.278], so the constant MATH.md quotes is pinned here.
+		// sc ∈ [0.233, 0.278], so the constant itself is pinned here.
 		expect(DEFAULT_SWITCH_COST).toBe(0.25);
 		expect(calculateScheduleIntegrity([t(1, 2), t(2, 2)], 6)).toBe(94);
 
@@ -1204,7 +1204,7 @@ describe('calculateTimeScarcity', () => {
 	});
 
 	it('MORE budget can read HIGHER scarcity once the plan is re-solved (settled, not a bug)', () => {
-		// The seam MATH.md accepted when the bill moved to the funded set: a
+		// The seam accepted when the bill moved to the funded set: a
 		// BLOCK_HOURS budget step that seats k more tasks bills k·s, so the
 		// reading RISES whenever Δm·s > BLOCK_HOURS — at s = 45m one new task
 		// clears it, on 4.14% of probed steps and every day touched, worst +13

@@ -23,9 +23,7 @@
  *
  * Arms A, B and D are algebra: exact consequences of the shipped constants that
  * should hold forever, so they assert. Arm C is a sweep whose numbers move with
- * the optimizer, the lattice and the objective — it prints, and the printed
- * numbers belong in MATH.md WITH THEIR DATE beside the claim they support
- * (docs/testing.md).
+ * the optimizer, the lattice and the objective, so it prints instead.
  *
  * Usage: npm run probe
  */

@@ -1,9 +1,9 @@
 /**
- * The measurements behind the causal fit window in MATH.md (added 2026-08-08).
+ * The measurements behind the causal fit window.
  *
  * The central claim is about MAGNITUDE, not sign: that a single ⚡ log against
  * a thin history re-times EVERY task on the page, by enough that a user watching
- * their own plan reshuffle mid-day reads it as a bug. The section quotes these:
+ * their own plan reshuffle mid-day reads it as a bug. Four readings carry it:
  *
  *   - one log's effect on an UNLOGGED task's ϕ, over n = 1…8 logs
  *   - how much of the total move the FIRST log accounts for

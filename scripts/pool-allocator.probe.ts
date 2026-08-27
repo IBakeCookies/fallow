@@ -1,17 +1,14 @@
 /**
- * Measurements behind MATH.md's open question: does the pooled
- * allocator's suboptimality have an ENVELOPE, or is every quoted worst case
- * just the maximum of one draw?
+ * Does the pooled allocator's suboptimality have an ENVELOPE, or is every
+ * quoted worst case just the maximum of one draw?
  *
- * MATH.md reports "exact on 99.5%, p99 0.00%, worst 0.09%" over 1471 random
- * pool-bound days, then adds (2026-08-05) that a fresh draw from the same
- * generator reaches 6.03%. Two numbers from one generator that differ by 60×
- * are not an envelope, they are two samples of a tail — and §4:276 still
- * prints "within 1–2% of brute-force block optima" while zenith.test.ts
- * asserts `worst < 0.005`. This probe measures the spread directly: the SAME
- * sweep on FIVE seeds over TWO input spaces, so the per-seed worsts can be
- * read side by side. That spread is the answer; a single seed cannot produce
- * it, which is why no number here can be an error bound.
+ * It is the maximum of one draw. The SAME sweep on FIVE seeds over TWO input
+ * spaces, so the per-seed worsts can be read side by side: app-reachable days
+ * are exact on 93.6–94.5% and their worsts run [4.56%, 3.37%, 4.81%, 3.83%,
+ * 5.28%] — a 1.91% spread between seeds of one generator (2026-08-27). That
+ * spread is the answer, and it is why no number here can be an error bound: a
+ * single seed cannot produce it, and any one of those worsts quoted alone is a
+ * sample of a tail rather than a bound on it.
  *
  * A probe, not a test: it answers "what is true of the model over a large
  * input space" with numbers that legitimately move whenever the allocator
@@ -335,7 +332,7 @@ function randomDays(count: number, seed: number, wide: boolean): ProbeDay[] {
 }
 
 /**
- * The structural blind spot MATH.md named: greedy ranks blocks by VALUE, so a
+ * The structural blind spot: greedy ranks blocks by VALUE, so a
  * high-value task that is expensive in the scarce pool crowds out cheap tasks
  * that the pool could afford several hours of. Curated rather than sampled
  * because a random sweep hits this shape rarely — the fixture asks "how bad is

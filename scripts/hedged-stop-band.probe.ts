@@ -1,11 +1,9 @@
 /**
- * Measurements behind the 2026-08-08 MATH.md entry: where the HEDGED stopping time
- * actually lands relative to the §3 closed form's [1.5194, 1.7933]ϕ band, and
- * how far σ̂ falls once logs accumulate.
+ * Where the HEDGED stopping time actually lands relative to the §3 closed
+ * form's [1.5194, 1.7933]ϕ band, and how far σ̂ falls once logs accumulate.
  *
- * Three claims were corrected that day, and each rested on a number no probe
- * emitted. §4's own rule says that makes them unbacked, so this probe emits
- * them:
+ * Three claims, each of which rested on a number no probe emitted, so this
+ * probe emits them:
  *
  *  1. `TaskAllocation.optimalHours` is free to leave the band. The docs first
  *     said "outside the band whenever σ_ϕ > 0", which is false in the other
@@ -196,7 +194,7 @@ describe('expectedOptimalTime is the argmax of E[P̄]', () => {
 	it('compares the bisection against a dense grid search', () => {
 		const { constants, posterior } = fitUserConstants([]);
 
-		// The pair MATH.md quotes: difficulty 1 / enjoyment 10, the deepest hedge.
+		// The deepest hedge: difficulty 1 / enjoyment 10.
 		const { a, p0, phi, E, beta } = calculateTaskParams(
 			{
 				title: 'probe',

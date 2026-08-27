@@ -1,23 +1,27 @@
 /**
  * What still reaches `GAIN_PERCENT_CAP`, and can a real fit get a user there?
  *
- * MATH.md is the sole surviving justification for the cap. It states a
- * 999% ladder (4.25 / 8.5 / 13 / 17.25 h at n = 1–4, never within 24 h at
- * n = 6, 569% and 41.6% at the defaults) that no committed probe reaches, and
- * it asserts the user who triggers it — "a fast-flow user logging 15–30m
- * everywhere" — exists without ever fitting one. Two separate claims, and only
+ * The cap was justified by a 999% ladder no committed probe reached, and by
+ * asserting that the user who triggers it — a fast-flow user logging 15–30m
+ * everywhere — exists, without ever fitting one. Two separate claims, and only
  * the second decides whether the cap guards anything real.
+ *
+ * The ladder reproduces (2026-08-27, this file's own run): on the ϕ̂ = 0.1h
+ * floor at σ = 0, the cap is first reached at 4.25 / 8.5 / 13 / 17.25 / 21.75 h
+ * for n = 1–5 and never within 24 h at n = 6 (912.4% max). At the defaults it
+ * is not reached at all — 291.7% at n = 1, 41.6% on the pooled path — and the
+ * 569% that was quoted there reproduces from no reading tried here.
  *
  * Arms:
  *   1  the ladder at ϕ̂ held on the 0.1h floor, σ = 0, over the app's own budget
- *      slider (0.25–24h, 0.25h steps) — plus the n = 5 rung MATH.md skips, and
- *      the ϕ̂ = 0.17h control. Tasks at difficulty 5, enjoyment 5 — NOT "the
+ *      slider (0.25–24h, 0.25h steps) — plus the n = 5 rung the ladder skipped,
+ *      and the ϕ̂ = 0.17h control. Tasks at difficulty 5, enjoyment 5 — NOT "the
  *      default sliders": the form's 5/5/5 draft maps through
  *      `getEffectiveDifficulty`'s 0.3 spillover to an effective difficulty of
  *      6.5. Difficulty 5 is reachable (one dimension at 0), and it is the cell
- *      that reproduces the ladder MATH.md first quoted
- *   2  the same sweep at the σ_ϕ a fit actually produces. MATH.md says "fitted"
- *      and never says σ; at ϕ̂ = 0.1h a non-zero σ_ϕ can fire §5.1's
+ *      that reproduces the ladder as first quoted
+ *   2  the same sweep at the σ_ϕ a fit actually produces. The claim says
+ *      "fitted" and never says σ; at ϕ̂ = 0.1h a non-zero σ_ϕ can fire §5.1's
  *      monotone-prefix cut and truncate the optimizer's menu, so the ladder is
  *      σ-dependent and the silence is itself the defect
  *   3  the same sweep at DEFAULT_USER_CONSTANTS, single-budget and pooled
@@ -79,7 +83,7 @@ const BUDGETS = Array.from(
 const TASK_COUNTS = [1, 2, 3, 4, 5, 6];
 
 /** ϕ = c₁E + c₂β + c₃ ≤ 0 everywhere, so `calculateFlowStateTime`'s clamp is
- *  active on every task — "ϕ̂ held at the 0.1h floor" in MATH.md's sense. */
+ *  active on every task — ϕ̂ held at the 0.1h floor. */
 const FLOOR_CONSTANTS: UserConstants = {
 	c1: 0,
 	c2: 0,
@@ -176,7 +180,7 @@ describe('GAIN_PERCENT_CAP: what reaches it, and can a fit get there?', () => {
 	it('arm 2 — the same ladder at the σ_ϕ the fit actually produces', () => {
 		const rand = mulberry32(0x9a1c02);
 
-		// MATH.md's own words as a history: every log 15–30m, spread over the
+		// The claimed user as a history: every log 15–30m, spread over the
 		// slider grid the user has touched.
 		const logs: FlowObservation[] = Array.from(
 			{
@@ -267,7 +271,7 @@ describe('GAIN_PERCENT_CAP: what reaches it, and can a fit get there?', () => {
 
 		console.log(`    pooled path max ${pooledMax}%  [${pooledAt}]`);
 
-		// MATH.md quoted 569% here. The readings that could have produced it, so the
+		// 569% was quoted here. The readings that could have produced it, so the
 		// "does not reproduce" is a measurement and not an assertion: the whole
 		// slider grid rather than one cell, the n = 0 prior posterior, and a zero
 		// switch cost.
@@ -378,7 +382,7 @@ describe('GAIN_PERCENT_CAP: what reaches it, and can a fit get there?', () => {
 });
 
 /**
- * A synthetic FAST-flow user — MATH.md's "logging 15–30m everywhere".
+ * A synthetic FAST-flow user — the claimed "logging 15–30m everywhere".
  * `phi-cap-reachability.probe.ts`'s `drawUser` ranges INVERTED: that probe
  * draws toward ϕ > 3.06h because §5.1's corner is there, and a generator that
  * cannot produce a sub-0.1h truth would answer this section's question for it.
@@ -472,8 +476,8 @@ function recordFit(tally: FloorTally, logs: FlowObservation[], arm: string): voi
 
 	tally.histories++;
 
-	// A fit that fell back to the defaults is not a fitted user, and MATH.md's
-	// claim is about a fitted one.
+	// A fit that fell back to the defaults is not a fitted user, and the claim
+	// is about a fitted one.
 	if (!fitted) {
 		tally.fallbacks++;
 
