@@ -299,9 +299,11 @@ re-checked and stayed in `MATH.md` while being false.
   digits that survive a re-run, and check the conclusion against the whole band
   — if the decision moves inside it, the measurement is not finished and the
   answer is more reps, not a rounder number.
-  `energy-search-gap.probe.ts` is the worked example: three runs of one arm read
-  1.21×–1.54×, 1.27×–1.61× and 1.24×–1.59× for the same comparison, so roughly
-  1.2×–1.6× is the result and no cell is. Note that the spread WITHIN a run and the
+  `energy-search-gap.probe.ts` is the worked example: four runs of one arm read
+  1.28×–1.62×, 1.27×–1.60×, 1.23×–1.68× and 1.26×–1.58× for the same comparison,
+  so roughly 1.2×–1.7× is the result and no cell is. Read them on an IDLE box:
+  three earlier runs of that arm, taken while another probe held the cores, put
+  2.84× on two cells that are bit-identically the same search. Note that the spread WITHIN a run and the
   spread BETWEEN runs are different quantities and the first can be much the
   smaller — on the same statistic that arm's budget sweep reads ±5% across its
   own reps and ±9% across three runs — so a printed ± is the instrument's

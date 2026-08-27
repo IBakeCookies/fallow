@@ -138,6 +138,24 @@ const PROBE_DAY = [
 	task(3, 'reading', 4, 7, 0.4, 0),
 ];
 
+/**
+ * The sweep DELIBERATELY leaves the slider surface the day above sits on
+ * (boxing 10 at 0.2/1.0, guitar 6 at 0.6/0, reading 4 at 0.4/0 each derive the
+ * difficulty they are stated at). It has to: §8.5's claim is a plan cliff from
+ * a 5% demand change, and 0.05 is half a slider notch, so the step the claim is
+ * about is one the sliders cannot express — and each step lowers the demand
+ * without lowering the difficulty, leaving task 1 above the difficulty its
+ * demands would now derive. The 20 generated days the same arm sweeps go off it
+ * the same way and by a wider margin, drawing difficulty independently of the
+ * demands: 1 of their 20 full-demand tasks is reachable, the other 19 sitting
+ * below the 10 that demand forces.
+ *
+ * Nothing app-level is read off any of it. Arms A, B and D are algebra on the
+ * reservoir law, which reads the two demands and never the difficulty; arm C
+ * asks whether one day's demand → allocation response is cliffed, with
+ * everything but that demand held, so a difficulty the sliders would not pair
+ * with it cannot manufacture or hide a cliff.
+ */
 const DEMANDS = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7];
 
 function mulberry32(seed: number): () => number {
