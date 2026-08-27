@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
 /* Both scenery controls live in the theme menu and both write a cookie, because
-   the SERVER stamps the arrangement and the paused class into the HTML before
+   the SERVER stamps the arrangement and the motion class into the HTML before
    first paint — a browser-only preference would show the wrong scenery on every
    cold load. theme-store.svelte.spec.ts covers the store; nothing covered the two
    menu items that call it, or the round trip through the cookie. */
@@ -187,7 +187,11 @@ test('a recorded resume animates the scenery on a reduced-motion browser', async
 	await seedCookie(context, 'theme', 'abyss');
 	await seedCookie(context, 'sceneryMotion', 'on');
 
-	await page.goto('/');
+	const response = await page.goto('/');
+
+	// The stamp has to be in the SERVER's HTML: the guarded query freezes the
+	// scenery until the class arrives, and hydration is too late for first paint.
+	expect(await response?.text()).toContain('scenery-motion-on');
 
 	expect(await sceneryPlayState(page)).toEqual(['running']);
 });

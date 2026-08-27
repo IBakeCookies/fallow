@@ -123,7 +123,7 @@ const motionClasses = () =>
 		document.documentElement.classList.contains(name),
 	);
 
-describe('ThemeStore reduced-motion seeding', () => {
+describe('ThemeStore reduced-motion resolution', () => {
 	const stubReducedMotion = (matches: boolean) =>
 		vi.spyOn(window, 'matchMedia').mockReturnValue({
 			matches,

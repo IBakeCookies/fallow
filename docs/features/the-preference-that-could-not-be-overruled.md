@@ -180,7 +180,7 @@ No MATH.md section is touched.
   `html:not(.scenery-motion-on) .theme-scenery *` (and the `::before` /
   `::after` twins), so it still freezes scenery for a visitor who has expressed
   no preference — live when the OS setting flips mid-session, and with
-  JavaScript disabled, where no cookie is read and no store mounts. Rejected:
+  JavaScript disabled, where nothing is stamped and no store mounts. Rejected:
   deleting the block outright and letting `.scenery-paused` be the only gate.
   It is a smaller diff and it is a real accessibility regression: motion would
   play for a reduced-motion visitor in both of those cases.
