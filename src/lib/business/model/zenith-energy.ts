@@ -724,9 +724,7 @@ export const DEFAULT_STEP_HOURS = 0.75;
 /**
  * How many of the highest-amplitude tasks the pair seeds below are drawn from:
  * C(4,2) = 6 seeds, not C(n,2), because each pair seed starts fragmented and
- * climbs long. Was 3 until ROADMAP M54 measured what the third task left on the
- * table — on 6 of 7 days in 2000 a cap of 4 changes the funded SET, not the
- * hours. What every cap costs and saves is measured in
+ * climbs long. What every cap costs, saves and forfeits is measured in
  * `scripts/energy-search-gap.probe.ts`.
  */
 const PAIR_SEED_TASKS = 4;

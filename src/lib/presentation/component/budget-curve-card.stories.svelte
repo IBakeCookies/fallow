@@ -207,8 +207,8 @@
 	play={async ({ canvas }) => {
 		// The other null, and the exact inverse reading of the one above: at this λ₀ the model books
 		// nothing at any length. Told apart from "still climbing" by the zero work, never by the null
-		// alone — seeded from -Infinity this branch used to come back recommending 45 minutes that book
-		// 0h of work (MATH.md §8.12).
+		// alone — seeded from -Infinity this branch is recommended 45 minutes that book 0h of work, on
+		// every such day measured (MATH.md §8.12, `scripts/curve-shape.probe.ts`).
 		await expect(canvas.getByText(/no day window is worth working/)).toBeInTheDocument();
 		await expect(canvas.getByText(/books nothing at any length/)).toBeInTheDocument();
 

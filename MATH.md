@@ -26,7 +26,7 @@ covers what.
 **This document holds derivations, not measurements** (R7). The formula, why it
 has that shape, and why the alternative was rejected. A figure read off a run
 lives in the probe that produced it, where it can be re-derived; quoted into
-prose it cannot re-run, it only rots — which is what grew this file to 9,482
+prose it cannot re-run, it only rots — which is what grew this file to 9,431
 lines before it was cut back to its math.
 
 ---
@@ -1570,8 +1570,8 @@ principle. The agreement is not forced by construction — it is what §8.11's
 
 **`BUDGET_CURVE_MAX_HOURS = 12`** caps the sweep. A knee beyond it is reported
 as no recommendation rather than as 12 h — the sweep ran out before the model
-did, which is a different statement — and the copy names the cap it checked, so
-the bound is never silent (AGENTS.md §4). The same rule covers the reader's own
+did, which is a different statement — and the copy names the cap, so the bound
+is never silent (AGENTS.md §4). The same rule covers the reader's own
 window when it sits _above_ the cap: the chart cannot draw its locator there, and
 clamping it to the right edge would claim it stands at 12 h, so the legend names
 the window and the cap in words instead of quietly dropping the marker.

@@ -56,6 +56,7 @@ import {
 	fitStoppingValue,
 	optimizeSchedule,
 	stopIndifferencePoint,
+	STOP_INVERSION_MARGIN,
 	workedHoursByTask,
 	type EnergyParams,
 	type EnergyTaskInput,
@@ -192,7 +193,7 @@ function reading(observation: StopObservation, params: EnergyParams, appendLast:
 		isClockCensored(observation, rest, total) ||
 		total + step > windowHours + 1e-9 ||
 		hi === null ||
-		stopBound > hi + 0.25;
+		stopBound > hi + STOP_INVERSION_MARGIN;
 
 	return {
 		point: censored ? null : (stopBound + hi!) / 2,
@@ -476,6 +477,11 @@ describe('the insertion convention', () => {
 		for (let trial = 0; trial < 4000; trial++) {
 			const n = 2 + Math.floor(rnd() * 4);
 
+			// DELIBERATELY off the sliders: difficulty is drawn independently of the
+			// two demands, so this population is a strict superset of the surface
+			// `getEffectiveDifficulty` admits. What the arm reports is a worst case
+			// and a sign, and a superset's worst bounds the reachable worst
+			// (docs/testing.md).
 			const tasks: EnergyTaskInput[] = Array.from(
 				{
 					length: n,
@@ -582,7 +588,7 @@ describe('the insertion convention', () => {
 		);
 
 		console.log(
-			`  worst shift as a fraction of STOP_INVERSION_MARGIN: ${((100 * worstPointShift) / 0.25).toFixed(0)}%`,
+			`  worst shift as a fraction of STOP_INVERSION_MARGIN: ${((100 * worstPointShift) / STOP_INVERSION_MARGIN).toFixed(0)}%`,
 		);
 
 		console.log(
