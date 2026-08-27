@@ -50,8 +50,9 @@
  * LOW difficulty, which is the corner the coupling forbids. What that arm
  * prints is a ratio across chunk counts at one fixed parameterization, so the
  * pairing is common to every k. `DEEP`, `FRAG` and the desk and errand pairs
- * sit one spillover step below theirs (8 at 0.9/0.1, where sliders 9/1 derive
- * 9.3); their hours are this model's reading of those parameters, and what the
+ * sit off theirs in both directions too — five a spillover step below (8 at
+ * 0.9/0.1, where sliders 9/1 derive 9.3) and `errand` 0.4 above (3 at 0.2/0.2,
+ * where sliders 2/2 derive 2.6); their hours are this model's reading of those parameters, and what the
  * arms read off them is the contrast between portfolios and windows.
  */
 import { describe, expect, it } from 'vitest';

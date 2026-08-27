@@ -302,8 +302,9 @@ re-checked and stayed in `MATH.md` while being false.
   `energy-search-gap.probe.ts` is the worked example: four runs of one arm read
   1.28×–1.62×, 1.27×–1.60×, 1.23×–1.68× and 1.26×–1.58× for the same comparison,
   so roughly 1.2×–1.7× is the result and no cell is. Read them on an IDLE box:
-  three earlier runs of that arm, taken while another probe held the cores, put
-  2.84× on two cells that are bit-identically the same search. Note that the spread WITHIN a run and the
+  one earlier run of that arm, taken while other probes held the cores, put 2.84×
+  on the same cell — outside the whole idle band, with its neighbours' printed ±
+  running to 51% against the 2% an idle run reads. Note that the spread WITHIN a run and the
   spread BETWEEN runs are different quantities and the first can be much the
   smaller — on the same statistic that arm's budget sweep reads ±5% across its
   own reps and ±9% across three runs — so a printed ± is the instrument's
