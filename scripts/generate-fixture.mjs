@@ -7,8 +7,7 @@
  * importing the file and reading the "Your model" card tells you whether the
  * fits recover the truth. That is a real test. It is NOT evidence about what a
  * user habitually does — a generator only ever replays its own assumptions, so
- * it can never gate an item whose question is "what does the user actually do"
- * (MATH.md turns on real logs for exactly that reason).
+ * it can never gate an item whose question is "what does the user actually do".
  *
  * Usage:
  *   node scripts/generate-fixture.mjs [--days 365] [--seed 42] [--out path.json]
@@ -112,8 +111,9 @@ const weekdayOf = (iso) => new Date(`${iso}T00:00:00Z`).getUTCDay();
 /**
  * A realistic mix: a small recurring core (the routine), a mid-frequency set,
  * and a long tail of one-offs. 64–79% of logged titles carry a single log
- * (business/model/AGENTS.md's per-task-ϕ decision), so the tail matters — a generator with only recurring
- * titles would make per-task structure look far more learnable than it is.
+ * (business/model/AGENTS.md's per-task-ϕ decision), so the tail matters — a
+ * generator with only recurring titles would make per-task structure look far
+ * more learnable than it is.
  */
 const CATALOGUE = [
 	{

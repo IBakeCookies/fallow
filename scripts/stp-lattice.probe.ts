@@ -1,20 +1,23 @@
 /**
- * Measurements behind MATH.md §8.8's 45-minute-lattice numbers — the price of
- * quantizing the energy optimizer's plans to `DEFAULT_STEP_HOURS`. The suite
- * pins the ≥ 97% bound on two days and the funded-set match on the mixed day
- * only — the probe day's coarse and fine funded sets diverge at 8 h since
- * §8.6's pair seeds improved the fine-step search. The quoted figures
- * themselves had no committed sweep:
+ * The price of quantizing the energy optimizer's plans to `DEFAULT_STEP_HOURS`
+ * — the 45-minute lattice (MATH.md §8.8). The suite pins one cell of it: the
+ * ≥ 97% objective ratio and the funded-set match at 8 h, on two days. The sweep
+ * behind that bound is here, on the same two days over windows 4–14 h, read off
+ * this file's own run (2026-08-27):
  *
- *   (a) objective ratio coarse/fine (0.75 vs 0.25 step) 0.9865 / 0.9979 /
- *       0.9936 / 0.9886 "across the standard probe days";
- *   (b) the funded-task set matched the fine-step optimum in all four cases;
- *   (c) exhaustive enumeration of all 45-min plans on the 2026-07-14 probe day
- *       equals the search's 10.7331 exactly;
- *   (d) ~55 ms coarse vs ~330 ms fine on the 3-task/8 h day;
+ *   (a) the coarse/fine objective ratio (0.75 vs 0.25 step) bottoms out at
+ *       0.9693 on the 3-task day (at 4 h) and 0.9759 on the mixed day (at
+ *       12 h), and is 1.0000 on both at 6 h;
+ *   (b) the funded-task set matches the fine-step optimum in all 12 cells —
+ *       both days, every window;
+ *   (c) exhaustive enumeration of all 1,048,576 45-min plans on the probe day
+ *       × 8 h reaches 10.6274, which is the search's own answer, gap 0;
+ *   (d) the fine lattice costs 39×–44× the coarse one on the 3-task/8 h day,
+ *       ~30 ms against ~1.3 s. A wall clock, so the band is the result: three
+ *       runs on this box read 30.5/1252.8, 28.4/1233.4 and 34.7/1346.2 ms;
  *   (e) fine-step optima at long windows degenerate into 15-min rest confetti
- *       (five 0.25 h rests across 12 h) where the coarse lattice returns one
- *       45-min break, at ~1% objective cost.
+ *       — five 0.25 h rests on the mixed day at 12 h where the coarse lattice
+ *       returns one 45-min break — at ~2% of the objective.
  *
  * Plus the §8.8 invariant the prose argues inductively: every block is a whole
  * number of steps and the total never exceeds the lattice-floor of the window
@@ -91,6 +94,40 @@ const funded = (blocks: ScheduleBlock[]) =>
 	[...new Set(blocks.filter((b) => b.taskId !== null).map((b) => b.taskId))].sort().join(',');
 
 const rests = (blocks: ScheduleBlock[]) => blocks.filter((b) => b.taskId === null);
+const REPS = 5;
+
+/** A wall clock is a range, so a reading carries the spread it was read at. */
+interface Timing {
+	median: number;
+	min: number;
+	max: number;
+}
+
+/** Median of `REPS`, WITH the extremes it came from. Warm-up is the caller's. */
+function timeMs(run: () => void): Timing {
+	const samples = Array.from(
+		{
+			length: REPS,
+		},
+		() => {
+			const started = performance.now();
+
+			run();
+
+			return performance.now() - started;
+		},
+	).sort((a, b) => a - b);
+
+	return {
+		median: samples[Math.floor(REPS / 2)],
+		min: samples[0],
+		max: samples[REPS - 1],
+	};
+}
+
+/** Half the observed range, as a percent of the median: the digit that survives. */
+const ms = (t: Timing) =>
+	`${t.median.toFixed(1)} ms ±${Math.round((50 * (t.max - t.min)) / t.median)}%`;
 
 const fine = (tasks: EnergyTaskInput[], windowHours: number) =>
 	optimizeSchedule(tasks, windowHours, DEFAULT_ENERGY_PARAMS, undefined, {
@@ -98,7 +135,7 @@ const fine = (tasks: EnergyTaskInput[], windowHours: number) =>
 	});
 
 describe('45-min lattice', () => {
-	it('measures the quantization loss against the 15-min lattice (MATH.md §8.8 a/b/e)', () => {
+	it('measures the quantization loss against the 15-min lattice (MATH.md §8.8)', () => {
 		for (const [name, tasks] of [
 			['probe day, 3 tasks', PROBE_DAY],
 			['mixed day, 4 tasks', MIXED_DAY],
@@ -136,29 +173,21 @@ describe('45-min lattice', () => {
 		}
 	});
 
-	it('times the two lattices on the 3-task/8h day (MATH.md §8.8 d)', () => {
+	it('times the two lattices on the 3-task/8h day', () => {
 		// One warm-up run each: `buildCurves` caches, and the first call pays for
 		// the cache the quoted milliseconds were never meant to include.
 		optimizeSchedule(PROBE_DAY, 8);
 		fine(PROBE_DAY, 8);
 
-		const time = (run: () => void) => {
-			const started = performance.now();
-
-			for (let i = 0; i < 5; i++) run();
-
-			return (performance.now() - started) / 5;
-		};
-
-		const coarseMs = time(() => optimizeSchedule(PROBE_DAY, 8));
-		const fineMs = time(() => fine(PROBE_DAY, 8));
+		const coarse = timeMs(() => optimizeSchedule(PROBE_DAY, 8));
+		const finer = timeMs(() => fine(PROBE_DAY, 8));
 
 		console.log(
-			`[§8.8 speed] 3-task/8h day, mean of 5 runs: coarse ${coarseMs.toFixed(1)} ms vs fine ${fineMs.toFixed(1)} ms (${(fineMs / coarseMs).toFixed(1)}×)`,
+			`[§8.8 speed] 3-task/8h day, ${REPS} reps: coarse ${ms(coarse)} vs fine ${ms(finer)} (${(finer.median / coarse.median).toFixed(1)}×)`,
 		);
 	});
 
-	it('enumerates every 45-min plan on the probe day (MATH.md §8.8 c)', () => {
+	it('enumerates every 45-min plan on the probe day (MATH.md §8.8)', () => {
 		const windowHours = 8;
 		const steps = Math.floor(windowHours / DEFAULT_STEP_HOURS + 1e-9);
 		const slots: (number | null)[] = [...PROBE_DAY.map((t) => t.id), null];

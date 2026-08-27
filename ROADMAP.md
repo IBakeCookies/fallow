@@ -847,3 +847,13 @@ and what it cost is in the spec.
 - **M58 §8.1 — the ϕ floor described as a point where it is a region — fixed
   2026-08-27,
   [`the-bound-that-only-held-past-nine-hours`](docs/features/the-bound-that-only-held-past-nine-hours.md).**
+- **M71 — five numbered MATH.md citations the section-sign filter hid — fixed
+  2026-08-27,
+  [`the-citations-the-section-sign-hid`](docs/features/the-citations-the-section-sign-hid.md).**
+- **M72 — the wall clocks the band rule did not reach — fixed 2026-08-27,
+  [`the-citations-the-section-sign-hid`](docs/features/the-citations-the-section-sign-hid.md).**
+- **M73 — a deleted document's caption standing in a fifth header — fixed
+  2026-08-27,
+  [`the-citations-the-section-sign-hid`](docs/features/the-citations-the-section-sign-hid.md).**
+- **M74 — M53's own describing sentence — fixed 2026-08-27,
+  [`the-citations-the-section-sign-hid`](docs/features/the-citations-the-section-sign-hid.md).**

@@ -369,8 +369,7 @@ export default defineConfig(
 		},
 	},
 	{
-		// The scheduler's loops are nested the way MATH.md specifies them.
-		// Unnesting them is a deliberate, test-covered refactor, not a lint fixup:
+		// Unnesting these is a deliberate, test-covered refactor, not a lint fixup:
 		// warn here so the error still applies to every other file.
 		files: ['src/lib/business/model/zenith*.ts'],
 		rules: {
