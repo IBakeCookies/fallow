@@ -410,6 +410,8 @@
 	"energy_stop_window_full": "Aucune session de travail entière ne tient dans ce qu'il reste de ta journée.",
 	"energy_work_free_summary": "{work} de travail · {free} de libre",
 	"energy_block_tooltip": "{title} — {start}–{end} ({duration})",
+	"energy_block_tooltip_done": "{title} (terminée) — {start}–{end} ({duration})",
+	"energy_block_done": "terminée",
 	"energy_free": "libre",
 	"energy_free_time": "Temps libre",
 	"energy_free_time_tooltip": "Temps libre — {duration}",

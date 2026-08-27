@@ -53,6 +53,7 @@
 
 	const session = getSessionStore();
 	const activeTasks = $derived(session.activeTasks);
+	const completedTaskIds = $derived(session.tasks.filter((t) => t.completed).map((t) => t.id));
 
 	const observations = getEnergyObservationStore();
 
@@ -428,6 +429,7 @@
 								{windowHours}
 								{trailingFreeHours}
 								{colors}
+								{completedTaskIds}
 							/>
 
 							<div>
@@ -441,6 +443,7 @@
 										plannedHours={lab.plannedHours}
 										{colors}
 										locale={getDateLocale()}
+										{completedTaskIds}
 									/>
 								{/if}
 							</div>

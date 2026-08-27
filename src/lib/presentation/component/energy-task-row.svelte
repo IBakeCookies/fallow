@@ -91,8 +91,8 @@
 	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">{trueEffort.toFixed(1)}</td>
 {/snippet}
 
-<!-- Empty on a completed task, which the optimizer no longer plans at all: "no hours"
-     there reads as a verdict when it only means the task is done. -->
+<!-- Empty on a completed task: the optimizer funds it like any other (`toEnergyTask`
+     drops `completed`), but hours quoted for work already done read as a verdict. -->
 {#snippet trailing()}
 	<td class="ledger-cell ledger-numeric whitespace-nowrap">
 		{#if !completed && plannedHours !== null}

@@ -33,6 +33,7 @@
 			plannedHours: 8,
 			colors,
 			locale: 'en-US',
+			completedTaskIds: [],
 		},
 	});
 </script>
@@ -128,6 +129,37 @@
 	play={async ({ canvas }) => {
 		// The decimal separator follows the reader, like every date beside it
 		await expect(canvas.getByText('3,40 out')).toBeVisible();
+	}}
+>
+	{#snippet template(args)}
+		<div class="max-w-2xl"><PlanScheduleList {...args} /></div>
+	{/snippet}
+</Story>
+
+<Story
+	name="A finished task"
+	args={{
+		blocks: [
+			block(1, 'boxing', 0, 2.25, 2.4),
+			block(null, 'rest', 2.25, 0.75),
+			block(2, 'writing', 3, 3, 5.1),
+		],
+		plannedHours: 6,
+		trailingFreeHours: 2,
+		completedTaskIds: [1],
+	}}
+	play={async ({ canvas }) => {
+		// The list dims where the bar cannot: its mark is a 10px dot with nothing written on
+		// it, which is the half of STYLE.md's rule that allows a wash.
+		const title = canvas.getByText('boxing');
+		await expect(title).toHaveClass('line-through');
+		await expect(title.closest('li')).toHaveClass('opacity-60');
+
+		// The announced reading of the same block — the bar has only a `title` to say it in
+		await expect(canvas.getByText('done')).toHaveClass('sr-only');
+
+		// The figures are the plan's, and ticking a task off does not re-plan the day
+		await expect(canvas.getByText('2.40 out')).toBeVisible();
 	}}
 >
 	{#snippet template(args)}

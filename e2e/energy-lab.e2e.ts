@@ -351,6 +351,53 @@ test('every task row reports the hours the plan gave it', async ({ page }) => {
 	await expect(page.getByText('no hours')).toHaveCount(2);
 });
 
+/* Ticking a task off is the one edit that must mark the plan without moving it: the
+   allocator never sees `completed`. Two tasks, because an all-completed day replaces
+   the whole plan card with "all done" and there is no bar left to read. */
+test('ticking a task off marks its block in the plan', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await addTask(page, 'Boxing');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await page.getByLabel('Day window').fill('8');
+	await page.getByLabel('Day window').blur();
+
+	// The block, by the tooltip that names it — the label itself is what changes.
+	await expect(page.getByTitle(/^Deep work/).first()).toHaveText('Deep work');
+
+	await page
+		.getByRole('checkbox', {
+			name: 'Mark Deep work complete',
+		})
+		.check();
+
+	await expect(page.getByTitle(/^Deep work \(done\)/).first()).toHaveText('✓Deep work');
+});
+
+// Mis-clicking a checkbox is one click, so the plan has to read as unfinished again.
+test('un-ticking a task restores its block', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await addTask(page, 'Boxing');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await page.getByLabel('Day window').fill('8');
+	await page.getByLabel('Day window').blur();
+
+	const checkbox = page.getByRole('checkbox', {
+		name: 'Mark Deep work complete',
+	});
+
+	await checkbox.check();
+	await expect(page.getByTitle(/^Deep work \(done\)/).first()).toBeVisible();
+
+	await checkbox.uncheck();
+	await expect(page.getByTitle(/^Deep work/).first()).toHaveText('Deep work');
+});
+
 /* The list reads in schedule order, but the sort is a snapshot per visit: a live one
    re-ranked the rows on every re-optimization, so the row being edited moved out from
    under the cursor as the plan moved off it. */
@@ -1044,7 +1091,7 @@ test('completing a task opens its drain rating', async ({ page }) => {
 
 	// The completed look must not reach it: dimming the row faded the one control
 	// that only exists for a finished session into looking disabled. Asserted on the
-	// ROW, not the form — `opacity` does not inherit, so a child of an `opacity-50`
+	// ROW, not the form — `opacity` does not inherit, so a child of an `opacity-60`
 	// ancestor still computes 1 and an assertion on the form itself cannot fail.
 	await expect(form.locator('xpath=ancestor::tbody[1]')).toHaveCSS('opacity', '1');
 

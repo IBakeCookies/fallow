@@ -17,9 +17,20 @@
 		colors: SeriesColors;
 		/** The reader's locale tag: each block's output is a decimal. */
 		locale: string;
+		/** Ticked-off tasks. A reading over the plan: the allocator never sees
+		 *  `completed` (business/model/AGENTS.md), so no block moves and no figure changes. */
+		completedTaskIds: number[];
 	}
 
-	let { blocks, windowHours, trailingFreeHours, plannedHours, colors, locale }: Props = $props();
+	let {
+		blocks,
+		windowHours,
+		trailingFreeHours,
+		plannedHours,
+		colors,
+		locale,
+		completedTaskIds,
+	}: Props = $props();
 
 	// Same dust threshold as the timeline bar: the optimizer's hours rarely sum to the
 	// window exactly, and a 1e-12 row is a line of zeroes.
@@ -31,7 +42,8 @@
 {:else}
 	<ul class="mt-text-md space-y-text-xs">
 		{#each blocks as block (block.start)}
-			<li class="flex items-center gap-grid-xs text-sm">
+			{@const isDone = block.taskId !== null && completedTaskIds.includes(block.taskId)}
+			<li class="flex items-center gap-grid-xs text-sm" class:opacity-60={isDone}>
 				<!-- The ring, not the fill, is what makes a 10px dot visible: a series fill
 				     sits close to its surface by design (STYLE.md). -->
 				<span
@@ -44,10 +56,17 @@
 				<span
 					class="min-w-0 flex-1 truncate {block.taskId === null
 						? 'text-ty-silent italic'
-						: 'capitalize text-ty-primary'}"
+						: isDone
+							? 'capitalize text-ty-silent line-through'
+							: 'capitalize text-ty-primary'}"
 				>
 					{block.title}
 				</span>
+				{#if isDone}
+					<!-- The bar says this in a `title`, which is not an accessible name; the list
+					     is the announced reading of the same block. -->
+					<span class="sr-only">{m.energy_block_done()}</span>
+				{/if}
 				<span class="shrink-0 text-xs text-ty-silent">{formatDuration(block.hours)}</span>
 				{#if block.taskId === null}
 					<!-- Rest has no output to report; it is what makes the next block's output

@@ -410,6 +410,8 @@
 	"energy_stop_window_full": "In den Rest deines Tagesfensters passt keine ganze Arbeitssitzung mehr.",
 	"energy_work_free_summary": "{work} Arbeit · {free} frei",
 	"energy_block_tooltip": "{title} — {start}–{end} ({duration})",
+	"energy_block_tooltip_done": "{title} (erledigt) — {start}–{end} ({duration})",
+	"energy_block_done": "erledigt",
 	"energy_free": "frei",
 	"energy_free_time": "Freizeit",
 	"energy_free_time_tooltip": "Freizeit — {duration}",
