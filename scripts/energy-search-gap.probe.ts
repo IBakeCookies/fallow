@@ -2,9 +2,9 @@
  * Measurement behind MATH.md §8.6's claim that the compound moves made the
  * multi-seed steepest-ascent search reliable — no stranded ~1% of objective and
  * no wrong plan STRUCTURE (a funded task dropped, or an unfunded one bought).
- * §8.6's evidence is two hand-built witnesses and one legacy objective pair; the
- * residual optimality gap over an input space was never measured, and the worse
- * failure mode it names — the wrong funded set — was never measured at all.
+ * §8.6's evidence is two hand-built witnesses; the residual optimality gap over
+ * an input space was never measured, and the worse failure mode it names — the
+ * wrong funded set — was never measured at all.
  *
  * A probe, not a test: it answers "what is true of the model over a large input
  * space" and prints numbers, where a test answers "does this still hold" and is
@@ -47,12 +47,29 @@
  * — the split is generated while the plan still has room and the plan grows into
  * the window afterwards, so a full window does not strand that structure.
  *
+ * The last two arms price §8.6's three-task cap on the pair family, which no
+ * committed instrument reached before: `pairSeedTasks` exists on
+ * `OptimizeOptions` for them and nothing else sets it. On this box the pair
+ * seeds cost 1.28×–2.40× the same search without them, and unbounded C(n,2)
+ * costs 1.00× at 3 tasks (where every pair IS a top-three pair) rising to
+ * 13.84× at 15 — 4147 ms against 300, on a path three call sites take. The
+ * ratio is composition-dependent and cost is not monotone in n (a wide list
+ * makes the window bind and the classic seed truncate), so the range is the
+ * result and no single cell is.
+ *
+ * What the cap forfeits, over 400 seeded days: the pair family beats no pairs
+ * on 4, worst 0.395580 objective, and unbounded C(n,2) beats the cap on 2,
+ * worst 0.208672 — but a cap of FOUR reaches both, at C(4,2) = 6 pair seeds
+ * instead of 3 (ROADMAP M54; moving the constant is a plan change, not a
+ * provenance one).
+ *
  * Whatever it prints stays here, beside the run that produced it, never in
  * MATH.md — which holds derivations only (R7, docs/testing.md).
  *
  * Usage: npm run probe
  */
 
+import { cpus } from 'node:os';
 import { describe, it } from 'vitest';
 import {
 	DEFAULT_STEP_HOURS,
@@ -83,8 +100,8 @@ interface Day {
 /**
  * Days per task count in the FRONTIER tier. The committed 3 keeps that tier at
  * ~7 min of the file's ~10; the seeds are a prefix, so raising this line widens
- * the same sequence. MATH.md §8.6's frequency numbers came from 20 days at 4
- * tasks and 8 at 5 (~28 min), which is the sweep that found both witnesses.
+ * the same sequence. The sweep that found both §8.6 witnesses ran 20 days at 4
+ * tasks and 8 at 5 (~28 min).
  */
 const FRONTIER_DAYS_PER_SIZE = 3;
 
@@ -442,6 +459,59 @@ function uphillAudit(label: string, day: Day): void {
 	);
 }
 
+const REPS = 5;
+
+/**
+ * Median of `REPS` after one discarded warm-up. A lone mean is not quotable: the
+ * first call pays JIT, and only its own machine makes any of these comparable
+ * (`plan-advice.probe.ts` prints the box for the same reason).
+ */
+function timeMs(run: () => void): number {
+	run();
+
+	const samples = Array.from(
+		{
+			length: REPS,
+		},
+		() => {
+			const started = performance.now();
+
+			run();
+
+			return performance.now() - started;
+		},
+	).sort((a, b) => a - b);
+
+	return samples[Math.floor(REPS / 2)];
+}
+
+/** Seeds `buildSeeds` lays down: 4 fixed, drop-one per task, then C(min(n,cap),2). */
+const seedCount = (n: number, cap: number) => {
+	const paired = n >= 3 ? Math.min(n, cap) : 0;
+
+	return 4 + (n >= 2 ? n : 0) + (paired * (paired - 1)) / 2;
+};
+
+/**
+ * The synthetic ladder: one composition per size, so cost is read against task
+ * COUNT alone. The seeded days beside it vary composition too, which is what
+ * shows the ratio is not a function of n.
+ */
+const ladderDay = (n: number, windowHours: number): Day => ({
+	tasks: Array.from(
+		{
+			length: n,
+		},
+		(_, index) => task(index + 1, 1 + (index % 10), 1 + ((index * 3) % 10), 0.5, 0.5),
+	),
+	windowHours,
+});
+
+const solve = (day: Day, cap: number) =>
+	optimizeSchedule(day.tasks, day.windowHours, undefined, undefined, {
+		pairSeedTasks: cap,
+	});
+
 describe('energy search gap', () => {
 	it('measures the residual optimality gap (MATH.md §8.6)', () => {
 		searchGap(
@@ -489,5 +559,82 @@ describe('energy search gap', () => {
 
 		console.log('UPHILL AUDIT (candidate families the search never generates):');
 		approxDays.forEach((day, index) => uphillAudit(`APPROX day ${index}`, day));
+	});
+
+	/**
+	 * What the three-task cap on the pair family costs and saves. Neither arm is
+	 * reachable through the product signature — `pairSeedTasks` exists on
+	 * `OptimizeOptions` for these two calls and nothing else sets it.
+	 *
+	 * A wall clock is only quotable with its machine attached, so the box and the
+	 * runtime print beside the numbers and nothing else may be running on it.
+	 */
+	it('prices the pair-seed cap against no pairs and against C(n,2)', () => {
+		console.log(`[cost] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);
+
+		for (const [label, dayOf] of [
+			['ladder', (n: number) => ladderDay(n, 12)],
+			['seeded', (n: number) => randomDays(1, 8600 + n, [n, n], [12, 12])[0]],
+		] as [string, (n: number) => Day][]) {
+			for (const n of [3, 4, 6, 8, 10, 12, 15]) {
+				const day = dayOf(n);
+				const none = timeMs(() => solve(day, 0));
+				const capped = timeMs(() => solve(day, 3));
+				const full = timeMs(() => solve(day, n));
+
+				console.log(
+					`[cost] ${label} ${n} tasks x 12h: no pairs ${none.toFixed(1)} ms (${seedCount(n, 0)} seeds), capped ${capped.toFixed(1)} ms (${seedCount(n, 3)}) = ${(capped / none).toFixed(2)}x, C(n,2) ${full.toFixed(1)} ms (${seedCount(n, n)}) = ${(full / capped).toFixed(2)}x the capped search`,
+				);
+			}
+		}
+	});
+
+	/**
+	 * The other half of the same question: the cap is only worth its ~1.5x if the
+	 * pair family buys something, and only defensible if C(n,2) buys little more.
+	 * Both are objective gaps on the SAME lattice — the three arms differ in
+	 * seeds alone, so a gap is a basin the seeds below it never reach.
+	 */
+	it('measures what the pair seeds buy and what the cap forfeits', () => {
+		const days = randomDays(400, 8600, [3, 8], [4, 12]);
+		const bought: number[] = [];
+		const forfeit: { day: Day; gap: number; enough: number }[] = [];
+
+		for (const day of days) {
+			const none = solve(day, 0).evaluation.objective;
+			const capped = solve(day, 3).evaluation.objective;
+			const full = solve(day, day.tasks.length).evaluation.objective;
+
+			if (capped - none > 1e-9) bought.push(capped - none);
+
+			if (full - capped > 1e-9) {
+				// The smallest cap that reaches it: 4 would be a cheap fix, 8 is not.
+				let enough = day.tasks.length;
+
+				while (enough > 3 && solve(day, enough - 1).evaluation.objective > full - 1e-9) enough--;
+
+				forfeit.push({
+					day,
+					gap: full - capped,
+					enough,
+				});
+			}
+		}
+
+		const worstOf = (values: number[]) => (values.length > 0 ? Math.max(...values) : 0);
+
+		console.log(
+			`[cap] the pair family beats no pairs on ${bought.length}/${days.length} days, worst ${worstOf(bought).toFixed(6)} objective`,
+		);
+
+		console.log(
+			`[cap] C(n,2) beats the 3-task cap on ${forfeit.length}/${days.length} days, worst ${worstOf(forfeit.map((f) => f.gap)).toFixed(6)}`,
+		);
+
+		for (const { day, gap, enough } of forfeit) {
+			console.log(
+				`  forfeited: ${day.tasks.length} tasks x ${day.windowHours}h, gap ${gap.toFixed(6)}, first cap that reaches it ${enough}`,
+			);
+		}
 	});
 });

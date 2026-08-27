@@ -723,9 +723,9 @@ export const DEFAULT_STEP_HOURS = 0.75;
 
 /**
  * How many of the highest-amplitude tasks the pair seeds below are drawn from:
- * C(3,2) = 3 seeds, not C(n,2). The full pair family costs 13× at 15 tasks
- * (measured 2026-08-13, MATH.md §8.6), because each pair seed starts fragmented
- * and climbs long; capping it holds the whole family under a constant.
+ * C(3,2) = 3 seeds, not C(n,2), because each pair seed starts fragmented and
+ * climbs long. What the cap costs and saves is measured in
+ * `scripts/energy-search-gap.probe.ts`.
  */
 const PAIR_SEED_TASKS = 3;
 
@@ -738,6 +738,12 @@ export interface OptimizeOptions {
 	stepHours?: number;
 	/** Safety cap on hill-climb iterations per seed. Default 300. */
 	maxIterations?: number;
+	/**
+	 * How many top-amplitude tasks the pair seeds are drawn from. Default
+	 * `PAIR_SEED_TASKS`; 0 removes the family. An instrument knob — the cap is
+	 * only priced against 0 and n (`scripts/energy-search-gap.probe.ts`).
+	 */
+	pairSeedTasks?: number;
 }
 
 export interface OptimizeResult {
@@ -769,6 +775,7 @@ export function optimizeSchedule(
 ): OptimizeResult {
 	const step = options.stepHours ?? DEFAULT_STEP_HOURS;
 	const maxIterations = options.maxIterations ?? 300;
+	const pairSeedTasks = options.pairSeedTasks ?? PAIR_SEED_TASKS;
 	// One curve build for the whole search — every candidate evaluation reuses it.
 	const curves = buildCurves(tasks, constants, params);
 	const emptyEval = evaluateWithCurves([], curves, windowHours, params);
@@ -790,7 +797,7 @@ export function optimizeSchedule(
 	let best: ScheduleBlock[] = [];
 	let bestEval = emptyEval;
 
-	for (const seed of buildSeeds(tasks, windowHours, constants, step)) {
+	for (const seed of buildSeeds(tasks, windowHours, constants, step, pairSeedTasks)) {
 		const result = localSearch(
 			seed.blocks,
 			seed.tasks,
@@ -843,6 +850,7 @@ function buildSeeds(
 	windowHours: number,
 	constants: UserConstants,
 	step: number,
+	pairSeedTasks: number,
 ): Seed[] {
 	const phiOf = (task: EnergyTaskInput) =>
 		calculateFlowStateTime(mapEffort(task.difficulty), mapEnjoyability(task.enjoyment), constants);
@@ -930,7 +938,7 @@ function buildSeeds(
 	// the interleaved optimum on one witness. The top-2 pair alone is not enough
 	// — on neither witness is the winning pair the amplitude-prefix pair. Below
 	// three tasks the only pair is the whole list, which seed 3 already is.
-	const paired = byValue.length >= 3 ? Math.min(byValue.length, PAIR_SEED_TASKS) : 0;
+	const paired = byValue.length >= 3 ? Math.min(byValue.length, pairSeedTasks) : 0;
 
 	for (let first = 0; first < paired; first++) {
 		for (let second = first + 1; second < paired; second++) {
@@ -1299,7 +1307,8 @@ function concaveMajorantSlopes(values: number[], step: number): number[] {
  * stay null on a day the model declines to work at any length.
  *
  * Cost: one `optimizeSchedule` per step — 16 solves at the default cap, each
- * priced by MATH.md §8.6's table. On-demand only; never a `$derived`.
+ * priced by `scripts/energy-search-gap.probe.ts`. On-demand only; never a
+ * `$derived`.
  */
 export function suggestBudgetCurve(
 	tasks: EnergyTaskInput[],

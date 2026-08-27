@@ -842,6 +842,24 @@ describe('Zenith Energy Model', () => {
 			expect(fundedIdsOf(search.blocks)).toBe('2,5');
 		});
 
+		// The same day with the family switched off: the seeds below it stop short,
+		// which is the whole reason the family is paid for — and what
+		// `pairSeedTasks` exists to let `energy-search-gap.probe.ts` price.
+		it('does not reach that optimum with the pair family removed (§8.6)', () => {
+			const day = [
+				makeTask(1, 'a', 6, 3, 0.5, 0.2),
+				makeTask(2, 'b', 5, 8, 0.9, 0.9),
+				makeTask(3, 'c', 5, 5, 0.4, 1),
+				makeTask(4, 'd', 2, 7, 0.4, 0.6),
+			];
+
+			const search = optimizeSchedule(day, 6.75, undefined, undefined, {
+				pairSeedTasks: 0,
+			});
+
+			expect(search.evaluation.objective).toBeLessThan(6.1595663228 - 1e-9);
+		});
+
 		it('reaches the off-midpoint interior rest on the probe’s worst enumerated day (§8.6)', () => {
 			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: this was the
 			// worst of 60 enumerated days (2–3 tasks × 3–6 h), 0.5951% below the

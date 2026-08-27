@@ -59,20 +59,20 @@ retype a row, regenerate:
   §5.1      519-628  Posterior-aware allocation
 §6          630-642  Summary of v1 → v2 changes
 §7          644-668  Known approximations and deliberate non-changes
-§8         670-1592  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         670-1594  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      682-704  Intermittent-rest recovery correction
   §8.2      706-725  Warm-up carryover instead of binary reset
   §8.3      727-745  Verified consequences and a calibration question, closed
   §8.4      747-817  Per-task satiety — concave daily value
   §8.5      819-859  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      861-904  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     906-1003  Drain-rate calibration from end-of-session ratings
-  §8.8    1005-1040  45-minute plan granularity
-  §8.9    1042-1089  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1091-1303  Stopping-value calibration from observed stop times
-  §8.11   1305-1436  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1438-1592  The budget curve — what the day's LENGTH is worth
-§9        1594-1641  References
+  §8.6      861-906  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     908-1005  Drain-rate calibration from end-of-session ratings
+  §8.8    1007-1042  45-minute plan granularity
+  §8.9    1044-1091  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1093-1305  Stopping-value calibration from observed stop times
+  §8.11   1307-1438  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1440-1594  The budget curve — what the day's LENGTH is worth
+§9        1596-1643  References
 ```
 
 <!-- section-index:end -->
@@ -897,7 +897,9 @@ A pair seed starts fragmented and climbs long, so it costs about two ordinary
 seeds rather than the fraction of one a 2-task neighbourhood suggests. Cost
 does not grow monotonically in n (a wide task list makes the window bind and
 the classic seed truncate), so the cap is stated in seeds, not in a task
-threshold: C(3,2) = 3 seeds at every size. Three call sites pay it —
+threshold: C(3,2) = 3 seeds at every size. `energy-search-gap.probe.ts` prices
+that cap against both ends — no pair seeds, and unbounded C(n,2) — and measures
+what it forfeits. Three call sites pay it —
 `EnergyLabStore`'s `$derived` behind the parameter sliders, `plan-audit.ts`
 once per audited day under a 30-day cap, and `suggestBudgetCurve`, whose 16
 solves per sweep make it the largest single multiplier (on demand, never a
@@ -1581,8 +1583,8 @@ gets its last swept budget recommended instead, which is the one statement that
 null exists to prevent.
 
 **Cost.** 16 solves at the default cap — the do-nothing point makes 17 budgets,
-not 17 solves. Each is one `optimizeSchedule`, priced by §8.6's table rather
-than a second copy of one cell here. It therefore lives behind an explicit click
+not 17 solves. Each is one `optimizeSchedule`, priced by
+`energy-search-gap.probe.ts` rather than a second copy of one cell here. It therefore lives behind an explicit click
 in `EnergyLabStore.computeBudgetCurve`, on `suggestPlanAdjustments`' on-demand
 contract, and is deliberately **not** a `$derived`. Its staleness fingerprint
 omits the budget on purpose: the curve is a statement about _every_ budget, so
