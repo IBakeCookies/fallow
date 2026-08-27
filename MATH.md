@@ -36,7 +36,7 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~23k tokens at 4 chars/token; the largest
+The whole document is ~24k tokens at 4 chars/token; the largest
 single section is §8 at ~13k (§5 is ~3k), and most of the 24 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
@@ -59,7 +59,7 @@ retype a row, regenerate:
   §5.1      519-628  Posterior-aware allocation
 §6          630-642  Summary of v1 → v2 changes
 §7          644-668  Known approximations and deliberate non-changes
-§8         670-1572  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         670-1592  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      682-704  Intermittent-rest recovery correction
   §8.2      706-725  Warm-up carryover instead of binary reset
   §8.3      727-745  Verified consequences and a calibration question, closed
@@ -70,9 +70,9 @@ retype a row, regenerate:
   §8.8    1005-1040  45-minute plan granularity
   §8.9    1042-1089  Recovery-rate calibration from pre/post-rest pairs
   §8.10   1091-1303  Stopping-value calibration from observed stop times
-  §8.11   1305-1416  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1418-1572  The budget curve — what the day's LENGTH is worth
-§9        1574-1621  References
+  §8.11   1305-1436  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1438-1592  The budget curve — what the day's LENGTH is worth
+§9        1594-1641  References
 ```
 
 <!-- section-index:end -->
@@ -1316,8 +1316,28 @@ task in canonical order) — and priced by the same λ₀-free work value
 `V = satiatedOutput + terminalBonus`. No new parameters, no new logging
 instrument.
 
-**This is the more exposed of the two readings.** §8.10 censors a day whose
-bracket contradicts itself; the advisor censors nothing.
+**This is the more exposed of the two readings, and it still censors
+nothing.** §8.10 drops a day whose bracket inverts past
+`STOP_INVERSION_MARGIN`; the advisor reads the same reconstruction and refuses
+no day at all. That asymmetry is deliberate, and it follows from what an
+inversion MEANS on each side of the day.
+
+Retrospectively, `lo > hi` is a contradiction: the user declined a step worth
+more than the best step they actually worked, so no λ₀ rationalizes the stop
+and the day's indifference point is contaminated evidence about a parameter.
+Run forward, the same inequality carries no contradiction, because there is no
+stop yet to rationalize. It says only that the best available next step beats
+the best step already logged — the ordinary state of a day with good work left
+in it, and precisely the condition under which `continue` is the right verdict.
+The censor's premise does not survive the change of direction.
+
+The two readings also differ in what refusal costs. §8.10 censors to keep a
+contaminated point out of a MEAN, and a mean over the remaining days is still
+an estimate; the advisor produces a verdict for a person, and has no mean to
+protect. Withholding is not abstention there — it is silence at the moment the
+card exists for. So the censor would have to buy a measured reduction in wrong
+verdicts to be worth carrying, which is an empirical question rather than a
+derivable one: `stop-advisor.probe.ts` prices it.
 
 **Sessions, not steps** (`adviseStop`). The verdict is
 

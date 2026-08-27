@@ -653,15 +653,48 @@ reaches the claim, never that the claim is false.
 - **M36 §8.12 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M37 §33 — closed 2026-08-21, [`the-lab-fit-that-read-todays-logs`](docs/features/the-lab-fit-that-read-todays-logs.md).**
 - **M38 §8.10 — closed 2026-08-19, [`the-bracket-that-inverted-on-a-day-it-kept`](docs/features/the-bracket-that-inverted-on-a-day-it-kept.md).** Shipped as a model change (MATH.md §8.10, §8.11, §10); the residual it left is M42.
-- **M39 §8.11** — `adviseStop` runs the same reconstruction with no inversion
-  censor at all, so `STOP_INVERSION_MARGIN` guards the retrospective fit only and
-  the in-day path is unguarded. Reachable by construction. Same shape as M38: a
-  code question, not a doc edit. **Half-closed 2026-08-19**: the unguarded path
-  is why the advisor was the more exposed reading, and M38's fix removes the bias
-  it was exposed to — measured, the session arm's mid-day false stops fall to
-  under 1% at every λ₀ and the warm-up fixture's at-stop agreement at λ₀ = 0.9
-  goes 1/13 → 11/13 (MATH.md §8.11). Whether the advisor should ALSO carry a
-  censor is untouched and still open.
+- **M39 §8.11 — closed 2026-08-27,
+  [`the-censor-that-does-not-run-forward`](docs/features/the-censor-that-does-not-run-forward.md).**
+  `adviseStop` runs the same reconstruction with no inversion censor at all, so
+  `STOP_INVERSION_MARGIN` guards the retrospective fit only. **Half-closed
+  2026-08-19**: M38's fix removed the bias the unguarded path was exposed to —
+  mid-day false stops under 1% at every λ₀, the warm-up fixture's at-stop
+  agreement at λ₀ = 0.9 going 1/13 → 11/13. What was left — whether the advisor
+  should ALSO carry a censor — is now decided NO, on an argument and a
+  measurement. The argument: `lo > hi` is a contradiction only where there is a
+  stop to rationalize, and run forward it says merely that the best next step
+  beats the best step already logged, which is when `continue` is RIGHT (MATH.md
+  §8.11 now carries this in place of the bare sentence). The measurement: a
+  third arm on slider-drawn days finds the inverted cell is 8.3–16.4% of the
+  checkpoints the card speaks on and carries ZERO mid-day false stops at all
+  four λ₀ on both populations — 0 of 118/110/88/23 random-day and 0 of
+  16/17/27/16 warm-up, against 8 of 1,811 and 4 of 587 everywhere else — so the
+  censor would silence 339 + 76 correct `continue`s and remove none that were
+  wrong. The one residual, recorded not acted on: at the stop moment agreement
+  on the inverted cell is 8/20 against 213/232, and censoring converts 8 right
+  and 12 wrong verdicts into 20 silences without fixing the 12. Nothing shipped
+  moved.
+- **M49 §8.11 — raised and closed 2026-08-27 by M39,
+  [`the-sweep-that-missed-two-generators`](docs/features/the-sweep-that-missed-two-generators.md).**
+  `stop-advisor.probe.ts` held the sixth and seventh generators off the slider
+  surface after M40's five — `randomDays`, drawing `difficulty` independently of
+  the two demands, and the hand-written `WARMUP_HEAVY`, whose `difficulty: 9`
+  beside demands `0.9/0.2` the sliders project to 9.6. Both back §8.11's shipped
+  one-step-vs-session table and its candidate-filter arm, both quote rates, and
+  neither declared itself. Both now draw through `toEnergyTask`; `WARMUP_HEAVY`
+  was moved onto the surface rather than declared off it, because M48's
+  extreme-may-stay-off exemption is for model-level bounds and this fixture
+  witnesses app-level behaviour. **Every figure moved and no verdict did.** The
+  session arm still beats the one-step arm at every λ₀ and by more — the two λ₀
+  quoted in `adviseStop`'s docblock go 19.7% → 14.2% at 0.9 and 24.7% → 28.1% at
+  1.3, against the session arm's 6.6% → 1.3% and 6.2% → 0.0% — at-stop agreement
+  is still identical between the arms in all eight rows, the day's own breaks
+  still beat the summed reading everywhere (M38's headline witness moving 1/13 →
+  11/13 to 2/13 → 12/13), the candidate filter still helps in the same direction
+  (its λ₀ = 0.3 at-stop row sharpening 15/18 → 18/18 to 6/15 → 15/15), and M39's
+  censor verdict is unchanged. 0 replica mismatches throughout. Nothing shipped
+  moved. The residue: M40's sweep grepped for one hand-built signature and this
+  file escaped it, so seven may not be the count — a search, filed nowhere yet.
 - **M40 §8.10 + §8.4 — closed 2026-08-25,
   [`the-satiety-price-on-the-sliders`](docs/features/the-satiety-price-on-the-sliders.md).**
   `grep 'difficulty: Math.max' scripts/` is empty, which is the close condition
