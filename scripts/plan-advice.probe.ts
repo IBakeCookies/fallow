@@ -378,9 +378,9 @@ describe('plan advice', () => {
 
 	/**
 	 * The Cost paragraphs quote a wall clock no probe reproduced. A wall clock is
-	 * only quotable with its machine attached (§8.6's "machine A is ~2× machine
-	 * B"), so the box and the runtime are printed once beside the numbers, and
-	 * nothing else may be running on it.
+	 * only quotable with its machine attached — the same class of day reads ~2×
+	 * apart on two boxes — so the box and the runtime are printed once beside the
+	 * numbers, and nothing else may be running on it.
 	 */
 	it('times the solve, the advice run and the two extra solves', () => {
 		console.log(`[cost] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);

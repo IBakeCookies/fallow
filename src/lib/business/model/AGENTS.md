@@ -135,9 +135,11 @@ its allocation code, so the main page is unaffected by changes here.
   seeds, and the pair seeds, each searched **within its pair** because a seed
   whose search may reach every task climbs back out of the two-task basin it was
   built for; keep those when touching the search. The pair family is capped at
-  the three highest-amplitude tasks (`C(3,2)`, ~1.3×–2.3×) — unbounded `C(n,2)`
-  measured 12.5× / 13.1× at 10 / 15 tasks over a 12 h window, because each pair
-  seed starts fragmented and climbs long, so do not unbound it. §8.6.
+  the three highest-amplitude tasks (`C(3,2)`) — unbounded `C(n,2)` runs up to
+  13.8× the capped search at 15 tasks, because each pair seed starts fragmented
+  and climbs long, so do not unbound it
+  (`scripts/energy-search-gap.probe.ts`, which also prices what the cap
+  forfeits). §8.6.
 - `neighbors` yields **every** interior lattice split of a funded block — one
   step of rest at unchanged worked hours — not the rounded midpoint alone:
   where a mid-session recovery pays for the warm-up it destroys is not the

@@ -558,7 +558,7 @@ test before believing that phrase.
 ## Findings from the 2026-08-14 `MATH.md` audit
 
 Item 31's list. The **M** ids are stable and never reused. M1–M13 and M22 were
-each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M53
+each handed to a skeptic told to refute them and survived; **M14–M21 and M23–M54
 were raised and not verified** — the open ones are leads, and item 29's rule
 applies, so quote none of them as a result until its own check is run. M37 and
 later came from probe sweeps and later reviews rather than from the 2026-08-14
@@ -789,27 +789,32 @@ reaches the claim, never that the claim is false.
 - **M44 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M45 — closed 2026-08-20, [`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md).**
 - **M46 — closed 2026-08-20, [`the-default-nobody-had-measured`](docs/features/the-default-nobody-had-measured.md).**
-- **M47 §8.6** — raised by the 2026-08-22 alpha review, open. The pair-seed cost
-  prose carries two timing tables and a `C(n,2)` ladder that no committed
-  instrument prints: grep `16.3 ms`, `219.2`, `1499.9` or `4019.5` across
-  `scripts/` and `src/` for zero hits. §8.6's registry row
-  (`energy-search-gap.probe.ts`) covers the optimality gap, not the wall clock,
-  and that probe's header names the same section's hand-built witnesses as the
-  evidence it superseded. The tables are not quotable as current: they carry
-  their own provenance (measured twice on 2026-08-13, two machines, one warm-up
-  then the mean of 3) and disclaim their own absolutes — "neither a millisecond
-  figure nor any single ratio here is the number — quote the range" — so this is
-  a provenance hole, not a wrong number, and the 2026-08-24 fix deleted only the
-  adjacent `10.70 vs 10.65` legacy pair, which had no such record. Closing it
-  means a timing arm on `energy-search-gap.probe.ts` over the shipped
-  `optimizeSchedule`, printing the box and node version beside the ratios the
-  way `plan-advice.probe.ts` does. **The blocker is that it needs a production
-  change**: `PAIR_SEED_TASKS` is a non-exported const in `zenith-energy.ts`, so
-  the "Before" (0 pair seeds) and unbounded-`C(n,2)` arms are unreachable
-  without making it injectable — surface added to a shipped module purely so a
-  doc figure can be re-run. Weigh that against deleting the tables, or against
-  §10's precedent of marking a non-re-runnable figure as history in one dated
-  sentence.
+- **M47 §8.6 — closed 2026-08-27,
+  [`the-cap-that-outlived-its-measurement`](docs/features/the-cap-that-outlived-its-measurement.md).**
+  Raised against pair-seed cost prose no instrument printed. `e61d207`
+  (2026-08-25) deleted the tables with §10–§37, leaving **six live sites quoting
+  them** — including `src/lib/business/model/AGENTS.md`, a rules file whose "do
+  not unbound it" rested on `12.5× / 13.1×`, and the constant's own docblock,
+  which quoted a single absolute ratio the deleted source had instructed nobody
+  to quote. `math-citations.mjs` passed all six: §8.6 still exists, only its
+  contents moved. The blocker was overstated — `OptimizeOptions` already carries
+  `stepHours` and `maxIterations` and **no product caller sets either**, so
+  `pairSeedTasks` is a third instrument-only field, not an opened module.
+  `energy-search-gap.probe.ts` now prices the cap: the pair seeds cost
+  1.28×–2.40× the search without them, unbounded `C(n,2)` reaches 13.84× at 15
+  tasks (4147 ms against 300), and over 400 seeded days the family beats no
+  pairs on 4 (worst 0.395580) while `C(n,2)` beats the cap on **2** (worst
+  0.208672). That last number is new: the deleted prose asserted three tasks
+  were enough and had measured nothing wider. Residue is **M54**.
+- **M54 — raised 2026-08-27, measured, NOT decided.** Both days M47's forfeit
+  arm found are reached by `PAIR_SEED_TASKS = 4`, at `C(4,2)` = 6 pair seeds
+  instead of 3. Weigh 0.208672 objective on 2 days in 400 against a wider seed
+  family on a path `EnergyLabStore`'s `$derived`, `plan-audit.ts` and
+  `suggestBudgetCurve`'s 16 solves all take — one more column on the cost arm
+  prices it. The other direction is already on record: 3 → 2 costs 0.038620 over
+  60 days
+  ([`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md)).
+  A plan change, so it needs a decision, not a sweep.
 
 - **M48 §8.1 — closed 2026-08-27,
   [`the-extreme-that-had-never-declared-itself`](docs/features/the-extreme-that-had-never-declared-itself.md).**
