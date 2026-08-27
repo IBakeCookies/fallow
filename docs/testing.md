@@ -285,9 +285,9 @@ something mechanical passed while the change was still wrong.
 ## Writing a probe
 
 The registry itself is [`scripts/PROBES.md`](../scripts/PROBES.md). Probes are
-committed because the alternative is the failure `MATH.md` already shows: the
+committed because the alternative is the failure that wrote this rule: the
 sweep behind "the trim is free" was thrown away, so the claim could not be
-re-checked and stayed in the document while being false.
+re-checked and stayed in `MATH.md` while being false.
 
 - **Seed the randomness.** A quoted number must be reproducible, not
   re-rollable — and a curated fixture and a random sweep answer different
@@ -324,8 +324,8 @@ re-checked and stayed in the document while being false.
   are independent knobs of the MODEL's input type; the app's projection onto it
   is `toEnergyTask`'s business, and `getEffectiveDifficulty` couples them
   (sliders 9/1 give demands 0.9/0.1 and difficulty **9.3**, never 1). So most
-  fixtures are legitimately off the surface — 64 of `zenith-energy.test.ts`'s 72
-  `makeTask` calls are — and "every task must be reachable" is the wrong rule.
+  fixtures are legitimately off the surface — the majority of
+  `zenith-energy.test.ts`'s `makeTask` calls are — and "every task must be reachable" is the wrong rule.
   The rule is: a day whose numbers get QUOTED, or that witnesses APP-level
   behaviour, has to be one `toEnergyTask` could produce. A model-level property
   or bound test may sit off the surface and often should, and then it says so in

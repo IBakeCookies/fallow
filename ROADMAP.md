@@ -973,3 +973,43 @@ place.
   it out. Moving the window vertically mitigates without closing: the brightest
   ring hides behind the app bar and the two mid-range labels recover to ~1.9:1,
   while the five at 1.00:1 do not move.
+
+## Findings from the 2026-08-27 branch review
+
+The twelve commits that closed M17, M33–M35 and M47–M54 were reviewed together
+rather than one at a time, by nine readers and one told to refute what they
+found. **Nothing shipped was wrong.** Every finding below is a claim in a probe
+header, a code comment, a rules file or a row of this file — which is the class
+of defect those twelve commits were themselves closing, so the review is the
+same sweep run once more over its own output.
+
+Each row is its date and its link, per this file's own preamble. What was found
+and what it cost is in the spec.
+
+- **M75 — the discarded-sweep failure, cited to a document that no longer shows
+  it — fixed 2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M76 — the reachability rule's own `makeTask` census — fixed 2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M77 — a pre-cut MATH.md size no revision ever had — fixed 2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M78 §8.12 — the cap the copy names against the cap it checked — fixed
+  2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M79 §8.12 — the rejected seeding's fifth site, in the banned past tense —
+  fixed 2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M80 §8.6 — the docblock M47 cleaned and M54 dirtied again — fixed
+  2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M81 — eight alignments credited as nine, on two wrong dates — fixed
+  2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M82 §8.12 — three off-default constants declared where four differ — fixed
+  2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M83 §8.10 — a percentage of a constant the code did not read — fixed
+  2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M84 — the seventh of M50's eight excluded call sites — fixed 2026-08-27,
+  [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**

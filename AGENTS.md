@@ -167,7 +167,7 @@ direction: every `§`-citation in tracked source resolves to a heading that
 exists in MATH.md. **MATH.md holds derivations, not measurements** — the formula,
 why it has that shape, and why the alternative was rejected. A figure read off a
 run belongs in the probe that produced it, never quoted into prose that cannot
-re-run: that is what grew the file to 9,482 lines and left eleven of its numbers
+re-run: that is what grew the file to 9,431 lines and left eleven of its numbers
 stale. There is no revision log; git holds the history.
 [business/model/AGENTS.md](src/lib/business/model/AGENTS.md).
 

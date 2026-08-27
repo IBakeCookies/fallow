@@ -36,9 +36,10 @@ const REPORTED: Task = {
 };
 
 // The Model Parameters panel exactly as reported. DELIBERATELY NOT the defaults
-// — alphaCog, alphaPhys and recoveryRate are the reporter's, not
-// DEFAULT_ENERGY_PARAMS' 0.35/0.3/0.7 — because the question was raised about
-// this day, and re-running it at the defaults would answer a different one.
+// — alphaCog, alphaPhys, recoveryRate and freeTimeValue are the reporter's, not
+// DEFAULT_ENERGY_PARAMS' 0.35/0.3/0.7/0.5 — because the question was raised
+// about this day, and re-running it at the defaults would answer a different
+// one. λ₀ = 1.2 is the value both halves of the agreement are scored at.
 const PARAMS: EnergyParams = {
 	...DEFAULT_ENERGY_PARAMS,
 	alphaCog: 0.25,
