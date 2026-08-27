@@ -291,7 +291,7 @@
 			<!-- What the model was fitted from, then what it makes of today: the fit is a
 			     standing statement and reads first, the advice is the day's own reading.
 			     Half each. -->
-			<div class="grid gap-grid-lg lg:grid-cols-2">
+			<div class="grid gap-grid-lg lg:grid-cols-2 items-start">
 				<FlowCalibrationCard
 					constantsFitted={session.constantsFit.fitted}
 					logCount={session.flowObservations.length}
