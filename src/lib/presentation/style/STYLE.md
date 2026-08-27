@@ -318,7 +318,7 @@ Read this before touching markup, classes, or anything under
   block is _guarded_ by `html:not(.scenery-motion-on)` instead of deleted in
   favour of `.scenery-paused` alone. Deleting it is the smaller diff and an
   accessibility regression: the query is the only gate left for a visitor who
-  has recorded nothing — with JavaScript off, no cookie is read and no store
+  has recorded nothing — with JavaScript off, nothing is stamped and no store
   mounts — and for an OS setting that flips mid-session. The guard repeats flat
   across the three selectors, matching the `.scenery-paused` triple below them,
   so the Tailwind pipeline is never handed a nested `@media`. Both classes come
