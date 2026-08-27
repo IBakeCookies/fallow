@@ -830,9 +830,12 @@ reaches the claim, never that the claim is false.
   such — **7 days in 2000** (2, 2, 2, 0, 1 per seed) — and M53's lesson applies
   to the magnitude, not the rate: the per-seed worst gain runs 0.2080%–2.1865%
   of the objective, an order of magnitude apart, so no envelope is claimed. The
-  cost is 1.27×–1.61× the cap of 3 and **flat in n** (three more seeds at any
-  size, against C(n,2)'s quadratic 14.42× at 15 tasks): the Lab's `#plan` solve
-  goes 55.0 → 80.1 ms median, `suggestBudgetCurve`'s 12 solves 310.6 → 422.7 ms.
+  cost is roughly **1.2×–1.6×** the cap of 3 and **flat in n** (three more seeds
+  at any size, against C(n,2)'s quadratic 14×–15× at 15 tasks): the Lab's
+  `#plan` solve goes ~55 → ~82 ms median, `suggestBudgetCurve`'s 12 solves
+  ~310-370 → ~420-455 ms. Those are bands across three runs, not figures — a
+  wall clock is a range, and the rule and the worked example landed in
+  `docs/testing.md` afterwards.
   Nobody pays for nothing — over the same 2000 days the wider cap **never once**
   returned a different plan at an unchanged objective, so every plan it moves,
   it improves. Both §8.6 witness fixtures keep their funded sets, and the day
