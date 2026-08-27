@@ -694,7 +694,42 @@ reaches the claim, never that the claim is false.
   (its λ₀ = 0.3 at-stop row sharpening 15/18 → 18/18 to 6/15 → 15/15), and M39's
   censor verdict is unchanged. 0 replica mismatches throughout. Nothing shipped
   moved. The residue: M40's sweep grepped for one hand-built signature and this
-  file escaped it, so seven may not be the count — a search, filed nowhere yet.
+  file escaped it, so seven may not be the count. That search ran the same day
+  and answered it — M50 and M51 below.
+- **M50 — raised and closed 2026-08-27 by the M49 residue,
+  [`the-tenth-copy-of-a-day-declared-once`](docs/features/the-tenth-copy-of-a-day-declared-once.md).**
+  The search replaced counting generators with checking the fault: every
+  `EnergyTaskInput` the repo builds — 9 inline literals plus 113 call sites of
+  the eight `task`/`makeTask` factories, matched by AST rather than by
+  spelling — tested against the surface directly (demands a slider/10, enjoyment
+  an integer 1–10, `difficulty` equal to what `getEffectiveDifficulty` derives
+  from the two demands). **84 sit off the surface and 68 already declare it** —
+  64 under the class declaration `docs/testing.md` gives
+  `zenith-energy.test.ts`'s `makeTask` calls, four individually. Of the 16 left,
+  ten are verbatim mirrors of suite fixtures that class covers, and exactly one
+  is a WRONG number rather than an undeclared one: `plan-audit.test.ts` held a
+  TENTH copy of the 2026-07-14 named day, still carrying the pre-slider
+  `guitar 0.4/0.3` and `reading 0.5/0.05` — and `physicalDemand: 0.05` has no
+  slider at all. The day has ten declarations; M44 aligned eight of the nine it
+  should have and missed this one, the only copy outside a probe. The COUNT in
+  `energy-search-gap.probe.ts` — deliberately unaligned "with the other nine
+  declarations of this day" — was right all along; what was false was its
+  presumption that those nine were aligned, and the fix makes the sentence true
+  rather than correcting it. `zenith-energy.test.ts`'s guard ("no longer a
+  second place for it to drift from") is scoped to that file and stays true; it
+  is simply not the repo-wide claim it is easy to read as. Aligned; its nine
+  tests pass unchanged, because they compare a plan against itself and quote
+  nothing.
+- **M51 — raised and closed 2026-08-27 by the M49 residue,
+  [`the-pair-that-could-not-be-matched`](docs/features/the-pair-that-could-not-be-matched.md).**
+  The same search's second residual, a declaration gap rather than a wrong
+  number: `rv13-terminal-timing.probe.ts`'s `task()` pins `difficulty: 8` and
+  swaps the demands 1/0 ↔ 0/1, where sliders 10/0 and 0/10 both derive
+  difficulty 10. Its comment gave a reason ("matched across the pair") but not
+  the surface sentence M48's rule asks for — and the record's own fixture spec,
+  a pure-cognitive and a pure-physical task at MATCHED difficulty, is
+  unreachable BY CONSTRUCTION, which is what the missing sentence had to say.
+  Declared; nothing moved, all three arms still pass.
 - **M40 §8.10 + §8.4 — closed 2026-08-25,
   [`the-satiety-price-on-the-sliders`](docs/features/the-satiety-price-on-the-sliders.md).**
   `grep 'difficulty: Math.max' scripts/` is empty, which is the close condition

@@ -40,6 +40,17 @@ import {
 	type ScheduleBlock,
 } from '$lib/business/model/zenith-energy';
 
+/**
+ * DELIBERATELY off the slider surface, and it has to be (ROADMAP M51,
+ * 2026-08-27). The record's fixture is "one pure-cognitive and one
+ * pure-physical task at MATCHED difficulty/enjoyment", and matched difficulty
+ * across that pair is unreachable by construction: demands 1/0 and 0/1 come
+ * from sliders 10/0 and 0/10, which `getEffectiveDifficulty` sends to 10 —
+ * so the only pair the sliders admit here differs in nothing but the axis
+ * label. Holding difficulty at 8 is what isolates the axis, which is the whole
+ * claim. Nothing app-level is read off it: the numbers below are objectives of
+ * the MODEL, re-derived to make the record's table reproducible.
+ */
 const task = (
 	id: number,
 	title: string,

@@ -13,6 +13,14 @@ import {
 	type EnergyTaskInput,
 } from '$lib/business/model/zenith-energy';
 
+/**
+ * The 2026-07-14 probe day (boxing / guitar / reading), as in the suite.
+ * Aligned 2026-08-27 (ROADMAP M50): guitar 0.4/0.3 → 0.6/0 and reading
+ * 0.5/0.05 → 0.4/0, the demands the three integer sliders actually reach at the
+ * difficulties this day is stated in. M44 aligned the other nine declarations
+ * on 2026-08-21 and did not reach this one, the day's only copy outside a probe.
+ * Nothing here is quoted: the assertions below compare a plan against itself.
+ */
 const tasks: EnergyTaskInput[] = [
 	{
 		id: 1,
@@ -27,16 +35,16 @@ const tasks: EnergyTaskInput[] = [
 		title: 'guitar',
 		difficulty: 6,
 		enjoyment: 9,
-		cognitiveDemand: 0.4,
-		physicalDemand: 0.3,
+		cognitiveDemand: 0.6,
+		physicalDemand: 0,
 	},
 	{
 		id: 3,
 		title: 'reading',
 		difficulty: 4,
 		enjoyment: 7,
-		cognitiveDemand: 0.5,
-		physicalDemand: 0.05,
+		cognitiveDemand: 0.4,
+		physicalDemand: 0,
 	},
 ];
 
