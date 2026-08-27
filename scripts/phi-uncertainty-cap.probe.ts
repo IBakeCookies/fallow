@@ -15,9 +15,6 @@
  * in `npm test`. What it finds is pinned by one fixture in the suite, never by
  * the sweep itself.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Three things are measured per cell, on the exact BLOCK_HOURS menu
  * `buildBlockIncrements` builds — same span (T*(ϕ_max), +1 block) and same
  * 1e-12 tolerances, so no number here is a float artifact of a re-derivation:

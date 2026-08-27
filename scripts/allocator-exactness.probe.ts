@@ -64,9 +64,6 @@
  * A cell with a zero forfeiture and a zero on either counter is an EMPTY
  * measurement, not a clean bill of health. Read them together.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

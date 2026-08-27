@@ -48,9 +48,6 @@
  * relative sizes rather than on any absolute value. A red gate here means the
  * day's structure stopped reaching the estimator.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

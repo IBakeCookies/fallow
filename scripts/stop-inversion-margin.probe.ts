@@ -77,9 +77,6 @@
  * difference between the two is the "~+0.1" bias §8.10 claims. The half-width
  * is (hi − lo)/2 on days that do not invert.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

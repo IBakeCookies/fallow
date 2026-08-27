@@ -27,9 +27,6 @@
  * asserted here and pinned in the suite. The pooled path has no proof; its rate
  * is a measurement that can legitimately move.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

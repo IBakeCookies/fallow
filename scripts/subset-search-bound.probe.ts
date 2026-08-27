@@ -24,9 +24,6 @@
  * that proves the rule — it asserts the SHAPES §7 argues from, plus the one digit
  * §7 reasons from directly, its ≤ 2 h band.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

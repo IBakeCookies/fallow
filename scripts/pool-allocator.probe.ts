@@ -20,9 +20,6 @@
  * (`npm run probe`) and never in `npm test`. The suite keeps ONE fixture
  * instead — the randomized envelope test in zenith.test.ts.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

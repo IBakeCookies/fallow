@@ -57,9 +57,6 @@
  * generators). Arm A is an identity and survives untouched, which is the point
  * of keeping the two arms apart.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

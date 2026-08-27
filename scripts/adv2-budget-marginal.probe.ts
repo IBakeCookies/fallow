@@ -14,8 +14,7 @@
  * which flatters the all-days rate). Both pairs come out of this one sweep.
  *
  * A probe, not a test: the numbers move whenever the allocator changes, which is
- * a legitimate model change and not a regression. Whatever it prints belongs in
- * MATH.md WITH ITS DATE.
+ * a legitimate model change and not a regression.
  *
  * Usage: npm run probe
  */

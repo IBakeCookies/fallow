@@ -55,9 +55,6 @@
  * replica reads the structure back out of those moments exactly as the shipped
  * `reconstructStopDay` does.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

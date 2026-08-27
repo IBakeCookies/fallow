@@ -15,9 +15,6 @@
  * Deterministic: an exhaustive 10×10 integer slider grid plus seeded days — no
  * randomness that a re-run can reroll.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports. An undated number in that document is unfalsifiable.
- *
  * Usage: npm run probe
  */
 

@@ -77,9 +77,6 @@
  * so censoring converts 8 right and 12 wrong verdicts into 20 silences without
  * fixing the 12. Nothing shipped moved.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

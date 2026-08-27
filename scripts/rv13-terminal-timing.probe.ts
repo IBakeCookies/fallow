@@ -23,9 +23,6 @@
  * A probe, not a test: the objectives move with the energy model. The suite pins
  * the property instead — that the aggregator does not reorder plans.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 

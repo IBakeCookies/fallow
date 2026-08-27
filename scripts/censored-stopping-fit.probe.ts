@@ -39,9 +39,6 @@
  * (ROADMAP M40, item 4). The gate is untouched, so the verdict is re-decided at
  * the level rather than re-explained.
  *
- * Whatever it prints belongs in MATH.md WITH ITS DATE, beside the claim it
- * supports.
- *
  * Usage: npm run probe
  */
 
