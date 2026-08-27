@@ -860,10 +860,12 @@ describe('Zenith Energy Model', () => {
 			expect(search.evaluation.objective).toBeLessThan(6.1595663228 - 1e-9);
 		});
 
-		// The cap's own step, ROADMAP M54 (2026-08-27): drawn from seed 8600's day
-		// 215 in `energy-search-gap.probe.ts`, realigned onto the sliders (the
-		// generator's 0.30000000000000004 is float dust, and the day solves
-		// identically at 0.3). A cap of three funds `b` alone here; the shipped
+		// The cap's own step, ROADMAP M54 (2026-08-27): seed 8600's day 215 in
+		// `energy-search-gap.probe.ts`, its float dust rounded (0.30000000000000004
+		// → 0.3, which solves identically). Off the slider surface like this file's
+		// other fixtures — two of its four tasks below the difficulty their demands
+		// force and two above — and what is read off it is one seed set reaching a
+		// funded set the other cannot. A cap of three funds `b` alone here; the shipped
 		// four finds the interleave that funds `d` too — a different funded SET,
 		// which is the failure §8.6 calls the worse of the two, not a
 		// redistribution of the same hours.

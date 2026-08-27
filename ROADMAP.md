@@ -876,3 +876,23 @@ and what it cost is in the spec.
   readings in a paragraph claiming the on-surface ones — closed 2026-08-27, not
   fixed,
   [`the-refusal-the-replica-mis-derived`](docs/features/the-refusal-the-replica-mis-derived.md).**
+- **M64 §8.6 — a live rules file pricing `C(n,2)` against the wrong denominator —
+  fixed 2026-08-27,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M65 — four wall-clock bands that did not survive a re-run of their own arm —
+  fixed 2026-08-27,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M66 §8.6 — two ledger rows asserting two values for one measurement — raised
+  and closed 2026-08-27 by M90,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M67 — three probe generators off the surface with no declaration, and a
+  fixture declaring the opposite — fixed 2026-08-27,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M68 §8.6 — three statements restating their own code wrongly — fixed
+  2026-08-27,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M69 — "every timing cell prints the half-range of its own reps", against the
+  `[app]` rows — fixed 2026-08-27,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**
+- **M70 — a rule-mandated declaration giving the wrong reason — fixed 2026-08-27,
+  [`the-band-that-named-the-wrong-denominator`](docs/features/the-band-that-named-the-wrong-denominator.md).**

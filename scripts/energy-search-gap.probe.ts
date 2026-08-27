@@ -50,23 +50,34 @@
  * The last four arms price §8.6's cap on the pair family, which no committed
  * instrument reached before: `pairSeedTasks` exists on `OptimizeOptions` for
  * them and nothing else sets it. Every timing below is a range, not a figure
- * (docs/testing.md): each cell prints the half-range of its own reps, and the
- * bands quoted here are what THREE runs of these arms read on this box, which
- * is the wider spread of the two. The pair seeds cost roughly 1.2×–2.4× the
- * same search without them; the shipped cap of 4 costs roughly 1.2×–1.6× the
- * cap of 3 it replaced (three runs: 1.21–1.54, 1.27–1.61, 1.24–1.59), and
- * 0.98×–1.01× at 3 tasks, where the two ARE the same search — that cell is the
+ * (docs/testing.md): each cell prints the half-range of its own reps, except the
+ * [app] one-solve rows, whose cell is already a distribution over 60 days and
+ * prints its percentiles instead. The bands quoted here are what FOUR runs of
+ * these arms read on this box with nothing else running on it, which is the
+ * wider spread of the two: a run sharing the box read 2.84× on two arms that
+ * are the same search, so a contended run is discarded, not averaged in.
+ *
+ * The pair seeds cost roughly 1.2×–2.5× the same search without them; the
+ * shipped cap of 4 costs roughly 1.2×–1.7× the cap of 3 it replaced (per run:
+ * 1.28–1.62, 1.27–1.60, 1.23–1.68, 1.26–1.58). At 3 tasks all three capped arms
+ * ARE one search, and at 4 tasks C(4,2) IS the cap of 4, so eight cells per run
+ * time identical work: over 32 of them they read 0.92×–1.16×, which is the
  * table's noise floor and the reason no third digit is quoted anywhere here.
- * Unbounded C(n,2) reaches 14×–15× the cap of 3 at 15 tasks. Cap 4's cost is
- * flat in n (three more seeds at any size) where C(n,2)'s is quadratic. The
- * ratio is composition-dependent and cost is not monotone in n (a wide list
- * makes the window bind and the classic seed truncate), so the range is the
- * result and no single cell is.
+ * Unbounded C(n,2) at 15 tasks costs an order of magnitude more than the shipped
+ * four-task search (8.7×–11.6×) and 13.7×–14.6× the cap of 3 it replaced — every
+ * ratio here is quoted with the arm it is divided by, because those two are one
+ * measurement a column apart. Cap 4's cost is flat in n (three more seeds at any
+ * size) where C(n,2)'s is quadratic. The ratio is composition-dependent and cost
+ * is not monotone in n (a wide list makes the window bind and the classic seed
+ * truncate), so the range is the result and no single cell is — and the cap-4
+ * decision does not move inside any of these bands: it costs a fraction of one
+ * solve at every reading, against an order of magnitude for the unbounded
+ * family.
  *
  * In absolute ms on the paths the product takes, over app-shaped days (3-8
  * tasks × 6-10 h): one solve — `EnergyLabStore`'s `#plan`, once per slider
- * move — median ~55 ms at cap 3 against ~82 at cap 4 (three runs: 57.1/86.5,
- * 55.0/80.1, 56.0/82.4), p95 ~145 against ~190;
+ * move — median ~55-59 ms at cap 3 against ~80-88 at cap 4 (four runs:
+ * 57.1/86.5, 55.0/80.1, 56.0/82.4, 58.5/87.5), p95 ~143-156 against ~185-198;
  * `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, ~310-370 ms
  * against ~420-455. A ratio cannot say whether a change is felt, and the sweep
  * row is the one that moves most between runs (±9%, against ±5% within one).
@@ -151,10 +162,11 @@ const task = (
  * whether the one day known to break the search is now provably solved.
  *
  * DELIBERATELY NOT realigned onto the sliders with the other nine declarations
- * of this day (ROADMAP M44, 2026-08-21): `guitar 0.4/0.3` and `reading 0.5/0.05`
- * are unreachable demands, and here that is the point. This fixture is the
- * historical day that broke the search, not a day a user could file — moving it
- * would keep the name and lose the question.
+ * of this day (ROADMAP M44, 2026-08-21): `guitar`'s difficulty 6 sits above the
+ * 4.9 its 0.4/0.3 demands derive, and `reading`'s 0.05 is no slider at all — and
+ * here that is the point. This fixture is the historical day that broke the
+ * search, not a day a user could file — moving it would keep the name and lose
+ * the question.
  */
 const PROBE_DAY: EnergyTaskInput[] = [
 	task(1, 10, 10, 0.2, 1.0),
@@ -162,6 +174,26 @@ const PROBE_DAY: EnergyTaskInput[] = [
 	task(3, 4, 7, 0.5, 0.05),
 ];
 
+/**
+ * DELIBERATELY off the slider surface too, for a different reason than
+ * `PROBE_DAY`: `difficulty` is drawn independently of the two demands, where
+ * `toEnergyTask` derives it from them. The miss is two-sided — of the
+ * five-seed sweep's 10,990 tasks, 266 (2.4%) are ones the app could file,
+ * 7,636 sit BELOW the difficulty their demands force and 3,088 above. Per arm:
+ * 48 of 2,210 on the 400-day forfeit/gain sweep, 4 of 350 on the [app] arm,
+ * 0 of 58 in the cost cells.
+ *
+ * Every figure read off these days survives it, because each is a difference
+ * between two solves of the SAME day — a gap against a reference optimum, or
+ * one seed set against another — and a difficulty its demands would not pair
+ * with is common to both sides. What the generator has to cover is the (task
+ * count, window, composition) space the caps behave differently over, and drawing
+ * only on the surface would keep 2.4% of the tasks and far fewer whole days.
+ * The one reading that is a property of the population and not of a day — the
+ * RATE at which a wider cap wins — is this generator's rate and not the app's;
+ * the decision it feeds turns on what those days change, the funded set, and on
+ * what the wider cap costs.
+ */
 function randomDays(
 	count: number,
 	seed: number,
@@ -523,11 +555,10 @@ function timeMs(run: () => void): Timing {
 	};
 }
 
-/** Half the observed range, as a percent of the median: the digit that survives. */
 const ms = (t: Timing) =>
 	`${t.median.toFixed(1)} ms ±${Math.round((50 * (t.max - t.min)) / t.median)}%`;
 
-/** Seeds `buildSeeds` lays down: 4 fixed, drop-one per task, then C(min(n,cap),2). */
+/** Replicates the count `buildSeeds` lays down, which is module-private. */
 const seedCount = (n: number, cap: number) => {
 	const paired = n >= 3 ? Math.min(n, cap) : 0;
 
@@ -629,7 +660,7 @@ describe('energy search gap', () => {
 				const full = timeMs(() => solve(day, n));
 
 				console.log(
-					`[cost] ${label} ${n} tasks x 12h: no pairs ${ms(none)} (${seedCount(n, 0)} seeds), cap 3 ${ms(capped)} (${seedCount(n, 3)}) = ${(capped.median / none.median).toFixed(2)}x, cap 4 ${ms(wider)} (${seedCount(n, 4)}) = ${(wider.median / capped.median).toFixed(2)}x cap 3, C(n,2) ${ms(full)} (${seedCount(n, n)}) = ${(full.median / capped.median).toFixed(2)}x cap 3`,
+					`[cost] ${label} ${n} tasks x 12h: no pairs ${ms(none)} (${seedCount(n, 0)} seeds), cap 3 ${ms(capped)} (${seedCount(n, 3)}) = ${(capped.median / none.median).toFixed(2)}x, cap 4 ${ms(wider)} (${seedCount(n, 4)}) = ${(wider.median / capped.median).toFixed(2)}x cap 3, C(n,2) ${ms(full)} (${seedCount(n, n)}) = ${(full.median / wider.median).toFixed(2)}x cap 4, ${(full.median / capped.median).toFixed(2)}x cap 3`,
 				);
 			}
 		}

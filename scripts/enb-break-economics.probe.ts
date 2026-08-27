@@ -41,6 +41,18 @@
  * only. The old SEARCH (pre-§8.6 moves, pre-§8.8 45-min lattice) is gone and
  * cannot be reconstructed, so plan-shape numbers from that era are reported
  * under today's optimizer and are not comparable to the ones §8 quotes.
+ *
+ * On the slider surface: the named §8.3/§8.10 day and the §8.4 guitar task.
+ * DELIBERATELY off it, in both directions: the chunk table's six rows each pair
+ * a difficulty with a demand the sliders would not pair it with — five below
+ * the 10 that demand 0.8–1.0 forces, `[10, 10, 0.2]` above the 2.6 its demand
+ * derives — because the peak arm (7) looks for is claimed at FULL demand and
+ * LOW difficulty, which is the corner the coupling forbids. What that arm
+ * prints is a ratio across chunk counts at one fixed parameterization, so the
+ * pairing is common to every k. `DEEP`, `FRAG` and the desk and errand pairs
+ * sit one spillover step below theirs (8 at 0.9/0.1, where sliders 9/1 derive
+ * 9.3); their hours are this model's reading of those parameters, and what the
+ * arms read off them is the contrast between portfolios and windows.
  */
 import { describe, expect, it } from 'vitest';
 import {

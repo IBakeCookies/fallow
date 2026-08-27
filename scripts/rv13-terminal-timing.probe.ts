@@ -40,13 +40,15 @@ import {
 /**
  * DELIBERATELY off the slider surface, and it has to be (ROADMAP M51,
  * 2026-08-27). The record's fixture is "one pure-cognitive and one
- * pure-physical task at MATCHED difficulty/enjoyment", and matched difficulty
- * across that pair is unreachable by construction: demands 1/0 and 0/1 come
- * from sliders 10/0 and 0/10, which `getEffectiveDifficulty` sends to 10 —
- * so the only pair the sliders admit here differs in nothing but the axis
- * label. Holding difficulty at 8 is what isolates the axis, which is the whole
- * claim. Nothing app-level is read off it: the numbers below are objectives of
- * the MODEL, re-derived to make the record's table reproducible.
+ * pure-physical task at MATCHED difficulty/enjoyment" at FULL demand, and it is
+ * the demand that puts it off: 1.0 is slider 10, which
+ * `getEffectiveDifficulty` sends to difficulty 10, so difficulty 8 sits below
+ * what its own demands force. The matching is not the obstruction — sliders 8/0
+ * and 0/8 derive a matched pure pair at difficulty 8, at demands 0.8/0 and
+ * 0/0.8. Holding difficulty at 8 while the demands stay full is what isolates
+ * the axis, which is the whole claim. Nothing app-level is read off it: the
+ * numbers below are objectives of the MODEL, re-derived to make the record's
+ * table reproducible.
  */
 const task = (
 	id: number,

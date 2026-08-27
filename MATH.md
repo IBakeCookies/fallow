@@ -897,7 +897,7 @@ A pair seed starts fragmented and climbs long, so it costs about two ordinary
 seeds rather than the fraction of one a 2-task neighbourhood suggests. Cost
 does not grow monotonically in n (a wide task list makes the window bind and
 the classic seed truncate), so the cap is stated in seeds, not in a task
-threshold: C(4,2) = 6 seeds at every size, so the family's cost is flat in n
+threshold: at most C(4,2) = 6 seeds, so the family's cost is flat in n
 where C(n,2)'s is quadratic. `energy-search-gap.probe.ts` prices the cap
 against its neighbours and against both ends — no pair seeds, and unbounded
 C(n,2) — and measures what each forfeits. Three call sites pay it —
