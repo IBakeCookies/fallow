@@ -3,8 +3,9 @@
  * rejecting the alternative that would have been strictly more correct — per-day
  * recomputation, which would fix history retroactively where storing cannot.
  *
- * Both numbers the case rests on, read off this file's own run (2026-08-27), on
- * a synthetic year of a heavy logger whose true rates drift (α 0.25 → 0.55 over
+ * Both numbers the case rests on, read off this file's own run (2026-08-27) —
+ * the cost arm from three of them, because a wall clock is a range — on a
+ * synthetic year of a heavy logger whose true rates drift (α 0.25 → 0.55 over
  * 365 days, 730 ⚡ / 730 ☕ / 1095 🪫):
  *
  *   DRIFT — α_cog fitted from logs up to day 10 is 0.3447 against a
@@ -13,10 +14,11 @@
  *   bias: inside the 30-day audit window the same fit moves 0.5075 → 0.5240,
  *   3.3% apart, and on a flat year the day-10 gap is 1%.
  *
- *   COST — one whole-history fit 18.6 ms at that volume; refitting per audited
- *   day costs 500.1 ms for a 30-day audit, 16.7 ms/day, 0.89× the single fit —
- *   and the per-day cost tracks volume (33.8 ms/day at 2×, 73.6 at 4×), which
- *   is the O(auditDays × totalLogVolume) claim.
+ *   COST — a band, not a figure. One whole-history fit at that volume reads
+ *   18–23 ms over three runs, and a 30-day per-day refit 523–594 ms, 17–20
+ *   ms/day. That per-day cost is 0.81×–1.09× the single fit across all three
+ *   volumes, so it IS one whole-history fit, and it tracks volume: 35–40 ms/day
+ *   at 2×, 76–78 at 4×. Which is the O(auditDays × totalLogVolume) claim.
  *
  * A probe, not a test. The drift arm sweeps a space (drift shape × log volume
  * × as-of day) that one synthetic year samples once, and the cost arm is
@@ -31,11 +33,14 @@
  * O(auditDays × totalLogVolume) is wrong and recomputation — the more correct
  * option — was rejected on a false premise.
  *
- * Timing is reported as a median over repeats after a warm-up, because V8's
- * first pass through a fit is not the cost the user pays on their thousandth
- * analytics visit. Read the RATIO between the arms rather than the absolute
- * milliseconds: the ratio is the thing the argument actually rests on, and
- * it is the part that survives being run on a different machine.
+ * Timing is reported as a median over repeats after a warm-up, WITH the extremes
+ * it came from, because V8's first pass through a fit is not the cost the user
+ * pays on their thousandth analytics visit and a lone median invents precision.
+ * The argument rests on the per-day/single RATIO rather than the absolute
+ * milliseconds — but only as a band: it reads 0.81×–1.09× across three runs and
+ * three volumes, so "about one whole-history fit" is the result and no cell is.
+ * The printed ± is the spread WITHIN one run (±1%–26% here) and is not that
+ * band: it is the instrument's precision, not the figure's reproducibility.
  *
  * Usage: npm run probe
  */
@@ -177,8 +182,16 @@ function median(values: number[]): number {
 	return sorted[Math.floor(sorted.length / 2)];
 }
 
-/** Median wall-clock ms of `run`, after discarding a warm-up pass. */
-function timeIt(run: () => void, repeats: number): number {
+/** A wall clock is a range, so a reading carries the spread it was read at. */
+interface Timing {
+	median: number;
+	min: number;
+	max: number;
+	reps: number;
+}
+
+/** Median of `repeats` after discarding a warm-up pass, WITH its extremes. */
+function timeIt(run: () => void, repeats: number): Timing {
 	run();
 
 	const samples: number[] = [];
@@ -190,8 +203,19 @@ function timeIt(run: () => void, repeats: number): number {
 		samples.push(performance.now() - started);
 	}
 
-	return median(samples);
+	samples.sort((a, b) => a - b);
+
+	return {
+		median: median(samples),
+		min: samples[0],
+		max: samples[samples.length - 1],
+		reps: repeats,
+	};
 }
+
+/** Half the observed range, as a percent of the median: the digit that survives. */
+const ms = (t: Timing) =>
+	`${t.median.toFixed(1)} ms ±${Math.round((50 * (t.max - t.min)) / t.median)}% over ${t.reps} reps`;
 
 describe('per-day fit snapshots', () => {
 	it('drift: the as-of-day fit against the whole-history fit', () => {
@@ -257,9 +281,9 @@ describe('per-day fit snapshots', () => {
 
 			console.log(
 				`[cost] ${volume}× volume (${logs} logs): one whole-history fit ` +
-					`${once.toFixed(1)} ms; ${AUDIT_WINDOW_DAYS}-day refit ${perAudit.toFixed(1)} ms ` +
-					`(${(perAudit / AUDIT_WINDOW_DAYS).toFixed(1)} ms/day, ` +
-					`${(perAudit / AUDIT_WINDOW_DAYS / once).toFixed(2)}× the single fit)`,
+					`${ms(once)}; ${AUDIT_WINDOW_DAYS}-day refit ${ms(perAudit)} ` +
+					`(${(perAudit.median / AUDIT_WINDOW_DAYS).toFixed(1)} ms/day, ` +
+					`${(perAudit.median / AUDIT_WINDOW_DAYS / once.median).toFixed(2)}× the single fit)`,
 			);
 		}
 

@@ -202,9 +202,9 @@ interface SweepResult {
 }
 
 /**
- * Shortfall = (brute − achieved)/brute, per day. `over2` is §4:276's stated
- * "within 1–2%" being exceeded; `over009` is the 0.09% being used as a
- * bound and failing. A count of 0 over a big sweep would itself be the result.
+ * Shortfall = (brute − achieved)/brute, per day. `over2` and `over009` count
+ * the days past 2% and past 0.09% — the two figures that have been quoted as
+ * bounds. A count of 0 over a big sweep would itself be the result.
  */
 function sweep(label: string, days: ProbeDay[]): SweepResult {
 	const shortfalls: number[] = [];

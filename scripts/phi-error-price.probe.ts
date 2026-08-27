@@ -1,11 +1,9 @@
 /**
  * The per-task-ϕ pricing table — the one figure set that exists specifically to
- * price work nobody has built yet:
- *
- *   "Value lost to a per-task ϕ error of size `s` (400 days, ΣT* = 19.4 h,
- *    mean % below the oracle plan)" — 5 budgets × 5 error sizes, ending
- *   "**Price any future per-task-ϕ proposal against this table before
- *    building it.**"
+ * price work nobody has built yet: the value lost to a per-task ϕ error of size
+ * `s`, as the mean % below the oracle plan, over 5 budgets × 5 error sizes on
+ * 400 seeded 6-task days (mean ΣT* 18.6 h, read off this file's own run,
+ * 2026-08-27).
  *
  * It is also ROADMAP item 6's re-open gate. A wrong cell therefore mis-prices
  * a decision that has not been taken yet, which is the worst kind of stale
@@ -291,8 +289,8 @@ describe('What a per-task ϕ error costs', () => {
 			) / DAYS;
 
 		console.log(
-			`[table] ${DAYS} days × ${TASKS_PER_DAY} tasks, mean ΣT* = ${sumOptimal.toFixed(1)}h ` +
-				`(the original grid said 19.4h), switchCost ${SWITCH_COST}h`,
+			`[table] ${DAYS} days × ${TASKS_PER_DAY} tasks, mean ΣT* = ${sumOptimal.toFixed(1)}h, ` +
+				`switchCost ${SWITCH_COST}h`,
 		);
 
 		console.log(`[table] budget | ${ERROR_SIZES.map((s) => `s=${s}h`.padStart(7)).join(' | ')}`);

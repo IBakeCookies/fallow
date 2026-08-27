@@ -4,10 +4,10 @@
  * "non-exactness" that is really a disagreement about which plans are
  * ADMISSIBLE.
  *
- * §4 quotes that lesson as "98/2400 non-exact, worst 49.72%", from the first cut
- * of `allocator-exactness.probe.ts` — a file that was then fixed, so those two
- * numbers cannot be re-run from anything committed. This probe re-measures the
- * same phenomenon with today's model and prints numbers that can:
+ * The figures that lesson was filed with came from the first cut of
+ * `allocator-exactness.probe.ts`, since fixed, so nothing committed can re-run
+ * them. This probe re-measures the same phenomenon with today's model and
+ * prints numbers that can:
  *
  *   - REFERENCE B (block rule) mirrors `budgetBlocksFor` (zenith.ts:951):
  *     ⌊(budget − overhead)/BLOCK_HOURS + 1e-9⌋ blocks. This is the reference

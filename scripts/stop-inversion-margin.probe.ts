@@ -74,8 +74,8 @@
  * logged tasks of "remove one step from this task", because the real work
  * order is unknown. On an optimizer-generated day the order IS known, so the
  * honest `hi` is the marginal of the step actually worked LAST, and the
- * difference between the two is the "~+0.1" bias §8.10 claims. The half-width
- * is (hi − lo)/2 on days that do not invert.
+ * difference between the two is the loose-max bias. The half-width is
+ * (hi − lo)/2 on days that do not invert.
  *
  * Usage: npm run probe
  */
@@ -194,7 +194,7 @@ function loggedStructure(
 /**
  * `isClockCensored`: the day's own span — worked hours plus the UNCAPPED
  * recovered breaks — leaves no room for another step, so the stop was the
- * clock's (§8.10, censored since 2026-08-21).
+ * clock's (§8.10).
  */
 function isClockCensored(
 	observation: StopObservation,
@@ -443,8 +443,8 @@ function drawDay(random: () => number): { tasks: EnergyTaskInput[]; windowHours:
 /**
  * Every ±1-lattice-step "mood" variant of a day: one logged SESSION moved by one
  * step, everything else held — its log moment stands, so the session that moved
- * runs 45 min longer or shorter into the same break. This is §8.10's own phrase
- * for a near-rational day, and the population the doc claims never inverts.
+ * runs 45 min longer or shorter into the same break. Claim 2's near-rational
+ * population.
  */
 function moodVariants(
 	observation: StopObservation,
