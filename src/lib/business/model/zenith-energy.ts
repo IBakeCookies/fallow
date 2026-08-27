@@ -433,7 +433,8 @@ function blockOutput(
 
 	// Simpson error ~ h⁴: 16 nodes per fastest timescale, capped at 1024. At the
 	// 0.1h ϕ floor the cap binds above a 6.4h block and the density then falls —
-	// relative error grows from ~3e-7 to 3.5e-6 at 12h and 5.6e-5 at 24h
+	// the probe's witness grows from ~3e-7 to 3.5e-6 at 12h and 5.6e-5 at 24h, and
+	// every reachable task at that floor stays under it
 	// (scripts/enb-simpson-error.probe.ts). Never binds at default constants.
 	let n = Math.ceil(hours / (fastest / 16));
 	n = Math.min(Math.max(n, 16), 1024);
