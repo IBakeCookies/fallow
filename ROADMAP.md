@@ -386,6 +386,28 @@ number:
     the analytics card. Cost is a count per leg plus copy in five locales (en,
     de, es, fr, zh).
 
+_Settled 2026-08-27, not a roadmap item:_ the Energy Lab's "Apply my fits"
+button re-arming itself is not a calibration leak, and auto-applying is not the
+fix. **Nothing outside `/energy` reads the Lab's sliders.** The day's plan
+refits α and r from the logs on every derivation, anchored to the model defaults
+rather than the sliders (`daily-plan-store.svelte.ts:52`); ϕ refits the same way
+(`session-store.svelte.ts:201`); and the audit's per-day snapshots come from
+`readModelReport`, never from the Lab (`analytics-store.svelte.ts:204`, `:227`).
+So a user who never opens the Lab loses nothing — the plan, the metrics and the
+history were never on those numbers. The one consumer of a stale slider is the
+stop advisor (`energy-lab-store.svelte.ts:571`), which renders on the same
+screen as the re-armed button, so the stale reading and the click that fixes it
+are never out of sight of each other. Nor does the button re-arm on a schedule:
+`fitsApplied` compares each param against `round2` of its fit, so a fit that has
+stopped moving at two decimals stops asking, and the prompting is heaviest at
+the low log counts where the fit is least worth trusting anyway. Auto-applying
+would also have to overwrite manual slider edits with no provenance
+distinguishing a fitted value from a user's, against §8.7/§8.9/§8.10's settled
+"a fit never writes params silently"
+([business/model/AGENTS.md](src/lib/business/model/AGENTS.md), line 198). Written
+down because a button that re-arms itself reads as a bug from outside the call
+graph — it was diagnosed as one twice before the consumers were checked.
+
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.
