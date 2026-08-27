@@ -317,8 +317,8 @@ export const themes: ThemeItem[] = [
 	},
 ] as const;
 
-/* Defaults for first visit (no cookie). The pre-paint fallback in app.html's
-   inline script hardcodes the dark default's classes — keep it in sync. */
+/* Defaults for first visit (no cookie). hooks.server.ts injects both as class
+   literals for app.html's pre-paint script, so this stays the only spelling. */
 export const DEFAULT_THEME: ThemeName = 'fallow';
 
 export const DEFAULT_DARK_THEME: ThemeName = 'solid-dark';
