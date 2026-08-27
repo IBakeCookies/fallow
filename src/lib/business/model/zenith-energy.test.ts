@@ -2947,8 +2947,10 @@ describe('Zenith Energy Model', () => {
 			// Near-floor ϕ inside a long block is the worst case for the quadrature's
 			// 1024-node cap. Difficulty 1 beside demands 0.9/0.1 is DELIBERATELY off
 			// the sliders — those demands project to difficulty 9.3 — because this
-			// pins a bound, not a day: `enb-simpson-error.probe.ts` measures the
-			// worst reachable task under it at every block length (ROADMAP M48).
+			// pins a bound, not a day: `enb-simpson-error.probe.ts` sweeps the
+			// reachable surface per block length, and at this 8 h block the worst
+			// reachable task reads slightly ABOVE this one — the 1e-4 below is a pin,
+			// not the tight bound (ROADMAP M55).
 			const fast = makeTask(1, 'fast', 1, 10, 0.9, 0.1);
 
 			const constants = {

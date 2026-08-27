@@ -1,14 +1,15 @@
 # Roadmap
 
-What is next and what was refused. The math behind every item lives in
-[MATH.md](MATH.md). Settled decisions are in AGENTS.md §4's decision index —
-notably the three roads deliberately not taken: the energy model stays a peer
-mode, never a replacement (MATH.md §15), run order stays the nature-alternation
-heuristic (§16), and ϕ stays one plane for all tasks (§17). Do not re-open those
-here.
+What is next and what was refused. Derivations live in [MATH.md](MATH.md), what
+the code does today in the area `AGENTS.md`. Settled decisions are in AGENTS.md
+§4's decision index — notably the three roads deliberately not taken: the energy
+model stays a peer mode, never a replacement, run order stays the
+nature-alternation heuristic, and ϕ stays one plane for all tasks. Do not
+re-open those here.
 
 Phases are priority order. Item numbers and finding ids are stable and cited
-from elsewhere (MATH.md §14.2 cites item 3, the suite cites M44), so they are
+from elsewhere (`constraint-memory.ts` cites item 32, the suite cites M44), so
+they are
 never reused; phase numbers are not cited and were re-cut on 2026-08-04 when
 items 11–23 were added. Update this file when an item ships or is rejected.
 
@@ -120,8 +121,8 @@ stay separate.
 
 The inversion named above, in priority order. Measured framing for the whole
 phase (400 synthetic days, 3–7 tasks, budgets {2,4,4,6,8}, real
-`calculatePooledAllocations`, scored §17-style — plan under θ̂, score under
-θ_true): ϕ off by +0.5 h on **every** task costs **0.074%** (the §17 anchor);
+`calculatePooledAllocations`, scored plan-under-θ̂ against score-under-θ_true):
+ϕ off by +0.5 h on **every** task costs **0.074%** (the ϕ anchor);
 one enjoyment point on **one** task **0.052%**; one task's mental demand off by
 4 points **0.582%**; a pool 2× wrong **4.1–5.7%**; `switchCost` 2× too high
 **10.1%**; every slider left at 5/5/5 **5.42%**.
@@ -157,8 +158,8 @@ other.**
     (measured 2026-08-04 with an **uncommitted** variant of
     `scripts/generate-fixture.mjs`, recovering known ground truth through the
     real `fitEnergyParams` — the committed script hard-codes the 🪫 opt-in and
-    cannot emit these cells, so read the direction, not the percentages;
-    MATH.md §18): the fit is **exactly
+    cannot emit these cells, so read the direction, not the percentages): the
+    fit is **exactly
     unbiased at one 🪫 log per day** (α_cog −0%, α_phys −0%) and then drifts
     **+17%/+15% at two logs, +28%/+22% at three, +40%/+31% at five**, purely
     from §8.7's fresh-start assumption — each rating is read as a session from a
@@ -172,12 +173,14 @@ other.**
     the map ships.
     And it must be a **prefill of the per-day session
     field, never a change to `DEFAULT_CAPACITY_POOLS`**: that constant is the
-    fallback for every stored day with no pools (`session-history.ts:303`,
-    `history.ts:108`), so changing it re-scores history against §12.1's settled
-    "a past day's fit is what the user had", and prefilling is also what "a fit
+    fallback for every stored day with no pools (`session-history.ts`,
+    `metric/history.ts`), so changing it re-scores history against
+    [data/AGENTS.md](src/lib/data/AGENTS.md)'s settled "a past day's fit is what
+    the user had", and prefilling is also what "a fit
     never writes params silently" requires. **Probe:** the pool has no
     observable, so use the only ground truth there is — does the α-derived pool
-    raise §12's `classicOverlap` on real finished days against declared 4/6?
+    raise `plan-audit.ts`'s `classicOverlap` on real finished days against
+    declared 4/6?
     **Kill if overlap does not move, or if the fitted α lands below ~0.2**,
     where the map is meaningless. A 2× pool error costs 4.1–5.7% mean, p90
     12.9–21.2%, ~50% of days moved — 55–76× the ϕ anchor _if_ the fitted value
@@ -257,15 +260,15 @@ present:
 19. **Prequential ϕ scorecard** — the only reading the app could have that says
     whether the ϕ model has ever predicted anything, scored out-of-sample. Walk
     `flowObservations` in date order; for each log, fit on logs strictly before
-    its date via `fitUserConstants` (`zenith.ts:1852`) and record the residual
+    its date via `fitUserConstants` and record the residual
     against the fitted plane, against `DEFAULT_USER_CONSTANTS`, and against the
-    ±1σ band from `phiPredictionStd` (`zenith.ts:1999` — exported, documented
+    ±1σ band from `phiPredictionStd` (exported, documented
     "intended for UI", and consumed by nothing outside its own test).
     Whole-history flow is already read once in `readModelReport`
-    (`session-history.ts:528`), so this adds no read. **Two corrections that
+    (`session-history.ts`), so this adds no read. **Two corrections that
     are easy to get wrong:** each backtest fit must pass `ageDays` relative to
-    _that log's_ date, not today (`session-history.ts:124`, `:138` base it on
-    today, and §5.2 half-life-weights the ridge), or every historical fit is
+    _that log's_ date, not today (`session-history.ts`'s two flow readers base
+    it on today, and §5.2 half-life-weights the ridge), or every historical fit is
     weighted with the future's clock; and the retained residuals should be
     grouped by `taskTitle` to report **between-title variance against
     σ₀² = 0.25 h**, which _is_ `Σδ̂²` — the exact statistic item 6 names as its
@@ -276,14 +279,14 @@ present:
     advertises that), **or if coverage sits inside 60–75% at every n** (the
     band is already correct and unremarkable — then ship only the between-title
     variance). Two results the copy must not overpromise: coverage will
-    over-cover at small n (σ̂² is the ν₀ = 4 blend toward σ₀ = 0.25 h,
-    `zenith.ts:1958` — a prior, not a floor: it decays as logs accumulate), and
+    over-cover at small n (σ̂² is the ν₀ = 4 blend toward σ₀ = 0.25 h —
+    a prior, not a floor: it decays as logs accumulate), and
     skill against the default is
     ≈0 at small n _by construction_, since the ridge is anchored to the
     default — so gate the coverage row at n ≥ 10. Fold in the ~5-line display
     of `phiPredictionStd` as a ± band beside the point ϕ on the task card
-    (`task-item.svelte:144-155`), which that function's own docstring
-    sanctions. Unpriced by design and outside §17's table — it is not an
+    (`task-item.svelte`), which that function's own docstring
+    sanctions. Unpriced by design — it is not an
     allocation-precision claim. MATH.md: a note on the scoring convention in §5.
 20. **Unfunded-task attribution** — name the binding reason a task got 0 h.
     **Zero extra solves:** `suggestPlanAdjustments` already computes a full
@@ -292,13 +295,15 @@ present:
     funds this task" is a lookup over candidates already in hand; pool-bound is
     detectable by comparing the plan's `Σ hours·weight` against the declared
     pool with no solve at all; and the budget branch already ships as
-    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts:599`, field at `:183`)
+    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts`)
     today says
-    _that_ and never _why_, and §14.2 concedes that a bound pool, a task near
+    _that_ and never _why_, and
+    [model/AGENTS.md](src/lib/business/model/AGENTS.md)'s "the budget's shadow
+    price is a day-level reading" concedes that a bound pool, a task near
     `T*`, and a block landing on finished work "look identical from one solve".
-    **Strip all prescription** from the pool and switch branches — §14 is
-    explicit that advising someone to raise their cognitive pool is advising
-    them to lie to the model. **Probe:** attribution mix over ~300 random days;
+    **Strip all prescription** from the pool and switch branches — the same
+    file's "the switch cost is instrumented but never advised" rules the pools
+    measurements of the user, not levers on the day. **Probe:** attribution mix over ~300 random days;
     **kill if any single cause exceeds ~80%** (the honest product is then one
     static sentence), **or if the defer branch is empty on most days**, leaving
     only non-actionable branches.
@@ -331,10 +336,11 @@ defects it found without fixing.
     call about what the number means and not another probe) and (h) with item 27.
     Each settled entry has a committed probe and a corrected section. The residue
     is (g).
-    (g) **§12's ±0.05 adherence verdict band has no noise model** — §12 says so
-    outright ("no noise model") while printing one English verdict decided by
-    that constant. Nothing shows it is wide enough to stop week-to-week flipping
-    or narrow enough to ever name a planner.
+    (g) **The ±0.05 adherence verdict band has no noise model** —
+    `ADHERENCE_TIE_BAND` (`presentation/utils/plan-audit-descriptor.ts`) asserts
+    in its own docblock that "a couple of points either way is noise" while
+    deciding one English verdict. Nothing shows it is wide enough to stop
+    week-to-week flipping or narrow enough to ever name a planner.
 
 Item 27's replacement follow-up — pushing the exhaustive reference to the
 largest task counts it reaches — then found one defect, at a size no proven
@@ -367,10 +373,11 @@ explain its own count; the analytics card has the same gap on a different
 number:
 
 33. **The "Your model" card names deferred logs for ϕ only** — raised
-    2026-08-25 while closing M23, verified in the code, not measured. The §33
-    causal window defers today's logs on all four legs, but only ϕ reports how
-    many: `pendingCount` is computed at `session-history.ts:137`
-    (`observations.length - counted.length`) and surfaced at `:463`, and the
+    2026-08-25 while closing M23, verified in the code, not measured. The
+    causal window ([business/AGENTS.md](src/lib/business/AGENTS.md)) defers
+    today's logs on all four legs, but only ϕ reports how
+    many: `session-history.ts` computes `pendingCount` as
+    `observations.length - counted.length` and surfaces it on the ϕ leg, and the
     energy (r, α_cog, α_phys) and stopping (λ₀) legs carry no equivalent — they
     print `usedCount` alone. So a user who logs a ☕ or a 🪫 today watches the
     count sit still with nothing on screen saying the log was read and held for
@@ -382,12 +389,14 @@ number:
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.
-   Reservoirs already carry over overnight (§11.9); satiety still resets at
+   Reservoirs already carry over overnight (`seedMorningReservoirs`, and
+   [model/AGENTS.md](src/lib/business/model/AGENTS.md) on which reads are state
+   rather than identity); satiety still resets at
    midnight, so yesterday's 7 h of guitar doesn't temper today's κ. But the
    mechanism is unavailable: `seedMorningReservoirs` receives only
-   `{id, cognitiveDemand, physicalDemand}` (`energy-calibration.ts:150-160`),
-   while per-task output needs `curves.get(taskId)` built from difficulty
-   **and enjoyment** (`zenith-energy.ts:535-537`), which
+   `{id, cognitiveDemand, physicalDemand}`,
+   while per-task satiety needs that task's `refOutput` from `buildCurves`,
+   a quadrature over difficulty **and enjoyment**, which
    `DrainObservationRecord` does not carry. It is not "the same pass" — it
    needs a yesterday-session read, cross-day task identity, and a curve
    rebuild, and it puts a second uninstrumented knob (the half-life) on top of
@@ -411,17 +420,18 @@ What survives of the multi-day idea is two readings, not a solver:
     subset enumeration and the pool-ratio candidate all survive, and `T*` is
     **invariant** (`argmax v·P̄ = argmax P̄`) — so `v` changes only _which_
     tasks are funded, never how long a funded task runs. Entry point is
-    `toPooledInputs` (`metric/calculation.ts:157-165`).
+    `toPooledInputs` (`metric/calculation.ts`).
     **The R3 hazard to price first:** `Σ P̄` has two independent
     implementations — the allocator's `planValue` over `buildBlockIncrements`
-    (`zenith.ts:948`, `:667`) and `calculateTotalProductivity`
-    (`zenith.ts:1387`), which is what Zenith Gain and the §12 audit score with.
-    A weight must land in both in lockstep or §13.2's "the gain is provably
-    ≥ 0" — which since §19.3 holds on the SINGLE-BUDGET path only, while the
+    and `calculateTotalProductivity` (both `zenith.ts`), which is what Zenith
+    Gain and `plan-audit.ts` score with.
+    A weight must land in both in lockstep or the gain's "never negative on the
+    single-budget path, and within the pooled greedy gap on the pooled one"
+    (`zenith.test.ts`) — which holds on the SINGLE-BUDGET path only, while the
     dashboard reads the pooled one — breaks and the audit starts comparing two
     objectives. Default `v = 1`
-    must be an exact no-op, or every worked percentage in
-    §11.2/§13.2/§14/§14.2 becomes non-reproducible.
+    must be an exact no-op, or every worked percentage the metric and advisor
+    probes report becomes non-reproducible.
     **Probe — one command, and it can kill the item outright:** read the
     histogram of `DailySession.availableHours` from the real IndexedDB. The
     item's value decays 14.7% @ 2 h → 9.3% @ 4 h → 4.4% @ 8 h, the same shape
@@ -434,10 +444,10 @@ What survives of the multi-day idea is two readings, not a solver:
     scale.
     **Unpriced costs to settle before building:** `priorityScore = P̄(T*)·10`
     becomes v-scaled and is rendered as a bare number
-    (`task-item.svelte:194-196`); `SavedRoutine.tasks` shares `taskCore`
-    (`persisted.ts:68-76`), so decide whether importance travels with routines
+    (`task-item.svelte`); `SavedRoutine.tasks` shares `taskCore`
+    (`persisted.ts`), so decide whether importance travels with routines
     (`mustDoToday` deliberately does not); and the energy mode does not get the
-    weight (`toEnergyTask`, `calculation.ts:112`), so §12's audit becomes
+    weight (`toEnergyTask`), so `plan-audit.ts` becomes
     weighted against unweighted. One `Task` field plus one `sanitizeTask`
     line — **no `DB_VERSION` bump, since R8 governs stores, not shapes.** New
     user input: yes, per task. **MATH.md §0's objective changes**, same commit
@@ -447,7 +457,7 @@ What survives of the multi-day idea is two readings, not a solver:
 
 Only if Fallow grows users beyond its author.
 
-9. **Weekly retrospective digest** — the §12 audit and the calibration
+9. **Weekly retrospective digest** — the plan-adherence audit and the calibration
    snapshot, summarized per week in analytics.
 10. **Sync** — default no (the no-server stance is a feature); revisit as
     file-based export/merge if a second device becomes a felt need.
@@ -825,3 +835,15 @@ and what it cost is in the spec.
 - **M90 §8.6 — two rows asserting two values for one measurement — fixed
   2026-08-27,
   [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
+- **M55 §8.1 — a bound claimed pointwise, on a sweep that was never committed —
+  fixed 2026-08-27,
+  [`the-bound-that-only-held-past-nine-hours`](docs/features/the-bound-that-only-held-past-nine-hours.md).**
+- **M56 §8.1 — both halves of the reason for keeping the off-surface witness —
+  fixed 2026-08-27,
+  [`the-bound-that-only-held-past-nine-hours`](docs/features/the-bound-that-only-held-past-nine-hours.md).**
+- **M57 §8.1 — a header quoting a claim MATH.md never carried — fixed
+  2026-08-27,
+  [`the-bound-that-only-held-past-nine-hours`](docs/features/the-bound-that-only-held-past-nine-hours.md).**
+- **M58 §8.1 — the ϕ floor described as a point where it is a region — fixed
+  2026-08-27,
+  [`the-bound-that-only-held-past-nine-hours`](docs/features/the-bound-that-only-held-past-nine-hours.md).**
