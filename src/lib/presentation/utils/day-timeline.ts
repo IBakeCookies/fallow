@@ -16,6 +16,7 @@ export type DayBlock = {
 	startOffset: number;
 	flowHours: number;
 	band: Band;
+	isCompleted: boolean;
 };
 
 export type DayTimeline = {
@@ -29,7 +30,10 @@ export type DayTimeline = {
 };
 
 export interface DayTimelineInput {
-	suggestedTasks: Pick<SuggestedTask, 'id' | 'title' | 'suggestedHours' | 'flowStateTime'>[];
+	suggestedTasks: Pick<
+		SuggestedTask,
+		'id' | 'title' | 'suggestedHours' | 'flowStateTime' | 'completed'
+	>[];
 	runOrder: Map<number, number>;
 	switchCost: number;
 	availableHours: number;
@@ -55,6 +59,7 @@ export function buildDayTimeline(input: DayTimelineInput): DayTimeline {
 			startOffset,
 			flowHours: task.flowStateTime,
 			band: task.suggestedHours >= task.flowStateTime ? 'success' : 'warning',
+			isCompleted: task.completed,
 		};
 
 		startOffset += task.suggestedHours + input.switchCost;

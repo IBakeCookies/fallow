@@ -1,6 +1,7 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect } from 'storybook/test';
+	import { BAND_BAR_CLASS } from '$lib/presentation/utils/band';
 	import { buildDayTimeline, type DayBlock } from '$lib/presentation/utils/day-timeline';
 	import DayTimeline from '$lib/presentation/component/day-timeline.svelte';
 
@@ -15,6 +16,7 @@
 			startOffset: 0,
 			flowHours: 2,
 			band: 'warning',
+			isCompleted: false,
 		},
 		{
 			id: 2,
@@ -24,8 +26,16 @@
 			startOffset: 2,
 			flowHours: 1.25,
 			band: 'success',
+			isCompleted: false,
 		},
 	];
+
+	/* The same day with its second task ticked off: the plan is unchanged, only the
+	   reading of it. */
+	const doneBlocks: DayBlock[] = blocks.map((block) => ({
+		...block,
+		isCompleted: block.id === 2,
+	}));
 
 	/* Twelve funded tasks in an 8h day, the shortest of them a 15-minute allocation:
 	   through the real view model, because the geometry under test IS its arithmetic. */
@@ -37,6 +47,7 @@
 			title: `Expense report ${index + 1}`,
 			suggestedHours,
 			flowStateTime: 1,
+			completed: false,
 		})),
 		runOrder: new Map(crowdedHours.map((_, index): [number, number] => [index + 1, index + 1])),
 		switchCost: 0.05,
@@ -152,5 +163,35 @@
 	play={async ({ canvas }) => {
 		// A day with no funded task still has a start and something to say
 		await expect(canvas.getByText('Nothing is funded today')).toBeInTheDocument();
+	}}
+/>
+
+<Story
+	name="A finished block"
+	args={{
+		blocks: doneBlocks,
+	}}
+	play={async ({ canvas }) => {
+		// The ledger's own done vocabulary, one row below the strip (task-row-shell.svelte).
+		const title = canvas.getByText('Boxing training');
+		const block = title.parentElement!;
+
+		await expect(block).toHaveClass('opacity-60');
+		await expect(title).toHaveClass('line-through');
+
+		// A gap in the visible numbers is what means "done" (presentation/AGENTS.md); the
+		// block keeps its `position` and only the print drops it.
+		await expect(canvas.queryByText('#2')).toBeNull();
+		await expect(canvas.getByText('#1')).toBeInTheDocument();
+
+		// Both are readings of the plan, and the plan did not move when the box was ticked.
+		await expect(block.textContent).toContain('flow at 1h 15m');
+
+		await expect(block.querySelector('.mt-auto')!.firstElementChild).toHaveClass(
+			BAND_BAR_CLASS.success,
+		);
+
+		// The dim and the strikethrough are colour and decoration, so neither is heard.
+		await expect(canvas.getByText('done')).toHaveClass('sr-only');
 	}}
 />

@@ -43,10 +43,17 @@
 					     the width it actually got rather than by the day's shape. -->
 					<div
 						class="@container absolute inset-y-0 flex flex-col gap-text-2xs rounded-md border bg-surface-inset px-box-3xs py-text-2xs"
+						class:opacity-60={block.isCompleted}
 						style="left: {share(block.startOffset) * 100}%; width: {share(block.hours) * 100}%"
 					>
-						<p class="truncate text-2xs text-ty-primary">
-							<span class="text-ty-secondary">#{block.position}</span>
+						<p
+							class="truncate text-2xs {block.isCompleted
+								? 'text-ty-silent line-through'
+								: 'text-ty-primary'}"
+						>
+							{#if !block.isCompleted}
+								<span class="text-ty-secondary">#{block.position}</span>
+							{/if}
 							{block.title}
 						</p>
 						<p class="truncate text-2xs text-ty-secondary tabular-nums">
@@ -79,6 +86,9 @@
 						<!-- Colour is otherwise the only thing separating the two bands (WCAG 1.4.1). -->
 						{#if label}
 							<span class="sr-only">{label}</span>
+						{/if}
+						{#if block.isCompleted}
+							<span class="sr-only">{m.day_timeline_done()}</span>
 						{/if}
 					</div>
 				{/each}

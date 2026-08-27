@@ -1,6 +1,6 @@
 # The strip that read as all ahead
 
-**Kind:** feature · **Status:** planning · **Roadmap:** none
+**Kind:** feature · **Status:** landed 2026-08-27 · **Roadmap:** none
 
 Frozen at land: this file says what was decided on the date it carries, never
 how the code works today — that is MATH.md and the area `AGENTS.md`. When later
@@ -22,7 +22,7 @@ gap beside it. This is a reading laid over the plan the strip already draws.
 
 ## Scenarios
 
-### Scenario — a completed task's block carries `isCompleted` (pin: the input already holds the flag)
+### Scenario — a completed task's block carries `isCompleted`
 
 `src/lib/presentation/utils/day-timeline.test.ts`
 
@@ -31,7 +31,7 @@ gap beside it. This is a reading laid over the plan the strip already draws.
 - **When** the timeline is built
 - **Then** `Boxing training`'s block has `isCompleted: true`
 
-### Scenario — a completed task's block keeps its width
+### Scenario — a completed task's block keeps its width (pin)
 
 `src/lib/presentation/utils/day-timeline.test.ts`
 
@@ -39,7 +39,7 @@ gap beside it. This is a reading laid over the plan the strip already draws.
 - **When** the timeline is built
 - **Then** `Boxing training`'s block still has `hours: 1.5`
 
-### Scenario — the block after a completed one keeps its start offset
+### Scenario — the block after a completed one keeps its start offset (pin)
 
 `src/lib/presentation/utils/day-timeline.test.ts`
 
@@ -85,7 +85,7 @@ gap beside it. This is a reading laid over the plan the strip already draws.
 
 - **Given** the same day, `Boxing training` allocated past its time-to-flow
 - **When** the strip renders
-- **Then** `Boxing training`'s block still reads `flow at 1h15m`
+- **Then** `Boxing training`'s block still reads `flow at 1h 15m`
 
 ### Scenario — a completed task's block keeps its band fill
 
@@ -252,10 +252,12 @@ No MATH.md section changes.
   [the-planner-that-said-it-needed-an-open-task.md](the-planner-that-said-it-needed-an-open-task.md).
   `/`'s behaviour here is the one both screens settle on, and it needs no change
   to reach it.
-- **Three scenarios are marked `(pin)`.** They pin behaviour that is already
-  true — the flag on the input, the open block's `#N`, the all-done gate — so
-  they go green on their first run. That is their pass condition, not an R6
-  failure.
+- **Four scenarios are marked `(pin)`.** They pin behaviour that is already
+  true — the block's width, the offset of the block after it, the open block's
+  `#N`, the all-done gate — so they go green on their first run. That is their
+  pass condition, not an R6 failure. The `isCompleted` scenario is not one of
+  them: what is already there is the flag on the INPUT, and the field it asserts
+  on the block is what this change adds, so it goes red like any other.
 
 ## Open questions
 
