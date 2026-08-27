@@ -15,7 +15,8 @@ export const load: LayoutServerLoad = async (event) => {
 		appearance: {
 			// undefined (unknown or absent) lets the client fall back to its defaults
 			theme: appearance.theme,
-			// undefined (no cookie yet) lets the client fall back to prefers-reduced-motion
+			// undefined (no cookie yet) stamps no motion class, leaving the guarded
+			// reduced-motion query in style/scenery/index.css deciding
 			sceneryPaused: appearance.sceneryPaused,
 			// one seed per user varies the animated theme scenery; minted once,
 			// then stable across visits (the reroll button rewrites the cookie)
