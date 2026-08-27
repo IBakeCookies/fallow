@@ -860,3 +860,19 @@ and what it cost is in the spec.
 - **M91 §8.1 — one witness's curve read as a bound over the ϕ floor — fixed
   2026-08-27,
   [`the-witness-read-as-a-bound`](docs/features/the-witness-read-as-a-bound.md).**
+- **M59 §8.11 — a refusal reason derived from the room-scaled rest where the
+  shipped clock censor reads the uncapped one — fixed 2026-08-27,
+  [`the-refusal-the-replica-mis-derived`](docs/features/the-refusal-the-replica-mis-derived.md).**
+- **M60 §8.11 — a printed taxonomy that was not `stopBracket`'s, one branch of it
+  unreachable — fixed 2026-08-27,
+  [`the-refusal-the-replica-mis-derived`](docs/features/the-refusal-the-replica-mis-derived.md).**
+- **M61 §8.11 — five censor figures a shipped `PAIR_SEED_TASKS` change left stale
+  — fixed 2026-08-27,
+  [`the-refusal-the-replica-mis-derived`](docs/features/the-refusal-the-replica-mis-derived.md).**
+- **M62 §8.11 — a surface fix credited with a pre-existing docblock's stale
+  off-surface baseline — closed 2026-08-27, not fixed,
+  [`the-refusal-the-replica-mis-derived`](docs/features/the-refusal-the-replica-mis-derived.md).**
+- **M63 §8.11 — four M49 cells that do not reproduce, two of them off-surface
+  readings in a paragraph claiming the on-surface ones — closed 2026-08-27, not
+  fixed,
+  [`the-refusal-the-replica-mis-derived`](docs/features/the-refusal-the-replica-mis-derived.md).**

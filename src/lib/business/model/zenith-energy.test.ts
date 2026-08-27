@@ -2459,8 +2459,7 @@ describe('Zenith Energy Model', () => {
 		it('continues at a mid-day checkpoint where the one-step arm would cry stop (λ₀ = 0.9, probe 2026-08-06)', () => {
 			// scripts/stop-advisor.probe.ts measured the one-step arm false-stopping
 			// on 14.2% of mid-day checkpoints at λ₀ = 0.9 against the session arm's
-			// 1.3% (MATH.md §8.11; re-read 2026-08-27 on the slider surface, ROADMAP
-			// M49 — it was 19.7% against 6.6% off it). A rate is the sweep; this pins the MECHANISM on
+			// 1.3% (MATH.md §8.11). A rate is the sweep; this pins the MECHANISM on
 			// one checkpoint of a day built the probe's WAY (not one of its 72
 			// seeded days — the probe prints rates and dumps no exemplar) — ground
 			// truth is the
