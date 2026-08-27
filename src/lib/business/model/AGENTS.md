@@ -185,6 +185,18 @@ its allocation code, so the main page is unaffected by changes here.
   m ∈ [0.1, 0.5] (swept 2026-08-13), so neither the constant nor the
   inversion-censoring rule moves without evidence above the instrument's 0.134
   bracket half-width. The margin is a dead end.
+- **Obligation is not read, and neither repair pays** (2026-08-28,
+  `scripts/stop-obligation-bias.probe.ts`, MATH.md §8.10). The fit reads a day's
+  hours as a leisure CHOICE, so a compelled day — a deadline ground past the
+  rational stop — reads as cheap leisure and biases λ₀ DOWN, the direction that
+  plans more work. No censor is aimed at it: such a day drops on the CLOCK when
+  the extra work overran the window, almost never on inversion, so censoring
+  costs days without protecting the fit. Both repairs were measured and lose to
+  shipping nothing: pricing neither bracket side against the `mustDoToday` task
+  damages the honest day (which is the majority) and censoring any day that
+  worked a pinned task leaves consistent users with no fit at all. `mustDoToday`
+  therefore still stops at the defer candidates — not the allocator, not the λ₀
+  fit — and the contamination is stated in the card's hint instead of filtered.
 - **The censored likelihood is a settled no** (built, measured and refused
   2026-08-21, MATH.md §8.10, `scripts/censored-stopping-fit.probe.ts`; re-read
   2026-08-25 on the app's constraint surface, which moved every figure and left
@@ -486,8 +498,10 @@ wide against a [0,1] h range, and one mis-counted task moves the bracket edge
 
 ### `mustDoToday` promises the day, not the hours
 
-The flag only removes a task from the defer candidates; the
-allocator never sees it, so a flagged task can still be funded zero.
+The flag only removes a task from the defer candidates; neither the allocator
+nor §8.10's λ₀ fit sees it — `toEnergyTask` drops the flag, and what that costs
+the fit is measured (the §8.10 bullet above) — so a flagged task can
+still be funded zero.
 `suggestPlanAdjustments` therefore **partitions** the unfunded read —
 `unfundedMustDoTaskIds` beside `unfundedTaskIds` — and the card gives it its own
 warning-coloured line, because the plain unfunded sentence reads as something

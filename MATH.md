@@ -59,7 +59,7 @@ retype a row, regenerate:
   §5.1      519-628  Posterior-aware allocation
 §6          630-642  Summary of v1 → v2 changes
 §7          644-668  Known approximations and deliberate non-changes
-§8         670-1595  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         670-1628  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      682-704  Intermittent-rest recovery correction
   §8.2      706-725  Warm-up carryover instead of binary reset
   §8.3      727-745  Verified consequences and a calibration question, closed
@@ -69,10 +69,10 @@ retype a row, regenerate:
   §8.7     909-1006  Drain-rate calibration from end-of-session ratings
   §8.8    1008-1043  45-minute plan granularity
   §8.9    1045-1092  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1094-1306  Stopping-value calibration from observed stop times
-  §8.11   1308-1439  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1441-1595  The budget curve — what the day's LENGTH is worth
-§9        1597-1644  References
+  §8.10   1094-1339  Stopping-value calibration from observed stop times
+  §8.11   1341-1472  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1474-1628  The budget curve — what the day's LENGTH is worth
+§9        1630-1677  References
 ```
 
 <!-- section-index:end -->
@@ -1252,6 +1252,35 @@ machinery collapses to an exact closed form — no numeric minimizer:
 - **Partial logging under-counts W.** A user who rates only some tasks
   looks like they stopped earlier than they did, biasing λ₀ up. Accepted:
   the calibration is for users who log consistently, and σ₀ is wide.
+- **The hours the day was COMPELLED to work read as a leisure choice, and the
+  bias that buys is DOWNWARD.** The estimator's
+  whole premise is that the stop was chosen; a deadline day breaks it, and the
+  model has no term for obligation (`mustDoToday` promises the day, not the
+  hours, and never reaches `toEnergyTask`). A forced grind past the rational
+  stop depletes the reservoirs, so the next step and the last worked step are
+  both worth almost nothing, and "still working when work was nearly worthless"
+  reads as leisure being nearly worthless — a λ₀ biased low, which then plans
+  MORE work. Stopping early because the duty got finished is the mirror case and
+  costs variance rather than bias. No censor is AIMED at it: a compelled day that
+  drops, drops on the clock because the extra work overran the window, almost
+  never on inversion and never on the fifth category — so censoring costs the
+  fit days without protecting it (measured, same probe).
+  **Both available repairs were measured and lose to shipping nothing**
+  (`scripts/stop-obligation-bias.probe.ts`): pricing neither bracket side
+  against the pinned task recovers part of the grind's bias but damages the
+  honest day, which is the majority, and censoring a day that worked a pinned
+  task whole leaves consistent users with no fit at all. So the reading stays
+  as-is, `mustDoToday` stays out of the model, and the contamination is stated
+  rather than filtered — it scales with the share of days that are compelled,
+  and the Stopping Calibration card names the premise so a user who grinds on
+  deadlines can see why their leisure reads cheap. Do not re-open without a
+  repair that leaves the honest day intact.
+- **The 🪫 RATING never enters this fit directly — only α does.** λ₀ reads worked
+  minutes, log moments, the checkbox and the window; the ratings reach it as the
+  α they fit (§8.7), so a rating inflated by deadline stress moves λ₀ through
+  the conditioning chain, down, at the same order as the grind above (same
+  probe). This is the concrete cost of feasibility 2's "this fit inherits their
+  quality", and `valueStd` cannot see it: every day is read under the same α.
 - **The checkbox is the only scope the model has.** Tasks carry effort, not
   an amount of work: an open task is bottomless, satiety being the only
   thing that flattens it. So the `lo` side still asks "was another 45 min of
@@ -1292,7 +1321,11 @@ already-logged 🪫 drain ratings joined with each day's stored session
 (tasks + window), excluding today (an unfinished day has not revealed its
 stop yet). The card also carries a line naming how many days the clock censor
 dropped (`clockCensoredCount`) — "3 days ran out of clock, so their stops are
-not counted" — so a used-day count that fell has a stated reason on screen.
+not counted" — so a used-day count that fell has a stated reason on screen. Its
+hint states the PREMISE too — that a day's hours are read as chosen, so hours
+you had to work read as cheap leisure — because that error is unfiltered by
+design (the obligation bullet above) and the card is the only place a user can
+be told.
 
 **Visibility.** All fitted values also surface read-only on the Analytics page
 ("Your model" card): each parameter next to its default and the fit's own
