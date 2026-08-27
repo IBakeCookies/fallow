@@ -939,3 +939,20 @@ and what it cost is in the spec.
 - **M98 §8.1 — an unscoped bound over the ϕ-floor regime, in the file M55
   rewrote to stop it — fixed 2026-08-27,
   [`the-repairs-that-needed-repairing`](docs/features/the-repairs-that-needed-repairing.md).**
+
+## Findings from the 2026-08-28 free-time-value review
+
+One question — on what basis does "Apply my fits" move the free-time value —
+read against §8.10 and its probes. The fit reads worked minutes, log moments,
+the checkbox and the window; a 🪫 rating reaches it only as the α it fits. What
+was missing was the premise's own failure: the hours a day was COMPELLED to work
+read as a leisure choice.
+
+- **M99 §8.10 — obligation unnamed among the λ₀ fit's error sources, and the two
+  repairs unpriced — fixed 2026-08-28,
+  [`the-hours-that-were-not-a-choice`](docs/features/the-hours-that-were-not-a-choice.md),
+  `scripts/stop-obligation-bias.probe.ts`.** The instrument is unbiased on
+  honest days and reads λ₀ **low** on compelled ones — the direction that plans
+  more work. Both available repairs lose to shipping nothing, so the estimator
+  did not move: MATH.md §8.10 states the approximation, and the Stopping
+  Calibration card's hint states the premise.
