@@ -604,23 +604,7 @@ reaches the claim, never that the claim is false.
 - **M14 §3 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M15 §5 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
 - **M16 §5.2 — closed 2026-08-19, [`what-the-priority-score-actually-prints`](docs/features/what-the-priority-score-actually-prints.md).**
-- **M17 §13.4 — closed 2026-08-27, not fixed,
-  [`the-third-site-deleted-with-its-section`](docs/features/the-third-site-deleted-with-its-section.md).**
-  Raised against the retracted "0.65 appended-last against 0.37 inserted-first"
-  quoted as live fact in three places. Two were fixed 2026-08-19
-  ([`what-the-retracted-step-still-said`](docs/features/what-the-retracted-step-still-said.md));
-  the third — §8.10's feasibility-2 paragraph — was held with the reconstruction
-  ruling. The hold was never lifted: `e61d207` (2026-08-25) cut MATH.md to
-  derivations only, deleting §10–§37 and, with §13.4, both the retraction and
-  the pair inside §8.10's paragraph. Verified across every tracked file: neither
-  figure survives as live text, and the only quotes left are
-  `rv13-stop-insertion.probe.ts:8,15`, which state the claim as the
-  unreproducible record they measure against. What replaced the pair re-derives
-  today — fixture day inserted **0.9135** vs appended **0.9112** (gap 0.0023),
-  appending reads higher on 19.7% of 6,232 probes and shifts the indifference
-  point on 552 of 2,258 two-sided days (worst 0.1964, 79% of the margin), and
-  §8.11's "agree to four decimals" holds on every uncensored timed cell. This
-  entry's prescription stays wrong and nothing was substituted from it.
+- **M17 §13.4 — closed 2026-08-27, not fixed, [`the-third-site-deleted-with-its-section`](docs/features/the-third-site-deleted-with-its-section.md).**
 - **M18 §28 / §31 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**
 - **M19 §28 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**
 - **M20 §32 — closed 2026-08-18, [`what-the-metric-sections-stopped-describing`](docs/features/what-the-metric-sections-stopped-describing.md).**
@@ -640,136 +624,17 @@ reaches the claim, never that the claim is false.
 - **M32 §11.5 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M33 §8.12 — closed 2026-08-26,
   [`the-cap-the-sweep-never-reached`](docs/features/the-cap-the-sweep-never-reached.md).**
-- **M34 §8.12 — closed 2026-08-26,
-  [`the-seeding-the-probe-never-re-ran`](docs/features/the-seeding-the-probe-never-re-ran.md).**
-  The entry's `MATH.md` address died with the 2026-08-25 cut to derivations, and
-  the claim it named survived only in comments. `curve-shape.probe.ts` now
-  reconstructs the `-Infinity`-seeded level per λ₀ as a third arm: on all 215
-  days whose level never leaves the do-nothing floor it names the first swept
-  step booking 0 h, and on the other 265 it names the shipped knee. The claim
-  held; nothing shipped moved.
-- **M35 §8.12 — closed 2026-08-27,
-  [`the-witness-that-outlived-its-section`](docs/features/the-witness-that-outlived-its-section.md).**
-  The 2026-08-25 cut deleted the witness from §8.12 along with every other
-  measurement, so the section no longer states it; the probe's off-default
-  constants are now declared there instead. Re-run on 2026-08-27 and it holds.
+- **M34 §8.12 — closed 2026-08-26, [`the-seeding-the-probe-never-re-ran`](docs/features/the-seeding-the-probe-never-re-ran.md).**
+- **M35 §8.12 — closed 2026-08-27, [`the-witness-that-outlived-its-section`](docs/features/the-witness-that-outlived-its-section.md).**
 - **M36 §8.12 — closed 2026-08-18, [`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md).**
 - **M37 §33 — closed 2026-08-21, [`the-lab-fit-that-read-todays-logs`](docs/features/the-lab-fit-that-read-todays-logs.md).**
 - **M38 §8.10 — closed 2026-08-19, [`the-bracket-that-inverted-on-a-day-it-kept`](docs/features/the-bracket-that-inverted-on-a-day-it-kept.md).** Shipped as a model change (MATH.md §8.10, §8.11, §10); the residual it left is M42.
-- **M39 §8.11 — closed 2026-08-27,
-  [`the-censor-that-does-not-run-forward`](docs/features/the-censor-that-does-not-run-forward.md).**
-  `adviseStop` runs the same reconstruction with no inversion censor at all, so
-  `STOP_INVERSION_MARGIN` guards the retrospective fit only. **Half-closed
-  2026-08-19**: M38's fix removed the bias the unguarded path was exposed to —
-  mid-day false stops under 1% at every λ₀, the warm-up fixture's at-stop
-  agreement at λ₀ = 0.9 going 1/13 → 11/13. What was left — whether the advisor
-  should ALSO carry a censor — is now decided NO, on an argument and a
-  measurement. The argument: `lo > hi` is a contradiction only where there is a
-  stop to rationalize, and run forward it says merely that the best next step
-  beats the best step already logged, which is when `continue` is RIGHT (MATH.md
-  §8.11 now carries this in place of the bare sentence). The measurement: a
-  third arm on slider-drawn days finds the inverted cell is 8.3–16.4% of the
-  checkpoints the card speaks on and carries ZERO mid-day false stops at all
-  four λ₀ on both populations — 0 of 118/110/88/23 random-day and 0 of
-  16/17/27/16 warm-up, against 8 of 1,811 and 4 of 587 everywhere else — so the
-  censor would silence 339 + 76 correct `continue`s and remove none that were
-  wrong. The one residual, recorded not acted on: at the stop moment agreement
-  on the inverted cell is 8/20 against 213/232, and censoring converts 8 right
-  and 12 wrong verdicts into 20 silences without fixing the 12. Nothing shipped
-  moved.
-- **M49 §8.11 — raised and closed 2026-08-27 by M39,
-  [`the-sweep-that-missed-two-generators`](docs/features/the-sweep-that-missed-two-generators.md).**
-  `stop-advisor.probe.ts` held the sixth and seventh generators off the slider
-  surface after M40's five — `randomDays`, drawing `difficulty` independently of
-  the two demands, and the hand-written `WARMUP_HEAVY`, whose `difficulty: 9`
-  beside demands `0.9/0.2` the sliders project to 9.6. Both back §8.11's shipped
-  one-step-vs-session table and its candidate-filter arm, both quote rates, and
-  neither declared itself. Both now draw through `toEnergyTask`; `WARMUP_HEAVY`
-  was moved onto the surface rather than declared off it, because M48's
-  extreme-may-stay-off exemption is for model-level bounds and this fixture
-  witnesses app-level behaviour. **Every figure moved and no verdict did.** The
-  session arm still beats the one-step arm at every λ₀ and by more — the two λ₀
-  quoted in `adviseStop`'s docblock go 19.7% → 14.2% at 0.9 and 24.7% → 28.1% at
-  1.3, against the session arm's 6.6% → 1.3% and 6.2% → 0.0% — at-stop agreement
-  is still identical between the arms in all eight rows, the day's own breaks
-  still beat the summed reading everywhere (M38's headline witness moving 1/13 →
-  11/13 to 2/13 → 12/13), the candidate filter still helps in the same direction
-  (its λ₀ = 0.3 at-stop row sharpening 15/18 → 18/18 to 6/15 → 15/15), and M39's
-  censor verdict is unchanged. 0 replica mismatches throughout. Nothing shipped
-  moved. The residue: M40's sweep grepped for one hand-built signature and this
-  file escaped it, so seven may not be the count. That search ran the same day
-  and answered it — M50 and M51 below.
-- **M50 — raised and closed 2026-08-27 by the M49 residue,
-  [`the-tenth-copy-of-a-day-declared-once`](docs/features/the-tenth-copy-of-a-day-declared-once.md).**
-  The search replaced counting generators with checking the fault: every
-  `EnergyTaskInput` the repo builds — 9 inline literals plus 113 call sites of
-  the eight `task`/`makeTask` factories, matched by AST rather than by
-  spelling — tested against the surface directly (demands a slider/10, enjoyment
-  an integer 1–10, `difficulty` equal to what `getEffectiveDifficulty` derives
-  from the two demands). **84 sit off the surface and 68 already declare it** —
-  64 under the class declaration `docs/testing.md` gives
-  `zenith-energy.test.ts`'s `makeTask` calls, four individually. Of the 16 left,
-  ten are verbatim mirrors of suite fixtures that class covers, and exactly one
-  is a WRONG number rather than an undeclared one: `plan-audit.test.ts` held a
-  TENTH copy of the 2026-07-14 named day, still carrying the pre-slider
-  `guitar 0.4/0.3` and `reading 0.5/0.05` — and `physicalDemand: 0.05` has no
-  slider at all. The day has ten declarations; M44 aligned eight of the nine it
-  should have and missed this one, the only copy outside a probe. The COUNT in
-  `energy-search-gap.probe.ts` — deliberately unaligned "with the other nine
-  declarations of this day" — was right all along; what was false was its
-  presumption that those nine were aligned, and the fix makes the sentence true
-  rather than correcting it. `zenith-energy.test.ts`'s guard ("no longer a
-  second place for it to drift from") is scoped to that file and stays true; it
-  is simply not the repo-wide claim it is easy to read as. Aligned; its nine
-  tests pass unchanged, because they compare a plan against itself and quote
-  nothing.
-- **M51 — raised and closed 2026-08-27 by the M49 residue,
-  [`the-pair-that-could-not-be-matched`](docs/features/the-pair-that-could-not-be-matched.md).**
-  The same search's second residual, a declaration gap rather than a wrong
-  number: `rv13-terminal-timing.probe.ts`'s `task()` pins `difficulty: 8` and
-  swaps the demands 1/0 ↔ 0/1, where sliders 10/0 and 0/10 both derive
-  difficulty 10. Its comment gave a reason ("matched across the pair") but not
-  the surface sentence M48's rule asks for — and the record's own fixture spec,
-  a pure-cognitive and a pure-physical task at MATCHED difficulty, is
-  unreachable BY CONSTRUCTION, which is what the missing sentence had to say.
-  Declared; nothing moved, all three arms still pass.
-- **M52 — raised and closed 2026-08-27 while closing M17,
-  [`the-rule-that-outlived-its-document`](docs/features/the-rule-that-outlived-its-document.md).**
-  `e61d207` (2026-08-25) deleted the hand-dating rule — `docs/testing.md:302`,
-  "the dating rule is gone with them"; `PROBES.md`, the probe's header "is the
-  only home for a measured number" — and touched 44 files including `scripts/`
-  while removing **zero** instances of the rule from the probes. **34 of the 64
-  still told the reader "Whatever it prints belongs in MATH.md WITH ITS DATE",**
-  four adding "an undated number in that document is unfalsifiable"; following
-  that header today violates R7. The first count was 32: `adv2-budget-marginal`
-  and `prefix-replan` wrap it as a clause rather than a paragraph, so only
-  `WITH ITS DATE` — the phrase re-wrapping cannot hide — finds all 34. Deleted,
-  nothing substituted (`AGENTS.md:62`), and `plan-advice`'s longer tail is not
-  lost: `docs/testing.md:287-290` opens the probe rules with the same lesson.
-  Fixed in the same pass: that file's own `§14.1-2` citation, dangling since
-  §10–§37 went, which `math-citations.mjs` skips because its regex reads the
-  trailing `-2` as a line range.
-- **M53 — closed 2026-08-27,
-  [`the-references-the-checker-could-not-see`](docs/features/the-references-the-checker-could-not-see.md).**
-  Filed as a count of 27 in 19 files; scanning every `MATH.md` occurrence not
-  followed by a `§` finds **54 in 24 files** — the filed number came from
-  headers alone. Two are correct as written (`curve-marginal-facts`,
-  `energy-search-gap`) and **every other one was stale**, in three kinds: a
-  claim attributed to a deleted section, archaeology printed into a run log
-  (`stop-inversion-margin` emitted "(MATH.md said zero until 2026-08-06)" beside
-  its own numbers), and an M52 survivor — `sat-gate-floor` wraps the dating rule
-  as "WITH THEIR DATE", which that sweep's `WITH ITS DATE` grep could not see.
-  The same fault reached seven test and fixture comments outside the probes.
-  Four headers carried the deleted document's FIGURES rather than their own and
-  were re-run: `pool-allocator` (no envelope — five seeds spread 1.91%),
-  `fit-snapshot-drift` (day-10 fit 52% high; 30-day refit 500.1 ms), and two
-  that came back **different** — `rv13-prior-posterior` (the prior's σ_ϕ is 24.0%
-  of ϕ̂, not 29%; the plan changes on 6.8% of days at n = 1, not 21.7%) and
-  `rv13-naive-lattice` (the before-fix negative rate is a 3.8–7.8% band, not a
-  rising 4% → 19% ladder). One dangling NUMBERED citation turned up on the way:
-  `hedged-stop-band` cited "§4's own rule" for what makes a number unbacked; §4
-  is the allocator. The rule went into `docs/testing.md` rather than a checker —
-  `math-citations.mjs` resolves `§N` to a heading, never to what it still says.
+- **M39 §8.11 — half-closed 2026-08-19, closed 2026-08-27, [`the-censor-that-does-not-run-forward`](docs/features/the-censor-that-does-not-run-forward.md).**
+- **M49 §8.11 — raised and closed 2026-08-27 by M39, [`the-sweep-that-missed-two-generators`](docs/features/the-sweep-that-missed-two-generators.md).**
+- **M50 — raised and closed 2026-08-27 by the M49 residue, [`the-tenth-copy-of-a-day-declared-once`](docs/features/the-tenth-copy-of-a-day-declared-once.md).**
+- **M51 — raised and closed 2026-08-27 by the M49 residue, [`the-pair-that-could-not-be-matched`](docs/features/the-pair-that-could-not-be-matched.md).**
+- **M52 — raised and closed 2026-08-27 while closing M17, [`the-rule-that-outlived-its-document`](docs/features/the-rule-that-outlived-its-document.md).**
+- **M53 — closed 2026-08-27, [`the-references-the-checker-could-not-see`](docs/features/the-references-the-checker-could-not-see.md).**
 
 - **M40 §8.10 + §8.4 — closed 2026-08-25,
   [`the-satiety-price-on-the-sliders`](docs/features/the-satiety-price-on-the-sliders.md).**
@@ -802,79 +667,10 @@ reaches the claim, never that the claim is false.
 - **M44 — closed 2026-08-21, [`one-named-day-declared-once`](docs/features/one-named-day-declared-once.md).**
 - **M45 — closed 2026-08-20, [`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md).**
 - **M46 — closed 2026-08-20, [`the-default-nobody-had-measured`](docs/features/the-default-nobody-had-measured.md).**
-- **M47 §8.6 — closed 2026-08-27,
-  [`the-cap-that-outlived-its-measurement`](docs/features/the-cap-that-outlived-its-measurement.md).**
-  Raised against pair-seed cost prose no instrument printed. `e61d207`
-  (2026-08-25) deleted the tables with §10–§37, leaving **six live sites quoting
-  them** — including `src/lib/business/model/AGENTS.md`, a rules file whose "do
-  not unbound it" rested on `12.5× / 13.1×`, and the constant's own docblock,
-  which quoted a single absolute ratio the deleted source had instructed nobody
-  to quote. `math-citations.mjs` passed all six: §8.6 still exists, only its
-  contents moved. The blocker was overstated — `OptimizeOptions` already carries
-  `stepHours` and `maxIterations` and **no product caller sets either**, so
-  `pairSeedTasks` is a third instrument-only field, not an opened module.
-  `energy-search-gap.probe.ts` now prices the cap: the pair seeds cost
-  1.28×–2.40× the search without them, unbounded `C(n,2)` reaches 13.84× at 15
-  tasks (4147 ms against 300), and over 400 seeded days the family beats no
-  pairs on 4 (worst 0.395580) while `C(n,2)` beats the cap on **2** (worst
-  0.208672). That last number is new: the deleted prose asserted three tasks
-  were enough and had measured nothing wider. Residue is **M54**.
-- **M54 — closed 2026-08-27, DECIDED FOR,
-  [`the-fourth-task-the-pair-seeds-could-not-see`](docs/features/the-fourth-task-the-pair-seeds-could-not-see.md).**
-  `PAIR_SEED_TASKS` is **4**. The entry framed this as objective margin — weigh
-  0.208672 on 2 days in 400 against the cost — and the funded SETS the gain days
-  return are what changed the answer: on **6 of the 7** gain days across five
-  seeds a cap of 4 funds a task a cap of 3 funded nowhere, or a different task
-  entirely, which is the failure §8.6 calls the worse of the two and the defect
-  the pair family exists to fix. Not margin. The rate is small and stated as
-  such — **7 days in 2000** (2, 2, 2, 0, 1 per seed) — and M53's lesson applies
-  to the magnitude, not the rate: the per-seed worst gain runs 0.2080%–2.1865%
-  of the objective, an order of magnitude apart, so no envelope is claimed. The
-  cost is roughly **1.2×–1.6×** the cap of 3 and **flat in n** (three more seeds
-  at any size, against C(n,2)'s quadratic 14×–15× at 15 tasks): the Lab's
-  `#plan` solve goes ~55 → ~82 ms median, `suggestBudgetCurve`'s 12 solves
-  ~310-370 → ~420-455 ms. Those are bands across three runs, not figures — a
-  wall clock is a range, and the rule and the worked example landed in
-  `docs/testing.md` afterwards.
-  Nobody pays for nothing — over the same 2000 days the wider cap **never once**
-  returned a different plan at an unchanged objective, so every plan it moves,
-  it improves. Both §8.6 witness fixtures keep their funded sets, and the day
-  above is now pinned in the suite at both caps. The other direction stays on
-  record: 3 → 2 costs 0.038620 over 60 days
-  ([`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md)).
+- **M47 §8.6 — closed 2026-08-27, [`the-cap-that-outlived-its-measurement`](docs/features/the-cap-that-outlived-its-measurement.md).**
+- **M54 — closed 2026-08-27, DECIDED FOR, [`the-fourth-task-the-pair-seeds-could-not-see`](docs/features/the-fourth-task-the-pair-seeds-could-not-see.md).**
 
-- **M48 §8.1 — closed 2026-08-27,
-  [`the-extreme-that-had-never-declared-itself`](docs/features/the-extreme-that-had-never-declared-itself.md).**
-  The open question had an answer: the ϕ floor IS reachable (both difficulty
-  sliders at 0 clamp to difficulty 1 and land on it), and the worst error over
-  all 1,210 slider combinations is 5.001e-5 against `FAST_TASK`'s 5.561e-5 — so
-  the extreme is conservative, measured pointwise rather than argued, and both
-  witnesses now run in the probe. The rule landed in `docs/testing.md`.
-
-**What the sweep got wrong, worth knowing before trusting the leads.** Fifteen of
-the 37 died under refutation, and they died in one direction: an auditor reading
-`scripts/PROBES.md` as the authority on what a probe covers, rather than the
-probe. A registry row names a section, not every claim inside it, and several
-probes reach claims filed under a heading they do not name. Search the probe
-bodies before believing an "unbacked" — M22 is the case worth studying, because
-the same figure was filed as unbacked by one lens and as stale by another, the
-unbacked framing was refuted, and only the stale one is real.
-
-The partition failed once. The thirteen ranges left §8.12 (`MATH.md:2005-2196`,
-sole owner of four registry probes) unread until the completeness pass caught it;
-M22 and M33–M36 come from a second three-lens pass over that section alone, which
-is why §8.12 is the only section here audited by lens rather than by range. That
-pass upheld 1 of 6 against 13 of 32 for the main sweep — a ratio worth reading as
-the cost of the wider sweep's shallower reading, not as §8.12 being cleaner.
-
-**Registry holes found alongside the above** — §18, §22, §11.5 and §8.2 carried
-quantitative claims with no row in `scripts/PROBES.md`, which
-`node scripts/probe-registry.mjs --check` cannot see because it checks that rows
-and files pair up, not that a section has a row at all. **All four closed
-2026-08-18**
-([`what-the-registry-holes-were-hiding`](docs/features/what-the-registry-holes-were-hiding.md)),
-and the durable half is that §8.2 and §11.5 were never holes: the registry's own
-definition counted a fixture-cited number as unbacked and no longer does.
+- **M48 §8.1 — closed 2026-08-27, [`the-extreme-that-had-never-declared-itself`](docs/features/the-extreme-that-had-never-declared-itself.md).**
 
 ## Findings from the 2026-08-20 rules eval
 
@@ -1013,3 +809,19 @@ and what it cost is in the spec.
   [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
 - **M84 — the seventh of M50's eight excluded call sites — fixed 2026-08-27,
   [`the-sites-the-sweeps-walked-past`](docs/features/the-sites-the-sweeps-walked-past.md).**
+- **M85 — twelve closed rows that kept their narratives and their figures — fixed
+  2026-08-27,
+  [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
+- **M86 §8.11 — a quotation attributed to a section that never held it — fixed
+  2026-08-27,
+  [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
+- **M87 §8.12 — a control read as 265 named knees — fixed 2026-08-27,
+  [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
+- **M88 — a completeness claim that was false when made: 35, not 34 — fixed
+  2026-08-27,
+  [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
+- **M89 — a scan described as something it was not — fixed 2026-08-27,
+  [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
+- **M90 §8.6 — two rows asserting two values for one measurement — fixed
+  2026-08-27,
+  [`the-rows-that-kept-their-figures`](docs/features/the-rows-that-kept-their-figures.md).**
