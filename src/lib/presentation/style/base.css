@@ -110,8 +110,16 @@
 	   would brighten the dark themes instead of dimming them. */
 	--scrim: oklch(0 0 0 / 0.5);
 	--ty-primary: oklch(0 0 0);
-	--primary: oklch(0.72 0.17 150);
-	--primary-foreground: oklch(0.18 0.03 155);
+	/* The seed pair, and the two are one decision: a white label is what the rest
+	   of the catalogue reaches for on a saturated fill, and it caps how light
+	   this green may be. At l 0.55 — glass-light's lightness, whose own white
+	   label measures 4.10:1 — this hue lands at 4.43:1, because a chroma this
+	   high is out of sRGB gamut and the browser maps it lighter than the oklch
+	   lightness reads. l 0.52 measures 5.0:1 at rest and 7.6:1 on the hover
+	   fill (`node scripts/hover-contrast.mjs solid-light`). Raising it again
+	   means re-running that. */
+	--primary: oklch(0.52 0.17 150);
+	--primary-foreground: var(--color-white);
 
 	/* derived from seeds */
 	--ty-secondary: color-mix(in oklch, var(--ty-primary) 70%, transparent);
