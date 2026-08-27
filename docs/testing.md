@@ -293,6 +293,19 @@ re-checked and stayed in the document while being false.
   re-rollable — and a curated fixture and a random sweep answer different
   questions, so keep both (600 random days show the trim free on all 404
   levers; the pool-bound fixture beside them is non-free on 103 of 126).
+- **A wall clock is a range, not a figure.** Everything else a seeded probe
+  prints is reproducible byte-for-byte; a timing is not, and quoting it like one
+  invents precision. Print the spread the reps were read at, quote only the
+  digits that survive a re-run, and check the conclusion against the whole band
+  — if the decision moves inside it, the measurement is not finished and the
+  answer is more reps, not a rounder number.
+  `energy-search-gap.probe.ts` is the worked example: three runs of one arm read
+  1.21×–1.54×, 1.27×–1.61× and 1.24×–1.59× for the same comparison, so roughly
+  1.2×–1.6× is the result and no cell is. Note that the spread WITHIN a run and the
+  spread BETWEEN runs are different quantities and the first can be much the
+  smaller — on the same statistic that arm's budget sweep reads ±5% across its
+  own reps and ±9% across three runs — so a printed ± is the instrument's
+  precision, not the figure's reproducibility.
 - **Quote the number in the probe, not in prose. And do not describe what
   MATH.md says about it.** A figure belongs in the file that can re-derive it —
   the probe's header, beside the run that produced it. The reverse direction is

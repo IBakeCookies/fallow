@@ -135,8 +135,8 @@ its allocation code, so the main page is unaffected by changes here.
   seeds, and the pair seeds, each searched **within its pair** because a seed
   whose search may reach every task climbs back out of the two-task basin it was
   built for; keep those when touching the search. The pair family is capped at
-  the four highest-amplitude tasks (`C(4,2)`) — unbounded `C(n,2)` runs up to
-  14.4× the four-task search at 15 tasks, because each pair seed starts
+  the four highest-amplitude tasks (`C(4,2)`) — unbounded `C(n,2)` runs 14×–15×
+  the four-task search at 15 tasks, because each pair seed starts
   fragmented and climbs long, so do not unbound it
   (`scripts/energy-search-gap.probe.ts`, which prices every cap and what each
   forfeits). §8.6.

@@ -49,22 +49,27 @@
  *
  * The last four arms price §8.6's cap on the pair family, which no committed
  * instrument reached before: `pairSeedTasks` exists on `OptimizeOptions` for
- * them and nothing else sets it. On this box the pair seeds cost 1.29×–2.37×
- * the same search without them; the shipped cap of 4 costs 1.27×–1.61× the cap
- * of 3 it replaced, and 0.98× at 3 tasks, where the two ARE the same search —
- * that cell is the table's noise floor. Unbounded C(n,2) reaches 14.42× the cap
- * of 3 on the 15-task ladder (1324 ms against 92) and 14.18× on the seeded day
- * of that size (4303 ms against 303). Cap 4's cost is flat in n (three more
- * seeds at any size) where C(n,2)'s is quadratic. The ratio is
- * composition-dependent and cost is not monotone in n (a wide list makes the
- * window bind and the classic seed truncate), so the range is the result and
- * no single cell is.
+ * them and nothing else sets it. Every timing below is a range, not a figure
+ * (docs/testing.md): each cell prints the half-range of its own reps, and the
+ * bands quoted here are what THREE runs of these arms read on this box, which
+ * is the wider spread of the two. The pair seeds cost roughly 1.2×–2.4× the
+ * same search without them; the shipped cap of 4 costs roughly 1.2×–1.6× the
+ * cap of 3 it replaced (three runs: 1.21–1.54, 1.27–1.61, 1.24–1.59), and
+ * 0.98×–1.01× at 3 tasks, where the two ARE the same search — that cell is the
+ * table's noise floor and the reason no third digit is quoted anywhere here.
+ * Unbounded C(n,2) reaches 14×–15× the cap of 3 at 15 tasks. Cap 4's cost is
+ * flat in n (three more seeds at any size) where C(n,2)'s is quadratic. The
+ * ratio is composition-dependent and cost is not monotone in n (a wide list
+ * makes the window bind and the classic seed truncate), so the range is the
+ * result and no single cell is.
  *
  * In absolute ms on the paths the product takes, over app-shaped days (3-8
  * tasks × 6-10 h): one solve — `EnergyLabStore`'s `#plan`, once per slider
- * move — median 55.0 ms at cap 3 against 80.1 at cap 4, p95 142.7 against
- * 185.2; `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, 310.6
- * ms against 422.7. A ratio cannot say whether a change is felt.
+ * move — median ~55 ms at cap 3 against ~82 at cap 4 (three runs: 57.1/86.5,
+ * 55.0/80.1, 56.0/82.4), p95 ~145 against ~190;
+ * `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, ~310-370 ms
+ * against ~420-455. A ratio cannot say whether a change is felt, and the sweep
+ * row is the one that moves most between runs (±9%, against ±5% within one).
  *
  * What a cap of 3 forfeited, over 400 seeded days: the pair family beats no
  * pairs on 4, worst 0.395580 objective, and unbounded C(n,2) beats a cap of 3
@@ -78,7 +83,7 @@
  * RATE is the stable figure here and the magnitude is not. On 6 of those 7
  * days the FUNDED SET changes — a task funded nowhere at cap 3, or a different
  * task entirely — which is the structural failure §8.6 calls the worse of the
- * two, and is why 0.35% of days was worth ~1.4× on the interactive path
+ * two, and is why 0.35% of days was worth ~1.5× on the interactive path
  * (ROADMAP M54, 2026-08-27).
  *
  * Whatever it prints stays here, beside the run that produced it, never in
@@ -479,12 +484,23 @@ function uphillAudit(label: string, day: Day): void {
 
 const REPS = 5;
 
+/** A wall clock is a range, so this carries the spread it was read at. */
+interface Timing {
+	median: number;
+	min: number;
+	max: number;
+}
+
 /**
- * Median of `REPS` after one discarded warm-up. A lone mean is not quotable: the
- * first call pays JIT, and only its own machine makes any of these comparable
- * (`plan-advice.probe.ts` prints the box for the same reason).
+ * Median of `REPS` after one discarded warm-up, WITH the extremes it came from.
+ * A lone mean is not quotable: the first call pays JIT, and only its own machine
+ * makes any of these comparable (`plan-advice.probe.ts` prints the box for the
+ * same reason). The extremes are kept so the reader does not have to run this
+ * twice to discover its precision — `ms` below prints them as a half-range.
+ * They are the spread WITHIN one run and are not the same quantity as the
+ * spread BETWEEN runs, which the header states separately from two of them.
  */
-function timeMs(run: () => void): number {
+function timeMs(run: () => void): Timing {
 	run();
 
 	const samples = Array.from(
@@ -500,8 +516,16 @@ function timeMs(run: () => void): number {
 		},
 	).sort((a, b) => a - b);
 
-	return samples[Math.floor(REPS / 2)];
+	return {
+		median: samples[Math.floor(REPS / 2)],
+		min: samples[0],
+		max: samples[REPS - 1],
+	};
 }
+
+/** Half the observed range, as a percent of the median: the digit that survives. */
+const ms = (t: Timing) =>
+	`${t.median.toFixed(1)} ms ±${Math.round((50 * (t.max - t.min)) / t.median)}%`;
 
 /** Seeds `buildSeeds` lays down: 4 fixed, drop-one per task, then C(min(n,cap),2). */
 const seedCount = (n: number, cap: number) => {
@@ -605,7 +629,7 @@ describe('energy search gap', () => {
 				const full = timeMs(() => solve(day, n));
 
 				console.log(
-					`[cost] ${label} ${n} tasks x 12h: no pairs ${none.toFixed(1)} ms (${seedCount(n, 0)} seeds), cap 3 ${capped.toFixed(1)} ms (${seedCount(n, 3)}) = ${(capped / none).toFixed(2)}x, cap 4 ${wider.toFixed(1)} ms (${seedCount(n, 4)}) = ${(wider / capped).toFixed(2)}x cap 3, C(n,2) ${full.toFixed(1)} ms (${seedCount(n, n)}) = ${(full / capped).toFixed(2)}x cap 3`,
+					`[cost] ${label} ${n} tasks x 12h: no pairs ${ms(none)} (${seedCount(n, 0)} seeds), cap 3 ${ms(capped)} (${seedCount(n, 3)}) = ${(capped.median / none.median).toFixed(2)}x, cap 4 ${ms(wider)} (${seedCount(n, 4)}) = ${(wider.median / capped.median).toFixed(2)}x cap 3, C(n,2) ${ms(full)} (${seedCount(n, n)}) = ${(full.median / capped.median).toFixed(2)}x cap 3`,
 				);
 			}
 		}
@@ -674,7 +698,9 @@ describe('energy search gap', () => {
 		const days = randomDays(60, 8611, [3, 8], [6, 10]);
 
 		for (const cap of [3, 4]) {
-			const each = days.map((day) => timeMs(() => solve(day, cap))).sort((a, b) => a - b);
+			// Each day's own median; the spread that matters here is across DAYS,
+			// which the percentiles below report, not across one day's reps.
+			const each = days.map((day) => timeMs(() => solve(day, cap)).median).sort((a, b) => a - b);
 
 			console.log(
 				`[app] one solve (the Lab's $derived) over ${days.length} app-shaped days, cap ${cap}: median ${percentile(each, 0.5).toFixed(1)} ms, p95 ${percentile(each, 0.95).toFixed(1)} ms, worst ${each[each.length - 1].toFixed(1)} ms`,
@@ -700,7 +726,7 @@ describe('energy search gap', () => {
 			});
 
 			console.log(
-				`[app] the budget sweep's ${steps} solves (${widest.tasks.length} tasks x ${widest.windowHours}h horizon), cap ${cap}: ${sweep.toFixed(1)} ms`,
+				`[app] the budget sweep's ${steps} solves (${widest.tasks.length} tasks x ${widest.windowHours}h horizon), cap ${cap}: ${ms(sweep)}`,
 			);
 		}
 	});
