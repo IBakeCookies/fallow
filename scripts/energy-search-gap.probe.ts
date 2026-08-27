@@ -47,21 +47,39 @@
  * — the split is generated while the plan still has room and the plan grows into
  * the window afterwards, so a full window does not strand that structure.
  *
- * The last two arms price §8.6's three-task cap on the pair family, which no
- * committed instrument reached before: `pairSeedTasks` exists on
- * `OptimizeOptions` for them and nothing else sets it. On this box the pair
- * seeds cost 1.28×–2.40× the same search without them, and unbounded C(n,2)
- * costs 1.00× at 3 tasks (where every pair IS a top-three pair) rising to
- * 13.84× at 15 — 4147 ms against 300, on a path three call sites take. The
- * ratio is composition-dependent and cost is not monotone in n (a wide list
- * makes the window bind and the classic seed truncate), so the range is the
- * result and no single cell is.
+ * The last four arms price §8.6's cap on the pair family, which no committed
+ * instrument reached before: `pairSeedTasks` exists on `OptimizeOptions` for
+ * them and nothing else sets it. On this box the pair seeds cost 1.29×–2.37×
+ * the same search without them; the shipped cap of 4 costs 1.27×–1.61× the cap
+ * of 3 it replaced, and 0.98× at 3 tasks, where the two ARE the same search —
+ * that cell is the table's noise floor. Unbounded C(n,2) reaches 14.42× the cap
+ * of 3 on the 15-task ladder (1324 ms against 92) and 14.18× on the seeded day
+ * of that size (4303 ms against 303). Cap 4's cost is flat in n (three more
+ * seeds at any size) where C(n,2)'s is quadratic. The ratio is
+ * composition-dependent and cost is not monotone in n (a wide list makes the
+ * window bind and the classic seed truncate), so the range is the result and
+ * no single cell is.
  *
- * What the cap forfeits, over 400 seeded days: the pair family beats no pairs
- * on 4, worst 0.395580 objective, and unbounded C(n,2) beats the cap on 2,
- * worst 0.208672 — but a cap of FOUR reaches both, at C(4,2) = 6 pair seeds
- * instead of 3 (ROADMAP M54; moving the constant is a plan change, not a
- * provenance one).
+ * In absolute ms on the paths the product takes, over app-shaped days (3-8
+ * tasks × 6-10 h): one solve — `EnergyLabStore`'s `#plan`, once per slider
+ * move — median 55.0 ms at cap 3 against 80.1 at cap 4, p95 142.7 against
+ * 185.2; `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, 310.6
+ * ms against 422.7. A ratio cannot say whether a change is felt.
+ *
+ * What a cap of 3 forfeited, over 400 seeded days: the pair family beats no
+ * pairs on 4, worst 0.395580 objective, and unbounded C(n,2) beats a cap of 3
+ * on 2, worst 0.208672 — 2.1865% of that day's objective — and BOTH are
+ * reached by a cap of 4.
+ *
+ * That count is one draw, so the same comparison runs on five seeds. Over 2000
+ * days cap 4 beats cap 3 on 7 (2, 2, 2, 0, 1 per seed) and never once returns
+ * a different plan at an unchanged objective, so nothing pays for nothing. The
+ * per-seed worst gain runs 0.2080%–2.1865%, an order of magnitude apart: the
+ * RATE is the stable figure here and the magnitude is not. On 6 of those 7
+ * days the FUNDED SET changes — a task funded nowhere at cap 3, or a different
+ * task entirely — which is the structural failure §8.6 calls the worse of the
+ * two, and is why 0.35% of days was worth ~1.4× on the interactive path
+ * (ROADMAP M54, 2026-08-27).
  *
  * Whatever it prints stays here, beside the run that produced it, never in
  * MATH.md — which holds derivations only (R7, docs/testing.md).
@@ -562,9 +580,10 @@ describe('energy search gap', () => {
 	});
 
 	/**
-	 * What the three-task cap on the pair family costs and saves. Neither arm is
-	 * reachable through the product signature — `pairSeedTasks` exists on
-	 * `OptimizeOptions` for these two calls and nothing else sets it.
+	 * What each cap on the pair family costs. Nothing here is reachable through
+	 * the product signature — `pairSeedTasks` exists on `OptimizeOptions` for
+	 * these arms and nothing else sets it, so every cap below is passed as a
+	 * literal and none of them tracks the shipped default.
 	 *
 	 * A wall clock is only quotable with its machine attached, so the box and the
 	 * runtime print beside the numbers and nothing else may be running on it.
@@ -580,25 +599,122 @@ describe('energy search gap', () => {
 				const day = dayOf(n);
 				const none = timeMs(() => solve(day, 0));
 				const capped = timeMs(() => solve(day, 3));
+				// What ships since ROADMAP M54. At n = 3 it IS the cap-3 search, so
+				// that cell doubles as a noise floor for every ratio in this table.
+				const wider = timeMs(() => solve(day, 4));
 				const full = timeMs(() => solve(day, n));
 
 				console.log(
-					`[cost] ${label} ${n} tasks x 12h: no pairs ${none.toFixed(1)} ms (${seedCount(n, 0)} seeds), capped ${capped.toFixed(1)} ms (${seedCount(n, 3)}) = ${(capped / none).toFixed(2)}x, C(n,2) ${full.toFixed(1)} ms (${seedCount(n, n)}) = ${(full / capped).toFixed(2)}x the capped search`,
+					`[cost] ${label} ${n} tasks x 12h: no pairs ${none.toFixed(1)} ms (${seedCount(n, 0)} seeds), cap 3 ${capped.toFixed(1)} ms (${seedCount(n, 3)}) = ${(capped / none).toFixed(2)}x, cap 4 ${wider.toFixed(1)} ms (${seedCount(n, 4)}) = ${(wider / capped).toFixed(2)}x cap 3, C(n,2) ${full.toFixed(1)} ms (${seedCount(n, n)}) = ${(full / capped).toFixed(2)}x cap 3`,
 				);
 			}
 		}
 	});
 
 	/**
-	 * The other half of the same question: the cap is only worth its ~1.5x if the
-	 * pair family buys something, and only defensible if C(n,2) buys little more.
+	 * ROADMAP M53's lesson applied to M54: two days in 400 is the maximum of ONE
+	 * draw of one generator, and a change to every plan the app proposes should
+	 * not rest on one draw. The same sweep on five seeds, cap 3 against cap 4
+	 * only — the arms above already priced the two ends. Seed 8600 is the arm
+	 * above's own population, so its row is a cross-check and not a sixth draw.
+	 *
+	 * The second column is what a superset of seeds can do BESIDES lifting the
+	 * objective: the search keeps the best and only accepts strict improvements,
+	 * so a wider cap can also return a different plan at an unchanged objective —
+	 * pair (0,3) now falls between (0,2) and (1,2) in the seed order. That would
+	 * be churn a user pays for and gets nothing from, so it is counted, not
+	 * argued.
+	 *
+	 * Each gain day then prints both funded SETS. That is the discriminator the
+	 * decision turns on: §8.6 calls a wrong funded set the worse of the two
+	 * failures — a task the user is told to do, or not — and it is the defect the
+	 * pair family was added to fix. A gain that only redistributes hours among
+	 * the same tasks is margin, and margin is what the cost below is weighed
+	 * against.
+	 */
+	it('checks the cap-4 gain across seeds', () => {
+		for (const seed of [8600, 8601, 8602, 8603, 8604]) {
+			const days = randomDays(400, seed, [3, 8], [4, 12]);
+			const gains: number[] = [];
+			let churn = 0;
+
+			days.forEach((day, index) => {
+				const three = solve(day, 3);
+				const four = solve(day, 4);
+				const gain = four.evaluation.objective - three.evaluation.objective;
+
+				if (gain > 1e-9) {
+					gains.push((gain / four.evaluation.objective) * 100);
+
+					console.log(
+						`  [seed ${seed}] day ${index}: ${day.tasks.length} tasks x ${day.windowHours}h, +${gain.toFixed(6)}, funds {${fundedSet(three.blocks)}} -> {${fundedSet(four.blocks)}}`,
+					);
+
+					console.log(`      cap 3: ${fmt(three.blocks)}`);
+					console.log(`      cap 4: ${fmt(four.blocks)}`);
+				} else if (fmt(four.blocks) !== fmt(three.blocks)) churn++;
+			});
+
+			console.log(
+				`[seed ${seed}] cap 4 beats cap 3 on ${gains.length}/${days.length} days, worst ${(gains.length > 0 ? Math.max(...gains) : 0).toFixed(4)}% of the objective; different plan at an unchanged objective on ${churn}`,
+			);
+		}
+	});
+
+	/**
+	 * The same cap priced in ABSOLUTE ms on the paths the product takes, because
+	 * a ratio cannot say whether a change is felt: `EnergyLabStore`'s `#plan` is
+	 * one solve per slider move, `suggestBudgetCurve` is a solve per 45-min
+	 * budget step, and `auditPlanAdherence` is one per logged day. The days here
+	 * are app-shaped (3-8 tasks, 6-10 h) rather than the arm above's 12 h ladder.
+	 */
+	it('prices the cap on the paths the product takes', () => {
+		console.log(`[app] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);
+
+		const days = randomDays(60, 8611, [3, 8], [6, 10]);
+
+		for (const cap of [3, 4]) {
+			const each = days.map((day) => timeMs(() => solve(day, cap))).sort((a, b) => a - b);
+
+			console.log(
+				`[app] one solve (the Lab's $derived) over ${days.length} app-shaped days, cap ${cap}: median ${percentile(each, 0.5).toFixed(1)} ms, p95 ${percentile(each, 0.95).toFixed(1)} ms, worst ${each[each.length - 1].toFixed(1)} ms`,
+			);
+		}
+
+		// `suggestBudgetCurve`'s own shape, on the widest day above: one solve per
+		// budget step. The common-horizon rescoring between them shares a single
+		// curve build and is not a solve, so this is that function's solve cost.
+		const widest = days.reduce((a, b) => (b.tasks.length > a.tasks.length ? b : a));
+		const steps = Math.floor(widest.windowHours / DEFAULT_STEP_HOURS + 1e-9);
+
+		for (const cap of [3, 4]) {
+			const sweep = timeMs(() => {
+				for (let step = 1; step <= steps; step++)
+					solve(
+						{
+							tasks: widest.tasks,
+							windowHours: step * DEFAULT_STEP_HOURS,
+						},
+						cap,
+					);
+			});
+
+			console.log(
+				`[app] the budget sweep's ${steps} solves (${widest.tasks.length} tasks x ${widest.windowHours}h horizon), cap ${cap}: ${sweep.toFixed(1)} ms`,
+			);
+		}
+	});
+
+	/**
+	 * The other half of the same question: the family is only worth its ~1.5x if
+	 * it buys something, and the cap only defensible if C(n,2) buys little more.
 	 * Both are objective gaps on the SAME lattice — the three arms differ in
 	 * seeds alone, so a gap is a basin the seeds below it never reach.
 	 */
 	it('measures what the pair seeds buy and what the cap forfeits', () => {
 		const days = randomDays(400, 8600, [3, 8], [4, 12]);
 		const bought: number[] = [];
-		const forfeit: { day: Day; gap: number; enough: number }[] = [];
+		const forfeit: { day: Day; gap: number; relative: number; enough: number }[] = [];
 
 		for (const day of days) {
 			const none = solve(day, 0).evaluation.objective;
@@ -616,6 +732,7 @@ describe('energy search gap', () => {
 				forfeit.push({
 					day,
 					gap: full - capped,
+					relative: ((full - capped) / full) * 100,
 					enough,
 				});
 			}
@@ -628,12 +745,12 @@ describe('energy search gap', () => {
 		);
 
 		console.log(
-			`[cap] C(n,2) beats the 3-task cap on ${forfeit.length}/${days.length} days, worst ${worstOf(forfeit.map((f) => f.gap)).toFixed(6)}`,
+			`[cap] C(n,2) beats the 3-task cap on ${forfeit.length}/${days.length} days, worst ${worstOf(forfeit.map((f) => f.gap)).toFixed(6)} (${worstOf(forfeit.map((f) => f.relative)).toFixed(4)}% of the objective)`,
 		);
 
-		for (const { day, gap, enough } of forfeit) {
+		for (const { day, gap, relative, enough } of forfeit) {
 			console.log(
-				`  forfeited: ${day.tasks.length} tasks x ${day.windowHours}h, gap ${gap.toFixed(6)}, first cap that reaches it ${enough}`,
+				`  forfeited: ${day.tasks.length} tasks x ${day.windowHours}h, gap ${gap.toFixed(6)} (${relative.toFixed(4)}%), first cap that reaches it ${enough}`,
 			);
 		}
 	});

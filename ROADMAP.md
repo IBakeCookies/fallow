@@ -819,15 +819,26 @@ reaches the claim, never that the claim is false.
   pairs on 4 (worst 0.395580) while `C(n,2)` beats the cap on **2** (worst
   0.208672). That last number is new: the deleted prose asserted three tasks
   were enough and had measured nothing wider. Residue is **M54**.
-- **M54 — raised 2026-08-27, measured, NOT decided.** Both days M47's forfeit
-  arm found are reached by `PAIR_SEED_TASKS = 4`, at `C(4,2)` = 6 pair seeds
-  instead of 3. Weigh 0.208672 objective on 2 days in 400 against a wider seed
-  family on a path `EnergyLabStore`'s `$derived`, `plan-audit.ts` and
-  `suggestBudgetCurve`'s 16 solves all take — one more column on the cost arm
-  prices it. The other direction is already on record: 3 → 2 costs 0.038620 over
-  60 days
+- **M54 — closed 2026-08-27, DECIDED FOR,
+  [`the-fourth-task-the-pair-seeds-could-not-see`](docs/features/the-fourth-task-the-pair-seeds-could-not-see.md).**
+  `PAIR_SEED_TASKS` is **4**. The entry framed this as objective margin — weigh
+  0.208672 on 2 days in 400 against the cost — and the funded SETS the gain days
+  return are what changed the answer: on **6 of the 7** gain days across five
+  seeds a cap of 4 funds a task a cap of 3 funded nowhere, or a different task
+  entirely, which is the failure §8.6 calls the worse of the two and the defect
+  the pair family exists to fix. Not margin. The rate is small and stated as
+  such — **7 days in 2000** (2, 2, 2, 0, 1 per seed) — and M53's lesson applies
+  to the magnitude, not the rate: the per-seed worst gain runs 0.2080%–2.1865%
+  of the objective, an order of magnitude apart, so no envelope is claimed. The
+  cost is 1.27×–1.61× the cap of 3 and **flat in n** (three more seeds at any
+  size, against C(n,2)'s quadratic 14.42× at 15 tasks): the Lab's `#plan` solve
+  goes 55.0 → 80.1 ms median, `suggestBudgetCurve`'s 12 solves 310.6 → 422.7 ms.
+  Nobody pays for nothing — over the same 2000 days the wider cap **never once**
+  returned a different plan at an unchanged objective, so every plan it moves,
+  it improves. Both §8.6 witness fixtures keep their funded sets, and the day
+  above is now pinned in the suite at both caps. The other direction stays on
+  record: 3 → 2 costs 0.038620 over 60 days
   ([`six-constants-the-suite-could-not-see-move`](docs/features/six-constants-the-suite-could-not-see-move.md)).
-  A plan change, so it needs a decision, not a sweep.
 
 - **M48 §8.1 — closed 2026-08-27,
   [`the-extreme-that-had-never-declared-itself`](docs/features/the-extreme-that-had-never-declared-itself.md).**

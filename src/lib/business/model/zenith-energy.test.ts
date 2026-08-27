@@ -860,6 +860,33 @@ describe('Zenith Energy Model', () => {
 			expect(search.evaluation.objective).toBeLessThan(6.1595663228 - 1e-9);
 		});
 
+		// The cap's own step, ROADMAP M54 (2026-08-27): drawn from seed 8600's day
+		// 215 in `energy-search-gap.probe.ts`, realigned onto the sliders (the
+		// generator's 0.30000000000000004 is float dust, and the day solves
+		// identically at 0.3). A cap of three funds `b` alone here; the shipped
+		// four finds the interleave that funds `d` too — a different funded SET,
+		// which is the failure §8.6 calls the worse of the two, not a
+		// redistribution of the same hours.
+		it('funds the 2-of-4 optimum only the fourth pair task reaches (§8.6)', () => {
+			const day = [
+				makeTask(1, 'a', 4, 10, 0.2, 1),
+				makeTask(2, 'b', 9, 9, 0.3, 0.7),
+				makeTask(3, 'c', 8, 4, 0.3, 0.7),
+				makeTask(4, 'd', 2, 7, 0.5, 0.2),
+			];
+
+			const search = optimizeSchedule(day, 6.5);
+
+			expect(search.evaluation.objective).toBeGreaterThanOrEqual(9.5236179002 - 1e-9);
+			expect(fundedIdsOf(search.blocks)).toBe('2,4');
+
+			const narrower = optimizeSchedule(day, 6.5, undefined, undefined, {
+				pairSeedTasks: 3,
+			});
+
+			expect(fundedIdsOf(narrower.blocks)).toBe('2');
+		});
+
 		it('reaches the off-midpoint interior rest on the probe’s worst enumerated day (§8.6)', () => {
 			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: this was the
 			// worst of 60 enumerated days (2–3 tasks × 3–6 h), 0.5951% below the
