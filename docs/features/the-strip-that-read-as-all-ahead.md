@@ -178,6 +178,9 @@ gap beside it. This is a reading laid over the plan the strip already draws.
   inside the Tasks card, and carries no clock" (the done reading, and that the
   block is a `DayBlock` field rather than a prop). This is a public shape change
   on `DayBlock`, which is where this repo prices its interfaces.
+  [the-planner-that-said-it-needed-an-open-task.md](the-planner-that-said-it-needed-an-open-task.md)
+  writes into the first of those two sections as well — whichever lands second
+  amends the paragraph rather than adding a second copy (R3).
 - `src/lib/presentation/style/STYLE.md` — check the dim before writing it. The
   block's surface is `bg-surface-inset` with a border, not a series fill, so the
   "a series fill under a label is opaque" rule that forbade dimming on
@@ -240,12 +243,15 @@ No MATH.md section changes.
   this repo are screen-scoped (`day_timeline_*`, `energy_*`), a bare word is not
   a mapping or a format, and the two strings are free to diverge per locale.
   This is not the R3 mirror it looks like.
-- **An all-done day still draws the strip, unlike `/energy`.** The gate counts
+- **An all-done day still draws the strip.** The gate counts
   `daily.suggestedTasks`, completed included, so a fully-marked strip is
-  reachable here where `/energy` replaces the whole card with `energy_all_done`.
-  That is the point of the change rather than a case to suppress: an all-struck
-  strip is the day read as finished. Pinned by a scenario so nobody "fixes" it
-  into the `/energy` behaviour later.
+  reachable — and that is the point of the change rather than a case to
+  suppress: an all-struck strip is the day read as finished. Pinned by a
+  scenario. `/energy` answers this differently today, replacing the whole card
+  with `energy_all_done`; that branch is being removed to match, under
+  [the-planner-that-said-it-needed-an-open-task.md](the-planner-that-said-it-needed-an-open-task.md).
+  `/`'s behaviour here is the one both screens settle on, and it needs no change
+  to reach it.
 - **Three scenarios are marked `(pin)`.** They pin behaviour that is already
   true — the flag on the input, the open block's `#N`, the all-done gate — so
   they go green on their first run. That is their pass condition, not an R6
