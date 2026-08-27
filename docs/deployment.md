@@ -60,7 +60,7 @@ store specs.
 `%theme.default-dark%` placeholders with JS array literals from the catalogue
 in `business/model/theme.ts`, so a default-theme change is a one-place edit
 again. The script still only swaps the classes it owns (assigning `className`
-would wipe the server-stamped scenery-paused class). Pinned by the
+would wipe the server-stamped scenery-motion class). Pinned by the
 `dark-preferring first visit` e2e.
 
 ## `sitemap.xml` and `robots.txt` prerender only when `PUBLIC_SITE_URL` is set

@@ -43,10 +43,11 @@
 
 @media (prefers-reduced-motion: reduce) {
 	/* !important outranks the per-theme helper selectors; descendant selector
-	   matches the .scenery-paused rule below so nested animations pause too */
-	.theme-scenery *,
-	.theme-scenery *::before,
-	.theme-scenery *::after {
+	   matches the .scenery-paused rule below so nested animations pause too.
+	   Guarded so a recorded choice outranks the OS — see STYLE.md. */
+	html:not(.scenery-motion-on) .theme-scenery *,
+	html:not(.scenery-motion-on) .theme-scenery *::before,
+	html:not(.scenery-motion-on) .theme-scenery *::after {
 		animation-play-state: paused !important;
 	}
 }

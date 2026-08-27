@@ -1,6 +1,6 @@
 <!doctype html>
 
-<html lang="%paraglide.lang%" dir="%paraglide.dir%" class="%theme% %scenery-paused%">
+<html lang="%paraglide.lang%" dir="%paraglide.dir%" class="%theme% %scenery-motion%">
 	<head>
 		<meta charset="utf-8" />
 
@@ -16,27 +16,18 @@
 		<meta name="theme-color" content="#15151d" media="(prefers-color-scheme: dark)" />
 
 		<!-- no-FOUC: first visit (no theme cookie) on a dark-preferring OS gets
-		     the dark default before first paint instead of a light flash; first
-		     visit (no sceneryMotion cookie) on a reduced-motion OS gets scenery
-		     paused before first paint instead of a flash of motion -->
+		     the dark default before first paint instead of a light flash -->
 		<script>
 			if (
 				!document.cookie.includes('theme=') &&
 				matchMedia('(prefers-color-scheme: dark)').matches
 			) {
 				// swap only the classes this script owns: assigning className would
-				// wipe the scenery-paused class hooks.server.ts already stamped.
+				// wipe the motion class hooks.server.ts already stamped.
 				// hooks.server.ts fills both placeholders from the theme catalogue,
 				// so a default-theme change no longer needs a hand edit here.
 				document.documentElement.classList.remove(...%theme.default%);
 				document.documentElement.classList.add(...%theme.default-dark%);
-			}
-
-			if (
-				!document.cookie.includes('sceneryMotion=') &&
-				matchMedia('(prefers-reduced-motion: reduce)').matches
-			) {
-				document.documentElement.classList.add('scenery-paused');
 			}
 		</script>
 		%sveltekit.head%

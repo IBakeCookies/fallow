@@ -4,10 +4,12 @@ import { getContext, setContext, onMount } from 'svelte';
 import * as appearanceRepository from '$lib/data/repository/appearance-repository';
 import type { AppearanceSnapshot } from '$lib/business/appearance';
 import {
+	allSceneryMotionClasses,
 	allThemeClasses,
 	DEFAULT_DARK_THEME,
 	DEFAULT_THEME,
 	getClassesToAdd,
+	getSceneryMotionClasses,
 	randomScenerySeed,
 	themes,
 	type ThemeName,
@@ -22,8 +24,8 @@ const CONTEXT_KEY = Symbol();
  *
  * The catalogue lives in `business/model/theme.ts` and the cookies in
  * `data/repository/appearance-repository.ts`; this class owns only the
- * reactive state and the initial-value reconciliation, which is the subtle
- * part (three sources: SSR payload, cookie, OS preference). Both snapshots are
+ * reactive state and the reconciliation, which is the subtle part (three
+ * sources: SSR payload, cookie, OS preference). Both snapshots are
  * constructor arguments — `business/appearance.ts` reads them — so the only
  * source this class reaches for itself is the OS one, and only after mount.
  */
@@ -34,12 +36,12 @@ export class ThemeStore {
 	// identical on both ends so the SSR-inlined style never shifts
 	#scenerySeed = $state<number>(0);
 
-	// whether animated scenery motion is paused; cookie-backed like theme,
-	// defaults to prefers-reduced-motion when no cookie says otherwise
-	#sceneryPaused = $state<boolean>(false);
+	// the recorded choice; undefined means none was made and stamps neither
+	// class, leaving `scenery/index.css`'s guarded query the only thing deciding
+	#sceneryPaused = $state<boolean | undefined>(undefined);
 
-	// the OS setting, tracked live: `scenery/index.css` pauses motion under it
-	// with !important, so nothing the pause/resume control does can be honored
+	// the OS setting, tracked live: it resolves `sceneryPaused` while no choice
+	// is recorded, so the control labels the state the visitor is actually in
 	#prefersReducedMotion = $state<boolean>(false);
 
 	#classesToAdd = $derived.by<string[]>(() => {
@@ -54,10 +56,8 @@ export class ThemeStore {
 	 * passed in: reading either is the layout's job, not the store's.
 	 */
 	constructor(ssr: AppearanceSnapshot, cookies: AppearanceSnapshot) {
-		const sceneryPaused = cookies.sceneryPaused ?? ssr.sceneryPaused;
-
 		this.#scenerySeed = ssr.scenerySeed ?? 0;
-		this.#sceneryPaused = sceneryPaused ?? false;
+		this.#sceneryPaused = cookies.sceneryPaused ?? ssr.sceneryPaused;
 
 		// The seed repair waits for mount: hydration never re-patches the SSR'd
 		// style attribute (see +layout.svelte's scenery clock), so a
@@ -75,13 +75,12 @@ export class ThemeStore {
 		});
 
 		$effect(() => {
-			document.documentElement.classList.toggle('scenery-paused', this.#sceneryPaused);
+			document.documentElement.classList.remove(...allSceneryMotionClasses);
+			document.documentElement.classList.add(...getSceneryMotionClasses(this.#sceneryPaused));
 		});
 
 		// Tracked rather than read once: the OS setting can flip mid-session and
-		// the CSS honors it immediately, so the control has to appear/disappear
-		// with it. No cookie also means no explicit preference yet, in which
-		// case the same query seeds the initial pause state.
+		// the CSS honors it immediately, so the control's label has to follow it.
 		onMount(() => {
 			if (!window.matchMedia) return;
 
@@ -92,10 +91,6 @@ export class ThemeStore {
 			};
 
 			sync();
-
-			if (sceneryPaused === undefined && query.matches) {
-				this.#sceneryPaused = true;
-			}
 
 			query.addEventListener('change', sync);
 
@@ -140,13 +135,9 @@ export class ThemeStore {
 		return this.#scenerySeed;
 	}
 
+	/** The recorded choice, or the OS setting while none is recorded. */
 	get sceneryPaused() {
-		return this.#sceneryPaused;
-	}
-
-	/** False while the OS asks for reduced motion — see `#prefersReducedMotion`. */
-	get sceneryMotionToggleable() {
-		return !this.#prefersReducedMotion;
+		return this.#sceneryPaused ?? this.#prefersReducedMotion;
 	}
 
 	switchTheme(newTheme: ThemeName): void {
@@ -162,9 +153,11 @@ export class ThemeStore {
 	}
 
 	toggleSceneryMotion(): void {
-		this.#sceneryPaused = !this.#sceneryPaused;
+		const isPaused = !this.sceneryPaused;
 
-		appearanceRepository.$updateSceneryMotion(this.#sceneryPaused);
+		this.#sceneryPaused = isPaused;
+
+		appearanceRepository.$updateSceneryMotion(isPaused);
 	}
 }
 

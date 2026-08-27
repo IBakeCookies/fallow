@@ -344,6 +344,24 @@ export function getClassesToAdd(themeName: ThemeName): string[] {
 export const allThemeClasses: string[] = themes.flatMap((t) => t.css);
 
 /**
+ * What an explicit scenery-motion choice stamps on `<html>` — nothing when no
+ * choice is recorded, which leaves the guarded reduced-motion query in
+ * `style/scenery/index.css` deciding. The server stamp and the store's toggle
+ * are one mapping (R3); the classes are priced in STYLE.md.
+ */
+export function getSceneryMotionClasses(isSceneryPaused: boolean | undefined): string[] {
+	if (isSceneryPaused === undefined) return [];
+
+	return [isSceneryPaused ? 'scenery-paused' : 'scenery-motion-on'];
+}
+
+/** Both motion classes — what a motion change must strip. */
+export const allSceneryMotionClasses: string[] = [
+	...getSceneryMotionClasses(true),
+	...getSceneryMotionClasses(false),
+];
+
+/**
  * A stored/untrusted theme identifier → a known theme, or undefined.
  *
  * Cookies outlive deploys: one written before a theme was removed still names

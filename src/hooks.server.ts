@@ -3,7 +3,12 @@ import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { sequence } from '@sveltejs/kit/hooks';
 import { readRequestAppearance } from '$lib/business/appearance';
-import { DEFAULT_DARK_THEME, DEFAULT_THEME, getClassesToAdd } from '$lib/business/model/theme';
+import {
+	DEFAULT_DARK_THEME,
+	DEFAULT_THEME,
+	getClassesToAdd,
+	getSceneryMotionClasses,
+} from '$lib/business/model/theme';
 
 const handleParaglide: Handle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -37,15 +42,15 @@ const handleTheme: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
-// no cookie yet leaves the placeholder empty — app.html's inline script then
-// decides from prefers-reduced-motion before first paint
+// no cookie yet leaves the placeholder empty — the guarded reduced-motion query
+// in style/scenery/index.css then decides, with no cookie read and no script
 const handleSceneryMotion: Handle = async ({ event, resolve }) => {
-	const sceneryPausedClass = readRequestAppearance(event.cookies).sceneryPaused
-		? 'scenery-paused'
-		: '';
+	const sceneryMotionClass = getSceneryMotionClasses(
+		readRequestAppearance(event.cookies).sceneryPaused,
+	).join(' ');
 
 	const response = await resolve(event, {
-		transformPageChunk: ({ html }) => html.replace('%scenery-paused%', sceneryPausedClass),
+		transformPageChunk: ({ html }) => html.replace('%scenery-motion%', sceneryMotionClass),
 	});
 
 	return response;
