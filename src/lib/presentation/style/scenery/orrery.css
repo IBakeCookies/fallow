@@ -9,9 +9,9 @@
 	/* sized and raised to sit in the clear strip above the content cards —
 	   larger rings put half the orbit behind the page */
 	--sun-x: 50%;
-	--sun-y: 8%;
-	--r-day: 3.2rem;
-	--r-week: 5.5rem;
+	--sun-y: 50%;
+	--r-day: 10rem;
+	--r-week: 20rem;
 
 	/* orbit rings + the week-start tick at the top of the outer ring */
 	.theme-helper-1 {
