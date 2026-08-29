@@ -11,8 +11,8 @@
 	--glass-height: calc(var(--glass-width) * 1.45);
 	--glass-right: clamp(1rem, 6vw, 7rem);
 	--glass-bottom: clamp(2rem, 6vh, 5rem);
-	--sand: oklch(0.72 0.11 75 / 0.7);
-	--frame: oklch(0.45 0.06 60 / 0.45);
+	--sand: oklch(0.7 0.11 72 / 0.7);
+	--frame: oklch(0.4 0.05 195 / 0.45);
 
 	.theme-helper-1,
 	.theme-helper-4 {
@@ -26,7 +26,7 @@
 	/* the glass itself: two bulbs meeting at the waist */
 	.theme-helper-1 {
 		clip-path: polygon(3% 0, 97% 0, 55% 48%, 55% 52%, 97% 100%, 3% 100%, 45% 52%, 45% 48%);
-		background: linear-gradient(oklch(0.55 0.04 80 / 0.09), oklch(0.55 0.04 80 / 0.16));
+		background: linear-gradient(oklch(0.55 0.06 190 / 0.1), oklch(0.55 0.06 190 / 0.18));
 	}
 
 	/* top bulb's sand: the surface descends from the rim toward the neck as

@@ -41,7 +41,6 @@
 @custom-variant polaris (&:is(.polaris *));
 @custom-variant city-windows (&:is(.city-windows *));
 @custom-variant orrery (&:is(.orrery *));
-@custom-variant mist (&:is(.mist *));
 @custom-variant hourglass (&:is(.hourglass *));
 @custom-variant foliage (&:is(.foliage *));
 @custom-variant circuit (&:is(.circuit *));
@@ -52,9 +51,7 @@
 @custom-variant solarized-light (&:is(.solarized-light *));
 @custom-variant graph-pad (&:is(.graph-pad *));
 @custom-variant verdigris (&:is(.verdigris *));
-@custom-variant thermal (&:is(.thermal *));
 @custom-variant weathervane (&:is(.weathervane *));
-@custom-variant understory (&:is(.understory *));
 @custom-variant vectorframe (&:is(.vectorframe *));
 
 /* Tailwind utility generation — maps semantic tokens to theme variables.
@@ -416,7 +413,11 @@
    (base.css `.solid-light`/`.solid-dark`, themes.css "the set-square themes"
    and "the rounded opaque themes", plus blueprint and parchment) it is the same
    flat ink and the rows vanished. The recessed rung is what a well cut into a
-   card is for, and it is distinct from the card on every theme. */
+   card is for, and it is distinct from the card on every theme — which became
+   true only when `--surface-inset` started being derived per side rather than
+   hand-set (STYLE.md): on the dark themes it used to measure 1.013-1.079
+   against its own card, and this row was the invisible thing the sentence
+   claimed it was not. */
 @utility log-row {
 	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-inset px-box-2xs py-text-2xs text-xs text-ty-secondary;
 }

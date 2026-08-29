@@ -70,9 +70,24 @@ Read this before touching markup, classes, or anything under
   luminance is compressed near black: one 6% tint measures ΔL 0.129 over white
   and 0.0048 over black, so a ΔL bound calls a token that does not vary broken on
   every dark theme. As a ratio that same tint reads 1.14 and 1.10, and `ghost`
-  clears the bound on every theme. Both alpha-scaling hovers (`--control-hover`,
-  `--secondary-hover`) are no-ops on an OPAQUE fill — measured step 1.000 — so
-  every theme whose `--input` is opaque sets that pair itself.
+  clears the bound on every theme. **`--control-hover` moves TWO channels, alpha and lightness,
+  and the lightness sign is the page's.** Alpha alone dies at both ends: it is a
+  no-op on an OPAQUE fill, which is why ten themes plus the two classics used to
+  set it themselves, and it is nearly a no-op where a light theme writes
+  `--input` as white at high alpha, since more white over a near-white page goes
+  nowhere — `glass-light` measured a step of exactly 1.000, no hover at all, with
+  `daybreak`, `bubblegum`, `glacier`, `sundial`, `hourglass`, `foliage` and
+  `fallow` all under the 1.03 bound. (`weathervane` had already dodged it locally
+  by tinting its `--input` slate rather than white.) Stepping lightness away from
+  the page as well gives one channel or the other somewhere to go on every theme:
+  measured after, min 1.089, none under 1.03, and all 12 hand-set
+  `--control-hover` overrides deleted. **`--secondary-hover` does NOT get the same
+  treatment, and trying it was a mistake worth recording**: its worst step was
+  already 1.044, over the bound, so there was no bug to fix — and a lightness
+  channel there is harmful, because `--secondary` is a wash of the primary whose
+  label is `ty-primary`, so lifting the fill on a dark theme walks it toward its
+  own near-white label. It stays alpha-only, and the opaque themes still set it
+  themselves.
   `hover:bg-surface-card` on an element already sitting on a card is a no-op —
   easy to miss, and on an opaque theme it is a no-op even when the element is
   NOT on a card, since nothing composites. **`hover:border-line-strong` is the
@@ -103,6 +118,32 @@ Read this before touching markup, classes, or anything under
   must be visible on every theme therefore needs a page-independent channel
   alongside it — the calendar ramps its border, which is what carries the eight
   light translucent themes.
+- **`--surface-inset` is DERIVED from the card, and its direction flips with the
+  page.** An inset is a well cut into a card, and on a light theme that means
+  darker while on a dark theme it means LIGHTER — the same thing `.solid-dark`
+  says of its three rungs, and the same sense `-strong` carries above: more
+  contrast against this theme's own background, not a fixed direction. 45 themes
+  used to hand-set it and 22 of the 25 dark ones set it to black at alpha, which
+  over a page already at L 0.09-0.16 is a well in a floor that is already the
+  bottom — the range track and `log-row` measured 1.013-1.079 against their own
+  card, invisible. Now one rule per side in `base.css` (`:root` and `.dark`),
+  ΔL 0.14 with opposite signs, and both channels move for the reason
+  `--surface-card-hover` moves both: an opaque card has no alpha to scale, a
+  white-at-6% card has no lightness left to raise, and every theme is one or the
+  other. The alpha gains differ (0.4 light, 0.09 dark) because white-on-white
+  buys almost nothing per point of alpha and white-on-near-black buys almost
+  everything. Measured across all 46: light min 1.092 → 1.127 and median 1.137 →
+  1.301, dark min 1.013 → 1.381 and median 1.056 → 1.521. Only the two opaque
+  classics still set it by hand, and deliberately: `.solid-light` and
+  `.solid-dark` are flattenings read off rendered pixels, so a derived value
+  would shift the colour they exist to preserve.
+- **`--ring` is derived too and a theme almost never needs to say so.** `:root`
+  has `color-mix(in oklch, var(--primary) 50%, transparent)`, which computes to
+  exactly `oklch(... / 0.5)` on the primary — verified against the literal — so
+  the 18 themes that restated it were writing the value they already had. What
+  survives is the 5 that genuinely differ: a different alpha (`zenith`,
+  `kintsugi` at 0.55), a different colour (`royal`, `verdigris`), or a ring that
+  is deliberately not the primary at all (`brutalist`, whose ring is its ink).
 - **`bg-control` is the neutral control fill; `bg-input` is a form field.** They
   hold the same value (`--control: var(--input)` — one per-theme knob, and every
   theme turns it), but a button naming `input` was a lie that made every
@@ -122,8 +163,10 @@ Read this before touching markup, classes, or anything under
 - **A danger control uses `bg-destructive-soft`, the one OPAQUE fill in the
   system**, with `text-destructive-foreground` (which resolves to `-strong`) on
   it. Both halves are load-bearing. `text-destructive` on it is red ink on a red
-  wash — measured at 1.97–3.42:1, exactly the mush the colour-role rule above
-  warns about. And a translucent `bg-destructive/10` inherits whatever is
+  wash, exactly the mush the colour-role rule above warns about. (The measured
+  range that stood here was taken when `--danger` was red-600; the step down to
+  red-700 moved both the ink and the wash, so it is deleted rather than
+  re-derived — no instrument covers this pair.) And a translucent `bg-destructive/10` inherits whatever is
   behind it, so on the themes with a photographic or gradient backdrop the same
   pair measured anywhere from 1.87:1 to 4.4:1 depending on where the button
   happened to sit; mixing into `--surface-page` instead makes the pairing a
@@ -165,7 +208,7 @@ Read this before touching markup, classes, or anything under
 - **`scrim` is the one surface NOT derived from `--ty-primary`, and has no
   per-theme override.** A modal scrim dims toward black on a light and a dark
   theme alike, so an ink-derived wash — the recipe every other surface here
-  follows — would brighten the 31 dark themes instead of dimming them. One
+  follows — would brighten the 25 dark themes instead of dimming them. One
   value in base.css, and `dialog-overlay.svelte` is its only caller. The dialog
   PANEL is a separate question and follows the toast: `bg-popover`
   (→ `--surface-page`), never `surface-card`, for the reason under sonner below.
