@@ -25,12 +25,10 @@
 @import './polaris.css';
 @import './city-windows.css';
 @import './orrery.css';
-@import './mist.css';
 @import './hourglass.css';
 @import './foliage.css';
 @import './circuit.css';
 @import './weathervane.css';
-@import './understory.css';
 @import './vectorframe.css';
 
 .theme-scenery {

@@ -11,7 +11,6 @@
 	--surface-page: oklch(1 0 0);
 	/* readability over the busy backdrop needs a bit more card opacity */
 	--surface-card: oklch(1 0 0 / 0.4);
-	--surface-inset: oklch(0 0 0 / 0.05);
 
 	--input: oklch(1 0 0 / 0.55);
 
@@ -30,7 +29,6 @@
 
 	--surface-page: oklch(0 0 0);
 	--surface-card: oklch(1 0 0 / 0.05);
-	--surface-inset: oklch(0 0 0 / 0.15);
 
 	/* inputs sit on translucent cards — opaque black reads too heavy here */
 	--input: oklch(1 0 0 / 0.1);
@@ -51,7 +49,6 @@
 
 	--surface-page: oklch(0.15 0.03 255);
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.2);
 	--ty-primary: oklch(0.97 0.01 190);
 
 	--input: oklch(1 0 0 / 0.12);
@@ -74,7 +71,6 @@
 
 	--surface-page: oklch(0.97 0.01 80);
 	--surface-card: oklch(1 0 0 / 0.5);
-	--surface-inset: oklch(0 0 0 / 0.05);
 	--ty-primary: oklch(0.22 0.02 320);
 
 	--input: oklch(1 0 0 / 0.6);
@@ -100,7 +96,6 @@
 
 	--surface-page: oklch(0.18 0.045 315);
 	--surface-card: oklch(1 0.02 85 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.22);
 	--ty-primary: oklch(0.96 0.02 85);
 
 	--input: oklch(1 0 0 / 0.1);
@@ -141,11 +136,9 @@
 	   happens in gamma-encoded sRGB and an oklch lerp lands ~0.03 L darker. */
 	--surface-card: oklch(0.85 0.2 145 / 0.05);
 	--surface-float: oklch(0.173 0.025 149);
-	--surface-inset: oklch(0 0 0 / 0.35);
 	--ty-primary: oklch(0.87 0.19 145);
 
 	--input: oklch(0.237 0.044 147);
-	--control-hover: oklch(0.314 0.066 146);
 	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.85 0.2 145 / 0.3);
 
@@ -162,9 +155,15 @@
 	--info: oklch(0.88 0.14 165);
 	--info-strong: oklch(0.92 0.11 165);
 
-	--mind: oklch(0.88 0.14 165);
-	--mind-strong: oklch(0.92 0.11 165);
-	--body: oklch(0.87 0.21 145);
+	/* A CRT had one phosphor and three intensities, which is the only axis this
+	   theme has to separate the nature families with: hue is spoken for. So they
+	   are a bright step, a dim step and a yellow-ward step, not three greens.
+	   `--body` used to be `0.87 0.21 145` — the same value as `--brand` and a
+	   hair off `--ty-primary`, which left the ledger's physical-difficulty
+	   column the exact colour of ordinary text. */
+	--mind: oklch(0.93 0.13 168);
+	--mind-strong: oklch(0.96 0.1 168);
+	--body: oklch(0.66 0.19 142);
 	--flow: oklch(0.85 0.17 95);
 	--mixed: oklch(0.8 0.15 120);
 	--brand: oklch(0.87 0.21 145);
@@ -194,7 +193,6 @@
 	   an oklch lerp lands ~0.03 L darker. */
 	--surface-page: oklch(0.4 0.09 256);
 	--surface-card: oklch(0.445 0.083 255);
-	--surface-inset: oklch(0.394 0.072 256);
 	--ty-primary: oklch(0.98 0.008 240);
 
 	/* Half a step darker than the composite it replaces, which the white label
@@ -203,7 +201,13 @@
 	   near-white primary over this — down to 3.54. `--secondary-hover` is set
 	   further down, deepening for the same reason. */
 	--input: oklch(0.47 0.079 256);
-	--control-hover: oklch(0.52 0.072 256);
+	/* The one theme base.css's derived hover cannot serve. That rule steps
+	   lightness AWAY from the page, which on a dark theme means up — right for
+	   every other dark theme, wrong here, because blueprint's primary is
+	   near-white so `--secondary` is already light and a white label needs the
+	   fill to go DOWN. Measured: inheriting takes the label to 3.18:1, this
+	   holds it at 8.43:1. */
+	--secondary-hover: oklch(from var(--secondary) calc(l * 0.7) c h / calc(alpha * 1.25));
 	--border: oklch(1 0 0 / 0.3);
 
 	/* drafting-pen white. Note this is the one primary in the catalogue that is
@@ -218,7 +222,6 @@
 	   fill, which for a light wash on this dark card means lighter, walking the
 	   label from 3.74 down to 2.72. Deepen instead — the one direction with
 	   room on this palette. */
-	--secondary-hover: oklch(from var(--secondary) calc(l * 0.7) c h / calc(alpha * 1.25));
 
 	/* And the same trade on the danger fill: this is the only theme whose danger
 	   pair is two LIGHT shades (red-300 fill, red-200 ink, 1.4:1 apart), so the
@@ -258,7 +261,6 @@
 
 	--surface-page: oklch(0.96 0.025 340);
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.7 0.12 350 / 0.1);
 	--ty-primary: oklch(0.35 0.09 340);
 
 	--input: oklch(1 0 0 / 0.65);
@@ -291,7 +293,6 @@
 
 	--surface-page: oklch(0.94 0.02 72);
 	--surface-card: oklch(0.98 0.012 90 / 0.6);
-	--surface-inset: oklch(0.35 0.06 255 / 0.07);
 	--ty-primary: oklch(0.28 0.045 255);
 
 	--input: oklch(1 0 0 / 0.55);
@@ -313,7 +314,6 @@
 .abyss {
 	--surface-page: oklch(0.11 0.022 245);
 	--surface-card: oklch(0.75 0.1 210 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.95 0.015 210);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -346,16 +346,14 @@
 	   lands ~0.03 L darker. */
 	--surface-page: oklch(0.92 0.03 83);
 	--surface-card: oklch(0.948 0.024 86);
-	--surface-inset: oklch(0.91 0.025 81);
 	--ty-primary: oklch(0.3 0.04 60);
 
 	--input: oklch(0.978 0.015 94);
+	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	/* The one value here that is NOT its composite, because that composite is
 	   degenerate: this field was 60% white, and `alpha * 1.7 + 0.04` clamps at
 	   1, so the old hover was flat white one step off a near-white field. Darker
 	   instead, which is also the direction a pressed area of vellum goes. */
-	--control-hover: oklch(0.93 0.022 87);
-	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.45 0.07 70 / 0.3);
 
 	/* wax-seal crimson */
@@ -385,7 +383,6 @@
 
 	--surface-page: oklch(0.16 0 0);
 	--surface-card: oklch(1 0 0 / 0.05);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.97 0 0);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -426,7 +423,6 @@
 
 	--surface-page: oklch(0.17 0.012 45);
 	--surface-card: oklch(0.85 0.08 55 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.96 0.012 60);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -454,7 +450,6 @@
 
 	--surface-page: oklch(0.96 0.015 220);
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.55 0.08 240 / 0.08);
 	--ty-primary: oklch(0.25 0.045 245);
 
 	--input: oklch(1 0 0 / 0.65);
@@ -471,41 +466,6 @@
 	--mixed: oklch(0.55 0.12 290);
 }
 
-.mist {
-	/* fog on a still morning — the world reduced to soft gray-blue layers; two
-	   banks drift at walking pace and nothing else moves (see
-	   scenery/mist.css) */
-	--background-image:
-		radial-gradient(ellipse 90% 40% at 50% 110%, oklch(0.86 0.012 240 / 0.6), transparent 70%),
-		radial-gradient(ellipse 80% 30% at 18% 40%, oklch(0.93 0.008 235 / 0.5), transparent 70%),
-		radial-gradient(ellipse 75% 28% at 85% 20%, oklch(0.95 0.006 250 / 0.45), transparent 70%),
-		linear-gradient(oklch(0.955 0.006 240), oklch(0.9 0.012 240));
-
-	--radius: 1rem;
-
-	--surface-page: oklch(0.94 0.008 240);
-	--surface-card: oklch(1 0 0 / 0.5);
-	--surface-inset: oklch(0.5 0.02 240 / 0.08);
-	--ty-primary: oklch(0.3 0.02 250);
-
-	--input: oklch(1 0 0 / 0.55);
-	--border: oklch(0.45 0.03 245 / 0.28);
-
-	/* slate seen through fog */
-	--primary: oklch(0.5 0.06 240);
-	--primary-foreground: var(--color-white);
-	--ring: oklch(0.5 0.06 240 / 0.5);
-
-	--brand: oklch(0.48 0.06 240);
-	--brand-strong: oklch(0.4 0.06 245);
-	/* pale sun behind the fog */
-	--flow: oklch(0.6 0.09 85);
-	--mind: oklch(0.5 0.08 255);
-	--mind-strong: oklch(0.42 0.08 255);
-	--body: oklch(0.52 0.08 170);
-	--mixed: oklch(0.55 0.09 305);
-}
-
 .fallow {
 	/* the namesake: a field at rest — straw-gold stubble, quiet green regrowth,
 	   a wide pale sky. Rest is not idleness; it is how the ground yields again. */
@@ -519,7 +479,6 @@
 
 	--surface-page: oklch(0.95 0.02 105);
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.45 0.06 110 / 0.08);
 	--ty-primary: oklch(0.31 0.045 130);
 
 	--input: oklch(1 0 0 / 0.6);
@@ -575,7 +534,6 @@
 	--surface-page: oklch(0.12 0.03 240);
 	/* lantern-lit river glass — translucent so the water glows through */
 	--surface-card: oklch(1 0 0 / 0.07);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.97 0.014 82);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -584,7 +542,6 @@
 	/* paper-lantern amber */
 	--primary: oklch(0.8 0.14 66);
 	--primary-foreground: oklch(0.24 0.05 58);
-	--ring: oklch(0.8 0.14 66 / 0.5);
 
 	--brand: oklch(0.82 0.115 64);
 	--brand-strong: oklch(0.88 0.085 70);
@@ -623,7 +580,6 @@
 	--surface-page: oklch(0.92 0.035 135);
 	/* sun-warmed leaf glass */
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.35 0.06 145 / 0.08);
 	--ty-primary: oklch(0.28 0.04 145);
 
 	--input: oklch(1 0 0 / 0.6);
@@ -661,7 +617,6 @@
 	--surface-page: oklch(0.09 0.025 245);
 	/* deep-space glass */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.95 0.015 240);
 
 	--input: oklch(1 0 0 / 0.08);
@@ -670,7 +625,6 @@
 	/* luminous cyan */
 	--primary: oklch(0.8 0.14 195);
 	--primary-foreground: oklch(0.14 0.03 250);
-	--ring: oklch(0.8 0.14 195 / 0.5);
 
 	--brand: oklch(0.76 0.13 200);
 	--brand-strong: oklch(0.85 0.11 200);
@@ -705,7 +659,6 @@
 	--surface-page: oklch(0.9 0.035 70);
 	/* sun-bleached canvas glass */
 	--surface-card: oklch(1 0 0 / 0.6);
-	--surface-inset: oklch(0.4 0.06 50 / 0.08);
 	--ty-primary: oklch(0.28 0.045 45);
 
 	--input: oklch(1 0 0 / 0.62);
@@ -742,7 +695,6 @@
 	--surface-page: oklch(0.1 0.05 320);
 	/* dusk glass */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.96 0.02 40);
 
 	--input: oklch(1 0 0 / 0.08);
@@ -751,7 +703,6 @@
 	/* hot magenta */
 	--primary: oklch(0.72 0.22 335);
 	--primary-foreground: oklch(0.12 0.02 320);
-	--ring: oklch(0.72 0.22 335 / 0.5);
 
 	--brand: oklch(0.72 0.2 330);
 	--brand-strong: oklch(0.82 0.16 330);
@@ -780,7 +731,6 @@
 	--surface-page: oklch(0.8 0.08 240);
 	/* cloud-white */
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.3 0.08 250 / 0.08);
 	--ty-primary: oklch(0.24 0.05 250);
 
 	--input: oklch(1 0 0 / 0.65);
@@ -832,7 +782,6 @@
 	--surface-page: oklch(0.12 0.025 290);
 	/* shadow-side glass, warmed a breath by corona light */
 	--surface-card: oklch(0.98 0.02 85 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.97 0.008 85);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -841,7 +790,6 @@
 	/* the corona itself */
 	--primary: oklch(0.92 0.08 88);
 	--primary-foreground: oklch(0.18 0.03 290);
-	--ring: oklch(0.92 0.08 88 / 0.5);
 
 	--brand: oklch(0.88 0.08 85);
 	--brand-strong: oklch(0.94 0.06 88);
@@ -884,19 +832,22 @@
 	--surface-page: oklch(0.14 0.014 300);
 	/* candlelit stone glass */
 	--surface-card: oklch(0.96 0.03 85 / 0.05);
-	--surface-inset: oklch(0 0 0 / 0.3);
 	--ty-primary: oklch(0.96 0.012 85);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.85 0.07 85 / 0.22);
 
-	/* candle gold */
-	--primary: oklch(0.8 0.12 80);
-	--primary-foreground: oklch(0.22 0.04 75);
-	--ring: oklch(0.8 0.12 80 / 0.5);
+	/* Chartres blue — the jewel the window is actually famous for, and one the
+	   scenery already pools on the floor (scenery/cathedral.css draws a blue
+	   light pool at 265). The stone around it stays candlelit: ty-primary, the
+	   card glass, the borders and both background glows are all still warm, so
+	   the blue reads as light coming THROUGH the glass rather than as a
+	   repainted nave. Was 80, in the gold band ten dark themes shared. */
+	--primary: oklch(0.76 0.13 262);
+	--primary-foreground: oklch(0.16 0.04 265);
 
-	--brand: oklch(0.84 0.1 82);
-	--brand-strong: oklch(0.9 0.08 85);
+	--brand: oklch(0.78 0.12 262);
+	--brand-strong: oklch(0.86 0.1 262);
 	/* the window's jewels */
 	--danger: oklch(0.68 0.19 20);
 	--danger-strong: oklch(0.76 0.16 20);
@@ -950,7 +901,6 @@
 	--surface-page: oklch(0.13 0.02 265);
 	/* station-window glass */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.28);
 	--ty-primary: oklch(0.96 0.008 230);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -959,7 +909,6 @@
 	/* first light over the limb */
 	--primary: oklch(0.87 0.1 80);
 	--primary-foreground: oklch(0.2 0.03 270);
-	--ring: oklch(0.87 0.1 80 / 0.5);
 
 	--brand: oklch(0.82 0.09 225);
 	--brand-strong: oklch(0.9 0.07 225);
@@ -991,7 +940,6 @@
 	--surface-page: oklch(0.92 0.02 88);
 	/* sun-bleached plaster */
 	--surface-card: oklch(1 0 0 / 0.6);
-	--surface-inset: oklch(0.35 0.04 70 / 0.07);
 	--ty-primary: oklch(0.3 0.03 60);
 
 	--input: oklch(1 0 0 / 0.7);
@@ -1000,7 +948,6 @@
 	/* the bronze gnomon */
 	--primary: oklch(0.55 0.1 65);
 	--primary-foreground: oklch(0.97 0.01 85);
-	--ring: oklch(0.55 0.1 65 / 0.5);
 
 	--brand: oklch(0.5 0.09 60);
 	--brand-strong: oklch(0.42 0.09 55);
@@ -1032,7 +979,6 @@
 	--surface-page: oklch(0.16 0.03 262);
 	/* moonlit glass */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.25);
 	--ty-primary: oklch(0.96 0.01 230);
 
 	--input: oklch(1 0 0 / 0.1);
@@ -1041,7 +987,6 @@
 	/* the moon itself */
 	--primary: oklch(0.88 0.04 230);
 	--primary-foreground: oklch(0.2 0.04 260);
-	--ring: oklch(0.88 0.04 230 / 0.5);
 
 	--brand: oklch(0.82 0.06 235);
 	--brand-strong: oklch(0.9 0.05 235);
@@ -1064,7 +1009,6 @@
 	--surface-page: oklch(0.9 0.025 215);
 	/* sea-mist glass */
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.3 0.06 230 / 0.08);
 	--ty-primary: oklch(0.26 0.04 240);
 
 	--input: oklch(1 0 0 / 0.65);
@@ -1073,7 +1017,6 @@
 	/* sea teal */
 	--primary: oklch(0.55 0.1 220);
 	--primary-foreground: oklch(0.97 0.01 210);
-	--ring: oklch(0.55 0.1 220 / 0.5);
 
 	--brand: oklch(0.5 0.09 225);
 	--brand-strong: oklch(0.42 0.09 230);
@@ -1096,7 +1039,6 @@
 	--surface-page: oklch(0.14 0.028 275);
 	/* held-breath glass */
 	--surface-card: oklch(1 0 0 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.28);
 	--ty-primary: oklch(0.94 0.01 220);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -1105,7 +1047,6 @@
 	/* the exhale glow */
 	--primary: oklch(0.8 0.08 200);
 	--primary-foreground: oklch(0.18 0.03 270);
-	--ring: oklch(0.8 0.08 200 / 0.5);
 
 	--brand: oklch(0.78 0.07 205);
 	--brand-strong: oklch(0.86 0.06 205);
@@ -1129,7 +1070,6 @@
 	--surface-page: oklch(0.15 0.025 255);
 	/* frost glass */
 	--surface-card: oklch(1 0 0 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.26);
 	--ty-primary: oklch(0.95 0.01 240);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -1138,7 +1078,6 @@
 	/* the pole star */
 	--primary: oklch(0.9 0.03 240);
 	--primary-foreground: oklch(0.18 0.03 255);
-	--ring: oklch(0.9 0.03 240 / 0.5);
 
 	--brand: oklch(0.84 0.05 245);
 	--brand-strong: oklch(0.9 0.045 245);
@@ -1162,7 +1101,6 @@
 	--surface-page: oklch(0.15 0.03 268);
 	/* high-rise glass */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.26);
 	--ty-primary: oklch(0.95 0.01 85);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -1171,7 +1109,6 @@
 	/* lit-window amber */
 	--primary: oklch(0.84 0.11 80);
 	--primary-foreground: oklch(0.2 0.04 270);
-	--ring: oklch(0.84 0.11 80 / 0.5);
 
 	--brand: oklch(0.8 0.09 80);
 	--brand-strong: oklch(0.88 0.08 80);
@@ -1194,7 +1131,6 @@
 	--surface-page: oklch(0.16 0.025 262);
 	/* observatory glass */
 	--surface-card: oklch(1 0 0 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.26);
 	--ty-primary: oklch(0.95 0.01 90);
 
 	--input: oklch(1 0 0 / 0.09);
@@ -1203,7 +1139,6 @@
 	/* the brass sun */
 	--primary: oklch(0.86 0.09 85);
 	--primary-foreground: oklch(0.2 0.03 262);
-	--ring: oklch(0.86 0.09 85 / 0.5);
 
 	--brand: oklch(0.82 0.08 85);
 	--brand-strong: oklch(0.9 0.07 85);
@@ -1217,35 +1152,35 @@
 }
 
 .hourglass {
-	/* sand through glass — the scenery's hourglass drains over each hour and
-	   flips itself on the :00 (see scenery/hourglass.css). Warm sand,
-	   pale glass. */
+	/* green apothecary glass — the hour drained through it. The glass is cool
+	   (which is what keeps this off sundial's amber field, the other theme that
+	   draws the hour); the sand inside it stays the one warm note. See
+	   scenery/hourglass.css. */
 	--background-image:
-		radial-gradient(ellipse 80% 45% at 78% -5%, oklch(0.93 0.035 80 / 0.5), transparent 68%),
-		radial-gradient(ellipse 90% 50% at 12% 112%, oklch(0.88 0.05 75 / 0.4), transparent 65%),
-		linear-gradient(oklch(0.97 0.008 90), oklch(0.92 0.02 85));
+		radial-gradient(ellipse 80% 45% at 78% -5%, oklch(0.94 0.03 195 / 0.5), transparent 68%),
+		radial-gradient(ellipse 90% 50% at 12% 112%, oklch(0.9 0.04 185 / 0.4), transparent 65%),
+		linear-gradient(oklch(0.97 0.008 195), oklch(0.93 0.02 190));
 
 	--radius: 0.75rem;
 
-	--surface-page: oklch(0.95 0.012 85);
+	--surface-page: oklch(0.95 0.016 192);
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.5 0.06 80 / 0.08);
-	--ty-primary: oklch(0.3 0.03 70);
+	--ty-primary: oklch(0.28 0.04 195);
 
 	--input: oklch(1 0 0 / 0.6);
-	--border: oklch(0.5 0.06 75 / 0.25);
+	--border: oklch(0.4 0.05 195 / 0.25);
 
-	/* poured sand */
-	--primary: oklch(0.6 0.11 70);
+	/* the glass */
+	--primary: oklch(0.53 0.1 190);
 	--primary-foreground: var(--color-white);
-	--ring: oklch(0.6 0.11 70 / 0.5);
 
-	--brand: oklch(0.52 0.1 70);
-	--brand-strong: oklch(0.45 0.1 72);
-	--flow: oklch(0.65 0.13 85);
-	--mind: oklch(0.52 0.1 250);
-	--mind-strong: oklch(0.44 0.1 250);
-	--body: oklch(0.52 0.1 170);
+	--brand: oklch(0.5 0.09 190);
+	--brand-strong: oklch(0.42 0.09 192);
+	/* poured sand — the warm note, and the only one */
+	--flow: oklch(0.62 0.11 75);
+	--mind: oklch(0.5 0.09 250);
+	--mind-strong: oklch(0.42 0.09 252);
+	--body: oklch(0.55 0.09 150);
 	--mixed: oklch(0.55 0.11 310);
 }
 
@@ -1262,7 +1197,6 @@
 
 	--surface-page: oklch(0.95 0.015 110);
 	--surface-card: oklch(1 0 0 / 0.55);
-	--surface-inset: oklch(0.45 0.06 130 / 0.08);
 	--ty-primary: oklch(0.3 0.045 135);
 
 	--input: oklch(1 0 0 / 0.6);
@@ -1271,7 +1205,6 @@
 	/* leaf green */
 	--primary: oklch(0.53 0.11 140);
 	--primary-foreground: var(--color-white);
-	--ring: oklch(0.53 0.11 140 / 0.5);
 
 	--brand: oklch(0.5 0.1 138);
 	--brand-strong: oklch(0.43 0.1 140);
@@ -1296,19 +1229,21 @@
 	--surface-page: oklch(0.15 0.02 218);
 	/* conformal coating */
 	--surface-card: oklch(1 0 0 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.26);
 	--ty-primary: oklch(0.94 0.015 180);
 
 	--input: oklch(1 0 0 / 0.09);
 	--border: oklch(0.8 0.06 180 / 0.2);
 
-	/* copper trace */
-	--primary: oklch(0.78 0.11 60);
+	/* Solder-mask green, lit. Copper was the old accent and it put this theme in
+	   the 60-88 band that ten of the dark themes shared; green is the more
+	   PCB-native colour anyway, and 122 was the widest empty stretch in the dark
+	   catalogue. The traces themselves are unaffected — scenery/circuit.css
+	   drives their hue off --circuit-heat, not off this. */
+	--primary: oklch(0.85 0.18 122);
 	--primary-foreground: oklch(0.18 0.02 215);
-	--ring: oklch(0.78 0.11 60 / 0.5);
 
-	--brand: oklch(0.75 0.1 60);
-	--brand-strong: oklch(0.85 0.09 60);
+	--brand: oklch(0.83 0.17 122);
+	--brand-strong: oklch(0.9 0.14 124);
 	/* status LEDs */
 	--flow: oklch(0.8 0.13 85);
 	--mind: oklch(0.75 0.1 220);
@@ -1330,7 +1265,6 @@
 
 	--surface-page: oklch(0.17 0.022 55);
 	--surface-card: oklch(1 0 0 / 0.055);
-	--surface-inset: oklch(0 0 0 / 0.22);
 	--ty-primary: oklch(0.96 0.02 170);
 
 	--input: oklch(1 0 0 / 0.1);
@@ -1353,118 +1287,54 @@
 	--mixed: oklch(0.72 0.09 320);
 }
 
-.thermal {
-	/* A sequential colormap read as a room — indigo where nothing is happening,
-	   magenta and amber where it is. The one palette here taken off a data ramp
-	   rather than off a picture, so the domain inks are ORDERED along it
-	   (mind 285 → mixed 320 → body 355 → brand 40 → flow 80) instead of merely
-	   being far enough apart. */
-	--background-image:
-		radial-gradient(ellipse 65% 50% at 62% 10%, oklch(0.6 0.2 25 / 0.28), transparent 66%),
-		radial-gradient(ellipse 55% 40% at 32% 45%, oklch(0.55 0.22 330 / 0.26), transparent 66%),
-		radial-gradient(ellipse 80% 45% at 50% 112%, oklch(0.45 0.15 300 / 0.35), transparent 68%),
-		linear-gradient(oklch(0.16 0.045 285), oklch(0.12 0.04 290));
-
-	--surface-page: oklch(0.15 0.04 287);
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.24);
-	--ty-primary: oklch(0.95 0.015 60);
-
-	--input: oklch(1 0 0 / 0.11);
-	--border: oklch(0.8 0.08 45 / 0.22);
-	--ring: oklch(0.8 0.14 65 / 0.5);
-
-	/* the hot end */
-	--primary: oklch(0.82 0.15 70);
-	--primary-foreground: oklch(0.18 0.04 290);
-
-	--brand: oklch(0.8 0.15 40);
-	--brand-strong: oklch(0.87 0.13 45);
-	--flow: oklch(0.87 0.14 80);
-	--mind: oklch(0.7 0.12 285);
-	--mind-strong: oklch(0.79 0.11 285);
-	--body: oklch(0.75 0.13 355);
-	--mixed: oklch(0.72 0.15 320);
-}
-
 .weathervane {
 	/* A field of vanes on a fixed grid, every one turned to the same bearing:
 	   the hour hand's. Straight up at 12, right at 3, half a degree a minute —
 	   the page is the clock (see scenery/weathervane.css).
+
+	   Gloaming: the vanes read as dark iron against a dusk sky, with the last
+	   warm light low on the horizon. Violet is the one accent hue no other light
+	   theme holds — the catalogue's pale accents run 0 to 265 and then jump to
+	   bubblegum at 350 — and it is also what keeps this off sundial, whose brass
+	   this used to share to the degree.
 
 	   Translucent, against the usual verdict for a repeated motif. The grid is
 	   7rem and the blades 2.4rem, which is structure a 2rem blur softens but
 	   cannot average away, so a card over the field still shows which way the
 	   vanes beneath it point — and unlike a texture, this backdrop MOVES, which
 	   is the other half of the same test. */
-	--background-image: linear-gradient(oklch(0.975 0.007 235), oklch(0.93 0.016 240));
+	--background-image:
+		radial-gradient(ellipse 95% 42% at 50% 100%, oklch(0.87 0.07 48 / 0.5), transparent 72%),
+		linear-gradient(oklch(0.965 0.018 305), oklch(0.915 0.032 300));
 
 	--radius: 0.5rem;
 
-	--surface-page: oklch(0.96 0.01 237);
+	--surface-page: oklch(0.94 0.028 305);
 	--surface-card: oklch(1 0 0 / 0.62);
-	--surface-inset: oklch(0.4 0.03 245 / 0.08);
-	--ty-primary: oklch(0.26 0.02 250);
+	--ty-primary: oklch(0.27 0.04 305);
 
-	/* Slate-tinted rather than white, which is what every other pale theme uses:
-	   `--control-hover` scales this alpha, and 0.66 white over a near-white page
-	   scales to 1.0 and clamps — the hover measured step 1.029, invisible. A dark
-	   tint at low alpha has somewhere to go. */
-	--input: oklch(0.42 0.035 245 / 0.1);
-	--border: oklch(0.42 0.03 245 / 0.26);
+	/* Heather-tinted rather than white, which is what every other pale theme
+	   uses: 0.66 white over a near-white page scales to 1.0 and clamps — the hover
+	   measured step 1.029, invisible. A dark tint at low alpha has somewhere to
+	   go. `--control-hover` now steps lightness too and would carry a white fill
+	   here regardless, but the tint is still the better fill: it gives the hover
+	   both channels rather than one. */
+	--input: oklch(0.4 0.045 305 / 0.1);
+	--border: oklch(0.4 0.04 305 / 0.26);
 
-	/* the vane itself is brass on a slate-blue sky — the accent is the metal,
-	   which is also what keeps this off mist's slate */
-	--primary: oklch(0.52 0.1 65);
-	--primary-foreground: oklch(0.98 0.01 90);
-	--ring: oklch(0.52 0.1 65 / 0.5);
+	/* the dusk itself is the accent; the metal is a silhouette in the scenery */
+	--primary: oklch(0.53 0.11 308);
+	--primary-foreground: oklch(0.98 0.012 305);
 
-	--brand: oklch(0.52 0.1 65);
-	--brand-strong: oklch(0.44 0.09 62);
-	--flow: oklch(0.55 0.12 75);
+	--brand: oklch(0.53 0.11 308);
+	--brand-strong: oklch(0.45 0.11 305);
+	/* the last warm light, low on the horizon */
+	--flow: oklch(0.62 0.11 40);
 	--mind: oklch(0.47 0.09 250);
 	--mind-strong: oklch(0.39 0.09 250);
 	--body: oklch(0.48 0.1 170);
-	--mixed: oklch(0.48 0.11 310);
-}
-
-.understory {
-	/* night forest floor — moonlight filtered through the canopy above, moss
-	   glow pooling below; drifting fireflies and leaf-shade dapple are theme
-	   scenery (see scenery/understory.css) */
-	--background-image:
-		radial-gradient(ellipse 80% 50% at 50% -10%, oklch(0.32 0.04 140 / 0.3), transparent 70%),
-		radial-gradient(ellipse 90% 45% at 50% 115%, oklch(0.34 0.05 150 / 0.35), transparent 70%),
-		linear-gradient(oklch(0.12 0.02 150), oklch(0.08 0.018 155));
-
-	--radius: 1rem;
-
-	--surface-page: oklch(0.11 0.018 152);
-	/* moss-lit glass */
-	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.28);
-	--ty-primary: oklch(0.95 0.02 130);
-
-	--input: oklch(1 0 0 / 0.09);
-	--border: oklch(0.85 0.06 140 / 0.2);
-
-	/* lichen glow */
-	--primary: oklch(0.78 0.12 140);
-	--primary-foreground: oklch(0.15 0.03 150);
-	--ring: oklch(0.78 0.12 140 / 0.5);
-
-	/* moss and lichen, near the primary */
-	--brand: oklch(0.76 0.12 142);
-	--brand-strong: oklch(0.84 0.1 140);
-	/* firefly gold */
-	--flow: oklch(0.82 0.13 85);
-	/* moonlit slate */
-	--mind: oklch(0.76 0.09 250);
-	--mind-strong: oklch(0.84 0.07 252);
-	/* spruce teal — kept clear of the lichen primary */
-	--body: oklch(0.74 0.1 170);
-	/* night orchid */
-	--mixed: oklch(0.73 0.12 310);
+	/* moved off 310, which the brand now holds */
+	--mixed: oklch(0.5 0.12 350);
 }
 
 .vectorframe {
@@ -1474,7 +1344,7 @@
 	   (--radius: 0). The conduits and their pulse are theme scenery, see
 	   scenery/vectorframe.css. */
 	--background-image:
-		radial-gradient(ellipse 55% 40% at 15% 10%, oklch(0.34 0.08 70 / 0.16), transparent 70%),
+		radial-gradient(ellipse 55% 40% at 15% 10%, oklch(0.32 0.08 235 / 0.16), transparent 70%),
 		radial-gradient(ellipse 60% 45% at 88% 85%, oklch(0.28 0.09 195 / 0.14), transparent 72%),
 		radial-gradient(ellipse 45% 38% at 55% 45%, oklch(0.3 0.1 280 / 0.08), transparent 70%),
 		linear-gradient(oklch(0.15 0.032 245), oklch(0.05 0.016 240));
@@ -1484,19 +1354,20 @@
 	--surface-page: oklch(0.09 0.025 245);
 	/* deep-space glass */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(0 0 0 / 0.3);
-	--ty-primary: oklch(0.95 0.02 80);
+	--ty-primary: oklch(0.95 0.015 230);
 
 	--input: oklch(1 0 0 / 0.08);
-	--border: oklch(0.8 0.07 75 / 0.2);
+	--border: oklch(0.8 0.06 230 / 0.2);
 
-	/* frame amber */
-	--primary: oklch(0.79 0.15 65);
-	--primary-foreground: oklch(0.16 0.04 60);
-	--ring: oklch(0.79 0.15 65 / 0.5);
+	/* The conduit pulse. Every colour scenery/vectorframe.css draws is blue —
+	   the pulse at 198, the glow-nodes from 205 to 240 — so the amber this used
+	   to carry described a frame the theme does not draw, on top of putting it in
+	   the gold band ten dark themes shared. */
+	--primary: oklch(0.8 0.14 228);
+	--primary-foreground: oklch(0.14 0.03 235);
 
-	--brand: oklch(0.76 0.14 62);
-	--brand-strong: oklch(0.85 0.11 68);
+	--brand: oklch(0.77 0.13 228);
+	--brand-strong: oklch(0.86 0.1 230);
 	/* tracer cyan */
 	--flow: oklch(0.82 0.13 195);
 	/* runner violet */
@@ -1519,7 +1390,7 @@
    card, so translucency buys nothing there and these themes are the same
    bargain — see those two, plus classic light/dark in base.css. Alpha earns
    its keep only where the backdrop has large soft structure or MOVES:
-   daybreak's sun, mist's drifting banks, moonphase's real phase. Most of
+   daybreak's sun, glacier's falling snow, moonphase's real phase. Most of
    the catalogue is on that side of the line.
 
    Two consequences of going opaque, both paid for below rather than argued
@@ -1531,11 +1402,10 @@
      which with `--radius: 0` and a heavy `--border` is the whole visual
      language anyway. A nested card with no border of its own has to take the
      inset rung instead, which is what `log-row` does.
-   - Both alpha-scaling hovers in base.css (`--control-hover`,
-     `--secondary-hover`) are no-ops on an opaque fill —
-     `scripts/hover-contrast.mjs` measured step 1.000 — so each theme sets
-     that pair itself, as base.css says a theme with an opaque `--input`
-     must.
+   - `--control-hover` in base.css used to be set here, because scaling an alpha
+     is a no-op on an opaque fill. It now steps lightness as well, which an
+     opaque fill can always move, so these themes inherit it. `--secondary-hover`
+     is still set per theme: it is alpha-only by design (see base.css).
 
    In exchange, chrome that floats over scrolling content — the sticky nav
    bar, its dropdown triggers — is genuinely solid. On a `--blur: 0` theme
@@ -1559,11 +1429,9 @@
 	   against it is its own smooth face, so the texture stops at the edge */
 	--surface-page: oklch(0.86 0.005 95);
 	--surface-card: oklch(0.965 0.004 95);
-	--surface-inset: oklch(0.895 0.005 95);
 	--ty-primary: oklch(0.15 0.004 95);
 
 	--input: oklch(0.925 0.004 95);
-	--control-hover: oklch(0.86 0.006 95);
 	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	/* near-solid ink outline; the shadow lands on it, so anything fainter
 	   reads as a printing error rather than a rule */
@@ -1612,12 +1480,10 @@
 	   it does not tint what is underneath */
 	--surface-page: oklch(0.95 0.016 85);
 	--surface-card: oklch(0.985 0.008 85);
-	--surface-inset: oklch(0.915 0.024 85);
 	/* riso ink is never black — the darkest thing on the sheet is the blue */
 	--ty-primary: oklch(0.3 0.1 265);
 
 	--input: oklch(0.93 0.02 85);
-	--control-hover: oklch(0.87 0.03 80);
 	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.42 0.16 265 / 0.45);
 	--line-soft: oklch(0.42 0.16 265 / 0.16);
@@ -1650,10 +1516,10 @@
    backdrop at all, graph-pad's rule is a fine texture a 2rem blur averages
    to one wash, and Solarized is a fixed palette rather than a picture.
 
-   So each of them sets `--control-hover` and `--secondary-hover`
-   itself, which base.css derives by scaling an alpha that is no longer
-   there, and each keeps `--surface-card` opaque so the sticky nav bar
-   does not turn into a window. */
+   Each keeps `--surface-card` opaque so the sticky nav bar does not turn into a
+   window, and each still sets `--secondary-hover`, which base.css derives by
+   scaling an alpha that is not there on an opaque fill. `--control-hover` they
+   now inherit: it carries a lightness channel an opaque fill can move. */
 
 .eink {
 	/* Electrophoretic paper: the pigment sits IN the sheet. Nothing floats,
@@ -1669,12 +1535,10 @@
 	   of blue or warm, and this one cannot: the panel has no colour channel. */
 	--surface-page: oklch(0.9 0 0);
 	--surface-card: oklch(0.97 0 0);
-	--surface-inset: oklch(0.855 0 0);
 	/* e-ink black is a dark grey; the pigment never reaches ink black */
 	--ty-primary: oklch(0.22 0 0);
 
 	--input: oklch(0.925 0 0);
-	--control-hover: oklch(0.87 0 0);
 	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	/* no shadow and no fill weight left, so the rule does all the separating */
 	--border: oklch(0.22 0 0 / 0.4);
@@ -1715,11 +1579,9 @@
 	/* the rungs climb on a dark page, as in `.solid-dark` */
 	--surface-page: oklch(0.15 0.012 40);
 	--surface-card: oklch(0.21 0.014 40);
-	--surface-inset: oklch(0.27 0.016 45);
 	--ty-primary: oklch(0.95 0.012 85);
 
 	--input: oklch(0.26 0.016 45);
-	--control-hover: oklch(0.33 0.018 50);
 	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 	--border: oklch(0.75 0.11 85 / 0.45);
 	--line-soft: oklch(0.75 0.11 85 / 0.18);
@@ -1756,13 +1618,11 @@
 	--surface-page: oklch(0.931 0.026 92); /* base2 */
 	--surface-card: oklch(0.974 0.026 90); /* base3 */
 	/* one rung below base2, extrapolated on the same ramp */
-	--surface-inset: oklch(0.898 0.028 92);
 	/* base02, not base01: base01 is the palette's emphasized text and reads
 	   5.4:1 here, so the derived secondary at 70% of it lands at 3.6:1 */
 	--ty-primary: oklch(0.309 0.052 220); /* base02 */
 
 	--input: oklch(0.898 0.028 92);
-	--control-hover: oklch(0.85 0.032 92);
 	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.523 0.028 219 / 0.4); /* base01 */
 	--line-soft: oklch(0.523 0.028 219 / 0.16);
@@ -1812,12 +1672,10 @@
 	   begins — same reason brutalist's form-board grain stops at a slab edge */
 	--surface-page: oklch(0.95 0.024 94);
 	--surface-card: oklch(0.985 0.014 95);
-	--surface-inset: oklch(0.925 0.028 94);
 	/* pencil, not ink */
 	--ty-primary: oklch(0.25 0.02 160);
 
 	--input: oklch(0.945 0.022 95);
-	--control-hover: oklch(0.895 0.028 95);
 	--secondary-hover: color-mix(in oklab, var(--primary) 38%, var(--control));
 	--border: oklch(0.45 0.07 152 / 0.35);
 	--line-soft: oklch(0.45 0.07 152 / 0.14);
@@ -1851,11 +1709,9 @@
 	/* the rungs climb on a dark page, as in `.solid-dark` */
 	--surface-page: oklch(0.15 0.008 155);
 	--surface-card: oklch(0.185 0.008 155);
-	--surface-inset: oklch(0.215 0.008 155);
 	--ty-primary: oklch(0.97 0.006 155);
 
 	--input: oklch(0.24 0.008 155);
-	--control-hover: oklch(0.3 0.01 155);
 	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 	--border: oklch(1 0 0 / 0.13);
 	--line-soft: oklch(1 0 0 / 0.07);

@@ -93,7 +93,26 @@
 	   heavier border (see `.solid-light` below and, in themes.css, "the
 	   set-square themes" and "the rounded opaque themes"). */
 	--surface-card: oklch(1 0 0 / 0.7);
-	--surface-inset: oklch(0.25 0.02 260 / 0.08);
+
+	/* DERIVED, and the only place it is set outside the two opaque classics —
+	   45 themes hand-set this and 22 of the 25 dark ones set it to black at
+	   alpha, which on a page already at L 0.09-0.16 is a well cut into a floor
+	   that is already the bottom: the range track measured 1.013-1.079 against
+	   its own card, i.e. invisible. Direction is the whole point and it flips
+	   with the page, exactly as `.solid-dark` says of its three rungs — an inset
+	   RECEDES on a light theme and CLIMBS on a dark one — so the two sides carry
+	   the same 0.14 step with opposite sign.
+
+	   Both channels move for the same reason `--surface-card-hover` moves both:
+	   an opaque card has no alpha to scale and a white-at-6% card has no
+	   lightness left to raise, and every theme is one or the other. The alpha
+	   gains differ because the light side is white-on-white, where alpha buys
+	   almost nothing, and the dark side is white-on-near-black, where it buys
+	   almost everything. Measured over all 46: light min 1.092 -> 1.127, median
+	   1.137 -> 1.301; dark min 1.013 -> 1.381, median 1.056 -> 1.521. */
+	--surface-inset: oklch(
+		from var(--surface-card) calc(l - 0.14) c h / calc(alpha + (1 - alpha) * 0.4)
+	);
 
 	/* Chrome that floats OVER scrolling content — the sticky nav bar. A
 	   translucent card is only safe there because `backdrop-blur` smears what
@@ -155,9 +174,22 @@
 	   Scaling alpha is proportional by construction, so one factor holds across
 	   the catalogue: a faint fill gains a little, an assertive one gains a lot,
 	   and the direction follows whatever tint the theme chose (whiter on dark
-	   themes, deeper on light ones). Caveat: it is a no-op on an OPAQUE fill, so
-	   a theme that makes `--input` opaque must set `--control-hover` itself. */
-	--control-hover: oklch(from var(--control) l c h / calc(alpha * 1.7 + 0.04));
+	   themes, deeper on light ones).
+
+	   Alpha alone is not enough, and for the reason `--surface-card-hover` below
+	   moves two channels: a fill has whichever headroom its alpha left it. Scaling
+	   alpha is a no-op on an OPAQUE fill — the caveat this comment used to end on,
+	   which is why ten themes set the token themselves — and it is very nearly a
+	   no-op at the other end too, where a light theme writes `--input` as white at
+	   high alpha and more white over a near-white page goes nowhere: glass-light
+	   measured a step of exactly 1.000, no hover at all, with daybreak, bubblegum,
+	   glacier, sundial, hourglass, foliage and fallow all under the 1.03 bound.
+	   (Weathervane already dodged this locally by tinting its `--input` slate
+	   instead of white — see that theme.) So step the LIGHTNESS away from the page
+	   as well; between them one channel always has somewhere to go. The sign is
+	   the page's, as it is for `--surface-inset`, so `.dark` carries its own copy.
+	   Measured over all 46 after: min 1.089, none under 1.03. */
+	--control-hover: oklch(from var(--control) calc(l - 0.06) c h / calc(alpha * 1.7 + 0.04));
 
 	/* The card's own paired hover, and it LIFTS rather than tinting. A card is
 	   lighter than its page on every theme in the catalogue, so raising lightness
@@ -229,6 +261,12 @@
 	   30% of a green primary (h 155) landed at h≈46 and painted the button
 	   peach. oklab has no hue channel to drag. */
 	--secondary: color-mix(in oklab, var(--primary) 22%, var(--control));
+	/* Alpha only, unlike `--control-hover` above. This one never had that token's
+	   problem — its worst step across the catalogue measured 1.044, over the 1.03
+	   bound — and a lightness channel here is actively harmful: `--secondary` is a
+	   wash of the primary, `--secondary-foreground` is `ty-primary`, and on a dark
+	   theme lifting the fill walks it toward the near-white label. The themes with
+	   an opaque `--input` still set this pair themselves, as they always did. */
 	--secondary-hover: oklch(from var(--secondary) l c h / calc(alpha * 1.45));
 	--secondary-foreground: var(--ty-primary);
 	--muted: color-mix(in oklch, var(--ty-primary) 10%, transparent);
@@ -256,8 +294,15 @@
 	--destructive-soft-hover: color-mix(in oklab, var(--destructive) 18%, var(--surface-page));
 
 	/* states + domain accents (light shades; .dark swaps them) */
-	--danger: var(--color-red-600);
-	--danger-strong: var(--color-red-700);
+
+	/* red-600 (L 0.577) is the shade the scale asks for here and it caps at
+	   4.30:1 against its best ink — under AA, on every light theme at once,
+	   which scripts/ink-contrast.mjs reports as fill-capped and passes by
+	   design (the cap is the fill's, not the ink derivation's). One step down
+	   clears it for all of them; `-strong` follows so the pair keeps its
+	   meaning. */
+	--danger: var(--color-red-700);
+	--danger-strong: var(--color-red-800);
 	--warning: var(--color-amber-600);
 	--warning-strong: var(--color-amber-700);
 	--success: var(--color-emerald-600);
@@ -342,10 +387,12 @@
      carries a border. A nested card WITHOUT one has nothing left to separate
      it and must use the inset rung instead —
      that is why `log-row` does (tokens.css).
-   - Both alpha-scaling hovers above (`--control-hover`, `--secondary-hover`)
-     are no-ops on an opaque fill, so each block sets that pair itself, as
-     the `--control-hover` comment says a theme with an opaque `--input`
-     must.
+   - `--control-hover` used to be set here, because scaling alpha is a no-op on
+     an opaque fill and these two blocks are the opaque ones. It now carries a
+     lightness channel as well (see `:root`), which an opaque fill can always
+     move, so both blocks inherit it. `--secondary-hover` is still set in each:
+     that one stays alpha-only on purpose, so the opaque bargain still applies
+     to it.
 
    Same specificity as the block above and later in the file, so these win;
    `.solid-dark` sits after `.dark` for the same reason.
@@ -369,7 +416,6 @@
 	   the fill only has to be a tint — which is what the rest of this block is
 	   about: print separates by rule, not by weight. */
 	--input: oklch(0.955 0.001 286);
-	--control-hover: oklch(0.9 0.001 286);
 	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 }
 
@@ -450,12 +496,21 @@
 	/* black-on-dark needs more weight to read as depth */
 	--card-shadow: 0 16px 40px -12px oklch(0 0 0 / 0.5);
 
+	/* The two control hovers with the lightness step flipped — on a dark page the
+	   direction away from it is up. See `:root` for why the channel exists. */
+	--control-hover: oklch(from var(--control) calc(l + 0.06) c h / calc(alpha * 1.7 + 0.04));
+
 	--surface-page: oklch(0.2 0.015 285);
 	/* translucent for the same reason as :root, and WHITE on both rungs: on a
 	   dark page the recessed surface is the lighter one, which is what the
 	   opaque pair it replaces (0.26 card, 0.32 inset) already said */
 	--surface-card: oklch(1 0 0 / 0.06);
-	--surface-inset: oklch(1 0 0 / 0.12);
+	/* The light rule with the sign flipped — see `:root`. The alpha gain is
+	   smaller because a white card over a near-black page gains far more per
+	   point of alpha than a white card over a white one. */
+	--surface-inset: oklch(
+		from var(--surface-card) calc(l + 0.14) c h / calc(alpha + (1 - alpha) * 0.06)
+	);
 	--ty-primary: oklch(1 0 0);
 	--primary: oklch(0.55 0.2 285);
 	--primary-foreground: var(--color-white);
@@ -511,6 +566,5 @@
 	--surface-card: oklch(0.26 0.015 285);
 	--surface-inset: oklch(0.363 0.012 286);
 	--input: oklch(0.347 0.012 286);
-	--control-hover: oklch(0.437 0.011 286);
 	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 }

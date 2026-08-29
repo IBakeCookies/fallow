@@ -17,7 +17,7 @@
 
 	--vane-grid: 7rem;
 	--vane-len: 2.4rem;
-	--vane-ink: oklch(0.45 0.04 245 / 0.3);
+	--vane-ink: oklch(0.38 0.04 305 / 0.32);
 	/* the tip, in the angle's own convention: +sin east, -cos north. Named
 	   because the head's fill and the mask that ends it must land on the same
 	   point, and a second copy of this arithmetic is a second thing to keep
@@ -74,7 +74,7 @@
 	.theme-helper-3 {
 		background-image: radial-gradient(
 			circle 0.1rem at 50% 50%,
-			oklch(0.45 0.04 245 / 0.22) 0 55%,
+			oklch(0.38 0.04 305 / 0.24) 0 55%,
 			transparent 70%
 		);
 	}

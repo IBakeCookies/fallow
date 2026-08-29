@@ -42,7 +42,6 @@ export type ThemeName =
 	| 'polaris'
 	| 'city-windows'
 	| 'orrery'
-	| 'mist'
 	| 'hourglass'
 	| 'foliage'
 	| 'circuit'
@@ -53,9 +52,7 @@ export type ThemeName =
 	| 'solarized-light'
 	| 'graph-pad'
 	| 'verdigris'
-	| 'thermal'
 	| 'weathervane'
-	| 'understory'
 	| 'vectorframe';
 
 export interface ThemeItem {
@@ -241,11 +238,6 @@ export const themes: ThemeItem[] = [
 		css: ['orrery', 'dark'],
 	},
 	{
-		name: 'mist',
-		label: 'Mist',
-		css: ['mist'],
-	},
-	{
 		name: 'hourglass',
 		label: 'Hourglass',
 		css: ['hourglass'],
@@ -296,19 +288,9 @@ export const themes: ThemeItem[] = [
 		css: ['verdigris', 'dark'],
 	},
 	{
-		name: 'thermal',
-		label: 'Thermal',
-		css: ['thermal', 'dark'],
-	},
-	{
 		name: 'weathervane',
 		label: 'Weathervane',
 		css: ['weathervane'],
-	},
-	{
-		name: 'understory',
-		label: 'Understory',
-		css: ['understory', 'dark'],
 	},
 	{
 		name: 'vectorframe',

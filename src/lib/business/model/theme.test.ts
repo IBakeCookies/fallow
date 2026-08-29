@@ -29,9 +29,9 @@ describe('theme catalogue', () => {
 	// A dark-theme stamp is what carries the 400-level state fills and the
 	// heavier card shadow; a catalogue entry that forgets it renders its own
 	// seeds over the light ones.
-	it('stamps understory with .dark', () => {
-		expect(resolveThemeName('understory')).toBe('understory');
-		expect(getClassesToAdd('understory')).toEqual(['understory', 'dark']);
+	it('stamps vectorframe with .dark', () => {
+		expect(resolveThemeName('vectorframe')).toBe('vectorframe');
+		expect(getClassesToAdd('vectorframe')).toEqual(['vectorframe', 'dark']);
 	});
 });
 
