@@ -32,6 +32,8 @@ const unfitted: CalibrationSnapshot = {
 	},
 	energy: {
 		params: defaults,
+		pendingRestCount: 0,
+		pendingDrainCount: 0,
 		recovery: {
 			fitted: false,
 			usedCount: 0,
@@ -53,6 +55,7 @@ const unfitted: CalibrationSnapshot = {
 		usedCount: 0,
 		clockCensoredCount: 0,
 		value: 0.44,
+		todayPending: false,
 	},
 	defaults,
 	trend: flatTrend,
@@ -116,6 +119,7 @@ describe('calibrationRows', () => {
 					clockCensoredCount: 0,
 					value: 0.6,
 					valueStd: 0.15,
+					todayPending: false,
 				},
 			},
 			'en-US',
@@ -137,6 +141,7 @@ describe('calibrationRows', () => {
 					usedCount: 3,
 					clockCensoredCount: 0,
 					value: 0.6,
+					todayPending: false,
 				},
 			},
 			'en-US',
@@ -199,6 +204,76 @@ describe('calibrationRows', () => {
 
 		// One row's concern only — the other four count whole observations.
 		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
+	});
+
+	// The other four rows defer their logs on the same rule the ϕ row does, and
+	// were silent about it: a ☕ logged this morning left the Recovery row's count
+	// unmoved, which reads as a log that was dropped.
+	it('names a ☕ logged today on the recovery row', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				energy: {
+					...unfitted.energy,
+					pendingRestCount: 1,
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[1].note).toBe(
+			'default 0.10 · 0 ratings · 1 ☕ logged today, counted from tomorrow',
+		);
+	});
+
+	// Both α fits read the same 🪫 rows, so both rows name the same number.
+	it('names the 🪫 logged today on both drain rows', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				energy: {
+					...unfitted.energy,
+					pendingDrainCount: 2,
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[2].note).toBe(
+			'default 0.20 · 0 ratings · 2 🪫 logged today, counted from tomorrow',
+		);
+
+		expect(rows[3].note).toBe(
+			'default 0.30 · 0 ratings · 2 🪫 logged today, counted from tomorrow',
+		);
+	});
+
+	// λ₀ reads whole DAYS, and the only date that can be deferred is today — so
+	// this row names the day rather than a count that can never reach two.
+	it('names today on the free-time row when the day will become an observation', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				stopping: {
+					...unfitted.stopping,
+					todayPending: true,
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[4].note).toBe('default 0.40 · 0 days · today counts from tomorrow');
+	});
+
+	// A pin: with nothing deferred the four notes are the strings the card
+	// already prints, so the clause cannot leak onto a row that has nothing to say.
+	it('leaves a row with nothing deferred printing the note it prints today', () => {
+		const rows = calibrationRows(unfitted, 'en-US');
+
+		expect(rows[1].note).toBe('default 0.10 · 0 ratings');
+		expect(rows[2].note).toBe('default 0.20 · 0 ratings');
+		expect(rows[3].note).toBe('default 0.30 · 0 ratings');
+		expect(rows[4].note).toBe('default 0.40 · 0 days');
 	});
 
 	it('renders the numbers in the reader locale', () => {

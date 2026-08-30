@@ -369,22 +369,11 @@ them.
     filed as a citation gap.
 
 Item 4's outstanding obligation is the Stopping Calibration card learning to
-explain its own count; the analytics card has the same gap on a different
+explain its own count; the analytics card had the same gap on a different
 number:
 
-33. **The "Your model" card names deferred logs for ϕ only** — raised
-    2026-08-25 while closing M23, verified in the code, not measured. The
-    causal window ([business/AGENTS.md](src/lib/business/AGENTS.md)) defers
-    today's logs on all four legs, but only ϕ reports how
-    many: `session-history.ts` computes `pendingCount` as
-    `observations.length - counted.length` and surfaces it on the ϕ leg, and the
-    energy (r, α_cog, α_phys) and stopping (λ₀) legs carry no equivalent — they
-    print `usedCount` alone. So a user who logs a ☕ or a 🪫 today watches the
-    count sit still with nothing on screen saying the log was read and held for
-    tomorrow, which reads as a dropped log rather than a deferred one. This is
-    the gap M37 closed for the Energy Lab's two calibration cards, still open on
-    the analytics card. Cost is a count per leg plus copy in five locales (en,
-    de, es, fr, zh).
+33. ~~**The "Your model" card names deferred logs for ϕ only**~~ — SHIPPED 2026-08-30.
+    [docs/features/the-count-that-only-flow-explained.md](docs/features/the-count-that-only-flow-explained.md)
 
 _Settled 2026-08-27, not a roadmap item:_ the Energy Lab's "Apply my fits"
 button re-arming itself is not a calibration leak, and auto-applying is not the

@@ -388,6 +388,111 @@ describe('readModelReport', () => {
 		}
 	});
 
+	/* The other three fits defer today's rows on the same rule the ϕ fit does, so
+	   the report names them too — a ☕ logged this morning otherwise leaves the
+	   Recovery row's count unmoved, which reads as a log that was dropped. */
+	it('defers a ☕ logged today, and counts it from tomorrow', async () => {
+		await $createRestObservation({
+			date: '2027-02-01',
+			hours: 0.5,
+			mindBefore: 8,
+			mindAfter: 5,
+			bodyBefore: 6,
+			bodyAfter: 4,
+		});
+
+		await $createRestObservation({
+			date: '2027-02-02',
+			hours: 0.5,
+			mindBefore: 7,
+			mindAfter: 4,
+			bodyBefore: 5,
+			bodyAfter: 3,
+		});
+
+		expect((await readModelReport('2027-02-02', 30)).calibration.energy.pendingRestCount).toBe(1);
+		expect((await readModelReport('2027-02-03', 30)).calibration.energy.pendingRestCount).toBe(0);
+	});
+
+	// Both α fits read the same 🪫 rows, so there is one count for the two rows.
+	it('defers the 🪫 logged today', async () => {
+		const drain = (date: string, taskId: number) =>
+			$createDrainObservation({
+				date,
+				taskId,
+				taskTitle: `task ${taskId}`,
+				hours: 2,
+				cognitiveDemand: 0.8,
+				physicalDemand: 0.3,
+				mindDrain: 8,
+				bodyDrain: 4,
+			});
+
+		await drain('2027-02-04', 1);
+		await drain('2027-02-05', 1);
+		await drain('2027-02-05', 2);
+
+		expect((await readModelReport('2027-02-05', 30)).calibration.energy.pendingDrainCount).toBe(2);
+	});
+
+	// λ₀ reads whole DAYS, so the promise is only honest if today would actually
+	// pass the finished-day join — a stored session with tasks and hours.
+	it('promises today to the λ₀ fit once the day would qualify', async () => {
+		await $updateSession(session('2027-02-10'));
+
+		await $createDrainObservation({
+			date: '2027-02-10',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 2,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		expect((await readModelReport('2027-02-10', 30)).calibration.stopping.todayPending).toBe(true);
+	});
+
+	it('promises nothing for a 🪫 logged against no stored day', async () => {
+		await $createDrainObservation({
+			date: '2027-02-15',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 2,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		expect((await readModelReport('2027-02-15', 30)).calibration.stopping.todayPending).toBe(false);
+	});
+
+	// A pin: the finished-day read is widened by a day to see whether today would
+	// qualify, and the fit must still read none of it.
+	it('leaves the λ₀ fit reading no day dated today', async () => {
+		const before = (await readModelReport('2027-02-20', 30)).calibration.stopping;
+
+		await $updateSession(session('2027-02-20'));
+
+		await $createDrainObservation({
+			date: '2027-02-20',
+			taskId: 1,
+			taskTitle: 'task 1',
+			hours: 2,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.3,
+			mindDrain: 8,
+			bodyDrain: 4,
+		});
+
+		const after = (await readModelReport('2027-02-20', 30)).calibration.stopping;
+
+		expect(after.usedCount).toBe(before.usedCount);
+		expect(after.value).toBe(before.value);
+	});
+
 	it('caps the audit lookback', async () => {
 		for (const day of ['2026-08-01', '2026-08-02', '2026-08-03']) {
 			await $updateSession(session(day));

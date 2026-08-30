@@ -385,8 +385,10 @@ day is never read, and it holds with JS disabled.
 
 Being a today-only instrument does not exempt its fits from the causal window:
 the three identity fits (α, r, λ₀) read only days **strictly before** today, like
-every other fit in the app, and the two pending counts name the
-rows they defer. The stop advisor is the one read that keeps today's rows — it
+every other fit in the app. The Lab's α and r cards and every row of analytics'
+"Your model" name what they defer beside the count; the Lab's Stopping
+Calibration card is the one that still does not (ROADMAP item 4). The stop
+advisor is the one read that keeps today's rows — it
 prices the day in progress, which is the state half.
 
 ### `scheduledTasks` carries the task's true effort
