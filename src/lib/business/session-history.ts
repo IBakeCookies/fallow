@@ -376,8 +376,12 @@ export interface CalibrationSnapshot {
 		phiHours: number;
 		defaultPhiHours: number;
 	};
-	energy: EnergyCalibration;
-	stopping: StoppingValueFit;
+	/** The ☕/🪫 rows dated today, which the two fits below deferred — every
+	 *  surface that prints a log count owes the user this one too. */
+	energy: EnergyCalibration & { pendingRestCount: number; pendingDrainCount: number };
+	/** `todayPending` is the same promise in λ₀'s unit: today is a day the fit
+	 *  will read tomorrow. It is 0 or 1 by construction, hence a boolean. */
+	stopping: StoppingValueFit & { todayPending: boolean };
 	/** The defaults each fit is anchored to — every row shows one next to its fit. */
 	defaults: EnergyParams;
 	/** How each fit has moved over the recorded days. */
@@ -438,16 +442,16 @@ function calibrationSnapshotFrom(
 	recorded: FitSnapshot[],
 	today: string,
 	trendStart: string,
+	todayPending: boolean,
 ): CalibrationSnapshot {
 	// Causal on the same rule as the ϕ fit above, and for the same reason the
 	// dashboard's copy of these fits is: the card reports the model the day is
 	// planning under, so including today's ☕/🪫 here would print an α the main
 	// page is not using. Only the FITS are filtered — `ModelReport.drain` still
 	// carries every row, because the carry-over is a state read.
-	const energy = calibrateEnergyParams(
-		rest.filter((o) => o.date < today),
-		drain.filter((o) => o.date < today),
-	);
+	const countedRest = rest.filter((o) => o.date < today);
+	const countedDrain = drain.filter((o) => o.date < today);
+	const energy = calibrateEnergyParams(countedRest, countedDrain);
 
 	const stopping = fitStoppingValue(
 		stops,
@@ -466,8 +470,15 @@ function calibrationSnapshotFrom(
 
 	return {
 		flow,
-		energy,
-		stopping,
+		energy: {
+			...energy,
+			pendingRestCount: rest.length - countedRest.length,
+			pendingDrainCount: drain.length - countedDrain.length,
+		},
+		stopping: {
+			...stopping,
+			todayPending,
+		},
 		defaults: DEFAULT_ENERGY_PARAMS,
 		trend: trendFrom(recorded, today, trendStart, {
 			...flow,
@@ -561,7 +572,10 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 	]);
 
 	const fit = fitFrom(flow, today);
-	const days = await readFinishedDays(today, drain);
+	// Widened by a day so the split below can say whether today would qualify as
+	// a finished day, without a second scan of the sessions store.
+	const finished = await readFinishedDays(addDays(today, 1), drain);
+	const days = finished.filter(({ session }) => session.date < today);
 	const stops = toStopObservations(days);
 	const trendStart = addDays(today, -(auditDayCap - 1));
 
@@ -569,7 +583,17 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 		await $readFitSnapshotsByDateRange(recordedFitRangeStart(trendStart, days, auditDayCap), today),
 	);
 
-	const calibration = calibrationSnapshotFrom(fit, rest, drain, stops, recorded, today, trendStart);
+	const calibration = calibrationSnapshotFrom(
+		fit,
+		rest,
+		drain,
+		stops,
+		recorded,
+		today,
+		trendStart,
+		finished.length > days.length,
+	);
+
 	const fitByDate = new Map(recorded.map((snapshot) => [snapshot.date, snapshot]));
 
 	return {

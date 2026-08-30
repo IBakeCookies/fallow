@@ -8,7 +8,8 @@
    The counts are each fit's OWN `usedCount` — informative observations, not raw
    log rows. The ϕ row's is additionally recency-weighted, so it is a fresh-log
    equivalent and prints with a decimal (MATH.md §5.2); the other four are
-   whole counts. */
+   whole counts. A row that deferred today's logs names them separately, as the
+   raw rows they are. */
 
 import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
@@ -77,6 +78,20 @@ export function calibrationRows(
 				};
 
 	const { flow, energy, stopping, defaults } = calibration;
+
+	// Both α fits read the same 🪫 rows, so the two drain rows name one count.
+	const drainNote = (value: number, count: number) =>
+		energy.pendingDrainCount > 0
+			? m.ana_model_note_drain_pending({
+					value: f2(value),
+					count,
+					pending: energy.pendingDrainCount,
+				})
+			: m.ana_model_note_ratings({
+					value: f2(value),
+					count,
+				});
+
 	const series = calibration.trend;
 	const flowLabel = m.ana_model_flow();
 	const recoveryLabel = m.ana_model_recovery();
@@ -114,10 +129,17 @@ export function calibrationRows(
 				energy.recovery.rateStd,
 				m.unit_per_hour(),
 			),
-			note: m.ana_model_note_ratings({
-				value: f2(defaults.recoveryRate),
-				count: energy.recovery.usedCount,
-			}),
+			note:
+				energy.pendingRestCount > 0
+					? m.ana_model_note_recovery_pending({
+							value: f2(defaults.recoveryRate),
+							count: energy.recovery.usedCount,
+							pending: energy.pendingRestCount,
+						})
+					: m.ana_model_note_ratings({
+							value: f2(defaults.recoveryRate),
+							count: energy.recovery.usedCount,
+						}),
 			trend: trend(recoveryLabel, series.recoveryRate, defaults.recoveryRate, perHour),
 		},
 		{
@@ -128,10 +150,7 @@ export function calibrationRows(
 				energy.cognitiveDrain.alphaStd,
 				m.unit_per_hour(),
 			),
-			note: m.ana_model_note_ratings({
-				value: f2(defaults.alphaCog),
-				count: energy.cognitiveDrain.usedCount,
-			}),
+			note: drainNote(defaults.alphaCog, energy.cognitiveDrain.usedCount),
 			trend: trend(cognitiveLabel, series.alphaCog, defaults.alphaCog, perHour),
 		},
 		{
@@ -142,19 +161,21 @@ export function calibrationRows(
 				energy.physicalDrain.alphaStd,
 				m.unit_per_hour(),
 			),
-			note: m.ana_model_note_ratings({
-				value: f2(defaults.alphaPhys),
-				count: energy.physicalDrain.usedCount,
-			}),
+			note: drainNote(defaults.alphaPhys, energy.physicalDrain.usedCount),
 			trend: trend(physicalLabel, series.alphaPhys, defaults.alphaPhys, perHour),
 		},
 		{
 			label: stopLabel,
 			value: rate(stopping, stopping.value, stopping.valueStd, m.unit_output_per_hour()),
-			note: m.ana_model_note_days({
-				value: f2(defaults.freeTimeValue),
-				count: stopping.usedCount,
-			}),
+			note: stopping.todayPending
+				? m.ana_model_note_days_pending({
+						value: f2(defaults.freeTimeValue),
+						count: stopping.usedCount,
+					})
+				: m.ana_model_note_days({
+						value: f2(defaults.freeTimeValue),
+						count: stopping.usedCount,
+					}),
 			trend: trend(stopLabel, series.stoppingValue, defaults.freeTimeValue, outputPerHour),
 		},
 	];
