@@ -36,8 +36,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~25k tokens at 4 chars/token; the largest
-single section is §8 at ~15k (§5 is ~3k), and most of the 25 rows below are
+The whole document is ~26k tokens at 4 chars/token; the largest
+single section is §8 at ~15k (§5 is ~4k), and most of the 25 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -54,26 +54,26 @@ retype a row, regenerate:
 §2          129-230  Productivity curve — v2 change
 §3          232-317  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          319-390  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          392-629  Personalization — v2 change: full Bayesian posterior
-  §5.2      440-518  Recency weighting of the ϕ fit
-  §5.1      520-629  Posterior-aware allocation
-§6          631-643  Summary of v1 → v2 changes
-§7          645-669  Known approximations and deliberate non-changes
-§8         671-1695  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      683-705  Intermittent-rest recovery correction
-  §8.2      707-726  Warm-up carryover instead of binary reset
-  §8.3      728-746  Verified consequences and a calibration question, closed
-  §8.4      748-818  Per-task satiety — concave daily value
-  §8.5      820-860  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      862-908  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     910-1007  Drain-rate calibration from end-of-session ratings
-  §8.8    1009-1044  45-minute plan granularity
-  §8.9    1046-1093  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1095-1340  Stopping-value calibration from observed stop times
-  §8.11   1342-1473  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1475-1629  The budget curve — what the day's LENGTH is worth
-  §8.13   1631-1695  Capacity from the fitted drain rate
-§9        1697-1744  References
+§5          392-669  Personalization — v2 change: full Bayesian posterior
+  §5.2      480-558  Recency weighting of the ϕ fit
+  §5.1      560-669  Posterior-aware allocation
+§6          671-683  Summary of v1 → v2 changes
+§7          685-709  Known approximations and deliberate non-changes
+§8         711-1735  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      723-745  Intermittent-rest recovery correction
+  §8.2      747-766  Warm-up carryover instead of binary reset
+  §8.3      768-786  Verified consequences and a calibration question, closed
+  §8.4      788-858  Per-task satiety — concave daily value
+  §8.5      860-900  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6      902-948  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     950-1047  Drain-rate calibration from end-of-session ratings
+  §8.8    1049-1084  45-minute plan granularity
+  §8.9    1086-1133  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1135-1380  Stopping-value calibration from observed stop times
+  §8.11   1382-1513  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1515-1669  The budget curve — what the day's LENGTH is worth
+  §8.13   1671-1735  Capacity from the fitted drain rate
+§9        1737-1784  References
 ```
 
 <!-- section-index:end -->
@@ -436,6 +436,46 @@ made it a weighted sum). If drift-forgetting is ever
 wanted again, the right instrument is probably a timestamp on each ⚡ log,
 not a decay over arrival index. **That is what §5.2 now does** — the weights
 are back, keyed on the log's date rather than its position.
+
+**Scoring convention — how this fit is graded out of sample.** The fit is
+scored PREQUENTIALLY, which fixes what "out of sample" means for a model that
+is refitted every day. Walk the ⚡ history in date order; at each distinct log
+date `d`, fit on the logs dated **strictly before** `d`, each aged against `d`
+(`ageDays = d − date`, so the recency weights of §5.2 are the ones that fit
+would have had on that day, never today's); then score every log dated `d`
+against that fit. Held out is therefore the whole date block, not the single
+row: `date < d` excludes a log's same-day siblings, so predicting one from
+another would grade a fit the user never ran. This is the same window a live
+plan reads (`fitFrom(observations, day)`), evaluated at a past day.
+
+Three quantities are read off that walk, all against n, the log COUNT the fit
+had seen — with Σw named beside it, since §5.2 makes Σw the data mass and the
+two separate as logs age. The first two are the grades:
+
+- **Skill** is mean absolute prequential error, |ϕ − ϕ̂|, of the fitted plane
+  against the same statistic for `DEFAULT_USER_CONSTANTS`. A difference of the
+  two curves is the only statement "the fit has predicted anything" can mean;
+  neither curve alone is interpretable, since both are dominated by σ̂.
+- **Coverage** is the share of held-out logs falling inside ±1σ of the
+  **predictive** std, `phiPredictionStd` = √(σ̂² + xᵀΣx), against the 68.3%
+  nominal. It must be the predictive std and not `phiParameterStd`: the thing
+  being covered is a NEW measurement, which carries the observation noise.
+  `phiParameterStd` deliberately omits σ̂² because the allocator must not hedge
+  against a scatter that never shrinks (§5.1), so scoring coverage with it
+  would report a band that predicts nothing.
+
+At n = 0 skill is identically zero — the fallback IS the defaults — so the
+comparison only becomes informative once a fit exists. Coverage at small n is
+not automatically calibrated either: it reads how far the user's true plane
+sits from the defaults relative to the prior width σ₀/√λ the band assumes, and
+converges to nominal from above or below as data replaces the prior. The third is **Σδ̂²**: group the residuals by task
+and take the between-task component of their variance, over the residuals
+RETAINED for it — those whose fit had seen enough logs that the plane is no
+longer mostly prior, or the statistic prices the prior instead of the tasks.
+It estimates the per-task ϕ dispersion, and it is biased low by construction:
+a shared plane absorbs the history's own mean offset, so what is left to
+measure is the deviation BETWEEN tasks and never the offset level. Measured figures for all of this live in
+`scripts/phi-prequential-skill.probe.ts`.
 
 ### 5.2 Recency weighting of the ϕ fit
 
