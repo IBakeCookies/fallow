@@ -104,6 +104,7 @@
 	"task_nature_physical_description": "Tarea física — domina la dificultad física, tira del pool de capacidad física",
 	"task_nature_hybrid_description": "Tarea híbrida — exigencias mentales y físicas equilibradas, tira de ambos pools de capacidad",
 	"task_derived_tooltip": "Lo que el modelo de Fallow ha derivado de tus deslizadores: el esfuerzo real E (1–5), el tiempo hasta alcanzar el estado de flow ϕ y el momento de parada óptimo a partir del cual la productividad media cae. Cuanto mejor conoce Fallow tus tiempos de flow, más cerca queda ese momento de 1,52–1,79×ϕ; cuanto menos seguro está, antes para — en una tarea productiva desde el primer minuto, incluso antes de ϕ.",
+	"task_flow_band_tooltip": "± es una desviación estándar de una nueva medición: aproximadamente dos de cada tres veces, el tiempo que realmente tardas cae dentro de ese rango. Se estrecha a medida que registras más.",
 	"task_flow_badge_tooltip": "Minutos hasta el flow que has registrado para esta tarea — datos así personalizan las constantes c₁, c₂, c₃ del modelo (ajuste por mínimos cuadrados)",
 	"task_edit_flow_log_aria": "Corregir este tiempo hasta el flow",
 	"task_allocation_tooltip": "Tiempo sugerido para hoy y la puntuación de prioridad de la tarea (valor intrínseco × 10) que lo determina",

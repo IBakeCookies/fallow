@@ -104,6 +104,7 @@
 	"task_nature_physical_description": "Tâche physique — la difficulté physique domine, puise dans le réservoir de capacité physique",
 	"task_nature_hybrid_description": "Tâche hybride — exigences mentales et physiques équilibrées, puise dans les deux réservoirs de capacité",
 	"task_derived_tooltip": "Ce que le modèle de Fallow a déduit de tes curseurs : l'effort réel E (1–5), le temps pour atteindre l'état de flow ϕ et le moment d'arrêt optimal au-delà duquel la productivité moyenne décline. Mieux Fallow connaît tes temps de flow, plus ce moment se rapproche de 1,52–1,79×ϕ ; moins il en est sûr, plus tôt il s'arrête — pour une tâche productive dès la première minute, même avant ϕ.",
+	"task_flow_band_tooltip": "± correspond à un écart type d'une nouvelle mesure : environ deux fois sur trois, le temps que tu prends réellement tombe dans cette plage. Elle se resserre à mesure que tu enregistres davantage.",
 	"task_flow_badge_tooltip": "Minutes jusqu'au flow que tu as notées pour cette tâche — ces points de mesure personnalisent les constantes c₁, c₂, c₃ du modèle (ajustement par moindres carrés)",
 	"task_edit_flow_log_aria": "Corriger ce temps jusqu’au flow",
 	"task_allocation_tooltip": "Temps suggéré pour aujourd'hui, et le score de priorité de la tâche (valeur intrinsèque × 10) qui le détermine",

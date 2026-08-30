@@ -20,6 +20,10 @@
 		runOrder: Map<number, number>; // task id → 1-based position in suggested sequence
 		/** The day on screen — every row's slide age is measured against it, not the clock. */
 		viewedDate: string;
+		/** `constantsFit.fitted` — the fit both read a log AND produced a plausible plane.
+		 *  Every other path returns the prior, whose band describes the article's
+		 *  defaults rather than the user, so no row prints one. */
+		constantsFitted: boolean;
 		/** The mid-day re-plan, or null until today has logged hours. A
 		 *  task absent from `hoursByTask` is worth no more time today, so it reads 0 —
 		 *  the map's absence and a task's absence from it are different answers. */
@@ -74,6 +78,7 @@
 		suggestedTasks,
 		runOrder,
 		viewedDate,
+		constantsFitted,
 		remainingDay = null,
 		nextTaskTitle,
 		form,
@@ -134,6 +139,7 @@
 			suggestedHours={task.suggestedHours}
 			trueEffort={task.trueEffort}
 			flowStateTime={task.flowStateTime}
+			flowStateTimeStd={constantsFitted ? task.flowStateTimeStd : undefined}
 			optimalStopHours={task.optimalHours}
 			remaining={remainingDay
 				? {

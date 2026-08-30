@@ -1,6 +1,7 @@
 import {
 	calculatePooledAllocations,
 	pooledProductivityGain,
+	phiPredictionStd,
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
@@ -122,6 +123,8 @@ export type SuggestedTask = Task & {
 	suggestedHours: number;
 	priorityScore: number;
 	flowStateTime: number;
+	/** Predictive std of ϕ at this row's (E, β) — a UI band, absent without a fit posterior. */
+	flowStateTimeStd?: number;
 	trueEffort: number;
 	trueEnjoyability: number;
 	peakProductivity: number;
@@ -227,6 +230,9 @@ export function calculateTaskPlan(
 					suggestedHours: alloc.allocatedHours,
 					priorityScore: Number((intrinsicValue * 10).toFixed(1)),
 					flowStateTime: alloc.phi,
+					flowStateTimeStd: posterior
+						? phiPredictionStd(alloc.E, alloc.beta, posterior)
+						: undefined,
 					trueEffort: alloc.E,
 					trueEnjoyability: alloc.beta,
 					peakProductivity: alloc.peakProductivity,

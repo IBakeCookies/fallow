@@ -28,7 +28,10 @@ import {
 } from '$lib/business/model/metric/calculation';
 import {
 	calculatePooledAllocations,
+	fitUserConstants,
+	mapEffort,
 	mapEnjoyability,
+	phiPredictionStd,
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_USER_CONSTANTS,
@@ -1632,6 +1635,65 @@ describe('calculateTaskPlan', () => {
 			suggestedTasks: [],
 			allocatedHours: [],
 		});
+	});
+});
+
+describe('the ϕ band on a planned row', () => {
+	const tasks = [
+		makeTask({
+			id: 1,
+			title: 'hard boring',
+			mentalDifficulty: 9,
+			enjoyment: 2,
+		}),
+		makeTask({
+			id: 2,
+			title: 'easy fun',
+			mentalDifficulty: 2,
+			enjoyment: 9,
+		}),
+	];
+
+	const { posterior } = fitUserConstants([
+		{
+			E: mapEffort(3),
+			beta: mapEnjoyability(6),
+			phi: 0.8,
+			ageDays: 2,
+		},
+		{
+			E: mapEffort(8),
+			beta: mapEnjoyability(3),
+			phi: 1.9,
+			ageDays: 5,
+		},
+	]);
+
+	it('carries the predictive std at the row own E and β', () => {
+		const planned = calculateSuggestedTasks(tasks, 6, 0.25, undefined, undefined, posterior);
+
+		for (const task of planned) {
+			expect(task.flowStateTimeStd).toBeCloseTo(
+				phiPredictionStd(task.trueEffort, task.trueEnjoyability, posterior),
+				12,
+			);
+		}
+
+		// Evaluated per row, not once for the fit: two tasks this far apart on the
+		// E×β plane cannot share a band, and a constant would satisfy the loop above.
+		expect(new Set(planned.map((task) => task.flowStateTimeStd)).size).toBe(tasks.length);
+	});
+
+	it('has no band when the caller passes no posterior', () => {
+		const withFit = calculateSuggestedTasks(tasks, 6, 0.25, undefined, undefined, posterior);
+
+		// Both halves in one test: `undefined` is what a field that does not exist
+		// yet also returns, so the absence only means something beside a presence.
+		expect(withFit.every((task) => typeof task.flowStateTimeStd === 'number')).toBe(true);
+
+		expect(
+			calculateSuggestedTasks(tasks, 6, 0.25).every((task) => task.flowStateTimeStd === undefined),
+		).toBe(true);
 	});
 });
 

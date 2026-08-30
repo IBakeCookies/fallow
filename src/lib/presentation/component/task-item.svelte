@@ -26,6 +26,8 @@
 		suggestedHours: number;
 		trueEffort: number;
 		flowStateTime: number;
+		/** The fit's predictive spread on ϕ, printed beside it. Absent before there is a fit. */
+		flowStateTimeStd?: number;
 		// Not reconstructable from ϕ: task-dependent and hedged for ϕ-uncertainty,
 		// so it can land below ϕ itself (MATH.md §3).
 		optimalStopHours: number;
@@ -69,6 +71,7 @@
 		suggestedHours,
 		trueEffort,
 		flowStateTime,
+		flowStateTimeStd,
 		optimalStopHours,
 		remaining,
 		runOrder,
@@ -181,9 +184,18 @@
 	</td>
 	<td class="ledger-cell ledger-numeric ledger-wide whitespace-nowrap">
 		<Tooltip.Root>
-			<Tooltip.Trigger class="cursor-help">{formatDuration(flowStateTime)}</Tooltip.Trigger>
-			<Tooltip.Content>
+			<Tooltip.Trigger class="cursor-help">
+				{flowStateTimeStd === undefined
+					? formatDuration(flowStateTime)
+					: `${formatDuration(flowStateTime)} ± ${formatDuration(flowStateTimeStd)}`}
+			</Tooltip.Trigger>
+			<!-- Two paragraphs, and the shell is an `inline-flex` ROW — so the second
+			     one sets beside the first without this. -->
+			<Tooltip.Content class="flex-col items-start">
 				<p>{m.task_derived_tooltip()}</p>
+				{#if flowStateTimeStd !== undefined}
+					<p>{m.task_flow_band_tooltip()}</p>
+				{/if}
 			</Tooltip.Content>
 		</Tooltip.Root>
 	</td>

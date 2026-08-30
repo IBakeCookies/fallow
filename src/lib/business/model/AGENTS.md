@@ -58,8 +58,11 @@ a constant, a bound, or a fit's conditioning:
   `fitUserConstants` — a Bayesian linear regression whose MAP equals the old
   ridge fit, plus posterior covariance/noise (`phiPredictionStd`). The
   allocator consumes the MAP; the posterior makes it hedge ϕ-uncertainty
-  (§5.1). ⚡ logs are **recency-weighted** by a 365-day half-life on the log's
-  own date (§5.2), so every caller passes `ageDays` and the card reports an
+  (§5.1). `SuggestedTask.flowStateTimeStd` is the row's predictive std for
+  display — `phiPredictionStd`, not the allocator's hedging term — and absent
+  without a posterior. ⚡ logs are **recency-weighted** by a 365-day half-life
+  on the log's own date (§5.2), so every caller passes `ageDays` and the card
+  reports an
   effective count, not a log count. The three energy fits (r, α, λ₀) are
   deliberately **not** weighted — §5.2 says why, and says to revisit them
   together or not at all.

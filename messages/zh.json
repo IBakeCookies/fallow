@@ -104,6 +104,7 @@
 	"task_nature_physical_description": "体力型任务——以体力难度为主，消耗体力容量池",
 	"task_nature_hybrid_description": "混合型任务——脑力与体力需求相当，两个容量池都消耗",
 	"task_derived_tooltip": "Fallow 模型从你的滑块推导出的结果：真实投入 E（1–5）、进入心流状态所需时间 ϕ，以及越过后平均生产力开始下降的最优停止时间。Fallow 越了解你的心流时间，这个时间就越接近 1.52–1.79×ϕ；越不确定，停得越早——对于第一分钟就有产出的任务，甚至会早于 ϕ。",
+	"task_flow_band_tooltip": "± 是一次新测量的一个标准差：大约每三次中有两次，你实际花费的时间会落在这个范围内。你记录得越多，这个范围就越窄。",
 	"task_flow_badge_tooltip": "你为这项任务记录的实测进入心流分钟数——这类数据点会个性化模型的 c₁、c₂、c₃ 常数（最小二乘拟合）",
 	"task_edit_flow_log_aria": "修正这次进入心流的时间",
 	"task_allocation_tooltip": "今天建议分配的时间，以及驱动它的任务优先级分数（内在价值 × 10）",

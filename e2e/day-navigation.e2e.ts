@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, isoDate, setBudget, taskRow } from './helpers';
+import { addTask, AUTOSAVE_MS, isoDate, logFlow, setBudget, taskRow } from './helpers';
+
+/** `Flow at` in `/`'s ledger — `getTaskColumns`' eighth column. */
+const FLOW_CELL = 7;
 
 test('past day is read-only with a banner', async ({ page }) => {
 	await page.goto(`/?date=${isoDate(-3)}`);
@@ -223,4 +226,30 @@ test('a past day draws the strip it was planned under', async ({ page }) => {
 
 	// The title alone: a finished block prints no `#N` (presentation/AGENTS.md).
 	await expect(timeline.getByText('Deep work')).toBeVisible();
+});
+
+/* The ± beside ϕ is the fit's own spread, so it can only appear once a fit has read a
+   log — and no plan reads the ⚡ dated on its own day (`#fittedFlowObservations`). That
+   makes midnight the only place a browser can watch the band arrive, and these two
+   tests are the same arc: nothing to be unsure about, then something. */
+test('a fresh profile plans with no ± beside the flow time', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing');
+
+	await expect(taskRow(page, 'Boxing').locator('td').nth(FLOW_CELL)).not.toContainText('±');
+});
+
+test('a ⚡ logged today shows its ± on the next day', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Boxing');
+	await logFlow(page, 90);
+
+	await page.clock.fastForward('25:00:00');
+	await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+	// The new day holds none of yesterday's tasks, so the band needs one of its own.
+	await addTask(page, 'Inbox');
+
+	await expect(taskRow(page, 'Inbox').locator('td').nth(FLOW_CELL)).toContainText('±');
 });
