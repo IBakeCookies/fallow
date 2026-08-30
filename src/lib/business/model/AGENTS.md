@@ -158,6 +158,14 @@ its allocation code, so the main page is unaffected by changes here.
   end-of-session ratings — don't try. λ₀ is fitted last, conditioned on
   everything else. Each fit is a 1-D ridge toward the **defaults**, not toward
   current inputs. Ratings with demand 0 carry no signal and are dropped.
+- `capacityFromDrainRate` runs the reservoir law backwards at full demand: the
+  hours at which a fitted α drains one reservoir to a shared floor, which is a
+  capacity pool in hours. Its domain is a `CAPACITY_MAP_POLE_MARGIN` multiple of
+  the pole `r′·b·(1−C*)/C*` — which MOVES with the recovery params, so no fixed
+  α floor bounds it — and below that, or when those params hold the equilibrium
+  at or above the floor, it returns **nothing**, never a clamped α's pool. It is an **instrument, not a planner input**: no allocation reads
+  it, the pools stay declared, and what would have promoted it is a gate that
+  `classicOverlap` cannot run (ROADMAP item 18). §8.13.
 - Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — read
   the day from the 🪫 rows' own log moments: one block per session, in log order,
   the space between them rest. Never re-sum the rows by task on the way in —

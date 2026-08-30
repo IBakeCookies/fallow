@@ -1532,6 +1532,46 @@ export function fitDrainRate(
 }
 
 /**
+ * The shared reservoir floor C*: the level a full-demand day is taken to end
+ * at, which is what turns a fitted α into a pool of hours (MATH.md §8.13).
+ */
+const CAPACITY_FLOOR = 0.28;
+
+/** How far above the params' own pole the map starts answering (MATH.md §8.13). */
+export const CAPACITY_MAP_POLE_MARGIN = 1.5;
+
+/**
+ * Invert the §8.7 law at full demand for the hours at which one reservoir
+ * reaches CAPACITY_FLOOR (MATH.md §8.13):
+ *
+ *   H = −ln((C* − C_eq)/(1 − C_eq)) / ρ
+ *
+ * Out of domain the answer is nothing, not a clamped α. The margin also covers
+ * the far side of the pole, where the day's equilibrium sits at or above the
+ * floor and no H reaches it — recovery sliders alone can put a reservoir there.
+ */
+export function capacityFromDrainRate(
+	alpha: number,
+	params: Pick<EnergyParams, 'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'>,
+): number | null {
+	const recovery = params.recoveryRate * params.restRecoveryMultiplier;
+	// C_eq meets C* here, so the pole moves with the recovery parameters.
+	const pole = (recovery * params.microRecoveryFraction * (1 - CAPACITY_FLOOR)) / CAPACITY_FLOOR;
+
+	if (alpha < CAPACITY_MAP_POLE_MARGIN * pole) return null;
+
+	const law = reservoirLaw(
+		1,
+		alpha,
+		params.recoveryRate,
+		params.restRecoveryMultiplier,
+		params.microRecoveryFraction,
+	);
+
+	return -Math.log((CAPACITY_FLOOR - law.eq) / (1 - law.eq)) / law.rho;
+}
+
+/**
  * Deterministic 1-D minimizer for the calibration fits: coarse grid to bracket
  * the global minimum (the ridge objectives are smooth but not provably
  * unimodal for adversarial data), then golden-section refinement.

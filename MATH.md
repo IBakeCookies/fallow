@@ -36,8 +36,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~24k tokens at 4 chars/token; the largest
-single section is §8 at ~14k (§5 is ~3k), and most of the 24 rows below are
+The whole document is ~25k tokens at 4 chars/token; the largest
+single section is §8 at ~15k (§5 is ~3k), and most of the 25 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -49,30 +49,31 @@ retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0            80-99  Objective
-§1          101-126  Inputs and parameter mappings (unchanged from the articl…
-§2          128-229  Productivity curve — v2 change
-§3          231-316  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          318-389  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          391-628  Personalization — v2 change: full Bayesian posterior
-  §5.2      439-517  Recency weighting of the ϕ fit
-  §5.1      519-628  Posterior-aware allocation
-§6          630-642  Summary of v1 → v2 changes
-§7          644-668  Known approximations and deliberate non-changes
-§8         670-1628  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      682-704  Intermittent-rest recovery correction
-  §8.2      706-725  Warm-up carryover instead of binary reset
-  §8.3      727-745  Verified consequences and a calibration question, closed
-  §8.4      747-817  Per-task satiety — concave daily value
-  §8.5      819-859  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      861-907  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     909-1006  Drain-rate calibration from end-of-session ratings
-  §8.8    1008-1043  45-minute plan granularity
-  §8.9    1045-1092  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1094-1339  Stopping-value calibration from observed stop times
-  §8.11   1341-1472  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1474-1628  The budget curve — what the day's LENGTH is worth
-§9        1630-1677  References
+§0           81-100  Objective
+§1          102-127  Inputs and parameter mappings (unchanged from the articl…
+§2          129-230  Productivity curve — v2 change
+§3          232-317  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          319-390  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          392-629  Personalization — v2 change: full Bayesian posterior
+  §5.2      440-518  Recency weighting of the ϕ fit
+  §5.1      520-629  Posterior-aware allocation
+§6          631-643  Summary of v1 → v2 changes
+§7          645-669  Known approximations and deliberate non-changes
+§8         671-1695  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      683-705  Intermittent-rest recovery correction
+  §8.2      707-726  Warm-up carryover instead of binary reset
+  §8.3      728-746  Verified consequences and a calibration question, closed
+  §8.4      748-818  Per-task satiety — concave daily value
+  §8.5      820-860  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6      862-908  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     910-1007  Drain-rate calibration from end-of-session ratings
+  §8.8    1009-1044  45-minute plan granularity
+  §8.9    1046-1093  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1095-1340  Stopping-value calibration from observed stop times
+  §8.11   1342-1473  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1475-1629  The budget curve — what the day's LENGTH is worth
+  §8.13   1631-1695  Capacity from the fitted drain rate
+§9        1697-1744  References
 ```
 
 <!-- section-index:end -->
@@ -1626,6 +1627,72 @@ dragging the window must not grey out the card that exists to inform that drag.
 It omits the task **titles** for the narrower reason that the sweep never reads
 them and no field of `BudgetCurve` carries one, so a rename would otherwise grey
 out a bit-identical curve.
+
+### 8.13 Capacity from the fitted drain rate
+
+**The question.** A day's capacity pools are two declared numbers — how many
+demand-weighted hours of mind and of body work the day can hold (§0's
+`Σ wᵢ·tᵢ ≤ pool`). They were invented: `DEFAULT_CAPACITY_POOLS` = 4 h / 6 h.
+But §8.7 already fits a per-user drain rate α from the 🪫 logs, and the same
+reservoir law that reads a rating can be read backwards: a pool is the length
+of a full-demand day, so it is the H at which the reservoir arrives at a
+stated floor.
+
+**The map.** Take §8.7's law at full demand `w = 1`. The recovery gate
+collapses to the micro-recovery fraction, `g = 1 − (1−b)·1 = b`, so with
+`r′ = r·m`
+
+```text
+ρ = α + r′·b,   C_eq = r′·b/ρ,   C(H) = C_eq + (1 − C_eq)·e^(−ρH)
+```
+
+Setting `C(H) = C*` and solving for H:
+
+```text
+H = −ln((C* − C_eq)/(1 − C_eq)) / ρ
+```
+
+That is `capacityFromDrainRate`. One floor plus one **fitted** parameter
+replaces two invented constants, and the floor is stated once here rather than
+fitted per user: choosing C* to maximize plan adherence would train the map
+on the only instrument that can audit it.
+
+**Why C\* = 0.28.** It sits between the two readings the old constants imply at
+default α — the cognitive reservoir at 4 h and the physical one at 6 h — so at
+defaults the map reproduces roughly the pools the app already had. It is a
+statement about where a day ends, not a measurement, and it applies to both
+reservoirs because nothing in the law distinguishes them but α.
+
+**The domain is a gate, not a clamp.** `C_eq` rises as α falls, and where it
+reaches C* the logarithm's argument reaches zero and H diverges. Solving
+`r′·b/(α + r′·b) = C*` puts that pole at
+
+```text
+α_pole = r′·b·(1 − C*)/C*
+```
+
+which is **not a fixed drain rate**: it moves with the recovery parameters the
+map conditions on, so a constant α floor would bound H at one r and let it
+diverge at another. The gate is therefore a MULTIPLE of the params' own pole —
+`CAPACITY_MAP_POLE_MARGIN` = 1.5 — which bounds the largest pool the map can
+return at **every** r rather than only at the default one. The bound is not the
+same number at each r, since the pole it is measured from moves. The
+neighbourhood above the pole is
+what the margin exists for: H grows without bound as the pole is approached, so
+a small fit error there moves the pool by hours, and `ALPHA_FIT_MIN` = 0.05 is
+inside that region at the default parameters, where a real fit can land.
+
+Out of domain the map returns nothing: clamping α to the gate would return a
+finite, plausible-looking pool that is not this user's, and a wrong pool is
+spent silently by the planner while a missing one is visibly missing. One gate
+covers both sides of the pole — the recovery sliders alone can put `C_eq` at or
+above C*, where the day's equilibrium never falls to the floor and no H solves
+the equation at all, and that α is below the margin by construction.
+
+**Monotone.** H is decreasing in α over the valid domain: a larger drain rate
+empties the reservoir sooner, so it buys a smaller pool. The map therefore
+inherits whatever bias §8.7's α̂ carries, with the sign flipped;
+`capacity-from-drain.probe.ts` is where that is measured.
 
 ## 9. References
 

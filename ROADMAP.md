@@ -177,17 +177,46 @@ other.**
     `metric/history.ts`), so changing it re-scores history against
     [data/AGENTS.md](src/lib/data/AGENTS.md)'s settled "a past day's fit is what
     the user had", and prefilling is also what "a fit
-    never writes params silently" requires. **Probe:** the pool has no
-    observable, so use the only ground truth there is — does the α-derived pool
-    raise `plan-audit.ts`'s `classicOverlap` on real finished days against
-    declared 4/6?
-    **Kill if overlap does not move, or if the fitted α lands below ~0.2**,
-    where the map is meaningless. A 2× pool error costs 4.1–5.7% mean, p90
-    12.9–21.2%, ~50% of days moved — 55–76× the ϕ anchor _if_ the fitted value
-    is actually better than 4/6, which is exactly what the probe tests.
-    MATH.md section required (the map, the pole, the clamp, and the
-    sessions-per-day bias). **Prereq:** enough 🪫 logs for a credible α, i.e.
-    item 11 in practice. The per-day prefill slot it requires now exists (item 32) — this item replaces the source of the pool prefill, not its wiring.
+    never writes params silently" requires. **Prereq:** enough 🪫 logs for a
+    credible α, i.e. item 11 in practice. The per-day prefill slot it requires
+    now exists (item 32) — this item replaces the source of the pool prefill,
+    not its wiring.
+    **The gate was attempted on 2026-08-30 and could not be run.** The map, its
+    pole, its validity gate and MATH.md §8.13 shipped as an instrument — no
+    allocation reads it, the pools stay declared —
+    [docs/features/the-pool-the-drain-logs-might-know.md](docs/features/the-pool-the-drain-logs-might-know.md).
+    Two findings closed the attempt, and the second does not depend on the
+    first.
+    **One: plan adherence cannot gate a capacity pool.** The probe sentence
+    this item carried ("does the α-derived pool raise `plan-audit.ts`'s
+    `classicOverlap` against declared 4/6") names an instrument that cannot
+    answer it. Scored against the pool that GENERATED the days,
+    `classicOverlap` ranks the known-correct pool at or below declared 4/6 at
+    three of the four evaluable points (Δ +0.0000, −0.0035, −0.0024, +0.0116) —
+    including the two where the correct pool binds on 43 and 47 of 60 scored
+    days. Only the fourth point can see a pool at all, and there the derived
+    pool beats both 4/6 (+0.0341) and the truth (+0.0116). The cause is
+    structural: a pool of P hours cannot bind on a day shorter than P hours,
+    the fixture's days run to a median 3.25 h against a 6 h declared physical
+    pool, and 4/6 binds on ≤ 16 of 60 days — so the baseline being scored
+    against is very nearly a no-op.
+    **Two: the map's domain and the fitted drain rates barely overlap.** The
+    §8.13 pole sits at `r′·b·(1−C*)/C*`, so the validity gate is proportional
+    to the fitted recovery rate: α ≥ 0.2025 at the default r = 0.7, but
+    α ≥ 0.2893 at the r̂ ≈ 1.0 the fixture actually fits. Physical drain rates
+    land below that — fitted α̂_phys 0.261–0.267 in the misspecified arm — so
+    the map returns nothing for the physical reservoir across that whole arm,
+    and for three of five rows of the logging-rate arm. A capacity map that
+    declines to answer for the reservoir it is most needed on is not blocked by
+    its gate; it is described by it.
+    **Anything that re-opens this item needs a different reading than plan
+    adherence, days long enough for a pool to bind, and a drain-rate regime
+    inside §8.13's domain.** The 2× pool error costed at 4.1–5.7% mean, p90
+    12.9–21.2% is untouched by this — it says a wrong pool is expensive, not
+    that this map finds the right one. The sessions-per-day bias recorded above
+    from an uncommitted 2026-08-04 variant is now **disputed by a committed
+    run**: `scripts/capacity-from-drain.probe.ts`'s logging-rate arm does not
+    reproduce its direction, and finds no monotone trend.
 
 Item 16 for the other two declared constraints, and the slot item 18 prefills
 into:
