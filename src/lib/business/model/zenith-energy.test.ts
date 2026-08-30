@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	ALPHA_FIT_MAX,
 	ALPHA_FIT_MIN,
+	CAPACITY_MAP_POLE_MARGIN,
+	capacityFromDrainRate,
 	DEFAULT_ENERGY_PARAMS,
 	DEFAULT_STEP_HOURS,
 	evaluateSchedule,
@@ -1284,6 +1286,82 @@ describe('Zenith Energy Model', () => {
 			const a = fitDrainRate(obs, 0.35, lawParams);
 			const b = fitDrainRate(obs, 0.35, lawParams);
 			expect(a).toEqual(b);
+		});
+	});
+
+	describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
+		const lawParams = {
+			recoveryRate: DEFAULT_ENERGY_PARAMS.recoveryRate,
+			restRecoveryMultiplier: DEFAULT_ENERGY_PARAMS.restRecoveryMultiplier,
+			microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction,
+		};
+
+		it('inverts the reservoir law at the floor', () => {
+			expect(capacityFromDrainRate(0.35, lawParams)).toBeCloseTo(4.373, 3);
+			expect(capacityFromDrainRate(0.3, lawParams)).toBeCloseTo(5.307, 3);
+			expect(capacityFromDrainRate(0.7, lawParams)).toBeCloseTo(1.976, 3);
+		});
+
+		it('returns no number at all below the pole', () => {
+			// A value the fit can actually reach, deep inside the divergent region.
+			expect(capacityFromDrainRate(ALPHA_FIT_MIN, lawParams)).toBeNull();
+		});
+
+		it('keeps its distance from the pole at any recovery rate', () => {
+			// The pole is at r′·b·(1−C*)/C*, so it MOVES with the recovery
+			// parameters the fit conditions on: a fixed α floor bounds H only at
+			// the default r. At the recovery this repo's own probe fits, α = 0.2
+			// sits 3% above the pole and maps to 17.33 h.
+			const fitted = {
+				...lawParams,
+				recoveryRate: 1.0057,
+			};
+
+			expect(capacityFromDrainRate(0.2, fitted)).toBeNull();
+
+			// Same margin, same answer, wherever the pole has moved to.
+			for (const recoveryRate of [0.4, 0.7, 1.0057, 2]) {
+				const params = {
+					...lawParams,
+					recoveryRate,
+				};
+
+				const pole =
+					(recoveryRate *
+						lawParams.restRecoveryMultiplier *
+						lawParams.microRecoveryFraction *
+						(1 - 0.28)) /
+					0.28;
+
+				expect(capacityFromDrainRate(pole * (CAPACITY_MAP_POLE_MARGIN - 1e-6), params)).toBeNull();
+
+				expect(
+					capacityFromDrainRate(pole * (CAPACITY_MAP_POLE_MARGIN + 1e-6), params),
+				).not.toBeNull();
+			}
+		});
+
+		it('returns no number when the recovery sliders lift the floor past C*', () => {
+			// C_eq = b·r′/(α + b·r′) is above the floor here, so the day never
+			// reaches it — reachable from the Lab's own inputs, not a guard.
+			expect(
+				capacityFromDrainRate(0.3, {
+					...lawParams,
+					recoveryRate: 2,
+				}),
+			).toBeNull();
+		});
+
+		it('never maps a larger drain rate to a larger pool', () => {
+			let previous = Infinity;
+
+			for (let alpha = 0.25; alpha <= ALPHA_FIT_MAX; alpha += 0.01) {
+				const hours = capacityFromDrainRate(alpha, lawParams);
+
+				expect(hours).not.toBeNull();
+				expect(hours!).toBeLessThanOrEqual(previous);
+				previous = hours!;
+			}
 		});
 	});
 

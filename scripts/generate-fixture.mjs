@@ -11,6 +11,8 @@
  *
  * Usage:
  *   node scripts/generate-fixture.mjs [--days 365] [--seed 42] [--out path.json]
+ *     [--alpha-cog 0.52] [--alpha-phys 0.24] [--drain-log-rate 0.4]
+ *     [--true-pools <cognitive>,<physical>]
  *
  * Then: Fallow -> ☰ data menu -> Import data. Import MERGES (put by key), so
  * import into an empty profile or expect existing days to be overwritten.
@@ -32,6 +34,31 @@ const OUT = arg('out', 'fallow-fixture.json');
 // The last day generated. Kept explicit rather than `new Date()` so a given
 // seed always produces the same file.
 const END_DATE = arg('end', '2026-08-04');
+// The per-session 🪫 opt-in probability. Swept to price what the logging rate
+// costs the α fit that reads those rows.
+const DRAIN_LOG_RATE = Number(arg('drain-log-rate', 0.4));
+const truePools = arg('true-pools', '');
+/**
+ * The simulated user's REAL capacity — off by default. With it the day's work
+ * is capped per reservoir at `Σ demand·hours ≤ pool` (zenith.ts's constraint),
+ * while the STORED session keeps the declared 4/6: the truth-≠-declared setup
+ * `capacity-from-drain.probe.ts` scores a derived pool against.
+ */
+const TRUE_POOLS = truePools ? parseTruePools(truePools) : null;
+
+function parseTruePools(raw) {
+	const [cognitive, physical] = raw.split(',').map(Number);
+
+	if (![cognitive, physical].every((hours) => Number.isFinite(hours) && hours > 0)) {
+		console.error(`--true-pools needs two positive hour values, e.g. 2.75,7.18 (got "${raw}")`);
+		process.exit(1);
+	}
+
+	return {
+		cognitive,
+		physical,
+	};
+}
 
 // ------------------------------------------------------------ ground truth
 
@@ -45,8 +72,8 @@ const TRUTH = {
 	c1: 0.72,
 	c2: -0.38,
 	c3: 0.34,
-	alphaCog: 0.52,
-	alphaPhys: 0.24,
+	alphaCog: Number(arg('alpha-cog', 0.52)),
+	alphaPhys: Number(arg('alpha-phys', 0.24)),
 	recoveryRate: 0.95,
 	stoppingValue: 0.8,
 	// Measurement noise on a ⚡ log, in hours. σ₀² = 0.25 h is the fit's own
@@ -87,6 +114,8 @@ const gauss = (sd) =>
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const quarter = (x) => Math.round(x / 0.25) * 0.25;
+// The capacity cap rounds DOWN: rounding to nearest would spend past the pool.
+const flooredQuarter = (x) => Math.floor(x / 0.25 + 1e-9) * 0.25;
 // ------------------------------------------------------------------- dates
 const toISO = (date) => date.toISOString().slice(0, 10);
 
@@ -311,6 +340,8 @@ for (const date of dates) {
 	let physical = clamp(between(0.85, 1), 0, 1);
 	// The user works a share of the declared budget — over-declaring is the norm.
 	let remaining = budget * clamp(between(0.55, 1.05), 0.1, 1.1);
+	let cognitiveSpent = 0;
+	let physicalSpent = 0;
 	// Order: roughly by enjoyment, the way a person actually picks.
 	const order = [...tasks].sort((a, b) => b.enjoyment - a.enjoyment);
 
@@ -325,12 +356,26 @@ for (const date of dates) {
 			clamp((phi * between(1.2, 1.9)) / (1 + TRUTH.stoppingValue * 0.4), 0.25, 6),
 		);
 
-		const hours = Math.min(wanted, quarter(remaining));
-
-		if (hours < 0.25) break;
-
 		const cognitiveDemand = task.mentalDifficulty / 10;
 		const physicalDemand = task.physicalDifficulty / 10;
+
+		// A reservoir a task does not draw on never caps it.
+		const capacity = TRUE_POOLS
+			? Math.min(
+					cognitiveDemand > 0
+						? (TRUE_POOLS.cognitive - cognitiveSpent) / cognitiveDemand
+						: Infinity,
+					physicalDemand > 0 ? (TRUE_POOLS.physical - physicalSpent) / physicalDemand : Infinity,
+				)
+			: Infinity;
+
+		const hours = Math.min(wanted, quarter(remaining), flooredQuarter(capacity));
+
+		if (Math.min(wanted, quarter(remaining)) < 0.25) break;
+
+		// The day ends when the CLOCK runs out; an exhausted reservoir only ends
+		// the tasks that draw on it, and the other pool's hours stay spendable.
+		if (hours < 0.25) continue;
 
 		cognitive = reservoirAfter(
 			cognitive,
@@ -343,11 +388,13 @@ for (const date of dates) {
 		physical = reservoirAfter(physical, hours, physicalDemand, TRUTH.alphaPhys, TRUTH.recoveryRate);
 
 		remaining -= hours;
+		cognitiveSpent += cognitiveDemand * hours;
+		physicalSpent += physicalDemand * hours;
 		task.completed = chance(0.65);
 
 		// 🪫 end-of-session drain rating. Opt-in, so most sessions carry none —
 		// and a demand of 0 carries no signal, which §8.7 drops anyway.
-		if (chance(0.4) && (cognitiveDemand > 0 || physicalDemand > 0)) {
+		if (chance(DRAIN_LOG_RATE) && (cognitiveDemand > 0 || physicalDemand > 0)) {
 			drainObservations.push({
 				id: drainId++,
 				date,
