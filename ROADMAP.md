@@ -284,39 +284,12 @@ reach the form at all:
    habitually ≤2 h budget.
 
 Two readings that would make the calibration loop auditable rather than merely
-present:
+present — the first now measured, the second still open:
 
-19. **Prequential ϕ scorecard** — the only reading the app could have that says
-    whether the ϕ model has ever predicted anything, scored out-of-sample. Walk
-    `flowObservations` in date order; for each log, fit on logs strictly before
-    its date via `fitUserConstants` and record the residual
-    against the fitted plane, against `DEFAULT_USER_CONSTANTS`, and against the
-    ±1σ band from `phiPredictionStd` (exported, documented
-    "intended for UI", and consumed by nothing outside its own test).
-    Whole-history flow is already read once in `readModelReport`
-    (`session-history.ts`), so this adds no read. **Two corrections that
-    are easy to get wrong:** each backtest fit must pass `ageDays` relative to
-    _that log's_ date, not today (`session-history.ts`'s two flow readers base
-    it on today, and §5.2 half-life-weights the ridge), or every historical fit is
-    weighted with the future's clock; and the retained residuals should be
-    grouped by `taskTitle` to report **between-title variance against
-    σ₀² = 0.25 h**, which _is_ `Σδ̂²` — the exact statistic item 6 names as its
-    re-open gate — delivered as a by-product. **Probe:** backtest on synthetic
-    users at the model's own noise floor plus real logs. **Kill if prequential
-    MAE_fitted ≥ MAE_default for n up to ~40** (the fit then has no
-    demonstrable skill in the regime users live in, and shipping the number
-    advertises that), **or if coverage sits inside 60–75% at every n** (the
-    band is already correct and unremarkable — then ship only the between-title
-    variance). Two results the copy must not overpromise: coverage will
-    over-cover at small n (σ̂² is the ν₀ = 4 blend toward σ₀ = 0.25 h —
-    a prior, not a floor: it decays as logs accumulate), and
-    skill against the default is
-    ≈0 at small n _by construction_, since the ridge is anchored to the
-    default — so gate the coverage row at n ≥ 10. Fold in the ~5-line display
-    of `phiPredictionStd` as a ± band beside the point ϕ on the task card
-    (`task-item.svelte`), which that function's own docstring
-    sanctions. Unpriced by design — it is not an
-    allocation-precision claim. MATH.md: a note on the scoring convention in §5.
+19. ~~**Prequential ϕ scorecard — the probe**~~ — MEASURED 2026-08-30 (MATH.md
+    §5, `scripts/phi-prequential-skill.probe.ts`).
+    [docs/features/phi-prequential-skill.md](docs/features/phi-prequential-skill.md)
+
 20. **Unfunded-task attribution** — name the binding reason a task got 0 h.
     **Zero extra solves:** `suggestPlanAdjustments` already computes a full
     `calculateDailyMetrics` per defer candidate, each carrying `activeTasks`
@@ -336,6 +309,24 @@ present:
     **kill if any single cause exceeds ~80%** (the honest product is then one
     static sentence), **or if the defer branch is empty on most days**, leaving
     only non-actionable branches.
+
+The measurement answered item 19's gates and left its reading unbuilt, so the
+reading is its own item:
+
+34. **The ϕ skill reading, and the ± band on the task card** — item 19's
+    measurement cleared both its gates in one direction each, and what survives
+    them is smaller than what it proposed. **Ship:** the prequential MAE curve,
+    fitted against default — the fit beats the defaults from the first log and
+    by ≈0.21 h thereafter, so there is a real reading to show; and the ± band
+    from `phiPredictionStd` beside the point ϕ on the task card
+    (`task-item.svelte`), which needs the posterior plumbed through
+    `SuggestedTask` to both task screens. **Do not ship:** the coverage row —
+    the band sits at 65.9–67.6% against a 68.3% nominal at every n ≥ 10, which
+    is the "already correct and unremarkable" case item 19 named, and a row that
+    prints it says nothing. Σδ̂² has no user, and is a probe reading for item 6.
+    Undecided and the first question: WHERE — the analytics "Your model" card,
+    its own card beside it, or the dashboard's flow calibration card. Unpriced
+    by design; it is not an allocation-precision claim.
 
 Left over from the 2026-08-06 probe round, which backed five `MATH.md` claims
 and found three of them wrong: the rest of that list, and the smallest of the
@@ -579,9 +570,9 @@ have to be re-derived:
 - **A hedge receipt (posterior vs no-posterior plan diff).** The unhedged plan
   uses ϕ̂, not truth, so the diff is not "what knowing your true ϕ would buy",
   and there is no lever the user owns in response. Only the ± band survives,
-  folded into item 19.
+  folded into item 34.
 - **Fit-vs-default plan diff; a funded-set robustness sweep; the information
-  value of the next ⚡ log.** Redundant with item 19's rows or expected to
+  value of the next ⚡ log.** Redundant with item 34's rows or expected to
   collapse to a static sentence; the robustness sweep also costs 2n+4 solves,
   worse than the whole advice run. Run each as a probe only — the cheapest good
   outcome is one constant sentence and no code.
