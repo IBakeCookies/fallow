@@ -104,6 +104,7 @@
 	"task_nature_physical_description": "Physical task — physical difficulty dominates, draws on the physical capacity pool",
 	"task_nature_hybrid_description": "Hybrid task — balanced mental and physical demands, draws on both capacity pools",
 	"task_derived_tooltip": "What the Fallow model derived from your sliders: true effort E (1–5), time to reach flow state ϕ, and the optimal stopping time beyond which average productivity declines. The better Fallow knows your flow times, the closer that time sits to 1.52–1.79×ϕ; the less sure it is, the earlier it stops — for a task that is productive from the first minute, even before ϕ.",
+	"task_flow_band_tooltip": "± is one standard deviation of a new measurement: about two times in three, the time you actually take lands inside that range. It narrows as you log more.",
 	"task_flow_badge_tooltip": "Measured minutes-to-flow you logged for this task — data points like this personalize the model's c₁,c₂,c₃ constants (least-squares fit)",
 	"task_edit_flow_log_aria": "Correct this time to flow",
 	"task_allocation_tooltip": "Suggested time allocation for today, and the task's priority score (intrinsic value × 10) that drives it",

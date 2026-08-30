@@ -68,6 +68,7 @@
 			// The fixture's own day, so the default list carries no slide badge: every
 			// task in it was added on the day being viewed.
 			viewedDate: '2026-07-20',
+			constantsFitted: false,
 			// Run order is not priority order — the alternation is a heuristic over the
 			// funded set — so boxing leads a sequence it ranks second in.
 			// Every funded task holds a position, the completed one included.

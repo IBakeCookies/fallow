@@ -260,6 +260,7 @@
 				suggestedTasks={daily.suggestedTasks}
 				runOrder={daily.runOrder}
 				viewedDate={selectedDate}
+				constantsFitted={session.constantsFit.fitted}
 				remainingDay={plan.remainingDay}
 				nextTaskTitle={plan.remainingDay?.nextTask?.title}
 				ontoggle={(id) => session.toggleTask(id)}

@@ -104,6 +104,7 @@
 	"task_nature_physical_description": "Körperliche Aufgabe — körperliche Schwierigkeit dominiert, zehrt am körperlichen Kapazitätspool",
 	"task_nature_hybrid_description": "Hybride Aufgabe — ausgewogene mentale und körperliche Anforderungen, zehrt an beiden Kapazitätspools",
 	"task_derived_tooltip": "Was das Fallow-Modell aus deinen Reglern ableitet: wahrer Aufwand E (1–5), Zeit bis zum Flow-Zustand ϕ und die optimale Stoppzeit, ab der die durchschnittliche Produktivität sinkt. Je besser Fallow deine Flow-Zeiten kennt, desto näher liegt diese Zeit am 1,52- bis 1,79-Fachen von ϕ; je unsicherer die Schätzung, desto früher — bei einer von der ersten Minute an produktiven Aufgabe sogar vor ϕ.",
+	"task_flow_band_tooltip": "± ist eine Standardabweichung einer neuen Messung: In etwa zwei von drei Fällen liegt die Zeit, die du tatsächlich brauchst, in diesem Bereich. Der Bereich wird enger, je mehr du protokollierst.",
 	"task_flow_badge_tooltip": "Gemessene Minuten bis zum Flow, die du für diese Aufgabe protokolliert hast — solche Datenpunkte personalisieren die Konstanten c₁,c₂,c₃ des Modells (Kleinste-Quadrate-Fit)",
 	"task_edit_flow_log_aria": "Diese Zeit bis zum Flow korrigieren",
 	"task_allocation_tooltip": "Vorgeschlagene Zeitzuteilung für heute und der Prioritätswert der Aufgabe (intrinsischer Wert × 10), der sie bestimmt",

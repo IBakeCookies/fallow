@@ -144,6 +144,57 @@
 />
 
 <Story
+	name="Flow band"
+	args={{
+		flowStateTime: 1.4,
+		flowStateTimeStd: 0.4,
+	}}
+	play={async ({ canvas, canvasElement, userEvent }) => {
+		const cells = canvas.getAllByRole('cell');
+
+		expect(cells[CELL.flow].textContent?.replace(/\s+/g, ' ').trim()).toBe('1h 24m ± 24m');
+
+		const trigger = cells[CELL.flow].querySelector('[data-slot="tooltip-trigger"]') as HTMLElement;
+
+		await userEvent.hover(trigger);
+
+		const body = within(canvasElement.ownerDocument.body);
+
+		await waitFor(() => expect(body.getByText(/^What the Fallow model derived/)).toBeVisible());
+		await waitFor(() => expect(body.getByText(/^± is one standard deviation/)).toBeVisible());
+
+		// Below it on screen, not merely after it in the DOM: the tooltip shell is
+		// an `inline-flex` row, and document order alone reads the same in a column.
+		const derived = body.getByText(/^What the Fallow model derived/).getBoundingClientRect();
+		const band = body.getByText(/^± is one standard deviation/).getBoundingClientRect();
+
+		expect(band.top).toBeGreaterThanOrEqual(derived.bottom);
+	}}
+/>
+
+<Story
+	name="Flow band absent before a fit"
+	args={{
+		flowStateTime: 1.4,
+	}}
+	play={async ({ canvas, canvasElement, userEvent }) => {
+		const cells = canvas.getAllByRole('cell');
+
+		expect(cells[CELL.flow].textContent?.replace(/\s+/g, ' ').trim()).toBe('1h 24m');
+
+		const trigger = cells[CELL.flow].querySelector('[data-slot="tooltip-trigger"]') as HTMLElement;
+
+		await userEvent.hover(trigger);
+
+		const body = within(canvasElement.ownerDocument.body);
+
+		await waitFor(() => expect(body.getByText(/^What the Fallow model derived/)).toBeVisible());
+
+		expect(body.queryByText(/^± is one standard deviation/)).toBeNull();
+	}}
+/>
+
+<Story
 	name="Mid-day re-plan"
 	args={{
 		runOrder: 1,

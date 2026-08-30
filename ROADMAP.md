@@ -313,20 +313,24 @@ present — the first now measured, the second still open:
 The measurement answered item 19's gates and left its reading unbuilt, so the
 reading is its own item:
 
-34. **The ϕ skill reading, and the ± band on the task card** — item 19's
-    measurement cleared both its gates in one direction each, and what survives
-    them is smaller than what it proposed. **Ship:** the prequential MAE curve,
-    fitted against default — the fit beats the defaults from the first log and
-    by ≈0.21 h thereafter, so there is a real reading to show; and the ± band
-    from `phiPredictionStd` beside the point ϕ on the task card
-    (`task-item.svelte`), which needs the posterior plumbed through
-    `SuggestedTask` to both task screens. **Do not ship:** the coverage row —
-    the band sits at 65.9–67.6% against a 68.3% nominal at every n ≥ 10, which
-    is the "already correct and unremarkable" case item 19 named, and a row that
+34. **The ϕ skill reading** — item 19's measurement cleared both its gates in
+    one direction each, and what survives them is smaller than what it
+    proposed. **Ship:** the prequential MAE curve, fitted against default — the
+    fit beats the defaults from the first log and by ≈0.21 h thereafter, so
+    there is a real reading to show. **Do not ship:** the coverage row — the
+    band sits at 65.9–67.6% against a 68.3% nominal at every n ≥ 10, which is
+    the "already correct and unremarkable" case item 19 named, and a row that
     prints it says nothing. Σδ̂² has no user, and is a probe reading for item 6.
     Undecided and the first question: WHERE — the analytics "Your model" card,
     its own card beside it, or the dashboard's flow calibration card. Unpriced
-    by design; it is not an allocation-precision claim.
+    by design; it is not an allocation-precision claim. ~~The ± band from
+    `phiPredictionStd` beside the point ϕ on the task card~~ — SHIPPED
+    2026-08-31
+    ([the-band-beside-the-flow-time.md](docs/features/the-band-beside-the-flow-time.md)).
+    That half's own two sentences were wrong: ϕ renders on ONE task screen, not
+    both — the Lab's ledger heads no `Flow at` column — and the posterior needed
+    no plumbing, having been a parameter of `calculateTaskPlan` since §5.1's
+    hedging landed.
 
 Left over from the 2026-08-06 probe round, which backed five `MATH.md` claims
 and found three of them wrong: the rest of that list, and the smallest of the
@@ -569,8 +573,9 @@ have to be re-derived:
   read as free.
 - **A hedge receipt (posterior vs no-posterior plan diff).** The unhedged plan
   uses ϕ̂, not truth, so the diff is not "what knowing your true ϕ would buy",
-  and there is no lever the user owns in response. Only the ± band survives,
-  folded into item 34.
+  and there is no lever the user owns in response. Only the ± band survives, and
+  it shipped 2026-08-31
+  ([the-band-beside-the-flow-time.md](docs/features/the-band-beside-the-flow-time.md)).
 - **Fit-vs-default plan diff; a funded-set robustness sweep; the information
   value of the next ⚡ log.** Redundant with item 34's rows or expected to
   collapse to a static sentence; the robustness sweep also costs 2n+4 solves,
