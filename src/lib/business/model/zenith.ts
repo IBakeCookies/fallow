@@ -882,32 +882,8 @@ function improveWithTransfers(
 			const trial = [...blocks];
 			trial[newcomer] = 1;
 
-			for (;;) {
-				let used = 0;
-				let cog = 0;
-				let phys = 0;
-
-				for (let i = 0; i < tasks.length; i++) {
-					used += trial[i];
-					cog += trial[i] * BLOCK_HOURS * tasks[i].cognitiveWeight;
-					phys += trial[i] * BLOCK_HOURS * tasks[i].physicalWeight;
-				}
-
-				if (used <= budgetBlocks && cog <= poolCog + 1e-9 && phys <= poolPhys + 1e-9) break;
-
-				let victim = -1;
-				let cheapest = Infinity;
-
-				for (const i of subset) {
-					if (i === newcomer || trial[i] <= 0) continue;
-
-					const inc = tasks[i].increments[trial[i] - 1];
-
-					if (inc < cheapest) {
-						cheapest = inc;
-						victim = i;
-					}
-				}
+			while (!feasible(tasks, trial, budgetBlocks, poolCog, poolPhys)) {
+				const victim = cheapestFundedBlock(tasks, subset, trial, newcomer);
 
 				if (victim === -1) break;
 
@@ -964,6 +940,31 @@ function feasible(
 	}
 
 	return used <= budgetBlocks && cog <= poolCog + 1e-9 && phys <= poolPhys + 1e-9;
+}
+
+// Lowest-value funded block outside the newcomer — what the admission move
+// evicts to buy the newcomer its first block.
+function cheapestFundedBlock(
+	tasks: AllocTask[],
+	subset: number[],
+	blocks: number[],
+	newcomer: number,
+): number {
+	let victim = -1;
+	let cheapest = Infinity;
+
+	for (const i of subset) {
+		if (i === newcomer || blocks[i] <= 0) continue;
+
+		const inc = tasks[i].increments[blocks[i] - 1];
+
+		if (inc < cheapest) {
+			cheapest = inc;
+			victim = i;
+		}
+	}
+
+	return victim;
 }
 
 function planValue(tasks: AllocTask[], blocks: number[]): number {
