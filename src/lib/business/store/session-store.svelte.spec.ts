@@ -2042,4 +2042,17 @@ describe('SessionStore demo mode', () => {
 		expect(initializeStorageMock).toHaveBeenCalledTimes(1);
 		expect(readHistoryPrefillsMock).toHaveBeenCalledTimes(1);
 	});
+
+	// A ϕ measurement taken against a fabricated task would enter the visitor's own
+	// fit. The planner hides the affordance (`canLog`), but the Energy Lab renders
+	// this same day and calls `logFlow` with no such check — so the refusal belongs
+	// here, beside the other writes, not in one of the two call sites.
+	it('logs no flow measurement on the example day', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(6));
+		await store.logFlow(store.tasks[0].id, 30);
+
+		expect(createOrUpdateFlowObservationMock).not.toHaveBeenCalled();
+	});
 });
