@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, budgetField, isoDate, openTimeBudget, setBudget } from './helpers';
+import {
+	addTask,
+	AUTOSAVE_MS,
+	budgetField,
+	isoDate,
+	openTimeBudget,
+	setBudget,
+	timeBudgetBar,
+} from './helpers';
 
 test('setting the time budget feeds the plan', async ({ page }) => {
 	await page.goto('/');
@@ -27,8 +35,8 @@ test('setting the time budget feeds the plan', async ({ page }) => {
 
 	// summary renders only while the card is collapsed
 	await page
-		.getByRole('button', {
-			name: 'Time Budget',
+		.getByText('Time Budget', {
+			exact: true,
 		})
 		.click();
 
@@ -66,11 +74,7 @@ test.describe('server-rendered, before the day is read', () => {
 	test('the time budget bar is collapsed', async ({ page }) => {
 		await page.goto('/');
 
-		await expect(
-			page.getByRole('button', {
-				name: 'Time Budget',
-			}),
-		).toHaveAttribute('aria-expanded', 'false');
+		await expect(timeBudgetBar(page)).not.toHaveAttribute('open');
 
 		await expect(budgetField(page)).toBeHidden();
 	});
@@ -113,11 +117,7 @@ test('the bar follows the day on screen, not the day the tab booted on', async (
 		})
 		.click();
 
-	await expect(
-		page.getByRole('button', {
-			name: 'Time Budget',
-		}),
-	).toHaveAttribute('aria-expanded', 'false');
+	await expect(timeBudgetBar(page)).not.toHaveAttribute('open');
 });
 
 /** One of the bar's stepper fields, set the way the user does: type, then blur. */
