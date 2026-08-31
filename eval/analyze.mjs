@@ -1,6 +1,7 @@
-// Reads a results file and reports the three things a sweep is run to learn:
-// whether the conditions differ, whether the difference survives pairing, and
-// whether an arm won by working harder rather than by following rules better.
+// Reads a results file and reports the four things a sweep is run to learn:
+// whether the conditions differ, whether the difference survives pairing,
+// whether the sweep was wide enough to have decided that at all, and whether an
+// arm won by working harder rather than by following rules better.
 //
 //   node eval/analyze.mjs eval/results/<file>.json
 
@@ -25,6 +26,17 @@ const rate = (subset) => ({
 
 const fmt = ({ pass, total }) =>
 	`${pass}/${total} = ${total ? ((100 * pass) / total).toFixed(0) : '--'}%`;
+
+const mean = (xs) => xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
+
+// Sample SD, in the unit its input carries — per-run adherence rates, so a
+// spread of 0.39 is 39 points of adherence. Undefined on one run, and every
+// caller says so rather than printing the 0 a guard here would invent.
+const spread = (xs) => {
+	const centre = mean(xs);
+
+	return Math.sqrt(xs.reduce((sum, x) => sum + (x - centre) ** 2, 0) / (xs.length - 1));
+};
 
 console.log(`\n${file}\n${rows.length} rows, ${conditions.length} conditions\n`);
 console.log('ROW LEVEL');
@@ -67,16 +79,30 @@ console.log('\nRUN LEVEL');
 for (const condition of conditions) {
 	const list = byCondition(condition);
 	const rates = list.map((r) => r.pass / r.total);
-	const mean = rates.reduce((a, b) => a + b, 0) / (rates.length || 1);
 
 	console.log(
 		`  ${condition.padEnd(10)} n=${list.length} ` +
-			`per-run [${rates.map((r) => r.toFixed(2)).join(', ')}] mean ${mean.toFixed(2)}`,
+			`per-run [${rates.map((r) => r.toFixed(2)).join(', ')}] ` +
+			`mean ${mean(rates).toFixed(2)} ` +
+			`SD ${rates.length > 1 ? `${(100 * spread(rates)).toFixed(0)} points` : 'n/a at n=1'}`,
 	);
 }
 
 // A sign test rather than a t-test: n is small, the per-run rates are bounded
 // and lumpy, and the only claim worth making from six pairs is a direction.
+//
+// Beside it, what the sweep could have seen. A direction that came out tied, or
+// a difference that came out small, means nothing until the arms are wide enough
+// to resolve it, and these arms are a handful of runs against a within-arm SD in
+// the tens of points. Both figures are read off this sweep's own spread: the
+// difference it can resolve at the n it ran, and the n it would take to resolve
+// TARGET_DELTA. Pairing by case is reported second and planned on last — it has
+// cut the spread to a fifth on one sweep and raised it on another, so the
+// unpaired figure is the one a sweep should be sized by.
+
+const TARGET_DELTA = 0.2; // the difference a condition comparison is run to see
+const Z_SQUARED = 7.849; // (z₀.₉₇₅ + z₀.₈₀)², two-sided α = 0.05 at 80% power
+
 for (const [i, a] of conditions.entries())
 	for (const b of conditions.slice(i + 1)) {
 		const pairs = [...new Set(byCondition(a).map((r) => r.pair))]
@@ -101,6 +127,25 @@ for (const [i, a] of conditions.entries())
 				`tied in ${pairs.length - better - worse} of ${pairs.length}${
 					p === null ? '' : `, sign test p=${p.toFixed(3)}`
 				}`,
+		);
+
+		if (pairs.length < 2) continue;
+
+		const arms = [a, b].map((condition) => byCondition(condition).map((r) => r.pass / r.total));
+		const armSize = Math.min(...arms.map((rates) => rates.length));
+		const pooled = Math.sqrt(mean(arms.map((rates) => spread(rates) ** 2)));
+		const paired = spread(pairs.map(([x, y]) => y.pass / y.total - x.pass / x.total));
+		const needed = (sd, perArm) => Math.ceil((perArm * Z_SQUARED * sd ** 2) / TARGET_DELTA ** 2);
+		const resolvable = (sd, perArm, n) => 100 * sd * Math.sqrt((perArm * Z_SQUARED) / n);
+		const points = (x) => x.toFixed(0);
+
+		console.log(
+			`    SD ${points(100 * pooled)} points per arm at n=${armSize}, ` +
+				`${points(100 * paired)} paired over ${pairs.length}: ` +
+				`resolves ${points(resolvable(pooled, 2, armSize))} points ` +
+				`(${points(resolvable(paired, 1, pairs.length))} paired); ` +
+				`${(100 * TARGET_DELTA).toFixed(0)} points needs n=${needed(pooled, 2)} per arm ` +
+				`(paired n=${needed(paired, 1)})`,
 		);
 	}
 

@@ -291,3 +291,23 @@ a non-zero agent exit, so a row that failed for a harness reason stays
 distinguishable from one that failed on the rule. A sweep where `notes` is
 widely non-empty is not a measurement; that is what the pre-container harness
 produced, and why it was replaced.
+
+## Reading a sweep
+
+`node eval/analyze.mjs eval/results/<file>.json` prints the row- and run-level
+rates, a paired sign test between every pair of conditions, the effort each arm
+spent — and, beside each comparison, what that sweep could have resolved.
+
+**Read the power line before the sign test.** It is computed from the sweep's
+own within-arm SD at α = 0.05 and 80% power, and that SD has run from 11 to 39
+points, so six runs an arm resolve nothing smaller than about 40 to 60 points —
+most of the scale. A tie between two conditions at that width is not a finding.
+The three `targeted` vs `monolith` sweeps ask for n = 60, 23 and 42 runs per arm
+to see a 20-point difference against the six they ran: size on the largest, and
+expect the number itself to move until an arm is wide enough to pin the SD it
+rests on. `TARGET_DELTA` in `analyze.mjs` is the 20 points; change it there to
+size for a different difference.
+
+Pairing by case is printed second because it cannot be planned on. It cut the
+spread from 33 points to 7 on one sweep and raised it from 39 to 43 on another
+— rep-to-rep noise within a case, not the case, is what the arms are fighting.
