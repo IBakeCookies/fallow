@@ -256,11 +256,17 @@ which of the two flags a site takes is the whole of it:
   before `initializeStorage`, the day effect seeds instead of loading, the
   yesterday effect and the `visibilitychange` re-read stand down.
 - `#isShowingDemo` — whether the fixture is on screen. Gates the WRITES:
-  `#persistSession`, the auto-save effect, `saveCurrentAsRoutine`,
+  `#persistSession`, the auto-save effect, `logFlow`, `saveCurrentAsRoutine`,
   `deleteRoutine`, `moveTaskToTomorrow`, and the two remaining reads a click can
   still reach (`readDeferDestination`, `importFromDate`). Leaving the demo drops
   the param while the fixture is still in `#tasks`, and a URL-keyed auto-save ran
   in exactly that gap and saved all six.
+
+A write refused here and not at its call site, always. `logFlow` is why: the
+planner hides the ⚡ affordance in the demo (`canLog`), the Energy Lab renders
+this same day and hides nothing, so a presentation-side guard covered one caller
+of two. It happened to be unreachable — the Lab is outside the demo's route
+scope — which is exactly the kind of cover that disappears when a scope moves.
 
 Editing still works, so `#seedDemoDay` sets `#loadedDate` like a real load —
 which is why leaving the demo tests `#isShowingDemo` and not the two dates: a

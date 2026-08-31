@@ -1052,6 +1052,12 @@ export class SessionStore {
 	// that exists, while a first one on a past day is a measurement nobody took.
 	// The guard is here rather than only in the UI because the date is the store's.
 	async logFlow(id: number, minutes: number) {
+		// The example day's tasks are fabricated, so a ϕ measurement against one
+		// would enter the visitor's own fit. Here and not at the call sites: the
+		// planner hides the affordance, the Energy Lab renders this same day and
+		// does not.
+		if (this.#isShowingDemo) return;
+
 		// Same guard as toggleTask: mid-navigation the task, its title and its
 		// covariates are the previous day's, and the record stamps #selectedDate.
 		if (this.#loadedDate !== this.#selectedDate) return;
