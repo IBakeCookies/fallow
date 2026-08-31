@@ -5,6 +5,7 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	DEFAULT_SWITCH_COST,
 	DEFAULT_CAPACITY_POOLS,
+	importanceWeightOf,
 	type CapacityPools,
 	type UserConstants,
 	type FitPosterior,
@@ -116,6 +117,7 @@ export function toEnergyTask(task: Task): EnergyTaskInput {
 		enjoyment: task.enjoyment,
 		cognitiveDemand: task.mentalDifficulty / 10,
 		physicalDemand: task.physicalDifficulty / 10,
+		importance: task.importance,
 	};
 }
 
@@ -162,6 +164,7 @@ export function toPooledInputs(tasks: Task[]) {
 		enjoyment: task.enjoyment,
 		cognitiveWeight: task.mentalDifficulty / 10,
 		physicalWeight: task.physicalDifficulty / 10,
+		importanceWeight: importanceWeightOf(task.importance),
 	}));
 }
 

@@ -8,6 +8,7 @@
 export type {
 	Persisted,
 	Task,
+	TaskImportance,
 	DailySession,
 	SavedRoutine,
 	FlowObservationRecord,

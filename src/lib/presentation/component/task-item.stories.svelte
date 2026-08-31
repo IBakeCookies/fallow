@@ -572,6 +572,7 @@
 			mentalDifficulty: 8,
 			enjoyment: 7,
 			mustDoToday: false,
+			importance: 'normal',
 		});
 	}}
 />
@@ -606,6 +607,7 @@
 			mentalDifficulty: 8,
 			enjoyment: 7,
 			mustDoToday: false,
+			importance: 'normal',
 		});
 	}}
 />

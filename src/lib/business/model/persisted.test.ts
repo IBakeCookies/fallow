@@ -187,6 +187,36 @@ describe('sanitizeTask', () => {
 		});
 	});
 
+	// A level arrives from a restored backup as raw JSON, and the weight it names is
+	// looked up on `IMPORTANCE_WEIGHT` — so a key off `Object.prototype` would resolve
+	// to a function and NaN every increment on the day. Both directions are asserted
+	// here because the code that stops that is one `Object.hasOwn`.
+	it('keeps a declared importance level and drops anything else', () => {
+		expect(
+			sanitizeTask(
+				{
+					id: 1,
+					importance: 'high',
+				},
+				'2026-07-01',
+			),
+		).toMatchObject({
+			importance: 'high',
+		});
+
+		for (const importance of ['constructor', 'toString', 'HIGH', 'urgent', 2, null]) {
+			expect(
+				sanitizeTask(
+					{
+						id: 1,
+						importance,
+					},
+					'2026-07-01',
+				),
+			).not.toHaveProperty('importance');
+		}
+	});
+
 	// Every session stored before 2026-08-10 carries `flowMinutes`: the ⚡ badge was a
 	// field on the task as well as an observation, and a measurement in two places is
 	// one the row could only correct in one of them. The observation is now the only
@@ -332,6 +362,33 @@ describe('sanitizeRoutines', () => {
 				createdAt: 0,
 			},
 		]);
+	});
+
+	// The level lives in `taskCore` precisely so it survives this path; `mustDoToday`
+	// deliberately does not, and the pair is asserted together or neither is pinned.
+	it('carries a template task’s importance and never its must-do flag', () => {
+		expect(
+			sanitizeRoutines([
+				{
+					id: 'routine-1',
+					name: 'Morning',
+					tasks: [
+						{
+							title: 'write',
+							importance: 'low',
+							mustDoToday: true,
+						},
+					],
+					createdAt: 0,
+				},
+			])[0].tasks[0],
+		).toEqual({
+			title: 'write',
+			physicalDifficulty: 0,
+			mentalDifficulty: 0,
+			enjoyment: 1,
+			importance: 'low',
+		});
 	});
 
 	it('drops a routine without a string id — deletion is keyed on it', () => {

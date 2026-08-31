@@ -3073,4 +3073,140 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			expect(tasksWithTime.length).toBeGreaterThanOrEqual(3);
 		});
 	});
+
+	/* Task importance (ROADMAP item 23, MATH.md §0): the objective becomes
+	   Σᵢ vᵢ·P̄ᵢ(tᵢ). `v` scales a task's whole block menu, so it redivides the day's
+	   budget — both which tasks are funded and how many blocks a funded one gets —
+	   while leaving every per-task figure, T* included, exactly where it was. */
+	describe('importance weight', () => {
+		const WEIGHTED_TASKS: PooledTaskInput[] = [
+			{
+				title: 'invoice',
+				difficulty: 8,
+				enjoyment: 3,
+				cognitiveWeight: 0.8,
+				physicalWeight: 0.1,
+			},
+			{
+				title: 'errand',
+				difficulty: 2,
+				enjoyment: 9,
+				cognitiveWeight: 0.2,
+				physicalWeight: 0.3,
+			},
+			{
+				title: 'training',
+				difficulty: 6,
+				enjoyment: 6,
+				cognitiveWeight: 0.3,
+				physicalWeight: 0.9,
+			},
+		];
+
+		/* PIN — the literals are what this fixture returned BEFORE the weight existed,
+		   so an undeclared importance has to leave every one of them untouched. Read
+		   off the unweighted allocator; a pin nobody can re-derive is a snapshot. */
+		it('is an exact no-op when no importance is declared', () => {
+			const pooled = calculatePooledAllocations(WEIGHTED_TASKS, 2, DEFAULT_CAPACITY_POOLS);
+
+			expect(pooled.map((a) => a.allocatedHours)).toEqual([0.5, 0.25, 0.75]);
+
+			expect(pooled.map((a) => a.optimalAvgProductivity)).toEqual([
+				1.6410396222375818, 1.5526804656106632, 1.7291330717484652,
+			]);
+
+			expect(calculateTaskAllocations(WEIGHTED_TASKS, 2).map((a) => a.allocatedHours)).toEqual([
+				0.5, 0.25, 0.75,
+			]);
+
+			expect(
+				calculateTotalProductivity(
+					WEIGHTED_TASKS,
+					pooled.map((a) => a.allocatedHours),
+					DEFAULT_USER_CONSTANTS,
+				),
+			).toBe(3.19359992156483);
+		});
+
+		/* THE item's behaviour, and the only one of these that can go red: on a budget
+		   too tight to fund both, the funded task is whichever importance says it is.
+		   0.5h buys two blocks, and DEFAULT_SWITCH_COST charges a block to fund a second
+		   task at all, so the day genuinely has to choose. */
+		it('funds the important task over the cheap one on a tight day', () => {
+			const contested = (importanceWeights: number[]) =>
+				calculatePooledAllocations(
+					WEIGHTED_TASKS.slice(0, 2).map((task, i) => ({
+						...task,
+						importanceWeight: importanceWeights[i],
+					})),
+					0.5,
+					DEFAULT_CAPACITY_POOLS,
+				).map((a) => a.allocatedHours);
+
+			const invoiceMatters = contested([2, 0.5]);
+			const errandMatters = contested([0.5, 2]);
+
+			expect(invoiceMatters[0]).toBeGreaterThan(0);
+			expect(invoiceMatters[1]).toBe(0);
+			expect(errandMatters[0]).toBe(0);
+			expect(errandMatters[1]).toBeGreaterThan(0);
+		});
+
+		/* PIN — the observable half of "positive scaling preserves the menu's shape":
+		   scaling every task by the same v scales the objective itself, so the argmax —
+		   and with it the funded set and every task's hours — cannot move. Green before
+		   the change because the field is ignored, and green after for the real reason. */
+		it('is a no-op when every task carries the same importance', () => {
+			const baseline = calculatePooledAllocations(WEIGHTED_TASKS, 2, DEFAULT_CAPACITY_POOLS).map(
+				(a) => a.allocatedHours,
+			);
+
+			for (const importanceWeight of [0.5, 1, 2]) {
+				const uniform = calculatePooledAllocations(
+					WEIGHTED_TASKS.map((task) => ({
+						...task,
+						importanceWeight,
+					})),
+					2,
+					DEFAULT_CAPACITY_POOLS,
+				);
+
+				expect(uniform.map((a) => a.allocatedHours)).toEqual(baseline);
+			}
+		});
+
+		/* PIN — green today because the field is ignored, and it must stay green once it
+		   is not. `pooledProductivityGain` scores the optimized plan and the naive baseline
+		   through the same `calculateTotalProductivity`, so the weight has to enter both
+		   or the optimized side inflates against an unweighted baseline and the gain
+		   goes wherever the importance levels push it. */
+		it('weights both sides of the gain', () => {
+			// A UNIFORM weight is what discriminates: it scales the optimized plan and the
+			// naive baseline by the same v, so their RATIO is untouched. Weight only the
+			// optimized side and gainPercent moves with v — which `toBeGreaterThanOrEqual(0)`
+			// could never have seen, since a one-sided weight inflates rather than inverts.
+			const uniform = (importanceWeight: number) =>
+				WEIGHTED_TASKS.map((task) => ({
+					...task,
+					importanceWeight,
+				}));
+
+			const baseline = pooledProductivityGain(WEIGHTED_TASKS, 2).gainPercent;
+			const single = productivityGain(WEIGHTED_TASKS, 2).gainPercent;
+
+			for (const v of [0.5, 2]) {
+				expect(pooledProductivityGain(uniform(v), 2).gainPercent).toBeCloseTo(baseline, 9);
+				expect(productivityGain(uniform(v), 2).gainPercent).toBeCloseTo(single, 9);
+			}
+
+			// …and a mixed day still reports a gain at all, the existing invariant.
+			const mixed = WEIGHTED_TASKS.map((task, i) => ({
+				...task,
+				importanceWeight: [2, 0.5, 1][i],
+			}));
+
+			expect(pooledProductivityGain(mixed, 2).gainPercent).toBeGreaterThanOrEqual(0);
+			expect(productivityGain(mixed, 2).gainPercent).toBeGreaterThanOrEqual(0);
+		});
+	});
 });

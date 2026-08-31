@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { AUTOSAVE_MS, addTask, isoDate, saveRoutine, taskCard } from './helpers';
+import { AUTOSAVE_MS, addTask, isoDate, saveRoutine, taskCard, taskRow } from './helpers';
 
 /* Routines and day-imports are what the day's two menus exist for, and both cross
    a day boundary: what is saved on one date has to reappear on another, read back
@@ -145,4 +145,58 @@ test('loading from a day with nothing on it reports the empty day', async ({ pag
 	await page.getByLabel('Load from a day').fill(isoDate(-40));
 
 	await expect(page.getByText('No tasks on that day')).toBeVisible();
+});
+
+/* Importance travels, and `mustDoToday` does not — the two sit beside each other in
+   the same form, so which one a routine carries is the distinction worth proving.
+   The level is a property of the task ("the invoice is always high"); the flag is a
+   statement about today, and `sanitizeTask` drops it on purpose. */
+test('a routine carries the importance its tasks were saved with', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Send the invoice');
+
+	const row = taskRow(page, 'Send the invoice');
+
+	await row
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	await row
+		.getByRole('group', {
+			name: 'Importance',
+		})
+		.getByRole('radio', {
+			name: 'High',
+			exact: true,
+		})
+		.check();
+
+	await row
+		.getByRole('button', {
+			name: 'Save',
+		})
+		.click();
+
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await saveRoutine(page, 'Invoice day');
+
+	await page.goto(`/?date=${isoDate(3)}`);
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
+
+	await page
+		.getByRole('button', {
+			name: 'Load',
+			exact: true,
+		})
+		.click();
+
+	await page
+		.getByRole('menuitem', {
+			name: 'Invoice day (1)',
+		})
+		.click();
+
+	await expect(taskRow(page, 'Send the invoice').getByText('High importance')).toBeVisible();
 });

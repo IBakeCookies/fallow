@@ -520,6 +520,39 @@ the menu below can fix and for these tasks there is no lever left. The badge is
 worded "Stays today" and the checkbox "Keep on today" for the same
 reason: "Must do" beside `0m` reads as a promise the model never made.
 
+### The importance weight `v` scales the objective, never a task's own figures
+
+MATH.md §0. `v ∈ {0.5, 1, 2}` (`IMPORTANCE_WEIGHT`, `zenith.ts`) enters at
+`increments` in the two `allocTasks` maps and nowhere else, so `planValue`, the
+funded-subset enumeration and the greedy inherit it unchanged and `toAllocations`
+— which produces every per-task figure the UI prints — is provably untouched.
+Because `argmax v·P̄ = argmax P̄`, `v` cannot move a task's own stopping time
+`T*` or the intrinsic value at it. It CAN move a funded task's planned hours:
+the allocator sorts one pooled marginal menu, so scaling one task's menu
+re-sorts it against the others and a task can gain or lose blocks while staying
+funded throughout. Do not restate this as "`v` only changes which tasks are
+funded" — that was the item's original wording and it is false.
+
+Two consequences are settled:
+
+- **`priorityScore` stays intrinsic** — unweighted, unscaled. It is printed on
+  the row, it is the weight in Completion Rate and Yield Index, and it is the
+  sort key `calculateInterleavedOrder` breaks ties on; weighting it would
+  re-score every stored day against a definition those days were never planned
+  under. Do not v-scale the printed figure alone either — that leaves two
+  quantities named `priorityScore` disagreeing by a factor of `v` (R3).
+- **The energy mode stays unweighted.** `optimizeSchedule` maximizes total
+  output (§8), and a value multiplier on an integral of output is a different
+  quantity. So `plan-audit.ts`'s classic branch carries the weight — the classic
+  plan the user saw is the weighted one — and its energy branch does not.
+
+`Σ vᵢ·P̄ᵢ` now has three implementations that must move in lockstep:
+`planValue` over `buildBlockIncrements`, `calculateTotalProductivity` (both
+`zenith.ts`), and `plan-advice.ts`'s `extraValue`, which sums the per-task rise
+directly. The last one has to apply `importanceWeightOf` itself, because
+`avgProductivity` is intrinsic while the `planValueOf` baseline it is compared
+against is the weighted objective.
+
 ### The productivity curve deviates from the source article on purpose
 
 MATH.md §6.

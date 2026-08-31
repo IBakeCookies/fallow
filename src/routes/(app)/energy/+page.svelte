@@ -321,6 +321,7 @@
 			mentalDifficulty={task.mentalDifficulty}
 			enjoyment={task.enjoyment}
 			mustDoToday={task.mustDoToday}
+			importance={task.importance}
 			color={colors.colorOf(task.id)}
 			trueEffort={task.trueEffort}
 			plannedHours={plannedFor(task.id)}

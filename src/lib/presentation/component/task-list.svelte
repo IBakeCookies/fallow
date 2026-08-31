@@ -154,6 +154,7 @@
 			slideDay={getSlideDay(task.createdAt, viewedDate)}
 			flowMinutes={flowLogs?.get(task.id)}
 			mustDoToday={task.mustDoToday}
+			importance={task.importance}
 			{ontoggle}
 			{onremove}
 			flowDraft={flowDrafts[task.id] ?? null}

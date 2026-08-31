@@ -239,7 +239,8 @@ Read this before touching markup, classes, or anything under
   tooltips fired on a pointer that was only crossing the trigger on its way
   somewhere else. Pass the prop only to deviate from the app's delay.
 - Checkboxes use `appearance-auto accent-brand`, not the `@tailwindcss/forms`
-  look. **One carve-out**: `must-do-toggle.svelte` reads as a button with a
+  look. **Two carve-outs**: `must-do-toggle.svelte` and the three radios in
+  `task-importance-select.svelte`. The toggle reads as a button with a
   toggle state, so its `<input>` is a transparent full-size overlay inside a
   `<label>` carrying `buttonVariants` — `outline` unset, `secondary` set, which
   is the emphasis ladder keeping it below the submit beside it. The input stays
@@ -247,7 +248,14 @@ Read this before touching markup, classes, or anything under
   submitted with the form, and it is an overlay rather than `sr-only` because
   Playwright clicks the box it is given and a shrunk one is intercepted by the
   label. The focus ring is `has-[:focus-visible]:`, not `peer-*`: the input is
-  a child of the label, never its sibling. The plugin paints a hardcoded `fill='white'` checkmark over
+  a child of the label, never its sibling. `task-importance-select.svelte`
+  takes that recipe three times for a 3-level scale, inside a `<fieldset>`
+  whose `<legend>` is **visible and above** the three options, styled like the
+  slider labels beside it — three bare buttons in a form say nothing about what
+  they set, and a `<legend>` cannot be a flex item in its own fieldset anyway.
+  Its `name` is `$props.id()`, because the add dialog and a row's editor can be
+  mounted at once and one shared name would merge them into a single group.
+  The plugin paints a hardcoded `fill='white'` checkmark over
   `background-color: currentColor`, so the fill has to be dark — impossible
   here: on a dark theme every accent token is light by design. `accent-color`
   hands checkmark contrast to the browser, the only thing that holds across

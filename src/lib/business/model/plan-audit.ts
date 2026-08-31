@@ -20,6 +20,7 @@
 import {
 	calculatePooledAllocations,
 	DEFAULT_USER_CONSTANTS,
+	importanceWeightOf,
 	type CapacityPools,
 	type FitPosterior,
 	type UserConstants,
@@ -159,6 +160,9 @@ export function auditPlanAdherence(
 				enjoyment: t.enjoyment,
 				cognitiveWeight: t.cognitiveDemand,
 				physicalWeight: t.physicalDemand,
+				// The classic plan the user saw was weighted, so the overlap has to score
+				// against that one. The energy branch below stays unweighted (MATH.md §0).
+				importanceWeight: importanceWeightOf(t.importance),
 			})),
 			windowHours,
 			day.pools,

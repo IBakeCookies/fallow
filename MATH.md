@@ -36,7 +36,7 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~26k tokens at 4 chars/token; the largest
+The whole document is ~27k tokens at 4 chars/token; the largest
 single section is §8 at ~15k (§5 is ~4k), and most of the 25 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
@@ -49,31 +49,31 @@ retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0           81-100  Objective
-§1          102-127  Inputs and parameter mappings (unchanged from the articl…
-§2          129-230  Productivity curve — v2 change
-§3          232-317  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          319-390  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          392-669  Personalization — v2 change: full Bayesian posterior
-  §5.2      480-558  Recency weighting of the ϕ fit
-  §5.1      560-669  Posterior-aware allocation
-§6          671-683  Summary of v1 → v2 changes
-§7          685-709  Known approximations and deliberate non-changes
-§8         711-1735  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      723-745  Intermittent-rest recovery correction
-  §8.2      747-766  Warm-up carryover instead of binary reset
-  §8.3      768-786  Verified consequences and a calibration question, closed
-  §8.4      788-858  Per-task satiety — concave daily value
-  §8.5      860-900  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      902-948  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     950-1047  Drain-rate calibration from end-of-session ratings
-  §8.8    1049-1084  45-minute plan granularity
-  §8.9    1086-1133  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1135-1380  Stopping-value calibration from observed stop times
-  §8.11   1382-1513  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1515-1669  The budget curve — what the day's LENGTH is worth
-  §8.13   1671-1735  Capacity from the fitted drain rate
-§9        1737-1784  References
+§0           81-122  Objective
+§1          124-149  Inputs and parameter mappings (unchanged from the articl…
+§2          151-252  Productivity curve — v2 change
+§3          254-346  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          348-432  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          434-711  Personalization — v2 change: full Bayesian posterior
+  §5.2      522-600  Recency weighting of the ϕ fit
+  §5.1      602-711  Posterior-aware allocation
+§6          713-725  Summary of v1 → v2 changes
+§7          727-751  Known approximations and deliberate non-changes
+§8         753-1777  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      765-787  Intermittent-rest recovery correction
+  §8.2      789-808  Warm-up carryover instead of binary reset
+  §8.3      810-828  Verified consequences and a calibration question, closed
+  §8.4      830-900  Per-task satiety — concave daily value
+  §8.5      902-942  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6      944-990  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     992-1089  Drain-rate calibration from end-of-session ratings
+  §8.8    1091-1126  45-minute plan granularity
+  §8.9    1128-1175  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1177-1422  Stopping-value calibration from observed stop times
+  §8.11   1424-1555  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1557-1711  The budget curve — what the day's LENGTH is worth
+  §8.13   1713-1777  Capacity from the fitted drain rate
+§9        1779-1826  References
 ```
 
 <!-- section-index:end -->
@@ -82,13 +82,35 @@ retype a row, regenerate:
 
 For each task `i`, `p_i(t)` is productivity `t` hours into the task and
 `P̄_i(T) = (1/T)∫₀ᵀ p_i(t) dt` its average over a session of length `T`. The
-planner maximizes the **sum of average productivities**
+planner maximizes the **value-weighted sum of average productivities**
 
 ```
-maximize   Σᵢ P̄ᵢ(tᵢ)
+maximize   Σᵢ vᵢ·P̄ᵢ(tᵢ)
 subject to Σᵢ tᵢ + (m − 1)·switchCost ≤ T_budget      (m = tasks with tᵢ > 0)
            [pooled variant] Σᵢ wcᵢ·tᵢ ≤ cognitive pool,  Σᵢ wpᵢ·tᵢ ≤ physical pool
 ```
+
+`vᵢ > 0` is the task's declared **importance**, one of three levels —
+`IMPORTANCE_WEIGHT = { low: 0.5, normal: 1, high: 2 }` — and `vᵢ = 1` for an
+undeclared one, which makes the unweighted objective the exact special case.
+Three levels rather than a continuous dial because the weight has to be worth
+more than the spread it competes against, and a dial invites a precision no
+measurement supports.
+
+Two properties decide where `v` may enter, and both are proved where they are
+used: it cannot move a task's stopping time `T*ᵢ` (§3), and it cannot break the
+premise the exact allocator rests on (§4). Together they say `v` leaves every
+**per-task** quantity alone — `T*ᵢ` and `P̄ᵢ(T*ᵢ)`, the intrinsic value the
+plan ranks and prints, which is why that value is deliberately left unweighted
+— while changing how the day's budget is divided between tasks.
+
+That division is where `v` acts, and it is not only the funded set. The
+allocator spends blocks off a pooled marginal menu (§4), so scaling one task's
+menu re-sorts it against every other task's: a task can gain or lose blocks
+while staying funded throughout. Two tasks differing only in enjoyment (1 vs 3)
+at a 1 h budget are planned 15m/30m at uniform `v` and 30m/15m once the first
+is raised to `high` — both funded before and after. What `v` cannot do is push
+a task past its own `T*`, because that bound is `v`-free.
 
 This objective (the article's choice, deliberately kept) optimizes the
 _quality of hours worked_, not the amount of work done. It is what creates
@@ -267,6 +289,13 @@ eˣ = 1 + x + x²/(1+r)
   to gain by waiting — but it means no code comment or UI string may quote the
   band for that field.
 
+**Invariance under the importance weight.** `T*` maximizes `P̄(T)`, and
+`argmax_T v·P̄(T) = argmax_T P̄(T)` for any `v > 0` — a positive scalar cannot
+move an argmax. So §0's weight leaves `T*`, the multiplier band above, and
+`P̄(T*)` itself untouched; it is a statement about a task alone, and `v` is a
+statement about that task against the others. The same holds for the hedged
+optimum of §5.1, whose objective is a positive mixture of the same curves.
+
 The best achievable average `P̄(T*)` is computed per task and exposed as
 `TaskAllocation.optimalAvgProductivity`; it replaced the v1 constant
 `OPTIMAL_AVG_FRACTION = x/(x²+x+1) ≈ 0.2984` (removed — only valid when the
@@ -341,6 +370,19 @@ Per task, precompute block increments
 objective and are never offered). `Δᵢ(1)` carries the activation bonus
 (≈ p₀ᵢ), and subsequent increments decrease.
 
+- **The importance weight scales the menu, and only the menu.** §0's `vᵢ`
+  multiplies `Δᵢ(j)` for every `j`. Since `vᵢ > 0`, the scaled sequence is
+  positive exactly where the unscaled one is and non-increasing exactly where
+  it is, so truncation lands on the same block and every property this section
+  relies on survives. The plan value `Σᵢ Σ_{j≤bᵢ} vᵢ·Δᵢ(j)` telescopes to
+  `Σᵢ vᵢ·P̄ᵢ(bᵢ·δ)`, which is §0's objective — so the greedy and the subset
+  enumeration below maximize the weighted objective by the same argument that
+  makes them exact for the unweighted one, with no change to either. Scaling
+  every task by the same `v` therefore cannot move the plan, up to the funded-
+  subset search's tie band: that comparison uses an ABSOLUTE 1e-9, so a uniform
+  `v` rescales values without rescaling the band, and two subsets separated by
+  less than it may swap. No such swap has been observed; it is a statement about
+  the bound, not a case.
 - **Single budget:** greedily fund the highest remaining increment until the
   block budget runs out. This is _exactly_ optimal (equivalently: take the
   top-B increments of the merged sorted lists; the diminishing property makes

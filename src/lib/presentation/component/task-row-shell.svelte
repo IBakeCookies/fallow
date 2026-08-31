@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
+	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import { buttonVariants } from '$lib/presentation/component/ui/button';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
@@ -39,6 +39,7 @@
 		mentalDifficulty: number;
 		enjoyment: number;
 		mustDoToday?: boolean;
+		importance?: TaskImportance;
 		/** Whether the ✎ editor offers the must-do checkbox. The one carve-out from "no
 		 *  mode flag on the shell" — presentation/AGENTS.md says which reading it is and
 		 *  why the seeded value still round-trips. Same name all the way down. */
@@ -78,6 +79,7 @@
 		mentalDifficulty,
 		enjoyment,
 		mustDoToday = false,
+		importance = 'normal',
 		withMustDoToday = true,
 		columnCount,
 		ontoggle,
@@ -368,6 +370,7 @@
 							mentalDifficulty,
 							enjoyment,
 							mustDoToday,
+							importance,
 						}}
 						{withMustDoToday}
 						onsave={(edit) => {

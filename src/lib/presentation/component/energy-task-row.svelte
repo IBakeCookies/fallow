@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
+	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import type { TaskEdit } from '$lib/presentation/component/task-form-fields.svelte';
@@ -20,8 +20,9 @@
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
-		/** Not badged here, but ✎ must round-trip it rather than clear it. */
+		/** Neither is badged here, but ✎ must round-trip them rather than clear them. */
 		mustDoToday?: boolean;
+		importance?: TaskImportance;
 		color: string;
 		/** Read off the store, not computed here: R2, and it is the number `/` prints. */
 		trueEffort: number;
@@ -57,6 +58,7 @@
 		mentalDifficulty,
 		enjoyment,
 		mustDoToday = false,
+		importance = 'normal',
 		color,
 		trueEffort,
 		plannedHours,
@@ -115,6 +117,7 @@
 		{mentalDifficulty}
 		{enjoyment}
 		{mustDoToday}
+		{importance}
 		withMustDoToday={false}
 		columnCount={getEnergyTaskColumns().length}
 		{ontoggle}

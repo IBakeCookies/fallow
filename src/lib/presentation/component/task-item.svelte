@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
+	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Badge } from '$lib/presentation/component/ui/badge';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
@@ -40,6 +40,7 @@
 		runOrder?: number;
 		flowMinutes?: number;
 		mustDoToday?: boolean;
+		importance?: TaskImportance;
 		slideDay?: number | null;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
@@ -77,6 +78,7 @@
 		runOrder,
 		flowMinutes,
 		mustDoToday = false,
+		importance = 'normal',
 		slideDay,
 		ontoggle,
 		onremove,
@@ -140,6 +142,23 @@
 			</Tooltip.Trigger>
 			<Tooltip.Content>
 				<p>{m.form_must_do_today_title()}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+	{/if}
+	<!-- `normal` is silent: a badge for the level nobody chose would be on every row. -->
+	{#if importance !== 'normal'}
+		<Tooltip.Root>
+			<Tooltip.Trigger class="cursor-help">
+				<Badge
+					class="border-transparent uppercase tracking-wide {importance === 'high'
+						? 'bg-danger/20 text-danger'
+						: 'bg-surface-inset text-ty-silent'}"
+				>
+					{importance === 'high' ? m.task_importance_high_badge() : m.task_importance_low_badge()}
+				</Badge>
+			</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>{m.form_importance_title()}</p>
 			</Tooltip.Content>
 		</Tooltip.Root>
 	{/if}
@@ -261,6 +280,7 @@
 		{mentalDifficulty}
 		{enjoyment}
 		{mustDoToday}
+		{importance}
 		columnCount={getTaskColumns().length}
 		ontoggle={() => ontoggle(id)}
 		{flowMinutes}

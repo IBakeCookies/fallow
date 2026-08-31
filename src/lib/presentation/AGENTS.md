@@ -202,19 +202,22 @@ Five components hold what the two screens say the same way:
   caller's copy and absent unless it passes one, because what is being dropped
   differs per editor and a first measurement has nothing to drop.
 - **`task-edit-form.svelte`** — the editor, on both screens.
-- **`task-form-fields.svelte`** — the three model input sliders both task forms
-  set, one loop over one table, so their labels, minimums and accents are
-  defined once. `TaskEdit` — the five fields a form can set — is this
-  component's type, since adding a task and re-tuning one emit the same thing.
-  It holds the sliders and nothing else: each form owns its own action row,
-  because each is a stack whose footer is its own — they happen to agree on the
-  shape (flag pushed out by `mr-auto`, submit in the corner) and not on the copy.
+- **`task-form-fields.svelte`** — what both task forms set about the task
+  itself: the three model input sliders, one loop over one table so their
+  labels, minimums and accents are defined once, and `task-importance-select`
+  under them. `TaskEdit` — the six fields a form can set — is this component's
+  type, since adding a task and re-tuning one emit the same thing. Importance
+  belongs here and `mustDoToday` does not, for the reason the model file gives:
+  the level is a property of the task, the flag is a statement about today. Each
+  form still owns its own action row, because each is a stack whose footer is
+  its own — they happen to agree on the shape (flag pushed out by `mr-auto`,
+  submit in the corner) and not on the copy.
 - **`must-do-toggle.svelte`** — the flag itself, a `<label>` carrying
   `buttonVariants` over a transparent full-size `<input type="checkbox">`. It
   reads as a button with a set state (`secondary`) and an unset one (`outline`),
   and stays a real checkbox, which is what keeps its role, its space key and
-  `.check()` in a test. STYLE.md names it as the one carve-out from
-  `appearance-auto accent-brand`. The forms
+  `.check()` in a test. STYLE.md names it and `task-importance-select.svelte`
+  as the two carve-outs from `appearance-auto accent-brand`. The forms
   are otherwise not each other: `task-form.svelte` is a title combobox over
   rated history with a pick-reset, `task-edit-form.svelte` is a plain
   title input, which is ~150 lines of script the editor has no counterpart for.
