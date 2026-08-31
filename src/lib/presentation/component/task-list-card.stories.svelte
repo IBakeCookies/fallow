@@ -109,6 +109,35 @@
 	{/snippet}
 </Story>
 
+<Story
+	name="Empty with example day"
+	play={async ({ canvas }) => {
+		// The cold-visitor path: a shared link lands on the planner, and the planner
+		// with nothing on it is the one screen that can offer the worked day instead.
+		// Asserted as an href rather than a click — following it would navigate the
+		// story's own iframe, and where it points IS the behaviour.
+		const link = await canvas.findByRole('link', {
+			name: 'See an example day',
+		});
+
+		await expect(link).toHaveAttribute('href', '/?demo');
+
+		// Beside the empty state's own way in, never instead of it: a first task is
+		// still what this screen is for.
+		await expect(
+			canvas.getByRole('button', {
+				name: '+ Add Task',
+			}),
+		).toBeVisible();
+	}}
+>
+	{#snippet template()}
+		<div class="max-w-2xl">
+			<TaskListCard columns={getTaskColumns()} rows={null} {form} exampleDayHref="/?demo" />
+		</div>
+	{/snippet}
+</Story>
+
 {#snippet form()}
 	<p>add a task</p>
 {/snippet}

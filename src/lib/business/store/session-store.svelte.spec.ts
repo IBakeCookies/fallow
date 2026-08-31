@@ -48,6 +48,7 @@ vi.mock('$lib/data/repository/flow-observation-repository', () => ({
 	$readAllFlowObservations: vi.fn(async () => []),
 }));
 
+const initializeStorageMock = vi.mocked(sessionHistory.initializeStorage);
 const readHistoryPrefillsMock = vi.mocked(sessionHistory.readHistoryPrefills);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
@@ -1892,5 +1893,153 @@ describe('SessionStore title memory', () => {
 
 		expect(status.error).toBeNull();
 		expect(store.suggestTitles('gym')).toEqual([]);
+	});
+});
+
+describe('SessionStore demo mode', () => {
+	beforeEach(() => {
+		// The fake timers an earlier test installed are not undone outside its own
+		// describe, and one test here waits on a real debounce.
+		vi.useRealTimers();
+		mockPage.url = new URL('http://localhost/?demo');
+		// The whole call log, not one mock: what the demo must NOT have done is the
+		// assertion, and this file's earlier mounts leave every counter non-zero.
+		vi.clearAllMocks();
+		// `mockReset`, not just an implementation: `clearAllMocks` leaves an earlier
+		// describe's queued `…Once` in place, and one of them never resolves.
+		readSessionByDateMock.mockReset();
+		readSessionByDateMock.mockImplementation(async () => null);
+	});
+
+	/** Mount without clearing the boot calls: what boot did NOT do is under test. */
+	function mount(): SessionStore {
+		let store!: SessionStore;
+
+		render(Harness, {
+			onstore: (s: SessionStore) => (store = s),
+		});
+
+		return store;
+	}
+
+	it('never reads storage', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		expect(initializeStorageMock).not.toHaveBeenCalled();
+		expect(readSessionByDateMock).not.toHaveBeenCalled();
+		expect(readHistoryPrefillsMock).not.toHaveBeenCalled();
+	});
+
+	it('seeds the day the visitor came to see', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		// Six: what the Goal promises a shared link opens on.
+		expect(store.tasks).toHaveLength(6);
+	});
+
+	it('never writes a session', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+		useFakeTimers();
+
+		// The same edit that persists on a real day: the demo is editable, it just
+		// never lands.
+		store.availableHours = 6;
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
+
+		// And the flush the writer forces when the tab goes away.
+		setHidden(true);
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+		setHidden(false); // this describe's own cleanup: the next test loads a day
+	});
+
+	// The bug this pins: the exit navigation drops the param, so a guard on the URL
+	// alone leaves the auto-save effect running over a `#tasks` that is still the
+	// fixture — and it saved all six of them onto the visitor's real day.
+	it('does not save the fixture on the way out of the demo', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		mockPage.url = new URL('http://localhost/');
+		flushSync();
+
+		// Real timers, and the load awaited first: the write only escapes if the
+		// debounce fires AFTER the demo has left the screen, which is the order the
+		// browser puts them in.
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(0));
+		await new Promise((resolve) => setTimeout(resolve, AUTOSAVE_DEBOUNCE_MS * 2));
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+	});
+
+	// The bug this pins: the seed sets `#loadedDate` to the day already loaded, so a
+	// visitor who entered the demo from their OWN day left it with both dates
+	// agreeing and storage already read — no branch fired, and the fixture stayed on
+	// screen with the banner gone and every edit dropped.
+	it('brings their own day back when the demo was entered without a reload', async () => {
+		mockPage.url = new URL('http://localhost/');
+
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		readSessionByDateMock.mockImplementation(async (date) =>
+			date === store.today
+				? {
+						date: store.today,
+						tasks: [],
+						availableHours: 7,
+						switchCost: 0.25,
+						updatedAt: Date.now(),
+					}
+				: null,
+		);
+
+		mockPage.url = new URL('http://localhost/?demo');
+		flushSync();
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(6));
+
+		mockPage.url = new URL('http://localhost/');
+		flushSync();
+
+		await vi.waitFor(() => expect(store.availableHours).toBe(7));
+		expect(store.tasks).toHaveLength(0);
+	});
+
+	it('reads the visitor’s own day once they leave the demo', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.isLoading).toBe(false));
+
+		// By date, not `…Once`: leaving the demo re-arms the yesterday read too, and
+		// it is registered first, so a one-shot answer lands on the wrong day.
+		readSessionByDateMock.mockImplementation(async (date) =>
+			date === store.today
+				? {
+						date: store.today,
+						tasks: [],
+						availableHours: 9,
+						switchCost: 0.25,
+						updatedAt: Date.now(),
+					}
+				: null,
+		);
+
+		mockPage.url = new URL('http://localhost/');
+		flushSync();
+
+		// The boot reads, not just the session read: a visitor who arrived on the
+		// demo has never run the storage migrations or the history prefills.
+		await vi.waitFor(() => expect(store.availableHours).toBe(9));
+		expect(initializeStorageMock).toHaveBeenCalledTimes(1);
+		expect(readHistoryPrefillsMock).toHaveBeenCalledTimes(1);
 	});
 });

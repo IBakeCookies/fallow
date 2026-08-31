@@ -81,6 +81,7 @@
 	"list_title": "Aufgaben",
 	"list_empty": "Noch keine Aufgaben angelegt",
 	"list_empty_hint": "Füge eine Aufgabe hinzu, um zu starten",
+	"list_empty_example": "Beispieltag ansehen",
 	"list_group_sequence": "Heutige Reihenfolge",
 	"list_group_unfunded": "Heute keine Zeit",
 	"list_column_order": "#",
@@ -569,5 +570,13 @@
 	"error_title": "Etwas ist schiefgelaufen",
 	"error_body": "Ein unerwarteter Fehler ist aufgetreten. Neu laden hilft meistens — deine Daten sind lokal gespeichert und nicht betroffen.",
 	"error_reload": "Seite neu laden",
-	"error_home": "Zurück zu Heute"
+	"error_home": "Zurück zu Heute",
+	"demo_banner": "Das ist ein Beispieltag — Fallows Zahlen, nicht deine. Hier wird nichts gespeichert.",
+	"demo_banner_exit": "Mit meinem eigenen Tag starten",
+	"demo_task_feature": "Die Suchfunktion schreiben",
+	"demo_task_architecture": "Die Systemarchitektur entwerfen",
+	"demo_task_textbook": "Das Statistik-Lehrbuch lesen",
+	"demo_task_strength": "Krafttraining",
+	"demo_task_swim": "Schwimmtraining",
+	"demo_task_plaster": "Verputzen im Flur lernen"
 }

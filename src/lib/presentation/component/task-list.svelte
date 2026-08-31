@@ -45,6 +45,8 @@
 		 *  what a past day withholds is inside `day-actions.svelte`, since both menus
 		 *  read the same guard. */
 		actions?: Snippet;
+		/** Passed straight to the card: the empty state's way into the example day. */
+		exampleDayHref?: string;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
 		/** The ⚡ editors open on this list, by task — the page owns them, like the 🪫
@@ -84,6 +86,7 @@
 		form,
 		strip,
 		actions,
+		exampleDayHref,
 		ontoggle,
 		onremove,
 		flowDrafts = {},
@@ -188,6 +191,7 @@
 	{form}
 	{strip}
 	{heading}
+	{exampleDayHref}
 	columns={getTaskColumns()}
 	rows={suggestedTasks.length ? rows : null}
 	split={isSplit

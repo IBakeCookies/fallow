@@ -81,6 +81,7 @@
 	"list_title": "Tasks",
 	"list_empty": "No tasks deployed yet",
 	"list_empty_hint": "Add a task to begin tracking",
+	"list_empty_example": "See an example day",
 	"list_group_sequence": "Today's sequence",
 	"list_group_unfunded": "No time today",
 	"list_column_order": "#",
@@ -569,5 +570,13 @@
 	"error_title": "Something went wrong",
 	"error_body": "An unexpected error occurred. Reloading usually fixes it — your data is stored locally and is not affected.",
 	"error_reload": "Reload page",
-	"error_home": "Back to today"
+	"error_home": "Back to today",
+	"demo_banner": "This is an example day — Fallow's numbers, not yours. Nothing here is saved.",
+	"demo_banner_exit": "Start my own day",
+	"demo_task_feature": "Write the search feature",
+	"demo_task_architecture": "Design the system architecture",
+	"demo_task_textbook": "Read the statistics textbook",
+	"demo_task_strength": "Strength training",
+	"demo_task_swim": "Swim training",
+	"demo_task_plaster": "Learn to plaster the hallway"
 }

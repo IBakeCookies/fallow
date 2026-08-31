@@ -263,7 +263,8 @@ Read this before touching markup, classes, or anything under
   otherwise (axe `scrollable-region-focusable`), which is why it holds a scoped
   `svelte-ignore` for `a11y_no_noninteractive_tabindex`.
 - **A repeated cluster becomes an `@utility`, not a wrapper component** —
-  `ledger-cell`, `ledger-numeric` and `ledger-wide` are the newest set. A `<td>` cannot be
+  `banner-shell` is the newest, over the `ledger-cell` / `ledger-numeric` /
+  `ledger-wide` set. A `<td>` cannot be
   wrapped: an element between `<tr>` and its cells is not a table cell, so a
   component per cell would either break the table model or add a `<div>` inside
   every one of twelve columns. Same argument as `hint-underline`'s, arrived at

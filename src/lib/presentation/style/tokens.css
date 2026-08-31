@@ -418,6 +418,14 @@
    hand-set (STYLE.md): on the dark themes it used to measure 1.013-1.079
    against its own card, and this row was the invisible thing the sentence
    claimed it was not. */
+/* An advisory strip across the top of the page's column: the storage banner and the
+   example day's. Geometry only — each carries its own severity tokens, since one is a
+   failure and the other is a standing note (STYLE.md, "A repeated cluster becomes an
+   `@utility`"). */
+@utility banner-shell {
+	@apply mb-grid-lg flex items-center gap-grid-sm rounded-xl border p-box-md text-sm;
+}
+
 @utility log-row {
 	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-inset px-box-2xs py-text-2xs text-xs text-ty-secondary;
 }

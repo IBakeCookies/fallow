@@ -30,9 +30,11 @@
 			restLabel: string;
 			rest: Snippet;
 		};
+		/** Where the empty state's example-day link points; the Lab passes none. */
+		exampleDayHref?: string;
 	}
 
-	let { form, strip, heading, rows, columns, split }: Props = $props();
+	let { form, strip, heading, rows, columns, split, exampleDayHref }: Props = $props();
 </script>
 
 {#snippet groupHeading(label: string)}
@@ -136,6 +138,12 @@
 				<p class="text-xs text-ty-silent mt-text-2xs">{m.list_empty_hint()}</p>
 				{#if form}
 					<Dialog.Trigger class="mt-text-sm">{m.form_add_task()}</Dialog.Trigger>
+				{/if}
+				{#if exampleDayHref}
+					<!-- A shared link lands here with nothing on it; the worked day is the answer. -->
+					<a href={exampleDayHref} class="mt-text-2xs text-xs hint-underline">
+						{m.list_empty_example()}
+					</a>
 				{/if}
 			</div>
 		{/if}

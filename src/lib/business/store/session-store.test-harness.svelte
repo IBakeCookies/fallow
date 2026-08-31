@@ -24,7 +24,17 @@
 	onstatus(status);
 
 	// The store takes its date reader as an argument, so driving navigation in a
-	// test is a plain reactive object — no $app/state module mock needed.
+	// test is a plain reactive object — no $app/state module mock needed. The demo
+	// reader is the same shape, and the titles stand in for the layout's messages.
 	// svelte-ignore state_referenced_locally -- deliberate one-shot handoff
-	onstore(setSessionStore(() => mockPage.url.searchParams.get('date'), status));
+	onstore(
+		setSessionStore(
+			() => mockPage.url.searchParams.get('date'),
+			status,
+			() =>
+				mockPage.url.searchParams.has('demo')
+					? ['one', 'two', 'three', 'four', 'five', 'six']
+					: null,
+		),
+	);
 </script>
