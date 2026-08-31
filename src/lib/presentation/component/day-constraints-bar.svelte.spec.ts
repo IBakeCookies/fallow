@@ -6,9 +6,9 @@ import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.s
 // Everything else lives in day-constraints-bar.stories.svelte as play functions;
 // this rerender-with-unchanged-props sequence cannot be expressed in a story.
 describe('day-constraints-bar.svelte', () => {
-	// `isOpen` is the day's default, sampled at mount: the page re-renders on every
-	// keystroke in the budget field — including the one that stops the hours reading 0 —
-	// and none of those may move a disclosure the user has set.
+	// `isOpen` is the day's default, set on the `<details>` at mount: the page re-renders
+	// on every keystroke in the budget field — including the one that stops the hours
+	// reading 0 — and none of those may move a disclosure the user has closed.
 	it('keeps the state the user chose across parent re-renders', async () => {
 		const props = {
 			availableHours: 6,
@@ -24,23 +24,15 @@ describe('day-constraints-bar.svelte', () => {
 			isOpen: true,
 		});
 
-		await page
-			.getByRole('button', {
-				name: /Time Budget/,
-			})
-			.click();
+		await page.getByText('Time Budget').click();
 
 		await rerender({
 			...props,
 			isOpen: true,
 		});
 
-		await expect
-			.element(
-				page.getByRole('button', {
-					name: /Time Budget/,
-				}),
-			)
-			.toHaveAttribute('aria-expanded', 'false');
+		// The one-line summary is what a closed bar shows, so its visibility is the
+		// disclosure's state — the fields below stay in the DOM either way now.
+		await expect.element(page.getByText(/6h budget/)).toBeVisible();
 	});
 });

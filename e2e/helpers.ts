@@ -121,6 +121,15 @@ export async function setBudget(page: Page, hours: number) {
 	await budgetField(page).blur();
 }
 
+/** The Time Budget bar. A native `<details>`, so its own `open` attribute is the
+ *  disclosure's state and the summary is what a click on it toggles. */
+export const timeBudgetBar = (page: Page) =>
+	page.locator('details').filter({
+		has: page.getByText('Time Budget', {
+			exact: true,
+		}),
+	});
+
 /** Expand the Time Budget bar, which collapses itself on a day that has hours.
  *  Takes the summary the loaded day should read: the bar re-samples its default
  *  when that day's values land, discarding a click made before they did. */
@@ -128,8 +137,8 @@ export async function openTimeBudget(page: Page, loadedSummary: RegExp) {
 	await expect(page.getByText(loadedSummary)).toBeVisible();
 
 	await page
-		.getByRole('button', {
-			name: 'Time Budget',
+		.getByText('Time Budget', {
+			exact: true,
 		})
 		.click();
 }

@@ -108,10 +108,8 @@
 			canvas.getByText('6h budget · 4.00h planned · 2.00h free · 8h mind · 4h body · 15m switch'),
 		).toBeVisible();
 
-		await expect(
-			canvas.getByRole('button', {
-				name: /Time Budget/,
-			}),
-		).toHaveAttribute('aria-expanded', 'false');
+		// Closed by the `<details>` itself, not by an `{#if}`: the fields below stay in
+		// the DOM, and the element's own attribute is the state nothing else can move.
+		await expect(canvas.getByText('Time Budget').closest('details')).not.toHaveAttribute('open');
 	}}
 />
