@@ -744,8 +744,14 @@ nobody was running.
   no better than `monolith` (all nine) once within-cell variance was measured at
   SD 39 points, R8 scores 100% in every condition including no-rules-at-all, and
   the only literal duplication in the corpus is R8's five steps appearing twice.
-  Size is not the problem; a properly powered condition comparison needs
-  n = 60 runs per arm.
+  Size is not the problem. ~~A properly powered condition comparison needs
+  n = 60 runs per arm.~~ That number now comes off the sweep instead of standing
+  as prose — fixed 2026-08-31,
+  [`the-sweep-that-could-not-have-decided`](docs/features/the-sweep-that-could-not-have-decided.md):
+  `eval/analyze.mjs` prints each comparison's own detectable difference and
+  required n, and the three `targeted`-vs-`monolith` sweeps ask for 60, 23 and 42
+  runs per arm against the six they ran. **No arm has been widened**, so no
+  comparison here has been decided; what changed is that a sweep now says so.
 
 ## Findings from the 2026-08-25 `SessionStore` review
 
