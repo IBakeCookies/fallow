@@ -24,6 +24,7 @@
 		mentalDifficulty: DEFAULT_RATING,
 		enjoyment: DEFAULT_RATING,
 		mustDoToday: false,
+		importance: 'normal',
 	});
 
 	let draft = $state(emptyDraft());
@@ -84,6 +85,7 @@
 			...emptyDraft(),
 			title: e.currentTarget.value,
 			mustDoToday: draft.mustDoToday,
+			importance: draft.importance,
 		};
 	}
 

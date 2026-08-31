@@ -26,7 +26,7 @@ import {
 	isPinned,
 	type DailyQuadrant,
 } from '$lib/business/model/metric/calculation';
-import { BLOCK_HOURS } from '$lib/business/model/zenith';
+import { BLOCK_HOURS, importanceWeightOf } from '$lib/business/model/zenith';
 
 /** One honest change to today's inputs (pools and switch cost are not levers). */
 export type AdviceLever =
@@ -279,7 +279,7 @@ const AXIS: Record<
 	},
 };
 
-/** Σ P̄ over funded tasks — the allocator's own objective. */
+/** Σ vᵢ·P̄ᵢ over funded tasks — the allocator's own objective (MATH.md §0). */
 function planValueOf(metrics: DailyMetrics): number {
 	return metrics.zenithGain.optimized;
 }
@@ -472,9 +472,13 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
 			return {
 				task,
 				extraHours: task.suggestedHours - before.suggestedHours,
-				// Σ P̄ is a per-task sum, so the day's rise restricted to
-				// open work is just this sum — no second gain solve needed.
-				extraValue: task.avgProductivity - before.avgProductivity,
+				// Σ vᵢ·P̄ᵢ is a per-task sum, so the day's rise restricted to open work
+				// is just this sum — no second gain solve needed. The weight has to be
+				// applied here: `avgProductivity` is intrinsic (MATH.md §0 leaves every
+				// per-task figure unweighted), while the `planValueOf` baseline this is
+				// compared against is the weighted objective.
+				extraValue:
+					importanceWeightOf(task.importance) * (task.avgProductivity - before.avgProductivity),
 			};
 		});
 
@@ -512,8 +516,9 @@ function calculateBudgetMarginal(input: DailyMetricsInput, baseline: DailyMetric
  * Two extra solves, at a switch cost of zero and of double.
  *
  * Goes through `calculateZenithGain` and not through the allocator plus a sum
- * over `avgProductivity`, even though Σ P̄ is a per-task sum and the two agree to
- * within float noise. They agree only to within it: the plan comes back
+ * over `avgProductivity`, even though Σ vᵢ·P̄ᵢ is a per-task sum and the two agree
+ * to within float noise once each term carries its weight. They agree only to
+ * within it: the plan comes back
  * priority-sorted, so a hand-rolled sum adds the same terms in a different order
  * and lands a few ulps off `planValueOf`. Reading the value from the function
  * that defines it makes the comparison exact by construction, and the naive

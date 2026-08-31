@@ -18,6 +18,8 @@
  */
 export type Persisted<T> = T & { id: number };
 
+export type TaskImportance = 'low' | 'normal' | 'high';
+
 export type Task = {
 	id: number;
 	title: string;
@@ -31,6 +33,10 @@ export type Task = {
 	// refuses it. A statement about TODAY, not about the task's definition, so
 	// routines, day-imports and a cross-day move deliberately do not carry it.
 	mustDoToday?: boolean;
+	// How much a short day should value funding this task at all (MATH.md §0).
+	// A property of the task, not of today, so routines and day-imports carry
+	// it. Absent is `normal`, whose weight is 1 — exactly a no-op.
+	importance?: TaskImportance;
 };
 
 export interface DailySession {

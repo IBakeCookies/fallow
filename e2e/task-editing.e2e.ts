@@ -437,3 +437,53 @@ test('a drain rating logged from the main page feeds the Lab', async ({ page }) 
 
 	await expect(cognitiveDrain).not.toHaveValue(defaultDrain);
 });
+
+/* Importance is the one task field with no slider and no default worth showing on the
+   row: `Normal` is silent, and only a level the user chose gets a badge. The edit form
+   is where a task already deployed changes level, so it has to seed from what is
+   stored — otherwise saving any other edit would quietly reset the level to Normal. */
+test('a task’s importance is editable after it is deployed', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+
+	const row = taskRow(page, 'Boxing training');
+
+	// Nothing badged: a task nobody rated is Normal, and Normal says nothing.
+	await expect(row.getByText(/importance/)).toHaveCount(0);
+
+	await row
+		.getByRole('button', {
+			name: 'Edit task',
+		})
+		.click();
+
+	// Seeded from the stored level, which is what a save must not overwrite.
+	await expect(
+		row
+			.getByRole('group', {
+				name: 'Importance',
+			})
+			.getByRole('radio', {
+				name: 'Normal',
+				exact: true,
+			}),
+	).toBeChecked();
+
+	await row
+		.getByRole('group', {
+			name: 'Importance',
+		})
+		.getByRole('radio', {
+			name: 'Low',
+			exact: true,
+		})
+		.check();
+
+	await row
+		.getByRole('button', {
+			name: 'Save',
+		})
+		.click();
+
+	await expect(row.getByText('Low importance')).toBeVisible();
+});

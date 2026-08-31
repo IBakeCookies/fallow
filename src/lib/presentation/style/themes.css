@@ -1374,7 +1374,7 @@
 	--mind: oklch(0.74 0.15 300);
 	--mind-strong: oklch(0.82 0.11 300);
 	/* indigo depths */
-	--body: oklch(0.55 0.09 250);
+	--body: oklch(0.75 0.09 250);
 	/* alert rose */
 	--mixed: oklch(0.7 0.17 345);
 }

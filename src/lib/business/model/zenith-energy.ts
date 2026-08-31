@@ -54,6 +54,7 @@
  * untouched by anything here.
  */
 
+import type { TaskImportance } from '$lib/data/type';
 import {
 	calculateFlowStateTime,
 	mapEffort,
@@ -76,6 +77,10 @@ export interface EnergyTaskInput {
 	cognitiveDemand: number;
 	/** Demand on the physical reservoir, 0–1 (physicalDifficulty / 10) */
 	physicalDemand: number;
+	/** Carried for the plan-adherence audit's CLASSIC branch, which weights by it
+	 *  (MATH.md §0). §8's objective is total output, so the energy model itself
+	 *  never reads it. */
+	importance?: TaskImportance;
 }
 
 export interface EnergyParams {

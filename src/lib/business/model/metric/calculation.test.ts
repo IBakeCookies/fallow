@@ -2007,3 +2007,64 @@ describe('calculateRewardDensity — Sustainable Work', () => {
 		expect(calculateRewardDensity([...tasks])).toBeNull();
 	});
 });
+
+/* Task importance (ROADMAP item 23, MATH.md §0/§3): argmax v·P̄ = argmax P̄, so a
+   positive weight cannot move a task's optimal stopping time. Everything the row
+   prints about a task ALONE is therefore identical at all three levels — only the
+   competition between tasks changes, and that is `suggestedHours`. */
+describe('task importance', () => {
+	it('does not move a task’s stopping time, priority or ϕ', () => {
+		const readings = (['low', 'normal', 'high'] as const).map((importance) => {
+			const [task] = calculateSuggestedTasks(
+				[
+					makeTask({
+						id: 1,
+						title: 'invoice',
+						mentalDifficulty: 8,
+						physicalDifficulty: 2,
+						enjoyment: 3,
+						importance,
+					}),
+				],
+				// Long enough that the single task is fully funded at every level, so any
+				// difference is the weight leaking out of the funded-set decision.
+				8,
+			);
+
+			return {
+				priorityScore: task.priorityScore,
+				optimalHours: task.optimalHours,
+				flowStateTime: task.flowStateTime,
+				suggestedHours: task.suggestedHours,
+			};
+		});
+
+		expect(readings[0]).toEqual(readings[1]);
+		expect(readings[2]).toEqual(readings[1]);
+	});
+
+	it('maps a declared level onto the pooled input’s weight', () => {
+		const weights = (['low', 'normal', 'high'] as const).map(
+			(importance) =>
+				toPooledInputs([
+					makeTask({
+						id: 1,
+						title: 't',
+						importance,
+					}),
+				])[0].importanceWeight,
+		);
+
+		expect(weights).toEqual([0.5, 1, 2]);
+
+		// An undeclared level is the default, and the default is exactly 1.
+		expect(
+			toPooledInputs([
+				makeTask({
+					id: 1,
+					title: 't',
+				}),
+			])[0].importanceWeight,
+		).toBe(1);
+	});
+});

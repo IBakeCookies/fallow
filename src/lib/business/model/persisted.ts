@@ -28,9 +28,11 @@ import type {
 	RestObservationRecord,
 	SavedRoutine,
 	Task,
+	TaskImportance,
 } from '$lib/data/type';
 import {
 	DEFAULT_SWITCH_COST,
+	IMPORTANCE_WEIGHT,
 	mapEffort,
 	mapEnjoyability,
 	type FitPosterior,
@@ -67,6 +69,14 @@ function isoDate(value: unknown): string | null {
 	return isISODate(value) ? value : null;
 }
 
+/** One of the three declared levels — `IMPORTANCE_WEIGHT` is the definition (R3).
+ *  `Object.hasOwn` and not `in`: a restored backup reaches here as raw JSON, and
+ *  `in` would accept `"constructor"`, whose weight is a function and turns every
+ *  increment on the day into NaN. */
+function isImportance(value: unknown): value is TaskImportance {
+	return typeof value === 'string' && Object.hasOwn(IMPORTANCE_WEIGHT, value);
+}
+
 /** The keep-and-clamp core shared by session tasks and routine templates. */
 function taskCore(source: Record<string, unknown>) {
 	return {
@@ -74,6 +84,11 @@ function taskCore(source: Record<string, unknown>) {
 		physicalDifficulty: clamped(source.physicalDifficulty, DIFFICULTY_MIN, RATING_MAX),
 		mentalDifficulty: clamped(source.mentalDifficulty, DIFFICULTY_MIN, RATING_MAX),
 		enjoyment: clamped(source.enjoyment, ENJOYMENT_MIN, RATING_MAX),
+		// Here rather than in `sanitizeTask`, so routines and day-imports carry the
+		// level. Absent unless it is one of the three: anything else is the default.
+		...(isImportance(source.importance) && {
+			importance: source.importance,
+		}),
 	};
 }
 

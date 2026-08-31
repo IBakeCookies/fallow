@@ -3,6 +3,7 @@ import { SvelteMap } from 'svelte/reactivity';
 import type {
 	Persisted,
 	Task,
+	TaskImportance,
 	DailySession,
 	SavedRoutine,
 	FlowObservationRecord,
@@ -771,6 +772,7 @@ export class SessionStore {
 		mentalDifficulty: number;
 		enjoyment: number;
 		mustDoToday?: boolean;
+		importance?: TaskImportance;
 	}) {
 		if (!this.#canEditPlan) return;
 
@@ -901,6 +903,8 @@ export class SessionStore {
 			// id space (observation joins are per-date, so the old id keeps its ⚡ and
 			// 🪫 here — the measurements stay with the day that took them) and no
 			// `mustDoToday`, a statement about today rather than about the task.
+			// `importance` DOES travel, for the same reason the sliders do: it is part
+			// of what the task is, not of which day it sits on.
 			const moved: Task = {
 				id: nextTaskId(dest.tasks),
 				title: task.title,
@@ -909,6 +913,9 @@ export class SessionStore {
 				enjoyment: task.enjoyment,
 				createdAt: task.createdAt,
 				completed: false,
+				...(task.importance && {
+					importance: task.importance,
+				}),
 			};
 
 			await this.#persistSession({
@@ -940,7 +947,15 @@ export class SessionStore {
 	updateTask(
 		id: number,
 		changes: Partial<
-			Pick<Task, 'title' | 'physicalDifficulty' | 'mentalDifficulty' | 'enjoyment' | 'mustDoToday'>
+			Pick<
+				Task,
+				| 'title'
+				| 'physicalDifficulty'
+				| 'mentalDifficulty'
+				| 'enjoyment'
+				| 'mustDoToday'
+				| 'importance'
+			>
 		>,
 	) {
 		if (!this.#canEditPlan) return;
@@ -974,6 +989,7 @@ export class SessionStore {
 					physicalDifficulty: t.physicalDifficulty,
 					mentalDifficulty: t.mentalDifficulty,
 					enjoyment: t.enjoyment,
+					importance: t.importance,
 				})),
 			);
 		} catch (e) {
@@ -1216,6 +1232,7 @@ export class SessionStore {
 				physicalDifficulty: t.physicalDifficulty,
 				mentalDifficulty: t.mentalDifficulty,
 				enjoyment: t.enjoyment,
+				importance: t.importance,
 			})),
 			createdAt: Date.now(),
 		};

@@ -14,6 +14,7 @@
 				mentalDifficulty: 8,
 				enjoyment: 7,
 				mustDoToday: false,
+				importance: 'normal',
 			},
 			onsave: fn(),
 			oncancel: fn(),
@@ -57,6 +58,7 @@
 			mentalDifficulty: 8,
 			enjoyment: 7,
 			mustDoToday: true,
+			importance: 'normal',
 		});
 	}}
 />
@@ -96,6 +98,7 @@
 			mentalDifficulty: 6,
 			enjoyment: 2,
 			mustDoToday: true,
+			importance: 'normal',
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -121,6 +124,7 @@
 			mentalDifficulty: 6,
 			enjoyment: 2,
 			mustDoToday: true,
+			importance: 'normal',
 		},
 		withMustDoToday: false,
 	}}

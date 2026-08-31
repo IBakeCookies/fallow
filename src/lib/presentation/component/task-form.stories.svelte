@@ -142,6 +142,7 @@
 			mentalDifficulty: 5,
 			enjoyment: 5,
 			mustDoToday: false,
+			importance: 'normal',
 		});
 
 		await expect(title).toHaveValue('');
@@ -162,6 +163,7 @@
 			mentalDifficulty: 5,
 			enjoyment: 5,
 			mustDoToday: true,
+			importance: 'normal',
 		});
 
 		await expect(mustDo).not.toBeChecked();
@@ -252,6 +254,7 @@
 			mentalDifficulty: 6,
 			enjoyment: 3,
 			mustDoToday: false,
+			importance: 'normal',
 		});
 
 		await expect(physical).toHaveValue('5');
@@ -424,6 +427,7 @@
 			mentalDifficulty: 5,
 			enjoyment: 5,
 			mustDoToday: false,
+			importance: 'normal',
 		});
 	}}
 />
@@ -515,6 +519,7 @@
 			mentalDifficulty: 5,
 			enjoyment: 5,
 			mustDoToday: false,
+			importance: 'normal',
 		});
 	}}
 />
@@ -534,6 +539,12 @@
 			}),
 			canvas.getByRole('slider', {
 				name: /Enjoyment/,
+			}),
+			// Importance sits with the sliders it belongs with — it is a property of
+			// the task, not of today — so it is tabbed before the footer's flag. One
+			// stop, not three: a radio group takes a single tab and arrows within it.
+			canvas.getByRole('radio', {
+				name: 'Normal',
 			}),
 			canvas.getByLabelText('Keep on today'),
 			canvas.getByRole('button', {

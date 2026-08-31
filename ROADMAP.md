@@ -448,45 +448,8 @@ What survives of the multi-day idea is two readings, not a solver:
 
 ## Phase 5 — the lever the objective lacks
 
-23. **Task importance weight — `Σ vᵢ·P̄ᵢ(tᵢ)`** — one 3-level weight per task,
-    so a tight day funds what matters rather than what is cheap. `v` scales the
-    whole block menu in `buildBlockIncrements`; positive scaling keeps
-    increments positive and non-increasing, so the greedy's exactness, the
-    subset enumeration and the pool-ratio candidate all survive, and `T*` is
-    **invariant** (`argmax v·P̄ = argmax P̄`) — so `v` changes only _which_
-    tasks are funded, never how long a funded task runs. Entry point is
-    `toPooledInputs` (`metric/calculation.ts`).
-    **The R3 hazard to price first:** `Σ P̄` has two independent
-    implementations — the allocator's `planValue` over `buildBlockIncrements`
-    and `calculateTotalProductivity` (both `zenith.ts`), which is what Zenith
-    Gain and `plan-audit.ts` score with.
-    A weight must land in both in lockstep or the gain's "never negative on the
-    single-budget path, and within the pooled greedy gap on the pooled one"
-    (`zenith.test.ts`) — which holds on the SINGLE-BUDGET path only, while the
-    dashboard reads the pooled one — breaks and the audit starts comparing two
-    objectives. Default `v = 1`
-    must be an exact no-op, or every worked percentage the metric and advisor
-    probes report becomes non-reproducible.
-    **Probe — one command, and it can kill the item outright:** read the
-    histogram of `DailySession.availableHours` from the real IndexedDB. The
-    item's value decays 14.7% @ 2 h → 9.3% @ 4 h → 4.4% @ 8 h, the same shape
-    as item 6's own re-open condition, so **kill it if the day is habitually
-    planned at ≥ 6 h** — at 8 h the funded set barely moves. Do **not** quote
-    the 14.7% as justification: it is measured against a ground truth the added
-    weights themselves define, i.e. circular. The defensible pre-build number
-    is the dynamic range — the model's implicit value spread is
-    p90/p10 = **2.32×** across the whole slider grid, against 4× for a 3-level
-    scale.
-    **Unpriced costs to settle before building:** `priorityScore = P̄(T*)·10`
-    becomes v-scaled and is rendered as a bare number
-    (`task-item.svelte`); `SavedRoutine.tasks` shares `taskCore`
-    (`persisted.ts`), so decide whether importance travels with routines
-    (`mustDoToday` deliberately does not); and the energy mode does not get the
-    weight (`toEnergyTask`), so `plan-audit.ts` becomes
-    weighted against unweighted. One `Task` field plus one `sanitizeTask`
-    line — **no `DB_VERSION` bump, since R8 governs stores, not shapes.** New
-    user input: yes, per task. **MATH.md §0's objective changes**, same commit
-    (R7).
+23. ~~**Task importance weight — `Σ vᵢ·P̄ᵢ(tᵢ)`**~~ — SHIPPED 2026-08-31 (MATH.md §0).
+    [docs/features/task-importance-weight.md](docs/features/task-importance-weight.md)
 
 ## Phase 6 — product and reach
 

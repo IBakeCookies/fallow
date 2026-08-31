@@ -274,6 +274,7 @@
 			mentalDifficulty: args.mentalDifficulty,
 			enjoyment: args.enjoyment,
 			mustDoToday: true,
+			importance: 'normal',
 		});
 
 		// Saving closes it

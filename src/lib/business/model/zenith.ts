@@ -50,12 +50,30 @@
  *    which remains the exact σ = 0 special case.
  */
 
+import type { TaskImportance } from '$lib/data/type';
 import { solve3x3, invert3x3 } from '$lib/business/model/linalg';
+
+/** MATH.md §0: the objective is Σᵢ vᵢ·P̄ᵢ(tᵢ). `normal` is exactly 1, so an
+ *  undeclared level leaves every plan bit-identical. */
+export const IMPORTANCE_WEIGHT: Record<TaskImportance, number> = {
+	low: 0.5,
+	normal: 1,
+	high: 2,
+};
+
+/** `v` for a task, defaulting an undeclared level to 1. The defaulting rule has
+ *  three callers — the two pooled-input builders and the budget marginal — so it
+ *  is spelled once (R3). */
+export function importanceWeightOf(importance?: TaskImportance): number {
+	return IMPORTANCE_WEIGHT[importance ?? 'normal'];
+}
 
 interface TaskInput {
 	title: string;
 	difficulty: number; // Eᵤ: 1-10 user input
 	enjoyment: number; // βᵤ: 1-10 user input
+	/** The already-resolved multiplier v (`IMPORTANCE_WEIGHT`), 1 when absent. */
+	importanceWeight?: number;
 }
 
 interface TaskAllocation extends TaskInput {
@@ -1284,8 +1302,13 @@ export function calculateTaskAllocations(
 
 	const { params, phiStds, optimalTimes } = buildTaskParams(tasks, constants, posterior);
 
+	// The scale enters here and nowhere else (MATH.md §4): `planValue` sums
+	// increments, so the greedy and the subset enumeration inherit v, while
+	// `toAllocations` stays intrinsic.
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
-		increments: buildBlockIncrements(a, p0, phi, phiStds[i]),
+		increments: buildBlockIncrements(a, p0, phi, phiStds[i]).map(
+			(increment) => increment * (tasks[i].importanceWeight ?? 1),
+		),
 		cognitiveWeight: 0,
 		physicalWeight: 0,
 	}));
@@ -1320,7 +1343,7 @@ export interface PooledTaskInput extends TaskInput {
  * Dual-pool optimization: allocate a time budget across tasks under THREE
  * resource constraints instead of one:
  *
- *   Maximize  Σᵢ P̄ᵢ(tᵢ)
+ *   Maximize  Σᵢ vᵢ·P̄ᵢ(tᵢ)
  *   s.t.      Σᵢ tᵢ + (m−1)·switchCost ≤ time budget
  *             Σᵢ wcᵢ × tᵢ  ≤ cognitive pool
  *             Σᵢ wpᵢ × tᵢ  ≤ physical pool
@@ -1362,7 +1385,9 @@ export function calculatePooledAllocations(
 	const { params, phiStds, optimalTimes } = buildTaskParams(tasks, constants, posterior);
 
 	const allocTasks: AllocTask[] = params.map(({ a, p0, phi }, i) => ({
-		increments: buildBlockIncrements(a, p0, phi, phiStds[i], workedHours?.[i] ?? 0),
+		increments: buildBlockIncrements(a, p0, phi, phiStds[i], workedHours?.[i] ?? 0).map(
+			(increment) => increment * (tasks[i].importanceWeight ?? 1),
+		),
 		cognitiveWeight: tasks[i].cognitiveWeight,
 		physicalWeight: tasks[i].physicalWeight,
 		isStarted: (workedHours?.[i] ?? 0) > 0,
@@ -1381,7 +1406,7 @@ export function calculatePooledAllocations(
 
 /**
  * Calculate total productivity for a given allocation
- * P(t₁, t₂, ..., tₙ) = Σᵢ P̄ᵢ(tᵢ)
+ * P(t₁, t₂, ..., tₙ) = Σᵢ vᵢ·P̄ᵢ(tᵢ)
  *
  * With a `posterior`, each term is the expected average under that task's
  * ϕ-uncertainty — the same objective the posterior-aware allocator maximizes,
@@ -1397,7 +1422,10 @@ export function calculateTotalProductivity(
 		const { E, beta, a, p0, phi } = calculateTaskParams(task, constants);
 		const sigma = posterior ? phiParameterStd(E, beta, posterior) : 0;
 
-		return total + expectedAverageProductivity(allocations[i], a, p0, phi, sigma);
+		return (
+			total +
+			(task.importanceWeight ?? 1) * expectedAverageProductivity(allocations[i], a, p0, phi, sigma)
+		);
 	}, 0);
 }
 
