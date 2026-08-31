@@ -12,13 +12,18 @@
 
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import type { ButtonSize } from '$lib/presentation/component/ui/button';
 	import TaskImportanceSelect from '$lib/presentation/component/task-importance-select.svelte';
 
 	interface Props {
 		draft: TaskEdit;
+		// Forwarded to the importance buttons only: the sliders have no size. It is
+		// the caller's because the two forms disagree — the dialog is at the default
+		// scale, the row editor is `xs` throughout.
+		size?: ButtonSize;
 	}
 
-	let { draft = $bindable() }: Props = $props();
+	let { draft = $bindable(), size = 'default' }: Props = $props();
 
 	// Enjoyment's minimum is 1 because MATH.md §1 declares βᵤ ∈ [1,10]: a 0 puts β
 	// outside [1,2], the range every fit was built on.
@@ -64,5 +69,5 @@
 		{/each}
 	</div>
 
-	<TaskImportanceSelect bind:importance={draft.importance} />
+	<TaskImportanceSelect bind:importance={draft.importance} {size} />
 </div>
