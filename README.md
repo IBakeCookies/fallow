@@ -2,7 +2,7 @@
 
 **A to-do app that does calculus so you don't have to.**
 
-**[Try it →](https://fallow-planner.vercel.app)** — no account, no server, works
+**[Try it →](https://fallow-planner.vercel.app/?demo)** — no account, no server, works
 offline.
 
 ![Fallow — task list with optimal per-task time allocations, priorities, and flow-based stopping times](static/fallow-daily-time-allocation.png)

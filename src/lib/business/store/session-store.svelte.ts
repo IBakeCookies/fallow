@@ -22,6 +22,13 @@ import {
 	sanitizeSession,
 } from '$lib/business/model/persisted';
 import { initializeStorage, readHistoryPrefills } from '$lib/business/session-history';
+import {
+	DEMO_AVAILABLE_HOURS,
+	DEMO_POOLS,
+	DEMO_SWITCH_COST,
+	buildDemoTasks,
+	type DemoTaskTitles,
+} from '$lib/business/demo-day';
 import { suggestTitles, type TitleRating } from '$lib/business/model/title-memory';
 import {
 	prefillBudgetFor,
@@ -63,6 +70,16 @@ const CONTEXT_KEY = Symbol();
  */
 export type ReadDateParam = () => string | null;
 
+/**
+ * The example day's six titles when the visitor asked for it (`/?demo`), `null`
+ * on their own day. One reader rather than a flag beside a title list: the copy
+ * is presentation's (`demo-day.ts` says why), and a flag that can be true with no
+ * titles to seed is a state nothing here could serve.
+ * Read inside a `$derived`, like the date, so entering and leaving the demo
+ * without a reload is a plain navigation.
+ */
+export type ReadDemoTitles = () => DemoTaskTitles | null;
+
 /** business/AGENTS.md, "Task ids come from `nextTaskId` and nowhere else". */
 function nextTaskId(tasks: readonly Task[]): number {
 	return Math.max(Date.now(), ...tasks.map((task) => Math.floor(task.id) + 1));
@@ -85,6 +102,7 @@ export class SessionStore {
 	// lazy (never evaluated before the constructor body runs) — but TypeScript
 	// checks declaration order, not laziness.
 	#readDateParam!: ReadDateParam;
+	#readDemoTitles!: ReadDemoTitles;
 	#reporter!: StorageReporter;
 
 	// ----- Daily session state -----
@@ -135,6 +153,19 @@ export class SessionStore {
 	// keeps saving once a session exists (so deleting the last task persists).
 	#loadedHadSession = $state(false);
 
+	// The seeded example day is what is on screen. Not derivable from
+	// `#demoTitles`: that says what the URL asked for, this says whether the seed
+	// has happened, and the gap between them is a client-side arrival on `/?demo`
+	// from a day that was already loaded.
+	#isShowingDemo = $state(false);
+
+	// Storage has been reached at all — set the moment `#boot` starts its reads,
+	// and never by the demo, which skips them. A visitor who ARRIVED on `/?demo`
+	// and then navigated to their own day has run no migration, read no routine
+	// and folded no history prefill, so that day needs the whole boot rather than
+	// a session read.
+	#hasReadStorage = false;
+
 	// Trailing-debounced auto-save, so a burst of edits collapses to one
 	// IndexedDB put. Built in the constructor: it registers lifecycle hooks.
 	#autoSave!: DebouncedWrite<DailySession>;
@@ -143,7 +174,10 @@ export class SessionStore {
 	// for any other day, plain / for today. Routes without a date param (Energy
 	// Lab, calendar, …) always view today. Invalid dates fall back to today.
 	#today = $derived(liveToday.value);
-	#dateParam = $derived(this.#readDateParam());
+	#demoTitles = $derived(this.#readDemoTitles());
+	// The demo ignores the date param: a past day is read-only, and an example day
+	// nobody can poke at answers none of the questions the link exists to answer.
+	#dateParam = $derived(this.#demoTitles === null ? this.#readDateParam() : null);
 	#selectedDate = $derived(isISODate(this.#dateParam) ? this.#dateParam : this.#today);
 
 	// Day modes: past is read-only history (completion toggles only), future
@@ -151,6 +185,11 @@ export class SessionStore {
 	// stays today-only.
 	#isViewingPast = $derived(this.#selectedDate < this.#today);
 	#isViewingFuture = $derived(this.#selectedDate > this.#today);
+
+	/** The layout's banner, and the one thing a route needs to know about the demo. */
+	get isDemo() {
+		return this.#demoTitles !== null;
+	}
 
 	// The viewed day is the loaded one and is not past: the guard on every edit
 	// (the invariant `toggleTask` documents), on the auto-save and on the defer
@@ -218,8 +257,13 @@ export class SessionStore {
 		),
 	);
 
-	constructor(readDateParam: ReadDateParam, status: StorageStatusStore) {
+	constructor(
+		readDateParam: ReadDateParam,
+		status: StorageStatusStore,
+		readDemoTitles: ReadDemoTitles = () => null,
+	) {
 		this.#readDateParam = readDateParam;
+		this.#readDemoTitles = readDemoTitles;
 
 		// A failed read leaves #loadedDate null, which blocks the auto-save guard
 		// forever — so this store is one the banner's retry has to cover.
@@ -252,7 +296,7 @@ export class SessionStore {
 		$effect(() => {
 			const yesterday = addDays(this.#today, -1);
 
-			if (this.#isLoading) return;
+			if (this.#isLoading || this.#demoTitles) return;
 
 			this.#readSession(yesterday)
 				.then((session) => (this.#yesterdaySession = session))
@@ -265,7 +309,29 @@ export class SessionStore {
 		// navigation (nav "Today" link, calendar deep-link, back/forward button,
 		// switching to a route without a date param).
 		$effect(() => {
-			if (!this.#isLoading && this.#selectedDate !== this.#loadedDate) {
+			const demoTitles = this.#demoTitles;
+
+			if (demoTitles) {
+				// The date too, not only the seed: a tab left on the example day over
+				// midnight advances `#selectedDate`, and a `#loadedDate` left behind it
+				// makes `#canEditPlan` false — a demo nobody can poke at.
+				if (!this.#isShowingDemo || this.#loadedDate !== this.#selectedDate) {
+					this.#seedDemoDay(demoTitles);
+				}
+
+				return;
+			}
+
+			if (this.#isLoading) return;
+
+			// Leaving the demo, not merely changing day: nothing has been read yet,
+			// so the day needs boot's migrations and prefills and not just a session.
+			if (!this.#hasReadStorage) this.#boot();
+			// `#isShowingDemo` and not the dates: the seed set `#loadedDate` to the
+			// viewed day, so a visitor who entered the demo from their OWN loaded day
+			// leaves it with both dates already agreeing and the fixture still on
+			// screen — no read would fire, and their day would never come back.
+			else if (this.#isShowingDemo || this.#selectedDate !== this.#loadedDate) {
 				this.#loadSession(this.#selectedDate);
 			}
 		});
@@ -275,6 +341,11 @@ export class SessionStore {
 		// write, and pristine never-saved days are skipped so browsing ahead
 		// creates no empty records.
 		$effect(() => {
+			// `#isShowingDemo`, not `#demoTitles`: leaving the demo drops the param
+			// while the fixture is still in `#tasks`, and this effect ran in that gap
+			// and saved it.
+			if (this.#isShowingDemo) return;
+
 			if (!this.#isLoading && this.#canEditPlan) {
 				// The RAW field, never the prefill: a day whose hours the user has not
 				// touched is pristine, so browsing ahead still creates no records.
@@ -309,6 +380,8 @@ export class SessionStore {
 		// hidden half of this — flushing before a discard — is the writer's.)
 		$effect(() => {
 			const onVisibilityChange = () => {
+				if (this.#demoTitles) return;
+
 				if (!document.hidden && !this.#autoSave.pending) this.#loadSession(this.#selectedDate);
 			};
 
@@ -322,6 +395,20 @@ export class SessionStore {
 	// because it is also the retry path: a boot that fails leaves the store
 	// unable to load or save anything until it is run again.
 	async #boot() {
+		const demoTitles = this.#demoTitles;
+
+		// The example day is served from the fixture alone: no migrations, no
+		// repository reads, and so nothing that can fail into the banner.
+		if (demoTitles) {
+			this.#seedDemoDay(demoTitles);
+			this.#isLoading = false;
+
+			return;
+		}
+
+		// Before the first await, not in `finally`: `#loadSession` below moves
+		// `#loadedDate`, which re-runs the day effect while boot is still in flight.
+		this.#hasReadStorage = true;
 		this.#booting = true;
 
 		try {
@@ -352,6 +439,23 @@ export class SessionStore {
 		return sanitizeFlowObservations(await flowObservationRepository.$readAllFlowObservations());
 	}
 
+	/**
+	 * Replace whatever day is on screen with the fixture. `#loadedDate` is set to
+	 * the viewed day like a real load's, or `#canEditPlan` refuses every edit and
+	 * the example day is a screenshot — the writes are refused one layer down
+	 * instead (`#persistSession`).
+	 */
+	#seedDemoDay(titles: DemoTaskTitles) {
+		this.#tasks = buildDemoTasks(titles, this.#selectedDate);
+		this.#availableHours = DEMO_AVAILABLE_HOURS;
+		this.#switchCost = DEMO_SWITCH_COST;
+		this.#cognitivePool = DEMO_POOLS.cognitiveHours;
+		this.#physicalPool = DEMO_POOLS.physicalHours;
+		this.#loadedDate = this.#selectedDate;
+		this.#loadedHadSession = false;
+		this.#isShowingDemo = true;
+	}
+
 	// Every session read goes through here, so a new read site cannot quietly skip
 	// the validation (AGENTS.md R4). A day that fails it reads as absent: the day
 	// loads empty, and the next edit overwrites the broken record.
@@ -362,6 +466,11 @@ export class SessionStore {
 	// Every session write goes through here, so the generation above cannot be
 	// forgotten at a new write site.
 	async #persistSession(session: DailySession) {
+		// Every session write, including the two that bypass the auto-save
+		// (`toggleTask`'s past branch, `moveTaskToTomorrow`): a fabricated task
+		// landing in a real profile is the whole reason the demo is in memory.
+		if (this.#isShowingDemo) return;
+
 		await sessionRepository.$updateSession(session);
 		this.#writeGenerations.set(session.date, this.writeGenerationFor(session.date) + 1);
 
@@ -415,6 +524,10 @@ export class SessionStore {
 	 */
 	async readDeferDestination(): Promise<DeferDestination | null> {
 		if (!this.#canEditPlan) return null;
+
+		// The example day reads nothing: this one would print the visitor's real
+		// tomorrow under a banner saying the numbers are not theirs.
+		if (this.#isShowingDemo) return null;
 
 		try {
 			const destination = await this.#readDestination(this.#deferDestinationDate);
@@ -511,6 +624,7 @@ export class SessionStore {
 
 			this.#loadedHadSession = Boolean(session);
 			this.#loadedDate = date;
+			this.#isShowingDemo = false;
 
 			// Reading again worked, so the day is no longer unreachable — this is
 			// what makes a load failure recover on the next date change too.
@@ -764,6 +878,10 @@ export class SessionStore {
 	async moveTaskToTomorrow(id: number): Promise<boolean> {
 		if (!this.#canEditPlan) return false;
 
+		// Refused rather than merely unpersisted: `#persistSession` would drop the
+		// destination write and this would still report a move, and drop the task.
+		if (this.#isShowingDemo) return false;
+
 		if (this.#moving) return false;
 
 		const task = this.#tasks.find((t) => t.id === id);
@@ -840,6 +958,10 @@ export class SessionStore {
 	// Import a specific day's tasks (stripped to their definition) into the
 	// viewed day. Returns the imported count so the UI can react to empty days.
 	async importFromDate(date: string): Promise<number> {
+		// Their own tasks, read out of IndexedDB into the fixture: the example day
+		// imports from nowhere.
+		if (this.#isShowingDemo) return 0;
+
 		try {
 			const session = await this.#readSession(date);
 			const tasks = session?.tasks ?? [];
@@ -1076,6 +1198,10 @@ export class SessionStore {
 	// ----- Routines -----
 
 	async saveCurrentAsRoutine(name: string) {
+		// The example day's six titles are not a routine the visitor wrote, and this
+		// is the one write on the planner that `#persistSession` does not funnel.
+		if (this.#isShowingDemo) return;
+
 		const routine: SavedRoutine = {
 			id: `routine-${Date.now()}`,
 			name,
@@ -1098,6 +1224,10 @@ export class SessionStore {
 	}
 
 	async deleteRoutine(id: string) {
+		// The visitor's real routines are still in `#routines` on the example day, and
+		// this delete is the other write `#persistSession` does not funnel.
+		if (this.#isShowingDemo) return;
+
 		try {
 			await routineRepository.$deleteRoutine(id);
 			this.#routines = await this.#readRoutines();
@@ -1111,8 +1241,12 @@ export class SessionStore {
 export function setSessionStore(
 	readDateParam: ReadDateParam,
 	status: StorageStatusStore,
+	readDemoTitles?: ReadDemoTitles,
 ): SessionStore {
-	return setContext<SessionStore>(CONTEXT_KEY, new SessionStore(readDateParam, status));
+	return setContext<SessionStore>(
+		CONTEXT_KEY,
+		new SessionStore(readDateParam, status, readDemoTitles),
+	);
 }
 
 export function getSessionStore(): SessionStore {

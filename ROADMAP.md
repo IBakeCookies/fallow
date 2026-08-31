@@ -496,6 +496,8 @@ Only if Fallow grows users beyond its author.
    snapshot, summarized per week in analytics.
 10. **Sync** — default no (the no-server stance is a feature); revisit as
     file-based export/merge if a second device becomes a felt need.
+11. **The example day a shared link opens on** — built 2026-08-31,
+    [demo-day.md](docs/features/demo-day.md).
 
 ## Considered on 2026-08-04 and not proposed
 

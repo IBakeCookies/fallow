@@ -81,6 +81,7 @@
 	"list_title": "任务",
 	"list_empty": "还没有部署任何任务",
 	"list_empty_hint": "添加一项任务即可开始跟踪",
+	"list_empty_example": "查看示例的一天",
 	"list_group_sequence": "今日顺序",
 	"list_group_unfunded": "今日无时间",
 	"list_column_order": "#",
@@ -569,5 +570,13 @@
 	"error_title": "出了点问题",
 	"error_body": "发生了意外错误。重新加载通常就能解决——你的数据保存在本地，不受影响。",
 	"error_reload": "重新加载页面",
-	"error_home": "回到今天"
+	"error_home": "回到今天",
+	"demo_banner": "这是示例的一天——数字来自 Fallow，不是你的。这里的内容不会被保存。",
+	"demo_banner_exit": "开始我自己的一天",
+	"demo_task_feature": "编写搜索功能",
+	"demo_task_architecture": "设计系统架构",
+	"demo_task_textbook": "读统计学教材",
+	"demo_task_strength": "力量训练",
+	"demo_task_swim": "游泳训练",
+	"demo_task_plaster": "学习给走廊抹灰"
 }

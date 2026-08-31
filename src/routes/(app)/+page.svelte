@@ -14,6 +14,7 @@
 		describeDeferDestination,
 	} from '$lib/presentation/utils/plan-advice-descriptor';
 	import { removeTaskWithUndo } from '$lib/presentation/utils/remove-task-with-undo';
+	import { getDemoHref } from '$lib/presentation/utils/demo-link';
 	import {
 		removeFlowLogWithUndo,
 		removeLogWithUndo,
@@ -59,7 +60,9 @@
 
 	// Gates logging, not correcting. Why: presentation/AGENTS.md, "Both corrections are
 	// offered on any day the page shows, a new measurement only today".
-	const canLog = $derived(selectedDate === today);
+	// Not on the example day: a ⚡ or 🪫 rating is a real measurement, and one taken
+	// against a fabricated task would land in the visitor's own model fit.
+	const canLog = $derived(selectedDate === today && !session.isDemo);
 
 	let flowDrafts = $state<Record<number, EditorDraft>>({});
 	let drainDrafts = $state<Record<number, DrainDraft>>({});
@@ -285,6 +288,7 @@
 				form={isViewingPast ? undefined : addTaskForm}
 				strip={daily.suggestedTasks.length ? dayStrip : undefined}
 				actions={dayActions}
+				exampleDayHref={session.isDemo || isViewingPast ? undefined : getDemoHref()}
 			/>
 
 			<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />

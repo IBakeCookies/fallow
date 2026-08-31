@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
+	import { localizeHref } from '$lib/paraglide/runtime';
 	import { logError } from '$lib/logger';
 	import Nav from '$lib/presentation/component/nav.svelte';
 	import Palette from '@lucide/svelte/icons/palette';
@@ -24,6 +26,7 @@
 	import { getThemeStore } from '$lib/business/store/theme-store.svelte';
 	import * as backup from '$lib/business/backup';
 	import { readSessionTimer, writeSessionTimer } from '$lib/presentation/utils/session-timer';
+	import { DEMO_SEARCH_PARAM, getDemoTaskTitles } from '$lib/presentation/utils/demo-link';
 	import {
 		flushPendingToasts,
 		showToast,
@@ -100,7 +103,16 @@
 	// Created first: every store below reports into it and registers its re-read.
 	const storageStatus = setStorageStatusStore();
 
-	const session = setSessionStore(() => page.url.searchParams.get('date'), storageStatus);
+	const session = setSessionStore(
+		() => page.url.searchParams.get('date'),
+		storageStatus,
+		// Scoped to the planner: `?demo` on the Lab, the calendar or the analytics
+		// page means nothing, and this store is every one of their days too.
+		() =>
+			page.route.id === '/(app)' && page.url.searchParams.has(DEMO_SEARCH_PARAM)
+				? getDemoTaskTitles()
+				: null,
+	);
 
 	const observations = setEnergyObservationStore(() => session.tasks, storageStatus);
 
@@ -224,11 +236,21 @@
 	<div
 		class="mx-auto w-full max-w-layout px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col"
 	>
+		{#if session.isDemo}
+			<div role="alert" class="banner-shell border-brand/20 bg-brand/5 text-ty-primary">
+				<span class="flex-1">{m.demo_banner()}</span>
+				<!-- A link and not a button: leaving the example day IS dropping the param,
+				     so the address bar has to say so too. -->
+				<a
+					href={localizeHref(resolve('/'))}
+					class="border-brand/30 hover:bg-brand/10 shrink-0 rounded-md border px-text-xs py-text-3xs"
+				>
+					{m.demo_banner_exit()}
+				</a>
+			</div>
+		{/if}
 		{#if storageStatus.error}
-			<div
-				role="alert"
-				class="border-danger/20 bg-danger/5 text-danger-strong mt-grid-md flex items-center gap-grid-sm rounded-xl border p-box-md text-sm"
-			>
+			<div role="alert" class="banner-shell border-danger/20 bg-danger/5 text-danger-strong">
 				<span class="flex-1">{storageErrorMessage}</span>
 				{#if storageStatus.canRetry}
 					<button

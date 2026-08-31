@@ -245,6 +245,43 @@ The destination write also reads its OWN day's values through `#readDestination`
 and defaults nothing: a fallback there stamps a value onto a day that never
 chose one.
 
+### `SessionStore` has a second day source, and it reaches no storage
+
+A third constructor argument, `ReadDemoTitles`, returns the example day's six
+titles or `null` (`demo-day.ts`; `docs/features/demo-day.md`). Non-null and the
+store seeds the fixture instead of reading. **The guard is not one guard**, and
+which of the two flags a site takes is the whole of it:
+
+- `#demoTitles` — what the URL asked for. Gates the READS: `#boot` returns
+  before `initializeStorage`, the day effect seeds instead of loading, the
+  yesterday effect and the `visibilitychange` re-read stand down.
+- `#isShowingDemo` — whether the fixture is on screen. Gates the WRITES:
+  `#persistSession`, the auto-save effect, `saveCurrentAsRoutine`,
+  `deleteRoutine`, `moveTaskToTomorrow`, and the two remaining reads a click can
+  still reach (`readDeferDestination`, `importFromDate`). Leaving the demo drops
+  the param while the fixture is still in `#tasks`, and a URL-keyed auto-save ran
+  in exactly that gap and saved all six.
+
+Editing still works, so `#seedDemoDay` sets `#loadedDate` like a real load —
+which is why leaving the demo tests `#isShowingDemo` and not the two dates: a
+visitor who entered from their own loaded day leaves it with both dates already
+agreeing, and no read would fire.
+
+`#hasReadStorage` is the third field: whether boot ever started. A visitor who
+ARRIVED on `?demo` and then navigated to their own day has run no migration and
+folded no prefill, so that day needs the whole boot, not a session read.
+
+**Not covered, on purpose:** `DailyPlanStore` folds `EnergyObservationStore`'s
+real drain and rest rows into whatever day is on screen, so an existing user's
+example day carries their own logged hours in its mid-day re-plan. Excluding them
+means threading the demo through a second store, and the demo's audience has no
+logs.
+
+Copy comes from the caller, and the param name plus the localized href are
+`presentation/utils/demo-link.ts` (R3). Not R1 — `$lib/paraglide` sits beside the
+three layers and no rule bars it here. It is the convention above: copy belongs
+to presentation, and this layer has no locale in it at all.
+
 ## Settled decisions — do not re-litigate
 
 ### Task ids come from `nextTaskId` and nowhere else
@@ -264,6 +301,10 @@ no UI reaches two days fast enough to do. Every join a fit reads is per-date, so
 a collision could not move a measurement between days anyway; the one join by id
 alone is the log history's task NAME (`analytics-store`'s `taskTitles`), where a
 collision costs a row printing the other day's title.
+
+**The demo day is the one exception**, and only because nothing it holds is
+ever written: `buildDemoTasks` numbers its six tasks 1–6, and `#persistSession`
+refuses every write while the demo is on.
 
 **A day's `tasks` array is newest-first** — every writer in `SessionStore`
 prepends — so anything wanting the later of two entries walks it backwards, and

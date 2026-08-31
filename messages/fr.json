@@ -81,6 +81,7 @@
 	"list_title": "Tâches",
 	"list_empty": "Aucune tâche déployée pour l'instant",
 	"list_empty_hint": "Ajoute une tâche pour commencer le suivi",
+	"list_empty_example": "Voir une journée d’exemple",
 	"list_group_sequence": "Séquence du jour",
 	"list_group_unfunded": "Pas de temps aujourd'hui",
 	"list_column_order": "#",
@@ -569,5 +570,13 @@
 	"error_title": "Un problème est survenu",
 	"error_body": "Une erreur inattendue s'est produite. Recharger règle généralement le problème — tes données sont stockées localement et ne sont pas affectées.",
 	"error_reload": "Recharger la page",
-	"error_home": "Retour à aujourd'hui"
+	"error_home": "Retour à aujourd'hui",
+	"demo_banner": "Ceci est une journée d’exemple — les chiffres de Fallow, pas les tiens. Rien n’est enregistré ici.",
+	"demo_banner_exit": "Commencer ma propre journée",
+	"demo_task_feature": "Coder la fonction de recherche",
+	"demo_task_architecture": "Concevoir l’architecture du système",
+	"demo_task_textbook": "Lire le manuel de statistiques",
+	"demo_task_strength": "Musculation",
+	"demo_task_swim": "Entraînement de natation",
+	"demo_task_plaster": "Apprendre à enduire le couloir"
 }

@@ -81,6 +81,7 @@
 	"list_title": "Tareas",
 	"list_empty": "Aún no hay tareas desplegadas",
 	"list_empty_hint": "Añade una tarea para empezar a hacer seguimiento",
+	"list_empty_example": "Ver un día de ejemplo",
 	"list_group_sequence": "Secuencia de hoy",
 	"list_group_unfunded": "Hoy sin tiempo",
 	"list_column_order": "#",
@@ -569,5 +570,13 @@
 	"error_title": "Algo ha salido mal",
 	"error_body": "Se ha producido un error inesperado. Recargar suele arreglarlo — tus datos se guardan localmente y no se ven afectados.",
 	"error_reload": "Recargar la página",
-	"error_home": "Volver a hoy"
+	"error_home": "Volver a hoy",
+	"demo_banner": "Este es un día de ejemplo: son los números de Fallow, no los tuyos. Aquí no se guarda nada.",
+	"demo_banner_exit": "Empezar mi propio día",
+	"demo_task_feature": "Programar la función de búsqueda",
+	"demo_task_architecture": "Diseñar la arquitectura del sistema",
+	"demo_task_textbook": "Leer el libro de estadística",
+	"demo_task_strength": "Entrenamiento de fuerza",
+	"demo_task_swim": "Entrenamiento de natación",
+	"demo_task_plaster": "Aprender a enyesar el pasillo"
 }
