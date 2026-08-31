@@ -438,7 +438,13 @@ day**, because pools are optional in storage and the newest day may have none.
 And a **stored day keeps its own**: absent pools on a stored day are the
 constants that day ran with (`metric/history.ts`, `session-history.ts`), so
 carrying today's into it would re-score a day the user already worked — item 18
-depends on that, and only the no-session branch of `#loadSession` goes `null`.
+depends on that. That absence is kept as absence, in memory (`null`, answered by
+`#openingPools`) and through every write, including the destination of a defer:
+writing the constants a day merely opens on would read as a declaration to
+`constraint-memory.ts` and outrank the user's own, older one, pinning untouched
+future days to 4/6. A day a write CREATES records the pools it opens on, the
+rule its hours follow — the difference is whether the day already existed
+without them.
 A **blur is not a declaration**, and that rule is one method for all four fields:
 `#declare(value, prefilled)` returns `null` while the field still says what it was
 already showing. `NumberInput` reports on blur whether or not the value moved, so

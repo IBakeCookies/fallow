@@ -1666,6 +1666,101 @@ describe('SessionStore constraint carry-over', () => {
 			physicalPool: 7,
 		});
 	});
+
+	/** A stored day with no pools of its own — every record written before they
+	 *  were configurable. */
+	function storeLegacyDay() {
+		readSessionByDateMock.mockImplementation(async (date: string) => ({
+			date,
+			tasks: [],
+			availableHours: 4,
+			switchCost: 0.75,
+			updatedAt: 0,
+		}));
+	}
+
+	// Absence is a statement, and rewriting the day must not answer for it:
+	// `summarizeDeclaredConstraints` reads the latest day carrying both fields as
+	// the standing declaration, so the constants materialized here would outrank
+	// the user's own older one and pin every unseen day to 4/6.
+	it('does not turn a stored day with no pools into a declaration', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		storeLegacyDay();
+		mockPage.url = new URL(`http://localhost/?date=${nextWeek}`);
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(nextWeek));
+		useFakeTimers();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		const written = updateSessionMock.mock.calls[0][0];
+
+		expect(written.date).toBe(nextWeek);
+		expect(written.cognitivePool).toBeUndefined();
+		expect(written.physicalPool).toBeUndefined();
+	});
+
+	// And the pair or nothing (`constraint-memory.ts`): declaring one pool on such
+	// a day declares the other at the constant it was already showing.
+	it('records the pair once one pool is declared on such a day', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		storeLegacyDay();
+		mockPage.url = new URL(`http://localhost/?date=${nextWeek}`);
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(nextWeek));
+		useFakeTimers();
+
+		store.cognitivePool = 5;
+		flushSync();
+		vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+
+		expect(updateSessionMock.mock.calls[0][0]).toMatchObject({
+			date: nextWeek,
+			cognitivePool: 5,
+			physicalPool: DEFAULT_CAPACITY_POOLS.physicalHours,
+		});
+	});
+
+	// The same rule through the other door: the destination of a defer is a stored
+	// day too, and the move is a write to it.
+	it('leaves a stored destination day with no pools undeclared', async () => {
+		const { store } = await setup();
+
+		await vi.waitFor(() => expect(store.switchCost).toBe(0.5));
+
+		store.addTask({
+			title: 'Tax return',
+			physicalDifficulty: 2,
+			mentalDifficulty: 10,
+			enjoyment: 1,
+		});
+
+		flushSync();
+		useFakeTimers(); // freeze the auto-save so only the move writes
+		storeLegacyDay();
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		const written = updateSessionMock.mock.calls[0][0];
+
+		expect(written.date).toBe(addDays(today, 1));
+		expect(written.cognitivePool).toBeUndefined();
+		expect(written.physicalPool).toBeUndefined();
+	});
 });
 
 describe('SessionStore title memory', () => {

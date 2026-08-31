@@ -38,6 +38,7 @@ import {
 	type DeferDestination,
 } from '$lib/business/model/metric/defer-destination';
 import {
+	type CapacityPools,
 	DEFAULT_CAPACITY_POOLS,
 	fitUserConstants,
 	mapEffort,
@@ -151,6 +152,14 @@ export class SessionStore {
 	#isViewingPast = $derived(this.#selectedDate < this.#today);
 	#isViewingFuture = $derived(this.#selectedDate > this.#today);
 
+	// The viewed day is the loaded one and is not past: the guard on every edit
+	// (the invariant `toggleTask` documents), on the auto-save and on the defer
+	// preview. Mid-navigation the in-memory day still belongs to the previous
+	// date, which a past-day check alone misses.
+	get #canEditPlan() {
+		return this.#loadedDate === this.#selectedDate && !this.#isViewingPast;
+	}
+
 	// What a day with no hours of its own opens on (ROADMAP item 16). Derived
 	// rather than assigned at load, so every later day answers from the one boot
 	// fold. A past day gets nothing: a day the user did not plan has no budget, and
@@ -262,11 +271,11 @@ export class SessionStore {
 		});
 
 		// Auto-save to IndexedDB for today and future plans (past days save
-		// explicitly on toggle). Guards: the in-memory state must actually belong
-		// to the viewed date (loads are async), and pristine never-saved days are
-		// skipped so browsing ahead creates no empty records.
+		// explicitly on toggle). Two guards: the day must be one this store may
+		// write, and pristine never-saved days are skipped so browsing ahead
+		// creates no empty records.
 		$effect(() => {
-			if (!this.#isLoading && !this.#isViewingPast && this.#loadedDate === this.#selectedDate) {
+			if (!this.#isLoading && this.#canEditPlan) {
 				// The RAW field, never the prefill: a day whose hours the user has not
 				// touched is pristine, so browsing ahead still creates no records.
 				const dirty =
@@ -287,8 +296,8 @@ export class SessionStore {
 					// the budget it was showing while that happened.
 					availableHours: this.availableHours,
 					switchCost: this.switchCost,
-					cognitivePool: this.cognitivePool,
-					physicalPool: this.physicalPool,
+					cognitivePool: this.#declaredPools.cognitiveHours,
+					physicalPool: this.#declaredPools.physicalHours,
 					updatedAt: Date.now(),
 				});
 			}
@@ -367,6 +376,20 @@ export class SessionStore {
 	async #readDestination(date: string) {
 		const session = await this.#readSession(date);
 
+		// `#openingPools` and `#declaredPools`, for the day at the other end: what it
+		// opens on, and what this write may record for it.
+		const pools = session
+			? {
+					cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
+					physicalHours: session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours,
+				}
+			: this.#declaredConstraints.pools;
+
+		const declaredPools: Partial<CapacityPools> =
+			session && session.cognitivePool === undefined && session.physicalPool === undefined
+				? {}
+				: pools;
+
 		return {
 			tasks: session?.tasks ?? [],
 			// A day this write creates is a day saved for a reason of its own, so it
@@ -375,10 +398,8 @@ export class SessionStore {
 			// no prefill may speak for (ROADMAP item 16).
 			availableHours: session?.availableHours ?? prefillBudgetFor(this.#budgetHistory, date),
 			switchCost: session?.switchCost ?? this.#declaredConstraints.switchCost,
-			pools: {
-				cognitiveHours: session?.cognitivePool ?? this.#declaredConstraints.pools.cognitiveHours,
-				physicalHours: session?.physicalPool ?? this.#declaredConstraints.pools.physicalHours,
-			},
+			pools,
+			declaredPools,
 		};
 	}
 
@@ -393,7 +414,7 @@ export class SessionStore {
 	 * priced on today and still correct, so the line goes and the banner stays down.
 	 */
 	async readDeferDestination(): Promise<DeferDestination | null> {
-		if (this.#loadedDate !== this.#selectedDate || this.#isViewingPast) return null;
+		if (!this.#canEditPlan) return null;
 
 		try {
 			const destination = await this.#readDestination(this.#deferDestinationDate);
@@ -472,10 +493,11 @@ export class SessionStore {
 				this.#tasks = session.tasks;
 				this.#availableHours = session.availableHours;
 				this.#switchCost = session.switchCost;
-				// Absent pools on a stored day are the constants it ran with, never `null`
-				// (business/AGENTS.md, "a stored day keeps its own").
-				this.#cognitivePool = session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours;
-				this.#physicalPool = session.physicalPool ?? DEFAULT_CAPACITY_POOLS.physicalHours;
+				// Absence is kept as absence, and `#openingPools` answers for it with the
+				// constants the day ran with, so a rewrite cannot declare pools the day
+				// never had (business/AGENTS.md, "a stored day keeps its own").
+				this.#cognitivePool = session.cognitivePool ?? null;
+				this.#physicalPool = session.physicalPool ?? null;
 			} else {
 				// No data for this date: nothing here is answered, so the day shows what
 				// its weekday usually gets and how the last stored day worked, until the
@@ -592,27 +614,42 @@ export class SessionStore {
 	set switchCost(v: number) {
 		this.#switchCost = this.#declare(v, this.#declaredConstraints.switchCost);
 	}
+	/** What an undeclared pool field shows: the carry-over on a day with no stored
+	 *  session, and the constants on a stored day that never declared one — which
+	 *  is what that day ran with (business/AGENTS.md). */
+	get #openingPools() {
+		return this.#loadedHadSession ? DEFAULT_CAPACITY_POOLS : this.#declaredConstraints.pools;
+	}
+
+	/** The pools a write records: none for a stored day that never declared them,
+	 *  because `constraint-memory.ts` reads the latest day carrying both fields as
+	 *  the standing declaration, and the constants written here would outrank the
+	 *  user's own older one. A day the write CREATES records what it opens on, the
+	 *  rule its hours follow. */
+	get #declaredPools(): Partial<CapacityPools> {
+		if (this.#loadedHadSession && this.#cognitivePool === null && this.#physicalPool === null)
+			return {};
+
+		return {
+			cognitiveHours: this.cognitivePool,
+			physicalHours: this.physicalPool,
+		};
+	}
+
 	get cognitivePool() {
-		return this.#cognitivePool ?? this.#declaredConstraints.pools.cognitiveHours;
+		return this.#cognitivePool ?? this.#openingPools.cognitiveHours;
 	}
 	set cognitivePool(v: number) {
-		this.#cognitivePool = this.#declare(v, this.#declaredConstraints.pools.cognitiveHours);
+		this.#cognitivePool = this.#declare(v, this.#openingPools.cognitiveHours);
 	}
 	get physicalPool() {
-		return this.#physicalPool ?? this.#declaredConstraints.pools.physicalHours;
+		return this.#physicalPool ?? this.#openingPools.physicalHours;
 	}
 	set physicalPool(v: number) {
-		this.#physicalPool = this.#declare(v, this.#declaredConstraints.pools.physicalHours);
+		this.#physicalPool = this.#declare(v, this.#openingPools.physicalHours);
 	}
 
 	// ----- Task mutations -----
-
-	// Structural edits are today-and-future only (the invariant `toggleTask`
-	// documents), and mid-navigation the in-memory tasks still belong to the
-	// previous day.
-	get #canEditPlan() {
-		return this.#loadedDate === this.#selectedDate && !this.#isViewingPast;
-	}
 
 	addTask(taskData: {
 		title: string;
@@ -662,8 +699,8 @@ export class SessionStore {
 					tasks: $state.snapshot(this.#tasks),
 					availableHours: this.availableHours,
 					switchCost: this.switchCost,
-					cognitivePool: this.cognitivePool,
-					physicalPool: this.physicalPool,
+					cognitivePool: this.#declaredPools.cognitiveHours,
+					physicalPool: this.#declaredPools.physicalHours,
 					updatedAt: Date.now(),
 				});
 			} catch (e) {
@@ -761,8 +798,8 @@ export class SessionStore {
 				tasks: [moved, ...dest.tasks],
 				availableHours: dest.availableHours,
 				switchCost: dest.switchCost,
-				cognitivePool: dest.pools.cognitiveHours,
-				physicalPool: dest.pools.physicalHours,
+				cognitivePool: dest.declaredPools.cognitiveHours,
+				physicalPool: dest.declaredPools.physicalHours,
 				updatedAt: Date.now(),
 			});
 
