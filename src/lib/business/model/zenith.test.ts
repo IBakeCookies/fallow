@@ -46,10 +46,12 @@ for (const difficulty of [1, 2.5, 4, 5.5, 7, 8.5, 10]) {
 }
 
 /**
- * True maximum over block-quantized plans for exactly three tasks. Hoisted out
- * of the `it` that uses it so the enumeration does not nest four deep inside
- * describe/describe/it — `zenith*.ts` only downgrades `max-depth` to a warning,
- * and the baseline is meant to stay where it is.
+ * True maximum over block-quantized plans for exactly three tasks — the oracle
+ * both exactness tests below score the allocator against.
+ *
+ * One counter in base (ceiling + 1) rather than three nested loops: the arity
+ * is a digit count instead of a nesting level, which is what keeps the
+ * enumeration inside `max-depth`.
  *
  * The reference shares the allocator's quantization rule (`budgetBlocksFor`) —
  * that defines the feasible SET, which is part of the problem, not the
@@ -88,6 +90,28 @@ function bruteForceThree(
 	}
 
 	return brute;
+}
+
+/**
+ * The greedy precondition (MATH.md §4) for one task's block curve: increments
+ * stay positive and non-increasing until the curve stops paying. Only that
+ * POSITIVE prefix matters — the allocator truncates each increment list at the
+ * first non-positive delta, so later blocks are never offered to greedy.
+ */
+function expectDiminishingIncrements(valueAt: (blocks: number) => number, maxBlocks: number): void {
+	let prevValue = 0;
+	let prevDelta = Infinity;
+
+	for (let j = 1; j <= maxBlocks; j++) {
+		const value = valueAt(j);
+		const delta = value - prevValue;
+
+		if (delta <= 1e-12) break;
+
+		expect(delta).toBeLessThanOrEqual(prevDelta + 1e-12);
+		prevValue = value;
+		prevDelta = delta;
+	}
 }
 
 describe('Zenith Gradient Algorithm (model v2)', () => {
@@ -289,23 +313,11 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 						constants,
 					);
 
-					// Only the POSITIVE prefix matters: the allocator truncates each
-					// task's increment list at the first non-positive delta (P̄ declines
-					// past T*, so later blocks are never offered to greedy).
-					const maxBlocks = Math.ceil(cap / BLOCK_HOURS) + 2;
-					let prevValue = 0;
-					let prevDelta = Infinity;
-
-					for (let j = 1; j <= maxBlocks; j++) {
-						const value = averageProductivity(j * BLOCK_HOURS, a, p0, k);
-						const delta = value - prevValue;
-
-						if (delta <= 1e-12) break;
-
-						expect(delta).toBeLessThanOrEqual(prevDelta + 1e-12);
-						prevValue = value;
-						prevDelta = delta;
-					}
+					// P̄ declines past T*, so the curve is checked two blocks beyond it.
+					expectDiminishingIncrements(
+						(j) => averageProductivity(j * BLOCK_HOURS, a, p0, k),
+						Math.ceil(cap / BLOCK_HOURS) + 2,
+					);
 				}
 			}
 		});
@@ -511,29 +523,7 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			const budget = 3;
 			const switchCost = 0.25;
 			const params = tasks.map((t) => calculateTaskParams(t, DEFAULT_USER_CONSTANTS));
-			const maxBlocks = Math.floor(budget / BLOCK_HOURS);
-			let brute = 0;
-
-			for (let b0 = 0; b0 <= maxBlocks; b0++) {
-				for (let b1 = 0; b1 + b0 <= maxBlocks; b1++) {
-					for (let b2 = 0; b2 + b1 + b0 <= maxBlocks; b2++) {
-						const blocks = [b0, b1, b2];
-						const funded = blocks.filter((b) => b > 0).length;
-						const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
-						const time = (b0 + b1 + b2) * BLOCK_HOURS + overhead;
-
-						if (time > budget + 1e-9) continue;
-
-						const value = blocks.reduce(
-							(sum, b, i) =>
-								sum + averageProductivity(b * BLOCK_HOURS, params[i].a, params[i].p0, params[i].k),
-							0,
-						);
-
-						if (value > brute) brute = value;
-					}
-				}
-			}
+			const brute = bruteForceThree(params, budget, switchCost);
 
 			const allocations = calculateTaskAllocations(
 				tasks,
@@ -1460,39 +1450,35 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 			const maxB = Math.floor(budget / BLOCK_HOURS);
 			let best = 0;
 
-			for (let b0 = 0; b0 <= maxB; b0++) {
-				for (let b1 = 0; b0 + b1 <= maxB; b1++) {
-					for (let b2 = 0; b0 + b1 + b2 <= maxB; b2++) {
-						for (let b3 = 0; b0 + b1 + b2 + b3 <= maxB; b3++) {
-							const blocks = [b0, b1, b2, b3];
-							const funded = blocks.filter((b) => b > 0).length;
-							const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
-							const time = (b0 + b1 + b2 + b3) * BLOCK_HOURS + overhead;
+			// One counter in base (maxB + 1) instead of four nested loops, as
+			// `bruteForceThree` does: the arity is a digit count, not a depth.
+			for (let code = 0; code < (maxB + 1) ** 4; code++) {
+				const blocks = [0, 1, 2, 3].map((d) => Math.floor(code / (maxB + 1) ** d) % (maxB + 1));
+				const funded = blocks.filter((b) => b > 0).length;
+				const overhead = funded > 1 ? (funded - 1) * switchCost : 0;
+				const used = blocks.reduce((s, b) => s + b, 0);
 
-							if (time > budget + 1e-9) continue;
+				if (used * BLOCK_HOURS + overhead > budget + 1e-9) continue;
 
-							const cog = blocks.reduce(
-								(s, b, i) => s + b * BLOCK_HOURS * mixedDay[i].cognitiveWeight,
-								0,
-							);
+				const cog = blocks.reduce(
+					(s, b, i) => s + b * BLOCK_HOURS * mixedDay[i].cognitiveWeight,
+					0,
+				);
 
-							const phys = blocks.reduce(
-								(s, b, i) => s + b * BLOCK_HOURS * mixedDay[i].physicalWeight,
-								0,
-							);
+				const phys = blocks.reduce(
+					(s, b, i) => s + b * BLOCK_HOURS * mixedDay[i].physicalWeight,
+					0,
+				);
 
-							if (cog > pools.cognitiveHours + 1e-9 || phys > pools.physicalHours + 1e-9) continue;
+				if (cog > pools.cognitiveHours + 1e-9 || phys > pools.physicalHours + 1e-9) continue;
 
-							const value = blocks.reduce(
-								(s, b, i) =>
-									s + averageProductivity(b * BLOCK_HOURS, params[i].a, params[i].p0, params[i].k),
-								0,
-							);
+				const value = blocks.reduce(
+					(s, b, i) =>
+						s + averageProductivity(b * BLOCK_HOURS, params[i].a, params[i].p0, params[i].k),
+					0,
+				);
 
-							if (value > best) best = value;
-						}
-					}
-				}
+				if (value > best) best = value;
 			}
 
 			return best;
@@ -2579,19 +2565,11 @@ describe('Zenith Gradient Algorithm (model v2)', () => {
 
 				for (const sigmaFrac of [0.1, 0.3, 0.5]) {
 					const sigma = sigmaFrac * phi;
-					let prevVal = 0;
-					let prevInc = Infinity;
 
-					for (let j = 1; j <= 80; j++) {
-						const val = expectedAverageProductivity(j * BLOCK_HOURS, a, p0, phi, sigma);
-						const inc = val - prevVal;
-
-						if (inc <= 1e-12) break;
-
-						expect(inc).toBeLessThanOrEqual(prevInc + 1e-12);
-						prevVal = val;
-						prevInc = inc;
-					}
+					expectDiminishingIncrements(
+						(j) => expectedAverageProductivity(j * BLOCK_HOURS, a, p0, phi, sigma),
+						80,
+					);
 				}
 			}
 		});

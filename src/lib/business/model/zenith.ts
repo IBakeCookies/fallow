@@ -835,38 +835,39 @@ function improveWithTransfers(
 		let bestBlocks: number[] | null = null;
 		let bestValue = value;
 
-		for (const donor of subset) {
-			if (blocks[donor] <= 0) continue;
+		// Donate 1, 2, or ALL of the donor's blocks. One block is often too
+		// little to unlock the trade: freeing enough pool for a cheap task can
+		// need several hours off an expensive one, and every intermediate
+		// single-block state is downhill, so a one-block-at-a-time pass stalls.
+		// The all-blocks variant is the "wrong task got the
+		// scarce pool" case in a single move.
+		const donations = subset.flatMap((donor) =>
+			[...new Set([1, 2, blocks[donor]])]
+				.filter((give) => give > 0 && give <= blocks[donor])
+				.map((give) => ({
+					donor,
+					give,
+				})),
+		);
 
-			const others = subset.filter((i) => i !== donor);
+		for (const { donor, give } of donations) {
+			const trial = [...blocks];
+			trial[donor] -= give;
 
-			// Donate 1, 2, or ALL of the donor's blocks. One block is often too
-			// little to unlock the trade: freeing enough pool for a cheap task can
-			// need several hours off an expensive one, and every intermediate
-			// single-block state is downhill, so a one-block-at-a-time pass stalls.
-			// The all-blocks variant is the "wrong task got the
-			// scarce pool" case in a single move.
-			for (const give of new Set([1, 2, blocks[donor]])) {
-				if (give > blocks[donor]) continue;
+			const refilled = greedyAllocateBlocks(
+				tasks,
+				subset.filter((i) => i !== donor),
+				budgetBlocks,
+				poolCog,
+				poolPhys,
+				trial,
+			).blocks;
 
-				const trial = [...blocks];
-				trial[donor] -= give;
+			const refillValue = planValue(tasks, refilled);
 
-				const refilled = greedyAllocateBlocks(
-					tasks,
-					others,
-					budgetBlocks,
-					poolCog,
-					poolPhys,
-					trial,
-				).blocks;
-
-				const refillValue = planValue(tasks, refilled);
-
-				if (refillValue > bestValue + 1e-12) {
-					bestBlocks = refilled;
-					bestValue = refillValue;
-				}
+			if (refillValue > bestValue + 1e-12) {
+				bestBlocks = refilled;
+				bestValue = refillValue;
 			}
 		}
 
@@ -882,12 +883,11 @@ function improveWithTransfers(
 			const trial = [...blocks];
 			trial[newcomer] = 1;
 
-			while (!feasible(tasks, trial, budgetBlocks, poolCog, poolPhys)) {
-				const victim = cheapestFundedBlock(tasks, subset, trial, newcomer);
+			let victim = cheapestFundedBlock(tasks, subset, trial, newcomer);
 
-				if (victim === -1) break;
-
+			while (victim !== -1 && !feasible(tasks, trial, budgetBlocks, poolCog, poolPhys)) {
 				trial[victim]--;
+				victim = cheapestFundedBlock(tasks, subset, trial, newcomer);
 			}
 
 			const refilled = greedyAllocateBlocks(
@@ -1083,8 +1083,7 @@ function bestPlanWithSwitchCost(
 
 	if (n <= EXACT_SUBSET_LIMIT) {
 		for (let mask = 1; mask < 1 << n; mask++) {
-			const subset: number[] = [];
-			for (let i = 0; i < n; i++) if (mask & (1 << i)) subset.push(i);
+			const subset = allTasks.filter((i) => mask & (1 << i));
 			const budgetBlocks = budgetBlocksForSubset(subset);
 
 			if (budgetBlocks <= 0) continue;

@@ -194,12 +194,19 @@ component produces no edge to flag. Inside components that boundary is eslint's
 alone (it does flag `import type`) — hence the error severity, and hence
 persisted types coming from `$lib/business/type`.
 
-Warnings are a known baseline, not a to-do list: 13 `max-depth` (the scheduler
-loops in `business/model/zenith*.ts`, downgraded to `warn` in
-`eslint.config.js` because unnesting them is a test-covered refactor, not a
-lint fixup). Errors are always zero — do not add to the warning count. Eight of
-the thirteen are the brute-force baselines inside `zenith.test.ts`'s `it`
-bodies, where hoisting the enumeration out costs more than the nesting does.
+`eslint .` is clean: zero errors and **zero warnings**. There is no warning
+baseline, so a warning is a regression — do not introduce one. `max-depth` is
+`['error', 3]` everywhere, `scripts/**` included; the single exception is
+`zenith-energy.ts` at `['error', 4]`, which is a cap and not an exemption
+(`eslint.config.js` says why, and a fifth level still fails).
+
+The two idioms that keep a search loop inside that limit, both already in
+`zenith.test.ts`: enumerate a lattice as one counter in base (ceiling + 1) so
+the arity is a digit count rather than a nesting level (`bruteForceThree`), and
+fold a loop's guard `continue` into the sequence it iterates — `max-depth`
+counts an `if` as a level whether or not it opens a block, so a guard inside
+the innermost loop is usually what trips it, not the loop. Neither is free in a
+hot generator: prefer the nesting where the fold would allocate per iteration.
 
 `npm run depgraph` renders the module graph to `dependency-graph.svg` (needs
 graphviz). It is **gitignored, not committed**: CI regenerates it every run and
