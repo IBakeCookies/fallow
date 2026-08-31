@@ -369,11 +369,15 @@ export default defineConfig(
 		},
 	},
 	{
-		// Unnesting these is a deliberate, test-covered refactor, not a lint fixup:
-		// warn here so the error still applies to every other file.
-		files: ['src/lib/business/model/zenith*.ts'],
+		// `neighbors` yields each move family under its own guard, four deep at
+		// the innermost one. Both ways out cost the hill climb real time — a
+		// `.filter()` allocates an array per block index, a `yield*` helper pays
+		// delegation on every yield — so the depth is capped here rather than
+		// exempted: a fifth level is still an error, and every other file,
+		// `zenith.ts` and `zenith.test.ts` included, stays at 3.
+		files: ['src/lib/business/model/zenith-energy.ts'],
 		rules: {
-			'max-depth': ['warn', 3],
+			'max-depth': ['error', 4],
 		},
 	},
 );
