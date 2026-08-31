@@ -2,6 +2,9 @@
 
 **A to-do app that does calculus so you don't have to.**
 
+**[Try it →](https://fallow-planner.vercel.app)** — no account, no server, works
+offline.
+
 ![Fallow — task list with optimal per-task time allocations, priorities, and flow-based stopping times](static/fallow-daily-time-allocation.png)
 
 Fallow answers a question every productive day poses: _you have N tasks and only
@@ -167,4 +170,17 @@ npm run storybook    # component explorer on :6006
 Based on
 ["How to Over-Engineer a To-Do App: The Zenith Gradient Algorithm"](https://thequantasticjournal.com/how-to-over-engineer-a-todo-app-the-zenith-gradient-algorithm-67712737135e)
 from The Quantastic Journal.
-</content>
+
+## License
+
+Fallow — a to-do app that solves for the optimal split of your day.
+Copyright (C) 2026 Shadi
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. See [LICENSE](LICENSE).
+
+It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
