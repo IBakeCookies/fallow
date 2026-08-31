@@ -271,6 +271,13 @@ agreeing, and no read would fire.
 ARRIVED on `?demo` and then navigated to their own day has run no migration and
 folded no prefill, so that day needs the whole boot, not a session read.
 
+**None of the three collapses by forcing a reload on the demo's own two links.**
+Every nav link is a client-side navigation to another `(app)` route over this
+same store, so `?demo` is left that way too — with no param change at all, just
+`page.route.id` (`e2e/demo-day.e2e.ts`, "a nav link leaves the example day").
+Covering that needs the whole machinery regardless; reload-forcing the links
+buys two page loads and deletes nothing.
+
 **Not covered, on purpose:** `DailyPlanStore` folds `EnergyObservationStore`'s
 real drain and rest rows into whatever day is on screen, so an existing user's
 example day carries their own logged hours in its mid-day re-plan. Excluding them
