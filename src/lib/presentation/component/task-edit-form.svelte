@@ -46,7 +46,7 @@
 		/>
 	</label>
 
-	<TaskFormFields bind:draft />
+	<TaskFormFields bind:draft size="xs" />
 
 	<!-- `justify-end` with the flag pushed out by its own margin, so the buttons keep their
 	     corner in the mode that has no flag to show. -->
