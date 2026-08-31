@@ -150,3 +150,35 @@ test('the empty state offers the example day', async ({ page }) => {
 
 	await expect(taskRow(page, DEMO_TASKS[0])).toBeVisible();
 });
+
+/* The `?demo` param is not the only way out: every nav link is a client-side
+   navigation to another route under the same layout — and so the same store —
+   which is what scopes the demo to the planner (`page.route.id`). */
+test('a nav link leaves the example day', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'My own task');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/?demo');
+	await expect(taskRow(page, DEMO_TASKS[0])).toBeVisible();
+
+	// Through the nav landmark: the page prose links to the Lab too.
+	const nav = page.getByRole('navigation');
+
+	await nav
+		.getByRole('link', {
+			name: 'Energy Lab',
+		})
+		.click();
+
+	await expect(page.getByRole('alert')).toHaveCount(0);
+
+	await nav
+		.getByRole('link', {
+			name: 'Today',
+		})
+		.click();
+
+	await expect(taskRow(page, 'My own task')).toBeVisible();
+	await expect(taskRow(page, DEMO_TASKS[0])).toHaveCount(0);
+});
