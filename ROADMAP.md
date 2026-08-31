@@ -753,7 +753,8 @@ A read-only review of [`session-store.svelte.ts`](src/lib/business/store/session
 and its collaborators. The **S** ids are stable and never reused. Six findings
 and one nit were raised; **S1, S2, S3 and S6 were upheld and closed on this
 branch**, S4 and the nit were dropped, and S5 was dropped as stated but left a
-real residue, which is the one open entry below.
+real residue. Both it and the refactor S1 left were fixed on 2026-08-31, and
+nothing here is open.
 
 Two of the six did not survive being checked against the code, and both failure
 modes are worth knowing before trusting a review of this shape. **S4 asserted a
@@ -776,26 +777,12 @@ place.
 - ~~**S6 — archaeology comments §0 bans.**~~ Closed by deletion; the
   `nextTaskId` paragraph moved to the rules file that owns the decision.
 
-- **Pool absence does not survive a rewrite.** The residue of S5. A stored day
-  with no pool fields loads with the constants in raw state — deliberately, so
-  the store agrees with `metric/history.ts`, which reads absence the same way —
-  but the next write of that day then materializes them as explicit numbers, and
-  `constraint-memory.ts`'s pools branch takes the latest day carrying both
-  fields as the standing declaration. So a rewritten legacy day dated after the
-  user's last real pool declaration outranks it and pins untouched future days
-  to the constants. Bounded on both sides: autosave refuses past days, so the
-  rewritten day must be today or later, and every day written since pools
-  shipped already carries them, so only legacy records enter this path. Closing
-  it means writing `?? undefined` in the autosave payload so absence survives —
-  which changes the "a stored day keeps its own" decision rather than
-  implementing it, and needs deciding as one. Unmeasured: no probe has counted
-  how many legacy pool-less records a real profile holds, and the answer may be
-  zero.
-- **One predicate, three spellings.** `#canEditPlan` (loaded-date and
-  not-past) is still written out inline twice more in the same file — in
-  `readDeferDestination`, where it is the same refusal, and in the autosave
-  `$effect`, where it is the positive form. A refactor, not a bug; the risk is
-  the ordinary one of a rule changing in two places out of three.
+- ~~**Pool absence does not survive a rewrite.**~~ The residue of S5 — fixed
+  2026-08-31,
+  [`the-absence-a-rewrite-declared`](docs/features/the-absence-a-rewrite-declared.md).
+
+- ~~**One predicate, three spellings.**~~ The residue of S1 — fixed 2026-08-31,
+  [`the-predicate-with-three-spellings`](docs/features/the-predicate-with-three-spellings.md).
 
 ## Findings from the 2026-08-26 scenery gutter
 
