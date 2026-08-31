@@ -835,39 +835,38 @@ function improveWithTransfers(
 		let bestBlocks: number[] | null = null;
 		let bestValue = value;
 
-		// Donate 1, 2, or ALL of the donor's blocks. One block is often too
-		// little to unlock the trade: freeing enough pool for a cheap task can
-		// need several hours off an expensive one, and every intermediate
-		// single-block state is downhill, so a one-block-at-a-time pass stalls.
-		// The all-blocks variant is the "wrong task got the
-		// scarce pool" case in a single move.
-		const donations = subset.flatMap((donor) =>
-			[...new Set([1, 2, blocks[donor]])]
-				.filter((give) => give > 0 && give <= blocks[donor])
-				.map((give) => ({
-					donor,
-					give,
-				})),
-		);
+		for (const donor of subset) {
+			if (blocks[donor] <= 0) continue;
 
-		for (const { donor, give } of donations) {
-			const trial = [...blocks];
-			trial[donor] -= give;
+			const others = subset.filter((i) => i !== donor);
 
-			const refilled = greedyAllocateBlocks(
-				tasks,
-				subset.filter((i) => i !== donor),
-				budgetBlocks,
-				poolCog,
-				poolPhys,
-				trial,
-			).blocks;
+			// Donate 1, 2, or ALL of the donor's blocks. One block is often too
+			// little to unlock the trade: freeing enough pool for a cheap task can
+			// need several hours off an expensive one, and every intermediate
+			// single-block state is downhill, so a one-block-at-a-time pass stalls.
+			// The all-blocks variant is the "wrong task got the
+			// scarce pool" case in a single move.
+			for (const give of new Set([1, 2, blocks[donor]])) {
+				if (give > blocks[donor]) continue;
 
-			const refillValue = planValue(tasks, refilled);
+				const trial = [...blocks];
+				trial[donor] -= give;
 
-			if (refillValue > bestValue + 1e-12) {
-				bestBlocks = refilled;
-				bestValue = refillValue;
+				const refilled = greedyAllocateBlocks(
+					tasks,
+					others,
+					budgetBlocks,
+					poolCog,
+					poolPhys,
+					trial,
+				).blocks;
+
+				const refillValue = planValue(tasks, refilled);
+
+				if (refillValue > bestValue + 1e-12) {
+					bestBlocks = refilled;
+					bestValue = refillValue;
+				}
 			}
 		}
 

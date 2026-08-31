@@ -369,13 +369,14 @@ export default defineConfig(
 		},
 	},
 	{
-		// `neighbors` yields each move family under its own guard, four deep at
-		// the innermost one. Both ways out cost the hill climb real time — a
-		// `.filter()` allocates an array per block index, a `yield*` helper pays
-		// delegation on every yield — so the depth is capped here rather than
-		// exempted: a fifth level is still an error, and every other file,
-		// `zenith.ts` and `zenith.test.ts` included, stays at 3.
-		files: ['src/lib/business/model/zenith-energy.ts'],
+		// The two search loops whose innermost guard sits four deep, where every
+		// way of folding it out is slower than the nesting: materializing the
+		// allocator's (donor, give) pairs measured 1.26-1.31x on the pool-bound
+		// path, and unnesting `neighbors` costs the hill climb either an array
+		// per block index or generator delegation on every yield. Capped, not
+		// exempted — a fifth level is still an error, and every other file,
+		// `zenith.test.ts` included, stays at 3.
+		files: ['src/lib/business/model/zenith.ts', 'src/lib/business/model/zenith-energy.ts'],
 		rules: {
 			'max-depth': ['error', 4],
 		},

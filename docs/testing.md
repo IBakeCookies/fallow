@@ -196,17 +196,23 @@ persisted types coming from `$lib/business/type`.
 
 `eslint .` is clean: zero errors and **zero warnings**. There is no warning
 baseline, so a warning is a regression — do not introduce one. `max-depth` is
-`['error', 3]` everywhere, `scripts/**` included; the single exception is
-`zenith-energy.ts` at `['error', 4]`, which is a cap and not an exemption
-(`eslint.config.js` says why, and a fifth level still fails).
+`['error', 3]` everywhere, `scripts/**` included; the two exceptions are
+`zenith.ts` and `zenith-energy.ts` at `['error', 4]`, a cap and not an
+exemption (`eslint.config.js` says why, and a fifth level still fails).
 
-The two idioms that keep a search loop inside that limit, both already in
-`zenith.test.ts`: enumerate a lattice as one counter in base (ceiling + 1) so
-the arity is a digit count rather than a nesting level (`bruteForceThree`), and
-fold a loop's guard `continue` into the sequence it iterates — `max-depth`
-counts an `if` as a level whether or not it opens a block, so a guard inside
-the innermost loop is usually what trips it, not the loop. Neither is free in a
-hot generator: prefer the nesting where the fold would allocate per iteration.
+Two idioms keep a search loop inside that limit. Enumerate a lattice as one
+counter in base (ceiling + 1), so the arity is a digit count rather than a
+nesting level — `bruteForceThree` and `bruteForceMixedDay` in `zenith.test.ts`.
+Or fold a loop's guard `continue` into the sequence it iterates: `max-depth`
+counts an `if` as a level whether or not it opens a block, so the guard inside
+the innermost loop is usually what trips it, not the loop — `zenith.ts`'s mask
+expansion and its eviction loop.
+
+Neither is free in a hot path, which is why those two exceptions exist rather
+than a third fold. Materializing the allocator's (donor, give) pairs to unnest
+one guard measured 1.26-1.31x on the pool-bound path for an unchanged plan,
+over seven interleaved reps whose bands do not overlap. Measure before folding
+a guard out of a loop that runs inside a search.
 
 `npm run depgraph` renders the module graph to `dependency-graph.svg` (needs
 graphviz). It is **gitignored, not committed**: CI regenerates it every run and
