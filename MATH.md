@@ -53,27 +53,27 @@ retype a row, regenerate:
 §1          124-149  Inputs and parameter mappings (unchanged from the articl…
 §2          151-252  Productivity curve — v2 change
 §3          254-346  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          348-432  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          434-711  Personalization — v2 change: full Bayesian posterior
-  §5.2      522-600  Recency weighting of the ϕ fit
-  §5.1      602-711  Posterior-aware allocation
-§6          713-725  Summary of v1 → v2 changes
-§7          727-751  Known approximations and deliberate non-changes
-§8         753-1777  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      765-787  Intermittent-rest recovery correction
-  §8.2      789-808  Warm-up carryover instead of binary reset
-  §8.3      810-828  Verified consequences and a calibration question, closed
-  §8.4      830-900  Per-task satiety — concave daily value
-  §8.5      902-942  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      944-990  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     992-1089  Drain-rate calibration from end-of-session ratings
-  §8.8    1091-1126  45-minute plan granularity
-  §8.9    1128-1175  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1177-1422  Stopping-value calibration from observed stop times
-  §8.11   1424-1555  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1557-1711  The budget curve — what the day's LENGTH is worth
-  §8.13   1713-1777  Capacity from the fitted drain rate
-§9        1779-1826  References
+§4          348-433  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          435-712  Personalization — v2 change: full Bayesian posterior
+  §5.2      523-601  Recency weighting of the ϕ fit
+  §5.1      603-712  Posterior-aware allocation
+§6          714-726  Summary of v1 → v2 changes
+§7          728-752  Known approximations and deliberate non-changes
+§8         754-1778  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      766-788  Intermittent-rest recovery correction
+  §8.2      790-809  Warm-up carryover instead of binary reset
+  §8.3      811-829  Verified consequences and a calibration question, closed
+  §8.4      831-901  Per-task satiety — concave daily value
+  §8.5      903-943  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6      945-991  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     993-1090  Drain-rate calibration from end-of-session ratings
+  §8.8    1092-1127  45-minute plan granularity
+  §8.9    1129-1176  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1178-1423  Stopping-value calibration from observed stop times
+  §8.11   1425-1556  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1558-1712  The budget curve — what the day's LENGTH is worth
+  §8.13   1714-1778  Capacity from the fitted drain rate
+§9        1780-1827  References
 ```
 
 <!-- section-index:end -->
@@ -386,9 +386,10 @@ objective and are never offered). `Δᵢ(1)` carries the activation bonus
 - **Single budget:** greedily fund the highest remaining increment until the
   block budget runs out. This is _exactly_ optimal (equivalently: take the
   top-B increments of the merged sorted lists; the diminishing property makes
-  per-task prefixes valid). Ties break toward lower task index, which
-  round-robins identical tasks into the equal split the article's sanity
-  check demands.
+  per-task prefixes valid). Ties break toward the lower position in the subset
+  — task index on every enumerated path, but admission order on the n > 12
+  forward selection, which builds its subset as it goes. That round-robins
+  identical tasks into the equal split the article's sanity check demands.
 - **Switch cost (fixed charge):** a plan funding m tasks pays
   `(m−1)·switchCost` off the budget before any block is placed. Which tasks
   deserve funding is a combinatorial decision greedy can't price, so for
