@@ -46,6 +46,11 @@
 				class={cn(
 					buttonVariants({
 						variant: importance === level.value ? 'secondary' : 'outline',
+						// `xs` in both forms, unlike `MustDoToggle`, which is `xs` only in the
+						// editor. Three options at the default height read as an action row
+						// competing with Deploy; at `xs` they read as one field's settings,
+						// which is what they are.
+						size: 'xs',
 					}),
 					'has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 relative has-[:focus-visible]:ring-3',
 				)}
