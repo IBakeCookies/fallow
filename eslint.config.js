@@ -369,13 +369,14 @@ export default defineConfig(
 		},
 	},
 	{
-		// The two search loops whose innermost guard sits four deep, where every
-		// way of folding it out is slower than the nesting: materializing the
-		// allocator's (donor, give) pairs measured 1.26-1.31x on the pool-bound
-		// path, and unnesting `neighbors` costs the hill climb either an array
-		// per block index or generator delegation on every yield. Capped, not
-		// exempted — a fifth level is still an error, and every other file,
-		// `zenith.test.ts` included, stays at 3.
+		// Two search loops with sites four deep. `zenith.ts` has two, and
+		// flattening them means materializing `improveWithTransfers`'s
+		// (donor, give) pairs, which `scripts/max-depth-fold-cost.probe.ts`
+		// measures losing on every run. `zenith-energy.ts` has one, where
+		// `neighbors` would pay an array per block index or generator delegation
+		// per yield — unmeasured, but the same trade. Capped, not exempted: a
+		// fifth level is still an error, `zenith.test.ts` stays at 3, and
+		// docs/testing.md holds the rule.
 		files: ['src/lib/business/model/zenith.ts', 'src/lib/business/model/zenith-energy.ts'],
 		rules: {
 			'max-depth': ['error', 4],

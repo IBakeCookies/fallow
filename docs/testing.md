@@ -203,16 +203,20 @@ exemption (`eslint.config.js` says why, and a fifth level still fails).
 Two idioms keep a search loop inside that limit. Enumerate a lattice as one
 counter in base (ceiling + 1), so the arity is a digit count rather than a
 nesting level — `bruteForceThree` and `bruteForceMixedDay` in `zenith.test.ts`.
-Or fold a loop's guard `continue` into the sequence it iterates: `max-depth`
-counts an `if` as a level whether or not it opens a block, so the guard inside
-the innermost loop is usually what trips it, not the loop — `zenith.ts`'s mask
-expansion and its eviction loop.
+Or fold the guard into the loop itself: `max-depth` counts an `if` as a level
+whether or not it opens a block, so the guard inside the innermost loop is
+usually what trips it, not the loop. Two shapes, both in `zenith.ts` — an
+`if (…) push` over an index range becomes a `filter` over that range (the mask
+expansion), and a `break` becomes a conjunct of the `while` it breaks out of
+(the eviction loop).
 
-Neither is free in a hot path, which is why those two exceptions exist rather
-than a third fold. Materializing the allocator's (donor, give) pairs to unnest
-one guard measured 1.26-1.31x on the pool-bound path for an unchanged plan,
-over seven interleaved reps whose bands do not overlap. Measure before folding
-a guard out of a loop that runs inside a search.
+Both are usually free; `zenith.ts`'s two measure as costing nothing. What is
+not free is materializing a search loop's iteration space in order to flatten
+it — `scripts/max-depth-fold-cost.probe.ts` prices that fold on the allocator's
+donor×give pairs and it loses on every run, which is why the two exceptions
+above exist rather than a third fold. Measure before flattening a loop that
+runs inside a search, and quote the probe's band across runs, never one run's
+ratio.
 
 `npm run depgraph` renders the module graph to `dependency-graph.svg` (needs
 graphviz). It is **gitignored, not committed**: CI regenerates it every run and
