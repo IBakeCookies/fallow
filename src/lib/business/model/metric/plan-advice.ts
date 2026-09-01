@@ -25,6 +25,7 @@ import {
 	calculateZenithGain,
 	isPinned,
 	type DailyQuadrant,
+	type SuggestedTask,
 } from '$lib/business/model/metric/calculation';
 import { BLOCK_HOURS, importanceWeightOf } from '$lib/business/model/zenith';
 
@@ -176,18 +177,28 @@ export interface SwitchCostPrice {
 	alternatives: SwitchCostAlternative[];
 }
 
+export type UnfundedReason =
+	| { kind: 'defer'; taskId: number; title: string }
+	| { kind: 'budget'; hours: number }
+	| { kind: 'pool'; limitType: 'cognitive' | 'physical' }
+	| { kind: 'none' };
+
+export interface UnfundedTask {
+	taskId: number;
+	title: string;
+	pinned: boolean;
+	reason: UnfundedReason;
+}
+
 export interface PlanAdvice {
 	planValue: number;
 	/** One per axis, in `ADVICE_AXES` order — including the ones nothing improves. */
 	findings: AdviceFinding[];
-	/** Active tasks the plan funds no hours for — a read, not a search. */
-	unfundedTaskIds: number[];
 	/**
-	 * The `mustDoToday` subset of that read, partitioned out of it: an unfunded
-	 * task the advisor is forbidden to defer is the one conflict the menu below
-	 * cannot express, since the flag removed its only per-task lever.
+	 * Active tasks the plan funds no hours for, each with the one reason it got
+	 * nothing — a lookup over the candidates already solved, not a search.
 	 */
-	unfundedMustDoTaskIds: number[];
+	unfunded: UnfundedTask[];
 	budgetMarginal: BudgetMarginal;
 	switchCostPrice: SwitchCostPrice;
 	candidatesEvaluated: number;
@@ -585,6 +596,62 @@ function calculateSwitchCostPrice(
 	};
 }
 
+// The allocator holds the plan to the pools, so a binding pool at its ceiling is
+// the only reading that says "full" (`calculateHumanCapacity` rounds to whole percent).
+const POOL_FULL_PERCENT = 100;
+
+/**
+ * Why this task got nothing, in the order a user can act: the cheapest single
+ * removal that funds it, then the extra hour, then the pool that is full, then
+ * the reading that nothing on offer reaches it. Reads only the candidates the
+ * frontier already solved — the attribution costs no further solve.
+ */
+function attributeUnfunded(
+	target: SuggestedTask,
+	candidates: { lever: AdviceLever; metrics: DailyMetrics }[],
+	baseline: DailyMetrics,
+): UnfundedReason {
+	const funds = (metrics: DailyMetrics) =>
+		(metrics.suggestedTasks.find((task) => task.id === target.id)?.suggestedHours ?? 0) > 0;
+
+	// A candidate deferring the target drops it from `suggestedTasks`, so the
+	// lookup misses and it can never be named as its own reason.
+	const [defer] = candidates
+		.filter((candidate) => candidate.lever.kind === 'defer-task' && funds(candidate.metrics))
+		.sort((a, b) => planValueOf(b.metrics) - planValueOf(a.metrics));
+
+	if (defer && defer.lever.kind === 'defer-task')
+		return {
+			kind: 'defer',
+			taskId: defer.lever.taskId,
+			title: defer.lever.title,
+		};
+
+	const wider = candidates.find(
+		(candidate) =>
+			candidate.lever.kind === 'set-budget' && candidate.lever.hours > baseline.budgetHours,
+	);
+
+	if (wider && wider.lever.kind === 'set-budget' && funds(wider.metrics))
+		return {
+			kind: 'budget',
+			hours: wider.lever.hours,
+		};
+
+	const { limitType, percent } = baseline.humanCapacity;
+	const demand = limitType === 'cognitive' ? target.mentalDifficulty : target.physicalDifficulty;
+
+	if (limitType !== 'none' && percent >= POOL_FULL_PERCENT && demand > 0)
+		return {
+			kind: 'pool',
+			limitType,
+		};
+
+	return {
+		kind: 'none',
+	};
+}
+
 /**
  * Re-solve the day under each lever and report, per axis, the efficient menu
  * of adjustments. Costs one full solve per candidate — `activeTasks + 3` of
@@ -615,13 +682,17 @@ export function suggestPlanAdjustments(
 		...paretoOptions(candidates, axis, baseline),
 	}));
 
-	const unfunded = baseline.activeTasks.filter((task) => task.suggestedHours <= 0);
-
 	return {
 		planValue: planValueOf(baseline),
 		findings,
-		unfundedTaskIds: unfunded.filter((task) => !isPinned(task)).map((task) => task.id),
-		unfundedMustDoTaskIds: unfunded.filter(isPinned).map((task) => task.id),
+		unfunded: baseline.activeTasks
+			.filter((task) => task.suggestedHours <= 0)
+			.map((task) => ({
+				taskId: task.id,
+				title: task.title,
+				pinned: isPinned(task),
+				reason: attributeUnfunded(task, candidates, baseline),
+			})),
 		budgetMarginal: calculateBudgetMarginal(input, baseline),
 		switchCostPrice: calculateSwitchCostPrice(input, baseline),
 		candidatesEvaluated: candidates.length,

@@ -64,14 +64,18 @@
 			</p>
 		{/if}
 
-		{#if advice.unfunded}
-			<p class="mt-grid-sm text-xs text-ty-secondary">{advice.unfunded}</p>
-		{/if}
+		<!-- One paragraph per task, never one joined sentence: each carries its own
+		     reason, and two run together read as one claim about both. Keyed by
+		     position, never by the words: two tasks sharing a title and a branch
+		     spell the same sentence, and a duplicate key crashes the card. -->
+		{#each advice.unfunded as sentence, index (index)}
+			<p class="mt-grid-sm text-xs text-ty-secondary">{sentence}</p>
+		{/each}
 
-		<!-- Louder than the plain unfunded line: the menu below has no lever for it. -->
-		{#if advice.unfundedMustDo}
-			<p class="mt-grid-sm text-xs text-warning-strong">{advice.unfundedMustDo}</p>
-		{/if}
+		<!-- Louder than the plain unfunded lines: the menu below has no lever for these. -->
+		{#each advice.unfundedMustDo as sentence, index (index)}
+			<p class="mt-grid-sm text-xs text-warning-strong">{sentence}</p>
+		{/each}
 
 		<!-- The budget's shadow price: a day-level reading, so it sits above the
 		     per-axis menu rather than inside one row's budget levers. -->
@@ -160,7 +164,7 @@
 			</ul>
 			<!-- Unfunded tasks are a read, not a band: a day can be in band everywhere
 			     and still leave work with no hours, which "this day is fine" negates. -->
-		{:else if !advice.unfunded && !advice.unfundedMustDo}
+		{:else if advice.unfunded.length === 0 && advice.unfundedMustDo.length === 0}
 			<p class="mt-grid-sm text-xs text-success-strong">{m.advice_clear()}</p>
 		{/if}
 	{/if}

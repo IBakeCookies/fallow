@@ -290,25 +290,8 @@ present — the first now measured, the second still open:
     §5, `scripts/phi-prequential-skill.probe.ts`).
     [docs/features/phi-prequential-skill.md](docs/features/phi-prequential-skill.md)
 
-20. **Unfunded-task attribution** — name the binding reason a task got 0 h.
-    **Zero extra solves:** `suggestPlanAdjustments` already computes a full
-    `calculateDailyMetrics` per defer candidate, each carrying `activeTasks`
-    with `suggestedHours` (`plan-advice.ts` `suggestPlanAdjustments`), so "which single removal
-    funds this task" is a lookup over candidates already in hand; pool-bound is
-    detectable by comparing the plan's `Σ hours·weight` against the declared
-    pool with no solve at all; and the budget branch already ships as
-    `budgetMarginal`. `unfundedTaskIds` (`plan-advice.ts`)
-    today says
-    _that_ and never _why_, and
-    [model/AGENTS.md](src/lib/business/model/AGENTS.md)'s "the budget's shadow
-    price is a day-level reading" concedes that a bound pool, a task near
-    `T*`, and a block landing on finished work "look identical from one solve".
-    **Strip all prescription** from the pool and switch branches — the same
-    file's "the switch cost is instrumented but never advised" rules the pools
-    measurements of the user, not levers on the day. **Probe:** attribution mix over ~300 random days;
-    **kill if any single cause exceeds ~80%** (the honest product is then one
-    static sentence), **or if the defer branch is empty on most days**, leaving
-    only non-actionable branches.
+20. ~~**Unfunded-task attribution**~~ — BUILT 2026-09-01
+    ([docs/features/why-a-task-got-no-hours.md](docs/features/why-a-task-got-no-hours.md)).
 
 The measurement answered item 19's gates and left its reading unbuilt, so the
 reading is its own item:

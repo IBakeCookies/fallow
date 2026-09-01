@@ -25,7 +25,7 @@ const destination = (tasks: Task[], availableHours: number) => ({
 });
 
 describe('summarizeDeferDestination', () => {
-	// The same rule `unfundedTaskIds` reads by (plan-advice.ts): the allocator is
+	// The same rule `PlanAdvice.unfunded` reads by (plan-advice.ts): the allocator is
 	// blind to `completed`, so a ticked-off task keeps its hours and would be
 	// counted as work the day still funds.
 	it('counts the funded tasks its own plan gives hours to, never a completed one', () => {
