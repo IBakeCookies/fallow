@@ -41,7 +41,7 @@ export interface DeferDestination {
 export function summarizeDeferDestination(input: DeferDestinationInput): DeferDestination {
 	// Solved over the whole stored list, plan scope, and counted
 	// over the open ones: the allocator is blind to `completed`, so a ticked-off
-	// task keeps its hours — the rule `unfundedTaskIds` reads by.
+	// task keeps its hours — the rule `PlanAdvice.unfunded` reads by.
 	const plan = calculateSuggestedTasks(
 		input.tasks,
 		input.availableHours,

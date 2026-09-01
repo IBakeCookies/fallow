@@ -9,7 +9,24 @@ import type {
 	BudgetMarginal,
 	PlanAdvice,
 	SwitchCostPrice,
+	UnfundedReason,
+	UnfundedTask,
 } from '$lib/business/model/metric/plan-advice';
+
+/** One entry of the unfunded read, as `suggestPlanAdjustments` returns it. */
+function unfundedTask(
+	taskId: number,
+	title: string,
+	reason: UnfundedReason,
+	pinned = false,
+): UnfundedTask {
+	return {
+		taskId,
+		title,
+		pinned,
+		reason,
+	};
+}
 
 /** A 15-minute block going to "Tax return", unless a test says otherwise. */
 function marginal(overrides: Partial<BudgetMarginal> = {}): BudgetMarginal {
@@ -85,8 +102,7 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 				unpriced,
 			},
 		],
-		unfundedTaskIds: [],
-		unfundedMustDoTaskIds: [],
+		unfunded: [],
 		budgetMarginal: marginal(),
 		switchCostPrice: switchCostPrice(),
 		candidatesEvaluated: options.length,
@@ -215,8 +231,7 @@ describe('buildAdviceDisplay', () => {
 						unpriced: null,
 					},
 				],
-				unfundedTaskIds: [],
-				unfundedMustDoTaskIds: [],
+				unfunded: [],
 				budgetMarginal: marginal(),
 				switchCostPrice: switchCostPrice(),
 				candidatesEvaluated: 2,
@@ -324,48 +339,84 @@ describe('buildAdviceDisplay', () => {
 		expect(display.rows[0].options[1].profileFlip).toBeNull();
 	});
 
-	// The badge fixes the day, not the hours, so a flagged task funded nothing gets
-	// its own sentence — the plain unfunded line reads as something the menu below
-	// can fix, and for these there is no lever.
-	it('reports unfunded must-do tasks as a separate sentence', () => {
+	// The badge fixes the day, not the hours, so a flagged task funded nothing is
+	// kept apart — the plain unfunded line reads as something the menu below can
+	// fix, and for these there is no lever the advisor is allowed to pull.
+	it('keeps the must-do sentences apart from the plain ones', () => {
 		const display = buildAdviceDisplay(
 			{
 				...advice([defer(1, -30)]),
-				unfundedTaskIds: [2],
-				unfundedMustDoTaskIds: [3],
+				unfunded: [
+					unfundedTask(2, 'Inbox zero', {
+						kind: 'defer',
+						taskId: 1,
+						title: 'Tax return',
+					}),
+					unfundedTask(
+						3,
+						'Renew the passport',
+						{
+							kind: 'none',
+						},
+						true,
+					),
+				],
 			},
 			'en-GB',
 		);
 
-		expect(display.unfunded).toBe('1 task gets no hours in this plan.');
+		expect(display.unfunded).toEqual([
+			'“Inbox zero” gets no hours — dropping “Tax return” would fund it.',
+		]);
 
-		expect(display.unfundedMustDo).toBe(
-			'1 task stays today but gets no hours — add hours or let it move.',
-		);
+		expect(display.unfundedMustDo).toEqual([
+			'“Renew the passport” gets no hours, and nothing on offer today reaches it.',
+		]);
 	});
 
 	it('says nothing about must-do tasks when the plan funds them all', () => {
-		expect(buildAdviceDisplay(advice([defer(1, -30)]), 'en-GB').unfundedMustDo).toBeNull();
+		expect(buildAdviceDisplay(advice([defer(1, -30)]), 'en-GB').unfundedMustDo).toEqual([]);
 	});
 
-	// Both counts have a singular message beside the `{count}` one, and only the
-	// singular was ever rendered — a placeholder typo in either plural shipped
-	// silent.
-	it('counts more than one unfunded task, in both sentences', () => {
+	// One sentence per branch, and every branch has one: a task attributed to a
+	// reason nothing spells renders as a blank line on the card.
+	it('gives every branch its own sentence', () => {
 		const display = buildAdviceDisplay(
 			{
 				...advice([defer(1, -30)]),
-				unfundedTaskIds: [2, 4],
-				unfundedMustDoTaskIds: [3, 5, 6],
+				unfunded: [
+					unfundedTask(2, 'Inbox zero', {
+						kind: 'defer',
+						taskId: 1,
+						title: 'Tax return',
+					}),
+					unfundedTask(4, 'Read the report', {
+						kind: 'budget',
+						hours: 9,
+					}),
+					unfundedTask(5, 'Repaint the shed', {
+						kind: 'pool',
+						limitType: 'physical',
+					}),
+					unfundedTask(6, 'Renew the passport', {
+						kind: 'none',
+					}),
+				],
 			},
 			'en-GB',
 		);
 
-		expect(display.unfunded).toBe('2 tasks get no hours in this plan.');
+		expect(display.unfunded).toEqual([
+			'“Inbox zero” gets no hours — dropping “Tax return” would fund it.',
+			'“Read the report” gets no hours — a budget of 9h would fund it.',
+			'“Repaint the shed” gets no hours — your Physical pool is full.',
+			'“Renew the passport” gets no hours, and nothing on offer today reaches it.',
+		]);
 
-		expect(display.unfundedMustDo).toBe(
-			'3 tasks stay today but get no hours — add hours or let them move.',
-		);
+		// The pool and the residual are READINGS: the pools are measurements of the
+		// user, not levers, so neither sentence may tell the user to do anything.
+		expect(display.unfunded[2]).not.toMatch(/drop|add|move|set|would/i);
+		expect(display.unfunded[3]).not.toMatch(/drop|add|move|set|would/i);
 	});
 
 	// The declared switch cost, priced. Conditional on purpose —

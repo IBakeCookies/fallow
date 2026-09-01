@@ -8,8 +8,11 @@
 	   presentation policy's output (utils/band.ts), and every number is one the
 	   model would have produced by re-solving the day. */
 	const advice: AdviceDisplay = {
-		unfunded: '2 tasks get no hours in this plan.',
-		unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
+		unfunded: [
+			'“Inbox zero” gets no hours — dropping “Tax return” would fund it.',
+			'“Repaint the shed” gets no hours — your Physical pool is full.',
+		],
+		unfundedMustDo: ['“Renew the passport” gets no hours, and nothing on offer today reaches it.'],
 		marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 		switchCost:
 			'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
@@ -91,10 +94,13 @@
 	};
 
 	/* Two tasks may share a title, so an option's own words are not an identity —
-	   two defer levers then read identically and the card has to render both. */
+	   the card has to render both defer levers, and both unfunded lines. */
 	const sharedTitle: AdviceDisplay = {
-		unfunded: null,
-		unfundedMustDo: null,
+		unfunded: [
+			'“Email” gets no hours, and nothing on offer today reaches it.',
+			'“Email” gets no hours, and nothing on offer today reaches it.',
+		],
+		unfundedMustDo: [],
 		marginal: 'Another 15 minutes would get nothing more done.',
 		switchCost: 'At 15m a switch, this plan pays for no switching.',
 		rows: [
@@ -219,15 +225,19 @@
 		expect(canvas.getAllByText('(Critical)')).toHaveLength(2);
 		expect(canvas.getAllByText('(Caution)')).toHaveLength(3);
 
-		// The must-do line is louder than the plain unfunded one on purpose: the
-		// flag removed that task's only per-task lever, so the menu below cannot
-		// offer to resolve it and the user has to.
-		await expect(canvas.getByText('2 tasks get no hours in this plan.')).toHaveClass(
-			'text-ty-secondary',
-		);
+		await expect(
+			canvas.getByText('“Inbox zero” gets no hours — dropping “Tax return” would fund it.'),
+		).toHaveClass('text-ty-secondary');
 
 		await expect(
-			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
+			canvas.getByText('“Repaint the shed” gets no hours — your Physical pool is full.'),
+		).toHaveClass('text-ty-secondary');
+
+		// Louder than the two above: the flag left that task no per-task lever.
+		await expect(
+			canvas.getByText(
+				'“Renew the passport” gets no hours, and nothing on offer today reaches it.',
+			),
 		).toHaveClass('text-warning-strong');
 
 		// Both lever kinds are performable (the budget is a choice about the day),
@@ -361,8 +371,8 @@
 	args={{
 		advice: {
 			rows: [],
-			unfunded: null,
-			unfundedMustDo: null,
+			unfunded: [],
+			unfundedMustDo: [],
 			marginal: 'Another 15 minutes would get nothing more done.',
 			switchCost: 'At 15m a switch, this plan pays for no switching.',
 		},
@@ -396,8 +406,8 @@
 					options: [],
 				},
 			],
-			unfunded: null,
-			unfundedMustDo: null,
+			unfunded: [],
+			unfundedMustDo: [],
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 			switchCost: 'At 15m a switch, this plan pays for no switching.',
 		},
@@ -433,6 +443,11 @@
 		advice: sharedTitle,
 	}}
 	play={async ({ args, canvas, userEvent }) => {
+		// Two unfunded tasks on one branch spell one sentence twice.
+		expect(
+			canvas.getAllByText('“Email” gets no hours, and nothing on offer today reaches it.'),
+		).toHaveLength(2);
+
 		// Identical words, distinct levers: the card renders both and applies each by its task id.
 		const applies = canvas.getAllByRole('button', {
 			name: 'Move “Email” to tomorrow',
@@ -451,8 +466,11 @@
 	args={{
 		advice: {
 			rows: [],
-			unfunded: '2 tasks get no hours in this plan.',
-			unfundedMustDo: null,
+			unfunded: [
+				'“Inbox zero” gets no hours — dropping “Tax return” would fund it.',
+				'“Repaint the shed” gets no hours — your Physical pool is full.',
+			],
+			unfundedMustDo: [],
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 			switchCost:
 				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
@@ -461,7 +479,9 @@
 	play={async ({ canvas }) => {
 		// Unfunded is a read, not a band: every axis can be in band (`rows: []`) while work still gets
 		// no hours — and "this day is fine" printed under that negates it.
-		await expect(canvas.getByText('2 tasks get no hours in this plan.')).toBeVisible();
+		await expect(
+			canvas.getByText('“Inbox zero” gets no hours — dropping “Tax return” would fund it.'),
+		).toBeVisible();
 
 		await expect(
 			canvas.queryByText(/Nothing reads badly enough to act on/),
@@ -474,8 +494,10 @@
 	args={{
 		advice: {
 			rows: [],
-			unfunded: null,
-			unfundedMustDo: '1 task stays today but gets no hours — add hours or let it move.',
+			unfunded: [],
+			unfundedMustDo: [
+				'“Renew the passport” gets no hours, and nothing on offer today reaches it.',
+			],
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 			switchCost:
 				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
@@ -485,12 +507,71 @@
 		// Each read alone, because the gate must check both: a day whose only unfunded task is pinned
 		// reports nothing in `unfunded`.
 		await expect(
-			canvas.getByText('1 task stays today but gets no hours — add hours or let it move.'),
+			canvas.getByText(
+				'“Renew the passport” gets no hours, and nothing on offer today reaches it.',
+			),
 		).toBeVisible();
 
 		await expect(
 			canvas.queryByText(/Nothing reads badly enough to act on/),
 		).not.toBeInTheDocument();
+	}}
+/>
+
+<Story
+	name="An unfunded task names the one to drop"
+	args={{
+		advice: {
+			rows: [],
+			unfunded: [
+				'“Renew the passport” gets no hours — dropping “Inbox” would fund it.',
+				'“Read the report” gets no hours — a budget of 9h would fund it.',
+			],
+			unfundedMustDo: [],
+			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			switchCost: 'At 15m a switch, this plan pays for no switching.',
+		},
+	}}
+	play={async ({ canvas }) => {
+		// Queried by exact text, which is what pins one line per task: two reasons
+		// run together in one paragraph would still contain both sentences.
+		const line = canvas.getByText(
+			'“Renew the passport” gets no hours — dropping “Inbox” would fund it.',
+		);
+
+		await expect(line).toHaveTextContent('“Renew the passport”');
+		await expect(line).toHaveTextContent('dropping “Inbox”');
+	}}
+/>
+
+<Story
+	name="A must-do unfunded task keeps its own line"
+	args={{
+		advice: {
+			rows: [],
+			unfunded: [
+				'“Inbox zero” gets no hours, and nothing on offer today reaches it.',
+				'“Read the report” gets no hours — a budget of 9h would fund it.',
+			],
+			unfundedMustDo: ['“Renew the passport” gets no hours — your Cognitive pool is full.'],
+			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
+			switchCost: 'At 15m a switch, this plan pays for no switching.',
+		},
+	}}
+	play={async ({ canvas }) => {
+		// The flag promises the day, not the hours — the reason it now carries does
+		// not change that.
+		await expect(
+			canvas.getByText('“Renew the passport” gets no hours — your Cognitive pool is full.'),
+		).toHaveClass('text-warning-strong');
+
+		await expect(
+			canvas.getByText('“Inbox zero” gets no hours, and nothing on offer today reaches it.'),
+		).toHaveClass('text-ty-secondary');
+
+		await expect(
+			canvas.getByText('“Read the report” gets no hours — a budget of 9h would fund it.'),
+		).toHaveClass('text-ty-secondary');
 	}}
 />
 
@@ -522,8 +603,8 @@
 					],
 				},
 			],
-			unfunded: null,
-			unfundedMustDo: null,
+			unfunded: [],
+			unfundedMustDo: [],
 			marginal: 'Another 15 minutes would get nothing more done.',
 			switchCost: 'At 15m a switch, this plan pays for no switching.',
 		},

@@ -456,7 +456,10 @@ plan-scoped reading named an already-ticked-off task as the recipient of the
 next 15 minutes, worth up to +33.4%. `recipient: null` means a wider budget
 buys no remaining work, and says nothing about why — a bound pool, tasks near
 their stopping times and a block landing on finished work look identical from
-one solve.
+one solve. That concession is about THIS reading and not about the per-task
+one below it: `PlanAdvice.unfunded` names a reason per task because it reads
+`activeTasks + 3` plan-scoped solves the frontier already paid for, where this
+one has a single extra solve to work from.
 
 Do not re-propose the per-task column: the reason originally recorded for
 rejecting it (marginals equalize, so a column degenerates) is **false and
@@ -513,12 +516,39 @@ The flag only removes a task from the defer candidates; neither the allocator
 nor §8.10's λ₀ fit sees it — `toEnergyTask` drops the flag, and what that costs
 the fit is measured (the §8.10 bullet above) — so a flagged task can
 still be funded zero.
-`suggestPlanAdjustments` therefore **partitions** the unfunded read —
-`unfundedMustDoTaskIds` beside `unfundedTaskIds` — and the card gives it its own
-warning-coloured line, because the plain unfunded sentence reads as something
-the menu below can fix and for these tasks there is no lever left. The badge is
+`PlanAdvice.unfunded` therefore carries a `pinned` flag per entry, and the card
+gives those entries their own warning-coloured line, because a plain unfunded
+sentence reads as something the menu below can fix and for these tasks there is
+no lever the advisor is allowed to pull. The flag removes a task from the defer
+CANDIDATES only: deferring some other task can still fund it, and that is the
+reason it is given — what no reason may do is name a flagged task as the one to
+drop, since there is no such plan to price. The badge is
 worded "Stays today" and the checkbox "Keep on today" for the same
 reason: "Must do" beside `0m` reads as a promise the model never made.
+
+### An unfunded task gets one reason, and the order decides which
+
+2026-09-01
+([docs/features/why-a-task-got-no-hours.md](../../../docs/features/why-a-task-got-no-hours.md)).
+`attributeUnfunded` reads only the candidates `suggestPlanAdjustments` has
+already solved, so the read costs no solve: **defer → budget → pool → none**,
+first match wins.
+
+- **defer** — the single removal that funds the task, choosing the one whose
+  re-solved plan keeps the most Σ P̄ when several do. First because it is the
+  only branch the user can act on inside today's declared inputs.
+- **budget** — the `set-budget` candidate above today's budget. NOT
+  `budgetMarginal`, whose block is open-scoped: two branches of one sentence on
+  two scopes read as a contradiction.
+- **pool** — `baseline.humanCapacity` at `POOL_FULL_PERCENT` on a pool the task
+  draws on. No solve at all, and no prescription: the pools are measurements of
+  the user.
+- **none** — nothing on offer reaches it.
+
+One reason, never every reason that applies: a task with three of them has told
+the user nothing. Measured over the seeded 600
+(`scripts/plan-advice.probe.ts`), and gated there — a mix where one branch
+takes most of the attributed tasks is one static sentence, not a per-task line.
 
 ### The importance weight `v` scales the objective, never a task's own figures
 

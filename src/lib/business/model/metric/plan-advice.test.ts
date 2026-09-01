@@ -13,7 +13,11 @@ import {
 	type PlanAdvice,
 } from '$lib/business/model/metric/plan-advice';
 import { calculateQuadrantMargin } from '$lib/business/model/metric/calculation';
-import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
+import {
+	DEFAULT_CAPACITY_POOLS,
+	DEFAULT_USER_CONSTANTS,
+	type CapacityPools,
+} from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
 
@@ -132,7 +136,7 @@ describe('suggestPlanAdjustments', () => {
 		// The axes are still all reported. What an empty day has is
 		// nothing to DO about them — an empty menu everywhere, not a missing axis.
 		expect(everyOption(advice)).toEqual([]);
-		expect(advice.unfundedTaskIds).toEqual([]);
+		expect(advice.unfunded).toEqual([]);
 		expect(advice.planValue).toBe(0);
 	});
 
@@ -520,14 +524,13 @@ describe('suggestPlanAdjustments', () => {
 		const advice = suggestPlanAdjustments(base, baseline);
 		const unfunded = baseline.activeTasks.filter((task) => task.suggestedHours <= 0);
 
-		expect(advice.unfundedTaskIds).toEqual(unfunded.map((task) => task.id));
-		expect(advice.unfundedTaskIds.length).toBeGreaterThan(0);
+		expect(advice.unfunded.map((entry) => entry.taskId)).toEqual(unfunded.map((task) => task.id));
+		expect(advice.unfunded.length).toBeGreaterThan(0);
 	});
 
-	// A flagged task has no per-task lever left, so an unfunded one is the single
-	// conflict the menu cannot express — reported apart from the plain unfunded
-	// read rather than counted in it.
-	it('partitions the unfunded read by the must-do flag', () => {
+	// The flag is a colour decision on the card, so it rides along on the entry
+	// rather than splitting the read into a second list.
+	it('marks the unfunded tasks that are flagged must-do', () => {
 		const starved = calculateDailyMetrics(grindDay(0.5))
 			.activeTasks.filter((task) => task.suggestedHours <= 0)
 			.map((task) => task.id);
@@ -551,13 +554,205 @@ describe('suggestPlanAdjustments', () => {
 		);
 
 		expect(starved.length).toBeGreaterThan(1);
-		expect(advice.unfundedMustDoTaskIds).toEqual([pinned]);
-		expect(advice.unfundedTaskIds).not.toContain(pinned);
+
+		expect(advice.unfunded.filter((entry) => entry.pinned).map((entry) => entry.taskId)).toEqual([
+			pinned,
+		]);
+
 		const byId = (a: number, b: number) => a - b;
 
-		expect([...advice.unfundedTaskIds, ...advice.unfundedMustDoTaskIds].sort(byId)).toEqual(
+		expect(advice.unfunded.map((entry) => entry.taskId).sort(byId)).toEqual(
 			[...starved].sort(byId),
 		);
+	});
+
+	/**
+	 * Days lifted from `plan-advice.probe.ts`'s seeded 600 and kept by value, one
+	 * per branch: the sweep reaches configurations — a pool at its ceiling, a task
+	 * no lever moves — that no hand-built fixture landed on.
+	 */
+	const seededDay = (
+		sliders: [number, number, number][],
+		availableHours: number,
+		switchCost: number,
+		pools: CapacityPools,
+	): DailyMetricsInput =>
+		input(
+			sliders.map(([mentalDifficulty, physicalDifficulty, enjoyment], index) =>
+				makeTask({
+					id: index + 1,
+					title: `t${index + 1}`,
+					mentalDifficulty,
+					physicalDifficulty,
+					enjoyment,
+				}),
+			),
+			{
+				availableHours,
+				switchCost,
+				pools,
+			},
+		);
+
+	describe('why a task got no hours', () => {
+		// An hour of budget against six tasks: deferring t1, t2 or t3 funds t6, and
+		// so does the extra hour — the two actionable branches on one day.
+		const BOTH_BRANCHES = seededDay(
+			[
+				[4, 2, 9],
+				[5, 8, 9],
+				[5, 1, 6],
+				[8, 2, 4],
+				[5, 10, 5],
+				[9, 8, 7],
+			],
+			1,
+			5 / 60,
+			{
+				cognitiveHours: 1.5,
+				physicalHours: 4,
+			},
+		);
+
+		const reasonFor = (advice: PlanAdvice, taskId: number) =>
+			advice.unfunded.find((entry) => entry.taskId === taskId)!.reason;
+
+		// The attribution reads the candidates the frontier already solved, so a day
+		// with unfunded work costs exactly what one without it costs.
+		it('costs no solve beyond the levers already priced', () => {
+			const base = grindDay(0.5);
+			const baseline = calculateDailyMetrics(base);
+			const advice = suggestPlanAdjustments(base, baseline);
+
+			expect(baseline.activeTasks.some((task) => task.suggestedHours <= 0)).toBe(true);
+			expect(advice.candidatesEvaluated).toBeGreaterThanOrEqual(GRIND.length + 1);
+			expect(advice.candidatesEvaluated).toBeLessThanOrEqual(GRIND.length + 3);
+		});
+
+		// Both branches apply, and only the defer is a change to today's list the
+		// user can make without buying an hour they may not have.
+		it('names the defer, not the extra hour, when both would fund the task', () => {
+			const wider = calculateDailyMetrics({
+				...BOTH_BRANCHES,
+				availableHours: BOTH_BRANCHES.availableHours + 1,
+			});
+
+			expect(wider.suggestedTasks.find((task) => task.id === 6)!.suggestedHours).toBeGreaterThan(0);
+
+			expect(reasonFor(suggestPlanAdjustments(BOTH_BRANCHES), 6).kind).toBe('defer');
+		});
+
+		it('names the funding defer that keeps the most plan value', () => {
+			const reason = reasonFor(suggestPlanAdjustments(BOTH_BRANCHES), 6);
+
+			const funding = BOTH_BRANCHES.tasks
+				.filter((task) => task.id !== 6)
+				.map((task) => ({
+					id: task.id,
+					metrics: calculateDailyMetrics({
+						...BOTH_BRANCHES,
+						tasks: BOTH_BRANCHES.tasks.filter((other) => other.id !== task.id),
+					}),
+				}))
+				.filter(
+					(candidate) =>
+						(candidate.metrics.suggestedTasks.find((task) => task.id === 6)?.suggestedHours ?? 0) >
+						0,
+				);
+
+			expect(funding.length).toBeGreaterThan(1);
+			expect(reason.kind === 'defer' && reason.taskId).toBeTruthy();
+
+			const named = reason.kind === 'defer' ? reason.taskId : -1;
+			const best = Math.max(...funding.map((candidate) => candidate.metrics.zenithGain.optimized));
+
+			expect(
+				funding.find((candidate) => candidate.id === named)!.metrics.zenithGain.optimized,
+			).toBe(best);
+		});
+
+		// The flag removes a task from the DEFER CANDIDATES, not from the read:
+		// someone else's removal still funds it, and that is the sentence it gets.
+		it('attributes a pinned task and never names one as the task to drop', () => {
+			const advice = suggestPlanAdjustments({
+				...BOTH_BRANCHES,
+				tasks: BOTH_BRANCHES.tasks.map((task) =>
+					task.id === 6
+						? {
+								...task,
+								mustDoToday: true,
+							}
+						: task,
+				),
+			});
+
+			const entry = advice.unfunded.find((candidate) => candidate.taskId === 6)!;
+
+			expect(entry.pinned).toBe(true);
+			expect(entry.reason.kind).toBe('defer');
+
+			expect(
+				advice.unfunded.flatMap((candidate) =>
+					candidate.reason.kind === 'defer' ? [candidate.reason.taskId] : [],
+				),
+			).not.toContain(6);
+		});
+
+		// Half an hour of physical pool against seven tasks: no single defer and no
+		// extra hour reaches t5, and the pool it draws on is at its ceiling.
+		it('names the pool that is full', () => {
+			const advice = suggestPlanAdjustments(
+				seededDay(
+					[
+						[7, 4, 3],
+						[7, 3, 6],
+						[3, 1, 8],
+						[4, 1, 9],
+						[0, 8, 6],
+						[1, 6, 9],
+						[2, 8, 2],
+					],
+					11.75,
+					0.25,
+					{
+						cognitiveHours: 3,
+						physicalHours: 0.5,
+					},
+				),
+			);
+
+			expect(reasonFor(advice, 5)).toEqual({
+				kind: 'pool',
+				limitType: 'physical',
+			});
+		});
+
+		// 45 minutes for six tasks, with both pools far from full: nothing on offer
+		// reaches t5, and there is no pool to blame for it either.
+		it('says nothing reaches the task when no lever and no full pool explains it', () => {
+			const advice = suggestPlanAdjustments(
+				seededDay(
+					[
+						[5, 5, 6],
+						[1, 8, 7],
+						[9, 1, 1],
+						[0, 3, 2],
+						[2, 10, 6],
+						[8, 3, 6],
+					],
+					0.75,
+					25 / 60,
+					{
+						cognitiveHours: 5,
+						physicalHours: 3,
+					},
+				),
+			);
+
+			expect(reasonFor(advice, 5)).toEqual({
+				kind: 'none',
+			});
+		});
 	});
 
 	// Every axis, unconditionally and in order: the caller reads

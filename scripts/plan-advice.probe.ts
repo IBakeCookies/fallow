@@ -19,7 +19,10 @@ import {
 	type DailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
-import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
+import {
+	suggestPlanAdjustments,
+	type UnfundedReason,
+} from '$lib/business/model/metric/plan-advice';
 import {
 	DEFAULT_CAPACITY_POOLS,
 	DEFAULT_SWITCH_COST,
@@ -349,6 +352,51 @@ function flowCoverageBand(inputs: DailyMetricsInput[]): void {
 	);
 }
 
+/**
+ * Whether naming a reason per unfunded task beats one sentence for the day.
+ *
+ * The gate on the whole reading, not a measurement of it: a per-task line is
+ * only worth its four sentences if the branches actually vary. If one branch
+ * takes most of the attributed tasks the honest product is that one static
+ * sentence, and if the defer branch is empty on most days the card is left
+ * printing readings nobody can act on.
+ */
+function attributionMix(inputs: DailyMetricsInput[]): void {
+	const branches: UnfundedReason['kind'][] = ['defer', 'budget', 'pool', 'none'];
+	const counts = new Map<UnfundedReason['kind'], number>(branches.map((kind) => [kind, 0]));
+	let days = 0;
+	let deferDays = 0;
+	let scored = 0;
+
+	for (const input of inputs) {
+		const { unfunded } = suggestPlanAdjustments(input);
+
+		if (!unfunded.length) continue;
+
+		days++;
+		scored += unfunded.length;
+
+		for (const entry of unfunded) counts.set(entry.reason.kind, counts.get(entry.reason.kind)! + 1);
+
+		if (unfunded.some((entry) => entry.reason.kind === 'defer')) deferDays++;
+	}
+
+	const share = (n: number, base: number) => (100 * n) / base;
+
+	const mix = branches
+		.map((kind) => `${kind} ${share(counts.get(kind)!, scored).toFixed(1)}%`)
+		.join(', ');
+
+	console.log(`[mix] ${days} days with an unfunded task, ${scored} tasks attributed: ${mix}`);
+
+	const worst = Math.max(...branches.map((kind) => share(counts.get(kind)!, scored)));
+
+	console.log(
+		`[gate] largest branch ${worst.toFixed(1)}% of attributed tasks (stop above 80%), ` +
+			`defer branch non-empty on ${share(deferDays, days).toFixed(1)}% of those days (stop below 50%)`,
+	);
+}
+
 const DAYS = randomDays(600, 42);
 
 describe('plan advice', () => {
@@ -365,6 +413,10 @@ describe('plan advice', () => {
 					(_, index) => day(POOL_BOUND, (index + 1) * 0.25, switchCost / 60, 4.5, 4.5),
 				),
 			);
+	});
+
+	it('gates the per-task unfunded attribution', () => {
+		attributionMix(DAYS);
 	});
 
 	it('measures priced-lever signs', () => {

@@ -303,6 +303,8 @@ re-open one.
   is a day-level reading, not a per-task column; the switch cost is
   instrumented but never advised.
 - `mustDoToday` promises the day, not the hours.
+- An unfunded task gets ONE reason — defer, budget, pool, none, in that order —
+  read off the plans the frontier already solved.
 - The importance weight `v` scales the objective, never a task's own figures:
   it redivides the budget (funded set AND funded hours), while `priorityScore`
   stays intrinsic and the energy mode stays unweighted.

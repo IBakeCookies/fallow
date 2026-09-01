@@ -14,6 +14,7 @@ import type {
 	BudgetMarginal,
 	PlanAdvice,
 	SwitchCostPrice,
+	UnfundedTask,
 } from '$lib/business/model/metric/plan-advice';
 import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import * as m from '$lib/paraglide/messages.js';
@@ -63,13 +64,14 @@ export interface AdviceRow {
 
 export interface AdviceDisplay {
 	rows: AdviceRow[];
-	/** Active tasks the plan funds no hours for, as a sentence, or null. */
-	unfunded: string | null;
+	/** One sentence per active task the plan funds no hours for, naming its reason. */
+	unfunded: string[];
 	/**
-	 * The same read for tasks flagged `mustDoToday`, kept apart because the badge
-	 * promises the day, not the hours — and the menu below has no lever for them.
+	 * The same sentences for tasks flagged `mustDoToday`, kept apart because the
+	 * badge promises the day, not the hours — and the menu below has no lever for
+	 * them.
 	 */
-	unfundedMustDo: string | null;
+	unfundedMustDo: string[];
 	/** The budget's shadow price as a sentence — always a reading. */
 	marginal: string;
 	/**
@@ -338,6 +340,40 @@ export function describeDeferDestination(destination: DeferDestination | null): 
 			});
 }
 
+/** The one reason a task got no hours, in words — the model carries only the data. */
+function describeUnfunded(task: UnfundedTask, locale: string): string {
+	const title = task.title;
+	const reason = task.reason;
+
+	if (reason.kind === 'defer')
+		return m.advice_unfunded_defer({
+			title,
+			other: reason.title,
+		});
+
+	if (reason.kind === 'budget')
+		return m.advice_unfunded_budget({
+			title,
+			hours: formatHours(reason.hours, locale),
+		});
+
+	// The `_pool` pair and not the bare one: this sentence's host noun is "pool"
+	// and German inflects for it (same reason as `metric-descriptor.ts`'s
+	// bottleneck row).
+	if (reason.kind === 'pool')
+		return m.advice_unfunded_pool({
+			title,
+			type:
+				reason.limitType === 'cognitive'
+					? m.metric_type_cognitive_pool()
+					: m.metric_type_physical_pool(),
+		});
+
+	return m.advice_unfunded_none({
+		title,
+	});
+}
+
 /** `locale` is a BCP-47 tag — `getDateLocale()` at the call site. */
 export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDisplay {
 	const toRow = (
@@ -401,28 +437,16 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 			};
 		});
 
-	const unfundedCount = advice.unfundedTaskIds.length;
-	const unfundedMustDoCount = advice.unfundedMustDoTaskIds.length;
+	const sentences = (pinned: boolean) =>
+		advice.unfunded
+			.filter((task) => task.pinned === pinned)
+			.map((task) => describeUnfunded(task, locale));
 
 	return {
 		rows,
 		marginal: formatMarginal(advice.budgetMarginal, locale),
 		switchCost: formatSwitchCostPrice(advice.switchCostPrice, locale),
-		unfunded:
-			unfundedCount === 0
-				? null
-				: unfundedCount === 1
-					? m.advice_unfunded_one()
-					: m.advice_unfunded({
-							count: unfundedCount,
-						}),
-		unfundedMustDo:
-			unfundedMustDoCount === 0
-				? null
-				: unfundedMustDoCount === 1
-					? m.advice_unfunded_must_do_one()
-					: m.advice_unfunded_must_do({
-							count: unfundedMustDoCount,
-						}),
+		unfunded: sentences(false),
+		unfundedMustDo: sentences(true),
 	};
 }
