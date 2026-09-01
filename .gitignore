@@ -45,3 +45,4 @@ eval/results/
 # Ignored so the Stop hook's `git status` scope does not read one session's
 # scratch file as another's unformatted change.
 *.tmp.mjs
+*.tmp.ts
