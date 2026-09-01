@@ -528,6 +528,8 @@
 	"energy_stop_calibration_censored": "No informative days yet — days worked to the window's edge (or barely at all), days that ended with every task checked off, and days that look cut short mid-session (an interruption, not a chosen stop), reveal only an inequality, not an indifference point.",
 	"energy_stop_out_of_clock_one": "1 day ran out of clock, so its stop is not counted",
 	"energy_stop_out_of_clock": "{count} days ran out of clock, so their stops are not counted",
+	"energy_stop_unread_breaks_one": "1 day behind the fit had no readable breaks, so it was read as one unbroken stretch",
+	"energy_stop_unread_breaks": "{count} days behind the fit had no readable breaks, so they were read as one unbroken stretch",
 	"energy_rest_log_count": "Rest pairs · {count}",
 	"energy_reset_rest_logs": "Delete all pairs",
 	"energy_reset_rest_title": "Delete every rest pair — the calibration reverts to the defaults",

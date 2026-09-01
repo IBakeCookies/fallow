@@ -528,6 +528,8 @@
 	"energy_stop_calibration_censored": "Aún no hay días informativos — los días trabajados hasta el borde de la ventana (o apenas trabajados), los que terminaron con todas las tareas marcadas como hechas, y los que parecen cortados a media sesión (una interrupción, no una parada elegida) solo revelan una desigualdad, no un punto de indiferencia.",
 	"energy_stop_out_of_clock_one": "1 día se quedó sin reloj, así que su parada no cuenta",
 	"energy_stop_out_of_clock": "{count} días se quedaron sin reloj, así que sus paradas no cuentan",
+	"energy_stop_unread_breaks_one": "1 día detrás del ajuste no tenía pausas legibles, así que se leyó como un único tramo continuo",
+	"energy_stop_unread_breaks": "{count} días detrás del ajuste no tenían pausas legibles, así que se leyeron como un único tramo continuo",
 	"energy_rest_log_count": "Pares de descanso · {count}",
 	"energy_reset_rest_logs": "Eliminar todos los pares",
 	"energy_reset_rest_title": "Elimina todos los pares de descanso — la calibración vuelve a los valores por defecto",

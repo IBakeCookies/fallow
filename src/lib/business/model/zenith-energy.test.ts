@@ -1801,6 +1801,71 @@ describe('Zenith Energy Model', () => {
 			expect(bracket!.hi).not.toBeNull();
 		});
 
+		/* The days behind the fit that were read as one unbroken stretch, because
+		   their rows recover no break — the count that tells a weak fit from a
+		   small one (MATH.md §8.10). */
+		it('does not count a single-session day — one session has no break to read', () => {
+			const oneSession: StopObservation = {
+				tasks: day,
+				windowHours: 12,
+				workedHours: [
+					{
+						taskId: 1,
+						hours: 2.25,
+					},
+				],
+			};
+
+			const fit = fitStoppingValue([oneSession], prior, DEFAULT_ENERGY_PARAMS);
+
+			expect(fit.usedCount).toBe(1);
+			expect(fit.unreadBreaksCount).toBe(0);
+		});
+
+		it('counts the days the fit USED, not every observation', () => {
+			const batch = (observation: StopObservation): StopObservation => ({
+				...observation,
+				workedHours: observation.workedHours.map((row) => ({
+					...row,
+					endedAt: LOG_ORIGIN + 20 * MS_PER_HOUR,
+				})),
+			});
+
+			const fit = fitStoppingValue(
+				[batch(WITNESS_LOGGED), batch(COMPLETED_DAY)],
+				prior,
+				DEFAULT_ENERGY_PARAMS,
+			);
+
+			expect(fit.usedCount).toBe(1);
+			expect(fit.unreadBreaksCount).toBe(1);
+		});
+
+		it('agrees with the schedule the fit read — a recovered gap is a read break', () => {
+			const twoSessions: StopObservation = {
+				...WITNESS_LOGGED,
+				workedHours: WITNESS_LOGGED.workedHours.slice(0, 2),
+			};
+
+			const sameMoment: StopObservation = {
+				...twoSessions,
+				workedHours: twoSessions.workedHours.map((row) => ({
+					...row,
+					endedAt: LOG_ORIGIN + 20 * MS_PER_HOUR,
+				})),
+			};
+
+			expect(fitStoppingValue([twoSessions], prior, DEFAULT_ENERGY_PARAMS)).toMatchObject({
+				usedCount: 1,
+				unreadBreaksCount: 0,
+			});
+
+			expect(fitStoppingValue([sameMoment], prior, DEFAULT_ENERGY_PARAMS)).toMatchObject({
+				usedCount: 1,
+				unreadBreaksCount: 1,
+			});
+		});
+
 		it('stopping earlier reveals a higher indifference price (diminishing marginals)', () => {
 			const early: StopObservation = {
 				tasks: day,
@@ -2001,6 +2066,7 @@ describe('Zenith Energy Model', () => {
 				fitted: false,
 				usedCount: 0,
 				clockCensoredCount: 0,
+				unreadBreaksCount: 0,
 			});
 		});
 

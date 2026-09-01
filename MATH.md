@@ -59,7 +59,7 @@ retype a row, regenerate:
   §5.1      603-712  Posterior-aware allocation
 §6          714-726  Summary of v1 → v2 changes
 §7          728-752  Known approximations and deliberate non-changes
-§8         754-1778  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         754-1781  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      766-788  Intermittent-rest recovery correction
   §8.2      790-809  Warm-up carryover instead of binary reset
   §8.3      811-829  Verified consequences and a calibration question, closed
@@ -69,11 +69,11 @@ retype a row, regenerate:
   §8.7     993-1090  Drain-rate calibration from end-of-session ratings
   §8.8    1092-1127  45-minute plan granularity
   §8.9    1129-1176  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1178-1423  Stopping-value calibration from observed stop times
-  §8.11   1425-1556  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1558-1712  The budget curve — what the day's LENGTH is worth
-  §8.13   1714-1778  Capacity from the fitted drain rate
-§9        1780-1827  References
+  §8.10   1178-1426  Stopping-value calibration from observed stop times
+  §8.11   1428-1559  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1561-1715  The budget curve — what the day's LENGTH is worth
+  §8.13   1717-1781  Capacity from the fitted drain rate
+§9        1783-1830  References
 ```
 
 <!-- section-index:end -->
@@ -1242,7 +1242,10 @@ know. Candidates:
     finite moment, and do the deltas recover any gap at all? If not — a row from
     a hand-edited or restored backup, or a day whose sessions were all written
     down at once — the day reads as **one contiguous session per logged task in
-    canonical amplitude order, breaks omitted**.
+    canonical amplitude order, breaks omitted**. The fit counts the days it
+    used that logged two or more sessions and fell back this way
+    (`unreadBreaksCount`), so a fit weakened by unreadable breaks is
+    distinguishable from a small one.
   - **Rejected as the source — re-solving the day's plan at fit time.**
     `plan-audit.ts` already does it per finished day, and it works. It is
     disqualified by this section's own feasibility finding 3:

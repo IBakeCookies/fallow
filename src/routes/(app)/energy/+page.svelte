@@ -722,6 +722,16 @@
 								</p>
 							{/if}
 
+							{#if stopFit.unreadBreaksCount > 0}
+								<p class="mt-text-sm text-xs text-ty-silent">
+									{stopFit.unreadBreaksCount === 1
+										? m.energy_stop_unread_breaks_one()
+										: m.energy_stop_unread_breaks({
+												count: stopFit.unreadBreaksCount,
+											})}
+								</p>
+							{/if}
+
 							<!-- λ₀ has no log store of its own to count or reset, so the days it read are
 						     all this card has left once the fit reads on its parameter's row. -->
 							{#if lab.stopObservationCount > 0}

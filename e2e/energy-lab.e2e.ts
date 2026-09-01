@@ -1073,6 +1073,80 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 	await expect(paramFit(page, 'free-time-value')).toHaveText(fitted!);
 });
 
+/* MATH.md §8.10: a day whose 🪫 rows recover no break falls back to one
+   contiguous session, so the fit reads it at its pre-2026-08-19 accuracy and
+   `usedCount` cannot tell it from a day whose breaks were read. The card names
+   how many, and the copy is inline in `+page.svelte` — reachable here and
+   nowhere below. */
+test('a past day logged in one batch is named on the stopping card', async ({ page }) => {
+	await page.clock.install({
+		time: new Date('2026-08-19T08:00:00'),
+	});
+
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	// Two sessions written down in one sitting: no clock moves between them, so
+	// their moments recover no gap. 3 h inside an 8 h window still leaves room to
+	// extend, so the day reveals a two-sided bracket and the fit uses it.
+	await page.goto('/energy');
+	await logDrain(page, 90, 8, 4);
+	await logDrain(page, 90, 8, 4);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await page.clock.fastForward('20:00:00');
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await openTimeBudget(page, /8h budget/);
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await expect(paramFit(page, 'free-time-value')).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
+
+	await expect(
+		calibrationCard(page, 'Stopping Calibration').getByText(
+			'1 day behind the fit had no readable breaks, so it was read as one unbroken stretch',
+		),
+	).toBeVisible();
+});
+
+test('a past day whose breaks were read is not named', async ({ page }) => {
+	await page.clock.install({
+		time: new Date('2026-08-19T08:00:00'),
+	});
+
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	// The same 3 h, two hours apart: the rows recover a 0.5 h break, and the 3.5 h
+	// span still leaves the 8 h window room for another step, so the day is read
+	// with its own structure rather than censored.
+	await page.goto('/energy');
+	await logDrain(page, 90, 8, 4);
+	await page.clock.fastForward('02:00:00');
+	await logDrain(page, 90, 8, 4);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await page.clock.fastForward('18:00:00');
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await openTimeBudget(page, /8h budget/);
+	await setBudget(page, 8);
+	await page.clock.runFor(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await expect(paramFit(page, 'free-time-value')).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
+
+	await expect(
+		calibrationCard(page, 'Stopping Calibration').getByText(/no readable breaks/),
+	).toHaveCount(0);
+});
+
 test('a break logged today is named beside the recovery fit', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');

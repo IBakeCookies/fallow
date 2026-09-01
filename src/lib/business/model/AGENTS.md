@@ -175,6 +175,9 @@ its allocation code, so the main page is unaffected by changes here.
   doing that discarded the day's breaks. A day whose rows carry no usable
   moment, or were all written down at once, falls back to one contiguous block
   per task in canonical order, and that fallback must stay bit-identical.
+  `fitStoppingValue`'s `unreadBreaksCount` reports how many of the days it USED
+  logged two or more sessions and fell back this way — it reports, it never
+  changes the reading.
 - **The two stop readings answer the window question differently, on purpose**
   (M42, 2026-08-21). §8.10's fit CENSORS a day whose own span — worked hours plus
   the day's UNCAPPED recovered breaks — leaves no room for another step: the
