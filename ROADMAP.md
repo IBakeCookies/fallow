@@ -336,14 +336,11 @@ defects it found without fixing.
     prints it.** (b)–(f) were settled by the 2026-08-06 `MATH.md` claim audit,
     (a) on 2026-08-13 (MATH.md §11.9, which records the one alternative it left
     open — seeding carry-over from the WORST order rather than the logged one, a
-    call about what the number means and not another probe) and (h) with item 27.
-    Each settled entry has a committed probe and a corrected section. The residue
-    is (g).
-    (g) **The ±0.05 adherence verdict band has no noise model** —
-    `ADHERENCE_TIE_BAND` (`presentation/utils/plan-audit-descriptor.ts`) asserts
-    in its own docblock that "a couple of points either way is noise" while
-    deciding one English verdict. Nothing shows it is wide enough to stop
-    week-to-week flipping or narrow enough to ever name a planner.
+    call about what the number means and not another probe), (h) with item 27,
+    and (g) on 2026-09-01 (MATH.md §9, `scripts/adherence-tie-band.probe.ts`).
+    Each settled entry has a committed probe and a corrected section. Nothing is
+    left open.
+    [docs/features/the-verdict-band-with-no-noise-model.md](docs/features/the-verdict-band-with-no-noise-model.md)
 
 Item 27's replacement follow-up — pushing the exhaustive reference to the
 largest task counts it reaches — then found one defect, at a size no proven

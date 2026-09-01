@@ -36,8 +36,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~27k tokens at 4 chars/token; the largest
-single section is §8 at ~15k (§5 is ~4k), and most of the 25 rows below are
+The whole document is ~28k tokens at 4 chars/token; the largest
+single section is §8 at ~15k (§5 is ~4k), and most of the 26 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -49,31 +49,32 @@ retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0           81-122  Objective
-§1          124-149  Inputs and parameter mappings (unchanged from the articl…
-§2          151-252  Productivity curve — v2 change
-§3          254-346  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          348-433  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          435-712  Personalization — v2 change: full Bayesian posterior
-  §5.2      523-601  Recency weighting of the ϕ fit
-  §5.1      603-712  Posterior-aware allocation
-§6          714-726  Summary of v1 → v2 changes
-§7          728-752  Known approximations and deliberate non-changes
-§8         754-1781  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      766-788  Intermittent-rest recovery correction
-  §8.2      790-809  Warm-up carryover instead of binary reset
-  §8.3      811-829  Verified consequences and a calibration question, closed
-  §8.4      831-901  Per-task satiety — concave daily value
-  §8.5      903-943  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      945-991  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     993-1090  Drain-rate calibration from end-of-session ratings
-  §8.8    1092-1127  45-minute plan granularity
-  §8.9    1129-1176  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1178-1426  Stopping-value calibration from observed stop times
-  §8.11   1428-1559  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1561-1715  The budget curve — what the day's LENGTH is worth
-  §8.13   1717-1781  Capacity from the fitted drain rate
-§9        1783-1830  References
+§0           82-123  Objective
+§1          125-150  Inputs and parameter mappings (unchanged from the articl…
+§2          152-253  Productivity curve — v2 change
+§3          255-347  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          349-434  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          436-713  Personalization — v2 change: full Bayesian posterior
+  §5.2      524-602  Recency weighting of the ϕ fit
+  §5.1      604-713  Posterior-aware allocation
+§6          715-727  Summary of v1 → v2 changes
+§7          729-753  Known approximations and deliberate non-changes
+§8         755-1782  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      767-789  Intermittent-rest recovery correction
+  §8.2      791-810  Warm-up carryover instead of binary reset
+  §8.3      812-830  Verified consequences and a calibration question, closed
+  §8.4      832-902  Per-task satiety — concave daily value
+  §8.5      904-944  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6      946-992  Optimizer reliability — compound moves and drop-one seeds
+  §8.7     994-1091  Drain-rate calibration from end-of-session ratings
+  §8.8    1093-1128  45-minute plan granularity
+  §8.9    1130-1177  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1179-1427  Stopping-value calibration from observed stop times
+  §8.11   1429-1560  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1562-1716  The budget curve — what the day's LENGTH is worth
+  §8.13   1718-1782  Capacity from the fitted drain rate
+§9        1784-1846  Plan-adherence reading and its verdict band
+§10       1848-1895  References
 ```
 
 <!-- section-index:end -->
@@ -1780,7 +1781,71 @@ empties the reservoir sooner, so it buys a smaller pool. The map therefore
 inherits whatever bias §8.7's α̂ carries, with the sign flipped;
 `capacity-from-drain.probe.ts` is where that is measured.
 
-## 9. References
+## 9. Plan-adherence reading and its verdict band
+
+**The reading.** For each finished day the audit takes the hours actually logged
+per task and asks which of the two planners' allocations for that same day they
+resemble more. It is a READING, not a gate: no plan consumes it, and the two
+modes are peers. Compositions are compared as SHARES of worked time, never as
+hours — how much to work in total is the stop decision, priced separately in
+§8.10, so this audit asks only which tasks got the day.
+
+**The two composition measures.** For share vectors `a` and `b` over one day's
+tasks the composition overlap is the total-variation complement
+
+```text
+overlap(a, b) = Σᵢ min(aᵢ, bᵢ) = 1 − ½·Σᵢ |aᵢ − bᵢ|
+```
+
+which is 1 for an identical composition and 0 for disjoint task sets. The right
+equality needs both vectors to sum to 1, which is the one case they do not: a
+plan that allocates nothing is all-zero rather than a distribution, and scores
+overlap 0 against any worked day. The spread
+of a single share vector `s` is the inverse Herfindahl
+
+```text
+spread(s) = 1 / Σᵢ sᵢ²
+```
+
+which is 1 when all the time went to one task and n for an equal split over n of
+them. Both are per-day quantities; the verdict reads only the means of the two
+overlaps, and the three spreads are reported beside it with no verdict attached.
+
+**The verdict.** The card compares `mean(energyOverlap) − mean(classicOverlap)`
+against a band that is exclusive at both edges: strictly above `+band` names the
+energy plan, strictly below `−band` names the classic plan, and everything
+between — both edges included — reads as a tie. Three outcomes, one width.
+
+**Why the band is not centred on the null.** The two edges are the same size but
+they do not do the same work, because the null is not at zero. A composition
+drawn without reference to either plan spreads its hours over most of the day's
+tasks; the classic Σ P̄ plan also spreads, since every touched task collects its
+≈p₀ activation bonus (§0, §2), while the energy plan concentrates under
+satiety-tempered total output (§8.4). A day worked with no plan in mind therefore
+reads _toward_ the classic plan by construction. That is geometry, not noise: the
+band protects mainly against falsely naming the classic planner, and essentially
+never has to protect against falsely naming the energy one. How far the null sits
+from zero is read off `scripts/adherence-tie-band.probe.ts`, never asserted here.
+
+**The width.** `ADHERENCE_TIE_BAND` = 0.2, and it is bounded from two sides at
+once. Wide enough that a logger whose behaviour did not change is not named —
+the null's offset above, plus the wander of a mean over the day counts the card
+reads at, both have to fit inside it. Narrow enough that a user who genuinely
+follows one planner still clears it, which is the bound a flip-rate criterion
+cannot supply: flipping alone can only ever argue the band wider, since at a band
+of 1 nothing ever flips and nothing is ever said. The follower arm is what closes
+it from above. Residue: at small day counts no width the probe swept does both jobs, because
+the mean's wander there is level with a follower's own signal; where that
+boundary sits is read off the probe, not stated here. The card names a verdict
+anyway, and that is stated rather than fixed.
+
+**Rejected: a band that narrows as days accumulate.** A standard error over
+`usedCount` is the statistically obvious width and is not used, because it makes
+the English sentence the user reads depend on how much history exists — the same
+two days of behaviour would be a tie early and a verdict later, with nothing in
+the reading to say which changed.
+
+## 10. References
 
 - Fox, B. L. (1966). _Discrete optimization via marginal analysis._
   Management Science 13(3) — exactness of greedy marginal allocation under

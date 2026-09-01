@@ -9,11 +9,11 @@ import * as m from '$lib/paraglide/messages.js';
 import type { PlanAudit } from '$lib/business/model/plan-audit';
 
 /**
- * Overlap gap inside this band reads as a tie rather than a winner. The overlaps
- * are means over a handful of days, so a couple of points either way is noise —
- * declaring a planner on it would flip the verdict week to week.
+ * Overlap gap inside this band reads as a tie rather than a winner. The width is
+ * measured, not asserted: MATH.md §9 derives it, and
+ * `scripts/adherence-tie-band.probe.ts` is the instrument that sizes it.
  */
-export const ADHERENCE_TIE_BAND = 0.05;
+export const ADHERENCE_TIE_BAND = 0.2;
 
 /**
  * Which planner the days actually worked resemble more; `null` when there is

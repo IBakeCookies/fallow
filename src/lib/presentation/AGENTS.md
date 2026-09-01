@@ -683,6 +683,12 @@ text was wired that way and a `-strong` swap would have dropped it with nothing
 failing. `bandLabel` returns `null` for `neutral` on purpose — the default value
 colour makes no claim, so silence is the honest equivalent.
 
+**The plan-adherence verdict band is not one of them.**
+`ADHERENCE_TIE_BAND` (`utils/plan-audit-descriptor.ts`) stays in this layer, but
+its derivation is MATH.md §9's and its number is
+`scripts/adherence-tie-band.probe.ts`'s — unlike `utils/band.ts`, whose
+thresholds are display policy this layer owns outright.
+
 ### The Lab's task list reads in schedule order, snapshotted per visit
 
 Settled 2026-08-05. Sorting it live is the obvious implementation and it is
