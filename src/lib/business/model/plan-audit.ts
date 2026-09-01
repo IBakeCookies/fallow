@@ -64,11 +64,11 @@ export interface PlanAuditDay {
 
 export interface PlanAuditDayResult {
 	workedHours: number;
-	/** Composition overlap Σ min(shares) vs the classic plan, ∈ [0,1] */
+	/** Composition overlap vs the classic plan, ∈ [0,1] — MATH.md §9 */
 	classicOverlap: number;
-	/** Composition overlap vs the energy plan, ∈ [0,1] */
+	/** Composition overlap vs the energy plan, ∈ [0,1] — MATH.md §9 */
 	energyOverlap: number;
-	/** Effective number of tasks worked/planned: 1/Σ share² (inverse Herfindahl) */
+	/** Effective number of tasks worked/planned — the §9 spread */
 	actualTaskSpread: number;
 	classicTaskSpread: number;
 	energyTaskSpread: number;
@@ -96,21 +96,20 @@ const EMPTY_AUDIT: PlanAudit = {
 	energyTaskSpread: 0,
 };
 
-// Shares of a nonnegative vector; an all-zero vector stays all-zero, so a
-// plan that allocates nothing scores overlap 0 against any worked day.
+// Shares of a nonnegative vector. An all-zero vector stays all-zero rather than
+// becoming a distribution — the one exception MATH.md §9's overlap identity has.
 function sharesOf(hours: number[]): number[] {
 	const total = hours.reduce((sum, h) => sum + h, 0);
 
 	return total > 0 ? hours.map((h) => h / total) : hours.map(() => 0);
 }
 
-// Σ min of two share vectors — the total-variation complement: 1 = identical
-// composition, 0 = disjoint task sets.
+// The §9 composition overlap: 1 = identical composition, 0 = disjoint task sets.
 function overlapOf(a: number[], b: number[]): number {
 	return a.reduce((sum, share, i) => sum + Math.min(share, b[i]), 0);
 }
 
-// Inverse Herfindahl 1/Σ s²: 1 = all time on one task, n = equal split over n.
+// The §9 spread: 1 = all time on one task, n = equal split over n.
 function taskSpreadOf(shares: number[]): number {
 	const concentration = shares.reduce((sum, s) => sum + s * s, 0);
 
