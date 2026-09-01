@@ -1889,6 +1889,8 @@ export interface StoppingValueFit {
 	usedCount: number;
 	/** Days dropped because their span left no room for another step (§8.10) */
 	clockCensoredCount: number;
+	/** Used days read as one unbroken stretch — their rows recover no break (§8.10) */
+	unreadBreaksCount: number;
 }
 
 /**
@@ -1976,6 +1978,22 @@ function isClockCensored(observation: StopObservation): boolean {
 	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
 
 	return total + rest.restTotal + DEFAULT_STEP_HOURS > observation.windowHours + 1e-9;
+}
+
+/**
+ * The day the fit read as one unbroken stretch: two or more logged sessions,
+ * and no structure recoverable between them — `reconstructStopDay`'s own
+ * fallback condition, so the count cannot drift from the schedule it read.
+ */
+function hasUnreadBreaks(observation: StopObservation): boolean {
+	const byTask = workedHoursByTask(observation.tasks, observation.workedHours);
+	const sessions = observation.workedHours.filter((r) => r.hours > 0 && byTask.has(r.taskId));
+	const total = [...byTask.values()].reduce((sum, hours) => sum + hours, 0);
+
+	return (
+		sessions.length >= 2 &&
+		loggedStructure(recoveredRest(observation, byTask), observation.windowHours, total) === null
+	);
 }
 
 /**
@@ -2500,10 +2518,8 @@ export function fitStoppingValue(
 	params: EnergyParams,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 ): StoppingValueFit {
-	const points = observations
-		.map((o) => stopIndifferencePoint(o, params, constants))
-		.filter((p): p is number => p !== null);
-
+	const indifference = observations.map((o) => stopIndifferencePoint(o, params, constants));
+	const points = indifference.filter((p): p is number => p !== null);
 	const clockCensoredCount = observations.filter(isClockCensored).length;
 
 	if (points.length === 0) {
@@ -2512,6 +2528,7 @@ export function fitStoppingValue(
 			fitted: false,
 			usedCount: 0,
 			clockCensoredCount,
+			unreadBreaksCount: 0,
 		};
 	}
 
@@ -2529,11 +2546,16 @@ export function fitStoppingValue(
 	const sigma2 = (nu0 * STOP_NOISE_PRIOR_STD * STOP_NOISE_PRIOR_STD + ssr) / (nu0 + n);
 	const valueStd = Math.sqrt(sigma2 / (n + STOP_PRIOR_STRENGTH));
 
+	const unreadBreaksCount = observations.filter(
+		(o, i) => indifference[i] !== null && hasUnreadBreaks(o),
+	).length;
+
 	return {
 		value,
 		fitted: true,
 		valueStd,
 		usedCount: n,
 		clockCensoredCount,
+		unreadBreaksCount,
 	};
 }

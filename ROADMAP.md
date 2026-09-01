@@ -264,13 +264,9 @@ reach the form at all:
    completion rates 0.25 / 0.50 / 0.75) counted days, and days were never the
    binding constraint.
 
-   **One obligation outlives the closure, and it is not the censored likelihood**
-   (recorded here by MATH.md §8.10's break-reading correction, 2026-08-19): a
-   batch-logged day reads its breaks as nothing and degrades to the
-   pre-2026-08-19 numbers, and `usedCount` cannot tell a structure-recovered day
-   from a collapsed one. The cheap honest version is to count structure-recovered
-   days and show that count on the Stopping Calibration card — a copy decision in
-   five locales, still not built.
+   **One obligation outlived the closure, and it was not the censored likelihood**
+   — BUILT 2026-09-01
+   ([docs/features/the-breaks-the-fit-could-not-read.md](docs/features/the-breaks-the-fit-could-not-read.md)).
 
 5. ~~**Fit-snapshot persistence**~~ — SHIPPED 2026-08-03 (MATH.md §12.1).
    Recomputing each day's fit instead was rejected on cost, not correctness — it

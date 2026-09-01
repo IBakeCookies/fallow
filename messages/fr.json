@@ -528,6 +528,8 @@
 	"energy_stop_calibration_censored": "Aucune journée informative pour l'instant — les jours travaillés jusqu'au bord de la fenêtre (ou à peine travaillés), ceux qui se sont terminés avec toutes les tâches cochées, et ceux qui semblent coupés en pleine session (une interruption, pas un arrêt choisi), ne révèlent qu'une inégalité, pas un point d'indifférence.",
 	"energy_stop_out_of_clock_one": "1 journée a manqué de temps, son arrêt n'est donc pas compté",
 	"energy_stop_out_of_clock": "{count} journées ont manqué de temps, leurs arrêts ne sont donc pas comptés",
+	"energy_stop_unread_breaks_one": "1 journée derrière l'ajustement n'avait aucune pause lisible, elle a donc été lue comme un seul bloc continu",
+	"energy_stop_unread_breaks": "{count} journées derrière l'ajustement n'avaient aucune pause lisible, elles ont donc été lues comme un seul bloc continu",
 	"energy_rest_log_count": "Paires de repos · {count}",
 	"energy_reset_rest_logs": "Supprimer toutes les paires",
 	"energy_reset_rest_title": "Supprime toutes les paires de repos — la calibration revient aux valeurs par défaut",
