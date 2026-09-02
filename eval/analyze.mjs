@@ -3,18 +3,50 @@
 // whether the sweep was wide enough to have decided that at all, and whether an
 // arm won by working harder rather than by following rules better.
 //
-//   node eval/analyze.mjs eval/results/<file>.json
+//   node eval/analyze.mjs eval/results/<file>.json [more.json ...]
 
 import { readFileSync } from 'node:fs';
 
-const [file] = process.argv.slice(2);
+const files = process.argv.slice(2);
 
-if (!file) {
-	console.error('usage: node eval/analyze.mjs <results.json>');
+if (!files.length) {
+	console.error('usage: node eval/analyze.mjs <results.json> [more.json ...]');
 	process.exit(1);
 }
 
-const { rows } = JSON.parse(readFileSync(file, 'utf8'));
+const sweeps = files.map((file) => ({
+	file,
+	...JSON.parse(readFileSync(file, 'utf8')),
+}));
+
+// An arm too wide for one invocation is pooled from several, and only sweeps cut
+// from the same commit are the same measurement: several cases score a rule by
+// running eslint over the whole changed file, so a commit that adds a rule makes
+// the same check stricter. Refused rather than warned — the pooled figure is
+// what the sizing decision rests on.
+const bases = [...new Set(sweeps.map((s) => s.base))];
+
+if (bases.length > 1) {
+	console.error(
+		`refusing to pool sweeps cut from different bases:\n${sweeps
+			.map((s) => `  ${s.base} ${s.file}`)
+			.join('\n')}`,
+	);
+
+	process.exit(1);
+}
+
+// `rep` restarts at 1 in every invocation, so the pair key the sign test needs
+// is unique only within one sweep — across pooled files it would merge two runs
+// into one and report the widening as n=1. Run identity comes off `run_id`,
+// which is unique by construction.
+const rows = sweeps.flatMap((sweep, sweepIndex) =>
+	sweep.rows.map((row) => ({
+		...row,
+		pair: `${sweepIndex}|${row.case}|${row.rep}`,
+	})),
+);
+
 const conditions = [...new Set(rows.map((r) => r.condition))];
 
 // --- rates -----------------------------------------------------------------
@@ -38,7 +70,11 @@ const spread = (xs) => {
 	return Math.sqrt(xs.reduce((sum, x) => sum + (x - centre) ** 2, 0) / (xs.length - 1));
 };
 
-console.log(`\n${file}\n${rows.length} rows, ${conditions.length} conditions\n`);
+console.log(
+	`\n${files.join('\n')}\n${rows.length} rows, ${conditions.length} conditions, ` +
+		`base ${bases[0]}\n`,
+);
+
 console.log('ROW LEVEL');
 
 for (const condition of conditions)
@@ -50,17 +86,14 @@ for (const condition of conditions)
 //
 // A run contributes many rows, so row-level counts overstate the evidence: the
 // rows within one run share an agent, a prompt and a context. Pairing by
-// (case, rep) is what the conditions were actually varied across.
+// (sweep, case, rep) is what the conditions were actually varied across.
 
-const runKey = (row) => `${row.case}|${row.rep}`;
 const runs = new Map();
 
 for (const row of rows) {
-	const key = `${row.condition}|${runKey(row)}`;
-
-	const run = runs.get(key) ?? {
+	const run = runs.get(row.run_id) ?? {
 		condition: row.condition,
-		pair: runKey(row),
+		pair: row.pair,
 		pass: 0,
 		total: 0,
 		turns: row.turns ?? null,
@@ -69,7 +102,7 @@ for (const row of rows) {
 
 	run.pass += row.pass ? 1 : 0;
 	run.total += 1;
-	runs.set(key, run);
+	runs.set(row.run_id, run);
 }
 
 const byCondition = (condition) => [...runs.values()].filter((r) => r.condition === condition);

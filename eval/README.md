@@ -265,7 +265,12 @@ can fail for R2 on a row labelled R1. Read a deterministic eslint row as
 worktree was cut from (each run then adds a strip commit on top, and its diff is
 taken against that), the canary's verdict for the sweep (`"skipped"` under
 `--skip-canary`, otherwise `{ report, cost_usd }` where `report` is the
-`canary.json` the agent wrote), and one row per (run, rule):
+`canary.json` the agent wrote), and one row per (run, rule).
+
+The file is rewritten as each run lands, not once at the end, so a sweep that
+dies partway through still leaves every run that finished. It is therefore a
+valid results file while the sweep is running — `analyze.mjs` reads a partial
+one, and the row count is the progress bar.
 
 ```json
 {
@@ -297,6 +302,17 @@ produced, and why it was replaced.
 `node eval/analyze.mjs eval/results/<file>.json` prints the row- and run-level
 rates, a paired sign test between every pair of conditions, the effort each arm
 spent — and, beside each comparison, what that sweep could have resolved.
+
+**It takes several files and pools them**, because an arm wide enough to decide
+anything is more runs than one invocation should be asked to hold. Two things
+make that pooling honest. The analyzer **refuses** to pool files whose `base`
+differs, since several cases score a rule by running eslint over the whole
+changed file and a commit that adds a rule makes the same check stricter — so a
+sweep meant to extend an earlier one passes `--base <that sweep's base>`, and
+forgetting to is refused rather than averaged. And `rep` restarts at 1 in every
+invocation, so run identity is `run_id` and the sign test's pair key is scoped
+per file: pooling on `case|rep` merges two runs into one and reports a widened
+arm as `n=1`.
 
 **Read the power line before the sign test.** It is computed from the sweep's
 own within-arm SD at α = 0.05 and 80% power, and that SD has run from 11 to 39
