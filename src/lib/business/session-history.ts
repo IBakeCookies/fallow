@@ -601,7 +601,9 @@ export interface ModelReport {
 /**
  * Everything the analytics screen's two model cards need, in one read: they
  * share the calibration snapshot, and the audit runs one optimizer pass per
- * audited day (~60ms), so `auditDayCap` bounds the lookback.
+ * audited day (~60ms), so `auditDayCap` bounds the lookback. The ϕ skill walk
+ * alone is whole-history by design — one ridge refit per distinct ⚡ date
+ * (MATH.md §5), a cost far below one audited day's optimizer pass.
  *
  * "One read" is literal — each store is read exactly once here and every
  * derivation is computed from those records. The two cards used to compose their

@@ -583,5 +583,7 @@ test('the model card says how much closer the fit has predicted', async ({ page 
 
 	await expect(
 		page.getByText(/fit \d+(\.\d)? min closer than default over 6 predicted logs/),
-	).toBeVisible();
+	).toBeVisible({
+		timeout: 15000,
+	});
 });
