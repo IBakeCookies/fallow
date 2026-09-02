@@ -375,6 +375,8 @@
 	"ana_model_stop": "Valeur du temps libre",
 	"ana_model_note_flow": "défaut {value} · {count} mesures ⚡, pondérées par récence",
 	"ana_model_note_flow_pending": "défaut {value} · {count} mesures ⚡, pondérées par récence · {pending} notées aujourd'hui, comptées à partir de demain",
+	"ana_model_note_flow_closer": "ajustement {value} plus proche que le défaut sur {count} mesures prédites",
+	"ana_model_note_flow_further": "ajustement {value} plus éloigné que le défaut sur {count} mesures prédites",
 	"ana_model_note_ratings": "défaut {value} · {count} évaluations",
 	"ana_model_note_recovery_pending": "défaut {value} · {count} évaluations · {pending} ☕ notées aujourd'hui, comptées à partir de demain",
 	"ana_model_note_drain_pending": "défaut {value} · {count} évaluations · {pending} 🪫 notées aujourd'hui, comptées à partir de demain",

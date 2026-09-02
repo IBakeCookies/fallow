@@ -142,6 +142,45 @@ async function readUserFit(): Promise<UserFit> {
 	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()), toISODate());
 }
 
+/** Below this many prequentially scored ⚡ logs the skill reading is withheld. */
+const SKILL_MIN_SCORED_LOGS = 5;
+
+/**
+ * MATH.md §5's prequential walk over the user's own history: each distinct log
+ * date up to `today`, scored against `fitFrom` at that date — the window a live
+ * plan reads, evaluated at a past day. The earliest date is skipped: its fit had
+ * seen nothing, so both planes are the defaults and the gap is identically zero.
+ * The gap is mean|ϕ − ϕ̂_default| − mean|ϕ − ϕ̂_fitted|, positive when the fit
+ * was closer, and never clamped.
+ */
+function phiSkillFrom(
+	observations: FlowObservationRecord[],
+	today: string,
+): CalibrationSnapshot['flow']['skill'] {
+	const days = [...new Set(observations.map((o) => o.date))].filter((date) => date <= today).sort();
+	let gapSum = 0;
+	let scoredCount = 0;
+
+	for (const day of days.slice(1)) {
+		const fit = fitFrom(observations, day);
+
+		for (const o of observations.filter((entry) => entry.date === day)) {
+			gapSum +=
+				Math.abs(o.phiHours - calculateFlowStateTime(o.E, o.beta, DEFAULT_USER_CONSTANTS)) -
+				Math.abs(o.phiHours - calculateFlowStateTime(o.E, o.beta, fit.constants));
+
+			scoredCount += 1;
+		}
+	}
+
+	return scoredCount < SKILL_MIN_SCORED_LOGS
+		? null
+		: {
+				gapHours: gapSum / scoredCount,
+				scoredCount,
+			};
+}
+
 /**
  * Every stored day that has tasks in the range, summarized with the fit that day
  * ran under, ascending by date. The calendar and the analytics screen must read
@@ -375,6 +414,9 @@ export interface CalibrationSnapshot {
 		pendingCount: number;
 		phiHours: number;
 		defaultPhiHours: number;
+		/** The §5 prequential gap in hours and the logs it is measured over, or
+		 *  null below `SKILL_MIN_SCORED_LOGS` — a 2-log reading invites false trust. */
+		skill: { gapHours: number; scoredCount: number } | null;
 	};
 	/** The ☕/🪫 rows dated today, which the two fits below deferred — every
 	 *  surface that prints a log count owes the user this one too. */
@@ -436,6 +478,7 @@ function trendFrom(
 
 function calibrationSnapshotFrom(
 	fit: UserFit,
+	skill: CalibrationSnapshot['flow']['skill'],
 	rest: RestObservationRecord[],
 	drain: DrainObservationRecord[],
 	stops: StopObservation[],
@@ -466,6 +509,7 @@ function calibrationSnapshotFrom(
 		pendingCount: fit.pendingCount,
 		phiHours: referencePhi(fit.constants),
 		defaultPhiHours: referencePhi(DEFAULT_USER_CONSTANTS),
+		skill,
 	};
 
 	return {
@@ -585,6 +629,7 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 
 	const calibration = calibrationSnapshotFrom(
 		fit,
+		phiSkillFrom(flow, today),
 		rest,
 		drain,
 		stops,

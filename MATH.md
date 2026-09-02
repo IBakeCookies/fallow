@@ -54,27 +54,27 @@ retype a row, regenerate:
 §2          152-253  Productivity curve — v2 change
 §3          255-347  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          349-434  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          436-713  Personalization — v2 change: full Bayesian posterior
-  §5.2      524-602  Recency weighting of the ϕ fit
-  §5.1      604-713  Posterior-aware allocation
-§6          715-727  Summary of v1 → v2 changes
-§7          729-753  Known approximations and deliberate non-changes
-§8         755-1782  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      767-789  Intermittent-rest recovery correction
-  §8.2      791-810  Warm-up carryover instead of binary reset
-  §8.3      812-830  Verified consequences and a calibration question, closed
-  §8.4      832-902  Per-task satiety — concave daily value
-  §8.5      904-944  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6      946-992  Optimizer reliability — compound moves and drop-one seeds
-  §8.7     994-1091  Drain-rate calibration from end-of-session ratings
-  §8.8    1093-1128  45-minute plan granularity
-  §8.9    1130-1177  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1179-1427  Stopping-value calibration from observed stop times
-  §8.11   1429-1560  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1562-1716  The budget curve — what the day's LENGTH is worth
-  §8.13   1718-1782  Capacity from the fitted drain rate
-§9        1784-1846  Plan-adherence reading and its verdict band
-§10       1848-1895  References
+§5          436-724  Personalization — v2 change: full Bayesian posterior
+  §5.2      535-613  Recency weighting of the ϕ fit
+  §5.1      615-724  Posterior-aware allocation
+§6          726-738  Summary of v1 → v2 changes
+§7          740-764  Known approximations and deliberate non-changes
+§8         766-1793  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      778-800  Intermittent-rest recovery correction
+  §8.2      802-821  Warm-up carryover instead of binary reset
+  §8.3      823-841  Verified consequences and a calibration question, closed
+  §8.4      843-913  Per-task satiety — concave daily value
+  §8.5      915-955  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6     957-1003  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1005-1102  Drain-rate calibration from end-of-session ratings
+  §8.8    1104-1139  45-minute plan granularity
+  §8.9    1141-1188  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1190-1438  Stopping-value calibration from observed stop times
+  §8.11   1440-1571  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1573-1727  The budget curve — what the day's LENGTH is worth
+  §8.13   1729-1793  Capacity from the fitted drain rate
+§9        1795-1857  Plan-adherence reading and its verdict band
+§10       1859-1906  References
 ```
 
 <!-- section-index:end -->
@@ -520,6 +520,17 @@ It estimates the per-task ϕ dispersion, and it is biased low by construction:
 a shared plane absorbs the history's own mean offset, so what is left to
 measure is the deviation BETWEEN tasks and never the offset level. Measured figures for all of this live in
 `scripts/phi-prequential-skill.probe.ts`.
+
+**The shipped headline** (the analytics "Your model" flow row) collapses that
+walk over the user's own history to one number: the whole-walk mean-absolute
+gap, mean|ϕ − ϕ̂_default| − mean|ϕ − ϕ̂_fitted| over every scored log —
+positive when the fit was closer, and reported unclamped in either direction.
+Only date blocks whose fit had seen n ≥ 1 logs are scored: at n = 0 the
+fallback IS the defaults, both planes coincide, and a zero-gap log would pad
+the count the reading cites without informing it. Dates past the report day
+are not walked — a future-dated row (a clock-skewed backup restore) is not a
+prediction anyone made. Below 5 scored logs (`SKILL_MIN_SCORED_LOGS`) the
+reading is withheld: a two-log verdict invites false trust either way.
 
 ### 5.2 Recency weighting of the ϕ fit
 
