@@ -217,6 +217,21 @@ other.**
     from an uncommitted 2026-08-04 variant is now **disputed by a committed
     run**: `scripts/capacity-from-drain.probe.ts`'s logging-rate arm does not
     reproduce its direction, and finds no monotone trend.
+    **The different reading exists as of 2026-09-03, and it answers the first
+    finding but not the second** —
+    [docs/features/the-pool-adherence-could-not-rank.md](docs/features/the-pool-adherence-could-not-rank.md).
+    Arm D scores the plan on the objective it maximizes rather than on plan
+    adherence: solved under a declared pool, worked under the true one, against
+    the plan that knew the truth. The ceiling is correct by construction, so the
+    pathology that voided the gate cannot occur, and the declared pool no longer
+    has to bind — which retires "days long enough for a pool to bind" as a
+    condition on re-opening. What it reads on the self-consistent arm, and the
+    asymmetry between an under- and an over-declared pool, are in the probe
+    header. **What is still open is the misspecified arm**: §8.13's gate scales
+    with the fitted recovery rate, so no derived pool exists to score there, and
+    the cost of the map being WRONG about a user remains unmeasured. That is the
+    remaining blocker, and it is a question about the floor's parameterization
+    rather than about the reading.
 
 Item 16 for the other two declared constraints, and the slot item 18 prefills
 into:

@@ -2,7 +2,7 @@
  * Does a capacity pool DERIVED from the fitted drain rate (MATH.md §8.13) beat
  * the two declared constants it would replace (`DEFAULT_CAPACITY_POOLS`, 4/6)?
  *
- * The gate on ROADMAP item 18, in three arms:
+ * The gate on ROADMAP item 18, in four arms:
  *
  *   A  self-consistent  — the generator's true pools ARE the map of its true α,
  *                         so the law holds by construction and what is measured
@@ -13,6 +13,35 @@
  *                         user whose capacity is not their reservoir floor
  *   C  logging rate     — one truth, the 🪫 opt-in rate swept, to price how far
  *                         α̂ (and so the derived pool) drifts with diligence
+ *   D  plan value       — arm A's α grid read on the OBJECTIVE instead of on
+ *                         plan adherence: the plan solved under a declared pool,
+ *                         then worked under the true one, scored `Σ vᵢ·P̄ᵢ(tᵢ)`
+ *                         against the plan that knew the truth
+ *
+ * Why arm D exists. A and B score with `classicOverlap` (`plan-audit.ts`), and
+ * on this fixture that instrument cannot rank a pool: at three of A's four
+ * evaluable points it puts the KNOWN-CORRECT pool at or below declared 4/6
+ * (Δ +0.0000, −0.0035, −0.0024, +0.0116), because a pool cannot bind on a day
+ * shorter than itself and 4/6 binds on 9–16 of 60 days. Arm D is not exposed to
+ * that failure — planning under the truth is the reference every other pool is
+ * measured against — and it does not need the DECLARED pool to bind, since a
+ * pool that is too generous is priced by the hours the true day could not hold.
+ *
+ * What arm D found (run 2026-09-03, seed 42, same four α pairs): planning under
+ * 4/6 loses 1.757% of the objective on average against planning under the
+ * truth, and the derived pool loses 0.970% — so the map roughly halves the cost
+ * of the constants it would replace. The two are not uniformly ordered: 4/6
+ * wins by 0.040 and 0.425 pp at the two points where it happens to be nearly
+ * right (truth 4.00/5.97 h and 2.89/4.78 h) and loses by 0.865 and 2.750 pp as
+ * the truth moves away from it. The asymmetry is the reading: α̂ comes back high
+ * at every point, so the derived pool is 0.30–0.89 h SMALL, and an
+ * under-declared pool leaves value unspent (worst day 2.4–11.0%) while an
+ * over-declared one plots a day that cannot be worked (worst day 14.9–48.3%
+ * once the truth moves off 4/6). The reference holds empirically as well as by
+ * design: the best day is 0.000% at every point and under both pools, so the
+ * greedy's inexactness never let a wrong pool score above the right one here.
+ * It stays a reading about the estimator on a law it was given — arm B, the
+ * loss when that law is false, still returns no derived pool at any point.
  *
  * What arm C found (run 2026-08-30, seed 42): sweeping the 🪫 opt-in rate from
  * 0.15 to 1.56 logs per day leaves α̂_cog wandering 0.59–0.72 with no trend, and
@@ -27,9 +56,9 @@
  * What it CANNOT decide: whether a real person's capacity is their reservoir
  * floor. A generator only ever replays its own assumptions — arm A tests an
  * estimator against a law it was given, arm B prices being wrong about that
- * law, and neither is evidence about people. The derived pool is scored with
- * `classicOverlap` (`plan-audit.ts`), an instrument independent of the 🪫 fit
- * that produced it; the sweep is a reading, never a training objective.
+ * law, and neither is evidence about people. Both scorings are independent of
+ * the 🪫 fit that produced the pool; the sweep is a reading, never a training
+ * objective.
  *
  * Usage: npm run probe
  */
@@ -41,9 +70,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'vitest';
 import { calibrateEnergyParams } from '$lib/business/model/energy-calibration';
-import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import { auditPlanAdherence, type PlanAuditDay } from '$lib/business/model/plan-audit';
+import { toEnergyTask, toPooledInputs } from '$lib/business/model/metric/calculation';
 import {
+	BLOCK_HOURS,
+	calculatePooledAllocations,
+	calculateTotalProductivity,
 	DEFAULT_CAPACITY_POOLS,
 	fitUserConstants,
 	type CapacityPools,
@@ -51,8 +83,13 @@ import {
 import { capacityFromDrainRate, type EnergyParams } from '$lib/business/model/zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord, Task } from '$lib/data/type';
 
-/** `auditPlanAdherence` costs ~60 ms/day and says to cap at the call site. */
-const AUDIT_DAY_CAP = 60;
+/**
+ * Days scored per grid point. `auditPlanAdherence` costs ~60 ms/day and says to
+ * cap at the call site; arm D reuses the number so the arms read comparable
+ * spans, though not the same days — it scores the last 60 SESSIONS, while the
+ * adherence arms score the last 60 days that carry a 🪫 row.
+ */
+const DAY_CAP = 60;
 /** The generator's own last day, for ⚡ recency weights. */
 const END_DATE = '2026-08-04';
 
@@ -125,7 +162,7 @@ function auditDays(fixture: Fixture, pools: CapacityPools): PlanAuditDay[] {
 
 	return fixture.sessions
 		.filter((session) => worked.has(session.date))
-		.slice(-AUDIT_DAY_CAP)
+		.slice(-DAY_CAP)
 		.map((session) => ({
 			tasks: session.tasks.map(toEnergyTask),
 			windowHours: session.availableHours,
@@ -136,13 +173,12 @@ function auditDays(fixture: Fixture, pools: CapacityPools): PlanAuditDay[] {
 }
 
 /**
- * Mean `classicOverlap` under one pool pair. The ϕ plane is fitted from the
- * fixture's own ⚡ rows: the generator's TRUTH c₁c₂c₃ are deliberately off the
- * defaults, so scoring the classic side under the default plane would mis-score
- * every day.
+ * The ϕ plane the fixture's own ⚡ rows fit. The generator's TRUTH c₁c₂c₃ are
+ * deliberately off the defaults, so scoring a plan under the default plane
+ * would mis-score every day.
  */
-function overlapUnder(fixture: Fixture, params: EnergyParams, pools: CapacityPools): number {
-	const phi = fitUserConstants(
+const phiPlaneOf = (fixture: Fixture) =>
+	fitUserConstants(
 		fixture.flowObservations.map((o) => ({
 			E: o.E,
 			beta: o.beta,
@@ -150,6 +186,10 @@ function overlapUnder(fixture: Fixture, params: EnergyParams, pools: CapacityPoo
 			ageDays: ageOf(o.date),
 		})),
 	);
+
+/** Mean `classicOverlap` under one pool pair. */
+function overlapUnder(fixture: Fixture, params: EnergyParams, pools: CapacityPools): number {
+	const phi = phiPlaneOf(fixture);
 
 	return auditPlanAdherence(auditDays(fixture, pools), params, phi.constants, phi.posterior)
 		.classicOverlap;
@@ -177,6 +217,125 @@ const gap = (a: number, b: number) =>
 	Math.abs(a - b)
 		.toFixed(2)
 		.padStart(6);
+
+const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+
+type PooledInputs = ReturnType<typeof toPooledInputs>;
+
+/**
+ * The hours a plan is actually worked when the reservoirs turn out to be
+ * `truth`: the user follows the plan in its own priority order and each task
+ * gets what the pools can still absorb, so a plan plotted against a pool the
+ * user does not have is truncated rather than refused. Re-solving under the
+ * truth instead would score the map against an oracle nobody has.
+ *
+ * Truncation floors to `BLOCK_HOURS`, as every allocation the planner emits
+ * does: an unfloored remainder would hand the truncated plan a partial block
+ * the app can neither schedule nor overspend, and only the truncated side gets
+ * one — the plan that knew the truth is never cut — so the bias would run one
+ * way.
+ */
+function workedUnder(
+	inputs: PooledInputs,
+	plan: { allocatedHours: number; optimalAvgProductivity: number }[],
+	truth: CapacityPools,
+): number[] {
+	const worked = plan.map(() => 0);
+	let cognitive = truth.cognitiveHours;
+	let physical = truth.physicalHours;
+
+	const byPriority = plan
+		.map((_, index) => index)
+		.sort((a, b) => plan[b].optimalAvgProductivity - plan[a].optimalAvgProductivity);
+
+	for (const index of byPriority) {
+		const { cognitiveWeight, physicalWeight } = inputs[index];
+
+		const room = Math.min(
+			cognitiveWeight > 0 ? cognitive / cognitiveWeight : Infinity,
+			physicalWeight > 0 ? physical / physicalWeight : Infinity,
+		);
+
+		worked[index] = Math.min(
+			plan[index].allocatedHours,
+			Math.max(0, Math.floor(room / BLOCK_HOURS) * BLOCK_HOURS),
+		);
+
+		cognitive -= worked[index] * cognitiveWeight;
+		physical -= worked[index] * physicalWeight;
+	}
+
+	return worked;
+}
+
+/**
+ * What one day's plan is worth when it was solved under `declared` and lived
+ * under `truth` — the objective `Σ vᵢ·P̄ᵢ(tᵢ)` of the hours actually worked.
+ */
+function dayValue(
+	inputs: PooledInputs,
+	day: Fixture['sessions'][number],
+	phi: ReturnType<typeof phiPlaneOf>,
+	declared: CapacityPools,
+	truth: CapacityPools,
+): number {
+	const plan = calculatePooledAllocations(
+		inputs,
+		day.availableHours,
+		declared,
+		phi.constants,
+		day.switchCost,
+		phi.posterior,
+	);
+
+	return calculateTotalProductivity(
+		inputs,
+		workedUnder(inputs, plan, truth),
+		phi.constants,
+		phi.posterior,
+	);
+}
+
+/**
+ * Mean shortfall against planning under the true pool, in percent of it, over
+ * the days where that reference is positive. Unlike `classicOverlap` this reads
+ * the objective the planner maximizes, so it does not need the DECLARED pool to
+ * bind: a pool that is too generous shows up as hours the day could not hold.
+ *
+ * Planning under the truth is the reference, not a proven maximum — the pooled
+ * allocator is a greedy that is exact only to within a block (MATH.md §4), so a
+ * plan solved under some other pool and then truncated can in principle score
+ * above it. The best-day column is what shows whether that happens.
+ */
+function valueLoss(
+	fixture: Fixture,
+	declared: CapacityPools,
+	truth: CapacityPools,
+): {
+	meanLossPercent: number;
+	worstLossPercent: number;
+	bestLossPercent: number;
+	scoredDays: number;
+} {
+	const phi = phiPlaneOf(fixture);
+	const losses: number[] = [];
+
+	for (const day of fixture.sessions.slice(-DAY_CAP)) {
+		const inputs = toPooledInputs(day.tasks);
+		const ceiling = dayValue(inputs, day, phi, truth, truth);
+
+		if (ceiling <= 0) continue;
+
+		losses.push((100 * (ceiling - dayValue(inputs, day, phi, declared, truth))) / ceiling);
+	}
+
+	return {
+		meanLossPercent: mean(losses),
+		worstLossPercent: Math.max(...losses),
+		bestLossPercent: Math.min(...losses),
+		scoredDays: losses.length,
+	};
+}
 
 /**
  * One grid point: the truth it was generated from against what came back.
@@ -268,17 +427,18 @@ const truePoolsOf = (
 			};
 };
 
+/** The α pairs arms A and D generate self-consistent days from. */
+const SELF_CONSISTENT_GRID = [
+	[0.3, 0.25],
+	[0.4, 0.3],
+	[0.52, 0.35],
+	[0.7, 0.45],
+	[0.95, 0.6],
+];
+
 describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
 	it('A — self-consistent: the true pool IS the map of the true α', () => {
-		const grid = [
-			[0.3, 0.25],
-			[0.4, 0.3],
-			[0.52, 0.35],
-			[0.7, 0.45],
-			[0.95, 0.6],
-		];
-
-		const blocks = grid.map(([alphaCog, alphaPhys]) => {
+		const blocks = SELF_CONSISTENT_GRID.map(([alphaCog, alphaPhys]) => {
 			const label = `α true  cog ${alphaCog}  phys ${alphaPhys}`;
 			const truth = truePoolsOf(alphaCog, alphaPhys, GENERATOR_RECOVERY);
 
@@ -306,7 +466,7 @@ describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
 			[
 				'',
 				"ARM A — self-consistent (true pools = §8.13 map of the true α, at the GENERATOR's recovery)",
-				`last ${AUDIT_DAY_CAP} audit-eligible days per point`,
+				`last ${DAY_CAP} audit-eligible days per point`,
 				'',
 				...blocks.flatMap((block) => [...block, '']),
 			].join('\n'),
@@ -370,7 +530,7 @@ describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
 			[
 				'',
 				'ARM B — misspecified (α at the generator defaults 0.52 / 0.24, pools swept)',
-				`last ${AUDIT_DAY_CAP} audit-eligible days per point`,
+				`last ${DAY_CAP} audit-eligible days per point`,
 				'',
 				...blocks.flatMap((block) => [...block, '']),
 				`  ${degenerate} of 9 grid points are not listed: their pools never bound, so the`,
@@ -414,6 +574,67 @@ describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
 				}`,
 				'',
 				...rows,
+				'',
+			].join('\n'),
+		);
+	});
+
+	it('D — plan value: what each pool is worth against the pool that is true', () => {
+		const evaluable: { declared: number; derived: number }[] = [];
+
+		const rows = SELF_CONSISTENT_GRID.map(([alphaCog, alphaPhys]) => {
+			const label = `α true  cog ${alphaCog}  phys ${alphaPhys}`;
+			const truth = truePoolsOf(alphaCog, alphaPhys, GENERATOR_RECOVERY);
+
+			if (truth === null) return `  ${label}   → skipped: inside the §8.13 pole margin`;
+
+			const fixture = generate([
+				'--alpha-cog',
+				String(alphaCog),
+				'--alpha-phys',
+				String(alphaPhys),
+				'--true-pools',
+				`${truth.cognitiveHours},${truth.physicalHours}`,
+			]);
+
+			const { pools } = derive(fixture);
+			const declared = valueLoss(fixture, DEFAULT_CAPACITY_POOLS, truth);
+
+			if (pools === null)
+				return (
+					`  ${label}   truth ${truth.cognitiveHours.toFixed(2)}/${truth.physicalHours.toFixed(2)} h` +
+					`   4/6 loses ${declared.meanLossPercent.toFixed(3)}%   derived: none (below the §8.13 gate)`
+				);
+
+			const derivedLoss = valueLoss(fixture, pools, truth);
+
+			evaluable.push({
+				declared: declared.meanLossPercent,
+				derived: derivedLoss.meanLossPercent,
+			});
+
+			return (
+				`  ${label}   truth ${truth.cognitiveHours.toFixed(2)}/${truth.physicalHours.toFixed(2)} h` +
+				`  derived ${pools.cognitiveHours.toFixed(2)}/${pools.physicalHours.toFixed(2)} h\n` +
+				`      mean loss vs planning under the truth   4/6 ${declared.meanLossPercent.toFixed(3)}%` +
+				`   derived ${derivedLoss.meanLossPercent.toFixed(3)}%` +
+				`   (Δ ${(derivedLoss.meanLossPercent - declared.meanLossPercent >= 0 ? '+' : '') + (derivedLoss.meanLossPercent - declared.meanLossPercent).toFixed(3)} pp)\n` +
+				`      worst day                               4/6 ${declared.worstLossPercent.toFixed(3)}%` +
+				`   derived ${derivedLoss.worstLossPercent.toFixed(3)}%\n` +
+				`      best day                                4/6 ${declared.bestLossPercent.toFixed(3)}%` +
+				`   derived ${derivedLoss.bestLossPercent.toFixed(3)}%   over ${declared.scoredDays} days`
+			);
+		});
+
+		console.log(
+			[
+				'',
+				'ARM D — plan value under the true pool (positive = worse than planning under the truth)',
+				`last ${DAY_CAP} days per point, scored on the objective Σ vᵢ·P̄ᵢ(tᵢ)`,
+				'',
+				...rows.flatMap((row) => [row, '']),
+				`  over the ${evaluable.length} evaluable points, mean loss   4/6 ${mean(evaluable.map((point) => point.declared)).toFixed(3)}%` +
+					`   derived ${mean(evaluable.map((point) => point.derived)).toFixed(3)}%`,
 				'',
 			].join('\n'),
 		);
