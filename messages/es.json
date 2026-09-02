@@ -375,6 +375,8 @@
 	"ana_model_stop": "Valor del tiempo libre",
 	"ana_model_note_flow": "por defecto {value} · {count} registros ⚡, ponderados por recencia",
 	"ana_model_note_flow_pending": "por defecto {value} · {count} registros ⚡, ponderados por recencia · {pending} registrados hoy, cuentan a partir de mañana",
+	"ana_model_note_flow_closer": "ajuste {value} más cerca que el valor por defecto en {count} registros predichos",
+	"ana_model_note_flow_further": "ajuste {value} más lejos que el valor por defecto en {count} registros predichos",
 	"ana_model_note_ratings": "por defecto {value} · {count} valoraciones",
 	"ana_model_note_recovery_pending": "por defecto {value} · {count} valoraciones · {pending} ☕ registrados hoy, cuentan a partir de mañana",
 	"ana_model_note_drain_pending": "por defecto {value} · {count} valoraciones · {pending} 🪫 registrados hoy, cuentan a partir de mañana",

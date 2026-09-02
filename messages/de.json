@@ -375,6 +375,8 @@
 	"ana_model_stop": "Freizeitwert",
 	"ana_model_note_flow": "Standard {value} · {count} ⚡-Logs, nach Aktualität gewichtet",
 	"ana_model_note_flow_pending": "Standard {value} · {count} ⚡-Logs, nach Aktualität gewichtet · {pending} heute erfasst, zählen ab morgen",
+	"ana_model_note_flow_closer": "Fit um {value} näher als der Standard über {count} vorhergesagte Logs",
+	"ana_model_note_flow_further": "Fit um {value} weiter entfernt als der Standard über {count} vorhergesagte Logs",
 	"ana_model_note_ratings": "Standard {value} · {count} Bewertungen",
 	"ana_model_note_recovery_pending": "Standard {value} · {count} Bewertungen · {pending} ☕ heute erfasst, zählen ab morgen",
 	"ana_model_note_drain_pending": "Standard {value} · {count} Bewertungen · {pending} 🪫 heute erfasst, zählen ab morgen",

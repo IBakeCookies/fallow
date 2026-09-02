@@ -561,3 +561,27 @@ test('a fresh profile offers nothing to reset', async ({ page }) => {
 			}),
 		).toHaveCount(0);
 });
+
+/* The ϕ skill sentence (MATH.md §5): the model card grades the fit against the
+   defaults over the user's own back-dated ⚡ history. Six distinct past dates
+   plus today give six predicted logs — the earliest block's fit had seen
+   nothing and is not scored — and identical 90m logs on a mid-scale task sit
+   far from the 45m default, so the fit is closer from the first scored block. */
+test('the model card says how much closer the fit has predicted', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await logFlow(page, 90);
+
+	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
+
+	for (const offset of [-6, -5, -4, -3, -2, -1]) {
+		await copyFlowLogToDate(page, isoDate(offset));
+	}
+
+	await page.goto('/analytics');
+
+	await expect(
+		page.getByText(/fit \d+(\.\d)? min closer than default over 6 predicted logs/),
+	).toBeVisible();
+});

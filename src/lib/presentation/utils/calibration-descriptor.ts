@@ -47,6 +47,18 @@ export function calibrationRows(
 	const perHour = (value: number) => `${f2(value)} ${m.unit_per_hour()}`;
 	const outputPerHour = (value: number) => `${f2(value)} ${m.unit_output_per_hour()}`;
 
+	// The §5 prequential skill reading arrives in signed hours (positive when the
+	// fit was closer); the spelling is one decimal of minutes, direction out loud.
+	const withSkill = (note: string, skill: CalibrationSnapshot['flow']['skill']) =>
+		!skill
+			? note
+			: `${note} · ${(skill.gapHours >= 0
+					? m.ana_model_note_flow_closer
+					: m.ana_model_note_flow_further)({
+					value: `${formatDecimals(Math.abs(skill.gapHours) * 60, 1, locale)} ${m.unit_minutes()}`,
+					count: skill.scoredCount,
+				})}`;
+
 	const rate = (
 		fit: {
 			fitted: boolean;
@@ -108,7 +120,7 @@ export function calibrationRows(
 			// fit would overstate what moved it. Today's logs are in neither number:
 			// no fit has read them yet, so they are named, not folded in — the
 			// row would otherwise read as though the ⚡ just logged had done nothing.
-			note:
+			note: withSkill(
 				flow.pendingCount > 0
 					? m.ana_model_note_flow_pending({
 							value: minutes(flow.defaultPhiHours),
@@ -119,6 +131,8 @@ export function calibrationRows(
 							value: minutes(flow.defaultPhiHours),
 							count: formatDecimals(flow.usedCount, 1, locale),
 						}),
+				flow.skill,
+			),
 			trend: trend(flowLabel, series.phiHours, flow.defaultPhiHours, minutes),
 		},
 		{

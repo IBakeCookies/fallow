@@ -13,7 +13,12 @@ import { $createRestObservation } from '$lib/data/repository/rest-observation-re
 import { $updateFitSnapshot } from '$lib/data/repository/fit-snapshot-repository';
 import { $createOrUpdateFlowObservation } from '$lib/data/repository/flow-observation-repository';
 import { prefillBudgetFor } from '$lib/business/model/budget-memory';
-import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
+import { daysBetween } from '$lib/business/utils/date';
+import {
+	calculateFlowStateTime,
+	DEFAULT_USER_CONSTANTS,
+	fitUserConstants,
+} from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { DailySession, FitSnapshotRecord, Task } from '$lib/data/type';
 
@@ -743,5 +748,137 @@ describe('readStopObservations', () => {
 				endedAt: Date.parse('2026-03-04T13:00:00.000Z'),
 			},
 		]);
+	});
+});
+
+/* The ϕ skill reading (MATH.md §5, scoring convention): the report grades the
+   fit prequentially over the user's own ⚡ history — each date block predicted
+   by the fit on logs dated strictly before it, aged against it — and states the
+   whole-walk mean-absolute gap, default minus fitted. The expected value below
+   is that walk written out longhand, so a fit that leaked a same-date sibling,
+   skipped the aging, or read a log dated past the report date cannot match it. */
+describe('readModelReport ϕ skill', () => {
+	// A consistent +1h offset from the default plane, no noise — learnable from
+	// the first log, so the fitted plane is strictly closer on every scored one.
+	const phi = (E: number, beta: number) =>
+		DEFAULT_USER_CONSTANTS.c1 * E +
+		DEFAULT_USER_CONSTANTS.c2 * beta +
+		DEFAULT_USER_CONSTANTS.c3 +
+		1;
+
+	// Dated before every other ⚡ row this suite seeds, so rows from the tests
+	// above sit past the report date and the walk below owns its whole window.
+	const logs = [
+		{
+			date: '2015-05-01',
+			taskId: 801,
+			E: 3,
+			beta: 1.5,
+		},
+		{
+			date: '2015-05-01',
+			taskId: 802,
+			E: 5,
+			beta: 1.8,
+		},
+		{
+			date: '2015-05-05',
+			taskId: 803,
+			E: 2,
+			beta: 1,
+		},
+		{
+			date: '2015-05-10',
+			taskId: 804,
+			E: 4,
+			beta: 1.7,
+		},
+		{
+			date: '2015-05-15',
+			taskId: 805,
+			E: 3.5,
+			beta: 2,
+		},
+		{
+			date: '2015-05-20',
+			taskId: 806,
+			E: 1.5,
+			beta: 1.2,
+		},
+	];
+
+	const todaysLog = {
+		date: '2015-05-25',
+		taskId: 807,
+		E: 4.5,
+		beta: 1.8,
+	};
+
+	const today = todaysLog.date;
+
+	const seed = (log: (typeof logs)[number]) =>
+		$createOrUpdateFlowObservation({
+			date: log.date,
+			taskId: log.taskId,
+			taskTitle: `skill ${log.taskId}`,
+			difficulty: 5,
+			enjoyment: 5,
+			E: log.E,
+			beta: log.beta,
+			phiHours: phi(log.E, log.beta),
+		});
+
+	// Five past dates give four scored blocks: the earliest block's fit had seen
+	// nothing, so both planes are the defaults and it is not a prediction.
+	it('stays null below 5 scored logs, not counting the n = 0 block', async () => {
+		for (const log of logs) await seed(log);
+
+		expect((await readModelReport(today, 30)).calibration.flow.skill).toBeNull();
+	});
+
+	it('scores today’s logs and reports the §5 walk’s mean-absolute gap', async () => {
+		await seed(todaysLog);
+
+		const all = [...logs, todaysLog];
+		const scoringDates = ['2015-05-05', '2015-05-10', '2015-05-15', '2015-05-20', today];
+		let defaultError = 0;
+		let fittedError = 0;
+		let scored = 0;
+
+		for (const day of scoringDates) {
+			const fit = fitUserConstants(
+				all
+					.filter((log) => log.date < day)
+					.map((log) => ({
+						E: log.E,
+						beta: log.beta,
+						phi: phi(log.E, log.beta),
+						ageDays: daysBetween(log.date, day),
+					})),
+			);
+
+			for (const log of all.filter((entry) => entry.date === day)) {
+				const observed = phi(log.E, log.beta);
+
+				defaultError += Math.abs(
+					observed - calculateFlowStateTime(log.E, log.beta, DEFAULT_USER_CONSTANTS),
+				);
+
+				fittedError += Math.abs(observed - calculateFlowStateTime(log.E, log.beta, fit.constants));
+
+				scored += 1;
+			}
+		}
+
+		const skill = (await readModelReport(today, 30)).calibration.flow.skill;
+
+		// Today's log is the fifth scored one: the fit on `date < today` predicted
+		// it, even though no fit has read it (`pendingCount` is about fitting).
+		expect(skill).not.toBeNull();
+		expect(skill!.scoredCount).toBe(5);
+		expect(scored).toBe(5);
+		expect(skill!.gapHours).toBeCloseTo((defaultError - fittedError) / scored, 10);
+		// Positive when the fit was closer — the offset above makes it so.
+		expect(skill!.gapHours).toBeGreaterThan(0);
 	});
 });

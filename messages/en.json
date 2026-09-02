@@ -375,6 +375,8 @@
 	"ana_model_stop": "Free-time value",
 	"ana_model_note_flow": "default {value} · {count} ⚡ logs, recency-weighted",
 	"ana_model_note_flow_pending": "default {value} · {count} ⚡ logs, recency-weighted · {pending} logged today, counted from tomorrow",
+	"ana_model_note_flow_closer": "fit {value} closer than default over {count} predicted logs",
+	"ana_model_note_flow_further": "fit {value} further than default over {count} predicted logs",
 	"ana_model_note_ratings": "default {value} · {count} ratings",
 	"ana_model_note_recovery_pending": "default {value} · {count} ratings · {pending} ☕ logged today, counted from tomorrow",
 	"ana_model_note_drain_pending": "default {value} · {count} ratings · {pending} 🪫 logged today, counted from tomorrow",

@@ -375,6 +375,8 @@
 	"ana_model_stop": "空闲时间价值",
 	"ana_model_note_flow": "默认 {value} · {count} 条 ⚡ 记录，按时间近远加权",
 	"ana_model_note_flow_pending": "默认 {value} · {count} 条 ⚡ 记录，按时间近远加权 · 今天记录了 {pending} 条，从明天起计入",
+	"ana_model_note_flow_closer": "在 {count} 条被预测的记录上，拟合比默认值近 {value}",
+	"ana_model_note_flow_further": "在 {count} 条被预测的记录上，拟合比默认值远 {value}",
 	"ana_model_note_ratings": "默认 {value} · {count} 次评分",
 	"ana_model_note_recovery_pending": "默认 {value} · {count} 次评分 · 今天记录了 {pending} 条 ☕，从明天起计入",
 	"ana_model_note_drain_pending": "默认 {value} · {count} 次评分 · 今天记录了 {pending} 条 🪫，从明天起计入",

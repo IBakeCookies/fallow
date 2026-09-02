@@ -29,6 +29,7 @@ const unfitted: CalibrationSnapshot = {
 		pendingCount: 0,
 		phiHours: 0.5,
 		defaultPhiHours: 0.75,
+		skill: null,
 	},
 	energy: {
 		params: defaults,
@@ -98,6 +99,7 @@ describe('calibrationRows', () => {
 					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
+					skill: null,
 				},
 				energy: {
 					...unfitted.energy,
@@ -161,6 +163,84 @@ describe('calibrationRows', () => {
 		expect(rows[4].note).toBe('default 0.40 · 0 days');
 	});
 
+	/* The prequential skill sentence (MATH.md §5): whether trusting the fit has
+	   ever paid, in minutes per predicted ⚡ log. The gap arrives in hours and
+	   signed — positive when the fit was closer — and the descriptor's whole job
+	   is the spelling: one decimal of minutes, the direction said out loud. */
+	it('says how much closer the fit has predicted than the default', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				flow: {
+					fitted: true,
+					usedCount: 14,
+					pendingCount: 0,
+					phiHours: 0.4,
+					defaultPhiHours: 0.75,
+					skill: {
+						gapHours: 0.1,
+						scoredCount: 12,
+					},
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[0].note).toBe(
+			'default 45 min · 14.0 ⚡ logs, recency-weighted · fit 6.0 min closer than default over 12 predicted logs',
+		);
+	});
+
+	// A losing fit says so in the same form — never hidden, never clamped to zero.
+	it('says when the fit has predicted further than the default', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				flow: {
+					fitted: true,
+					usedCount: 14,
+					pendingCount: 0,
+					phiHours: 0.4,
+					defaultPhiHours: 0.75,
+					skill: {
+						gapHours: -0.05,
+						scoredCount: 8,
+					},
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[0].note).toBe(
+			'default 45 min · 14.0 ⚡ logs, recency-weighted · fit 3.0 min further than default over 8 predicted logs',
+		);
+	});
+
+	// Below the floor the business layer sends null, and the row reads exactly as
+	// it does today — on a young fit and on a fresh profile alike.
+	it('renders no skill sentence below the floor or on a fresh profile', () => {
+		const young = calibrationRows(
+			{
+				...unfitted,
+				flow: {
+					fitted: true,
+					usedCount: 3.5,
+					pendingCount: 0,
+					phiHours: 0.4,
+					defaultPhiHours: 0.75,
+					skill: null,
+				},
+			},
+			'en-US',
+		);
+
+		expect(young[0].note).toBe('default 45 min · 3.5 ⚡ logs, recency-weighted');
+
+		const fresh = calibrationRows(unfitted, 'en-US');
+
+		expect(fresh[0].note).toBe('default 45 min · 0.0 ⚡ logs, recency-weighted');
+	});
+
 	// The ϕ row alone is recency-weighted (MATH.md §5.2), so its count is an
 	// effective one — fractional, and below the ⚡ logs the user actually has.
 	// The other rows count whole observations and must keep saying so.
@@ -174,6 +254,7 @@ describe('calibrationRows', () => {
 					pendingCount: 0,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
+					skill: null,
 				},
 			},
 			'en-US',
@@ -196,6 +277,7 @@ describe('calibrationRows', () => {
 					pendingCount: 2,
 					phiHours: 0.4,
 					defaultPhiHours: 0.75,
+					skill: null,
 				},
 			},
 			'en-US',
