@@ -36,17 +36,14 @@ if (bases.length > 1) {
 	process.exit(1);
 }
 
-// `rep` restarts at 1 in every invocation, so the pair key the sign test needs
-// is unique only within one sweep — across pooled files it would merge two runs
-// into one and report the widening as n=1. Run identity comes off `run_id`,
-// which is unique by construction.
-const rows = sweeps.flatMap((sweep, sweepIndex) =>
-	sweep.rows.map((row) => ({
-		...row,
-		pair: `${sweepIndex}|${row.case}|${row.rep}`,
-	})),
-);
-
+// Run identity is `run_id`, not `condition|case|rep`: `rep` restarts at 1 in
+// every invocation, so the old key merged two pooled runs of one arm into one
+// and reported a widened arm as n=1. The sign test still pairs on `case|rep`
+// and pairs ACROSS files deliberately — an arm finished in a second invocation
+// pairs with the first, which is the point of pooling, and the identical `base`
+// the pool already refuses to mix is what makes that sound. A cell run twice
+// contributes both runs to n and the first of them to the pairing.
+const rows = sweeps.flatMap((sweep) => sweep.rows);
 const conditions = [...new Set(rows.map((r) => r.condition))];
 
 // --- rates -----------------------------------------------------------------
@@ -86,14 +83,14 @@ for (const condition of conditions)
 //
 // A run contributes many rows, so row-level counts overstate the evidence: the
 // rows within one run share an agent, a prompt and a context. Pairing by
-// (sweep, case, rep) is what the conditions were actually varied across.
+// (case, rep) is what the conditions were actually varied across.
 
 const runs = new Map();
 
 for (const row of rows) {
 	const run = runs.get(row.run_id) ?? {
 		condition: row.condition,
-		pair: row.pair,
+		pair: `${row.case}|${row.rep}`,
 		pass: 0,
 		total: 0,
 		turns: row.turns ?? null,
