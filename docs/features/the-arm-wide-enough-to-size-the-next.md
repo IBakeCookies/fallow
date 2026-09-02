@@ -108,11 +108,52 @@ git worktree per in-flight run (three here, 1.3 GB on
 
 ## Claims
 
-_Filled from the sweep at land. Every figure is read off
-`node eval/analyze.mjs` on the results files, never computed by hand beside
-them. **Nothing is claimed from the 15-run partial** — two of six cases in one
-arm and one of six in the other is exactly the case-to-case narrowness this
-sweep exists to stop sizing on._
+Every figure is read off `node eval/analyze.mjs`, never computed by hand beside
+it. The sweep did **not** finish, so the arms are not sized and the finding
+stays open — but the attempt found something larger than what it was sent for.
+
+- **`n = 60` was never a measurement.** It was read off
+  `2026-08-19T19-48-11.317Z`, and **all 12 of that sweep's runs carry `notes`** —
+  zero usable rows. Its notes are `denied Bash: npx prettier --write …`,
+  `denied Bash: npx svelte-kit sync …` and `agent exited 1`: it is the
+  pre-container allowlisted sweep `eval/README.md` already condemns in
+  "What the agent under test may do" — _"of 72 rows, 60 carried a tool denial
+  and the other 12 a non-zero exit — zero usable rows"_ — and it has exactly 72
+  rows. The README also names the bias: the allowlist denied the
+  `prettier --write` that AGENTS.md §3 demands, so `targeted` and `monolith`
+  were the only arms that would attempt it and the only ones penalised, with a
+  sign favouring rule-ignorance. **The largest of the three asks came from the
+  sweep that measured the permission layer**, and "size on the largest" pointed
+  at it.
+- **A second historical figure moves, for the same reason.**
+  `2026-08-20T12-31-25.374Z` has 2 contaminated runs of 12. Dropping them takes
+  `targeted` to n = 4, pooled SD 34, and the ask from **n = 42 to n = 46** —
+  and its pairing collapses from 6 pairs to **0**, because both dropped runs
+  were `targeted`.
+- **One of the three was always clean.** `2026-08-19T22-08-29.542Z` has no
+  contaminated runs; its n = 23 stands exactly as the earlier spec recorded it.
+- **The contamination was invisible because the analyzer scored it as
+  disobedience.** Nothing filtered `notes`, so a refused tool or a dead agent
+  counted as a broken rule. That is fixed here: a run with any noted row is
+  dropped whole and the count is printed.
+
+What today's own runs bought, and the reason they are not the answer:
+
+- **40 runs attempted, 27 clean, 13 contaminated, $130.35.** Clean coverage is
+  `calendar-month-cache` 5/5, `day-note-storage` 5/5,
+  `drain-severity-chips` 5 `targeted` / 2 `monolith`, and **nothing at all** for
+  `edit-form-focus`, `footer-legibility` or `lab-optimal-time`.
+- **Pooled clean: `targeted` n = 15 at SD 11, `monolith` n = 12 at SD 13**,
+  pooled SD 12 — resolving 14 points, and asking only n = 6 per arm for 20.
+  **This is not the sizing answer.** Half the cases are missing, case-to-case
+  variance is the term the arms are fighting, and an SD read off the cases that
+  happened to run first is the same error as sizing off six runs, in better
+  numbers. Recording it as a result is what this whole item exists to refuse.
+- **The 13 contaminated runs were not a rule the agent broke.** Eight ran at
+  turns = 1 and **$0.00** with empty stderr — the agent never executed — and
+  three `drain-severity-chips` runs exited 1 after real work. They arrived in
+  time order, not case order, and the harness's own `--cases` queueing makes
+  those two indistinguishable in this data.
 
 `eval/results/` is gitignored, so a results file is local evidence and a
 `git clean -xdf` deletes it. The stopped sweep's 15 runs live on this machine

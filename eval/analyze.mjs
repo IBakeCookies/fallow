@@ -43,7 +43,16 @@ if (bases.length > 1) {
 // pairs with the first, which is the point of pooling, and the identical `base`
 // the pool already refuses to mix is what makes that sound. A cell run twice
 // contributes both runs to n and the first of them to the pairing.
-const rows = sweeps.flatMap((sweep) => sweep.rows);
+const pooled = sweeps.flatMap((sweep) => sweep.rows);
+// `notes` is an alarm, not an expectation (eval/README.md): it carries a tool the
+// permission layer refused or a non-zero agent exit, so such a row records a
+// harness failure and not a rule the agent broke. Scoring it as a rule failure
+// is worse than dropping it — it charges whichever arm the failure landed in for
+// the harness's fault, which is the sign error that made the pre-container
+// sweeps worthless. A run is dropped whole, because its rules are not
+// independently salvageable, and the count is always printed.
+const contaminated = new Set(pooled.filter((r) => r.notes).map((r) => r.run_id));
+const rows = pooled.filter((r) => !contaminated.has(r.run_id));
 const conditions = [...new Set(rows.map((r) => r.condition))];
 
 // --- rates -----------------------------------------------------------------
@@ -69,8 +78,16 @@ const spread = (xs) => {
 
 console.log(
 	`\n${files.join('\n')}\n${rows.length} rows, ${conditions.length} conditions, ` +
-		`base ${bases[0]}\n`,
+		`base ${bases[0]}`,
 );
+
+if (contaminated.size)
+	console.log(
+		`! ${contaminated.size} run(s) dropped for non-empty notes — ` +
+			`a harness failure, not a rule. ${pooled.length - rows.length} row(s) excluded.`,
+	);
+
+console.log();
 
 console.log('ROW LEVEL');
 
