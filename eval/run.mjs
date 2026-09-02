@@ -410,7 +410,6 @@ const executeRun = async (task, base, token, maxTurns) =>
 // --- pool ------------------------------------------------------------------
 
 const pool = async (items, limit, worker) => {
-	const results = [];
 	let next = 0;
 
 	const runners = Array.from(
@@ -418,16 +417,11 @@ const pool = async (items, limit, worker) => {
 			length: Math.min(limit, items.length),
 		},
 		async () => {
-			while (next < items.length) {
-				const index = next++;
-				results[index] = await worker(items[index]);
-			}
+			while (next < items.length) await worker(items[next++]);
 		},
 	);
 
 	await Promise.all(runners);
-
-	return results.flat();
 };
 
 // --- main ------------------------------------------------------------------
@@ -494,22 +488,21 @@ const main = async () => {
 
 	console.log(`${tasks.length} run(s) against base ${base}, concurrency ${args.concurrency}`);
 
-	const rows = await pool(tasks, args.concurrency, async (task) => {
-		console.log(`- ${task.row.case} / ${task.row.condition} / rep ${task.row.rep}`);
-
-		return executeRun(task, base, token, args.maxTurns);
-	});
-
 	await mkdir(RESULTS_DIR, {
 		recursive: true,
 	});
 
 	const stamp = new Date().toISOString().replaceAll(':', '-');
 	const out = path.join(RESULTS_DIR, `${stamp}.json`);
+	const rows = [];
+	// The file is rewritten as each run lands rather than once at the end: an arm
+	// wide enough to decide anything is hours long, and a sweep that dies on run
+	// 58 of 60 has to leave 57 scored runs behind to pool. Serialised because the
+	// pool is concurrent and two writeFile calls to one path can interleave.
+	let writing = Promise.resolve();
 
-	await writeFile(
-		out,
-		`${JSON.stringify(
+	const flush = () => {
+		const snapshot = `${JSON.stringify(
 			{
 				base,
 				canary,
@@ -517,8 +510,19 @@ const main = async () => {
 			},
 			null,
 			2,
-		)}\n`,
-	);
+		)}\n`;
+
+		writing = writing.then(() => writeFile(out, snapshot));
+
+		return writing;
+	};
+
+	await pool(tasks, args.concurrency, async (task) => {
+		console.log(`- ${task.row.case} / ${task.row.condition} / rep ${task.row.rep}`);
+
+		rows.push(...(await executeRun(task, base, token, args.maxTurns)));
+		await flush();
+	});
 
 	console.log(`${rows.length} row(s) -> ${out}`);
 };
