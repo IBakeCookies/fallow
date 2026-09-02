@@ -504,7 +504,9 @@ have to be re-derived:
   it shipped 2026-08-31
   ([the-band-beside-the-flow-time.md](docs/features/the-band-beside-the-flow-time.md)).
 - **Fit-vs-default plan diff; a funded-set robustness sweep; the information
-  value of the next ⚡ log.** Redundant with item 34's rows or expected to
+  value of the next ⚡ log.** Redundant with the ϕ skill reading
+  ([the-minutes-the-fit-was-closer.md](docs/features/the-minutes-the-fit-was-closer.md))
+  or expected to
   collapse to a static sentence; the robustness sweep also costs 2n+4 solves,
   worse than the whole advice run. Run each as a probe only — the cheapest good
   outcome is one constant sentence and no code.

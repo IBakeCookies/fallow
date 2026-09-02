@@ -49,7 +49,7 @@ export function calibrationRows(
 
 	// The §5 prequential skill reading arrives in signed hours (positive when the
 	// fit was closer); the spelling is one decimal of minutes, direction out loud.
-	const withSkill = (note: string, skill: CalibrationSnapshot['flow']['skill']) =>
+	const noteWithSkill = (note: string, skill: CalibrationSnapshot['flow']['skill']) =>
 		!skill
 			? note
 			: `${note} · ${(skill.gapHours >= 0
@@ -120,7 +120,9 @@ export function calibrationRows(
 			// fit would overstate what moved it. Today's logs are in neither number:
 			// no fit has read them yet, so they are named, not folded in — the
 			// row would otherwise read as though the ⚡ just logged had done nothing.
-			note: withSkill(
+			// The skill sentence's predicted-log count DOES include them — a fit
+			// predicted them even though none has read them (MATH.md §5).
+			note: noteWithSkill(
 				flow.pendingCount > 0
 					? m.ana_model_note_flow_pending({
 							value: minutes(flow.defaultPhiHours),
