@@ -694,6 +694,21 @@ nobody was running.
   runs per arm against the six they ran. **No arm has been widened**, so no
   comparison here has been decided; what changed is that a sweep now says so.
 
+  **Two of those three numbers, and the SD 39 above, were read off contaminated
+  runs** — corrected 2026-09-02,
+  [`the-arm-wide-enough-to-size-the-next`](docs/features/the-arm-wide-enough-to-size-the-next.md).
+  Nothing filtered `notes`, so a refused tool or a dead agent scored as a broken
+  rule. The n = 60 and the SD 39 both come from `2026-08-19T19-48-11.317Z`,
+  **all twelve of whose runs are contaminated** — it is the pre-container
+  allowlisted sweep `eval/README.md` already calls zero usable rows, with the
+  sign that favours rule-ignorance. So "size on the largest" named the one sweep
+  that measured the permission layer. The n = 42 sweep loses 2 runs of 12 and
+  asks n = 46 with 0 pairs; only the n = 23 sweep was ever clean. `analyze.mjs`
+  now drops a noted run whole and prints the count. **Still no arm widened**: an
+  attempt on 2026-09-02 banked 27 clean runs of 60 before the agent under test
+  stopped executing, with three of six cases scoring nothing, and no figure is
+  claimed from it.
+
 ## Findings from the 2026-08-25 `SessionStore` review
 
 A read-only review of [`session-store.svelte.ts`](src/lib/business/store/session-store.svelte.ts)
