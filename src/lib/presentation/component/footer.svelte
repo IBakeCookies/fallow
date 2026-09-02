@@ -23,10 +23,8 @@
 	];
 </script>
 
-<footer class="mt-auto pt-page pb-text-2xs text-xs text-ty-silent">
-	<div
-		class="flex w-max items-center gap-text-md rounded-xl border bg-surface-card px-box-sm py-box-3xs backdrop-blur"
-	>
+<footer class="border-t border-line-soft bg-surface-float text-xs text-ty-silent backdrop-blur">
+	<div class="page-column flex items-center gap-text-md py-box-md">
 		{#each links as link (link.href)}
 			<!-- internal hrefs are resolve()d in the links array; the rule can't trace through it -->
 			<a

@@ -391,6 +391,23 @@
 	}
 }
 
+/* The app's horizontal frame: centred, capped at the layout width, and inset by
+   the responsive page gutter. Three sites spell it — the nav bar's row, the
+   content column in `(app)/+layout.svelte`, and the footer's row — and they have
+   to agree to the pixel, because the two bars are full-bleed and only their
+   inner rows line the chrome up with the content between them. A footer that
+   dropped `mx-auto` was left-aligned against a centred page for exactly as long
+   as this was three hand-copies (STYLE.md, "A repeated cluster becomes an
+   `@utility`").
+
+   VERTICAL padding is not in here: the bars carry `py-box-md` and the content
+   column `py-page`, which is the difference between chrome and a page. An
+   `@utility` and not a wrapper component, like every other cluster in this file
+   — a component would put a div between the bar and its own contents. */
+@utility page-column {
+	@apply mx-auto w-full max-w-layout px-page-sm sm:px-page-md lg:px-page;
+}
+
 /* The card surface every panel in the app sits on. Padding is deliberately not
    in here — it genuinely varies per card — and the radius is the common 2xl;
    smaller cards stack `rounded-xl` after it, which wins because single-property
@@ -413,17 +430,23 @@
    (base.css `.solid-light`/`.solid-dark`, themes.css "the set-square themes"
    and "the rounded opaque themes", plus blueprint and parchment) it is the same
    flat ink and the rows vanished. The recessed rung is what a well cut into a
-   card is for, and it is distinct from the card on every theme — which became
-   true only when `--surface-inset` started being derived per side rather than
-   hand-set (STYLE.md): on the dark themes it used to measure 1.013-1.079
-   against its own card, and this row was the invisible thing the sentence
-   claimed it was not. */
+   card is for, and deriving `--surface-inset` per side rather than hand-setting
+   it (STYLE.md) is what made the rung distinct on the 25 dark themes, where it
+   used to measure 1.013-1.079 against its own card and this row was the
+   invisible thing this comment once claimed it was not. It is measured now
+   rather than asserted — scripts/inset-contrast.mjs, worst 1.112 of 46 — and
+   the light step is 0.14 and not 0.1 because at 0.1 `ukiyo`'s row was the next
+   one to vanish (base.css). */
 /* An advisory strip across the top of the page's column: the storage banner and the
    example day's. Geometry only — each carries its own severity tokens, since one is a
    failure and the other is a standing note (STYLE.md, "A repeated cluster becomes an
-   `@utility`"). */
+   `@utility`"). The blur is geometry too, and shared: both banners are a tint at
+   low alpha over the page, so both need whatever is behind them smeared for the
+   same reason `card-shell` does. It sat on the example day's call site alone
+   long enough to be worth saying — one caller blurring and the other not is the
+   shape diverging, not a severity. */
 @utility banner-shell {
-	@apply mb-grid-lg flex items-center gap-grid-sm rounded-xl border p-box-md text-sm;
+	@apply mb-grid-lg flex items-center gap-grid-sm rounded-xl border p-box-md text-sm backdrop-blur;
 }
 
 @utility log-row {

@@ -63,6 +63,16 @@
 		'bg-series-8',
 		'bg-series-rest',
 	];
+
+	/* The "Inset on card" story below exists for scripts/inset-contrast.mjs and
+	   not for the eye: `--surface-inset` is derived from the card it sits in
+	   (base.css), so the only pair that answers "is the well visible" is the
+	   inset AGAINST ITS OWN CARD. The Swatches story cannot answer it — every
+	   swatch there composites over the PAGE. It renders the real consumer,
+	   `log-row` inside `card-shell`, wide enough that the strip between the two
+	   labels is clear of glyphs for the script to sample. A note here rather
+	   than above the markup: addon-svelte-csf would take a markup comment as
+	   the next story's description (docs/testing.md). */
 </script>
 
 <Story name="Background">
@@ -137,5 +147,16 @@
 			<hr class="border-line-soft" />
 			<p class="text-xs text-ty-silent">line-soft above, line-strong on the card border.</p>
 		</section>
+	</div>
+</Story>
+
+<Story name="Inset on card" asChild>
+	<div class="p-page">
+		<div class="card-shell w-96 p-box-xl" data-testid="inset-card">
+			<div class="log-row h-8" data-testid="inset-well">
+				<span>Break</span>
+				<span>45 min</span>
+			</div>
+		</div>
 	</div>
 </Story>
