@@ -53,6 +53,25 @@ the change, not a follow-up:**
 skip it. If a change genuinely cannot be tested, say so explicitly and why —
 usually a sign it is in the wrong file (R2).
 
+### A test that is hard to arrange is a design report
+
+Above is the placement half — code you cannot test at any level is in the wrong
+file. This is the shape half: code you can only test by mocking a module is
+usually in the wrong **signature**. The tell is reaching for `vi.mock` to build
+the **arrange** rather than to silence a side effect — you cannot vary an input
+you cannot pass, so the case you meant to write is unconstructible and one mock
+ends up serving both the setup and the assertion.
+
+The fix is a parameter. Every store rule in
+[business/AGENTS.md](../src/lib/business/AGENTS.md) that injects a collaborator
+is this signal acted on — the notify thunks, `SessionStore`'s `ReadDateParam`,
+`ThemeStore`'s two appearance snapshots, whose precedence no test could set up
+while the store read `document.cookie` for itself.
+
+Mocking is not itself the smell: silencing I/O, freezing a clock or stubbing a
+write you are about to assert on stays correct — `theme-store.svelte.spec.ts`
+mocks the appearance repository's write side, and only that.
+
 Test the invariant, not the implementation: "completing a task must not move
 plan-scoped metrics" — a rule that has actually been violated — not that a
 function returns what it returns.
