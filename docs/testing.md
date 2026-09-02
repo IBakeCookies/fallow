@@ -78,6 +78,13 @@ Contrast stays enforced on every real component. Storybook is also what
 ever sees a story's REST state, so every hover fill's step and label contrast
 is measured there instead, over every theme × the 5 button variants that carry
 a hover fill (`link` carries none, so it is not measured).
+`scripts/inset-contrast.mjs` drives :6006 the same way, for the pair axe cannot
+see either: `--surface-inset` is derived from the card it sits in, so the only
+reading that means anything is the well against ITS OWN CARD, and the Theme >
+Swatches story composites every surface over the page instead. It has a story of
+its own (Theme > Inset on card, the real `log-row` inside a `card-shell`) and
+checks two ratios per theme — the well against the card, and the row's label
+against the well.
 
 A note in a story file never goes in an HTML comment. `addon-svelte-csf` takes the
 last markup comment it walked past and writes it into the next story's

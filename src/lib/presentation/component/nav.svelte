@@ -101,9 +101,7 @@
 </script>
 
 <header class="sticky top-0 z-20 border-b border-line-soft bg-surface-float backdrop-blur">
-	<div
-		class="mx-auto flex w-full max-w-layout items-center justify-between gap-grid-md px-page-sm py-box-md sm:px-page-md lg:px-page"
-	>
+	<div class="page-column flex items-center justify-between gap-grid-md py-box-md">
 		<div class="flex items-center gap-grid-sm sm:gap-grid-lg">
 			<!-- The brand mark carries the tagline: it is on every route, so "what is
 			     this app" is answered wherever the visitor landed. -->

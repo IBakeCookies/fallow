@@ -94,22 +94,32 @@
 	   set-square themes" and "the rounded opaque themes"). */
 	--surface-card: oklch(1 0 0 / 0.7);
 
-	/* DERIVED, and the only place it is set outside the two opaque classics —
+	/* DERIVED, and the only place it is set outside `.solid-light` —
 	   45 themes hand-set this and 22 of the 25 dark ones set it to black at
 	   alpha, which on a page already at L 0.09-0.16 is a well cut into a floor
 	   that is already the bottom: the range track measured 1.013-1.079 against
 	   its own card, i.e. invisible. Direction is the whole point and it flips
 	   with the page, exactly as `.solid-dark` says of its three rungs — an inset
-	   RECEDES on a light theme and CLIMBS on a dark one — so the two sides carry
-	   the same 0.14 step with opposite sign.
+	   RECEDES on a light theme and CLIMBS on a dark one. The two steps are NOT
+	   the same size, and the sign is why: 0.14 receding on the light side, 0.1
+	   climbing on the dark one, each the largest well its own side can carry.
+	   Both were 0.14 when the derivation landed.
 
 	   Both channels move for the same reason `--surface-card-hover` moves both:
 	   an opaque card has no alpha to scale and a white-at-6% card has no
 	   lightness left to raise, and every theme is one or the other. The alpha
 	   gains differ because the light side is white-on-white, where alpha buys
 	   almost nothing, and the dark side is white-on-near-black, where it buys
-	   almost everything. Measured over all 46: light min 1.092 -> 1.127, median
-	   1.137 -> 1.301; dark min 1.013 -> 1.381, median 1.056 -> 1.521. */
+	   almost everything. scripts/inset-contrast.mjs measures each side against
+	   its own card, and the two steps are the two ends it found. The dark side
+	   dropped to 0.1 because 0.14 puts `blueprint`'s row label at 3.95:1 on the
+	   well it sits in — under AA, and a pair no instrument covered until that
+	   script existed. The light side stayed at 0.14 because 0.1 takes `ukiyo`'s
+	   well to 1.007 against its own card, i.e. back to invisible: a near-white
+	   translucent card (L 0.98 at alpha 0.6) is the white-on-white case above
+	   taken to its limit, where neither channel has anywhere left to go. Shipped,
+	   over all 46: light min 1.112 and median 1.298, dark min 1.249 and median
+	   1.405, worst label 4.68:1, nothing under the bound. */
 	--surface-inset: oklch(
 		from var(--surface-card) calc(l - 0.14) c h / calc(alpha + (1 - alpha) * 0.4)
 	);
@@ -509,7 +519,7 @@
 	   smaller because a white card over a near-black page gains far more per
 	   point of alpha than a white card over a white one. */
 	--surface-inset: oklch(
-		from var(--surface-card) calc(l + 0.14) c h / calc(alpha + (1 - alpha) * 0.06)
+		from var(--surface-card) calc(l + 0.1) c h / calc(alpha + (1 - alpha) * 0.06)
 	);
 	--ty-primary: oklch(1 0 0);
 	--primary: oklch(0.55 0.2 285);
@@ -559,12 +569,17 @@
 
 /* Classic dark — see `.solid-light` for the bargain. The three rungs climb
    here where they descend there: on a dark page the recessed surface is the
-   lighter one, which is what the alpha pair this replaces already said. */
+   lighter one, which is what the alpha pair this replaces already said.
+
+   The inset rung is NOT set here, where `.solid-light` still sets its own: at
+   a 0.1 step the derived `.dark` rule reproduces this card's own flattening
+   (0.26 -> 0.36, against the 0.363 this block used to declare), while
+   `.solid-light`'s well is only 0.06 deep and the derived rule would deepen
+   it. Arithmetic on the declared values, not a rendered-pixel run. */
 .solid-dark {
 	--blur: 0;
 
 	--surface-card: oklch(0.26 0.015 285);
-	--surface-inset: oklch(0.363 0.012 286);
 	--input: oklch(0.347 0.012 286);
 	--secondary-hover: color-mix(in oklab, var(--primary) 45%, var(--control));
 }

@@ -233,9 +233,7 @@
 			</div>
 		{/snippet}
 	</Nav>
-	<div
-		class="mx-auto w-full max-w-layout px-page-sm py-page sm:px-page-md lg:px-page flex min-h-0 flex-1 flex-col"
-	>
+	<div class="page-column flex min-h-0 flex-1 flex-col py-page">
 		{#if session.isDemo}
 			<div role="alert" class="banner-shell border-brand/20 bg-brand/5 text-ty-primary">
 				<span class="flex-1">{m.demo_banner()}</span>
@@ -272,8 +270,9 @@
 			</div>
 		{/if}
 		{@render children()}
-		<Footer />
 	</div>
+
+	<Footer />
 </main>
 
 <!--
