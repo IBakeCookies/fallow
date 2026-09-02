@@ -125,7 +125,11 @@ phase (400 synthetic days, 3–7 tasks, budgets {2,4,4,6,8}, real
 ϕ off by +0.5 h on **every** task costs **0.074%** (the ϕ anchor);
 one enjoyment point on **one** task **0.052%**; one task's mental demand off by
 4 points **0.582%**; a pool 2× wrong **4.1–5.7%**; `switchCost` 2× too high
-**10.1%**; every slider left at 5/5/5 **5.42%**.
+**10.1%**; every slider left at 5/5/5 **5.42%**; a day with one `high` task
+planned with importance left undeclared **4.45%** — and, measured per grid cell
+rather than at this scope, a `high` remembered on the WRONG task costs
+**1.96–2.97×** what declaring nothing costs, in every cell
+([the-weight-nobody-had-priced](docs/features/the-weight-nobody-had-priced.md)).
 **Read the scope of each figure before comparing two of them.** Item 15 excluded
 enjoyment by putting the per-point-per-task 0.052% next to the every-task ϕ
 anchor and concluding the β channel was "a re-labeling, not a loss". Measured at
@@ -427,6 +431,8 @@ What survives of the multi-day idea is two readings, not a solver:
 
 23. ~~**Task importance weight — `Σ vᵢ·P̄ᵢ(tᵢ)`**~~ — SHIPPED 2026-08-31 (MATH.md §0).
     [docs/features/task-importance-weight.md](docs/features/task-importance-weight.md)
+    Its price measured 2026-09-03, and the reach argument it shipped on
+    corrected: [docs/features/the-weight-nobody-had-priced.md](docs/features/the-weight-nobody-had-priced.md)
 
 ## Phase 6 — product and reach
 
