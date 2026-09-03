@@ -2,16 +2,13 @@
 	import type { TaskImportance } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
 	import { cn } from '$lib/presentation/utils';
-	import { buttonVariants, type ButtonSize } from '$lib/presentation/component/ui/button';
+	import { buttonVariants } from '$lib/presentation/component/ui/button';
 
 	interface Props {
 		importance: TaskImportance;
-		size?: ButtonSize;
 	}
 
-	// Sized by the caller, like `MustDoToggle` and for the same reason: each form's
-	// footer buttons pick a scale and these have to read as part of it.
-	let { importance = $bindable(), size = 'default' }: Props = $props();
+	let { importance = $bindable() }: Props = $props();
 
 	// `$props.id()`, because both forms can be mounted at once (the add dialog and a
 	// row's editor) and one shared name would make them a single radio group.
@@ -49,12 +46,8 @@
 				class={cn(
 					buttonVariants({
 						variant: importance === level.value ? 'secondary' : 'outline',
-						size,
 					}),
-					'has-focus-visible:border-ring has-focus-visible:ring-ring/50 relative has-focus-visible:ring-3',
-					{
-						'flex-1': size === 'default',
-					},
+					'has-focus-visible:border-ring has-focus-visible:ring-ring/50 relative flex-1 has-focus-visible:ring-3',
 				)}
 			>
 				<input

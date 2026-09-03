@@ -1,15 +1,14 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import { cn } from '$lib/presentation/utils';
-	import { buttonVariants, type ButtonSize } from '$lib/presentation/component/ui/button';
+	import { buttonVariants } from '$lib/presentation/component/ui/button';
 
 	interface Props {
 		mustDoToday: boolean;
-		size?: ButtonSize;
 		class?: string;
 	}
 
-	let { mustDoToday = $bindable(), size = 'default', class: className }: Props = $props();
+	let { mustDoToday = $bindable(), class: className }: Props = $props();
 </script>
 
 <!-- A button's look on a real checkbox, which is the STYLE.md carve-out from
@@ -24,7 +23,6 @@
 	class={cn(
 		buttonVariants({
 			variant: mustDoToday ? 'secondary' : 'outline',
-			size,
 		}),
 		'has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 relative has-[:focus-visible]:ring-3',
 		className,
