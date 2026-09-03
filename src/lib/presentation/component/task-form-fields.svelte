@@ -93,13 +93,13 @@
 	] as const;
 </script>
 
-<div class="@container space-y-grid-md">
+<div class="@container space-y-grid-lg">
 	<!-- Three across where the fields have the room — the ledger's inline editor,
 	     which is as wide as the table — and one per line in the dialog's field
 	     column, where three short tracks are harder to drag than three long ones.
 	     A container query rather than a breakpoint: the same component is in both,
 	     and neither width is the viewport's (`--container-task-fields`). -->
-	<div class="grid gap-grid-md @task-fields:grid-cols-3">
+	<div class="grid gap-grid-lg @task-fields:grid-cols-3">
 		{#each sliders as slider (slider.key)}
 			<!-- The wrapping label is what names the range input -->
 			<label class="grid grid-cols-[auto_1fr_2ch] items-center gap-x-grid-xs">
@@ -118,7 +118,7 @@
 		{/each}
 	</div>
 
-	<div class="grid items-start gap-grid-md border-t border-line-soft pt-grid-md md:grid-cols-2">
+	<div class="grid items-start gap-grid-lg border-t border-line-soft pt-grid-lg md:grid-cols-2">
 		<!-- A rule under the sliders: the three ratings describe the WORK, and what
 	     follows describes the task's place in the day. -->
 		<TaskImportanceSelect bind:importance={draft.importance} />

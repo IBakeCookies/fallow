@@ -192,15 +192,15 @@
      at all, so the tab order is the field column, top to bottom, as written: no
      `order-*`, and never a positive `tabindex`. -->
 <form
-	class="grid gap-grid-lg {impact === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
+	class="grid gap-grid-xl {impact === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
 	onsubmit={handleSubmit}
 >
 	<!-- Framed only when there is a reading to be told apart from; the Lab's one
 	     column is already the dialog's own box. -->
 	<div
-		class="min-w-0 space-y-grid-md {impact === undefined
+		class="min-w-0 space-y-grid-lg {impact === undefined
 			? ''
-			: 'rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur'}"
+			: 'rounded-md border border-line-soft bg-surface-card p-box-lg backdrop-blur'}"
 	>
 		<!-- The list sits outside the label: inside it, a click on an option would also be a
 	     click on the label. -->
