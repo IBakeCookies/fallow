@@ -10,6 +10,7 @@ import {
 	openTaskForm,
 	plantRunningTimer,
 	setBudget,
+	setSlider,
 	taskCard,
 	taskRow,
 } from './helpers';
@@ -234,12 +235,9 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 		})
 		.fill('Gym session');
 
-	// Range inputs take keyboard steps; fill() refuses them.
-	for (let step = 0; step < 3; step++) {
-		await form.getByLabel('Physical Diff').press('ArrowRight');
-		await form.getByLabel('Mental Diff').press('ArrowLeft');
-		await form.getByLabel('Enjoyment').press('ArrowRight');
-	}
+	await setSlider(form.getByLabel('Physical Diff'), 8);
+	await setSlider(form.getByLabel('Mental Diff'), 2);
+	await setSlider(form.getByLabel('Enjoyment'), 8);
 
 	await form
 		.getByRole('button', {
