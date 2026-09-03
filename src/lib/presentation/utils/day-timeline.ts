@@ -4,7 +4,7 @@
    "Metric color-band thresholds"). */
 
 import type { SuggestedTask } from '$lib/business/model/metric/calculation';
-import type { Band } from '$lib/presentation/utils/band';
+import { type Band, getBandFlowReached } from '$lib/presentation/utils/band';
 
 export type DayBlock = {
 	id: number;
@@ -58,7 +58,7 @@ export function buildDayTimeline(input: DayTimelineInput): DayTimeline {
 			hours: task.suggestedHours,
 			startOffset,
 			flowHours: task.flowStateTime,
-			band: task.suggestedHours >= task.flowStateTime ? 'success' : 'warning',
+			band: getBandFlowReached(task.suggestedHours, task.flowStateTime),
 			isCompleted: task.completed,
 		};
 

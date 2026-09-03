@@ -44,6 +44,8 @@ export interface DraftImpact {
 	/** Hours the plan gives the draft — 0 when it funds nothing. */
 	suggestedHours: number;
 	priorityScore: number;
+	/** The draft's own ϕ, read off the same solve. */
+	flowStateTime: number;
 	/** 1-based slot in the run order the draft joins; `null` when unfunded. */
 	position: number | null;
 	/** Tasks that slot counts against. */
@@ -123,6 +125,7 @@ export function calculateDraftImpact(
 	return {
 		suggestedHours: planned.suggestedHours,
 		priorityScore: planned.priorityScore,
+		flowStateTime: planned.flowStateTime,
 		position: position < 0 ? null : position + 1,
 		fundedCount: order.length,
 		...poolChange(baseline.suggestedTasks, suggestedTasks, pools),

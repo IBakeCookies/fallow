@@ -670,6 +670,7 @@
 		impact: {
 			suggestedHours: 1.25,
 			priorityScore: 63.4,
+			flowStateTime: 0.75,
 			position: 4,
 			fundedCount: 6,
 			physicalPercent: {

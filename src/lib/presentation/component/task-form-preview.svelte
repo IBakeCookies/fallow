@@ -16,6 +16,7 @@
 		BAND_TEXT_CLASS,
 		type Band,
 		bandLabel,
+		getBandFlowReached,
 	} from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
@@ -151,6 +152,7 @@
 			</ol>
 		{/if}
 	{:else}
+		{@const flowBand = getBandFlowReached(impact.suggestedHours, impact.flowStateTime)}
 		<!-- `surface-inset` and not `surface-card`: this sits INSIDE the reading
 		     panel, which is itself a card, and card-on-card separates only by
 		     compositing the same alpha twice — nothing on the opaque themes
@@ -177,6 +179,31 @@
 				>{impact.priorityScore.toFixed(1)}</span
 			>
 		</p>
+
+		<div>
+			<p class="flex items-baseline justify-between gap-grid-xs text-xs">
+				<span class="text-ty-secondary">{m.form_impact_flow()}</span>
+				<span class="font-semibold tabular-nums {BAND_TEXT_CLASS[flowBand]}">
+					{flowBand === 'success'
+						? m.flow_reached({
+								duration: formatDuration(impact.flowStateTime),
+							})
+						: m.flow_short({
+								duration: formatDuration(impact.flowStateTime - impact.suggestedHours),
+							})}
+					<!-- Colour is otherwise the only carrier of the band (WCAG 1.4.1). -->
+					{#if bandLabel(flowBand)}
+						<span class="sr-only">{bandLabel(flowBand)}</span>
+					{/if}
+				</span>
+			</p>
+			<div class="mt-text-2xs h-1 w-full rounded-full bg-surface-inset">
+				<div
+					class="h-full rounded-full {BAND_BAR_CLASS[flowBand]}"
+					style="width: {Math.min(1, impact.suggestedHours / impact.flowStateTime) * 100}%"
+				></div>
+			</div>
+		</div>
 
 		{#each pools as row (row.label)}
 			{@render changeRow(row.label, row.change, AXIS_BAND.humanCapacity(row.change.after))}

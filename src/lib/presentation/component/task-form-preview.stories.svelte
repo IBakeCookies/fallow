@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect } from 'storybook/test';
+	import { expect, within } from 'storybook/test';
 	import type { DraftImpact } from '$lib/business/model/metric/draft-impact';
 	import type { NextTaskSuggestion } from '$lib/business/model/metric/next-task-suggestion';
 	import { BAND_BAR_CLASS } from '$lib/presentation/utils/band';
@@ -11,6 +11,7 @@
 	const impact: DraftImpact = {
 		suggestedHours: 1.25,
 		priorityScore: 63.4,
+		flowStateTime: 0.75,
 		position: 4,
 		fundedCount: 6,
 		physicalPercent: {
@@ -94,7 +95,7 @@
 			BAND_BAR_CLASS.success,
 		);
 
-		await expect(canvas.getByText('Optimal')).toHaveClass('sr-only');
+		await expect(physical.querySelector('.sr-only')).toHaveTextContent('Optimal');
 		await expect(canvas.queryByText('Caution')).toBeNull();
 	}}
 />
@@ -109,6 +110,7 @@
 		// and nothing under it reads as a rendering failure.
 		await expect(canvas.getByText(/Name the task/)).toBeInTheDocument();
 		await expect(canvas.queryByText('Suggested hours')).toBeNull();
+		await expect(canvas.queryByText('Warm-up')).toBeNull();
 
 		// The search runs on mount, so the panel is already working — there is no
 		// control to press and nothing for the user to opt into.
@@ -184,6 +186,7 @@
 				before: 22.4,
 				after: 22.4,
 			},
+			flowStateTime: 1.5,
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -195,6 +198,68 @@
 		// A draft the day funds nothing for takes nothing, and a cost row saying so
 		// is a line about a task that is not in the plan.
 		await expect(canvas.queryByText('Cost to today')).toBeNull();
+
+		// ϕ is the draft's own property, so the warm-up still reads on a day that
+		// buys none of it — and this panel prints that figure nowhere else.
+		const warmUp = canvas.getByText('short of flow by 1h 30m').closest('div')!;
+
+		await expect(warmUp.querySelector('.h-1')!.firstElementChild).toHaveAttribute(
+			'style',
+			expect.stringContaining('width: 0%'),
+		);
+	}}
+/>
+
+<Story
+	name="A draft the day funds past its warm-up"
+	args={{
+		impact: {
+			...impact,
+			suggestedHours: 1.5,
+			flowStateTime: 0.75,
+		},
+	}}
+	play={async ({ canvas }) => {
+		// The hours clear ϕ, so the row says where flow arrives rather than how far
+		// short the day stops — Flow Coverage's criterion, narrowed to this task.
+		const warmUp = canvas.getByText('flow at 45m').closest('div')!;
+
+		await expect(within(warmUp).getByText('Warm-up')).toBeInTheDocument();
+		await expect(within(warmUp).getByText('Optimal')).toHaveClass('sr-only');
+
+		await expect(warmUp.querySelector('.h-1')!.firstElementChild).toHaveClass(
+			BAND_BAR_CLASS.success,
+		);
+	}}
+/>
+
+<Story
+	name="A draft the day stops short of"
+	args={{
+		impact: {
+			...impact,
+			suggestedHours: 0.5,
+			flowStateTime: 1,
+		},
+	}}
+	play={async ({ canvas }) => {
+		// The gap, not the hours: the tile at the top of the panel already prints
+		// what the day funds.
+		const warmUp = canvas.getByText('short of flow by 30m').closest('div')!;
+
+		await expect(warmUp.querySelector('.h-1')!.firstElementChild).toHaveClass(
+			BAND_BAR_CLASS.warning,
+		);
+
+		// How far the funded hours get toward flow arrival — the timeline block's own
+		// fill, so the two surfaces read the same reading.
+		await expect(warmUp.querySelector('.h-1')!.firstElementChild).toHaveAttribute(
+			'style',
+			expect.stringContaining('width: 50%'),
+		);
+
+		// Colour is otherwise the only carrier of the band (WCAG 1.4.1).
+		await expect(canvas.getByText('Caution')).toHaveClass('sr-only');
 	}}
 />
 
