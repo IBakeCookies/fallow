@@ -263,12 +263,17 @@
 	</div>
 
 	{#if impact !== undefined}
-		<!-- A rule rather than a fill: the reading is a panel inside a dialog, whose
-		     own surface is the page's, so there is no card for an inset to be cut
-		     into (STYLE.md). It stacks under the fields on a phone, where the
+		<!-- A card, and the BORDER is what separates it: the reading is a panel
+		     inside a dialog, whose own surface is the page's, so `surface-card` is
+		     the right rung — but it carries alpha on 36 of the 44 themes (white at
+		     0.05-0.07 on the dark ones), so the fill alone composites to nothing
+		     over the page and the panel only read on the opaque themes. The rule is
+		     what makes it a box on all 46 (STYLE.md, "A borderless panel nested
+		     inside a card"), and `backdrop-blur` is what a translucent surface on
+		     the page always needs. It stacks under the fields on a phone, where the
 		     dialog is one column wide. -->
 		<div
-			class="flex flex-col gap-grid-md border-t border-line-soft md:border-t-0 md:border-l p-box-md bg-surface-card rounded-md"
+			class="flex flex-col gap-grid-md rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur"
 		>
 			<TaskFormPreview {impact} />
 			<div class="mt-auto">{@render actions()}</div>

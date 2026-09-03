@@ -76,7 +76,11 @@
 		     unnamed task is not a task the day can be priced with. -->
 		<p class="text-xs text-ty-silent">{m.form_impact_prompt()}</p>
 	{:else}
-		<div class="rounded-xl border border-line-soft p-box-sm">
+		<!-- `surface-inset` and not `surface-card`: this sits INSIDE the reading
+		     panel, which is itself a card, and card-on-card separates only by
+		     compositing the same alpha twice — nothing on the opaque themes
+		     (STYLE.md). -->
+		<div class="rounded-xl border border-line-soft bg-surface-inset p-box-sm">
 			<StatTile
 				label={m.form_impact_hours()}
 				value={formatDuration(impact.suggestedHours)}
