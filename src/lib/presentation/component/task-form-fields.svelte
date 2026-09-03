@@ -12,21 +12,16 @@
 
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
-	import type { ButtonSize } from '$lib/presentation/component/ui/button';
 	import TaskImportanceSelect from '$lib/presentation/component/task-importance-select.svelte';
 
 	interface Props {
 		draft: TaskEdit;
-		// Forwarded to the importance buttons only: the sliders have no size. It is
-		// the caller's because the two forms disagree — the dialog is at the default
-		// scale, the row editor is `xs` throughout.
-		size?: ButtonSize;
 		/** The user's own past tags, offered by the field's `<datalist>`. The row
 		 *  editor offers none, like the title suggestions. */
 		tagVocabulary?: string[];
 	}
 
-	let { draft = $bindable(), size = 'default', tagVocabulary = [] }: Props = $props();
+	let { draft = $bindable(), tagVocabulary = [] }: Props = $props();
 
 	let entry = $state('');
 
@@ -126,7 +121,7 @@
 	<div class="grid items-start gap-grid-md border-t border-line-soft pt-grid-md md:grid-cols-2">
 		<!-- A rule under the sliders: the three ratings describe the WORK, and what
 	     follows describes the task's place in the day. -->
-		<TaskImportanceSelect bind:importance={draft.importance} {size} />
+		<TaskImportanceSelect bind:importance={draft.importance} />
 
 		<div class="space-y-text-xs">
 			<label class="block text-xs font-medium text-ty-secondary">

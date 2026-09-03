@@ -42,23 +42,23 @@
 			type="text"
 			bind:value={draft.title}
 			required
-			class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-sm py-box-2xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+			class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 		/>
 	</label>
 
-	<TaskFormFields bind:draft size="xs" />
+	<TaskFormFields bind:draft />
 
 	<!-- `justify-end` with the flag pushed out by its own margin, so the buttons keep their
 	     corner in the mode that has no flag to show. -->
 	<div class="flex flex-wrap items-center justify-end gap-grid-sm">
 		{#if withMustDoToday}
-			<MustDoToggle bind:mustDoToday={draft.mustDoToday} size="xs" class="mr-auto" />
+			<MustDoToggle bind:mustDoToday={draft.mustDoToday} class="mr-auto" />
 		{/if}
 		<span class="flex items-center gap-grid-xs">
-			<Button variant="ghost" size="xs" type="button" onclick={oncancel}>
+			<Button variant="ghost" type="button" onclick={oncancel}>
 				{m.common_cancel()}
 			</Button>
-			<Button size="xs" type="submit" disabled={!draft.title.trim()}>
+			<Button type="submit" disabled={!draft.title.trim()}>
 				{m.common_save()}
 			</Button>
 		</span>
