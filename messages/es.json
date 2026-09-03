@@ -508,7 +508,6 @@
 	"energy_calibration": "Calibración del desgaste",
 	"energy_calibration_hint": "Ajusta las dos tasas de desgaste a tus valoraciones 🪫 de fin de sesión (ancladas a los valores por defecto — cada valoración las mueve un poco más). El ajuste condiciona sobre la configuración de recuperación actual, y por eso Aplicar mis ajustes fija primero la recuperación.",
 	"energy_calibration_empty": "Aún no hay valoraciones. Después de una sesión en una tarea, pulsa 🪫 en ella y valora lo desgastados que sientes la mente y el cuerpo — con unas pocas valoraciones se personalizan las tasas de desgaste.",
-	"energy_calibration_rated": "Después de una sesión en una tarea, pulsa 🪫 en ella y valora lo desgastados que sientes la mente y el cuerpo — con unas pocas valoraciones se personalizan las tasas de desgaste.",
 	"energy_fit_value": "≈ {value} ± {std} · n={count}",
 	"energy_fit_no_signal": "no hay valoraciones informativas",
 	"energy_drain_pending_one": "1 valoración registrada hoy, cuenta a partir de mañana",

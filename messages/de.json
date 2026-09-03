@@ -508,7 +508,6 @@
 	"energy_calibration": "Erschöpfungs-Kalibrierung",
 	"energy_calibration_hint": "Passt die beiden Erschöpfungsraten an deine 🪫-Bewertungen nach Sitzungen an (verankert an den Standardwerten — jede Bewertung verschiebt sie weiter). Die Anpassung setzt die aktuellen Erholungs-Einstellungen voraus — deshalb setzt „Meine Fits übernehmen“ die Erholung zuerst.",
 	"energy_calibration_empty": "Noch keine Bewertungen. Nach einer Sitzung an einer Aufgabe auf 🪫 tippen und bewerten, wie erschöpft sich Kopf und Körper anfühlen — wenige Bewertungen personalisieren die Erschöpfungsraten.",
-	"energy_calibration_rated": "Nach einer Sitzung an einer Aufgabe auf 🪫 tippen und bewerten, wie erschöpft sich Kopf und Körper anfühlen — wenige Bewertungen personalisieren die Erschöpfungsraten.",
 	"energy_fit_value": "≈ {value} ± {std} · n={count}",
 	"energy_fit_no_signal": "keine aussagekräftigen Bewertungen",
 	"energy_drain_pending_one": "1 Bewertung heute erfasst, zählt ab morgen",

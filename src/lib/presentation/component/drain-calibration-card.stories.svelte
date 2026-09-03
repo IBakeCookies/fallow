@@ -21,9 +21,10 @@
 		await expect(canvas.getByText('3')).toBeVisible();
 		await expect(canvas.getByText('drain ratings')).toBeVisible();
 
-		// The prompt stays once there are ratings, minus the "none yet" it opens with.
+		// The prompt is the empty state's alone: a user who has rated sessions already
+		// knows how, so the card is the count and nothing else.
 		await expect(canvas.queryByText(/No ratings yet/)).not.toBeInTheDocument();
-		await expect(canvas.getByText(/After a session on a task/)).toBeVisible();
+		await expect(canvas.queryByText(/After a session on a task/)).not.toBeInTheDocument();
 
 		await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
 		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
