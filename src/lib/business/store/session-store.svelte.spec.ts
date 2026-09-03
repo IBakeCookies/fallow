@@ -5,6 +5,7 @@ import Harness from '$lib/business/store/session-store.test-harness.svelte';
 import { mockPage } from '$lib/business/store/session-store.test-utils.svelte';
 import * as sessionHistory from '$lib/business/session-history';
 import * as sessionRepository from '$lib/data/repository/session-repository';
+import * as routineRepository from '$lib/data/repository/routine-repository';
 import * as flowObservationRepository from '$lib/data/repository/flow-observation-repository';
 import type { SessionStore } from '$lib/business/store/session-store.svelte';
 import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte';
@@ -52,12 +53,14 @@ const initializeStorageMock = vi.mocked(sessionHistory.initializeStorage);
 const readHistoryPrefillsMock = vi.mocked(sessionHistory.readHistoryPrefills);
 const updateSessionMock = vi.mocked(sessionRepository.$updateSession);
 const readSessionByDateMock = vi.mocked(sessionRepository.$readSessionByDate);
+const updateRoutineMock = vi.mocked(routineRepository.$updateRoutine);
 
 /** What the boot read answers before any day has been budgeted or rated. */
 const noPrefills = () => ({
 	titleRatings: new Map<string, TitleRating>(),
 	budgets: summarizeBudgetHistory([]),
 	constraints: summarizeDeclaredConstraints([]),
+	tags: [],
 });
 
 const createOrUpdateFlowObservationMock = vi.mocked(
@@ -1761,6 +1764,97 @@ describe('SessionStore constraint carry-over', () => {
 		expect(written.date).toBe(addDays(today, 1));
 		expect(written.cognitivePool).toBeUndefined();
 		expect(written.physicalPool).toBeUndefined();
+	});
+});
+
+describe('SessionStore task tags', () => {
+	beforeEach(() => {
+		mockPage.url = new URL('http://localhost/');
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		readSessionByDateMock.mockImplementation(async () => null);
+	});
+
+	/* A tag is part of what the task IS, so it travels everywhere the sliders do. All
+	   three writers below list the fields they carry one by one, which is why a dropped
+	   tag is invisible at every other level. */
+
+	it('carries tags into a saved routine, and back out of one', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'Morning run',
+			physicalDifficulty: 7,
+			mentalDifficulty: 1,
+			enjoyment: 6,
+			tags: ['exercise'],
+		});
+
+		flushSync();
+		await store.saveCurrentAsRoutine('Weekday');
+
+		const routine = updateRoutineMock.mock.calls[0][0];
+
+		expect(routine.tasks[0].tags).toEqual(['exercise']);
+
+		store.importTasks(routine.tasks);
+		flushSync();
+
+		expect(store.tasks[0].tags).toEqual(['exercise']);
+	});
+
+	it('carries tags through a day import', async () => {
+		const { store } = await setup();
+		const source = addDays(store.today, -3);
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === source
+				? {
+						date,
+						tasks: [
+							{
+								id: 1,
+								title: 'Morning run',
+								physicalDifficulty: 7,
+								mentalDifficulty: 1,
+								enjoyment: 6,
+								createdAt: date,
+								completed: false,
+								tags: ['exercise'],
+							},
+						],
+						availableHours: 5,
+						switchCost: 0.25,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		expect(await store.importFromDate(source)).toBe(1);
+		flushSync();
+
+		expect(store.tasks[0].tags).toEqual(['exercise']);
+	});
+
+	it('carries tags to tomorrow', async () => {
+		const { store } = await setup();
+
+		store.addTask({
+			title: 'Morning run',
+			physicalDifficulty: 7,
+			mentalDifficulty: 1,
+			enjoyment: 6,
+			tags: ['exercise'],
+		});
+
+		flushSync();
+		useFakeTimers();
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		expect(updateSessionMock.mock.calls[0][0].tasks[0].tags).toEqual(['exercise']);
 	});
 });
 

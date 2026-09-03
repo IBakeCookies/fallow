@@ -573,6 +573,7 @@
 			enjoyment: 7,
 			mustDoToday: false,
 			importance: 'normal',
+			tags: [],
 		});
 	}}
 />
@@ -608,6 +609,7 @@
 			enjoyment: 7,
 			mustDoToday: false,
 			importance: 'normal',
+			tags: [],
 		});
 	}}
 />

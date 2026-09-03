@@ -39,6 +39,7 @@ import {
 	type UserConstants,
 } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS, type EnergyParams } from '$lib/business/model/zenith-energy';
+import { toStoredTags } from '$lib/business/model/tags';
 import { isISODate } from '$lib/business/utils/date';
 
 /** The sliders' ranges (`task-form.svelte`): difficulties from 0, enjoyment from 1. */
@@ -79,6 +80,8 @@ function isImportance(value: unknown): value is TaskImportance {
 
 /** The keep-and-clamp core shared by session tasks and routine templates. */
 function taskCore(source: Record<string, unknown>) {
+	const tags = toStoredTags(source.tags);
+
 	return {
 		title: typeof source.title === 'string' ? source.title : '',
 		physicalDifficulty: clamped(source.physicalDifficulty, DIFFICULTY_MIN, RATING_MAX),
@@ -88,6 +91,11 @@ function taskCore(source: Record<string, unknown>) {
 		// level. Absent unless it is one of the three: anything else is the default.
 		...(isImportance(source.importance) && {
 			importance: source.importance,
+		}),
+		// Here for the same reason as `importance`, and normalized here because
+		// this is the read every stored tag arrives through.
+		...(tags && {
+			tags,
 		}),
 	};
 }

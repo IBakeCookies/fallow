@@ -37,6 +37,10 @@ export type Task = {
 	// A property of the task, not of today, so routines and day-imports carry
 	// it. Absent is `normal`, whose weight is 1 — exactly a no-op.
 	importance?: TaskImportance;
+	// The labels the analytics screen breaks logged hours down by. A property of
+	// the task, not of today, so routines and day-imports carry them; the plan
+	// never reads one. Absent rather than `[]` when the user typed none.
+	tags?: string[];
 };
 
 export interface DailySession {

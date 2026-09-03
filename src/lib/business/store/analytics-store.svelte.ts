@@ -13,6 +13,7 @@ import { getContext, onMount, setContext } from 'svelte';
 import { logError } from '$lib/logger';
 import * as fitSnapshotRepository from '$lib/data/repository/fit-snapshot-repository';
 import { rankDrainByTask, type DrainRanking } from '$lib/business/model/energy-calibration';
+import { tagHours, type TagHoursBreakdown } from '$lib/business/model/tags';
 import {
 	averageCompletionRate,
 	calculateMetricTrend,
@@ -116,6 +117,10 @@ export class AnalyticsStore {
 	);
 	#restStats = $derived(
 		this.#isModelReportLoaded ? restSummary(this.#rest, this.#rangeStart) : null,
+	);
+	/** What `loggedHours` breaks down into, by the tags on the tasks it counted. */
+	#tagHours = $derived(
+		this.#isModelReportLoaded ? tagHours(this.#drain, this.#all, this.#rangeStart) : null,
 	);
 	// Reads the whole loaded year, not the viewed range — a streak is not a
 	// property of whichever window happens to be open.
@@ -333,6 +338,10 @@ export class AnalyticsStore {
 	/** `null` on the same two states as `loggedHours`, for the same reason. */
 	get restSummary(): RestSummary | null {
 		return this.#restStats;
+	}
+	/** `null` on the same two states as `loggedHours`, for the same reason. */
+	get tagHours(): TagHoursBreakdown | null {
+		return this.#tagHours;
 	}
 	/** `null` on the same two states as `metricTrend`, for the same reason. */
 	get drainRanking(): DrainRanking | null {

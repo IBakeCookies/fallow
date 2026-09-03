@@ -15,6 +15,7 @@
 				enjoyment: 7,
 				mustDoToday: false,
 				importance: 'normal',
+				tags: [],
 			},
 			onsave: fn(),
 			oncancel: fn(),
@@ -59,6 +60,7 @@
 			enjoyment: 7,
 			mustDoToday: true,
 			importance: 'normal',
+			tags: [],
 		});
 	}}
 />
@@ -99,6 +101,7 @@
 			enjoyment: 2,
 			mustDoToday: true,
 			importance: 'normal',
+			tags: [],
 		},
 	}}
 	play={async ({ args, canvas, userEvent }) => {
@@ -125,6 +128,7 @@
 			enjoyment: 2,
 			mustDoToday: true,
 			importance: 'normal',
+			tags: [],
 		},
 		withMustDoToday: false,
 	}}
@@ -141,5 +145,44 @@
 		);
 
 		await expect(args.onsave).toHaveBeenCalledExactlyOnceWith(args.seed);
+	}}
+/>
+
+<Story
+	name="Retagging a task"
+	args={{
+		seed: {
+			title: 'Morning run',
+			physicalDifficulty: 7,
+			mentalDifficulty: 1,
+			enjoyment: 6,
+			mustDoToday: false,
+			importance: 'normal',
+			tags: ['school'],
+		},
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		// Tags are editable after the fact — the label is a label, so fixing one has to fix
+		// the past hours it names, not only the next task
+		await expect(canvas.getByText('school')).toBeInTheDocument();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Remove tag school',
+			}),
+		);
+
+		await userEvent.type(canvas.getByLabelText('Tags'), 'exercise{Enter}');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Save',
+			}),
+		);
+
+		await expect(args.onsave).toHaveBeenCalledExactlyOnceWith({
+			...args.seed,
+			tags: ['exercise'],
+		});
 	}}
 />

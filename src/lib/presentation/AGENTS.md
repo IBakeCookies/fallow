@@ -204,8 +204,11 @@ Five components hold what the two screens say the same way:
 - **`task-edit-form.svelte`** — the editor, on both screens.
 - **`task-form-fields.svelte`** — what both task forms set about the task
   itself: the three model input sliders, one loop over one table so their
-  labels, minimums and accents are defined once, and `task-importance-select`
-  under them. `TaskEdit` — the six fields a form can set — is this component's
+  labels, minimums and accents are defined once, `task-importance-select`
+  under them, and the tag field — one text input over a native `<datalist>`,
+  committing a chip on Enter or a typed comma, whose vocabulary is a prop
+  because the editor offers none for the same reason it offers no titles.
+  `TaskEdit` — the seven fields a form can set — is this component's
   type, since adding a task and re-tuning one emit the same thing. Importance
   belongs here and `mustDoToday` does not, for the reason the model file gives:
   the level is a property of the task, the flag is a statement about today. Each

@@ -31,6 +31,7 @@ import {
 	type DemoTaskTitles,
 } from '$lib/business/demo-day';
 import { suggestTitles, type TitleRating } from '$lib/business/model/title-memory';
+import { toStoredTags } from '$lib/business/model/tags';
 import {
 	prefillBudgetFor,
 	summarizeBudgetHistory,
@@ -130,6 +131,7 @@ export class SessionStore {
 	#titleRatings = $state(new Map<string, TitleRating>());
 	#budgetHistory = $state<BudgetHistory>(summarizeBudgetHistory([]));
 	#declaredConstraints = $state<DeclaredConstraints>(summarizeDeclaredConstraints([]));
+	#tagVocabulary = $state<string[]>([]);
 
 	// Session writes, counted per date. A reading held about a day OTHER than the
 	// viewed one cannot key its freshness off that day's inputs — today → tomorrow
@@ -562,6 +564,7 @@ export class SessionStore {
 				this.#titleRatings = prefills.titleRatings;
 				this.#budgetHistory = prefills.budgets;
 				this.#declaredConstraints = prefills.constraints;
+				this.#tagVocabulary = prefills.tags;
 			})
 			.catch((e) => logError('Failed to load history prefills', e));
 	}
@@ -590,6 +593,11 @@ export class SessionStore {
 	/** Rated titles a part-typed one could be naming; empty until it is a query. */
 	suggestTitles(query: string): TitleRating[] {
 		return suggestTitles(this.#titleRatings, query);
+	}
+
+	/** Every tag the stored days carry — the tag field's `<datalist>`. */
+	get tagVocabulary(): string[] {
+		return this.#tagVocabulary;
 	}
 
 	async #loadSession(date: string) {
@@ -773,13 +781,22 @@ export class SessionStore {
 		enjoyment: number;
 		mustDoToday?: boolean;
 		importance?: TaskImportance;
+		tags?: string[];
 	}) {
 		if (!this.#canEditPlan) return;
+
+		// The form always answers the tag question, with `[]` when the user typed
+		// none — which is not a field to store.
+		const { tags: typed, ...definition } = taskData;
+		const tags = toStoredTags(typed);
 
 		this.#tasks = [
 			{
 				id: nextTaskId(this.#tasks),
-				...taskData,
+				...definition,
+				...(tags && {
+					tags,
+				}),
 				createdAt: this.#selectedDate,
 				completed: false,
 			},
@@ -916,6 +933,9 @@ export class SessionStore {
 				...(task.importance && {
 					importance: task.importance,
 				}),
+				...(task.tags && {
+					tags: task.tags,
+				}),
 			};
 
 			await this.#persistSession({
@@ -955,19 +975,32 @@ export class SessionStore {
 				| 'enjoyment'
 				| 'mustDoToday'
 				| 'importance'
+				| 'tags'
 			>
 		>,
 	) {
 		if (!this.#canEditPlan) return;
 
-		this.#tasks = this.#tasks.map((t) =>
-			t.id === id
-				? {
-						...t,
-						...changes,
-					}
-				: t,
-		);
+		this.#tasks = this.#tasks.map((t) => {
+			if (t.id !== id) return t;
+
+			const updated = {
+				...t,
+				...changes,
+			};
+
+			// Rebuilt without the key rather than spread as `[]`: an edit that clears
+			// every tag stores no field at all. An edit that mentions no tag at all
+			// keeps the task's own.
+			if ('tags' in changes) {
+				const tags = toStoredTags(changes.tags);
+
+				if (tags) updated.tags = tags;
+				else delete updated.tags;
+			}
+
+			return updated;
+		});
 	}
 
 	// Import a specific day's tasks (stripped to their definition) into the
@@ -990,6 +1023,7 @@ export class SessionStore {
 					mentalDifficulty: t.mentalDifficulty,
 					enjoyment: t.enjoyment,
 					importance: t.importance,
+					tags: t.tags,
 				})),
 			);
 		} catch (e) {
@@ -1233,6 +1267,7 @@ export class SessionStore {
 				mentalDifficulty: t.mentalDifficulty,
 				enjoyment: t.enjoyment,
 				importance: t.importance,
+				tags: t.tags,
 			})),
 			createdAt: Date.now(),
 		};

@@ -57,6 +57,7 @@ import {
 } from '$lib/business/model/plan-audit';
 import { summarizeSession, type DaySummary } from '$lib/business/model/metric/history';
 import { latestRatingsByTitle, type TitleRating } from '$lib/business/model/title-memory';
+import { collectTags } from '$lib/business/model/tags';
 import { summarizeBudgetHistory, type BudgetHistory } from '$lib/business/model/budget-memory';
 import {
 	summarizeDeclaredConstraints,
@@ -225,6 +226,8 @@ export interface HistoryPrefills {
 	budgets: BudgetHistory;
 	/** What the last day that declared them says the switch cost and pools are. */
 	constraints: DeclaredConstraints;
+	/** Every tag the user has used, for the task form's `<datalist>`. */
+	tags: string[];
 }
 
 /**
@@ -245,6 +248,7 @@ export async function readHistoryPrefills(today: string): Promise<HistoryPrefill
 		titleRatings: latestRatingsByTitle(sessions),
 		budgets: summarizeBudgetHistory(sessions),
 		constraints: summarizeDeclaredConstraints(sessions),
+		tags: collectTags(sessions),
 	};
 }
 

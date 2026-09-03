@@ -17,7 +17,13 @@
 
 	const yesterdaySession: DailySession = {
 		date: '2026-07-19',
-		tasks: [task(1, 'boxing'), task(2, 'writing')],
+		tasks: [
+			{
+				...task(1, 'boxing'),
+				tags: ['exercise'],
+			},
+			task(2, 'writing'),
+		],
 		availableHours: 6,
 		switchCost: 0.25,
 		updatedAt: 1,
@@ -152,18 +158,22 @@
 			}),
 		);
 
+		// Stripped to the definition, and a tag is PART of that definition — the
+		// day-import path carries them, so the shortcut cannot be the one that drops them.
 		await expect(args.onimport).toHaveBeenNthCalledWith(1, [
 			{
 				title: 'boxing',
 				physicalDifficulty: 3,
 				mentalDifficulty: 7,
 				enjoyment: 6,
+				tags: ['exercise'],
 			},
 			{
 				title: 'writing',
 				physicalDifficulty: 3,
 				mentalDifficulty: 7,
 				enjoyment: 6,
+				tags: undefined,
 			},
 		]);
 
