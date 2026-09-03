@@ -218,12 +218,12 @@ Five components hold what the two screens say the same way:
   caller's copy and absent unless it passes one, because what is being dropped
   differs per editor and a first measurement has nothing to drop.
 - **`task-edit-form.svelte`** — the editor, on both screens. Its frame is the
-  recipe the two measurement forms in the same spanning row use — a
-  `bg-surface-page/40` wash under a tinted border, `success` here because that
-  is the ✎ that opens it — and neither of the other two rungs: `surface-card` is
-  the card it is already inside, and `surface-inset` is what the slider tracks
-  and the tag chips inside it are made of. Both were tried; both read as one
-  flat plane.
+  `bg-surface-page/40` wash the two measurement forms in the same spanning row
+  use, under a plain `border-line-soft` — this form logs no instrument, so it
+  takes none of their hues. Neither of the other two rungs works: `surface-card`
+  is the card it is already inside, and `surface-inset` is what the slider
+  tracks and the tag chips inside it are made of. Both were tried; both read as
+  one flat plane.
 - **`task-form-fields.svelte`** — what both task forms set about the task
   itself: the three model input sliders, one loop over one table so their
   labels, minimums and accents are defined once, `task-importance-select`
