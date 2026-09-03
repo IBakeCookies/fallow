@@ -393,6 +393,16 @@ red build. Do not smooth either by billing the LISTED tasks again — that is th
 defect that pinned the row at exactly 100 on 10.8% of days, where a 15-minute
 day and a 90-minute one read alike.
 
+### A candidate the plan funds nothing for can still move the plan
+
+Settled 2026-09-03. `calculatePooledAllocations` is greedy plus transfer repair,
+not an exact argmax, so adding a task the solve gives no hours to can still shift
+what the others hold — reproduced on a declared-pool day, pinned by
+`draft-impact.test.ts`. `calculateDraftImpact` therefore reads `displaced` as
+zero whenever the draft is unfunded: the movement is the search's, not the
+draft's, and pricing it would name hours the day is not buying. The gate is not
+dead code — do not delete it as unreachable.
+
 ### Priority is not monotone in difficulty, and that stays
 
 Settled 2026-08-25, MATH.md §3. Swept over effective difficulty 1 → 10, `P̄(T*)`

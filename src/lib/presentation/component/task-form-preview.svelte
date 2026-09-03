@@ -11,6 +11,7 @@
 		AXIS_BAND,
 		BAND_BAR_CLASS,
 		BAND_TEXT_CLASS,
+		type Band,
 		bandLabel,
 	} from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
@@ -39,10 +40,37 @@
 					},
 				].filter((row) => Number.isFinite(row.change.before) && Number.isFinite(row.change.after)),
 	);
+
+	// One line with three shapes: a name beats a total, and the empty case is
+	// said rather than dropped. `null` when the day funds the draft nothing — a
+	// cost row about a task that is not in the plan.
+	const cost = $derived.by(() => {
+		if (impact === null || impact.position === null) return null;
+
+		const { hoursTaken, taskCount, unfunded } = impact.displaced;
+
+		if (unfunded.length > 0) {
+			return m.form_impact_cost_unfunds({
+				titles: unfunded.join(', '),
+			});
+		}
+
+		if (taskCount === 0) return m.form_impact_cost_none();
+
+		const hours = formatDuration(hoursTaken);
+
+		return taskCount === 1
+			? m.form_impact_cost_hours_one({
+					hours,
+				})
+			: m.form_impact_cost_hours_other({
+					hours,
+					count: taskCount,
+				});
+	});
 </script>
 
-{#snippet poolRow(label: string, change: DraftChange)}
-	{@const band = AXIS_BAND.humanCapacity(change.after)}
+{#snippet changeRow(label: string, change: DraftChange, band: Band)}
 	<div>
 		<p class="flex items-baseline justify-between gap-grid-xs text-xs">
 			<span class="text-ty-secondary">{label}</span>
@@ -102,9 +130,17 @@
 				>{impact.priorityScore.toFixed(1)}</span
 			>
 		</p>
+
 		{#each pools as row (row.label)}
-			{@render poolRow(row.label, row.change)}
+			{@render changeRow(row.label, row.change, AXIS_BAND.humanCapacity(row.change.after))}
 		{/each}
+
+		{@render changeRow(
+			m.form_impact_burnout(),
+			impact.burnoutRisk,
+			AXIS_BAND.burnoutRisk(impact.burnoutRisk.after),
+		)}
+
 		<p class="flex items-baseline justify-between gap-grid-xs text-xs">
 			<span class="text-ty-secondary">{m.form_impact_slack()}</span>
 			<span class="font-semibold text-ty-primary tabular-nums">
@@ -114,5 +150,12 @@
 				})}
 			</span>
 		</p>
+
+		{#if cost !== null}
+			<p class="text-xs">
+				<span class="block text-ty-secondary">{m.form_impact_cost()}</span>
+				<span class="font-semibold text-ty-primary tabular-nums">{cost}</span>
+			</p>
+		{/if}
 	{/if}
 </section>

@@ -1,7 +1,8 @@
 /**
  * What the task being typed would do to the day, priced before it is deployed:
- * the hours the plan would give it, where it would run, and what the day's two
- * pools and its unspent hours would read afterwards.
+ * the hours the plan would give it, where it would run, what the day's two pools,
+ * its unspent hours and its Burnout Risk would read afterwards, and what the
+ * day's other tasks lose to it.
  *
  * One solve, not a family: the day it joins is the baseline the caller already
  * has (`plan-advice.ts` reuses it the same way), so the reading costs exactly
@@ -11,6 +12,7 @@
 import type { CapacityPools } from '$lib/business/model/zenith';
 import type { Task } from '$lib/data/type';
 import {
+	calculateBurnoutRisk,
 	calculateInterleavedOrder,
 	calculatePlanSlackHours,
 	calculatePoolDraw,
@@ -49,6 +51,13 @@ export interface DraftImpact {
 	cognitivePercent: DraftChange;
 	physicalPercent: DraftChange;
 	slackHours: DraftChange;
+	/** What the draft takes off the day's other tasks. */
+	displaced: {
+		hoursTaken: number;
+		taskCount: number;
+		unfunded: string[];
+	};
+	burnoutRisk: DraftChange;
 }
 
 /**
@@ -61,7 +70,7 @@ export function calculateDraftImpact(
 	draft: DraftTask,
 	baseline: DailyMetrics = calculateDailyMetrics(input),
 ): DraftImpact {
-	const { tasks, availableHours, switchCost, pools, constants, posterior } = input;
+	const { tasks, availableHours, switchCost, pools, constants, posterior, energyParams } = input;
 	// One past every id the day holds: an id the day already uses would price the
 	// draft as the task it collided with. Not `nextTaskId`'s business — that rule
 	// is about ids a day KEEPS (business/AGENTS.md), and this one exists only so
@@ -105,6 +114,56 @@ export function calculateDraftImpact(
 			before: baseline.planSlackHours,
 			after: calculatePlanSlackHours(suggestedTasks, availableHours, switchCost),
 		},
+		// A draft the plan funds nothing for takes nothing. The pooled allocator is
+		// a heuristic, so the plan it lands on can still move — but that movement is
+		// the search's, not the draft's, and reading it as a cost would name a task
+		// the day is not actually buying.
+		displaced:
+			planned.suggestedHours > 0
+				? displacement(baseline.activeTasks, suggestedTasks)
+				: {
+						hoursTaken: 0,
+						taskCount: 0,
+						unfunded: [],
+					},
+		// The day's own dashboard reading on both sides: `before` is the baseline's
+		// rather than a second derivation of it, and `after` is over the whole
+		// drafted plan, the scope `calculateDailyMetrics` uses.
+		burnoutRisk: {
+			before: baseline.burnoutRisk,
+			after: calculateBurnoutRisk(suggestedTasks, availableHours, switchCost, energyParams),
+		},
+	};
+}
+
+/**
+ * Active tasks only: a completed task keeps its hours allocated and is not work
+ * the user will redo, so naming one as displaced would be a phantom.
+ */
+function displacement(
+	before: DailyMetrics['activeTasks'],
+	after: DailyMetrics['suggestedTasks'],
+): DraftImpact['displaced'] {
+	let hoursTaken = 0;
+	let taskCount = 0;
+	const unfunded: string[] = [];
+
+	for (const task of before) {
+		const hours = after.find((planned) => planned.id === task.id)!.suggestedHours;
+		const lost = Math.max(0, task.suggestedHours - hours);
+
+		if (lost > 0) {
+			hoursTaken += lost;
+			taskCount += 1;
+		}
+
+		if (task.suggestedHours > 0 && hours === 0) unfunded.push(task.title);
+	}
+
+	return {
+		hoursTaken,
+		taskCount,
+		unfunded,
 	};
 }
 
