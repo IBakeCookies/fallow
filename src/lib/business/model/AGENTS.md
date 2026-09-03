@@ -169,6 +169,13 @@ its allocation code, so the main page is unaffected by changes here.
   at or above the floor, it returns **nothing**, never a clamped α's pool. It is an **instrument, not a planner input**: no allocation reads
   it, the pools stay declared, and what would have promoted it is a gate that
   `classicOverlap` cannot run (ROADMAP item 18). §8.13.
+- `rankDrainByTask` re-runs the §8.7 drain fit per **task title** over each day's
+  EARLIEST 🪫 row only, anchored to the user's own fitted α — which is what makes
+  the ridge protective, so a thin title cannot reach an end of the ranking. Both
+  ends must clear `DRAIN_RANKING_MIN_LOGS` and separate by more than the sum of
+  their posterior stds, or that reservoir is unranked. A **reading, never an
+  input**: nothing allocates on it, and the per-title α is the drain analogue of
+  the per-task ϕ offsets refused below. §8.14.
 - Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — read
   the day from the 🪫 rows' own log moments: one block per session, in log order,
   the space between them rest. Never re-sum the rows by task on the way in —

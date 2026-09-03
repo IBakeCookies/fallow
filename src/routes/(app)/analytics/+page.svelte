@@ -75,6 +75,22 @@
 	const modelRows = $derived(calibrationRows(calibration, getDateLocale()));
 	const auditVerdict = $derived(adherenceVerdict(audit));
 
+	const drainRanking = $derived(analytics.drainRanking);
+	const drainRankRows = $derived(
+		drainRanking === null
+			? []
+			: [
+					{
+						label: m.ana_drain_rank_mind(),
+						pair: drainRanking.cognitive,
+					},
+					{
+						label: m.ana_drain_rank_body(),
+						pair: drainRanking.physical,
+					},
+				],
+	);
+
 	function formatDay(iso: string): string {
 		return fromISO(iso).toLocaleDateString(getDateLocale(), {
 			month: 'short',
@@ -265,9 +281,9 @@
 			<div class="skeleton-block h-4 w-28"></div>
 		</div>
 	</div>
-	<!-- Bodies, in the five full-width GATED cards' order — the logs card renders outside
-	     this gate. Both charts are a fixed viewBox at `w-full`, so a ratio is what tracks
-	     their height. -->
+	<!-- Bodies, in the order of the five full-width GATED cards that always render — the
+	     logs card sits outside this gate and the drain ranking may not render at all. Both
+	     charts are a fixed viewBox at `w-full`, so a ratio is what tracks their height. -->
 	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			{@render skeletonBody(body)}
@@ -495,6 +511,43 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- Most draining per hour. No pending or failed state: the reading is null on both, and
+	     a card with no end to name is absent rather than empty — a deferred count alone is
+	     not a reason to render, or a user whose only ratings are today's gets the empty box
+	     this card is gated to avoid. -->
+	{#if drainRanking !== null && (drainRanking.cognitive !== null || drainRanking.physical !== null)}
+		<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
+			<h2 class="text-sm font-medium text-ty-primary">{m.ana_drain_rank()}</h2>
+			<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_drain_rank_hint()}</p>
+
+			<div class="mt-text-md grid gap-text-xs">
+				{#each drainRankRows as { label, pair } (label)}
+					<div class="flex flex-wrap items-baseline justify-between gap-x-grid-xs">
+						<span class="text-xs text-ty-silent">{label}</span>
+						<span class="text-sm font-medium text-ty-primary">
+							{pair === null
+								? m.ana_drain_rank_none()
+								: m.ana_drain_rank_pair({
+										most: pair.most.taskTitle,
+										least: pair.least.taskTitle,
+									})}
+						</span>
+					</div>
+				{/each}
+			</div>
+
+			{#if drainRanking.deferredCount > 0}
+				<p class="mt-text-sm text-xs text-ty-secondary">
+					{drainRanking.deferredCount === 1
+						? m.energy_drain_pending_one()
+						: m.energy_drain_pending({
+								count: drainRanking.deferredCount,
+							})}
+				</p>
+			{/if}
+		</div>
+	{/if}
 {/if}
 
 <!-- OUTSIDE the load gate, unlike every other card: "In your logs →" scrolls to this `id`

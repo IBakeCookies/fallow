@@ -184,3 +184,112 @@ export function fitEnergyParams(
 ): EnergyParams {
 	return calibrateEnergyParams(rest, drain, seed).params;
 }
+
+/** Fewest informative rows a title needs before it can be ranked (MATH.md §8.14). */
+export const DRAIN_RANKING_MIN_LOGS = 3;
+
+export interface DrainRankingEnd {
+	taskTitle: string;
+	/** The title's own fitted α, anchored to the user's global one */
+	alpha: number;
+}
+
+/** Both ends or neither — a ranking of one title has no ends (MATH.md §8.14). */
+export interface DrainRankingPair {
+	most: DrainRankingEnd;
+	least: DrainRankingEnd;
+}
+
+export interface DrainRanking {
+	cognitive: DrainRankingPair | null;
+	physical: DrainRankingPair | null;
+	/** 🪫 rows the causal window held back: today's, and any dated past it. */
+	deferredCount: number;
+}
+
+/**
+ * Which task title drains each reservoir fastest per hour of its own declared
+ * demand, and which slowest, over the rows in [`rangeStart`, `today`) —
+ * MATH.md §8.14, which owns the prior anchor, the day's-first-row restriction
+ * and the three gates. `params` supplies both the recovery constants the fit
+ * conditions on and the global α̂ each title's fit is anchored to, so it must be
+ * the user's CALIBRATED params and not the defaults.
+ */
+export function rankDrainByTask(
+	drain: DrainObservationRecord[],
+	rangeStart: string,
+	today: string,
+	params: EnergyParams,
+): DrainRanking {
+	// One row per DAY, not per day-and-title: §8.7's law assumes the session
+	// started on a full reservoir, so only the day's earliest rating satisfies the
+	// assumption the fit makes about it (MATH.md §8.14).
+	const dayFirst = new Map<string, DrainObservationRecord>();
+
+	for (const row of drain) {
+		if (row.date < rangeStart || row.date >= today) continue;
+
+		const held = dayFirst.get(row.date);
+
+		if (held === undefined || row.createdAt < held.createdAt) dayFirst.set(row.date, row);
+	}
+
+	// The title frozen onto the record, because each day's instance of a routine
+	// task carries a fresh `taskId`.
+	const byTitle = new Map<string, DrainObservationRecord[]>();
+
+	for (const row of dayFirst.values()) {
+		const held = byTitle.get(row.taskTitle);
+
+		if (held) held.push(row);
+		else byTitle.set(row.taskTitle, [row]);
+	}
+
+	return {
+		cognitive: rankReservoir(byTitle, toCognitiveDrainObservations, params.alphaCog, params),
+		physical: rankReservoir(byTitle, toPhysicalDrainObservations, params.alphaPhys, params),
+		deferredCount: drain.filter((row) => row.date >= today).length,
+	};
+}
+
+/** One reservoir's ends, or nothing if §8.14's three gates do not all pass. */
+function rankReservoir(
+	byTitle: Map<string, DrainObservationRecord[]>,
+	toObservations: (records: DrainObservationRecord[]) => DrainObservation[],
+	anchorAlpha: number,
+	params: EnergyParams,
+): DrainRankingPair | null {
+	const fits: { taskTitle: string; fit: DrainRateFit }[] = [];
+
+	for (const [taskTitle, records] of byTitle) {
+		const fit = fitDrainRate(toObservations(records), anchorAlpha, params);
+
+		if (fit.fitted && fit.usedCount >= DRAIN_RANKING_MIN_LOGS)
+			fits.push({
+				taskTitle,
+				fit,
+			});
+	}
+
+	if (fits.length < 2) return null;
+
+	const most = fits.reduce((a, b) => (b.fit.alpha > a.fit.alpha ? b : a));
+	const least = fits.reduce((a, b) => (b.fit.alpha < a.fit.alpha ? b : a));
+
+	// §8.7 leaves the std optional for a fit that did not converge. Narrowing it
+	// here fails the gate closed rather than reading its absence as certainty.
+	if (most.fit.alphaStd === undefined || least.fit.alphaStd === undefined) return null;
+
+	if (most.fit.alpha - least.fit.alpha <= most.fit.alphaStd + least.fit.alphaStd) return null;
+
+	return {
+		most: {
+			taskTitle: most.taskTitle,
+			alpha: most.fit.alpha,
+		},
+		least: {
+			taskTitle: least.taskTitle,
+			alpha: least.fit.alpha,
+		},
+	};
+}
