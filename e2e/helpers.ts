@@ -58,7 +58,8 @@ export async function openTaskForm(page: Page) {
 		})
 		.click();
 
-	const field = page.getByPlaceholder('e.g., Boxing training');
+	// In the dialog: the row editor's title field carries the same placeholder.
+	const field = page.getByRole('dialog').getByPlaceholder('e.g., Boxing training');
 
 	await expect(field).toBeVisible();
 

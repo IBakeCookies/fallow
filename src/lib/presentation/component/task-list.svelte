@@ -35,8 +35,9 @@
 		 *  Undefined when there is nothing to pick up, which is every morning. */
 		nextTaskTitle?: string;
 		// The add-task form, rendered by the card below the list: adding and reading
-		// the plan are the same place, and it costs no second card.
-		form?: Snippet;
+		// the plan are the same place, and it costs no second card. Takes the card's
+		// closer, so the form's own Cancel can shut the dialog it is mounted in.
+		form?: Snippet<[() => void]>;
 		/** The day's strip, rendered by the card between the heading and the ledger — a
 		 *  reading OF this list, so it sits in its card rather than in one of its own. */
 		strip?: Snippet;

@@ -149,13 +149,15 @@
 							class="flex items-center gap-text-2xs rounded-full bg-surface-inset px-box-2xs py-text-3xs text-xs text-ty-secondary"
 						>
 							{tag}
+							<!-- A 20px target rather than a bare glyph: at the form's scale this
+							     was the smallest thing in it. -->
 							<button
 								type="button"
 								aria-label={m.form_tag_remove({
 									tag,
 								})}
 								onclick={() => (draft.tags = draft.tags.filter((t) => t !== tag))}
-								class="text-ty-silent transition hover:text-ty-primary"
+								class="inline-flex size-5 items-center justify-center text-ty-silent transition hover:text-ty-primary"
 							>
 								&times;
 							</button>

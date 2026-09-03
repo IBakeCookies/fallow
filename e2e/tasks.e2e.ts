@@ -222,14 +222,17 @@ test('undo brings a deleted task back with no editor open', async ({ page }) => 
 test('a title picked from the suggestions brings its ratings with it', async ({ page }) => {
 	await page.goto('/');
 
-	// The task editor carries the same slider labels, so scope to the add form —
-	// the only one with a "Task Definition" field.
-	const form = page.locator('form').filter({
-		has: page.getByLabel('Task Definition'),
-	});
+	// The task editor carries the same field and slider labels, so scope to the add
+	// form by the dialog it is the only thing in.
+	const form = page.getByRole('dialog').locator('form');
 
 	await openTaskForm(page);
-	await form.getByLabel('Task Definition').fill('Gym session');
+
+	await form
+		.getByLabel('Title', {
+			exact: true,
+		})
+		.fill('Gym session');
 
 	// Range inputs take keyboard steps; fill() refuses them.
 	for (let step = 0; step < 3; step++) {
@@ -258,7 +261,11 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 
 	// Typed, not filled: the suggestions answer to input events, and two
 	// characters of the wrong case are all it takes.
-	await form.getByLabel('Task Definition').pressSequentially('GY');
+	await form
+		.getByLabel('Title', {
+			exact: true,
+		})
+		.pressSequentially('GY');
 
 	await form
 		.getByRole('option', {
@@ -266,7 +273,12 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 		})
 		.click();
 
-	await expect(form.getByLabel('Task Definition')).toHaveValue('Gym session');
+	await expect(
+		form.getByLabel('Title', {
+			exact: true,
+		}),
+	).toHaveValue('Gym session');
+
 	await expect(form.getByLabel('Physical Diff')).toHaveValue('8');
 	await expect(form.getByLabel('Mental Diff')).toHaveValue('2');
 	await expect(form.getByLabel('Enjoyment')).toHaveValue('8');
@@ -274,9 +286,19 @@ test('a title picked from the suggestions brings its ratings with it', async ({ 
 	// Two Escapes, two different closes — the list first, the dialog second. One
 	// Escape taking the whole form is what an unstopped keydown does, since bits-ui
 	// listens for it on `document`.
-	await form.getByLabel('Task Definition').pressSequentially('X');
+	await form
+		.getByLabel('Title', {
+			exact: true,
+		})
+		.pressSequentially('X');
+
 	await expect(form.getByRole('option')).toHaveCount(0);
-	await form.getByLabel('Task Definition').press('Backspace');
+
+	await form
+		.getByLabel('Title', {
+			exact: true,
+		})
+		.press('Backspace');
 
 	await expect(
 		form.getByRole('option', {

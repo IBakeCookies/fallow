@@ -10,8 +10,9 @@
 
 	interface Props {
 		/** Mounted in the dialog below, so it renders only while that is open — every
-		 *  opening is a fresh mount, and no page decides when a form is on screen. */
-		form?: Snippet;
+		 *  opening is a fresh mount, and no page decides when a form is on screen. It
+		 *  takes the closer: only this card knows the dialog its Cancel closes. */
+		form?: Snippet<[() => void]>;
 		/** Between the heading and the ledger — `/` its day strip, the Lab its ☕ editor. */
 		strip?: Snippet;
 		/** What the screen reads beside the heading — both screens put the day's Load/Save
@@ -35,6 +36,8 @@
 	}
 
 	let { form, strip, heading, rows, columns, split, exampleDayHref }: Props = $props();
+
+	let addOpen = $state(false);
 </script>
 
 {#snippet groupHeading(label: string)}
@@ -53,7 +56,7 @@
 	</tbody>
 {/snippet}
 
-<Dialog.Root>
+<Dialog.Root bind:open={addOpen}>
 	<div class="card-shell space-y-text-xs p-box-sm sm:p-box-xl">
 		<div class="flex flex-wrap items-center justify-between gap-text-xs">
 			<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
@@ -155,7 +158,7 @@
 			<Dialog.Title class="mb-text-md border-b border-line-soft pb-text-md"
 				>{m.form_add_task_title()}</Dialog.Title
 			>
-			{@render form()}
+			{@render form(() => (addOpen = false))}
 		</Dialog.Content>
 	{/if}
 </Dialog.Root>

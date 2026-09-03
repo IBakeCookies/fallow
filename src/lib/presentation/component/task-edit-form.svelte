@@ -25,6 +25,10 @@
 	function save() {
 		const title = draft.title.trim();
 
+		// Enter in the title field submits a form whose Save is out of reach, and
+		// `required` counts three spaces as a title.
+		if (!title) return;
+
 		onsave({
 			...draft,
 			title,
@@ -33,7 +37,7 @@
 </script>
 
 <form
-	class="mt-text-sm space-y-grid-md rounded-lg border bg-surface-page/40 p-box-md"
+	class="mt-text-sm space-y-grid-md rounded-lg border border-line-soft bg-surface-card p-box-md"
 	onsubmit={(e) => (e.preventDefault(), save())}
 >
 	<label class="block text-xs font-medium text-ty-secondary">
@@ -41,6 +45,7 @@
 		<input
 			type="text"
 			bind:value={draft.title}
+			placeholder={m.form_task_placeholder()}
 			required
 			class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
 		/>
@@ -48,8 +53,8 @@
 
 	<TaskFormFields bind:draft />
 
-	<!-- `justify-end` with the flag pushed out by its own margin, so the buttons keep their
-	     corner in the mode that has no flag to show. -->
+	<!-- One line: the flag pushed out by its own margin, the verbs in the corner —
+	     so the buttons keep that corner in the mode with no flag to show. -->
 	<div class="flex flex-wrap items-center justify-end gap-grid-sm">
 		{#if withMustDoToday}
 			<MustDoToggle bind:mustDoToday={draft.mustDoToday} class="mr-auto" />

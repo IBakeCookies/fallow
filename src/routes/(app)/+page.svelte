@@ -212,8 +212,9 @@
 <!-- No `{#key}` and no "is it open" reading of the day: the card mounts this in a
      dialog, which renders it only while open, so every opening is already a fresh
      form and nothing has to know whether the day has landed. -->
-{#snippet addTaskForm()}
+{#snippet addTaskForm(close: () => void)}
 	<TaskForm
+		oncancel={close}
 		onsubmit={(t) => session.addTask(t)}
 		suggest={(query) => session.suggestTitles(query)}
 		tagVocabulary={session.tagVocabulary}
