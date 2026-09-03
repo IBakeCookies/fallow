@@ -32,6 +32,7 @@ import {
 	calculateInterleavedOrder,
 	calculateMomentum,
 	calculatePhysicalLoad,
+	calculatePlanSlackHours,
 	calculateQuickWins,
 	calculateRecoveryRatio,
 	calculateRewardDensity,
@@ -115,14 +116,9 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		posterior,
 	);
 
-	const activeTasks = suggestedTasks.filter((task) => !task.completed);
-	// Switch overhead counts only tasks that actually received time, matching
-	// the allocator.
 	const budget = Number(availableHours) || 0;
-	const fundedCount = suggestedTasks.filter((task) => task.suggestedHours > 0).length;
-	const overhead = fundedCount > 1 ? (fundedCount - 1) * switchCost : 0;
-	const allocated = suggestedTasks.reduce((sum, task) => sum + task.suggestedHours, 0);
-	const planSlackHours = Math.max(0, Math.max(0, budget - overhead) - allocated);
+	const activeTasks = suggestedTasks.filter((task) => !task.completed);
+	const planSlackHours = calculatePlanSlackHours(suggestedTasks, availableHours, switchCost);
 	const cognitiveLoad = calculateCognitiveLoad(suggestedTasks, availableHours);
 	const physicalLoad = calculatePhysicalLoad(suggestedTasks, availableHours);
 

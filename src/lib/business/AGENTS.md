@@ -317,7 +317,17 @@ collision costs a row printing the other day's title.
 
 **The demo day is the one exception**, and only because nothing it holds is
 ever written: `buildDemoTasks` numbers its six tasks 1–6, and `#persistSession`
-refuses every write while the demo is on.
+refuses every write while the demo is on. The rule is about ids a day KEEPS, so
+it does not reach an id that never leaves one call: `calculateDraftImpact`
+numbers the task being typed `max + 1` for the length of one solve, purely so it
+can find its own row in the result.
+
+**A new task is PREPENDED, and anything predicting a plan has to prepend too.**
+`addTask` puts it at the head of `tasks`, and `calculateTaskPlan` sorts on the
+priority score rounded to 1 dp with a stable sort — so input position orders
+every rounding tie, which decides the run slot and, on a tight budget, which
+tie-mate gets funded. `calculateDraftImpact` reads the plan the deploy will
+produce only because it inserts the draft in the same place.
 
 **A day's `tasks` array is newest-first** — every writer in `SessionStore`
 prepends — so anything wanting the later of two entries walks it backwards, and
@@ -402,6 +412,16 @@ exposes `computeAdvice()` plus `isAdviceStale`, and staleness compares a
 **fingerprint of the inputs** — a `$derived` read from outside a reactive
 context is not guaranteed to return the same object twice, so identity reports
 staleness on a day that never changed.
+
+### The add-task draft is priced in a `$derived`, unlike the advice
+
+`draftImpact` is one solve — the day with the draft in it, against the
+`#daily` the store already has — where the advice is one per candidate, so the
+reading above's argument does not carry over: it costs what `#daily` itself
+already costs on every keystroke in the budget field. It is `null` while
+`previewDraft` is (the form's, set from what the user has typed), and a
+`$derived` nobody reads never runs, so every screen but an open add-task dialog
+pays nothing for it.
 
 **The fingerprint carries the DATE as well as the inputs**, and so does
 `EnergyLabStore`'s `#curveFingerprint`. The inputs alone cannot tell one day

@@ -79,6 +79,19 @@ Untestable at every level is the signal.
   **Deploying does NOT close the dialog** — a day gets typed in one sitting — so the
   form puts the caret back in the title field itself, which is the one focus move
   `{@attach}` cannot make, since that field never unmounts between deploys.
+- **The add-task form's second column is a reading, and the must-do flag stands
+  where a Cancel would.** `/` hands the form `impact`
+  (`DailyPlanStore.draftImpact`) and an `ondraftchange`; the form publishes only
+  what a solve reads — the three ratings and the importance — and `null` while
+  the title is blank, since an unnamed task is not one the day can be priced
+  with, and the panel then renders the prompt line rather than numbers (the
+  solve-costing rule below). There is nothing to cancel: the ✕ closes the
+  dialog and a draft is never written until it is deployed, so the footer keeps
+  the flag and the submit and simply moves to the foot of the reading. The
+  reading carries no control of its own, which is what leaves the tab order the
+  fields' and then the footer's. The Lab passes neither prop and stays one
+  column — its plan is the energy optimizer's, not this one — and
+  `task-list-card`'s dialog is widened for both.
 - **A combobox inside a dialog must `stopPropagation()` on the Escape that closes its
   own list.** bits-ui's escape layer listens on `document`, so an unstopped Escape
   closes the whole form while the user was only dismissing the suggestions. Stop it in

@@ -94,6 +94,12 @@
 	   figure nothing computed, so the block drops it instead. */
 	--container-day-flow: 8.5rem;
 
+	/* The width at which the task form's three sliders sit side by side instead of
+	   one per line. A literal, for the same reason as above. Measured on the
+	   fields' own content box: the ledger's inline editor is past it on any
+	   desktop, the add-task dialog's field column never is. */
+	--container-task-fields: 42rem;
+
 	/* for cards, boxes paddings (-3xs/-2xs are the chip/pill insets below
 	   -xs, where the ladder used to run out and callers fell back to raw
 	   numbers like px-1.5) */

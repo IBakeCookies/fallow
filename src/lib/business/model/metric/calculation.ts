@@ -386,6 +386,8 @@ export function calculatePoolSaturation(
 ): {
 	percent: number;
 	limitType: 'cognitive' | 'physical';
+	cognitivePercent: number;
+	physicalPercent: number;
 } {
 	const saturation = (demand: number, pool: number): number =>
 		pool > 0 ? (demand / pool) * 100 : demand > 0.001 ? Infinity : 0;
@@ -397,7 +399,44 @@ export function calculatePoolSaturation(
 	return {
 		percent: cognitiveBinds ? cogSaturation : physSaturation,
 		limitType: cognitiveBinds ? 'cognitive' : 'physical',
+		cognitivePercent: cogSaturation,
+		physicalPercent: physSaturation,
 	};
+}
+
+/**
+ * The demand-weighted hours a plan draws from each pool — an hour of a 2/10
+ * task spends 12 minutes of one. Exported because the draft's reading names
+ * BOTH pools while Human Capacity names only the one that binds (R3).
+ */
+export function calculatePoolDraw(
+	tasks: Pick<SuggestedTask, 'mentalDifficulty' | 'physicalDifficulty' | 'suggestedHours'>[],
+): CapacityPools {
+	return {
+		cognitiveHours: tasks.reduce((sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours, 0),
+		physicalHours: tasks.reduce(
+			(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
+			0,
+		),
+	};
+}
+
+/**
+ * The hours a plan deliberately leaves unspent: the budget, less the switch
+ * overhead the funded set pays and the hours it books. Optimal stopping and a
+ * binding pool are both reasons a solve returns some.
+ */
+export function calculatePlanSlackHours(
+	tasks: Pick<SuggestedTask, 'suggestedHours'>[],
+	availableHours: number,
+	switchCost: number,
+): number {
+	const budget = Number(availableHours) || 0;
+	const funded = tasks.filter((task) => task.suggestedHours > 0);
+	const overhead = funded.length > 1 ? (funded.length - 1) * switchCost : 0;
+	const allocated = tasks.reduce((sum, task) => sum + task.suggestedHours, 0);
+
+	return Math.max(0, Math.max(0, budget - overhead) - allocated);
 }
 
 export function calculateHumanCapacity(
@@ -413,23 +452,10 @@ export function calculateHumanCapacity(
 			limitType: 'none',
 		};
 
-	// Weight hours by how demanding each dimension is (0-10 scale → 0-1 weight).
 	// Since the allocator itself enforces these pools, suggested plans saturate
 	// near (not beyond) 100% — values >100% can only come from externally-supplied
 	// hours.
-	const { percent, limitType } = calculatePoolSaturation(
-		{
-			cognitiveHours: tasks.reduce(
-				(sum, t) => sum + (t.mentalDifficulty / 10) * t.suggestedHours,
-				0,
-			),
-			physicalHours: tasks.reduce(
-				(sum, t) => sum + (t.physicalDifficulty / 10) * t.suggestedHours,
-				0,
-			),
-		},
-		pools,
-	);
+	const { percent, limitType } = calculatePoolSaturation(calculatePoolDraw(tasks), pools);
 
 	return {
 		percent: Math.round(percent),

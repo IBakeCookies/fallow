@@ -98,15 +98,17 @@
 	] as const;
 </script>
 
-<div class="space-y-grid-md">
-	<div class="grid gap-grid-md sm:grid-cols-3">
+<div class="@container space-y-grid-md">
+	<!-- Three across where the fields have the room — the ledger's inline editor,
+	     which is as wide as the table — and one per line in the dialog's field
+	     column, where three short tracks are harder to drag than three long ones.
+	     A container query rather than a breakpoint: the same component is in both,
+	     and neither width is the viewport's (`--container-task-fields`). -->
+	<div class="grid gap-grid-md @task-fields:grid-cols-3">
 		{#each sliders as slider (slider.key)}
 			<!-- The wrapping label is what names the range input -->
-			<label class="block space-y-text-xs">
-				<span class="flex justify-between text-xs font-medium">
-					<span class="text-ty-secondary">{slider.label}</span>
-					<span class="text-ty-primary">{draft[slider.key]}</span>
-				</span>
+			<label class="grid grid-cols-[auto_1fr_2ch] items-center gap-x-grid-xs">
+				<span class="text-xs font-medium text-ty-secondary">{slider.label}</span>
 				<input
 					type="range"
 					min={slider.min}
@@ -114,51 +116,58 @@
 					bind:value={draft[slider.key]}
 					class="h-1 w-full cursor-pointer appearance-none rounded-full bg-surface-inset {slider.accent}"
 				/>
+				<span class="text-right text-xs font-medium text-ty-primary tabular-nums"
+					>{draft[slider.key]}</span
+				>
 			</label>
 		{/each}
 	</div>
 
-	<TaskImportanceSelect bind:importance={draft.importance} {size} />
+	<div class="grid items-start gap-grid-md border-t border-line-soft pt-grid-md md:grid-cols-2">
+		<!-- A rule under the sliders: the three ratings describe the WORK, and what
+	     follows describes the task's place in the day. -->
+		<TaskImportanceSelect bind:importance={draft.importance} {size} />
 
-	<div class="space-y-text-xs">
-		<label class="block text-xs font-medium text-ty-secondary">
-			{m.form_tags()}
-			<input
-				type="text"
-				list={listId}
-				value={entry}
-				oninput={handleTagInput}
-				onkeydown={handleTagKeydown}
-				onblur={handleTagBlur}
-				placeholder={m.form_tags_placeholder()}
-				class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
-			/>
-		</label>
-		<datalist id={listId}>
-			{#each tagVocabulary as tag (tag)}
-				<option value={tag}></option>
-			{/each}
-		</datalist>
-		{#if draft.tags.length > 0}
-			<div class="flex flex-wrap gap-grid-2xs">
-				{#each draft.tags as tag (tag)}
-					<span
-						class="flex items-center gap-text-2xs rounded-full bg-surface-inset px-box-2xs py-text-3xs text-xs text-ty-secondary"
-					>
-						{tag}
-						<button
-							type="button"
-							aria-label={m.form_tag_remove({
-								tag,
-							})}
-							onclick={() => (draft.tags = draft.tags.filter((t) => t !== tag))}
-							class="text-ty-silent transition hover:text-ty-primary"
-						>
-							&times;
-						</button>
-					</span>
+		<div class="space-y-text-xs">
+			<label class="block text-xs font-medium text-ty-secondary">
+				{m.form_tags()}
+				<input
+					type="text"
+					list={listId}
+					value={entry}
+					oninput={handleTagInput}
+					onkeydown={handleTagKeydown}
+					onblur={handleTagBlur}
+					placeholder={m.form_tags_placeholder()}
+					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+				/>
+			</label>
+			<datalist id={listId}>
+				{#each tagVocabulary as tag (tag)}
+					<option value={tag}></option>
 				{/each}
-			</div>
-		{/if}
+			</datalist>
+			{#if draft.tags.length > 0}
+				<div class="flex flex-wrap gap-grid-2xs">
+					{#each draft.tags as tag (tag)}
+						<span
+							class="flex items-center gap-text-2xs rounded-full bg-surface-inset px-box-2xs py-text-3xs text-xs text-ty-secondary"
+						>
+							{tag}
+							<button
+								type="button"
+								aria-label={m.form_tag_remove({
+									tag,
+								})}
+								onclick={() => (draft.tags = draft.tags.filter((t) => t !== tag))}
+								class="text-ty-silent transition hover:text-ty-primary"
+							>
+								&times;
+							</button>
+						</span>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>
