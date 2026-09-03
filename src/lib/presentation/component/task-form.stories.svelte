@@ -684,6 +684,15 @@
 				before: 3.9,
 				after: 2.65,
 			},
+			displaced: {
+				hoursTaken: 0.67,
+				taskCount: 3,
+				unfunded: [],
+			},
+			burnoutRisk: {
+				before: 22.4,
+				after: 31.1,
+			},
 		},
 		ondraftchange: fn(),
 		oncancel: fn(),
