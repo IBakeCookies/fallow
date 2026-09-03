@@ -37,6 +37,7 @@ import {
 	energyBalanceReading,
 	getBandBiggerBetter,
 	getBandDeepWork,
+	getBandFlowReached,
 	type Band,
 } from '$lib/presentation/utils/band';
 
@@ -278,13 +279,11 @@ export function buildMetrics(
 					})
 				: m.metric_longest_warm_up_desc_none(),
 			// Next-up, so gating on active tasks is the matching gate.
-			// Banded on Flow Coverage's own criterion — hours ≥ ϕ — narrowed to this
-			// one task, so the two rows cannot disagree about it.
 			...gated(
 				hasActive && longestWarmUp !== null,
 				`${longestWarmUp?.flowStateTime.toFixed(1)}h`,
-				longestWarmUp !== null && longestWarmUp.suggestedHours >= longestWarmUp.flowStateTime
-					? 'success'
+				longestWarmUp !== null
+					? getBandFlowReached(longestWarmUp.suggestedHours, longestWarmUp.flowStateTime)
 					: 'warning',
 			),
 		},

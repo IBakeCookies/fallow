@@ -227,6 +227,19 @@ describe('calculateDraftImpact', () => {
 		expect(impact.physicalPercent.after).toBeCloseTo(impact.physicalPercent.before, 6);
 	});
 
+	// ϕ is the draft's own row in the solve the reading already paid for, not a
+	// second derivation of it — the panel bands it on Flow Coverage's criterion,
+	// so a ϕ from anywhere else would band against a plan nobody is getting.
+	it('reads the draft’s warm-up off the plan it was solved into', () => {
+		const impact = calculateDraftImpact(input(TASKS), DRAFT);
+		const deployed = deploy(TASKS, DRAFT);
+
+		expect(impact.flowStateTime).toBeCloseTo(
+			deployed.suggestedTasks.find((task) => task.id === 99)!.flowStateTime,
+			12,
+		);
+	});
+
 	it('prices the first task of an empty day', () => {
 		const impact = calculateDraftImpact(input([]), DRAFT);
 

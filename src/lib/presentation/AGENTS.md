@@ -96,7 +96,9 @@ Untestable at every level is the signal.
   take the same `surface-card`-plus-border recipe, so they read as a pair. The
   Lab passes neither prop and stays one column, unframed, since the dialog is
   already its box — its plan is the energy optimizer's, not this one — and
-  `task-list-card`'s dialog is widened for both.
+  `task-list-card`'s dialog is widened for both. The panel's warm-up row reads
+  the draft's own ϕ off that same solve (`DraftImpact.flowStateTime`) and is
+  banded here, not in the model.
 - **A combobox inside a dialog must `stopPropagation()` on the Escape that closes its
   own list.** bits-ui's escape layer listens on `document`, so an unstopped Escape
   closes the whole form while the user was only dismissing the suggestions. Stop it in
@@ -718,6 +720,13 @@ as. Banding a reading as good/bad is display policy, not domain math. It
 exports `AXIS_BAND` + `isOutOfBand` because the plan-advice card decides which
 findings to surface from the same call the metric rows are colored by — two
 copies of the thresholds is exactly the R3 failure.
+
+`getBandFlowReached(hours, flowStateTime)` is this layer's one definition of
+Flow Coverage's `hours ≥ ϕ` criterion narrowed to one task, read by the timeline
+block, the Longest Warm-Up descriptor and the draft panel (R3 — it was inline in
+three places and the panel would have been the fourth). `calculateFlowCoverage`
+keeps its own copy, and it is a wider predicate — it also drops an unfunded task
+— because the model may not import presentation (R1).
 
 **A view model carries a `Band`, never a class string.** `Metric.band` and
 `AdviceRow.beforeBand` name the band; the component looks up `BAND_TEXT_CLASS` /

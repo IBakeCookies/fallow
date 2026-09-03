@@ -106,6 +106,15 @@ export function getBandDeepWork(value: number): Band {
 }
 
 /**
+ * Flow Coverage's own criterion — hours ≥ ϕ — narrowed to one task, so the
+ * timeline block, the Longest Warm-Up row and the draft panel cannot disagree
+ * about whether an allocation reaches flow (AGENTS.md R3).
+ */
+export function getBandFlowReached(hours: number, flowStateTime: number): Band {
+	return hours >= flowStateTime ? 'success' : 'warning';
+}
+
+/**
  * Which pool the day leans on, from the cognitive share. The word on the row
  * and the colour behind it are the same call: two copies of `> 60 / < 40` drift
  * into a day labelled "Balanced" and banded a warning.

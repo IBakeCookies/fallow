@@ -66,10 +66,10 @@
 						     reading of it lives. -->
 						<p class="truncate text-2xs text-ty-secondary @max-day-flow:sr-only">
 							{block.band === 'success'
-								? m.day_timeline_flow_reached({
+								? m.flow_reached({
 										duration: formatDuration(block.flowHours),
 									})
-								: m.day_timeline_flow_short({
+								: m.flow_short({
 										duration: formatDuration(block.flowHours - block.hours),
 									})}
 						</p>

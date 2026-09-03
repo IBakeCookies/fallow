@@ -8,6 +8,7 @@ import {
 	energyBalanceReading,
 	getBandBiggerBetter,
 	getBandDeepWork,
+	getBandFlowReached,
 	getBandSmallerBetter,
 	isOutOfBand,
 	type Band,
@@ -94,6 +95,18 @@ describe('band policy', () => {
 		[100, 'neutral'],
 	])('deep work %s reads %s', (value, band) => {
 		expect(getBandDeepWork(value)).toBe(band);
+	});
+
+	// Flow Coverage's own criterion — hours ≥ ϕ — narrowed to one task, so the
+	// timeline block, the Longest Warm-Up row and the draft panel cannot disagree
+	// about whether an allocation reaches flow (AGENTS.md R3).
+	it.each([
+		[1, 1, 'success'],
+		[1.5, 1, 'success'],
+		[0.99, 1, 'warning'],
+		[0, 1.5, 'warning'],
+	])('%sh against a %sh warm-up reads %s', (hours, flowStateTime, band) => {
+		expect(getBandFlowReached(hours, flowStateTime)).toBe(band);
 	});
 
 	it('never colours deep work as a problem', () => {
