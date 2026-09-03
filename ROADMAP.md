@@ -928,3 +928,16 @@ read as a leisure choice.
   more work. Both available repairs lose to shipping nothing, so the estimator
   did not move: MATH.md §8.10 states the approximation, and the Stopping
   Calibration card's hint states the premise.
+
+## Findings from the 2026-09-03 plan-value review
+
+One question, asked of the shipped card — what do the percentages in "Adjust the
+plan" mean? Every one of them is arithmetically right, and the sum they are
+taken against, `Σ vᵢ·P̄ᵢ` (MATH.md §0), is named nowhere in the product. Read
+against the objective and measured over the fixture year.
+
+- **M100 — the advice card priced three readings in a unit it never defined, and
+  bracketed the switch cost as a level — fixed 2026-09-03,
+  [`the-unit-the-percentages-never-named`](docs/features/the-unit-the-percentages-never-named.md),
+  `scripts/adv4-plan-value-vs-output.probe.ts`.** Copy only; no formula,
+  constant, bound or fit moved.

@@ -419,9 +419,9 @@ describe('buildAdviceDisplay', () => {
 		expect(display.unfunded[3]).not.toMatch(/drop|add|move|set|would/i);
 	});
 
-	// The declared switch cost, priced. Conditional on purpose —
-	// each alternative is what the plan would be worth if the declaration were
-	// that number, never a claim the user can go and switch tasks faster.
+	// The declared switch cost, priced. Conditional on purpose — each alternative
+	// is where the day comes out re-solved at that declaration, never a claim the
+	// user can go and switch tasks faster.
 	describe('the price of the switch cost', () => {
 		const displayFor = (price: SwitchCostPrice) =>
 			buildAdviceDisplay(
@@ -435,7 +435,8 @@ describe('buildAdviceDisplay', () => {
 		it('reports the reservation and brackets it either way', () => {
 			expect(displayFor(switchCostPrice())).toBe(
 				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. ' +
-					'At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+					'Re-solved with no switch cost, your day comes out at +10.4% plan value; ' +
+					'at 30m a switch, −8.7% plan value.',
 			);
 		});
 
@@ -523,7 +524,8 @@ describe('buildAdviceDisplay', () => {
 				),
 			).toBe(
 				'At 15m a switch, this plan pays for no switching. ' +
-					'At no switch cost this plan reads +41.8% plan value; at 30m a switch, 0% plan value.',
+					'Re-solved with no switch cost, your day comes out at +41.8% plan value; ' +
+					'at 30m a switch, 0% plan value.',
 			);
 		});
 

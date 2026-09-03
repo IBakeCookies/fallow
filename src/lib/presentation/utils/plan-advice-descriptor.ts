@@ -75,8 +75,8 @@ export interface AdviceDisplay {
 	/** The budget's shadow price as a sentence — always a reading. */
 	marginal: string;
 	/**
-	 * What the day's declared switch cost reserves, and what the plan would be
-	 * worth at zero and at double — always a reading, and never
+	 * What the day's declared switch cost reserves, and where the day would come
+	 * out re-solved at zero and at double — always a reading, and never
 	 * phrased as something to act on.
 	 */
 	switchCost: string;
@@ -232,10 +232,12 @@ function formatMarginal(marginal: BudgetMarginal, locale: string): string {
 /**
  * What the declared switch cost is doing to today, bracketed by zero and double.
  *
- * Conditional on purpose: each alternative is what this plan would be worth *if*
- * the declaration were that number, and never "switch faster and gain this". The
- * user cannot decide to switch tasks more cheaply, only report how cheaply they
- * do — which is the same reason the model refuses to make this a lever.
+ * Conditional on purpose: each alternative is what the day would come out at *if*
+ * the declaration were that number — a re-solve producing its own allocation, not
+ * this plan re-read, so the sentence may not state the reading as this plan's own.
+ * Never "switch faster and gain this" either: the user cannot decide to switch
+ * tasks more cheaply, only report how cheaply they do — which is the same reason
+ * the model refuses to make this a lever.
  */
 function formatSwitchCostPrice(price: SwitchCostPrice, locale: string): string {
 	const declared = formatDuration(price.declared);
