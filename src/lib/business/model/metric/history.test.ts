@@ -23,6 +23,7 @@ import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import {
 	calculateCompletionRate,
 	calculateSuggestedTasks,
+	calculateYieldIndex,
 } from '$lib/business/model/metric/calculation';
 import {
 	DEFAULT_CAPACITY_POOLS,
@@ -135,6 +136,28 @@ describe('summarizeSession', () => {
 		const summaries = sessions.map((s) => summarizeSession(s));
 		expect(performance.now() - started).toBeLessThan(3000);
 		expect(summaries).toHaveLength(365);
+	});
+
+	it('carries a yield index read off the plan it summarized', () => {
+		const summary = summarizeSession(makeSession(6));
+
+		expect(summary.yieldIndex).toBe(calculateYieldIndex(summary.suggestedTasks));
+		// The fixture completes every third task, which is not the top of the list.
+		expect(summary.yieldIndex).toBeLessThan(100);
+	});
+
+	it('reads zero yield on a day that completed nothing', () => {
+		const session = makeSession(4);
+
+		const nothingDone = {
+			...session,
+			tasks: session.tasks.map((t) => ({
+				...t,
+				completed: false,
+			})),
+		};
+
+		expect(summarizeSession(nothingDone).yieldIndex).toBe(0);
 	});
 });
 
@@ -397,6 +420,7 @@ function day(date: string, completionRate: number, completedTasks = 1): DaySumma
 		totalTasks: Math.max(1, completedTasks),
 		completedTasks,
 		completionRate,
+		yieldIndex: 80,
 		quadrant: 'flow',
 		availableHours: 4,
 		switchCost: 0.25,

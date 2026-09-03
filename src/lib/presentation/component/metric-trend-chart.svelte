@@ -1,9 +1,8 @@
 <script lang="ts">
-	/* The analytics trend lines: Burnout Risk and the two Loads, one slot per day
-	   of the viewed range, all three on the same 0–100% axis they are already
-	   read on.
+	/* The analytics line cards: one slot per day of the viewed range, every series
+	   on the same 0–100% axis its readings are already given on.
 
-	   The case worth the code is the gap. A day with no stored session arrives as
+	   The case worth the code is the gap. A slot with no reading arrives as
 	   `null`, and neither obvious drawing of it is honest: joining across it
 	   invents a reading, and plotting a 0 invents a day that went well. So each
 	   series is split into runs of consecutive recorded days — a run of two or

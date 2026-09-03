@@ -331,6 +331,54 @@ test('stats and chart come off the stored days', async ({ page }) => {
 	).toBeVisible();
 });
 
+test('the range carries a Yield reading', async ({ page }) => {
+	await seedDay(page, 0, ['write the calibration section', 'inbox sweep']);
+
+	await page
+		.getByRole('checkbox', {
+			name: /^Mark /,
+		})
+		.first()
+		.check();
+
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/analytics');
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Yield and completion',
+		}),
+	).toBeVisible();
+
+	// Its own accessible name: an <svg role="img"> has no other one, and the bar
+	// chart directly above is also about completion rate.
+	await expect(
+		page.getByRole('img', {
+			name: 'Line chart of yield index and completion rate over the last 7 days',
+		}),
+	).toHaveCount(1);
+
+	await expect(
+		page.getByRole('img', {
+			name: 'Bar chart of completion rate over the last 7 days',
+		}),
+	).toHaveCount(1);
+
+	// The legend names both lines. Exact: the bar card's heading is "Completion rate".
+	await expect(
+		page.getByText('Yield Index', {
+			exact: true,
+		}),
+	).toBeVisible();
+
+	await expect(
+		page.getByText('Completion Rate', {
+			exact: true,
+		}),
+	).toBeVisible();
+});
+
 test('the range toggle reslices the stats', async ({ page }) => {
 	await seedDay(page, 0, ['write the calibration section']);
 	await page.goto('/analytics');

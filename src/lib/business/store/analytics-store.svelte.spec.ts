@@ -92,6 +92,7 @@ const day = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
 	totalTasks: 2,
 	completedTasks: 1,
 	completionRate: 50,
+	yieldIndex: 80,
 	quadrant: 'flow',
 	availableHours: 4,
 	switchCost: 0.25,

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { MetricTrendPoint } from '$lib/business/model/metric/history';
+import type { DaySummary, MetricTrendPoint } from '$lib/business/model/metric/history';
 import {
 	metricTrendSeries,
+	yieldTrendSeries,
 	type MetricTrendSeriesInput,
+	type YieldTrendSeriesInput,
 } from '$lib/presentation/utils/metric-trend-series';
 
 const point = (date: string, burnoutRisk: number): MetricTrendPoint => ({
@@ -86,5 +88,65 @@ describe('metricTrendSeries', () => {
 
 		expect(labels[0]).toBe('Jul 25');
 		expect(labels[6]).toBe('Jul 31');
+	});
+});
+
+const summary = (date: string, over: Partial<DaySummary> = {}): DaySummary => ({
+	date,
+	tasks: [],
+	totalTasks: 2,
+	completedTasks: 1,
+	completionRate: 50,
+	yieldIndex: 80,
+	quadrant: 'flow',
+	availableHours: 8,
+	switchCost: 0.25,
+	suggestedTasks: [],
+	...over,
+});
+
+const yieldInput = (over: Partial<YieldTrendSeriesInput> = {}): YieldTrendSeriesInput => ({
+	summaries: [],
+	rangeStart: '2026-07-25',
+	rangeDays: 7,
+	locale: 'en-US',
+	...over,
+});
+
+describe('yieldTrendSeries', () => {
+	// "Of what you finished" has no value when nothing was finished, which is why
+	// the dashboard's Yield tile is gated on `completedTasks > 0`. Completing none
+	// of the plan is still a true Completion Rate of 0.
+	it('breaks the yield line on a day that finished nothing, and plots its completion rate', () => {
+		const { series } = yieldTrendSeries(
+			yieldInput({
+				rangeDays: 3,
+				summaries: [
+					summary('2026-07-25'),
+					summary('2026-07-26', {
+						completedTasks: 0,
+						completionRate: 0,
+						yieldIndex: 0,
+					}),
+					summary('2026-07-27'),
+				],
+			}),
+		);
+
+		expect(series[0].values[1]).toBeNull();
+		expect(series[1].values[1]).toBe(0);
+	});
+
+	it('leaves a day the user never opened out of both lines', () => {
+		const { series } = yieldTrendSeries(
+			yieldInput({
+				summaries: [summary('2026-07-25'), summary('2026-07-31')],
+			}),
+		);
+
+		expect(series.map((s) => s.values.length)).toEqual([7, 7]);
+
+		for (const line of series)
+			expect(line.values.slice(1, 6)).toEqual([null, null, null, null, null]);
 	});
 });
