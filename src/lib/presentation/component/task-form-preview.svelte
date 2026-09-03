@@ -66,7 +66,7 @@
 	</div>
 {/snippet}
 
-<section class="space-y-grid-sm">
+<section class="space-y-grid-md">
 	<h3 class="text-xs font-semibold tracking-wider text-ty-secondary uppercase">
 		{m.form_impact_heading()}
 	</h3>
