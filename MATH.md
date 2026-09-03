@@ -36,8 +36,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~28k tokens at 4 chars/token; the largest
-single section is §8 at ~15k (§5 is ~4k), and most of the 26 rows below are
+The whole document is ~29k tokens at 4 chars/token; the largest
+single section is §8 at ~16k (§5 is ~4k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -49,32 +49,33 @@ retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0           82-123  Objective
-§1          125-150  Inputs and parameter mappings (unchanged from the articl…
-§2          152-253  Productivity curve — v2 change
-§3          255-347  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          349-434  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          436-724  Personalization — v2 change: full Bayesian posterior
-  §5.2      535-613  Recency weighting of the ϕ fit
-  §5.1      615-724  Posterior-aware allocation
-§6          726-738  Summary of v1 → v2 changes
-§7          740-764  Known approximations and deliberate non-changes
-§8         766-1793  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      778-800  Intermittent-rest recovery correction
-  §8.2      802-821  Warm-up carryover instead of binary reset
-  §8.3      823-841  Verified consequences and a calibration question, closed
-  §8.4      843-913  Per-task satiety — concave daily value
-  §8.5      915-955  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6     957-1003  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1005-1102  Drain-rate calibration from end-of-session ratings
-  §8.8    1104-1139  45-minute plan granularity
-  §8.9    1141-1188  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1190-1438  Stopping-value calibration from observed stop times
-  §8.11   1440-1571  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1573-1727  The budget curve — what the day's LENGTH is worth
-  §8.13   1729-1793  Capacity from the fitted drain rate
-§9        1795-1857  Plan-adherence reading and its verdict band
-§10       1859-1906  References
+§0           83-124  Objective
+§1          126-151  Inputs and parameter mappings (unchanged from the articl…
+§2          153-254  Productivity curve — v2 change
+§3          256-348  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          350-435  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          437-725  Personalization — v2 change: full Bayesian posterior
+  §5.2      536-614  Recency weighting of the ϕ fit
+  §5.1      616-725  Posterior-aware allocation
+§6          727-739  Summary of v1 → v2 changes
+§7          741-765  Known approximations and deliberate non-changes
+§8         767-1850  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      779-801  Intermittent-rest recovery correction
+  §8.2      803-822  Warm-up carryover instead of binary reset
+  §8.3      824-842  Verified consequences and a calibration question, closed
+  §8.4      844-914  Per-task satiety — concave daily value
+  §8.5      916-956  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6     958-1004  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1006-1103  Drain-rate calibration from end-of-session ratings
+  §8.8    1105-1140  45-minute plan granularity
+  §8.9    1142-1189  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1191-1439  Stopping-value calibration from observed stop times
+  §8.11   1441-1572  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1574-1728  The budget curve — what the day's LENGTH is worth
+  §8.13   1730-1794  Capacity from the fitted drain rate
+  §8.14   1796-1850  Per-title drain rate — which task costs more than its sl…
+§9        1852-1914  Plan-adherence reading and its verdict band
+§10       1916-1963  References
 ```
 
 <!-- section-index:end -->
@@ -1791,6 +1792,62 @@ the equation at all, and that α is below the margin by construction.
 empties the reservoir sooner, so it buys a smaller pool. The map therefore
 inherits whatever bias §8.7's α̂ carries, with the sign flipped;
 `capacity-from-drain.probe.ts` is where that is measured.
+
+### 8.14 Per-title drain rate — which task costs more than its sliders say
+
+**The reading.** §8.7 fits one α per reservoir over every 🪫 row. Restrict that
+same fit to the rows sharing one task title and it answers a different
+question: how fast this task drains the reservoir _per hour at its own declared
+demand_. Because `D(w, H; α)` already carries `w`, comparing two titles'
+α̂ compares them net of how hard the user rated each one — which is exactly the
+part a task list cannot show. The whole reading is `fitDrainRate` called per
+title; no new law, no new parameter.
+
+**The prior anchor is the user's own α̂, not the model default α₀.** Two
+consequences, and both are the reason. The comparison becomes "against your
+other tasks" rather than "against the population", which is the only sentence
+the reading can honestly make. And the ridge `λ·(α − α̂)²` then does the
+protective work: a title with one informative row sits near α̂ and a title with
+many sits where its rows put it, so **evidence, not noise, is what moves a
+title toward an end of the ranking**. λ stays §8.7's `DRAIN_PRIOR_STRENGTH`;
+nothing about the fit is retuned for this.
+
+**Only each day's earliest 🪫 row is eligible.** §8.7's `D` assumes the session
+began at a full reservoir, and records that a mid-day session starting drained
+rates higher than the model predicts and biases α upward. Aggregated per title
+that bias stops being noise and becomes a confound with schedule position: a
+task habitually worked last would top the ranking on _when_ it is done, not on
+what it costs, and the user would drop a task whose real remedy is an earlier
+slot. Restricting each day to its single earliest row by `createdAt` is the
+only filter under which every observation satisfies the assumption the fit
+makes about it. Rejected: keeping every row and disclosing the bias, which
+ships a biased order and asks the reader to invert it.
+
+**Three gates, because a ranking is acted on.** A title needs
+`DRAIN_RANKING_MIN_LOGS` informative rows — informative in §8.7's sense, so
+`w = 0` and `H = 0` rows are already gone and a reservoir the user never
+loads has no ranking rather than an empty one. Two distinct titles must
+qualify, since one title has no ends. And the ends must separate:
+
+```text
+α̂_max − α̂_min  >  σ̂_max + σ̂_min
+```
+
+The two ends are independent 1-D fits, so the difference's own posterior std is
+√(σ̂²_max + σ̂²_min), which the sum bounds above. Testing the gap against the
+**sum** is therefore strictly stricter than a 1σ test on the difference — it
+sits between 1σ and √2σ of it — and that asymmetry is deliberate: withholding a
+real ordering costs the user a card, while printing a spurious one costs them a
+task they should have kept. §8.7 reports σ̂ only for a fit that
+converged, so the gate is written to fail closed on its absence rather than
+read that absence as certainty.
+
+**A reading, never an input.** The per-title α̂ is displayed and nothing else:
+`calibrateEnergyParams` keeps fitting one α per reservoir and the allocator
+keeps consuming that one. A per-title α in the planner is the drain analogue of
+the per-task ϕ offsets rejected in `business/model/AGENTS.md`, whose measured
+argument — most titles carry too few logs to hold structure — applies here
+unchanged.
 
 ## 9. Plan-adherence reading and its verdict band
 

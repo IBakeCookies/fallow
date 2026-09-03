@@ -14,7 +14,7 @@
  * file used to carry are not comparable to these and are gone. The draw is 1-10
  * on all three, which leaves out the reachable 0 row on the two difficulties —
  * the region `getEffectiveDifficulty`'s clamp to [1,10] and a zero pool weight
- * govern. That is the range every §17-style generator in this repo uses, and
+ * govern. That is the range every generator in this repo uses, and
  * comparability with ROADMAP Phase 2's figures is what ARM D-ref is for.
  *
  * ARM A — unfunded share and contested days, by budget x task count. A day is

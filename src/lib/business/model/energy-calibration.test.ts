@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	calibrateEnergyParams,
+	rankDrainByTask,
 	RESERVOIR_CYCLE_HOURS,
 	seedMorningReservoirs,
 	toCognitiveDrainObservations,
@@ -436,5 +437,153 @@ describe('as-of-day vs whole-history fit', () => {
 		// Control. Without this the test above would also pass on a fit that is
 		// simply unstable at small n, which is a different (and cheaper) problem.
 		expect(Math.abs(whole - early) / early).toBeLessThan(0.1);
+	});
+});
+
+describe('rankDrainByTask', () => {
+	const TODAY = '2026-07-20';
+	const RANGE_START = '2026-06-21';
+
+	// `createdAt` is what orders a day's sessions, so it is a parameter here and
+	// not a default: the day's earliest row is the only eligible one (MATH.md §8.14).
+	const row = (
+		date: string,
+		taskTitle: string,
+		mindDrain: number,
+		createdAt: number,
+	): DrainObservationRecord => ({
+		date,
+		taskId: 1,
+		taskTitle,
+		hours: 2,
+		cognitiveDemand: 0.8,
+		physicalDemand: 0,
+		mindDrain,
+		bodyDrain: 0,
+		createdAt,
+	});
+
+	/** `days` days of that title as the day's FIRST session, plus a later row nobody ranks. */
+	const firstOn = (days: string[], taskTitle: string, mindDrain: number) =>
+		days.map((date) => row(date, taskTitle, mindDrain, 100));
+
+	const INBOX_DAYS = ['2026-07-06', '2026-07-07', '2026-07-08'];
+	const DEEP_DAYS = ['2026-07-09', '2026-07-10', '2026-07-11'];
+	// α̂ ≈ 0.20 against ≈ 0.95 — a gap several times the two posterior stds, so
+	// these two clear §8.14's separation gate.
+	const inbox = (days = INBOX_DAYS) => firstOn(days, 'inbox', 2);
+	const deepWork = (days = DEEP_DAYS) => firstOn(days, 'deep work', 8);
+
+	const rank = (drain: DrainObservationRecord[]) =>
+		rankDrainByTask(drain, RANGE_START, TODAY, DEFAULT_ENERGY_PARAMS);
+
+	it('names the fastest and the slowest title to drain the reservoir', () => {
+		const ranking = rank([...inbox(), ...deepWork()]);
+
+		expect(ranking.cognitive?.most.taskTitle).toBe('deep work');
+		expect(ranking.cognitive?.least.taskTitle).toBe('inbox');
+		expect(ranking.cognitive!.most.alpha).toBeGreaterThan(ranking.cognitive!.least.alpha);
+	});
+
+	it('leaves a reservoir the rows never load unranked', () => {
+		// Every fixture row is `physicalDemand: 0`, which §8.7 drops as uninformative.
+		expect(rank([...inbox(), ...deepWork()]).physical).toBeNull();
+
+		// Control: the same day-first shape, loading the physical reservoir instead,
+		// does rank — so the null above is the demand and not the fold.
+		const loaded = [...inbox(), ...deepWork()].map((r) => ({
+			...r,
+			cognitiveDemand: 0,
+			physicalDemand: 0.8,
+			bodyDrain: r.mindDrain,
+			mindDrain: 0,
+		}));
+
+		expect(rank(loaded).physical).not.toBeNull();
+		expect(rank(loaded).cognitive).toBeNull();
+	});
+
+	it('ignores a title that is never the day’s first session', () => {
+		// Logged last on all six days, and the most draining of the three — so a
+		// fold that kept later sessions would rank it top rather than drop it.
+		const wrapUp = [...INBOX_DAYS, ...DEEP_DAYS].map((date) => row(date, 'wrap up', 10, 200));
+
+		expect(rank([...inbox(), ...deepWork(), ...wrapUp]).cognitive?.most.taskTitle).toBe(
+			'deep work',
+		);
+	});
+
+	it('ignores a title with too few eligible rows to fit', () => {
+		// Two days, and the highest rated drain of the three: a fold without
+		// §8.14's minimum would make this the top end.
+		const quickCall = firstOn(['2026-07-13', '2026-07-14'], 'quick call', 10);
+
+		expect(rank([...inbox(), ...deepWork(), ...quickCall]).cognitive?.most.taskTitle).toBe(
+			'deep work',
+		);
+	});
+
+	it('reads only the rows inside the range', () => {
+		const early = ['2026-06-01', '2026-06-02', '2026-06-03'];
+
+		expect(rank([...inbox(early), ...deepWork()]).cognitive).toBeNull();
+		// Control: the same two titles inside the range do rank, so the null above
+		// is the range and not the fixture.
+		expect(rank([...inbox(), ...deepWork()]).cognitive).not.toBeNull();
+	});
+
+	it('withholds a ranking whose ends are not separated by their own uncertainty', () => {
+		const close = [...firstOn(INBOX_DAYS, 'inbox', 5), ...firstOn(DEEP_DAYS, 'deep work', 6)];
+
+		expect(rank(close).cognitive).toBeNull();
+		// Control, as above: separated ends off the same shape of fixture do rank.
+		expect(rank([...inbox(), ...deepWork()]).cognitive).not.toBeNull();
+	});
+
+	it('anchors every title to the α it is handed, not to the model default', () => {
+		const rows = [...inbox(), ...deepWork()];
+
+		const at = (alphaCog: number) =>
+			rankDrainByTask(rows, RANGE_START, TODAY, {
+				...DEFAULT_ENERGY_PARAMS,
+				alphaCog,
+			});
+
+		// Same rows, two global rates: the ridge pulls each title's α̂ toward
+		// whichever it was anchored to (MATH.md §8.14).
+		expect(at(1.5).cognitive!.most.alpha).toBeGreaterThan(at(0.2).cognitive!.most.alpha);
+	});
+
+	// Pin on §8.7's ridge, which is what makes the anchor above protective: it is
+	// evidence and not noise that moves a title away from the global rate, so the
+	// minimum-row gate is a floor under an ordering that already shrinks.
+	it('shrinks a thin title toward the anchor harder than a well-logged one', () => {
+		const anchor = DEFAULT_ENERGY_PARAMS.alphaCog;
+
+		const alphaOf = (count: number) =>
+			fitDrainRate(
+				toCognitiveDrainObservations(
+					Array.from(
+						{
+							length: count,
+						},
+						(_, i) => row(`2026-07-0${i + 1}`, 'inbox', 9, 100),
+					),
+				),
+				anchor,
+				DEFAULT_ENERGY_PARAMS,
+			).alpha;
+
+		expect(Math.abs(alphaOf(1) - anchor)).toBeLessThan(Math.abs(alphaOf(5) - anchor));
+	});
+
+	it('counts the rows the causal window held back instead of fitting them', () => {
+		// Today's and two dated past it, on their own days and rated highest of all
+		// three titles: a window that stopped holding them would rank this top.
+		const held = firstOn([TODAY, '2026-07-25', '2026-07-26'], 'triage', 10);
+		const ranking = rank([...inbox(), ...deepWork(), ...held]);
+
+		expect(ranking.deferredCount).toBe(3);
+		expect(ranking.cognitive?.most.taskTitle).toBe('deep work');
 	});
 });

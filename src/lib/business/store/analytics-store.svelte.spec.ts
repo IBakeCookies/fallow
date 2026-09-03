@@ -364,6 +364,54 @@ describe('AnalyticsStore', () => {
 		expect(store.restSummary).toBeNull();
 	});
 
+	/** One 🪫 a day, so every row is trivially its day's first (MATH.md §8.14). */
+	const rankableDrain = (): DrainObservationRecord[] =>
+		[
+			['2026-07-06', 'inbox', 2],
+			['2026-07-07', 'inbox', 2],
+			['2026-07-08', 'inbox', 2],
+			['2026-07-09', 'deep work', 8],
+			['2026-07-10', 'deep work', 8],
+			['2026-07-11', 'deep work', 8],
+		].map(([date, taskTitle, mindDrain]) => ({
+			...drainRow(date as string, 2),
+			taskTitle: taskTitle as string,
+			mindDrain: mindDrain as number,
+		}));
+
+	it('ranks the drain of the viewed range, and reslices with it', async () => {
+		readModelReportMock.mockResolvedValue({
+			calibration: CALIBRATION,
+			audit: EMPTY_AUDIT,
+			todaysFit: TODAYS_FIT,
+			drain: rankableDrain(),
+			rest: [],
+		});
+
+		const store = await setup([day('2026-07-15')]);
+
+		// Every row predates the week the page opens on, so there is nothing to rank.
+		await vi.waitFor(() => expect(store.drainRanking).not.toBeNull());
+		expect(store.drainRanking?.cognitive).toBeNull();
+
+		store.range = 'month';
+		flushSync();
+		expect(store.drainRanking?.cognitive?.most.taskTitle).toBe('deep work');
+		expect(store.drainRanking?.cognitive?.least.taskTitle).toBe('inbox');
+	});
+
+	// The ranking anchors every title's fit to the user's own global α̂, which is
+	// exactly what a report that never landed does not have — so this reads null
+	// rather than a ranking against the defaults (as `metricTrend` does).
+	it('leaves the drain ranking null when the model report fails', async () => {
+		readModelReportMock.mockRejectedValue(new Error('indexeddb is gone'));
+
+		const store = await setup([day('2026-07-15')]);
+
+		await vi.waitFor(() => expect(store.hasModelReportFailed).toBe(true));
+		expect(store.drainRanking).toBeNull();
+	});
+
 	it('summarizes the breaks of the viewed range', async () => {
 		readModelReportMock.mockResolvedValue({
 			calibration: CALIBRATION,

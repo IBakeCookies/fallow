@@ -12,6 +12,7 @@
 import { getContext, onMount, setContext } from 'svelte';
 import { logError } from '$lib/logger';
 import * as fitSnapshotRepository from '$lib/data/repository/fit-snapshot-repository';
+import { rankDrainByTask, type DrainRanking } from '$lib/business/model/energy-calibration';
 import {
 	averageCompletionRate,
 	calculateMetricTrend,
@@ -170,6 +171,21 @@ export class AnalyticsStore {
 			: calculateMetricTrend(this.#summaries, this.#energyParams, this.#drain),
 	);
 
+	/**
+	 * Which task title drains each reservoir fastest per hour, and which slowest
+	 * (MATH.md §8.14). `null` on the same two states as `metricTrend`, and for the
+	 * same reason: the reading anchors every title's fit to the user's own global
+	 * α̂, which a report that has not landed does not have.
+	 *
+	 * `$derived.by` like `metricTrend`, and cached for the same reason: the fold
+	 * runs two fits for every title in the range, then gates.
+	 */
+	#drainRanking = $derived.by(() =>
+		this.#energyParams === null
+			? null
+			: rankDrainByTask(this.#drain, this.#rangeStart, this.#today, this.#energyParams),
+	);
+
 	// Two reads, deliberately not one try block: they fail into different
 	// surfaces. A failed model report is already visible — #hasModelReportFailed
 	// takes every card it feeds out of its loading string, and each says the read
@@ -317,6 +333,10 @@ export class AnalyticsStore {
 	/** `null` on the same two states as `loggedHours`, for the same reason. */
 	get restSummary(): RestSummary | null {
 		return this.#restStats;
+	}
+	/** `null` on the same two states as `metricTrend`, for the same reason. */
+	get drainRanking(): DrainRanking | null {
+		return this.#drainRanking;
 	}
 
 	// ----- Distributions -----

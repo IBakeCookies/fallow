@@ -587,3 +587,103 @@ test('the model card says how much closer the fit has predicted', async ({ page 
 		timeout: 15000,
 	});
 });
+
+/** One 🪫 dated `date` under `taskTitle`. No UI path dates a drain log in the past — the
+ *  record carries the viewed day and past days are read-only — so the store is written
+ *  directly, the way the ⚡ rows above are. Written whole rather than copied off a logged
+ *  row, because the ratings and demands ARE the fixture. One row per date, which is what
+ *  makes each of them its day's first session (MATH.md §8.14). */
+async function writeDrainLog(page: Page, date: string, taskTitle: string, mindDrain: number) {
+	await page.evaluate(
+		({ date, taskTitle, mindDrain }) =>
+			new Promise<void>((resolve, reject) => {
+				const request = indexedDB.open('zenith-db');
+				request.onerror = () => reject(request.error);
+
+				request.onsuccess = () => {
+					const transaction = request.result.transaction('drainObservations', 'readwrite');
+
+					transaction.objectStore('drainObservations').add({
+						date,
+						taskId: 1,
+						taskTitle,
+						hours: 2,
+						cognitiveDemand: 0.8,
+						physicalDemand: 0,
+						mindDrain,
+						bodyDrain: 0,
+						createdAt: 100,
+					});
+
+					transaction.onerror = () => reject(transaction.error);
+					transaction.oncomplete = () => resolve();
+				};
+			}),
+		{
+			date,
+			taskTitle,
+			mindDrain,
+		},
+	);
+}
+
+/* Six past days, one 🪫 each, under two titles rated far enough apart to clear §8.14's
+   separation gate. Every date is inside the week the page opens on. The task is what
+   gives the day a summary to analyze at all. */
+async function seedRankableDrainLogs(page: Page) {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	for (const offset of [-1, -2, -3]) await writeDrainLog(page, isoDate(offset), 'Inbox', 2);
+
+	for (const offset of [-4, -5, -6]) await writeDrainLog(page, isoDate(offset), 'Deep work', 8);
+}
+
+/* A day, so the gated cards render and the ranking's OWN gate is what is under test —
+   against an empty range the page's empty state would hide it either way. */
+test('a profile with no 🪫 ratings is offered no drain ranking', async ({ page }) => {
+	await seedDay(page, 0, ['write the calibration section']);
+	await page.goto('/analytics');
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Your model',
+		}),
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Most draining per hour',
+		}),
+	).toHaveCount(0);
+});
+
+test('the ranking names the fastest and the slowest task to drain', async ({ page }) => {
+	await seedRankableDrainLogs(page);
+	await page.goto('/analytics');
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Most draining per hour',
+		}),
+	).toBeVisible({
+		timeout: 15000,
+	});
+
+	await expect(page.getByText('Deep work fastest · Inbox slowest')).toBeVisible({
+		timeout: 15000,
+	});
+});
+
+test('the ranking says how many of today’s ratings it has not counted', async ({ page }) => {
+	await seedRankableDrainLogs(page);
+	// Two rows dated today, so the line has to read the count and not "1".
+	await writeDrainLog(page, isoDate(0), 'Deep work', 8);
+	await writeDrainLog(page, isoDate(0), 'Inbox', 2);
+	await page.goto('/analytics');
+
+	await expect(page.getByText('2 ratings logged today, counted from tomorrow')).toBeVisible({
+		timeout: 15000,
+	});
+});
