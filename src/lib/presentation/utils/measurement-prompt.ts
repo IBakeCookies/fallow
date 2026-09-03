@@ -127,7 +127,7 @@ export const drainDraftFromLog = (log: Persisted<DrainObservationRecord>): Drain
    number, 🪫 for three. */
 
 export const MEASUREMENT_FORM_CLASS =
-	'mt-text-xs ml-7 flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-box-xs py-box-2xs text-2xs text-ty-silent';
+	'mt-text-xs flex flex-wrap items-center gap-x-grid-xs gap-y-grid-2xs rounded-lg border border-flow/20 bg-surface-page/40 px-box-xs py-box-2xs text-2xs text-ty-silent';
 
 export const MEASUREMENT_MINUTES_CLASS =
 	'w-14 rounded-sm border border-flow/30 bg-input px-box-3xs py-text-3xs text-xs text-ty-primary outline-none focus:border-flow/60';
