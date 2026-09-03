@@ -118,7 +118,7 @@
 		{/each}
 	</div>
 
-	<div class="grid items-start gap-grid-lg border-t border-line-soft pt-grid-lg md:grid-cols-2">
+	<div class="space-y-grid-lg border-t border-line-soft pt-grid-lg">
 		<!-- A rule under the sliders: the three ratings describe the WORK, and what
 	     follows describes the task's place in the day. -->
 		<TaskImportanceSelect bind:importance={draft.importance} />
