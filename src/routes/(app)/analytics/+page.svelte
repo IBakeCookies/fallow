@@ -19,7 +19,7 @@
 	import { calibrationRows } from '$lib/presentation/utils/calibration-descriptor';
 	import { adherenceVerdict } from '$lib/presentation/utils/plan-audit-descriptor';
 	import { completionChartPoints } from '$lib/presentation/utils/completion-chart-points';
-	import { metricTrendSeries } from '$lib/presentation/utils/metric-trend-series';
+	import { metricTrendSeries, yieldTrendSeries } from '$lib/presentation/utils/metric-trend-series';
 	import { logHistory, type LogKind } from '$lib/presentation/utils/log-history';
 	import { removeLogWithUndo } from '$lib/presentation/utils/remove-log-with-undo';
 	import { fromISO } from '$lib/business/utils/date';
@@ -151,6 +151,15 @@
 					rangeDays: analytics.rangeDays,
 					locale: getDateLocale(),
 				}),
+	);
+
+	const yieldTrend = $derived(
+		yieldTrendSeries({
+			summaries: analytics.summaries,
+			rangeStart: analytics.rangeStart,
+			rangeDays: analytics.rangeDays,
+			locale: getDateLocale(),
+		}),
 	);
 
 	// `rangeStart` alone bounds it: a measurement is stamped with the live clock, so
@@ -293,11 +302,11 @@
 			<div class="skeleton-block h-4 w-28"></div>
 		</div>
 	</div>
-	<!-- Bodies, in the order of the five full-width GATED cards that always render — the
+	<!-- Bodies, in the order of the six full-width GATED cards that always render — the
 	     calibration grid and the logs card sit outside this gate and the drain ranking may
-	     not render at all. Both charts are a fixed viewBox at `w-full`, so a ratio is what
+	     not render at all. All three charts are a fixed viewBox at `w-full`, so a ratio is what
 	     tracks their height. -->
-	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
+	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			{@render skeletonBody(body)}
 		</div>
@@ -433,6 +442,21 @@
 				})}
 			/>
 		{/if}
+	</div>
+
+	<!-- Yield and completion over the range. No pending or failed branch: it reads
+	     `analytics.summaries`, which is what `hasData` above already gated on. -->
+	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
+		<h2 class="text-sm font-medium text-ty-primary">{m.ana_yield_trend()}</h2>
+		<p class="mt-text-3xs text-xs text-ty-silent">{m.ana_yield_trend_hint()}</p>
+
+		<MetricTrendChart
+			labels={yieldTrend.labels}
+			series={yieldTrend.series}
+			ariaLabel={m.ana_yield_trend_aria({
+				range: RANGE_LABELS[analytics.range].label().toLowerCase(),
+			})}
+		/>
 	</div>
 
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">

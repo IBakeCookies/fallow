@@ -27,6 +27,7 @@ import {
 	calculateSuggestedTasks,
 	calculateCompletionRate,
 	calculateDailyQuadrant,
+	calculateYieldIndex,
 } from '$lib/business/model/metric/calculation';
 import type { EnergyParams } from '$lib/business/model/zenith-energy';
 import {
@@ -44,6 +45,8 @@ export type DaySummary = {
 	completedTasks: number;
 	/** Priority-weighted completion rate (0–100), same as the dashboard metric. */
 	completionRate: number;
+	/** 0–100, and 0 on a day that completed nothing — read it with `completedTasks`. */
+	yieldIndex: number;
 	/**
 	 * `null` on a day that booked no hours. Hour-weighted over a switch-cost-free
 	 * solve, which is what history can afford — see `solveWithoutSwitchCost` for
@@ -121,6 +124,7 @@ export function summarizeSession(
 		totalTasks: session.tasks.length,
 		completedTasks: session.tasks.filter((t) => t.completed).length,
 		completionRate: calculateCompletionRate(suggested),
+		yieldIndex: calculateYieldIndex(suggested),
 		quadrant: calculateDailyQuadrant(suggested),
 		availableHours: session.availableHours,
 		switchCost: session.switchCost,
