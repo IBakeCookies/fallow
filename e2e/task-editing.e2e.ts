@@ -7,6 +7,7 @@ import {
 	logDrain,
 	logFlow,
 	setBudget,
+	setSlider,
 	taskRow,
 } from './helpers';
 
@@ -354,8 +355,7 @@ test('editing a task rewrites its inputs and survives a reload', async ({ page }
 	});
 
 	await editor.getByLabel('Title').fill('Boxing sparring');
-	// Range inputs take keyboard steps; fill() refuses them.
-	await editor.getByLabel('Mental Diff').press('ArrowRight');
+	await setSlider(editor.getByLabel('Mental Diff'), 6);
 
 	await editor
 		.getByRole('button', {

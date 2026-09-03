@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /* All data lives in client-side IndexedDB; each test gets a fresh browser
    context, so every test starts on an empty profile. */
@@ -42,6 +42,20 @@ export async function expectTaskInputs(page: Page, title: string, inputs: number
 	for (const [index, value] of inputs.entries()) {
 		await expect(cells.nth(index + 2)).toHaveText(String(value));
 	}
+}
+
+/** Step a range input to `target` with the arrow keys — `fill()` refuses a range.
+ *  One press per attempt and retried on the VALUE, not a fixed count of presses: a
+ *  press that lands in the same frame as a re-render of the form is swallowed, and
+ *  a straight `for` loop then leaves the slider one step short. */
+export async function setSlider(slider: Locator, target: number) {
+	await expect(async () => {
+		const value = Number(await slider.inputValue());
+
+		if (value !== target) await slider.press(value < target ? 'ArrowRight' : 'ArrowLeft');
+
+		expect(Number(await slider.inputValue())).toBe(target);
+	}).toPass();
 }
 
 /**
