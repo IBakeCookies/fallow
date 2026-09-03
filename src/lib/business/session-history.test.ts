@@ -146,6 +146,7 @@ describe('readHistoryPrefills', () => {
 			physicalDifficulty: 1,
 			mentalDifficulty: 9,
 			enjoyment: 7,
+			lastUsedDate: '2020-03-04',
 		});
 	});
 
@@ -182,6 +183,7 @@ describe('readHistoryPrefills', () => {
 			physicalDifficulty: 8,
 			mentalDifficulty: 2,
 			enjoyment: 6,
+			lastUsedDate: '2026-06-09',
 		});
 	});
 
@@ -216,6 +218,7 @@ describe('readHistoryPrefills', () => {
 			physicalDifficulty: 2,
 			mentalDifficulty: 1,
 			enjoyment: 8,
+			lastUsedDate: '2019-01-02',
 		});
 	});
 

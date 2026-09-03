@@ -423,6 +423,22 @@ already costs on every keystroke in the budget field. It is `null` while
 `$derived` nobody reads never runs, so every screen but an open add-task dialog
 pays nothing for it.
 
+The **third** case takes the first shape again: the empty add-task form's
+next-task ranking is one solve per capped candidate, so `DailyPlanStore` exposes
+`computeNextTasks()` and no `$derived`. It publishes no busy flag — the panel
+reads `nextTasks === null` as "still working", which is the same fact.
+
+Unlike the advice it also carries no staleness FIELD; it withdraws instead.
+`computeNextTasks` clears the held list before it solves, and it is called from
+two places, which together are every way the day can move under this reading:
+the panel's own `onMount`, so each opening of the dialog re-ranks, and the
+form's deploy handler, because the dialog stays open across a deploy and the
+task just added is one the ranking must stop offering. `onMount` and not an
+`$effect` is what keeps the first inside R2 — the call is unawaited, and R2 bans
+`await`/`.then()` in an effect. `/energy`'s `resnapshotOrder` is the nearest
+precedent for a store call out of `onMount`, though that one is synchronous and
+in a route.
+
 **The fingerprint carries the DATE as well as the inputs**, and so does
 `EnergyLabStore`'s `#curveFingerprint`. The inputs alone cannot tell one day
 from another while the next one is still loading: `selectedDate` follows the

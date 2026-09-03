@@ -595,6 +595,11 @@ export class SessionStore {
 		return suggestTitles(this.#titleRatings, query);
 	}
 
+	/** Every rated title, for a reading that ranks them rather than matching one. */
+	get titleRatings(): Map<string, TitleRating> {
+		return this.#titleRatings;
+	}
+
 	/** Every tag the stored days carry — the tag field's `<datalist>`. */
 	get tagVocabulary(): string[] {
 		return this.#tagVocabulary;

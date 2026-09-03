@@ -7,6 +7,7 @@
 
 import { SvelteMap } from 'svelte/reactivity';
 import type { Task } from '$lib/business/type';
+import type { TitleRating } from '$lib/business/model/title-memory';
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import { addDays } from '$lib/business/utils/date';
@@ -30,6 +31,8 @@ class MockSession {
 	writeGenerations = new SvelteMap<string, number>();
 	// The λ₀ read's other freshness key: one count over every day already past.
 	pastWriteGeneration = $state(0);
+
+	titleRatings = $state(new Map<string, TitleRating>());
 	deferDestinationDate = $derived(addDays(this.selectedDate, 1));
 
 	readonly today = '2026-07-20';
@@ -49,6 +52,7 @@ class MockSession {
 		this.deferDestination = null;
 		this.writeGenerations.clear();
 		this.pastWriteGeneration = 0;
+		this.titleRatings = new Map();
 	}
 }
 
