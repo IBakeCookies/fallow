@@ -508,7 +508,6 @@
 	"energy_calibration": "消耗校准",
 	"energy_calibration_hint": "用你在时段结束时给出的 🪫 评分来拟合两项消耗率（锚定在默认值上——每一次评分都会把它们再推远一点）。这个拟合以当前的恢复设置为条件，所以“应用我的拟合”会先设定恢复。",
 	"energy_calibration_empty": "还没有评分。在某项任务上工作一段之后，点它的 🪫 并为脑力与体力的消耗程度打分——几次评分就能个性化消耗率。",
-	"energy_calibration_rated": "在某项任务上工作一段之后，点它的 🪫 并为脑力与体力的消耗程度打分——几次评分就能个性化消耗率。",
 	"energy_fit_value": "≈ {value} ± {std} · n={count}",
 	"energy_fit_no_signal": "没有有信息量的评分",
 	"energy_drain_pending_one": "今天记录了 1 条评分，从明天起计入",

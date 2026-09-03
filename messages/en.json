@@ -508,7 +508,6 @@
 	"energy_calibration": "Drain Calibration",
 	"energy_calibration_hint": "Fits the two drain rates to your 🪫 end-of-session ratings (anchored to the defaults — every rating nudges them further). The fit conditions on the current recovery settings, which is why Apply my fits sets recovery first.",
 	"energy_calibration_empty": "No ratings yet. After a session on a task, hit 🪫 on it and rate how drained your mind and body feel — a few ratings personalize the drain rates.",
-	"energy_calibration_rated": "After a session on a task, hit 🪫 on it and rate how drained your mind and body feel — a few ratings personalize the drain rates.",
 	"energy_fit_value": "≈ {value} ± {std} · n={count}",
 	"energy_fit_no_signal": "no informative ratings",
 	"energy_drain_pending_one": "1 rating logged today, counted from tomorrow",

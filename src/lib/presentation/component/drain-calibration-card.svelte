@@ -13,8 +13,8 @@
 </script>
 
 <CalibrationCard title={m.energy_calibration()} hint={m.energy_calibration_hint()}>
-	<!-- The headline counts every rating, including the ones α has not read yet; the
-	     line below names those, and the sentence under it is how a rating is made. -->
+	<!-- The headline counts every rating, including the ones α has not read yet, and the
+	     line below names those. How a rating is made is the empty state's sentence alone. -->
 	<div class="mt-text-sm flex items-baseline gap-text-xs">
 		<span class="text-2xl leading-none font-medium tabular-nums text-ty-primary">{logCount}</span>
 		<span class="text-xs text-ty-silent">
@@ -32,7 +32,9 @@
 		</p>
 	{/if}
 
-	<p class="mt-text-sm text-xs text-ty-silent">
-		{logCount === 0 ? m.energy_calibration_empty() : m.energy_calibration_rated()}
-	</p>
+	{#if logCount === 0}
+		<p class="mt-text-sm text-xs text-ty-silent">
+			{m.energy_calibration_empty()}
+		</p>
+	{/if}
 </CalibrationCard>

@@ -508,7 +508,6 @@
 	"energy_calibration": "Calibration de l'épuisement",
 	"energy_calibration_hint": "Ajuste les deux taux d'épuisement à tes évaluations 🪫 de fin de session (ancrées sur les valeurs par défaut — chaque évaluation les en éloigne un peu plus). L'ajustement est conditionné aux réglages de récupération actuels, d'où le fait qu'Appliquer mes ajustements règle la récupération en premier.",
 	"energy_calibration_empty": "Aucune évaluation pour l'instant. Après une session sur une tâche, appuie sur son 🪫 et évalue l'épuisement de ta tête et de ton corps — quelques évaluations suffisent à personnaliser les taux d'épuisement.",
-	"energy_calibration_rated": "Après une session sur une tâche, appuie sur son 🪫 et évalue l'épuisement de ta tête et de ton corps — quelques évaluations suffisent à personnaliser les taux d'épuisement.",
 	"energy_fit_value": "≈ {value} ± {std} · n={count}",
 	"energy_fit_no_signal": "aucune évaluation informative",
 	"energy_drain_pending_one": "1 évaluation notée aujourd'hui, comptée à partir de demain",
