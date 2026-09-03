@@ -79,15 +79,18 @@ Untestable at every level is the signal.
   **Deploying does NOT close the dialog** — a day gets typed in one sitting — so the
   form puts the caret back in the title field itself, which is the one focus move
   `{@attach}` cannot make, since that field never unmounts between deploys.
-- **The add-task form's second column is a reading, and the must-do flag stands
-  where a Cancel would.** `/` hands the form `impact`
+- **The add-task form's second column is a reading, and its footer holds the two
+  verbs.** `/` hands the form `impact`
   (`DailyPlanStore.draftImpact`) and an `ondraftchange`; the form publishes only
   what a solve reads — the three ratings and the importance — and `null` while
   the title is blank, since an unnamed task is not one the day can be priced
   with, and the panel then renders the prompt line rather than numbers (the
   solve-costing rule below). There is nothing to cancel: the ✕ closes the
-  dialog and a draft is never written until it is deployed, so the footer keeps
-  the flag and the submit and simply moves to the foot of the reading. The
+  dialog and a draft is never written until it is deployed, so **Cancel is the ✕
+  spelled where the hand already is** — the card binds its dialog's `open` and
+  hands the `form` snippet the closer, since only the card knows that dialog.
+  The footer is those two verbs and simply moves to the foot of the reading; the
+  must-do flag stays with the fields, on the last line of their column. The
   reading carries no control of its own, which is what leaves the tab order the
   fields' and then the footer's. The Lab passes neither prop and stays one
   column — its plan is the energy optimizer's, not this one — and
@@ -214,7 +217,12 @@ Five components hold what the two screens say the same way:
   instrument's hue on ✓ is the only real difference and is a prop. 🗑 is the
   caller's copy and absent unless it passes one, because what is being dropped
   differs per editor and a first measurement has nothing to drop.
-- **`task-edit-form.svelte`** — the editor, on both screens.
+- **`task-edit-form.svelte`** — the editor, on both screens. Its frame is
+  `surface-card` + `border-line-soft`, STYLE.md's bordered way for a panel
+  nested in a card, and **not `surface-inset`**: the fields inside it — the
+  slider tracks and the tag chips — are themselves `surface-inset`, so that rung
+  as the frame leaves them invisible. It was an ad-hoc `bg-surface-page/40`
+  with a bare border, one rung nothing in the ladder names.
 - **`task-form-fields.svelte`** — what both task forms set about the task
   itself: the three model input sliders, one loop over one table so their
   labels, minimums and accents are defined once, `task-importance-select`
@@ -225,9 +233,10 @@ Five components hold what the two screens say the same way:
   type, since adding a task and re-tuning one emit the same thing. Importance
   belongs here and `mustDoToday` does not, for the reason the model file gives:
   the level is a property of the task, the flag is a statement about today. Each
-  form still owns its own action row, because each is a stack whose footer is
-  its own — they happen to agree on the shape (flag pushed out by `mr-auto`,
-  submit in the corner) and not on the copy.
+  form still owns its own action row AND its own flag, because each is a stack
+  whose footer is its own: the editor's footer is one line — flag pushed out by
+  `mr-auto`, Cancel and Save in the corner — while the dialog's verbs sit at the
+  foot of the READING, so its flag is the last line of the field column instead.
 - **`must-do-toggle.svelte`** — the flag itself, a `<label>` carrying
   `buttonVariants` over a transparent full-size `<input type="checkbox">`. It
   reads as a button with a set state (`secondary`) and an unset one (`outline`),
@@ -751,7 +760,8 @@ The must-do toggle is hidden in both of the Lab's forms
 the shell) because `isPinned` is read by the plan advisor and by nothing in this
 mode. The seeded value still round-trips, so an edit here cannot clear a flag set
 there. This is the carve-out named under "R3 in the UI" above; the prop is one
-name from the Lab's page down to the form that renders the toggle.
+name from the Lab's page down through the form to `task-form-fields`, which
+renders the toggle.
 
 ### The calibration cards share a shell, not a body
 

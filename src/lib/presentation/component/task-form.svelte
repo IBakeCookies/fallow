@@ -19,6 +19,9 @@
 		 *  and no `ondraftchange`. */
 		impact?: DraftImpact | null;
 		ondraftchange?: (draft: DraftTask | null) => void;
+		/** Closes the dialog this is mounted in. Absent, there is no Cancel — the
+		 *  row actions' rule: the button is there when its callback is. */
+		oncancel?: () => void;
 	}
 
 	let {
@@ -28,6 +31,7 @@
 		withMustDoToday = true,
 		impact,
 		ondraftchange,
+		oncancel,
 	}: Props = $props();
 
 	// The middle of every slider: what a task is rated when nothing says otherwise.
@@ -161,6 +165,8 @@
 		e.preventDefault();
 		const title = draft.title.trim();
 
+		// `required` counts three spaces as a title, and Enter submits past a
+		// disabled Deploy.
 		if (!title) return;
 
 		onsubmit({
@@ -179,32 +185,36 @@
 	}
 </script>
 
-<!-- The footer of both forms: the flag pushed out by its own margin and the submit
-     in the corner — `task-edit-form`'s too, so the two close the same way. It sits
-     at the foot of the reading when there is one, which is where the design's
-     Cancel would have been: nothing here is cancelled, since the dialog's own ✕
-     closes the form and a draft is never written until it is deployed. -->
+<!-- Cancel then the submit, at the foot of the reading when there is one, which
+     is where the design put Cancel. It drops nothing — a draft is never written
+     until it is deployed — so it is the dialog's ✕ where the hand already is. -->
 {#snippet actions()}
-	<div class="flex items-center justify-between gap-grid-sm">
-		{#if withMustDoToday}
-			<MustDoToggle bind:mustDoToday={draft.mustDoToday} />
+	<div class="flex items-center justify-end gap-grid-xs">
+		{#if oncancel}
+			<Button variant="ghost" type="button" onclick={oncancel}>{m.common_cancel()}</Button>
 		{/if}
-		<Button type="submit">{m.form_deploy_task()}</Button>
+		<Button type="submit" disabled={!draft.title.trim()}>{m.form_deploy_task()}</Button>
 	</div>
 {/snippet}
 
-<!-- Two columns: the fields, and what they would do to today. Each is a plain
-     stack, so the DOM order IS the tab order — no `order-*`, and never a positive
-     `tabindex`, which would hoist the field ahead of every `tabindex=0` on the
-     page. The reading carries no control of its own, so the tab order is the
-     fields' and then the footer's, whichever column that footer is in. -->
-<form class="flex flex-col gap-grid-lg md:flex-row" onsubmit={handleSubmit}>
-	<div class="min-w-0 flex-1 space-y-grid-md">
+<!-- Two columns: the fields, and what they would do to today. 2fr/1fr and not an
+     even split — the fields set their own widths (three slider tracks, a tag
+     field), the reading is label-and-number rows that wrap — and one column when
+     there is no reading, which is the Lab's copy. Each column is a plain stack,
+     so the DOM order IS the tab order: no `order-*`, and never a positive
+     `tabindex`, which would hoist a field ahead of every `tabindex=0` on the
+     page. The reading carries no control, so the order is the fields' and then
+     the footer's, whichever column that footer is in. -->
+<form
+	class="grid gap-grid-lg {impact === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
+	onsubmit={handleSubmit}
+>
+	<div class="min-w-0 space-y-grid-md">
 		<!-- The list sits outside the label: inside it, a click on an option would also be a
 	     click on the label. -->
 		<div class="relative">
 			<label class="block text-xs font-medium text-ty-secondary">
-				{m.form_task_definition()}
+				{m.task_title_label()}
 				<input
 					type="text"
 					bind:this={titleField}
@@ -257,23 +267,26 @@
 
 		<TaskFormFields bind:draft {tagVocabulary} />
 
+		<!-- The last line of the FIELDS, not of the footer beside the reading: the
+		     ratings and importance describe the task, this one says about today. -->
+		{#if withMustDoToday}
+			<MustDoToggle bind:mustDoToday={draft.mustDoToday} />
+		{/if}
+
 		{#if impact === undefined}
 			{@render actions()}
 		{/if}
 	</div>
 
 	{#if impact !== undefined}
-		<!-- A card, and the BORDER is what separates it: the reading is a panel
-		     inside a dialog, whose own surface is the page's, so `surface-card` is
-		     the right rung — but it carries alpha on 36 of the 44 themes (white at
-		     0.05-0.07 on the dark ones), so the fill alone composites to nothing
-		     over the page and the panel only read on the opaque themes. The rule is
-		     what makes it a box on all 46 (STYLE.md, "A borderless panel nested
-		     inside a card"), and `backdrop-blur` is what a translucent surface on
-		     the page always needs. It stacks under the fields on a phone, where the
-		     dialog is one column wide. -->
+		<!-- A card, and the BORDER is what separates it: `surface-card` is the rung
+		     for a panel on the dialog's page surface, but it carries alpha on 36 of
+		     the 44 themes that set it, so the fill alone composites to nothing over
+		     that page and the rule is what makes it a box on all 46 (STYLE.md,
+		     "A borderless panel nested inside a card"). `backdrop-blur` because it
+		     is translucent. It stacks under the fields on a phone. -->
 		<div
-			class="flex flex-col gap-grid-md rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur"
+			class="flex min-w-0 flex-col gap-grid-md rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur"
 		>
 			<TaskFormPreview {impact} />
 			<div class="mt-auto">{@render actions()}</div>

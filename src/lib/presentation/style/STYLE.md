@@ -206,7 +206,7 @@ Read this before touching markup, classes, or anything under
   `surface-card`.** Card-on-card separates only by compositing the same alpha
   twice, so on an opaque theme it is one flat ink and the nested panel
   disappears — `log-row` did, in the analytics log list. A nested panel that
-  keeps `surface-card` (the task-definition panel) carries a border, which is
+  keeps `surface-card` (the add dialog's reading panel) carries a border, which is
   what still separates it there. The third way out is to drop the fill: the
   metrics dashboard's headline tiles were bordered cards and are now bare, each
   marked by a 2px rule down its left in its own band colour, so there is no
@@ -269,6 +269,11 @@ Read this before touching markup, classes, or anything under
   whose `<legend>` is **visible and above** the three options, styled like the
   slider labels beside it — three bare buttons in a form say nothing about what
   they set, and a `<legend>` cannot be a flex item in its own fieldset anyway.
+  The three are **joined into one segmented control**: `rounded-none` but for
+  the two ends, `-ms-px` so neighbours share one border, and
+  `has-focus-visible:z-10` so the overlapped neighbour cannot clip the ring.
+  Gapped, they read as three independent toggles rather than one control set to
+  one of three values — which is what they are.
   Its `name` is `$props.id()`, because the add dialog and a row's editor can be
   mounted at once and one shared name would merge them into a single group.
   The plugin paints a hardcoded `fill='white'` checkmark over

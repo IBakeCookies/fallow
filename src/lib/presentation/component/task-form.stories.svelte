@@ -120,7 +120,7 @@
 			}),
 		).toBeInTheDocument();
 
-		const title = canvas.getByLabelText('Task Definition');
+		const title = canvas.getByLabelText('Title');
 
 		const physical = canvas.getByRole('slider', {
 			name: /Physical Diff/,
@@ -130,8 +130,14 @@
 			name: 'Deploy Task',
 		});
 
-		await userEvent.click(deploy);
-		await expect(args.onsubmit).not.toHaveBeenCalled();
+		// Unnamed, the submit is out of reach — the editor's Save rule
+		await expect(deploy).toBeDisabled();
+
+		await expect(
+			canvas.queryByRole('button', {
+				name: 'Cancel',
+			}),
+		).not.toBeInTheDocument();
 
 		await userEvent.type(title, '  Boxing training  ');
 		await userEvent.click(deploy);
@@ -191,7 +197,7 @@
 		suggest: fn(suggestGym),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
-		const title = canvas.getByLabelText('Task Definition');
+		const title = canvas.getByLabelText('Title');
 
 		const physical = canvas.getByRole('slider', {
 			name: /Physical Diff/,
@@ -284,7 +290,7 @@
 		suggest: fn(suggestGym),
 	}}
 	play={async ({ canvas, userEvent }) => {
-		const title = canvas.getByLabelText('Task Definition');
+		const title = canvas.getByLabelText('Title');
 		const mustDo = canvas.getByLabelText('Keep on today');
 
 		const physical = canvas.getByRole('slider', {
@@ -330,7 +336,7 @@
 		suggest: fn(suggestGym),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
-		const title = canvas.getByLabelText('Task Definition');
+		const title = canvas.getByLabelText('Title');
 
 		const physical = canvas.getByRole('slider', {
 			name: /Physical Diff/,
@@ -442,7 +448,7 @@
 		suggest: fn(suggestRuns),
 	}}
 	play={async ({ canvas, userEvent }) => {
-		const title = canvas.getByLabelText('Task Definition');
+		const title = canvas.getByLabelText('Title');
 
 		await userEvent.type(title, 'run');
 
@@ -477,7 +483,7 @@
 	}}
 	play={async ({ canvas, userEvent }) => {
 		// The default canvas is wide enough to fit these titles whole and would prove nothing
-		const title = canvas.getByLabelText('Task Definition');
+		const title = canvas.getByLabelText('Title');
 
 		await userEvent.type(title, 'gym');
 
@@ -509,7 +515,7 @@
 		// The Lab's copy: same fields, no must-do flag, and deploying still reports unflagged
 		await expect(canvas.queryByLabelText('Keep on today')).not.toBeInTheDocument();
 
-		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Deep work');
+		await userEvent.type(canvas.getByLabelText('Title'), 'Deep work');
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -535,7 +541,11 @@
 		// Reading order and tab order are the same list, top to bottom: the fields down
 		// the first column and then the footer, wherever the reading beside them put it.
 		// The `order-*` that used to hoist Deploy onto the title's line is gone, and this
-		// is what says so.
+		// is what says so. Named first: a disabled submit is not a tab stop.
+		const title = canvas.getByLabelText('Title');
+
+		await userEvent.type(title, 'Sparring');
+
 		const expected = [
 			canvas.getByRole('slider', {
 				name: /Physical Diff/,
@@ -555,13 +565,14 @@
 			// Tags sit with importance for the same reason, and last of the three
 			// because they are the only one a task usually has none of.
 			canvas.getByLabelText('Tags'),
+			// The flag last: the only question about TODAY rather than about the task.
 			canvas.getByLabelText('Keep on today'),
 			canvas.getByRole('button', {
 				name: 'Deploy Task',
 			}),
 		];
 
-		canvas.getByLabelText('Task Definition').focus();
+		title.focus();
 
 		for (const control of expected) {
 			await userEvent.tab();
@@ -613,20 +624,8 @@
 
 		// Typing a tag and going straight for Deploy files it: the field is not a
 		// draft the submit is allowed to drop
+		await userEvent.type(canvas.getByLabelText('Title'), 'Sparring');
 		await userEvent.type(tags, 'boxing');
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Deploy Task',
-			}),
-		);
-
-		await expect(args.onsubmit).not.toHaveBeenCalled(); // no title yet
-
-		await expect(canvas.getByText('boxing')).toBeInTheDocument();
-		await expect(tags).toHaveValue('');
-
-		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Sparring');
 
 		await userEvent.click(
 			canvas.getByRole('button', {
@@ -646,6 +645,7 @@
 
 		// ...and the next task starts clean, rather than wearing the last one's chips
 		await expect(canvas.queryByText('boxing')).not.toBeInTheDocument();
+		await expect(tags).toHaveValue('');
 	}}
 />
 
@@ -686,13 +686,14 @@
 			},
 		},
 		ondraftchange: fn(),
+		oncancel: fn(),
 	}}
 	play={async ({ args, canvas, userEvent }) => {
 		// The reading is solved elsewhere, so the form's whole part in it is
 		// publishing what a solve reads — and nothing while the task is unnamed.
 		await expect(args.ondraftchange).toHaveBeenLastCalledWith(null);
 
-		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Boxing training');
+		await userEvent.type(canvas.getByLabelText('Title'), 'Boxing training');
 
 		await expect(args.ondraftchange).toHaveBeenLastCalledWith({
 			physicalDifficulty: 5,
@@ -719,18 +720,28 @@
 			importance: 'normal',
 		});
 
-		// The footer closes the reading column rather than the fields, which is where
-		// the flag takes the place a Cancel would have had.
+		// The footer closes the reading column rather than the fields, and Cancel is
+		// in it — the flag stays with the fields it belongs to.
 		const reading = canvas.getByText('Suggested hours');
 
 		const deploy = canvas.getByRole('button', {
 			name: 'Deploy Task',
 		});
 
+		const cancel = canvas.getByRole('button', {
+			name: 'Cancel',
+		});
+
 		await expect(reading.compareDocumentPosition(deploy)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		await expect(reading.compareDocumentPosition(cancel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		await expect(canvas.getByLabelText('Keep on today')).toBeInTheDocument();
 
-		await userEvent.clear(canvas.getByLabelText('Task Definition'));
+		await userEvent.clear(canvas.getByLabelText('Title'));
 		await expect(args.ondraftchange).toHaveBeenLastCalledWith(null);
+
+		// Closes the dialog and writes nothing — an untyped draft is not a task
+		await userEvent.click(cancel);
+		await expect(args.oncancel).toHaveBeenCalledOnce();
+		await expect(args.onsubmit).not.toHaveBeenCalled();
 	}}
 />

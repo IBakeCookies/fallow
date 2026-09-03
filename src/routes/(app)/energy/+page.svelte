@@ -303,8 +303,9 @@
 	{/if}
 {/snippet}
 
-{#snippet addTaskForm()}
+{#snippet addTaskForm(close: () => void)}
 	<TaskForm
+		oncancel={close}
 		onsubmit={(t) => session.addTask(t)}
 		suggest={(query) => session.suggestTitles(query)}
 		tagVocabulary={session.tagVocabulary}

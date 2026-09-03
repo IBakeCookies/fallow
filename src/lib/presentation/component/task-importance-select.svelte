@@ -40,14 +40,18 @@
      fieldset, and because that is how the sliders label themselves. -->
 <fieldset title={m.form_importance_title()} class="block space-y-text-xs">
 	<legend class="text-xs font-medium text-ty-secondary">{m.form_importance()}</legend>
-	<div class="flex flex-wrap items-center gap-grid-2xs">
+	<!-- Joined, not three buttons with gaps between them: one control set to one of
+	     three values. The segments share a border (`-ms-px`), only the ends are
+	     rounded, and a focused one is lifted so its ring is not clipped by the
+	     neighbour overlapping it. -->
+	<div class="flex items-center">
 		{#each levels as level (level.value)}
 			<label
 				class={cn(
 					buttonVariants({
 						variant: importance === level.value ? 'secondary' : 'outline',
 					}),
-					'has-focus-visible:border-ring has-focus-visible:ring-ring/50 relative flex-1 has-focus-visible:ring-3',
+					'has-focus-visible:border-ring has-focus-visible:ring-ring/50 relative -ms-px flex-1 rounded-none first:ms-0 first:rounded-s-md last:rounded-e-md has-focus-visible:z-10 has-focus-visible:ring-3',
 				)}
 			>
 				<input
