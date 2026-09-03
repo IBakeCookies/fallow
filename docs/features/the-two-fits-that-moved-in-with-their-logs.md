@@ -105,7 +105,7 @@ card in the app that still carries the link, and the test drives it.
 - **Then** no card headed `Flow Calibration` is present
 - **Then** the plan advice card's width matches the Tasks card's width
 
-### Scenario — The drain card's three states
+### Scenario — The drain card's states
 
 `src/lib/presentation/component/drain-calibration-card.stories.svelte`
 
@@ -125,11 +125,11 @@ A `play` function per state (`docs/testing.md`'s table — component).
 
 `src/lib/presentation/component/flow-calibration-card.stories.svelte`
 
-- **Given** any of the five existing stories
-- **Then** no `link` role is in the card
-- **Then** no `Reset personalization` button is in the card
-- **Then** the fitted, rejected, default, deferred and all-deferred sentences
-  each still render as they do today
+- **Given** the fitted story
+- **Then** no `link` role and no `button` role is in the card
+- **Given** each of the card's six existing stories
+- **Then** the fitted, singular, rejected, default, deferred and all-deferred
+  sentences each still render as they do today
 
 ## Out of scope
 

@@ -4,6 +4,7 @@ import {
 	AUTOSAVE_MS,
 	budgetField,
 	closeTaskForm,
+	drainChips,
 	drainForm,
 	isoDate,
 	logDrain,
@@ -33,15 +34,6 @@ const statValue = (page: Page, label: string) =>
 			exact: true,
 		})
 		.locator('xpath=preceding-sibling::p[1]');
-
-// One 🪫 chip per stored rating, on the ledger row it was logged against. It is
-// published by the store's re-read, so a count here says the write committed —
-// which is what this suite needs now that the ratings' own count reads on
-// /analytics.
-const drainChips = (page: Page) =>
-	page.getByRole('button', {
-		name: 'Correct this drain rating',
-	});
 
 // The plan, the params and the two calibration cards all sit behind a task, so an
 // empty day shows the invitation instead — and the form there writes to the

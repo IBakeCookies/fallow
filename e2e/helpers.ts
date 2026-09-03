@@ -215,6 +215,14 @@ export async function logDrain(page: Page, minutes: number, mind: number, body: 
 		.click();
 }
 
+/** The 🪫 chips on a ledger row, one per stored rating. Published by
+ *  EnergyObservationStore's own re-read, so a count here says the write committed —
+ *  which is what three suites need now that the ratings' count reads on /analytics. */
+export const drainChips = (page: Page) =>
+	page.getByRole('button', {
+		name: 'Correct this drain rating',
+	});
+
 /** Log a rest pair (☕) from the ledger's heading row. Two suites drive it: the Lab's
  *  own flow, and the one card left in the app that links to the log list. */
 export async function logRest(
