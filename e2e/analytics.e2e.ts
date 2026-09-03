@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { addTask, AUTOSAVE_MS, isoDate, logDrain, logFlow } from './helpers';
+import { addTask, AUTOSAVE_MS, isoDate, logDrain, logFlow, logRest } from './helpers';
 
 /* The analytics screen reads a year of stored days through AnalyticsStore, whose
    whole job happens after hydration: load, slice by range, fold. None of it runs
@@ -43,19 +43,29 @@ test('empty profile shows the empty state, not a stuck spinner', async ({ page }
 	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
 });
 
-/* The three calibration cards link to this list, not to the top of the page it is the last
-   card on. Worth an e2e because the failure is invisible to a unit test and to the eye on a
-   short page: the fragment scroll happens once, on arrival, so an element that appears only
-   when IndexedDB answers is not there to be scrolled to and nothing retries. */
-test('the calibration card’s link scrolls to the log list', async ({ page }) => {
+/** A calibration card, by the title in its heading. */
+const calibrationCard = (page: Page, title: string) =>
+	page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: title,
+		}),
+	});
+
+/* ☕'s card is the one left in the app that links to this list, and it links to it rather
+   than to the top of the page the list is the last card on. Worth an e2e because the failure
+   is invisible to a unit test and to the eye on a short page: the fragment scroll happens
+   once, on arrival, so an element that appears only when IndexedDB answers is not there to
+   be scrolled to and nothing retries. */
+test('the recovery card’s link scrolls to the log list', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/energy');
 
-	// The Lab's drain card is the cheapest of the three to give a logged row to. With no ☕ logged
-	// the recovery card offers no link, so there is exactly one to click.
-	await logDrain(page, 120, 9, 5);
+	await logRest(page, 30, 9, 8, 3, 2);
+
+	// The count comes off the store's re-read, so it says the write committed.
+	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
 	await page
 		.getByRole('link', {
@@ -69,6 +79,146 @@ test('the calibration card’s link scrolls to the log list', async ({ page }) =
 
 	await expect(list).toBeVisible();
 	await expect(list).toBeInViewport();
+});
+
+/* Both fits now read on the page that lists what they were fitted from. Seeded across
+   midnight so both logs are behind the causal window and the cards read their settled
+   state; the deferred spelling is the test below. */
+test('both fits read side by side above the log list', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await logFlow(page, 90);
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await logDrain(page, 120, 9, 5);
+	await expect(page.getByText('Mind 9')).toBeVisible();
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/analytics');
+
+	const flow = calibrationCard(page, 'Flow Calibration');
+	const drain = calibrationCard(page, 'Drain Calibration');
+
+	await expect(
+		drain.getByText('1', {
+			exact: true,
+		}),
+	).toBeVisible();
+
+	await expect(drain.getByText('drain rating')).toBeVisible();
+	await expect(flow.getByText(/Model personalized from 1 time-to-flow log/)).toBeVisible();
+
+	const flowBox = (await flow.boundingBox())!;
+	const drainBox = (await drain.boundingBox())!;
+
+	const listBox = (await page
+		.getByRole('heading', {
+			name: 'Your logs',
+		})
+		.boundingBox())!;
+
+	// One row of two, above the list they describe.
+	expect(drainBox.y).toBeCloseTo(flowBox.y, 0);
+	expect(drainBox.x).toBeGreaterThan(flowBox.x + flowBox.width - 1);
+	expect(listBox.y).toBeGreaterThan(flowBox.y + flowBox.height);
+});
+
+/* One destructive control per kind per screen, and it is the list's own foot (this page
+   already draws three). A moved card keeps the sentence and drops both verbs — the link
+   would point at the card it is drawn in, and the reset would be the second on the page. */
+test('neither moved card offers a reset or a link to the logs', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await logFlow(page, 90);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await logDrain(page, 120, 9, 5);
+	await expect(page.getByText('Mind 9')).toBeVisible();
+
+	await page.goto('/analytics');
+
+	const flow = calibrationCard(page, 'Flow Calibration');
+	const drain = calibrationCard(page, 'Drain Calibration');
+
+	// Both cards are on screen: the counts below would otherwise all be zero for the
+	// wrong reason.
+	await expect(flow.getByText(/1 ⚡ logged today/)).toBeVisible();
+	await expect(drain.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
+
+	await expect(
+		flow.getByRole('link', {
+			name: 'In your logs →',
+		}),
+	).toHaveCount(0);
+
+	await expect(
+		flow.getByRole('button', {
+			name: 'Reset personalization',
+		}),
+	).toHaveCount(0);
+
+	await expect(
+		drain.getByRole('link', {
+			name: 'In your logs →',
+		}),
+	).toHaveCount(0);
+
+	await expect(
+		drain.getByRole('button', {
+			name: 'Delete all ratings',
+		}),
+	).toHaveCount(0);
+
+	// The list's foot still holds one per kind.
+	await expect(
+		page.getByRole('button', {
+			name: 'Delete all logs',
+		}),
+	).toBeVisible();
+});
+
+/* /energy drew the drain card behind a task, because everything on that page is about the
+   day's plan. This page has no notion of a task, so the gate does not come with the card —
+   and the day you are most likely to be checking a fit's provenance is a day you booked
+   nothing. */
+test('the drain card reads on a day with no tasks', async ({ page }) => {
+	await page.clock.install();
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.clock.runFor(AUTOSAVE_MS);
+
+	await logDrain(page, 120, 9, 5);
+	await expect(page.getByText('Mind 9')).toBeVisible();
+
+	await page.clock.fastForward('25:00:00');
+	await page.goto('/analytics');
+
+	await expect(calibrationCard(page, 'Drain Calibration').getByText('drain rating')).toBeVisible();
+});
+
+/* α is identity, so it reads days strictly before today, on the same rule as the ϕ fit
+   (`daily-plan-store.svelte.ts:42`). A rating logged now is counted by the headline and
+   named by the sentence, never folded into the fit. */
+test('a rating logged today is named as deferred', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await logDrain(page, 120, 9, 5);
+	await expect(page.getByText('Mind 9')).toBeVisible();
+
+	await page.goto('/analytics');
+
+	const drain = calibrationCard(page, 'Drain Calibration');
+
+	await expect(
+		drain.getByText('1', {
+			exact: true,
+		}),
+	).toBeVisible();
+
+	await expect(drain.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
 });
 
 /* The ✕ has no confirmation step, so the toast is the whole of the safety net — and a

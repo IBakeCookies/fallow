@@ -7,6 +7,7 @@ import {
 	drainForm,
 	isoDate,
 	logDrain,
+	logRest,
 	openDrainEditor,
 	openTaskForm,
 	openTimeBudget,
@@ -33,40 +34,16 @@ const statValue = (page: Page, label: string) =>
 		})
 		.locator('xpath=preceding-sibling::p[1]');
 
-// Log a pre/post-rest pair (☕). Field order follows the form: duration, then
-// mind/body before, then mind/body after.
-async function logRest(
-	page: Page,
-	minutes: number,
-	mindBefore: number,
-	bodyBefore: number,
-	mindAfter: number,
-	bodyAfter: number,
-) {
-	await page
-		.getByRole('button', {
-			name: 'Log a rest',
-		})
-		.click();
-
-	const form = page.locator('form').filter({
-		hasText: 'rested',
+// One 🪫 chip per stored rating, on the ledger row it was logged against. It is
+// published by the store's re-read, so a count here says the write committed —
+// which is what this suite needs now that the ratings' own count reads on
+// /analytics.
+const drainChips = (page: Page) =>
+	page.getByRole('button', {
+		name: 'Correct this drain rating',
 	});
 
-	const fields = form.locator('input[type="number"]');
-
-	for (const [index, value] of [minutes, mindBefore, bodyBefore, mindAfter, bodyAfter].entries()) {
-		await fields.nth(index).fill(String(value));
-	}
-
-	await form
-		.getByRole('button', {
-			name: '✓',
-		})
-		.click();
-}
-
-// The plan, the params and both calibration cards all sit behind a task, so an
+// The plan, the params and the two calibration cards all sit behind a task, so an
 // empty day shows the invitation instead — and the form there writes to the
 // shared session like the main page's does.
 test('an empty day offers the task form, and deploying one reveals the Lab', async ({ page }) => {
@@ -685,16 +662,16 @@ test('the budget curve stays unasked until clicked, then prices the day’s leng
 		}),
 	});
 
-	const drain = page.locator('.card-shell').filter({
+	const recovery = page.locator('.card-shell').filter({
 		has: page.getByRole('heading', {
-			name: 'Drain Calibration',
+			name: 'Recovery Calibration',
 		}),
 	});
 
 	const curveBox = (await curve.boundingBox())!;
-	const drainBox = (await drain.boundingBox())!;
+	const recoveryBox = (await recovery.boundingBox())!;
 
-	expect(curveBox.y).toBeGreaterThan(drainBox.y + drainBox.height);
+	expect(curveBox.y).toBeGreaterThan(recoveryBox.y + recoveryBox.height);
 
 	// The seam worth an e2e: the recommendation writes the SHARED budget, the same
 	// value the main page's Available Hours holds (settled 2026-07-29).
@@ -772,15 +749,15 @@ test('the ledger and the parameters read beside the calibration boxes', async ({
 		}),
 	});
 
-	const drain = page.locator('.card-shell').filter({
+	const recovery = page.locator('.card-shell').filter({
 		has: page.getByRole('heading', {
-			name: 'Drain Calibration',
+			name: 'Recovery Calibration',
 		}),
 	});
 
 	const listBox = (await taskCard(page).boundingBox())!;
 	const paramsBox = (await params.boundingBox())!;
-	const drainBox = (await drain.boundingBox())!;
+	const recoveryBox = (await recovery.boundingBox())!;
 
 	// The wide column: one left edge and one width for both of its cards.
 	expect(paramsBox.x).toBeCloseTo(listBox.x, 0);
@@ -788,7 +765,7 @@ test('the ledger and the parameters read beside the calibration boxes', async ({
 
 	// The narrow column starts where the wide one ends, and the parameters are
 	// directly under the list rather than beside it.
-	expect(drainBox.x).toBeGreaterThan(paramsBox.x + paramsBox.width - 1);
+	expect(recoveryBox.x).toBeGreaterThan(paramsBox.x + paramsBox.width - 1);
 	expect(paramsBox.y).toBeGreaterThan(listBox.y + listBox.height - 1);
 });
 
@@ -809,18 +786,18 @@ test('the Lab opens with the curve card already on screen', async ({ page }) => 
 		}),
 	});
 
-	const drain = page.locator('.card-shell').filter({
+	const recovery = page.locator('.card-shell').filter({
 		has: page.getByRole('heading', {
-			name: 'Drain Calibration',
+			name: 'Recovery Calibration',
 		}),
 	});
 
 	await expect(page.getByText('No window has been priced for this day yet.')).toBeVisible();
 
 	const curveBox = (await curve.boundingBox())!;
-	const drainBox = (await drain.boundingBox())!;
+	const recoveryBox = (await recovery.boundingBox())!;
 
-	expect(curveBox.y).toBeGreaterThan(drainBox.y + drainBox.height);
+	expect(curveBox.y).toBeGreaterThan(recoveryBox.y + recoveryBox.height);
 
 	const params = page.locator('.card-shell').filter({
 		has: page.getByRole('heading', {
@@ -905,8 +882,8 @@ test('the Lab’s explanation reads with nothing hovered', async ({ page }) => {
 	await expect(intro).toBeVisible();
 });
 
-// A calibration card, by the title in its heading: both cards render the same
-// shell, and the drain rows' copy repeats between them.
+// A calibration card, by the title in its heading: every card on this page renders
+// the same shell, and the pending-log copy repeats between them.
 const calibrationCard = (page: Page, title: string) =>
 	page.locator('.card-shell').filter({
 		hasText: title,
@@ -916,30 +893,17 @@ const calibrationCard = (page: Page, title: string) =>
 // row it fits, not on the calibration card.
 const paramFit = (page: Page, id: string) => page.locator(`#${id}-fit`);
 
-/* α and r are identity, so the cards fit logs dated strictly before
-   today — the rating just logged is named beside the fit instead of moving it,
-   and with no other log there is nothing to apply. */
-test('a drain rating logged today is named beside the fit, not folded into it', async ({
-	page,
-}) => {
+/* α and r are identity, so they fit logs dated strictly before today — the rating just
+   logged does not move the row, and with no other log there is nothing to apply. What the
+   rating IS counted by reads on /analytics, with the list it joined. */
+test('a drain rating logged today does not move the fit reading', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
-
-	const drainCard = calibrationCard(page, 'Drain Calibration');
-
-	await expect(drainCard.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
-
-	// The fit left the card; the count, the pending line and the reset did not.
-	await expect(
-		drainCard.getByRole('button', {
-			name: 'Delete all ratings',
-		}),
-	).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	await expect(paramFit(page, 'alpha-cog')).toHaveText('no informative ratings');
 
@@ -948,6 +912,39 @@ test('a drain rating logged today is named beside the fit, not folded into it', 
 			name: 'Apply my fits',
 		}),
 	).toHaveCount(0);
+});
+
+/* 🪫's card moved to the page that lists its ratings; ☕'s and λ₀'s did not. ☕ is typed on
+   the ledger and reachable on a day with no tasks, and λ₀ has no log store at all — neither
+   has rows in that list to stand beside. */
+test('the Lab keeps the recovery and stopping cards, and loses the drain card', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logDrain(page, 120, 9, 5);
+	await expect(drainChips(page)).toHaveCount(1);
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Drain Calibration',
+		}),
+	).toHaveCount(0);
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Recovery Calibration',
+		}),
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Stopping Calibration',
+		}),
+	).toBeVisible();
 });
 
 /* No logs at all is not "no signal": `no informative ratings` against a parameter
@@ -972,7 +969,7 @@ test('that same rating fits once the clock has passed midnight', async ({ page }
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	// Midnight: the rating now has a day behind it, which is all the fit was waiting for.
 	// The new day needs a task of its own — the cards sit behind one.
@@ -980,10 +977,7 @@ test('that same rating fits once the clock has passed midnight', async ({ page }
 	await page.goto('/energy');
 	await addTask(page, 'Deep work');
 
-	const drainCard = calibrationCard(page, 'Drain Calibration');
-
 	await expect(paramFit(page, 'alpha-cog')).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
-	await expect(drainCard.getByText(/counted from tomorrow/)).toHaveCount(0);
 });
 
 /* MATH.md §8.10 (M42): a past day whose own 🪫 log moments describe a span with
@@ -1178,7 +1172,7 @@ test('a drain rating fits α but only applies on demand', async ({ page }) => {
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	await page.clock.fastForward('25:00:00');
 	await page.goto('/energy');
@@ -1244,7 +1238,7 @@ test('completing a task opens its drain rating', async ({ page }) => {
 		})
 		.click();
 
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	// The completed row keeps its 🪫 button, so a second session can still be logged
 	await expect(
@@ -1403,7 +1397,7 @@ test('the drain prompt takes no focus and refuses an empty rating', async ({ pag
 		.click();
 
 	await expect(form).toBeVisible();
-	await expect(page.getByText('Drain ratings · 1')).toHaveCount(0);
+	await expect(drainChips(page)).toHaveCount(0);
 });
 
 /* The draft is page-level and is the whole gate on the prompt, so one left pointing
@@ -1583,14 +1577,14 @@ test('drain and rest logs survive a reload', async ({ page }) => {
 	await page.goto('/energy');
 
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	await logRest(page, 30, 9, 8, 3, 2);
 	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
 	await page.reload();
 
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 	await expect(page.getByText('Rest pairs · 1')).toBeVisible();
 
 	// A rest pair identifies the recovery rate on its own (MATH.md §8.9), and the
@@ -1668,12 +1662,12 @@ test('correcting a rating edits its row, while a second session adds one', async
 		.click();
 
 	// Corrected in place: still one row, now reading Mind 6.
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 	await expect(page.getByText('Mind 6')).toBeVisible();
 
 	// The row's own button is the other path: an empty form, and a second row.
 	await logDrain(page, 90, 7, 4);
-	await expect(page.getByText('Drain ratings · 2')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(2);
 });
 
 // The ✎ has to win over an editor already open on that row, and both halves of the
@@ -1725,7 +1719,7 @@ test('the ✎ re-seeds a drain editor the row already has open', async ({ page }
 		.click();
 
 	// Corrected in place — the ✎'s save path, not the button's
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 	await expect(page.getByText('Mind 6')).toBeVisible();
 });
 
@@ -1825,7 +1819,7 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 
 	// The count comes off the store's re-read, so it says the write committed — a `goto`
 	// fired into the gap before it aborts the transaction and nothing is there to drop.
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	// Carried past midnight, so there is a fit to clear at all.
 	await page.clock.fastForward('25:00:00');
@@ -1839,9 +1833,9 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 		}),
 	).toBeVisible();
 
-	// Dropping one rating moved to /analytics with the listing (2026-08-10); this card
-	// keeps the fit's own verbs. Crossing the two screens is the point: the ✕ there has
-	// to take this calibration with it.
+	// Dropping one rating moved to /analytics with the listing (2026-08-10), and the
+	// card followed it there. Crossing the two screens is still the point: the ✕ there
+	// has to take this Lab's calibration with it.
 	await page.goto('/analytics');
 
 	await page
@@ -1855,13 +1849,15 @@ test('deleting the drain rating clears the calibration', async ({ page }) => {
 	// the test flaked on its own speed rather than on the behaviour it names.
 	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
 
-	await page.goto('/energy');
-
-	// The card falls back to its empty state, and with no fit left anywhere the
-	// Apply beside the parameters is gone rather than disabled — disabled reads as
-	// "already applied", which would be a claim about a fit that no longer exists.
+	// The card falls back to its empty state beside the emptied list — both readings
+	// are on this page now, so the ✕ answers for itself.
 	await expect(page.getByText(/No ratings yet\./)).toBeVisible();
 
+	await page.goto('/energy');
+
+	// With no fit left anywhere the Apply beside the parameters is gone rather than
+	// disabled — disabled reads as "already applied", which would be a claim about a
+	// fit that no longer exists.
 	await expect(
 		page.getByRole('button', {
 			name: 'Apply my fits',

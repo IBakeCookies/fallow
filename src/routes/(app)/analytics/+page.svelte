@@ -10,6 +10,8 @@
 	import ParamTrend from '$lib/presentation/component/param-trend.svelte';
 	import QuadrantDistribution from '$lib/presentation/component/quadrant-distribution.svelte';
 	import LogHistoryList from '$lib/presentation/component/log-history-list.svelte';
+	import FlowCalibrationCard from '$lib/presentation/component/flow-calibration-card.svelte';
+	import DrainCalibrationCard from '$lib/presentation/component/drain-calibration-card.svelte';
 	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { showToast } from '$lib/presentation/utils/toast';
@@ -35,6 +37,12 @@
 	const observations = getEnergyObservationStore();
 
 	const oneDecimal = (value: number) => formatDecimals(value, 1, getDateLocale());
+
+	// Derived here rather than on a store: EnergyObservationStore has no notion of a
+	// viewed day and must not grow one.
+	const pendingDrainLogs = $derived(
+		observations.drainObservations.filter((o) => o.date >= session.today).length,
+	);
 
 	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
 		week: {
@@ -549,6 +557,22 @@
 		</div>
 	{/if}
 {/if}
+
+<!-- What each fit was made from, above the list of the logs it was made from — outside the
+     load gate for the same reason that list is: the gate's `{:else if}` is `hasData`, which
+     is about day SUMMARIES. -->
+<div class="grid gap-grid-lg mt-grid-xl lg:grid-cols-2">
+	<FlowCalibrationCard
+		constantsFitted={session.constantsFit.fitted}
+		logCount={session.flowObservations.length}
+		pendingLogs={session.pendingFlowLogCount}
+	/>
+
+	<DrainCalibrationCard
+		logCount={observations.drainObservations.length}
+		pendingLogs={pendingDrainLogs}
+	/>
+</div>
 
 <!-- OUTSIDE the load gate, unlike every other card: "In your logs →" scrolls to this `id`
      once on arrival and nothing retries, and the gate's `{:else if}` is `hasData`, which is

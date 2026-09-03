@@ -1,18 +1,16 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import CalibrationCard from '$lib/presentation/component/calibration-card.svelte';
-	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
 
 	interface Props {
 		constantsFitted: boolean;
-		/** Every ⚡ log, which is what a reset deletes */
+		/** Every ⚡ log, which is what the headline counts */
 		logCount: number;
 		/** Logs dated on or after the planned day: no fit has counted them */
 		pendingLogs?: number;
-		onresetlogs?: () => void;
 	}
 
-	let { constantsFitted, logCount, pendingLogs = 0, onresetlogs }: Props = $props();
+	let { constantsFitted, logCount, pendingLogs = 0 }: Props = $props();
 
 	const fitCountedLogs = $derived(logCount - pendingLogs);
 
@@ -61,16 +59,5 @@
 		</span>
 	</div>
 
-	<div class="mt-text-sm">
-		<FitLogSummary
-			label={modelStatus}
-			count={logCount}
-			confirmLabel={m.budget_reset_confirm({
-				count: logCount,
-			})}
-			resetLabel={m.budget_reset_personalization()}
-			resetTitle={m.budget_reset_title()}
-			onreset={onresetlogs}
-		/>
-	</div>
+	<p class="mt-text-sm text-xs text-ty-silent">{modelStatus}</p>
 </CalibrationCard>

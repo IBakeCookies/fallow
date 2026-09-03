@@ -37,7 +37,6 @@
 	import DayTimeline from '$lib/presentation/component/day-timeline.svelte';
 	import MetricsDashboard from '$lib/presentation/component/metrics-dashboard.svelte';
 	import PlanAdviceCard from '$lib/presentation/component/plan-advice-card.svelte';
-	import FlowCalibrationCard from '$lib/presentation/component/flow-calibration-card.svelte';
 	import FallowExplainer from '$lib/presentation/component/fallow-explainer.svelte';
 	import { setDailyPlanStore } from '$lib/business/store/daily-plan-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
@@ -293,30 +292,18 @@
 
 			<MetricsDashboard {metrics} momentum={daily.totalTasks > 0 ? daily.momentum : null} />
 
-			<!-- What the model was fitted from, then what it makes of today: the fit is a
-			     standing statement and reads first, the advice is the day's own reading.
-			     Half each. -->
-			<div class="grid gap-grid-lg lg:grid-cols-2 items-start">
-				<FlowCalibrationCard
-					constantsFitted={session.constantsFit.fitted}
-					logCount={session.flowObservations.length}
-					pendingLogs={session.pendingFlowLogCount}
-					onresetlogs={() => session.resetFlowLogs()}
+			{#if !isViewingPast && tasks.length > 0}
+				<PlanAdviceCard
+					{advice}
+					isBusy={plan.isAdviceBusy}
+					isStale={plan.isAdviceStale}
+					{destination}
+					hasError={plan.hasAdviceError}
+					oncheck={() => plan.computeAdvice()}
+					onapply={(id) => session.moveTaskToTomorrow(id)}
+					onapplybudget={(hours) => (session.availableHours = hours)}
 				/>
-
-				{#if !isViewingPast && tasks.length > 0}
-					<PlanAdviceCard
-						{advice}
-						isBusy={plan.isAdviceBusy}
-						isStale={plan.isAdviceStale}
-						{destination}
-						hasError={plan.hasAdviceError}
-						oncheck={() => plan.computeAdvice()}
-						onapply={(id) => session.moveTaskToTomorrow(id)}
-						onapplybudget={(hours) => (session.availableHours = hours)}
-					/>
-				{/if}
-			</div>
+			{/if}
 		</div>
 	</div>
 </div>
