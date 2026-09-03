@@ -51,7 +51,10 @@
 						variant: importance === level.value ? 'secondary' : 'outline',
 						size,
 					}),
-					'has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 relative has-[:focus-visible]:ring-3',
+					'has-focus-visible:border-ring has-focus-visible:ring-ring/50 relative has-focus-visible:ring-3',
+					{
+						'flex-1': size === 'default',
+					},
 				)}
 			>
 				<input
