@@ -69,3 +69,15 @@
 		await expect(canvas.getByText('1 rating logged today, counted from tomorrow')).toBeVisible();
 	}}
 />
+
+<Story
+	name="Two ratings the fit defers"
+	args={{
+		logCount: 4,
+		pendingLogs: 2,
+	}}
+	play={async ({ canvas }) => {
+		// The plural form, which had no assertion anywhere once the Lab's own count went.
+		await expect(canvas.getByText('2 ratings logged today, counted from tomorrow')).toBeVisible();
+	}}
+/>

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
 	addTask,
 	AUTOSAVE_MS,
+	drainChips,
 	expectTaskInputs,
 	logDrain,
 	logFlow,
@@ -427,11 +428,7 @@ test('a drain rating logged from the main page feeds the Lab', async ({ page }) 
 
 	// The chip comes off the store's re-read, so it says the write committed — a `goto`
 	// fired into the gap before it aborts the transaction.
-	await expect(
-		page.getByRole('button', {
-			name: 'Correct this drain rating',
-		}),
-	).toBeVisible();
+	await expect(drainChips(page)).toHaveCount(1);
 
 	await page.clock.runFor(AUTOSAVE_MS);
 

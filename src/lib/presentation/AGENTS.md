@@ -534,23 +534,29 @@ so what stays with each card is the one thing a FIT has rather than a
 measurement: what it was fitted from. ⚡ and 🪫 say it in a sentence and offer
 no verb at all, because their cards now stand on this page: the link would point
 at the card it is drawn in, and the reset would be this page's second. ☕, alone
-behind a Lab fold, still carries both through `fit-log-summary.svelte` (whose
+behind the Lab's task gate, still carries both through `fit-log-summary.svelte`
+(whose
 two-step reset and focus handling are the safety of every bulk delete in the
 app). The history card draws that same row once per kind, with
 `withHistoryLink={false}`, for the same self-pointing reason.
 
 **A fit card comes to this page when the list holds its rows and it has nothing
 left to do.** ⚡ and 🪫 qualify on both counts. ☕'s pairs are listed here, but
-its card is the app's last link INTO the list and its editor is typed on the
-ledger's heading row, so moving it would cost the link and split the editor from
-the card. λ₀ fails the first count outright: it reads finished DAYS, not
-measurements, and nothing it names appears in the list at all.
+its editor is typed on the ledger's heading row and its card is the app's only
+remaining link INTO the list, so moving it would split the editor from the card
+and leave the list reachable by the nav alone. That link is already conditional
+— `count > 0`, on a card behind the Lab's task gate — so a user with ⚡ logs and
+no ☕ pair has no link to it either; the nav is what the list is really reached
+by, and the link is a shortcut from the one screen that has to explain a fit.
+λ₀ fails the first count outright: it reads finished DAYS, not measurements, and
+nothing it names appears in the list at all.
 
 The history **drops, corrects and wipes**: ✕ and ✎ on every row, each addressed
 by `(kind, id)` and not `id` alone — three kinds are three stores with three id
 sequences — and, at the card's FOOT under the list, one reset per kind making the
 same store call that kind's fit card makes. Under, because the one other reset
-sits on a card read for something else — ☕'s, behind the Lab's fold — and these
+sits on a card read for something else — ☕'s, behind the Lab's task gate — and
+these
 would otherwise be the app's most prominent destructive control, on a card
 opened to read the list. Their counts and their deletes are ALL-TIME while the
 list above them is ranged, because the stores expose no ranged delete — a count
@@ -575,9 +581,10 @@ four independent facts, when they are one answer to how the range went, and the
 fold had nowhere to sit but the page background.
 
 Plan adherence and Your model are full-width siblings under the other cards:
-both read as what the model makes of the range. The one grid on this page is
-below them and outside the load gate — Flow Calibration and Drain Calibration,
-half each, directly above the log history they were fitted from.
+both read as what the model makes of the range. The one grid OF CARDS is below
+them and outside the load gate — Flow Calibration and Drain Calibration, half
+each, directly above the log history they were fitted from, and absent rather
+than empty until their own two stores answer.
 
 ### A correction rewrites the quantities the user rated and nothing else
 

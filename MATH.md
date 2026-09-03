@@ -59,23 +59,23 @@ retype a row, regenerate:
   §5.1      616-725  Posterior-aware allocation
 §6          727-739  Summary of v1 → v2 changes
 §7          741-765  Known approximations and deliberate non-changes
-§8         767-1850  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         767-1848  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      779-801  Intermittent-rest recovery correction
   §8.2      803-822  Warm-up carryover instead of binary reset
   §8.3      824-842  Verified consequences and a calibration question, closed
   §8.4      844-914  Per-task satiety — concave daily value
   §8.5      916-956  Micro-recovery gate — a positive floor for full-demand t…
   §8.6     958-1004  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1006-1103  Drain-rate calibration from end-of-session ratings
-  §8.8    1105-1140  45-minute plan granularity
-  §8.9    1142-1189  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1191-1439  Stopping-value calibration from observed stop times
-  §8.11   1441-1572  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1574-1728  The budget curve — what the day's LENGTH is worth
-  §8.13   1730-1794  Capacity from the fitted drain rate
-  §8.14   1796-1850  Per-title drain rate — which task costs more than its sl…
-§9        1852-1914  Plan-adherence reading and its verdict band
-§10       1916-1963  References
+  §8.7    1006-1101  Drain-rate calibration from end-of-session ratings
+  §8.8    1103-1138  45-minute plan granularity
+  §8.9    1140-1187  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1189-1437  Stopping-value calibration from observed stop times
+  §8.11   1439-1570  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1572-1726  The budget curve — what the day's LENGTH is worth
+  §8.13   1728-1792  Capacity from the fitted drain rate
+  §8.14   1794-1848  Per-title drain rate — which task costs more than its sl…
+§9        1850-1912  Plan-adherence reading and its verdict band
+§10       1914-1961  References
 ```
 
 <!-- section-index:end -->
@@ -1092,10 +1092,8 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   prior then wins and the fit under-reports extreme drain rates.
 
 **UI.** The Energy Lab's task list gets the 🪫 inline editor (today-only by
-construction — the lab always views today); a "Drain Calibration" card shows
-each reservoir's fitted α ± std with its informative-log count and an
-**Apply fitted rates** button that writes the fits into the manual α inputs.
-Unlike the classic model's fit (which the allocator consumes directly), the
+construction — the lab always views today), and an **Apply fitted rates** button
+writes the fits into the manual α inputs. Unlike the classic model's fit (which the allocator consumes directly), the
 energy lab's parameters stay user-owned sliders — the fit is applied
 explicitly, so slider experiments and the calibration never silently fight
 over the same knob. The fit itself re-derives live from the observations

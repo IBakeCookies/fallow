@@ -152,11 +152,9 @@ test('neither moved card offers a reset or a link to the logs', async ({ page })
 		}),
 	).toHaveCount(0);
 
-	await expect(
-		flow.getByRole('button', {
-			name: 'Reset personalization',
-		}),
-	).toHaveCount(0);
+	// By ROLE, not by name: the label this card used to carry is deleted, so naming it
+	// would assert the absence of a string that cannot exist anywhere.
+	await expect(flow.getByRole('button')).toHaveCount(0);
 
 	await expect(
 		drain.getByRole('link', {
@@ -833,7 +831,39 @@ test('the ranking says how many of today’s ratings it has not counted', async 
 	await writeDrainLog(page, isoDate(0), 'Inbox', 2);
 	await page.goto('/analytics');
 
-	await expect(page.getByText('2 ratings logged today, counted from tomorrow')).toBeVisible({
+	// Card-scoped: the drain calibration card above prints the same sentence off the
+	// same count, so an unscoped locator matches two elements.
+	await expect(
+		page
+			.locator('.card-shell')
+			.filter({
+				has: page.getByRole('heading', {
+					name: 'Most draining per hour',
+				}),
+			})
+			.getByText('2 ratings logged today, counted from tomorrow'),
+	).toBeVisible({
 		timeout: 15000,
+	});
+});
+
+/* Both fit cards read two client-side stores, so the server cannot know what was logged
+   — and must not guess. Guessing zero tells a user with a year of ratings that they have
+   never rated anything, which is what every other placeholder on this page exists to
+   avoid ("A placeholder, never a claim"). They are absent until the read lands, like the
+   drain ranking above them, rather than empty. */
+test.describe('server-rendered, before the logs are read', () => {
+	test.use({
+		javaScriptEnabled: false,
+	});
+
+	test('neither fit card claims an empty fit', async ({ page }) => {
+		await page.goto('/analytics');
+
+		await expect(page.getByText(/No ratings yet/)).toHaveCount(0);
+		await expect(page.getByText(/Model uses default constants/)).toHaveCount(0);
+
+		// …and the card that DOES render before the read says it is waiting.
+		await expect(page.getByText('Loading…').first()).toBeVisible();
 	});
 });

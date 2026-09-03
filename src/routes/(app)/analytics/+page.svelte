@@ -38,11 +38,15 @@
 
 	const oneDecimal = (value: number) => formatDecimals(value, 1, getDateLocale());
 
-	// Derived here rather than on a store: EnergyObservationStore has no notion of a
-	// viewed day and must not grow one.
+	// Derived here rather than read off a store: this page builds no `EnergyLabStore`,
+	// which is where the rest count of the same shape lives.
 	const pendingDrainLogs = $derived(
 		observations.drainObservations.filter((o) => o.date >= session.today).length,
 	);
+
+	// The two fit cards read these two stores and not the range, so they wait on their
+	// own pair rather than on `areLogsLoading`.
+	const areFitsLoading = $derived(session.isLoading || observations.isLoading);
 
 	const RANGE_LABELS: Record<AnalyticsRange, { label: () => string; prevLabel: () => string }> = {
 		week: {
@@ -290,8 +294,9 @@
 		</div>
 	</div>
 	<!-- Bodies, in the order of the five full-width GATED cards that always render — the
-	     logs card sits outside this gate and the drain ranking may not render at all. Both
-	     charts are a fixed viewBox at `w-full`, so a ratio is what tracks their height. -->
+	     calibration grid and the logs card sit outside this gate and the drain ranking may
+	     not render at all. Both charts are a fixed viewBox at `w-full`, so a ratio is what
+	     tracks their height. -->
 	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			{@render skeletonBody(body)}
@@ -560,19 +565,22 @@
 
 <!-- What each fit was made from, above the list of the logs it was made from — outside the
      load gate for the same reason that list is: the gate's `{:else if}` is `hasData`, which
-     is about day SUMMARIES. -->
-<div class="grid gap-grid-lg mt-grid-xl lg:grid-cols-2">
-	<FlowCalibrationCard
-		constantsFitted={session.constantsFit.fitted}
-		logCount={session.flowObservations.length}
-		pendingLogs={session.pendingFlowLogCount}
-	/>
+     is about day SUMMARIES. Absent until their own stores answer, rather than empty: a
+     headline of 0 before the read is a claim that nothing was ever logged. -->
+{#if !areFitsLoading}
+	<div class="mt-grid-xl grid gap-grid-lg lg:grid-cols-2">
+		<FlowCalibrationCard
+			constantsFitted={session.constantsFit.fitted}
+			logCount={session.flowObservations.length}
+			pendingLogs={session.pendingFlowLogCount}
+		/>
 
-	<DrainCalibrationCard
-		logCount={observations.drainObservations.length}
-		pendingLogs={pendingDrainLogs}
-	/>
-</div>
+		<DrainCalibrationCard
+			logCount={observations.drainObservations.length}
+			pendingLogs={pendingDrainLogs}
+		/>
+	</div>
+{/if}
 
 <!-- OUTSIDE the load gate, unlike every other card: "In your logs →" scrolls to this `id`
      once on arrival and nothing retries, and the gate's `{:else if}` is `hasData`, which is
