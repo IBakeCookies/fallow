@@ -220,6 +220,9 @@
 		tagVocabulary={session.tagVocabulary}
 		impact={plan.draftImpact}
 		ondraftchange={(d) => (plan.previewDraft = d)}
+		nextTasks={plan.nextTasks}
+		hasNextTaskRoom={plan.hasNextTaskRoom}
+		onnexttasks={() => plan.computeNextTasks()}
 	/>
 {/snippet}
 

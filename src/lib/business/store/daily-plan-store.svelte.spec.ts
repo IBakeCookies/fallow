@@ -3,6 +3,8 @@ import { render } from 'vitest-browser-svelte';
 import { flushSync } from 'svelte';
 import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
 import type * as PlanAdvice from '$lib/business/model/metric/plan-advice';
+import { suggestNextTasks } from '$lib/business/model/metric/next-task-suggestion';
+import type * as NextTaskSuggestion from '$lib/business/model/metric/next-task-suggestion';
 import Harness from '$lib/business/store/daily-plan-store.test-harness.svelte';
 import {
 	drainRecord,
@@ -21,6 +23,16 @@ vi.mock('$lib/business/model/metric/plan-advice', async (importOriginal) => {
 	return {
 		...mod,
 		suggestPlanAdjustments: vi.fn(mod.suggestPlanAdjustments),
+	};
+});
+
+// Passthrough by default; the re-entrancy test only counts the calls.
+vi.mock('$lib/business/model/metric/next-task-suggestion', async (importOriginal) => {
+	const mod = await importOriginal<typeof NextTaskSuggestion>();
+
+	return {
+		...mod,
+		suggestNextTasks: vi.fn(mod.suggestNextTasks),
 	};
 });
 
@@ -403,6 +415,80 @@ describe('DailyPlanStore', () => {
 
 		expect(store.hasAdviceError).toBe(false);
 		expect(store.advice).not.toBeNull();
+	});
+
+	// The add-task panel's own search: one full solve per candidate, so it copies
+	// the advice's shape — a method, and a guard that drops a second request rather
+	// than queueing it.
+	describe('the next-task suggestions', () => {
+		const ratings = new Map([
+			[
+				'gym',
+				{
+					title: 'gym',
+					physicalDifficulty: 9,
+					mentalDifficulty: 1,
+					enjoyment: 7,
+					lastUsedDate: '2026-07-19',
+				},
+			],
+		]);
+
+		it('says nothing until the search settles, then ranks the memory', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'deep work')];
+			mockSession.titleRatings = ratings;
+			flushSync();
+
+			const search = store.computeNextTasks();
+
+			// The panel's whole reading of "still working" — there is no busy flag for
+			// it to render, because this says the same thing.
+			expect(store.nextTasks).toBeNull();
+
+			await search;
+
+			expect(store.nextTasks?.map((s) => s.rating.title)).toEqual(['gym']);
+		});
+
+		// The form re-ranks on every open, so a held list must not survive into the
+		// next search: open, close, move the budget, reopen and the old day's
+		// suggestions would otherwise be on screen describing a day that has moved.
+		it('withdraws the settled suggestions while the next search runs', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'deep work')];
+			mockSession.titleRatings = ratings;
+			flushSync();
+
+			await store.computeNextTasks();
+
+			expect(store.nextTasks).not.toBeNull();
+
+			mockSession.availableHours = 2;
+			flushSync();
+
+			const again = store.computeNextTasks();
+
+			expect(store.nextTasks).toBeNull();
+
+			await again;
+
+			expect(store.nextTasks?.map((s) => s.rating.title)).toEqual(['gym']);
+		});
+
+		it('drops a second request while one is in flight', async () => {
+			const store = setup();
+			mockSession.tasks = [task(1, 'deep work')];
+			mockSession.titleRatings = ratings;
+			flushSync();
+
+			const first = store.computeNextTasks();
+			const second = store.computeNextTasks();
+
+			await Promise.all([first, second]);
+
+			expect(suggestNextTasks).toHaveBeenCalledTimes(1);
+		});
 	});
 
 	// ROADMAP item 21. Where every defer lever on the card sends a task, read once

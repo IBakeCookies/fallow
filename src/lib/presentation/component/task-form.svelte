@@ -2,6 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import type { TitleRating } from '$lib/business/model/title-memory';
 	import type { DraftImpact, DraftTask } from '$lib/business/model/metric/draft-impact';
+	import type { NextTaskSuggestion } from '$lib/business/model/metric/next-task-suggestion';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import MustDoToggle from '$lib/presentation/component/must-do-toggle.svelte';
 	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
@@ -19,6 +20,11 @@
 		 *  and no `ondraftchange`. */
 		impact?: DraftImpact | null;
 		ondraftchange?: (draft: DraftTask | null) => void;
+		/** The empty form's ranked titles, and the search that re-runs them. `impact`
+		 *  alone decides whether the panel exists, so the Lab passes none of these. */
+		nextTasks?: NextTaskSuggestion[] | null;
+		hasNextTaskRoom?: boolean;
+		onnexttasks?: () => void;
 		/** Closes the dialog this is mounted in. Absent, there is no Cancel — the
 		 *  row actions' rule: the button is there when its callback is. */
 		oncancel?: () => void;
@@ -31,6 +37,9 @@
 		withMustDoToday = true,
 		impact,
 		ondraftchange,
+		nextTasks = null,
+		hasNextTaskRoom = false,
+		onnexttasks = () => {},
 		oncancel,
 	}: Props = $props();
 
@@ -182,15 +191,19 @@
 		// caret goes back to the field the next task starts in, wherever the submit came
 		// from. `{@attach}` cannot do this: the field never unmounts between deploys.
 		titleField?.focus();
+
+		// The panel's ranking is now about the day before this task, and its own mount
+		// cannot catch that: the dialog this deploy came from is still open.
+		onnexttasks();
 	}
 </script>
 
 <!-- Two columns: the fields, and what they would do to today. 2fr/1fr and not an
      even split — the fields set their own widths (three slider tracks, a tag
      field), the reading is label-and-number rows that wrap — and one column when
-     there is no reading, which is the Lab's copy. The reading carries no control
-     at all, so the tab order is the field column, top to bottom, as written: no
-     `order-*`, and never a positive `tabindex`. -->
+     there is no reading, which is the Lab's copy. The reading's only controls are
+     the next-task ones, which follow the fields in source order, so the tab order
+     is the column as written: no `order-*`, and never a positive `tabindex`. -->
 <form
 	class="grid gap-grid-xl {impact === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
 	onsubmit={handleSubmit}
@@ -284,7 +297,7 @@
 		     panel nested inside a card"). This one stacks under the fields on a
 		     phone. -->
 		<div class="min-w-0 rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur">
-			<TaskFormPreview {impact} />
+			<TaskFormPreview {impact} {nextTasks} {hasNextTaskRoom} {onnexttasks} onpicknexttask={pick} />
 		</div>
 	{/if}
 </form>

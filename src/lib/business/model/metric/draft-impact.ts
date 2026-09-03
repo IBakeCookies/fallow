@@ -61,6 +61,40 @@ export interface DraftImpact {
 }
 
 /**
+ * The day's task list with a hypothetical task at the FRONT, and the id it was
+ * given — the one definition of how an unsaved task joins a day (AGENTS.md R3),
+ * shared by this reading and the next-task ranking.
+ *
+ * FIRST, because `SessionStore.addTask` prepends. The allocator's sort is stable
+ * over the priority score rounded to 1 dp, so input position orders every tie —
+ * and that decides the run slot, and on a tight budget which tie-mate is funded
+ * at all. Appended, either caller reads a plan the deploy does not produce.
+ *
+ * The id is one past every id the day holds: an id the day already uses would
+ * price the draft as the task it collided with. Not `nextTaskId`'s business —
+ * that rule is about ids a day KEEPS (business/AGENTS.md), and this one exists
+ * only so the solve's own output can be found again. The title is blank because
+ * no title reaches a solve.
+ */
+export function prependDraft(tasks: Task[], draft: DraftTask): { tasks: Task[]; draftId: number } {
+	const draftId = tasks.reduce((max, task) => Math.max(max, task.id), 0) + 1;
+
+	return {
+		draftId,
+		tasks: [
+			{
+				...draft,
+				id: draftId,
+				title: '',
+				createdAt: '',
+				completed: false,
+			},
+			...tasks,
+		],
+	};
+}
+
+/**
  * The draft solved into the day. `baseline` is the current plan, which every
  * caller already has; it is only recomputed here so the function stays usable
  * on its own.
@@ -71,28 +105,10 @@ export function calculateDraftImpact(
 	baseline: DailyMetrics = calculateDailyMetrics(input),
 ): DraftImpact {
 	const { tasks, availableHours, switchCost, pools, constants, posterior, energyParams } = input;
-	// One past every id the day holds: an id the day already uses would price the
-	// draft as the task it collided with. Not `nextTaskId`'s business — that rule
-	// is about ids a day KEEPS (business/AGENTS.md), and this one exists only so
-	// the solve's own output can be found again.
-	const draftId = tasks.reduce((max, task) => Math.max(max, task.id), 0) + 1;
+	const { tasks: drafted, draftId } = prependDraft(tasks, draft);
 
-	// FIRST, because `SessionStore.addTask` prepends. The allocator's sort is
-	// stable over the priority score rounded to 1 dp, so input position orders
-	// every tie — and that decides the run slot, and on a tight budget which
-	// tie-mate is funded at all. Appended, this reads a plan the deploy does not
-	// produce.
 	const { suggestedTasks } = calculateTaskPlan(
-		[
-			{
-				...draft,
-				id: draftId,
-				title: '',
-				createdAt: '',
-				completed: false,
-			},
-			...tasks,
-		],
+		drafted,
 		availableHours,
 		switchCost,
 		pools,

@@ -2,6 +2,7 @@
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect } from 'storybook/test';
 	import type { DraftImpact } from '$lib/business/model/metric/draft-impact';
+	import type { NextTaskSuggestion } from '$lib/business/model/metric/next-task-suggestion';
 	import { BAND_BAR_CLASS } from '$lib/presentation/utils/band';
 	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
 
@@ -35,12 +36,33 @@
 		},
 	};
 
+	/* Ranked, as `suggestNextTasks` returns them: best first, each with the hours
+	   today's plan would give it. */
+	const nextTasks: NextTaskSuggestion[] = [
+		['Boxing training', 9, 1, 1.5],
+		['Deep write', 1, 9, 1],
+		['Guitar', 4, 3, 0.5],
+	].map(([title, physical, mental, hours]) => ({
+		rating: {
+			title: title as string,
+			physicalDifficulty: physical as number,
+			mentalDifficulty: mental as number,
+			enjoyment: 5,
+			lastUsedDate: '2026-09-01',
+		},
+		suggestedHours: hours as number,
+	}));
+
 	const { Story } = defineMeta({
 		title: 'Component/Task Form Preview',
 		component: TaskFormPreview,
 		tags: ['autodocs'],
 		args: {
 			impact,
+			nextTasks: null,
+			hasNextTaskRoom: true,
+			onnexttasks: () => {},
+			onpicknexttask: () => {},
 		},
 	});
 </script>
@@ -87,6 +109,50 @@
 		// and nothing under it reads as a rendering failure.
 		await expect(canvas.getByText(/Name the task/)).toBeInTheDocument();
 		await expect(canvas.queryByText('Suggested hours')).toBeNull();
+
+		// The search runs on mount, so the panel is already working — there is no
+		// control to press and nothing for the user to opt into.
+		await expect(canvas.getByText(/Ranking/)).toBeInTheDocument();
+		await expect(canvas.queryAllByRole('button')).toHaveLength(0);
+	}}
+/>
+
+<Story
+	name="Three titles the day would fund"
+	args={{
+		impact: null,
+		nextTasks,
+	}}
+	play={async ({ canvas }) => {
+		// Best first, in the order the ranking handed them over — the panel sorts
+		// nothing — each row numbered with its rank and carrying the hours today's
+		// plan would give it.
+		const rows = canvas.getAllByRole('listitem').map((row) => row.textContent!);
+
+		await expect(rows).toHaveLength(3);
+		await expect(rows[0]).toMatch(/1.*Boxing training/);
+		await expect(rows[1]).toMatch(/2.*Deep write/);
+		await expect(rows[2]).toMatch(/3.*Guitar/);
+		await expect(rows[0]).toMatch('1h 30m');
+
+		// What they are and where they came from, said rather than left to be
+		// inferred: a title the cap left out is otherwise silently missing.
+		await expect(canvas.getByText(/Best next tasks/)).toBeInTheDocument();
+		await expect(canvas.getByText(/recently/)).toBeInTheDocument();
+	}}
+/>
+
+<Story
+	name="A day with no room for another task"
+	args={{
+		impact: null,
+		hasNextTaskRoom: false,
+	}}
+	play={async ({ canvas }) => {
+		// Under one block unspent: nothing is ranked at all, and an empty list would
+		// read as a profile with no history rather than as a full day.
+		await expect(canvas.getByText(/no room/)).toBeInTheDocument();
+		await expect(canvas.queryByText(/Ranking/)).toBeNull();
 	}}
 />
 

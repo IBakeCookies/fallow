@@ -67,6 +67,7 @@ describe('latestRatingsByTitle', () => {
 			physicalDifficulty: 8,
 			mentalDifficulty: 2,
 			enjoyment: 3,
+			lastUsedDate: '2026-08-01',
 		});
 	});
 
@@ -76,11 +77,14 @@ describe('latestRatingsByTitle', () => {
 			session('2026-08-01', [task('Gym', 3, 7, 8)]),
 		]);
 
+		// The date rides along because the next-task ranking caps its candidates by
+		// recency, and the map's own iteration order is first-seen, not latest.
 		expect(ratings.get('gym')).toEqual({
 			title: 'Gym',
 			physicalDifficulty: 9,
 			mentalDifficulty: 1,
 			enjoyment: 2,
+			lastUsedDate: '2026-08-03',
 		});
 	});
 
@@ -100,6 +104,7 @@ describe('latestRatingsByTitle', () => {
 			physicalDifficulty: 6,
 			mentalDifficulty: 4,
 			enjoyment: 9,
+			lastUsedDate: '2026-08-01',
 		});
 	});
 
@@ -119,6 +124,7 @@ describe('latestRatingsByTitle', () => {
 			physicalDifficulty: 9,
 			mentalDifficulty: 2,
 			enjoyment: 4,
+			lastUsedDate: '2026-08-01',
 		});
 	});
 
@@ -132,6 +138,7 @@ describe('latestRatingsByTitle', () => {
 			physicalDifficulty: 0,
 			mentalDifficulty: 0,
 			enjoyment: 1,
+			lastUsedDate: '2026-08-01',
 		});
 	});
 
@@ -192,6 +199,7 @@ describe('suggestTitles', () => {
 				physicalDifficulty: 8,
 				mentalDifficulty: 2,
 				enjoyment: 3,
+				lastUsedDate: '2026-08-01',
 			},
 		]);
 	});

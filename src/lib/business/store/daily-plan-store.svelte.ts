@@ -13,12 +13,17 @@ import { logError } from '$lib/logger';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
 import {
+	suggestNextTasks,
+	type NextTaskSuggestion,
+} from '$lib/business/model/metric/next-task-suggestion';
+import {
 	calculateDraftImpact,
 	type DraftImpact,
 	type DraftTask,
 } from '$lib/business/model/metric/draft-impact';
 import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import { calculateRemainingDay, type RemainingDay } from '$lib/business/model/metric/remaining-day';
+import { BLOCK_HOURS } from '$lib/business/model/zenith';
 import { fitEnergyParams, seedMorningReservoirs } from '$lib/business/model/energy-calibration';
 import { workedHoursByTask } from '$lib/business/model/zenith-energy';
 import { addDays } from '$lib/business/utils/date';
@@ -165,6 +170,8 @@ export class DailyPlanStore {
 	#isAdviceBusy = $state(false);
 	#hasAdviceError = $state(false);
 	#adviceFor = $state<string | null>(null);
+	#nextTasks = $state<NextTaskSuggestion[] | null>(null);
+	#isNextTaskBusy = $state(false);
 	#deferDestination = $state<DeferDestination | null>(null);
 	#destinationFor = $state<string | null>(null);
 
@@ -208,6 +215,16 @@ export class DailyPlanStore {
 	 */
 	get deferDestination(): DeferDestination | null {
 		return this.#destinationFor === this.#destinationKey ? this.#deferDestination : null;
+	}
+
+	/** The ranked titles the empty add-task form offers; `null` while one is out. */
+	get nextTasks(): NextTaskSuggestion[] | null {
+		return this.#nextTasks;
+	}
+
+	/** Under one block unspent, there is nothing for another task to be given. */
+	get hasNextTaskRoom(): boolean {
+		return this.#daily.planSlackHours >= BLOCK_HOURS;
 	}
 
 	get isAdviceBusy(): boolean {
@@ -258,6 +275,36 @@ export class DailyPlanStore {
 			this.#hasAdviceError = true;
 		} finally {
 			this.#isAdviceBusy = false;
+		}
+	}
+
+	/**
+	 * One full solve per capped candidate, so it takes `computeAdvice`'s shape: a
+	 * method, and a second request dropped rather than queued. The busy flag stays
+	 * private — the panel reads `nextTasks === null` for "still working", which is
+	 * the same fact and one less thing to keep true.
+	 *
+	 * The held reading is withdrawn first, not overwritten at the end. The add-task
+	 * panel runs this on every mount, so a list left standing through the search is
+	 * the PREVIOUS opening's — solved against a day the user may have edited in
+	 * between, which is the staleness this shape exists instead of a flag for.
+	 */
+	async computeNextTasks(): Promise<void> {
+		if (this.#isNextTaskBusy) return;
+
+		this.#isNextTaskBusy = true;
+		this.#nextTasks = null;
+
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			this.#nextTasks = suggestNextTasks(this.#input, this.#session.titleRatings);
+		} catch (e) {
+			// Called fire-and-forget from the panel's mount and its deploy handler;
+			// rethrowing would be an unhandled rejection, not a signal.
+			logError('Failed to suggest next tasks', e);
+		} finally {
+			this.#isNextTaskBusy = false;
 		}
 	}
 }

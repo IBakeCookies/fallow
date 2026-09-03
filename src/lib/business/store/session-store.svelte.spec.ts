@@ -1908,6 +1908,7 @@ describe('SessionStore title memory', () => {
 						physicalDifficulty: 8,
 						mentalDifficulty: 2,
 						enjoyment: 3,
+						lastUsedDate: '2026-08-01',
 					},
 				],
 			]),
@@ -1922,6 +1923,7 @@ describe('SessionStore title memory', () => {
 					physicalDifficulty: 8,
 					mentalDifficulty: 2,
 					enjoyment: 3,
+					lastUsedDate: '2026-08-01',
 				},
 			]),
 		);
@@ -1961,6 +1963,7 @@ describe('SessionStore title memory', () => {
 						physicalDifficulty: 8,
 						mentalDifficulty: 2,
 						enjoyment: 3,
+						lastUsedDate: '2026-08-01',
 					},
 				],
 			]),

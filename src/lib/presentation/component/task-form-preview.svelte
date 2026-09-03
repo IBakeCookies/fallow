@@ -5,8 +5,11 @@
 	   A reading over a plan nobody deployed, so it offers no lever: the way to
 	   act on it is the form beside it. */
 
+	import { onMount } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { DraftChange, DraftImpact } from '$lib/business/model/metric/draft-impact';
+	import type { NextTaskSuggestion } from '$lib/business/model/metric/next-task-suggestion';
+	import type { TitleRating } from '$lib/business/model/title-memory';
 	import {
 		AXIS_BAND,
 		BAND_BAR_CLASS,
@@ -20,9 +23,23 @@
 	interface Props {
 		/** `null` while the draft is unnamed — an unnamed task is not priced. */
 		impact: DraftImpact | null;
+		/** The ranked titles; `null` while the search that runs on mount is still out. */
+		nextTasks: NextTaskSuggestion[] | null;
+		hasNextTaskRoom: boolean;
+		/** Runs the ranking. Called once, on mount — see below. */
+		onnexttasks: () => void;
+		onpicknexttask: (rating: TitleRating) => void;
 	}
 
-	let { impact }: Props = $props();
+	let { impact, nextTasks, hasNextTaskRoom, onnexttasks, onpicknexttask }: Props = $props();
+
+	// The dialog mounts this panel fresh on every open, so ranking here is what
+	// keeps the reading from outliving the day it was solved against. `onMount`
+	// and not an `$effect`: fire-and-forget wiring, the shape R2 leaves open
+	// (`/energy`'s `resnapshotOrder`).
+	onMount(() => {
+		if (hasNextTaskRoom) onnexttasks();
+	});
 
 	// A pool of 0 hours saturates to Infinity, so its row is dropped rather than
 	// printed as "Infinity%" (`metric-descriptor` gates the same reading).
@@ -103,6 +120,36 @@
 		     numbers (presentation/AGENTS.md), and here also the honest answer: an
 		     unnamed task is not a task the day can be priced with. -->
 		<p class="text-xs text-ty-silent">{m.form_impact_prompt()}</p>
+		{#if !hasNextTaskRoom}
+			<p class="text-xs text-ty-silent">{m.form_next_no_room()}</p>
+		{:else if nextTasks === null}
+			<p class="text-xs text-ty-silent">{m.form_next_working()}</p>
+		{:else if nextTasks.length === 0}
+			<p class="text-xs text-ty-silent">{m.form_next_empty()}</p>
+		{:else}
+			<p class="text-xs text-ty-secondary">{m.form_next_scope()}</p>
+			<!-- An `<ol>`, and the numeral is rendered rather than left to the marker:
+			     that the three are ORDERED is the whole content of the reading, and a
+			     `list-decimal` marker sits outside the row the numeral has to line up
+			     inside. -->
+			<ol class="space-y-grid-xs">
+				{#each nextTasks as suggestion, index (suggestion.rating.title)}
+					<li>
+						<button
+							type="button"
+							onclick={() => onpicknexttask(suggestion.rating)}
+							class="flex w-full items-baseline gap-grid-xs rounded-lg border border-line-soft bg-surface-inset px-box-sm py-box-xs text-xs text-ty-primary transition hover:bg-surface-hover"
+						>
+							<span class="font-semibold text-ty-secondary tabular-nums">{index + 1}</span>
+							<span class="min-w-0 wrap-break-word">{suggestion.rating.title}</span>
+							<span class="ml-auto font-semibold tabular-nums"
+								>{formatDuration(suggestion.suggestedHours)}</span
+							>
+						</button>
+					</li>
+				{/each}
+			</ol>
+		{/if}
 	{:else}
 		<!-- `surface-inset` and not `surface-card`: this sits INSIDE the reading
 		     panel, which is itself a card, and card-on-card separates only by

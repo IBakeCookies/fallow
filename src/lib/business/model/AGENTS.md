@@ -251,6 +251,16 @@ not enter any of them until the next load.
 - Title suggestions need at least `TITLE_QUERY_MIN` = 2 typed characters; the
   match is a **substring**, not a prefix, the order is alphabetical, and the
   list is uncapped — no ranking, no cap.
+- The next-task ranking (`metric/next-task-suggestion.ts`) is the other reading
+  over the same memory, and it does rank. In order: today's own titles are
+  dropped, what is left is capped at `NEXT_TASK_CANDIDATE_LIMIT` = 8 by recency —
+  which is why `TitleRating` carries `lastUsedDate`, the map's own order being
+  first-seen — each survivor is scored by the day's Σ v·P̄ with it PREPENDED, and
+  the top `NEXT_TASK_COUNT` = 3 are returned. Filtering before capping is what
+  makes the cap eight OFFERABLE titles rather than eight of which some are
+  already on the day. Ties fall through to recency, and then to the memory's own
+  order. The cap is disclosed to the user in the panel rather than hidden, which
+  is the honest counterpart to `suggestTitles` staying uncapped.
 
 ## Settled decisions — do not re-litigate
 

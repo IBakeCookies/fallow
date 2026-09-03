@@ -24,6 +24,12 @@ export interface TitleRating {
 	physicalDifficulty: number;
 	mentalDifficulty: number;
 	enjoyment: number;
+	/**
+	 * The date of the session this rating was read from. The next-task ranking
+	 * caps its candidates by recency and cannot take the map's own order, which
+	 * is first-seen: `Map.set` keeps a re-seen key's original position.
+	 */
+	lastUsedDate: string;
 }
 
 /**
@@ -78,6 +84,7 @@ export function latestRatingsByTitle(sessions: DailySession[]): Map<string, Titl
 				physicalDifficulty: task.physicalDifficulty,
 				mentalDifficulty: task.mentalDifficulty,
 				enjoyment: task.enjoyment,
+				lastUsedDate: session.date,
 			});
 		}
 
