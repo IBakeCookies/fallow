@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fireEvent, fn } from 'storybook/test';
+	import { expect, fireEvent, fn, within } from 'storybook/test';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import { latestRatingsByTitle, suggestTitles } from '$lib/business/model/title-memory';
 
@@ -720,9 +720,9 @@
 			importance: 'normal',
 		});
 
-		// The footer closes the reading column rather than the fields, and Cancel is
-		// in it — the flag stays with the fields it belongs to.
-		const reading = canvas.getByText('Suggested hours');
+		// Every control is in the field column: the reading beside it is a panel you
+		// only look at, and the flag, Cancel and the submit share the one footer.
+		const reading = canvas.getByText('Suggested hours').closest<HTMLElement>('form > div');
 
 		const deploy = canvas.getByRole('button', {
 			name: 'Deploy Task',
@@ -732,8 +732,9 @@
 			name: 'Cancel',
 		});
 
-		await expect(reading.compareDocumentPosition(deploy)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		await expect(reading.compareDocumentPosition(cancel)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		await expect(within(reading!).queryByRole('button')).not.toBeInTheDocument();
+		await expect(reading!.compareDocumentPosition(deploy)).toBe(Node.DOCUMENT_POSITION_PRECEDING);
+		await expect(cancel.compareDocumentPosition(deploy)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 		await expect(canvas.getByLabelText('Keep on today')).toBeInTheDocument();
 
 		await userEvent.clear(canvas.getByLabelText('Title'));

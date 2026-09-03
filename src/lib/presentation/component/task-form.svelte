@@ -185,31 +185,23 @@
 	}
 </script>
 
-<!-- Cancel then the submit, at the foot of the reading when there is one, which
-     is where the design put Cancel. It drops nothing — a draft is never written
-     until it is deployed — so it is the dialog's ✕ where the hand already is. -->
-{#snippet actions()}
-	<div class="flex items-center justify-end gap-grid-xs">
-		{#if oncancel}
-			<Button variant="ghost" type="button" onclick={oncancel}>{m.common_cancel()}</Button>
-		{/if}
-		<Button type="submit" disabled={!draft.title.trim()}>{m.form_deploy_task()}</Button>
-	</div>
-{/snippet}
-
 <!-- Two columns: the fields, and what they would do to today. 2fr/1fr and not an
      even split — the fields set their own widths (three slider tracks, a tag
      field), the reading is label-and-number rows that wrap — and one column when
-     there is no reading, which is the Lab's copy. Each column is a plain stack,
-     so the DOM order IS the tab order: no `order-*`, and never a positive
-     `tabindex`, which would hoist a field ahead of every `tabindex=0` on the
-     page. The reading carries no control, so the order is the fields' and then
-     the footer's, whichever column that footer is in. -->
+     there is no reading, which is the Lab's copy. The reading carries no control
+     at all, so the tab order is the field column, top to bottom, as written: no
+     `order-*`, and never a positive `tabindex`. -->
 <form
 	class="grid gap-grid-lg {impact === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
 	onsubmit={handleSubmit}
 >
-	<div class="min-w-0 space-y-grid-md">
+	<!-- Framed only when there is a reading to be told apart from; the Lab's one
+	     column is already the dialog's own box. -->
+	<div
+		class="min-w-0 space-y-grid-md {impact === undefined
+			? ''
+			: 'rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur'}"
+	>
 		<!-- The list sits outside the label: inside it, a click on an option would also be a
 	     click on the label. -->
 		<div class="relative">
@@ -267,29 +259,32 @@
 
 		<TaskFormFields bind:draft {tagVocabulary} />
 
-		<!-- The last line of the FIELDS, not of the footer beside the reading: the
-		     ratings and importance describe the task, this one says about today. -->
-		{#if withMustDoToday}
-			<MustDoToggle bind:mustDoToday={draft.mustDoToday} />
-		{/if}
-
-		{#if impact === undefined}
-			{@render actions()}
-		{/if}
+		<!-- One footer, the row editor's: the flag pushed left, then Cancel and the
+		     submit. It sits in the column whose fields it submits, which leaves the
+		     reading beside it information only. There is nothing to cancel — a draft
+		     is never written until it is deployed — so Cancel is the dialog's ✕
+		     spelled where the hand already is. -->
+		<div class="flex flex-wrap items-center justify-end gap-grid-sm">
+			{#if withMustDoToday}
+				<MustDoToggle bind:mustDoToday={draft.mustDoToday} class="mr-auto" />
+			{/if}
+			<span class="flex items-center gap-grid-xs">
+				{#if oncancel}
+					<Button variant="ghost" type="button" onclick={oncancel}>{m.common_cancel()}</Button>
+				{/if}
+				<Button type="submit" disabled={!draft.title.trim()}>{m.form_deploy_task()}</Button>
+			</span>
+		</div>
 	</div>
 
 	{#if impact !== undefined}
-		<!-- A card, and the BORDER is what separates it: `surface-card` is the rung
-		     for a panel on the dialog's page surface, but it carries alpha on 36 of
-		     the 44 themes that set it, so the fill alone composites to nothing over
-		     that page and the rule is what makes it a box on all 46 (STYLE.md,
-		     "A borderless panel nested inside a card"). `backdrop-blur` because it
-		     is translucent. It stacks under the fields on a phone. -->
-		<div
-			class="flex min-w-0 flex-col gap-grid-md rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur"
-		>
+		<!-- Both columns are cards and the BORDER is what separates them: the
+		     `surface-card` fill carries alpha on 36 of the 44 themes that set it, so
+		     the rule is what makes each a box on all 46 (STYLE.md, "A borderless
+		     panel nested inside a card"). This one stacks under the fields on a
+		     phone. -->
+		<div class="min-w-0 rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur">
 			<TaskFormPreview {impact} />
-			<div class="mt-auto">{@render actions()}</div>
 		</div>
 	{/if}
 </form>
