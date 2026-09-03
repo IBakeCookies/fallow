@@ -206,8 +206,8 @@ Read this before touching markup, classes, or anything under
   `surface-card`.** Card-on-card separates only by compositing the same alpha
   twice, so on an opaque theme it is one flat ink and the nested panel
   disappears — `log-row` did, in the analytics log list. A nested panel that
-  keeps `surface-card` (the add dialog's reading panel) carries a border, which is
-  what still separates it there. The third way out is to drop the fill: the
+  keeps `surface-card` (both columns of the add dialog's form) carries a border,
+  which is what still separates it there. The third way out is to drop the fill: the
   metrics dashboard's headline tiles were bordered cards and are now bare, each
   marked by a 2px rule down its left in its own band colour, so there is no
   second surface to separate.

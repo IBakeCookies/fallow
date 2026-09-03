@@ -79,8 +79,8 @@ Untestable at every level is the signal.
   **Deploying does NOT close the dialog** — a day gets typed in one sitting — so the
   form puts the caret back in the title field itself, which is the one focus move
   `{@attach}` cannot make, since that field never unmounts between deploys.
-- **The add-task form's second column is a reading, and its footer holds the two
-  verbs.** `/` hands the form `impact`
+- **The add-task form's second column is a reading and nothing else; every
+  control is in the first.** `/` hands the form `impact`
   (`DailyPlanStore.draftImpact`) and an `ondraftchange`; the form publishes only
   what a solve reads — the three ratings and the importance — and `null` while
   the title is blank, since an unnamed task is not one the day can be priced
@@ -89,11 +89,13 @@ Untestable at every level is the signal.
   dialog and a draft is never written until it is deployed, so **Cancel is the ✕
   spelled where the hand already is** — the card binds its dialog's `open` and
   hands the `form` snippet the closer, since only the card knows that dialog.
-  The footer is those two verbs and simply moves to the foot of the reading; the
-  must-do flag stays with the fields, on the last line of their column. The
-  reading carries no control of its own, which is what leaves the tab order the
-  fields' and then the footer's. The Lab passes neither prop and stays one
-  column — its plan is the energy optimizer's, not this one — and
+  The footer is the row editor's, at the foot of the FIELD column: the must-do
+  flag pushed left, Cancel and the submit right, one row. So the whole form —
+  read, tabbed and submitted — is one column, and the reading beside it is a
+  panel you only look at. Both columns
+  take the same `surface-card`-plus-border recipe, so they read as a pair. The
+  Lab passes neither prop and stays one column, unframed, since the dialog is
+  already its box — its plan is the energy optimizer's, not this one — and
   `task-list-card`'s dialog is widened for both.
 - **A combobox inside a dialog must `stopPropagation()` on the Escape that closes its
   own list.** bits-ui's escape layer listens on `document`, so an unstopped Escape
@@ -234,10 +236,9 @@ Five components hold what the two screens say the same way:
   type, since adding a task and re-tuning one emit the same thing. Importance
   belongs here and `mustDoToday` does not, for the reason the model file gives:
   the level is a property of the task, the flag is a statement about today. Each
-  form still owns its own action row AND its own flag, because each is a stack
-  whose footer is its own: the editor's footer is one line — flag pushed out by
-  `mr-auto`, Cancel and Save in the corner — while the dialog's verbs sit at the
-  foot of the READING, so its flag is the last line of the field column instead.
+  form still owns its own action row AND its own flag: both are the same one
+  line — flag pushed out by `mr-auto`, then the two verbs in the corner — but a
+  footer belongs to the stack it closes, and these are two stacks.
 - **`must-do-toggle.svelte`** — the flag itself, a `<label>` carrying
   `buttonVariants` over a transparent full-size `<input type="checkbox">`. It
   reads as a button with a set state (`secondary`) and an unset one (`outline`),
