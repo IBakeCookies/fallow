@@ -293,6 +293,15 @@
 
 	--surface-page: oklch(0.94 0.02 72);
 	--surface-card: oklch(0.98 0.012 90 / 0.6);
+	/* The one theme that cannot take the catalogue's 0.1 light step (base.css):
+	   its card is translucent on paper, but at L 0.98 over a 0.94 page the alpha
+	   buys nothing, so the lightness channel is the only one that moves and 0.1
+	   measured 1.007 against its own card — invisible. 0.14 is the same recipe
+	   with the step this theme needs; `node scripts/inset-contrast.mjs ukiyo`
+	   reads 1.112. */
+	--surface-inset: oklch(
+		from var(--surface-card) calc(l - 0.14) c h / calc(alpha + (1 - alpha) * 0.4)
+	);
 	--ty-primary: oklch(0.28 0.045 255);
 
 	--input: oklch(1 0 0 / 0.55);

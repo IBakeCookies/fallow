@@ -100,10 +100,8 @@
 	   that is already the bottom: the range track measured 1.013-1.079 against
 	   its own card, i.e. invisible. Direction is the whole point and it flips
 	   with the page, exactly as `.solid-dark` says of its three rungs — an inset
-	   RECEDES on a light theme and CLIMBS on a dark one. The two steps are NOT
-	   the same size, and the sign is why: 0.14 receding on the light side, 0.1
-	   climbing on the dark one, each the largest well its own side can carry.
-	   Both were 0.14 when the derivation landed.
+	   RECEDES on a light theme and CLIMBS on a dark one. The step is 0.1 on both
+	   sides and only the sign differs; the ALPHA gains are what differ by side.
 
 	   Both channels move for the same reason `--surface-card-hover` moves both:
 	   an opaque card has no alpha to scale and a white-at-6% card has no
@@ -111,17 +109,15 @@
 	   gains differ because the light side is white-on-white, where alpha buys
 	   almost nothing, and the dark side is white-on-near-black, where it buys
 	   almost everything. scripts/inset-contrast.mjs measures each side against
-	   its own card, and the two steps are the two ends it found. The dark side
-	   dropped to 0.1 because 0.14 puts `blueprint`'s row label at 3.95:1 on the
-	   well it sits in — under AA, and a pair no instrument covered until that
-	   script existed. The light side stayed at 0.14 because 0.1 takes `ukiyo`'s
-	   well to 1.007 against its own card, i.e. back to invisible: a near-white
-	   translucent card (L 0.98 at alpha 0.6) is the white-on-white case above
-	   taken to its limit, where neither channel has anywhere left to go. Shipped,
-	   over all 46: light min 1.112 and median 1.298, dark min 1.249 and median
-	   1.405, worst label 4.68:1, nothing under the bound. */
+	   its own card. Both sides ran 0.14 when the derivation landed and both came
+	   down: 0.14 put `blueprint`'s row label at 3.95:1 on the well it sits in,
+	   under AA. One theme cannot take 0.1 — `ukiyo` measures 1.007, a near-white
+	   translucent card (L 0.98 at alpha 0.6) being the white-on-white case above
+	   taken to its limit — so it alone overrides this with 0.14 (themes.css).
+	   Shipped, over all 46: light min 1.081 and median 1.195, dark min 1.249 and
+	   median 1.405, worst label 4.68:1, nothing under the bound. */
 	--surface-inset: oklch(
-		from var(--surface-card) calc(l - 0.14) c h / calc(alpha + (1 - alpha) * 0.4)
+		from var(--surface-card) calc(l - 0.1) c h / calc(alpha + (1 - alpha) * 0.4)
 	);
 
 	/* Chrome that floats OVER scrolling content — the sticky nav bar. A

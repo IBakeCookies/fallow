@@ -127,23 +127,25 @@ Read this before touching markup, classes, or anything under
   over a page already at L 0.09-0.16 is a well in a floor that is already the
   bottom — the range track and `log-row` measured 1.013-1.079 against their own
   card, invisible. Now one rule per side in `base.css` (`:root` and `.dark`),
-  ΔL 0.14 receding on the light side and 0.1 climbing on the dark one — the sign
-  is the point and the sizes are measured, not symmetric — and both channels
+  ΔL 0.1 receding on the light side and 0.1 climbing on the dark one — the sign
+  is the point, and the ALPHA gains are what differ by side — and both channels
   move for the reason
   `--surface-card-hover` moves both: an opaque card has no alpha to scale, a
   white-at-6% card has no lightness left to raise, and every theme is one or the
   other. The alpha gains differ (0.4 light, 0.06 dark) because white-on-white
   buys almost nothing per point of alpha and white-on-near-black buys almost
   everything. `scripts/inset-contrast.mjs` measures each side against its own
-  card, and the asymmetry is what it found: both sides were 0.14 when the
-  derivation landed, and each end moved for its own theme. The dark side dropped
-  to 0.1 because 0.14 drops `blueprint`'s row label to 3.95:1 on its own well —
-  under AA, and a pair nothing measured until that script existed. The light side
-  stayed at 0.14 because 0.1 takes `ukiyo` to 1.007, under the 1.03 bound and
-  back to invisible: a near-white translucent card, L 0.98 at alpha 0.6, is the
-  white-on-white limit where neither channel has room. Shipped, over all 46:
-  light min 1.112 and median 1.298, dark min 1.249 and median 1.405, worst row
-  label 4.68:1, no reading under the bound. These dark figures do NOT reproduce
+  card. Both sides were 0.14 when the derivation landed and both came down to
+  0.1, because 0.14 drops `blueprint`'s row label to 3.95:1 on its own well —
+  under AA, and a pair nothing measured until that script existed. `ukiyo` is the
+  one theme 0.1 does not carry: it measures 1.007, under the 1.03 bound and back
+  to invisible, because a near-white translucent card (L 0.98 at alpha 0.6) is
+  the white-on-white limit where alpha has no room and only lightness moves. It
+  overrides the rule with 0.14 in `themes.css` — a per-theme exception is the
+  right shape for one outlier, where re-raising the whole light side would cost
+  `blueprint` its label. Shipped, over all 46: light min 1.081 and median 1.195,
+  dark min 1.249 and median 1.405, worst row label 4.68:1, no reading under the
+  bound. These dark figures do NOT reproduce
   337aad1's (min 1.381, median 1.521): that run is ~0.10 higher on both and its
   sample area is not recoverable, so this script's numbers replace them rather
   than reconcile with them. `.solid-light` is
