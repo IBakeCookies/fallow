@@ -88,7 +88,10 @@ test('advice prices real adjustments and goes stale when the day changes', async
 		}),
 	).toBeVisible();
 
-	await expect(page.getByText(/plan value/)).toBeHidden();
+	// The description names the unit from the first paint, so what must be absent
+	// is a priced READING — and only a priced one carries the percentage.
+	await expect(page.getByText(/Anything priced in plan value/)).toBeVisible();
+	await expect(page.getByText(/% plan value/)).toBeHidden();
 
 	await page
 		.getByRole('button', {
@@ -104,7 +107,7 @@ test('advice prices real adjustments and goes stale when the day changes', async
 		page.getByText(/Set the budget to [\d.]+h|Move “.+” off today/).first(),
 	).toBeVisible();
 
-	await expect(page.getByText(/plan value/).first()).toBeVisible();
+	await expect(page.getByText(/% plan value/).first()).toBeVisible();
 
 	// The budget's shadow price, from a real solve: either the next block goes
 	// somewhere, or the budget is not what limits this day.
@@ -155,7 +158,7 @@ test('a task that must happen today is never offered as a deferral', async ({ pa
 		})
 		.click();
 
-	await expect(page.getByText(/plan value/).first()).toBeVisible();
+	await expect(page.getByText(/% plan value/).first()).toBeVisible();
 	await expect(page.getByText('Move “Tax return” off today')).toBeHidden();
 });
 

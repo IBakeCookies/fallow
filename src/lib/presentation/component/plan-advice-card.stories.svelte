@@ -15,7 +15,7 @@
 		unfundedMustDo: ['“Renew the passport” gets no hours, and nothing on offer today reaches it.'],
 		marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 		switchCost:
-			'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+			'Switching reserves 30m of today, 6% of the budget, at 15m a switch. Re-solved with no switch cost, your day comes out at +10.4% plan value; at 30m a switch, −8.7% plan value.',
 		rows: [
 			{
 				axis: 'burnoutRisk',
@@ -210,7 +210,7 @@
 		// none.
 		await expect(
 			canvas.getByText(
-				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. Re-solved with no switch cost, your day comes out at +10.4% plan value; at 30m a switch, −8.7% plan value.',
 			),
 		).toHaveClass('text-ty-silent');
 
@@ -473,7 +473,7 @@
 			unfundedMustDo: [],
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 			switchCost:
-				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. Re-solved with no switch cost, your day comes out at +10.4% plan value; at 30m a switch, −8.7% plan value.',
 		},
 	}}
 	play={async ({ canvas }) => {
@@ -500,7 +500,7 @@
 			],
 			marginal: 'The next 15 minutes would go to “Tax return” · +2.4% plan value',
 			switchCost:
-				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. At no switch cost this plan reads +10.4% plan value; at 30m a switch, −8.7% plan value.',
+				'Switching reserves 30m of today, 6% of the budget, at 15m a switch. Re-solved with no switch cost, your day comes out at +10.4% plan value; at 30m a switch, −8.7% plan value.',
 		},
 	}}
 	play={async ({ canvas }) => {

@@ -507,8 +507,10 @@ things it must keep, three of which invert the bullet above:
 - **Read through `calculateZenithGain`**, not by summing `avgProductivity` over
   the returned plan. The plan comes back priority-sorted, so the same terms add
   in a different order and land a few ulps off `planValueOf`.
-- **The copy stays conditional** — "if your switch cost were X, this plan would
-  read Y". It reports plan value _under a declaration_, never the cost of
+- **The copy stays conditional** — "re-solved at X, your day comes out at Y".
+  Conditional, and phrased as a re-solve: each arm is its own allocation, so the
+  reading is neither this plan's own nor a level. It reports plan value _under a
+  declaration_, never the cost of
   mis-declaring, which would require knowing which value is true. The two even
   differ in sign: planning as if switching were free raises reported value,
   while switching for free-that-isn't lowers realized value.
