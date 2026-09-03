@@ -138,6 +138,7 @@
 			physicalDifficulty: t.physicalDifficulty,
 			mentalDifficulty: t.mentalDifficulty,
 			enjoyment: t.enjoyment,
+			tags: t.tags,
 		}));
 
 		onimport(tasksToImport);

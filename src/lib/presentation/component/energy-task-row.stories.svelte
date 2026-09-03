@@ -275,6 +275,7 @@
 			enjoyment: args.enjoyment,
 			mustDoToday: true,
 			importance: 'normal',
+			tags: [],
 		});
 
 		// Saving closes it

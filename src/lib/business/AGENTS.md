@@ -48,9 +48,9 @@ deliberately silent (re-proposing them is churn): yesterday's session
 `localStorage` view preference (loss costs nothing), its `readStopObservations`
 effect (any real outage also fails the `settings` read, which toasts for both;
 an isolated failure only empties a fit the card already labels "not fitted"),
-and `readHistoryPrefills` (the add-task form offers no title suggestions and an
-unseen day opens on 0 hours — what the app did for a year, where a banner would
-claim the day failed to load). Silent still means **logged** —
+and `readHistoryPrefills` (the add-task form offers no title suggestions or
+tags and an unseen day opens on 0 hours — what the app did for a year, where a
+banner would claim the day failed to load). Silent still means **logged** —
 `readStopObservations` was an unhandled rejection until caught.
 
 A count is not a surface: `importFromDate` returning 0 makes the header say
@@ -511,10 +511,10 @@ guard nothing. The one limit is storage's: `switchCost` is not optional in a
 stored session, so what carries is the cost the last stored day _ran with_, which
 is the only declaration there is.
 
-The same read carries the title→rating map, which is a **boot snapshot**:
-`readHistoryPrefills(today)` runs once at load, so a title rated within the
-session is not suggested until the next load, and the map keeps the boot day's
-answer while another date is viewed.
+The same read carries the title→rating map and the tag vocabulary, which are
+**boot snapshots**: `readHistoryPrefills(today)` runs once at load, so a title
+rated or a tag typed within the session is not offered until the next load, and
+both keep the boot day's answer while another date is viewed.
 
 ### A task moves between days only via `moveTaskToTomorrow`
 

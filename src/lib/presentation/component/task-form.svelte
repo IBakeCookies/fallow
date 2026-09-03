@@ -10,10 +10,11 @@
 	interface Props {
 		onsubmit: (task: TaskEdit) => void;
 		suggest: (query: string) => TitleRating[];
+		tagVocabulary?: string[];
 		withMustDoToday?: boolean;
 	}
 
-	let { onsubmit, suggest, withMustDoToday = true }: Props = $props();
+	let { onsubmit, suggest, tagVocabulary = [], withMustDoToday = true }: Props = $props();
 
 	// The middle of every slider: what a task is rated when nothing says otherwise.
 	const DEFAULT_RATING = 5;
@@ -25,6 +26,7 @@
 		enjoyment: DEFAULT_RATING,
 		mustDoToday: false,
 		importance: 'normal',
+		tags: [],
 	});
 
 	let draft = $state(emptyDraft());
@@ -86,6 +88,7 @@
 			title: e.currentTarget.value,
 			mustDoToday: draft.mustDoToday,
 			importance: draft.importance,
+			tags: draft.tags,
 		};
 	}
 
@@ -204,7 +207,7 @@
 		{/if}
 	</div>
 
-	<TaskFormFields bind:draft />
+	<TaskFormFields bind:draft {tagVocabulary} />
 
 	<!-- `task-edit-form`'s footer, so the two forms close the same way: the flag pushed
 	     out by its own margin and the submit in the corner. -->

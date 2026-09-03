@@ -155,6 +155,7 @@
 			flowMinutes={flowLogs?.get(task.id)}
 			mustDoToday={task.mustDoToday}
 			importance={task.importance}
+			tags={task.tags}
 			{ontoggle}
 			{onremove}
 			flowDraft={flowDrafts[task.id] ?? null}

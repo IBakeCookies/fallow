@@ -20,9 +20,11 @@
 		physicalDifficulty: number;
 		mentalDifficulty: number;
 		enjoyment: number;
-		/** Neither is badged here, but ✎ must round-trip them rather than clear them. */
+		/** None of the three is badged here, but ✎ must round-trip them rather than
+		 *  clear them. */
 		mustDoToday?: boolean;
 		importance?: TaskImportance;
+		tags?: string[];
 		color: string;
 		/** Read off the store, not computed here: R2, and it is the number `/` prints. */
 		trueEffort: number;
@@ -59,6 +61,7 @@
 		enjoyment,
 		mustDoToday = false,
 		importance = 'normal',
+		tags,
 		color,
 		trueEffort,
 		plannedHours,
@@ -118,6 +121,7 @@
 		{enjoyment}
 		{mustDoToday}
 		{importance}
+		{tags}
 		withMustDoToday={false}
 		columnCount={getEnergyTaskColumns().length}
 		{ontoggle}

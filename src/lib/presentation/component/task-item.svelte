@@ -41,6 +41,7 @@
 		flowMinutes?: number;
 		mustDoToday?: boolean;
 		importance?: TaskImportance;
+		tags?: string[];
 		slideDay?: number | null;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
@@ -79,6 +80,7 @@
 		flowMinutes,
 		mustDoToday = false,
 		importance = 'normal',
+		tags,
 		slideDay,
 		ontoggle,
 		onremove,
@@ -281,6 +283,7 @@
 		{enjoyment}
 		{mustDoToday}
 		{importance}
+		{tags}
 		columnCount={getTaskColumns().length}
 		ontoggle={() => ontoggle(id)}
 		{flowMinutes}

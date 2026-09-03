@@ -40,6 +40,8 @@
 		enjoyment: number;
 		mustDoToday?: boolean;
 		importance?: TaskImportance;
+		/** Not badged on a row — the ✎ editor must round-trip them rather than clear them. */
+		tags?: string[];
 		/** Whether the ✎ editor offers the must-do checkbox. The one carve-out from "no
 		 *  mode flag on the shell" — presentation/AGENTS.md says which reading it is and
 		 *  why the seeded value still round-trips. Same name all the way down. */
@@ -80,6 +82,7 @@
 		enjoyment,
 		mustDoToday = false,
 		importance = 'normal',
+		tags = [],
 		withMustDoToday = true,
 		columnCount,
 		ontoggle,
@@ -371,6 +374,7 @@
 							enjoyment,
 							mustDoToday,
 							importance,
+							tags,
 						}}
 						{withMustDoToday}
 						onsave={(edit) => {

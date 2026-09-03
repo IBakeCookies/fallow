@@ -236,11 +236,11 @@ its allocation code, so the main page is unaffected by changes here.
   `EnergyLabStore.applyFits()` is the only public way in; the per-fit setters
   are private so that order cannot be reached.
 
-## History prefills (`budget-memory.ts`, `title-memory.ts`)
+## History prefills (`budget-memory.ts`, `title-memory.ts`, `tags.ts`)
 
 Pure folds over the stored days, read once at boot by the state layer
-([business/AGENTS.md](../AGENTS.md)) — hours or a rating entered today do not
-enter either fold until the next load.
+([business/AGENTS.md](../AGENTS.md)) — hours, a rating or a tag entered today do
+not enter any of them until the next load.
 
 - Only days that **declared** a budget count in the fold: a stored day the user
   never budgeted is not evidence of a habit, and folding those in drags every

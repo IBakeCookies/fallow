@@ -143,6 +143,7 @@
 			enjoyment: 5,
 			mustDoToday: false,
 			importance: 'normal',
+			tags: [],
 		});
 
 		await expect(title).toHaveValue('');
@@ -164,6 +165,7 @@
 			enjoyment: 5,
 			mustDoToday: true,
 			importance: 'normal',
+			tags: [],
 		});
 
 		await expect(mustDo).not.toBeChecked();
@@ -255,6 +257,7 @@
 			enjoyment: 3,
 			mustDoToday: false,
 			importance: 'normal',
+			tags: [],
 		});
 
 		await expect(physical).toHaveValue('5');
@@ -428,6 +431,7 @@
 			enjoyment: 5,
 			mustDoToday: false,
 			importance: 'normal',
+			tags: [],
 		});
 	}}
 />
@@ -520,6 +524,7 @@
 			enjoyment: 5,
 			mustDoToday: false,
 			importance: 'normal',
+			tags: [],
 		});
 	}}
 />
@@ -546,6 +551,9 @@
 			canvas.getByRole('radio', {
 				name: 'Normal',
 			}),
+			// Tags sit with importance for the same reason, and last of the three
+			// because they are the only one a task usually has none of.
+			canvas.getByLabelText('Tags'),
 			canvas.getByLabelText('Keep on today'),
 			canvas.getByRole('button', {
 				name: 'Deploy Task',
@@ -558,5 +566,99 @@
 			await userEvent.tab();
 			await expect(control).toHaveFocus();
 		}
+	}}
+/>
+
+<Story
+	name="Tagging a task"
+	play={async ({ args, canvas, userEvent }) => {
+		// A tag is committed as a chip, not left as text in the field: Enter files it and
+		// must not reach the form, or the first tag deploys the task.
+		const tags = canvas.getByLabelText('Tags');
+
+		await userEvent.type(tags, 'exercise{Enter}');
+
+		await expect(canvas.getByText('exercise')).toBeInTheDocument();
+		await expect(args.onsubmit).not.toHaveBeenCalled();
+		await expect(tags).toHaveValue('');
+
+		// A comma is the other way to file one, which is how a list gets typed straight through
+		await userEvent.type(tags, 'self care,');
+
+		await expect(canvas.getByText('self care')).toBeInTheDocument();
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Remove tag exercise',
+			}),
+		);
+
+		await expect(canvas.queryByText('exercise')).not.toBeInTheDocument();
+		await expect(canvas.getByText('self care')).toBeInTheDocument();
+
+		// Every comma files a tag, so a list pasted or typed in one go lands as a list
+		// and never as one merged tag
+		await userEvent.type(tags, 'school, reading');
+
+		await expect(canvas.getByText('school')).toBeInTheDocument();
+		await expect(tags).toHaveValue(' reading');
+
+		// A leading comma files nothing, and must not be left in the field for the next
+		// keystroke to file a one-character tag
+		await userEvent.clear(tags);
+		await userEvent.type(tags, ',');
+
+		await expect(tags).toHaveValue('');
+
+		// Typing a tag and going straight for Deploy files it: the field is not a
+		// draft the submit is allowed to drop
+		await userEvent.type(tags, 'boxing');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Deploy Task',
+			}),
+		);
+
+		await expect(args.onsubmit).not.toHaveBeenCalled(); // no title yet
+
+		await expect(canvas.getByText('boxing')).toBeInTheDocument();
+		await expect(tags).toHaveValue('');
+
+		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Sparring');
+
+		await userEvent.click(
+			canvas.getByRole('button', {
+				name: 'Deploy Task',
+			}),
+		);
+
+		await expect(args.onsubmit).toHaveBeenCalledExactlyOnceWith({
+			title: 'Sparring',
+			physicalDifficulty: 5,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+			mustDoToday: false,
+			importance: 'normal',
+			tags: ['self care', 'school', 'boxing'],
+		});
+
+		// ...and the next task starts clean, rather than wearing the last one's chips
+		await expect(canvas.queryByText('boxing')).not.toBeInTheDocument();
+	}}
+/>
+
+<Story
+	name="The tag field offers tags used before"
+	args={{
+		tagVocabulary: ['exercise', 'school'],
+	}}
+	play={async ({ canvasElement }) => {
+		// The vocabulary is the user's own past tags, offered natively — no combobox
+		const options = [...canvasElement.querySelectorAll('datalist option')].map(
+			(option) => (option as HTMLOptionElement).value,
+		);
+
+		await expect(options).toEqual(['exercise', 'school']);
 	}}
 />

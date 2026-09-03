@@ -307,6 +307,7 @@
 	<TaskForm
 		onsubmit={(t) => session.addTask(t)}
 		suggest={(query) => session.suggestTitles(query)}
+		tagVocabulary={session.tagVocabulary}
 		withMustDoToday={false}
 	/>
 {/snippet}
@@ -321,6 +322,7 @@
 			enjoyment={task.enjoyment}
 			mustDoToday={task.mustDoToday}
 			importance={task.importance}
+			tags={task.tags}
 			color={colors.colorOf(task.id)}
 			trueEffort={task.trueEffort}
 			plannedHours={plannedFor(task.id)}

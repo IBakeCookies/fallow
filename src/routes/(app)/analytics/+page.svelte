@@ -10,6 +10,7 @@
 	import ParamTrend from '$lib/presentation/component/param-trend.svelte';
 	import QuadrantDistribution from '$lib/presentation/component/quadrant-distribution.svelte';
 	import LogHistoryList from '$lib/presentation/component/log-history-list.svelte';
+	import TagHoursCard from '$lib/presentation/component/tag-hours-card.svelte';
 	import FlowCalibrationCard from '$lib/presentation/component/flow-calibration-card.svelte';
 	import DrainCalibrationCard from '$lib/presentation/component/drain-calibration-card.svelte';
 	import FitLogSummary from '$lib/presentation/component/fit-log-summary.svelte';
@@ -302,11 +303,11 @@
 			<div class="skeleton-block h-4 w-28"></div>
 		</div>
 	</div>
-	<!-- Bodies, in the order of the six full-width GATED cards that always render — the
+	<!-- Bodies, in the order of the seven full-width GATED cards that always render — the
 	     calibration grid and the logs card sit outside this gate and the drain ranking may
 	     not render at all. All three charts are a fixed viewBox at `w-full`, so a ratio is what
 	     tracks their height. -->
-	{#each ['aspect-[800/240]', 'aspect-[800/180]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
+	{#each ['h-16', 'aspect-[800/240]', 'aspect-[800/180]', 'aspect-[800/180]', 'h-10', 'h-5', 'h-33'] as body, i (i)}
 		<div class="card-shell mt-grid-xl rounded-xl p-box-lg" aria-hidden="true">
 			{@render skeletonBody(body)}
 		</div>
@@ -409,6 +410,13 @@
 			</div>
 		</details>
 	</div>
+
+	<!-- Directly under the tile it breaks down, and ranged like it. -->
+	<TagHoursCard
+		breakdown={analytics.tagHours}
+		hasFailed={analytics.hasModelReportFailed}
+		locale={getDateLocale()}
+	/>
 
 	<div class="card-shell mt-grid-xl rounded-xl p-box-lg">
 		<h2 class="text-sm font-medium text-ty-primary">{m.ana_completion_rate()}</h2>
