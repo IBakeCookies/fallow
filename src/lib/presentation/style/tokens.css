@@ -440,9 +440,9 @@
    it (STYLE.md) is what made the rung distinct on the 25 dark themes, where it
    used to measure 1.013-1.079 against its own card and this row was the
    invisible thing this comment once claimed it was not. It is measured now
-   rather than asserted — scripts/inset-contrast.mjs, worst 1.112 of 46 — and
-   the light step is 0.14 and not 0.1 because at 0.1 `ukiyo`'s row was the next
-   one to vanish (base.css). */
+   rather than asserted — scripts/inset-contrast.mjs, worst 1.081 of 46 — and
+   the step is 0.1 per side with `ukiyo` overriding it at 0.14, that being the
+   one card 0.1 leaves this row invisible on (base.css). */
 /* An advisory strip across the top of the page's column: the storage banner and the
    example day's. Geometry only — each carries its own severity tokens, since one is a
    failure and the other is a standing note (STYLE.md, "A repeated cluster becomes an
