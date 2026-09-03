@@ -217,12 +217,13 @@ Five components hold what the two screens say the same way:
   instrument's hue on ✓ is the only real difference and is a prop. 🗑 is the
   caller's copy and absent unless it passes one, because what is being dropped
   differs per editor and a first measurement has nothing to drop.
-- **`task-edit-form.svelte`** — the editor, on both screens. Its frame is
-  `surface-card` + `border-line-soft`, STYLE.md's bordered way for a panel
-  nested in a card, and **not `surface-inset`**: the fields inside it — the
-  slider tracks and the tag chips — are themselves `surface-inset`, so that rung
-  as the frame leaves them invisible. It was an ad-hoc `bg-surface-page/40`
-  with a bare border, one rung nothing in the ladder names.
+- **`task-edit-form.svelte`** — the editor, on both screens. Its frame is the
+  recipe the two measurement forms in the same spanning row use — a
+  `bg-surface-page/40` wash under a tinted border, `success` here because that
+  is the ✎ that opens it — and neither of the other two rungs: `surface-card` is
+  the card it is already inside, and `surface-inset` is what the slider tracks
+  and the tag chips inside it are made of. Both were tried; both read as one
+  flat plane.
 - **`task-form-fields.svelte`** — what both task forms set about the task
   itself: the three model input sliders, one loop over one table so their
   labels, minimums and accents are defined once, `task-importance-select`

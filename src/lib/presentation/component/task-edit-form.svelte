@@ -37,7 +37,7 @@
 </script>
 
 <form
-	class="mt-text-sm space-y-grid-md rounded-lg border border-line-soft bg-surface-card p-box-md"
+	class="mt-text-sm space-y-grid-md rounded-lg border border-success/20 bg-surface-page/40 p-box-md"
 	onsubmit={(e) => (e.preventDefault(), save())}
 >
 	<label class="block text-xs font-medium text-ty-secondary">
