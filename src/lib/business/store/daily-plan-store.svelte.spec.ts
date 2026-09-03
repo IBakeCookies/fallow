@@ -101,6 +101,45 @@ describe('DailyPlanStore', () => {
 		expect(store.daily.runOrder.size).toBe(2);
 	});
 
+	// The add-task form's reading: the day the draft joins is the day this store
+	// already solved, so the panel can only be as current as `daily` is.
+	it("prices the form's draft against the day, and drops the reading with it", () => {
+		const store = setup();
+		mockSession.tasks = [task(1, 'deep work')];
+
+		flushSync();
+		expect(store.draftImpact).toBeNull();
+
+		store.previewDraft = {
+			physicalDifficulty: 9,
+			mentalDifficulty: 2,
+			enjoyment: 8,
+		};
+
+		flushSync();
+
+		expect(store.draftImpact?.suggestedHours).toBeGreaterThan(0);
+		expect(store.draftImpact?.slackHours.before).toBe(store.daily.planSlackHours);
+
+		// The day it was priced against, not a day of its own: the physical draft
+		// loads a pool the one cognitive task barely touches.
+		expect(store.draftImpact?.physicalPercent.after).toBeGreaterThan(
+			store.draftImpact!.physicalPercent.before,
+		);
+
+		const funded = store.draftImpact!.fundedCount;
+
+		mockSession.tasks = [...mockSession.tasks, task(2, 'inbox')];
+		flushSync();
+
+		expect(store.draftImpact?.fundedCount).toBeGreaterThan(funded);
+
+		store.previewDraft = null;
+		flushSync();
+
+		expect(store.draftImpact).toBeNull();
+	});
+
 	// The scope split is DECIDED HERE, not in the model:
 	// `calculateDailyMetrics` scopes each metric within whatever task list it is
 	// handed, and this store hands it `session.tasks` — the full day, completed

@@ -12,6 +12,11 @@ import { getContext, setContext } from 'svelte';
 import { logError } from '$lib/logger';
 import { calculateDailyMetrics, type DailyMetrics } from '$lib/business/model/metric/daily-metrics';
 import { suggestPlanAdjustments, type PlanAdvice } from '$lib/business/model/metric/plan-advice';
+import {
+	calculateDraftImpact,
+	type DraftImpact,
+	type DraftTask,
+} from '$lib/business/model/metric/draft-impact';
 import type { DeferDestination } from '$lib/business/model/metric/defer-destination';
 import { calculateRemainingDay, type RemainingDay } from '$lib/business/model/metric/remaining-day';
 import { fitEnergyParams, seedMorningReservoirs } from '$lib/business/model/energy-calibration';
@@ -114,6 +119,19 @@ export class DailyPlanStore {
 		});
 	});
 
+	// The task being typed, priced into the day: one more solve on top of
+	// `#daily`, which is the same cost `#daily` itself already pays per keystroke
+	// in the budget field. `null` while the form has nothing to price, and then
+	// nothing is solved at all — a `$derived` nobody reads never runs, which is
+	// every screen except an open add-task dialog.
+	#previewDraft = $state<DraftTask | null>(null);
+
+	#draftImpact = $derived.by((): DraftImpact | null =>
+		this.#previewDraft === null
+			? null
+			: calculateDraftImpact(this.#input, this.#previewDraft, this.#daily),
+	);
+
 	// Everything the advice depends on, as a value. Not the identity of `#input`
 	// or `#daily`: a `$derived` read from outside a reactive context is not
 	// guaranteed to hand back the same object twice, so identity reports staleness
@@ -162,6 +180,20 @@ export class DailyPlanStore {
 	/** `null` until today has logged hours to re-plan from. */
 	get remainingDay(): RemainingDay | null {
 		return this.#remainingDay;
+	}
+
+	/** The add-task form's live draft, or `null` where it has nothing to price. */
+	get previewDraft(): DraftTask | null {
+		return this.#previewDraft;
+	}
+
+	set previewDraft(draft: DraftTask | null) {
+		this.#previewDraft = draft;
+	}
+
+	/** What `previewDraft` would do to the day; `null` while there is no draft. */
+	get draftImpact(): DraftImpact | null {
+		return this.#draftImpact;
 	}
 
 	get advice(): PlanAdvice | null {

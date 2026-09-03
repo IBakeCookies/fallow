@@ -1,8 +1,10 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import type { TitleRating } from '$lib/business/model/title-memory';
+	import type { DraftImpact, DraftTask } from '$lib/business/model/metric/draft-impact';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import MustDoToggle from '$lib/presentation/component/must-do-toggle.svelte';
+	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
 	import TaskFormFields, {
 		type TaskEdit,
 	} from '$lib/presentation/component/task-form-fields.svelte';
@@ -12,9 +14,21 @@
 		suggest: (query: string) => TitleRating[];
 		tagVocabulary?: string[];
 		withMustDoToday?: boolean;
+		/** What the draft would do to the day, `null` while it is unnamed. Absent —
+		 *  the Lab, whose plan is the energy optimizer's — renders no second column
+		 *  and no `ondraftchange`. */
+		impact?: DraftImpact | null;
+		ondraftchange?: (draft: DraftTask | null) => void;
 	}
 
-	let { onsubmit, suggest, tagVocabulary = [], withMustDoToday = true }: Props = $props();
+	let {
+		onsubmit,
+		suggest,
+		tagVocabulary = [],
+		withMustDoToday = true,
+		impact,
+		ondraftchange,
+	}: Props = $props();
 
 	// The middle of every slider: what a task is rated when nothing says otherwise.
 	const DEFAULT_RATING = 5;
@@ -53,6 +67,23 @@
 	});
 
 	let titleField: HTMLInputElement | null = $state(null);
+
+	// The panel's reading is a solve, so it is the store's (R2) and the draft has
+	// to leave the form to be priced. Only what an allocation reads: a title, its
+	// tags and the must-do flag reach no solve — and an unnamed draft is not
+	// priced at all, since the reading would describe a task nobody is typing.
+	$effect(() => {
+		ondraftchange?.(
+			draft.title.trim()
+				? {
+						physicalDifficulty: draft.physicalDifficulty,
+						mentalDifficulty: draft.mentalDifficulty,
+						enjoyment: draft.enjoyment,
+						importance: draft.importance,
+					}
+				: null,
+		);
+	});
 
 	// `$props.id()` rather than a literal: unique per instance and stable across hydration.
 	const listId = $props.id();
@@ -148,73 +179,99 @@
 	}
 </script>
 
-<!-- A plain stack: the form has a dialog to itself, so nothing has to share a line
-     and the DOM order IS the tab order — no `order-*`, and never a positive
-     `tabindex`, which would hoist the field ahead of every `tabindex=0` on the page. -->
-<form class="space-y-grid-md" onsubmit={handleSubmit}>
-	<!-- The list sits outside the label: inside it, a click on an option would also be a
-	     click on the label. -->
-	<div class="relative">
-		<label class="block text-xs font-medium text-ty-secondary">
-			{m.form_task_definition()}
-			<input
-				type="text"
-				bind:this={titleField}
-				role="combobox"
-				aria-expanded={listOpen}
-				aria-controls={listId}
-				aria-autocomplete="list"
-				aria-activedescendant={active >= 0 ? optionId(active) : undefined}
-				bind:value={draft.title}
-				oninput={handleTitleInput}
-				onkeydown={handleTitleKeydown}
-				onblur={() => {
-					// The list unmounts with the blur, so a highlight left behind would
-					// point aria-activedescendant at an id that is no longer there.
-					closeSuggestions();
-				}}
-				placeholder={m.form_task_placeholder()}
-				required
-				class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
-			/>
-		</label>
-		{#if listOpen}
-			<ul
-				id={listId}
-				role="listbox"
-				aria-label={m.form_title_suggestions()}
-				class="absolute z-30 mt-text-xs max-h-56 w-full overflow-y-auto rounded-lg border border-line-strong bg-popover py-box-xs text-sm text-popover-foreground shadow-card"
-			>
-				{#each suggestions as suggestion, index (suggestion.title)}
-					<!-- Keyboard reaches these through the input (ARIA combobox); mousedown
-				     is prevented so the click that picks one does not close the list. -->
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<li
-						bind:this={options[index]}
-						id={optionId(index)}
-						role="option"
-						aria-selected={index === active}
-						onmousedown={(e) => e.preventDefault()}
-						onclick={() => pick(suggestion)}
-						class="cursor-pointer wrap-break-word px-box-md py-box-xs {index === active
-							? 'bg-surface-hover'
-							: ''} hover:bg-surface-hover"
-					>
-						{suggestion.title}
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</div>
-
-	<TaskFormFields bind:draft {tagVocabulary} />
-
-	<!-- `task-edit-form`'s footer, so the two forms close the same way: the flag pushed
-	     out by its own margin and the submit in the corner. -->
-	<div class="flex flex-wrap items-center justify-end gap-grid-sm">
+<!-- The footer of both forms: the flag pushed out by its own margin and the submit
+     in the corner — `task-edit-form`'s too, so the two close the same way. It sits
+     at the foot of the reading when there is one, which is where the design's
+     Cancel would have been: nothing here is cancelled, since the dialog's own ✕
+     closes the form and a draft is never written until it is deployed. -->
+{#snippet actions()}
+	<div class="flex items-center justify-between gap-grid-sm">
 		{#if withMustDoToday}
-			<MustDoToggle bind:mustDoToday={draft.mustDoToday} class="mr-auto" />
+			<MustDoToggle bind:mustDoToday={draft.mustDoToday} />
 		{/if}
 		<Button type="submit">{m.form_deploy_task()}</Button>
 	</div>
+{/snippet}
+
+<!-- Two columns: the fields, and what they would do to today. Each is a plain
+     stack, so the DOM order IS the tab order — no `order-*`, and never a positive
+     `tabindex`, which would hoist the field ahead of every `tabindex=0` on the
+     page. The reading carries no control of its own, so the tab order is the
+     fields' and then the footer's, whichever column that footer is in. -->
+<form class="flex flex-col gap-grid-lg md:flex-row" onsubmit={handleSubmit}>
+	<div class="min-w-0 flex-1 space-y-grid-md">
+		<!-- The list sits outside the label: inside it, a click on an option would also be a
+	     click on the label. -->
+		<div class="relative">
+			<label class="block text-xs font-medium text-ty-secondary">
+				{m.form_task_definition()}
+				<input
+					type="text"
+					bind:this={titleField}
+					role="combobox"
+					aria-expanded={listOpen}
+					aria-controls={listId}
+					aria-autocomplete="list"
+					aria-activedescendant={active >= 0 ? optionId(active) : undefined}
+					bind:value={draft.title}
+					oninput={handleTitleInput}
+					onkeydown={handleTitleKeydown}
+					onblur={() => {
+						// The list unmounts with the blur, so a highlight left behind would
+						// point aria-activedescendant at an id that is no longer there.
+						closeSuggestions();
+					}}
+					placeholder={m.form_task_placeholder()}
+					required
+					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+				/>
+			</label>
+			{#if listOpen}
+				<ul
+					id={listId}
+					role="listbox"
+					aria-label={m.form_title_suggestions()}
+					class="absolute z-30 mt-text-xs max-h-56 w-full overflow-y-auto rounded-lg border border-line-strong bg-popover py-box-xs text-sm text-popover-foreground shadow-card"
+				>
+					{#each suggestions as suggestion, index (suggestion.title)}
+						<!-- Keyboard reaches these through the input (ARIA combobox); mousedown
+				     is prevented so the click that picks one does not close the list. -->
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<li
+							bind:this={options[index]}
+							id={optionId(index)}
+							role="option"
+							aria-selected={index === active}
+							onmousedown={(e) => e.preventDefault()}
+							onclick={() => pick(suggestion)}
+							class="cursor-pointer wrap-break-word px-box-md py-box-xs {index === active
+								? 'bg-surface-hover'
+								: ''} hover:bg-surface-hover"
+						>
+							{suggestion.title}
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+
+		<TaskFormFields bind:draft {tagVocabulary} />
+
+		{#if impact === undefined}
+			{@render actions()}
+		{/if}
+	</div>
+
+	{#if impact !== undefined}
+		<!-- A rule rather than a fill: the reading is a panel inside a dialog, whose
+		     own surface is the page's, so there is no card for an inset to be cut
+		     into (STYLE.md). It stacks under the fields on a phone, where the
+		     dialog is one column wide. -->
+		<div
+			class="flex flex-col gap-grid-md border-t border-line-soft md:border-t-0 md:border-l p-box-md bg-surface-card rounded-md"
+		>
+			<TaskFormPreview {impact} />
+			<div class="mt-auto">{@render actions()}</div>
+		</div>
+	{/if}
 </form>

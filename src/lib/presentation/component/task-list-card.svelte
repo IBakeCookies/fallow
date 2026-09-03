@@ -150,7 +150,8 @@
 	</div>
 
 	{#if form}
-		<Dialog.Content>
+		<!-- `/`'s form is two columns — the fields and their reading — so `max-w-lg` is too narrow. -->
+		<Dialog.Content class="sm:max-w-3xl">
 			<Dialog.Title class="mb-text-md">{m.form_add_task_title()}</Dialog.Title>
 			{@render form()}
 		</Dialog.Content>

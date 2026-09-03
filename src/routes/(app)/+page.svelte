@@ -217,6 +217,8 @@
 		onsubmit={(t) => session.addTask(t)}
 		suggest={(query) => session.suggestTitles(query)}
 		tagVocabulary={session.tagVocabulary}
+		impact={plan.draftImpact}
+		ondraftchange={(d) => (plan.previewDraft = d)}
 	/>
 {/snippet}
 

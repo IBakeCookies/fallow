@@ -532,9 +532,10 @@
 <Story
 	name="The controls are tabbed in reading order"
 	play={async ({ canvas, userEvent }) => {
-		// Reading order and tab order are now the same list, top to bottom, because the dialog gave the
-		// form the room to be a plain stack — the `order-*` that used to hoist Deploy onto the title's
-		// line is gone, and this is what says so.
+		// Reading order and tab order are the same list, top to bottom: the fields down
+		// the first column and then the footer, wherever the reading beside them put it.
+		// The `order-*` that used to hoist Deploy onto the title's line is gone, and this
+		// is what says so.
 		const expected = [
 			canvas.getByRole('slider', {
 				name: /Physical Diff/,
@@ -660,5 +661,76 @@
 		);
 
 		await expect(options).toEqual(['exercise', 'school']);
+	}}
+/>
+
+<Story
+	name="With the day's reading"
+	args={{
+		impact: {
+			suggestedHours: 1.25,
+			priorityScore: 63.4,
+			position: 4,
+			fundedCount: 6,
+			physicalPercent: {
+				before: 41.2,
+				after: 62.4,
+			},
+			cognitivePercent: {
+				before: 86.1,
+				after: 88.7,
+			},
+			slackHours: {
+				before: 3.9,
+				after: 2.65,
+			},
+		},
+		ondraftchange: fn(),
+	}}
+	play={async ({ args, canvas, userEvent }) => {
+		// The reading is solved elsewhere, so the form's whole part in it is
+		// publishing what a solve reads — and nothing while the task is unnamed.
+		await expect(args.ondraftchange).toHaveBeenLastCalledWith(null);
+
+		await userEvent.type(canvas.getByLabelText('Task Definition'), 'Boxing training');
+
+		await expect(args.ondraftchange).toHaveBeenLastCalledWith({
+			physicalDifficulty: 5,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+			importance: 'normal',
+		});
+
+		await fireEvent.input(
+			canvas.getByRole('slider', {
+				name: /Physical Diff/,
+			}),
+			{
+				target: {
+					value: '8',
+				},
+			},
+		);
+
+		await expect(args.ondraftchange).toHaveBeenLastCalledWith({
+			physicalDifficulty: 8,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+			importance: 'normal',
+		});
+
+		// The footer closes the reading column rather than the fields, which is where
+		// the flag takes the place a Cancel would have had.
+		const reading = canvas.getByText('Suggested hours');
+
+		const deploy = canvas.getByRole('button', {
+			name: 'Deploy Task',
+		});
+
+		await expect(reading.compareDocumentPosition(deploy)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+		await expect(canvas.getByLabelText('Keep on today')).toBeInTheDocument();
+
+		await userEvent.clear(canvas.getByLabelText('Task Definition'));
+		await expect(args.ondraftchange).toHaveBeenLastCalledWith(null);
 	}}
 />
