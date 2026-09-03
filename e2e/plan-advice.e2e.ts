@@ -4,8 +4,10 @@ import {
 	budgetField,
 	closeTaskForm,
 	isoDate,
+	logFlow,
 	openTaskForm,
 	setBudget,
+	taskCard,
 } from './helpers';
 
 /* The advice card is the one place the app says what to CHANGE rather than what
@@ -40,6 +42,33 @@ async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
 
 	await closeTaskForm(page);
 }
+
+/* The fit card left this page for the one that lists the logs it was made from, so the
+   advice — the day's own reading — no longer shares a row with a standing statement. */
+test('the advice card is full width, and the fit card has left the page', async ({ page }) => {
+	await page.goto('/');
+	await addDrainingTask(page, 'Write the spec');
+	await logFlow(page, 90);
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await expect(
+		page.getByRole('heading', {
+			name: 'Flow Calibration',
+		}),
+	).toHaveCount(0);
+
+	const advice = page.locator('.card-shell').filter({
+		has: page.getByRole('heading', {
+			name: 'Adjust the plan',
+		}),
+	});
+
+	const adviceBox = (await advice.boundingBox())!;
+	const listBox = (await taskCard(page).boundingBox())!;
+
+	expect(adviceBox.x).toBeCloseTo(listBox.x, 0);
+	expect(adviceBox.width).toBeCloseTo(listBox.width, 0);
+});
 
 test('advice prices real adjustments and goes stale when the day changes', async ({ page }) => {
 	await page.goto('/');

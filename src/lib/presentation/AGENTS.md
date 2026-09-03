@@ -530,25 +530,33 @@ permanently beyond both correcting and dropping while it still fed a fit.
 
 Three cards each listing their own kind was three partial answers to "what have
 I logged" — none could show a neighbouring kind or a day outside its own fit —
-so what stays with each card is the two verbs a FIT has rather than a
-measurement: read what it was fitted from, and un-personalize it
-(`fit-log-summary.svelte`, whose two-step reset and focus handling are the safety
-of every bulk delete in the app). The history card
-draws that same row once per kind, with `withHistoryLink={false}`: its link
-would point at the card it is drawn in.
+so what stays with each card is the one thing a FIT has rather than a
+measurement: what it was fitted from. ⚡ and 🪫 say it in a sentence and offer
+no verb at all, because their cards now stand on this page: the link would point
+at the card it is drawn in, and the reset would be this page's second. ☕, alone
+behind a Lab fold, still carries both through `fit-log-summary.svelte` (whose
+two-step reset and focus handling are the safety of every bulk delete in the
+app). The history card draws that same row once per kind, with
+`withHistoryLink={false}`, for the same self-pointing reason.
+
+**A fit card comes to this page when the list holds its rows and it has nothing
+left to do.** ⚡ and 🪫 qualify on both counts. ☕'s pairs are listed here, but
+its card is the app's last link INTO the list and its editor is typed on the
+ledger's heading row, so moving it would cost the link and split the editor from
+the card. λ₀ fails the first count outright: it reads finished DAYS, not
+measurements, and nothing it names appears in the list at all.
 
 The history **drops, corrects and wipes**: ✕ and ✎ on every row, each addressed
 by `(kind, id)` and not `id` alone — three kinds are three stores with three id
 sequences — and, at the card's FOOT under the list, one reset per kind making the
-same store call that kind's fit card makes. Under, because the other three
-resets each sit on a card read for something else — ⚡'s on `/`'s calibration
-card, 🪫 and ☕ behind the Lab's folds — and these would otherwise be the app's
-most prominent destructive control, on a card opened to read the list. Their counts
-and their deletes are ALL-TIME while the list above them is ranged, because the
-stores expose no ranged delete — a count filtered to the viewed range would name
-less than the button removes. A row's date is also a link to `/?date=<that day>`
-for ⚡ and 🪫, which is navigation and not the correction path; ☕ belongs to no
-day's row and gets no link.
+same store call that kind's fit card makes. Under, because the one other reset
+sits on a card read for something else — ☕'s, behind the Lab's fold — and these
+would otherwise be the app's most prominent destructive control, on a card
+opened to read the list. Their counts and their deletes are ALL-TIME while the
+list above them is ranged, because the stores expose no ranged delete — a count
+filtered to the viewed range would name less than the button removes. A row's
+date is also a link to `/?date=<that day>` for ⚡ and 🪫, which is navigation and
+not the correction path; ☕ belongs to no day's row and gets no link.
 
 ### The range readings are one card: four headline, five folded
 
@@ -566,8 +574,10 @@ draws no shell of its own: four shells side by side said the four readings were
 four independent facts, when they are one answer to how the range went, and the
 fold had nowhere to sit but the page background.
 
-Plan adherence and Your model sit half-and-half under the three full-width
-cards. Both are short, and both read as what the model makes of the range.
+Plan adherence and Your model are full-width siblings under the other cards:
+both read as what the model makes of the range. The one grid on this page is
+below them and outside the load gate — Flow Calibration and Drain Calibration,
+half each, directly above the log history they were fitted from.
 
 ### A correction rewrites the quantities the user rated and nothing else
 
@@ -724,11 +734,13 @@ name from the Lab's page down to the form that renders the toggle.
 
 `calibration-card.svelte` is the card, the explained heading and the action
 slot, and nothing else. The fitted numbers read on the parameter rows they fit
-(`param-row.svelte`'s `fit`), so on the Lab all three cards are read-outs and
-none of them takes the action slot: ☕ is typed on the ledger's heading row with
-the day's other logs, which is also what makes it reachable on a day with no
-tasks. What is left is still three different things — α has a pending-log line
-and a fit summary, r has the same two, λ₀ has a censored state and a day count
-and no log store at all. No mode flag and no folding the bodies in — the same
-argument as the two task rows' shell: a component covering all three would be a
-config blob, not a card.
+(`param-row.svelte`'s `fit`), so the Lab's two cards are read-outs and neither
+takes the action slot: ☕ is typed on the ledger's heading row with the day's
+other logs, which is also what makes it reachable on a day with no tasks. What
+is left is still four different things — ⚡ has a headline count and a status
+sentence, 🪫 has the same headline and a pending line, r has a pending line and
+a fit summary, λ₀ has a censored state and a day count and no log store at all.
+⚡ and 🪫 stand side by side on `/analytics` and still do not share a body: they
+look alike there, which is exactly when a mode flag is tempting. No flag and no
+folding the bodies in — the same argument as the two task rows' shell: a
+component covering all four would be a config blob, not a card.

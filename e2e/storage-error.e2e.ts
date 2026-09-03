@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import {
 	AUTOSAVE_MS,
 	addTask,
@@ -15,6 +15,13 @@ import {
    wired together — that both stores registered their re-read with the banner, so
    one retry click recovers both without the layout naming either of them. */
 
+// The 🪫 chip on the ledger row, published by EnergyObservationStore's own re-read —
+// which is what makes it the reading that says that store loaded.
+const drainChip = (page: Page) =>
+	page.getByRole('button', {
+		name: 'Correct this drain rating',
+	});
+
 test('one retry click recovers both stores after a failed read', async ({ page }) => {
 	await installFailableIndexedDB(page);
 
@@ -25,7 +32,7 @@ test('one retry click recovers both stores after a failed read', async ({ page }
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto('/energy');
 	await logDrain(page, 120, 9, 5);
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChip(page)).toBeVisible();
 
 	await setIndexedDBFailing(page, true);
 	await page.reload();
@@ -49,7 +56,7 @@ test('one retry click recovers both stores after a failed read', async ({ page }
 	// The session store recovered…
 	await expect(page.getByText('Boxing training').first()).toBeVisible();
 	// …and so did the observation store, which only its own retryLoad() restores.
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
+	await expect(drainChip(page)).toBeVisible();
 });
 
 /* The write path fails on the cached database handle, long after any open() —

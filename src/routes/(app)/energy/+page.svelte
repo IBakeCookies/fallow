@@ -71,7 +71,6 @@
 	const cogDrainFit = $derived(lab.cognitiveDrainFit);
 	const physDrainFit = $derived(lab.physicalDrainFit);
 	const recoveryFit = $derived(lab.recoveryFit);
-	const pendingDrainLogs = $derived(lab.pendingDrainLogCount);
 	const pendingRestLogs = $derived(lab.pendingRestLogCount);
 	const stopFit = $derived(lab.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
@@ -627,38 +626,6 @@
 								locale={getDateLocale()}
 							/>
 						{/if}
-
-						<!-- Drain calibration: the 🪫 ratings behind α, and what is not counted yet -->
-						<CalibrationCard title={m.energy_calibration()} hint={m.energy_calibration_hint()}>
-							{#if drainObservations.length === 0}
-								<p class="mt-text-sm text-xs text-ty-silent">{m.energy_calibration_empty()}</p>
-							{:else}
-								{#if pendingDrainLogs > 0}
-									<p class="mt-text-sm text-xs text-ty-silent">
-										{pendingDrainLogs === 1
-											? m.energy_drain_pending_one()
-											: m.energy_drain_pending({
-													count: pendingDrainLogs,
-												})}
-									</p>
-								{/if}
-
-								<div class="mt-text-sm border-t border-line-soft pt-box-sm">
-									<FitLogSummary
-										label={m.energy_drain_log_count({
-											count: drainObservations.length,
-										})}
-										count={drainObservations.length}
-										confirmLabel={m.energy_reset_drain_confirm({
-											count: drainObservations.length,
-										})}
-										resetLabel={m.energy_reset_drain_logs()}
-										resetTitle={m.energy_reset_drain_title()}
-										onreset={() => observations.resetDrainLogs()}
-									/>
-								</div>
-							{/if}
-						</CalibrationCard>
 
 						<!-- Recovery calibration: the ☕ pairs behind r, and the editor that adds one -->
 						<CalibrationCard

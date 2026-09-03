@@ -23,20 +23,23 @@ import {
 test('logging time-to-flow badges the task and defers the model update', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
-	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
 
 	await logFlow(page, 90);
 
 	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
-	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
-	// …and the invitation is gone, rather than asking for the log just made.
-	await expect(page.getByText(/to start personalizing/)).toHaveCount(0);
 
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.reload();
 
 	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
+
+	// The deferral reads with the log, on /analytics, rather than on the page the log
+	// was made from — and the invitation is gone, rather than asking for the log just
+	// made.
+	await page.goto('/analytics');
+
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
+	await expect(page.getByText(/to start personalizing/)).toHaveCount(0);
 });
 
 /* The prompt for the ⚡ button once sat behind the collapsed Time Budget disclosure,
@@ -48,8 +51,6 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 	await addTask(page, 'Boxing training');
 
 	await setBudget(page, 6);
-
-	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
 
 	await page
 		.getByRole('checkbox', {
@@ -79,8 +80,11 @@ test('completing a task asks for its time-to-flow', async ({ page }) => {
 
 	await expect(page.getByText('⚡ 40m').first()).toBeVisible();
 
-	// The prompt has done its job and gets out of the way. What replaces it is the
-	// line that answers "I logged that, why did nothing move?"
+	// The prompt has done its job and gets out of the way. What replaces it is the line
+	// that answers "I logged that, why did nothing move?" — read where the logs are.
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/analytics');
+
 	await expect(page.getByText(/Model uses default constants/)).toHaveCount(0);
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 });
@@ -135,13 +139,17 @@ test('resetting personalization reverts to the default constants', async ({ page
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
 	await logFlow(page, 90);
+	await expect(page.getByText('⚡ 90m').first()).toBeVisible();
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	// One destructive control per kind, at the log list's own foot — the card above it
+	// states the fit and offers no verb at all.
+	await page.goto('/analytics');
 	await expect(page.getByText(/1 ⚡ logged today/)).toBeVisible();
 
-	// The card states the fit and offers its two verbs directly: since 2026-08-10 it
-	// lists no logs, so there is nothing to expand first.
 	await page
 		.getByRole('button', {
-			name: 'Reset personalization',
+			name: 'Delete all logs',
 		})
 		.click();
 
@@ -153,12 +161,15 @@ test('resetting personalization reverts to the default constants', async ({ page
 		.click();
 
 	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
+
+	// …and it took the badge with it.
+	await page.goto('/');
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
-/* Dropping one bad point moved to /analytics with the listing itself (2026-08-10): the
-   three calibration cards each listed their own kind, so none could show a neighbouring
-   kind or a day outside its own fit. Crossing the two screens is the test: the ✕ there
+/* Dropping one bad point moved to /analytics with the listing itself (2026-08-10), back
+   when each calibration card listed its own kind and so could show neither a neighbouring
+   kind nor a day outside its own fit. Crossing the two screens is the test: the ✕ there
    has to reach the fit here, which is the whole reason the reading lives in one place. */
 test('a single flow log is deletable from the analytics history', async ({ page }) => {
 	await page.goto('/');
@@ -175,9 +186,9 @@ test('a single flow log is deletable from the analytics history', async ({ page 
 		.click();
 
 	await expect(page.getByText('No measurements logged in this range.')).toBeVisible();
+	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
 
 	await page.goto('/');
-	await expect(page.getByText(/Model uses default constants/)).toBeVisible();
 	await expect(page.getByText('⚡ 90m')).toHaveCount(0);
 });
 
@@ -413,11 +424,16 @@ test('a drain rating logged from the main page feeds the Lab', async ({ page }) 
 	await setBudget(page, 6);
 
 	await logDrain(page, 120, 9, 5);
+
+	// The chip comes off the store's re-read, so it says the write committed — a `goto`
+	// fired into the gap before it aborts the transaction.
+	await expect(
+		page.getByRole('button', {
+			name: 'Correct this drain rating',
+		}),
+	).toBeVisible();
+
 	await page.clock.runFor(AUTOSAVE_MS);
-
-	await page.goto('/energy');
-
-	await expect(page.getByText('Drain ratings · 1')).toBeVisible();
 
 	// …and it is a real fit, not just a stored row — which the rating reaches the
 	// day after it was logged, on a day with a task of its own.

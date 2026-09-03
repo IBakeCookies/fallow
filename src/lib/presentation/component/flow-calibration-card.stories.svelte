@@ -1,6 +1,6 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
-	import { expect, fn } from 'storybook/test';
+	import { expect } from 'storybook/test';
 	import FlowCalibrationCard from '$lib/presentation/component/flow-calibration-card.svelte';
 
 	const { Story } = defineMeta({
@@ -10,39 +10,21 @@
 		args: {
 			constantsFitted: true,
 			logCount: 3,
-			onresetlogs: fn(),
 		},
 	});
 </script>
 
 <Story
 	name="Personalized"
-	play={async ({ args, canvas, userEvent }) => {
-		// A healthy fit, beside the two verbs a fit has: read the logs it used (on /analytics, which
-		// prints every kind of log dated) and un-personalize it.
+	play={async ({ canvas }) => {
+		// A healthy fit: the count it was made from, and what it made of them. Neither verb a
+		// fit has is offered here — the card stands on the page that lists the logs, so the
+		// link would point at itself and the reset would be that page's second.
 		await expect(canvas.getByText('3')).toBeVisible();
 		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
 
-		// Anchored: the list is the last card on that page, under every reading of it.
-		await expect(canvas.getByRole('link')).toHaveAttribute('href', '/analytics#log-history');
-
-		// All logs reset only after confirmation.
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Reset personalization',
-			}),
-		);
-
-		await expect(args.onresetlogs).not.toHaveBeenCalled();
-		await expect(canvas.getByText('Delete all 3 logs and revert to defaults?')).toBeVisible();
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Reset',
-			}),
-		);
-
-		await expect(args.onresetlogs).toHaveBeenCalledOnce();
+		await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
+		await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
 	}}
 />
 
@@ -74,16 +56,12 @@
 	args={{
 		constantsFitted: false,
 		logCount: 0,
-		onresetlogs: undefined,
 	}}
 	play={async ({ canvas }) => {
 		// Nothing is wrong, there is just nothing logged. This line is the only place in the app that
 		// says ⚡ exists, so it has to be legible at `text-ty-silent` on a card in every theme — which
 		// is what the a11y addon checks here.
 		await expect(canvas.getByText(/Model uses default constants/)).toHaveClass('text-ty-silent');
-
-		// Nothing to reset, so neither verb is offered.
-		await expect(canvas.queryByRole('link')).not.toBeInTheDocument();
 	}}
 />
 
@@ -93,21 +71,13 @@
 		logCount: 4,
 		pendingLogs: 1,
 	}}
-	play={async ({ canvas, userEvent }) => {
+	play={async ({ canvas }) => {
 		// A log made today is on the page but not in the plan, so the headline count and the fit's
 		// count differ — the sentence has to print the one the fit used, and name the other.
 		// Three, not the four the headline counts.
 		await expect(canvas.getByText(/Model personalized from 3 time-to-flow logs/)).toBeVisible();
 		await expect(canvas.getByText(/1 ⚡ logged today/)).toBeVisible();
 		await expect(canvas.getByText(/today's plan holds/)).toBeVisible();
-
-		await userEvent.click(
-			canvas.getByRole('button', {
-				name: 'Reset personalization',
-			}),
-		);
-
-		await expect(canvas.getByText('Delete all 4 logs and revert to defaults?')).toBeVisible();
 	}}
 />
 

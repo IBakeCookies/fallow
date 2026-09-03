@@ -215,6 +215,39 @@ export async function logDrain(page: Page, minutes: number, mind: number, body: 
 		.click();
 }
 
+/** Log a rest pair (☕) from the ledger's heading row. Two suites drive it: the Lab's
+ *  own flow, and the one card left in the app that links to the log list. */
+export async function logRest(
+	page: Page,
+	minutes: number,
+	mindBefore: number,
+	bodyBefore: number,
+	mindAfter: number,
+	bodyAfter: number,
+) {
+	await page
+		.getByRole('button', {
+			name: 'Log a rest',
+		})
+		.click();
+
+	const form = page.locator('form').filter({
+		hasText: 'rested',
+	});
+
+	const fields = form.locator('input[type="number"]');
+
+	for (const [index, value] of [minutes, mindBefore, bodyBefore, mindAfter, bodyAfter].entries()) {
+		await fields.nth(index).fill(String(value));
+	}
+
+	await form
+		.getByRole('button', {
+			name: '✓',
+		})
+		.click();
+}
+
 /* Make IndexedDB fail on demand. `open()` wraps `indexedDB.open` in a Promise
    executor, so a synchronous throw there rejects it exactly like a real failure.
    The switch lives in sessionStorage because addInitScript re-runs on every

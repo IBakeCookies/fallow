@@ -601,15 +601,8 @@ export class EnergyLabStore {
 	// The three identity fits below read only days strictly before today, like the
 	// main page's copy (daily-plan-store.svelte.ts:42) — the card names the α and
 	// r the app is planning under, so a log must not move them mid-day. The
-	// advisor above is the state read that keeps today's rows; these two counts
-	// name what is deferred, since a row silently dropped reads as a broken fit.
-	#pendingDrainLogCount = $derived(
-		this.#observations.drainObservations.filter((o) => o.date >= this.#session.today).length,
-	);
-	get pendingDrainLogCount() {
-		return this.#pendingDrainLogCount;
-	}
-
+	// advisor above is the state read that keeps today's rows; this count names
+	// what is deferred, since a row silently dropped reads as a broken fit.
 	#pendingRestLogCount = $derived(
 		this.#observations.restObservations.filter((o) => o.date >= this.#session.today).length,
 	);
