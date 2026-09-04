@@ -1,5 +1,6 @@
 import { getContext, onMount, setContext } from 'svelte';
 import type { StopObservation } from '$lib/business/model/zenith-energy';
+import type { DraftTask } from '$lib/business/model/metric/draft-impact';
 import { logError } from '$lib/logger';
 // Namespace import: the $-prefixed controller methods can't be imported by
 // name inside .svelte.ts files ($ is reserved for runes).
@@ -33,6 +34,10 @@ import {
 	getEffectiveDifficulty,
 	toEnergyTask,
 } from '$lib/business/model/metric/calculation';
+import {
+	calculateEnergyDraftImpact,
+	type EnergyDraftImpact,
+} from '$lib/business/model/metric/energy-draft-impact';
 import { mapEffort } from '$lib/business/model/zenith';
 import {
 	toCognitiveDrainObservations,
@@ -43,6 +48,22 @@ import {
 const CONTEXT_KEY = Symbol();
 /** Fitted values are surfaced (and applied) at 2dp — the sliders' precision. */
 const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/**
+ * Whether two published drafts would price the same. Every field of `DraftTask`
+ * is one a solve reads, so this is the whole record — but it is compared by
+ * VALUE, because the form publishes a fresh object per edit.
+ */
+function isSameDraft(a: DraftTask | null, b: DraftTask | null): boolean {
+	if (a === null || b === null) return a === b;
+
+	return (
+		a.physicalDifficulty === b.physicalDifficulty &&
+		a.mentalDifficulty === b.mentalDifficulty &&
+		a.enjoyment === b.enjoyment &&
+		a.importance === b.importance
+	);
+}
 
 /**
  * The domain each param must land in. Rates and values are non-negative
@@ -559,6 +580,68 @@ export class EnergyLabStore {
 			this.#hasCurveError = true;
 		} finally {
 			this.#isCurveBusy = false;
+		}
+	}
+
+	// ----- The add-task draft, priced on demand -----
+
+	#previewDraft = $state<DraftTask | null>(null);
+	/** What the Lab's add-task form has typed so far, or `null` while it is unnamed. */
+	get previewDraft(): DraftTask | null {
+		return this.#previewDraft;
+	}
+	set previewDraft(draft: DraftTask | null) {
+		// The form republishes on every edit, the title included — and the title
+		// reaches no solve, so a keystroke in it arrives here as the same draft.
+		if (isSameDraft(this.#previewDraft, draft)) return;
+
+		this.#previewDraft = draft;
+		// Dropped rather than marked stale: a held number beside live fields is a
+		// number that disagrees with them, and re-pricing costs one click.
+		this.#draftImpact = null;
+	}
+
+	#draftImpact = $state<EnergyDraftImpact | null>(null);
+	/** Null until the user asks: the reading costs a full solve. */
+	get draftImpact(): EnergyDraftImpact | null {
+		return this.#draftImpact;
+	}
+
+	#isDraftBusy = $state(false);
+	get isDraftBusy(): boolean {
+		return this.#isDraftBusy;
+	}
+
+	/**
+	 * One solve of the day with the draft in it, against the plan this store
+	 * already holds. A method and not a `$derived` for the reason the advice is
+	 * (business/AGENTS.md): the optimizer costs 35-195 ms over the window the
+	 * form is typed in. The yield before the solve lets the busy state paint.
+	 */
+	async computeDraftImpact(draft: DraftTask): Promise<void> {
+		if (this.#isDraftBusy) return;
+
+		this.#isDraftBusy = true;
+
+		try {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			this.#draftImpact = calculateEnergyDraftImpact(
+				{
+					tasks: this.#session.tasks,
+					windowHours: this.#windowHours,
+					params: $state.snapshot(this.#params),
+					constants: this.#session.userConstants,
+				},
+				draft,
+				this.#plan,
+			);
+		} catch (e) {
+			// The only caller is a fire-and-forget click handler; rethrowing would be
+			// an unhandled rejection, not a signal. The panel returns to its prompt.
+			logError('Failed to price the add-task draft', e);
+		} finally {
+			this.#isDraftBusy = false;
 		}
 	}
 

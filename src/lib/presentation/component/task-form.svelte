@@ -1,11 +1,10 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import * as m from '$lib/paraglide/messages.js';
 	import type { TitleRating } from '$lib/business/model/title-memory';
-	import type { DraftImpact, DraftTask } from '$lib/business/model/metric/draft-impact';
-	import type { NextTaskSuggestion } from '$lib/business/model/metric/next-task-suggestion';
+	import type { DraftTask } from '$lib/business/model/metric/draft-impact';
 	import { Button } from '$lib/presentation/component/ui/button';
 	import MustDoToggle from '$lib/presentation/component/must-do-toggle.svelte';
-	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
 	import TaskFormFields, {
 		type TaskEdit,
 	} from '$lib/presentation/component/task-form-fields.svelte';
@@ -15,16 +14,15 @@
 		suggest: (query: string) => TitleRating[];
 		tagVocabulary?: string[];
 		withMustDoToday?: boolean;
-		/** What the draft would do to the day, `null` while it is unnamed. Absent —
-		 *  the Lab, whose plan is the energy optimizer's — renders no second column
-		 *  and no `ondraftchange`. */
-		impact?: DraftImpact | null;
+		/** The second column: each screen's own reading of the draft, rendered with
+		 *  `pick` because the panel's next-task buttons fill the title field and only
+		 *  this form can. Absent, there is no second column. */
+		preview?: Snippet<[(rating: TitleRating) => void]>;
+		/** The footer's left slot, where `/` puts the must-do toggle. */
+		action?: Snippet;
+		/** What a solve reads off the draft, published on every edit — `null` while it
+		 *  is unnamed. Both screens price it, one live and one on a press. */
 		ondraftchange?: (draft: DraftTask | null) => void;
-		/** The empty form's ranked titles, and the search that re-runs them. `impact`
-		 *  alone decides whether the panel exists, so the Lab passes none of these. */
-		nextTasks?: NextTaskSuggestion[] | null;
-		hasNextTaskRoom?: boolean;
-		onnexttasks?: () => void;
 		/** Closes the dialog this is mounted in. Absent, there is no Cancel — the
 		 *  row actions' rule: the button is there when its callback is. */
 		oncancel?: () => void;
@@ -35,11 +33,9 @@
 		suggest,
 		tagVocabulary = [],
 		withMustDoToday = true,
-		impact,
+		preview,
+		action,
 		ondraftchange,
-		nextTasks = null,
-		hasNextTaskRoom = false,
-		onnexttasks = () => {},
 		oncancel,
 	}: Props = $props();
 
@@ -191,27 +187,24 @@
 		// caret goes back to the field the next task starts in, wherever the submit came
 		// from. `{@attach}` cannot do this: the field never unmounts between deploys.
 		titleField?.focus();
-
-		// The panel's ranking is now about the day before this task, and its own mount
-		// cannot catch that: the dialog this deploy came from is still open.
-		onnexttasks();
 	}
 </script>
 
 <!-- Two columns: the fields, and what they would do to today. 2fr/1fr and not an
      even split — the fields set their own widths (three slider tracks, a tag
-     field), the reading is label-and-number rows that wrap — and one column when
-     there is no reading, which is the Lab's copy. The reading's only controls are
-     the next-task ones, which follow the fields in source order, so the tab order
-     is the column as written: no `order-*`, and never a positive `tabindex`. -->
+     field), the reading is label-and-number rows that wrap — and one column
+     wherever a caller passes no `preview`. A panel's only controls fill the field
+     beside it (`/`'s next-task buttons), and they follow the fields in source
+     order, so the tab order is the column as written: no `order-*`, and never a
+     positive `tabindex`. -->
 <form
-	class="grid gap-grid-xl {impact === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
+	class="grid gap-grid-xl {preview === undefined ? '' : 'md:grid-cols-[2fr_1fr]'}"
 	onsubmit={handleSubmit}
 >
-	<!-- Framed only when there is a reading to be told apart from; the Lab's one
-	     column is already the dialog's own box. -->
+	<!-- Framed only when there is a reading to be told apart from; a form with no
+	     second column is already the dialog's own box. -->
 	<div
-		class="min-w-0 space-y-grid-lg {impact === undefined
+		class="min-w-0 space-y-grid-lg {preview === undefined
 			? ''
 			: 'rounded-md border border-line-soft bg-surface-card p-box-lg backdrop-blur'}"
 	>
@@ -281,6 +274,9 @@
 			{#if withMustDoToday}
 				<MustDoToggle bind:mustDoToday={draft.mustDoToday} class="mr-auto" />
 			{/if}
+			{#if action}
+				<span class="mr-auto">{@render action()}</span>
+			{/if}
 			<span class="flex items-center gap-grid-xs">
 				{#if oncancel}
 					<Button variant="ghost" type="button" onclick={oncancel}>{m.common_cancel()}</Button>
@@ -290,14 +286,14 @@
 		</div>
 	</div>
 
-	{#if impact !== undefined}
+	{#if preview !== undefined}
 		<!-- Both columns are cards and the BORDER is what separates them: the
 		     `surface-card` fill carries alpha on 36 of the 44 themes that set it, so
 		     the rule is what makes each a box on all 46 (STYLE.md, "A borderless
 		     panel nested inside a card"). This one stacks under the fields on a
 		     phone. -->
 		<div class="min-w-0 rounded-md border border-line-soft bg-surface-card p-box-md backdrop-blur">
-			<TaskFormPreview {impact} {nextTasks} {hasNextTaskRoom} {onnexttasks} onpicknexttask={pick} />
+			{@render preview(pick)}
 		</div>
 	{/if}
 </form>

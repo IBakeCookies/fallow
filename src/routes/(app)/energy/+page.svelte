@@ -23,8 +23,10 @@
 	import { seriesColors } from '$lib/presentation/utils/series-color';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
+	import { Button } from '$lib/presentation/component/ui/button';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
+	import TaskFormEnergyPreview from '$lib/presentation/component/task-form-energy-preview.svelte';
 	import DayActions from '$lib/presentation/component/day-actions.svelte';
 	import TaskListCard from '$lib/presentation/component/task-list-card.svelte';
 	import { getEnergyTaskColumns } from '$lib/presentation/utils/ledger-column';
@@ -310,7 +312,33 @@
 		suggest={(query) => session.suggestTitles(query)}
 		tagVocabulary={session.tagVocabulary}
 		withMustDoToday={false}
+		ondraftchange={(d) => (lab.previewDraft = d)}
+		preview={draftPrice}
+		action={priceButton}
 	/>
+{/snippet}
+
+{#snippet draftPrice()}
+	<TaskFormEnergyPreview
+		impact={lab.draftImpact}
+		isBusy={lab.isDraftBusy}
+		hasWindow={windowHours > 0}
+	/>
+{/snippet}
+
+<!-- No window, no plan to price: the panel says so instead, and the press it
+     would have to offer has nothing to solve. -->
+{#snippet priceButton()}
+	{#if windowHours > 0}
+		<Button
+			variant="outline"
+			type="button"
+			disabled={lab.previewDraft === null || lab.isDraftBusy}
+			onclick={() => lab.computeDraftImpact(lab.previewDraft!)}
+		>
+			{m.form_impact_price()}
+		</Button>
+	{/if}
 {/snippet}
 
 {#snippet taskRows()}

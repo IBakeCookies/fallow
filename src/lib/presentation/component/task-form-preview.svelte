@@ -173,11 +173,12 @@
 				{/snippet}
 			</StatTile>
 		</div>
+
 		<p class="flex items-baseline justify-between gap-grid-xs text-xs">
 			<span class="text-ty-secondary">{m.form_impact_priority()}</span>
-			<span class="font-semibold text-ty-primary tabular-nums"
-				>{impact.priorityScore.toFixed(1)}</span
-			>
+			<span class="font-semibold text-ty-primary tabular-nums">
+				{impact.priorityScore.toFixed(1)}
+			</span>
 		</p>
 
 		<div>

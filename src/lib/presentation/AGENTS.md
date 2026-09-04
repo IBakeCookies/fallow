@@ -79,26 +79,30 @@ Untestable at every level is the signal.
   **Deploying does NOT close the dialog** — a day gets typed in one sitting — so the
   form puts the caret back in the title field itself, which is the one focus move
   `{@attach}` cannot make, since that field never unmounts between deploys.
-- **The add-task form's second column is a reading and nothing else; every
-  control is in the first.** `/` hands the form `impact`
-  (`DailyPlanStore.draftImpact`) and an `ondraftchange`; the form publishes only
-  what a solve reads — the three ratings and the importance — and `null` while
-  the title is blank, since an unnamed task is not one the day can be priced
-  with, and the panel then renders the prompt line rather than numbers (the
-  solve-costing rule below). There is nothing to cancel: the ✕ closes the
-  dialog and a draft is never written until it is deployed, so **Cancel is the ✕
-  spelled where the hand already is** — the card binds its dialog's `open` and
-  hands the `form` snippet the closer, since only the card knows that dialog.
-  The footer is the row editor's, at the foot of the FIELD column: the must-do
-  flag pushed left, Cancel and the submit right, one row. So the whole form —
-  read, tabbed and submitted — is one column, and the reading beside it is a
-  panel you only look at. Both columns
-  take the same `surface-card`-plus-border recipe, so they read as a pair. The
-  Lab passes neither prop and stays one column, unframed, since the dialog is
-  already its box — its plan is the energy optimizer's, not this one — and
-  `task-list-card`'s dialog is widened for both. The panel's warm-up row reads
-  the draft's own ϕ off that same solve (`DraftImpact.flowStateTime`) and is
-  banded here, not in the model.
+- **The add-task form's second column is the screen's own `preview` snippet, and
+  it offers no lever on the day.** `TaskForm` never learns which screen it is on:
+  the column exists iff `preview` is passed, and it is rendered with `pick` so
+  the panel can fill the title field — the shape `task-list-card` already uses
+  for `form(close)`. `/` renders `TaskFormPreview` off
+  `DailyPlanStore.draftImpact`, `/energy` renders `TaskFormEnergyPreview` off
+  `EnergyLabStore.draftImpact`; both pass `ondraftchange`, and the form publishes
+  only what a solve reads — the three ratings and the importance — and `null`
+  while the title is blank, since an unnamed task is not one the day can be
+  priced with, and the panel then renders the prompt line rather than numbers
+  (the solve-costing rule below). The panel's own controls only fill the field
+  beside it: `/`'s next-task buttons live in the second column and put a title in
+  the first. Everything that SUBMITS is in the field column's footer, the row
+  editor's — the must-do flag or the `action` snippet (the Lab's **Price this
+  day**) pushed left, Cancel and the submit right, one row. There is nothing to
+  cancel: the ✕ closes the dialog and a draft is never written until it is
+  deployed, so **Cancel is the ✕ spelled where the hand already is** — the card
+  binds its dialog's `open` and hands the `form` snippet the closer, since only
+  the card knows that dialog. Both columns take the same
+  `surface-card`-plus-border recipe, so they read as a pair, and
+  `task-list-card`'s dialog is widened for both. `/`'s panel bands its warm-up
+  row off the draft's own ϕ (`DraftImpact.flowStateTime`) here, not in the model;
+  the Lab's bands nothing, because `PlanSummary` prints end energy unbanded and
+  `AXIS_BAND` has no axis for it.
 - **A combobox inside a dialog must `stopPropagation()` on the Escape that closes its
   own list.** bits-ui's escape layer listens on `document`, so an unstopped Escape
   closes the whole form while the user was only dismissing the suggestions. Stop it in
