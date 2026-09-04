@@ -149,7 +149,8 @@ export const OPTIMAL_PHI_MULTIPLIER = 1.7933;
 const AMPLITUDE_RATIO_CAP = 0.9;
 
 // Exhaustive funded-subset search is O(2ⁿ · greedy); exact up to this many
-// tasks (4095 subsets — instant). Past it the same 4095-plan budget is spent on
+// tasks (4095 subsets, most of which the pool-free bound in that loop prices
+// without a pooled solve). Past it the same 4095-plan budget is spent on
 // the subset sizes the day can actually fund. Exported because
 // `subset-search-bound.probe.ts` re-derives that branch rule and must compare
 // against the shipped cap, not a copy of it (R3).
@@ -1086,6 +1087,17 @@ function bestPlanWithSwitchCost(
 			const budgetBlocks = budgetBlocksForSubset(subset);
 
 			if (budgetBlocks <= 0) continue;
+
+			// Skip a subset the exact single-budget optimum already puts below the
+			// incumbent: pool-free greedy bounds every pooled plan on the same
+			// budget (MATH.md §4). The −1e-9 band is `consider`'s tie rule — a
+			// bound that only ties must still be allocated, because it may fund more.
+			const bound = planValue(
+				tasks,
+				greedyAllocateBlocks(tasks, subset, budgetBlocks, Infinity, Infinity).blocks,
+			);
+
+			if (bound < bestValue - 1e-9) continue;
 
 			consider(allocate(subset, budgetBlocks));
 		}
