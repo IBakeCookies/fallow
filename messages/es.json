@@ -279,7 +279,7 @@
 	"form_importance_low": "Baja",
 	"form_importance_normal": "Normal",
 	"form_importance_high": "Alta",
-	"form_importance_title": "La importancia decide cómo se reparte un día corto: qué tareas reciben tiempo y cuánto.",
+	"form_importance_title": "La importancia decide cómo se reparte un día corto: qué tareas reciben tiempo y cuánto. El plan de energía no la tiene en cuenta, pero el nivel se queda en la tarea y sigue moldeando el plan clásico.",
 	"form_impact_heading": "Qué le hace esto a hoy",
 	"form_impact_prompt": "Da nombre a la tarea y se calculará su lugar en el día de hoy.",
 	"form_impact_hours": "Horas sugeridas",

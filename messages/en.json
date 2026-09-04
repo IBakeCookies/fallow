@@ -279,7 +279,7 @@
 	"form_importance_low": "Low",
 	"form_importance_normal": "Normal",
 	"form_importance_high": "High",
-	"form_importance_title": "Importance decides how a short day is divided up — which tasks get time, and how much.",
+	"form_importance_title": "Importance decides how a short day is divided up — which tasks get time, and how much. The energy plan ignores it, but the level stays on the task and still shapes the classic plan.",
 	"form_impact_heading": "What this does to today",
 	"form_impact_prompt": "Name the task and this prices it into today.",
 	"form_impact_hours": "Suggested hours",

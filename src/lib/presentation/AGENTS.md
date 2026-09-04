@@ -721,6 +721,22 @@ exports `AXIS_BAND` + `isOutOfBand` because the plan-advice card decides which
 findings to surface from the same call the metric rows are colored by — two
 copies of the thresholds is exactly the R3 failure.
 
+**A reading widens when whole percent would print an option as its own row.**
+Adding the share to Energy Balance's word closed the coarse half of this — the
+card no longer prints "Physical Heavy" over "Physical Heavy" — but `Math.round`
+kept the other half, and an option that really moves the axis still read as a
+no-op with a price on it. `digitsFor` (`utils/plan-advice-descriptor.ts`) gives
+the whole row one digit when any two of its printed readings collide, so the
+options stay comparable with each other; `energyBalanceReading` therefore takes
+the rendered number rather than rounding one, and the dashboard row, which has
+no locale and nothing to collide with, keeps the whole-percent default. **One
+digit and no further**: it leaves 1 of 516 Energy Balance options printing its
+row's reading, worth 0.034 badness points
+(`scripts/adv3-advice-display-resolution.probe.ts`), and a second digit buys
+that back by putting a decimal on every option beside it. Suppressing the
+collisions instead is settled against — it empties rows that still read badly,
+measured in the same probe.
+
 `getBandFlowReached(hours, flowStateTime)` is this layer's one definition of
 Flow Coverage's `hours ≥ ϕ` criterion narrowed to one task, read by the timeline
 block, the Longest Warm-Up descriptor and the draft panel (R3 — it was inline in

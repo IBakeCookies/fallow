@@ -1,7 +1,9 @@
 /**
- * Of the titles the user already works on, which ones today's plan would give
- * the most hours to — the question the empty add-task form cannot answer from
- * the draft, because there is no draft yet.
+ * Of the titles the user already works on, which ones would make today's plan
+ * worth the most — the question the empty add-task form cannot answer from the
+ * draft, because there is no draft yet. Ranked on the day's Σ P̄ with the title
+ * added, not on the hours it is given: the hours are shown alongside, but a task
+ * the plan buys many hours of is not the same as one the day gains most from.
  *
  * One full solve per candidate, which is why the candidates are capped: the
  * ranking is the day re-planned with each title prepended, and nothing cheaper

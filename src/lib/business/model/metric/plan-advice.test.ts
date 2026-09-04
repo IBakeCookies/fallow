@@ -384,6 +384,53 @@ describe('suggestPlanAdjustments', () => {
 		expect(notImproving).toEqual([]);
 	});
 
+	// A re-solve that lands on the same allocation reproduces every reading to
+	// within float noise, and a bare `> 0` reads that noise as relief: the menu
+	// offered a budget trim that moved Energy Balance by one ULP, for nothing.
+	it('never offers an option that lands on the reading it started from', () => {
+		const base = input(
+			[
+				makeTask({
+					id: 1,
+					title: 'Running',
+					physicalDifficulty: 8,
+					mentalDifficulty: 0,
+					enjoyment: 9,
+				}),
+				makeTask({
+					id: 2,
+					title: 'Piano',
+					physicalDifficulty: 0,
+					mentalDifficulty: 6,
+					enjoyment: 7,
+				}),
+				makeTask({
+					id: 3,
+					title: 'Gym',
+					physicalDifficulty: 8,
+					mentalDifficulty: 2,
+					enjoyment: 4,
+				}),
+			],
+			{
+				availableHours: 4,
+				switchCost: 0,
+				pools: {
+					cognitiveHours: 1,
+					physicalHours: 1,
+				},
+			},
+		);
+
+		const noOptions = suggestPlanAdjustments(base).findings.flatMap((finding) =>
+			(finding.unpriced ? [...finding.options, finding.unpriced] : finding.options)
+				.filter((option) => Math.abs(option.after - finding.before) < 1e-9)
+				.map((option) => `${finding.axis}: ${JSON.stringify(option.lever)}`),
+		);
+
+		expect(noOptions).toEqual([]);
+	});
+
 	// The frontier is what makes the menu honest: a bigger improvement may cost
 	// more plan value, but no option may be beaten on BOTH counts.
 	it('returns a Pareto frontier — no option is dominated by another on its axis', () => {

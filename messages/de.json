@@ -279,7 +279,7 @@
 	"form_importance_low": "Niedrig",
 	"form_importance_normal": "Normal",
 	"form_importance_high": "Hoch",
-	"form_importance_title": "Wichtigkeit bestimmt, wie ein kurzer Tag aufgeteilt wird – welche Aufgaben Zeit bekommen und wie viel.",
+	"form_importance_title": "Wichtigkeit bestimmt, wie ein kurzer Tag aufgeteilt wird – welche Aufgaben Zeit bekommen und wie viel. Der Energieplan ignoriert sie, aber die Stufe bleibt an der Aufgabe und prägt weiterhin den klassischen Plan.",
 	"form_impact_heading": "Was das mit heute macht",
 	"form_impact_prompt": "Benenne die Aufgabe, dann wird sie in den heutigen Tag eingerechnet.",
 	"form_impact_hours": "Vorgeschlagene Stunden",
