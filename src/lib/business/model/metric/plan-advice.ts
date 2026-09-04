@@ -290,6 +290,20 @@ const AXIS: Record<
 	},
 };
 
+/**
+ * How much better one candidate day reads on one axis — the quantity
+ * `paretoOptions` gates on, which is NOT the change in the reading a card
+ * prints: Energy Balance reads `EB` and ranks on `|EB − 50|`, and Flow Coverage
+ * reads a share and ranks on a count.
+ */
+export function improvementOf(
+	axis: AdviceAxis,
+	baseline: DailyMetrics,
+	candidate: DailyMetrics,
+): number {
+	return AXIS[axis].badness(baseline) - AXIS[axis].badness(candidate);
+}
+
 /** Σ vᵢ·P̄ᵢ over funded tasks — the allocator's own objective (MATH.md §0). */
 function planValueOf(metrics: DailyMetrics): number {
 	return metrics.zenithGain.optimized;
@@ -331,6 +345,8 @@ function quadrantFlipOf(baseline: DailyMetrics, candidate: DailyMetrics): DailyQ
  * switch cost of zero lands on zero.
  */
 const MIN_HOUR_STEP = 1 / 60;
+/** Float noise is not relief (business/model/AGENTS.md). */
+const IMPROVEMENT_NOISE_FLOOR = 1e-9;
 
 /**
  * Whether Σ P̄ captures what this lever costs the user. Deferring and trimming
@@ -425,11 +441,10 @@ function paretoOptions(
 				},
 			};
 		})
-		// `>` and not `>=` so a candidate that merely TIES the baseline is not
-		// offered as an option. The non-readings need no help from the operator:
-		// Infinity − Infinity and the zero-load NaN are both NaN, and every NaN
-		// comparison is false.
-		.filter((entry) => entry.improvement > 0)
+		// The floor subsumes the tie `>` used to exclude. The non-readings need no
+		// help from the operator either: Infinity − Infinity and the zero-load NaN
+		// are both NaN, and every NaN comparison is false.
+		.filter((entry) => entry.improvement > IMPROVEMENT_NOISE_FLOOR)
 		.sort((a, b) => b.improvement - a.improvement || b.option.planValue - a.option.planValue);
 
 	const frontier: AdviceOption[] = [];

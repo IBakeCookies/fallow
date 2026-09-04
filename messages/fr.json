@@ -279,7 +279,7 @@
 	"form_importance_low": "Faible",
 	"form_importance_normal": "Normale",
 	"form_importance_high": "Élevée",
-	"form_importance_title": "L'importance décide comment une journée courte est répartie : quelles tâches reçoivent du temps, et combien.",
+	"form_importance_title": "L'importance décide comment une journée courte est répartie : quelles tâches reçoivent du temps, et combien. Le plan énergie n'en tient pas compte, mais le niveau reste sur la tâche et façonne toujours le plan classique.",
 	"form_impact_heading": "Ce que cela fait à aujourd'hui",
 	"form_impact_prompt": "Nommez la tâche et elle sera chiffrée dans la journée.",
 	"form_impact_hours": "Heures suggérées",

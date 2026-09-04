@@ -20,8 +20,12 @@
  * a "2.568" with no recorded fixture, so the plan value `set-budget 1h`
  * reaches from a 0 h budget is measured here on the suite's own grind day.
  *
+ * And one number the frontier's own admission rule rests on: the smallest
+ * improvement it admits, so `IMPROVEMENT_NOISE_FLOOR` can be shown to sit orders
+ * of magnitude below it rather than inside the readings.
+ *
  * Same generator, seed and day count as `plan-advice.probe.ts` (600 days,
- * seed 42), so these counts compose with its 404 trim levers and 4112 priced
+ * seed 42), so these counts compose with its 404 trim levers and 4287 priced
  * frontiers rather than describing a different sample.
  *
  * Usage: npm run probe
@@ -32,7 +36,12 @@ import {
 	calculateDailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
-import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
+import {
+	improvementOf,
+	suggestPlanAdjustments,
+	type AdviceAxis,
+	type AdviceLever,
+} from '$lib/business/model/metric/plan-advice';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
@@ -117,6 +126,36 @@ const GRIND = [task(1, 10, 2, 1), task(2, 9, 1, 2), task(3, 2, 9, 2)];
 const grindDay = (budget: number) => day(GRIND, budget, 0.25, 4, 6);
 /** The same one-minute tolerance `buildLevers` drops a budget lever under. */
 const MIN_HOUR_STEP = 1 / 60;
+/** The same floor `paretoOptions` admits an option over. */
+const IMPROVEMENT_NOISE_FLOOR = 1e-9;
+
+/** Every improvement the frontier admitted on one day, as the gate scored it. */
+const admittedImprovements = (input: DailyMetricsInput) => {
+	const baseline = calculateDailyMetrics(input);
+
+	return suggestPlanAdjustments(input, baseline).findings.flatMap((finding) =>
+		[...finding.options, ...(finding.unpriced ? [finding.unpriced] : [])].map((option) => ({
+			axis: finding.axis,
+			improvement: improvementOf(
+				finding.axis,
+				baseline,
+				calculateDailyMetrics(applyLever(input, option.lever)),
+			),
+		})),
+	);
+};
+
+/** `applyLever`'s two branches, which the module does not export. */
+const applyLever = (input: DailyMetricsInput, lever: AdviceLever): DailyMetricsInput =>
+	lever.kind === 'defer-task'
+		? {
+				...input,
+				tasks: input.tasks.filter((task) => task.id !== lever.taskId),
+			}
+		: {
+				...input,
+				availableHours: lever.hours,
+			};
 
 const percentOf = (value: number, base: number) =>
 	base > 0 ? Math.round(((value - base) / base) * 1000) / 10 : null;
@@ -371,5 +410,44 @@ describe('plan advice — the frontier and the levers', () => {
 			expect(option.planValue).toBeGreaterThan(0);
 			expect(option.planValueDeltaPercent).toBeNull();
 		}
+	});
+
+	/**
+	 * `IMPROVEMENT_NOISE_FLOOR` needs a gap to sit in, and only one end of it can
+	 * be measured from outside: the filter is internal, so the noise it now
+	 * rejects is unreachable here and a count of it would read 0 by construction.
+	 * The day that produced one is pinned in the suite instead. This measures the
+	 * other end — the smallest improvement an option that SURVIVES the floor
+	 * makes — which is what says the floor rejects nothing a user would want.
+	 *
+	 * `improvementOf`, not `after − before`: the gate ranks on badness, and on
+	 * Energy Balance and Flow Coverage that is not the reading. Measured both
+	 * ways the answer differs by 8.2x, in the safe direction, which is exactly
+	 * the margin a floor may not be justified by.
+	 */
+	it('measures the smallest improvement the frontier admits', () => {
+		const smallest = new Map<AdviceAxis, number>();
+		let options = 0;
+
+		for (const input of DAYS)
+			for (const { axis, improvement } of admittedImprovements(input)) {
+				options++;
+
+				if (Number.isFinite(improvement))
+					smallest.set(axis, Math.min(smallest.get(axis) ?? Infinity, improvement));
+			}
+
+		const overall = Math.min(...smallest.values());
+
+		console.log(
+			`${options} options over ${smallest.size} axes, smallest admitted improvement ${overall.toExponential(4)} — ${(overall / IMPROVEMENT_NOISE_FLOOR).toExponential(1)}x the floor`,
+		);
+
+		for (const [axis, value] of smallest) console.log(`  ${axis} ${value.toExponential(4)}`);
+
+		// Orders of magnitude, not a hair: a floor close to the smallest real
+		// improvement would be a threshold on the readings themselves, which is the
+		// band's job and not this module's.
+		expect(overall).toBeGreaterThan(IMPROVEMENT_NOISE_FLOOR);
 	});
 });

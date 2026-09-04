@@ -146,15 +146,22 @@ export function energyBalanceSkew(value: number): 'cognitive' | 'physical' | 'ba
  *
  * One definition for both callers (AGENTS.md R3) — the three words were already
  * spelled twice, which is how the card and the dashboard could have come apart.
+ * The number is the caller's, because whole percent hides a real move of its own
+ * and only the card can see the reading it would collide with.
  */
-export function energyBalanceReading(value: number): string {
+export function energyBalanceReading(
+	value: number,
+	// The rendered number, so the one caller that needs more than whole percent
+	// can widen it without this module taking a locale (`plan-advice-descriptor`).
+	percent: string = String(Math.round(value)),
+): string {
 	return m.metric_energy_balance_reading({
 		skew: {
 			cognitive: m.metric_cognitive_heavy(),
 			physical: m.metric_physical_heavy(),
 			balanced: m.metric_balanced(),
 		}[energyBalanceSkew(value)],
-		percent: Math.round(value),
+		percent,
 	});
 }
 

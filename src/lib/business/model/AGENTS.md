@@ -450,6 +450,17 @@ unfixable warning — Energy Balance on a day of nothing but cognitive work —
 indistinguishable from a day with no warning on it, which the card then called
 fine. The card says the empty menu out loud instead.
 
+**An option must clear float noise, not just beat zero.** A candidate whose
+re-solve lands on the same allocation reproduces every reading to a few ULPs, so
+the bare `improvement > 0` filed those as relief — a budget trim offered against
+Energy Balance worth one ULP, priced and rendered like a real one.
+`IMPROVEMENT_NOISE_FLOOR` is that gate's noise floor, and it is not the band in
+disguise: the smallest improvement it admits is **9.8e-4** — **9.8e5×** the
+floor, on Energy Balance (`scripts/adv1-plan-advice-frontier.probe.ts`). Price it
+with `improvementOf` and never with `after − before`: the two differ by 8.2x
+here, because badness is not the reading on two axes. Raising it toward the
+readings would be judging, which this section's heading forbids.
+
 `PlanAdvice` is contractually today's inputs alone, and
 `AdviceDisplay` is built from it — so a reading about ANOTHER day, such as what
 the day a defer sends to already holds, is its own descriptor and its own card

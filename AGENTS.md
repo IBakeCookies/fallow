@@ -298,8 +298,8 @@ re-open one.
 - `PHI_UNCERTAINTY_RELATIVE_CAP` stays 0.5.
 - Human Capacity is unclamped; Burnout Risk is not monotone in the declared
   budget or the declared switch cost, and that stays.
-- The advisor ranks, it does not judge; a budget increase never enters the
-  frontier; the budget levers carry unrounded hours; the budget's shadow price
+- The advisor ranks, it does not judge; an option must clear float noise, not
+  just beat zero; a budget increase never enters the frontier; the budget levers carry unrounded hours; the budget's shadow price
   is a day-level reading, not a per-task column; the switch cost is
   instrumented but never advised.
 - `mustDoToday` promises the day, not the hours.
