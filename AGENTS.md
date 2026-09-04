@@ -299,9 +299,10 @@ re-open one.
 - Human Capacity is unclamped; Burnout Risk is not monotone in the declared
   budget or the declared switch cost, and that stays.
 - The advisor ranks, it does not judge; an option must clear float noise, not
-  just beat zero; a budget increase never enters the frontier; the budget levers carry unrounded hours; the budget's shadow price
-  is a day-level reading, not a per-task column; the switch cost is
-  instrumented but never advised.
+  just beat zero; a budget increase never enters the frontier; the budget
+  levers carry unrounded hours; the budget's shadow price is a day-level
+  reading, not a per-task column; the switch cost is instrumented but never
+  advised.
 - `mustDoToday` promises the day, not the hours.
 - An unfunded task gets ONE reason — defer, budget, pool, none, in that order —
   read off the plans the frontier already solved.

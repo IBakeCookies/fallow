@@ -731,11 +731,13 @@ options stay comparable with each other; `energyBalanceReading` therefore takes
 the rendered number rather than rounding one, and the dashboard row, which has
 no locale and nothing to collide with, keeps the whole-percent default. **One
 digit and no further**: it leaves 1 of 516 Energy Balance options printing its
-row's reading, worth 0.034 badness points
-(`scripts/adv3-advice-display-resolution.probe.ts`), and a second digit buys
-that back by putting a decimal on every option beside it. Suppressing the
-collisions instead is settled against — it empties rows that still read badly,
-measured in the same probe.
+row's reading, worth 0.0344 badness points, on a pair a second decimal would
+separate and nothing else would use
+(`scripts/adv3-advice-display-resolution.probe.ts`). Suppressing the collisions
+instead stays settled against on the argument that carried when they were 111 of
+593 — it emptied rows that still read badly. That cost is now nil in the same
+probe precisely because widening took the collisions first, so it is a reason
+not to reopen the question, not a live measurement.
 
 `getBandFlowReached(hours, flowStateTime)` is this layer's one definition of
 Flow Coverage's `hours ≥ ϕ` criterion narrowed to one task, read by the timeline

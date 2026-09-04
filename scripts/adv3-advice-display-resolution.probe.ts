@@ -19,11 +19,12 @@
  * a share moved 0.0 → 39.3 with "Physical Heavy" on both sides. Suppressing them
  * would have emptied 99 of 274 rows, discarding the axis's largest improvement
  * (median 6.2), so the share is printed beside the word instead
- * (`energyBalanceReading`). Since that shipped this measures the RESIDUE: 111 of
- * 593 (18.7%), all sub-percent (max 0.9 points), which is the whole-percent
- * rounding every other axis already carries. A run that climbs back toward 60% —
- * or that reports hidden improvement in whole points rather than tenths — means
- * a display got coarser than its decision again.
+ * (`energyBalanceReading`). The residue that left — 111 of 593 (18.7%), all
+ * sub-percent — was the whole-percent rounding every other axis carries, and
+ * `digitsFor` has since taken that too: 1 of 516, worth 0.0344 points, on the one
+ * pair a single decimal still cannot separate. A run that climbs back toward 60%
+ * — or that reports hidden improvement in whole points rather than tenths —
+ * means a display got coarser than its decision again.
  *
  * A PRESENTATION measurement, so it goes through `buildAdviceDisplay` and reads
  * the rendered strings; the numbers behind them come from the model advice the
@@ -259,8 +260,8 @@ describe('advice display resolution', () => {
 
 			if (worst)
 				console.log(
-					`  worst: ${worst.beforeValue.toFixed(1)} → ${worst.afterValue.toFixed(1)}, ` +
-						`both printed “${worst.before}”`,
+					`  worst: ${worst.beforeValue.toFixed(4)} → ${worst.afterValue.toFixed(4)}, ` +
+						`both printed “${worst.before}”, improvement ${worst.improvement.toFixed(4)}`,
 				);
 		}
 	});
