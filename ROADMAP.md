@@ -236,6 +236,19 @@ other.**
     the cost of the map being WRONG about a user remains unmeasured. That is the
     remaining blocker, and it is a question about the floor's parameterization
     rather than about the reading.
+    **A second reason not to re-parameterize the gate yet, raised 2026-09-04 and
+    not yet run:** the Δ table that closed the first finding may not survive its
+    own fixture. A perturbed generator is reported to flip the sign of the
+    derived-vs-4/6 Δ at α 0.7/0.45 and to collapse the "+0.0116, derived beats
+    the truth itself" headline to a ~0.0035 margin — margins of ~0.003 moving by
+    ~0.006–0.024 under a seed-scale change. That reading came from an
+    UNCOMMITTED run and item 29's rule applies, so it is a lead: the first step
+    is a seed sweep of arm A at today's constants, reporting the spread of the
+    `classicOverlap` Δ per grid point against the margins
+    [the-pool-the-drain-logs-might-know](docs/features/the-pool-the-drain-logs-might-know.md)
+    quotes. If the spread swamps them, that spec's kill/keep reading needs a
+    correction independent of this item, and no four-decimal table gets
+    re-quoted until it has one.
 
 Item 16 for the other two declared constraints, and the slot item 18 prefills
 into:
@@ -401,6 +414,61 @@ distinguishing a fitted value from a user's, against §8.7/§8.9/§8.10's settle
 ([business/model/AGENTS.md](src/lib/business/model/AGENTS.md), line 198). Written
 down because a button that re-arms itself reads as a bug from outside the call
 graph — it was diagnosed as one twice before the consumers were checked.
+
+Four leads from the 2026-09-04 next-work sweep, kept here rather than in a
+findings block because each one is work somebody has to choose, not a defect
+already understood. They sit in this phase because three of the four are the
+same complaint as the phase itself one level down: an instrument that does not
+say what it is believed to say. **Every figure quoted in them comes from an
+uncommitted run** — item 29's rule applies, and each item names the committed
+instrument that would establish or kill its own number before any build.
+
+35. **The light side's text ladder, sized from the corrected instrument** — the
+    repair
+    [the-ink-the-instrument-read-as-opaque](docs/features/the-ink-the-instrument-read-as-opaque.md)
+    deliberately shipped without it. Five light themes now read under 4.5:1 on
+    the log-row label (`blueprint` 3.19, `parchment` 4.15, `solarized-light`
+    4.26, `bubblegum` 4.34, `ukiyo` 4.44) and `fallow`, the one theme the a11y
+    gate runs, sits at 4.52. The reported shape of the problem, unverified: 19 of
+    19 light themes that declare their own `--ty-primary` read 3.17–4.25:1 for
+    `--ty-silent` across 167 sites, and alpha alone cannot carry the silent rung
+    — the lift `bubblegum` needs lands on `--ty-secondary`'s own value and
+    collapses the top two rungs. **First step is the corrected script over the
+    catalogue**, not a token edit: `--ty-secondary` is one derivation feeding
+    `--muted-foreground` and ~43 files, so the choice between a per-side
+    derivation and named per-theme exceptions is the run's to make.
+
+36. **The 12-task wall clock is one seeded day** — `plan-advice.probe.ts` times
+    exactly one generated day per n at a hardcoded 8 h budget, and six live sites
+    quote that single draw, one of them (`plan-advice.ts`) calling it "its worst
+    case". Reported: 60 fresh seeds at n = 12 put the whole advice run at median
+    ~465–514 ms and max ~1.08–1.16 s, and the budget axis — the one the range
+    input drags — was never measured at all. Nothing settled moves; "never in a
+    `$derived`" gets stronger. **This item's own numbers are now stale**: the
+    prune in [the-subsets-that-could-not-win](docs/features/the-subsets-that-could-not-win.md)
+    landed 2026-09-04 and re-based the whole ladder, so the sweep must be re-run
+    before any of the six sites is re-quoted.
+
+37. **Two blind spots in the verification chain** — the Stop hook parses
+    `git status --porcelain` with a fixed slice, so a staged RENAME becomes the
+    string `old -> new`, fails the existence filter, empties the changed list and
+    takes the early exit: none of prettier, eslint, `check` or the six doc
+    scripts run. `git mv` is allowlisted and the last 200 commits carry ~97
+    renames. Separately, `scripts/` and `e2e/` are in no type-check program, and
+    a throwaway tsconfig over them is reported to print 4 errors, one live (a
+    probe importing a constant its module never re-exports, so it reads
+    `undefined` at runtime). Fix the hook with `-z` and NUL splitting, keeping the
+    FIRST field of a rename — the survivor, not the second.
+
+38. **`satietyScale`'s conditioning error on the λ₀ fit, priced beside V_T's** —
+    κ = `satietyScale`·O_ref is a bare 1 that the shipped λ₀ fit and the live
+    stop advisor condition on exactly as they condition on V_T, and a slider
+    position the store keeps reachable is reported to nearly double λ̂₀ (1.594 at
+    κ = 0 against an honest 0.876 ±0.044, i.e. ~16× the posterior std; ~5× worse
+    than V_T's documented 3.3×). It also names a contradiction inside MATH.md:
+    §8.10 lists λ₀'s conditioning set with `satietyScale` in it and its
+    common-mode bullet drops it. One arm beside the existing V_T arm settles
+    both. Nothing enters `src/`, and no clamp: κ ≤ 0 is a documented mode.
 
 ## Phase 4 — multi-day horizon
 
@@ -775,6 +843,22 @@ place.
   ring hides behind the app bar and the two mid-range labels recover to ~1.9:1,
   while the five at 1.00:1 do not move.
 
+  **Re-read 2026-09-04: the expensive half may not be the half that closes it.**
+  The redraw is taste with no instrument behind it, while the COMPLIANCE half is
+  reported to be ~6 lines — STYLE.md already says not to draw a focal object
+  below the width the gutter fits it, and at 1440px, one of the two viewports
+  this finding measured, that alone is claimed to clear every failing label with
+  no drawing work. Unverified, from an uncommitted run. Settle it before
+  choosing: one scratchpad Playwright pass sampling the COMPOSITED pixel under
+  each label's box (the shipped contrast scripts cannot, which is why this
+  finding exists), three arms — (A) HEAD, which must reproduce 5 × 1.00:1 or the
+  instrument is wrong, (B) `.theme-helper-1` deleted, (C) helper-1 at the gutter
+  width behind a media gate — with the kill criterion fixed BEFORE the run: if B
+  clears all seven, build B and drop the redraw. Either way the halo moves in the
+  same change; `themes.css` positions it at one half-width of the 20rem object.
+  Not a committed instrument: the moon spec already refused a second permanent
+  mechanism for this one fact.
+
 ## Findings from the 2026-08-27 branch review
 
 The twelve commits that closed M17, M33–M35 and M47–M54 were reviewed together
@@ -941,3 +1025,37 @@ against the objective and measured over the fixture year.
   [`the-unit-the-percentages-never-named`](docs/features/the-unit-the-percentages-never-named.md),
   `scripts/adv4-plan-value-vs-output.probe.ts`.** Copy only; no formula,
   constant, bound or fit moved.
+
+## Findings from the 2026-09-04 next-work sweep
+
+Eight lenses over the repo, each candidate screened against this file's refused
+list and the per-area settled decisions before it was priced. Four candidates
+were dropped as contradicting a settled decision. Two closed the same day; the
+rest of the shortlist is not written up as items here, because an item number is
+cited once it exists and none of these has been chosen yet.
+
+- **The one instrument for the pair axe cannot see read the ink as opaque —
+  fixed 2026-09-04,
+  [`the-ink-the-instrument-read-as-opaque`](docs/features/the-ink-the-instrument-read-as-opaque.md).**
+  The `cr` half of `inset-contrast.mjs` took the label's colour from computed
+  style, so it printed the label's best case. The corrected run puts five light
+  themes under AA. The colour repair is deliberately a separate change, sized
+  from that run.
+- **M101 — `NumberInput` is the one focused control with no ring.** It sets
+  `outline-none focus:ring-0` and leaves a single 1px border as the entire focus
+  indicator, where every button, badge and tab in the app carries
+  `focus-visible:ring-3 ring-ring/50`. It reaches ~15 fields (the four
+  day-constraint inputs, nine Lab param rows, two accented Lab fields) plus the
+  instrument inputs in `measurement-prompt.ts` and `rest-log-form.svelte`. No
+  measurement is owed — it is a grep and an R3 reading, and the fix adopts a
+  recipe already shipped across 46 themes. axe never caught it because it has no
+  rule for a suppressed outline and only ever sees a story's REST state, which is
+  the same blindness the ink repair above documents. Keep it to `ring-2` on the
+  wrapper and check the 4-up bar's geometry: STYLE.md already records the
+  importance control needing `has-focus-visible:z-10` so a neighbour cannot clip
+  a ring. Raised 2026-09-04, not built.
+- **The funded-subset enumeration priced every subset it could not use —
+  closed 2026-09-04,
+  [`the-subsets-that-could-not-win`](docs/features/the-subsets-that-could-not-win.md).**
+  A pool-free upper bound skips the pooled solve on subsets that cannot beat the
+  incumbent. The plan is unchanged against both committed falsifiers.
