@@ -21,8 +21,10 @@
  * reaches from a 0 h budget is measured here on the suite's own grind day.
  *
  * And one number the frontier's own admission rule rests on: the smallest
- * improvement it admits, so `IMPROVEMENT_NOISE_FLOOR` can be shown to sit orders
- * of magnitude below it rather than inside the readings.
+ * improvement it admits — 9.7657e-4, on Energy Balance, 9.8e5x the floor — so
+ * `IMPROVEMENT_NOISE_FLOOR` is shown to sit orders of magnitude below the
+ * readings rather than inside them. Priced on the gate's own quantity and not on
+ * `after - before`, which runs 8.2x larger and would have overstated that margin.
  *
  * Same generator, seed and day count as `plan-advice.probe.ts` (600 days,
  * seed 42), so these counts compose with its 404 trim levers and 4287 priced
@@ -126,7 +128,12 @@ const GRIND = [task(1, 10, 2, 1), task(2, 9, 1, 2), task(3, 2, 9, 2)];
 const grindDay = (budget: number) => day(GRIND, budget, 0.25, 4, 6);
 /** The same one-minute tolerance `buildLevers` drops a budget lever under. */
 const MIN_HOUR_STEP = 1 / 60;
-/** The same floor `paretoOptions` admits an option over. */
+/**
+ * The same floor `paretoOptions` admits an option over, spelled as a literal and
+ * deliberately not imported: an assertion against the constant it bounds moves
+ * with it and pins nothing (docs/testing.md). Drift is the perturbation sweep's
+ * to catch, not this file's.
+ */
 const IMPROVEMENT_NOISE_FLOOR = 1e-9;
 
 /** Every improvement the frontier admitted on one day, as the gate scored it. */
@@ -141,6 +148,9 @@ const admittedImprovements = (input: DailyMetricsInput) => {
 				baseline,
 				calculateDailyMetrics(applyLever(input, option.lever)),
 			),
+			// The quantity a card would have been priced on instead, so the gap
+			// between the two is measured rather than asserted.
+			move: Math.abs(option.after - finding.before),
 		})),
 	);
 };
@@ -428,10 +438,13 @@ describe('plan advice — the frontier and the levers', () => {
 	it('measures the smallest improvement the frontier admits', () => {
 		const smallest = new Map<AdviceAxis, number>();
 		let options = 0;
+		let smallestMove = Infinity;
 
 		for (const input of DAYS)
-			for (const { axis, improvement } of admittedImprovements(input)) {
+			for (const { axis, improvement, move } of admittedImprovements(input)) {
 				options++;
+
+				if (move > 0) smallestMove = Math.min(smallestMove, move);
 
 				if (Number.isFinite(improvement))
 					smallest.set(axis, Math.min(smallest.get(axis) ?? Infinity, improvement));
@@ -440,7 +453,11 @@ describe('plan advice — the frontier and the levers', () => {
 		const overall = Math.min(...smallest.values());
 
 		console.log(
-			`${options} options over ${smallest.size} axes, smallest admitted improvement ${overall.toExponential(4)} — ${(overall / IMPROVEMENT_NOISE_FLOOR).toExponential(1)}x the floor`,
+			`${options} options over ${smallest.size} axes, smallest admitted improvement ${overall.toExponential(4)} — ${(overall / IMPROVEMENT_NOISE_FLOOR).toExponential(1)}x the floor pinned here`,
+		);
+
+		console.log(
+			`  smallest reading move ${smallestMove.toExponential(4)} — ${(smallestMove / overall).toFixed(1)}x the improvement, which is why the floor is priced on the gate`,
 		);
 
 		for (const [axis, value] of smallest) console.log(`  ${axis} ${value.toExponential(4)}`);

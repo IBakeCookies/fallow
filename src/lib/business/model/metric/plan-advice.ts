@@ -294,7 +294,8 @@ const AXIS: Record<
  * How much better one candidate day reads on one axis — the quantity
  * `paretoOptions` gates on, which is NOT the change in the reading a card
  * prints: Energy Balance reads `EB` and ranks on `|EB − 50|`, and Flow Coverage
- * reads a share and ranks on a count.
+ * reads a share and ranks on a count. Exported so the probe pricing the floor
+ * measures the gate rather than a second spelling of it (R3).
  */
 export function improvementOf(
 	axis: AdviceAxis,
@@ -418,9 +419,8 @@ function paretoOptions(
 	axis: AdviceAxis,
 	baseline: DailyMetrics,
 ): Pick<AdviceFinding, 'options' | 'unpriced'> {
-	const { read, badness } = AXIS[axis];
+	const { read } = AXIS[axis];
 	const baseValue = planValueOf(baseline);
-	const baseBadness = badness(baseline);
 
 	const improving = candidates
 		.map((candidate) => {
@@ -428,7 +428,7 @@ function paretoOptions(
 			const planValue = planValueOf(candidate.metrics);
 
 			return {
-				improvement: baseBadness - badness(candidate.metrics),
+				improvement: improvementOf(axis, baseline, candidate.metrics),
 				option: {
 					lever: candidate.lever,
 					after,

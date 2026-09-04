@@ -138,13 +138,16 @@ function readingOf(
  * the row widens rather than hiding it, and widens as a whole so its options
  * stay comparable. One digit and no further (presentation/AGENTS.md).
  */
-function digitsFor(readings: number[]): number {
+function digitsFor(readings: number[], render: (value: number) => string): number {
+	// The printed text and not the rounded number: Energy Balance prints a word
+	// too, so 39.6 and 40.4 round together and still read apart. Non-readings drop
+	// out first — they all render "N/A", which would collide with each other.
 	const shown = readings.filter((value) => Number.isFinite(value));
+	const texts = shown.map(render);
 
-	const collides = shown.some((value, index) =>
-		shown.some(
-			(other, position) =>
-				position !== index && other !== value && Math.round(other) === Math.round(value),
+	const collides = texts.some((text, index) =>
+		texts.some(
+			(other, position) => position !== index && other === text && shown[position] !== shown[index],
 		),
 	);
 
@@ -448,11 +451,14 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 			// would print a decimal nothing on screen needs.
 			const shown = cap(finding.options);
 
-			const digits = digitsFor([
-				finding.before,
-				...shown.map((option) => option.after),
-				...(finding.unpriced ? [finding.unpriced.after] : []),
-			]);
+			const digits = digitsFor(
+				[
+					finding.before,
+					...shown.map((option) => option.after),
+					...(finding.unpriced ? [finding.unpriced.after] : []),
+				],
+				(value) => readingOf(finding.axis, value, 0, locale).text,
+			);
 
 			const before = readingOf(finding.axis, finding.before, digits, locale);
 

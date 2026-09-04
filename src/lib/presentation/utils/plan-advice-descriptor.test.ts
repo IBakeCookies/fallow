@@ -139,6 +139,15 @@ describe('buildAdviceDisplay', () => {
 			expect(row.options[0].after).toBe('Physical Heavy 30.0%');
 		});
 
+		// Energy Balance prints a word as well as a number, and the word changes at
+		// 40: these two round together and never collided on screen.
+		it('leaves a row whose readings round together but print different words', () => {
+			const [row] = buildAdviceDisplay(collidingDay(39.6, 40.4), 'en-GB').rows;
+
+			expect(row.before).toBe('Physical Heavy 40%');
+			expect(row.options[0].after).toBe('Balanced 40%');
+		});
+
 		it('leaves a row whose options already read apart at whole percent', () => {
 			const [row] = buildAdviceDisplay(collidingDay(29.8246, 47.5), 'en-GB').rows;
 
