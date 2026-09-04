@@ -1875,8 +1875,9 @@ test('the Lab’s form prices a typed task into the optimized day', async ({ pag
 	await setSlider(form.getByLabel('Physical Diff'), 9);
 
 	// Nothing is priced until the press: the prompt line stands where the reading
-	// will go.
-	await expect(form.getByText(/Name the task/)).toBeVisible();
+	// will go, and it names the press rather than asking for a title the field
+	// above it already holds.
+	await expect(form.getByText(/Price this day to read/)).toBeVisible();
 
 	await form
 		.getByRole('button', {

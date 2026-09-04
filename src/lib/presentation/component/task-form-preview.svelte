@@ -19,6 +19,7 @@
 		getBandFlowReached,
 	} from '$lib/presentation/utils/band';
 	import { formatDuration } from '$lib/presentation/utils/duration-format';
+	import { describeDraftCost } from '$lib/presentation/utils/draft-cost-descriptor';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
 
 	interface Props {
@@ -59,33 +60,12 @@
 				].filter((row) => Number.isFinite(row.change.before) && Number.isFinite(row.change.after)),
 	);
 
-	// One line with three shapes: a name beats a total, and the empty case is
-	// said rather than dropped. `null` when the day funds the draft nothing — a
-	// cost row about a task that is not in the plan.
-	const cost = $derived.by(() => {
-		if (impact === null || impact.position === null) return null;
-
-		const { hoursTaken, taskCount, unfunded } = impact.displaced;
-
-		if (unfunded.length > 0) {
-			return m.form_impact_cost_unfunds({
-				titles: unfunded.join(', '),
-			});
-		}
-
-		if (taskCount === 0) return m.form_impact_cost_none();
-
-		const hours = formatDuration(hoursTaken);
-
-		return taskCount === 1
-			? m.form_impact_cost_hours_one({
-					hours,
-				})
-			: m.form_impact_cost_hours_other({
-					hours,
-					count: taskCount,
-				});
-	});
+	// The cost line is dropped, not printed as zero, when the plan funds the draft
+	// nothing: a cost row about a task that is not in the plan. The sentence itself
+	// is shared with the other panel (`utils/draft-cost-descriptor.ts`).
+	const cost = $derived(
+		impact === null || impact.position === null ? null : describeDraftCost(impact.displaced),
+	);
 </script>
 
 {#snippet changeRow(label: string, change: DraftChange, band: Band)}

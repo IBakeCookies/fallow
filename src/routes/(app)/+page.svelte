@@ -284,6 +284,7 @@
 				runOrder={daily.runOrder}
 				viewedDate={selectedDate}
 				constantsFitted={session.constantsFit.fitted}
+				tagVocabulary={session.tagVocabulary}
 				remainingDay={plan.remainingDay}
 				nextTaskTitle={plan.remainingDay?.nextTask?.title}
 				ontoggle={(id) => session.toggleTask(id)}

@@ -40,6 +40,18 @@ export interface DraftChange {
 	after: number;
 }
 
+/**
+ * What a draft takes off the day's other tasks. Shared with the energy reading,
+ * like `DraftTask` and `DraftChange` — both panels print it as one sentence
+ * (`utils/draft-cost-descriptor.ts`), so a fourth field would have to reach
+ * both, and a shape declared twice is one that can disagree with itself.
+ */
+export interface DraftDisplacement {
+	hoursTaken: number;
+	taskCount: number;
+	unfunded: string[];
+}
+
 export interface DraftImpact {
 	/** Hours the plan gives the draft — 0 when it funds nothing. */
 	suggestedHours: number;
@@ -54,11 +66,7 @@ export interface DraftImpact {
 	physicalPercent: DraftChange;
 	slackHours: DraftChange;
 	/** What the draft takes off the day's other tasks. */
-	displaced: {
-		hoursTaken: number;
-		taskCount: number;
-		unfunded: string[];
-	};
+	displaced: DraftDisplacement;
 	burnoutRisk: DraftChange;
 }
 
@@ -162,7 +170,7 @@ export function calculateDraftImpact(
 function displacement(
 	before: DailyMetrics['activeTasks'],
 	after: DailyMetrics['suggestedTasks'],
-): DraftImpact['displaced'] {
+): DraftDisplacement {
 	let hoursTaken = 0;
 	let taskCount = 0;
 	const unfunded: string[] = [];

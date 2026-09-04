@@ -300,6 +300,7 @@
 	"form_impact_burnout": "Burnout Risk",
 	"form_impact_price": "Price this day",
 	"form_impact_price_prompt": "Name the task, then price it into the day.",
+	"form_impact_price_ready": "Price this day to read what this task costs.",
 	"form_impact_pricing": "Pricing this task into the day…",
 	"form_impact_starts_at": "starts at {offset}",
 	"form_impact_end_cognitive": "Cognitive energy when you stop",

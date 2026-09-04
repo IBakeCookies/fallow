@@ -300,6 +300,7 @@
 	"form_impact_burnout": "Burnout-Risiko",
 	"form_impact_price": "Diesen Tag berechnen",
 	"form_impact_price_prompt": "Benenne die Aufgabe und rechne sie dann in den Tag ein.",
+	"form_impact_price_ready": "Rechne den Tag durch, um zu sehen, was diese Aufgabe kostet.",
 	"form_impact_pricing": "Aufgabe wird in den Tag eingerechnet …",
 	"form_impact_starts_at": "beginnt bei {offset}",
 	"form_impact_end_cognitive": "Kognitive Energie beim Aufhören",

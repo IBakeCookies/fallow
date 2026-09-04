@@ -613,20 +613,28 @@ export class EnergyLabStore {
 	}
 
 	/**
-	 * One solve of the day with the draft in it, against the plan this store
-	 * already holds. A method and not a `$derived` for the reason the advice is
-	 * (business/AGENTS.md): the optimizer costs 35-195 ms over the window the
+	 * One solve of the day with the published draft in it, against the plan this
+	 * store already holds. A method and not a `$derived` for the reason the advice
+	 * is (business/AGENTS.md): the optimizer costs 35-195 ms over the window the
 	 * form is typed in. The yield before the solve lets the busy state paint.
+	 *
+	 * It reads `previewDraft` rather than taking one: the form publishes the draft
+	 * here already, and a press that could name a different one is a reading the
+	 * panel would print beside fields that did not produce it.
 	 */
-	async computeDraftImpact(draft: DraftTask): Promise<void> {
-		if (this.#isDraftBusy) return;
+	async computeDraftImpact(): Promise<void> {
+		const draft = this.#previewDraft;
+
+		// Nothing published — an unnamed task is not one the day can be priced with,
+		// and the button that asks is disabled there.
+		if (draft === null || this.#isDraftBusy) return;
 
 		this.#isDraftBusy = true;
 
 		try {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 
-			this.#draftImpact = calculateEnergyDraftImpact(
+			const impact = calculateEnergyDraftImpact(
 				{
 					tasks: this.#session.tasks,
 					windowHours: this.#windowHours,
@@ -636,6 +644,12 @@ export class EnergyLabStore {
 				draft,
 				this.#plan,
 			);
+
+			// The form can move the draft inside that yield — a slider drag publishes on
+			// the next flush — and the setter drops the reading when it does. Assigning
+			// anyway would put back a number the fields above it no longer produce,
+			// which is the disagreement dropping exists to prevent.
+			if (isSameDraft(draft, this.#previewDraft)) this.#draftImpact = impact;
 		} catch (e) {
 			// The only caller is a fire-and-forget click handler; rethrowing would be
 			// an unhandled rejection, not a signal. The panel returns to its prompt.

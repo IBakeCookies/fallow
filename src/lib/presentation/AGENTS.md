@@ -92,8 +92,10 @@ Untestable at every level is the signal.
   (the solve-costing rule below). The panel's own controls only fill the field
   beside it: `/`'s next-task buttons live in the second column and put a title in
   the first. Everything that SUBMITS is in the field column's footer, the row
-  editor's — the must-do flag or the `action` snippet (the Lab's **Price this
-  day**) pushed left, Cancel and the submit right, one row. There is nothing to
+  editor's — the must-do flag and the `action` snippet (the Lab's **Price this
+  day**) in ONE left slot, Cancel and the submit right, one row. One slot and not
+  one `mr-auto` each: two siblings both carrying it split the free space between
+  them, so the row holds whether a screen ever fills the slot with both. There is nothing to
   cancel: the ✕ closes the dialog and a draft is never written until it is
   deployed, so **Cancel is the ✕ spelled where the hand already is** — the card
   binds its dialog's `open` and hands the `form` snippet the closer, since only
@@ -102,7 +104,11 @@ Untestable at every level is the signal.
   `task-list-card`'s dialog is widened for both. `/`'s panel bands its warm-up
   row off the draft's own ϕ (`DraftImpact.flowStateTime`) here, not in the model;
   the Lab's bands nothing, because `PlanSummary` prints end energy unbanded and
-  `AXIS_BAND` has no axis for it.
+  `AXIS_BAND` has no axis for it. What the two panels DO share is the cost line —
+  `utils/draft-cost-descriptor.ts`, one sentence over one `DraftDisplacement`,
+  because the plans differ and the displacement does not. Each panel still owns
+  WHEN to print it: the reading is a cost row about a task the plan funds, and
+  each knows its own way of saying it funds none.
 - **A combobox inside a dialog must `stopPropagation()` on the Escape that closes its
   own list.** bits-ui's escape layer listens on `document`, so an unstopped Escape
   closes the whole form while the user was only dismissing the suggestions. Stop it in
@@ -157,6 +163,12 @@ Untestable at every level is the signal.
   line saying the reading has not been taken. That line is what stops the shell
   claiming a reading nobody has computed; a skeleton would claim its shape
   instead. One control, in one place, discoverable before the first click.
+  **Count the unpriced states before writing that line.** The Lab's form panel
+  has two — nothing typed, and a named draft whose reading a rating drag has just
+  dropped — and the second is the commoner one, since every drag returns the
+  panel to it. One line for both asked for a name the field above it already
+  held, which reads as a form that is not listening, so the panel takes
+  `hasDraft` and says which state it is in.
 - **The same card, once stale, keeps its numbers and withdraws its levers.**
   Both cards above: the reading stays on screen (it is a warning about the
   numbers, not a reason to hide them), and every Apply button gates on
@@ -237,14 +249,19 @@ Five components hold what the two screens say the same way:
   labels, minimums and accents are defined once, `task-importance-select`
   under them, and the tag field — one text input over a native `<datalist>`,
   committing a chip on Enter or a typed comma, whose vocabulary is a prop
-  because the editor offers none for the same reason it offers no titles.
+  BOTH forms pass. It is threaded to the ✎ editor through `task-list` /
+  `energy-task-row` → `task-row-shell`, because a row may not read the session
+  store. It reached only the add form until 2026-09-04, on the grounds that the
+  editor offers no titles either — but that reason does not transfer: a picked
+  title rewrites the three ratings and a picked TAG rewrites nothing, so
+  withholding the list only invited a second spelling of a tag the user has.
   `TaskEdit` — the seven fields a form can set — is this component's
   type, since adding a task and re-tuning one emit the same thing. Importance
   belongs here and `mustDoToday` does not, for the reason the model file gives:
   the level is a property of the task, the flag is a statement about today. Each
   form still owns its own action row AND its own flag: both are the same one
-  line — flag pushed out by `mr-auto`, then the two verbs in the corner — but a
-  footer belongs to the stack it closes, and these are two stacks.
+  line — one left slot pushed out by `mr-auto`, then the two verbs in the corner
+  — but a footer belongs to the stack it closes, and these are two stacks.
 - **`must-do-toggle.svelte`** — the flag itself, a `<label>` carrying
   `buttonVariants` over a transparent full-size `<input type="checkbox">`. It
   reads as a button with a set state (`secondary`) and an unset one (`outline`),
@@ -254,9 +271,9 @@ Five components hold what the two screens say the same way:
   are otherwise not each other: `task-form.svelte` is a title combobox over
   rated history with a pick-reset, `task-edit-form.svelte` is a plain
   title input, which is ~150 lines of script the editor has no counterpart for.
-  **The editor offers no suggestions on purpose** — a pick rewrites the three
-  ratings, and renaming a task the user has already rated must not; only the
-  add form reads title memory.
+  **The editor offers no TITLE suggestions on purpose** — a pick rewrites the
+  three ratings, and renaming a task the user has already rated must not; only
+  the add form reads title memory. Its tag list is not that (above).
   Do not push the title or the frame in here to make them look like one
   component; the callers keep both, so each frame and each field is defined
   once, whole, and the caller's own spacing is what sets the form's density.

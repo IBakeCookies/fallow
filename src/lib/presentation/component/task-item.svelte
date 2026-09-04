@@ -42,6 +42,9 @@
 		mustDoToday?: boolean;
 		importance?: TaskImportance;
 		tags?: string[];
+		/** The user's past tags, for the ✎ editor's tag field — the list comes from
+		 *  the page, since a row cannot read the session store. */
+		tagVocabulary?: string[];
 		slideDay?: number | null;
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
@@ -81,6 +84,7 @@
 		mustDoToday = false,
 		importance = 'normal',
 		tags,
+		tagVocabulary,
 		slideDay,
 		ontoggle,
 		onremove,
@@ -284,6 +288,7 @@
 		{mustDoToday}
 		{importance}
 		{tags}
+		{tagVocabulary}
 		columnCount={getTaskColumns().length}
 		ontoggle={() => ontoggle(id)}
 		{flowMinutes}
