@@ -1,0 +1,622 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* THE PALETTE IS THE SHIPPED `.fallow-dark` THEME, VERBATIM.
+       Values lifted from src/lib/presentation/style/{base,themes,tokens}.css —
+       nothing here is a new colour, a new radius or a new spacing rung. --radius
+       is 0.3rem on this theme and --blur is 0, so the same markup comes out
+       square, flat and unblurred. This file is byte-identical to Main.dc.html
+       except for this block: a design that needs different markup per theme is
+       not one design, and this app ships 46 palettes. */
+    :root {
+      --surface-page: oklch(0.15 0.008 155);
+      --surface-card: oklch(0.185 0.008 155);
+      --surface-inset: oklch(0.285 0.008 155);
+      --surface-hover: oklch(0.97 0.006 155 / 0.06);
+      --ty-primary: oklch(0.97 0.006 155);
+      --ty-secondary: oklch(0.97 0.006 155 / 0.7);
+      --ty-silent: oklch(0.97 0.006 155 / 0.55);
+      --ty-ghost: oklch(0.97 0.006 155 / 0.4);
+      --border: oklch(1 0 0 / 0.13);
+      --line-soft: oklch(1 0 0 / 0.07);
+      --input: oklch(0.24 0.008 155);
+      --primary: oklch(0.82 0.105 168);
+      --primary-foreground: oklch(0.2 0.03 168);
+      --brand: oklch(0.82 0.105 168);
+      --brand-strong: oklch(0.89 0.085 170);
+      --flow: oklch(0.82 0.13 78);
+      --body: oklch(0.765 0.177 163.223);
+      --mind: oklch(0.707 0.165 254.624);
+      --success: oklch(0.765 0.177 163.223);
+      --success-strong: oklch(0.845 0.143 164.978);
+      --warning: oklch(0.82 0.13 78);
+      --warning-strong: oklch(0.89 0.11 80);
+      --danger-strong: oklch(0.8 0.15 26);
+      --card-shadow: 0 0 #0000;
+      --radius: 4.8px;
+      --blur: 0px;
+      --page-bg: none;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ty-primary);
+      font-family: 'Inter', 'Inter Variable', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      background-color: var(--surface-page);
+      background-image: var(--page-bg);
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { color: var(--brand-strong); }
+
+    p, h1, h2, h3, h4, ul, ol, table { margin: 0; padding: 0; }
+    ul { list-style: none; }
+    table { border-collapse: collapse; width: 100%; }
+
+    /* Every figure on the page is tabular — a reading is only comparable down a
+       column while its digits line up (tokens.css, `ledger-numeric`). */
+    .n { font-variant-numeric: tabular-nums; }
+
+    /* card-shell — the app's one panel surface. */
+    .card {
+      border-radius: calc(var(--radius) * 1.8);
+      border: 1px solid var(--border);
+      background: var(--surface-card);
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(var(--blur));
+    }
+
+    /* the uppercase card heading the whole app uses: text-xs / 600 / wider */
+    .kick {
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ty-secondary);
+    }
+    .kick-quiet { color: var(--ty-silent); }
+
+    /* hint-underline — "there is an explanation here" */
+    .hint {
+      text-decoration: underline dotted var(--ty-ghost);
+      text-underline-offset: 4px;
+      cursor: help;
+    }
+
+    .ic { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .navlink {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--ty-secondary);
+    }
+    .navlink-on { background: var(--surface-hover); color: var(--ty-primary); }
+
+    /* Button variant=outline size=sm */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: calc(var(--radius) * 0.6);
+      border: 1px solid var(--border);
+      background: var(--input);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ty-secondary);
+      white-space: nowrap;
+    }
+    .btn-icon { width: 32px; padding: 0; }
+    /* Button variant=default */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: calc(var(--radius) * 0.8);
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 2px 8px;
+      border: 1px solid transparent;
+      border-radius: calc(var(--radius) * 2.6);
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* order-badge, tokens.css: the run order's `#N` pill */
+    .ord {
+      border-radius: calc(var(--radius) * 0.6);
+      background: color-mix(in oklab, var(--flow) 15%, transparent);
+      padding: 2px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--flow);
+    }
+
+    /* ledger-cell */
+    .cell {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 10px 8px;
+      vertical-align: middle;
+    }
+    .head {
+      border-bottom: 1px solid var(--line-soft);
+      padding: 10px 8px;
+      text-align: left;
+      font-size: 11px;
+      line-height: 16px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ty-silent);
+    }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* log-row, tokens.css */
+    .log {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: calc(var(--radius) * 0.6);
+      background: var(--surface-inset);
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--ty-secondary);
+    }
+
+    /* the reference reading: label left, value right, hairline under */
+    .read {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid var(--line-soft);
+      padding: 5px 0;
+    }
+    .read-l { font-size: 12px; color: var(--ty-secondary); }
+    .read-v { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<!-- ============================================================
+     THE CHROME — as it ships (nav.svelte): full-bleed sticky bar,
+     wordmark, text links, the day on the right. Unchanged.
+     ============================================================ -->
+<header style="border-bottom: 1px solid var(--border); background: var(--surface-card); backdrop-filter: blur(var(--blur))">
+  <div style="max-width: 1440px; margin: 0 auto; padding: 12px 32px; display: flex; align-items: center; gap: 32px">
+    <span class="hint" style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Fallow</span>
+    <nav style="display: flex; align-items: center; gap: 4px">
+      <span class="navlink navlink-on">Today</span>
+      <span class="navlink">Calendar</span>
+      <span class="navlink">Analytics</span>
+      <span class="navlink">Energy Lab</span>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 10px">
+      <span style="font-size: 13px; color: var(--ty-silent)"><span style="color: var(--ty-primary)">EN</span> &middot; DE</span>
+      <span class="btn">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2a10 10 0 0 0 0 20 2 2 0 0 0 2-2v-1a2 2 0 0 1 2-2h3a3 3 0 0 0 3-3 10 10 0 0 0-10-12"></path></svg>
+        <span>Fallow</span>
+      </span>
+      <span class="btn btn-icon">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </span>
+    </div>
+  </div>
+</header>
+
+<div style="max-width: 1440px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 32px">
+
+  <!-- ============================================================
+       1. THE VERDICT — page-level type, no card. The first thing on
+       the page is what the model concluded about the day, in the
+       app's own words and its own numbers. Today the page opens on
+       the Time Budget's four steppers instead: a setting, above the
+       answer.
+       ============================================================ -->
+  <section style="display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; flex-wrap: wrap">
+    <div style="min-width: 0; max-width: 720px">
+      <p class="kick kick-quiet">Today &middot; Thu 4 Sep</p>
+      <h2 style="margin-top: 12px; font-size: 30px; line-height: 1.2; font-weight: 500; letter-spacing: -0.015em; text-wrap: pretty">
+        Four of five tasks stop before flow arrives.
+      </h2>
+      <p style="margin-top: 10px; font-size: 15px; line-height: 1.5; color: var(--ty-secondary); text-wrap: pretty">
+        Cognitive, not clock &mdash; the day is <span style="color: var(--ty-primary); font-weight: 500">100% mind work</span>, and no task move or budget change improves that.
+      </p>
+    </div>
+
+    <!-- The three readings that ARE the day. Allocated is the budget; the other
+         two are headline tiles the shipped page prints BELOW the ledger. -->
+    <div style="display: flex; align-items: flex-start; gap: 32px; flex-shrink: 0">
+      <div style="border-left: 2px solid var(--line-soft); padding-left: 14px">
+        <p class="kick kick-quiet hint">Allocated</p>
+        <p class="n" style="margin-top: 6px; font-size: 26px; font-weight: 500; line-height: 1.1">7h 15m</p>
+        <p style="margin-top: 2px; font-size: 12px; color: var(--ty-silent)">of <span class="n">8h 15m</span> &middot; <span class="n">1h</span> switching</p>
+      </div>
+      <div style="border-left: 2px solid var(--warning); padding-left: 14px">
+        <p class="kick kick-quiet hint">Flow coverage</p>
+        <p class="n" style="margin-top: 6px; font-size: 26px; font-weight: 500; line-height: 1.1; color: var(--warning-strong)">1 / 5</p>
+        <p style="margin-top: 2px; font-size: 12px; color: var(--ty-silent)">only #1 runs long enough</p>
+      </div>
+      <div style="border-left: 2px solid var(--success); padding-left: 14px">
+        <p class="kick kick-quiet hint">Human capacity</p>
+        <p class="n" style="margin-top: 6px; font-size: 26px; font-weight: 500; line-height: 1.1; color: var(--success-strong)">75%</p>
+        <p style="margin-top: 2px; font-size: 12px; color: var(--ty-silent)">cognitive pool binds first</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       2. DAY SETUP — the Time Budget, demoted from the page's first
+       card to one line of readings. It is four numbers you set once
+       and then stop looking at; it does not need a panel above the
+       plan. Click any figure to edit it in place.
+       ============================================================ -->
+  <section style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px 24px; border-radius: var(--radius); border: 1px solid var(--line-soft); background: var(--surface-inset); padding: 10px 16px">
+    <span class="kick kick-quiet" style="margin-right: 8px">Day setup</span>
+    <span style="font-size: 13px; color: var(--ty-secondary)">Available <span class="n hint" style="color: var(--ty-primary); font-weight: 500">8.25h</span></span>
+    <span style="color: var(--ty-ghost)">&middot;</span>
+    <span style="font-size: 13px; color: var(--ty-secondary)">Switch cost <span class="n hint" style="color: var(--ty-primary); font-weight: 500">15m</span></span>
+    <span style="color: var(--ty-ghost)">&middot;</span>
+    <span style="font-size: 13px; color: var(--ty-secondary)">Mind pool <span class="n hint" style="color: var(--ty-primary); font-weight: 500">6h</span></span>
+    <span style="color: var(--ty-ghost)">&middot;</span>
+    <span style="font-size: 13px; color: var(--ty-secondary)">Body pool <span class="n hint" style="color: var(--ty-primary); font-weight: 500">6h</span></span>
+    <span style="margin-left: auto; display: flex; align-items: center; gap: 10px">
+      <span style="font-size: 12px; color: var(--ty-silent)"><span class="n">4</span> time-to-flow logs &middot; model personalised</span>
+      <span class="btn" style="height: 28px">Calibration</span>
+    </span>
+  </section>
+
+  <!-- ============================================================
+       3. NEXT — the one accented surface on the page. The re-plan's
+       position 1 is the model's most actionable single output and
+       today it is a small line inside the ledger card's header.
+       ============================================================ -->
+  <section class="card" style="border-color: color-mix(in oklab, var(--primary) 35%, transparent); background: color-mix(in oklab, var(--primary) 7%, transparent); box-shadow: none; padding: 20px 24px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap">
+    <div style="min-width: 0; flex: 1">
+      <p class="kick" style="color: var(--brand-strong)">Next</p>
+      <p style="margin-top: 8px; font-size: 20px; font-weight: 500; line-height: 1.3">Write the PDF solution</p>
+      <p style="margin-top: 6px; font-size: 13px; color: var(--ty-secondary)">
+        <span class="n">1h 45m</span> allocated &middot; flow at <span class="n">1h 49m</span> &middot; stop by <span class="n">3h 10m</span>
+        <span style="color: var(--ty-ghost)">&nbsp;|&nbsp;</span>
+        the next <span class="n">15m</span> here are worth <span class="n" style="color: var(--success-strong)">+0.9%</span> plan value
+      </p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0">
+      <span class="btn">Log &#9889;</span>
+      <span class="btn">Log &#129707;</span>
+      <span class="btn-primary">Start</span>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       4. THE DAY, DRAWN — day-timeline.svelte, unchanged in meaning
+       and given room: h-24 becomes h-36, out of the ledger card and
+       onto the page. No time of day anywhere: every duration is an
+       offset from the day's own zero (docs/redesign/README, Settled).
+       ============================================================ -->
+  <section class="card" style="padding: 24px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 16px; flex-wrap: wrap">
+      <h3 class="kick">The day, to scale</h3>
+      <div style="display: flex; align-items: center; gap: 18px; font-size: 12px; color: var(--ty-silent)">
+        <span style="display: flex; align-items: center; gap: 7px"><span style="width: 18px; height: 3px; border-radius: 2px; background: var(--success)"></span>reaches flow</span>
+        <span style="display: flex; align-items: center; gap: 7px"><span style="width: 18px; height: 3px; border-radius: 2px; background: var(--warning)"></span>stops short of flow</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 6px; height: 144px">
+      <!-- Widths are each block's share of the 7h 15m allocated, exactly as the
+           shipped strip computes them. -->
+      <div style="flex: 150; min-width: 0; display: flex; flex-direction: column; gap: 4px; border-radius: calc(var(--radius) * 0.8); border: 1px solid var(--line-soft); background: var(--surface-inset); padding: 12px">
+        <p style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><span class="ord">#1</span> <span style="margin-left: 4px">Design Error boundary</span></p>
+        <p class="n" style="font-size: 12px; color: var(--ty-secondary)">2h 30m</p>
+        <p style="font-size: 12px; color: var(--success-strong)">reaches flow at <span class="n">2h 14m</span></p>
+        <div style="margin-top: auto; height: 4px; width: 100%; border-radius: 2px; background: var(--surface-card)">
+          <div style="height: 4px; width: 100%; border-radius: 2px; background: var(--success)"></div>
+        </div>
+      </div>
+      <div style="flex: 105; min-width: 0; display: flex; flex-direction: column; gap: 4px; border-radius: calc(var(--radius) * 0.8); border: 1px solid var(--line-soft); background: var(--surface-inset); padding: 12px">
+        <p style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><span class="ord">#2</span> <span style="margin-left: 4px">Write the PDF solution</span></p>
+        <p class="n" style="font-size: 12px; color: var(--ty-secondary)">1h 45m</p>
+        <p style="font-size: 12px; color: var(--warning-strong)">short of flow by <span class="n">4m</span></p>
+        <div style="margin-top: auto; height: 4px; width: 100%; border-radius: 2px; background: var(--surface-card)">
+          <div style="height: 4px; width: 96%; border-radius: 2px; background: var(--warning)"></div>
+        </div>
+      </div>
+      <div style="flex: 90; min-width: 0; display: flex; flex-direction: column; gap: 4px; border-radius: calc(var(--radius) * 0.8); border: 1px solid var(--line-soft); background: var(--surface-inset); padding: 12px">
+        <p style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><span class="ord">#3</span> <span style="margin-left: 4px">review 1 PR API</span></p>
+        <p class="n" style="font-size: 12px; color: var(--ty-secondary)">1h 30m</p>
+        <p style="font-size: 12px; color: var(--warning-strong)">short of flow by <span class="n">9m</span></p>
+        <div style="margin-top: auto; height: 4px; width: 100%; border-radius: 2px; background: var(--surface-card)">
+          <div style="height: 4px; width: 91%; border-radius: 2px; background: var(--warning)"></div>
+        </div>
+      </div>
+      <div style="flex: 75; min-width: 0; display: flex; flex-direction: column; gap: 4px; border-radius: calc(var(--radius) * 0.8); border: 1px solid var(--line-soft); background: var(--surface-inset); padding: 12px">
+        <p style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><span class="ord">#4</span> <span style="margin-left: 4px">Review 1 PR APP</span></p>
+        <p class="n" style="font-size: 12px; color: var(--ty-secondary)">1h 15m</p>
+        <p style="font-size: 12px; color: var(--warning-strong)">short by <span class="n">26m</span></p>
+        <div style="margin-top: auto; height: 4px; width: 100%; border-radius: 2px; background: var(--surface-card)">
+          <div style="height: 4px; width: 74%; border-radius: 2px; background: var(--warning)"></div>
+        </div>
+      </div>
+      <div style="flex: 15; min-width: 64px; display: flex; flex-direction: column; gap: 4px; border-radius: calc(var(--radius) * 0.8); border: 1px solid var(--line-soft); background: var(--surface-inset); padding: 12px 8px">
+        <p style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><span class="ord">#5</span></p>
+        <p style="font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Daily</p>
+        <p class="n" style="font-size: 12px; color: var(--ty-secondary)">15m</p>
+        <div style="margin-top: auto; height: 4px; width: 100%; border-radius: 2px; background: var(--surface-card)">
+          <div style="height: 4px; width: 25%; border-radius: 2px; background: var(--warning)"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       5. THE PLAN — the shipped twelve-column ledger, at rest showing
+       the five columns that answer "what, how long, how far did I
+       get". The seven instrument columns stay one click away instead
+       of pushing the table into a sideways scroll with two pinned
+       columns on anything under ~1200px.
+       ============================================================ -->
+  <section class="card" style="padding: 24px">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <h3 class="kick">Plan</h3>
+        <span style="font-size: 12px; color: var(--ty-silent)"><span class="n">0</span> of <span class="n">5</span> done</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span class="btn"><span style="color: var(--ty-silent)">+</span> Instruments <span class="n" style="color: var(--ty-silent)">7</span></span>
+        <span class="btn">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>
+          <span>Load</span>
+        </span>
+        <span class="btn">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg>
+          <span>Save</span>
+        </span>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="head" style="width: 52px">#</th>
+          <th class="head">Task</th>
+          <th class="head" style="width: 300px">Logged</th>
+          <th class="head num" style="width: 110px">Planned</th>
+          <th class="head" style="width: 72px"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%)">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell"><span class="ord">#1</span></td>
+          <td class="cell">
+            <p style="font-size: 14px; font-weight: 500">Design Error boundary</p>
+          </td>
+          <td class="cell">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+              <span class="log">&#9889; 2h 14m</span>
+              <span style="font-size: 12px; color: var(--ty-ghost)">+</span>
+            </div>
+          </td>
+          <td class="cell num" style="font-size: 14px; font-weight: 500">2h 30m</td>
+          <td class="cell" style="text-align: right; color: var(--ty-silent); font-size: 13px">&#9998; &nbsp; &#10005;</td>
+        </tr>
+        <tr>
+          <td class="cell"><span class="ord">#2</span></td>
+          <td class="cell">
+            <p style="font-size: 14px; font-weight: 500">Write the PDF solution</p>
+          </td>
+          <td class="cell">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+              <span style="font-size: 12px; color: var(--ty-ghost)">&#9889; &nbsp; &#129707;</span>
+            </div>
+          </td>
+          <td class="cell num" style="font-size: 14px; font-weight: 500">1h 45m</td>
+          <td class="cell" style="text-align: right; color: var(--ty-silent); font-size: 13px">&#9998; &nbsp; &#10005;</td>
+        </tr>
+        <tr>
+          <td class="cell"><span class="ord">#3</span></td>
+          <td class="cell">
+            <p style="font-size: 14px; font-weight: 500">review 1 PR API</p>
+          </td>
+          <td class="cell">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+              <span style="font-size: 12px; color: var(--ty-ghost)">&#9889; &nbsp; &#129707;</span>
+            </div>
+          </td>
+          <td class="cell num" style="font-size: 14px; font-weight: 500">1h 30m</td>
+          <td class="cell" style="text-align: right; color: var(--ty-silent); font-size: 13px">&#9998; &nbsp; &#10005;</td>
+        </tr>
+        <tr>
+          <td class="cell"><span class="ord">#4</span></td>
+          <td class="cell">
+            <p style="font-size: 14px; font-weight: 500">Review 1 PR APP</p>
+          </td>
+          <td class="cell">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+              <span style="font-size: 12px; color: var(--ty-ghost)">&#9889; &nbsp; &#129707;</span>
+            </div>
+          </td>
+          <td class="cell num" style="font-size: 14px; font-weight: 500">1h 15m</td>
+          <td class="cell" style="text-align: right; color: var(--ty-silent); font-size: 13px">&#9998; &nbsp; &#10005;</td>
+        </tr>
+        <tr>
+          <td class="cell" style="border-bottom: none"><span class="ord">#5</span></td>
+          <td class="cell" style="border-bottom: none">
+            <p style="font-size: 14px; font-weight: 500">Daily</p>
+          </td>
+          <td class="cell" style="border-bottom: none">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap">
+              <span style="font-size: 12px; color: var(--ty-ghost)">&#9889; &nbsp; &#129707;</span>
+            </div>
+          </td>
+          <td class="cell num" style="border-bottom: none; font-size: 14px; font-weight: 500">15m</td>
+          <td class="cell" style="border-bottom: none; text-align: right; color: var(--ty-silent); font-size: 13px">&#9998; &nbsp; &#10005;</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- The add form is a row of the plan, not a dialog over it: you can see what
+         the day already costs while you price the next thing into it. -->
+    <div style="display: flex; align-items: center; gap: 16px; border-top: 1px solid var(--line-soft); padding-top: 16px; margin-top: 4px; flex-wrap: wrap">
+      <span style="font-size: 16px; color: var(--ty-silent)">+</span>
+      <span style="flex: 1; min-width: 200px; font-size: 14px; color: var(--ty-ghost)">Add a task &mdash; type a title you have rated before and its ratings come back</span>
+      <span style="display: flex; align-items: center; gap: 18px; flex-wrap: wrap">
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span class="kick kick-quiet">Phys</span>
+          <span style="width: 64px; height: 3px; border-radius: 2px; background: var(--surface-inset); position: relative"><span style="position: absolute; left: 0; width: 50%; height: 3px; border-radius: 2px; background: var(--body)"></span></span>
+          <span class="n" style="font-size: 12px; color: var(--ty-secondary)">5</span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span class="kick kick-quiet">Ment</span>
+          <span style="width: 64px; height: 3px; border-radius: 2px; background: var(--surface-inset); position: relative"><span style="position: absolute; left: 0; width: 50%; height: 3px; border-radius: 2px; background: var(--mind)"></span></span>
+          <span class="n" style="font-size: 12px; color: var(--ty-secondary)">5</span>
+        </span>
+        <span style="display: flex; align-items: center; gap: 8px">
+          <span class="kick kick-quiet">Enjoy</span>
+          <span style="width: 64px; height: 3px; border-radius: 2px; background: var(--surface-inset); position: relative"><span style="position: absolute; left: 0; width: 44%; height: 3px; border-radius: 2px; background: var(--brand)"></span></span>
+          <span class="n" style="font-size: 12px; color: var(--ty-secondary)">5</span>
+        </span>
+        <span class="btn">Keep on today</span>
+        <span class="btn-primary" style="height: 32px; padding: 0 14px">Deploy</span>
+      </span>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       6. WHAT TO CHANGE — the advice card, computed rather than
+       waiting behind a Check button, and split into the two things
+       it actually answers: what binds, and which lever moves it.
+       ============================================================ -->
+  <section style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+    <div class="card" style="padding: 20px 24px; border-color: color-mix(in oklab, var(--warning) 35%, transparent); background: color-mix(in oklab, var(--warning) 6%, transparent)">
+      <h3 class="kick" style="color: var(--warning-strong)">Binding constraint</h3>
+      <p style="margin-top: 12px; font-size: 15px; line-height: 1.5; text-wrap: pretty">Cognitive, not clock. The day is <span style="font-weight: 600">100% mind work</span> against a <span class="n">6h</span> pool.</p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--ty-secondary)">At no switch cost this plan reads <span class="n">+3.1%</span> plan value; at <span class="n">30m</span> a switch, <span class="n">&minus;4.1%</span>.</p>
+    </div>
+
+    <div class="card" style="padding: 20px 24px">
+      <h3 class="kick">Levers, ruled out</h3>
+      <ul style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px">
+        <li style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <span style="font-size: 13px; color: var(--ty-secondary)">Defer <span style="color: var(--ty-primary)">Review 1 PR APP</span></span>
+          <span class="n" style="font-size: 13px; font-weight: 600; color: var(--ty-silent)">no change</span>
+        </li>
+        <li style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <span style="font-size: 13px; color: var(--ty-secondary)">Raise the mind pool</span>
+          <span class="n" style="font-size: 13px; font-weight: 600; color: var(--ty-silent)">no change</span>
+        </li>
+        <li style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <span style="font-size: 13px; color: var(--ty-secondary)">Raise available hours</span>
+          <span class="n" style="font-size: 13px; font-weight: 600; color: var(--ty-silent)">no change</span>
+        </li>
+      </ul>
+      <p style="margin-top: 12px; font-size: 12px; color: var(--ty-silent)">The panel earns its place by ruling these out. Anything deferred goes to <span class="hint">tomorrow, Fri 5 Sep</span>.</p>
+    </div>
+
+    <div class="card" style="padding: 20px 24px">
+      <h3 class="kick">Stop advisor</h3>
+      <p style="margin-top: 12px; font-size: 15px; line-height: 1.5; text-wrap: pretty">Nothing is past its stopping value yet. <span style="color: var(--ty-secondary)">#1 turns marginal at <span class="n">3h 55m</span>.</span></p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--ty-silent)">Momentum stable &middot; burnout risk <span class="n">42%</span> &middot; recovery <span class="n">1:1</span></p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       7. THE READINGS — the twenty-four metric-descriptor.ts defines,
+       none behind an accordion.
+       A four-column grid at 12px is read faster than a twenty-row
+       fold-out, and colour is spent only where a reading is out of
+       the ordinary (themes.css, `.fallow-dark`).
+       ============================================================ -->
+  <section class="card" style="padding: 24px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 16px">
+      <div style="display: flex; align-items: center; gap: 12px"><h3 class="kick">All twenty-four readings</h3><span class="badge" style="background: color-mix(in oklab, var(--success) 20%, transparent); color: var(--success-strong)">Momentum stable</span></div>
+      <span style="font-size: 12px; color: var(--ty-silent)">grouped by the question each answers &mdash; none behind an accordion</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px">
+      <div>
+        <p class="kick kick-quiet" style="margin-bottom: 8px">Does the day fit?</p>
+        <div class="read"><span class="read-l hint">Flow Coverage</span><span class="read-v" style="color: var(--warning-strong)">1 / 5</span></div>
+        <div class="read"><span class="read-l hint">Human Capacity</span><span class="read-v" style="color: var(--success-strong)">75%</span></div>
+        <div class="read"><span class="read-l hint">Capacity Left</span><span class="read-v" style="color: var(--ty-ghost)">N/A</span></div>
+        <div class="read"><span class="read-l hint">Time Scarcity</span><span class="read-v" style="color: var(--success-strong)">14%</span></div>
+        <div class="read"><span class="read-l hint">Schedule Integrity</span><span class="read-v" style="color: var(--success-strong)">88%</span></div>
+        <div class="read" style="border-bottom: none"><span class="read-l hint">Primary Bottleneck</span><span class="read-v" style="font-size: 12px; font-weight: 500">Error boundary</span></div>
+      </div>
+      <div>
+        <p class="kick kick-quiet" style="margin-bottom: 8px">Is the time well spent?</p>
+        <div class="read"><span class="read-l hint">Fallow Gain</span><span class="read-v">+6.1%</span></div>
+        <div class="read"><span class="read-l hint">Yield Index</span><span class="read-v" style="color: var(--ty-ghost)">N/A</span></div>
+        <div class="read"><span class="read-l hint">Deep Work</span><span class="read-v" style="color: var(--success-strong)">28%</span></div>
+        <div class="read"><span class="read-l hint">Quick Wins</span><span class="read-v">0</span></div>
+        <div class="read"><span class="read-l hint">Longest Warm-Up</span><span class="read-v" style="color: var(--success-strong)">2.2h</span></div>
+        <div class="read" style="border-bottom: none"><span class="read-l hint">Friction Index</span><span class="read-v" style="color: var(--success-strong)">6%</span></div>
+      </div>
+      <div>
+        <p class="kick kick-quiet" style="margin-bottom: 8px">What is it costing?</p>
+        <div class="read"><span class="read-l hint">Cognitive Load</span><span class="read-v" style="color: var(--success-strong)">54%</span></div>
+        <div class="read"><span class="read-l hint">Physical Load</span><span class="read-v" style="color: var(--ty-ghost)">0%</span></div>
+        <div class="read"><span class="read-l hint">Energy Balance</span><span class="read-v" style="font-size: 12px; color: var(--warning-strong)">Cognitive Heavy</span></div>
+        <div class="read"><span class="read-l hint">Grind Density</span><span class="read-v">40% (2/5)</span></div>
+        <div class="read"><span class="read-l hint">Avg Mental Diff</span><span class="read-v">5/10</span></div>
+        <div class="read" style="border-bottom: none"><span class="read-l hint">Avg Physical Diff</span><span class="read-v" style="color: var(--ty-ghost)">0/10</span></div>
+      </div>
+      <div>
+        <p class="kick kick-quiet" style="margin-bottom: 8px">Can I keep doing this?</p>
+        <div class="read"><span class="read-l hint">Burnout Risk</span><span class="read-v">42%</span></div>
+        <div class="read"><span class="read-l hint">Recovery Ratio</span><span class="read-v" style="color: var(--success-strong)">1:1</span></div>
+        <div class="read"><span class="read-l hint">Sustainable Work</span><span class="read-v">62%</span></div>
+        <div class="read"><span class="read-l hint">Day Profile</span><span class="read-v" style="font-size: 12px; font-weight: 500">Cruise</span></div>
+        <div class="read"><span class="read-l hint">Completion Rate</span><span class="read-v" style="color: var(--ty-ghost)">0%</span></div>
+        <div class="read" style="border-bottom: none"><span class="read-l hint">Avg Enjoyment</span><span class="read-v">5/10</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line-soft); display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap">
+      <span style="font-size: 12px; color: var(--ty-silent)">Four of these are the dashboard&rsquo;s headline tiles today; two of those four are the verdict at the top of the page.</span>
+      <span style="margin-left: auto; font-size: 12px"><a class="hint">See these over time in Analytics &rarr;</a></span>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

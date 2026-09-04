@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    /* Deliberately low-fi: this is a direction to react to, not a design to
+       ship. Structure only — no palette, no type ramp, no final copy. */
+    :root {
+      --ink: #23261f;
+      --ink-2: #23261f99;
+      --ink-3: #23261f55;
+      --line: #23261f33;
+      --fill: #23261f0d;
+      --mark: oklch(0.65 0.13 85);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #faf9f4;
+      color: var(--ink);
+      font-family: 'Architects Daughter', 'Comic Sans MS', cursive;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    a { color: var(--ink); } a:hover { color: var(--ink-2); }
+    p, h1, h2, h3 { margin: 0; }
+    .box { border: 1.5px solid var(--line); border-radius: 6px; }
+    .dash { border: 1.5px dashed var(--line); border-radius: 6px; }
+    .fill { background: var(--fill); }
+    .lbl { font-family: 'Inter', system-ui, sans-serif; font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+    .note { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+    .rule { height: 8px; border-radius: 4px; background: var(--line); }
+  </style>
+</helmet>
+
+<div style="padding: 28px; display: flex; flex-direction: column; gap: 20px">
+
+  <div>
+    <p class="lbl">Option B</p>
+    <h2 style="margin-top: 4px; font-size: 26px">Focus mode &mdash; the page is one task</h2>
+    <p class="note" style="margin-top: 6px; max-width: 640px">The root page answers only &ldquo;what am I doing right now, and when do I stop?&rdquo;. The whole plan moves behind a tab; the strip stays as a thin reminder that a plan exists.</p>
+  </div>
+
+  <div class="box" style="padding: 18px">
+    <div style="display: flex; align-items: center; gap: 16px">
+      <span style="font-weight: 600">Fallow</span>
+      <span class="dash" style="padding: 3px 12px">Now</span>
+      <span style="color: var(--ink-3)">Plan</span>
+      <span style="color: var(--ink-3)">Calendar</span>
+      <span style="color: var(--ink-3)">Analytics</span>
+      <span style="margin-left: auto; color: var(--ink-3)">theme &middot; menu</span>
+    </div>
+  </div>
+
+  <div class="box fill" style="padding: 28px 24px; display: flex; gap: 28px; align-items: center">
+    <div style="flex: 1; min-width: 0">
+      <p class="lbl">running &middot; #2 of 5</p>
+      <p style="margin-top: 8px; font-size: 30px; line-height: 1.15">Write the PDF solution</p>
+      <div style="margin-top: 18px; display: flex; align-items: center; gap: 12px">
+        <span style="font-size: 26px">41m</span>
+        <div style="flex: 1; height: 10px; border-radius: 5px; background: var(--line); position: relative">
+          <div style="position: absolute; inset: 0 78% 0 0; border-radius: 5px; background: var(--mark)"></div>
+          <span style="position: absolute; left: 57%; top: -22px; font-size: 11px" class="lbl">flow 1h49</span>
+          <span style="position: absolute; right: 0; top: -22px; font-size: 11px" class="lbl">stop 3h10</span>
+        </div>
+      </div>
+      <p class="note" style="margin-top: 14px">of <strong>1h 45m</strong> allocated &middot; flow arrives in <strong>1h 08m</strong> &middot; every further <strong>15m</strong> here is worth <strong>+0.9%</strong> plan value</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; width: 150px">
+      <span class="box" style="padding: 10px; text-align: center">Pause</span>
+      <span class="box" style="padding: 10px; text-align: center">Done &#10003;</span>
+      <span class="dash" style="padding: 10px; text-align: center">Log &#9889; / &#129514;</span>
+    </div>
+  </div>
+
+  <div>
+    <p class="lbl" style="margin-bottom: 8px">the rest of the day, collapsed</p>
+    <div style="display: flex; gap: 5px; height: 46px">
+      <div class="box" style="flex: 150; opacity: 0.7; display: flex; align-items: center; padding: 0 8px; font-size: 12px">#1 logged</div>
+      <div class="box fill" style="flex: 105; display: flex; align-items: center; padding: 0 8px; font-size: 12px; border-color: var(--mark)">#2 now</div>
+      <div class="box" style="flex: 90; display: flex; align-items: center; padding: 0 8px; font-size: 12px">#3</div>
+      <div class="box" style="flex: 75; display: flex; align-items: center; padding: 0 8px; font-size: 12px">#4</div>
+      <div class="box" style="flex: 15; min-width: 40px"></div>
+    </div>
+  </div>
+
+  <div class="dash" style="padding: 16px 18px">
+    <p class="lbl">one line of verdict, always visible</p>
+    <p style="margin-top: 6px">Four of five stop before flow. Cognitive, not clock &mdash; and no task move or budget change improves that.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+    <div class="dash" style="padding: 16px 18px">
+      <p class="lbl">what this buys</p>
+      <p class="note" style="margin-top: 8px">The screen matches what you are actually doing. Stop-by and flow-arrival &mdash; the two readings the model computes that nothing else in the app acts on &mdash; become the whole page instead of two table columns.</p>
+    </div>
+    <div class="dash" style="padding: 16px 18px; border-color: var(--mark)">
+      <p class="lbl" style="color: var(--mark)">what it costs</p>
+      <p class="note" style="margin-top: 8px">The plan the solver computed becomes invisible. Re-planning &mdash; the thing you do when the day slips &mdash; needs a trip to another tab, and the twenty-four readings have nowhere to live on the page you look at most.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

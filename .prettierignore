@@ -12,6 +12,8 @@ bun.lockb
 /project.inlang/
 
 # Design artboards: hand-authored, one file per artboard; formatting them would
-# break the byte-identical Main/Light pairing the README describes.
+# break the byte-identical palette pairings the READMEs describe (Main/Light in
+# docs/redesign, Main/Dark in docs/redesign-answer-first).
 docs/redesign/*.dc.html
 docs/redesign/directions/*.dc.html
+docs/redesign-answer-first/*.dc.html

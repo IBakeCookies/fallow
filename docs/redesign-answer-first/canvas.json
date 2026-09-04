@@ -1,0 +1,89 @@
+{
+	"pages": [
+		{
+			"id": "page-1",
+			"name": "Proposal"
+		},
+		{
+			"id": "page-2",
+			"name": "As it ships"
+		}
+	],
+	"artboards": [
+		{
+			"file": "Main.dc.html",
+			"page": "page-1",
+			"x": 0,
+			"y": 0,
+			"w": 1440,
+			"h": 1900,
+			"title": "Answer first — Today, Fallow light"
+		},
+		{
+			"file": "Dark.dc.html",
+			"page": "page-1",
+			"x": 1560,
+			"y": 0,
+			"w": 1440,
+			"h": 1900,
+			"title": "The same markup, fallow-dark palette"
+		},
+		{
+			"file": "OptionB.dc.html",
+			"page": "page-1",
+			"x": 0,
+			"y": 2140,
+			"w": 880,
+			"h": 800,
+			"title": "Option B — Focus mode (wireframe)"
+		},
+		{
+			"file": "OptionC.dc.html",
+			"page": "page-1",
+			"x": 1000,
+			"y": 2140,
+			"w": 880,
+			"h": 940,
+			"title": "Option C — The day is the instrument (wireframe)"
+		},
+		{
+			"file": "Current.dc.html",
+			"page": "page-2",
+			"x": 0,
+			"y": 0,
+			"w": 1440,
+			"h": 1580,
+			"title": "Today — as it ships, 2026-09-04"
+		}
+	],
+	"annotations": [
+		{
+			"id": "direction",
+			"page": "page-1",
+			"x": 0,
+			"y": -640,
+			"w": 640,
+			"text": "ANSWER FIRST\n\nThe page reads top-down as answer -> plan -> evidence, and the chrome weight follows.\n\n1. The verdict is page-level type, not a card. Today the page opens on the Time Budget's four steppers: a setting, above the answer.\n2. Time Budget becomes one line of readings you click to edit.\n3. Next is the one accented surface on the page. The re-plan's position 1 is the model's most actionable output and today it is a small grey line in a card header.\n4. The strip leaves the ledger card and gets room (h-24 -> h-36).\n5. The ledger rests at five columns. The seven instrument readings are behind the toggle and nowhere else on the row -- the strip above already carries flow arrival.\n6. Binding constraint is computed, not waiting behind a Check button. The panel beside it earns its place by ruling the levers OUT: on this day no task move or budget change improves flow coverage, which is what makes the constraint cognitive rather than clock.\n7. All twenty-four readings metric-descriptor.ts defines, grouped by the question each answers. No accordion.\n\nNothing here invents a colour, a radius or a spacing rung: every value comes from tokens.css / base.css / themes.css. Dark is the SAME markup with only the :root block swapped."
+		},
+		{
+			"id": "alternates",
+			"page": "page-1",
+			"x": 0,
+			"y": 1990,
+			"w": 600,
+			"text": "Two alternates, low-fi on purpose — they are directions to react to, not designs to ship. Each names what it buys and what it costs. If either is the one you want, say so and it gets built out properly; otherwise they can go."
+		},
+		{
+			"id": "audit",
+			"page": "page-2",
+			"x": 0,
+			"y": -620,
+			"w": 640,
+			"text": "WHAT THE CURRENT PAGE DOES\n\nFour full-width cards in one column, every one the same card-shell: same radius, same translucent fill, same shadow, same 12px uppercase heading. Nothing on the page says which one holds the answer.\n\nWhat that costs, in order down the page:\n\n1. The page opens on settings. Time Budget is four steppers you set once, above everything the model computed.\n2. Nothing says NEXT. Position 1 of the re-plan is a small grey line in the ledger card's header.\n3. The verdict reads after the detail. The four headline tiles sit BELOW the twelve-column ledger.\n4. The panel that says what to change starts empty. 'Adjust the plan' is the last card and its default state is 'not run yet', behind a button.\n5. Twenty readings are behind an accordion, and the visible four are 24px numbers with no sentence.\n6. The ledger's twelve columns fit at 1440 and side-scroll with two pinned columns below ~1200.\n7. Colour is spent thinly and unevenly: the band hues reach the strip's bars, the Prio and Flow-at cells, the Momentum badge and two of the four metric rules -- the other two rules are line-soft. The domain hues (mind / body / flow) never reach the ledger at all; they live in the drain editor and the add form's sliders.\n\nThe numbers here are the same checked day as the proposal, so the two compare directly."
+		}
+	],
+	"launch": {
+		"view": "canvas",
+		"page": "page-1"
+	}
+}

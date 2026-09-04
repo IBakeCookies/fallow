@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    /* Deliberately low-fi: this is a direction to react to, not a design to
+       ship. Structure only — no palette, no type ramp, no final copy. */
+    :root {
+      --ink: #23261f;
+      --ink-2: #23261f99;
+      --ink-3: #23261f55;
+      --line: #23261f33;
+      --fill: #23261f0d;
+      --mark: oklch(0.65 0.13 85);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #faf9f4;
+      color: var(--ink);
+      font-family: 'Architects Daughter', 'Comic Sans MS', cursive;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    a { color: var(--ink); } a:hover { color: var(--ink-2); }
+    p, h1, h2, h3 { margin: 0; }
+    .box { border: 1.5px solid var(--line); border-radius: 6px; }
+    .dash { border: 1.5px dashed var(--line); border-radius: 6px; }
+    .fill { background: var(--fill); }
+    .lbl { font-family: 'Inter', system-ui, sans-serif; font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); }
+    .note { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+    .rule { height: 8px; border-radius: 4px; background: var(--line); }
+  </style>
+</helmet>
+
+<div style="padding: 28px; display: flex; flex-direction: column; gap: 20px">
+
+  <div>
+    <p class="lbl">Option C</p>
+    <h2 style="margin-top: 4px; font-size: 26px">The day is the instrument</h2>
+    <p class="note" style="margin-top: 6px; max-width: 660px">No card stack at all. The strip is the spine of the page, and every reading is anchored to the block it describes instead of living in a table below it. You read down from a block to find out what it costs.</p>
+  </div>
+
+  <div class="box" style="padding: 18px">
+    <div style="display: flex; align-items: center; gap: 16px">
+      <span style="font-weight: 600">Fallow</span>
+      <span class="dash" style="padding: 3px 12px">Today</span>
+      <span style="color: var(--ink-3)">Calendar</span>
+      <span style="color: var(--ink-3)">Analytics</span>
+      <span style="color: var(--ink-3)">Energy Lab</span>
+      <span style="margin-left: auto; color: var(--ink-3)">8.25h &middot; 15m switch &middot; 6h mind &middot; 6h body</span>
+    </div>
+  </div>
+
+  <div>
+    <p class="lbl" style="margin-bottom: 10px">the spine &mdash; widths are hours, bars are flow arrival</p>
+    <div style="display: flex; gap: 5px; height: 84px">
+      <div class="box fill" style="flex: 150; padding: 8px; display: flex; flex-direction: column">
+        <p style="font-size: 13px">#1 Error boundary</p>
+        <p class="note" style="margin-top: 2px">2h 30m</p>
+        <div class="rule" style="margin-top: auto; background: var(--line)"><div style="height: 8px; width: 100%; border-radius: 4px; background: var(--ink-2)"></div></div>
+      </div>
+      <div class="box" style="flex: 105; padding: 8px; display: flex; flex-direction: column">
+        <p style="font-size: 13px">#2 PDF solution</p>
+        <p class="note" style="margin-top: 2px">1h 45m</p>
+        <div class="rule" style="margin-top: auto"><div style="height: 8px; width: 96%; border-radius: 4px; background: var(--mark)"></div></div>
+      </div>
+      <div class="box" style="flex: 90; padding: 8px; display: flex; flex-direction: column">
+        <p style="font-size: 13px">#3 PR API</p>
+        <p class="note" style="margin-top: 2px">1h 30m</p>
+        <div class="rule" style="margin-top: auto"><div style="height: 8px; width: 91%; border-radius: 4px; background: var(--mark)"></div></div>
+      </div>
+      <div class="box" style="flex: 75; padding: 8px; display: flex; flex-direction: column">
+        <p style="font-size: 13px">#4 PR APP</p>
+        <p class="note" style="margin-top: 2px">1h 15m</p>
+        <div class="rule" style="margin-top: auto"><div style="height: 8px; width: 74%; border-radius: 4px; background: var(--mark)"></div></div>
+      </div>
+      <div class="box" style="flex: 15; min-width: 44px; padding: 8px">
+        <p style="font-size: 13px">#5</p>
+      </div>
+    </div>
+
+    <!-- readings hang off the block above them, in the same columns -->
+    <div style="display: flex; gap: 5px; margin-top: 6px">
+      <div style="flex: 150; padding: 0 8px">
+        <div style="height: 14px; border-left: 1.5px dashed var(--line); margin-left: 6px"></div>
+        <p class="note" style="margin-top: 4px">flow @ 2h14 &middot; stop 3h55<br>prio 25.3 &middot; effort 4.1<br>M 8 &middot; E 9<br>&#9889; 2h14 logged</p>
+      </div>
+      <div style="flex: 105; padding: 0 8px">
+        <div style="height: 14px; border-left: 1.5px dashed var(--line); margin-left: 6px"></div>
+        <p class="note" style="margin-top: 4px">flow @ 1h49 &middot; stop 3h10<br>prio 18.5 &middot; effort 3.2<br>M 6 &middot; E 7<br>not logged</p>
+      </div>
+      <div style="flex: 90; padding: 0 8px">
+        <div style="height: 14px; border-left: 1.5px dashed var(--line); margin-left: 6px"></div>
+        <p class="note" style="margin-top: 4px">flow @ 1h39 &middot; stop 2h52<br>prio 13.4 &middot; effort 2.8<br>M 5 &middot; E 4<br>not logged</p>
+      </div>
+      <div style="flex: 75; padding: 0 8px">
+        <div style="height: 14px; border-left: 1.5px dashed var(--line); margin-left: 6px"></div>
+        <p class="note" style="margin-top: 4px">flow @ 1h41 &middot; stop 2h55<br>prio 12.3 &middot; effort 2.8<br>M 5 &middot; E 3<br>not logged</p>
+      </div>
+      <div style="flex: 15; min-width: 44px"></div>
+    </div>
+  </div>
+
+  <div class="dash" style="padding: 16px 18px">
+    <p class="lbl">the day&rsquo;s own readings, under the spine</p>
+    <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px">
+      <span class="note">flow coverage <strong>1/5</strong></span>
+      <span class="note">human capacity <strong>75%</strong></span>
+      <span class="note">cognitive load <strong>54%</strong></span>
+      <span class="note">burnout <strong>42%</strong></span>
+    </div>
+    <p style="margin-top: 12px">Cognitive, not clock &mdash; the day is 100% mind work against a 6h pool.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+    <div class="dash" style="padding: 16px 18px">
+      <p class="lbl">what this buys</p>
+      <p class="note" style="margin-top: 8px">A reading never leaves the thing it is about. There is no table to scroll sideways and no accordion to unfold &mdash; the whole plan, and everything the model computed about it, is one screen.</p>
+    </div>
+    <div class="dash" style="padding: 16px 18px; border-color: var(--mark)">
+      <p class="lbl" style="color: var(--mark)">what it costs</p>
+      <p class="note" style="margin-top: 8px">Columns stop lining up: a 15m task gets a 44px column and can carry no readings at all, so the shortest tasks go blank. Comparing a value down the list &mdash; the one thing the table is good at &mdash; gets harder, not easier. And it does not survive a phone.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
