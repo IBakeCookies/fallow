@@ -35,6 +35,7 @@
 		args: {
 			impact,
 			isBusy: false,
+			hasDraft: true,
 			hasWindow: true,
 		},
 	});
@@ -60,9 +61,10 @@
 />
 
 <Story
-	name="Nothing priced yet"
+	name="Nothing typed yet"
 	args={{
 		impact: null,
+		hasDraft: false,
 	}}
 	play={async ({ canvas }) => {
 		// The prompt line stands where the reading will go: a panel with a heading
@@ -70,6 +72,20 @@
 		await expect(canvas.getByText(/Name the task/)).toBeInTheDocument();
 		await expect(canvas.queryByText('Suggested hours')).toBeNull();
 		await expect(canvas.queryByText(/12.4/)).toBeNull();
+	}}
+/>
+
+<Story
+	name="A named draft nobody has priced"
+	args={{
+		impact: null,
+	}}
+	play={async ({ canvas }) => {
+		// The state every rating drag returns the panel to, and the commoner of the
+		// two unpriced ones. Asking for a name that is already in the field above
+		// reads as a form that is not listening.
+		await expect(canvas.getByText(/Price this day to read/)).toBeInTheDocument();
+		await expect(canvas.queryByText(/Name the task/)).toBeNull();
 	}}
 />
 
@@ -83,7 +99,7 @@
 		// One solve behind a button, so the panel has to say it is running — the
 		// press is otherwise indistinguishable from a press that did nothing.
 		await expect(canvas.getByText(/Pricing this task/)).toBeInTheDocument();
-		await expect(canvas.queryByText(/Name the task/)).toBeNull();
+		await expect(canvas.queryByText(/Price this day to read/)).toBeNull();
 	}}
 />
 
@@ -157,6 +173,6 @@
 		// The page refuses to draw a plan without a window; the panel agrees with it
 		// rather than prompting for a task it could not price.
 		await expect(canvas.getByText(/Set a day window/)).toBeInTheDocument();
-		await expect(canvas.queryByText(/Name the task/)).toBeNull();
+		await expect(canvas.queryByText(/Price this day to read/)).toBeNull();
 	}}
 />

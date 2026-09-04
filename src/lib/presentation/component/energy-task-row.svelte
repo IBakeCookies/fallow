@@ -25,6 +25,9 @@
 		mustDoToday?: boolean;
 		importance?: TaskImportance;
 		tags?: string[];
+		/** The user's past tags, for the ✎ editor's tag field — the page's, since a
+		 *  row cannot read the session store. */
+		tagVocabulary?: string[];
 		color: string;
 		/** Read off the store, not computed here: R2, and it is the number `/` prints. */
 		trueEffort: number;
@@ -62,6 +65,7 @@
 		mustDoToday = false,
 		importance = 'normal',
 		tags,
+		tagVocabulary,
 		color,
 		trueEffort,
 		plannedHours,
@@ -122,6 +126,7 @@
 		{mustDoToday}
 		{importance}
 		{tags}
+		{tagVocabulary}
 		withMustDoToday={false}
 		columnCount={getEnergyTaskColumns().length}
 		{ontoggle}

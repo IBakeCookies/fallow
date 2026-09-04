@@ -231,7 +231,7 @@
 					}}
 					placeholder={m.form_task_placeholder()}
 					required
-					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+					class="field-input"
 				/>
 			</label>
 			{#if listOpen}
@@ -265,17 +265,16 @@
 
 		<TaskFormFields bind:draft {tagVocabulary} />
 
-		<!-- One footer, the row editor's: the flag pushed left, then Cancel and the
-		     submit. It sits in the column whose fields it submits, which leaves the
-		     reading beside it information only. There is nothing to cancel — a draft
-		     is never written until it is deployed — so Cancel is the dialog's ✕
-		     spelled where the hand already is. -->
+		<!-- One footer, the row editor's, and ONE left slot in it however much a
+		     screen puts there — presentation/AGENTS.md has the whole row. -->
 		<div class="flex flex-wrap items-center justify-end gap-grid-sm">
-			{#if withMustDoToday}
-				<MustDoToggle bind:mustDoToday={draft.mustDoToday} class="mr-auto" />
-			{/if}
-			{#if action}
-				<span class="mr-auto">{@render action()}</span>
+			{#if withMustDoToday || action}
+				<span class="mr-auto flex items-center gap-grid-sm">
+					{#if withMustDoToday}
+						<MustDoToggle bind:mustDoToday={draft.mustDoToday} />
+					{/if}
+					{#if action}{@render action()}{/if}
+				</span>
 			{/if}
 			<span class="flex items-center gap-grid-xs">
 				{#if oncancel}

@@ -13,48 +13,29 @@
 	import { getDateLocale } from '$lib/presentation/utils/locale.svelte';
 	import { formatDecimals } from '$lib/presentation/utils/number-format';
 	import { formatDuration, formatOffset } from '$lib/presentation/utils/duration-format';
+	import { describeDraftCost } from '$lib/presentation/utils/draft-cost-descriptor';
 	import StatTile from '$lib/presentation/component/stat-tile.svelte';
 
 	interface Props {
 		/** `null` until the button asks — the reading costs a full solve. */
 		impact: EnergyDraftImpact | null;
 		isBusy: boolean;
+		/** Whether the form has published a draft at all — see below. */
+		hasDraft: boolean;
 		hasWindow: boolean;
 	}
 
-	let { impact, isBusy, hasWindow }: Props = $props();
+	let { impact, isBusy, hasDraft, hasWindow }: Props = $props();
 
 	const decimal = (value: number) => formatDecimals(value, 1, getDateLocale());
 	/** Floored, like `PlanSummary`: 100% has to mean untouched. */
 	const percent = (value: number) => Math.floor(value * 100);
 
-	// One line with three shapes: a name beats a total, and the empty case is
-	// said rather than dropped. `null` when the day funds the draft nothing — a
-	// cost row about a task that is not in the plan.
-	const cost = $derived.by(() => {
-		if (impact === null || impact.startHour === null) return null;
-
-		const { hoursTaken, taskCount, unfunded } = impact.displaced;
-
-		if (unfunded.length > 0) {
-			return m.form_impact_cost_unfunds({
-				titles: unfunded.join(', '),
-			});
-		}
-
-		if (taskCount === 0) return m.form_impact_cost_none();
-
-		const hours = formatDuration(hoursTaken);
-
-		return taskCount === 1
-			? m.form_impact_cost_hours_one({
-					hours,
-				})
-			: m.form_impact_cost_hours_other({
-					hours,
-					count: taskCount,
-				});
-	});
+	// Dropped, not zeroed, when the optimizer funds the draft nothing: a cost row
+	// about a task that is not in the plan.
+	const cost = $derived(
+		impact === null || impact.startHour === null ? null : describeDraftCost(impact.displaced),
+	);
 </script>
 
 <!-- `whitespace-nowrap` on the value and not the label: these labels are long
@@ -78,9 +59,11 @@
 	{:else if impact === null && isBusy}
 		<p class="text-xs text-ty-silent">{m.form_impact_pricing()}</p>
 	{:else if impact === null}
-		<!-- The prompt line a reading that costs a solve renders in place of its
-		     numbers (presentation/AGENTS.md). -->
-		<p class="text-xs text-ty-silent">{m.form_impact_price_prompt()}</p>
+		<!-- Two unpriced states, not one — a named draft whose reading a drag dropped
+		     is the commoner (presentation/AGENTS.md). -->
+		<p class="text-xs text-ty-silent">
+			{hasDraft ? m.form_impact_price_ready() : m.form_impact_price_prompt()}
+		</p>
 	{:else}
 		<!-- `surface-inset` and not `surface-card`: this sits INSIDE the reading
 		     panel, which is itself a card, and card-on-card separates only by

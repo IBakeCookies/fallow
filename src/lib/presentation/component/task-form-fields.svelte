@@ -16,8 +16,9 @@
 
 	interface Props {
 		draft: TaskEdit;
-		/** The user's own past tags, offered by the field's `<datalist>`. The row
-		 *  editor offers none, like the title suggestions. */
+		/** The user's own past tags, offered by the field's `<datalist>`. Both forms
+		 *  pass it — unlike the title suggestions, which only the add form reads,
+		 *  because a picked TAG rewrites nothing. */
 		tagVocabulary?: string[];
 	}
 
@@ -134,7 +135,7 @@
 					onkeydown={handleTagKeydown}
 					onblur={handleTagBlur}
 					placeholder={m.form_tags_placeholder()}
-					class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+					class="field-input"
 				/>
 			</label>
 			<datalist id={listId}>

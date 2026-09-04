@@ -300,6 +300,7 @@
 	"form_impact_burnout": "Riesgo de burnout",
 	"form_impact_price": "Calcular este día",
 	"form_impact_price_prompt": "Nombra la tarea y luego calcúlala en el día.",
+	"form_impact_price_ready": "Calcula el día para ver cuánto cuesta esta tarea.",
 	"form_impact_pricing": "Calculando la tarea en el día…",
 	"form_impact_starts_at": "empieza en {offset}",
 	"form_impact_end_cognitive": "Energía cognitiva al parar",

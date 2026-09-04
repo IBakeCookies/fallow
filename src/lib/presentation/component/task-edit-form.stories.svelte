@@ -186,3 +186,24 @@
 		});
 	}}
 />
+
+<Story
+	name="Offering the tags the user has used before"
+	args={{
+		tagVocabulary: ['deep-work', 'errand', 'writing'],
+	}}
+	play={async ({ canvasElement, canvas }) => {
+		// The editor's tag field offers the same vocabulary the add form's does: a
+		// pick here rewrites nothing (which is why the TITLE offers no suggestions),
+		// so withholding it only invited a second spelling of a tag the user has.
+		const offered = [...canvasElement.querySelectorAll('datalist option')].map(
+			(option) => (option as HTMLOptionElement).value,
+		);
+
+		await expect(offered).toEqual(['deep-work', 'errand', 'writing']);
+
+		// Still one input over the list, not a select: a tag that is not in it yet is
+		// the commonest one to type.
+		await expect(canvas.getByPlaceholderText('e.g., exercise')).toHaveValue('');
+	}}
+/>

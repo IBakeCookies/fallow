@@ -456,6 +456,25 @@
 	@apply mb-grid-lg flex items-center gap-grid-sm rounded-xl border p-box-md text-sm backdrop-blur;
 }
 
+/* The app's text field. Three inputs spell exactly this — the add form's title, the
+   ✎ editor's title, and the tag field both of them share — and it is the recipe a
+   fourth has to match (STYLE.md, "A repeated cluster becomes an `@utility`"). The
+   dialog story's demo field was a fourth hand-copy and had already lost the focus
+   ring and the placeholder colour; it renders the real thing now.
+
+   An `@utility` and not a component for the reason `hint-underline` is one: all
+   three inputs sit INSIDE the `<label>` that names them, and an element between
+   the two is either the label's own content or the association is gone. The top
+   margin belongs in here because the label's text is above the field in all
+   three, which is the layout and not a call-site choice.
+
+   The narrow instrument inputs (`utils/measurement-prompt.ts`) are NOT this: each
+   carries the accent border of the quantity it reads and sits inline in a row of
+   text, so they share only `bg-input`. */
+@utility field-input {
+	@apply mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary transition outline-none placeholder:text-ty-silent focus:border-brand/50 focus:ring-1 focus:ring-brand/50;
+}
+
 @utility log-row {
 	@apply flex items-center justify-between gap-text-xs rounded-sm bg-surface-inset px-box-2xs py-text-2xs text-xs text-ty-secondary;
 }

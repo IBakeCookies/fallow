@@ -322,6 +322,7 @@
 	<TaskFormEnergyPreview
 		impact={lab.draftImpact}
 		isBusy={lab.isDraftBusy}
+		hasDraft={lab.previewDraft !== null}
 		hasWindow={windowHours > 0}
 	/>
 {/snippet}
@@ -334,7 +335,7 @@
 			variant="outline"
 			type="button"
 			disabled={lab.previewDraft === null || lab.isDraftBusy}
-			onclick={() => lab.computeDraftImpact(lab.previewDraft!)}
+			onclick={() => lab.computeDraftImpact()}
 		>
 			{m.form_impact_price()}
 		</Button>
@@ -352,6 +353,7 @@
 			mustDoToday={task.mustDoToday}
 			importance={task.importance}
 			tags={task.tags}
+			tagVocabulary={session.tagVocabulary}
 			color={colors.colorOf(task.id)}
 			trueEffort={task.trueEffort}
 			plannedHours={plannedFor(task.id)}

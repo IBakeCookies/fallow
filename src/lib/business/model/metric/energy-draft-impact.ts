@@ -21,6 +21,7 @@ import { toEnergyTask } from '$lib/business/model/metric/calculation';
 import {
 	prependDraft,
 	type DraftChange,
+	type DraftDisplacement,
 	type DraftTask,
 } from '$lib/business/model/metric/draft-impact';
 
@@ -41,11 +42,7 @@ export interface EnergyDraftImpact {
 	endCog: DraftChange;
 	endPhys: DraftChange;
 	/** What the draft takes off the day's other tasks. */
-	displaced: {
-		hoursTaken: number;
-		taskCount: number;
-		unfunded: string[];
-	};
+	displaced: DraftDisplacement;
 }
 
 /**
@@ -114,7 +111,7 @@ function displacement(
 	tasks: Task[],
 	before: Map<number, number>,
 	after: Map<number, number>,
-): EnergyDraftImpact['displaced'] {
+): DraftDisplacement {
 	let hoursTaken = 0;
 	let taskCount = 0;
 	const unfunded: string[] = [];

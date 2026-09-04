@@ -8,12 +8,15 @@
 
 	interface Props {
 		seed: TaskEdit;
+		/** The user's past tags, for the field's `<datalist>` — see
+		 *  `task-form-fields.svelte`. */
+		tagVocabulary?: string[];
 		withMustDoToday?: boolean;
 		onsave: (edit: TaskEdit) => void;
 		oncancel: () => void;
 	}
 
-	let { seed, withMustDoToday = true, onsave, oncancel }: Props = $props();
+	let { seed, tagVocabulary = [], withMustDoToday = true, onsave, oncancel }: Props = $props();
 
 	// Why a copy, and why re-opening is a remount: presentation/AGENTS.md, "A seeded editor
 	// copies its seed at mount".
@@ -47,11 +50,11 @@
 			bind:value={draft.title}
 			placeholder={m.form_task_placeholder()}
 			required
-			class="mt-text-xs w-full rounded-lg border border-line-strong bg-input px-box-md py-box-xs text-sm text-ty-primary placeholder:text-ty-silent outline-none transition focus:border-brand/50 focus:ring-1 focus:ring-brand/50"
+			class="field-input"
 		/>
 	</label>
 
-	<TaskFormFields bind:draft />
+	<TaskFormFields bind:draft {tagVocabulary} />
 
 	<!-- One line: the flag pushed out by its own margin, the verbs in the corner —
 	     so the buttons keep that corner in the mode with no flag to show. -->

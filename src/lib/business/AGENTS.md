@@ -433,6 +433,16 @@ draft by VALUE first, because the form republishes on every keystroke in the
 title and a title reaches no solve: without that, fixing a typo after pricing
 charged a second solve for a number that could not have moved.
 
+**It takes no draft, and it discards its own solve when the form has moved on.**
+The form publishes into `previewDraft` already, so a parameter would let a press
+name a draft the panel then prints beside fields that did not produce it — and
+the press opens a yield before the solve, which a slider drag can publish
+inside. So the method reads the draft at the start, and assigns the reading only
+while `previewDraft` still values-equal it; otherwise the setter's drop stands.
+Without that guard the dropped reading came back, which is worse than never
+dropping it: nothing on screen says the figures are about the previous
+ratings.
+
 The **third** case takes the first shape again: the empty add-task form's
 next-task ranking is one solve per capped candidate, so `DailyPlanStore` exposes
 `computeNextTasks()` and no `$derived`. It publishes no busy flag — the panel

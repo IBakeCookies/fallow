@@ -300,6 +300,7 @@
 	"form_impact_burnout": "倦怠风险",
 	"form_impact_price": "计算今天的代价",
 	"form_impact_price_prompt": "先命名任务，然后把它计入今天。",
+	"form_impact_price_ready": "计算这一天，看看这项任务的代价。",
 	"form_impact_pricing": "正在把任务计入今天…",
 	"form_impact_starts_at": "从 {offset} 开始",
 	"form_impact_end_cognitive": "收工时的认知能量",

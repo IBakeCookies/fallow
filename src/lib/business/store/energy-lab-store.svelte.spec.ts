@@ -1341,10 +1341,23 @@ describe('EnergyLabStore', () => {
 		flushSync();
 		expect(store.draftImpact).toBeNull();
 
-		await store.computeDraftImpact(draft);
+		await store.computeDraftImpact();
 
 		expect(store.isDraftBusy).toBe(false);
 		expect(store.draftImpact).toEqual(expectedImpact(twoTasks(), draft));
+	});
+
+	/* The press prices what the form has published, which the store already holds:
+	   an unnamed draft has nothing to solve, and the button is disabled there. */
+	it('prices nothing while no draft is published', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+
+		await store.computeDraftImpact();
+
+		expect(store.draftImpact).toBeNull();
+		expect(store.isDraftBusy).toBe(false);
 	});
 
 	/* A stale number beside live sliders is a number that disagrees with the
@@ -1355,7 +1368,7 @@ describe('EnergyLabStore', () => {
 
 		const store = await setup();
 		store.previewDraft = draft;
-		await store.computeDraftImpact(draft);
+		await store.computeDraftImpact();
 		expect(store.draftImpact).not.toBeNull();
 
 		store.previewDraft = {
@@ -1368,7 +1381,7 @@ describe('EnergyLabStore', () => {
 		expect(store.draftImpact).toBeNull();
 
 		// And an emptied title, which publishes no draft at all.
-		await store.computeDraftImpact(store.previewDraft!);
+		await store.computeDraftImpact();
 		expect(store.draftImpact).not.toBeNull();
 
 		store.previewDraft = null;
@@ -1386,7 +1399,7 @@ describe('EnergyLabStore', () => {
 
 		const store = await setup();
 		store.previewDraft = draft;
-		await store.computeDraftImpact(draft);
+		await store.computeDraftImpact();
 
 		const priced = store.draftImpact;
 
@@ -1399,19 +1412,43 @@ describe('EnergyLabStore', () => {
 		expect(store.draftImpact).toBe(priced);
 	});
 
+	/* The press opens a yield before the solve, and the form can move the draft
+	   inside it — a slider drag publishes on the next flush. The setter drops the
+	   reading there, so a solve that landed anyway would put back figures for a
+	   draft the fields no longer hold: the exact disagreement dropping exists to
+	   prevent, and one the user cannot see is stale. */
+	it('discards a solve the form has moved on from', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		store.previewDraft = draft;
+
+		const pending = store.computeDraftImpact();
+
+		store.previewDraft = {
+			...draft,
+			enjoyment: 3,
+		};
+
+		flushSync();
+
+		await pending;
+
+		expect(store.draftImpact).toBeNull();
+		expect(store.isDraftBusy).toBe(false);
+	});
+
 	it('drops a second press while the first solve is still running', async () => {
 		mockSession.tasks = twoTasks();
 
 		const store = await setup();
-		const first = store.computeDraftImpact(draft);
+		store.previewDraft = draft;
 
-		// Resolves without solving: the guard returns before the yield, so the
-		// second draft never reaches `optimizeSchedule` and the held reading is the
-		// first press's.
-		await store.computeDraftImpact({
-			...draft,
-			enjoyment: 1,
-		});
+		const first = store.computeDraftImpact();
+
+		// Resolves without solving: the guard returns before the yield, so the day
+		// is solved once and the held reading is the first press's.
+		await store.computeDraftImpact();
 
 		expect(store.draftImpact).toBeNull();
 

@@ -300,6 +300,7 @@
 	"form_impact_burnout": "Risque de burn-out",
 	"form_impact_price": "Chiffrer cette journée",
 	"form_impact_price_prompt": "Nommez la tâche, puis chiffrez-la dans la journée.",
+	"form_impact_price_ready": "Chiffrez la journée pour voir ce que coûte cette tâche.",
 	"form_impact_pricing": "Chiffrage de la tâche dans la journée…",
 	"form_impact_starts_at": "commence à {offset}",
 	"form_impact_end_cognitive": "Énergie cognitive à l'arrêt",

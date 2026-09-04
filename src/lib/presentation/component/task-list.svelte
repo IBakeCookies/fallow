@@ -48,6 +48,9 @@
 		actions?: Snippet;
 		/** Passed straight to the card: the empty state's way into the example day. */
 		exampleDayHref?: string;
+		/** The user's past tags, for each row's ✎ editor — passed through, since only
+		 *  the page can read the session store. */
+		tagVocabulary?: string[];
 		ontoggle: (id: number) => void;
 		onremove?: (id: number) => void;
 		/** The ⚡ editors open on this list, by task — the page owns them, like the 🪫
@@ -88,6 +91,7 @@
 		strip,
 		actions,
 		exampleDayHref,
+		tagVocabulary,
 		ontoggle,
 		onremove,
 		flowDrafts = {},
@@ -157,6 +161,7 @@
 			mustDoToday={task.mustDoToday}
 			importance={task.importance}
 			tags={task.tags}
+			{tagVocabulary}
 			{ontoggle}
 			{onremove}
 			flowDraft={flowDrafts[task.id] ?? null}
