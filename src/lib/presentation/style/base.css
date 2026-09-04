@@ -357,6 +357,16 @@
 	--mixed-ink: oklch(from var(--mixed) clamp(0.16, (0.58 - l) * 10000, 0.97) 0.02 h / 1);
 	--brand-ink: oklch(from var(--brand) clamp(0.16, (0.58 - l) * 10000, 0.97) 0.02 h / 1);
 
+	/* The second line of a two-line chart, derived from `--brand` for the reason
+	   the ink above is: a theme swaps the accents, so any pairing of two DECLARED
+	   tokens is one colour on some theme (STYLE.md, the categorical-scale rule).
+	   Rotating the theme's own brand hue guarantees the gap in all of them, at
+	   the brand's lightness so neither line is the faded one; the chroma floor is
+	   what keeps the rotation visible on the muted brands (`polaris`, `moonphase`
+	   carry c≈0.05), where a hue nothing is saturated enough to show is no gap at
+	   all. A theme with no hue to rotate overrides it — see `eink`. */
+	--brand-counter: oklch(from var(--brand) l max(c, 0.09) calc(h + 150));
+
 	/* Categorical scale for the energy plan's per-task series, in two values and
 	   only two: no THEME re-declares these, only `.dark` does (below). The eight
 	   hues stay mutually distinguishable only while they keep their spacing, and

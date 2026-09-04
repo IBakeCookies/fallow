@@ -372,7 +372,16 @@ Read this before touching markup, classes, or anything under
   in `base.css` and stay amber through most of `themes.css`, so a chart giving
   two categories those two tokens draws one colour twice on a dozen themes (that
   is why the day profiles colour Grind `--danger`). Check a new pairing against
-  `themes.css`, not against the token names.
+  `themes.css`, not against the token names. **No pairing of two declared tokens
+  passes** — `abyss`, `vectorframe`, `meridian` and `orbit` put `--info` and
+  `--brand` within a few degrees of hue, and every accent shares one lightness
+  band per theme, so the pair reads as one colour. Two colours that hold in
+  every theme have to be **derived from one**: `--brand-counter` (base.css) is
+  `--brand` rotated 150°, which is fixed separation no theme can collapse. A
+  theme whose brand has no hue to rotate overrides it (`eink`), as does one the
+  rotation takes outside its palette (`terminal`). The second line is dashed as
+  well (`TrendSeries.isDashed`) — hue is the separation, the dash is what
+  survives a colour-blind reading of it.
 - Adding a theme touches four places: the catalogue in
   `business/model/theme.ts`, a `@custom-variant` in `tokens.css`, a palette
   block in `themes.css`, and (if animated) a file under `style/scenery/`. A

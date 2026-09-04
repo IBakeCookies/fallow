@@ -168,6 +168,10 @@
 	--mixed: oklch(0.8 0.15 120);
 	--brand: oklch(0.87 0.21 145);
 	--brand-strong: oklch(0.93 0.16 145);
+	/* Rotating this brand lands on violet, which no phosphor ever glowed. Amber
+	   is the other tube that shipped, and the hue the theme already spends on
+	   `--flow`: still 1982, still not green. */
+	--brand-counter: oklch(0.8 0.18 95);
 }
 
 .blueprint {
@@ -1572,6 +1576,10 @@
 	   its neighbour, and this way they read as ink weights, not as colour. */
 	--brand: oklch(0.35 0 0);
 	--brand-strong: oklch(0.25 0 0);
+	/* The derived default rotates the brand hue, and this brand has none — the
+	   floor would invent a green on the one panel that cannot render it. A
+	   weight apart, near-grey like the domains below, is the same trick. */
+	--brand-counter: oklch(0.5 0.03 200);
 	--mind: oklch(0.42 0.03 250);
 	--mind-strong: oklch(0.33 0.03 250);
 	--body: oklch(0.45 0.03 160);
