@@ -115,7 +115,9 @@
 	   translucent card (L 0.98 at alpha 0.6) being the white-on-white case above
 	   taken to its limit — so it alone overrides this with 0.14 (themes.css).
 	   Shipped, over all 46: light min 1.081 and median 1.195, dark min 1.249 and
-	   median 1.405, worst label 4.68:1, nothing under the bound. */
+	   median 1.405. The label ratios that stood beside them read the ink as
+	   opaque; composited, the row label runs min 3.19 and median 5.76 and five
+	   light themes are under AA (STYLE.md's ink note). */
 	--surface-inset: oklch(
 		from var(--surface-card) calc(l - 0.1) c h / calc(alpha + (1 - alpha) * 0.4)
 	);
