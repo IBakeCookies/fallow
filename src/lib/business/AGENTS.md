@@ -403,13 +403,13 @@ The cost rule, and it decides the shape of every reading that solves the day.
 **A reading costing one solve per candidate goes behind a method; a reading
 costing one solve may stay a `$derived`.**
 
-| Reading                             | Shape                      | Cost                                                                 |
-| ----------------------------------- | -------------------------- | -------------------------------------------------------------------- |
-| `suggestPlanAdjustments`            | `computeAdvice()` + a flag | one solve per candidate — 109-124 ms at n = 12, a frozen main thread |
-| `DailyPlanStore.draftImpact`        | `$derived`                 | one solve, what `#daily` already costs per keystroke                 |
-| `EnergyLabStore.computeDraftImpact` | method behind a button     | the energy optimizer, 35-195 ms at an 8 h window (n = 3 to n = 20)   |
-| `computeNextTasks`                  | method, withdraws          | one solve per capped candidate                                       |
-| `#remainingDay`                     | `$derived`, gated          | 12.4 ms at n = 12, 0.001 ms until something is logged                |
+| Reading                             | Shape                      | Cost                                                               |
+| ----------------------------------- | -------------------------- | ------------------------------------------------------------------ |
+| `suggestPlanAdjustments`            | `computeAdvice()` + a flag | one solve per candidate — 65 ms at n = 12, a frozen main thread    |
+| `DailyPlanStore.draftImpact`        | `$derived`                 | one solve, what `#daily` already costs per keystroke               |
+| `EnergyLabStore.computeDraftImpact` | method behind a button     | the energy optimizer, 35-195 ms at an 8 h window (n = 3 to n = 20) |
+| `computeNextTasks`                  | method, withdraws          | one solve per capped candidate                                     |
+| `#remainingDay`                     | `$derived`, gated          | 12.4 ms at n = 12, 0.001 ms until something is logged              |
 
 The frozen thread is the budget field, which re-derives on every keystroke. A
 12-task advice run is the **worst** case, not a floor: past
