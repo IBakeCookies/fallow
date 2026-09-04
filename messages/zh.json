@@ -279,7 +279,7 @@
 	"form_importance_low": "低",
 	"form_importance_normal": "普通",
 	"form_importance_high": "高",
-	"form_importance_title": "重要性决定短暂的一天如何分配：哪些任务获得时间，以及获得多少。",
+	"form_importance_title": "重要性决定短暂的一天如何分配：哪些任务获得时间，以及获得多少。能量计划不读取它，但该级别会留在任务上，并且仍然影响经典计划。",
 	"form_impact_heading": "这对今天的影响",
 	"form_impact_prompt": "为任务命名，就能看到它在今天的安排。",
 	"form_impact_hours": "建议时长",

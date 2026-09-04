@@ -26,6 +26,7 @@ import {
 	type Band,
 } from '$lib/presentation/utils/band';
 import { formatDuration } from '$lib/presentation/utils/duration-format';
+import { formatDecimals } from '$lib/presentation/utils/number-format';
 
 /**
  * How many frontier options a row shows. A constant and not a parameter: the one
@@ -111,19 +112,46 @@ const QUADRANT_LABEL: Record<DailyQuadrant, () => string> = {
  * reader, is a judgement about a number that does not exist. The metric rows
  * render every N/A neutral for the same reason.
  */
-function readingOf(axis: AdviceAxis, value: number): { text: string; band: Band } {
+function readingOf(
+	axis: AdviceAxis,
+	value: number,
+	digits: number,
+	locale: string,
+): { text: string; band: Band } {
 	if (!Number.isFinite(value))
 		return {
 			text: m.na_value(),
 			band: 'neutral',
 		};
 
-	const text = axis === 'energyBalance' ? energyBalanceReading(value) : `${Math.round(value)}%`;
+	const percent = formatDecimals(value, digits, locale);
 
 	return {
-		text,
+		text: axis === 'energyBalance' ? energyBalanceReading(value, percent) : `${percent}%`,
 		band: AXIS_BAND[axis](value),
 	};
+}
+
+/**
+ * Whole percent, unless that would print an option as the reading it sits under.
+ * The move is real — `plan-advice.ts` floors the noise out of the frontier — so
+ * the row widens rather than hiding it, and widens as a whole so its options
+ * stay comparable. One digit and no further (presentation/AGENTS.md).
+ */
+function digitsFor(readings: number[], render: (value: number) => string): number {
+	// The printed text and not the rounded number: Energy Balance prints a word
+	// too, so 39.6 and 40.4 round together and still read apart. Non-readings drop
+	// out first — they all render "N/A", which would collide with each other.
+	const shown = readings.filter((value) => Number.isFinite(value));
+	const texts = shown.map(render);
+
+	const collides = texts.some((text, index) =>
+		texts.some(
+			(other, position) => position !== index && other === text && shown[position] !== shown[index],
+		),
+	);
+
+	return collides ? 1 : 0;
 }
 
 /**
@@ -382,9 +410,10 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 		axis: AdviceAxis,
 		option: AdviceOption,
 		cost: string,
+		digits: number,
 		isUnpriced = false,
 	): AdviceRowOption => {
-		const after = readingOf(axis, option.after);
+		const after = readingOf(axis, option.after, digits, locale);
 
 		return {
 			lever: option.lever,
@@ -418,7 +447,20 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 					finding.unpriced !== null),
 		)
 		.map((finding) => {
-			const before = readingOf(finding.axis, finding.before);
+			// Only the options the row actually shows: widening for one `cap` drops
+			// would print a decimal nothing on screen needs.
+			const shown = cap(finding.options);
+
+			const digits = digitsFor(
+				[
+					finding.before,
+					...shown.map((option) => option.after),
+					...(finding.unpriced ? [finding.unpriced.after] : []),
+				],
+				(value) => readingOf(finding.axis, value, 0, locale).text,
+			);
+
+			const before = readingOf(finding.axis, finding.before, digits, locale);
 
 			return {
 				axis: finding.axis,
@@ -426,14 +468,14 @@ export function buildAdviceDisplay(advice: PlanAdvice, locale: string): AdviceDi
 				before: before.text,
 				beforeBand: before.band,
 				options: [
-					...cap(finding.options).map((option) =>
-						toRow(finding.axis, option, formatCost(option.planValueDeltaPercent, locale)),
+					...shown.map((option) =>
+						toRow(finding.axis, option, formatCost(option.planValueDeltaPercent, locale), digits),
 					),
 					// Last, and priced in hours rather than plan value: Σ P̄ *rises* when
 					// the budget does, so showing that rise in the cost column would read
 					// as the extra hour being free.
 					...(finding.unpriced
-						? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour(), true)]
+						? [toRow(finding.axis, finding.unpriced, m.advice_cost_hour(), digits, true)]
 						: []),
 				],
 			};

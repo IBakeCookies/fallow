@@ -646,8 +646,11 @@
 	/* ribbon violet */
 	--mind: oklch(0.74 0.15 300);
 	--mind-strong: oklch(0.82 0.11 300);
-	/* indigo depths */
-	--body: oklch(0.55 0.09 250);
+	/* indigo depths — lifted to the trio's lightness and chroma: at 0.55/0.09
+	   under `--mind` 0.74/0.15 and `--brand` 0.76/0.13 the physical slider read
+	   as disabled rather than as a third colour. Hue 265 keeps it clear of both
+	   the cyan brand and the violet mind. */
+	--body: oklch(0.78 0.15 265);
 	/* ribbon rose */
 	--mixed: oklch(0.7 0.17 345);
 }
@@ -1386,8 +1389,11 @@
 	/* runner violet */
 	--mind: oklch(0.74 0.15 300);
 	--mind-strong: oklch(0.82 0.11 300);
-	/* indigo depths */
-	--body: oklch(0.75 0.09 250);
+	/* indigo depths — at the trio's chroma, not below it: at 0.09 next to
+	   `--mind` 0.15 and `--brand` 0.13 the physical slider read as disabled,
+	   and hue 250 was close enough to the brand's 228 to look like a washed-out
+	   version of it rather than its own colour. */
+	--body: oklch(0.78 0.15 265);
 	/* alert rose */
 	--mixed: oklch(0.7 0.17 345);
 }

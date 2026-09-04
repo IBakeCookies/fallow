@@ -110,6 +110,52 @@ function advice(options: AdviceOption[], unpriced: AdviceOption | null = null): 
 }
 
 describe('buildAdviceDisplay', () => {
+	// A lever that moves a reading by less than half a point printed the row's
+	// own reading back at the user — "Physical Heavy 30%" under
+	// "Physical Heavy 30%", priced at −9.2% of the plan. The move is real, so
+	// the row widens to show it rather than dropping the option.
+	describe('a reading a whole percent cannot tell apart', () => {
+		const collidingDay = (before: number, after: number): PlanAdvice => ({
+			...advice([]),
+			findings: [
+				{
+					axis: 'energyBalance',
+					before,
+					options: [
+						{
+							...setBudget(3, -9.2),
+							after,
+						},
+					],
+					unpriced: null,
+				},
+			],
+		});
+
+		it('widens both sides of the row when an option would print the same', () => {
+			const [row] = buildAdviceDisplay(collidingDay(29.8246, 30), 'en-GB').rows;
+
+			expect(row.before).toBe('Physical Heavy 29.8%');
+			expect(row.options[0].after).toBe('Physical Heavy 30.0%');
+		});
+
+		// Energy Balance prints a word as well as a number, and the word changes at
+		// 40: these two round together and never collided on screen.
+		it('leaves a row whose readings round together but print different words', () => {
+			const [row] = buildAdviceDisplay(collidingDay(39.6, 40.4), 'en-GB').rows;
+
+			expect(row.before).toBe('Physical Heavy 40%');
+			expect(row.options[0].after).toBe('Balanced 40%');
+		});
+
+		it('leaves a row whose options already read apart at whole percent', () => {
+			const [row] = buildAdviceDisplay(collidingDay(29.8246, 47.5), 'en-GB').rows;
+
+			expect(row.before).toBe('Physical Heavy 30%');
+			expect(row.options[0].after).toBe('Balanced 48%');
+		});
+	});
+
 	// The axis label is the dashboard tile's own message key, and
 	// the reading is the share — the tile keeps the fraction, which is not
 	// recoverable from one number (the feature file records the trade).

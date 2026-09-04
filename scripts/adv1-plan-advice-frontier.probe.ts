@@ -20,8 +20,14 @@
  * a "2.568" with no recorded fixture, so the plan value `set-budget 1h`
  * reaches from a 0 h budget is measured here on the suite's own grind day.
  *
+ * And one number the frontier's own admission rule rests on: the smallest
+ * improvement it admits — 9.7657e-4, on Energy Balance, 9.8e5x the floor — so
+ * `IMPROVEMENT_NOISE_FLOOR` is shown to sit orders of magnitude below the
+ * readings rather than inside them. Priced on the gate's own quantity and not on
+ * `after - before`, which runs 8.2x larger and would have overstated that margin.
+ *
  * Same generator, seed and day count as `plan-advice.probe.ts` (600 days,
- * seed 42), so these counts compose with its 404 trim levers and 4112 priced
+ * seed 42), so these counts compose with its 404 trim levers and 4287 priced
  * frontiers rather than describing a different sample.
  *
  * Usage: npm run probe
@@ -32,7 +38,12 @@ import {
 	calculateDailyMetrics,
 	type DailyMetricsInput,
 } from '$lib/business/model/metric/daily-metrics';
-import { suggestPlanAdjustments } from '$lib/business/model/metric/plan-advice';
+import {
+	improvementOf,
+	suggestPlanAdjustments,
+	type AdviceAxis,
+	type AdviceLever,
+} from '$lib/business/model/metric/plan-advice';
 import { DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
 import type { Task } from '$lib/data/type';
@@ -117,6 +128,44 @@ const GRIND = [task(1, 10, 2, 1), task(2, 9, 1, 2), task(3, 2, 9, 2)];
 const grindDay = (budget: number) => day(GRIND, budget, 0.25, 4, 6);
 /** The same one-minute tolerance `buildLevers` drops a budget lever under. */
 const MIN_HOUR_STEP = 1 / 60;
+/**
+ * The same floor `paretoOptions` admits an option over, spelled as a literal and
+ * deliberately not imported: an assertion against the constant it bounds moves
+ * with it and pins nothing (docs/testing.md). Drift is the perturbation sweep's
+ * to catch, not this file's.
+ */
+const IMPROVEMENT_NOISE_FLOOR = 1e-9;
+
+/** Every improvement the frontier admitted on one day, as the gate scored it. */
+const admittedImprovements = (input: DailyMetricsInput) => {
+	const baseline = calculateDailyMetrics(input);
+
+	return suggestPlanAdjustments(input, baseline).findings.flatMap((finding) =>
+		[...finding.options, ...(finding.unpriced ? [finding.unpriced] : [])].map((option) => ({
+			axis: finding.axis,
+			improvement: improvementOf(
+				finding.axis,
+				baseline,
+				calculateDailyMetrics(applyLever(input, option.lever)),
+			),
+			// The quantity a card would have been priced on instead, so the gap
+			// between the two is measured rather than asserted.
+			move: Math.abs(option.after - finding.before),
+		})),
+	);
+};
+
+/** `applyLever`'s two branches, which the module does not export. */
+const applyLever = (input: DailyMetricsInput, lever: AdviceLever): DailyMetricsInput =>
+	lever.kind === 'defer-task'
+		? {
+				...input,
+				tasks: input.tasks.filter((task) => task.id !== lever.taskId),
+			}
+		: {
+				...input,
+				availableHours: lever.hours,
+			};
 
 const percentOf = (value: number, base: number) =>
 	base > 0 ? Math.round(((value - base) / base) * 1000) / 10 : null;
@@ -371,5 +420,51 @@ describe('plan advice — the frontier and the levers', () => {
 			expect(option.planValue).toBeGreaterThan(0);
 			expect(option.planValueDeltaPercent).toBeNull();
 		}
+	});
+
+	/**
+	 * `IMPROVEMENT_NOISE_FLOOR` needs a gap to sit in, and only one end of it can
+	 * be measured from outside: the filter is internal, so the noise it now
+	 * rejects is unreachable here and a count of it would read 0 by construction.
+	 * The day that produced one is pinned in the suite instead. This measures the
+	 * other end — the smallest improvement an option that SURVIVES the floor
+	 * makes — which is what says the floor rejects nothing a user would want.
+	 *
+	 * `improvementOf`, not `after − before`: the gate ranks on badness, and on
+	 * Energy Balance and Flow Coverage that is not the reading. Measured both
+	 * ways the answer differs by 8.2x, in the safe direction, which is exactly
+	 * the margin a floor may not be justified by.
+	 */
+	it('measures the smallest improvement the frontier admits', () => {
+		const smallest = new Map<AdviceAxis, number>();
+		let options = 0;
+		let smallestMove = Infinity;
+
+		for (const input of DAYS)
+			for (const { axis, improvement, move } of admittedImprovements(input)) {
+				options++;
+
+				if (move > 0) smallestMove = Math.min(smallestMove, move);
+
+				if (Number.isFinite(improvement))
+					smallest.set(axis, Math.min(smallest.get(axis) ?? Infinity, improvement));
+			}
+
+		const overall = Math.min(...smallest.values());
+
+		console.log(
+			`${options} options over ${smallest.size} axes, smallest admitted improvement ${overall.toExponential(4)} — ${(overall / IMPROVEMENT_NOISE_FLOOR).toExponential(1)}x the floor pinned here`,
+		);
+
+		console.log(
+			`  smallest reading move ${smallestMove.toExponential(4)} — ${(smallestMove / overall).toFixed(1)}x the improvement, which is why the floor is priced on the gate`,
+		);
+
+		for (const [axis, value] of smallest) console.log(`  ${axis} ${value.toExponential(4)}`);
+
+		// Orders of magnitude, not a hair: a floor close to the smallest real
+		// improvement would be a threshold on the readings themselves, which is the
+		// band's job and not this module's.
+		expect(overall).toBeGreaterThan(IMPROVEMENT_NOISE_FLOOR);
 	});
 });

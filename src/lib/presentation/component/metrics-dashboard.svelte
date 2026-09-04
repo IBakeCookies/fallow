@@ -32,7 +32,7 @@
 	<!-- Momentum. tailwind-merge lets `class` win the fill and the ink, so the
 	     variant only picks tinted vs. plain: a `destructive` branch would style
 	     nothing and name a severity the warning fill contradicts. -->
-	<div class="flex items-center justify-between mb-grid-sm">
+	<div class="flex items-center gap-text-sm mb-grid-sm">
 		{@render label(m.momentum_label(), m.momentum_tooltip())}
 		<Badge
 			variant={trend ? 'default' : 'outline'}
@@ -110,9 +110,11 @@
 	<Tooltip.Provider>
 		<Tooltip.Root>
 			<Tooltip.Trigger>
-				<span class="hint-underline text-xs text-ty-secondary">
-					{text}
-				</span>
+				{#snippet child({ props })}
+					<span {...props} class="hint-underline text-xs text-ty-secondary">
+						{text}
+					</span>
+				{/snippet}
 			</Tooltip.Trigger>
 			<Tooltip.Content side="left">
 				<p>{description}</p>
