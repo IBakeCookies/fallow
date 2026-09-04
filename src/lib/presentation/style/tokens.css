@@ -192,6 +192,7 @@
 	--color-brand: var(--brand);
 	--color-brand-strong: var(--brand-strong);
 	--color-brand-ink: var(--brand-ink);
+	--color-brand-counter: var(--brand-counter);
 
 	/* categorical scale — one hue per task in the energy plan, where the series
 	   must stay mutually distinguishable rather than carry domain meaning. Two

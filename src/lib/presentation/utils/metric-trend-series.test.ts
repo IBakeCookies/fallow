@@ -137,6 +137,12 @@ describe('yieldTrendSeries', () => {
 		expect(series[1].values[1]).toBe(0);
 	});
 
+	it('dashes the completion-rate reference line, which is what separates it from yield', () => {
+		const { series } = yieldTrendSeries(yieldInput());
+
+		expect(series.map((s) => s.isDashed)).toEqual([false, true]);
+	});
+
 	it('leaves a day the user never opened out of both lines', () => {
 		const { series } = yieldTrendSeries(
 			yieldInput({

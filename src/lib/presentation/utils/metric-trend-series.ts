@@ -164,16 +164,27 @@ export function yieldTrendSeries(input: YieldTrendSeriesInput): {
 				m.metric_yield_index(),
 				(day) => (day.completedTasks === 0 ? null : day.yieldIndex),
 				{
-					strokeClass: 'stroke-info',
-					fillClass: 'fill-info',
-					swatchClass: 'bg-info',
+					strokeClass: 'stroke-brand-counter',
+					fillClass: 'fill-brand-counter',
+					swatchClass: 'bg-brand-counter',
 				},
 			),
-			line(slots, m.metric_completion_rate(), (day) => day.completionRate, {
-				strokeClass: 'stroke-brand',
-				fillClass: 'fill-brand',
-				swatchClass: 'bg-brand',
-			}),
+			// The reference line is the theme's own `--brand`, and Yield above it the
+			// hue rotated off it (`--brand-counter`, base.css): the `--info`/`--brand`
+			// pairing this used to draw is the same blue on abyss, vectorframe,
+			// meridian and orbit. Dashed on top of that, like Physical Load above —
+			// two channels, so the pair survives a colour nobody can separate.
+			line(
+				slots,
+				m.metric_completion_rate(),
+				(day) => day.completionRate,
+				{
+					strokeClass: 'stroke-brand',
+					fillClass: 'fill-brand',
+					swatchClass: 'bg-brand',
+				},
+				true,
+			),
 		],
 	};
 }
