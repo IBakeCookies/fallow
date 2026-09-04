@@ -140,32 +140,53 @@ every push/PR to `main`:
 
 ```sh
 npm run check      # svelte-check + tsc on the service worker — must be 0 errors
-npm run lint       # prettier --check, eslint (layer-boundary rules), and the five script checks
+npm run lint       # prettier --check, eslint (layer-boundary rules), and the six script checks
 npm run depcheck   # dependency-cruiser: layer direction, no cycles, no orphans
 npm run test:unit -- --run
 npm run test:e2e
 ```
 
-**An agent does not run the full five — the user does, and CI does.** They cost
-minutes of tokens to sit through and they re-prove the whole tree to check one
-diff. What an agent runs instead is the narrow thing its own change needs:
+**An agent runs three of the five; `lint` and `test:e2e` are the user's and
+CI's.** Those two re-prove the whole tree to check one diff. The other three
+are cheap and one of them is load-bearing:
 
+- **`npm run check`** — 13 s, and the only type check there is. `eslint.config.js`
+  enables `ts.configs.recommended` and no type-checked rule set, so nothing else
+  in the repo sees a type error. Run it yourself rather than leaving it to the
+  `Stop` hook below: the hook is the backstop, and a type error caught there
+  surfaces after you thought the work was done.
+- **`npm run depcheck`** — 2 s, and the half of R1 eslint cannot see (a dynamic
+  import, a `.svelte` type-only crossing).
 - **The test file you wrote or touched**, because R6 is not satisfiable
   otherwise — you have to watch it fail and then pass
-  (`npm run test:unit -- --run path/to/file`).
+  (`npm run test:unit -- --run path/to/file`). The full `test:unit` stays the
+  user's: three projects, two of them real browsers.
 - **`npx prettier --write`** on the files you touched (never the tree).
-- Anything the change itself puts in doubt — `npm run check` after a type-level
-  change, `npm run depcheck` after moving a module across layers.
 
-The second of those is also held by a `Stop` hook
-(`.claude/hooks/verify-before-finish.mjs`): finishing is blocked while
-`prettier --check`, `eslint` or the six doc scripts fail on a changed file, and
-the failure comes back as the text to fix rather than as advice. It exists
-because the rule-adherence eval found eslint-enforced rules broken in about a
-third of runs — an agent that had run the linter could not have broken them, so
-what was missing was never the wording. It is scoped to changed files, so a
-pre-existing failure elsewhere cannot block a finish, and it stands aside on a
-second stop so it can never loop.
+The costs above are this repo on a 4-core box, 2026-09-04; re-time them rather
+than trusting the figures if one starts to feel expensive. These two used to be
+excluded along with `lint` and `test:e2e`, on the argument that the five "cost
+minutes of tokens to sit through" — which was never true of a 13 s command and
+a 2 s one. What is true of `lint` and `test:e2e` is the other half of that
+sentence: they re-prove the whole tree, and `test:e2e` drives a browser. That
+is the line, not the clock.
+
+**prettier** and **`check`** are also held by a `Stop` hook
+(`.claude/hooks/verify-before-finish.mjs`), so `depcheck` and the test run stay
+yours to remember: finishing is blocked while `prettier --check`, `eslint`,
+`check` or the six doc scripts fail, and the failure comes back as the text to
+fix rather than as advice. It exists because the rule-adherence eval found
+eslint-enforced rules broken in about a third of runs — an agent that had run
+the linter could not have broken them, so what was missing was never the
+wording. That argument reads across to `check` unchanged: a documented-only
+instruction to type-check is the same shape as a documented-only lint rule.
+`prettier` and `eslint` run on the changed files alone, so a pre-existing
+failure in code you did not touch cannot block a finish; `check` reads the
+project rather than a file list, and the six doc scripts take no paths, so
+those can — `check` at least skips the stops where nothing but `.md` changed.
+Not the stops with no source file: a `messages/*.json` value can fail `check`
+on its own, per the trap below. It stands aside on a second stop so it can
+never loop.
 
 Then hand the work over saying **what you ran and what you did not**. "Tests
 pass" means the file you ran; do not report a green tree you never saw. A
@@ -194,12 +215,14 @@ tracked source and prose against MATH.md's actual headings — the direction
 `math-index.mjs` doesn't cover — skipping the `§12-14`-style range form,
 `probe-registry.mjs --check` on [`scripts/PROBES.md`](../scripts/PROBES.md) —
 both because a hand-maintained index silently rots — `brief-size.mjs --check`,
-which fails when the root `AGENTS.md` grows past its line budget, and
-`comment-density.mjs --check`, which fails when a component's comments do. The
-last two are the only mechanical defence the doc split has: nothing else
-notices an argument being pasted into the brief, or into a component's header,
-instead of into the file that owns it. Both count volume and neither can tell
-an earned _why_ from archaeology, so AGENTS.md §0 still governs. The eighth,
+which holds a per-file line budget over every rules doc the routing table names
+(the brief alone was the one file not growing), and `comment-density.mjs
+--check`, which fails when a **component's** comments do and measures no `.ts`
+module at all. The last two are the only mechanical defence the doc split has:
+nothing else notices an argument being pasted into a rules file, or into a
+component's header, instead of into the file that owns it. Both count volume
+and neither can tell an earned _why_ from archaeology, so AGENTS.md §0 still
+governs. The eighth,
 `file-names.mjs --check`, holds §2's kebab-case rule. `prettier --check` covers
 the whole tree, so format the files you touched (`npx prettier --write`) and
 never the tree.
@@ -396,7 +419,7 @@ re-checked and stayed in `MATH.md` while being false.
 
 ## Driving the real app
 
-See the `verify` skill. Two gotchas that will cost you an hour otherwise:
+See the `verify` skill. Three gotchas that will cost you an hour otherwise:
 
 - A long-running dev server is **not a valid test target** after a batch of
   edits — it serves a stale module graph and produces failures that do not

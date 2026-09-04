@@ -7,29 +7,31 @@ missing, it is one hop away.
 
 ## The documentation
 
-| File                                                               | Read it when                                                                                         |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| **this file**                                                      | always                                                                                               |
-| [`src/lib/data/AGENTS.md`](src/lib/data/AGENTS.md)                 | touching repositories, IndexedDB, migrations, persisted shapes                                       |
-| [`src/lib/business/AGENTS.md`](src/lib/business/AGENTS.md)         | touching stores, state, the business-layer root                                                      |
-| [`business/model/AGENTS.md`](src/lib/business/model/AGENTS.md)     | touching the model — invariants and the settled model decisions                                      |
-| [`src/lib/presentation/AGENTS.md`](src/lib/presentation/AGENTS.md) | touching routes, components, the task rows, the log history                                          |
-| [STYLE.md](src/lib/presentation/style/STYLE.md)                    | touching markup, classes, tokens, themes                                                             |
-| [docs/testing.md](docs/testing.md)                                 | writing a test, verifying, or dispatching the reviewer                                               |
-| [docs/design.md](docs/design.md)                                   | arguing about where code goes, a split, or an abstraction                                            |
-| [docs/deployment.md](docs/deployment.md)                           | touching SSR, the service worker, locales, SEO, prerendering                                         |
-| [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Derivations only: the shape and why not the alternative      |
-| [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                             |
-| [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item or closed finding is a date and a link to its spec |
-| [docs/features/](docs/features/)                                   | one file per planned change — kind `feature`, `model`, `repair` or `audit`; frozen at land           |
-| [README.md](README.md)                                             | user-facing: what the app does and how to run it                                                     |
-| [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                                  |
+| File                                                               | Read it when                                                                                                                                            |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **this file**                                                      | always                                                                                                                                                  |
+| [`src/lib/data/AGENTS.md`](src/lib/data/AGENTS.md)                 | touching repositories, IndexedDB, migrations, persisted shapes                                                                                          |
+| [`src/lib/business/AGENTS.md`](src/lib/business/AGENTS.md)         | touching stores, state, the business-layer root                                                                                                         |
+| [`business/model/AGENTS.md`](src/lib/business/model/AGENTS.md)     | touching the model — invariants and the settled model decisions                                                                                         |
+| [`src/lib/presentation/AGENTS.md`](src/lib/presentation/AGENTS.md) | touching routes, components, the task rows, the log history                                                                                             |
+| [STYLE.md](src/lib/presentation/style/STYLE.md)                    | touching markup, classes, tokens, themes                                                                                                                |
+| [docs/testing.md](docs/testing.md)                                 | writing a test, verifying, or dispatching the reviewer                                                                                                  |
+| [docs/design.md](docs/design.md)                                   | arguing about where code goes, a split, or an abstraction                                                                                               |
+| [docs/deployment.md](docs/deployment.md)                           | touching SSR, the service worker, locales, SEO, prerendering                                                                                            |
+| [MATH.md](MATH.md)                                                 | changing a formula — **authoritative**. Derivations only: the shape and why not the alternative                                                         |
+| [scripts/PROBES.md](scripts/PROBES.md)                             | adding or citing a probe                                                                                                                                |
+| [ROADMAP.md](ROADMAP.md)                                           | what is next and what was refused; a shipped item or closed finding is a date and a link to its spec                                                    |
+| [docs/features/](docs/features/)                                   | one file per planned change — kind `feature`, `model`, `repair` or `audit`; frozen at land                                                              |
+| [`.claude/skills/`](.claude/skills/)                               | the workflow itself: `plan` writes the spec, `build` implements one, `refactor` moves shipped code, `verify` drives the app, `eval` measures these docs |
+| [README.md](README.md)                                             | user-facing: what the app does and how to run it                                                                                                        |
+| [zenith.md](zenith.md)                                             | never a spec — a frozen copy of the source article, historical only                                                                                     |
 
 New durable knowledge goes in the file that owns the area, never in a new
 top-level `.md`. **This file keeps statements; every "because" longer than a
 line belongs in the topic file.** That is what stops it growing back into the
-1800-line document it was, and `scripts/brief-size.mjs` fails `npm run lint`
-when it starts to.
+1800-line document it was. `scripts/brief-size.mjs` budgets **every file in the
+table above**, not this one alone — capping only the brief measured the one file
+that was not growing — and `npm run lint` fails when any of them is over.
 
 ---
 
@@ -64,10 +66,9 @@ goes; do not let that turn into building for a future nobody has asked for.
   paragraph gets built without anyone writing one. A paragraph
   justifying a decision means the decision is too clever — simplify the code —
   or the justification is durable, and belongs in the rules file that owns it.
-  `scripts/comment-density.mjs --check` holds the volume — budgeted, never
-  inherited from the file you are in, so a file already over is a file to cut,
-  not a licence. It counts lines, not judgement, so the three above stay yours
-  to catch.
+  `scripts/comment-density.mjs --check` budgets **components only**; in a `.ts`
+  module the volume is yours to hold. Where it does count it counts lines, not
+  judgement, so the three above stay yours to catch either way.
 - **When you notice something unrelated, say it; do not fix it.** A finding
   reported costs a sentence. A finding fixed costs a review, a test, and a
   larger diff for the thing you were actually asked to do.
@@ -98,7 +99,7 @@ is in the layer that owns it.
 including the toast API, which a store takes as an injected thunk. `data` never
 imports upward; model defaults a migration needs are passed in as parameters.
 `src/lib/logger.ts` sits below all three and is the only file allowed to touch
-`console` (`scripts/` aside). Detail per layer: [data](src/lib/data/AGENTS.md),
+`console` (`scripts/`, `eval/` and `.claude/hooks/` aside). Detail per layer: [data](src/lib/data/AGENTS.md),
 [business](src/lib/business/AGENTS.md) (including the three user-facing failure
 surfaces), [presentation](src/lib/presentation/AGENTS.md).
 
@@ -214,11 +215,12 @@ abbreviations, boolean prefixes and import order:
 - Named exports only; default exports are for Svelte components. Enforced by
   `no-restricted-syntax` on `ExportDefaultDeclaration`; root `*.config.{js,ts}`
   and `.storybook/` are exempt because their tool dictates the default export.
-- Import through `$lib`, never a relative path — including a sibling. Three
+- Import through `$lib`, never a relative path — including a sibling. Four
   exemptions, each because the alias genuinely does not resolve: `./$types`
   (generated per route by `svelte-kit sync`), `e2e/` (Playwright has no Vite
-  aliases), `.storybook/` (outside `src`). `component/ui/` is exempt too, for a
-  different reason: `shadcn add` rewrites those barrels relative.
+  aliases), `.storybook/` and `eval/` (outside `src`, and `eval/` is a Node CLI
+  Vite never loads). `component/ui/` is exempt too, for a different reason:
+  `shadcn add` rewrites those barrels relative.
 - `const` over `let`. Early returns over nested `if`.
 - One responsibility per function. A function that _does_ something is an
   **action**; one that _reacts_ is a **handler**, named `onClick`,
@@ -237,15 +239,20 @@ stories — are in [presentation/AGENTS.md](src/lib/presentation/AGENTS.md).
 ## 3. Verification
 
 Five commands define green (`check`, `lint`, `depcheck`, `test:unit`,
-`test:e2e`) and CI runs all of them. **An agent does not run the full five —
-the user does, and CI does.** Run instead: the test file you touched (R6 is not
-satisfiable otherwise), `npx prettier --write` on the files you touched (never
-the tree), and anything the change itself puts in doubt. Then hand over saying
-**what you ran and what you did not**.
+`test:e2e`) and CI runs all of them. **An agent runs three of them: `check`,
+`depcheck`, and the test file it touched** (R6 is not satisfiable otherwise) —
+plus `npx prettier --write` on the files you touched, never the tree. `check`
+is the only type check the repo has, since eslint enables no type-checked rule
+set. **`lint` and `test:e2e` are the user's and CI's**: they re-prove the whole
+tree to check one diff. Then hand over saying **what you ran and what you did
+not**.
 
-A `Stop` hook holds the first of those: finishing is blocked while `prettier
---check`, `eslint` or the six doc scripts fail on a file you changed. It is
-scoped to what changed, so a pre-existing failure elsewhere never blocks you.
+A `Stop` hook holds **prettier** and **`check`**: finishing is blocked while
+`prettier --check`, `eslint`, `check` or the six doc scripts fail. Prettier and
+eslint are scoped to the files you changed; `check` and the doc scripts take no
+paths, so they read the whole tree and a failure you did not cause still blocks
+you until it is fixed. `depcheck` and the test run are yours to remember — the
+hook does not hold them.
 
 **Before reporting the work as done, dispatch a read-only reviewer subagent
 over the working diff** — unless the diff is only copy, translations, comments,
@@ -260,79 +267,14 @@ rules: [docs/testing.md](docs/testing.md).
 
 ## 4. Settled decisions — do not re-litigate
 
-Each was considered and decided, most of them measured. The verdict is here;
-the evidence is in the linked file, and you need it only if you are about to
-re-open one.
+Each layer file ends in a **Settled decisions** section, and
+`docs/deployment.md` is one from top to bottom: the verdict, and the
+measurement or argument behind it. Read the one for the area you are about to
+change _before_ proposing a change to it — most of what looks like an obvious
+improvement in this repo has already been built, measured and refused, and the
+file says which. Do not index them here: a copy of those headings is a second
+definition of the same fact (R3), free to drift from the file that owns it.
 
-**Data** — [src/lib/data/AGENTS.md](src/lib/data/AGENTS.md)
-
-- The per-day observation upsert reads through the `date` index, not a scan.
-- 🪫 drain ratings do not upsert — one row per session, corrected by its own id.
-- A day's fitted params are stored (`fitSnapshots`), not recomputed from logs.
-
-**Stores** — [src/lib/business/AGENTS.md](src/lib/business/AGENTS.md)
-
-- Task ids come from `nextTaskId` and nowhere else; an id is never recycled.
-- A composed read reads each store once (`session-history.ts`).
-- The banner is `StorageStatusStore`'s, and failure is tracked per reporting
-  store, never as one flag.
-- Drain and rest observations live in `EnergyObservationStore`; day routing,
-  flow observations and routines deliberately stayed.
-- Plan advice is computed on demand, never in a `$derived`.
-- `EnergyLabStore` never writes the daily session, and the day window is
-  `session.availableHours` — not a param.
-- An unseen day's budget is prefilled from its own weekday, derived and unsaved;
-  its switch cost and pools carry over from the last day that declared them.
-- A task moves between days only via `moveTaskToTomorrow`.
-
-**Model** — [src/lib/business/model/AGENTS.md](src/lib/business/model/AGENTS.md)
-
-- The day's plan is solved once per `calculateDailyMetrics`, and the hours pass
-  in input order.
-- `buildCurves` is built once per search or fit.
-- `zenith.ts`, `zenith-energy.ts` and `session-store.svelte.ts` are not worth
-  splitting — measured by interface arithmetic, not asserted.
-- The energy model is a peer mode, not a candidate to replace the main plan.
-- Run order stays `calculateInterleavedOrder`'s nature alternation.
-- ϕ stays one plane for all tasks — no per-task offsets.
-- `PHI_UNCERTAINTY_RELATIVE_CAP` stays 0.5.
-- Human Capacity is unclamped; Burnout Risk is not monotone in the declared
-  budget or the declared switch cost, and that stays.
-- The advisor ranks, it does not judge; an option must clear float noise, not
-  just beat zero; a budget increase never enters the frontier; the budget
-  levers carry unrounded hours; the budget's shadow price is a day-level
-  reading, not a per-task column; the switch cost is instrumented but never
-  advised.
-- `mustDoToday` promises the day, not the hours.
-- An unfunded task gets ONE reason — defer, budget, pool, none, in that order —
-  read off the plans the frontier already solved.
-- The importance weight `v` scales the objective, never a task's own figures:
-  it redivides the budget (funded set AND funded hours), while `priorityScore`
-  stays intrinsic and the energy mode stays unweighted.
-- The productivity curve deviates from the source article on purpose.
-
-**UI** — [src/lib/presentation/AGENTS.md](src/lib/presentation/AGENTS.md)
-
-- A deleted task is undone from its toast; only routines get a confirm step.
-- A dropped measurement is undone the same way, through a closure the store
-  hands back — and every address the same drop arrives by opens the same
-  window.
-- Metric color-band thresholds live in the presentation layer (`utils/band.ts`),
-  and a view model carries a `Band`, never a class string.
-- The Lab's task list reads in schedule order, snapshotted per visit.
-- The Lab's row reads the three model inputs, it does not slide them.
-- Both task screens are one `<table>` off one shell; a column list is one
-  definition per screen, and the shell takes a `columnCount`, never a mode flag.
-- The calibration cards share a shell, not a body; a fit reads on the parameter
-  row it fits, not on the card.
-
-**Serving** — [docs/deployment.md](docs/deployment.md)
-
-- No page is prerendered, including `imprint` and `privacy`.
-- The service worker caches personalised HTML, and every personalised input is
-  repaired when a stale copy is served.
-- `app.html`'s pre-paint script takes its theme names from the catalogue.
-- `sitemap.xml` and `robots.txt` prerender only when `PUBLIC_SITE_URL` is set,
-  which is Production-scoped on Vercel.
-- `/de/*`, `/es/*`, `/fr/*`, `/zh/*` are real, indexable URLs, not a cookie
-  state.
+[data](src/lib/data/AGENTS.md) · [stores](src/lib/business/AGENTS.md) ·
+[model](src/lib/business/model/AGENTS.md) ·
+[UI](src/lib/presentation/AGENTS.md) · [serving](docs/deployment.md)

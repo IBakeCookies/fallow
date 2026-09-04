@@ -1,4 +1,5 @@
-// Check that every §-citation in the tree resolves to a MATH.md section:
+// Check that every §-citation resolves to a MATH.md section, and every
+// R-citation to a rule AGENTS.md still states:
 //   node scripts/math-citations.mjs           report the offenders
 //   node scripts/math-citations.mjs --check   exit 1 when one exists (runs in `npm run lint`)
 //
@@ -8,6 +9,12 @@
 // shipped in four code sites and `npm run lint` passed. This reuses
 // math-index.mjs's heading regex and walks the tracked-and-untracked tree
 // for citations to check against it.
+//
+// Rule numbers are the same claim shape and were the larger exposure: `R3`
+// alone is cited over 80 times, the hard rules are cited a few hundred times
+// across the tree, and renumbering or retiring one would have dangled every
+// site silently. A rule is its number here, so the citation resolves against
+// AGENTS.md's own `**R1 — …**` lines rather than a hand-kept list.
 //
 // FROZEN is not scanned. `docs/features/` specs and ROADMAP.md record what was
 // decided on a date and are never rewritten, so a section they cite is a fact
@@ -26,6 +33,10 @@ const HEADING = /^(#{2,3}) (\d+)(?:\.(\d+))?\.? (.*)$/;
  *  makes it a line range like `§302-350`, not a section, so group 3 means "skip this
  *  one". An unnamed citation means MATH.md — that is the house convention. */
 const CITATION = /(?:([A-Za-z0-9_/-]+\.md)\s+)?§(\d+(?:\.\d+)*)(-\d+)?/g;
+/** A hard rule as AGENTS.md §1 declares it — `**R4 — Model inputs are …**`. */
+const RULE_DECLARATION = /^\*\*R(\d+)\s*—/;
+/** A citation of one. `\b` on both sides so a longer token never matches. */
+const RULE_CITATION = /\bR(\d+)\b/g;
 
 function headingsOf(path) {
 	return new Set(
@@ -46,6 +57,14 @@ const headings = {
 	'AGENTS.md': headingsOf('AGENTS.md'),
 };
 
+const rules = new Set(
+	readFileSync('AGENTS.md', 'utf8')
+		.split('\n')
+		.map((line) => RULE_DECLARATION.exec(line))
+		.filter(Boolean)
+		.map((match) => match[1]),
+);
+
 const files = execFileSync(
 	'git',
 	['ls-files', '--cached', '--others', '--exclude-standard', ...DIRS],
@@ -58,6 +77,7 @@ const files = execFileSync(
 	.filter((path) => !FROZEN.some((frozen) => frozen.test(path)));
 
 let total = 0;
+let ruleTotal = 0;
 const offenders = [];
 
 for (const path of files) {
@@ -75,6 +95,13 @@ for (const path of files) {
 			if (!target?.has(match[2]))
 				offenders.push(`${path}:${index + 1}  ${match[1] ?? 'MATH.md'} §${match[2]}`);
 		}
+
+		for (const match of line.matchAll(RULE_CITATION)) {
+			ruleTotal++;
+
+			if (!rules.has(match[1]))
+				offenders.push(`${path}:${index + 1}  AGENTS.md R${match[1]} — no such hard rule`);
+		}
 	});
 }
 
@@ -87,6 +114,7 @@ if (offenders.length > 0) {
 } else {
 	console.log(
 		`${total} §-citations verified against MATH.md's ${headings['MATH.md'].size} sections ` +
-			`and AGENTS.md's ${headings['AGENTS.md'].size}`,
+			`and AGENTS.md's ${headings['AGENTS.md'].size}; ` +
+			`${ruleTotal} R-citations against its ${rules.size} hard rules`,
 	);
 }
