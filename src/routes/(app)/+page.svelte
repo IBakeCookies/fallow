@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
+	import type { TitleRating } from '$lib/business/model/title-memory';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
@@ -31,6 +32,7 @@
 	} from '$lib/presentation/utils/measurement-prompt';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
+	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
 	import DayActions from '$lib/presentation/component/day-actions.svelte';
 	import TaskList from '$lib/presentation/component/task-list.svelte';
 	import DayConstraintsBar from '$lib/presentation/component/day-constraints-bar.svelte';
@@ -215,14 +217,26 @@
 {#snippet addTaskForm(close: () => void)}
 	<TaskForm
 		oncancel={close}
-		onsubmit={(t) => session.addTask(t)}
+		onsubmit={(t) => {
+			session.addTask(t);
+			// The panel's ranking is now about the day before this task, and the dialog
+			// this deploy came from is still open, so its own mount cannot catch that.
+			plan.computeNextTasks();
+		}}
 		suggest={(query) => session.suggestTitles(query)}
 		tagVocabulary={session.tagVocabulary}
-		impact={plan.draftImpact}
 		ondraftchange={(d) => (plan.previewDraft = d)}
+		preview={draftPreview}
+	/>
+{/snippet}
+
+{#snippet draftPreview(pick: (rating: TitleRating) => void)}
+	<TaskFormPreview
+		impact={plan.draftImpact}
 		nextTasks={plan.nextTasks}
 		hasNextTaskRoom={plan.hasNextTaskRoom}
 		onnexttasks={() => plan.computeNextTasks()}
+		onpicknexttask={pick}
 	/>
 {/snippet}
 

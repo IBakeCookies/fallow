@@ -423,6 +423,16 @@ already costs on every keystroke in the budget field. It is `null` while
 `$derived` nobody reads never runs, so every screen but an open add-task dialog
 pays nothing for it.
 
+`/energy`'s draft is the exception, and it is the reading above that governs it:
+`EnergyLabStore.computeDraftImpact` is a method behind a button, because the
+optimizer behind it costs 35-195 ms at an 8 h window (n = 3 to n = 20),
+where `#daily`'s one solve is what the budget field already pays per keystroke. It carries no
+staleness field either — `previewDraft`'s setter clears `draftImpact`, so an
+edited draft drops the reading rather than dating it. The setter compares the
+draft by VALUE first, because the form republishes on every keystroke in the
+title and a title reaches no solve: without that, fixing a typo after pricing
+charged a second solve for a number that could not have moved.
+
 The **third** case takes the first shape again: the empty add-task form's
 next-task ranking is one solve per capped candidate, so `DailyPlanStore` exposes
 `computeNextTasks()` and no `$derived`. It publishes no busy flag — the panel
@@ -431,9 +441,9 @@ reads `nextTasks === null` as "still working", which is the same fact.
 Unlike the advice it also carries no staleness FIELD; it withdraws instead.
 `computeNextTasks` clears the held list before it solves, and it is called from
 two places, which together are every way the day can move under this reading:
-the panel's own `onMount`, so each opening of the dialog re-ranks, and the
-form's deploy handler, because the dialog stays open across a deploy and the
-task just added is one the ranking must stop offering. `onMount` and not an
+the panel's own `onMount`, so each opening of the dialog re-ranks, and `/`'s own
+deploy handler, because the dialog stays open across a deploy and the task just
+added is one the ranking must stop offering. `onMount` and not an
 `$effect` is what keeps the first inside R2 — the call is unawaited, and R2 bans
 `await`/`.then()` in an effect. `/energy`'s `resnapshotOrder` is the nearest
 precedent for a store call out of `onMount`, though that one is synchronous and

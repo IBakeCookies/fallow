@@ -1,8 +1,40 @@
 <script module lang="ts">
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import { expect, fireEvent, fn, within } from 'storybook/test';
+	import type { DraftImpact } from '$lib/business/model/metric/draft-impact';
+	import type { TitleRating } from '$lib/business/model/title-memory';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
+	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
 	import { latestRatingsByTitle, suggestTitles } from '$lib/business/model/title-memory';
+
+	const READING: DraftImpact = {
+		suggestedHours: 1.25,
+		priorityScore: 63.4,
+		flowStateTime: 0.75,
+		position: 4,
+		fundedCount: 6,
+		physicalPercent: {
+			before: 41.2,
+			after: 62.4,
+		},
+		cognitivePercent: {
+			before: 86.1,
+			after: 88.7,
+		},
+		slackHours: {
+			before: 3.9,
+			after: 2.65,
+		},
+		displaced: {
+			hoursTaken: 0.67,
+			taskCount: 3,
+			unfunded: [],
+		},
+		burnoutRisk: {
+			before: 22.4,
+			after: 31.1,
+		},
+	};
 
 	const { Story } = defineMeta({
 		title: 'Component/Task Form',
@@ -664,37 +696,20 @@
 	}}
 />
 
+{#snippet dayReading(pick: (rating: TitleRating) => void)}
+	<TaskFormPreview
+		impact={READING}
+		nextTasks={null}
+		hasNextTaskRoom={false}
+		onnexttasks={() => {}}
+		onpicknexttask={pick}
+	/>
+{/snippet}
+
 <Story
 	name="With the day's reading"
 	args={{
-		impact: {
-			suggestedHours: 1.25,
-			priorityScore: 63.4,
-			flowStateTime: 0.75,
-			position: 4,
-			fundedCount: 6,
-			physicalPercent: {
-				before: 41.2,
-				after: 62.4,
-			},
-			cognitivePercent: {
-				before: 86.1,
-				after: 88.7,
-			},
-			slackHours: {
-				before: 3.9,
-				after: 2.65,
-			},
-			displaced: {
-				hoursTaken: 0.67,
-				taskCount: 3,
-				unfunded: [],
-			},
-			burnoutRisk: {
-				before: 22.4,
-				after: 31.1,
-			},
-		},
+		preview: dayReading,
 		ondraftchange: fn(),
 		oncancel: fn(),
 	}}

@@ -18,6 +18,7 @@ import {
 	adviseStop,
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
+	optimizeSchedule,
 	type StopAdvice,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
@@ -26,6 +27,8 @@ import {
 	getEffectiveDifficulty,
 	toEnergyTask,
 } from '$lib/business/model/metric/calculation';
+import type { DraftTask } from '$lib/business/model/metric/draft-impact';
+import { calculateEnergyDraftImpact } from '$lib/business/model/metric/energy-draft-impact';
 import { mapEffort } from '$lib/business/model/zenith';
 import { toCognitiveDrainObservations } from '$lib/business/model/energy-calibration';
 
@@ -1302,5 +1305,118 @@ describe('EnergyLabStore', () => {
 		});
 
 		expect(marginalValue(spaced)).toBeGreaterThan(marginalValue(batched));
+	});
+	// ----- The add-task draft, priced on demand -----
+
+	/* Funded on the Lab's 8 h day, so the reading has hours in it. */
+	const draft: DraftTask = {
+		physicalDifficulty: 9,
+		mentalDifficulty: 2,
+		enjoyment: 9,
+	};
+
+	const expectedImpact = (tasks: Task[], published: DraftTask) =>
+		calculateEnergyDraftImpact(
+			{
+				tasks,
+				windowHours: mockSession.availableHours,
+				params: DEFAULT_ENERGY_PARAMS,
+				constants: mockSession.userConstants,
+			},
+			published,
+			optimizeSchedule(
+				tasks.map(toEnergyTask),
+				mockSession.availableHours,
+				DEFAULT_ENERGY_PARAMS,
+				mockSession.userConstants,
+			),
+		);
+
+	it('prices nothing until the button asks, then holds the reading', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+
+		store.previewDraft = draft;
+		flushSync();
+		expect(store.draftImpact).toBeNull();
+
+		await store.computeDraftImpact(draft);
+
+		expect(store.isDraftBusy).toBe(false);
+		expect(store.draftImpact).toEqual(expectedImpact(twoTasks(), draft));
+	});
+
+	/* A stale number beside live sliders is a number that disagrees with the
+	   fields above it, so editing the draft drops the reading rather than marking
+	   it stale — the panel goes back to its prompt line and the button returns. */
+	it('drops the reading when the form publishes a different draft', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		store.previewDraft = draft;
+		await store.computeDraftImpact(draft);
+		expect(store.draftImpact).not.toBeNull();
+
+		store.previewDraft = {
+			...draft,
+			enjoyment: 3,
+		};
+
+		flushSync();
+
+		expect(store.draftImpact).toBeNull();
+
+		// And an emptied title, which publishes no draft at all.
+		await store.computeDraftImpact(store.previewDraft!);
+		expect(store.draftImpact).not.toBeNull();
+
+		store.previewDraft = null;
+		flushSync();
+
+		expect(store.draftImpact).toBeNull();
+	});
+
+	/* A keystroke in the TITLE republishes the same four ratings, because the
+	   title reaches no solve at all (`prependDraft` blanks it) — so dropping the
+	   reading there would charge a second press for a number that cannot have
+	   moved. Identity, not equality: a recomputed reading would be a wasted solve. */
+	it('keeps the reading when the republished draft carries the same ratings', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		store.previewDraft = draft;
+		await store.computeDraftImpact(draft);
+
+		const priced = store.draftImpact;
+
+		store.previewDraft = {
+			...draft,
+		};
+
+		flushSync();
+
+		expect(store.draftImpact).toBe(priced);
+	});
+
+	it('drops a second press while the first solve is still running', async () => {
+		mockSession.tasks = twoTasks();
+
+		const store = await setup();
+		const first = store.computeDraftImpact(draft);
+
+		// Resolves without solving: the guard returns before the yield, so the
+		// second draft never reaches `optimizeSchedule` and the held reading is the
+		// first press's.
+		await store.computeDraftImpact({
+			...draft,
+			enjoyment: 1,
+		});
+
+		expect(store.draftImpact).toBeNull();
+
+		await first;
+
+		expect(store.draftImpact).toEqual(expectedImpact(twoTasks(), draft));
 	});
 });
