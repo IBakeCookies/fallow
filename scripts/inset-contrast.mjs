@@ -81,17 +81,26 @@ const page = await browser.newPage({
 	},
 });
 
-// any CSS colour -> sRGB, via the browser: these tokens are oklab/oklch
-const toRgb = (css) =>
-	page.evaluate((c) => {
-		const cv = document.createElement('canvas');
-		cv.width = cv.height = 1;
-		const ctx = cv.getContext('2d');
-		ctx.fillStyle = c;
-		ctx.fillRect(0, 0, 1, 1);
+// any CSS colour -> the sRGB the eye gets, via the browser: these tokens are
+// oklab/oklch, and the ink among them is TRANSLUCENT — `--ty-secondary` is
+// `--ty-primary` at 70% over transparent (base.css). Painting it on a bare
+// canvas returns the un-premultiplied colour, i.e. the label as if it were
+// opaque, so the background it is actually drawn over has to go down first.
+const composite = (css, bg) =>
+	page.evaluate(
+		([c, b]) => {
+			const cv = document.createElement('canvas');
+			cv.width = cv.height = 1;
+			const ctx = cv.getContext('2d');
+			ctx.fillStyle = `rgb(${b[0]} ${b[1]} ${b[2]})`;
+			ctx.fillRect(0, 0, 1, 1);
+			ctx.fillStyle = c;
+			ctx.fillRect(0, 0, 1, 1);
 
-		return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
-	}, css);
+			return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+		},
+		[css, bg.map(Math.round)],
+	);
 
 // mean sRGB over a clip, decoded by the same browser rather than by a decoder
 // here. A patch and not one pixel, for hover-contrast's reason: a single sample
@@ -166,7 +175,12 @@ for (const theme of THEMES) {
 
 	const insetPx = await sample(inset);
 	const cardPx = await sample(around);
-	const ink = await toRgb(await well.evaluate((n) => getComputedStyle(n.firstElementChild).color));
+
+	const ink = await composite(
+		await well.evaluate((n) => getComputedStyle(n.firstElementChild).color),
+		insetPx,
+	);
+
 	const step = ratio(insetPx, cardPx);
 	const cr = ratio(ink, insetPx);
 

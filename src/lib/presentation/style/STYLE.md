@@ -144,8 +144,16 @@ Read this before touching markup, classes, or anything under
   overrides the rule with 0.14 in `themes.css` — a per-theme exception is the
   right shape for one outlier, where re-raising the whole light side would cost
   `blueprint` its label. Shipped, over all 46: light min 1.081 and median 1.195,
-  dark min 1.249 and median 1.405, worst row label 4.68:1, no reading under the
-  bound. These dark figures do NOT reproduce
+  dark min 1.249 and median 1.405. The label ratio that stood beside them —
+  "worst row label 4.68:1, no reading under the bound" — was the instrument
+  reading the ink as OPAQUE, where `--ty-secondary` is `--ty-primary` at 70%;
+  it overstated by 1.49 to 9.61 points. Composited (2026-09-04) the row label
+  runs min 3.19 and median 5.76, and **five light themes are under 4.5:1**:
+  `blueprint` 3.19, `parchment` 4.15, `solarized-light` 4.26, `bubblegum` 4.34,
+  `ukiyo` 4.44 — with `fallow` itself at 4.52. The step figures are unaffected,
+  both their sides being sampled pixels. Sizing the ink repair is the corrected
+  run's job and not this note's: `--ty-secondary` is one derivation feeding
+  `--muted-foreground` across the app. These dark figures do NOT reproduce
   337aad1's (min 1.381, median 1.521): that run is ~0.10 higher on both and its
   sample area is not recoverable, so this script's numbers replace them rather
   than reconcile with them. `.solid-light` is

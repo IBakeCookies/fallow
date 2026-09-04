@@ -92,7 +92,10 @@ on every story with `test: 'error'` — an a11y violation **fails CI**.
 `theme.stories.svelte` opts out of `color-contrast` only: it renders every
 fill/ink pair on purpose, including the handful that cannot reach 4.5:1 (see
 STYLE.md's ink note; the budget is measured by `scripts/ink-contrast.mjs`).
-Contrast stays enforced on every real component. Storybook is also what
+Contrast stays enforced on every real component **in one theme**: the toolbar
+default is `DEFAULT_THEME` (`fallow`), so axe never sees the other 45, and five
+light themes ship a log-row label under 4.5:1 (STYLE.md's ink note) — `fallow`
+itself reads 4.52. Storybook is also what
 `scripts/hover-contrast.mjs` drives (on :6006, unlike the ink script): axe only
 ever sees a story's REST state, so every hover fill's step and label contrast
 is measured there instead, over every theme × the 5 button variants that carry
