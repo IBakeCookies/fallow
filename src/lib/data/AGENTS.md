@@ -202,8 +202,9 @@ the causal window. `createdAt` is excluded for the same reason.
 The fit as of day D _is_ a pure function of the observations dated ≤ D, so the
 audit could refit per audited day instead of reading a `fitSnapshots` record —
 and that would fix history retroactively, which storing cannot. It loses on
-cost, and only on cost: each per-day refit costs a WHOLE-history fit (19 ms/day
-measured, 570 ms for a 30-day audit vs 17.6 ms for one), so recomputation is
+cost, and only on cost: each per-day refit costs about a WHOLE-history fit
+(`scripts/fit-snapshot-drift.probe.ts` prices the ratio as a band, with its box
+attached), so recomputation is
 O(auditDays × totalLogVolume) and gets slower every time the user logs anything,
 on a screen that runs it on every visit. Do not re-propose refitting as a
 simplification; the trade was measured.

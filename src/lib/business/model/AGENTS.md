@@ -268,8 +268,9 @@ Each was considered and decided; most were measured. Re-deciding them is churn.
 
 ### The day's plan is solved once per `calculateDailyMetrics`
 
-The allocator dominates dashboard cost (2ⁿ funded-subset enumeration, ~51 ms at
-n = 12) and used to run **twice** on identical inputs: the plan, then Zenith
+The allocator dominates dashboard cost (2ⁿ funded-subset enumeration;
+`scripts/plan-advice.probe.ts`'s `[cost]` arm prices one solve, with its box
+attached) and used to run **twice** on identical inputs: the plan, then Zenith
 Gain's optimized side. `calculateTaskPlan` returns the plan plus its
 `allocatedHours`, and `calculateZenithGain` takes them — halving the dashboard
 `$derived` (which re-runs on every keystroke in the budget field) and the plan
@@ -302,11 +303,11 @@ generic 3×3 linalg → `linalg.ts`, and the drain/rest measurements →
 `energy-observation-store.svelte.ts`.
 
 **The first two are deep; `session-store.svelte.ts` is not, and the decision
-does not rest on that.** It stands behind **39 public members** — 1 per 27
-lines, against ~1 per 51 in `zenith.ts` — a wide facade, so size was never the
-argument either way. What the arithmetic prices is the split, not the module.
-**Re-measure rather than quoting these numbers** (2026-08-13; 34 of the 39 were
-single-caller on 2026-07-23, when the same 39 sat behind 675 lines).
+does not rest on that.** It stands behind a member per few dozen lines — a wide
+facade, so size was never the argument either way. What the arithmetic prices is
+the split, not the module. **Count both sides yourself before proposing one**;
+the members and the lines both move, so a figure quoted here would be wrong by
+the time you read it.
 
 ### The energy model is a peer mode, not a candidate to replace the main plan
 
@@ -575,7 +576,7 @@ reason: "Must do" beside `0m` reads as a promise the model never made.
 ### An unfunded task gets one reason, and the order decides which
 
 2026-09-01
-([docs/features/why-a-task-got-no-hours.md](../../../docs/features/why-a-task-got-no-hours.md)).
+([docs/features/why-a-task-got-no-hours.md](../../../../docs/features/why-a-task-got-no-hours.md)).
 `attributeUnfunded` reads only the candidates `suggestPlanAdjustments` has
 already solved, so the read costs no solve: **defer → budget → pool → none**,
 first match wins.

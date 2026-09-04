@@ -41,8 +41,16 @@ screenshots/
 # Eval harness output
 eval/results/
 
-# Throwaway driver scripts — a probe of the running app, written to be deleted.
-# Ignored so the Stop hook's `git status` scope does not read one session's
-# scratch file as another's unformatted change.
+# Throwaway probes — a driver script against the running app, or a component
+# that exists only to prove a lint rule fires. Written to be deleted. Ignored so
+# the Stop hook's `git status` scope does not read one session's scratch file as
+# another's unformatted change. A lint probe has to sit under the path its rule
+# scopes to, so this covers `.svelte` too.
 *.tmp.mjs
 *.tmp.ts
+*.tmp.svelte
+# `scripts/probe-registry.mjs` already exempts "an untracked scratch
+# `zz-*.probe.ts` in a dirty tree" from the registry it enforces, so that name
+# is the convention for a throwaway probe. It has to be ignored here too, or
+# the same file the registry excuses blocks the Stop hook on formatting.
+zz*.probe.ts

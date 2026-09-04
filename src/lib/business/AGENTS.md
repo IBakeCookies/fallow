@@ -20,7 +20,8 @@ And is the only module that does — every layer and the hooks report
 diagnostics, so a home inside any one layer would break the direction for the
 other two. It imports nothing from the app (`logger-imports-nothing`, an error)
 and is the only file allowed to touch `console`; `no-console` is an **error**
-everywhere else (`scripts/` exempt — console output is the point there). Call
+everywhere else, and off in exactly four places — `logger.ts` itself,
+`scripts/`, `eval/` and `.claude/hooks/`, whose console output is the point. Call
 `logError` / `logWarning` with a message, the caught error, and a `context`
 object of ids, dates and counts — **never task titles or notes**, the payload a
 reporting service would ship off-device. Plugging in Sentry or similar is one
@@ -235,12 +236,9 @@ midnight re-loads and re-arms the autosave.
 `toggleTask`'s past-day branch and from `moveTaskToTomorrow` — each a whole
 record, so every field one of them does not carry is a field it erases.
 `#persistSession` cannot catch that: it takes the payload already built.
-Adding `startHour` reached two of the three, and ticking a task off on a past
-day then reset that day's start
-([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)) —
-that field has since been removed
-([the-anchor-that-held-only-itself.md](../../../docs/features/the-anchor-that-held-only-itself.md)),
-but the trap it fell into has not.
+A field that reached only two of the three once reset a past day's value when a
+task was ticked off there
+([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
 The destination write also reads its OWN day's values through `#readDestination`
 and defaults nothing: a fallback there stamps a value onto a day that never
 chose one.
@@ -401,79 +399,59 @@ interface-arithmetic reason as `zenith.ts` —
 
 ### Plan advice is computed on demand, never in a `$derived`
 
-`suggestPlanAdjustments` re-solves the whole day once per
-candidate, so cost scales with the 2ⁿ funded-subset enumeration: measured 1 ms
-for a 6-task day but **109-124 ms for a 12-task one** (2026-08-17; 12 ms / 946 ms
-in the 2026-07-27 reading, before solve-once and on an unnamed machine —
-conclusion unchanged). In a `$derived` that is a frozen main thread on every
-keystroke in the budget field. A 12-task day is the **worst** case, not a floor:
-past `EXACT_SUBSET_LIMIT` the solve takes the fallback and gets cheaper. `DailyPlanStore` therefore
-exposes `computeAdvice()` plus `isAdviceStale`, and staleness compares a
-**fingerprint of the inputs** — a `$derived` read from outside a reactive
-context is not guaranteed to return the same object twice, so identity reports
-staleness on a day that never changed.
+The cost rule, and it decides the shape of every reading that solves the day.
+**A reading costing one solve per candidate goes behind a method; a reading
+costing one solve may stay a `$derived`.**
 
-### The add-task draft is priced in a `$derived`, unlike the advice
+| Reading                             | Shape                      | Cost                                                                 |
+| ----------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| `suggestPlanAdjustments`            | `computeAdvice()` + a flag | one solve per candidate — 109-124 ms at n = 12, a frozen main thread |
+| `DailyPlanStore.draftImpact`        | `$derived`                 | one solve, what `#daily` already costs per keystroke                 |
+| `EnergyLabStore.computeDraftImpact` | method behind a button     | the energy optimizer, 35-195 ms at an 8 h window (n = 3 to n = 20)   |
+| `computeNextTasks`                  | method, withdraws          | one solve per capped candidate                                       |
+| `#remainingDay`                     | `$derived`, gated          | 12.4 ms at n = 12, 0.001 ms until something is logged                |
 
-`draftImpact` is one solve — the day with the draft in it, against the
-`#daily` the store already has — where the advice is one per candidate, so the
-reading above's argument does not carry over: it costs what `#daily` itself
-already costs on every keystroke in the budget field. It is `null` while
-`previewDraft` is (the form's, set from what the user has typed), and a
-`$derived` nobody reads never runs, so every screen but an open add-task dialog
-pays nothing for it.
+The frozen thread is the budget field, which re-derives on every keystroke. A
+12-task advice run is the **worst** case, not a floor: past
+`EXACT_SUBSET_LIMIT` the solve takes the fallback and gets cheaper.
+`#remainingDay` survives as a `$derived` only because of its gate — the viewed
+day being today **and** any hours existing, so it costs nothing every morning,
+which is exactly when the day is being typed into. A `$derived` nobody reads
+never runs, which is why `draftImpact` costs every screen but an open add-task
+dialog nothing.
 
-`/energy`'s draft is the exception, and it is the reading above that governs it:
-`EnergyLabStore.computeDraftImpact` is a method behind a button, because the
-optimizer behind it costs 35-195 ms at an 8 h window (n = 3 to n = 20),
-where `#daily`'s one solve is what the budget field already pays per keystroke. It carries no
-staleness field either — `previewDraft`'s setter clears `draftImpact`, so an
-edited draft drops the reading rather than dating it. The setter compares the
-draft by VALUE first, because the form republishes on every keystroke in the
-title and a title reaches no solve: without that, fixing a typo after pricing
-charged a second solve for a number that could not have moved.
+Four rules the table cannot carry:
 
-**It takes no draft, and it discards its own solve when the form has moved on.**
-The form publishes into `previewDraft` already, so a parameter would let a press
-name a draft the panel then prints beside fields that did not produce it — and
-the press opens a yield before the solve, which a slider drag can publish
-inside. So the method reads the draft at the start, and assigns the reading only
-while `previewDraft` still values-equal it; otherwise the setter's drop stands.
-Without that guard the dropped reading came back, which is worse than never
-dropping it: nothing on screen says the figures are about the previous
-ratings.
-
-The **third** case takes the first shape again: the empty add-task form's
-next-task ranking is one solve per capped candidate, so `DailyPlanStore` exposes
-`computeNextTasks()` and no `$derived`. It publishes no busy flag — the panel
-reads `nextTasks === null` as "still working", which is the same fact.
-
-Unlike the advice it also carries no staleness FIELD; it withdraws instead.
-`computeNextTasks` clears the held list before it solves, and it is called from
-two places, which together are every way the day can move under this reading:
-the panel's own `onMount`, so each opening of the dialog re-ranks, and `/`'s own
-deploy handler, because the dialog stays open across a deploy and the task just
-added is one the ranking must stop offering. `onMount` and not an
-`$effect` is what keeps the first inside R2 — the call is unawaited, and R2 bans
-`await`/`.then()` in an effect. `/energy`'s `resnapshotOrder` is the nearest
-precedent for a store call out of `onMount`, though that one is synchronous and
-in a route.
-
-**The fingerprint carries the DATE as well as the inputs**, and so does
-`EnergyLabStore`'s `#curveFingerprint`. The inputs alone cannot tell one day
-from another while the next one is still loading: `selectedDate` follows the
-live clock and the URL, `#loadSession` is async, so a navigation and the
-midnight tick both move the day with the previous day's tasks still in memory —
-and a held reading reports FRESH right through that window. Any future
-on-demand reading held across days needs the same field. What the two cards do
-with the flag is theirs: [presentation/AGENTS.md](../presentation/AGENTS.md).
-
-The day's **second** solve goes the other way and stays a store-level
-`$derived`: `#remainingDay` re-plans what is left of today from the hours
-already logged against it, gated on the viewed day being today
-**and** on any hours existing. That gate, not an on-demand method, is what
-keeps it viable — 12.4 ms a solve at n = 12, but 0.001 ms while nothing is
-logged, which is every morning, i.e. exactly when the day is being typed into.
+- **Staleness compares a fingerprint of the inputs, never identity.** A
+  `$derived` read from outside a reactive context is not guaranteed to return
+  the same object twice, so identity reports staleness on a day that never
+  changed.
+- **The fingerprint carries the DATE as well as the inputs** — `isAdviceStale`
+  and `EnergyLabStore`'s `#curveFingerprint` both. `selectedDate` follows the
+  live clock and the URL while `#loadSession` is async, so a navigation and the
+  midnight tick each move the day with the previous day's tasks still in
+  memory, and a held reading reports FRESH right through that window. Any
+  future on-demand reading held across days needs the same field. What the two
+  cards do with the flag is theirs:
+  [presentation/AGENTS.md](../presentation/AGENTS.md).
+- **A draft reading is dropped rather than dated, and compared by VALUE.**
+  `previewDraft`'s setter clears `draftImpact` and values-compares first,
+  because the form republishes on every keystroke in the title and a title
+  reaches no solve: without it, fixing a typo after pricing charged a second
+  solve for a number that could not have moved. `computeDraftImpact` takes no
+  draft parameter and assigns its reading only while `previewDraft` still
+  values-equals what it read at the start — the press opens a yield a slider
+  drag can publish inside, and a dropped reading that comes back is worse than
+  one never dropped, since nothing on screen says the figures describe the
+  previous ratings.
+- **`computeNextTasks` withdraws instead of dating**: it clears the held list
+  before it solves, and its two callers are every way the day can move under
+  it — the panel's own `onMount`, so each opening of the dialog re-ranks, and
+  `/`'s deploy handler, because the dialog stays open across a deploy and the
+  task just added is one the ranking must stop offering. `onMount` and not an
+  `$effect` is what keeps it inside R2, which bans `await`/`.then()` in an
+  effect. It publishes no busy flag — the panel reads `nextTasks === null` as
+  "still working", which is the same fact.
 
 ### `EnergyLabStore` never writes to the daily session
 

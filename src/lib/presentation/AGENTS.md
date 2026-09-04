@@ -22,10 +22,10 @@ it. Happened twice (a 518-line main page, a 1349-line Energy Lab); both had to
 be pulled back out.
 
 The commonest form of that drift is now an error rather than a judgement call:
-an `await` or a `.then()` inside a `$effect` in `src/routes/**` or
-`presentation/**` fails `no-restricted-syntax`, because a file that sequences
-reads and holds their results is orchestrating. Read in a store and take the
-value. What the selector cannot see is a synchronous pile — a page of
+an `await` or a `.then()` inside a `$effect` in a `.svelte` file under
+`src/routes/**` or `presentation/**` fails `no-restricted-syntax`, because a
+file that sequences reads and holds their results is orchestrating. Read in a
+store and take the value. What the selector cannot see is a synchronous pile — a page of
 `$derived` chains computing policy is still legal and still wrong, which is
 what the rule of thumb below is for. The tree carries no `eslint-disable` for
 it: `calendar/+page.svelte` was the one hit, and its read went to
@@ -35,7 +35,9 @@ Reads end at a store: `presentation-not-to-business-model` in
 `.dependency-cruiser.cjs` is an **error** when a route or component
 value-imports `$lib/business/model/*` (stores, state, `utils`, and
 `import type` are fine). Not a judgement call: put the orchestration in a store
-and give the page the result.
+and give the page the result. Four kinds of file are outside the rule and may
+import a model directly: `.server.ts` and `+server.ts` are the composition
+root, and specs and `.stories.svelte` build their own fixtures.
 
 A `+page.svelte` may contain: markup, local UI-only state (draft editors,
 open/closed toggles, view preferences), formatters, and thin `$derived` aliases
@@ -209,7 +211,7 @@ the Lab it is a read-out you annotate and the plan is the screen's answer, so th
 plan leads full width and the ledger heads the wide column under it. What both
 screens do hold is that the ledger and the parameters that move it are adjacent —
 the Lab buys that by stacking them in one column, not by ordering the page.
-Five components hold what the two screens say the same way:
+Six components hold what the two screens say the same way:
 
 - **`task-list-card.svelte`** — the card, the heading, `strip` between the heading
   and the ledger (`/` puts its day strip there, the Lab the ☕ editor), the ADD-TASK
@@ -314,7 +316,7 @@ sideways inside its own `overflow-x-auto` container and the DOCUMENT does not �
 `e2e/tasks.e2e.ts` pins both halves, because a table that overflows is only
 correct while the container is the thing that scrolls. The ledger also takes each
 screen's full width and the readings sit beneath it — `/`'s metrics, the Lab's
-plan: twelve columns have nowhere to go in two thirds of a page. The column list
+plan: a twelve-column ledger has nowhere to go in two thirds of a page. The column list
 is `utils/ledger-column.ts`, one function per
 screen, and it is the ONE definition of how wide the table is: the card heads it
 and the shell spans it. The hours the optimizer planned are `Planned`, the LAST
@@ -322,7 +324,8 @@ column, on BOTH screens — one word and one place for one reading, so the two
 ledgers read the same way (`trailing`, not `meta`). Numeric cells are `ledger-numeric` — right-aligned and
 `tabular-nums`, because a column nobody can compare down is not worth a column.
 
-**A phone shows five of the columns, not all twelve.** `ledger-wide` drops
+**A phone shows five of the columns on either screen** — five of `/`'s twelve
+and five of the Lab's nine. `ledger-wide` drops
 `Phys`, `Ment`, `Enjoy` and every derived reading below `sm`, leaving the lead,
 `Task`, `Logged`, `Planned` and the ✎/✕ strip — the plan's answer and the two
 instruments, which is what fits without the ledger scrolling sideways at all.
@@ -344,12 +347,14 @@ around it.
 
 **A day with every task ticked renders its plan, struck through, on BOTH
 screens.** The plan is a reading of what the day was for, not a queue that
-empties as it is worked, so nothing replaces it: `/energy` had a card saying the
-planner needed an open task and no longer does, and `/`'s day strip drew a
-finished block as work ahead and no longer does
+empties as it is worked, so nothing replaces it
 ([the-planner-that-said-it-needed-an-open-task.md](../../../docs/features/the-planner-that-said-it-needed-an-open-task.md);
 [the-strip-that-read-as-all-ahead.md](../../../docs/features/the-strip-that-read-as-all-ahead.md)).
-Which mark each screen uses is "the bar marks, the list dims", below.
+**The allocator is blind to `completed`**, so a finished task is MARKED and
+never moved or dropped: no width, offset, band or run slot may change when a box
+is ticked, or the screen is a picture of a plan nothing computed. Every reading
+below draws its own conclusion from that one fact, and which mark each screen
+uses is "the bar marks, the list dims", below.
 
 ✎ and ✕ carry an `aria-label` and no tooltip: a pencil and a cross are the two
 icons nobody needs told. They sit in a narrow always-visible trailing column —
@@ -448,31 +453,18 @@ which already scrolls the container with momentum the drag would cost them. It
 is `/`'s alone: the Lab's `plan-timeline-bar.svelte` renders the energy
 optimizer's own blocks and shares only `formatDuration`.
 
-**The strip's finished block reads as finished, and the plan does not move.**
-`opacity-60` on the block and `text-ty-silent line-through` on its title — the
-ledger row's own vocabulary (`task-row-shell.svelte`), because the strip and the
-rows it is a reading of sit inches apart — plus an `sr-only` `day_timeline_done`,
-and no `#N`. Every width, offset and band still reads the full intended day: the
-allocator is blind to `completed`, so a block that moved when a box was ticked
-would be a picture of a plan nothing computed. `isCompleted` is a field on
-`DayBlock` and not a prop, the opposite of `/energy`'s `completedTaskIds`: the
-optimizer owns `EvaluatedBlock`, while `DayBlock` is a view model whose input
-`SuggestedTask` already carries the flag, so a prop would move the policy back
-into the markup
+**The strip's finished block dims**, and adds an `sr-only` `day_timeline_done`
+and no `#N`. `isCompleted` is a field on `DayBlock` and not a prop — the
+opposite of `/energy`'s `completedTaskIds` below, and for a reason that does not
+generalise: `DayBlock` is a view model whose input `SuggestedTask` already
+carries the flag, so a prop would move the policy back into the markup
 ([the-strip-that-read-as-all-ahead.md](../../../docs/features/the-strip-that-read-as-all-ahead.md)).
 
-The strip carries **no time of day at all**. It once read against a persisted
-`DailySession.startHour`, set by a "Day Starts" field, to print a `from 09:00`
-label — and that label was its only reader: no formula, fit or metric ever
-touched the value. `availableHours` is intended work, not a span of the clock,
-so start-plus-budget is a finish time nobody computed, which
-left the start with nothing to anchor but itself. The field, the label, the
-persisted key and the `formatClock`/`parseClock` pair went with it; every
-duration on the strip is an offset from the day's own zero (`formatOffset`),
-which is the only reading the model has
-([the-anchor-that-held-only-itself.md](../../../docs/features/the-anchor-that-held-only-itself.md);
-[the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)
-records the version that had one).
+The strip carries **no time of day at all**, and may not grow one:
+`availableHours` is intended work, not a span of the clock, so start-plus-budget
+is a finish time nobody computed. Every duration is an offset from the day's own
+zero (`formatOffset`), which is the only reading the model has
+([the-anchor-that-held-only-itself.md](../../../docs/features/the-anchor-that-held-only-itself.md)).
 
 ### A finished task's blocks read as finished, and the plan does not move
 
@@ -484,8 +476,8 @@ because neither existing split of the same field is a view of completion to
 reuse (R3): `session-store`'s `activeTasks` drops the completed tasks instead of
 naming them, and `energy-lab-store`'s `openTaskIds` is the stop advisor's model
 input. Completion stays a PROP and
-never a field on `EvaluatedBlock`: the optimizer runs over every task, completed
-ones included, so a block carrying the flag would imply the plan read it
+never a field on `EvaluatedBlock`, which the optimizer owns: a block carrying
+the flag would imply the plan read it
 ([business/model/AGENTS.md](../business/model/AGENTS.md), "the budget's shadow
 price is a day-level reading"). Nothing here enters a number, and the mark is per
 TASK — a task interleaved into two blocks marks both, since the plan carries no
@@ -528,7 +520,7 @@ assertions plus a story `play` read that text.
 
 Both models read both fits — ϕ (⚡) feeds the Lab's own curves, and the α, λ₀,
 audit and carry-over readings all run off 🪫 hours — so neither instrument may
-be withheld from a screen (ROADMAP item 11).
+be withheld from a screen (ROADMAP, "Worked-hours instrument on `/`").
 
 **One click rule covers the whole `Logged` cell: a control closes the editor it
 owns, and otherwise opens its own.** A reading owns the editor seeded from it, so
