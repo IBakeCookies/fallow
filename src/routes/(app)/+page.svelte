@@ -103,6 +103,15 @@
 		removeTaskWithUndo(session, taskId);
 	}
 
+	// The advisor's move drops the row too, so its editors go the same way: an open
+	// 🪫 draft left behind holds the stopped timer's minutes (`claimPendingMinutes`)
+	// against a row that is no longer on the day.
+	function moveTaskToTomorrow(taskId: number) {
+		closeFlowLog(taskId);
+		closeDrainLog(taskId);
+		moveTaskToTomorrowWithUndo(session, taskId);
+	}
+
 	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
 	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
 
@@ -354,7 +363,7 @@
 					{destination}
 					hasError={plan.hasAdviceError}
 					oncheck={() => plan.computeAdvice()}
-					onapply={(id) => moveTaskToTomorrowWithUndo(session, id)}
+					onapply={moveTaskToTomorrow}
 					onapplybudget={(hours) => (session.availableHours = hours)}
 				/>
 			{/if}

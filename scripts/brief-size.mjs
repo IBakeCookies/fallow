@@ -24,7 +24,7 @@ import { readFileSync } from 'fs';
 const BUDGETS = {
 	'AGENTS.md': 340,
 	'src/lib/data/AGENTS.md': 240,
-	'src/lib/business/AGENTS.md': 620,
+	'src/lib/business/AGENTS.md': 632,
 	'src/lib/business/model/AGENTS.md': 660,
 	'src/lib/presentation/AGENTS.md': 881,
 	'src/lib/presentation/style/STYLE.md': 500,

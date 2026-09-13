@@ -925,7 +925,10 @@ describe('SessionStore persistence', () => {
 		useFakeTimers(); // freeze the auto-save so only the move writes
 
 		expect(await store.moveTaskToTomorrow(id)).toBe(true);
-		expect(store.tasks).toHaveLength(1);
+
+		// The row LEAVES. The carry records an unfinished day, so its row stays marked;
+		// the advisor's move edits a day still being planned, and has nothing to record.
+		expect(store.tasks).toHaveLength(0);
 
 		const write = updateSessionMock.mock.calls[0][0];
 		expect(write.date).toBe(addDays(store.today, 1));
@@ -1125,9 +1128,10 @@ describe('SessionStore persistence', () => {
 		expect(store.carryableCount).toBe(0);
 	});
 
-	// The single move is the same gesture on one row, and both write through
-	// `#toCarriedTask` — so a mark on one and not the other is the drift R3 forbids.
-	it('marks the one task the single move carried', async () => {
+	// The two moves are no longer the same gesture: the carry MARKS the row it sends
+	// on, the single move DROPS it. Both still write tomorrow's copy through
+	// `#toCarriedTask`, so only the source day's row differs.
+	it('drops the one row the single move carried', async () => {
 		const { store } = await setup();
 
 		store.addTask({
@@ -1142,7 +1146,7 @@ describe('SessionStore persistence', () => {
 
 		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
 
-		expect(deferralOf(store.tasks[0])).toBe(addDays(store.today, 1));
+		expect(store.tasks.map((t) => t.title)).toEqual([]);
 	});
 
 	// What travels is definition and provenance only. The mark is neither: it is a
@@ -1164,6 +1168,38 @@ describe('SessionStore persistence', () => {
 		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
 
 		expect(updateSessionMock.mock.calls[0][0].tasks[0]).not.toHaveProperty('deferredTo');
+	});
+
+	/* A dropped row comes back where it was: `removeTask`'s undo re-splices at its
+	   index, and the single move's must too, or the way back re-orders the day it is
+	   undoing. Newest-first (business/AGENTS.md), so this is the order on screen. */
+	it('puts an undone move back in the row’s old place', async () => {
+		const { store } = await setup();
+		const tomorrow = addDays(store.today, 1);
+
+		for (const title of ['third', 'second', 'first']) {
+			store.addTask({
+				title,
+				physicalDifficulty: 3,
+				mentalDifficulty: 5,
+				enjoyment: 5,
+			});
+
+			flushSync();
+		}
+
+		useFakeTimers();
+
+		expect(await store.moveTaskToTomorrow(store.tasks[1].id)).toBe(true);
+
+		// Tomorrow now holds what the move wrote, so the undo can read it back.
+		readSessionByDateMock.mockImplementation(async (date) =>
+			date === tomorrow ? updateSessionMock.mock.calls[0][0] : null,
+		);
+
+		await store.undoCarry!();
+
+		expect(store.tasks.map((t) => t.title)).toEqual(['first', 'second', 'third']);
 	});
 
 	/* The undo is the carry's two writes in reverse — and a carry into a day with no
@@ -1251,8 +1287,9 @@ describe('SessionStore persistence', () => {
 		expect(updateSessionMock.mock.calls[1][0].tasks.map((t) => t.title)).toEqual(['Dentist']);
 	});
 
-	// The single move is the carry on one row, and offers the same way back for the
-	// same toast.
+	// The two moves differ on the source row and agree on everything else: the same
+	// toast, the same destination write, and the same removal of a tomorrow the move
+	// created.
 	it('hands the single move the same way back', async () => {
 		const { store } = await setup();
 		const tomorrow = addDays(store.today, 1);
@@ -1268,7 +1305,7 @@ describe('SessionStore persistence', () => {
 		useFakeTimers();
 
 		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
-		expect(deferralOf(store.tasks[0])).toBe(tomorrow);
+		expect(store.tasks).toHaveLength(0);
 
 		readSessionByDateMock.mockImplementation(async (date) =>
 			date === tomorrow ? updateSessionMock.mock.calls[0][0] : null,
@@ -1277,7 +1314,7 @@ describe('SessionStore persistence', () => {
 		await store.undoCarry!();
 
 		expect(deleteSessionMock).toHaveBeenCalledWith(tomorrow);
-		expect(deferralOf(store.tasks[0])).toBeUndefined();
+		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
 	});
 
 	/* The destination line reads a day the card cannot send to on a past day, where

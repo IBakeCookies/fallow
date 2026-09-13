@@ -359,9 +359,12 @@ function isPriced(lever: AdviceLever, budget: number): boolean {
 	return lever.kind === 'defer-task' || lever.hours < budget;
 }
 
-function buildLevers(baseline: DailyMetrics): AdviceLever[] {
+function buildLevers(
+	baseline: DailyMetrics,
+	workedTaskIds: Pick<ReadonlySet<number>, 'has'> | undefined,
+): AdviceLever[] {
 	const levers: AdviceLever[] = baseline.activeTasks
-		.filter((task) => !isPinned(task))
+		.filter((task) => !isPinned(task) && !workedTaskIds?.has(task.id))
 		.map((task) => ({
 			kind: 'defer-task' as const,
 			taskId: task.id,
@@ -676,12 +679,17 @@ function attributeUnfunded(
  *
  * Pass `baseline` when the caller already has the current plan; it is only
  * recomputed here so the function stays usable on its own.
+ *
+ * `workedTaskIds` bounds the defer levers: performing one takes the row off today
+ * (`SessionStore.moveTaskToTomorrow`) and `workedHoursByTask` joins 🪫 hours by
+ * task id, so offering a worked row would offer to lose what the user recorded.
  */
 export function suggestPlanAdjustments(
 	input: DailyMetricsInput,
 	baseline: DailyMetrics = calculateDailyMetrics(input),
+	workedTaskIds?: Pick<ReadonlySet<number>, 'has'>,
 ): PlanAdvice {
-	const levers = buildLevers(baseline);
+	const levers = buildLevers(baseline, workedTaskIds);
 
 	const candidates = levers.map((lever) => ({
 		lever,

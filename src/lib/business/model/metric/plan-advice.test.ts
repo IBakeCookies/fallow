@@ -173,6 +173,31 @@ describe('suggestPlanAdjustments', () => {
 		expect(deferred.length).toBeGreaterThan(0);
 	});
 
+	/* A row the advisor moves LEAVES today, so the move must lose nothing measured. 🪫
+	   hours join by task id (`workedHoursByTask` drops an id it cannot find), and that
+	   join feeds the mid-day re-plan, §9's adherence audit and §8.10 — so a task with
+	   logged hours is not a candidate, the way a completed or pinned one is not. */
+	it('never offers to defer a task whose hours are already logged', () => {
+		const advice = suggestPlanAdjustments(grindDay(), undefined, new Set([1]));
+
+		const deferred = everyOption(advice)
+			.filter((option) => option.lever.kind === 'defer-task')
+			.map((option) => (option.lever.kind === 'defer-task' ? option.lever.taskId : -1));
+
+		expect(deferred).not.toContain(1);
+
+		// Dropped as a candidate, not merely beaten on the frontier — the count is what
+		// tells those two apart.
+		expect(advice.candidatesEvaluated).toBe(
+			suggestPlanAdjustments(grindDay()).candidatesEvaluated - 1,
+		);
+
+		// …and dropped as a LEVER, not as a task. Solving the day without the worked row
+		// satisfies both assertions above while pricing every remaining option against a
+		// day the user does not have.
+		expect(advice.planValue).toBe(suggestPlanAdjustments(grindDay()).planValue);
+	});
+
 	// The one thing the model knows about obligation: a flagged task
 	// is not a candidate at all. Nothing else about it changes.
 	it('never offers to defer a task flagged mustDoToday', () => {
