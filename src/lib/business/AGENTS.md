@@ -570,14 +570,24 @@ both keep the boot day's answer while another date is viewed.
 
 ### A task moves between days only via the two tomorrow moves
 
-Tasks live inside their day's `DailySession` record, so a move is two writes: append
-a copy to tomorrow's session (a read-modify-write through `$readSessionByDate` /
-`$updateSession` — the only store write that does not target the viewed day), then
-MARK today's row `deferredTo` (persisted by the normal autosave) — in that order and
-without a transaction, so the failure mode is a visible duplicate, never a vanished
-task. Marked, never dropped: every day reading derives from `session.tasks` at read
-time, so a dropped row made a day that finished one of three read as finished and
-orphaned a started task's 🪫 hours. Each scope's reading of the mark: `daily-metrics.ts`'s header.
+Tasks live inside their day's `DailySession` record, so a move is two writes: append a copy to
+tomorrow's session (a read-modify-write through `$readSessionByDate` / `$updateSession` — the
+only store write that does not target the viewed day), then change today's row (persisted by
+the normal autosave) — in that order and without a transaction, so the failure mode is a
+visible duplicate, never a vanished task.
+
+**That second write is where the moves differ, because they record different things.** The
+carry MARKS its rows `deferredTo` — _I did not finish these_ — and must: every reading derives
+from `session.tasks` at read time, so a dropped row made a day that finished one of three read
+as finished and orphaned a started task's 🪫 hours (each scope's reading of the mark:
+`daily-metrics.ts`'s header). The advisor's move DROPS its row — the row-ABSENT counterfactual
+its lever already means — because `completionRate` and `yieldIndex` read the ledger, where a
+row left behind holds the day under 100% forever for taking the advice. A drop can only lose a
+join by task id, so it is BOUNDED where the advice is built: `suggestPlanAdjustments` takes the
+ids with logged 🪫 hours and `buildLevers` offers no defer for one, as for a pinned task. They
+are `DailyPlanStore.#workedByTask`, the map the mid-day re-plan shares, keyed to the VIEWED
+day — ids are per-day, so today's logs must not bound tomorrow's advice; a ⚡ log joins no fit
+by id, so it leaves with the row and nothing measured is lost.
 
 What travels is definition and provenance only — `#toCarriedTask`, the one
 projection both moves write: a fresh id in the destination day's id space
@@ -589,12 +599,14 @@ latch (two overlapping read-modify-writes on tomorrow would drop one task).
 Destination is hard-coded to `selectedDate + 1` — neither caller means anything
 else (YAGNI) — and the advice stays a counterfactual: only the button commits.
 
-`carryUnfinishedToTomorrow` is the single move for every task `carryableCount` counts,
+`carryUnfinishedToTomorrow` moves every task `carryableCount` counts,
 in ONE destination write (a loop over the single move would hit its own latch). Both
 moves stash their way back in `undoCarry` for the page's toast — a stash, not a return
 value, since both return whether they moved: it removes the copies from tomorrow under
 the same latch — deleting a destination the move CREATED and nothing else has reached,
-or its prefill budget would stand as a declaration — then un-marks the rows. `carryableCount`
+or its prefill budget would stand as a declaration — then the source half each hands
+`#undoCarryOf` for itself: the carry un-marks its rows, the single move re-splices its row at
+the index it held (`removeTask`'s undo). `carryableCount`
 is the one field the control is gated on: one derived list, empty wherever the move would refuse, so the label never overstates
 ([the-carry-that-kept-the-count.md](../../../docs/features/the-carry-that-kept-the-count.md)).
 

@@ -96,6 +96,19 @@ export class DailyPlanStore {
 
 	#daily = $derived(calculateDailyMetrics(this.#input));
 
+	// The one definition of "hours per task, restricted to the day's tasks"
+	// (AGENTS.md R3), read by the mid-day re-plan and by the advice's bound on
+	// which rows it may offer to move. Keyed to the VIEWED day, not today: task ids
+	// are per-day, so today's logs would refuse tomorrow's task 1, and the advice
+	// card renders on future days too. The day's own logs reach this immediately:
+	// it is a gauge of the present, which is exempt from the causal fit window.
+	#workedByTask = $derived(
+		workedHoursByTask(
+			this.#session.tasks,
+			this.#observations.drainObservations.filter((o) => o.date === this.#session.selectedDate),
+		),
+	);
+
 	// What is left of today, re-planned from the hours already logged against it.
 	// A SECOND solve, deliberately outside `#daily`: folding it in would rescope
 	// the plan-family rows and double a `$derived` that re-runs on every
@@ -109,23 +122,15 @@ export class DailyPlanStore {
 		if (this.#session.selectedDate !== this.#session.today) return null;
 
 		const tasks = this.#session.tasks;
-
-		// The one definition of "hours per task, restricted to the day's tasks"
-		// (AGENTS.md R3). Today's logs reach this immediately: it is a gauge of the
-		// present, which is exempt from the causal fit window.
-		const todaysObservations = this.#observations.drainObservations.filter(
-			(o) => o.date === this.#session.today,
-		);
-
-		const worked = workedHoursByTask(tasks, todaysObservations);
+		const worked = this.#workedByTask;
 
 		if (worked.size === 0) return null;
 
 		// What was just worked, so the re-plan's position 1 contrasts with it. Over
 		// the same rows the hours count, or the two disagree about which logs are
 		// work; non-empty because `worked` is.
-		const lastWorked = todaysObservations
-			.filter((o) => o.hours > 0)
+		const lastWorked = this.#observations.drainObservations
+			.filter((o) => o.date === this.#session.selectedDate && o.hours > 0)
 			.reduce((latest, o) => (o.createdAt > latest.createdAt ? o : latest));
 
 		return calculateRemainingDay({
@@ -166,10 +171,16 @@ export class DailyPlanStore {
 	// `#loadSession` is still in flight with the previous day's tasks in memory.
 	// Without it the advice reads FRESH in that window, and its buttons act on a
 	// day that is gone.
+	//
+	// The worked ids too, and they are in no model input: the day's own 🪫 logs reach
+	// neither `#calibration` (dated strictly before) nor `#energyParams` (the day
+	// before). Without them a log landing on an offered row leaves the card fresh,
+	// and its button then moves the row the bound exists to keep.
 	#fingerprint = $derived(
 		JSON.stringify({
 			date: this.#session.selectedDate,
 			input: this.#input,
+			worked: [...this.#workedByTask.keys()],
 		}),
 	);
 
@@ -286,7 +297,7 @@ export class DailyPlanStore {
 			// Both read after the yield, in one tick, so the plan matches the input
 			// it was solved from — and the current plan is reused as the baseline
 			// rather than solved a second time.
-			this.#advice = suggestPlanAdjustments(this.#input, this.#daily);
+			this.#advice = suggestPlanAdjustments(this.#input, this.#daily, this.#workedByTask);
 			this.#adviceFor = this.#fingerprint;
 			this.#deferDestination = await destination;
 			this.#destinationFor = destinationKey;

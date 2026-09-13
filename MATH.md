@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1893  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1895  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
@@ -72,12 +72,12 @@ retype a row, regenerate:
   §8.8    1140-1175  45-minute plan granularity
   §8.9    1177-1224  Recovery-rate calibration from pre/post-rest pairs
   §8.10   1226-1477  Stopping-value calibration from observed stop times
-  §8.11   1479-1612  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1614-1768  The budget curve — what the day's LENGTH is worth
-  §8.13   1770-1834  Capacity from the fitted drain rate
-  §8.14   1836-1893  Per-title drain rate — which task costs more than its sl…
-§9        1895-1957  Plan-adherence reading and its verdict band
-§10       1959-2006  References
+  §8.11   1479-1614  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1616-1770  The budget curve — what the day's LENGTH is worth
+  §8.13   1772-1836  Capacity from the fitted drain rate
+  §8.14   1838-1895  Per-title drain rate — which task costs more than its sl…
+§9        1897-1959  Plan-adherence reading and its verdict band
+§10       1961-2008  References
 ```
 
 <!-- section-index:end -->
@@ -1538,8 +1538,10 @@ more session of a task you already checked off — or sent to tomorrow" is no
 advice. Every logged task stays in the reconstruction regardless — a completed
 or moved task's hours drained the reservoirs the open ones must work with.
 §8.10's `lo` bound reads the same field for the checked-off half of that reason
-and keeps a moved row OPEN: on a finished day, declining to work it was part of
-the stop, so it is a forgone step like any unworked open task.
+and keeps a CARRIED row OPEN: on a finished day, declining to work it was part of
+the stop, so it is a forgone step like any unworked open task. A row the advice
+card moved reaches neither reading — that move deletes it rather than marking it
+(`business/AGENTS.md`), so the day it left has one fewer forgone step.
 
 **Bounds of validity, stated on the card's tooltip:** the reading trusts
 today's 🪫 logs, so unlogged work reads as free time (the advisor will say

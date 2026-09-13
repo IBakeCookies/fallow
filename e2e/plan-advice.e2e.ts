@@ -5,7 +5,9 @@ import {
 	closeTaskForm,
 	isoDate,
 	logFlow,
+	openDrainEditor,
 	openTaskForm,
+	rowDrainForm,
 	setBudget,
 	taskCard,
 	taskRow,
@@ -42,6 +44,25 @@ async function addDrainingTask(page: Page, title: string, mustDoToday = false) {
 		.click();
 
 	await closeTaskForm(page);
+}
+
+/* One logged 🪫 session against a named row. Row-scoped rather than `logDrain`'s
+   `.first()`: which row carries a measurement is the whole input here. */
+async function drainTask(page: Page, title: string) {
+	await openDrainEditor(page, title);
+
+	const form = rowDrainForm(page, title);
+	const fields = form.locator('input[type="number"]');
+
+	await fields.nth(0).fill('45');
+	await fields.nth(1).fill('6');
+	await fields.nth(2).fill('3');
+
+	await form
+		.getByRole('button', {
+			name: 'Save',
+		})
+		.click();
 }
 
 /* The fit card left this page for the one that lists the logs it was made from, so the
@@ -245,10 +266,7 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 
 	await apply.click();
 
-	// Marked on today — the row stays where the user can see what they moved…
-	await expect(taskRow(page, title).getByText('Moved to tomorrow')).toBeVisible();
-
-	// …and the mark is a debounced autosave; let it land before navigating.
+	// The drop is a debounced autosave; let it land before navigating.
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto(`/?date=${isoDate(1)}`);
 
@@ -259,9 +277,82 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 	).toBeVisible();
 });
 
-/* The lever is the carry on one row, so it offers the same way back: the toast's Undo
-   lifts the mark and takes the copy out of tomorrow — a day the move may have created,
-   which the undo then removes rather than leaving a stored day the user never opened. */
+/* The two ways a task reaches tomorrow stop being the same gesture. "Carry 2 to
+   tomorrow" says *I did not finish these*, so its rows stay on the day they left,
+   marked. "Check my day" says *this day would be better without this task*, so its
+   move takes the row off today — the user is editing the plan, not recording a
+   failure, and a row left behind holds the day's completion under 100% forever for
+   taking the advice the app gave. */
+
+// The row leaves. The advisor's own lever is "suppose this task were not on today's
+// list" (plan-advice.ts) — this is that counterfactual performed, not a record of a
+// task that went unfinished.
+test('the task the advisor moves leaves today', async ({ page }) => {
+	await page.goto('/');
+	await addDrainingTask(page, 'Write the spec');
+	await addDrainingTask(page, 'Migrate the database');
+	await addDrainingTask(page, 'Refactor the auth flow');
+	await setBudget(page, 4);
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	const apply = page
+		.getByRole('button', {
+			name: /Move “.+” to tomorrow/,
+		})
+		.first();
+
+	await expect(apply).toBeVisible();
+	const title = (await apply.getAttribute('aria-label'))!.match(/“(.+)”/)![1];
+
+	await apply.click();
+
+	await expect(taskRow(page, title)).toHaveCount(0);
+});
+
+/* The bound on the move: 🪫 hours join by task id, so a row that leaves takes its
+   measurement out of the mid-day re-plan, §9's audit and §8.10. A task the user has
+   already worked is therefore never on the menu — the advice stays free to move
+   anything it can move without losing something the user recorded. */
+test('a task you have already worked is never offered as a move', async ({ page }) => {
+	await page.goto('/');
+	await addDrainingTask(page, 'Write the spec');
+	await addDrainingTask(page, 'Migrate the database');
+	await addDrainingTask(page, 'Refactor the auth flow');
+	await setBudget(page, 4);
+
+	await drainTask(page, 'Write the spec');
+	await drainTask(page, 'Migrate the database');
+	await drainTask(page, 'Refactor the auth flow');
+
+	await page
+		.getByRole('button', {
+			name: 'Check my day',
+		})
+		.click();
+
+	// The label flips once the solve lands, so the count below reads a finished card
+	// rather than an empty one.
+	await expect(
+		page.getByRole('button', {
+			name: 'Recheck',
+		}),
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('button', {
+			name: /Move “.+” to tomorrow/,
+		}),
+	).toHaveCount(0);
+});
+
+/* The move offers the same way back the carry does: the toast's Undo puts the row back
+   and takes the copy out of tomorrow — a day the move may have created, which the undo
+   then removes rather than leaving a stored day the user never opened. */
 test('the applied deferral offers a way back', async ({ page }) => {
 	await page.goto('/');
 	await addDrainingTask(page, 'Write the spec');
@@ -297,7 +388,7 @@ test('the applied deferral offers a way back', async ({ page }) => {
 	await expect(taskRow(page, title)).toBeVisible();
 	await expect(taskRow(page, title).getByText('Moved to tomorrow')).toHaveCount(0);
 
-	// The un-marking is a debounced autosave; let it land before navigating.
+	// The restored row is a debounced autosave; let it land before navigating.
 	await page.waitForTimeout(AUTOSAVE_MS);
 	await page.goto(`/?date=${isoDate(1)}`);
 
