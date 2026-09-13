@@ -83,11 +83,12 @@ Untestable at every level is the signal.
   harmless, since the inner provider wins at the same delay.
 - **The add-task form lives in a dialog the CARD owns, and no page decides when a
   form is on screen.** `task-list-card.svelte` holds the `Dialog.Root`, both triggers
-  — the `+` BESIDE the `<h3>` and never inside it, since a button in the heading joins
-  its accessible name and the card would stop being "Plan", plus the empty state's own
-  button, because a 24px glyph in the corner is not the call to action an empty day
-  is — and renders the caller's `form` snippet inside `Dialog.Content`. Three things fall out and none of them may
-  come back: the form has no open/closed state and no collapse control; neither page
+  — the `+ Add task` opener BESIDE the `<h3>` and never inside it, since a button in the
+  heading joins its accessible name and the card would stop being "Plan", plus the empty
+  state's own button, because an opener in the corner is not the call to action an empty
+  day is; the heading opener's `+` is `aria-hidden`, so its name stays the plain
+  "Add task" — and renders the caller's `form` snippet inside `Dialog.Content`. Three
+  things fall out and none of them may come back: the form has no open/closed state and no collapse control; neither page
   reads the day to decide whether to open it, so the `{#key session.loadedDate}` that
   used to wrap it is gone (the constraints bar still needs its own — that one asks a
   question about the day, this one only needed a fresh draft, and Content already

@@ -68,13 +68,13 @@
 				{m.list_title()}
 			</h3>
 			{#if form}
-				<!-- `mr-auto` takes the free space: the glyph keeps the title's side. -->
-				<Dialog.Trigger
-					variant="ghost"
-					size="icon-xs"
-					aria-label={m.form_add_task_title()}
-					class="mr-auto text-base leading-none">+</Dialog.Trigger
-				>
+				<!-- `mr-auto` takes the free space: the opener keeps the title's side.
+				     The `+` is `aria-hidden` so the accessible name stays the plain
+				     "Add task" — a name that opens with punctuation is read out as it. -->
+				<Dialog.Trigger class="mr-auto">
+					<span aria-hidden="true">+</span>
+					{m.form_add_task_title()}
+				</Dialog.Trigger>
 			{/if}
 			{@render heading?.()}
 		</div>
