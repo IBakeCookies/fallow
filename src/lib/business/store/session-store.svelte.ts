@@ -52,11 +52,7 @@ import {
 	summarizeDeclaredConstraints,
 	type DeclaredConstraints,
 } from '$lib/business/model/constraint-memory';
-import {
-	getEffectiveDifficulty,
-	isDeferred,
-	isPinned,
-} from '$lib/business/model/metric/calculation';
+import { getEffectiveDifficulty, isPinned } from '$lib/business/model/metric/calculation';
 import {
 	summarizeDeferDestination,
 	type DeferDestination,
@@ -102,13 +98,20 @@ function nextTaskId(tasks: readonly Task[]): number {
 	return Math.max(Date.now(), ...tasks.map((task) => Math.floor(task.id) + 1));
 }
 
+/** Whether tomorrow already holds a row, for the carry count: the two fields
+ *  `#toCarriedTask` copies verbatim — the copy takes a fresh id in the destination
+ *  day's id space, so an id says nothing about where a row came from. */
+function carriedIdentity(task: Pick<Task, 'title' | 'createdAt'>): string {
+	return `${task.title}\n${task.createdAt}`;
+}
+
 /** What a task IS, stripped of the day it sat on. */
 type TaskDefinition = Omit<Task, 'id' | 'createdAt' | 'completed'>;
 
 /**
  * The one projection every import and every saved routine carries. Listed field
  * by field rather than omitted, because what a DAY owns has to stay behind —
- * `mustDoToday`, `deferredTo`, the id, the date, the checkbox — and a spread
+ * `mustDoToday`, the id, the date, the checkbox — and a spread
  * would carry the next such field silently.
  */
 function toTaskDefinition(task: TaskDefinition): TaskDefinition {
@@ -247,14 +250,25 @@ export class SessionStore {
 	// by the freshness key the preview is held under (AGENTS.md R3).
 	#deferDestinationDate = $derived(addDays(this.#selectedDate, 1));
 
+	// What tomorrow already holds, as the identities a carry would copy there.
+	#destinationKey = $derived(this.destinationKeyFor(this.#deferDestinationDate));
+	#destinationHolds = $state<string[]>([]);
+	#destinationFor = $state<string | null>(null);
+
 	#activeTasks = $derived(this.#tasks.filter((t) => !t.completed));
 	// What one carry press moves — the count shown and the set written read this
-	// one list (R3). Empty wherever the move itself would refuse.
-	#carryableTasks = $derived(
-		this.#canEditPlan && !this.#isViewingPast && !this.#isShowingDemo
-			? this.#tasks.filter((t) => !t.completed && !isPinned(t) && !isDeferred(t))
-			: [],
-	);
+	// one list (R3). The carry copies, so what stops a second press is what tomorrow
+	// already holds; empty wherever the move itself would refuse, and while that
+	// reading is stale, since offering an unanswered destination duplicates it.
+	#carryableTasks = $derived.by(() => {
+		if (!this.#canEditPlan || this.#isViewingPast || this.#isShowingDemo) return [];
+
+		if (this.#destinationFor !== this.#destinationKey) return [];
+
+		return this.#tasks.filter(
+			(t) => !t.completed && !isPinned(t) && !this.#destinationHolds.includes(carriedIdentity(t)),
+		);
+	});
 
 	// Capacity pools, sanitized (empty/invalid inputs → 0, i.e. no capacity)
 	#pools = $derived({
@@ -348,6 +362,29 @@ export class SessionStore {
 				.catch((e) => logError('Failed to load yesterday’s session', e));
 		});
 
+		// What tomorrow already holds, for the carry count. Re-read on that day's own
+		// write generation, so today's auto-save cannot withdraw it — and not at all
+		// once the carry has handed its destination write straight in.
+		$effect(() => {
+			const key = this.#destinationKey;
+
+			if (this.#isLoading || this.#isShowingDemo || this.#isViewingPast) return;
+
+			if (this.#destinationFor === key) return;
+
+			this.#readSession(this.#deferDestinationDate)
+				// Dropped once the key it was started for is no longer the one wanted, or
+				// has been answered since — the carry handing in the record it has just
+				// written, which no read started before it can improve on.
+				.then((session) => {
+					if (this.#destinationKey === key && this.#destinationFor !== key)
+						this.#holdDestination(session?.tasks ?? [], key);
+				})
+				// The count is the carry's only guard, so a failed read leaves it
+				// withdrawn: the control offers nothing rather than a second copy.
+				.catch((e) => logError('Failed to read what tomorrow already holds', e));
+		});
+
 		// Reload whenever the viewed date changes, whatever triggered the
 		// navigation (nav "Today" link, calendar deep-link, back/forward button,
 		// switching to a route without a date param).
@@ -399,7 +436,15 @@ export class SessionStore {
 					this.#cognitivePool !== null ||
 					this.#physicalPool !== null;
 
-				if (!dirty) return;
+				// Cancelled, not merely skipped: an edit that empties a day again leaves
+				// the payload from BEFORE it pending, and a flush (navigating off the
+				// day arms one) would write that superseded state back as the day's
+				// record — undoing the edit that cleaned it.
+				if (!dirty) {
+					this.#autoSave.cancel();
+
+					return;
+				}
 
 				// Snapshot inside the tracked effect, so deep task edits are seen.
 				this.#autoSave.schedule({
@@ -531,6 +576,12 @@ export class SessionStore {
 
 		await sessionRepository.$deleteSession(date);
 		this.#writeGenerations.set(date, this.writeGenerationFor(date) + 1);
+	}
+
+	// What the carry count reads tomorrow as, under the generation it describes.
+	#holdDestination(tasks: Task[], key: string) {
+		this.#destinationHolds = tasks.map(carriedIdentity);
+		this.#destinationFor = key;
 	}
 
 	/**
@@ -750,6 +801,14 @@ export class SessionStore {
 	writeGenerationFor(date: string): number {
 		return this.#writeGenerations.get(date) ?? 0;
 	}
+	/** What a reading ABOUT `date` is held fresh under, for the two stores that hold
+	 *  one (AGENTS.md R3). It cannot be a fingerprint over the VIEWED day's inputs:
+	 *  today → tomorrow (edit it) → today reads identically while the day the reading
+	 *  describes has moved. Keyed on the subject day's write count instead, so the
+	 *  viewed day's own auto-save cannot change what the reading says. */
+	destinationKeyFor(date: string): string {
+		return `${date}#${this.writeGenerationFor(date)}`;
+	}
 	/** How many session records have been written for days already past — the
 	 *  freshness key for a reading that folds all of them at once (the Lab's λ₀
 	 *  fit), which any write to a past day can move. */
@@ -968,8 +1027,8 @@ export class SessionStore {
 	 * Move one active task to tomorrow's plan: copy it there, then DROP it here —
 	 * the advisor's lever is "suppose this task were not on today's list", and a
 	 * row left behind would hold the day's completion under 100% for taking the
-	 * advice. The carry marks instead, because it records an unfinished day
-	 * (business/AGENTS.md). The destination write is a read-modify-write against
+	 * advice. The carry copies instead, because the day it left still has to work
+	 * them (business/AGENTS.md). The destination write is a read-modify-write against
 	 * tomorrow's stored session — the only write in this store that does not
 	 * target the viewed day. Ordered so the failure mode is a visible duplicate,
 	 * never a vanished task: the local drop (persisted by auto-save) happens only
@@ -993,7 +1052,7 @@ export class SessionStore {
 		const task = this.#tasks[index];
 
 		// A completed task IS history: it was worked here, so there is nothing to send on.
-		if (!task || task.completed || isPinned(task) || isDeferred(task)) return false;
+		if (!task || task.completed || isPinned(task)) return false;
 
 		this.#moving = true;
 
@@ -1016,10 +1075,14 @@ export class SessionStore {
 
 			this.#tasks = this.#tasks.filter((t) => t.id !== id);
 
+			const restored = $state.snapshot(task);
+
 			this.#undoCarry = () =>
-				this.#undoCarryOf(date, tomorrow, [moved.id], !dest.exists, () => {
-					this.#tasks = [...this.#tasks.slice(0, index), task, ...this.#tasks.slice(index)];
-				});
+				this.#undoCarryOf(date, tomorrow, [moved.id], !dest.exists, (tasks) => [
+					...tasks.slice(0, index),
+					restored,
+					...tasks.slice(index),
+				]);
 
 			return true;
 		} catch (e) {
@@ -1038,7 +1101,8 @@ export class SessionStore {
 	/**
 	 * `moveTaskToTomorrow` for every task `carryableCount` counts, in ONE
 	 * destination write: a loop over the single move cannot work — its latch
-	 * refuses every call after the first.
+	 * refuses every call after the first. A COPY: the day it left keeps its rows,
+	 * which is what stops the count offering them again (`#carryableTasks`).
 	 */
 	async carryUnfinishedToTomorrow(): Promise<boolean> {
 		if (this.#moving) return false;
@@ -1052,7 +1116,6 @@ export class SessionStore {
 
 		const tomorrow = this.#deferDestinationDate;
 		const date = this.#selectedDate;
-		const sourceIds = tasks.map((t) => t.id);
 
 		try {
 			const dest = await this.#readDestination(tomorrow);
@@ -1069,33 +1132,18 @@ export class SessionStore {
 				updatedAt: Date.now(),
 			});
 
-			this.#tasks = this.#tasks.map((t) =>
-				sourceIds.includes(t.id)
-					? {
-							...t,
-							deferredTo: tomorrow,
-						}
-					: t,
-			);
-
-			const copyIds = carried.map((t) => t.id);
+			// Handed straight in rather than re-read: between the write and the
+			// re-read the count would offer the same rows again, and a second press
+			// is a second copy.
+			this.#holdDestination([...carried, ...dest.tasks], this.destinationKeyFor(tomorrow));
 
 			this.#undoCarry = () =>
-				this.#undoCarryOf(date, tomorrow, copyIds, !dest.exists, () => {
-					// Rebuilt without the key, as `updateTask` clears `tags`: a spread
-					// `deferredTo: undefined` autosaves a key holding undefined.
-					this.#tasks = this.#tasks.map((t) => {
-						if (!sourceIds.includes(t.id)) return t;
-
-						const restored = {
-							...t,
-						};
-
-						delete restored.deferredTo;
-
-						return restored;
-					});
-				});
+				this.#undoCarryOf(
+					date,
+					tomorrow,
+					carried.map((t) => t.id),
+					!dest.exists,
+				);
 
 			return true;
 		} catch (e) {
@@ -1112,35 +1160,63 @@ export class SessionStore {
 	}
 
 	// Puts the source day back the way its move left it, then takes the copies out
-	// of tomorrow — so the failure mode is again a visible duplicate. The local half
-	// differs per move (the carry lifts its marks, the single move re-splices its
-	// row), so each hands its own in, and it runs BEFORE the awaits: the guard below
-	// is only true of the day it just read, and a navigation landing mid-write would
-	// otherwise splice the row into whatever day is on screen. A
-	// destination the move CREATED and nothing else has reached since is deleted
-	// whole (`#deleteSession`, on why); one that holds anything else is rewritten.
+	// of tomorrow — the move's own order, so the failure mode is again a visible
+	// duplicate and never a vanished task. Only the single move HAS a source half:
+	// it drops its row, so it hands in the fold that re-splices it, and the carry —
+	// which left its day untouched — hands in none.
+	//
+	// The toast outlives a click on another day, so each half lands on the day the
+	// undo NAMES: the source in `#tasks` while it is the loaded day (the auto-save
+	// persists it) and in its own record otherwise; the destination's record always,
+	// and `#tasks` with it when that is the day being looked at, or the auto-save
+	// puts the copies straight back. A destination the move CREATED and nothing else
+	// has reached since is deleted whole (`#deleteSession`, on why); one that holds
+	// anything else is rewritten.
 	async #undoCarryOf(
 		date: string,
 		tomorrow: string,
 		copyIds: number[],
 		created: boolean,
-		restoreSource: () => void,
+		restoreSource?: (tasks: Task[]) => Task[],
 	) {
-		// `removeTask`'s undo guard, for its reason: the toast outlives a click on
-		// another day, and the source day's rows would be restored into it.
-		if (this.#loadedDate !== this.#selectedDate || this.#selectedDate !== date) return;
-
 		// The moves' own two refusals: the example day reads and writes no storage.
 		if (this.#isShowingDemo || this.#moving) return;
 
+		// Which day the tasks in memory are, if the two dates have settled at all.
+		// Re-read after the awaits: a navigation landing mid-write must not have the
+		// other day's rows folded into it.
+		const dayOnScreen = () => (this.#loadedDate === this.#selectedDate ? this.#loadedDate : null);
+		const isSourceOnScreen = dayOnScreen() === date;
+
 		this.#moving = true;
-		restoreSource();
+
+		if (restoreSource && isSourceOnScreen) this.#tasks = restoreSource(this.#tasks);
 
 		try {
+			if (restoreSource && !isSourceOnScreen) await this.#rewriteDay(date, restoreSource);
+
 			const dest = await this.#readDestination(tomorrow);
 			const kept = dest.tasks.filter((t) => !copyIds.includes(t.id));
+			const isDeleting = created && kept.length === 0;
 
-			if (created && kept.length === 0) {
+			// Both in one synchronous step, before the write: an auto-save scheduled
+			// between them flushes the half-undone day back. A deleted record leaves the
+			// day reading as the unseen day it is again — `#loadSession`'s absent branch,
+			// minus `#tasks`, already filtered — and any field left standing satisfies
+			// the dirty test and re-creates the record at a budget nobody declared.
+			if (dayOnScreen() === tomorrow) {
+				this.#tasks = this.#tasks.filter((t) => !copyIds.includes(t.id));
+
+				if (isDeleting) {
+					this.#availableHours = null;
+					this.#switchCost = null;
+					this.#cognitivePool = null;
+					this.#physicalPool = null;
+					this.#loadedHadSession = false;
+				}
+			}
+
+			if (isDeleting) {
 				await this.#deleteSession(tomorrow);
 			} else {
 				await this.#persistSession({
@@ -1162,6 +1238,28 @@ export class SessionStore {
 		} finally {
 			this.#moving = false;
 		}
+	}
+
+	// The undo's source half for a day no longer on screen: navigating off a day
+	// flushes the auto-save (`#loadSession`), so what the move left is in the
+	// record this rewrites. No record, nothing to put back.
+	async #rewriteDay(date: string, fold: (tasks: Task[]) => Task[]) {
+		const day = await this.#readDestination(date);
+		const tasks = fold(day.tasks);
+
+		// A day with no record is one the move emptied and the auto-save then dropped
+		// as pristine; the rows the undo puts back are what make it a day again.
+		if (!day.exists && tasks.length === 0) return;
+
+		await this.#persistSession({
+			date,
+			tasks,
+			availableHours: day.availableHours,
+			switchCost: day.switchCost,
+			cognitivePool: day.declaredPools.cognitiveHours,
+			physicalPool: day.declaredPools.physicalHours,
+			updatedAt: Date.now(),
+		});
 	}
 
 	updateTask(

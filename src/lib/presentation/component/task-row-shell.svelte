@@ -2,7 +2,6 @@
 	import type { Snippet } from 'svelte';
 	import type { Persisted, DrainObservationRecord, TaskImportance } from '$lib/business/type';
 	import * as m from '$lib/paraglide/messages.js';
-	import { Badge } from '$lib/presentation/component/ui/badge';
 	import * as Tooltip from '$lib/presentation/component/ui/tooltip';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import X from '@lucide/svelte/icons/x';
@@ -34,10 +33,6 @@
 		mentalDifficulty: number;
 		enjoyment: number;
 		mustDoToday?: boolean;
-		/** The day a move sent the task to. Badged by the shell, not a caller: the row
-		 *  stays on the day it left and neither screen's plan funds it, so the mark is
-		 *  the same answer on both. */
-		deferredTo?: string;
 		importance?: TaskImportance;
 		/** Not badged on a row — the ✎ editor must round-trip them rather than clear them. */
 		tags?: string[];
@@ -92,7 +87,6 @@
 		mentalDifficulty,
 		enjoyment,
 		mustDoToday = false,
-		deferredTo,
 		importance = 'normal',
 		tags = [],
 		tagVocabulary = [],
@@ -199,18 +193,6 @@
 						{title}
 					</h3>
 					{@render badges?.()}
-					{#if deferredTo}
-						<Tooltip.Root>
-							<Tooltip.Trigger class="cursor-help">
-								<Badge class="bg-info-tint uppercase tracking-wide text-info-strong">
-									{m.task_deferred_badge()}
-								</Badge>
-							</Tooltip.Trigger>
-							<Tooltip.Content>
-								<p>{m.task_deferred_tooltip()}</p>
-							</Tooltip.Content>
-						</Tooltip.Root>
-					{/if}
 				</div>
 			</div>
 

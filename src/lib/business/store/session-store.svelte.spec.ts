@@ -18,7 +18,7 @@ import { AUTOSAVE_DEBOUNCE_MS } from '$lib/business/store/debounced-write.svelte
 import { addDays, toISODate } from '$lib/business/utils/date';
 import { DEFAULT_CAPACITY_POOLS, DEFAULT_USER_CONSTANTS } from '$lib/business/model/zenith';
 import type { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
-import type { DailySession, SavedRoutine, Task } from '$lib/business/type';
+import type { DailySession, SavedRoutine } from '$lib/business/type';
 import type { TitleRating } from '$lib/business/model/title-memory';
 import { summarizeBudgetHistory } from '$lib/business/model/budget-memory';
 import { summarizeDeclaredConstraints } from '$lib/business/model/constraint-memory';
@@ -1078,34 +1078,6 @@ describe('SessionStore persistence', () => {
 		expect(new Set(write.tasks.map((t) => t.id)).size).toBe(3);
 	});
 
-	/** The mark a carry leaves on the day it left. Read through a cast because `Task` has
-	 *  no such field yet — adding it is the first thing the build does, and this helper
-	 *  goes with the cast when it does. */
-	const deferralOf = (task: Task) => (task as { deferredTo?: string }).deferredTo;
-
-	/* The day a task was planned for is the day that has to answer for it: every reading
-	   the calendar and analytics screens print is derived from the stored task list at
-	   read time, so dropping the row makes a day that finished 1 of 3 read as finished. */
-	it('marks the tasks it carried instead of dropping them', async () => {
-		const { store } = await setup();
-
-		for (const title of ['ship it', 'write it up']) {
-			store.addTask({
-				title,
-				physicalDifficulty: 3,
-				mentalDifficulty: 5,
-				enjoyment: 5,
-			});
-		}
-
-		flushSync();
-		useFakeTimers();
-
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
-
-		expect(store.tasks.map(deferralOf)).toEqual([addDays(store.today, 1), addDays(store.today, 1)]);
-	});
-
 	// The row stays, so the count is no longer emptied by the move itself: without this
 	// the control keeps offering the carry, and a second press duplicates tomorrow.
 	it('stops counting a task it has already carried', async () => {
@@ -1128,9 +1100,9 @@ describe('SessionStore persistence', () => {
 		expect(store.carryableCount).toBe(0);
 	});
 
-	// The two moves are no longer the same gesture: the carry MARKS the row it sends
-	// on, the single move DROPS it. Both still write tomorrow's copy through
-	// `#toCarriedTask`, so only the source day's row differs.
+	// The two moves are no longer the same gesture: the carry COPIES the row it sends
+	// on, the single move DROPS it. Both write tomorrow's copy through
+	// `#toCarriedTask`, so only the source day differs.
 	it('drops the one row the single move carried', async () => {
 		const { store } = await setup();
 
@@ -1147,27 +1119,6 @@ describe('SessionStore persistence', () => {
 		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
 
 		expect(store.tasks.map((t) => t.title)).toEqual([]);
-	});
-
-	// What travels is definition and provenance only. The mark is neither: it is a
-	// statement about the day the task LEFT, so tomorrow's copy opens unmarked or the
-	// day it lands on reads as having already carried it.
-	it('never writes the mark into tomorrow’s copy', async () => {
-		const { store } = await setup();
-
-		store.addTask({
-			title: 'ship it',
-			physicalDifficulty: 3,
-			mentalDifficulty: 5,
-			enjoyment: 5,
-		});
-
-		flushSync();
-		useFakeTimers();
-
-		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
-
-		expect(updateSessionMock.mock.calls[0][0].tasks[0]).not.toHaveProperty('deferredTo');
 	});
 
 	/* A dropped row comes back where it was: `removeTask`'s undo re-splices at its
@@ -1232,7 +1183,6 @@ describe('SessionStore persistence', () => {
 
 		expect(deleteSessionMock).toHaveBeenCalledWith(tomorrow);
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
-		expect(deferralOf(store.tasks[0])).toBeUndefined();
 	});
 
 	it('gives a tomorrow that already existed its own tasks back, minus the copies', async () => {
@@ -1315,6 +1265,189 @@ describe('SessionStore persistence', () => {
 
 		expect(deleteSessionMock).toHaveBeenCalledWith(tomorrow);
 		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
+	});
+
+	/* The toast outlives the day it was raised on: the undo has to land on the two
+	   days the move touched, not on whatever is on screen when it is clicked. Off
+	   the source day, the dropped row goes back through its own stored record — the
+	   drop is storage's by then, since navigating flushes the auto-save. */
+	it('puts the moved row back after the user has navigated off the source day', async () => {
+		const { store } = await setup();
+		const today = store.today;
+		const tomorrow = addDays(today, 1);
+		const stored = new Map<string, DailySession>();
+
+		updateSessionMock.mockImplementation(async (session) => {
+			stored.set(session.date, session);
+		});
+
+		deleteSessionMock.mockImplementation(async (date) => {
+			stored.delete(date);
+		});
+
+		readSessionByDateMock.mockImplementation(async (date) => stored.get(date) ?? null);
+
+		// The day has to be STORED before the move: `#rewriteDay` reads the record back,
+		// and until the auto-save has landed one the day is not yet dirty, so the move's
+		// drop schedules nothing and the navigation flushes the PRE-move payload.
+		useFakeTimers();
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+		await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+		vi.useRealTimers();
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		flushSync();
+
+		const lastWeek = addDays(today, -7);
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+
+		await store.undoCarry!();
+
+		expect(stored.get(today)?.tasks.map((t) => t.title)).toEqual(['ship it']);
+		expect(stored.get(tomorrow)).toBeUndefined();
+	});
+
+	/* And on a day with no record yet, where the drop empties the plan: the day reads
+	   as pristine the moment the row leaves, so the auto-save would skip its own
+	   re-schedule and the navigation would flush the PRE-move payload — putting the
+	   row back in the record the undo is about to fold the restored row INTO. */
+	it('does not duplicate the row when the source day was never stored', async () => {
+		const { store } = await setup();
+		const today = store.today;
+		const stored = new Map<string, DailySession>();
+
+		updateSessionMock.mockImplementation(async (session) => {
+			stored.set(session.date, session);
+		});
+
+		deleteSessionMock.mockImplementation(async (date) => {
+			stored.delete(date);
+		});
+
+		readSessionByDateMock.mockImplementation(async (date) => stored.get(date) ?? null);
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+
+		// No timer advanced: nothing has been written for today, which is the whole case.
+		expect(stored.has(today)).toBe(false);
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		flushSync();
+
+		const lastWeek = addDays(today, -7);
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+
+		await store.undoCarry!();
+
+		expect(stored.get(today)?.tasks.map((t) => t.title)).toEqual(['ship it']);
+	});
+
+	/* And when the day navigated TO is the destination, the copies have to leave the
+	   tasks on screen as well as storage — the next auto-save writes what is in
+	   memory, which would put back exactly what the undo has just removed. */
+	it('takes the copies off tomorrow when tomorrow is the day on screen', async () => {
+		const { store } = await setup();
+		const today = store.today;
+		const tomorrow = addDays(today, 1);
+		const stored = new Map<string, DailySession>();
+
+		updateSessionMock.mockImplementation(async (session) => {
+			stored.set(session.date, session);
+		});
+
+		deleteSessionMock.mockImplementation(async (date) => {
+			stored.delete(date);
+		});
+
+		readSessionByDateMock.mockImplementation(async (date) => stored.get(date) ?? null);
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+
+		expect(await store.carryUnfinishedToTomorrow()).toBe(true);
+
+		mockPage.url = new URL(`http://localhost/?date=${tomorrow}`);
+		await vi.waitFor(() => expect(store.loadedDate).toBe(tomorrow));
+		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
+
+		useFakeTimers();
+		await store.undoCarry!();
+		flushSync();
+
+		expect(store.tasks).toEqual([]);
+
+		// And stays gone: the day the carry created reads as unseen again, so the
+		// auto-save has nothing dirty to write it back with.
+		await vi.advanceTimersByTimeAsync(AUTOSAVE_DEBOUNCE_MS);
+		expect(stored.has(tomorrow)).toBe(false);
+	});
+
+	/* The undo is the move's two writes in reverse, so it runs in the move's order
+	   too — source day first. A source rewrite that fails leaves the copy standing
+	   on tomorrow: the visible duplicate the move trades for, never a task on
+	   neither day. */
+	it('leaves the copy on tomorrow when the source day cannot be rewritten', async () => {
+		const { store, status } = await setup();
+		const today = store.today;
+		const tomorrow = addDays(today, 1);
+		const stored = new Map<string, DailySession>();
+
+		updateSessionMock.mockImplementation(async (session) => {
+			stored.set(session.date, session);
+		});
+
+		readSessionByDateMock.mockImplementation(async (date) => stored.get(date) ?? null);
+
+		store.addTask({
+			title: 'ship it',
+			physicalDifficulty: 3,
+			mentalDifficulty: 5,
+			enjoyment: 5,
+		});
+
+		flushSync();
+
+		expect(await store.moveTaskToTomorrow(store.tasks[0].id)).toBe(true);
+
+		mockPage.url = new URL(`http://localhost/?date=${tomorrow}`);
+		await vi.waitFor(() => expect(store.loadedDate).toBe(tomorrow));
+
+		readSessionByDateMock.mockImplementation(async (date) => {
+			if (date === today) throw new Error('InvalidStateError');
+
+			return stored.get(date) ?? null;
+		});
+
+		await store.undoCarry!();
+		flushSync();
+
+		expect(status.error).toBe('save-failed');
+		expect(store.tasks.map((t) => t.title)).toEqual(['ship it']);
+		expect(deleteSessionMock).not.toHaveBeenCalled();
 	});
 
 	/* The destination line reads a day the card cannot send to on a past day, where

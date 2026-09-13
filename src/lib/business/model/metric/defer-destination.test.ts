@@ -74,26 +74,4 @@ describe('summarizeDeferDestination', () => {
 			fundedCount: 0,
 		});
 	});
-
-	/* A task the destination has itself moved on left its plan (`isDeferred`): not
-	   work the day still holds, and funded nothing — so the two counts agree on it. */
-	it('leaves a task the destination already moved on out of its count', () => {
-		const summary = summarizeDeferDestination(
-			destination(
-				[
-					task(1),
-					task(2, {
-						deferredTo: '2026-08-14',
-					}),
-				],
-				8,
-			),
-		);
-
-		expect(summary).toEqual({
-			taskCount: 1,
-			budgetHours: 8,
-			fundedCount: 1,
-		});
-	});
 });

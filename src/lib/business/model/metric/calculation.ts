@@ -101,11 +101,6 @@ export function isPinned(task: Pick<Task, 'mustDoToday'>): boolean {
 	return task.mustDoToday === true;
 }
 
-/** Sent to another day by a tomorrow move: off this day's plan, still on its ledger. */
-export function isDeferred(task: Pick<Task, 'deferredTo'>): boolean {
-	return task.deferredTo !== undefined;
-}
-
 /**
  * The energy model's view of a task: effective difficulty plus the per-hour
  * reservoir demands (sliders are 1–10, the reservoir law wants [0,1]).
@@ -186,11 +181,6 @@ export function toPooledInputs(tasks: Task[]) {
  * charge each task the time of whichever task outranked it — a number that is
  * wrong without being obviously wrong. The naive baseline is unaffected either
  * way; it is derived from the task list, not from these hours.
- *
- * A deferred row (`isDeferred`) left this day's plan: it is funded nothing and
- * keeps its intrinsic figures, which the allocator reports unchanged at budget 0
- * (MATH.md §3). It stays in both outputs — the ledger readings weight it, and the
- * index pairing above holds — so every caller solving a day sees the same plan.
  */
 export function calculateTaskPlan(
 	tasks: Task[],
@@ -208,41 +198,20 @@ export function calculateTaskPlan(
 			allocatedHours: [],
 		};
 
-	const planned = tasks.filter((task) => !isDeferred(task));
-	const deferred = tasks.filter(isDeferred);
-
 	// Dual-pool allocation: respects the time budget AND the separate
 	// cognitive/physical daily capacity pools, so the plan never schedules an
 	// unsustainable day (e.g. 8h of max-intensity mental work). With a fit
 	// posterior the allocator maximizes EXPECTED productivity under each
 	// task's ϕ-uncertainty (MATH.md §5.1), so a barely-measured model plans
 	// more cautiously than a well-measured one.
-	const funded = calculatePooledAllocations(
-		toPooledInputs(planned),
+	const allocations = calculatePooledAllocations(
+		toPooledInputs(tasks),
 		budget,
 		pools,
 		constants,
 		switchCost,
 		posterior,
 	);
-
-	const unfunded = deferred.length
-		? calculatePooledAllocations(
-				toPooledInputs(deferred),
-				0,
-				pools,
-				constants,
-				switchCost,
-				posterior,
-			)
-		: [];
-
-	const allocationOf = new Map([
-		...planned.map((task, index) => [task, funded[index]] as const),
-		...deferred.map((task, index) => [task, unfunded[index]] as const),
-	]);
-
-	const allocations = tasks.map((task) => allocationOf.get(task)!);
 
 	return {
 		suggestedTasks: tasks
@@ -314,25 +283,15 @@ export function calculateZenithGain(
 
 	// Same dual-pool optimizer that produces the suggested plan, so the gain
 	// shown describes the plan shown (not a separate single-constraint solve) —
-	// and when the caller already has that plan, literally the same solve. Both
-	// sides over the plan's rows: a deferred one is funded nothing (`calculateTaskPlan`).
-	const kept = tasks.map((task, index) => index).filter((index) => !isDeferred(tasks[index]));
-
-	// Remapped only when index-aligned; a wrong-length array stays as it is, for the
-	// length check `pooledProductivityGain` re-solves on.
-	const hours =
-		allocatedHours?.length === tasks.length
-			? kept.map((index) => allocatedHours[index])
-			: allocatedHours;
-
+	// and when the caller already has that plan, literally the same solve.
 	return pooledProductivityGain(
-		toPooledInputs(kept.map((index) => tasks[index])),
+		toPooledInputs(tasks),
 		budget,
 		pools,
 		constants,
 		switchCost,
 		posterior,
-		hours,
+		allocatedHours,
 	);
 }
 

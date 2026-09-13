@@ -172,58 +172,6 @@ describe('calculateDailyMetrics', () => {
 		expect(after.completionRate).toBeGreaterThan(before.completionRate);
 	});
 
-	/* A carry marks the row rather than removing it (e2e/carry-unfinished.e2e.ts), which
-	   puts a task in a state the two existing scopes cannot express: not completed, and
-	   not on today's plan either. It leaves the ACTIVE scope — there is no work left here
-	   to fund, order or warn about. */
-	it('takes a deferred task off the day’s plan', () => {
-		const after = calculateDailyMetrics(
-			input(
-				TASKS.map((t) =>
-					t.id === 2
-						? {
-								...t,
-								deferredTo: '2026-07-27',
-							}
-						: t,
-				),
-			),
-		);
-
-		expect(after.activeTasks.map((t) => t.id)).toEqual([1, 3]);
-	});
-
-	/* …and stays in the PLANNED scope, which is the whole point: the day was planned with
-	   three tasks and finished one, and no gesture on a later day may rewrite that. */
-	it('leaves the day’s ledger where a deferred task found it', () => {
-		const planned = TASKS.map((t) =>
-			t.id === 3
-				? {
-						...t,
-						completed: true,
-					}
-				: t,
-		);
-
-		const before = calculateDailyMetrics(input(planned));
-
-		const after = calculateDailyMetrics(
-			input(
-				planned.map((t) =>
-					t.id === 2
-						? {
-								...t,
-								deferredTo: '2026-07-27',
-							}
-						: t,
-				),
-			),
-		);
-
-		expect(after.totalTasks).toBe(before.totalTasks);
-		expect(after.completionRate).toBe(before.completionRate);
-	});
-
 	// Regression (2026-08-07): checking off the day's only physical
 	// task used to blank the bottleneck to null with cognitive work still ahead —
 	// its axis came from the PLAN (still physical: the completed task keeps its

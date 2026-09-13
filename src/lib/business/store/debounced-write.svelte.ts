@@ -27,6 +27,9 @@ export interface DebouncedWrite<T> {
 	schedule(payload: T): void;
 	/** Persist the pending payload now, cancelling the timer. No-op when idle. */
 	flush(): void;
+	/** Drop the pending payload unwritten. For a payload the caller knows is
+	 *  superseded — a later flush would otherwise write state that is no longer true. */
+	cancel(): void;
 	/** Whether a scheduled write is still waiting — nothing else may assume it landed. */
 	readonly pending: boolean;
 }
@@ -77,6 +80,10 @@ export function createDebouncedWrite<T>(
 			timer = setTimeout(flush, delayMs);
 		},
 		flush,
+		cancel() {
+			clearTimeout(timer);
+			pendingPayload = null;
+		},
 		get pending() {
 			return pendingPayload !== null;
 		},

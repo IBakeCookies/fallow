@@ -237,8 +237,7 @@ Six components hold what the two screens say the same way:
   heading row, and both screens put the day's Load/Save there and nothing else —
   `/` through `task-list`'s `actions` snippet, the Lab straight into `heading`.
 - **`task-row-shell.svelte`** — the row's `<li>` and hover surface, the completion
-  checkbox, the title and its "moved to tomorrow" badge (a fact about the row both plans
-  read alike, so neither caller badges it), the meta line under it (readings and both
+  checkbox, the title, the meta line under it (readings and both
   instruments' logged chips), the ⚡ 🪫 ✎ ✕ group holding the row's right edge, and every
   editor it opens beneath, including the completion prompt that opens both measurements
   at once. Each screen adds only its readings, through `lead` / `badges` / `meta` /

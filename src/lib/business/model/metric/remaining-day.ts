@@ -25,7 +25,6 @@ import {
 	calculateInterleavedOrder,
 	calculatePoolSaturation,
 	getTaskNature,
-	isDeferred,
 	toPooledInputs,
 } from '$lib/business/model/metric/calculation';
 import type { Task } from '$lib/data/type';
@@ -112,11 +111,8 @@ export function calculateRemainingDay(input: RemainingDayInput): RemainingDay | 
 	// inputs-identical to not ticking it, so no other task's number can move.
 	// Its own share is solved but never reported: the presumption is an
 	// accounting device, not a recommendation to work a finished task.
-	//
-	// A task moved to tomorrow (`isDeferred`) left this day's plan, and this is
-	// that plan continued from the hours worked: no candidate, logged or not.
 	const isSpent = (task: Task) => task.completed && started(task);
-	const candidates = tasks.filter((task) => !isSpent(task) && !isDeferred(task));
+	const candidates = tasks.filter((task) => !isSpent(task));
 	// The day's switch bill is over the tasks the DAY funds — every task with
 	// hours on it, plus whatever the remainder newly starts.
 	// `calculatePooledAllocations` charges for the started tasks it can see; a

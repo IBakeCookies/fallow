@@ -268,7 +268,9 @@
 
 <div class="space-y-grid-lg min-h-screen">
 	{#if isViewingFuture}
-		<div class="p-box-md rounded-xl border border-info-tint bg-info-wash text-info-strong text-sm">
+		<div
+			class="p-box-md rounded-xl border border-info-tint bg-info-wash text-info-strong text-sm backdrop-blur"
+		>
 			<span class="font-medium">{m.banner_future_title()}</span>
 			{m.banner_future_body({
 				date: formatDisplayDate(selectedDate),
@@ -280,7 +282,7 @@
 	     the first thing read, above the readings it qualifies. -->
 	{#if isViewingPast}
 		<div
-			class="p-box-md rounded-xl border border-warning-tint bg-warning-wash text-warning-strong text-sm"
+			class="p-box-md rounded-xl border border-warning-tint bg-warning-wash text-warning-strong text-sm backdrop-blur"
 		>
 			<span class="font-medium">{m.banner_past_title()}</span>
 			{m.banner_past_body()}

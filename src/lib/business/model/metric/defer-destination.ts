@@ -15,7 +15,7 @@
  * so `calculateDailyMetrics` would have to invent one for another day.
  */
 
-import { calculateSuggestedTasks, isDeferred } from '$lib/business/model/metric/calculation';
+import { calculateSuggestedTasks } from '$lib/business/model/metric/calculation';
 import type { CapacityPools, FitPosterior, UserConstants } from '$lib/business/model/zenith';
 import type { Task } from '$lib/data/type';
 
@@ -30,7 +30,7 @@ export interface DeferDestinationInput {
 }
 
 export interface DeferDestination {
-	/** The tasks still on its plan: not completed, not themselves moved on. */
+	/** The tasks still on its plan: every row it holds that is not completed. */
 	taskCount: number;
 	/** The hours it will open on — declared, or the weekday prefill. */
 	budgetHours: number;
@@ -52,7 +52,7 @@ export function summarizeDeferDestination(input: DeferDestinationInput): DeferDe
 	);
 
 	return {
-		taskCount: input.tasks.filter((task) => !task.completed && !isDeferred(task)).length,
+		taskCount: input.tasks.filter((task) => !task.completed).length,
 		budgetHours: input.availableHours,
 		fundedCount: plan.filter((task) => !task.completed && task.suggestedHours > 0).length,
 	};

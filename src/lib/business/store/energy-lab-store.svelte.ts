@@ -32,7 +32,6 @@ import {
 	calculateInterleavedOrder,
 	calculateSuggestedTasks,
 	getEffectiveDifficulty,
-	isDeferred,
 	toEnergyTask,
 } from '$lib/business/model/metric/calculation';
 import {
@@ -305,11 +304,7 @@ export class EnergyLabStore {
 
 	// ----- The plan -----
 
-	// The day's PLAN, the main page's scope (daily-metrics.ts): every row not moved
-	// to tomorrow, completed included — checking a task done must not reshuffle
-	// the day's plan, and a row moved to tomorrow is funded nothing on either page.
-	#planTasks = $derived(this.#session.tasks.filter((task) => !isDeferred(task)));
-	#energyTasks = $derived(this.#planTasks.map(toEnergyTask));
+	#energyTasks = $derived(this.#session.tasks.map(toEnergyTask));
 	get energyTasks() {
 		return this.#energyTasks;
 	}
@@ -639,7 +634,7 @@ export class EnergyLabStore {
 
 			const impact = calculateEnergyDraftImpact(
 				{
-					tasks: this.#planTasks,
+					tasks: this.#session.tasks,
 					windowHours: this.#windowHours,
 					params: $state.snapshot(this.#params),
 					constants: this.#session.userConstants,
@@ -682,16 +677,14 @@ export class EnergyLabStore {
 
 		return adviseStop(
 			{
-				// The LEDGER, not the plan: a task worked before it was moved to tomorrow
-				// drained the reservoirs the rest of the day must run on.
 				tasks: this.#session.tasks.map(toEnergyTask),
 				windowHours: this.#windowHours,
 				workedHours: worked,
-				// …and only the plan's open rows may be recommended: "one more session of
-				// a task you moved to tomorrow" is no advice. The §8.10 fit keeps that row
-				// OPEN (`toStopObservations`) — declining it was that day's stop.
+				// Only the open rows may be recommended: "one more session of a task you
+				// already checked off" is no advice, though its hours stay in the
+				// reconstruction above (MATH.md §8.11).
 				// eslint-disable-next-line svelte/prefer-svelte-reactivity -- derived lookup, rebuilt not mutated
-				openTaskIds: new Set(this.#planTasks.filter((t) => !t.completed).map((t) => t.id)),
+				openTaskIds: new Set(this.#session.tasks.filter((t) => !t.completed).map((t) => t.id)),
 			},
 			this.#params,
 			this.#session.userConstants,

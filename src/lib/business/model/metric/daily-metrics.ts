@@ -3,8 +3,8 @@
  * computed from one consistent set of inputs.
  *
  * This exists so the main page doesn't have to. Each metric below is scoped to
- * one of three task sets — the LEDGER (every row), the PLAN (every row not
- * deferred to another day) or the OPEN work (the plan minus completed) — and
+ * one of two task sets — the PLAN (every row the day holds) or the OPEN work
+ * (the plan minus completed) — and
  * that choice is load-bearing math: a page that wires up twenty-five calls by
  * hand can silently mix them, and nothing can unit-test it there.
  * Numbers only: labels, thresholds and colors are presentation policy and live
@@ -43,7 +43,6 @@ import {
 	calculateTimeScarcity,
 	calculateYieldIndex,
 	calculateZenithGain,
-	isDeferred,
 	type DailyQuadrant,
 	type SuggestedTask,
 	type ZenithGain,
@@ -63,7 +62,7 @@ export interface DailyMetricsInput {
 
 export interface DailyMetrics {
 	// ----- The plan -----
-	/** The ledger: the plan's rows, plus every deferred row at 0 hours. */
+	/** The day's plan: every row it holds, with the hours the allocator gave it. */
 	suggestedTasks: SuggestedTask[];
 	activeTasks: SuggestedTask[];
 	/** Task id → 1-based position in the suggested run order. */
@@ -113,7 +112,7 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 	// ~55ms at n = 12 and this runs inside a `$derived`, i.e. on every keystroke
 	// in the budget field — and once more per candidate when the advisor
 	// re-solves the day.
-	const { suggestedTasks: ledger, allocatedHours } = calculateTaskPlan(
+	const { suggestedTasks: plan, allocatedHours } = calculateTaskPlan(
 		tasks,
 		availableHours,
 		switchCost,
@@ -122,8 +121,6 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		posterior,
 	);
 
-	// The ledger holds every row, a deferred one at 0 hours; the plan is the rest.
-	const plan = ledger.filter((task) => !isDeferred(task));
 	const budget = Number(availableHours) || 0;
 	const activeTasks = plan.filter((task) => !task.completed);
 	const planSlackHours = calculatePlanSlackHours(plan, availableHours, switchCost);
@@ -132,7 +129,7 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 	const physicalLoad = calculatePhysicalLoad(plan, availableHours);
 
 	return {
-		suggestedTasks: ledger,
+		suggestedTasks: plan,
 		activeTasks,
 		// Alternates cognitive/physical tasks so the resting energy system
 		// recovers (dual-pool model). Over the FUNDED PLAN, completed tasks
@@ -146,11 +143,10 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		completedTasks: tasks.filter((task) => task.completed).length,
 		budgetHours: budget,
 
-		// Task-set split: metrics describing the DAY'S PLAN take `plan` (deferred
-		// rows out, completed rows in — completing one must not move them, since
-		// its hours stay allocated); remaining-work metrics take `activeTasks`; the
-		// two completion readings take the `ledger`, since what the day was planned
-		// with is what it answers for. Feeding activeTasks against the full
+		// Task-set split: metrics describing the DAY'S PLAN take `plan` (completed
+		// rows in — completing one must not move them, since its hours stay
+		// allocated); remaining-work metrics take `activeTasks`. Feeding
+		// activeTasks against the full
 		// budget/pools mixes scopes: e.g. burnout risk ROSE when a task was checked
 		// done (its T* left the overhang sum but the budget didn't shrink).
 		zenithGain: calculateZenithGain(
@@ -162,8 +158,8 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 			posterior,
 			allocatedHours,
 		),
-		completionRate: calculateCompletionRate(ledger),
-		yieldIndex: calculateYieldIndex(ledger),
+		completionRate: calculateCompletionRate(plan),
+		yieldIndex: calculateYieldIndex(plan),
 		flowCoverage: calculateFlowCoverage(plan),
 		humanCapacity: calculateHumanCapacity(plan, pools),
 		// Next-up: both name something in the work still AHEAD, so both
@@ -172,8 +168,8 @@ export function calculateDailyMetrics(input: DailyMetricsInput): DailyMetrics {
 		// remaining work no longer draws on.
 		bottleneckTask: calculateBottleneckTask(activeTasks, pools),
 		longestWarmUp: calculateLongestWarmUp(activeTasks),
-		// Plan-scoped like the rest of this family — the plan holds every task not
-		// deferred, completed included — but it reads the ALLOCATION and not the bare list:
+		// Plan-scoped like the rest of this family — the plan holds every task,
+		// completed included — but it reads the ALLOCATION and not the bare list:
 		// its switch bill is over the tasks the plan funds.
 		timeScarcity: calculateTimeScarcity(plan, availableHours, switchCost),
 		// Simulates the planned day through the reservoir law.

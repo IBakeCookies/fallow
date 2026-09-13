@@ -45,6 +45,8 @@ class MockSession {
 
 	writeGenerationFor = (date: string) => this.writeGenerations.get(date) ?? 0;
 
+	destinationKeyFor = (date: string) => `${date}#${this.writeGenerationFor(date)}`;
+
 	reset() {
 		this.tasks = [];
 		this.availableHours = 8;
