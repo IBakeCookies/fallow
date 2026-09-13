@@ -124,7 +124,7 @@
      Wrapped rows align left, against the same edge as everything above them. -->
 <div class={cn('flex flex-wrap items-center justify-start sm:justify-end gap-grid-xs', className)}>
 	{#if carryCount > 0}
-		<Button size="sm" variant="outline" class="gap-text-xs" onclick={oncarry}>
+		<Button size="sm" variant="ghost" class="gap-text-xs" onclick={oncarry}>
 			<ArrowRight class="h-4 w-4" />
 			{m.header_carry({
 				count: carryCount,

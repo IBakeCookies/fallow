@@ -33,10 +33,6 @@ export type Task = {
 	// refuses it. A statement about TODAY, not about the task's definition, so
 	// routines, day-imports and a cross-day move deliberately do not carry it.
 	mustDoToday?: boolean;
-	// The ISO day a move sent it to. The row stays on the day it left so the day
-	// still reads as planned; the plan funds it nothing and neither move takes it
-	// again. A statement about that day: routines, imports and the copy omit it.
-	deferredTo?: string;
 	// How much a short day should value funding this task at all (MATH.md §0).
 	// A property of the task, not of today, so routines and day-imports carry
 	// it. Absent is `normal`, whose weight is 1 — exactly a no-op.

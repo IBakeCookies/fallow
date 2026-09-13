@@ -270,42 +270,6 @@ describe('EnergyLabStore', () => {
 		expect(total).toBeCloseTo(store.plan.evaluation.workHours, 10);
 	});
 
-	/* A task moved to tomorrow left the day's plan (`isDeferred`), and this is the same
-	   day under the other model: planned nothing here too, or the two pages disagree
-	   about what the day holds. Its ROW stays — the list reads the ledger, as `/`
-	   does — marked and unfunded. */
-	it('plans nothing for a task moved to tomorrow, and keeps its row', async () => {
-		const [deepWork, boxing] = twoTasks();
-		mockSession.tasks = [deepWork];
-
-		const store = await setup();
-		const alone = store.plan.blocks;
-
-		mockSession.tasks = [
-			deepWork,
-			{
-				...boxing,
-				deferredTo: '2026-07-21',
-			},
-		];
-
-		flushSync();
-
-		// Not vacuous: on the plan of a day it is still on, the same task is funded.
-		expect(
-			optimizeSchedule(
-				[deepWork, boxing].map(toEnergyTask),
-				8,
-				store.params,
-				mockSession.userConstants,
-			).blocks.some((block) => block.taskId === boxing.id),
-		).toBe(true);
-
-		expect(store.plan.blocks).toEqual(alone);
-		expect(store.allocatedHoursByTask.has(boxing.id)).toBe(false);
-		expect(store.scheduledTasks.map((task) => task.id)).toContain(boxing.id);
-	});
-
 	/* ----- The list's order (snapshotted schedule order) ----- */
 
 	const threeTasks = (): Task[] => [
@@ -1137,69 +1101,6 @@ describe('EnergyLabStore', () => {
 		expect(marginalValue(store.stopAdvice)).toBeGreaterThan(marginalValue(drained));
 	});
 
-	/* The other way a task leaves the day's work, priced like the first: "one more
-	   session of a task you moved to tomorrow" is no advice either. Its logged hours
-	   stay in the reconstruction like everyone's — they drained the reservoirs the
-	   day's remaining work must run on. The §8.10 fit keeps the same row OPEN, since
-	   declining it was that day's stop; only the recommendation may not name it. */
-	it("prices the open task against a moved one's logged hours, and never names the moved one", async () => {
-		mockSession.tasks = [
-			{
-				id: 1,
-				title: 'deep work',
-				physicalDifficulty: 2,
-				mentalDifficulty: 8,
-				enjoyment: 9,
-				createdAt: '2026-07-20T08:00:00.000Z',
-				completed: false,
-				deferredTo: '2026-07-21',
-			},
-			{
-				id: 2,
-				title: 'inbox',
-				physicalDifficulty: 3,
-				mentalDifficulty: 3,
-				enjoyment: 3,
-				createdAt: '2026-07-20T08:00:00.000Z',
-				completed: false,
-			},
-		];
-
-		const store = await setup();
-
-		mockObservations.drainObservations = [
-			drainRecord({
-				date: '2026-07-20',
-				hours: 3,
-			}),
-		];
-
-		flushSync();
-		const drained = store.stopAdvice;
-
-		expect(drained).toEqual(
-			adviseStop(
-				{
-					tasks: mockSession.tasks.map(toEnergyTask),
-					windowHours: 8,
-					workedHours: [
-						{
-							taskId: 1,
-							hours: 3,
-						},
-					],
-					openTaskIds: new Set([2]),
-				},
-				store.params,
-				mockSession.userConstants,
-			),
-		);
-
-		expect(drained).toMatchObject({
-			taskId: 2,
-		});
-	});
-
 	// The defect that was fixed, pinned where it was VISIBLE: the writer used to
 	// upsert on (taskId, date), so a second session replaced the first and the day
 	// read short. Every layer between the rows and the advice has to sum them.
@@ -1447,26 +1348,6 @@ describe('EnergyLabStore', () => {
 
 		expect(store.isDraftBusy).toBe(false);
 		expect(store.draftImpact).toEqual(expectedImpact(twoTasks(), draft));
-	});
-
-	/* Priced against the day the plan describes: a task moved to tomorrow is in neither
-	   solve, or the draft's "after" carries hours its "before" never had. */
-	it('prices the draft on the plan without the moved task', async () => {
-		const [deepWork, boxing] = twoTasks();
-
-		mockSession.tasks = [
-			deepWork,
-			{
-				...boxing,
-				deferredTo: '2026-07-21',
-			},
-		];
-
-		const store = await setup();
-		store.previewDraft = draft;
-		await store.computeDraftImpact();
-
-		expect(store.draftImpact).toEqual(expectedImpact([deepWork], draft));
 	});
 
 	/* The press prices what the form has published, which the store already holds:

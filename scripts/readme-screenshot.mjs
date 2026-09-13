@@ -1,8 +1,9 @@
 // Regenerate the README hero shot: `npm run screenshot:readme` (builds, previews,
 // shoots). Without BASE_URL the script starts `vite preview` itself against the
 // current build; BASE_URL=http://localhost:5173 points it at a running dev server
-// instead. Needs system NSS libs for headless chromium — if chromium fails with
-// `libnspr4.so`, see .claude/skills/verify/SKILL.md.
+// instead. THEME=<theme name> shoots in that theme (default: whatever the app
+// picks for a fresh visit). Needs system NSS libs for headless chromium — if
+// chromium fails with `libnspr4.so`, see .claude/skills/verify/SKILL.md.
 //
 // Seeds a fixed day through the app's own import path, so the allocations,
 // priorities and stopping times in the image are the ones the shipped model
@@ -106,6 +107,19 @@ const context = await browser.newContext({
 	},
 	deviceScaleFactor: 2,
 });
+
+// The server stamps the theme classes from this cookie before first paint, so
+// setting it here is enough — no in-app clicking. Names: `themes` in
+// src/lib/business/model/theme.ts.
+if (process.env.THEME) {
+	await context.addCookies([
+		{
+			name: 'theme',
+			value: process.env.THEME,
+			url: baseUrl,
+		},
+	]);
+}
 
 const page = await context.newPage();
 await page.goto(baseUrl);

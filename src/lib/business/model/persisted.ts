@@ -123,10 +123,6 @@ export function sanitizeTask(raw: unknown, fallbackDate: string): Task | null {
 	// past, not repaired — the ⚡ badge is the day's observation since 2026-08-10.
 	if (source.mustDoToday === true) task.mustDoToday = true;
 
-	const deferredTo = isoDate(source.deferredTo);
-
-	if (deferredTo !== null) task.deferredTo = deferredTo;
-
 	return task;
 }
 

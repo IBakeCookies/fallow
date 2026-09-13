@@ -87,8 +87,8 @@ a constant, a bound, or a fit's conditioning:
   menu continues from `hᵢ` instead of from zero, the pools enter depleted by `Σ wᵢhᵢ`
   clamped at 0, and the switch bill is charged over the **day's** funded set
   `{worked} ∪ {newly funded}` — a plan that abandons a started task does not get its
-  switch back, and a row moved to tomorrow is no candidate (it left the plan this
-  continues) while its worked hours stay spent. `hᵢ = 0` everywhere is bit-identical
+  switch back, and the advisor's move drops its row, so what left the plan is simply
+  no longer in the task list. `hᵢ = 0` everywhere is bit-identical
   to the cold solve, which is what keeps §4 and §5.1 undisturbed. It feeds ONE next-up
   reading (`calculateRemainingDay`) and must never reach `calculateDailyMetrics`: that
   would rescope every plan-family row and double a per-keystroke `$derived` (the cost rule).
@@ -203,8 +203,8 @@ its allocation code, so the main page is unaffected by changes here.
   reading on both sides.
 - Both stop readings price the stop against `openTaskIds` only, a next-up-family scope: a
   checked-off task is no forgone step, though its hours still drained the reservoirs and
-  stay in the reconstruction. A row moved to tomorrow is open to the FIT (declining it was
-  that day's stop) and closed to the §8.11 advisor (recommending it contradicts the move).
+  stay in the reconstruction. A carried row is open to both: the copy went to tomorrow and
+  the row itself is still today's to work.
   A day that ended with everything ticked reveals no indifference and is censored — and
   using its `λ₀ ≤ hi` reading instead makes the fit WORSE, measured 2026-08-21 (below).
 - `STOP_INVERSION_MARGIN = 0.25` — the inversion past which a day is censored

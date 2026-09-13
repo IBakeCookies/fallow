@@ -22,8 +22,6 @@
 		/** None of the three is badged here, but ✎ must round-trip them rather than
 		 *  clear them. */
 		mustDoToday?: boolean;
-		/** Badged by the shell, on both screens. */
-		deferredTo?: string;
 		importance?: TaskImportance;
 		tags?: string[];
 		/** The user's past tags, for the ✎ editor's tag field — the page's, since a
@@ -65,7 +63,6 @@
 		mentalDifficulty,
 		enjoyment,
 		mustDoToday = false,
-		deferredTo,
 		importance = 'normal',
 		tags,
 		tagVocabulary,
@@ -131,7 +128,6 @@
 		{mentalDifficulty}
 		{enjoyment}
 		{mustDoToday}
-		{deferredTo}
 		{importance}
 		{tags}
 		{tagVocabulary}

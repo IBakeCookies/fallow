@@ -354,7 +354,6 @@
 			mentalDifficulty={task.mentalDifficulty}
 			enjoyment={task.enjoyment}
 			mustDoToday={task.mustDoToday}
-			deferredTo={task.deferredTo}
 			importance={task.importance}
 			tags={task.tags}
 			tagVocabulary={session.tagVocabulary}

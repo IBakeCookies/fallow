@@ -184,14 +184,9 @@ export class DailyPlanStore {
 		}),
 	);
 
-	// The destination reading's own key, and it cannot be the fingerprint above:
-	// that is a value over the VIEWED day's inputs, so today → tomorrow (edit it) →
-	// today reads identically while the day this describes has moved. Today's advice
-	// has no such hole because it prices today alone. The write count is the
-	// DESTINATION day's: today's own auto-save cannot change what this reading says.
-	#destinationKey = $derived(
-		`${this.#session.deferDestinationDate}#${this.#session.writeGenerationFor(this.#session.deferDestinationDate)}`,
-	);
+	// Not the fingerprint above: that is a value over the VIEWED day's inputs, and
+	// today's advice has no such hole only because it prices today alone.
+	#destinationKey = $derived(this.#session.destinationKeyFor(this.#session.deferDestinationDate));
 
 	#advice = $state<PlanAdvice | null>(null);
 	#isAdviceBusy = $state(false);

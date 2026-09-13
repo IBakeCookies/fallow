@@ -24,7 +24,7 @@
 		"test:e2e": "playwright test",
 		"probe": "vitest run --config vitest.probe.config.ts --disableConsoleIntercept",
 		"test:e2e:ui": "npx playwright test --ui",
-		"screenshot:readme": "npm run build && node scripts/readme-screenshot.mjs",
+		"screenshot:readme": "npm run build && node --env-file=.env scripts/readme-screenshot.mjs",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build",
 		"depgraph": "depcruise src --output-type dot | dot -T svg > dependency-graph.svg",

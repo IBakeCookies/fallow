@@ -278,8 +278,9 @@ test('applying a deferral moves the task to tomorrow’s plan', async ({ page })
 });
 
 /* The two ways a task reaches tomorrow stop being the same gesture. "Carry 2 to
-   tomorrow" says *I did not finish these*, so its rows stay on the day they left,
-   marked. "Check my day" says *this day would be better without this task*, so its
+   tomorrow" says *I have not finished these*, so it COPIES them and its rows stay on
+   the day they left, untouched. "Check my day" says *this day would be better without
+   this task*, so its
    move takes the row off today — the user is editing the plan, not recording a
    failure, and a row left behind holds the day's completion under 100% forever for
    taking the advice the app gave. */

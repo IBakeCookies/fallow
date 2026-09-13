@@ -230,12 +230,12 @@ becomes visible, which asks the writer for `pending` so an unlanded edit is not
 overwritten by the stored day — reachable because a hidden tab that rolls over
 midnight re-loads and re-arms the autosave.
 
-### Five write sites carry the whole day, so a new field lands in all five
+### Six write sites carry the whole day, so a new field lands in all six
 
 `SessionStore` writes a `DailySession` from the autosave payload, from each
-tomorrow move's destination payload, from the moves' undo (the same destination,
-rewritten) and from `#rewriteTagInHistory` (the rename and the delete) — each a
-whole record, so every field one of them does not carry is a field it erases.
+tomorrow move's destination payload, from the moves' undo (that destination rewritten,
+and `#rewriteDay` for a source day off screen) and from `#rewriteTagInHistory` (the
+rename and the delete) — each a whole record, so every field one of them does not carry is a field it erases.
 `#persistSession` cannot catch that: it takes the payload already built. A field
 that reached only some of the writers once reset a past day's value when a task
 was ticked off there ([the-plan-that-had-no-clock.md](../../../docs/features/the-plan-that-had-no-clock.md)).
@@ -576,39 +576,39 @@ only store write that does not target the viewed day), then change today's row (
 the normal autosave) — in that order and without a transaction, so the failure mode is a
 visible duplicate, never a vanished task.
 
-**That second write is where the moves differ, because they record different things.** The
-carry MARKS its rows `deferredTo` — _I did not finish these_ — and must: every reading derives
-from `session.tasks` at read time, so a dropped row made a day that finished one of three read
-as finished and orphaned a started task's 🪫 hours (each scope's reading of the mark:
-`daily-metrics.ts`'s header). The advisor's move DROPS its row — the row-ABSENT counterfactual
-its lever already means — because `completionRate` and `yieldIndex` read the ledger, where a
-row left behind holds the day under 100% forever for taking the advice. A drop can only lose a
-join by task id, so it is BOUNDED where the advice is built: `suggestPlanAdjustments` takes the
-ids with logged 🪫 hours and `buildLevers` offers no defer for one, as for a pinned task. They
-are `DailyPlanStore.#workedByTask`, the map the mid-day re-plan shares, keyed to the VIEWED
-day — ids are per-day, so today's logs must not bound tomorrow's advice; a ⚡ log joins no fit
-by id, so it leaves with the row and nothing measured is lost.
+**That second write is where the moves differ.** The carry COPIES and leaves its rows standing — every
+reading derives from `session.tasks` at read time, so a dropped row made a day that finished one of three
+read as finished and orphaned a started task's 🪫 hours. The advisor's move DROPS its row — the row-ABSENT
+counterfactual its lever already means — because `completionRate` and `yieldIndex` read that same list,
+where a row left behind holds the day under 100% forever for taking the advice. A drop can only lose a join
+by task id, so it is BOUNDED where the advice is built: `suggestPlanAdjustments` takes the ids with logged
+🪫 hours and `buildLevers` offers no defer for one, as for a pinned task. They are
+`DailyPlanStore.#workedByTask`, the map the mid-day re-plan shares, keyed to the VIEWED day — ids are per-day,
+so today's logs must not bound tomorrow's advice; a ⚡ log joins no fit by id, so it leaves with the row and
+nothing measured is lost.
 
-What travels is definition and provenance only — `#toCarriedTask`, the one
-projection both moves write: a fresh id in the destination day's id space
-(observation joins are per-date, so ⚡ and 🪫 stay with the day that measured
-them), `createdAt` verbatim so the slide badge keeps counting, no `mustDoToday`,
-no `deferredTo`. Both moves refuse completed, `mustDoToday` and deferred tasks,
-no-op mid-navigation (`#loadedDate !== #selectedDate`) and share the `#moving`
-latch (two overlapping read-modify-writes on tomorrow would drop one task).
-Destination is hard-coded to `selectedDate + 1` — neither caller means anything
-else (YAGNI) — and the advice stays a counterfactual: only the button commits.
+What travels is definition and provenance only — `#toCarriedTask`, the one projection both moves write: a
+fresh id in the destination day's id space (observation joins are per-date, so ⚡ and 🪫 stay with the day
+that measured them), `createdAt` verbatim so the slide badge keeps counting, no `mustDoToday`. Both moves
+refuse completed and `mustDoToday` tasks, no-op mid-navigation (`#loadedDate !== #selectedDate`) and share
+the `#moving` latch (two overlapping read-modify-writes on tomorrow would drop one task). Destination is
+hard-coded to `selectedDate + 1` — neither caller means anything else (YAGNI) — and the advice stays a
+counterfactual: only the button commits.
 
-`carryUnfinishedToTomorrow` moves every task `carryableCount` counts,
-in ONE destination write (a loop over the single move would hit its own latch). Both
-moves stash their way back in `undoCarry` for the page's toast — a stash, not a return
-value, since both return whether they moved: it removes the copies from tomorrow under
-the same latch — deleting a destination the move CREATED and nothing else has reached,
-or its prefill budget would stand as a declaration — then the source half each hands
-`#undoCarryOf` for itself: the carry un-marks its rows, the single move re-splices its row at
-the index it held (`removeTask`'s undo). `carryableCount`
-is the one field the control is gated on: one derived list, empty wherever the move would refuse, so the label never overstates
-([the-carry-that-kept-the-count.md](../../../docs/features/the-carry-that-kept-the-count.md)).
+`carryUnfinishedToTomorrow` moves every task `carryableCount` counts, in ONE destination write (a loop over
+the single move hits its own latch). Both moves stash their way back in `undoCarry` for the page's toast,
+since both return whether they moved: it removes the copies from tomorrow — deleting a destination the move
+CREATED and nothing else has reached, or its prefill budget would stand as a declaration. Only the single
+move has a source half (`#undoCarryOf`'s optional fold), and **each lands on the day the undo NAMES**: the
+source in `#tasks` while it is the loaded day, in its own record (`#rewriteDay`) otherwise; the destination
+in its record always, and in `#tasks` too when tomorrow is on screen — a guard on the viewed day once made
+the button do nothing.
+
+`carryableCount` gates the carry control — one derived list, empty wherever the move would refuse, so the
+label never overstates — and is the **repeat-press guard** too, since the rows it counts stay put: a task
+leaves it once TOMORROW holds its title and `createdAt`, the two fields `#toCarriedTask` copies verbatim. A
+reading about another day, so it is held under `writeGenerationFor(deferDestinationDate)` (below) and empty
+while stale; the carry hands its own destination write in, or the window before the re-read offers a copy.
 
 The destination record is also **read** for a preview — the card's day-level
 "what tomorrow already holds" line (ROADMAP item 21) — and both go through

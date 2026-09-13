@@ -56,9 +56,9 @@ test('every task row reports the hours the plan gave it', async ({ page }) => {
 	await expect(page.getByText('no hours')).toHaveCount(2);
 });
 
-/* A task moved to tomorrow left the day's plan, and the Lab plans the same day: its row
-   stays in the list, marked as it is on `/`, and the plan gives it no block and no hours. */
-test('a task moved to tomorrow keeps its row on the Lab, marked and unfunded', async ({ page }) => {
+/* A carried task has NOT left the day's plan, and the Lab plans the same day: its row
+   keeps the block and the hours the plan gave it, exactly as it does on `/`. */
+test('a carried task keeps its row and its hours on the Lab', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
 	await addTask(page, 'Boxing');
@@ -90,10 +90,8 @@ test('a task moved to tomorrow keeps its row on the Lab, marked and unfunded', a
 	await page.getByLabel('Day window').fill('8');
 	await page.getByLabel('Day window').blur();
 
-	await expect(page.getByTitle(/^Deep work/).first()).toBeVisible();
-	await expect(page.getByText('Moved to tomorrow')).toBeVisible();
-	await expect(page.getByText('no hours')).toHaveCount(1);
-	await expect(page.getByTitle(/^Boxing/)).toHaveCount(0);
+	await expect(page.getByTitle(/^Boxing/).first()).toBeVisible();
+	await expect(page.getByText('no hours')).toHaveCount(0);
 });
 
 // Ticking a task off is the one edit that must mark the plan without moving it: the

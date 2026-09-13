@@ -187,34 +187,6 @@ describe('sanitizeTask', () => {
 		});
 	});
 
-	// The mark a carry leaves behind, and the reason the whole day still reads honestly:
-	// it survives a read only if it is on the whitelist. Both directions are asserted
-	// together because a restored backup hands this field in as raw JSON, and a
-	// non-date would then print as a day the app can never navigate to.
-	it('keeps a deferral date and drops anything that is not a day', () => {
-		expect(
-			sanitizeTask(
-				{
-					id: 1,
-					deferredTo: '2026-07-02',
-				},
-				'2026-07-01',
-			),
-		).toMatchObject({
-			deferredTo: '2026-07-02',
-		});
-
-		expect(
-			sanitizeTask(
-				{
-					id: 1,
-					deferredTo: 'tomorrow',
-				},
-				'2026-07-01',
-			),
-		).not.toHaveProperty('deferredTo');
-	});
-
 	// A level arrives from a restored backup as raw JSON, and the weight it names is
 	// looked up on `IMPORTANCE_WEIGHT` — so a key off `Object.prototype` would resolve
 	// to a function and NaN every increment on the day. Both directions are asserted
@@ -417,27 +389,6 @@ describe('sanitizeRoutines', () => {
 			enjoyment: 1,
 			importance: 'low',
 		});
-	});
-
-	// `deferredTo` is a statement about one day, exactly like `mustDoToday`, so it lives
-	// in `sanitizeTask` and not in `taskCore`: a template imported into today would
-	// otherwise arrive already carried to tomorrow.
-	it('never carries a deferral mark into a template', () => {
-		expect(
-			sanitizeRoutines([
-				{
-					id: 'routine-1',
-					name: 'Morning',
-					tasks: [
-						{
-							title: 'write',
-							deferredTo: '2026-07-02',
-						},
-					],
-					createdAt: 0,
-				},
-			])[0].tasks[0],
-		).not.toHaveProperty('deferredTo');
 	});
 
 	it('drops a routine without a string id — deletion is keyed on it', () => {

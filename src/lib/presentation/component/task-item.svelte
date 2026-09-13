@@ -51,8 +51,6 @@
 		totalHours?: number;
 		flowMinutes?: number;
 		mustDoToday?: boolean;
-		/** The day a move sent this task to; the row stays here, marked. */
-		deferredTo?: string;
 		importance?: TaskImportance;
 		tags?: string[];
 		/** The user's past tags, for the ✎ editor's tag field — the list comes from
@@ -99,7 +97,6 @@
 		totalHours,
 		flowMinutes,
 		mustDoToday = false,
-		deferredTo,
 		importance = 'normal',
 		tags,
 		tagVocabulary,
@@ -318,7 +315,11 @@
 	{/if}
 {/snippet}
 
-<Tooltip.Provider>
+<!-- A task row is dense with hover targets: a pointer crossing it to reach the
+     checkbox or the ✎ passes over several triggers, and the shared 150ms opens
+     each one on the way. 400ms is long enough that only a deliberate rest opens
+     a tooltip. -->
+<Tooltip.Provider delayDuration={400}>
 	<TaskRowShell
 		{title}
 		{completed}
@@ -326,7 +327,6 @@
 		{mentalDifficulty}
 		{enjoyment}
 		{mustDoToday}
-		{deferredTo}
 		{importance}
 		{tags}
 		{tagVocabulary}
