@@ -960,7 +960,14 @@ in the feature file; two readings became findings.
   transfer move with a destination that does not exist yet, which is what a
   spent window has to have to buy a task the plan is not holding. What it gains,
   what it costs and the narrowing that keeps the first while cutting the second
-  are in `scripts/energy-search-gap.probe.ts`.
+  are in `scripts/energy-search-gap.probe.ts`. **Gating the family to that spent
+  window was priced on 2026-09-14 and refused** — a branch review read the
+  move's comment as a scope claim and asked what the gate would buy. Over the
+  same 400 days it is better on 0 and worse on 6, forfeiting six of the move's
+  thirty-four winning days while fixing none of its six losing ones, and the
+  cost it saves is inside the sweep's own noise band. The comment that invited
+  the question, and §8.6, now say the spent window motivates the move rather
+  than bounding it; the probe header carries the figures.
 - **M105 — the λ₀ fit's RMSE was compared against a half-width no run had read
   on this curve — raised 2026-09-11, CLOSED 2026-09-12.**
   `scripts/stop-margin-fit-error.probe.ts` and

@@ -115,6 +115,24 @@
  * 387/402) and roughly 1.9x the budget sweep (490.5/500.4 ms ±2-3% against
  * 924.0/951.5 ms ±1-2%), two runs on 2026-09-14.
  *
+ * GATING that move to the spent window it is explained by — the case where the
+ * insert moves below it never fire — was priced on 2026-09-14 and REFUSED, so
+ * the arm above prices the ungated family and no knob for the gated one is
+ * committed. A third mode generated the family only where `avail` is under one
+ * step; over the same 400 days it is better on 0 and WORSE on 6, identical on
+ * 394, which is six of the move's thirty-four winning days forfeited (28 left,
+ * median 0.1560%) while none of its six losing days is fixed — their worst is
+ * the same 1.5022% day the pair cap decides. It saves almost nothing either:
+ * one solve 162.3 ms (p95 333.3) against 180.8 (374.6) ungated and 107.2
+ * (214.3) without, and the budget sweep 900.5 ms ±1% against 913.3 ±3% and
+ * 500.4 ±1% — the two gated-vs-ungated sweep readings overlap inside their own
+ * bands. The climb spends the window early, so most candidates are generated
+ * at a state the gate would not have excluded, and the gain it does remove is
+ * taken at states that still have room. Both M104 witnesses survive the gate
+ * (the 4-task FRONTIER day returns 7.817403 under it), so the witnesses are
+ * not what refutes it; the sweep is. To re-read these, make the `destinations`
+ * guard in `neighbors` `withNewBlockTransfer && !room`.
+ *
  * What a cap of 3 forfeits, over 400 seeded days (2026-09-14): the pair
  * family beats no pairs on 4, worst 0.275655 objective, and unbounded C(n,2)
  * beats a cap of 3 on 4, worst 0.183938 — 1.5022% of that day's objective. A
