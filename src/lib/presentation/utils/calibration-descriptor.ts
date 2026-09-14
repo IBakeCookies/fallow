@@ -1,7 +1,9 @@
 /* The "Your model" rows: each fit's value beside the default it is anchored to.
 
    Five rows × fitted-or-not is ten spellings of a number, and the ≈/±/unit
-   vocabulary has to match the Energy Lab's fit lines exactly. It lived in
+   vocabulary has to match the Energy Lab's fit lines — with one exception since
+   2026-09-14: the Lab's λ₀ row reads `spread`, its std being blind to an error
+   every day shares (MATH.md §8.10), while these five keep one shared format. It lived in
    `analytics/+page.svelte`, where a row that quietly printed a default as though
    it were a fit would have gone unnoticed.
 

@@ -291,9 +291,17 @@ them.
     were mis-scoped, and both figures that had actually drifted sat in the one
     filed as a citation gap.
 
-Item 4's outstanding obligation is the Stopping Calibration card learning to
-explain its own count; the analytics card had the same gap on a different
-number:
+Item 4's outstanding obligation — the Stopping Calibration card learning to
+explain its own count — was met by two changes that never carried item 4's name:
+the clock censor's line shipped 2026-08-21 with M42
+([the-day-that-ran-out-of-clock](docs/features/the-day-that-ran-out-of-clock.md)),
+the unread-breaks line on 2026-09-01
+([the-breaks-the-fit-could-not-read](docs/features/the-breaks-the-fit-could-not-read.md)),
+so a count that fell names the clock that cut it and the days it read at reduced
+accuracy. The residue is narrow: a day dropped as one-sided or past
+`STOP_INVERSION_MARGIN` is explained only when NOTHING fits, the fit exporting
+no count of its own for those. The analytics card had the same gap on a
+different number:
 
 33. ~~**The "Your model" card names deferred logs for ϕ only**~~ — SHIPPED 2026-08-30.
     [docs/features/the-count-that-only-flow-explained.md](docs/features/the-count-that-only-flow-explained.md)
@@ -1002,8 +1010,8 @@ Raised closing M106 with the two arms
   The probe's whole figure set was re-read at HEAD in the same commit, M104
   having landed since the arms were first run in a worktree.
 - **M108 — the λ₀ fit's bias does not shrink with days, and the card's ± cannot
-  see it — raised 2026-09-14, HALF-CLOSED 2026-09-14 (MATH.md §8.10), the card
-  still open, `scripts/stop-margin-fit-error.probe.ts`.** M106's split leaves
+  see it — raised 2026-09-14, CLOSED 2026-09-14 (MATH.md §8.10 and the card),
+  `scripts/stop-margin-fit-error.probe.ts`.** M106's split leaves
   the ridge
   weight going to 1, so a user who logs consistently converges on the per-day
   point rather than on their own λ₀ — and that point reads above the truth, by
@@ -1024,16 +1032,31 @@ Raised closing M106 with the two arms
   on the mean day point — and the note that the approximations the section
   lists lift that mean through the same bracket on every day, common-mode in
   the sense the bullet above it defines. No figure moved into the prose; the
-  probe keeps them. What is left open is the card alone, and it is now a
-  product question with its measurement in hand rather than one waiting on
-  M107.
+  probe keeps them.
+
+  The card half was decided the same day and is prose, not arithmetic. Four
+  options were priced: leave it, widen the ± by a bias floor, drop the ±, or
+  relabel it. **Widening was refused** — the bias is concentrated, so one
+  constant is wrong at both ends of λ₀, and no committed run licenses it on a
+  real user's screen (item 29's rule). Dropping it would have thrown away a
+  reading that is true about scatter. What shipped is the relabel: the
+  free-time-value row reads `spread` where the α and r rows read ±, and the
+  Stopping Calibration card states the DIRECTION — the days behind the fit push
+  the number up rather than scatter it, most of all for a user who would rather
+  keep working — with no size attached, since §8.10's common-mode bullet is what
+  licenses the sentence and the probe holds the figures. **The read-only
+  Analytics copy still reads ± on λ₀**, its row being one of five that share a
+  format; that is a knowing inconsistency, not an oversight, and the Lab is
+  where the fit's own caveats already live.
 
 - **M109 — §8.10 defends a one-signed bias with a wide σ₀, which prices scatter
-  and not a shift — raised 2026-09-14, open, MATH.md §8.10.** The
+  and not a shift — raised 2026-09-14, CLOSED 2026-09-14, MATH.md §8.10.** The
   partial-logging bullet accepts its upward bias because "the calibration is for
   users who log consistently, and σ₀ is wide". σ₀ enters the posterior std
   alone and never the point, so it cannot absorb a one-signed error — and the
   same section's `valueStd` paragraph already says the ± is blind to an error
   every day shares. The repair is deleting the clause, and it is deletion-only.
-  It is not in the M106 commit because MATH.md was open and modified in a
-  parallel session at the time.
+  §8.7's fresh-start bullet carried the same defense for the same shape of
+  error — a one-signed upward α bias "accepted as noise (σ₀ is wide)", against
+  that section's own "ν₀ ≠ λ (changes reported stds only, never the MAP)" two
+  paragraphs above it — and both clauses are gone.
