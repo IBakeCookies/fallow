@@ -1172,6 +1172,10 @@ describe('Zenith Energy Model', () => {
 		const funded = (blocks: { taskId: number | null }[]) =>
 			new Set(blocks.filter((b) => b.taskId !== null).map((b) => b.taskId));
 
+		// Twelve full solves, the widest 12 h x 4 tasks: 1282 ms -> 1980 ms when the
+		// new-block transfer landed (2026-09-14), which clears the 5 s default alone
+		// and not under the contention the next test's comment describes. Same hang
+		// detector, same reason.
 		it('every block is a whole number of 45-min units, even for off-lattice windows', () => {
 			for (const windowHours of [1, 4.5, 7.9, 8, 10.1, 12]) {
 				for (const tasks of [probeDay, mixedDay]) {
@@ -1185,7 +1189,7 @@ describe('Zenith Energy Model', () => {
 					}
 				}
 			}
-		});
+		}, 60_000);
 
 		// The slowest test in the suite: it runs the 0.25 h lattice twice, 32 slots
 		// deep, which is where the §8.6 pair seeds climb longest — this fixture went
