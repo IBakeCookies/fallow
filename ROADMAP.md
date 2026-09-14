@@ -971,15 +971,14 @@ Noticed while building
 [`the-day-you-could-not-correct`](docs/features/the-day-you-could-not-correct.md);
 the **S** series continues from the 2026-08-25 review above.
 
-- **S7 — a stored day is written back once on every load.** The autosave
-  `$effect` re-runs when `#loadSession` assigns the day it read, and its dirty
-  test is true for any stored day, so opening one schedules a write of identical
-  content with a fresh `updatedAt`. Pre-existing on today and future days; since
-  past days became correctable it reaches them too, so every visit to a stored
-  past day bumps `pastWriteGeneration` and the Lab re-folds its stop
-  observations. Benign — `updatedAt` has no reader beyond the sanitizer — and one
-  redundant put per visit. The fix is a "changed since load" notion in the dirty
-  test, which is a change of its own.
+- ~~**S7 — a stored day is written back once on every load.**~~ The autosave
+  `$effect` re-ran when `#loadSession` assigned the day it read, and its dirty
+  test was true for any stored day, so opening one scheduled a write of identical
+  content with a fresh `updatedAt` — and once past days became correctable, every
+  visit to a stored one bumped `pastWriteGeneration` and the Lab re-folded its
+  stop observations. Closed 2026-09-14: `#buildSessionContent` serialized is the
+  "changed since" baseline, recorded by every load and by each scheduled write, so
+  an edit and its undo still both land.
 
 ## Findings from the 2026-09-14 stop-bias instrument
 

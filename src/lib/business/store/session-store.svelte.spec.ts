@@ -1542,6 +1542,46 @@ describe('SessionStore persistence', () => {
 		expect(updateSessionMock).toHaveBeenCalledTimes(1);
 	});
 
+	/* Opening a day is not editing it: the auto-save effect re-runs when the read
+	   lands and its dirty test is true for every stored day, so without a
+	   changed-since-load test a mere visit re-writes identical content — and on a
+	   past day that bumps `pastWriteGeneration`, which re-folds the Lab's stop
+	   observations on every visit. */
+	it('writes nothing when a stored past day is only opened', async () => {
+		const { store } = await setup();
+		const lastWeek = addDays(store.today, -7);
+
+		readSessionByDateMock.mockImplementation(async (date: string) =>
+			date === lastWeek
+				? {
+						date,
+						tasks: [
+							{
+								id: 1,
+								title: 'what happened',
+								physicalDifficulty: 3,
+								mentalDifficulty: 3,
+								enjoyment: 5,
+								createdAt: lastWeek,
+								completed: false,
+							},
+						],
+						availableHours: 5,
+						switchCost: 0.25,
+						updatedAt: 1,
+					}
+				: null,
+		);
+
+		mockPage.url = new URL(`http://localhost/?date=${lastWeek}`);
+
+		await vi.waitFor(() => expect(store.loadedDate).toBe(lastWeek));
+		setHidden(true); // flushes anything the load scheduled, at once
+
+		expect(updateSessionMock).not.toHaveBeenCalled();
+		expect(store.pastWriteGeneration).toBe(0);
+	});
+
 	it('leaves the whole-past generation alone when today is written', async () => {
 		const { store } = await setup();
 		useFakeTimers();

@@ -207,6 +207,12 @@ export class SessionStore {
 	// a session read.
 	#hasReadStorage = false;
 
+	// The day's content as the last scheduled write left it, serialized — the
+	// auto-save's "changed since" test. Set by a load too, so opening a day is not
+	// an edit. A plain field and not `$state`: the effect that compares it also
+	// assigns it.
+	#scheduledContent: string | null = null;
+
 	// Trailing-debounced auto-save, so a burst of edits collapses to one
 	// IndexedDB put. Built in the constructor: it registers lifecycle hooks.
 	#autoSave!: DebouncedWrite<DailySession>;
@@ -447,15 +453,20 @@ export class SessionStore {
 				}
 
 				// Snapshot inside the tracked effect, so deep task edits are seen.
+				const content = this.#buildSessionContent();
+				const fingerprint = JSON.stringify(content);
+
+				// Opening a day re-runs this effect with content nobody changed, and
+				// `updatedAt` alone would make that a write — one per visit, and on a
+				// past day one `pastWriteGeneration` bump that re-folds the Lab's stop
+				// observations. Compared against what was last SCHEDULED, not last
+				// loaded, so an edit and its undo still write the undo back.
+				if (fingerprint === this.#scheduledContent) return;
+
+				this.#scheduledContent = fingerprint;
+
 				this.#autoSave.schedule({
-					date: this.#selectedDate,
-					tasks: $state.snapshot(this.#tasks),
-					// The effective hours, so a day saved for another reason records
-					// the budget it was showing while that happened.
-					availableHours: this.availableHours,
-					switchCost: this.switchCost,
-					cognitivePool: this.#declaredPools.cognitiveHours,
-					physicalPool: this.#declaredPools.physicalHours,
+					...content,
 					updatedAt: Date.now(),
 				});
 			}
@@ -715,6 +726,22 @@ export class SessionStore {
 		return this.#tagVocabulary;
 	}
 
+	/** Everything a session write records except `updatedAt` — ONE definition for
+	 *  the auto-save payload and for the baseline it is compared against, so the two
+	 *  cannot disagree about what "unchanged" means (AGENTS.md R3). */
+	#buildSessionContent(): Omit<DailySession, 'updatedAt'> {
+		return {
+			date: this.#selectedDate,
+			tasks: $state.snapshot(this.#tasks),
+			// The effective hours, so a day saved for another reason records the
+			// budget it was showing while that happened.
+			availableHours: this.availableHours,
+			switchCost: this.switchCost,
+			cognitivePool: this.#declaredPools.cognitiveHours,
+			physicalPool: this.#declaredPools.physicalHours,
+		};
+	}
+
 	async #loadSession(date: string) {
 		// A pending debounced save may belong to the previous date — flush before
 		// loading so a quick date switch can't drop the edit (the payload carries
@@ -749,6 +776,9 @@ export class SessionStore {
 			this.#loadedHadSession = Boolean(session);
 			this.#loadedDate = date;
 			this.#isShowingDemo = false;
+			// After the fields above, and through the same builder the effect uses, so
+			// the baseline is what the auto-save would write for the day just read.
+			this.#scheduledContent = JSON.stringify(this.#buildSessionContent());
 
 			// Reading again worked, so the day is no longer unreachable — this is
 			// what makes a load failure recover on the next date change too.
