@@ -746,6 +746,13 @@ export interface OptimizeOptions {
 	 * neighbours (`scripts/energy-search-gap.probe.ts`).
 	 */
 	pairSeedTasks?: number;
+	/**
+	 * Whether a step may be transferred into a block that does not exist yet.
+	 * Default true; false removes the family. An instrument knob — no product
+	 * caller sets it, and it exists so the move can be priced against the search
+	 * without it (`scripts/energy-search-gap.probe.ts`).
+	 */
+	withNewBlockTransfer?: boolean;
 }
 
 export interface OptimizeResult {
@@ -757,8 +764,9 @@ export interface OptimizeResult {
  * Deterministic steepest-ascent hill climb from several structurally different
  * seeds; the best local optimum wins. Moves: grow/shrink/remove a block,
  * reassign its task (or turn it into rest), reassign the second half of a
- * block, transfer a step between two blocks, swap adjacent blocks, insert a
- * new task/rest block at any boundary (step-sized or a full T* session), and
+ * block, transfer a step between two blocks or into one that does not exist
+ * yet, swap adjacent blocks, insert a new task/rest block at any boundary
+ * (step-sized or a full T* session), and
  * split a block around a rest break at any interior step. The compound moves
  * (transfer, half-reassign, T*-insert) exist because single-step paths to those
  * states pass through downhill intermediates — without them the search provably
@@ -778,6 +786,7 @@ export function optimizeSchedule(
 	const step = options.stepHours ?? DEFAULT_STEP_HOURS;
 	const maxIterations = options.maxIterations ?? 300;
 	const pairSeedTasks = options.pairSeedTasks ?? PAIR_SEED_TASKS;
+	const withNewBlockTransfer = options.withNewBlockTransfer ?? true;
 	// One curve build for the whole search — every candidate evaluation reuses it.
 	const curves = buildCurves(tasks, constants, params);
 	const emptyEval = evaluateWithCurves([], curves, windowHours, params);
@@ -810,6 +819,7 @@ export function optimizeSchedule(
 			step,
 			maxIterations,
 			sessionHours,
+			withNewBlockTransfer,
 		);
 
 		if (result.evaluation.objective > bestEval.objective + 1e-9) {
@@ -963,6 +973,7 @@ function localSearch(
 	step: number,
 	maxIterations: number,
 	sessionHours: Map<number, number>,
+	withNewBlockTransfer: boolean,
 ): OptimizeResult {
 	let current = normalizeSchedule(seed, windowHours);
 	let currentEval = evaluateWithCurves(current, curves, windowHours, params);
@@ -970,7 +981,14 @@ function localSearch(
 	for (let iter = 0; iter < maxIterations; iter++) {
 		let improved: { blocks: ScheduleBlock[]; evaluation: ScheduleEvaluation } | null = null;
 
-		for (const candidate of neighbors(current, tasks, windowHours, step, sessionHours)) {
+		for (const candidate of neighbors(
+			current,
+			tasks,
+			windowHours,
+			step,
+			sessionHours,
+			withNewBlockTransfer,
+		)) {
 			const evaluation = evaluateWithCurves(candidate, curves, windowHours, params);
 
 			if (evaluation.objective > (improved?.evaluation.objective ?? currentEval.objective) + 1e-9) {
@@ -999,12 +1017,14 @@ function* neighbors(
 	windowHours: number,
 	step: number,
 	sessionHours: Map<number, number>,
+	withNewBlockTransfer: boolean,
 ): Generator<ScheduleBlock[]> {
 	const total = blocks.reduce((sum, b) => sum + b.hours, 0);
 	// Whole steps of remaining room — the sub-step window tail is not
 	// schedulable at this granularity and stays free time by design.
 	const avail = floorToStep(windowHours - total, step);
 	const room = avail > step - 1e-9;
+	const funded = new Set(blocks.map((block) => block.taskId));
 
 	for (let i = 0; i < blocks.length; i++) {
 		if (room)
@@ -1107,6 +1127,40 @@ function* neighbors(
 				...shrunk[j],
 				hours: shrunk[j].hours + step,
 			});
+		}
+
+		// The same transfer into a block that does not exist yet: the destination
+		// of the move above has to be one of the plan's own blocks, so on a fully
+		// spent window — where the insert moves below never fire — a task the plan
+		// does not hold can only be bought a whole block or half a block at a
+		// time, never the one step an optimum may want (MATH.md §8.6). A task
+		// funded elsewhere is left out: the transfer above already reaches a
+		// schedule that funds it.
+		const destinations = withNewBlockTransfer
+			? tasks.filter((task) => !funded.has(task.id) || task.id === blocks[i].taskId)
+			: [];
+
+		if (destinations.length > 0) {
+			const freed =
+				blocks[i].hours > step + 1e-9
+					? replaceAt(blocks, i, {
+							...blocks[i],
+							hours: blocks[i].hours - step,
+						})
+					: [...blocks.slice(0, i), ...blocks.slice(i + 1)];
+
+			for (let pos = 0; pos <= freed.length; pos++) {
+				for (const task of destinations) {
+					yield [
+						...freed.slice(0, pos),
+						{
+							taskId: task.id,
+							hours: step,
+						},
+						...freed.slice(pos),
+					];
+				}
+			}
 		}
 	}
 

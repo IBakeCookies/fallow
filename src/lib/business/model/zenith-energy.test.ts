@@ -990,6 +990,62 @@ describe('Zenith Energy Model', () => {
 			expect(fundedIdsOf(narrower.blocks)).toBe('3');
 		});
 
+		// ROADMAP M104, scripts/energy-search-gap.probe.ts: the 4-task frontier day
+		// whose funded set the search missed. Its window is fully spent, so no insert
+		// move is generated at all — and the optimum takes a step off `b` and spends
+		// it on `c`, a task the plan does not hold, which the transfer move cannot
+		// reach because its destination has to exist already.
+		it('transfers a step into a task the plan does not hold yet, on a spent window (§8.6)', () => {
+			const day = [
+				makeTask(1, 'a', 6, 3, 0.3, 0.5),
+				makeTask(2, 'b', 7, 9, 0.5, 0.8),
+				makeTask(3, 'c', 5, 8, 0, 1),
+				makeTask(4, 'd', 6, 7, 0.9, 0.7),
+			];
+
+			const search = optimizeSchedule(day, 6.75);
+
+			const optimum = evaluateSchedule(
+				[
+					{
+						taskId: 2,
+						hours: 3,
+					},
+					{
+						taskId: 1,
+						hours: 3,
+					},
+					{
+						taskId: 3,
+						hours: 0.75,
+					},
+				],
+				day,
+				6.75,
+			);
+
+			expect(search.evaluation.objective).toBeGreaterThanOrEqual(optimum.objective - 1e-9);
+			expect(fundedIdsOf(search.blocks)).toBe('1,2,3');
+		});
+
+		// The same day with the family switched off, which is what `pairSeedTasks`
+		// does for the pair seeds: the moves below it stop one step short.
+		it('does not reach that optimum with the new-block transfer removed (§8.6)', () => {
+			const day = [
+				makeTask(1, 'a', 6, 3, 0.3, 0.5),
+				makeTask(2, 'b', 7, 9, 0.5, 0.8),
+				makeTask(3, 'c', 5, 8, 0, 1),
+				makeTask(4, 'd', 6, 7, 0.9, 0.7),
+			];
+
+			const search = optimizeSchedule(day, 6.75, undefined, undefined, {
+				withNewBlockTransfer: false,
+			});
+
+			expect(search.evaluation.objective).toBeLessThan(7.8174029196 - 1e-9);
+			expect(fundedIdsOf(search.blocks)).toBe('1,2');
+		});
+
 		it('reaches the off-midpoint interior rest on the probe’s worst enumerated day (§8.6)', () => {
 			// Probe 2026-08-06, scripts/energy-search-gap.probe.ts: this was the
 			// worst of 60 enumerated days (2–3 tasks × 3–6 h), 0.5951% below the

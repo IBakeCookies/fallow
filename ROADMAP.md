@@ -946,14 +946,13 @@ two probes whose claims the change could falsify were re-run. Both records are
 in the feature file; two readings became findings.
 
 - **M104 — SHRINK-ONE + INSERT-ONE is uphill from the returned plan on 2 of 21
-  audited days — raised 2026-09-11, open,
-  [`the-curve-nobody-chose`](docs/features/the-curve-nobody-chose.md).** The
-  compound move `neighbors` does not generate, and the one the uphill audit was
-  built to catch; on the v1 curve the same 21 days read 0. One of the two is the
-  4-task FRONTIER day whose funded set the search now misses (0.0609%, and the
-  uphill candidate is the enumerated optimum); the other is APPROX day 1
-  (15.395319 → 15.492131). Whether the move is worth building is a later
-  change's decision, priced by `scripts/energy-search-gap.probe.ts`.
+  audited days — raised 2026-09-11, FIXED 2026-09-14,
+  [`zenith-energy.test.ts`](src/lib/business/model/zenith-energy.test.ts)
+  ("transfers a step into a task the plan does not hold yet").** It is the
+  transfer move with a destination that does not exist yet, which is what a
+  spent window has to have to buy a task the plan is not holding. What it gains,
+  what it costs and the narrowing that keeps the first while cutting the second
+  are in `scripts/energy-search-gap.probe.ts`.
 - **M105 — the λ₀ fit's RMSE was compared against a half-width no run had read
   on this curve — raised 2026-09-11, CLOSED 2026-09-12.**
   `scripts/stop-margin-fit-error.probe.ts` and
