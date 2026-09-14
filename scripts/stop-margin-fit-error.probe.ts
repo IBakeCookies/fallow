@@ -10,6 +10,11 @@
  * If the fit's RMSE is flat across margins in [0.1, 0.5], the constant does not
  * matter and the section should say so instead of deriving it.
  *
+ * It carries a second question the same population answers: what the fit's own
+ * λ₀ error is made of — how far a day's indifference point sits from the truth
+ * that generated it, and how the ridge turns that into a fit bias that grows
+ * with the number of days (ROADMAP M106).
+ *
  * A probe, not a test: every number here moves with the curves, the reservoir
  * law and the lattice.
  *
@@ -33,6 +38,44 @@
  * The bracket does not depend on the margin, so it is computed ONCE per day and
  * every margin is a pure post-filter over the cached list: one `optimizeSchedule`
  * run per day, and the whole sweep is arithmetic after that.
+ *
+ * WHAT THE 2026-09-14 ARMS ADD (ROADMAP M106), and what they move: nothing. The
+ * honest arm's λ₀ bias grows with n — +0.0111 at n = 3, +0.0917 at n = 12 — and
+ * the sweep cannot say why, because no arm printed a per-day error with its
+ * SIGN. `[§8.10 signed]` does: over 794 kept honest days the indifference point
+ * sits +0.0925 ABOVE the truth that generated the day (p50 +0.0584, 69.4% of
+ * days above it), and that bias is a function of the truth — +0.4175 at
+ * λ₀ = 0.3 on 56 kept days against +0.0394 at λ₀ = 1.1 on 179, and it falls with
+ * the truth without being monotone in it (+0.0562 at λ₀ = 1.3). `[§8.10 prior]`
+ * prints the other half: the fit's default is 0.5 while the truths are drawn
+ * from a grid whose mean is 0.80, so the ridge pulls every user's fit -0.3000
+ * from the mean truth. Both halves M106 left untested hold.
+ *
+ * `[§8.10 bias-by-n]` splits each n's bias into the ridge's two terms,
+ * fit − λ = (k·ē + strength·(default − λ))/(k + strength) per user. The split
+ * closes to 9.714e-17 over 24 rows, and across the n = 3 → 12 window the finding
+ * names, the measured growth +0.0806 is the prior term weakening by +0.0475
+ * (58.9%) plus the data term's +0.0331 — and the per-user bias that data term
+ * multiplies stays in +0.1331–+0.1499 over the same window, so what grew there
+ * is the weight k/(k+1), not the bias. The per-day bias the whole split rests on
+ * holds at +0.0925–+0.1023 across that window, a movement of 0.0098, 8.0% of the
+ * 0.122 half-width. So the growth is the ridge on both sides: a per-day bias the
+ * days carried all along, uncovered as the prior's pull weakens. The n = 3 arm's
+ * near-zero bias is two errors of opposite sign, not accuracy.
+ *
+ * THE WHOLE SWEEP IS WIDER THAN ITS WINDOW, and the arm prints both because the
+ * difference is where a reader would be misled. Over n ∈ [1, 12] the per-day
+ * bias reads +0.0925–+0.1143, movement 0.0218, 17.8% of the half-width — but
+ * that n = 1 → 12 contrast is -0.0218 with a paired 95% CI over users of
+ * [-0.0636, 0.0181], and the n = 1 cell is one kept day per user, 69 users of 90,
+ * against 794 kept days at n = 12. The movement is not distinguishable from zero,
+ * and the criterion reads the window the finding names rather than the sweep, so
+ * that its three clauses are all about one claim.
+ *
+ * Read on 1c3bfbc, in a worktree at that commit: M104's compound-move build was
+ * in flight in another session and changes `neighbors`, which moves every day
+ * this file generates and every figure in it. Every line the 2026-09-12 run
+ * printed reproduces byte-for-byte — these arms only add lines.
  *
  * WHAT THE 2026-09-12 RE-RUN CHANGED, and what it did not. The half-width is
  * MEASURED here now instead of transcribed from `stop-inversion-margin.probe.ts`
@@ -362,16 +405,19 @@ function pointAt(bracket: Bracket, margin: number): number | null {
 	return bracket.stopBound > bracket.hi + margin ? null : (bracket.stopBound + bracket.hi) / 2;
 }
 
-/** `fitStoppingValue`'s closed form: the ridge MAP against the default prior. */
-function fitFrom(points: number[]): number {
+/**
+ * `fitStoppingValue`'s closed form: the ridge MAP against the default prior.
+ * The strength is a parameter for the bias-by-n arm alone, which needs the same
+ * estimator with the prior switched OFF to separate the ridge's pull from the
+ * per-day point it pulls on; every other caller takes the shipped value.
+ */
+function fitFrom(points: number[], strength: number = STOP_PRIOR_STRENGTH): number {
 	if (points.length === 0) return FALLBACK;
 
 	const clamp = (x: number) => Math.min(Math.max(x, STOP_FIT_MIN), STOP_FIT_MAX);
 	const sum = points.reduce((s, p) => s + p, 0);
 
-	return clamp(
-		(sum + STOP_PRIOR_STRENGTH * clamp(FALLBACK)) / (points.length + STOP_PRIOR_STRENGTH),
-	);
+	return clamp((sum + strength * clamp(FALLBACK)) / (points.length + strength));
 }
 
 const KINDS = ['rational', 'mood', 'interrupted-tail', 'interrupted-mid', 'grind'] as const;
@@ -847,6 +893,90 @@ const signed = (x: number) => `${x >= 0 ? '+' : ''}${fmt(x, 4)}`;
 const rmseOf = (errors: number[], sample: number[]) =>
 	Math.sqrt(sample.reduce((s, i) => s + errors[i] * errors[i], 0) / sample.length);
 
+const mean = (values: number[]) => values.reduce((s, x) => s + x, 0) / values.length;
+const MEAN_LAMBDA = mean(LAMBDAS);
+
+interface UserPoints {
+	lambda: number;
+	/** The kept indifference points this user's fit averages, at the shipped margin. */
+	points: number[];
+}
+
+function pointsByUser(mix: MixName, dayCount: number): UserPoints[] {
+	const { population, assignment } = fixture();
+
+	return population.map((user, u) => ({
+		lambda: user.lambda,
+		points: pointsOf(
+			bracketsOf(cellsFor(user, assignment[mix][u], dayCount)),
+			STOP_INVERSION_MARGIN,
+		),
+	}));
+}
+
+interface BiasRow {
+	mix: MixName;
+	dayCount: number;
+	keptMean: number;
+	/** Mean over users of (fit − truth), the arms above's `bias` at this n. */
+	measured: number;
+	/**
+	 * The two halves the ridge splits that mean into, exactly: with the identity
+	 * prediction, fit − λ = (k·ē + strength·(default − λ))/(k + strength) per user,
+	 * so the data half carries the per-day bias ē and the prior half the offset
+	 * between the default and this user's truth. Their sum is `measured` — exactly,
+	 * unless `fitFrom`'s [0, 3] clamp bit, which the printed residual would show.
+	 */
+	dataTerm: number;
+	priorTerm: number;
+	/** The same fit with the prior switched off — the per-day bias, unshrunk. */
+	priorFree: number;
+	/** Users that column could score: the rest had no day survive. */
+	fittedUsers: number;
+	/**
+	 * The per-day bias over the DAYS: mean (point − truth) across every kept day
+	 * in the arm. This is the column the flatness test below reads, and
+	 * `priorFree` is not, for a reason that is structural rather than empirical:
+	 * a per-user mean exists only for a user with a kept day, so at n = 1 it
+	 * scores a different population than at n = 12, and it weights a user with
+	 * one surviving day like a user with twelve.
+	 */
+	pooled: number;
+}
+
+function biasRows(): BiasRow[] {
+	return MIXES.flatMap((mix) =>
+		Array.from(
+			{
+				length: DAY_COUNT,
+			},
+			(_, i) => i + 1,
+		).map((dayCount) => {
+			const users = pointsByUser(mix, dayCount);
+			const fitted = users.filter((user) => user.points.length > 0);
+
+			const weighted = (part: (user: UserPoints) => number) =>
+				mean(users.map((user) => part(user) / (user.points.length + STOP_PRIOR_STRENGTH)));
+
+			return {
+				mix,
+				dayCount,
+				keptMean: mean(users.map((user) => user.points.length)),
+				measured: mean(users.map((user) => fitFrom(user.points) - user.lambda)),
+				dataTerm: weighted((user) =>
+					user.points.length === 0
+						? 0
+						: user.points.length * mean(user.points.map((p) => p - user.lambda)),
+				),
+				priorTerm: weighted((user) => STOP_PRIOR_STRENGTH * (FALLBACK - user.lambda)),
+				priorFree: mean(fitted.map((user) => fitFrom(user.points, 0) - user.lambda)),
+				fittedUsers: fitted.length,
+				pooled: mean(users.flatMap((user) => user.points.map((point) => point - user.lambda))),
+			};
+		}),
+	);
+}
+
 describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MARGIN', () => {
 	it('validates the replica fit against the shipped fitStoppingValue', () => {
 		const { population, assignment } = fixture();
@@ -1022,6 +1152,137 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 						'wider censors less and fits slightly better.'
 				: `[§8.10 verdict] KILL CRITERION DID NOT FIRE in ${verdicts.filter((v) => !v).length} arm(s) — ` +
 						'the margin moves the fit by an instrument-visible amount and 0.25 can be re-derived',
+		);
+	});
+
+	it('prints the SIGNED per-day error, which no arm above does', () => {
+		for (const mix of MIXES) {
+			const errors = pointsByUser(mix, DAY_COUNT).flatMap(({ lambda, points }) =>
+				points.map((point) => point - lambda),
+			);
+
+			console.log(
+				`[§8.10 signed] ${mix.padEnd(16)} kept days ${String(errors.length).padStart(4)}  ` +
+					`point−truth mean ${signed(mean(errors))} ` +
+					`p10 ${signed(quantile(errors, 0.1))} p50 ${signed(quantile(errors, 0.5))} ` +
+					`p90 ${signed(quantile(errors, 0.9))}  ` +
+					`above truth ${fmt((100 * errors.filter((e) => e > 0).length) / errors.length, 1)}%`,
+			);
+		}
+
+		// Split by the truth that generated the day, honest days only. A bias that
+		// is flat across the grid is the estimator's own; one concentrated at
+		// λ₀ = 0.3 would be `max(0, lo)`, the only part of the bracket that knows
+		// where zero is.
+		const honest = pointsByUser('honest', DAY_COUNT);
+
+		for (const lambda of LAMBDAS) {
+			const errors = honest
+				.filter((user) => user.lambda === lambda)
+				.flatMap(({ points }) => points.map((point) => point - lambda));
+
+			console.log(
+				`[§8.10 signed] honest λ₀=${lambda.toFixed(1)}    kept days ${String(errors.length).padStart(4)}  ` +
+					`point−truth mean ${signed(mean(errors))} p50 ${signed(quantile(errors, 0.5))}  ` +
+					`above truth ${fmt((100 * errors.filter((e) => e > 0).length) / errors.length, 1)}%`,
+			);
+		}
+	});
+
+	it('decomposes the fit bias by n at fixed prior strength', () => {
+		console.log(
+			`[§8.10 prior] the fit's default λ₀ is ${FALLBACK} and this population's truths are drawn ` +
+				`from ${LAMBDAS.join(', ')} (mean ${fmt(MEAN_LAMBDA, 2)}), so the ridge pulls every fit ` +
+				`toward a value ${signed(FALLBACK - MEAN_LAMBDA)} from the mean truth. That offset is this ` +
+				'instrument’s own draw and not a property of the app: a real user’s λ₀ can sit either side ' +
+				'of the default.',
+		);
+
+		const rows = biasRows();
+
+		for (const row of rows)
+			console.log(
+				`[§8.10 bias-by-n] ${row.mix.padEnd(16)} n=${String(row.dayCount).padStart(2)}  ` +
+					`kept/user ${fmt(row.keptMean, 2)}  bias ${signed(row.measured)} = ` +
+					`data ${signed(row.dataTerm)} + prior ${signed(row.priorTerm)}  ` +
+					`per-day bias ${signed(row.pooled)}  ` +
+					`prior-free bias ${signed(row.priorFree)} over ${row.fittedUsers} users`,
+			);
+
+		const residual = Math.max(
+			...rows.map((row) => Math.abs(row.measured - (row.dataTerm + row.priorTerm))),
+		);
+
+		const honest = rows.filter((row) => row.mix === 'honest');
+		const [low, high] = DAY_COUNTS.map((n) => honest[n - 1]);
+		const growth = high.measured - low.measured;
+		const priorShare = (high.priorTerm - low.priorTerm) / growth;
+		const perDay = honest.map((row) => row.pooled);
+		const movementOf = (values: number[]) => Math.max(...values) - Math.min(...values);
+		// Every clause reads the SAME window — the one the finding names, n = 3 to
+		// n = 12. The whole sweep's movement is printed beside it because the n = 1
+		// and n = 2 cells are worth seeing, but a criterion whose clauses span
+		// different windows is measuring two different claims (reviewed 2026-09-14).
+		const named = perDay.slice(low.dayCount - 1, high.dayCount);
+		const movement = movementOf(named);
+		const free = honest.map((row) => row.priorFree);
+		// Three things have to hold for the ridge to be the explanation: the split
+		// is arithmetic and must close exactly; the prior's weakening has to carry
+		// the MAJORITY of the growth; and the per-day bias the prior is weakening
+		// against must not itself move over that window — flat by the same
+		// resolution rule the margin verdict uses, a tenth of the bracket
+		// half-width.
+		const fired = residual < 1e-9 && priorShare > 0.5 && movement < bracketHalfWidth() / 10;
+		// What the whole sweep's wider movement is worth, since it is printed: the
+		// cells there are NOT the paired sample the margin verdict above
+		// deliberately refuses to price — n = 1 scores one day per user and n = 12
+		// scores twelve, so the two ends are different amounts of data about the
+		// same per-day quantity, and a spread over users is what says whether that
+		// movement is anything.
+		const random = mulberry32(0x51a060);
+		const [first, last] = [1, DAY_COUNT].map((n) => pointsByUser('honest', n));
+
+		const pooledOf = (users: UserPoints[], sample: number[]) =>
+			mean(sample.flatMap((u) => users[u].points.map((point) => point - users[u].lambda)));
+
+		const differences = Array.from(
+			{
+				length: 400,
+			},
+			() => {
+				const sample = first.map(() => Math.floor(random() * first.length));
+
+				return pooledOf(last, sample) - pooledOf(first, sample);
+			},
+		);
+
+		console.log(
+			`[§8.10 bias-by-n] worst |bias − (data + prior)| over ${rows.length} rows ` +
+				`${residual.toExponential(3)}; honest n=${low.dayCount}→${high.dayCount} growth ` +
+				`${signed(growth)} = prior ${signed(high.priorTerm - low.priorTerm)} ` +
+				`(${fmt(100 * priorShare, 1)}%) + data ${signed(high.dataTerm - low.dataTerm)}; ` +
+				`per-day bias over n ∈ [${low.dayCount}, ${high.dayCount}] ${signed(Math.min(...named))}–${signed(Math.max(...named))}, ` +
+				`movement ${fmt(movement, 4)} λ₀ = ${fmt((100 * movement) / bracketHalfWidth(), 1)}% of the ` +
+				`${fmt(bracketHalfWidth())} bracket half-width; over the whole sweep n ∈ [1, ${DAY_COUNT}] ` +
+				`${signed(Math.min(...perDay))}–${signed(Math.max(...perDay))}, movement ${fmt(movementOf(perDay), 4)} λ₀ = ` +
+				`${fmt((100 * movementOf(perDay)) / bracketHalfWidth(), 1)}%, n=1→${DAY_COUNT} contrast ` +
+				`${signed(perDay[DAY_COUNT - 1] - perDay[0])} ` +
+				`[paired 95% CI ${fmt(quantile(differences, 0.025), 4)}, ${fmt(quantile(differences, 0.975), 4)}] ` +
+				`(per-user prior-free ${signed(Math.min(...free))}–${signed(Math.max(...free))}, over a ` +
+				'population that changes with n)',
+		);
+
+		console.log(
+			fired
+				? '[§8.10 bias-by-n] THE RIDGE EXPLAINS IT — the per-day point carries a bias that does not ' +
+						'move with n, and the prior, sitting below this population’s mean truth, cancels part of it. ' +
+						'The cancellation is what shrinks as days accumulate, so the honest arm’s bias GROWS toward ' +
+						'the per-day bias rather than away from a correct value: the small-n arm is not more ' +
+						'accurate, it is two errors of opposite sign. Both halves ROADMAP M106 left untested hold — ' +
+						'the point IS biased, and the default DOES sit off this population’s truths.'
+				: '[§8.10 bias-by-n] THE RIDGE DOES NOT EXPLAIN IT ALONE — read the three parts above: the ' +
+						'decomposition either does not close, or the prior’s weakening is a minority of the growth, ' +
+						'or the per-day bias moves with n and something beyond the ridge is acting',
 		);
 	});
 
