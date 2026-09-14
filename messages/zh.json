@@ -614,7 +614,7 @@
 	"energy_stop_unread_breaks_one": "拟合背后有 1 天无法读出休息，因此被视为一整段连续工作",
 	"energy_stop_unread_breaks": "拟合背后有 {count} 天无法读出休息，因此被视为一整段连续工作",
 	"energy_stop_fit_value": "≈ {value} · 离散度 {std} · n={count}",
-	"energy_stop_reads_high": "拟合背后的这些天把数值整体推高，而不是让它上下散开：天数越多，离散度越小，数值却不会更接近你自己的值——尤其是当你宁愿继续工作也不愿收工时。",
+	"energy_stop_spread_not_accuracy": "拟合背后的这些天会把数值整体朝一个方向推移，而不是让它上下散开：天数越多，离散度越小，数值却不会更接近你自己的值。",
 	"energy_rest_log_count": "休息配对 · {count}",
 	"energy_reset_rest_logs": "删除所有配对",
 	"energy_reset_rest_title": "删除每一对休息记录——校准将恢复为默认值",

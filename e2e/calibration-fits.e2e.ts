@@ -169,8 +169,8 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 
 	// MATH.md §8.10: the spread is blind to an error every day shares, and the
 	// approximations the section lists are all one — so a card with a number to show
-	// says which way that number leans, however many days are behind it.
-	await expect(stopCard.getByText(/push the number up/)).toBeVisible();
+	// says that a tighter spread is not a closer number, however many days are behind it.
+	await expect(stopCard.getByText(/tighten the spread/)).toBeVisible();
 
 	// 3 h worked across a 7.5 h span of an 8 h window: the wall clock ended it.
 	await logDrain(page, 90, 7, 3);

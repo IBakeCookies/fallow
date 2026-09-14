@@ -614,7 +614,7 @@
 	"energy_stop_unread_breaks_one": "1 day behind the fit had no readable breaks, so it was read as one unbroken stretch",
 	"energy_stop_unread_breaks": "{count} days behind the fit had no readable breaks, so they were read as one unbroken stretch",
 	"energy_stop_fit_value": "≈ {value} · spread {std} · n={count}",
-	"energy_stop_reads_high": "The days behind this fit push the number up rather than scatter it, so more of them tighten the spread without moving it closer to your own value — most of all if you would rather keep working than stop.",
+	"energy_stop_spread_not_accuracy": "The days behind this fit displace the number in one direction rather than scattering it, so more of them tighten the spread without moving it closer to your own value.",
 	"energy_rest_log_count": "Rest pairs · {count}",
 	"energy_reset_rest_logs": "Delete all pairs",
 	"energy_reset_rest_title": "Delete every rest pair — the calibration reverts to the defaults",

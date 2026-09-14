@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1935  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1937  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
@@ -71,13 +71,13 @@ retype a row, regenerate:
   §8.7    1054-1148  Drain-rate calibration from end-of-session ratings
   §8.8    1150-1185  45-minute plan granularity
   §8.9    1187-1234  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1236-1517  Stopping-value calibration from observed stop times
-  §8.11   1519-1654  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1656-1810  The budget curve — what the day's LENGTH is worth
-  §8.13   1812-1876  Capacity from the fitted drain rate
-  §8.14   1878-1935  Per-title drain rate — which task costs more than its sl…
-§9        1937-1999  Plan-adherence reading and its verdict band
-§10       2001-2048  References
+  §8.10   1236-1519  Stopping-value calibration from observed stop times
+  §8.11   1521-1656  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1658-1812  The budget curve — what the day's LENGTH is worth
+  §8.13   1814-1878  Capacity from the fitted drain rate
+  §8.14   1880-1937  Per-title drain rate — which task costs more than its sl…
+§9        1939-2001  Plan-adherence reading and its verdict band
+§10       2003-2050  References
 ```
 
 <!-- section-index:end -->
@@ -1373,12 +1373,14 @@ machinery collapses to an exact closed form — no numeric minimizer:
 - **It cannot see the BRACKET either, so more days do not move the point
   toward λ₀.** Sensitivity is ≡ 1 per day, so the ridge weight n/(n + λ) → 1
   and λ̂₀ converges on the MEAN of the day points rather than on the user's λ₀.
-  Every approximation listed below — partial logging, the checkbox scope, the
-  loose `hi` max, the censors' own selection — lifts that mean, through the
-  same bracket on every day, so it is common-mode in exactly the sense above:
-  the scatter the ± prices is scatter AROUND it. A consistent logger therefore
-  earns a tighter ± on a point no nearer their λ₀, and a λ₀ read high funds
-  less work
+  The four UPWARD approximations listed below — partial logging, the checkbox
+  scope, the loose `hi` max, the censors' own selection — lift that mean,
+  through the same bracket on every day, so each is common-mode in exactly the
+  sense above: the scatter the ± prices is scatter AROUND it. Obligation, also
+  below, displaces the same mean downward by the same common-mode route, so
+  which way a given user's point is off depends on how many of their days were
+  compelled. A consistent logger therefore earns a tighter ± on a point no
+  nearer their λ₀, whichever side it sits
   (`scripts/stop-margin-fit-error.probe.ts`).
 - **Bounds** = the Energy Lab's freeTimeValue input range [0, 3], same
   representability/absurdity-guard role as the α and r bounds.

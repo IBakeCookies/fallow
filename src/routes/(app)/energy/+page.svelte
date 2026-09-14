@@ -737,7 +737,7 @@
 
 							{#if stopFit.fitted}
 								<p class="mt-text-sm text-xs text-ty-silent">
-									{m.energy_stop_reads_high()}
+									{m.energy_stop_spread_not_accuracy()}
 								</p>
 							{/if}
 
