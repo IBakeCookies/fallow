@@ -1130,10 +1130,11 @@ function* neighbors(
 		}
 
 		// The same transfer into a block that does not exist yet: the destination
-		// of the move above has to be one of the plan's own blocks, so on a fully
-		// spent window — where the insert moves below never fire — a task the plan
-		// does not hold can only be bought a whole block or half a block at a
-		// time, never the one step an optimum may want (MATH.md §8.6). A task
+		// of the move above has to be one of the plan's own blocks, so a task the
+		// plan is not holding can otherwise only be bought a whole block or half a
+		// block at a time, never the one step an optimum may want. Generated at
+		// every state, not only on the spent window that motivates it: gating it
+		// on `room` costs days and saves almost nothing (MATH.md §8.6). A task
 		// funded elsewhere is left out: the transfer above already reaches a
 		// schedule that funds it.
 		const destinations = withNewBlockTransfer

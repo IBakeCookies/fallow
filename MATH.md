@@ -61,23 +61,23 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1937  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1944  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
   §8.4      881-951  Per-task satiety — concave daily value
   §8.5      953-993  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6     995-1052  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1054-1148  Drain-rate calibration from end-of-session ratings
-  §8.8    1150-1185  45-minute plan granularity
-  §8.9    1187-1234  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1236-1519  Stopping-value calibration from observed stop times
-  §8.11   1521-1656  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1658-1812  The budget curve — what the day's LENGTH is worth
-  §8.13   1814-1878  Capacity from the fitted drain rate
-  §8.14   1880-1937  Per-title drain rate — which task costs more than its sl…
-§9        1939-2001  Plan-adherence reading and its verdict band
-§10       2003-2050  References
+  §8.6     995-1059  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1061-1155  Drain-rate calibration from end-of-session ratings
+  §8.8    1157-1192  45-minute plan granularity
+  §8.9    1194-1241  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1243-1526  Stopping-value calibration from observed stop times
+  §8.11   1528-1663  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1665-1819  The budget curve — what the day's LENGTH is worth
+  §8.13   1821-1885  Capacity from the fitted drain rate
+  §8.14   1887-1944  Per-title drain rate — which task costs more than its sl…
+§9        1946-2008  Plan-adherence reading and its verdict band
+§10       2010-2057  References
 ```
 
 <!-- section-index:end -->
@@ -1009,7 +1009,14 @@ Steepest ascent only takes single moves that are uphill on their own:
   which is how an interleave is reached. A task funded elsewhere is left out:
   the plain transfer already reaches a schedule that funds it, so a new block
   would only re-position hours, and the uphill audit finds nothing that
-  re-positioning would buy (`scripts/energy-search-gap.probe.ts`).
+  re-positioning would buy (`scripts/energy-search-gap.probe.ts`). The spent
+  window motivates the move but does not BOUND it: the family is generated at
+  every state, because part of its gain is taken at states that still have
+  room — a reallocation the insert moves cannot express, since they grow into
+  the room instead of paying for the step. Gating it on `room` was priced and
+  refused; it forfeits those days and saves almost none of the move's cost,
+  because the climb spends the window early and most candidates are generated
+  after it does (same probe).
 - **Cold-start slivers:** inserting an unfunded task at one step can be
   downhill where a full session is uphill — the step is priced on the climb
   toward the peak. Fixes: a **half-block reassign** (hand the second half
