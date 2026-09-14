@@ -136,15 +136,15 @@ its allocation code, so the main page is unaffected by changes here.
   (min ϕ = 0.58h) the cap never binds.
 - The optimizer is a deterministic multi-seed steepest-ascent local search over
   (task|rest, duration) block schedules: not slot-greedy (myopic, never rests),
-  not full DP. Pure single-step moves strand ~1% of the objective and can
-  return the wrong plan **structure** — hence the compound moves (transfer
-  between blocks, half-block reassign, T*-session insert), the drop-one classic
-  seeds, and the pair seeds, each searched **within its pair** because a seed
-  whose search may reach every task climbs back out of the two-task basin it was
-  built for; keep those when touching the search. The pair family is capped at
-  the four highest-amplitude tasks (`C(4,2)`) — unbounded `C(n,2)` costs an
-  order of magnitude more at 15 tasks, because each pair seed starts
-  fragmented and climbs long, so do not unbound it
+  not full DP. Pure single-step moves strand ~1% of the objective and can return
+  the wrong plan **structure** — hence the compound moves (transfer between
+  blocks and into one that does not exist yet, half-block reassign, T*-session
+  insert), the drop-one classic seeds, and the pair seeds, each searched
+  **within its pair** because a seed whose search may reach every task climbs
+  back out of the two-task basin it was built for; keep those when touching the
+  search. The pair family is capped at the four highest-amplitude tasks
+  (`C(4,2)`) — unbounded `C(n,2)` costs an order of magnitude more at 15 tasks,
+  because each pair seed starts fragmented and climbs long, so do not unbound it
   (`scripts/energy-search-gap.probe.ts`, which prices every cap and what each
   forfeits). §8.6.
 - `neighbors` yields **every** interior lattice split of a funded block — one

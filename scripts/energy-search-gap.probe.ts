@@ -24,15 +24,16 @@
  *   §8.6.
  * - FRONTIER: the same exhaustive reference at the largest task counts that
  *   still enumerate — 4, 5 and 6 tasks over the widest window each affords.
- *   The arm holding all three tiers and the audit below runs ~11 min of the
- *   file's ~24-25 (v2 curve, 2026-09-11: 675 and 645 s for the arm, 1443
- *   and 1476 s for the file).
+ *   The file ran 2090 s on 2026-09-14, the run every deterministic figure
+ *   below was read from; that run predates the [move] arm, which adds 258-269 s
+ *   of its own.
  * - APPROX: a long random-restart hill climb, labelled APPROX because it is a
  *   LOWER bound on the true optimum — a 0 there is evidence, not proof, and a
  *   negative gap just means the product search beat the reference. It stays a
  *   lower bound: its own mismatch lines print what enumerating those days would
- *   cost. On the v2 curve no APPROX day mismatches its funded set, so the line
- *   fires only on the 4-task FRONTIER day, where the reference IS that
+ *   cost. Since the transfer into a block that does not exist yet (2026-09-14)
+ *   no day in either tier mismatches its funded set, so the line fires nowhere;
+ *   when it last did, on the 4-task FRONTIER day, the reference WAS that
  *   enumeration: 5^9 = 1.95e6 plans at 27.4-29.1 µs/eval, 1.49e-2-1.58e-2 h
  *   over three runs. The estimate was checked against the enumeration's own
  *   clock when the tier was built (v1 curve: 51.7 s predicted, ~51 s taken);
@@ -42,42 +43,48 @@
  * shortfall and which side is behind, so half of a mismatch is attributable
  * even where the reference is a lower bound.
  *
- * The APPROX and FRONTIER days then get an UPHILL AUDIT of the two candidate
- * families `neighbors` does NOT generate. It needs no reference: `localSearch`
- * stops at a local optimum over generated candidates, so anything uphill from
- * the returned plan is a candidate the search cannot reach, and finding one is
- * a proven defect. On the v2 curve (2026-09-11) it finds two, both SHRINK-ONE
- * + INSERT-ONE and both on a fully-spent window: the 4-task FRONTIER day whose
- * funded set the search misses (shrink t2, insert t3: 7.812639 → 7.817403,
- * which IS the enumerated optimum) and APPROX day 1 (shrink t4, re-insert t4
- * after t3: 15.395319 → 15.492131, against a lower-bound reference of
- * 15.493362). CARVE-FROM-BLOCK is uphill nowhere. 17 of the 21 days spend the
- * window fully, where CARVE-FROM-BLOCK is the only one of the two families
- * still available; three of those 17 hold a mid-block rest anyway — the split
- * is generated while the plan still has room and the plan grows into the
- * window afterwards, so a full window does not strand that structure. On the
- * v1 curve the same audit read 0 uphill over the same 21 days (ROADMAP M104).
+ * The APPROX and FRONTIER days then get an UPHILL AUDIT of two candidate
+ * families. It needs no reference: `localSearch` stops at a local optimum over
+ * generated candidates, so anything uphill from the returned plan is a
+ * candidate the search cannot reach, and finding one is a proven defect.
+ * CARVE-FROM-BLOCK, §8.6's unbuilt rest split that takes its step out of the
+ * block instead of out of spare `room`, is generated nowhere. SHRINK-ONE +
+ * INSERT-ONE is now generated for an unfunded task and for the shrunk block's
+ * own, so what the audit still reaches there is the narrowing — a step
+ * re-positioned for a task funded elsewhere.
+ *
+ * On 2026-09-14 it reads 0 uphill on all 21 days, both families, and the two
+ * readings that raised ROADMAP M104 are closed by the move: the 4-task FRONTIER
+ * day returns 7.817403, which IS the enumerated optimum it used to miss, and
+ * APPROX day 1 returns 15.507345, above both the 15.492131 the audit had found
+ * uphill of it and the 15.493362 of its own lower-bound reference. The
+ * narrowing forfeits nothing these days can see. 17 of the 21 spend the window
+ * fully; three of those hold a mid-block rest anyway — the split is generated
+ * while the plan still has room and the plan grows into the window afterwards,
+ * so a full window does not strand that structure.
  *
  * The last four arms price §8.6's cap on the pair family, which no committed
  * instrument reached before: `pairSeedTasks` exists on `OptimizeOptions` for
  * them and nothing else sets it. Every timing below is a range, not a figure
  * (docs/testing.md): each cell prints the half-range of its own reps, except the
  * [app] one-solve rows, whose cell is already a distribution over 60 days and
- * prints its percentiles instead. The bands quoted here are what THREE runs of
- * these arms read on this box on 2026-09-11 (v2 curve) with Storybook's dev
- * server and the editor idle beside them and nothing else; a contended run is
- * discarded, not averaged in, and the eight identical-work cells below are how
- * one is recognised.
+ * prints its percentiles instead. The bands quoted here are what TWO runs of
+ * these arms read on this box on 2026-09-14, under the transfer into a block
+ * that does not exist yet, with the editor idle beside them and nothing else; a
+ * contended run is discarded, not averaged in, and the eight identical-work
+ * cells below are how one is recognised. EVERY band in this paragraph fell when
+ * that move landed, because it raises the search each ratio is divided by; the
+ * 2026-09-11 three-run bands it replaces belong to the neighbourhood before it.
  *
- * The pair seeds at the cap of 3 cost roughly 1.2×–2.4× the same search without
- * them (per run: 1.30–2.28, 1.32–2.35, 1.25–2.23); the shipped cap of 4 costs
- * roughly 1.2×–1.7× the cap of 3 it replaced (per run: 1.24–1.61, 1.20–1.63,
- * 1.21–1.62). At 3 tasks all three capped arms ARE one search, and at 4 tasks
- * C(4,2) IS the cap of 4, so eight cells per run time identical work: over 24
- * of them they read 0.91×–1.03×, which is the table's noise floor and the
+ * The pair seeds at the cap of 3 cost roughly 1.1×–2.3× the same search without
+ * them (per run: 1.11–2.32, 1.12–2.23); the shipped cap of 4 costs
+ * roughly 1.0×–1.6× the cap of 3 it replaced (per run: 0.96–1.62, 0.99–1.57).
+ * At 3 tasks all three capped arms ARE one search, and at 4 tasks
+ * C(4,2) IS the cap of 4, so eight cells per run time identical work: over 16
+ * of them they read 0.93×–1.06×, which is the table's noise floor and the
  * reason no third digit is quoted anywhere here. Unbounded C(n,2) at 15 tasks
- * costs an order of magnitude more than the shipped four-task search
- * (8.8×–11.9×) and 13.4×–14.9× the cap of 3 it replaced — every
+ * still costs several times the shipped four-task search
+ * (5.7×–7.7×) and 6.4×–9.7× the cap of 3 it replaced — every
  * ratio here is quoted with the arm it is divided by, because those two are one
  * measurement a column apart. Cap 4's cost is flat in n (three more seeds at any
  * size) where C(n,2)'s is quadratic. The ratio is composition-dependent and cost
@@ -89,30 +96,45 @@
  *
  * In absolute ms on the paths the product takes, over app-shaped days (3-8
  * tasks × 6-10 h): one solve — `EnergyLabStore`'s `#plan`, once per slider
- * move — median ~73-76 ms at cap 3 against ~100-107 at cap 4 (three runs:
- * 75.9/106.7, 73.3/104.4, 74.3/100.2), p95 ~157-177 against ~197-211;
- * `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, ~346-359 ms
- * against ~456-494. The same one-solve row read ~55-59 ms at cap 3 on the v1
- * curve (2026-08-27 bands, box otherwise idle). A ratio cannot say whether a
- * change is felt; between runs the sweep row moves ±4%, against ±1-2% within
+ * move — median ~131-149 ms at cap 3 against ~181-183 at cap 4 (two runs:
+ * 131.3/181.2, 149.4/183.2), p95 ~298-339 against ~381-398;
+ * `suggestBudgetCurve`'s 12 solves over an 8-task 9.25 h horizon, ~721-746 ms
+ * against ~903-954. The same one-solve row read ~73-76 ms at cap 3 before the
+ * transfer into a new block (2026-09-11 bands) and ~55-59 on the v1 curve
+ * (2026-08-27), both boxes otherwise idle. A ratio cannot say whether a
+ * change is felt; between runs the sweep row moves ±3%, against ±1-2% within
  * one.
  *
- * What a cap of 3 forfeits, over 400 seeded days on the v2 curve: the pair
+ * The [move] arm prices the transfer into a block that does not exist yet
+ * (ROADMAP M104) the same way, against the search without it — the only caller
+ * of `withNewBlockTransfer`. Over the 400 days of the forfeit sweep it is
+ * better on 34, a different funded set on 16 of those, median 0.1969% and worst
+ * 1.7016%; and WORSE on 6, worst 1.5022%, because a richer neighbourhood can
+ * carry steepest ascent into a different basin. It costs roughly 1.7x one solve
+ * (110.4/108.5 ms without against 184.1/191.7 with, p95 227/241 against
+ * 387/402) and roughly 1.9x the budget sweep (490.5/500.4 ms ±2-3% against
+ * 924.0/951.5 ms ±1-2%), two runs on 2026-09-14.
+ *
+ * What a cap of 3 forfeits, over 400 seeded days (2026-09-14): the pair
  * family beats no pairs on 4, worst 0.275655 objective, and unbounded C(n,2)
- * beats a cap of 3 on 3, worst 0.113066 — 0.8327% of that day's objective. A
- * cap of 4 reaches two of the three; the third (7 tasks × 8.5 h, gap 0.028320,
- * 0.2556%) needs a cap of 5. On the v1 curve both forfeited days were reached
- * by a cap of 4.
+ * beats a cap of 3 on 4, worst 0.183938 — 1.5022% of that day's objective. A
+ * cap of 4 reaches two of the four; the other two need 5 (7 tasks × 8.5 h,
+ * 0.2556%) and 6 (7 tasks × 7.75 h, 1.5022%). That last day is also the one
+ * the [move] arm above loses most on, by the same 0.183938 of objective: with
+ * the move on, a cap of 6 returns 12.244529 there — exactly what the move gives
+ * up at the shipped cap of 4 — so that day is decided by the pair cap, not by
+ * the move. On the v1 curve both forfeited days
+ * were reached by a cap of 4.
  *
  * That count is one draw, so the same comparison runs on five seeds. Over 2000
- * days cap 4 beats cap 3 on 7 (2, 1, 2, 0, 2 per seed) and never once returns
+ * days cap 4 beats cap 3 on 3 (2, 0, 0, 0, 1 per seed) and never once returns
  * a different plan at an unchanged objective, so nothing pays for nothing. The
- * per-seed worst gain runs 0.3471%–2.5965%, an order of magnitude apart: the
- * RATE is the stable figure here and the magnitude is not. On 5 of those 7
- * days the FUNDED SET changes — a task funded nowhere at cap 3, or a different
- * task entirely — which is the structural failure §8.6 calls the worse of the
+ * per-seed worst gain runs 0.3471%–0.8327%: the
+ * RATE is the stable figure here and the magnitude is not. Where such a day's
+ * FUNDED SET changes — a task funded nowhere at cap 3, or a different
+ * task entirely — that is the structural failure §8.6 calls the worse of the
  * two, and is why 0.35% of days was worth ~1.5× on the interactive path
- * (ROADMAP M54, 2026-08-27).
+ * (ROADMAP M54, 2026-08-27 — the rate and the ratio as they read then).
  *
  * Whatever it prints stays here, beside the run that produced it, never in
  * MATH.md — which holds derivations only (R7, docs/testing.md).
@@ -150,7 +172,7 @@ interface Day {
 
 /**
  * Days per task count in the FRONTIER tier. The committed 3 keeps the arm that
- * holds it at ~11 min of the file's ~25 (v2 curve, 2026-09-11); the seeds are a
+ * holds it inside a file that runs ~39 min (2026-09-14); the seeds are a
  * prefix, so raising this line widens the same sequence. The sweep that found
  * both §8.6 witnesses ran 20 days at 4 tasks and 8 at 5 (~28 min).
  */
@@ -457,13 +479,15 @@ const fmt = (blocks: ScheduleBlock[]) =>
 	blocks.map((b) => `${b.taskId === null ? 'rest' : `t${b.taskId}`} ${b.hours}h`).join(' + ');
 
 /**
- * The two candidate families `neighbors` (in `zenith-energy.ts`) does not
- * generate, swept from the plan the search returned: CARVE-FROM-BLOCK, §8.6's
- * unbuilt rest split that takes the step out of the block instead of out of
- * spare `room` (so it survives a fully-spent window), and SHRINK-ONE +
- * INSERT-ONE, the two-move path whose intermediate is downhill. Any uphill
- * candidate is a proven defect with no reference needed, because `localSearch`
- * already stopped at a local optimum over everything it does generate.
+ * Two candidate families swept from the plan the search returned:
+ * CARVE-FROM-BLOCK, §8.6's unbuilt rest split that takes the step out of the
+ * block instead of out of spare `room` (so it survives a fully-spent window),
+ * which `neighbors` generates nowhere; and SHRINK-ONE + INSERT-ONE, which it
+ * generates for an unfunded task and for the shrunk block's own, so what this
+ * sweep still reaches there is the narrowing — a step re-positioned for a task
+ * funded elsewhere. Any uphill candidate is a proven defect with no reference
+ * needed, because `localSearch` already stopped at a local optimum over
+ * everything it does generate.
  */
 function uphillAudit(label: string, day: Day): void {
 	const step = DEFAULT_STEP_HOURS;
@@ -647,7 +671,7 @@ describe('energy search gap', () => {
 			hillClimbOptimum(day, 200, 9000 + index),
 		);
 
-		console.log('UPHILL AUDIT (candidate families the search never generates):');
+		console.log('UPHILL AUDIT (candidates the search cannot reach):');
 		approxDays.forEach((day, index) => uphillAudit(`APPROX day ${index}`, day));
 	});
 
@@ -825,6 +849,90 @@ describe('energy search gap', () => {
 		for (const { day, gap, relative, enough } of forfeit) {
 			console.log(
 				`  forfeited: ${day.tasks.length} tasks x ${day.windowHours}h, gap ${gap.toFixed(6)} (${relative.toFixed(4)}%), first cap that reaches it ${enough}`,
+			);
+		}
+	});
+
+	/**
+	 * What the transfer into a block that does not exist yet (§8.6) buys and what
+	 * it costs. The `false` arm is the search without that family and is the only
+	 * caller of the knob; the `true` arm is the product's own default, so the
+	 * ratio below is what the move added to every solve the app runs.
+	 *
+	 * A richer neighbourhood is not monotone in plan value — steepest ascent can
+	 * climb into a different basin and finish lower — so the losing days are
+	 * printed beside the winning ones rather than netted against them.
+	 */
+	it('prices the transfer into a block that does not exist yet', () => {
+		const withMove = (day: Day, withNewBlockTransfer: boolean) =>
+			optimizeSchedule(day.tasks, day.windowHours, undefined, undefined, {
+				withNewBlockTransfer,
+			});
+
+		const days = randomDays(400, 8600, [3, 8], [4, 12]);
+		const gains: number[] = [];
+		const losses: number[] = [];
+		let structural = 0;
+
+		for (const day of days) {
+			const without = withMove(day, false);
+			const shipped = withMove(day, true);
+			const gap = shipped.evaluation.objective - without.evaluation.objective;
+			const relative = (100 * gap) / Math.abs(without.evaluation.objective);
+
+			if (gap > 1e-9) {
+				gains.push(relative);
+
+				if (fundedSet(shipped.blocks) !== fundedSet(without.blocks)) structural++;
+			}
+
+			if (gap < -1e-9) losses.push(-relative);
+		}
+
+		const sorted = [...gains].sort((x, y) => x - y);
+		// A re-run is allowed to find the move paying on nothing; printing that is
+		// the result, so neither line may index an empty array.
+		const worstOf = (values: number[]) => (values.length > 0 ? Math.max(...values) : 0);
+
+		console.log(
+			`[move] over ${days.length} days (3-8 tasks x 4-12h): ${gains.length} better, ${structural} of them a different funded set, median ${(sorted.length > 0 ? percentile(sorted, 0.5) : 0).toFixed(4)}%, worst ${worstOf(gains).toFixed(4)}%`,
+		);
+
+		console.log(
+			`[move] and ${losses.length} worse, worst ${worstOf(losses).toFixed(4)}%: a richer neighbourhood picks a different basin`,
+		);
+
+		console.log(`[move] ${cpus()[0].model}, ${cpus().length} cores, node ${process.version}`);
+
+		const costDays = randomDays(60, 8611, [3, 8], [6, 10]);
+
+		for (const on of [false, true]) {
+			const each = costDays
+				.map((day) => timeMs(() => withMove(day, on)).median)
+				.sort((a, b) => a - b);
+
+			console.log(
+				`[move] one solve over ${costDays.length} app-shaped days, ${on ? 'with' : 'without'}: median ${percentile(each, 0.5).toFixed(1)} ms, p95 ${percentile(each, 0.95).toFixed(1)} ms, worst ${each[each.length - 1].toFixed(1)} ms`,
+			);
+		}
+
+		const widest = costDays.reduce((a, b) => (b.tasks.length > a.tasks.length ? b : a));
+		const steps = Math.floor(widest.windowHours / DEFAULT_STEP_HOURS + 1e-9);
+
+		for (const on of [false, true]) {
+			const sweep = timeMs(() => {
+				for (let step = 1; step <= steps; step++)
+					withMove(
+						{
+							tasks: widest.tasks,
+							windowHours: step * DEFAULT_STEP_HOURS,
+						},
+						on,
+					);
+			});
+
+			console.log(
+				`[move] the budget sweep's ${steps} solves (${widest.tasks.length} tasks x ${widest.windowHours}h), ${on ? 'with' : 'without'}: ${ms(sweep)}`,
 			);
 		}
 	});

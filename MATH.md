@@ -38,7 +38,7 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~29k tokens at 4 chars/token; the largest
+The whole document is ~30k tokens at 4 chars/token; the largest
 single section is §8 at ~16k (§5 is ~4k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
@@ -61,23 +61,23 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1895  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1906  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
   §8.4      881-951  Per-task satiety — concave daily value
   §8.5      953-993  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6     995-1041  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1043-1138  Drain-rate calibration from end-of-session ratings
-  §8.8    1140-1175  45-minute plan granularity
-  §8.9    1177-1224  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1226-1477  Stopping-value calibration from observed stop times
-  §8.11   1479-1614  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1616-1770  The budget curve — what the day's LENGTH is worth
-  §8.13   1772-1836  Capacity from the fitted drain rate
-  §8.14   1838-1895  Per-title drain rate — which task costs more than its sl…
-§9        1897-1959  Plan-adherence reading and its verdict band
-§10       1961-2008  References
+  §8.6     995-1052  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1054-1149  Drain-rate calibration from end-of-session ratings
+  §8.8    1151-1186  45-minute plan granularity
+  §8.9    1188-1235  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1237-1488  Stopping-value calibration from observed stop times
+  §8.11   1490-1625  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1627-1781  The budget curve — what the day's LENGTH is worth
+  §8.13   1783-1847  Capacity from the fitted drain rate
+  §8.14   1849-1906  Per-title drain rate — which task costs more than its sl…
+§9        1908-1970  Plan-adherence reading and its verdict band
+§10       1972-2019  References
 ```
 
 <!-- section-index:end -->
@@ -999,6 +999,17 @@ Steepest ascent only takes single moves that are uphill on their own:
 - **Reallocation plateaus:** moving time from task A to task B requires a
   shrink and a grow, each downhill alone. Fix: a **transfer move** (shrink
   block i, grow block j, one candidate).
+- **A spent window can only change its mind in whole blocks:** the transfer
+  move's destination is one of the plan's own blocks, and both insert moves take
+  their step from spare room, so once the window is full the only way to fund a
+  task the plan is not holding is to surrender a whole block to it (reassign) or
+  half of one (half-reassign) — never the single step an optimum may want. Fix:
+  the transfer also delivers its step to a **new one-step block at any
+  position**, for a task the plan is not funding or for the shrunk block's own,
+  which is how an interleave is reached. A task funded elsewhere is left out:
+  the plain transfer already reaches a schedule that funds it, so a new block
+  would only re-position hours, and the uphill audit finds nothing that
+  re-positioning would buy (`scripts/energy-search-gap.probe.ts`).
 - **Cold-start slivers:** inserting an unfunded task at one step can be
   downhill where a full session is uphill — the step is priced on the climb
   toward the peak. Fixes: a **half-block reassign** (hand the second half
