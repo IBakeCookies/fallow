@@ -1029,9 +1029,10 @@ Raised closing M106 with the two arms
   whose λ₀ sits below the default gets both errors in the same direction and
   few days is then worse than many. §8.10 now carries the model half: after the
   posterior-std bullet, the limit — weight n/(n + λ) → 1, so the fit converges
-  on the mean day point — and the note that the approximations the section
-  lists lift that mean through the same bracket on every day, common-mode in
-  the sense the bullet above it defines. No figure moved into the prose; the
+  on the mean day point — and the note that the section's four upward
+  approximations lift that mean through the same bracket on every day,
+  common-mode in the sense the bullet above it defines, while obligation
+  displaces it downward by the same route. No figure moved into the prose; the
   probe keeps them.
 
   The card half was decided the same day and is prose, not arithmetic. Four
@@ -1041,10 +1042,14 @@ Raised closing M106 with the two arms
   real user's screen (item 29's rule). Dropping it would have thrown away a
   reading that is true about scatter. What shipped is the relabel: the
   free-time-value row reads `spread` where the α and r rows read ±, and the
-  Stopping Calibration card states the DIRECTION — the days behind the fit push
-  the number up rather than scatter it, most of all for a user who would rather
-  keep working — with no size attached, since §8.10's common-mode bullet is what
-  licenses the sentence and the probe holds the figures. **The read-only
+  Stopping Calibration card states that the error is a DISPLACEMENT rather than
+  scatter — the days behind the fit move the number one way, so more of them
+  tighten the spread without bringing it closer — with neither a size nor a
+  sign attached, since §8.10's common-mode bullet is what licenses the sentence
+  and the probe holds the figures. A sign was drafted and cut: the section's own
+  obligation bullet displaces the same mean downward, and the card's existing
+  hint already tells a deadline-day user their number is pulled down, so naming
+  one direction would have contradicted the paragraph above it. **The read-only
   Analytics copy still reads ± on λ₀**, its row being one of five that share a
   format; that is a knowing inconsistency, not an oversight, and the Lab is
   where the fit's own caveats already live.

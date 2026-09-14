@@ -614,7 +614,7 @@
 	"energy_stop_unread_breaks_one": "Bei 1 Tag hinter dem Fit waren keine Pausen lesbar, er wurde daher als ein durchgehender Block gelesen",
 	"energy_stop_unread_breaks": "Bei {count} Tagen hinter dem Fit waren keine Pausen lesbar, sie wurden daher als ein durchgehender Block gelesen",
 	"energy_stop_fit_value": "≈ {value} · Streuung {std} · n={count}",
-	"energy_stop_reads_high": "Die Tage hinter diesem Fit treiben die Zahl nach oben, statt sie zu streuen: mehr Tage verengen die Streuung, ohne die Zahl näher an deinen eigenen Wert zu bringen — am stärksten dann, wenn du lieber weiterarbeitest als aufhörst.",
+	"energy_stop_spread_not_accuracy": "Die Tage hinter diesem Fit verschieben die Zahl in eine Richtung, statt sie zu streuen: mehr Tage verengen die Streuung, ohne die Zahl näher an deinen eigenen Wert zu bringen.",
 	"energy_rest_log_count": "Pausenpaare · {count}",
 	"energy_reset_rest_logs": "Alle Paare löschen",
 	"energy_reset_rest_title": "Alle Pausenpaare löschen — die Kalibrierung fällt auf die Standardwerte zurück",

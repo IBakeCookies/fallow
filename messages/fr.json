@@ -614,7 +614,7 @@
 	"energy_stop_unread_breaks_one": "1 journée derrière l'ajustement n'avait aucune pause lisible, elle a donc été lue comme un seul bloc continu",
 	"energy_stop_unread_breaks": "{count} journées derrière l'ajustement n'avaient aucune pause lisible, elles ont donc été lues comme un seul bloc continu",
 	"energy_stop_fit_value": "≈ {value} · dispersion {std} · n={count}",
-	"energy_stop_reads_high": "Les journées derrière cet ajustement poussent le nombre vers le haut au lieu de le disperser : plus de journées resserrent la dispersion sans la rapprocher de ta propre valeur — surtout si tu préfères continuer à travailler plutôt que t'arrêter.",
+	"energy_stop_spread_not_accuracy": "Les journées derrière cet ajustement décalent le nombre dans une seule direction au lieu de le disperser : plus de journées resserrent la dispersion sans la rapprocher de ta propre valeur.",
 	"energy_rest_log_count": "Paires de repos · {count}",
 	"energy_reset_rest_logs": "Supprimer toutes les paires",
 	"energy_reset_rest_title": "Supprime toutes les paires de repos — la calibration revient aux valeurs par défaut",
