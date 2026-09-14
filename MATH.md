@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1906  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1919  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
@@ -71,13 +71,13 @@ retype a row, regenerate:
   §8.7    1054-1149  Drain-rate calibration from end-of-session ratings
   §8.8    1151-1186  45-minute plan granularity
   §8.9    1188-1235  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1237-1488  Stopping-value calibration from observed stop times
-  §8.11   1490-1625  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1627-1781  The budget curve — what the day's LENGTH is worth
-  §8.13   1783-1847  Capacity from the fitted drain rate
-  §8.14   1849-1906  Per-title drain rate — which task costs more than its sl…
-§9        1908-1970  Plan-adherence reading and its verdict band
-§10       1972-2019  References
+  §8.10   1237-1501  Stopping-value calibration from observed stop times
+  §8.11   1503-1638  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1640-1794  The budget curve — what the day's LENGTH is worth
+  §8.13   1796-1860  Capacity from the fitted drain rate
+  §8.14   1862-1919  Per-title drain rate — which task costs more than its sl…
+§9        1921-1983  Plan-adherence reading and its verdict band
+§10       1985-2032  References
 ```
 
 <!-- section-index:end -->
@@ -1439,7 +1439,20 @@ machinery collapses to an exact closed form — no numeric minimizer:
 - **The loose max on the `hi` side** biases midpoints up. "The work order
   is unobserved" is false on a timestamped day, so the loose max is a
   deliberate looseness rather than a forced one — the honest `hi` (the last
-  row's own last step) is available.
+  row's own last step) is available. Measured
+  (`stop-margin-fit-error.probe.ts`): it is a real part of the upward bias and a
+  FLAT one, lowering every truth level by about the same amount, so it is not
+  what makes that bias depend on λ₀.
+- **The censors are not λ₀-neutral, and the days they leave behind read HIGH.**
+  A user whose leisure is worth little works long, and a long day is what the
+  window-edge and clock censors drop — so the lower a user's true λ₀, the
+  smaller the share of their days that reaches the fit at all, and the ones that
+  do are their SHORT days. A short day is one where another step was still worth
+  more than that user's λ₀, which puts `lo` itself above the truth: the whole
+  bracket sits high, not just the midpoint inside it. This is selection, so no
+  repair to either bound and no re-placement of the point touches it, and it is
+  why the per-day bias is largest at the smallest λ₀ (measured, same probe). It
+  compounds the partial-logging and checkbox errors rather than offsetting them.
 - **Block ORDER is OBSERVED on a timestamped day, and a modeling choice only on
   the fallback path.** The marginals genuinely depend on order through the
   reservoirs, and canonical placement is what made the estimator a function of
