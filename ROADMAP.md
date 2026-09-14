@@ -984,42 +984,49 @@ the **S** series continues from the 2026-08-25 review above.
 Raised closing M106 with the two arms
 `scripts/stop-margin-fit-error.probe.ts` grew for it.
 
-- **M107 — the λ₀ point's upward bias is concentrated at low λ₀: +0.4175 at
-  λ₀ = 0.3 against +0.0394 at λ₀ = 1.1 — raised 2026-09-14, open,
-  `scripts/stop-margin-fit-error.probe.ts`.** An honest day's indifference point
-  sits +0.0925 above the truth that generated it over 794 kept days, which is
-  what closes M106; the per-truth rows underneath read +0.4175, +0.1767, +0.0742,
-  +0.0566, +0.0394, +0.0562 across the λ₀ grid — falling with the truth, but not
-  monotonically, and the λ₀ = 0.3 level is 56 kept days where λ₀ = 1.1 is 179.
-  §8.10 names three mechanisms that bias the point up — partial logging, the
-  checkbox scope, and the `hi` side's loose max — and only the last can act on
-  these days: they are fully logged, and every task is open and bottomless in the
-  generator exactly as the model reads it. Two candidates the section does not
-  name are visible in the same split. `max(0, lo)` is the arm's own printed
-  hypothesis — the floor is the only part of the bracket that knows where zero
-  is, and a low λ₀ is where a negative next-step marginal can reach it. And the
-  midpoint of a lattice bracket is no unbiased estimate of a λ₀ free to sit
-  anywhere inside it. All three are separable on this population: §8.10's honest
-  `hi` (the last logged row's own last step) prices the loose max, and the floor
-  and the midpoint are readable off brackets the file already caches. A commit of
-  its own, and it ends in a number for a claim the section has carried
-  unmeasured.
+- **M107 — the λ₀ point's upward bias is concentrated at low λ₀ — raised
+  2026-09-14, CLOSED 2026-09-14,
+  `scripts/stop-margin-fit-error.probe.ts`.** All three candidates were priced
+  as re-readings of the same cached brackets, and the concentration is none of
+  them. §8.10's loose `hi` max is a real part of the pooled per-day bias and a
+  FLAT one — it lowers every truth level by about the same amount, leaving the
+  profile where it was. `max(0, lo)`, the standing hypothesis for exactly this
+  shape, is inert: it raises the lo side on none of the kept days. And the
+  midpoint is the arithmetic rather than the cause, because at the level that
+  reads highest the bracket mostly does not contain the truth at all — `lo` is
+  above it on the large majority of those days.
+  What those levels share is how few of their days survive: the censors drop a
+  low-λ₀ user's long days and leave their short ones, which are the days another
+  step really was worth taking. That is selection, so no estimator repair
+  reaches it, and MATH.md §8.10 now carries it as an approximation of its own.
+  The probe's whole figure set was re-read at HEAD in the same commit, M104
+  having landed since the arms were first run in a worktree.
 - **M108 — the λ₀ fit's bias does not shrink with days, and the card's ± cannot
-  see it — raised 2026-09-14, open,
-  `scripts/stop-margin-fit-error.probe.ts`.** M106's split leaves the ridge
+  see it — raised 2026-09-14, HALF-CLOSED 2026-09-14 (MATH.md §8.10), the card
+  still open, `scripts/stop-margin-fit-error.probe.ts`.** M106's split leaves
+  the ridge
   weight going to 1, so a user who logs consistently converges on the per-day
-  point rather than on their own λ₀ — and that point reads +0.0925 above the
-  truth over 794 honest days. §8.10 already says `valueStd` prices the day
+  point rather than on their own λ₀ — and that point reads above the truth, by
+  the margin the probe prints. §8.10 already says `valueStd` prices the day
   points' scatter and never widens for an error every day shares; this is one,
   since every point is read through the same bracket. So the Stopping
   Calibration card can carry a tight ± around a value that is systematically
   high, and a high λ₀ funds less work. What the user is told, if anything, is a
-  product decision rather than a measurement, and it is worth taking only after
-  M107 says how much of the +0.0925 an estimator repair removes. The small-n
+  product decision rather than a measurement. M107 has since answered what an
+  estimator repair could remove: the one repair that acts — §8.10's honest `hi` —
+  removes a real part of the per-day bias and none of its concentration, and the
+  rest is the censors' own selection, which no re-fitting narrows. The small-n
   masking is this population's luck and does not generalise: its truths average
   above the 0.5 default, so the prior cancels part of the bias, while a user
   whose λ₀ sits below the default gets both errors in the same direction and
-  few days is then worse than many.
+  few days is then worse than many. §8.10 now carries the model half: after the
+  posterior-std bullet, the limit — weight n/(n + λ) → 1, so the fit converges
+  on the mean day point — and the note that the approximations the section
+  lists lift that mean through the same bracket on every day, common-mode in
+  the sense the bullet above it defines. No figure moved into the prose; the
+  probe keeps them. What is left open is the card alone, and it is now a
+  product question with its measurement in hand rather than one waiting on
+  M107.
 
 - **M109 — §8.10 defends a one-signed bias with a wide σ₀, which prices scatter
   and not a shift — raised 2026-09-14, open, MATH.md §8.10.** The

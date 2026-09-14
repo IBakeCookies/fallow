@@ -12,8 +12,9 @@
  *
  * It carries a second question the same population answers: what the fit's own
  * λ₀ error is made of — how far a day's indifference point sits from the truth
- * that generated it, and how the ridge turns that into a fit bias that grows
- * with the number of days (ROADMAP M106).
+ * that generated it, how the ridge turns that into a fit bias that grows with
+ * the number of days (ROADMAP M106), and which of the mechanisms §8.10 names
+ * that per-day error actually is (ROADMAP M107).
  *
  * A probe, not a test: every number here moves with the curves, the reservoir
  * law and the lattice.
@@ -39,12 +40,54 @@
  * every margin is a pure post-filter over the cached list: one `optimizeSchedule`
  * run per day, and the whole sweep is arithmetic after that.
  *
+ * WHAT THE MECHANISM ARM MEASURES (ROADMAP M107). `[§8.10 signed]` leaves a
+ * per-day bias whose SHAPE is the question: +0.0927 pooled over 794 kept honest
+ * days, but +0.4195 at λ₀ = 0.3 against +0.0394 at λ₀ = 1.1. Three mechanisms
+ * can lift a midpoint above the truth, and `[§8.10 mechanism]` prices each as a
+ * re-reading of the SAME cached bracket, on the days the shipped censor keeps.
+ *
+ * - **The loose `hi` max is real and it is flat.** Reading the honest `hi` — the
+ *   last step of the task the day's own last ROW logged, instead of the max over
+ *   every task that logged one — moves the pooled bias +0.0927 → +0.0393, 57.6%
+ *   of it. But it cuts λ₀ = 0.3 by +0.0592 and λ₀ = 1.1 by +0.0604, so it lowers
+ *   the level without touching the profile: the λ₀ = 0.3 − λ₀ = 1.1 spread goes
+ *   +0.3801 → +0.3813. The looseness is a measured bias and it is not the
+ *   concentration.
+ * - **The `max(0, lo)` floor is INERT** — the standing hypothesis for exactly
+ *   this shape, and it raises the lo side on 0 of the 794 kept days. The
+ *   deepest `lo` any of them reads is +0.1350, so a negative next-step marginal
+ *   does not survive to be fitted even at λ₀ = 0.3.
+ * - **The midpoint is the proximate arithmetic and not the cause.** Of the 782
+ *   kept days whose bracket has positive width, the truth sits inside it on
+ *   60.0%, at mean position 0.022 of the way from `lo` to `hi` (p50 0.241) where
+ *   the midpoint assumes 0.5 — but the miss is one-sided and level-dependent,
+ *   which no placement rule explains.
+ *
+ * WHAT THE CONCENTRATION ACTUALLY IS: the censors, and the arm's criterion is
+ * set equality between two lists it prints. The levels keeping under half their
+ * days are exactly the levels reading more than the 0.122 half-width above the
+ * truth — {0.3, 0.5} both times. Kept share climbs 31.1%, 41.7%, 77.2%, 92.8%,
+ * 99.4%, 98.9% across the grid while the bias falls +0.4195, +0.1764, +0.0742,
+ * +0.0570, +0.0394, +0.0562, and the truth sits BELOW the `lo` side on 89.3% of
+ * the λ₀ = 0.3 days against 22.9% at λ₀ = 1.1. So what survives to be fitted at
+ * a low λ₀ is that user's SHORT days, on which another step really was worth
+ * more than their λ₀ and the revealed inequality λ₀ ≥ lo is false. Neither side
+ * repair nor any re-placement inside the bracket reaches that.
+ *
+ * WHICH censor, since naming one without counting it is the attribution item 29
+ * bans: `[§8.10 censor]` splits every dropped honest day by the branch that
+ * dropped it, and only two ever fire. At λ₀ = 0.3, 124 of 180 days go —
+ * window-edge 101, clock 23 — against 1 of 180 at λ₀ = 1.1 and 2 at λ₀ = 1.3.
+ * Both are the day running out of room, which is what a user who values leisure
+ * little produces: the censors do not merely correlate with λ₀, they select on
+ * exactly the thing a low λ₀ causes.
+ *
  * WHAT THE 2026-09-14 ARMS ADD (ROADMAP M106), and what they move: nothing. The
- * honest arm's λ₀ bias grows with n — +0.0111 at n = 3, +0.0917 at n = 12 — and
+ * honest arm's λ₀ bias grows with n — +0.0111 at n = 3, +0.0921 at n = 12 — and
  * the sweep cannot say why, because no arm printed a per-day error with its
  * SIGN. `[§8.10 signed]` does: over 794 kept honest days the indifference point
- * sits +0.0925 ABOVE the truth that generated the day (p50 +0.0584, 69.4% of
- * days above it), and that bias is a function of the truth — +0.4175 at
+ * sits +0.0927 ABOVE the truth that generated the day (p50 +0.0584, 69.4% of
+ * days above it), and that bias is a function of the truth — +0.4195 at
  * λ₀ = 0.3 on 56 kept days against +0.0394 at λ₀ = 1.1 on 179, and it falls with
  * the truth without being monotone in it (+0.0562 at λ₀ = 1.3). `[§8.10 prior]`
  * prints the other half: the fit's default is 0.5 while the truths are drawn
@@ -53,29 +96,41 @@
  *
  * `[§8.10 bias-by-n]` splits each n's bias into the ridge's two terms,
  * fit − λ = (k·ē + strength·(default − λ))/(k + strength) per user. The split
- * closes to 9.714e-17 over 24 rows, and across the n = 3 → 12 window the finding
- * names, the measured growth +0.0806 is the prior term weakening by +0.0475
- * (58.9%) plus the data term's +0.0331 — and the per-user bias that data term
- * multiplies stays in +0.1331–+0.1499 over the same window, so what grew there
+ * closes to 1.249e-16 over 24 rows, and across the n = 3 → 12 window the finding
+ * names, the measured growth +0.0810 is the prior term weakening by +0.0475
+ * (58.6%) plus the data term's +0.0335 — and the per-user bias that data term
+ * multiplies stays in +0.1336–+0.1499 over the same window, so what grew there
  * is the weight k/(k+1), not the bias. The per-day bias the whole split rests on
- * holds at +0.0925–+0.1023 across that window, a movement of 0.0098, 8.0% of the
+ * holds at +0.0927–+0.1023 across that window, a movement of 0.0096, 7.9% of the
  * 0.122 half-width. So the growth is the ridge on both sides: a per-day bias the
  * days carried all along, uncovered as the prior's pull weakens. The n = 3 arm's
  * near-zero bias is two errors of opposite sign, not accuracy.
  *
  * THE WHOLE SWEEP IS WIDER THAN ITS WINDOW, and the arm prints both because the
  * difference is where a reader would be misled. Over n ∈ [1, 12] the per-day
- * bias reads +0.0925–+0.1143, movement 0.0218, 17.8% of the half-width — but
- * that n = 1 → 12 contrast is -0.0218 with a paired 95% CI over users of
- * [-0.0636, 0.0181], and the n = 1 cell is one kept day per user, 69 users of 90,
+ * bias reads +0.0927–+0.1143, movement 0.0216, 17.7% of the half-width — but
+ * that n = 1 → 12 contrast is -0.0216 with a paired 95% CI over users of
+ * [-0.0634, 0.0185], and the n = 1 cell is one kept day per user, 69 users of 90,
  * against 794 kept days at n = 12. The movement is not distinguishable from zero,
  * and the criterion reads the window the finding names rather than the sweep, so
  * that its three clauses are all about one claim.
  *
- * Read on 1c3bfbc, in a worktree at that commit: M104's compound-move build was
- * in flight in another session and changes `neighbors`, which moves every day
- * this file generates and every figure in it. Every line the 2026-09-12 run
- * printed reproduces byte-for-byte — these arms only add lines.
+ * THE 2026-09-14 ARMS WERE FIRST READ ON 1c3bfbc, in a worktree at that commit,
+ * because M104's compound-move build was in flight in another session; it has
+ * since landed, it changes `neighbors`, and every figure above is re-read with
+ * it. Every CONCLUSION survived and the movements are small: the pooled per-day
+ * bias +0.0925 → +0.0927, the λ₀ = 0.3 cell +0.4175 → +0.4195, the honest n = 12
+ * fit bias +0.0917 → +0.0921 and its RMSE 0.1700 → 0.1708, the half-width's own
+ * day count 721 → 722 at an unchanged 0.122, the scope arm's best gain 0.0198 →
+ * 0.0207, and the 30%-interrupted n = 3 sweep 0.2044–0.2229 → 0.2032–0.2218 with
+ * its largest movement 0.0185 → 0.0186 and its endpoint contrast -0.0173 →
+ * -0.0174 [CI -0.0310, -0.0054]. The censor-nothing deltas quoted below as
+ * (-0.0197, -0.0116) read -0.0198 and -0.0117. Those movements
+ * are M104's and not the new arm's: the file was run at HEAD with the mechanism
+ * arm removed, and every pre-existing line is byte-identical to the run with it
+ * in. The dated paragraphs below record the runs that produced them and are not
+ * re-read; where one quotes a figure this paragraph moves, this paragraph is the
+ * current value.
  *
  * WHAT THE 2026-09-12 RE-RUN CHANGED, and what it did not. The half-width is
  * MEASURED here now instead of transcribed from `stop-inversion-margin.probe.ts`
@@ -193,23 +248,46 @@ interface Bracket {
 	/** max(0, lo) — the value the shipped censoring test compares. */
 	stopBound: number;
 	hi: number;
+	/**
+	 * The same day's two alternative sides: `lo` before the zero floor, and the
+	 * honest `hi` — the day's own LAST worked step instead of the loose max over
+	 * every task that logged one. Both are readings of the same bracket, which is
+	 * what lets the mechanism arm price each one without re-solving the day.
+	 */
+	lo: number;
+	honestHi: number;
 }
 
-/** §8.10's bracket, rebuilt from exported parts. Null = structurally censored. */
-function bracketOf(observation: StopObservation, params: EnergyParams): Bracket | null {
+/**
+ * Which structural censor discarded a day, for the arm that asks WHY the levels
+ * that read high keep so few days. Naming the censor in prose without this is
+ * the attribution item 29's rule bans.
+ */
+type Censor = 'empty-day' | 'all-completed' | 'zero-work' | 'window-edge' | 'clock' | 'sliver';
+
+/** §8.10's bracket, rebuilt from exported parts, or the censor that discarded the day. */
+function readDay(
+	observation: StopObservation,
+	params: EnergyParams,
+): { bracket: Bracket; censor: null } | { bracket: null; censor: Censor } {
+	const censored = (censor: Censor) => ({
+		bracket: null,
+		censor,
+	});
+
 	const { tasks, windowHours, openTaskIds } = observation;
 
-	if (windowHours <= 0 || tasks.length === 0) return null;
+	if (windowHours <= 0 || tasks.length === 0) return censored('empty-day');
 
 	// `reconstructStopDay`'s `candidates` field: omitted means
 	// every task was open, and nothing left open leaves no step to decline.
 	const candidates = openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id));
 
-	if (candidates.length === 0) return null;
+	if (candidates.length === 0) return censored('all-completed');
 
 	const byTask = workedHoursByTask(tasks, observation.workedHours);
 
-	if (byTask.size === 0) return null;
+	if (byTask.size === 0) return censored('zero-work');
 
 	const canonical = [...tasks].sort((x, y) => amplitude(y) - amplitude(x));
 	const rank = new Map(canonical.map((t, i) => [t.id, i]));
@@ -220,9 +298,9 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 
 	// No room to extend is a structural censor, not an inversion — on worked hours
 	// for the bound, and on the day's whole SPAN for the clock (§8.10).
-	if (total + STEP > windowHours + 1e-9) return null;
+	if (total + STEP > windowHours + 1e-9) return censored('window-edge');
 
-	if (isClockCensored(observation, rest, total)) return null;
+	if (isClockCensored(observation, rest, total)) return censored('clock');
 
 	const sched: ScheduleBlock[] =
 		loggedStructure(rest, windowHours, total) ??
@@ -311,13 +389,37 @@ function bracketOf(observation: StopObservation, params: EnergyParams): Bracket 
 		if ((byTask.get(t.id) ?? 0) >= STEP - 1e-9)
 			hi = Math.max(hi ?? -Infinity, (base - workValue(shrunk(t.id))) / STEP);
 
-	if (hi === null) return null;
+	if (hi === null) return censored('sliver');
+
+	// The honest side: the last step of the task the day's own last ROW logged.
+	// Read off the moments, never off `sched` — on the fallback path `sched` is in
+	// canonical amplitude order, so its last block is the day's WEAKEST task and
+	// shrinking that one prices a different step entirely. Only a day with no
+	// usable moment at all falls back to the schedule's own last block.
+	const lastRow = observation.workedHours
+		.filter((r) => r.hours > 0 && byTask.has(r.taskId) && Number.isFinite(r.endedAt))
+		.reduce<StopObservation['workedHours'][number] | null>(
+			(last, r) => (last === null || r.endedAt! > last.endedAt! ? r : last),
+			null,
+		);
+
+	const lastWorked =
+		lastRow?.taskId ?? [...sched].reverse().find((b) => b.taskId !== null)!.taskId!;
 
 	return {
-		stopBound: Math.max(0, lo),
-		hi,
+		bracket: {
+			stopBound: Math.max(0, lo),
+			hi,
+			lo,
+			honestHi: (base - workValue(shrunk(lastWorked))) / STEP,
+		},
+		censor: null,
 	};
 }
+
+/** The bracket alone, which is all every arm but the mechanism one reads. */
+const bracketOf = (observation: StopObservation, params: EnergyParams): Bracket | null =>
+	readDay(observation, params).bracket;
 
 const ORIGIN = Date.parse('2026-08-19T08:00:00.000Z');
 
@@ -914,6 +1016,85 @@ function pointsByUser(mix: MixName, dayCount: number): UserPoints[] {
 	}));
 }
 
+/**
+ * The three mechanisms that can push a day's midpoint above the truth, each as a
+ * reading of the SAME cached bracket. `shipped` is what the app computes;
+ * `honest hi` and `floor off` swap one side each, so each one's difference from
+ * `shipped` is that mechanism's whole contribution on that day; `both sides`
+ * swaps both at once.
+ */
+const READINGS = {
+	shipped: (b: Bracket) => (b.stopBound + b.hi) / 2,
+	'honest hi': (b: Bracket) => (b.stopBound + b.honestHi) / 2,
+	'floor off': (b: Bracket) => (b.lo + b.hi) / 2,
+	'both sides': (b: Bracket) => (b.lo + b.honestHi) / 2,
+} as const;
+
+interface KeptDay {
+	lambda: number;
+	bracket: Bracket;
+}
+
+/**
+ * The days the SHIPPED censor keeps, held fixed across the readings above: each
+ * row answers "how much of the bias would this repair remove on the days the fit
+ * already uses", not "what would a different censor keep".
+ */
+function keptDays(mix: MixName, dayCount: number): KeptDay[] {
+	const { population, assignment } = fixture();
+
+	return population.flatMap((user, u) =>
+		bracketsOf(cellsFor(user, assignment[mix][u], dayCount))
+			.filter((b): b is Bracket => b !== null && pointAt(b, STOP_INVERSION_MARGIN) !== null)
+			.map((bracket) => ({
+				lambda: user.lambda,
+				bracket,
+			})),
+	);
+}
+
+/** Which censor took each of a level's days — the split the kept SHARE only implies. */
+function censorsAt(mix: MixName, lambda: number): Map<Censor, number> {
+	const { population, assignment } = fixture();
+	const counts = new Map<Censor, number>();
+
+	for (const [u, user] of population.entries()) {
+		if (user.lambda !== lambda) continue;
+
+		for (const cell of cellsFor(user, assignment[mix][u], DAY_COUNT)) {
+			const { censor } = readDay(cell.observation, user.params);
+
+			if (censor !== null) counts.set(censor, (counts.get(censor) ?? 0) + 1);
+		}
+	}
+
+	return counts;
+}
+
+const biasUnder = (days: KeptDay[], read: (b: Bracket) => number) =>
+	mean(days.map((day) => read(day.bracket) - day.lambda));
+
+const SHIPPED_SIDES = (b: Bracket) => [b.stopBound, b.hi] as const;
+
+/**
+ * The share of days whose truth sits BELOW the lo side — a violated revealed
+ * inequality, and the robust reading of the position below, whose denominator is
+ * a bracket width: the narrowest brackets blow the ratio up, so its mean is
+ * owned by the few days that say the least.
+ */
+const belowLoShare = (days: KeptDay[]) =>
+	days.filter((day) => day.lambda < day.bracket.stopBound).length / days.length;
+
+/** Where the truth sits between two sides: 0 = the lo side, 1 = the hi side. */
+const positionsIn = (days: KeptDay[], sides: (b: Bracket) => readonly [number, number]) =>
+	days
+		.map((day) => ({
+			lambda: day.lambda,
+			sides: sides(day.bracket),
+		}))
+		.filter(({ sides: [lo, hi] }) => hi > lo + 1e-9)
+		.map(({ lambda, sides: [lo, hi] }) => (lambda - lo) / (hi - lo));
+
 interface BiasRow {
 	mix: MixName;
 	dayCount: number;
@@ -1170,10 +1351,10 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 			);
 		}
 
-		// Split by the truth that generated the day, honest days only. A bias that
-		// is flat across the grid is the estimator's own; one concentrated at
-		// λ₀ = 0.3 would be `max(0, lo)`, the only part of the bracket that knows
-		// where zero is.
+		// Split by the truth that generated the day, honest days only. The
+		// concentration this prints is what the mechanism arm below then attributes;
+		// `max(0, lo)` was the standing hypothesis for it and is measured inert
+		// there.
 		const honest = pointsByUser('honest', DAY_COUNT);
 
 		for (const lambda of LAMBDAS) {
@@ -1187,6 +1368,174 @@ describe('MATH.md §8.10 — λ₀ fit error as a function of STOP_INVERSION_MAR
 					`above truth ${fmt((100 * errors.filter((e) => e > 0).length) / errors.length, 1)}%`,
 			);
 		}
+	});
+
+	it('separates the three mechanisms that can lift the point above the truth', () => {
+		const days = keptDays('honest', DAY_COUNT);
+		const base = biasUnder(days, READINGS.shipped);
+
+		for (const [name, read] of Object.entries(READINGS)) {
+			const errors = days.map((day) => read(day.bracket) - day.lambda);
+			const bias = mean(errors);
+
+			console.log(
+				`[§8.10 mechanism] ${name.padEnd(11)} kept days ${String(days.length).padStart(4)}  ` +
+					`point−truth mean ${signed(bias)} p50 ${signed(quantile(errors, 0.5))}  ` +
+					`above truth ${fmt((100 * errors.filter((e) => e > 0).length) / errors.length, 1)}%  ` +
+					`removes ${fmt((100 * (base - bias)) / base, 1)}% of the shipped bias`,
+			);
+		}
+
+		// A mechanism that removes nothing has two readings — it cancels, or it
+		// never acts — and only the second is a verdict on the floor. This counts
+		// the days it acts on at all.
+		const floored = days.filter((day) => day.bracket.lo < 0);
+
+		console.log(
+			`[§8.10 mechanism] the zero floor RAISES the lo side on ${floored.length} of ${days.length} ` +
+				`kept days; deepest lo ${signed(Math.min(...days.map((day) => day.bracket.lo)))}`,
+		);
+
+		// The per-truth split the finding is about: a mechanism that explains the
+		// concentration has to cut λ₀ = 0.3 by more than it cuts λ₀ = 1.1.
+		const cutAt = (lambda: number, read: (b: Bracket) => number) => {
+			const level = days.filter((day) => day.lambda === lambda);
+
+			return biasUnder(level, READINGS.shipped) - biasUnder(level, read);
+		};
+
+		// Kept SHARE per level, because a bound violated on 9 days in 10 is a
+		// statement about which days survived the censors as much as about the
+		// bound: the days a low-λ₀ user loses are the long ones.
+		const offered = Object.fromEntries(
+			LAMBDAS.map((lambda) => [
+				lambda,
+				fixture()
+					.population.filter((user) => user.lambda === lambda)
+					.reduce((sum, user) => sum + Math.min(user.days.length, DAY_COUNT), 0),
+			]),
+		);
+
+		for (const lambda of LAMBDAS) {
+			const level = days.filter((day) => day.lambda === lambda);
+
+			const readings = Object.entries(READINGS)
+				.map(([name, read]) => `${name} ${signed(biasUnder(level, read))}`)
+				.join('  ');
+
+			console.log(
+				`[§8.10 mechanism] λ₀=${lambda.toFixed(1)}      kept ${String(level.length).padStart(4)} of ` +
+					`${offered[lambda]} days (${fmt((100 * level.length) / offered[lambda], 1)}%)  ${readings}` +
+					`  truth below the lo side on ${fmt(100 * belowLoShare(level), 1)}% of them, ` +
+					`position p50 ${fmt(quantile(positionsIn(level, SHIPPED_SIDES), 0.5))}`,
+			);
+		}
+
+		// WHICH censor, not just how many: the kept share alone cannot say whether a
+		// low-λ₀ user loses days to the clock, to the window edge, or to something
+		// that has nothing to do with working long.
+		for (const lambda of LAMBDAS) {
+			const counts = censorsAt('honest', lambda);
+			const dropped = [...counts.values()].reduce((sum, n) => sum + n, 0);
+
+			const split = [...counts.entries()]
+				.sort(([, a], [, b]) => b - a)
+				.map(([censor, n]) => `${censor} ${n}`)
+				.join('  ');
+
+			console.log(
+				`[§8.10 censor] λ₀=${lambda.toFixed(1)}  dropped ${String(dropped).padStart(4)} of ` +
+					`${offered[lambda]}  ${split}`,
+			);
+		}
+
+		// The third mechanism is not a side but the midpoint itself: it is unbiased
+		// only if the truth sits centrally between the two sides. A mean position
+		// below 0.5 is a midpoint that reads high even with both sides repaired.
+		const placements = [
+			['shipped   ', SHIPPED_SIDES],
+			['both sides', (b: Bracket) => [b.lo, b.honestHi] as const],
+		] as const;
+
+		for (const [name, sides] of placements) {
+			const positions = positionsIn(days, sides);
+
+			console.log(
+				`[§8.10 placement] ${name}  width>0 on ${positions.length} of ${days.length} kept days  ` +
+					`truth inside ${fmt((100 * positions.filter((x) => x >= 0 && x <= 1).length) / positions.length, 1)}%  ` +
+					`position mean ${fmt(mean(positions))} p50 ${fmt(quantile(positions, 0.5))}  ` +
+					`(0 = lo side, 0.5 = the midpoint, 1 = hi side)`,
+			);
+		}
+
+		const repaired = biasUnder(days, READINGS['both sides']);
+		const removed = (base - repaired) / base;
+		const lowCut = cutAt(LAMBDAS[0], READINGS['both sides']);
+		const highCut = cutAt(1.1, READINGS['both sides']);
+
+		const spread = (read: (b: Bracket) => number) =>
+			biasUnder(
+				days.filter((day) => day.lambda === LAMBDAS[0]),
+				read,
+			) -
+			biasUnder(
+				days.filter((day) => day.lambda === 1.1),
+				read,
+			);
+
+		console.log(
+			`[§8.10 mechanism] shipped bias ${signed(base)} → ${signed(repaired)} with both sides repaired, ` +
+				`${fmt(100 * removed, 1)}% removed, residual ${fmt(Math.abs(repaired) / bracketHalfWidth(), 2)}× the ` +
+				`${fmt(bracketHalfWidth())} bracket half-width; the repair cuts λ₀=${LAMBDAS[0].toFixed(1)} by ` +
+				`${signed(lowCut)} against ${signed(highCut)} at λ₀=1.1, leaving the ` +
+				`λ₀=${LAMBDAS[0].toFixed(1)}−λ₀=1.1 spread at ${signed(spread(READINGS['both sides']))} against ` +
+				`${signed(spread(READINGS.shipped))} shipped`,
+		);
+
+		// The finding asks which mechanism the concentration IS. The sides are ruled
+		// out above — repairing them lowers every cell by about the same amount and
+		// leaves the spread where it was — so the criterion tests the reading the
+		// kept shares suggest instead: the levels a censor thins are the levels that
+		// read high. Set equality, so a level that is one and not the other refutes
+		// it either way.
+		const thinned = LAMBDAS.filter(
+			(lambda) => days.filter((day) => day.lambda === lambda).length / offered[lambda] < 0.5,
+		);
+
+		const overshooting = LAMBDAS.filter(
+			(lambda) =>
+				biasUnder(
+					days.filter((day) => day.lambda === lambda),
+					READINGS.shipped,
+				) > bracketHalfWidth(),
+		);
+
+		const fired =
+			thinned.length > 0 &&
+			thinned.length === overshooting.length &&
+			thinned.every((lambda) => overshooting.includes(lambda));
+
+		console.log(
+			`[§8.10 mechanism] levels keeping under half their days: ${thinned.join(', ') || 'none'}; ` +
+				`levels reading more than the ${fmt(bracketHalfWidth())} bracket half-width above the truth: ` +
+				`${overshooting.join(', ') || 'none'}`,
+		);
+
+		console.log(
+			fired
+				? '[§8.10 mechanism] THE CENSORS OWN THE CONCENTRATION — the levels that lose most of their days ' +
+						'are exactly the levels whose kept days read high, and on those days the bracket does not ' +
+						'contain the truth at all: at the lowest λ₀ the lo side is ABOVE it on the large majority. ' +
+						'A user who values leisure little works long, and a long day is what the window-edge and ' +
+						'clock censors drop, so what survives to be fitted is that user’s SHORT days — days on which ' +
+						'another step really was worth more than their λ₀. No re-placement inside the bracket ' +
+						'reaches that, and neither does either side repair. The zero floor, the standing hypothesis ' +
+						'for this exact shape, is inert here: it raises the lo side on none of the kept days.'
+				: '[§8.10 mechanism] THE CENSORS DO NOT OWN THE CONCENTRATION — a level is thinned without ' +
+						'reading high, or reads high without being thinned, so the selection story does not hold and ' +
+						'the profile is the bracket’s own. Read the below-lo shares above: if the bracket contains ' +
+						'the truth where the bias is largest, the midpoint placement is what is left.',
+		);
 	});
 
 	it('decomposes the fit bias by n at fixed prior strength', () => {
