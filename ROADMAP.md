@@ -1006,3 +1006,29 @@ Raised closing M106 with the two arms
   and the midpoint are readable off brackets the file already caches. A commit of
   its own, and it ends in a number for a claim the section has carried
   unmeasured.
+- **M108 — the λ₀ fit's bias does not shrink with days, and the card's ± cannot
+  see it — raised 2026-09-14, open,
+  `scripts/stop-margin-fit-error.probe.ts`.** M106's split leaves the ridge
+  weight going to 1, so a user who logs consistently converges on the per-day
+  point rather than on their own λ₀ — and that point reads +0.0925 above the
+  truth over 794 honest days. §8.10 already says `valueStd` prices the day
+  points' scatter and never widens for an error every day shares; this is one,
+  since every point is read through the same bracket. So the Stopping
+  Calibration card can carry a tight ± around a value that is systematically
+  high, and a high λ₀ funds less work. What the user is told, if anything, is a
+  product decision rather than a measurement, and it is worth taking only after
+  M107 says how much of the +0.0925 an estimator repair removes. The small-n
+  masking is this population's luck and does not generalise: its truths average
+  above the 0.5 default, so the prior cancels part of the bias, while a user
+  whose λ₀ sits below the default gets both errors in the same direction and
+  few days is then worse than many.
+
+- **M109 — §8.10 defends a one-signed bias with a wide σ₀, which prices scatter
+  and not a shift — raised 2026-09-14, open, MATH.md §8.10.** The
+  partial-logging bullet accepts its upward bias because "the calibration is for
+  users who log consistently, and σ₀ is wide". σ₀ enters the posterior std
+  alone and never the point, so it cannot absorb a one-signed error — and the
+  same section's `valueStd` paragraph already says the ± is blind to an error
+  every day shares. The repair is deleting the clause, and it is deletion-only.
+  It is not in the M106 commit because MATH.md was open and modified in a
+  parallel session at the time.
