@@ -960,17 +960,10 @@ in the feature file; two readings became findings.
   `scripts/stop-inversion-margin.probe.ts` carry the runs and the verdict.
 
 - **M106 — the honest arm's λ₀ bias GROWS with n: +0.0111 at n = 3, +0.0917 at
-  n = 12 — raised 2026-09-12, open,
-  `scripts/stop-margin-fit-error.probe.ts`.** Noticed closing M105, and nothing
-  in that run explains it. The honest population carries no interrupted days, so
-  this is not the contamination the margin exists for; and the arm's RMSE barely
-  moves (0.1767 → 0.1700). §8.10's ridge is the obvious suspect — the
-  prior's pull toward the λ₀ default weakens as usable points accumulate, which
-  would expose a per-day bias that n = 3 masks — but that is a hypothesis with
-  two untested halves: whether the per-day point is biased at all (no arm prints
-  a SIGNED per-day error, only |point − truth|) and whether the default sits off
-  the truth grid these users are drawn from. An instrument that prints both, and
-  fit bias by n at fixed prior strength, is what settles it. A commit of its own.
+  n = 12 — raised 2026-09-12, CLOSED 2026-09-14.** Both untested halves hold and
+  the growth is the ridge's own weight, uncovering a per-day bias that is flat
+  across the window; `scripts/stop-margin-fit-error.probe.ts` carries the two
+  arms and the criterion. What the per-day bias is made OF is M107.
 
 ## Findings from the 2026-09-12 past-day build
 
@@ -987,3 +980,29 @@ the **S** series continues from the 2026-08-25 review above.
   observations. Benign — `updatedAt` has no reader beyond the sanitizer — and one
   redundant put per visit. The fix is a "changed since load" notion in the dirty
   test, which is a change of its own.
+
+## Findings from the 2026-09-14 stop-bias instrument
+
+Raised closing M106 with the two arms
+`scripts/stop-margin-fit-error.probe.ts` grew for it.
+
+- **M107 — the λ₀ point's upward bias is concentrated at low λ₀: +0.4175 at
+  λ₀ = 0.3 against +0.0394 at λ₀ = 1.1 — raised 2026-09-14, open,
+  `scripts/stop-margin-fit-error.probe.ts`.** An honest day's indifference point
+  sits +0.0925 above the truth that generated it over 794 kept days, which is
+  what closes M106; the per-truth rows underneath read +0.4175, +0.1767, +0.0742,
+  +0.0566, +0.0394, +0.0562 across the λ₀ grid — falling with the truth, but not
+  monotonically, and the λ₀ = 0.3 level is 56 kept days where λ₀ = 1.1 is 179.
+  §8.10 names three mechanisms that bias the point up — partial logging, the
+  checkbox scope, and the `hi` side's loose max — and only the last can act on
+  these days: they are fully logged, and every task is open and bottomless in the
+  generator exactly as the model reads it. Two candidates the section does not
+  name are visible in the same split. `max(0, lo)` is the arm's own printed
+  hypothesis — the floor is the only part of the bracket that knows where zero
+  is, and a low λ₀ is where a negative next-step marginal can reach it. And the
+  midpoint of a lattice bracket is no unbiased estimate of a λ₀ free to sit
+  anywhere inside it. All three are separable on this population: §8.10's honest
+  `hi` (the last logged row's own last step) prices the loose max, and the floor
+  and the midpoint are readable off brackets the file already caches. A commit of
+  its own, and it ends in a number for a claim the section has carried
+  unmeasured.
