@@ -159,13 +159,18 @@ test('a past day that ran out of clock is named on the stopping card, and never 
 	const stopCard = calibrationCard(page, 'Stopping Calibration');
 	const fitRow = paramFit(page, 'free-time-value');
 
-	await expect(fitRow).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
+	await expect(fitRow).toHaveText(/≈ [\d.]+ · spread [\d.]+ · n=1/);
 	const fitted = await fitRow.textContent();
 	await expect(stopCard.getByText(/ran out of clock/)).toHaveCount(0);
 
 	// The fit reads on the parameter row now; the card still has to say what it read,
 	// or a day with nothing censored leaves a heading over an empty body.
 	await expect(stopCard.getByText('Stop observations · 1')).toBeVisible();
+
+	// MATH.md §8.10: the spread is blind to an error every day shares, and the
+	// approximations the section lists are all one — so a card with a number to show
+	// says which way that number leans, however many days are behind it.
+	await expect(stopCard.getByText(/push the number up/)).toBeVisible();
 
 	// 3 h worked across a 7.5 h span of an 8 h window: the wall clock ended it.
 	await logDrain(page, 90, 7, 3);
@@ -222,7 +227,7 @@ test('a past day logged in one batch is named on the stopping card', async ({ pa
 	await page.clock.runFor(AUTOSAVE_MS);
 	await page.goto('/energy');
 
-	await expect(paramFit(page, 'free-time-value')).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
+	await expect(paramFit(page, 'free-time-value')).toHaveText(/≈ [\d.]+ · spread [\d.]+ · n=1/);
 
 	await expect(
 		calibrationCard(page, 'Stopping Calibration').getByText(
@@ -258,7 +263,7 @@ test('a past day whose breaks were read is not named', async ({ page }) => {
 	await page.clock.runFor(AUTOSAVE_MS);
 	await page.goto('/energy');
 
-	await expect(paramFit(page, 'free-time-value')).toHaveText(/≈ [\d.]+ ± [\d.]+ · n=1/);
+	await expect(paramFit(page, 'free-time-value')).toHaveText(/≈ [\d.]+ · spread [\d.]+ · n=1/);
 
 	await expect(
 		calibrationCard(page, 'Stopping Calibration').getByText(/no readable breaks/),

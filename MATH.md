@@ -39,7 +39,7 @@ lines before it was cut back to its math.
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
 The whole document is ~30k tokens at 4 chars/token; the largest
-single section is §8 at ~16k (§5 is ~4k), and most of the 27 rows below are
+single section is §8 at ~17k (§5 is ~4k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -61,23 +61,23 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1919  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1935  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
   §8.4      881-951  Per-task satiety — concave daily value
   §8.5      953-993  Micro-recovery gate — a positive floor for full-demand t…
   §8.6     995-1052  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1054-1149  Drain-rate calibration from end-of-session ratings
-  §8.8    1151-1186  45-minute plan granularity
-  §8.9    1188-1235  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1237-1501  Stopping-value calibration from observed stop times
-  §8.11   1503-1638  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1640-1794  The budget curve — what the day's LENGTH is worth
-  §8.13   1796-1860  Capacity from the fitted drain rate
-  §8.14   1862-1919  Per-title drain rate — which task costs more than its sl…
-§9        1921-1983  Plan-adherence reading and its verdict band
-§10       1985-2032  References
+  §8.7    1054-1148  Drain-rate calibration from end-of-session ratings
+  §8.8    1150-1185  45-minute plan granularity
+  §8.9    1187-1234  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1236-1517  Stopping-value calibration from observed stop times
+  §8.11   1519-1654  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1656-1810  The budget curve — what the day's LENGTH is worth
+  §8.13   1812-1876  Capacity from the fitted drain rate
+  §8.14   1878-1935  Per-title drain rate — which task costs more than its sl…
+§9        1937-1999  Plan-adherence reading and its verdict band
+§10       2001-2048  References
 ```
 
 <!-- section-index:end -->
@@ -1126,10 +1126,9 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
 - **Fresh-start assumption.** D assumes the session began at C = 1, like
   `refOutput`'s standardized yardstick — the rating carries no information
   about the pre-session level. A mid-day session that starts drained rates
-  higher than the model predicts and biases α upward. Accepted as noise
-  (σ₀ is wide); the honest fix — chaining the whole day's reservoir
-  trajectory through every rating — needs a complete work log, not a
-  per-session rating.
+  higher than the model predicts and biases α upward. Accepted; the honest
+  fix — chaining the whole day's reservoir trajectory through every rating —
+  needs a complete work log, not a per-session rating.
 - **Linear rating map.** d/10 ↔ drained fraction assumes the subjective
   scale is linear in reservoir depletion with fixed anchors (0 = fresh,
   10 = spent). Borg's psychophysical work supports ratio-scale behavior for
@@ -1371,6 +1370,16 @@ machinery collapses to an exact closed form — no numeric minimizer:
   satiety is the larger of the two: it reshapes every task's marginal rather
   than adding a constant at the day's end. The ± is not wrong; it is answering
   a narrower question than it looks like it is answering.
+- **It cannot see the BRACKET either, so more days do not move the point
+  toward λ₀.** Sensitivity is ≡ 1 per day, so the ridge weight n/(n + λ) → 1
+  and λ̂₀ converges on the MEAN of the day points rather than on the user's λ₀.
+  Every approximation listed below — partial logging, the checkbox scope, the
+  loose `hi` max, the censors' own selection — lifts that mean, through the
+  same bracket on every day, so it is common-mode in exactly the sense above:
+  the scatter the ± prices is scatter AROUND it. A consistent logger therefore
+  earns a tighter ± on a point no nearer their λ₀, and a λ₀ read high funds
+  less work
+  (`scripts/stop-margin-fit-error.probe.ts`).
 - **Bounds** = the Energy Lab's freeTimeValue input range [0, 3], same
   representability/absurdity-guard role as the α and r bounds.
 
@@ -1400,7 +1409,7 @@ machinery collapses to an exact closed form — no numeric minimizer:
   clock.
 - **Partial logging under-counts W.** A user who rates only some tasks
   looks like they stopped earlier than they did, biasing λ₀ up. Accepted:
-  the calibration is for users who log consistently, and σ₀ is wide.
+  the calibration is for users who log consistently.
 - **The hours the day was COMPELLED to work read as a leisure choice, and the
   bias that buys is DOWNWARD.** The estimator's
   whole premise is that the stop was chosen; a deadline day breaks it, and the
@@ -1477,8 +1486,8 @@ machinery collapses to an exact closed form — no numeric minimizer:
   instrument's own slack before it is discarded.
 
 **UI.** A third calibration card ("Stopping Calibration") follows §8.7/§8.9's
-pattern — fitted λ₀ ± std with used-day count and an explicit **Apply**
-button — but needs no editor of its own: its observations are derived from
+pattern — the fitted λ₀ with its spread and used-day count, and an explicit
+**Apply** button — but needs no editor of its own: its observations are derived from
 already-logged 🪫 drain ratings joined with each day's stored session
 (tasks + window), excluding today (an unfinished day has not revealed its
 stop yet). The card also carries a line naming how many days the clock censor
@@ -1487,7 +1496,14 @@ not counted" — so a used-day count that fell has a stated reason on screen. It
 hint states the PREMISE too — that a day's hours are read as chosen, so hours
 you had to work read as cheap leisure — because that error is unfiltered by
 design (the obligation bullet above) and the card is the only place a user can
-be told.
+be told. The fitted reading on the free-time-value row says **spread** where the
+α and r rows say ±, and the card carries one sentence naming the DIRECTION that
+spread cannot: the approximations above lift every day's point through the same
+bracket, so more days tighten the reading without moving it. Neither line
+carries a size — the common-mode bullet above is what licenses the wording, and
+`scripts/stop-margin-fit-error.probe.ts` keeps the figures. The read-only
+Analytics copy below still reads ± on λ₀, its row being one of five that share a
+format.
 
 **Visibility.** All fitted values also surface read-only on the Analytics page
 ("Your model" card): each parameter next to its default and the fit's own

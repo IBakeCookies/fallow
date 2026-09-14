@@ -244,11 +244,12 @@
 				: null,
 	);
 
+	// §8.10: `valueStd` prices SCATTER alone, so this row says spread, not a ±.
 	const stopReading = $derived(
 		lab.stopObservationCount === 0
 			? undefined
 			: stopFit.fitted
-				? m.energy_fit_value({
+				? m.energy_stop_fit_value({
 						value: decimal(stopFit.value, 2),
 						std: decimal(stopFit.valueStd ?? 0, 2),
 						count: stopFit.usedCount,
@@ -731,6 +732,12 @@
 										: m.energy_stop_unread_breaks({
 												count: stopFit.unreadBreaksCount,
 											})}
+								</p>
+							{/if}
+
+							{#if stopFit.fitted}
+								<p class="mt-text-sm text-xs text-ty-silent">
+									{m.energy_stop_reads_high()}
 								</p>
 							{/if}
 
