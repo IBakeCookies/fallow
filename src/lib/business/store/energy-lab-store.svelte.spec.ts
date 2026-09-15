@@ -1333,7 +1333,7 @@ describe('EnergyLabStore', () => {
 		expect(marginalValue(spaced)).toBeGreaterThan(marginalValue(batched));
 	});
 
-	// The brief is the header of the `readAt` block in zenith-energy.test.ts. A
+	// The goal is the header of the `readAt` block in zenith-energy.test.ts. A
 	// 3 h row written two hours ago: the card prices the session after those two
 	// hours of rest, over the steps the clock still holds — worked hours for the
 	// room, worked + idle for the span. Red today: the store hands the model no

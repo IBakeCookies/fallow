@@ -191,16 +191,20 @@ its allocation code, so the main page is unaffected by changes here.
   `fitStoppingValue`'s `unreadBreaksCount` reports how many of the days it USED
   logged two or more sessions and fell back this way — it reports, it never
   changes the reading.
+  **Only §8.11 takes a clock**: `readAt` (`liveNow.value`, beside `liveToday`)
+  makes the rest since the last row a trailing break — the probed session is
+  APPENDED after it, never placed canonically, and the idle time counts in
+  §8.11's span only. `stopBracket`/`fitStoppingValue` never set it.
 - **The two stop readings answer the window question differently, on purpose**
   (M42, 2026-08-21). §8.10's fit CENSORS a day whose own span — worked hours plus
   the day's UNCAPPED recovered breaks — leaves no room for another step: the
   clock ended that day, so its stop is no evidence about λ₀, and
   `fitStoppingValue` reports how many days it dropped for it. §8.11's
-  `window-full` still reads WORKED hours, because a verdict may not turn on
-  recovered structure — but the session LENGTHS it prices are capped by the span,
-  floored at one step, so the card never invites a session the day cannot hold.
-  A day with no recoverable break has no span to read and keeps the worked-hours
-  reading on both sides.
+  `window-full` still reads WORKED hours, because a verdict may not
+  turn on recovered structure — but the session LENGTHS it prices are capped by
+  the span, floored at one step, so the card never invites a session the day
+  cannot hold. A day with no recoverable break has no span to read and keeps the
+  worked-hours reading on both sides.
 - Both stop readings price the stop against `openTaskIds` only, a next-up-family scope: a
   checked-off task is no forgone step, though its hours still drained the reservoirs and
   stay in the reconstruction. A carried row is open to both: the copy went to tomorrow and

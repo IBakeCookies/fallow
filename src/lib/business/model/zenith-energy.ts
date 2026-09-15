@@ -1883,6 +1883,13 @@ export interface StopObservation {
 	 */
 	workedHours: { taskId: number; hours: number; endedAt?: number }[];
 	/**
+	 * The moment the day is being READ at (epoch ms, like `endedAt`): the idle
+	 * time since the last row is trailing rest, and the candidate session starts
+	 * after it (MATH.md §8.11). Omitted, the day reads as the retrospective
+	 * readings do — canonical placement, no rest past the last row.
+	 */
+	readAt?: number;
+	/**
 	 * Tasks still open at the stop — the only ones another session could have
 	 * gone to (the next-up scope). A checked-off task's hours still shape
 	 * the reconstruction, because they drained the reservoirs. Omitted means
@@ -2168,15 +2175,20 @@ export function stopIndifferencePoint(
  * sessions in the order and with the breaks their own log moments give, plus
  * the λ₀-free work value V = satiatedOutput + terminalBonus evaluated around
  * it. `total` is the WORKED hours and `span` adds the day's UNCAPPED recovered
- * breaks, `total` when none is recoverable. The two readings split there:
- * §8.11's `window-full` verdict reads `total`, because a verdict must not turn
- * on recovered structure, while §8.10's clock censor and the session lengths
- * §8.11 prices read `span` (MATH.md §8.10/§8.11).
+ * breaks and its trailing idle time, `total` when neither is recoverable. The
+ * two readings split there: §8.11's `window-full` verdict reads `total`, because
+ * a verdict must not turn on recovered structure; the session lengths §8.11
+ * prices read `span`, and §8.10's clock censor reads the breaks alone — a
+ * finished day has no read moment (MATH.md §8.10/§8.11).
  */
 interface StopDayReconstruction {
 	/** The tasks another session could have gone to (`openTaskIds`) */
 	candidates: EnergyTaskInput[];
 	sched: ScheduleBlock[];
+	/** Whether `readAt` was given: the probed session then starts at that moment */
+	hasReadMoment: boolean;
+	/** Capped idle hours between `sched` and that session; 0 when the window has no room */
+	trailingRest: number;
 	byTask: Map<number, number>;
 	rank: Map<number, number>;
 	windowHours: number;
@@ -2224,11 +2236,15 @@ function reconstructStopDay(
 	return {
 		candidates: openTaskIds === undefined ? tasks : tasks.filter((t) => openTaskIds.has(t.id)),
 		sched,
+		hasReadMoment: observation.readAt !== undefined,
+		// Shares `loggedStructure`'s scale so one step still fits, and rides the
+		// canonical fallback too — a batch-logged day still has a last moment.
+		trailingRest: rest === null ? 0 : rest.trailing * restScale(rest, windowHours, total),
 		byTask,
 		rank,
 		windowHours,
 		total,
-		span: total + (rest?.restTotal ?? 0),
+		span: total + (rest === null ? 0 : rest.restTotal + rest.trailing),
 		base: workValue(sched),
 		workValue,
 	};
@@ -2242,7 +2258,10 @@ interface RecoveredRest {
 	rows: StopObservation['workedHours'];
 	/** The break before each row, `rows[0]`'s being 0 */
 	gaps: number[];
+	/** Σ gaps — the breaks BETWEEN sessions, which §8.10's censor reads */
 	restTotal: number;
+	/** The idle time since the last row, up to `readAt`; 0 without one (§8.11) */
+	trailing: number;
 }
 
 /**
@@ -2253,8 +2272,9 @@ interface RecoveredRest {
  *
  * Null when the timestamps cannot carry it: a row without a usable moment (a
  * restored backup can carry one — `sanitizeDrainObservations` does not check the
- * field, and must not, since §8.7's α fit does not need it), or a day whose rows
- * recover no gap at all, which is what batch logging looks like.
+ * field, and must not, since §8.7's α fit does not need it), or a day that
+ * recovers no rest at all — no gap between its rows, which is what batch logging
+ * looks like, and no idle time since the last of them (MATH.md §8.11).
  */
 function recoveredRest(
 	observation: StopObservation,
@@ -2275,14 +2295,35 @@ function recoveredRest(
 	);
 
 	const restTotal = gaps.reduce((sum, gap) => sum + gap, 0);
+	const lastEndedAt = sorted.at(-1)?.endedAt;
 
-	if (!(restTotal > 1e-9)) return null;
+	// MATH.md §8.11: the rest since the last row, floored like the gaps above.
+	const trailing =
+		observation.readAt === undefined || lastEndedAt === undefined
+			? 0
+			: Math.max(0, (observation.readAt - lastEndedAt) / MS_PER_HOUR);
+
+	if (!(restTotal + trailing > 1e-9)) return null;
 
 	return {
 		rows: sorted,
 		gaps,
 		restTotal,
+		trailing,
 	};
+}
+
+/**
+ * Recovered rest scaled down to leave one step of room, trailing idle time
+ * included — it has to fit beside the session it exists to price, or
+ * `normalizeSchedule` clips the two together (MATH.md §8.11). The price is
+ * understated breaks on days whose logged span nearly fills the declared
+ * window, which is why the clock censor reads the UNCAPPED span (MATH.md §8.10).
+ */
+function restScale(rest: RecoveredRest, windowHours: number, total: number): number {
+	const room = Math.max(0, windowHours - total - DEFAULT_STEP_HOURS);
+
+	return Math.min(1, room / (rest.restTotal + rest.trailing));
 }
 
 /**
@@ -2290,11 +2331,8 @@ function recoveredRest(
  * them, or null when the caller must fall back to the contiguous canonical
  * schedule for the WHOLE day.
  *
- * Recovered rest is scaled down to leave one step of room. That keeps `total`'s
- * window arithmetic and `normalizeSchedule`'s clip behaving as they do on the
- * contiguous reading, at the price of understating breaks on days whose logged
- * span nearly fills the declared window — which is why the clock censor reads
- * the UNCAPPED span instead (MATH.md §8.10).
+ * The breaks carry `restScale`, which keeps `total`'s window arithmetic and
+ * `normalizeSchedule`'s clip behaving as they do on the contiguous reading.
  */
 function loggedStructure(
 	rest: RecoveredRest | null,
@@ -2304,8 +2342,7 @@ function loggedStructure(
 	if (rest === null) return null;
 
 	const { rows, gaps, restTotal } = rest;
-	const room = Math.max(0, windowHours - total - DEFAULT_STEP_HOURS);
-	const scale = Math.min(1, room / restTotal);
+	const scale = restScale(rest, windowHours, total);
 
 	if (!(restTotal * scale > 1e-9)) return null;
 
@@ -2337,8 +2374,35 @@ function loggedStructure(
  * an arbitrary convention rather than on the day. Where that position falls
  * beside a break, the session lands before the break, i.e. directly after the
  * last lower-ranked work block.
+ *
+ * Read at a moment, that convention has nothing left to decide: the session
+ * starts THEN — after the idle time since the last row, or directly after the
+ * logged work when the clock has not passed it or the window has no room for
+ * the rest — whether the task is logged or not; a session seated ahead of the
+ * logged work could not see rest that happened after it (MATH.md §8.11).
  */
 function growBy(day: StopDayReconstruction, t: EnergyTaskInput, hours: number): ScheduleBlock[] {
+	if (day.hasReadMoment) {
+		const idle: ScheduleBlock[] =
+			day.trailingRest > 1e-9
+				? [
+						{
+							taskId: null,
+							hours: day.trailingRest,
+						},
+					]
+				: [];
+
+		return [
+			...day.sched,
+			...idle,
+			{
+				taskId: t.id,
+				hours,
+			},
+		];
+	}
+
 	if (day.byTask.has(t.id)) {
 		const last = lastBlockOf(day.sched, t.id);
 
@@ -2487,6 +2551,11 @@ export type StopAdvice =
  * That gate reads WORKED hours; only the session LENGTHS priced past it read the
  * day's recovered span — `reconstructStopDay`'s own `span`, the quantity §8.10's
  * clock censor tests (MATH.md §8.11).
+ *
+ * `observation.readAt` prices the day at the moment the card is READ rather than
+ * at its last 🪫 row: the rest since that row recovers the reservoirs before the
+ * session is placed, and it counts against the clock through `span`. A drained
+ * day that reads `stop` at its log can read `continue` an hour later.
  */
 export function adviseStop(
 	observation: StopObservation,
