@@ -68,7 +68,22 @@ class MockObservations {
 	}
 }
 
+class MockClock {
+	/**
+	 * What the Lab reads as `liveNow.value`, in epoch ms. Rests at 0 so a row
+	 * logged at `createdAt: 0` — every older fixture — sits AT the clock and no
+	 * trailing rest is read until a spec moves it.
+	 */
+	now = $state(0);
+
+	reset() {
+		this.now = 0;
+	}
+}
+
 export const mockSession = new MockSession();
+
+export const mockClock = new MockClock();
 
 export const mockObservations = new MockObservations();
 
