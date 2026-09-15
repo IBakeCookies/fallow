@@ -108,9 +108,11 @@ export function calibrateEnergyParams(
 }
 
 /**
- * One work-start-to-work-start cycle. No clock times are stored, so this is
- * the only anchor available: everything not worked in the cycle recovers at
- * the §8.1 rest law (evening leisure and sleep alike).
+ * One work-start-to-work-start cycle: everything not worked in it recovers at
+ * the §8.1 rest law (evening leisure and sleep alike). A fixed cycle is not the
+ * only anchor available — every 🪫 row carries a `createdAt`, so the real gap
+ * from yesterday's last session to today's first is measurable, and §8.10 reads
+ * those moments already. This anchor does not (ROADMAP item 41).
  */
 export const RESERVOIR_CYCLE_HOURS = 24;
 

@@ -362,6 +362,55 @@ instrument that would establish or kill its own number before any build.
     — CLOSED 2026-09-08
     ([the-second-slider-the-fit-conditions-on](docs/features/the-second-slider-the-fit-conditions-on.md)).
 
+Two readings from the 2026-09-15 read of MATH.md. The chain now fits four
+parameters and scores exactly one of them out of sample; these ask what the other
+three are worth, and what the oldest known bias in them costs. **Neither carries
+a figure** — no run has been made, and item 29's rule applies, so each names the
+instrument that would establish or kill its own number.
+
+39. **Prequential scores for the energy fits** — §5 walks the ⚡ history in date
+    order and reports what the fitted ϕ plane was worth against the defaults (the
+    "Your model" flow row). r, α and λ₀ have no such reading: each carries a
+    posterior ± that §8.10's common-mode bullet and M108 say answers a narrower
+    question than it looks like. The same walk is available for α — fit on the 🪫
+    rows dated < d, predict day d's ratings, score against α₀ — and for r on the
+    ☕ pairs. What it buys is the sentence the three calibration cards cannot say
+    today: whether any of those fits has predicted anything. It is also the gate
+    the c₃ flip (§1) and §5.2's recency scope both wait on, both being
+    out-of-sample questions about parameters with no out-of-sample score. The
+    machinery exists — §5's prequential convention and the §33 causal window — so
+    this is a probe, and a model change only if a fit is measured to lose to its
+    own prior.
+40. **Price the chained start level for the α fit** — §8.7's fresh-start
+    assumption reads every 🪫 session as beginning at a full reservoir and biases
+    α upward, and that bias has the longest reach in the model: α sets the
+    capacity pools (§8.13), conditions λ₀ (§8.10), and orders the per-title
+    ranking (§8.14, which only sidesteps it by keeping each day's earliest row).
+    §8.7 names the repair — start each row from the previous row's own rating,
+    recovered over the idle hours between their `createdAt`s — and
+    `scripts/circadian-residual.probe.ts` prices it only for the hour-of-day term
+    it was built for. Its price for α's own bias is unmeasured. Read it on that
+    same instrument before any fit moves; what the measurement has to beat is the
+    trade §8.7 already states (the previous rating's own noise, and assuming
+    nothing unlogged drained the reservoir in between).
+
+_Closed 2026-09-15 in MATH.md §8.10, not built:_ the day's START, which that
+section had called unrepresented since it was written. It is not a gap —
+`availableHours` is intended work rather than a span of the clock
+([presentation/AGENTS.md](src/lib/presentation/AGENTS.md), the same decision that
+bars a time of day from the plan axis), so no window-start moment exists to be
+late of, and what would represent one is a declared start time: a second input
+for a lever the user already owns by declaring fewer hours. What the section now
+carries instead is where the two units meet — both stop readings measure a clock
+span against a work budget.
+
+_Checked 2026-09-15 and not an item:_ `satietyScale` has no instrument and
+probably cannot have one. It is the largest unfitted knob the fitted parameters
+condition on — §8.10's feasibility 2 conditions λ₀ on it, and item 38 priced what
+a mis-set one costs — but fitting it needs observed OUTPUT, where every
+instrument the app has records hours and ratings. Written down so the hole reads
+as a bound on λ₀'s accuracy rather than as a fit somebody forgot.
+
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.
@@ -387,6 +436,25 @@ What survives of the multi-day idea is two readings, not a solver:
 22. ~~**Chronic-slide badge**~~ — SHIPPED 2026-08-21.
     [docs/features/chronic-slide-badge.md](docs/features/chronic-slide-badge.md)
 
+The carry-over that did ship has no MATH.md section: the §0–§10 cut dropped the
+old §11.9, so `seedMorningReservoirs`' formula — simulate yesterday's rows from
+full reservoirs, then rest for the remainder of a fixed 24 h cycle — now lives
+only in the code, against R7. The item below is where it gets one, because it
+changes the anchor that section would state.
+
+41. **The overnight gap the rows can already measure** — `RESERVOIR_CYCLE_HOURS`
+    anchors work-start to work-start, and its comment gave as the reason that no
+    clock times are stored. They are: `DrainObservationRecord.createdAt` is
+    required on every 🪫 row, and §8.10/§8.11 read exactly those moments to
+    recover a day's own breaks — so the gap from yesterday's last session to
+    today's first start is readable, with the same fallback shape §8.10 uses for a
+    day whose moments are unusable. Both errors are reachable under the fixed
+    cycle (a late finish with an early start is credited rest it never had; a long
+    night is credited less than it took), so this is a bias fix of unknown size:
+    price it on a probe first, since the seeding's own docblock holds that
+    carry-over is visible only where the ☕ fit says recovery is slow. Unlike item 7 it needs no curve
+    rebuild and no cross-day task identity — the rows carry their own demands.
+
 ## Phase 5 — the lever the objective lacks
 
 23. ~~**Task importance weight — `Σ vᵢ·P̄ᵢ(tᵢ)`**~~ — SHIPPED 2026-08-31 (MATH.md §0).
@@ -404,6 +472,22 @@ Only if Fallow grows users beyond its author.
     file-based export/merge if a second device becomes a felt need.
 11. **The example day a shared link opens on** — built 2026-08-31,
     [demo-day.md](docs/features/demo-day.md).
+
+## Phase 7 — the curve itself
+
+Last because it is a revision and not an item: it re-prices every plan, re-scores
+every stored day, and changes what a slider means.
+
+42. **`a = E·β`'s inverted-U** — §7 keeps the v1 peak amplitude monotone in
+    effort, records that flow research puts an inverted-U in challenge instead
+    (Peifer et al. 2014, §10), and says the change "deserves its own revision".
+    It is the last untouched modelling direction in the classic model, and the
+    consequence of leaving it is stated rather than hidden: peak height grows
+    without bound in difficulty, so the hardest thing a user declares is always
+    their most valuable hour. Any attempt needs its own before/after instrument
+    over real declared days — the figures the suite pins today were all read at
+    the monotone `a`, so a swap that keeps them green has not been measured, it
+    has been fitted to.
 
 ## Considered on 2026-08-04 and not proposed
 
