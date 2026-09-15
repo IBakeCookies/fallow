@@ -38,8 +38,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~30k tokens at 4 chars/token; the largest
-single section is §8 at ~17k (§5 is ~4k), and most of the 27 rows below are
+The whole document is ~31k tokens at 4 chars/token; the largest
+single section is §8 at ~18k (§5 is ~4k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      651-760  Posterior-aware allocation
 §6          762-774  Summary of v1 → v2 changes
 §7          776-798  Known approximations and deliberate non-changes
-§8         800-1944  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         800-1979  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      813-835  Intermittent-rest recovery correction
   §8.2      837-859  Warm-up carryover instead of binary reset
   §8.3      861-879  Verified consequences and a calibration question, closed
@@ -71,13 +71,13 @@ retype a row, regenerate:
   §8.7    1061-1155  Drain-rate calibration from end-of-session ratings
   §8.8    1157-1192  45-minute plan granularity
   §8.9    1194-1241  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1243-1526  Stopping-value calibration from observed stop times
-  §8.11   1528-1663  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1665-1819  The budget curve — what the day's LENGTH is worth
-  §8.13   1821-1885  Capacity from the fitted drain rate
-  §8.14   1887-1944  Per-title drain rate — which task costs more than its sl…
-§9        1946-2008  Plan-adherence reading and its verdict band
-§10       2010-2057  References
+  §8.10   1243-1535  Stopping-value calibration from observed stop times
+  §8.11   1537-1698  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1700-1854  The budget curve — what the day's LENGTH is worth
+  §8.13   1856-1920  Capacity from the fitted drain rate
+  §8.14   1922-1979  Per-title drain rate — which task costs more than its sl…
+§9        1981-2043  Plan-adherence reading and its verdict band
+§10       2045-2092  References
 ```
 
 <!-- section-index:end -->
@@ -1325,12 +1325,19 @@ know. Candidates:
   max-work day leaves a composition no λ₀-rational user would have chosen at
   W, exactly the envelope error predicted.
 
-**Two gaps deliberately left open.** The reconstruction still ENDS at the last
-logged session, so the live advisor prices "now" as that moment and misses the
-recovery since; closing it needs a `now` the model does not take, which would
-make `adviseStop` clock-dependent. And the day's START is still unrepresented —
-`evaluateSchedule` begins at t = 0, so a day that began three hours into its
-window reads as starting at the edge.
+**One gap closed, one deliberately left open.** The reconstruction no longer
+ENDS at the last logged session on the forward reading: `StopObservation` carries
+an optional `readAt`, the moment the day is being looked at, and the idle time
+from the last row's `endedAt` to it is one more rest block — floored at 0 like
+every other delta here, and capped by the same one-step room scale as the breaks
+between rows, on the fallback path too (a batch-logged day recovers no gap
+between its rows but still has a last moment to measure the idle time from).
+§8.11 places the probed session after that block and counts it in the day's span.
+The retrospective readings take no clock at all: a finished day's read moment is
+no evidence about its stop, so `stopBracket` and `fitStoppingValue` never set the
+field, and a day without one reads exactly as before. The day's START is still
+unrepresented — `evaluateSchedule` begins at t = 0, so a day that began three
+hours into its window reads as starting at the edge.
 
 **Censoring.** A day worked to the window edge has no forgone step — it
 reveals only `λ₀ ≤ hi`, not an indifference. Symmetrically a zero-work day
@@ -1410,8 +1417,10 @@ machinery collapses to an exact closed form — no numeric minimizer:
   so it reveals no indifference and `stopBracket` returns null on it.
 - **Recovered rest is still capped to leave one step of room, and that cap
   only bites on days the fit has already censored.** `scale < 1` means
-  `worked + rest > W − step`, which is exactly the class above, so every day
-  that reaches the fit is read with its breaks UNSCALED. The cap survives for
+  `worked + rest > W − step` — `rest` being the breaks between the rows, all a
+  finished day has; §8.11's trailing block shares the scale but never reaches
+  this fit — which is exactly the class above, so every day that reaches the fit
+  is read with its breaks UNSCALED. The cap survives for
   §8.11, which applies no censor and must still hand `normalizeSchedule` a
   schedule that fits. On the fallback path (a batch-logged day, or one whose
   moments are unusable) there is no span to read, so no day is censored for the
@@ -1476,7 +1485,7 @@ machinery collapses to an exact closed form — no numeric minimizer:
   reservoirs, and canonical placement is what made the estimator a function of
   the day rather than of an implementation convention. It is still the rule for
   the day's fallback reading and for where an UNLOGGED task's probe block
-  lands.
+  lands — here always, and in §8.11 up to the moment the day is read at.
 - **Inverted brackets beyond a margin are censored; small inversions keep
   their midpoint.** The two revealed inequalities can contradict: `lo > hi`
   means extending some task was worth MORE per step than the most valuable step
@@ -1594,21 +1603,43 @@ forgone step.
 
 **Bounds of validity, stated on the card's tooltip:** the reading trusts
 today's 🪫 logs, so unlogged work reads as free time (the advisor will say
-"continue" too eagerly) and batch-logged sessions blur it — same
+"continue" too eagerly — and work done since the last row, or on a task since
+deleted from the day, reads as rest that recovered the reservoirs, the same
+error one step further) and batch-logged sessions blur it — same
 partial-logging caveat as §8.10, now visible in-day. Rows written down at one
-moment recover no gap, so the day reconstructs as the summed reading and the
-break correction does not apply to it. The advice is no worse than it was; it
-is just not better, and the card cannot tell the user which kind of day it
-read.
+moment recover no gap between them, so the day's own structure reconstructs as
+the summed reading and the break correction does not apply to it; the rest since
+that shared moment is still read, one moment being all the idle time needs to be
+measured from. On the logged part of the day the advice is no worse than it
+was; it is just not better, and the card cannot tell the user which kind of day
+it read.
 
-**One bound is specific to the forward reading:** `growBy` places the probed
-session at the candidate's CANONICAL rank among the work blocks — before any
-rest that followed the last lower-ranked one — so a candidate that outranks the
-logged work is priced AHEAD of it, on fresher reservoirs with an intact warm-up,
-which can only over-price `continue`. Appending does not measurably help.
-A logged task's session is a separate matter
-and always grows at the LAST of its blocks — the day continues from where it
-stopped. Verdicts: `continue` / `stop` (strictly: continue iff best session > λ₀,
+**A rating written late shortens the trailing rest**, exactly the way §8.10's
+first approximation shortens a break and for the same reason: the idle time runs
+from the moment the row was WRITTEN, not from the session's end, so a user who
+finishes at 15:00 and rates at 15:40 is credited 40 minutes less recovery than
+they took.
+
+**One bound was specific to the forward reading, and the read moment removes
+it.** Without one — §8.10's `lo`, which never carries a read moment — `growBy`
+places the probed session at the candidate's CANONICAL rank among the work
+blocks, before any rest that followed the last lower-ranked one, so a candidate
+that outranks the logged work is priced AHEAD of it, on fresher reservoirs with
+an intact warm-up, which can only over-price `continue`; a logged task's session
+grows at the LAST of its blocks. The card always reads at a moment (the store
+passes `liveNow`), and a session priced at a moment has nothing left to decide:
+it starts THEN, appended after the idle time since the last row, for logged and
+unlogged candidates alike — a logged task resumes after the gap rather than
+extending the block it stopped. Seating it at a canonical rank instead would put
+it where rest that happened AFTER the logged work cannot reach it, and `readAt`
+would move nothing, which is the whole of what reading the day at the card's
+moment buys. Two corners keep the seat and lose only the rest: a clock that has
+not yet passed the row it is read against (`liveNow` ticks by the minute and a
+row is stamped at write, so the first reading after a log can precede it)
+recovers no rest and seats the session directly after the logged work, and a day
+whose worked hours leave exactly one step has no room for the idle time to be
+represented at all, so the same contiguous seat is priced there.
+Verdicts: `continue` / `stop` (strictly: continue iff best session > λ₀,
 so exact indifference reads as stop, matching §8.10's `stopped ⇒ λ₀ ≥ lo`), plus
 `window-full` when no whole 45-min step fits in what remains of the window —
 logged hours filled it, or the window is smaller than one step — and no verdict
@@ -1627,9 +1658,10 @@ block per task:
 - **`growBy` and the `hi`-side shrink each targeted EVERY block of the task.**
   Growing added a step to each and shrinking removed a step from each, so a task
   logged in two sessions would have been priced two steps for one step's money.
-  Both now work from the END of that task's work — grow extends its last block,
-  shrink walks back across its blocks, which also handles a final session shorter
-  than one step (two half-hour rows are an ordinary day).
+  Both now work from the END of that task's work — grow extends its last block
+  (§8.11's read moment appends a new one instead), shrink walks back across its
+  blocks, which also handles a final session shorter than one step (two
+  half-hour rows are an ordinary day).
 - **`growBy`'s insertion index counted blocks that have no rank.** `rank` holds
   work tasks only, `rank.get(null)` is `undefined`, and `undefined < n` is
   silently `false` — so rest blocks escaped the count while the index sliced a
@@ -1651,8 +1683,11 @@ block per task:
 **The two window questions are answered differently, and that is the ruling.**
 The `window-full` GATE reads WORKED hours: a verdict must not be decided by
 recovered structure — moving the room test to the day's full extent would say
-`window-full` to a user with hours left. The session LENGTHS priced past that
-gate read the day's **span** (worked hours plus its UNCAPPED recovered breaks):
+`window-full` to a user with hours left, and a user idle since their last log is
+exactly that user. The session LENGTHS priced past that gate read the day's
+**span** (worked hours plus its UNCAPPED recovered breaks, the trailing idle time
+since the last row included — idle time is time the day has spent, so it shortens
+the session the clock can still hold):
 
 ```text
 longest = max(1, min(room, floor((W − span)/step)))

@@ -14,6 +14,7 @@ import {
 	type DebouncedWrite,
 } from '$lib/business/store/debounced-write.svelte';
 import { readStopObservations } from '$lib/business/session-history';
+import { liveNow } from '$lib/business/state/today.svelte';
 import {
 	adviseStop,
 	DEFAULT_ENERGY_PARAMS,
@@ -680,6 +681,9 @@ export class EnergyLabStore {
 				tasks: this.#session.tasks.map(toEnergyTask),
 				windowHours: this.#windowHours,
 				workedHours: worked,
+				// The card is priced at the moment it is READ, so the rest since the
+				// last row is in the day too (MATH.md §8.11).
+				readAt: liveNow.value,
 				// Only the open rows may be recommended: "one more session of a task you
 				// already checked off" is no advice, though its hours stay in the
 				// reconstruction above (MATH.md §8.11).
