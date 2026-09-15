@@ -39,7 +39,7 @@ lines before it was cut back to its math.
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
 The whole document is ~31k tokens at 4 chars/token; the largest
-single section is §8 at ~18k (§5 is ~4k), and most of the 27 rows below are
+single section is §8 at ~18k (§5 is ~5k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -56,28 +56,28 @@ retype a row, regenerate:
 §2          169-285  Productivity curve — v2 change
 §3          287-379  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          381-470  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          472-760  Personalization — v2 change: full Bayesian posterior
-  §5.2      571-649  Recency weighting of the ϕ fit
-  §5.1      651-760  Posterior-aware allocation
-§6          762-774  Summary of v1 → v2 changes
-§7          776-798  Known approximations and deliberate non-changes
-§8         800-1979  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      813-835  Intermittent-rest recovery correction
-  §8.2      837-859  Warm-up carryover instead of binary reset
-  §8.3      861-879  Verified consequences and a calibration question, closed
-  §8.4      881-951  Per-task satiety — concave daily value
-  §8.5      953-993  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6     995-1059  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1061-1155  Drain-rate calibration from end-of-session ratings
-  §8.8    1157-1192  45-minute plan granularity
-  §8.9    1194-1241  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1243-1535  Stopping-value calibration from observed stop times
-  §8.11   1537-1698  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1700-1854  The budget curve — what the day's LENGTH is worth
-  §8.13   1856-1920  Capacity from the fitted drain rate
-  §8.14   1922-1979  Per-title drain rate — which task costs more than its sl…
-§9        1981-2043  Plan-adherence reading and its verdict band
-§10       2045-2092  References
+§5          472-786  Personalization — v2 change: full Bayesian posterior
+  §5.2      571-675  Recency weighting of the ϕ fit
+  §5.1      677-786  Posterior-aware allocation
+§6          788-800  Summary of v1 → v2 changes
+§7          802-824  Known approximations and deliberate non-changes
+§8         826-2005  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      839-861  Intermittent-rest recovery correction
+  §8.2      863-885  Warm-up carryover instead of binary reset
+  §8.3      887-905  Verified consequences and a calibration question, closed
+  §8.4      907-977  Per-task satiety — concave daily value
+  §8.5     979-1019  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1021-1085  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1087-1181  Drain-rate calibration from end-of-session ratings
+  §8.8    1183-1218  45-minute plan granularity
+  §8.9    1220-1267  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1269-1561  Stopping-value calibration from observed stop times
+  §8.11   1563-1724  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1726-1880  The budget curve — what the day's LENGTH is worth
+  §8.13   1882-1946  Capacity from the fitted drain rate
+  §8.14   1948-2005  Per-title drain rate — which task costs more than its sl…
+§9        2007-2069  Plan-adherence reading and its verdict band
+§10       2071-2118  References
 ```
 
 <!-- section-index:end -->
@@ -643,6 +643,32 @@ together rather than one at a time:
   on r, and λ₀ on both. Weighting one and not its conditioner would fit α from
   recent drain logs against an r averaged over all history — an inconsistency
   the current all-or-nothing scope avoids.
+
+**The instrument that says when.** All three reasons are claims about
+magnitudes — drift against noise — so they are read rather than argued. Cut a
+history at its date midpoint and fit each half on its own in the §8.9→§8.7
+order: r from that half's ☕ pairs, then α from its 🪫 rows conditioned on that
+same half's r, so the split never crosses the third reason. The two halves are
+then compared per rate by
+
+```
+z = |θ̂_late − θ̂_early| / √(s²_early + s²_late)
+```
+
+with s the fit's own posterior std. z reads drift over noise, and it is read
+against a ceiling rather than against zero: a stationary logger of the same
+volume and rates still produces a nonzero z, because the widths the two fits
+set are finite, and a split difference under that ceiling says nothing. The
+second reading is taken against the truth at the history's END — the
+whole-history fit's error there is the bias of reading everything at equal
+weight, the late half's is the variance of halving the data mass, and
+weighting pays exactly where the second falls under the first. The third
+reason is read by fitting α on the late half twice — once conditioned on that
+half's own r, once on the whole history's — and comparing both to α at the
+history's end: the gap between them IS the price of weighting one fit and not
+its conditioner. The ceiling, the smallest drift that clears it and the
+crossover between those two errors are measured in
+`scripts/energy-fit-recency.probe.ts`, not derived here.
 
 Consequence to keep in mind when reading the card: its five rows — the
 recency-weighted ϕ row against four unweighted fits (r, α_cog, α_phys, λ₀) — do
