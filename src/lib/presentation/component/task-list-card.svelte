@@ -71,7 +71,7 @@
 				<!-- `mr-auto` takes the free space: the opener keeps the title's side.
 				     The `+` is `aria-hidden` so the accessible name stays the plain
 				     "Add task" — a name that opens with punctuation is read out as it. -->
-				<Dialog.Trigger class="mr-auto">
+				<Dialog.Trigger class="mr-auto" variant="default">
 					<span aria-hidden="true">+</span>
 					{m.form_add_task_title()}
 				</Dialog.Trigger>
