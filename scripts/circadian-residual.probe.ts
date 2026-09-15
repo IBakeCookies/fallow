@@ -5,6 +5,9 @@
  * modulation a year of logs shows when the truth has NONE — the ceiling — and
  * the smallest true modulation that clears it, read on the residuals as the app
  * stores them and again under each correction the stored rows themselves allow.
+ * Reading 4 then turns those same corrections on α̂ ITSELF — the bias §8.7's
+ * fresh-start bullet names and never priced — where the answer comes out the
+ * other way round.
  *
  * THE GENERATOR IS THE MODEL: every day is chained through the SHIPPED
  * `simulateReservoirs` one block at a time — session, rest gap, session — each
@@ -190,6 +193,78 @@
  * either: under the same missing rows the fresh-start medians read
  * 0.0209 / 0.0194 (fixed) and 0.0175 / 0.0162 (jittered).
  *
+ * READING 4 — what the chaining repair buys α ITSELF, which reading 3 never
+ * asked. That reading scores chaining as a residual correction read AT the
+ * app's whole-log α̂; it never re-fits α under a chained start. This one does:
+ * `fitDrainRate`'s own ridge with the start level exposed — same λ, same prior
+ * mean, same bounds, same minimizer, the start level the only difference the
+ * reading can be measuring — scored against the rate the generator actually
+ * used. a = 0 throughout, so every bit of the error below is the approximation's
+ * and the quantizer's rather than a circadian term's. `day-first` is §8.14's
+ * filter handed to the GLOBAL fit, the one correction that needs no new
+ * estimator at all. `pool` is §8.13's map at that α̂ — where the chain actually
+ * spends the bias, the map being monotone in α and near its own pole. Medians
+ * over the same 40 seeds; true α 0.35 / 0.3, true pool 4.37 h / 5.31 h:
+ *
+ *                              median α̂  median err    RMSE    pool   Δ pool
+ *     fixed  α_cog  shipped      0.3881     +0.0381  0.0400  3.88 h  −0.49 h
+ *                   day-first    0.3562     +0.0062  0.0175  4.31 h  −0.06 h
+ *                   chained      0.3550     +0.0050  0.0119  4.30 h  −0.07 h
+ *            α_phys shipped      0.3378     +0.0378  0.0376  4.57 h  −0.74 h
+ *                   day-first    0.3105     +0.0105  0.0196  5.09 h  −0.21 h
+ *                   chained      0.3084     +0.0084  0.0123  5.13 h  −0.18 h
+ *     jitt.  α_cog  shipped      0.3905     +0.0405  0.0397  3.86 h  −0.52 h
+ *                   day-first    0.3556     +0.0056  0.0190  4.31 h  −0.06 h
+ *                   chained      0.3583     +0.0083  0.0110  4.27 h  −0.11 h
+ *            α_phys shipped      0.3370     +0.0370  0.0384  4.58 h  −0.72 h
+ *                   day-first    0.3121     +0.0121  0.0198  5.05 h  −0.25 h
+ *                   chained      0.3102     +0.0102  0.0139  5.12 h  −0.19 h
+ *
+ * Chaining wins, and it is the first correction in this file that wins
+ * anything: it takes 78%–87% of the bias off α̂, the RMSE with it, and the pool
+ * error from about half an hour to a tenth of one on α_cog. So the same repair
+ * reads two opposite ways on the two axes this file measures — it cannot buy an
+ * hour-of-day term (reading 3) and it can buy α.
+ *
+ * §8.14's filter buys most of the same thing for free. Handed to the global fit
+ * it leaves +0.0062 / +0.0105 of bias against chaining's +0.0050 / +0.0084 and
+ * pays in variance instead — RMSE 0.0175–0.0198 against 0.0110–0.0139, 260 rows
+ * against 779 — which is the exact opposite of what it does on the clock axis,
+ * where dropping those rows raised the ceiling 5.04×–32.05×. The filter is not
+ * an hour-of-day instrument and IS an almost-unbiased α one.
+ *
+ * Both trades §8.7 names are priced here, and neither overturns the reading.
+ * The previous rating's OWN noise: turn the rating noise off and the chained fit
+ * reads −0.0070 / +0.0056 (fixed) where the shipped one reads +0.0230 / +0.0325,
+ * so chaining slightly UNDERSHOOTS once the 0-notch clamp is unreachable, and
+ * with the noise on the two errors point opposite ways and partly cancel — which
+ * is why the noised chained bias (+0.0050) is the smaller of the two. That
+ * cancellation is this generator's arithmetic and not a property to lean on; what
+ * survives it is the RMSE, 0.0119 against 0.0400. And assuming nothing unlogged
+ * drained the reservoir in between — the control, 30% of each day's worked
+ * sessions never logged and the truth still draining through them:
+ *
+ *                    shipped        day-first          chained
+ *     fixed  α_cog   +0.0332 0.0399  +0.0182 0.0268  +0.0144 0.0205
+ *            α_phys  +0.0361 0.0380  +0.0216 0.0260  +0.0161 0.0198
+ *     jitt.  α_cog   +0.0408 0.0413  +0.0228 0.0277  +0.0188 0.0209
+ *            α_phys  +0.0347 0.0377  +0.0207 0.0254  +0.0160 0.0203
+ *
+ * (median err, then RMSE; pool errors −0.44 h → −0.16 h and −0.68 h → −0.34 h on
+ * the fixed routine.) The repair keeps over half its win on a logger who skips
+ * three sessions in ten and still beats the filter, which degrades further
+ * because the day's earliest LOGGED row is then often not the day's earliest
+ * WORKED one. So the missing-log trade is a price, not a barrier.
+ *
+ * What reading 4 does NOT settle. The rival reports its MAP alone; the ± the app
+ * prints beside α̂ would be its own reading, and §8.14's gate reads that ± rather
+ * than the point. The chained start reads every night as a full recovery,
+ * because in this generator it is one — a logger whose reservoir carries over
+ * (`RESERVOIR_CYCLE_HOURS`, ROADMAP item 41) starts each day below where the
+ * chain puts them, and nothing here bounds that. And the whole reading is a
+ * perfect-model one: the generator's law IS the fit's law, so what is measured
+ * is the start level and nothing else about whether the law is right.
+ *
  * WHAT WOULD FALSIFY WHAT. If the a = 0 ceiling had come out at ≈ 0, residual
  * structure could be tested against zero and any nonzero amplitude would be a
  * finding; instead the app's own reading puts 0.0276–0.0551 there, at a phase
@@ -203,7 +278,10 @@
  * be the way in; neither does — (a) raises the ceiling 5.04×–32.05× and (b)
  * pushes the smallest visible a up. And if the control had left the chained
  * ceiling where the perfect logger's sat, chaining would hold for any logger
- * rather than for the one it was measured on.
+ * rather than for the one it was measured on. And if reading 4's chained re-fit
+ * had landed no closer to the generator's α than the shipped one — or closer
+ * only on a perfect logger — the repair would be priced out for α as it is for
+ * the clock; it is neither.
  *
  * A probe, not a test. Every figure moves with the ridge prior the two α fits
  * share (`DRAIN_PRIOR_STRENGTH`) and the two prior MEANS they shrink toward
@@ -219,6 +297,9 @@
  * another phase. The ceiling is a MAX over 40 seeds, the noisiest statistic
  * here: fixed α_phys reads a lower day-first ceiling (0.9164) than α_cog
  * (1.7667) on the same rows, which is that estimator moving and not the ceiling.
+ * Reading 4's pool column moves with two more: `CAPACITY_FLOOR` and
+ * `CAPACITY_MAP_POLE_MARGIN`, the §8.13 map's own constants, which is why the
+ * α columns are printed beside it rather than only the hours.
  *
  * The rule for a real user's logs: an hour-of-day term becomes readable when
  * their own recovered amplitude clears a ceiling measured on a SYNTHETIC a = 0
@@ -241,8 +322,12 @@ import {
 	toPhysicalDrainObservations,
 } from '$lib/business/model/energy-calibration';
 import {
+	ALPHA_FIT_MAX,
+	ALPHA_FIT_MIN,
+	capacityFromDrainRate,
 	DEFAULT_ENERGY_PARAMS,
 	DRAIN_NOISE_PRIOR_STD,
+	DRAIN_PRIOR_STRENGTH,
 	fitDrainRate,
 	simulateReservoirs,
 	type ReservoirDemand,
@@ -516,6 +601,50 @@ function dayFirstRows(rows: DrainObservationRecord[]): DrainObservationRecord[] 
 	return [...earliest.values()];
 }
 
+/** Where a row that satisfies §8.7's assumption starts: both reservoirs full. */
+const FULL = {
+	cog: 1,
+	phys: 1,
+};
+
+/**
+ * Each row's starting levels under the chained correction: the previous row's
+ * OWN rating (1 − d/10) rested through the idle hours between the two
+ * `createdAt`s. The idle block carries demand 0, where α drops out of the law
+ * entirely, so these levels do not move with the α being fitted — which is what
+ * lets the chained fit below precompute them once per log instead of inside its
+ * objective. A day's first row chains onto yesterday's last through the night,
+ * which the rest law returns to full, so chaining reads a fresh morning rather
+ * than a carried-over one.
+ */
+function startLevelsOf(rows: DrainObservationRecord[]): { cog: number; phys: number }[] {
+	return rows.map((row, index) => {
+		const previous = rows[index - 1];
+
+		if (previous === undefined) return FULL;
+
+		const { endCog, endPhys } = simulateReservoirs(
+			[
+				{
+					taskId: null,
+					hours: (row.createdAt - previous.createdAt) / MILLISECONDS_PER_HOUR - row.hours,
+				},
+			],
+			[],
+			{
+				...DEFAULT_ENERGY_PARAMS,
+				initialCog: 1 - previous.mindDrain / 10,
+				initialPhys: 1 - previous.bodyDrain / 10,
+			},
+		);
+
+		return {
+			cog: endCog,
+			phys: endPhys,
+		};
+	});
+}
+
 interface Point {
 	hour: number;
 	residual: number;
@@ -535,28 +664,13 @@ function residualsOf(
 	fit: { cog: number; phys: number },
 ): { cog: Point[]; phys: Point[] } {
 	const eligible = construction === 'day-first' ? dayFirstRows(rows) : rows;
+	const starts = construction === 'chained' ? startLevelsOf(eligible) : undefined;
 	const cog: Point[] = [];
 	const phys: Point[] = [];
 
 	for (const [index, row] of eligible.entries()) {
-		const previous = construction === 'chained' ? eligible[index - 1] : undefined;
-
-		const end = previous
-			? predict(
-					[
-						{
-							taskId: null,
-							hours: (row.createdAt - previous.createdAt) / MILLISECONDS_PER_HOUR - row.hours,
-						},
-						sessionBlock(row),
-					],
-					row,
-					fit,
-					1 - previous.mindDrain / 10,
-					1 - previous.bodyDrain / 10,
-				)
-			: predict([sessionBlock(row)], row, fit, 1, 1);
-
+		const start = starts?.[index] ?? FULL;
+		const end = predict([sessionBlock(row)], row, fit, start.cog, start.phys);
 		const hour = clockHour(row);
 
 		cog.push({
@@ -700,9 +814,168 @@ const UNIFORM_DESIGN = fitHourTerm(
 	})),
 ).determinant;
 
+/**
+ * The three α̂ reading 4 scores against the generator's own rate: the app's own
+ * whole-log fit, the same fit restricted to the rows that satisfy §8.7's
+ * assumption, and the chained-start rival below.
+ */
+type Estimator = 'shipped' | 'day-first' | 'chained';
+
+const ESTIMATORS: Estimator[] = ['shipped', 'day-first', 'chained'];
+
+/** One row as the chained ridge reads it: `DrainObservation` plus its start level. */
+interface ChainedObservation {
+	demand: number;
+	hours: number;
+	drainedFraction: number;
+	/** Where `startLevelsOf` leaves this reservoir going into the session. */
+	start: number;
+}
+
+/** The shipped `minimizeSmooth1D`, rebuilt: it is internal. */
+function minimize(f: (x: number) => number, min: number, max: number): number {
+	const GRID = 128;
+	let bestIdx = 0;
+	let bestVal = Infinity;
+
+	for (let i = 0; i <= GRID; i++) {
+		const val = f(min + ((max - min) * i) / GRID);
+
+		if (val < bestVal) {
+			bestVal = val;
+			bestIdx = i;
+		}
+	}
+
+	const cell = (max - min) / GRID;
+	let lo = Math.max(min, min + (bestIdx - 1) * cell);
+	let hi = Math.min(max, min + (bestIdx + 1) * cell);
+	const INV_PHI = (Math.sqrt(5) - 1) / 2;
+	let x1 = hi - INV_PHI * (hi - lo);
+	let x2 = lo + INV_PHI * (hi - lo);
+	let f1 = f(x1);
+	let f2 = f(x2);
+
+	for (let i = 0; i < 48; i++) {
+		if (f1 < f2) {
+			hi = x2;
+			x2 = x1;
+			f2 = f1;
+			x1 = hi - INV_PHI * (hi - lo);
+			f1 = f(x1);
+		} else {
+			lo = x1;
+			x1 = x2;
+			f1 = f2;
+			x2 = lo + INV_PHI * (hi - lo);
+			f2 = f(x2);
+		}
+	}
+
+	return (lo + hi) / 2;
+}
+
+/**
+ * One session block through the SHIPPED law from `start` rather than from full.
+ * Both reservoirs run through the cognitive slot: the law is the same for either
+ * and only α, the demand and the start level differ, so the slot is a carrier.
+ */
+const drainedUnder = (alpha: number, o: ChainedObservation): number =>
+	1 -
+	simulateReservoirs(
+		[
+			{
+				taskId: 0,
+				hours: o.hours,
+			},
+		],
+		[
+			{
+				id: 0,
+				cognitiveDemand: o.demand,
+				physicalDemand: 0,
+			},
+		],
+		{
+			...DEFAULT_ENERGY_PARAMS,
+			alphaCog: alpha,
+			initialCog: o.start,
+		},
+	).endCog;
+
+/**
+ * `fitDrainRate`'s own ridge with the start level exposed — the rival ROADMAP
+ * item 40 asks for, and the one thing the shipped fit cannot be asked for: its
+ * `D(w, H; α)` is hard-wired to C₀ = 1. Identical in every other respect — the
+ * same informative predicate, the same λ and prior mean, the same bounds, the
+ * same minimizer — so the only difference this reading can be measuring is the
+ * start level. Rebuilt rather than imported because `fitRidge1D` is internal;
+ * the PREDICTION is still shipped code, one block through `simulateReservoirs`.
+ * The MAP alone: a rival's posterior ± would be its own reading.
+ */
+function fitChainedDrainRate(observations: ChainedObservation[], prior: number): number {
+	const used = observations.filter((o) => o.demand > 0 && o.hours > 0);
+
+	if (used.length === 0) return prior;
+
+	const objective = (alpha: number): number => {
+		let sum = DRAIN_PRIOR_STRENGTH * (alpha - prior) * (alpha - prior);
+
+		for (const o of used) {
+			const resid = o.drainedFraction - drainedUnder(alpha, o);
+			sum += resid * resid;
+		}
+
+		return sum;
+	};
+
+	return minimize(objective, ALPHA_FIT_MIN, ALPHA_FIT_MAX);
+}
+
+/** The whole log read three ways, each as one α̂ per reservoir. */
+function alphasOf(
+	rows: DrainObservationRecord[],
+): Record<Estimator, { cog: number; phys: number }> {
+	const starts = startLevelsOf(rows);
+
+	const chained = (
+		demandOf: (row: DrainObservationRecord) => number,
+		ratingOf: (row: DrainObservationRecord) => number,
+		reservoir: 'cog' | 'phys',
+		prior: number,
+	): number =>
+		fitChainedDrainRate(
+			rows.map((row, index) => ({
+				demand: demandOf(row),
+				hours: row.hours,
+				drainedFraction: ratingOf(row) / 10,
+				start: starts[index][reservoir],
+			})),
+			prior,
+		);
+
+	return {
+		shipped: fitOf(rows),
+		'day-first': fitOf(dayFirstRows(rows)),
+		chained: {
+			cog: chained(
+				(row) => row.cognitiveDemand,
+				(row) => row.mindDrain,
+				'cog',
+				DEFAULT_ENERGY_PARAMS.alphaCog,
+			),
+			phys: chained(
+				(row) => row.physicalDemand,
+				(row) => row.bodyDrain,
+				'phys',
+				DEFAULT_ENERGY_PARAMS.alphaPhys,
+			),
+		},
+	};
+}
+
 interface SeedRun {
-	alphaCog: number;
-	alphaPhys: number;
+	alphas: Record<Estimator, { cog: number; phys: number }>;
 	rows: number;
 	/** The hour-of-day term per construction, per reservoir. */
 	terms: Record<Construction, { cog: HourTerm; phys: HourTerm }>;
@@ -715,9 +988,30 @@ interface SeedRun {
 	atTruth: Record<Reservoir, { first: number; later: number }>;
 }
 
-function runSeed(arm: Arm, seed: number): SeedRun {
+/**
+ * `rivals` runs reading 4's two extra estimators, which reading 1–3's cells
+ * have no use for and which cost a fit apiece. Only the a = 0 arms ask for
+ * them: the fresh-start bias they price is what α̂ carries with no circadian
+ * term anywhere in the truth.
+ */
+function runSeed(arm: Arm, seed: number, rivals: boolean): SeedRun {
 	const rows = synthesize(arm, seed);
-	const fit = fitOf(rows);
+
+	const alphas = rivals
+		? alphasOf(rows)
+		: {
+				shipped: fitOf(rows),
+				'day-first': {
+					cog: Number.NaN,
+					phys: Number.NaN,
+				},
+				chained: {
+					cog: Number.NaN,
+					phys: Number.NaN,
+				},
+			};
+
+	const fit = alphas.shipped;
 	const earliest = new Set(dayFirstRows(rows));
 	// `fresh-start` predicts each row on its own, so a subset's residuals are
 	// the same rows' residuals — the split costs nothing but the partition.
@@ -744,8 +1038,7 @@ function runSeed(arm: Arm, seed: number): SeedRun {
 	) as Record<Construction, { cog: HourTerm; phys: HourTerm }>;
 
 	return {
-		alphaCog: fit.cog,
-		alphaPhys: fit.phys,
+		alphas,
 		rows: rows.length,
 		terms,
 		atTruth: {
@@ -761,25 +1054,28 @@ function runSeed(arm: Arm, seed: number): SeedRun {
 	};
 }
 
-const cellOf = (arm: Arm): SeedRun[] =>
+const cellOf = (arm: Arm, rivals = false): SeedRun[] =>
 	Array.from({
 		length: SEEDS,
-	}).map((_, seed) => runSeed(arm, BASE_SEED + seed));
+	}).map((_, seed) => runSeed(arm, BASE_SEED + seed, rivals));
 
 /** Indexed [routine][amplitude index into AMPLITUDES]. */
 const cells = ROUTINES.map((routine) =>
-	AMPLITUDES.map((amplitude) => cellOf(routineArm(routine, amplitude, 0))),
+	AMPLITUDES.map((amplitude) => cellOf(routineArm(routine, amplitude, 0), amplitude === 0)),
 );
 
 /** The a = 0 control: the same routines with 30% of the worked sessions unlogged. */
-const control = ROUTINES.map((routine) => cellOf(routineArm(routine, 0, DROP_SHARE)));
+const control = ROUTINES.map((routine) => cellOf(routineArm(routine, 0, DROP_SHARE), true));
 
 /** The same a = 0 logger with NO rating noise: what the quantizer alone leaves. */
 const noiseless = ROUTINES.map((routine) =>
-	cellOf({
-		...routineArm(routine, 0, 0),
-		noiseStd: 0,
-	}),
+	cellOf(
+		{
+			...routineArm(routine, 0, 0),
+			noiseStd: 0,
+		},
+		true,
+	),
 );
 
 const selfCheck = cellOf(SELF_CHECK_ARM);
@@ -982,6 +1278,53 @@ function printSweep(
 	}
 }
 
+const fmtPool = (hours: number | null): string =>
+	hours === null || Number.isNaN(hours) ? 'none' : `${hours.toFixed(2)} h`;
+
+/** §8.13's map, where α̂'s bias is actually spent — monotone, and near a pole. */
+const poolOf = (alpha: number): number | null =>
+	capacityFromDrainRate(alpha, DEFAULT_ENERGY_PARAMS);
+
+const rootMeanSquare = (values: number[], truth: number): number =>
+	Math.sqrt(values.reduce((sum, value) => sum + (value - truth) ** 2, 0) / values.length);
+
+const signed = (value: number, digits: number): string =>
+	`${value >= 0 ? '+' : '−'}${Math.abs(value).toFixed(digits)}`;
+
+const priceHeader = row('', ['median α̂', 'median err', 'RMSE', 'pool', 'Δ pool']);
+
+/**
+ * One reservoir's three α̂ scored against the rate the generator actually used,
+ * and each carried through §8.13 into the pool of hours the app would offer.
+ * The pool is the point of the row: `capacityFromDrainRate` is monotone in α
+ * and sits near its own pole, so a small error in α̂ is not a small error in
+ * hours, and that map is where the whole chain spends the bias.
+ */
+function printAlphaPrice(label: string, runs: SeedRun[], reservoir: Reservoir): void {
+	const truth = TRUE_ALPHA[reservoir];
+	const truePool = poolOf(truth);
+
+	console.log(`[§8.7] ${label} α_${reservoir} (true α ${truth}, true pool ${fmtPool(truePool)})`);
+	console.log(priceHeader);
+
+	for (const estimator of ESTIMATORS) {
+		const alphas = runs.map((run) => run.alphas[estimator][reservoir]);
+		const pools = runs.map((run) => poolOf(run.alphas[estimator][reservoir]));
+		const offered = pools.filter((pool): pool is number => pool !== null);
+		const pool = offered.length === pools.length ? median(offered) : Number.NaN;
+
+		console.log(
+			row(estimator, [
+				median(alphas).toFixed(4),
+				signed(median(alphas) - truth, 4),
+				rootMeanSquare(alphas, truth).toFixed(4),
+				fmtPool(pool),
+				truePool === null || Number.isNaN(pool) ? '—' : `${signed(pool - truePool, 2)} h`,
+			]),
+		);
+	}
+}
+
 /** Every reading's ceilings, indexed [routine][construction][reservoir]. */
 const ceilings = ROUTINES.map(
 	(_, routineIndex) =>
@@ -1001,8 +1344,8 @@ const ceilings = ROUTINES.map(
 describe('MATH.md §8.7 — whether an hour-of-day drain term can be read off 🪫 logs', () => {
 	it('self-check: one session a day, no rating noise — the fit recovers the generator', () => {
 		const recovered: Record<Reservoir, number> = {
-			cog: median(selfCheck.map((run) => run.alphaCog)),
-			phys: median(selfCheck.map((run) => run.alphaPhys)),
+			cog: median(selfCheck.map((run) => run.alphas.shipped.cog)),
+			phys: median(selfCheck.map((run) => run.alphas.shipped.phys)),
 		};
 
 		const errors = RESERVOIRS.map((reservoir) =>
@@ -1085,7 +1428,7 @@ describe('MATH.md §8.7 — whether an hour-of-day drain term can be read off �
 						`${median(runs.map((run) => run.atTruth[reservoir].first)).toFixed(4)} earliest / ` +
 						`${median(runs.map((run) => run.atTruth[reservoir].later)).toFixed(4)} rest, ` +
 						`median whole-log α̂ ` +
-						`${median(runs.map((run) => (reservoir === 'cog' ? run.alphaCog : run.alphaPhys))).toFixed(4)} ` +
+						`${median(runs.map((run) => run.alphas.shipped[reservoir])).toFixed(4)} ` +
 						`against ${TRUE_ALPHA[reservoir]}, fresh-start ceiling ` +
 						`${ceilingOf(runs, 'fresh-start', reservoir).toFixed(4)}, median ` +
 						`${median(amplitudesOf(runs, 'fresh-start', reservoir)).toFixed(4)}, peak ` +
@@ -1103,7 +1446,7 @@ describe('MATH.md §8.7 — whether an hour-of-day drain term can be read off �
 						`fit α_${reservoir}`,
 						AMPLITUDES.map(
 							(_, a) =>
-								`${median(cells[routineIndex][a].map((run) => (reservoir === 'cog' ? run.alphaCog : run.alphaPhys))).toFixed(4)}` +
+								`${median(cells[routineIndex][a].map((run) => run.alphas.shipped[reservoir])).toFixed(4)}` +
 								` (${TRUE_ALPHA[reservoir]})`,
 						),
 					),
@@ -1189,5 +1532,45 @@ describe('MATH.md §8.7 — whether an hour-of-day drain term can be read off �
 				);
 			}
 		}
+	});
+
+	it('reading 4 — what the chaining repair buys α itself, and the pool behind it', () => {
+		// a = 0 only: with no circadian term anywhere in the truth, every bit of
+		// α̂'s error is the fresh-start approximation's and the quantizer's, which
+		// is the whole of what a chained start could repair.
+		const arms: { label: string; runs: SeedRun[][] }[] = [
+			{
+				label: "the app's logger",
+				runs: cells.map((byAmplitude) => byAmplitude[0]),
+			},
+			{
+				label: 'no rating noise',
+				runs: noiseless,
+			},
+			{
+				label: `${(100 * DROP_SHARE).toFixed(0)}% of sessions unlogged`,
+				runs: control,
+			},
+		];
+
+		for (const arm of arms)
+			for (const [routineIndex, routine] of ROUTINES.entries())
+				for (const reservoir of RESERVOIRS)
+					printAlphaPrice(`${routine}, ${arm.label}:`, arm.runs[routineIndex], reservoir);
+
+		// What chaining has to beat is not zero error: the earliest row of every
+		// day already starts at C₀ = 1, so part of the shipped fit's inflation is
+		// the 0–10 quantizer's and no start level can touch it. The noiseless arm
+		// is where the two separate, so the shipped α̂ is printed side by side.
+		for (const [routineIndex, routine] of ROUTINES.entries())
+			for (const reservoir of RESERVOIRS)
+				console.log(
+					`[§8.7] ${routine} α_${reservoir}: shipped α̂ ` +
+						`${median(cells[routineIndex][0].map((run) => run.alphas.shipped[reservoir])).toFixed(4)} ` +
+						`with the rating noise on and ` +
+						`${median(noiseless[routineIndex].map((run) => run.alphas.shipped[reservoir])).toFixed(4)} ` +
+						`with it off, against a true ${TRUE_ALPHA[reservoir]} — the part between the two is ` +
+						`the clamp's, and what a chained start can repair is the rest`,
+				);
 	});
 });

@@ -38,8 +38,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~32k tokens at 4 chars/token; the largest
-single section is §8 at ~18k (§5 is ~5k), and most of the 27 rows below are
+The whole document is ~33k tokens at 4 chars/token; the largest
+single section is §8 at ~19k (§5 is ~5k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -61,23 +61,23 @@ retype a row, regenerate:
   §5.1      694-803  Posterior-aware allocation
 §6          805-817  Summary of v1 → v2 changes
 §7          819-841  Known approximations and deliberate non-changes
-§8         843-2064  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         843-2078  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      856-878  Intermittent-rest recovery correction
   §8.2      880-902  Warm-up carryover instead of binary reset
   §8.3      904-922  Verified consequences and a calibration question, closed
   §8.4      924-994  Per-task satiety — concave daily value
   §8.5     996-1036  Micro-recovery gate — a positive floor for full-demand t…
   §8.6    1038-1102  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1104-1230  Drain-rate calibration from end-of-session ratings
-  §8.8    1232-1267  45-minute plan granularity
-  §8.9    1269-1316  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1318-1620  Stopping-value calibration from observed stop times
-  §8.11   1622-1783  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1785-1939  The budget curve — what the day's LENGTH is worth
-  §8.13   1941-2005  Capacity from the fitted drain rate
-  §8.14   2007-2064  Per-title drain rate — which task costs more than its sl…
-§9        2066-2128  Plan-adherence reading and its verdict band
-§10       2130-2177  References
+  §8.7    1104-1244  Drain-rate calibration from end-of-session ratings
+  §8.8    1246-1281  45-minute plan granularity
+  §8.9    1283-1330  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1332-1634  Stopping-value calibration from observed stop times
+  §8.11   1636-1797  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1799-1953  The budget curve — what the day's LENGTH is worth
+  §8.13   1955-2019  Capacity from the fitted drain rate
+  §8.14   2021-2078  Per-title drain rate — which task costs more than its sl…
+§9        2080-2142  Plan-adherence reading and its verdict band
+§10       2144-2191  References
 ```
 
 <!-- section-index:end -->
@@ -1176,9 +1176,20 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
 - **Fresh-start assumption.** D assumes the session began at C = 1, like
   `refOutput`'s standardized yardstick — the rating carries no information
   about the pre-session level. A mid-day session that starts drained rates
-  higher than the model predicts and biases α upward. Accepted; the honest
-  fix — chaining the whole day's reservoir trajectory through every rating —
-  needs a complete work log, not a per-session rating.
+  higher than the model predicts and biases α upward. Still accepted, but no
+  longer on the grounds it was written down with. The fix was dismissed as
+  chaining the whole day's reservoir trajectory, which would need a complete
+  work log; the cheaper chaining the next paragraph describes — each row onto
+  the PREVIOUS row's own rating, recovered over the idle hours between the two
+  `createdAt`s — needs nothing the app does not already store. Scored against a
+  generator whose α is known it takes most of this bias off α̂, keeps enough of
+  that when three sessions in ten are never logged to still beat the
+  alternative, and moves §8.13's pool by the hours the removed bias was worth;
+  §8.14's earliest-row-per-day filter handed to the whole-log fit buys nearly
+  the same for no new estimator at all, paying in variance rather than bias.
+  `scripts/circadian-residual.probe.ts` is where the three are scored. What it
+  does not score is the posterior ± a chained fit would report, which is the
+  quantity §8.14's gate reads rather than the point.
 - **Linear rating map.** d/10 ↔ drained fraction assumes the subjective
   scale is linear in reservoir depletion with fixed anchors (0 = fresh,
   10 = spent). Borg's psychophysical work supports ratio-scale behavior for
@@ -1218,7 +1229,10 @@ only chained start level a per-session rating can supply; it pays in that
 rating's own noise and in assuming nothing unlogged drained the reservoir in
 between. Which correction is worth its price, the ceiling itself, and how
 large a true modulation must be to clear it are measurements, not
-derivations: `scripts/circadian-residual.probe.ts`.
+derivations: `scripts/circadian-residual.probe.ts`. The same file reads those
+two corrections a second time on α̂ itself, where the verdict inverts — what
+prices the clock reading out repairs the drain rate, because the amplitude
+needs the clock spread the filter destroys and α does not.
 
 **UI.** The Energy Lab's task list gets the 🪫 inline editor (today-only by
 construction — the lab always views today), and an **Apply fitted rates** button

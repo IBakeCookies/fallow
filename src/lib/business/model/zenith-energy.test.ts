@@ -1240,16 +1240,20 @@ describe('Zenith Energy Model', () => {
 			microRecoveryFraction: DEFAULT_ENERGY_PARAMS.microRecoveryFraction,
 		};
 
-		// Independent forward model (mirrors MATH.md §8.7): drained fraction
-		// after H hours at demand w from a full reservoir.
-		function drained(w: number, H: number, alpha: number): number {
+		// Independent forward model (mirrors MATH.md §8.7): the reservoir level
+		// after H hours at demand w, starting from c0. At w = 0 the equilibrium is
+		// 1, so a break from a full reservoir leaves it full.
+		function levelAfter(c0: number, w: number, H: number, alpha: number): number {
 			const rec = lawParams.recoveryRate * lawParams.restRecoveryMultiplier;
 			const gate = 1 - (1 - lawParams.microRecoveryFraction) * w;
 			const rho = alpha * w + rec * gate;
 			const eq = (rec * gate) / rho;
 
-			return 1 - (eq + (1 - eq) * Math.exp(-rho * H));
+			return eq + (c0 - eq) * Math.exp(-rho * H);
 		}
+
+		/** What §8.7's `D` predicts: the same law read from a FULL reservoir. */
+		const drained = (w: number, H: number, alpha: number): number => 1 - levelAfter(1, w, H, alpha);
 
 		const grid: [number, number][] = [
 			[1, 1],
@@ -1279,6 +1283,54 @@ describe('Zenith Energy Model', () => {
 			const away = fitDrainRate(cleanObs(0.7), 0.35, lawParams);
 			expect(away.alpha).toBeGreaterThan(0.6);
 			expect(away.alpha).toBeLessThan(0.7);
+		});
+
+		// MATH.md §8.7's fresh-start assumption, pinned by its consequence: `D`
+		// reads every session as beginning on a full reservoir, so a day's later
+		// sessions — which begin on the deficit the earlier ones left — rate higher
+		// than the law predicts at the true α and push α̂ up. The same four sessions
+		// rated as if each started fresh recover α exactly, so the start level is
+		// the whole of the difference. `circadian-residual.probe.ts` reading 4 is
+		// where the size of it over a year of logs is measured, and where the two
+		// repairs the stored rows allow are priced.
+		it('over-reports α on a day whose later sessions start drained (MATH.md §8.7)', () => {
+			const ALPHA_STAR = 0.35;
+			const BREAK_HOURS = 0.5;
+
+			const day: [number, number][] = [
+				[0.8, 1.5],
+				[1, 2],
+				[0.6, 1.5],
+				[0.9, 2],
+			];
+
+			let level = 1;
+
+			const chained: DrainObservation[] = day.map(([w, H]) => {
+				level = levelAfter(levelAfter(level, 0, BREAK_HOURS, ALPHA_STAR), w, H, ALPHA_STAR);
+
+				return {
+					demand: w,
+					hours: H,
+					drainedFraction: 1 - level,
+				};
+			});
+
+			const fresh = day.map(([w, H]) => ({
+				demand: w,
+				hours: H,
+				drainedFraction: drained(w, H, ALPHA_STAR),
+			}));
+
+			// The control: the same sessions, each rated from a full reservoir.
+			expect(fitDrainRate(fresh, ALPHA_STAR, lawParams).alpha).toBeCloseTo(ALPHA_STAR, 3);
+
+			const fit = fitDrainRate(chained, ALPHA_STAR, lawParams);
+			expect(fit.fitted).toBe(true);
+			expect(fit.usedCount).toBe(4);
+			// A literal, not `ALPHA_STAR + x`: the floor is what the run read, and a
+			// repair that removes the bias has to fail this test to be noticed.
+			expect(fit.alpha).toBeGreaterThan(0.42);
 		});
 
 		it('falls back with fitted: false on empty or uninformative observations', () => {
