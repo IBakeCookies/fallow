@@ -38,7 +38,7 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~31k tokens at 4 chars/token; the largest
+The whole document is ~32k tokens at 4 chars/token; the largest
 single section is §8 at ~18k (§5 is ~5k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
@@ -61,23 +61,23 @@ retype a row, regenerate:
   §5.1      677-786  Posterior-aware allocation
 §6          788-800  Summary of v1 → v2 changes
 §7          802-824  Known approximations and deliberate non-changes
-§8         826-2005  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         826-2037  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      839-861  Intermittent-rest recovery correction
   §8.2      863-885  Warm-up carryover instead of binary reset
   §8.3      887-905  Verified consequences and a calibration question, closed
   §8.4      907-977  Per-task satiety — concave daily value
   §8.5     979-1019  Micro-recovery gate — a positive floor for full-demand t…
   §8.6    1021-1085  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1087-1181  Drain-rate calibration from end-of-session ratings
-  §8.8    1183-1218  45-minute plan granularity
-  §8.9    1220-1267  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1269-1561  Stopping-value calibration from observed stop times
-  §8.11   1563-1724  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1726-1880  The budget curve — what the day's LENGTH is worth
-  §8.13   1882-1946  Capacity from the fitted drain rate
-  §8.14   1948-2005  Per-title drain rate — which task costs more than its sl…
-§9        2007-2069  Plan-adherence reading and its verdict band
-§10       2071-2118  References
+  §8.7    1087-1213  Drain-rate calibration from end-of-session ratings
+  §8.8    1215-1250  45-minute plan granularity
+  §8.9    1252-1299  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1301-1593  Stopping-value calibration from observed stop times
+  §8.11   1595-1756  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1758-1912  The budget curve — what the day's LENGTH is worth
+  §8.13   1914-1978  Capacity from the fitted drain rate
+  §8.14   1980-2037  Per-title drain rate — which task costs more than its sl…
+§9        2039-2101  Plan-adherence reading and its verdict band
+§10       2103-2150  References
 ```
 
 <!-- section-index:end -->
@@ -1170,6 +1170,38 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
 - **Saturation shrinkage.** For large true α, D saturates near 1 and dD/dα
   vanishes, so the data genuinely cannot distinguish α = 1.0 from 1.4; the
   prior then wins and the fit under-reports extreme drain rates.
+
+**Why that first bullet bounds an hour-of-day term.** The residual the
+fresh-start assumption leaves is not noise around the law. `D` is evaluated
+from `C = 1` while the session began at `C₀ < 1`, so a rating exceeds the
+prediction the law makes at the same α by an amount that grows with the
+deficit the session started on. Within a day that deficit is zero at the
+first session and positive at every later one, deepened by work and refilled
+by the gaps between sessions — so it is not monotone in the clock, but its
+expectation rises across a working day. The approximation therefore projects
+onto `cos(2πh/24)`/`sin(2πh/24)` on its own, peaking inside the user's own
+work window: for a day-shift routine, in the afternoon an alertness term
+would claim. The ridge fit absorbs a SENSITIVITY-WEIGHTED average of that
+residual into α̂ — weighted by the dD/dα that vanishes as w → 0, and then
+shrunk toward α₀ — which is the upward bias the bullet already names, and it
+has nowhere to put the part that varies with the clock. An hour-of-day
+coefficient on α is therefore produced by the approximation before any
+circadian physiology is postulated: the null such a coefficient must beat is
+not zero modulation but the modulation the approximation manufactures on a
+generator carrying none, and tested against zero it would confirm a new
+parameter off a known defect. The stored rows allow exactly two corrections
+and both are trades, not fixes. Restricting to each day's earliest 🪫 row —
+§8.14's filter, imposed there against this same confound on a different axis
+— makes every observation satisfy the assumption up to overnight carry-over,
+and pays in the only design that can identify a 24-hour term: those rows sit
+where the user starts work, so the filter removes the clock spread the
+coefficient is read from. Chaining each row onto the previous row's own
+rating, recovered over the idle hours between the two `createdAt`s, is the
+only chained start level a per-session rating can supply; it pays in that
+rating's own noise and in assuming nothing unlogged drained the reservoir in
+between. Which correction is worth its price, the ceiling itself, and how
+large a true modulation must be to clear it are measurements, not
+derivations: `scripts/circadian-residual.probe.ts`.
 
 **UI.** The Energy Lab's task list gets the 🪫 inline editor (today-only by
 construction — the lab always views today), and an **Apply fitted rates** button
