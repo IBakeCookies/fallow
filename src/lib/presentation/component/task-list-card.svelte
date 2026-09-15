@@ -106,7 +106,7 @@
 				<p class="text-sm text-ty-secondary">{m.list_empty()}</p>
 				<p class="text-xs text-ty-silent mt-text-2xs">{m.list_empty_hint()}</p>
 				{#if form}
-					<Dialog.Trigger class="mt-text-sm">{m.form_add_task()}</Dialog.Trigger>
+					<Dialog.Trigger class="mt-text-sm" variant="default">{m.form_add_task()}</Dialog.Trigger>
 				{/if}
 				{#if exampleDayHref}
 					<!-- A shared link lands here with nothing on it; the worked day is the answer. -->
