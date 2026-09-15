@@ -79,6 +79,12 @@ export async function openTaskForm(page: Page) {
 
 	await expect(field).toBeVisible();
 
+	// The dialog moves focus here itself, a tick after it mounts, and `fill` inserts
+	// its text into whatever is focused at that instant. Typing before the move lands
+	// the next field's text in this one — under six workers a tag ended up appended to
+	// the title, and the task deployed untagged.
+	await expect(field).toBeFocused();
+
 	return field;
 }
 
