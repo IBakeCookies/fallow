@@ -381,18 +381,18 @@ instrument that would establish or kill its own number.
     machinery exists — §5's prequential convention and the §33 causal window — so
     this is a probe, and a model change only if a fit is measured to lose to its
     own prior.
-40. **Price the chained start level for the α fit** — §8.7's fresh-start
-    assumption reads every 🪫 session as beginning at a full reservoir and biases
-    α upward, and that bias has the longest reach in the model: α sets the
-    capacity pools (§8.13), conditions λ₀ (§8.10), and orders the per-title
-    ranking (§8.14, which only sidesteps it by keeping each day's earliest row).
-    §8.7 names the repair — start each row from the previous row's own rating,
-    recovered over the idle hours between their `createdAt`s — and
-    `scripts/circadian-residual.probe.ts` prices it only for the hour-of-day term
-    it was built for. Its price for α's own bias is unmeasured. Read it on that
-    same instrument before any fit moves; what the measurement has to beat is the
-    trade §8.7 already states (the previous rating's own noise, and assuming
-    nothing unlogged drained the reservoir in between).
+40. ~~**Price the chained start level for the α fit**~~ — MEASURED 2026-09-15,
+    `scripts/circadian-residual.probe.ts` reading 4, which re-fits α under a
+    chained start instead of reading chaining as a residual correction. The
+    repair works, and it is the first one this file has measured that does: it
+    takes most of the bias off α̂ against a generator whose α is known, keeps over
+    half of that when three sessions in ten are never logged, and moves §8.13's
+    pool back by the hours the bias was worth. §8.14's earliest-row-per-day
+    filter handed to the whole-log fit buys nearly the same with no new estimator
+    at all, paying in variance rather than bias — the opposite of what it does on
+    the clock axis. Both trades §8.7 named are priced and neither overturns it.
+    Figures in the probe header, verdict in §8.7's fresh-start bullet, build
+    decision in item 43.
 
 _Closed 2026-09-15 in MATH.md §8.10, not built:_ the day's START, which that
 section had called unrepresented since it was written. It is not a gap —
@@ -410,6 +410,22 @@ condition on — §8.10's feasibility 2 conditions λ₀ on it, and item 38 pric
 a mis-set one costs — but fitting it needs observed OUTPUT, where every
 instrument the app has records hours and ratings. Written down so the hole reads
 as a bound on λ₀'s accuracy rather than as a fit somebody forgot.
+
+43. **Move the α fit onto a chained start, or keep the bias and say so** — item
+    40 measured that the repair works; what it did not measure is whether
+    `fitDrainRate` should change. Four things sit downstream of that one fit and
+    none of them is priced: §8.10's λ₀ conditions on α, §8.14 anchors every
+    per-title fit to the global α̂ **and** gates on a posterior ± the rival never
+    computed, §8.13's pool offer is where the user would see it move, and
+    `fitSnapshots` holds fitted params whose meaning changes under a new
+    estimator. A chained fit also needs an input the model's type does not
+    carry — `DrainObservation` is `{demand, hours, drainedFraction}` and the
+    start level has to come from the RECORD's `createdAt` — so the chaining
+    belongs in `energy-calibration.ts`, where the records still exist, and not in
+    `zenith-energy.ts`'s fit. Cheapest honest form first: §8.14's filter is
+    already implemented, already justified on its own grounds, and buys most of
+    the same, so measure what restricting the WHOLE-LOG fit to it does to those
+    four consumers before anyone writes a second estimator.
 
 ## Phase 4 — multi-day horizon
 
