@@ -141,19 +141,19 @@ a  = E·β                            (peak productivity scale)
 Defaults `c₁ = 0.56, c₂ = −0.24, c₃ = 0.5`; ϕ is floored at 0.1h because a
 fitted plane can extrapolate to ≤ 0 far from the measured tasks.
 
-The `Eᵤ`, `βᵤ` maps and the ϕ plane with `c₁, c₂` are the article's. `c₃`
-is not: the article runs `c₃ = 0`, and our 0.5 is an unmeasured prior, not
-the positivity guard it was long documented as — at `c₃ = 0` the default
-plane bottoms out at `0.56 − 0.48 = 0.08` h (difficulty 1, enjoyment 10),
-so it never needs the floor. Being also the prior mean of the constants
-fit, the 0.5 adds half an hour to every fresh user's time-to-flow (0.75–0.9
-h to every T*) until logs fit it away, hardest on easy tasks in relative
-terms. It stays for now because 43 tests across the model, energy and
-metric suites pin numbers read at 0.5, and because a fitted `c₃` from real
-⚡ logs, not an argument, should choose between the two. The mappings are
-ours too: the article's are `p₀ = β²/E²` and `a = β²·(1 + ln E)`, we kept
-`β/E` and `E·β` from v1 (§2 explains what the curve needs from them; §7
-records why `a` monotone in `E` stays).
+The `Eᵤ`, `βᵤ` maps and the ϕ plane with `c₁, c₂` are the article's. `c₃` is
+not: the article runs `c₃ = 0`, and our 0.5 is an unmeasured prior, not the
+positivity guard it was long documented as — at `c₃ = 0` the default plane
+bottoms out at `0.56 − 0.48 = 0.08` h (difficulty 1, enjoyment 10), so it
+stays positive on its own; the 0.1 h floor still binds at that corner. Being
+also the prior mean of the constants fit, the 0.5 adds half an hour to every
+fresh user's time-to-flow (0.75–0.9 h to every T*) until logs fit it away,
+hardest on easy tasks in relative terms. It stays for now because 43 tests
+across the model, energy and metric suites pin numbers read at 0.5, and
+because a fitted `c₃` from real ⚡ logs, not an argument, should choose between
+the two. The mappings are ours too: the article's are `p₀ = β²/E²` and `a =
+β²·(1 + ln E)`, we kept `β/E` and `E·β` from v1 (§2 explains what the curve
+needs from them; §7 records why `a` monotone in `E` stays).
 
 **v2 amplitude cap.** The v2 curve (§2) requires `p₀ < a`. With the mappings
 above, `p₀/a = 1/E²`, which reaches exactly 1 at `E = 1` (user difficulty 1) —
