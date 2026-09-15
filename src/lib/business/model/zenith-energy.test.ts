@@ -3191,6 +3191,373 @@ describe('Zenith Energy Model', () => {
 			expect(advice.marginalValue).toBeGreaterThan(DEFAULT_ENERGY_PARAMS.freeTimeValue);
 		});
 
+		/* Goal — the stop advisor prices its session at the moment the card is READ,
+		   not at the moment the last 🪫 row was written: the rest since that row
+		   recovers the reservoirs (and decays the warm-up) before the candidate
+		   session is placed, and the idle time counts against the clock the day has
+		   left. A drained day that reads `stop` at its log can read `continue` an
+		   hour later — today the reading cannot move at all (MATH.md §8.10, "Two gaps
+		   deliberately left open", the first gap; §8.11).
+
+		   Tests: this block; src/lib/business/store/energy-lab-store.svelte.spec.ts
+		     ("prices the next session after the idle time since the last 🪫 log",
+		     "re-prices as the clock moves on from the last log"). The plan also wrote
+		     the spec's `vi.mock` of `$lib/business/state/today.svelte` and `mockClock`
+		     in energy-lab-store.test-utils.svelte.ts; `mockClock.now` rests at 0 so the
+		     spec's older advisor tests (rows at `createdAt: 0`) read no trailing rest
+		     and keep their pins.
+		   Pins: "a read moment at or before the last log changes nothing",
+		     "a day whose rows carry no log moment has no clock to read".
+		   Out of scope:
+		   - the day's START (§8.10's second gap): `evaluateSchedule` still begins at t = 0
+		   - `stopBracket` / `fitStoppingValue` take no clock — a finished day's read
+		     moment is no evidence about its stop
+		   - the advisor's hint copy (`energy_stop_advisor_hint`) — true as written
+		   - a probe pricing how often the verdict flips with the gap — no formula
+		     depends on the figure
+		   - `suggestTargetMinutes(lab.stopAdvice)` on `/` — consumes what the store prices
+		   Read before building:
+		   - src/lib/business/model/zenith-energy.ts — `StopObservation` gains
+		     `readAt?: number` (epoch ms, like `endedAt`); `reconstructStopDay`,
+		     `recoveredRest` (its `max(0, …)` floor is the one `readAt` inherits),
+		     `loggedStructure` (its room scale is what lets the floored one-step
+		     session fit — the trailing rest must share it, on the canonical fallback
+		     too), `growBy` (canonical placement yields to appending once a trailing
+		     rest exists), `adviseStop` (`span` grows by the trailing rest; the
+		     `window-full` gate keeps reading worked hours)
+		   - src/lib/business/store/energy-lab-store.svelte.ts — `#stopAdvice`, the
+		     only `adviseStop` caller: `readAt: liveNow.value`
+		   - src/lib/business/state/today.svelte.ts — `liveToday`'s shape; `liveNow`
+		     (epoch ms, a minute tick plus the same wake listeners) goes beside it, and
+		     the spec mocks the module by that path
+		   - src/lib/business/store/energy-lab-store.svelte.spec.ts and
+		     energy-lab-store.test-utils.svelte.ts — the mock and `mockClock`
+		   - MATH.md §8.10 — "Two gaps deliberately left open": the first closes, the
+		     START gap stays; §8.11 — "One bound is specific to the forward reading"
+		     (placement), "The two window questions" (span), and the log-moment
+		     approximation: a rating written late shortens the trailing rest the way
+		     §8.10's first bullet shortens a break
+		   - src/lib/business/model/AGENTS.md — the "Both stop readings" bullets; the
+		     new public seam (`liveNow`, `readAt`) is priced there
+		   Decisions: `readAt` rides on `StopObservation` beside the rows' moments it is
+		     measured against — rejected a fourth parameter. The probed session starts
+		     NOW, appended after the trailing rest, for logged and unlogged candidates
+		     alike — rejected keeping §8.11's canonical placement, because a session
+		     inserted ahead of the logged work cannot see rest that happened after it,
+		     so `readAt` would move nothing. Trailing idle time is rest: it enters
+		     `span` (so `longest` shrinks) and is capped by the same room rule as the
+		     recovered breaks so one step still fits — rejected an uncapped block, which
+		     `normalizeSchedule` would clip together with the session it was meant to
+		     price. A batch-logged day (rows at one shared moment) reads the trailing
+		     rest from that moment on its canonical fallback — rejected reading it as
+		     "no moment". A `readAt` at or before the last moment, or rows without
+		     moments, read exactly as before. The clock is `liveNow` beside `liveToday`
+		     — rejected handing a moment through the layout, since no constructor
+		     argument ticks, and rejected re-reading only on a log write, since the card
+		     that exists to be glanced at is the one left open.
+		   Roadmap: none — MATH.md §8.10's open-gap paragraph is the record; the build
+		     rewrites it. */
+		describe('read at a later moment (readAt)', () => {
+			/** The day as read at `at` (epoch ms) — the moment the card is looked at. */
+			const readAt = (day: StopObservation, at: number) => ({
+				...day,
+				readAt: at,
+			});
+
+			const valueOf = (blocks: ScheduleBlock[], tasks: EnergyTaskInput[], windowHours: number) => {
+				const ev = evaluateSchedule(blocks, tasks, windowHours);
+
+				return ev.satiatedOutput + ev.terminalBonus;
+			};
+
+			/**
+			 * §8.11 run at a later moment: the best whole-step session appended AFTER
+			 * `rest` hours of trailing idle time, over the lengths the clock still
+			 * holds — worked hours for the room, worked + every break for the span,
+			 * floored at one step.
+			 */
+			const bestSessionAfter = (
+				logged: ScheduleBlock[],
+				rest: number,
+				taskId: number,
+				tasks: EnergyTaskInput[],
+				windowHours: number,
+			) => {
+				const worked = logged.filter((b) => b.taskId !== null).reduce((s, b) => s + b.hours, 0);
+				const breaks = logged.filter((b) => b.taskId === null).reduce((s, b) => s + b.hours, 0);
+				const room = Math.floor((windowHours - worked) / DEFAULT_STEP_HOURS + 1e-9);
+
+				const longest = Math.max(
+					1,
+					Math.min(
+						room,
+						Math.floor((windowHours - worked - breaks - rest) / DEFAULT_STEP_HOURS + 1e-9),
+					),
+				);
+
+				const base = valueOf(logged, tasks, windowHours);
+				let best = {
+					sessionHours: 0,
+					marginalValue: -Infinity,
+				};
+
+				for (let m = 1; m <= longest; m++) {
+					const hours = m * DEFAULT_STEP_HOURS;
+
+					const grown: ScheduleBlock[] = [
+						...logged,
+						{
+							taskId: null,
+							hours: rest,
+						},
+						{
+							taskId,
+							hours,
+						},
+					];
+
+					const marginalValue = (valueOf(grown, tasks, windowHours) - base) / hours;
+
+					if (marginalValue > best.marginalValue)
+						best = {
+							sessionHours: hours,
+							marginalValue,
+						};
+				}
+
+				return best;
+			};
+
+			// One row, so the day reads on the canonical fallback: the two hours since it
+			// was written are rest the reservoirs spent recovering, and the session is
+			// priced after them. Red today: the reading is the one at the log moment.
+			it('prices the next session after the rest since the last log was written', () => {
+				const logged: ScheduleBlock[] = [
+					{
+						taskId: 1,
+						hours: 3,
+					},
+				];
+
+				const day: StopObservation = {
+					tasks: singleTask,
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 3,
+							endedAt: LOG_ORIGIN + 3 * MS_PER_HOUR,
+						},
+					],
+				};
+
+				const expected = bestSessionAfter(logged, 2, 1, singleTask, 8);
+
+				const advice = priced(
+					adviseStop(readAt(day, LOG_ORIGIN + 5 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				);
+
+				expect(advice.marginalValue).toBeCloseTo(expected.marginalValue, 12);
+				expect(advice.sessionHours).toBeCloseTo(expected.sessionHours, 12);
+			});
+
+			// Two rows 3 h apart read as the day's own structure; the hour since the second
+			// is one more break, and the logged task's session goes AFTER it as a new block
+			// rather than extending the one it stopped.
+			it('appends the session after the trailing rest on a day whose breaks it also read', () => {
+				const logged: ScheduleBlock[] = [
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+					{
+						taskId: null,
+						hours: 3,
+					},
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+				];
+
+				const day: StopObservation = {
+					tasks: singleTask,
+					windowHours: 10,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
+						},
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 6 * MS_PER_HOUR,
+						},
+					],
+				};
+
+				const expected = bestSessionAfter(logged, 1, 1, singleTask, 10);
+
+				const advice = priced(
+					adviseStop(readAt(day, LOG_ORIGIN + 7 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				);
+
+				expect(advice.marginalValue).toBeCloseTo(expected.marginalValue, 12);
+				expect(advice.sessionHours).toBeCloseTo(expected.sessionHours, 12);
+			});
+
+			// Boxing and reading were written down together, so the day reads canonically
+			// (boxing first) with no break between them; the hour since that one moment is
+			// still rest. Guitar outranks reading, and §8.11 would seat it between the two —
+			// but at read time its start is known: now, after everything logged.
+			it('starts an unlogged candidate now, after the idle time, not at its canonical rank', () => {
+				const logged: ScheduleBlock[] = [
+					{
+						taskId: 1,
+						hours: 1.5,
+					},
+					{
+						taskId: 3,
+						hours: 1.5,
+					},
+				];
+
+				const day: StopObservation = {
+					tasks: PROBE_DAY,
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 3 * MS_PER_HOUR,
+						},
+						{
+							taskId: 3,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 3 * MS_PER_HOUR,
+						},
+					],
+					openTaskIds: new Set([2]),
+				};
+
+				const expected = bestSessionAfter(logged, 1, 2, PROBE_DAY, 8);
+
+				const advice = priced(
+					adviseStop(readAt(day, LOG_ORIGIN + 4 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				);
+
+				expect(advice.taskId).toBe(2);
+				expect(advice.marginalValue).toBeCloseTo(expected.marginalValue, 12);
+
+				const canonical =
+					(valueOf(
+						[
+							logged[0],
+							{
+								taskId: 2,
+								hours: expected.sessionHours,
+							},
+							logged[1],
+						],
+						PROBE_DAY,
+						8,
+					) -
+						valueOf(logged, PROBE_DAY, 8)) /
+					expected.sessionHours;
+
+				expect(advice.marginalValue).not.toBeCloseTo(canonical, 6);
+			});
+
+			// The `squeezed` day above: 3 h worked in a 6 h span of an 8 h window leaves
+			// two steps of clock. Read 1.5 h after its last row, the idle time has used
+			// them up — one step, the floor, is all that is priced.
+			it('counts the idle time since the last log against the clock the day has left', () => {
+				const squeezed: StopObservation = {
+					tasks: [...singleTask, makeTask(2, 'fresh work', 9, 10, 0.9, 0.2)],
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
+						},
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 6 * MS_PER_HOUR,
+						},
+					],
+					openTaskIds: new Set([1, 2]),
+				};
+
+				expect(
+					priced(
+						adviseStop(readAt(squeezed, LOG_ORIGIN + 7.5 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+					).sessionHours,
+				).toBeCloseTo(DEFAULT_STEP_HOURS, 12);
+			});
+
+			// The user-facing sentence: a 6 h grind that reads `stop` at its log (the
+			// "worn day" above) reads `continue` one hour of rest later.
+			it('flips a worn day from stop to continue an hour after its log', () => {
+				const worn: StopObservation = {
+					tasks: singleTask,
+					windowHours: 10,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 6,
+							endedAt: LOG_ORIGIN + 6 * MS_PER_HOUR,
+						},
+					],
+				};
+
+				expect(
+					adviseStop(readAt(worn, LOG_ORIGIN + 7 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				).toMatchObject({
+					verdict: 'continue',
+				});
+			});
+
+			// A backup restored from a fast clock can date a row past the moment it is
+			// read; a negative delta floors at 0 like every other in `recoveredRest`.
+			it('a read moment at or before the last log changes nothing', () => {
+				const day: StopObservation = {
+					tasks: singleTask,
+					windowHours: 8,
+					workedHours: [
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 1.5 * MS_PER_HOUR,
+						},
+						{
+							taskId: 1,
+							hours: 1.5,
+							endedAt: LOG_ORIGIN + 6 * MS_PER_HOUR,
+						},
+					],
+				};
+
+				const unread = adviseStop(day, DEFAULT_ENERGY_PARAMS);
+
+				expect(
+					adviseStop(readAt(day, LOG_ORIGIN + 6 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				).toEqual(unread);
+
+				expect(
+					adviseStop(readAt(day, LOG_ORIGIN + 5 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				).toEqual(unread);
+			});
+
+			it('a day whose rows carry no log moment has no clock to read', () => {
+				expect(
+					adviseStop(readAt(singleDay(1.5), LOG_ORIGIN + 10 * MS_PER_HOUR), DEFAULT_ENERGY_PARAMS),
+				).toEqual(adviseStop(singleDay(1.5), DEFAULT_ENERGY_PARAMS));
+			});
+		});
+
 		it('returns null when there is nothing to advise on', () => {
 			expect(adviseStop(singleDay(1, 0), DEFAULT_ENERGY_PARAMS)).toBeNull();
 

@@ -7,6 +7,7 @@ import {
 	mockObservations,
 	mockSession,
 	restRecord,
+	mockClock,
 } from '$lib/business/store/energy-lab-store.test-utils.svelte';
 import * as settingsRepository from '$lib/data/repository/settings-repository';
 import * as sessionHistory from '$lib/business/session-history';
@@ -17,8 +18,11 @@ import { StorageStatusStore } from '$lib/business/store/storage-status.svelte';
 import {
 	adviseStop,
 	DEFAULT_ENERGY_PARAMS,
+	DEFAULT_STEP_HOURS,
+	evaluateSchedule,
 	fitDrainRate,
 	optimizeSchedule,
+	type ScheduleBlock,
 	type StopAdvice,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
@@ -42,9 +46,27 @@ vi.mock('$lib/business/session-history', () => ({
 	readStopObservations: vi.fn(async () => []),
 }));
 
+// The Lab reads the wall clock through `liveNow` (beside `liveToday`), so the
+// spec owns it: `mockClock.now` is what the store sees, reactive, resting at 0.
+vi.mock('$lib/business/state/today.svelte', async () => {
+	const { mockClock } = await import('$lib/business/store/energy-lab-store.test-utils.svelte');
+
+	return {
+		liveToday: {
+			value: '2026-07-20',
+		},
+		liveNow: {
+			get value() {
+				return mockClock.now;
+			},
+		},
+	};
+});
+
 const readSettingMock = vi.mocked(settingsRepository.$readSetting);
 const updateSettingMock = vi.mocked(settingsRepository.$updateSetting);
 const readStopObservationsMock = vi.mocked(sessionHistory.readStopObservations);
+const MS_PER_HOUR = 3_600_000;
 
 const stopObservation = (windowHours: number): StopObservation => ({
 	tasks: [],
@@ -75,6 +97,7 @@ describe('EnergyLabStore', () => {
 	beforeEach(() => {
 		mockSession.reset();
 		mockObservations.reset();
+		mockClock.reset();
 		readSettingMock.mockReset().mockResolvedValue(undefined);
 		updateSettingMock.mockReset().mockResolvedValue(undefined);
 		readStopObservationsMock.mockReset().mockResolvedValue([]);
@@ -1309,6 +1332,131 @@ describe('EnergyLabStore', () => {
 
 		expect(marginalValue(spaced)).toBeGreaterThan(marginalValue(batched));
 	});
+
+	// The brief is the header of the `readAt` block in zenith-energy.test.ts. A
+	// 3 h row written two hours ago: the card prices the session after those two
+	// hours of rest, over the steps the clock still holds — worked hours for the
+	// room, worked + idle for the span. Red today: the store hands the model no
+	// moment to read the day at.
+	it('prices the next session after the idle time since the last 🪫 log', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 0,
+				mentalDifficulty: 7,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-20',
+				hours: 3,
+				createdAt: 0,
+			}),
+		];
+
+		mockClock.now = 2 * MS_PER_HOUR;
+		flushSync();
+
+		const tasks = mockSession.tasks.map(toEnergyTask);
+
+		const valueOf = (blocks: ScheduleBlock[]) => {
+			const ev = evaluateSchedule(blocks, tasks, 8, store.params, mockSession.userConstants);
+
+			return ev.satiatedOutput + ev.terminalBonus;
+		};
+
+		const base = valueOf([
+			{
+				taskId: 1,
+				hours: 3,
+			},
+		]);
+
+		// 3 h worked, 5 h spanned, of 8: four steps of clock.
+		const longest = Math.floor((8 - 5) / DEFAULT_STEP_HOURS + 1e-9);
+		let expected = {
+			sessionHours: 0,
+			marginalValue: -Infinity,
+		};
+
+		for (let m = 1; m <= longest; m++) {
+			const hours = m * DEFAULT_STEP_HOURS;
+
+			const marginalValue =
+				(valueOf([
+					{
+						taskId: 1,
+						hours: 3,
+					},
+					{
+						taskId: null,
+						hours: 2,
+					},
+					{
+						taskId: 1,
+						hours,
+					},
+				]) -
+					base) /
+				hours;
+
+			if (marginalValue > expected.marginalValue)
+				expected = {
+					sessionHours: hours,
+					marginalValue,
+				};
+		}
+
+		const advice = store.stopAdvice;
+
+		if (advice === null || advice.verdict === 'window-full') {
+			throw new Error(`expected a priced verdict, got ${advice?.verdict ?? 'null'}`);
+		}
+
+		expect(advice.marginalValue).toBeCloseTo(expected.marginalValue, 12);
+		expect(advice.sessionHours).toBeCloseTo(expected.sessionHours, 12);
+	});
+
+	// A card left open must move with the clock, not only with the logs.
+	it('re-prices as the clock moves on from the last log', async () => {
+		mockSession.tasks = [
+			{
+				id: 1,
+				title: 'deep work',
+				physicalDifficulty: 0,
+				mentalDifficulty: 7,
+				enjoyment: 6,
+				createdAt: '2026-07-20T08:00:00.000Z',
+				completed: false,
+			},
+		];
+
+		const store = await setup();
+
+		mockObservations.drainObservations = [
+			drainRecord({
+				date: '2026-07-20',
+				hours: 3,
+				createdAt: 0,
+			}),
+		];
+
+		flushSync();
+		const atTheLog = store.stopAdvice;
+
+		mockClock.now = 2 * MS_PER_HOUR;
+		flushSync();
+
+		expect(store.stopAdvice).not.toEqual(atTheLog);
+	});
+
 	// ----- The add-task draft, priced on demand -----
 
 	/* Funded on the Lab's 8 h day, so the reading has hours in it. */
