@@ -52,32 +52,32 @@ retype a row, regenerate:
 
 ```text
 §0           85-126  Objective
-§1          128-167  Inputs and parameter mappings
-§2          169-285  Productivity curve — v2 change
-§3          287-379  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          381-470  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          472-786  Personalization — v2 change: full Bayesian posterior
-  §5.2      571-675  Recency weighting of the ϕ fit
-  §5.1      677-786  Posterior-aware allocation
-§6          788-800  Summary of v1 → v2 changes
-§7          802-824  Known approximations and deliberate non-changes
-§8         826-2037  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      839-861  Intermittent-rest recovery correction
-  §8.2      863-885  Warm-up carryover instead of binary reset
-  §8.3      887-905  Verified consequences and a calibration question, closed
-  §8.4      907-977  Per-task satiety — concave daily value
-  §8.5     979-1019  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1021-1085  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1087-1213  Drain-rate calibration from end-of-session ratings
-  §8.8    1215-1250  45-minute plan granularity
-  §8.9    1252-1299  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1301-1593  Stopping-value calibration from observed stop times
-  §8.11   1595-1756  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1758-1912  The budget curve — what the day's LENGTH is worth
-  §8.13   1914-1978  Capacity from the fitted drain rate
-  §8.14   1980-2037  Per-title drain rate — which task costs more than its sl…
-§9        2039-2101  Plan-adherence reading and its verdict band
-§10       2103-2150  References
+§1          128-184  Inputs and parameter mappings
+§2          186-302  Productivity curve — v2 change
+§3          304-396  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          398-487  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          489-803  Personalization — v2 change: full Bayesian posterior
+  §5.2      588-692  Recency weighting of the ϕ fit
+  §5.1      694-803  Posterior-aware allocation
+§6          805-817  Summary of v1 → v2 changes
+§7          819-841  Known approximations and deliberate non-changes
+§8         843-2054  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      856-878  Intermittent-rest recovery correction
+  §8.2      880-902  Warm-up carryover instead of binary reset
+  §8.3      904-922  Verified consequences and a calibration question, closed
+  §8.4      924-994  Per-task satiety — concave daily value
+  §8.5     996-1036  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1038-1102  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1104-1230  Drain-rate calibration from end-of-session ratings
+  §8.8    1232-1267  45-minute plan granularity
+  §8.9    1269-1316  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1318-1610  Stopping-value calibration from observed stop times
+  §8.11   1612-1773  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1775-1929  The budget curve — what the day's LENGTH is worth
+  §8.13   1931-1995  Capacity from the fitted drain rate
+  §8.14   1997-2054  Per-title drain rate — which task costs more than its sl…
+§9        2056-2118  Plan-adherence reading and its verdict band
+§10       2120-2167  References
 ```
 
 <!-- section-index:end -->
@@ -147,13 +147,30 @@ positivity guard it was long documented as — at `c₃ = 0` the default plane
 bottoms out at `0.56 − 0.48 = 0.08` h (difficulty 1, enjoyment 10), so it
 stays positive on its own; the 0.1 h floor still binds at that corner. Being
 also the prior mean of the constants fit, the 0.5 adds half an hour to every
-fresh user's time-to-flow (0.75–0.9 h to every T*) until logs fit it away,
-hardest on easy tasks in relative terms. It stays for now because 43 tests
-across the model, energy and metric suites pin numbers read at 0.5, and
-because a fitted `c₃` from real ⚡ logs, not an argument, should choose between
-the two. The mappings are ours too: the article's are `p₀ = β²/E²` and `a =
-β²·(1 + ln E)`, we kept `β/E` and `E·β` from v1 (§2 explains what the curve
-needs from them; §7 records why `a` monotone in `E` stays).
+fresh user's time-to-flow until logs fit it away, hardest on easy tasks in
+relative terms. It stays for now because 43 tests across the model, energy and
+metric suites pin numbers read at 0.5. The mappings are ours too: the article's
+are `p₀ = β²/E²` and `a = β²·(1 + ln E)`, we kept `β/E` and `E·β` from v1 (§2
+explains what the curve needs from them; §7 records why `a` monotone in `E`
+stays).
+
+**What cannot choose between the two is a fitted `c₃`.** §5's posterior mean is
+`ĉ = (XᵀWX + λI)⁻¹(XᵀWϕ + λc₀)` with `c₀` these defaults, so two fits of the
+SAME logs under the two candidate intercepts differ by exactly
+`(XᵀWX + λI)⁻¹·λ·Δc₀`: a function of the design, never of the measured ϕ. Under
+§5.2's weights `XᵀWX` is bounded by the logging RATE rather than by the length
+of the history, so that difference does not vanish with time either — a fitted
+`c₃` stays an affine function of the number it was installed with, and whoever
+flips the default also moves the statistic the flip was to be justified by. The
+intercept is additionally the direction this design informs least: its column is
+1 at every row while `E ∈ [1,5]` and `β ∈ [1,2]` carry the variation, and since
+both are strictly positive the normal equations have no zero off-diagonal, so
+`ĉ₁` and `ĉ₂` take up part of whatever the prior gets wrong and the PLANE
+recovers where the third coefficient does not. What can choose is out-of-sample
+prediction: the same logs walked through the §5.2 causal window under both prior
+means and scored on held-out ⚡ logs. What each prior costs — in that score, in
+the T* a fresh user is shown, and in the plan a day is solved into — is measured
+in `scripts/c3-prior-choice.probe.ts`.
 
 **v2 amplitude cap.** The v2 curve (§2) requires `p₀ < a`. With the mappings
 above, `p₀/a = 1/E²`, which reaches exactly 1 at `E = 1` (user difficulty 1) —
