@@ -61,7 +61,7 @@ retype a row, regenerate:
   §5.1      694-803  Posterior-aware allocation
 §6          805-817  Summary of v1 → v2 changes
 §7          819-841  Known approximations and deliberate non-changes
-§8         843-2054  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         843-2064  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      856-878  Intermittent-rest recovery correction
   §8.2      880-902  Warm-up carryover instead of binary reset
   §8.3      904-922  Verified consequences and a calibration question, closed
@@ -71,13 +71,13 @@ retype a row, regenerate:
   §8.7    1104-1230  Drain-rate calibration from end-of-session ratings
   §8.8    1232-1267  45-minute plan granularity
   §8.9    1269-1316  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1318-1610  Stopping-value calibration from observed stop times
-  §8.11   1612-1773  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1775-1929  The budget curve — what the day's LENGTH is worth
-  §8.13   1931-1995  Capacity from the fitted drain rate
-  §8.14   1997-2054  Per-title drain rate — which task costs more than its sl…
-§9        2056-2118  Plan-adherence reading and its verdict band
-§10       2120-2167  References
+  §8.10   1318-1620  Stopping-value calibration from observed stop times
+  §8.11   1622-1783  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1785-1939  The budget curve — what the day's LENGTH is worth
+  §8.13   1941-2005  Capacity from the fitted drain rate
+  §8.14   2007-2064  Per-title drain rate — which task costs more than its sl…
+§9        2066-2128  Plan-adherence reading and its verdict band
+§10       2130-2177  References
 ```
 
 <!-- section-index:end -->
@@ -1400,7 +1400,7 @@ know. Candidates:
   max-work day leaves a composition no λ₀-rational user would have chosen at
   W, exactly the envelope error predicted.
 
-**One gap closed, one deliberately left open.** The reconstruction no longer
+**One gap closed, and one that is not a gap.** The reconstruction no longer
 ENDS at the last logged session on the forward reading: `StopObservation` carries
 an optional `readAt`, the moment the day is being looked at, and the idle time
 from the last row's `endedAt` to it is one more rest block — floored at 0 like
@@ -1410,9 +1410,19 @@ between its rows but still has a last moment to measure the idle time from).
 §8.11 places the probed session after that block and counts it in the day's span.
 The retrospective readings take no clock at all: a finished day's read moment is
 no evidence about its stop, so `stopBracket` and `fitStoppingValue` never set the
-field, and a day without one reads exactly as before. The day's START is still
-unrepresented — `evaluateSchedule` begins at t = 0, so a day that began three
-hours into its window reads as starting at the edge.
+field, and a day without one reads exactly as before.
+
+**The day's START is not representable, and that is the semantics rather than a
+gap.** `availableHours` is intended WORK, not a span of the clock
+(`presentation/AGENTS.md`, which is also why the plan's axis carries no time of
+day), so there is no window-start moment for `evaluateSchedule`'s `t = 0` to sit
+late of: a day that begins three hours after waking spends none of its budget
+doing so, and a user who wants those hours gone declares fewer of them. What
+would represent it is a declared start time, which is a second input for a lever
+the user already owns. The consequence to keep in mind is where the two units
+meet: both stop readings measure the day's recovered **span** in clock hours
+against a budget declared in work hours — the censor below, and §8.11's session
+lengths — because no clock budget is stored for them to read instead.
 
 **Censoring.** A day worked to the window edge has no forgone step — it
 reveals only `λ₀ ≤ hi`, not an indifference. Symmetrically a zero-work day
