@@ -29,9 +29,12 @@ missing, it is one hop away.
 New durable knowledge goes in the file that owns the area, never in a new
 top-level `.md`. **This file keeps statements; every "because" longer than a
 line belongs in the topic file.** That is what stops it growing back into the
-1800-line document it was. `scripts/brief-size.mjs` budgets **every file in the
-table above**, not this one alone — capping only the brief measured the one file
-that was not growing — and `npm run lint` fails when any of them is over.
+1800-line document it was. `scripts/brief-size.mjs` budgets **every RULES file
+in the table above**, not this one alone — capping only the brief measured the
+one file that was not growing — and `npm run lint` fails when any of them is
+over. The table's other rows carry no budget and are held by their own rules
+instead: MATH.md by R7 (derivations only, no measurements), ROADMAP.md by its
+collapse rule, `scripts/PROBES.md` by the registry check.
 
 ---
 

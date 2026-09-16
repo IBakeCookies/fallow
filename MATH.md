@@ -56,28 +56,28 @@ retype a row, regenerate:
 §2          186-302  Productivity curve — v2 change
 §3          304-396  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          398-487  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          489-818  Personalization — v2 change: full Bayesian posterior
-  §5.2      596-707  Recency weighting of the ϕ fit
-  §5.1      709-818  Posterior-aware allocation
-§6          820-832  Summary of v1 → v2 changes
-§7          834-856  Known approximations and deliberate non-changes
-§8         858-2158  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      871-893  Intermittent-rest recovery correction
-  §8.2      895-917  Warm-up carryover instead of binary reset
-  §8.3      919-937  Verified consequences and a calibration question, closed
-  §8.4     939-1009  Per-task satiety — concave daily value
-  §8.5    1011-1051  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1053-1117  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1119-1287  Drain-rate calibration from end-of-session ratings
-  §8.8    1289-1324  45-minute plan granularity
-  §8.9    1326-1380  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1382-1699  Stopping-value calibration from observed stop times
-  §8.11   1701-1862  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1864-2018  The budget curve — what the day's LENGTH is worth
-  §8.13   2020-2089  Capacity from the fitted drain rate
-  §8.14   2091-2158  Per-title drain rate — which task costs more than its sl…
-§9        2160-2222  Plan-adherence reading and its verdict band
-§10       2224-2271  References
+§5          489-819  Personalization — v2 change: full Bayesian posterior
+  §5.2      596-708  Recency weighting of the ϕ fit
+  §5.1      710-819  Posterior-aware allocation
+§6          821-833  Summary of v1 → v2 changes
+§7          835-857  Known approximations and deliberate non-changes
+§8         859-2159  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      872-894  Intermittent-rest recovery correction
+  §8.2      896-918  Warm-up carryover instead of binary reset
+  §8.3      920-938  Verified consequences and a calibration question, closed
+  §8.4     940-1010  Per-task satiety — concave daily value
+  §8.5    1012-1052  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1054-1118  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1120-1288  Drain-rate calibration from end-of-session ratings
+  §8.8    1290-1325  45-minute plan granularity
+  §8.9    1327-1380  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1382-1700  Stopping-value calibration from observed stop times
+  §8.11   1702-1863  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1865-2019  The budget curve — what the day's LENGTH is worth
+  §8.13   2021-2090  Capacity from the fitted drain rate
+  §8.14   2092-2159  Per-title drain rate — which task costs more than its sl…
+§9        2161-2223  Plan-adherence reading and its verdict band
+§10       2225-2272  References
 ```
 
 <!-- section-index:end -->
@@ -561,14 +561,6 @@ two separate as logs age. The first two are the grades:
   against a scatter that never shrinks (§5.1), so scoring coverage with it
   would report a band that predicts nothing.
 
-**The convention is not ϕ's alone.** §8.7's α, §8.9's r and §8.10's λ₀ are
-graded by the same walk, over their own observables — a 🪫 row's drained
-fraction, a ☕ pair's post-rest rating, and for λ₀ the identity, so a finished
-day is scored against its own indifference point. What a 1-D ridge reports is
-the std and not the σ̂ behind it, which the predictive band needs, so that walk
-recovers σ̂ from the fit's own curvature; `scripts/energy-fit-prequential.probe.ts`
-holds it and the figures.
-
 At n = 0 skill is identically zero — the fallback IS the defaults — so the
 comparison only becomes informative once a fit exists. Coverage at small n is
 not automatically calibrated either: it reads how far the user's true plane
@@ -581,6 +573,14 @@ It estimates the per-task ϕ dispersion, and it is biased low by construction:
 a shared plane absorbs the history's own mean offset, so what is left to
 measure is the deviation BETWEEN tasks and never the offset level. Measured figures for all of this live in
 `scripts/phi-prequential-skill.probe.ts`.
+
+**The convention is not ϕ's alone.** §8.7's α, §8.9's r and §8.10's λ₀ are
+graded by the same walk, over their own observables — a 🪫 row's drained
+fraction, a ☕ pair's post-rest rating, and for λ₀ the identity, so a finished
+day is scored against its own indifference point. What a 1-D ridge reports is
+the std and not the σ̂ behind it, which the predictive band needs, so that walk
+recovers σ̂ from the fit's own curvature; `scripts/energy-fit-prequential.probe.ts`
+holds it and the figures.
 
 **The shipped headline** (the analytics "Your model" flow row) collapses that
 walk over the user's own history to one number: the whole-walk mean-absolute
@@ -670,11 +670,12 @@ together rather than one at a time:
   the current all-or-nothing scope avoids.
 
 The second reason has since been read from the other side. A prequential walk
-over stationary users puts each fit's skill at a plateau — α's by about ten
-observations, r's later — and past it more data buys no prediction, so what a
-recency weight would shed there is data the fit had stopped using
-(`scripts/energy-fit-prequential.probe.ts`). That bounds the COST side of reason
-2 and says nothing about the drift side, which is the instrument below.
+over stationary users puts each fit's advantage over the defaults at a
+plateau — α's first, r's later — past which more data buys no measurable
+prediction, so what a recency weight would shed there is data the fit had
+stopped learning from (`scripts/energy-fit-prequential.probe.ts`). That bounds
+the COST side of reason 2 and says nothing about the drift side, which is the
+instrument below.
 
 **The instrument that says when.** All three reasons are claims about
 magnitudes — drift against noise — so they are read rather than argued. Cut a
@@ -1266,11 +1267,11 @@ two corrections a second time on α̂ itself, where the verdict inverts — what
 prices the clock reading out repairs the drain rate, because the amplitude
 needs the clock spread the filter destroys and α does not.
 
-**Does it predict?** Graded by §5's prequential walk on held-out 🪫 rows, yes,
-and by about a third of one 0–10 notch once the fit has ten or so
-observations — where it plateaus. But the first one or two rows make the
+**Does it predict?** Graded by §5's prequential walk on held-out 🪫 rows, yes —
+and its advantage over the defaults PLATEAUS, so past a certain log count more
+rows buy no better prediction. But the first one or two rows make the
 prediction WORSE than the defaults for a user who was close to them to begin
-with, the ridge having moved the plane before the data can say which way. §5
+with, the ridge having moved α before the data can say which way. §5
 handles that shape for ϕ by withholding its reading below a scored-log floor;
 nothing withholds this one. The ± is separately well calibrated on the RATINGS —
 the scatter it prices is real — which is not in tension with its blindness to
@@ -1326,11 +1327,10 @@ price of quantization rather than a regression.
 ### 8.9 Recovery-rate calibration from pre/post-rest pairs
 
 **Does it predict?** Graded by §5's prequential walk on held-out ☕ pairs, yes,
-and by more than the α fit — about half a 0–10 notch — but it needs more pairs
-to get there, since one logged rest is two observations of a single rate and its
-skill is still climbing where α's has flattened. The same small-n inversion
-appears: for a user near the default r the first pair makes the prediction
-worse. `scripts/energy-fit-prequential.probe.ts`.
+and by more than the α fit — but it needs more pairs to get there, its advantage
+still climbing where α's has flattened. The same small-n inversion appears: for
+a user near the default r the first pair makes the prediction worse.
+`scripts/energy-fit-prequential.probe.ts`.
 
 **Why this closes §8.7's open loop.** The α fit conditions on the current
 `recoveryRate`; if the hand-set 0.7 is wrong, α silently bends to compensate,
@@ -1554,14 +1554,15 @@ machinery collapses to an exact closed form — no numeric minimizer:
 - **Bounds** = the Energy Lab's freeTimeValue input range [0, 3], same
   representability/absurdity-guard role as the α and r bounds.
 - **Out of sample it predicts a held-out day's own indifference point, and by
-  far the most of the three fits** — the prediction being the identity, two or
-  three days nearly pin it (`scripts/energy-fit-prequential.probe.ts`). Two
-  cautions travel with that. The days reaching the fit are a third of the days
-  worked, the censors above taking the rest, so n grows at a third of the rate
-  the user logs at. And the walk cannot grade this fit's ±: σ₀ here is sized for
-  lattice quantization AND day-to-day mood, and a generator that plans days
-  optimally carries only the first, so the band covers everything by
-  construction. What a real logger's scatter is remains unmeasured.
+  more than either rate fit** — the prediction being the identity, a few days
+  nearly pin it (`scripts/energy-fit-prequential.probe.ts`). Two cautions travel
+  with that. Only a minority of worked days reach the fit at all, the censors
+  above taking the rest, so n grows well behind the rate the user logs at. And a
+  generator that plans days optimally flatters BOTH grades: σ₀ here is sized for
+  lattice quantization AND day-to-day mood, so such a generator carries only the
+  first — the band then covers everything by construction, and the skill is read
+  on days with no mood in them. What a real logger's scatter is remains
+  unmeasured, which is what would size both.
 
 **Known approximations (deliberate).**
 

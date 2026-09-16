@@ -362,11 +362,11 @@ instrument that would establish or kill its own number before any build.
     — CLOSED 2026-09-08
     ([the-second-slider-the-fit-conditions-on](docs/features/the-second-slider-the-fit-conditions-on.md)).
 
-Two readings from the 2026-09-15 read of MATH.md. The chain now fits four
-parameters and scores exactly one of them out of sample; these ask what the other
-three are worth, and what the oldest known bias in them costs. **Neither carries
-a figure** — no run has been made, and item 29's rule applies, so each names the
-instrument that would establish or kill its own number.
+Two readings from the 2026-09-15 read of MATH.md, both measured a day later. At
+the time the chain fitted four parameters and scored exactly one of them out of
+sample; these asked what the other three were worth, and what the oldest known
+bias in them cost. Both carried the instrument rather than a figure (item 29's
+rule) until the run that closed them.
 
 39. ~~**Prequential scores for the energy fits**~~ — MEASURED 2026-09-16,
     `scripts/energy-fit-prequential.probe.ts`, which runs §5's own walk over all

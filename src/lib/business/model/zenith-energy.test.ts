@@ -1385,6 +1385,41 @@ describe('Zenith Energy Model', () => {
 			expect(tenfold.alpha - tenfold.alphaStd!).toBeGreaterThan(ALPHA_STAR);
 		});
 
+		// The first log can make the prediction WORSE than no fit at all, and the
+		// user it happens to is the one the defaults already described (MATH.md
+		// §8.7; measured over a population by
+		// `scripts/energy-fit-prequential.probe.ts`). One rating a notch high is
+		// enough — the ridge moves α̂ half way to what that notch implies, and every
+		// prediction after it is made from there.
+		it('predicts a held-out rating worse than the defaults after one noisy log (MATH.md §8.7)', () => {
+			const ALPHA_STAR = 0.35;
+			const NOTCH = 0.1;
+
+			const one = fitDrainRate(
+				[
+					{
+						demand: 1,
+						hours: 1.5,
+						drainedFraction: drained(1, 1.5, ALPHA_STAR) + NOTCH,
+					},
+				],
+				ALPHA_STAR,
+				lawParams,
+			);
+
+			expect(one.usedCount).toBe(1);
+			expect(one.alpha).toBeGreaterThan(ALPHA_STAR);
+
+			// A later session this user rates exactly as their own α predicts, so the
+			// DEFAULT predictor is exactly right on it and every bit of the fitted
+			// one's error is the first log's. A literal, so a change that shrinks the
+			// inversion has to fail this test to be noticed.
+			const heldOut = drained(0.8, 2, ALPHA_STAR);
+
+			expect(Math.abs(heldOut - drained(0.8, 2, ALPHA_STAR))).toBe(0);
+			expect(Math.abs(heldOut - drained(0.8, 2, one.alpha))).toBeGreaterThan(0.02);
+		});
+
 		it('falls back with fitted: false on empty or uninformative observations', () => {
 			expect(fitDrainRate([], 0.35, lawParams)).toEqual({
 				alpha: 0.35,
