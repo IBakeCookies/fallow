@@ -1333,6 +1333,58 @@ describe('Zenith Energy Model', () => {
 			expect(fit.alpha).toBeGreaterThan(0.42);
 		});
 
+		// The consequence that decides between the whole-log fit and §8.14's
+		// filtered one (MATH.md §8.7): the fresh-start bias is one-signed, so it
+		// lands entirely in the MAP and nothing in σ̂ can see it. Logging the same
+		// biased day ten times over leaves α̂ where it was and tightens the ± around
+		// it, so the band a user is shown grows more confident about a number that
+		// is not getting closer. `drain-fit-day-first.probe.ts` measures how far
+		// its coverage of a known truth falls as a real log grows.
+		it('tightens α̂’s ± around a bias it cannot move (MATH.md §8.7)', () => {
+			const ALPHA_STAR = 0.35;
+			let level = 1;
+
+			const day: DrainObservation[] = (
+				[
+					[1, 1.5],
+					[0.9, 1.5],
+					[0.8, 1.5],
+				] as [number, number][]
+			).map(([w, H]) => {
+				level = levelAfter(levelAfter(level, 0, 0.5, ALPHA_STAR), w, H, ALPHA_STAR);
+
+				return {
+					demand: w,
+					hours: H,
+					drainedFraction: 1 - level,
+				};
+			});
+
+			const once = fitDrainRate(day, ALPHA_STAR, lawParams);
+
+			const tenfold = fitDrainRate(
+				Array.from(
+					{
+						length: 10,
+					},
+					() => day,
+				).flat(),
+				ALPHA_STAR,
+				lawParams,
+			);
+
+			expect(once.usedCount).toBe(3);
+			expect(tenfold.usedCount).toBe(30);
+			// Ten identical days move the point the WRONG way and barely: the ridge
+			// releases its grip on the prior, which here sits on the truth, so more
+			// of the same evidence buys more of the same bias.
+			expect(tenfold.alpha).toBeGreaterThan(once.alpha);
+			expect(tenfold.alpha - once.alpha).toBeLessThan(0.02);
+			// The ± does move, and toward a truth it has left outside itself.
+			expect(tenfold.alphaStd!).toBeLessThan(0.4 * once.alphaStd!);
+			expect(tenfold.alpha - tenfold.alphaStd!).toBeGreaterThan(ALPHA_STAR);
+		});
+
 		it('falls back with fitted: false on empty or uninformative observations', () => {
 			expect(fitDrainRate([], 0.35, lawParams)).toEqual({
 				alpha: 0.35,
