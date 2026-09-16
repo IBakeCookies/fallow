@@ -368,19 +368,28 @@ three are worth, and what the oldest known bias in them costs. **Neither carries
 a figure** — no run has been made, and item 29's rule applies, so each names the
 instrument that would establish or kill its own number.
 
-39. **Prequential scores for the energy fits** — §5 walks the ⚡ history in date
-    order and reports what the fitted ϕ plane was worth against the defaults (the
-    "Your model" flow row). r, α and λ₀ have no such reading: each carries a
-    posterior ± that §8.10's common-mode bullet and M108 say answers a narrower
-    question than it looks like. The same walk is available for α — fit on the 🪫
-    rows dated < d, predict day d's ratings, score against α₀ — and for r on the
-    ☕ pairs. What it buys is the sentence the three calibration cards cannot say
-    today: whether any of those fits has predicted anything. It is also the gate
-    the c₃ flip (§1) and §5.2's recency scope both wait on, both being
-    out-of-sample questions about parameters with no out-of-sample score. The
-    machinery exists — §5's prequential convention and the §33 causal window — so
-    this is a probe, and a model change only if a fit is measured to lose to its
-    own prior.
+39. ~~**Prequential scores for the energy fits**~~ — MEASURED 2026-09-16,
+    `scripts/energy-fit-prequential.probe.ts`, which runs §5's own walk over all
+    three fits on a population drawn from each fit's own prior at three widths.
+    **All three predict**, so none is a model change: α by about a third of a
+    0–10 rating notch, r by about half of one, λ₀ by the most of the three
+    because its prediction is the identity. Two findings the item did not ask
+    for. The first one or two observations make α's and r's prediction WORSE
+    than the defaults for a user who was near them to begin with — §5 handles
+    that shape for ϕ with `SKILL_MIN_SCORED_LOGS` and the energy cards withhold
+    nothing. And α's and r's skill PLATEAUS, α's by about ten observations,
+    which prices the cost side of §5.2's second reason for leaving those fits
+    unweighted. λ₀'s band cannot be graded here at all: §8.10 sizes its σ₀ for
+    quantization and day-to-day mood, and days generated as the optimizer's own
+    plans carry only the first, so coverage is 100% by construction. Figures in
+    the probe header, verdicts in §5's scoring convention, §5.2's scope section
+    and each fit's own section.
+
+    **The item's own sentence about the c₃ flip was wrong and is withdrawn.**
+    c₃ is a ϕ coefficient, and ϕ is the one parameter that already HAS an
+    out-of-sample score — §5's walk, and `c3-prior-choice.probe.ts`, which is
+    that flip's gate. Nothing about α, r or λ₀ bears on it.
+
 40. ~~**Price the chained start level for the α fit**~~ — MEASURED 2026-09-15,
     `scripts/circadian-residual.probe.ts` reading 4, which re-fits α under a
     chained start instead of reading chaining as a residual correction. The
@@ -411,21 +420,43 @@ a mis-set one costs — but fitting it needs observed OUTPUT, where every
 instrument the app has records hours and ratings. Written down so the hole reads
 as a bound on λ₀'s accuracy rather than as a fit somebody forgot.
 
-43. **Move the α fit onto a chained start, or keep the bias and say so** — item
-    40 measured that the repair works; what it did not measure is whether
-    `fitDrainRate` should change. Four things sit downstream of that one fit and
-    none of them is priced: §8.10's λ₀ conditions on α, §8.14 anchors every
-    per-title fit to the global α̂ **and** gates on a posterior ± the rival never
-    computed, §8.13's pool offer is where the user would see it move, and
-    `fitSnapshots` holds fitted params whose meaning changes under a new
-    estimator. A chained fit also needs an input the model's type does not
-    carry — `DrainObservation` is `{demand, hours, drainedFraction}` and the
-    start level has to come from the RECORD's `createdAt` — so the chaining
-    belongs in `energy-calibration.ts`, where the records still exist, and not in
-    `zenith-energy.ts`'s fit. Cheapest honest form first: §8.14's filter is
-    already implemented, already justified on its own grounds, and buys most of
-    the same, so measure what restricting the WHOLE-LOG fit to it does to those
-    four consumers before anyone writes a second estimator.
+43. ~~**Move the α fit onto a chained start, or keep the bias and say so**~~ —
+    MEASURED 2026-09-16, `scripts/drain-fit-day-first.probe.ts`, which hands
+    §8.14's filter to the whole-log fit and reads all four consumers. Three are
+    priced and the fourth cannot be. **The deciding reading is not the point but
+    the ±**: the fresh-start bias is one-signed, so it lands in the MAP alone and
+    σ̂ never widens for it — the whole-log band's coverage of a known truth FALLS
+    toward nothing as the log grows, while the filtered band shows no trend in
+    volume and sits somewhat under nominal. On the point the filter is a trade
+    with a crossover, not a repair: it loses to the whole log on every cell at
+    20 logged days and wins at 60 and at 260. §8.13's pool offer inherits that exactly and its own
+    gate moves with it; §8.10's λ₀ buys back most of what conditioning on a
+    biased α costs; §8.14's ranking is INERT to the anchor, because its gate
+    tests a difference and a prior shift moves both ends together. Figures in
+    the probe header, verdicts in §8.7's fresh-start bullet and in §8.13/§8.14's
+    own sections, and the ± that cannot see its own bias pinned by
+    [`zenith-energy.test.ts`](src/lib/business/model/zenith-energy.test.ts)
+    ("tightens α̂'s ± around a bias it cannot move"). What it does NOT settle is
+    `fitSnapshots`: a snapshot written by one estimator and one written by
+    another are two different estimates of the same α, so a history spanning a
+    change is not a series — a migration question, and no sweep answers it.
+
+The measurement leaves the build, which is a different question from the one
+item 43 asked and carries a gate item 43 could not have known about:
+
+44. **Restrict the whole-log α fit to each day's earliest row** — the change is
+    a filter in `energy-calibration.ts`, where the records still exist, ahead of
+    the two `fitDrainRate` calls; `rankDrainByTask` already applies the same one
+    and would then share it (R3). What makes it a decision rather than a patch
+    is item 43's crossover: below roughly two months of logs the filtered fit is
+    the noisier estimator, and it is the low-volume user who has the least to
+    spare. The three candidate shapes are: filter always, filter above a log
+    count, or leave the fit and say in the Energy Lab what the ± cannot see. The
+    first two move every number the suite pins at a fitted α, the offered pool a
+    user has already accepted, and the meaning of every stored `fitSnapshots`
+    row; the third moves nothing and leaves a band that reads more confident the
+    longer someone logs. Whichever is chosen, `capacity-from-drain.probe.ts` and
+    the drain fixtures are where the movement lands.
 
 ## Phase 4 — multi-day horizon
 

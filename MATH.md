@@ -38,8 +38,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~33k tokens at 4 chars/token; the largest
-single section is §8 at ~19k (§5 is ~5k), and most of the 27 rows below are
+The whole document is ~34k tokens at 4 chars/token; the largest
+single section is §8 at ~20k (§5 is ~5k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -56,28 +56,28 @@ retype a row, regenerate:
 §2          186-302  Productivity curve — v2 change
 §3          304-396  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          398-487  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          489-803  Personalization — v2 change: full Bayesian posterior
-  §5.2      588-692  Recency weighting of the ϕ fit
-  §5.1      694-803  Posterior-aware allocation
-§6          805-817  Summary of v1 → v2 changes
-§7          819-841  Known approximations and deliberate non-changes
-§8         843-2078  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      856-878  Intermittent-rest recovery correction
-  §8.2      880-902  Warm-up carryover instead of binary reset
-  §8.3      904-922  Verified consequences and a calibration question, closed
-  §8.4      924-994  Per-task satiety — concave daily value
-  §8.5     996-1036  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1038-1102  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1104-1244  Drain-rate calibration from end-of-session ratings
-  §8.8    1246-1281  45-minute plan granularity
-  §8.9    1283-1330  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1332-1634  Stopping-value calibration from observed stop times
-  §8.11   1636-1797  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1799-1953  The budget curve — what the day's LENGTH is worth
-  §8.13   1955-2019  Capacity from the fitted drain rate
-  §8.14   2021-2078  Per-title drain rate — which task costs more than its sl…
-§9        2080-2142  Plan-adherence reading and its verdict band
-§10       2144-2191  References
+§5          489-818  Personalization — v2 change: full Bayesian posterior
+  §5.2      596-707  Recency weighting of the ϕ fit
+  §5.1      709-818  Posterior-aware allocation
+§6          820-832  Summary of v1 → v2 changes
+§7          834-856  Known approximations and deliberate non-changes
+§8         858-2158  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      871-893  Intermittent-rest recovery correction
+  §8.2      895-917  Warm-up carryover instead of binary reset
+  §8.3      919-937  Verified consequences and a calibration question, closed
+  §8.4     939-1009  Per-task satiety — concave daily value
+  §8.5    1011-1051  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1053-1117  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1119-1287  Drain-rate calibration from end-of-session ratings
+  §8.8    1289-1324  45-minute plan granularity
+  §8.9    1326-1380  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1382-1699  Stopping-value calibration from observed stop times
+  §8.11   1701-1862  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1864-2018  The budget curve — what the day's LENGTH is worth
+  §8.13   2020-2089  Capacity from the fitted drain rate
+  §8.14   2091-2158  Per-title drain rate — which task costs more than its sl…
+§9        2160-2222  Plan-adherence reading and its verdict band
+§10       2224-2271  References
 ```
 
 <!-- section-index:end -->
@@ -561,6 +561,14 @@ two separate as logs age. The first two are the grades:
   against a scatter that never shrinks (§5.1), so scoring coverage with it
   would report a band that predicts nothing.
 
+**The convention is not ϕ's alone.** §8.7's α, §8.9's r and §8.10's λ₀ are
+graded by the same walk, over their own observables — a 🪫 row's drained
+fraction, a ☕ pair's post-rest rating, and for λ₀ the identity, so a finished
+day is scored against its own indifference point. What a 1-D ridge reports is
+the std and not the σ̂ behind it, which the predictive band needs, so that walk
+recovers σ̂ from the fit's own curvature; `scripts/energy-fit-prequential.probe.ts`
+holds it and the figures.
+
 At n = 0 skill is identically zero — the fallback IS the defaults — so the
 comparison only becomes informative once a fit exists. Coverage at small n is
 not automatically calibrated either: it reads how far the user's true plane
@@ -660,6 +668,13 @@ together rather than one at a time:
   on r, and λ₀ on both. Weighting one and not its conditioner would fit α from
   recent drain logs against an r averaged over all history — an inconsistency
   the current all-or-nothing scope avoids.
+
+The second reason has since been read from the other side. A prequential walk
+over stationary users puts each fit's skill at a plateau — α's by about ten
+observations, r's later — and past it more data buys no prediction, so what a
+recency weight would shed there is data the fit had stopped using
+(`scripts/energy-fit-prequential.probe.ts`). That bounds the COST side of reason
+2 and says nothing about the drift side, which is the instrument below.
 
 **The instrument that says when.** All three reasons are claims about
 magnitudes — drift against noise — so they are read rather than argued. Cut a
@@ -1187,9 +1202,26 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   alternative, and moves §8.13's pool by the hours the removed bias was worth;
   §8.14's earliest-row-per-day filter handed to the whole-log fit buys nearly
   the same for no new estimator at all, paying in variance rather than bias.
-  `scripts/circadian-residual.probe.ts` is where the three are scored. What it
-  does not score is the posterior ± a chained fit would report, which is the
-  quantity §8.14's gate reads rather than the point.
+  `scripts/circadian-residual.probe.ts` is where the three are scored.
+
+  **The bias is one-signed, so the ± cannot price it, and that is what decides
+  between the two.** σ̂ enters the reported std alone and the point never (the
+  ν₀ note above), so a fit that is wrong the same way on every row earns a
+  tighter band on a number that is not moving — the shape §8.10 names
+  common-mode for λ₀, and here it is an artifact whose sign is known in advance.
+  Measured against a truth the generator holds, the whole-log band's coverage of
+  that truth FALLS toward nothing as the log grows, while the filtered one shows
+  no trend in volume and stays somewhat under nominal — which is the reading
+  that separates the two arms; the RMSE of the
+  point alone does not, because the filter's own variance price makes it the
+  worse estimator at low log volume and the better one above a crossover the
+  probe brackets. What the filter changes downstream is priced there too: the
+  §8.13 pool offer moves with it and the §8.10 λ₀ fit recovers much of what
+  conditioning on a biased α costs, while §8.14's ranking is insensitive to it
+  for the reason that section gives. `scripts/drain-fit-day-first.probe.ts`
+  holds all four. What neither probe scores is the posterior ± a CHAINED fit
+  would report — the estimator itself is unbuilt.
+
 - **Linear rating map.** d/10 ↔ drained fraction assumes the subjective
   scale is linear in reservoir depletion with fixed anchors (0 = fresh,
   10 = spent). Borg's psychophysical work supports ratio-scale behavior for
@@ -1233,6 +1265,17 @@ derivations: `scripts/circadian-residual.probe.ts`. The same file reads those
 two corrections a second time on α̂ itself, where the verdict inverts — what
 prices the clock reading out repairs the drain rate, because the amplitude
 needs the clock spread the filter destroys and α does not.
+
+**Does it predict?** Graded by §5's prequential walk on held-out 🪫 rows, yes,
+and by about a third of one 0–10 notch once the fit has ten or so
+observations — where it plateaus. But the first one or two rows make the
+prediction WORSE than the defaults for a user who was close to them to begin
+with, the ridge having moved the plane before the data can say which way. §5
+handles that shape for ϕ by withholding its reading below a scored-log floor;
+nothing withholds this one. The ± is separately well calibrated on the RATINGS —
+the scatter it prices is real — which is not in tension with its blindness to
+the fresh-start displacement above, that being an error in α and not in the
+rating a row is scored against. `scripts/energy-fit-prequential.probe.ts`.
 
 **UI.** The Energy Lab's task list gets the 🪫 inline editor (today-only by
 construction — the lab always views today), and an **Apply fitted rates** button
@@ -1281,6 +1324,13 @@ values it at λ₀ per hour plus terminal energy. The old remainder-grow move
 price of quantization rather than a regression.
 
 ### 8.9 Recovery-rate calibration from pre/post-rest pairs
+
+**Does it predict?** Graded by §5's prequential walk on held-out ☕ pairs, yes,
+and by more than the α fit — about half a 0–10 notch — but it needs more pairs
+to get there, since one logged rest is two observations of a single rate and its
+skill is still climbing where α's has flattened. The same small-n inversion
+appears: for a user near the default r the first pair makes the prediction
+worse. `scripts/energy-fit-prequential.probe.ts`.
 
 **Why this closes §8.7's open loop.** The α fit conditions on the current
 `recoveryRate`; if the hand-set 0.7 is wrong, α silently bends to compensate,
@@ -1350,7 +1400,13 @@ No new logging instrument is needed.
    real unfitted error source, not a negligible one — completing the
    conditioning chain: r is fitted α-free (§8.9), α conditions on r (§8.7),
    λ₀ conditions on everything (α, r, m, b, satietyScale, V_T). Calibrate
-   recovery and drain first; this fit inherits their quality.
+   recovery and drain first; this fit inherits their quality — and that
+   inheritance is priced rather than assumed: reading λ₀ under §8.7's upward α
+   bias instead of the true rate costs it accuracy and pulls its point one way,
+   while leaving `usedCount` unchanged on every seed measured — the censors
+   drop the same days and what moves is the estimate
+   (`scripts/drain-fit-day-first.probe.ts`). An α
+   estimator that carries less of that bias buys most of it back.
 3. **Naive inverse optimization is too slow.** Fitting by re-running the
    optimizer over a λ₀ grid costs ~60 ms per run — seconds per fit, and the fit
    must re-derive on every conditioning-slider change. Rejected.
@@ -1497,6 +1553,15 @@ machinery collapses to an exact closed form — no numeric minimizer:
   (`scripts/stop-margin-fit-error.probe.ts`).
 - **Bounds** = the Energy Lab's freeTimeValue input range [0, 3], same
   representability/absurdity-guard role as the α and r bounds.
+- **Out of sample it predicts a held-out day's own indifference point, and by
+  far the most of the three fits** — the prediction being the identity, two or
+  three days nearly pin it (`scripts/energy-fit-prequential.probe.ts`). Two
+  cautions travel with that. The days reaching the fit are a third of the days
+  worked, the censors above taking the rest, so n grows at a third of the rate
+  the user logs at. And the walk cannot grade this fit's ±: σ₀ here is sized for
+  lattice quantization AND day-to-day mood, and a generator that plans days
+  optimally carries only the first, so the band covers everything by
+  construction. What a real logger's scatter is remains unmeasured.
 
 **Known approximations (deliberate).**
 
@@ -2016,7 +2081,12 @@ the equation at all, and that α is below the margin by construction.
 **Monotone.** H is decreasing in α over the valid domain: a larger drain rate
 empties the reservoir sooner, so it buys a smaller pool. The map therefore
 inherits whatever bias §8.7's α̂ carries, with the sign flipped;
-`capacity-from-drain.probe.ts` is where that is measured.
+`capacity-from-drain.probe.ts` is where that is measured, and
+`drain-fit-day-first.probe.ts` is where the offer this map produces is scored
+against the pool a known α maps to, under the whole-log fit and under §8.7's
+filtered alternative. The gate is part of what moves: a less biased α̂ lands
+inside `CAPACITY_MAP_POLE_MARGIN` on logs where the biased one never does, so a
+fit closer to the truth withholds an offer the whole-log fit would have made.
 
 ### 8.14 Per-title drain rate — which task costs more than its sliders say
 
@@ -2036,6 +2106,16 @@ protective work: a title with one informative row sits near α̂ and a title wit
 many sits where its rows put it, so **evidence, not noise, is what moves a
 title toward an end of the ranking**. λ stays §8.7's `DRAIN_PRIOR_STRENGTH`;
 nothing about the fit is retuned for this.
+
+**Whatever that anchor gets wrong, the ranking barely feels it.** The gates and
+the printed pair read the DIFFERENCE between two ends, and a shift in the prior
+mean shrinks both ends toward the same place, so it largely cancels before the
+gap is tested. Measured over the whole-log α̂ and §8.7's filtered alternative —
+which differ by most of the fresh-start bias — the qualifying share and the
+share naming both true ends barely move
+(`scripts/drain-fit-day-first.probe.ts` carries how little). What the ranking IS sensitive to is
+how many days its filter leaves per title, which is why the log count and not
+the anchor is what the three gates are written around.
 
 **Only each day's earliest 🪫 row is eligible.** §8.7's `D` assumes the session
 began at a full reservoir, and records that a mid-day session starting drained
