@@ -314,7 +314,9 @@ describe('calibrationRows', () => {
 		expect(rows[1].evidence).toBe('0 ratings · 1 ☕ logged today, counted from tomorrow');
 	});
 
-	// Both α fits read the same 🪫 rows, so both rows name the same number.
+	// Both α fits read the same 🪫 rows, so both rows name the same number. The
+	// count itself is DAYS, not ratings: each α fit reads one row per day
+	// (MATH.md §8.7), while the recovery row above still counts ☕ pairs.
 	it('names the 🪫 logged today on both drain rows', () => {
 		const rows = calibrationRows(
 			{
@@ -327,9 +329,9 @@ describe('calibrationRows', () => {
 			'en-US',
 		);
 
-		expect(rows[2].evidence).toBe('0 ratings · 2 🪫 logged today, counted from tomorrow');
+		expect(rows[2].evidence).toBe('0 days · 2 🪫 logged today, counted from tomorrow');
 
-		expect(rows[3].evidence).toBe('0 ratings · 2 🪫 logged today, counted from tomorrow');
+		expect(rows[3].evidence).toBe('0 days · 2 🪫 logged today, counted from tomorrow');
 	});
 
 	// λ₀ reads whole DAYS, and the only date that can be deferred is today — so
@@ -355,8 +357,8 @@ describe('calibrationRows', () => {
 		const rows = calibrationRows(unfitted, 'en-US');
 
 		expect(rows[1].evidence).toBe('0 ratings');
-		expect(rows[2].evidence).toBe('0 ratings');
-		expect(rows[3].evidence).toBe('0 ratings');
+		expect(rows[2].evidence).toBe('0 days');
+		expect(rows[3].evidence).toBe('0 days');
 		expect(rows[4].evidence).toBe('0 days');
 	});
 

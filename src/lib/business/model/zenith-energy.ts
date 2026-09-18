@@ -1459,6 +1459,15 @@ export interface DrainObservation {
 	drainedFraction: number;
 }
 
+/**
+ * Whether a rated session says anything about THIS reservoir's drain rate: at
+ * demand 0 or hours 0 the §8.7 law's D is constant in α, so the rating carries
+ * no α signal (whatever tired the user, it was not this session's doing).
+ */
+export function isInformativeDrainObservation(observation: DrainObservation): boolean {
+	return observation.demand > 0 && observation.hours > 0;
+}
+
 export interface DrainRateFit {
 	/** MAP drain rate α for this reservoir (the fallback when not fitted) */
 	alpha: number;
@@ -1557,7 +1566,7 @@ export function fitDrainRate(
 ): DrainRateFit {
 	const fit = fitRidge1D(
 		observations,
-		(o) => o.demand > 0 && o.hours > 0,
+		isInformativeDrainObservation,
 		fallbackAlpha,
 		ALPHA_FIT_MIN,
 		ALPHA_FIT_MAX,

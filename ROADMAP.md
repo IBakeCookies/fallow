@@ -444,19 +444,10 @@ as a bound on λ₀'s accuracy rather than as a fit somebody forgot.
 The measurement leaves the build, which is a different question from the one
 item 43 asked and carries a gate item 43 could not have known about:
 
-44. **Restrict the whole-log α fit to each day's earliest row** — the change is
-    a filter in `energy-calibration.ts`, where the records still exist, ahead of
-    the two `fitDrainRate` calls; `rankDrainByTask` already applies the same one
-    and would then share it (R3). What makes it a decision rather than a patch
-    is item 43's crossover: below roughly two months of logs the filtered fit is
-    the noisier estimator, and it is the low-volume user who has the least to
-    spare. The three candidate shapes are: filter always, filter above a log
-    count, or leave the fit and say in the Energy Lab what the ± cannot see. The
-    first two move every number the suite pins at a fitted α, the offered pool a
-    user has already accepted, and the meaning of every stored `fitSnapshots`
-    row; the third moves nothing and leaves a band that reads more confident the
-    longer someone logs. Whichever is chosen, `capacity-from-drain.probe.ts` and
-    the drain fixtures are where the movement lands.
+44. ~~**Restrict the whole-log α fit to each day's earliest row**~~ — SHIPPED
+    2026-09-18: filter always, and per RESERVOIR rather than per day (MATH.md
+    §8.7).
+    [energy-calibration.test.ts](src/lib/business/model/energy-calibration.test.ts)
 
 ## Phase 4 — multi-day horizon
 

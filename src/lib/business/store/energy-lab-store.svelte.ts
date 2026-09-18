@@ -41,6 +41,7 @@ import {
 } from '$lib/business/model/metric/energy-draft-impact';
 import { mapEffort } from '$lib/business/model/zenith';
 import {
+	keepDayFirstDrainRows,
 	toCognitiveDrainObservations,
 	toPhysicalDrainObservations,
 	toRestObservations,
@@ -727,7 +728,10 @@ export class EnergyLabStore {
 	#cognitiveDrainFit = $derived(
 		fitDrainRate(
 			toCognitiveDrainObservations(
-				this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
+				keepDayFirstDrainRows(
+					this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
+					toCognitiveDrainObservations,
+				),
 			),
 			DEFAULT_ENERGY_PARAMS.alphaCog,
 			this.#drainLawParams,
@@ -740,7 +744,10 @@ export class EnergyLabStore {
 	#physicalDrainFit = $derived(
 		fitDrainRate(
 			toPhysicalDrainObservations(
-				this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
+				keepDayFirstDrainRows(
+					this.#observations.drainObservations.filter((o) => o.date < this.#session.today),
+					toPhysicalDrainObservations,
+				),
 			),
 			DEFAULT_ENERGY_PARAMS.alphaPhys,
 			this.#drainLawParams,

@@ -92,18 +92,37 @@ describe('calibrateEnergyParams', () => {
 		}),
 	];
 
+	// A second row on the SAME day is not a second observation (MATH.md §8.7's
+	// earliest-row filter, below), so `fitted` is what these three rows are worth.
+	const dayOne = drainRecord({
+		createdAt: 9,
+	});
+
+	const dayTwo = drainRecord({
+		date: '2026-07-21',
+		createdAt: 9,
+		hours: 3,
+		cognitiveDemand: 0.5,
+		mindDrain: 8,
+		bodyDrain: 5,
+	});
+
 	const drain = [
-		drainRecord(),
+		dayOne,
 		drainRecord({
-			hours: 3,
-			cognitiveDemand: 0.5,
-			mindDrain: 8,
-			bodyDrain: 5,
+			createdAt: 17,
+			hours: 1,
+			mindDrain: 9,
+			bodyDrain: 9,
 		}),
+		dayTwo,
 	];
 
+	const fitted = [dayOne, dayTwo];
+
 	// R3 guard: the Energy Lab feeds the same records through the same mappings
-	// in its own sequence, so a mapping change must move both or neither.
+	// and the same row filter in its own sequence, so a change to either must
+	// move both or neither.
 	it('feeds the fits exactly the shared mappings, in the §8.7/§8.9 order', () => {
 		const calibration = calibrateEnergyParams(rest, drain);
 
@@ -122,11 +141,11 @@ describe('calibrateEnergyParams', () => {
 		expect(calibration.recovery).toEqual(recovery);
 
 		expect(calibration.cognitiveDrain).toEqual(
-			fitDrainRate(toCognitiveDrainObservations(drain), conditioned.alphaCog, conditioned),
+			fitDrainRate(toCognitiveDrainObservations(fitted), conditioned.alphaCog, conditioned),
 		);
 
 		expect(calibration.physicalDrain).toEqual(
-			fitDrainRate(toPhysicalDrainObservations(drain), conditioned.alphaPhys, conditioned),
+			fitDrainRate(toPhysicalDrainObservations(fitted), conditioned.alphaPhys, conditioned),
 		);
 	});
 
@@ -662,5 +681,134 @@ describe('rankDrainByTask', () => {
 
 		expect(ranking.deferredCount).toBe(3);
 		expect(ranking.cognitive?.most.taskTitle).toBe('deep work');
+	});
+});
+
+/* The α fits read each day's earliest INFORMATIVE row per reservoir — the
+   earliest session that actually loaded that reservoir — and not the whole 🪫
+   log. MATH.md §8.7's law assumes that about every row it is handed: the
+   session began on a full reservoir. A mid-day session does not, so the
+   whole-log fit rates it higher than the law predicts and α̂ carries a
+   one-signed upward bias — one the posterior ± cannot price, so the band it
+   prints narrows on a point that is not moving. §8.14's ranking applies the
+   same filter, and so does the Energy Lab's own pair of fits. */
+describe("the α fits read each day's earliest informative 🪫 row", () => {
+	const DAY = '2026-07-20';
+	const NEXT_DAY = '2026-07-21';
+
+	const session = (date: string, createdAt: number, drained: number) =>
+		drainRecord({
+			date,
+			createdAt,
+			hours: 1,
+			cognitiveDemand: 0.8,
+			physicalDemand: 0.8,
+			mindDrain: drained,
+			bodyDrain: drained,
+		});
+
+	// One day, two sessions of the same length and demands: only the rating differs.
+	const morning = session(DAY, 9, 3);
+	const afternoon = session(DAY, 17, 9);
+
+	const fitCognitive = (rows: DrainObservationRecord[]) =>
+		fitDrainRate(
+			toCognitiveDrainObservations(rows),
+			DEFAULT_ENERGY_PARAMS.alphaCog,
+			DEFAULT_ENERGY_PARAMS,
+		);
+
+	it("reads the day's earliest row, not the order the rows arrive in", () => {
+		expect(calibrateEnergyParams([], [afternoon, morning]).cognitiveDrain).toEqual(
+			fitCognitive([morning]),
+		);
+	});
+
+	it('keeps one row per day, so a second day is a second observation', () => {
+		const twoDays = [afternoon, morning, session(NEXT_DAY, 20, 8), session(NEXT_DAY, 8, 4)];
+
+		expect(calibrateEnergyParams([], twoDays).cognitiveDrain.usedCount).toBe(2);
+	});
+
+	// The reservoir is the axis, and this is why: at w = 0 the §8.7 law gives
+	// g = 1, ρ = r′ and C_eq = 1, so C(H) = 1 — a session that never loaded this
+	// reservoir leaves it FULL, and the row after it still started fresh.
+	//
+	// The two "reaches past" tests below PASS today, `fitDrainRate` already
+	// dropping an uninformative row: they are the guard against a filter keyed on
+	// the day rather than the reservoir, which would spend the day's slot on a row
+	// neither fit can read. The one between them is the red.
+	const walk = drainRecord({
+		date: DAY,
+		createdAt: 9,
+		hours: 1,
+		cognitiveDemand: 0,
+		physicalDemand: 0.8,
+		mindDrain: 0,
+		bodyDrain: 4,
+	});
+
+	it('reaches past a first session that never loaded the reservoir', () => {
+		expect(calibrateEnergyParams([], [walk, afternoon]).cognitiveDrain).toEqual(
+			fitCognitive([afternoon]),
+		);
+	});
+
+	it('and keeps that same session for the reservoir it did load', () => {
+		expect(calibrateEnergyParams([], [walk, afternoon]).physicalDrain).toEqual(
+			fitDrainRate(
+				toPhysicalDrainObservations([walk]),
+				DEFAULT_ENERGY_PARAMS.alphaPhys,
+				DEFAULT_ENERGY_PARAMS,
+			),
+		);
+	});
+
+	// `H = 0` is uninformative on the same footing as `w = 0` (§8.7 drops both),
+	// so it cannot hold a day's slot either.
+	it('reaches past a first session of no hours at all', () => {
+		const noHours = {
+			...session(DAY, 9, 3),
+			hours: 0,
+		};
+
+		expect(calibrateEnergyParams([], [noHours, afternoon]).cognitiveDrain).toEqual(
+			fitCognitive([afternoon]),
+		);
+	});
+
+	it("fits α on the day's first informative rating alone", () => {
+		expect(calibrateEnergyParams([], [morning, afternoon]).params.alphaCog).toBe(
+			calibrateEnergyParams([], [morning]).params.alphaCog,
+		);
+	});
+
+	// Control: without it the test above would pass on a fit the afternoon row
+	// could never have moved anyway.
+	it('and the whole log would have answered differently', () => {
+		expect(calibrateEnergyParams([], [morning, afternoon]).params.alphaCog).not.toBeCloseTo(
+			fitCognitive([morning, afternoon]).alpha,
+			2,
+		);
+	});
+
+	// What the "Your model" card counts, which is why its two drain rows stop
+	// saying "ratings".
+	it('counts each day it kept once', () => {
+		const week = ['2026-07-13', '2026-07-14', '2026-07-15'].flatMap((date) => [
+			session(date, 9, 3),
+			session(date, 14, 6),
+			session(date, 17, 9),
+		]);
+
+		expect(calibrateEnergyParams([], week).cognitiveDrain.usedCount).toBe(3);
+	});
+
+	// A pin: a user who logs one session a day is fitted on exactly what they
+	// were fitted on before, so the filter costs them nothing.
+	it('leaves a log of one session a day exactly where it was', () => {
+		const oneADay = [session(DAY, 9, 3), session(NEXT_DAY, 10, 5)];
+
+		expect(calibrateEnergyParams([], oneADay).cognitiveDrain).toEqual(fitCognitive(oneADay));
 	});
 });

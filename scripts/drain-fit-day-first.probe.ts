@@ -8,7 +8,7 @@
  * to the per-title ranking. Volume is the axis reading 4 never swept and the one
  * this trade turns on: the filter keeps one row a day and throws the rest away.
  *
- * THE GENERATOR IS THE MODEL: every day is chained through the SHIPPED
+ * THE GENERATOR IS THE MODEL: every day is chained through the WHOLE-LOG
  * `simulateReservoirs` one block at a time — session, rest gap, session — each
  * block's end levels carried into the next block's `initialCog`/`initialPhys`,
  * and each session's α taken from the seed's true rate times its TITLE's own
@@ -47,38 +47,38 @@
  *
  *                         median α̂  median err    RMSE  mean σ̂  cover   rows
  *     fixed, α 0.35 / 0.3 (the prior mean)
- *      20d α_cog  shipped     0.4074     +0.0574  0.0670  0.0386    40%     60
+ *      20d α_cog  whole-log   0.4074     +0.0574  0.0670  0.0386    40%     60
  *          α_cog  day-first   0.3691     +0.0191  0.0759  0.0594    45%     20
- *          α_phys shipped     0.3394     +0.0394  0.0532  0.0332    33%     60
+ *          α_phys whole-log   0.3394     +0.0394  0.0532  0.0332    33%     60
  *          α_phys day-first   0.3171     +0.0171  0.0633  0.0509    55%     20
- *      60d α_cog  shipped     0.3895     +0.0395  0.0474  0.0216    13%    181
+ *      60d α_cog  whole-log   0.3895     +0.0395  0.0474  0.0216    13%    181
  *          α_cog  day-first   0.3705     +0.0205  0.0405  0.0334    60%     60
- *          α_phys shipped     0.3354     +0.0354  0.0415  0.0193    18%    181
+ *          α_phys whole-log   0.3354     +0.0354  0.0415  0.0193    18%    181
  *          α_phys day-first   0.3137     +0.0137  0.0347  0.0305    55%     60
- *     260d α_cog  shipped     0.3852     +0.0352  0.0370  0.0103     0%    778
+ *     260d α_cog  whole-log   0.3852     +0.0352  0.0370  0.0103     0%    778
  *          α_cog  day-first   0.3532     +0.0032  0.0165  0.0164    73%    260
- *          α_phys shipped     0.3351     +0.0351  0.0368  0.0094     0%    778
+ *          α_phys whole-log   0.3351     +0.0351  0.0368  0.0094     0%    778
  *          α_phys day-first   0.3083     +0.0083  0.0203  0.0149    55%    260
  *     jittered, α 0.5 / 0.45 (off the prior mean)
- *      20d α_cog  shipped     0.5420     +0.0420  0.0665  0.0475    48%     59
+ *      20d α_cog  whole-log   0.5420     +0.0420  0.0665  0.0475    48%     59
  *          α_cog  day-first   0.4838     -0.0162  0.0853  0.0714    55%     20
- *          α_phys shipped     0.4862     +0.0362  0.0538  0.0436    55%     59
+ *          α_phys whole-log   0.4862     +0.0362  0.0538  0.0436    55%     59
  *          α_phys day-first   0.4399     -0.0101  0.0760  0.0658    53%     20
- *      60d α_cog  shipped     0.5381     +0.0381  0.0498  0.0278    30%    179
+ *      60d α_cog  whole-log   0.5381     +0.0381  0.0498  0.0278    30%    179
  *          α_cog  day-first   0.5003     +0.0003  0.0523  0.0444    60%     60
- *          α_phys shipped     0.4868     +0.0368  0.0439  0.0254    23%    179
+ *          α_phys whole-log   0.4868     +0.0368  0.0439  0.0254    23%    179
  *          α_phys day-first   0.4606     +0.0106  0.0457  0.0400    50%     60
- *     260d α_cog  shipped     0.5450     +0.0450  0.0481  0.0134     3%    781
+ *     260d α_cog  whole-log   0.5450     +0.0450  0.0481  0.0134     3%    781
  *          α_cog  day-first   0.4959     -0.0041  0.0267  0.0210    68%    260
- *          α_phys shipped     0.4936     +0.0436  0.0457  0.0123     0%    781
+ *          α_phys whole-log   0.4936     +0.0436  0.0457  0.0123     0%    781
  *          α_phys day-first   0.4496     -0.0004  0.0207  0.0191    60%    260
  *
  * (The run prints all four routine × truth blocks; two are reproduced here and
  * the other two carry the same shape.)
  *
  * THE ± IS WHERE THE TWO ARMS SEPARATE, AND IT SEPARATES THE WRONG WAY FOR THE
- * SHIPPED ONE. Over the eight routine × truth × reservoir cells at each volume,
- * the shipped fit's band covers the truth on 33–60% of seeds at 20 days, 13–30%
+ * WHOLE-LOG ONE. Over the eight routine × truth × reservoir cells at each volume,
+ * the whole-log fit's band covers the truth on 33–60% of seeds at 20 days, 13–30%
  * at 60, and **0–3% at 260** — it narrows on a point that does not move, so more
  * logging makes the printed ± more confident and no more correct. That is
  * M108's shape, read here on α where the truth is known. The day-first band
@@ -102,23 +102,23 @@
  * field's ceiling):
  *
  *     fixed, truth at the prior mean: true pool 4.37 h / 5.31 h
- *      20d pool_cog  shipped   3.60 h, -0.77 h, RMSE 0.79 h, withheld 0/40
+ *      20d pool_cog  whole-log 3.60 h, -0.77 h, RMSE 0.79 h, withheld 0/40
  *          pool_cog  day-first 4.10 h, -0.27 h, RMSE 0.95 h, withheld 0/40
- *          pool_phys shipped   4.50 h, -0.81 h, RMSE 0.95 h, withheld 0/40
+ *          pool_phys whole-log 4.50 h, -0.81 h, RMSE 0.95 h, withheld 0/40
  *          pool_phys day-first 4.90 h, -0.41 h, RMSE 1.41 h, withheld 1/40
- *      60d pool_cog  shipped   3.85 h, -0.52 h, RMSE 0.60 h, withheld 0/40
+ *      60d pool_cog  whole-log 3.85 h, -0.52 h, RMSE 0.60 h, withheld 0/40
  *          pool_cog  day-first 4.10 h, -0.27 h, RMSE 0.67 h, withheld 0/40
- *          pool_phys shipped   4.60 h, -0.71 h, RMSE 0.77 h, withheld 0/40
+ *          pool_phys whole-log 4.60 h, -0.71 h, RMSE 0.77 h, withheld 0/40
  *          pool_phys day-first 5.00 h, -0.31 h, RMSE 0.74 h, withheld 0/40
- *     260d pool_cog  shipped   3.90 h, -0.47 h, RMSE 0.49 h, withheld 0/40
+ *     260d pool_cog  whole-log 3.90 h, -0.47 h, RMSE 0.49 h, withheld 0/40
  *          pool_cog  day-first 4.30 h, -0.07 h, RMSE 0.26 h, withheld 0/40
- *          pool_phys shipped   4.60 h, -0.71 h, RMSE 0.72 h, withheld 0/40
+ *          pool_phys whole-log 4.60 h, -0.71 h, RMSE 0.72 h, withheld 0/40
  *          pool_phys day-first 5.10 h, -0.21 h, RMSE 0.42 h, withheld 0/40
  *
  * The map is monotone in α and the arms inherit reading 1 exactly, including its
- * crossover: shipped is the better offer on all eight cells at 20 days, the two
+ * crossover: whole-log is the better offer on all eight cells at 20 days, the two
  * split at 60, and day-first wins all eight at 260. What does not cross over is
- * the direction of the miss — the shipped offer sits a quarter hour to three
+ * the direction of the miss — the whole-log offer sits a quarter hour to three
  * quarters of one SHORT of the user's own pool at every volume and never
  * converges, while the day-first offer lands inside a quarter hour of it by 260
  * days on every cell. The filter also reaches the map's own gate where the whole
@@ -132,7 +132,7 @@
  * is the share of seeds where all three gates passed, `ends` the share where the
  * printed pair is the generator's own fastest and slowest title:
  *
- *                            shipped            day-first
+ *                            whole-log          day-first
  *     fixed,  20d cog    ranked 53%, ends 18%   ranked 48%, ends 13%
  *             60d cog    ranked 85%, ends 53%   ranked 85%, ends 53%
  *            260d cog    ranked 100%, ends 78%  ranked 100%, ends 78%
@@ -157,11 +157,11 @@
  *                              median err    RMSE   used days  days ≠ true α's
  *     truth at the prior mean
  *       α true                    -0.0094  0.0818     5.5/8                 —
- *       α shipped                 -0.0293  0.1009     5.5/8              0/40
+ *       α whole-log               -0.0293  0.1009     5.5/8              0/40
  *       α day-first               -0.0173  0.0915     5.5/8              0/40
  *     truth off the prior mean
  *       α true                    -0.0033  0.0784       8/8                 —
- *       α shipped                 -0.0239  0.0885       8/8              0/40
+ *       α whole-log               -0.0239  0.0885       8/8              0/40
  *       α day-first               +0.0072  0.0803       8/8              0/40
  *
  * Conditioning on a biased α costs λ₀ real accuracy — 0.0818 → 0.1009 RMSE at
@@ -179,7 +179,7 @@
  * same α, so a history that spans the change is not a series. That is a
  * migration question, not a number, and no sweep answers it.
  *
- * WHAT WOULD FALSIFY WHAT. If the shipped band had covered the truth at a rate
+ * WHAT WOULD FALSIFY WHAT. If the whole-log band had covered the truth at a rate
  * near nominal, the ± would be reporting what it claims and the whole
  * bias-versus-variance trade would be a matter of RMSE alone; it reads 0–3% at
  * 260 days instead. If the day-first arm had won at every volume, the filter
@@ -278,9 +278,9 @@ type Reservoir = 'cog' | 'phys';
 const RESERVOIRS: Reservoir[] = ['cog', 'phys'];
 
 /** Whole log, or §8.14's earliest 🪫 row per day handed to the same fit. */
-type Arm = 'shipped' | 'day-first';
+type Arm = 'whole-log' | 'day-first';
 
-const ARMS: Arm[] = ['shipped', 'day-first'];
+const ARMS: Arm[] = ['whole-log', 'day-first'];
 
 type Routine = 'fixed' | 'jittered';
 
@@ -354,7 +354,7 @@ const rootMeanSquare = (values: number[]): number =>
 
 const share = (flags: boolean[]): number => flags.filter(Boolean).length / flags.length;
 
-/** One block through the SHIPPED simulator at this title's own drain rate. */
+/** One block through the WHOLE-LOG simulator at this title's own drain rate. */
 function stepBlock(
 	block: ScheduleBlock,
 	task: ReservoirDemand,
@@ -567,18 +567,18 @@ function runSeed(seed: number, routine: Routine, truth: Truth, days: number): Se
 	const rows = synthesize(seed, routine, truth, days);
 
 	const fits = {
-		shipped: fitBoth(rowsFor('shipped', rows)),
+		'whole-log': fitBoth(rowsFor('whole-log', rows)),
 		'day-first': fitBoth(rowsFor('day-first', rows)),
 	} as Record<Arm, Record<Reservoir, DrainRateFit>>;
 
 	return {
 		fits,
 		pools: {
-			shipped: poolOf(fits.shipped),
+			'whole-log': poolOf(fits['whole-log']),
 			'day-first': poolOf(fits['day-first']),
 		},
 		rankings: {
-			shipped: rankingOf(rows, fits.shipped),
+			'whole-log': rankingOf(rows, fits['whole-log']),
 			'day-first': rankingOf(rows, fits['day-first']),
 		},
 	};
@@ -826,13 +826,13 @@ describe('the day-first filter handed to the whole-log α fit (ROADMAP item 43)'
 
 			const errors: Record<string, number[]> = {
 				true: [],
-				shipped: [],
+				'whole-log': [],
 				'day-first': [],
 			};
 
 			const used: Record<string, number[]> = {
 				true: [],
-				shipped: [],
+				'whole-log': [],
 				'day-first': [],
 			};
 
@@ -846,7 +846,7 @@ describe('the day-first filter handed to the whole-log α fit (ROADMAP item 43)'
 						alphaCog: truth.cog,
 						alphaPhys: truth.phys,
 					},
-					shipped: paramsAt(run.fits.shipped),
+					'whole-log': paramsAt(run.fits['whole-log']),
 					'day-first': paramsAt(run.fits['day-first']),
 				};
 
@@ -868,7 +868,7 @@ describe('the day-first filter handed to the whole-log α fit (ROADMAP item 43)'
 					`${STOP_DAYS} finished days a seed at true λ₀ ${LAMBDAS.join('/')}`,
 			);
 
-			for (const name of ['true', 'shipped', 'day-first'])
+			for (const name of ['true', 'whole-log', 'day-first'])
 				console.log(
 					`  λ₀ conditioned on α ${name.padEnd(9)} median err ` +
 						`${median(errors[name]) >= 0 ? '+' : ''}${median(errors[name]).toFixed(4)}, RMSE ` +
@@ -879,7 +879,7 @@ describe('the day-first filter handed to the whole-log α fit (ROADMAP item 43)'
 			// Whether the arms differ in the POINT alone: a different α moves every
 			// censor's threshold too, so the seeds where the day count itself moves
 			// are counted rather than inferred from the medians above.
-			for (const name of ['shipped', 'day-first'])
+			for (const name of ['whole-log', 'day-first'])
 				console.log(
 					`  seeds where α ${name.padEnd(9)} keeps a different DAY COUNT than the true α: ` +
 						`${used[name].filter((count, seed) => count !== used.true[seed]).length}/${SEEDS}`,
