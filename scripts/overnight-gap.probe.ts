@@ -40,9 +40,9 @@
  * both row builders), so the two arms differ by the anchor and nothing else.
  * Beside it the contrast the whole item rests on, pinned at both ends: the
  * anchor moves the morning level by 7.52e-4 at the default r = 0.7 and by
- * 0.1944 at the fit floor r = 0.1. The seeding's own docblock holds that
- * carry-over is visible only where the ☕ fit says recovery is slow; that is
- * that claim measured, and it frames every reading below.
+ * 0.1944 at the fit floor r = 0.1. MATH.md §8.15 holds that carry-over is
+ * visible only where the ☕ fit says recovery is slow; that is that claim
+ * measured, and it frames every reading below.
  *
  * READING 1 — the morning level, per anchor, in reservoir units (0–1). `Δ` is
  * clock − shipped, signed: NEGATIVE means the shipped anchor starts the day
@@ -82,12 +82,10 @@
  *     r = 0.30   risk moved   4/200   worst 1 point    median +0   plan rows moved 0
  *     r = 0.70   risk moved   0/200   worst 0 points   median +0   plan rows moved 0
  *
- * **A displayed integer is not the whole consequence, and the rest is unpriced
- * here.** `daily-plan-store` hands the SAME input to `suggestPlanAdjustments`,
+ * **A displayed integer is not the whole consequence**, and reading 5 prices
+ * the rest: `daily-plan-store` hands the SAME input to `suggestPlanAdjustments`,
  * which re-solves the day per candidate lever and ranks them on the
- * `burnoutRisk` axis, and to `calculateDraftImpact`. A 3-point move at the fit
- * floor can therefore reorder the advice card's menu, which is a recommendation
- * and not a number. What that reordering is worth is not measured here.
+ * `burnoutRisk` axis, and to `calculateDraftImpact`.
  *
  * READING 3 — the consumer that cannot read it in time. `metric/history.ts`
  * audits a finished day and holds both ends of the gap; `daily-plan-store`
@@ -140,9 +138,38 @@
  * (the count is printed; which of them turn wrong is not).
  * **A missing moment is the only honest case**: unusable, detected, and
  * falling back to 24 − W, which is what a restored backup needs
- * (`sanitizeDrainObservations` does not check the field and must not, §8.7).
+ * (`sanitizeDrainObservations` does not validate the field).
  * A build that wants the clock anchor needs a rule for a midnight-crossing
  * session that the calendar test cannot express.
+ *
+ * READING 5 — the same anchor at the CARD, over its own draw of days, read
+ * through `buildAdviceDisplay` so the band gate, the three-option cap and the
+ * rounding are the card's own. `row appears` counts days the Burnout Risk row
+ * is shown under one anchor and not the other, the band gate crossing 50;
+ * `menu order` counts days both show it and offer a different sequence of
+ * levers; `row number` days its reading prints differently; `draft sign` days
+ * the ✎ panel disagrees about whether the drafted task raises the risk at all.
+ * Every other axis's rows are asserted identical, which is reading 2's scope
+ * seen at the card:
+ *
+ *     r      row appears   shown under both   menu order   row number   draft sign
+ *     0.10       11/200            142              13          107          12
+ *     0.30        1/200             28               0            1           0
+ *     0.70        0/200              8               0            0           0
+ *
+ * **So the consequence is a recommendation, and it is confined to the floor.**
+ * At r = 0.10 the anchor decides whether the row is on the screen at all on 11
+ * of 200 days (the band gate crossing 50), reorders the menu on 13 of the 142
+ * it shows under both, and flips the sign the draft panel reports on 12. At a
+ * middling fitted rate that is 1 day, 0 and 0; at the default, nothing. The
+ * fixed cycle's error therefore reaches advice, not just a number — and only
+ * for a user whose own ☕ fit sits near `RECOVERY_FIT_MIN`.
+ *
+ * WHAT THE ITEM DECIDED, on these readings: keep the fixed cycle and state it
+ * (MATH.md §8.15). The cost above is real and bounded; what refuses the clock
+ * anchor is reading 3's — the day being planned cannot read its own gap — and
+ * reading 4's usable-and-wrong pairs, neither of which shrinks as the cost
+ * grows.
  *
  * Usage: npm run probe
  */
@@ -164,7 +191,13 @@ import {
 	DEFAULT_SWITCH_COST,
 	DEFAULT_USER_CONSTANTS,
 } from '$lib/business/model/zenith';
-import { calculateDailyMetrics } from '$lib/business/model/metric/daily-metrics';
+import {
+	calculateDailyMetrics,
+	type DailyMetricsInput,
+} from '$lib/business/model/metric/daily-metrics';
+import { calculateDraftImpact } from '$lib/business/model/metric/draft-impact';
+import { suggestPlanAdjustments, type AdviceLever } from '$lib/business/model/metric/plan-advice';
+import { buildAdviceDisplay } from '$lib/presentation/utils/plan-advice-descriptor';
 import type { DrainObservationRecord, Task } from '$lib/data/type';
 
 const MS_PER_HOUR = 3_600_000;
@@ -175,6 +208,8 @@ const STEP = 0.75;
 const ORIGIN = Date.parse('2026-09-01T08:00:00Z');
 /** The recovery rates the sweep reads: the fit floor, a middling fitted one, the default. */
 const RATES = [RECOVERY_FIT_MIN, 0.3, DEFAULT_ENERGY_PARAMS.recoveryRate];
+/** The card is read through one locale; only its option ORDER is compared, never its wording. */
+const LOCALE = 'en-GB';
 /**
  * Yesterday's worked hours. The gaps are read RELATIVE to the shipped anchor
  * 24 − W, so every cell holds both of the errors item 41 names: a gap short of
@@ -472,15 +507,49 @@ function damage(
 		for (const row of today) row.createdAt += 24 * MS_PER_HOUR;
 }
 
+const inputOf = (
+	tasks: Task[],
+	availableHours: number,
+	energyParams: EnergyParams,
+): DailyMetricsInput => ({
+	tasks,
+	availableHours,
+	switchCost: DEFAULT_SWITCH_COST,
+	pools: DEFAULT_CAPACITY_POOLS,
+	constants: DEFAULT_USER_CONSTANTS,
+	energyParams,
+});
+
 const planOf = (tasks: Task[], availableHours: number, energyParams: EnergyParams) =>
-	calculateDailyMetrics({
-		tasks,
-		availableHours,
-		switchCost: DEFAULT_SWITCH_COST,
-		pools: DEFAULT_CAPACITY_POOLS,
-		constants: DEFAULT_USER_CONSTANTS,
-		energyParams,
-	});
+	calculateDailyMetrics(inputOf(tasks, availableHours, energyParams));
+
+/** A lever's identity, so two menus can be compared by what they OFFER rather than by what they read. */
+const leverKey = (lever: AdviceLever): string =>
+	lever.kind === 'defer-task' ? `defer:${lever.taskId}` : `budget:${lever.hours}`;
+
+/**
+ * The card as it renders: the Burnout Risk row — null when the band filter
+ * leaves it off the screen entirely — beside a signature of every other row,
+ * which must not move with the seed. `buildAdviceDisplay` owns the gate, the cap
+ * and the strings; nothing here restates one (docs/testing.md).
+ */
+function cardOf(input: DailyMetricsInput): {
+	burnout: { before: string; levers: string } | null;
+	others: string;
+} {
+	const { rows } = buildAdviceDisplay(suggestPlanAdjustments(input), LOCALE);
+	const row = rows.find((r) => r.axis === 'burnoutRisk');
+
+	return {
+		burnout: row
+			? {
+					before: row.before,
+					levers: row.options.map((o) => leverKey(o.lever)).join(' '),
+				}
+			: null,
+		others: JSON.stringify(rows.filter((r) => r.axis !== 'burnoutRisk')),
+	};
+}
 
 describe('overnight gap: the fixed 24 h cycle against the rows own moments', () => {
 	it('self-check: seedAtGap at 24 − W is the shipped seeding, and the default rate hides the anchor', () => {
@@ -569,8 +638,8 @@ describe('overnight gap: the fixed 24 h cycle against the rows own moments', () 
 				'  move — asserted here, and pinned in `daily-metrics.test.ts` because a\n' +
 				'  probe never runs in `npm test`. What this does NOT bound is the advice\n' +
 				'  card: `suggestPlanAdjustments` takes the same input and ranks its levers\n' +
-				'  on the `burnoutRisk` axis, so the points below can reorder a menu. That\n' +
-				'  consequence is unpriced here.',
+				'  on the `burnoutRisk` axis, so the points below can reorder a menu — which\n' +
+				'  is reading 5, over its own draw of days.',
 		);
 
 		for (const rate of RATES) {
@@ -740,6 +809,80 @@ describe('overnight gap: the fixed 24 h cycle against the rows own moments', () 
 					`guarded WRONG ${String(guardedWrong).padStart(3)}/${MOMENT_PAIRS} ` +
 					`worst ${guardedWorst.toFixed(1)} h   (${crossedMidnight} cross midnight)`,
 			);
+		}
+	});
+
+	it('reading 5: whether the anchor reorders the advice card', () => {
+		console.log(
+			'\nREADING 5 — the advice card under the two anchors. Read through\n' +
+				'  `buildAdviceDisplay`, so the gate, the three-option cap and the\n' +
+				"  rounding are the card's own. `row appears` counts days the Burnout\n" +
+				'  Risk row is shown under one anchor and not the other — the band\n' +
+				'  gate crossing 50; `menu order` counts days both show it and\n' +
+				'  offer a different sequence of levers; `draft sign` counts days the\n' +
+				'  ✎ draft panel disagrees about whether the drafted task raises risk.',
+		);
+
+		for (const rate of RATES) {
+			const random = mulberry32(BASE_SEED + 5);
+			const params = paramsAt(rate);
+			let rowFlipped = 0;
+			let shown = 0;
+			let reordered = 0;
+			let numberMoved = 0;
+			let draftSignFlipped = 0;
+			let otherRowsMoved = 0;
+
+			for (let day = 0; day < SWEEP_DAYS; day += 1) {
+				const worked = WORKED[day % WORKED.length];
+				const gaps = gapsFor(worked).filter((gap) => gap !== RESERVOIR_CYCLE_HOURS - worked);
+				const gap = gaps[day % gaps.length];
+				const rows = dayRows(random, '2026-09-01', ORIGIN, worked);
+				const tasks = drawTasks(random, 3 + Math.floor(random() * 3));
+				const availableHours = 4 + Math.floor(random() * 5);
+				const shippedInput = inputOf(tasks, availableHours, seedMorningReservoirs(params, rows));
+				const clockInput = inputOf(tasks, availableHours, seedAtGap(params, rows, gap));
+				const shipped = cardOf(shippedInput);
+				const clock = cardOf(clockInput);
+				const shippedRow = shipped.burnout;
+				const clockRow = clock.burnout;
+				const isShownUnderBoth = shippedRow !== null && clockRow !== null;
+
+				if ((shippedRow === null) !== (clockRow === null)) rowFlipped += 1;
+
+				shown += isShownUnderBoth ? 1 : 0;
+				reordered += isShownUnderBoth && shippedRow.levers !== clockRow.levers ? 1 : 0;
+				numberMoved += isShownUnderBoth && shippedRow.before !== clockRow.before ? 1 : 0;
+				// Every other axis reads the plan alone, so its rows must be identical
+				// under the two seeds — the scope reading 2 asserts, at the card.
+				otherRowsMoved += shipped.others === clock.others ? 0 : 1;
+
+				const draft = {
+					mentalDifficulty: 1 + Math.floor(random() * 10),
+					physicalDifficulty: 1 + Math.floor(random() * 10),
+					enjoyment: 1 + Math.floor(random() * 10),
+					importance: 'normal' as const,
+				};
+
+				const riseOf = (input: DailyMetricsInput) => {
+					const { burnoutRisk } = calculateDraftImpact(input, draft);
+
+					return Math.sign(burnoutRisk.after - burnoutRisk.before);
+				};
+
+				if (riseOf(shippedInput) !== riseOf(clockInput)) draftSignFlipped += 1;
+			}
+
+			console.log(
+				`  r = ${rate.toFixed(2)}   row appears ${String(rowFlipped).padStart(3)}/${SWEEP_DAYS}   ` +
+					`shown under both ${String(shown).padStart(3)}   ` +
+					`menu order ${String(reordered).padStart(3)}   ` +
+					`row number ${String(numberMoved).padStart(3)}   ` +
+					`draft sign ${String(draftSignFlipped).padStart(3)}   ` +
+					`other rows ${otherRowsMoved}`,
+			);
+
+			expect(otherRowsMoved).toBe(0);
 		}
 	});
 });

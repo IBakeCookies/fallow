@@ -38,8 +38,8 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~35k tokens at 4 chars/token; the largest
-single section is §8 at ~20k (§5 is ~5k), and most of the 27 rows below are
+The whole document is ~36k tokens at 4 chars/token; the largest
+single section is §8 at ~22k (§5 is ~5k), and most of the 28 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
 freezing it. Ranges shift whenever a section is inserted, and the table has
@@ -51,33 +51,34 @@ retype a row, regenerate:
 `npm run lint` runs it with `--check`, so a stale index fails the build.
 
 ```text
-§0           85-126  Objective
-§1          128-184  Inputs and parameter mappings
-§2          186-302  Productivity curve — v2 change
-§3          304-396  Optimal stopping — v2 change: per-task, no longer a univ…
-§4          398-487  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          489-819  Personalization — v2 change: full Bayesian posterior
-  §5.2      596-708  Recency weighting of the ϕ fit
-  §5.1      710-819  Posterior-aware allocation
-§6          821-833  Summary of v1 → v2 changes
-§7          835-857  Known approximations and deliberate non-changes
-§8         859-2189  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      872-894  Intermittent-rest recovery correction
-  §8.2      896-918  Warm-up carryover instead of binary reset
-  §8.3      920-938  Verified consequences and a calibration question, closed
-  §8.4     940-1010  Per-task satiety — concave daily value
-  §8.5    1012-1052  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1054-1118  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1120-1313  Drain-rate calibration from end-of-session ratings
-  §8.8    1315-1350  45-minute plan granularity
-  §8.9    1352-1405  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1407-1725  Stopping-value calibration from observed stop times
-  §8.11   1727-1888  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1890-2044  The budget curve — what the day's LENGTH is worth
-  §8.13   2046-2116  Capacity from the fitted drain rate
-  §8.14   2118-2189  Per-title drain rate — which task costs more than its sl…
-§9        2191-2253  Plan-adherence reading and its verdict band
-§10       2255-2302  References
+§0           86-127  Objective
+§1          129-185  Inputs and parameter mappings
+§2          187-303  Productivity curve — v2 change
+§3          305-397  Optimal stopping — v2 change: per-task, no longer a univ…
+§4          399-488  Allocation — v2 change: discrete blocks, exact greedy, e…
+§5          490-820  Personalization — v2 change: full Bayesian posterior
+  §5.2      597-709  Recency weighting of the ϕ fit
+  §5.1      711-820  Posterior-aware allocation
+§6          822-834  Summary of v1 → v2 changes
+§7          836-858  Known approximations and deliberate non-changes
+§8         860-2275  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      873-895  Intermittent-rest recovery correction
+  §8.2      897-919  Warm-up carryover instead of binary reset
+  §8.3      921-939  Verified consequences and a calibration question, closed
+  §8.4     941-1011  Per-task satiety — concave daily value
+  §8.5    1013-1053  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1055-1119  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1121-1314  Drain-rate calibration from end-of-session ratings
+  §8.8    1316-1351  45-minute plan granularity
+  §8.9    1353-1406  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1408-1726  Stopping-value calibration from observed stop times
+  §8.11   1728-1889  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1891-2045  The budget curve — what the day's LENGTH is worth
+  §8.13   2047-2117  Capacity from the fitted drain rate
+  §8.14   2119-2190  Per-title drain rate — which task costs more than its sl…
+  §8.15   2192-2275  Overnight carry-over — the morning level and its anchor
+§9        2277-2339  Plan-adherence reading and its verdict band
+§10       2341-2388  References
 ```
 
 <!-- section-index:end -->
@@ -2187,6 +2188,91 @@ keeps consuming that one. A per-title α in the planner is the drain analogue of
 the per-task ϕ offsets rejected in `business/model/AGENTS.md`, whose measured
 argument — most titles carry too few logs to hold structure — applies here
 unchanged.
+
+### 8.15 Overnight carry-over — the morning level and its anchor
+
+**The reading.** A day does not start fresh. Yesterday's 🪫 rows carry that
+day's worked hours and the demands captured at logging time (§8.7), so the
+previous day is replayed through the §8.1/§8.5 law from **full** reservoirs and
+then rested through the gap to this morning:
+
+```text
+blocks  =  (w₁,H₁), …, (w_n,H_n),  rest for G
+G       =  RESERVOIR_CYCLE_HOURS − Σ Hᵢ,   dropped when ≤ 0
+morning =  (endCog, endPhys) of simulateReservoirs(blocks) from C = 1
+```
+
+That is `seedMorningReservoirs`, and it replaces `initialCog`/`initialPhys` for
+the day being planned. No row with `H > 0` → the params are returned unchanged,
+which is a fresh morning and the behaviour before carry-over existed.
+
+**One block per ROW, keyed by position.** A task rated twice in a day is two
+sessions with their own demands, captured at their own logging times (§8.7),
+and `simulateReservoirs` looks demands up by task id — so sharing an id would
+let the later row's demands re-rate the earlier session, which is exactly what
+capturing demands at logging time exists to prevent. The id is a lookup key
+here and nothing reads it back.
+
+**Yesterday alone, not a recursion.** Replaying from full reservoirs at
+yesterday's dawn is a one-day lookback. The day before reaches this morning
+through two rest gaps, and a deficit decays by `e^(−ρ_rest·G)` through each, so
+the second night back is attenuated twice — negligible at the recovery fit
+floor for ordinary gaps, and the residue is the gap's, so a pair of very long
+days is where it is largest; the figures are `mtr2-carry-over.probe.ts`'s.
+Under default recovery a night heals completely, so carry-over is visible
+exactly when the user's own ☕ fit (§8.9) says recovery is slow.
+
+**The anchor is work-start to work-start, and it is a constant.** `G` is
+measured as the remainder of a fixed 24 h cycle rather than from the clock,
+although the clock is available: every 🪫 row carries a required `createdAt`,
+and §8.10/§8.11 read exactly those moments to recover a day's own breaks. Three
+reasons, and the first is the one that decides it.
+
+- **The live consumer cannot read the real gap in time.** The gap's far end is
+  the moment today's work begins, and no model input records it before the
+  day's first 🪫 row. The session clock's `runningSince` is the current
+  segment's start, exists only if the user runs the clock, and is
+  localStorage-tier, which R4 bars from feeding a calculation. So a finished
+  day and a browsed past day hold both ends while **today**, which is the day
+  being planned, holds only the first — and the plan is read in the morning,
+  before the log that would reveal the second.
+- **Reading it where both ends exist would give one day two morning levels.**
+  The history audit and the plan read the same day through the same seeding; an
+  anchor that changes with the consumer makes the two screens disagree about a
+  number the user is told is the day's.
+- **A wrong gap is acted on where a missing one is not.** Deriving `G` from
+  `createdAt` needs a guard against a row logged onto a past day — the
+  mismatch §8.14 names, where a live moment sits on a later calendar day than
+  the row's own `date`. A calendar test is the only guard available, and it is
+  neither sufficient (a day batch-logged in the evening reads usable and wrong)
+  nor free (a session that ran past midnight is dropped although nothing is
+  wrong with it, leaving the remaining rows to read a gap that is not the
+  day's). The fixed cycle's error is an approximation stated here; the clock's
+  is a reading that looks correct. A row whose moment is missing entirely is
+  the honest case, and it falls back to this cycle — which is what a restored
+  backup needs, since `sanitizeDrainObservations` does not validate
+  `createdAt`.
+
+**Both directions of the resulting error are real**, and the seeding does not
+hide them: a gap short of `24 − W` is a late finish with an early start, so the
+model credits rest the user never had, and a gap past it is a long night
+credited less than it took. The first costs more than the second gains, the
+deficit it carries decaying exponentially in the gap.
+
+**What the level reaches.** `calculateBurnoutRisk` is the only consumer
+`calculateDailyMetrics` hands `energyParams` to, so the allocator never sees it
+and no plan moves with the anchor. The whole consequence is that reading, the
+advice card's Burnout Risk row — which is gated on the reading's band and ranks
+its levers on the same axis — and the draft panel's before/after.
+`overnight-gap.probe.ts` measures all of it against the clock anchor, at the
+recovery fit floor and at the default.
+
+**Re-open on an input, not on a re-reading.** The refusal is about what can be
+read, not about the size of the bias: an R4-tier record of when the day's work
+began, or a rule for a midnight-crossing session that a calendar test cannot
+express, is what would change it. A fitted population sitting near
+`RECOVERY_FIT_MIN`, where the anchor is visible at all, is what would make it
+worth paying for.
 
 ## 9. Plan-adherence reading and its verdict band
 

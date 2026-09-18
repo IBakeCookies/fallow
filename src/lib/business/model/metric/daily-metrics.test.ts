@@ -352,7 +352,7 @@ describe('calculateDailyMetrics', () => {
 	// under a drained morning and a rested one. A caller that widened
 	// `energyParams`' reach into the allocator would fail the first two
 	// expectations, which is the point of them — overnight carry-over would then
-	// re-price every plan rather than one reading (ROADMAP item 41).
+	// re-price every plan rather than one reading (MATH.md §8.15).
 	it('seeds Burnout Risk from the morning reservoir levels and the plan from neither', () => {
 		// A slow fitted recovery rate, because that is the only place carry-over is
 		// visible at all: at the default 0.7 the night refills the reservoirs
