@@ -480,18 +480,47 @@ full reservoirs, then rest for the remainder of a fixed 24 h cycle — now lives
 only in the code, against R7. The item below is where it gets one, because it
 changes the anchor that section would state.
 
-41. **The overnight gap the rows can already measure** — `RESERVOIR_CYCLE_HOURS`
-    anchors work-start to work-start, and its comment gave as the reason that no
-    clock times are stored. They are: `DrainObservationRecord.createdAt` is
-    required on every 🪫 row, and §8.10/§8.11 read exactly those moments to
-    recover a day's own breaks — so the gap from yesterday's last session to
-    today's first start is readable, with the same fallback shape §8.10 uses for a
-    day whose moments are unusable. Both errors are reachable under the fixed
-    cycle (a late finish with an early start is credited rest it never had; a long
-    night is credited less than it took), so this is a bias fix of unknown size:
-    price it on a probe first, since the seeding's own docblock holds that
-    carry-over is visible only where the ☕ fit says recovery is slow. Unlike item 7 it needs no curve
-    rebuild and no cross-day task identity — the rows carry their own demands.
+41. **The overnight gap the rows can already measure** — MEASURED 2026-09-18,
+    `scripts/overnight-gap.probe.ts`, which reads the morning level under the
+    fixed cycle against the gap the rows' own `createdAt`s carry. Both error
+    directions the item predicted are reachable, and the size sits where the
+    seeding's docblock said it would: visible at the ☕ fit floor, gone at the
+    default recovery rate. Figures in the probe header.
+
+    **The item assumed a bias worth fixing and the reading is about its
+    scope.** The seeded level reaches one metric, not the plan — pinned now by
+    [`daily-metrics.test.ts`](src/lib/business/model/metric/daily-metrics.test.ts)
+    ("seeds Burnout Risk from the morning reservoir levels and the plan from
+    neither"), because a probe never runs in `npm test`. What that pin does NOT
+    bound is the advice card, which re-solves the day per lever and ranks them
+    on the same burnout axis, so the points can reorder a recommendation. That
+    consequence is unpriced and is the first thing a build should measure.
+
+    **The fix is a trade, and it buys a failure the fixed cycle does not have.**
+    A missing moment is honest — unusable, detected, falling back. A batch-logged
+    day and a day whose work crossed midnight are not: they read as usable and
+    wrong, and a wrong reading is acted on where a fallback is not. A guard
+    against a row logged onto a past day is required and is itself a source of
+    this; §8.14 names that `createdAt`-vs-`date` mismatch but performs no such
+    test, so the guard would be new code, not a rule already in the model.
+    **And the live consumer cannot read the fix when it would matter**: the
+    gap's far end is the moment work begins, and no model input records it
+    before the day's first 🪫 row — the session clock's `runningSince` is the
+    current segment, optional, and localStorage-tier, which R4 bars from
+    feeding a calculation. So `metric/history.ts` and a browsed past day can
+    read the fix and today-before-its-first-log cannot. Most of the difference
+    survives that first session, so the late reading is not stale — it is
+    simply not a morning one, and it would move a card already read.
+
+    The build is left, and it is the same three-shaped decision as item 44: move
+    the anchor onto the rows' moments and carry a rule for the midnight-crossing
+    session a calendar test cannot express; move it only where both ends are
+    readable, which splits the live plan from the history audit so one screen's
+    reading would stop matching the other's; or keep the fixed cycle and say so.
+    Whichever is chosen writes the MATH.md section the formula still lacks,
+    deferred here because the anchor is what it would state. Unlike item 7 it
+    needs no curve rebuild and no cross-day task identity — the rows carry their
+    own demands.
 
 ## Phase 5 — the lever the objective lacks
 
