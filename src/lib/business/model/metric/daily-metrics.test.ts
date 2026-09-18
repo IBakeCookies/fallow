@@ -345,4 +345,57 @@ describe('calculateDailyMetrics', () => {
 		expect(hedged.suggestedTasks).toHaveLength(plain.suggestedTasks.length);
 		expect(hedged.remainingSuggestedHours).toBeLessThanOrEqual(8);
 	});
+
+	// The scope `overnight-gap.probe.ts` measured against, pinned here because a
+	// probe never runs in `npm test`: the seeded morning reservoir levels reach
+	// `calculateBurnoutRisk` and nothing else, so the day's plan is identical
+	// under a drained morning and a rested one. A caller that widened
+	// `energyParams`' reach into the allocator would fail the first two
+	// expectations, which is the point of them — overnight carry-over would then
+	// re-price every plan rather than one reading (ROADMAP item 41).
+	it('seeds Burnout Risk from the morning reservoir levels and the plan from neither', () => {
+		// A slow fitted recovery rate, because that is the only place carry-over is
+		// visible at all: at the default 0.7 the night refills the reservoirs
+		// whatever they started at, and the two readings below are the same number.
+		const slow = {
+			...DEFAULT_ENERGY_PARAMS,
+			recoveryRate: 0.1,
+		};
+
+		const rested = calculateDailyMetrics(
+			input(TASKS, {
+				energyParams: slow,
+			}),
+		);
+
+		const drained = calculateDailyMetrics(
+			input(TASKS, {
+				energyParams: {
+					...slow,
+					initialCog: 0.4,
+					initialPhys: 0.4,
+				},
+			}),
+		);
+
+		expect(drained.suggestedTasks).toEqual(rested.suggestedTasks);
+		expect(drained.runOrder).toEqual(rested.runOrder);
+		expect(drained.burnoutRisk).toBeGreaterThan(rested.burnoutRisk);
+	});
+
+	it('leaves Burnout Risk where it was when the fitted recovery rate is the default', () => {
+		const rested = calculateDailyMetrics(input(TASKS));
+
+		const drained = calculateDailyMetrics(
+			input(TASKS, {
+				energyParams: {
+					...DEFAULT_ENERGY_PARAMS,
+					initialCog: 0.4,
+					initialPhys: 0.4,
+				},
+			}),
+		);
+
+		expect(drained.burnoutRisk).toBe(rested.burnoutRisk);
+	});
 });
