@@ -3,22 +3,23 @@
  * rejecting the alternative that would have been strictly more correct — per-day
  * recomputation, which would fix history retroactively where storing cannot.
  *
- * Both numbers the case rests on, read off this file's own run (2026-08-27) —
+ * Both numbers the case rests on, read off this file's own run (2026-09-18) —
  * the cost arm from three of them, because a wall clock is a range — on a
  * synthetic year of a heavy logger whose true rates drift (α 0.25 → 0.55 over
  * 365 days, 730 ⚡ / 730 ☕ / 1095 🪫):
  *
- *   DRIFT — α_cog fitted from logs up to day 10 is 0.3447 against a
- *   whole-history 0.5240, so the day-10 plan would be audited against a drain
- *   rate 52% higher than that day's own logs supported. It is an EARLY-history
- *   bias: inside the 30-day audit window the same fit moves 0.5075 → 0.5240,
- *   3.3% apart, and on a flat year the day-10 gap is 1%.
+ *   DRIFT — α_cog fitted from logs up to day 10 is 0.3389 against a
+ *   whole-history 0.5212, so the day-10 plan would be audited against a drain
+ *   rate 54% higher than that day's own logs supported. It is an EARLY-history
+ *   bias: inside the 30-day audit window the same fit moves 0.5068 → 0.5212,
+ *   2.8% apart, and on a flat year the day-10 gap is 5%.
  *
  *   COST — a band, not a figure. One whole-history fit at that volume reads
- *   18–23 ms over three runs, and a 30-day per-day refit 523–594 ms, 17–20
- *   ms/day. That per-day cost is 0.81×–1.09× the single fit across all three
- *   volumes, so it IS one whole-history fit, and it tracks volume: 35–40 ms/day
- *   at 2×, 76–78 at 4×. Which is the O(auditDays × totalLogVolume) claim.
+ *   10.0–10.6 ms over three runs, and a 30-day per-day refit 282–293 ms,
+ *   9.4–9.8 ms/day. That per-day cost is 0.85×–0.99× the single fit across all
+ *   three volumes, so it IS one whole-history fit, and it tracks volume:
+ *   15.7–15.8 ms/day at 2×, 28.1–29.3 at 4×. Which is the
+ *   O(auditDays × totalLogVolume) claim.
  *
  * A probe, not a test. The drift arm sweeps a space (drift shape × log volume
  * × as-of day) that one synthetic year samples once, and the cost arm is
@@ -37,9 +38,9 @@
  * it came from, because V8's first pass through a fit is not the cost the user
  * pays on their thousandth analytics visit and a lone median invents precision.
  * The argument rests on the per-day/single RATIO rather than the absolute
- * milliseconds — but only as a band: it reads 0.81×–1.09× across three runs and
+ * milliseconds — but only as a band: it reads 0.85×–0.99× across three runs and
  * three volumes, so "about one whole-history fit" is the result and no cell is.
- * The printed ± is the spread WITHIN one run (±1%–26% here) and is not that
+ * The printed ± is the spread WITHIN one run (±1%–18% here) and is not that
  * band: it is the instrument's precision, not the figure's reproducibility.
  *
  * Usage: npm run probe

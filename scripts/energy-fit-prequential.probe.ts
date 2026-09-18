@@ -32,20 +32,25 @@
  * sits from the defaults, so the three arms are the reading and no single one of
  * them is. Every row is one the app could hold — 40 logged days a user, 1–3
  * chained sessions a day (so §8.7's fresh-start artifact is IN the data, which
- * is the point: what is graded is the app's fit on the rows the app holds),
- * demands on the ten slider notches, ratings noised at each fit's own σ₀ and
+ * is the point: what is graded is the app's fit on the rows the app holds). The
+ * α walk therefore FITS on §8.7's filtered rows and SCORES on every row of the
+ * held-out day, mid-day sessions included — the app's own asymmetry, a user
+ * reading one α̂ against sessions it never fitted on. Demands on the ten slider notches, ratings noised at each fit's own σ₀ and
  * quantized to the stored 0–10 notches. 60 users for α and r, 40 × 12 finished
  * days for λ₀, seeded.
  *
- * Figures below are read off THIS file's own run (2026-09-16). Every one of them
+ * Figures below are read off THIS file's own run (2026-09-18). Every one of them
  * is printed by the run; the only arithmetic done on them here is reading a
  * drained fraction as a share of a 0–10 notch.
  *
  * SELF-CHECK, printed first and the only assertions: at n ≥ 30 the α walk's
- * prequential MAE reads 0.1076 against the σ₀ = 0.15 the ratings were noised at,
- * over 5864 held-out observations. Every count in this file is in OBSERVATIONS,
- * which is not the number of logs: one 🪫 row is two observations, its mind
- * rating and its body one, and so is one ☕ pair. A Gaussian's MAE is 0.798σ and the 0–10 quantizer
+ * prequential MAE reads 0.1077 against the σ₀ = 0.15 the ratings were noised at,
+ * over 2424 held-out observations. Every `obs` count in this file is in
+ * OBSERVATIONS, which is not the number of logs: one 🪫 row is two observations,
+ * its mind rating and its body one, and so is one ☕ pair. The `n` AXIS is each
+ * fit's own `usedCount`, and for α that now counts DAYS (§8.7's row filter), so
+ * a 40-day user cannot reach past the 30-44 bin — which is why α's table is
+ * three columns shorter than r's. A Gaussian's MAE is 0.798σ and the 0–10 quantizer
  * pulls it below that, so the band is wide; miss it and the fit and the
  * generator are not the same model.
  *
@@ -53,27 +58,28 @@
  * draws held by the fit bounds, all 9550 held-out observations scorable. Errors
  * are drained fractions, so 0.01 is a tenth of a 0–10 notch:
  *
- *     n            0      1      2    3-4    5-7    8-9  10-14  15-19  20-29  30-44  45-64    65+
- *     fitted  0.1370 0.1319 0.1316 0.1156 0.1194 0.1066 0.1101 0.1126 0.1122 0.1074 0.1076 0.1079
- *     default 0.1370 0.1306 0.1408 0.1312 0.1433 0.1342 0.1440 0.1448 0.1431 0.1449 0.1402 0.1424
- *     Δ       0.0000 0.0013 -.0092 -.0156 -.0239 -.0276 -.0339 -.0323 -.0309 -.0375 -.0327 -.0344
- *     cover    80.5%  69.3%  72.4%  70.1%  64.6%  70.7%  68.8%  66.3%  66.4%  70.6%  69.2%  69.6%
- *     obs        246     88     76    278    342    266    580    620   1190   1788   2420   1656
+ *     n            0      1      2    3-4    5-7    8-9  10-14  15-19  20-29  30-44
+ *     fitted  0.1370 0.1340 0.1213 0.1230 0.1137 0.1113 0.1149 0.1112 0.1095 0.1077
+ *     default 0.1370 0.1314 0.1394 0.1433 0.1392 0.1373 0.1451 0.1471 0.1415 0.1414
+ *     Δ       0.0000 0.0026 -.0182 -.0204 -.0255 -.0260 -.0302 -.0359 -.0320 -.0337
+ *     cover    80.5%  71.1%  70.9%  66.7%  69.6%  67.1%  66.0%  67.9%  69.1%  68.1%
+ *     obs        246    256    230    472    714    484   1184   1206   2334   2424
  *
  * **The α fit predicts, and it is worth about a third of a notch.** The fitted
  * curve falls below the default one from n = 2 and settles ≈0.034 drained
  * fraction better — a third of one 0–10 rating notch, against ratings the user
  * enters in whole notches. It saturates by n ≈ 10–15 and buys nothing after.
  *
- * **And it is NEGATIVE at one and two logs for a user near the defaults.** At
- * 0.5× the prior width Δ reads +0.0081 at n = 1 and +0.0093 at n = 2 before
- * turning over at n = 3-4; at 1× it is +0.0013 at n = 1; at 2× it is negative
- * everywhere from the first log. So the first one or two 🪫 rows make the
- * prediction WORSE for exactly the user the defaults already described, which is
+ * **And it is NEGATIVE at the FIRST day for a user near the defaults.** At
+ * 0.5× the prior width Δ reads +0.0095 at n = 1 before turning over at n = 2; at
+ * 1× it is +0.0026 at n = 1; at 2× it is negative everywhere from the first day.
+ * So the first 🪫 day makes the prediction WORSE for exactly the user the
+ * defaults already described, which is
  * the same shape §5 handles for ϕ by withholding the reading below
- * `SKILL_MIN_SCORED_LOGS` — and the α cards withhold nothing.
+ * `SKILL_MIN_SCORED_LOGS` — and the α cards withhold nothing. The row filter
+ * shortened this: the whole-log fit was still negative at n = 2 in this arm.
  *
- * **α's band is calibrated.** Coverage sits between 64.6% and 72.4% at every
+ * **α's band is calibrated.** Coverage sits between 65.9% and 73.4% at every
  * n ≥ 1 in all three arms against 68.3% nominal, with no drift in n. Only n = 0
  * departs, and the direction is the prior's: 89.0% at 0.5× the prior width,
  * 80.5% at 1×, 72.0% at 2× — a user closer to the defaults than λ believes is
@@ -137,7 +143,7 @@
  * card that prints it would be printing nothing — none does past n = 3-4. If
  * skill had arrived only at 2× the prior width, it would be an artifact of
  * placing the population far from the defaults; α and r both show it at 0.5×
- * too, from n = 3-4. If coverage had drifted with n, the ± would be
+ * too, α from n = 2 and r from n = 3-4. If coverage had drifted with n, the ± would be
  * mis-specified in the way a band that ignores parameter uncertainty is; α's
  * does not move and r's converges from above. If the n = 0 column had departed
  * from nominal in the SAME direction at every spread, the prior width would be
@@ -172,6 +178,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+	keepDayFirstDrainRows,
 	toCognitiveDrainObservations,
 	toPhysicalDrainObservations,
 	toRestObservations,
@@ -585,7 +592,12 @@ function walkDrain(rows: DrainObservationRecord[], isCognitive: boolean): Scored
 	const scored: Scored[] = [];
 
 	for (const date of dates) {
-		const prefix = rows.filter((row) => row.date < date);
+		// The rows the app's own fit would read: one a day per reservoir (§8.7).
+		const prefix = keepDayFirstDrainRows(
+			rows.filter((row) => row.date < date),
+			toObservations,
+		);
+
 		const fit = fitDrainRate(toObservations(prefix), prior.mean, DEFAULT_ENERGY_PARAMS);
 
 		const posterior =

@@ -9,6 +9,7 @@ import {
 	DEFAULT_ENERGY_PARAMS,
 	fitDrainRate,
 	fitRecoveryRate,
+	isInformativeDrainObservation,
 	simulateReservoirs,
 	type DrainObservation,
 	type DrainRateFit,
@@ -42,6 +43,34 @@ export function toPhysicalDrainObservations(records: DrainObservationRecord[]): 
 	}));
 }
 
+/**
+ * Each day's earliest INFORMATIVE 🪫 row for one reservoir — what the α fits
+ * read, per reservoir (MATH.md §8.7).
+ *
+ * The law assumes the rated session started on a FULL reservoir; a mid-day
+ * session did not, so keeping it rates the fit above what the law predicts and
+ * biases α̂ upward. The axis is the reservoir and not the day because a session
+ * at demand 0 leaves that reservoir full (g = 1, ρ = r′, C_eq = 1, so C(H) = 1),
+ * which makes the row after it eligible — a user whose day opens with a walk
+ * would otherwise never get a cognitive α̂ at all.
+ */
+export function keepDayFirstDrainRows(
+	records: DrainObservationRecord[],
+	toObservations: (records: DrainObservationRecord[]) => DrainObservation[],
+): DrainObservationRecord[] {
+	const dayFirst = new Map<string, DrainObservationRecord>();
+
+	for (const row of records) {
+		if (!isInformativeDrainObservation(toObservations([row])[0])) continue;
+
+		const held = dayFirst.get(row.date);
+
+		if (held === undefined || row.createdAt < held.createdAt) dayFirst.set(row.date, row);
+	}
+
+	return [...dayFirst.values()];
+}
+
 /** Both reservoirs' pairs feed the ONE shared recovery rate, so this flattens. */
 export function toRestObservations(records: RestObservationRecord[]): RestObservation[] {
 	return records.flatMap((o) => [
@@ -73,7 +102,8 @@ export interface EnergyCalibration {
  * Applies the MATH.md §8.7/§8.9 fit ordering: recovery is fitted FIRST (it is
  * α-free — rest data identifies r·m), then the two drain rates are fitted
  * conditioned on that recovery, which is what makes α identifiable at all. The
- * stored 0–10 ratings are mapped to the fits' [0,1] fractions here. Starts from
+ * stored 0–10 ratings are mapped to the fits' [0,1] fractions here, and each drain
+ * fit reads one row per day per reservoir (`keepDayFirstDrainRows`). Starts from
  * `seed` (default DEFAULT_ENERGY_PARAMS, the anchor the Burnout Risk metric
  * uses) and overwrites only the parameters whose fit succeeded — everything
  * else is carried through untouched.
@@ -91,11 +121,19 @@ export function calibrateEnergyParams(
 
 	if (recovery.fitted) p.recoveryRate = recovery.rate;
 
-	const cognitiveDrain = fitDrainRate(toCognitiveDrainObservations(drain), p.alphaCog, p);
+	const cognitiveDrain = fitDrainRate(
+		toCognitiveDrainObservations(keepDayFirstDrainRows(drain, toCognitiveDrainObservations)),
+		p.alphaCog,
+		p,
+	);
 
 	if (cognitiveDrain.fitted) p.alphaCog = cognitiveDrain.alpha;
 
-	const physicalDrain = fitDrainRate(toPhysicalDrainObservations(drain), p.alphaPhys, p);
+	const physicalDrain = fitDrainRate(
+		toPhysicalDrainObservations(keepDayFirstDrainRows(drain, toPhysicalDrainObservations)),
+		p.alphaPhys,
+		p,
+	);
 
 	if (physicalDrain.fitted) p.alphaPhys = physicalDrain.alpha;
 
@@ -232,8 +270,9 @@ export interface DrainRanking {
 /**
  * Which task title drains each reservoir fastest per hour of its own declared
  * demand, and which slowest, over the rows in [`rangeStart`, `today`) —
- * MATH.md §8.14, which owns the prior anchor, the day's-first-row restriction
- * and the three gates. `params` supplies both the recovery constants the fit
+ * MATH.md §8.14, which owns the prior anchor and the three gates; the rows it
+ * fits are the α fits' own (`keepDayFirstDrainRows`). `params` supplies both the
+ * recovery constants the fit
  * conditions on and the global α̂ each title's fit is anchored to, so it must be
  * the user's CALIBRATED params and not the defaults.
  */
@@ -243,44 +282,34 @@ export function rankDrainByTask(
 	today: string,
 	params: EnergyParams,
 ): DrainRanking {
-	// One row per DAY, not per day-and-title: §8.7's law assumes the session
-	// started on a full reservoir, so only the day's earliest rating satisfies the
-	// assumption the fit makes about it (MATH.md §8.14).
-	const dayFirst = new Map<string, DrainObservationRecord>();
-
-	for (const row of drain) {
-		if (row.date < rangeStart || row.date >= today) continue;
-
-		const held = dayFirst.get(row.date);
-
-		if (held === undefined || row.createdAt < held.createdAt) dayFirst.set(row.date, row);
-	}
-
-	// The title frozen onto the record, because each day's instance of a routine
-	// task carries a fresh `taskId`.
-	const byTitle = new Map<string, DrainObservationRecord[]>();
-
-	for (const row of dayFirst.values()) {
-		const held = byTitle.get(row.taskTitle);
-
-		if (held) held.push(row);
-		else byTitle.set(row.taskTitle, [row]);
-	}
+	const windowed = drain.filter((row) => row.date >= rangeStart && row.date < today);
 
 	return {
-		cognitive: rankReservoir(byTitle, toCognitiveDrainObservations, params.alphaCog, params),
-		physical: rankReservoir(byTitle, toPhysicalDrainObservations, params.alphaPhys, params),
+		cognitive: rankReservoir(windowed, toCognitiveDrainObservations, params.alphaCog, params),
+		physical: rankReservoir(windowed, toPhysicalDrainObservations, params.alphaPhys, params),
 		deferredCount: drain.filter((row) => row.date >= today).length,
 	};
 }
 
 /** One reservoir's ends, or nothing if §8.14's three gates do not all pass. */
 function rankReservoir(
-	byTitle: Map<string, DrainObservationRecord[]>,
+	windowed: DrainObservationRecord[],
 	toObservations: (records: DrainObservationRecord[]) => DrainObservation[],
 	anchorAlpha: number,
 	params: EnergyParams,
 ): DrainRankingPair | null {
+	// The day's row is picked before the titles are split, never inside one: a
+	// per-title day-first row is not the rule (§8.7). The title comes frozen off
+	// the record, each day's instance of a routine task carrying a fresh `taskId`.
+	const byTitle = new Map<string, DrainObservationRecord[]>();
+
+	for (const row of keepDayFirstDrainRows(windowed, toObservations)) {
+		const held = byTitle.get(row.taskTitle);
+
+		if (held) held.push(row);
+		else byTitle.set(row.taskTitle, [row]);
+	}
+
 	const fits: { taskTitle: string; fit: DrainRateFit }[] = [];
 
 	for (const [taskTitle, records] of byTitle) {

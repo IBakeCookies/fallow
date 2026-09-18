@@ -70,7 +70,7 @@
 	);
 
 	const calibration = $derived(analytics.calibration);
-	// Both α fits read the same 🪫 rows, so either off its default is a personalized model.
+	// Either α off its default is a personalized model.
 	// Null until the snapshot lands: the count's store answers before it does.
 	const drainRatesFitted = $derived(
 		calibration

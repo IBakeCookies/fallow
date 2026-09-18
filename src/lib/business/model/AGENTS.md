@@ -162,7 +162,9 @@ its allocation code, so the main page is unaffected by changes here.
   identifiable at all; `recoveryRate` is _not_ identifiable from
   end-of-session ratings — don't try. λ₀ is fitted last, conditioned on
   everything else. Each fit is a 1-D ridge toward the **defaults**, not toward
-  current inputs. Ratings with demand 0 carry no signal and are dropped.
+  current inputs. Both α fits read one 🪫 row a day **per reservoir** — the
+  earliest with demand and hours above 0 (`keepDayFirstDrainRows`, shared with
+  §8.14 and the Lab); an α snapshotted before it is another estimator's.
 - `capacityFromDrainRate` runs the reservoir law backwards at full demand: the
   hours at which a fitted α drains one reservoir to a shared floor, which is a
   capacity pool in hours. Its domain is a `CAPACITY_MAP_POLE_MARGIN` multiple of
@@ -175,13 +177,13 @@ its allocation code, so the main page is unaffected by changes here.
   no allocation reads it directly, the pools stay declared, and only a fitted α
   inside the domain and under the field's `CAPACITY_POOL_MAX_HOURS` is offered.
   §8.13.
-- `rankDrainByTask` re-runs the §8.7 drain fit per **task title** over each day's
-  EARLIEST 🪫 row only, anchored to the user's own fitted α — which is what makes
-  the ridge protective, so a thin title cannot reach an end of the ranking. Both
-  ends must clear `DRAIN_RANKING_MIN_LOGS` and separate by more than the sum of
-  their posterior stds, or that reservoir is unranked. A **reading, never an
-  input**: nothing allocates on it, and the per-title α is the drain analogue of
-  the per-task ϕ offsets refused below. §8.14.
+- `rankDrainByTask` re-runs the §8.7 drain fit per **task title**, anchored to
+  the user's own fitted α — which is what makes the ridge protective, so a thin
+  title cannot reach an end of the ranking. Both ends must
+  clear `DRAIN_RANKING_MIN_LOGS` and separate by more than the sum of their
+  posterior stds, or that reservoir is unranked. A **reading, never an input**:
+  nothing allocates on it, and the per-title α is the drain analogue of the
+  per-task ϕ offsets refused below. §8.14.
 - Both stop readings — the λ₀ fit (§8.10) and the live advisor (§8.11) — read
   the day from the 🪫 rows' own log moments: one block per session, in log order,
   the space between them rest. Never re-sum the rows by task on the way in —
@@ -661,3 +663,10 @@ MATH.md §2 and §6; the energy model runs the same curve (§8).
 
 §8.10's finding 1 is W\*(λ₀) monotone and graded (`zenith-energy.test.ts`),
 not fit precision: RMSE outside the bracket half-width is no defect (M105).
+
+### The α row filter is unconditional and keyed on the reservoir
+
+Not gated on a log count, and not keyed on the day: a session at demand 0 leaves
+that reservoir full, so one row a day for both fits would leave the user whose
+day opens with a walk without a cognitive α̂ at all. Both refusals are argued in
+MATH.md §8.7 and measured in `drain-fit-day-first.probe.ts`.

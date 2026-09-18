@@ -10,8 +10,10 @@
    The counts are each fit's OWN `usedCount` — informative observations, not raw
    log rows. The ϕ row's is additionally recency-weighted, so it is a fresh-log
    equivalent and prints with a decimal (MATH.md §5.2); the other four are
-   whole counts. A row that deferred today's logs names them separately, as the
-   raw rows they are. */
+   whole counts, and three of them count DAYS rather than logs — the two α fits
+   read one 🪫 row per day per reservoir (MATH.md §8.7) and λ₀ reads whole days,
+   while the ☕ recovery row keeps counting ratings. A row that deferred today's
+   logs names them separately, as the raw rows they are. */
 
 import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
@@ -95,14 +97,15 @@ export function calibrationRows(
 
 	const { flow, energy, stopping, defaults } = calibration;
 
-	// Both α fits read the same 🪫 rows, so the two drain rows name one count.
+	// One spelling for both drain rows; the counts can differ, a session that
+	// loaded one reservoir alone being kept for that reservoir only (MATH.md §8.7).
 	const drainEvidence = (count: number) =>
 		energy.pendingDrainCount > 0
 			? m.ana_model_note_drain_pending({
 					count,
 					pending: energy.pendingDrainCount,
 				})
-			: m.ana_model_note_ratings({
+			: m.ana_model_note_days({
 					count,
 				});
 

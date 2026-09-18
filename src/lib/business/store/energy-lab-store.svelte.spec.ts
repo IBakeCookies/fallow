@@ -571,29 +571,82 @@ describe('EnergyLabStore', () => {
 	});
 
 	// R3: the Lab and the Burnout Risk facade must read identical logs the same
-	// way — only their fit SEQUENCE differs.
+	// way — only their fit SEQUENCE differs. That is the row filter as much as
+	// the mapping: an α̂ the Lab prints and applies that the plan never fits on
+	// is the one drift this guard exists to catch (MATH.md §8.7).
 	it('maps drain records through the shared calibration mapping', async () => {
 		const store = await setup();
 
-		const records = [
-			drainRecord(),
+		const dayOne = drainRecord({
+			createdAt: 9,
+		});
+
+		const dayTwo = drainRecord({
+			date: '2026-07-18',
+			createdAt: 9,
+			hours: 2,
+			cognitiveDemand: 0.6,
+			mindDrain: 7,
+		});
+
+		// The later session on day one is not a second observation — the filter
+		// below is the Lab's as much as the facade's.
+		mockObservations.drainObservations = [
+			dayOne,
 			drainRecord({
+				createdAt: 17,
 				hours: 2,
-				cognitiveDemand: 0.6,
 				mindDrain: 7,
 			}),
+			dayTwo,
 		];
 
-		mockObservations.drainObservations = records;
 		flushSync();
 
 		expect(store.cognitiveDrainFit).toEqual(
 			fitDrainRate(
-				toCognitiveDrainObservations(records),
+				toCognitiveDrainObservations([dayOne, dayTwo]),
 				DEFAULT_ENERGY_PARAMS.alphaCog,
 				store.params,
 			),
 		);
+	});
+
+	// The Lab's own pair of `fitDrainRate` calls sits outside
+	// `calibrateEnergyParams`, so the filter reaches it only if it was put there
+	// too — and the Lab is where a user READS α̂ and presses to apply it.
+	it('leaves both drain fits unmoved by a later session on a day already read', async () => {
+		const store = await setup();
+
+		const morning = drainRecord({
+			createdAt: 9,
+			hours: 1,
+			mindDrain: 3,
+			bodyDrain: 3,
+		});
+
+		mockObservations.drainObservations = [morning];
+		flushSync();
+
+		const firstOnly = {
+			cognitive: store.cognitiveDrainFit.alpha,
+			physical: store.physicalDrainFit.alpha,
+		};
+
+		mockObservations.drainObservations = [
+			morning,
+			drainRecord({
+				createdAt: 17,
+				hours: 1,
+				mindDrain: 9,
+				bodyDrain: 9,
+			}),
+		];
+
+		flushSync();
+
+		expect(store.cognitiveDrainFit.alpha).toBe(firstOnly.cognitive);
+		expect(store.physicalDrainFit.alpha).toBe(firstOnly.physical);
 	});
 
 	// The α and r fits are identity, so they read logs dated strictly

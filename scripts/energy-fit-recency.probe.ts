@@ -14,7 +14,10 @@
  * quarter hours and demands on the ten slider notches — every row is one the
  * app could hold, and every 🪫 row starts from a FULL reservoir, exactly as
  * §8.7's fit assumes, so the run measures the estimator and not the model's
- * fresh-start approximation. The truth starts AT the defaults (r 0.7,
+ * fresh-start approximation. §8.7's row filter still applies, and it discards
+ * rows this generator made fresh: the light logger writes at most one 🪫 a day
+ * and loses nothing, the heavy one writes ~1.7 and loses the rest — which is
+ * why every light cell below is the pre-filter one and the heavy cells moved. The truth starts AT the defaults (r 0.7,
  * α_cog 0.35, α_phys 0.3) and drifts θ(t) = θ₀·(1 + δ·s(t)) by the same share δ
  * on all three rates, so the ridge prior sits on the START of the drift: the
  * case in which a whole-history fit hides it best. The history is cut at its
@@ -25,13 +28,13 @@
  * per cell of shape × δ × volume; the row structure is the seed's, so the same
  * logger is re-rated under every drift.
  *
- * Figures below are read off THIS file's own run (2026-09-15). Every one of
+ * Figures below are read off THIS file's own run (2026-09-18). Every one of
  * them is printed by the run; none is computed by hand.
  *
  * SELF-CHECK, printed first and load-bearing (the phi-prequential-skill.probe.ts
  * convention). At δ = 0 and the heavy volume the whole-history fit recovers
- * r 0.7110 against 0.7 (1.6%), α_cog 0.3373 against 0.35 (3.6%) and α_phys
- * 0.3116 against 0.3 (3.9%), all inside the 10% the self-check asserts. If they
+ * r 0.7110 against 0.7 (1.6%), α_cog 0.3372 against 0.35 (3.7%) and α_phys
+ * 0.3109 against 0.3 (3.6%), all inside the 10% the self-check asserts. If they
  * miss, the generator and the fits disagree and every cell below is noise; they
  * are the only assertions here.
  *
@@ -44,8 +47,8 @@
  *           α_cog      1.38    δ 0.10  98%   δ 0.10 100%
  *           α_phys     1.87    δ 0.50 100%   δ 0.25  98%
  *     heavy r          1.91    δ 0.10  93%   δ 0.10 100%
- *           α_cog      2.28    δ 0.10 100%   δ 0.10 100%
- *           α_phys     1.76    δ 0.25 100%   δ 0.10  93%
+ *           α_cog      1.71    δ 0.10 100%   δ 0.10 100%
+ *           α_phys     1.88    δ 0.25 100%   δ 0.10  60%
  *
  * A 10% drift is already visible on α_cog at both volumes and both shapes; the
  * last rate to surface is α_phys, at 50% under a light logger's linear ramp
@@ -56,16 +59,16 @@
  * matched its own sampling spread, a stationary z would be |N(0,1)| at every
  * volume, whose median the run prints as its nominal 0.674. Measured, the
  * stationary median z reads r 0.30 / α_cog 0.45 / α_phys 0.73 light and
- * r 0.54 / α_cog 0.62 / α_phys 0.71 heavy: the heavy α rates sit at the nominal
- * (0.62, 0.71), heavy r under it (0.54), and light r and α_cog further under
- * still (0.30, 0.45). The mechanism is the same ν₀ blend toward σ₀ that
+ * r 0.54 / α_cog 0.49 / α_phys 0.64 heavy: every cell is under the nominal, the
+ * heavy ones nearest it (0.49–0.64) and light r and α_cog furthest under
+ * (0.30, 0.45). The mechanism is the same ν₀ blend toward σ₀ that
  * §8.7 shares across the three fits — at the smaller n of a light half it
  * widens s past the fits' real spread, while the one ridge prior pulls both
  * halves toward the same point and narrows the numerator. z runs compressed at
  * light volume, and the 40-seed max inherits that compression, which is why the
  * light ceilings sit BELOW the heavy ones on r (1.13 against 1.91) and α_cog
- * (1.38 against 2.28). So volume does not buy a lower z ceiling; what it buys
- * is the z at a given δ — heavy/step α_cog reads 9.19 where light/step reads
+ * (1.38 against 1.71). So volume does not buy a lower z ceiling; what it buys
+ * is the z at a given δ — heavy/step α_cog reads 6.79 where light/step reads
  * 3.34 — which is what drops the smallest visible δ in the table above.
  *
  * READING 2 — median |θ̂ − θ(day 365)| for the whole-history fit and for the
@@ -80,15 +83,15 @@
  *                α_cog  1.11×  0.19×  0.16×  0.18×  0.14×
  *                α_phys 1.00×  0.45×  0.48×  0.06×  0.05×
  *     heavy linear r    1.05×  0.68×  0.54×  0.45×  0.46×
- *                α_cog  1.03×  0.26×  0.31×  0.48×  0.44×
- *                α_phys 0.91×  0.78×  0.68×  0.48×  0.49×
+ *                α_cog  1.03×  0.23×  0.30×  0.50×  0.45×
+ *                α_phys 0.98×  0.73×  0.69×  0.48×  0.49×
  *           step   r    1.05×  0.21×  0.11×  0.05×  0.06×
- *                α_cog  1.03×  0.10×  0.26×  0.14×  0.07×
- *                α_phys 0.91×  0.35×  0.42×  0.04×  0.06×
+ *                α_cog  1.03×  0.15×  0.22×  0.14×  0.07×
+ *                α_phys 0.98×  0.35×  0.43×  0.06×  0.05×
  *
  * The crossover is not at a positive drift: every one of the forty-eight δ > 0
  * cells is under 1×, and the δ = 0 column — the pure price of halving the mass,
- * with nothing to find — runs 0.91×–1.11×. The late half is never the worse of
+ * with nothing to find — runs 0.98×–1.11×. The late half is never the worse of
  * the two once the drift is real, and the step shape, the best case for a
  * midpoint split, is where it runs furthest (0.04× on r at δ = 1 against the
  * linear ramp's 0.47× on the same rate and volume). The absolute errors under
@@ -107,24 +110,24 @@
  *           whole   0.0049   0.0176   0.0052
  *           late    0.0117   0.0207   0.0048
  *           ratio    2.40×    1.18×    0.92×
- *     heavy ceiling   1.98     3.37     2.33
- *           median z  0.79     0.67     0.66
- *           whole   0.0098   0.0156   0.0025
- *           late    0.0094   0.0160   0.0029
- *           ratio    0.96×    1.03×    1.14×
+ *     heavy ceiling   1.98     3.51     1.84
+ *           median z  0.79     0.71     0.80
+ *           whole   0.0098   0.0153   0.0034
+ *           late    0.0094   0.0152   0.0043
+ *           ratio    0.96×    0.99×    1.27×
  *
  * Halving does cost more than ≈1× on r and α_cog when the prior is wrong AND
- * the logger is light — 2.40× and 1.18× there, against 0.96× and 1.03× at the
+ * the logger is light — 2.40× and 1.18× there, against 0.96× and 0.99× at the
  * heavy volume, where the data outvotes the prior in each half on its own. So
  * on those two rates the crossover a light logger has to clear is not at δ ≈ 0
  * if their rates sit off the defaults, and reading 2's δ = 0 column understates
  * it. α_phys is the exception and inverts the contrast: 0.92× light against
- * 1.14× heavy, the only control cell where halving pays at the light volume.
+ * 1.27× heavy, the only control cell where halving pays at the light volume.
  *
- * The ceiling moves with WHERE the truth sits, too, and mostly upward: five of
- * the six cells above are higher than their on-prior twins (heavy α_cog 3.37
- * against 2.28, light r 1.67 against 1.13), the exception being light α_phys
- * (1.44 against 1.87). A ceiling measured at the defaults is therefore not a
+ * The ceiling moves with WHERE the truth sits, too, and mostly upward: four of
+ * the six cells above are higher than their on-prior twins (heavy α_cog 3.51
+ * against 1.71, light r 1.67 against 1.13), the exceptions being both α_phys
+ * cells (light 1.44 against 1.87, heavy 1.84 against 1.88). A ceiling measured at the defaults is therefore not a
  * ceiling for a user whose rates sit elsewhere, which is what the closing rule
  * below has to be read against.
  *
@@ -136,16 +139,16 @@
  *     δ                 0.00   0.10   0.25   0.50   1.00
  *     light linear      0.96×  1.45×  1.47×  1.31×  1.43×
  *           step        0.96×  0.99×  0.80×  2.78×  3.89×
- *     heavy linear      0.99×  1.32×  1.54×  1.40×  1.54×
- *           step        0.99×  1.73×  0.18×  3.18×  7.43×
+ *     heavy linear      0.98×  1.48×  1.65×  1.38×  1.52×
+ *           step        0.98×  1.20×  0.22×  3.36×  6.69×
  *
- * Crossing the conditioner costs 1.31×–1.54× on every linear cell at δ > 0 and
- * up to 7.43× on the step at δ = 1, where the whole-history r is an average of
+ * Crossing the conditioner costs 1.31×–1.65× on every linear cell at δ > 0 and
+ * up to 6.69× on the step at δ = 1, where the whole-history r is an average of
  * two regimes and α bends to absorb it. The third reason is therefore not a
  * theoretical worry: weighting α without weighting r is measurably worse than
  * weighting neither. At δ = 0.1 and 0.25 on the step both errors sit between
- * 0.0023 and 0.0123, and the four ratios there — 0.99× and 0.80× light, 1.73×
- * and 0.18× heavy — read as noise at those magnitudes rather than as a cost.
+ * 0.0023 and 0.0102, and the four ratios there — 0.99× and 0.80× light, 1.20×
+ * and 0.22× heavy — read as noise at those magnitudes rather than as a cost.
  *
  * WHAT WOULD FALSIFY WHAT. If the smallest visible δ had come out above 1.0 at
  * the light volume, a year of a real logger's ☕/🪫 rows could not see drift at
@@ -163,9 +166,9 @@
  * quantization and the linear rating map, and with `DEFAULT_ENERGY_PARAMS`
  * themselves — the drifting arms' truth is drawn from them, so moving a default
  * moves the generator and the prior together. The ceiling is a MAX over 40
- * seeds, the noisiest statistic here: on-prior α_phys reads a lower ceiling
- * heavy (1.76) than light (1.87), which is the estimator of the ceiling moving,
- * not the ceiling.
+ * seeds, the noisiest statistic here: on-prior α_phys reads 1.87 light and 1.88
+ * heavy, indistinguishable across a twelvefold difference in logging volume,
+ * which is the estimator of the ceiling moving and not the ceiling.
  *
  * The rule for a user's own logs: revisit §5.2's deferral when their split
  * reading clears the ceiling at their volume AND the drift it implies is past

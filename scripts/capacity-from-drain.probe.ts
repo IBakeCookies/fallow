@@ -27,7 +27,7 @@
  * measured against — and it does not need the DECLARED pool to bind, since a
  * pool that is too generous is priced by the hours the true day could not hold.
  *
- * What arm A's seed sweep found (run 2026-09-06, seeds 42–53, today's
+ * What arm A's seed sweep found (run 2026-09-18, seeds 42–53, today's
  * constants): every one of those four-decimal Δ is smaller than the spread of
  * its own cell across seeds, so none of them carries a sign. Per point, the
  * range of the truth−4/6 Δ against the seed-42 cell the sentence above quotes:
@@ -35,23 +35,23 @@
  * very nearly 4/6, and it binds on 9 of 60 days); −0.0035 over 0.0044, positive
  * at 2 of 12 seeds; −0.0024 over 0.0129, positive at 6 of 12; +0.0116 over
  * 0.0403, ranging −0.0170 to +0.0232 and positive at 9 of 12. The derived−4/6
- * Δ moves further still — at α 0.7/0.45 it runs −0.0117 to +0.0108 (positive at
- * 5 of 12), and the +0.0341 headline at α 0.95/0.6 runs −0.0283 to +0.0389
+ * Δ moves further still — at α 0.7/0.45 it runs −0.0111 to +0.0119 (positive at
+ * 5 of 12), and the +0.0277 headline at α 0.95/0.6 runs −0.0253 to +0.0368
  * (positive at 8 of 12). So "the control ranks the correct pool below 4/6" is
  * one draw of a quantity centred near zero, not a property of the instrument,
  * and the one favourable point is not a favourable point either. The sweep
  * prints only seed 42's blocks, so it says nothing about how the binding counts
  * beside them move; what it decides is the Δ, and the Δ decides nothing.
  *
- * What arm D found (run 2026-09-03, seed 42, same four α pairs): planning under
+ * What arm D found (run 2026-09-18, seed 42, same four α pairs): planning under
  * 4/6 loses 1.757% of the objective on average against planning under the
- * truth, and the derived pool loses 0.970% — so the map roughly halves the cost
+ * truth, and the derived pool loses 0.917% — so the map roughly halves the cost
  * of the constants it would replace. The two are not uniformly ordered: 4/6
- * wins by 0.040 and 0.425 pp at the two points where it happens to be nearly
- * right (truth 4.00/5.97 h and 2.89/4.78 h) and loses by 0.865 and 2.750 pp as
+ * wins by 0.040 and 0.566 pp at the two points where it happens to be nearly
+ * right (truth 4.00/5.97 h and 2.89/4.78 h) and loses by 0.965 and 3.004 pp as
  * the truth moves away from it. The asymmetry is the reading: α̂ comes back high
- * at every point, so the derived pool is 0.30–0.89 h SMALL, and an
- * under-declared pool leaves value unspent (worst day 2.4–11.0%) while an
+ * at every point, so the derived pool is 0.27–0.86 h SMALL, and an
+ * under-declared pool leaves value unspent (worst day 2.4–12.6%) while an
  * over-declared one plots a day that cannot be worked (worst day 14.9–48.3%
  * once the truth moves off 4/6). The reference holds empirically as well as by
  * design: the best day is 0.000% at every point and under both pools, so the
@@ -59,9 +59,9 @@
  * It stays a reading about the estimator on a law it was given — arm B, the
  * loss when that law is false, still returns no derived pool at any point.
  *
- * What arm C found (run 2026-08-30, seed 42): sweeping the 🪫 opt-in rate from
- * 0.15 to 1.56 logs per day leaves α̂_cog wandering 0.59–0.72 with no trend, and
- * the derived cognitive pool 2.16–2.25 h where it is defined at all. It does
+ * What arm C found (run 2026-09-18, seed 42): sweeping the 🪫 opt-in rate from
+ * 0.15 to 1.56 logs per day leaves α̂_cog wandering 0.63–0.73 with no trend, and
+ * the derived cognitive pool 2.13–2.23 h where it is defined at all. It does
  * NOT reproduce the "α̂ drifts upward with the logging rate, so the pool shrinks
  * the more diligently you log" direction ROADMAP item 18 recorded on 2026-08-04
  * from an uncommitted variant; that direction is unsupported here. At three of

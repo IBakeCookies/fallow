@@ -38,7 +38,7 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~34k tokens at 4 chars/token; the largest
+The whole document is ~35k tokens at 4 chars/token; the largest
 single section is §8 at ~20k (§5 is ~5k), and most of the 27 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
@@ -61,23 +61,23 @@ retype a row, regenerate:
   §5.1      710-819  Posterior-aware allocation
 §6          821-833  Summary of v1 → v2 changes
 §7          835-857  Known approximations and deliberate non-changes
-§8         859-2159  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         859-2189  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      872-894  Intermittent-rest recovery correction
   §8.2      896-918  Warm-up carryover instead of binary reset
   §8.3      920-938  Verified consequences and a calibration question, closed
   §8.4     940-1010  Per-task satiety — concave daily value
   §8.5    1012-1052  Micro-recovery gate — a positive floor for full-demand t…
   §8.6    1054-1118  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1120-1288  Drain-rate calibration from end-of-session ratings
-  §8.8    1290-1325  45-minute plan granularity
-  §8.9    1327-1380  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1382-1700  Stopping-value calibration from observed stop times
-  §8.11   1702-1863  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1865-2019  The budget curve — what the day's LENGTH is worth
-  §8.13   2021-2090  Capacity from the fitted drain rate
-  §8.14   2092-2159  Per-title drain rate — which task costs more than its sl…
-§9        2161-2223  Plan-adherence reading and its verdict band
-§10       2225-2272  References
+  §8.7    1120-1313  Drain-rate calibration from end-of-session ratings
+  §8.8    1315-1350  45-minute plan granularity
+  §8.9    1352-1405  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1407-1725  Stopping-value calibration from observed stop times
+  §8.11   1727-1888  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1890-2044  The budget curve — what the day's LENGTH is worth
+  §8.13   2046-2116  Capacity from the fitted drain rate
+  §8.14   2118-2189  Per-title drain rate — which task costs more than its sl…
+§9        2191-2253  Plan-adherence reading and its verdict band
+§10       2255-2302  References
 ```
 
 <!-- section-index:end -->
@@ -1140,9 +1140,10 @@ D(w, H; α) = 1 − C(H),   C(H) = C_eq + (1 − C_eq)·e^(−ρH)
 ρ = α·w + r′·g,   C_eq = r′·g/ρ,   g = 1 − (1−b)·w
 ```
 
-Two independent 1-D fits share each observation: the mind rating with
+Two independent 1-D fits read each row: the mind rating with
 `w = wc` calibrates `alphaCog`, the body rating with `w = wp` calibrates
-`alphaPhys`.
+`alphaPhys`. They do not read the same rows — the filter below is per
+reservoir, so a row can be the day's first for one of them and not the other.
 
 **What is (not) identifiable.** Only **α** is fit. The fit _conditions on_
 the current `recoveryRate`, `restRecoveryMultiplier` and
@@ -1155,8 +1156,10 @@ a different instrument, out of scope HERE (built later as §8.9; this fit now
 conditions on the fitted r rather than a hand-set one). Observations with
 `w = 0` (or `H = 0`) are dropped entirely: D is then constant in α, so the
 rating says nothing about this reservoir's drain rate, and keeping it would
-only pollute the noise estimate. This was also deliberately sequenced AFTER
-the §8.5 gate fix, so α doesn't absorb gate mis-specification.
+only pollute the noise estimate — which is also what "informative" means in the
+row filter below, and why that filter is per reservoir and not per day. The fit
+was deliberately sequenced AFTER the §8.5 gate fix, so α doesn't absorb gate
+mis-specification.
 
 **The fit** (`fitDrainRate`, the `fitUserConstants` pattern in 1-D):
 
@@ -1164,6 +1167,18 @@ the §8.5 gate fix, so α doesn't absorb gate mis-specification.
 minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α ∈ [0.05, 2]
 ```
 
+- **Which rows i ranges over.** Each day's EARLIEST informative row for THIS
+  reservoir, by `createdAt` — not every 🪫 row (`keepDayFirstDrainRows`). `D` is
+  evaluated from `C = 1`, so the law is true only of a session that began on a
+  full reservoir, and within a day only the first one did. The axis is the
+  reservoir and not the day because the law itself says so: at `w = 0` it gives
+  `g = 1`, `ρ = r′`, `C_eq = 1` and hence `C(H) = 1`, so a session that never
+  loaded a reservoir leaves it full and the row after it still started fresh.
+  One filter for both reservoirs instead is simpler and wrong in a reachable
+  way — a user whose day opens with a walk would spend every day's slot on a row
+  the cognitive fit cannot read, and would never get a cognitive α̂ at all.
+  §8.14's per-title ranking and the Energy Lab's own pair of fits read the same
+  filter; what it costs and what it buys is the fresh-start bullet below.
 - **Prior.** α₀ = the model default; λ = `DRAIN_PRIOR_STRENGTH` = 0.25 is
   the Bayesian ridge weight (prior α ~ N(α₀, σ_d²/λ)). Unlike the ϕ fit's
   λ = 4, the effective "design" here is the sensitivity dD/dα (vanishing as
@@ -1189,39 +1204,47 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
 
 **Known approximations (deliberate).**
 
-- **Fresh-start assumption.** D assumes the session began at C = 1, like
-  `refOutput`'s standardized yardstick — the rating carries no information
-  about the pre-session level. A mid-day session that starts drained rates
-  higher than the model predicts and biases α upward. Still accepted, but no
-  longer on the grounds it was written down with. The fix was dismissed as
-  chaining the whole day's reservoir trajectory, which would need a complete
-  work log; the cheaper chaining the next paragraph describes — each row onto
-  the PREVIOUS row's own rating, recovered over the idle hours between the two
-  `createdAt`s — needs nothing the app does not already store. Scored against a
-  generator whose α is known it takes most of this bias off α̂, keeps enough of
-  that when three sessions in ten are never logged to still beat the
-  alternative, and moves §8.13's pool by the hours the removed bias was worth;
-  §8.14's earliest-row-per-day filter handed to the whole-log fit buys nearly
-  the same for no new estimator at all, paying in variance rather than bias.
-  `scripts/circadian-residual.probe.ts` is where the three are scored.
+- **Fresh-start assumption, to the extent the row filter does not carry it.** D
+  assumes the session began at C = 1, like `refOutput`'s standardized yardstick
+  — the rating carries no information about the pre-session level. The kept row
+  is the day's first, so what remains is overnight: it began fresh only as far
+  as the night refilled the reservoirs, and this fit does not read the
+  carry-over that would say how far.
 
-  **The bias is one-signed, so the ± cannot price it, and that is what decides
-  between the two.** σ̂ enters the reported std alone and the point never (the
-  ν₀ note above), so a fit that is wrong the same way on every row earns a
-  tighter band on a number that is not moving — the shape §8.10 names
-  common-mode for λ₀, and here it is an artifact whose sign is known in advance.
-  Measured against a truth the generator holds, the whole-log band's coverage of
-  that truth FALLS toward nothing as the log grows, while the filtered one shows
-  no trend in volume and stays somewhat under nominal — which is the reading
-  that separates the two arms; the RMSE of the
-  point alone does not, because the filter's own variance price makes it the
-  worse estimator at low log volume and the better one above a crossover the
-  probe brackets. What the filter changes downstream is priced there too: the
-  §8.13 pool offer moves with it and the §8.10 λ₀ fit recovers much of what
-  conditioning on a biased α costs, while §8.14's ranking is insensitive to it
-  for the reason that section gives. `scripts/drain-fit-day-first.probe.ts`
-  holds all four. What neither probe scores is the posterior ± a CHAINED fit
-  would report — the estimator itself is unbuilt.
+  **What the filter removed is the within-day part, and the ± is why it removed
+  it.** A mid-day session starts drained, rates higher than the model predicts,
+  and biases α upward — one-signed, so σ̂ cannot price it: σ̂ enters the reported
+  std alone and the point never (the ν₀ note above), so a fit that is wrong the
+  same way on every row earns a tighter band on a number that is not moving —
+  the shape §8.10 names common-mode for λ₀, and here an artifact whose sign is
+  known in advance. Measured against a truth the generator holds, the whole-log
+  band's coverage of that truth FALLS toward nothing as the log grows, while the
+  filtered one shows no trend in volume and stays somewhat under nominal. That
+  reading is what chose between them; the RMSE of the point alone does not,
+  because the filter's own variance price makes it the worse estimator at low
+  log volume and the better one above a crossover the probe only brackets. Which
+  is also why it is unconditional rather than gated on a log count: the
+  threshold would be a constant no run has located, and a user's offered pool
+  would jump the day they crossed it. Downstream, §8.13's pool offer moves with
+  the bias that left and §8.10's λ₀ fit recovers much of what conditioning on a
+  biased α cost, while §8.14's ranking is insensitive for the reason that
+  section gives. `scripts/drain-fit-day-first.probe.ts` holds all four. An α̂
+  snapshotted before this filter and one after are two estimators' answers to
+  the same question, so a `fitSnapshots` history spanning the change is not a
+  series; that is recorded in `business/model/AGENTS.md` and not repaired in
+  stored data.
+
+  **Rejected, both of them chained start levels.** Chaining the whole day's
+  reservoir trajectory needs a complete work log. The cheaper chaining the next
+  paragraph describes — each row onto the PREVIOUS row's own rating, recovered
+  over the idle hours between the two `createdAt`s — needs nothing the app does
+  not already store and takes more of the bias off α̂ than the filter does,
+  keeping enough of that when three sessions in ten are never logged; but it is
+  a second estimator to build, and what no probe scores is the posterior ± it
+  would report. `scripts/circadian-residual.probe.ts` scores the three against
+  each other. Also rejected: keeping every row and disclosing the blindness in
+  the Lab, which leaves a band that reads more confident the longer someone
+  logs.
 
 - **Linear rating map.** d/10 ↔ drained fraction assumes the subjective
   scale is linear in reservoir depletion with fixed anchors (0 = fresh,
@@ -1242,21 +1265,20 @@ by the gaps between sessions — so it is not monotone in the clock, but its
 expectation rises across a working day. The approximation therefore projects
 onto `cos(2πh/24)`/`sin(2πh/24)` on its own, peaking inside the user's own
 work window: for a day-shift routine, in the afternoon an alertness term
-would claim. The ridge fit absorbs a SENSITIVITY-WEIGHTED average of that
-residual into α̂ — weighted by the dD/dα that vanishes as w → 0, and then
-shrunk toward α₀ — which is the upward bias the bullet already names, and it
-has nowhere to put the part that varies with the clock. An hour-of-day
+would claim. A ridge fit over rows that started drained absorbs a
+SENSITIVITY-WEIGHTED average of that residual into α̂ — weighted by the dD/dα
+that vanishes as w → 0, and then shrunk toward α₀ — which is the upward bias
+the bullet above names, and it has nowhere to put the part that varies with the
+clock. An hour-of-day
 coefficient on α is therefore produced by the approximation before any
 circadian physiology is postulated: the null such a coefficient must beat is
 not zero modulation but the modulation the approximation manufactures on a
 generator carrying none, and tested against zero it would confirm a new
 parameter off a known defect. The stored rows allow exactly two corrections
-and both are trades, not fixes. Restricting to each day's earliest 🪫 row —
-§8.14's filter, imposed there against this same confound on a different axis
-— makes every observation satisfy the assumption up to overnight carry-over,
-and pays in the only design that can identify a 24-hour term: those rows sit
-where the user starts work, so the filter removes the clock spread the
-coefficient is read from. Chaining each row onto the previous row's own
+and both are trades, not fixes. The row filter is the one now shipped, and it
+pays in the only design that could identify a 24-hour term: the kept rows sit
+where the user starts work, so the clock spread the coefficient would be read
+from is gone. Chaining each row onto the previous row's own
 rating, recovered over the idle hours between the two `createdAt`s, is the
 only chained start level a per-session rating can supply; it pays in that
 rating's own noise and in assuming nothing unlogged drained the reservoir in
@@ -1265,12 +1287,15 @@ large a true modulation must be to clear it are measurements, not
 derivations: `scripts/circadian-residual.probe.ts`. The same file reads those
 two corrections a second time on α̂ itself, where the verdict inverts — what
 prices the clock reading out repairs the drain rate, because the amplitude
-needs the clock spread the filter destroys and α does not.
+needs the clock spread the filter destroys and α does not. No hour-of-day term
+is readable from this fit's own rows at all now, which is the settled answer
+and not a pending one.
 
-**Does it predict?** Graded by §5's prequential walk on held-out 🪫 rows, yes —
-and its advantage over the defaults PLATEAUS, so past a certain log count more
-rows buy no better prediction. But the first one or two rows make the
-prediction WORSE than the defaults for a user who was close to them to begin
+**Does it predict?** Graded by §5's prequential walk on held-out 🪫 rows — fitted
+on the filtered rows and scored on every row of the held-out day, which is the
+app's own asymmetry — yes, and its advantage over the defaults PLATEAUS, so past
+a certain log count more days buy no better prediction. But the FIRST day makes
+the prediction WORSE than the defaults for a user who was close to them to begin
 with, the ridge having moved α before the data can say which way. §5
 handles that shape for ϕ by withholding its reading below a scored-log floor;
 nothing withholds this one. The ± is separately well calibrated on the RATINGS —
@@ -2084,15 +2109,17 @@ empties the reservoir sooner, so it buys a smaller pool. The map therefore
 inherits whatever bias §8.7's α̂ carries, with the sign flipped;
 `capacity-from-drain.probe.ts` is where that is measured, and
 `drain-fit-day-first.probe.ts` is where the offer this map produces is scored
-against the pool a known α maps to, under the whole-log fit and under §8.7's
-filtered alternative. The gate is part of what moves: a less biased α̂ lands
+against the pool a known α maps to, under the whole-log fit this map inherited
+before and under the filtered one it inherits now. The gate is part of what
+moves: the less biased α̂ lands
 inside `CAPACITY_MAP_POLE_MARGIN` on logs where the biased one never does, so a
 fit closer to the truth withholds an offer the whole-log fit would have made.
 
 ### 8.14 Per-title drain rate — which task costs more than its sliders say
 
-**The reading.** §8.7 fits one α per reservoir over every 🪫 row. Restrict that
-same fit to the rows sharing one task title and it answers a different
+**The reading.** §8.7 fits one α per reservoir over each day's earliest
+informative 🪫 row. Restrict that same fit to the rows sharing one task title
+and it answers a different
 question: how fast this task drains the reservoir _per hour at its own declared
 demand_. Because `D(w, H; α)` already carries `w`, comparing two titles'
 α̂ compares them net of how hard the user rated each one — which is exactly the
@@ -2111,22 +2138,25 @@ nothing about the fit is retuned for this.
 **Whatever that anchor gets wrong, the ranking barely feels it.** The gates and
 the printed pair read the DIFFERENCE between two ends, and a shift in the prior
 mean shrinks both ends toward the same place, so it largely cancels before the
-gap is tested. Measured over the whole-log α̂ and §8.7's filtered alternative —
+gap is tested. Measured over the whole-log α̂ this fit was anchored to before
+and the filtered one it is anchored to now —
 which differ by most of the fresh-start bias — the qualifying share and the
 share naming both true ends barely move
 (`scripts/drain-fit-day-first.probe.ts` carries how little). What the ranking IS sensitive to is
 how many days its filter leaves per title, which is why the log count and not
 the anchor is what the three gates are written around.
 
-**Only each day's earliest 🪫 row is eligible.** §8.7's `D` assumes the session
-began at a full reservoir, and records that a mid-day session starting drained
-rates higher than the model predicts and biases α upward. Aggregated per title
-that bias stops being noise and becomes a confound with schedule position: a
+**Only each day's earliest informative 🪫 row is eligible, and that filter is
+§8.7's, not this section's.** Both fits read the same rows through the same
+`keepDayFirstDrainRows`; §8.7 states the rule and the bias it removes. What
+belongs here is the second reason for it. Aggregated per title that bias stops
+being noise and becomes a confound with schedule position: a
 task habitually worked last would top the ranking on _when_ it is done, not on
 what it costs, and the user would drop a task whose real remedy is an earlier
-slot. Restricting each day to its single earliest row by `createdAt` is the
-only filter under which every observation satisfies the assumption the fit
-makes about it. A row logged onto a past day carries a `createdAt` later than
+slot. That argument survives the filter's per-RESERVOIR axis unchanged: a title
+worked after a session that loaded only the OTHER reservoir did still start this
+one full, so eligibility tracks the level the row began at and never the title's
+position in the day. A row logged onto a past day carries a `createdAt` later than
 any row logged live that day, so it never displaces a live first row; its
 calendar day differs from `date`, which is how a time-of-day reading would
 exclude it. Rejected: keeping every row and disclosing the bias, which
