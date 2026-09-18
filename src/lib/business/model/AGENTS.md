@@ -71,9 +71,9 @@ a constant, a bound, or a fit's conditioning:
   task the user never logged, 75% of it on the very first log — and landing
   that on the day already in flight reshuffles a plan mid-execution. Applies to
   every **identity** fit (c₁c₂c₃, α, r, λ₀) and to **none** of the **state**
-  reads: `simulateReservoirs`, the carry-over and the §8.11 advisor take
-  today's logs immediately, because a gauge of the present that ignored them
-  would lie. `ageDays` runs against the planned day, not the live one. Any UI
+  reads: `simulateReservoirs`, the carry-over (§8.15) and the §8.11 advisor
+  take today's logs immediately, because a gauge of the present that ignored
+  them would lie. `ageDays` runs against the planned day, not the live one. Any UI
   that prints a log count must print the **counted** one and name the deferred
   ones separately, or the ⚡ button reads as broken. History obeys the same rule
   by **reading** the stored `fitSnapshots` per day rather than refitting:

@@ -147,26 +147,16 @@ export function calibrateEnergyParams(
 
 /**
  * One work-start-to-work-start cycle: everything not worked in it recovers at
- * the §8.1 rest law (evening leisure and sleep alike). A fixed cycle is not the
- * only anchor available — every 🪫 row carries a `createdAt`, so the real gap
- * from yesterday's last session to today's first is measurable, and §8.10 reads
- * those moments already. This anchor does not (ROADMAP item 41).
+ * the §8.1 rest law (evening leisure and sleep alike). Why the rows' own
+ * `createdAt`s are not read instead, and what the constant costs:
+ * MATH.md §8.15.
  */
 export const RESERVOIR_CYCLE_HOURS = 24;
 
 /**
- * Overnight reservoir carry-over: seed a day's starting
- * reservoir levels from the previous day's 🪫 drain logs. Each log carries the
- * worked hours and the demands captured at logging time, so the previous day
- * is simulated from fresh reservoirs through the §8.1/§8.5 law, then rests
- * through the remainder of the 24 h cycle. Starting fresh is the one-day
- * lookback: the day before yesterday reaches this morning attenuated by two
- * nights of recovery (< 1 % at the r fit floor after two 16 h gaps; the bound is
- * the gap's, so a pair of 19 h days keeps ~22 %), so recursing is noise.
- *
- * No logs → `params` unchanged (a fresh morning, the previous behavior).
- * Under default recovery a full night heals completely — carry-over becomes
- * visible exactly when the user's own ☕ fit says recovery is slow.
+ * Overnight reservoir carry-over: seed a day's starting reservoir levels from
+ * the previous day's 🪫 drain logs (MATH.md §8.15, which holds the one-day
+ * lookback and the anchor). No logs → `params` unchanged, a fresh morning.
  */
 export function seedMorningReservoirs(
 	params: EnergyParams,
@@ -176,13 +166,8 @@ export function seedMorningReservoirs(
 
 	if (!worked.length) return params;
 
-	// One block per ROW, keyed by the row's position rather than its taskId.
-	// A task rated twice in a day is two sessions with their own demands
-	// captured at their own logging times (MATH.md §8.7), and
-	// `simulateReservoirs` looks demands up by id — so sharing an id would let
-	// the later row's demands re-rate the earlier session, which is exactly
-	// what capturing demands at logging time exists to prevent. The id is only
-	// ever that lookup key here; nothing downstream reads it back.
+	// One block per ROW, keyed by position rather than taskId, so a task rated
+	// twice keeps its two sessions' own demands (MATH.md §8.15).
 	const blocks: ScheduleBlock[] = worked.map((o, i) => ({
 		taskId: i,
 		hours: o.hours,
