@@ -4,6 +4,7 @@ import {
 	AUTOSAVE_MS,
 	calibrationCard,
 	closeTaskForm,
+	copyDrainLogToDate,
 	copyFlowLogToDate,
 	drainChips,
 	isoDate,
@@ -606,6 +607,112 @@ test('the model card says how much closer the fit has predicted', async ({ page 
 
 	await expect(
 		page.getByText(/fit \d+(\.\d)? min closer than default over 6 predicted logs/),
+	).toBeVisible({
+		timeout: 15000,
+	});
+});
+
+/* Goal — on the analytics "Your model" card, the recovery row and both drain rows
+   say, the way the flow row does, whether the fitted rate has predicted my ☕ and
+   🪫 ratings better than the default would have: rating points, over the ratings
+   it predicted.
+
+   Tests: this test; src/lib/business/session-history.test.ts, describe "readModelReport
+     α and r skill" (4); src/lib/presentation/utils/calibration-descriptor.test.ts, "says
+     how much closer the recovery fit has predicted than the default", "says when a drain
+     fit has predicted further than the default", "gives the physical drain row its own
+     reservoir’s reading". The plan also wrote the descriptor's `unfitted` fixture its
+     `energy.skill` (all null) and `copyDrainLogToDate` in e2e/helpers.ts, which shares
+     `copyFlowLogToDate`'s body.
+   Pins: "reads each store once, whatever the report derives" (session-history.test.ts)
+     — the records come from WIDENING the report's one fitSnapshots read, never from a
+     second; the ϕ skill tests in all three files; the descriptor's "carries each row its
+     default and its evidence separately", "names a ☕ logged today on the recovery row",
+     "names the 🪫 logged today on both drain rows" — a null reading leaves the evidence
+     exactly as it reads today.
+   Out of scope:
+   - the floor gate, item 46's other half, deferred: `calibrateEnergyParams`,
+     `fitRidge1D`, `EnergyLabStore.applyFits` and `DailyPlanStore` do not move
+   - λ₀'s row: its prediction is the identity, and its band is ungradable (§8.10)
+   - the Energy Lab's fit lines (`energy_fit_value`)
+   - `phiSkillFrom`: ϕ keeps its refit walk
+   - stamping `fitSnapshots` from more screens to widen what gets scored
+   - a committed probe of the refit walk's cost
+   Read before building:
+   - src/lib/business/session-history.ts — `readModelReport` (the fitSnapshots read starts
+     at the earliest ☕/🪫 date when that is older, still one read, still ending at today;
+     the wider `recorded` also feeds the audit's `fitByDate`, inert there, since
+     `recordedFitRangeStart` already reaches the oldest audited day); `calibrationSnapshotFrom`,
+     where `energy` gains `skill: { recovery, cognitiveDrain, physicalDrain }`, each
+     `{ gapFraction, scoredCount } | null`; `phiSkillFrom`, the shape to follow (default
+     minus fitted, unclamped, null below `SKILL_MIN_SCORED_LOGS`); `trendFrom`, whose rule
+     today's ratings share — the LIVE fit, never today's own record
+   - src/lib/business/model/persisted.ts — `sanitizeFitSnapshots`: a record's `params` is
+     the defaults plus its three rates
+   - src/lib/business/model/zenith-energy.ts — the prediction closures inside
+     `fitDrainRate` (1 − `reservoirAt(1, reservoirLaw(…), hours)`) and `fitRecoveryRate`
+     (before·e^(−r·m·g)). Predict with the fits' own law, exported once (AGENTS.md R3);
+     the tests' longhand reaches the same law through `simulateReservoirs` from full
+   - src/lib/business/model/energy-calibration.ts — the 0–10 → fraction maps
+   - src/lib/presentation/utils/calibration-descriptor.ts — `evidenceWithSkill`, and the
+     recovery and drain rows' evidence
+   - messages/*.json — `ana_model_note_flow_closer`/`_further` are the pattern; five locales
+   - MATH.md §5 ("The convention is not ϕ's alone", "The shipped headline"), §8.7 and
+     §8.9 ("Does it predict?") — gain the shipped reading and why it reads records rather
+     than refitting; §8.7's "nothing withholds this one" stays true
+   - src/lib/business/AGENTS.md — prices `CalibrationSnapshot.energy.skill`;
+     src/lib/business/model/AGENTS.md — the causal-window bullet's "History … by reading
+     the stored fitSnapshots" gains this second reader
+   - scripts/energy-fit-prequential.probe.ts — the synthetic walk; mirror its scoring,
+     do not import it
+   Decisions: records, not refits — a per-date `calibrateEnergyParams` walk refits every
+     logged date on every row before it, per analytics open: ROADMAP item 5's refused
+     whole-history fit per day, and worse, since it grows with the square of the history.
+     Rejected refitting like ϕ, and deferring the line; decided with the user.
+     What that accepts: only a rating dated on a day analytics was opened, or today, is
+     scored, and the count names what was; and a record grades the fit the app HELD —
+     before 2026-09-18 that is the whole-log α (item 44), and 2026-08-03…07's records
+     predate the causal window. Rejected a date guard, permanent code for a closed window.
+     Past dates read their own record, today the live fit, and a rating dated after the
+     report day is not walked (§5's rule for ϕ). The α default side is α₀ under
+     the day's r, what a user who never rated 🪫 was predicted with — rejected the default
+     r, which credits α with r's move. Every rating of the day is scored, later sessions
+     included (§8.7's convention), except one whose two predictions coincide: a record
+     holding the defaults, a reservoir the session did not load, a ☕ rating that started
+     fresh — §5's n = 0 rule. One decimal of 0–10 points (gapFraction × 10), counted in
+     ratings, withheld below `SKILL_MIN_SCORED_LOGS` — decided with the user. The floor
+     gate deferred — decided with the user.
+   Roadmap: item 46 — its line half. At land the item keeps its gate half open and is
+     corrected: there is ONE "Apply my fits" button, not buttons; the dashboard's Burnout
+     Risk and pool offer read α/r without it (`DailyPlanStore`), so a gate belongs in the
+     fit if anywhere; and "the cheaper half and needs no floor at all" is struck — the
+     line is cheap only because it reads records. */
+test('the model card says how much closer the drain fit has predicted', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logDrain(page, 120, 9, 8);
+	await expect(drainChips(page)).toHaveCount(1);
+
+	// A past day gives today a fitted α to be predicted by, and four more of today's
+	// session make five predicted ratings — the floor.
+	await copyDrainLogToDate(page, isoDate(-1));
+
+	for (let copy = 0; copy < 4; copy++) {
+		await copyDrainLogToDate(page, isoDate(0));
+	}
+
+	await page.goto('/analytics');
+
+	await expect(
+		page
+			.getByRole('listitem')
+			.filter({
+				hasText: 'Cognitive drain rate',
+			})
+			.getByText(/fit \d+\.\d points closer than default over 5 predicted ratings/),
 	).toBeVisible({
 		timeout: 15000,
 	});

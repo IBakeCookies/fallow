@@ -50,6 +50,11 @@ const unfitted: CalibrationSnapshot = {
 			usedCount: 0,
 			alpha: 0.33,
 		},
+		skill: {
+			recovery: null,
+			cognitiveDrain: null,
+			physicalDrain: null,
+		},
 	},
 	stopping: {
 		fitted: false,
@@ -244,6 +249,103 @@ describe('calibrationRows', () => {
 		const fresh = calibrationRows(unfitted, 'en-US');
 
 		expect(fresh[0].evidence).toBe('0.0 ⚡ logs, recency-weighted');
+	});
+
+	/* The same sentence on the ☕ and 🪫 rows (MATH.md §8.7/§8.9). Their gap arrives
+	   as a signed drained fraction, and the spelling is one decimal of the 0–10
+	   points the user rated in; the count is ratings, never the drain rows' days. */
+	it('says how much closer the recovery fit has predicted than the default', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				energy: {
+					...unfitted.energy,
+					recovery: {
+						fitted: true,
+						usedCount: 10,
+						rate: 0.9,
+						rateStd: 0.1,
+					},
+					skill: {
+						...unfitted.energy.skill,
+						recovery: {
+							gapFraction: 0.06,
+							scoredCount: 12,
+						},
+					},
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[1].evidence).toBe(
+			'10 ratings · fit 0.6 points closer than default over 12 predicted ratings',
+		);
+	});
+
+	// A losing drain fit says so in the same form — never hidden, never clamped.
+	it('says when a drain fit has predicted further than the default', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				energy: {
+					...unfitted.energy,
+					cognitiveDrain: {
+						fitted: true,
+						usedCount: 4,
+						alpha: 0.5,
+						alphaStd: 0.1,
+					},
+					skill: {
+						...unfitted.energy.skill,
+						cognitiveDrain: {
+							gapFraction: -0.02,
+							scoredCount: 7,
+						},
+					},
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[2].evidence).toBe(
+			'4 days · fit 0.2 points further than default over 7 predicted ratings',
+		);
+	});
+
+	// The two drain rows read the same 🪫 rows but different reservoirs, so each
+	// carries its own reading — a row showing its sibling's would pass unnoticed.
+	it('gives the physical drain row its own reservoir’s reading', () => {
+		const rows = calibrationRows(
+			{
+				...unfitted,
+				energy: {
+					...unfitted.energy,
+					physicalDrain: {
+						fitted: true,
+						usedCount: 3,
+						alpha: 0.4,
+						alphaStd: 0.1,
+					},
+					skill: {
+						recovery: null,
+						cognitiveDrain: {
+							gapFraction: 0.03,
+							scoredCount: 6,
+						},
+						physicalDrain: {
+							gapFraction: 0.05,
+							scoredCount: 9,
+						},
+					},
+				},
+			},
+			'en-US',
+		);
+
+		expect(rows[3].evidence).toBe(
+			'3 days · fit 0.5 points closer than default over 9 predicted ratings',
+		);
 	});
 
 	// The ϕ row alone is recency-weighted (MATH.md §5.2), so its count is an

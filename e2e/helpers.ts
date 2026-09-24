@@ -451,19 +451,19 @@ export async function seedPastDay(page: Page, daysAgo: number, titles: string[],
 	return date;
 }
 
-/** A second ⚡ dated `date`, copied off the one already logged. Written to the store
- *  directly rather than logged onto the day: faster, it sets `createdAt`, and it is all
- *  this needs — the row under test reads the log back out. */
-export async function copyFlowLogToDate(page: Page, date: string) {
+/** A second row of `storeName` dated `date`, copied off the first one logged. Written to
+ *  the store directly rather than logged onto the day: faster, it sets `createdAt`, and it
+ *  is all this needs — the row under test reads the log back out. */
+async function copyFirstLogToDate(page: Page, storeName: string, date: string) {
 	await page.evaluate(
-		(date) =>
+		({ storeName, date }) =>
 			new Promise<void>((resolve, reject) => {
 				const request = indexedDB.open('zenith-db');
 				request.onerror = () => reject(request.error);
 
 				request.onsuccess = () => {
-					const transaction = request.result.transaction('flowObservations', 'readwrite');
-					const store = transaction.objectStore('flowObservations');
+					const transaction = request.result.transaction(storeName, 'readwrite');
+					const store = transaction.objectStore(storeName);
 					const all = store.getAll();
 
 					all.onerror = () => reject(all.error);
@@ -482,9 +482,18 @@ export async function copyFlowLogToDate(page: Page, date: string) {
 					transaction.oncomplete = () => resolve();
 				};
 			}),
-		date,
+		{
+			storeName,
+			date,
+		},
 	);
 }
+
+export const copyFlowLogToDate = (page: Page, date: string) =>
+	copyFirstLogToDate(page, 'flowObservations', date);
+
+export const copyDrainLogToDate = (page: Page, date: string) =>
+	copyFirstLogToDate(page, 'drainObservations', date);
 
 /** The tag rows of the analytics breakdown card, in the order the card lists them. */
 export const tagRows = (page: Page) =>
