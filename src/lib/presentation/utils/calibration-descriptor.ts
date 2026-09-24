@@ -19,6 +19,9 @@ import * as m from '$lib/paraglide/messages.js';
 import { formatDecimals } from '$lib/presentation/utils/number-format';
 import type { CalibrationSnapshot } from '$lib/business/session-history';
 
+/** The three ☕/🪫 readings share one shape. */
+type RatingSkill = CalibrationSnapshot['energy']['skill']['recovery'];
+
 /** One fit's history as a sparkline. */
 export interface RowTrend {
 	/** Ascending by recorded day, ending in the value this row prints */
@@ -53,17 +56,35 @@ export function calibrationRows(
 	const perHour = (value: number) => `${f2(value)} ${m.unit_per_hour()}`;
 	const outputPerHour = (value: number) => `${f2(value)} ${m.unit_output_per_hour()}`;
 
-	// The §5 prequential skill reading arrives in signed hours (positive when the
-	// fit was closer); the spelling is one decimal of minutes, direction out loud.
-	const evidenceWithSkill = (evidence: string, skill: CalibrationSnapshot['flow']['skill']) =>
+	// A §5 prequential skill reading arrives signed, positive when the fit was
+	// closer: `spell` gives its size in the row's unit, the pair says the direction.
+	const evidenceWithSkill = (
+		evidence: string,
+		skill: { gap: number; scoredCount: number } | null,
+		spell: (size: number) => string,
+		closer: typeof m.ana_model_note_flow_closer,
+		further: typeof m.ana_model_note_flow_further,
+	) =>
 		!skill
 			? evidence
-			: `${evidence} · ${(skill.gapHours >= 0
-					? m.ana_model_note_flow_closer
-					: m.ana_model_note_flow_further)({
-					value: `${formatDecimals(Math.abs(skill.gapHours) * 60, 1, locale)} ${m.unit_minutes()}`,
+			: `${evidence} · ${(skill.gap >= 0 ? closer : further)({
+					value: spell(Math.abs(skill.gap)),
 					count: skill.scoredCount,
 				})}`;
+
+	// A ☕/🪫 reading is a drained fraction, spelled as one decimal of the 0–10
+	// points the user rated in; its count is ratings, never the drain rows' days.
+	const evidenceWithRatingSkill = (evidence: string, skill: RatingSkill) =>
+		evidenceWithSkill(
+			evidence,
+			skill && {
+				gap: skill.gapFraction,
+				scoredCount: skill.scoredCount,
+			},
+			(fraction) => formatDecimals(fraction * 10, 1, locale),
+			m.ana_model_note_rating_closer,
+			m.ana_model_note_rating_further,
+		);
 
 	const rate = (
 		fit: {
@@ -99,15 +120,18 @@ export function calibrationRows(
 
 	// One spelling for both drain rows; the counts can differ, a session that
 	// loaded one reservoir alone being kept for that reservoir only (MATH.md §8.7).
-	const drainEvidence = (count: number) =>
-		energy.pendingDrainCount > 0
-			? m.ana_model_note_drain_pending({
-					count,
-					pending: energy.pendingDrainCount,
-				})
-			: m.ana_model_note_days({
-					count,
-				});
+	const drainEvidence = (count: number, skill: RatingSkill) =>
+		evidenceWithRatingSkill(
+			energy.pendingDrainCount > 0
+				? m.ana_model_note_drain_pending({
+						count,
+						pending: energy.pendingDrainCount,
+					})
+				: m.ana_model_note_days({
+						count,
+					}),
+			skill,
+		);
 
 	const series = calibration.trend;
 	const flowLabel = m.ana_model_flow();
@@ -137,7 +161,13 @@ export function calibrationRows(
 					: m.ana_model_note_flow({
 							count: formatDecimals(flow.usedCount, 1, locale),
 						}),
-				flow.skill,
+				flow.skill && {
+					gap: flow.skill.gapHours,
+					scoredCount: flow.skill.scoredCount,
+				},
+				(hours) => `${formatDecimals(hours * 60, 1, locale)} ${m.unit_minutes()}`,
+				m.ana_model_note_flow_closer,
+				m.ana_model_note_flow_further,
 			),
 			trend: trend(flowLabel, series.phiHours, flow.defaultPhiHours, minutes),
 		},
@@ -150,7 +180,7 @@ export function calibrationRows(
 				m.unit_per_hour(),
 			),
 			defaultValue: f2(defaults.recoveryRate),
-			evidence:
+			evidence: evidenceWithRatingSkill(
 				energy.pendingRestCount > 0
 					? m.ana_model_note_recovery_pending({
 							count: energy.recovery.usedCount,
@@ -159,6 +189,8 @@ export function calibrationRows(
 					: m.ana_model_note_ratings({
 							count: energy.recovery.usedCount,
 						}),
+				energy.skill.recovery,
+			),
 			trend: trend(recoveryLabel, series.recoveryRate, defaults.recoveryRate, perHour),
 		},
 		{
@@ -170,7 +202,7 @@ export function calibrationRows(
 				m.unit_per_hour(),
 			),
 			defaultValue: f2(defaults.alphaCog),
-			evidence: drainEvidence(energy.cognitiveDrain.usedCount),
+			evidence: drainEvidence(energy.cognitiveDrain.usedCount, energy.skill.cognitiveDrain),
 			trend: trend(cognitiveLabel, series.alphaCog, defaults.alphaCog, perHour),
 		},
 		{
@@ -182,7 +214,7 @@ export function calibrationRows(
 				m.unit_per_hour(),
 			),
 			defaultValue: f2(defaults.alphaPhys),
-			evidence: drainEvidence(energy.physicalDrain.usedCount),
+			evidence: drainEvidence(energy.physicalDrain.usedCount, energy.skill.physicalDrain),
 			trend: trend(physicalLabel, series.alphaPhys, defaults.alphaPhys, perHour),
 		},
 		{

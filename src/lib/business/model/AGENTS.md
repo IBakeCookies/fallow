@@ -62,8 +62,7 @@ a constant, a bound, or a fit's conditioning:
   display — `phiPredictionStd`, not the allocator's hedging term — and absent
   without a posterior. ⚡ logs are **recency-weighted** by a 365-day half-life
   on the log's own date (§5.2), so every caller passes `ageDays` and the card
-  reports an
-  effective count, not a log count. The three energy fits (r, α, λ₀) are
+  reports an effective count, not a log count. The three energy fits (r, α, λ₀) are
   deliberately **not** weighted — §5.2 says why, and says to revisit them
   together or not at all.
 - **A plan for day D is fitted from logs dated strictly BEFORE D**. The
@@ -77,8 +76,9 @@ a constant, a bound, or a fit's conditioning:
   that prints a log count must print the **counted** one and name the deferred
   ones separately, or the ⚡ button reads as broken. History obeys the same rule
   by **reading** the stored `fitSnapshots` per day rather than refitting:
-  `readDaySummaries` scores each day under the fit recorded on it, and falls
-  back to the live fit only for a day that has none.
+  `readDaySummaries` scores each day under its recorded fit, falling back to the
+  live fit for a day with none; the ☕/🪫 skill readings grade a past rating
+  under its date's record, today's under the live fit, and skip a day with none.
 - Three constraints: the time budget plus cognitive/physical capacity pools
   (task weight = dimension difficulty / 10). Context switches cost `switchCost`
   hours — attention residue, distinct from ramp-up, which ϕ already prices —

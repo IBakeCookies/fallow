@@ -38,7 +38,7 @@ lines before it was cut back to its math.
 ## Section index
 
 Read a section, not the file: `Read MATH.md offset=<first line> limit=<span>`.
-The whole document is ~36k tokens at 4 chars/token; the largest
+The whole document is ~37k tokens at 4 chars/token; the largest
 single section is §8 at ~22k (§5 is ~5k), and most of the 28 rows below are
 under 2k. Every figure in this paragraph is regenerated with the table — none is
 retyped, and a re-wrap that splits one across lines fails the build rather than
@@ -56,29 +56,29 @@ retype a row, regenerate:
 §2          187-303  Productivity curve — v2 change
 §3          305-397  Optimal stopping — v2 change: per-task, no longer a univ…
 §4          399-488  Allocation — v2 change: discrete blocks, exact greedy, e…
-§5          490-820  Personalization — v2 change: full Bayesian posterior
-  §5.2      597-709  Recency weighting of the ϕ fit
-  §5.1      711-820  Posterior-aware allocation
-§6          822-834  Summary of v1 → v2 changes
-§7          836-858  Known approximations and deliberate non-changes
-§8         860-2305  Energy model (zenith-energy.ts) — fatigue-recovery exten…
-  §8.1      873-895  Intermittent-rest recovery correction
-  §8.2      897-919  Warm-up carryover instead of binary reset
-  §8.3      921-939  Verified consequences and a calibration question, closed
-  §8.4     941-1011  Per-task satiety — concave daily value
-  §8.5    1013-1053  Micro-recovery gate — a positive floor for full-demand t…
-  §8.6    1055-1119  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1121-1322  Drain-rate calibration from end-of-session ratings
-  §8.8    1324-1359  45-minute plan granularity
-  §8.9    1361-1414  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1416-1734  Stopping-value calibration from observed stop times
-  §8.11   1736-1897  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1899-2053  The budget curve — what the day's LENGTH is worth
-  §8.13   2055-2147  Capacity from the fitted drain rate
-  §8.14   2149-2220  Per-title drain rate — which task costs more than its sl…
-  §8.15   2222-2305  Overnight carry-over — the morning level and its anchor
-§9        2307-2369  Plan-adherence reading and its verdict band
-§10       2371-2418  References
+§5          490-848  Personalization — v2 change: full Bayesian posterior
+  §5.2      625-737  Recency weighting of the ϕ fit
+  §5.1      739-848  Posterior-aware allocation
+§6          850-862  Summary of v1 → v2 changes
+§7          864-886  Known approximations and deliberate non-changes
+§8         888-2336  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+  §8.1      901-923  Intermittent-rest recovery correction
+  §8.2      925-947  Warm-up carryover instead of binary reset
+  §8.3      949-967  Verified consequences and a calibration question, closed
+  §8.4     969-1039  Per-task satiety — concave daily value
+  §8.5    1041-1081  Micro-recovery gate — a positive floor for full-demand t…
+  §8.6    1083-1147  Optimizer reliability — compound moves and drop-one seeds
+  §8.7    1149-1352  Drain-rate calibration from end-of-session ratings
+  §8.8    1354-1389  45-minute plan granularity
+  §8.9    1391-1445  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1447-1765  Stopping-value calibration from observed stop times
+  §8.11   1767-1928  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1930-2084  The budget curve — what the day's LENGTH is worth
+  §8.13   2086-2178  Capacity from the fitted drain rate
+  §8.14   2180-2251  Per-title drain rate — which task costs more than its sl…
+  §8.15   2253-2336  Overnight carry-over — the morning level and its anchor
+§9        2338-2400  Plan-adherence reading and its verdict band
+§10       2402-2449  References
 ```
 
 <!-- section-index:end -->
@@ -593,6 +593,34 @@ the count the reading cites without informing it. Dates past the report day
 are not walked — a future-dated row (a clock-skewed backup restore) is not a
 prediction anyone made. Below 5 scored logs (`SKILL_MIN_SCORED_LOGS`) the
 reading is withheld: a two-log verdict invites false trust either way.
+
+**The recovery and drain rows carry the same headline, graded off the
+records.** The observables are the probe's: a 🪫 rating's drained fraction from
+a full reservoir under §8.7's law, a ☕ rating's post-rest fraction under
+§8.9's. Each rating is predicted by the fit the app HELD on its date: the stored
+`fitSnapshots` record for a past date, the live fit for today (never today's own
+record, the trend's rule). A date with no record is not scored. Refitting
+instead, as ϕ does, re-runs the r-then-α chain at every logged date over every
+row before it. That is the whole-history fit per day that ROADMAP item 5
+refused, run at every logged date rather than at a capped few, so it grows with
+the square of the history, and where ϕ's walk pays one closed-form solve per
+date these fits pay a grid-and-golden-section minimization each. The records
+cost two things. Only a rating dated on a day Analytics was opened, or today,
+is graded, and the count says how many were. And a record grades whatever
+estimator stamped it, so a history spanning §8.7's row filter grades two. No
+date guard separates them: it would be permanent code for a closed window.
+
+The rest is §5's rule in this unit. The default side of α is α₀ under the
+DAY's r, which is what a user who never rated 🪫 was predicted with. The default
+r would credit α with r's move. Every rating of the day is scored, later
+sessions included (§8.7's asymmetry: a fit on the filtered rows, read against
+every session). The exception is a rating whose two predictions coincide, which
+is the n = 0 rule: a record holding the defaults, a reservoir the session did
+not load (at demand 0 it stays full whatever α), a ☕ rating that started fresh
+(nothing to recover whatever r). Dates past the report day are not walked. The
+gap prints in 0–10 points, the unit the user rated in (drained fraction × 10,
+one decimal), over the ratings it predicted. A ☕ pair is two ratings. Below
+`SKILL_MIN_SCORED_LOGS` scored ratings the reading is withheld.
 
 ### 5.2 Recency weighting of the ϕ fit
 
@@ -1306,8 +1334,10 @@ app's own asymmetry — yes, and its advantage over the defaults PLATEAUS, so pa
 a certain log count more days buy no better prediction. But the FIRST day makes
 the prediction WORSE than the defaults for a user who was close to them to begin
 with, the ridge having moved α before the data can say which way. §5
-handles that shape for ϕ by withholding its reading below a scored-log floor;
-nothing withholds this one. The ± is separately well calibrated on the RATINGS —
+handles that shape for ϕ by withholding its reading below a scored-log floor,
+and the analytics row's α reading (§5, off the stored records) is withheld below
+the same one; nothing withholds the fit it grades, which Burnout Risk and the
+pool offer read from the first day. The ± is separately well calibrated on the RATINGS —
 the scatter it prices is real — which is not in tension with its blindness to
 the fresh-start displacement above, that being an error in α and not in the
 rating a row is scored against. `scripts/energy-fit-prequential.probe.ts`.
@@ -1364,7 +1394,8 @@ price of quantization rather than a regression.
 and by more than the α fit — but it needs more pairs to get there, its advantage
 still climbing where α's has flattened. The same small-n inversion appears: for
 a user near the default r the first pair makes the prediction worse.
-`scripts/energy-fit-prequential.probe.ts`.
+`scripts/energy-fit-prequential.probe.ts`. The analytics recovery row reads the
+same grade off the user's own records (§5).
 
 **Why this closes §8.7's open loop.** The α fit conditions on the current
 `recoveryRate`; if the hand-set 0.7 is wrong, α silently bends to compensate,

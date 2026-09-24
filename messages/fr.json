@@ -436,6 +436,8 @@
 	"ana_model_note_flow_pending": "{count} mesures ⚡, pondérées par récence · {pending} notées aujourd'hui, comptées à partir de demain",
 	"ana_model_note_flow_closer": "ajustement {value} plus proche que le défaut sur {count} mesures prédites",
 	"ana_model_note_flow_further": "ajustement {value} plus éloigné que le défaut sur {count} mesures prédites",
+	"ana_model_note_rating_closer": "ajustement {value} points plus proche que le défaut sur {count} évaluations prédites",
+	"ana_model_note_rating_further": "ajustement {value} points plus éloigné que le défaut sur {count} évaluations prédites",
 	"ana_model_note_ratings": "{count} évaluations",
 	"ana_model_note_recovery_pending": "{count} évaluations · {pending} ☕ notées aujourd'hui, comptées à partir de demain",
 	"ana_model_note_drain_pending": "{count} jours · {pending} 🪫 notées aujourd'hui, comptées à partir de demain",
