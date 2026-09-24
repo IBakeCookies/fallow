@@ -449,6 +449,70 @@ item 43 asked and carries a gate item 43 could not have known about:
     §8.7).
     [energy-calibration.test.ts](src/lib/business/model/energy-calibration.test.ts)
 
+Two items on one shape, raised 2026-09-19: a fit reports a number and no
+consumer spends it. Both are follow-ups whose own blocking condition has since
+cleared, so neither re-opens a refusal.
+
+45. **Spend α's posterior on the capacity-pool offer.** MATH.md §8.13's map
+    diverges at `α_pole` and is bounded by a hand-set multiple of it, while the
+    α fit's own std reaches §8.14's ranking gate and the calibration display and
+    no reader of the map.
+    [the-pool-the-drain-logs-might-know](docs/features/the-pool-the-drain-logs-might-know.md)
+    deferred that band and named the condition to build it on — "no allocation
+    reads the map, so there is no consumer for a band to protect … bounding it
+    belongs to whatever change first gives the map a reader". Item 18 gave it a
+    reader on 2026-09-08. Item 44 then changed what the ± is worth: the
+    whole-log band's coverage of a known truth fell with log volume where the
+    filtered one does not (item 43), so the spread this would spend is only now
+    the honest one. Ask two things of
+    `scripts/capacity-from-drain.probe.ts`, which already reads the map against a
+    truth: does a withhold keyed on α̂'s own posterior fire where
+    `CAPACITY_MAP_POLE_MARGIN` does not, and does the band the offer would carry
+    cover the pool a known α maps to. Whether the margin is then replaced or kept
+    beside it is that run's to decide, not this item's —
+    [the-margins-that-were-one-draw](docs/features/the-margins-that-were-one-draw.md)
+    refused a re-parameterization read off the adherence gate, which is a
+    different instrument from the fit's own spread and is still void.
+
+46. **Withhold the α and r readings below a scored-observation floor, and give
+    them ϕ's skill line.** MATH.md §8.7 writes the gap as a sentence: §5
+    withholds ϕ's reading below `SKILL_MIN_SCORED_LOGS` and nothing withholds
+    this one. Item 39 measured the shape a floor would cover — the first
+    observation or two make α's and r's prediction worse than the defaults for a
+    user who was near them — on a population drawn from each fit's own prior, so
+    what is open is the floor's SIZE on a real history, and the walk that reads
+    it is `scripts/energy-fit-prequential.probe.ts`, already built. Two decisions,
+    and they are separable: whether the Lab's Apply buttons gate on the floor, and
+    whether the read-only Analytics rows carry a per-user skill line the way the ϕ
+    row does
+    ([the-minutes-the-fit-was-closer](docs/features/the-minutes-the-fit-was-closer.md)).
+    The second is the cheaper half and needs no floor at all.
+
+A third, and a different question — an instrument that does not exist rather
+than a number that is not spent:
+
+47. **Whether an hour-of-day term is readable off the ☕ rest pairs.** MATH.md
+    §8.7's circadian closure is scoped to the 🪫 rows and the α fit: there the
+    fresh-start approximation manufactures the afternoon term, so the null a
+    coefficient must beat is the artefact and not zero. §8.9's law reads BOTH
+    endpoints of a break, so it assumes no starting level and produces no
+    residual of that kind, and `RestObservationRecord` carries the moment. That
+    makes the rest fit the only place in the app where the question is well-posed.
+    Three things gate it and the artefact is none of them. Pairs are sparse and
+    §8.9's skill was still climbing where α's had plateaued (item 39), so a second
+    coefficient on that ridge may clear no ceiling at all. Breaks cluster —
+    lunch, mid-afternoon — so the clock spread is plausibly WORSE than the 🪫
+    rows', which is the same way §8.7's own row filter pays. And there is no
+    consumer: the plan axis carries no time of day
+    ([presentation/AGENTS.md](src/lib/presentation/AGENTS.md)), so this lands
+    §8.14-shaped, a reading and never an input, unless a settled decision is
+    re-opened. It also inherits §8.10's first approximation — a pair's break hour
+    is `createdAt` less its length only if it was rated promptly. The ceiling
+    method is `scripts/circadian-residual.probe.ts`'s; run it over ☕ pairs before
+    anything is built. A no is the expected outcome and still worth the run: on
+    the 🪫 side the question cannot be asked, and this item is what makes the
+    difference between the two instruments a measurement instead of an argument.
+
 ## Phase 4 — multi-day horizon
 
 7. **Satiety across days** — BLOCKED, and not the small item it reads as.
@@ -501,8 +565,12 @@ Only if Fallow grows users beyond its author.
    snapshot, summarized per week in analytics.
 10. **Sync** — default no (the no-server stance is a feature); revisit as
     file-based export/merge if a second device becomes a felt need.
-11. **The example day a shared link opens on** — built 2026-08-31,
-    [demo-day.md](docs/features/demo-day.md).
+
+The one reach item built so far. Its spec cites it as Phase 6 item 11, a number
+Phase 1's worked-hours instrument already held:
+
+48. ~~**The example day a shared link opens on**~~ — SHIPPED 2026-08-31.
+    [docs/features/demo-day.md](docs/features/demo-day.md)
 
 ## Phase 7 — the curve itself
 
