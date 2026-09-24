@@ -453,26 +453,22 @@ Two items on one shape, raised 2026-09-19: a fit reports a number and no
 consumer spends it. Both are follow-ups whose own blocking condition has since
 cleared, so neither re-opens a refusal.
 
-45. **Spend α's posterior on the capacity-pool offer.** MATH.md §8.13's map
-    diverges at `α_pole` and is bounded by a hand-set multiple of it, while the
-    α fit's own std reaches §8.14's ranking gate and the calibration display and
-    no reader of the map.
-    [the-pool-the-drain-logs-might-know](docs/features/the-pool-the-drain-logs-might-know.md)
-    deferred that band and named the condition to build it on — "no allocation
-    reads the map, so there is no consumer for a band to protect … bounding it
-    belongs to whatever change first gives the map a reader". Item 18 gave it a
-    reader on 2026-09-08. Item 44 then changed what the ± is worth: the
-    whole-log band's coverage of a known truth fell with log volume where the
-    filtered one does not (item 43), so the spread this would spend is only now
-    the honest one. Ask two things of
-    `scripts/capacity-from-drain.probe.ts`, which already reads the map against a
-    truth: does a withhold keyed on α̂'s own posterior fire where
-    `CAPACITY_MAP_POLE_MARGIN` does not, and does the band the offer would carry
-    cover the pool a known α maps to. Whether the margin is then replaced or kept
-    beside it is that run's to decide, not this item's —
-    [the-margins-that-were-one-draw](docs/features/the-margins-that-were-one-draw.md)
-    refused a re-parameterization read off the adherence gate, which is a
-    different instrument from the fit's own spread and is still void.
+45. ~~**Spend α's posterior on the capacity-pool offer**~~ — MEASURED
+    2026-09-24, `scripts/capacity-from-drain.probe.ts` arm E, not built. **The
+    band does not cover the pool a known α maps to**, and covers less the longer
+    someone logs. The item's premise — that item 44 made the filtered ± the
+    honest one — held on a generator whose days all start full and whose log
+    holds every session. A morning the night did not refill and a first session
+    nobody logged each start the kept row below full, so the displacement is
+    one-signed again and σ̂ tightens around it. A withhold keyed on α̂ − σ̂ does
+    fire where `CAPACITY_MAP_POLE_MARGIN` does not, but it thins out as σ̂
+    shrinks. Replacing the margin with it is refused: that gate converges on the
+    pole itself as σ̂ shrinks, and it already admits fits whose true α the margin
+    declines. So the margin stays
+    alone and no band ships. Whether a withhold BESIDE the margin is worth the
+    offers it drops is a plan-value question — arm D's instrument — that this
+    run cannot answer, left open rather than filed. Figures in the probe header,
+    verdicts in MATH.md §8.13 and in the scope of §8.7's fresh-start bullet.
 
 46. **Withhold the α and r readings below a scored-observation floor, and give
     them ϕ's skill line.** MATH.md §8.7 writes the gap as a sentence: §5

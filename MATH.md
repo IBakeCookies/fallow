@@ -61,24 +61,24 @@ retype a row, regenerate:
   §5.1      711-820  Posterior-aware allocation
 §6          822-834  Summary of v1 → v2 changes
 §7          836-858  Known approximations and deliberate non-changes
-§8         860-2275  Energy model (zenith-energy.ts) — fatigue-recovery exten…
+§8         860-2305  Energy model (zenith-energy.ts) — fatigue-recovery exten…
   §8.1      873-895  Intermittent-rest recovery correction
   §8.2      897-919  Warm-up carryover instead of binary reset
   §8.3      921-939  Verified consequences and a calibration question, closed
   §8.4     941-1011  Per-task satiety — concave daily value
   §8.5    1013-1053  Micro-recovery gate — a positive floor for full-demand t…
   §8.6    1055-1119  Optimizer reliability — compound moves and drop-one seeds
-  §8.7    1121-1314  Drain-rate calibration from end-of-session ratings
-  §8.8    1316-1351  45-minute plan granularity
-  §8.9    1353-1406  Recovery-rate calibration from pre/post-rest pairs
-  §8.10   1408-1726  Stopping-value calibration from observed stop times
-  §8.11   1728-1889  Live stop advisor — §8.10 run forward mid-day
-  §8.12   1891-2045  The budget curve — what the day's LENGTH is worth
-  §8.13   2047-2117  Capacity from the fitted drain rate
-  §8.14   2119-2190  Per-title drain rate — which task costs more than its sl…
-  §8.15   2192-2275  Overnight carry-over — the morning level and its anchor
-§9        2277-2339  Plan-adherence reading and its verdict band
-§10       2341-2388  References
+  §8.7    1121-1322  Drain-rate calibration from end-of-session ratings
+  §8.8    1324-1359  45-minute plan granularity
+  §8.9    1361-1414  Recovery-rate calibration from pre/post-rest pairs
+  §8.10   1416-1734  Stopping-value calibration from observed stop times
+  §8.11   1736-1897  Live stop advisor — §8.10 run forward mid-day
+  §8.12   1899-2053  The budget curve — what the day's LENGTH is worth
+  §8.13   2055-2147  Capacity from the fitted drain rate
+  §8.14   2149-2220  Per-title drain rate — which task costs more than its sl…
+  §8.15   2222-2305  Overnight carry-over — the morning level and its anchor
+§9        2307-2369  Plan-adherence reading and its verdict band
+§10       2371-2418  References
 ```
 
 <!-- section-index:end -->
@@ -1218,8 +1218,9 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   std alone and the point never (the ν₀ note above), so a fit that is wrong the
   same way on every row earns a tighter band on a number that is not moving —
   the shape §8.10 names common-mode for λ₀, and here an artifact whose sign is
-  known in advance. Measured against a truth the generator holds, the whole-log
-  band's coverage of that truth FALLS toward nothing as the log grows, while the
+  known in advance. Measured against a truth the generator holds — one whose
+  days all start full and whose log holds every session — the whole-log band's
+  coverage of that truth FALLS toward nothing as the log grows, while the
   filtered one shows no trend in volume and stays somewhat under nominal. That
   reading is what chose between them; the RMSE of the point alone does not,
   because the filter's own variance price makes it the worse estimator at low
@@ -1229,7 +1230,14 @@ minimize  Σᵢ (dᵢ − D(wᵢ, Hᵢ; α))² + λ·(α − α₀)²   over α 
   would jump the day they crossed it. Downstream, §8.13's pool offer moves with
   the bias that left and §8.10's λ₀ fit recovers much of what conditioning on a
   biased α cost, while §8.14's ranking is insensitive for the reason that
-  section gives. `scripts/drain-fit-day-first.probe.ts` holds all four. An α̂
+  section gives. `scripts/drain-fit-day-first.probe.ts` holds all four. Neither
+  of that generator's conditions is one the app can keep: a morning the night
+  did not refill and a first session nobody logged each start the kept row below
+  full, the same one-signed displacement comes back on the filtered fit, and its
+  band's coverage falls with volume again — which is why §8.13's offer carries
+  no band. `scripts/capacity-from-drain.probe.ts` arm E reads it, and on its own
+  generator finds the physical fits at low α losing coverage even on full
+  mornings and a complete log, a remainder it does not attribute. An α̂
   snapshotted before this filter and one after are two estimators' answers to
   the same question, so a `fitSnapshots` history spanning the change is not a
   series; that is recorded in `business/model/AGENTS.md` and not repaired in
@@ -2115,6 +2123,28 @@ before and under the filtered one it inherits now. The gate is part of what
 moves: the less biased α̂ lands
 inside `CAPACITY_MAP_POLE_MARGIN` on logs where the biased one never does, so a
 fit closer to the truth withholds an offer the whole-log fit would have made.
+
+**No band, and no gate on the posterior.** §8.7 reports a std for α̂, so the
+offer could carry one — the pool at α̂ + σ̂ and at α̂ − σ̂ — or key its gate on it
+in place of a fixed multiple of the pole. It does neither, because σ̂ is the
+wrong width for the error this map inherits. It prices the ratings' scatter
+around the law, which is real, and it is blind to the start deficit §8.7's row
+filter cannot reach: a kept row began below full whenever the night did not
+refill the reservoir or the day's first session went unlogged, such a row rates
+higher than the law predicts at the true α, and every one of them pushes α̂ the
+same way. σ̂ therefore narrows with the log while α̂ stays displaced, and a band
+read through this monotone map covers the true pool less the longer someone
+logs — the shape §8.7 refused for the whole-log fit, back through the mornings.
+
+A gate at `α̂ − σ̂ ≥ α_pole` would do harm rather than nothing. As σ̂ shrinks it
+converges on the pole itself, which is no margin at all, and every α̂ it admits
+that the margin refuses sits below the gate, where an upward displacement puts
+the truth lower still: deeper into the neighbourhood where H diverges. Kept
+BESIDE the margin instead, as a withhold whenever `α̂ − σ̂` falls below the gate,
+it converges on the margin, so what it adds shrinks with σ̂; and whether an
+offer is worth more held back than made is a question about the plan's value,
+which no width on α̂ answers. So the margin stays alone and the offer carries no
+band. `capacity-from-drain.probe.ts` arm E is the measurement.
 
 ### 8.14 Per-title drain rate — which task costs more than its sliders say
 
