@@ -12,7 +12,7 @@
  * Usage:
  *   node scripts/generate-fixture.mjs [--days 365] [--seed 42] [--out path.json]
  *     [--alpha-cog 0.52] [--alpha-phys 0.24] [--drain-log-rate 0.4]
- *     [--true-pools <cognitive>,<physical>]
+ *     [--true-pools <cognitive>,<physical>] [--full-mornings]
  *
  * Then: Fallow -> ☰ data menu -> Import data. Import MERGES (put by key), so
  * import into an empty profile or expect existing days to be overwritten.
@@ -51,6 +51,9 @@ const truePools = arg('true-pools', '');
  * `capacity-from-drain.probe.ts` scores a derived pool against.
  */
 const TRUE_POOLS = truePools ? parseTruePools(truePools) : null;
+// A control: every day starts on full reservoirs, the one start the α fits
+// assume. The morning draws still happen, so every other draw is unchanged.
+const FULL_MORNINGS = process.argv.includes('--full-mornings');
 
 /** @param {string} raw */
 function parseTruePools(raw) {
@@ -388,8 +391,10 @@ for (const date of dates) {
 	// --- simulate the day being worked -------------------------------------
 
 	// Reservoirs start high but not always full (overnight carry-over).
-	let cognitive = clamp(between(0.85, 1), 0, 1);
-	let physical = clamp(between(0.85, 1), 0, 1);
+	const morningCognitive = clamp(between(0.85, 1), 0, 1);
+	const morningPhysical = clamp(between(0.85, 1), 0, 1);
+	let cognitive = FULL_MORNINGS ? 1 : morningCognitive;
+	let physical = FULL_MORNINGS ? 1 : morningPhysical;
 	// The user works a share of the declared budget — over-declaring is the norm.
 	let remaining = budget * clamp(between(0.55, 1.05), 0.1, 1.1);
 	let cognitiveSpent = 0;

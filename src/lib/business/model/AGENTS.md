@@ -176,7 +176,7 @@ its allocation code, so the main page is unaffected by changes here.
   ([the-pool-the-drain-logs-offer](../../../docs/features/the-pool-the-drain-logs-offer.md));
   no allocation reads it directly, the pools stay declared, and only a fitted α
   inside the domain and under the field's `CAPACITY_POOL_MAX_HOURS` is offered.
-  §8.13.
+  The offer carries no ± band, and the margin takes no σ̂ term (§8.13).
 - `rankDrainByTask` re-runs the §8.7 drain fit per **task title**, anchored to
   the user's own fitted α — which is what makes the ridge protective, so a thin
   title cannot reach an end of the ranking. Both ends must

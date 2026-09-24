@@ -2,7 +2,7 @@
  * Does a capacity pool DERIVED from the fitted drain rate (MATH.md §8.13) beat
  * the two declared constants it would replace (`DEFAULT_CAPACITY_POOLS`, 4/6)?
  *
- * The gate on ROADMAP item 18, in four arms:
+ * The gate on ROADMAP item 18, in four arms, and item 45's in a fifth:
  *
  *   A  self-consistent  — the generator's true pools ARE the map of its true α,
  *                         so the law holds by construction and what is measured
@@ -17,6 +17,11 @@
  *                         plan adherence: the plan solved under a declared pool,
  *                         then worked under the true one, scored `Σ vᵢ·P̄ᵢ(tᵢ)`
  *                         against the plan that knew the truth
+ *   E  posterior        — arm A's α grid again, 40 seeds a cell at three
+ *                         volumes and two opt-in rates, read on α̂'s OWN ±:
+ *                         whether a withhold keyed on it fires where the map's
+ *                         pole margin does not, and whether the band it would
+ *                         hand the offer covers the pool the true α maps to
  *
  * Why arm D exists. A and B score with `classicOverlap` (`plan-audit.ts`), and
  * on this fixture that instrument cannot rank a pool: at seed 42, at three of
@@ -74,6 +79,46 @@
  * to answer — as it does at every point of arm B, which is therefore a reading
  * about the gate rather than about the pools it was built to sweep.
  *
+ * What arm E found (run 2026-09-24, seeds 42–81, arm A's five α pairs at 60,
+ * 150 and 365 days and at opt-in rates 0.4 and 1). The band the offer would
+ * carry — the pool at α̂ + σ̂ and at α̂ − σ̂ — does NOT cover the pool a known α
+ * maps to, and covers less the longer someone logs. Pooled over both
+ * reservoirs, α̂ ± σ̂ holds the true α on 68.8%, 43.0% and 17.0% of fits at 60,
+ * 150 and 365 days and the default rate, and on 54.5%, 26.5% and 11.5% for a
+ * complete logger; the pool band follows at 62.2%, 39.8%, 15.8% and 52.5%,
+ * 27.8%, 12.6%, against the 68.3% a 1σ band is worth. It is a displacement σ̂
+ * tightens around, not scatter it prices — at 365 days the median α̂ sits above
+ * α at every point and the median banded offer below the true pool — and it is
+ * not r̂'s: fitted at the generator's own r, α's band holds 67.0%, 43.0%, 19.0%
+ * and 58.3%, 37.0%, 12.3%. The same seeds started on full reservoirs, at that
+ * r, split it. For a complete logger they hold 63.3%, 63.3% and 55.5%, so most
+ * of it is the mornings the night did not refill; the cognitive fits there hold
+ * 26–31 of 40 per point at 365 days — the control `drain-fit-day-first.probe.ts`
+ * reads on its own generator — while the physical ones at low α still lose
+ * coverage with volume (29, 18 and 12 of 40 at α 0.25), a remainder this arm
+ * does not attribute. At the default rate full mornings fall to 74.3%, 67.8%
+ * and 36.5%, and the cognitive fits carry the fall (4–10 of 40 per point at 365
+ * days, the physical 18–27): there the earliest LOGGED row is often not the
+ * day's first worked session, and the unlogged ones before it drained the
+ * reservoir.
+ *
+ * Spent as a withhold BESIDE the margin — no offer once α̂ − σ̂ is below the
+ * gate — the posterior fires where the margin does not: of 382–390 offers per
+ * volume and rate it would hold back 69, 35 and 19 at the default rate and 33,
+ * 14 and 11 for a complete logger (α̂ − σ̂ past the pole itself on 10, all at 60
+ * days and the default rate), and only ever at α up to 2.46 × the true pole. At
+ * physical α 0.25, 1.36 × the pole, where there is no true pool and the margin
+ * still offers on 25–33 of 40 seeds, it holds back 22 of 33 at 60 days and the
+ * default rate but only 9 of 29 at 365 days and a complete logger, because σ̂
+ * shrinks around the displaced α̂: the withhold thins out as the band stops
+ * covering. Spent as a REPLACEMENT for the margin — offer wherever α̂ − σ̂
+ * clears the pole — it would drop the 10 offers past the pole, and its gate
+ * would admit 5, 12 and 16 fits the margin refuses at the default rate and 11,
+ * 10 and 11 for a complete logger, 2, 10, 13 and 6, 9, 11 of them at that
+ * α 0.25, where no offer is right. So the margin stays and no band ships. Whether a withhold beside the
+ * margin is worth the offers it drops is a plan-value question — arm D's
+ * instrument, not this arm's.
+ *
  * What it CANNOT decide: whether a real person's capacity is their reservoir
  * floor. A generator only ever replays its own assumptions — arm A tests an
  * estimator against a law it was given, arm B prices being wrong about that
@@ -93,6 +138,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	calibrateEnergyParams,
 	keepDayFirstDrainRows,
+	offerFittedPools,
 	toCognitiveDrainObservations,
 	toPhysicalDrainObservations,
 } from '$lib/business/model/energy-calibration';
@@ -107,8 +153,11 @@ import {
 	type CapacityPools,
 } from '$lib/business/model/zenith';
 import {
+	CAPACITY_MAP_POLE_MARGIN,
 	capacityFromDrainRate,
+	DEFAULT_ENERGY_PARAMS,
 	isInformativeDrainObservation,
+	type DrainRateFit,
 	type EnergyParams,
 } from '$lib/business/model/zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord, Task } from '$lib/data/type';
@@ -140,7 +189,7 @@ interface Fixture {
 	}[];
 }
 
-function generate(flags: string[], seed = 42): Fixture {
+function generate(flags: string[], seed = 42, days = 365): Fixture {
 	const out = join(mkdtempSync(join(tmpdir(), 'capacity-')), 'fixture.json');
 
 	execFileSync(
@@ -150,7 +199,7 @@ function generate(flags: string[], seed = 42): Fixture {
 			'--seed',
 			String(seed),
 			'--days',
-			'365',
+			String(days),
 			'--out',
 			out,
 			...flags,
@@ -495,7 +544,7 @@ const spreadRow = (label: string, deltas: number[]) =>
 			`   mean ${signed(mean(deltas))}` +
 			`   Δ > 0 at ${deltas.filter((delta) => delta > 0).length}/${deltas.length} seeds`;
 
-/** The α pairs arms A and D generate self-consistent days from. */
+/** The α pairs arms A, D and E generate days from. */
 const SELF_CONSISTENT_GRID = [
 	[0.3, 0.25],
 	[0.4, 0.3],
@@ -503,6 +552,221 @@ const SELF_CONSISTENT_GRID = [
 	[0.7, 0.45],
 	[0.95, 0.6],
 ];
+
+/**
+ * Arm E's axes: arm C's opt-in rate at the generator's own default and at a
+ * complete logger — the one population whose earliest LOGGED row is also its
+ * earliest worked one — crossed with the day counts of a new user and of a
+ * year's logger. The arm reads no audit, so it can afford the seeds a coverage
+ * share needs.
+ */
+const POSTERIOR_RATES = [0.4, 1];
+const POSTERIOR_DAYS = [60, 150, 365];
+const POSTERIOR_SEEDS = [...Array(40).keys()].map((index) => 42 + index);
+
+type RecoveryParams = Pick<
+	EnergyParams,
+	'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'
+>;
+
+/**
+ * The smallest α the shipped map answers for at `params` — the margin times the
+ * pole — found by bisection on the map itself rather than restated.
+ */
+function gateOf(params: RecoveryParams): number {
+	let below = 0;
+	let above = 1;
+
+	while (capacityFromDrainRate(above, params) === null) above *= 2;
+
+	for (let step = 0; step < 60; step++) {
+		const middle = (below + above) / 2;
+
+		if (capacityFromDrainRate(middle, params) === null) below = middle;
+		else above = middle;
+	}
+
+	return above;
+}
+
+interface PosteriorRead {
+	alpha: number;
+	std: number;
+	recoveryRate: number;
+	/** The α below which the shipped map declines, at the FITTED recovery. */
+	gate: number;
+	/** What the Day Setup button offers: that gate, the 0.1 h rounding, the field's ceiling. */
+	offer: number | null;
+	/** The pool at α̂ + σ̂, and at α̂ − σ̂ — null once α̂ − σ̂ is below the gate. */
+	low: number | null;
+	high: number | null;
+	/** The same filter, prior and fit conditioned on the generator's own r. */
+	trueRecovery: DrainRateFit;
+	/** That fit again, on the same days started on full reservoirs. */
+	fullMornings: DrainRateFit;
+}
+
+/**
+ * Both reservoirs, read the way the offer reads them. `fullMornings` is the
+ * same seed generated with `--full-mornings`: identical days, draws and noise.
+ */
+function readPosteriors(
+	fixture: Fixture,
+	fullMornings: Fixture,
+): Record<'cognitive' | 'physical', PosteriorRead | null> {
+	const calibration = calibrateEnergyParams(fixture.restObservations, fixture.drainObservations);
+	const offer = offerFittedPools(calibration);
+	const gate = gateOf(calibration.params);
+
+	// No ☕ rows, so r stays the seed's: what displacement remains is not r̂'s.
+	const atTrueRecovery = (drain: DrainObservationRecord[]) =>
+		calibrateEnergyParams([], drain, {
+			...DEFAULT_ENERGY_PARAMS,
+			...GENERATOR_RECOVERY,
+		});
+
+	const trueRecovery = atTrueRecovery(fixture.drainObservations);
+	const fullMorningRecovery = atTrueRecovery(fullMornings.drainObservations);
+
+	const read = (reservoir: 'cognitive' | 'physical'): PosteriorRead | null => {
+		const fit = reservoir === 'cognitive' ? calibration.cognitiveDrain : calibration.physicalDrain;
+
+		if (!fit.fitted) return null;
+
+		return {
+			alpha: fit.alpha,
+			std: fit.alphaStd!,
+			recoveryRate: calibration.params.recoveryRate,
+			gate,
+			offer: reservoir === 'cognitive' ? offer.cognitiveHours : offer.physicalHours,
+			low: capacityFromDrainRate(fit.alpha + fit.alphaStd!, calibration.params),
+			high: capacityFromDrainRate(fit.alpha - fit.alphaStd!, calibration.params),
+			trueRecovery:
+				reservoir === 'cognitive' ? trueRecovery.cognitiveDrain : trueRecovery.physicalDrain,
+			fullMornings:
+				reservoir === 'cognitive'
+					? fullMorningRecovery.cognitiveDrain
+					: fullMorningRecovery.physicalDrain,
+		};
+	};
+
+	return {
+		cognitive: read('cognitive'),
+		physical: read('physical'),
+	};
+}
+
+const medianOf = (values: number[]) =>
+	[...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+
+/** A group's median offer error, signed and absolute, or a dash for a group with no member. */
+function offerError(group: PosteriorRead[], truth: number): string {
+	if (group.length === 0) return '—';
+
+	const errors = group.map((read) => read.offer! - truth);
+	const middle = medianOf(errors);
+
+	return `${(middle >= 0 ? '+' : '') + middle.toFixed(2)} h / |${medianOf(errors.map(Math.abs)).toFixed(2)}| h`;
+}
+
+interface PosteriorCounts {
+	fitted: number;
+	offered: number;
+	pastMargin: number;
+	pastPole: number;
+	clearOfPole: number;
+	alphaCovered: number;
+	trueRecoveryCovered: number;
+	fullMorningsCovered: number;
+	/** Offers with a band, counted only where a true pool exists for it to cover. */
+	banded: number;
+	poolCovered: number;
+}
+
+/** One reservoir at one truth, volume and rate, over every seed: its lines and its counts. */
+function readPosteriorCell(
+	label: string,
+	reads: (PosteriorRead | null)[],
+	alphaTrue: number,
+	truth: number | null,
+): { lines: string[]; counts: PosteriorCounts } {
+	const fitted = reads.filter((read): read is PosteriorRead => read !== null);
+	const poleOf = (read: PosteriorRead) => read.gate / CAPACITY_MAP_POLE_MARGIN;
+	const offered = fitted.filter((read) => read.offer !== null);
+	const banded = offered.filter((read) => read.high !== null);
+	const pastMargin = offered.filter((read) => read.high === null);
+	const pastPole = pastMargin.filter((read) => read.alpha - read.std < poleOf(read));
+
+	const clearOfPole = fitted.filter(
+		(read) => read.alpha < read.gate && read.alpha - read.std >= poleOf(read),
+	);
+
+	const alphaCovered = fitted.filter((read) => Math.abs(read.alpha - alphaTrue) <= read.std);
+	const covers = (fit: DrainRateFit) => Math.abs(fit.alpha - alphaTrue) <= fit.alphaStd!;
+	const trueRecoveryCovered = fitted.filter((read) => covers(read.trueRecovery));
+	const fullMorningsCovered = fitted.filter((read) => covers(read.fullMornings));
+
+	const poolCovered =
+		truth === null ? [] : banded.filter((read) => read.low! <= truth && truth <= read.high!);
+
+	const againstPole = (value: (read: PosteriorRead) => number) => {
+		const ratios = fitted.map((read) => value(read) / poleOf(read));
+
+		return `min ${Math.min(...ratios).toFixed(2)} median ${medianOf(ratios).toFixed(2)}`;
+	};
+
+	return {
+		lines: [
+			`  ${label}   fit ${fitted.length}/${reads.length}` +
+				`   r̂ ${medianOf(fitted.map((read) => read.recoveryRate)).toFixed(3)}` +
+				`   α̂ ${medianOf(fitted.map((read) => read.alpha)).toFixed(4)}` +
+				` ± ${medianOf(fitted.map((read) => read.std)).toFixed(4)}` +
+				`   α̂/pole ${againstPole((read) => read.alpha)}` +
+				`   (α̂ − σ̂)/pole ${againstPole((read) => read.alpha - read.std)}`,
+			`        offered ${offered.length}   band past the margin ${pastMargin.length}, past the pole ${pastPole.length}` +
+				`   withheld with the band clear of the pole ${clearOfPole.length}` +
+				`   α̂ ± σ̂ covers α ${alphaCovered.length}/${fitted.length}`,
+			`        at the true r: α̂ ${medianOf(fitted.map((read) => read.trueRecovery.alpha)).toFixed(4)},` +
+				` covers α ${trueRecoveryCovered.length}/${fitted.length}` +
+				`   and on full mornings: α̂ ${medianOf(fitted.map((read) => read.fullMornings.alpha)).toFixed(4)},` +
+				` covers α ${fullMorningsCovered.length}/${fitted.length}`,
+			truth === null
+				? `        no true pool: each of the ${offered.length} offers is one the map declines at the truth`
+				: `        band covers the true pool ${poolCovered.length}/${banded.length}` +
+					`   offer − truth ${offerError(banded, truth)} with a band,` +
+					` ${offerError(pastMargin, truth)} past the margin`,
+		],
+		counts: {
+			fitted: fitted.length,
+			offered: offered.length,
+			pastMargin: pastMargin.length,
+			pastPole: pastPole.length,
+			clearOfPole: clearOfPole.length,
+			alphaCovered: alphaCovered.length,
+			trueRecoveryCovered: trueRecoveryCovered.length,
+			fullMorningsCovered: fullMorningsCovered.length,
+			banded: truth === null ? 0 : banded.length,
+			poolCovered: poolCovered.length,
+		},
+	};
+}
+
+function addCounts(sum: PosteriorCounts | undefined, cell: PosteriorCounts): PosteriorCounts {
+	if (sum === undefined) return cell;
+
+	return {
+		fitted: sum.fitted + cell.fitted,
+		offered: sum.offered + cell.offered,
+		pastMargin: sum.pastMargin + cell.pastMargin,
+		pastPole: sum.pastPole + cell.pastPole,
+		clearOfPole: sum.clearOfPole + cell.clearOfPole,
+		alphaCovered: sum.alphaCovered + cell.alphaCovered,
+		trueRecoveryCovered: sum.trueRecoveryCovered + cell.trueRecoveryCovered,
+		fullMorningsCovered: sum.fullMorningsCovered + cell.fullMorningsCovered,
+		banded: sum.banded + cell.banded,
+		poolCovered: sum.poolCovered + cell.poolCovered,
+	};
+}
 
 describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
 	/**
@@ -785,6 +1049,99 @@ describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
 				...rows.flatMap((row) => [row, '']),
 				`  over the ${evaluable.length} evaluable points, mean loss   4/6 ${mean(evaluable.map((point) => point.declared)).toFixed(3)}%` +
 					`   derived ${mean(evaluable.map((point) => point.derived)).toFixed(3)}%`,
+				'',
+			].join('\n'),
+		);
+	});
+
+	it('E — α̂’s own posterior against the map’s margin (ROADMAP item 45)', () => {
+		const truePole = gateOf(GENERATOR_RECOVERY) / CAPACITY_MAP_POLE_MARGIN;
+		const blocks: string[] = [];
+		const pooled = new Map<string, PosteriorCounts>();
+
+		for (const [alphaCog, alphaPhys] of SELF_CONSISTENT_GRID) {
+			const truth = truePoolsOf(alphaCog, alphaPhys, GENERATOR_RECOVERY);
+
+			const poolFlags = truth
+				? ['--true-pools', `${truth.cognitiveHours},${truth.physicalHours}`]
+				: [];
+
+			const cells = POSTERIOR_DAYS.flatMap((days) =>
+				POSTERIOR_RATES.map((rate) => {
+					const flags = [
+						'--alpha-cog',
+						String(alphaCog),
+						'--alpha-phys',
+						String(alphaPhys),
+						'--drain-log-rate',
+						String(rate),
+						...poolFlags,
+					];
+
+					return {
+						days,
+						rate,
+						reads: POSTERIOR_SEEDS.map((seed) =>
+							readPosteriors(
+								generate(flags, seed, days),
+								generate([...flags, '--full-mornings'], seed, days),
+							),
+						),
+					};
+				}),
+			);
+
+			for (const reservoir of ['cognitive', 'physical'] as const) {
+				const alphaTrue = reservoir === 'cognitive' ? alphaCog : alphaPhys;
+				const truePool = capacityFromDrainRate(alphaTrue, GENERATOR_RECOVERY);
+
+				blocks.push(
+					'',
+					`  ${reservoir === 'cognitive' ? 'cog ' : 'phys'}  α true ${alphaTrue}, ${(alphaTrue / truePole).toFixed(2)} × the true pole` +
+						`   true pool ${truePool === null ? 'none: inside the margin at the true recovery' : `${truePool.toFixed(2)} h`}` +
+						`${truth ? '' : '   (days uncapped: the pair has no true pools)'}`,
+				);
+
+				for (const { days, rate, reads } of cells) {
+					const label = `${String(days).padStart(5)} d  rate ${rate.toFixed(2)}`;
+
+					const cell = readPosteriorCell(
+						label,
+						reads.map((read) => read[reservoir]),
+						alphaTrue,
+						truePool,
+					);
+
+					blocks.push(...cell.lines);
+					pooled.set(label, addCounts(pooled.get(label), cell.counts));
+				}
+			}
+		}
+
+		const share = (part: number, whole: number) =>
+			whole === 0 ? '—' : `${((100 * part) / whole).toFixed(1)}%`;
+
+		console.log(
+			[
+				'',
+				"ARM E — α̂'s own posterior against the map's margin (ROADMAP item 45)",
+				`${POSTERIOR_SEEDS.length} seeds a cell, read at the FITTED recovery the way the Day Setup offer reads them.`,
+				'The band is the pool at α̂ + σ̂ and at α̂ − σ̂; it has no upper end once α̂ − σ̂ passes',
+				`the margin (${CAPACITY_MAP_POLE_MARGIN} × the pole). The pole is read off the shipped gate, never restated.`,
+				'A 1σ band is nominally worth 68.3%.',
+				...blocks,
+				'',
+				'  POOLED over the five α pairs and both reservoirs',
+				...[...pooled].map(
+					([key, sum]) =>
+						`  ${key}   offered ${sum.offered}/${sum.fitted}` +
+						`   band past the margin ${sum.pastMargin} (past the pole ${sum.pastPole})` +
+						`   withheld with the band clear of the pole ${sum.clearOfPole}` +
+						`   α̂ ± σ̂ covers α ${share(sum.alphaCovered, sum.fitted)}` +
+						` (at the true r ${share(sum.trueRecoveryCovered, sum.fitted)},` +
+						` on full mornings ${share(sum.fullMorningsCovered, sum.fitted)})` +
+						`   band covers the true pool ${share(sum.poolCovered, sum.banded)} of ${sum.banded}`,
+				),
 				'',
 			].join('\n'),
 		);
