@@ -1468,6 +1468,26 @@ export function isInformativeDrainObservation(observation: DrainObservation): bo
 	return observation.demand > 0 && observation.hours > 0;
 }
 
+/**
+ * The drained fraction D(w, H; α) = 1 − C(H) the §8.7 law predicts for one
+ * session from a full reservoir — the α fit's prediction of a 🪫 rating.
+ */
+export function predictDrainAfterSession(
+	session: Pick<DrainObservation, 'demand' | 'hours'>,
+	alpha: number,
+	params: Pick<EnergyParams, 'recoveryRate' | 'restRecoveryMultiplier' | 'microRecoveryFraction'>,
+): number {
+	const law = reservoirLaw(
+		clamp01(session.demand),
+		alpha,
+		params.recoveryRate,
+		params.restRecoveryMultiplier,
+		params.microRecoveryFraction,
+	);
+
+	return 1 - reservoirAt(1, law, session.hours);
+}
+
 export interface DrainRateFit {
 	/** MAP drain rate α for this reservoir (the fallback when not fitted) */
 	alpha: number;
@@ -1573,17 +1593,7 @@ export function fitDrainRate(
 		DRAIN_PRIOR_STRENGTH,
 		DRAIN_NOISE_PRIOR_STD,
 		(o) => clamp01(o.drainedFraction),
-		(alpha, o) => {
-			const law = reservoirLaw(
-				clamp01(o.demand),
-				alpha,
-				params.recoveryRate,
-				params.restRecoveryMultiplier,
-				params.microRecoveryFraction,
-			);
-
-			return 1 - reservoirAt(1, law, o.hours);
-		},
+		(alpha, o) => predictDrainAfterSession(o, alpha, params),
 	);
 
 	return {
@@ -1780,6 +1790,18 @@ export interface RestObservation {
 	hours: number;
 }
 
+/**
+ * The drained fraction d_before·e^(−r·m·g) the §8.9 rest law predicts coming
+ * out of a break — the r fit's prediction of a ☕ rating.
+ */
+export function predictDrainAfterRest(
+	rest: Pick<RestObservation, 'drainedBefore' | 'hours'>,
+	rate: number,
+	params: Pick<EnergyParams, 'restRecoveryMultiplier'>,
+): number {
+	return clamp01(rest.drainedBefore) * Math.exp(-rate * params.restRecoveryMultiplier * rest.hours);
+}
+
 export interface RecoveryRateFit {
 	/** MAP recovery rate r (the fallback when not fitted) */
 	rate: number;
@@ -1848,8 +1870,6 @@ export function fitRecoveryRate(
 	fallbackRate: number,
 	params: Pick<EnergyParams, 'restRecoveryMultiplier'>,
 ): RecoveryRateFit {
-	const m = params.restRecoveryMultiplier;
-
 	const fit = fitRidge1D(
 		observations,
 		(o) => o.drainedBefore > 0 && o.hours > 0,
@@ -1859,7 +1879,7 @@ export function fitRecoveryRate(
 		RECOVERY_PRIOR_STRENGTH,
 		RECOVERY_NOISE_PRIOR_STD,
 		(o) => clamp01(o.drainedAfter),
-		(rate, o) => clamp01(o.drainedBefore) * Math.exp(-rate * m * o.hours),
+		(rate, o) => predictDrainAfterRest(o, rate, params),
 	);
 
 	return {

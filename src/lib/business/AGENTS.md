@@ -341,11 +341,11 @@ as a block, which runs opposite to the array.
 ### A composed read reads each store once
 
 `session-history.ts`. Every read is a full store scan that grows with the
-user's whole history, so `readModelReport` reads flow, rest, drain and the
-session range once each and derives both model cards from those records — it
-used to compose its own sub-reads and cost three drain scans and two of
-everything else on every visit to analytics. A test in
-`session-history.test.ts` counts transactions.
+user's whole history, so `readModelReport` reads each store once and derives
+both model cards from them — composed sub-reads cost three drain scans and two
+of everything else per visit. `energy.skill` grades a past ☕/🪫 rating by its
+date's `fitSnapshots` record from that one read, widened to the earliest rating,
+today's by the live fit, none by a refit (MATH.md §5). A test counts transactions.
 
 ### The banner is `StorageStatusStore`'s, not the session store's
 

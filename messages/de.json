@@ -436,6 +436,8 @@
 	"ana_model_note_flow_pending": "{count} ⚡-Logs, nach Aktualität gewichtet · {pending} heute erfasst, zählen ab morgen",
 	"ana_model_note_flow_closer": "Fit um {value} näher als der Standard über {count} vorhergesagte Logs",
 	"ana_model_note_flow_further": "Fit um {value} weiter entfernt als der Standard über {count} vorhergesagte Logs",
+	"ana_model_note_rating_closer": "Fit um {value} Punkte näher als der Standard über {count} vorhergesagte Bewertungen",
+	"ana_model_note_rating_further": "Fit um {value} Punkte weiter entfernt als der Standard über {count} vorhergesagte Bewertungen",
 	"ana_model_note_ratings": "{count} Bewertungen",
 	"ana_model_note_recovery_pending": "{count} Bewertungen · {pending} ☕ heute erfasst, zählen ab morgen",
 	"ana_model_note_drain_pending": "{count} Tage · {pending} 🪫 heute erfasst, zählen ab morgen",

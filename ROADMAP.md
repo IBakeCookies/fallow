@@ -470,19 +470,19 @@ cleared, so neither re-opens a refusal.
     run cannot answer, left open rather than filed. Figures in the probe header,
     verdicts in MATH.md §8.13 and in the scope of §8.7's fresh-start bullet.
 
-46. **Withhold the α and r readings below a scored-observation floor, and give
-    them ϕ's skill line.** MATH.md §8.7 writes the gap as a sentence: §5
-    withholds ϕ's reading below `SKILL_MIN_SCORED_LOGS` and nothing withholds
-    this one. Item 39 measured the shape a floor would cover — the first
+46. **Withhold the α and r fits below a scored-observation floor.** Its other
+    half, a ϕ-style skill line on the α and r Analytics rows, SHIPPED 2026-09-24
+    ([calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts)), and was cheap only
+    because it reads the stored records rather than refitting (MATH.md §5). The
+    gate is open. MATH.md §8.7 writes the gap as a sentence: nothing withholds
+    the fit. Item 39 measured the shape a floor would cover — the first
     observation or two make α's and r's prediction worse than the defaults for a
     user who was near them — on a population drawn from each fit's own prior, so
     what is open is the floor's SIZE on a real history, and the walk that reads
-    it is `scripts/energy-fit-prequential.probe.ts`, already built. Two decisions,
-    and they are separable: whether the Lab's Apply buttons gate on the floor, and
-    whether the read-only Analytics rows carry a per-user skill line the way the ϕ
-    row does
-    ([the-minutes-the-fit-was-closer](docs/features/the-minutes-the-fit-was-closer.md)).
-    The second is the cheaper half and needs no floor at all.
+    it is `scripts/energy-fit-prequential.probe.ts`, already built. There is one
+    "Apply my fits" button, and the dashboard's Burnout Risk and pool offer read
+    α and r without it (`DailyPlanStore`), so a gate belongs in the fit if
+    anywhere.
 
 A third, and a different question — an instrument that does not exist rather
 than a number that is not spent:

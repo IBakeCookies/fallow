@@ -42,12 +42,18 @@ import {
 import {
 	DEFAULT_ENERGY_PARAMS,
 	fitStoppingValue,
+	predictDrainAfterRest,
+	predictDrainAfterSession,
+	type DrainObservation,
 	type EnergyParams,
 	type StoppingValueFit,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
 import {
 	calibrateEnergyParams,
+	toCognitiveDrainObservations,
+	toPhysicalDrainObservations,
+	toRestObservations,
 	type EnergyCalibration,
 } from '$lib/business/model/energy-calibration';
 import {
@@ -140,7 +146,7 @@ async function readUserFit(): Promise<UserFit> {
 	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()), toISODate());
 }
 
-/** Below this many prequentially scored ⚡ logs the skill reading is withheld. */
+/** Below this many prequentially scored ⚡ logs, or ☕/🪫 ratings, a skill reading is withheld. */
 const SKILL_MIN_SCORED_LOGS = 5;
 
 /**
@@ -177,6 +183,91 @@ function phiSkillFrom(
 				gapHours: gapSum / scoredCount,
 				scoredCount,
 			};
+}
+
+/**
+ * The same §5 reading for r and both α (MATH.md §8.9, §8.7), off the records
+ * rather than refits: each ☕/🪫 rating is predicted by the rates held on its
+ * date — today the live fit, never its record (`trendFrom`'s rule). A date with
+ * no rates, never recorded or past today where the read ends, is not walked.
+ * Every rating of the day is scored, later sessions included, though the α fits
+ * read only the first.
+ */
+function energySkillFrom(
+	rest: RestObservationRecord[],
+	drain: DrainObservationRecord[],
+	recorded: FitSnapshot[],
+	live: EnergyParams,
+	today: string,
+): CalibrationSnapshot['energy']['skill'] {
+	const paramsByDate = new Map(recorded.map((snapshot) => [snapshot.date, snapshot.params]));
+
+	paramsByDate.set(today, live);
+
+	// Mean |d − d̂_default| − |d − d̂_fitted|, unclamped. A rating whose two
+	// predictions coincide is not scored: no rate could have moved it (§5's n = 0).
+	const skillFrom = (predictions: { observed: number; fitted: number; byDefault: number }[]) => {
+		const gaps = predictions
+			.filter(({ fitted, byDefault }) => fitted !== byDefault)
+			.map(
+				({ observed, fitted, byDefault }) =>
+					Math.abs(observed - byDefault) - Math.abs(observed - fitted),
+			);
+
+		return gaps.length < SKILL_MIN_SCORED_LOGS
+			? null
+			: {
+					gapFraction: gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length,
+					scoredCount: gaps.length,
+				};
+	};
+
+	// The default side is α₀ under the day's own r, or α would be credited with r's move.
+	const drainSkillFrom = (
+		toObservations: (records: DrainObservationRecord[]) => DrainObservation[],
+		alpha: 'alphaCog' | 'alphaPhys',
+	) =>
+		skillFrom(
+			toObservations(drain).flatMap((observation, index) => {
+				const params = paramsByDate.get(drain[index].date);
+
+				return params
+					? [
+							{
+								observed: observation.drainedFraction,
+								fitted: predictDrainAfterSession(observation, params[alpha], params),
+								byDefault: predictDrainAfterSession(
+									observation,
+									DEFAULT_ENERGY_PARAMS[alpha],
+									params,
+								),
+							},
+						]
+					: [];
+			}),
+		);
+
+	return {
+		recovery: skillFrom(
+			rest.flatMap((record) => {
+				const params = paramsByDate.get(record.date);
+
+				return params
+					? toRestObservations([record]).map((observation) => ({
+							observed: observation.drainedAfter,
+							fitted: predictDrainAfterRest(observation, params.recoveryRate, params),
+							byDefault: predictDrainAfterRest(
+								observation,
+								DEFAULT_ENERGY_PARAMS.recoveryRate,
+								params,
+							),
+						}))
+					: [];
+			}),
+		),
+		cognitiveDrain: drainSkillFrom(toCognitiveDrainObservations, 'alphaCog'),
+		physicalDrain: drainSkillFrom(toPhysicalDrainObservations, 'alphaPhys'),
+	};
 }
 
 /**
@@ -421,7 +512,16 @@ export interface CalibrationSnapshot {
 	};
 	/** The ☕/🪫 rows dated today, which the two fits below deferred — every
 	 *  surface that prints a log count owes the user this one too. */
-	energy: EnergyCalibration & { pendingRestCount: number; pendingDrainCount: number };
+	energy: EnergyCalibration & {
+		pendingRestCount: number;
+		pendingDrainCount: number;
+		/** Each fit's §5 gap in drained fraction and the ratings it is measured
+		 *  over, or null below `SKILL_MIN_SCORED_LOGS`. */
+		skill: Record<
+			'recovery' | 'cognitiveDrain' | 'physicalDrain',
+			{ gapFraction: number; scoredCount: number } | null
+		>;
+	};
 	/** `todayPending` is the same promise in λ₀'s unit: today is a day the fit
 	 *  will read tomorrow. It is 0 or 1 by construction, hence a boolean. */
 	stopping: StoppingValueFit & { todayPending: boolean };
@@ -445,12 +545,12 @@ function referencePhi(constants: UserConstants): number {
  * ending on a stale record would contradict the value beside it.
  *
  * `windowStart` bounds it to a fixed CALENDAR lookback rather than to everything
- * the report read — that range is widened to reach the oldest audited day, so
- * the sparkline's x-extent would otherwise stretch with however long ago the
- * user last worked. It is deliberately not the audit's window, which counts the
- * last `auditDayCap` days that were WORKED and so reaches further back for
- * anyone who skips days: once there are `auditDayCap` worked days the audit's
- * stretch contains this one, never the reverse, so the sparkline only ever shows
+ * the report read — that range is widened to the oldest ☕/🪫 rating, so the
+ * sparkline's x-extent would otherwise stretch back to the user's first rating.
+ * It is deliberately not the audit's window, which counts the last
+ * `auditDayCap` days that were WORKED and so reaches further back for anyone
+ * who skips days: once there are `auditDayCap` worked days the audit's stretch
+ * contains this one, never the reverse, so the sparkline only ever shows
  * movement the audit also scored. Before that it can be the wider of the two — a
  * snapshot is stamped on any day analytics was opened, an audited day needs
  * logged work.
@@ -519,6 +619,7 @@ function calibrationSnapshotFrom(
 			...energy,
 			pendingRestCount: rest.length - countedRest.length,
 			pendingDrainCount: drain.length - countedDrain.length,
+			skill: energySkillFrom(rest, drain, recorded, energy.params, today),
 		},
 		stopping: {
 			...stopping,
@@ -559,19 +660,17 @@ function toFitSnapshotRecord(
 
 /**
  * The window of recorded fits to read: the trend's fixed lookback, widened to
- * reach the oldest audited day. Those two differ for a user who skips days — the
- * audit keeps the last `auditDayCap` days that were WORKED, which can be older
- * than `auditDayCap` calendar days, and a day whose snapshot went unread would
+ * the oldest ☕/🪫 rating, whose record the skill walk grades it by. That also
+ * reaches the oldest audited day, every finished day being a 🪫 date — the audit
+ * keeps the last `auditDayCap` days that were WORKED, which can be older than
+ * `auditDayCap` calendar days, and a day whose snapshot went unread would
  * silently fall back to the live fit.
  */
-function recordedFitRangeStart(
-	trendStart: string,
-	days: FinishedDay[],
-	auditDayCap: number,
-): string {
-	const oldestAudited = days.at(-auditDayCap)?.session.date ?? days[0]?.session.date;
-
-	return oldestAudited !== undefined && oldestAudited < trendStart ? oldestAudited : trendStart;
+function recordedFitRangeStart(trendStart: string, ratings: { date: string }[]): string {
+	return ratings.reduce(
+		(oldest, rating) => (rating.date < oldest ? rating.date : oldest),
+		trendStart,
+	);
 }
 
 /** An audit of no days — the oracle for a report read before anything is worked. */
@@ -602,9 +701,10 @@ export interface ModelReport {
 /**
  * Everything the analytics screen's two model cards need, in one read: they
  * share the calibration snapshot, and the audit runs one optimizer pass per
- * audited day (~60ms), so `auditDayCap` bounds the lookback. The ϕ skill walk
- * alone is whole-history by design — one ridge refit per distinct ⚡ date
- * (MATH.md §5), a cost far below one audited day's optimizer pass.
+ * audited day (~60ms), so `auditDayCap` bounds the lookback. The skill walks
+ * are whole-history by design: ϕ's refits once per distinct ⚡ date (MATH.md
+ * §5), a cost far below one audited day's optimizer pass, and the ☕/🪫 walk
+ * refits nothing: a past rating reads its date's record, today's the live fit.
  *
  * "One read" is literal — each store is read exactly once here and every
  * derivation is computed from those records. The two cards used to compose their
@@ -627,7 +727,10 @@ export async function readModelReport(today: string, auditDayCap: number): Promi
 	const trendStart = addDays(today, -(auditDayCap - 1));
 
 	const recorded = sanitizeFitSnapshots(
-		await $readFitSnapshotsByDateRange(recordedFitRangeStart(trendStart, days, auditDayCap), today),
+		await $readFitSnapshotsByDateRange(
+			recordedFitRangeStart(trendStart, [...rest, ...drain]),
+			today,
+		),
 	);
 
 	const calibration = calibrationSnapshotFrom(

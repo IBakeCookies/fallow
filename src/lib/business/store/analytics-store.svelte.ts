@@ -246,11 +246,11 @@ export class AnalyticsStore {
 
 			// Stamping today's fit fails silently — the quietest case of R1's third
 			// surface, "already visible in the failing component", except that here
-			// there is nothing to be visible: losing it costs one point of the trend
-			// and one day the audit will score on the live fit instead, so the screen
-			// is identical either way. Its own try so a failed WRITE never puts the
-			// two cards, which have already published, into the state that says their
-			// READ failed.
+			// there is nothing to be visible: losing it costs one point of the trend,
+			// one day the audit will score on the live fit instead, and that day's ☕/🪫
+			// ratings in the skill lines, so today's screen is identical either way.
+			// Its own try so a failed WRITE never puts the two cards, which have
+			// already published, into the state that says their READ failed.
 			try {
 				await fitSnapshotRepository.$updateFitSnapshot(todaysFit);
 			} catch (e) {
