@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeAll, describe, it, expect, vi } from 'vitest';
 import {
 	EMPTY_PLAN_AUDIT,
 	readDaySummaries,
@@ -19,8 +19,18 @@ import {
 	DEFAULT_USER_CONSTANTS,
 	fitUserConstants,
 } from '$lib/business/model/zenith';
-import { DEFAULT_ENERGY_PARAMS } from '$lib/business/model/zenith-energy';
-import type { DailySession, FitSnapshotRecord, Task } from '$lib/data/type';
+import {
+	DEFAULT_ENERGY_PARAMS,
+	simulateReservoirs,
+	type EnergyParams,
+} from '$lib/business/model/zenith-energy';
+import type {
+	DailySession,
+	DrainObservationRecord,
+	FitSnapshotRecord,
+	RestObservationRecord,
+	Task,
+} from '$lib/data/type';
 
 const task = (id: number, over: Partial<Task> = {}): Task => ({
 	id,
@@ -886,5 +896,345 @@ describe('readModelReport ϕ skill', () => {
 		expect(skill!.gapHours).toBeCloseTo((defaultError - fittedError) / scored, 10);
 		// Positive when the fit was closer — the offset above makes it so.
 		expect(skill!.gapHours).toBeGreaterThan(0);
+	});
+});
+
+/* The α and r skill readings (MATH.md §5's scoring convention, over §8.7's and
+   §8.9's observables): every ☕/🪫 rating is predicted by the fit the app held on
+   its own date — the `fitSnapshots` record for a past date, the live fit for
+   today — and graded against the defaults on the same rating. The expected
+   values below are that walk written out longhand. Dated before every other
+   ☕/🪫 row this suite seeds, so those sit past each report date. */
+describe('readModelReport α and r skill', () => {
+	type DrainRow = Omit<DrainObservationRecord, 'id' | 'createdAt' | 'taskId' | 'taskTitle'>;
+	type RestRow = Omit<RestObservationRecord, 'id' | 'createdAt'>;
+
+	const seed = async (drain: DrainRow[], rest: RestRow[]) => {
+		for (const [index, row] of drain.entries()) {
+			await $createDrainObservation({
+				...row,
+				taskId: index + 1,
+				taskTitle: `skill ${index + 1}`,
+			});
+		}
+
+		for (const row of rest) await $createRestObservation(row);
+	};
+
+	// Today's two 🪫 and one ☕ are the only ratings a fit predicted — 2013-06-01
+	// has no recorded fit — so each reading has two, under the floor.
+	it('stays null below 5 scored ratings', async () => {
+		await seed(
+			[
+				{
+					date: '2013-06-01',
+					hours: 2,
+					cognitiveDemand: 0.8,
+					physicalDemand: 0.6,
+					mindDrain: 8,
+					bodyDrain: 6,
+				},
+				{
+					date: '2013-06-02',
+					hours: 1.5,
+					cognitiveDemand: 0.7,
+					physicalDemand: 0.5,
+					mindDrain: 8,
+					bodyDrain: 5,
+				},
+				{
+					date: '2013-06-02',
+					hours: 1,
+					cognitiveDemand: 0.6,
+					physicalDemand: 0.4,
+					mindDrain: 7,
+					bodyDrain: 4,
+				},
+			],
+			[
+				{
+					date: '2013-06-01',
+					hours: 0.5,
+					mindBefore: 7,
+					mindAfter: 4,
+					bodyBefore: 6,
+					bodyAfter: 3,
+				},
+				{
+					date: '2013-06-02',
+					hours: 0.5,
+					mindBefore: 8,
+					mindAfter: 5,
+					bodyBefore: 6,
+					bodyAfter: 4,
+				},
+			],
+		);
+
+		expect((await readModelReport('2013-06-02', 30)).calibration.energy.skill).toEqual({
+			recovery: null,
+			cognitiveDrain: null,
+			physicalDrain: null,
+		});
+	});
+
+	describe('over a recorded history', () => {
+		const today = '2014-03-04';
+
+		// 01-05 is the day the user first rated, recorded before its fit had read
+		// anything, so it holds the defaults. 01-10 sits before the report's 30-day
+		// trend window, which the walk reads past.
+		const recorded = [
+			fitSnapshot('2014-01-05'),
+			fitSnapshot('2014-01-10', {
+				alphaCog: 0.6,
+				alphaPhys: 0.5,
+				recoveryRate: 1,
+			}),
+			fitSnapshot('2014-03-02', {
+				alphaCog: 0.8,
+				alphaPhys: 0.6,
+				recoveryRate: 1.2,
+			}),
+			fitSnapshot('2014-03-03', {
+				alphaCog: 0.9,
+				alphaPhys: 0.7,
+				recoveryRate: 1.4,
+			}),
+		];
+
+		const drain: DrainRow[] = [
+			{
+				date: '2014-01-05',
+				hours: 1,
+				cognitiveDemand: 0.6,
+				physicalDemand: 0.6,
+				mindDrain: 5,
+				bodyDrain: 5,
+			},
+			{
+				date: '2014-01-10',
+				hours: 2,
+				cognitiveDemand: 0.8,
+				physicalDemand: 0.4,
+				mindDrain: 8,
+				bodyDrain: 5,
+			},
+			{
+				date: '2014-03-01',
+				hours: 1.5,
+				cognitiveDemand: 0.6,
+				physicalDemand: 0.6,
+				mindDrain: 7,
+				bodyDrain: 6,
+			},
+			{
+				date: '2014-03-02',
+				hours: 2,
+				cognitiveDemand: 0.9,
+				physicalDemand: 0.3,
+				mindDrain: 9,
+				bodyDrain: 4,
+			},
+			{
+				date: '2014-03-02',
+				hours: 1,
+				cognitiveDemand: 0.5,
+				physicalDemand: 0.5,
+				mindDrain: 8,
+				bodyDrain: 6,
+			},
+			{
+				date: '2014-03-03',
+				hours: 2,
+				cognitiveDemand: 0.7,
+				physicalDemand: 0,
+				mindDrain: 8,
+				bodyDrain: 3,
+			},
+			{
+				date: today,
+				hours: 1.5,
+				cognitiveDemand: 0.8,
+				physicalDemand: 0.6,
+				mindDrain: 9,
+				bodyDrain: 5,
+			},
+			{
+				date: today,
+				hours: 1,
+				cognitiveDemand: 0,
+				physicalDemand: 0.7,
+				mindDrain: 2,
+				bodyDrain: 7,
+			},
+		];
+
+		const rest: RestRow[] = [
+			{
+				date: '2014-01-05',
+				hours: 0.5,
+				mindBefore: 6,
+				mindAfter: 4,
+				bodyBefore: 5,
+				bodyAfter: 3,
+			},
+			{
+				date: '2014-01-10',
+				hours: 0.5,
+				mindBefore: 8,
+				mindAfter: 5,
+				bodyBefore: 6,
+				bodyAfter: 4,
+			},
+			{
+				date: '2014-03-01',
+				hours: 0.75,
+				mindBefore: 7,
+				mindAfter: 4,
+				bodyBefore: 7,
+				bodyAfter: 5,
+			},
+			{
+				date: '2014-03-02',
+				hours: 1,
+				mindBefore: 0,
+				mindAfter: 0,
+				bodyBefore: 7,
+				bodyAfter: 3,
+			},
+			{
+				date: today,
+				hours: 0.25,
+				mindBefore: 9,
+				mindAfter: 7,
+				bodyBefore: 5,
+				bodyAfter: 4,
+			},
+		];
+
+		beforeAll(async () => {
+			for (const snapshot of recorded) await $updateFitSnapshot(snapshot);
+
+			await seed(drain, rest);
+		});
+
+		/** The rates the app held on `date`: its record, or for today the live fit. */
+		const ratesOn = (date: string, live: EnergyParams) =>
+			date === today ? live : recorded.find((snapshot) => snapshot.date === date)!;
+
+		/** A 🪫 row's drained fraction from a full reservoir — the α fit's own law (§8.7). */
+		const drained = (row: DrainRow, isCognitive: boolean, alpha: number, recoveryRate: number) => {
+			const { endCog, endPhys } = simulateReservoirs(
+				[
+					{
+						taskId: 1,
+						hours: row.hours,
+					},
+				],
+				[
+					{
+						id: 1,
+						cognitiveDemand: row.cognitiveDemand,
+						physicalDemand: row.physicalDemand,
+					},
+				],
+				{
+					...DEFAULT_ENERGY_PARAMS,
+					alphaCog: alpha,
+					alphaPhys: alpha,
+					recoveryRate,
+					initialCog: 1,
+					initialPhys: 1,
+				},
+			);
+
+			return 1 - (isCognitive ? endCog : endPhys);
+		};
+
+		/** §5's statistic: the mean of the default-minus-fitted gaps, positive when the fit was closer. */
+		const meanGap = (gaps: number[]) => gaps.reduce((sum, gap) => sum + gap, 0) / gaps.length;
+
+		/* The default side keeps the day's recovery rate: what a user who never
+		   rated 🪫 would have been predicted with still carries their ☕ fit. */
+		const drainGap = (row: DrainRow, isCognitive: boolean, live: EnergyParams) => {
+			const rates = ratesOn(row.date, live);
+			const alpha = isCognitive ? rates.alphaCog : rates.alphaPhys;
+
+			const defaultAlpha = isCognitive
+				? DEFAULT_ENERGY_PARAMS.alphaCog
+				: DEFAULT_ENERGY_PARAMS.alphaPhys;
+
+			const observed = (isCognitive ? row.mindDrain : row.bodyDrain) / 10;
+
+			return (
+				Math.abs(observed - drained(row, isCognitive, defaultAlpha, rates.recoveryRate)) -
+				Math.abs(observed - drained(row, isCognitive, alpha, rates.recoveryRate))
+			);
+		};
+
+		// Scored: 01-10, both of 03-02's sessions (a later session is predicted like
+		// the first — §8.7's walk scores every row of the day), 03-03 and today's
+		// first. Not scored: 01-05, whose record is the defaults, so both sides
+		// predict the same; 03-01, which has no record; today's second, which loaded
+		// no mind.
+		it('scores each 🪫 rating against the fit recorded on its own date', async () => {
+			const report = await readModelReport(today, 30);
+			const scored = [drain[1], drain[3], drain[4], drain[5], drain[6]];
+
+			expect(report.calibration.energy.skill.cognitiveDrain).toEqual({
+				gapFraction: expect.closeTo(
+					meanGap(scored.map((row) => drainGap(row, true, report.calibration.energy.params))),
+					10,
+				),
+				scoredCount: 5,
+			});
+		});
+
+		// The mind reading's rows, less 03-03's session, which loaded no body, plus
+		// today's second, which loaded nothing else.
+		it('scores the body reading only on the rows that loaded the body', async () => {
+			const report = await readModelReport(today, 30);
+			const scored = [drain[1], drain[3], drain[4], drain[6], drain[7]];
+
+			expect(report.calibration.energy.skill.physicalDrain).toEqual({
+				gapFraction: expect.closeTo(
+					meanGap(scored.map((row) => drainGap(row, false, report.calibration.energy.params))),
+					10,
+				),
+				scoredCount: 5,
+			});
+		});
+
+		// Both ratings of the 01-10 pair and of today's, and the body rating of
+		// 03-02's — its mind started fresh, so no rate could have moved it.
+		it('scores each rating of a ☕ pair against the recovery rate recorded on its date', async () => {
+			const report = await readModelReport(today, 30);
+			const multiplier = DEFAULT_ENERGY_PARAMS.restRecoveryMultiplier;
+
+			const scored = [
+				[rest[1], rest[1].mindBefore, rest[1].mindAfter],
+				[rest[1], rest[1].bodyBefore, rest[1].bodyAfter],
+				[rest[3], rest[3].bodyBefore, rest[3].bodyAfter],
+				[rest[4], rest[4].mindBefore, rest[4].mindAfter],
+				[rest[4], rest[4].bodyBefore, rest[4].bodyAfter],
+			] as const;
+
+			// §8.9's law: at rest the drained fraction decays as e^(−r·m·g).
+			const gaps = scored.map(([row, before, after]) => {
+				const rate = ratesOn(row.date, report.calibration.energy.params).recoveryRate;
+				const recovered = (r: number) => (before / 10) * Math.exp(-r * multiplier * row.hours);
+
+				return (
+					Math.abs(after / 10 - recovered(DEFAULT_ENERGY_PARAMS.recoveryRate)) -
+					Math.abs(after / 10 - recovered(rate))
+				);
+			});
+
+			expect(report.calibration.energy.skill.recovery).toEqual({
+				gapFraction: expect.closeTo(meanGap(gaps), 10),
+				scoredCount: 5,
+			});
+		});
 	});
 });
