@@ -27,7 +27,12 @@
  * measured against — and it does not need the DECLARED pool to bind, since a
  * pool that is too generous is priced by the hours the true day could not hold.
  *
- * What arm A's seed sweep found (run 2026-09-18, seeds 42–53, today's
+ * SELF-CHECK, printed first and the only assertion: every α̂ below is the app's
+ * only if the row each α fit keeps is the day's first session. On a fixture
+ * logging every session it is, on all 297 cognitive and 249 physical days (157
+ * and 66 of them with more than one row to order).
+ *
+ * What arm A's seed sweep found (run 2026-09-24, seeds 42–53, today's
  * constants): every one of those four-decimal Δ is smaller than the spread of
  * its own cell across seeds, so none of them carries a sign. Per point, the
  * range of the truth−4/6 Δ against the seed-42 cell the sentence above quotes:
@@ -35,33 +40,33 @@
  * very nearly 4/6, and it binds on 9 of 60 days); −0.0035 over 0.0044, positive
  * at 2 of 12 seeds; −0.0024 over 0.0129, positive at 6 of 12; +0.0116 over
  * 0.0403, ranging −0.0170 to +0.0232 and positive at 9 of 12. The derived−4/6
- * Δ moves further still — at α 0.7/0.45 it runs −0.0111 to +0.0119 (positive at
- * 5 of 12), and the +0.0277 headline at α 0.95/0.6 runs −0.0253 to +0.0368
- * (positive at 8 of 12). So "the control ranks the correct pool below 4/6" is
+ * Δ moves further still — at α 0.7/0.45 it runs −0.0072 to +0.0084 (positive at
+ * 4 of 12), and the +0.0204 headline at α 0.95/0.6 runs −0.0315 to +0.0467
+ * (positive at 9 of 12). So "the control ranks the correct pool below 4/6" is
  * one draw of a quantity centred near zero, not a property of the instrument,
  * and the one favourable point is not a favourable point either. The sweep
  * prints only seed 42's blocks, so it says nothing about how the binding counts
  * beside them move; what it decides is the Δ, and the Δ decides nothing.
  *
- * What arm D found (run 2026-09-18, seed 42, same four α pairs): planning under
+ * What arm D found (run 2026-09-24, seed 42, same four α pairs): planning under
  * 4/6 loses 1.757% of the objective on average against planning under the
- * truth, and the derived pool loses 0.917% — so the map roughly halves the cost
+ * truth, and the derived pool loses 0.784% — so the map roughly halves the cost
  * of the constants it would replace. The two are not uniformly ordered: 4/6
- * wins by 0.040 and 0.566 pp at the two points where it happens to be nearly
- * right (truth 4.00/5.97 h and 2.89/4.78 h) and loses by 0.965 and 3.004 pp as
+ * wins by 0.024 and 0.327 pp at the two points where it happens to be nearly
+ * right (truth 4.00/5.97 h and 2.89/4.78 h) and loses by 1.081 and 3.165 pp as
  * the truth moves away from it. The asymmetry is the reading: α̂ comes back high
- * at every point, so the derived pool is 0.27–0.86 h SMALL, and an
- * under-declared pool leaves value unspent (worst day 2.4–12.6%) while an
- * over-declared one plots a day that cannot be worked (worst day 14.9–48.3%
+ * at every point, so the derived pool is 0.27–0.79 h SMALL, and an
+ * under-declared pool leaves value unspent (worst day 1.452–10.227%) while an
+ * over-declared one plots a day that cannot be worked (worst day 14.880–48.272%
  * once the truth moves off 4/6). The reference holds empirically as well as by
  * design: the best day is 0.000% at every point and under both pools, so the
  * greedy's inexactness never let a wrong pool score above the right one here.
  * It stays a reading about the estimator on a law it was given — arm B, the
  * loss when that law is false, still returns no derived pool at any point.
  *
- * What arm C found (run 2026-09-18, seed 42): sweeping the 🪫 opt-in rate from
- * 0.15 to 1.56 logs per day leaves α̂_cog wandering 0.63–0.73 with no trend, and
- * the derived cognitive pool 2.13–2.23 h where it is defined at all. It does
+ * What arm C found (run 2026-09-24, seed 42): sweeping the 🪫 opt-in rate from
+ * 0.15 to 1.56 logs per day leaves α̂_cog wandering 0.5365–0.7013 with no
+ * trend, and the derived cognitive pool 2.21–2.27 h where it is defined at all. It does
  * NOT reproduce the "α̂ drifts upward with the logging rate, so the pool shrinks
  * the more diligently you log" direction ROADMAP item 18 recorded on 2026-08-04
  * from an uncommitted variant; that direction is unsupported here. At three of
@@ -84,8 +89,13 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, it } from 'vitest';
-import { calibrateEnergyParams } from '$lib/business/model/energy-calibration';
+import { describe, expect, it } from 'vitest';
+import {
+	calibrateEnergyParams,
+	keepDayFirstDrainRows,
+	toCognitiveDrainObservations,
+	toPhysicalDrainObservations,
+} from '$lib/business/model/energy-calibration';
 import { auditPlanAdherence, type PlanAuditDay } from '$lib/business/model/plan-audit';
 import { toEnergyTask, toPooledInputs } from '$lib/business/model/metric/calculation';
 import {
@@ -96,7 +106,11 @@ import {
 	fitUserConstants,
 	type CapacityPools,
 } from '$lib/business/model/zenith';
-import { capacityFromDrainRate, type EnergyParams } from '$lib/business/model/zenith-energy';
+import {
+	capacityFromDrainRate,
+	isInformativeDrainObservation,
+	type EnergyParams,
+} from '$lib/business/model/zenith-energy';
 import type { DrainObservationRecord, RestObservationRecord, Task } from '$lib/data/type';
 
 /**
@@ -491,6 +505,54 @@ const SELF_CONSISTENT_GRID = [
 ];
 
 describe('capacity from the fitted drain rate (MATH.md §8.13)', () => {
+	/**
+	 * The α fits read each day's earliest 🪫 row by `createdAt`, so every α̂ below
+	 * is only the app's if the generator stamps a row at the moment it would be
+	 * written. It writes a day's rows in the order the sessions were worked, so
+	 * the lowest id per day is that day's first session.
+	 */
+	it('self-check — the row the α fit keeps is the day’s first session', () => {
+		// Every session logged, so most days carry several rows to order.
+		const { drainObservations } = generate(['--drain-log-rate', '1']);
+
+		const readings = (
+			[
+				['cog ', toCognitiveDrainObservations],
+				['phys', toPhysicalDrainObservations],
+			] as const
+		).map(([label, toObservations]) => {
+			const firstSession = new Map<string, number>();
+			const rowsPerDay = new Map<string, number>();
+
+			for (const row of drainObservations) {
+				if (!isInformativeDrainObservation(toObservations([row])[0])) continue;
+
+				firstSession.set(row.date, Math.min(firstSession.get(row.date) ?? Infinity, row.id!));
+				rowsPerDay.set(row.date, (rowsPerDay.get(row.date) ?? 0) + 1);
+			}
+
+			const kept = keepDayFirstDrainRows(drainObservations, toObservations);
+			const misread = kept.filter((row) => row.id !== firstSession.get(row.date)).length;
+			const ordered = [...rowsPerDay.values()].filter((count) => count > 1).length;
+
+			return {
+				line: `  ${label}  ${kept.length} days, ${ordered} with more than one row, a later session kept on ${misread}`,
+				misread,
+			};
+		});
+
+		console.log(
+			[
+				'',
+				'SELF-CHECK — the day-first row the α fits read, on a fixture logging every session',
+				...readings.map((reading) => reading.line),
+				'',
+			].join('\n'),
+		);
+
+		for (const reading of readings) expect(reading.misread).toBe(0);
+	});
+
 	it('A — self-consistent: the true pool IS the map of the true α', () => {
 		const blocks: string[][] = [];
 		const spread: string[] = [];

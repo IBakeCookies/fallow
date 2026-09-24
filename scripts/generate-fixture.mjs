@@ -396,6 +396,9 @@ for (const date of dates) {
 	let physicalSpent = 0;
 	// Order: roughly by enjoyment, the way a person actually picks.
 	const order = [...tasks].sort((a, b) => b.enjoyment - a.enjoyment);
+	// Every log is stamped at the moment it would be written: the α fits keep a
+	// day's earliest 🪫 row by `createdAt` (MATH.md §8.7).
+	let clock = dayEpoch;
 
 	for (const task of order) {
 		if (remaining < 0.25) break;
@@ -429,6 +432,10 @@ for (const date of dates) {
 		// the tasks that draw on it, and the other pool's hours stay spendable.
 		if (hours < 0.25) continue;
 
+		const sessionStart = clock;
+
+		clock += hours * 3600000;
+
 		cognitive = reservoirAfter(
 			cognitive,
 			hours,
@@ -457,7 +464,7 @@ for (const date of dates) {
 				physicalDemand,
 				mindDrain: toRating(cognitive),
 				bodyDrain: toRating(physical),
-				createdAt: dayEpoch + Math.round(hours * 3600000),
+				createdAt: clock,
 			});
 		}
 
@@ -480,7 +487,7 @@ for (const date of dates) {
 				E: mapE(difficulty),
 				beta: mapBeta(task.enjoyment),
 				phiHours: measured,
-				createdAt: dayEpoch + Math.round(measured * 3600000),
+				createdAt: sessionStart + Math.round(measured * 3600000),
 			});
 		}
 
@@ -492,6 +499,7 @@ for (const date of dates) {
 
 			cognitive = reservoirAfterRest(cognitive, breakHours, TRUTH.recoveryRate);
 			physical = reservoirAfterRest(physical, breakHours, TRUTH.recoveryRate);
+			clock += breakHours * 3600000;
 
 			restObservations.push({
 				id: restId++,
@@ -501,7 +509,7 @@ for (const date of dates) {
 				mindAfter: toRating(cognitive),
 				bodyBefore,
 				bodyAfter: toRating(physical),
-				createdAt: dayEpoch + Math.round(breakHours * 3600000),
+				createdAt: clock,
 			});
 		}
 	}
