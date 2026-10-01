@@ -347,7 +347,8 @@ conditional is not styling.
    stated that way is not a bug.
 2. **Inconsistencies** — the diff contradicting itself, the rules, `MATH.md`,
    or `STYLE.md`. A comment that no longer describes its code. A test that
-   passes whether or not the behaviour works.
+   passes whether or not the behaviour works. A second copy (R3) of a
+   predicate, default or format the diff adds or changes: have it grep for one.
 
 **Ask it explicitly NOT to suggest improvements, hardening, extra abstraction,
 or additional tests beyond a missing one for behaviour the diff changed.** Ask

@@ -1324,7 +1324,8 @@ runner-up.
   fix, touched eight source modules. Direction: one module each task screen
   creates for itself, owning the drafts and every transition and tested at its
   own interface. Each page still holds its own drafts, so "Each measurement is
-  read, corrected and dropped on the row it belongs to" stands.
+  read, corrected and dropped on the row it belongs to" stands. The fix also
+  drops the A1 pointer in presentation/AGENTS.md's R2.
 - **A2 — four whole-day writes spell one record literal — raised 2026-10-01.**
   The move, the carry, their undo and `#rewriteDay` each write the same
   seven-key `DailySession` literal off `#readDestination`'s re-listing, so
