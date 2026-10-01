@@ -112,9 +112,10 @@ what, and the one gap a `.svelte` file opens:
 [docs/testing.md](docs/testing.md).
 
 **R2 — Routes and components hold no logic.** A `+page.svelte` may hold markup,
-UI-only state (draft editors, toggles, view preferences), formatters and thin
-`$derived` aliases of a store. Model orchestration, fits, persistence and
-threshold policy go in a module — the table of which module is in
+UI-only state (a draft's values, toggles, view preferences), formatters and thin
+`$derived` aliases of a store. Model orchestration, fits, persistence,
+threshold policy and a save that picks which write to make go in a module —
+the table of which module is in
 [presentation/AGENTS.md](src/lib/presentation/AGENTS.md). Reads end at a store,
 and that is not a judgement call: `presentation-not-to-business-model` is an
 error, and so is an `await` or a `.then()` inside a route or component
@@ -281,3 +282,9 @@ definition of the same fact (R3), free to drift from the file that owns it.
 [data](src/lib/data/AGENTS.md) · [stores](src/lib/business/AGENTS.md) ·
 [model](src/lib/business/model/AGENTS.md) ·
 [UI](src/lib/presentation/AGENTS.md) · [serving](docs/deployment.md)
+
+A decision in any rules file, Settled section or not, that rests on a property
+of the code (a cost, a laziness, an ordering) names the test or probe that pins
+it, because the property goes false in diffs that never read the decision.
+Existing ones are a baseline, not a to-do list: pin one when a change rewrites
+what it decides or why.

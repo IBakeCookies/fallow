@@ -39,10 +39,11 @@ and give the page the result. Four kinds of file are outside the rule and may
 import a model directly: `.server.ts` and `+server.ts` are the composition
 root, and specs and `.stories.svelte` build their own fixtures.
 
-A `+page.svelte` may contain: markup, local UI-only state (draft editors,
+A `+page.svelte` may contain: markup, local UI-only state (a draft's values,
 open/closed toggles, view preferences), formatters, and thin `$derived` aliases
 of a store. Anything else — model orchestration, fits, persistence, threshold
-policy — goes in a module:
+policy, a save that picks which write to make — goes in a module (the 🪫 save
+on `/` and `/energy` still picks: ROADMAP A1):
 
 | Kind of code                        | Where it goes                                        |
 | ----------------------------------- | ---------------------------------------------------- |
