@@ -168,8 +168,8 @@ the trade runs the same way in each direction:
   moved there: its params are the Lab's alone, but its stop observations are
   not — any write to a past day moves them — so the effect that folds
   the finished days keys on `SessionStore`'s past-write generation and re-reads.
-  The optimizer behind `plan` is a `$derived` no `$effect` touches, so it stays
-  unrun on the five routes that never show it. What it buys is the ~120 ms of
+  The optimizer behind `plan` must stay unrun on the five routes that never show
+  it (ROADMAP M110 is the `$effect` that runs it). What it buys is the ~120 ms of
   placeholder a page-scoped store spent re-reading on every visit. A staleness
   reason with no such key means a named refresh instead, called by whoever knows
   the reason — `SessionStore` has two, `retryLoad()` for the banner's button and
@@ -484,9 +484,9 @@ day is never read, and it holds with JS disabled.
 
 Being a today-only instrument does not exempt its fits from the causal window:
 the three identity fits (α, r, λ₀) read only days **strictly before** today, like
-every other fit in the app. The Lab's α and r cards and every row of analytics'
-"Your model" name what they defer beside the count; the Lab's Stopping
-Calibration card is the one that still does not (ROADMAP item 4). The stop
+every other fit in the app. The Lab's r card and every row of analytics' "Your
+model" name what they defer beside the count; the Lab's α rows (ROADMAP M114)
+and Stopping Calibration card (ROADMAP item 4) still do not. The stop
 advisor is the one read that keeps today's rows — it
 prices the day in progress, which is the state half.
 

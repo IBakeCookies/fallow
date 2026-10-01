@@ -19,7 +19,7 @@
 		 *  `pick` because the panel's next-task buttons fill the title field and only
 		 *  this form can. Absent, there is no second column. */
 		preview?: Snippet<[(rating: TitleRating) => void]>;
-		/** The footer's left slot, where `/` puts the must-do toggle. */
+		/** The footer's left slot. */
 		action?: Snippet;
 		/** What a solve reads off the draft, published on every edit — `null` while it
 		 *  is unnamed. Both screens price it, one live and one on a press. */
