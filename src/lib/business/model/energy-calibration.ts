@@ -1,6 +1,6 @@
 /**
  * Calibration facade: run a user's logs through the energy-model fits in one
- * call, so the main page's Burnout Risk and the Energy Lab share one
+ * call, so the main page's Burnout Risk and analytics' model report share one
  * orchestration instead of copy-pasting the mapping + fit sequence.
  */
 
@@ -22,8 +22,8 @@ import { CAPACITY_POOL_MAX_HOURS } from '$lib/business/utils/capacity-pool-bound
 import type { DrainObservationRecord, RestObservationRecord } from '$lib/data/type';
 
 // The stored 0–10 ratings → the fits' [0,1] fractions. Exported because the
-// Energy Lab runs the same records through the same fits in a different
-// sequence (R3: one definition per concept) — only the sequence differs.
+// Energy Lab runs the same records through the same fits itself, conditioned
+// on its sliders (R3: one definition per concept).
 
 export function toCognitiveDrainObservations(
 	records: DrainObservationRecord[],

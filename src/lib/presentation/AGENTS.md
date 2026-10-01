@@ -860,9 +860,7 @@ The must-do toggle is hidden in both of the Lab's forms
 (`withMustDoToday={false}` — the add form takes it directly, the row's ✎ through
 the shell) because `isPinned` is read by the plan advisor and by nothing in this
 mode. The seeded value still round-trips, so an edit here cannot clear a flag set
-there. This is the carve-out named under "R3 in the UI" above; the prop is one
-name from the Lab's page down through the form to `task-form-fields`, which
-renders the toggle.
+there. This is the carve-out named under "R3 in the UI" above.
 
 ### The calibration cards share a shell, not a body
 

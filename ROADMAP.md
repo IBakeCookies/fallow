@@ -1251,3 +1251,144 @@ Raised closing M106 with the two arms
   error — a one-signed upward α bias "accepted as noise (σ₀ is wide)", against
   that section's own "ν₀ ≠ λ (changes reported stds only, never the MAP)" two
   paragraphs above it — and both clauses are gone.
+
+## Findings from the 2026-10-01 architecture review
+
+Four read-only explorers over the hot spots of the last 150 commits — `/` and
+`/energy`, the session store, the task row and form, the calibration chain and
+the metric readings — with every kept finding re-checked against the code and
+the area settled decisions. Nothing was run but grep and git. The **A** ids are
+deepenings, one module where a decision is now spelled in several, and are
+stable and never reused; the defects continue the **M** and **S** series. Eight
+candidates were dropped against the settled decisions and rules that already
+answer them: moving ⚡ flow observations or the tag rewrite out of
+`SessionStore`, merging `task-form` with `task-edit-form` or `task-item` with
+`energy-task-row`, folding `task-list` into `/`, one helper for the three
+`*-with-undo.ts`, splitting `calculation.ts` or `zenith-energy.ts`, and `/`
+re-ranking with `computeNextTasks` after `addTask`.
+
+- **M110 — the Lab's order-snapshot `$effect` subscribes `optimizeSchedule` on
+  every route — raised 2026-10-01.** It reads `this.#plan.evaluation` before
+  its `#orderStale` gate, and `EnergyLabStore` is created in the `(app)` layout,
+  so the energy optimizer re-solves on every change to the tasks, the budget,
+  the params or the fitted constants on all six routes, each budget keystroke on
+  `/` included. business/AGENTS.md ("Context is the creation rule…") and the
+  store's closing doc state the rule and point here, so the fix also drops both
+  pointers. The effect landed 2026-08-06 (6785a79a). Unmeasured: reproduce
+  first with a spy counting `optimizeSchedule` calls under a budget change on
+  `/`. When the snapshot should arm is a design question, not a line swap.
+- **M111 — the analytics trend prices every past day under today's α and r —
+  raised 2026-10-01.** `readDaySummaries` hands each day only ϕ from its
+  `fitSnapshots` record, and `calculateMetricTrend` takes one `params` for every
+  point, though each record also stores `alphaCog`, `alphaPhys` and
+  `recoveryRate`. model/AGENTS.md's causal-window invariant has history read
+  each day's recorded fit for every identity fit, α and r included; MATH.md does
+  not address the trend. Decide which side is wrong before building.
+- **M112 — `/calendar` bands a day with tasks and nothing ticked as critical,
+  where `/` reads it neutral — raised 2026-10-01.** The calendar calls
+  `getBandBiggerBetter(s.completionRate)` in markup with no gate;
+  `metric-descriptor.ts` gates the same band on `completedTasks > 0` ("an
+  untouched day is the starting state, not a critical one"). The calendar half
+  is threshold policy in a route (R2), tested at no level, and while it stands
+  presentation/AGENTS.md's "the whole banding policy in one module" is false.
+- **S8 — `logDrain` does not refuse the example day — raised 2026-10-01.**
+  `EnergyObservationStore` has no demo check, and the loaded-day thunk the
+  layout hands it carries the example tasks under a real date, so its only
+  cover is `/`'s `canLog`, keyed on `isDemo`, the read flag. business/AGENTS.md
+  ("`SessionStore` has a second day source"): "A write refused here and not at
+  its call site, always." 17e481c fixed the same shape for `logFlow`. A person
+  cannot reach it today: it needs a 🪫 save between leaving the demo and the
+  real day loading.
+- ~~**M113 — six doc lines were false.**~~ Closed 2026-10-01 in the files
+  themselves, with a seventh beside the fourth: `energy-calibration.ts`'s "only
+  the sequence differs", where the Lab also conditions on its sliders. The "no
+  `$effect` touches `plan`" pair now states the rule and points at M110, and
+  correcting "the Lab's α and r cards" raised M114.
+- **M114 — the Lab's α rows print the fit's count but never name today's
+  deferred 🪫 ratings — raised 2026-10-01.** model/AGENTS.md: "Any UI that
+  prints a log count must print the **counted** one and name the deferred ones
+  separately". The deferred line left `/energy` with the drain card in 666585e,
+  and both α rows kept their `n=`; the ☕ card on the same page still names its
+  deferred logs. The fix also drops the M114 pointer in business/AGENTS.md.
+
+The deepenings, strongest first. A1 is the review's top pick and A2 the cheap
+runner-up.
+
+- **A1 — the ⚡/🪫 editor lifecycle is written twice — raised 2026-10-01.** `/`
+  and `/energy` each hold the two draft records and their handlers (open, save,
+  correct or append, spend the stopped timer's minutes, close on ✕ and on move),
+  and the 14 props that carry them cross `task-list`, `task-item` and
+  `energy-task-row`, which only forward or index them, to `task-row-shell`.
+  `measurement-prompt.ts` records that the copies "had already disagreed twice"
+  and that the rest "is a route, where nothing can reach it"; cdeafe6, one undo
+  fix, touched eight source modules. Direction: one module each task screen
+  creates for itself, owning the drafts and every transition and tested at its
+  own interface. Each page still holds its own drafts, so "Each measurement is
+  read, corrected and dropped on the row it belongs to" stands.
+- **A2 — four whole-day writes spell one record literal — raised 2026-10-01.**
+  The move, the carry, their undo and `#rewriteDay` each write the same
+  seven-key `DailySession` literal off `#readDestination`'s re-listing, so
+  business/AGENTS.md's "a new field lands in all six" is held in prose:
+  `#persistSession` takes the built payload and cannot see a miss, and no spec
+  passes a stored field through every writer. Direction: the four go through one
+  private read → fold → write seam that writes back every stored field, the
+  shape `#rewriteDay(date, fold)` already has; the autosave builder stays the
+  one listing. Pin first: a stored day holding exactly one pool is written back
+  today with the other defaulted.
+- **A3 — the identity fits' input window is spelled by each caller — raised
+  2026-10-01.** "Days strictly before D, the first informative row per day, and
+  name what is deferred" is one decision, but `calibrateEnergyParams` takes no
+  day, so the window is spelled at 11 sites in 5 modules, one of them
+  `analytics/+page.svelte`
+  (`grep -rnE "(o|row)\.date (<|>=) (this\.#session\.(today|selectedDate)|session\.today|today)\b" src`).
+  The Lab rebuilds the chain instead of calling the facade, and that drift
+  shipped as 76684d4. Direction: the calibration module takes the day and
+  returns the counted observations with their deferred counts; the Lab keeps its
+  slider conditioning and its one Apply.
+- **A4 — four metric readings bill switches beside `calculatePlanSwitchHours`
+  instead of through it — raised 2026-10-01.** `calculateTimeScarcity`,
+  `calculateBurnoutRisk`, `calculateScheduleIntegrity` and plan-advice's
+  `calculateSwitchCostPrice` each spell `(m−1)·s` over the funded set inline,
+  and only Burnout Risk clamps `s`; 83f992e1 is this drift shipping once.
+  Direction: the four read the seam and the clamp gets one home. The two
+  allocator copies in `zenith.ts` stay.
+- **A5 — a task's definition crosses the row as seven loose props — raised
+  2026-10-01.** `TaskEdit` names the seven fields a form sets, but `task-item`,
+  `energy-task-row` and `task-row-shell` each take them separately, defaults for
+  absent fields are written at all three, and the shell re-packs them. So ✎'s
+  round-trip holds only while every hop forwards every field, and no row story
+  sets a non-default `tags` or `importance`. Adding `importance` (5d4ff5f) and
+  `tags` (4c81247) each touched the whole chain. Direction: the definition
+  travels whole and the default is decided once.
+- **A6 — how a fit prints is decided in three modules — raised 2026-10-01.** The
+  Lab route's three reading builders, `param-row`'s null state and
+  `calibration-descriptor.ts` each decide part of a fit's reading (its states,
+  ± or spread, two decimals), kept in step by the descriptor's header in prose.
+  The Lab's steppers also spell the fit bounds as literals that nothing ties to
+  `ALPHA_FIT_MIN` and its five siblings, which have no production importer.
+  Direction: one module in presentation decides a fit's reading for both
+  screens, holding M108's split (the Lab's λ₀ reads `spread`, Analytics keeps
+  ±) as one decision; the bounds get one definition that the model and the route
+  both read, as `capacity-pool-bounds.ts` does for the pools.
+- **A7 — Yield Index reports "no reading" as 0 — raised 2026-10-01.**
+  `calculateYieldIndex` returns 0 on a day that completed nothing, so
+  `metric-descriptor.ts`, `completion-chart-points.ts` and `weeklyRollups` each
+  re-apply `completedTasks > 0`, where `calculateRewardDensity` and
+  `calculateDailyQuadrant` answer `null`. Direction: absence is decided once, in
+  the model.
+- **A8 — tomorrow's record is held by two stores under one key — raised
+  2026-10-01.** `SessionStore` holds it for the carry count and `DailyPlanStore`
+  for the defer line. The second rebuilds the key from two getters and must take
+  it before awaiting `readDeferDestination`, and
+  `energy-lab-store.test-utils.svelte.ts` re-spells the key, so its spec checks
+  a copy. `destinationKeyFor`'s doc names "the two stores that hold one" as the
+  design: reopen only if that ordering bites.
+- **A9 — the tomorrow moves stash their undo instead of returning it — raised
+  2026-10-01.** Both moves answer whether they moved and park the way back in
+  `undoCarry`, so `carry-with-undo.ts` must read the count, await the move and
+  read the stash straight away; `removeTask`, `deleteFlowLog`, `clearFlowLog`,
+  `deleteDrainLog` and `deleteRestLog` each return their undo, and its presence
+  is the answer. This contradicts business/AGENTS.md's "A task moves between
+  days only via the two tomorrow moves" ("…since both return whether they
+  moved"), which is worth reopening because that boolean's one reader uses it
+  only to decide whether to read the stash.
