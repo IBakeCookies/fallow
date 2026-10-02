@@ -1285,13 +1285,9 @@ re-ranking with `computeNextTasks` after `addTask`.
   `recoveryRate`. model/AGENTS.md's causal-window invariant has history read
   each day's recorded fit for every identity fit, α and r included; MATH.md does
   not address the trend. Decide which side is wrong before building.
-- **M112 — `/calendar` bands a day with tasks and nothing ticked as critical,
-  where `/` reads it neutral — raised 2026-10-01.** The calendar calls
-  `getBandBiggerBetter(s.completionRate)` in markup with no gate;
-  `metric-descriptor.ts` gates the same band on `completedTasks > 0` ("an
-  untouched day is the starting state, not a critical one"). The calendar half
-  is threshold policy in a route (R2), tested at no level, and while it stands
-  presentation/AGENTS.md's "the whole banding policy in one module" is false.
+- ~~**M112 — `/calendar` bands a day with tasks and nothing ticked as critical,
+  where `/` reads it neutral.**~~ Fixed 2026-10-02,
+  [calendar.e2e.ts](e2e/calendar.e2e.ts).
 - **S8 — `logDrain` does not refuse the example day — raised 2026-10-01.**
   `EnergyObservationStore` has no demo check, and the loaded-day thunk the
   layout hands it carries the example tasks under a real date, so its only

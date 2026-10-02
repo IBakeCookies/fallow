@@ -80,6 +80,16 @@ export function getBandBiggerBetter(value: number): Band {
 	return 'critical';
 }
 
+/**
+ * A day's completion, on every screen that bands one. The reading is honest at 0%
+ * but the band is not: an untouched day is the starting state, not a critical one,
+ * and colouring it red on first paint is what makes every other warning easy to
+ * ignore.
+ */
+export function getBandCompletion(completionRate: number, completedTasks: number): Band {
+	return completedTasks > 0 ? getBandBiggerBetter(completionRate) : 'neutral';
+}
+
 export function getBandSmallerBetter(value: number): Band {
 	if (value <= 25) return 'success';
 

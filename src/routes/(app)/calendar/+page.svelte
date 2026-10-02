@@ -8,11 +8,7 @@
 	import SegmentedToggle from '$lib/presentation/component/segmented-toggle.svelte';
 	import { getDateLocale, getWeekStartsOn } from '$lib/presentation/utils/locale.svelte';
 	import { Button } from '$lib/presentation/component/ui/button';
-	import {
-		BAND_BAR_CLASS,
-		BAND_TEXT_CLASS,
-		getBandBiggerBetter,
-	} from '$lib/presentation/utils/band';
+	import { BAND_BAR_CLASS, BAND_TEXT_CLASS, getBandCompletion } from '$lib/presentation/utils/band';
 	import { showToast } from '$lib/presentation/utils/toast';
 	import { monthGrid, startOfWeek, addDays, fromISO, toISODate } from '$lib/business/utils/date';
 	import { setCalendarStore } from '$lib/business/store/calendar-store.svelte';
@@ -272,6 +268,7 @@
 						</div>
 					</div>
 				{:else if s}
+					{@const band = getBandCompletion(s.completionRate, s.completedTasks)}
 					<!-- Future days are plans: nothing is completable yet, so no bar -->
 					{#if !isFuture}
 						<div
@@ -281,7 +278,7 @@
 							})}
 						>
 							<div
-								class="band-fill {BAND_BAR_CLASS[getBandBiggerBetter(s.completionRate)]}"
+								class="band-fill {BAND_BAR_CLASS[band]}"
 								style="width: {s.completionRate}%"
 							></div>
 						</div>
@@ -309,7 +306,7 @@
 					{:else}
 						<div class="mt-text-xs flex items-baseline justify-between text-xs">
 							{#if !isFuture}
-								<span class="font-medium {BAND_TEXT_CLASS[getBandBiggerBetter(s.completionRate)]}">
+								<span class="font-medium {BAND_TEXT_CLASS[band]}">
 									{s.completionRate}%
 								</span>
 							{:else}
