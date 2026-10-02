@@ -1390,3 +1390,21 @@ runner-up.
   days only via the two tomorrow moves" ("…since both return whether they
   moved"), which is worth reopening because that boolean's one reader uses it
   only to decide whether to read the stash.
+
+## Findings from the 2026-10-02 branch review
+
+The read-only review of the branch that closed M110 and M112 caught a Lab
+reached from `/?date=` taking its order snapshot from the day still in memory.
+That one is fixed on the branch, pinned by "sorts by the viewed day's plan, not
+the last day's still in memory" in
+[energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts);
+its midnight sibling is left open. The **M** series continues.
+
+- **M115 — an open Lab keeps the old day's order across midnight — raised
+  2026-10-02.** The order is a snapshot per visit (presentation/AGENTS.md,
+  "The Lab's task list reads in schedule order, snapshotted per visit"), and
+  midnight is the one date change `/energy` shows while mounted. The new day's
+  tasks hold no position in the old day's snapshot, so they read in the store's
+  own order, not the plan's, until the next visit. Any fix re-sorts under an
+  open page, which the snapshot exists to refuse, though here every row has
+  changed with the day: decide whether a day change may re-sort before building.
