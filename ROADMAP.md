@@ -484,6 +484,14 @@ cleared, so neither re-opens a refusal.
     α and r without it (`DailyPlanStore`), so a gate belongs in the fit if
     anywhere.
 
+    **The shipped half left one rule unpinned**, found 2026-10-02: the walk
+    grades a rating dated today by the live fit and never by a record dated
+    today (`energySkillFrom`), but no test gives today both a rating and a
+    `fitSnapshots` record, so a walk that preferred the record passes all of
+    `session-history.test.ts`. The trend's own rule is pinned by one stale
+    record dated today ("today fitted fresh rather than read back"), with no
+    rating beside it; the walk needs both, and it does not wait on the gate.
+
 A third, and a different question — an instrument that does not exist rather
 than a number that is not spent:
 
