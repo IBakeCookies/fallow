@@ -42,6 +42,7 @@ import {
 	AXIS_BAND,
 	energyBalanceReading,
 	getBandBiggerBetter,
+	getBandCompletion,
 	getBandDeepWork,
 	getBandFlowReached,
 	type Band,
@@ -189,19 +190,11 @@ export function buildMetrics(
 			group: 'worth',
 			label: m.metric_completion_rate(),
 			description: m.metric_completion_rate_desc(),
-			// The reading is honest at 0% but the band is not: an untouched day is the
-			// starting state, not a critical one, and colouring it red on first paint
-			// is what makes every other warning easy to ignore.
-			...gated(
-				hasTasks,
-				`${completionRate}%`,
-				completedTasks > 0 ? getBandBiggerBetter(completionRate) : 'neutral',
-				{
-					kind: 'bar',
-					filled: completionRate,
-					total: 100,
-				},
-			),
+			...gated(hasTasks, `${completionRate}%`, getBandCompletion(completionRate, completedTasks), {
+				kind: 'bar',
+				filled: completionRate,
+				total: 100,
+			}),
 		},
 		{
 			headline: true,

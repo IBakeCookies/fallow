@@ -76,6 +76,32 @@ test('the week view reslices the same range', async ({ page }) => {
 	await expect(page.getByText('Nothing planned').first()).toBeVisible();
 });
 
+/* `/` bands a day nothing was ticked off on as neutral, the starting state rather than
+   a critical one, and the calendar bands the same day. Week view, because a 0% bar has
+   no fill to colour: the rate's text is where the band shows. */
+test('a day with nothing ticked off reads neutral, as it does on its own page', async ({
+	page,
+}) => {
+	await page.goto('/');
+	await addTask(page, 'Boxing training');
+	await page.waitForTimeout(AUTOSAVE_MS);
+
+	await page.goto('/calendar');
+
+	await page
+		.getByRole('button', {
+			name: 'week',
+			exact: true,
+		})
+		.click();
+
+	await expect(
+		page.getByText('0%', {
+			exact: true,
+		}),
+	).toHaveClass(/\btext-ty-primary\b/);
+});
+
 test('paging away from the seeded month empties the grid, and Today returns', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Boxing training');
