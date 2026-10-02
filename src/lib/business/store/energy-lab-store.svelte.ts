@@ -234,6 +234,10 @@ export class EnergyLabStore {
 		$effect(() => {
 			if (!this.#orderStale) return;
 
+			// `/energy` takes no date, so arriving from `/?date=` asks while the session
+			// still holds the last day's tasks.
+			if (this.#session.loadedDate !== this.#session.selectedDate) return;
+
 			const { blocks } = this.#plan.evaluation;
 
 			if (blocks.length === 0) return;
@@ -390,7 +394,7 @@ export class EnergyLabStore {
 
 	/** Re-sort the list to the plan as it stands. Called on the page's mount — first
 	 *  paint and every re-navigation, which are the moments an order may change without
-	 *  surprising anyone. The ask waits for a plan to read, so the cold load (where
+	 *  surprising anyone. The ask waits for the viewed day's plan, so the cold load (where
 	 *  IndexedDB has not answered and no day window is set) snapshots when one appears;
 	 *  the page's unmount calls the returned cancel, so no other route finishes it. */
 	resnapshotOrder(): () => void {
