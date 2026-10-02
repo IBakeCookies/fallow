@@ -25,6 +25,9 @@ class MockSession {
 	// fixed: moving `selectedDate` off it is exactly how the real store reports a
 	// past or future day.
 	selectedDate = $state('2026-07-20');
+	// The day the tasks and window belong to, which the real store lags behind
+	// `selectedDate` while a day loads.
+	loadedDate = $state('2026-07-20');
 	// The destination preview and the key it is held fresh by: the real store reads
 	// tomorrow on demand and bumps the generation on every landed session write.
 	deferDestination = $state<DeferDestination | null>(null);
@@ -51,6 +54,7 @@ class MockSession {
 		this.tasks = [];
 		this.availableHours = 8;
 		this.selectedDate = '2026-07-20';
+		this.loadedDate = '2026-07-20';
 		this.deferDestination = null;
 		this.writeGenerations.clear();
 		this.pastWriteGeneration = 0;

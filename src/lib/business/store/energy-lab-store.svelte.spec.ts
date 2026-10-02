@@ -452,6 +452,37 @@ describe('EnergyLabStore', () => {
 		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
 	});
 
+	// `/energy` takes no date, so arriving from `/?date=` moves the viewed day to today
+	// while the session still holds the last one: a plan to sort by, but the wrong day's.
+	it("sorts by the viewed day's plan, not the last day's still in memory", async () => {
+		mockSession.loadedDate = '2026-07-21';
+
+		mockSession.tasks = [
+			{
+				id: 9,
+				title: 'plan the trip',
+				physicalDifficulty: 1,
+				mentalDifficulty: 5,
+				enjoyment: 6,
+				createdAt: '2026-07-21',
+				completed: false,
+			},
+		];
+
+		mockSession.availableHours = 2;
+
+		const store = await setupPage();
+		flushSync();
+
+		// Today lands
+		mockSession.tasks = threeTasks();
+		mockSession.loadedDate = '2026-07-20';
+		flushSync();
+
+		const scheduled = plannedOrder(store);
+		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
+	});
+
 	// Created in the (app) layout, so the store is alive on all six routes, and only
 	// `/energy` shows the plan — by asking for its order (business/AGENTS.md).
 	it('solves the plan only to fill an order the page asked for', async () => {
