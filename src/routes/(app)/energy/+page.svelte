@@ -107,7 +107,7 @@
 
 	onMount(() => {
 		// Why: presentation/AGENTS.md, "The Lab's task list reads in schedule order, snapshotted per visit"
-		lab.resnapshotOrder();
+		const cancelResnapshot = lab.resnapshotOrder();
 
 		try {
 			const savedView = localStorage.getItem(VIEW_KEY);
@@ -116,6 +116,8 @@
 		} catch (e) {
 			logError('Failed to load energy lab view preference', e);
 		}
+
+		return cancelResnapshot;
 	});
 
 	// ---------- Drain calibration (α fit from end-of-session ratings) ----------

@@ -1275,16 +1275,9 @@ answer them: moving ⚡ flow observations or the tag rewrite out of
 `*-with-undo.ts`, splitting `calculation.ts` or `zenith-energy.ts`, and `/`
 re-ranking with `computeNextTasks` after `addTask`.
 
-- **M110 — the Lab's order-snapshot `$effect` subscribes `optimizeSchedule` on
-  every route — raised 2026-10-01.** It reads `this.#plan.evaluation` before
-  its `#orderStale` gate, and `EnergyLabStore` is created in the `(app)` layout,
-  so the energy optimizer re-solves on every change to the tasks, the budget,
-  the params or the fitted constants on all six routes, each budget keystroke on
-  `/` included. business/AGENTS.md ("Context is the creation rule…") and the
-  store's closing doc state the rule and point here, so the fix also drops both
-  pointers. The effect landed 2026-08-06 (6785a79a). Unmeasured: reproduce
-  first with a spy counting `optimizeSchedule` calls under a budget change on
-  `/`. When the snapshot should arm is a design question, not a line swap.
+- ~~**M110 — the Lab's order-snapshot `$effect` subscribes `optimizeSchedule` on
+  every route.**~~ Fixed 2026-10-02,
+  [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
 - **M111 — the analytics trend prices every past day under today's α and r —
   raised 2026-10-01.** `readDaySummaries` hands each day only ϕ from its
   `fitSnapshots` record, and `calculateMetricTrend` takes one `params` for every

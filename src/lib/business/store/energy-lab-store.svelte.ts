@@ -227,14 +227,16 @@ export class EnergyLabStore {
 			this.#autoSave.schedule(snapshot);
 		});
 
-		// Fills the list's order snapshot — on first paint, and again whenever the page
-		// re-mounts and asks. Blocks arrive in schedule order, so first appearance IS
-		// the task's position in the day; a day with no window has none, and the flag
-		// stays set until one is set.
+		// Fills the list's order snapshot when the page asks. The ask is read before the
+		// plan, so with none pending the optimizer behind it never runs. Blocks arrive in
+		// schedule order, so first appearance IS the task's position in the day; a day
+		// with no window has none, and the ask waits until one is set.
 		$effect(() => {
+			if (!this.#orderStale) return;
+
 			const { blocks } = this.#plan.evaluation;
 
-			if (!this.#orderStale || blocks.length === 0) return;
+			if (blocks.length === 0) return;
 
 			const order: number[] = [];
 
@@ -381,16 +383,22 @@ export class EnergyLabStore {
 	 *  then the rest. All of them on purpose: it makes "has no position" mean exactly
 	 *  one thing, that the task was added after the snapshot. */
 	#displayOrder = $state<number[]>([]);
-	/** Reactive on purpose: the page asks for a re-sort on a plan that has not changed,
-	 *  so nothing else would re-run the effect that fills the snapshot. */
-	#orderStale = $state(true);
+	/** The page's ask, pending until the snapshot is taken. Reactive on purpose: the page
+	 *  asks for a re-sort on a plan that has not changed, so nothing else would re-run the
+	 *  effect that fills the snapshot. */
+	#orderStale = $state(false);
 
 	/** Re-sort the list to the plan as it stands. Called on the page's mount — first
 	 *  paint and every re-navigation, which are the moments an order may change without
-	 *  surprising anyone. A no-op until there is a plan to read, so the cold load (where
-	 *  IndexedDB has not answered and no day window is set) snapshots when one appears. */
-	resnapshotOrder() {
+	 *  surprising anyone. The ask waits for a plan to read, so the cold load (where
+	 *  IndexedDB has not answered and no day window is set) snapshots when one appears;
+	 *  the page's unmount calls the returned cancel, so no other route finishes it. */
+	resnapshotOrder(): () => void {
 		this.#orderStale = true;
+
+		return () => {
+			this.#orderStale = false;
+		};
 	}
 
 	#scheduledTasks = $derived.by(() => {
@@ -884,8 +892,8 @@ export class EnergyLabStore {
  * move from outside — are re-read by an effect keyed on the session store's
  * past-write generation, so neither needs a refresh on the way back in.
  * Affordable there for the second reason — the constructor's work is two small
- * reads, and the optimizer behind `plan` must stay unrun until the Lab's markup
- * asks for it — the order-snapshot `$effect` breaks that (ROADMAP M110).
+ * reads, and the optimizer behind `plan` stays unrun until the Lab's page asks
+ * for it.
  *
  * The auto-save's `onDestroy` flush now fires on app teardown rather than on
  * leaving the route, which is not a loss — the store outliving the navigation

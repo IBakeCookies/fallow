@@ -26,6 +26,7 @@ import {
 	type StopAdvice,
 	type StopObservation,
 } from '$lib/business/model/zenith-energy';
+import type * as ZenithEnergy from '$lib/business/model/zenith-energy';
 import {
 	calculateSuggestedTasks,
 	getEffectiveDifficulty,
@@ -45,6 +46,16 @@ vi.mock('$lib/data/repository/settings-repository', () => ({
 vi.mock('$lib/business/session-history', () => ({
 	readStopObservations: vi.fn(async () => []),
 }));
+
+// Passthrough; the off-page tests only count the solves.
+vi.mock('$lib/business/model/zenith-energy', async (importOriginal) => {
+	const mod = await importOriginal<typeof ZenithEnergy>();
+
+	return {
+		...mod,
+		optimizeSchedule: vi.fn(mod.optimizeSchedule),
+	};
+});
 
 // The Lab reads the wall clock through `liveNow` (beside `liveToday`), so the
 // spec owns it: `mockClock.now` is what the store sees, reactive, resting at 0.
@@ -66,6 +77,7 @@ vi.mock('$lib/business/state/today.svelte', async () => {
 const readSettingMock = vi.mocked(settingsRepository.$readSetting);
 const updateSettingMock = vi.mocked(settingsRepository.$updateSetting);
 const readStopObservationsMock = vi.mocked(sessionHistory.readStopObservations);
+const optimizeScheduleMock = vi.mocked(optimizeSchedule);
 const MS_PER_HOUR = 3_600_000;
 
 const stopObservation = (windowHours: number): StopObservation => ({
@@ -83,6 +95,15 @@ async function setup(): Promise<EnergyLabStore> {
 	});
 
 	await vi.waitFor(() => expect(store.isLoaded).toBe(true));
+
+	return store;
+}
+
+/** The store as `/energy` holds it: the layout's, plus the ask its page makes on mount. */
+async function setupPage(): Promise<EnergyLabStore> {
+	const store = await setup();
+
+	store.resnapshotOrder();
 
 	return store;
 }
@@ -338,7 +359,7 @@ describe('EnergyLabStore', () => {
 		mockSession.tasks = threeTasks();
 		mockSession.availableHours = 2;
 
-		const store = await setup();
+		const store = await setupPage();
 		flushSync();
 
 		const scheduled = plannedOrder(store);
@@ -363,7 +384,7 @@ describe('EnergyLabStore', () => {
 		mockSession.tasks = threeTasks();
 		mockSession.availableHours = 2;
 
-		const store = await setup();
+		const store = await setupPage();
 		flushSync();
 
 		const before = store.scheduledTasks.map((t) => t.id);
@@ -387,7 +408,7 @@ describe('EnergyLabStore', () => {
 	it('puts a task added after the snapshot first', async () => {
 		mockSession.tasks = threeTasks();
 
-		const store = await setup();
+		const store = await setupPage();
 		flushSync();
 
 		const snapshot = store.scheduledTasks.map((t) => t.id);
@@ -418,7 +439,7 @@ describe('EnergyLabStore', () => {
 		mockSession.tasks = threeTasks();
 		mockSession.availableHours = 0;
 
-		const store = await setup();
+		const store = await setupPage();
 		flushSync();
 
 		expect(store.scheduledTasks.map((t) => t.id)).toEqual([1, 2, 3]);
@@ -429,6 +450,51 @@ describe('EnergyLabStore', () => {
 		const scheduled = plannedOrder(store);
 		expect(scheduled.length).toBeGreaterThan(0);
 		expect(store.scheduledTasks.map((t) => t.id).slice(0, scheduled.length)).toEqual(scheduled);
+	});
+
+	// Created in the (app) layout, so the store is alive on all six routes, and only
+	// `/energy` shows the plan — by asking for its order (business/AGENTS.md).
+	it('solves the plan only to fill an order the page asked for', async () => {
+		mockSession.tasks = threeTasks();
+		optimizeScheduleMock.mockClear();
+
+		const store = await setup();
+
+		// A budget keystroke on `/`
+		mockSession.availableHours = 3;
+		flushSync();
+
+		expect(optimizeScheduleMock).not.toHaveBeenCalled();
+
+		store.resnapshotOrder();
+		flushSync();
+
+		expect(optimizeScheduleMock).toHaveBeenCalledTimes(1);
+
+		// The snapshot is taken, and nothing in this harness reads the plan
+		mockSession.availableHours = 4;
+		flushSync();
+
+		expect(optimizeScheduleMock).toHaveBeenCalledTimes(1);
+	});
+
+	// The page cancels its ask on unmount, so a Lab left before its day had a plan
+	// cannot leave the next route solving one to finish the snapshot.
+	it('drops an ask the page left before there was a plan to sort by', async () => {
+		mockSession.tasks = threeTasks();
+		mockSession.availableHours = 0;
+
+		const store = await setup();
+		const cancel = store.resnapshotOrder();
+		flushSync();
+
+		cancel();
+		optimizeScheduleMock.mockClear();
+
+		mockSession.availableHours = 2;
+		flushSync();
+
+		expect(optimizeScheduleMock).not.toHaveBeenCalled();
 	});
 
 	/* The Lab's `Effort` column reads this, and it has to be the same number `/` prints
