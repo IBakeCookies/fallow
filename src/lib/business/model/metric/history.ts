@@ -61,6 +61,11 @@ export type DaySummary = {
 	 * taken from, kept so the trend fold does not solve the year a second time.
 	 */
 	suggestedTasks: SuggestedTask[];
+	/**
+	 * The α and r recorded on the day — what `calculateMetricTrend` prices it
+	 * with. Absent for today and a day with no record, read under the live fit.
+	 */
+	energyParams?: EnergyParams;
 };
 
 /**
@@ -110,6 +115,7 @@ export function summarizeSession(
 	session: DailySession,
 	constants: UserConstants = DEFAULT_USER_CONSTANTS,
 	posterior?: FitPosterior,
+	energyParams?: EnergyParams,
 ): DaySummary {
 	const pools = {
 		cognitiveHours: session.cognitivePool ?? DEFAULT_CAPACITY_POOLS.cognitiveHours,
@@ -129,6 +135,9 @@ export function summarizeSession(
 		availableHours: session.availableHours,
 		switchCost: session.switchCost,
 		suggestedTasks: suggested,
+		...(energyParams && {
+			energyParams,
+		}),
 	};
 }
 
@@ -146,10 +155,11 @@ export interface MetricTrendPoint {
  * Three of the dashboard's readings, per day, for the analytics trend card:
  * Burnout Risk and the two Loads.
  *
- * Takes `params` rather than reading them because the calibrated energy fit
- * arrives with the model report, one read after the summaries — and the fit is
- * the same one Burnout Risk uses on the main page, so a trend fitted to the
- * defaults would disagree with today's tile for a reason the user cannot see.
+ * Each point is priced under the α and r recorded on its day, the fit the
+ * dashboard read that day under (model/AGENTS.md's causal window): today's live
+ * fit has read a past day's own 🪫 ratings. `params` is that live fit, for today
+ * and a day with no record — it arrives with the model report, one read after
+ * the summaries.
  *
  * `drain` is the same reason carried one step further: the dashboard seeds each
  * morning's reservoirs from the PREVIOUS day's 🪫 rows, keyed to the viewed day,
@@ -187,7 +197,10 @@ export function calculateMetricTrend(
 			summary.suggestedTasks,
 			summary.availableHours,
 			summary.switchCost,
-			seedMorningReservoirs(params, drainByDate.get(addDays(summary.date, -1)) ?? []),
+			seedMorningReservoirs(
+				summary.energyParams ?? params,
+				drainByDate.get(addDays(summary.date, -1)) ?? [],
+			),
 		),
 		cognitiveLoad: calculateCognitiveLoad(summary.suggestedTasks, summary.availableHours),
 		physicalLoad: calculatePhysicalLoad(summary.suggestedTasks, summary.availableHours),

@@ -128,9 +128,67 @@ describe('readDaySummaries', () => {
 		const recorded = await readDaySummaries('2026-02-10', '2026-02-16');
 
 		expect(recorded.map((d) => d.date)).toEqual(live.map((d) => d.date));
-		expect(recorded[0]).not.toEqual(live[0]);
+
+		expect(recorded[0].suggestedTasks.map((t) => t.flowStateTime)).not.toEqual(
+			live[0].suggestedTasks.map((t) => t.flowStateTime),
+		);
+
 		// The day with no snapshot still falls back to the live fit, unchanged.
 		expect(recorded[1]).toEqual(live[1]);
+	});
+
+	// Today's live fit is its causal fit, logs dated before today; a record
+	// stamped at an earlier visit is that same fit, possibly gone stale.
+	it('reads today under the live fit, never a record stamped earlier today', async () => {
+		vi.useFakeTimers({
+			toFake: ['Date'],
+		});
+
+		try {
+			vi.setSystemTime(new Date(2026, 3, 20, 12));
+			await $updateSession(session('2026-04-20'));
+
+			const live = await readDaySummaries('2026-04-20', '2026-04-20');
+
+			await $updateFitSnapshot(
+				fitSnapshot('2026-04-20', {
+					c1: -0.3,
+					c2: 0.8,
+					c3: 0.4,
+					alphaCog: 0.9,
+				}),
+			);
+
+			expect(await readDaySummaries('2026-04-20', '2026-04-20')).toEqual(live);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	// The trend prices Burnout Risk off these; the live α and r are not read here,
+	// so a day with no record carries none and the trend falls back for it.
+	it('hands each day the α and r recorded on it, and a day with no record none', async () => {
+		await $updateSession(session('2026-03-10'));
+		await $updateSession(session('2026-03-11'));
+
+		await $updateFitSnapshot(
+			fitSnapshot('2026-03-10', {
+				alphaCog: 0.9,
+				alphaPhys: 0.05,
+				recoveryRate: 0.2,
+			}),
+		);
+
+		const [recorded, unrecorded] = await readDaySummaries('2026-03-10', '2026-03-16');
+
+		expect(recorded.energyParams).toEqual({
+			...DEFAULT_ENERGY_PARAMS,
+			alphaCog: 0.9,
+			alphaPhys: 0.05,
+			recoveryRate: 0.2,
+		});
+
+		expect(unrecorded.energyParams).toBeUndefined();
 	});
 });
 

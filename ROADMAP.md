@@ -1278,13 +1278,9 @@ re-ranking with `computeNextTasks` after `addTask`.
 - ~~**M110 — the Lab's order-snapshot `$effect` subscribes `optimizeSchedule` on
   every route.**~~ Fixed 2026-10-02,
   [energy-lab-store.svelte.spec.ts](src/lib/business/store/energy-lab-store.svelte.spec.ts).
-- **M111 — the analytics trend prices every past day under today's α and r —
-  raised 2026-10-01.** `readDaySummaries` hands each day only ϕ from its
-  `fitSnapshots` record, and `calculateMetricTrend` takes one `params` for every
-  point, though each record also stores `alphaCog`, `alphaPhys` and
-  `recoveryRate`. model/AGENTS.md's causal-window invariant has history read
-  each day's recorded fit for every identity fit, α and r included; MATH.md does
-  not address the trend. Decide which side is wrong before building.
+- ~~**M111 — the analytics trend prices every past day under today's α and
+  r.**~~ Fixed 2026-10-03,
+  [history.test.ts](src/lib/business/model/metric/history.test.ts).
 - ~~**M112 — `/calendar` bands a day with tasks and nothing ticked as critical,
   where `/` reads it neutral.**~~ Fixed 2026-10-02,
   [calendar.e2e.ts](e2e/calendar.e2e.ts).

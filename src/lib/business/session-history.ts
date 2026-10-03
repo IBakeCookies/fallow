@@ -142,8 +142,8 @@ function fitFrom(observations: FlowObservationRecord[], day: string): UserFit {
 	};
 }
 
-async function readUserFit(): Promise<UserFit> {
-	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()), toISODate());
+async function readUserFit(today: string): Promise<UserFit> {
+	return fitFrom(sanitizeFlowObservations(await $readAllFlowObservations()), today);
 }
 
 /** Below this many prequentially scored ⚡ logs, or ☕/🪫 ratings, a skill reading is withheld. */
@@ -282,11 +282,16 @@ function energySkillFrom(
  * no snapshot (before the store existed, or a day the user never opened
  * analytics on) fall back to the live fit, per day: refitting them instead is the
  * `O(days × logVolume)` cost that was rejected, and it is the reason the snapshots
- * are stored at all.
+ * are stored at all. Today reads the live fit too, record or not: that is its
+ * causal fit, and a record stamped at an earlier visit can only be staler. A
+ * record's α and r ride along unresolved: the live energy fit needs the ☕/🪫
+ * logs, which this read does not scan, so the trend falls back.
  */
 export async function readDaySummaries(startDate: string, endDate: string): Promise<DaySummary[]> {
+	const today = toISODate();
+
 	const [fit, sessions, recorded] = await Promise.all([
-		readUserFit(),
+		readUserFit(today),
 		$readSessionsByDateRange(startDate, endDate).then(sanitizeSessions),
 		$readFitSnapshotsByDateRange(startDate, endDate).then(sanitizeFitSnapshots),
 	]);
@@ -296,12 +301,13 @@ export async function readDaySummaries(startDate: string, endDate: string): Prom
 	return sessions
 		.filter((session) => session.tasks.length > 0)
 		.map((session) => {
-			const snapshot = fitByDate.get(session.date);
+			const snapshot = session.date < today ? fitByDate.get(session.date) : undefined;
 
 			return summarizeSession(
 				session,
 				snapshot?.constants ?? fit.constants,
 				snapshot?.posterior ?? fit.posterior,
+				snapshot?.params,
 			);
 		});
 }
