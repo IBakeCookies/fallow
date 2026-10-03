@@ -1307,18 +1307,8 @@ re-ranking with `computeNextTasks` after `addTask`.
 The deepenings, strongest first. A1 is the review's top pick and A2 the cheap
 runner-up.
 
-- **A1 — the ⚡/🪫 editor lifecycle is written twice — raised 2026-10-01.** `/`
-  and `/energy` each hold the two draft records and their handlers (open, save,
-  correct or append, spend the stopped timer's minutes, close on ✕ and on move),
-  and the 14 props that carry them cross `task-list`, `task-item` and
-  `energy-task-row`, which only forward or index them, to `task-row-shell`.
-  `measurement-prompt.ts` records that the copies "had already disagreed twice"
-  and that the rest "is a route, where nothing can reach it"; cdeafe6, one undo
-  fix, touched eight source modules. Direction: one module each task screen
-  creates for itself, owning the drafts and every transition and tested at its
-  own interface. Each page still holds its own drafts, so "Each measurement is
-  read, corrected and dropped on the row it belongs to" stands. The fix also
-  drops the A1 pointer in presentation/AGENTS.md's R2.
+- ~~**A1 — the ⚡/🪫 editor lifecycle is written twice.**~~ Fixed 2026-10-03,
+  [measurement-editor.svelte.spec.ts](src/lib/presentation/utils/measurement-editor.svelte.spec.ts).
 - **A2 — four whole-day writes spell one record literal — raised 2026-10-01.**
   The move, the carry, their undo and `#rewriteDay` each write the same
   seven-key `DailySession` literal off `#readDestination`'s re-listing, so
@@ -1352,7 +1342,9 @@ runner-up.
   round-trip holds only while every hop forwards every field, and no row story
   sets a non-default `tags` or `importance`. Adding `importance` (5d4ff5f) and
   `tags` (4c81247) each touched the whole chain. Direction: the definition
-  travels whole and the default is decided once.
+  travels whole and the default is decided once. The ⚡/🪫 editors' 14 props
+  still take the same hops from `task-list` down: A1 gave their lifecycle one
+  module, not their route to the shell.
 - **A6 — how a fit prints is decided in three modules — raised 2026-10-01.** The
   Lab route's three reading builders, `param-row`'s null state and
   `calibration-descriptor.ts` each decide part of a fit's reading (its states,

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Persisted, DrainObservationRecord } from '$lib/business/type';
 	import type { TitleRating } from '$lib/business/model/title-memory';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
@@ -20,20 +19,7 @@
 		moveTaskToTomorrowWithUndo,
 	} from '$lib/presentation/utils/carry-with-undo';
 	import { getDemoHref } from '$lib/presentation/utils/demo-link';
-	import {
-		removeFlowLogWithUndo,
-		removeLogWithUndo,
-	} from '$lib/presentation/utils/remove-log-with-undo';
-	import {
-		claimPendingMinutes,
-		drainDraftFromLog,
-		newDrainDraft,
-		newEditorDraft,
-		spendsPendingMinutes,
-		type DrainDraft,
-		type EditorDraft,
-		type EditorSource,
-	} from '$lib/presentation/utils/measurement-prompt';
+	import { MeasurementEditors } from '$lib/presentation/utils/measurement-editor.svelte';
 	import SeoHead from '$lib/presentation/component/seo-head.svelte';
 	import TaskForm from '$lib/presentation/component/task-form.svelte';
 	import TaskFormPreview from '$lib/presentation/component/task-form-preview.svelte';
@@ -52,7 +38,7 @@
 	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 	import { getSessionTimerStore } from '$lib/business/store/session-timer-store.svelte';
 	import { fromISO } from '$lib/business/utils/date';
-	import { getPendingMinutes, suggestTargetMinutes } from '$lib/business/utils/session-timer';
+	import { suggestTargetMinutes } from '$lib/business/utils/session-timer';
 
 	const session = getSessionStore();
 	const observations = getEnergyObservationStore();
@@ -73,33 +59,11 @@
 	// against a fabricated task would land in the visitor's own model fit.
 	const canLog = $derived(selectedDate <= today && !session.isDemo);
 
-	let flowDrafts = $state<Record<number, EditorDraft>>({});
-	let drainDrafts = $state<Record<number, DrainDraft>>({});
-
-	const openFlowLog = (taskId: number, source: EditorSource) =>
-		(flowDrafts[taskId] = newEditorDraft(source));
-
-	const closeFlowLog = (taskId: number) => {
-		delete flowDrafts[taskId];
-	};
-
-	// The timer's minutes were counted today, so only today's 🪫 may take or spend them.
-	const pendingMinutes = $derived(isViewingPast ? null : getPendingMinutes(timerStore.timer));
-
-	const openDrainLog = (taskId: number, source: EditorSource) =>
-		(drainDrafts[taskId] = newDrainDraft(source, claimPendingMinutes(drainDrafts, pendingMinutes)));
-
-	const editDrainLog = (taskId: number, log: Persisted<DrainObservationRecord>) =>
-		(drainDrafts[taskId] = drainDraftFromLog(log));
-
-	const closeDrainLog = (taskId: number) => {
-		delete drainDrafts[taskId];
-	};
+	const editors = new MeasurementEditors(session, observations, timerStore);
 
 	// Undo restores the task under its original id, so a surviving draft re-opens with it.
 	function removeTask(taskId: number) {
-		closeFlowLog(taskId);
-		closeDrainLog(taskId);
+		editors.dropDrafts(taskId);
 		removeTaskWithUndo(session, taskId);
 	}
 
@@ -107,45 +71,12 @@
 	// 🪫 draft left behind holds the stopped timer's minutes (`claimPendingMinutes`)
 	// against a row that is no longer on the day.
 	function moveTaskToTomorrow(taskId: number) {
-		closeFlowLog(taskId);
-		closeDrainLog(taskId);
+		editors.dropDrafts(taskId);
 		moveTaskToTomorrowWithUndo(session, taskId);
 	}
 
 	const drainLogs = $derived(observations.drainLogsOn(selectedDate));
 	const flowLogs = $derived(session.flowMinutesOn(selectedDate));
-
-	function saveFlowLog(taskId: number, minutes: number) {
-		session.logFlow(taskId, minutes);
-		closeFlowLog(taskId);
-	}
-
-	function clearFlowLog(taskId: number) {
-		removeFlowLogWithUndo(session, taskId);
-		closeFlowLog(taskId);
-	}
-
-	// Re-logging a correction would count the session's hours twice.
-	function saveDrainLog(taskId: number, entry: { hours: number; mind: number; body: number }) {
-		const draft = drainDrafts[taskId];
-
-		if (draft.recordId === undefined) {
-			observations.logDrain(taskId, entry.hours, entry.mind, entry.body);
-
-			// One stop funds one log: the editor that claimed the reading is the one that
-			// spends it — no other row's append, and no correction.
-			if (spendsPendingMinutes(draft, pendingMinutes)) timerStore.timer = null;
-		} else {
-			observations.editDrainLog(draft.recordId, entry.hours, entry.mind, entry.body);
-		}
-
-		closeDrainLog(taskId);
-	}
-
-	function deleteDrainLog(taskId: number, recordId: number) {
-		removeLogWithUndo(session, observations, 'drain', recordId);
-		closeDrainLog(taskId);
-	}
 
 	const daily = $derived(plan.daily);
 	const metrics = $derived(buildMetrics(daily, session.pools, plan.remainingDay));
@@ -336,20 +267,20 @@
 				nextTaskId={plan.remainingDay?.nextTask?.id}
 				ontoggle={(id) => session.toggleTask(id)}
 				onremove={removeTask}
-				{flowDrafts}
+				flowDrafts={editors.flowDrafts}
 				{flowLogs}
-				onflowopen={canLog ? openFlowLog : undefined}
-				onflowedit={openFlowLog}
-				onflowclose={closeFlowLog}
-				onlogflow={saveFlowLog}
-				onflowdelete={clearFlowLog}
-				{drainDrafts}
+				onflowopen={canLog ? editors.openFlowLog : undefined}
+				onflowedit={editors.openFlowLog}
+				onflowclose={editors.closeFlowLog}
+				onlogflow={editors.saveFlowLog}
+				onflowdelete={editors.clearFlowLog}
+				drainDrafts={editors.drainDrafts}
 				{drainLogs}
-				ondrainopen={canLog ? openDrainLog : undefined}
-				ondrainclose={closeDrainLog}
-				ondrainsave={saveDrainLog}
-				ondrainedit={editDrainLog}
-				ondraindelete={deleteDrainLog}
+				ondrainopen={canLog ? editors.openDrainLog : undefined}
+				ondrainclose={editors.closeDrainLog}
+				ondrainsave={editors.saveDrainLog}
+				ondrainedit={editors.editDrainLog}
+				ondraindelete={editors.deleteDrainLog}
 				onupdate={(taskId, changes) => session.updateTask(taskId, changes)}
 				form={addTaskForm}
 				strip={daily.suggestedTasks.length ? dayStrip : undefined}

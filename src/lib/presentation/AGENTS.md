@@ -42,8 +42,7 @@ root, and specs and `.stories.svelte` build their own fixtures.
 A `+page.svelte` may contain: markup, local UI-only state (a draft's values,
 open/closed toggles, view preferences), formatters, and thin `$derived` aliases
 of a store. Anything else — model orchestration, fits, persistence, threshold
-policy, a save that picks which write to make — goes in a module (the 🪫 save
-on `/` and `/energy` still picks: ROADMAP A1):
+policy, a save that picks which write to make — goes in a module:
 
 | Kind of code                        | Where it goes                                        |
 | ----------------------------------- | ---------------------------------------------------- |
@@ -51,6 +50,7 @@ on `/` and `/energy` still picks: ROADMAP A1):
 | Composed model results for a screen | `business/model/metric/daily-metrics.ts` (or a peer) |
 | Reactive state + persistence        | `business/store/*.svelte.ts`                         |
 | Labels, thresholds, colors, i18n    | `presentation/utils/*.ts`, `presentation/component/` |
+| Drafts and the saves they pick      | `presentation/utils/*.svelte.ts`                     |
 
 Rule of thumb: if you cannot test it at **any** level in R6's table, it is in
 the wrong file. Not "has no `.test.ts`" — a component is tested by a story
@@ -556,15 +556,16 @@ shell renders the two forms and owns neither. 🪫 has to be the page's, since a
 chip opens one over a draft the row may already hold; ⚡ is the page's too, and
 that split is what lets the two answer the row's own lifecycle: ✕ then Undo
 restores the task under its original id (`removeTask`), so a surviving draft
-re-opens while a row-local one would not. `EditorDraft`, `newEditorDraft`,
-`DrainDraft`, `newDrainDraft` and `drainDraftFromLog` in `measurement-prompt.ts`
-keep the two pages' four records one shape, `completionPromptAction` is the one
+re-opens while a row-local one would not. Each page keeps them in a `MeasurementEditors`
+it creates for itself (`measurement-editor.svelte.ts`), which owns every transition — open,
+save, append or correct, spend the stopped reading, drop — so neither screen spells one.
+`measurement-prompt.ts` keeps the records one shape, `completionPromptAction` is the one
 prompt policy both run, and `EnergyObservationStore.drainLogsOn(date)` is the
 one answer to "what did this task measure that day" that both screens read
 their chips from.
 
 A draft whose row leaves the screen is inert (it is keyed by a task nothing
-renders); a deleted task's is not, so ✕ drops both on both screens.
+renders); a deleted task's is not, so ✕ drops both on both screens (`dropDrafts`).
 
 The session timer is the third opening of the 🪫 APPEND editor, and the only one that
 arrives with a value: `newDrainDraft(source, minutes)` takes what a STOPPED timer COUNTED,
@@ -696,7 +697,7 @@ second and withholds the first, exactly as it does for 🪫.
 the viewed day's reading, since that is the one on screen.
 
 The timer that fills a 🪫 length is gated the same way — `day-actions.svelte` renders
-`session-clock.svelte` on **today** alone, and a past day's 🪫 editor takes no stopped reading (`pendingMinutes` in the main page). It is one bounded object whose outline holds
+`session-clock.svelte` on **today** alone, and a past day's 🪫 editor takes no stopped reading (`MeasurementEditors`). It is one bounded object whose outline holds
 across the phases; ink weight and the track carry the phase, not which controls exist. The state is `SessionTimerStore`'s, bound in
 by both screens that render it (`bind:timer`), and `localStorage`'s —
 `business/utils/session-timer.ts` owns the shape, the transitions, `getPendingMinutes`

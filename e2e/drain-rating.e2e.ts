@@ -433,6 +433,41 @@ test('correcting a rating edits its row, while a second session adds one', async
 	await expect(drainChips(page)).toHaveCount(2);
 });
 
+/* Each screen forwards its row's 🪫 🗑 to its own drafts and nothing else drives it, so
+   the drop is walked on both: the chip goes, the editor goes with it, and Undo brings the
+   rating back. */
+for (const path of ['/', '/energy']) {
+	test(`a 🪫 rating dropped from its own row comes back on undo (${path})`, async ({ page }) => {
+		await page.goto('/');
+		await addTask(page, 'Deep work');
+		await page.waitForTimeout(AUTOSAVE_MS);
+		await page.goto(path);
+
+		await logDrain(page, 60, 5, 3);
+		await expect(drainChips(page)).toHaveCount(1);
+
+		// The chip re-opens the editor on that rating; 🗑 drops the one it opened on.
+		await drainChips(page).click();
+
+		await page
+			.getByRole('button', {
+				name: 'Delete this drain rating',
+			})
+			.click();
+
+		await expect(drainChips(page)).toHaveCount(0);
+		await expect(drainForm(page)).toHaveCount(0);
+
+		await page
+			.getByRole('button', {
+				name: 'Undo',
+			})
+			.click();
+
+		await expect(drainChips(page)).toHaveCount(1);
+	});
+}
+
 // The ✎ has to win over an editor already open on that row, and both halves of the
 // draft have to move together: the fields the user sees AND the `recordId` that decides
 // whether ✓ appends a session or rewrites one. They did not — the form read its seed at
