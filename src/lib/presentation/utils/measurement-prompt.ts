@@ -54,8 +54,9 @@ export function completionPromptAction(input: {
  *  two answering the row's own lifecycle differently — which is what they did while ⚡
  *  was the row's own state (✕ then undo closed the ⚡ editor and brought the 🪫 one
  *  back). A draft whose row leaves the screen (midnight rollover, visibility re-read)
- *  is inert, since it is keyed by that task; a DELETED task's is not, because the undo
- *  restores it under its original id — so ✕ drops both drafts on both screens. */
+ *  is inert, since it is keyed by that task and only the day's rows hold the stopped
+ *  reading; a DELETED or MOVED task's is not, because the undo restores it under its
+ *  original id — so ✕ and the advisor's move drop both drafts (`MeasurementEditors`). */
 export type EditorDraft = {
 	/** Whether the caret goes to the editor — see `EditorSource`. */
 	focusMinutes: boolean;

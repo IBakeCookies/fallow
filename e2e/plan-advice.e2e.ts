@@ -317,9 +317,8 @@ test('the task the advisor moves leaves today', async ({ page }) => {
 	await expect(taskRow(page, title)).toHaveCount(0);
 });
 
-/* The move takes the row's editors with it (`moveTaskToTomorrow` on `/`). A 🪫 draft left
-   behind would keep the stopped reading claimed for a row that is gone, and the next
-   editor opened would come up empty with nobody left to spend it. */
+/* The move takes the row off the day, so the stopped reading its 🪫 editor held goes back
+   to the rows that are left: the next editor opened takes it. */
 test('the task the advisor moves hands back the reading its editor held', async ({ page }) => {
 	const titles = ['Write the spec', 'Migrate the database', 'Refactor the auth flow'];
 

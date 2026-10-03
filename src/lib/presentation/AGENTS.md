@@ -560,12 +560,12 @@ re-opens while a row-local one would not. Each page keeps them in a `Measurement
 it creates for itself (`measurement-editor.svelte.ts`), which owns every transition — open,
 save, append or correct, spend the stopped reading, drop — so neither screen spells one.
 `measurement-prompt.ts` keeps the records one shape, `completionPromptAction` is the one
-prompt policy both run, and `EnergyObservationStore.drainLogsOn(date)` is the
-one answer to "what did this task measure that day" that both screens read
-their chips from.
+prompt policy both run, and `EnergyObservationStore.drainLogsOn(date)` is the one answer
+to "what did this task measure that day" that both screens read their chips from.
 
-A draft whose row leaves the screen is inert (it is keyed by a task nothing
-renders); a deleted task's is not, so ✕ drops both on both screens (`dropDrafts`).
+A draft whose row leaves the day is inert: it is keyed by a task nothing renders, and
+only a draft on the day's rows holds the stopped reading. A deleted or moved task's is
+not — undo restores it under its id — so ✕ and the advisor's move drop both (`dropDrafts`).
 
 The session timer is the third opening of the 🪫 APPEND editor, and the only one that
 arrives with a value: `newDrainDraft(source, minutes)` takes what a STOPPED timer COUNTED,

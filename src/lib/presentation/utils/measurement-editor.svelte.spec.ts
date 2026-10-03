@@ -38,6 +38,17 @@ const storedRating: Persisted<DrainObservationRecord> = {
 function setup({ isViewingPast = false } = {}) {
 	const session = $state({
 		isViewingPast,
+		tasks: [
+			{
+				id: 1,
+			},
+			{
+				id: 2,
+			},
+			{
+				id: 3,
+			},
+		],
 		logFlow: vi.fn(),
 		clearFlowLog: vi.fn(async () => undefined),
 	});
@@ -187,8 +198,8 @@ describe('MeasurementEditors', () => {
 		expect(timerStore.timer).toEqual(stoppedTimer());
 	});
 
-	// The ✕ and the advisor's move both call it: a draft left behind would keep the
-	// reading claimed for a row that is gone, and no other editor could ever take it.
+	// The ✕ and the advisor's move both call it: their undo puts the row back under its
+	// id, and a draft left behind would come back with it, still holding the reading.
 	it('drops both editors of a task and releases the reading its 🪫 editor held', () => {
 		const { editors } = setup();
 		const { openFlowLog, openDrainLog, dropDrafts } = editors;
@@ -206,5 +217,31 @@ describe('MeasurementEditors', () => {
 		openDrainLog(2, 'button');
 
 		expect(editors.drainDrafts[2].minutes).toBe(45);
+	});
+
+	// Midnight takes the holder's row off the day but leaves its draft open.
+	it('lets the next 🪫 append take the reading when midnight strands the draft that held it', () => {
+		const { editors, session, timerStore } = setup();
+		const { openDrainLog } = editors;
+
+		openDrainLog(1, 'completion');
+
+		expect(editors.drainDrafts[1].minutes).toBe(45);
+
+		session.tasks = [
+			{
+				id: 2,
+			},
+		];
+
+		timerStore.timer = {
+			...stoppedTimer(),
+			startedOn: '2026-10-04',
+			accumulatedMs: 30 * 60_000,
+		};
+
+		openDrainLog(2, 'completion');
+
+		expect(editors.drainDrafts[2].minutes).toBe(30);
 	});
 });

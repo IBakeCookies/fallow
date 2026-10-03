@@ -1406,3 +1406,13 @@ The **M** series continues.
 - ~~**M116 — the session clock pre-fills its length before its day has
   loaded.**~~ Fixed 2026-10-03,
   [session-countdown.e2e.ts](e2e/session-countdown.e2e.ts).
+
+## Findings from the 2026-10-03 A1 review
+
+The read-only review of A1 found the move clean, and one older defect behind a
+sentence it edited: a 🪫 draft whose row had left the day was called inert, but
+it still held the stopped reading. The **M** series continues.
+
+- ~~**M117 — a 🪫 editor left open across midnight keeps the stopped reading
+  from every editor the new day opens.**~~ Fixed 2026-10-03,
+  [measurement-editor.svelte.spec.ts](src/lib/presentation/utils/measurement-editor.svelte.spec.ts).

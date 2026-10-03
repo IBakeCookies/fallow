@@ -50,6 +50,15 @@ export class MeasurementEditors {
 		return this.#session.isViewingPast ? null : getPendingMinutes(this.#timerStore.timer);
 	}
 
+	// presentation/AGENTS.md, "A draft whose row leaves the day is inert".
+	get #drainDraftsOnDay(): Record<number, DrainDraft> {
+		return Object.fromEntries(
+			this.#session.tasks
+				.filter((task) => task.id in this.#drainDrafts)
+				.map((task) => [task.id, this.#drainDrafts[task.id]]),
+		);
+	}
+
 	openFlowLog = (taskId: number, source: EditorSource) => {
 		this.#flowDrafts[taskId] = newEditorDraft(source);
 	};
@@ -71,7 +80,7 @@ export class MeasurementEditors {
 	openDrainLog = (taskId: number, source: EditorSource) => {
 		this.#drainDrafts[taskId] = newDrainDraft(
 			source,
-			claimPendingMinutes(this.#drainDrafts, this.#pendingMinutes),
+			claimPendingMinutes(this.#drainDraftsOnDay, this.#pendingMinutes),
 		);
 	};
 
