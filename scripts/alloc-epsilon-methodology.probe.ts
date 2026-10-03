@@ -9,7 +9,7 @@
  * them. This probe re-measures the same phenomenon with today's model and
  * prints numbers that can:
  *
- *   - REFERENCE B (block rule) mirrors `budgetBlocksFor` (zenith.ts:951):
+ *   - REFERENCE B (block rule) mirrors `budgetBlocksFor` (zenith.ts):
  *     ⌊(budget − overhead)/BLOCK_HOURS + 1e-9⌋ blocks. This is the reference
  *     `allocator-exactness.probe.ts` uses, and the allocator must match it
  *     exactly — asserted here, because that is an invariant, not a number.
@@ -191,7 +191,7 @@ function bruteForce(
 const overheadFor = (switchCost: number, funded: number): number =>
 	funded > 1 ? (funded - 1) * switchCost : 0;
 
-/** `budgetBlocksFor` (zenith.ts:951) — the allocator's own admissibility rule. */
+/** `budgetBlocksFor` (zenith.ts) — the allocator's own admissibility rule. */
 const blockRuleBlocks = (probeCase: ProbeCase, funded: number): number =>
 	Math.floor(
 		(probeCase.budget - overheadFor(probeCase.switchCost, funded)) / BLOCK_HOURS + BLOCK_EPS,

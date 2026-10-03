@@ -379,8 +379,8 @@ ones.
 
 The tie above is also where the one consequence of the two scales lands.
 `calculateInterleavedOrder` is fed the **rounded** key from the plan path
-(`metric/daily-metrics.ts:141`) and the **raw** `optimalAvgProductivity` from
-`metric/remaining-day.ts:180` — each site's choice is argued above, but one
+(`daily-metrics.ts`'s `runOrder`) and the **raw** `optimalAvgProductivity` from
+`remaining-day.ts`'s `nextTask` — each site's choice is argued above, but one
 function is thus ordered at two precisions, so next-up and the `#N` sequence can
 disagree on a tie. Neither site moves: the raw key is strictly finer, and the
 plan path must print the rounded one.

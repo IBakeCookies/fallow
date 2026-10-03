@@ -40,10 +40,10 @@ today:
 
 - **The objective prices hour _quality_, never importance or completion.**
   `priorityScore = P̄(T*)·10` is _derived_ from difficulty × enjoyment
-  (`metric/calculation.ts:229`), so a task that matters and a task that is
-  pleasant are indistinguishable to the allocator. There is no importance
-  input, no deadline, no task size. Item 23 is the only item that changes this,
-  and it is deliberately last.
+  (`metric/calculation.ts`'s `calculateTaskPlan`), so a task that matters and
+  a task that is pleasant are indistinguishable to the allocator. There is no
+  importance input, no deadline, no task size. Item 23 is the only item that
+  changes this, and it is deliberately last.
 
 - **Every calibration instrument lived behind `/energy`** — closed 2026-08-10
   by item 11, which put `logDrain` on the main page too. The `readFinishedDays`
@@ -52,9 +52,9 @@ today:
 
 - **The one constant the app fits is the cheapest one in the model.** §17
   measured the whole true-ϕ oracle at +0.16% of plan value. Nothing fits
-  `switchCost` (`zenith.ts:92` is a bare literal with a CHI-2008 citation) or
-  the difficulty sliders — and probes put each of those an order of magnitude
-  above ϕ. Phase 2 exists to close that inversion.
+  `switchCost` (`DEFAULT_SWITCH_COST` is a bare literal with a CHI-2008
+  citation) or the difficulty sliders — and probes put each of those an order
+  of magnitude above ϕ. Phase 2 exists to close that inversion.
 
 **Read every percentage in items 11–23 as a hypothesis, not a result.** They
 come from throwaway ideation probes run on 2026-08-04 against synthetic days;
@@ -634,7 +634,7 @@ have to be re-derived:
   frequency threshold in place of the user's exact choice (§0).
 - **A sleep-quality slider feeding the pools.** Already built:
   `cognitivePool`/`physicalPool` are per-day, persisted, validated and
-  user-editable (`day-constraints-bar.svelte:151-183`). A sleep slider is a
+  user-editable (`day-constraints-bar.svelte`). A sleep slider is a
   second input for the same lever plus an invented mapping with no instrument.
 - **Deadlines as an urgency multiplier.** The date→weight curve is invented and
   nothing in the app can fit a discount rate; a user who wants Friday's task

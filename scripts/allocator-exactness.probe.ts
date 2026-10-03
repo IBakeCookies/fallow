@@ -37,7 +37,7 @@
  *
  * ARM A — σ = 0, the claim as written. Brute force enumerates every block
  * vector, charges (funded − 1)·switchCost off the budget exactly as the
- * allocator does, and takes the max. Any gap above 1e-9 falsifies §4 line 346
+ * allocator does, and takes the max. Any gap above 1e-9 falsifies §4
  * and the printed input tuple localizes which of the three seams did it.
  *
  * ARM B — σ > 0, the claim's unstated exception. Same sweep, same brute force,
@@ -251,7 +251,7 @@ function valueTable(
 
 /**
  * How many blocks a plan funding `fundedCount` tasks may place. This MIRRORS
- * `budgetBlocksFor` (zenith.ts:951) on purpose, and the probe is wrong without
+ * `budgetBlocksFor` (zenith.ts) on purpose, and the probe is wrong without
  * it.
  *
  * The first cut of this file charged feasibility in HOURS —

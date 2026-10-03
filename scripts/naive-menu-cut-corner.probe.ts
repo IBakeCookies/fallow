@@ -63,7 +63,7 @@ function mulberry32(seed: number): () => number {
 }
 
 /**
- * Read from `zenith.ts`, never set: the ϕ floor (`:164`), the σ-cap §5.1 owns
+ * Read from `zenith.ts`, never set: the ϕ floor, the σ-cap §5.1 owns
  * (which is where the σ/ϕ axis below stops), and the outermost of the five
  * Gauss–Hermite abscissae `phiQuadratureNodes` uses — all module-private. The
  * menu's span is T*(ϕ_max), so reproducing `buildBlockIncrements`' cut needs the
@@ -81,7 +81,7 @@ const WITNESS_PHI_HOURS = 4.5;
 /**
  * A posterior whose σ_ϕ is exactly `sigmaPhi` at every (E, β): `phiParameterStd`
  * is √(xᵀΣx) with x = [E, β, 1], so a covariance carrying only the [2][2] entry
- * answers with √Σ₂₂ whatever the sliders are (`gain-cap-trigger.probe.ts:86-97`
+ * answers with √Σ₂₂ whatever the sliders are (`gain-cap-trigger.probe.ts`
  * hand-builds constants the same way).
  */
 function fixedSigmaPosterior(sigmaPhi: number): FitPosterior {

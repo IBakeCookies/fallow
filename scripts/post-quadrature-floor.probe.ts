@@ -16,7 +16,7 @@
  *
  * The nodes are spelled out here rather than imported because `zenith.ts` keeps
  * `GH_NODES` private and exposes only the mixture; the values are copied from
- * `zenith.ts:367` and the first test would fail loudly if they drifted.
+ * `GH_NODES` and the first test would fail loudly if they drifted.
  *
  * Usage: npm run probe
  */

@@ -204,7 +204,7 @@ describe('timing, not aggregation', () => {
 
 	// The Lab-tile table, re-derived from the shipped fields. The pre-fix tile
 	// printed `Math.round(100 * endCog)` (the post-tail reading); today's prints
-	// `Math.floor(100 * workEndCog)` (plan-summary.svelte:32 off +page.svelte:365).
+	// `Math.floor(100 * workEndCog)` (plan-summary.svelte off +page.svelte).
 	// Both are arithmetic on fields evaluateSchedule still returns — no old code
 	// path is reinstated, and both were read off the code (8f01ca8^ and HEAD)
 	// rather than assumed. The ladder's fixture is pinned by the record's own
