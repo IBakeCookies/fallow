@@ -67,9 +67,7 @@
 		removeTaskWithUndo(session, taskId);
 	}
 
-	// The advisor's move drops the row too, so its editors go the same way: an open
-	// 🪫 draft left behind holds the stopped timer's minutes (`claimPendingMinutes`)
-	// against a row that is no longer on the day.
+	// The advisor's move is a drop with the same undo, so its editors go the same way.
 	function moveTaskToTomorrow(taskId: number) {
 		editors.dropDrafts(taskId);
 		moveTaskToTomorrowWithUndo(session, taskId);
