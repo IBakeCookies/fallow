@@ -232,9 +232,15 @@ export class SessionStore {
 	#isViewingPast = $derived(this.#selectedDate < this.#today);
 	#isViewingFuture = $derived(this.#selectedDate > this.#today);
 
-	/** The layout's banner, and the one thing a route needs to know about the demo. */
+	/** The layout's banner and `/`'s affordances: what the URL asked for. */
 	get isDemo() {
 		return this.#demoTitles !== null;
+	}
+
+	/** Whether the fixture is on screen, which outlives `isDemo` until the visitor's
+	 *  own day loads — the flag a write takes (business/AGENTS.md). */
+	get isShowingDemo() {
+		return this.#isShowingDemo;
 	}
 
 	// The viewed day is the loaded one: the guard on every edit and on the

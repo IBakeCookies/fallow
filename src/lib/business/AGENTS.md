@@ -259,12 +259,13 @@ which of the two flags a site takes is the whole of it:
   before `initializeStorage`, the day effect seeds instead of loading, the
   yesterday effect and the `visibilitychange` re-read stand down.
 - `#isShowingDemo` — whether the fixture is on screen. Gates the WRITES:
-  `#persistSession`/`#deleteSession`, the auto-save effect, `logFlow`, `saveCurrentAsRoutine`,
-  `deleteRoutine`, the two tomorrow moves and their undo, `#rewriteTagInHistory`, and the two
-  remaining reads a click can
-  still reach (`readDeferDestination`, `importFromDate`). Leaving the demo drops
-  the param while the fixture is still in `#tasks`, and a URL-keyed auto-save ran
-  in exactly that gap and saved all six.
+  `#persistSession`/`#deleteSession`, the auto-save effect, `logFlow`,
+  `EnergyObservationStore.logDrain` (the layout's thunk hands it the flag),
+  `saveCurrentAsRoutine`, `deleteRoutine`, the two tomorrow moves and their undo,
+  `#rewriteTagInHistory`, and the two remaining reads a click can still reach
+  (`readDeferDestination`, `importFromDate`).
+  Leaving the demo drops the param while the fixture is still in `#tasks`, and a
+  URL-keyed auto-save ran in exactly that gap and saved all six.
 
 A write refused here and not at its call site, always. `logFlow` is why: the
 planner hides the ⚡ affordance in the demo (`canLog`), the Energy Lab renders
@@ -290,9 +291,8 @@ buys two page loads and deletes nothing.
 
 **Not covered, on purpose:** `DailyPlanStore` folds `EnergyObservationStore`'s
 real drain and rest rows into whatever day is on screen, so an existing user's
-example day carries their own logged hours in its mid-day re-plan. Excluding them
-means threading the demo through a second store, and the demo's audience has no
-logs.
+example day carries their own logged hours in its mid-day re-plan. The demo's
+audience has no logs.
 
 Copy comes from the caller, and the param name plus the localized href are
 `presentation/utils/demo-link.ts` (R3). Not R1 — `$lib/paraglide` sits beside the
@@ -384,12 +384,11 @@ or speak for another store. Three consequences worth not undoing:
 
 ### Drain and rest observations live in `EnergyObservationStore`
 
-Not the session store — the one cluster whose extraction cost **zero** new
-cross-module exports: the store is handed the loaded day together with its
+Not the session store: the store is handed the loaded day together with its
 tasks and routes no date itself, so it needs none of the date-routing, load or
-auto-save state — only that one thunk and somewhere to report a failed write,
-both already available (`loadedDate` and `tasks`; ☕ stamps `liveToday`, which
-needs no store at all). It also needs no
+auto-save state — only that one thunk and somewhere to report a failed write
+(`loadedDate`, `tasks` and `isShowingDemo`; ☕ stamps `liveToday`, which needs
+no store at all). It also needs no
 `initializeStorage()` ordering: the localStorage migration writes only sessions
 and `energyParams`, never these two object stores. What deliberately did **not**
 move (re-proposing it is churn):

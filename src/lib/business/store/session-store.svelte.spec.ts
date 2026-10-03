@@ -2868,4 +2868,29 @@ describe('SessionStore demo mode', () => {
 
 		expect(createOrUpdateFlowObservationMock).not.toHaveBeenCalled();
 	});
+
+	// What the layout hands `logDrain`. `isDemo` is gone the moment the param is,
+	// while the fixture is still the day a 🪫 rating would land on.
+	it('reports the example day on screen until their own day replaces it', async () => {
+		const store = mount();
+
+		await vi.waitFor(() => expect(store.tasks).toHaveLength(6));
+
+		let land!: (session: null) => void;
+
+		readSessionByDateMock.mockImplementation((date) =>
+			date === store.today ? new Promise((resolve) => (land = resolve)) : Promise.resolve(null),
+		);
+
+		mockPage.url = new URL('http://localhost/');
+		flushSync();
+
+		await vi.waitFor(() => expect(readSessionByDateMock).toHaveBeenCalledWith(store.today));
+		expect(store.isDemo).toBe(false);
+		expect(store.isShowingDemo).toBe(true);
+
+		land(null);
+
+		await vi.waitFor(() => expect(store.isShowingDemo).toBe(false));
+	});
 });

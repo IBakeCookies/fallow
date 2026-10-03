@@ -1284,14 +1284,8 @@ re-ranking with `computeNextTasks` after `addTask`.
 - ~~**M112 — `/calendar` bands a day with tasks and nothing ticked as critical,
   where `/` reads it neutral.**~~ Fixed 2026-10-02,
   [calendar.e2e.ts](e2e/calendar.e2e.ts).
-- **S8 — `logDrain` does not refuse the example day — raised 2026-10-01.**
-  `EnergyObservationStore` has no demo check, and the loaded-day thunk the
-  layout hands it carries the example tasks under a real date, so its only
-  cover is `/`'s `canLog`, keyed on `isDemo`, the read flag. business/AGENTS.md
-  ("`SessionStore` has a second day source"): "A write refused here and not at
-  its call site, always." 17e481c fixed the same shape for `logFlow`. A person
-  cannot reach it today: it needs a 🪫 save between leaving the demo and the
-  real day loading.
+- ~~**S8 — `logDrain` does not refuse the example day.**~~ Fixed 2026-10-03,
+  [energy-observation-store.svelte.spec.ts](src/lib/business/store/energy-observation-store.svelte.spec.ts).
 - ~~**M113 — six doc lines were false.**~~ Closed 2026-10-01 in the files
   themselves, with a seventh beside the fourth: `energy-calibration.ts`'s "only
   the sequence differs", where the Lab also conditions on its sliders. The "no
