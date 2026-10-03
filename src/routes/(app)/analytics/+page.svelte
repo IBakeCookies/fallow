@@ -31,17 +31,15 @@
 	} from '$lib/business/store/analytics-store.svelte';
 	import { getSessionStore } from '$lib/business/store/session-store.svelte';
 	import { getEnergyObservationStore } from '$lib/business/store/energy-observation-store.svelte';
+	import { getEnergyLabStore } from '$lib/business/store/energy-lab-store.svelte';
 
 	const analytics = setAnalyticsStore(() => showToast.danger(m.analytics_load_failed()));
 
 	const session = getSessionStore();
 	const observations = getEnergyObservationStore();
+	const lab = getEnergyLabStore();
 
-	// Derived here rather than read off a store: this page builds no `EnergyLabStore`,
-	// which is where the rest count of the same shape lives.
-	const pendingDrainLogs = $derived(
-		observations.drainObservations.filter((o) => o.date >= session.today).length,
-	);
+	const pendingDrainLogs = $derived(lab.pendingDrainLogCount);
 
 	// The two fit cards read these two stores and not the range, so they wait on their
 	// own pair rather than on `areLogsLoading`.

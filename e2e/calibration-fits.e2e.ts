@@ -19,8 +19,7 @@ import {
 } from './helpers';
 
 /* α and r are identity, so they fit logs dated strictly before today — the rating just
-   logged does not move the row, and with no other log there is nothing to apply. What the
-   rating IS counted by reads on /analytics, with the list it joined. */
+   logged does not move the row, and with no other log there is nothing to apply. */
 test('a drain rating logged today does not move the fit reading', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');
@@ -37,6 +36,26 @@ test('a drain rating logged today does not move the fit reading', async ({ page 
 			name: 'Apply my fits',
 		}),
 	).toHaveCount(0);
+});
+
+/* So both rows the rating will move name it, as both of analytics' drain rows do: a
+   reading that stayed put, with nothing beside it, reads as a rating that was lost. */
+test('a drain rating logged today is named on both drain rows', async ({ page }) => {
+	await page.goto('/');
+	await addTask(page, 'Deep work');
+	await page.waitForTimeout(AUTOSAVE_MS);
+	await page.goto('/energy');
+
+	await logDrain(page, 120, 9, 5);
+	await expect(drainChips(page)).toHaveCount(1);
+
+	await expect(page.locator('#alpha-cog-pending')).toHaveText(
+		'1 rating logged today, counted from tomorrow',
+	);
+
+	await expect(page.locator('#alpha-phys-pending')).toHaveText(
+		'1 rating logged today, counted from tomorrow',
+	);
 });
 
 /* 🪫's card moved to the page that lists its ratings; ☕'s and λ₀'s did not. ☕ is typed on
