@@ -51,7 +51,7 @@ Nothing on the page says which one holds the answer. In the order they read:
 7. **Colour is spent thinly and unevenly**: the band hues reach the strip's
    bars, the `Prio` and `Flow at` cells, the Momentum badge and two of the four
    metric rules — the other two are `line-soft`. The domain hues never reach the
-   ledger at all: `task-item.svelte:190-241` renders those cells as plain
+   ledger at all: `task-item.svelte` renders those cells as plain
    `ledger-cell ledger-numeric`, and `--mind` / `--body` live in the 🪫 editor
    and the add form's sliders.
 

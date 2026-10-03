@@ -68,7 +68,7 @@ function mulberry32(seed: number): () => number {
 	};
 }
 
-/** Both module-private in `zenith.ts` (`:164`, `:422`); read here, never set. */
+/** Both module-private in `zenith.ts`; read here, never set. */
 const PHI_FLOOR_HOURS = 0.1;
 const PHI_UNCERTAINTY_RELATIVE_CAP = 0.5;
 
