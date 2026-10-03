@@ -292,6 +292,16 @@ export class EnergyLabStore {
 	get isLoaded() {
 		return this.#loaded;
 	}
+	/** False until today's own day, its 🪫 logs and the params have settled — every input
+	 *  `stopAdvice` prices. */
+	get isStopAdviceReady() {
+		return (
+			this.#loaded &&
+			!this.#observations.isLoading &&
+			this.#session.loadedDate === this.#session.today &&
+			!this.#session.isShowingDemo
+		);
+	}
 
 	/**
 	 * The day window IS the session's budget — one value, no lab-local override

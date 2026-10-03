@@ -263,7 +263,8 @@ which of the two flags a site takes is the whole of it:
   `EnergyObservationStore.logDrain` (the layout's thunk hands it the flag),
   `saveCurrentAsRoutine`, `deleteRoutine`, the two tomorrow moves and their undo,
   `#rewriteTagInHistory`, and the two remaining reads a click can still reach
-  (`readDeferDestination`, `importFromDate`).
+  (`readDeferDestination`, `importFromDate`) — and `EnergyLabStore`'s
+  `isStopAdviceReady`, so the session clock prices its length off their own day.
   Leaving the demo drops the param while the fixture is still in `#tasks`, and a
   URL-keyed auto-save ran in exactly that gap and saved all six.
 

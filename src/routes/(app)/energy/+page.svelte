@@ -298,21 +298,23 @@
 			{restFormOpen ? m.common_cancel() : `☕ ${m.energy_log_rest()}`}
 		</button>
 		<!-- The Lab does not show the slide badge, so it gets no carry control. -->
-		<DayActions
-			selectedDate={session.selectedDate}
-			today={session.today}
-			yesterdaySession={session.yesterdaySession}
-			routines={session.routines}
-			currentTasks={session.tasks}
-			bind:timer={timerStore.timer}
-			getSuggestedMinutes={() => suggestTargetMinutes(lab.stopAdvice)}
-			onimport={(t) => session.importTasks(t)}
-			onimportdate={(d) => session.importFromDate(d)}
-			onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
-			ondeleteroutine={(id) => session.deleteRoutine(id)}
-			carryCount={0}
-			oncarry={() => {}}
-		/>
+		{#key lab.isStopAdviceReady}
+			<DayActions
+				selectedDate={session.selectedDate}
+				today={session.today}
+				yesterdaySession={session.yesterdaySession}
+				routines={session.routines}
+				currentTasks={session.tasks}
+				bind:timer={timerStore.timer}
+				getSuggestedMinutes={() => suggestTargetMinutes(lab.stopAdvice)}
+				onimport={(t) => session.importTasks(t)}
+				onimportdate={(d) => session.importFromDate(d)}
+				onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+				ondeleteroutine={(id) => session.deleteRoutine(id)}
+				carryCount={0}
+				oncarry={() => {}}
+			/>
+		{/key}
 	</div>
 {/snippet}
 

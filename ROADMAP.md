@@ -1395,3 +1395,14 @@ its midnight sibling is left open. The **M** series continues.
   own order, not the plan's, until the next visit. Any fix re-sorts under an
   open page, which the snapshot exists to refuse, though here every row has
   changed with the day: decide whether a day change may re-sort before building.
+
+## Findings from the 2026-10-03 citation sweep
+
+The 2026-08-27 note says nothing outside `/energy` reads the Lab's sliders, but
+the session timer on `/` has pre-filled its length from the Lab's stop advice
+since 2026-09-07. Checking that read found it taken before its day had loaded.
+The **M** series continues.
+
+- ~~**M116 — the session clock pre-fills its length before its day has
+  loaded.**~~ Fixed 2026-10-03,
+  [session-countdown.e2e.ts](e2e/session-countdown.e2e.ts).

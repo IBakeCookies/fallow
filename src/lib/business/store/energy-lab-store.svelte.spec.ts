@@ -1168,6 +1168,45 @@ describe('EnergyLabStore', () => {
 		expect(store.stopAdvice).toBeNull();
 	});
 
+	// The session clock reads the advice once, so it must wait for every input.
+	it('holds the stop advice unready until today and its logs have both been read', async () => {
+		const store = await setup();
+
+		mockSession.loadedDate = '2026-07-19';
+		expect(store.isStopAdviceReady).toBe(false);
+
+		mockSession.loadedDate = mockSession.today;
+		mockObservations.isLoading = true;
+		expect(store.isStopAdviceReady).toBe(false);
+
+		mockObservations.isLoading = false;
+		expect(store.isStopAdviceReady).toBe(true);
+	});
+
+	it('holds the stop advice unready on the example day', async () => {
+		const store = await setup();
+
+		mockSession.isShowingDemo = true;
+		expect(store.isStopAdviceReady).toBe(false);
+	});
+
+	it('holds the stop advice unready until the params have been read', async () => {
+		let resolveRead!: (value: undefined) => void;
+
+		readSettingMock.mockReturnValueOnce(new Promise((resolve) => (resolveRead = resolve)));
+
+		let store!: EnergyLabStore;
+
+		render(Harness, {
+			onstore: (s: EnergyLabStore) => (store = s),
+		});
+
+		expect(store.isStopAdviceReady).toBe(false);
+
+		resolveRead(undefined);
+		await vi.waitFor(() => expect(store.isStopAdviceReady).toBe(true));
+	});
+
 	/** What the recommended session is worth; the window-full verdict prices none. */
 	const marginalValue = (advice: StopAdvice | null) => {
 		if (advice === null || advice.verdict === 'window-full') {

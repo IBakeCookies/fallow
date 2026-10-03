@@ -28,6 +28,8 @@ class MockSession {
 	// The day the tasks and window belong to, which the real store lags behind
 	// `selectedDate` while a day loads.
 	loadedDate = $state('2026-07-20');
+	// The example day is seeded under today's date, so only this flag tells it apart.
+	isShowingDemo = $state(false);
 	// The destination preview and the key it is held fresh by: the real store reads
 	// tomorrow on demand and bumps the generation on every landed session write.
 	deferDestination = $state<DeferDestination | null>(null);
@@ -55,6 +57,7 @@ class MockSession {
 		this.availableHours = 8;
 		this.selectedDate = '2026-07-20';
 		this.loadedDate = '2026-07-20';
+		this.isShowingDemo = false;
 		this.deferDestination = null;
 		this.writeGenerations.clear();
 		this.pastWriteGeneration = 0;
@@ -65,10 +68,12 @@ class MockSession {
 class MockObservations {
 	drainObservations = $state<DrainObservationRecord[]>([]);
 	restObservations = $state<RestObservationRecord[]>([]);
+	isLoading = $state(false);
 
 	reset() {
 		this.drainObservations = [];
 		this.restObservations = [];
+		this.isLoading = false;
 	}
 }
 
