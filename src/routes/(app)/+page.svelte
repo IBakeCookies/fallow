@@ -210,21 +210,25 @@
 <h1 class="sr-only">{m.app_name()}</h1>
 
 {#snippet dayActions()}
-	<DayActions
-		{selectedDate}
-		{today}
-		yesterdaySession={session.yesterdaySession}
-		routines={session.routines}
-		currentTasks={tasks}
-		bind:timer={timerStore.timer}
-		getSuggestedMinutes={() => suggestTargetMinutes(lab.stopAdvice)}
-		onimport={(t) => session.importTasks(t)}
-		onimportdate={(d) => session.importFromDate(d)}
-		onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
-		ondeleteroutine={(id) => session.deleteRoutine(id)}
-		carryCount={session.carryableCount}
-		oncarry={() => carryUnfinishedWithUndo(session)}
-	/>
+	<!-- Keyed because the clock reads its suggested length once, and this page paints
+	     before the day it would be priced on has loaded. -->
+	{#key lab.isStopAdviceReady}
+		<DayActions
+			{selectedDate}
+			{today}
+			yesterdaySession={session.yesterdaySession}
+			routines={session.routines}
+			currentTasks={tasks}
+			bind:timer={timerStore.timer}
+			getSuggestedMinutes={() => suggestTargetMinutes(lab.stopAdvice)}
+			onimport={(t) => session.importTasks(t)}
+			onimportdate={(d) => session.importFromDate(d)}
+			onsaveroutine={(name) => session.saveCurrentAsRoutine(name)}
+			ondeleteroutine={(id) => session.deleteRoutine(id)}
+			carryCount={session.carryableCount}
+			oncarry={() => carryUnfinishedWithUndo(session)}
+		/>
+	{/key}
 {/snippet}
 
 <!-- The axis, withheld on an empty day: the card's own empty state already says there

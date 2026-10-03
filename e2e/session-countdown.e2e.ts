@@ -78,6 +78,41 @@ test('the session length prefills from the stop advisor', async ({ page }) => {
 	// a prefill taken before the day loaded reads exactly that.
 	expect(minutes).not.toBe(45);
 	await expect(advisorCard(page)).toContainText(formatMinutes(minutes));
+
+	// A fresh load, not the nav link: `/` paints before the day its advice reads has loaded.
+	await page.goto('/');
+	await expect(lengthField(page)).toHaveValue(String(minutes));
+
+	// And the Lab reached from a past day prices today, not the day it was left on.
+	await page.goto(`/?date=${isoDate(-1)}`);
+
+	await page
+		.getByRole('navigation')
+		.getByRole('link', {
+			name: 'Energy Lab',
+		})
+		.click();
+
+	await expect(lengthField(page)).toHaveValue(String(minutes));
+});
+
+// The example day is seeded under today's date, so leaving it changes no date at all.
+test('leaving the example day drops the length priced on it', async ({ page }) => {
+	await page.goto('/?demo');
+
+	const banner = page.getByRole('alert');
+
+	await expect(banner).toContainText('example day');
+
+	await banner
+		.getByRole('link', {
+			name: 'Start my own day',
+		})
+		.click();
+
+	await expect(page.getByText('No tasks deployed yet')).toBeVisible();
+
+	await expect(lengthField(page)).toHaveValue('45');
 });
 
 test('a day the advisor cannot price prefills one model step', async ({ page }) => {
