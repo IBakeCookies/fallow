@@ -777,8 +777,8 @@ test('a drain rating logged from the main page feeds the Lab', async ({ page }) 
 });
 
 /* α is identity, so it reads days strictly before today, on the same rule as the ϕ fit
-   (`daily-plan-store.svelte.ts:42`). A rating logged now is counted by the headline and
-   named by the sentence, never folded into the fit. */
+   (`DailyPlanStore`'s `#fitObservations`). A rating logged now is counted by the
+   headline and named by the sentence, never folded into the fit. */
 test('a rating logged today is named as deferred', async ({ page }) => {
 	await page.goto('/');
 	await addTask(page, 'Deep work');

@@ -310,12 +310,12 @@ _Settled 2026-08-27, not a roadmap item:_ the Energy Lab's "Apply my fits"
 button re-arming itself is not a calibration leak, and auto-applying is not the
 fix. **Nothing outside `/energy` reads the Lab's sliders.** The day's plan
 refits α and r from the logs on every derivation, anchored to the model defaults
-rather than the sliders (`daily-plan-store.svelte.ts:52`); ϕ refits the same way
-(`session-store.svelte.ts:201`); and the audit's per-day snapshots come from
-`readModelReport`, never from the Lab (`analytics-store.svelte.ts:204`, `:227`).
+rather than the sliders (`DailyPlanStore`'s `#calibration`); ϕ refits the same
+way (`SessionStore`'s `#constantsFit`); and the audit's per-day snapshots come
+from `readModelReport`, never from the Lab (`AnalyticsStore`'s constructor).
 So a user who never opens the Lab loses nothing — the plan, the metrics and the
 history were never on those numbers. The one consumer of a stale slider is the
-stop advisor (`energy-lab-store.svelte.ts:571`), which renders on the same
+stop advisor (`EnergyLabStore`'s `#stopAdvice`), which renders on the same
 screen as the re-armed button, so the stale reading and the click that fixes it
 are never out of sight of each other. Nor does the button re-arm on a schedule:
 `fitsApplied` compares each param against `round2` of its fit, so a fit that has
@@ -324,9 +324,10 @@ the low log counts where the fit is least worth trusting anyway. Auto-applying
 would also have to overwrite manual slider edits with no provenance
 distinguishing a fitted value from a user's, against §8.7/§8.9/§8.10's settled
 "a fit never writes params silently"
-([business/model/AGENTS.md](src/lib/business/model/AGENTS.md), line 198). Written
-down because a button that re-arms itself reads as a bug from outside the call
-graph — it was diagnosed as one twice before the consumers were checked.
+([business/model/AGENTS.md](src/lib/business/model/AGENTS.md), "Energy model").
+Written down because a button that re-arms itself reads as a bug from outside
+the call graph — it was diagnosed as one twice before the consumers were
+checked.
 
 Four leads from the 2026-09-04 next-work sweep, kept here rather than in a
 findings block because each one is work somebody has to choose, not a defect
