@@ -1291,12 +1291,9 @@ re-ranking with `computeNextTasks` after `addTask`.
   the sequence differs", where the Lab also conditions on its sliders. The "no
   `$effect` touches `plan`" pair now states the rule and points at M110, and
   correcting "the Lab's α and r cards" raised M114.
-- **M114 — the Lab's α rows print the fit's count but never name today's
-  deferred 🪫 ratings — raised 2026-10-01.** model/AGENTS.md: "Any UI that
-  prints a log count must print the **counted** one and name the deferred ones
-  separately". The deferred line left `/energy` with the drain card in 666585e,
-  and both α rows kept their `n=`; the ☕ card on the same page still names its
-  deferred logs. The fix also drops the M114 pointer in business/AGENTS.md.
+- ~~**M114 — the Lab's α rows print the fit's count but never name today's
+  deferred 🪫 ratings.**~~ Fixed 2026-10-03,
+  [calibration-fits.e2e.ts](e2e/calibration-fits.e2e.ts).
 
 The deepenings, strongest first. A1 is the review's top pick and A2 the cheap
 runner-up.
@@ -1326,8 +1323,7 @@ runner-up.
 - **A3 — the identity fits' input window is spelled by each caller — raised
   2026-10-01.** "Days strictly before D, the first informative row per day, and
   name what is deferred" is one decision, but `calibrateEnergyParams` takes no
-  day, so the window is spelled at 11 sites in 5 modules, one of them
-  `analytics/+page.svelte`
+  day, so the window is spelled at 11 sites in 4 modules
   (`grep -rnE "(o|row)\.date (<|>=) (this\.#session\.(today|selectedDate)|session\.today|today)\b" src`).
   The Lab rebuilds the chain instead of calling the facade, and that drift
   shipped as 76684d4. Direction: the calibration module takes the day and

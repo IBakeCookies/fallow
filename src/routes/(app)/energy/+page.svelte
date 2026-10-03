@@ -72,6 +72,7 @@
 	const cogDrainFit = $derived(lab.cognitiveDrainFit);
 	const physDrainFit = $derived(lab.physicalDrainFit);
 	const recoveryFit = $derived(lab.recoveryFit);
+	const pendingDrainLogs = $derived(lab.pendingDrainLogCount);
 	const pendingRestLogs = $derived(lab.pendingRestLogCount);
 	const stopFit = $derived(lab.stoppingFit);
 	const stopAdvice = $derived(lab.stopAdvice);
@@ -233,6 +234,16 @@
 
 	const cogDrainReading = $derived(drainReading(cogDrainFit));
 	const physDrainReading = $derived(drainReading(physDrainFit));
+
+	const drainPending = $derived(
+		pendingDrainLogs === 0
+			? undefined
+			: pendingDrainLogs === 1
+				? m.energy_drain_pending_one()
+				: m.energy_drain_pending({
+						count: pendingDrainLogs,
+					}),
+	);
 
 	const recoveryReading = $derived(
 		restObservations.length === 0
@@ -576,6 +587,7 @@
 									unit={m.unit_per_hour()}
 									accent="focus-within:border-mind-line"
 									fit={cogDrainReading}
+									pending={drainPending}
 								/>
 								<ParamRow
 									id="alpha-phys"
@@ -589,6 +601,7 @@
 									unit={m.unit_per_hour()}
 									accent="focus-within:border-body-line"
 									fit={physDrainReading}
+									pending={drainPending}
 								/>
 								<ParamRow
 									id="recovery-rate"

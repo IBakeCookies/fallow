@@ -23,6 +23,8 @@
 		accent?: string;
 		/** What the user's own logs fit, formatted; `null` when they carry no signal, absent when there are none */
 		fit?: string | null;
+		/** The logs that fit has not read yet, named; absent when there are none */
+		pending?: string;
 		class?: string;
 	}
 
@@ -38,6 +40,7 @@
 		unit,
 		accent,
 		fit,
+		pending,
 		class: className,
 	}: Props = $props();
 </script>
@@ -70,4 +73,7 @@
 		{/if}
 	</div>
 	<NumberInput {id} {value} {onchange} {min} {max} {step} {unit} {accent} />
+	{#if pending}
+		<p id="{id}-pending" class="mt-text-2xs text-xs text-ty-silent">{pending}</p>
+	{/if}
 </div>

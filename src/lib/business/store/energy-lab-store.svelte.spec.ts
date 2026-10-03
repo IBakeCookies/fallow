@@ -792,7 +792,7 @@ describe('EnergyLabStore', () => {
 		expect(store.recoveryFit.fitted).toBe(false);
 	});
 
-	it('counts the deferred rest rows rather than dropping them', async () => {
+	it('counts the deferred drain and rest rows rather than dropping them', async () => {
 		const store = await setup();
 
 		mockObservations.drainObservations = [
@@ -817,6 +817,7 @@ describe('EnergyLabStore', () => {
 
 		flushSync();
 
+		expect(store.pendingDrainLogCount).toBe(2);
 		expect(store.pendingRestLogCount).toBe(1);
 	});
 
