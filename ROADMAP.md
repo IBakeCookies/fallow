@@ -308,16 +308,24 @@ different number:
 
 _Settled 2026-08-27, not a roadmap item:_ the Energy Lab's "Apply my fits"
 button re-arming itself is not a calibration leak, and auto-applying is not the
-fix. **Nothing outside `/energy` reads the Lab's sliders.** The day's plan
-refits α and r from the logs on every derivation, anchored to the model defaults
-rather than the sliders (`DailyPlanStore`'s `#calibration`); ϕ refits the same
-way (`SessionStore`'s `#constantsFit`); and the audit's per-day snapshots come
-from `readModelReport`, never from the Lab (`AnalyticsStore`'s constructor).
-So a user who never opens the Lab loses nothing — the plan, the metrics and the
-history were never on those numbers. The one consumer of a stale slider is the
-stop advisor (`EnergyLabStore`'s `#stopAdvice`), which renders on the same
-screen as the re-armed button, so the stale reading and the click that fixes it
-are never out of sight of each other. Nor does the button re-arm on a schedule:
+fix. **Nothing outside `/energy` reads the Lab's sliders but the session
+timer's pre-filled length.** The day's plan refits α and r from the logs on
+every derivation, anchored to the model defaults rather than the sliders
+(`DailyPlanStore`'s `#calibration`); ϕ refits the same way (`SessionStore`'s
+`#constantsFit`); and the audit's per-day snapshots come from
+`readModelReport`, never from the Lab (`AnalyticsStore`'s constructor). So a
+user who never opens the Lab loses nothing the day is planned or scored on —
+the plan, the metrics and the history were never on those numbers. The one
+consumer of a stale slider is the stop advisor (`EnergyLabStore`'s
+`#stopAdvice`), whose card renders on the same screen as the re-armed button,
+so the stale reading and the click that fixes it are never out of sight of
+each other. Its session length is the exception: since 2026-09-07 it also
+pre-fills the timer on `/`, so both screens offer one advice
+([the-clock-that-rings-once.md](docs/features/the-clock-that-rings-once.md);
+pinned by "the session length prefills from the stop advisor"). That reading
+is out of the button's sight, and is accepted because it is a length the user
+can retype before starting, never a model input. Nor does the button re-arm on
+a schedule:
 `fitsApplied` compares each param against `round2` of its fit, so a fit that has
 stopped moving at two decimals stops asking, and the prompting is heaviest at
 the low log counts where the fit is least worth trusting anyway. Auto-applying
