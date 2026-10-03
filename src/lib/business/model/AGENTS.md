@@ -76,9 +76,9 @@ a constant, a bound, or a fit's conditioning:
   that prints a log count must print the **counted** one and name the deferred
   ones separately, or the ⚡ button reads as broken. History obeys the same rule
   by **reading** the stored `fitSnapshots` per day rather than refitting:
-  `readDaySummaries` scores each day under its recorded fit, falling back to the
-  live fit for a day with none; the ☕/🪫 skill readings grade a past rating
-  under its date's record, today's under the live fit, and skip a day with none.
+  `readDaySummaries` and the trend read a past day under its record and today
+  under the live fit, which also stands in for a missing record; the ☕/🪫 skill
+  readings do the same, except that they skip a day with no record.
 - Three constraints: the time budget plus cognitive/physical capacity pools
   (task weight = dimension difficulty / 10). Context switches cost `switchCost`
   hours — attention residue, distinct from ramp-up, which ϕ already prices —

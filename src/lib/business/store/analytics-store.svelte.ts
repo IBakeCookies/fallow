@@ -81,7 +81,7 @@ export class AnalyticsStore {
 	#audit = $state<PlanAudit | null>(null);
 	/** Calibration snapshot ("Your model" card); null while loading or failed. */
 	#calibration = $state<CalibrationSnapshot | null>(null);
-	/** The fitted energy params the trend is read through; null until they land. */
+	/** The live energy fit, the trend's for today and unrecorded days; null until it lands. */
 	#energyParams = $state<EnergyParams | null>(null);
 	/** The 🪫 rows the trend seeds each morning from; empty until they land. */
 	#drain = $state<DrainObservationRecord[]>([]);
@@ -168,10 +168,10 @@ export class AnalyticsStore {
 
 	/**
 	 * Burnout Risk and the two Loads per day in the viewed range.
-	 * `null` until the model report lands, because the series is read through the
-	 * user's own calibrated energy params and yesterday's 🪫 rows — a trend on the
-	 * defaults would contradict today's tile for a reason nothing on the page
-	 * explains.
+	 * `null` until the model report lands, because today and a day with no
+	 * recorded fit are read through the live energy params, and every morning
+	 * through yesterday's 🪫 rows — a trend on the defaults would contradict
+	 * today's tile for a reason nothing on the page explains.
 	 *
 	 * `$derived.by` and not a plain getter: the fold runs one energy simulation
 	 * per day in the range, and the page reads this twice per derivation (once to

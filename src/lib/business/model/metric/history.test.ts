@@ -219,6 +219,57 @@ describe('calculateMetricTrend', () => {
 		);
 	});
 
+	it('prices each day under the α and r recorded on it, the handed params only where none was', () => {
+		// Slow recovery so the predecessor's 🪫 row carries into the morning, which
+		// is then seeded under the record as well.
+		const record = {
+			...DEFAULT_ENERGY_PARAMS,
+			alphaCog: DEFAULT_ENERGY_PARAMS.alphaCog * 3,
+			recoveryRate: 0.1,
+		};
+
+		const drained: DrainObservationRecord = {
+			date: '2026-07-10',
+			taskId: 1,
+			taskTitle: 'deep work',
+			hours: 8,
+			cognitiveDemand: 1,
+			physicalDemand: 0.5,
+			mindDrain: 6,
+			bodyDrain: 2,
+			createdAt: 0,
+		};
+
+		const [unrecorded, plain] = ['2026-07-10', '2026-07-11'].map((date) =>
+			summarizeSession({
+				...makeSession(2),
+				date,
+			}),
+		);
+
+		const trend = calculateMetricTrend(
+			[
+				unrecorded,
+				{
+					...plain,
+					energyParams: record,
+				},
+			],
+			DEFAULT_ENERGY_PARAMS,
+			[drained],
+		);
+
+		const [underRecord] = calculateMetricTrend([plain], record, [drained]);
+		const [underLive] = calculateMetricTrend([plain], DEFAULT_ENERGY_PARAMS, [drained]);
+
+		expect(underRecord.burnoutRisk).not.toBe(underLive.burnoutRisk);
+		expect(trend[1]).toEqual(underRecord);
+
+		expect(trend[0]).toEqual(
+			calculateMetricTrend([unrecorded], DEFAULT_ENERGY_PARAMS, [drained])[0],
+		);
+	});
+
 	it('seeds each morning from the PREVIOUS day 🪫 rows, not the point own', () => {
 		// At DEFAULT_ENERGY_PARAMS a night heals completely, so carry-over is
 		// invisible by construction — this is the fitted regime where it is not.
